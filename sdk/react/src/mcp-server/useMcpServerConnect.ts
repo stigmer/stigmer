@@ -4,7 +4,7 @@ import { useCallback, useState } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { ConnectInputSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
-import type { EnvVarInput } from "@stigmer/sdk";
+import { connectAndWait, type EnvVarInput } from "@stigmer/sdk";
 import { useStigmer } from "../hooks.js";
 import { resolveDeclaredSystemEnvVars } from "../environment/systemEnvVars.js";
 import { toError } from "../internal/toError.js";
@@ -15,9 +15,12 @@ export interface UseMcpServerConnectReturn {
    * Connect to an MCP server: discover its tools, resource templates,
    * and classify tool approval policies via a lightweight LLM call.
    *
-   * Calls the `connect` RPC which starts a Temporal workflow on the
-   * runner. The RPC blocks until the workflow completes
-   * (typically 5-15 seconds, ~30s timeout).
+   * Uses the async connect lane (`startConnect` + polling via the SDK's
+   * `connectAndWait`, stigmer/stigmer#425): the promise still resolves
+   * when the operation settles — legitimately tens of seconds to minutes
+   * for heavy servers — but no RPC stays open that long, so the wait
+   * survives browser transport limits. Backends without the lane fall
+   * back to the blocking `connect` RPC transparently.
    *
    * Platform system env vars (`STIGMER_SERVER_ADDRESS`,
    * `STIGMER_API_KEY`) are injected only when the MCP server
@@ -45,7 +48,7 @@ export interface UseMcpServerConnectReturn {
     runtimeEnv?: Record<string, EnvVarInput>,
     declaredEnvKeys?: readonly string[],
   ) => Promise<McpServer>;
-  /** `true` while the connect RPC is in flight. */
+  /** `true` while the connect operation is in flight (start through settle). */
   readonly isConnecting: boolean;
   /** Error from the most recent failed connect, or `null`. */
   readonly error: Error | null;
@@ -129,7 +132,7 @@ export function useMcpServerConnect(): UseMcpServerConnectReturn {
             : {}),
         });
 
-        return await stigmer.mcpServer.connect(input);
+        return await connectAndWait(stigmer.mcpServer, input);
       } catch (err) {
         const wrapped = toError(err);
         setError(wrapped);

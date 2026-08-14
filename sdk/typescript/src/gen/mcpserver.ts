@@ -71,6 +71,12 @@ export class McpServerClient {
     } catch (e) { throw wrapError(e); }
   }
 
+  async startConnect(input: ConnectInput): Promise<McpServer> {
+    try {
+      return await this.command.startConnect(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
   async initiateOAuthConnect(input: InitiateOAuthConnectInput): Promise<InitiateOAuthConnectOutput> {
     try {
       return await this.command.initiateOAuthConnect(input);

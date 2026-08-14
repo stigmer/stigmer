@@ -164,7 +164,7 @@ public enum OAuthAppSource
   }
   public static com.google.protobuf.Descriptors.EnumDescriptor
       getDescriptor() {
-    return ai.stigmer.agentic.mcpserver.v1.StatusProto.getDescriptor().getEnumType(1);
+    return ai.stigmer.agentic.mcpserver.v1.StatusProto.getDescriptor().getEnumType(2);
   }
 
   private static final OAuthAppSource[] VALUES = values();

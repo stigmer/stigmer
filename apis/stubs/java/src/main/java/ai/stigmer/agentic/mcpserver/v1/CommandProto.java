@@ -42,7 +42,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "proto\032\'ai/stigmer/commons/apiresource/io" +
       ".proto\0328ai/stigmer/commons/apiresource/r" +
       "pc_service_options.proto\032+ai/stigmer/com" +
-      "mons/rpc/method_options.proto2\246\017\n\032McpSer" +
+      "mons/rpc/method_options.proto2\322\020\n\032McpSer" +
       "verCommandController\022_\n\005apply\022*.ai.stigm" +
       "er.agentic.mcpserver.v1.McpServer\032*.ai.s" +
       "tigmer.agentic.mcpserver.v1.McpServer\022f\n" +
@@ -65,38 +65,42 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "r.agentic.mcpserver.v1.ConnectInput\032*.ai" +
       ".stigmer.agentic.mcpserver.v1.McpServer\"" +
       ">\302\270\030:\010\026\020,\"\rmcp_server_id*%unauthorized t" +
-      "o connect to mcp server\022\337\001\n\024initiateOAut" +
-      "hConnect\022:.ai.stigmer.agentic.mcpserver." +
-      "v1.InitiateOAuthConnectInput\032;.ai.stigme" +
-      "r.agentic.mcpserver.v1.InitiateOAuthConn" +
-      "ectOutput\"N\302\270\030J\010\026\020,\"\rmcp_server_id*5unau" +
-      "thorized to initiate oauth connect for m" +
-      "cp server\022\337\001\n\024completeOAuthConnect\022:.ai." +
-      "stigmer.agentic.mcpserver.v1.CompleteOAu" +
-      "thConnectInput\032;.ai.stigmer.agentic.mcps" +
-      "erver.v1.CompleteOAuthConnectOutput\"N\302\270\030" +
-      "J\010\026\020,\"\rmcp_server_id*5unauthorized to co" +
-      "mplete oauth connect for mcp server\022\310\001\n\017" +
-      "disconnectOAuth\0225.ai.stigmer.agentic.mcp" +
-      "server.v1.DisconnectOAuthInput\0326.ai.stig" +
-      "mer.agentic.mcpserver.v1.DisconnectOAuth" +
-      "Output\"F\302\270\030B\010\026\020,\"\013resource_id*/unauthori" +
-      "zed to disconnect oauth for mcp server\022\270" +
-      "\001\n\016setOrgOAuthApp\0224.ai.stigmer.agentic.m" +
-      "cpserver.v1.SetOrgOAuthAppInput\0325.ai.sti" +
-      "gmer.agentic.mcpserver.v1.SetOrgOAuthApp" +
-      "Output\"9\302\270\0305\010\027\020\036\"\003org**unauthorized to s" +
-      "et org oauth app override\022\304\001\n\021deleteOrgO" +
-      "AuthApp\0227.ai.stigmer.agentic.mcpserver.v" +
-      "1.DeleteOrgOAuthAppInput\0328.ai.stigmer.ag" +
-      "entic.mcpserver.v1.DeleteOrgOAuthAppOutp" +
-      "ut\"<\302\270\0308\010\027\020\036\"\003org*-unauthorized to delet" +
-      "e org oauth app override\032\004\240\377+,B\257\001B\014Comma" +
-      "ndProtoP\001\242\002\004ASAM\252\002\037Ai.Stigmer.Agentic.Mc" +
-      "pserver.V1\312\002\037Ai\\Stigmer\\Agentic\\Mcpserve" +
-      "r\\V1\342\002+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\G" +
-      "PBMetadata\352\002#Ai::Stigmer::Agentic::Mcpse" +
-      "rver::V1b\006proto3"
+      "o connect to mcp server\022\251\001\n\014startConnect" +
+      "\022-.ai.stigmer.agentic.mcpserver.v1.Conne" +
+      "ctInput\032*.ai.stigmer.agentic.mcpserver.v" +
+      "1.McpServer\">\302\270\030:\010\026\020,\"\rmcp_server_id*%un" +
+      "authorized to connect to mcp server\022\337\001\n\024" +
+      "initiateOAuthConnect\022:.ai.stigmer.agenti" +
+      "c.mcpserver.v1.InitiateOAuthConnectInput" +
+      "\032;.ai.stigmer.agentic.mcpserver.v1.Initi" +
+      "ateOAuthConnectOutput\"N\302\270\030J\010\026\020,\"\rmcp_ser" +
+      "ver_id*5unauthorized to initiate oauth c" +
+      "onnect for mcp server\022\337\001\n\024completeOAuthC" +
+      "onnect\022:.ai.stigmer.agentic.mcpserver.v1" +
+      ".CompleteOAuthConnectInput\032;.ai.stigmer." +
+      "agentic.mcpserver.v1.CompleteOAuthConnec" +
+      "tOutput\"N\302\270\030J\010\026\020,\"\rmcp_server_id*5unauth" +
+      "orized to complete oauth connect for mcp" +
+      " server\022\310\001\n\017disconnectOAuth\0225.ai.stigmer" +
+      ".agentic.mcpserver.v1.DisconnectOAuthInp" +
+      "ut\0326.ai.stigmer.agentic.mcpserver.v1.Dis" +
+      "connectOAuthOutput\"F\302\270\030B\010\026\020,\"\013resource_i" +
+      "d*/unauthorized to disconnect oauth for " +
+      "mcp server\022\270\001\n\016setOrgOAuthApp\0224.ai.stigm" +
+      "er.agentic.mcpserver.v1.SetOrgOAuthAppIn" +
+      "put\0325.ai.stigmer.agentic.mcpserver.v1.Se" +
+      "tOrgOAuthAppOutput\"9\302\270\0305\010\027\020\036\"\003org**unaut" +
+      "horized to set org oauth app override\022\304\001" +
+      "\n\021deleteOrgOAuthApp\0227.ai.stigmer.agentic" +
+      ".mcpserver.v1.DeleteOrgOAuthAppInput\0328.a" +
+      "i.stigmer.agentic.mcpserver.v1.DeleteOrg" +
+      "OAuthAppOutput\"<\302\270\0308\010\027\020\036\"\003org*-unauthori" +
+      "zed to delete org oauth app override\032\004\240\377" +
+      "+,B\257\001B\014CommandProtoP\001\242\002\004ASAM\252\002\037Ai.Stigme" +
+      "r.Agentic.Mcpserver.V1\312\002\037Ai\\Stigmer\\Agen" +
+      "tic\\Mcpserver\\V1\342\002+Ai\\Stigmer\\Agentic\\Mc" +
+      "pserver\\V1\\GPBMetadata\352\002#Ai::Stigmer::Ag" +
+      "entic::Mcpserver::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

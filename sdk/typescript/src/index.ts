@@ -236,6 +236,14 @@ export {
   type ToolApprovalPolicyInput,
 } from "./gen/mcpserver.js";
 export {
+  connectAndWait,
+  ConnectStillRunningError,
+  CONNECT_POLL_INTERVAL_MS,
+  CONNECT_SETTLE_BOUND_MS,
+  type ConnectAndWaitOptions,
+  type McpServerConnectLane,
+} from "./mcpserver-connect.js";
+export {
   OrganizationClient,
   type OrganizationInput,
 } from "./gen/organization.js";

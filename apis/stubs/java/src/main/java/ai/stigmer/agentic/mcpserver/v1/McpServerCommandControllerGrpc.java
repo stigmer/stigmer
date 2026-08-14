@@ -208,6 +208,37 @@ public final class McpServerCommandControllerGrpc {
     return getConnectMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.mcpserver.v1.ConnectInput,
+      ai.stigmer.agentic.mcpserver.v1.McpServer> getStartConnectMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "startConnect",
+      requestType = ai.stigmer.agentic.mcpserver.v1.ConnectInput.class,
+      responseType = ai.stigmer.agentic.mcpserver.v1.McpServer.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.mcpserver.v1.ConnectInput,
+      ai.stigmer.agentic.mcpserver.v1.McpServer> getStartConnectMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.mcpserver.v1.ConnectInput, ai.stigmer.agentic.mcpserver.v1.McpServer> getStartConnectMethod;
+    if ((getStartConnectMethod = McpServerCommandControllerGrpc.getStartConnectMethod) == null) {
+      synchronized (McpServerCommandControllerGrpc.class) {
+        if ((getStartConnectMethod = McpServerCommandControllerGrpc.getStartConnectMethod) == null) {
+          McpServerCommandControllerGrpc.getStartConnectMethod = getStartConnectMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.mcpserver.v1.ConnectInput, ai.stigmer.agentic.mcpserver.v1.McpServer>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "startConnect"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.mcpserver.v1.ConnectInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.mcpserver.v1.McpServer.getDefaultInstance()))
+              .setSchemaDescriptor(new McpServerCommandControllerMethodDescriptorSupplier("startConnect"))
+              .build();
+        }
+      }
+    }
+    return getStartConnectMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectInput,
       ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectOutput> getInitiateOAuthConnectMethod;
 
@@ -531,17 +562,21 @@ public final class McpServerCommandControllerGrpc {
      * Connects to the MCP server, enumerates tools and resource templates,
      * classifies tool approval policies via a lightweight LLM, and stores the
      * results in status.discovered_capabilities and status.tool_approvals.
-     * Blocks until completion (up to ~30 seconds) and returns the updated McpServer.
+     * Blocks until the operation settles — legitimately minutes for heavy
+     * stdio servers (the server-side workflow ceiling is the bound) — and
+     * returns the updated McpServer.
+     * Prefer startConnect for interactive clients: browsers can drop a
+     * no-bytes-yet unary response around ~300s, below the workflow ceiling,
+     * so a blocking connect can appear to fail while succeeding server-side.
+     * This RPC remains for callers that want synchronous semantics (and for
+     * backends that do not yet serve startConnect).
      * &#64;internal
      * Typical flows:
-     * - Web console: user clicks Connect, backend resolves env vars from the
-     *   user's personal environment, starts a Temporal workflow on the runner
-     *   (stigmer-runner).
-     * - CLI: `stigmer discover mcp-server &lt;name&gt;` calls connect with runtime_env
-     *   populated from local env vars, delegating discovery to the backend.
      * - Runner backfill: the runner calls connect on first use when
      *   status.discovered_capabilities is empty, passing runtime_env from the
      *   execution context (shared/connect-backfill.ts).
+     * - CLI / web console: legacy callers, and the fallback lane when
+     *   startConnect answers UNIMPLEMENTED (a backend predating it).
      * Errors:
      * - FAILED_PRECONDITION: Required credentials missing from personal environment
      * - DEADLINE_EXCEEDED: Discovery did not complete within the timeout
@@ -552,6 +587,43 @@ public final class McpServerCommandControllerGrpc {
     default void connect(ai.stigmer.agentic.mcpserver.v1.ConnectInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.McpServer> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getConnectMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Start a connect operation without waiting for it: discovery and
+     * classification run server-side, and the caller observes progress by
+     * polling the resource.
+     * Returns the McpServer immediately with status.connect_status describing
+     * the accepted operation (phase CONNECTING, plus a warning when no runner
+     * appears to be polling the task queue). Poll get/getByReference until
+     * status.connect_status reaches a terminal phase; results land in
+     * status.discovered_capabilities and status.tool_approvals exactly as with
+     * the blocking connect.
+     * Idempotent while an operation is in flight: a startConnect that finds a
+     * live CONNECTING operation attaches to it (the in-flight operation's
+     * runtime_env wins) instead of starting a second workflow. A CONNECTING
+     * entry orphaned by a backend restart is reconciled against Temporal
+     * before a new operation starts.
+     * &#64;internal
+     * The async lane exists because every budget stretch inside the blocking
+     * shape hit a client transport limit eventually (stigmer/stigmer#425):
+     * browser fetch drops no-bytes unary responses (~300s), classification
+     * budgets scale with tool count past any flat ceiling, and dead-runner
+     * feedback rode the same timer. Setup that needs the caller's identity
+     * (OAuth refresh pre-flight, personal-environment resolution, EC creation)
+     * happens synchronously in this RPC; only awaiting the workflow moves to
+     * the background.
+     * Errors (start-time only — post-start failures land in connect_status):
+     * - FAILED_PRECONDITION: Required credentials missing from personal environment
+     * - NOT_FOUND: MCP server does not exist
+     * - UNIMPLEMENTED: backend predates the async lane (clients fall back to connect)
+     * Authorization: Requires can_connect permission on the mcp_server resource.
+     * </pre>
+     */
+    default void startConnect(ai.stigmer.agentic.mcpserver.v1.ConnectInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.McpServer> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getStartConnectMethod(), responseObserver);
     }
 
     /**
@@ -826,17 +898,21 @@ public final class McpServerCommandControllerGrpc {
      * Connects to the MCP server, enumerates tools and resource templates,
      * classifies tool approval policies via a lightweight LLM, and stores the
      * results in status.discovered_capabilities and status.tool_approvals.
-     * Blocks until completion (up to ~30 seconds) and returns the updated McpServer.
+     * Blocks until the operation settles — legitimately minutes for heavy
+     * stdio servers (the server-side workflow ceiling is the bound) — and
+     * returns the updated McpServer.
+     * Prefer startConnect for interactive clients: browsers can drop a
+     * no-bytes-yet unary response around ~300s, below the workflow ceiling,
+     * so a blocking connect can appear to fail while succeeding server-side.
+     * This RPC remains for callers that want synchronous semantics (and for
+     * backends that do not yet serve startConnect).
      * &#64;internal
      * Typical flows:
-     * - Web console: user clicks Connect, backend resolves env vars from the
-     *   user's personal environment, starts a Temporal workflow on the runner
-     *   (stigmer-runner).
-     * - CLI: `stigmer discover mcp-server &lt;name&gt;` calls connect with runtime_env
-     *   populated from local env vars, delegating discovery to the backend.
      * - Runner backfill: the runner calls connect on first use when
      *   status.discovered_capabilities is empty, passing runtime_env from the
      *   execution context (shared/connect-backfill.ts).
+     * - CLI / web console: legacy callers, and the fallback lane when
+     *   startConnect answers UNIMPLEMENTED (a backend predating it).
      * Errors:
      * - FAILED_PRECONDITION: Required credentials missing from personal environment
      * - DEADLINE_EXCEEDED: Discovery did not complete within the timeout
@@ -848,6 +924,44 @@ public final class McpServerCommandControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.McpServer> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getConnectMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Start a connect operation without waiting for it: discovery and
+     * classification run server-side, and the caller observes progress by
+     * polling the resource.
+     * Returns the McpServer immediately with status.connect_status describing
+     * the accepted operation (phase CONNECTING, plus a warning when no runner
+     * appears to be polling the task queue). Poll get/getByReference until
+     * status.connect_status reaches a terminal phase; results land in
+     * status.discovered_capabilities and status.tool_approvals exactly as with
+     * the blocking connect.
+     * Idempotent while an operation is in flight: a startConnect that finds a
+     * live CONNECTING operation attaches to it (the in-flight operation's
+     * runtime_env wins) instead of starting a second workflow. A CONNECTING
+     * entry orphaned by a backend restart is reconciled against Temporal
+     * before a new operation starts.
+     * &#64;internal
+     * The async lane exists because every budget stretch inside the blocking
+     * shape hit a client transport limit eventually (stigmer/stigmer#425):
+     * browser fetch drops no-bytes unary responses (~300s), classification
+     * budgets scale with tool count past any flat ceiling, and dead-runner
+     * feedback rode the same timer. Setup that needs the caller's identity
+     * (OAuth refresh pre-flight, personal-environment resolution, EC creation)
+     * happens synchronously in this RPC; only awaiting the workflow moves to
+     * the background.
+     * Errors (start-time only — post-start failures land in connect_status):
+     * - FAILED_PRECONDITION: Required credentials missing from personal environment
+     * - NOT_FOUND: MCP server does not exist
+     * - UNIMPLEMENTED: backend predates the async lane (clients fall back to connect)
+     * Authorization: Requires can_connect permission on the mcp_server resource.
+     * </pre>
+     */
+    public void startConnect(ai.stigmer.agentic.mcpserver.v1.ConnectInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.McpServer> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getStartConnectMethod(), getCallOptions()), request, responseObserver);
     }
 
     /**
@@ -1101,17 +1215,21 @@ public final class McpServerCommandControllerGrpc {
      * Connects to the MCP server, enumerates tools and resource templates,
      * classifies tool approval policies via a lightweight LLM, and stores the
      * results in status.discovered_capabilities and status.tool_approvals.
-     * Blocks until completion (up to ~30 seconds) and returns the updated McpServer.
+     * Blocks until the operation settles — legitimately minutes for heavy
+     * stdio servers (the server-side workflow ceiling is the bound) — and
+     * returns the updated McpServer.
+     * Prefer startConnect for interactive clients: browsers can drop a
+     * no-bytes-yet unary response around ~300s, below the workflow ceiling,
+     * so a blocking connect can appear to fail while succeeding server-side.
+     * This RPC remains for callers that want synchronous semantics (and for
+     * backends that do not yet serve startConnect).
      * &#64;internal
      * Typical flows:
-     * - Web console: user clicks Connect, backend resolves env vars from the
-     *   user's personal environment, starts a Temporal workflow on the runner
-     *   (stigmer-runner).
-     * - CLI: `stigmer discover mcp-server &lt;name&gt;` calls connect with runtime_env
-     *   populated from local env vars, delegating discovery to the backend.
      * - Runner backfill: the runner calls connect on first use when
      *   status.discovered_capabilities is empty, passing runtime_env from the
      *   execution context (shared/connect-backfill.ts).
+     * - CLI / web console: legacy callers, and the fallback lane when
+     *   startConnect answers UNIMPLEMENTED (a backend predating it).
      * Errors:
      * - FAILED_PRECONDITION: Required credentials missing from personal environment
      * - DEADLINE_EXCEEDED: Discovery did not complete within the timeout
@@ -1122,6 +1240,43 @@ public final class McpServerCommandControllerGrpc {
     public ai.stigmer.agentic.mcpserver.v1.McpServer connect(ai.stigmer.agentic.mcpserver.v1.ConnectInput request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getConnectMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Start a connect operation without waiting for it: discovery and
+     * classification run server-side, and the caller observes progress by
+     * polling the resource.
+     * Returns the McpServer immediately with status.connect_status describing
+     * the accepted operation (phase CONNECTING, plus a warning when no runner
+     * appears to be polling the task queue). Poll get/getByReference until
+     * status.connect_status reaches a terminal phase; results land in
+     * status.discovered_capabilities and status.tool_approvals exactly as with
+     * the blocking connect.
+     * Idempotent while an operation is in flight: a startConnect that finds a
+     * live CONNECTING operation attaches to it (the in-flight operation's
+     * runtime_env wins) instead of starting a second workflow. A CONNECTING
+     * entry orphaned by a backend restart is reconciled against Temporal
+     * before a new operation starts.
+     * &#64;internal
+     * The async lane exists because every budget stretch inside the blocking
+     * shape hit a client transport limit eventually (stigmer/stigmer#425):
+     * browser fetch drops no-bytes unary responses (~300s), classification
+     * budgets scale with tool count past any flat ceiling, and dead-runner
+     * feedback rode the same timer. Setup that needs the caller's identity
+     * (OAuth refresh pre-flight, personal-environment resolution, EC creation)
+     * happens synchronously in this RPC; only awaiting the workflow moves to
+     * the background.
+     * Errors (start-time only — post-start failures land in connect_status):
+     * - FAILED_PRECONDITION: Required credentials missing from personal environment
+     * - NOT_FOUND: MCP server does not exist
+     * - UNIMPLEMENTED: backend predates the async lane (clients fall back to connect)
+     * Authorization: Requires can_connect permission on the mcp_server resource.
+     * </pre>
+     */
+    public ai.stigmer.agentic.mcpserver.v1.McpServer startConnect(ai.stigmer.agentic.mcpserver.v1.ConnectInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getStartConnectMethod(), getCallOptions(), request);
     }
 
     /**
@@ -1370,17 +1525,21 @@ public final class McpServerCommandControllerGrpc {
      * Connects to the MCP server, enumerates tools and resource templates,
      * classifies tool approval policies via a lightweight LLM, and stores the
      * results in status.discovered_capabilities and status.tool_approvals.
-     * Blocks until completion (up to ~30 seconds) and returns the updated McpServer.
+     * Blocks until the operation settles — legitimately minutes for heavy
+     * stdio servers (the server-side workflow ceiling is the bound) — and
+     * returns the updated McpServer.
+     * Prefer startConnect for interactive clients: browsers can drop a
+     * no-bytes-yet unary response around ~300s, below the workflow ceiling,
+     * so a blocking connect can appear to fail while succeeding server-side.
+     * This RPC remains for callers that want synchronous semantics (and for
+     * backends that do not yet serve startConnect).
      * &#64;internal
      * Typical flows:
-     * - Web console: user clicks Connect, backend resolves env vars from the
-     *   user's personal environment, starts a Temporal workflow on the runner
-     *   (stigmer-runner).
-     * - CLI: `stigmer discover mcp-server &lt;name&gt;` calls connect with runtime_env
-     *   populated from local env vars, delegating discovery to the backend.
      * - Runner backfill: the runner calls connect on first use when
      *   status.discovered_capabilities is empty, passing runtime_env from the
      *   execution context (shared/connect-backfill.ts).
+     * - CLI / web console: legacy callers, and the fallback lane when
+     *   startConnect answers UNIMPLEMENTED (a backend predating it).
      * Errors:
      * - FAILED_PRECONDITION: Required credentials missing from personal environment
      * - DEADLINE_EXCEEDED: Discovery did not complete within the timeout
@@ -1391,6 +1550,43 @@ public final class McpServerCommandControllerGrpc {
     public ai.stigmer.agentic.mcpserver.v1.McpServer connect(ai.stigmer.agentic.mcpserver.v1.ConnectInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getConnectMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Start a connect operation without waiting for it: discovery and
+     * classification run server-side, and the caller observes progress by
+     * polling the resource.
+     * Returns the McpServer immediately with status.connect_status describing
+     * the accepted operation (phase CONNECTING, plus a warning when no runner
+     * appears to be polling the task queue). Poll get/getByReference until
+     * status.connect_status reaches a terminal phase; results land in
+     * status.discovered_capabilities and status.tool_approvals exactly as with
+     * the blocking connect.
+     * Idempotent while an operation is in flight: a startConnect that finds a
+     * live CONNECTING operation attaches to it (the in-flight operation's
+     * runtime_env wins) instead of starting a second workflow. A CONNECTING
+     * entry orphaned by a backend restart is reconciled against Temporal
+     * before a new operation starts.
+     * &#64;internal
+     * The async lane exists because every budget stretch inside the blocking
+     * shape hit a client transport limit eventually (stigmer/stigmer#425):
+     * browser fetch drops no-bytes unary responses (~300s), classification
+     * budgets scale with tool count past any flat ceiling, and dead-runner
+     * feedback rode the same timer. Setup that needs the caller's identity
+     * (OAuth refresh pre-flight, personal-environment resolution, EC creation)
+     * happens synchronously in this RPC; only awaiting the workflow moves to
+     * the background.
+     * Errors (start-time only — post-start failures land in connect_status):
+     * - FAILED_PRECONDITION: Required credentials missing from personal environment
+     * - NOT_FOUND: MCP server does not exist
+     * - UNIMPLEMENTED: backend predates the async lane (clients fall back to connect)
+     * Authorization: Requires can_connect permission on the mcp_server resource.
+     * </pre>
+     */
+    public ai.stigmer.agentic.mcpserver.v1.McpServer startConnect(ai.stigmer.agentic.mcpserver.v1.ConnectInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getStartConnectMethod(), getCallOptions(), request);
     }
 
     /**
@@ -1644,17 +1840,21 @@ public final class McpServerCommandControllerGrpc {
      * Connects to the MCP server, enumerates tools and resource templates,
      * classifies tool approval policies via a lightweight LLM, and stores the
      * results in status.discovered_capabilities and status.tool_approvals.
-     * Blocks until completion (up to ~30 seconds) and returns the updated McpServer.
+     * Blocks until the operation settles — legitimately minutes for heavy
+     * stdio servers (the server-side workflow ceiling is the bound) — and
+     * returns the updated McpServer.
+     * Prefer startConnect for interactive clients: browsers can drop a
+     * no-bytes-yet unary response around ~300s, below the workflow ceiling,
+     * so a blocking connect can appear to fail while succeeding server-side.
+     * This RPC remains for callers that want synchronous semantics (and for
+     * backends that do not yet serve startConnect).
      * &#64;internal
      * Typical flows:
-     * - Web console: user clicks Connect, backend resolves env vars from the
-     *   user's personal environment, starts a Temporal workflow on the runner
-     *   (stigmer-runner).
-     * - CLI: `stigmer discover mcp-server &lt;name&gt;` calls connect with runtime_env
-     *   populated from local env vars, delegating discovery to the backend.
      * - Runner backfill: the runner calls connect on first use when
      *   status.discovered_capabilities is empty, passing runtime_env from the
      *   execution context (shared/connect-backfill.ts).
+     * - CLI / web console: legacy callers, and the fallback lane when
+     *   startConnect answers UNIMPLEMENTED (a backend predating it).
      * Errors:
      * - FAILED_PRECONDITION: Required credentials missing from personal environment
      * - DEADLINE_EXCEEDED: Discovery did not complete within the timeout
@@ -1666,6 +1866,44 @@ public final class McpServerCommandControllerGrpc {
         ai.stigmer.agentic.mcpserver.v1.ConnectInput request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getConnectMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
+     * Start a connect operation without waiting for it: discovery and
+     * classification run server-side, and the caller observes progress by
+     * polling the resource.
+     * Returns the McpServer immediately with status.connect_status describing
+     * the accepted operation (phase CONNECTING, plus a warning when no runner
+     * appears to be polling the task queue). Poll get/getByReference until
+     * status.connect_status reaches a terminal phase; results land in
+     * status.discovered_capabilities and status.tool_approvals exactly as with
+     * the blocking connect.
+     * Idempotent while an operation is in flight: a startConnect that finds a
+     * live CONNECTING operation attaches to it (the in-flight operation's
+     * runtime_env wins) instead of starting a second workflow. A CONNECTING
+     * entry orphaned by a backend restart is reconciled against Temporal
+     * before a new operation starts.
+     * &#64;internal
+     * The async lane exists because every budget stretch inside the blocking
+     * shape hit a client transport limit eventually (stigmer/stigmer#425):
+     * browser fetch drops no-bytes unary responses (~300s), classification
+     * budgets scale with tool count past any flat ceiling, and dead-runner
+     * feedback rode the same timer. Setup that needs the caller's identity
+     * (OAuth refresh pre-flight, personal-environment resolution, EC creation)
+     * happens synchronously in this RPC; only awaiting the workflow moves to
+     * the background.
+     * Errors (start-time only — post-start failures land in connect_status):
+     * - FAILED_PRECONDITION: Required credentials missing from personal environment
+     * - NOT_FOUND: MCP server does not exist
+     * - UNIMPLEMENTED: backend predates the async lane (clients fall back to connect)
+     * Authorization: Requires can_connect permission on the mcp_server resource.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.mcpserver.v1.McpServer> startConnect(
+        ai.stigmer.agentic.mcpserver.v1.ConnectInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getStartConnectMethod(), getCallOptions()), request);
     }
 
     /**
@@ -1804,11 +2042,12 @@ public final class McpServerCommandControllerGrpc {
   private static final int METHODID_DELETE = 3;
   private static final int METHODID_UPDATE_VISIBILITY = 4;
   private static final int METHODID_CONNECT = 5;
-  private static final int METHODID_INITIATE_OAUTH_CONNECT = 6;
-  private static final int METHODID_COMPLETE_OAUTH_CONNECT = 7;
-  private static final int METHODID_DISCONNECT_OAUTH = 8;
-  private static final int METHODID_SET_ORG_OAUTH_APP = 9;
-  private static final int METHODID_DELETE_ORG_OAUTH_APP = 10;
+  private static final int METHODID_START_CONNECT = 6;
+  private static final int METHODID_INITIATE_OAUTH_CONNECT = 7;
+  private static final int METHODID_COMPLETE_OAUTH_CONNECT = 8;
+  private static final int METHODID_DISCONNECT_OAUTH = 9;
+  private static final int METHODID_SET_ORG_OAUTH_APP = 10;
+  private static final int METHODID_DELETE_ORG_OAUTH_APP = 11;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -1849,6 +2088,10 @@ public final class McpServerCommandControllerGrpc {
           break;
         case METHODID_CONNECT:
           serviceImpl.connect((ai.stigmer.agentic.mcpserver.v1.ConnectInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.McpServer>) responseObserver);
+          break;
+        case METHODID_START_CONNECT:
+          serviceImpl.startConnect((ai.stigmer.agentic.mcpserver.v1.ConnectInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.McpServer>) responseObserver);
           break;
         case METHODID_INITIATE_OAUTH_CONNECT:
@@ -1931,6 +2174,13 @@ public final class McpServerCommandControllerGrpc {
               ai.stigmer.agentic.mcpserver.v1.ConnectInput,
               ai.stigmer.agentic.mcpserver.v1.McpServer>(
                 service, METHODID_CONNECT)))
+        .addMethod(
+          getStartConnectMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.mcpserver.v1.ConnectInput,
+              ai.stigmer.agentic.mcpserver.v1.McpServer>(
+                service, METHODID_START_CONNECT)))
         .addMethod(
           getInitiateOAuthConnectMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -2020,6 +2270,7 @@ public final class McpServerCommandControllerGrpc {
               .addMethod(getDeleteMethod())
               .addMethod(getUpdateVisibilityMethod())
               .addMethod(getConnectMethod())
+              .addMethod(getStartConnectMethod())
               .addMethod(getInitiateOAuthConnectMethod())
               .addMethod(getCompleteOAuthConnectMethod())
               .addMethod(getDisconnectOAuthMethod())

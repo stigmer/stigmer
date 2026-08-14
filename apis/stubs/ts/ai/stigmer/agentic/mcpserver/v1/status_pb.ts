@@ -18,7 +18,7 @@ import type { JsonObject, Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/mcpserver/v1/status.proto.
  */
 export const file_ai_stigmer_agentic_mcpserver_v1_status: GenFile = /*@__PURE__*/
-  fileDesc("CixhaS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL3N0YXR1cy5wcm90bxIfYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MSKlAwoPTWNwU2VydmVyU3RhdHVzEkoKEHZhbGlkYXRpb25fc3RhdGUYASABKA4yMC5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLlZhbGlkYXRpb25TdGF0ZRIaChJ2YWxpZGF0aW9uX21lc3NhZ2UYAiABKAkSWAoXZGlzY292ZXJlZF9jYXBhYmlsaXRpZXMYAyABKAsyNy5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkRpc2NvdmVyZWRDYXBhYmlsaXRpZXMSSwoOdG9vbF9hcHByb3ZhbHMYBCADKAsyMy5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLlRvb2xBcHByb3ZhbFBvbGljeRJCCgxvYXV0aF9zdGF0dXMYBSABKAsyLC5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLk9BdXRoU3RhdHVzEj8KBWF1ZGl0GGMgASgLMjAuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXQi6QEKFkRpc2NvdmVyZWRDYXBhYmlsaXRpZXMSPgoFdG9vbHMYASADKAsyLy5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkRpc2NvdmVyZWRUb29sElcKEnJlc291cmNlX3RlbXBsYXRlcxgCIAMoCzI7LmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuRGlzY292ZXJlZFJlc291cmNlVGVtcGxhdGUSNgoSbGFzdF9kaXNjb3ZlcmVkX2F0GAMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCJiCg5EaXNjb3ZlcmVkVG9vbBIMCgRuYW1lGAEgASgJEhMKC2Rlc2NyaXB0aW9uGAIgASgJEi0KDGlucHV0X3NjaGVtYRgDIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QiaAoaRGlzY292ZXJlZFJlc291cmNlVGVtcGxhdGUSFAoMdXJpX3RlbXBsYXRlGAEgASgJEgwKBG5hbWUYAiABKAkSEwoLZGVzY3JpcHRpb24YAyABKAkSEQoJbWltZV90eXBlGAQgASgJIvIBCgtPQXV0aFN0YXR1cxJQChZ2ZW5kb3JfYXBwcm92YWxfc3RhdHVzGAEgASgOMjAuYWkuc3RpZ21lci5pYW0ub2F1dGhhcHAudjEuVmVuZG9yQXBwcm92YWxTdGF0dXMSIAoYdmVuZG9yX2FwcHJvdmFsX2RvY3NfdXJsGAIgASgJEk8KFmVmZmVjdGl2ZV9vYXV0aF9zb3VyY2UYAyABKA4yLy5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLk9BdXRoQXBwU291cmNlEh4KFmVmZmVjdGl2ZV9vYXV0aF9hcHBfaWQYBCABKAkqSwoPVmFsaWRhdGlvblN0YXRlEiAKHHZhbGlkYXRpb25fc3RhdGVfdW5zcGVjaWZpZWQQABIJCgV2YWxpZBABEgsKB2ludmFsaWQQAiqPAQoOT0F1dGhBcHBTb3VyY2USIAocT0FVVEhfQVBQX1NPVVJDRV9VTlNQRUNJRklFRBAAEh0KGU9BVVRIX0FQUF9TT1VSQ0VfUExBVEZPUk0QARIhCh1PQVVUSF9BUFBfU09VUkNFX09SR19PVkVSUklERRACEhkKFU9BVVRIX0FQUF9TT1VSQ0VfTk9ORRADYgZwcm90bzM", [file_ai_stigmer_agentic_mcpserver_v1_spec, file_ai_stigmer_commons_apiresource_status, file_ai_stigmer_iam_oauthapp_v1_spec, file_google_protobuf_struct, file_google_protobuf_timestamp]);
+  fileDesc("CixhaS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL3N0YXR1cy5wcm90bxIfYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MSLtAwoPTWNwU2VydmVyU3RhdHVzEkoKEHZhbGlkYXRpb25fc3RhdGUYASABKA4yMC5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLlZhbGlkYXRpb25TdGF0ZRIaChJ2YWxpZGF0aW9uX21lc3NhZ2UYAiABKAkSWAoXZGlzY292ZXJlZF9jYXBhYmlsaXRpZXMYAyABKAsyNy5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkRpc2NvdmVyZWRDYXBhYmlsaXRpZXMSSwoOdG9vbF9hcHByb3ZhbHMYBCADKAsyMy5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLlRvb2xBcHByb3ZhbFBvbGljeRJCCgxvYXV0aF9zdGF0dXMYBSABKAsyLC5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLk9BdXRoU3RhdHVzEkYKDmNvbm5lY3Rfc3RhdHVzGAYgASgLMi4uYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5Db25uZWN0U3RhdHVzEj8KBWF1ZGl0GGMgASgLMjAuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXQigwIKDUNvbm5lY3RTdGF0dXMSPAoFcGhhc2UYASABKA4yLS5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkNvbm5lY3RQaGFzZRITCgt3b3JrZmxvd19pZBgCIAEoCRIuCgpzdGFydGVkX2F0GAMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIvCgtmaW5pc2hlZF9hdBgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASFAoMZmFpbHVyZV9jb2RlGAUgASgJEhcKD2ZhaWx1cmVfbWVzc2FnZRgGIAEoCRIPCgd3YXJuaW5nGAcgASgJIukBChZEaXNjb3ZlcmVkQ2FwYWJpbGl0aWVzEj4KBXRvb2xzGAEgAygLMi8uYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5EaXNjb3ZlcmVkVG9vbBJXChJyZXNvdXJjZV90ZW1wbGF0ZXMYAiADKAsyOy5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkRpc2NvdmVyZWRSZXNvdXJjZVRlbXBsYXRlEjYKEmxhc3RfZGlzY292ZXJlZF9hdBgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiYgoORGlzY292ZXJlZFRvb2wSDAoEbmFtZRgBIAEoCRITCgtkZXNjcmlwdGlvbhgCIAEoCRItCgxpbnB1dF9zY2hlbWEYAyABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0ImgKGkRpc2NvdmVyZWRSZXNvdXJjZVRlbXBsYXRlEhQKDHVyaV90ZW1wbGF0ZRgBIAEoCRIMCgRuYW1lGAIgASgJEhMKC2Rlc2NyaXB0aW9uGAMgASgJEhEKCW1pbWVfdHlwZRgEIAEoCSLyAQoLT0F1dGhTdGF0dXMSUAoWdmVuZG9yX2FwcHJvdmFsX3N0YXR1cxgBIAEoDjIwLmFpLnN0aWdtZXIuaWFtLm9hdXRoYXBwLnYxLlZlbmRvckFwcHJvdmFsU3RhdHVzEiAKGHZlbmRvcl9hcHByb3ZhbF9kb2NzX3VybBgCIAEoCRJPChZlZmZlY3RpdmVfb2F1dGhfc291cmNlGAMgASgOMi8uYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5PQXV0aEFwcFNvdXJjZRIeChZlZmZlY3RpdmVfb2F1dGhfYXBwX2lkGAQgASgJKoIBCgxDb25uZWN0UGhhc2USHQoZY29ubmVjdF9waGFzZV91bnNwZWNpZmllZBAAEhwKGGNvbm5lY3RfcGhhc2VfY29ubmVjdGluZxABEhsKF2Nvbm5lY3RfcGhhc2Vfc3VjY2VlZGVkEAISGAoUY29ubmVjdF9waGFzZV9mYWlsZWQQAypLCg9WYWxpZGF0aW9uU3RhdGUSIAocdmFsaWRhdGlvbl9zdGF0ZV91bnNwZWNpZmllZBAAEgkKBXZhbGlkEAESCwoHaW52YWxpZBACKo8BCg5PQXV0aEFwcFNvdXJjZRIgChxPQVVUSF9BUFBfU09VUkNFX1VOU1BFQ0lGSUVEEAASHQoZT0FVVEhfQVBQX1NPVVJDRV9QTEFURk9STRABEiEKHU9BVVRIX0FQUF9TT1VSQ0VfT1JHX09WRVJSSURFEAISGQoVT0FVVEhfQVBQX1NPVVJDRV9OT05FEANiBnByb3RvMw", [file_ai_stigmer_agentic_mcpserver_v1_spec, file_ai_stigmer_commons_apiresource_status, file_ai_stigmer_iam_oauthapp_v1_spec, file_google_protobuf_struct, file_google_protobuf_timestamp]);
 
 /**
  * McpServerStatus represents the system-managed state of an MCP server definition.
@@ -73,6 +73,18 @@ export type McpServerStatus = Message<"ai.stigmer.agentic.mcpserver.v1.McpServer
   oauthStatus?: OAuthStatus;
 
   /**
+   * State of the most recent connect (discovery + classification) operation.
+   *
+   * Persisted (unlike oauth_status). Written by the backend when a connect
+   * operation starts and again when it settles; clients poll it through the
+   * ordinary get/getByReference queries after startConnect returns.
+   * Absent until the first connect is attempted.
+   *
+   * @generated from field: ai.stigmer.agentic.mcpserver.v1.ConnectStatus connect_status = 6;
+   */
+  connectStatus?: ConnectStatus;
+
+  /**
    * Standard audit information (created_at, updated_at, created_by, etc.)
    *
    * @generated from field: ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
@@ -86,6 +98,88 @@ export type McpServerStatus = Message<"ai.stigmer.agentic.mcpserver.v1.McpServer
  */
 export const McpServerStatusSchema: GenMessage<McpServerStatus> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_mcpserver_v1_status, 0);
+
+/**
+ * ConnectStatus records one connect operation — the most recent one.
+ *
+ * @generated from message ai.stigmer.agentic.mcpserver.v1.ConnectStatus
+ */
+export type ConnectStatus = Message<"ai.stigmer.agentic.mcpserver.v1.ConnectStatus"> & {
+  /**
+   * Where the operation stands. See ConnectPhase.
+   *
+   * @generated from field: ai.stigmer.agentic.mcpserver.v1.ConnectPhase phase = 1;
+   */
+  phase: ConnectPhase;
+
+  /**
+   * The Temporal workflow ID of the connect run — the operation handle.
+   * Used by the backend for orphan reconciliation and idempotent attach;
+   * opaque to clients.
+   *
+   * @generated from field: string workflow_id = 2;
+   */
+  workflowId: string;
+
+  /**
+   * When the operation was accepted (workflow started).
+   *
+   * @generated from field: google.protobuf.Timestamp started_at = 3;
+   */
+  startedAt?: Timestamp;
+
+  /**
+   * When the operation settled (success or failure). Unset while CONNECTING.
+   *
+   * @generated from field: google.protobuf.Timestamp finished_at = 4;
+   */
+  finishedAt?: Timestamp;
+
+  /**
+   * gRPC status code name classifying the failure, mirroring what the
+   * blocking connect RPC returns for the same outcome (CamelCase, the Go
+   * grpc codes.Code String() form):
+   * - "FailedPrecondition": the target server (or its credentials/config)
+   *   refused the connect with a user-facing message — failure_message
+   *   renders verbatim.
+   * - "DeadlineExceeded": the workflow run timeout elapsed.
+   * - "Unavailable": the workflow run disappeared (e.g. Temporal data loss).
+   * - "Internal": unexpected runner/backend error (failure_message carries
+   *   the runner's classified, user-facing connect-failure text — the same
+   *   deliberate exception the blocking RPC makes, stigmer/stigmer#478).
+   * Empty unless phase is connect_phase_failed.
+   *
+   * @generated from field: string failure_code = 5;
+   */
+  failureCode: string;
+
+  /**
+   * Human-readable failure detail. Same rendering contract as the blocking
+   * connect RPC's error message. Empty unless phase is connect_phase_failed.
+   *
+   * @generated from field: string failure_message = 6;
+   */
+  failureMessage: string;
+
+  /**
+   * Non-fatal advisory recorded at start time, rendered by clients alongside
+   * the CONNECTING state. Today's only source is the dead-runner pre-flight:
+   * when no worker is polling the runner task queue at start, this warns
+   * that the operation may sit unclaimed (deliberately warn-only — a worker
+   * may be booting, and the pre-flight has a startup false-negative race).
+   * Empty when the pre-flight saw a live worker.
+   *
+   * @generated from field: string warning = 7;
+   */
+  warning: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.mcpserver.v1.ConnectStatus.
+ * Use `create(ConnectStatusSchema)` to create a new message.
+ */
+export const ConnectStatusSchema: GenMessage<ConnectStatus> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_mcpserver_v1_status, 1);
 
 /**
  * DiscoveredCapabilities holds the tools and resource templates reported by an MCP server.
@@ -120,7 +214,7 @@ export type DiscoveredCapabilities = Message<"ai.stigmer.agentic.mcpserver.v1.Di
  * Use `create(DiscoveredCapabilitiesSchema)` to create a new message.
  */
 export const DiscoveredCapabilitiesSchema: GenMessage<DiscoveredCapabilities> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_mcpserver_v1_status, 1);
+  messageDesc(file_ai_stigmer_agentic_mcpserver_v1_status, 2);
 
 /**
  * DiscoveredTool describes a single tool reported by an MCP server.
@@ -156,7 +250,7 @@ export type DiscoveredTool = Message<"ai.stigmer.agentic.mcpserver.v1.Discovered
  * Use `create(DiscoveredToolSchema)` to create a new message.
  */
 export const DiscoveredToolSchema: GenMessage<DiscoveredTool> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_mcpserver_v1_status, 2);
+  messageDesc(file_ai_stigmer_agentic_mcpserver_v1_status, 3);
 
 /**
  * DiscoveredResourceTemplate describes a parameterized resource template reported by an MCP server.
@@ -200,7 +294,7 @@ export type DiscoveredResourceTemplate = Message<"ai.stigmer.agentic.mcpserver.v
  * Use `create(DiscoveredResourceTemplateSchema)` to create a new message.
  */
 export const DiscoveredResourceTemplateSchema: GenMessage<DiscoveredResourceTemplate> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_mcpserver_v1_status, 3);
+  messageDesc(file_ai_stigmer_agentic_mcpserver_v1_status, 4);
 
 /**
  * OAuthStatus holds system-derived OAuth enrichment state for an MCP server.
@@ -252,7 +346,58 @@ export type OAuthStatus = Message<"ai.stigmer.agentic.mcpserver.v1.OAuthStatus">
  * Use `create(OAuthStatusSchema)` to create a new message.
  */
 export const OAuthStatusSchema: GenMessage<OAuthStatus> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_mcpserver_v1_status, 4);
+  messageDesc(file_ai_stigmer_agentic_mcpserver_v1_status, 5);
+
+/**
+ * ConnectPhase is the lifecycle of a connect operation.
+ *
+ * Exactly three phases: one live, two terminal. There is no queued/pending
+ * distinction — the Temporal workflow is started before CONNECTING is ever
+ * persisted, so CONNECTING always means "a workflow run exists".
+ *
+ * @generated from enum ai.stigmer.agentic.mcpserver.v1.ConnectPhase
+ */
+export enum ConnectPhase {
+  /**
+   * Default/unset. No connect has been recorded (or the resource predates
+   * this field).
+   *
+   * @generated from enum value: connect_phase_unspecified = 0;
+   */
+  unspecified = 0,
+
+  /**
+   * A connect workflow is running (or was running when the backend last
+   * observed it — see ConnectStatus.workflow_id for how stale entries are
+   * reconciled).
+   *
+   * @generated from enum value: connect_phase_connecting = 1;
+   */
+  connecting = 1,
+
+  /**
+   * The connect completed and its results were persisted to
+   * discovered_capabilities / tool_approvals.
+   *
+   * @generated from enum value: connect_phase_succeeded = 2;
+   */
+  succeeded = 2,
+
+  /**
+   * The connect settled without usable results. failure_code and
+   * failure_message carry the same classification the blocking connect RPC
+   * reports as a gRPC error.
+   *
+   * @generated from enum value: connect_phase_failed = 3;
+   */
+  failed = 3,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.mcpserver.v1.ConnectPhase.
+ */
+export const ConnectPhaseSchema: GenEnum<ConnectPhase> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_mcpserver_v1_status, 0);
 
 /**
  * ValidationState represents the structural validity of an MCP server definition.
@@ -292,7 +437,7 @@ export enum ValidationState {
  * Describes the enum ai.stigmer.agentic.mcpserver.v1.ValidationState.
  */
 export const ValidationStateSchema: GenEnum<ValidationState> = /*@__PURE__*/
-  enumDesc(file_ai_stigmer_agentic_mcpserver_v1_status, 0);
+  enumDesc(file_ai_stigmer_agentic_mcpserver_v1_status, 1);
 
 /**
  * OAuthAppSource identifies where the effective OAuth app for an MCP server
@@ -345,5 +490,5 @@ export enum OAuthAppSource {
  * Describes the enum ai.stigmer.agentic.mcpserver.v1.OAuthAppSource.
  */
 export const OAuthAppSourceSchema: GenEnum<OAuthAppSource> = /*@__PURE__*/
-  enumDesc(file_ai_stigmer_agentic_mcpserver_v1_status, 1);
+  enumDesc(file_ai_stigmer_agentic_mcpserver_v1_status, 2);
 

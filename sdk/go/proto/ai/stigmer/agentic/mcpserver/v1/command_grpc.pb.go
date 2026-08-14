@@ -26,6 +26,7 @@ const (
 	McpServerCommandController_Delete_FullMethodName               = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/delete"
 	McpServerCommandController_UpdateVisibility_FullMethodName     = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/updateVisibility"
 	McpServerCommandController_Connect_FullMethodName              = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/connect"
+	McpServerCommandController_StartConnect_FullMethodName         = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/startConnect"
 	McpServerCommandController_InitiateOAuthConnect_FullMethodName = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/initiateOAuthConnect"
 	McpServerCommandController_CompleteOAuthConnect_FullMethodName = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/completeOAuthConnect"
 	McpServerCommandController_DisconnectOAuth_FullMethodName      = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/disconnectOAuth"
@@ -70,8 +71,33 @@ type McpServerCommandControllerClient interface {
 	// Connects to the MCP server, enumerates tools and resource templates,
 	// classifies tool approval policies via a lightweight LLM, and stores the
 	// results in status.discovered_capabilities and status.tool_approvals.
-	// Blocks until completion (up to ~30 seconds) and returns the updated McpServer.
+	// Blocks until the operation settles — legitimately minutes for heavy
+	// stdio servers (the server-side workflow ceiling is the bound) — and
+	// returns the updated McpServer.
+	//
+	// Prefer startConnect for interactive clients: browsers can drop a
+	// no-bytes-yet unary response around ~300s, below the workflow ceiling,
+	// so a blocking connect can appear to fail while succeeding server-side.
+	// This RPC remains for callers that want synchronous semantics (and for
+	// backends that do not yet serve startConnect).
 	Connect(ctx context.Context, in *ConnectInput, opts ...grpc.CallOption) (*McpServer, error)
+	// Start a connect operation without waiting for it: discovery and
+	// classification run server-side, and the caller observes progress by
+	// polling the resource.
+	//
+	// Returns the McpServer immediately with status.connect_status describing
+	// the accepted operation (phase CONNECTING, plus a warning when no runner
+	// appears to be polling the task queue). Poll get/getByReference until
+	// status.connect_status reaches a terminal phase; results land in
+	// status.discovered_capabilities and status.tool_approvals exactly as with
+	// the blocking connect.
+	//
+	// Idempotent while an operation is in flight: a startConnect that finds a
+	// live CONNECTING operation attaches to it (the in-flight operation's
+	// runtime_env wins) instead of starting a second workflow. A CONNECTING
+	// entry orphaned by a backend restart is reconciled against Temporal
+	// before a new operation starts.
+	StartConnect(ctx context.Context, in *ConnectInput, opts ...grpc.CallOption) (*McpServer, error)
 	// Start the OAuth authorization flow for an MCP server.
 	//
 	// Performs setup (DCR registration or OAuthApp credential lookup, PKCE
@@ -202,6 +228,16 @@ func (c *mcpServerCommandControllerClient) Connect(ctx context.Context, in *Conn
 	return out, nil
 }
 
+func (c *mcpServerCommandControllerClient) StartConnect(ctx context.Context, in *ConnectInput, opts ...grpc.CallOption) (*McpServer, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(McpServer)
+	err := c.cc.Invoke(ctx, McpServerCommandController_StartConnect_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *mcpServerCommandControllerClient) InitiateOAuthConnect(ctx context.Context, in *InitiateOAuthConnectInput, opts ...grpc.CallOption) (*InitiateOAuthConnectOutput, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(InitiateOAuthConnectOutput)
@@ -289,8 +325,33 @@ type McpServerCommandControllerServer interface {
 	// Connects to the MCP server, enumerates tools and resource templates,
 	// classifies tool approval policies via a lightweight LLM, and stores the
 	// results in status.discovered_capabilities and status.tool_approvals.
-	// Blocks until completion (up to ~30 seconds) and returns the updated McpServer.
+	// Blocks until the operation settles — legitimately minutes for heavy
+	// stdio servers (the server-side workflow ceiling is the bound) — and
+	// returns the updated McpServer.
+	//
+	// Prefer startConnect for interactive clients: browsers can drop a
+	// no-bytes-yet unary response around ~300s, below the workflow ceiling,
+	// so a blocking connect can appear to fail while succeeding server-side.
+	// This RPC remains for callers that want synchronous semantics (and for
+	// backends that do not yet serve startConnect).
 	Connect(context.Context, *ConnectInput) (*McpServer, error)
+	// Start a connect operation without waiting for it: discovery and
+	// classification run server-side, and the caller observes progress by
+	// polling the resource.
+	//
+	// Returns the McpServer immediately with status.connect_status describing
+	// the accepted operation (phase CONNECTING, plus a warning when no runner
+	// appears to be polling the task queue). Poll get/getByReference until
+	// status.connect_status reaches a terminal phase; results land in
+	// status.discovered_capabilities and status.tool_approvals exactly as with
+	// the blocking connect.
+	//
+	// Idempotent while an operation is in flight: a startConnect that finds a
+	// live CONNECTING operation attaches to it (the in-flight operation's
+	// runtime_env wins) instead of starting a second workflow. A CONNECTING
+	// entry orphaned by a backend restart is reconciled against Temporal
+	// before a new operation starts.
+	StartConnect(context.Context, *ConnectInput) (*McpServer, error)
 	// Start the OAuth authorization flow for an MCP server.
 	//
 	// Performs setup (DCR registration or OAuthApp credential lookup, PKCE
@@ -377,6 +438,9 @@ func (UnimplementedMcpServerCommandControllerServer) UpdateVisibility(context.Co
 }
 func (UnimplementedMcpServerCommandControllerServer) Connect(context.Context, *ConnectInput) (*McpServer, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Connect not implemented")
+}
+func (UnimplementedMcpServerCommandControllerServer) StartConnect(context.Context, *ConnectInput) (*McpServer, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method StartConnect not implemented")
 }
 func (UnimplementedMcpServerCommandControllerServer) InitiateOAuthConnect(context.Context, *InitiateOAuthConnectInput) (*InitiateOAuthConnectOutput, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method InitiateOAuthConnect not implemented")
@@ -521,6 +585,24 @@ func _McpServerCommandController_Connect_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _McpServerCommandController_StartConnect_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ConnectInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(McpServerCommandControllerServer).StartConnect(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: McpServerCommandController_StartConnect_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(McpServerCommandControllerServer).StartConnect(ctx, req.(*ConnectInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _McpServerCommandController_InitiateOAuthConnect_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(InitiateOAuthConnectInput)
 	if err := dec(in); err != nil {
@@ -641,6 +723,10 @@ var McpServerCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "connect",
 			Handler:    _McpServerCommandController_Connect_Handler,
+		},
+		{
+			MethodName: "startConnect",
+			Handler:    _McpServerCommandController_StartConnect_Handler,
 		},
 		{
 			MethodName: "initiateOAuthConnect",

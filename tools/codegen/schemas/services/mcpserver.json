@@ -54,7 +54,15 @@
           "inputFullType": "ai.stigmer.agentic.mcpserver.v1.ConnectInput",
           "outputType": "McpServer",
           "outputFullType": "ai.stigmer.agentic.mcpserver.v1.McpServer",
-          "description": "Connect to an MCP server: discover its tools and classify approval policies.\n\n Connects to the MCP server, enumerates tools and resource templates,\n classifies tool approval policies via a lightweight LLM, and stores the\n results in status.discovered_capabilities and status.tool_approvals.\n Blocks until completion (up to ~30 seconds) and returns the updated McpServer."
+          "description": "Connect to an MCP server: discover its tools and classify approval policies.\n\n Connects to the MCP server, enumerates tools and resource templates,\n classifies tool approval policies via a lightweight LLM, and stores the\n results in status.discovered_capabilities and status.tool_approvals.\n Blocks until the operation settles — legitimately minutes for heavy\n stdio servers (the server-side workflow ceiling is the bound) — and\n returns the updated McpServer.\n\n Prefer startConnect for interactive clients: browsers can drop a\n no-bytes-yet unary response around ~300s, below the workflow ceiling,\n so a blocking connect can appear to fail while succeeding server-side.\n This RPC remains for callers that want synchronous semantics (and for\n backends that do not yet serve startConnect)."
+        },
+        {
+          "name": "StartConnect",
+          "inputType": "ConnectInput",
+          "inputFullType": "ai.stigmer.agentic.mcpserver.v1.ConnectInput",
+          "outputType": "McpServer",
+          "outputFullType": "ai.stigmer.agentic.mcpserver.v1.McpServer",
+          "description": "Start a connect operation without waiting for it: discovery and\n classification run server-side, and the caller observes progress by\n polling the resource.\n\n Returns the McpServer immediately with status.connect_status describing\n the accepted operation (phase CONNECTING, plus a warning when no runner\n appears to be polling the task queue). Poll get/getByReference until\n status.connect_status reaches a terminal phase; results land in\n status.discovered_capabilities and status.tool_approvals exactly as with\n the blocking connect.\n\n Idempotent while an operation is in flight: a startConnect that finds a\n live CONNECTING operation attaches to it (the in-flight operation's\n runtime_env wins) instead of starting a second workflow. A CONNECTING\n entry orphaned by a backend restart is reconciled against Temporal\n before a new operation starts."
         },
         {
           "name": "InitiateOAuthConnect",
@@ -1059,6 +1067,28 @@
       ]
     },
     {
+      "name": "ConnectPhase",
+      "description": "ConnectPhase is the lifecycle of a connect operation.\n\n Exactly three phases: one live, two terminal. There is no queued/pending\n distinction — the Temporal workflow is started before CONNECTING is ever\n persisted, so CONNECTING always means \"a workflow run exists\".",
+      "protoType": "ai.stigmer.agentic.mcpserver.v1.ConnectPhase",
+      "values": [
+        {
+          "name": "connect_phase_connecting",
+          "number": 1,
+          "description": "A connect workflow is running (or was running when the backend last\n observed it — see ConnectStatus.workflow_id for how stale entries are\n reconciled)."
+        },
+        {
+          "name": "connect_phase_succeeded",
+          "number": 2,
+          "description": "The connect completed and its results were persisted to\n discovered_capabilities / tool_approvals."
+        },
+        {
+          "name": "connect_phase_failed",
+          "number": 3,
+          "description": "The connect settled without usable results. failure_code and\n failure_message carry the same classification the blocking connect RPC\n reports as a gRPC error."
+        }
+      ]
+    },
+    {
       "name": "VendorApprovalStatus",
       "description": "Lifecycle status of an OAuthApp's vendor marketplace approval.\n\n Vendors like Slack, Figma, and Salesforce require third-party OAuth\n apps to pass a review/approval process before they can be used by\n end users. This enum tracks that lifecycle.",
       "protoType": "ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus",
@@ -1169,6 +1199,17 @@
           "messageType": "OAuthStatus"
         },
         "description": "OAuth-related enrichment state, populated at query time by the backend.\n Carries the vendor approval status resolved from the referenced OAuthApp\n (fields 1-2; fields 3-4 are never populated — see OAuthStatus).\n None of these fields are persisted.",
+        "required": false
+      },
+      {
+        "name": "ConnectStatus",
+        "jsonName": "connectStatus",
+        "protoField": "connect_status",
+        "type": {
+          "kind": "message",
+          "messageType": "ConnectStatus"
+        },
+        "description": "State of the most recent connect (discovery + classification) operation.\n\n Persisted (unlike oauth_status). Written by the backend when a connect\n operation starts and again when it settles; clients poll it through the\n ordinary get/getByReference queries after startConnect returns.\n Absent until the first connect is attempted.",
         "required": false
       },
       {
@@ -1319,6 +1360,90 @@
             "kind": "string"
           },
           "description": "Type of the last event (e.g., \"created\", \"updated\").",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ConnectStatus",
+      "description": "ConnectStatus records one connect operation — the most recent one.",
+      "protoType": "ai.stigmer.agentic.mcpserver.v1.ConnectStatus",
+      "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/status.proto",
+      "fields": [
+        {
+          "name": "Phase",
+          "jsonName": "phase",
+          "protoField": "phase",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.mcpserver.v1.ConnectPhase",
+            "enumValues": [
+              "connect_phase_connecting",
+              "connect_phase_succeeded",
+              "connect_phase_failed"
+            ]
+          },
+          "description": "Where the operation stands. See ConnectPhase.",
+          "required": false
+        },
+        {
+          "name": "WorkflowId",
+          "jsonName": "workflowId",
+          "protoField": "workflow_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The Temporal workflow ID of the connect run — the operation handle.\n Used by the backend for orphan reconciliation and idempotent attach;\n opaque to clients.",
+          "required": false
+        },
+        {
+          "name": "StartedAt",
+          "jsonName": "startedAt",
+          "protoField": "started_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "When the operation was accepted (workflow started).",
+          "required": false
+        },
+        {
+          "name": "FinishedAt",
+          "jsonName": "finishedAt",
+          "protoField": "finished_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "When the operation settled (success or failure). Unset while CONNECTING.",
+          "required": false
+        },
+        {
+          "name": "FailureCode",
+          "jsonName": "failureCode",
+          "protoField": "failure_code",
+          "type": {
+            "kind": "string"
+          },
+          "description": "gRPC status code name classifying the failure, mirroring what the\n blocking connect RPC returns for the same outcome (CamelCase, the Go\n grpc codes.Code String() form):\n - \"FailedPrecondition\": the target server (or its credentials/config)\n   refused the connect with a user-facing message — failure_message\n   renders verbatim.\n - \"DeadlineExceeded\": the workflow run timeout elapsed.\n - \"Unavailable\": the workflow run disappeared (e.g. Temporal data loss).\n - \"Internal\": unexpected runner/backend error (failure_message carries\n   the runner's classified, user-facing connect-failure text — the same\n   deliberate exception the blocking RPC makes, stigmer/stigmer#478).\n Empty unless phase is connect_phase_failed.",
+          "required": false
+        },
+        {
+          "name": "FailureMessage",
+          "jsonName": "failureMessage",
+          "protoField": "failure_message",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable failure detail. Same rendering contract as the blocking\n connect RPC's error message. Empty unless phase is connect_phase_failed.",
+          "required": false
+        },
+        {
+          "name": "Warning",
+          "jsonName": "warning",
+          "protoField": "warning",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Non-fatal advisory recorded at start time, rendered by clients alongside\n the CONNECTING state. Today's only source is the dead-runner pre-flight:\n when no worker is polling the runner task queue at start, this warns\n that the operation may sit unclaimed (deliberately warn-only — a worker\n may be booting, and the pre-flight has a startup false-negative race).\n Empty when the pre-flight saw a live worker.",
           "required": false
         }
       ]

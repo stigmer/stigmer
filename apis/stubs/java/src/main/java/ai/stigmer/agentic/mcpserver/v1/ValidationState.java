@@ -145,7 +145,7 @@ public enum ValidationState
   }
   public static com.google.protobuf.Descriptors.EnumDescriptor
       getDescriptor() {
-    return ai.stigmer.agentic.mcpserver.v1.StatusProto.getDescriptor().getEnumType(0);
+    return ai.stigmer.agentic.mcpserver.v1.StatusProto.getDescriptor().getEnumType(1);
   }
 
   private static final ValidationState[] VALUES = values();

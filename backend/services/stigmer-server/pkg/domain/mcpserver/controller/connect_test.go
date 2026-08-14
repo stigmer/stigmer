@@ -245,7 +245,7 @@ func TestPersistConnectResult(t *testing.T) {
 		c, s := newTestController(t)
 		seedMcpServer(t, ctx, s, "srv-1", nil)
 
-		persisted, count, err := c.persistConnectResult(ctx, "srv-1", sampleOutput)
+		persisted, count, err := c.persistConnectResult(ctx, "srv-1", "wf-1", sampleOutput)
 		require.NoError(t, err)
 		assert.Equal(t, 1, count)
 
@@ -269,7 +269,7 @@ func TestPersistConnectResult(t *testing.T) {
 		c, s := newTestController(t)
 		seedMcpServer(t, ctx, s, "srv-nil", nil)
 
-		persisted, count, err := c.persistConnectResult(ctx, "srv-nil", &connectWorkflowOutput{})
+		persisted, count, err := c.persistConnectResult(ctx, "srv-nil", "wf-nil", &connectWorkflowOutput{})
 		require.NoError(t, err)
 		assert.Equal(t, 0, count)
 		require.NotNil(t, persisted.GetStatus(), "an empty connect result must still create a status")
@@ -290,7 +290,7 @@ func TestPersistConnectResult(t *testing.T) {
 			Tools:         []discoveredToolResult{{Name: "search_code", Description: "Search"}},
 			ToolApprovals: nil,
 		}
-		persisted, count, err := c.persistConnectResult(ctx, "srv-2", out)
+		persisted, count, err := c.persistConnectResult(ctx, "srv-2", "wf-2", out)
 		require.NoError(t, err)
 		assert.Equal(t, 0, count)
 
@@ -308,7 +308,7 @@ func TestPersistConnectResult(t *testing.T) {
 			ToolApprovals: []*mcpserverv1.ToolApprovalPolicy{{ToolName: "stale_tool", Message: "old"}},
 		})
 
-		persisted, count, err := c.persistConnectResult(ctx, "srv-3", sampleOutput)
+		persisted, count, err := c.persistConnectResult(ctx, "srv-3", "wf-3", sampleOutput)
 		require.NoError(t, err)
 		assert.Equal(t, 1, count)
 		require.Len(t, persisted.GetStatus().GetToolApprovals(), 1)
@@ -318,7 +318,7 @@ func TestPersistConnectResult(t *testing.T) {
 
 	t.Run("returns store.ErrNotFound when the resource is absent (deleted mid-flight)", func(t *testing.T) {
 		c, _ := newTestController(t)
-		_, _, err := c.persistConnectResult(ctx, "does-not-exist", sampleOutput)
+		_, _, err := c.persistConnectResult(ctx, "does-not-exist", "wf-x", sampleOutput)
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, store.ErrNotFound),
 			"a deleted/absent resource must surface store.ErrNotFound so callers can skip; got: %v", err)

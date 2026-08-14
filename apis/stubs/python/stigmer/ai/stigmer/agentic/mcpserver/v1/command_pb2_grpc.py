@@ -47,6 +47,11 @@ class McpServerCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.ConnectInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_api__pb2.McpServer.FromString,
                 _registered_method=True)
+        self.startConnect = channel.unary_unary(
+                '/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/startConnect',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.ConnectInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_api__pb2.McpServer.FromString,
+                _registered_method=True)
         self.initiateOAuthConnect = channel.unary_unary(
                 '/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/initiateOAuthConnect',
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.InitiateOAuthConnectInput.SerializeToString,
@@ -135,7 +140,37 @@ class McpServerCommandControllerServicer(object):
         Connects to the MCP server, enumerates tools and resource templates,
         classifies tool approval policies via a lightweight LLM, and stores the
         results in status.discovered_capabilities and status.tool_approvals.
-        Blocks until completion (up to ~30 seconds) and returns the updated McpServer.
+        Blocks until the operation settles — legitimately minutes for heavy
+        stdio servers (the server-side workflow ceiling is the bound) — and
+        returns the updated McpServer.
+
+        Prefer startConnect for interactive clients: browsers can drop a
+        no-bytes-yet unary response around ~300s, below the workflow ceiling,
+        so a blocking connect can appear to fail while succeeding server-side.
+        This RPC remains for callers that want synchronous semantics (and for
+        backends that do not yet serve startConnect).
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def startConnect(self, request, context):
+        """Start a connect operation without waiting for it: discovery and
+        classification run server-side, and the caller observes progress by
+        polling the resource.
+
+        Returns the McpServer immediately with status.connect_status describing
+        the accepted operation (phase CONNECTING, plus a warning when no runner
+        appears to be polling the task queue). Poll get/getByReference until
+        status.connect_status reaches a terminal phase; results land in
+        status.discovered_capabilities and status.tool_approvals exactly as with
+        the blocking connect.
+
+        Idempotent while an operation is in flight: a startConnect that finds a
+        live CONNECTING operation attaches to it (the in-flight operation's
+        runtime_env wins) instead of starting a second workflow. A CONNECTING
+        entry orphaned by a backend restart is reconciled against Temporal
+        before a new operation starts.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -256,6 +291,11 @@ def add_McpServerCommandControllerServicer_to_server(servicer, server):
             ),
             'connect': grpc.unary_unary_rpc_method_handler(
                     servicer.connect,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.ConnectInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_api__pb2.McpServer.SerializeToString,
+            ),
+            'startConnect': grpc.unary_unary_rpc_method_handler(
+                    servicer.startConnect,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.ConnectInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_api__pb2.McpServer.SerializeToString,
             ),
@@ -446,6 +486,33 @@ class McpServerCommandController(object):
             request,
             target,
             '/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/connect',
+            ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.ConnectInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_api__pb2.McpServer.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def startConnect(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/startConnect',
             ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.ConnectInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_api__pb2.McpServer.FromString,
             options,

@@ -26,14 +26,15 @@ var File_ai_stigmer_agentic_mcpserver_v1_command_proto protoreflect.FileDescript
 
 const file_ai_stigmer_agentic_mcpserver_v1_command_proto_rawDesc = "" +
 	"\n" +
-	"-ai/stigmer/agentic/mcpserver/v1/command.proto\x12\x1fai.stigmer.agentic.mcpserver.v1\x1a)ai/stigmer/agentic/mcpserver/v1/api.proto\x1a(ai/stigmer/agentic/mcpserver/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xa6\x0f\n" +
+	"-ai/stigmer/agentic/mcpserver/v1/command.proto\x12\x1fai.stigmer.agentic.mcpserver.v1\x1a)ai/stigmer/agentic/mcpserver/v1/api.proto\x1a(ai/stigmer/agentic/mcpserver/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xd2\x10\n" +
 	"\x1aMcpServerCommandController\x12_\n" +
 	"\x05apply\x12*.ai.stigmer.agentic.mcpserver.v1.McpServer\x1a*.ai.stigmer.agentic.mcpserver.v1.McpServer\x12f\n" +
 	"\x06create\x12*.ai.stigmer.agentic.mcpserver.v1.McpServer\x1a*.ai.stigmer.agentic.mcpserver.v1.McpServer\"\x04и\x18\x01\x12\x9a\x01\n" +
 	"\x06update\x12*.ai.stigmer.agentic.mcpserver.v1.McpServer\x1a*.ai.stigmer.agentic.mcpserver.v1.McpServer\"8¸\x184\b\x02\x10,\"\vmetadata.id*!unauthorized to update mcp server\x12\xa6\x01\n" +
 	"\x06delete\x126.ai.stigmer.commons.apiresource.ApiResourceDeleteInput\x1a*.ai.stigmer.agentic.mcpserver.v1.McpServer\"8¸\x184\b\x03\x10,\"\vresource_id*!unauthorized to delete mcp server\x12\xba\x01\n" +
 	"\x10updateVisibility\x125.ai.stigmer.commons.apiresource.UpdateVisibilityInput\x1a*.ai.stigmer.agentic.mcpserver.v1.McpServer\"C¸\x18?\b\x02\x10,\"\vresource_id*,unauthorized to update mcp server visibility\x12\xa4\x01\n" +
-	"\aconnect\x12-.ai.stigmer.agentic.mcpserver.v1.ConnectInput\x1a*.ai.stigmer.agentic.mcpserver.v1.McpServer\">¸\x18:\b\x16\x10,\"\rmcp_server_id*%unauthorized to connect to mcp server\x12\xdf\x01\n" +
+	"\aconnect\x12-.ai.stigmer.agentic.mcpserver.v1.ConnectInput\x1a*.ai.stigmer.agentic.mcpserver.v1.McpServer\">¸\x18:\b\x16\x10,\"\rmcp_server_id*%unauthorized to connect to mcp server\x12\xa9\x01\n" +
+	"\fstartConnect\x12-.ai.stigmer.agentic.mcpserver.v1.ConnectInput\x1a*.ai.stigmer.agentic.mcpserver.v1.McpServer\">¸\x18:\b\x16\x10,\"\rmcp_server_id*%unauthorized to connect to mcp server\x12\xdf\x01\n" +
 	"\x14initiateOAuthConnect\x12:.ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectInput\x1a;.ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectOutput\"N¸\x18J\b\x16\x10,\"\rmcp_server_id*5unauthorized to initiate oauth connect for mcp server\x12\xdf\x01\n" +
 	"\x14completeOAuthConnect\x12:.ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectInput\x1a;.ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectOutput\"N¸\x18J\b\x16\x10,\"\rmcp_server_id*5unauthorized to complete oauth connect for mcp server\x12\xc8\x01\n" +
 	"\x0fdisconnectOAuth\x125.ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthInput\x1a6.ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthOutput\"F¸\x18B\b\x16\x10,\"\vresource_id*/unauthorized to disconnect oauth for mcp server\x12\xb8\x01\n" +
@@ -64,24 +65,26 @@ var file_ai_stigmer_agentic_mcpserver_v1_command_proto_depIdxs = []int32{
 	1,  // 3: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.delete:input_type -> ai.stigmer.commons.apiresource.ApiResourceDeleteInput
 	2,  // 4: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.updateVisibility:input_type -> ai.stigmer.commons.apiresource.UpdateVisibilityInput
 	3,  // 5: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.connect:input_type -> ai.stigmer.agentic.mcpserver.v1.ConnectInput
-	4,  // 6: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.initiateOAuthConnect:input_type -> ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectInput
-	5,  // 7: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.completeOAuthConnect:input_type -> ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectInput
-	6,  // 8: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.disconnectOAuth:input_type -> ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthInput
-	7,  // 9: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.setOrgOAuthApp:input_type -> ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppInput
-	8,  // 10: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.deleteOrgOAuthApp:input_type -> ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppInput
-	0,  // 11: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.apply:output_type -> ai.stigmer.agentic.mcpserver.v1.McpServer
-	0,  // 12: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.create:output_type -> ai.stigmer.agentic.mcpserver.v1.McpServer
-	0,  // 13: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.update:output_type -> ai.stigmer.agentic.mcpserver.v1.McpServer
-	0,  // 14: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.delete:output_type -> ai.stigmer.agentic.mcpserver.v1.McpServer
-	0,  // 15: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.updateVisibility:output_type -> ai.stigmer.agentic.mcpserver.v1.McpServer
-	0,  // 16: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.connect:output_type -> ai.stigmer.agentic.mcpserver.v1.McpServer
-	9,  // 17: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.initiateOAuthConnect:output_type -> ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectOutput
-	10, // 18: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.completeOAuthConnect:output_type -> ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectOutput
-	11, // 19: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.disconnectOAuth:output_type -> ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthOutput
-	12, // 20: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.setOrgOAuthApp:output_type -> ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppOutput
-	13, // 21: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.deleteOrgOAuthApp:output_type -> ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppOutput
-	11, // [11:22] is the sub-list for method output_type
-	0,  // [0:11] is the sub-list for method input_type
+	3,  // 6: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.startConnect:input_type -> ai.stigmer.agentic.mcpserver.v1.ConnectInput
+	4,  // 7: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.initiateOAuthConnect:input_type -> ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectInput
+	5,  // 8: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.completeOAuthConnect:input_type -> ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectInput
+	6,  // 9: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.disconnectOAuth:input_type -> ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthInput
+	7,  // 10: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.setOrgOAuthApp:input_type -> ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppInput
+	8,  // 11: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.deleteOrgOAuthApp:input_type -> ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppInput
+	0,  // 12: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.apply:output_type -> ai.stigmer.agentic.mcpserver.v1.McpServer
+	0,  // 13: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.create:output_type -> ai.stigmer.agentic.mcpserver.v1.McpServer
+	0,  // 14: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.update:output_type -> ai.stigmer.agentic.mcpserver.v1.McpServer
+	0,  // 15: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.delete:output_type -> ai.stigmer.agentic.mcpserver.v1.McpServer
+	0,  // 16: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.updateVisibility:output_type -> ai.stigmer.agentic.mcpserver.v1.McpServer
+	0,  // 17: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.connect:output_type -> ai.stigmer.agentic.mcpserver.v1.McpServer
+	0,  // 18: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.startConnect:output_type -> ai.stigmer.agentic.mcpserver.v1.McpServer
+	9,  // 19: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.initiateOAuthConnect:output_type -> ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectOutput
+	10, // 20: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.completeOAuthConnect:output_type -> ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectOutput
+	11, // 21: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.disconnectOAuth:output_type -> ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthOutput
+	12, // 22: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.setOrgOAuthApp:output_type -> ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppOutput
+	13, // 23: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.deleteOrgOAuthApp:output_type -> ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppOutput
+	12, // [12:24] is the sub-list for method output_type
+	0,  // [0:12] is the sub-list for method input_type
 	0,  // [0:0] is the sub-list for extension type_name
 	0,  // [0:0] is the sub-list for extension extendee
 	0,  // [0:0] is the sub-list for field type_name

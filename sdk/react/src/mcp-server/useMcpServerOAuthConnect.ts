@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { create } from "@bufbuild/protobuf";
-import { getUserMessage } from "@stigmer/sdk";
+import { connectAndWait, getUserMessage } from "@stigmer/sdk";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import {
   InitiateOAuthConnectInputSchema,
@@ -248,7 +248,12 @@ export function useMcpServerOAuthConnect(): UseMcpServerOAuthConnectReturn {
             : {}),
         });
 
-        const server = await stigmer.mcpServer.connect(input);
+        // Async connect lane (stigmer/stigmer#425): startConnect + poll via
+        // the SDK's shared protocol, so the discovery wait can outlive the
+        // browser's ~300s no-bytes unary limit that used to fail this phase
+        // spuriously. Old backends without the lane fall back to the
+        // blocking RPC inside connectAndWait.
+        const server = await connectAndWait(stigmer.mcpServer, input);
 
         advancePhase("done");
         return server;

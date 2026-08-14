@@ -25,6 +25,73 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// ConnectPhase is the lifecycle of a connect operation.
+//
+// Exactly three phases: one live, two terminal. There is no queued/pending
+// distinction — the Temporal workflow is started before CONNECTING is ever
+// persisted, so CONNECTING always means "a workflow run exists".
+type ConnectPhase int32
+
+const (
+	// Default/unset. No connect has been recorded (or the resource predates
+	// this field).
+	ConnectPhase_connect_phase_unspecified ConnectPhase = 0
+	// A connect workflow is running (or was running when the backend last
+	// observed it — see ConnectStatus.workflow_id for how stale entries are
+	// reconciled).
+	ConnectPhase_connect_phase_connecting ConnectPhase = 1
+	// The connect completed and its results were persisted to
+	// discovered_capabilities / tool_approvals.
+	ConnectPhase_connect_phase_succeeded ConnectPhase = 2
+	// The connect settled without usable results. failure_code and
+	// failure_message carry the same classification the blocking connect RPC
+	// reports as a gRPC error.
+	ConnectPhase_connect_phase_failed ConnectPhase = 3
+)
+
+// Enum value maps for ConnectPhase.
+var (
+	ConnectPhase_name = map[int32]string{
+		0: "connect_phase_unspecified",
+		1: "connect_phase_connecting",
+		2: "connect_phase_succeeded",
+		3: "connect_phase_failed",
+	}
+	ConnectPhase_value = map[string]int32{
+		"connect_phase_unspecified": 0,
+		"connect_phase_connecting":  1,
+		"connect_phase_succeeded":   2,
+		"connect_phase_failed":      3,
+	}
+)
+
+func (x ConnectPhase) Enum() *ConnectPhase {
+	p := new(ConnectPhase)
+	*p = x
+	return p
+}
+
+func (x ConnectPhase) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ConnectPhase) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_agentic_mcpserver_v1_status_proto_enumTypes[0].Descriptor()
+}
+
+func (ConnectPhase) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_agentic_mcpserver_v1_status_proto_enumTypes[0]
+}
+
+func (x ConnectPhase) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ConnectPhase.Descriptor instead.
+func (ConnectPhase) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_mcpserver_v1_status_proto_rawDescGZIP(), []int{0}
+}
+
 // ValidationState represents the structural validity of an MCP server definition.
 // This is NOT runtime health — it only indicates whether the definition is valid.
 type ValidationState int32
@@ -68,11 +135,11 @@ func (x ValidationState) String() string {
 }
 
 func (ValidationState) Descriptor() protoreflect.EnumDescriptor {
-	return file_ai_stigmer_agentic_mcpserver_v1_status_proto_enumTypes[0].Descriptor()
+	return file_ai_stigmer_agentic_mcpserver_v1_status_proto_enumTypes[1].Descriptor()
 }
 
 func (ValidationState) Type() protoreflect.EnumType {
-	return &file_ai_stigmer_agentic_mcpserver_v1_status_proto_enumTypes[0]
+	return &file_ai_stigmer_agentic_mcpserver_v1_status_proto_enumTypes[1]
 }
 
 func (x ValidationState) Number() protoreflect.EnumNumber {
@@ -81,7 +148,7 @@ func (x ValidationState) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ValidationState.Descriptor instead.
 func (ValidationState) EnumDescriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_mcpserver_v1_status_proto_rawDescGZIP(), []int{0}
+	return file_ai_stigmer_agentic_mcpserver_v1_status_proto_rawDescGZIP(), []int{1}
 }
 
 // OAuthAppSource identifies where the effective OAuth app for an MCP server
@@ -137,11 +204,11 @@ func (x OAuthAppSource) String() string {
 }
 
 func (OAuthAppSource) Descriptor() protoreflect.EnumDescriptor {
-	return file_ai_stigmer_agentic_mcpserver_v1_status_proto_enumTypes[1].Descriptor()
+	return file_ai_stigmer_agentic_mcpserver_v1_status_proto_enumTypes[2].Descriptor()
 }
 
 func (OAuthAppSource) Type() protoreflect.EnumType {
-	return &file_ai_stigmer_agentic_mcpserver_v1_status_proto_enumTypes[1]
+	return &file_ai_stigmer_agentic_mcpserver_v1_status_proto_enumTypes[2]
 }
 
 func (x OAuthAppSource) Number() protoreflect.EnumNumber {
@@ -150,7 +217,7 @@ func (x OAuthAppSource) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use OAuthAppSource.Descriptor instead.
 func (OAuthAppSource) EnumDescriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_mcpserver_v1_status_proto_rawDescGZIP(), []int{1}
+	return file_ai_stigmer_agentic_mcpserver_v1_status_proto_rawDescGZIP(), []int{2}
 }
 
 // McpServerStatus represents the system-managed state of an MCP server definition.
@@ -177,6 +244,13 @@ type McpServerStatus struct {
 	// (fields 1-2; fields 3-4 are never populated — see OAuthStatus).
 	// None of these fields are persisted.
 	OauthStatus *OAuthStatus `protobuf:"bytes,5,opt,name=oauth_status,json=oauthStatus,proto3" json:"oauth_status,omitempty"`
+	// State of the most recent connect (discovery + classification) operation.
+	//
+	// Persisted (unlike oauth_status). Written by the backend when a connect
+	// operation starts and again when it settles; clients poll it through the
+	// ordinary get/getByReference queries after startConnect returns.
+	// Absent until the first connect is attempted.
+	ConnectStatus *ConnectStatus `protobuf:"bytes,6,opt,name=connect_status,json=connectStatus,proto3" json:"connect_status,omitempty"`
 	// Standard audit information (created_at, updated_at, created_by, etc.)
 	Audit         *apiresource.ApiResourceAudit `protobuf:"bytes,99,opt,name=audit,proto3" json:"audit,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -248,11 +322,138 @@ func (x *McpServerStatus) GetOauthStatus() *OAuthStatus {
 	return nil
 }
 
+func (x *McpServerStatus) GetConnectStatus() *ConnectStatus {
+	if x != nil {
+		return x.ConnectStatus
+	}
+	return nil
+}
+
 func (x *McpServerStatus) GetAudit() *apiresource.ApiResourceAudit {
 	if x != nil {
 		return x.Audit
 	}
 	return nil
+}
+
+// ConnectStatus records one connect operation — the most recent one.
+type ConnectStatus struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Where the operation stands. See ConnectPhase.
+	Phase ConnectPhase `protobuf:"varint,1,opt,name=phase,proto3,enum=ai.stigmer.agentic.mcpserver.v1.ConnectPhase" json:"phase,omitempty"`
+	// The Temporal workflow ID of the connect run — the operation handle.
+	// Used by the backend for orphan reconciliation and idempotent attach;
+	// opaque to clients.
+	WorkflowId string `protobuf:"bytes,2,opt,name=workflow_id,json=workflowId,proto3" json:"workflow_id,omitempty"`
+	// When the operation was accepted (workflow started).
+	StartedAt *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
+	// When the operation settled (success or failure). Unset while CONNECTING.
+	FinishedAt *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=finished_at,json=finishedAt,proto3" json:"finished_at,omitempty"`
+	// gRPC status code name classifying the failure, mirroring what the
+	// blocking connect RPC returns for the same outcome (CamelCase, the Go
+	// grpc codes.Code String() form):
+	//   - "FailedPrecondition": the target server (or its credentials/config)
+	//     refused the connect with a user-facing message — failure_message
+	//     renders verbatim.
+	//   - "DeadlineExceeded": the workflow run timeout elapsed.
+	//   - "Unavailable": the workflow run disappeared (e.g. Temporal data loss).
+	//   - "Internal": unexpected runner/backend error (failure_message carries
+	//     the runner's classified, user-facing connect-failure text — the same
+	//     deliberate exception the blocking RPC makes, stigmer/stigmer#478).
+	//
+	// Empty unless phase is connect_phase_failed.
+	FailureCode string `protobuf:"bytes,5,opt,name=failure_code,json=failureCode,proto3" json:"failure_code,omitempty"`
+	// Human-readable failure detail. Same rendering contract as the blocking
+	// connect RPC's error message. Empty unless phase is connect_phase_failed.
+	FailureMessage string `protobuf:"bytes,6,opt,name=failure_message,json=failureMessage,proto3" json:"failure_message,omitempty"`
+	// Non-fatal advisory recorded at start time, rendered by clients alongside
+	// the CONNECTING state. Today's only source is the dead-runner pre-flight:
+	// when no worker is polling the runner task queue at start, this warns
+	// that the operation may sit unclaimed (deliberately warn-only — a worker
+	// may be booting, and the pre-flight has a startup false-negative race).
+	// Empty when the pre-flight saw a live worker.
+	Warning       string `protobuf:"bytes,7,opt,name=warning,proto3" json:"warning,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ConnectStatus) Reset() {
+	*x = ConnectStatus{}
+	mi := &file_ai_stigmer_agentic_mcpserver_v1_status_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ConnectStatus) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ConnectStatus) ProtoMessage() {}
+
+func (x *ConnectStatus) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_mcpserver_v1_status_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ConnectStatus.ProtoReflect.Descriptor instead.
+func (*ConnectStatus) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_mcpserver_v1_status_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *ConnectStatus) GetPhase() ConnectPhase {
+	if x != nil {
+		return x.Phase
+	}
+	return ConnectPhase_connect_phase_unspecified
+}
+
+func (x *ConnectStatus) GetWorkflowId() string {
+	if x != nil {
+		return x.WorkflowId
+	}
+	return ""
+}
+
+func (x *ConnectStatus) GetStartedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.StartedAt
+	}
+	return nil
+}
+
+func (x *ConnectStatus) GetFinishedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.FinishedAt
+	}
+	return nil
+}
+
+func (x *ConnectStatus) GetFailureCode() string {
+	if x != nil {
+		return x.FailureCode
+	}
+	return ""
+}
+
+func (x *ConnectStatus) GetFailureMessage() string {
+	if x != nil {
+		return x.FailureMessage
+	}
+	return ""
+}
+
+func (x *ConnectStatus) GetWarning() string {
+	if x != nil {
+		return x.Warning
+	}
+	return ""
 }
 
 // DiscoveredCapabilities holds the tools and resource templates reported by an MCP server.
@@ -270,7 +471,7 @@ type DiscoveredCapabilities struct {
 
 func (x *DiscoveredCapabilities) Reset() {
 	*x = DiscoveredCapabilities{}
-	mi := &file_ai_stigmer_agentic_mcpserver_v1_status_proto_msgTypes[1]
+	mi := &file_ai_stigmer_agentic_mcpserver_v1_status_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -282,7 +483,7 @@ func (x *DiscoveredCapabilities) String() string {
 func (*DiscoveredCapabilities) ProtoMessage() {}
 
 func (x *DiscoveredCapabilities) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_mcpserver_v1_status_proto_msgTypes[1]
+	mi := &file_ai_stigmer_agentic_mcpserver_v1_status_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -295,7 +496,7 @@ func (x *DiscoveredCapabilities) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DiscoveredCapabilities.ProtoReflect.Descriptor instead.
 func (*DiscoveredCapabilities) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_mcpserver_v1_status_proto_rawDescGZIP(), []int{1}
+	return file_ai_stigmer_agentic_mcpserver_v1_status_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *DiscoveredCapabilities) GetTools() []*DiscoveredTool {
@@ -335,7 +536,7 @@ type DiscoveredTool struct {
 
 func (x *DiscoveredTool) Reset() {
 	*x = DiscoveredTool{}
-	mi := &file_ai_stigmer_agentic_mcpserver_v1_status_proto_msgTypes[2]
+	mi := &file_ai_stigmer_agentic_mcpserver_v1_status_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -347,7 +548,7 @@ func (x *DiscoveredTool) String() string {
 func (*DiscoveredTool) ProtoMessage() {}
 
 func (x *DiscoveredTool) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_mcpserver_v1_status_proto_msgTypes[2]
+	mi := &file_ai_stigmer_agentic_mcpserver_v1_status_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -360,7 +561,7 @@ func (x *DiscoveredTool) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DiscoveredTool.ProtoReflect.Descriptor instead.
 func (*DiscoveredTool) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_mcpserver_v1_status_proto_rawDescGZIP(), []int{2}
+	return file_ai_stigmer_agentic_mcpserver_v1_status_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *DiscoveredTool) GetName() string {
@@ -403,7 +604,7 @@ type DiscoveredResourceTemplate struct {
 
 func (x *DiscoveredResourceTemplate) Reset() {
 	*x = DiscoveredResourceTemplate{}
-	mi := &file_ai_stigmer_agentic_mcpserver_v1_status_proto_msgTypes[3]
+	mi := &file_ai_stigmer_agentic_mcpserver_v1_status_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -415,7 +616,7 @@ func (x *DiscoveredResourceTemplate) String() string {
 func (*DiscoveredResourceTemplate) ProtoMessage() {}
 
 func (x *DiscoveredResourceTemplate) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_mcpserver_v1_status_proto_msgTypes[3]
+	mi := &file_ai_stigmer_agentic_mcpserver_v1_status_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -428,7 +629,7 @@ func (x *DiscoveredResourceTemplate) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DiscoveredResourceTemplate.ProtoReflect.Descriptor instead.
 func (*DiscoveredResourceTemplate) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_mcpserver_v1_status_proto_rawDescGZIP(), []int{3}
+	return file_ai_stigmer_agentic_mcpserver_v1_status_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *DiscoveredResourceTemplate) GetUriTemplate() string {
@@ -486,7 +687,7 @@ type OAuthStatus struct {
 
 func (x *OAuthStatus) Reset() {
 	*x = OAuthStatus{}
-	mi := &file_ai_stigmer_agentic_mcpserver_v1_status_proto_msgTypes[4]
+	mi := &file_ai_stigmer_agentic_mcpserver_v1_status_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -498,7 +699,7 @@ func (x *OAuthStatus) String() string {
 func (*OAuthStatus) ProtoMessage() {}
 
 func (x *OAuthStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_mcpserver_v1_status_proto_msgTypes[4]
+	mi := &file_ai_stigmer_agentic_mcpserver_v1_status_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -511,7 +712,7 @@ func (x *OAuthStatus) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OAuthStatus.ProtoReflect.Descriptor instead.
 func (*OAuthStatus) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_mcpserver_v1_status_proto_rawDescGZIP(), []int{4}
+	return file_ai_stigmer_agentic_mcpserver_v1_status_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *OAuthStatus) GetVendorApprovalStatus() v1.VendorApprovalStatus {
@@ -546,14 +747,26 @@ var File_ai_stigmer_agentic_mcpserver_v1_status_proto protoreflect.FileDescripto
 
 const file_ai_stigmer_agentic_mcpserver_v1_status_proto_rawDesc = "" +
 	"\n" +
-	",ai/stigmer/agentic/mcpserver/v1/status.proto\x12\x1fai.stigmer.agentic.mcpserver.v1\x1a*ai/stigmer/agentic/mcpserver/v1/spec.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a%ai/stigmer/iam/oauthapp/v1/spec.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x84\x04\n" +
+	",ai/stigmer/agentic/mcpserver/v1/status.proto\x12\x1fai.stigmer.agentic.mcpserver.v1\x1a*ai/stigmer/agentic/mcpserver/v1/spec.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a%ai/stigmer/iam/oauthapp/v1/spec.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xdb\x04\n" +
 	"\x0fMcpServerStatus\x12[\n" +
 	"\x10validation_state\x18\x01 \x01(\x0e20.ai.stigmer.agentic.mcpserver.v1.ValidationStateR\x0fvalidationState\x12-\n" +
 	"\x12validation_message\x18\x02 \x01(\tR\x11validationMessage\x12p\n" +
 	"\x17discovered_capabilities\x18\x03 \x01(\v27.ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilitiesR\x16discoveredCapabilities\x12Z\n" +
 	"\x0etool_approvals\x18\x04 \x03(\v23.ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicyR\rtoolApprovals\x12O\n" +
-	"\foauth_status\x18\x05 \x01(\v2,.ai.stigmer.agentic.mcpserver.v1.OAuthStatusR\voauthStatus\x12F\n" +
-	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\"\x95\x02\n" +
+	"\foauth_status\x18\x05 \x01(\v2,.ai.stigmer.agentic.mcpserver.v1.OAuthStatusR\voauthStatus\x12U\n" +
+	"\x0econnect_status\x18\x06 \x01(\v2..ai.stigmer.agentic.mcpserver.v1.ConnectStatusR\rconnectStatus\x12F\n" +
+	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\"\xd3\x02\n" +
+	"\rConnectStatus\x12C\n" +
+	"\x05phase\x18\x01 \x01(\x0e2-.ai.stigmer.agentic.mcpserver.v1.ConnectPhaseR\x05phase\x12\x1f\n" +
+	"\vworkflow_id\x18\x02 \x01(\tR\n" +
+	"workflowId\x129\n" +
+	"\n" +
+	"started_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tstartedAt\x12;\n" +
+	"\vfinished_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"finishedAt\x12!\n" +
+	"\ffailure_code\x18\x05 \x01(\tR\vfailureCode\x12'\n" +
+	"\x0ffailure_message\x18\x06 \x01(\tR\x0efailureMessage\x12\x18\n" +
+	"\awarning\x18\a \x01(\tR\awarning\"\x95\x02\n" +
 	"\x16DiscoveredCapabilities\x12E\n" +
 	"\x05tools\x18\x01 \x03(\v2/.ai.stigmer.agentic.mcpserver.v1.DiscoveredToolR\x05tools\x12j\n" +
 	"\x12resource_templates\x18\x02 \x03(\v2;.ai.stigmer.agentic.mcpserver.v1.DiscoveredResourceTemplateR\x11resourceTemplates\x12H\n" +
@@ -571,7 +784,12 @@ const file_ai_stigmer_agentic_mcpserver_v1_status_proto_rawDesc = "" +
 	"\x16vendor_approval_status\x18\x01 \x01(\x0e20.ai.stigmer.iam.oauthapp.v1.VendorApprovalStatusR\x14vendorApprovalStatus\x127\n" +
 	"\x18vendor_approval_docs_url\x18\x02 \x01(\tR\x15vendorApprovalDocsUrl\x12e\n" +
 	"\x16effective_oauth_source\x18\x03 \x01(\x0e2/.ai.stigmer.agentic.mcpserver.v1.OAuthAppSourceR\x14effectiveOauthSource\x123\n" +
-	"\x16effective_oauth_app_id\x18\x04 \x01(\tR\x13effectiveOauthAppId*K\n" +
+	"\x16effective_oauth_app_id\x18\x04 \x01(\tR\x13effectiveOauthAppId*\x82\x01\n" +
+	"\fConnectPhase\x12\x1d\n" +
+	"\x19connect_phase_unspecified\x10\x00\x12\x1c\n" +
+	"\x18connect_phase_connecting\x10\x01\x12\x1b\n" +
+	"\x17connect_phase_succeeded\x10\x02\x12\x18\n" +
+	"\x14connect_phase_failed\x10\x03*K\n" +
 	"\x0fValidationState\x12 \n" +
 	"\x1cvalidation_state_unspecified\x10\x00\x12\t\n" +
 	"\x05valid\x10\x01\x12\v\n" +
@@ -595,39 +813,45 @@ func file_ai_stigmer_agentic_mcpserver_v1_status_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_mcpserver_v1_status_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_mcpserver_v1_status_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_ai_stigmer_agentic_mcpserver_v1_status_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_ai_stigmer_agentic_mcpserver_v1_status_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
+var file_ai_stigmer_agentic_mcpserver_v1_status_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_ai_stigmer_agentic_mcpserver_v1_status_proto_goTypes = []any{
-	(ValidationState)(0),                 // 0: ai.stigmer.agentic.mcpserver.v1.ValidationState
-	(OAuthAppSource)(0),                  // 1: ai.stigmer.agentic.mcpserver.v1.OAuthAppSource
-	(*McpServerStatus)(nil),              // 2: ai.stigmer.agentic.mcpserver.v1.McpServerStatus
-	(*DiscoveredCapabilities)(nil),       // 3: ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilities
-	(*DiscoveredTool)(nil),               // 4: ai.stigmer.agentic.mcpserver.v1.DiscoveredTool
-	(*DiscoveredResourceTemplate)(nil),   // 5: ai.stigmer.agentic.mcpserver.v1.DiscoveredResourceTemplate
-	(*OAuthStatus)(nil),                  // 6: ai.stigmer.agentic.mcpserver.v1.OAuthStatus
-	(*ToolApprovalPolicy)(nil),           // 7: ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy
-	(*apiresource.ApiResourceAudit)(nil), // 8: ai.stigmer.commons.apiresource.ApiResourceAudit
-	(*timestamppb.Timestamp)(nil),        // 9: google.protobuf.Timestamp
-	(*structpb.Struct)(nil),              // 10: google.protobuf.Struct
-	(v1.VendorApprovalStatus)(0),         // 11: ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus
+	(ConnectPhase)(0),                    // 0: ai.stigmer.agentic.mcpserver.v1.ConnectPhase
+	(ValidationState)(0),                 // 1: ai.stigmer.agentic.mcpserver.v1.ValidationState
+	(OAuthAppSource)(0),                  // 2: ai.stigmer.agentic.mcpserver.v1.OAuthAppSource
+	(*McpServerStatus)(nil),              // 3: ai.stigmer.agentic.mcpserver.v1.McpServerStatus
+	(*ConnectStatus)(nil),                // 4: ai.stigmer.agentic.mcpserver.v1.ConnectStatus
+	(*DiscoveredCapabilities)(nil),       // 5: ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilities
+	(*DiscoveredTool)(nil),               // 6: ai.stigmer.agentic.mcpserver.v1.DiscoveredTool
+	(*DiscoveredResourceTemplate)(nil),   // 7: ai.stigmer.agentic.mcpserver.v1.DiscoveredResourceTemplate
+	(*OAuthStatus)(nil),                  // 8: ai.stigmer.agentic.mcpserver.v1.OAuthStatus
+	(*ToolApprovalPolicy)(nil),           // 9: ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy
+	(*apiresource.ApiResourceAudit)(nil), // 10: ai.stigmer.commons.apiresource.ApiResourceAudit
+	(*timestamppb.Timestamp)(nil),        // 11: google.protobuf.Timestamp
+	(*structpb.Struct)(nil),              // 12: google.protobuf.Struct
+	(v1.VendorApprovalStatus)(0),         // 13: ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus
 }
 var file_ai_stigmer_agentic_mcpserver_v1_status_proto_depIdxs = []int32{
-	0,  // 0: ai.stigmer.agentic.mcpserver.v1.McpServerStatus.validation_state:type_name -> ai.stigmer.agentic.mcpserver.v1.ValidationState
-	3,  // 1: ai.stigmer.agentic.mcpserver.v1.McpServerStatus.discovered_capabilities:type_name -> ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilities
-	7,  // 2: ai.stigmer.agentic.mcpserver.v1.McpServerStatus.tool_approvals:type_name -> ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy
-	6,  // 3: ai.stigmer.agentic.mcpserver.v1.McpServerStatus.oauth_status:type_name -> ai.stigmer.agentic.mcpserver.v1.OAuthStatus
-	8,  // 4: ai.stigmer.agentic.mcpserver.v1.McpServerStatus.audit:type_name -> ai.stigmer.commons.apiresource.ApiResourceAudit
-	4,  // 5: ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilities.tools:type_name -> ai.stigmer.agentic.mcpserver.v1.DiscoveredTool
-	5,  // 6: ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilities.resource_templates:type_name -> ai.stigmer.agentic.mcpserver.v1.DiscoveredResourceTemplate
-	9,  // 7: ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilities.last_discovered_at:type_name -> google.protobuf.Timestamp
-	10, // 8: ai.stigmer.agentic.mcpserver.v1.DiscoveredTool.input_schema:type_name -> google.protobuf.Struct
-	11, // 9: ai.stigmer.agentic.mcpserver.v1.OAuthStatus.vendor_approval_status:type_name -> ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus
-	1,  // 10: ai.stigmer.agentic.mcpserver.v1.OAuthStatus.effective_oauth_source:type_name -> ai.stigmer.agentic.mcpserver.v1.OAuthAppSource
-	11, // [11:11] is the sub-list for method output_type
-	11, // [11:11] is the sub-list for method input_type
-	11, // [11:11] is the sub-list for extension type_name
-	11, // [11:11] is the sub-list for extension extendee
-	0,  // [0:11] is the sub-list for field type_name
+	1,  // 0: ai.stigmer.agentic.mcpserver.v1.McpServerStatus.validation_state:type_name -> ai.stigmer.agentic.mcpserver.v1.ValidationState
+	5,  // 1: ai.stigmer.agentic.mcpserver.v1.McpServerStatus.discovered_capabilities:type_name -> ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilities
+	9,  // 2: ai.stigmer.agentic.mcpserver.v1.McpServerStatus.tool_approvals:type_name -> ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy
+	8,  // 3: ai.stigmer.agentic.mcpserver.v1.McpServerStatus.oauth_status:type_name -> ai.stigmer.agentic.mcpserver.v1.OAuthStatus
+	4,  // 4: ai.stigmer.agentic.mcpserver.v1.McpServerStatus.connect_status:type_name -> ai.stigmer.agentic.mcpserver.v1.ConnectStatus
+	10, // 5: ai.stigmer.agentic.mcpserver.v1.McpServerStatus.audit:type_name -> ai.stigmer.commons.apiresource.ApiResourceAudit
+	0,  // 6: ai.stigmer.agentic.mcpserver.v1.ConnectStatus.phase:type_name -> ai.stigmer.agentic.mcpserver.v1.ConnectPhase
+	11, // 7: ai.stigmer.agentic.mcpserver.v1.ConnectStatus.started_at:type_name -> google.protobuf.Timestamp
+	11, // 8: ai.stigmer.agentic.mcpserver.v1.ConnectStatus.finished_at:type_name -> google.protobuf.Timestamp
+	6,  // 9: ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilities.tools:type_name -> ai.stigmer.agentic.mcpserver.v1.DiscoveredTool
+	7,  // 10: ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilities.resource_templates:type_name -> ai.stigmer.agentic.mcpserver.v1.DiscoveredResourceTemplate
+	11, // 11: ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilities.last_discovered_at:type_name -> google.protobuf.Timestamp
+	12, // 12: ai.stigmer.agentic.mcpserver.v1.DiscoveredTool.input_schema:type_name -> google.protobuf.Struct
+	13, // 13: ai.stigmer.agentic.mcpserver.v1.OAuthStatus.vendor_approval_status:type_name -> ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus
+	2,  // 14: ai.stigmer.agentic.mcpserver.v1.OAuthStatus.effective_oauth_source:type_name -> ai.stigmer.agentic.mcpserver.v1.OAuthAppSource
+	15, // [15:15] is the sub-list for method output_type
+	15, // [15:15] is the sub-list for method input_type
+	15, // [15:15] is the sub-list for extension type_name
+	15, // [15:15] is the sub-list for extension extendee
+	0,  // [0:15] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_mcpserver_v1_status_proto_init() }
@@ -641,8 +865,8 @@ func file_ai_stigmer_agentic_mcpserver_v1_status_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_mcpserver_v1_status_proto_rawDesc), len(file_ai_stigmer_agentic_mcpserver_v1_status_proto_rawDesc)),
-			NumEnums:      2,
-			NumMessages:   5,
+			NumEnums:      3,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

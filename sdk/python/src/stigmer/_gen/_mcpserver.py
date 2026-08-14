@@ -67,6 +67,12 @@ class McpServerClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def start_connect(self, input: io_pb2.ConnectInput) -> api_pb2.McpServer:
+        try:
+            return self._command.startConnect(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def initiate_o_auth_connect(self, input: io_pb2.InitiateOAuthConnectInput) -> io_pb2.InitiateOAuthConnectOutput:
         try:
             return self._command.initiateOAuthConnect(input)
