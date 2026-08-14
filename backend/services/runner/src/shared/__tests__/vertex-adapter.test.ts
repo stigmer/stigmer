@@ -123,9 +123,9 @@ describe("buildChatModel vertex adapter", () => {
     // default applies. That default prefix-matches the model string — and the
     // vertex branch hands ChatAnthropic the TRANSLATED string. This pins the
     // equality the zero-behavior-change criterion rests on (verified 16384 ==
-    // 16384 for 4.5-generation ids at @langchain/anthropic 1.4.0); a future
-    // bump that diverges the two forms fails here instead of silently capping
-    // vertex deployments differently from public ones.
+    // 16384 for 4.5-generation ids at @langchain/anthropic 1.4.0, re-verified
+    // at 1.5.5); a future bump that diverges the two forms fails here instead
+    // of silently capping vertex deployments differently from public ones.
     for (const canonical of [
       "claude-sonnet-4-5-20250929",
       "claude-haiku-4-5-20251001",
@@ -135,6 +135,33 @@ describe("buildChatModel vertex adapter", () => {
       const vertexModel = new ChatAnthropic({ model: toVertexModelId(canonical), apiKey: "probe" });
       expect(vertexModel.maxTokens, canonical).toBe(publicModel.maxTokens);
     }
+  });
+
+  it("model.profile goes empty exactly when translation rewrites the id", () => {
+    // ChatAnthropic.profile resolves per model name, and — unlike the
+    // maxTokens default above — its lookup does NOT prefix-match: a dated
+    // id rewritten to Vertex's `@` form resolves {} (verified at
+    // @langchain/anthropic 1.4.0 and again at 1.5.5), while undated ids
+    // pass through toVertexModelId unchanged and keep their full profile.
+    // Nothing in the runner consumes profile directly, but deepagents'
+    // SummarizationMiddleware reads profile.maxInputTokens when present, so
+    // vertex deployments pinned to DATED ids summarize on its fallback
+    // budget rather than the model's real window. This pins both halves of
+    // that contract: if a bump starts resolving `@`-form ids (a welcome
+    // improvement — those deployments' summarization budgets would change),
+    // or stops resolving canonical ids, this fails and the behavior gets
+    // re-decided consciously instead of shifting silently.
+    for (const dated of ["claude-sonnet-4-5-20250929", "claude-haiku-4-5-20251001"]) {
+      const publicModel = new ChatAnthropic({ model: dated, apiKey: "probe" });
+      const vertexModel = new ChatAnthropic({ model: toVertexModelId(dated), apiKey: "probe" });
+      expect(publicModel.profile.maxInputTokens, dated).toBeGreaterThan(0);
+      expect(vertexModel.profile, dated).toEqual({});
+    }
+    const undated = "claude-sonnet-4-6";
+    expect(toVertexModelId(undated)).toBe(undated);
+    expect(
+      new ChatAnthropic({ model: undated, apiKey: "probe" }).profile.maxInputTokens,
+    ).toBeGreaterThan(0);
   });
 
   it("forwards the request timeout to the SDK client (STIGMER_LLM_REQUEST_TIMEOUT_MS path)", async () => {

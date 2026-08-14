@@ -66,23 +66,26 @@ else
   echo "WARN: Could not determine @langchain/core versions (is npm ci done?)"
 fi
 
-# --- 3. Check @anthropic-ai/sdk copies (known, contained dual) ---
+# --- 3. Check @anthropic-ai/sdk copies (single, override-pinned) ---
 #
-# The tree deliberately carries TWO versions of @anthropic-ai/sdk:
-#   - @langchain/anthropic -> ^0.95.x  (hoisted; serves the public-API path)
-#   - @anthropic-ai/vertex-sdk, @anthropic-ai/bedrock-sdk, AND
-#     @anthropic-ai/foundry-sdk -> >=0.115 (nested, deduped onto one
-#     version; serve only the backend clients constructed via
-#     ChatAnthropic's createClient factory)
-# The versions never exchange class instances (LangChain consumes stream
-# events structurally and classifies errors by HTTP status, not instanceof),
-# and the vertex-seam/bedrock-seam/foundry-seam characterization tests pin
-# the cross-version combinations in CI.
+# The tree carries EXACTLY ONE copy of @anthropic-ai/sdk, held in place by
+# the `overrides` entry in package.json. The override exists because the
+# declared ranges have an empty intersection at their current releases:
+#   - @langchain/anthropic 1.5.x pins ^0.115.0 (0.x caret: excludes 0.116)
+#   - the backend SDKs (@anthropic-ai/vertex-sdk, @anthropic-ai/bedrock-sdk,
+#     @anthropic-ai/foundry-sdk) pin >=0.115.1 <1 (excludes 0.115.0)
+# and npm published only 0.115.0 and 0.116.0 in that window, so natural
+# resolution can never dedupe them. The override resolves everyone to
+# 0.116.0 — one additive minor above LangChain's declared range. Safe
+# because LangChain consumes stream events structurally and classifies
+# errors by HTTP status, not instanceof, and the vertex-seam/bedrock-seam/
+# foundry-seam characterization tests pin the exact combination in CI.
 #
-# Collapse condition: when the LangChain stack bump lands (@langchain/core
-# 1.2.x + @langchain/anthropic 1.5.x, which pins @anthropic-ai/sdk ^0.115),
-# npm dedupes to a single copy — tighten this check to single-copy then.
-# Any dependent other than these four, or a third distinct version, is
+# Override removal condition: drop the package.json override once
+# @langchain/anthropic's @anthropic-ai/sdk range again shares a version
+# with the backend SDKs' range — natural resolution then dedupes on its
+# own and this check keeps guarding the result.
+# Any dependent other than these four, or a SECOND distinct version, is
 # drift and fails the check.
 
 echo ""
@@ -112,8 +115,8 @@ ANTHROPIC_SDK_REPORT=$(npm ls @anthropic-ai/sdk --all --json 2>/dev/null \
       console.log(\`FAIL:unexpected dependents: \${badParents.join(', ')}\`);
       process.exit(0);
     }
-    if (versions.size > 2) {
-      console.log(\`FAIL:more than two distinct versions: \${[...versions].join(', ')}\`);
+    if (versions.size > 1) {
+      console.log(\`FAIL:more than one distinct version: \${[...versions].join(', ')}\`);
       process.exit(0);
     }
     console.log('PASS');
@@ -125,15 +128,16 @@ echo "$ANTHROPIC_SDK_REPORT" | grep -v '^PASS$' | grep -v '^FAIL:' || true
 if echo "$ANTHROPIC_SDK_REPORT" | grep -q '^FAIL:'; then
   echo ""
   echo "FAIL: @anthropic-ai/sdk copy check: $(echo "$ANTHROPIC_SDK_REPORT" | grep '^FAIL:' | sed 's/^FAIL://')"
-  echo "Only @langchain/anthropic (0.95.x) and the backend SDKs (>=0.115):"
-  echo "@anthropic-ai/vertex-sdk, @anthropic-ai/bedrock-sdk, and"
-  echo "@anthropic-ai/foundry-sdk may pull @anthropic-ai/sdk. See the comment"
-  echo "above this check for the rationale and collapse condition."
+  echo "The tree must hold a SINGLE @anthropic-ai/sdk copy (package.json"
+  echo "overrides pins it), and only @langchain/anthropic plus the backend"
+  echo "SDKs (@anthropic-ai/vertex-sdk, @anthropic-ai/bedrock-sdk,"
+  echo "@anthropic-ai/foundry-sdk) may depend on it. See the comment above"
+  echo "this check for the override rationale and its removal condition."
   exit 1
 fi
 
 if echo "$ANTHROPIC_SDK_REPORT" | grep -q '^PASS$'; then
-  echo "OK: @anthropic-ai/sdk copies match the known langchain + backend-sdk set"
+  echo "OK: single @anthropic-ai/sdk copy serving langchain + the backend SDKs"
 else
   echo "WARN: Could not determine @anthropic-ai/sdk copies (is npm ci done?)"
 fi
