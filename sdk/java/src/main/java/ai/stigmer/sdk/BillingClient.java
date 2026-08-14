@@ -21,6 +21,7 @@ import ai.stigmer.billing.v1.GetCreditLedgerInput;
 import ai.stigmer.billing.v1.GetCustomerModelPricingInput;
 import ai.stigmer.billing.v1.GetModelPricingGovernanceInput;
 import ai.stigmer.billing.v1.GetOrCreateBillingAccountInput;
+import ai.stigmer.billing.v1.GrantCreditsInput;
 import ai.stigmer.billing.v1.LedgerEntryType;
 import ai.stigmer.billing.v1.LedgerView;
 import ai.stigmer.billing.v1.ListModelPricingBaselinesInput;
@@ -130,6 +131,25 @@ public final class BillingClient {
     public CreditLedgerEntry adjustCredits(AdjustCreditsParams params) {
         try {
             return command.adjustCredits(params.toProto());
+        } catch (StatusRuntimeException e) {
+            throw StigmerException.wrap(e);
+        }
+    }
+
+    /**
+     * Grants promotional credits to an organization, optionally expiring
+     * (use-it-or-lose-it).
+     *
+     * <p>The grant burns before adjustment and purchased credits. When an
+     * expiry is set, any remainder unconsumed at that time is removed from
+     * the balance by the platform's grant-expiry sweep. Idempotent: replaying
+     * an applied idempotency key returns the original ledger entry, even
+     * after the expiry has passed. Requires the {@code can_manage_billing}
+     * permission on the organization.
+     */
+    public CreditLedgerEntry grantCredits(GrantCreditsParams params) {
+        try {
+            return command.grantCredits(params.toProto());
         } catch (StatusRuntimeException e) {
             throw StigmerException.wrap(e);
         }
@@ -387,6 +407,90 @@ public final class BillingClient {
                 Objects.requireNonNull(reason, "reason is required");
                 Objects.requireNonNull(idempotencyKey, "idempotencyKey is required");
                 return new AdjustCreditsParams(this);
+            }
+        }
+    }
+
+    // -- GrantCreditsParams -------------------------------------------------------
+
+    /** Parameters for granting promotional credits to an organization. */
+    public static final class GrantCreditsParams {
+        final String orgId;
+        final long amountMicros;
+        final Instant expiresAt;
+        final String reason;
+        final String idempotencyKey;
+
+        private GrantCreditsParams(Builder builder) {
+            this.orgId = builder.orgId;
+            this.amountMicros = builder.amountMicros;
+            this.expiresAt = builder.expiresAt;
+            this.reason = builder.reason;
+            this.idempotencyKey = builder.idempotencyKey;
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        GrantCreditsInput toProto() {
+            GrantCreditsInput.Builder req = GrantCreditsInput.newBuilder()
+                    .setOrgId(orgId)
+                    .setAmountMicros(amountMicros)
+                    .setReason(reason)
+                    .setIdempotencyKey(idempotencyKey);
+            if (expiresAt != null) {
+                req.setExpiresAt(protoTimestamp(expiresAt));
+            }
+            return req.build();
+        }
+
+        public static final class Builder {
+            private String orgId;
+            private long amountMicros;
+            private Instant expiresAt;
+            private String reason;
+            private String idempotencyKey;
+
+            private Builder() {}
+
+            /** Organization ID to grant credits to (required). */
+            public Builder orgId(String orgId) {
+                this.orgId = Objects.requireNonNull(orgId);
+                return this;
+            }
+
+            /** Micro-USD to grant. Must be positive; grants never remove credits. */
+            public Builder amountMicros(long amountMicros) {
+                this.amountMicros = amountMicros;
+                return this;
+            }
+
+            /**
+             * When the grant expires (use-it-or-lose-it). Omit for a grant that
+             * never expires. Precision is whole seconds; sub-second precision
+             * is discarded.
+             */
+            public Builder expiresAt(Instant expiresAt) {
+                this.expiresAt = expiresAt;
+                return this;
+            }
+
+            /** Human-readable reason for the grant, recorded in the audit trail (required). */
+            public Builder reason(String reason) {
+                this.reason = Objects.requireNonNull(reason);
+                return this;
+            }
+
+            /** Client-supplied deduplication key to prevent double-processing (required). */
+            public Builder idempotencyKey(String idempotencyKey) {
+                this.idempotencyKey = Objects.requireNonNull(idempotencyKey);
+                return this;
+            }
+
+            public GrantCreditsParams build() {
+                Objects.requireNonNull(orgId, "orgId is required");
+                Objects.requireNonNull(reason, "reason is required");
+                Objects.requireNonNull(idempotencyKey, "idempotencyKey is required");
+                return new GrantCreditsParams(this);
             }
         }
     }

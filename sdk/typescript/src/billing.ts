@@ -7,6 +7,7 @@ import {
   GetBillingAccountInputSchema,
   GetCreditBalanceInputSchema,
   AdjustCreditsInputSchema,
+  GrantCreditsInputSchema,
   GetCreditLedgerInputSchema,
   CreateCreditCheckoutSessionInputSchema,
   CreateBillingPortalSessionInputSchema,
@@ -63,6 +64,22 @@ export interface AdjustCreditsParams {
   readonly orgId: string;
   /** Positive to add credits, negative to remove. */
   readonly amountMicros: bigint;
+  /** Human-readable reason recorded on the ledger entry (audit trail). */
+  readonly reason: string;
+  /** Client-supplied deduplication key to prevent double-processing. */
+  readonly idempotencyKey: string;
+}
+
+/** Parameters for a promotional credit grant. */
+export interface GrantCreditsParams {
+  readonly orgId: string;
+  /** Amount to grant. Must be positive; grants never remove credits. */
+  readonly amountMicros: bigint;
+  /**
+   * When the grant expires (use-it-or-lose-it). Omit for a grant that never
+   * expires. Precision is whole seconds; sub-second precision is discarded.
+   */
+  readonly expiresAt?: Date;
   /** Human-readable reason recorded on the ledger entry (audit trail). */
   readonly reason: string;
   /** Client-supplied deduplication key to prevent double-processing. */
@@ -215,6 +232,33 @@ export class BillingClient {
           amountMicros: params.amountMicros,
           reason: params.reason,
           idempotencyKey: params.idempotencyKey,
+        }),
+      );
+    } catch (e) {
+      throw wrapError(e);
+    }
+  }
+
+  /**
+   * Grant promotional credits to an organization, optionally expiring
+   * (use-it-or-lose-it).
+   *
+   * The grant burns before adjustment and purchased credits. When
+   * `expiresAt` is set, any remainder unconsumed at that time is removed
+   * from the balance by the platform's grant-expiry sweep. Idempotent:
+   * replaying an applied idempotency key returns the original ledger entry,
+   * even after the expiry has passed. Requires `can_manage_billing` on
+   * the org.
+   */
+  async grantCredits(params: GrantCreditsParams): Promise<CreditLedgerEntry> {
+    try {
+      return await this.command.grantCredits(
+        create(GrantCreditsInputSchema, {
+          orgId: params.orgId,
+          amountMicros: params.amountMicros,
+          reason: params.reason,
+          idempotencyKey: params.idempotencyKey,
+          ...(params.expiresAt && { expiresAt: timestampFromDate(params.expiresAt) }),
         }),
       );
     } catch (e) {

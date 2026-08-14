@@ -28,6 +28,10 @@ type fakeBillingCommand struct {
 	adjustCreditsOut *billingv1.CreditLedgerEntry
 	adjustCreditsErr error
 
+	grantCreditsIn  *billingv1.GrantCreditsInput
+	grantCreditsOut *billingv1.CreditLedgerEntry
+	grantCreditsErr error
+
 	autoRechargeIn *billingv1.SetAutoRechargeConfigInput
 	checkoutIn     *billingv1.CreateCreditCheckoutSessionInput
 	retireIn       *billingv1.RetireModelPricingBaselineInput
@@ -39,6 +43,14 @@ func (f *fakeBillingCommand) AdjustCredits(_ context.Context, in *billingv1.Adju
 		return nil, f.adjustCreditsErr
 	}
 	return f.adjustCreditsOut, nil
+}
+
+func (f *fakeBillingCommand) GrantCredits(_ context.Context, in *billingv1.GrantCreditsInput, _ ...grpc.CallOption) (*billingv1.CreditLedgerEntry, error) {
+	f.grantCreditsIn = in
+	if f.grantCreditsErr != nil {
+		return nil, f.grantCreditsErr
+	}
+	return f.grantCreditsOut, nil
 }
 
 func (f *fakeBillingCommand) SetAutoRechargeConfig(_ context.Context, in *billingv1.SetAutoRechargeConfigInput, _ ...grpc.CallOption) (*billingv1.BillingAccount, error) {
@@ -127,6 +139,79 @@ func TestBillingAdjustCredits_WrapsGRPCError(t *testing.T) {
 	client := &BillingClient{command: fake}
 
 	_, err := client.AdjustCredits(context.Background(), &AdjustCreditsParams{OrgID: "acme"})
+	var sdkErr *Error
+	if !errors.As(err, &sdkErr) {
+		t.Fatalf("error = %v (%T), want *stigmer.Error", err, err)
+	}
+	if sdkErr.GRPCCode != codes.PermissionDenied {
+		t.Errorf("GRPCCode = %v, want PermissionDenied", sdkErr.GRPCCode)
+	}
+}
+
+func TestBillingGrantCredits_MapsParams(t *testing.T) {
+	fake := &fakeBillingCommand{
+		grantCreditsOut: &billingv1.CreditLedgerEntry{AmountMicros: 5_000_000},
+	}
+	client := &BillingClient{command: fake}
+
+	expiresAt := time.Date(2026, 8, 31, 23, 59, 59, 0, time.UTC)
+	entry, err := client.GrantCredits(context.Background(), &GrantCreditsParams{
+		OrgID:          "acme",
+		AmountMicros:   5_000_000,
+		ExpiresAt:      expiresAt,
+		Reason:         "monthly free allowance 2026-08",
+		IdempotencyKey: "allowance-acme-2026-08",
+	})
+	if err != nil {
+		t.Fatalf("GrantCredits: %v", err)
+	}
+	if entry.GetAmountMicros() != 5_000_000 {
+		t.Errorf("entry.AmountMicros = %d, want 5000000", entry.GetAmountMicros())
+	}
+
+	in := fake.grantCreditsIn
+	if in.GetOrgId() != "acme" {
+		t.Errorf("OrgId = %q, want acme", in.GetOrgId())
+	}
+	if in.GetAmountMicros() != 5_000_000 {
+		t.Errorf("AmountMicros = %d, want 5000000", in.GetAmountMicros())
+	}
+	if got := in.GetExpiresAt().AsTime(); !got.Equal(expiresAt) {
+		t.Errorf("ExpiresAt = %v, want %v", got, expiresAt)
+	}
+	if in.GetReason() != "monthly free allowance 2026-08" {
+		t.Errorf("Reason = %q", in.GetReason())
+	}
+	if in.GetIdempotencyKey() != "allowance-acme-2026-08" {
+		t.Errorf("IdempotencyKey = %q", in.GetIdempotencyKey())
+	}
+}
+
+func TestBillingGrantCredits_OmitsUnsetExpiry(t *testing.T) {
+	fake := &fakeBillingCommand{grantCreditsOut: &billingv1.CreditLedgerEntry{}}
+	client := &BillingClient{command: fake}
+
+	if _, err := client.GrantCredits(context.Background(), &GrantCreditsParams{
+		OrgID:          "acme",
+		AmountMicros:   1_000_000,
+		Reason:         "welcome credit",
+		IdempotencyKey: "welcome-acme",
+	}); err != nil {
+		t.Fatalf("GrantCredits: %v", err)
+	}
+
+	if fake.grantCreditsIn.GetExpiresAt() != nil {
+		t.Errorf("ExpiresAt = %v, want unset for a never-expiring grant", fake.grantCreditsIn.GetExpiresAt())
+	}
+}
+
+func TestBillingGrantCredits_WrapsGRPCError(t *testing.T) {
+	fake := &fakeBillingCommand{
+		grantCreditsErr: status.Error(codes.PermissionDenied, "can_manage_billing required"),
+	}
+	client := &BillingClient{command: fake}
+
+	_, err := client.GrantCredits(context.Background(), &GrantCreditsParams{OrgID: "acme"})
 	var sdkErr *Error
 	if !errors.As(err, &sdkErr) {
 		t.Fatalf("error = %v (%T), want *stigmer.Error", err, err)

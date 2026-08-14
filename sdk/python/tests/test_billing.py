@@ -24,6 +24,7 @@ from stigmer._billing import (
     AdjustCreditsParams,
     GetBillingUsageReportParams,
     GetCreditLedgerParams,
+    GrantCreditsParams,
     SetAutoRechargeConfigParams,
 )
 from stigmer._gen._errors import StigmerError
@@ -48,12 +49,20 @@ class _CapturingCommandStub:
     def __init__(self) -> None:
         self.adjust_credits_in = None
         self.adjust_credits_error: grpc.RpcError | None = None
+        self.grant_credits_in = None
+        self.grant_credits_error: grpc.RpcError | None = None
         self.auto_recharge_in = None
 
     def adjustCredits(self, req):  # noqa: N802 — proto RPC name
         self.adjust_credits_in = req
         if self.adjust_credits_error is not None:
             raise self.adjust_credits_error
+        return credit_pb2.CreditLedgerEntry(amount_micros=req.amount_micros)
+
+    def grantCredits(self, req):  # noqa: N802 — proto RPC name
+        self.grant_credits_in = req
+        if self.grant_credits_error is not None:
+            raise self.grant_credits_error
         return credit_pb2.CreditLedgerEntry(amount_micros=req.amount_micros)
 
     def setAutoRechargeConfig(self, req):  # noqa: N802 — proto RPC name
@@ -120,6 +129,63 @@ class TestBillingClientWiring:
         with pytest.raises(StigmerError):
             client.billing.adjust_credits(
                 AdjustCreditsParams(
+                    org_id="acme",
+                    amount_micros=1,
+                    reason="r",
+                    idempotency_key="k",
+                )
+            )
+
+    def test_grant_credits_maps_params_including_expiry(
+        self, client: StigmerClient
+    ) -> None:
+        fake = _CapturingCommandStub()
+        client.billing._command = fake
+
+        expires_at = datetime(2026, 8, 31, 23, 59, 59, tzinfo=timezone.utc)
+        entry = client.billing.grant_credits(
+            GrantCreditsParams(
+                org_id="acme",
+                amount_micros=5_000_000,
+                reason="monthly free allowance 2026-08",
+                idempotency_key="allowance-acme-2026-08",
+                expires_at=expires_at,
+            )
+        )
+        assert entry.amount_micros == 5_000_000
+
+        req = fake.grant_credits_in
+        assert req.org_id == "acme"
+        assert req.amount_micros == 5_000_000
+        assert req.reason == "monthly free allowance 2026-08"
+        assert req.idempotency_key == "allowance-acme-2026-08"
+        assert req.expires_at.ToDatetime(tzinfo=timezone.utc) == expires_at
+
+    def test_grant_credits_omits_unset_expiry(self, client: StigmerClient) -> None:
+        fake = _CapturingCommandStub()
+        client.billing._command = fake
+
+        client.billing.grant_credits(
+            GrantCreditsParams(
+                org_id="acme",
+                amount_micros=1_000_000,
+                reason="welcome credit",
+                idempotency_key="welcome-acme",
+            )
+        )
+
+        assert not fake.grant_credits_in.HasField("expires_at")
+
+    def test_grant_credits_wraps_grpc_error(self, client: StigmerClient) -> None:
+        fake = _CapturingCommandStub()
+        fake.grant_credits_error = _FakeRpcError(
+            grpc.StatusCode.PERMISSION_DENIED, "can_manage_billing required"
+        )
+        client.billing._command = fake
+
+        with pytest.raises(StigmerError):
+            client.billing.grant_credits(
+                GrantCreditsParams(
                     org_id="acme",
                     amount_micros=1,
                     reason="r",

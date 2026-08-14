@@ -56,6 +56,20 @@ type AdjustCreditsParams struct {
 	IdempotencyKey string
 }
 
+// GrantCreditsParams configures a promotional credit grant.
+type GrantCreditsParams struct {
+	OrgID string
+	// AmountMicros is the amount to grant. Must be positive.
+	AmountMicros int64
+	// ExpiresAt is when the grant expires (use-it-or-lose-it). Zero means the
+	// grant never expires. Precision is whole seconds.
+	ExpiresAt time.Time
+	// Reason is recorded on the ledger entry (audit trail).
+	Reason string
+	// IdempotencyKey deduplicates retries of the same grant.
+	IdempotencyKey string
+}
+
 // GetCreditLedgerParams configures a credit ledger query.
 type GetCreditLedgerParams struct {
 	OrgID string
@@ -208,6 +222,31 @@ func (b *BillingClient) AdjustCredits(ctx context.Context, params *AdjustCredits
 		Reason:         params.Reason,
 		IdempotencyKey: params.IdempotencyKey,
 	})
+	if err != nil {
+		return nil, gen.WrapErr(err)
+	}
+	return resp, nil
+}
+
+// GrantCredits grants promotional credits to an organization, optionally
+// expiring (use-it-or-lose-it).
+//
+// The grant burns before adjustment and purchased credits. When ExpiresAt is
+// set, any remainder unconsumed at that time is removed from the balance by
+// the platform's grant-expiry sweep. Idempotent: replaying an applied
+// idempotency key returns the original ledger entry, even after the expiry
+// has passed. Requires can_manage_billing on the org.
+func (b *BillingClient) GrantCredits(ctx context.Context, params *GrantCreditsParams) (*CreditLedgerEntry, error) {
+	req := &billingv1.GrantCreditsInput{
+		OrgId:          params.OrgID,
+		AmountMicros:   params.AmountMicros,
+		Reason:         params.Reason,
+		IdempotencyKey: params.IdempotencyKey,
+	}
+	if !params.ExpiresAt.IsZero() {
+		req.ExpiresAt = timestamppb.New(params.ExpiresAt)
+	}
+	resp, err := b.command.GrantCredits(ctx, req)
 	if err != nil {
 		return nil, gen.WrapErr(err)
 	}
