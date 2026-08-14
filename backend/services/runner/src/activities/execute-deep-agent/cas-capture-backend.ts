@@ -25,8 +25,25 @@
  * records its before-bytes at authorization time instead (`captureDeleteBefore`,
  * issue #303). A delete via shell (`rm`) stays on the approval gate as always.
  *
+ * VIRTUAL ROOT — THE ONE PATH DIALECT (issue #754)
+ * ------------------------------------------------
+ * Every backend here is constructed with `virtualMode: true`: a leading "/"
+ * denotes the WORKSPACE ROOT, traversal (`..`, `~`) is rejected, and every
+ * resolution stays inside `rootDir` by construction. This is the same dialect
+ * the rest of the harness already speaks — the system prompt's path-resolution
+ * directive, `resolveWorkspacePath(..., virtualRoot=true)` in the CAS observer
+ * and turn-boundary capture, `InlinePublisher.normalizePath`, and the approval
+ * gate's capturability checks. Before this flag, deepagents' legacy default
+ * passed absolute paths through to the REAL filesystem: a `write_file("/tmp/x")`
+ * escaped the session workspace onto the host AND escaped review entirely
+ * (auto-approved as capture-mode flow, but the observer/boundary/publisher all
+ * looked inside the workspace and found nothing). Read-side, the same legacy
+ * pass-through was why plan mode needed rule-based read fencing at all. Do not
+ * remove this flag: workspace confinement is structural, not policy.
+ *
  * @since File-Change HITL Redesign (Phase 3 — CAS deep-agent wiring); sub-agent
- * gitignored capture parity (Session 26, DD-19); shell restore (issue #248)
+ * gitignored capture parity (Session 26, DD-19); shell restore (issue #248);
+ * virtual-root confinement (issue #754)
  */
 
 import { FilesystemBackend, LocalShellBackend } from "deepagents";
@@ -111,12 +128,12 @@ export async function createCasCaptureBackend(
 
   if (shellEnv !== undefined) {
     const backend = new CasCaptureShellBackend(
-      { rootDir, env: shellEnv },
+      { rootDir, virtualMode: true, env: shellEnv },
       { observer },
     );
     await backend.initialize();
     return backend;
   }
 
-  return new CasCaptureFilesystemBackend({ rootDir }, { observer });
+  return new CasCaptureFilesystemBackend({ rootDir, virtualMode: true }, { observer });
 }

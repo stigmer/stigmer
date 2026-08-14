@@ -9,6 +9,10 @@
 # #501/#570/#571) because nothing ran it; cloud#275's typecheck gate cannot
 # catch runtime validation, UI drift, or infra deadlocks.
 #
+# The e2e-approval job (below) runs the HITL approval projects the same way —
+# added by stigmer/stigmer#754 after the SAME rot pattern hit them (they were
+# Makefile-only and silently invalidated by the apply-then-review change).
+#
 # Distinct from ci.e2e.yaml, which smoke-tests the DEPLOYED console after
 # releases; this lane tests the code on the PR.
 #
@@ -190,5 +194,89 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: e2e-interactive-playwright-report
+          path: test/e2e/playwright-report/
+          retention-days: 30
+
+  # The HITL approval suite (stigmer/stigmer#754): before this job the suite
+  # ran NOWHERE automatically (Makefile target only), which is exactly how it
+  # rotted — the phase-7 apply-then-review change silently invalidated its
+  # write-gate premise, and a workspace-escape bug in the runner's legacy
+  # path mode went unnoticed with it. Two serial invocations, two stack
+  # shapes (one Playwright run boots exactly one stack; both use the shared
+  # single-FIFO mock proxy, so --workers=1 is load-bearing):
+  #   1. capture stack — approval flows (shell gates), disclosure rows, and
+  #      the apply-then-review file-review flow;
+  #   2. file-gate stack (no artifact store) — the pre-execution file-gate
+  #      card, the only shape where it exists.
+  # A separate job (not steps on e2e-interactive) so the two suites fail
+  # independently and re-run independently — same builds, ~4 extra minutes.
+  e2e-approval:
+    name: Approval E2E (mock LLM, two stack shapes)
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.stack == 'true'
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.work
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Install npm workspace dependencies
+        run: npm ci
+
+      - name: Build SDK libraries
+        run: npm run build:libs
+
+      - name: Install Temporal CLI
+        run: |
+          curl -sSf https://temporal.download/cli.sh | sh
+          echo "$HOME/.temporalio/bin" >> "$GITHUB_PATH"
+
+      - name: Build stigmer-server
+        working-directory: backend/services/stigmer-server
+        run: go build -o ../../../bin/stigmer-server ./cmd/server
+
+      - name: Build unified runner
+        run: make build-runner
+
+      - name: Install Playwright browsers
+        working-directory: test/e2e
+        run: npx playwright install --with-deps chromium
+
+      - name: Run approval suite (capture stack)
+        working-directory: test/e2e
+        env:
+          STIGMER_E2E_MOCK_LLM: "1"
+        run: npx playwright test --project=interactive-approval --workers=1
+
+      - name: Run approval suite (file-gate stack)
+        working-directory: test/e2e
+        env:
+          STIGMER_E2E_MOCK_LLM: "1"
+          STIGMER_E2E_FILE_GATES: "1"
+        run: npx playwright test --project=interactive-approval-gate --workers=1
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-approval-test-results
+          path: test/e2e/test-results/
+          retention-days: 30
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-approval-playwright-report
           path: test/e2e/playwright-report/
           retention-days: 30

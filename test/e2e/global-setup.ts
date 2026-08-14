@@ -14,6 +14,14 @@ const API_PORT = Number(process.env.STIGMER_E2E_API_PORT ?? "7234");
 // the existing real-LLM interactive specs are untouched.
 const MOCK_LLM = process.env.STIGMER_E2E_MOCK_LLM === "1" || process.env.STIGMER_E2E_MOCK_LLM === "true";
 
+// Opt-in FILE-GATE stack for the interactive-approval-gate project: the runner
+// boots with ARTIFACT_STORAGE_TYPE=none, so a non-git session workspace has no
+// capture substrate and file writes take the pre-execution approval gate (the
+// deny-gate mode, DD-22) instead of flowing under apply-then-review. This is
+// the only stack shape where the file-diff GATE card exists — the surface
+// tool-card-ux.spec.ts pins. Requires the mock stack (a fresh boot).
+const FILE_GATES = process.env.STIGMER_E2E_FILE_GATES === "1" || process.env.STIGMER_E2E_FILE_GATES === "true";
+
 async function globalSetup() {
   if (process.env.STIGMER_E2E_BASE_URL) {
     console.log(`[e2e] External target (${process.env.STIGMER_E2E_BASE_URL}) — skipping backend stack startup`);
@@ -40,12 +48,23 @@ async function globalSetup() {
     return;
   }
 
+  if (FILE_GATES && !MOCK_LLM) {
+    throw new Error(
+      "[e2e] STIGMER_E2E_FILE_GATES requires STIGMER_E2E_MOCK_LLM — the file-gate " +
+      "stack is a fresh mock-LLM boot (see `make test-e2e-approval`).",
+    );
+  }
+
   if (MOCK_LLM) {
-    console.log(`[e2e] STIGMER_E2E_MOCK_LLM set — booting stack with deterministic mock LLM`);
+    console.log(
+      `[e2e] STIGMER_E2E_MOCK_LLM set — booting stack with deterministic mock LLM` +
+      (FILE_GATES ? " (file-gate mode: no artifact store, writes gate pre-execution)" : ""),
+    );
     const proxy = await startMockLlmProxy();
     const mockLlmEndpoint = proxy.url();
-    const state = await startBackendStack({ apiPort: API_PORT, mockLlmEndpoint });
+    const state = await startBackendStack({ apiPort: API_PORT, mockLlmEndpoint, fileGates: FILE_GATES });
     state.mockLlmControlUrl = mockLlmEndpoint;
+    state.fileGateMode = FILE_GATES;
     fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
 
     // A fresh OSS stack has no organizations, so the web's OrgGate would block

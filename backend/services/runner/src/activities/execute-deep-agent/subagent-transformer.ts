@@ -493,6 +493,10 @@ export function resolveSubagentSkillPrompt(
  *   (approval-gated by the sub-agent's own middleware). Absent (plan mode),
  *   the backend is filesystem-only — read-only by construction, matching the
  *   parent.
+ *
+ * Every variant is virtual-rooted (`virtualMode: true`) like the parent's —
+ * see the cas-capture-backend.ts header (issue #754): workspace confinement
+ * is structural on every graph, sub-agents included.
  */
 async function buildSubagentBackend(opts: {
   readonly workspaceRootDir: string;
@@ -508,11 +512,12 @@ async function buildSubagentBackend(opts: {
   }
 
   if (opts.shellEnv === undefined) {
-    return new FilesystemBackend({ rootDir: opts.workspaceRootDir });
+    return new FilesystemBackend({ rootDir: opts.workspaceRootDir, virtualMode: true });
   }
 
   const shellBackend = new LocalShellBackend({
     rootDir: opts.workspaceRootDir,
+    virtualMode: true,
     env: opts.shellEnv,
   });
   await shellBackend.initialize();
@@ -554,17 +559,14 @@ export async function compileSubagents(
       // Structural coupling (DD-19): a sub-agent gate flows gitignored writes into
       // CAS iff a CAS observer backs that sub-agent's filesystem backend. Deriving
       // both from the same `casObserver` makes "unobserved unreviewable bytes"
-      // impossible by construction. Same idiom for path normalization
-      // (issue #429): derived from the same `permissions` baked into the graph
-      // below, so a rule-bearing graph always carries the shim that keeps
-      // prompt-compliant relative paths from dying in rule validation.
+      // impossible by construction. Path normalization is unconditional
+      // (issue #754): every graph speaks the virtual dialect, so every graph
+      // carries the repair seam — matching the parent's composition.
       const middleware = buildSubAgentMiddleware({
         costCap: opts.costCap,
         approvalGate: opts.approvalGate,
         captureIgnored: !!opts.casObserver,
-        ...(opts.permissions?.length
-          ? { pathNormalization: { rootDir: opts.workspaceRootDir } }
-          : {}),
+        pathNormalization: { rootDir: opts.workspaceRootDir },
       });
 
       const modelName = spec.model ?? opts.parentModelName;
