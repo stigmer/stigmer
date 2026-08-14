@@ -242,12 +242,13 @@ func TestAgentController_Delete(t *testing.T) {
 	})
 }
 
-// TestAgentController_Delete_Cascade pins the T08 cascade contract: deleting
-// an agent removes its system-managed default instance and every AgentShare
-// referencing it, while personal instances (and look-alike instances of
-// OTHER agents) survive. The children are org+slug-resolved, so leaving them
-// behind poisons a recreate at the same slug (orphaned default instance) or
-// silently rebinds a stale share to the new agent.
+// TestAgentController_Delete_Cascade pins the cascade contract (#611
+// extended the #592 workflow ruling to agents): deleting an agent removes
+// ALL of its instances — the system-managed default AND members' personal
+// ones — and every AgentShare referencing it, while look-alike children of
+// OTHER agents survive. Instance slugs are org-scoped, so an orphan would
+// occupy its slug org-wide with no UI left to delete it; a stale share
+// would silently rebind to whatever agent is later created at the slug.
 func TestAgentController_Delete_Cascade(t *testing.T) {
 	newAgent := func(name string) *agentv1.Agent {
 		return &agentv1.Agent{
@@ -320,7 +321,7 @@ func TestAgentController_Delete_Cascade(t *testing.T) {
 		}
 	}
 
-	t.Run("deletes the default instance via the status pointer", func(t *testing.T) {
+	t.Run("deletes the default instance (status pointer set)", func(t *testing.T) {
 		s, err := sqlite.NewStore(t.TempDir() + "/test.sqlite")
 		if err != nil {
 			t.Fatalf("failed to create store: %v", err)
@@ -346,7 +347,7 @@ func TestAgentController_Delete_Cascade(t *testing.T) {
 		assertGone(t, s, apiresourcekind.ApiResourceKind_agent_instance, "ain_pointer", &agentinstancev1.AgentInstance{})
 	})
 
-	t.Run("deletes a legacy default instance via the slug fallback", func(t *testing.T) {
+	t.Run("deletes a legacy default instance that predates the status pointer", func(t *testing.T) {
 		s, err := sqlite.NewStore(t.TempDir() + "/test.sqlite")
 		if err != nil {
 			t.Fatalf("failed to create store: %v", err)
@@ -355,7 +356,8 @@ func TestAgentController_Delete_Cascade(t *testing.T) {
 		controller := NewAgentController(s, nil)
 
 		// No status.default_instance_id (nil instance client leaves it unset)
-		// — the half-created legacy shape the fallback exists for.
+		// — the half-created legacy shape. The spec.agent_id sweep covers it
+		// without any pointer-or-slug resolution.
 		created, err := controller.Create(contextWithAgentKind(), newAgent("Fallback Agent"))
 		if err != nil {
 			t.Fatalf("Create failed: %v", err)
@@ -369,7 +371,7 @@ func TestAgentController_Delete_Cascade(t *testing.T) {
 		assertGone(t, s, apiresourcekind.ApiResourceKind_agent_instance, "ain_fallback", &agentinstancev1.AgentInstance{})
 	})
 
-	t.Run("personal instances and other agents' look-alikes survive", func(t *testing.T) {
+	t.Run("cascades personal instances; other agents' look-alikes survive", func(t *testing.T) {
 		s, err := sqlite.NewStore(t.TempDir() + "/test.sqlite")
 		if err != nil {
 			t.Fatalf("failed to create store: %v", err)
@@ -382,17 +384,19 @@ func TestAgentController_Delete_Cascade(t *testing.T) {
 			t.Fatalf("Create failed: %v", err)
 		}
 
-		// A member's personal instance of THIS agent (different slug).
+		// A member's personal instance of THIS agent (different slug): its
+		// org-scoped slug must be freed with the agent (#611 — the earlier
+		// posture left it as an orphan occupying the slug org-wide).
 		saveInstance(t, s, "ain_personal", "my-personal-setup", created.Metadata.Id)
 		// An instance that merely reuses the "-default" name but belongs to a
-		// DIFFERENT agent — the spec.agent_id guard must protect it.
+		// DIFFERENT agent — the spec.agent_id match must protect it.
 		saveInstance(t, s, "ain_lookalike", created.Metadata.Slug+"-default", "agt_someone_else")
 
 		if _, err := controller.Delete(contextWithAgentKind(), &agentv1.AgentId{Value: created.Metadata.Id}); err != nil {
 			t.Fatalf("Delete failed: %v", err)
 		}
 
-		assertSurvives(t, s, apiresourcekind.ApiResourceKind_agent_instance, "ain_personal", &agentinstancev1.AgentInstance{})
+		assertGone(t, s, apiresourcekind.ApiResourceKind_agent_instance, "ain_personal", &agentinstancev1.AgentInstance{})
 		assertSurvives(t, s, apiresourcekind.ApiResourceKind_agent_instance, "ain_lookalike", &agentinstancev1.AgentInstance{})
 	})
 

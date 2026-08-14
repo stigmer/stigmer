@@ -11,9 +11,9 @@ import (
 
 // Delete deletes an agent by ID using the pipeline pattern.
 //
-// Deletion cascades to the agent's org+slug-resolved children — the
-// system-managed default instance and all AgentShares — before the agent
-// row itself is removed. Personal instances are deliberately not cascaded;
+// Deletion cascades to the agent's children — ALL instances (the
+// system-managed default and members' personal ones, stigmer/stigmer#611)
+// and all same-org AgentShares — before the agent row itself is removed;
 // see delete_cascade.go for the full contract (shared with the cloud
 // edition).
 //
@@ -21,7 +21,7 @@ import (
 // 1. ValidateProto - Validate proto field constraints (agent ID wrapper)
 // 2. ExtractResourceId - Extract ID from AgentId.Value wrapper
 // 3. LoadExistingForDelete - Load agent from database (stores in context)
-// 4. CascadeDeleteDefaultInstance - Delete the default instance (children before parent)
+// 4. CascadeDeleteInstances - Delete ALL instances (children before parent)
 // 5. CascadeDeleteShares - Delete the agent's shares
 // 6. DeleteResource - Delete agent from database
 // 7. DeleteSearchIndex - Remove from search index
@@ -63,7 +63,7 @@ func (c *AgentController) buildDeletePipeline() *pipeline.Pipeline[*agentv1.Agen
 		AddStep(steps.NewValidateProtoStep[*agentv1.AgentId]()).                                // 1. Validate field constraints
 		AddStep(steps.NewExtractResourceIdStep[*agentv1.AgentId]()).                            // 2. Extract ID from wrapper
 		AddStep(steps.NewLoadExistingForDeleteStep[*agentv1.AgentId, *agentv1.Agent](c.store)). // 3. Load agent
-		AddStep(newCascadeDeleteDefaultInstanceStep(c.store)).                                  // 4. Cascade: default instance before parent
+		AddStep(newCascadeDeleteInstancesStep(c.store)).                                        // 4. Cascade: all instances before parent
 		AddStep(newCascadeDeleteSharesStep(c.store)).                                           // 5. Cascade: shares before parent
 		AddStep(steps.NewDeleteResourceStep[*agentv1.AgentId](c.store)).                        // 6. Delete from database
 		AddStep(steps.NewDeleteSearchIndexStep[*agentv1.AgentId](c.store)).                     // 7. Remove from search index

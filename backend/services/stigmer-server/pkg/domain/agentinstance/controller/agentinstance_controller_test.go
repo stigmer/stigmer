@@ -768,3 +768,77 @@ func TestAgentInstanceController_UpdateVisibility(t *testing.T) {
 		}
 	})
 }
+
+// TestAgentInstanceController_SlugReusableAfterAgentDelete pins the
+// stigmer/stigmer#611 contract at the create-pipeline level: agent delete
+// cascades ALL instances, so a personal instance's org-scoped slug must be
+// creatable again afterwards. It lives here rather than beside the agent
+// cascade tests because proving slug REUSE needs the real instance create
+// pipeline (slug resolution + org-scoped duplicate check), which this
+// package's in-process harness already wires — the workflow twin is
+// workflow/controller/delete_cascade_test.go's "freed user-instance slug is
+// reusable org-wide" subtest.
+func TestAgentInstanceController_SlugReusableAfterAgentDelete(t *testing.T) {
+	s, err := sqlite.NewStore(t.TempDir() + "/test.sqlite")
+	if err != nil {
+		t.Fatalf("failed to create store: %v", err)
+	}
+	defer s.Close()
+
+	agentClient, agentInstanceClient, cleanup := setupInProcessServers(t, s)
+	defer cleanup()
+
+	instanceController := NewAgentInstanceController(s, agentClient)
+	agentController := agentcontroller.NewAgentController(s, agentInstanceClient)
+
+	newAgent := func(name string) *agentv1.Agent {
+		return &agentv1.Agent{
+			ApiVersion: "agentic.stigmer.ai/v1",
+			Kind:       "Agent",
+			Metadata: &apiresource.ApiResourceMetadata{
+				Name: name,
+				Org:  "test-org",
+			},
+			Spec: &agentv1.AgentSpec{
+				Instructions: "You are a slug-reuse test agent.",
+			},
+		}
+	}
+	newInstance := func(agentID string) *agentinstancev1.AgentInstance {
+		return &agentinstancev1.AgentInstance{
+			ApiVersion: "agentic.stigmer.ai/v1",
+			Kind:       "AgentInstance",
+			Metadata: &apiresource.ApiResourceMetadata{
+				Name: "verify-611",
+				Org:  "test-org",
+			},
+			Spec: &agentinstancev1.AgentInstanceSpec{AgentId: agentID},
+		}
+	}
+
+	// The #582-class exposure, agent edition: instance slugs are org-scoped,
+	// so an orphan would block the slug for every LATER agent's instances.
+	first, err := agentController.Create(contextWithAgentKind(), newAgent("First Owner"))
+	if err != nil {
+		t.Fatalf("Create first agent failed: %v", err)
+	}
+	if _, err := instanceController.Create(contextWithAgentInstanceKind(), newInstance(first.Metadata.Id)); err != nil {
+		t.Fatalf("Create personal instance failed: %v", err)
+	}
+
+	if _, err := agentController.Delete(contextWithAgentKind(), &agentv1.AgentId{Value: first.Metadata.Id}); err != nil {
+		t.Fatalf("Delete agent failed: %v", err)
+	}
+
+	second, err := agentController.Create(contextWithAgentKind(), newAgent("Second Owner"))
+	if err != nil {
+		t.Fatalf("Create second agent failed: %v", err)
+	}
+	reused, err := instanceController.Create(contextWithAgentInstanceKind(), newInstance(second.Metadata.Id))
+	if err != nil {
+		t.Fatalf("expected the freed instance slug to be reusable, got: %v", err)
+	}
+	if reused.Metadata.Slug != "verify-611" {
+		t.Errorf("expected reused slug %q, got %q", "verify-611", reused.Metadata.Slug)
+	}
+}

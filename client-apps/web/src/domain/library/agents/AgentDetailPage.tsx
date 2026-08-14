@@ -117,7 +117,10 @@ export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
   const handleDelete = useCallback(async () => {
     const confirmed = await confirm({
       title: `Delete ${resourceName}?`,
-      description: "This action cannot be undone. The agent and its configuration will be permanently removed.",
+      description:
+        "This permanently removes the agent and all of its instances. " +
+        "Past sessions and executions are preserved. " +
+        "This action cannot be undone.",
       confirmLabel: "Delete",
       variant: "destructive",
     });

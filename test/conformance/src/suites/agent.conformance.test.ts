@@ -16,6 +16,7 @@ import { assertResourceParity } from "../contract/parity";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { AGENT_API_VERSION, AGENT_KIND, makeAgent, makeAgentSpec } from "../support/agents";
+import { makeAgentInstance } from "../support/agentinstances";
 import { makeMcpServer } from "../support/mcpservers";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
@@ -405,6 +406,57 @@ describe("Agent instance conformance — visibility level validation", () => {
       "Default instances do not have their own visibility - access always follows " +
         "the parent blueprint. Change the blueprint's visibility instead.",
     );
+  });
+});
+
+describe("Agent conformance — delete cascades instances (stigmer#611)", () => {
+  it("delete removes the default and personal instances, freeing the agent slug and the org-wide instance slug", async () => {
+    // The agent twin of the workflow cascade pin (stigmer#592): instances
+    // are configuration OF the agent and go with it (default AND personal),
+    // unlike sessions/executions which survive as historical record (the
+    // #582 ruling). Without the cascade, the orphaned "<slug>-default"
+    // poisons a same-slug recreate, and a personal instance's org-scoped
+    // slug stays occupied forever with no UI left to delete it.
+    const { org } = await target.provisionTenancy();
+    const name = uniqueName("cascade");
+
+    const created = await clients.agentCommand.create(makeAgent({ org, name }));
+    const agentId = created.metadata!.id;
+    const defaultInstanceId = created.status?.defaultInstanceId;
+    expect(defaultInstanceId, "create provisions a default instance").toMatch(/^ain_[0-9a-z]+$/);
+
+    const instanceName = uniqueName("cfg");
+    const personalInstance = await clients.agentInstanceCommand.create(
+      makeAgentInstance({ org, name: instanceName, agentId }),
+    );
+
+    await clients.agentCommand.delete({ value: agentId });
+
+    await expectGrpcCode(
+      () => clients.agentInstanceQuery.get({ value: defaultInstanceId! }),
+      Code.NotFound,
+      "default instance after cascade",
+    );
+    await expectGrpcCode(
+      () => clients.agentInstanceQuery.get({ value: personalInstance.metadata!.id }),
+      Code.NotFound,
+      "personal instance after cascade",
+    );
+
+    // The agent slug is free again: recreate converges instead of colliding
+    // with the orphaned default instance (the DD-010 poison).
+    const recreated = await createAgent(org, name);
+    expect(recreated.metadata?.slug).toBe(created.metadata?.slug);
+    expect(recreated.metadata?.id).not.toBe(agentId);
+
+    // The personal instance's org-scoped slug is free again (the #611
+    // exposure: with the orphan left behind, this create would be rejected
+    // as a duplicate).
+    const reused = await clients.agentInstanceCommand.create(
+      makeAgentInstance({ org, name: instanceName, agentId: recreated.metadata!.id }),
+    );
+    fixtures.defer(() => clients.agentInstanceCommand.delete({ value: reused.metadata!.id }));
+    expect(reused.metadata?.slug).toBe(personalInstance.metadata?.slug);
   });
 });
 

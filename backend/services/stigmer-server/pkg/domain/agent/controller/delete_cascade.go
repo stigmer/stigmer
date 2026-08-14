@@ -12,22 +12,24 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
-	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentinstance/defaultinstance"
 	"google.golang.org/protobuf/proto"
 )
 
-// Agent deletion cascades to the agent's org+slug-resolved children before
-// the agent row itself is removed (children before parent, so a mid-failure
-// retry converges — the same ordering the cloud edition's
-// SessionDeleteHandler cascade established):
+// Agent deletion cascades to the agent's children before the agent row
+// itself is removed (children before parent, so a mid-failure retry
+// converges — the same ordering the cloud edition's SessionDeleteHandler
+// cascade established):
 //
-//   - The system-managed DEFAULT instance. Its slug is the deterministic
-//     "<agent-slug>-default", so leaving it behind poisons a later recreate
-//     at the same slug (the create pipeline's idempotent apply routes to
-//     UPDATE on the orphan — see cloud design decision 010). Personal
-//     instances are deliberately NOT cascaded: they reference the agent by
-//     immutable ID (never reused), so they become inert dangling
-//     references — the same posture sessions and executions already have.
+//   - ALL of the agent's instances — the system-managed default AND
+//     members' personal ones. An earlier posture spared personal instances
+//     as "inert dangling references"; that holds for the dangling
+//     REFERENCE (spec.agent_id is an immutable ID, never reused) but not
+//     for the dangling SLUG: AgentInstance slugs are org-scoped, and the
+//     parent agent's detail page is the only instance-management surface —
+//     so an orphan occupies its slug org-wide forever with no UI left to
+//     delete it. Instances are configuration OF the agent, meaningless
+//     without it; owner ruling on stigmer/stigmer#611 extends the workflow
+//     ruling (stigmer/stigmer#592): they go with it.
 //
 //   - The agent's SAME-ORG AgentShares. Shares reference the agent by
 //     org+slug (spec.agent_ref), so a stale share would silently rebind —
@@ -39,87 +41,81 @@ import (
 //     fail closed instead — via the dangling-ref check and the
 //     status.agent_id pin every share-resolution gate verifies.
 //
+// What deliberately SURVIVES an agent delete, and must never be swept into
+// this cascade:
+//
+//   - Sessions and AgentExecutions — historical record, the #582 posture.
+//     They reference the agent and instance by immutable IDs and remain
+//     viewable after the agent (and now its instances) are gone.
+//   - Version/audit rows (resource_audit) — surviving sessions and
+//     executions render their historical state from them.
+//
 // Both editions implement this contract; the cloud edition additionally
 // cleans up each child's FGA tuples (no IAM system in OSS).
 
-// cascadeDeleteDefaultInstanceStep deletes the agent's system-managed
-// default instance (row + search-index entry) before the agent is deleted.
+// cascadeDeleteInstancesStep deletes every instance of the agent
+// (row + search-index entry) before the agent is deleted.
 //
-// Resolution is authoritative-first: status.default_instance_id when set,
-// else the "<agent-slug>-default" slug convention for legacy/half-created
-// rows — guarded by spec.agent_id, so a personal instance that merely
-// reuses the name is never touched.
-type cascadeDeleteDefaultInstanceStep struct {
+// Instances are matched by spec.agent_id — a required, validated field on
+// every instance — so a single ID sweep covers the default instance too,
+// including legacy rows that predate the status.default_instance_id
+// pointer; no pointer-or-slug resolution is needed.
+type cascadeDeleteInstancesStep struct {
 	store store.Store
 }
 
-func newCascadeDeleteDefaultInstanceStep(s store.Store) *cascadeDeleteDefaultInstanceStep {
-	return &cascadeDeleteDefaultInstanceStep{store: s}
+func newCascadeDeleteInstancesStep(s store.Store) *cascadeDeleteInstancesStep {
+	return &cascadeDeleteInstancesStep{store: s}
 }
 
-func (s *cascadeDeleteDefaultInstanceStep) Name() string {
-	return "CascadeDeleteDefaultInstance"
+func (s *cascadeDeleteInstancesStep) Name() string {
+	return "CascadeDeleteInstances"
 }
 
-func (s *cascadeDeleteDefaultInstanceStep) Execute(ctx *pipeline.RequestContext[*agentv1.AgentId]) error {
+func (s *cascadeDeleteInstancesStep) Execute(ctx *pipeline.RequestContext[*agentv1.AgentId]) error {
 	agent, ok := ctx.Get(steps.ExistingResourceKey).(*agentv1.Agent)
 	if !ok {
 		return grpclib.InternalError(nil, "agent not found in context (LoadExistingForDelete must run first)")
 	}
+	agentID := agent.GetMetadata().GetId()
 
-	instanceID := s.resolveDefaultInstanceID(ctx, agent)
-	if instanceID == "" {
-		return nil
-	}
-
-	if err := s.store.DeleteResource(ctx.Context(), apiresourcekind.ApiResourceKind_agent_instance, instanceID); err != nil {
-		return grpclib.InternalError(err, fmt.Sprintf(
-			"failed to cascade-delete default instance %s of agent %s",
-			instanceID, agent.GetMetadata().GetId()))
-	}
-
-	// Best-effort, matching DeleteSearchIndexStep: a stale index entry is a
-	// cosmetic search artifact, not a correctness problem.
-	if err := s.store.DeleteSearchIndex(ctx.Context(), apiresourcekind.ApiResourceKind_agent_instance, instanceID); err != nil {
-		log.Warn().Err(err).
-			Str("instance_id", instanceID).
-			Msg("CascadeDeleteDefaultInstance: failed to remove search index entry (best-effort)")
-	}
-
-	log.Info().
-		Str("instance_id", instanceID).
-		Str("agent_id", agent.GetMetadata().GetId()).
-		Msg("Cascade-deleted default instance of agent")
-	return nil
-}
-
-// resolveDefaultInstanceID returns the default instance's ID, or "" when the
-// agent has none (nothing to cascade).
-func (s *cascadeDeleteDefaultInstanceStep) resolveDefaultInstanceID(ctx *pipeline.RequestContext[*agentv1.AgentId], agent *agentv1.Agent) string {
-	if id := agent.GetStatus().GetDefaultInstanceId(); id != "" {
-		return id
-	}
-
-	// Legacy/half-created agents may lack the status pointer; fall back to
-	// the "<agent-slug>-default" naming convention (the shape
-	// defaultinstance.BuildRequest provisions), guarded by spec.agent_id.
-	defaultSlug := defaultinstance.Slug(agent.GetMetadata().GetSlug())
 	resources, err := s.store.ListResources(ctx.Context(), apiresourcekind.ApiResourceKind_agent_instance)
 	if err != nil {
-		log.Warn().Err(err).Msg("CascadeDeleteDefaultInstance: failed to list instances for slug fallback")
-		return ""
+		return grpclib.InternalError(err, "failed to list agent instances for cascade delete")
 	}
+
+	deleted := 0
 	for _, data := range resources {
 		instance := &agentinstancev1.AgentInstance{}
 		if err := proto.Unmarshal(data, instance); err != nil {
 			continue
 		}
-		if instance.GetSpec().GetAgentId() == agent.GetMetadata().GetId() &&
-			instance.GetMetadata().GetSlug() == defaultSlug {
-			return instance.GetMetadata().GetId()
+		if instance.GetSpec().GetAgentId() != agentID {
+			continue
 		}
+		instanceID := instance.GetMetadata().GetId()
+		if err := s.store.DeleteResource(ctx.Context(), apiresourcekind.ApiResourceKind_agent_instance, instanceID); err != nil {
+			return grpclib.InternalError(err, fmt.Sprintf(
+				"failed to cascade-delete instance %s of agent %s", instanceID, agentID))
+		}
+
+		// Best-effort, matching DeleteSearchIndexStep: a stale index entry is
+		// a cosmetic search artifact, not a correctness problem.
+		if err := s.store.DeleteSearchIndex(ctx.Context(), apiresourcekind.ApiResourceKind_agent_instance, instanceID); err != nil {
+			log.Warn().Err(err).
+				Str("instance_id", instanceID).
+				Msg("CascadeDeleteInstances: failed to remove search index entry (best-effort)")
+		}
+		deleted++
 	}
-	return ""
+
+	if deleted > 0 {
+		log.Info().
+			Int("count", deleted).
+			Str("agent_id", agentID).
+			Msg("Cascade-deleted instances of agent")
+	}
+	return nil
 }
 
 // cascadeDeleteSharesStep deletes the agent's same-org AgentShares before
