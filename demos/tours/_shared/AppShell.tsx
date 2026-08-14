@@ -1,5 +1,5 @@
 import { useCallback, type ReactNode } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { PulseHighlight } from "@scenar/react";
 import { UserMenu, WorkspaceSidebar } from "@stigmer/react";
 import type { RenderSidebarLink, WorkspaceNavId } from "@stigmer/react";
@@ -22,6 +22,13 @@ interface AppShellProps {
    * a step can pair this with a `set_cursor` interaction on the same id.
    */
   readonly highlightNav?: NavId;
+  /**
+   * Count for the sidebar's Conversations badge (the real
+   * `WorkspaceSidebar` prop, forwarded verbatim) — conversations that
+   * want a human right now. Fixture-supplied: a tour depicting the
+   * conversations surface passes the count its inbox fixtures imply.
+   */
+  readonly conversationsBadgeCount?: number;
   /**
    * Stable key for the content area — changing it fades the new view in,
    * mirroring navigating between app screens.
@@ -57,12 +64,22 @@ interface AppShellProps {
 export function AppShell({
   activeNav,
   highlightNav,
+  conversationsBadgeCount,
   contentKey,
   slideDirection,
   children,
 }: AppShellProps) {
   const slideX =
     slideDirection === "forward" ? 24 : slideDirection === "backward" ? -24 : 0;
+
+  // Honor prefers-reduced-motion by skipping the mount transition outright
+  // (`initial={false}` renders the settled frame immediately). Two consumers
+  // depend on it: readers who ask for reduced motion, and `scenar shoot` —
+  // its capture context pins reduced-motion precisely so JS-driven mount
+  // animations cannot race the screenshot (framer-motion runs on real rAF
+  // time, which the shot walk does not virtualize; the 300ms slide caught
+  // mid-flight was a real determinism failure on this tour's stills).
+  const reduceMotion = useReducedMotion();
 
   // Inert rows in the sidebar's own styling; the id doubles as the cursor
   // target, and the highlighted row gets the attention pulse.
@@ -87,6 +104,7 @@ export function AppShell({
           activeNav={activeNav ?? null}
           renderLink={renderLink}
           recentActivity={{ entries: DEMO_RECENT_ACTIVITY }}
+          conversationsBadgeCount={conversationsBadgeCount}
           footer={<UserMenu user={DEMO_USER} />}
           now={DEMO_NOW}
         />
@@ -95,7 +113,7 @@ export function AppShell({
       <motion.div
         key={contentKey}
         className="demo-shell__content"
-        initial={{ opacity: 0, x: slideX }}
+        initial={reduceMotion ? false : { opacity: 0, x: slideX }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.3, ease: "easeOut" }}
       >
