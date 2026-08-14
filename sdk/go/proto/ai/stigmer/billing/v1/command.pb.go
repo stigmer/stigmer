@@ -25,10 +25,11 @@ var File_ai_stigmer_billing_v1_command_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_billing_v1_command_proto_rawDesc = "" +
 	"\n" +
-	"#ai/stigmer/billing/v1/command.proto\x12\x15ai.stigmer.billing.v1\x1a+ai/stigmer/billing/v1/billing_account.proto\x1a\"ai/stigmer/billing/v1/credit.proto\x1a\x1eai/stigmer/billing/v1/io.proto\x1a2ai/stigmer/billing/v1/model_pricing_baseline.proto\x1a,ai/stigmer/billing/v1/pricing_override.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xcb\x11\n" +
+	"#ai/stigmer/billing/v1/command.proto\x12\x15ai.stigmer.billing.v1\x1a+ai/stigmer/billing/v1/billing_account.proto\x1a\"ai/stigmer/billing/v1/credit.proto\x1a\x1eai/stigmer/billing/v1/io.proto\x1a2ai/stigmer/billing/v1/model_pricing_baseline.proto\x1a,ai/stigmer/billing/v1/pricing_override.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xf7\x12\n" +
 	"\x18BillingCommandController\x12\xc1\x01\n" +
 	"\x19getOrCreateBillingAccount\x125.ai.stigmer.billing.v1.GetOrCreateBillingAccountInput\x1a%.ai.stigmer.billing.v1.BillingAccount\"F¸\x18B\b\x1c\x10\x1e\"\x06org_id*4unauthorized to manage billing for this organization\x12\xac\x01\n" +
-	"\radjustCredits\x12).ai.stigmer.billing.v1.AdjustCreditsInput\x1a(.ai.stigmer.billing.v1.CreditLedgerEntry\"F¸\x18B\b\x1c\x10\x1e\"\x06org_id*4unauthorized to adjust credits for this organization\x12\xc2\x01\n" +
+	"\radjustCredits\x12).ai.stigmer.billing.v1.AdjustCreditsInput\x1a(.ai.stigmer.billing.v1.CreditLedgerEntry\"F¸\x18B\b\x1c\x10\x1e\"\x06org_id*4unauthorized to adjust credits for this organization\x12\xa9\x01\n" +
+	"\fgrantCredits\x12(.ai.stigmer.billing.v1.GrantCreditsInput\x1a(.ai.stigmer.billing.v1.CreditLedgerEntry\"E¸\x18A\b\x1c\x10\x1e\"\x06org_id*3unauthorized to grant credits for this organization\x12\xc2\x01\n" +
 	"\x12authorizeExecution\x12..ai.stigmer.billing.v1.AuthorizeExecutionInput\x1a1.ai.stigmer.billing.v1.AuthorizeExecutionResponse\"I¸\x18E\b\x1d\x10\x1f*6only platform operators can execute billing operations2\astigmer\x12\xc2\x01\n" +
 	"\x12recordLlmCallUsage\x12..ai.stigmer.billing.v1.RecordLlmCallUsageInput\x1a1.ai.stigmer.billing.v1.RecordLlmCallUsageResponse\"I¸\x18E\b\x1d\x10\x1f*6only platform operators can execute billing operations2\astigmer\x12\xbf\x01\n" +
 	"\x11finalizeExecution\x12-.ai.stigmer.billing.v1.FinalizeExecutionInput\x1a0.ai.stigmer.billing.v1.FinalizeExecutionResponse\"I¸\x18E\b\x1d\x10\x1f*6only platform operators can execute billing operations2\astigmer\x12\xdc\x01\n" +
@@ -43,50 +44,53 @@ const file_ai_stigmer_billing_v1_command_proto_rawDesc = "" +
 var file_ai_stigmer_billing_v1_command_proto_goTypes = []any{
 	(*GetOrCreateBillingAccountInput)(nil),      // 0: ai.stigmer.billing.v1.GetOrCreateBillingAccountInput
 	(*AdjustCreditsInput)(nil),                  // 1: ai.stigmer.billing.v1.AdjustCreditsInput
-	(*AuthorizeExecutionInput)(nil),             // 2: ai.stigmer.billing.v1.AuthorizeExecutionInput
-	(*RecordLlmCallUsageInput)(nil),             // 3: ai.stigmer.billing.v1.RecordLlmCallUsageInput
-	(*FinalizeExecutionInput)(nil),              // 4: ai.stigmer.billing.v1.FinalizeExecutionInput
-	(*CreateCreditCheckoutSessionInput)(nil),    // 5: ai.stigmer.billing.v1.CreateCreditCheckoutSessionInput
-	(*CreateBillingPortalSessionInput)(nil),     // 6: ai.stigmer.billing.v1.CreateBillingPortalSessionInput
-	(*SetAutoRechargeConfigInput)(nil),          // 7: ai.stigmer.billing.v1.SetAutoRechargeConfigInput
-	(*DecideModelPricingOverrideInput)(nil),     // 8: ai.stigmer.billing.v1.DecideModelPricingOverrideInput
-	(*UpsertModelPricingBaselineInput)(nil),     // 9: ai.stigmer.billing.v1.UpsertModelPricingBaselineInput
-	(*RetireModelPricingBaselineInput)(nil),     // 10: ai.stigmer.billing.v1.RetireModelPricingBaselineInput
-	(*BillingAccount)(nil),                      // 11: ai.stigmer.billing.v1.BillingAccount
-	(*CreditLedgerEntry)(nil),                   // 12: ai.stigmer.billing.v1.CreditLedgerEntry
-	(*AuthorizeExecutionResponse)(nil),          // 13: ai.stigmer.billing.v1.AuthorizeExecutionResponse
-	(*RecordLlmCallUsageResponse)(nil),          // 14: ai.stigmer.billing.v1.RecordLlmCallUsageResponse
-	(*FinalizeExecutionResponse)(nil),           // 15: ai.stigmer.billing.v1.FinalizeExecutionResponse
-	(*CreateCreditCheckoutSessionResponse)(nil), // 16: ai.stigmer.billing.v1.CreateCreditCheckoutSessionResponse
-	(*CreateBillingPortalSessionResponse)(nil),  // 17: ai.stigmer.billing.v1.CreateBillingPortalSessionResponse
-	(*ModelPricingOverride)(nil),                // 18: ai.stigmer.billing.v1.ModelPricingOverride
-	(*ModelPricingBaseline)(nil),                // 19: ai.stigmer.billing.v1.ModelPricingBaseline
+	(*GrantCreditsInput)(nil),                   // 2: ai.stigmer.billing.v1.GrantCreditsInput
+	(*AuthorizeExecutionInput)(nil),             // 3: ai.stigmer.billing.v1.AuthorizeExecutionInput
+	(*RecordLlmCallUsageInput)(nil),             // 4: ai.stigmer.billing.v1.RecordLlmCallUsageInput
+	(*FinalizeExecutionInput)(nil),              // 5: ai.stigmer.billing.v1.FinalizeExecutionInput
+	(*CreateCreditCheckoutSessionInput)(nil),    // 6: ai.stigmer.billing.v1.CreateCreditCheckoutSessionInput
+	(*CreateBillingPortalSessionInput)(nil),     // 7: ai.stigmer.billing.v1.CreateBillingPortalSessionInput
+	(*SetAutoRechargeConfigInput)(nil),          // 8: ai.stigmer.billing.v1.SetAutoRechargeConfigInput
+	(*DecideModelPricingOverrideInput)(nil),     // 9: ai.stigmer.billing.v1.DecideModelPricingOverrideInput
+	(*UpsertModelPricingBaselineInput)(nil),     // 10: ai.stigmer.billing.v1.UpsertModelPricingBaselineInput
+	(*RetireModelPricingBaselineInput)(nil),     // 11: ai.stigmer.billing.v1.RetireModelPricingBaselineInput
+	(*BillingAccount)(nil),                      // 12: ai.stigmer.billing.v1.BillingAccount
+	(*CreditLedgerEntry)(nil),                   // 13: ai.stigmer.billing.v1.CreditLedgerEntry
+	(*AuthorizeExecutionResponse)(nil),          // 14: ai.stigmer.billing.v1.AuthorizeExecutionResponse
+	(*RecordLlmCallUsageResponse)(nil),          // 15: ai.stigmer.billing.v1.RecordLlmCallUsageResponse
+	(*FinalizeExecutionResponse)(nil),           // 16: ai.stigmer.billing.v1.FinalizeExecutionResponse
+	(*CreateCreditCheckoutSessionResponse)(nil), // 17: ai.stigmer.billing.v1.CreateCreditCheckoutSessionResponse
+	(*CreateBillingPortalSessionResponse)(nil),  // 18: ai.stigmer.billing.v1.CreateBillingPortalSessionResponse
+	(*ModelPricingOverride)(nil),                // 19: ai.stigmer.billing.v1.ModelPricingOverride
+	(*ModelPricingBaseline)(nil),                // 20: ai.stigmer.billing.v1.ModelPricingBaseline
 }
 var file_ai_stigmer_billing_v1_command_proto_depIdxs = []int32{
 	0,  // 0: ai.stigmer.billing.v1.BillingCommandController.getOrCreateBillingAccount:input_type -> ai.stigmer.billing.v1.GetOrCreateBillingAccountInput
 	1,  // 1: ai.stigmer.billing.v1.BillingCommandController.adjustCredits:input_type -> ai.stigmer.billing.v1.AdjustCreditsInput
-	2,  // 2: ai.stigmer.billing.v1.BillingCommandController.authorizeExecution:input_type -> ai.stigmer.billing.v1.AuthorizeExecutionInput
-	3,  // 3: ai.stigmer.billing.v1.BillingCommandController.recordLlmCallUsage:input_type -> ai.stigmer.billing.v1.RecordLlmCallUsageInput
-	4,  // 4: ai.stigmer.billing.v1.BillingCommandController.finalizeExecution:input_type -> ai.stigmer.billing.v1.FinalizeExecutionInput
-	5,  // 5: ai.stigmer.billing.v1.BillingCommandController.createCreditCheckoutSession:input_type -> ai.stigmer.billing.v1.CreateCreditCheckoutSessionInput
-	6,  // 6: ai.stigmer.billing.v1.BillingCommandController.createBillingPortalSession:input_type -> ai.stigmer.billing.v1.CreateBillingPortalSessionInput
-	7,  // 7: ai.stigmer.billing.v1.BillingCommandController.setAutoRechargeConfig:input_type -> ai.stigmer.billing.v1.SetAutoRechargeConfigInput
-	8,  // 8: ai.stigmer.billing.v1.BillingCommandController.decideModelPricingOverride:input_type -> ai.stigmer.billing.v1.DecideModelPricingOverrideInput
-	9,  // 9: ai.stigmer.billing.v1.BillingCommandController.upsertModelPricingBaseline:input_type -> ai.stigmer.billing.v1.UpsertModelPricingBaselineInput
-	10, // 10: ai.stigmer.billing.v1.BillingCommandController.retireModelPricingBaseline:input_type -> ai.stigmer.billing.v1.RetireModelPricingBaselineInput
-	11, // 11: ai.stigmer.billing.v1.BillingCommandController.getOrCreateBillingAccount:output_type -> ai.stigmer.billing.v1.BillingAccount
-	12, // 12: ai.stigmer.billing.v1.BillingCommandController.adjustCredits:output_type -> ai.stigmer.billing.v1.CreditLedgerEntry
-	13, // 13: ai.stigmer.billing.v1.BillingCommandController.authorizeExecution:output_type -> ai.stigmer.billing.v1.AuthorizeExecutionResponse
-	14, // 14: ai.stigmer.billing.v1.BillingCommandController.recordLlmCallUsage:output_type -> ai.stigmer.billing.v1.RecordLlmCallUsageResponse
-	15, // 15: ai.stigmer.billing.v1.BillingCommandController.finalizeExecution:output_type -> ai.stigmer.billing.v1.FinalizeExecutionResponse
-	16, // 16: ai.stigmer.billing.v1.BillingCommandController.createCreditCheckoutSession:output_type -> ai.stigmer.billing.v1.CreateCreditCheckoutSessionResponse
-	17, // 17: ai.stigmer.billing.v1.BillingCommandController.createBillingPortalSession:output_type -> ai.stigmer.billing.v1.CreateBillingPortalSessionResponse
-	11, // 18: ai.stigmer.billing.v1.BillingCommandController.setAutoRechargeConfig:output_type -> ai.stigmer.billing.v1.BillingAccount
-	18, // 19: ai.stigmer.billing.v1.BillingCommandController.decideModelPricingOverride:output_type -> ai.stigmer.billing.v1.ModelPricingOverride
-	19, // 20: ai.stigmer.billing.v1.BillingCommandController.upsertModelPricingBaseline:output_type -> ai.stigmer.billing.v1.ModelPricingBaseline
-	19, // 21: ai.stigmer.billing.v1.BillingCommandController.retireModelPricingBaseline:output_type -> ai.stigmer.billing.v1.ModelPricingBaseline
-	11, // [11:22] is the sub-list for method output_type
-	0,  // [0:11] is the sub-list for method input_type
+	2,  // 2: ai.stigmer.billing.v1.BillingCommandController.grantCredits:input_type -> ai.stigmer.billing.v1.GrantCreditsInput
+	3,  // 3: ai.stigmer.billing.v1.BillingCommandController.authorizeExecution:input_type -> ai.stigmer.billing.v1.AuthorizeExecutionInput
+	4,  // 4: ai.stigmer.billing.v1.BillingCommandController.recordLlmCallUsage:input_type -> ai.stigmer.billing.v1.RecordLlmCallUsageInput
+	5,  // 5: ai.stigmer.billing.v1.BillingCommandController.finalizeExecution:input_type -> ai.stigmer.billing.v1.FinalizeExecutionInput
+	6,  // 6: ai.stigmer.billing.v1.BillingCommandController.createCreditCheckoutSession:input_type -> ai.stigmer.billing.v1.CreateCreditCheckoutSessionInput
+	7,  // 7: ai.stigmer.billing.v1.BillingCommandController.createBillingPortalSession:input_type -> ai.stigmer.billing.v1.CreateBillingPortalSessionInput
+	8,  // 8: ai.stigmer.billing.v1.BillingCommandController.setAutoRechargeConfig:input_type -> ai.stigmer.billing.v1.SetAutoRechargeConfigInput
+	9,  // 9: ai.stigmer.billing.v1.BillingCommandController.decideModelPricingOverride:input_type -> ai.stigmer.billing.v1.DecideModelPricingOverrideInput
+	10, // 10: ai.stigmer.billing.v1.BillingCommandController.upsertModelPricingBaseline:input_type -> ai.stigmer.billing.v1.UpsertModelPricingBaselineInput
+	11, // 11: ai.stigmer.billing.v1.BillingCommandController.retireModelPricingBaseline:input_type -> ai.stigmer.billing.v1.RetireModelPricingBaselineInput
+	12, // 12: ai.stigmer.billing.v1.BillingCommandController.getOrCreateBillingAccount:output_type -> ai.stigmer.billing.v1.BillingAccount
+	13, // 13: ai.stigmer.billing.v1.BillingCommandController.adjustCredits:output_type -> ai.stigmer.billing.v1.CreditLedgerEntry
+	13, // 14: ai.stigmer.billing.v1.BillingCommandController.grantCredits:output_type -> ai.stigmer.billing.v1.CreditLedgerEntry
+	14, // 15: ai.stigmer.billing.v1.BillingCommandController.authorizeExecution:output_type -> ai.stigmer.billing.v1.AuthorizeExecutionResponse
+	15, // 16: ai.stigmer.billing.v1.BillingCommandController.recordLlmCallUsage:output_type -> ai.stigmer.billing.v1.RecordLlmCallUsageResponse
+	16, // 17: ai.stigmer.billing.v1.BillingCommandController.finalizeExecution:output_type -> ai.stigmer.billing.v1.FinalizeExecutionResponse
+	17, // 18: ai.stigmer.billing.v1.BillingCommandController.createCreditCheckoutSession:output_type -> ai.stigmer.billing.v1.CreateCreditCheckoutSessionResponse
+	18, // 19: ai.stigmer.billing.v1.BillingCommandController.createBillingPortalSession:output_type -> ai.stigmer.billing.v1.CreateBillingPortalSessionResponse
+	12, // 20: ai.stigmer.billing.v1.BillingCommandController.setAutoRechargeConfig:output_type -> ai.stigmer.billing.v1.BillingAccount
+	19, // 21: ai.stigmer.billing.v1.BillingCommandController.decideModelPricingOverride:output_type -> ai.stigmer.billing.v1.ModelPricingOverride
+	20, // 22: ai.stigmer.billing.v1.BillingCommandController.upsertModelPricingBaseline:output_type -> ai.stigmer.billing.v1.ModelPricingBaseline
+	20, // 23: ai.stigmer.billing.v1.BillingCommandController.retireModelPricingBaseline:output_type -> ai.stigmer.billing.v1.ModelPricingBaseline
+	12, // [12:24] is the sub-list for method output_type
+	0,  // [0:12] is the sub-list for method input_type
 	0,  // [0:0] is the sub-list for extension type_name
 	0,  // [0:0] is the sub-list for extension extendee
 	0,  // [0:0] is the sub-list for field type_name

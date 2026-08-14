@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	BillingCommandController_GetOrCreateBillingAccount_FullMethodName   = "/ai.stigmer.billing.v1.BillingCommandController/getOrCreateBillingAccount"
 	BillingCommandController_AdjustCredits_FullMethodName               = "/ai.stigmer.billing.v1.BillingCommandController/adjustCredits"
+	BillingCommandController_GrantCredits_FullMethodName                = "/ai.stigmer.billing.v1.BillingCommandController/grantCredits"
 	BillingCommandController_AuthorizeExecution_FullMethodName          = "/ai.stigmer.billing.v1.BillingCommandController/authorizeExecution"
 	BillingCommandController_RecordLlmCallUsage_FullMethodName          = "/ai.stigmer.billing.v1.BillingCommandController/recordLlmCallUsage"
 	BillingCommandController_FinalizeExecution_FullMethodName           = "/ai.stigmer.billing.v1.BillingCommandController/finalizeExecution"
@@ -47,6 +48,15 @@ type BillingCommandControllerClient interface {
 	// Manually adjust an org's credit balance.
 	// Produces an immutable ledger entry for audit. Requires admin privileges.
 	AdjustCredits(ctx context.Context, in *AdjustCreditsInput, opts ...grpc.CallOption) (*CreditLedgerEntry, error)
+	// Grant promotional credits to an org, optionally expiring (use-it-or-lose-it).
+	// Produces an immutable promotional_credit ledger entry for audit.
+	//
+	// The grant burns before adjustment and purchased credits. When expires_at
+	// is set, any remainder unconsumed at that time is removed from the balance
+	// by the platform's grant-expiry sweep (an expiry_debit ledger entry).
+	// Idempotent: replaying an applied idempotency key returns the original
+	// entry, even after the expiry has passed.
+	GrantCredits(ctx context.Context, in *GrantCreditsInput, opts ...grpc.CallOption) (*CreditLedgerEntry, error)
 	// Reserve credits before starting an agent execution.
 	// Returns authorization status and reservation details.
 	AuthorizeExecution(ctx context.Context, in *AuthorizeExecutionInput, opts ...grpc.CallOption) (*AuthorizeExecutionResponse, error)
@@ -115,6 +125,16 @@ func (c *billingCommandControllerClient) AdjustCredits(ctx context.Context, in *
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CreditLedgerEntry)
 	err := c.cc.Invoke(ctx, BillingCommandController_AdjustCredits_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingCommandControllerClient) GrantCredits(ctx context.Context, in *GrantCreditsInput, opts ...grpc.CallOption) (*CreditLedgerEntry, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreditLedgerEntry)
+	err := c.cc.Invoke(ctx, BillingCommandController_GrantCredits_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -226,6 +246,15 @@ type BillingCommandControllerServer interface {
 	// Manually adjust an org's credit balance.
 	// Produces an immutable ledger entry for audit. Requires admin privileges.
 	AdjustCredits(context.Context, *AdjustCreditsInput) (*CreditLedgerEntry, error)
+	// Grant promotional credits to an org, optionally expiring (use-it-or-lose-it).
+	// Produces an immutable promotional_credit ledger entry for audit.
+	//
+	// The grant burns before adjustment and purchased credits. When expires_at
+	// is set, any remainder unconsumed at that time is removed from the balance
+	// by the platform's grant-expiry sweep (an expiry_debit ledger entry).
+	// Idempotent: replaying an applied idempotency key returns the original
+	// entry, even after the expiry has passed.
+	GrantCredits(context.Context, *GrantCreditsInput) (*CreditLedgerEntry, error)
 	// Reserve credits before starting an agent execution.
 	// Returns authorization status and reservation details.
 	AuthorizeExecution(context.Context, *AuthorizeExecutionInput) (*AuthorizeExecutionResponse, error)
@@ -284,6 +313,9 @@ func (UnimplementedBillingCommandControllerServer) GetOrCreateBillingAccount(con
 }
 func (UnimplementedBillingCommandControllerServer) AdjustCredits(context.Context, *AdjustCreditsInput) (*CreditLedgerEntry, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AdjustCredits not implemented")
+}
+func (UnimplementedBillingCommandControllerServer) GrantCredits(context.Context, *GrantCreditsInput) (*CreditLedgerEntry, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GrantCredits not implemented")
 }
 func (UnimplementedBillingCommandControllerServer) AuthorizeExecution(context.Context, *AuthorizeExecutionInput) (*AuthorizeExecutionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AuthorizeExecution not implemented")
@@ -364,6 +396,24 @@ func _BillingCommandController_AdjustCredits_Handler(srv interface{}, ctx contex
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(BillingCommandControllerServer).AdjustCredits(ctx, req.(*AdjustCreditsInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _BillingCommandController_GrantCredits_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GrantCreditsInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BillingCommandControllerServer).GrantCredits(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BillingCommandController_GrantCredits_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BillingCommandControllerServer).GrantCredits(ctx, req.(*GrantCreditsInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -544,6 +594,10 @@ var BillingCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "adjustCredits",
 			Handler:    _BillingCommandController_AdjustCredits_Handler,
+		},
+		{
+			MethodName: "grantCredits",
+			Handler:    _BillingCommandController_GrantCredits_Handler,
 		},
 		{
 			MethodName: "authorizeExecution",

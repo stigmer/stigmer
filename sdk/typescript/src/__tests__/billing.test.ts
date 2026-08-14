@@ -12,6 +12,7 @@ import { BillingQueryController } from "@stigmer/protos/ai/stigmer/billing/v1/qu
 import {
   CreditLedgerResponseSchema,
   type AdjustCreditsInput,
+  type GrantCreditsInput,
   type GetCreditLedgerInput,
 } from "@stigmer/protos/ai/stigmer/billing/v1/io_pb";
 import { CreditLedgerEntrySchema } from "@stigmer/protos/ai/stigmer/billing/v1/credit_pb";
@@ -20,6 +21,7 @@ import { BillingClient } from "../billing.js";
 
 interface Captured {
   adjustCredits?: AdjustCreditsInput;
+  grantCredits?: GrantCreditsInput;
   getCreditLedger?: GetCreditLedgerInput;
 }
 
@@ -28,6 +30,10 @@ function fakeTransport(captured: Captured): Transport {
     service(BillingCommandController, {
       adjustCredits: (req) => {
         captured.adjustCredits = req;
+        return create(CreditLedgerEntrySchema, { amountMicros: req.amountMicros });
+      },
+      grantCredits: (req) => {
+        captured.grantCredits = req;
         return create(CreditLedgerEntrySchema, { amountMicros: req.amountMicros });
       },
     });
@@ -57,6 +63,44 @@ describe("BillingClient.adjustCredits", () => {
     expect(captured.adjustCredits?.amountMicros).toBe(25_000_000n);
     expect(captured.adjustCredits?.reason).toBe("initial tenant funding");
     expect(captured.adjustCredits?.idempotencyKey).toBe("fund-acme-001");
+  });
+});
+
+describe("BillingClient.grantCredits", () => {
+  it("maps params including the expiry onto GrantCreditsInput", async () => {
+    const captured: Captured = {};
+    const client = new BillingClient(fakeTransport(captured));
+
+    const expiresAt = new Date("2026-08-31T23:59:59Z");
+    const entry = await client.grantCredits({
+      orgId: "acme",
+      amountMicros: 5_000_000n,
+      expiresAt,
+      reason: "monthly free allowance 2026-08",
+      idempotencyKey: "allowance-acme-2026-08",
+    });
+
+    expect(entry.amountMicros).toBe(5_000_000n);
+    const req = captured.grantCredits;
+    expect(req?.orgId).toBe("acme");
+    expect(req?.amountMicros).toBe(5_000_000n);
+    expect(req?.expiresAt && timestampDate(req.expiresAt)).toEqual(expiresAt);
+    expect(req?.reason).toBe("monthly free allowance 2026-08");
+    expect(req?.idempotencyKey).toBe("allowance-acme-2026-08");
+  });
+
+  it("omits the expiry for a never-expiring grant", async () => {
+    const captured: Captured = {};
+    const client = new BillingClient(fakeTransport(captured));
+
+    await client.grantCredits({
+      orgId: "acme",
+      amountMicros: 1_000_000n,
+      reason: "welcome credit",
+      idempotencyKey: "welcome-acme",
+    });
+
+    expect(captured.grantCredits?.expiresAt).toBeUndefined();
   });
 });
 

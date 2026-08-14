@@ -34,6 +34,20 @@ class AdjustCreditsInput(_message.Message):
     idempotency_key: str
     def __init__(self, org_id: _Optional[str] = ..., amount_micros: _Optional[int] = ..., reason: _Optional[str] = ..., idempotency_key: _Optional[str] = ...) -> None: ...
 
+class GrantCreditsInput(_message.Message):
+    __slots__ = ("org_id", "amount_micros", "expires_at", "reason", "idempotency_key")
+    ORG_ID_FIELD_NUMBER: _ClassVar[int]
+    AMOUNT_MICROS_FIELD_NUMBER: _ClassVar[int]
+    EXPIRES_AT_FIELD_NUMBER: _ClassVar[int]
+    REASON_FIELD_NUMBER: _ClassVar[int]
+    IDEMPOTENCY_KEY_FIELD_NUMBER: _ClassVar[int]
+    org_id: str
+    amount_micros: int
+    expires_at: _timestamp_pb2.Timestamp
+    reason: str
+    idempotency_key: str
+    def __init__(self, org_id: _Optional[str] = ..., amount_micros: _Optional[int] = ..., expires_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., reason: _Optional[str] = ..., idempotency_key: _Optional[str] = ...) -> None: ...
+
 class AuthorizeExecutionInput(_message.Message):
     __slots__ = ("org_id", "execution_id", "harness", "expected_cost_cap_micros")
     ORG_ID_FIELD_NUMBER: _ClassVar[int]

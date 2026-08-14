@@ -79,6 +79,37 @@ public final class BillingCommandControllerGrpc {
     return getAdjustCreditsMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.billing.v1.GrantCreditsInput,
+      ai.stigmer.billing.v1.CreditLedgerEntry> getGrantCreditsMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "grantCredits",
+      requestType = ai.stigmer.billing.v1.GrantCreditsInput.class,
+      responseType = ai.stigmer.billing.v1.CreditLedgerEntry.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.billing.v1.GrantCreditsInput,
+      ai.stigmer.billing.v1.CreditLedgerEntry> getGrantCreditsMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.billing.v1.GrantCreditsInput, ai.stigmer.billing.v1.CreditLedgerEntry> getGrantCreditsMethod;
+    if ((getGrantCreditsMethod = BillingCommandControllerGrpc.getGrantCreditsMethod) == null) {
+      synchronized (BillingCommandControllerGrpc.class) {
+        if ((getGrantCreditsMethod = BillingCommandControllerGrpc.getGrantCreditsMethod) == null) {
+          BillingCommandControllerGrpc.getGrantCreditsMethod = getGrantCreditsMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.billing.v1.GrantCreditsInput, ai.stigmer.billing.v1.CreditLedgerEntry>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "grantCredits"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.billing.v1.GrantCreditsInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.billing.v1.CreditLedgerEntry.getDefaultInstance()))
+              .setSchemaDescriptor(new BillingCommandControllerMethodDescriptorSupplier("grantCredits"))
+              .build();
+        }
+      }
+    }
+    return getGrantCreditsMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.billing.v1.AuthorizeExecutionInput,
       ai.stigmer.billing.v1.AuthorizeExecutionResponse> getAuthorizeExecutionMethod;
 
@@ -453,6 +484,22 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
+     * Grant promotional credits to an org, optionally expiring (use-it-or-lose-it).
+     * Produces an immutable promotional_credit ledger entry for audit.
+     * The grant burns before adjustment and purchased credits. When expires_at
+     * is set, any remainder unconsumed at that time is removed from the balance
+     * by the platform's grant-expiry sweep (an expiry_debit ledger entry).
+     * Idempotent: replaying an applied idempotency key returns the original
+     * entry, even after the expiry has passed.
+     * </pre>
+     */
+    default void grantCredits(ai.stigmer.billing.v1.GrantCreditsInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.CreditLedgerEntry> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGrantCreditsMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
      * Reserve credits before starting an agent execution.
      * Returns authorization status and reservation details.
      * &#64;internal
@@ -639,6 +686,23 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
+     * Grant promotional credits to an org, optionally expiring (use-it-or-lose-it).
+     * Produces an immutable promotional_credit ledger entry for audit.
+     * The grant burns before adjustment and purchased credits. When expires_at
+     * is set, any remainder unconsumed at that time is removed from the balance
+     * by the platform's grant-expiry sweep (an expiry_debit ledger entry).
+     * Idempotent: replaying an applied idempotency key returns the original
+     * entry, even after the expiry has passed.
+     * </pre>
+     */
+    public void grantCredits(ai.stigmer.billing.v1.GrantCreditsInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.CreditLedgerEntry> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getGrantCreditsMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
      * Reserve credits before starting an agent execution.
      * Returns authorization status and reservation details.
      * &#64;internal
@@ -816,6 +880,22 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
+     * Grant promotional credits to an org, optionally expiring (use-it-or-lose-it).
+     * Produces an immutable promotional_credit ledger entry for audit.
+     * The grant burns before adjustment and purchased credits. When expires_at
+     * is set, any remainder unconsumed at that time is removed from the balance
+     * by the platform's grant-expiry sweep (an expiry_debit ledger entry).
+     * Idempotent: replaying an applied idempotency key returns the original
+     * entry, even after the expiry has passed.
+     * </pre>
+     */
+    public ai.stigmer.billing.v1.CreditLedgerEntry grantCredits(ai.stigmer.billing.v1.GrantCreditsInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getGrantCreditsMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
      * Reserve credits before starting an agent execution.
      * Returns authorization status and reservation details.
      * &#64;internal
@@ -980,6 +1060,22 @@ public final class BillingCommandControllerGrpc {
     public ai.stigmer.billing.v1.CreditLedgerEntry adjustCredits(ai.stigmer.billing.v1.AdjustCreditsInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getAdjustCreditsMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Grant promotional credits to an org, optionally expiring (use-it-or-lose-it).
+     * Produces an immutable promotional_credit ledger entry for audit.
+     * The grant burns before adjustment and purchased credits. When expires_at
+     * is set, any remainder unconsumed at that time is removed from the balance
+     * by the platform's grant-expiry sweep (an expiry_debit ledger entry).
+     * Idempotent: replaying an applied idempotency key returns the original
+     * entry, even after the expiry has passed.
+     * </pre>
+     */
+    public ai.stigmer.billing.v1.CreditLedgerEntry grantCredits(ai.stigmer.billing.v1.GrantCreditsInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getGrantCreditsMethod(), getCallOptions(), request);
     }
 
     /**
@@ -1154,6 +1250,23 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
+     * Grant promotional credits to an org, optionally expiring (use-it-or-lose-it).
+     * Produces an immutable promotional_credit ledger entry for audit.
+     * The grant burns before adjustment and purchased credits. When expires_at
+     * is set, any remainder unconsumed at that time is removed from the balance
+     * by the platform's grant-expiry sweep (an expiry_debit ledger entry).
+     * Idempotent: replaying an applied idempotency key returns the original
+     * entry, even after the expiry has passed.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.v1.CreditLedgerEntry> grantCredits(
+        ai.stigmer.billing.v1.GrantCreditsInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getGrantCreditsMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
      * Reserve credits before starting an agent execution.
      * Returns authorization status and reservation details.
      * &#64;internal
@@ -1285,15 +1398,16 @@ public final class BillingCommandControllerGrpc {
 
   private static final int METHODID_GET_OR_CREATE_BILLING_ACCOUNT = 0;
   private static final int METHODID_ADJUST_CREDITS = 1;
-  private static final int METHODID_AUTHORIZE_EXECUTION = 2;
-  private static final int METHODID_RECORD_LLM_CALL_USAGE = 3;
-  private static final int METHODID_FINALIZE_EXECUTION = 4;
-  private static final int METHODID_CREATE_CREDIT_CHECKOUT_SESSION = 5;
-  private static final int METHODID_CREATE_BILLING_PORTAL_SESSION = 6;
-  private static final int METHODID_SET_AUTO_RECHARGE_CONFIG = 7;
-  private static final int METHODID_DECIDE_MODEL_PRICING_OVERRIDE = 8;
-  private static final int METHODID_UPSERT_MODEL_PRICING_BASELINE = 9;
-  private static final int METHODID_RETIRE_MODEL_PRICING_BASELINE = 10;
+  private static final int METHODID_GRANT_CREDITS = 2;
+  private static final int METHODID_AUTHORIZE_EXECUTION = 3;
+  private static final int METHODID_RECORD_LLM_CALL_USAGE = 4;
+  private static final int METHODID_FINALIZE_EXECUTION = 5;
+  private static final int METHODID_CREATE_CREDIT_CHECKOUT_SESSION = 6;
+  private static final int METHODID_CREATE_BILLING_PORTAL_SESSION = 7;
+  private static final int METHODID_SET_AUTO_RECHARGE_CONFIG = 8;
+  private static final int METHODID_DECIDE_MODEL_PRICING_OVERRIDE = 9;
+  private static final int METHODID_UPSERT_MODEL_PRICING_BASELINE = 10;
+  private static final int METHODID_RETIRE_MODEL_PRICING_BASELINE = 11;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -1318,6 +1432,10 @@ public final class BillingCommandControllerGrpc {
           break;
         case METHODID_ADJUST_CREDITS:
           serviceImpl.adjustCredits((ai.stigmer.billing.v1.AdjustCreditsInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.CreditLedgerEntry>) responseObserver);
+          break;
+        case METHODID_GRANT_CREDITS:
+          serviceImpl.grantCredits((ai.stigmer.billing.v1.GrantCreditsInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.CreditLedgerEntry>) responseObserver);
           break;
         case METHODID_AUTHORIZE_EXECUTION:
@@ -1388,6 +1506,13 @@ public final class BillingCommandControllerGrpc {
               ai.stigmer.billing.v1.AdjustCreditsInput,
               ai.stigmer.billing.v1.CreditLedgerEntry>(
                 service, METHODID_ADJUST_CREDITS)))
+        .addMethod(
+          getGrantCreditsMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.billing.v1.GrantCreditsInput,
+              ai.stigmer.billing.v1.CreditLedgerEntry>(
+                service, METHODID_GRANT_CREDITS)))
         .addMethod(
           getAuthorizeExecutionMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -1501,6 +1626,7 @@ public final class BillingCommandControllerGrpc {
               .setSchemaDescriptor(new BillingCommandControllerFileDescriptorSupplier())
               .addMethod(getGetOrCreateBillingAccountMethod())
               .addMethod(getAdjustCreditsMethod())
+              .addMethod(getGrantCreditsMethod())
               .addMethod(getAuthorizeExecutionMethod())
               .addMethod(getRecordLlmCallUsageMethod())
               .addMethod(getFinalizeExecutionMethod())

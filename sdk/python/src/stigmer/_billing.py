@@ -34,6 +34,23 @@ class AdjustCreditsParams:
 
 
 @dataclass
+class GrantCreditsParams:
+    """Parameters for a promotional credit grant."""
+
+    org_id: str
+    amount_micros: int
+    """Amount to grant. Must be positive; grants never remove credits."""
+    reason: str
+    """Human-readable reason recorded on the ledger entry (audit trail)."""
+    idempotency_key: str
+    """Client-supplied deduplication key to prevent double-processing."""
+    expires_at: datetime | None = None
+    """When the grant expires (use-it-or-lose-it). ``None`` means the grant
+    never expires. Precision is whole seconds; sub-second precision is
+    discarded."""
+
+
+@dataclass
 class GetCreditLedgerParams:
     """Parameters for querying the credit ledger."""
 
@@ -194,6 +211,31 @@ class BillingClient:
         )
         try:
             return self._command.adjustCredits(req)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def grant_credits(
+        self, params: GrantCreditsParams
+    ) -> credit_pb2.CreditLedgerEntry:
+        """Grant promotional credits to an organization, optionally expiring.
+
+        The grant burns before adjustment and purchased credits
+        (use-it-or-lose-it).  When ``expires_at`` is set, any remainder
+        unconsumed at that time is removed from the balance by the platform's
+        grant-expiry sweep.  Idempotent: replaying an applied idempotency key
+        returns the original ledger entry, even after the expiry has passed.
+        Requires ``can_manage_billing`` on the org.
+        """
+        req = billing_io_pb2.GrantCreditsInput(
+            org_id=params.org_id,
+            amount_micros=params.amount_micros,
+            reason=params.reason,
+            idempotency_key=params.idempotency_key,
+        )
+        if params.expires_at is not None:
+            req.expires_at.FromDatetime(params.expires_at)
+        try:
+            return self._command.grantCredits(req)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
