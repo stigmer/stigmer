@@ -1,0 +1,192 @@
+# =============================================================================
+# Interactive E2E (Playwright, full local stack)
+# =============================================================================
+# Runs the interactive Playwright project (test/e2e/tests/interactive) against
+# the full locally-booted stack: stigmer-server (Go), the unified runner,
+# a Temporal dev server, and the Next.js web console — everything
+# test/e2e/global-setup.ts orchestrates. This is the lane issue #572 asked
+# for: the suite rotted undetected for three months (2026-05 → 2026-08,
+# #501/#570/#571) because nothing ran it; cloud#275's typecheck gate cannot
+# catch runtime validation, UI drift, or infra deadlocks.
+#
+# Distinct from ci.e2e.yaml, which smoke-tests the DEPLOYED console after
+# releases; this lane tests the code on the PR.
+#
+# Needs NO secrets: the deterministic specs drive set_vars/wait workflows
+# through the real runner, and the two session specs self-skip without an
+# LLM key (test.skip(!HAS_LLM_KEY)). Bringing those in via the mock-LLM
+# proxy (the interactive-approval pattern) is a tracked follow-up.
+#
+# Gate shape mirrors ci.docs.yaml (#709): trigger on every PR, decide from
+# the actual changed-file list in a cheap `changes` job, and skip the real
+# job when nothing stack-adjacent changed — a skipped check satisfies branch
+# protection, so this lane can later become a required check with no
+# workflow change.
+# =============================================================================
+
+name: ci.e2e-interactive
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    paths:
+      - "test/e2e/**"
+      - "backend/**"
+      - "client-apps/web/**"
+      - "sdk/**"
+      - "apis/**"
+      - "go.work"
+      - "go.work.sum"
+      - ".nvmrc"
+      - ".github/workflows/ci.e2e-interactive.yaml"
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-interactive-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+# Make `npm ci` resilient to transient registry drops (ECONNRESET). npm reads
+# these npm_config_* vars, so every install step retries with backoff instead
+# of failing the whole job on the first dropped download.
+env:
+  npm_config_fetch_retries: "5"
+  npm_config_fetch_retry_factor: "2"
+  npm_config_fetch_retry_mintimeout: "20000"
+  npm_config_fetch_retry_maxtimeout: "120000"
+
+jobs:
+  # Decides whether the interactive suite applies, from the PR's actual
+  # changed-file list. Push and dispatch events always run it: pushes are
+  # already narrowed by the trigger's `paths` above, and a manual dispatch
+  # is an explicit "run it".
+  changes:
+    name: Detect stack-adjacent changes
+    runs-on: ubuntu-latest
+    # paths-filter reads the PR's file list via the API.
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      stack: ${{ steps.verdict.outputs.stack }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Keep this list in lockstep with the push trigger's `paths` above —
+      # same list, one file, checked in one review. The workflow file itself
+      # is included so edits to this gate re-run it.
+      # Pinned by commit SHA (v3 / v3.0.2): if this lane becomes a required
+      # check, its verdict depends on this third-party action's output, so a
+      # mutable tag is not an acceptable trust anchor (the ci.docs precedent).
+      - name: Filter changed paths
+        id: filter
+        if: github.event_name == 'pull_request'
+        uses: dorny/paths-filter@0e4a8c6effa4802afeda77dc8d303f8176d7dfad # v3.0.2
+        with:
+          filters: |
+            stack:
+              - "test/e2e/**"
+              - "backend/**"
+              - "client-apps/web/**"
+              - "sdk/**"
+              - "apis/**"
+              - "go.work"
+              - "go.work.sum"
+              - ".nvmrc"
+              - ".github/workflows/ci.e2e-interactive.yaml"
+
+      - name: Verdict
+        id: verdict
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "stack=${{ steps.filter.outputs.stack }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "stack=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  e2e-interactive:
+    name: Interactive E2E (full stack)
+    runs-on: ubuntu-latest
+    needs: changes
+    # Skipped (not absent) on non-stack PRs: the check run still reports,
+    # with conclusion "skipped", which branch protection accepts.
+    if: needs.changes.outputs.stack == 'true'
+    # The Playwright config has no globalTimeout, so this is the only
+    # wall-clock cap. Measured: ~2.2 min for the suite once built; the
+    # builds (Go toolchain + two npm trees + Chromium) dominate.
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.work
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+
+      # Root install, deliberately not `cd test/e2e && npm ci` — the e2e
+      # package resolves @stigmer/sdk + @stigmer/protos through workspace
+      # hoisting (the make test-e2e-approval precedent).
+      - name: Install npm workspace dependencies
+        run: npm ci
+
+      # The web console and the SDK resolve @stigmer/protos through built
+      # dist/ output (the package `exports` map points only at ./dist/*.js).
+      - name: Build SDK libraries
+        run: npm run build:libs
+
+      # Install the Temporal CLI; global-setup boots its dev server.
+      - name: Install Temporal CLI
+        run: |
+          curl -sSf https://temporal.download/cli.sh | sh
+          echo "$HOME/.temporalio/bin" >> "$GITHUB_PATH"
+
+      # global-setup expects a prebuilt server binary and runner dist; build
+      # them explicitly so a build break is an isolated, legible failure
+      # rather than a confusing globalSetup error (the
+      # ci.conformance-execution precedent).
+      - name: Build stigmer-server
+        working-directory: backend/services/stigmer-server
+        run: go build -o ../../../bin/stigmer-server ./cmd/server
+
+      - name: Build unified runner
+        run: make build-runner
+
+      - name: Install Playwright browsers
+        working-directory: test/e2e
+        run: npx playwright install --with-deps chromium
+
+      # share-agent-flow is excluded pending re-anchoring: it drives the
+      # pre-redesign single-toggle Share dialog, but the agent detail page
+      # moved to a Shares tab with per-share channels — found by this lane's
+      # own bring-up run (deterministic failure, product copy is fine).
+      # Tracked in the follow-up issue linked from #572; drop the filter
+      # when the spec is re-anchored. Local runs still surface it.
+      - name: Run interactive E2E suite
+        working-directory: test/e2e
+        run: npx playwright test --project=interactive --grep-invert "Share agent flow"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-interactive-test-results
+          path: test/e2e/test-results/
+          retention-days: 30
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-interactive-playwright-report
+          path: test/e2e/playwright-report/
+          retention-days: 30

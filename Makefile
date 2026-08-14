@@ -775,8 +775,8 @@ check-node: ## check bucket: npm typecheck/lint/build/test (web, react, sdk, des
 	npm run typecheck -w @stigmer/react
 	npm run typecheck -w @stigmer/demos
 	# E2E specs typecheck against @stigmer/sdk + @stigmer/protos workspace
-	# source; this catches spec/helper drift that nothing else runs
-	# (the interactive Playwright project has no CI lane — cloud#275).
+	# source; this catches spec/helper drift faster than the full-stack
+	# ci.e2e-interactive lane (#572), which runs the interactive project.
 	npm run typecheck -w @stigmer/e2e
 	node scripts/verify-scenar-tours.mjs
 	npm run lint -w client-apps/web
