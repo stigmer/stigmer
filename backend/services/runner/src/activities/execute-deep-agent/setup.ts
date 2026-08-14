@@ -606,16 +606,13 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
     const execConfig = execution.spec!.executionConfig;
     const isPlanMode = execConfig?.interactionMode === InteractionMode.PLAN;
     const shellEnv = isPlanMode ? undefined : buildShellEnv(envResult.mergedEnvVars);
-    // Plan mode's filesystem permission rules, hoisted once: the parent graph,
-    // every sub-agent graph, AND the path-normalization middleware (issue #429)
-    // all derive from this single value, so a rule-bearing graph can never miss
-    // the shim that keeps prompt-compliant relative paths from dying in rule
-    // validation (`path must be absolute`). Built from the same rootDir the
-    // backends and the shim resolve against, so the workspace read boundary
-    // (issue #528) and the paths it must admit agree by construction.
-    const planModePermissions = isPlanMode
-      ? buildPlanModePermissions(workspaceBackend.rootDir)
-      : undefined;
+    // Plan mode's filesystem permission rules, hoisted once: the parent graph
+    // and every sub-agent graph carry this single value. The rules are the
+    // write-deny half of plan mode only — the read boundary is structural
+    // (virtual-rooted backends, issue #754), and the path-normalization shim
+    // is no longer tied to the rules: every native graph installs it (see
+    // buildMiddlewareStack below) so the whole harness speaks one dialect.
+    const planModePermissions = isPlanMode ? buildPlanModePermissions() : undefined;
 
     const toolServerMap = new Map<string, string>();
     if (mcpConnection) {
@@ -729,9 +726,10 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       } : null,
       otelSpans: { toolServerMap },
       approvalGate: approvalGateConfig,
-      pathNormalization: planModePermissions
-        ? { rootDir: workspaceBackend.rootDir }
-        : null,
+      // Every graph, every mode (issue #754): the dialect-repair seam that
+      // keeps model-supplied paths canonical for the virtual-rooted backend
+      // and every downstream consumer (gate, capture, spans).
+      pathNormalization: { rootDir: workspaceBackend.rootDir },
     });
     timing.mark("build_middleware");
 

@@ -18,9 +18,19 @@
 export interface ApprovalCaptureResult {
   /** Sanitized JSON args preview, omitted when there are no args to show. */
   readonly argsPreview?: string;
+  /**
+   * The secret-redacted args object, for stamping `ToolCall.args` on the
+   * interrupt-placeholder row. Without it the placeholder carried ONLY the
+   * preview string, so every args-driven UI read — the row header's
+   * filename-first path above all — rendered nothing for a pending gate
+   * (issue #754). Redacted (never raw): the placeholder must not widen the
+   * exposure the preview sanitizer bounds.
+   */
+  readonly args?: Record<string, unknown>;
 }
 
 import { sanitizeArgsPreview } from "./status-builder-shared.js";
+import { redactSensitiveArgs } from "../../shared/args-preview.js";
 
 /**
  * Correlate a gated `tool_call_id` to its arguments by scanning graph-state
@@ -76,5 +86,5 @@ export function captureApprovalArtifacts(opts: {
   if (!args || Object.keys(args).length === 0) return {};
 
   const argsPreview = sanitizeArgsPreview(args) || undefined;
-  return { argsPreview };
+  return { argsPreview, args: redactSensitiveArgs(args) };
 }

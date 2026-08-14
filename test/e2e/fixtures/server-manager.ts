@@ -15,6 +15,10 @@ export interface ServerState {
   // STIGMER_E2E_MOCK_LLM. Specs read it to program the proxy over HTTP. Absent on
   // a normal (real-LLM) boot.
   mockLlmControlUrl?: string;
+  // True when the runner was booted with NO artifact store (STIGMER_E2E_FILE_GATES):
+  // file writes take the pre-execution approval gate instead of apply-then-review.
+  // Specs read it to skip against the wrong stack shape.
+  fileGateMode?: boolean;
 }
 
 const REPO_ROOT = path.resolve(__dirname, "../../..");
@@ -170,6 +174,12 @@ export async function startBackendStack(opts: {
   // (STIGMER_PROXY_ENDPOINT) and switched to fully local artifacts/checkpointer
   // so agent executions stay hermetic and deterministic. See the runnerEnv block.
   mockLlmEndpoint?: string;
+  // When set (with mockLlmEndpoint), the RUNNER boots with no artifact store
+  // (ARTIFACT_STORAGE_TYPE=none): a non-git workspace then has no capture
+  // substrate, so file writes gate pre-execution (deny-gate mode, DD-22) —
+  // the stack shape the file-diff gate-card specs need. The server keeps its
+  // own artifact config; only the runner's capture substrate is removed.
+  fileGates?: boolean;
 }): Promise<ServerState> {
   const apiPort = opts.apiPort ?? 7234;
   // Default to a free port (not the fixed 7233) so a developer's live dev stack
@@ -281,11 +291,19 @@ export async function startBackendStack(opts: {
           // at setup: artifacts would default to presign (network) and, in cloud
           // mode, the checkpointer to http. Pin both to local/memory. The
           // interrupt/resume approval gate needs a checkpointer (memory is fine).
-          ARTIFACT_STORAGE_TYPE: "local",
-          // Same directory the server writes to, and the server's artifact file
-          // server for blob downloads (#285).
-          LOCAL_ARTIFACT_PATH: artifactDir,
-          LOCAL_ARTIFACT_SERVE_URL: `http://127.0.0.1:${artifactHttpPort}`,
+          //
+          // File-gate mode (fileGates): the runner instead boots with NO
+          // artifact store at all — no capture substrate on a non-git
+          // workspace, so file writes gate pre-execution (deny-gate, DD-22).
+          ...(opts.fileGates
+            ? { ARTIFACT_STORAGE_TYPE: "none" }
+            : {
+                ARTIFACT_STORAGE_TYPE: "local",
+                // Same directory the server writes to, and the server's artifact
+                // file server for blob downloads (#285).
+                LOCAL_ARTIFACT_PATH: artifactDir,
+                LOCAL_ARTIFACT_SERVE_URL: `http://127.0.0.1:${artifactHttpPort}`,
+              }),
           STIGMER_CHECKPOINTER_TYPE: "memory",
           // Avoid a boot-time MCP backfill network call (hermetic test detail).
           SKIP_MCP_CONNECT_BACKFILL: "true",

@@ -75,9 +75,9 @@ export interface SubAgentMiddlewareOptions {
    */
   readonly captureIgnored?: boolean;
   /**
-   * Workspace-relative path normalization (issue #429). Present iff this
-   * sub-agent's graph carries filesystem permission rules — the caller
-   * derives it from the same `permissions` value it bakes into the graph.
+   * Virtual-dialect path normalization (issues #429/#754). Present on every
+   * sub-agent graph — the backends are virtual-rooted, so every graph
+   * carries the repair seam, matching the parent composition.
    */
   readonly pathNormalization?: PathNormalizationConfig;
 }

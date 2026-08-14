@@ -34,11 +34,25 @@ export const MAX_ARGS_PREVIEW_LENGTH = 500;
  * Cursor gate path must instead use {@link buildElidedArgsPreview}, which keeps
  * the JSON valid and preserves the salient identity fields.
  */
-export function sanitizeArgsPreview(args: Record<string, unknown>): string {
-  const sanitized: Record<string, unknown> = {};
+/**
+ * Redact secret-keyed values (see {@link SENSITIVE_ARG_KEYS}), preserving every
+ * other entry verbatim. The shared first step of both preview builders, and the
+ * shape stamped as `args` on interrupt-placeholder tool calls (issue #754's
+ * header fix): full enough for the UI's path/primary-arg extraction, never
+ * carrying a secret value.
+ */
+export function redactSensitiveArgs(
+  args: Record<string, unknown>,
+): Record<string, unknown> {
+  const redacted: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(args)) {
-    sanitized[key] = SENSITIVE_ARG_KEYS.has(key.toLowerCase()) ? "[REDACTED]" : value;
+    redacted[key] = SENSITIVE_ARG_KEYS.has(key.toLowerCase()) ? "[REDACTED]" : value;
   }
+  return redacted;
+}
+
+export function sanitizeArgsPreview(args: Record<string, unknown>): string {
+  const sanitized = redactSensitiveArgs(args);
   try {
     const json = JSON.stringify(sanitized);
     return json.length > MAX_ARGS_PREVIEW_LENGTH
