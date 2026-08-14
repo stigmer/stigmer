@@ -25,9 +25,9 @@ import type { AddressInfo } from "node:net";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { classify, ExitCode } from "../errors/index.js";
 import { getExecution, listAgentExecutions, renderExecutionList } from "./execution.js";
+import { listResources } from "./list.js";
 import { renderResource } from "./render.js";
 import { searchResources } from "./search.js";
-import { listSessions, renderSessionList } from "./session.js";
 import { getSessionUsageReport, renderSessionUsage } from "./usage.js";
 
 const knownExec = create(AgentExecutionSchema, {
@@ -141,10 +141,20 @@ describe("execution integration", () => {
   });
 });
 
+// Session list runs through the same registry dispatch as every other kind
+// (LIST_HANDLERS; promoted from a bespoke route by stigmer/stigmer#469).
 describe("session integration", () => {
-  it("lists sessions as a human table", async () => {
-    const result = await listSessions(client, 50);
-    expect(renderSessionList(result, "table")).toContain("ses_1");
+  it("lists sessions through the registry dispatch as a human table", async () => {
+    const rendered = await listResources(client, ApiResourceKind.session, "", 50, "table");
+    expect(rendered).toContain("SESSION ID");
+    expect(rendered).toContain("ses_1");
+    expect(rendered).toContain("Fix the build");
+  });
+
+  it("renders session list json as the entries array every list kind shares", async () => {
+    const rendered = await listResources(client, ApiResourceKind.session, "", 50, "json");
+    const json = JSON.parse(rendered);
+    expect(json).toEqual([toJson(SessionSchema, knownSession, { useProtoFieldName: true })]);
   });
 });
 
