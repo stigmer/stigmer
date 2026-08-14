@@ -65,6 +65,10 @@ async function deleteShare(page: Page, shareName: string) {
 }
 
 test.describe("Share agent flow", () => {
+  // The row's copy affordance writes through navigator.clipboard, which
+  // automated Chromium only allows with an explicit permission grant.
+  test.use({ permissions: ["clipboard-write"] });
+
   // A fresh OSS stack has no organizations, so the OrgGate would block
   // every route on the onboarding screen. Idempotent — a no-op when the
   // stack is reused and the org already exists.

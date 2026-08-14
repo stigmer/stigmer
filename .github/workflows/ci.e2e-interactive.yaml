@@ -168,8 +168,13 @@ jobs:
         working-directory: test/e2e
         run: npx playwright install --with-deps chromium
 
+      # Mock mode gives the session specs zero-secrets agent-turn coverage
+      # (stigmer/stigmer#743): global-setup boots the canned-SSE proxy and the
+      # runner points at it; specs that never invoke the LLM are unaffected.
       - name: Run interactive E2E suite
         working-directory: test/e2e
+        env:
+          STIGMER_E2E_MOCK_LLM: "1"
         run: npx playwright test --project=interactive
 
       - name: Upload test results

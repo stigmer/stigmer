@@ -2,6 +2,8 @@ import { Buffer } from "node:buffer";
 import { crc32 } from "node:zlib";
 import { create } from "@bufbuild/protobuf";
 import type { Stigmer } from "@stigmer/sdk";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import { GetDefaultAgentRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 
 const DEFAULT_ORG = "default";
@@ -37,6 +39,44 @@ export async function ensureDefaultOrg(client: Stigmer): Promise<void> {
     slug: DEFAULT_ORG,
     org: DEFAULT_ORG,
   });
+}
+
+/**
+ * Ensures a platform default agent exists — the agent the session launcher's
+ * send path resolves when the user picked none (`AgentQuery.getDefault`,
+ * keyed on the `stigmer.ai/default-agent=true` label + public visibility).
+ * The e2e stack boots a raw server with no seedpack bootstrap, so without
+ * this seed every launcher send dead-ends on getDefault's NOT_FOUND
+ * (stigmer/stigmer#743). Mirrors the integration harness's boot-time seed;
+ * idempotent — a no-op when a default agent already exists, and tolerant of
+ * a parallel worker winning the create race.
+ */
+export async function ensureDefaultAgent(client: Stigmer): Promise<void> {
+  const getDefaultReq = create(GetDefaultAgentRequestSchema, {
+    org: DEFAULT_ORG,
+  });
+
+  try {
+    await client.agent.getDefault(getDefaultReq);
+    return;
+  } catch {
+    // NOT_FOUND — fall through and seed one.
+  }
+
+  try {
+    await client.agent.create({
+      name: "e2e-default-agent",
+      org: DEFAULT_ORG,
+      instructions:
+        "You are the default test assistant. Keep responses under 20 words.",
+      labels: { "stigmer.ai/default-agent": "true" },
+      visibility: ApiResourceVisibility.visibility_public,
+    });
+  } catch {
+    // A parallel worker may have seeded it between our probe and create;
+    // the fixed name makes the loser's create collide. Verify and settle.
+    await client.agent.getDefault(getDefaultReq);
+  }
 }
 
 /**
