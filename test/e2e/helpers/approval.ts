@@ -1,5 +1,3 @@
-import * as fs from "node:fs";
-import * as path from "node:path";
 import type { Page, Locator } from "@playwright/test";
 import { create } from "@bufbuild/protobuf";
 import type { Stigmer } from "@stigmer/sdk";
@@ -9,73 +7,17 @@ import { TerminateAgentExecutionInputSchema } from "@stigmer/protos/ai/stigmer/a
 import {
   anthropicText,
   anthropicToolUses,
-  type AnthropicMessageBody,
   type ToolUseBlock,
 } from "../fixtures/mock-llm";
+import { getMockControlUrl, MockControl } from "./mock-llm-control";
 
 // Mirrors seed-helpers.ts: the OSS single-tenant org every fixture runs in.
 const DEFAULT_ORG = "default";
 
-// The e2e state file global-setup writes; carries the mock LLM control URL when
-// the stack was booted with STIGMER_E2E_MOCK_LLM.
-const STATE_FILE = path.join(__dirname, "..", ".e2e-server-state.json");
-
-// ---------------------------------------------------------------------------
-// Mock LLM control client (cross-process)
-// ---------------------------------------------------------------------------
-
-/**
- * Reads the deterministic mock LLM proxy's control URL from the e2e state file.
- * Returns `null` when the stack was not booted in mock mode — the approval specs
- * use this to `test.skip` gracefully rather than hang against a real/absent model.
- */
-export function getMockControlUrl(): string | null {
-  if (!fs.existsSync(STATE_FILE)) return null;
-  try {
-    const state = JSON.parse(fs.readFileSync(STATE_FILE, "utf-8")) as {
-      mockLlmControlUrl?: string;
-    };
-    return state.mockLlmControlUrl ?? null;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * HTTP client for the mock LLM proxy's control API. A Playwright worker runs in
- * a separate process from the proxy (which lives in globalSetup), so it programs
- * the shared FIFO queue over HTTP rather than by direct method calls.
- */
-export class MockControl {
-  constructor(private readonly baseUrl: string) {}
-
-  /** Append one canned assistant turn to the proxy's queue. */
-  async enqueue(body: AnthropicMessageBody): Promise<void> {
-    const res = await fetch(`${this.baseUrl}/__mock/enqueue`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    if (!res.ok) {
-      throw new Error(`mock enqueue failed: ${res.status} ${await res.text()}`);
-    }
-  }
-
-  /** Drop any unconsumed turns. Call between tests so leftovers can't leak. */
-  async reset(): Promise<void> {
-    const res = await fetch(`${this.baseUrl}/__mock/reset`, { method: "POST" });
-    if (!res.ok) {
-      throw new Error(`mock reset failed: ${res.status} ${await res.text()}`);
-    }
-  }
-
-  /** Turns still waiting to be served (0 after a run consumed its full script). */
-  async remaining(): Promise<number> {
-    const res = await fetch(`${this.baseUrl}/__mock/remaining`);
-    const body = (await res.json()) as { remaining: number };
-    return body.remaining;
-  }
-}
+// The mock LLM control client moved to its own helper when the session specs
+// became its second consumer (stigmer/stigmer#743); re-exported here so the
+// approval specs' existing imports keep working.
+export { getMockControlUrl, MockControl };
 
 // ---------------------------------------------------------------------------
 // Node-client seeding — gated AgentExecution rendered + resolved in the browser

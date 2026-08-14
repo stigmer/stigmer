@@ -55,11 +55,15 @@ export type AnthropicContentBlock =
   | { type: "thinking"; thinking: string }
   | { type: "tool_use"; id: string; name: string; input: Record<string, unknown> };
 
-// One queued turn: a success body to stream. (The e2e never needs the error /
-// delay levers the conformance proxy carries, so they are intentionally omitted
-// to keep this fixture small.)
+// One queued turn: a success body to stream, optionally after a serve delay.
+// The delay exists for phase-window assertions (sidebar "Running", composer
+// disabled mid-execution): a zero-latency mock completes executions before
+// the page can observe them — the delay restores the latency every real
+// model has (stigmer/stigmer#743). The error levers the conformance proxy
+// carries are still intentionally omitted.
 interface QueuedResponse {
   body: AnthropicMessageBody;
+  delayMs?: number;
 }
 
 // A canned Anthropic text turn that ends the agent loop (stop_reason end_turn).
@@ -134,8 +138,8 @@ export class MockLlmProxy {
   }
 
   // Append a turn to serve. Returns `this` for fluent multi-turn setup.
-  enqueue(body: AnthropicMessageBody): this {
-    this.queue.push({ body });
+  enqueue(body: AnthropicMessageBody, delayMs = 0): this {
+    this.queue.push({ body, delayMs });
     return this;
   }
 
@@ -175,6 +179,29 @@ export class MockLlmProxy {
 
     const streaming = await isStreamingRequest(req);
 
+    // The FIFO scripts CONVERSATION turns. In this stack the model registry
+    // is empty, so every agent turn resolves to the Anthropic-format
+    // fallback model and arrives on an anthropic path (streaming for live
+    // console sessions, non-streaming for API-seeded approval executions).
+    // The ONLY OpenAI-path caller is GenerateSessionSubject's economy-tier
+    // fallback — the session-title call that fires concurrently with a
+    // console session's first agent turn. It gets a fixed completion
+    // instead of a FIFO turn: letting it claim one would make a test's
+    // script race its own session's title call (stigmer/stigmer#743). If a
+    // future runner change moves conversation turns onto an OpenAI path,
+    // the served=aux diag lines below make that visible immediately.
+    if (path.includes("/llm/openai/")) {
+      try {
+        appendMockLog(
+          `${new Date().toISOString()} LLM path=${path} streaming=${streaming} served=aux remaining=${this.queue.length}\n`,
+        );
+      } catch {
+        /* never let diag logging break the proxy */
+      }
+      writeJson(res, 200, auxiliaryCompletion(path));
+      return;
+    }
+
     // Claim the head turn synchronously so concurrent or retried calls can't race
     // for the same entry; an empty queue is a test-authoring error (500).
     const next = this.queue.shift();
@@ -193,6 +220,12 @@ export class MockLlmProxy {
       return;
     }
 
+    // Simulated model latency, applied AFTER the synchronous claim so
+    // concurrent requests still consume distinct turns in enqueue order.
+    if (next.delayMs && next.delayMs > 0) {
+      await new Promise((resolve) => setTimeout(resolve, next.delayMs));
+    }
+
     if (streaming) {
       writeAnthropicSse(res, next.body);
     } else {
@@ -207,8 +240,16 @@ export class MockLlmProxy {
   ): Promise<void> {
     if (req.method === "POST" && path === "/__mock/enqueue") {
       const raw = await readBody(req);
-      const body = JSON.parse(raw) as AnthropicMessageBody;
-      this.enqueue(body);
+      // Either a bare AnthropicMessageBody (the original wire shape, still
+      // sent by the approval helpers) or a { body, delayMs } envelope.
+      const parsed = JSON.parse(raw) as
+        | AnthropicMessageBody
+        | { body: AnthropicMessageBody; delayMs?: number };
+      if ("body" in parsed) {
+        this.enqueue(parsed.body, parsed.delayMs ?? 0);
+      } else {
+        this.enqueue(parsed);
+      }
       writeJson(res, 200, { ok: true, remaining: this.remaining() });
       return;
     }
@@ -227,6 +268,33 @@ export class MockLlmProxy {
 
 // Resolves true if the request body opts into streaming (the LangChain SDK
 // default). Non-streaming callers get a plain JSON body instead of SSE.
+/**
+ * Fixed completion for auxiliary (non-streaming) calls, shaped for the
+ * provider the request path names so the caller's response parsing takes its
+ * happy path. Deliberately constant: no spec asserts on auxiliary output
+ * (session titles fall back to a heuristic even on failure), and a constant
+ * keeps the FIFO's meaning exact — one entry per scripted conversation turn.
+ */
+function auxiliaryCompletion(path: string): object {
+  if (path.includes("/llm/openai/")) {
+    return {
+      id: "chatcmpl-mock-aux",
+      object: "chat.completion",
+      created: Math.floor(Date.now() / 1000),
+      model: "mock-aux",
+      choices: [
+        {
+          index: 0,
+          message: { role: "assistant", content: "Mock session" },
+          finish_reason: "stop",
+        },
+      ],
+      usage: { prompt_tokens: 1, completion_tokens: 2, total_tokens: 3 },
+    };
+  }
+  return anthropicText("Mock session");
+}
+
 async function isStreamingRequest(req: IncomingMessage): Promise<boolean> {
   const raw = await readBody(req);
   if (raw.length === 0) return false;

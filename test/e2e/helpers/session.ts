@@ -56,15 +56,6 @@ export async function waitForAIResponse(
 }
 
 /**
- * Sidebar execution status region (visible on lg+ viewports). Holds the
- * always-on phase badge for the active/last execution. The agent's plan/todos
- * now render inline in the thread (see {@link getTodoCard}), not here.
- */
-export function getExecutionProgressRegion(page: Page): Locator {
-  return page.getByRole("region", { name: "Execution progress" });
-}
-
-/**
  * The agent's inline "To-dos" card in the message thread. Present once an
  * execution has written a plan (`status.todos`); collapsed once the plan is
  * fully resolved.
@@ -73,21 +64,10 @@ export function getTodoCard(page: Page): Locator {
   return page.getByRole("region", { name: "Agent to-dos" });
 }
 
-/**
- * Wait for the sidebar execution progress to show a specific phase.
- * Scoped to the "Execution progress" region to avoid matching
- * phase badges that appear inline in the message thread.
- */
-export async function waitForExecutionPhase(
-  page: Page,
-  phase: string,
-  opts?: { timeout?: number },
-): Promise<void> {
-  const region = getExecutionProgressRegion(page);
-  await expect(region.getByRole("status", { name: phase })).toBeVisible({
-    timeout: opts?.timeout ?? 60_000,
-  });
-}
+// The sidebar "Execution progress" phase region helpers were removed with
+// the stigmer#743 re-anchor: no console page renders that region anymore —
+// execution state surfaces as the composer lifecycle plus the settled
+// response in the thread (see waitForAIResponse).
 
 export async function assertComposerDisabled(page: Page): Promise<void> {
   const form = getSessionComposer(page);
