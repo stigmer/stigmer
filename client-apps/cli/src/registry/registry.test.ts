@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { APPLY_HANDLERS } from "../resources/apply/handlers.js";
 import { DELETE_HANDLERS } from "../resources/delete.js";
 import { GET_BINDINGS } from "../resources/get-bindings.js";
+import { isExecutionAlias } from "../resources/execution.js";
 import { LIST_HANDLERS, SEARCH_KINDS } from "../resources/list.js";
 import { VALIDATE_SCHEMAS } from "../resources/validate.js";
 import { normalizeAlias } from "./aliases.js";
@@ -55,8 +56,14 @@ describe("registry — alias resolution", () => {
     expect(registry.getByAlias("nope")).toBeUndefined();
   });
 
-  it("does not register agent_execution as an addressable type", () => {
-    expect(registry.getByKind(ApiResourceKind.agent_execution)).toBeUndefined();
+  // The runtime execution kinds are served by the pre-gate `list executions`
+  // route and their dedicated controllers; registering either would put a
+  // row in `list types` that the pre-gate route then shadows — the
+  // stigmer/stigmer#469 class (see the alias-shadowing suite below).
+  it("does not register the runtime execution kinds as addressable types", () => {
+    for (const kind of [ApiResourceKind.agent_execution, ApiResourceKind.workflow_execution]) {
+      expect(registry.getByKind(kind)).toBeUndefined();
+    }
   });
 });
 
@@ -102,12 +109,18 @@ describe("registry — verb support matrix", () => {
     expect(registry.supportsVerb(ApiResourceKind.schedule, Verb.Run)).toBe(false);
   });
 
-  it("session and agent_share promise only apply (narrowed — stigmer/stigmer#354)", () => {
-    for (const kind of [ApiResourceKind.session, ApiResourceKind.agent_share]) {
-      expect(registry.supportsVerb(kind, Verb.Apply)).toBe(true);
-      for (const v of [Verb.Get, Verb.List, Verb.Delete]) {
-        expect(registry.supportsVerb(kind, v)).toBe(false);
-      }
+  it("agent_share promises only apply (narrowed — stigmer/stigmer#354)", () => {
+    expect(registry.supportsVerb(ApiResourceKind.agent_share, Verb.Apply)).toBe(true);
+    for (const v of [Verb.Get, Verb.List, Verb.Delete]) {
+      expect(registry.supportsVerb(ApiResourceKind.agent_share, v)).toBe(false);
+    }
+  });
+
+  it("session promises apply + list; get/delete stay narrowed (stigmer/stigmer#354, #469)", () => {
+    expect(registry.supportsVerb(ApiResourceKind.session, Verb.Apply)).toBe(true);
+    expect(registry.supportsVerb(ApiResourceKind.session, Verb.List)).toBe(true);
+    for (const v of [Verb.Get, Verb.Delete]) {
+      expect(registry.supportsVerb(ApiResourceKind.session, v)).toBe(false);
     }
   });
 
@@ -264,6 +277,35 @@ describe("registry — verb/dispatch conformance", () => {
           wired.has(kind),
           `${ApiResourceKind[kind]} '${label}' is documented as a special case yet also has a registry entry — drop one`,
         ).toBe(false);
+      }
+    }
+  });
+});
+
+// `stigmer list` resolves a handful of aliases BEFORE consulting the
+// registry (commands/list.ts): `types` (a command word, not a kind) and the
+// execution family. A pre-gate alias that intercepts a REGISTERED kind hides
+// that kind's registry dispatch behind bespoke behavior the verb matrix
+// cannot describe — sessions shipped working-but-unadvertised for two months
+// exactly this way (stigmer/stigmer#469). Every pre-gate predicate must be
+// listed here; the pin holds each one away from every registered kind's
+// alias set, so a future bypass for an addressable kind is a red test, not
+// a silently lying `list types` row.
+describe("registry — pre-gate list aliases cannot shadow registered kinds", () => {
+  const PRE_GATE_PREDICATES: ReadonlyArray<{ name: string; matches: (type: string) => boolean }> = [
+    { name: "executions (resources/execution.ts isExecutionAlias)", matches: isExecutionAlias },
+  ];
+
+  it("no registered kind's alias is intercepted by a pre-gate predicate", () => {
+    for (const { name, matches } of PRE_GATE_PREDICATES) {
+      for (const info of registry.all()) {
+        for (const alias of info.aliases) {
+          expect(
+            matches(alias),
+            `registry alias '${alias}' (${info.name}) is intercepted by the pre-gate route ${name} — ` +
+              "it shadows the kind's registry dispatch (the stigmer/stigmer#469 works-but-unadvertised class)",
+          ).toBe(false);
+        }
       }
     }
   });
