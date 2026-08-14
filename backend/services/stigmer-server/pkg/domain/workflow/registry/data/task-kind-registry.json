@@ -2541,18 +2541,85 @@
           "validationHints": [
             "required"
           ]
+        },
+        {
+          "name": "delivery",
+          "displayName": "Delivery",
+          "description": "Delivery targets for the emitted event (optional). When empty, the task only constructs the CloudEvents envelope and exposes it as task output — no external delivery happens. Delivery is best-effort: a failed target never fails the task. Failures are collected into the \"delivery_errors\" array on the task output, one entry per failed target, so workflows can branch on delivery health. Each target has a 30-second timeout.",
+          "type": "repeated",
+          "required": false,
+          "groupId": "delivery",
+          "fieldNumber": 2,
+          "elementType": "EmitDeliveryTarget"
         }
       ],
       "fieldGroups": [
         {
           "id": "core",
           "displayName": "Event Specification"
+        },
+        {
+          "id": "delivery",
+          "displayName": "Delivery"
         }
       ],
       "configJsonSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
         "properties": {
+          "delivery": {
+            "description": "Delivery targets for the emitted event (optional). When empty, the task only constructs the CloudEvents envelope and exposes it as task output — no external delivery happens. Delivery is best-effort: a failed target never fails the task. Failures are collected into the \"delivery_errors\" array on the task output, one entry per failed target, so workflows can branch on delivery health. Each target has a 30-second timeout.",
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "signal": {
+                  "additionalProperties": false,
+                  "description": "Signal another workflow execution's listen task.",
+                  "properties": {
+                    "execution_id": {
+                      "description": "Target workflow execution id (\"wfx_...\"), as returned by run/create. Usually flows from a prior task's output: \"${ .start_processor.execution_id }\"",
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "signal_name": {
+                      "description": "Signal name, matching the target's listen task event id (verbatim).",
+                      "minLength": 1,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "execution_id",
+                    "signal_name"
+                  ],
+                  "type": "object"
+                },
+                "webhook": {
+                  "additionalProperties": false,
+                  "description": "POST the CloudEvents envelope to an HTTP endpoint.",
+                  "properties": {
+                    "headers": {
+                      "additionalProperties": {
+                        "type": "string"
+                      },
+                      "description": "HTTP headers to send with the POST (optional). Values can contain runtime placeholders resolved just-in-time by the runner: \"Authorization: Bearer ${.secrets.WEBHOOK_TOKEN}\" or \"${.env_vars.KEY}\". Secrets resolve inside the delivery activity and never enter workflow history.",
+                      "type": "object"
+                    },
+                    "url": {
+                      "description": "Endpoint URL to POST the event to. Can contain expressions: \"https://hooks.example.com/${ $context.tenant }\"",
+                      "minLength": 1,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "url"
+                  ],
+                  "type": "object"
+                }
+              },
+              "type": "object"
+            },
+            "type": "array"
+          },
           "event": {
             "additionalProperties": false,
             "description": "The event specification to emit. Contains the CloudEvents envelope fields (type, source, data, subject). Required field.",
@@ -2598,6 +2665,13 @@
             "description": "Always 'application/json'.",
             "type": "string"
           },
+          "delivery_errors": {
+            "description": "Present only when at least one delivery target failed. One entry per failed target; delivery is best-effort and never fails the task.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "id": {
             "description": "Generated UUID for this event.",
             "type": "string"
@@ -2623,7 +2697,8 @@
         "type": "object"
       },
       "yamlExamples": [
-        "- name: notify_classified\n  kind: emit_event\n  task_config:\n    event:\n      type: \"stigmer.workflow.ticket.classified\"\n      subject: \"${ $context.ticket.id }\"\n      data:\n        ticket_id: \"${ $context.ticket.id }\"\n        severity: \"${ $context.triage.severity }\"\n        category: \"${ $context.triage.category }\"\n  export:\n    as: \"${ . }\"\n"
+        "- name: notify_classified\n  kind: emit_event\n  task_config:\n    event:\n      type: \"stigmer.workflow.ticket.classified\"\n      subject: \"${ $context.ticket.id }\"\n      data:\n        ticket_id: \"${ $context.ticket.id }\"\n        severity: \"${ $context.triage.severity }\"\n        category: \"${ $context.triage.category }\"\n  export:\n    as: \"${ . }\"\n",
+        "- name: notify_downstream\n  kind: emit_event\n  task_config:\n    event:\n      type: \"acme.order.fulfilled\"\n      subject: \"${ $context.order.number }\"\n      data:\n        order_id: \"${ $context.order.id }\"\n    delivery:\n      - webhook:\n          url: \"https://hooks.acme.com/orders\"\n          headers:\n            Authorization: \"Bearer ${.secrets.ACME_HOOK_TOKEN}\"\n      - signal:\n          execution_id: \"${ .start_shipping.execution_id }\"\n          signal_name: \"order-fulfilled\"\n"
       ],
       "documentationUrl": "/docs/guides/workflows/task-types/emit-event",
       "isAiNative": false,

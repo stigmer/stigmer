@@ -1,0 +1,39 @@
+{
+  "name": "WebhookDelivery",
+  "description": "WebhookDelivery posts the CloudEvents envelope to an external HTTP\n endpoint with Content-Type: application/cloudevents+json.",
+  "protoType": "ai.stigmer.agentic.workflow.v1.tasks.WebhookDelivery",
+  "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/emit_event.proto",
+  "fields": [
+    {
+      "name": "Url",
+      "jsonName": "url",
+      "protoField": "url",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Endpoint URL to POST the event to.\n Can contain expressions: \"https://hooks.example.com/${ $context.tenant }\"",
+      "required": true,
+      "isExpression": true,
+      "validation": {
+        "required": true,
+        "minLength": 1
+      }
+    },
+    {
+      "name": "Headers",
+      "jsonName": "headers",
+      "protoField": "headers",
+      "type": {
+        "kind": "map",
+        "keyType": {
+          "kind": "string"
+        },
+        "valueType": {
+          "kind": "string"
+        }
+      },
+      "description": "HTTP headers to send with the POST (optional).\n Values can contain runtime placeholders resolved just-in-time by the\n runner: \"Authorization: Bearer ${.secrets.WEBHOOK_TOKEN}\" or\n \"${.env_vars.KEY}\". Secrets resolve inside the delivery activity and\n never enter workflow history.",
+      "required": false
+    }
+  ]
+}

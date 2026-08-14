@@ -17,7 +17,7 @@ import { WorkflowSpecSchema, WorkflowDocumentSchema, ExportSchema, FlowControlSc
 import { AgentCallOutputContractSchema, AgentCallTaskConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/agent_call_pb";
 import { CallActivityTaskConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/call_activity_pb";
 import { OnInvalidOutputPolicy } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/common_pb";
-import { EmitEventSpecSchema, EmitEventTaskConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/emit_event_pb";
+import { EmitEventSpecSchema, WebhookDeliverySchema, SignalDeliverySchema, EmitDeliveryTargetSchema, EmitEventTaskConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/emit_event_pb";
 import { EvalCriterionSchema, EvalTaskConfigSchema, EvalScoringMode, EvalFailPolicy } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/eval_pb";
 import { ForTaskConfigSchema, ForEachErrorPolicy } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/for_pb";
 import { ForkBranchSchema, ForkTaskConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/fork_pb";
@@ -141,8 +141,27 @@ const EmitEventInputSchema = z.object({
 });
 type EmitEventInput = z.infer<typeof EmitEventInputSchema>;
 
+const WebhookDeliveryInputSchema = z.object({
+  url: z.string().describe("Endpoint URL to POST the event to. Can contain expressions: 'https://hooks.example.com/${ $context.tenant }'"),
+  headers: z.record(z.string()).optional().describe("HTTP headers to send with the POST (optional). Values can contain runtime placeholders resolved just-in-time by the runner: 'Authorization: Bearer ${.secrets.WEBHOOK_TOKEN}' or '${.env_vars.KEY}'. Secrets resolve inside the delivery activity and never enter workflow history."),
+});
+type WebhookDeliveryInput = z.infer<typeof WebhookDeliveryInputSchema>;
+
+const SignalDeliveryInputSchema = z.object({
+  execution_id: z.string().describe("Target workflow execution id ('wfx_...'), as returned by run/create. Usually flows from a prior task's output: '${ .start_processor.execution_id }'"),
+  signal_name: z.string().describe("Signal name, matching the target's listen task event id (verbatim)."),
+});
+type SignalDeliveryInput = z.infer<typeof SignalDeliveryInputSchema>;
+
+const EmitDeliveryTargetInputSchema = z.object({
+  webhook: z.lazy(() => WebhookDeliveryInputSchema).optional().describe("POST the CloudEvents envelope to an HTTP endpoint."),
+  signal: z.lazy(() => SignalDeliveryInputSchema).optional().describe("Signal another workflow execution's listen task."),
+});
+type EmitDeliveryTargetInput = z.infer<typeof EmitDeliveryTargetInputSchema>;
+
 const EmitEventTaskConfigInputSchema = z.object({
   event: z.lazy(() => EmitEventInputSchema).describe("The event specification to emit. Contains the CloudEvents envelope fields (type, source, data, subject). Required field."),
+  delivery: z.array(z.lazy(() => EmitDeliveryTargetInputSchema)).optional().describe("Delivery targets for the emitted event (optional). When empty, the task only constructs the CloudEvents envelope and exposes it as task output — no external delivery happens. Delivery is best-effort: a failed target never fails the task. Failures are collected into the 'delivery_errors' array on the task output, one entry per failed target, so workflows can branch on delivery health. Each target has a 30-second timeout."),
 });
 type EmitEventTaskConfigInput = z.infer<typeof EmitEventTaskConfigInputSchema>;
 
@@ -575,9 +594,31 @@ function emitEventInputToProto(input: EmitEventInput) {
   return result;
 }
 
+function webhookDeliveryInputToProto(input: WebhookDeliveryInput) {
+  const result = create(WebhookDeliverySchema);
+  if (input.url !== undefined) result.url = input.url;
+  if (input.headers !== undefined) result.headers = input.headers;
+  return result;
+}
+
+function signalDeliveryInputToProto(input: SignalDeliveryInput) {
+  const result = create(SignalDeliverySchema);
+  if (input.execution_id !== undefined) result.executionId = input.execution_id;
+  if (input.signal_name !== undefined) result.signalName = input.signal_name;
+  return result;
+}
+
+function emitDeliveryTargetInputToProto(input: EmitDeliveryTargetInput) {
+  const result = create(EmitDeliveryTargetSchema);
+  if (input.webhook !== undefined) result.target = { case: "webhook", value: webhookDeliveryInputToProto(input.webhook) };
+  if (input.signal !== undefined) result.target = { case: "signal", value: signalDeliveryInputToProto(input.signal) };
+  return result;
+}
+
 function emitEventTaskConfigInputToProto(input: EmitEventTaskConfigInput) {
   const result = create(EmitEventTaskConfigSchema);
   if (input.event !== undefined) result.event = emitEventInputToProto(input.event);
+  if (input.delivery !== undefined) result.delivery = input.delivery.map(emitDeliveryTargetInputToProto);
   return result;
 }
 

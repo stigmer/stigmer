@@ -1,5 +1,7 @@
 # Golden Test 19: Emit Event (CloudEvents Envelope)
-# Tests: CloudEvents 1.0 envelope construction via call:function
+# Tests: CloudEvents 1.0 envelope construction via call:function, plus
+# delivery-target propagation (webhook + signal) through the engine to the
+# function-call boundary (authoring surface added at oss#530)
 # CNCF DSL 1.0.0 FORMAT
 
 document:
@@ -30,6 +32,23 @@ do:
           data:
             action: approve
             actor: reviewer@example.com
+
+  - emitWithDelivery:
+      call: emit_event
+      with:
+        event:
+          type: acme.order.fulfilled
+          subject: ORDER-42
+          data:
+            order_id: ord_123
+        delivery:
+          - webhook:
+              url: https://hooks.acme.com/orders
+              headers:
+                X-Source: stigmer
+          - signal:
+              execution_id: wfx_shipping_001
+              signal_name: order-fulfilled
 
   - markDone:
       set:

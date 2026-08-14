@@ -36,6 +36,26 @@ public final class EmitEventProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_workflow_v1_tasks_EmitEventTaskConfig_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_workflow_v1_tasks_EmitDeliveryTarget_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_workflow_v1_tasks_EmitDeliveryTarget_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_workflow_v1_tasks_WebhookDelivery_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_workflow_v1_tasks_WebhookDelivery_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_workflow_v1_tasks_WebhookDelivery_HeadersEntry_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_workflow_v1_tasks_WebhookDelivery_HeadersEntry_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_workflow_v1_tasks_SignalDelivery_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_workflow_v1_tasks_SignalDelivery_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -54,15 +74,30 @@ public final class EmitEventProto extends com.google.protobuf.GeneratedFile {
       "\nr\005\020\001\030\377\001\310\001\001R\004type\022\034\n\006source\030\002 \001(\tB\004\330\205,\001R" +
       "\006source\022+\n\004data\030\003 \001(\0132\027.google.protobuf." +
       "StructR\004data\022\036\n\007subject\030\004 \001(\tB\004\330\205,\001R\007sub" +
-      "ject\"x\n\023EmitEventTaskConfig\022Q\n\005event\030\001 \001" +
-      "(\01323.ai.stigmer.agentic.workflow.v1.task" +
-      "s.EmitEventSpecB\006\272H\003\310\001\001R\005event:\016\352\213,\nemit" +
-      "_eventB\310\001B\016EmitEventProtoP\001\242\002\006ASAWVT\252\002$A" +
-      "i.Stigmer.Agentic.Workflow.V1.Tasks\312\002$Ai" +
-      "\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\342\0020Ai\\" +
-      "Stigmer\\Agentic\\Workflow\\V1\\Tasks\\GPBMet" +
-      "adata\352\002)Ai::Stigmer::Agentic::Workflow::" +
-      "V1::Tasksb\006proto3"
+      "ject\"\316\001\n\023EmitEventTaskConfig\022Q\n\005event\030\001 " +
+      "\001(\01323.ai.stigmer.agentic.workflow.v1.tas" +
+      "ks.EmitEventSpecB\006\272H\003\310\001\001R\005event\022T\n\010deliv" +
+      "ery\030\002 \003(\01328.ai.stigmer.agentic.workflow." +
+      "v1.tasks.EmitDeliveryTargetR\010delivery:\016\352" +
+      "\213,\nemit_event\"\310\001\n\022EmitDeliveryTarget\022Q\n\007" +
+      "webhook\030\001 \001(\01325.ai.stigmer.agentic.workf" +
+      "low.v1.tasks.WebhookDeliveryH\000R\007webhook\022" +
+      "N\n\006signal\030\002 \001(\01324.ai.stigmer.agentic.wor" +
+      "kflow.v1.tasks.SignalDeliveryH\000R\006signalB" +
+      "\017\n\006target\022\005\272H\002\010\001\"\315\001\n\017WebhookDelivery\022 \n\003" +
+      "url\030\001 \001(\tB\016\272H\007r\002\020\001\310\001\001\330\205,\001R\003url\022\\\n\007header" +
+      "s\030\002 \003(\0132B.ai.stigmer.agentic.workflow.v1" +
+      ".tasks.WebhookDelivery.HeadersEntryR\007hea" +
+      "ders\032:\n\014HeadersEntry\022\020\n\003key\030\001 \001(\tR\003key\022\024" +
+      "\n\005value\030\002 \001(\tR\005value:\0028\001\"t\n\016SignalDelive" +
+      "ry\0221\n\014execution_id\030\001 \001(\tB\016\272H\007r\002\020\001\310\001\001\330\205,\001" +
+      "R\013executionId\022/\n\013signal_name\030\002 \001(\tB\016\272H\007r" +
+      "\002\020\001\310\001\001\330\205,\001R\nsignalNameB\310\001B\016EmitEventProt" +
+      "oP\001\242\002\006ASAWVT\252\002$Ai.Stigmer.Agentic.Workfl" +
+      "ow.V1.Tasks\312\002$Ai\\Stigmer\\Agentic\\Workflo" +
+      "w\\V1\\Tasks\342\0020Ai\\Stigmer\\Agentic\\Workflow" +
+      "\\V1\\Tasks\\GPBMetadata\352\002)Ai::Stigmer::Age" +
+      "ntic::Workflow::V1::Tasksb\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -82,7 +117,31 @@ public final class EmitEventProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_workflow_v1_tasks_EmitEventTaskConfig_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_workflow_v1_tasks_EmitEventTaskConfig_descriptor,
-        new java.lang.String[] { "Event", });
+        new java.lang.String[] { "Event", "Delivery", });
+    internal_static_ai_stigmer_agentic_workflow_v1_tasks_EmitDeliveryTarget_descriptor =
+      getDescriptor().getMessageType(2);
+    internal_static_ai_stigmer_agentic_workflow_v1_tasks_EmitDeliveryTarget_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_workflow_v1_tasks_EmitDeliveryTarget_descriptor,
+        new java.lang.String[] { "Webhook", "Signal", "Target", });
+    internal_static_ai_stigmer_agentic_workflow_v1_tasks_WebhookDelivery_descriptor =
+      getDescriptor().getMessageType(3);
+    internal_static_ai_stigmer_agentic_workflow_v1_tasks_WebhookDelivery_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_workflow_v1_tasks_WebhookDelivery_descriptor,
+        new java.lang.String[] { "Url", "Headers", });
+    internal_static_ai_stigmer_agentic_workflow_v1_tasks_WebhookDelivery_HeadersEntry_descriptor =
+      internal_static_ai_stigmer_agentic_workflow_v1_tasks_WebhookDelivery_descriptor.getNestedType(0);
+    internal_static_ai_stigmer_agentic_workflow_v1_tasks_WebhookDelivery_HeadersEntry_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_workflow_v1_tasks_WebhookDelivery_HeadersEntry_descriptor,
+        new java.lang.String[] { "Key", "Value", });
+    internal_static_ai_stigmer_agentic_workflow_v1_tasks_SignalDelivery_descriptor =
+      getDescriptor().getMessageType(4);
+    internal_static_ai_stigmer_agentic_workflow_v1_tasks_SignalDelivery_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_workflow_v1_tasks_SignalDelivery_descriptor,
+        new java.lang.String[] { "ExecutionId", "SignalName", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.commons.apiresource.FieldOptionsProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();
@@ -92,6 +151,7 @@ public final class EmitEventProto extends com.google.protobuf.GeneratedFile {
     registry.add(ai.stigmer.commons.apiresource.FieldOptionsProto.discriminatorValue);
     registry.add(ai.stigmer.commons.apiresource.FieldOptionsProto.isExpression);
     registry.add(build.buf.validate.ValidateProto.field);
+    registry.add(build.buf.validate.ValidateProto.oneof);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);
   }

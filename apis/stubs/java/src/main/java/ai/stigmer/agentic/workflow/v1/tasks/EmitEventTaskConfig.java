@@ -15,12 +15,15 @@ package ai.stigmer.agentic.workflow.v1.tasks;
  * emit_event is the complement to listen. While listen waits for Temporal
  * signals (internal workflow primitives), emit_event publishes business
  * events using the CloudEvents envelope (a standard external contract).
- * The runtime (T13) bridges the two: an emitted CloudEvent can be
- * delivered as a Temporal signal to another workflow's listen task, or
- * routed to external consumers via message queues, webhooks, or event buses.
+ * The delivery field bridges the two: an emitted CloudEvent can be
+ * delivered as a signal to another workflow's listen task (server-mediated
+ * per oss#517) or POSTed to an external webhook. Authoring surface added
+ * at oss#530; before that the runner capability existed but was
+ * proto-invisible.
  *
  * The task output is the fully-resolved CloudEvents envelope with
- * runtime-generated fields populated:
+ * runtime-generated fields populated (plus "delivery_errors" when any
+ * delivery target failed):
  * {
  * "id": "&lt;generated UUID&gt;",
  * "specversion": "1.0",
@@ -59,6 +62,24 @@ package ai.stigmer.agentic.workflow.v1.tasks;
  * fulfilled_at: "${ $context.timestamp }"
  * export:
  * as: "${ . }"
+ *
+ * YAML Example (emit with delivery — webhook plus a signal to another
+ * workflow's listen task):
+ * - notify_downstream:
+ * emit_event:
+ * event:
+ * type: "acme.order.fulfilled"
+ * subject: "${ $context.order.number }"
+ * data:
+ * order_id: "${ $context.order.id }"
+ * delivery:
+ * - webhook:
+ * url: "https://hooks.acme.com/orders"
+ * headers:
+ * Authorization: "Bearer ${.secrets.ACME_HOOK_TOKEN}"
+ * - signal:
+ * execution_id: "${ .start_shipping.execution_id }"
+ * signal_name: "order-fulfilled"
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflow.v1.tasks.EmitEventTaskConfig}
@@ -83,6 +104,7 @@ private static final long serialVersionUID = 0L;
     super(builder);
   }
   private EmitEventTaskConfig() {
+    delivery_ = java.util.Collections.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -148,6 +170,102 @@ private static final long serialVersionUID = 0L;
     return event_ == null ? ai.stigmer.agentic.workflow.v1.tasks.EmitEventSpec.getDefaultInstance() : event_;
   }
 
+  public static final int DELIVERY_FIELD_NUMBER = 2;
+  @SuppressWarnings("serial")
+  private java.util.List<ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget> delivery_;
+  /**
+   * <pre>
+   * Delivery targets for the emitted event (optional).
+   * When empty, the task only constructs the CloudEvents envelope and
+   * exposes it as task output — no external delivery happens.
+   *
+   * Delivery is best-effort: a failed target never fails the task. Failures
+   * are collected into the "delivery_errors" array on the task output, one
+   * entry per failed target, so workflows can branch on delivery health.
+   * Each target has a 30-second timeout.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget delivery = 2 [json_name = "delivery"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget> getDeliveryList() {
+    return delivery_;
+  }
+  /**
+   * <pre>
+   * Delivery targets for the emitted event (optional).
+   * When empty, the task only constructs the CloudEvents envelope and
+   * exposes it as task output — no external delivery happens.
+   *
+   * Delivery is best-effort: a failed target never fails the task. Failures
+   * are collected into the "delivery_errors" array on the task output, one
+   * entry per failed target, so workflows can branch on delivery health.
+   * Each target has a 30-second timeout.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget delivery = 2 [json_name = "delivery"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<? extends ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTargetOrBuilder> 
+      getDeliveryOrBuilderList() {
+    return delivery_;
+  }
+  /**
+   * <pre>
+   * Delivery targets for the emitted event (optional).
+   * When empty, the task only constructs the CloudEvents envelope and
+   * exposes it as task output — no external delivery happens.
+   *
+   * Delivery is best-effort: a failed target never fails the task. Failures
+   * are collected into the "delivery_errors" array on the task output, one
+   * entry per failed target, so workflows can branch on delivery health.
+   * Each target has a 30-second timeout.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget delivery = 2 [json_name = "delivery"];</code>
+   */
+  @java.lang.Override
+  public int getDeliveryCount() {
+    return delivery_.size();
+  }
+  /**
+   * <pre>
+   * Delivery targets for the emitted event (optional).
+   * When empty, the task only constructs the CloudEvents envelope and
+   * exposes it as task output — no external delivery happens.
+   *
+   * Delivery is best-effort: a failed target never fails the task. Failures
+   * are collected into the "delivery_errors" array on the task output, one
+   * entry per failed target, so workflows can branch on delivery health.
+   * Each target has a 30-second timeout.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget delivery = 2 [json_name = "delivery"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget getDelivery(int index) {
+    return delivery_.get(index);
+  }
+  /**
+   * <pre>
+   * Delivery targets for the emitted event (optional).
+   * When empty, the task only constructs the CloudEvents envelope and
+   * exposes it as task output — no external delivery happens.
+   *
+   * Delivery is best-effort: a failed target never fails the task. Failures
+   * are collected into the "delivery_errors" array on the task output, one
+   * entry per failed target, so workflows can branch on delivery health.
+   * Each target has a 30-second timeout.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget delivery = 2 [json_name = "delivery"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTargetOrBuilder getDeliveryOrBuilder(
+      int index) {
+    return delivery_.get(index);
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -165,6 +283,9 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(1, getEvent());
     }
+    for (int i = 0; i < delivery_.size(); i++) {
+      output.writeMessage(2, delivery_.get(i));
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -178,6 +299,15 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(1, getEvent());
     }
+
+        {
+          final int count = delivery_.size();
+          for (int i = 0; i < count; i++) {
+            size += com.google.protobuf.CodedOutputStream
+              .computeMessageSizeNoTag(delivery_.get(i));
+          }
+          size += 1 * count;
+        }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -198,6 +328,8 @@ private static final long serialVersionUID = 0L;
       if (!getEvent()
           .equals(other.getEvent())) return false;
     }
+    if (!getDeliveryList()
+        .equals(other.getDeliveryList())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -212,6 +344,10 @@ private static final long serialVersionUID = 0L;
     if (hasEvent()) {
       hash = (37 * hash) + EVENT_FIELD_NUMBER;
       hash = (53 * hash) + getEvent().hashCode();
+    }
+    if (getDeliveryCount() > 0) {
+      hash = (37 * hash) + DELIVERY_FIELD_NUMBER;
+      hash = (53 * hash) + getDeliveryList().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -320,12 +456,15 @@ private static final long serialVersionUID = 0L;
    * emit_event is the complement to listen. While listen waits for Temporal
    * signals (internal workflow primitives), emit_event publishes business
    * events using the CloudEvents envelope (a standard external contract).
-   * The runtime (T13) bridges the two: an emitted CloudEvent can be
-   * delivered as a Temporal signal to another workflow's listen task, or
-   * routed to external consumers via message queues, webhooks, or event buses.
+   * The delivery field bridges the two: an emitted CloudEvent can be
+   * delivered as a signal to another workflow's listen task (server-mediated
+   * per oss#517) or POSTed to an external webhook. Authoring surface added
+   * at oss#530; before that the runner capability existed but was
+   * proto-invisible.
    *
    * The task output is the fully-resolved CloudEvents envelope with
-   * runtime-generated fields populated:
+   * runtime-generated fields populated (plus "delivery_errors" when any
+   * delivery target failed):
    * {
    * "id": "&lt;generated UUID&gt;",
    * "specversion": "1.0",
@@ -364,6 +503,24 @@ private static final long serialVersionUID = 0L;
    * fulfilled_at: "${ $context.timestamp }"
    * export:
    * as: "${ . }"
+   *
+   * YAML Example (emit with delivery — webhook plus a signal to another
+   * workflow's listen task):
+   * - notify_downstream:
+   * emit_event:
+   * event:
+   * type: "acme.order.fulfilled"
+   * subject: "${ $context.order.number }"
+   * data:
+   * order_id: "${ $context.order.id }"
+   * delivery:
+   * - webhook:
+   * url: "https://hooks.acme.com/orders"
+   * headers:
+   * Authorization: "Bearer ${.secrets.ACME_HOOK_TOKEN}"
+   * - signal:
+   * execution_id: "${ .start_shipping.execution_id }"
+   * signal_name: "order-fulfilled"
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflow.v1.tasks.EmitEventTaskConfig}
@@ -399,6 +556,7 @@ private static final long serialVersionUID = 0L;
       if (com.google.protobuf.GeneratedMessage
               .alwaysUseFieldBuilders) {
         internalGetEventFieldBuilder();
+        internalGetDeliveryFieldBuilder();
       }
     }
     @java.lang.Override
@@ -410,6 +568,13 @@ private static final long serialVersionUID = 0L;
         eventBuilder_.dispose();
         eventBuilder_ = null;
       }
+      if (deliveryBuilder_ == null) {
+        delivery_ = java.util.Collections.emptyList();
+      } else {
+        delivery_ = null;
+        deliveryBuilder_.clear();
+      }
+      bitField0_ = (bitField0_ & ~0x00000002);
       return this;
     }
 
@@ -436,9 +601,22 @@ private static final long serialVersionUID = 0L;
     @java.lang.Override
     public ai.stigmer.agentic.workflow.v1.tasks.EmitEventTaskConfig buildPartial() {
       ai.stigmer.agentic.workflow.v1.tasks.EmitEventTaskConfig result = new ai.stigmer.agentic.workflow.v1.tasks.EmitEventTaskConfig(this);
+      buildPartialRepeatedFields(result);
       if (bitField0_ != 0) { buildPartial0(result); }
       onBuilt();
       return result;
+    }
+
+    private void buildPartialRepeatedFields(ai.stigmer.agentic.workflow.v1.tasks.EmitEventTaskConfig result) {
+      if (deliveryBuilder_ == null) {
+        if (((bitField0_ & 0x00000002) != 0)) {
+          delivery_ = java.util.Collections.unmodifiableList(delivery_);
+          bitField0_ = (bitField0_ & ~0x00000002);
+        }
+        result.delivery_ = delivery_;
+      } else {
+        result.delivery_ = deliveryBuilder_.build();
+      }
     }
 
     private void buildPartial0(ai.stigmer.agentic.workflow.v1.tasks.EmitEventTaskConfig result) {
@@ -467,6 +645,32 @@ private static final long serialVersionUID = 0L;
       if (other == ai.stigmer.agentic.workflow.v1.tasks.EmitEventTaskConfig.getDefaultInstance()) return this;
       if (other.hasEvent()) {
         mergeEvent(other.getEvent());
+      }
+      if (deliveryBuilder_ == null) {
+        if (!other.delivery_.isEmpty()) {
+          if (delivery_.isEmpty()) {
+            delivery_ = other.delivery_;
+            bitField0_ = (bitField0_ & ~0x00000002);
+          } else {
+            ensureDeliveryIsMutable();
+            delivery_.addAll(other.delivery_);
+          }
+          onChanged();
+        }
+      } else {
+        if (!other.delivery_.isEmpty()) {
+          if (deliveryBuilder_.isEmpty()) {
+            deliveryBuilder_.dispose();
+            deliveryBuilder_ = null;
+            delivery_ = other.delivery_;
+            bitField0_ = (bitField0_ & ~0x00000002);
+            deliveryBuilder_ = 
+              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                 internalGetDeliveryFieldBuilder() : null;
+          } else {
+            deliveryBuilder_.addAllMessages(other.delivery_);
+          }
+        }
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -501,6 +705,19 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000001;
               break;
             } // case 10
+            case 18: {
+              ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget m =
+                  input.readMessage(
+                      ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget.parser(),
+                      extensionRegistry);
+              if (deliveryBuilder_ == null) {
+                ensureDeliveryIsMutable();
+                delivery_.add(m);
+              } else {
+                deliveryBuilder_.addMessage(m);
+              }
+              break;
+            } // case 18
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -691,6 +908,444 @@ private static final long serialVersionUID = 0L;
         event_ = null;
       }
       return eventBuilder_;
+    }
+
+    private java.util.List<ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget> delivery_ =
+      java.util.Collections.emptyList();
+    private void ensureDeliveryIsMutable() {
+      if (!((bitField0_ & 0x00000002) != 0)) {
+        delivery_ = new java.util.ArrayList<ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget>(delivery_);
+        bitField0_ |= 0x00000002;
+       }
+    }
+
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget, ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget.Builder, ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTargetOrBuilder> deliveryBuilder_;
+
+    /**
+     * <pre>
+     * Delivery targets for the emitted event (optional).
+     * When empty, the task only constructs the CloudEvents envelope and
+     * exposes it as task output — no external delivery happens.
+     *
+     * Delivery is best-effort: a failed target never fails the task. Failures
+     * are collected into the "delivery_errors" array on the task output, one
+     * entry per failed target, so workflows can branch on delivery health.
+     * Each target has a 30-second timeout.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget delivery = 2 [json_name = "delivery"];</code>
+     */
+    public java.util.List<ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget> getDeliveryList() {
+      if (deliveryBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(delivery_);
+      } else {
+        return deliveryBuilder_.getMessageList();
+      }
+    }
+    /**
+     * <pre>
+     * Delivery targets for the emitted event (optional).
+     * When empty, the task only constructs the CloudEvents envelope and
+     * exposes it as task output — no external delivery happens.
+     *
+     * Delivery is best-effort: a failed target never fails the task. Failures
+     * are collected into the "delivery_errors" array on the task output, one
+     * entry per failed target, so workflows can branch on delivery health.
+     * Each target has a 30-second timeout.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget delivery = 2 [json_name = "delivery"];</code>
+     */
+    public int getDeliveryCount() {
+      if (deliveryBuilder_ == null) {
+        return delivery_.size();
+      } else {
+        return deliveryBuilder_.getCount();
+      }
+    }
+    /**
+     * <pre>
+     * Delivery targets for the emitted event (optional).
+     * When empty, the task only constructs the CloudEvents envelope and
+     * exposes it as task output — no external delivery happens.
+     *
+     * Delivery is best-effort: a failed target never fails the task. Failures
+     * are collected into the "delivery_errors" array on the task output, one
+     * entry per failed target, so workflows can branch on delivery health.
+     * Each target has a 30-second timeout.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget delivery = 2 [json_name = "delivery"];</code>
+     */
+    public ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget getDelivery(int index) {
+      if (deliveryBuilder_ == null) {
+        return delivery_.get(index);
+      } else {
+        return deliveryBuilder_.getMessage(index);
+      }
+    }
+    /**
+     * <pre>
+     * Delivery targets for the emitted event (optional).
+     * When empty, the task only constructs the CloudEvents envelope and
+     * exposes it as task output — no external delivery happens.
+     *
+     * Delivery is best-effort: a failed target never fails the task. Failures
+     * are collected into the "delivery_errors" array on the task output, one
+     * entry per failed target, so workflows can branch on delivery health.
+     * Each target has a 30-second timeout.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget delivery = 2 [json_name = "delivery"];</code>
+     */
+    public Builder setDelivery(
+        int index, ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget value) {
+      if (deliveryBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureDeliveryIsMutable();
+        delivery_.set(index, value);
+        onChanged();
+      } else {
+        deliveryBuilder_.setMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Delivery targets for the emitted event (optional).
+     * When empty, the task only constructs the CloudEvents envelope and
+     * exposes it as task output — no external delivery happens.
+     *
+     * Delivery is best-effort: a failed target never fails the task. Failures
+     * are collected into the "delivery_errors" array on the task output, one
+     * entry per failed target, so workflows can branch on delivery health.
+     * Each target has a 30-second timeout.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget delivery = 2 [json_name = "delivery"];</code>
+     */
+    public Builder setDelivery(
+        int index, ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget.Builder builderForValue) {
+      if (deliveryBuilder_ == null) {
+        ensureDeliveryIsMutable();
+        delivery_.set(index, builderForValue.build());
+        onChanged();
+      } else {
+        deliveryBuilder_.setMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Delivery targets for the emitted event (optional).
+     * When empty, the task only constructs the CloudEvents envelope and
+     * exposes it as task output — no external delivery happens.
+     *
+     * Delivery is best-effort: a failed target never fails the task. Failures
+     * are collected into the "delivery_errors" array on the task output, one
+     * entry per failed target, so workflows can branch on delivery health.
+     * Each target has a 30-second timeout.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget delivery = 2 [json_name = "delivery"];</code>
+     */
+    public Builder addDelivery(ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget value) {
+      if (deliveryBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureDeliveryIsMutable();
+        delivery_.add(value);
+        onChanged();
+      } else {
+        deliveryBuilder_.addMessage(value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Delivery targets for the emitted event (optional).
+     * When empty, the task only constructs the CloudEvents envelope and
+     * exposes it as task output — no external delivery happens.
+     *
+     * Delivery is best-effort: a failed target never fails the task. Failures
+     * are collected into the "delivery_errors" array on the task output, one
+     * entry per failed target, so workflows can branch on delivery health.
+     * Each target has a 30-second timeout.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget delivery = 2 [json_name = "delivery"];</code>
+     */
+    public Builder addDelivery(
+        int index, ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget value) {
+      if (deliveryBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureDeliveryIsMutable();
+        delivery_.add(index, value);
+        onChanged();
+      } else {
+        deliveryBuilder_.addMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Delivery targets for the emitted event (optional).
+     * When empty, the task only constructs the CloudEvents envelope and
+     * exposes it as task output — no external delivery happens.
+     *
+     * Delivery is best-effort: a failed target never fails the task. Failures
+     * are collected into the "delivery_errors" array on the task output, one
+     * entry per failed target, so workflows can branch on delivery health.
+     * Each target has a 30-second timeout.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget delivery = 2 [json_name = "delivery"];</code>
+     */
+    public Builder addDelivery(
+        ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget.Builder builderForValue) {
+      if (deliveryBuilder_ == null) {
+        ensureDeliveryIsMutable();
+        delivery_.add(builderForValue.build());
+        onChanged();
+      } else {
+        deliveryBuilder_.addMessage(builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Delivery targets for the emitted event (optional).
+     * When empty, the task only constructs the CloudEvents envelope and
+     * exposes it as task output — no external delivery happens.
+     *
+     * Delivery is best-effort: a failed target never fails the task. Failures
+     * are collected into the "delivery_errors" array on the task output, one
+     * entry per failed target, so workflows can branch on delivery health.
+     * Each target has a 30-second timeout.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget delivery = 2 [json_name = "delivery"];</code>
+     */
+    public Builder addDelivery(
+        int index, ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget.Builder builderForValue) {
+      if (deliveryBuilder_ == null) {
+        ensureDeliveryIsMutable();
+        delivery_.add(index, builderForValue.build());
+        onChanged();
+      } else {
+        deliveryBuilder_.addMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Delivery targets for the emitted event (optional).
+     * When empty, the task only constructs the CloudEvents envelope and
+     * exposes it as task output — no external delivery happens.
+     *
+     * Delivery is best-effort: a failed target never fails the task. Failures
+     * are collected into the "delivery_errors" array on the task output, one
+     * entry per failed target, so workflows can branch on delivery health.
+     * Each target has a 30-second timeout.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget delivery = 2 [json_name = "delivery"];</code>
+     */
+    public Builder addAllDelivery(
+        java.lang.Iterable<? extends ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget> values) {
+      if (deliveryBuilder_ == null) {
+        ensureDeliveryIsMutable();
+        com.google.protobuf.AbstractMessageLite.Builder.addAll(
+            values, delivery_);
+        onChanged();
+      } else {
+        deliveryBuilder_.addAllMessages(values);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Delivery targets for the emitted event (optional).
+     * When empty, the task only constructs the CloudEvents envelope and
+     * exposes it as task output — no external delivery happens.
+     *
+     * Delivery is best-effort: a failed target never fails the task. Failures
+     * are collected into the "delivery_errors" array on the task output, one
+     * entry per failed target, so workflows can branch on delivery health.
+     * Each target has a 30-second timeout.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget delivery = 2 [json_name = "delivery"];</code>
+     */
+    public Builder clearDelivery() {
+      if (deliveryBuilder_ == null) {
+        delivery_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00000002);
+        onChanged();
+      } else {
+        deliveryBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Delivery targets for the emitted event (optional).
+     * When empty, the task only constructs the CloudEvents envelope and
+     * exposes it as task output — no external delivery happens.
+     *
+     * Delivery is best-effort: a failed target never fails the task. Failures
+     * are collected into the "delivery_errors" array on the task output, one
+     * entry per failed target, so workflows can branch on delivery health.
+     * Each target has a 30-second timeout.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget delivery = 2 [json_name = "delivery"];</code>
+     */
+    public Builder removeDelivery(int index) {
+      if (deliveryBuilder_ == null) {
+        ensureDeliveryIsMutable();
+        delivery_.remove(index);
+        onChanged();
+      } else {
+        deliveryBuilder_.remove(index);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Delivery targets for the emitted event (optional).
+     * When empty, the task only constructs the CloudEvents envelope and
+     * exposes it as task output — no external delivery happens.
+     *
+     * Delivery is best-effort: a failed target never fails the task. Failures
+     * are collected into the "delivery_errors" array on the task output, one
+     * entry per failed target, so workflows can branch on delivery health.
+     * Each target has a 30-second timeout.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget delivery = 2 [json_name = "delivery"];</code>
+     */
+    public ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget.Builder getDeliveryBuilder(
+        int index) {
+      return internalGetDeliveryFieldBuilder().getBuilder(index);
+    }
+    /**
+     * <pre>
+     * Delivery targets for the emitted event (optional).
+     * When empty, the task only constructs the CloudEvents envelope and
+     * exposes it as task output — no external delivery happens.
+     *
+     * Delivery is best-effort: a failed target never fails the task. Failures
+     * are collected into the "delivery_errors" array on the task output, one
+     * entry per failed target, so workflows can branch on delivery health.
+     * Each target has a 30-second timeout.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget delivery = 2 [json_name = "delivery"];</code>
+     */
+    public ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTargetOrBuilder getDeliveryOrBuilder(
+        int index) {
+      if (deliveryBuilder_ == null) {
+        return delivery_.get(index);  } else {
+        return deliveryBuilder_.getMessageOrBuilder(index);
+      }
+    }
+    /**
+     * <pre>
+     * Delivery targets for the emitted event (optional).
+     * When empty, the task only constructs the CloudEvents envelope and
+     * exposes it as task output — no external delivery happens.
+     *
+     * Delivery is best-effort: a failed target never fails the task. Failures
+     * are collected into the "delivery_errors" array on the task output, one
+     * entry per failed target, so workflows can branch on delivery health.
+     * Each target has a 30-second timeout.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget delivery = 2 [json_name = "delivery"];</code>
+     */
+    public java.util.List<? extends ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTargetOrBuilder> 
+         getDeliveryOrBuilderList() {
+      if (deliveryBuilder_ != null) {
+        return deliveryBuilder_.getMessageOrBuilderList();
+      } else {
+        return java.util.Collections.unmodifiableList(delivery_);
+      }
+    }
+    /**
+     * <pre>
+     * Delivery targets for the emitted event (optional).
+     * When empty, the task only constructs the CloudEvents envelope and
+     * exposes it as task output — no external delivery happens.
+     *
+     * Delivery is best-effort: a failed target never fails the task. Failures
+     * are collected into the "delivery_errors" array on the task output, one
+     * entry per failed target, so workflows can branch on delivery health.
+     * Each target has a 30-second timeout.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget delivery = 2 [json_name = "delivery"];</code>
+     */
+    public ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget.Builder addDeliveryBuilder() {
+      return internalGetDeliveryFieldBuilder().addBuilder(
+          ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * Delivery targets for the emitted event (optional).
+     * When empty, the task only constructs the CloudEvents envelope and
+     * exposes it as task output — no external delivery happens.
+     *
+     * Delivery is best-effort: a failed target never fails the task. Failures
+     * are collected into the "delivery_errors" array on the task output, one
+     * entry per failed target, so workflows can branch on delivery health.
+     * Each target has a 30-second timeout.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget delivery = 2 [json_name = "delivery"];</code>
+     */
+    public ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget.Builder addDeliveryBuilder(
+        int index) {
+      return internalGetDeliveryFieldBuilder().addBuilder(
+          index, ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * Delivery targets for the emitted event (optional).
+     * When empty, the task only constructs the CloudEvents envelope and
+     * exposes it as task output — no external delivery happens.
+     *
+     * Delivery is best-effort: a failed target never fails the task. Failures
+     * are collected into the "delivery_errors" array on the task output, one
+     * entry per failed target, so workflows can branch on delivery health.
+     * Each target has a 30-second timeout.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget delivery = 2 [json_name = "delivery"];</code>
+     */
+    public java.util.List<ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget.Builder> 
+         getDeliveryBuilderList() {
+      return internalGetDeliveryFieldBuilder().getBuilderList();
+    }
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget, ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget.Builder, ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTargetOrBuilder> 
+        internalGetDeliveryFieldBuilder() {
+      if (deliveryBuilder_ == null) {
+        deliveryBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+            ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget, ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget.Builder, ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTargetOrBuilder>(
+                delivery_,
+                ((bitField0_ & 0x00000002) != 0),
+                getParentForChildren(),
+                isClean());
+        delivery_ = null;
+      }
+      return deliveryBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.workflow.v1.tasks.EmitEventTaskConfig)

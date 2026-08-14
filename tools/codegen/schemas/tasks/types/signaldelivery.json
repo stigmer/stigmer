@@ -1,0 +1,38 @@
+{
+  "name": "SignalDelivery",
+  "description": "SignalDelivery routes the CloudEvents envelope to another workflow\n execution as a signal, completing the emit/listen pairing: the target\n execution receives the envelope on the listen task whose signal id\n matches signal_name.",
+  "protoType": "ai.stigmer.agentic.workflow.v1.tasks.SignalDelivery",
+  "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/emit_event.proto",
+  "fields": [
+    {
+      "name": "ExecutionId",
+      "jsonName": "executionId",
+      "protoField": "execution_id",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Target workflow execution id (\"wfx_...\"), as returned by run/create.\n Usually flows from a prior task's output:\n \"${ .start_processor.execution_id }\"",
+      "required": true,
+      "isExpression": true,
+      "validation": {
+        "required": true,
+        "minLength": 1
+      }
+    },
+    {
+      "name": "SignalName",
+      "jsonName": "signalName",
+      "protoField": "signal_name",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Signal name, matching the target's listen task event id (verbatim).",
+      "required": true,
+      "isExpression": true,
+      "validation": {
+        "required": true,
+        "minLength": 1
+      }
+    }
+  ]
+}

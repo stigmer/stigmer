@@ -390,6 +390,40 @@ func ValidateTaskConfigRequiredFields(spec *workflowv1.WorkflowSpec) []string {
 					errors = append(errors, fmt.Sprintf("task '%s' (agent_call): workspace_entries[%d] url must use HTTPS (e.g. https://github.com/org/repo). SSH URLs are not supported.", task.Name, i))
 				}
 			}
+
+		case workflowv1.WorkflowTaskKind_emit_event:
+			// EmitDeliveryTarget's oneof-required and the member messages'
+			// required rules cannot run at Layer 1 (task_config is an opaque
+			// Struct there). A malformed target would otherwise degrade
+			// silently at run time: the runner's delivery is best-effort by
+			// contract, so it records a delivery_error instead of failing
+			// the task. Keep the strings in lockstep with the cloud Java
+			// validator.
+			for i, v := range getListField(fields, "delivery") {
+				target := v.GetStructValue()
+				if target == nil {
+					continue
+				}
+				webhook := getStructField(target.GetFields(), "webhook")
+				signal := getStructField(target.GetFields(), "signal")
+				switch {
+				case webhook == nil && signal == nil:
+					errors = append(errors, fmt.Sprintf("task '%s' (emit_event): delivery[%d] requires exactly one of 'webhook' or 'signal'", task.Name, i))
+				case webhook != nil && signal != nil:
+					errors = append(errors, fmt.Sprintf("task '%s' (emit_event): delivery[%d] must set only one of 'webhook' or 'signal'", task.Name, i))
+				case webhook != nil:
+					if url := getStringField(webhook.GetFields(), "url"); url == "" {
+						errors = append(errors, fmt.Sprintf("task '%s' (emit_event): delivery[%d] required field 'webhook.url' is missing or empty", task.Name, i))
+					}
+				case signal != nil:
+					if executionID := getStringField(signal.GetFields(), "execution_id"); executionID == "" {
+						errors = append(errors, fmt.Sprintf("task '%s' (emit_event): delivery[%d] required field 'signal.execution_id' is missing or empty", task.Name, i))
+					}
+					if signalName := getStringField(signal.GetFields(), "signal_name"); signalName == "" {
+						errors = append(errors, fmt.Sprintf("task '%s' (emit_event): delivery[%d] required field 'signal.signal_name' is missing or empty", task.Name, i))
+					}
+				}
+			}
 		}
 	}
 	return errors
