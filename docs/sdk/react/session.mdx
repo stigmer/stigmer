@@ -842,6 +842,7 @@ function useSessionUsage(executions: readonly AgentExecution[]): UseSessionUsage
   type={{
     cacheCreationTokens: { type: "number", description: "Total tokens used to create cache entries across all models." },
     cacheReadTokens: { type: "number", description: "Total tokens served from cache across all models." },
+    executionBreakdown: { type: "readonly ExecutionUsageEntry[]", description: "Per-execution resolved model + cost, chronological, from billing records (#362). Empty until the first authoritative record lands — the streaming fallback deliberately contributes none, because the runner only knows what it REQUESTED, never what the provider served." },
     hasUsage: { type: "boolean", description: "`true` when usage data is available." },
     inputTokens: { type: "number", description: "Total input tokens across all models." },
     isEstimated: { type: "boolean", description: "`true` when the displayed cost comes from runner-reported streaming data rather than settled billing records. The UI should show an \"Estimated\" badge when this is true." },
@@ -1423,6 +1424,20 @@ proto enums to configure where session activities execute.
 - `"local"` — Client's embedded runner (desktop app or CLI) polls
   the session's task queue.
 - `"cloud"` — Server provisions a cloud sandbox with a runner.
+
+
+### ExecutionUsageEntry
+
+Per-execution model provenance from billing records (stigmer/stigmer#362).
+
+<TypeTable
+  type={{
+    billableCostUsd: { type: "number", description: "Billable cost in USD for this execution.", required: true },
+    executionId: { type: "string", description: "Execution identifier (`metadata.id`).", required: true },
+    isEstimated: { type: "boolean", description: "`true` while this execution's records are still provisional.", required: true },
+    resolvedModel: { type: "string", description: "Billing-resolved primary model — what the provider actually served. For a Cursor Auto execution this is the after-the-fact answer to \"which model did Auto pick\", which the requested model (empty by definition there) can never give.", required: true },
+  }}
+/>
 
 
 ### groupSearchResultsByTime
