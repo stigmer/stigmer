@@ -33,6 +33,11 @@ class BillingCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.AdjustCreditsInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_credit__pb2.CreditLedgerEntry.FromString,
                 _registered_method=True)
+        self.grantCredits = channel.unary_unary(
+                '/ai.stigmer.billing.v1.BillingCommandController/grantCredits',
+                request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GrantCreditsInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_credit__pb2.CreditLedgerEntry.FromString,
+                _registered_method=True)
         self.authorizeExecution = channel.unary_unary(
                 '/ai.stigmer.billing.v1.BillingCommandController/authorizeExecution',
                 request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.AuthorizeExecutionInput.SerializeToString,
@@ -99,6 +104,20 @@ class BillingCommandControllerServicer(object):
     def adjustCredits(self, request, context):
         """Manually adjust an org's credit balance.
         Produces an immutable ledger entry for audit. Requires admin privileges.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def grantCredits(self, request, context):
+        """Grant promotional credits to an org, optionally expiring (use-it-or-lose-it).
+        Produces an immutable promotional_credit ledger entry for audit.
+
+        The grant burns before adjustment and purchased credits. When expires_at
+        is set, any remainder unconsumed at that time is removed from the balance
+        by the platform's grant-expiry sweep (an expiry_debit ledger entry).
+        Idempotent: replaying an applied idempotency key returns the original
+        entry, even after the expiry has passed.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -206,6 +225,11 @@ def add_BillingCommandControllerServicer_to_server(servicer, server):
                     request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.AdjustCreditsInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_credit__pb2.CreditLedgerEntry.SerializeToString,
             ),
+            'grantCredits': grpc.unary_unary_rpc_method_handler(
+                    servicer.grantCredits,
+                    request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GrantCreditsInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_credit__pb2.CreditLedgerEntry.SerializeToString,
+            ),
             'authorizeExecution': grpc.unary_unary_rpc_method_handler(
                     servicer.authorizeExecution,
                     request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.AuthorizeExecutionInput.FromString,
@@ -310,6 +334,33 @@ class BillingCommandController(object):
             target,
             '/ai.stigmer.billing.v1.BillingCommandController/adjustCredits',
             ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.AdjustCreditsInput.SerializeToString,
+            ai_dot_stigmer_dot_billing_dot_v1_dot_credit__pb2.CreditLedgerEntry.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def grantCredits(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.billing.v1.BillingCommandController/grantCredits',
+            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GrantCreditsInput.SerializeToString,
             ai_dot_stigmer_dot_billing_dot_v1_dot_credit__pb2.CreditLedgerEntry.FromString,
             options,
             channel_credentials,

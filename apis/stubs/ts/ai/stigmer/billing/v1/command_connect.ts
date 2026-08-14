@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { AdjustCreditsInput, AuthorizeExecutionInput, AuthorizeExecutionResponse, CreateBillingPortalSessionInput, CreateBillingPortalSessionResponse, CreateCreditCheckoutSessionInput, CreateCreditCheckoutSessionResponse, DecideModelPricingOverrideInput, FinalizeExecutionInput, FinalizeExecutionResponse, GetOrCreateBillingAccountInput, RecordLlmCallUsageInput, RecordLlmCallUsageResponse, RetireModelPricingBaselineInput, SetAutoRechargeConfigInput, UpsertModelPricingBaselineInput } from "./io_pbjs";
+import { AdjustCreditsInput, AuthorizeExecutionInput, AuthorizeExecutionResponse, CreateBillingPortalSessionInput, CreateBillingPortalSessionResponse, CreateCreditCheckoutSessionInput, CreateCreditCheckoutSessionResponse, DecideModelPricingOverrideInput, FinalizeExecutionInput, FinalizeExecutionResponse, GetOrCreateBillingAccountInput, GrantCreditsInput, RecordLlmCallUsageInput, RecordLlmCallUsageResponse, RetireModelPricingBaselineInput, SetAutoRechargeConfigInput, UpsertModelPricingBaselineInput } from "./io_pbjs";
 import { BillingAccount } from "./billing_account_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 import { CreditLedgerEntry } from "./credit_pbjs";
@@ -43,6 +43,24 @@ export const BillingCommandController = {
     adjustCredits: {
       name: "adjustCredits",
       I: AdjustCreditsInput,
+      O: CreditLedgerEntry,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Grant promotional credits to an org, optionally expiring (use-it-or-lose-it).
+     * Produces an immutable promotional_credit ledger entry for audit.
+     *
+     * The grant burns before adjustment and purchased credits. When expires_at
+     * is set, any remainder unconsumed at that time is removed from the balance
+     * by the platform's grant-expiry sweep (an expiry_debit ledger entry).
+     * Idempotent: replaying an applied idempotency key returns the original
+     * entry, even after the expiry has passed.
+     *
+     * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.grantCredits
+     */
+    grantCredits: {
+      name: "grantCredits",
+      I: GrantCreditsInput,
       O: CreditLedgerEntry,
       kind: MethodKind.Unary,
     },

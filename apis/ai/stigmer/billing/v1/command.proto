@@ -37,6 +37,21 @@ service BillingCommandController {
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to adjust credits for this organization";
   }
 
+  // Grant promotional credits to an org, optionally expiring (use-it-or-lose-it).
+  // Produces an immutable promotional_credit ledger entry for audit.
+  //
+  // The grant burns before adjustment and purchased credits. When expires_at
+  // is set, any remainder unconsumed at that time is removed from the balance
+  // by the platform's grant-expiry sweep (an expiry_debit ledger entry).
+  // Idempotent: replaying an applied idempotency key returns the original
+  // entry, even after the expiry has passed.
+  rpc grantCredits(GrantCreditsInput) returns (CreditLedgerEntry) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_manage_billing;
+    option (ai.stigmer.commons.rpc.config).field_path = "org_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to grant credits for this organization";
+  }
+
   // Reserve credits before starting an agent execution.
   // Returns authorization status and reservation details.
   //
