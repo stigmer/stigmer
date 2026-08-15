@@ -16,7 +16,7 @@ import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/envir
 import { useMcpServer } from "./useMcpServer.js";
 import type { UseMcpServerReturn } from "./useMcpServer.js";
 import { useUpdateMcpServer } from "./useUpdateMcpServer.js";
-import { mcpServerToInput } from "./internal/mcpServerToInput.js";
+import { toMcpServerUpdateInput } from "@stigmer/sdk";
 import { useMcpServerConnect } from "./useMcpServerConnect.js";
 import { useMcpServerCredentials } from "./useMcpServerCredentials.js";
 import {
@@ -214,7 +214,7 @@ export function McpServerDetailView({
       value: import("@stigmer/sdk").McpServerInput[K],
     ): Promise<boolean> => {
       if (!mcpServer) return false;
-      const input = mcpServerToInput(mcpServer);
+      const input = toMcpServerUpdateInput(mcpServer);
       (input as unknown as Record<string, unknown>)[field] = value;
       try {
         const updated = await updateMcpServer(input);

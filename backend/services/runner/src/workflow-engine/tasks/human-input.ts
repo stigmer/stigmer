@@ -2,7 +2,8 @@
  * Human input task executor — HITL approval gate.
  *
  * Pauses workflow execution until a human reviewer responds via signal.
- * Supports configurable timeout with policies (fail, auto-approve, auto-deny).
+ * Supports configurable timeout with policies (fail, auto-approve,
+ * auto-deny, escalate).
  *
  * The kernel validates the config and delegates to `ctx.awaitHumanInput()`
  * which is wired to the Temporal workflow layer's signal/timer selector.
@@ -143,6 +144,12 @@ function validateConfig(config: HumanInputConfig, taskName: string): void {
  * orchestrator's internal approve/deny words, which a reviewer of a
  * custom-outcome gate was never offered. Binary gates (no custom outcomes)
  * keep the plain approve/deny result.
+ *
+ * Escalate needs no remapping by construction (stigmer/stigmer#781): its
+ * policy word IS the declared outcome's name — the loader (and the server
+ * validator) only accept the escalate policy when an outcome named
+ * "escalate" with `then` exists, so the caller's ordinary name lookup
+ * routes the escalation branch.
  */
 function applyTimeoutOutcomeContract(
   result: HumanInputResult,

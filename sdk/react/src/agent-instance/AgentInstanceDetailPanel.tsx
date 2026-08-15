@@ -8,7 +8,7 @@ import type { AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinst
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { ResourceRef } from "@stigmer/sdk";
-import { getUserMessage } from "@stigmer/sdk";
+import { getUserMessage, toAgentInstanceUpdateInput } from "@stigmer/sdk";
 import { useUpdateAgentInstance } from "./useUpdateAgentInstance.js";
 import { useDeleteAgentInstance } from "./useDeleteAgentInstance.js";
 import { VisibilityBadge } from "../library/VisibilitySelector.js";
@@ -75,20 +75,18 @@ export function AgentInstanceDetailPanel({
 
   const handleSaveEnvs = useCallback(async () => {
     try {
+      // Full-spec-replace safety: spread the complete mapped input so
+      // any spec field this form does not edit survives the save.
       await update({
-        name: meta?.name ?? "",
-        org: meta?.org ?? org,
-        agentId: spec?.agentId ?? "",
-        description: spec?.description,
+        ...toAgentInstanceUpdateInput(instance),
         environmentRefs: editEnvRefs,
-        visibility: meta?.visibility,
       });
       setIsEditingEnvs(false);
       onUpdated?.();
     } catch {
       // error displayed by hook
     }
-  }, [update, meta, spec, org, editEnvRefs, onUpdated]);
+  }, [update, instance, editEnvRefs, onUpdated]);
 
   const handleDelete = useCallback(async () => {
     setDeleteError(null);

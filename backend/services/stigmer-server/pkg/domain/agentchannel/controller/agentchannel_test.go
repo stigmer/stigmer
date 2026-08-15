@@ -7,6 +7,7 @@ import (
 
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	agentchannelv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentchannel/v1"
+	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
@@ -17,6 +18,7 @@ import (
 	agentcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agent/controller"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 )
 
 // The exact error strings shared with the cloud edition (T02 Phase E
@@ -149,6 +151,56 @@ func whatsAppChannelFor(agent *agentv1.Agent, name string) *agentchannelv1.Agent
 			},
 		},
 	}
+}
+
+// The write-time model-pin existence rule (stigmer/stigmer#774): a channel
+// run_config pin the registry knows under NO harness is a typo and refuses
+// at create AND update — before it, the pin rode through opaquely and the
+// serving edition silently ran (and billed) it as Auto. Valid-anywhere
+// pins pass: this edition stores channel specs without a serving runtime,
+// so the harness-scoped judgment belongs to the edition that serves them.
+func TestAgentChannelController_ModelPinExistence(t *testing.T) {
+	tc := newTestControllers(t)
+	agent := createTestAgent(t, tc, "pin-agent")
+
+	withPin := func(name, model string) *agentchannelv1.AgentChannel {
+		ch := channelFor(agent, name, true)
+		ch.Spec.RunConfig = &agentexecutionv1.RunConfig{ModelName: model}
+		return ch
+	}
+
+	t.Run("create refuses a pin unknown to every harness, with a did-you-mean", func(t *testing.T) {
+		_, err := tc.channels.Create(channelCtx(), withPin("typod-pin", "composr-2.5"))
+		if status.Code(err) != codes.InvalidArgument {
+			t.Fatalf("expected INVALID_ARGUMENT for a typo'd pin, got %s (%v)", status.Code(err), err)
+		}
+		if !strings.Contains(err.Error(), "not in the model registry (any harness)") {
+			t.Errorf("expected the any-harness existence refusal, got: %v", err)
+		}
+		if !strings.Contains(err.Error(), "'composer-2.5'") {
+			t.Errorf("expected the did-you-mean suggestion, got: %v", err)
+		}
+	})
+
+	t.Run("create accepts a pin valid under some harness", func(t *testing.T) {
+		if _, err := tc.channels.Create(channelCtx(), withPin("valid-pin", "composer-2.5")); err != nil {
+			t.Fatalf("a registry-known pin must be accepted: %v", err)
+		}
+	})
+
+	t.Run("update refuses the same typo", func(t *testing.T) {
+		created := createTestChannel(t, tc, agent, "update-pin-target", true)
+		updated := proto.Clone(created).(*agentchannelv1.AgentChannel)
+		updated.Spec.RunConfig = &agentexecutionv1.RunConfig{ModelName: "composr-2.5"}
+
+		_, err := tc.channels.Update(channelCtx(), updated)
+		if status.Code(err) != codes.InvalidArgument {
+			t.Fatalf("expected INVALID_ARGUMENT for a typo'd pin on update, got %s (%v)", status.Code(err), err)
+		}
+		if !strings.Contains(err.Error(), "not in the model registry (any harness)") {
+			t.Errorf("expected the any-harness existence refusal, got: %v", err)
+		}
+	})
 }
 
 func TestAgentChannelController_Create(t *testing.T) {

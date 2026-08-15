@@ -9,7 +9,7 @@ import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apires
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/spec_pb";
 import type { ResourceRef } from "@stigmer/sdk";
-import { getUserMessage } from "@stigmer/sdk";
+import { getUserMessage, toWorkflowInstanceUpdateInput } from "@stigmer/sdk";
 import { useUpdateWorkflowInstance } from "./useUpdateWorkflowInstance.js";
 import { useDeleteWorkflowInstance } from "./useDeleteWorkflowInstance.js";
 import { RunVisibilityControl } from "./RunVisibilityControl.js";
@@ -104,20 +104,19 @@ export function WorkflowInstanceDetailPanel({
 
   const handleSaveEnvs = useCallback(async () => {
     try {
+      // Full-spec-replace safety: spread the complete mapped input so
+      // unlisted spec fields (e.g. execution_visibility, which has its
+      // own dedicated control above) survive an environment-only save.
       await update({
-        name: meta?.name ?? "",
-        org: meta?.org ?? org,
-        workflowId: spec?.workflowId ?? "",
-        description: spec?.description,
+        ...toWorkflowInstanceUpdateInput(instance),
         environmentRefs: editEnvRefs,
-        visibility: meta?.visibility,
       });
       setIsEditingEnvs(false);
       onUpdated?.();
     } catch {
       // error displayed by hook
     }
-  }, [update, meta, spec, org, editEnvRefs, onUpdated]);
+  }, [update, instance, editEnvRefs, onUpdated]);
 
   const handleDelete = useCallback(async () => {
     setDeleteError(null);

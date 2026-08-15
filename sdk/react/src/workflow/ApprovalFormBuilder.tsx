@@ -24,15 +24,17 @@ interface FormFieldEntry {
   enumValues: string;
 }
 
-// HUMAN_INPUT_TIMEOUT_ESCALATE is deliberately absent: the proto declares it
-// but no runtime exists, and the server validator refuses it at apply
-// (stigmer/stigmer#779). The old option also wrote an `escalation_task` field
-// that HumanInputTaskConfig never had, so every config it produced failed
-// the server's strict decode.
+// ESCALATE carries the outcome-by-name contract (stigmer/stigmer#781): the
+// timeout resolves to the outcome NAMED "escalate" and follows its routing,
+// so the gate must declare that outcome — no extra config fields (the
+// pre-#779 option wrote an `escalation_task` field the proto never had).
+// The builder hints when the outcome is missing; the server validator is
+// the enforcement.
 const TIMEOUT_POLICY_OPTIONS = [
   { value: "HUMAN_INPUT_TIMEOUT_FAIL", label: "Fail — task errors on timeout" },
   { value: "HUMAN_INPUT_TIMEOUT_APPROVE", label: "Auto-approve — proceed as approved" },
   { value: "HUMAN_INPUT_TIMEOUT_DENY", label: "Auto-deny — proceed as denied" },
+  { value: "HUMAN_INPUT_TIMEOUT_ESCALATE", label: "Escalate — route via the 'escalate' outcome" },
 ] as const;
 
 const TIMEOUT_UNITS = [
@@ -111,6 +113,7 @@ export const ApprovalFormBuilder = memo(function ApprovalFormBuilder({
       <TimeoutSection
         timeout={typeof cfg.timeout === "number" ? cfg.timeout : 0}
         onTimeout={typeof cfg.on_timeout === "string" ? cfg.on_timeout : ""}
+        hasEscalateOutcome={extractOutcomes(cfg).some((o) => o.name === "escalate")}
         onUpdateConfig={onUpdateConfig}
       />
       <StringListSection
@@ -621,10 +624,12 @@ function FormFieldRow({
 function TimeoutSection({
   timeout,
   onTimeout,
+  hasEscalateOutcome,
   onUpdateConfig,
 }: {
   timeout: number;
   onTimeout: string;
+  hasEscalateOutcome: boolean;
   onUpdateConfig: (fieldPath: string, value: unknown) => void;
 }) {
   const bestUnit = useMemo(() => {
@@ -703,6 +708,16 @@ function TimeoutSection({
               <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
           </select>
+          {onTimeout === "HUMAN_INPUT_TIMEOUT_ESCALATE" && !hasEscalateOutcome && (
+            <p
+              role="alert"
+              className="stg:text-[10px] stg:text-[var(--stgm-warning,#d97706)]"
+            >
+              Escalate needs an outcome named &quot;escalate&quot; with routing —
+              the timeout resolves to it. Add the outcome above, or the server
+              will reject this workflow.
+            </p>
+          )}
         </div>
       )}
 

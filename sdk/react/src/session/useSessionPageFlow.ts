@@ -18,7 +18,7 @@ import { useSessionConversation, type UseSessionConversationReturn } from "./use
 import { resolveExecutionRuntimeEnv, type RuntimeEnvProvider } from "./runtime-env.js";
 import { useAgentRefFromSession } from "./useAgentRefFromSession.js";
 import { usePersistedModel, type UsePersistedModelReturn } from "./usePersistedModel.js";
-import { specMcpUsagesToInput, specSkillRefsToInput } from "./session-spec-converters.js";
+import { toSessionUpdateInput } from "@stigmer/sdk";
 import type { SessionAudience } from "./audience.js";
 import { assertValidRunConfig, type SessionRunConfig } from "./run-config.js";
 
@@ -401,16 +401,14 @@ export function useSessionPageFlow(
       }
     }
 
-    // MCP server usages
-    const mcpInputs = specMcpUsagesToInput(spec);
-    if (mcpInputs?.length) {
-      setMcpServerUsages(mcpInputs);
+    // MCP server usages and skill references, hydrated through the SDK's
+    // complete update-input mapper (the canonical proto → input lens).
+    const mapped = toSessionUpdateInput(conv.session);
+    if (mapped.mcpServerUsages?.length) {
+      setMcpServerUsages(mapped.mcpServerUsages);
     }
-
-    // Skill references
-    const skillInputs = specSkillRefsToInput(spec);
-    if (skillInputs?.length) {
-      setSkillRefs(skillInputs);
+    if (mapped.skillRefs?.length) {
+      setSkillRefs(mapped.skillRefs);
     }
   }, [conv.session, workspace]);
 

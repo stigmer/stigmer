@@ -481,8 +481,6 @@ export {
   type UseUpdateWorkflowReturn,
 } from "./useUpdateWorkflow.js";
 
-export { workflowToInput } from "./internal/workflowToInput.js";
-
 // Starter YAML template for new workflow creation
 export { STARTER_WORKFLOW_YAML } from "./starter-workflow-yaml.js";
 

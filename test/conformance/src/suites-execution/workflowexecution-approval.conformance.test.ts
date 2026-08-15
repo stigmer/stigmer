@@ -332,6 +332,42 @@ describe("WorkflowExecution submitWorkflowTaskApproval — timeout policy", () =
       "the first outcome's `then` target runs",
     ).toBe(WorkflowTaskStatus.WORKFLOW_TASK_COMPLETED);
   });
+
+  it("on_timeout=ESCALATE resolves to the escalate outcome and routes its `then`", async () => {
+    const { org } = await target.provisionTenancy();
+    // The escalate outcome-by-name contract (stigmer/stigmer#781): the policy
+    // requires an outcome NAMED "escalate" with `then` set; on timeout the
+    // gate resolves to that outcome — regardless of its position in the list
+    // (deliberately placed in the middle here, where neither the first-outcome
+    // APPROVE mapping nor the last-outcome DENY mapping could reach it).
+    const workflowId = await provisionHumanInputWorkflow(org, {
+      outcomes: [
+        { name: "proceed" },
+        { name: "escalate", then: "escalationPath" },
+        { name: "reject" },
+      ],
+      routedTasks: ["escalationPath"],
+      timeout: 5,
+      onTimeout: "HUMAN_INPUT_TIMEOUT_ESCALATE",
+    });
+
+    const execution = await clients.workflowExecutionCommand.create(
+      makeWorkflowExecution({ org, name: uniqueName("wfx-timeout-escalate"), workflowId }),
+    );
+    const executionId = execution.metadata!.id;
+    fixtures.defer(() => clients.workflowExecutionCommand.delete({ value: executionId }));
+
+    // No submit: the timeout escalates and the escalation branch runs.
+    const final = await awaitTerminal(clients, executionId);
+    expect(
+      final.status?.phase,
+      `escalated gate should COMPLETE via the escalation branch; reached ${ExecutionPhase[final.status?.phase ?? 0]}`,
+    ).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(
+      taskByName(final, "escalationPath")?.status,
+      "the escalate outcome's `then` target runs",
+    ).toBe(WorkflowTaskStatus.WORKFLOW_TASK_COMPLETED);
+  });
 });
 
 describe("WorkflowExecution submitWorkflowTaskApproval — negatives", () => {

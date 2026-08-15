@@ -2,7 +2,6 @@ package validation
 
 import (
 	"fmt"
-	"sort"
 	"strings"
 
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
@@ -21,11 +20,13 @@ import (
 // lockstep: a model that appears in every picker after a refresh must
 // also validate (DD-004).
 
+// Harness names, suggestion machinery, and the write-time pin-existence
+// rule all live in the registry package (the shared validation authority)
+// — this package consumes them so workflow errors and schedule/channel
+// pin errors suggest identically.
 const (
-	maxModelSuggestions  = 3
-	maxModelEditDistance = 5
-	harnessNameNative    = "native"
-	harnessNameCursor    = "cursor"
+	harnessNameNative = registry.HarnessNameNative
+	harnessNameCursor = registry.HarnessNameCursor
 )
 
 // ValidateModelReferences checks that model IDs specified in workflow tasks
@@ -169,17 +170,12 @@ func fastCapableSuffix(models *registry.ModelRegistryStore, harness string) stri
 }
 
 func resolveHarnessName(h sessionv1.Harness) string {
-	switch h {
-	case sessionv1.Harness_HARNESS_CURSOR:
-		return harnessNameCursor
-	default:
-		return harnessNameNative
-	}
+	return registry.HarnessName(h)
 }
 
 func buildModelError(models *registry.ModelRegistryStore,
 	taskName, kindLabel, model, harness string) string {
-	suggestions := suggestSimilarModels(model, models.CanonicalModels(harness))
+	suggestions := registry.SuggestSimilarModels(model, models.CanonicalModels(harness))
 
 	msg := fmt.Sprintf(
 		"task '%s' (%s): model '%s' is not a valid model for harness '%s'",
@@ -195,42 +191,4 @@ func buildModelError(models *registry.ModelRegistryStore,
 	}
 
 	return msg
-}
-
-// suggestSimilarModels returns up to maxModelSuggestions model IDs from the
-// candidate list sorted by Levenshtein distance to the target. Only candidates
-// within maxModelEditDistance are included.
-func suggestSimilarModels(target string, candidates []string) []string {
-	type scored struct {
-		name string
-		dist int
-	}
-
-	targetLower := strings.ToLower(target)
-	var matches []scored
-
-	for _, name := range candidates {
-		d := levenshtein(targetLower, strings.ToLower(name))
-		if d <= maxModelEditDistance {
-			matches = append(matches, scored{name, d})
-		}
-	}
-
-	sort.Slice(matches, func(i, j int) bool {
-		if matches[i].dist != matches[j].dist {
-			return matches[i].dist < matches[j].dist
-		}
-		return matches[i].name < matches[j].name
-	})
-
-	limit := maxModelSuggestions
-	if len(matches) < limit {
-		limit = len(matches)
-	}
-
-	result := make([]string, limit)
-	for i := 0; i < limit; i++ {
-		result[i] = matches[i].name
-	}
-	return result
 }

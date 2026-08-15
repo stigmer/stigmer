@@ -36,28 +36,65 @@ func makeHumanInputSpec(t *testing.T, tasks ...*workflowv1.WorkflowTask) *workfl
 	}
 }
 
-func TestValidateHumanInputTimeoutPolicies_RejectsEscalate(t *testing.T) {
+// The escalate outcome-by-name contract (stigmer/stigmer#781): the policy is
+// only valid when the gate declares an outcome named "escalate" with `then`
+// set — the timeout resolves to that outcome and follows its branch.
+func TestValidateHumanInputTimeoutPolicies_RejectsEscalateWithoutEscalateOutcome(t *testing.T) {
 	cases := []struct {
-		desc      string
-		onTimeout interface{}
+		desc   string
+		config map[string]interface{}
 	}{
-		{"enum name", "HUMAN_INPUT_TIMEOUT_ESCALATE"},
-		{"numeric enum value", float64(4)},
+		{
+			desc: "no outcomes at all (enum name)",
+			config: map[string]interface{}{
+				"prompt":     "Approve?",
+				"timeout":    float64(60),
+				"on_timeout": "HUMAN_INPUT_TIMEOUT_ESCALATE",
+			},
+		},
+		{
+			desc: "no outcomes at all (numeric enum value)",
+			config: map[string]interface{}{
+				"prompt":     "Approve?",
+				"timeout":    float64(60),
+				"on_timeout": float64(4),
+			},
+		},
+		{
+			desc: "outcomes declared but none named escalate",
+			config: map[string]interface{}{
+				"prompt":     "Approve?",
+				"timeout":    float64(60),
+				"on_timeout": "HUMAN_INPUT_TIMEOUT_ESCALATE",
+				"outcomes": []interface{}{
+					map[string]interface{}{"name": "proceed", "then": "deploy"},
+					map[string]interface{}{"name": "reject"},
+				},
+			},
+		},
+		{
+			desc: "escalate outcome exists but has no then",
+			config: map[string]interface{}{
+				"prompt":     "Approve?",
+				"timeout":    float64(60),
+				"on_timeout": "HUMAN_INPUT_TIMEOUT_ESCALATE",
+				"outcomes": []interface{}{
+					map[string]interface{}{"name": "proceed", "then": "deploy"},
+					map[string]interface{}{"name": "escalate"},
+				},
+			},
+		},
 	}
 
 	for _, c := range cases {
 		t.Run(c.desc, func(t *testing.T) {
-			spec := makeHumanInputSpec(t, makeHumanInputTask(t, "gate", map[string]interface{}{
-				"prompt":     "Approve?",
-				"timeout":    float64(60),
-				"on_timeout": c.onTimeout,
-			}))
+			spec := makeHumanInputSpec(t, makeHumanInputTask(t, "gate", c.config))
 
 			errs := ValidateHumanInputTimeoutPolicies(spec)
 			if len(errs) != 1 {
 				t.Fatalf("expected exactly 1 error, got %v", errs)
 			}
-			for _, want := range []string{"gate", "HUMAN_INPUT_TIMEOUT_ESCALATE", "not implemented"} {
+			for _, want := range []string{"gate", "HUMAN_INPUT_TIMEOUT_ESCALATE", "outcome named 'escalate'", "'then'"} {
 				if !strings.Contains(errs[0], want) {
 					t.Errorf("error should contain %q, got: %s", want, errs[0])
 				}
@@ -66,7 +103,26 @@ func TestValidateHumanInputTimeoutPolicies_RejectsEscalate(t *testing.T) {
 	}
 }
 
-func TestValidateHumanInputTimeoutPolicies_AcceptsImplementedPolicies(t *testing.T) {
+func TestValidateHumanInputTimeoutPolicies_AcceptsEscalateWithDeclaredOutcome(t *testing.T) {
+	for _, onTimeout := range []interface{}{"HUMAN_INPUT_TIMEOUT_ESCALATE", float64(4)} {
+		spec := makeHumanInputSpec(t, makeHumanInputTask(t, "gate", map[string]interface{}{
+			"prompt":     "Approve?",
+			"timeout":    float64(60),
+			"on_timeout": onTimeout,
+			"outcomes": []interface{}{
+				map[string]interface{}{"name": "proceed", "then": "deploy"},
+				map[string]interface{}{"name": "escalate", "then": "escalationPath"},
+				map[string]interface{}{"name": "reject"},
+			},
+		}))
+
+		if errs := ValidateHumanInputTimeoutPolicies(spec); len(errs) != 0 {
+			t.Errorf("escalate (%v) with a declared escalate outcome should validate, got errors: %v", onTimeout, errs)
+		}
+	}
+}
+
+func TestValidateHumanInputTimeoutPolicies_AcceptsPoliciesNeedingNoShape(t *testing.T) {
 	for _, policy := range []string{
 		"HUMAN_INPUT_TIMEOUT_FAIL",
 		"HUMAN_INPUT_TIMEOUT_APPROVE",
@@ -104,10 +160,11 @@ func TestValidateHumanInputTimeoutPolicies_IgnoresAbsentPolicyAndOtherKinds(t *t
 	}
 }
 
-// The validator-level pin: an escalate policy must surface as a user-fixable
-// INVALID result (stigmer/stigmer#779 fail-closed ruling), never persist as
-// VALID the way it did when only the runner's silent default existed.
-func TestInProcessValidator_EscalatePolicyIsInvalid(t *testing.T) {
+// The validator-level pin: a misconfigured escalate policy (no escalate
+// outcome to resolve to) must surface as a user-fixable INVALID result
+// (stigmer/stigmer#779's fail-closed posture, carried into #781's shape
+// rule), never persist as VALID.
+func TestInProcessValidator_EscalateWithoutOutcomeIsInvalid(t *testing.T) {
 	spec := makeHumanInputSpec(t, makeHumanInputTask(t, "gate", map[string]interface{}{
 		"prompt":     "Approve?",
 		"timeout":    float64(60),
@@ -123,11 +180,48 @@ func TestInProcessValidator_EscalatePolicyIsInvalid(t *testing.T) {
 	}
 	found := false
 	for _, e := range result.Errors {
-		if strings.Contains(e, "not implemented") && strings.Contains(e, "gate") {
+		if strings.Contains(e, "outcome named 'escalate'") && strings.Contains(e, "gate") {
 			found = true
 		}
 	}
 	if !found {
-		t.Errorf("expected a not-implemented error naming task 'gate', got: %v", result.Errors)
+		t.Errorf("expected a shape error naming task 'gate', got: %v", result.Errors)
+	}
+}
+
+// The full-validator acceptance twin: a well-shaped escalate gate (escalate
+// outcome with `then` routing to a real task) validates end to end — the
+// cross-reference layer sees the `then` target and the shape rule is
+// satisfied, so the config the runtime can honor persists as VALID.
+func TestInProcessValidator_EscalateWithDeclaredOutcomeIsValid(t *testing.T) {
+	escalationTaskCfg, err := structpb.NewStruct(map[string]interface{}{
+		"variables": map[string]interface{}{"escalated": "true"},
+	})
+	if err != nil {
+		t.Fatalf("structpb.NewStruct: %v", err)
+	}
+	spec := makeHumanInputSpec(t,
+		makeHumanInputTask(t, "gate", map[string]interface{}{
+			"prompt":     "Approve?",
+			"timeout":    float64(60),
+			"on_timeout": "HUMAN_INPUT_TIMEOUT_ESCALATE",
+			"outcomes": []interface{}{
+				map[string]interface{}{"name": "proceed"},
+				map[string]interface{}{"name": "escalate", "then": "escalationPath"},
+			},
+		}),
+		&workflowv1.WorkflowTask{
+			Name:       "escalationPath",
+			Kind:       workflowv1.WorkflowTaskKind_set_vars,
+			TaskConfig: escalationTaskCfg,
+		},
+	)
+
+	result, err := NewInProcessValidator().Validate(context.Background(), spec)
+	if err != nil {
+		t.Fatalf("Validate returned transport error: %v", err)
+	}
+	if result.State != serverlessv1.ValidationState_VALID {
+		t.Fatalf("expected VALID, got %v (errors: %v)", result.State, result.Errors)
 	}
 }

@@ -557,14 +557,23 @@ export interface RunWorkflowExecutionConfig {
 
 /**
  * Blocks workflow execution until a human provides input via signal.
- * Supports configurable timeout with policies (fail, approve, deny).
+ * Supports configurable timeout with policies (fail, approve, deny, escalate).
  */
 export type AwaitHumanInputFn = (config: HumanInputExecutionConfig) => Promise<HumanInputResult>;
+
+/**
+ * Internal timeout-policy vocabulary — the loader-normalized form of the
+ * proto's HumanInputTimeoutPolicy enum. "escalate" carries the outcome-by-name
+ * contract (stigmer/stigmer#781): it is only loadable when the gate declares
+ * an outcome named "escalate" with `then` set, and a timeout resolves to that
+ * outcome so the existing `then`/flow-directive routing takes the branch.
+ */
+export type HumanInputTimeoutPolicy = "fail" | "approve" | "deny" | "escalate";
 
 export interface HumanInputExecutionConfig {
   readonly signalName: string;
   readonly timeoutSeconds: number;
-  readonly onTimeout: "fail" | "approve" | "deny";
+  readonly onTimeout: HumanInputTimeoutPolicy;
 }
 
 export interface HumanInputResult {
@@ -602,7 +611,7 @@ export interface HumanInputConfig {
   readonly formSchema?: Record<string, unknown>;
   readonly approvers?: readonly string[];
   readonly timeout?: number;
-  readonly onTimeout?: "fail" | "approve" | "deny";
+  readonly onTimeout?: HumanInputTimeoutPolicy;
   /**
    * Material for the reviewer to examine — a whole-value expression
    * string, or an object/array with embedded expressions. Resolved at

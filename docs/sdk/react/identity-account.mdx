@@ -7,6 +7,36 @@ description: Hooks for identity account lookup and profile resolution.
 
 ## Hooks
 
+### useAccountExecutionDefaults
+
+Data hook that reads the current user's execution defaults
+(`IdentityAccountSpec.preferences.default_*`) for seeding new-session
+composers.
+
+Returns `undefined` in local mode (no IdentityAccount), while loading,
+on error, and when no default is declared — every one of those cases
+degrades to the platform's existing defaults, so consumers wire the
+result straight through:
+
+**Signature**
+
+```tsx
+function useAccountExecutionDefaults(): AccountExecutionDefaults | undefined
+```
+
+```tsx
+```tsx
+<NewSessionViewer org={org} accountDefaults={useAccountExecutionDefaults()} />
+```
+
+The defaults are a SEED, not an override: an explicit device-local pick
+outranks them (the layered precedence in `useNewSessionFlow`), and the
+chosen values ride the execution spec explicitly. Rides
+`useMyIdentityAccount`'s cross-mount cache, so the seed is available
+synchronously on every visit after the first.
+```
+
+
 ### useIdentityAccountGate
 
 Headless behavior hook that ensures the authenticated caller has an
@@ -76,13 +106,25 @@ needed.
 
 Cloud-only by nature: the OSS local server does not implement
 IdentityAccount. Gate consumers with
-`useResourceAvailable(ApiResourceKind.identity_account)`.
+`useResourceAvailable(ApiResourceKind.identity_account)` — either by
+conditional mounting or via `UseMyIdentityAccountOptions.enabled`.
+
+Cached across mounts under a [`FetchCacheProvider`](/docs/sdk/react/core#fetchcacheprovider) (DD-014): a
+revisit renders the previous result immediately and refetches in the
+background, so consumers that seed UI from the account (e.g. composer
+defaults) settle synchronously after the first visit.
 
 **Signature**
 
 ```tsx
-function useMyIdentityAccount(): UseMyIdentityAccountReturn
+function useMyIdentityAccount(options?: UseMyIdentityAccountOptions): UseMyIdentityAccountReturn
 ```
+
+<TypeTable
+  type={{
+    options: { type: "UseMyIdentityAccountOptions", description: "" },
+  }}
+/>
 
 **Returns** — `UseMyIdentityAccountReturn`
 
@@ -112,7 +154,9 @@ The update RPC is a full-spec replacement addressed by `org` + `slug`
 (the generated input carries no id). Build the input from the loaded
 resource with `toIdentityAccountUpdateInput` from `@stigmer/sdk` and
 override only the fields being edited — sending a partial input wipes
-the unsent spec fields.
+the unsent spec fields. The same rule applies INSIDE nested messages:
+override `preferences` by spreading the mapper's complete value first,
+or the untouched preference fields wipe.
 
 Self-service: a user can always update their own account (`can_edit`
 via the self-ownership relationship written at account creation).
@@ -137,9 +181,10 @@ function useUpdateIdentityAccount(): UseUpdateIdentityAccountReturn
 ```tsx
 const { update, isUpdating, error } = useUpdateIdentityAccount();
 
+const mapped = toIdentityAccountUpdateInput(account);
 await update({
-  ...toIdentityAccountUpdateInput(account),
-  preferences: { standingContext: "Keep answers terse." },
+  ...mapped,
+  preferences: { ...mapped.preferences, standingContext: "Keep answers terse." },
 });
 refetch(); // re-sync the editor
 ```
@@ -184,6 +229,20 @@ builders can embed it directly:
 
 ## Types
 
+### AccountExecutionDefaults
+
+The current user's account-level execution defaults, shaped for the
+session launcher's `accountDefaults` prop.
+
+<TypeTable
+  type={{
+    cursorModel: { type: "string", description: "Preferred model for cursor-harness sessions, when declared." },
+    harness: { type: "HarnessOption", description: "Preferred harness for new sessions, when declared.", typeDescriptionLink: "/docs/sdk/react/models#harnessoption" },
+    nativeModel: { type: "string", description: "Preferred model for native-harness sessions, when declared." },
+  }}
+/>
+
+
 ### IdentityAccountGateState
 
 Discriminated union representing the current state of the identity
@@ -196,4 +255,15 @@ if (state.status === "ready") {
   console.log(state.account.metadata?.id);
 }
 ```
+
+
+### UseMyIdentityAccountOptions
+
+Options for [`useMyIdentityAccount`](#usemyidentityaccount).
+
+<TypeTable
+  type={{
+    enabled: { type: "boolean", description: "When `false`, the hook is idle: no RPC is issued and `account` stays `null`. Lets always-called hooks (React's rules) skip the doomed whoAmI against a local server — pass `useResourceAvailable(ApiResourceKind.identity_account)` here." },
+  }}
+/>
 

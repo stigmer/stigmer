@@ -173,7 +173,7 @@ function useNewSessionFlow(options: UseNewSessionFlowOptions): UseNewSessionFlow
     harness: { type: "HarnessOption", description: "Currently selected harness (persisted to localStorage).", typeDescriptionLink: "/docs/sdk/react/models#harnessoption" },
     isSubmitting: { type: "boolean", description: "`true` while the create session + execution flow is in flight." },
     mcpServerUsages: { type: "McpServerUsageInput[]", description: "Active MCP server configurations." },
-    modelId: { type: "string | undefined", description: "Currently selected model ID (persisted per-harness to localStorage)." },
+    modelId: { type: "string | undefined", description: "The model an untouched send will run: the explicit device pick when one exists (persisted per-harness to localStorage), else the account default for the active harness. `undefined` resolves to the harness default downstream." },
     resolution: { type: "AgentResolution | null", description: "Current agent resolution state (saved instance vs direct reference)." },
     sessionVariables: { type: "UseSessionVariablesReturn", description: "Session variables (per-execution secrets) manager.", typeDescriptionLink: "/docs/sdk/react/execution#usesessionvariablesreturn" },
     setAgentRef: { type: "(ref: ResourceRef | null) => void", description: "Update the selected agent reference." },
@@ -915,17 +915,19 @@ Updates an existing Session resource. The caller provides a full
 by the backend to identify the resource) and all spec fields.
 
 **Full-replace semantics.** The backend replaces the entire spec with
-what you send — there is no field mask. Round-trip every spec field
-you do not intend to change, *including `metadata`*: an update built
-from a reconstructed partial spec silently wipes the fields it omits
-(workspace entries, MCP servers, and `stigmer.ai/*` metadata keys such
-as the embedder session context). To change only the subject, prefer
-the field-level `session.updateSubject()` RPC instead of this hook.
+what you send — there is no field mask. Spread the SDK's complete
+`toSessionUpdateInput()` mapper and override only the fields you
+change: an update built from a reconstructed partial spec silently
+wipes the fields it omits (workspace entries, MCP servers, and
+`stigmer.ai/*` metadata keys such as the embedder session context).
+To change only the subject, prefer the field-level
+`session.updateSubject()` RPC instead of this hook.
 
 Typically composed into higher-level hooks like
-[`useSessionConversation`](#usesessionconversation) (whose update path round-trips the
-fetched spec) rather than used directly. Platform builders who need
-direct session mutation can use this hook standalone.
+[`useSessionConversation`](#usesessionconversation) (whose update path spreads the mapper
+over a freshly fetched session) rather than used directly. Platform
+builders who need direct session mutation can use this hook
+standalone.
 
 **Signature**
 
@@ -945,26 +947,18 @@ function useUpdateSession(): UseUpdateSessionReturn
 />
 
 ```tsx
+import { toSessionUpdateInput } from "@stigmer/sdk";
+
 function TagSession({ session }: { session: Session }) {
   const { update, isUpdating } = useUpdateSession();
 
   async function handleTag() {
-    const spec = session.spec;
+    const mapped = toSessionUpdateInput(session);
     await update({
-      name: session.metadata!.name,
-      org: session.metadata!.org,
-      // Full replace: carry over every fetched spec field...
-      agentInstanceId: spec?.agentInstanceId,
-      subject: spec?.subject,
-      harnessStateId: spec?.harnessStateId,
-      harness: spec?.harness,
-      cursorMode: spec?.cursorMode,
-      executionTarget: spec?.executionTarget,
-      // ...including the spec lists (workspaceEntries, mcpServerUsages,
-      // skillRefs), converted from the fetched proto exactly as
-      // useSessionConversation's update path does...
-      // ...then apply the one change on top of the carried metadata.
-      metadata: { ...spec?.metadata, "acme/reviewed": "true" },
+      ...mapped,
+      // Nested values follow the same rule: spread the mapper's
+      // complete value, then apply the one change on top.
+      metadata: { ...mapped.metadata, "acme/reviewed": "true" },
     });
   }
 
@@ -1046,6 +1040,7 @@ apps inject platform-specific values via props (DD-004/DD-016).
 
 <TypeTable
   type={{
+    accountDefaults: { type: "AccountExecutionDefaults", description: "The user's account-level execution defaults, typically from `useAccountExecutionDefaults()`. Seeds the harness and model pickers under the layered precedence documented on UseNewSessionFlowOptions.accountDefaults; explicit device picks always win. Ignored for the `\"guest\"` audience.", typeDescriptionLink: "/docs/sdk/react/identity-account#accountexecutiondefaults" },
     audience: { type: "SessionAudience", description: "Presentation audience for the launcher. `\"endUser\"` locks the pinned agent (when `initialAgentRef` is set) and hides the MCP server, skill, and session-variable pickers — for product-embedded chat where the agent is configured upstream by the platform. The model selector, interaction mode, harness selector, attachments, and workspace picker remain.  `\"guest\"` (anonymous visitor with a guest token) is pure chat: it additionally hides the model/harness/mode pickers, attachments, the workspace picker, and the session panel, binds the session to `initialAgentRef` + `initialInstanceId` without any picker machinery, and skips the org-level reads a guest principal cannot make. Requires both `initialAgentRef` and `initialInstanceId` — a guest launcher never falls back to the org default agent.  See SessionAudience.", typeDescriptionLink: "#sessionaudience" },
     autoFocus: { type: "boolean", description: "Auto-focus the textarea on mount." },
     className: { type: "string", description: "Additional CSS class names for the root container." },
@@ -1858,6 +1853,7 @@ Options for [`useNewSessionFlow`](#usenewsessionflow).
 
 <TypeTable
   type={{
+    accountDefaults: { type: "AccountExecutionDefaults", description: "The user's account-level execution defaults (`IdentityAccountPreferences.default_*`), typically from `useAccountExecutionDefaults()`. A SEED in the layered precedence — explicit device-local choices always outrank it:  - harness: stored choice > `accountDefaults.harness` >   defaultHarness > platform default. May arrive after mount   (whoAmI resolves async); a late value still seeds unless the user   has already picked a harness this mount. - model: stored per-harness choice > the account's model for the   active harness (validated against the registry; a stale model   silently falls through) > the harness default.  Seeded values are never persisted to localStorage — the account preference keeps applying until the user decides. Ignored for the `\"guest\"` audience (platform share policy owns guest config), and consumers must not fetch identity for guest/embed surfaces.", typeDescriptionLink: "/docs/sdk/react/identity-account#accountexecutiondefaults" },
     audience: { type: "SessionAudience", description: "Who this flow serves. `\"guest\"` adapts the orchestration to the guest principal's permission model: the org default-agent lookup (which a guest token cannot read) is skipped, and submission requires an explicit agent resolution instead of falling back to the org's default agent — a shared-agent page must never run anything but the pinned shared agent. See SessionAudience.", typeDescriptionLink: "#sessionaudience" },
     defaultHarness: { type: "HarnessOption", description: "Harness pre-selected for new sessions when the user has not made an explicit choice yet (e.g. an embedder whose agents primarily run coding tasks defaults to `\"cursor\"`).  Read once on mount. The user's own selection — persisted to localStorage on explicit change — always takes precedence on subsequent visits.  Ignored for the `\"guest\"` audience: guest sessions always run the platform's share-surface policy (cursor harness, Auto model), never an embedder preference or a stored Console choice.", typeDescriptionLink: "/docs/sdk/react/models#harnessoption" },
     executionTarget: { type: "ExecutionTargetOption", description: "Where session activities should execute.", typeDescriptionLink: "#executiontargetoption" },

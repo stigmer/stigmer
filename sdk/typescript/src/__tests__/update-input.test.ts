@@ -14,12 +14,14 @@ import {
 } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountSpecSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/spec_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
-import { buildOrganizationProto } from "../gen/organization";
-import { buildIdentityAccountProto } from "../gen/identityaccount";
 import {
+  buildOrganizationProto,
   toOrganizationUpdateInput,
+} from "../gen/organization";
+import {
+  buildIdentityAccountProto,
   toIdentityAccountUpdateInput,
-} from "../update-input";
+} from "../gen/identityaccount";
 
 /**
  * Update RPCs are full-spec replacements, so a complete mapper must

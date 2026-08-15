@@ -10,8 +10,27 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/registry"
 	"google.golang.org/protobuf/proto"
 )
+
+// validateChannelModelPin enforces the write-time model-pin EXISTENCE rule
+// (stigmer/stigmer#774) on a channel's run_config: a typo'd pin used to
+// ride through opaquely and silently run (and bill) as Auto wherever the
+// channel serves. Validated against EVERY registry harness section (the
+// "" harness mode) because this edition stores channel specs without a
+// serving runtime — a pin no harness knows is certainly a typo, while the
+// edition that serves the channel judges the pin against its own
+// effective harness (the DD-015 divergence posture). Shared by create
+// (resolveChannelDefaultsStep) and update (validateChannelUpdateStep).
+func validateChannelModelPin(spec *agentchannelv1.AgentChannelSpec) error {
+	if reason := registry.UnknownModelPinRefusal(
+		"spec.run_config.model_name", "", spec.GetRunConfig().GetModelName(),
+	); reason != "" {
+		return grpclib.InvalidArgumentError("%s", reason)
+	}
+	return nil
+}
 
 // findAgentByOrgAndSlug scans agents for an org+slug match. Full-scan
 // lookup matches the store's local/OSS posture (see LoadByReferenceStep);
@@ -104,6 +123,10 @@ func (s *resolveChannelDefaultsStep) Execute(ctx *pipeline.RequestContext[*agent
 	// discover it at install time. Byte-identical with the cloud
 	// edition's AgentChannelDefaultsResolver. Enforced here, not in a
 	// field-level CEL, because the rule conditions on the oneof case.
+	if err := validateChannelModelPin(channel.GetSpec()); err != nil {
+		return err
+	}
+
 	appRef := channel.GetSpec().GetAppRef()
 	if channel.GetSpec().GetWhatsapp() != nil && appRef.GetSlug() == "" {
 		return grpclib.InvalidArgumentError(
@@ -245,6 +268,10 @@ func (s *validateChannelUpdateStep) Execute(ctx *pipeline.RequestContext[*agentc
 			"spec provider is immutable (channel provider is %s) — create a new channel for a different provider",
 			existingProvider,
 		)
+	}
+
+	if err := validateChannelModelPin(ctx.Input().GetSpec()); err != nil {
+		return err
 	}
 
 	return validateAppRefUpdate(ctx, existing)

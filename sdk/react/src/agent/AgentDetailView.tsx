@@ -13,7 +13,7 @@ import type { AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinst
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { useAgent } from "./useAgent.js";
 import { useUpdateAgent } from "./useUpdateAgent.js";
-import { agentToInput } from "./internal/agentToInput.js";
+import { toAgentUpdateInput } from "@stigmer/sdk";
 import { toError } from "../internal/toError.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { VisibilityBadge } from "../library/VisibilitySelector.js";
@@ -253,7 +253,7 @@ export function AgentDetailView({
     ): Promise<boolean> => {
       if (!agent) return false;
       setSaveError(null);
-      const input = agentToInput(agent);
+      const input = toAgentUpdateInput(agent);
       (input as unknown as Record<string, unknown>)[field] = value;
       try {
         const updated = await update(input);

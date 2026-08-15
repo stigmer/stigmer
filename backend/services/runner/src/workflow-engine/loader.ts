@@ -34,6 +34,7 @@ import type {
   BackoffConfig,
   JitterConfig,
   DurationDef,
+  HumanInputTimeoutPolicy,
 } from "./types.js";
 
 const SUPPORTED_DSL_RANGE = ">=1.0.0 <2.0.0";
@@ -618,36 +619,30 @@ function parseServiceTier(raw: unknown): string | undefined {
  * enum-name policy reach the orchestrator unrecognized, so gates configured
  * to auto-approve/deny failed at their first real timeout instead).
  */
-const ON_TIMEOUT_VOCABULARY: Record<string, "fail" | "approve" | "deny"> = {
+const ON_TIMEOUT_VOCABULARY: Record<string, HumanInputTimeoutPolicy> = {
   fail: "fail",
   approve: "approve",
   deny: "deny",
+  escalate: "escalate",
   HUMAN_INPUT_TIMEOUT_FAIL: "fail",
   HUMAN_INPUT_TIMEOUT_APPROVE: "approve",
   HUMAN_INPUT_TIMEOUT_DENY: "deny",
+  HUMAN_INPUT_TIMEOUT_ESCALATE: "escalate",
 };
 
 function parseOnTimeout(
   taskName: string,
   raw: unknown,
-): "fail" | "approve" | "deny" | undefined {
+): HumanInputTimeoutPolicy | undefined {
   if (raw === undefined || raw === null) return undefined;
   if (typeof raw !== "string") {
     throw new Error(`human_input task '${taskName}': 'on_timeout' must be a string`);
-  }
-  // The proto declares HUMAN_INPUT_TIMEOUT_ESCALATE but no runtime exists
-  // for it yet; refuse at load rather than misbehave at the gate's timeout.
-  if (raw === "HUMAN_INPUT_TIMEOUT_ESCALATE" || raw === "escalate") {
-    throw new Error(
-      `human_input task '${taskName}': on_timeout policy 'escalate' is not implemented — ` +
-      `use fail, approve, or deny (custom outcomes with 'then' cover reviewer-driven branching)`,
-    );
   }
   const policy = ON_TIMEOUT_VOCABULARY[raw];
   if (!policy) {
     throw new Error(
       `human_input task '${taskName}': unknown on_timeout value '${raw}' ` +
-      `(expected: fail, approve, deny, or a HUMAN_INPUT_TIMEOUT_* enum name)`,
+      `(expected: fail, approve, deny, escalate, or a HUMAN_INPUT_TIMEOUT_* enum name)`,
     );
   }
   return policy;
@@ -663,11 +658,30 @@ function parseHumanInputConfig(taskName: string, raw: unknown): import("./types.
     throw new Error(`human_input task '${taskName}' requires 'prompt' in 'with'`);
   }
 
+  const outcomes = Array.isArray(obj.outcomes) && obj.outcomes.length > 0
+    ? obj.outcomes.map((o: any) => ({ name: o.name, label: o.label, then: o.then }))
+    : undefined;
+  const onTimeout = parseOnTimeout(taskName, obj.on_timeout);
+
+  // The escalate policy's outcome-by-name contract (stigmer/stigmer#781):
+  // a timeout resolves to the outcome NAMED "escalate", so that outcome must
+  // exist and declare where the escalation branch goes. Checked at load so a
+  // misconfigured gate fails before it ever waits on a reviewer — the server
+  // validator enforces the same shape at apply; this covers hand-written YAML.
+  if (onTimeout === "escalate") {
+    const escalation = outcomes?.find((o) => o.name === "escalate");
+    if (!escalation || !escalation.then) {
+      throw new Error(
+        `human_input task '${taskName}': on_timeout policy 'escalate' requires ` +
+        `an outcome named 'escalate' with 'then' set (the timeout resolves to ` +
+        `that outcome and follows its 'then' branch)`,
+      );
+    }
+  }
+
   return {
     prompt: obj.prompt,
-    outcomes: Array.isArray(obj.outcomes) && obj.outcomes.length > 0
-      ? obj.outcomes.map((o: any) => ({ name: o.name, label: o.label, then: o.then }))
-      : undefined,
+    outcomes,
     formSchema: obj.form_schema && typeof obj.form_schema === "object"
       ? obj.form_schema as Record<string, unknown>
       : undefined,
@@ -675,7 +689,7 @@ function parseHumanInputConfig(taskName: string, raw: unknown): import("./types.
       ? obj.approvers.filter((a: unknown) => typeof a === "string") as string[]
       : undefined,
     timeout: typeof obj.timeout === "number" ? obj.timeout : undefined,
-    onTimeout: parseOnTimeout(taskName, obj.on_timeout),
+    onTimeout,
     // Any JSON shape is a valid payload (expression string, object, array),
     // so only null/undefined mean "no payload" here.
     payload: obj.payload ?? undefined,

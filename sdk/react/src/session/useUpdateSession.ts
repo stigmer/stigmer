@@ -25,40 +25,34 @@ export interface UseUpdateSessionReturn {
  * by the backend to identify the resource) and all spec fields.
  *
  * **Full-replace semantics.** The backend replaces the entire spec with
- * what you send — there is no field mask. Round-trip every spec field
- * you do not intend to change, *including `metadata`*: an update built
- * from a reconstructed partial spec silently wipes the fields it omits
- * (workspace entries, MCP servers, and `stigmer.ai/*` metadata keys such
- * as the embedder session context). To change only the subject, prefer
- * the field-level `session.updateSubject()` RPC instead of this hook.
+ * what you send — there is no field mask. Spread the SDK's complete
+ * `toSessionUpdateInput()` mapper and override only the fields you
+ * change: an update built from a reconstructed partial spec silently
+ * wipes the fields it omits (workspace entries, MCP servers, and
+ * `stigmer.ai/*` metadata keys such as the embedder session context).
+ * To change only the subject, prefer the field-level
+ * `session.updateSubject()` RPC instead of this hook.
  *
  * Typically composed into higher-level hooks like
- * {@link useSessionConversation} (whose update path round-trips the
- * fetched spec) rather than used directly. Platform builders who need
- * direct session mutation can use this hook standalone.
+ * {@link useSessionConversation} (whose update path spreads the mapper
+ * over a freshly fetched session) rather than used directly. Platform
+ * builders who need direct session mutation can use this hook
+ * standalone.
  *
  * @example
  * ```tsx
+ * import { toSessionUpdateInput } from "@stigmer/sdk";
+ *
  * function TagSession({ session }: { session: Session }) {
  *   const { update, isUpdating } = useUpdateSession();
  *
  *   async function handleTag() {
- *     const spec = session.spec;
+ *     const mapped = toSessionUpdateInput(session);
  *     await update({
- *       name: session.metadata!.name,
- *       org: session.metadata!.org,
- *       // Full replace: carry over every fetched spec field...
- *       agentInstanceId: spec?.agentInstanceId,
- *       subject: spec?.subject,
- *       harnessStateId: spec?.harnessStateId,
- *       harness: spec?.harness,
- *       cursorMode: spec?.cursorMode,
- *       executionTarget: spec?.executionTarget,
- *       // ...including the spec lists (workspaceEntries, mcpServerUsages,
- *       // skillRefs), converted from the fetched proto exactly as
- *       // useSessionConversation's update path does...
- *       // ...then apply the one change on top of the carried metadata.
- *       metadata: { ...spec?.metadata, "acme/reviewed": "true" },
+ *       ...mapped,
+ *       // Nested values follow the same rule: spread the mapper's
+ *       // complete value, then apply the one change on top.
+ *       metadata: { ...mapped.metadata, "acme/reviewed": "true" },
  *     });
  *   }
  *
