@@ -144,8 +144,8 @@
       "slug": "identity-account",
       "title": "Identity Account",
       "description": "Hooks for identity account lookup and profile resolution.",
-      "hooks": 1,
-      "components": 0
+      "hooks": 3,
+      "components": 1
     },
     {
       "slug": "identity-provider",
@@ -201,7 +201,7 @@
       "title": "Organization",
       "description": "Hooks and components for organization creation and management.",
       "hooks": 7,
-      "components": 4
+      "components": 5
     },
     {
       "slug": "platform-client",
@@ -257,7 +257,7 @@
       "title": "Settings",
       "description": "Pre-composed settings sections for organization console embedding.",
       "hooks": 1,
-      "components": 10
+      "components": 12
     },
     {
       "slug": "sharing",

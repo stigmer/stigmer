@@ -5,7 +5,7 @@
 // the differ) load lazily inside the action so `--help` stays fast (DD-001).
 
 import type { Command } from "commander";
-import { ensureAuthenticated, resolveOrganization } from "../config/index.js";
+import { ensureAuthenticated, isCloudMode, resolveOrganization } from "../config/index.js";
 import { UsageError } from "../errors/index.js";
 import { interactiveBrowseEnabled } from "../resources/picker/tty.js";
 import { addAgentExecFlags, type AgentExecOptions } from "./agent-exec-flags.js";
@@ -171,7 +171,9 @@ async function runResolvedAgent(
   const { executeResolvedAgent } = await import("../resources/run/agent-exec.js");
   const { toAgentExecFlags } = await import("./agent-exec-flags.js");
 
-  const prepared = await prepareAgentExec(toAgentExecFlags(options), client.stigmer, org, stderrProgress());
+  const prepared = await prepareAgentExec(toAgentExecFlags(options), client.stigmer, org, stderrProgress(), {
+    cloudBackend: isCloudMode(client.config),
+  });
   await executeResolvedAgent({
     agent,
     prepared,

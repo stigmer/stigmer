@@ -834,18 +834,21 @@ export type {
   ToolCredentialsReadiness,
 } from "./environment/index.js";
 
-// Identity Account — gate hook, self-account data/mutation hooks, and
-// the account preferences editor
+// Identity Account — gate hook, self-account data/mutation hooks, the
+// account preferences editor, and the composer-seeding execution defaults
 export {
   useIdentityAccountGate,
   useMyIdentityAccount,
+  useAccountExecutionDefaults,
   useUpdateIdentityAccount,
   AccountPreferencesPanel,
 } from "./identity-account/index.js";
 export type {
   IdentityAccountGateState,
   UseIdentityAccountGateReturn,
+  UseMyIdentityAccountOptions,
   UseMyIdentityAccountReturn,
+  AccountExecutionDefaults,
   UseUpdateIdentityAccountReturn,
   AccountPreferencesPanelProps,
 } from "./identity-account/index.js";

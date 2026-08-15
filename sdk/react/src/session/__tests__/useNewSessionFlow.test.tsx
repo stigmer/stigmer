@@ -805,6 +805,157 @@ describe("useNewSessionFlow", () => {
     });
   });
 
+  describe("accountDefaults (oss#293 Phase 1.5 layered seed)", () => {
+    // Two native models so "stored pick outranks account default" is
+    // distinguishable; the shared TEST_MODELS carries one per harness.
+    const SEED_MODELS = parseRegistryJson({
+      models: [
+        { id: "claude-sonnet-4.6", displayName: "Claude Sonnet 4.6", shortDescription: "", speedTier: "fast", provider: "anthropic", harness: "native", costTier: "standard", featured: true, pricing: { inputPricePerMillion: 3, outputPricePerMillion: 15, cacheWritePricePerMillion: 3.75, cacheReadPricePerMillion: 0.3 } },
+        { id: "gpt-5.3", displayName: "GPT 5.3", shortDescription: "", speedTier: "fast", provider: "openai", harness: "native", costTier: "standard", featured: false, pricing: { inputPricePerMillion: 2, outputPricePerMillion: 8, cacheWritePricePerMillion: 2, cacheReadPricePerMillion: 0.2 } },
+        { id: "default", displayName: "Cursor Auto", shortDescription: "", speedTier: "fast", provider: "cursor", harness: "cursor", costTier: "standard", featured: true, pricing: { inputPricePerMillion: 1.25, outputPricePerMillion: 6, cacheWritePricePerMillion: 1.25, cacheReadPricePerMillion: 0.25 } },
+        { id: "composer-2.5", displayName: "Composer 2.5", shortDescription: "", speedTier: "fast", provider: "cursor", harness: "cursor", costTier: "standard", featured: false, pricing: { inputPricePerMillion: 1, outputPricePerMillion: 5, cacheWritePricePerMillion: 1, cacheReadPricePerMillion: 0.1 } },
+      ],
+    });
+
+    function seedWrapper() {
+      const state: ModelRegistryState = { models: SEED_MODELS, isLoading: false, error: null, refetch: () => {} };
+      return function Wrapper({ children }: { children: ReactNode }) {
+        return (
+          <ModelRegistryContext.Provider value={state}>
+            {children}
+          </ModelRegistryContext.Provider>
+        );
+      };
+    }
+
+    it("seeds the harness when nothing is stored", () => {
+      const opts = { ...defaultOptions(), accountDefaults: { harness: "cursor" as const } };
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: seedWrapper() });
+
+      expect(result.current.harness).toBe("cursor");
+    });
+
+    it("a stored harness choice outranks the account default", () => {
+      localStorage.setItem(STORAGE_KEY_HARNESS, "native");
+      const opts = { ...defaultOptions(), accountDefaults: { harness: "cursor" as const } };
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: seedWrapper() });
+
+      expect(result.current.harness).toBe("native");
+    });
+
+    it("the account harness outranks the embedder defaultHarness", () => {
+      const opts = {
+        ...defaultOptions(),
+        defaultHarness: "native" as const,
+        accountDefaults: { harness: "cursor" as const },
+      };
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: seedWrapper() });
+
+      expect(result.current.harness).toBe("cursor");
+    });
+
+    it("never persists the seeded harness — only explicit choices", () => {
+      const opts = { ...defaultOptions(), accountDefaults: { harness: "cursor" as const } };
+      renderHook(() => useNewSessionFlow(opts), { wrapper: seedWrapper() });
+
+      expect(localStorage.getItem(STORAGE_KEY_HARNESS)).toBeNull();
+    });
+
+    it("a late-arriving harness seed applies when the user has not picked (whoAmI resolves after mount)", () => {
+      const base: Parameters<typeof useNewSessionFlow>[0] = defaultOptions();
+      const { result, rerender } = renderHook(
+        (opts: Parameters<typeof useNewSessionFlow>[0]) => useNewSessionFlow(opts),
+        { wrapper: seedWrapper(), initialProps: base },
+      );
+      expect(result.current.harness).toBe("native");
+
+      rerender({ ...base, accountDefaults: { harness: "cursor" as const } });
+
+      expect(result.current.harness).toBe("cursor");
+      expect(localStorage.getItem(STORAGE_KEY_HARNESS)).toBeNull();
+    });
+
+    it("a late-arriving harness seed never overrides an explicit pick this mount", () => {
+      const base: Parameters<typeof useNewSessionFlow>[0] = defaultOptions();
+      const { result, rerender } = renderHook(
+        (opts: Parameters<typeof useNewSessionFlow>[0]) => useNewSessionFlow(opts),
+        { wrapper: seedWrapper(), initialProps: base },
+      );
+      act(() => result.current.setHarness("native"));
+
+      rerender({ ...base, accountDefaults: { harness: "cursor" as const } });
+
+      expect(result.current.harness).toBe("native");
+    });
+
+    it("seeds the model for the active harness when nothing is stored", () => {
+      const opts = { ...defaultOptions(), accountDefaults: { nativeModel: "gpt-5.3" } };
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: seedWrapper() });
+
+      expect(result.current.modelId).toBe("gpt-5.3");
+    });
+
+    it("a stored model pick outranks the account default", async () => {
+      localStorage.setItem(STORAGE_KEY_MODEL_NATIVE, "claude-sonnet-4.6");
+      const opts = { ...defaultOptions(), accountDefaults: { nativeModel: "gpt-5.3" } };
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: seedWrapper() });
+
+      // The stored restore lands in a passive effect once the registry is
+      // ready; the account seed must not win the race before it.
+      await act(async () => {});
+      expect(result.current.modelId).toBe("claude-sonnet-4.6");
+    });
+
+    it("self-heals a stale account model to the platform default (undefined)", () => {
+      const opts = { ...defaultOptions(), accountDefaults: { nativeModel: "retired-model" } };
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: seedWrapper() });
+
+      expect(result.current.modelId).toBeUndefined();
+    });
+
+    it("never persists the seeded model — only explicit choices", () => {
+      const opts = { ...defaultOptions(), accountDefaults: { nativeModel: "gpt-5.3" } };
+      renderHook(() => useNewSessionFlow(opts), { wrapper: seedWrapper() });
+
+      expect(localStorage.getItem(STORAGE_KEY_MODEL_NATIVE)).toBeNull();
+    });
+
+    it("follows the active harness: cursorModel seeds cursor sessions", () => {
+      const opts = {
+        ...defaultOptions(),
+        accountDefaults: { harness: "cursor" as const, nativeModel: "gpt-5.3", cursorModel: "composer-2.5" },
+      };
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: seedWrapper() });
+
+      expect(result.current.harness).toBe("cursor");
+      expect(result.current.modelId).toBe("composer-2.5");
+    });
+
+    it("submits the seeded model explicitly — the pill promise (#663) and the DD-003 seed rule", async () => {
+      const opts = { ...defaultOptions(), accountDefaults: { nativeModel: "gpt-5.3" } };
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: seedWrapper() });
+
+      await act(async () => {
+        await result.current.submit("Hello");
+      });
+
+      expect(mockCreateExecution.mock.calls[0][0].modelName).toBe("gpt-5.3");
+    });
+
+    it("guest audience ignores accountDefaults entirely", () => {
+      const opts = {
+        ...defaultOptions(),
+        audience: "guest" as const,
+        accountDefaults: { harness: "native" as const, nativeModel: "gpt-5.3", cursorModel: "composer-2.5" },
+      };
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: seedWrapper() });
+
+      // Platform share policy: cursor harness, no client model.
+      expect(result.current.harness).toBe("cursor");
+      expect(result.current.modelId).toBeUndefined();
+    });
+  });
+
   describe("submit while default agent is loading", () => {
     it("awaits default agent and creates session when fetch resolves", async () => {
       const resolvedAgent = { status: { defaultInstanceId: "awaited-inst" } };

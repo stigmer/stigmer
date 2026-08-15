@@ -7,6 +7,8 @@ import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityacc
 import { useMyIdentityAccount } from "./useMyIdentityAccount.js";
 import { useUpdateIdentityAccount } from "./useUpdateIdentityAccount.js";
 import { useResourceAvailable, ApiResourceKind } from "../deployment-mode.js";
+import { useModelRegistry } from "../models/index.js";
+import { HARNESS_META, type HarnessOption } from "../models/harness.js";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
 import { StandingContextField } from "../internal/StandingContextField.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
@@ -98,27 +100,59 @@ function AccountPreferencesForm({
   } = useUpdateIdentityAccount();
 
   const [standingContext, setStandingContext] = useState("");
+  const [defaultHarness, setDefaultHarness] = useState("");
+  const [defaultNativeModel, setDefaultNativeModel] = useState("");
+  const [defaultCursorModel, setDefaultCursorModel] = useState("");
 
-  const serverStandingContext =
-    account?.spec?.preferences?.standingContext ?? "";
+  const serverPreferences = account?.spec?.preferences;
+  const serverStandingContext = serverPreferences?.standingContext ?? "";
+  const serverDefaultHarness = serverPreferences?.defaultHarness ?? "";
+  const serverDefaultNativeModel = serverPreferences?.defaultNativeModel ?? "";
+  const serverDefaultCursorModel = serverPreferences?.defaultCursorModel ?? "";
 
-  // Sync the form field when server data changes.
+  // Sync the form fields when server data changes.
   useEffect(() => {
     if (!account) return;
-    setStandingContext(account.spec?.preferences?.standingContext ?? "");
+    const prefs = account.spec?.preferences;
+    setStandingContext(prefs?.standingContext ?? "");
+    setDefaultHarness(prefs?.defaultHarness ?? "");
+    setDefaultNativeModel(prefs?.defaultNativeModel ?? "");
+    setDefaultCursorModel(prefs?.defaultCursorModel ?? "");
   }, [account]);
 
   const hasChanges = useMemo(
-    () => standingContext.trim() !== serverStandingContext,
-    [standingContext, serverStandingContext],
+    () =>
+      standingContext.trim() !== serverStandingContext ||
+      defaultHarness !== serverDefaultHarness ||
+      defaultNativeModel !== serverDefaultNativeModel ||
+      defaultCursorModel !== serverDefaultCursorModel,
+    [
+      standingContext,
+      defaultHarness,
+      defaultNativeModel,
+      defaultCursorModel,
+      serverStandingContext,
+      serverDefaultHarness,
+      serverDefaultNativeModel,
+      serverDefaultCursorModel,
+    ],
   );
 
   const canSubmit = hasChanges && !isUpdating;
 
   const handleDiscard = useCallback(() => {
     setStandingContext(serverStandingContext);
+    setDefaultHarness(serverDefaultHarness);
+    setDefaultNativeModel(serverDefaultNativeModel);
+    setDefaultCursorModel(serverDefaultCursorModel);
     clearError();
-  }, [serverStandingContext, clearError]);
+  }, [
+    serverStandingContext,
+    serverDefaultHarness,
+    serverDefaultNativeModel,
+    serverDefaultCursorModel,
+    clearError,
+  ]);
 
   const handleSubmit = useCallback(
     async (e: FormEvent) => {
@@ -128,10 +162,19 @@ function AccountPreferencesForm({
       clearError();
       try {
         // update() is a full-spec replace: spread the complete mapped input
-        // so unedited spec fields survive, and override only preferences.
+        // so unedited spec fields survive. `preferences` is a nested message,
+        // so the override spreads the mapper's COMPLETE preferences too —
+        // fields this form does not own (added by later phases) survive.
+        const mapped = toIdentityAccountUpdateInput(account);
         const updated = await update({
-          ...toIdentityAccountUpdateInput(account),
-          preferences: { standingContext: standingContext.trim() || undefined },
+          ...mapped,
+          preferences: {
+            ...mapped.preferences,
+            standingContext: standingContext.trim() || undefined,
+            defaultHarness: defaultHarness || undefined,
+            defaultNativeModel: defaultNativeModel || undefined,
+            defaultCursorModel: defaultCursorModel || undefined,
+          },
         });
         refetch();
         onUpdated?.(updated);
@@ -139,7 +182,18 @@ function AccountPreferencesForm({
         // error state is managed by useUpdateIdentityAccount
       }
     },
-    [canSubmit, account, standingContext, update, clearError, refetch, onUpdated],
+    [
+      canSubmit,
+      account,
+      standingContext,
+      defaultHarness,
+      defaultNativeModel,
+      defaultCursorModel,
+      update,
+      clearError,
+      refetch,
+      onUpdated,
+    ],
   );
 
   // -----------------------------------------------------------------------
@@ -202,6 +256,44 @@ function AccountPreferencesForm({
         helperText="Shared with agents as background context — not instructions. Applies only to executions you start and is visible on those execution records."
       />
 
+      <div className="stg:space-y-3">
+        <div>
+          <h3 className="stg:text-xs stg:font-medium stg:text-foreground">
+            Execution defaults
+          </h3>
+          <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+            Seed new sessions across your devices and the CLI. An explicit
+            pick in the composer always wins for that device.
+          </p>
+        </div>
+
+        <DefaultHarnessRadioGroup
+          baseId={baseId}
+          value={defaultHarness}
+          onChange={setDefaultHarness}
+          disabled={isUpdating}
+        />
+
+        <div className="stg:grid stg:gap-3 stg:sm:grid-cols-2">
+          <DefaultModelSelect
+            id={`${baseId}-default-native-model`}
+            harness="native"
+            label={`Default model — ${HARNESS_META.native.label}`}
+            value={defaultNativeModel}
+            onChange={setDefaultNativeModel}
+            disabled={isUpdating}
+          />
+          <DefaultModelSelect
+            id={`${baseId}-default-cursor-model`}
+            harness="cursor"
+            label={`Default model — ${HARNESS_META.cursor.label}`}
+            value={defaultCursorModel}
+            onChange={setDefaultCursorModel}
+            disabled={isUpdating}
+          />
+        </div>
+      </div>
+
       {updateError && (
         <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
           {getUserMessage(updateError)}
@@ -236,5 +328,119 @@ function AccountPreferencesForm({
         )}
       </div>
     </form>
+  );
+}
+
+/**
+ * Only harnesses with a shipped runtime are offerable as a default — must
+ * stay in lockstep with the proto's `default_harness` in-list validation.
+ */
+const OFFERABLE_HARNESSES: readonly HarnessOption[] = ["native", "cursor"];
+
+/**
+ * Default-harness choice: Platform default plus each shipped harness.
+ * A mutually exclusive, always-visible set — radio group, not a select.
+ */
+function DefaultHarnessRadioGroup({
+  baseId,
+  value,
+  onChange,
+  disabled,
+}: {
+  readonly baseId: string;
+  readonly value: string;
+  readonly onChange: (value: string) => void;
+  readonly disabled: boolean;
+}) {
+  const name = `${baseId}-default-harness`;
+  const options: readonly { value: string; label: string }[] = [
+    { value: "", label: "Platform default" },
+    ...OFFERABLE_HARNESSES.map((h) => ({ value: h, label: HARNESS_META[h].label })),
+  ];
+
+  return (
+    <fieldset className="stg:space-y-1" disabled={disabled}>
+      <legend className="stg:text-xs stg:font-medium stg:text-foreground">
+        Default harness
+      </legend>
+      <div className="stg:flex stg:flex-wrap stg:gap-x-4 stg:gap-y-1">
+        {options.map((option) => (
+          <label
+            key={option.value}
+            className={cn(
+              "stg:inline-flex stg:cursor-pointer stg:items-center stg:gap-1.5 stg:text-xs stg:text-foreground",
+              disabled && "stg:cursor-default stg:opacity-50",
+            )}
+          >
+            <input
+              type="radio"
+              name={name}
+              value={option.value}
+              checked={value === option.value}
+              onChange={() => onChange(option.value)}
+              disabled={disabled}
+              className="stg:accent-primary stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring"
+            />
+            {option.label}
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
+/**
+ * Per-harness default model select, fed by the harness-filtered registry.
+ *
+ * A saved model that the registry no longer lists is rendered as its own
+ * "(unavailable)" option so the select never lies about the stored value;
+ * composers self-heal such a preference to the platform default on read.
+ */
+function DefaultModelSelect({
+  id,
+  harness,
+  label,
+  value,
+  onChange,
+  disabled,
+}: {
+  readonly id: string;
+  readonly harness: HarnessOption;
+  readonly label: string;
+  readonly value: string;
+  readonly onChange: (value: string) => void;
+  readonly disabled: boolean;
+}) {
+  const { models, isLoading } = useModelRegistry({ harness });
+  const isStale = value !== "" && !isLoading && !models.some((m) => m.modelId === value);
+
+  return (
+    <div className="stg:space-y-1">
+      <label
+        htmlFor={id}
+        className="stg:text-xs stg:font-medium stg:text-foreground"
+      >
+        {label}
+      </label>
+      <select
+        id={id}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={disabled || isLoading}
+        className={cn(
+          "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
+          "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
+          "stg:disabled:pointer-events-none stg:disabled:opacity-50",
+        )}
+      >
+        <option value="">Platform default</option>
+        {isStale && <option value={value}>{value} (unavailable)</option>}
+        {models.map((model) => (
+          <option key={model.modelId} value={model.modelId}>
+            {model.displayName || model.modelId}
+          </option>
+        ))}
+      </select>
+    </div>
   );
 }

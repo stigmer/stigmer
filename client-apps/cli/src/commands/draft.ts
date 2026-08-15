@@ -8,7 +8,7 @@
 // unless detached or a local workspace is in play.
 
 import type { Command } from "commander";
-import { ensureAuthenticated, resolveOrganization } from "../config/index.js";
+import { ensureAuthenticated, isCloudMode, resolveOrganization } from "../config/index.js";
 import { UsageError } from "../errors/index.js";
 import { addAgentExecFlags, type AgentExecOptions, toAgentExecFlags } from "./agent-exec-flags.js";
 import { globalOrg } from "./shared.js";
@@ -73,7 +73,9 @@ async function runDraft(config: DraftConfig, options: DraftFlags, command: Comma
 
   const agent = await resolveDraftAgent(resolveAgentRef, client.stigmer, config);
 
-  const prepared = await prepareAgentExec(toAgentExecFlags(options), client.stigmer, org, stderrProgress());
+  const prepared = await prepareAgentExec(toAgentExecFlags(options), client.stigmer, org, stderrProgress(), {
+    cloudBackend: isCloudMode(client.config),
+  });
 
   if (prepared.attachments.length + prepared.workspaceFileRefs.length > 0) {
     process.stderr.write(`Attached ${prepared.attachments.length + prepared.workspaceFileRefs.length} file(s) as context\n`);

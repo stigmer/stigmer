@@ -270,6 +270,37 @@ All visual properties flow through `--stgm-*` design tokens.
 ```
 
 
+### OrgPreferencesPanel
+
+Self-contained editor for an `Organization`'s declared
+preferences (`spec.preferences.standing_context`).
+
+The declared text is snapshotted into every eligible agent execution
+run by the organization's members (first-party human operators only)
+and delivered to the agent as background context. Editing requires
+`can_edit` on the organization; viewers without it get a read-only
+rendering. On save, calls `organization.update()` with the complete
+mapped input (full-spec-replace safety) and fires `onUpdated`.
+
+All visual properties flow through `--stgm-*` design tokens. Zero
+dependencies on Console routing, auth context, or layout — platform
+builders can embed it directly:
+
+**Props** — `OrgPreferencesPanelProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS class names for the root container." },
+    onUpdated: { type: "(org: Organization) => void", description: "Fired with the updated resource after a successful save." },
+    orgId: { type: "string", description: "The ID of the organization whose preferences to display and edit.", required: true },
+  }}
+/>
+
+```tsx
+<OrgPreferencesPanel orgId="org-id-123" />
+```
+
+
 ### OrgProfilePanel
 
 Self-contained profile editor for an `Organization` resource.

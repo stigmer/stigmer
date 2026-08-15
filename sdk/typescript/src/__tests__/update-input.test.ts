@@ -78,7 +78,12 @@ function fullIdentityAccount(): IdentityAccount {
       isMachineAccount: true,
       provisioningMode: IdentityAccountProvisioningMode.federated,
       identityProviderRef: { org: "acme", slug: "acme-okta" },
-      preferences: { standingContext: "Keep answers terse." },
+      preferences: {
+        standingContext: "Keep answers terse.",
+        defaultHarness: "cursor",
+        defaultNativeModel: "claude-sonnet-4.6",
+        defaultCursorModel: "composer-2.5",
+      },
     },
   });
 }
@@ -160,10 +165,11 @@ describe("toIdentityAccountUpdateInput", () => {
 
   it("preserves the rest of the spec when a caller overrides only preferences", () => {
     const account = fullIdentityAccount();
+    const mapped = toIdentityAccountUpdateInput(account);
 
     const built = buildIdentityAccountProto({
-      ...toIdentityAccountUpdateInput(account),
-      preferences: { standingContext: "Prefer bullet points." },
+      ...mapped,
+      preferences: { ...mapped.preferences, standingContext: "Prefer bullet points." },
     });
 
     expect(built.spec?.preferences?.standingContext).toBe(
@@ -176,16 +182,38 @@ describe("toIdentityAccountUpdateInput", () => {
     );
   });
 
+  it("preserves structured defaults when only standing context is edited (nested wipe-bug class)", () => {
+    const account = fullIdentityAccount();
+    const mapped = toIdentityAccountUpdateInput(account);
+
+    // The correct editor pattern for a nested message: spread the mapper's
+    // COMPLETE preferences and override only the edited field. A bare
+    // `preferences: { standingContext }` literal would wipe the structured
+    // defaults — the session-4 wipe bug recurring one level down.
+    const built = buildIdentityAccountProto({
+      ...mapped,
+      preferences: { ...mapped.preferences, standingContext: "Terser still." },
+    });
+
+    expect(built.spec?.preferences?.standingContext).toBe("Terser still.");
+    expect(built.spec?.preferences?.defaultHarness).toBe("cursor");
+    expect(built.spec?.preferences?.defaultNativeModel).toBe("claude-sonnet-4.6");
+    expect(built.spec?.preferences?.defaultCursorModel).toBe("composer-2.5");
+  });
+
   it("clears standing context to wire-absent when the text is emptied", () => {
     const account = fullIdentityAccount();
+    const mapped = toIdentityAccountUpdateInput(account);
 
     const built = buildIdentityAccountProto({
-      ...toIdentityAccountUpdateInput(account),
-      preferences: { standingContext: "" },
+      ...mapped,
+      preferences: { ...mapped.preferences, standingContext: "" },
     });
 
     // Proto3 empty string is the field default — wire-identical to absent,
     // which the server compose steps treat as "no preference declared".
     expect(built.spec?.preferences?.standingContext ?? "").toBe("");
+    // Clearing one field never disturbs its siblings.
+    expect(built.spec?.preferences?.defaultHarness).toBe("cursor");
   });
 });

@@ -16,6 +16,48 @@
       "validation": {
         "maxLength": 2000
       }
+    },
+    {
+      "name": "DefaultHarness",
+      "jsonName": "defaultHarness",
+      "protoField": "default_harness",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Default harness for new sessions: \"native\" or \"cursor\".\n Empty means no preference — the platform default applies.",
+      "required": false,
+      "validation": {
+        "enum": [
+          "native",
+          "cursor"
+        ]
+      }
+    },
+    {
+      "name": "DefaultNativeModel",
+      "jsonName": "defaultNativeModel",
+      "protoField": "default_native_model",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Default model (registry model ID) for native-harness sessions.\n Empty means no preference — the platform default applies.",
+      "required": false,
+      "validation": {
+        "maxLength": 100
+      }
+    },
+    {
+      "name": "DefaultCursorModel",
+      "jsonName": "defaultCursorModel",
+      "protoField": "default_cursor_model",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Default model (registry model ID) for cursor-harness sessions.\n Empty means no preference — the platform default applies.",
+      "required": false,
+      "validation": {
+        "maxLength": 100
+      }
     }
   ]
 }

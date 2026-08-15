@@ -18,12 +18,30 @@
 // so when codegen adds a new Input field, compilation fails HERE — the one
 // place a human must decide how the new field round-trips — instead of the
 // field silently wiping in every subset-editing form.
+//
+// NESTED MESSAGE RULE: `CompleteInput` only sees TOP-LEVEL keys — a nested
+// message (e.g. `preferences`) is one key whose object literal would keep
+// compiling when codegen adds fields INSIDE it, recreating the wipe bug one
+// level down. Every nested-message literal in this file must therefore be
+// built by a dedicated `toXxxInput` helper whose return literal is itself
+// typed `CompleteInput<XxxInput>`. Editors that override a nested message
+// must spread the mapper's complete value and override only their fields:
+//
+//   preferences: { ...mapped.preferences, standingContext: next }
 
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+import type { IdentityAccountPreferences } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/spec_pb";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
-import type { IdentityAccountInput } from "./gen/identityaccount.js";
-import type { OrganizationInput } from "./gen/organization.js";
+import type { OrganizationPreferences } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/spec_pb";
+import type {
+  IdentityAccountInput,
+  IdentityAccountPreferencesInput,
+} from "./gen/identityaccount.js";
+import type {
+  OrganizationInput,
+  OrganizationPreferencesInput,
+} from "./gen/organization.js";
 import type { ResourceRef } from "./gen/types.js";
 
 /**
@@ -61,8 +79,21 @@ export function toOrganizationUpdateInput(
     externalOrgId: org.spec?.externalOrgId || undefined,
     isPersonal: org.spec?.isPersonal || undefined,
     preferences: org.spec?.preferences
-      ? { standingContext: org.spec.preferences.standingContext || undefined }
+      ? toOrganizationPreferencesInput(org.spec.preferences)
       : undefined,
+  };
+  return input;
+}
+
+/**
+ * Maps loaded {@link OrganizationPreferences} to a complete
+ * {@link OrganizationPreferencesInput} (nested-message rule above).
+ */
+function toOrganizationPreferencesInput(
+  preferences: OrganizationPreferences,
+): OrganizationPreferencesInput {
+  const input: CompleteInput<OrganizationPreferencesInput> = {
+    standingContext: preferences.standingContext || undefined,
   };
   return input;
 }
@@ -94,11 +125,24 @@ export function toIdentityAccountUpdateInput(
     provisioningMode: account.spec?.provisioningMode || undefined,
     identityProviderRef: toResourceRef(account.spec?.identityProviderRef),
     preferences: account.spec?.preferences
-      ? {
-          standingContext:
-            account.spec.preferences.standingContext || undefined,
-        }
+      ? toIdentityAccountPreferencesInput(account.spec.preferences)
       : undefined,
+  };
+  return input;
+}
+
+/**
+ * Maps loaded {@link IdentityAccountPreferences} to a complete
+ * {@link IdentityAccountPreferencesInput} (nested-message rule above).
+ */
+function toIdentityAccountPreferencesInput(
+  preferences: IdentityAccountPreferences,
+): IdentityAccountPreferencesInput {
+  const input: CompleteInput<IdentityAccountPreferencesInput> = {
+    standingContext: preferences.standingContext || undefined,
+    defaultHarness: preferences.defaultHarness || undefined,
+    defaultNativeModel: preferences.defaultNativeModel || undefined,
+    defaultCursorModel: preferences.defaultCursorModel || undefined,
   };
   return input;
 }

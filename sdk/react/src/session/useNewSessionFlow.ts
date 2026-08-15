@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { getUserMessage, type McpServerUsageInput, type ResourceRef } from "@stigmer/sdk";
+import type { AccountExecutionDefaults } from "../identity-account/useAccountExecutionDefaults.js";
 import type { AgentResolution } from "../agent/index.js";
 import { useDefaultAgent } from "../agent/index.js";
 import { useModelRegistry } from "../models/index.js";
@@ -103,6 +104,26 @@ export interface UseNewSessionFlowOptions {
    */
   readonly defaultHarness?: HarnessOption;
   /**
+   * The user's account-level execution defaults
+   * (`IdentityAccountPreferences.default_*`), typically from
+   * `useAccountExecutionDefaults()`. A SEED in the layered precedence —
+   * explicit device-local choices always outrank it:
+   *
+   * - harness: stored choice > `accountDefaults.harness` >
+   *   {@link defaultHarness} > platform default. May arrive after mount
+   *   (whoAmI resolves async); a late value still seeds unless the user
+   *   has already picked a harness this mount.
+   * - model: stored per-harness choice > the account's model for the
+   *   active harness (validated against the registry; a stale model
+   *   silently falls through) > the harness default.
+   *
+   * Seeded values are never persisted to localStorage — the account
+   * preference keeps applying until the user decides. Ignored for the
+   * `"guest"` audience (platform share policy owns guest config), and
+   * consumers must not fetch identity for guest/embed surfaces.
+   */
+  readonly accountDefaults?: AccountExecutionDefaults;
+  /**
    * Who this flow serves. `"guest"` adapts the orchestration to the
    * guest principal's permission model: the org default-agent lookup
    * (which a guest token cannot read) is skipped, and submission
@@ -162,7 +183,12 @@ export interface UseNewSessionFlowReturn {
   /** Switch the harness. Resets the model if invalid for the new harness. */
   readonly setHarness: (harness: HarnessOption) => void;
 
-  /** Currently selected model ID (persisted per-harness to localStorage). */
+  /**
+   * The model an untouched send will run: the explicit device pick when
+   * one exists (persisted per-harness to localStorage), else the account
+   * default for the active harness. `undefined` resolves to the harness
+   * default downstream.
+   */
   readonly modelId: string | undefined;
   /** Update the selected model. Automatically persists to localStorage. */
   readonly setModelId: (id: string) => void;
@@ -269,6 +295,10 @@ export function useNewSessionFlow(
     sessionContext,
   } = options;
   const isGuest = options.audience === "guest";
+  // Guests never inherit account defaults — the platform share policy owns
+  // guest execution config (GUEST_HARNESS reasoning), and identity-derived
+  // preferences must never shape a share/embed surface.
+  const accountDefaults = isGuest ? undefined : options.accountDefaults;
   // Guests never carry a client pin: guest execution config is owned by
   // the server-side share policy (GUEST_HARNESS reasoning). Validated at
   // render so a statically-wrong pin (fast tier, no model) fails in the
@@ -293,13 +323,30 @@ export function useNewSessionFlow(
     // touch localStorage: a browser previously used in the Console must not
     // leak its stored harness into a share/embed session.
     if (isGuest) return GUEST_HARNESS;
-    if (typeof window === "undefined") return defaultHarness ?? DEFAULT_HARNESS;
+    if (typeof window === "undefined")
+      return accountDefaults?.harness ?? defaultHarness ?? DEFAULT_HARNESS;
     // Only explicit user choices are persisted (see setHarness), so a
-    // stored value always outranks the embedder's defaultHarness.
+    // stored value always outranks the account default and the embedder's
+    // defaultHarness.
     const stored = localStorage.getItem(STORAGE_KEY_HARNESS);
     if (stored === "native" || stored === "cursor") return stored;
-    return defaultHarness ?? DEFAULT_HARNESS;
+    return accountDefaults?.harness ?? defaultHarness ?? DEFAULT_HARNESS;
   });
+  // Set once the user picks a harness this mount — a late-arriving account
+  // default must never override an explicit choice (the composer's
+  // userOverrodeModel idiom).
+  const harnessTouchedRef = useRef(false);
+
+  // Account defaults resolve async (whoAmI): when the harness seed arrives
+  // after mount, apply it once — unless the user has picked or a stored
+  // choice exists. Never persisted: seeding must not masquerade as a user
+  // choice, or the account preference would stop applying elsewhere.
+  useEffect(() => {
+    const seed = accountDefaults?.harness;
+    if (isGuest || harnessTouchedRef.current || !seed) return;
+    if (typeof window !== "undefined" && localStorage.getItem(STORAGE_KEY_HARNESS)) return;
+    setHarnessRaw(seed);
+  }, [isGuest, accountDefaults?.harness]);
 
   const stigmer = useStigmer();
   const { getModel, isLoading: isModelsLoading } = useModelRegistry({ harness });
@@ -326,8 +373,26 @@ export function useNewSessionFlow(
 
   const validModelId = modelId && getModel(modelId) ? modelId : undefined;
 
+  // The account's model for the active harness, registry-validated the same
+  // way as the stored choice (a stale/removed preference silently falls
+  // through to the harness default — self-healing). Derived, never written
+  // into `modelId` state: the persist effect below stores only explicit
+  // choices, and a derived seed cannot leak into localStorage.
+  const accountModelForHarness =
+    harness === "cursor" ? accountDefaults?.cursorModel : accountDefaults?.nativeModel;
+  const accountModelId =
+    accountModelForHarness && getModel(accountModelForHarness)
+      ? accountModelForHarness
+      : undefined;
+
+  // Layered precedence: explicit device pick > account default. The result
+  // feeds the composer's model pill AND the submit path, so the pill always
+  // shows what an untouched send will run (#663).
+  const effectiveModelId = validModelId ?? accountModelId;
+
   const setHarness = useCallback(
     (h: HarnessOption) => {
+      harnessTouchedRef.current = true;
       setHarnessRaw(h);
       // Guests have no harness picker; if a caller invokes this anyway, the
       // guest surface must never write into the Console's preference keys.
@@ -415,8 +480,10 @@ export function useNewSessionFlow(
           // The owner pin wins over the composer and the restored
           // preference (#664); the pinned tier is stamped only as
           // "fast" — standard stays off the wire, preserving the #357
-          // UNSPECIFIED-vs-explicit telemetry distinction.
-          modelName: pinnedModelName ?? selectedModel ?? validModelId,
+          // UNSPECIFIED-vs-explicit telemetry distinction. The effective
+          // model carries the account-default seed explicitly (DD-003:
+          // the preference is a seed; the execution spec is the record).
+          modelName: pinnedModelName ?? selectedModel ?? effectiveModelId,
           runtimeEnv,
           attachments: context?.attachments,
           interactionMode: context?.interactionMode,
@@ -514,7 +581,7 @@ export function useNewSessionFlow(
       autoApproveAll,
       adapter,
       getRuntimeEnv,
-      validModelId,
+      effectiveModelId,
       pinnedModelName,
       pinnedServiceTier,
       workspace,
@@ -539,7 +606,7 @@ export function useNewSessionFlow(
   return {
     harness,
     setHarness,
-    modelId: validModelId,
+    modelId: effectiveModelId,
     setModelId,
     agentRef,
     setAgentRef,

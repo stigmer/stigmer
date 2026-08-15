@@ -4,6 +4,19 @@ import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityacc
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
 
+/** Options for {@link useMyIdentityAccount}. */
+export interface UseMyIdentityAccountOptions {
+  /**
+   * When `false`, the hook is idle: no RPC is issued and `account` stays
+   * `null`. Lets always-called hooks (React's rules) skip the doomed
+   * whoAmI against a local server — pass
+   * `useResourceAvailable(ApiResourceKind.identity_account)` here.
+   *
+   * @default true
+   */
+  readonly enabled?: boolean;
+}
+
 /** Return value of {@link useMyIdentityAccount}. */
 export interface UseMyIdentityAccountReturn {
   /** The authenticated user's identity account, or `null` while loading / on error. */
@@ -30,7 +43,13 @@ export interface UseMyIdentityAccountReturn {
  *
  * Cloud-only by nature: the OSS local server does not implement
  * IdentityAccount. Gate consumers with
- * `useResourceAvailable(ApiResourceKind.identity_account)`.
+ * `useResourceAvailable(ApiResourceKind.identity_account)` — either by
+ * conditional mounting or via {@link UseMyIdentityAccountOptions.enabled}.
+ *
+ * Cached across mounts under a {@link FetchCacheProvider} (DD-014): a
+ * revisit renders the previous result immediately and refetches in the
+ * background, so consumers that seed UI from the account (e.g. composer
+ * defaults) settle synchronously after the first visit.
  *
  * @example
  * ```tsx
@@ -39,13 +58,17 @@ export interface UseMyIdentityAccountReturn {
  *   account?.spec?.preferences?.standingContext ?? "";
  * ```
  */
-export function useMyIdentityAccount(): UseMyIdentityAccountReturn {
+export function useMyIdentityAccount(
+  options?: UseMyIdentityAccountOptions,
+): UseMyIdentityAccountReturn {
   const stigmer = useStigmer();
+  const enabled = options?.enabled ?? true;
 
   const { data: account, isLoading, isRefetching, error, refetch } = useFetch(
-    () => stigmer.identityAccount.whoAmI(),
-    [stigmer],
+    enabled ? () => stigmer.identityAccount.whoAmI() : null,
+    [stigmer, enabled],
     null as IdentityAccount | null,
+    { cacheKey: enabled ? "identity-account:me" : undefined },
   );
 
   return { account, isLoading, isRefetching, error, refetch };

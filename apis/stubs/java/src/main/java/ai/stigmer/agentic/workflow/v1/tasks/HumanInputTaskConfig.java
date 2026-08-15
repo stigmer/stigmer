@@ -71,7 +71,7 @@ package ai.stigmer.agentic.workflow.v1.tasks;
  * approvers:
  * - "team:engineering-leads"
  * timeout: 86400
- * on_timeout: HUMAN_INPUT_TIMEOUT_ESCALATE
+ * on_timeout: HUMAN_INPUT_TIMEOUT_DENY
  * notification_channels:
  * - "slack:#incident-approvals"
  * export:
@@ -1135,7 +1135,7 @@ private static final long serialVersionUID = 0L;
    * approvers:
    * - "team:engineering-leads"
    * timeout: 86400
-   * on_timeout: HUMAN_INPUT_TIMEOUT_ESCALATE
+   * on_timeout: HUMAN_INPUT_TIMEOUT_DENY
    * notification_channels:
    * - "slack:#incident-approvals"
    * export:

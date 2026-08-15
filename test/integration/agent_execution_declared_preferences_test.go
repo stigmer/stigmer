@@ -84,11 +84,19 @@ func TestAgentExecution_DeclaredPreferences(t *testing.T) {
 	humanConn := harness.GRPCConnWithBearer(t, testHarness.Service.GRPCAddress(), humanToken)
 	humanClients := harness.NewClients(humanConn)
 
+	// Declare the full preference set in one self-service update: the Phase 1
+	// standing context plus the Phase 1.5 structured execution defaults
+	// (default harness, per-harness default model). The structured fields are
+	// CLIENT-READ seeds (DD-003) — the compose assertions below stay about
+	// standing context only.
 	account.Spec.Preferences = &identityaccountv1.IdentityAccountPreferences{
-		StandingContext: userContext,
+		StandingContext:    userContext,
+		DefaultHarness:     "cursor",
+		DefaultNativeModel: "claude-sonnet-4.6",
+		DefaultCursorModel: "composer-2.5",
 	}
 	_, err = humanClients.IdentityAccountCommand.Update(ctx, account)
-	require.NoError(t, err, "declare user standing context (self-service update)")
+	require.NoError(t, err, "declare user preferences (self-service update)")
 
 	// The human needs org membership to create executions in the fresh org.
 	harness.GrantOrgRole(t, ctx, machineClients, orgID, accountID,
@@ -97,6 +105,33 @@ func TestAgentExecution_DeclaredPreferences(t *testing.T) {
 	agent := harness.CreateAgentFull(t, ctx, machineClients, "test-declared-prefs",
 		"You are a test assistant. Respond briefly.",
 		nil, []harness.AgentCreateOption{harness.WithAgentOrg(orgID)})
+
+	t.Run("structured execution defaults round-trip through the update RPC", func(t *testing.T) {
+		// oss#293 Phase 1.5: proves the cloud service persists and returns
+		// the structured default fields (regenerated stubs — without them the
+		// fields would be dropped on write) and that all preference fields
+		// coexist in one message.
+		persisted, err := humanClients.IdentityAccountQuery.Get(ctx,
+			&identityaccountv1.IdentityAccountId{Value: accountID})
+		require.NoError(t, err, "read back the updated identity account")
+
+		prefs := persisted.GetSpec().GetPreferences()
+		require.NotNil(t, prefs, "preferences must persist")
+		assert.Equal(t, userContext, prefs.GetStandingContext(), "standing context survives alongside structured defaults")
+		assert.Equal(t, "cursor", prefs.GetDefaultHarness(), "default harness persists")
+		assert.Equal(t, "claude-sonnet-4.6", prefs.GetDefaultNativeModel(), "native default model persists")
+		assert.Equal(t, "composer-2.5", prefs.GetDefaultCursorModel(), "cursor default model persists")
+	})
+
+	t.Run("an invalid default harness is refused at the boundary", func(t *testing.T) {
+		// protovalidate in-list rule: only shipped harnesses are storable.
+		invalid := persistedAccountForUpdate(t, ctx, humanClients, accountID)
+		invalid.Spec.Preferences = &identityaccountv1.IdentityAccountPreferences{
+			DefaultHarness: "devin",
+		}
+		_, err := humanClients.IdentityAccountCommand.Update(ctx, invalid)
+		require.Error(t, err, "update with an unshipped harness value must be rejected")
+	})
 
 	t.Run("human operator gets both scopes snapshotted", func(t *testing.T) {
 		exec, err := humanClients.AgentExecutionCommand.Create(ctx, &agentexecv1.AgentExecution{
@@ -154,4 +189,20 @@ func TestAgentExecution_DeclaredPreferences(t *testing.T) {
 		assert.Empty(t, persisted.GetSpec().GetDeclaredPreferences().GetOrgContext())
 		assert.Empty(t, persisted.GetSpec().GetDeclaredPreferences().GetUserContext())
 	})
+}
+
+// persistedAccountForUpdate loads a fresh copy of the account so an update
+// test can mutate it without disturbing the shared fixture (updates are
+// full-spec replacements — a stale shared copy would wipe fields).
+func persistedAccountForUpdate(
+	t *testing.T,
+	ctx context.Context,
+	clients *harness.Clients,
+	id string,
+) *identityaccountv1.IdentityAccount {
+	t.Helper()
+	account, err := clients.IdentityAccountQuery.Get(ctx,
+		&identityaccountv1.IdentityAccountId{Value: id})
+	require.NoError(t, err, "load account for update")
+	return account
 }
