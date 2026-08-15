@@ -555,6 +555,23 @@ message ExecutionConfig {
   // registry entry declares a fast pricing variant, and requires model_name
   // to be set (validated fail-closed at create time).
   ServiceTier service_tier = 10 [(buf.validate.field).enum.defined_only = true];
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Thinking Mode
+  //
+  // Extended-reasoning variant for this execution's model calls.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // Thinking mode for this execution's model calls: disabled (the default)
+  // or enabled, where enabled selects the model's extended-reasoning variant.
+  //
+  // UNSPECIFIED/DISABLED: the model's base variant, pinned explicitly —
+  // never the provider account default. ENABLED: the model's thinking
+  // variant, billed at base per-token rates (reasoning tokens bill as
+  // output); valid only for models whose registry entry declares the
+  // thinking capability, and requires model_name to be set (validated
+  // fail-closed at create time). Combines freely with service_tier.
+  ThinkingMode thinking_mode = 11 [(buf.validate.field).enum.defined_only = true];
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

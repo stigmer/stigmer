@@ -254,6 +254,7 @@ type ExecutionConfigInput struct {
 	BuildFromPlan          bool
 	ApprovalMode           agentexecutionv1.ApprovalMode
 	ServiceTier            agentexecutionv1.ServiceTier
+	ThinkingMode           agentexecutionv1.ThinkingMode
 }
 
 // ContextManagementConfigInput is the SDK input type for ContextManagementConfig.
@@ -443,6 +444,7 @@ func (i *ExecutionConfigInput) toProto() (*agentexecutionv1.ExecutionConfig, err
 	p.BuildFromPlan = i.BuildFromPlan
 	p.ApprovalMode = i.ApprovalMode
 	p.ServiceTier = i.ServiceTier
+	p.ThinkingMode = i.ThinkingMode
 	return p, nil
 }
 
@@ -610,6 +612,7 @@ func executionConfigInputFromProto(p *agentexecutionv1.ExecutionConfig) *Executi
 	input.BuildFromPlan = p.GetBuildFromPlan()
 	input.ApprovalMode = p.GetApprovalMode()
 	input.ServiceTier = p.GetServiceTier()
+	input.ThinkingMode = p.GetThinkingMode()
 	return input
 }
 

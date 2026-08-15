@@ -758,6 +758,12 @@ export interface AgentCallRunConfig {
    * ("standard"/"fast") to these, mirroring harness.
    */
   readonly service_tier?: string;
+  /**
+   * Canonical ThinkingMode enum name ("THINKING_MODE_DISABLED" /
+   * "THINKING_MODE_ENABLED"); the loader maps the YAML shorthands
+   * ("disabled"/"enabled") to these, mirroring service_tier (#772).
+   */
+  readonly thinking_mode?: string;
 }
 
 export interface AgentCallOutputContract {

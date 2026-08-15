@@ -569,6 +569,49 @@ channel card action.
 />
 
 
+### ChannelRunConfigDialog
+
+Edits an installed channel's run settings (`AgentChannelSpec.run_config`)
+— the console's first run_config editor (stigmer/stigmer#792), replacing
+the Edit-YAML detour for the model pin the write-time validation guards
+(stigmer/stigmer#774).
+
+Speaks the schedule form's vocabulary (DD-018 D-5): the model pin uses
+the composer's own [`ModelSelector`](/docs/sdk/react/models#modelselector) (with the fast-tier and
+thinking switches, #357/#772) and the budget is the one run bound a
+user owns; `max_tool_rounds` is an operator knob, API-reachable only —
+preserved verbatim on save, never rendered.
+
+The harness dropdown is a browsing scope for the picker, initialized to
+cursor (the platform's channel-serving default): channels carry no
+per-channel harness — the serving harness is a platform property — and
+the write-time model-pin validation judges the pin against any harness
+section, so pinning under either scope is legitimate.
+
+Saves are full-input applies via [`agentChannelToInput`](#agentchanneltoinput), so the
+agent reference, provider marker, credential bindings, and install
+status all survive; clearing the model with no budget set is an
+explicit reset to the platform defaults (`run_config` absent). Untouched
+variant switches stay off the wire — unspecified-vs-explicit is a
+load-bearing ledger distinction (#357).
+
+Built on the native `<dialog>` element, matching the SDK's modal
+convention. Most hosts mount it via [`AgentChannelsPanel`](#agentchannelspanel)'s
+channel card action.
+
+**Props** — `ChannelRunConfigDialogProps`
+
+<TypeTable
+  type={{
+    channel: { type: "AgentChannel", description: "The channel whose run settings are edited.", required: true },
+    modal: { type: "boolean", description: "When `false`, renders as an in-flow open dialog instead of a top-layer modal — for embedding in constrained surfaces (documentation demos, visual tests). Interactive hosts keep the default." },
+    onOpenChange: { type: "(open: boolean) => void", description: "Called when the dialog requests an open-state change.", required: true },
+    onSaved: { type: "() => void", description: "Called after a successful save (hosts typically pass `refetch`)." },
+    open: { type: "boolean", description: "Whether the dialog is open.", required: true },
+  }}
+/>
+
+
 ### ChannelTemplatesDialog
 
 Lists a channel's message templates as the provider's registry

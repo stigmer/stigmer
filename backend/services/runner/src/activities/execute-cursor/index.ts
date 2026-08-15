@@ -138,6 +138,7 @@ import { setInterceptorExecutionId, runWithExecutionContext } from "./fetch-inte
 import { closeProxySessions } from "./http2-interceptor.js";
 import { resolveModelId, ensureLoaded as ensurePricingLoaded } from "./model-pricing.js";
 import { resolveEffectiveServiceTier } from "../../shared/service-tier.js";
+import { resolveEffectiveThinkingMode } from "../../shared/thinking-mode.js";
 import { resolveServiceTierParams } from "./service-tier.js";
 import { UsageAccumulator } from "./usage-accumulator.js";
 import { StreamingUsageSummarySchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
@@ -960,9 +961,10 @@ async function executeCursorInner(
     await ensurePricingLoaded();
     setupTiming.mark("load_pricing");
 
-    // Phase 6: Validate model selection and resolve the service tier.
-    // UNSPECIFIED → STANDARD resolves here and nowhere else (#357): every
-    // upstream layer preserves the caller's raw enum value.
+    // Phase 6: Validate model selection and resolve the variant attributes.
+    // UNSPECIFIED → STANDARD (#357) and UNSPECIFIED → DISABLED (#772)
+    // resolve here and nowhere else: every upstream layer preserves the
+    // caller's raw enum values.
     const requestedModel = spec.executionConfig?.modelName || "default";
     const validatedModel = resolveModelId(requestedModel);
     if (validatedModel !== requestedModel) {
@@ -971,6 +973,7 @@ async function executeCursorInner(
       );
     }
     const requestedServiceTier = resolveEffectiveServiceTier(spec.executionConfig?.serviceTier);
+    const requestedThinkingMode = resolveEffectiveThinkingMode(spec.executionConfig?.thinkingMode);
 
     heartbeat();
 
@@ -1005,13 +1008,15 @@ async function executeCursorInner(
       );
     }
 
-    // Translate the tier into the explicit variant params sent with every
-    // create/resume. Never a bare { id }: the catalog's default variant is
-    // account-influenced and picks the price (#357).
+    // Translate the tier + thinking mode into the explicit variant params
+    // sent with every create/resume. Never a bare { id }: the catalog's
+    // default variant is account-influenced and picks the served variant
+    // (#357 fast pricing, #772 thinking).
     const modelParams = await resolveServiceTierParams({
       apiKey: effectiveApiKey,
       modelId: validatedModel,
       tier: requestedServiceTier,
+      thinking: requestedThinkingMode,
       executionId,
     });
 
@@ -1228,6 +1233,7 @@ async function executeCursorInner(
       validatedModel,
       requestedServiceTier,
       modelParams,
+      requestedThinkingMode,
     );
 
     // Phase 10c: Start OTel turn span. Coarse-grained — spans the whole turn

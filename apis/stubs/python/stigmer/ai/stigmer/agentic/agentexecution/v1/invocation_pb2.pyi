@@ -29,13 +29,15 @@ class AgentInvocation(_message.Message):
     def __init__(self, agent_ref: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ..., message: _Optional[str] = ..., harness: _Optional[_Union[_enum_pb2_1.Harness, str]] = ..., workspace_entries: _Optional[_Iterable[_Union[_workspace_pb2.WorkspaceEntry, _Mapping]]] = ..., environment_refs: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., run_config: _Optional[_Union[RunConfig, _Mapping]] = ...) -> None: ...
 
 class RunConfig(_message.Message):
-    __slots__ = ("model_name", "max_cost_usd", "max_tool_rounds", "service_tier")
+    __slots__ = ("model_name", "max_cost_usd", "max_tool_rounds", "service_tier", "thinking_mode")
     MODEL_NAME_FIELD_NUMBER: _ClassVar[int]
     MAX_COST_USD_FIELD_NUMBER: _ClassVar[int]
     MAX_TOOL_ROUNDS_FIELD_NUMBER: _ClassVar[int]
     SERVICE_TIER_FIELD_NUMBER: _ClassVar[int]
+    THINKING_MODE_FIELD_NUMBER: _ClassVar[int]
     model_name: str
     max_cost_usd: float
     max_tool_rounds: int
     service_tier: _enum_pb2.ServiceTier
-    def __init__(self, model_name: _Optional[str] = ..., max_cost_usd: _Optional[float] = ..., max_tool_rounds: _Optional[int] = ..., service_tier: _Optional[_Union[_enum_pb2.ServiceTier, str]] = ...) -> None: ...
+    thinking_mode: _enum_pb2.ThinkingMode
+    def __init__(self, model_name: _Optional[str] = ..., max_cost_usd: _Optional[float] = ..., max_tool_rounds: _Optional[int] = ..., service_tier: _Optional[_Union[_enum_pb2.ServiceTier, str]] = ..., thinking_mode: _Optional[_Union[_enum_pb2.ThinkingMode, str]] = ...) -> None: ...

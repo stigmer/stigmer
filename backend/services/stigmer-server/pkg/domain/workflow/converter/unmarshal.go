@@ -95,10 +95,16 @@ func unmarshalTaskConfig(
 
 // normalizeEnumShorthands rewrites user-friendly DSL forms to the shapes
 // protojson expects: harness shorthands ("cursor" → "HARNESS_CURSOR"),
-// run_config service-tier shorthands ("fast" → "SERVICE_TIER_FAST"), and
-// the environment_refs kind default (an omitted kind means environment —
+// run_config service-tier shorthands ("fast" → "SERVICE_TIER_FAST"),
+// run_config thinking-mode shorthands ("enabled" → "THINKING_MODE_ENABLED"),
+// and the environment_refs kind default (an omitted kind means environment —
 // the field can reference nothing else, so requiring authors to spell it
 // would be ceremony).
+//
+// Shorthand matching is case-insensitive on purpose: a capitalized
+// shorthand ("Fast") that fell through to protojson would fail loudly
+// today, but the original #357 shape silently validated one thing and
+// executed another — normalize-then-parse in ONE place is the guard.
 func normalizeEnumShorthands(kind workflowv1.WorkflowTaskKind, jsonBytes []byte) []byte {
 	if kind != workflowv1.WorkflowTaskKind_agent_call {
 		return jsonBytes
@@ -132,6 +138,16 @@ func normalizeEnumShorthands(kind workflowv1.WorkflowTaskKind, jsonBytes []byte)
 				changed = true
 			case "fast":
 				rc["service_tier"] = "SERVICE_TIER_FAST"
+				changed = true
+			}
+		}
+		if tm, isStr := rc["thinking_mode"].(string); isStr {
+			switch strings.ToLower(tm) {
+			case "disabled":
+				rc["thinking_mode"] = "THINKING_MODE_DISABLED"
+				changed = true
+			case "enabled":
+				rc["thinking_mode"] = "THINKING_MODE_ENABLED"
 				changed = true
 			}
 		}

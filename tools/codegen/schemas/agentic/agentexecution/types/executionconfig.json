@@ -119,6 +119,21 @@
       },
       "description": "Service tier for this execution's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one.\n\n UNSPECIFIED/STANDARD: the model's base-priced configuration, requested\n explicitly — never the provider account default. FAST: the model's fast\n variant at the registry's fast rates; valid only for models whose\n registry entry declares a fast pricing variant, and requires model_name\n to be set (validated fail-closed at create time).",
       "required": false
+    },
+    {
+      "name": "ThinkingMode",
+      "jsonName": "thinkingMode",
+      "protoField": "thinking_mode",
+      "type": {
+        "kind": "string",
+        "enumType": "ai.stigmer.agentic.agentexecution.v1.ThinkingMode",
+        "enumValues": [
+          "THINKING_MODE_DISABLED",
+          "THINKING_MODE_ENABLED"
+        ]
+      },
+      "description": "Thinking mode for this execution's model calls: disabled (the default)\n or enabled, where enabled selects the model's extended-reasoning variant.\n\n UNSPECIFIED/DISABLED: the model's base variant, pinned explicitly —\n never the provider account default. ENABLED: the model's thinking\n variant, billed at base per-token rates (reasoning tokens bill as\n output); valid only for models whose registry entry declares the\n thinking capability, and requires model_name to be set (validated\n fail-closed at create time). Combines freely with service_tier.",
+      "required": false
     }
   ]
 }

@@ -116,7 +116,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "be empty \342\200\224 harness state is created by" +
       " the runner after the first execution\032C!" +
       "has(this.session_spec) || this.session_s" +
-      "pec.harness_state_id == \'\'\"\305\005\n\017Execution" +
+      "pec.harness_state_id == \'\'\"\250\006\n\017Execution" +
       "Config\022\035\n\nmodel_name\030\001 \001(\tR\tmodelName\022l\n" +
       "\022context_management\030\002 \001(\0132=.ai.stigmer.a" +
       "gentic.agentexecution.v1.ContextManageme" +
@@ -134,32 +134,35 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "on.v1.ApprovalModeB\010\272H\005\202\001\002\020\001R\014approvalMo" +
       "de\022^\n\014service_tier\030\n \001(\01621.ai.stigmer.ag" +
       "entic.agentexecution.v1.ServiceTierB\010\272H\005" +
-      "\202\001\002\020\001R\013serviceTier\"\314\001\n\027ContextManagement" +
-      "Config\0223\n\025disable_summarization\030\001 \001(\010R\024d" +
-      "isableSummarization\022A\n\030custom_trigger_th" +
-      "reshold\030\002 \001(\005B\007\272H\004\032\002(\000R\026customTriggerThr" +
-      "eshold\0229\n\024custom_target_tokens\030\003 \001(\005B\007\272H" +
-      "\004\032\002(\000R\022customTargetTokens\"\226\003\n\nAttachment" +
-      "\022\342\001\n\010filename\030\001 \001(\tB\305\001\272H\301\001r\002\020\001\272\001\271\001\n\033atta" +
-      "chment.filename.no_path\022Nfilename must b" +
-      "e a bare filename without path separator" +
-      "s or traversal segments\032J!this.contains(" +
-      "\'/\') && !this.contains(\'\\\\\') && this != " +
-      "\'.\' && this != \'..\'R\010filename\022(\n\013storage" +
-      "_key\030\002 \001(\tB\007\272H\004r\002\020\001R\nstorageKey\022\035\n\nmount" +
-      "_path\030\003 \001(\tR\tmountPath\022!\n\014content_type\030\004" +
-      " \001(\tR\013contentType\022\030\n\007extract\030\005 \001(\010R\007extr" +
-      "act\022\035\n\nlocal_path\030\006 \001(\tR\tlocalPath\"h\n\023Co" +
-      "nversationCatchup\022\026\n\006digest\030\001 \001(\tR\006diges" +
-      "t\0229\n\nwindow_end\030\002 \001(\0132\032.google.protobuf." +
-      "TimestampR\twindowEnd\"Y\n\023DeclaredPreferen" +
-      "ces\022\037\n\013org_context\030\001 \001(\tR\norgContext\022!\n\014" +
-      "user_context\030\002 \001(\tR\013userContextB\300\001B\tSpec" +
-      "ProtoP\001\242\002\004ASAA\252\002$Ai.Stigmer.Agentic.Agen" +
-      "texecution.V1\312\002$Ai\\Stigmer\\Agentic\\Agent" +
-      "execution\\V1\342\0020Ai\\Stigmer\\Agentic\\Agente" +
-      "xecution\\V1\\GPBMetadata\352\002(Ai::Stigmer::A" +
-      "gentic::Agentexecution::V1b\006proto3"
+      "\202\001\002\020\001R\013serviceTier\022a\n\rthinking_mode\030\013 \001(" +
+      "\01622.ai.stigmer.agentic.agentexecution.v1" +
+      ".ThinkingModeB\010\272H\005\202\001\002\020\001R\014thinkingMode\"\314\001" +
+      "\n\027ContextManagementConfig\0223\n\025disable_sum" +
+      "marization\030\001 \001(\010R\024disableSummarization\022A" +
+      "\n\030custom_trigger_threshold\030\002 \001(\005B\007\272H\004\032\002(" +
+      "\000R\026customTriggerThreshold\0229\n\024custom_targ" +
+      "et_tokens\030\003 \001(\005B\007\272H\004\032\002(\000R\022customTargetTo" +
+      "kens\"\226\003\n\nAttachment\022\342\001\n\010filename\030\001 \001(\tB\305" +
+      "\001\272H\301\001r\002\020\001\272\001\271\001\n\033attachment.filename.no_pa" +
+      "th\022Nfilename must be a bare filename wit" +
+      "hout path separators or traversal segmen" +
+      "ts\032J!this.contains(\'/\') && !this.contain" +
+      "s(\'\\\\\') && this != \'.\' && this != \'..\'R\010" +
+      "filename\022(\n\013storage_key\030\002 \001(\tB\007\272H\004r\002\020\001R\n" +
+      "storageKey\022\035\n\nmount_path\030\003 \001(\tR\tmountPat" +
+      "h\022!\n\014content_type\030\004 \001(\tR\013contentType\022\030\n\007" +
+      "extract\030\005 \001(\010R\007extract\022\035\n\nlocal_path\030\006 \001" +
+      "(\tR\tlocalPath\"h\n\023ConversationCatchup\022\026\n\006" +
+      "digest\030\001 \001(\tR\006digest\0229\n\nwindow_end\030\002 \001(\013" +
+      "2\032.google.protobuf.TimestampR\twindowEnd\"" +
+      "Y\n\023DeclaredPreferences\022\037\n\013org_context\030\001 " +
+      "\001(\tR\norgContext\022!\n\014user_context\030\002 \001(\tR\013u" +
+      "serContextB\300\001B\tSpecProtoP\001\242\002\004ASAA\252\002$Ai.S" +
+      "tigmer.Agentic.Agentexecution.V1\312\002$Ai\\St" +
+      "igmer\\Agentic\\Agentexecution\\V1\342\0020Ai\\Sti" +
+      "gmer\\Agentic\\Agentexecution\\V1\\GPBMetada" +
+      "ta\352\002(Ai::Stigmer::Agentic::Agentexecutio" +
+      "n::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -188,7 +191,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_agentexecution_v1_ExecutionConfig_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_ExecutionConfig_descriptor,
-        new java.lang.String[] { "ModelName", "ContextManagement", "MaxToolRounds", "MaxToolResultChars", "MaxCostUsd", "InteractionMode", "StructuredOutputSchema", "BuildFromPlan", "ApprovalMode", "ServiceTier", });
+        new java.lang.String[] { "ModelName", "ContextManagement", "MaxToolRounds", "MaxToolResultChars", "MaxCostUsd", "InteractionMode", "StructuredOutputSchema", "BuildFromPlan", "ApprovalMode", "ServiceTier", "ThinkingMode", });
     internal_static_ai_stigmer_agentic_agentexecution_v1_ContextManagementConfig_descriptor =
       getDescriptor().getMessageType(2);
     internal_static_ai_stigmer_agentic_agentexecution_v1_ContextManagementConfig_fieldAccessorTable = new

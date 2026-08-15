@@ -332,4 +332,39 @@ public interface ExecutionConfigOrBuilder extends
    * @return The serviceTier.
    */
   ai.stigmer.agentic.agentexecution.v1.ServiceTier getServiceTier();
+
+  /**
+   * <pre>
+   * Thinking mode for this execution's model calls: disabled (the default)
+   * or enabled, where enabled selects the model's extended-reasoning variant.
+   *
+   * UNSPECIFIED/DISABLED: the model's base variant, pinned explicitly —
+   * never the provider account default. ENABLED: the model's thinking
+   * variant, billed at base per-token rates (reasoning tokens bill as
+   * output); valid only for models whose registry entry declares the
+   * thinking capability, and requires model_name to be set (validated
+   * fail-closed at create time). Combines freely with service_tier.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ThinkingMode thinking_mode = 11 [json_name = "thinkingMode", (.buf.validate.field) = { ... }</code>
+   * @return The enum numeric value on the wire for thinkingMode.
+   */
+  int getThinkingModeValue();
+  /**
+   * <pre>
+   * Thinking mode for this execution's model calls: disabled (the default)
+   * or enabled, where enabled selects the model's extended-reasoning variant.
+   *
+   * UNSPECIFIED/DISABLED: the model's base variant, pinned explicitly —
+   * never the provider account default. ENABLED: the model's thinking
+   * variant, billed at base per-token rates (reasoning tokens bill as
+   * output); valid only for models whose registry entry declares the
+   * thinking capability, and requires model_name to be set (validated
+   * fail-closed at create time). Combines freely with service_tier.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ThinkingMode thinking_mode = 11 [json_name = "thinkingMode", (.buf.validate.field) = { ... }</code>
+   * @return The thinkingMode.
+   */
+  ai.stigmer.agentic.agentexecution.v1.ThinkingMode getThinkingMode();
 }

@@ -1,4 +1,5 @@
 import type { ServiceTierOption } from "../models/service-tier.js";
+import type { ThinkingModeOption } from "../models/thinking-mode.js";
 
 /**
  * Owner-pinned execution config for a session surface
@@ -39,6 +40,14 @@ export interface SessionRunConfig {
    * pin is a host configuration error and throws at submit.
    */
   readonly serviceTier?: ServiceTierOption;
+  /**
+   * Thinking mode for every execution (stigmer/stigmer#772).
+   * `"enabled"` requires {@link modelName} under the same contract as
+   * {@link serviceTier}: thinking is a per-model capability (the server
+   * refuses it fail-closed for Auto), so a mode pin without a model pin
+   * is a host configuration error and throws at submit.
+   */
+  readonly thinkingMode?: ThinkingModeOption;
 }
 
 /**
@@ -54,6 +63,13 @@ export function assertValidRunConfig(runConfig: SessionRunConfig): void {
       "SessionRunConfig: serviceTier \"fast\" requires modelName — the fast "
         + "tier is a per-model price and Auto (no pinned model) has no tier "
         + "dimension. Pin the model the surface should run.",
+    );
+  }
+  if (runConfig.thinkingMode === "enabled" && !runConfig.modelName) {
+    throw new Error(
+      "SessionRunConfig: thinkingMode \"enabled\" requires modelName — "
+        + "thinking is a per-model capability and Auto (no pinned model) has "
+        + "no variant dimensions. Pin the model the surface should run.",
     );
   }
 }

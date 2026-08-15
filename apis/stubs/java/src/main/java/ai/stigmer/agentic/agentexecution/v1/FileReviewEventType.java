@@ -191,7 +191,7 @@ public enum FileReviewEventType
   }
   public static com.google.protobuf.Descriptors.EnumDescriptor
       getDescriptor() {
-    return ai.stigmer.agentic.agentexecution.v1.EnumProto.getDescriptor().getEnumType(27);
+    return ai.stigmer.agentic.agentexecution.v1.EnumProto.getDescriptor().getEnumType(28);
   }
 
   private static final FileReviewEventType[] VALUES = values();

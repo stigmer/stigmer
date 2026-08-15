@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { FileCode2, KeyRound, LayoutTemplate, MessageSquare, MoreHorizontal, Share2, Trash2 } from "lucide-react";
+import { FileCode2, KeyRound, LayoutTemplate, MessageSquare, MoreHorizontal, Share2, SlidersHorizontal, Trash2 } from "lucide-react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
@@ -25,6 +25,7 @@ import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
 import { TruncatedText } from "../internal/truncated-text.js";
 import { ChannelConversationsDialog } from "./ChannelConversationsDialog.js";
 import { ChannelCredentialsDialog } from "./ChannelCredentialsDialog.js";
+import { ChannelRunConfigDialog } from "./ChannelRunConfigDialog.js";
 import { ChannelTemplatesDialog } from "./ChannelTemplatesDialog.js";
 import { ConnectSlackDialog } from "./ConnectSlackDialog.js";
 import { ConnectWhatsAppDialog } from "./ConnectWhatsAppDialog.js";
@@ -160,6 +161,7 @@ export function AgentChannelsPanel({
 
   // The channel being edited as YAML (the kind-agnostic manifest flow).
   const [editingYaml, setEditingYaml] = useState<AgentChannel | null>(null);
+  const [editingRunConfig, setEditingRunConfig] = useState<AgentChannel | null>(null);
 
   const handleConnect = useCallback(
     (channel: AgentChannel | null, provider: ChannelProviderDescriptor) => {
@@ -305,6 +307,7 @@ export function AgentChannelsPanel({
                   onViewConversations={() => setViewingConversations(channel)}
                   onViewTemplates={() => setViewingTemplates(channel)}
                   onEditYaml={() => setEditingYaml(channel)}
+                  onEditRunConfig={() => setEditingRunConfig(channel)}
                   refetch={refetch}
                 />
               );
@@ -390,6 +393,17 @@ export function AgentChannelsPanel({
         />
       )}
 
+      {editingRunConfig && (
+        <ChannelRunConfigDialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setEditingRunConfig(null);
+          }}
+          channel={editingRunConfig}
+          onSaved={refetch}
+        />
+      )}
+
       <ConfirmDialog
         state={confirmState}
         onConfirm={handleConfirm}
@@ -415,6 +429,7 @@ interface ChannelCardProps {
   readonly onViewConversations: () => void;
   readonly onViewTemplates: () => void;
   readonly onEditYaml: () => void;
+  readonly onEditRunConfig: () => void;
   readonly refetch: () => void;
 }
 
@@ -429,6 +444,7 @@ function ChannelCard({
   onViewConversations,
   onViewTemplates,
   onEditYaml,
+  onEditRunConfig,
   refetch,
 }: ChannelCardProps) {
   const meta = channel.metadata;
@@ -582,6 +598,15 @@ function ChannelCard({
                   data-cursor-target="channel-templates"
                 >
                   Templates
+                </ActionMenu.Item>
+              )}
+              {canEdit && (
+                <ActionMenu.Item
+                  icon={<SlidersHorizontal />}
+                  onSelect={onEditRunConfig}
+                  data-cursor-target="channel-run-config"
+                >
+                  Run settings
                 </ActionMenu.Item>
               )}
               {canEdit && (

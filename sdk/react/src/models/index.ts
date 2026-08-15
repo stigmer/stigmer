@@ -13,3 +13,5 @@ export { DEFAULT_HARNESS, HARNESS_LABELS, HARNESS_META, HARNESS_OPTIONS, toProto
 export type { HarnessOption, HarnessDisplayInfo } from "./harness.js";
 export { FAST_SERVICE_TIER, toProtoServiceTier, fromProtoServiceTier } from "./service-tier.js";
 export type { ServiceTierOption } from "./service-tier.js";
+export { toProtoThinkingMode, fromProtoThinkingMode } from "./thinking-mode.js";
+export type { ThinkingModeOption } from "./thinking-mode.js";

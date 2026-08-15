@@ -92,4 +92,47 @@ public interface RunConfigOrBuilder extends
    * @return The serviceTier.
    */
   ai.stigmer.agentic.agentexecution.v1.ServiceTier getServiceTier();
+
+  /**
+   * <pre>
+   * Thinking mode for each run's model calls: disabled (the default) or
+   * enabled, where enabled selects the model's extended-reasoning variant
+   * (billed at base per-token rates — reasoning tokens bill as output).
+   *
+   * In workflow YAML the shorthand spellings "disabled"/"enabled" are
+   * accepted alongside the canonical enum names.
+   *
+   * Mirrors ExecutionConfig.thinking_mode: UNSPECIFIED inherits the
+   * surface's platform default, which itself resolves to DISABLED —
+   * never the provider account default. ENABLED requires model_name
+   * (here or from the platform profile) to name a model whose registry
+   * entry declares the thinking capability; validated fail-closed at
+   * create. Combines freely with service_tier.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ThinkingMode thinking_mode = 5 [json_name = "thinkingMode", (.buf.validate.field) = { ... }</code>
+   * @return The enum numeric value on the wire for thinkingMode.
+   */
+  int getThinkingModeValue();
+  /**
+   * <pre>
+   * Thinking mode for each run's model calls: disabled (the default) or
+   * enabled, where enabled selects the model's extended-reasoning variant
+   * (billed at base per-token rates — reasoning tokens bill as output).
+   *
+   * In workflow YAML the shorthand spellings "disabled"/"enabled" are
+   * accepted alongside the canonical enum names.
+   *
+   * Mirrors ExecutionConfig.thinking_mode: UNSPECIFIED inherits the
+   * surface's platform default, which itself resolves to DISABLED —
+   * never the provider account default. ENABLED requires model_name
+   * (here or from the platform profile) to name a model whose registry
+   * entry declares the thinking capability; validated fail-closed at
+   * create. Combines freely with service_tier.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ThinkingMode thinking_mode = 5 [json_name = "thinkingMode", (.buf.validate.field) = { ... }</code>
+   * @return The thinkingMode.
+   */
+  ai.stigmer.agentic.agentexecution.v1.ThinkingMode getThinkingMode();
 }

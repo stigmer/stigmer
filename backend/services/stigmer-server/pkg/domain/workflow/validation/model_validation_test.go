@@ -30,6 +30,10 @@ func makeAgentCallTask(name string, harness string, model string) *workflowv1.Wo
 }
 
 func makeAgentCallTaskWithTier(name, harness, model, serviceTier string) *workflowv1.WorkflowTask {
+	return makeAgentCallTaskWithVariants(name, harness, model, serviceTier, "")
+}
+
+func makeAgentCallTaskWithVariants(name, harness, model, serviceTier, thinkingMode string) *workflowv1.WorkflowTask {
 	config := map[string]interface{}{
 		"agent":   "test-agent",
 		"message": "test message",
@@ -40,6 +44,9 @@ func makeAgentCallTaskWithTier(name, harness, model, serviceTier string) *workfl
 	}
 	if serviceTier != "" {
 		runConfig["service_tier"] = serviceTier
+	}
+	if thinkingMode != "" {
+		runConfig["thinking_mode"] = thinkingMode
 	}
 	if len(runConfig) > 0 {
 		config["run_config"] = runConfig
@@ -307,6 +314,80 @@ func TestValidateModelReferences_ServiceTier(t *testing.T) {
 			task:         makeAgentCallTaskWithTier("triage", "native", "composer-2.5", "fast"),
 			wantErrors:   2,
 			wantContains: "on harness 'native'",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			spec := &workflowv1.WorkflowSpec{Tasks: []*workflowv1.WorkflowTask{tt.task}}
+			errors := ValidateModelReferences(spec)
+			if len(errors) != tt.wantErrors {
+				t.Fatalf("expected %d errors, got %d: %v", tt.wantErrors, len(errors), errors)
+			}
+			if tt.wantContains != "" && !strings.Contains(errors[0], tt.wantContains) {
+				t.Errorf("expected error to contain %q, got: %s", tt.wantContains, errors[0])
+			}
+		})
+	}
+}
+
+// Fail-closed thinking-mode validation for agent_call run_config
+// (stigmer/stigmer#772) — capability-gated and harness-scoped, the twin of
+// the service-tier cases above. Bundle facts: claude-opus-4-6 declares
+// capabilities.thinking under cursor; composer-2.5 declares thinking=false;
+// claude-sonnet-4.6 declares it under native only (no thinking wire
+// mapping in v1 — refused with the ordinary model-for-harness rules).
+func TestValidateModelReferences_ThinkingMode(t *testing.T) {
+	tests := []struct {
+		name         string
+		task         *workflowv1.WorkflowTask
+		wantErrors   int
+		wantContains string
+	}{
+		{
+			name:       "ENABLED with a thinking-capable cursor model passes",
+			task:       makeAgentCallTaskWithVariants("triage", "cursor", "claude-opus-4-6", "", "enabled"),
+			wantErrors: 0,
+		},
+		{
+			name:       "ENABLED combines freely with FAST on a capable model",
+			task:       makeAgentCallTaskWithVariants("triage", "cursor", "claude-opus-4-6", "fast", "enabled"),
+			wantErrors: 0,
+		},
+		{
+			// Case-insensitive shorthand normalization (the #357 "Fast"
+			// fail-open lesson): a capitalized shorthand must normalize and
+			// then validate — never validate one thing and execute another.
+			name:         "capitalized shorthand normalizes before validating",
+			task:         makeAgentCallTaskWithVariants("triage", "cursor", "composer-2.5", "", "Enabled"),
+			wantErrors:   1,
+			wantContains: "declares no thinking capability",
+		},
+		{
+			name:       "explicit disabled passes without a model",
+			task:       makeAgentCallTaskWithVariants("triage", "cursor", "", "", "disabled"),
+			wantErrors: 0,
+		},
+		{
+			name:         "ENABLED without model_name fails closed",
+			task:         makeAgentCallTaskWithVariants("triage", "cursor", "", "", "enabled"),
+			wantErrors:   1,
+			wantContains: "requires run_config.model_name",
+		},
+		{
+			name:         "ENABLED on a model without the capability fails closed",
+			task:         makeAgentCallTaskWithVariants("triage", "cursor", "composer-2.5", "", "enabled"),
+			wantErrors:   1,
+			wantContains: "declares no thinking capability",
+		},
+		{
+			// claude-sonnet-4.6 declares thinking — but under the native
+			// harness. A cursor agent_call must not validate it: the second
+			// error is the ordinary model-for-harness refusal.
+			name:         "capability declared only under another harness fails closed",
+			task:         makeAgentCallTaskWithVariants("triage", "cursor", "claude-sonnet-4.6", "", "enabled"),
+			wantErrors:   2,
+			wantContains: "on harness 'cursor'",
 		},
 	}
 

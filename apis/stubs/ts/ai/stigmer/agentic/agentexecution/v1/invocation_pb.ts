@@ -4,7 +4,7 @@
 
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
-import type { ServiceTier } from "./enum_pb.js";
+import type { ServiceTier, ThinkingMode } from "./enum_pb.js";
 import { file_ai_stigmer_agentic_agentexecution_v1_enum } from "./enum_pb.js";
 import type { Harness } from "../../session/v1/enum_pb.js";
 import { file_ai_stigmer_agentic_session_v1_enum } from "../../session/v1/enum_pb.js";
@@ -20,7 +20,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentexecution/v1/invocation.proto.
  */
 export const file_ai_stigmer_agentic_agentexecution_v1_invocation: GenFile = /*@__PURE__*/
-  fileDesc("CjVhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvaW52b2NhdGlvbi5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxIvAECg9BZ2VudEludm9jYXRpb24SrAEKCWFnZW50X3JlZhgBIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJjukhcugFWCg5hZ2VudF9yZWYua2luZBIzYWdlbnRfcmVmIG11c3QgcmVmZXJlbmNlIGEgcmVzb3VyY2Ugd2l0aCBraW5kPWFnZW50Gg90aGlzLmtpbmQgPT0gNDDIAQHghSwoEhsKB21lc3NhZ2UYAiABKAlCCrpIB3IFEAEYgEASNwoHaGFybmVzcxgDIAEoDjImLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkhhcm5lc3MSSAoRd29ya3NwYWNlX2VudHJpZXMYBCADKAsyLS5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5Xb3Jrc3BhY2VFbnRyeRLIAQoQZW52aXJvbm1lbnRfcmVmcxgFIAMoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJ4ukhxkgFuImy6AWkKFWVudmlyb25tZW50X3JlZnMua2luZBI/ZW52aXJvbm1lbnRfcmVmcyBtdXN0IHJlZmVyZW5jZSByZXNvdXJjZXMgd2l0aCBraW5kPWVudmlyb25tZW50Gg90aGlzLmtpbmQgPT0gNTPghSw1EkMKCnJ1bl9jb25maWcYBiABKAsyLy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuUnVuQ29uZmlnIroBCglSdW5Db25maWcSEgoKbW9kZWxfbmFtZRgBIAEoCRIkCgxtYXhfY29zdF91c2QYAiABKAFCDrpICxIJKQAAAAAAAAAAEiAKD21heF90b29sX3JvdW5kcxgDIAEoBUIHukgEGgIoABJRCgxzZXJ2aWNlX3RpZXIYBCABKA4yMS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuU2VydmljZVRpZXJCCLpIBYIBAhABYgZwcm90bzM", [file_ai_stigmer_agentic_agentexecution_v1_enum, file_ai_stigmer_agentic_session_v1_enum, file_ai_stigmer_agentic_session_v1_workspace, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
+  fileDesc("CjVhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvaW52b2NhdGlvbi5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxIvAECg9BZ2VudEludm9jYXRpb24SrAEKCWFnZW50X3JlZhgBIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJjukhcugFWCg5hZ2VudF9yZWYua2luZBIzYWdlbnRfcmVmIG11c3QgcmVmZXJlbmNlIGEgcmVzb3VyY2Ugd2l0aCBraW5kPWFnZW50Gg90aGlzLmtpbmQgPT0gNDDIAQHghSwoEhsKB21lc3NhZ2UYAiABKAlCCrpIB3IFEAEYgEASNwoHaGFybmVzcxgDIAEoDjImLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkhhcm5lc3MSSAoRd29ya3NwYWNlX2VudHJpZXMYBCADKAsyLS5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5Xb3Jrc3BhY2VFbnRyeRLIAQoQZW52aXJvbm1lbnRfcmVmcxgFIAMoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJ4ukhxkgFuImy6AWkKFWVudmlyb25tZW50X3JlZnMua2luZBI/ZW52aXJvbm1lbnRfcmVmcyBtdXN0IHJlZmVyZW5jZSByZXNvdXJjZXMgd2l0aCBraW5kPWVudmlyb25tZW50Gg90aGlzLmtpbmQgPT0gNTPghSw1EkMKCnJ1bl9jb25maWcYBiABKAsyLy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuUnVuQ29uZmlnIo8CCglSdW5Db25maWcSEgoKbW9kZWxfbmFtZRgBIAEoCRIkCgxtYXhfY29zdF91c2QYAiABKAFCDrpICxIJKQAAAAAAAAAAEiAKD21heF90b29sX3JvdW5kcxgDIAEoBUIHukgEGgIoABJRCgxzZXJ2aWNlX3RpZXIYBCABKA4yMS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuU2VydmljZVRpZXJCCLpIBYIBAhABElMKDXRoaW5raW5nX21vZGUYBSABKA4yMi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuVGhpbmtpbmdNb2RlQgi6SAWCAQIQAWIGcHJvdG8z", [file_ai_stigmer_agentic_agentexecution_v1_enum, file_ai_stigmer_agentic_session_v1_enum, file_ai_stigmer_agentic_session_v1_workspace, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
 
 /**
  * AgentInvocation is what a caller may ask an agent to do.
@@ -147,6 +147,25 @@ export type RunConfig = Message<"ai.stigmer.agentic.agentexecution.v1.RunConfig"
    * @generated from field: ai.stigmer.agentic.agentexecution.v1.ServiceTier service_tier = 4;
    */
   serviceTier: ServiceTier;
+
+  /**
+   * Thinking mode for each run's model calls: disabled (the default) or
+   * enabled, where enabled selects the model's extended-reasoning variant
+   * (billed at base per-token rates — reasoning tokens bill as output).
+   *
+   * In workflow YAML the shorthand spellings "disabled"/"enabled" are
+   * accepted alongside the canonical enum names.
+   *
+   * Mirrors ExecutionConfig.thinking_mode: UNSPECIFIED inherits the
+   * surface's platform default, which itself resolves to DISABLED —
+   * never the provider account default. ENABLED requires model_name
+   * (here or from the platform profile) to name a model whose registry
+   * entry declares the thinking capability; validated fail-closed at
+   * create. Combines freely with service_tier.
+   *
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.ThinkingMode thinking_mode = 5;
+   */
+  thinkingMode: ThinkingMode;
 };
 
 /**

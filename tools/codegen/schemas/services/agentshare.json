@@ -654,6 +654,23 @@
           "description": "Fast tier: the model's fast variant, billed at the registry's fast\n variant rates.\n\n Valid only for models whose registry entry declares a fast pricing\n variant; refused at execution create otherwise."
         }
       ]
+    },
+    {
+      "name": "ThinkingMode",
+      "description": "ThinkingMode selects the model's extended-reasoning (\"thinking\") variant\n for an execution's model calls — the second variant dimension alongside\n ServiceTier (stigmer/stigmer#772).\n\n Unlike the fast tier, thinking is NOT a separately priced dimension:\n Cursor bills thinking variants at the model's base per-token rates\n (verified against the live pricing page and 277 team-ledger events on\n 2026-08-15 — thinking wire ids bill exactly base; thinking+fast bills\n exactly the fast variant rate). Thinking costs more only by generating\n additional reasoning tokens, billed as ordinary output. Selectability is\n therefore CAPABILITY-gated, not pricing-gated: ENABLED is valid only for\n models whose registry entry declares the thinking capability\n (capabilities.thinking), refused at create time otherwise.\n\n The load-bearing rule mirrors ServiceTier: UNSPECIFIED resolves to\n THINKING_MODE_DISABLED — never the provider account default. Several\n catalog default variants are thinking=true (claude-haiku-4-5), so an\n unpinned selection would silently follow an out-of-band account setting;\n the runner always sends an explicit thinking pin where the model declares\n the parameter.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.ThinkingMode",
+      "values": [
+        {
+          "name": "THINKING_MODE_DISABLED",
+          "number": 1,
+          "description": "Extended reasoning off: the model's base variant, requested explicitly\n (thinking=false pinned where the model declares the parameter)."
+        },
+        {
+          "name": "THINKING_MODE_ENABLED",
+          "number": 2,
+          "description": "Extended reasoning on: the model's thinking variant, billed at base\n per-token rates (reasoning tokens bill as output tokens).\n\n Valid only for models whose registry entry declares the thinking\n capability; refused at execution create otherwise."
+        }
+      ]
     }
   ],
   "resourceDescription": "AgentShare turns an agent into a hosted chat link with its own audience, embed origins, and tool credentials.\n\n A share is a distribution channel: it controls who can chat with the\n referenced agent over `/chat/\u003corg\u003e/\u003cslug\u003e`, which sites may embed the\n chat widget, what visitors see when a limit refuses them, and which\n environment credentials guest conversations receive. Deleting the share\n tears the channel down; disabling it pauses serving while preserving\n configuration. The referenced agent is never modified by share\n operations.",

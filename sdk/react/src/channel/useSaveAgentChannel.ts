@@ -66,9 +66,11 @@ export function agentChannelToInput(channel: AgentChannel): AgentChannelInput {
           })),
         }
       : {}),
-    // The console does not edit run_config (yet) — it rides through
-    // opaquely so a settings save or pause/resume toggle never wipes an
-    // override set via the CLI or API.
+    // run_config rides through verbatim so a settings save or
+    // pause/resume toggle never wipes an override set elsewhere (the
+    // ChannelRunConfigDialog — the one surface that edits it, #792 —
+    // overrides this copy with its own draft; CLI/API overrides survive
+    // every other save).
     ...(spec?.runConfig
       ? {
           runConfig: {
@@ -76,6 +78,7 @@ export function agentChannelToInput(channel: AgentChannel): AgentChannelInput {
             maxCostUsd: spec.runConfig.maxCostUsd,
             maxToolRounds: spec.runConfig.maxToolRounds,
             serviceTier: spec.runConfig.serviceTier,
+            thinkingMode: spec.runConfig.thinkingMode,
           },
         }
       : {}),

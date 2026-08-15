@@ -1,18 +1,23 @@
 /**
- * Service-tier → Cursor variant-parameter translation (stigmer/stigmer#357).
+ * Variant-attribute → Cursor variant-parameter translation
+ * (stigmer/stigmer#357 service tier, #772 thinking mode).
  *
  * The platform contract: an execution's model selection is ALWAYS explicit.
- * A bare `{ id }` lets the Cursor catalog's default variant decide the price
- * (observed 2026-08-06: composer-2.5 defaults to fast=true at ~4x base
- * rates, claude-haiku-4-5 to thinking=true), and that default follows an
- * out-of-band account setting. This module pins every price-bearing variant
- * parameter the model declares, so the billed variant is a deterministic
- * function of ExecutionConfig.service_tier:
+ * A bare `{ id }` lets the Cursor catalog's default variant decide the
+ * variant (observed 2026-08-06: composer-2.5 defaults to fast=true at ~4x
+ * base rates, claude-haiku-4-5 to thinking=true), and that default follows
+ * an out-of-band account setting. This module pins every user-selectable
+ * variant parameter the model declares, so the served variant is a
+ * deterministic function of the execution config:
  *
- * - STANDARD: every price-bearing boolean pinned to its base value
- *   (fast=false, thinking=false where the parameter exists).
- * - FAST: fast=true, thinking still pinned false.
- * - Price-neutral parameters (e.g. effort) are deliberately NOT pinned —
+ * - fast: pinned from ExecutionConfig.service_tier (FAST → true).
+ *   Price-bearing — the fast variant bills at pricingVariants.fast rates.
+ * - thinking: pinned from ExecutionConfig.thinking_mode (ENABLED → true).
+ *   Per-token price-neutral (ledger-verified 2026-08-15: thinking wire ids
+ *   bill exactly base rates; thinking+fast bills exactly the fast rate) —
+ *   pinned anyway because the served variant must never follow the account
+ *   default, and ENABLED turns consume more output (reasoning) tokens.
+ * - Parameters that are neither (e.g. effort) are deliberately NOT pinned —
  *   they follow the catalog default and do not change the bill.
  *
  * Parameter bundles come from Cursor.models.list() (worker-cached): the
@@ -20,17 +25,19 @@
  * rides the same proxy fetch-interceptor as every other SDK call, so it
  * works identically in proxy and direct modes.
  *
- * The harness-neutral halves — the tier enum semantics, and the single
- * UNSPECIFIED→STANDARD resolution point — live in
- * `shared/service-tier.ts` since #361 extended tiers to the native
- * harness; this module keeps only the Cursor-catalog translation.
+ * The harness-neutral halves — the enum semantics and the single
+ * UNSPECIFIED→default resolution points — live in `shared/service-tier.ts`
+ * (since #361 extended tiers to the native harness) and
+ * `shared/thinking-mode.ts`; this module keeps only the Cursor-catalog
+ * translation.
  */
 
 import { Cursor } from "@cursor/sdk";
 import type { ModelListItem, ModelParameterValue } from "@cursor/sdk";
-import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
 import { serviceTierLabel, type EffectiveServiceTier } from "../../shared/service-tier.js";
+import { thinkingModeLabel, type EffectiveThinkingMode } from "../../shared/thinking-mode.js";
 
 /**
  * Catalog ids that mean "Cursor picks the model" (Auto). Auto's single
@@ -42,9 +49,11 @@ import { serviceTierLabel, type EffectiveServiceTier } from "../../shared/servic
 const AUTO_MODEL_IDS = new Set(["default", "auto"]);
 
 /**
- * Variant parameter ids that change the per-token price. Pinning exactly
- * these keeps the bill deterministic while leaving latency/effort knobs on
- * their catalog defaults. Sourced from the Cursor catalog survey
+ * The user-selectable variant parameter ids. Pinning exactly these keeps
+ * the served variant deterministic while leaving effort knobs on their
+ * catalog defaults. `fast` changes the per-token price; `thinking` is
+ * price-neutral but changes token consumption and must never follow the
+ * account default. Sourced from the Cursor catalog survey
  * (stigmer-cloud _projects/2026-08/20260806.04.model-service-tier).
  */
 const FAST_PARAM_ID = "fast";
@@ -108,46 +117,55 @@ export interface ResolveServiceTierParamsOptions {
   /** Validated model id the execution runs on (may be "default" for Auto). */
   readonly modelId: string;
   readonly tier: EffectiveServiceTier;
+  readonly thinking: EffectiveThinkingMode;
   /** For log correlation only. */
   readonly executionId: string;
 }
 
 /**
- * Translate the effective tier into the explicit variant parameters to send
- * with every Agent.create/resume for this execution.
+ * Translate the effective tier + thinking mode into the explicit variant
+ * parameters to send with every Agent.create/resume for this execution.
  *
- * Fail-closed posture: FAST with no pinnable fast dimension is an error,
- * never a silent downgrade — create-time validation makes this unreachable
- * unless the registry and the provider catalog have drifted, and that drift
- * must be heard about, not absorbed.
+ * Fail-closed posture: an ACTIVE selection (FAST tier, ENABLED thinking)
+ * with no pinnable dimension is an error, never a silent downgrade —
+ * create-time validation makes this unreachable unless the registry and the
+ * provider catalog have drifted, and that drift must be heard about, not
+ * absorbed.
  *
- * STANDARD degrades to empty params on catalog failures rather than failing
- * the execution — but be clear about what that costs: an unpinned selection
- * falls to the catalog default variant, which for several models IS the
- * fast/thinking variant at multiples of base rates (the incident this module
- * exists to prevent). Failing every standard execution whenever the catalog
- * endpoint blips would be the worse trade; the WARN below plus billing's
- * requested-vs-billed mismatch alarm (which catches exactly this window)
- * are the compensating controls.
+ * The base selection (STANDARD + DISABLED) degrades to empty params on
+ * catalog failures rather than failing the execution — but be clear about
+ * what that costs: an unpinned selection falls to the catalog default
+ * variant, which for several models IS the fast/thinking variant (the
+ * incident this module exists to prevent). Failing every base execution
+ * whenever the catalog endpoint blips would be the worse trade; the WARN
+ * below plus billing's requested-vs-billed mismatch alarms (which catch
+ * exactly this window) are the compensating controls.
  */
 export async function resolveServiceTierParams(
   options: ResolveServiceTierParamsOptions,
 ): Promise<ModelParameterValue[]> {
-  const { apiKey, modelId, tier, executionId } = options;
+  const { apiKey, modelId, tier, thinking, executionId } = options;
   const tierName = serviceTierLabel(tier);
+  const thinkingName = thinkingModeLabel(thinking);
+  // Selections that actively deviate from the base variant must fail loudly
+  // when they cannot be pinned; the base selection may degrade with a WARN.
+  const active: string[] = [];
+  if (tier === ServiceTier.FAST) active.push("service_tier=fast");
+  if (thinking === ThinkingMode.ENABLED) active.push("thinking=enabled");
 
   if (AUTO_MODEL_IDS.has(modelId)) {
-    if (tier === ServiceTier.FAST) {
+    if (active.length > 0) {
       throw new Error(
-        `service_tier=fast requires a pinned model — Auto ("${modelId}") has no ` +
-        `tier dimension. Execution ${executionId} should have been refused at ` +
-        `create time; the model registry and provider catalog may have drifted.`,
+        `${active.join(" + ")} requires a pinned model — Auto ("${modelId}") has ` +
+        `no variant dimensions. Execution ${executionId} should have been ` +
+        `refused at create time; the model registry and provider catalog may ` +
+        `have drifted.`,
       );
     }
     console.log(
-      `ServiceTier: execution=${executionId} model=${modelId} tier=${tierName} — ` +
-      `Auto has no variant parameters; Cursor picks the model and variant ` +
-      `(documented v1 limitation).`,
+      `VariantParams: execution=${executionId} model=${modelId} tier=${tierName} ` +
+      `thinking=${thinkingName} — Auto has no variant parameters; Cursor picks ` +
+      `the model and variant (documented v1 limitation).`,
     );
     return [];
   }
@@ -156,37 +174,38 @@ export async function resolveServiceTierParams(
   try {
     models = await listCatalogModels(apiKey);
   } catch (err) {
-    if (tier === ServiceTier.FAST) {
+    if (active.length > 0) {
       throw new Error(
-        `service_tier=fast for execution ${executionId} needs the Cursor model ` +
-        `catalog to resolve variant params for "${modelId}", and the catalog ` +
-        `fetch failed: ${err instanceof Error ? err.message : String(err)}`,
+        `${active.join(" + ")} for execution ${executionId} needs the Cursor ` +
+        `model catalog to resolve variant params for "${modelId}", and the ` +
+        `catalog fetch failed: ${err instanceof Error ? err.message : String(err)}`,
       );
     }
     console.warn(
-      `ServiceTier UNPINNED: execution=${executionId} model=${modelId} tier=${tierName} — ` +
-      `catalog fetch failed (${err instanceof Error ? err.message : err}); ` +
-      `sending no variant params, so the catalog DEFAULT variant decides the ` +
-      `price for this execution (fast/thinking on several models — the ` +
-      `expensive direction). Billing's requested-vs-billed mismatch alarm ` +
-      `covers this window.`,
+      `VariantParams UNPINNED: execution=${executionId} model=${modelId} tier=${tierName} ` +
+      `thinking=${thinkingName} — catalog fetch failed ` +
+      `(${err instanceof Error ? err.message : err}); sending no variant params, ` +
+      `so the catalog DEFAULT variant decides the served variant for this ` +
+      `execution (fast/thinking on several models — the expensive direction). ` +
+      `Billing's requested-vs-billed mismatch alarms cover this window.`,
     );
     return [];
   }
 
   const model = findCatalogModel(models, modelId);
   if (!model) {
-    if (tier === ServiceTier.FAST) {
+    if (active.length > 0) {
       throw new Error(
-        `service_tier=fast requested for "${modelId}" (execution ${executionId}) ` +
-        `but the Cursor catalog does not list that model — cannot pin a fast ` +
-        `variant. The model registry and provider catalog have drifted.`,
+        `${active.join(" + ")} requested for "${modelId}" (execution ${executionId}) ` +
+        `but the Cursor catalog does not list that model — cannot pin its ` +
+        `variant parameters. The model registry and provider catalog have drifted.`,
       );
     }
     console.warn(
-      `ServiceTier UNPINNED: execution=${executionId} model=${modelId} tier=${tierName} — ` +
-      `model not in the Cursor catalog; sending no variant params, so the ` +
-      `catalog DEFAULT variant decides the price for this execution.`,
+      `VariantParams UNPINNED: execution=${executionId} model=${modelId} tier=${tierName} ` +
+      `thinking=${thinkingName} — model not in the Cursor catalog; sending no ` +
+      `variant params, so the catalog DEFAULT variant decides the served ` +
+      `variant for this execution.`,
     );
     return [];
   }
@@ -196,10 +215,13 @@ export async function resolveServiceTierParams(
     if (def.id === FAST_PARAM_ID) {
       params.push({ id: FAST_PARAM_ID, value: tier === ServiceTier.FAST ? "true" : "false" });
     } else if (def.id === THINKING_PARAM_ID) {
-      params.push({ id: THINKING_PARAM_ID, value: "false" });
+      params.push({
+        id: THINKING_PARAM_ID,
+        value: thinking === ThinkingMode.ENABLED ? "true" : "false",
+      });
     }
-    // Any other parameter (e.g. effort) is price-neutral: left to the
-    // catalog default variant on purpose.
+    // Any other parameter (e.g. effort) is price-neutral and not
+    // user-selectable: left to the catalog default variant on purpose.
   }
 
   if (tier === ServiceTier.FAST && !params.some((p) => p.id === FAST_PARAM_ID)) {
@@ -211,10 +233,19 @@ export async function resolveServiceTierParams(
     );
   }
 
+  if (thinking === ThinkingMode.ENABLED && !params.some((p) => p.id === THINKING_PARAM_ID)) {
+    throw new Error(
+      `thinking=enabled requested for "${modelId}" (execution ${executionId}) ` +
+      `but the Cursor catalog declares no "thinking" parameter for it. The ` +
+      `model registry claims a thinking capability the provider no longer ` +
+      `offers — refusing rather than silently serving the base variant.`,
+    );
+  }
+
   params.sort((a, b) => a.id.localeCompare(b.id));
   console.log(
-    `ServiceTier: execution=${executionId} model=${modelId} tier=${tierName} ` +
-    `params=${JSON.stringify(params)}`,
+    `VariantParams: execution=${executionId} model=${modelId} tier=${tierName} ` +
+    `thinking=${thinkingName} params=${JSON.stringify(params)}`,
   );
   return params;
 }

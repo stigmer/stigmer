@@ -5,7 +5,7 @@ import { stripUndefined, toResourceRefInput, toResourceRefInputs } from "./proto
 import { type ResourceRef } from "./types.js";
 import { create } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
-import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { RunConfigSchema, AgentInvocationSchema, type RunConfig, type AgentInvocation } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/invocation_pb";
 import { ScheduleSchema, type Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { ScheduleCommandController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/command_pb";
@@ -159,6 +159,7 @@ export interface RunConfigInput {
   maxCostUsd?: number;
   maxToolRounds?: number;
   serviceTier?: ServiceTier;
+  thinkingMode?: ThinkingMode;
 }
 
 function buildGitRepoSourceProto(input: GitRepoSourceInput) {
@@ -200,6 +201,7 @@ function buildRunConfigProto(input: RunConfigInput) {
     maxCostUsd: input.maxCostUsd,
     maxToolRounds: input.maxToolRounds,
     serviceTier: input.serviceTier,
+    thinkingMode: input.thinkingMode,
   }));
 }
 
@@ -274,6 +276,7 @@ function toRunConfigInput(msg: RunConfig): RunConfigInput {
     maxCostUsd: msg.maxCostUsd || undefined,
     maxToolRounds: msg.maxToolRounds || undefined,
     serviceTier: msg.serviceTier || undefined,
+    thinkingMode: msg.thinkingMode || undefined,
   };
 }
 

@@ -159,9 +159,10 @@ func TestProtoToYAML_AgentCallWithOutputContract(t *testing.T) {
 			"fallback_task": "human_review",
 		},
 		"run_config": map[string]interface{}{
-			"model_name":   "claude-sonnet-4",
-			"max_cost_usd": 0.5,
-			"service_tier": "SERVICE_TIER_STANDARD",
+			"model_name":    "claude-sonnet-4",
+			"max_cost_usd":  0.5,
+			"service_tier":  "SERVICE_TIER_STANDARD",
+			"thinking_mode": "THINKING_MODE_ENABLED",
 		},
 		"harness": "HARNESS_CURSOR",
 	})
@@ -208,6 +209,7 @@ func TestProtoToYAML_AgentCallWithOutputContract(t *testing.T) {
 		{"model_name: claude-sonnet-4", "model override"},
 		{"max_cost_usd:", "per-task budget cap"},
 		{"service_tier: standard", "service tier shorthand (#357)"},
+		{"thinking_mode: enabled", "thinking mode shorthand (#772)"},
 	}
 
 	for _, c := range checks {
@@ -239,6 +241,7 @@ func TestProtoToYAML_AgentCallEmissionContract(t *testing.T) {
 			"max_cost_usd":    0.5,
 			"max_tool_rounds": float64(15),
 			"service_tier":    "fast",
+			"thinking_mode":   "enabled",
 		},
 		"output": map[string]interface{}{
 			"schema":        map[string]interface{}{"type": "object"},
@@ -320,6 +323,7 @@ func TestProtoToYAML_AgentCallEmissionContract(t *testing.T) {
 			"max_cost_usd":    0.5,
 			"max_tool_rounds": 15,
 			"service_tier":    "fast",
+			"thinking_mode":   "enabled",
 		},
 		"output": map[string]interface{}{
 			"schema":        map[string]interface{}{"type": "object"},

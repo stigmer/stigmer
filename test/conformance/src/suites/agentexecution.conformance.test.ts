@@ -16,7 +16,7 @@
 // single-source-of-truth clearing) needs a live engine and stays in the
 // execution suite.
 import { Code } from "@connectrpc/connect";
-import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { afterAll, beforeAll, describe, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
@@ -120,6 +120,54 @@ describe("AgentExecution conformance — service-tier fail-closed validation (#3
         ),
       Code.InvalidArgument,
       "create with service_tier fast on a model without a fast variant",
+    );
+  });
+});
+
+describe("AgentExecution conformance — thinking-mode fail-closed validation (#772)", () => {
+  // The tier suite's twin: thinking is capability-gated (it bills at base
+  // per-token rates, so no priced variant exists to key on) and validated
+  // at create with identical rules and messages in both editions (OSS Go
+  // validateThinkingModeStep, cloud Java ValidateThinkingModeStep). Both
+  // refusals fire before any resource resolution, so fake ids suffice.
+
+  it("rejects enabled without a pinned model (InvalidArgument)", async () => {
+    const { org } = await target.provisionTenancy();
+    await expectGrpcCode(
+      () =>
+        clients.agentExecutionCommand.create(
+          makeAgentExecution({
+            org,
+            name: uniqueName("aex-thinking-no-model"),
+            agentId: "agt_fake",
+            executionConfig: { thinkingMode: ThinkingMode.ENABLED },
+          }),
+        ),
+      Code.InvalidArgument,
+      "create with thinking_mode enabled and no model_name",
+    );
+  });
+
+  it("rejects enabled on a model without the thinking capability (InvalidArgument)", async () => {
+    const { org } = await target.provisionTenancy();
+    // composer-2.5's cursor-harness registry entry declares thinking=false —
+    // ENABLED there would silently serve the base variant, so it is refused
+    // (selection and the served variant stay coupled).
+    await expectGrpcCode(
+      () =>
+        clients.agentExecutionCommand.create(
+          makeAgentExecution({
+            org,
+            name: uniqueName("aex-thinking-incapable"),
+            agentId: "agt_fake",
+            executionConfig: {
+              modelName: "composer-2.5",
+              thinkingMode: ThinkingMode.ENABLED,
+            },
+          }),
+        ),
+      Code.InvalidArgument,
+      "create with thinking_mode enabled on a model without the capability",
     );
   });
 });

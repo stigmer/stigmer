@@ -267,6 +267,7 @@ export function useSessionPageFlow(
   // callback's identity must not churn on every render (DD-010).
   const pinnedModelName = runConfig?.modelName;
   const pinnedServiceTier = runConfig?.serviceTier;
+  const pinnedThinkingMode = runConfig?.thinkingMode;
 
   const stigmer = useStigmer();
   const conv = useSessionConversation(sessionId, org);
@@ -478,6 +479,10 @@ export function useSessionPageFlow(
         serviceTier: pinnedModelName
           ? (pinnedServiceTier === "fast" ? "fast" : undefined)
           : context?.serviceTier,
+        // The tier's #772 twin, same pin-wins + only-explicit-enabled rule.
+        thinkingMode: pinnedModelName
+          ? (pinnedThinkingMode === "enabled" ? "enabled" : undefined)
+          : context?.thinkingMode,
         buildFromPlan: context?.buildFromPlan,
         // Sourced from the session-scoped preference set at the approval gate,
         // not from the composer (the pre-arm toggle was removed).
@@ -488,7 +493,7 @@ export function useSessionPageFlow(
 
       sessionVariables.clear();
     },
-    [conv.sendFollowUp, modelId, pinnedModelName, pinnedServiceTier, workspace, mcpServerUsages, skillRefs, sessionVariables.clear, resolution, agentRef, sessionInstanceId, stigmer, autoApproveAll, getRuntimeEnv],
+    [conv.sendFollowUp, modelId, pinnedModelName, pinnedServiceTier, pinnedThinkingMode, workspace, mcpServerUsages, skillRefs, sessionVariables.clear, resolution, agentRef, sessionInstanceId, stigmer, autoApproveAll, getRuntimeEnv],
   );
 
   // -------------------------------------------------------------------------

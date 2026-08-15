@@ -31,7 +31,7 @@ import { AgentExecutionSpecSchema, ExecutionConfigSchema } from "@stigmer/protos
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import { Harness, ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import {
   WorkspaceEntrySchema,
   WorkspaceSourceSchema,
@@ -217,16 +217,16 @@ export async function callAgentAction(
   // model_name replaces the agent's default outright; max_cost_usd feeds
   // the harness-generic cost guards (cost-cap middleware / cursor
   // cost-guard); max_tool_rounds feeds resolveRecursionLimit (native
-  // harness only); service_tier feeds the cursor harness's explicit
-  // variant selection (issue #357). Zero/unset means "no override" and is
-  // omitted.
+  // harness only); service_tier and thinking_mode feed the cursor
+  // harness's explicit variant selection (issues #357/#772). Zero/unset
+  // means "no override" and is omitted.
   const runConfig = resolved.run_config;
   const hasModel = !!runConfig?.model_name;
   const hasCostCap = (runConfig?.max_cost_usd ?? 0) > 0;
   const hasToolRounds = (runConfig?.max_tool_rounds ?? 0) > 0;
   // Loader guarantees a canonical enum name; an unknown one here means the
   // loader and this mapping drifted — fail the task, never silently drop a
-  // pricing directive.
+  // variant directive.
   const SERVICE_TIER_BY_NAME: Record<string, ServiceTier> = {
     SERVICE_TIER_STANDARD: ServiceTier.STANDARD,
     SERVICE_TIER_FAST: ServiceTier.FAST,
@@ -240,6 +240,19 @@ export async function callAgentAction(
     );
   }
   const hasServiceTier = serviceTier !== undefined;
+  const THINKING_MODE_BY_NAME: Record<string, ThinkingMode> = {
+    THINKING_MODE_DISABLED: ThinkingMode.DISABLED,
+    THINKING_MODE_ENABLED: ThinkingMode.ENABLED,
+  };
+  const thinkingMode = runConfig?.thinking_mode
+    ? THINKING_MODE_BY_NAME[runConfig.thinking_mode]
+    : undefined;
+  if (runConfig?.thinking_mode && thinkingMode === undefined) {
+    throw new Error(
+      `call:agent run_config.thinking_mode '${runConfig.thinking_mode}' has no proto mapping`,
+    );
+  }
+  const hasThinkingMode = thinkingMode !== undefined;
   const hasOutputSchema = !!resolved.output?.schema;
 
   console.log(
@@ -264,12 +277,13 @@ export async function callAgentAction(
     runtimeEnv: runtimeEnvProto,
   });
 
-  if (hasModel || hasCostCap || hasToolRounds || hasServiceTier || hasOutputSchema) {
+  if (hasModel || hasCostCap || hasToolRounds || hasServiceTier || hasThinkingMode || hasOutputSchema) {
     const execConfig = create(ExecutionConfigSchema, {});
     if (hasModel) execConfig.modelName = runConfig!.model_name!;
     if (hasCostCap) execConfig.maxCostUsd = runConfig!.max_cost_usd!;
     if (hasToolRounds) execConfig.maxToolRounds = runConfig!.max_tool_rounds!;
     if (hasServiceTier) execConfig.serviceTier = serviceTier!;
+    if (hasThinkingMode) execConfig.thinkingMode = thinkingMode!;
     if (hasOutputSchema) {
       execConfig.structuredOutputSchema = resolved.output!.schema as JsonObject;
     }

@@ -35,6 +35,7 @@ go_library(
         "upload_attachment.go",
         "usage_aggregation.go",
         "validate_service_tier.go",
+        "validate_thinking_mode.go",
     ],
     importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/controller",
     visibility = ["//visibility:public"],
@@ -112,6 +113,7 @@ go_test(
         "upload_attachment_test.go",
         "usage_aggregation_test.go",
         "validate_service_tier_test.go",
+        "validate_thinking_mode_test.go",
     ],
     embed = [":controller"],
     deps = [

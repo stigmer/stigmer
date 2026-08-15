@@ -147,6 +147,12 @@ class ServiceTier(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     SERVICE_TIER_STANDARD: _ClassVar[ServiceTier]
     SERVICE_TIER_FAST: _ClassVar[ServiceTier]
 
+class ThinkingMode(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    THINKING_MODE_UNSPECIFIED: _ClassVar[ThinkingMode]
+    THINKING_MODE_DISABLED: _ClassVar[ThinkingMode]
+    THINKING_MODE_ENABLED: _ClassVar[ThinkingMode]
+
 class FileChangeType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
     FILE_CHANGE_TYPE_UNSPECIFIED: _ClassVar[FileChangeType]
@@ -334,6 +340,9 @@ APPROVAL_MODE_UNATTENDED: ApprovalMode
 SERVICE_TIER_UNSPECIFIED: ServiceTier
 SERVICE_TIER_STANDARD: ServiceTier
 SERVICE_TIER_FAST: ServiceTier
+THINKING_MODE_UNSPECIFIED: ThinkingMode
+THINKING_MODE_DISABLED: ThinkingMode
+THINKING_MODE_ENABLED: ThinkingMode
 FILE_CHANGE_TYPE_UNSPECIFIED: FileChangeType
 FILE_CHANGE_TYPE_CREATE: FileChangeType
 FILE_CHANGE_TYPE_MODIFY: FileChangeType

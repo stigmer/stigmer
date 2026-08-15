@@ -13,6 +13,7 @@ import { ModelSelector } from "../models/ModelSelector.js";
 import { HarnessSelector } from "../models/HarnessSelector.js";
 import type { HarnessOption } from "../models/harness.js";
 import type { ServiceTierOption } from "../models/service-tier.js";
+import type { ThinkingModeOption } from "../models/thinking-mode.js";
 import { InteractionModePicker, type InteractionModeOption } from "./InteractionModePicker.js";
 import {
   PaperclipIcon,
@@ -53,6 +54,10 @@ export interface ComposerToolbarProps {
   readonly serviceTier?: ServiceTierOption;
   /** Enables the fast-tier switch inside the model selector's options area. */
   readonly onServiceTierChange?: (tier: ServiceTierOption) => void;
+  /** Current thinking mode for the selected model (#772). */
+  readonly thinkingMode?: ThinkingModeOption;
+  /** Enables the thinking switch inside the model selector's options area. */
+  readonly onThinkingModeChange?: (mode: ThinkingModeOption) => void;
 
   // -- Right group: Secondary actions (icon-only) ---------------------------
 
@@ -128,6 +133,8 @@ export function ComposerToolbar({
   onModelChange,
   serviceTier,
   onServiceTierChange,
+  thinkingMode,
+  onThinkingModeChange,
 }: ComposerToolbarProps) {
   const showHarnessSeparate = showHarnessSelector && !showModelSelector;
 
@@ -161,6 +168,8 @@ export function ComposerToolbar({
             onHarnessChange={showHarnessSelector ? onHarnessChange : undefined}
             serviceTier={serviceTier}
             onServiceTierChange={onServiceTierChange}
+            thinkingMode={thinkingMode}
+            onThinkingModeChange={onThinkingModeChange}
             disabled={disabled}
           />
         )}

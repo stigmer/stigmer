@@ -114,6 +114,22 @@ export interface ModelInfo {
    * parse the same document and must agree on what absence means.
    */
   readonly visionCapability?: boolean;
+  /**
+   * Tri-state thinking capability from the registry's `capabilities` block
+   * (stigmer/stigmer#772), the same absence convention as
+   * {@link visionCapability}:
+   *
+   * - `true` — the model declares an extended-reasoning (thinking) variant;
+   *   the thinking switch in the model popover's options area may render
+   * - `false` — explicitly assessed as having none
+   * - `undefined` — never assessed; **stay silent, never treat as false**
+   *
+   * Capability-gated, not pricing-gated (unlike {@link serviceTiers}):
+   * thinking bills at base per-token rates, so no priced variant exists to
+   * key on. v1 honors the selection on the cursor harness only — gate any
+   * control on `harness === "cursor"` as well as this flag.
+   */
+  readonly thinkingCapable?: boolean;
 }
 
 /**
@@ -230,6 +246,17 @@ function parseVisionCapability(capabilities: unknown): boolean | undefined {
 }
 
 /**
+ * Extract `capabilities.thinking` with the same tri-state convention as
+ * {@link parseVisionCapability} (stigmer/stigmer#772): a missing or
+ * malformed `capabilities` block stays `undefined`, never coerced to false.
+ */
+function parseThinkingCapability(capabilities: unknown): boolean | undefined {
+  if (!capabilities || typeof capabilities !== "object") return undefined;
+  const thinking = (capabilities as Record<string, unknown>).thinking;
+  return typeof thinking === "boolean" ? thinking : undefined;
+}
+
+/**
  * Parse the document-level `limits.vision` block. Returns `undefined` for
  * documents that predate the block or carry a malformed one — absence
  * means "unassessed", and a partial block must not masquerade as a budget
@@ -284,6 +311,7 @@ export function parseRegistryDocument(data: unknown): ModelRegistryDocument {
     .filter(isModelEntry)
     .map((m) => {
       const visionCapability = parseVisionCapability(m.capabilities);
+      const thinkingCapable = parseThinkingCapability(m.capabilities);
       return {
         modelId: m.id,
         provider: m.provider as Provider,
@@ -300,6 +328,7 @@ export function parseRegistryDocument(data: unknown): ModelRegistryDocument {
         // Conditional spread keeps unassessed models free of the key
         // (tri-state absence, not an explicit undefined).
         ...(visionCapability !== undefined ? { visionCapability } : {}),
+        ...(thinkingCapable !== undefined ? { thinkingCapable } : {}),
       };
     });
 

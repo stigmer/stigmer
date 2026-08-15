@@ -90,6 +90,7 @@ func (c *AgentExecutionController) buildCreatePipeline() *pipeline.Pipeline[*age
 		AddStep(steps.NewValidateProtoStep[*agentexecutionv1.AgentExecution]()).                                            // 1. Validate field constraints
 		AddStep(steps.NewValidateVisibilityStep[*agentexecutionv1.AgentExecution]()).                                       // Reject unsupported visibility levels (fail fast)
 		AddStep(newValidateServiceTierStep()).                                                                              // 1b. Fail closed: service_tier validated against the registry before any side effect (#357)
+		AddStep(newValidateThinkingModeStep()).                                                                             // 1c. Fail closed: thinking_mode validated against the registry capability (#772)
 		AddStep(newResolveDefaultAgentStep(c.store)).                                                                       // 2. Resolve platform default agent if needed
 		AddStep(newEnsureSessionOrAgentResolvedStep()).                                                                     // 3. Guard: session or agent reference resolved
 		AddStep(steps.NewResolveSlugStep[*agentexecutionv1.AgentExecution]()).                                              // 4. Resolve slug

@@ -1657,6 +1657,7 @@ values are scoped to the single execution and deleted on completion.
     serviceTier: { type: "ServiceTierOption", description: "Service tier for this execution's model calls (stigmer/stigmer#357).  Only set when the user actively selected `\"fast\"`; `undefined` preserves the unspecified-vs-explicit distinction (unset resolves to standard on the platform side — never the provider account default)." },
     skillRefs: { type: "ResourceRef[]", description: "Skill references to enable for this execution." },
     supersedesExecutionId: { type: "string", description: "ID of the execution this follow-up supersedes (edit-and-resubmit).  The conversation read model hides the superseded execution so the edited message replaces the original in place." },
+    thinkingMode: { type: "ThinkingModeOption", description: "Thinking mode for this execution's model calls (stigmer/stigmer#772).  Only set when the user actively selected `\"enabled\"`; `undefined` preserves the unspecified-vs-explicit distinction (unset resolves to disabled on the platform side — never the provider account default)." },
     workspaceEntries: { type: "WorkspaceEntryInput[]", description: "Workspace entries to attach to the execution." },
     workspaceFileRefs: { type: "string[]", description: "Workspace-relative file paths the user wants the agent to focus on.  Lightweight \"attention\" signals — no upload, no injection. The agent reads these files directly from the workspace filesystem." },
   }}

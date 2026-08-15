@@ -36,6 +36,7 @@ private static final long serialVersionUID = 0L;
     interactionMode_ = 0;
     approvalMode_ = 0;
     serviceTier_ = 0;
+    thinkingMode_ = 0;
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -470,6 +471,48 @@ private static final long serialVersionUID = 0L;
     return result == null ? ai.stigmer.agentic.agentexecution.v1.ServiceTier.UNRECOGNIZED : result;
   }
 
+  public static final int THINKING_MODE_FIELD_NUMBER = 11;
+  private int thinkingMode_ = 0;
+  /**
+   * <pre>
+   * Thinking mode for this execution's model calls: disabled (the default)
+   * or enabled, where enabled selects the model's extended-reasoning variant.
+   *
+   * UNSPECIFIED/DISABLED: the model's base variant, pinned explicitly —
+   * never the provider account default. ENABLED: the model's thinking
+   * variant, billed at base per-token rates (reasoning tokens bill as
+   * output); valid only for models whose registry entry declares the
+   * thinking capability, and requires model_name to be set (validated
+   * fail-closed at create time). Combines freely with service_tier.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ThinkingMode thinking_mode = 11 [json_name = "thinkingMode", (.buf.validate.field) = { ... }</code>
+   * @return The enum numeric value on the wire for thinkingMode.
+   */
+  @java.lang.Override public int getThinkingModeValue() {
+    return thinkingMode_;
+  }
+  /**
+   * <pre>
+   * Thinking mode for this execution's model calls: disabled (the default)
+   * or enabled, where enabled selects the model's extended-reasoning variant.
+   *
+   * UNSPECIFIED/DISABLED: the model's base variant, pinned explicitly —
+   * never the provider account default. ENABLED: the model's thinking
+   * variant, billed at base per-token rates (reasoning tokens bill as
+   * output); valid only for models whose registry entry declares the
+   * thinking capability, and requires model_name to be set (validated
+   * fail-closed at create time). Combines freely with service_tier.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ThinkingMode thinking_mode = 11 [json_name = "thinkingMode", (.buf.validate.field) = { ... }</code>
+   * @return The thinkingMode.
+   */
+  @java.lang.Override public ai.stigmer.agentic.agentexecution.v1.ThinkingMode getThinkingMode() {
+    ai.stigmer.agentic.agentexecution.v1.ThinkingMode result = ai.stigmer.agentic.agentexecution.v1.ThinkingMode.forNumber(thinkingMode_);
+    return result == null ? ai.stigmer.agentic.agentexecution.v1.ThinkingMode.UNRECOGNIZED : result;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -513,6 +556,9 @@ private static final long serialVersionUID = 0L;
     }
     if (serviceTier_ != ai.stigmer.agentic.agentexecution.v1.ServiceTier.SERVICE_TIER_UNSPECIFIED.getNumber()) {
       output.writeEnum(10, serviceTier_);
+    }
+    if (thinkingMode_ != ai.stigmer.agentic.agentexecution.v1.ThinkingMode.THINKING_MODE_UNSPECIFIED.getNumber()) {
+      output.writeEnum(11, thinkingMode_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -562,6 +608,10 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeEnumSize(10, serviceTier_);
     }
+    if (thinkingMode_ != ai.stigmer.agentic.agentexecution.v1.ThinkingMode.THINKING_MODE_UNSPECIFIED.getNumber()) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeEnumSize(11, thinkingMode_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -601,6 +651,7 @@ private static final long serialVersionUID = 0L;
         != other.getBuildFromPlan()) return false;
     if (approvalMode_ != other.approvalMode_) return false;
     if (serviceTier_ != other.serviceTier_) return false;
+    if (thinkingMode_ != other.thinkingMode_) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -638,6 +689,8 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + approvalMode_;
     hash = (37 * hash) + SERVICE_TIER_FIELD_NUMBER;
     hash = (53 * hash) + serviceTier_;
+    hash = (37 * hash) + THINKING_MODE_FIELD_NUMBER;
+    hash = (53 * hash) + thinkingMode_;
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -798,6 +851,7 @@ private static final long serialVersionUID = 0L;
       buildFromPlan_ = false;
       approvalMode_ = 0;
       serviceTier_ = 0;
+      thinkingMode_ = 0;
       return this;
     }
 
@@ -868,6 +922,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000200) != 0)) {
         result.serviceTier_ = serviceTier_;
       }
+      if (((from_bitField0_ & 0x00000400) != 0)) {
+        result.thinkingMode_ = thinkingMode_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -914,6 +971,9 @@ private static final long serialVersionUID = 0L;
       }
       if (other.serviceTier_ != 0) {
         setServiceTierValue(other.getServiceTierValue());
+      }
+      if (other.thinkingMode_ != 0) {
+        setThinkingModeValue(other.getThinkingModeValue());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -995,6 +1055,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000200;
               break;
             } // case 80
+            case 88: {
+              thinkingMode_ = input.readEnum();
+              bitField0_ |= 0x00000400;
+              break;
+            } // case 88
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2235,6 +2300,118 @@ private static final long serialVersionUID = 0L;
     public Builder clearServiceTier() {
       bitField0_ = (bitField0_ & ~0x00000200);
       serviceTier_ = 0;
+      onChanged();
+      return this;
+    }
+
+    private int thinkingMode_ = 0;
+    /**
+     * <pre>
+     * Thinking mode for this execution's model calls: disabled (the default)
+     * or enabled, where enabled selects the model's extended-reasoning variant.
+     *
+     * UNSPECIFIED/DISABLED: the model's base variant, pinned explicitly —
+     * never the provider account default. ENABLED: the model's thinking
+     * variant, billed at base per-token rates (reasoning tokens bill as
+     * output); valid only for models whose registry entry declares the
+     * thinking capability, and requires model_name to be set (validated
+     * fail-closed at create time). Combines freely with service_tier.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ThinkingMode thinking_mode = 11 [json_name = "thinkingMode", (.buf.validate.field) = { ... }</code>
+     * @return The enum numeric value on the wire for thinkingMode.
+     */
+    @java.lang.Override public int getThinkingModeValue() {
+      return thinkingMode_;
+    }
+    /**
+     * <pre>
+     * Thinking mode for this execution's model calls: disabled (the default)
+     * or enabled, where enabled selects the model's extended-reasoning variant.
+     *
+     * UNSPECIFIED/DISABLED: the model's base variant, pinned explicitly —
+     * never the provider account default. ENABLED: the model's thinking
+     * variant, billed at base per-token rates (reasoning tokens bill as
+     * output); valid only for models whose registry entry declares the
+     * thinking capability, and requires model_name to be set (validated
+     * fail-closed at create time). Combines freely with service_tier.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ThinkingMode thinking_mode = 11 [json_name = "thinkingMode", (.buf.validate.field) = { ... }</code>
+     * @param value The enum numeric value on the wire for thinkingMode to set.
+     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
+     * @return This builder for chaining.
+     */
+    public Builder setThinkingModeValue(int value) {
+      thinkingMode_ = value;
+      bitField0_ |= 0x00000400;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Thinking mode for this execution's model calls: disabled (the default)
+     * or enabled, where enabled selects the model's extended-reasoning variant.
+     *
+     * UNSPECIFIED/DISABLED: the model's base variant, pinned explicitly —
+     * never the provider account default. ENABLED: the model's thinking
+     * variant, billed at base per-token rates (reasoning tokens bill as
+     * output); valid only for models whose registry entry declares the
+     * thinking capability, and requires model_name to be set (validated
+     * fail-closed at create time). Combines freely with service_tier.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ThinkingMode thinking_mode = 11 [json_name = "thinkingMode", (.buf.validate.field) = { ... }</code>
+     * @return The thinkingMode.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.agentexecution.v1.ThinkingMode getThinkingMode() {
+      ai.stigmer.agentic.agentexecution.v1.ThinkingMode result = ai.stigmer.agentic.agentexecution.v1.ThinkingMode.forNumber(thinkingMode_);
+      return result == null ? ai.stigmer.agentic.agentexecution.v1.ThinkingMode.UNRECOGNIZED : result;
+    }
+    /**
+     * <pre>
+     * Thinking mode for this execution's model calls: disabled (the default)
+     * or enabled, where enabled selects the model's extended-reasoning variant.
+     *
+     * UNSPECIFIED/DISABLED: the model's base variant, pinned explicitly —
+     * never the provider account default. ENABLED: the model's thinking
+     * variant, billed at base per-token rates (reasoning tokens bill as
+     * output); valid only for models whose registry entry declares the
+     * thinking capability, and requires model_name to be set (validated
+     * fail-closed at create time). Combines freely with service_tier.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ThinkingMode thinking_mode = 11 [json_name = "thinkingMode", (.buf.validate.field) = { ... }</code>
+     * @param value The thinkingMode to set.
+     * @return This builder for chaining.
+     */
+    public Builder setThinkingMode(ai.stigmer.agentic.agentexecution.v1.ThinkingMode value) {
+      if (value == null) { throw new NullPointerException(); }
+      bitField0_ |= 0x00000400;
+      thinkingMode_ = value.getNumber();
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Thinking mode for this execution's model calls: disabled (the default)
+     * or enabled, where enabled selects the model's extended-reasoning variant.
+     *
+     * UNSPECIFIED/DISABLED: the model's base variant, pinned explicitly —
+     * never the provider account default. ENABLED: the model's thinking
+     * variant, billed at base per-token rates (reasoning tokens bill as
+     * output); valid only for models whose registry entry declares the
+     * thinking capability, and requires model_name to be set (validated
+     * fail-closed at create time). Combines freely with service_tier.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ThinkingMode thinking_mode = 11 [json_name = "thinkingMode", (.buf.validate.field) = { ... }</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearThinkingMode() {
+      bitField0_ = (bitField0_ & ~0x00000400);
+      thinkingMode_ = 0;
       onChanged();
       return this;
     }

@@ -199,4 +199,33 @@ public interface StreamingUsageSummaryOrBuilder extends
    */
   com.google.protobuf.ByteString
       getRequestedModelParamsBytes();
+
+  /**
+   * <pre>
+   * Thinking mode the runner requested for this execution's model calls.
+   *
+   * Always explicit once the runner has translated the execution config
+   * (DISABLED when ExecutionConfig.thinking_mode was unset) — the audit
+   * record that the account default was never left in control
+   * (stigmer/stigmer#772; several catalog defaults are thinking=true).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ThinkingMode requested_thinking_mode = 12 [json_name = "requestedThinkingMode"];</code>
+   * @return The enum numeric value on the wire for requestedThinkingMode.
+   */
+  int getRequestedThinkingModeValue();
+  /**
+   * <pre>
+   * Thinking mode the runner requested for this execution's model calls.
+   *
+   * Always explicit once the runner has translated the execution config
+   * (DISABLED when ExecutionConfig.thinking_mode was unset) — the audit
+   * record that the account default was never left in control
+   * (stigmer/stigmer#772; several catalog defaults are thinking=true).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ThinkingMode requested_thinking_mode = 12 [json_name = "requestedThinkingMode"];</code>
+   * @return The requestedThinkingMode.
+   */
+  ai.stigmer.agentic.agentexecution.v1.ThinkingMode getRequestedThinkingMode();
 }

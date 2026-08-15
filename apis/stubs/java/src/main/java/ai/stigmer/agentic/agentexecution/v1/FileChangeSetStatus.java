@@ -196,7 +196,7 @@ public enum FileChangeSetStatus
   }
   public static com.google.protobuf.Descriptors.EnumDescriptor
       getDescriptor() {
-    return ai.stigmer.agentic.agentexecution.v1.EnumProto.getDescriptor().getEnumType(19);
+    return ai.stigmer.agentic.agentexecution.v1.EnumProto.getDescriptor().getEnumType(20);
   }
 
   private static final FileChangeSetStatus[] VALUES = values();
