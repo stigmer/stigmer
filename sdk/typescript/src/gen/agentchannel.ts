@@ -16,7 +16,7 @@ import { SendChannelMessageOutputSchema, SendChannelMessageInputSchema, ListChan
 import { ChannelMessageQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_query_pb";
 import { AgentChannelQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/query_pb";
 import { AgentChannelSpecSchema, SlackChannelConfigSchema, WhatsAppChannelConfigSchema, type SlackChannelConfig, type WhatsAppChannelConfig } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/spec_pb";
-import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { RunConfigSchema, type RunConfig } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/invocation_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
@@ -206,6 +206,7 @@ export interface RunConfigInput {
   maxCostUsd?: number;
   maxToolRounds?: number;
   serviceTier?: ServiceTier;
+  thinkingMode?: ThinkingMode;
 }
 
 function buildSlackChannelConfigProto(input: SlackChannelConfigInput) {
@@ -225,6 +226,7 @@ function buildRunConfigProto(input: RunConfigInput) {
     maxCostUsd: input.maxCostUsd,
     maxToolRounds: input.maxToolRounds,
     serviceTier: input.serviceTier,
+    thinkingMode: input.thinkingMode,
   }));
 }
 
@@ -277,6 +279,7 @@ function toRunConfigInput(msg: RunConfig): RunConfigInput {
     maxCostUsd: msg.maxCostUsd || undefined,
     maxToolRounds: msg.maxToolRounds || undefined,
     serviceTier: msg.serviceTier || undefined,
+    thinkingMode: msg.thinkingMode || undefined,
   };
 }
 

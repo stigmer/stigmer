@@ -1615,6 +1615,14 @@
                   "SERVICE_TIER_FAST"
                 ],
                 "type": "string"
+              },
+              "thinking_mode": {
+                "description": "Thinking mode for each run's model calls: disabled (the default) or enabled, where enabled selects the model's extended-reasoning variant (billed at base per-token rates — reasoning tokens bill as output). In workflow YAML the shorthand spellings \"disabled\"/\"enabled\" are accepted alongside the canonical enum names. Mirrors ExecutionConfig.thinking_mode: UNSPECIFIED inherits the surface's platform default, which itself resolves to DISABLED — never the provider account default. ENABLED requires model_name (here or from the platform profile) to name a model whose registry entry declares the thinking capability; validated fail-closed at create. Combines freely with service_tier.",
+                "enum": [
+                  "THINKING_MODE_DISABLED",
+                  "THINKING_MODE_ENABLED"
+                ],
+                "type": "string"
               }
             },
             "type": "object"
@@ -1734,7 +1742,8 @@
       },
       "yamlExamples": [
         "- name: triage_ticket\n  kind: agent_call\n  task_config:\n    agent: \"support-triage\"\n    message: \"${ .ticket.description }\"\n    output:\n      schema:\n        type: object\n        required: [severity, category]\n        properties:\n          severity:\n            type: string\n            enum: [low, medium, high, critical]\n          category:\n            type: string\n      on_invalid: ON_INVALID_RETRY\n      max_retries: 2\n  export:\n    as: \"${ .structured }\"\n",
-        "- name: fix_flaky_test\n  kind: agent_call\n  task_config:\n    agent: \"code-reviewer\"\n    message: \"Fix the flaky test in ${ .failing_test }\"\n    harness: HARNESS_CURSOR\n    run_config:\n      model_name: \"composer-2.5\"\n      max_cost_usd: 0.50\n      # Fast tier: billed at the model's fast rates. Valid only for\n      # models with a fast pricing tier; refused at create otherwise.\n      # The shorthand spellings \"standard\"/\"fast\" are also accepted.\n      service_tier: SERVICE_TIER_FAST\n"
+        "- name: fix_flaky_test\n  kind: agent_call\n  task_config:\n    agent: \"code-reviewer\"\n    message: \"Fix the flaky test in ${ .failing_test }\"\n    harness: HARNESS_CURSOR\n    run_config:\n      model_name: \"composer-2.5\"\n      max_cost_usd: 0.50\n      # Fast tier: billed at the model's fast rates. Valid only for\n      # models with a fast pricing tier; refused at create otherwise.\n      # The shorthand spellings \"standard\"/\"fast\" are also accepted.\n      service_tier: SERVICE_TIER_FAST\n",
+        "- name: deep_review\n  kind: agent_call\n  task_config:\n    agent: \"code-reviewer\"\n    message: \"Review the architecture of ${ .module }\"\n    harness: HARNESS_CURSOR\n    run_config:\n      model_name: \"claude-haiku-4-5\"\n      # Thinking mode: the model's extended-reasoning variant, billed\n      # at base per-token rates (reasoning tokens count as output).\n      # Valid only for models with the thinking capability; refused at\n      # create otherwise. The shorthand spellings \"disabled\"/\"enabled\"\n      # are also accepted.\n      thinking_mode: THINKING_MODE_ENABLED\n"
       ],
       "documentationUrl": "/docs/guides/workflows/task-types/agent-call",
       "isAiNative": true,

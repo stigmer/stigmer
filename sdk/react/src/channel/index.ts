@@ -69,6 +69,8 @@ export type { ConnectWhatsAppDialogProps } from "./ConnectWhatsAppDialog.js";
 
 export { ChannelCredentialsDialog } from "./ChannelCredentialsDialog.js";
 export type { ChannelCredentialsDialogProps } from "./ChannelCredentialsDialog.js";
+export { ChannelRunConfigDialog } from "./ChannelRunConfigDialog.js";
+export type { ChannelRunConfigDialogProps } from "./ChannelRunConfigDialog.js";
 
 export { ChannelToolCredentials } from "./ChannelToolCredentials.js";
 export type { ChannelToolCredentialsProps } from "./ChannelToolCredentials.js";

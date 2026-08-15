@@ -16,6 +16,7 @@ import { useGitHubConnection } from "../github/useGitHubConnection.js";
 import { ModelSelector } from "../models/ModelSelector.js";
 import { toProtoHarness, type HarnessOption } from "../models/harness.js";
 import { toProtoServiceTier, type ServiceTierOption } from "../models/service-tier.js";
+import { toProtoThinkingMode, type ThinkingModeOption } from "../models/thinking-mode.js";
 import { Switch } from "../switch/Switch.js";
 import { useStigmerPortalContainer } from "../portal-container.js";
 import { useWorkspaceEntries } from "../workspace/useWorkspaceEntries.js";
@@ -116,6 +117,8 @@ export function ScheduleForm({
   // is picked. No model pinned = no tier pinned (fast requires a model,
   // and the form's reset button clears both).
   const [serviceTier, setServiceTier] = useState<ServiceTierOption>("standard");
+  // Thinking mode: the tier's #772 twin, capability-scoped the same way.
+  const [thinkingMode, setThinkingMode] = useState<ThinkingModeOption>("disabled");
 
   const [budgetUsd, setBudgetUsd] = useState("");
 
@@ -152,7 +155,7 @@ export function ScheduleForm({
       if (!canSubmit || !agentRef) return;
 
       clearError();
-      const runConfig = buildRunConfig(modelName, budgetUsd, serviceTier);
+      const runConfig = buildRunConfig(modelName, budgetUsd, serviceTier, thinkingMode);
       try {
         const schedule = await create({
           name: trimmedName,
@@ -195,6 +198,7 @@ export function ScheduleForm({
       modelName,
       modelHarness,
       serviceTier,
+      thinkingMode,
       budgetUsd,
       workspace,
       onComplete,
@@ -362,6 +366,8 @@ export function ScheduleForm({
             onHarnessChange={setModelHarness}
             serviceTier={serviceTier}
             onServiceTierChange={setServiceTier}
+            thinkingMode={thinkingMode}
+            onThinkingModeChange={setThinkingMode}
             placeholderLabel="Platform default"
             disabled={isCreating}
           />
@@ -371,6 +377,7 @@ export function ScheduleForm({
               onClick={() => {
                 setModelName("");
                 setServiceTier("standard");
+                setThinkingMode("disabled");
               }}
               disabled={isCreating}
               className={cn(
@@ -514,6 +521,7 @@ function buildRunConfig(
   modelName: string,
   budgetUsd: string,
   serviceTier: ServiceTierOption,
+  thinkingMode: ThinkingModeOption,
 ): RunConfigInput | undefined {
   const model = modelName.trim();
   const cost = Number.parseFloat(budgetUsd);
@@ -527,6 +535,11 @@ function buildRunConfig(
   // load-bearing ledger distinction (#357).
   if (serviceTier === "fast" && model !== "") {
     config.serviceTier = toProtoServiceTier(serviceTier);
+  }
+  // The tier's #772 twin: thinking is a per-model capability, same
+  // only-explicit-enabled + requires-a-model contract.
+  if (thinkingMode === "enabled" && model !== "") {
+    config.thinkingMode = toProtoThinkingMode(thinkingMode);
   }
 
   return Object.keys(config).length > 0 ? config : undefined;

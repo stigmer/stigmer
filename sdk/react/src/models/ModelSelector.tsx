@@ -9,6 +9,7 @@ import { useModelRegistry } from "./useModelRegistry.js";
 import type { ModelInfo, CostTier, SpeedTier } from "./registry.js";
 import { HARNESS_META, HARNESS_OPTIONS, type HarnessOption } from "./harness.js";
 import { FAST_SERVICE_TIER, type ServiceTierOption } from "./service-tier.js";
+import type { ThinkingModeOption } from "./thinking-mode.js";
 
 const COST_TIER_LABEL: Record<CostTier, string> = {
   economy: "$",
@@ -22,6 +23,17 @@ const SPEED_TIER_LABEL: Record<SpeedTier, string> = {
   balanced: "Balanced",
   slow: "Powerful",
 };
+
+/**
+ * Whether the thinking switch may act on this model (stigmer/stigmer#772):
+ * the registry declares the capability AND the model is cursor-harness —
+ * the only harness with a thinking translation in v1. Native models
+ * truthfully declare the capability too, but selecting it there would be
+ * refused at create time, so the control never renders for them.
+ */
+function supportsThinking(model: ModelInfo): boolean {
+  return model.harness === "cursor" && model.thinkingCapable === true;
+}
 
 /** Props for {@link ModelSelector}. */
 export interface ModelSelectorProps {
@@ -96,6 +108,30 @@ export interface ModelSelectorProps {
   readonly onServiceTierChange?: (tier: ServiceTierOption) => void;
 
   /**
+   * Current thinking mode for the selected model (stigmer/stigmer#772).
+   * Defaults to "disabled". Only meaningful together with
+   * {@link onThinkingModeChange}.
+   */
+  readonly thinkingMode?: ThinkingModeOption;
+  /**
+   * Called when the user toggles extended reasoning. Providing this enables
+   * the "Thinking" switch as a sibling of the fast-tier switch in the
+   * popover's options area, which renders ONLY while the selected model is
+   * a cursor-harness model declaring the thinking capability
+   * ({@link ModelInfo.thinkingCapable}) — no dead controls, and v1 honors
+   * the selection on the cursor harness only.
+   *
+   * The same persistence rule as the fast tier: an active thinking mode
+   * survives switches between thinking-capable models (trigger badge +
+   * options switch keep it visible) and resets to "disabled" only when the
+   * new model lacks the capability — an unsupported combination can never
+   * be submitted (#772, refused at create time). Unlike fast, thinking
+   * bills at base per-token rates; enabled turns consume more output
+   * (reasoning) tokens.
+   */
+  readonly onThinkingModeChange?: (mode: ThinkingModeOption) => void;
+
+  /**
    * @deprecated Use {@link onHarnessChange} instead.
    */
   readonly onHarnessResolved?: (harness: HarnessOption) => void;
@@ -125,6 +161,14 @@ export interface ModelSelectorProps {
  * switch keep the state honest — and resets only for models with no fast
  * variant, where it would be refused at create time.
  *
+ * **Thinking mode (#772).** The same options-area pattern for the second
+ * variant dimension: opting in via
+ * {@link ModelSelectorProps.onThinkingModeChange} renders a "Thinking"
+ * switch for cursor-harness models declaring the thinking capability.
+ * Capability-gated rather than priced-variant-gated — thinking bills at
+ * base per-token rates and costs more only through extra reasoning
+ * (output) tokens. Persistence and reset rules mirror the fast tier's.
+ *
  * @example
  * ```tsx
  * <ModelSelector
@@ -153,6 +197,8 @@ export function ModelSelector({
   placeholderLabel,
   serviceTier = "standard",
   onServiceTierChange,
+  thinkingMode = "disabled",
+  onThinkingModeChange,
 }: ModelSelectorProps) {
   const portalContainer = useStigmerPortalContainer();
 
@@ -277,9 +323,19 @@ export function ModelSelector({
       ) {
         onServiceTierChange("standard");
       }
+      // The identical persistence rule for the thinking mode (#772):
+      // survives between thinking-capable cursor models, resets only
+      // where the selection would be refused at create time.
+      if (
+        thinkingMode === "enabled"
+        && onThinkingModeChange
+        && !supportsThinking(model)
+      ) {
+        onThinkingModeChange("disabled");
+      }
       setOpen(false);
     },
-    [onValueChange, serviceTier, onServiceTierChange],
+    [onValueChange, serviceTier, onServiceTierChange, thinkingMode, onThinkingModeChange],
   );
 
   const scrollHighlightIntoView = useCallback((idx: number) => {
@@ -338,6 +394,15 @@ export function ModelSelector({
   const fastActive =
     serviceTier === "fast"
     && (selectedModel?.serviceTiers.includes(FAST_SERVICE_TIER) ?? false);
+  // The thinking switch renders under the same no-dead-controls rule,
+  // gated on the capability instead of a priced variant (#772).
+  const showThinkingToggle =
+    onThinkingModeChange !== undefined
+    && selectedModel !== undefined
+    && supportsThinking(selectedModel);
+  const thinkingActive =
+    thinkingMode === "enabled"
+    && (selectedModel !== undefined && supportsThinking(selectedModel));
 
   const usingPlaceholder = !value && placeholderLabel !== undefined;
   const triggerLabel = usingPlaceholder
@@ -377,6 +442,16 @@ export function ModelSelector({
           >
             <BoltIcon />
             Fast
+          </span>
+        )}
+        {thinkingActive && (
+          <span
+            className={cn(
+              "stg:inline-flex stg:shrink-0 stg:items-center stg:gap-0.5 stg:rounded-full stg:border stg:border-primary stg:px-1.5 stg:py-px",
+              "stg:text-[0.6rem] stg:font-medium stg:uppercase stg:tracking-wider stg:text-primary",
+            )}
+          >
+            Thinking
           </span>
         )}
         <ChevronIcon />
@@ -479,6 +554,24 @@ export function ModelSelector({
                     onServiceTierChange?.(next ? "fast" : "standard")
                   }
                   aria-label="Fast tier"
+                />
+              </div>
+            )}
+
+            {showThinkingToggle && (
+              <div className="stg:flex stg:items-center stg:justify-between stg:border-b stg:border-border stg:px-3 stg:py-2">
+                <div className="stg:flex stg:flex-col">
+                  <span className="stg:text-xs stg:text-foreground">Thinking</span>
+                  <span className="stg:text-[0.65rem] stg:text-muted-foreground">
+                    Extended reasoning; uses more output tokens
+                  </span>
+                </div>
+                <Switch
+                  checked={thinkingActive}
+                  onCheckedChange={(next) =>
+                    onThinkingModeChange?.(next ? "enabled" : "disabled")
+                  }
+                  aria-label="Thinking"
                 />
               </div>
             )}

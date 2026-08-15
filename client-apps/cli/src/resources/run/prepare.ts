@@ -26,6 +26,12 @@ export type RunMode = "" | "agent" | "plan";
  */
 export type ServiceTierFlag = "" | "standard" | "fast";
 
+/**
+ * The `--thinking` flag's value space (#772), the tier's twin: empty means
+ * unset — distinct from an explicit "disabled" for the same ledger reason.
+ */
+export type ThinkingFlag = "" | "disabled" | "enabled";
+
 /** Raw agent-execution flags shared by `run` and `draft` (Go's agentExecFlags). */
 export interface AgentExecFlags {
   readonly message: string;
@@ -44,6 +50,7 @@ export interface AgentExecFlags {
   readonly autoApprove: boolean;
   readonly mode: RunMode;
   readonly serviceTier: ServiceTierFlag;
+  readonly thinking: ThinkingFlag;
 }
 
 /**
@@ -63,6 +70,7 @@ export interface PreparedRun {
   readonly autoApproveAll: boolean;
   readonly mode: RunMode;
   readonly serviceTier: ServiceTierFlag;
+  readonly thinking: ThinkingFlag;
 }
 
 /** Optional behavior switches for {@link prepareAgentExec}. */
@@ -91,6 +99,7 @@ export async function prepareAgentExec(
   const defaultAction = parseApprovalAction(flags.approveDefault);
   validateMode(flags.mode);
   validateServiceTier(flags.serviceTier);
+  validateThinking(flags.thinking);
 
   // Layered model seed (oss#293 Phase 1.5): an explicit --model always wins;
   // an omitted one fills from the account preference on cloud. `run` and
@@ -134,6 +143,7 @@ export async function prepareAgentExec(
     autoApproveAll: flags.autoApprove,
     mode: flags.mode,
     serviceTier: flags.serviceTier,
+    thinking: flags.thinking,
   };
 }
 
@@ -199,6 +209,21 @@ export function validateServiceTier(tier: string): asserts tier is ServiceTierFl
   if (tier !== "" && tier !== "standard" && tier !== "fast") {
     throw new UsageError(
       `invalid --service-tier value "${tier}": must be "standard" or "fast"`,
+    );
+  }
+}
+
+/**
+ * Validate the `--thinking` flag, the tier check's twin (#772). Empty means
+ * "platform default" (which resolves to disabled — never the provider
+ * account default). The server refuses enabled on models without the
+ * registry thinking capability; this check only catches spelling errors
+ * before a network round trip.
+ */
+export function validateThinking(mode: string): asserts mode is ThinkingFlag {
+  if (mode !== "" && mode !== "disabled" && mode !== "enabled") {
+    throw new UsageError(
+      `invalid --thinking value "${mode}": must be "disabled" or "enabled"`,
     );
   }
 }

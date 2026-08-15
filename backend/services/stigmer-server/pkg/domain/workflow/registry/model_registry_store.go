@@ -75,6 +75,17 @@ type ModelRegistryStore struct {
 	// refusal messages).
 	sortedModelsByVariantHarness map[string]map[string][]string
 
+	// Capability index (stigmer/stigmer#772): capability key ("thinking") →
+	// harness → model references whose capabilities block declares it true.
+	// Unlike the variant index above, a capability is NOT a price — thinking
+	// bills at base per-token rates (ledger-verified) — so selectability is
+	// gated on the declared capability, not on a priced variant. Absence of
+	// the capabilities block means "never assessed" (the registry's
+	// tri-state rule) and indexes nothing.
+	modelsByCapability map[string]map[string]map[string]bool
+	// capability key → harness → sorted canonical ids (refusal messages).
+	sortedModelsByCapabilityHarness map[string]map[string][]string
+
 	// Log-noise control: the first refresh failure warns, subsequent
 	// consecutive failures log at debug until a refresh succeeds again.
 	failureLogged bool
@@ -87,6 +98,11 @@ type ModelRegistryStore struct {
 // never drift.
 const FastVariantKey = "fast"
 
+// ThinkingCapabilityKey is the registry capability key backing
+// THINKING_MODE_ENABLED (stigmer/stigmer#772) — defined beside the index it
+// queries so the selectable key and the declared key can never drift.
+const ThinkingCapabilityKey = "thinking"
+
 // The subset of a registry entry the store indexes. Both canonical ids
 // and provider api ids are accepted as valid references because the
 // runner resolves canonical ids via the registry and passes
@@ -98,6 +114,10 @@ type modelRegistryEntry struct {
 	ApiModelID      string                     `json:"apiModelId"`
 	Harness         string                     `json:"harness"`
 	PricingVariants map[string]json.RawMessage `json:"pricingVariants"`
+	// Raw values so a future non-boolean capability shape can never make
+	// the whole document unparsable (a rejected refresh would pin the
+	// bundle forever); only literal `true` flags are indexed.
+	Capabilities map[string]json.RawMessage `json:"capabilities"`
 }
 
 type modelRegistryData struct {
@@ -253,6 +273,29 @@ func (s *ModelRegistryStore) CanonicalModelsWithVariantForHarness(harness, varia
 	return s.sortedModelsByVariantHarness[variant][harness]
 }
 
+// HasCapabilityForHarness reports whether a model reference (canonical id
+// or provider api id) declares the given capability key (e.g. "thinking")
+// true under the given harness. Capability flags are harness-scoped facts
+// (they describe what works through that serving path), so there is no
+// any-harness form: THINKING_MODE_ENABLED validates against the cursor
+// harness specifically — the only harness with a thinking translation in
+// v1 (stigmer/stigmer#772) — and native entries declaring the same
+// capability stay unselectable until a native wire mapping exists.
+func (s *ModelRegistryStore) HasCapabilityForHarness(harness, model, capability string) bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.modelsByCapability[capability][harness][model]
+}
+
+// CanonicalModelsWithCapabilityForHarness returns the sorted canonical
+// model ids that declare the given capability key under the given harness,
+// for actionable refusal messages. Callers must not mutate the slice.
+func (s *ModelRegistryStore) CanonicalModelsWithCapabilityForHarness(harness, capability string) []string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.sortedModelsByCapabilityHarness[capability][harness]
+}
+
 // applyDocument sanity-gates and installs a registry document: it must
 // parse, and it must index at least one model. A malformed or empty
 // upstream response never replaces a working registry.
@@ -269,6 +312,8 @@ func (s *ModelRegistryStore) applyDocument(data []byte) error {
 	// one harness, and the union list must not repeat it.
 	canonicalByVariantSet := make(map[string]map[string]bool)
 	canonicalByVariantHarness := make(map[string]map[string][]string)
+	byCapability := make(map[string]map[string]map[string]bool)
+	canonicalByCapabilityHarness := make(map[string]map[string][]string)
 	for _, m := range parsed.Models {
 		// $comment section dividers carry no id/harness.
 		if m.ID == "" || m.Harness == "" {
@@ -303,6 +348,29 @@ func (s *ModelRegistryStore) applyDocument(data []byte) error {
 			canonicalByVariantHarness[variant][m.Harness] =
 				append(canonicalByVariantHarness[variant][m.Harness], m.ID)
 		}
+		for capability, raw := range m.Capabilities {
+			// Only literal `true` declares the capability; false, null, or a
+			// future non-boolean shape indexes nothing (tri-state rule:
+			// absence is "unknown", never a claim either way).
+			if string(raw) != "true" {
+				continue
+			}
+			if byCapability[capability] == nil {
+				byCapability[capability] = make(map[string]map[string]bool)
+			}
+			if byCapability[capability][m.Harness] == nil {
+				byCapability[capability][m.Harness] = make(map[string]bool)
+			}
+			byCapability[capability][m.Harness][m.ID] = true
+			if m.ApiModelID != "" {
+				byCapability[capability][m.Harness][m.ApiModelID] = true
+			}
+			if canonicalByCapabilityHarness[capability] == nil {
+				canonicalByCapabilityHarness[capability] = make(map[string][]string)
+			}
+			canonicalByCapabilityHarness[capability][m.Harness] =
+				append(canonicalByCapabilityHarness[capability][m.Harness], m.ID)
+		}
 	}
 	if len(byHarness) == 0 {
 		return fmt.Errorf("registry document contains no model entries")
@@ -324,6 +392,11 @@ func (s *ModelRegistryStore) applyDocument(data []byte) error {
 			sort.Strings(ids)
 		}
 	}
+	for _, byH := range canonicalByCapabilityHarness {
+		for _, ids := range byH {
+			sort.Strings(ids)
+		}
+	}
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -333,6 +406,8 @@ func (s *ModelRegistryStore) applyDocument(data []byte) error {
 	s.modelsByVariant = byVariant
 	s.sortedModelsByVariant = canonicalByVariant
 	s.sortedModelsByVariantHarness = canonicalByVariantHarness
+	s.modelsByCapability = byCapability
+	s.sortedModelsByCapabilityHarness = canonicalByCapabilityHarness
 	return nil
 }
 

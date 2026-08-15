@@ -100,7 +100,7 @@ export function decodeWorkflowTaskConfigs(workflow: Workflow): void {
 /**
  * Rewrites user-friendly DSL forms to the shapes the proto decode expects —
  * the twin of the server's `normalizeEnumShorthands` (unmarshal.go): agent_call
- * harness shorthands ("cursor" → "HARNESS_CURSOR"), run_config service-tier
+ * harness shorthands ("cursor" → "HARNESS_CURSOR"), run_config service-tier/thinking-mode
  * shorthands ("fast" → "SERVICE_TIER_FAST"), and the environment_refs kind
  * default (an omitted kind means environment). Without this twin the offline
  * decode would be STRICTER than a real apply and fail valid manifests.
@@ -123,6 +123,10 @@ function normalizeTaskConfigShorthands(kind: WorkflowTaskKind, config: JsonValue
       const tier = SERVICE_TIER_SHORTHANDS[runConfig.service_tier.toLowerCase()];
       if (tier !== undefined) runConfig.service_tier = tier;
     }
+    if (typeof runConfig.thinking_mode === "string") {
+      const mode = THINKING_MODE_SHORTHANDS[runConfig.thinking_mode.toLowerCase()];
+      if (mode !== undefined) runConfig.thinking_mode = mode;
+    }
     normalized.run_config = runConfig;
   }
 
@@ -143,6 +147,11 @@ const HARNESS_SHORTHANDS: Record<string, string> = {
 const SERVICE_TIER_SHORTHANDS: Record<string, string> = {
   standard: "SERVICE_TIER_STANDARD",
   fast: "SERVICE_TIER_FAST",
+};
+
+const THINKING_MODE_SHORTHANDS: Record<string, string> = {
+  disabled: "THINKING_MODE_DISABLED",
+  enabled: "THINKING_MODE_ENABLED",
 };
 
 function isJsonObject(value: JsonValue | undefined): value is Record<string, JsonValue> {

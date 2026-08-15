@@ -435,6 +435,36 @@ public interface LlmCallUsageRecordOrBuilder extends
 
   /**
    * <pre>
+   * Billed thinking mode derived from wire evidence ("enabled"/"disabled"),
+   * mirroring service_tier's convention: cursor harness derives it from the
+   * resolved wire id's variant suffix; empty when the wire carries no
+   * evidence — never guessed. Thinking is per-token price-neutral
+   * (ledger-verified, stigmer/stigmer#772), so this field feeds the
+   * requested-vs-billed consumption-drift reconciliation, not pricing.
+   * </pre>
+   *
+   * <code>string thinking = 44 [json_name = "thinking"];</code>
+   * @return The thinking.
+   */
+  java.lang.String getThinking();
+  /**
+   * <pre>
+   * Billed thinking mode derived from wire evidence ("enabled"/"disabled"),
+   * mirroring service_tier's convention: cursor harness derives it from the
+   * resolved wire id's variant suffix; empty when the wire carries no
+   * evidence — never guessed. Thinking is per-token price-neutral
+   * (ledger-verified, stigmer/stigmer#772), so this field feeds the
+   * requested-vs-billed consumption-drift reconciliation, not pricing.
+   * </pre>
+   *
+   * <code>string thinking = 44 [json_name = "thinking"];</code>
+   * @return The bytes for thinking.
+   */
+  com.google.protobuf.ByteString
+      getThinkingBytes();
+
+  /**
+   * <pre>
    * ─── Token Usage ────────────────────────────────────────────────────────────
    * </pre>
    *

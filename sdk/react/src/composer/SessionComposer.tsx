@@ -8,6 +8,7 @@ import { ComposerToolbar } from "./ComposerToolbar.js";
 import { type ConfigureMenuItem } from "./ConfigureMenu.js";
 import type { HarnessOption } from "../models/harness.js";
 import { FAST_SERVICE_TIER, type ServiceTierOption } from "../models/service-tier.js";
+import type { ThinkingModeOption } from "../models/thinking-mode.js";
 import type { InteractionModeOption } from "./InteractionModePicker.js";
 import { parseModelKey } from "../models/registry.js";
 import { useModelRegistry } from "../models/useModelRegistry.js";
@@ -164,6 +165,14 @@ export interface SessionComposerSubmitContext {
    * Pass to execution creation as `execution_config.service_tier`.
    */
   readonly serviceTier?: ServiceTierOption;
+  /**
+   * Thinking mode the user actively selected for this execution
+   * (stigmer/stigmer#772). Only ever `"enabled"` — an untouched mode means
+   * "platform default" and is carried as `undefined`, the same
+   * unspecified-vs-explicit contract as {@link serviceTier}.
+   * Pass to execution creation as `execution_config.thinking_mode`.
+   */
+  readonly thinkingMode?: ThinkingModeOption;
   /**
    * Workspace-relative file paths the user referenced via drag-to-reference.
    *
@@ -663,6 +672,9 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   // selection below (#663) — state here records the user's intent only.
   const [serviceTier, setServiceTier] = useState<ServiceTierOption>("standard");
 
+  // Thinking mode (#772): the tier's twin, same intent-vs-effective split.
+  const [thinkingMode, setThinkingMode] = useState<ThinkingModeOption>("disabled");
+
   // Active harness mirror: controlled hosts (both viewers) keep the
   // `harness` prop current, but with `showHarnessSelector` the dropdown
   // lives inside ModelSelector and an uncontrolled host would leave the
@@ -837,10 +849,26 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
         ? "fast"
         : "standard";
 
-    return { modelId: effectiveModelId, model: effectiveModel, serviceTier: effectiveServiceTier };
+    // "enabled" rides under the identical rule, keyed on the capability
+    // (cursor-harness models only — v1 has no native thinking mapping, #772).
+    const effectiveThinkingMode: ThinkingModeOption =
+      thinkingMode === "enabled"
+        && effectiveModel !== undefined
+        && effectiveModel.harness === "cursor"
+        && effectiveModel.thinkingCapable === true
+        ? "enabled"
+        : "disabled";
+
+    return {
+      modelId: effectiveModelId,
+      model: effectiveModel,
+      serviceTier: effectiveServiceTier,
+      thinkingMode: effectiveThinkingMode,
+    };
   }, [
     modelId,
     serviceTier,
+    thinkingMode,
     showModelSelector,
     isRegistryLoading,
     registryGetByKey,
@@ -1054,15 +1082,19 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
       // explicit distinction is load-bearing telemetry (#357).
       const submitServiceTier =
         effective.serviceTier === "fast" ? effective.serviceTier : undefined;
+      // The tier's #772 twin: only an in-effect "enabled" is carried.
+      const submitThinkingMode =
+        effective.thinkingMode === "enabled" ? effective.thinkingMode : undefined;
 
       const context: SessionComposerSubmitContext | undefined =
         hasEnv || hasAttachments || effectiveMode || hasFileRefs || buildFromPlan
-        || submitServiceTier
+        || submitServiceTier || submitThinkingMode
           ? {
               runtimeEnv: hasEnv ? env : undefined,
               attachments: hasAttachments ? attachmentInputs : undefined,
               interactionMode: effectiveMode,
               serviceTier: submitServiceTier,
+              thinkingMode: submitThinkingMode,
               workspaceFileRefs: hasFileRefs ? [...fileRefs.refs] : undefined,
               buildFromPlan,
             }
@@ -1894,6 +1926,8 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
           onModelChange={handleModelChange}
           serviceTier={serviceTier}
           onServiceTierChange={setServiceTier}
+          thinkingMode={thinkingMode}
+          onThinkingModeChange={setThinkingMode}
         />
       </div>
     </div>

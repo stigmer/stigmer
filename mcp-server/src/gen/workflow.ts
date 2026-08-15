@@ -6,7 +6,7 @@
 import { generateSlug, visibilityFromString, enumFromString, toTimestamp } from "./apply-runtime.js";
 import { create, fromJson, toJson, type JsonObject, type JsonValue } from "@bufbuild/protobuf";
 import { ValueSchema } from "@bufbuild/protobuf/wkt";
-import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/invocation_pb";
 import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { GitWriteBackMode, Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
@@ -72,6 +72,7 @@ const RunConfigInputSchema = z.object({
   max_cost_usd: z.number().optional().describe("Maximum estimated cost in USD per run. The surface's platform execution profile caps this value; the lower bound wins."),
   max_tool_rounds: z.number().optional().describe("Maximum model-to-tools reasoning cycles per run. The surface's platform execution profile caps this value; the lower bound wins."),
   service_tier: z.string().optional().describe("Service tier for each run's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one. In workflow YAML the shorthand spellings 'standard'/'fast' are accepted alongside the canonical enum names. Mirrors ExecutionConfig.service_tier: UNSPECIFIED inherits the surface's platform default, which itself resolves to STANDARD — never the provider account default. FAST requires model_name (here or from the platform profile) to name a model with a registry fast pricing variant; validated fail-closed at create. Allowed values: SERVICE_TIER_STANDARD, SERVICE_TIER_FAST."),
+  thinking_mode: z.string().optional().describe("Thinking mode for each run's model calls: disabled (the default) or enabled, where enabled selects the model's extended-reasoning variant (billed at base per-token rates — reasoning tokens bill as output). In workflow YAML the shorthand spellings 'disabled'/'enabled' are accepted alongside the canonical enum names. Mirrors ExecutionConfig.thinking_mode: UNSPECIFIED inherits the surface's platform default, which itself resolves to DISABLED — never the provider account default. ENABLED requires model_name (here or from the platform profile) to name a model whose registry entry declares the thinking capability; validated fail-closed at create. Combines freely with service_tier. Allowed values: THINKING_MODE_DISABLED, THINKING_MODE_ENABLED."),
 });
 type RunConfigInput = z.infer<typeof RunConfigInputSchema>;
 
@@ -515,6 +516,7 @@ function runConfigInputToProto(input: RunConfigInput) {
   if (input.max_cost_usd !== undefined) result.maxCostUsd = input.max_cost_usd;
   if (input.max_tool_rounds !== undefined) result.maxToolRounds = input.max_tool_rounds;
   result.serviceTier = enumFromString(ServiceTier, input.service_tier) as ServiceTier;
+  result.thinkingMode = enumFromString(ThinkingMode, input.thinking_mode) as ThinkingMode;
   return result;
 }
 

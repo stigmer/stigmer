@@ -37,6 +37,7 @@ private static final long serialVersionUID = 0L;
     observedAt_ = "";
     requestedServiceTier_ = 0;
     requestedModelParams_ = "";
+    requestedThinkingMode_ = 0;
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -370,6 +371,42 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int REQUESTED_THINKING_MODE_FIELD_NUMBER = 12;
+  private int requestedThinkingMode_ = 0;
+  /**
+   * <pre>
+   * Thinking mode the runner requested for this execution's model calls.
+   *
+   * Always explicit once the runner has translated the execution config
+   * (DISABLED when ExecutionConfig.thinking_mode was unset) — the audit
+   * record that the account default was never left in control
+   * (stigmer/stigmer#772; several catalog defaults are thinking=true).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ThinkingMode requested_thinking_mode = 12 [json_name = "requestedThinkingMode"];</code>
+   * @return The enum numeric value on the wire for requestedThinkingMode.
+   */
+  @java.lang.Override public int getRequestedThinkingModeValue() {
+    return requestedThinkingMode_;
+  }
+  /**
+   * <pre>
+   * Thinking mode the runner requested for this execution's model calls.
+   *
+   * Always explicit once the runner has translated the execution config
+   * (DISABLED when ExecutionConfig.thinking_mode was unset) — the audit
+   * record that the account default was never left in control
+   * (stigmer/stigmer#772; several catalog defaults are thinking=true).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ThinkingMode requested_thinking_mode = 12 [json_name = "requestedThinkingMode"];</code>
+   * @return The requestedThinkingMode.
+   */
+  @java.lang.Override public ai.stigmer.agentic.agentexecution.v1.ThinkingMode getRequestedThinkingMode() {
+    ai.stigmer.agentic.agentexecution.v1.ThinkingMode result = ai.stigmer.agentic.agentexecution.v1.ThinkingMode.forNumber(requestedThinkingMode_);
+    return result == null ? ai.stigmer.agentic.agentexecution.v1.ThinkingMode.UNRECOGNIZED : result;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -416,6 +453,9 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(requestedModelParams_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 11, requestedModelParams_);
+    }
+    if (requestedThinkingMode_ != ai.stigmer.agentic.agentexecution.v1.ThinkingMode.THINKING_MODE_UNSPECIFIED.getNumber()) {
+      output.writeEnum(12, requestedThinkingMode_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -467,6 +507,10 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(requestedModelParams_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(11, requestedModelParams_);
     }
+    if (requestedThinkingMode_ != ai.stigmer.agentic.agentexecution.v1.ThinkingMode.THINKING_MODE_UNSPECIFIED.getNumber()) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeEnumSize(12, requestedThinkingMode_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -504,6 +548,7 @@ private static final long serialVersionUID = 0L;
     if (requestedServiceTier_ != other.requestedServiceTier_) return false;
     if (!getRequestedModelParams()
         .equals(other.getRequestedModelParams())) return false;
+    if (requestedThinkingMode_ != other.requestedThinkingMode_) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -543,6 +588,8 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + requestedServiceTier_;
     hash = (37 * hash) + REQUESTED_MODEL_PARAMS_FIELD_NUMBER;
     hash = (53 * hash) + getRequestedModelParams().hashCode();
+    hash = (37 * hash) + REQUESTED_THINKING_MODE_FIELD_NUMBER;
+    hash = (53 * hash) + requestedThinkingMode_;
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -690,6 +737,7 @@ private static final long serialVersionUID = 0L;
       observedAt_ = "";
       requestedServiceTier_ = 0;
       requestedModelParams_ = "";
+      requestedThinkingMode_ = 0;
       return this;
     }
 
@@ -756,6 +804,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000400) != 0)) {
         result.requestedModelParams_ = requestedModelParams_;
       }
+      if (((from_bitField0_ & 0x00000800) != 0)) {
+        result.requestedThinkingMode_ = requestedThinkingMode_;
+      }
     }
 
     @java.lang.Override
@@ -808,6 +859,9 @@ private static final long serialVersionUID = 0L;
         requestedModelParams_ = other.requestedModelParams_;
         bitField0_ |= 0x00000400;
         onChanged();
+      }
+      if (other.requestedThinkingMode_ != 0) {
+        setRequestedThinkingModeValue(other.getRequestedThinkingModeValue());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -890,6 +944,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000400;
               break;
             } // case 90
+            case 96: {
+              requestedThinkingMode_ = input.readEnum();
+              bitField0_ |= 0x00000800;
+              break;
+            } // case 96
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1663,6 +1722,103 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       requestedModelParams_ = value;
       bitField0_ |= 0x00000400;
+      onChanged();
+      return this;
+    }
+
+    private int requestedThinkingMode_ = 0;
+    /**
+     * <pre>
+     * Thinking mode the runner requested for this execution's model calls.
+     *
+     * Always explicit once the runner has translated the execution config
+     * (DISABLED when ExecutionConfig.thinking_mode was unset) — the audit
+     * record that the account default was never left in control
+     * (stigmer/stigmer#772; several catalog defaults are thinking=true).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ThinkingMode requested_thinking_mode = 12 [json_name = "requestedThinkingMode"];</code>
+     * @return The enum numeric value on the wire for requestedThinkingMode.
+     */
+    @java.lang.Override public int getRequestedThinkingModeValue() {
+      return requestedThinkingMode_;
+    }
+    /**
+     * <pre>
+     * Thinking mode the runner requested for this execution's model calls.
+     *
+     * Always explicit once the runner has translated the execution config
+     * (DISABLED when ExecutionConfig.thinking_mode was unset) — the audit
+     * record that the account default was never left in control
+     * (stigmer/stigmer#772; several catalog defaults are thinking=true).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ThinkingMode requested_thinking_mode = 12 [json_name = "requestedThinkingMode"];</code>
+     * @param value The enum numeric value on the wire for requestedThinkingMode to set.
+     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
+     * @return This builder for chaining.
+     */
+    public Builder setRequestedThinkingModeValue(int value) {
+      requestedThinkingMode_ = value;
+      bitField0_ |= 0x00000800;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Thinking mode the runner requested for this execution's model calls.
+     *
+     * Always explicit once the runner has translated the execution config
+     * (DISABLED when ExecutionConfig.thinking_mode was unset) — the audit
+     * record that the account default was never left in control
+     * (stigmer/stigmer#772; several catalog defaults are thinking=true).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ThinkingMode requested_thinking_mode = 12 [json_name = "requestedThinkingMode"];</code>
+     * @return The requestedThinkingMode.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.agentexecution.v1.ThinkingMode getRequestedThinkingMode() {
+      ai.stigmer.agentic.agentexecution.v1.ThinkingMode result = ai.stigmer.agentic.agentexecution.v1.ThinkingMode.forNumber(requestedThinkingMode_);
+      return result == null ? ai.stigmer.agentic.agentexecution.v1.ThinkingMode.UNRECOGNIZED : result;
+    }
+    /**
+     * <pre>
+     * Thinking mode the runner requested for this execution's model calls.
+     *
+     * Always explicit once the runner has translated the execution config
+     * (DISABLED when ExecutionConfig.thinking_mode was unset) — the audit
+     * record that the account default was never left in control
+     * (stigmer/stigmer#772; several catalog defaults are thinking=true).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ThinkingMode requested_thinking_mode = 12 [json_name = "requestedThinkingMode"];</code>
+     * @param value The requestedThinkingMode to set.
+     * @return This builder for chaining.
+     */
+    public Builder setRequestedThinkingMode(ai.stigmer.agentic.agentexecution.v1.ThinkingMode value) {
+      if (value == null) { throw new NullPointerException(); }
+      bitField0_ |= 0x00000800;
+      requestedThinkingMode_ = value.getNumber();
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Thinking mode the runner requested for this execution's model calls.
+     *
+     * Always explicit once the runner has translated the execution config
+     * (DISABLED when ExecutionConfig.thinking_mode was unset) — the audit
+     * record that the account default was never left in control
+     * (stigmer/stigmer#772; several catalog defaults are thinking=true).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ThinkingMode requested_thinking_mode = 12 [json_name = "requestedThinkingMode"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearRequestedThinkingMode() {
+      bitField0_ = (bitField0_ & ~0x00000800);
+      requestedThinkingMode_ = 0;
       onChanged();
       return this;
     }

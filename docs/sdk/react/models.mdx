@@ -125,6 +125,14 @@ across switches between fast-capable models — the visible badge and
 switch keep the state honest — and resets only for models with no fast
 variant, where it would be refused at create time.
 
+**Thinking mode (#772).** The same options-area pattern for the second
+variant dimension: opting in via
+`ModelSelectorProps.onThinkingModeChange` renders a "Thinking"
+switch for cursor-harness models declaring the thinking capability.
+Capability-gated rather than priced-variant-gated — thinking bills at
+base per-token rates and costs more only through extra reasoning
+(output) tokens. Persistence and reset rules mirror the fast tier's.
+
 **Props** — `ModelSelectorProps`
 
 <TypeTable
@@ -140,11 +148,13 @@ variant, where it would be refused at create time.
     onHarnessChange: { type: "(harness: HarnessOption) => void", description: "Called when user changes harness in the dropdown." },
     onHarnessResolved: { type: "(harness: HarnessOption) => void", description: "" },
     onServiceTierChange: { type: "(tier: ServiceTierOption) => void", description: "Called when the user toggles the fast tier. Providing this enables the \"Fast tier\" switch in the popover's options area (top of the popover, beside the harness row — the Cursor options-panel convention), which renders ONLY while the selected model prices a fast variant (ModelInfo.serviceTiers) — no dead controls.  An active fast tier persists across switches between fast-capable models (the tier is always visible: trigger badge + options switch), so \"fast, but on that other model\" is one action, not a re-toggle. Selecting a model without a fast tier resets to \"standard\" through this callback — an unsupported combination can never be submitted (#357, refused at create time)." },
+    onThinkingModeChange: { type: "(mode: ThinkingModeOption) => void", description: "Called when the user toggles extended reasoning. Providing this enables the \"Thinking\" switch as a sibling of the fast-tier switch in the popover's options area, which renders ONLY while the selected model is a cursor-harness model declaring the thinking capability (ModelInfo.thinkingCapable) — no dead controls, and v1 honors the selection on the cursor harness only.  The same persistence rule as the fast tier: an active thinking mode survives switches between thinking-capable models (trigger badge + options switch keep it visible) and resets to \"disabled\" only when the new model lacks the capability — an unsupported combination can never be submitted (#772, refused at create time). Unlike fast, thinking bills at base per-token rates; enabled turns consume more output (reasoning) tokens." },
     onValueChange: { type: "(modelId: string) => void", description: "Called when the user picks a different model. Receives the `modelId`.", required: true },
     placeholderLabel: { type: "string", description: "Trigger label shown while `value` is empty, instead of falling back to the registry's default model. Lets a form distinguish \"nothing pinned — the platform default applies\" from an actual selection (the schedule form's contract: an unset model inherits the surface's platform default). The harness prefix is hidden while the placeholder shows, since no engine is pinned either." },
     serviceTier: { type: "ServiceTierOption", description: "Current service tier for the selected model (stigmer/stigmer#357). Defaults to \"standard\". Only meaningful together with onServiceTierChange." },
     showDescriptions: { type: "boolean", description: "Show short descriptions in curated view. Default: true." },
     showSpeedBadge: { type: "boolean", description: "Show speed tier badge. Default: true." },
+    thinkingMode: { type: "ThinkingModeOption", description: "Current thinking mode for the selected model (stigmer/stigmer#772). Defaults to \"disabled\". Only meaningful together with onThinkingModeChange." },
     value: { type: "string", description: "Currently selected model ID." },
   }}
 />
@@ -260,6 +270,7 @@ UI-relevant metadata for a single platform-supported LLM model.
     serviceTiers: { type: "readonly string[]", description: "Pricing-variant keys the registry prices for this model (e.g. `[\"fast\"]`). A priced variant is a *selectable* service tier (stigmer/stigmer#357): the fast-tier switch in the model popover's options area renders only while the selected model's `serviceTiers` includes it. Empty for models with no variants.  Distinct from speedTier, which is a static latency badge, not a selectable option.", required: true },
     shortDescription: { type: "string", description: "3-6 word pitch explaining why to pick this model. Shown in the curated view.", required: true },
     speedTier: { type: "SpeedTier", description: "Latency characteristic shown as a badge (Fastest / Fast / Balanced / Slow).", required: true },
+    thinkingCapable: { type: "boolean", description: "Tri-state thinking capability from the registry's `capabilities` block (stigmer/stigmer#772), the same absence convention as visionCapability:  - `true` — the model declares an extended-reasoning (thinking) variant;   the thinking switch in the model popover's options area may render - `false` — explicitly assessed as having none - `undefined` — never assessed; **stay silent, never treat as false**  Capability-gated, not pricing-gated (unlike serviceTiers): thinking bills at base per-token rates, so no priced variant exists to key on. v1 honors the selection on the cursor harness only — gate any control on `harness === \"cursor\"` as well as this flag." },
     visionCapability: { type: "boolean", description: "Tri-state vision capability from the registry's `capabilities` block (stigmer/stigmer#386). The registry serializes `capabilities` only for models whose capabilities were actually assessed, so:  - `true` — images sent with a turn reach the model - `false` — explicitly assessed as blind; warn at selection/send time - `undefined` — never assessed; **stay silent, never treat as false**  Mirrors the runner's `parseVisionCapability` convention (backend/services/runner/src/shared/model-registry.ts) — both sides parse the same document and must agree on what absence means." },
   }}
 />

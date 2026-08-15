@@ -359,6 +359,7 @@ class ExecutionConfigInput:
     build_from_plan: bool = False
     approval_mode: int = 0
     service_tier: int = 0
+    thinking_mode: int = 0
 
     def _to_proto(self) -> spec_pb2.ExecutionConfig:
         msg = spec_pb2.ExecutionConfig(
@@ -370,6 +371,7 @@ class ExecutionConfigInput:
             build_from_plan=self.build_from_plan,
             approval_mode=self.approval_mode,
             service_tier=self.service_tier,
+            thinking_mode=self.thinking_mode,
         )
         if self.context_management is not None:
             msg.context_management.CopyFrom(self.context_management._to_proto())

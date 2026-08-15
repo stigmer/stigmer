@@ -549,12 +549,14 @@ function parseAgentCallRunConfig(raw: unknown): AgentCallConfig["run_config"] {
   }
   const obj = raw as Record<string, unknown>;
 
-  const known = new Set(["model_name", "max_cost_usd", "max_tool_rounds", "service_tier"]);
+  const known = new Set([
+    "model_name", "max_cost_usd", "max_tool_rounds", "service_tier", "thinking_mode",
+  ]);
   for (const key of Object.keys(obj)) {
     if (!known.has(key)) {
       throw new Error(
         `call:agent 'run_config' has unknown field '${key}' ` +
-        `(expected: model_name, max_cost_usd, max_tool_rounds, service_tier)`,
+        `(expected: model_name, max_cost_usd, max_tool_rounds, service_tier, thinking_mode)`,
       );
     }
   }
@@ -572,12 +574,14 @@ function parseAgentCallRunConfig(raw: unknown): AgentCallConfig["run_config"] {
     throw new Error("call:agent 'run_config.max_tool_rounds' must be a number >= 0");
   }
   const serviceTier = parseServiceTier(obj.service_tier);
+  const thinkingMode = parseThinkingMode(obj.thinking_mode);
 
   return {
     model_name: modelName,
     max_cost_usd: maxCostUsd,
     max_tool_rounds: maxToolRounds,
     service_tier: serviceTier,
+    thinking_mode: thinkingMode,
   };
 }
 
@@ -604,6 +608,34 @@ function parseServiceTier(raw: unknown): string | undefined {
     throw new Error(
       `call:agent 'run_config.service_tier' has unknown value '${raw}' ` +
       `(expected: standard, fast)`,
+    );
+  }
+  return canonical;
+}
+
+/**
+ * Maps YAML thinking-mode shorthands to canonical enum names, mirroring
+ * SERVICE_TIER_SHORTHANDS (stigmer/stigmer#772). Unknown values are
+ * authoring errors: the mode exists to make the served variant
+ * deterministic, so a typo must never silently fall back to the default.
+ */
+const THINKING_MODE_SHORTHANDS: Record<string, string> = {
+  disabled: "THINKING_MODE_DISABLED",
+  enabled: "THINKING_MODE_ENABLED",
+};
+
+function parseThinkingMode(raw: unknown): string | undefined {
+  if (raw === undefined || raw === null) return undefined;
+  if (typeof raw !== "string") {
+    throw new Error("call:agent 'run_config.thinking_mode' must be a string");
+  }
+  const canonical =
+    THINKING_MODE_SHORTHANDS[raw.toLowerCase()] ??
+    (Object.values(THINKING_MODE_SHORTHANDS).includes(raw) ? raw : undefined);
+  if (!canonical) {
+    throw new Error(
+      `call:agent 'run_config.thinking_mode' has unknown value '${raw}' ` +
+      `(expected: disabled, enabled)`,
     );
   }
   return canonical;

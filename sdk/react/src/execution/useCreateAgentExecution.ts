@@ -14,6 +14,7 @@ import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 import { toProtoInteractionMode } from "../composer/interaction-mode.js";
 import { toProtoServiceTier, type ServiceTierOption } from "../models/service-tier.js";
+import { toProtoThinkingMode, type ThinkingModeOption } from "../models/thinking-mode.js";
 import { toProtoHarness, type HarnessOption } from "../models/harness.js";
 import {
   toProtoExecutionTarget,
@@ -138,6 +139,20 @@ export interface SharedAgentExecutionFields {
    * Maps to `ExecutionConfig.service_tier` in the proto.
    */
   readonly serviceTier?: ServiceTierOption;
+  /**
+   * Thinking mode for this execution's model calls (stigmer/stigmer#772).
+   *
+   * - `"disabled"` (default): the model's base variant, pinned explicitly —
+   *   never the provider account default.
+   * - `"enabled"`: the model's extended-reasoning variant, billed at base
+   *   per-token rates (reasoning tokens bill as output). Valid only for
+   *   cursor-harness models whose registry entry declares the thinking
+   *   capability — the backend refuses the create otherwise, so gate the
+   *   option on `ModelInfo.thinkingCapable`.
+   *
+   * Maps to `ExecutionConfig.thinking_mode` in the proto.
+   */
+  readonly thinkingMode?: ThinkingModeOption;
   /**
    * Marks this execution as a Build-from-plan turn: the user approved a
    * plan from a prior Plan-mode execution and asked the agent to implement
@@ -318,6 +333,7 @@ export function useCreateAgentExecution(): UseCreateAgentExecutionReturn {
           input.modelName ||
           input.interactionMode ||
           input.serviceTier ||
+          input.thinkingMode ||
           input.structuredOutputSchema ||
           input.buildFromPlan;
         const executionConfig = hasConfig
@@ -328,6 +344,9 @@ export function useCreateAgentExecution(): UseCreateAgentExecutionReturn {
                 : {}),
               ...(input.serviceTier
                 ? { serviceTier: toProtoServiceTier(input.serviceTier) }
+                : {}),
+              ...(input.thinkingMode
+                ? { thinkingMode: toProtoThinkingMode(input.thinkingMode) }
                 : {}),
               ...(input.structuredOutputSchema
                 ? { structuredOutputSchema: input.structuredOutputSchema }

@@ -195,7 +195,7 @@ public enum FileChangeKind
   }
   public static com.google.protobuf.Descriptors.EnumDescriptor
       getDescriptor() {
-    return ai.stigmer.agentic.agentexecution.v1.EnumProto.getDescriptor().getEnumType(20);
+    return ai.stigmer.agentic.agentexecution.v1.EnumProto.getDescriptor().getEnumType(21);
   }
 
   private static final FileChangeKind[] VALUES = values();

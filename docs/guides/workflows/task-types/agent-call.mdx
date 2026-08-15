@@ -53,6 +53,23 @@ AI agents.
       service_tier: SERVICE_TIER_FAST
 ```
 
+```yaml
+- name: deep_review
+  kind: agent_call
+  task_config:
+    agent: "code-reviewer"
+    message: "Review the architecture of ${ .module }"
+    harness: HARNESS_CURSOR
+    run_config:
+      model_name: "claude-haiku-4-5"
+      # Thinking mode: the model's extended-reasoning variant, billed
+      # at base per-token rates (reasoning tokens count as output).
+      # Valid only for models with the thinking capability; refused at
+      # create otherwise. The shorthand spellings "disabled"/"enabled"
+      # are also accepted.
+      thinking_mode: THINKING_MODE_ENABLED
+```
+
 ## task_config Fields
 
 <TypeTable
@@ -122,6 +139,12 @@ RunConfig is the owner-settable model choice and run bounds.
       description:
         "Service tier for each run's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one.",
       typeDescriptionLink: "#servicetier",
+    },
+    thinking_mode: {
+      type: "ThinkingMode",
+      description:
+        "Thinking mode for each run's model calls: disabled (the default) or enabled, where enabled selects the model's extended-reasoning variant (billed at base per-token rates — reasoning tokens bill as output).",
+      typeDescriptionLink: "#thinkingmode",
     },
   }}
 />
@@ -278,6 +301,13 @@ Generic reference to any API resource by org and slug.
 | ----------------------- | ----------- |
 | `SERVICE_TIER_STANDARD` |             |
 | `SERVICE_TIER_FAST`     |             |
+
+### ThinkingMode
+
+| Value                    | Description |
+| ------------------------ | ----------- |
+| `THINKING_MODE_DISABLED` |             |
+| `THINKING_MODE_ENABLED`  |             |
 
 ### OnInvalidOutputPolicy
 

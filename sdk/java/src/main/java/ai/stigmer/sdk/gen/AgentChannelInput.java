@@ -8,6 +8,7 @@ import ai.stigmer.agentic.agentchannel.v1.SlackChannelConfig;
 import ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig;
 import ai.stigmer.agentic.agentexecution.v1.RunConfig;
 import ai.stigmer.agentic.agentexecution.v1.ServiceTier;
+import ai.stigmer.agentic.agentexecution.v1.ThinkingMode;
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
 import ai.stigmer.commons.apiresource.ApiResourceVisibility;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
@@ -184,12 +185,14 @@ public final class AgentChannelInput {
         private final double maxCostUsd;
         private final int maxToolRounds;
         private final ServiceTier serviceTier;
+        private final ThinkingMode thinkingMode;
 
         private RunConfigInput(Builder builder) {
             this.modelName = builder.modelName;
             this.maxCostUsd = builder.maxCostUsd;
             this.maxToolRounds = builder.maxToolRounds;
             this.serviceTier = builder.serviceTier;
+            this.thinkingMode = builder.thinkingMode;
         }
 
         RunConfig toProto() {
@@ -202,6 +205,9 @@ public final class AgentChannelInput {
             if (this.serviceTier != null) {
                 builder.setServiceTier(this.serviceTier);
             }
+            if (this.thinkingMode != null) {
+                builder.setThinkingMode(this.thinkingMode);
+            }
             return builder.build();
         }
 
@@ -212,6 +218,7 @@ public final class AgentChannelInput {
             private double maxCostUsd;
             private int maxToolRounds;
             private ServiceTier serviceTier;
+            private ThinkingMode thinkingMode;
 
             private Builder() {}
 
@@ -219,6 +226,7 @@ public final class AgentChannelInput {
             public Builder maxCostUsd(double maxCostUsd) { this.maxCostUsd = maxCostUsd; return this; }
             public Builder maxToolRounds(int maxToolRounds) { this.maxToolRounds = maxToolRounds; return this; }
             public Builder serviceTier(ServiceTier serviceTier) { this.serviceTier = serviceTier; return this; }
+            public Builder thinkingMode(ThinkingMode thinkingMode) { this.thinkingMode = thinkingMode; return this; }
 
             public RunConfigInput build() { return new RunConfigInput(this); }
         }

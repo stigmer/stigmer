@@ -19,6 +19,7 @@ import {
 } from "@stigmer/sdk";
 import { isTerminalPhase } from "../execution/execution-phases.js";
 import type { ServiceTierOption } from "../models/service-tier.js";
+import type { ThinkingModeOption } from "../models/thinking-mode.js";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 import { useConversationStoreRef } from "../internal/store/index.js";
@@ -107,6 +108,16 @@ export interface SendFollowUpOptions {
    * @see {@link SharedAgentExecutionFields.serviceTier}
    */
   readonly serviceTier?: ServiceTierOption;
+  /**
+   * Thinking mode for this execution's model calls (stigmer/stigmer#772).
+   *
+   * Only set when the user actively selected `"enabled"`; `undefined`
+   * preserves the unspecified-vs-explicit distinction (unset resolves to
+   * disabled on the platform side — never the provider account default).
+   *
+   * @see {@link SharedAgentExecutionFields.thinkingMode}
+   */
+  readonly thinkingMode?: ThinkingModeOption;
   /**
    * Marks this execution as a Build-from-plan turn.
    *
@@ -670,6 +681,7 @@ export function useSessionConversation(
           attachments: options?.attachments,
           interactionMode: options?.interactionMode,
           serviceTier: options?.serviceTier,
+          thinkingMode: options?.thinkingMode,
           buildFromPlan: options?.buildFromPlan,
           autoApproveAll: options?.autoApproveAll,
           workspaceFileRefs: options?.workspaceFileRefs,

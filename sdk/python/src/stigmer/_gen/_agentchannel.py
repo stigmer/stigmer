@@ -262,6 +262,7 @@ class RunConfigInput:
     max_cost_usd: float = 0.0
     max_tool_rounds: int = 0
     service_tier: int = 0
+    thinking_mode: int = 0
 
     def _to_proto(self) -> agentexecution_spec_pb2.RunConfig:
         msg = agentexecution_spec_pb2.RunConfig(
@@ -269,6 +270,7 @@ class RunConfigInput:
             max_cost_usd=self.max_cost_usd,
             max_tool_rounds=self.max_tool_rounds,
             service_tier=self.service_tier,
+            thinking_mode=self.thinking_mode,
         )
         return msg
 

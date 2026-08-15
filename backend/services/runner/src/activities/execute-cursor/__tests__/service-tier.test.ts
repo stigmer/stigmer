@@ -1,11 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
 /**
- * Verifies the service-tier → Cursor variant-parameter translation (#357):
- * the runner must always send an explicit selection whose price-bearing
- * parameters are a deterministic function of the requested tier — never
- * the catalog's (account-influenced) default variant.
+ * Verifies the variant-attribute → Cursor variant-parameter translation
+ * (#357 service tier, #772 thinking mode): the runner must always send an
+ * explicit selection whose user-selectable parameters are a deterministic
+ * function of the requested attributes — never the catalog's
+ * (account-influenced) default variant.
  *
  * Catalog fixtures mirror the real shapes observed 2026-08-06: composer
  * has a `fast` bool (default fast=true), haiku has a `thinking` bool
@@ -23,6 +24,7 @@ import {
   resetCatalogCacheForTests,
 } from "../service-tier.js";
 import { resolveEffectiveServiceTier } from "../../../shared/service-tier.js";
+import { resolveEffectiveThinkingMode } from "../../../shared/thinking-mode.js";
 
 const CATALOG = [
   {
@@ -66,8 +68,12 @@ const CATALOG = [
   },
 ];
 
-function opts(modelId: string, tier: ServiceTier.STANDARD | ServiceTier.FAST) {
-  return { apiKey: "key-1", modelId, tier, executionId: "aex_test" };
+function opts(
+  modelId: string,
+  tier: ServiceTier.STANDARD | ServiceTier.FAST,
+  thinking: ThinkingMode.DISABLED | ThinkingMode.ENABLED = ThinkingMode.DISABLED,
+) {
+  return { apiKey: "key-1", modelId, tier, thinking, executionId: "aex_test" };
 }
 
 beforeEach(() => {
@@ -85,6 +91,18 @@ describe("resolveEffectiveServiceTier", () => {
   it("preserves explicit STANDARD and FAST", () => {
     expect(resolveEffectiveServiceTier(ServiceTier.STANDARD)).toBe(ServiceTier.STANDARD);
     expect(resolveEffectiveServiceTier(ServiceTier.FAST)).toBe(ServiceTier.FAST);
+  });
+});
+
+describe("resolveEffectiveThinkingMode", () => {
+  it("resolves UNSPECIFIED to DISABLED — never the account default", () => {
+    expect(resolveEffectiveThinkingMode(ThinkingMode.UNSPECIFIED)).toBe(ThinkingMode.DISABLED);
+    expect(resolveEffectiveThinkingMode(undefined)).toBe(ThinkingMode.DISABLED);
+  });
+
+  it("preserves explicit DISABLED and ENABLED", () => {
+    expect(resolveEffectiveThinkingMode(ThinkingMode.DISABLED)).toBe(ThinkingMode.DISABLED);
+    expect(resolveEffectiveThinkingMode(ThinkingMode.ENABLED)).toBe(ThinkingMode.ENABLED);
   });
 });
 
@@ -121,6 +139,48 @@ describe("resolveServiceTierParams", () => {
       { id: "fast", value: "true" },
       { id: "thinking", value: "false" },
     ]);
+  });
+
+  it("ENABLED pins thinking=true on a thinking-capable model (#772)", async () => {
+    const params = await resolveServiceTierParams(
+      opts("claude-haiku-4-5", ServiceTier.STANDARD, ThinkingMode.ENABLED),
+    );
+    expect(params).toEqual([{ id: "thinking", value: "true" }]);
+  });
+
+  it("ENABLED on a model with no thinking parameter fails loudly, never a silent base variant", async () => {
+    await expect(
+      resolveServiceTierParams(opts("composer-2.5", ServiceTier.STANDARD, ThinkingMode.ENABLED)),
+    ).rejects.toThrow(/no "thinking" parameter/);
+  });
+
+  it("thinking combines freely with the fast tier — both pinned true, sorted", async () => {
+    const params = await resolveServiceTierParams(
+      opts("claude-opus-4-8", ServiceTier.FAST, ThinkingMode.ENABLED),
+    );
+    expect(params).toEqual([
+      { id: "fast", value: "true" },
+      { id: "thinking", value: "true" },
+    ]);
+  });
+
+  it("Auto + ENABLED is a loud failure (no variant dimensions to pin)", async () => {
+    await expect(
+      resolveServiceTierParams(opts("default", ServiceTier.STANDARD, ThinkingMode.ENABLED)),
+    ).rejects.toThrow(/requires a pinned model/);
+  });
+
+  it("unknown model + ENABLED fails loudly, never degrades", async () => {
+    await expect(
+      resolveServiceTierParams(opts("not-a-model", ServiceTier.STANDARD, ThinkingMode.ENABLED)),
+    ).rejects.toThrow(/does not list that model/);
+  });
+
+  it("catalog fetch failure + ENABLED fails loudly, never degrades", async () => {
+    listMock.mockRejectedValue(new Error("proxy down"));
+    await expect(
+      resolveServiceTierParams(opts("claude-haiku-4-5", ServiceTier.STANDARD, ThinkingMode.ENABLED)),
+    ).rejects.toThrow(/catalog fetch failed/);
   });
 
   it("resolves models referenced by alias", async () => {

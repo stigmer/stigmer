@@ -37,7 +37,7 @@ import {
   type RunConfig,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/invocation_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import {
   cadenceToCron,
@@ -60,6 +60,11 @@ import {
   toProtoServiceTier,
   type ServiceTierOption,
 } from "../models/service-tier.js";
+import {
+  fromProtoThinkingMode,
+  toProtoThinkingMode,
+  type ThinkingModeOption,
+} from "../models/thinking-mode.js";
 import { deriveScheduleState, formatNextFire } from "./scheduleState.js";
 import {
   ScheduleRunsCompactList,
@@ -599,10 +604,10 @@ export function ScheduleDetailView({
             {editable && target ? (
               <EngineModelInlineEditor
                 invocation={target}
-                onSave={(harness, modelName, serviceTier) =>
+                onSave={(harness, modelName, serviceTier, thinkingMode) =>
                   saveSpecField("engine-model", (s) => {
                     if (s.target.case === "agent") {
-                      applyEngineModel(s.target.value, harness, modelName, serviceTier);
+                      applyEngineModel(s.target.value, harness, modelName, serviceTier, thinkingMode);
                     }
                   })
                 }
@@ -1016,6 +1021,7 @@ function EngineModelInlineEditor({
     harness: Harness,
     modelName: string,
     serviceTier: ServiceTierOption,
+    thinkingMode: ThinkingModeOption,
   ) => Promise<boolean>;
   readonly isSaving: boolean;
   readonly error?: string;
@@ -1024,6 +1030,7 @@ function EngineModelInlineEditor({
   const [modelName, setModelName] = useState("");
   const [harness, setHarness] = useState<HarnessOption>("cursor");
   const [serviceTier, setServiceTier] = useState<ServiceTierOption>("standard");
+  const [thinkingMode, setThinkingMode] = useState<ThinkingModeOption>("disabled");
 
   const startEdit = () => {
     setModelName(invocation.runConfig?.modelName ?? "");
@@ -1034,6 +1041,9 @@ function EngineModelInlineEditor({
     );
     setServiceTier(
       fromProtoServiceTier(invocation.runConfig?.serviceTier) ?? "standard",
+    );
+    setThinkingMode(
+      fromProtoThinkingMode(invocation.runConfig?.thinkingMode) ?? "disabled",
     );
     setIsEditing(true);
   };
@@ -1056,6 +1066,8 @@ function EngineModelInlineEditor({
           onHarnessChange={setHarness}
           serviceTier={serviceTier}
           onServiceTierChange={setServiceTier}
+          thinkingMode={thinkingMode}
+          onThinkingModeChange={setThinkingMode}
           placeholderLabel="Platform default"
           disabled={isSaving}
         />
@@ -1065,6 +1077,7 @@ function EngineModelInlineEditor({
             onClick={() => {
               setModelName("");
               setServiceTier("standard");
+              setThinkingMode("disabled");
             }}
             disabled={isSaving}
             className="stg:rounded-md stg:px-2 stg:py-1 stg:text-[0.65rem] stg:text-muted-foreground stg:hover:text-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:disabled:pointer-events-none stg:disabled:opacity-50"
@@ -1084,6 +1097,7 @@ function EngineModelInlineEditor({
             modelName !== "" ? toProtoHarness(harness) : Harness.UNSPECIFIED,
             modelName,
             serviceTier,
+            thinkingMode,
           );
           if (ok) setIsEditing(false);
         }}
@@ -1169,14 +1183,17 @@ function applyEngineModel(
   harness: Harness,
   modelName: string,
   serviceTier: ServiceTierOption,
+  thinkingMode: ThinkingModeOption,
 ): void {
   invocation.harness = harness;
   invocation.runConfig = normalizeRunConfig(
     modelName,
     invocation.runConfig?.maxCostUsd ?? 0,
     invocation.runConfig?.maxToolRounds ?? 0,
-    // The tier rides the model choice: no model, no tier (#357).
+    // The variant attributes ride the model choice: no model, no tier and
+    // no thinking (#357/#772).
     modelName.trim() !== "" ? serviceTier : "standard",
+    modelName.trim() !== "" ? thinkingMode : "disabled",
   );
 }
 
@@ -1190,6 +1207,7 @@ function applyBudget(
     maxCostUsd ?? 0,
     invocation.runConfig?.maxToolRounds ?? 0,
     fromProtoServiceTier(invocation.runConfig?.serviceTier) ?? "standard",
+    fromProtoThinkingMode(invocation.runConfig?.thinkingMode) ?? "disabled",
   );
 }
 
@@ -1198,12 +1216,14 @@ function normalizeRunConfig(
   maxCostUsd: number,
   maxToolRounds: number,
   serviceTier: ServiceTierOption,
+  thinkingMode: ThinkingModeOption,
 ): RunConfig | undefined {
   const fields: {
     modelName?: string;
     maxCostUsd?: number;
     maxToolRounds?: number;
     serviceTier?: ServiceTier;
+    thinkingMode?: ThinkingMode;
   } = {};
   if (modelName.trim() !== "") fields.modelName = modelName.trim();
   if (maxCostUsd > 0) fields.maxCostUsd = maxCostUsd;
@@ -1211,6 +1231,8 @@ function normalizeRunConfig(
   // Only an active fast choice is carried — an untouched tier stays
   // absent, preserving the unspecified-vs-explicit ledger distinction (#357).
   if (serviceTier === "fast") fields.serviceTier = toProtoServiceTier(serviceTier);
+  // The tier's #772 twin: only an active enabled choice is carried.
+  if (thinkingMode === "enabled") fields.thinkingMode = toProtoThinkingMode(thinkingMode);
 
   return Object.keys(fields).length > 0
     ? create(RunConfigSchema, fields)
@@ -1428,6 +1450,9 @@ function EngineModelSummary({
   parts.push(modelName !== "" ? modelName : "platform-default model");
   if (invocation?.runConfig?.serviceTier === ServiceTier.FAST) {
     parts.push("Fast tier");
+  }
+  if (invocation?.runConfig?.thinkingMode === ThinkingMode.ENABLED) {
+    parts.push("Thinking");
   }
   return <span className="stg:text-sm stg:text-foreground">{parts.join(" · ")}</span>;
 }

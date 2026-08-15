@@ -278,6 +278,13 @@ func (r *RunStarter) buildExecutionRequest(
 	if tier := runConfig.GetServiceTier(); tier != agentexecutionv1.ServiceTier_SERVICE_TIER_UNSPECIFIED {
 		executionConfig.ServiceTier = tier
 	}
+	// thinking_mode stamps under the same contract as service_tier above:
+	// only when the owner set one (unset resolves to DISABLED in the
+	// runner, never the provider account default); capability-model
+	// coherence was validated fail-closed at execution create (#772).
+	if thinking := runConfig.GetThinkingMode(); thinking != agentexecutionv1.ThinkingMode_THINKING_MODE_UNSPECIFIED {
+		executionConfig.ThinkingMode = thinking
+	}
 
 	// The fresh per-fire session speaks the invocation's session half
 	// (DD-018 D-3): harness and workspace come from the owner's spec.

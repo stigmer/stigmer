@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeAll } from "vitest";
-import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
 import { UsageAccumulator } from "../usage-accumulator.js";
 
@@ -128,5 +128,37 @@ describe("UsageAccumulator", () => {
 
     expect(unspecified.snapshot().estimatedCostUsd)
       .toBe(standard.snapshot().estimatedCostUsd);
+  });
+
+  it("records the requested thinking mode into the snapshot (#772 audit trail)", () => {
+    const acc = new UsageAccumulator(
+      "claude-haiku-4-5",
+      ServiceTier.STANDARD,
+      [{ id: "thinking", value: "true" }],
+      ThinkingMode.ENABLED,
+    );
+    acc.addTurn({ inputTokens: 10, outputTokens: 5 });
+    const snap = acc.snapshot();
+    expect(snap.requestedThinkingMode).toBe(ThinkingMode.ENABLED);
+    expect(snap.requestedModelParams).toBe('[{"id":"thinking","value":"true"}]');
+  });
+
+  it("thinking never changes the estimate — per-token price-neutral (#772)", () => {
+    // Ledger-verified 2026-08-15: thinking wire ids bill exactly base
+    // per-token rates; the extra cost of thinking is more output tokens,
+    // which the accumulator already counts as they arrive.
+    const turn = { inputTokens: 1_000_000, outputTokens: 1_000_000 };
+
+    const disabled = new UsageAccumulator(
+      "composer-2.5", ServiceTier.STANDARD, [], ThinkingMode.DISABLED,
+    );
+    disabled.addTurn(turn);
+    const enabled = new UsageAccumulator(
+      "composer-2.5", ServiceTier.STANDARD, [], ThinkingMode.ENABLED,
+    );
+    enabled.addTurn(turn);
+
+    expect(enabled.snapshot().estimatedCostUsd)
+      .toBe(disabled.snapshot().estimatedCostUsd);
   });
 });

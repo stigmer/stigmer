@@ -71,18 +71,21 @@ public final class InvocationProto extends com.google.protobuf.GeneratedFile {
       "kind=environment\032\017this.kind == 53\340\205,5R\017e" +
       "nvironmentRefs\022N\n\nrun_config\030\006 \001(\0132/.ai." +
       "stigmer.agentic.agentexecution.v1.RunCon" +
-      "figR\trunConfig\"\355\001\n\tRunConfig\022\035\n\nmodel_na" +
+      "figR\trunConfig\"\320\002\n\tRunConfig\022\035\n\nmodel_na" +
       "me\030\001 \001(\tR\tmodelName\0220\n\014max_cost_usd\030\002 \001(" +
       "\001B\016\272H\013\022\t)\000\000\000\000\000\000\000\000R\nmaxCostUsd\022/\n\017max_too" +
       "l_rounds\030\003 \001(\005B\007\272H\004\032\002(\000R\rmaxToolRounds\022^" +
       "\n\014service_tier\030\004 \001(\01621.ai.stigmer.agenti" +
       "c.agentexecution.v1.ServiceTierB\010\272H\005\202\001\002\020" +
-      "\001R\013serviceTierB\306\001B\017InvocationProtoP\001\242\002\004A" +
-      "SAA\252\002$Ai.Stigmer.Agentic.Agentexecution." +
-      "V1\312\002$Ai\\Stigmer\\Agentic\\Agentexecution\\V" +
-      "1\342\0020Ai\\Stigmer\\Agentic\\Agentexecution\\V1" +
-      "\\GPBMetadata\352\002(Ai::Stigmer::Agentic::Age" +
-      "ntexecution::V1b\006proto3"
+      "\001R\013serviceTier\022a\n\rthinking_mode\030\005 \001(\01622." +
+      "ai.stigmer.agentic.agentexecution.v1.Thi" +
+      "nkingModeB\010\272H\005\202\001\002\020\001R\014thinkingModeB\306\001B\017In" +
+      "vocationProtoP\001\242\002\004ASAA\252\002$Ai.Stigmer.Agen" +
+      "tic.Agentexecution.V1\312\002$Ai\\Stigmer\\Agent" +
+      "ic\\Agentexecution\\V1\342\0020Ai\\Stigmer\\Agenti" +
+      "c\\Agentexecution\\V1\\GPBMetadata\352\002(Ai::St" +
+      "igmer::Agentic::Agentexecution::V1b\006prot" +
+      "o3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -105,7 +108,7 @@ public final class InvocationProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_agentexecution_v1_RunConfig_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_RunConfig_descriptor,
-        new java.lang.String[] { "ModelName", "MaxCostUsd", "MaxToolRounds", "ServiceTier", });
+        new java.lang.String[] { "ModelName", "MaxCostUsd", "MaxToolRounds", "ServiceTier", "ThinkingMode", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.agentexecution.v1.EnumProto.getDescriptor();
     ai.stigmer.agentic.session.v1.EnumProto.getDescriptor();

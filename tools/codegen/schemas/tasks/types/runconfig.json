@@ -48,6 +48,21 @@
       },
       "description": "Service tier for each run's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one.\n\n In workflow YAML the shorthand spellings \"standard\"/\"fast\" are\n accepted alongside the canonical enum names.\n\n Mirrors ExecutionConfig.service_tier: UNSPECIFIED inherits the\n surface's platform default, which itself resolves to STANDARD —\n never the provider account default. FAST requires model_name\n (here or from the platform profile) to name a model with a\n registry fast pricing variant; validated fail-closed at create.",
       "required": false
+    },
+    {
+      "name": "ThinkingMode",
+      "jsonName": "thinkingMode",
+      "protoField": "thinking_mode",
+      "type": {
+        "kind": "string",
+        "enumType": "ai.stigmer.agentic.agentexecution.v1.ThinkingMode",
+        "enumValues": [
+          "THINKING_MODE_DISABLED",
+          "THINKING_MODE_ENABLED"
+        ]
+      },
+      "description": "Thinking mode for each run's model calls: disabled (the default) or\n enabled, where enabled selects the model's extended-reasoning variant\n (billed at base per-token rates — reasoning tokens bill as output).\n\n In workflow YAML the shorthand spellings \"disabled\"/\"enabled\" are\n accepted alongside the canonical enum names.\n\n Mirrors ExecutionConfig.thinking_mode: UNSPECIFIED inherits the\n surface's platform default, which itself resolves to DISABLED —\n never the provider account default. ENABLED requires model_name\n (here or from the platform profile) to name a model whose registry\n entry declares the thinking capability; validated fail-closed at\n create. Combines freely with service_tier.",
+      "required": false
     }
   ]
 }

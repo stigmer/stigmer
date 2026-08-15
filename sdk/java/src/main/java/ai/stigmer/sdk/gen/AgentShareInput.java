@@ -4,6 +4,7 @@ package ai.stigmer.sdk.gen;
 
 import ai.stigmer.agentic.agentexecution.v1.RunConfig;
 import ai.stigmer.agentic.agentexecution.v1.ServiceTier;
+import ai.stigmer.agentic.agentexecution.v1.ThinkingMode;
 import ai.stigmer.agentic.agentshare.v1.AgentShare;
 import ai.stigmer.agentic.agentshare.v1.AgentShareAudience;
 import ai.stigmer.agentic.agentshare.v1.AgentShareMessages;
@@ -170,12 +171,14 @@ public final class AgentShareInput {
         private final double maxCostUsd;
         private final int maxToolRounds;
         private final ServiceTier serviceTier;
+        private final ThinkingMode thinkingMode;
 
         private RunConfigInput(Builder builder) {
             this.modelName = builder.modelName;
             this.maxCostUsd = builder.maxCostUsd;
             this.maxToolRounds = builder.maxToolRounds;
             this.serviceTier = builder.serviceTier;
+            this.thinkingMode = builder.thinkingMode;
         }
 
         RunConfig toProto() {
@@ -188,6 +191,9 @@ public final class AgentShareInput {
             if (this.serviceTier != null) {
                 builder.setServiceTier(this.serviceTier);
             }
+            if (this.thinkingMode != null) {
+                builder.setThinkingMode(this.thinkingMode);
+            }
             return builder.build();
         }
 
@@ -198,6 +204,7 @@ public final class AgentShareInput {
             private double maxCostUsd;
             private int maxToolRounds;
             private ServiceTier serviceTier;
+            private ThinkingMode thinkingMode;
 
             private Builder() {}
 
@@ -205,6 +212,7 @@ public final class AgentShareInput {
             public Builder maxCostUsd(double maxCostUsd) { this.maxCostUsd = maxCostUsd; return this; }
             public Builder maxToolRounds(int maxToolRounds) { this.maxToolRounds = maxToolRounds; return this; }
             public Builder serviceTier(ServiceTier serviceTier) { this.serviceTier = serviceTier; return this; }
+            public Builder thinkingMode(ThinkingMode thinkingMode) { this.thinkingMode = thinkingMode; return this; }
 
             public RunConfigInput build() { return new RunConfigInput(this); }
         }

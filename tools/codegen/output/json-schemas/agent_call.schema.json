@@ -148,6 +148,14 @@
             "SERVICE_TIER_FAST"
           ],
           "type": "string"
+        },
+        "thinking_mode": {
+          "description": "Thinking mode for each run's model calls: disabled (the default) or enabled, where enabled selects the model's extended-reasoning variant (billed at base per-token rates — reasoning tokens bill as output). In workflow YAML the shorthand spellings \"disabled\"/\"enabled\" are accepted alongside the canonical enum names. Mirrors ExecutionConfig.thinking_mode: UNSPECIFIED inherits the surface's platform default, which itself resolves to DISABLED — never the provider account default. ENABLED requires model_name (here or from the platform profile) to name a model whose registry entry declares the thinking capability; validated fail-closed at create. Combines freely with service_tier.",
+          "enum": [
+            "THINKING_MODE_DISABLED",
+            "THINKING_MODE_ENABLED"
+          ],
+          "type": "string"
         }
       },
       "type": "object"
