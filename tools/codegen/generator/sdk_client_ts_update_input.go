@@ -117,6 +117,10 @@ func generateTSUpdateInputMapper(buf *bytes.Buffer, schema *ServiceSchemaFile, c
 	fmt.Fprintf(buf, "  const meta = resource.metadata;\n")
 	fmt.Fprintf(buf, "  const spec = resource.spec ?? create(%sSchema);\n", spec.Name)
 	fmt.Fprintf(buf, "  return {\n")
+	fmt.Fprintf(buf, "    // Exact update addressing (id-first in the update pipeline) — for\n")
+	fmt.Fprintf(buf, "    // platform-scoped (org-less) kinds the org+slug fallback cannot\n")
+	fmt.Fprintf(buf, "    // match, so the id is the ONLY working address.\n")
+	fmt.Fprintf(buf, "    id: meta?.id || undefined,\n")
 	fmt.Fprintf(buf, "    name: meta?.name ?? \"\",\n")
 	fmt.Fprintf(buf, "    slug: meta?.slug || undefined,\n")
 	if schema.Resource == "organization" {

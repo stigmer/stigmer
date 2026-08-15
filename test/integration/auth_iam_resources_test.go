@@ -19,6 +19,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -63,6 +64,72 @@ func TestIdentityAccount_ProvisionMyAccount_Idempotent(t *testing.T) {
 	require.NoError(t, err, "provisionMyAccount should be idempotent")
 	assert.Equal(t, account.GetMetadata().GetId(), account2.GetMetadata().GetId(),
 		"repeated provisionMyAccount should return the same identity account")
+}
+
+// TestIdentityAccount_UpdatePreferences_AddressedById pins the save path
+// behind the console's Account Preferences page. Identity accounts are
+// platform-scoped (metadata.org is never set), so the update pipeline's
+// org+slug fallback structurally cannot address one (” never equals the
+// stored NULL org) — metadata.id is the ONLY working address, which is why
+// every generated SDK update-input mapper carries it from the loaded
+// resource. Both halves are pinned: the id-less request fails NOT_FOUND,
+// and the id-addressed request round-trips the preferences.
+func TestIdentityAccount_UpdatePreferences_AddressedById(t *testing.T) {
+	clients := requireIAMClients(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	account, err := clients.IdentityAccountQuery.WhoAmI(ctx, &emptypb.Empty{})
+	require.NoError(t, err, "whoAmI should return the caller's full account")
+	require.NotEmpty(t, account.GetMetadata().GetId(), "the loaded account must carry its id")
+	require.Empty(t, account.GetMetadata().GetOrg(), "identity accounts are platform-scoped — no org")
+
+	// Preferences are shared caller state on the suite's single test
+	// identity; restore them so this test cannot bleed into the
+	// declared-preferences composition tests.
+	originalPreferences := proto.Clone(account).(*identityaccountv1.IdentityAccount).GetSpec().GetPreferences()
+	t.Cleanup(func() {
+		cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cleanupCancel()
+		restore := proto.Clone(account).(*identityaccountv1.IdentityAccount)
+		restore.Spec.Preferences = originalPreferences
+		_, restoreErr := clients.IdentityAccountCommand.Update(cleanupCtx, restore)
+		assert.NoError(t, restoreErr, "restoring the original preferences should succeed")
+	})
+
+	// The exact editor pattern: full loaded resource, only preferences edited.
+	toUpdate := proto.Clone(account).(*identityaccountv1.IdentityAccount)
+	require.NotNil(t, toUpdate.Spec, "a provisioned account always has a spec")
+	toUpdate.Spec.Preferences = &identityaccountv1.IdentityAccountPreferences{
+		StandingContext:    "Keep answers terse.",
+		DefaultHarness:     "cursor",
+		DefaultNativeModel: "claude-sonnet-4.6",
+		DefaultCursorModel: "composer-2.5",
+	}
+
+	// Half 1 — the pre-fix console behavior: no id on the request. The
+	// org+slug fallback cannot match an org-less row, so this MUST fail
+	// NOT_FOUND. If this ever starts succeeding, the addressing semantics
+	// changed and the mappers' id-carrying rationale needs revisiting.
+	withoutId := proto.Clone(toUpdate).(*identityaccountv1.IdentityAccount)
+	withoutId.Metadata.Id = ""
+	_, err = clients.IdentityAccountCommand.Update(ctx, withoutId)
+	require.Error(t, err, "an id-less update of an org-less resource must not find a target")
+	assert.Equal(t, codes.NotFound, status.Code(err),
+		"the failure mode is NOT_FOUND from the update pipeline's load step")
+
+	// Half 2 — the fixed behavior: id-addressed update round-trips.
+	updated, err := clients.IdentityAccountCommand.Update(ctx, toUpdate)
+	require.NoError(t, err, "an id-addressed update should succeed")
+	assert.Equal(t, "cursor", updated.GetSpec().GetPreferences().GetDefaultHarness())
+
+	fetched, err := clients.IdentityAccountQuery.WhoAmI(ctx, &emptypb.Empty{})
+	require.NoError(t, err)
+	prefs := fetched.GetSpec().GetPreferences()
+	assert.Equal(t, "Keep answers terse.", prefs.GetStandingContext())
+	assert.Equal(t, "cursor", prefs.GetDefaultHarness())
+	assert.Equal(t, "claude-sonnet-4.6", prefs.GetDefaultNativeModel())
+	assert.Equal(t, "composer-2.5", prefs.GetDefaultCursorModel())
 }
 
 // --- IdentityProvider ---

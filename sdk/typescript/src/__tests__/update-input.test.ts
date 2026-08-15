@@ -141,6 +141,14 @@ describe("toOrganizationUpdateInput", () => {
 
     expect(toOrganizationUpdateInput(org).org).toBe("bare");
   });
+
+  it("carries metadata.id for exact update addressing", () => {
+    const built = buildOrganizationProto(
+      toOrganizationUpdateInput(fullOrganization()),
+    );
+
+    expect(built.metadata?.id).toBe("acme");
+  });
 });
 
 describe("toIdentityAccountUpdateInput", () => {
@@ -163,6 +171,27 @@ describe("toIdentityAccountUpdateInput", () => {
 
     expect(input.org).toBe("acme");
     expect(input.slug).toBe("ada-lovelace");
+  });
+
+  it("carries metadata.id — the ONLY address that works for a real (org-less) account", () => {
+    // Identity accounts are platform-scoped: metadata.org is never set in
+    // production, so the pipeline's org+slug fallback structurally cannot
+    // match one. Without the id, this update is NOT_FOUND by construction.
+    const account = create(IdentityAccountSchema, {
+      metadata: {
+        id: "ida_01JEXAMPLE",
+        name: "ada@acme.example",
+        slug: "ada-acme-example",
+      },
+      spec: { idpId: "auth0|abc123" },
+    });
+
+    const built = buildIdentityAccountProto(
+      toIdentityAccountUpdateInput(account),
+    );
+
+    expect(built.metadata?.id).toBe("ida_01JEXAMPLE");
+    expect(built.metadata?.slug).toBe("ada-acme-example");
   });
 
   it("preserves the rest of the spec when a caller overrides only preferences", () => {

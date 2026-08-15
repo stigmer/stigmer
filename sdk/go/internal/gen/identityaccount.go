@@ -99,6 +99,12 @@ func (i *IdentityAccountClient) GetActorInfo(ctx context.Context, id string) (*a
 
 // IdentityAccountInput holds the fields for creating/updating a IdentityAccount.
 type IdentityAccountInput struct {
+	// Id is the resource's metadata.id, for exact update addressing when
+	// set from a loaded resource. Required for updates to platform-scoped
+	// (org-less) kinds, where the org+slug fallback cannot match. On
+	// create, the cloud server stamps its own id regardless; the OSS
+	// server honors a caller-supplied id (existing apply semantics).
+	Id                  string
 	Name                string
 	Slug                string
 	Org                 string
@@ -128,6 +134,7 @@ func (i *IdentityAccountInput) toProto() (*identityaccountv1.IdentityAccount, er
 		ApiVersion: "iam.stigmer.ai/v1",
 		Kind:       "IdentityAccount",
 		Metadata: &apiresource.ApiResourceMetadata{
+			Id:         i.Id,
 			Name:       i.Name,
 			Slug:       i.Slug,
 			Org:        i.Org,
@@ -172,6 +179,7 @@ func IdentityAccountInputFromProto(p *identityaccountv1.IdentityAccount) *Identi
 	}
 	input := &IdentityAccountInput{}
 	if m := p.GetMetadata(); m != nil {
+		input.Id = m.GetId()
 		input.Name = m.GetName()
 		input.Slug = m.GetSlug()
 		input.Org = m.GetOrg()

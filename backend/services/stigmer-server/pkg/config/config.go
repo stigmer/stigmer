@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	artifactstorage "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/artifact/storage"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/encryption/payloadcodec"
@@ -72,6 +73,17 @@ type Config struct {
 	// the same env vars the TS runner reads). Nil when encryption is not
 	// configured; the decode-only codec is then not installed.
 	PayloadEncryption *payloadcodec.Config
+
+	// OperatorEmail / OperatorName hold the deployment's configured operator
+	// identity (STIGMER_OPERATOR_EMAIL / STIGMER_OPERATOR_NAME —
+	// stigmer/stigmer#400). When set, every audit actor this server stamps
+	// (created_by / updated_by) carries it, which is what lets MCP servers
+	// see a real, grantable `stigmer_user/<email>` caller identity from a
+	// self-hosted install. When unset, the historical "system" placeholder
+	// stays, and the runner presents the anonymous identity — the documented
+	// deny-by-default for unconfigured self-hosted backends.
+	OperatorEmail string
+	OperatorName  string
 }
 
 // LoadConfig loads configuration from environment variables
@@ -151,7 +163,36 @@ func LoadConfig() (*Config, error) {
 	}
 	config.PayloadEncryption = payloadEncryption
 
+	// Same fail-loud posture for the operator identity: a present-but-
+	// malformed email fails the boot rather than silently stamping a typo —
+	// audit actors feed MCP caller-identity bindings, so a typo would mint a
+	// wrong grantable value that no one intended to grant.
+	operatorEmail, operatorName, err := loadOperatorIdentity()
+	if err != nil {
+		return nil, err
+	}
+	config.OperatorEmail = operatorEmail
+	config.OperatorName = operatorName
+
 	return config, nil
+}
+
+// loadOperatorIdentity reads the configured operator identity
+// (stigmer/stigmer#400). Only a minimal shape check is applied — an email
+// without an '@' can never be a deliverable address, so it is certainly a
+// typo; anything beyond that is the operator's own naming to get right.
+func loadOperatorIdentity() (email string, name string, err error) {
+	email = strings.TrimSpace(os.Getenv("STIGMER_OPERATOR_EMAIL"))
+	name = strings.TrimSpace(os.Getenv("STIGMER_OPERATOR_NAME"))
+	if email != "" && !strings.Contains(email, "@") {
+		return "", "", fmt.Errorf(
+			"STIGMER_OPERATOR_EMAIL %q is not an email address (missing '@') — fix or unset it", email)
+	}
+	if email == "" && name != "" {
+		return "", "", fmt.Errorf(
+			"STIGMER_OPERATOR_NAME is set but STIGMER_OPERATOR_EMAIL is not — the email is the identity; set both or neither")
+	}
+	return email, name, nil
 }
 
 // getEnvString gets a string from environment or returns default

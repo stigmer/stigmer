@@ -74,6 +74,14 @@ export class OAuthAppClient {
 
 /** Input for creating/updating a OAuthApp. */
 export interface OAuthAppInput {
+  /**
+   * The resource's `metadata.id`, for exact update addressing when set
+   * from a loaded resource. Required for updates to platform-scoped
+   * (org-less) kinds, where the org+slug fallback cannot match. On
+   * create, the cloud server stamps its own id regardless; the OSS
+   * server honors a caller-supplied id (existing apply semantics).
+   */
+  id?: string;
   name: string;
   slug?: string;
   org: string;
@@ -97,6 +105,7 @@ export function buildOAuthAppProto(input: OAuthAppInput): OAuthApp {
     apiVersion: "iam.stigmer.ai/v1",
     kind: "OAuthApp",
     metadata: Object.assign(create(ApiResourceMetadataSchema), {
+      ...(input.id && { id: input.id }),
       name: input.name,
       org: input.org,
       ...(input.slug && { slug: input.slug }),
@@ -135,6 +144,10 @@ export function toOAuthAppUpdateInput(resource: OAuthApp): OAuthAppInput {
   const meta = resource.metadata;
   const spec = resource.spec ?? create(OAuthAppSpecSchema);
   return {
+    // Exact update addressing (id-first in the update pipeline) — for
+    // platform-scoped (org-less) kinds the org+slug fallback cannot
+    // match, so the id is the ONLY working address.
+    id: meta?.id || undefined,
     name: meta?.name ?? "",
     slug: meta?.slug || undefined,
     org: meta?.org ?? "",

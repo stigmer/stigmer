@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "config",
@@ -9,4 +9,10 @@ go_library(
         "//backend/services/stigmer-server/pkg/domain/artifact/storage",
         "//backend/services/stigmer-server/pkg/encryption/payloadcodec",
     ],
+)
+
+go_test(
+    name = "config_test",
+    srcs = ["config_test.go"],
+    embed = [":config"],
 )

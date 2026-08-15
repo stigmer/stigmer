@@ -16,15 +16,16 @@ time. The value never passes through the model, so the model cannot change it.
 
 ## The reserved keys
 
-| Key                             | Value                                                                                                                                                         |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `STIGMER_CALLER_IDENTITY_KIND`  | What kind of identity this is: `whatsapp_phone`, `slack_user_id`, `stigmer_user` (a console or CLI Session, or a scheduled run on stigmer.ai), or `anonymous` |
-| `STIGMER_CALLER_IDENTITY_VALUE` | The identity itself: the WhatsApp wa_id, the Slack user ID, or the Stigmer user's email. Empty for `anonymous`                                                |
-| `STIGMER_SESSION_ID`            | The Session the identity was resolved for. Empty outside a Session                                                                                            |
+| Key                             | Value                                                                                                                                                                                                      |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `STIGMER_CALLER_IDENTITY_KIND`  | What kind of identity this is: `whatsapp_phone`, `slack_user_id`, `stigmer_user` (a console or CLI Session, a scheduled run on stigmer.ai, or a self-hosted backend's configured operator), or `anonymous` |
+| `STIGMER_CALLER_IDENTITY_VALUE` | The identity itself: the WhatsApp wa_id, the Slack user ID, or the Stigmer user's email. Empty for `anonymous`                                                                                             |
+| `STIGMER_SESSION_ID`            | The Session the identity was resolved for. Empty outside a Session                                                                                                                                         |
 
 The identity comes from the strongest source available: the channel-verified
 sender for channel Sessions, the logged-in Stigmer user for console and CLI
-Sessions, and `anonymous` when neither exists.
+Sessions on stigmer.ai, the configured operator identity on a self-hosted
+backend, and `anonymous` when none exists.
 
 ## Scheduled runs
 
@@ -49,10 +50,39 @@ the Organization's scheduled automation as a whole: every schedule in the org
 presents the same identity, whoever created it.
 
 <Callout type="info">
-  Caller identity for scheduled runs requires Stigmer Cloud. On a self-hosted
-  backend, scheduled runs present the `anonymous` identity, so they can list
-  tools but cannot pass an identity-gated call.
+  The per-org schedule account requires Stigmer Cloud. On a self-hosted backend,
+  scheduled runs present the configured operator identity (next section), or
+  `anonymous` when none is configured — anonymous runs can list tools but cannot
+  pass an identity-gated call.
 </Callout>
+
+## Self-hosted backends
+
+A self-hosted server has no login, so it cannot resolve a per-caller identity.
+By default every Session presents `anonymous`: tools list, identity-gated calls
+refuse, deny by default.
+
+To present a real identity, configure the operator identity before starting the
+server (for `stigmer up`, export it in the shell that starts the daemon):
+
+```bash
+export STIGMER_OPERATOR_EMAIL="ada@example.com" # the identity
+export STIGMER_OPERATOR_NAME="Ada Lovelace"     # optional display name
+```
+
+Every Session created from then on presents kind `stigmer_user` with that email
+as the value — grant it in your server's access model like any other caller,
+compared case-insensitively. Sessions created before the identity was configured
+keep their original attribution and continue to present `anonymous`.
+
+A self-hosted install is a single-operator trust domain, so the identity covers
+everything the install does — console and CLI Sessions and locally scheduled
+runs alike. A grant for the operator email therefore also covers your unattended
+automation; keep that in mind when gating destructive tools.
+
+A malformed `STIGMER_OPERATOR_EMAIL` (no `@`) fails the server boot rather than
+silently stamping a typo: the value feeds your binding sheet, so a typo would
+mint a wrong grantable identity.
 
 ## Declare the keys and template your headers
 

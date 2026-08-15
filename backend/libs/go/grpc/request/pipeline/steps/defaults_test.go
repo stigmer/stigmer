@@ -560,3 +560,104 @@ func TestSetAuditFieldsForCreate(t *testing.T) {
 		t.Errorf("Expected event=created, got %q", audit.SpecAudit.Event)
 	}
 }
+
+// withOperatorIdentity installs an operator identity for the test and
+// restores the unconfigured default afterward, so the suite's "system"
+// fallback pins stay order-independent.
+func withOperatorIdentity(t *testing.T, email, name string) {
+	t.Helper()
+	SetOperatorIdentity(email, name)
+	t.Cleanup(func() { SetOperatorIdentity("", "") })
+}
+
+// TestOperatorIdentity_CreateStampsConfiguredActor pins the configured-
+// operator contract (stigmer/stigmer#400): with SetOperatorIdentity
+// installed, creates stamp a real actor — id AND email carry the address
+// (email-in-id is the sanctioned local mix; downstream caller-identity
+// resolution is email-first), display_name carries the configured name —
+// which is what makes MCP servers see stigmer_user/<email> instead of the
+// anonymous demotion of the "system" placeholder.
+func TestOperatorIdentity_CreateStampsConfiguredActor(t *testing.T) {
+	withOperatorIdentity(t, "ada@example.com", "Ada Lovelace")
+
+	agent := &agentv1.Agent{
+		Metadata: &apiresource.ApiResourceMetadata{Name: "Test Agent"},
+		Status:   &agentv1.AgentStatus{},
+	}
+	if err := SetAuditFieldsForCreate(agent); err != nil {
+		t.Fatalf("Expected success, got error: %v", err)
+	}
+
+	want := &apiresource.ApiResourceAuditActor{
+		Id:          "ada@example.com",
+		Email:       "ada@example.com",
+		DisplayName: "Ada Lovelace",
+	}
+	audit := agent.GetStatus().GetAudit()
+	for slot, info := range map[string]*apiresource.ApiResourceAuditInfo{
+		"spec_audit":   audit.GetSpecAudit(),
+		"status_audit": audit.GetStatusAudit(),
+	} {
+		if !proto.Equal(info.GetCreatedBy(), want) {
+			t.Errorf("%s created_by: want operator actor, got %v", slot, info.GetCreatedBy())
+		}
+		if !proto.Equal(info.GetUpdatedBy(), want) {
+			t.Errorf("%s updated_by: want operator actor, got %v", slot, info.GetUpdatedBy())
+		}
+	}
+}
+
+// TestOperatorIdentity_UpdateStampsConfiguredActor pins the update half:
+// a targeted mutation's updated_by carries the operator while the slot's
+// creation identity is preserved untouched.
+func TestOperatorIdentity_UpdateStampsConfiguredActor(t *testing.T) {
+	withOperatorIdentity(t, "ada@example.com", "")
+
+	agent := surgicalAuditFixture()
+	if err := SetAuditFieldsForUpdate(agent, SpecAudit); err != nil {
+		t.Fatalf("Expected success, got error: %v", err)
+	}
+
+	spec := agent.GetStatus().GetAudit().GetSpecAudit()
+	if spec.GetUpdatedBy().GetId() != "ada@example.com" || spec.GetUpdatedBy().GetEmail() != "ada@example.com" {
+		t.Errorf("updated_by should carry the operator, got %v", spec.GetUpdatedBy())
+	}
+	if spec.GetUpdatedBy().GetDisplayName() != "" {
+		t.Errorf("display_name should stay empty when not configured, got %q", spec.GetUpdatedBy().GetDisplayName())
+	}
+	if spec.GetCreatedBy().GetId() != "user-alice" {
+		t.Errorf("created_by must be preserved, got %v", spec.GetCreatedBy())
+	}
+}
+
+// TestOperatorIdentity_ActorsDoNotAlias pins that currentAuditActor builds a
+// fresh message per call: audit stamping shares the returned pointer across
+// a resource's own created_by/updated_by, so a package-level singleton would
+// alias unrelated resources' audit state through later mutation.
+func TestOperatorIdentity_ActorsDoNotAlias(t *testing.T) {
+	withOperatorIdentity(t, "ada@example.com", "Ada Lovelace")
+
+	first := currentAuditActor()
+	second := currentAuditActor()
+	if first == second {
+		t.Fatalf("currentAuditActor must return a fresh message per call")
+	}
+	first.DisplayName = "Mutated"
+	if second.DisplayName != "Ada Lovelace" {
+		t.Errorf("mutating one returned actor leaked into another: %v", second)
+	}
+}
+
+// TestOperatorIdentity_UnsetKeepsSystemPlaceholder pins the round-trip: after
+// clearing the operator identity, the historical "system" placeholder is
+// stamped again — the unconfigured contract the runner's caller-identity
+// resolution demotes to anonymous (deny-by-default for self-hosted installs).
+func TestOperatorIdentity_UnsetKeepsSystemPlaceholder(t *testing.T) {
+	SetOperatorIdentity("ada@example.com", "Ada Lovelace")
+	SetOperatorIdentity("", "")
+
+	actor := currentAuditActor()
+	if actor.GetId() != "system" || actor.GetEmail() != "" || actor.GetDisplayName() != "" {
+		t.Errorf("unconfigured actor must be the bare system placeholder, got %v", actor)
+	}
+}
