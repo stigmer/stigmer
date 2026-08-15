@@ -5,14 +5,14 @@ import { stripUndefined } from "./proto-utils.js";
 import { type ListParams, type ListResult, type ResourceRef } from "./types.js";
 import { create, type JsonObject } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
-import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
+import { EnvVarDeclarationSchema, type EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { WorkflowSchema, type Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { WorkflowCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/command_pb";
 import { WorkflowTaskKind, BudgetExceededPolicy } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { WorkflowIdSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/io_pb";
 import { WorkflowQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/query_pb";
 import { type ServerlessWorkflowValidation } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/serverless/validation_pb";
-import { WorkflowSpecSchema, WorkflowDocumentSchema, ExportSchema, FlowControlSchema, WorkflowTaskSchema, WorkflowBudgetSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/spec_pb";
+import { WorkflowSpecSchema, WorkflowDocumentSchema, ExportSchema, FlowControlSchema, WorkflowTaskSchema, WorkflowBudgetSchema, type WorkflowDocument, type Export, type FlowControl, type WorkflowTask, type WorkflowBudget } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/spec_pb";
 import { GetTaskKindRegistryRequestSchema, GetTaskKindRegistryResponseSchema, type GetTaskKindRegistryRequest, type GetTaskKindRegistryResponse } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/task_kind_descriptor_pb";
 import { TaskKindRegistryQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/task_kind_registry_query_pb";
 import { TagWorkflowVersionInputSchema, ListWorkflowVersionsInputSchema, ListWorkflowVersionsResponseSchema, GetWorkflowVersionInputSchema, WorkflowVersionEntrySchema, type TagWorkflowVersionInput, type ListWorkflowVersionsInput, type ListWorkflowVersionsResponse, type GetWorkflowVersionInput, type WorkflowVersionEntry } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/version_pb";
@@ -265,4 +265,85 @@ export function buildWorkflowProto(input: WorkflowInput): Workflow {
       budget,
     })),
   }) as Workflow;
+}
+
+function toWorkflowDocumentInput(msg: WorkflowDocument): WorkflowDocumentInput {
+  return {
+    dsl: msg.dsl || undefined,
+    namespace: msg.namespace ?? "",
+    name: msg.name ?? "",
+    version: msg.version ?? "",
+    description: msg.description || undefined,
+  };
+}
+
+function toExportInput(msg: Export): ExportInput {
+  return {
+    as: msg.as || undefined,
+  };
+}
+
+function toFlowControlInput(msg: FlowControl): FlowControlInput {
+  return {
+    then: msg.then || undefined,
+  };
+}
+
+function toWorkflowTaskInput(msg: WorkflowTask): WorkflowTaskInput {
+  return {
+    name: msg.name || undefined,
+    kind: msg.kind ?? 0,
+    taskConfig: msg.taskConfig ?? {},
+    export: msg.export ? toExportInput(msg.export) : undefined,
+    flow: msg.flow ? toFlowControlInput(msg.flow) : undefined,
+    compensate: msg.compensate?.length ? msg.compensate.map(toWorkflowTaskInput) : undefined,
+  };
+}
+
+function toEnvVarDeclarationInput(msg: EnvVarDeclaration): EnvVarDeclarationInput {
+  return {
+    isSecret: msg.isSecret || undefined,
+    description: msg.description || undefined,
+    optional: msg.optional || undefined,
+  };
+}
+
+function toWorkflowBudgetInput(msg: WorkflowBudget): WorkflowBudgetInput {
+  return {
+    maxCostMicros: msg.maxCostMicros || undefined,
+    maxTotalTokens: msg.maxTotalTokens || undefined,
+    maxDurationSeconds: msg.maxDurationSeconds || undefined,
+    onExceeded: msg.onExceeded || undefined,
+  };
+}
+
+/**
+ * Maps a fetched {@link Workflow} to a complete {@link WorkflowInput} for `update()`.
+ *
+ * The update RPC replaces the ENTIRE spec — spread this mapper's output
+ * and override only the fields you edit (spread nested objects the same
+ * way):
+ *
+ *   await client.update({ ...toWorkflowUpdateInput(res), description: next });
+ *
+ * Proto3 defaults normalize to `undefined`; resource references keep
+ * `version` (pinned refs) and `kind`.
+ */
+export function toWorkflowUpdateInput(resource: Workflow): WorkflowInput {
+  const meta = resource.metadata;
+  const spec = resource.spec ?? create(WorkflowSpecSchema);
+  return {
+    name: meta?.name ?? "",
+    slug: meta?.slug || undefined,
+    org: meta?.org ?? "",
+    labels: meta?.labels && Object.keys(meta.labels).length > 0 ? { ...meta.labels } : undefined,
+    visibility: meta?.visibility || undefined,
+    // Never carried over: a version message describes the NEXT update.
+    versionMessage: undefined,
+    description: spec.description || undefined,
+    document: toWorkflowDocumentInput(spec.document ?? create(WorkflowDocumentSchema)),
+    tasks: spec.tasks?.length ? spec.tasks.map(toWorkflowTaskInput) : undefined,
+    env: Object.keys(spec.env ?? {}).length > 0 ? Object.fromEntries(Object.entries(spec.env).map(([k, v]) => [k, toEnvVarDeclarationInput(v)])) : undefined,
+    budget: spec.budget ? toWorkflowBudgetInput(spec.budget) : undefined,
+  };
 }

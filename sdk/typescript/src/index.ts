@@ -61,12 +61,6 @@ export {
   isResourceAvailable,
 } from "./resource-availability.js";
 
-// Complete update-input mappers (full-spec-replace round-trip safety)
-export {
-  toOrganizationUpdateInput,
-  toIdentityAccountUpdateInput,
-} from "./update-input.js";
-
 // Authorization config and IAM role utilities
 export {
   getGrantableRoles,
@@ -166,10 +160,14 @@ export {
   type EnvVarInput,
 } from "./gen/types.js";
 
-// Re-export all resource client classes and input types
+// Re-export all resource client classes and input types. The
+// toXxxUpdateInput mappers are the full-spec-replace safety layer: they
+// rebuild a COMPLETE input from a fetched resource so subset editors can
+// spread-and-override without wiping unlisted fields.
 export {
   AgentClient,
   buildAgentProto,
+  toAgentUpdateInput,
   type AgentInput,
   type McpServerUsageInput,
   type ToolApprovalOverrideInput,
@@ -179,11 +177,13 @@ export {
 } from "./gen/agent.js";
 export {
   AgentChannelClient,
+  toAgentChannelUpdateInput,
   type AgentChannelInput,
   type SlackChannelConfigInput,
 } from "./gen/agentchannel.js";
 export {
   AgentExecutionClient,
+  toAgentExecutionUpdateInput,
   type AgentExecutionInput,
   type ExecutionConfigInput,
   type ContextManagementConfigInput,
@@ -191,21 +191,25 @@ export {
 } from "./gen/agentexecution.js";
 export {
   AgentInstanceClient,
+  toAgentInstanceUpdateInput,
   type AgentInstanceInput,
 } from "./gen/agentinstance.js";
 export {
   AgentShareClient,
+  toAgentShareUpdateInput,
   type AgentShareInput,
   type AgentShareMessagesInput,
 } from "./gen/agentshare.js";
-export { ApiKeyClient, type ApiKeyInput } from "./gen/apikey.js";
+export { ApiKeyClient, toApiKeyUpdateInput, type ApiKeyInput } from "./gen/apikey.js";
 export {
   ChannelAppClient,
+  toChannelAppUpdateInput,
   type ChannelAppInput,
   type SlackChannelAppConfigInput,
 } from "./gen/channelapp.js";
 export {
   EnvironmentClient,
+  toEnvironmentUpdateInput,
   type EnvironmentInput,
 } from "./gen/environment.js";
 export {
@@ -219,6 +223,7 @@ export {
 } from "./gen/iampolicy.js";
 export {
   IdentityAccountClient,
+  toIdentityAccountUpdateInput,
   type IdentityAccountInput,
 } from "./gen/identityaccount.js";
 export {
@@ -227,15 +232,18 @@ export {
 } from "./gen/invitation.js";
 export {
   IdentityProviderClient,
+  toIdentityProviderUpdateInput,
   type IdentityProviderInput,
 } from "./gen/identityprovider.js";
 export {
   OAuthAppClient,
+  toOAuthAppUpdateInput,
   type OAuthAppInput,
 } from "./gen/oauthapp.js";
 export {
   McpServerClient,
   buildMcpServerProto,
+  toMcpServerUpdateInput,
   type McpServerInput,
   type StdioServerConfigInput,
   type HttpServerConfigInput,
@@ -251,22 +259,26 @@ export {
 } from "./mcpserver-connect.js";
 export {
   OrganizationClient,
+  toOrganizationUpdateInput,
   type OrganizationInput,
 } from "./gen/organization.js";
 export {
   PlatformClientClient,
+  toPlatformClientUpdateInput,
   type PlatformClientInput,
 } from "./gen/platformclient.js";
-export { ProjectClient, type ProjectInput } from "./gen/project.js";
+export { ProjectClient, toProjectUpdateInput, type ProjectInput } from "./gen/project.js";
 export {
   ScheduleClient,
   buildScheduleProto,
+  toScheduleUpdateInput,
   type ScheduleInput,
   type AgentInvocationInput,
   type RunConfigInput,
 } from "./gen/schedule.js";
 export {
   SessionClient,
+  toSessionUpdateInput,
   type SessionInput,
   type WorkspaceEntryInput,
   type WorkspaceSourceInput,
@@ -311,6 +323,7 @@ export { SkillClient, type SkillInput } from "./gen/skill.js";
 export { RoutedSkillClient, MAX_INLINE_ARTIFACT_BYTES } from "./skill.js";
 export {
   WorkflowClient,
+  toWorkflowUpdateInput,
   type WorkflowInput,
   type WorkflowDocumentInput,
   type WorkflowTaskInput,
@@ -319,9 +332,11 @@ export {
 } from "./gen/workflow.js";
 export {
   WorkflowExecutionClient,
+  toWorkflowExecutionUpdateInput,
   type WorkflowExecutionInput,
 } from "./gen/workflowexecution.js";
 export {
   WorkflowInstanceClient,
+  toWorkflowInstanceUpdateInput,
   type WorkflowInstanceInput,
 } from "./gen/workflowinstance.js";

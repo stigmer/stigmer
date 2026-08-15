@@ -54,8 +54,6 @@ export type { UseCreateAgentReturn } from "./useCreateAgent.js";
 export { useUpdateAgent } from "./useUpdateAgent.js";
 export type { UseUpdateAgentReturn } from "./useUpdateAgent.js";
 
-export { agentToInput } from "./internal/agentToInput.js";
-
 export { AgentCreationWizard } from "./AgentCreationWizard.js";
 export type {
   AgentCreationWizardProps,

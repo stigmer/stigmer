@@ -32,7 +32,7 @@ export interface UseUpdateAgentInstanceReturn {
  *
  * const handleSave = async () => {
  *   await update({
- *     ...agentInstanceToInput(instance),
+ *     ...toAgentInstanceUpdateInput(instance),
  *     environmentRefs: newRefs,
  *   });
  *   refetch();

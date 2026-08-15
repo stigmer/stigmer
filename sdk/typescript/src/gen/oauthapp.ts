@@ -118,3 +118,38 @@ export function buildOAuthAppProto(input: OAuthAppInput): OAuthApp {
     })),
   }) as OAuthApp;
 }
+
+/**
+ * Maps a fetched {@link OAuthApp} to a complete {@link OAuthAppInput} for `update()`.
+ *
+ * The update RPC replaces the ENTIRE spec — spread this mapper's output
+ * and override only the fields you edit (spread nested objects the same
+ * way):
+ *
+ *   await client.update({ ...toOAuthAppUpdateInput(res), description: next });
+ *
+ * Proto3 defaults normalize to `undefined`; resource references keep
+ * `version` (pinned refs) and `kind`.
+ */
+export function toOAuthAppUpdateInput(resource: OAuthApp): OAuthAppInput {
+  const meta = resource.metadata;
+  const spec = resource.spec ?? create(OAuthAppSpecSchema);
+  return {
+    name: meta?.name ?? "",
+    slug: meta?.slug || undefined,
+    org: meta?.org ?? "",
+    labels: meta?.labels && Object.keys(meta.labels).length > 0 ? { ...meta.labels } : undefined,
+    visibility: meta?.visibility || undefined,
+    provider: spec.provider || undefined,
+    clientId: spec.clientId || undefined,
+    clientSecret: spec.clientSecret || undefined,
+    authorizationUrl: spec.authorizationUrl || undefined,
+    tokenUrl: spec.tokenUrl || undefined,
+    scopes: spec.scopes?.length ? [...spec.scopes] : undefined,
+    userinfoUrl: spec.userinfoUrl || undefined,
+    scopeParameterName: spec.scopeParameterName || undefined,
+    vendorApprovalStatus: spec.vendorApprovalStatus || undefined,
+    vendorApprovalDocsUrl: spec.vendorApprovalDocsUrl || undefined,
+    tokenEndpointAuthMethod: spec.tokenEndpointAuthMethod || undefined,
+  };
+}

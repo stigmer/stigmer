@@ -23,9 +23,9 @@ export interface UseUpdateAgentReturn {
  *
  * Wraps `stigmer.agent.update(input)` with loading and error state.
  * The caller must provide a **complete** `AgentInput` — the backend
- * performs full spec replacement. Use `agentToInput()` to reconstruct
- * the input from a fetched agent, modify the desired field, and pass
- * the result here.
+ * performs full spec replacement. Use `toAgentUpdateInput()` (from
+ * `@stigmer/sdk`) to reconstruct the input from a fetched agent, modify
+ * the desired field, and pass the result here.
  */
 export function useUpdateAgent(): UseUpdateAgentReturn {
   const stigmer = useStigmer();

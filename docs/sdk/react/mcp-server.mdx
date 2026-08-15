@@ -645,9 +645,9 @@ Mutation hook that updates an existing MCP Server resource.
 
 Wraps `stigmer.mcpServer.update(input)` with loading and error state.
 The caller must provide a **complete** `McpServerInput` — the backend
-performs full spec replacement. Use `mcpServerToInput()` to reconstruct
-the input from a fetched server, modify the desired field, and pass
-the result here.
+performs full spec replacement. Use `toMcpServerUpdateInput()` (from
+`@stigmer/sdk`) to reconstruct the input from a fetched server, modify
+the desired field, and pass the result here.
 
 **Signature**
 
@@ -1281,20 +1281,6 @@ entries keyed by `"org/slug"` (see [`toServerKey`](#toserverkey)).
 Each entry tracks one selected MCP server independently through the
 setup lifecycle. Entries are added when the user toggles a server on
 in the picker and removed when toggled off.
-
-
-### mcpServerToInput
-
-Converts a fetched McpServer proto to the McpServerInput shape expected
-by `stigmer.mcpServer.update()`. Enables inline field editing: read
-the current resource, modify one field, and re-submit the full input.
-
-Must be kept exhaustive — any spec field not mapped here will be
-cleared on the next update (the backend does full spec replacement).
-
-```tsx
-function mcpServerToInput(server: McpServer): McpServerInput
-```
 
 
 ### McpServerWizardData

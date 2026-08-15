@@ -23,9 +23,9 @@ export interface UseUpdateMcpServerReturn {
  *
  * Wraps `stigmer.mcpServer.update(input)` with loading and error state.
  * The caller must provide a **complete** `McpServerInput` — the backend
- * performs full spec replacement. Use `mcpServerToInput()` to reconstruct
- * the input from a fetched server, modify the desired field, and pass
- * the result here.
+ * performs full spec replacement. Use `toMcpServerUpdateInput()` (from
+ * `@stigmer/sdk`) to reconstruct the input from a fetched server, modify
+ * the desired field, and pass the result here.
  */
 export function useUpdateMcpServer(): UseUpdateMcpServerReturn {
   const stigmer = useStigmer();

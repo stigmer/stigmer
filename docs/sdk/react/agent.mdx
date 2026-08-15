@@ -378,9 +378,9 @@ Mutation hook that updates an existing Agent resource.
 
 Wraps `stigmer.agent.update(input)` with loading and error state.
 The caller must provide a **complete** `AgentInput` — the backend
-performs full spec replacement. Use `agentToInput()` to reconstruct
-the input from a fetched agent, modify the desired field, and pass
-the result here.
+performs full spec replacement. Use `toAgentUpdateInput()` (from
+`@stigmer/sdk`) to reconstruct the input from a fetched agent, modify
+the desired field, and pass the result here.
 
 **Signature**
 
@@ -677,23 +677,6 @@ orthogonal error slot.
 Errors can occur in any async transition (`resolving`, `submitting`)
 and are surfaced alongside the phase so the UI can show inline
 error messages without losing the current phase context.
-
-
-### agentToInput
-
-Converts a fetched Agent proto to the AgentInput shape expected by
-`stigmer.agent.update()`. This enables inline field editing: read the
-current resource, modify one field, and re-submit the full input.
-
-Must be kept exhaustive — any spec field not mapped here will be
-cleared on the next update (the backend does full spec replacement).
-Enforced by `__tests__/agentToInput.test.ts`: a schema tripwire fails
-when `AgentSpec` gains a field this converter does not round-trip
-(stigmer/stigmer#319 was exactly such a drop).
-
-```tsx
-function agentToInput(agent: Agent): AgentInput
-```
 
 
 ### AgentWizardData

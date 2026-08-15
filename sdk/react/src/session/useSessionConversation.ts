@@ -9,12 +9,13 @@ import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_
 import type { McpServerUsage as ProtoMcpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { WorkspaceEntry as ProtoWorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import type { ApiResourceReference as ProtoApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import type {
-  AttachmentInput,
-  EnvVarInput,
-  McpServerUsageInput,
-  ResourceRef,
-  WorkspaceEntryInput,
+import {
+  toSessionUpdateInput,
+  type AttachmentInput,
+  type EnvVarInput,
+  type McpServerUsageInput,
+  type ResourceRef,
+  type WorkspaceEntryInput,
 } from "@stigmer/sdk";
 import { isTerminalPhase } from "../execution/execution-phases.js";
 import type { ServiceTierOption } from "../models/service-tier.js";
@@ -32,11 +33,6 @@ import { useSession } from "./useSession.js";
 import { useSessionExecutions } from "./useSessionExecutions.js";
 import { useUpdateSession } from "./useUpdateSession.js";
 import { useLocalSessionWorker } from "./useLocalSessionWorker.js";
-import {
-  specWorkspaceToInput,
-  specMcpUsagesToInput,
-  specSkillRefsToInput,
-} from "./session-spec-converters.js";
 
 /**
  * Cadence for re-discovering the session's executions while the live stream
@@ -818,13 +814,13 @@ export function useSessionConversation(
 // ---------------------------------------------------------------------------
 
 /**
- * Converts the existing Session proto into a SessionInput suitable for
- * the update RPC (which uses replace semantics — the full spec is sent).
- *
- * For each session-level collection (workspace, MCP servers, skills):
- * if an override is provided, it replaces the existing value; otherwise
- * the current session value is preserved by converting it back to input
- * format.
+ * Builds the SessionInput for the update RPC (which uses replace
+ * semantics — the full spec is sent) by spreading the SDK's complete
+ * generated mapper and overriding only the session-level collections the
+ * caller provided. An override replaces the existing value; an omitted
+ * field keeps the fetched session's value (an empty-array override
+ * clears the collection — normalized to absent, the mappers' canonical
+ * shape).
  */
 function buildUpdateInput(
   session: Session,
@@ -835,30 +831,14 @@ function buildUpdateInput(
     skillRefs?: ResourceRef[];
   },
 ) {
-  const meta = session.metadata!;
-  const spec = session.spec;
-
-  const workspaceEntries =
-    overrides.workspaceEntries ?? specWorkspaceToInput(spec);
-
-  const mcpServerUsages =
-    overrides.mcpServerUsages ?? specMcpUsagesToInput(spec);
-
-  const skillRefs = overrides.skillRefs ?? specSkillRefsToInput(spec);
+  const mapped = toSessionUpdateInput(session);
+  const workspaceEntries = overrides.workspaceEntries ?? mapped.workspaceEntries;
+  const mcpServerUsages = overrides.mcpServerUsages ?? mapped.mcpServerUsages;
+  const skillRefs = overrides.skillRefs ?? mapped.skillRefs;
 
   return {
-    name: meta.name,
-    org: meta.org,
-    agentInstanceId: overrides.agentInstanceId ?? (spec?.agentInstanceId || undefined),
-    subject: spec?.subject || undefined,
-    harnessStateId: spec?.harnessStateId || undefined,
-    harness: spec?.harness,
-    cursorMode: spec?.cursorMode,
-    executionTarget: spec?.executionTarget,
-    metadata:
-      spec?.metadata && Object.keys(spec.metadata).length > 0
-        ? { ...spec.metadata }
-        : undefined,
+    ...mapped,
+    agentInstanceId: overrides.agentInstanceId ?? mapped.agentInstanceId,
     workspaceEntries: workspaceEntries?.length ? workspaceEntries : undefined,
     mcpServerUsages: mcpServerUsages?.length ? mcpServerUsages : undefined,
     skillRefs: skillRefs?.length ? skillRefs : undefined,

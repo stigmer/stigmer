@@ -9,7 +9,7 @@ import { ValidationState } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/
 import type { WorkflowInput } from "@stigmer/sdk";
 import { useWorkflow } from "./useWorkflow.js";
 import { useUpdateWorkflow } from "./useUpdateWorkflow.js";
-import { workflowToInput } from "./internal/workflowToInput.js";
+import { toWorkflowUpdateInput } from "@stigmer/sdk";
 import { useWorkflowExecutionList } from "./useWorkflowExecutionList.js";
 import { useWorkflowDashboardSummary } from "./useWorkflowDashboardSummary.js";
 import { WorkflowOverviewGraph } from "./WorkflowOverviewGraph.js";
@@ -189,7 +189,7 @@ export function WorkflowDetailView({
       value: WorkflowInput[K],
     ): Promise<boolean> => {
       if (!workflow) return false;
-      const input = workflowToInput(workflow);
+      const input = toWorkflowUpdateInput(workflow);
       (input as unknown as Record<string, unknown>)[field] = value;
       try {
         const updated = await update(input);

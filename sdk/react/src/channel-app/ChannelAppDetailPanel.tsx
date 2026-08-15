@@ -2,7 +2,7 @@
 
 import { type FormEvent, useCallback, useId, useMemo, useState } from "react";
 import { cn } from "@stigmer/theme";
-import { getUserMessage } from "@stigmer/sdk";
+import { getUserMessage, toChannelAppUpdateInput } from "@stigmer/sdk";
 import type { ChannelApp } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { useStigmer } from "../hooks.js";
 import { useUpdateChannelApp } from "./useUpdateChannelApp.js";
@@ -229,10 +229,10 @@ function SlackAppDetail({
 
       clearError();
       try {
+        // Full-spec-replace safety: spread the complete mapped input and
+        // override only the slack arm this form owns.
         const updated = await update({
-          name,
-          org: channelApp.metadata?.org ?? "",
-          ...(channelApp.metadata?.slug ? { slug: channelApp.metadata.slug } : {}),
+          ...toChannelAppUpdateInput(channelApp),
           slack: {
             clientId: clientId.trim(),
             // The redaction marker means "keep the stored value" — the
@@ -246,7 +246,7 @@ function SlackAppDetail({
         // error state is managed by useUpdateChannelApp
       }
     },
-    [canSave, clearError, update, name, channelApp.metadata, clientId, clientSecret, signingSecret, onUpdated],
+    [canSave, clearError, update, channelApp, clientId, clientSecret, signingSecret, onUpdated],
   );
 
   return (
@@ -379,10 +379,10 @@ function WhatsAppAppDetail({
 
       clearError();
       try {
+        // Full-spec-replace safety: spread the complete mapped input and
+        // override only the whatsapp arm this form owns.
         const updated = await update({
-          name,
-          org: channelApp.metadata?.org ?? "",
-          ...(channelApp.metadata?.slug ? { slug: channelApp.metadata.slug } : {}),
+          ...toChannelAppUpdateInput(channelApp),
           whatsapp: {
             appId: metaAppId.trim(),
             // The redaction marker means "keep the stored value" — the
@@ -397,7 +397,7 @@ function WhatsAppAppDetail({
         // error state is managed by useUpdateChannelApp
       }
     },
-    [canSave, clearError, update, name, channelApp.metadata, metaAppId, appSecret, accessToken, verifyToken, onUpdated],
+    [canSave, clearError, update, channelApp, metaAppId, appSecret, accessToken, verifyToken, onUpdated],
   );
 
   return (
