@@ -11,6 +11,7 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	scheduletemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/schedule/temporal"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/registry"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -146,15 +147,28 @@ func validateScheduleWorkspace(spec *schedulev1.ScheduleSpec) error {
 	return nil
 }
 
-// validateScheduleModelPinning enforces the unattended model-pinning rule
-// (stigmer/stigmer#362) at write time. The rule itself — why the Cursor
-// harness requires a pinned model, why native is exempt, and the
-// edition-honest default-harness divergence — is stated once in
-// scheduletemporal.ScheduleModelPinningRefusal, which the run starter
-// also evaluates as the launch backstop for rows written before the rule
-// existed.
+// validateScheduleModelPinning enforces the two unattended model-pinning
+// rules at write time:
+//
+//   - PRESENCE (stigmer/stigmer#362): a Cursor-harness schedule must pin a
+//     model. Stated once in scheduletemporal.ScheduleModelPinningRefusal,
+//     which the run starter also evaluates as the launch backstop for rows
+//     written before the rule existed.
+//   - EXISTENCE (stigmer/stigmer#774): whatever model IS pinned must be in
+//     the registry for the harness the fires would use — a typo'd pin used
+//     to pass through verbatim and silently run (and bill) as Auto. Stated
+//     once in registry.UnknownModelPinRefusal; write-time only BY DESIGN
+//     (no fire-time backstop — see that function's doc for why registry
+//     drift must never break an existing schedule at its 3 AM fire).
 func validateScheduleModelPinning(spec *schedulev1.ScheduleSpec) error {
 	if reason := scheduletemporal.ScheduleModelPinningRefusal(spec); reason != "" {
+		return grpclib.InvalidArgumentError("%s", reason)
+	}
+	if reason := registry.UnknownModelPinRefusal(
+		"spec.agent.run_config.model_name",
+		registry.HarnessName(spec.GetAgent().GetHarness()),
+		spec.GetAgent().GetRunConfig().GetModelName(),
+	); reason != "" {
 		return grpclib.InvalidArgumentError("%s", reason)
 	}
 	return nil

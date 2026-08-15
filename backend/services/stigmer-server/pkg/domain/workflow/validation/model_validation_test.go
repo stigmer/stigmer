@@ -426,30 +426,7 @@ func TestValidateModelReferences_EmptyTasks(t *testing.T) {
 	}
 }
 
-func TestSuggestSimilarModels_SortedByDistance(t *testing.T) {
-	candidates := []string{"aaa", "aab", "abc", "xyz"}
-	result := suggestSimilarModels("aaa", candidates)
-
-	if len(result) == 0 {
-		t.Fatal("Expected at least one suggestion")
-	}
-	if result[0] != "aaa" {
-		t.Errorf("Expected exact match 'aaa' first, got: %s", result[0])
-	}
-}
-
-func TestSuggestSimilarModels_MaxThree(t *testing.T) {
-	candidates := []string{"a", "aa", "ab", "ac", "ad"}
-	result := suggestSimilarModels("a", candidates)
-
-	if len(result) > maxModelSuggestions {
-		t.Errorf("Expected at most %d suggestions, got %d", maxModelSuggestions, len(result))
-	}
-}
-
-func TestSuggestSimilarModels_EmptyCandidates(t *testing.T) {
-	result := suggestSimilarModels("anything", nil)
-	if len(result) != 0 {
-		t.Errorf("Expected no suggestions for empty candidates, got: %v", result)
-	}
-}
+// The suggestion machinery itself (ordering, the three-suggestion cap,
+// empty candidates) is tested where it now lives: the registry package's
+// pin_validation_test.go (SuggestSimilarModels moved there so workflow and
+// schedule/channel pin errors suggest identically, stigmer/stigmer#774).
