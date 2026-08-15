@@ -78,14 +78,18 @@ class ListCursorAccountsInput(_message.Message):
     def __init__(self) -> None: ...
 
 class CursorAccountSummary(_message.Message):
-    __slots__ = ("account", "enabled_key_count", "last_synced_at")
+    __slots__ = ("account", "enabled_key_count", "last_synced_at", "routable_key_count", "guard_tripped_key_count")
     ACCOUNT_FIELD_NUMBER: _ClassVar[int]
     ENABLED_KEY_COUNT_FIELD_NUMBER: _ClassVar[int]
     LAST_SYNCED_AT_FIELD_NUMBER: _ClassVar[int]
+    ROUTABLE_KEY_COUNT_FIELD_NUMBER: _ClassVar[int]
+    GUARD_TRIPPED_KEY_COUNT_FIELD_NUMBER: _ClassVar[int]
     account: _cursor_account_pb2.CursorAccount
     enabled_key_count: int
     last_synced_at: _timestamp_pb2.Timestamp
-    def __init__(self, account: _Optional[_Union[_cursor_account_pb2.CursorAccount, _Mapping]] = ..., enabled_key_count: _Optional[int] = ..., last_synced_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
+    routable_key_count: int
+    guard_tripped_key_count: int
+    def __init__(self, account: _Optional[_Union[_cursor_account_pb2.CursorAccount, _Mapping]] = ..., enabled_key_count: _Optional[int] = ..., last_synced_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., routable_key_count: _Optional[int] = ..., guard_tripped_key_count: _Optional[int] = ...) -> None: ...
 
 class CursorAccountsResponse(_message.Message):
     __slots__ = ("accounts",)

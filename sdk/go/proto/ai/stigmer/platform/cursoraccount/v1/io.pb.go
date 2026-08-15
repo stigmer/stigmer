@@ -477,9 +477,23 @@ type CursorAccountSummary struct {
 	// prominently in the console.
 	EnabledKeyCount int32 `protobuf:"varint,2,opt,name=enabled_key_count,json=enabledKeyCount,proto3" json:"enabled_key_count,omitempty"`
 	// When the latest sync snapshot was taken; unset when never synced.
-	LastSyncedAt  *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=last_synced_at,json=lastSyncedAt,proto3" json:"last_synced_at,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	LastSyncedAt *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=last_synced_at,json=lastSyncedAt,proto3" json:"last_synced_at,omitempty"`
+	// Count of member keys the routability predicate would select for a
+	// NEW session right now: enabled AND owner active on the roster AND
+	// usage guard not tripped. Server-computed by the same rule key
+	// selection uses (clients must render it, never re-derive it — the
+	// guard threshold is server config). The 2026-08-15 pool drain hid
+	// behind the enabled count: 13 keys read "routable" while only one
+	// guard-tripped key could actually serve.
+	RoutableKeyCount int32 `protobuf:"varint,4,opt,name=routable_key_count,json=routableKeyCount,proto3" json:"routable_key_count,omitempty"`
+	// Of the enabled keys excluded above, how many are excluded ONLY by
+	// the usage guard (owner still active, API pool exhausted). These
+	// keys still serve already-pinned first-party traffic but fail every
+	// API-pool turn upstream — the console's "drained, resets next
+	// cycle" signal, distinct from dead keys (owner removed).
+	GuardTrippedKeyCount int32 `protobuf:"varint,5,opt,name=guard_tripped_key_count,json=guardTrippedKeyCount,proto3" json:"guard_tripped_key_count,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *CursorAccountSummary) Reset() {
@@ -531,6 +545,20 @@ func (x *CursorAccountSummary) GetLastSyncedAt() *timestamppb.Timestamp {
 		return x.LastSyncedAt
 	}
 	return nil
+}
+
+func (x *CursorAccountSummary) GetRoutableKeyCount() int32 {
+	if x != nil {
+		return x.RoutableKeyCount
+	}
+	return 0
+}
+
+func (x *CursorAccountSummary) GetGuardTrippedKeyCount() int32 {
+	if x != nil {
+		return x.GuardTrippedKeyCount
+	}
+	return 0
 }
 
 type CursorAccountsResponse struct {
@@ -865,11 +893,13 @@ const file_ai_stigmer_platform_cursoraccount_v1_io_proto_rawDesc = "" +
 	"\x16SyncCursorAccountInput\x12&\n" +
 	"\n" +
 	"account_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\taccountId\"\x19\n" +
-	"\x17ListCursorAccountsInput\"\xd3\x01\n" +
+	"\x17ListCursorAccountsInput\"\xb8\x02\n" +
 	"\x14CursorAccountSummary\x12M\n" +
 	"\aaccount\x18\x01 \x01(\v23.ai.stigmer.platform.cursoraccount.v1.CursorAccountR\aaccount\x12*\n" +
 	"\x11enabled_key_count\x18\x02 \x01(\x05R\x0fenabledKeyCount\x12@\n" +
-	"\x0elast_synced_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\flastSyncedAt\"p\n" +
+	"\x0elast_synced_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\flastSyncedAt\x12,\n" +
+	"\x12routable_key_count\x18\x04 \x01(\x05R\x10routableKeyCount\x125\n" +
+	"\x17guard_tripped_key_count\x18\x05 \x01(\x05R\x14guardTrippedKeyCount\"p\n" +
 	"\x16CursorAccountsResponse\x12V\n" +
 	"\baccounts\x18\x01 \x03(\v2:.ai.stigmer.platform.cursoraccount.v1.CursorAccountSummaryR\baccounts\"C\n" +
 	"\x19GetCursorAccountViewInput\x12&\n" +

@@ -74,4 +74,34 @@ public interface CursorAccountSummaryOrBuilder extends
    * <code>.google.protobuf.Timestamp last_synced_at = 3 [json_name = "lastSyncedAt"];</code>
    */
   com.google.protobuf.TimestampOrBuilder getLastSyncedAtOrBuilder();
+
+  /**
+   * <pre>
+   * Count of member keys the routability predicate would select for a
+   * NEW session right now: enabled AND owner active on the roster AND
+   * usage guard not tripped. Server-computed by the same rule key
+   * selection uses (clients must render it, never re-derive it — the
+   * guard threshold is server config). The 2026-08-15 pool drain hid
+   * behind the enabled count: 13 keys read "routable" while only one
+   * guard-tripped key could actually serve.
+   * </pre>
+   *
+   * <code>int32 routable_key_count = 4 [json_name = "routableKeyCount"];</code>
+   * @return The routableKeyCount.
+   */
+  int getRoutableKeyCount();
+
+  /**
+   * <pre>
+   * Of the enabled keys excluded above, how many are excluded ONLY by
+   * the usage guard (owner still active, API pool exhausted). These
+   * keys still serve already-pinned first-party traffic but fail every
+   * API-pool turn upstream — the console's "drained, resets next
+   * cycle" signal, distinct from dead keys (owner removed).
+   * </pre>
+   *
+   * <code>int32 guard_tripped_key_count = 5 [json_name = "guardTrippedKeyCount"];</code>
+   * @return The guardTrippedKeyCount.
+   */
+  int getGuardTrippedKeyCount();
 }

@@ -104,3 +104,70 @@ describe("error-classifier billing category", () => {
     expect(result.category).toBe("billing");
   });
 });
+
+describe("D4 platform attribution of billing errors (proxy mode)", () => {
+  // The exact message the 2026-08-15 pool-drain incident put in front of a
+  // customer: Cursor's team-usage-limit prose relayed raw, telling them to
+  // "reach out to an admin" of a Cursor team they cannot see.
+  const CURSOR_USAGE_LIMIT_MESSAGE =
+    "Your team has reached its usage limit. Please reach out to an admin to " +
+    "enable on-demand usage, or return on 8/20/2026 when your limit resets.";
+
+  beforeEach(() => {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("rewords managed-key billing errors with platform attribution", () => {
+    const result = synthesizeError({
+      ...base(),
+      streamErrorMessage: CURSOR_USAGE_LIMIT_MESSAGE,
+      proxyMode: true,
+    });
+    expect(result.category).toBe("billing");
+    expect(result.retryable).toBe(false);
+    expect(result.message).toContain("Stigmer platform");
+    expect(result.message).toContain("credits were not charged");
+    expect(result.message).toContain("STIGMER_PLATFORM_MODEL_CAPACITY");
+    // Cursor's limit-reset date must survive, quoted, not erased.
+    expect(result.message).toContain("return on 8/20/2026");
+  });
+
+  it("leaves BYO-key (direct mode) billing errors untouched", () => {
+    // A self-hoster's drained personal account: the raw message IS the
+    // actionable one — never hide it behind platform attribution.
+    const result = synthesizeError({
+      ...base(),
+      streamErrorMessage: CURSOR_USAGE_LIMIT_MESSAGE,
+      proxyMode: false,
+    });
+    expect(result.category).toBe("billing");
+    expect(result.message).toBe(CURSOR_USAGE_LIMIT_MESSAGE);
+    expect(result.message).not.toContain("STIGMER_PLATFORM_MODEL_CAPACITY");
+  });
+
+  it("does not double-wrap a message the proxy already rewrote", () => {
+    const proxyRewritten =
+      "The Stigmer platform's Cursor capacity is temporarily exhausted. " +
+      "[code: STIGMER_PLATFORM_MODEL_CAPACITY]";
+    const result = synthesizeError({
+      ...base(),
+      streamErrorMessage: proxyRewritten,
+      proxyMode: true,
+    });
+    expect(result.category).toBe("billing");
+    expect(result.message).toBe(proxyRewritten);
+  });
+
+  it("never rewords non-billing categories in proxy mode", () => {
+    const result = synthesizeError({
+      ...base(),
+      streamErrorMessage: "rate limit exceeded, retry after 2s",
+      proxyMode: true,
+    });
+    expect(result.category).toBe("rate-limit");
+    expect(result.message).not.toContain("Stigmer platform");
+  });
+});
