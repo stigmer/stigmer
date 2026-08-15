@@ -31,6 +31,11 @@ package main
 //     idempotent).
 //   - Required Input fields fall back to their zero value so the mapper
 //     is total even on a degenerate proto.
+//   - Container access is DEFENSIVE (`?.` / `?? {}`): the SDK's public
+//     boundary receives structurally partial resources in practice
+//     (plain-object test doubles, JSON-derived objects), where protobuf-es
+//     container invariants don't hold — the hand-written mappers these
+//     replace were defensive for the same reason.
 //
 // Only resources whose command controller exposes an Update RPC get a
 // mapper — resources without one (artifact, iampolicy, invitation, skill,
@@ -155,7 +160,7 @@ func emitTSUpdateInputFields(buf *bytes.Buffer, indent, src string, fields []*Fi
 func tsUpdateInputOneofExpr(f *FieldSchema, src string, typeMap map[string]*TypeSchema, imports *tsImportSet) string {
 	group := src + "." + tsProtoFieldName(f.OneofGroup)
 	member := tsProtoFieldName(f.ProtoField)
-	guard := fmt.Sprintf("%s.case === %q", group, member)
+	guard := fmt.Sprintf("%s?.case === %q", group, member)
 	value := group + ".value"
 
 	msgType := f.Type.MessageType
@@ -170,6 +175,25 @@ func tsUpdateInputOneofExpr(f *FieldSchema, src string, typeMap map[string]*Type
 		return fmt.Sprintf("%s ? %s : undefined", guard, value)
 	default:
 		return fmt.Sprintf("%s ? %s : undefined", guard, value)
+	}
+}
+
+// tsZeroValueForScalar returns the TS zero-value literal for a required
+// scalar Input field, used as the fallback when a degenerate proto (or a
+// structurally partial double) omits the field.
+func tsZeroValueForScalar(ts *TypeSpec) string {
+	switch ts.Kind {
+	case "string":
+		if ts.EnumType != "" {
+			return "0"
+		}
+		return `""`
+	case "bool":
+		return "false"
+	case "int64":
+		return "0n"
+	default:
+		return "0"
 	}
 }
 
@@ -206,13 +230,13 @@ func tsUpdateInputFieldExpr(f *FieldSchema, access string, typeMap map[string]*T
 		if f.Required {
 			return access
 		}
-		return fmt.Sprintf("%s.length > 0 ? %s : undefined", access, access)
+		return fmt.Sprintf("%s?.length ? %s : undefined", access, access)
 
 	case f.Type.Kind == "string" || f.Type.Kind == "bool" || f.Type.Kind == "int32" ||
 		f.Type.Kind == "int64" || f.Type.Kind == "uint32" || f.Type.Kind == "float" ||
 		f.Type.Kind == "double":
 		if f.Required {
-			return access
+			return fmt.Sprintf("%s ?? %s", access, tsZeroValueForScalar(&f.Type))
 		}
 		return fmt.Sprintf("%s || undefined", access)
 
@@ -247,15 +271,15 @@ func tsUpdateInputFieldExpr(f *FieldSchema, access string, typeMap map[string]*T
 	case f.Type.Kind == "array" && f.Type.ElementType != nil && f.Type.ElementType.Kind == "message":
 		elemMsg := f.Type.ElementType.MessageType
 		if f.Required {
-			return fmt.Sprintf("%s.map(to%sInput)", access, elemMsg)
+			return fmt.Sprintf("(%s ?? []).map(to%sInput)", access, elemMsg)
 		}
-		return fmt.Sprintf("%s.length > 0 ? %s.map(to%sInput) : undefined", access, access, elemMsg)
+		return fmt.Sprintf("%s?.length ? %s.map(to%sInput) : undefined", access, access, elemMsg)
 
 	case f.Type.Kind == "array":
 		if f.Required {
-			return fmt.Sprintf("[...%s]", access)
+			return fmt.Sprintf("[...(%s ?? [])]", access)
 		}
-		return fmt.Sprintf("%s.length > 0 ? [...%s] : undefined", access, access)
+		return fmt.Sprintf("%s?.length ? [...%s] : undefined", access, access)
 
 	case f.Type.Kind == "map" && f.Type.ValueType != nil && f.Type.ValueType.MessageType == "EnvironmentValue":
 		imports.addValue("./proto-utils", "toEnvVarInputMap")
@@ -275,15 +299,15 @@ func tsUpdateInputFieldExpr(f *FieldSchema, access string, typeMap map[string]*T
 		elemMsg := f.Type.ValueType.MessageType
 		mapExpr := fmt.Sprintf("Object.fromEntries(Object.entries(%s).map(([k, v]) => [k, to%sInput(v)]))", access, elemMsg)
 		if f.Required {
-			return mapExpr
+			return fmt.Sprintf("Object.fromEntries(Object.entries(%s ?? {}).map(([k, v]) => [k, to%sInput(v)]))", access, elemMsg)
 		}
-		return fmt.Sprintf("Object.keys(%s).length > 0 ? %s : undefined", access, mapExpr)
+		return fmt.Sprintf("Object.keys(%s ?? {}).length > 0 ? %s : undefined", access, mapExpr)
 
 	case f.Type.Kind == "map":
 		if f.Required {
 			return fmt.Sprintf("{ ...%s }", access)
 		}
-		return fmt.Sprintf("Object.keys(%s).length > 0 ? { ...%s } : undefined", access, access)
+		return fmt.Sprintf("Object.keys(%s ?? {}).length > 0 ? { ...%s } : undefined", access, access)
 
 	default:
 		return access

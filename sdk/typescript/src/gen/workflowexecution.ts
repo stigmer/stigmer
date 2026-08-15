@@ -226,9 +226,9 @@ export function toWorkflowExecutionUpdateInput(resource: WorkflowExecution): Wor
     workflowInstanceId: spec.workflowInstanceId || undefined,
     workflowId: spec.workflowId || undefined,
     triggerMessage: spec.triggerMessage || undefined,
-    triggerMetadata: Object.keys(spec.triggerMetadata).length > 0 ? { ...spec.triggerMetadata } : undefined,
+    triggerMetadata: Object.keys(spec.triggerMetadata ?? {}).length > 0 ? { ...spec.triggerMetadata } : undefined,
     runtimeEnv: toExecVarInputMap(spec.runtimeEnv),
-    callbackToken: spec.callbackToken.length > 0 ? spec.callbackToken : undefined,
+    callbackToken: spec.callbackToken?.length ? spec.callbackToken : undefined,
     executionTarget: spec.executionTarget || undefined,
   };
 }

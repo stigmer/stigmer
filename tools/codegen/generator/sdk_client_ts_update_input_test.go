@@ -58,9 +58,9 @@ func TestTSUpdateInputFieldExpr(t *testing.T) {
 			want:  "msg.description || undefined",
 		},
 		{
-			name:  "required string passes through",
+			name:  "required string passes through with zero fallback",
 			field: requiredField("IdpId", "idpId", "idp_id", TypeSpec{Kind: "string"}),
-			want:  "msg.idpId",
+			want:  `msg.idpId ?? ""`,
 		},
 		{
 			name:  "optional enum normalizes zero to undefined",
@@ -80,7 +80,12 @@ func TestTSUpdateInputFieldExpr(t *testing.T) {
 		{
 			name:  "optional bytes normalizes empty to undefined",
 			field: field("CallbackToken", "callbackToken", "callback_token", TypeSpec{Kind: "bytes"}),
-			want:  "msg.callbackToken.length > 0 ? msg.callbackToken : undefined",
+			want:  "msg.callbackToken?.length ? msg.callbackToken : undefined",
+		},
+		{
+			name:  "required scalar falls back to its zero value",
+			field: requiredField("Command", "command", "command", TypeSpec{Kind: "string"}),
+			want:  `msg.command ?? ""`,
 		},
 		{
 			name:  "optional timestamp maps to Date",
@@ -136,7 +141,7 @@ func TestTSUpdateInputFieldExpr(t *testing.T) {
 				Kind:        "array",
 				ElementType: &TypeSpec{Kind: "message", MessageType: "WidgetTask"},
 			}),
-			want: "msg.tasks.length > 0 ? msg.tasks.map(toWidgetTaskInput) : undefined",
+			want: "msg.tasks?.length ? msg.tasks.map(toWidgetTaskInput) : undefined",
 		},
 		{
 			name: "repeated scalar copies and normalizes empty",
@@ -144,7 +149,7 @@ func TestTSUpdateInputFieldExpr(t *testing.T) {
 				Kind:        "array",
 				ElementType: &TypeSpec{Kind: "string"},
 			}),
-			want: "msg.scopes.length > 0 ? [...msg.scopes] : undefined",
+			want: "msg.scopes?.length ? [...msg.scopes] : undefined",
 		},
 		{
 			name: "string map copies and normalizes empty",
@@ -153,7 +158,7 @@ func TestTSUpdateInputFieldExpr(t *testing.T) {
 				KeyType:   &TypeSpec{Kind: "string"},
 				ValueType: &TypeSpec{Kind: "string"},
 			}),
-			want: "Object.keys(msg.metadata).length > 0 ? { ...msg.metadata } : undefined",
+			want: "Object.keys(msg.metadata ?? {}).length > 0 ? { ...msg.metadata } : undefined",
 		},
 		{
 			name: "environment value map via shared helper",
@@ -180,7 +185,7 @@ func TestTSUpdateInputFieldExpr(t *testing.T) {
 				KeyType:   &TypeSpec{Kind: "string"},
 				ValueType: &TypeSpec{Kind: "message", MessageType: "EnvVarDeclaration"},
 			}),
-			want: "Object.keys(msg.env).length > 0 ? Object.fromEntries(Object.entries(msg.env).map(([k, v]) => [k, toEnvVarDeclarationInput(v)])) : undefined",
+			want: "Object.keys(msg.env ?? {}).length > 0 ? Object.fromEntries(Object.entries(msg.env).map(([k, v]) => [k, toEnvVarDeclarationInput(v)])) : undefined",
 		},
 	}
 
@@ -205,7 +210,7 @@ func TestTSUpdateInputOneofExpr(t *testing.T) {
 	messageMember.OneofGroup = "source"
 	imports := newTSImportSet()
 	got := tsUpdateInputOneofExpr(messageMember, "msg", typeMap, imports)
-	want := `msg.source.case === "gitRepo" ? toGitRepoSourceInput(msg.source.value) : undefined`
+	want := `msg.source?.case === "gitRepo" ? toGitRepoSourceInput(msg.source.value) : undefined`
 	if got != want {
 		t.Errorf("oneof message member mismatch\n got: %s\nwant: %s", got, want)
 	}
@@ -213,7 +218,7 @@ func TestTSUpdateInputOneofExpr(t *testing.T) {
 	refMember := field("AgentRef", "agentRef", "agent_ref", TypeSpec{Kind: "message", MessageType: "ApiResourceReference"})
 	refMember.OneofGroup = "target"
 	got = tsUpdateInputOneofExpr(refMember, "msg", typeMap, imports)
-	want = `msg.target.case === "agentRef" ? toResourceRefInput(msg.target.value) : undefined`
+	want = `msg.target?.case === "agentRef" ? toResourceRefInput(msg.target.value) : undefined`
 	if got != want {
 		t.Errorf("oneof ref member mismatch\n got: %s\nwant: %s", got, want)
 	}
@@ -222,7 +227,7 @@ func TestTSUpdateInputOneofExpr(t *testing.T) {
 	snakeMember := field("Slack", "slack", "slack", TypeSpec{Kind: "message", MessageType: "GitRepoSource"})
 	snakeMember.OneofGroup = "provider_config"
 	got = tsUpdateInputOneofExpr(snakeMember, "msg", typeMap, imports)
-	want = `msg.providerConfig.case === "slack" ? toGitRepoSourceInput(msg.providerConfig.value) : undefined`
+	want = `msg.providerConfig?.case === "slack" ? toGitRepoSourceInput(msg.providerConfig.value) : undefined`
 	if got != want {
 		t.Errorf("oneof snake group mismatch\n got: %s\nwant: %s", got, want)
 	}

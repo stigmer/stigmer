@@ -292,17 +292,17 @@ export function buildMcpServerProto(input: McpServerInput): McpServer {
 
 function toStdioServerConfigInput(msg: StdioServerConfig): StdioServerConfigInput {
   return {
-    command: msg.command,
-    args: msg.args.length > 0 ? [...msg.args] : undefined,
+    command: msg.command ?? "",
+    args: msg.args?.length ? [...msg.args] : undefined,
     workingDir: msg.workingDir || undefined,
   };
 }
 
 function toHttpServerConfigInput(msg: HttpServerConfig): HttpServerConfigInput {
   return {
-    url: msg.url,
-    headers: Object.keys(msg.headers).length > 0 ? { ...msg.headers } : undefined,
-    queryParams: Object.keys(msg.queryParams).length > 0 ? { ...msg.queryParams } : undefined,
+    url: msg.url ?? "",
+    headers: Object.keys(msg.headers ?? {}).length > 0 ? { ...msg.headers } : undefined,
+    queryParams: Object.keys(msg.queryParams ?? {}).length > 0 ? { ...msg.queryParams } : undefined,
     timeoutSeconds: msg.timeoutSeconds || undefined,
   };
 }
@@ -328,7 +328,7 @@ function toMcpServerAuthInput(msg: McpServerAuth): McpServerAuthInput {
     oauthAppRef: toResourceRefInput(msg.oauthAppRef),
     targetEnvVar: msg.targetEnvVar || undefined,
     tokenLifetimeHint: msg.tokenLifetimeHint || undefined,
-    scopeHints: msg.scopeHints.length > 0 ? [...msg.scopeHints] : undefined,
+    scopeHints: msg.scopeHints?.length ? [...msg.scopeHints] : undefined,
     discoveryUrl: msg.discoveryUrl || undefined,
     oauthOnly: msg.oauthOnly || undefined,
   };
@@ -357,12 +357,12 @@ export function toMcpServerUpdateInput(resource: McpServer): McpServerInput {
     visibility: meta?.visibility || undefined,
     description: spec.description || undefined,
     iconUrl: spec.iconUrl || undefined,
-    tags: spec.tags.length > 0 ? [...spec.tags] : undefined,
-    stdio: spec.serverType.case === "stdio" ? toStdioServerConfigInput(spec.serverType.value) : undefined,
-    http: spec.serverType.case === "http" ? toHttpServerConfigInput(spec.serverType.value) : undefined,
-    defaultEnabledTools: spec.defaultEnabledTools.length > 0 ? [...spec.defaultEnabledTools] : undefined,
-    env: Object.keys(spec.env).length > 0 ? Object.fromEntries(Object.entries(spec.env).map(([k, v]) => [k, toEnvVarDeclarationInput(v)])) : undefined,
-    pinnedToolApprovals: spec.pinnedToolApprovals.length > 0 ? spec.pinnedToolApprovals.map(toToolApprovalPolicyInput) : undefined,
+    tags: spec.tags?.length ? [...spec.tags] : undefined,
+    stdio: spec.serverType?.case === "stdio" ? toStdioServerConfigInput(spec.serverType.value) : undefined,
+    http: spec.serverType?.case === "http" ? toHttpServerConfigInput(spec.serverType.value) : undefined,
+    defaultEnabledTools: spec.defaultEnabledTools?.length ? [...spec.defaultEnabledTools] : undefined,
+    env: Object.keys(spec.env ?? {}).length > 0 ? Object.fromEntries(Object.entries(spec.env).map(([k, v]) => [k, toEnvVarDeclarationInput(v)])) : undefined,
+    pinnedToolApprovals: spec.pinnedToolApprovals?.length ? spec.pinnedToolApprovals.map(toToolApprovalPolicyInput) : undefined,
     repositoryUrl: spec.repositoryUrl || undefined,
     githubStars: spec.githubStars || undefined,
     auth: spec.auth ? toMcpServerAuthInput(spec.auth) : undefined,

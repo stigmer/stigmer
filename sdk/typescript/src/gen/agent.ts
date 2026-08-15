@@ -234,24 +234,24 @@ function toToolApprovalOverrideInput(msg: ToolApprovalOverride): ToolApprovalOve
 function toMcpServerUsageInput(msg: McpServerUsage): McpServerUsageInput {
   return {
     mcpServerRef: toResourceRefInput(msg.mcpServerRef) ?? { org: "", slug: "" },
-    enabledTools: msg.enabledTools.length > 0 ? [...msg.enabledTools] : undefined,
-    toolApprovalOverrides: msg.toolApprovalOverrides.length > 0 ? msg.toolApprovalOverrides.map(toToolApprovalOverrideInput) : undefined,
+    enabledTools: msg.enabledTools?.length ? [...msg.enabledTools] : undefined,
+    toolApprovalOverrides: msg.toolApprovalOverrides?.length ? msg.toolApprovalOverrides.map(toToolApprovalOverrideInput) : undefined,
   };
 }
 
 function toMcpAccessInput(msg: McpAccess): McpAccessInput {
   return {
-    mcpServer: msg.mcpServer,
-    enabledTools: msg.enabledTools.length > 0 ? [...msg.enabledTools] : undefined,
+    mcpServer: msg.mcpServer ?? "",
+    enabledTools: msg.enabledTools?.length ? [...msg.enabledTools] : undefined,
   };
 }
 
 function toSubAgentInput(msg: SubAgent): SubAgentInput {
   return {
-    name: msg.name,
+    name: msg.name ?? "",
     description: msg.description || undefined,
     instructions: msg.instructions || undefined,
-    mcpAccess: msg.mcpAccess.length > 0 ? msg.mcpAccess.map(toMcpAccessInput) : undefined,
+    mcpAccess: msg.mcpAccess?.length ? msg.mcpAccess.map(toMcpAccessInput) : undefined,
     skillRefs: toResourceRefInputs(msg.skillRefs),
     modelOverride: msg.modelOverride || undefined,
   };
@@ -289,9 +289,9 @@ export function toAgentUpdateInput(resource: Agent): AgentInput {
     description: spec.description || undefined,
     iconUrl: spec.iconUrl || undefined,
     instructions: spec.instructions || undefined,
-    mcpServerUsages: spec.mcpServerUsages.length > 0 ? spec.mcpServerUsages.map(toMcpServerUsageInput) : undefined,
+    mcpServerUsages: spec.mcpServerUsages?.length ? spec.mcpServerUsages.map(toMcpServerUsageInput) : undefined,
     skillRefs: toResourceRefInputs(spec.skillRefs),
-    subAgents: spec.subAgents.length > 0 ? spec.subAgents.map(toSubAgentInput) : undefined,
-    env: Object.keys(spec.env).length > 0 ? Object.fromEntries(Object.entries(spec.env).map(([k, v]) => [k, toEnvVarDeclarationInput(v)])) : undefined,
+    subAgents: spec.subAgents?.length ? spec.subAgents.map(toSubAgentInput) : undefined,
+    env: Object.keys(spec.env ?? {}).length > 0 ? Object.fromEntries(Object.entries(spec.env).map(([k, v]) => [k, toEnvVarDeclarationInput(v)])) : undefined,
   };
 }

@@ -210,7 +210,7 @@ export function toAgentShareUpdateInput(resource: AgentShare): AgentShareInput {
     agentRef: toResourceRefInput(spec.agentRef) ?? { org: "", slug: "" },
     enabled: spec.enabled || undefined,
     audience: spec.audience || undefined,
-    allowedOrigins: spec.allowedOrigins.length > 0 ? [...spec.allowedOrigins] : undefined,
+    allowedOrigins: spec.allowedOrigins?.length ? [...spec.allowedOrigins] : undefined,
     messages: spec.messages ? toAgentShareMessagesInput(spec.messages) : undefined,
     environmentRefs: toResourceRefInputs(spec.environmentRefs),
     runConfig: spec.runConfig ? toRunConfigInput(spec.runConfig) : undefined,

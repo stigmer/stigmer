@@ -450,7 +450,7 @@ export function buildAgentExecutionProto(input: AgentExecutionInput): AgentExecu
 
 function toGitRepoSourceInput(msg: GitRepoSource): GitRepoSourceInput {
   return {
-    url: msg.url,
+    url: msg.url ?? "",
     branch: msg.branch || undefined,
     commit: msg.commit || undefined,
     depth: msg.depth || undefined,
@@ -466,8 +466,8 @@ function toLocalPathSourceInput(msg: LocalPathSource): LocalPathSourceInput {
 
 function toWorkspaceSourceInput(msg: WorkspaceSource): WorkspaceSourceInput {
   return {
-    gitRepo: msg.source.case === "gitRepo" ? toGitRepoSourceInput(msg.source.value) : undefined,
-    localPath: msg.source.case === "localPath" ? toLocalPathSourceInput(msg.source.value) : undefined,
+    gitRepo: msg.source?.case === "gitRepo" ? toGitRepoSourceInput(msg.source.value) : undefined,
+    localPath: msg.source?.case === "localPath" ? toLocalPathSourceInput(msg.source.value) : undefined,
   };
 }
 
@@ -489,8 +489,8 @@ function toToolApprovalOverrideInput(msg: ToolApprovalOverride): ToolApprovalOve
 function toMcpServerUsageInput(msg: McpServerUsage): McpServerUsageInput {
   return {
     mcpServerRef: toResourceRefInput(msg.mcpServerRef) ?? { org: "", slug: "" },
-    enabledTools: msg.enabledTools.length > 0 ? [...msg.enabledTools] : undefined,
-    toolApprovalOverrides: msg.toolApprovalOverrides.length > 0 ? msg.toolApprovalOverrides.map(toToolApprovalOverrideInput) : undefined,
+    enabledTools: msg.enabledTools?.length ? [...msg.enabledTools] : undefined,
+    toolApprovalOverrides: msg.toolApprovalOverrides?.length ? msg.toolApprovalOverrides.map(toToolApprovalOverrideInput) : undefined,
   };
 }
 
@@ -499,10 +499,10 @@ function toSessionSpecInput(msg: SessionSpec): SessionSpecInput {
     agentInstanceId: msg.agentInstanceId || undefined,
     subject: msg.subject || undefined,
     harnessStateId: msg.harnessStateId || undefined,
-    harnessStateIdHistory: msg.harnessStateIdHistory.length > 0 ? [...msg.harnessStateIdHistory] : undefined,
-    metadata: Object.keys(msg.metadata).length > 0 ? { ...msg.metadata } : undefined,
-    workspaceEntries: msg.workspaceEntries.length > 0 ? msg.workspaceEntries.map(toWorkspaceEntryInput) : undefined,
-    mcpServerUsages: msg.mcpServerUsages.length > 0 ? msg.mcpServerUsages.map(toMcpServerUsageInput) : undefined,
+    harnessStateIdHistory: msg.harnessStateIdHistory?.length ? [...msg.harnessStateIdHistory] : undefined,
+    metadata: Object.keys(msg.metadata ?? {}).length > 0 ? { ...msg.metadata } : undefined,
+    workspaceEntries: msg.workspaceEntries?.length ? msg.workspaceEntries.map(toWorkspaceEntryInput) : undefined,
+    mcpServerUsages: msg.mcpServerUsages?.length ? msg.mcpServerUsages.map(toMcpServerUsageInput) : undefined,
     skillRefs: toResourceRefInputs(msg.skillRefs),
     harness: msg.harness || undefined,
     cursorMode: msg.cursorMode || undefined,
@@ -585,11 +585,11 @@ export function toAgentExecutionUpdateInput(resource: AgentExecution): AgentExec
     message: spec.message || undefined,
     executionConfig: spec.executionConfig ? toExecutionConfigInput(spec.executionConfig) : undefined,
     runtimeEnv: toExecVarInputMap(spec.runtimeEnv),
-    callbackToken: spec.callbackToken.length > 0 ? spec.callbackToken : undefined,
+    callbackToken: spec.callbackToken?.length ? spec.callbackToken : undefined,
     autoApproveAll: spec.autoApproveAll || undefined,
     parentWorkflowId: spec.parentWorkflowId || undefined,
-    attachments: spec.attachments.length > 0 ? spec.attachments.map(toAttachmentInput) : undefined,
-    workspaceFileRefs: spec.workspaceFileRefs.length > 0 ? [...spec.workspaceFileRefs] : undefined,
+    attachments: spec.attachments?.length ? spec.attachments.map(toAttachmentInput) : undefined,
+    workspaceFileRefs: spec.workspaceFileRefs?.length ? [...spec.workspaceFileRefs] : undefined,
     activityTaskQueue: spec.activityTaskQueue || undefined,
     supersedesExecutionId: spec.supersedesExecutionId || undefined,
     conversationCatchup: spec.conversationCatchup ? toConversationCatchupInput(spec.conversationCatchup) : undefined,

@@ -175,7 +175,7 @@ export function toChannelAppUpdateInput(resource: ChannelApp): ChannelAppInput {
     org: meta?.org ?? "",
     labels: meta?.labels && Object.keys(meta.labels).length > 0 ? { ...meta.labels } : undefined,
     visibility: meta?.visibility || undefined,
-    slack: spec.providerConfig.case === "slack" ? toSlackChannelAppConfigInput(spec.providerConfig.value) : undefined,
-    whatsapp: spec.providerConfig.case === "whatsapp" ? toWhatsAppChannelAppConfigInput(spec.providerConfig.value) : undefined,
+    slack: spec.providerConfig?.case === "slack" ? toSlackChannelAppConfigInput(spec.providerConfig.value) : undefined,
+    whatsapp: spec.providerConfig?.case === "whatsapp" ? toWhatsAppChannelAppConfigInput(spec.providerConfig.value) : undefined,
   };
 }

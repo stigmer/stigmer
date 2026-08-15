@@ -165,7 +165,7 @@ export function toPlatformClientUpdateInput(resource: PlatformClient): PlatformC
     autoProvisionAccounts: spec.autoProvisionAccounts || undefined,
     autoGrantOnOrg: spec.autoGrantOnOrg || undefined,
     autoGrantRole: spec.autoGrantRole || undefined,
-    allowedOrigins: spec.allowedOrigins.length > 0 ? [...spec.allowedOrigins] : undefined,
+    allowedOrigins: spec.allowedOrigins?.length ? [...spec.allowedOrigins] : undefined,
     environmentRefs: toResourceRefInputs(spec.environmentRefs),
   };
 }

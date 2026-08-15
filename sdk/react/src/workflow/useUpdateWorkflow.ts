@@ -23,9 +23,9 @@ export interface UseUpdateWorkflowReturn {
  *
  * Wraps `stigmer.workflow.update(input)` with loading and error state.
  * The caller must provide a **complete** `WorkflowInput` -- the backend
- * performs full spec replacement. Use `workflowToInput()` to reconstruct
- * the input from a fetched workflow, modify the desired field, and pass
- * the result here.
+ * performs full spec replacement. Use `toWorkflowUpdateInput()` (from
+ * `@stigmer/sdk`) to reconstruct the input from a fetched workflow,
+ * modify the desired field, and pass the result here.
  */
 export function useUpdateWorkflow(): UseUpdateWorkflowReturn {
   const stigmer = useStigmer();

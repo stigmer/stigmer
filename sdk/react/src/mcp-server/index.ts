@@ -95,8 +95,6 @@ export type { UseCreateMcpServerReturn } from "./useCreateMcpServer.js";
 export { useUpdateMcpServer } from "./useUpdateMcpServer.js";
 export type { UseUpdateMcpServerReturn } from "./useUpdateMcpServer.js";
 
-export { mcpServerToInput } from "./internal/mcpServerToInput.js";
-
 export { McpServerCreationWizard } from "./McpServerCreationWizard.js";
 export type {
   McpServerCreationWizardProps,

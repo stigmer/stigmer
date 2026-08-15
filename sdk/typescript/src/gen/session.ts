@@ -223,7 +223,7 @@ export function buildSessionProto(input: SessionInput): Session {
 
 function toGitRepoSourceInput(msg: GitRepoSource): GitRepoSourceInput {
   return {
-    url: msg.url,
+    url: msg.url ?? "",
     branch: msg.branch || undefined,
     commit: msg.commit || undefined,
     depth: msg.depth || undefined,
@@ -239,8 +239,8 @@ function toLocalPathSourceInput(msg: LocalPathSource): LocalPathSourceInput {
 
 function toWorkspaceSourceInput(msg: WorkspaceSource): WorkspaceSourceInput {
   return {
-    gitRepo: msg.source.case === "gitRepo" ? toGitRepoSourceInput(msg.source.value) : undefined,
-    localPath: msg.source.case === "localPath" ? toLocalPathSourceInput(msg.source.value) : undefined,
+    gitRepo: msg.source?.case === "gitRepo" ? toGitRepoSourceInput(msg.source.value) : undefined,
+    localPath: msg.source?.case === "localPath" ? toLocalPathSourceInput(msg.source.value) : undefined,
   };
 }
 
@@ -262,8 +262,8 @@ function toToolApprovalOverrideInput(msg: ToolApprovalOverride): ToolApprovalOve
 function toMcpServerUsageInput(msg: McpServerUsage): McpServerUsageInput {
   return {
     mcpServerRef: toResourceRefInput(msg.mcpServerRef) ?? { org: "", slug: "" },
-    enabledTools: msg.enabledTools.length > 0 ? [...msg.enabledTools] : undefined,
-    toolApprovalOverrides: msg.toolApprovalOverrides.length > 0 ? msg.toolApprovalOverrides.map(toToolApprovalOverrideInput) : undefined,
+    enabledTools: msg.enabledTools?.length ? [...msg.enabledTools] : undefined,
+    toolApprovalOverrides: msg.toolApprovalOverrides?.length ? msg.toolApprovalOverrides.map(toToolApprovalOverrideInput) : undefined,
   };
 }
 
@@ -291,10 +291,10 @@ export function toSessionUpdateInput(resource: Session): SessionInput {
     agentInstanceId: spec.agentInstanceId || undefined,
     subject: spec.subject || undefined,
     harnessStateId: spec.harnessStateId || undefined,
-    harnessStateIdHistory: spec.harnessStateIdHistory.length > 0 ? [...spec.harnessStateIdHistory] : undefined,
-    metadata: Object.keys(spec.metadata).length > 0 ? { ...spec.metadata } : undefined,
-    workspaceEntries: spec.workspaceEntries.length > 0 ? spec.workspaceEntries.map(toWorkspaceEntryInput) : undefined,
-    mcpServerUsages: spec.mcpServerUsages.length > 0 ? spec.mcpServerUsages.map(toMcpServerUsageInput) : undefined,
+    harnessStateIdHistory: spec.harnessStateIdHistory?.length ? [...spec.harnessStateIdHistory] : undefined,
+    metadata: Object.keys(spec.metadata ?? {}).length > 0 ? { ...spec.metadata } : undefined,
+    workspaceEntries: spec.workspaceEntries?.length ? spec.workspaceEntries.map(toWorkspaceEntryInput) : undefined,
+    mcpServerUsages: spec.mcpServerUsages?.length ? spec.mcpServerUsages.map(toMcpServerUsageInput) : undefined,
     skillRefs: toResourceRefInputs(spec.skillRefs),
     harness: spec.harness || undefined,
     cursorMode: spec.cursorMode || undefined,

@@ -1650,10 +1650,11 @@ export function toResourceRefInput(ref: ApiResourceReference | undefined): Resou
 
 /**
  * Map a repeated ApiResourceReference to ResourceRef inputs, or ` + "`undefined`" + `
- * when the list is empty (the mappers' canonical shape for empty lists).
+ * when the list is absent/empty (the mappers' canonical shape for empty
+ * lists).
  */
-export function toResourceRefInputs(refs: ApiResourceReference[]): ResourceRef[] | undefined {
-  if (refs.length === 0) return undefined;
+export function toResourceRefInputs(refs: ApiResourceReference[] | undefined): ResourceRef[] | undefined {
+  if (!refs || refs.length === 0) return undefined;
   return refs.map((r) => toResourceRefInput(r) ?? { org: "", slug: "" });
 }
 
@@ -1669,20 +1670,20 @@ export function toEnvSpecInput(spec: EnvironmentSpec | undefined): EnvSpecInput 
 
 /**
  * Convert a map of EnvironmentValue to EnvVarInput entries, or ` + "`undefined`" + `
- * when the map is empty.
+ * when the map is absent/empty.
  */
-export function toEnvVarInputMap(data: Record<string, EnvironmentValue>): Record<string, EnvVarInput> | undefined {
-  if (Object.keys(data).length === 0) return undefined;
+export function toEnvVarInputMap(data: Record<string, EnvironmentValue> | undefined): Record<string, EnvVarInput> | undefined {
+  if (!data || Object.keys(data).length === 0) return undefined;
   return Object.fromEntries(Object.entries(data).map(([k, v]) =>
     [k, { value: v.value, isSecret: v.isSecret || undefined, description: v.description || undefined }]));
 }
 
 /**
  * Convert a map of ExecutionValue to EnvVarInput entries, or ` + "`undefined`" + `
- * when the map is empty.
+ * when the map is absent/empty.
  */
-export function toExecVarInputMap(data: Record<string, ExecutionValue>): Record<string, EnvVarInput> | undefined {
-  if (Object.keys(data).length === 0) return undefined;
+export function toExecVarInputMap(data: Record<string, ExecutionValue> | undefined): Record<string, EnvVarInput> | undefined {
+  if (!data || Object.keys(data).length === 0) return undefined;
   return Object.fromEntries(Object.entries(data).map(([k, v]) =>
     [k, { value: v.value, isSecret: v.isSecret || undefined }]));
 }

@@ -145,7 +145,7 @@ export function toOAuthAppUpdateInput(resource: OAuthApp): OAuthAppInput {
     clientSecret: spec.clientSecret || undefined,
     authorizationUrl: spec.authorizationUrl || undefined,
     tokenUrl: spec.tokenUrl || undefined,
-    scopes: spec.scopes.length > 0 ? [...spec.scopes] : undefined,
+    scopes: spec.scopes?.length ? [...spec.scopes] : undefined,
     userinfoUrl: spec.userinfoUrl || undefined,
     scopeParameterName: spec.scopeParameterName || undefined,
     vendorApprovalStatus: spec.vendorApprovalStatus || undefined,

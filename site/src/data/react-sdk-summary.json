@@ -144,7 +144,7 @@
       "slug": "identity-account",
       "title": "Identity Account",
       "description": "Hooks for identity account lookup and profile resolution.",
-      "hooks": 3,
+      "hooks": 4,
       "components": 1
     },
     {

@@ -151,7 +151,7 @@ export function toIdentityProviderUpdateInput(resource: IdentityProvider): Ident
     visibility: meta?.visibility || undefined,
     displayName: spec.displayName || undefined,
     jwksUri: spec.jwksUri || undefined,
-    allowedIssuers: spec.allowedIssuers.length > 0 ? [...spec.allowedIssuers] : undefined,
+    allowedIssuers: spec.allowedIssuers?.length ? [...spec.allowedIssuers] : undefined,
     expectedAudience: spec.expectedAudience || undefined,
     rateLimitBudget: spec.rateLimitBudget || undefined,
     userinfoEndpoint: spec.userinfoEndpoint || undefined,

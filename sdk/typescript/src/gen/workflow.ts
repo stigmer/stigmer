@@ -270,9 +270,9 @@ export function buildWorkflowProto(input: WorkflowInput): Workflow {
 function toWorkflowDocumentInput(msg: WorkflowDocument): WorkflowDocumentInput {
   return {
     dsl: msg.dsl || undefined,
-    namespace: msg.namespace,
-    name: msg.name,
-    version: msg.version,
+    namespace: msg.namespace ?? "",
+    name: msg.name ?? "",
+    version: msg.version ?? "",
     description: msg.description || undefined,
   };
 }
@@ -292,11 +292,11 @@ function toFlowControlInput(msg: FlowControl): FlowControlInput {
 function toWorkflowTaskInput(msg: WorkflowTask): WorkflowTaskInput {
   return {
     name: msg.name || undefined,
-    kind: msg.kind,
+    kind: msg.kind ?? 0,
     taskConfig: msg.taskConfig ?? {},
     export: msg.export ? toExportInput(msg.export) : undefined,
     flow: msg.flow ? toFlowControlInput(msg.flow) : undefined,
-    compensate: msg.compensate.length > 0 ? msg.compensate.map(toWorkflowTaskInput) : undefined,
+    compensate: msg.compensate?.length ? msg.compensate.map(toWorkflowTaskInput) : undefined,
   };
 }
 
@@ -342,8 +342,8 @@ export function toWorkflowUpdateInput(resource: Workflow): WorkflowInput {
     versionMessage: undefined,
     description: spec.description || undefined,
     document: toWorkflowDocumentInput(spec.document ?? create(WorkflowDocumentSchema)),
-    tasks: spec.tasks.length > 0 ? spec.tasks.map(toWorkflowTaskInput) : undefined,
-    env: Object.keys(spec.env).length > 0 ? Object.fromEntries(Object.entries(spec.env).map(([k, v]) => [k, toEnvVarDeclarationInput(v)])) : undefined,
+    tasks: spec.tasks?.length ? spec.tasks.map(toWorkflowTaskInput) : undefined,
+    env: Object.keys(spec.env ?? {}).length > 0 ? Object.fromEntries(Object.entries(spec.env).map(([k, v]) => [k, toEnvVarDeclarationInput(v)])) : undefined,
     budget: spec.budget ? toWorkflowBudgetInput(spec.budget) : undefined,
   };
 }

@@ -1,6 +1,5 @@
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
-import type { McpServerInput } from "@stigmer/sdk";
-import { mcpServerToInput } from "./mcpServerToInput.js";
+import { toMcpServerUpdateInput, type McpServerInput } from "@stigmer/sdk";
 
 /**
  * Connection-defining field groups a marketplace definition can drift on.
@@ -24,9 +23,9 @@ export type DriftFieldId =
 
 /**
  * Deep equality over the plain-object projections produced by
- * `mcpServerToInput`. Key order is irrelevant (proto map iteration order
- * is not canonical); `undefined` values and absent keys are equivalent
- * (the conversion uses `undefined` for proto defaults).
+ * `toMcpServerUpdateInput`. Key order is irrelevant (proto map iteration
+ * order is not canonical); `undefined` values and absent keys are
+ * equivalent (the conversion uses `undefined` for proto defaults).
  */
 function deepEqual(a: unknown, b: unknown): boolean {
   if (Object.is(a, b)) return true;
@@ -72,17 +71,18 @@ function functionalEnvShape(env: McpServerInput["env"]) {
  * mirrors and reports which connection-defining field groups differ, or
  * `null` when the connection-defining configuration matches.
  *
- * The comparison runs on `mcpServerToInput` projections rather than raw
- * protos: that conversion is the SDK's canonical read-modify-write lens,
- * and its exhaustiveness is fence-tested — so a new spec field cannot
- * silently bypass this comparison either.
+ * The comparison runs on `toMcpServerUpdateInput` projections rather than
+ * raw protos: that generated mapper is the SDK's canonical
+ * read-modify-write lens, and its completeness is guaranteed by codegen
+ * plus the SDK's schema-tripwire fixture suite — so a new spec field
+ * cannot silently bypass this comparison either.
  */
 export function computeDefinitionDrift(
   current: McpServer,
   template: McpServer,
 ): readonly DriftFieldId[] | null {
-  const cur = mcpServerToInput(current);
-  const tpl = mcpServerToInput(template);
+  const cur = toMcpServerUpdateInput(current);
+  const tpl = toMcpServerUpdateInput(template);
 
   const changed: DriftFieldId[] = [];
 
@@ -128,21 +128,22 @@ export function computeDefinitionDrift(
  *
  * Definition fields — transport, env declarations, auth, and the cosmetic
  * description/icon/tags/repository metadata — come from the template.
- * The user's own choices survive: identity (name/org/slug/labels), tool
- * enablement, and pinned approval policies. Visibility is not part of the
- * input contract at all (the backend preserves it on update;
- * `updateVisibility` is its dedicated write path).
+ * The user's own choices survive: identity (name/org/slug/labels/
+ * visibility — the backend ignores visibility on update anyway;
+ * `updateVisibility` is its dedicated write path), tool enablement, and
+ * pinned approval policies.
  *
- * Built by merging two `mcpServerToInput` projections, so the preserved
- * set is the explicit override list below and nothing can be lost in
- * translation (the conversion is fence-tested exhaustive).
+ * Built by merging two `toMcpServerUpdateInput` projections, so the
+ * preserved set is the explicit override list below and nothing can be
+ * lost in translation (the mapper is generated complete and guarded by
+ * the SDK's schema-tripwire fixture suite).
  */
 export function buildRefreshInput(
   current: McpServer,
   template: McpServer,
 ): McpServerInput {
-  const cur = mcpServerToInput(current);
-  const tpl = mcpServerToInput(template);
+  const cur = toMcpServerUpdateInput(current);
+  const tpl = toMcpServerUpdateInput(template);
 
   return {
     ...tpl,
@@ -151,6 +152,7 @@ export function buildRefreshInput(
     org: cur.org,
     slug: cur.slug,
     labels: cur.labels,
+    visibility: cur.visibility,
     // User policy: never reset by a definition refresh.
     defaultEnabledTools: cur.defaultEnabledTools,
     pinnedToolApprovals: cur.pinnedToolApprovals,

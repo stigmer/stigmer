@@ -198,7 +198,7 @@ export function toIdentityAccountUpdateInput(resource: IdentityAccount): Identit
     org: meta?.org ?? "",
     labels: meta?.labels && Object.keys(meta.labels).length > 0 ? { ...meta.labels } : undefined,
     visibility: meta?.visibility || undefined,
-    idpId: spec.idpId,
+    idpId: spec.idpId ?? "",
     email: spec.email || undefined,
     firstName: spec.firstName || undefined,
     lastName: spec.lastName || undefined,

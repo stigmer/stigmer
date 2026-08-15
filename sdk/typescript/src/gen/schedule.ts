@@ -231,7 +231,7 @@ export function buildScheduleProto(input: ScheduleInput): Schedule {
 
 function toGitRepoSourceInput(msg: GitRepoSource): GitRepoSourceInput {
   return {
-    url: msg.url,
+    url: msg.url ?? "",
     branch: msg.branch || undefined,
     commit: msg.commit || undefined,
     depth: msg.depth || undefined,
@@ -247,8 +247,8 @@ function toLocalPathSourceInput(msg: LocalPathSource): LocalPathSourceInput {
 
 function toWorkspaceSourceInput(msg: WorkspaceSource): WorkspaceSourceInput {
   return {
-    gitRepo: msg.source.case === "gitRepo" ? toGitRepoSourceInput(msg.source.value) : undefined,
-    localPath: msg.source.case === "localPath" ? toLocalPathSourceInput(msg.source.value) : undefined,
+    gitRepo: msg.source?.case === "gitRepo" ? toGitRepoSourceInput(msg.source.value) : undefined,
+    localPath: msg.source?.case === "localPath" ? toLocalPathSourceInput(msg.source.value) : undefined,
   };
 }
 
@@ -273,7 +273,7 @@ function toAgentInvocationInput(msg: AgentInvocation): AgentInvocationInput {
     agentRef: toResourceRefInput(msg.agentRef) ?? { org: "", slug: "" },
     message: msg.message || undefined,
     harness: msg.harness || undefined,
-    workspaceEntries: msg.workspaceEntries.length > 0 ? msg.workspaceEntries.map(toWorkspaceEntryInput) : undefined,
+    workspaceEntries: msg.workspaceEntries?.length ? msg.workspaceEntries.map(toWorkspaceEntryInput) : undefined,
     environmentRefs: toResourceRefInputs(msg.environmentRefs),
     runConfig: msg.runConfig ? toRunConfigInput(msg.runConfig) : undefined,
   };
@@ -303,6 +303,6 @@ export function toScheduleUpdateInput(resource: Schedule): ScheduleInput {
     cron: spec.cron || undefined,
     timeZone: spec.timeZone || undefined,
     enabled: spec.enabled || undefined,
-    agent: spec.target.case === "agent" ? toAgentInvocationInput(spec.target.value) : undefined,
+    agent: spec.target?.case === "agent" ? toAgentInvocationInput(spec.target.value) : undefined,
   };
 }
