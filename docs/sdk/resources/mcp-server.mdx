@@ -1316,7 +1316,7 @@ ConnectStatus records one connect operation — the most recent one.
     workflowId: { type: "string", description: "The Temporal workflow ID of the connect run — the operation handle." },
     startedAt: { type: "string", description: "When the operation was accepted (workflow started)." },
     finishedAt: { type: "string", description: "When the operation settled (success or failure)." },
-    failureCode: { type: "string", description: "gRPC status code name classifying the failure, mirroring what the blocking connect RPC returns for the same outcome: - \"FAILED_PRECONDITION\": the runner refused with a user-facing message (missing credentials, unreachable server) — failure_message renders verbatim." },
+    failureCode: { type: "string", description: "gRPC status code name classifying the failure, mirroring what the blocking connect RPC returns for the same outcome (CamelCase, the Go grpc codes.Code String() form): - \"FailedPrecondition\": the target server (or its credentials/config) refused the connect with a user-facing message — failure_message renders verbatim." },
     failureMessage: { type: "string", description: "Human-readable failure detail." },
     warning: { type: "string", description: "Non-fatal advisory recorded at start time, rendered by clients alongside the CONNECTING state." },
   }}

@@ -56,6 +56,7 @@ import {
   resolveCallerIdentity,
 } from "../../shared/caller-identity.js";
 import { readSessionContext } from "../../shared/session-context.js";
+import { readDeclaredPreferences } from "../../shared/declared-preferences.js";
 import { withholdSecretContentFromMessages } from "../../shared/tool-row.js";
 import { StallTimeoutError, formatStallFailure } from "../../shared/stall-watchdog.js";
 import { resolveUsableArtifactStorage, loadArtifactStorageConfig, type ArtifactStorage } from "../../shared/artifact-storage.js";
@@ -1172,6 +1173,7 @@ async function executeCursorInner(
       contextBridge: readContextBridge(blueprint.sessionSpec.metadata),
       senderIdentity: readSenderIdentity(blueprint.sessionSpec.metadata),
       sessionContext: readSessionContext(blueprint.sessionSpec.metadata),
+      declaredPreferences: readDeclaredPreferences(spec.declaredPreferences),
       conversationCatchup: readConversationCatchup(spec.conversationCatchup),
       // The turn's recorded transcript, seeded from the persisted execution
       // on a reinvocation (Phase 3). Consumed only by the HITL-recovery
@@ -1862,6 +1864,7 @@ async function executeCursorInner(
             contextBridge: readContextBridge(blueprint.sessionSpec.metadata),
             senderIdentity: readSenderIdentity(blueprint.sessionSpec.metadata),
             sessionContext: readSessionContext(blueprint.sessionSpec.metadata),
+            declaredPreferences: readDeclaredPreferences(spec.declaredPreferences),
             conversationCatchup: readConversationCatchup(spec.conversationCatchup),
             // Composed fresh (not reused from Phase 10): the failed primary
             // stream may have appended partial work onto status.messages,
@@ -2449,9 +2452,18 @@ export interface BuildPromptInput {
    */
   sessionContext?: string;
   /**
+   * Platform-declared standing preferences from the execution spec's
+   * `declared_preferences` (stigmer/stigmer#293). Like the bridge, only
+   * the enhanced-prompt path consumes it — deliberately frozen per Cursor
+   * session (DD-002 D3): the first turn delivers it into the agent's own
+   * conversation store, and repeating it on resumed turns would bloat the
+   * store with identical content.
+   */
+  declaredPreferences?: import("../../shared/declared-preferences.js").DeclaredPreferencesContent;
+  /**
    * Conversation catchup from the execution spec's `conversation_catchup`
    * (cloud DD-006): what happened on the channel conversation that the
-   * agent has not seen. PER-TURN, so unlike the three standing values
+   * agent has not seen. PER-TURN, so unlike the standing values
    * above it rides BOTH prompt paths — the enhanced prompt and a resumed
    * turn's prefix (the `interaction_mode` shape). Handback lands
    * mid-session on a resumed agent: the resumed path is the one that
@@ -2586,6 +2598,7 @@ export function buildPrompt(input: BuildPromptInput): string {
           contextBridge: input.contextBridge,
           senderIdentity: input.senderIdentity,
           sessionContext: input.sessionContext,
+          declaredPreferences: input.declaredPreferences,
           conversationCatchup,
         },
         {
@@ -2652,6 +2665,7 @@ export function buildPrompt(input: BuildPromptInput): string {
     contextBridge: input.contextBridge,
     senderIdentity: input.senderIdentity,
     sessionContext: input.sessionContext,
+    declaredPreferences: input.declaredPreferences,
     conversationCatchup,
   });
 }

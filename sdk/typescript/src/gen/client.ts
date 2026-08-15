@@ -90,7 +90,7 @@ export { type AgentInput, type McpServerUsageInput, type ToolApprovalOverrideInp
 export { AgentChannelClient } from "./agentchannel.js";
 export { type AgentChannelInput, type SlackChannelConfigInput, type WhatsAppChannelConfigInput, type RunConfigInput } from "./agentchannel.js";
 export { AgentExecutionClient } from "./agentexecution.js";
-export { type AgentExecutionInput, type SessionSpecInput, type WorkspaceEntryInput, type WorkspaceSourceInput, type GitRepoSourceInput, type LocalPathSourceInput, type ExecutionConfigInput, type ContextManagementConfigInput, type AttachmentInput, type ConversationCatchupInput } from "./agentexecution.js";
+export { type AgentExecutionInput, type SessionSpecInput, type WorkspaceEntryInput, type WorkspaceSourceInput, type GitRepoSourceInput, type LocalPathSourceInput, type ExecutionConfigInput, type ContextManagementConfigInput, type AttachmentInput, type ConversationCatchupInput, type DeclaredPreferencesInput } from "./agentexecution.js";
 export { AgentInstanceClient } from "./agentinstance.js";
 export { type AgentInstanceInput } from "./agentinstance.js";
 export { AgentShareClient } from "./agentshare.js";
@@ -108,7 +108,7 @@ export { type ExecutionContextInput } from "./executioncontext.js";
 export { IamPolicyClient } from "./iampolicy.js";
 export { type IamPolicyInput, type ApiResourceRefInput } from "./iampolicy.js";
 export { IdentityAccountClient } from "./identityaccount.js";
-export { type IdentityAccountInput } from "./identityaccount.js";
+export { type IdentityAccountInput, type IdentityAccountPreferencesInput } from "./identityaccount.js";
 export { IdentityProviderClient } from "./identityprovider.js";
 export { type IdentityProviderInput } from "./identityprovider.js";
 export { InvitationClient } from "./invitation.js";
@@ -118,7 +118,7 @@ export { type McpServerInput, type StdioServerConfigInput, type HttpServerConfig
 export { OAuthAppClient } from "./oauthapp.js";
 export { type OAuthAppInput } from "./oauthapp.js";
 export { OrganizationClient } from "./organization.js";
-export { type OrganizationInput } from "./organization.js";
+export { type OrganizationInput, type OrganizationPreferencesInput } from "./organization.js";
 export { PlatformClientClient } from "./platformclient.js";
 export { type PlatformClientInput } from "./platformclient.js";
 export { ProjectClient } from "./project.js";

@@ -321,6 +321,44 @@ private static final long serialVersionUID = 0L;
     return isPersonal_;
   }
 
+  public static final int PREFERENCES_FIELD_NUMBER = 7;
+  private ai.stigmer.tenancy.organization.v1.OrganizationPreferences preferences_;
+  /**
+   * <pre>
+   * Standing preferences declared by the organization.
+   * </pre>
+   *
+   * <code>.ai.stigmer.tenancy.organization.v1.OrganizationPreferences preferences = 7 [json_name = "preferences"];</code>
+   * @return Whether the preferences field is set.
+   */
+  @java.lang.Override
+  public boolean hasPreferences() {
+    return ((bitField0_ & 0x00000002) != 0);
+  }
+  /**
+   * <pre>
+   * Standing preferences declared by the organization.
+   * </pre>
+   *
+   * <code>.ai.stigmer.tenancy.organization.v1.OrganizationPreferences preferences = 7 [json_name = "preferences"];</code>
+   * @return The preferences.
+   */
+  @java.lang.Override
+  public ai.stigmer.tenancy.organization.v1.OrganizationPreferences getPreferences() {
+    return preferences_ == null ? ai.stigmer.tenancy.organization.v1.OrganizationPreferences.getDefaultInstance() : preferences_;
+  }
+  /**
+   * <pre>
+   * Standing preferences declared by the organization.
+   * </pre>
+   *
+   * <code>.ai.stigmer.tenancy.organization.v1.OrganizationPreferences preferences = 7 [json_name = "preferences"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.tenancy.organization.v1.OrganizationPreferencesOrBuilder getPreferencesOrBuilder() {
+    return preferences_ == null ? ai.stigmer.tenancy.organization.v1.OrganizationPreferences.getDefaultInstance() : preferences_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -353,6 +391,9 @@ private static final long serialVersionUID = 0L;
     if (isPersonal_ != false) {
       output.writeBool(6, isPersonal_);
     }
+    if (((bitField0_ & 0x00000002) != 0)) {
+      output.writeMessage(7, getPreferences());
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -383,6 +424,10 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeBoolSize(6, isPersonal_);
     }
+    if (((bitField0_ & 0x00000002) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(7, getPreferences());
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -412,6 +457,11 @@ private static final long serialVersionUID = 0L;
         .equals(other.getExternalOrgId())) return false;
     if (getIsPersonal()
         != other.getIsPersonal()) return false;
+    if (hasPreferences() != other.hasPreferences()) return false;
+    if (hasPreferences()) {
+      if (!getPreferences()
+          .equals(other.getPreferences())) return false;
+    }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -438,6 +488,10 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + IS_PERSONAL_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
         getIsPersonal());
+    if (hasPreferences()) {
+      hash = (37 * hash) + PREFERENCES_FIELD_NUMBER;
+      hash = (53 * hash) + getPreferences().hashCode();
+    }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -578,6 +632,7 @@ private static final long serialVersionUID = 0L;
       if (com.google.protobuf.GeneratedMessage
               .alwaysUseFieldBuilders) {
         internalGetIdentityProviderRefFieldBuilder();
+        internalGetPreferencesFieldBuilder();
       }
     }
     @java.lang.Override
@@ -594,6 +649,11 @@ private static final long serialVersionUID = 0L;
       }
       externalOrgId_ = "";
       isPersonal_ = false;
+      preferences_ = null;
+      if (preferencesBuilder_ != null) {
+        preferencesBuilder_.dispose();
+        preferencesBuilder_ = null;
+      }
       return this;
     }
 
@@ -649,6 +709,12 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000020) != 0)) {
         result.isPersonal_ = isPersonal_;
       }
+      if (((from_bitField0_ & 0x00000040) != 0)) {
+        result.preferences_ = preferencesBuilder_ == null
+            ? preferences_
+            : preferencesBuilder_.build();
+        to_bitField0_ |= 0x00000002;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -687,6 +753,9 @@ private static final long serialVersionUID = 0L;
       }
       if (other.getIsPersonal() != false) {
         setIsPersonal(other.getIsPersonal());
+      }
+      if (other.hasPreferences()) {
+        mergePreferences(other.getPreferences());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -746,6 +815,13 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000020;
               break;
             } // case 48
+            case 58: {
+              input.readMessage(
+                  internalGetPreferencesFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00000040;
+              break;
+            } // case 58
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1417,6 +1493,163 @@ private static final long serialVersionUID = 0L;
       isPersonal_ = false;
       onChanged();
       return this;
+    }
+
+    private ai.stigmer.tenancy.organization.v1.OrganizationPreferences preferences_;
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.tenancy.organization.v1.OrganizationPreferences, ai.stigmer.tenancy.organization.v1.OrganizationPreferences.Builder, ai.stigmer.tenancy.organization.v1.OrganizationPreferencesOrBuilder> preferencesBuilder_;
+    /**
+     * <pre>
+     * Standing preferences declared by the organization.
+     * </pre>
+     *
+     * <code>.ai.stigmer.tenancy.organization.v1.OrganizationPreferences preferences = 7 [json_name = "preferences"];</code>
+     * @return Whether the preferences field is set.
+     */
+    public boolean hasPreferences() {
+      return ((bitField0_ & 0x00000040) != 0);
+    }
+    /**
+     * <pre>
+     * Standing preferences declared by the organization.
+     * </pre>
+     *
+     * <code>.ai.stigmer.tenancy.organization.v1.OrganizationPreferences preferences = 7 [json_name = "preferences"];</code>
+     * @return The preferences.
+     */
+    public ai.stigmer.tenancy.organization.v1.OrganizationPreferences getPreferences() {
+      if (preferencesBuilder_ == null) {
+        return preferences_ == null ? ai.stigmer.tenancy.organization.v1.OrganizationPreferences.getDefaultInstance() : preferences_;
+      } else {
+        return preferencesBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * Standing preferences declared by the organization.
+     * </pre>
+     *
+     * <code>.ai.stigmer.tenancy.organization.v1.OrganizationPreferences preferences = 7 [json_name = "preferences"];</code>
+     */
+    public Builder setPreferences(ai.stigmer.tenancy.organization.v1.OrganizationPreferences value) {
+      if (preferencesBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        preferences_ = value;
+      } else {
+        preferencesBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00000040;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Standing preferences declared by the organization.
+     * </pre>
+     *
+     * <code>.ai.stigmer.tenancy.organization.v1.OrganizationPreferences preferences = 7 [json_name = "preferences"];</code>
+     */
+    public Builder setPreferences(
+        ai.stigmer.tenancy.organization.v1.OrganizationPreferences.Builder builderForValue) {
+      if (preferencesBuilder_ == null) {
+        preferences_ = builderForValue.build();
+      } else {
+        preferencesBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00000040;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Standing preferences declared by the organization.
+     * </pre>
+     *
+     * <code>.ai.stigmer.tenancy.organization.v1.OrganizationPreferences preferences = 7 [json_name = "preferences"];</code>
+     */
+    public Builder mergePreferences(ai.stigmer.tenancy.organization.v1.OrganizationPreferences value) {
+      if (preferencesBuilder_ == null) {
+        if (((bitField0_ & 0x00000040) != 0) &&
+          preferences_ != null &&
+          preferences_ != ai.stigmer.tenancy.organization.v1.OrganizationPreferences.getDefaultInstance()) {
+          getPreferencesBuilder().mergeFrom(value);
+        } else {
+          preferences_ = value;
+        }
+      } else {
+        preferencesBuilder_.mergeFrom(value);
+      }
+      if (preferences_ != null) {
+        bitField0_ |= 0x00000040;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Standing preferences declared by the organization.
+     * </pre>
+     *
+     * <code>.ai.stigmer.tenancy.organization.v1.OrganizationPreferences preferences = 7 [json_name = "preferences"];</code>
+     */
+    public Builder clearPreferences() {
+      bitField0_ = (bitField0_ & ~0x00000040);
+      preferences_ = null;
+      if (preferencesBuilder_ != null) {
+        preferencesBuilder_.dispose();
+        preferencesBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Standing preferences declared by the organization.
+     * </pre>
+     *
+     * <code>.ai.stigmer.tenancy.organization.v1.OrganizationPreferences preferences = 7 [json_name = "preferences"];</code>
+     */
+    public ai.stigmer.tenancy.organization.v1.OrganizationPreferences.Builder getPreferencesBuilder() {
+      bitField0_ |= 0x00000040;
+      onChanged();
+      return internalGetPreferencesFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * Standing preferences declared by the organization.
+     * </pre>
+     *
+     * <code>.ai.stigmer.tenancy.organization.v1.OrganizationPreferences preferences = 7 [json_name = "preferences"];</code>
+     */
+    public ai.stigmer.tenancy.organization.v1.OrganizationPreferencesOrBuilder getPreferencesOrBuilder() {
+      if (preferencesBuilder_ != null) {
+        return preferencesBuilder_.getMessageOrBuilder();
+      } else {
+        return preferences_ == null ?
+            ai.stigmer.tenancy.organization.v1.OrganizationPreferences.getDefaultInstance() : preferences_;
+      }
+    }
+    /**
+     * <pre>
+     * Standing preferences declared by the organization.
+     * </pre>
+     *
+     * <code>.ai.stigmer.tenancy.organization.v1.OrganizationPreferences preferences = 7 [json_name = "preferences"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.tenancy.organization.v1.OrganizationPreferences, ai.stigmer.tenancy.organization.v1.OrganizationPreferences.Builder, ai.stigmer.tenancy.organization.v1.OrganizationPreferencesOrBuilder> 
+        internalGetPreferencesFieldBuilder() {
+      if (preferencesBuilder_ == null) {
+        preferencesBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.tenancy.organization.v1.OrganizationPreferences, ai.stigmer.tenancy.organization.v1.OrganizationPreferences.Builder, ai.stigmer.tenancy.organization.v1.OrganizationPreferencesOrBuilder>(
+                getPreferences(),
+                getParentForChildren(),
+                isClean());
+        preferences_ = null;
+      }
+      return preferencesBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.tenancy.organization.v1.OrganizationSpec)

@@ -411,6 +411,58 @@ describe("buildEnhancedSystemPrompt", () => {
     });
   });
 
+  describe("declared preferences", () => {
+    const base = {
+      instructions: "Test",
+      provisionResults: [],
+      containerRoot: "",
+      skillsPromptSection: "",
+      workspaceFileRefs: [],
+      workspaceRoot: "",
+      injectedFiles: [],
+    };
+
+    it("appends the preferences with per-scope attribution (every-turn injection)", () => {
+      const prompt = buildEnhancedSystemPrompt({
+        ...base,
+        declaredPreferences: {
+          orgContext: "We deploy to us-east-1.",
+          userContext: "Keep answers terse.",
+        },
+      });
+
+      expect(prompt).toContain("## Declared preferences");
+      expect(prompt).toContain("Declared by the organization:\nWe deploy to us-east-1.");
+      expect(prompt).toContain("Declared by the user:\nKeep answers terse.");
+      expect(prompt).toContain("Do not repeat them back");
+    });
+
+    it("omits the section when the execution carries no preferences", () => {
+      const prompt = buildEnhancedSystemPrompt(base);
+
+      expect(prompt).not.toContain("## Declared preferences");
+    });
+
+    it("places platform-declared preferences after the sender, before the embedder's session context (DD-002 D3)", () => {
+      const prompt = buildEnhancedSystemPrompt({
+        ...base,
+        senderIdentity: { value: "15550001111", kind: "whatsapp_phone" },
+        declaredPreferences: { orgContext: "We deploy to us-east-1." },
+        sessionContext: "Role: platform admin",
+        contextBridge: "User: hi\nAssistant: hello",
+      });
+
+      const sender = prompt.indexOf("## Conversation sender");
+      const preferences = prompt.indexOf("## Declared preferences");
+      const context = prompt.indexOf("## Session context");
+      const bridge = prompt.indexOf("## Previous conversation context");
+      expect(sender).toBeGreaterThan(-1);
+      expect(preferences).toBeGreaterThan(sender);
+      expect(context).toBeGreaterThan(preferences);
+      expect(bridge).toBeGreaterThan(context);
+    });
+  });
+
   describe("plan mode", () => {
     const base = {
       instructions: "Test",

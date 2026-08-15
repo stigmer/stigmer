@@ -6,6 +6,7 @@ import ai.stigmer.commons.apiresource.ApiResourceMetadata;
 import ai.stigmer.commons.apiresource.ApiResourceVisibility;
 import ai.stigmer.tenancy.organization.v1.ManagementMode;
 import ai.stigmer.tenancy.organization.v1.Organization;
+import ai.stigmer.tenancy.organization.v1.OrganizationPreferences;
 import ai.stigmer.tenancy.organization.v1.OrganizationSpec;
 
 /** Input for creating/updating a Organization. */
@@ -21,6 +22,7 @@ public final class OrganizationInput {
     private final ResourceRef identityProviderRef;
     private final String externalOrgId;
     private final boolean isPersonal;
+    private final OrganizationPreferencesInput preferences;
 
     private OrganizationInput(Builder builder) {
         this.name = builder.name;
@@ -34,6 +36,7 @@ public final class OrganizationInput {
         this.identityProviderRef = builder.identityProviderRef;
         this.externalOrgId = builder.externalOrgId;
         this.isPersonal = builder.isPersonal;
+        this.preferences = builder.preferences;
     }
 
     Organization toProto() {
@@ -54,6 +57,9 @@ public final class OrganizationInput {
             spec.setExternalOrgId(this.externalOrgId);
         }
         spec.setIsPersonal(this.isPersonal);
+        if (this.preferences != null) {
+            spec.setPreferences(this.preferences.toProto());
+        }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name)
             .setOrg(this.org);
@@ -88,6 +94,7 @@ public final class OrganizationInput {
         private ResourceRef identityProviderRef;
         private String externalOrgId;
         private boolean isPersonal;
+        private OrganizationPreferencesInput preferences;
 
         private Builder() {}
 
@@ -102,7 +109,37 @@ public final class OrganizationInput {
         public Builder identityProviderRef(ResourceRef identityProviderRef) { this.identityProviderRef = identityProviderRef; return this; }
         public Builder externalOrgId(String externalOrgId) { this.externalOrgId = externalOrgId; return this; }
         public Builder isPersonal(boolean isPersonal) { this.isPersonal = isPersonal; return this; }
+        public Builder preferences(OrganizationPreferencesInput preferences) { this.preferences = preferences; return this; }
 
         public OrganizationInput build() { return new OrganizationInput(this); }
+    }
+
+    /** SDK input type for OrganizationPreferences. */
+    public static final class OrganizationPreferencesInput {
+        private final String standingContext;
+
+        private OrganizationPreferencesInput(Builder builder) {
+            this.standingContext = builder.standingContext;
+        }
+
+        OrganizationPreferences toProto() {
+            OrganizationPreferences.Builder builder = OrganizationPreferences.newBuilder();
+            if (this.standingContext != null) {
+                builder.setStandingContext(this.standingContext);
+            }
+            return builder.build();
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private String standingContext;
+
+            private Builder() {}
+
+            public Builder standingContext(String standingContext) { this.standingContext = standingContext; return this; }
+
+            public OrganizationPreferencesInput build() { return new OrganizationPreferencesInput(this); }
+        }
     }
 }

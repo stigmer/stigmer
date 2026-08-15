@@ -31,6 +31,11 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_iam_identityaccount_v1_IdentityAccountSpec_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_iam_identityaccount_v1_IdentityAccountPreferences_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_iam_identityaccount_v1_IdentityAccountPreferences_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -44,7 +49,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       ".proto\022!ai.stigmer.iam.identityaccount.v" +
       "1\032\'ai/stigmer/commons/apiresource/io.pro" +
       "to\032,ai/stigmer/iam/identityaccount/v1/en" +
-      "um.proto\032\033buf/validate/validate.proto\"\260\003" +
+      "um.proto\032\033buf/validate/validate.proto\"\221\004" +
       "\n\023IdentityAccountSpec\022\035\n\006idp_id\030\001 \001(\tB\006\272" +
       "H\003\310\001\001R\005idpId\022\024\n\005email\030\002 \001(\tR\005email\022\035\n\nfi" +
       "rst_name\030\003 \001(\tR\tfirstName\022\033\n\tlast_name\030\004" +
@@ -55,12 +60,17 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "ntityAccountProvisioningModeR\020provisioni" +
       "ngMode\022h\n\025identity_provider_ref\030\010 \001(\01324." +
       "ai.stigmer.commons.apiresource.ApiResour" +
-      "ceReferenceR\023identityProviderRefB\264\001B\tSpe" +
-      "cProtoP\001\242\002\004ASII\252\002!Ai.Stigmer.Iam.Identit" +
-      "yaccount.V1\312\002!Ai\\Stigmer\\Iam\\Identityacc" +
-      "ount\\V1\342\002-Ai\\Stigmer\\Iam\\Identityaccount" +
-      "\\V1\\GPBMetadata\352\002%Ai::Stigmer::Iam::Iden" +
-      "tityaccount::V1b\006proto3"
+      "ceReferenceR\023identityProviderRef\022_\n\013pref" +
+      "erences\030\t \001(\0132=.ai.stigmer.iam.identitya" +
+      "ccount.v1.IdentityAccountPreferencesR\013pr" +
+      "eferences\"Q\n\032IdentityAccountPreferences\022" +
+      "3\n\020standing_context\030\001 \001(\tB\010\272H\005r\003\030\320\017R\017sta" +
+      "ndingContextB\264\001B\tSpecProtoP\001\242\002\004ASII\252\002!Ai" +
+      ".Stigmer.Iam.Identityaccount.V1\312\002!Ai\\Sti" +
+      "gmer\\Iam\\Identityaccount\\V1\342\002-Ai\\Stigmer" +
+      "\\Iam\\Identityaccount\\V1\\GPBMetadata\352\002%Ai" +
+      "::Stigmer::Iam::Identityaccount::V1b\006pro" +
+      "to3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -74,7 +84,13 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_iam_identityaccount_v1_IdentityAccountSpec_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_iam_identityaccount_v1_IdentityAccountSpec_descriptor,
-        new java.lang.String[] { "IdpId", "Email", "FirstName", "LastName", "PictureUrl", "IsMachineAccount", "ProvisioningMode", "IdentityProviderRef", });
+        new java.lang.String[] { "IdpId", "Email", "FirstName", "LastName", "PictureUrl", "IsMachineAccount", "ProvisioningMode", "IdentityProviderRef", "Preferences", });
+    internal_static_ai_stigmer_iam_identityaccount_v1_IdentityAccountPreferences_descriptor =
+      getDescriptor().getMessageType(1);
+    internal_static_ai_stigmer_iam_identityaccount_v1_IdentityAccountPreferences_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_iam_identityaccount_v1_IdentityAccountPreferences_descriptor,
+        new java.lang.String[] { "StandingContext", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.commons.apiresource.IoProto.getDescriptor();
     ai.stigmer.iam.identityaccount.v1.EnumProto.getDescriptor();

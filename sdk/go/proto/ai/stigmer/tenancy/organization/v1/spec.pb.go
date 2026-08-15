@@ -37,7 +37,9 @@ type OrganizationSpec struct {
 	// External platform's organization identifier for reverse mapping.
 	ExternalOrgId string `protobuf:"bytes,5,opt,name=external_org_id,json=externalOrgId,proto3" json:"external_org_id,omitempty"`
 	// Whether this is a personal organization, auto-created during identity provisioning.
-	IsPersonal    bool `protobuf:"varint,6,opt,name=is_personal,json=isPersonal,proto3" json:"is_personal,omitempty"`
+	IsPersonal bool `protobuf:"varint,6,opt,name=is_personal,json=isPersonal,proto3" json:"is_personal,omitempty"`
+	// Standing preferences declared by the organization.
+	Preferences   *OrganizationPreferences `protobuf:"bytes,7,opt,name=preferences,proto3" json:"preferences,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -114,11 +116,66 @@ func (x *OrganizationSpec) GetIsPersonal() bool {
 	return false
 }
 
+func (x *OrganizationSpec) GetPreferences() *OrganizationPreferences {
+	if x != nil {
+		return x.Preferences
+	}
+	return nil
+}
+
+// OrganizationPreferences holds organization-declared defaults that apply to
+// every eligible agent execution in the organization.
+type OrganizationPreferences struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Free-text standing context injected into eligible agent executions in
+	// this organization. Example: "We deploy to us-east-1."
+	StandingContext string `protobuf:"bytes,1,opt,name=standing_context,json=standingContext,proto3" json:"standing_context,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *OrganizationPreferences) Reset() {
+	*x = OrganizationPreferences{}
+	mi := &file_ai_stigmer_tenancy_organization_v1_spec_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OrganizationPreferences) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OrganizationPreferences) ProtoMessage() {}
+
+func (x *OrganizationPreferences) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_tenancy_organization_v1_spec_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OrganizationPreferences.ProtoReflect.Descriptor instead.
+func (*OrganizationPreferences) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_tenancy_organization_v1_spec_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *OrganizationPreferences) GetStandingContext() string {
+	if x != nil {
+		return x.StandingContext
+	}
+	return ""
+}
+
 var File_ai_stigmer_tenancy_organization_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_tenancy_organization_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"-ai/stigmer/tenancy/organization/v1/spec.proto\x12\"ai.stigmer.tenancy.organization.v1\x1a'ai/stigmer/commons/apiresource/io.proto\x1a-ai/stigmer/tenancy/organization/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\"\xf3\x02\n" +
+	"-ai/stigmer/tenancy/organization/v1/spec.proto\x12\"ai.stigmer.tenancy.organization.v1\x1a'ai/stigmer/commons/apiresource/io.proto\x1a-ai/stigmer/tenancy/organization/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\"\xd2\x03\n" +
 	"\x10OrganizationSpec\x12*\n" +
 	"\vdescription\x18\x01 \x01(\tB\b\xbaH\x05r\x03\x18\xf4\x03R\vdescription\x12#\n" +
 	"\blogo_url\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x10R\alogoUrl\x12[\n" +
@@ -126,7 +183,10 @@ const file_ai_stigmer_tenancy_organization_v1_spec_proto_rawDesc = "" +
 	"\x15identity_provider_ref\x18\x04 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceR\x13identityProviderRef\x12&\n" +
 	"\x0fexternal_org_id\x18\x05 \x01(\tR\rexternalOrgId\x12\x1f\n" +
 	"\vis_personal\x18\x06 \x01(\bR\n" +
-	"isPersonalB\xbe\x02\n" +
+	"isPersonal\x12]\n" +
+	"\vpreferences\x18\a \x01(\v2;.ai.stigmer.tenancy.organization.v1.OrganizationPreferencesR\vpreferences\"N\n" +
+	"\x17OrganizationPreferences\x123\n" +
+	"\x10standing_context\x18\x01 \x01(\tB\b\xbaH\x05r\x03\x18\xd0\x0fR\x0fstandingContextB\xbe\x02\n" +
 	"&com.ai.stigmer.tenancy.organization.v1B\tSpecProtoP\x01Z\\github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/tenancy/organization/v1;organizationv1\xa2\x02\x04ASTO\xaa\x02\"Ai.Stigmer.Tenancy.Organization.V1\xca\x02\"Ai\\Stigmer\\Tenancy\\Organization\\V1\xe2\x02.Ai\\Stigmer\\Tenancy\\Organization\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Tenancy::Organization::V1b\x06proto3"
 
 var (
@@ -141,20 +201,22 @@ func file_ai_stigmer_tenancy_organization_v1_spec_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_tenancy_organization_v1_spec_proto_rawDescData
 }
 
-var file_ai_stigmer_tenancy_organization_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+var file_ai_stigmer_tenancy_organization_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_ai_stigmer_tenancy_organization_v1_spec_proto_goTypes = []any{
 	(*OrganizationSpec)(nil),                 // 0: ai.stigmer.tenancy.organization.v1.OrganizationSpec
-	(ManagementMode)(0),                      // 1: ai.stigmer.tenancy.organization.v1.ManagementMode
-	(*apiresource.ApiResourceReference)(nil), // 2: ai.stigmer.commons.apiresource.ApiResourceReference
+	(*OrganizationPreferences)(nil),          // 1: ai.stigmer.tenancy.organization.v1.OrganizationPreferences
+	(ManagementMode)(0),                      // 2: ai.stigmer.tenancy.organization.v1.ManagementMode
+	(*apiresource.ApiResourceReference)(nil), // 3: ai.stigmer.commons.apiresource.ApiResourceReference
 }
 var file_ai_stigmer_tenancy_organization_v1_spec_proto_depIdxs = []int32{
-	1, // 0: ai.stigmer.tenancy.organization.v1.OrganizationSpec.management_mode:type_name -> ai.stigmer.tenancy.organization.v1.ManagementMode
-	2, // 1: ai.stigmer.tenancy.organization.v1.OrganizationSpec.identity_provider_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	2, // [2:2] is the sub-list for method output_type
-	2, // [2:2] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	2, // 0: ai.stigmer.tenancy.organization.v1.OrganizationSpec.management_mode:type_name -> ai.stigmer.tenancy.organization.v1.ManagementMode
+	3, // 1: ai.stigmer.tenancy.organization.v1.OrganizationSpec.identity_provider_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	1, // 2: ai.stigmer.tenancy.organization.v1.OrganizationSpec.preferences:type_name -> ai.stigmer.tenancy.organization.v1.OrganizationPreferences
+	3, // [3:3] is the sub-list for method output_type
+	3, // [3:3] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_tenancy_organization_v1_spec_proto_init() }
@@ -169,7 +231,7 @@ func file_ai_stigmer_tenancy_organization_v1_spec_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_tenancy_organization_v1_spec_proto_rawDesc), len(file_ai_stigmer_tenancy_organization_v1_spec_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   1,
+			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

@@ -73,8 +73,10 @@ type IdentityAccountSpec struct {
 	// forms the unique identity for federated accounts.
 	// (ignored for create) this value is assigned by backend.
 	IdentityProviderRef *apiresource.ApiResourceReference `protobuf:"bytes,8,opt,name=identity_provider_ref,json=identityProviderRef,proto3" json:"identity_provider_ref,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	// Standing preferences declared by this identity account.
+	Preferences   *IdentityAccountPreferences `protobuf:"bytes,9,opt,name=preferences,proto3" json:"preferences,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *IdentityAccountSpec) Reset() {
@@ -163,11 +165,66 @@ func (x *IdentityAccountSpec) GetIdentityProviderRef() *apiresource.ApiResourceR
 	return nil
 }
 
+func (x *IdentityAccountSpec) GetPreferences() *IdentityAccountPreferences {
+	if x != nil {
+		return x.Preferences
+	}
+	return nil
+}
+
+// IdentityAccountPreferences holds user-declared defaults that apply to the
+// user's own agent executions.
+type IdentityAccountPreferences struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Free-text standing context injected into this user's eligible agent
+	// executions. Example: "Keep answers terse."
+	StandingContext string `protobuf:"bytes,1,opt,name=standing_context,json=standingContext,proto3" json:"standing_context,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *IdentityAccountPreferences) Reset() {
+	*x = IdentityAccountPreferences{}
+	mi := &file_ai_stigmer_iam_identityaccount_v1_spec_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *IdentityAccountPreferences) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*IdentityAccountPreferences) ProtoMessage() {}
+
+func (x *IdentityAccountPreferences) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_iam_identityaccount_v1_spec_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use IdentityAccountPreferences.ProtoReflect.Descriptor instead.
+func (*IdentityAccountPreferences) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_iam_identityaccount_v1_spec_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *IdentityAccountPreferences) GetStandingContext() string {
+	if x != nil {
+		return x.StandingContext
+	}
+	return ""
+}
+
 var File_ai_stigmer_iam_identityaccount_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_identityaccount_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	",ai/stigmer/iam/identityaccount/v1/spec.proto\x12!ai.stigmer.iam.identityaccount.v1\x1a'ai/stigmer/commons/apiresource/io.proto\x1a,ai/stigmer/iam/identityaccount/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\"\xb0\x03\n" +
+	",ai/stigmer/iam/identityaccount/v1/spec.proto\x12!ai.stigmer.iam.identityaccount.v1\x1a'ai/stigmer/commons/apiresource/io.proto\x1a,ai/stigmer/iam/identityaccount/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\"\x91\x04\n" +
 	"\x13IdentityAccountSpec\x12\x1d\n" +
 	"\x06idp_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05idpId\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12\x1d\n" +
@@ -178,7 +235,10 @@ const file_ai_stigmer_iam_identityaccount_v1_spec_proto_rawDesc = "" +
 	"pictureUrl\x12,\n" +
 	"\x12is_machine_account\x18\x06 \x01(\bR\x10isMachineAccount\x12o\n" +
 	"\x11provisioning_mode\x18\a \x01(\x0e2B.ai.stigmer.iam.identityaccount.v1.IdentityAccountProvisioningModeR\x10provisioningMode\x12h\n" +
-	"\x15identity_provider_ref\x18\b \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceR\x13identityProviderRefB\xb9\x02\n" +
+	"\x15identity_provider_ref\x18\b \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceR\x13identityProviderRef\x12_\n" +
+	"\vpreferences\x18\t \x01(\v2=.ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferencesR\vpreferences\"Q\n" +
+	"\x1aIdentityAccountPreferences\x123\n" +
+	"\x10standing_context\x18\x01 \x01(\tB\b\xbaH\x05r\x03\x18\xd0\x0fR\x0fstandingContextB\xb9\x02\n" +
 	"%com.ai.stigmer.iam.identityaccount.v1B\tSpecProtoP\x01Z\\github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/identityaccount/v1;identityaccountv1\xa2\x02\x04ASII\xaa\x02!Ai.Stigmer.Iam.Identityaccount.V1\xca\x02!Ai\\Stigmer\\Iam\\Identityaccount\\V1\xe2\x02-Ai\\Stigmer\\Iam\\Identityaccount\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Iam::Identityaccount::V1b\x06proto3"
 
 var (
@@ -193,20 +253,22 @@ func file_ai_stigmer_iam_identityaccount_v1_spec_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_iam_identityaccount_v1_spec_proto_rawDescData
 }
 
-var file_ai_stigmer_iam_identityaccount_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+var file_ai_stigmer_iam_identityaccount_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_ai_stigmer_iam_identityaccount_v1_spec_proto_goTypes = []any{
 	(*IdentityAccountSpec)(nil),              // 0: ai.stigmer.iam.identityaccount.v1.IdentityAccountSpec
-	(IdentityAccountProvisioningMode)(0),     // 1: ai.stigmer.iam.identityaccount.v1.IdentityAccountProvisioningMode
-	(*apiresource.ApiResourceReference)(nil), // 2: ai.stigmer.commons.apiresource.ApiResourceReference
+	(*IdentityAccountPreferences)(nil),       // 1: ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences
+	(IdentityAccountProvisioningMode)(0),     // 2: ai.stigmer.iam.identityaccount.v1.IdentityAccountProvisioningMode
+	(*apiresource.ApiResourceReference)(nil), // 3: ai.stigmer.commons.apiresource.ApiResourceReference
 }
 var file_ai_stigmer_iam_identityaccount_v1_spec_proto_depIdxs = []int32{
-	1, // 0: ai.stigmer.iam.identityaccount.v1.IdentityAccountSpec.provisioning_mode:type_name -> ai.stigmer.iam.identityaccount.v1.IdentityAccountProvisioningMode
-	2, // 1: ai.stigmer.iam.identityaccount.v1.IdentityAccountSpec.identity_provider_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	2, // [2:2] is the sub-list for method output_type
-	2, // [2:2] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	2, // 0: ai.stigmer.iam.identityaccount.v1.IdentityAccountSpec.provisioning_mode:type_name -> ai.stigmer.iam.identityaccount.v1.IdentityAccountProvisioningMode
+	3, // 1: ai.stigmer.iam.identityaccount.v1.IdentityAccountSpec.identity_provider_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	1, // 2: ai.stigmer.iam.identityaccount.v1.IdentityAccountSpec.preferences:type_name -> ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences
+	3, // [3:3] is the sub-list for method output_type
+	3, // [3:3] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_iam_identityaccount_v1_spec_proto_init() }
@@ -221,7 +283,7 @@ func file_ai_stigmer_iam_identityaccount_v1_spec_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_iam_identityaccount_v1_spec_proto_rawDesc), len(file_ai_stigmer_iam_identityaccount_v1_spec_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   1,
+			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

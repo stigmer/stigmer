@@ -32,6 +32,10 @@ import {
 } from "../../shared/sender-identity.js";
 import { formatSessionContextText } from "../../shared/session-context.js";
 import {
+  formatDeclaredPreferencesText,
+  type DeclaredPreferencesContent,
+} from "../../shared/declared-preferences.js";
+import {
   visionDisclosureLines,
   type NotViewableEntry,
 } from "../../shared/attachment-vision.js";
@@ -148,10 +152,19 @@ export interface EnhancedPromptOptions {
    */
   sessionContext?: string;
   /**
+   * Platform-declared standing preferences (stigmer/stigmer#293): the org's
+   * and user's standing context, server-snapshotted onto the execution
+   * spec's `declared_preferences` at create. Like the bridge, it lands in
+   * the first message and persists in the cursor agent's own conversation
+   * store — deliberately frozen per Cursor session (DD-002 D3): repeating
+   * it every resumed turn would bloat the store with identical content.
+   */
+  declaredPreferences?: DeclaredPreferencesContent;
+  /**
    * Conversation catchup (cloud DD-006): what happened on the channel
    * conversation that the agent has not seen, read from the execution
-   * spec's `conversation_catchup`. PER-TURN, unlike the three standing
-   * siblings above: it rides BOTH prompt paths — this enhanced prompt and
+   * spec's `conversation_catchup`. PER-TURN, unlike the standing siblings
+   * above: it rides BOTH prompt paths — this enhanced prompt and
    * a resumed turn's prefix (the `interaction_mode` shape) — because
    * handback lands mid-session on a resumed agent, the exact case the
    * metadata lane cannot reach.
@@ -230,6 +243,14 @@ export function buildEnhancedPrompt(options: EnhancedPromptOptions): string {
   // back to.
   if (options.senderIdentity) {
     sections.push(formatSenderIdentitySection(options.senderIdentity));
+  }
+
+  // Platform-declared standing facts precede embedder-supplied context
+  // (DD-002 D3): both are standing background, but the declared preferences
+  // are platform-authored while session context is the embedder's overlay —
+  // the more specific overlay reads later and naturally refines.
+  if (options.declaredPreferences) {
+    sections.push(formatDeclaredPreferencesSection(options.declaredPreferences));
   }
 
   // Standing facts about the user (session context) come before the
@@ -443,6 +464,12 @@ export function formatContextBridgeSection(bridge: string): string {
 
 export function formatSenderIdentitySection(identity: SenderIdentity): string {
   return `<conversation_sender>\n${formatSenderIdentityText(identity)}\n</conversation_sender>`;
+}
+
+export function formatDeclaredPreferencesSection(
+  preferences: DeclaredPreferencesContent,
+): string {
+  return `<declared_preferences>\n${formatDeclaredPreferencesText(preferences)}\n</declared_preferences>`;
 }
 
 export function formatSessionContextSection(context: string): string {

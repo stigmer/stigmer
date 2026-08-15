@@ -89,6 +89,7 @@ class OrganizationInput:
     identity_provider_ref: ResourceRef | None = None
     external_org_id: str = ""
     is_personal: bool = False
+    preferences: OrganizationPreferencesInput | None = None
 
     def _to_proto(self) -> api_pb2.Organization:
         spec = spec_pb2.OrganizationSpec(
@@ -100,6 +101,8 @@ class OrganizationInput:
         )
         if self.identity_provider_ref is not None and (self.identity_provider_ref.org or self.identity_provider_ref.slug):
             spec.identity_provider_ref.CopyFrom(self.identity_provider_ref._to_proto())
+        if self.preferences is not None:
+            spec.preferences.CopyFrom(self.preferences._to_proto())
         metadata = metadata_pb2.ApiResourceMetadata(
             name=self.name,
             org=self.org,
@@ -116,4 +119,17 @@ class OrganizationInput:
             metadata=metadata,
             spec=spec,
         )
+
+
+@dataclass
+class OrganizationPreferencesInput:
+    """SDK input type for OrganizationPreferences."""
+
+    standing_context: str = ""
+
+    def _to_proto(self) -> spec_pb2.OrganizationPreferences:
+        msg = spec_pb2.OrganizationPreferences(
+            standing_context=self.standing_context,
+        )
+        return msg
 

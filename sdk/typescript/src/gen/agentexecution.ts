@@ -11,7 +11,7 @@ import { AgentExecutionCommandController } from "@stigmer/protos/ai/stigmer/agen
 import { InteractionMode, ApprovalMode, ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { AgentExecutionIdSchema, AgentExecutionUpdateStatusInputSchema, UpdateStatusResponseSchema, SubmitApprovalInputSchema, SubmitFileDecisionInputSchema, CancelAgentExecutionInputSchema, TerminateAgentExecutionInputSchema, RecoverAgentExecutionInputSchema, PauseAgentExecutionInputSchema, ResumeAgentExecutionInputSchema, UploadAttachmentRequestSchema, UploadAttachmentResponseSchema, ListAgentExecutionsRequestSchema, AgentExecutionListSchema, ListAgentExecutionsBySessionRequestSchema, GetArtifactDownloadUrlRequestSchema, GetArtifactDownloadUrlResponseSchema, GetArtifactContentRequestSchema, GetArtifactContentResponseSchema, GetExecutionUsageReportInputSchema, GetExecutionUsageReportOutputSchema, GetSessionUsageReportInputSchema, GetSessionUsageReportOutputSchema, GetAgentUsageReportInputSchema, GetAgentUsageReportOutputSchema, GetOrgUsageReportInputSchema, GetOrgUsageReportOutputSchema, GetAgentExecutionSummaryRequestSchema, AgentExecutionSummarySchema, type AgentExecutionUpdateStatusInput, type UpdateStatusResponse, type SubmitApprovalInput, type SubmitFileDecisionInput, type CancelAgentExecutionInput, type TerminateAgentExecutionInput, type RecoverAgentExecutionInput, type PauseAgentExecutionInput, type ResumeAgentExecutionInput, type UploadAttachmentRequest, type UploadAttachmentResponse, type ListAgentExecutionsRequest, type AgentExecutionList, type ListAgentExecutionsBySessionRequest, type GetArtifactDownloadUrlRequest, type GetArtifactDownloadUrlResponse, type GetArtifactContentRequest, type GetArtifactContentResponse, type GetExecutionUsageReportInput, type GetExecutionUsageReportOutput, type GetSessionUsageReportInput, type GetSessionUsageReportOutput, type GetAgentUsageReportInput, type GetAgentUsageReportOutput, type GetOrgUsageReportInput, type GetOrgUsageReportOutput, type GetAgentExecutionSummaryRequest, type AgentExecutionSummary } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
 import { AgentExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/query_pb";
-import { AgentExecutionSpecSchema, ContextManagementConfigSchema, ExecutionConfigSchema, AttachmentSchema, ConversationCatchupSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+import { AgentExecutionSpecSchema, ContextManagementConfigSchema, ExecutionConfigSchema, AttachmentSchema, ConversationCatchupSchema, DeclaredPreferencesSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import { ExecutionValueSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
 import { Harness, CursorMode, ExecutionTarget, GitWriteBackMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
@@ -192,6 +192,7 @@ export interface AgentExecutionInput {
   activityTaskQueue?: string;
   supersedesExecutionId?: string;
   conversationCatchup?: ConversationCatchupInput;
+  declaredPreferences?: DeclaredPreferencesInput;
 }
 
 /** SDK input type for SessionSpec. */
@@ -284,6 +285,12 @@ export interface AttachmentInput {
 export interface ConversationCatchupInput {
   digest?: string;
   windowEnd?: Date | string;
+}
+
+/** SDK input type for DeclaredPreferences. */
+export interface DeclaredPreferencesInput {
+  orgContext?: string;
+  userContext?: string;
 }
 
 function buildGitRepoSourceProto(input: GitRepoSourceInput) {
@@ -392,6 +399,13 @@ function buildConversationCatchupProto(input: ConversationCatchupInput) {
   return msg;
 }
 
+function buildDeclaredPreferencesProto(input: DeclaredPreferencesInput) {
+  return Object.assign(create(DeclaredPreferencesSchema), stripUndefined({
+    orgContext: input.orgContext,
+    userContext: input.userContext,
+  }));
+}
+
 export function buildAgentExecutionProto(input: AgentExecutionInput): AgentExecution {
   const sessionSpec = input.sessionSpec ? buildSessionSpecProto(input.sessionSpec) : undefined;
   const executionConfig = input.executionConfig ? buildExecutionConfigProto(input.executionConfig) : undefined;
@@ -402,6 +416,7 @@ export function buildAgentExecutionProto(input: AgentExecutionInput): AgentExecu
   }
   const attachments = input.attachments?.map(buildAttachmentProto);
   const conversationCatchup = input.conversationCatchup ? buildConversationCatchupProto(input.conversationCatchup) : undefined;
+  const declaredPreferences = input.declaredPreferences ? buildDeclaredPreferencesProto(input.declaredPreferences) : undefined;
   return Object.assign(create(AgentExecutionSchema), {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "AgentExecution",
@@ -427,6 +442,7 @@ export function buildAgentExecutionProto(input: AgentExecutionInput): AgentExecu
       activityTaskQueue: input.activityTaskQueue,
       supersedesExecutionId: input.supersedesExecutionId,
       conversationCatchup,
+      declaredPreferences,
     })),
   }) as AgentExecution;
 }

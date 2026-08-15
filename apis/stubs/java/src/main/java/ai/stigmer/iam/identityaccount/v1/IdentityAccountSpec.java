@@ -445,6 +445,44 @@ private static final long serialVersionUID = 0L;
     return identityProviderRef_ == null ? ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : identityProviderRef_;
   }
 
+  public static final int PREFERENCES_FIELD_NUMBER = 9;
+  private ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences preferences_;
+  /**
+   * <pre>
+   * Standing preferences declared by this identity account.
+   * </pre>
+   *
+   * <code>.ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences preferences = 9 [json_name = "preferences"];</code>
+   * @return Whether the preferences field is set.
+   */
+  @java.lang.Override
+  public boolean hasPreferences() {
+    return ((bitField0_ & 0x00000002) != 0);
+  }
+  /**
+   * <pre>
+   * Standing preferences declared by this identity account.
+   * </pre>
+   *
+   * <code>.ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences preferences = 9 [json_name = "preferences"];</code>
+   * @return The preferences.
+   */
+  @java.lang.Override
+  public ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences getPreferences() {
+    return preferences_ == null ? ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences.getDefaultInstance() : preferences_;
+  }
+  /**
+   * <pre>
+   * Standing preferences declared by this identity account.
+   * </pre>
+   *
+   * <code>.ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences preferences = 9 [json_name = "preferences"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferencesOrBuilder getPreferencesOrBuilder() {
+    return preferences_ == null ? ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences.getDefaultInstance() : preferences_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -483,6 +521,9 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(8, getIdentityProviderRef());
     }
+    if (((bitField0_ & 0x00000002) != 0)) {
+      output.writeMessage(9, getPreferences());
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -519,6 +560,10 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(8, getIdentityProviderRef());
     }
+    if (((bitField0_ & 0x00000002) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(9, getPreferences());
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -552,6 +597,11 @@ private static final long serialVersionUID = 0L;
       if (!getIdentityProviderRef()
           .equals(other.getIdentityProviderRef())) return false;
     }
+    if (hasPreferences() != other.hasPreferences()) return false;
+    if (hasPreferences()) {
+      if (!getPreferences()
+          .equals(other.getPreferences())) return false;
+    }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -581,6 +631,10 @@ private static final long serialVersionUID = 0L;
     if (hasIdentityProviderRef()) {
       hash = (37 * hash) + IDENTITY_PROVIDER_REF_FIELD_NUMBER;
       hash = (53 * hash) + getIdentityProviderRef().hashCode();
+    }
+    if (hasPreferences()) {
+      hash = (37 * hash) + PREFERENCES_FIELD_NUMBER;
+      hash = (53 * hash) + getPreferences().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -737,6 +791,7 @@ private static final long serialVersionUID = 0L;
       if (com.google.protobuf.GeneratedMessage
               .alwaysUseFieldBuilders) {
         internalGetIdentityProviderRefFieldBuilder();
+        internalGetPreferencesFieldBuilder();
       }
     }
     @java.lang.Override
@@ -754,6 +809,11 @@ private static final long serialVersionUID = 0L;
       if (identityProviderRefBuilder_ != null) {
         identityProviderRefBuilder_.dispose();
         identityProviderRefBuilder_ = null;
+      }
+      preferences_ = null;
+      if (preferencesBuilder_ != null) {
+        preferencesBuilder_.dispose();
+        preferencesBuilder_ = null;
       }
       return this;
     }
@@ -816,6 +876,12 @@ private static final long serialVersionUID = 0L;
             : identityProviderRefBuilder_.build();
         to_bitField0_ |= 0x00000001;
       }
+      if (((from_bitField0_ & 0x00000100) != 0)) {
+        result.preferences_ = preferencesBuilder_ == null
+            ? preferences_
+            : preferencesBuilder_.build();
+        to_bitField0_ |= 0x00000002;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -864,6 +930,9 @@ private static final long serialVersionUID = 0L;
       }
       if (other.hasIdentityProviderRef()) {
         mergeIdentityProviderRef(other.getIdentityProviderRef());
+      }
+      if (other.hasPreferences()) {
+        mergePreferences(other.getPreferences());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -933,6 +1002,13 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000080;
               break;
             } // case 66
+            case 74: {
+              input.readMessage(
+                  internalGetPreferencesFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00000100;
+              break;
+            } // case 74
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1818,6 +1894,163 @@ private static final long serialVersionUID = 0L;
         identityProviderRef_ = null;
       }
       return identityProviderRefBuilder_;
+    }
+
+    private ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences preferences_;
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences, ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences.Builder, ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferencesOrBuilder> preferencesBuilder_;
+    /**
+     * <pre>
+     * Standing preferences declared by this identity account.
+     * </pre>
+     *
+     * <code>.ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences preferences = 9 [json_name = "preferences"];</code>
+     * @return Whether the preferences field is set.
+     */
+    public boolean hasPreferences() {
+      return ((bitField0_ & 0x00000100) != 0);
+    }
+    /**
+     * <pre>
+     * Standing preferences declared by this identity account.
+     * </pre>
+     *
+     * <code>.ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences preferences = 9 [json_name = "preferences"];</code>
+     * @return The preferences.
+     */
+    public ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences getPreferences() {
+      if (preferencesBuilder_ == null) {
+        return preferences_ == null ? ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences.getDefaultInstance() : preferences_;
+      } else {
+        return preferencesBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * Standing preferences declared by this identity account.
+     * </pre>
+     *
+     * <code>.ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences preferences = 9 [json_name = "preferences"];</code>
+     */
+    public Builder setPreferences(ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences value) {
+      if (preferencesBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        preferences_ = value;
+      } else {
+        preferencesBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00000100;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Standing preferences declared by this identity account.
+     * </pre>
+     *
+     * <code>.ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences preferences = 9 [json_name = "preferences"];</code>
+     */
+    public Builder setPreferences(
+        ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences.Builder builderForValue) {
+      if (preferencesBuilder_ == null) {
+        preferences_ = builderForValue.build();
+      } else {
+        preferencesBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00000100;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Standing preferences declared by this identity account.
+     * </pre>
+     *
+     * <code>.ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences preferences = 9 [json_name = "preferences"];</code>
+     */
+    public Builder mergePreferences(ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences value) {
+      if (preferencesBuilder_ == null) {
+        if (((bitField0_ & 0x00000100) != 0) &&
+          preferences_ != null &&
+          preferences_ != ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences.getDefaultInstance()) {
+          getPreferencesBuilder().mergeFrom(value);
+        } else {
+          preferences_ = value;
+        }
+      } else {
+        preferencesBuilder_.mergeFrom(value);
+      }
+      if (preferences_ != null) {
+        bitField0_ |= 0x00000100;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Standing preferences declared by this identity account.
+     * </pre>
+     *
+     * <code>.ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences preferences = 9 [json_name = "preferences"];</code>
+     */
+    public Builder clearPreferences() {
+      bitField0_ = (bitField0_ & ~0x00000100);
+      preferences_ = null;
+      if (preferencesBuilder_ != null) {
+        preferencesBuilder_.dispose();
+        preferencesBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Standing preferences declared by this identity account.
+     * </pre>
+     *
+     * <code>.ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences preferences = 9 [json_name = "preferences"];</code>
+     */
+    public ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences.Builder getPreferencesBuilder() {
+      bitField0_ |= 0x00000100;
+      onChanged();
+      return internalGetPreferencesFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * Standing preferences declared by this identity account.
+     * </pre>
+     *
+     * <code>.ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences preferences = 9 [json_name = "preferences"];</code>
+     */
+    public ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferencesOrBuilder getPreferencesOrBuilder() {
+      if (preferencesBuilder_ != null) {
+        return preferencesBuilder_.getMessageOrBuilder();
+      } else {
+        return preferences_ == null ?
+            ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences.getDefaultInstance() : preferences_;
+      }
+    }
+    /**
+     * <pre>
+     * Standing preferences declared by this identity account.
+     * </pre>
+     *
+     * <code>.ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences preferences = 9 [json_name = "preferences"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences, ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences.Builder, ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferencesOrBuilder> 
+        internalGetPreferencesFieldBuilder() {
+      if (preferencesBuilder_ == null) {
+        preferencesBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences, ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences.Builder, ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferencesOrBuilder>(
+                getPreferences(),
+                getParentForChildren(),
+                isClean());
+        preferences_ = null;
+      }
+      return preferencesBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.iam.identityaccount.v1.IdentityAccountSpec)

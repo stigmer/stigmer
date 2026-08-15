@@ -4,7 +4,7 @@ from ._bidi import BidiStream
 from ._client import GeneratedClient
 from ._agent import AgentClient, AgentInput, McpServerUsageInput, ToolApprovalOverrideInput, SubAgentInput, McpAccessInput, EnvVarDeclarationInput
 from ._agentchannel import AgentChannelClient, AgentChannelInput, SlackChannelConfigInput, WhatsAppChannelConfigInput, RunConfigInput
-from ._agentexecution import AgentExecutionClient, AgentExecutionInput, SessionSpecInput, WorkspaceEntryInput, WorkspaceSourceInput, GitRepoSourceInput, LocalPathSourceInput, ExecutionConfigInput, ContextManagementConfigInput, AttachmentInput, ConversationCatchupInput
+from ._agentexecution import AgentExecutionClient, AgentExecutionInput, SessionSpecInput, WorkspaceEntryInput, WorkspaceSourceInput, GitRepoSourceInput, LocalPathSourceInput, ExecutionConfigInput, ContextManagementConfigInput, AttachmentInput, ConversationCatchupInput, DeclaredPreferencesInput
 from ._agentinstance import AgentInstanceClient, AgentInstanceInput
 from ._agentshare import AgentShareClient, AgentShareInput, AgentShareMessagesInput
 from ._apikey import ApiKeyClient, ApiKeyInput
@@ -13,12 +13,12 @@ from ._channelapp import ChannelAppClient, ChannelAppInput, SlackChannelAppConfi
 from ._environment import EnvironmentClient, EnvironmentInput
 from ._executioncontext import ExecutionContextClient, ExecutionContextInput
 from ._iampolicy import IamPolicyClient, IamPolicyInput, ApiResourceRefInput
-from ._identityaccount import IdentityAccountClient, IdentityAccountInput
+from ._identityaccount import IdentityAccountClient, IdentityAccountInput, IdentityAccountPreferencesInput
 from ._identityprovider import IdentityProviderClient, IdentityProviderInput
 from ._invitation import InvitationClient, InvitationInput
 from ._mcpserver import McpServerClient, McpServerInput, StdioServerConfigInput, HttpServerConfigInput, ToolApprovalPolicyInput, McpServerAuthInput
 from ._oauthapp import OAuthAppClient, OAuthAppInput
-from ._organization import OrganizationClient, OrganizationInput
+from ._organization import OrganizationClient, OrganizationInput, OrganizationPreferencesInput
 from ._platformclient import PlatformClientClient, PlatformClientInput
 from ._project import ProjectClient, ProjectInput
 from ._schedule import ScheduleClient, ScheduleInput, AgentInvocationInput
@@ -72,6 +72,7 @@ __all__ = [
     "ContextManagementConfigInput",
     "AttachmentInput",
     "ConversationCatchupInput",
+    "DeclaredPreferencesInput",
     "AgentInstanceClient",
     "AgentInstanceInput",
     "AgentShareClient",
@@ -96,6 +97,7 @@ __all__ = [
     "ApiResourceRefInput",
     "IdentityAccountClient",
     "IdentityAccountInput",
+    "IdentityAccountPreferencesInput",
     "IdentityProviderClient",
     "IdentityProviderInput",
     "InvitationClient",
@@ -110,6 +112,7 @@ __all__ = [
     "OAuthAppInput",
     "OrganizationClient",
     "OrganizationInput",
+    "OrganizationPreferencesInput",
     "PlatformClientClient",
     "PlatformClientInput",
     "ProjectClient",

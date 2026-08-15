@@ -361,6 +361,24 @@ message AgentExecutionSpec {
   // conversation content must not vanish with the execution-profile
   // kill-switch (DD-006 D-a).
   ConversationCatchup conversation_catchup = 14;
+
+  // Standing preferences declared by the organization and the calling user,
+  // snapshotted into this execution at create time (optional).
+  //
+  // @internal
+  // Server-owned: the create pipeline stamps this field UNCONDITIONALLY —
+  // empty for non-eligible callers — overwriting any caller-supplied value,
+  // so external injection is moot by construction. Composed only for
+  // first-party human operators (DD-002 D4 as amended 2026-08-15: never for
+  // machine, impersonated, guest, channel, schedule, runner, or
+  // platform-client-user callers). The OSS server composes org_context only
+  // (single-user local mode; no IdentityAccount). A snapshot by design:
+  // preferences are mutable, executions are immutable audit records — this
+  // field records what the model actually saw. Composition is best-effort;
+  // a preference load failure never fails the create. Top-level rather than
+  // inside ExecutionConfig: preference content must not vanish with the
+  // execution-profile kill-switch (same rationale as conversation_catchup).
+  DeclaredPreferences declared_preferences = 15;
 }
 
 // Configuration that can be applied at execution time.
@@ -740,4 +758,27 @@ message ConversationCatchup {
   // value is the broker's compose instant, which is strictly later than the
   // turn's own inbound message (A24).
   google.protobuf.Timestamp window_end = 2;
+}
+
+// DeclaredPreferences carries the standing preference texts injected into
+// this execution's prompt, one field per declaring scope.
+//
+// @internal
+// Verbatim copies of Organization.spec.preferences.standing_context and the
+// caller IdentityAccount.spec.preferences.standing_context at create time.
+// The server stamps content only; the runner owns all presentation —
+// preamble, per-scope attribution, ordering — via its
+// shared/declared-preferences.ts channel module (the established
+// content/presentation split). Blank means "inject nothing" per scope
+// (the shared-module blank-is-absent convention).
+message DeclaredPreferences {
+  // The organization's standing context, verbatim.
+  string org_context = 1;
+
+  // The calling user's standing context, verbatim.
+  //
+  // @internal
+  // Cloud-only: the OSS server never sets it — OSS has no per-request user
+  // identity, so the user scope collapses into the org scope (DD-002 D1).
+  string user_context = 2;
 }

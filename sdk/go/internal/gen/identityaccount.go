@@ -112,6 +112,12 @@ type IdentityAccountInput struct {
 	IsMachineAccount    bool
 	ProvisioningMode    identityaccountv1.IdentityAccountProvisioningMode
 	IdentityProviderRef ResourceRef
+	Preferences         *IdentityAccountPreferencesInput
+}
+
+// IdentityAccountPreferencesInput is the SDK input type for IdentityAccountPreferences.
+type IdentityAccountPreferencesInput struct {
+	StandingContext string
 }
 
 func (i *IdentityAccountInput) toProto() (*identityaccountv1.IdentityAccount, error) {
@@ -137,7 +143,20 @@ func (i *IdentityAccountInput) toProto() (*identityaccountv1.IdentityAccount, er
 	if i.IdentityProviderRef.Org != "" || i.IdentityProviderRef.Slug != "" {
 		resource.Spec.IdentityProviderRef = i.IdentityProviderRef.toProto()
 	}
+	if i.Preferences != nil {
+		v, err := i.Preferences.toProto()
+		if err != nil {
+			return nil, fieldErr("Preferences", err)
+		}
+		resource.Spec.Preferences = v
+	}
 	return resource, nil
+}
+
+func (i *IdentityAccountPreferencesInput) toProto() (*identityaccountv1.IdentityAccountPreferences, error) {
+	return &identityaccountv1.IdentityAccountPreferences{
+		StandingContext: i.StandingContext,
+	}, nil
 }
 
 // IdentityAccountInputFromProto creates a IdentityAccountInput from a proto IdentityAccount resource.
@@ -162,6 +181,16 @@ func IdentityAccountInputFromProto(p *identityaccountv1.IdentityAccount) *Identi
 		input.IsMachineAccount = s.GetIsMachineAccount()
 		input.ProvisioningMode = s.GetProvisioningMode()
 		input.IdentityProviderRef = resourceRefFromProto(s.GetIdentityProviderRef())
+		input.Preferences = identityAccountPreferencesInputFromProto(s.GetPreferences())
 	}
+	return input
+}
+
+func identityAccountPreferencesInputFromProto(p *identityaccountv1.IdentityAccountPreferences) *IdentityAccountPreferencesInput {
+	if p == nil {
+		return nil
+	}
+	input := &IdentityAccountPreferencesInput{}
+	input.StandingContext = p.GetStandingContext()
 	return input
 }

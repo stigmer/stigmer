@@ -237,6 +237,7 @@ const organization = await stigmer.organization.apply({
   identityProviderRef: {},
   externalOrgId: "...",
   isPersonal: false,
+  preferences: {},
 });
 ```
 </Tab>
@@ -253,6 +254,7 @@ organization, err := client.Organization.Apply(ctx, &stigmer.OrganizationInput{
   IdentityProviderRef: &stigmer.ResourceRef{},
   ExternalOrgId:       "...",
   IsPersonal:          false,
+  Preferences:         &stigmer.OrganizationPreferencesInput{},
 })
 ```
 </Tab>
@@ -269,6 +271,7 @@ organization = client.organizations.apply(OrganizationInput(
     identity_provider_ref=None,
     external_org_id="...",
     is_personal=False,
+    preferences=None,
 ))
 ```
 </Tab>
@@ -285,6 +288,7 @@ Organization organization = client.organizations().apply(OrganizationInput.build
     .identityProviderRef(null)
     .externalOrgId("...")
     .isPersonal(false)
+    .preferences(null)
     .build());
 ```
 </Tab>
@@ -312,6 +316,7 @@ const organization = await stigmer.organization.create({
   identityProviderRef: {},
   externalOrgId: "...",
   isPersonal: false,
+  preferences: {},
 });
 ```
 </Tab>
@@ -328,6 +333,7 @@ organization, err := client.Organization.Create(ctx, &stigmer.OrganizationInput{
   IdentityProviderRef: &stigmer.ResourceRef{},
   ExternalOrgId:       "...",
   IsPersonal:          false,
+  Preferences:         &stigmer.OrganizationPreferencesInput{},
 })
 ```
 </Tab>
@@ -344,6 +350,7 @@ organization = client.organizations.create(OrganizationInput(
     identity_provider_ref=None,
     external_org_id="...",
     is_personal=False,
+    preferences=None,
 ))
 ```
 </Tab>
@@ -360,6 +367,7 @@ Organization organization = client.organizations().create(OrganizationInput.buil
     .identityProviderRef(null)
     .externalOrgId("...")
     .isPersonal(false)
+    .preferences(null)
     .build());
 ```
 </Tab>
@@ -387,6 +395,7 @@ const organization = await stigmer.organization.update({
   identityProviderRef: {},
   externalOrgId: "...",
   isPersonal: false,
+  preferences: {},
 });
 ```
 </Tab>
@@ -403,6 +412,7 @@ organization, err := client.Organization.Update(ctx, &stigmer.OrganizationInput{
   IdentityProviderRef: &stigmer.ResourceRef{},
   ExternalOrgId:       "...",
   IsPersonal:          false,
+  Preferences:         &stigmer.OrganizationPreferencesInput{},
 })
 ```
 </Tab>
@@ -419,6 +429,7 @@ organization = client.organizations.update(OrganizationInput(
     identity_provider_ref=None,
     external_org_id="...",
     is_personal=False,
+    preferences=None,
 ))
 ```
 </Tab>
@@ -435,6 +446,7 @@ Organization organization = client.organizations().update(OrganizationInput.buil
     .identityProviderRef(null)
     .externalOrgId("...")
     .isPersonal(false)
+    .preferences(null)
     .build());
 ```
 </Tab>
@@ -497,6 +509,7 @@ Input for creating or updating an Organization.
     identityProviderRef: { type: "ResourceRef", description: "Reference to the IdentityProvider that authenticates requests for this organization.", typeDescriptionLink: "#resourceref" },
     externalOrgId: { type: "string", description: "External platform's organization identifier for reverse mapping." },
     isPersonal: { type: "boolean", description: "Whether this is a personal organization, auto-created during identity provisioning." },
+    preferences: { type: "OrganizationPreferencesInput", description: "Standing preferences declared by the organization.", typeDescriptionLink: "#organizationpreferencesinput" },
   }}
 />
 
@@ -510,6 +523,16 @@ Generic reference to any API resource by org and slug.
     kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcekind" },
     slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
     version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
+  }}
+/>
+
+### OrganizationPreferencesInput
+
+OrganizationPreferences holds organization-declared defaults that apply to every eligible agent execution in the organization.
+
+<TypeTable
+  type={{
+    standingContext: { type: "string", description: "Free-text standing context injected into eligible agent executions in this organization." },
   }}
 />
 

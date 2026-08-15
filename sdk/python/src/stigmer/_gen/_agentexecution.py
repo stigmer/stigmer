@@ -192,6 +192,7 @@ class AgentExecutionInput:
     activity_task_queue: str = ""
     supersedes_execution_id: str = ""
     conversation_catchup: ConversationCatchupInput | None = None
+    declared_preferences: DeclaredPreferencesInput | None = None
 
     def _to_proto(self) -> api_pb2.AgentExecution:
         spec = spec_pb2.AgentExecutionSpec(
@@ -218,6 +219,8 @@ class AgentExecutionInput:
             spec.workspace_file_refs.extend(self.workspace_file_refs)
         if self.conversation_catchup is not None:
             spec.conversation_catchup.CopyFrom(self.conversation_catchup._to_proto())
+        if self.declared_preferences is not None:
+            spec.declared_preferences.CopyFrom(self.declared_preferences._to_proto())
         metadata = metadata_pb2.ApiResourceMetadata(
             name=self.name,
             org=self.org,
@@ -428,5 +431,20 @@ class ConversationCatchupInput:
         )
         if self.window_end:
             msg.window_end.FromJsonString(self.window_end)
+        return msg
+
+
+@dataclass
+class DeclaredPreferencesInput:
+    """SDK input type for DeclaredPreferences."""
+
+    org_context: str = ""
+    user_context: str = ""
+
+    def _to_proto(self) -> spec_pb2.DeclaredPreferences:
+        msg = spec_pb2.DeclaredPreferences(
+            org_context=self.org_context,
+            user_context=self.user_context,
+        )
         return msg
 

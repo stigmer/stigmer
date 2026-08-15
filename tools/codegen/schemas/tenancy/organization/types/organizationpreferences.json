@@ -1,0 +1,21 @@
+{
+  "name": "OrganizationPreferences",
+  "description": "OrganizationPreferences holds organization-declared defaults that apply to\n every eligible agent execution in the organization.",
+  "protoType": "ai.stigmer.tenancy.organization.v1.OrganizationPreferences",
+  "protoFile": "apis/ai/stigmer/tenancy/organization/v1/spec.proto",
+  "fields": [
+    {
+      "name": "StandingContext",
+      "jsonName": "standingContext",
+      "protoField": "standing_context",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Free-text standing context injected into eligible agent executions in\n this organization. Example: \"We deploy to us-east-1.\"",
+      "required": false,
+      "validation": {
+        "maxLength": 2000
+      }
+    }
+  ]
+}
