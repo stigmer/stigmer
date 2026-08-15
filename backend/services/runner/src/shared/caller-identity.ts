@@ -58,15 +58,18 @@ export const ANONYMOUS_KIND = "anonymous";
 
 /**
  * Audit-actor id that backends stamp when NO caller identity exists —
- * the OSS server writes it on every create (no local auth), and the
- * cloud's AuditActorBuilder falls back to it for caller-less internal
- * writes. It names "nobody in particular": unrelated sessions from
- * unrelated people all carry it, so presenting it as a caller identity
- * would make the one string a grantable value that silently covers ALL
- * such traffic in an MCP server's binding sheet. A creator matching this
+ * the OSS server writes it on every create unless the deployment
+ * configured an operator identity (STIGMER_OPERATOR_EMAIL,
+ * stigmer/stigmer#400; a configured install stamps a real actor whose
+ * email resolves below like any other), and the cloud's
+ * AuditActorBuilder falls back to it for caller-less internal writes.
+ * It names "nobody in particular": unrelated sessions from unrelated
+ * people all carry it, so presenting it as a caller identity would make
+ * the one string a grantable value that silently covers ALL such
+ * traffic in an MCP server's binding sheet. A creator matching this
  * sentinel (and carrying no email) is therefore unresolvable and falls
  * to anonymous — the deny-by-default the docs guide already promises
- * for self-hosted backends.
+ * for unconfigured self-hosted backends.
  */
 export const SYSTEM_CREATOR_SENTINEL = "system";
 

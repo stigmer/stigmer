@@ -36,6 +36,7 @@ import (
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	protovalidateinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/protovalidate"
+	pipelinesteps "github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	"github.com/stigmer/stigmer/backend/libs/go/store/sqlite"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config"
 	agentcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agent/controller"
@@ -111,6 +112,16 @@ func Run() error {
 
 	// Setup logging
 	setupLogging(cfg)
+
+	// Install the configured operator identity for audit stamping
+	// (stigmer/stigmer#400) before any boot-time writer or request runs —
+	// from here, every created_by/updated_by this process stamps carries it.
+	pipelinesteps.SetOperatorIdentity(cfg.OperatorEmail, cfg.OperatorName)
+	if cfg.OperatorEmail != "" {
+		log.Info().
+			Str("operator_email", cfg.OperatorEmail).
+			Msg("Operator identity configured — audit actors carry it, so MCP servers see a real stigmer_user caller identity")
+	}
 
 	log.Info().
 		Int("grpc_port", cfg.GRPCPort).

@@ -294,11 +294,57 @@ func setAuditSlotReflect(
 	return nil
 }
 
-// currentAuditActor returns the actor to stamp on audit fields.
+// operatorEmail / operatorName hold the deployment's configured operator
+// identity (stigmer/stigmer#400). Installed once at boot via
+// SetOperatorIdentity — before the server handles any request — and read on
+// every audit stamp thereafter, so no synchronization is needed. Empty email
+// means unconfigured.
+var (
+	operatorEmail string
+	operatorName  string
+)
+
+// SetOperatorIdentity installs the operator identity every audit actor this
+// process stamps will carry (STIGMER_OPERATOR_EMAIL / STIGMER_OPERATOR_NAME —
+// see the server's config package, which owns validation). Call it exactly
+// once at boot, before serving; an empty email keeps the "system" placeholder
+// behavior. This package-level seam exists because the pipeline steps are
+// constructed without config access, and threading a config through every
+// step constructor for one boot-time constant would be machinery without a
+// beneficiary.
+func SetOperatorIdentity(email, displayName string) {
+	operatorEmail = email
+	operatorName = displayName
+}
+
+// currentAuditActor returns the actor to stamp on audit fields. A fresh
+// message is built per call — audit stamping shares the returned pointer
+// across created_by/updated_by slots, so a package-level singleton would
+// alias unrelated resources' audit state.
 //
-// TODO: Get actual caller information from auth context when auth is implemented
-// For now, use system/local placeholder
+// With a configured operator identity, every write this process makes is
+// attributed to that operator — client RPCs and boot-time internal writers
+// alike: a self-hosted install is a single-operator trust domain, so even its
+// boot work happens on the operator's behalf. The id deliberately carries the
+// email: no identity accounts exist locally to reference, the audit proto's
+// own @internal note sanctions the historical email-in-id mix, and downstream
+// caller-identity resolution is email-first regardless.
+//
+// Unconfigured deployments keep the "system" placeholder. It names "nobody in
+// particular", so the runner's caller-identity resolution deliberately
+// demotes it to the anonymous identity rather than letting one string become
+// a grantable value covering all self-hosted traffic (the runner's
+// SYSTEM_CREATOR_SENTINEL). Real per-caller attribution arrives with whatever
+// local auth design the OSS server adopts; until then the configured operator
+// is the honest single-user answer.
 func currentAuditActor() *commonspb.ApiResourceAuditActor {
+	if operatorEmail != "" {
+		return &commonspb.ApiResourceAuditActor{
+			Id:          operatorEmail,
+			Email:       operatorEmail,
+			DisplayName: operatorName,
+		}
+	}
 	return &commonspb.ApiResourceAuditActor{
 		Id:     "system",
 		Avatar: "",

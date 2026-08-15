@@ -36,6 +36,7 @@ go_library(
         "//backend/libs/go/grpc",
         "//backend/libs/go/grpc/interceptors/apiresource",
         "//backend/libs/go/grpc/interceptors/protovalidate",
+        "//backend/libs/go/grpc/request/pipeline/steps",
         "//backend/libs/go/store",
         "//backend/libs/go/store/sqlite",
         "//backend/services/stigmer-server/pkg/config",
