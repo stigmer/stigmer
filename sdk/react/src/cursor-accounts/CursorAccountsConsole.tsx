@@ -10,7 +10,7 @@ import { Button } from "../button/index.js";
 import { StateBadge } from "./badges.js";
 import { CursorAccountEditor } from "./CursorAccountEditor.js";
 import { CursorAccountsAccessNotice } from "./CursorAccountsAccessNotice.js";
-import { deriveCoverage } from "./cursor-account-coverage.js";
+import { deriveCoverage, derivePoolHealth } from "./cursor-account-coverage.js";
 import { formatSyncTime } from "./cursor-account-format.js";
 import { MemberKeysPanel } from "./MemberKeysPanel.js";
 import { useCursorAccounts } from "./useCursorAccounts.js";
@@ -119,11 +119,38 @@ export function CursorAccountsConsole({ className }: CursorAccountsConsoleProps)
   }
 
   const accounts = list.accounts?.accounts ?? [];
+  const health = derivePoolHealth(accounts);
 
   return (
     <div className={cn("stg:space-y-3", className)}>
       <div className="stg:flex stg:items-center stg:justify-between stg:gap-3">
-        <h3 className="stg:text-sm stg:font-semibold stg:text-foreground">Cursor accounts</h3>
+        <div>
+          <h3 className="stg:text-sm stg:font-semibold stg:text-foreground">Cursor accounts</h3>
+          {/* Fleet health in one line (server-computed routability): the
+              2026-08-15 drain hid behind per-account enabled counts — this
+              is the fact the operator needed on THIS screen. */}
+          {accounts.length > 0 && (
+            <p
+              className={cn(
+                "stg:text-[11px]",
+                health.totalRoutableKeys === 0
+                  ? "stg:text-destructive"
+                  : "stg:text-muted-foreground",
+              )}
+              role={health.totalRoutableKeys === 0 ? "alert" : undefined}
+            >
+              {health.totalRoutableKeys === 0
+                ? "No routable execution key anywhere - executions on API-pool models are failing"
+                : `${health.totalRoutableKeys} routable ${health.totalRoutableKeys === 1 ? "key" : "keys"} across ${health.totalAccounts} ${health.totalAccounts === 1 ? "account" : "accounts"}`}
+              {health.drainedAccounts > 0
+                ? ` · ${health.drainedAccounts} ${health.drainedAccounts === 1 ? "account" : "accounts"} drained`
+                : ""}
+              {health.guardTrippedKeys > 0
+                ? ` · ${health.guardTrippedKeys} ${health.guardTrippedKeys === 1 ? "key" : "keys"} usage-drained`
+                : ""}
+            </p>
+          )}
+        </div>
         <Button size="sm" onClick={() => setFlow({ phase: "create" })}>
           Add account
         </Button>
@@ -137,7 +164,7 @@ export function CursorAccountsConsole({ className }: CursorAccountsConsoleProps)
           <span>Account</span>
           <span>Orgs</span>
           <span>Status</span>
-          <span>Execution keys</span>
+          <span>Routable keys</span>
           <span className="stg:text-right">Last synced</span>
         </div>
         {accounts.length === 0 ? (
@@ -214,8 +241,16 @@ function AccountRow({
           />
         </span>
         <span>
-          {summary.enabledKeyCount > 0 ? (
-            <span className="stg:text-muted-foreground">{summary.enabledKeyCount}</span>
+          {/* Routability, not enabled-ness: what key selection would DO.
+              "Drained" (usage guard) is recoverable at the cycle reset;
+              "Not routable" (no enabled key, or owners removed) needs
+              operator action. */}
+          {summary.routableKeyCount > 0 ? (
+            <span className="stg:text-muted-foreground">
+              {summary.routableKeyCount} of {summary.enabledKeyCount}
+            </span>
+          ) : summary.guardTrippedKeyCount > 0 ? (
+            <StateBadge tone="warn" label="Drained" />
           ) : (
             <StateBadge tone="warn" label="Not routable" />
           )}

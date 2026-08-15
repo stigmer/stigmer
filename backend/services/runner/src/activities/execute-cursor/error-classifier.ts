@@ -21,6 +21,7 @@
  */
 
 import type { CapturedRejection } from "./rejection-capture.js";
+import { PLATFORM_CAPACITY_SENTINEL } from "../../shared/model-error.js";
 
 export type ErrorCategory =
   | "auth"
@@ -212,6 +213,15 @@ interface SynthesizeErrorOpts {
   durationMs?: number;
   /** Number of messages received from the stream (0 = no response at all). */
   messageCount?: number;
+  /**
+   * True when the execution key is platform-managed (the run rides the
+   * Stigmer proxy). Enables the D4 attribution of the platform provider
+   * error contract (see shared/model-error.ts): billing errors on a
+   * platform key must never tell the customer to fix an account they do
+   * not own. BYO-key runs leave this false — there the raw Cursor message
+   * IS the actionable one (it is the user's own account).
+   */
+  proxyMode?: boolean;
 }
 
 /**
@@ -244,7 +254,38 @@ export function synthesizeError(opts: SynthesizeErrorOpts): ClassifiedError {
     return { ...classified, category: "agent-stale", retryable: true };
   }
 
-  return classified;
+  return attributePlatformBilling(classified, opts.proxyMode === true);
+}
+
+/**
+ * D4 attribution (platform provider error contract, Cursor surface): a
+ * billing error on a platform-managed key is the PLATFORM's fault — the
+ * customer's org credits are fine, and Cursor's raw prose ("reach out to
+ * an admin to enable on-demand usage") points at a Cursor dashboard they
+ * do not own. Reword with platform attribution, quoting the original so
+ * Cursor's limit-reset date survives.
+ *
+ * <p>Two cases pass through untouched: messages already carrying the
+ * sentinel (the proxy's end-stream rewrite landed — this is the runner-side
+ * fallback for the message-bearing in-stream error path the proxy relays
+ * verbatim), and BYO-key runs (the raw message is about the user's own
+ * account and must never be hidden).
+ */
+function attributePlatformBilling(
+  classified: ClassifiedError,
+  proxyMode: boolean,
+): ClassifiedError {
+  if (classified.category !== "billing" || !proxyMode) return classified;
+  if (classified.message.includes(PLATFORM_CAPACITY_SENTINEL)) return classified;
+  return {
+    ...classified,
+    message:
+      `The Stigmer platform's Cursor capacity is temporarily exhausted. ` +
+      `This is a platform-side issue - your organization's credits were not ` +
+      `charged for this call. Ask your platform operator to restock Cursor ` +
+      `execution keys. Provider message: "${classified.message}" ` +
+      `[code: ${PLATFORM_CAPACITY_SENTINEL}]`,
+  };
 }
 
 /**

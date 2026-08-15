@@ -1,5 +1,6 @@
 import {
   CursorMemberKeyState,
+  type CursorAccountSummary,
   type CursorAccountView,
   type CursorMemberKeyView,
   type CursorTeamMemberView,
@@ -67,5 +68,59 @@ export function deriveCoverage(view: CursorAccountView): CursorAccountCoverage {
       (kv) => kv.state !== CursorMemberKeyState.member_key_active,
     ),
     unclassified: [],
+  };
+}
+
+/**
+ * Fleet-wide health rolled up from the list summaries — the console's
+ * answer to "can the platform serve right now, and from where?". Pure
+ * aggregation of the server-computed routable/guard counts (the same
+ * routability rule key selection uses); this module must never
+ * re-derive routability client-side.
+ *
+ * <p>Why this exists: in the 2026-08-15 pool drain, the list showed
+ * five accounts with healthy-looking enabled-key counts while exactly
+ * one guard-tripped key could serve — the operator had to open every
+ * account detail to see it. The rollup makes fleet exhaustion a
+ * one-line fact.
+ */
+export interface CursorPoolHealth {
+  /** Total accounts in the list. */
+  readonly totalAccounts: number;
+  /** Keys the routability rule would select for a new session, fleet-wide. */
+  readonly totalRoutableKeys: number;
+  /**
+   * Enabled accounts with enabled keys but zero routable ones — every
+   * key is dead (owner removed) or usage-drained. These are the rows
+   * that look healthy at a glance and are not.
+   */
+  readonly drainedAccounts: number;
+  /** Enabled keys excluded only by the usage guard, fleet-wide. */
+  readonly guardTrippedKeys: number;
+}
+
+/** Aggregate the server-computed summary counts across the account list. */
+export function derivePoolHealth(
+  summaries: readonly CursorAccountSummary[],
+): CursorPoolHealth {
+  let totalRoutableKeys = 0;
+  let drainedAccounts = 0;
+  let guardTrippedKeys = 0;
+  for (const summary of summaries) {
+    totalRoutableKeys += summary.routableKeyCount;
+    guardTrippedKeys += summary.guardTrippedKeyCount;
+    if (
+      summary.account?.enabled === true
+      && summary.enabledKeyCount > 0
+      && summary.routableKeyCount === 0
+    ) {
+      drainedAccounts += 1;
+    }
+  }
+  return {
+    totalAccounts: summaries.length,
+    totalRoutableKeys,
+    drainedAccounts,
+    guardTrippedKeys,
   };
 }

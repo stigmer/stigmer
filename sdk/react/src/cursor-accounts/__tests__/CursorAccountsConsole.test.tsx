@@ -86,6 +86,7 @@ function scenarSummary() {
   return create(CursorAccountSummarySchema, {
     account: scenarAccount(),
     enabledKeyCount: 1,
+    routableKeyCount: 1,
     lastSyncedAt: timestampFromDate(new Date("2026-07-22T12:00:00Z")),
   });
 }
@@ -194,6 +195,37 @@ describe("CursorAccountsConsole", () => {
     expect(screen.getByText("empty team")).toBeTruthy();
     expect(screen.getByText("Not routable")).toBeTruthy();
     expect(screen.getByText("shared pool")).toBeTruthy();
+    // Routable count renders as "N of M" (server-computed routability),
+    // and the fleet-health line aggregates it.
+    expect(screen.getByText("1 of 1")).toBeTruthy();
+    expect(screen.getByText(/1 routable key across 2 accounts/)).toBeTruthy();
+  });
+
+  it("surfaces a fully guard-drained account and the fleet drain alert", async () => {
+    // The 2026-08-15 shape: enabled keys exist, none routable — the one
+    // key left is usage-guard-tripped. The row must read "Drained" (a
+    // cycle-reset condition), not the misleading enabled count, and with
+    // zero routable keys fleet-wide the health line must alarm.
+    const drained = create(CursorAccountSummarySchema, {
+      account: scenarAccount({
+        accountId: "acc-3",
+        displayName: "drained team",
+        orgIds: [],
+      }),
+      enabledKeyCount: 1,
+      routableKeyCount: 0,
+      guardTrippedKeyCount: 1,
+    });
+    const client = createMockStigmer({
+      listAccounts: vi.fn().mockResolvedValue({ accounts: [drained] }),
+    });
+    render(<CursorAccountsConsole />, { wrapper: wrapper(client) });
+
+    await waitFor(() => expect(screen.getByText("drained team")).toBeTruthy());
+    expect(screen.getByText("Drained")).toBeTruthy();
+    expect(
+      screen.getByText(/No routable execution key anywhere/),
+    ).toBeTruthy();
   });
 
   it("shows the designed access notice on PERMISSION_DENIED", async () => {

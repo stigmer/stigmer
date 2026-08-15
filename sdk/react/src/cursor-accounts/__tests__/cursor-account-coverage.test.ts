@@ -7,12 +7,14 @@ import {
   CursorTeamMemberSchema,
 } from "@stigmer/protos/ai/stigmer/platform/cursoraccount/v1/cursor_account_pb";
 import {
+  CursorAccountSummarySchema,
   CursorAccountViewSchema,
   CursorMemberKeyState,
   CursorMemberKeyViewSchema,
   CursorTeamMemberViewSchema,
 } from "@stigmer/protos/ai/stigmer/platform/cursoraccount/v1/io_pb";
-import { deriveCoverage } from "../cursor-account-coverage";
+import { CursorAccountSchema } from "@stigmer/protos/ai/stigmer/platform/cursoraccount/v1/cursor_account_pb";
+import { deriveCoverage, derivePoolHealth } from "../cursor-account-coverage";
 
 function keyView(keyId: string, state: CursorMemberKeyState) {
   return create(CursorMemberKeyViewSchema, {
@@ -69,5 +71,60 @@ describe("deriveCoverage", () => {
     expect(coverage.hasRoster).toBe(false);
     expect(coverage.unclassified).toEqual([]);
     expect(coverage.onTeamWithKey).toEqual([]);
+  });
+});
+
+describe("derivePoolHealth", () => {
+  function summary(opts: {
+    enabled?: boolean;
+    enabledKeyCount: number;
+    routableKeyCount: number;
+    guardTrippedKeyCount?: number;
+  }) {
+    return create(CursorAccountSummarySchema, {
+      account: create(CursorAccountSchema, {
+        accountId: "acc",
+        enabled: opts.enabled ?? true,
+      }),
+      enabledKeyCount: opts.enabledKeyCount,
+      routableKeyCount: opts.routableKeyCount,
+      guardTrippedKeyCount: opts.guardTrippedKeyCount ?? 0,
+    });
+  }
+
+  it("reproduces the 2026-08-15 drain as a one-line fact", () => {
+    // Four accounts with enabled keys but zero routable (guard-tripped or
+    // owner-removed), one fresh account with a single routable key — the
+    // fleet state the per-account enabled counts hid.
+    const health = derivePoolHealth([
+      summary({ enabledKeyCount: 1, routableKeyCount: 0, guardTrippedKeyCount: 1 }),
+      summary({ enabledKeyCount: 10, routableKeyCount: 0 }),
+      summary({ enabledKeyCount: 1, routableKeyCount: 0 }),
+      summary({ enabledKeyCount: 0, routableKeyCount: 0 }),
+      summary({ enabledKeyCount: 2, routableKeyCount: 1, guardTrippedKeyCount: 0 }),
+    ]);
+
+    expect(health.totalAccounts).toBe(5);
+    expect(health.totalRoutableKeys).toBe(1);
+    // The zero-key account is not "drained" — it never had capacity.
+    expect(health.drainedAccounts).toBe(3);
+    expect(health.guardTrippedKeys).toBe(1);
+  });
+
+  it("does not count disabled accounts as drained (disable means drain-by-choice)", () => {
+    const health = derivePoolHealth([
+      summary({ enabled: false, enabledKeyCount: 3, routableKeyCount: 0 }),
+    ]);
+
+    expect(health.drainedAccounts).toBe(0);
+  });
+
+  it("is all zeros for an empty list", () => {
+    const health = derivePoolHealth([]);
+
+    expect(health.totalAccounts).toBe(0);
+    expect(health.totalRoutableKeys).toBe(0);
+    expect(health.drainedAccounts).toBe(0);
+    expect(health.guardTrippedKeys).toBe(0);
   });
 });

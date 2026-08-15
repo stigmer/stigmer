@@ -1819,6 +1819,7 @@ async function executeCursorInner(
           fallbackContext: { model: validatedModel, mode: agentMode, agentId: resolution.agentId },
           durationMs: (result as unknown as Record<string, unknown>).durationMs as number | undefined,
           messageCount: status.messages.length,
+          proxyMode: !!config.proxyEndpoint,
         });
 
         console.error(
@@ -1958,6 +1959,7 @@ async function executeCursorInner(
             conversationErrorText: retryConversationErrorText,
             isResumedHandle: false,
             fallbackContext: { model: validatedModel, mode: agentMode, agentId: freshAgent.agentId },
+            proxyMode: !!config.proxyEndpoint,
           });
 
           status.phase = ExecutionPhase.EXECUTION_FAILED;
@@ -2259,6 +2261,7 @@ async function executeCursorInner(
         capturedRejection: getCapturedRejection(executionId),
         isResumedHandle: false,
         fallbackContext: errorContext,
+        proxyMode: !!config.proxyEndpoint,
       });
       clearCapturedRejection(executionId);
       status.phase = ExecutionPhase.EXECUTION_FAILED;

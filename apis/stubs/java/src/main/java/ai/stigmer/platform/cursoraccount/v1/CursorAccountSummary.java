@@ -145,6 +145,46 @@ private static final long serialVersionUID = 0L;
     return lastSyncedAt_ == null ? com.google.protobuf.Timestamp.getDefaultInstance() : lastSyncedAt_;
   }
 
+  public static final int ROUTABLE_KEY_COUNT_FIELD_NUMBER = 4;
+  private int routableKeyCount_ = 0;
+  /**
+   * <pre>
+   * Count of member keys the routability predicate would select for a
+   * NEW session right now: enabled AND owner active on the roster AND
+   * usage guard not tripped. Server-computed by the same rule key
+   * selection uses (clients must render it, never re-derive it — the
+   * guard threshold is server config). The 2026-08-15 pool drain hid
+   * behind the enabled count: 13 keys read "routable" while only one
+   * guard-tripped key could actually serve.
+   * </pre>
+   *
+   * <code>int32 routable_key_count = 4 [json_name = "routableKeyCount"];</code>
+   * @return The routableKeyCount.
+   */
+  @java.lang.Override
+  public int getRoutableKeyCount() {
+    return routableKeyCount_;
+  }
+
+  public static final int GUARD_TRIPPED_KEY_COUNT_FIELD_NUMBER = 5;
+  private int guardTrippedKeyCount_ = 0;
+  /**
+   * <pre>
+   * Of the enabled keys excluded above, how many are excluded ONLY by
+   * the usage guard (owner still active, API pool exhausted). These
+   * keys still serve already-pinned first-party traffic but fail every
+   * API-pool turn upstream — the console's "drained, resets next
+   * cycle" signal, distinct from dead keys (owner removed).
+   * </pre>
+   *
+   * <code>int32 guard_tripped_key_count = 5 [json_name = "guardTrippedKeyCount"];</code>
+   * @return The guardTrippedKeyCount.
+   */
+  @java.lang.Override
+  public int getGuardTrippedKeyCount() {
+    return guardTrippedKeyCount_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -168,6 +208,12 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000002) != 0)) {
       output.writeMessage(3, getLastSyncedAt());
     }
+    if (routableKeyCount_ != 0) {
+      output.writeInt32(4, routableKeyCount_);
+    }
+    if (guardTrippedKeyCount_ != 0) {
+      output.writeInt32(5, guardTrippedKeyCount_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -188,6 +234,14 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000002) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(3, getLastSyncedAt());
+    }
+    if (routableKeyCount_ != 0) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeInt32Size(4, routableKeyCount_);
+    }
+    if (guardTrippedKeyCount_ != 0) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeInt32Size(5, guardTrippedKeyCount_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -216,6 +270,10 @@ private static final long serialVersionUID = 0L;
       if (!getLastSyncedAt()
           .equals(other.getLastSyncedAt())) return false;
     }
+    if (getRoutableKeyCount()
+        != other.getRoutableKeyCount()) return false;
+    if (getGuardTrippedKeyCount()
+        != other.getGuardTrippedKeyCount()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -237,6 +295,10 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + LAST_SYNCED_AT_FIELD_NUMBER;
       hash = (53 * hash) + getLastSyncedAt().hashCode();
     }
+    hash = (37 * hash) + ROUTABLE_KEY_COUNT_FIELD_NUMBER;
+    hash = (53 * hash) + getRoutableKeyCount();
+    hash = (37 * hash) + GUARD_TRIPPED_KEY_COUNT_FIELD_NUMBER;
+    hash = (53 * hash) + getGuardTrippedKeyCount();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -390,6 +452,8 @@ private static final long serialVersionUID = 0L;
         lastSyncedAtBuilder_.dispose();
         lastSyncedAtBuilder_ = null;
       }
+      routableKeyCount_ = 0;
+      guardTrippedKeyCount_ = 0;
       return this;
     }
 
@@ -439,6 +503,12 @@ private static final long serialVersionUID = 0L;
             : lastSyncedAtBuilder_.build();
         to_bitField0_ |= 0x00000002;
       }
+      if (((from_bitField0_ & 0x00000008) != 0)) {
+        result.routableKeyCount_ = routableKeyCount_;
+      }
+      if (((from_bitField0_ & 0x00000010) != 0)) {
+        result.guardTrippedKeyCount_ = guardTrippedKeyCount_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -462,6 +532,12 @@ private static final long serialVersionUID = 0L;
       }
       if (other.hasLastSyncedAt()) {
         mergeLastSyncedAt(other.getLastSyncedAt());
+      }
+      if (other.getRoutableKeyCount() != 0) {
+        setRoutableKeyCount(other.getRoutableKeyCount());
+      }
+      if (other.getGuardTrippedKeyCount() != 0) {
+        setGuardTrippedKeyCount(other.getGuardTrippedKeyCount());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -508,6 +584,16 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000004;
               break;
             } // case 26
+            case 32: {
+              routableKeyCount_ = input.readInt32();
+              bitField0_ |= 0x00000008;
+              break;
+            } // case 32
+            case 40: {
+              guardTrippedKeyCount_ = input.readInt32();
+              bitField0_ |= 0x00000010;
+              break;
+            } // case 40
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -884,6 +970,124 @@ private static final long serialVersionUID = 0L;
         lastSyncedAt_ = null;
       }
       return lastSyncedAtBuilder_;
+    }
+
+    private int routableKeyCount_ ;
+    /**
+     * <pre>
+     * Count of member keys the routability predicate would select for a
+     * NEW session right now: enabled AND owner active on the roster AND
+     * usage guard not tripped. Server-computed by the same rule key
+     * selection uses (clients must render it, never re-derive it — the
+     * guard threshold is server config). The 2026-08-15 pool drain hid
+     * behind the enabled count: 13 keys read "routable" while only one
+     * guard-tripped key could actually serve.
+     * </pre>
+     *
+     * <code>int32 routable_key_count = 4 [json_name = "routableKeyCount"];</code>
+     * @return The routableKeyCount.
+     */
+    @java.lang.Override
+    public int getRoutableKeyCount() {
+      return routableKeyCount_;
+    }
+    /**
+     * <pre>
+     * Count of member keys the routability predicate would select for a
+     * NEW session right now: enabled AND owner active on the roster AND
+     * usage guard not tripped. Server-computed by the same rule key
+     * selection uses (clients must render it, never re-derive it — the
+     * guard threshold is server config). The 2026-08-15 pool drain hid
+     * behind the enabled count: 13 keys read "routable" while only one
+     * guard-tripped key could actually serve.
+     * </pre>
+     *
+     * <code>int32 routable_key_count = 4 [json_name = "routableKeyCount"];</code>
+     * @param value The routableKeyCount to set.
+     * @return This builder for chaining.
+     */
+    public Builder setRoutableKeyCount(int value) {
+
+      routableKeyCount_ = value;
+      bitField0_ |= 0x00000008;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Count of member keys the routability predicate would select for a
+     * NEW session right now: enabled AND owner active on the roster AND
+     * usage guard not tripped. Server-computed by the same rule key
+     * selection uses (clients must render it, never re-derive it — the
+     * guard threshold is server config). The 2026-08-15 pool drain hid
+     * behind the enabled count: 13 keys read "routable" while only one
+     * guard-tripped key could actually serve.
+     * </pre>
+     *
+     * <code>int32 routable_key_count = 4 [json_name = "routableKeyCount"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearRoutableKeyCount() {
+      bitField0_ = (bitField0_ & ~0x00000008);
+      routableKeyCount_ = 0;
+      onChanged();
+      return this;
+    }
+
+    private int guardTrippedKeyCount_ ;
+    /**
+     * <pre>
+     * Of the enabled keys excluded above, how many are excluded ONLY by
+     * the usage guard (owner still active, API pool exhausted). These
+     * keys still serve already-pinned first-party traffic but fail every
+     * API-pool turn upstream — the console's "drained, resets next
+     * cycle" signal, distinct from dead keys (owner removed).
+     * </pre>
+     *
+     * <code>int32 guard_tripped_key_count = 5 [json_name = "guardTrippedKeyCount"];</code>
+     * @return The guardTrippedKeyCount.
+     */
+    @java.lang.Override
+    public int getGuardTrippedKeyCount() {
+      return guardTrippedKeyCount_;
+    }
+    /**
+     * <pre>
+     * Of the enabled keys excluded above, how many are excluded ONLY by
+     * the usage guard (owner still active, API pool exhausted). These
+     * keys still serve already-pinned first-party traffic but fail every
+     * API-pool turn upstream — the console's "drained, resets next
+     * cycle" signal, distinct from dead keys (owner removed).
+     * </pre>
+     *
+     * <code>int32 guard_tripped_key_count = 5 [json_name = "guardTrippedKeyCount"];</code>
+     * @param value The guardTrippedKeyCount to set.
+     * @return This builder for chaining.
+     */
+    public Builder setGuardTrippedKeyCount(int value) {
+
+      guardTrippedKeyCount_ = value;
+      bitField0_ |= 0x00000010;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Of the enabled keys excluded above, how many are excluded ONLY by
+     * the usage guard (owner still active, API pool exhausted). These
+     * keys still serve already-pinned first-party traffic but fail every
+     * API-pool turn upstream — the console's "drained, resets next
+     * cycle" signal, distinct from dead keys (owner removed).
+     * </pre>
+     *
+     * <code>int32 guard_tripped_key_count = 5 [json_name = "guardTrippedKeyCount"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearGuardTrippedKeyCount() {
+      bitField0_ = (bitField0_ & ~0x00000010);
+      guardTrippedKeyCount_ = 0;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.platform.cursoraccount.v1.CursorAccountSummary)
