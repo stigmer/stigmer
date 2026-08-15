@@ -8,14 +8,16 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-// ValidateHumanInputTimeoutPolicies rejects human_input timeout policies the
-// runtime cannot honor. HUMAN_INPUT_TIMEOUT_ESCALATE is declared in the proto
-// but has no runner implementation (stigmer/stigmer#779; implementation
-// tracked in stigmer/stigmer#781): before this rule a
-// workflow carrying it validated, applied, and then silently behaved as FAIL
-// at the gate's first timeout. Fail closed here — a config that cannot run
-// must never persist. The runner's loader carries the same refusal for
-// already-persisted YAML.
+// ValidateHumanInputTimeoutPolicies validates human_input timeout policies
+// against the shapes the runtime honors. FAIL/APPROVE/DENY need no shape.
+// HUMAN_INPUT_TIMEOUT_ESCALATE carries the outcome-by-name contract
+// (stigmer/stigmer#781): a timeout resolves to the outcome NAMED "escalate"
+// and follows its `then` branch, so the policy is only valid when such an
+// outcome exists with `then` set. Fail closed — a gate whose escalation has
+// nowhere to go must never persist; the runner's loader carries the same
+// check for hand-written YAML. Whether the `then` TARGET exists (and the
+// graph stays acyclic) is ValidateCrossTaskReferences' job — this rule
+// checks shape, not reachability, so the layers compose without duplication.
 //
 // The rule reads the raw task_config Struct like its siblings
 // (ValidateTaskConfigRequiredFields et al.) so the error speaks the author's
@@ -33,7 +35,8 @@ func ValidateHumanInputTimeoutPolicies(spec *workflowv1.WorkflowSpec) []string {
 		if task == nil || task.Kind != workflowv1.WorkflowTaskKind_human_input || task.TaskConfig == nil {
 			continue
 		}
-		value, ok := task.TaskConfig.GetFields()["on_timeout"]
+		fields := task.TaskConfig.GetFields()
+		value, ok := fields["on_timeout"]
 		if !ok {
 			continue
 		}
@@ -45,17 +48,41 @@ func ValidateHumanInputTimeoutPolicies(spec *workflowv1.WorkflowSpec) []string {
 		case *structpb.Value_NumberValue:
 			isEscalate = v.NumberValue == float64(escalate.Number())
 		}
+		if !isEscalate {
+			continue
+		}
 
-		if isEscalate {
+		if !hasEscalateOutcomeWithThen(fields["outcomes"]) {
 			errors = append(errors, fmt.Sprintf(
-				"task '%s' (human_input): on_timeout policy %s is not implemented yet — use %s, %s, or %s (custom outcomes with 'then' cover reviewer-driven branching)",
+				"task '%s' (human_input): on_timeout policy %s requires an outcome named 'escalate' with 'then' set — the timeout resolves to that outcome and follows its 'then' branch",
 				task.Name,
 				escalate.String(),
-				tasksv1.HumanInputTimeoutPolicy_HUMAN_INPUT_TIMEOUT_FAIL.String(),
-				tasksv1.HumanInputTimeoutPolicy_HUMAN_INPUT_TIMEOUT_APPROVE.String(),
-				tasksv1.HumanInputTimeoutPolicy_HUMAN_INPUT_TIMEOUT_DENY.String(),
 			))
 		}
 	}
 	return errors
+}
+
+// hasEscalateOutcomeWithThen reports whether the raw `outcomes` value carries
+// an outcome named "escalate" whose `then` is a non-empty string — the shape
+// the escalate timeout policy resolves to at runtime.
+func hasEscalateOutcomeWithThen(outcomes *structpb.Value) bool {
+	list := outcomes.GetListValue()
+	if list == nil {
+		return false
+	}
+	for _, entry := range list.GetValues() {
+		outcome := entry.GetStructValue()
+		if outcome == nil {
+			continue
+		}
+		fields := outcome.GetFields()
+		if fields["name"].GetStringValue() != "escalate" {
+			continue
+		}
+		if fields["then"].GetStringValue() != "" {
+			return true
+		}
+	}
+	return false
 }

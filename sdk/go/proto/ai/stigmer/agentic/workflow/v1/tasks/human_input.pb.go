@@ -42,15 +42,18 @@ const (
 	// (or the last outcome if custom outcomes are defined).
 	// Task output: {"outcome": "deny", "auto_resolved": true, "reason": "timeout"}
 	HumanInputTimeoutPolicy_HUMAN_INPUT_TIMEOUT_DENY HumanInputTimeoutPolicy = 3
-	// Escalate: branch to a named escalation task.
-	// Requires a corresponding outcome with then set, or a try_catch handler.
-	// Use when timeout should trigger a different workflow path rather than
-	// a simple approve/deny decision.
+	// Escalate: branch to a designated escalation path.
+	// Requires an outcome NAMED "escalate" with `then` set — on timeout the
+	// task completes as if the reviewer selected that outcome, and its `then`
+	// routes the escalation branch (the same routing a reviewer manually
+	// choosing the escalate outcome takes). Use when timeout should trigger a
+	// different workflow path rather than a simple approve/deny decision.
+	// Task output: {"outcome": "escalate", "auto_resolved": true, "reason": "timeout"}
 	//
-	// NOT IMPLEMENTED YET (stigmer/stigmer#781): no runtime exists for this
-	// policy, so validation refuses it at apply and the runner refuses it at
-	// load (stigmer/stigmer#779 fail-closed ruling) — it must never silently
-	// behave as FAIL.
+	// Validation fails closed (stigmer/stigmer#781): selecting this policy
+	// without an "escalate" outcome carrying `then` is refused at apply and
+	// at the runner's load — a gate whose escalation has nowhere to go must
+	// never persist.
 	HumanInputTimeoutPolicy_HUMAN_INPUT_TIMEOUT_ESCALATE HumanInputTimeoutPolicy = 4
 )
 

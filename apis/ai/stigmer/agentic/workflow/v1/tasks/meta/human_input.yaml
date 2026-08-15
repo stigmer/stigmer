@@ -67,3 +67,26 @@ yaml_examples:
           - "slack:#incident-approvals"
       export:
         as: "${ . }"
+  # ESCALATE timeout policy: requires an outcome named "escalate" with `then`
+  # set — the timeout resolves to that outcome and follows its branch, exactly
+  # as if a reviewer had clicked it.
+  - |
+    - name: release_signoff
+      kind: human_input
+      task_config:
+        prompt: "Sign off on the ${ $context.release.version } release?"
+        outcomes:
+          - name: ship
+            label: "Ship It"
+          - name: escalate
+            label: "Escalate to On-Call Lead"
+            then: page_oncall_lead
+          - name: hold
+            label: "Hold the Release"
+            then: end
+        approvers:
+          - "team:release-managers"
+        timeout: 3600
+        on_timeout: HUMAN_INPUT_TIMEOUT_ESCALATE
+      export:
+        as: "${ . }"

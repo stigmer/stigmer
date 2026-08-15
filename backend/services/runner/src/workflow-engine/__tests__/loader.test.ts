@@ -1562,11 +1562,55 @@ do:
       }
     });
 
-    it("call: human_input rejects the not-implemented escalate policy at load time", () => {
+    // The escalate outcome-by-name contract (stigmer/stigmer#781): the policy
+    // loads only when the gate declares an outcome named "escalate" with
+    // `then` set — the timeout resolves to that outcome and follows its branch.
+    const escalateYamlWithOutcomes = (onTimeout: string, outcomesYaml: string) => `
+document:
+  dsl: '1.0.0'
+  name: test
+do:
+  - timedApproval:
+      call: human_input
+      with:
+        prompt: "Approve within time limit"
+        timeout: 3600
+        on_timeout: ${onTimeout}
+        outcomes:
+${outcomesYaml}
+`;
+
+    it("call: human_input accepts the escalate policy when an escalate outcome with then exists", () => {
       for (const form of ["HUMAN_INPUT_TIMEOUT_ESCALATE", "escalate"]) {
-        expect(() => loadWorkflowFromYaml(humanInputYamlWithOnTimeout(form)))
-          .toThrow(/timedApproval.*escalate.*not implemented/);
+        const model = loadWorkflowFromYaml(escalateYamlWithOutcomes(form, `
+          - name: proceed
+          - name: escalate
+            then: escalationPath
+        `));
+        const task = model.do[0].task;
+        expect(task.kind).toBe("human_input");
+        if (task.kind === "human_input") {
+          expect(task.humanInput.onTimeout).toBe("escalate");
+        }
       }
+    });
+
+    it("call: human_input rejects the escalate policy without an escalate outcome", () => {
+      expect(() => loadWorkflowFromYaml(humanInputYamlWithOnTimeout("escalate")))
+        .toThrow(/timedApproval.*escalate.*requires an outcome named 'escalate'/);
+      expect(() => loadWorkflowFromYaml(escalateYamlWithOutcomes("HUMAN_INPUT_TIMEOUT_ESCALATE", `
+          - name: proceed
+          - name: reject
+      `)))
+        .toThrow(/timedApproval.*requires an outcome named 'escalate'/);
+    });
+
+    it("call: human_input rejects the escalate policy when the escalate outcome has no then", () => {
+      expect(() => loadWorkflowFromYaml(escalateYamlWithOutcomes("escalate", `
+          - name: proceed
+          - name: escalate
+      `)))
+        .toThrow(/timedApproval.*requires an outcome named 'escalate' with 'then' set/);
     });
 
     it("call: human_input rejects unknown on_timeout values instead of silently failing at timeout", () => {
