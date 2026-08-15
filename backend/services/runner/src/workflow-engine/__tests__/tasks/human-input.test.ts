@@ -246,6 +246,123 @@ describe("executeHumanInputTask", () => {
     });
   });
 
+  // HumanInputTaskConfig.outcomes contract (human_input.proto): with custom
+  // outcomes, timeout auto-approve resolves to the FIRST outcome and timeout
+  // auto-deny to the LAST — downstream `then` routing and outcome switches
+  // must see declared outcome names, never the internal approve/deny words a
+  // reviewer was never offered. stigmer/stigmer#779 made this path reachable
+  // for the first time.
+  describe("timeout outcome mapping with custom outcomes", () => {
+    const outcomes = [
+      { name: "proceed", label: "Proceed", then: "deployStep" },
+      { name: "needs_revision", label: "Needs revision", then: "gatherMore" },
+      { name: "reject", label: "Reject" },
+    ];
+
+    it("maps timeout auto-approve to the FIRST outcome and routes its then", async () => {
+      const awaitFn: AwaitHumanInputFn = async () => ({
+        outcome: "approve",
+        auto_resolved: true,
+        reason: "timeout",
+      });
+
+      const taskDef: HumanInputTaskDef = {
+        kind: "human_input",
+        humanInput: { prompt: "Review", timeout: 5, onTimeout: "approve", outcomes },
+      };
+
+      const state = createState();
+      const result = await executeHumanInputTask(taskDef, "gate", state, makeCtx(awaitFn));
+
+      expect(result).toEqual({
+        outcome: "proceed",
+        auto_resolved: true,
+        reason: "timeout",
+        __flow_directive__: "deployStep",
+      });
+      expect(state.data.gate).toEqual({
+        outcome: "proceed",
+        auto_resolved: true,
+        reason: "timeout",
+      });
+    });
+
+    it("maps timeout auto-deny to the LAST outcome", async () => {
+      const awaitFn: AwaitHumanInputFn = async () => ({
+        outcome: "deny",
+        auto_resolved: true,
+        reason: "timeout",
+      });
+
+      const taskDef: HumanInputTaskDef = {
+        kind: "human_input",
+        humanInput: { prompt: "Review", timeout: 5, onTimeout: "deny", outcomes },
+      };
+
+      const result = await executeHumanInputTask(taskDef, "gate", createState(), makeCtx(awaitFn));
+
+      // "reject" is the last outcome and declares no `then` — no directive.
+      expect(result).toEqual({ outcome: "reject", auto_resolved: true, reason: "timeout" });
+    });
+
+    it("reports the mapped outcome on the approval_resolved event", async () => {
+      const emitted: WorkflowEventDescriptor[][] = [];
+      const emitFn: EmitEventsFn = async (events) => { emitted.push(events); };
+      const awaitFn: AwaitHumanInputFn = async () => ({
+        outcome: "approve",
+        auto_resolved: true,
+        reason: "timeout",
+      });
+
+      const taskDef: HumanInputTaskDef = {
+        kind: "human_input",
+        humanInput: { prompt: "Review", timeout: 5, onTimeout: "approve", outcomes },
+      };
+
+      await executeHumanInputTask(taskDef, "gate", createState(), makeCtx(awaitFn, emitFn));
+
+      const resolved = emitted.flat().find((e) => e.type === "approval_resolved");
+      expect(resolved).toMatchObject({ outcome: "proceed", autoResolved: true });
+    });
+
+    it("leaves reviewer-selected outcomes untouched", async () => {
+      const awaitFn: AwaitHumanInputFn = async () => ({
+        outcome: "needs_revision",
+        reviewer: "alice",
+      });
+
+      const taskDef: HumanInputTaskDef = {
+        kind: "human_input",
+        humanInput: { prompt: "Review", timeout: 5, onTimeout: "approve", outcomes },
+      };
+
+      const result = await executeHumanInputTask(taskDef, "gate", createState(), makeCtx(awaitFn));
+
+      expect(result).toEqual({
+        outcome: "needs_revision",
+        reviewer: "alice",
+        __flow_directive__: "gatherMore",
+      });
+    });
+
+    it("keeps plain approve/deny for binary gates without custom outcomes", async () => {
+      const awaitFn: AwaitHumanInputFn = async () => ({
+        outcome: "approve",
+        auto_resolved: true,
+        reason: "timeout",
+      });
+
+      const taskDef: HumanInputTaskDef = {
+        kind: "human_input",
+        humanInput: { prompt: "Review", timeout: 5, onTimeout: "approve" },
+      };
+
+      const result = await executeHumanInputTask(taskDef, "gate", createState(), makeCtx(awaitFn));
+
+      expect(result).toEqual({ outcome: "approve", auto_resolved: true, reason: "timeout" });
+    });
+  });
+
   describe("event emission", () => {
     it("emits approval_requested before blocking with correct fields", async () => {
       const emitted: WorkflowEventDescriptor[][] = [];

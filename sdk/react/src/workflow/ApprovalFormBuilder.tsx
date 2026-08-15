@@ -24,11 +24,15 @@ interface FormFieldEntry {
   enumValues: string;
 }
 
+// HUMAN_INPUT_TIMEOUT_ESCALATE is deliberately absent: the proto declares it
+// but no runtime exists, and the server validator refuses it at apply
+// (stigmer/stigmer#779). The old option also wrote an `escalation_task` field
+// that HumanInputTaskConfig never had, so every config it produced failed
+// the server's strict decode.
 const TIMEOUT_POLICY_OPTIONS = [
   { value: "HUMAN_INPUT_TIMEOUT_FAIL", label: "Fail — task errors on timeout" },
   { value: "HUMAN_INPUT_TIMEOUT_APPROVE", label: "Auto-approve — proceed as approved" },
   { value: "HUMAN_INPUT_TIMEOUT_DENY", label: "Auto-deny — proceed as denied" },
-  { value: "HUMAN_INPUT_TIMEOUT_ESCALATE", label: "Escalate — branch to escalation task" },
 ] as const;
 
 const TIMEOUT_UNITS = [
@@ -107,8 +111,6 @@ export const ApprovalFormBuilder = memo(function ApprovalFormBuilder({
       <TimeoutSection
         timeout={typeof cfg.timeout === "number" ? cfg.timeout : 0}
         onTimeout={typeof cfg.on_timeout === "string" ? cfg.on_timeout : ""}
-        escalationTask={typeof cfg.escalation_task === "string" ? cfg.escalation_task : ""}
-        allTaskNames={allTaskNames}
         onUpdateConfig={onUpdateConfig}
       />
       <StringListSection
@@ -619,14 +621,10 @@ function FormFieldRow({
 function TimeoutSection({
   timeout,
   onTimeout,
-  escalationTask,
-  allTaskNames,
   onUpdateConfig,
 }: {
   timeout: number;
   onTimeout: string;
-  escalationTask: string;
-  allTaskNames: readonly string[];
   onUpdateConfig: (fieldPath: string, value: unknown) => void;
 }) {
   const bestUnit = useMemo(() => {
@@ -664,8 +662,6 @@ function TimeoutSection({
     },
     [timeout, unit, onUpdateConfig],
   );
-
-  const isEscalate = onTimeout === "HUMAN_INPUT_TIMEOUT_ESCALATE";
 
   return (
     <CollapsibleSection title="Timeout">
@@ -710,24 +706,6 @@ function TimeoutSection({
         </div>
       )}
 
-      {isEscalate && (
-        <div className="stg:mt-1.5 stg:flex stg:flex-col stg:gap-1">
-          <label className="stg:text-[10px] stg:text-[var(--stgm-muted-foreground,#737373)]">
-            Escalation task
-          </label>
-          <select
-            value={escalationTask}
-            onChange={(e) => onUpdateConfig("escalation_task", e.target.value || undefined)}
-            className={cn(smallInputClass)}
-            aria-label="Escalation target task"
-          >
-            <option value="">— Select escalation task —</option>
-            {allTaskNames.map((name) => (
-              <option key={name} value={name}>{name}</option>
-            ))}
-          </select>
-        </div>
-      )}
     </CollapsibleSection>
   );
 }

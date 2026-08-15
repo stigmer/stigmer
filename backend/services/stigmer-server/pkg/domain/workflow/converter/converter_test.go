@@ -350,6 +350,110 @@ func TestProtoToYAML_AgentCallEmissionContract(t *testing.T) {
 	}
 }
 
+// TestProtoToYAML_HumanInputEmissionContract pins the cross-edition emission
+// contract for human_input (issue #779): on_timeout is emitted as the proto
+// enum NAME (HumanInputTimeoutPolicy.String()) — the exact form the runner's
+// loader normalizes to its internal fail/approve/deny words and refuses when
+// unrecognized, so a divergence here strands persisted workflows at load
+// time. The cloud Java InProcessWorkflowValidator must emit the same
+// with-block for this fixture; its twin test rides the Java-parity issue
+// spawned by #779. The contract is parsed structural equality of the
+// with-block, not byte equality of the YAML.
+func TestProtoToYAML_HumanInputEmissionContract(t *testing.T) {
+	config, _ := structpb.NewStruct(map[string]interface{}{
+		"prompt": "Approve escalation for ${ $context.ticket.id }?",
+		"form_schema": map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"notes": map[string]interface{}{"type": "string"},
+			},
+		},
+		"outcomes": []interface{}{
+			map[string]interface{}{"name": "proceed", "label": "Proceed", "then": "deploy"},
+			map[string]interface{}{"name": "reject"},
+		},
+		"approvers":             []interface{}{"team:engineering-leads"},
+		"timeout":               float64(3600),
+		"on_timeout":            "HUMAN_INPUT_TIMEOUT_APPROVE",
+		"notification_channels": []interface{}{"slack:#approvals"},
+		"payload":               "${ $context.draft_revision }",
+		"ui_hint":               "article-diff",
+	})
+
+	spec := &workflowv1.WorkflowSpec{
+		Document: &workflowv1.WorkflowDocument{
+			Dsl:       "1.0.0",
+			Namespace: "test",
+			Name:      "human-input-emission-contract",
+			Version:   "1.0.0",
+		},
+		Tasks: []*workflowv1.WorkflowTask{
+			{
+				Name:       "gate",
+				Kind:       workflowv1.WorkflowTaskKind_human_input,
+				TaskConfig: config,
+			},
+			{
+				Name: "deploy",
+				Kind: workflowv1.WorkflowTaskKind_set_vars,
+				TaskConfig: func() *structpb.Struct {
+					s, _ := structpb.NewStruct(map[string]interface{}{
+						"variables": map[string]interface{}{"deployed": "true"},
+					})
+					return s
+				}(),
+			},
+		},
+	}
+
+	yamlStr, err := NewConverter().ProtoToYAML(spec)
+	if err != nil {
+		t.Fatalf("ProtoToYAML failed: %v", err)
+	}
+
+	var parsed map[string]interface{}
+	if err := yaml.Unmarshal([]byte(yamlStr), &parsed); err != nil {
+		t.Fatalf("emitted YAML does not parse: %v", err)
+	}
+
+	doTasks, ok := parsed["do"].([]interface{})
+	if !ok || len(doTasks) != 2 {
+		t.Fatalf("expected 2 do-tasks, got %v", parsed["do"])
+	}
+	gateTask, ok := doTasks[0].(map[string]interface{})["gate"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("missing 'gate' task in %v", doTasks[0])
+	}
+	if gateTask["call"] != "human_input" {
+		t.Fatalf("expected call: human_input, got %v", gateTask["call"])
+	}
+
+	expectedWith := map[string]interface{}{
+		"prompt": "Approve escalation for ${ $context.ticket.id }?",
+		"form_schema": map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"notes": map[string]interface{}{"type": "string"},
+			},
+		},
+		"outcomes": []interface{}{
+			map[string]interface{}{"name": "proceed", "label": "Proceed", "then": "deploy"},
+			map[string]interface{}{"name": "reject"},
+		},
+		"approvers":             []interface{}{"team:engineering-leads"},
+		"timeout":               3600,
+		"on_timeout":            "HUMAN_INPUT_TIMEOUT_APPROVE",
+		"notification_channels": []interface{}{"slack:#approvals"},
+		"payload":               "${ $context.draft_revision }",
+		"ui_hint":               "article-diff",
+	}
+
+	if !reflect.DeepEqual(gateTask["with"], expectedWith) {
+		t.Errorf("human_input with-block diverges from the pinned emission contract.\ngot:  %#v\nwant: %#v",
+			gateTask["with"], expectedWith)
+	}
+}
+
 // TestUnmarshalTaskConfig_EnvironmentRefKindDefault verifies the DSL
 // normalizer: an environment_refs item that omits kind unmarshals with
 // kind=environment — the field can reference nothing else, so requiring

@@ -94,6 +94,118 @@ func TestWorkflowHITL_HumanInputTimeout(t *testing.T) {
 	t.Logf("human_input timeout: execution failed after %v (timeout policy: FAIL)", elapsed)
 }
 
+// TestWorkflowHITL_HumanInputTimeoutAutoApprove verifies the #779 fix end to
+// end: on_timeout=HUMAN_INPUT_TIMEOUT_APPROVE (the enum-name form the server
+// converter persists) must auto-approve at timeout instead of failing, and —
+// per the HumanInputTaskConfig.outcomes contract — the auto-approval resolves
+// to the FIRST declared outcome, whose `then` routes the flow. Before #779
+// this execution FAILED: the loader cast the enum name through unvalidated
+// and the orchestrator's switch defaulted it to fail.
+//
+// Workflow: awaitApproval (human_input, timeout=5s, on_timeout=APPROVE,
+// outcomes: proceed → fastPath, reject) → afterApproval (skipped) /
+// fastPath (reached via the mapped first outcome's `then`)
+func TestWorkflowHITL_HumanInputTimeoutAutoApprove(t *testing.T) {
+	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+	deployer := harness.NewFixtureDeployer(clients, "hitl-auto-approve", suiteLogger)
+	defer deployer.Cleanup(ctx)
+
+	humanInputConfig, err := structpb.NewStruct(map[string]any{
+		"prompt": "This approval auto-approves on timeout",
+		"outcomes": []any{
+			map[string]any{"name": "proceed", "label": "Proceed", "then": "fastPath"},
+			map[string]any{"name": "reject", "label": "Reject"},
+		},
+		"timeout":    float64(5),
+		"on_timeout": "HUMAN_INPUT_TIMEOUT_APPROVE",
+	})
+	require.NoError(t, err)
+
+	afterConfig, err := structpb.NewStruct(map[string]any{
+		"variables": map[string]any{
+			"default_path": "true",
+		},
+	})
+	require.NoError(t, err)
+
+	fastPathConfig, err := structpb.NewStruct(map[string]any{
+		"variables": map[string]any{
+			"routed_to": "fastPath",
+		},
+	})
+	require.NoError(t, err)
+
+	workflow := &workflowv1.Workflow{
+		ApiVersion: "agentic.stigmer.ai/v1",
+		Kind:       "Workflow",
+		Metadata: &apiresource.ApiResourceMetadata{
+			Name: "integration-test-hitl-auto-approve",
+			Org:  "test-org",
+		},
+		Spec: &workflowv1.WorkflowSpec{
+			Description: "Integration test: human_input timeout auto-approve with outcome mapping",
+			Document: &workflowv1.WorkflowDocument{
+				Dsl:       "1.0.0",
+				Namespace: "test-org",
+				Name:      "integration-test-hitl-auto-approve",
+				Version:   "1.0.0",
+			},
+			Tasks: []*workflowv1.WorkflowTask{
+				{
+					Name:       "awaitApproval",
+					Kind:       workflowv1.WorkflowTaskKind_human_input,
+					TaskConfig: humanInputConfig,
+					Export:     &workflowv1.Export{As: "${ . }"},
+				},
+				{
+					Name:       "afterApproval",
+					Kind:       workflowv1.WorkflowTaskKind_set_vars,
+					TaskConfig: afterConfig,
+				},
+				{
+					Name:       "fastPath",
+					Kind:       workflowv1.WorkflowTaskKind_set_vars,
+					TaskConfig: fastPathConfig,
+					Export:     &workflowv1.Export{As: "${ . }"},
+					Flow:       &workflowv1.FlowControl{Then: "end"},
+				},
+			},
+		},
+	}
+
+	start := time.Now()
+	_, execution, err := deployer.DeployAndExecute(ctx, workflow, "hitl timeout auto-approve test")
+	require.NoError(t, err)
+
+	waiter := harness.NewExecutionWaiter(clients.ExecutionQuery, suiteLogger)
+	result, err := waiter.WaitForTerminal(ctx, execution.GetMetadata().GetId(), 90*time.Second)
+	require.NoError(t, err)
+	elapsed := time.Since(start)
+
+	harness.AssertPhase(t, result, workflowexecutionv1.ExecutionPhase_EXECUTION_COMPLETED)
+	harness.AssertTaskStatus(t, result, "awaitApproval",
+		workflowexecutionv1.WorkflowTaskStatus_WORKFLOW_TASK_COMPLETED)
+	harness.AssertTaskStatus(t, result, "fastPath",
+		workflowexecutionv1.WorkflowTaskStatus_WORKFLOW_TASK_COMPLETED)
+
+	// afterApproval should have been skipped: the timeout auto-approval maps
+	// to the first outcome ("proceed"), whose `then` routes to fastPath.
+	afterTask := findTaskInExecution(result, "afterApproval")
+	if afterTask != nil {
+		require.NotEqual(t, workflowexecutionv1.WorkflowTaskStatus_WORKFLOW_TASK_COMPLETED,
+			afterTask.GetStatus(), "afterApproval should be skipped — timeout auto-approval routed to fastPath")
+	}
+	t.Logf("human_input timeout auto-approve: completed after %v via first-outcome mapping (proceed → fastPath)", elapsed)
+}
+
 // TestWorkflowHITL_HumanInputOutcomeRouting verifies that selecting a custom
 // outcome with a `then` field routes execution to the named task via the
 // __stigmer_branch_override mechanism.

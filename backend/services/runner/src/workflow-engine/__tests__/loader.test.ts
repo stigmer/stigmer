@@ -1528,6 +1528,57 @@ do:
       }
     });
 
+    // The server converter persists on_timeout as the proto enum NAME
+    // (HumanInputTimeoutPolicy.String()), so every applied workflow carries
+    // that form in its validated YAML. stigmer/stigmer#779: the loader used
+    // to cast it unvalidated, and the orchestrator's switch silently treated
+    // the unrecognized string as fail.
+    const humanInputYamlWithOnTimeout = (onTimeout: string) => `
+document:
+  dsl: '1.0.0'
+  name: test
+do:
+  - timedApproval:
+      call: human_input
+      with:
+        prompt: "Approve within time limit"
+        timeout: 3600
+        on_timeout: ${onTimeout}
+`;
+
+    it("call: human_input normalizes proto enum-name on_timeout values to the internal policy words", () => {
+      const cases = [
+        ["HUMAN_INPUT_TIMEOUT_FAIL", "fail"],
+        ["HUMAN_INPUT_TIMEOUT_APPROVE", "approve"],
+        ["HUMAN_INPUT_TIMEOUT_DENY", "deny"],
+      ] as const;
+      for (const [wireForm, internalForm] of cases) {
+        const model = loadWorkflowFromYaml(humanInputYamlWithOnTimeout(wireForm));
+        const task = model.do[0].task;
+        expect(task.kind).toBe("human_input");
+        if (task.kind === "human_input") {
+          expect(task.humanInput.onTimeout).toBe(internalForm);
+        }
+      }
+    });
+
+    it("call: human_input rejects the not-implemented escalate policy at load time", () => {
+      for (const form of ["HUMAN_INPUT_TIMEOUT_ESCALATE", "escalate"]) {
+        expect(() => loadWorkflowFromYaml(humanInputYamlWithOnTimeout(form)))
+          .toThrow(/timedApproval.*escalate.*not implemented/);
+      }
+    });
+
+    it("call: human_input rejects unknown on_timeout values instead of silently failing at timeout", () => {
+      expect(() => loadWorkflowFromYaml(humanInputYamlWithOnTimeout("sometimes")))
+        .toThrow(/timedApproval.*unknown on_timeout value 'sometimes'.*fail, approve, deny/);
+    });
+
+    it("call: human_input rejects non-string on_timeout values", () => {
+      expect(() => loadWorkflowFromYaml(humanInputYamlWithOnTimeout("42")))
+        .toThrow(/timedApproval.*on_timeout/);
+    });
+
     it("call: human_input with payload and ui_hint", () => {
       const yaml = `
 document:

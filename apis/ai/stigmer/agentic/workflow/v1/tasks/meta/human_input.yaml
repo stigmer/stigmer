@@ -62,7 +62,7 @@ yaml_examples:
         approvers:
           - "team:engineering-leads"
         timeout: 86400
-        on_timeout: HUMAN_INPUT_TIMEOUT_ESCALATE
+        on_timeout: HUMAN_INPUT_TIMEOUT_DENY
         notification_channels:
           - "slack:#incident-approvals"
       export:

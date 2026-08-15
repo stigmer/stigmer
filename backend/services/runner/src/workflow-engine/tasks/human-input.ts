@@ -96,11 +96,14 @@ export async function executeHumanInputTask(
     ]);
   }
 
-  const result: HumanInputResult = await ctx.awaitHumanInput({
-    signalName,
-    timeoutSeconds,
-    onTimeout,
-  });
+  const result: HumanInputResult = applyTimeoutOutcomeContract(
+    await ctx.awaitHumanInput({
+      signalName,
+      timeoutSeconds,
+      onTimeout,
+    }),
+    config.outcomes,
+  );
 
   if (ctx.emitEvents) {
     await ctx.emitEvents([{
@@ -130,6 +133,31 @@ function validateConfig(config: HumanInputConfig, taskName: string): void {
   if (!config.prompt) {
     throw new Error(`human_input task '${taskName}': 'prompt' is required`);
   }
+}
+
+/**
+ * Applies the proto contract for timeout auto-resolution with custom
+ * outcomes (HumanInputTaskConfig.outcomes doc): auto-approve resolves to
+ * the FIRST declared outcome and auto-deny to the LAST, so `then` routing
+ * and downstream outcome switches see declared outcome names — never the
+ * orchestrator's internal approve/deny words, which a reviewer of a
+ * custom-outcome gate was never offered. Binary gates (no custom outcomes)
+ * keep the plain approve/deny result.
+ */
+function applyTimeoutOutcomeContract(
+  result: HumanInputResult,
+  outcomes: HumanInputConfig["outcomes"],
+): HumanInputResult {
+  if (!result.auto_resolved || result.reason !== "timeout" || !outcomes?.length) {
+    return result;
+  }
+  if (result.outcome === "approve") {
+    return { ...result, outcome: outcomes[0].name };
+  }
+  if (result.outcome === "deny") {
+    return { ...result, outcome: outcomes[outcomes.length - 1].name };
+  }
+  return result;
 }
 
 interface ResolvedReviewPayload {

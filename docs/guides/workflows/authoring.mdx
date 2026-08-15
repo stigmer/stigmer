@@ -363,13 +363,13 @@ The `human_input` task pauses execution and waits for a reviewer to respond:
 
 Key fields:
 
-| Field         | Purpose                                                                |
-| ------------- | ---------------------------------------------------------------------- |
-| `prompt`      | What the reviewer sees — supports expressions                          |
-| `form_schema` | Optional JSON Schema for structured input from the reviewer            |
-| `outcomes`    | List of buttons the reviewer can click — each can override `flow.then` |
-| `timeout`     | Seconds to wait before timing out                                      |
-| `on_timeout`  | `HUMAN_INPUT_TIMEOUT_FAIL` or `HUMAN_INPUT_TIMEOUT_SKIP`               |
+| Field         | Purpose                                                                                  |
+| ------------- | ---------------------------------------------------------------------------------------- |
+| `prompt`      | What the reviewer sees — supports expressions                                            |
+| `form_schema` | Optional JSON Schema for structured input from the reviewer                              |
+| `outcomes`    | List of buttons the reviewer can click — each can override `flow.then`                   |
+| `timeout`     | Seconds to wait before timing out                                                        |
+| `on_timeout`  | `HUMAN_INPUT_TIMEOUT_FAIL`, `HUMAN_INPUT_TIMEOUT_APPROVE`, or `HUMAN_INPUT_TIMEOUT_DENY` |
 
 The default `flow.then` applies when the reviewer picks an outcome that does not
 specify its own `then`. In the example above, clicking "Approve" continues to

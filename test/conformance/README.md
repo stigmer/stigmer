@@ -324,8 +324,12 @@ completes the run and the downstream task, that a **declared** non-approve outco
 (`deny`) is *data* (resolves and still completes — only the implicit no-outcomes
 binary form fails on deny), that an outcome's `then` **routes** the workflow to
 the named task (proving the submitted outcome value drives behavior through
-observable task statuses), that `on_timeout=HUMAN_INPUT_TIMEOUT_FAIL` fails the
-run on its own, and the negative codes (empty fields / unknown task / non-
+observable task statuses), the full timeout-policy contract — `FAIL` fails the
+run on its own, `APPROVE` completes it and reaches the downstream task, `DENY`
+resolves to the last declared outcome and completes, and a timed-out `APPROVE`
+with custom outcomes maps to the FIRST declared outcome and routes its `then`
+(the stigmer/stigmer#779 pins; before that fix only FAIL passed, by accident) —
+and the negative codes (empty fields / unknown task / non-
 `human_input` task -> `InvalidArgument`; missing execution -> `NotFound`; submit
 on a terminal execution -> `FailedPrecondition`). It deliberately does **not**
 assert idempotency (the signal-based gate is not deduped, unlike the agent DB

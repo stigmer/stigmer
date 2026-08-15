@@ -250,6 +250,88 @@ describe("WorkflowExecution submitWorkflowTaskApproval — timeout policy", () =
       `timed-out gate should FAIL; reached ${ExecutionPhase[final.status?.phase ?? 0]}`,
     ).toBe(ExecutionPhase.EXECUTION_FAILED);
   });
+
+  // The APPROVE/DENY pins below close the stigmer/stigmer#779 gap: the
+  // persisted enum-name policies used to reach the runner unrecognized and
+  // silently behave as FAIL, so only the FAIL pin above ever passed — and it
+  // passed by accident (it would have passed for any garbage policy string).
+
+  it("on_timeout=APPROVE completes the run when no decision arrives", async () => {
+    const { org } = await target.provisionTenancy();
+    const workflowId = await provisionHumanInputWorkflow(org, {
+      timeout: 5,
+      onTimeout: "HUMAN_INPUT_TIMEOUT_APPROVE",
+    });
+
+    const execution = await clients.workflowExecutionCommand.create(
+      makeWorkflowExecution({ org, name: uniqueName("wfx-timeout-approve"), workflowId }),
+    );
+    const executionId = execution.metadata!.id;
+    fixtures.defer(() => clients.workflowExecutionCommand.delete({ value: executionId }));
+
+    // No submit: the timeout auto-approves and the run continues downstream.
+    const final = await awaitTerminal(clients, executionId);
+    expect(
+      final.status?.phase,
+      `auto-approved gate should COMPLETE; reached ${ExecutionPhase[final.status?.phase ?? 0]}`,
+    ).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(
+      taskByName(final, HUMAN_INPUT_AFTER_TASK_NAME)?.status,
+      "the downstream task runs after auto-approval",
+    ).toBe(WorkflowTaskStatus.WORKFLOW_TASK_COMPLETED);
+  });
+
+  it("on_timeout=DENY resolves to the last declared outcome and completes", async () => {
+    const { org } = await target.provisionTenancy();
+    // Default fixture outcomes are declared binary approve/deny — per the
+    // HumanInputTaskConfig.outcomes contract, timeout auto-deny resolves to
+    // the LAST declared outcome ("deny", a data outcome that completes).
+    const workflowId = await provisionHumanInputWorkflow(org, {
+      timeout: 5,
+      onTimeout: "HUMAN_INPUT_TIMEOUT_DENY",
+    });
+
+    const execution = await clients.workflowExecutionCommand.create(
+      makeWorkflowExecution({ org, name: uniqueName("wfx-timeout-deny"), workflowId }),
+    );
+    const executionId = execution.metadata!.id;
+    fixtures.defer(() => clients.workflowExecutionCommand.delete({ value: executionId }));
+
+    const final = await awaitTerminal(clients, executionId);
+    expect(
+      final.status?.phase,
+      `auto-denied gate with a declared deny outcome should COMPLETE; reached ${ExecutionPhase[final.status?.phase ?? 0]}`,
+    ).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+  });
+
+  it("on_timeout=APPROVE maps to the FIRST declared outcome and routes its `then`", async () => {
+    const { org } = await target.provisionTenancy();
+    const workflowId = await provisionHumanInputWorkflow(org, {
+      outcomes: [{ name: "proceed", then: "fastPath" }, { name: "reject" }],
+      routedTasks: ["fastPath"],
+      timeout: 5,
+      onTimeout: "HUMAN_INPUT_TIMEOUT_APPROVE",
+    });
+
+    const execution = await clients.workflowExecutionCommand.create(
+      makeWorkflowExecution({ org, name: uniqueName("wfx-timeout-route"), workflowId }),
+    );
+    const executionId = execution.metadata!.id;
+    fixtures.defer(() => clients.workflowExecutionCommand.delete({ value: executionId }));
+
+    // No submit: auto-approval resolves to "proceed" (first outcome), whose
+    // `then` must route to fastPath — proving downstream sees the declared
+    // outcome name, not the orchestrator's internal "approve".
+    const final = await awaitTerminal(clients, executionId);
+    expect(
+      final.status?.phase,
+      `routed auto-approval should COMPLETE; reached ${ExecutionPhase[final.status?.phase ?? 0]}`,
+    ).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(
+      taskByName(final, "fastPath")?.status,
+      "the first outcome's `then` target runs",
+    ).toBe(WorkflowTaskStatus.WORKFLOW_TASK_COMPLETED);
+  });
 });
 
 describe("WorkflowExecution submitWorkflowTaskApproval — negatives", () => {
