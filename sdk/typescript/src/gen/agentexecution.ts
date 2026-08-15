@@ -9,7 +9,7 @@ import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { ToolApprovalOverrideSchema, McpServerUsageSchema, type ToolApprovalOverride, type McpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { AgentExecutionSchema, type AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/command_pb";
-import { InteractionMode, ApprovalMode, ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { InteractionMode, ApprovalMode, ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { AgentExecutionIdSchema, AgentExecutionUpdateStatusInputSchema, UpdateStatusResponseSchema, SubmitApprovalInputSchema, SubmitFileDecisionInputSchema, CancelAgentExecutionInputSchema, TerminateAgentExecutionInputSchema, RecoverAgentExecutionInputSchema, PauseAgentExecutionInputSchema, ResumeAgentExecutionInputSchema, UploadAttachmentRequestSchema, UploadAttachmentResponseSchema, ListAgentExecutionsRequestSchema, AgentExecutionListSchema, ListAgentExecutionsBySessionRequestSchema, GetArtifactDownloadUrlRequestSchema, GetArtifactDownloadUrlResponseSchema, GetArtifactContentRequestSchema, GetArtifactContentResponseSchema, GetExecutionUsageReportInputSchema, GetExecutionUsageReportOutputSchema, GetSessionUsageReportInputSchema, GetSessionUsageReportOutputSchema, GetAgentUsageReportInputSchema, GetAgentUsageReportOutputSchema, GetOrgUsageReportInputSchema, GetOrgUsageReportOutputSchema, GetAgentExecutionSummaryRequestSchema, AgentExecutionSummarySchema, type AgentExecutionUpdateStatusInput, type UpdateStatusResponse, type SubmitApprovalInput, type SubmitFileDecisionInput, type CancelAgentExecutionInput, type TerminateAgentExecutionInput, type RecoverAgentExecutionInput, type PauseAgentExecutionInput, type ResumeAgentExecutionInput, type UploadAttachmentRequest, type UploadAttachmentResponse, type ListAgentExecutionsRequest, type AgentExecutionList, type ListAgentExecutionsBySessionRequest, type GetArtifactDownloadUrlRequest, type GetArtifactDownloadUrlResponse, type GetArtifactContentRequest, type GetArtifactContentResponse, type GetExecutionUsageReportInput, type GetExecutionUsageReportOutput, type GetSessionUsageReportInput, type GetSessionUsageReportOutput, type GetAgentUsageReportInput, type GetAgentUsageReportOutput, type GetOrgUsageReportInput, type GetOrgUsageReportOutput, type GetAgentExecutionSummaryRequest, type AgentExecutionSummary } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
 import { AgentExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/query_pb";
 import { AgentExecutionSpecSchema, ContextManagementConfigSchema, ExecutionConfigSchema, AttachmentSchema, ConversationCatchupSchema, DeclaredPreferencesSchema, type ContextManagementConfig, type ExecutionConfig, type Attachment, type ConversationCatchup, type DeclaredPreferences } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
@@ -271,6 +271,7 @@ export interface ExecutionConfigInput {
   buildFromPlan?: boolean;
   approvalMode?: ApprovalMode;
   serviceTier?: ServiceTier;
+  thinkingMode?: ThinkingMode;
 }
 
 /** SDK input type for ContextManagementConfig. */
@@ -387,6 +388,7 @@ function buildExecutionConfigProto(input: ExecutionConfigInput) {
   if (input.buildFromPlan !== undefined) msg.buildFromPlan = input.buildFromPlan;
   if (input.approvalMode !== undefined) msg.approvalMode = input.approvalMode;
   if (input.serviceTier !== undefined) msg.serviceTier = input.serviceTier;
+  if (input.thinkingMode !== undefined) msg.thinkingMode = input.thinkingMode;
   return msg;
 }
 
@@ -539,6 +541,7 @@ function toExecutionConfigInput(msg: ExecutionConfig): ExecutionConfigInput {
     buildFromPlan: msg.buildFromPlan || undefined,
     approvalMode: msg.approvalMode || undefined,
     serviceTier: msg.serviceTier || undefined,
+    thinkingMode: msg.thinkingMode || undefined,
   };
 }
 

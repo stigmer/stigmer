@@ -194,6 +194,7 @@ type RunConfigInput struct {
 	MaxCostUsd    float64
 	MaxToolRounds int32
 	ServiceTier   agentexecutionv1.ServiceTier
+	ThinkingMode  agentexecutionv1.ThinkingMode
 }
 
 func (i *AgentChannelInput) toProto() (*agentchannelv1.AgentChannel, error) {
@@ -252,6 +253,7 @@ func (i *RunConfigInput) toProto() (*agentexecutionv1.RunConfig, error) {
 		MaxCostUsd:    i.MaxCostUsd,
 		MaxToolRounds: i.MaxToolRounds,
 		ServiceTier:   i.ServiceTier,
+		ThinkingMode:  i.ThinkingMode,
 	}, nil
 }
 
@@ -314,5 +316,6 @@ func runConfigInputFromProto(p *agentexecutionv1.RunConfig) *RunConfigInput {
 	input.MaxCostUsd = p.GetMaxCostUsd()
 	input.MaxToolRounds = p.GetMaxToolRounds()
 	input.ServiceTier = p.GetServiceTier()
+	input.ThinkingMode = p.GetThinkingMode()
 	return input
 }

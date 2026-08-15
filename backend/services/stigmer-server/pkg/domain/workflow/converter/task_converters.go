@@ -638,6 +638,12 @@ func convertAgentCallTask(cfg *tasksv1.AgentCallTaskConfig) map[string]interface
 		case agentexecutionv1.ServiceTier_SERVICE_TIER_FAST:
 			runConfig["service_tier"] = "fast"
 		}
+		switch rc.ThinkingMode {
+		case agentexecutionv1.ThinkingMode_THINKING_MODE_DISABLED:
+			runConfig["thinking_mode"] = "disabled"
+		case agentexecutionv1.ThinkingMode_THINKING_MODE_ENABLED:
+			runConfig["thinking_mode"] = "enabled"
+		}
 		if len(runConfig) > 0 {
 			with["run_config"] = runConfig
 		}

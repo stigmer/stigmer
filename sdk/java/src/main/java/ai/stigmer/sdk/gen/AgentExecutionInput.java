@@ -14,6 +14,7 @@ import ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences;
 import ai.stigmer.agentic.agentexecution.v1.ExecutionConfig;
 import ai.stigmer.agentic.agentexecution.v1.InteractionMode;
 import ai.stigmer.agentic.agentexecution.v1.ServiceTier;
+import ai.stigmer.agentic.agentexecution.v1.ThinkingMode;
 import ai.stigmer.agentic.executioncontext.v1.ExecutionValue;
 import ai.stigmer.agentic.session.v1.CursorMode;
 import ai.stigmer.agentic.session.v1.ExecutionTarget;
@@ -571,6 +572,7 @@ public final class AgentExecutionInput {
         private final boolean buildFromPlan;
         private final ApprovalMode approvalMode;
         private final ServiceTier serviceTier;
+        private final ThinkingMode thinkingMode;
 
         private ExecutionConfigInput(Builder builder) {
             this.modelName = builder.modelName;
@@ -583,6 +585,7 @@ public final class AgentExecutionInput {
             this.buildFromPlan = builder.buildFromPlan;
             this.approvalMode = builder.approvalMode;
             this.serviceTier = builder.serviceTier;
+            this.thinkingMode = builder.thinkingMode;
         }
 
         ExecutionConfig toProto() {
@@ -609,6 +612,9 @@ public final class AgentExecutionInput {
             if (this.serviceTier != null) {
                 builder.setServiceTier(this.serviceTier);
             }
+            if (this.thinkingMode != null) {
+                builder.setThinkingMode(this.thinkingMode);
+            }
             return builder.build();
         }
 
@@ -625,6 +631,7 @@ public final class AgentExecutionInput {
             private boolean buildFromPlan;
             private ApprovalMode approvalMode;
             private ServiceTier serviceTier;
+            private ThinkingMode thinkingMode;
 
             private Builder() {}
 
@@ -638,6 +645,7 @@ public final class AgentExecutionInput {
             public Builder buildFromPlan(boolean buildFromPlan) { this.buildFromPlan = buildFromPlan; return this; }
             public Builder approvalMode(ApprovalMode approvalMode) { this.approvalMode = approvalMode; return this; }
             public Builder serviceTier(ServiceTier serviceTier) { this.serviceTier = serviceTier; return this; }
+            public Builder thinkingMode(ThinkingMode thinkingMode) { this.thinkingMode = thinkingMode; return this; }
 
             public ExecutionConfigInput build() { return new ExecutionConfigInput(this); }
         }

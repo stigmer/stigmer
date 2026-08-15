@@ -133,6 +133,62 @@ func TestModelRegistryStore_PricingVariantHarnessScope(t *testing.T) {
 	}
 }
 
+// The harness-scoped capability lookup backs THINKING_MODE_ENABLED
+// validation (stigmer/stigmer#772): the thinking capability must be
+// declared FOR THE HARNESS THAT CAN HONOR IT. The bundle declares
+// capabilities.thinking on cursor entries (claude-opus-4-6) and on native
+// entries (claude-sonnet-4.6) — but v1 has no native thinking wire
+// mapping, so validators query the cursor scope and a native-only
+// declaration must not leak through.
+func TestModelRegistryStore_CapabilityIndex(t *testing.T) {
+	s := newStoreFromEmbed(t)
+
+	if !s.HasCapabilityForHarness("cursor", "claude-opus-4-6", ThinkingCapabilityKey) {
+		t.Error("claude-opus-4-6 must declare the thinking capability under the cursor harness")
+	}
+	// composer-2.5's capabilities block declares thinking=false — a false
+	// flag must index nothing (only literal true declares the capability).
+	if s.HasCapabilityForHarness("cursor", "composer-2.5", ThinkingCapabilityKey) {
+		t.Error("composer-2.5 declares thinking=false and must not index the capability")
+	}
+	// claude-sonnet-4.6 declares thinking on its NATIVE entry only.
+	if !s.HasCapabilityForHarness("native", "claude-sonnet-4.6", ThinkingCapabilityKey) {
+		t.Error("claude-sonnet-4.6 must declare the thinking capability under the native harness")
+	}
+	if s.HasCapabilityForHarness("cursor", "claude-sonnet-4.6", ThinkingCapabilityKey) {
+		t.Error("claude-sonnet-4.6 has no cursor entry — the cursor scope must fail closed")
+	}
+	// The id -> apiModelId contract (stigmer/stigmer#240) extends to the
+	// capability index: both reference forms resolve.
+	if !s.HasCapabilityForHarness("native", "claude-sonnet-4-6", ThinkingCapabilityKey) {
+		t.Error("api id claude-sonnet-4-6 must resolve the native thinking capability")
+	}
+	if s.HasCapabilityForHarness("cursor", "not-a-model", ThinkingCapabilityKey) {
+		t.Error("unknown models must not report capabilities")
+	}
+	if s.HasCapabilityForHarness("cursor", "claude-opus-4-6", "levitation") {
+		t.Error("unknown capability keys must not match")
+	}
+
+	cursorThinking := s.CanonicalModelsWithCapabilityForHarness("cursor", ThinkingCapabilityKey)
+	if len(cursorThinking) == 0 {
+		t.Fatal("expected cursor-harness models declaring the thinking capability")
+	}
+	found := false
+	for i, id := range cursorThinking {
+		if id == "claude-opus-4-6" {
+			found = true
+		}
+		if i > 0 && cursorThinking[i-1] > id {
+			t.Errorf("CanonicalModelsWithCapabilityForHarness must be sorted; %q before %q",
+				cursorThinking[i-1], id)
+		}
+	}
+	if !found {
+		t.Error("cursor thinking capability list must include claude-opus-4-6")
+	}
+}
+
 func TestModelRegistryStore_RefreshAppliesUpstreamToDocumentAndValidation(t *testing.T) {
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != publicModelRegistryPath {

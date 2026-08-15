@@ -69,11 +69,15 @@ func ValidateModelReferences(spec *workflowv1.WorkflowSpec) []string {
 				continue
 			}
 			harness = resolveHarnessName(cfg.Harness)
-			// Tier validation is independent of the model check below: FAST
-			// with no model_name must fail even though the model loop skips
-			// (#357, same fail-closed rule as execution create).
+			// Variant-attribute validation is independent of the model check
+			// below: FAST/ENABLED with no model_name must fail even though
+			// the model loop skips (#357/#772, same fail-closed rule as
+			// execution create).
 			if tierErr := validateAgentCallServiceTier(models, task.Name, harness, cfg.GetRunConfig()); tierErr != "" {
 				errors = append(errors, tierErr)
+			}
+			if thinkingErr := validateAgentCallThinkingMode(models, task.Name, harness, cfg.GetRunConfig()); thinkingErr != "" {
+				errors = append(errors, thinkingErr)
 			}
 			if cfg.GetRunConfig().GetModelName() == "" {
 				continue
@@ -155,6 +159,55 @@ func validateAgentCallServiceTier(models *registry.ModelRegistryStore,
 			taskName, modelName, harness, fastCapableSuffix(models, harness))
 	}
 	return ""
+}
+
+// validateAgentCallThinkingMode applies the same fail-closed thinking-mode
+// rules as execution create to an agent_call's run_config
+// (stigmer/stigmer#772), harness-scoped like the tier check above.
+// Capability-gated, not pricing-gated: thinking bills at base per-token
+// rates, so the registry fact that makes ENABLED selectable is
+// capabilities.thinking under the task's harness — which in v1 only the
+// cursor harness can honor (no native wire mapping exists), so a thinking
+// capability declared under another harness must not validate here (it
+// would execute as a silent no-op).
+//
+// DISABLED/unset is always valid; unknown mode strings never reach this
+// function (protojson refuses non-canonical enum values at conversion).
+// The message strings are pinned identical to the cloud Java
+// ModelValidationHelper — keep them in lockstep.
+func validateAgentCallThinkingMode(models *registry.ModelRegistryStore,
+	taskName, harness string, rc *agentexecutionv1.RunConfig) string {
+	if rc.GetThinkingMode() != agentexecutionv1.ThinkingMode_THINKING_MODE_ENABLED {
+		return ""
+	}
+	modelName := strings.TrimSpace(rc.GetModelName())
+	if modelName == "" {
+		return fmt.Sprintf(
+			"task '%s' (agent_call): run_config.thinking_mode 'enabled' requires "+
+				"run_config.model_name — thinking is a per-model capability",
+			taskName)
+	}
+	if !models.HasCapabilityForHarness(harness, modelName, registry.ThinkingCapabilityKey) {
+		return fmt.Sprintf(
+			"task '%s' (agent_call): run_config.thinking_mode 'enabled' is not available "+
+				"for model '%s' on harness '%s': the model registry declares no thinking "+
+				"capability for it%s",
+			taskName, modelName, harness, thinkingCapableSuffix(models, harness))
+	}
+	return ""
+}
+
+// thinkingCapableSuffix renders "; models with a thinking mode on
+// '<harness>': a, b, c" — actionable refusal detail, sorted (the store
+// keeps the list sorted), empty when the registry declares none for that
+// harness.
+func thinkingCapableSuffix(models *registry.ModelRegistryStore, harness string) string {
+	capable := models.CanonicalModelsWithCapabilityForHarness(harness, registry.ThinkingCapabilityKey)
+	if len(capable) == 0 {
+		return ""
+	}
+	return fmt.Sprintf("; models with a thinking mode on '%s': %s",
+		harness, strings.Join(capable, ", "))
 }
 
 // fastCapableSuffix renders "; models with a fast tier on '<harness>':

@@ -161,7 +161,21 @@ type RunConfig struct {
 	// never the provider account default. FAST requires model_name
 	// (here or from the platform profile) to name a model with a
 	// registry fast pricing variant; validated fail-closed at create.
-	ServiceTier   ServiceTier `protobuf:"varint,4,opt,name=service_tier,json=serviceTier,proto3,enum=ai.stigmer.agentic.agentexecution.v1.ServiceTier" json:"service_tier,omitempty"`
+	ServiceTier ServiceTier `protobuf:"varint,4,opt,name=service_tier,json=serviceTier,proto3,enum=ai.stigmer.agentic.agentexecution.v1.ServiceTier" json:"service_tier,omitempty"`
+	// Thinking mode for each run's model calls: disabled (the default) or
+	// enabled, where enabled selects the model's extended-reasoning variant
+	// (billed at base per-token rates — reasoning tokens bill as output).
+	//
+	// In workflow YAML the shorthand spellings "disabled"/"enabled" are
+	// accepted alongside the canonical enum names.
+	//
+	// Mirrors ExecutionConfig.thinking_mode: UNSPECIFIED inherits the
+	// surface's platform default, which itself resolves to DISABLED —
+	// never the provider account default. ENABLED requires model_name
+	// (here or from the platform profile) to name a model whose registry
+	// entry declares the thinking capability; validated fail-closed at
+	// create. Combines freely with service_tier.
+	ThinkingMode  ThinkingMode `protobuf:"varint,5,opt,name=thinking_mode,json=thinkingMode,proto3,enum=ai.stigmer.agentic.agentexecution.v1.ThinkingMode" json:"thinking_mode,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -224,6 +238,13 @@ func (x *RunConfig) GetServiceTier() ServiceTier {
 	return ServiceTier_SERVICE_TIER_UNSPECIFIED
 }
 
+func (x *RunConfig) GetThinkingMode() ThinkingMode {
+	if x != nil {
+		return x.ThinkingMode
+	}
+	return ThinkingMode_THINKING_MODE_UNSPECIFIED
+}
+
 var File_ai_stigmer_agentic_agentexecution_v1_invocation_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agentexecution_v1_invocation_proto_rawDesc = "" +
@@ -239,14 +260,15 @@ const file_ai_stigmer_agentic_agentexecution_v1_invocation_proto_rawDesc = "" +
 	"\x10environment_refs\x18\x05 \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBx\xbaHq\x92\x01n\"l\xba\x01i\n" +
 	"\x15environment_refs.kind\x12?environment_refs must reference resources with kind=environment\x1a\x0fthis.kind == 53\xe0\x85,5R\x0fenvironmentRefs\x12N\n" +
 	"\n" +
-	"run_config\x18\x06 \x01(\v2/.ai.stigmer.agentic.agentexecution.v1.RunConfigR\trunConfig\"\xed\x01\n" +
+	"run_config\x18\x06 \x01(\v2/.ai.stigmer.agentic.agentexecution.v1.RunConfigR\trunConfig\"\xd0\x02\n" +
 	"\tRunConfig\x12\x1d\n" +
 	"\n" +
 	"model_name\x18\x01 \x01(\tR\tmodelName\x120\n" +
 	"\fmax_cost_usd\x18\x02 \x01(\x01B\x0e\xbaH\v\x12\t)\x00\x00\x00\x00\x00\x00\x00\x00R\n" +
 	"maxCostUsd\x12/\n" +
 	"\x0fmax_tool_rounds\x18\x03 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\rmaxToolRounds\x12^\n" +
-	"\fservice_tier\x18\x04 \x01(\x0e21.ai.stigmer.agentic.agentexecution.v1.ServiceTierB\b\xbaH\x05\x82\x01\x02\x10\x01R\vserviceTierB\xd0\x02\n" +
+	"\fservice_tier\x18\x04 \x01(\x0e21.ai.stigmer.agentic.agentexecution.v1.ServiceTierB\b\xbaH\x05\x82\x01\x02\x10\x01R\vserviceTier\x12a\n" +
+	"\rthinking_mode\x18\x05 \x01(\x0e22.ai.stigmer.agentic.agentexecution.v1.ThinkingModeB\b\xbaH\x05\x82\x01\x02\x10\x01R\fthinkingModeB\xd0\x02\n" +
 	"(com.ai.stigmer.agentic.agentexecution.v1B\x0fInvocationProtoP\x01Z^github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
 
 var (
@@ -269,6 +291,7 @@ var file_ai_stigmer_agentic_agentexecution_v1_invocation_proto_goTypes = []any{
 	(v1.Harness)(0),                          // 3: ai.stigmer.agentic.session.v1.Harness
 	(*v1.WorkspaceEntry)(nil),                // 4: ai.stigmer.agentic.session.v1.WorkspaceEntry
 	(ServiceTier)(0),                         // 5: ai.stigmer.agentic.agentexecution.v1.ServiceTier
+	(ThinkingMode)(0),                        // 6: ai.stigmer.agentic.agentexecution.v1.ThinkingMode
 }
 var file_ai_stigmer_agentic_agentexecution_v1_invocation_proto_depIdxs = []int32{
 	2, // 0: ai.stigmer.agentic.agentexecution.v1.AgentInvocation.agent_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
@@ -277,11 +300,12 @@ var file_ai_stigmer_agentic_agentexecution_v1_invocation_proto_depIdxs = []int32
 	2, // 3: ai.stigmer.agentic.agentexecution.v1.AgentInvocation.environment_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
 	1, // 4: ai.stigmer.agentic.agentexecution.v1.AgentInvocation.run_config:type_name -> ai.stigmer.agentic.agentexecution.v1.RunConfig
 	5, // 5: ai.stigmer.agentic.agentexecution.v1.RunConfig.service_tier:type_name -> ai.stigmer.agentic.agentexecution.v1.ServiceTier
-	6, // [6:6] is the sub-list for method output_type
-	6, // [6:6] is the sub-list for method input_type
-	6, // [6:6] is the sub-list for extension type_name
-	6, // [6:6] is the sub-list for extension extendee
-	0, // [0:6] is the sub-list for field type_name
+	6, // 6: ai.stigmer.agentic.agentexecution.v1.RunConfig.thinking_mode:type_name -> ai.stigmer.agentic.agentexecution.v1.ThinkingMode
+	7, // [7:7] is the sub-list for method output_type
+	7, // [7:7] is the sub-list for method input_type
+	7, // [7:7] is the sub-list for extension type_name
+	7, // [7:7] is the sub-list for extension extendee
+	0, // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentexecution_v1_invocation_proto_init() }

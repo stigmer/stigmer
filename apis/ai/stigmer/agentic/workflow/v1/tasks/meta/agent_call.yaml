@@ -82,3 +82,18 @@ yaml_examples:
           # models with a fast pricing tier; refused at create otherwise.
           # The shorthand spellings "standard"/"fast" are also accepted.
           service_tier: SERVICE_TIER_FAST
+  - |
+    - name: deep_review
+      kind: agent_call
+      task_config:
+        agent: "code-reviewer"
+        message: "Review the architecture of ${ .module }"
+        harness: HARNESS_CURSOR
+        run_config:
+          model_name: "claude-haiku-4-5"
+          # Thinking mode: the model's extended-reasoning variant, billed
+          # at base per-token rates (reasoning tokens count as output).
+          # Valid only for models with the thinking capability; refused at
+          # create otherwise. The shorthand spellings "disabled"/"enabled"
+          # are also accepted.
+          thinking_mode: THINKING_MODE_ENABLED

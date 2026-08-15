@@ -307,6 +307,7 @@ export function useNewSessionFlow(
   if (runConfig) assertValidRunConfig(runConfig);
   const pinnedModelName = runConfig?.modelName;
   const pinnedServiceTier = runConfig?.serviceTier;
+  const pinnedThinkingMode = runConfig?.thinkingMode;
   const contextTarget = useExecutionTarget();
   const executionTarget = options.executionTarget ?? contextTarget;
   const adapter = useRunnerAdapter();
@@ -490,6 +491,10 @@ export function useNewSessionFlow(
           serviceTier: pinnedModelName
             ? (pinnedServiceTier === "fast" ? "fast" : undefined)
             : context?.serviceTier,
+          // The tier's #772 twin, same pin-wins + only-explicit-enabled rule.
+          thinkingMode: pinnedModelName
+            ? (pinnedThinkingMode === "enabled" ? "enabled" : undefined)
+            : context?.thinkingMode,
           workspaceFileRefs: context?.workspaceFileRefs,
           autoApproveAll,
         };
@@ -584,6 +589,7 @@ export function useNewSessionFlow(
       effectiveModelId,
       pinnedModelName,
       pinnedServiceTier,
+      pinnedThinkingMode,
       workspace,
       mcpServerUsages,
       skillRefs,

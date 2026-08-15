@@ -211,7 +211,7 @@ class BillingLink(_message.Message):
     def __init__(self, debit_status: _Optional[_Union[BillingDebitStatus, str]] = ..., reservation_id: _Optional[str] = ..., billing_debit_id: _Optional[str] = ..., debited_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., billing_attempt_count: _Optional[int] = ..., last_billing_error: _Optional[str] = ...) -> None: ...
 
 class LlmCallUsageRecord(_message.Message):
-    __slots__ = ("usage_record_id", "execution_id", "root_execution_id", "sequence", "idempotency_key", "canonical_payload_hash", "observed_at", "created_at", "metering_source", "trust_level", "usage_status", "is_billable", "provider", "requested_model", "resolved_model", "endpoint", "streaming", "service_tier", "provider_request_id", "harness", "cursor_account_id", "cursor_key_id", "http_status_code", "finish_reason", "error_code", "cursor_key_source", "tokens", "cost", "proxy_timing", "provider_usage_json", "billing", "org_id", "session_id", "labels")
+    __slots__ = ("usage_record_id", "execution_id", "root_execution_id", "sequence", "idempotency_key", "canonical_payload_hash", "observed_at", "created_at", "metering_source", "trust_level", "usage_status", "is_billable", "provider", "requested_model", "resolved_model", "endpoint", "streaming", "service_tier", "provider_request_id", "harness", "cursor_account_id", "cursor_key_id", "http_status_code", "finish_reason", "error_code", "cursor_key_source", "thinking", "tokens", "cost", "proxy_timing", "provider_usage_json", "billing", "org_id", "session_id", "labels")
     class LabelsEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -245,6 +245,7 @@ class LlmCallUsageRecord(_message.Message):
     FINISH_REASON_FIELD_NUMBER: _ClassVar[int]
     ERROR_CODE_FIELD_NUMBER: _ClassVar[int]
     CURSOR_KEY_SOURCE_FIELD_NUMBER: _ClassVar[int]
+    THINKING_FIELD_NUMBER: _ClassVar[int]
     TOKENS_FIELD_NUMBER: _ClassVar[int]
     COST_FIELD_NUMBER: _ClassVar[int]
     PROXY_TIMING_FIELD_NUMBER: _ClassVar[int]
@@ -279,6 +280,7 @@ class LlmCallUsageRecord(_message.Message):
     finish_reason: str
     error_code: str
     cursor_key_source: CursorKeySource
+    thinking: str
     tokens: TokenUsage
     cost: CostStamp
     proxy_timing: ProxyTiming
@@ -287,7 +289,7 @@ class LlmCallUsageRecord(_message.Message):
     org_id: str
     session_id: str
     labels: _containers.ScalarMap[str, str]
-    def __init__(self, usage_record_id: _Optional[str] = ..., execution_id: _Optional[str] = ..., root_execution_id: _Optional[str] = ..., sequence: _Optional[int] = ..., idempotency_key: _Optional[str] = ..., canonical_payload_hash: _Optional[str] = ..., observed_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., metering_source: _Optional[_Union[UsageMeteringSource, str]] = ..., trust_level: _Optional[_Union[UsageTrustLevel, str]] = ..., usage_status: _Optional[_Union[UsageCompletionStatus, str]] = ..., is_billable: bool = ..., provider: _Optional[str] = ..., requested_model: _Optional[str] = ..., resolved_model: _Optional[str] = ..., endpoint: _Optional[str] = ..., streaming: bool = ..., service_tier: _Optional[str] = ..., provider_request_id: _Optional[str] = ..., harness: _Optional[str] = ..., cursor_account_id: _Optional[str] = ..., cursor_key_id: _Optional[str] = ..., http_status_code: _Optional[int] = ..., finish_reason: _Optional[str] = ..., error_code: _Optional[str] = ..., cursor_key_source: _Optional[_Union[CursorKeySource, str]] = ..., tokens: _Optional[_Union[TokenUsage, _Mapping]] = ..., cost: _Optional[_Union[CostStamp, _Mapping]] = ..., proxy_timing: _Optional[_Union[ProxyTiming, _Mapping]] = ..., provider_usage_json: _Optional[str] = ..., billing: _Optional[_Union[BillingLink, _Mapping]] = ..., org_id: _Optional[str] = ..., session_id: _Optional[str] = ..., labels: _Optional[_Mapping[str, str]] = ...) -> None: ...
+    def __init__(self, usage_record_id: _Optional[str] = ..., execution_id: _Optional[str] = ..., root_execution_id: _Optional[str] = ..., sequence: _Optional[int] = ..., idempotency_key: _Optional[str] = ..., canonical_payload_hash: _Optional[str] = ..., observed_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., metering_source: _Optional[_Union[UsageMeteringSource, str]] = ..., trust_level: _Optional[_Union[UsageTrustLevel, str]] = ..., usage_status: _Optional[_Union[UsageCompletionStatus, str]] = ..., is_billable: bool = ..., provider: _Optional[str] = ..., requested_model: _Optional[str] = ..., resolved_model: _Optional[str] = ..., endpoint: _Optional[str] = ..., streaming: bool = ..., service_tier: _Optional[str] = ..., provider_request_id: _Optional[str] = ..., harness: _Optional[str] = ..., cursor_account_id: _Optional[str] = ..., cursor_key_id: _Optional[str] = ..., http_status_code: _Optional[int] = ..., finish_reason: _Optional[str] = ..., error_code: _Optional[str] = ..., cursor_key_source: _Optional[_Union[CursorKeySource, str]] = ..., thinking: _Optional[str] = ..., tokens: _Optional[_Union[TokenUsage, _Mapping]] = ..., cost: _Optional[_Union[CostStamp, _Mapping]] = ..., proxy_timing: _Optional[_Union[ProxyTiming, _Mapping]] = ..., provider_usage_json: _Optional[str] = ..., billing: _Optional[_Union[BillingLink, _Mapping]] = ..., org_id: _Optional[str] = ..., session_id: _Optional[str] = ..., labels: _Optional[_Mapping[str, str]] = ...) -> None: ...
 
 class UsageReportAggregate(_message.Message):
     __slots__ = ("input_tokens", "output_tokens", "total_tokens", "cache_creation_input_tokens", "cache_read_input_tokens", "reasoning_tokens", "llm_call_count", "billable_cost_micros", "provider_cost_micros", "primary_model", "primary_provider")
@@ -338,7 +340,7 @@ class ModelUsage(_message.Message):
     def __init__(self, model: _Optional[str] = ..., provider: _Optional[str] = ..., input_tokens: _Optional[int] = ..., output_tokens: _Optional[int] = ..., cache_creation_input_tokens: _Optional[int] = ..., cache_read_input_tokens: _Optional[int] = ..., call_count: _Optional[int] = ..., billable_cost_micros: _Optional[int] = ..., provider_cost_micros: _Optional[int] = ...) -> None: ...
 
 class StreamingUsageSummary(_message.Message):
-    __slots__ = ("input_tokens", "output_tokens", "cache_read_tokens", "cache_write_tokens", "total_tokens", "turn_count", "estimated_cost_usd", "model", "observed_at", "requested_service_tier", "requested_model_params")
+    __slots__ = ("input_tokens", "output_tokens", "cache_read_tokens", "cache_write_tokens", "total_tokens", "turn_count", "estimated_cost_usd", "model", "observed_at", "requested_service_tier", "requested_model_params", "requested_thinking_mode")
     INPUT_TOKENS_FIELD_NUMBER: _ClassVar[int]
     OUTPUT_TOKENS_FIELD_NUMBER: _ClassVar[int]
     CACHE_READ_TOKENS_FIELD_NUMBER: _ClassVar[int]
@@ -350,6 +352,7 @@ class StreamingUsageSummary(_message.Message):
     OBSERVED_AT_FIELD_NUMBER: _ClassVar[int]
     REQUESTED_SERVICE_TIER_FIELD_NUMBER: _ClassVar[int]
     REQUESTED_MODEL_PARAMS_FIELD_NUMBER: _ClassVar[int]
+    REQUESTED_THINKING_MODE_FIELD_NUMBER: _ClassVar[int]
     input_tokens: int
     output_tokens: int
     cache_read_tokens: int
@@ -361,4 +364,5 @@ class StreamingUsageSummary(_message.Message):
     observed_at: str
     requested_service_tier: _enum_pb2.ServiceTier
     requested_model_params: str
-    def __init__(self, input_tokens: _Optional[int] = ..., output_tokens: _Optional[int] = ..., cache_read_tokens: _Optional[int] = ..., cache_write_tokens: _Optional[int] = ..., total_tokens: _Optional[int] = ..., turn_count: _Optional[int] = ..., estimated_cost_usd: _Optional[float] = ..., model: _Optional[str] = ..., observed_at: _Optional[str] = ..., requested_service_tier: _Optional[_Union[_enum_pb2.ServiceTier, str]] = ..., requested_model_params: _Optional[str] = ...) -> None: ...
+    requested_thinking_mode: _enum_pb2.ThinkingMode
+    def __init__(self, input_tokens: _Optional[int] = ..., output_tokens: _Optional[int] = ..., cache_read_tokens: _Optional[int] = ..., cache_write_tokens: _Optional[int] = ..., total_tokens: _Optional[int] = ..., turn_count: _Optional[int] = ..., estimated_cost_usd: _Optional[float] = ..., model: _Optional[str] = ..., observed_at: _Optional[str] = ..., requested_service_tier: _Optional[_Union[_enum_pb2.ServiceTier, str]] = ..., requested_model_params: _Optional[str] = ..., requested_thinking_mode: _Optional[_Union[_enum_pb2.ThinkingMode, str]] = ...) -> None: ...

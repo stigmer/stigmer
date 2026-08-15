@@ -387,6 +387,14 @@ message LlmCallUsageRecord {
   // pin-derived stamp).
   CursorKeySource cursor_key_source = 43;
 
+  // Billed thinking mode derived from wire evidence ("enabled"/"disabled"),
+  // mirroring service_tier's convention: cursor harness derives it from the
+  // resolved wire id's variant suffix; empty when the wire carries no
+  // evidence — never guessed. Thinking is per-token price-neutral
+  // (ledger-verified, stigmer/stigmer#772), so this field feeds the
+  // requested-vs-billed consumption-drift reconciliation, not pricing.
+  string thinking = 44;
+
   // ─── Token Usage ────────────────────────────────────────────────────────────
   TokenUsage tokens = 50;
 
@@ -559,4 +567,12 @@ message StreamingUsageSummary {
   // later from the tier alone. Mirrors the Cursor SDK's own analytics
   // convention (SdkRunCreatedProps.model_params).
   string requested_model_params = 11;
+
+  // Thinking mode the runner requested for this execution's model calls.
+  //
+  // Always explicit once the runner has translated the execution config
+  // (DISABLED when ExecutionConfig.thinking_mode was unset) — the audit
+  // record that the account default was never left in control
+  // (stigmer/stigmer#772; several catalog defaults are thinking=true).
+  ThinkingMode requested_thinking_mode = 12;
 }

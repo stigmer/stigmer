@@ -2189,6 +2189,23 @@
       ]
     },
     {
+      "name": "ThinkingMode",
+      "description": "ThinkingMode selects the model's extended-reasoning (\"thinking\") variant\n for an execution's model calls — the second variant dimension alongside\n ServiceTier (stigmer/stigmer#772).\n\n Unlike the fast tier, thinking is NOT a separately priced dimension:\n Cursor bills thinking variants at the model's base per-token rates\n (verified against the live pricing page and 277 team-ledger events on\n 2026-08-15 — thinking wire ids bill exactly base; thinking+fast bills\n exactly the fast variant rate). Thinking costs more only by generating\n additional reasoning tokens, billed as ordinary output. Selectability is\n therefore CAPABILITY-gated, not pricing-gated: ENABLED is valid only for\n models whose registry entry declares the thinking capability\n (capabilities.thinking), refused at create time otherwise.\n\n The load-bearing rule mirrors ServiceTier: UNSPECIFIED resolves to\n THINKING_MODE_DISABLED — never the provider account default. Several\n catalog default variants are thinking=true (claude-haiku-4-5), so an\n unpinned selection would silently follow an out-of-band account setting;\n the runner always sends an explicit thinking pin where the model declares\n the parameter.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.ThinkingMode",
+      "values": [
+        {
+          "name": "THINKING_MODE_DISABLED",
+          "number": 1,
+          "description": "Extended reasoning off: the model's base variant, requested explicitly\n (thinking=false pinned where the model declares the parameter)."
+        },
+        {
+          "name": "THINKING_MODE_ENABLED",
+          "number": 2,
+          "description": "Extended reasoning on: the model's thinking variant, billed at base\n per-token rates (reasoning tokens bill as output tokens).\n\n Valid only for models whose registry entry declares the thinking\n capability; refused at execution create otherwise."
+        }
+      ]
+    },
+    {
       "name": "SubAgentStatus",
       "description": "SubAgentStatus defines the status of a sub-agent execution.\n\n Status Transitions:\n\n Normal flow:\n SUB_AGENT_PENDING → SUB_AGENT_IN_PROGRESS → SUB_AGENT_COMPLETED\n\n Failure flow:\n SUB_AGENT_IN_PROGRESS → SUB_AGENT_FAILED\n\n Cancellation flow (parent cancelled while sub-agent active):\n SUB_AGENT_IN_PROGRESS → SUB_AGENT_CANCELLED\n\n Terminal States:\n - SUB_AGENT_COMPLETED: Sub-agent finished successfully\n - SUB_AGENT_FAILED: Sub-agent encountered an error\n - SUB_AGENT_CANCELLED: Parent execution was cancelled while sub-agent was active",
       "protoType": "ai.stigmer.agentic.agentexecution.v1.SubAgentStatus",
@@ -5091,6 +5108,21 @@
             "kind": "string"
           },
           "description": "JSON-encoded provider variant parameters the runner sent with the model\n selection (Cursor ModelSelection.params, e.g.\n [{\"id\":\"fast\",\"value\":\"false\"}]). Empty when the harness sent none.",
+          "required": false
+        },
+        {
+          "name": "RequestedThinkingMode",
+          "jsonName": "requestedThinkingMode",
+          "protoField": "requested_thinking_mode",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.agentexecution.v1.ThinkingMode",
+            "enumValues": [
+              "THINKING_MODE_DISABLED",
+              "THINKING_MODE_ENABLED"
+            ]
+          },
+          "description": "Thinking mode the runner requested for this execution's model calls.\n\n Always explicit once the runner has translated the execution config\n (DISABLED when ExecutionConfig.thinking_mode was unset) — the audit\n record that the account default was never left in control\n (stigmer/stigmer#772; several catalog defaults are thinking=true).",
           "required": false
         }
       ]

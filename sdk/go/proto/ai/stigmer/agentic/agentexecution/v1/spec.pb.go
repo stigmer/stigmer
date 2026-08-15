@@ -460,7 +460,17 @@ type ExecutionConfig struct {
 	// variant at the registry's fast rates; valid only for models whose
 	// registry entry declares a fast pricing variant, and requires model_name
 	// to be set (validated fail-closed at create time).
-	ServiceTier   ServiceTier `protobuf:"varint,10,opt,name=service_tier,json=serviceTier,proto3,enum=ai.stigmer.agentic.agentexecution.v1.ServiceTier" json:"service_tier,omitempty"`
+	ServiceTier ServiceTier `protobuf:"varint,10,opt,name=service_tier,json=serviceTier,proto3,enum=ai.stigmer.agentic.agentexecution.v1.ServiceTier" json:"service_tier,omitempty"`
+	// Thinking mode for this execution's model calls: disabled (the default)
+	// or enabled, where enabled selects the model's extended-reasoning variant.
+	//
+	// UNSPECIFIED/DISABLED: the model's base variant, pinned explicitly —
+	// never the provider account default. ENABLED: the model's thinking
+	// variant, billed at base per-token rates (reasoning tokens bill as
+	// output); valid only for models whose registry entry declares the
+	// thinking capability, and requires model_name to be set (validated
+	// fail-closed at create time). Combines freely with service_tier.
+	ThinkingMode  ThinkingMode `protobuf:"varint,11,opt,name=thinking_mode,json=thinkingMode,proto3,enum=ai.stigmer.agentic.agentexecution.v1.ThinkingMode" json:"thinking_mode,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -563,6 +573,13 @@ func (x *ExecutionConfig) GetServiceTier() ServiceTier {
 		return x.ServiceTier
 	}
 	return ServiceTier_SERVICE_TIER_UNSPECIFIED
+}
+
+func (x *ExecutionConfig) GetThinkingMode() ThinkingMode {
+	if x != nil {
+		return x.ThinkingMode
+	}
+	return ThinkingMode_THINKING_MODE_UNSPECIFIED
 }
 
 // ContextManagementConfig controls automatic context summarization behavior.
@@ -982,7 +999,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc = "" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12L\n" +
 	"\x05value\x18\x02 \x01(\v26.ai.stigmer.agentic.executioncontext.v1.ExecutionValueR\x05value:\x028\x01:\xb8\x03\xbaH\xb4\x03\x1a\xcb\x01\n" +
 	"!agent_execution.session_exclusive\x12rsession_id and session_spec are mutually exclusive — reference an existing session or define a new one, not both\x1a2!(this.session_id != '' && has(this.session_spec))\x1a\xe3\x01\n" +
-	"*agent_execution.session_spec_harness_state\x12psession_spec.harness_state_id must be empty — harness state is created by the runner after the first execution\x1aC!has(this.session_spec) || this.session_spec.harness_state_id == ''\"\xc5\x05\n" +
+	"*agent_execution.session_spec_harness_state\x12psession_spec.harness_state_id must be empty — harness state is created by the runner after the first execution\x1aC!has(this.session_spec) || this.session_spec.harness_state_id == ''\"\xa8\x06\n" +
 	"\x0fExecutionConfig\x12\x1d\n" +
 	"\n" +
 	"model_name\x18\x01 \x01(\tR\tmodelName\x12l\n" +
@@ -996,7 +1013,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc = "" +
 	"\x0fbuild_from_plan\x18\b \x01(\bR\rbuildFromPlan\x12a\n" +
 	"\rapproval_mode\x18\t \x01(\x0e22.ai.stigmer.agentic.agentexecution.v1.ApprovalModeB\b\xbaH\x05\x82\x01\x02\x10\x01R\fapprovalMode\x12^\n" +
 	"\fservice_tier\x18\n" +
-	" \x01(\x0e21.ai.stigmer.agentic.agentexecution.v1.ServiceTierB\b\xbaH\x05\x82\x01\x02\x10\x01R\vserviceTier\"\xcc\x01\n" +
+	" \x01(\x0e21.ai.stigmer.agentic.agentexecution.v1.ServiceTierB\b\xbaH\x05\x82\x01\x02\x10\x01R\vserviceTier\x12a\n" +
+	"\rthinking_mode\x18\v \x01(\x0e22.ai.stigmer.agentic.agentexecution.v1.ThinkingModeB\b\xbaH\x05\x82\x01\x02\x10\x01R\fthinkingMode\"\xcc\x01\n" +
 	"\x17ContextManagementConfig\x123\n" +
 	"\x15disable_summarization\x18\x01 \x01(\bR\x14disableSummarization\x12A\n" +
 	"\x18custom_trigger_threshold\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\x16customTriggerThreshold\x129\n" +
@@ -1049,8 +1067,9 @@ var file_ai_stigmer_agentic_agentexecution_v1_spec_proto_goTypes = []any{
 	(*structpb.Struct)(nil),         // 9: google.protobuf.Struct
 	(ApprovalMode)(0),               // 10: ai.stigmer.agentic.agentexecution.v1.ApprovalMode
 	(ServiceTier)(0),                // 11: ai.stigmer.agentic.agentexecution.v1.ServiceTier
-	(*timestamppb.Timestamp)(nil),   // 12: google.protobuf.Timestamp
-	(*v11.ExecutionValue)(nil),      // 13: ai.stigmer.agentic.executioncontext.v1.ExecutionValue
+	(ThinkingMode)(0),               // 12: ai.stigmer.agentic.agentexecution.v1.ThinkingMode
+	(*timestamppb.Timestamp)(nil),   // 13: google.protobuf.Timestamp
+	(*v11.ExecutionValue)(nil),      // 14: ai.stigmer.agentic.executioncontext.v1.ExecutionValue
 }
 var file_ai_stigmer_agentic_agentexecution_v1_spec_proto_depIdxs = []int32{
 	7,  // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.session_spec:type_name -> ai.stigmer.agentic.session.v1.SessionSpec
@@ -1064,13 +1083,14 @@ var file_ai_stigmer_agentic_agentexecution_v1_spec_proto_depIdxs = []int32{
 	9,  // 8: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.structured_output_schema:type_name -> google.protobuf.Struct
 	10, // 9: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.approval_mode:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalMode
 	11, // 10: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.service_tier:type_name -> ai.stigmer.agentic.agentexecution.v1.ServiceTier
-	12, // 11: ai.stigmer.agentic.agentexecution.v1.ConversationCatchup.window_end:type_name -> google.protobuf.Timestamp
-	13, // 12: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.RuntimeEnvEntry.value:type_name -> ai.stigmer.agentic.executioncontext.v1.ExecutionValue
-	13, // [13:13] is the sub-list for method output_type
-	13, // [13:13] is the sub-list for method input_type
-	13, // [13:13] is the sub-list for extension type_name
-	13, // [13:13] is the sub-list for extension extendee
-	0,  // [0:13] is the sub-list for field type_name
+	12, // 11: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.thinking_mode:type_name -> ai.stigmer.agentic.agentexecution.v1.ThinkingMode
+	13, // 12: ai.stigmer.agentic.agentexecution.v1.ConversationCatchup.window_end:type_name -> google.protobuf.Timestamp
+	14, // 13: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.RuntimeEnvEntry.value:type_name -> ai.stigmer.agentic.executioncontext.v1.ExecutionValue
+	14, // [14:14] is the sub-list for method output_type
+	14, // [14:14] is the sub-list for method input_type
+	14, // [14:14] is the sub-list for extension type_name
+	14, // [14:14] is the sub-list for extension extendee
+	0,  // [0:14] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentexecution_v1_spec_proto_init() }

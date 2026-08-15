@@ -14,7 +14,7 @@
  */
 
 import type { ModelParameterValue } from "@cursor/sdk";
-import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
 import { getCursorModelPricingForVariant, computeTurnCost } from "./model-pricing.js";
 
@@ -39,6 +39,8 @@ export interface UsageSnapshot {
   readonly requestedServiceTier: ServiceTier;
   /** JSON-encoded ModelSelection.params the runner sent; "" when none. */
   readonly requestedModelParams: string;
+  /** Thinking mode the runner requested — always explicit post-translation (#772). */
+  readonly requestedThinkingMode: ThinkingMode;
 }
 
 const EMPTY_SNAPSHOT: UsageSnapshot = {
@@ -53,6 +55,7 @@ const EMPTY_SNAPSHOT: UsageSnapshot = {
   observedAt: "",
   requestedServiceTier: ServiceTier.UNSPECIFIED,
   requestedModelParams: "",
+  requestedThinkingMode: ThinkingMode.UNSPECIFIED,
 };
 
 export interface TurnRecord {
@@ -85,6 +88,12 @@ export class UsageAccumulator {
      */
     private readonly requestedServiceTier: ServiceTier = ServiceTier.UNSPECIFIED,
     requestedModelParams: readonly ModelParameterValue[] = [],
+    /**
+     * The explicit thinking mode the runner requested. Price-neutral
+     * (thinking bills at base rates, #772), so it never enters the
+     * estimate — recorded purely as the audit trail twin of the tier.
+     */
+    private readonly requestedThinkingMode: ThinkingMode = ThinkingMode.UNSPECIFIED,
   ) {
     this.requestedModelParams =
       requestedModelParams.length > 0 ? JSON.stringify(requestedModelParams) : "";
@@ -154,6 +163,7 @@ export class UsageAccumulator {
       observedAt: this.observedAt,
       requestedServiceTier: this.requestedServiceTier,
       requestedModelParams: this.requestedModelParams,
+      requestedThinkingMode: this.requestedThinkingMode,
     };
   }
 }

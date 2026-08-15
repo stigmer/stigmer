@@ -47,6 +47,7 @@ function makePrepared(overrides: Partial<PreparedRun> = {}): PreparedRun {
     autoApproveAll: false,
     mode: "",
     serviceTier: "",
+    thinking: "",
     ...overrides,
   };
 }

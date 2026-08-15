@@ -4,7 +4,7 @@
 // is faked to capture the exact proto sent to the RPC.
 
 import { describe, expect, it } from "vitest";
-import { InteractionMode, ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { InteractionMode, ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { create } from "@bufbuild/protobuf";
 import {
   LocalPathSourceSchema,
@@ -41,6 +41,7 @@ describe("createAgentExecution", () => {
       model: "claude",
       mode: "plan",
       serviceTier: "",
+      thinking: "",
       autoApproveAll: true,
     });
 
@@ -69,6 +70,7 @@ describe("createAgentExecution", () => {
       model: "",
       mode: "",
       serviceTier: "",
+      thinking: "",
       autoApproveAll: false,
     });
     expect(exec.spec?.message).toBe("hi");
@@ -88,6 +90,7 @@ describe("createAgentExecution", () => {
       model: "composer-2.5",
       mode: "",
       serviceTier: "fast",
+      thinking: "",
       autoApproveAll: false,
     });
     expect(exec.spec?.executionConfig?.serviceTier).toBe(ServiceTier.FAST);
@@ -108,9 +111,50 @@ describe("createAgentExecution", () => {
       model: "",
       mode: "",
       serviceTier: "standard",
+      thinking: "",
       autoApproveAll: false,
     });
     expect(exec.spec?.executionConfig?.serviceTier).toBe(ServiceTier.STANDARD);
+  });
+
+  it("maps --thinking enabled to the enum (#772)", async () => {
+    const { fn } = fakeController();
+    const exec = await createAgentExecution(fn, {
+      agentId: "agt_1",
+      orgId: "acme",
+      message: "x",
+      runtimeEnv: {},
+      attachments: [],
+      workspaceFileRefs: [],
+      workspaceEntries: [],
+      model: "claude-haiku-4-5",
+      mode: "",
+      serviceTier: "",
+      thinking: "enabled",
+      autoApproveAll: false,
+    });
+    expect(exec.spec?.executionConfig?.thinkingMode).toBe(ThinkingMode.ENABLED);
+  });
+
+  it("maps an explicit --thinking disabled to DISABLED, not UNSPECIFIED", async () => {
+    // The tier's #772 twin: unspecified-vs-explicit-disabled is the same
+    // load-bearing ledger distinction.
+    const { fn } = fakeController();
+    const exec = await createAgentExecution(fn, {
+      agentId: "agt_1",
+      orgId: "acme",
+      message: "x",
+      runtimeEnv: {},
+      attachments: [],
+      workspaceFileRefs: [],
+      workspaceEntries: [],
+      model: "",
+      mode: "",
+      serviceTier: "",
+      thinking: "disabled",
+      autoApproveAll: false,
+    });
+    expect(exec.spec?.executionConfig?.thinkingMode).toBe(ThinkingMode.DISABLED);
   });
 
   it("leaves InteractionMode unspecified for agent mode", async () => {
@@ -126,6 +170,7 @@ describe("createAgentExecution", () => {
       model: "m",
       mode: "agent",
       serviceTier: "",
+      thinking: "",
       autoApproveAll: false,
     });
     expect(exec.spec?.sessionId).toBe("ses_1");
@@ -152,6 +197,7 @@ describe("createAgentExecution", () => {
       model: "",
       mode: "",
       serviceTier: "",
+      thinking: "",
       autoApproveAll: false,
     });
 
@@ -175,6 +221,7 @@ describe("createAgentExecution", () => {
       model: "",
       mode: "",
       serviceTier: "",
+      thinking: "",
       autoApproveAll: false,
     });
     expect(exec.spec?.sessionSpec).toBeUndefined();
