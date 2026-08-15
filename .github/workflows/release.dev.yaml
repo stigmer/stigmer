@@ -287,6 +287,13 @@ jobs:
           echo "ERROR: @stigmer/protos@$VERSION not visible on npm after 5 minutes." >&2
           exit 1
 
+      # Last gate before publish (#786) — mirrors release.npm-libs.yaml:
+      # fresh consumer-style install of the packed tarball + manager boot,
+      # against the real stamped manifest.
+      - name: Consumer-install smoke check
+        working-directory: backend/services/runner
+        run: npm run verify:consumer
+
       - name: Publish runner to npm (dev tag)
         working-directory: backend/services/runner
         env:

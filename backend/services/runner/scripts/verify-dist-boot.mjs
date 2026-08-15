@@ -38,15 +38,23 @@
  * on Node < 22.13 without --experimental-sqlite the guard fails with the
  * preflight's actionable message — which is correct, that Node cannot run
  * the runner (see the repo's environment notes).
+ *
+ * Target selection: with no argument it boots this package's own dist/
+ * (the `verify:dist` gate). An optional argv[2] points it at any other
+ * main.js — verify-consumer-install.mjs (stigmer/stigmer#786) reuses it
+ * against a fresh consumer-style install of the packed tarball, so there
+ * is exactly one boot-check mechanism with two call sites.
  */
 
 import { spawn } from "node:child_process";
 import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const distMain = fileURLToPath(new URL("../dist/main.js", import.meta.url));
+const distMain = process.argv[2]
+  ? resolve(process.argv[2])
+  : fileURLToPath(new URL("../dist/main.js", import.meta.url));
 const BOOT_TIMEOUT_MS = 60_000;
 
 // Loopback + a port nothing binds in practice: connect() fails immediately
@@ -59,7 +67,7 @@ function fail(message) {
 }
 
 if (!existsSync(distMain)) {
-  fail("dist/main.js not found — run `npm run build` first");
+  fail(`${distMain} not found — run \`npm run build\` first`);
 }
 
 const workspaceDir = mkdtempSync(join(tmpdir(), "stigmer-dist-boot-"));
