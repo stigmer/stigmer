@@ -40,10 +40,10 @@ spec:
           thoroughly. Identify key themes, claims, evidence, and gaps.
           Organize your analysis with clear sections.
         prompt: >
-          Analyze the following material on "${ $context.env.TOPIC }"
-          at ${ $context.env.DEPTH } depth:
+          Analyze the following material on "${ $env.TOPIC }"
+          at ${ $env.DEPTH } depth:
 
-          ${ $context.env.SOURCE_MATERIAL }
+          ${ $env.SOURCE_MATERIAL }
         temperature: 0.3
         max_tokens: 3000
         timeout: 120
@@ -139,7 +139,7 @@ spec:
             key_findings: .findings,
             finding_count: (.findings.findings | length)
           }
-        input: "${ {topic: $context.env.TOPIC, summary: $context.parallel_processing.executive_summary.summarize.text, findings: $context.parallel_processing.key_findings.extract_findings.structured} }"
+        input: "${ {topic: $env.TOPIC, summary: $context.parallel_processing.executive_summary.summarize.text, findings: $context.parallel_processing.key_findings.extract_findings.structured} }"
       export:
         as: "${ . }"
       flow:

@@ -48,7 +48,7 @@ spec:
       task_config:
         model: "claude-sonnet-4-5"
         system_prompt: "You are a professional content writer."
-        prompt: "Write content about: ${ $context.env.TOPIC }"
+        prompt: "Write content about: ${ $env.TOPIC }"
         temperature: 0.7
         max_tokens: 2000
       export:
@@ -120,7 +120,7 @@ kind-specific configuration).
   kind: llm_call
   task_config:
     model: "gpt-4o-mini"
-    prompt: "Classify this ticket: ${ $context.env.TICKET }"
+    prompt: "Classify this ticket: ${ $env.TICKET }"
     response_schema:
       type: object
       properties:
@@ -173,7 +173,7 @@ graph LR
 
 Data flows between tasks through **expressions**. When a task exports its output
 with `export.as`, later tasks access it via `${ $context.<taskName>.<field> }`.
-Environment variables are available as `${ $context.env.<VAR_NAME> }`.
+Environment variables are available as `${ $env.<VAR_NAME> }`.
 
 Execution is **durable**. Stigmer runs workflows on
 [Temporal](https://temporal.io/), so if the process crashes mid-task, it

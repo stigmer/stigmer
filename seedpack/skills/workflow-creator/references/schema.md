@@ -54,7 +54,7 @@ document:
 ## spec.env
 
 Declares the inputs a user supplies when starting the workflow. Schema only —
-values are provided at run time. Reference them in tasks via `${ $context.env.NAME }`.
+values are provided at run time. Reference them in tasks via `${ $env.NAME }`.
 
 ```yaml
 env:
@@ -145,7 +145,7 @@ Stigmer uses `${ ... }` expressions to read values across the workflow:
 
 | Reference | Meaning |
 |---|---|
-| `${ $context.env.NAME }` | A run-time input declared in `spec.env` |
+| `${ $env.NAME }` | A run-time input declared in `spec.env` |
 | `${ $context.<task-name> }` | The full exported output of a prior task |
 | `${ $context.<task-name>.<field> }` | A field within a prior task's output |
 | `${ . }` | The current task's input/result (used in `export.as` and `transform.input`) |

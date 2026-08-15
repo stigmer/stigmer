@@ -450,6 +450,120 @@ func TestCheckDocsYamlOnFixtureTree(t *testing.T) {
 	}
 }
 
+func TestCheckDeadExpressionNamespace(t *testing.T) {
+	problems := checkDeadExpressionNamespace("guide.mdx",
+		"Env vars live at `${ $env.TOPIC }`.\nNever `${ $context.env.TOPIC }`.\nAlso bad: $context.env.OTHER\n")
+	if len(problems) != 2 {
+		t.Fatalf("expected 2 problems, got %v", problems)
+	}
+	if problems[0].Line != 2 || problems[1].Line != 3 {
+		t.Errorf("expected lines 2 and 3, got %d and %d", problems[0].Line, problems[1].Line)
+	}
+	if !strings.Contains(problems[0].Msg, "$env.<VAR>") {
+		t.Errorf("problem should point at the $env namespace, got: %s", problems[0].Msg)
+	}
+}
+
+func TestCheckAuthoringDirsOnFixtureTree(t *testing.T) {
+	dir := t.TempDir()
+
+	// A manifest a real apply rejects (string duration) plus the dead
+	// namespace — both must be flagged (the stigmer/stigmer#778 classes).
+	badManifest := `apiVersion: agentic.stigmer.ai/v1
+kind: Workflow
+metadata:
+  name: bad
+spec:
+  description: bad fixture
+  document:
+    dsl: "1.0.0"
+    namespace: examples
+    name: bad
+    version: "1.0.0"
+  tasks:
+    - name: pause
+      kind: wait
+      task_config:
+        duration: "5s"
+`
+	goodManifest := `apiVersion: agentic.stigmer.ai/v1
+kind: Workflow
+metadata:
+  name: good
+spec:
+  description: good fixture
+  document:
+    dsl: "1.0.0"
+    namespace: examples
+    name: good
+    version: "1.0.0"
+  tasks:
+    - name: pause
+      kind: wait
+      task_config:
+        duration:
+          seconds: 5
+`
+	// Not a manifest (no apiVersion): namespace-scanned only, never
+	// manifest-validated — the seedpack-tile shape.
+	tileYaml := "name: some-tile\nprompt: \"uses ${ $context.env.TOPIC }\"\n"
+	skillDoc := "# Skill\nUse `${ $env.TOPIC }` — but this file says $context.env.TOPIC once.\n"
+
+	writeFixture := func(rel, content string) {
+		path := filepath.Join(dir, rel)
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	writeFixture("workflows/bad.yaml", badManifest)
+	writeFixture("workflows/good.yaml", goodManifest)
+	writeFixture("tiles/tile.yaml", tileYaml)
+	writeFixture("skills/SKILL.md", skillDoc)
+
+	reg := mustBuildRegistries(t)
+	var err error
+	reg.rules, err = newDocsYamlRuleEval(ruleModeOff)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	summary, problems, err := checkAuthoringDirs([]string{dir}, reg)
+	if err != nil {
+		t.Fatalf("checkAuthoringDirs: %v", err)
+	}
+	if summary.Files != 4 {
+		t.Errorf("expected 4 files scanned, got %d", summary.Files)
+	}
+	if summary.Manifests != 2 {
+		t.Errorf("expected 2 manifests validated (the tile has no apiVersion), got %d", summary.Manifests)
+	}
+
+	var durationProblem, tileProblem, skillProblem bool
+	for _, p := range problems {
+		if strings.Contains(p.Msg, "WaitTaskConfig") && strings.HasSuffix(p.Path, "bad.yaml") {
+			durationProblem = true
+		}
+		if strings.Contains(p.Msg, "$env.<VAR>") && strings.HasSuffix(p.Path, "tile.yaml") {
+			tileProblem = true
+		}
+		if strings.Contains(p.Msg, "$env.<VAR>") && strings.HasSuffix(p.Path, "SKILL.md") {
+			skillProblem = true
+		}
+		if strings.HasSuffix(p.Path, "good.yaml") {
+			t.Errorf("good manifest should not be flagged: %s", p.Msg)
+		}
+	}
+	if !durationProblem {
+		t.Errorf("string duration in a raw manifest should be flagged, got %v", problems)
+	}
+	if !tileProblem || !skillProblem {
+		t.Errorf("dead namespace should be flagged in both YAML and markdown files, got %v", problems)
+	}
+}
+
 func TestGeneratedDocHint(t *testing.T) {
 	cases := []struct {
 		rel  string

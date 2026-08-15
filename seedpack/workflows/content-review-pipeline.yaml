@@ -37,9 +37,9 @@ spec:
           that follows the provided guidelines. Output well-structured prose
           suitable for publication.
         prompt: >
-          Write content about the following topic: ${ $context.env.TOPIC }
+          Write content about the following topic: ${ $env.TOPIC }
 
-          Guidelines: ${ $context.env.GUIDELINES }
+          Guidelines: ${ $env.GUIDELINES }
         temperature: 0.7
         max_tokens: 2000
         timeout: 120
@@ -88,7 +88,7 @@ spec:
           You are a professional content writer. Revise the draft based on
           the reviewer's feedback. Preserve what works, fix what doesn't.
         prompt: >
-          Original topic: ${ $context.env.TOPIC }
+          Original topic: ${ $env.TOPIC }
 
           Previous draft:
           ${ $context.draft_content.text }
@@ -117,6 +117,6 @@ spec:
             content: .content,
             approved_by: .reviewer
           }
-        input: "${ {topic: $context.env.TOPIC, content: $context.draft_content.text, reviewer: $context.review_content.reviewer} }"
+        input: "${ {topic: $env.TOPIC, content: $context.draft_content.text, reviewer: $context.review_content.reviewer} }"
       export:
         as: "${ . }"

@@ -10,11 +10,11 @@ spec:
     name: hello-world
     version: "1.0.0"
   tasks:
-    - name: set-greeting
+    - name: set_greeting
       kind: set_vars
       task_config:
         variables:
           greeting: "Hello, World!"
-          timestamp: "${now()}"
+          timestamp: "${ now }"
       export:
-        as: "${.}"
+        as: "${ . }"

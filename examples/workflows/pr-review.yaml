@@ -12,61 +12,69 @@ spec:
     namespace: examples
     name: pr-review
     version: "1.0.0"
+  env:
+    REPO:
+      description: "GitHub repository in owner/name form"
+    PR_NUMBER:
+      description: "Pull request number to review"
+    GITHUB_TOKEN:
+      description: "GitHub API token with repo scope"
+      is_secret: true
   tasks:
-    - name: fetch-pr-data
+    - name: fetch_pr_data
       kind: http_call
       task_config:
         method: GET
         endpoint:
-          uri: "https://api.github.com/repos/${repo}/pulls/${pr_number}"
+          uri: "https://api.github.com/repos/${ $env.REPO }/pulls/${ $env.PR_NUMBER }"
         headers:
-          Authorization: "Bearer ${GITHUB_TOKEN}"
+          Authorization: "Bearer ${ $env.GITHUB_TOKEN }"
           Accept: "application/vnd.github.v3+json"
       export:
-        as: "${.}"
+        as: "${ . }"
       flow:
-        then: analyze-code-quality
+        then: analyze_code_quality
 
-    - name: analyze-code-quality
+    - name: analyze_code_quality
       kind: agent_call
       task_config:
         agent: code-reviewer
-        message: "Analyze code quality for PR: ${context.fetch-pr-data.title}\n\nFiles changed: ${context.fetch-pr-data.changed_files}\nDiff: ${context.fetch-pr-data.diff_url}"
+        message: "Analyze code quality for PR: ${ $context.fetch_pr_data.title }\n\nFiles changed: ${ $context.fetch_pr_data.changed_files }\nDiff: ${ $context.fetch_pr_data.diff_url }"
       export:
-        as: "${.analysis}"
+        as: "${ .analysis }"
       flow:
-        then: check-test-coverage
+        then: check_test_coverage
 
-    - name: check-test-coverage
+    - name: check_test_coverage
       kind: agent_call
       task_config:
         agent: test-analyzer
-        message: "Check test coverage for PR diff: ${context.fetch-pr-data.diff_url}"
+        message: "Check test coverage for PR diff: ${ $context.fetch_pr_data.diff_url }"
       export:
-        as: "${.coverage}"
+        as: "${ .coverage }"
       flow:
-        then: generate-review
+        then: generate_review
 
-    - name: generate-review
+    - name: generate_review
       kind: agent_call
       task_config:
         agent: review-synthesizer
-        message: "Generate comprehensive review based on:\nCode Analysis: ${context.analyze-code-quality.analysis}\nTest Coverage: ${context.check-test-coverage.coverage}"
+        message: "Generate comprehensive review based on:\nCode Analysis: ${ $context.analyze_code_quality.analysis }\nTest Coverage: ${ $context.check_test_coverage.coverage }"
       export:
-        as: "${.review}"
+        as: "${ .review }"
       flow:
-        then: post-comment
+        then: post_comment
 
-    - name: post-comment
+    - name: post_comment
       kind: http_call
       task_config:
         method: POST
         endpoint:
-          uri: "https://api.github.com/repos/${repo}/issues/${pr_number}/comments"
+          uri: "https://api.github.com/repos/${ $env.REPO }/issues/${ $env.PR_NUMBER }/comments"
         headers:
-          Authorization: "Bearer ${GITHUB_TOKEN}"
+          Authorization: "Bearer ${ $env.GITHUB_TOKEN }"
           Accept: "application/vnd.github.v3+json"
         body:
-          body: "${context.generate-review.review}"
+          body: "${ $context.generate_review.review }"
       flow:
         then: end

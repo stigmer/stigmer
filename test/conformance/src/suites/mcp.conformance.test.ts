@@ -125,4 +125,48 @@ describe("MCP server conformance (live Go server)", () => {
     const getResult = await callTool("get_agent", { org: orgSlug, slug });
     expect(getResult.isError).toBe(true); // NotFound surfaces as a tool error
   });
+
+  // Round-trip pin for validate_workflow_yaml (stigmer/stigmer#778 finding 2):
+  // until 2026-07-28 the MCP client's transport default sent grpc-web to a
+  // server path that rejects it, so the ONLY server-backed validation surface
+  // died with "Content-Type 'application/grpc-web+proto' is not supported".
+  // The roster assertion above never caught that — only a real call does.
+  it("validate_workflow_yaml round-trips the real validation pipeline", async () => {
+    const workflowYaml = (taskConfig: string) => `
+apiVersion: agentic.stigmer.ai/v1
+kind: Workflow
+metadata:
+  name: mcp-validate-roundtrip
+  org: ${orgSlug}
+spec:
+  description: conformance validate_workflow_yaml fixture
+  document:
+    dsl: "1.0.0"
+    namespace: ${orgSlug}
+    name: mcp-validate-roundtrip
+    version: "1.0.0"
+  tasks:
+    - name: conditional_wait
+      kind: wait
+      task_config:
+${taskConfig}
+`;
+
+    const valid = await callTool("validate_workflow_yaml", {
+      yaml: workflowYaml("        duration:\n          seconds: 5"),
+    });
+    expect(valid.isError, valid.content[0]?.text).toBeFalsy();
+    const validVerdict = JSON.parse(valid.content[0]?.text ?? "{}");
+    expect(validVerdict.state, JSON.stringify(validVerdict.errors)).toBe("VALID");
+
+    // A config a real apply rejects must come back as a structured INVALID
+    // verdict naming the task — never a transport error.
+    const invalid = await callTool("validate_workflow_yaml", {
+      yaml: workflowYaml('        duration: "5s"'),
+    });
+    expect(invalid.isError, invalid.content[0]?.text).toBeFalsy();
+    const invalidVerdict = JSON.parse(invalid.content[0]?.text ?? "{}");
+    expect(invalidVerdict.state).toBe("INVALID");
+    expect(JSON.stringify(invalidVerdict.errors)).toContain("conditional_wait");
+  });
 });

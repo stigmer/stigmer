@@ -622,6 +622,101 @@ func decodeYamlDocuments(body string) ([]interface{}, error) {
 // Tree walk and reporting
 // ============================================================================
 
+// deadExpressionNamespacePattern matches the `$context.env` expression
+// namespace, which resolves to null at runtime — environment variables are a
+// top-level `$env` binding, never nested under `$context`. The runner's
+// server-side validator only WARNS about this (expression_warnings.go); here,
+// on authoring surfaces we ship (docs prose and fences, examples, seedpack),
+// it is a hard failure so the dead form can never be taught again
+// (stigmer/stigmer#778 finding 3).
+var deadExpressionNamespacePattern = regexp.MustCompile(`\$context\.env`)
+
+// checkDeadExpressionNamespace scans a file's raw text line by line so every
+// occurrence gets a precise location. Text-level on purpose: the dead form
+// appears in prose, inline code, and YAML strings alike, and all of them
+// teach it.
+func checkDeadExpressionNamespace(path, src string) []docsYamlProblem {
+	var problems []docsYamlProblem
+	for i, line := range strings.Split(src, "\n") {
+		if deadExpressionNamespacePattern.MatchString(line) {
+			problems = append(problems, docsYamlProblem{
+				Path: path,
+				Line: i + 1,
+				Msg: "references the dead '$context.env' expression namespace, which resolves to null at runtime — " +
+					"environment variables are accessed via '$env.<VAR>' ($context holds accumulated task outputs)",
+			})
+		}
+	}
+	return problems
+}
+
+// checkAuthoringDirs walks raw authoring surfaces that ship to users but have
+// no markdown fences — examples/ and seedpack/ — applying the same truth as
+// the docs gate: every YAML document with an apiVersion is validated as a
+// full resource manifest (typed task-config decode and protovalidate rules
+// included), and every file is scanned for the dead expression namespace.
+// YAML files without apiVersion (e.g. seedpack MCP tiles) are namespace-
+// scanned only: they are not resource manifests and have their own suites.
+func checkAuthoringDirs(dirs []string, reg *docsYamlRegistries) (summary authoringDirsSummary, problems []docsYamlProblem, err error) {
+	for _, dir := range dirs {
+		walkErr := filepath.WalkDir(dir, func(path string, d fs.DirEntry, walkErr error) error {
+			if walkErr != nil {
+				return walkErr
+			}
+			if d.IsDir() {
+				return nil
+			}
+			ext := filepath.Ext(path)
+			isYaml := ext == ".yaml" || ext == ".yml"
+			isMarkdown := ext == ".md" || ext == ".mdx"
+			if !isYaml && !isMarkdown {
+				return nil
+			}
+
+			src, readErr := os.ReadFile(path)
+			if readErr != nil {
+				return readErr
+			}
+			summary.Files++
+			problems = append(problems, checkDeadExpressionNamespace(path, string(src))...)
+			if !isYaml {
+				return nil
+			}
+
+			docs, decodeErr := decodeYamlDocuments(string(src))
+			if decodeErr != nil {
+				problems = append(problems, docsYamlProblem{Path: path, Msg: fmt.Sprintf("invalid YAML: %v", decodeErr)})
+				return nil
+			}
+			for _, doc := range docs {
+				mapping, isMapping := doc.(map[string]interface{})
+				if !isMapping {
+					continue
+				}
+				if _, hasAPIVersion := mapping["apiVersion"]; !hasAPIVersion {
+					continue
+				}
+				summary.Manifests++
+				reg.rules.beginFence(path, 0)
+				reg.rules.setBlockClass("manifest")
+				for _, msg := range validateManifestDoc(mapping, reg) {
+					problems = append(problems, docsYamlProblem{Path: path, Msg: msg})
+				}
+			}
+			return nil
+		})
+		if walkErr != nil {
+			return summary, problems, walkErr
+		}
+	}
+	return summary, problems, nil
+}
+
+type authoringDirsSummary struct {
+	Files     int
+	Manifests int
+}
+
 type docsYamlSummary struct {
 	Files     int
 	Blocks    int
@@ -675,6 +770,9 @@ func checkDocsYaml(docsDir string, ruleMode docsYamlRuleMode) (docsYamlSummary, 
 		if err != nil {
 			return err
 		}
+		// Whole-file scan (prose, inline code, and fences alike): the dead
+		// namespace teaches wrong wherever it appears.
+		problems = append(problems, checkDeadExpressionNamespace(path, string(src))...)
 		fences, err := scanMarkdownFences(path, string(src))
 		if err != nil {
 			problems = append(problems, docsYamlProblem{Path: path, Msg: err.Error()})
@@ -721,11 +819,28 @@ func checkDocsYaml(docsDir string, ruleMode docsYamlRuleMode) (docsYamlSummary, 
 	return summary, problems, rules, nil
 }
 
-// runDocsYamlCheck is the --target=docs-yaml-check entry point.
-func runDocsYamlCheck(docsDir string, ruleMode docsYamlRuleMode) error {
+// runDocsYamlCheck is the --target=docs-yaml-check entry point. authoringDirs
+// optionally extends the gate beyond docs fences to raw authoring surfaces
+// (examples/, seedpack/) — same registries, same rules, one gate.
+func runDocsYamlCheck(docsDir string, authoringDirs []string, ruleMode docsYamlRuleMode) error {
 	summary, problems, rules, err := checkDocsYaml(docsDir, ruleMode)
 	if err != nil {
 		return err
+	}
+
+	var authoringSummary authoringDirsSummary
+	if len(authoringDirs) > 0 {
+		reg, regErr := buildDocsYamlRegistries()
+		if regErr != nil {
+			return regErr
+		}
+		reg.rules = rules
+		var authoringProblems []docsYamlProblem
+		authoringSummary, authoringProblems, err = checkAuthoringDirs(authoringDirs, reg)
+		if err != nil {
+			return err
+		}
+		problems = append(problems, authoringProblems...)
 	}
 
 	// The report precedes the gate result: in report mode the findings are
@@ -756,6 +871,10 @@ func runDocsYamlCheck(docsDir string, ruleMode docsYamlRuleMode) error {
 
 	fmt.Printf("✓ docs YAML gate: %d blocks across %d files — %d manifests, %d task lists, %d anchored fragments, %d skipped with no-validate, 0 unclassified\n",
 		summary.Blocks, summary.Files, summary.Manifests, summary.TaskLists, summary.Anchored, summary.Skipped)
+	if len(authoringDirs) > 0 {
+		fmt.Printf("✓ authoring surfaces (%s): %d files scanned, %d raw manifests validated, namespace check clean\n",
+			strings.Join(authoringDirs, ", "), authoringSummary.Files, authoringSummary.Manifests)
+	}
 	return nil
 }
 

@@ -864,8 +864,8 @@ format-docs-check: ## Check documentation formatting (CI, no writes)
 	@$(PRETTIER_GUARD)
 	@$(PRETTIER) --check --prose-wrap always $(DOCS_SOURCES)
 
-check-docs-yaml: ## Validate every docs YAML block against the proto contracts, incl. platform-parity protovalidate rules (CI)
-	@go run ./tools/codegen/generator --target=docs-yaml-check --docs-dir docs --rules=enforce
+check-docs-yaml: ## Validate every docs YAML block + raw examples/seedpack manifests against the proto contracts, incl. platform-parity protovalidate rules (CI)
+	@go run ./tools/codegen/generator --target=docs-yaml-check --docs-dir docs --authoring-dirs examples,seedpack --rules=enforce
 
 report-docs-yaml-rules: ## Full-depth protovalidate rule report over docs YAML (incl. latent platform-blind findings; never fails)
 	@go run ./tools/codegen/generator --target=docs-yaml-check --docs-dir docs --rules=report

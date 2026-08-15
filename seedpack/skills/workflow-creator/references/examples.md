@@ -36,7 +36,7 @@ spec:
         prompt: >
           Analyze the following material:
 
-          ${ $context.env.SOURCE_MATERIAL }
+          ${ $env.SOURCE_MATERIAL }
         temperature: 0.3
         max_tokens: 1500
         timeout: 120
@@ -86,7 +86,7 @@ spec:
       task_config:
         model: "gpt-4o-mini"
         system_prompt: "Classify the ticket by severity. Be conservative with critical."
-        prompt: "Classify this ticket:\n\n${ $context.env.TICKET_DESCRIPTION }"
+        prompt: "Classify this ticket:\n\n${ $env.TICKET_DESCRIPTION }"
         response_schema:
           type: object
           required:
@@ -188,7 +188,7 @@ spec:
                 task_config:
                   model: "claude-sonnet-4.5"
                   system_prompt: "Write a concise executive summary."
-                  prompt: "Summarize:\n\n${ $context.env.SOURCE_MATERIAL }"
+                  prompt: "Summarize:\n\n${ $env.SOURCE_MATERIAL }"
                   max_tokens: 500
                   timeout: 60
                 export:
@@ -200,7 +200,7 @@ spec:
                 task_config:
                   model: "gpt-4o-mini"
                   system_prompt: "Extract key findings."
-                  prompt: "Extract findings:\n\n${ $context.env.SOURCE_MATERIAL }"
+                  prompt: "Extract findings:\n\n${ $env.SOURCE_MATERIAL }"
                   max_tokens: 500
                   timeout: 60
                 export:

@@ -13,19 +13,19 @@ spec:
     name: multi-step
     version: "1.0.0"
   tasks:
-    - name: initialize-context
+    - name: initialize_context
       kind: set_vars
       task_config:
         variables:
-          workflow_id: "${workflowId}"
-          started_at: "${now()}"
+          workflow_label: "multi-step-example"
+          started_at: "${ now }"
           environment: "production"
       export:
-        as: "${.}"
+        as: "${ . }"
       flow:
-        then: fetch-data
+        then: fetch_data
 
-    - name: fetch-data
+    - name: fetch_data
       kind: http_call
       task_config:
         method: GET
@@ -33,40 +33,41 @@ spec:
           uri: "https://api.example.com/data"
         headers:
           Content-Type: "application/json"
-          X-Workflow-Id: "${context.initialize-context.workflow_id}"
+          X-Workflow-Label: "${ $context.initialize_context.workflow_label }"
       export:
-        as: "${.response}"
+        as: "${ .response }"
       flow:
-        then: process-with-agent
+        then: process_with_agent
 
-    - name: process-with-agent
+    - name: process_with_agent
       kind: agent_call
       task_config:
         agent: data-processor
-        message: "Process this data: ${context.fetch-data.response}"
+        message: "Process this data: ${ $context.fetch_data.response }"
       export:
-        as: "${.processed}"
+        as: "${ .processed }"
       flow:
-        then: conditional-wait
+        then: conditional_wait
 
-    - name: conditional-wait
+    - name: conditional_wait
       kind: wait
       task_config:
-        duration: "5s"
+        duration:
+          seconds: 5
       flow:
-        then: validate-results
+        then: validate_results
 
-    - name: validate-results
+    - name: validate_results
       kind: agent_call
       task_config:
         agent: validator
-        message: "Validate processing results: ${context.process-with-agent.processed}"
+        message: "Validate processing results: ${ $context.process_with_agent.processed }"
       export:
-        as: "${.validation}"
+        as: "${ .validation }"
       flow:
-        then: store-results
+        then: store_results
 
-    - name: store-results
+    - name: store_results
       kind: http_call
       task_config:
         method: POST
@@ -75,11 +76,11 @@ spec:
         headers:
           Content-Type: "application/json"
         body:
-          workflow_id: "${context.initialize-context.workflow_id}"
-          processed_data: "${context.process-with-agent.processed}"
-          validation: "${context.validate-results.validation}"
-          completed_at: "${now()}"
+          workflow_label: "${ $context.initialize_context.workflow_label }"
+          processed_data: "${ $context.process_with_agent.processed }"
+          validation: "${ $context.validate_results.validation }"
+          completed_at: "${ now }"
       export:
-        as: "${.}"
+        as: "${ . }"
       flow:
         then: end
