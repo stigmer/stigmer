@@ -160,6 +160,43 @@ func (s *ModelRegistryStore) HasAnyModels() bool {
 	return len(s.modelsByHarness) > 0
 }
 
+// IsValidModelOnAnyHarness reports whether a model reference (canonical id
+// or provider api id) is executable on AT LEAST ONE harness. The
+// existence check for surfaces with no serving harness in this edition
+// (agent channels): a pin no section knows is certainly a typo, while a
+// pin valid anywhere may be right where the spec actually serves.
+func (s *ModelRegistryStore) IsValidModelOnAnyHarness(model string) bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	for _, models := range s.modelsByHarness {
+		if models[model] {
+			return true
+		}
+	}
+	return false
+}
+
+// CanonicalModelsAcrossHarnesses returns the sorted, deduplicated
+// canonical model ids across every harness section — the did-you-mean
+// candidate pool for the any-harness existence check. Computed per call
+// (refusal-path only); callers may keep the slice.
+func (s *ModelRegistryStore) CanonicalModelsAcrossHarnesses() []string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	seen := make(map[string]bool)
+	var merged []string
+	for _, models := range s.sortedModelsByHarness {
+		for _, name := range models {
+			if !seen[name] {
+				seen[name] = true
+				merged = append(merged, name)
+			}
+		}
+	}
+	sort.Strings(merged)
+	return merged
+}
+
 // CanonicalModels returns the sorted canonical model ids for a harness
 // (for deterministic did-you-mean suggestions — canonical ids are the
 // documented form, so suggestions never surface provider api ids).

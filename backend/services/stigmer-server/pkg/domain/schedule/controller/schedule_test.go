@@ -343,6 +343,50 @@ func TestScheduleCreate(t *testing.T) {
 			t.Fatalf("an unpinned native-default schedule must be accepted: %v", err)
 		}
 	})
+
+	t.Run("rejects a pinned model the registry does not know (stigmer/stigmer#774)", func(t *testing.T) {
+		// The EXISTENCE half of the pinning rules: model_name used to be
+		// the one profile knob that failed OPEN — a typo'd pin passed the
+		// write boundary verbatim and every fire silently ran (and billed)
+		// as Auto. Now it refuses at write time with a did-you-mean.
+		tc := newTestControllers(t)
+		agent := createTestAgent(t, tc, "existence-guard-agent")
+
+		typod := scheduleFor(agent, "typod-cursor", true)
+		typod.Spec.GetAgent().Harness = sessionv1.Harness_HARNESS_CURSOR
+		typod.Spec.GetAgent().RunConfig = &agentexecutionv1.RunConfig{ModelName: "composr-2.5"}
+
+		_, err := tc.schedules.Create(scheduleCtx(), typod)
+		if status.Code(err) != codes.InvalidArgument {
+			t.Fatalf("expected INVALID_ARGUMENT for a typo'd pin, got %s (%v)", status.Code(err), err)
+		}
+		if !strings.Contains(err.Error(), "not in the model registry (cursor harness)") {
+			t.Errorf("expected the registry-existence refusal, got: %v", err)
+		}
+		if !strings.Contains(err.Error(), "'composer-2.5'") {
+			t.Errorf("expected the did-you-mean suggestion, got: %v", err)
+		}
+
+		// The pin validates against the harness the fires would USE: an
+		// unset harness runs native in this edition (DD-015), so a
+		// native-section model passes there...
+		nativePinned := scheduleFor(agent, "native-pinned", true)
+		nativePinned.Spec.GetAgent().RunConfig = &agentexecutionv1.RunConfig{ModelName: "claude-sonnet-4.6"}
+		if _, err := tc.schedules.Create(scheduleCtx(), nativePinned); err != nil {
+			t.Fatalf("a valid native pin on the default harness must be accepted: %v", err)
+		}
+
+		// ...and a typo'd pin there refuses against the native section.
+		nativeTypo := scheduleFor(agent, "native-typod", true)
+		nativeTypo.Spec.GetAgent().RunConfig = &agentexecutionv1.RunConfig{ModelName: "claude-sonet-4.6"}
+		_, err = tc.schedules.Create(scheduleCtx(), nativeTypo)
+		if status.Code(err) != codes.InvalidArgument {
+			t.Fatalf("expected INVALID_ARGUMENT for a typo'd native pin, got %s (%v)", status.Code(err), err)
+		}
+		if !strings.Contains(err.Error(), "(native harness)") {
+			t.Errorf("expected the native-harness scope in the refusal, got: %v", err)
+		}
+	})
 }
 
 func TestScheduleUpdate(t *testing.T) {

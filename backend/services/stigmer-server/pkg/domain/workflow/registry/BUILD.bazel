@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "model_registry.go",
         "model_registry_store.go",
+        "pin_validation.go",
         "task_kind_registry.go",
     ],
     embedsrcs = [
@@ -13,7 +14,10 @@ go_library(
     ],
     importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/registry",
     visibility = ["//visibility:public"],
-    deps = ["@com_github_rs_zerolog//log"],
+    deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/session/v1:session",
+        "@com_github_rs_zerolog//log",
+    ],
 )
 
 go_test(
@@ -21,6 +25,8 @@ go_test(
     srcs = [
         "model_registry_store_test.go",
         "model_registry_test.go",
+        "pin_validation_test.go",
     ],
     embed = [":registry"],
+    deps = ["//apis/stubs/go/ai/stigmer/agentic/session/v1:session"],
 )
