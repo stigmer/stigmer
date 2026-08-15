@@ -2,7 +2,7 @@
 
 import { type FormEvent, useCallback, useId, useState } from "react";
 import { cn } from "@stigmer/theme";
-import { getUserMessage } from "@stigmer/sdk";
+import { getUserMessage, toOAuthAppUpdateInput } from "@stigmer/sdk";
 import type { OAuthApp } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
 import {
   TokenEndpointAuthMethod,
@@ -132,30 +132,32 @@ export function OAuthAppDetailPanel({
         .filter(Boolean);
 
       try {
+        // Full-spec-replace safety: spread the complete mapped input and
+        // override every field this form owns, so a future spec field the
+        // form does not know about survives the save. An empty secret
+        // input keeps the fetched value — the redaction marker — which
+        // the server's update pipeline treats as "keep the stored
+        // secret"; a non-empty input replaces it.
+        const mapped = toOAuthAppUpdateInput(oauthApp);
         const updated = await update({
-          name: meta?.name ?? "",
-          slug: meta?.slug,
-          org: meta?.org ?? "",
+          ...mapped,
           provider: provider.trim(),
           clientId: clientId.trim(),
-          ...(clientSecret.trim() && { clientSecret: clientSecret.trim() }),
+          clientSecret: clientSecret.trim() || mapped.clientSecret,
           authorizationUrl: authorizationUrl.trim(),
           tokenUrl: tokenUrl.trim(),
-          ...(parsedScopes.length > 0 && { scopes: parsedScopes }),
-          ...(userinfoUrl.trim() && { userinfoUrl: userinfoUrl.trim() }),
-          ...(scopeParameterName.trim() && {
-            scopeParameterName: scopeParameterName.trim(),
-          }),
-          ...(tokenEndpointAuthMethod !== "unspecified" && {
-            tokenEndpointAuthMethod:
-              TOKEN_AUTH_METHOD_MAP[tokenEndpointAuthMethod],
-          }),
-          ...(vendorApprovalStatus !== "unspecified" && {
-            vendorApprovalStatus: APPROVAL_STATUS_MAP[vendorApprovalStatus],
-          }),
-          ...(vendorApprovalDocsUrl.trim() && {
-            vendorApprovalDocsUrl: vendorApprovalDocsUrl.trim(),
-          }),
+          scopes: parsedScopes.length > 0 ? parsedScopes : undefined,
+          userinfoUrl: userinfoUrl.trim() || undefined,
+          scopeParameterName: scopeParameterName.trim() || undefined,
+          tokenEndpointAuthMethod:
+            tokenEndpointAuthMethod !== "unspecified"
+              ? TOKEN_AUTH_METHOD_MAP[tokenEndpointAuthMethod]
+              : undefined,
+          vendorApprovalStatus:
+            vendorApprovalStatus !== "unspecified"
+              ? APPROVAL_STATUS_MAP[vendorApprovalStatus]
+              : undefined,
+          vendorApprovalDocsUrl: vendorApprovalDocsUrl.trim() || undefined,
         });
         setMode("view");
         onUpdated?.(updated);
@@ -164,7 +166,7 @@ export function OAuthAppDetailPanel({
       }
     },
     [
-      meta, provider, clientId, clientSecret, authorizationUrl, tokenUrl,
+      oauthApp, provider, clientId, clientSecret, authorizationUrl, tokenUrl,
       scopes, userinfoUrl, scopeParameterName, tokenEndpointAuthMethod,
       vendorApprovalStatus, vendorApprovalDocsUrl, update, clearUpdateError,
       onUpdated,

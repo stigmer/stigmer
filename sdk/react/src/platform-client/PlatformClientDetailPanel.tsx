@@ -3,7 +3,7 @@
 import { type FormEvent, type KeyboardEvent, useCallback, useId, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { UNSTYLED_FIELDSET } from "../internal/element-resets.js";
-import { getUserMessage } from "@stigmer/sdk";
+import { getUserMessage, toPlatformClientUpdateInput } from "@stigmer/sdk";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { timestampDate, type Timestamp } from "@bufbuild/protobuf/wkt";
 import type { PlatformClient } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
@@ -176,21 +176,22 @@ export function PlatformClientDetailPanel({
       e.preventDefault();
       clearUpdateError();
       try {
+        // Full-spec-replace safety: spread the complete mapped input and
+        // override only the edited fields, so unlisted spec fields (e.g.
+        // environment_refs, the embedded-assistant credential binding)
+        // survive the save. Cleared fields are set to undefined
+        // explicitly — omitting them would carry the stale mapped value.
         const updated = await update({
-          name: meta?.name ?? "",
-          slug: meta?.slug,
-          org: meta?.org ?? "",
+          ...toPlatformClientUpdateInput(platformClient),
           neverExpires,
-          ...(!neverExpires &&
-            expiresAt && {
-              expiresAt: new Date(expiresAt).toISOString(),
-            }),
+          expiresAt:
+            !neverExpires && expiresAt ? new Date(expiresAt) : undefined,
           autoProvisionAccounts: autoProvision,
           autoGrantOnOrg: autoGrant,
-          ...(autoGrant &&
-            autoGrantRole !== IamRole.iam_role_unspecified && {
-              autoGrantRole,
-            }),
+          autoGrantRole:
+            autoGrant && autoGrantRole !== IamRole.iam_role_unspecified
+              ? autoGrantRole
+              : undefined,
           allowedOrigins: origins,
         });
         setMode("view");
@@ -200,7 +201,7 @@ export function PlatformClientDetailPanel({
       }
     },
     [
-      meta,
+      platformClient,
       neverExpires,
       expiresAt,
       autoProvision,

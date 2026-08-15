@@ -3,7 +3,7 @@
 import { type FormEvent, useCallback, useId, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { UNSTYLED_FIELDSET } from "../internal/element-resets.js";
-import { getUserMessage } from "@stigmer/sdk";
+import { getUserMessage, toIdentityProviderUpdateInput } from "@stigmer/sdk";
 import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { timestampDate, type Timestamp } from "@bufbuild/protobuf/wkt";
@@ -132,10 +132,13 @@ export function IdentityProviderDetailPanel({
       e.preventDefault();
       clearError();
       try {
+        // Full-spec-replace safety: spread the complete mapped input and
+        // override only the edited fields, so unlisted spec fields (e.g.
+        // rate_limit_budget) survive the save. Fields the form clears
+        // (SSO providers have no JIT settings) are set to undefined
+        // explicitly — omitting them would carry the stale mapped value.
         const updated = await update({
-          name: meta?.name ?? "",
-          slug: meta?.slug,
-          org: meta?.org ?? "",
+          ...toIdentityProviderUpdateInput(identityProvider),
           displayName: displayName.trim(),
           jwksUri: jwksUri.trim(),
           allowedIssuers: issuers
@@ -146,16 +149,16 @@ export function IdentityProviderDetailPanel({
           userinfoEndpoint: userinfoEndpoint.trim() || undefined,
           isSsoProvider: isSso,
           oidcClientId: isSso ? oidcClientId.trim() : undefined,
-          ...(!isSso && {
-            autoProvisionAccounts: autoProvision,
-            autoGrantOnOrg: autoGrant,
-            ...(autoGrant && autoGrantRole !== IamRole.iam_role_unspecified && {
-              autoGrantRole,
-            }),
-            ...(autoGrant && tenantOrgClaim.trim() && {
-              tenantOrgClaim: tenantOrgClaim.trim(),
-            }),
-          }),
+          autoProvisionAccounts: !isSso && autoProvision ? true : undefined,
+          autoGrantOnOrg: !isSso && autoGrant ? true : undefined,
+          autoGrantRole:
+            !isSso && autoGrant && autoGrantRole !== IamRole.iam_role_unspecified
+              ? autoGrantRole
+              : undefined,
+          tenantOrgClaim:
+            !isSso && autoGrant && tenantOrgClaim.trim()
+              ? tenantOrgClaim.trim()
+              : undefined,
         });
         setMode("view");
         onUpdated?.(updated);
@@ -164,7 +167,7 @@ export function IdentityProviderDetailPanel({
       }
     },
     [
-      meta, displayName, jwksUri, issuers, audience,
+      identityProvider, displayName, jwksUri, issuers, audience,
       userinfoEndpoint, isSso, oidcClientId, autoProvision, autoGrant,
       autoGrantRole, tenantOrgClaim, update, clearError, onUpdated,
     ],
