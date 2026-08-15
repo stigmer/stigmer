@@ -196,8 +196,9 @@ export interface HumanInputWorkflowOptions {
   // (the test owns the timing). Set with onTimeout to drive the timeout policy.
   timeout?: number;
   // Policy applied when the timeout expires, as the full proto enum string
-  // (e.g. "HUMAN_INPUT_TIMEOUT_FAIL") — this is what the json-schema and the
-  // server converter expect, not the runner's internal short form.
+  // (e.g. "HUMAN_INPUT_TIMEOUT_FAIL") — the form the json-schema and the
+  // server converter expect and persist into validated YAML; the runner
+  // normalizes it to its internal short words at load (stigmer/stigmer#779).
   onTimeout?: string;
   // Trailing set_vars tasks appended after `afterApproval`, used as `then`
   // routing targets so an outcome's jump lands on an observable task.

@@ -39,7 +39,7 @@ then resume based on the reviewer's response.
     approvers:
       - "team:engineering-leads"
     timeout: 86400
-    on_timeout: HUMAN_INPUT_TIMEOUT_ESCALATE
+    on_timeout: HUMAN_INPUT_TIMEOUT_DENY
     notification_channels:
       - "slack:#incident-approvals"
   export:

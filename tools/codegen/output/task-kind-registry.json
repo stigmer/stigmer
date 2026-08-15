@@ -2331,7 +2331,7 @@
         "type": "object"
       },
       "yamlExamples": [
-        "- name: manager_approval\n  kind: human_input\n  task_config:\n    prompt: \"Approve escalation for ${ $context.triage.severity } incident?\"\n    form_schema:\n      type: object\n      properties:\n        notes:\n          type: string\n          description: \"Optional notes for the engineering team\"\n        priority_override:\n          type: string\n          enum: [P1, P2, P3]\n    outcomes:\n      - name: approve\n        label: \"Approve Escalation\"\n      - name: deny\n        label: \"Reject\"\n        then: re_classify\n    approvers:\n      - \"team:engineering-leads\"\n    timeout: 86400\n    on_timeout: HUMAN_INPUT_TIMEOUT_ESCALATE\n    notification_channels:\n      - \"slack:#incident-approvals\"\n  export:\n    as: \"${ . }\"\n"
+        "- name: manager_approval\n  kind: human_input\n  task_config:\n    prompt: \"Approve escalation for ${ $context.triage.severity } incident?\"\n    form_schema:\n      type: object\n      properties:\n        notes:\n          type: string\n          description: \"Optional notes for the engineering team\"\n        priority_override:\n          type: string\n          enum: [P1, P2, P3]\n    outcomes:\n      - name: approve\n        label: \"Approve Escalation\"\n      - name: deny\n        label: \"Reject\"\n        then: re_classify\n    approvers:\n      - \"team:engineering-leads\"\n    timeout: 86400\n    on_timeout: HUMAN_INPUT_TIMEOUT_DENY\n    notification_channels:\n      - \"slack:#incident-approvals\"\n  export:\n    as: \"${ . }\"\n"
       ],
       "documentationUrl": "/docs/guides/workflows/task-types/human-input",
       "isAiNative": false,

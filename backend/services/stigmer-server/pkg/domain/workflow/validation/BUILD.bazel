@@ -6,6 +6,7 @@ go_library(
         "budget_warnings.go",
         "crossref.go",
         "expression_warnings.go",
+        "human_input_validation.go",
         "model_validation.go",
         "validator.go",
     ],
@@ -30,6 +31,7 @@ go_test(
     srcs = [
         "budget_warnings_test.go",
         "crossref_test.go",
+        "human_input_validation_test.go",
         "model_validation_test.go",
         "validator_test.go",
     ],

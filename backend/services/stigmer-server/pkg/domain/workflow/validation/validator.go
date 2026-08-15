@@ -94,6 +94,12 @@ func (v *InProcessValidator) Validate(ctx context.Context, spec *workflowv1.Work
 		errors = append(errors, modelErrors...)
 	}
 
+	// Step 2d: Human-input timeout policy validation (fail closed on
+	// policies the runtime cannot honor)
+	if policyErrors := ValidateHumanInputTimeoutPolicies(spec); len(policyErrors) > 0 {
+		errors = append(errors, policyErrors...)
+	}
+
 	// Step 3: Budget warnings
 	if budgetWarnings := CheckBudgetWarnings(spec.Budget, spec.Tasks); len(budgetWarnings) > 0 {
 		warnings = append(warnings, budgetWarnings...)

@@ -608,6 +608,51 @@ function parseServiceTier(raw: unknown): string | undefined {
   return canonical;
 }
 
+/**
+ * Maps on_timeout values to the runner's internal policy words, mirroring
+ * SERVICE_TIER_SHORTHANDS. The persisted CNCF YAML carries the proto enum
+ * NAMES (the server converter emits `HumanInputTimeoutPolicy.String()`),
+ * while hand-written fixtures use the lowercase words — both are accepted.
+ * Unknown values are authoring errors: a timeout policy must never silently
+ * fall back to fail (stigmer/stigmer#779 — the unvalidated cast let every
+ * enum-name policy reach the orchestrator unrecognized, so gates configured
+ * to auto-approve/deny failed at their first real timeout instead).
+ */
+const ON_TIMEOUT_VOCABULARY: Record<string, "fail" | "approve" | "deny"> = {
+  fail: "fail",
+  approve: "approve",
+  deny: "deny",
+  HUMAN_INPUT_TIMEOUT_FAIL: "fail",
+  HUMAN_INPUT_TIMEOUT_APPROVE: "approve",
+  HUMAN_INPUT_TIMEOUT_DENY: "deny",
+};
+
+function parseOnTimeout(
+  taskName: string,
+  raw: unknown,
+): "fail" | "approve" | "deny" | undefined {
+  if (raw === undefined || raw === null) return undefined;
+  if (typeof raw !== "string") {
+    throw new Error(`human_input task '${taskName}': 'on_timeout' must be a string`);
+  }
+  // The proto declares HUMAN_INPUT_TIMEOUT_ESCALATE but no runtime exists
+  // for it yet; refuse at load rather than misbehave at the gate's timeout.
+  if (raw === "HUMAN_INPUT_TIMEOUT_ESCALATE" || raw === "escalate") {
+    throw new Error(
+      `human_input task '${taskName}': on_timeout policy 'escalate' is not implemented — ` +
+      `use fail, approve, or deny (custom outcomes with 'then' cover reviewer-driven branching)`,
+    );
+  }
+  const policy = ON_TIMEOUT_VOCABULARY[raw];
+  if (!policy) {
+    throw new Error(
+      `human_input task '${taskName}': unknown on_timeout value '${raw}' ` +
+      `(expected: fail, approve, deny, or a HUMAN_INPUT_TIMEOUT_* enum name)`,
+    );
+  }
+  return policy;
+}
+
 function parseHumanInputConfig(taskName: string, raw: unknown): import("./types.js").HumanInputConfig {
   if (!raw || typeof raw !== "object") {
     throw new Error(`human_input task '${taskName}' requires a 'with' configuration block`);
@@ -630,7 +675,7 @@ function parseHumanInputConfig(taskName: string, raw: unknown): import("./types.
       ? obj.approvers.filter((a: unknown) => typeof a === "string") as string[]
       : undefined,
     timeout: typeof obj.timeout === "number" ? obj.timeout : undefined,
-    onTimeout: (obj.on_timeout as "fail" | "approve" | "deny") ?? undefined,
+    onTimeout: parseOnTimeout(taskName, obj.on_timeout),
     // Any JSON shape is a valid payload (expression string, object, array),
     // so only null/undefined mean "no payload" here.
     payload: obj.payload ?? undefined,
