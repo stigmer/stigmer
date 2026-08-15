@@ -7,6 +7,10 @@
  * - "fail": throws an error
  * - "approve": returns auto-approved output
  * - "deny": returns auto-denied output
+ * - "escalate": returns the "escalate" outcome — by the outcome-by-name
+ *   contract (stigmer/stigmer#781) the loader guarantees the gate declares
+ *   an outcome with that exact name and a `then` branch, so the executor's
+ *   ordinary outcome routing takes the escalation path.
  *
  * Signal payload shape:
  * { outcome, form_data?, reviewer, reviewer_actor?, responded_at }
@@ -16,7 +20,11 @@
 
 import { defineSignal, setHandler, condition } from "@temporalio/workflow";
 
-import type { HumanInputExecutionConfig, HumanInputResult } from "../workflow-engine/types.js";
+import type {
+  HumanInputExecutionConfig,
+  HumanInputResult,
+  HumanInputTimeoutPolicy,
+} from "../workflow-engine/types.js";
 
 /**
  * Orchestrates a human_input task — blocks until signal or timeout.
@@ -51,7 +59,7 @@ export async function orchestrateHumanInput(
 
 function handleTimeout(
   signalName: string,
-  policy: "fail" | "approve" | "deny",
+  policy: HumanInputTimeoutPolicy,
 ): HumanInputResult {
   switch (policy) {
     case "approve":
@@ -64,6 +72,16 @@ function handleTimeout(
     case "deny":
       return {
         outcome: "deny",
+        auto_resolved: true,
+        reason: "timeout",
+      };
+
+    case "escalate":
+      // The outcome word IS the declared outcome's name (loader-enforced),
+      // so no positional remapping happens downstream — the executor's name
+      // lookup routes the escalation branch directly.
+      return {
+        outcome: "escalate",
         auto_resolved: true,
         reason: "timeout",
       };

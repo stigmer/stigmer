@@ -305,6 +305,45 @@ describe("executeHumanInputTask", () => {
       expect(result).toEqual({ outcome: "reject", auto_resolved: true, reason: "timeout" });
     });
 
+    // The escalate outcome-by-name contract (stigmer/stigmer#781): the policy
+    // word IS the declared outcome's name, so no positional remapping happens
+    // — the ordinary name lookup finds the "escalate" outcome and routes its
+    // `then`, regardless of the outcome's position in the list.
+    it("resolves timeout escalate to the escalate-named outcome and routes its then", async () => {
+      const awaitFn: AwaitHumanInputFn = async () => ({
+        outcome: "escalate",
+        auto_resolved: true,
+        reason: "timeout",
+      });
+
+      const escalateOutcomes = [
+        { name: "proceed", label: "Proceed", then: "deployStep" },
+        { name: "escalate", label: "Escalate", then: "escalationPath" },
+        { name: "reject", label: "Reject" },
+      ];
+      const taskDef: HumanInputTaskDef = {
+        kind: "human_input",
+        humanInput: {
+          prompt: "Review", timeout: 5, onTimeout: "escalate", outcomes: escalateOutcomes,
+        },
+      };
+
+      const state = createState();
+      const result = await executeHumanInputTask(taskDef, "gate", state, makeCtx(awaitFn));
+
+      expect(result).toEqual({
+        outcome: "escalate",
+        auto_resolved: true,
+        reason: "timeout",
+        __flow_directive__: "escalationPath",
+      });
+      expect(state.data.gate).toEqual({
+        outcome: "escalate",
+        auto_resolved: true,
+        reason: "timeout",
+      });
+    });
+
     it("reports the mapped outcome on the approval_resolved event", async () => {
       const emitted: WorkflowEventDescriptor[][] = [];
       const emitFn: EmitEventsFn = async (events) => { emitted.push(events); };

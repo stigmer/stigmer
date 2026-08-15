@@ -14,7 +14,7 @@ then resume based on the reviewer's response.
 
 `human_input`
 
-## YAML Example
+## YAML Examples
 
 ```yaml
 - name: manager_approval
@@ -42,6 +42,28 @@ then resume based on the reviewer's response.
     on_timeout: HUMAN_INPUT_TIMEOUT_DENY
     notification_channels:
       - "slack:#incident-approvals"
+  export:
+    as: "${ . }"
+```
+
+```yaml
+- name: release_signoff
+  kind: human_input
+  task_config:
+    prompt: "Sign off on the ${ $context.release.version } release?"
+    outcomes:
+      - name: ship
+        label: "Ship It"
+      - name: escalate
+        label: "Escalate to On-Call Lead"
+        then: page_oncall_lead
+      - name: hold
+        label: "Hold the Release"
+        then: end
+    approvers:
+      - "team:release-managers"
+    timeout: 3600
+    on_timeout: HUMAN_INPUT_TIMEOUT_ESCALATE
   export:
     as: "${ . }"
 ```

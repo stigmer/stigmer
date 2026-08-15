@@ -363,17 +363,25 @@ The `human_input` task pauses execution and waits for a reviewer to respond:
 
 Key fields:
 
-| Field         | Purpose                                                                                  |
-| ------------- | ---------------------------------------------------------------------------------------- |
-| `prompt`      | What the reviewer sees — supports expressions                                            |
-| `form_schema` | Optional JSON Schema for structured input from the reviewer                              |
-| `outcomes`    | List of buttons the reviewer can click — each can override `flow.then`                   |
-| `timeout`     | Seconds to wait before timing out                                                        |
-| `on_timeout`  | `HUMAN_INPUT_TIMEOUT_FAIL`, `HUMAN_INPUT_TIMEOUT_APPROVE`, or `HUMAN_INPUT_TIMEOUT_DENY` |
+| Field         | Purpose                                                                                                                  |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `prompt`      | What the reviewer sees — supports expressions                                                                            |
+| `form_schema` | Optional JSON Schema for structured input from the reviewer                                                              |
+| `outcomes`    | List of buttons the reviewer can click — each can override `flow.then`                                                   |
+| `timeout`     | Seconds to wait before timing out                                                                                        |
+| `on_timeout`  | `HUMAN_INPUT_TIMEOUT_FAIL`, `HUMAN_INPUT_TIMEOUT_APPROVE`, `HUMAN_INPUT_TIMEOUT_DENY`, or `HUMAN_INPUT_TIMEOUT_ESCALATE` |
 
 The default `flow.then` applies when the reviewer picks an outcome that does not
 specify its own `then`. In the example above, clicking "Approve" continues to
 `finalize`, while "Request Revisions" jumps to `revise_content`.
+
+On timeout, `APPROVE` resolves to the **first** declared outcome and `DENY` to
+the **last**, so downstream routing always sees declared outcome names.
+`ESCALATE` requires an outcome named `escalate` with `then` set — the timeout
+resolves to that outcome and follows its branch, exactly as if a reviewer had
+clicked it (the outcome also renders as a normal button, so reviewers can
+escalate manually before the timeout fires). A gate configured with `ESCALATE`
+but no such outcome is rejected at apply time.
 
 The task output includes `reviewer`, `outcome`, and `form_data` — accessible as
 `${ $context.review.outcome }`, `${ $context.review.form_data.feedback }`, etc.
