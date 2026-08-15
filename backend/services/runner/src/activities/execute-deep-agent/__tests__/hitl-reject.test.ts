@@ -42,6 +42,7 @@ vi.mock("@temporalio/activity", () => ({
     current: () => ({
       cancellationSignal: new AbortController().signal,
       heartbeat: vi.fn(),
+      info: { taskQueue: "test-queue" },
     }),
   },
   CancelledFailure: class CancelledFailure extends Error {},

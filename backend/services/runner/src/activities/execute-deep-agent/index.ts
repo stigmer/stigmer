@@ -78,9 +78,32 @@ import { stampFlowedFileEditRows, stampFlowedSubAgentFileEditRows } from "./stam
 import { deriveTurnCommandProvenance } from "./command-provenance.js";
 import { describeExecutionError } from "../../shared/model-error.js";
 import { inferProvider, type LlmProvider } from "../../shared/llm-proxy.js";
+import { getShutdownSignalForQueue } from "../../shared/worker-shutdown.js";
 
 /** The harness id stamped on the deep-agent's file-review ledger events. */
 const DEEP_AGENT_HARNESS_ID = "deep-agent";
+
+/**
+ * The worker-shutdown terminal status (#776). A shutdown is not a pause: the
+ * execution will not resume on this worker, so persisting PAUSED would strand
+ * the user with a lie. The copy is byte-identical to the Cursor harness's
+ * worker-shutdown branch so every downstream status.error consumer (the Go and
+ * Java workflow fallbacks, the cloud channel decision table) keys on ONE shape.
+ */
+function buildWorkerShutdownStatus(): AgentExecutionStatus {
+  return create(AgentExecutionStatusSchema, {
+    phase: ExecutionPhase.EXECUTION_FAILED,
+    error: "Execution interrupted: runner worker was shut down. Retry or resume.",
+    completedAt: utcTimestamp(),
+    messages: [
+      create(AgentMessageSchema, {
+        type: MessageType.MESSAGE_SYSTEM,
+        content: "Execution interrupted: the runner worker was shut down while the agent was still running. You can retry or resume.",
+        timestamp: utcTimestamp(),
+      }),
+    ],
+  });
+}
 
 /**
  * Best-effort provider inference for error-message wording. inferProvider
@@ -115,6 +138,11 @@ export function createDeepAgentActivities(config: Config) {
     ): Promise<unknown> => {
       const { executionId, threadId, turnSeq } = normalizeActivityInput(arg0, arg1);
       activityStarted();
+      // Worker-shutdown classification channel (#776): the pause paths below
+      // consult this signal to distinguish "my worker is draining" (SIGTERM,
+      // desktop quit) from "the orchestrator cancelled me" (a real user
+      // pause). See shared/worker-shutdown.ts for the ownership contract.
+      const shutdownSignal = getShutdownSignalForQueue(Context.current().info.taskQueue);
       let setup: SetupResult | null = null;
       // Exclusive turn lock on the workspace working tree — held across the
       // entire tree-mutating window (decision reconcile, agent writes,
@@ -567,6 +595,13 @@ export function createDeepAgentActivities(config: Config) {
 
         if (result.terminalStatus) {
           if (initialStatus.phase === ExecutionPhase.EXECUTION_PAUSED) {
+            // The stream loop marks PAUSED for ANY platform cancellation; a
+            // worker shutdown is not a pause and must not persist as one (#776).
+            if (shutdownSignal?.aborted) {
+              console.log(`[ExecuteDeepAgent] Cancelled (worker shutdown) for execution ${executionId}: events=${result.eventsProcessed}`);
+              await persistStatus(client, executionId, buildWorkerShutdownStatus(), { offload: statusOffload }).catch(() => {});
+              throw new CancelledFailure("Activity cancelled (worker shutdown, not user pause)");
+            }
             await persistStatus(client, executionId, initialStatus, { offload: statusOffload });
             console.log(`[ExecuteDeepAgent] Paused for execution ${executionId}: events=${result.eventsProcessed}`);
             throw new CancelledFailure("Activity paused by orchestrator");
@@ -754,6 +789,13 @@ export function createDeepAgentActivities(config: Config) {
 
       } catch (err: unknown) {
         if (err instanceof CancelledFailure) {
+          // Worker shutdown is infrastructure failure, not pause — the caught
+          // CancelledFailure is itself the interruption evidence (#776).
+          if (shutdownSignal?.aborted) {
+            console.log(`[ExecuteDeepAgent] Cancelled (worker shutdown) for execution ${executionId}`);
+            await persistStatus(client, executionId, buildWorkerShutdownStatus()).catch(() => {});
+            throw err;
+          }
           console.log(`[ExecuteDeepAgent] Cancelled (pause) for execution ${executionId}`);
           const pausedStatus = create(AgentExecutionStatusSchema, {
             phase: ExecutionPhase.EXECUTION_PAUSED,
@@ -763,6 +805,11 @@ export function createDeepAgentActivities(config: Config) {
         }
 
         if (Context.current().cancellationSignal.aborted) {
+          if (shutdownSignal?.aborted) {
+            console.log(`[ExecuteDeepAgent] Error during worker-shutdown cancellation for ${executionId}: ${err}`);
+            await persistStatus(client, executionId, buildWorkerShutdownStatus()).catch(() => {});
+            throw new CancelledFailure("Activity cancelled (worker shutdown, not user pause)");
+          }
           console.log(`[ExecuteDeepAgent] Error during cancellation for ${executionId}, treating as pause: ${err}`);
           const pausedStatus = create(AgentExecutionStatusSchema, {
             phase: ExecutionPhase.EXECUTION_PAUSED,

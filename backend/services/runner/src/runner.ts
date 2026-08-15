@@ -324,6 +324,16 @@ export async function createStigmerRunner(
   // unaffected — their env-injected platform key wins inside the loader.
   const payloadCodecs = await createPayloadCodecs(config, coordinates.payloadEncryption);
 
+  // Register the queue's shutdown signal BEFORE the worker can poll, so an
+  // activity interrupted by shutdown() below classifies the cancellation as a
+  // worker shutdown, not a user pause (issue #776). Static mode historically
+  // never registered one, leaving CLI daemons with the same misclassification
+  // the desktop manager had.
+  const { registerWorkerShutdownSignal } = await import(
+    "./shared/worker-shutdown.js"
+  );
+  const shutdownController = registerWorkerShutdownSignal(config.taskQueue);
+
   const { startWorker } = await import("./worker.js");
   const worker = await startWorker({ config, activities, payloadCodecs });
   markBoot("worker_created");
@@ -349,6 +359,10 @@ export async function createStigmerRunner(
     },
     shutdown() {
       tokenRenewal?.stop();
+      // Classification first, drain second: an in-flight activity cancelled
+      // by the drain must observe the signal already aborted (see
+      // shared/worker-shutdown.ts for the ownership contract).
+      shutdownController.abort();
       worker.shutdown();
     },
   };

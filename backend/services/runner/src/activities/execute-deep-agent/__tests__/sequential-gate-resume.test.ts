@@ -55,6 +55,7 @@ vi.mock("@temporalio/activity", () => ({
       // on it, which a bare `{ aborted: false }` stub cannot satisfy.
       cancellationSignal: new AbortController().signal,
       heartbeat: vi.fn(),
+      info: { taskQueue: "test-queue" },
     }),
   },
   CancelledFailure: class CancelledFailure extends Error {},
