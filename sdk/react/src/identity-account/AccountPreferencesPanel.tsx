@@ -1,6 +1,14 @@
 "use client";
 
-import { type FormEvent, useCallback, useEffect, useId, useMemo, useState } from "react";
+import {
+  type FormEvent,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useState,
+} from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage, toIdentityAccountUpdateInput } from "@stigmer/sdk";
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
@@ -23,7 +31,8 @@ export interface AccountPreferencesPanelProps {
 
 /**
  * Self-contained editor for the current user's declared preferences
- * (`IdentityAccountSpec.preferences.standing_context`).
+ * (`IdentityAccountSpec.preferences`): standing context plus the
+ * execution defaults (default harness and per-harness default models).
  *
  * The declared text is snapshotted into the user's own eligible agent
  * executions and delivered to the agent as background context.
@@ -267,31 +276,60 @@ function AccountPreferencesForm({
           </p>
         </div>
 
-        <DefaultHarnessRadioGroup
-          baseId={baseId}
-          value={defaultHarness}
-          onChange={setDefaultHarness}
-          disabled={isUpdating}
-        />
-
-        <div className="stg:grid stg:gap-3 stg:sm:grid-cols-2">
-          <DefaultModelSelect
-            id={`${baseId}-default-native-model`}
-            harness="native"
-            label={`Default model — ${HARNESS_META.native.label}`}
-            value={defaultNativeModel}
-            onChange={setDefaultNativeModel}
+        <fieldset className="stg:space-y-2" disabled={isUpdating}>
+          <legend className="stg:text-xs stg:font-medium stg:text-foreground stg:mb-1">
+            Default harness
+          </legend>
+          <HarnessOptionRow
+            radioName={`${baseId}-default-harness`}
+            value=""
+            label="Platform default"
+            description="Stigmer picks the harness for new sessions."
+            checked={defaultHarness === ""}
+            onSelect={setDefaultHarness}
             disabled={isUpdating}
           />
-          <DefaultModelSelect
-            id={`${baseId}-default-cursor-model`}
-            harness="cursor"
-            label={`Default model — ${HARNESS_META.cursor.label}`}
-            value={defaultCursorModel}
-            onChange={setDefaultCursorModel}
+          <HarnessOptionRow
+            radioName={`${baseId}-default-harness`}
+            value="native"
+            label={HARNESS_META.native.label}
+            description={HARNESS_META.native.description}
+            checked={defaultHarness === "native"}
+            onSelect={setDefaultHarness}
             disabled={isUpdating}
-          />
-        </div>
+          >
+            <DefaultModelSelect
+              id={`${baseId}-default-native-model`}
+              harness="native"
+              label="Default model"
+              value={defaultNativeModel}
+              onChange={setDefaultNativeModel}
+              disabled={isUpdating}
+            />
+          </HarnessOptionRow>
+          <HarnessOptionRow
+            radioName={`${baseId}-default-harness`}
+            value="cursor"
+            label={HARNESS_META.cursor.label}
+            description={HARNESS_META.cursor.description}
+            checked={defaultHarness === "cursor"}
+            onSelect={setDefaultHarness}
+            disabled={isUpdating}
+          >
+            <DefaultModelSelect
+              id={`${baseId}-default-cursor-model`}
+              harness="cursor"
+              label="Default model"
+              value={defaultCursorModel}
+              onChange={setDefaultCursorModel}
+              disabled={isUpdating}
+            />
+          </HarnessOptionRow>
+          <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+            Each harness&apos;s default model applies whenever a session runs
+            on that harness — even when it isn&apos;t your default.
+          </p>
+        </fieldset>
       </div>
 
       {updateError && (
@@ -332,60 +370,104 @@ function AccountPreferencesForm({
 }
 
 /**
- * Only harnesses with a shipped runtime are offerable as a default — must
- * stay in lockstep with the proto's `default_harness` in-list validation.
+ * One selectable default-harness choice, presented as a bordered row
+ * (the `VisibilityOptionRow` presentation shape): radio + label +
+ * one-line description, with the harness's own controls nested below.
+ *
+ * The rows for shipped harnesses embed that harness's default-model
+ * select as `children` — the pairing IS the information architecture:
+ * a harness and its model default belong to each other, and each model
+ * default applies whenever a session runs on that harness, independent
+ * of which harness is the default. The non-selected harness's select
+ * therefore stays interactive (visually secondary, never disabled).
+ *
+ * The nested controls live OUTSIDE the radio's `<label>` on purpose:
+ * a `<select>` inside the label would toggle the radio on every
+ * interaction with it.
+ *
+ * The shipped-harness rows must stay in lockstep with the proto's
+ * `default_harness` in-list validation (`["native", "cursor"]`) — each
+ * shipped harness binds to its own proto model field, so a new harness
+ * adds a field, a row, and a validation entry together.
  */
-const OFFERABLE_HARNESSES: readonly HarnessOption[] = ["native", "cursor"];
-
-/**
- * Default-harness choice: Platform default plus each shipped harness.
- * A mutually exclusive, always-visible set — radio group, not a select.
- */
-function DefaultHarnessRadioGroup({
-  baseId,
+function HarnessOptionRow({
+  radioName,
   value,
-  onChange,
+  label,
+  description,
+  checked,
+  onSelect,
   disabled,
+  children,
 }: {
-  readonly baseId: string;
+  readonly radioName: string;
   readonly value: string;
-  readonly onChange: (value: string) => void;
+  readonly label: string;
+  readonly description: string;
+  readonly checked: boolean;
+  readonly onSelect: (value: string) => void;
   readonly disabled: boolean;
+  readonly children?: ReactNode;
 }) {
-  const name = `${baseId}-default-harness`;
-  const options: readonly { value: string; label: string }[] = [
-    { value: "", label: "Platform default" },
-    ...OFFERABLE_HARNESSES.map((h) => ({ value: h, label: HARNESS_META[h].label })),
-  ];
+  // The radio's accessible name is the title alone (aria-labelledby), with
+  // the description attached as aria-describedby — the wrapping label keeps
+  // the whole text block clickable without bloating the announced name.
+  const titleId = `${radioName}-${value || "platform"}-title`;
+  const descriptionId = `${radioName}-${value || "platform"}-description`;
 
   return (
-    <fieldset className="stg:space-y-1" disabled={disabled}>
-      <legend className="stg:text-xs stg:font-medium stg:text-foreground">
-        Default harness
-      </legend>
-      <div className="stg:flex stg:flex-wrap stg:gap-x-4 stg:gap-y-1">
-        {options.map((option) => (
-          <label
-            key={option.value}
-            className={cn(
-              "stg:inline-flex stg:cursor-pointer stg:items-center stg:gap-1.5 stg:text-xs stg:text-foreground",
-              disabled && "stg:cursor-default stg:opacity-50",
-            )}
+    <div
+      className={cn(
+        "stg:rounded-md stg:border stg:px-3 stg:py-2.5 stg:transition-colors",
+        checked
+          ? "stg:border-primary stg:bg-accent"
+          : "stg:border-input stg:hover:bg-accent-hover",
+        disabled && "stg:opacity-50",
+      )}
+    >
+      <label
+        className={cn(
+          "stg:flex stg:cursor-pointer stg:items-start stg:gap-2",
+          disabled && "stg:cursor-default",
+        )}
+      >
+        <input
+          type="radio"
+          name={radioName}
+          value={value}
+          checked={checked}
+          onChange={() => onSelect(value)}
+          disabled={disabled}
+          aria-labelledby={titleId}
+          aria-describedby={descriptionId}
+          className="stg:mt-0.5 stg:accent-primary stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring"
+        />
+        <span className="stg:min-w-0 stg:flex-1">
+          <span
+            id={titleId}
+            className="stg:block stg:text-xs stg:font-medium stg:text-foreground"
           >
-            <input
-              type="radio"
-              name={name}
-              value={option.value}
-              checked={value === option.value}
-              onChange={() => onChange(option.value)}
-              disabled={disabled}
-              className="stg:accent-primary stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring"
-            />
-            {option.label}
-          </label>
-        ))}
-      </div>
-    </fieldset>
+            {label}
+          </span>
+          <span
+            id={descriptionId}
+            className="stg:block stg:text-[0.65rem] stg:leading-snug stg:text-muted-foreground"
+          >
+            {description}
+          </span>
+        </span>
+      </label>
+      {children && (
+        <div
+          className={cn(
+            "stg:mt-2 stg:pl-6 stg:transition-opacity",
+            !checked && "stg:opacity-70",
+          )}
+        >
+          {children}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -426,6 +508,10 @@ function DefaultModelSelect({
         id={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        // Both harness rows show the same visible label; the accessible
+        // name stays unique per control by qualifying it with the harness
+        // (WCAG label-in-name: the visible text remains a prefix).
+        aria-label={`${label} — ${HARNESS_META[harness].label}`}
         disabled={disabled || isLoading}
         className={cn(
           "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
