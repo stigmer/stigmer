@@ -96,6 +96,18 @@ jobs:
         working-directory: backend/services/runner
         run: npm run build && npm run verify:dist
 
+      # Consumer-install smoke (#786): every other gate runs against the
+      # repo's lockfile-resolved node_modules, but embedders fresh-install
+      # the published tarball from the manifest's version specs — a
+      # resolution this repo never exercises. This packs the tarball,
+      # installs it into a fresh prefix the way an embedder does, asserts
+      # a single @temporalio/proto copy (two copies = the #786 duplicate
+      # coresdk registration that killed manager init), and boots the
+      # staged dist. See scripts/verify-consumer-install.mjs.
+      - name: Consumer-install smoke check
+        working-directory: backend/services/runner
+        run: npm run verify:consumer
+
       # GitHub sets CI=true, so vitest.config.ts caps fork concurrency here.
       - name: Run runner vitest suite
         run: make test-runner
