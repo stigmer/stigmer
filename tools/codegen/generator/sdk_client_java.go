@@ -1413,6 +1413,7 @@ func generateJavaInputClass(schema *ServiceSchemaFile, cfg sdkResourceConfig, sp
 	fmt.Fprintf(&body, "/** Input for creating/updating a %s. */\n", cfg.protoResType)
 	fmt.Fprintf(&body, "public final class %s {\n", inputName)
 
+	body.WriteString("    private final String id;\n")
 	body.WriteString("    private final String name;\n")
 	body.WriteString("    private final String org;\n")
 	body.WriteString("    private final String slug;\n")
@@ -1428,6 +1429,7 @@ func generateJavaInputClass(schema *ServiceSchemaFile, cfg sdkResourceConfig, sp
 	body.WriteString("\n")
 
 	fmt.Fprintf(&body, "    private %s(Builder builder) {\n", inputName)
+	body.WriteString("        this.id = builder.id;\n")
 	body.WriteString("        this.name = builder.name;\n")
 	body.WriteString("        this.org = builder.org;\n")
 	body.WriteString("        this.slug = builder.slug;\n")
@@ -1447,6 +1449,7 @@ func generateJavaInputClass(schema *ServiceSchemaFile, cfg sdkResourceConfig, sp
 	body.WriteString("\n    public static Builder builder() { return new Builder(); }\n\n")
 
 	body.WriteString("    public static final class Builder {\n")
+	body.WriteString("        private String id;\n")
 	body.WriteString("        private String name;\n")
 	body.WriteString("        private String org;\n")
 	body.WriteString("        private String slug;\n")
@@ -1460,6 +1463,12 @@ func generateJavaInputClass(schema *ServiceSchemaFile, cfg sdkResourceConfig, sp
 		fmt.Fprintf(&body, "        private %s %s;\n", jType, javaCamel(f.ProtoField))
 	}
 	body.WriteString("\n        private Builder() {}\n\n")
+	body.WriteString("        /**\n")
+	body.WriteString("         * The resource's metadata.id, for exact update addressing when set\n")
+	body.WriteString("         * from a loaded resource. Required for updates to platform-scoped\n")
+	body.WriteString("         * (org-less) kinds, where the org+slug fallback cannot match.\n")
+	body.WriteString("         */\n")
+	body.WriteString("        public Builder id(String id) { this.id = id; return this; }\n")
 	body.WriteString("        public Builder name(String name) { this.name = name; return this; }\n")
 	body.WriteString("        public Builder org(String org) { this.org = org; return this; }\n")
 	body.WriteString("        public Builder slug(String slug) { this.slug = slug; return this; }\n")
@@ -1595,6 +1604,9 @@ func emitJavaToProto(buf *bytes.Buffer, cfg sdkResourceConfig, spec *TaskConfigS
 	buf.WriteString("        ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()\n")
 	buf.WriteString("            .setName(this.name)\n")
 	buf.WriteString("            .setOrg(this.org);\n")
+	buf.WriteString("        if (this.id != null) {\n")
+	buf.WriteString("            metaBuilder.setId(this.id);\n")
+	buf.WriteString("        }\n")
 	buf.WriteString("        if (this.slug != null) {\n")
 	buf.WriteString("            metaBuilder.setSlug(this.slug);\n")
 	buf.WriteString("        }\n")

@@ -10,6 +10,7 @@ import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
 
 /** Input for creating/updating a AgentInstance. */
 public final class AgentInstanceInput {
+    private final String id;
     private final String name;
     private final String org;
     private final String slug;
@@ -20,6 +21,7 @@ public final class AgentInstanceInput {
     private final java.util.List<ResourceRef> environmentRefs;
 
     private AgentInstanceInput(Builder builder) {
+        this.id = builder.id;
         this.name = builder.name;
         this.org = builder.org;
         this.slug = builder.slug;
@@ -47,6 +49,9 @@ public final class AgentInstanceInput {
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name)
             .setOrg(this.org);
+        if (this.id != null) {
+            metaBuilder.setId(this.id);
+        }
         if (this.slug != null) {
             metaBuilder.setSlug(this.slug);
         }
@@ -67,6 +72,7 @@ public final class AgentInstanceInput {
     public static Builder builder() { return new Builder(); }
 
     public static final class Builder {
+        private String id;
         private String name;
         private String org;
         private String slug;
@@ -78,6 +84,12 @@ public final class AgentInstanceInput {
 
         private Builder() {}
 
+        /**
+         * The resource's metadata.id, for exact update addressing when set
+         * from a loaded resource. Required for updates to platform-scoped
+         * (org-less) kinds, where the org+slug fallback cannot match.
+         */
+        public Builder id(String id) { this.id = id; return this; }
         public Builder name(String name) { this.name = name; return this; }
         public Builder org(String org) { this.org = org; return this; }
         public Builder slug(String slug) { this.slug = slug; return this; }

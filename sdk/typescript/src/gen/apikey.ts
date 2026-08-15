@@ -62,6 +62,14 @@ export class ApiKeyClient {
 
 /** Input for creating/updating a ApiKey. */
 export interface ApiKeyInput {
+  /**
+   * The resource's `metadata.id`, for exact update addressing when set
+   * from a loaded resource. Required for updates to platform-scoped
+   * (org-less) kinds, where the org+slug fallback cannot match. On
+   * create, the cloud server stamps its own id regardless; the OSS
+   * server honors a caller-supplied id (existing apply semantics).
+   */
+  id?: string;
   name: string;
   slug?: string;
   org: string;
@@ -79,6 +87,7 @@ export function buildApiKeyProto(input: ApiKeyInput): ApiKey {
     apiVersion: "iam.stigmer.ai/v1",
     kind: "ApiKey",
     metadata: Object.assign(create(ApiResourceMetadataSchema), {
+      ...(input.id && { id: input.id }),
       name: input.name,
       org: input.org,
       ...(input.slug && { slug: input.slug }),

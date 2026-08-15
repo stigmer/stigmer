@@ -84,6 +84,12 @@ func (i *IdentityProviderClient) GetSsoProvider(ctx context.Context, input *iden
 
 // IdentityProviderInput holds the fields for creating/updating a IdentityProvider.
 type IdentityProviderInput struct {
+	// Id is the resource's metadata.id, for exact update addressing when
+	// set from a loaded resource. Required for updates to platform-scoped
+	// (org-less) kinds, where the org+slug fallback cannot match. On
+	// create, the cloud server stamps its own id regardless; the OSS
+	// server honors a caller-supplied id (existing apply semantics).
+	Id                    string
 	Name                  string
 	Slug                  string
 	Org                   string
@@ -108,6 +114,7 @@ func (i *IdentityProviderInput) toProto() (*identityproviderv1.IdentityProvider,
 		ApiVersion: "iam.stigmer.ai/v1",
 		Kind:       "IdentityProvider",
 		Metadata: &apiresource.ApiResourceMetadata{
+			Id:         i.Id,
 			Name:       i.Name,
 			Slug:       i.Slug,
 			Org:        i.Org,
@@ -138,6 +145,7 @@ func IdentityProviderInputFromProto(p *identityproviderv1.IdentityProvider) *Ide
 	}
 	input := &IdentityProviderInput{}
 	if m := p.GetMetadata(); m != nil {
+		input.Id = m.GetId()
 		input.Name = m.GetName()
 		input.Slug = m.GetSlug()
 		input.Org = m.GetOrg()

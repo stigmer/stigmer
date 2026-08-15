@@ -89,6 +89,12 @@ func (p *PlatformClientClient) MintGuestToken(ctx context.Context, input *platfo
 
 // PlatformClientInput holds the fields for creating/updating a PlatformClient.
 type PlatformClientInput struct {
+	// Id is the resource's metadata.id, for exact update addressing when
+	// set from a loaded resource. Required for updates to platform-scoped
+	// (org-less) kinds, where the org+slug fallback cannot match. On
+	// create, the cloud server stamps its own id regardless; the OSS
+	// server honors a caller-supplied id (existing apply semantics).
+	Id                    string
 	Name                  string
 	Slug                  string
 	Org                   string
@@ -111,6 +117,7 @@ func (i *PlatformClientInput) toProto() (*platformclientv1.PlatformClient, error
 		ApiVersion: "iam.stigmer.ai/v1",
 		Kind:       "PlatformClient",
 		Metadata: &apiresource.ApiResourceMetadata{
+			Id:         i.Id,
 			Name:       i.Name,
 			Slug:       i.Slug,
 			Org:        i.Org,
@@ -149,6 +156,7 @@ func PlatformClientInputFromProto(p *platformclientv1.PlatformClient) *PlatformC
 	}
 	input := &PlatformClientInput{}
 	if m := p.GetMetadata(); m != nil {
+		input.Id = m.GetId()
 		input.Name = m.GetName()
 		input.Slug = m.GetSlug()
 		input.Org = m.GetOrg()

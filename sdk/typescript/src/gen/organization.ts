@@ -77,6 +77,14 @@ export class OrganizationClient {
 
 /** Input for creating/updating a Organization. */
 export interface OrganizationInput {
+  /**
+   * The resource's `metadata.id`, for exact update addressing when set
+   * from a loaded resource. Required for updates to platform-scoped
+   * (org-less) kinds, where the org+slug fallback cannot match. On
+   * create, the cloud server stamps its own id regardless; the OSS
+   * server honors a caller-supplied id (existing apply semantics).
+   */
+  id?: string;
   name: string;
   slug?: string;
   org: string;
@@ -109,6 +117,7 @@ export function buildOrganizationProto(input: OrganizationInput): Organization {
     apiVersion: "tenancy.stigmer.ai/v1",
     kind: "Organization",
     metadata: Object.assign(create(ApiResourceMetadataSchema), {
+      ...(input.id && { id: input.id }),
       name: input.name,
       org: input.org,
       ...(input.slug && { slug: input.slug }),

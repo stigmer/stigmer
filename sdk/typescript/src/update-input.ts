@@ -62,11 +62,16 @@ type CompleteInput<T> = { [K in keyof Required<T>]: T[K] };
  * Proto3 scalar defaults (empty string, `false`, enum `0`) are normalized to
  * `undefined` — omitting them is wire-identical to sending the default, and
  * it keeps the built proto in the builders' canonical shape.
+ *
+ * Carries `metadata.id` from the loaded resource: the update pipeline
+ * addresses id-first (exact), falling back to org + slug only when the id
+ * is absent.
  */
 export function toOrganizationUpdateInput(
   org: Organization,
 ): OrganizationInput {
   const input: CompleteInput<OrganizationInput> = {
+    id: org.metadata?.id || undefined,
     name: org.metadata?.name ?? "",
     slug: org.metadata?.slug || undefined,
     org: org.metadata?.org || org.metadata?.slug || "",
@@ -102,15 +107,17 @@ function toOrganizationPreferencesInput(
  * Maps a loaded {@link IdentityAccount} to a complete
  * {@link IdentityAccountInput} for `identityAccount.update()`.
  *
- * The generated builder never sets `metadata.id`; the update pipeline
- * locates the resource by org + slug instead (and authorizes against the
- * loaded resource's id), so carrying `org` and `slug` here is what makes
- * the update addressable.
+ * Carrying `metadata.id` is LOAD-BEARING here, not just an optimization:
+ * identity accounts are platform-scoped (no `metadata.org`), so the update
+ * pipeline's org + slug fallback structurally cannot match one (`'' = NULL`
+ * is never true in the store). Only the id-first lookup can address the
+ * resource.
  */
 export function toIdentityAccountUpdateInput(
   account: IdentityAccount,
 ): IdentityAccountInput {
   const input: CompleteInput<IdentityAccountInput> = {
+    id: account.metadata?.id || undefined,
     name: account.metadata?.name ?? "",
     slug: account.metadata?.slug || undefined,
     org: account.metadata?.org ?? "",

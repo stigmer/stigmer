@@ -106,6 +106,12 @@ func (a *AgentClient) List(ctx context.Context, params *ListParams) (*ListResult
 
 // AgentInput holds the fields for creating/updating a Agent.
 type AgentInput struct {
+	// Id is the resource's metadata.id, for exact update addressing when
+	// set from a loaded resource. Required for updates to platform-scoped
+	// (org-less) kinds, where the org+slug fallback cannot match. On
+	// create, the cloud server stamps its own id regardless; the OSS
+	// server honors a caller-supplied id (existing apply semantics).
+	Id              string
 	Name            string
 	Slug            string
 	Org             string
@@ -162,6 +168,7 @@ func (i *AgentInput) toProto() (*agentv1.Agent, error) {
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Agent",
 		Metadata: &apiresource.ApiResourceMetadata{
+			Id:         i.Id,
 			Name:       i.Name,
 			Slug:       i.Slug,
 			Org:        i.Org,
@@ -274,6 +281,7 @@ func AgentInputFromProto(p *agentv1.Agent) *AgentInput {
 	}
 	input := &AgentInput{}
 	if m := p.GetMetadata(); m != nil {
+		input.Id = m.GetId()
 		input.Name = m.GetName()
 		input.Slug = m.GetSlug()
 		input.Org = m.GetOrg()

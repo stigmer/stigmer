@@ -68,6 +68,7 @@ class InvitationInput:
     org: str
     role: int
     expires_at: str
+    id: str | None = None
     slug: str | None = None
     labels: dict[str, str] | None = None
     visibility: int = 0
@@ -86,6 +87,8 @@ class InvitationInput:
             name=self.name,
             org=self.org,
         )
+        if self.id:
+            metadata.id = self.id
         if self.slug:
             metadata.slug = self.slug
         if self.labels:

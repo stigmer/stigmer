@@ -102,6 +102,7 @@ class EnvironmentInput:
 
     name: str
     org: str
+    id: str | None = None
     slug: str | None = None
     labels: dict[str, str] | None = None
     visibility: int = 0
@@ -120,6 +121,8 @@ class EnvironmentInput:
             name=self.name,
             org=self.org,
         )
+        if self.id:
+            metadata.id = self.id
         if self.slug:
             metadata.slug = self.slug
         if self.labels:

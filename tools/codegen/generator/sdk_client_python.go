@@ -953,6 +953,10 @@ func generatePythonInputAndProto(buf *bytes.Buffer, schema *ServiceSchemaFile, c
 	buf.WriteString("    name: str\n")
 	buf.WriteString("    org: str\n")
 	emitPyFields(buf, requiredFields, imports)
+	// id: the resource's metadata.id, for exact update addressing when set
+	// from a loaded resource. Required for updates to platform-scoped
+	// (org-less) kinds, where the org+slug fallback cannot match.
+	buf.WriteString("    id: str | None = None\n")
 	buf.WriteString("    slug: str | None = None\n")
 	buf.WriteString("    labels: dict[str, str] | None = None\n")
 	buf.WriteString("    visibility: int = 0\n")
@@ -1033,6 +1037,8 @@ func emitPyMainToProto(buf *bytes.Buffer, cfg sdkResourceConfig, spec *TaskConfi
 	buf.WriteString("            name=self.name,\n")
 	buf.WriteString("            org=self.org,\n")
 	buf.WriteString("        )\n")
+	buf.WriteString("        if self.id:\n")
+	buf.WriteString("            metadata.id = self.id\n")
 	buf.WriteString("        if self.slug:\n")
 	buf.WriteString("            metadata.slug = self.slug\n")
 	buf.WriteString("        if self.labels:\n")
