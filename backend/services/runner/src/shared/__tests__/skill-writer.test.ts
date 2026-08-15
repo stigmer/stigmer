@@ -1,17 +1,18 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { mkdtempSync, readFileSync, existsSync, rmSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+import { ConnectError, Code } from "@connectrpc/connect";
 import {
   mergeSkillRefs,
   fetchSkillsByRefs,
-  writeSkills,
-  computeSkillPaths,
-  checkSkillIntegrity,
+  mountSkills,
   generatePromptSection,
   generateAlsoAvailableSection,
-  fetchSkillArtifacts,
 } from "../skill-writer.js";
 import type { Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import type { WorkspaceBackend } from "../workspace/types.js";
+import { buildZip } from "../../__test-utils__/zip-fixtures.js";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────
 
@@ -19,16 +20,18 @@ function makeSkill(overrides: {
   id?: string;
   name?: string;
   slug?: string;
+  org?: string;
   description?: string;
   skillMd?: string;
   artifactStorageKey?: string;
+  versionHash?: string;
 } = {}): Skill {
   return {
     metadata: {
       id: overrides.id ?? "skill-id-1",
       name: overrides.name ?? overrides.slug ?? "test-skill",
       slug: overrides.slug ?? "test-skill",
-      org: "test-org",
+      org: overrides.org ?? "test-org",
     },
     spec: {
       name: overrides.name ?? "test-skill",
@@ -38,7 +41,7 @@ function makeSkill(overrides: {
     },
     status: {
       artifactStorageKey: overrides.artifactStorageKey ?? "",
-      versionHash: "abc123",
+      versionHash: overrides.versionHash ?? "abc123",
       state: "active",
     },
   } as any;
@@ -48,46 +51,19 @@ function makeRef(slug: string, org = "test-org"): ApiResourceReference {
   return { slug, org, kind: 43 } as any;
 }
 
+/** A server that predates the transfer lane (#675) answers the mint RPC
+ * with UNIMPLEMENTED, pinning these tests to the unary fallback. */
 function makeMockClient(overrides: Record<string, unknown> = {}) {
   return {
     getSkillByReference: vi.fn().mockImplementation((ref: any) =>
       Promise.resolve(makeSkill({ slug: ref.slug, name: ref.slug })),
     ),
     getSkillArtifact: vi.fn().mockResolvedValue({ artifact: new Uint8Array(0) }),
+    getSkillArtifactDownloadUrl: vi.fn().mockRejectedValue(
+      new ConnectError("unimplemented", Code.Unimplemented),
+    ),
     ...overrides,
   } as any;
-}
-
-function makeMockBackend(): WorkspaceBackend & {
-  writtenFiles: Map<string, string>;
-  executedCommands: string[];
-  existingFiles: Set<string>;
-} {
-  const writtenFiles = new Map<string, string>();
-  const executedCommands: string[] = [];
-  const existingFiles = new Set<string>();
-  return {
-    rootDir: "/workspace",
-    writtenFiles,
-    executedCommands,
-    existingFiles,
-    async writeFile(path: string, content: string) {
-      writtenFiles.set(path, content);
-    },
-    async writeFileBuffer(path: string, content: Buffer) {
-      writtenFiles.set(path, content.toString("utf-8"));
-    },
-    async readFile(path: string) {
-      return writtenFiles.get(path) ?? "";
-    },
-    async exists(path: string) {
-      return writtenFiles.has(path) || existingFiles.has(path);
-    },
-    async execute(command: string) {
-      executedCommands.push(command);
-      return "";
-    },
-  };
 }
 
 // ─── mergeSkillRefs ──────────────────────────────────────────────────────
@@ -151,86 +127,171 @@ describe("fetchSkillsByRefs", () => {
   });
 });
 
-// ─── writeSkills ─────────────────────────────────────────────────────────
+// ─── mountSkills ─────────────────────────────────────────────────────────
 
-describe("writeSkills", () => {
-  it("writes SKILL.md from spec when no artifact", async () => {
-    const backend = makeMockBackend();
+describe("mountSkills", () => {
+  let platformDir: string;
+
+  beforeEach(() => {
+    platformDir = mkdtempSync(join(tmpdir(), "skill-writer-platform-"));
+  });
+
+  afterEach(() => {
+    rmSync(platformDir, { recursive: true, force: true });
+  });
+
+  it("writes SKILL.md and returns agent-visible paths keyed by skill id", async () => {
+    const client = makeMockClient();
     const skills = [makeSkill({ name: "calculator", skillMd: "# Calculator\n\nAdds numbers." })];
-    const result = await writeSkills(skills, backend, new Map());
+    const result = await mountSkills(client, skills, platformDir);
 
     expect(result.paths.get("skill-id-1")).toBe(".stigmer/skills/calculator");
-    expect(backend.writtenFiles.has(".stigmer/skills/calculator/SKILL.md")).toBe(true);
-    expect(backend.writtenFiles.get(".stigmer/skills/calculator/SKILL.md"))
+    expect(readFileSync(join(platformDir, "skills", "calculator", "SKILL.md"), "utf-8"))
       .toBe("# Calculator\n\nAdds numbers.");
   });
 
-  it("runs chmod on script extensions", async () => {
-    const backend = makeMockBackend();
-    const skills = [makeSkill({ name: "runner" })];
-    await writeSkills(skills, backend, new Map());
-    expect(backend.executedCommands.length).toBeGreaterThan(0);
-    expect(backend.executedCommands[0]).toContain("chmod");
+  it("extracts artifact files alongside SKILL.md", async () => {
+    const artifact = buildZip([
+      { name: "SKILL.md", content: "# Stale zip copy" },
+      { name: "references/schema.md", content: "schema" },
+    ]);
+    const client = makeMockClient({
+      getSkillArtifact: vi.fn().mockResolvedValue({ artifact }),
+    });
+    const skills = [makeSkill({
+      name: "db-skill",
+      skillMd: "# Authoritative",
+      artifactStorageKey: "artifacts/db.zip",
+    })];
+    await mountSkills(client, skills, platformDir);
+
+    const skillDir = join(platformDir, "skills", "db-skill");
+    expect(readFileSync(join(skillDir, "SKILL.md"), "utf-8")).toBe("# Authoritative");
+    expect(readFileSync(join(skillDir, "references", "schema.md"), "utf-8")).toBe("schema");
   });
 
   it("handles multiple skills", async () => {
-    const backend = makeMockBackend();
+    const client = makeMockClient();
     const skills = [
       makeSkill({ id: "id-1", name: "skill-a", skillMd: "# A" }),
       makeSkill({ id: "id-2", name: "skill-b", skillMd: "# B" }),
     ];
-    const result = await writeSkills(skills, backend, new Map());
+    const result = await mountSkills(client, skills, platformDir);
     expect(result.paths.size).toBe(2);
     expect(result.paths.get("id-1")).toBe(".stigmer/skills/skill-a");
     expect(result.paths.get("id-2")).toBe(".stigmer/skills/skill-b");
+    expect(existsSync(join(platformDir, "skills", "skill-a", "SKILL.md"))).toBe(true);
+    expect(existsSync(join(platformDir, "skills", "skill-b", "SKILL.md"))).toBe(true);
   });
 
-  it("skips write when skill has no skillMd and no artifact", async () => {
-    const backend = makeMockBackend();
-    const skills = [makeSkill({ skillMd: "" })];
-    (skills[0] as any).spec.skillMd = "";
-    await writeSkills(skills, backend, new Map());
-    expect(backend.writtenFiles.size).toBe(0);
+  it("skips the artifact download when the mounted hash matches (cache hit)", async () => {
+    const artifact = buildZip([{ name: "references/guide.md", content: "guide" }]);
+    const client = makeMockClient({
+      getSkillArtifact: vi.fn().mockResolvedValue({ artifact }),
+    });
+    const skill = makeSkill({
+      name: "cached-skill",
+      artifactStorageKey: "artifacts/cached.zip",
+      versionHash: "hash-v1",
+    });
+
+    await mountSkills(client, [skill], platformDir);
+    expect(client.getSkillArtifact).toHaveBeenCalledTimes(1);
+
+    // Second execution of the same session: same hash, no transfer.
+    const second = await mountSkills(client, [skill], platformDir);
+    expect(client.getSkillArtifact).toHaveBeenCalledTimes(1);
+    expect(second.paths.get("skill-id-1")).toBe(".stigmer/skills/cached-skill");
+    expect(readFileSync(
+      join(platformDir, "skills", "cached-skill", "references", "guide.md"), "utf-8",
+    )).toBe("guide");
   });
-});
 
-// ─── computeSkillPaths ───────────────────────────────────────────────────
+  it("remounts on version change and clears stale files from the old mount", async () => {
+    const artifactV1 = buildZip([{ name: "references/removed-in-v2.md", content: "old" }]);
+    const artifactV2 = buildZip([{ name: "references/new-in-v2.md", content: "new" }]);
+    const client = makeMockClient({
+      getSkillArtifact: vi.fn()
+        .mockResolvedValueOnce({ artifact: artifactV1 })
+        .mockResolvedValueOnce({ artifact: artifactV2 }),
+    });
 
-describe("computeSkillPaths", () => {
-  it("computes paths without side effects", () => {
+    await mountSkills(client, [makeSkill({
+      name: "evolving-skill",
+      skillMd: "# V1",
+      artifactStorageKey: "artifacts/v1.zip",
+      versionHash: "hash-v1",
+    })], platformDir);
+
+    await mountSkills(client, [makeSkill({
+      name: "evolving-skill",
+      skillMd: "# V2",
+      artifactStorageKey: "artifacts/v2.zip",
+      versionHash: "hash-v2",
+    })], platformDir);
+
+    const skillDir = join(platformDir, "skills", "evolving-skill");
+    expect(client.getSkillArtifact).toHaveBeenCalledTimes(2);
+    expect(readFileSync(join(skillDir, "SKILL.md"), "utf-8")).toBe("# V2");
+    expect(readFileSync(join(skillDir, "references", "new-in-v2.md"), "utf-8")).toBe("new");
+    // The v1-only file must not linger in the v2 mount (the stale-file leak).
+    expect(existsSync(join(skillDir, "references", "removed-in-v2.md"))).toBe(false);
+  });
+
+  it("does not cache a degraded SKILL.md-only mount — the next execution retries", async () => {
+    const artifact = buildZip([{ name: "references/late.md", content: "finally" }]);
+    const client = makeMockClient({
+      getSkillArtifact: vi.fn()
+        .mockRejectedValueOnce(new Error("Network timeout"))
+        .mockResolvedValueOnce({ artifact }),
+    });
+    const skill = makeSkill({
+      name: "retry-skill",
+      artifactStorageKey: "artifacts/retry.zip",
+      versionHash: "hash-v1",
+    });
+
+    // First pass degrades to SKILL.md only — never throws.
+    const first = await mountSkills(client, [skill], platformDir);
+    const skillDir = join(platformDir, "skills", "retry-skill");
+    expect(first.paths.get("skill-id-1")).toBe(".stigmer/skills/retry-skill");
+    expect(existsSync(join(skillDir, "SKILL.md"))).toBe(true);
+    expect(existsSync(join(skillDir, "references"))).toBe(false);
+
+    // Second pass retries and completes the mount.
+    await mountSkills(client, [skill], platformDir);
+    expect(client.getSkillArtifact).toHaveBeenCalledTimes(2);
+    expect(readFileSync(join(skillDir, "references", "late.md"), "utf-8")).toBe("finally");
+
+    // Third pass is a cache hit.
+    await mountSkills(client, [skill], platformDir);
+    expect(client.getSkillArtifact).toHaveBeenCalledTimes(2);
+  });
+
+  it("mounts only the first claimant when two skills resolve to the same directory", async () => {
+    const client = makeMockClient();
     const skills = [
-      makeSkill({ id: "id-1", name: "calculator" }),
-      makeSkill({ id: "id-2", name: "web-scraper" }),
+      makeSkill({ id: "id-1", org: "org-a", slug: "shared-a", name: "shared-name", skillMd: "# First" }),
+      makeSkill({ id: "id-2", org: "org-b", slug: "shared-b", name: "shared-name", skillMd: "# Second" }),
     ];
-    const paths = computeSkillPaths(skills);
-    expect(paths.get("id-1")).toBe(".stigmer/skills/calculator");
-    expect(paths.get("id-2")).toBe(".stigmer/skills/web-scraper");
+    const result = await mountSkills(client, skills, platformDir);
+
+    // Both ids resolve to the (single) directory; the first claimant's content wins.
+    expect(result.paths.get("id-1")).toBe(".stigmer/skills/shared-name");
+    expect(result.paths.get("id-2")).toBe(".stigmer/skills/shared-name");
+    expect(readFileSync(join(platformDir, "skills", "shared-name", "SKILL.md"), "utf-8"))
+      .toBe("# First");
   });
 
-  it("returns empty map for empty skills", () => {
-    expect(computeSkillPaths([])).toEqual(new Map());
-  });
-});
+  it("skips skills with no skillMd content", async () => {
+    const client = makeMockClient();
+    const skill = makeSkill({ name: "broken", skillMd: "" });
+    (skill as any).spec.skillMd = "";
+    const result = await mountSkills(client, [skill], platformDir);
 
-// ─── checkSkillIntegrity ─────────────────────────────────────────────────
-
-describe("checkSkillIntegrity", () => {
-  it("returns true when sentinel exists", async () => {
-    const backend = makeMockBackend();
-    backend.existingFiles.add(".stigmer/skills/calculator/SKILL.md");
-    const skills = [makeSkill({ id: "id-1", name: "calculator" })];
-    expect(await checkSkillIntegrity(skills, backend)).toBe(true);
-  });
-
-  it("returns false when sentinel is missing", async () => {
-    const backend = makeMockBackend();
-    const skills = [makeSkill({ id: "id-1", name: "calculator" })];
-    expect(await checkSkillIntegrity(skills, backend)).toBe(false);
-  });
-
-  it("returns true for empty skills list", async () => {
-    const backend = makeMockBackend();
-    expect(await checkSkillIntegrity([], backend)).toBe(true);
+    // The path entry exists (naming is total) but nothing was mounted.
+    expect(result.paths.get("skill-id-1")).toBe(".stigmer/skills/broken");
+    expect(existsSync(join(platformDir, "skills", "broken"))).toBe(false);
   });
 });
 
@@ -307,43 +368,5 @@ describe("generateAlsoAvailableSection", () => {
     const section = generateAlsoAvailableSection(["some-skill"]);
     expect(section).toContain(".stigmer/skills/<name>/SKILL.md");
     expect(section).toContain("relevant to your task");
-  });
-});
-
-// ─── fetchSkillArtifacts ─────────────────────────────────────────────────
-
-describe("fetchSkillArtifacts", () => {
-  it("returns empty map when no skills have artifacts", async () => {
-    const client = makeMockClient();
-    const skills = [makeSkill({ artifactStorageKey: "" })];
-    const result = await fetchSkillArtifacts(client, skills);
-    expect(result.size).toBe(0);
-    expect(client.getSkillArtifact).not.toHaveBeenCalled();
-  });
-
-  it("fetches artifacts for skills with storage keys", async () => {
-    const artifactData = new Uint8Array([80, 75, 3, 4]); // ZIP magic bytes
-    const client = makeMockClient({
-      getSkillArtifact: vi.fn().mockResolvedValue({ artifact: artifactData }),
-    });
-    const skills = [makeSkill({ id: "id-1", artifactStorageKey: "artifacts/key.zip" })];
-    const result = await fetchSkillArtifacts(client, skills);
-    expect(result.size).toBe(1);
-    expect(result.get("id-1")).toEqual(artifactData);
-  });
-
-  it("handles partial failures gracefully", async () => {
-    const client = makeMockClient({
-      getSkillArtifact: vi.fn()
-        .mockResolvedValueOnce({ artifact: new Uint8Array([1, 2, 3]) })
-        .mockRejectedValueOnce(new Error("Network error")),
-    });
-    const skills = [
-      makeSkill({ id: "id-1", name: "good", artifactStorageKey: "key1" }),
-      makeSkill({ id: "id-2", name: "bad", artifactStorageKey: "key2" }),
-    ];
-    const result = await fetchSkillArtifacts(client, skills);
-    expect(result.size).toBe(1);
-    expect(result.has("id-1")).toBe(true);
   });
 });

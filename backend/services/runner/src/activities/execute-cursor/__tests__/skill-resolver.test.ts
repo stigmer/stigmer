@@ -3,7 +3,7 @@ import { mkdtempSync, readFileSync, existsSync, rmSync, writeFileSync } from "no
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { ConnectError, Code } from "@connectrpc/connect";
-import { resolveSkills, downloadArtifact } from "../skill-resolver.js";
+import { resolveSkills } from "../skill-resolver.js";
 import { buildZip } from "../../../__test-utils__/zip-fixtures.js";
 
 /** A server that predates the transfer lane (#675) answers the mint RPC
@@ -390,96 +390,5 @@ describe("resolveSkills — artifact extraction", () => {
   });
 });
 
-// ─── downloadArtifact — transfer lane routing (#675) ─────────────────────
-
-describe("downloadArtifact — transfer lane routing", () => {
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
-
-  function makeClient(overrides: Record<string, any> = {}) {
-    return {
-      getSkillArtifact: vi.fn().mockResolvedValue({ artifact: new Uint8Array(0) }),
-      getSkillArtifactDownloadUrl: unimplementedMint(),
-      ...overrides,
-    } as any;
-  }
-
-  it("fetches bytes over HTTP when the server mints a download URL", async () => {
-    const bytes = new Uint8Array([1, 2, 3, 4, 5]);
-    const client = makeClient({
-      getSkillArtifactDownloadUrl: vi.fn().mockResolvedValue({
-        url: "http://localhost:7234/v1/skill-artifacts/skills/abc.zip",
-        sizeBytes: 5n,
-        ttlSeconds: 0,
-      }),
-    });
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      arrayBuffer: async () => bytes.buffer,
-    });
-    vi.stubGlobal("fetch", fetchMock);
-
-    const got = await downloadArtifact(client, "skills/abc.zip");
-
-    expect(got).toEqual(bytes);
-    expect(fetchMock).toHaveBeenCalledWith("http://localhost:7234/v1/skill-artifacts/skills/abc.zip");
-    // The unary lane (10MB-capped) must not be touched when the URL lane works.
-    expect(client.getSkillArtifact).not.toHaveBeenCalled();
-  });
-
-  it("falls back to the unary RPC when the server predates the lane", async () => {
-    const bytes = new Uint8Array([9, 9]);
-    const client = makeClient({
-      getSkillArtifact: vi.fn().mockResolvedValue({ artifact: bytes }),
-    });
-    vi.stubGlobal("fetch", vi.fn()); // must never be called
-
-    const got = await downloadArtifact(client, "skills/abc.zip");
-
-    expect(got).toEqual(bytes);
-    expect(client.getSkillArtifact).toHaveBeenCalledWith("skills/abc.zip");
-    expect(fetch).not.toHaveBeenCalled();
-  });
-
-  it("does NOT fall back on non-Unimplemented mint failures", async () => {
-    const client = makeClient({
-      getSkillArtifactDownloadUrl: vi.fn().mockRejectedValue(
-        new ConnectError("boom", Code.Internal),
-      ),
-    });
-
-    await expect(downloadArtifact(client, "skills/abc.zip")).rejects.toThrow("boom");
-    // Falling back here would mask real server faults behind the capped lane.
-    expect(client.getSkillArtifact).not.toHaveBeenCalled();
-  });
-
-  it("rejects truncated fetches via the minted size", async () => {
-    const client = makeClient({
-      getSkillArtifactDownloadUrl: vi.fn().mockResolvedValue({
-        url: "http://localhost:7234/v1/skill-artifacts/skills/abc.zip",
-        sizeBytes: 100n,
-        ttlSeconds: 0,
-      }),
-    });
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
-      ok: true,
-      arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer,
-    }));
-
-    await expect(downloadArtifact(client, "skills/abc.zip")).rejects.toThrow(/truncated/);
-  });
-
-  it("surfaces HTTP failures with the status code", async () => {
-    const client = makeClient({
-      getSkillArtifactDownloadUrl: vi.fn().mockResolvedValue({
-        url: "http://localhost:7234/v1/skill-artifacts/skills/gone.zip",
-        sizeBytes: 0n,
-        ttlSeconds: 0,
-      }),
-    });
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 404 }));
-
-    await expect(downloadArtifact(client, "skills/gone.zip")).rejects.toThrow(/HTTP 404/);
-  });
-});
+// downloadArtifact's transfer-lane routing tests moved with the code to
+// shared/__tests__/skill-mount.test.ts (issue #337 extraction).

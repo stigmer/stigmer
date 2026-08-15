@@ -42,8 +42,7 @@ import { SubAgentGate } from "../../shared/subagent-gate.js";
 import { isModelRegistered } from "../../shared/model-registry.js";
 import {
   fetchSkillsByRefs,
-  fetchSkillArtifacts,
-  writeSkills,
+  mountSkills,
   generatePromptSection,
 } from "../../shared/skill-writer.js";
 
@@ -681,8 +680,14 @@ export async function transformAndCompileSubagents(
       const skills = await fetchSkillsByRefs(skillClient, refs);
 
       if (skills.length > 0) {
-        const artifacts = await fetchSkillArtifacts(skillClient, skills);
-        const { paths: skillPaths } = await writeSkills(skills, workspaceBackend, artifacts);
+        // Runs after the parent's setup step 7b mounted its skills, so any
+        // skill shared by parent and sub-agent is a cache hit here — the
+        // hash-keyed marker turns the old double download into a no-op.
+        // platformDir is an invariant: provisionWorkspace threads
+        // ensurePlatformDir into every backend it constructs.
+        const { paths: skillPaths } = await mountSkills(
+          skillClient, skills, workspaceBackend.platformDir!,
+        );
 
         for (const skill of skills) {
           const slug = (skill as { metadata?: { slug?: string } }).metadata?.slug;

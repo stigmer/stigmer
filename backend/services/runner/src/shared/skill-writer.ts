@@ -1,5 +1,5 @@
 /**
- * Skill writing and prompt generation for the deep-agent execution path.
+ * Skill mounting and prompt generation for the deep-agent execution path.
  *
  * Follows the Agent Skills specification progressive disclosure model:
  *
@@ -10,19 +10,33 @@
  * 3. Resources (on demand) — scripts, references, and assets are
  *    loaded by the agent only when required.
  *
- * Skills live under `.stigmer/skills/{name}/` relative to the workspace root.
- * Returned paths are workspace-relative so that the agent's sandbox backend
- * resolves them correctly regardless of mount strategy.
+ * Skills physically live in the session's platform directory
+ * (`{platformDir}/skills/{name}/` — the SAME location the Cursor harness
+ * mounts into), and the agent sees them as `.stigmer/skills/{name}/`
+ * through the per-turn workspace symlink (see workspace/stigmer-link.ts).
+ * Returned paths are the agent-visible `.stigmer/…` form.
+ *
+ * Mounts are cached by the skill's content-addressed version hash via the
+ * shared skill-mount mechanics (issue #337, mirroring the Cursor harness's
+ * #672 fix): metadata is fetched every execution — a pushed skill update
+ * still lands on the very next message — but an unchanged skill skips the
+ * artifact download and rewrite entirely.
  */
 
-import type { WorkspaceBackend } from "./workspace/types.js";
+import { join } from "node:path";
 import type { Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import type { StigmerClient } from "../client/stigmer-client.js";
-import { extractZipFileEntries } from "./zip-extract.js";
+import {
+  SKILLS_SUBDIR,
+  mountIsFresh,
+  downloadArtifact,
+  writeSkillMount,
+} from "./skill-mount.js";
+import { STIGMER_LOCAL_STATE_DIR } from "./workspace/stigmer-link.js";
 
-const SKILLS_RELATIVE_BASE = ".stigmer/skills";
-const SCRIPT_EXTENSIONS = new Set([".sh", ".py", ".js", ".ts", ".rb", ".pl"]);
+/** Agent-visible base of the skills tree (via the workspace `.stigmer` symlink). */
+const SKILLS_RELATIVE_BASE = `${STIGMER_LOCAL_STATE_DIR}/${SKILLS_SUBDIR}`;
 
 // ─── Types ───────────────────────────────────────────────────────────────
 
@@ -81,114 +95,100 @@ export async function fetchSkillsByRefs(
   return results;
 }
 
-// ─── Write ───────────────────────────────────────────────────────────────
+// ─── Mount ───────────────────────────────────────────────────────────────
 
 /**
- * Write skill artifacts to the workspace. Returns a map of
- * skill-id -> workspace-relative directory path.
+ * Mount skills into the session's platform directory, downloading each
+ * skill's artifact only on a version-hash cache miss (see skill-mount.ts
+ * for the marker mechanics). Returns a map of skill-id -> agent-visible
+ * directory path.
  *
- * For each skill:
- * - If a ZIP artifact is available, extract it to .stigmer/skills/{name}/
- * - Otherwise, write just the SKILL.md from the spec
- * - Make scripts executable
+ * The returned map is a NAMING function, not a success record: every skill
+ * gets its path entry so prompt generation stays total, while mount
+ * failures degrade that one skill (loud log, no throw) — one broken skill
+ * must never kill the run.
+ *
+ * Skills mount in parallel (each owns an independent directory), EXCEPT
+ * when two skills resolve to the same directory name (same `spec.name`
+ * from different orgs): concurrent remove-and-rewrite passes on one
+ * directory would corrupt the mount, so only the first claimant mounts and
+ * the collision is logged loudly. (The sequential code this replaced
+ * silently let the last writer win — no better, just quieter.)
  */
-export async function writeSkills(
+export async function mountSkills(
+  client: StigmerClient,
   skills: readonly Skill[],
-  workspaceBackend: WorkspaceBackend,
-  artifacts: ReadonlyMap<string, Uint8Array>,
+  platformDir: string,
 ): Promise<SkillPathMap> {
   const paths = new Map<string, string>();
+  const claims = new Map<string, Skill>();
 
-  for (const skill of skills) {
-    const name = skill.spec?.name || skill.metadata?.slug || "unknown";
-    const skillId = skill.metadata?.id ?? name;
-    const relativeDir = `${SKILLS_RELATIVE_BASE}/${name}`;
-    paths.set(skillId, relativeDir);
-
-    const artifactBytes = artifacts.get(skillId);
-    if (skill.spec?.skillMd) {
-      const skillMdPath = `${relativeDir}/SKILL.md`;
-      await workspaceBackend.writeFile(skillMdPath, skill.spec.skillMd);
-      if (artifactBytes && artifactBytes.length > 0) {
-        await extractZipToWorkspaceExcluding(artifactBytes, "SKILL.md", relativeDir, workspaceBackend);
-      }
-    } else if (artifactBytes && artifactBytes.length > 0) {
-      await extractZipToWorkspace(artifactBytes, relativeDir, workspaceBackend);
-    }
-
-    await makeScriptsExecutable(relativeDir, workspaceBackend);
-  }
-
-  return { paths };
-}
-
-/**
- * Compute skill paths without writing anything (for resume integrity checks).
- */
-export function computeSkillPaths(skills: readonly Skill[]): Map<string, string> {
-  const paths = new Map<string, string>();
   for (const skill of skills) {
     const name = skill.spec?.name || skill.metadata?.slug || "unknown";
     const skillId = skill.metadata?.id ?? name;
     paths.set(skillId, `${SKILLS_RELATIVE_BASE}/${name}`);
+
+    // Impossible through the push pipeline (push.go hard-fails a ZIP
+    // without an extractable SKILL.md and always populates spec.skill_md),
+    // so an empty skillMd means a broken resource — skip, same as Cursor.
+    if (!skill.spec?.skillMd) {
+      console.warn(
+        `[skill-writer] skill ${name} (${skillId}) has no skillMd content — skipping mount`,
+      );
+      continue;
+    }
+
+    const prev = claims.get(name);
+    if (prev) {
+      console.warn(
+        `[skill-writer] mount directory collision on '${name}': ` +
+        `${prev.metadata?.org}/${prev.metadata?.slug} already claims it, ` +
+        `skipping ${skill.metadata?.org}/${skill.metadata?.slug}`,
+      );
+      continue;
+    }
+    claims.set(name, skill);
   }
-  return paths;
-}
 
-/**
- * Check workspace integrity for resume fast-path.
- * Returns true if the sentinel SKILL.md file exists for the first skill.
- */
-export async function checkSkillIntegrity(
-  skills: readonly Skill[],
-  workspaceBackend: WorkspaceBackend,
-): Promise<boolean> {
-  if (skills.length === 0) return true;
+  await Promise.all([...claims.entries()].map(async ([name, skill]) => {
+    const skillDir = join(platformDir, SKILLS_SUBDIR, name);
+    try {
+      const versionHash = skill.status?.versionHash ?? "";
+      const wantsArtifact = Boolean(skill.status?.artifactStorageKey);
 
-  const paths = computeSkillPaths(skills);
-  const firstPath = paths.values().next().value;
-  if (!firstPath) return true;
+      if (versionHash !== "" && (await mountIsFresh(skillDir, versionHash, wantsArtifact))) {
+        console.log(
+          `[skill-writer] mount cache hit: ${name} (version ${versionHash.slice(0, 12)}) — skipping artifact transfer`,
+        );
+        return;
+      }
 
-  const sentinel = `${firstPath}/SKILL.md`;
-  return workspaceBackend.exists(sentinel);
-}
+      let artifactBytes: Uint8Array | undefined;
+      if (wantsArtifact) {
+        try {
+          artifactBytes = await downloadArtifact(client, skill.status!.artifactStorageKey);
+        } catch (err) {
+          // Deliberate degradation, but LOUD (#675): the run still gets
+          // SKILL.md, and the marker records artifactMounted=false so the
+          // next execution retries the download.
+          console.error(
+            `[skill-writer] artifact download FAILED for ${name} ` +
+            `(key=${skill.status!.artifactStorageKey}) — mounting SKILL.md WITHOUT the skill's ` +
+            `supporting files (scripts/references will be missing): ${err instanceof Error ? err.message : err}`,
+          );
+        }
+      }
 
-// ─── ZIP extraction ──────────────────────────────────────────────────────
+      await writeSkillMount(skill, skillDir, artifactBytes);
+      console.log(`[skill-writer] wrote skill mount: ${name}`);
+    } catch (err) {
+      console.warn(
+        `[skill-writer] failed to mount skill ${name}: ${err instanceof Error ? err.message : err}`,
+      );
+    }
+  }));
 
-async function extractZipToWorkspace(
-  zipBytes: Uint8Array,
-  targetDir: string,
-  backend: WorkspaceBackend,
-): Promise<void> {
-  const entries = await extractZipFileEntries(zipBytes);
-  for (const entry of entries) {
-    await backend.writeFileBuffer(`${targetDir}/${entry.path}`, Buffer.from(entry.content));
-  }
-}
-
-async function extractZipToWorkspaceExcluding(
-  zipBytes: Uint8Array,
-  excludeName: string,
-  targetDir: string,
-  backend: WorkspaceBackend,
-): Promise<void> {
-  const entries = await extractZipFileEntries(zipBytes, { exclude: [excludeName] });
-  for (const entry of entries) {
-    await backend.writeFileBuffer(`${targetDir}/${entry.path}`, Buffer.from(entry.content));
-  }
-}
-
-async function makeScriptsExecutable(
-  relativeDir: string,
-  backend: WorkspaceBackend,
-): Promise<void> {
-  const extensions = [...SCRIPT_EXTENSIONS].map(ext => `-name '*${ext}'`).join(" -o ");
-  const cmd = `find ${relativeDir} -type f \\( ${extensions} \\) -exec chmod +x {} \\; 2>/dev/null || true`;
-  try {
-    await backend.execute(cmd);
-  } catch {
-    // Non-fatal: scripts may not be executable in all environments
-  }
+  return { paths };
 }
 
 // ─── Prompt generation ───────────────────────────────────────────────────
@@ -263,38 +263,4 @@ export function generateAlsoAvailableSection(
     "If you determine one of them is relevant to your task, " +
     "read its SKILL.md at `.stigmer/skills/<name>/SKILL.md` to activate it.\n"
   );
-}
-
-// ─── Artifact fetching ───────────────────────────────────────────────────
-
-/**
- * Download skill artifacts for all skills that have a storage key.
- * Returns a map from skill ID to artifact bytes.
- */
-export async function fetchSkillArtifacts(
-  client: StigmerClient,
-  skills: readonly Skill[],
-): Promise<Map<string, Uint8Array>> {
-  const artifacts = new Map<string, Uint8Array>();
-
-  const fetches = skills
-    .filter(s => s.status?.artifactStorageKey)
-    .map(async (skill) => {
-      const key = skill.status!.artifactStorageKey;
-      const skillId = skill.metadata?.id ?? skill.spec?.name ?? "unknown";
-      try {
-        const response = await client.getSkillArtifact(key);
-        if (response.artifact && response.artifact.length > 0) {
-          artifacts.set(skillId, response.artifact);
-        }
-      } catch (err) {
-        console.warn(
-          `[skill-writer] Failed to download artifact for ${skill.spec?.name}: ` +
-          `${err instanceof Error ? err.message : String(err)}. Falling back to SKILL.md only.`,
-        );
-      }
-    });
-
-  await Promise.all(fetches);
-  return artifacts;
 }

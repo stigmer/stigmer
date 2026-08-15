@@ -88,12 +88,9 @@ import type { ToolApprovalCategory } from "../../shared/tool-kind.js";
 import {
   mergeSkillRefs,
   fetchSkillsByRefs,
-  writeSkills,
-  computeSkillPaths,
-  checkSkillIntegrity,
+  mountSkills,
   generatePromptSection,
   generateAlsoAvailableSection,
-  fetchSkillArtifacts,
 } from "../../shared/skill-writer.js";
 import { filterSkills, SKILL_COUNT_THRESHOLD } from "../../shared/skill-relevance.js";
 import { injectAttachments } from "./attachment-injector.js";
@@ -478,8 +475,11 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       const skills = await fetchSkillsByRefs(client, skillRefs);
 
       if (skills.length > 0) {
-        const artifacts = await fetchSkillArtifacts(client, skills);
-        const { paths: skillPaths } = await writeSkills(skills, workspaceBackend, artifacts);
+        // platformDir is an invariant of this path: provisionWorkspace below
+        // threads ensurePlatformDir into every backend it constructs.
+        const { paths: skillPaths } = await mountSkills(
+          client, skills, workspaceBackend.platformDir!,
+        );
 
         const userMessage = execution.spec!.message || "";
         const skillNames = skills.map(s => s.spec?.name || s.metadata?.slug || "unknown");
