@@ -148,7 +148,7 @@ import type { ClassifiedError } from "./error-classifier.js";
 import { createAgent, createCloudAgent } from "./session-lifecycle.js";
 import { setMaxListeners } from "node:events";
 import { startHeartbeat } from "../../shared/heartbeat.js";
-import { getShutdownSignalForQueue } from "../../runner-manager.js";
+import { classifyTurnInterruption, getShutdownSignalForQueue } from "../../shared/worker-shutdown.js";
 
 /**
  * Creates the activity functions bound to the runner config.
@@ -1398,13 +1398,21 @@ async function executeCursorInner(
     // classifies a shutdown from the shutdown signal directly (in
     // resolvePreBoundaryTerminal). The heartbeat timer may set `cancelled` before
     // the AbortSignal microtask propagates; the direct signal check catches that.
-    const isShutdown = periodicHeartbeat.workerShutdown || (shutdownSignal?.aborted ?? false);
-    if (isShutdown) {
+    // The decision table (including #776's grace-window guard: an aborted
+    // shutdown signal with NO interruption evidence stays "none") lives in
+    // classifyTurnInterruption — shared/worker-shutdown.ts.
+    const interruption = classifyTurnInterruption({
+      heartbeatCancelled: periodicHeartbeat.cancelled,
+      heartbeatWorkerShutdown: periodicHeartbeat.workerShutdown,
+      cancellationSignalAborted: Context.current().cancellationSignal.aborted,
+      shutdownSignalAborted: shutdownSignal?.aborted ?? false,
+    });
+    if (interruption === "worker-shutdown") {
       turnState.pauseDetected = false;
-    } else if (periodicHeartbeat.cancelled) {
+    } else if (interruption === "pause") {
       turnState.pauseDetected = true;
     }
-    workerShutdownDetected = isShutdown;
+    workerShutdownDetected = interruption === "worker-shutdown";
 
     // Post-stream finalize, shared by the primary turn and both recovery retries:
     // finalize the transcript + streaming flags, mark any in-flight sub-agent
@@ -1502,10 +1510,16 @@ async function executeCursorInner(
         return { kind: "return" };
       }
 
-      // Worker shutdown: the runner-manager aborted the shutdown signal. NOT a
+      // Worker shutdown: the runner/manager aborted the shutdown signal. NOT a
       // user pause. Checked via the shutdown signal directly so a retry (whose
-      // periodic heartbeat is already stopped) still classifies it correctly.
-      if (workerShutdownDetected || (shutdownSignal?.aborted ?? false)) {
+      // periodic heartbeat is already stopped) still classifies it correctly —
+      // but only alongside a delivered cancellation: a retry that completed
+      // normally inside the drain grace window must stay a completion (#776's
+      // grace-window guard, mirroring the primary's `interrupted` gate).
+      if (
+        workerShutdownDetected ||
+        ((shutdownSignal?.aborted ?? false) && Context.current().cancellationSignal.aborted)
+      ) {
         status.phase = ExecutionPhase.EXECUTION_FAILED;
         status.error = "Execution interrupted: runner worker was shut down. Retry or resume.";
         status.completedAt = utcTimestamp();
@@ -2147,9 +2161,12 @@ async function executeCursorInner(
     periodicHeartbeat?.stop();
 
     if (err instanceof CancelledFailure) {
-      // workerShutdownDetected means the runner-manager signaled shutdown
-      // before the worker drained. This is infrastructure failure, not pause.
-      if (workerShutdownDetected) {
+      // Worker shutdown is infrastructure failure, not pause. The direct
+      // signal check covers a CancelledFailure thrown BEFORE the post-stream
+      // classification ran (workerShutdownDetected still false); no extra
+      // interruption-evidence gate is needed here — the caught
+      // CancelledFailure IS the evidence (#776).
+      if (workerShutdownDetected || (shutdownSignal?.aborted ?? false)) {
         console.log(`ExecuteCursor cancelled (worker shutdown) for execution ${executionId}`);
         status.phase = ExecutionPhase.EXECUTION_FAILED;
         status.error = "Execution interrupted: runner worker was shut down. Retry or resume.";

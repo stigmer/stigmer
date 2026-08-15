@@ -7,6 +7,7 @@ import (
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	ecactivities "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/executioncontext/temporal/activities"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/activities"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/runnerfailure"
 	enumspb "go.temporal.io/api/enums/v1"
 	"go.temporal.io/sdk/converter"
 	"go.temporal.io/sdk/temporal"
@@ -331,9 +332,18 @@ func (w *InvokeWorkflowExecutionWorkflowImpl) updateStatusOnFailure(ctx workflow
 
 	logger.Info("Updating execution status to FAILED", "execution_id", executionID)
 
+	// Recognized worker-shutdown shapes persist the honest platform-failure
+	// copy instead of raw Temporal drain internals (#776) — same mapping as
+	// the agentexecution twin, shared via pkg/runnerfailure. The raw text
+	// stays in the workflow log (the caller already logged it).
+	statusError := fmt.Sprintf("Workflow execution failed: %s", originalErr.Error())
+	if runnerfailure.IsWorkerShutdown(originalErr) {
+		statusError = runnerfailure.WorkerShutdownStatusError
+	}
+
 	failedStatus := &workflowexecutionv1.WorkflowExecutionStatus{
 		Phase: workflowexecutionv1.ExecutionPhase_EXECUTION_FAILED,
-		Error: fmt.Sprintf("Workflow execution failed: %s", originalErr.Error()),
+		Error: statusError,
 	}
 
 	v := workflow.GetVersion(ctx, "remote-cleanup-stubs", workflow.DefaultVersion, 1)

@@ -49,6 +49,10 @@ import {
   setQueueDrainCallback,
   forgetQueue,
 } from "./in-flight.js";
+import {
+  registerWorkerShutdownSignal,
+  unregisterWorkerShutdownSignal,
+} from "./shared/worker-shutdown.js";
 
 const SESSION_QUEUE_PREFIX = "session:";
 const WFEXEC_QUEUE_PREFIX = "wfexec:";
@@ -57,16 +61,10 @@ const WFEXEC_QUEUE_PREFIX = "wfexec:";
 // Mirrors SessionDispatchService's convention: lowercase kind, colon, id.
 const POOL_CONTROL_QUEUE_PREFIX = "sandbox:";
 
-/**
- * Module-level registry of shutdown signals per task queue.
- * Activities running in the same process can read this to determine
- * whether their worker is being shut down (vs orchestrator pause).
- */
-const _shutdownSignalRegistry = new Map<string, AbortSignal>();
-
-export function getShutdownSignalForQueue(taskQueue: string): AbortSignal | undefined {
-  return _shutdownSignalRegistry.get(taskQueue);
-}
+// Re-export for existing importers; the registry itself lives in
+// shared/worker-shutdown.ts so the static runner (runner.ts) and the
+// activities can share it without importing this manager module.
+export { getShutdownSignalForQueue } from "./shared/worker-shutdown.js";
 
 export interface RunnerManagerOptions {
   /**
@@ -411,15 +409,12 @@ export async function createStigmerRunnerManager(
 
   const sessions = new Map<string, ManagedSession>();
   const workflowExecutions = new Map<string, ManagedSession>();
-  const shutdownSignals = new Map<string, AbortController>();
   // At most one per process: a pool member IS its control worker's identity.
   let poolControl: { taskQueue: string; managed: ManagedSession } | null = null;
   let shuttingDown = false;
 
   async function createWorkerOnQueue(taskQueue: string): Promise<ManagedSession> {
-    const shutdownController = new AbortController();
-    shutdownSignals.set(taskQueue, shutdownController);
-    _shutdownSignalRegistry.set(taskQueue, shutdownController.signal);
+    const shutdownController = registerWorkerShutdownSignal(taskQueue);
 
     const worker = await Worker.create({
       connection,
@@ -481,8 +476,7 @@ export async function createStigmerRunnerManager(
     managed.worker.shutdown();
     await managed.runPromise;
     registry.delete(id);
-    shutdownSignals.delete(taskQueue);
-    _shutdownSignalRegistry.delete(taskQueue);
+    unregisterWorkerShutdownSignal(taskQueue);
     forgetQueue(taskQueue);
     console.log(`[runner-manager] Removed ${kind} ${id} (active=${registry.size})`);
   }
@@ -619,6 +613,22 @@ export async function createStigmerRunnerManager(
       console.log(
         `[runner-manager] Shutting down ${totalWorkers} workers (${sessions.size} sessions, ${workflowExecutions.size} workflow executions)...`,
       );
+
+      // Mark every queue's shutdown signal BEFORE draining, so an in-flight
+      // activity cancelled by the drain classifies it as a worker shutdown
+      // rather than a user pause (issue #776 — a SIGTERM'd pool member used
+      // to persist EXECUTION_PAUSED and let raw Temporal drain text reach
+      // status.error). Aborting is classification-only: it stops nothing;
+      // worker.shutdown() below still owns the drain. This is deliberately
+      // NOT done in teardownManaged — single-worker teardowns only run once
+      // the queue is idle, and aborting there is the old view-close bug.
+      for (const session of sessions.values()) {
+        session.shutdownController.abort();
+      }
+      for (const execution of workflowExecutions.values()) {
+        execution.shutdownController.abort();
+      }
+      poolControl?.managed.shutdownController.abort();
 
       const shutdownPromises = [
         ...Array.from(sessions.entries()).map(

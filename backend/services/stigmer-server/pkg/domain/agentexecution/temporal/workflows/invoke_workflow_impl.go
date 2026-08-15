@@ -10,6 +10,7 @@ import (
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/filereview"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal/activities"
 	ecactivities "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/executioncontext/temporal/activities"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/runnerfailure"
 	"go.temporal.io/api/enums/v1"
 	"go.temporal.io/sdk/converter"
 	"go.temporal.io/sdk/temporal"
@@ -156,18 +157,23 @@ const MaxRecoveryCycles = 10
 // harness_state_id / LangGraph checkpoint), as opposed to a genuine failure.
 //
 // Recoverable: a HEARTBEAT timeout (the worker stopped heartbeating because it
-// crashed, slept, or was reaped mid-run) and an infrastructure cancellation
+// crashed, slept, or was reaped mid-run), an infrastructure cancellation
 // (CanceledError) that is NOT a user pause (handled by the pause branch) and
-// NOT an external workflow cancellation (the caller guards on ctx.Err()).
+// NOT an external workflow cancellation (the caller guards on ctx.Err()), and
+// a worker-shutdown drain (#776 owner ruling): the Temporal TS worker failing
+// a started activity it could not finish inside the shutdown grace window is
+// the same "worker reaped mid-run" interruption as a heartbeat timeout — a
+// SIGTERM'd pool member's turn resumes on the restarted pod instead of
+// dead-ending with error copy.
 //
-// NOT recoverable here: SCHEDULE_TO_START / START_TO_CLOSE timeouts and
+// NOT recoverable here: SCHEDULE_TO_START / START_TO_CLOSE timeouts and other
 // application errors — re-invoking those would not change the outcome.
 func isRecoverableActivityError(err error) bool {
 	var timeoutErr *temporal.TimeoutError
 	if errors.As(err, &timeoutErr) {
 		return timeoutErr.TimeoutType() == enums.TIMEOUT_TYPE_HEARTBEAT
 	}
-	return temporal.IsCanceledError(err)
+	return temporal.IsCanceledError(err) || runnerfailure.IsWorkerShutdown(err)
 }
 
 // recoveryBackoff returns the delay before re-invoking an interrupted activity.
@@ -963,9 +969,19 @@ func (w *InvokeAgentExecutionWorkflowImpl) updateStatusOnFailure(ctx workflow.Co
 
 	logger.Info("Updating execution status to FAILED", "execution_id", executionID)
 
+	// Recognized worker-shutdown shapes persist the honest platform-failure
+	// copy instead of raw Temporal internals ("Worker is shutting down and
+	// this activity did not complete in time" reached users in the 2026-08-08
+	// incident, #776). The raw text stays in the workflow log (the caller
+	// already logged it) — status.error is a user surface, not a log line.
+	statusError := originalErr.Error()
+	if runnerfailure.IsWorkerShutdown(originalErr) {
+		statusError = runnerfailure.WorkerShutdownStatusError
+	}
+
 	failedStatus := &agentexecutionv1.AgentExecutionStatus{
 		Phase: agentexecutionv1.ExecutionPhase_EXECUTION_FAILED,
-		Error: originalErr.Error(),
+		Error: statusError,
 		Messages: []*agentexecutionv1.AgentMessage{
 			{
 				Type:    agentexecutionv1.MessageType_MESSAGE_SYSTEM,
@@ -973,7 +989,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) updateStatusOnFailure(ctx workflow.Co
 			},
 			{
 				Type:    agentexecutionv1.MessageType_MESSAGE_SYSTEM,
-				Content: fmt.Sprintf("Error details: %s", originalErr.Error()),
+				Content: fmt.Sprintf("Error details: %s", statusError),
 			},
 		},
 	}
