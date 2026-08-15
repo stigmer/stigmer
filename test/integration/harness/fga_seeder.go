@@ -37,6 +37,19 @@ func SeedBaseFGATuples(ctx context.Context, fga *OpenFGAContainer) error {
 			Object:   "organization:" + TestOrg,
 		},
 
+		// Self-ownership — the test identity owns its own identity_account
+		// (grants can_view/can_edit/can_delete per iam/identity_account.fga).
+		// Production writes this tuple in provisionMyAccount's create
+		// pipeline (IamPolicyCreationService SELF ownership); the harness
+		// seeds the account row directly into postgres, so the tuple must
+		// be mirrored here or self-updates (e.g. account preferences saves)
+		// fail PERMISSION_DENIED.
+		{
+			User:     "identity_account:" + testIdentityAccountID,
+			Relation: "owner",
+			Object:   "identity_account:" + testIdentityAccountID,
+		},
+
 		// The machine account's PLATFORM grants (operator on platform:stigmer,
 		// owner of itself) are NOT seeded here: BootstrapIdentitySeeder writes
 		// them at startup, before the service reports ready — and OpenFGA's raw

@@ -83,6 +83,12 @@ func (s *SessionClient) ListByChannel(ctx context.Context, input *sessionv1.List
 
 // SessionInput holds the fields for creating/updating a Session.
 type SessionInput struct {
+	// Id is the resource's metadata.id, for exact update addressing when
+	// set from a loaded resource. Required for updates to platform-scoped
+	// (org-less) kinds, where the org+slug fallback cannot match. On
+	// create, the cloud server stamps its own id regardless; the OSS
+	// server honors a caller-supplied id (existing apply semantics).
+	Id                    string
 	Name                  string
 	Slug                  string
 	Org                   string
@@ -106,6 +112,7 @@ func (i *SessionInput) toProto() (*sessionv1.Session, error) {
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Session",
 		Metadata: &apiresource.ApiResourceMetadata{
+			Id:         i.Id,
 			Name:       i.Name,
 			Slug:       i.Slug,
 			Org:        i.Org,
@@ -151,6 +158,7 @@ func SessionInputFromProto(p *sessionv1.Session) *SessionInput {
 	}
 	input := &SessionInput{}
 	if m := p.GetMetadata(); m != nil {
+		input.Id = m.GetId()
 		input.Name = m.GetName()
 		input.Slug = m.GetSlug()
 		input.Org = m.GetOrg()

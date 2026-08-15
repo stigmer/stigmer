@@ -840,6 +840,12 @@ func generateInputTypesV2(buf *bytes.Buffer, schema *ServiceSchemaFile, cfg sdkR
 
 	fmt.Fprintf(buf, "// %s holds the fields for creating/updating a %s.\n", inputName, cfg.protoResType)
 	fmt.Fprintf(buf, "type %s struct {\n", inputName)
+	buf.WriteString("\t// Id is the resource's metadata.id, for exact update addressing when\n")
+	buf.WriteString("\t// set from a loaded resource. Required for updates to platform-scoped\n")
+	buf.WriteString("\t// (org-less) kinds, where the org+slug fallback cannot match. On\n")
+	buf.WriteString("\t// create, the cloud server stamps its own id regardless; the OSS\n")
+	buf.WriteString("\t// server honors a caller-supplied id (existing apply semantics).\n")
+	buf.WriteString("\tId         string\n")
 	buf.WriteString("\tName       string\n")
 	buf.WriteString("\tSlug       string\n")
 	buf.WriteString("\tOrg        string\n")
@@ -871,6 +877,7 @@ func generateInputTypesV2(buf *bytes.Buffer, schema *ServiceSchemaFile, cfg sdkR
 	fmt.Fprintf(buf, "\t\tApiVersion: %q,\n", cfg.apiVersion)
 	fmt.Fprintf(buf, "\t\tKind:       %q,\n", cfg.protoResType)
 	buf.WriteString("\t\tMetadata: &apiresource.ApiResourceMetadata{\n")
+	buf.WriteString("\t\t\tId:         i.Id,\n")
 	buf.WriteString("\t\t\tName:       i.Name,\n")
 	buf.WriteString("\t\t\tSlug:       i.Slug,\n")
 	buf.WriteString("\t\t\tOrg:        i.Org,\n")
@@ -1493,6 +1500,7 @@ func generateFromProto(buf *bytes.Buffer, schema *ServiceSchemaFile, cfg sdkReso
 	fmt.Fprintf(buf, "\tinput := &%s{}\n", inputName)
 
 	buf.WriteString("\tif m := p.GetMetadata(); m != nil {\n")
+	buf.WriteString("\t\tinput.Id = m.GetId()\n")
 	buf.WriteString("\t\tinput.Name = m.GetName()\n")
 	buf.WriteString("\t\tinput.Slug = m.GetSlug()\n")
 	buf.WriteString("\t\tinput.Org = m.GetOrg()\n")

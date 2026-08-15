@@ -107,7 +107,10 @@ describe("AccountPreferencesPanel", () => {
     // Fields this form never renders must round-trip untouched.
     expect(input.idpId).toBe("auth0|abc");
     expect(input.email).toBe("ada@acme.example");
-    // The update pipeline addresses the resource by org + slug.
+    // The update pipeline addresses id-first — the id is REQUIRED here:
+    // identity accounts are org-less, so the org+slug fallback can never
+    // match one (the save-path bug this pin guards against).
+    expect(input.id).toBe("ia-1");
     expect(input.org).toBe("acme");
     expect(input.slug).toBe("ada");
   });
@@ -149,7 +152,7 @@ describe("AccountPreferencesPanel", () => {
       },
     });
 
-    it("renders the harness radio group and registry-fed model selects", async () => {
+    it("renders the harness option rows and registry-fed model selects", async () => {
       renderPanel(createMockStigmer());
       await findSyncedField("Keep answers terse.");
 
@@ -158,6 +161,37 @@ describe("AccountPreferencesPanel", () => {
       expect(screen.getByRole("radio", { name: "Cursor" })).toBeTruthy();
       expect(screen.getByLabelText("Default model — Stigmer")).toBeTruthy();
       expect(screen.getByLabelText("Default model — Cursor")).toBeTruthy();
+    });
+
+    it("pairs each harness row with its description (the row IS the context)", async () => {
+      renderPanel(createMockStigmer());
+      await findSyncedField("Keep answers terse.");
+
+      // Row subtitles come from HARNESS_META — the single source of harness
+      // display copy — plus the platform-default explainer.
+      expect(screen.getByText("Stigmer picks the harness for new sessions.")).toBeTruthy();
+      expect(screen.getByText("Stigmer's native agent runtime")).toBeTruthy();
+      expect(screen.getByText("Cursor IDE agent with codebase indexing")).toBeTruthy();
+      // The radios' accessible descriptions are wired via aria-describedby.
+      expect(
+        screen.getByRole("radio", { name: "Stigmer" }).getAttribute("aria-describedby"),
+      ).toBeTruthy();
+    });
+
+    it("keeps the non-selected harness's model select editable (per-harness models are independent of the default harness)", async () => {
+      renderPanel(createMockStigmer({ whoAmI: vi.fn(async () => ACCOUNT_WITH_DEFAULTS) }));
+      await findSyncedField("Keep answers terse.");
+
+      // Default harness is cursor, yet the Stigmer model stays settable:
+      // the launcher applies the model of the session's ACTIVE harness, so
+      // hiding or disabling it would remove a real capability.
+      await waitFor(() => {
+        expect(screen.getByRole("radio", { name: "Cursor" })).toHaveProperty("checked", true);
+      });
+      const nativeSelect = screen.getByLabelText("Default model — Stigmer") as HTMLSelectElement;
+      expect(nativeSelect.disabled).toBe(false);
+      fireEvent.change(nativeSelect, { target: { value: "claude-sonnet-4.6" } });
+      expect(nativeSelect.value).toBe("claude-sonnet-4.6");
     });
 
     it("reflects the saved defaults in the form", async () => {

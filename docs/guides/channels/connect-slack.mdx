@@ -202,8 +202,8 @@ field.
 ## Pin the model your channel runs
 
 A channel's conversations run unattended — nobody is watching a model picker
-when a workspace member messages your Agent at 3 AM — so the model they use
-is pinned on the channel itself, in `spec.run_config`:
+when a workspace member messages your Agent at 3 AM — so the model they use is
+pinned on the channel itself, in `spec.run_config`:
 
 ```yaml
 spec:
@@ -219,15 +219,15 @@ spec:
 
 The pin overrides the platform's default model for every conversation this
 channel serves, which makes each conversation's price deterministic — an
-unpinned model would follow whatever the serving account's default resolves
-to at that moment.
+unpinned model would follow whatever the serving account's default resolves to
+at that moment.
 
 The pinned name is validated against the platform's model registry when you
 apply the manifest: a name the registry does not know is refused with a
-did-you-mean (`model 'composr-2.5' is not in the model registry … did you
-mean 'composer-2.5'?`) instead of silently falling back to default-model
-pricing at serve time. Any model shown in the console's model picker is
-valid here.
+did-you-mean
+(`model 'composr-2.5' is not in the model registry … did you mean 'composer-2.5'?`)
+instead of silently falling back to default-model pricing at serve time. Any
+model shown in the console's model picker is valid here.
 
 ## Limitations
 

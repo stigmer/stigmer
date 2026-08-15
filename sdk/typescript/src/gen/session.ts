@@ -84,6 +84,14 @@ export class SessionClient {
 
 /** Input for creating/updating a Session. */
 export interface SessionInput {
+  /**
+   * The resource's `metadata.id`, for exact update addressing when set
+   * from a loaded resource. Required for updates to platform-scoped
+   * (org-less) kinds, where the org+slug fallback cannot match. On
+   * create, the cloud server stamps its own id regardless; the OSS
+   * server honors a caller-supplied id (existing apply semantics).
+   */
+  id?: string;
   name: string;
   slug?: string;
   org: string;
@@ -199,6 +207,7 @@ export function buildSessionProto(input: SessionInput): Session {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "Session",
     metadata: Object.assign(create(ApiResourceMetadataSchema), {
+      ...(input.id && { id: input.id }),
       name: input.name,
       org: input.org,
       ...(input.slug && { slug: input.slug }),
@@ -283,6 +292,10 @@ export function toSessionUpdateInput(resource: Session): SessionInput {
   const meta = resource.metadata;
   const spec = resource.spec ?? create(SessionSpecSchema);
   return {
+    // Exact update addressing (id-first in the update pipeline) — for
+    // platform-scoped (org-less) kinds the org+slug fallback cannot
+    // match, so the id is the ONLY working address.
+    id: meta?.id || undefined,
     name: meta?.name ?? "",
     slug: meta?.slug || undefined,
     org: meta?.org ?? "",

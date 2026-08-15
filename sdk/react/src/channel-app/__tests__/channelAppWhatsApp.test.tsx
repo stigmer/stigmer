@@ -228,6 +228,8 @@ describe("ChannelAppDetailPanel — WhatsApp branch", () => {
 
     await waitFor(() => expect(update).toHaveBeenCalled());
     expect(update).toHaveBeenCalledWith({
+      // The generated mapper carries metadata.id for exact update addressing.
+      id: "chapp_1",
       name: "Acme WhatsApp",
       org: "acme",
       slug: "acme-whatsapp",
