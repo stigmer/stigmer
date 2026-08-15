@@ -51,9 +51,7 @@ function renderCanvas() {
 
 type CanvasResult = ReturnType<typeof renderCanvas>["result"];
 
-// Native MouseEvent: @xyflow's drag handlers take native events, not
-// React synthetic ones.
-const DRAG_EVENT = {} as MouseEvent;
+const DRAG_EVENT = {} as React.MouseEvent;
 
 function canvasPosition(result: CanvasResult, id: string): { x: number; y: number } {
   const node = result.current.nodes.find((n) => n.id === id);

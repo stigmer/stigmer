@@ -54,9 +54,7 @@ function renderCanvas() {
 
 type CanvasResult = ReturnType<typeof renderCanvas>["result"];
 
-// Native MouseEvent: @xyflow's drag handlers take native events, not
-// React synthetic ones.
-const DRAG_EVENT = {} as MouseEvent;
+const DRAG_EVENT = {} as React.MouseEvent;
 
 /** Drives one full drag gesture the way React Flow produces it. */
 function drag(result: CanvasResult, id: string, to: { x: number; y: number }) {
