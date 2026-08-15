@@ -93,12 +93,46 @@ export const McpServerCommandController = {
      * Connects to the MCP server, enumerates tools and resource templates,
      * classifies tool approval policies via a lightweight LLM, and stores the
      * results in status.discovered_capabilities and status.tool_approvals.
-     * Blocks until completion (up to ~30 seconds) and returns the updated McpServer.
+     * Blocks until the operation settles — legitimately minutes for heavy
+     * stdio servers (the server-side workflow ceiling is the bound) — and
+     * returns the updated McpServer.
+     *
+     * Prefer startConnect for interactive clients: browsers can drop a
+     * no-bytes-yet unary response around ~300s, below the workflow ceiling,
+     * so a blocking connect can appear to fail while succeeding server-side.
+     * This RPC remains for callers that want synchronous semantics (and for
+     * backends that do not yet serve startConnect).
      *
      * @generated from rpc ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.connect
      */
     connect: {
       name: "connect",
+      I: ConnectInput,
+      O: McpServer,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Start a connect operation without waiting for it: discovery and
+     * classification run server-side, and the caller observes progress by
+     * polling the resource.
+     *
+     * Returns the McpServer immediately with status.connect_status describing
+     * the accepted operation (phase CONNECTING, plus a warning when no runner
+     * appears to be polling the task queue). Poll get/getByReference until
+     * status.connect_status reaches a terminal phase; results land in
+     * status.discovered_capabilities and status.tool_approvals exactly as with
+     * the blocking connect.
+     *
+     * Idempotent while an operation is in flight: a startConnect that finds a
+     * live CONNECTING operation attaches to it (the in-flight operation's
+     * runtime_env wins) instead of starting a second workflow. A CONNECTING
+     * entry orphaned by a backend restart is reconciled against Temporal
+     * before a new operation starts.
+     *
+     * @generated from rpc ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.startConnect
+     */
+    startConnect: {
+      name: "startConnect",
       I: ConnectInput,
       O: McpServer,
       kind: MethodKind.Unary,

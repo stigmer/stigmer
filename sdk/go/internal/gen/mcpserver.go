@@ -75,6 +75,11 @@ func (m *McpServerClient) Connect(ctx context.Context, input *mcpserverv1.Connec
 	return resp, wrapErr(err)
 }
 
+func (m *McpServerClient) StartConnect(ctx context.Context, input *mcpserverv1.ConnectInput) (*mcpserverv1.McpServer, error) {
+	resp, err := m.command.StartConnect(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (m *McpServerClient) InitiateOAuthConnect(ctx context.Context, input *mcpserverv1.InitiateOAuthConnectInput) (*mcpserverv1.InitiateOAuthConnectOutput, error) {
 	resp, err := m.command.InitiateOAuthConnect(ctx, input)
 	return resp, wrapErr(err)

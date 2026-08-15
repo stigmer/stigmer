@@ -75,6 +75,7 @@ McpServer mcpServer = client.mcpServers().get("mcp_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`disconnectOAuth`](#disconnectoauth) | Disconnect the authenticated user's OAuth connection for a resource. |
 | [`initiateOAuthConnect`](#initiateoauthconnect) | Start the OAuth authorization flow for an MCP server. |
 | [`setOrgOAuthApp`](#setorgoauthapp) | Create or update an org-level BYOA OAuth app override for a resource. |
+| [`startConnect`](#startconnect) | Start a connect operation without waiting for it: discovery and classification run server-side, and the caller observes progress by polling the resource. |
 
 ### get
 
@@ -690,7 +691,9 @@ CompleteOAuthConnectOutput completeOAuthConnectOutput = client.mcpServers().comp
 
 Connect to an MCP server: discover its tools and classify approval policies.
 
-Connects to the MCP server, enumerates tools and resource templates, classifies tool approval policies via a lightweight LLM, and stores the results in status.discovered_capabilities and status.tool_approvals. Blocks until completion (up to ~30 seconds) and returns the updated McpServer.
+Connects to the MCP server, enumerates tools and resource templates, classifies tool approval policies via a lightweight LLM, and stores the results in status.discovered_capabilities and status.tool_approvals. Blocks until the operation settles — legitimately minutes for heavy stdio servers (the server-side workflow ceiling is the bound) — and returns the updated McpServer.
+
+Prefer startConnect for interactive clients: browsers can drop a no-bytes-yet unary response around ~300s, below the workflow ceiling, so a blocking connect can appear to fail while succeeding server-side. This RPC remains for callers that want synchronous semantics (and for backends that do not yet serve startConnect).
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -934,6 +937,57 @@ SetOrgOAuthAppOutput setOrgOAuthAppOutput = client.mcpServers().setOrgOAuthApp(S
 **Parameters**: [`SetOrgOAuthAppInput`](#setorgoauthappinput)
 
 **Returns**: [`SetOrgOAuthAppOutput`](#setorgoauthappoutput)
+
+### startConnect
+
+Start a connect operation without waiting for it: discovery and classification run server-side, and the caller observes progress by polling the resource.
+
+Returns the McpServer immediately with status.connect_status describing the accepted operation (phase CONNECTING, plus a warning when no runner appears to be polling the task queue). Poll get/getByReference until status.connect_status reaches a terminal phase; results land in status.discovered_capabilities and status.tool_approvals exactly as with the blocking connect.
+
+Idempotent while an operation is in flight: a startConnect that finds a live CONNECTING operation attaches to it (the in-flight operation's runtime_env wins) instead of starting a second workflow. A CONNECTING entry orphaned by a backend restart is reconciled against Temporal before a new operation starts.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const mcpServer = await stigmer.mcpServer.startConnect({
+  mcpServerId: "...",
+  runtimeEnv: {},
+  org: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+mcpServer, err := client.McpServer.StartConnect(ctx, &stigmer.ConnectInput{
+  McpServerId: "...",
+  RuntimeEnv:  map[string]string{},
+  Org:         "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+mcp_server = client.mcp_servers.start_connect(ConnectInput(
+    mcp_server_id="...",
+    runtime_env={},
+    org="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+McpServer mcpServer = client.mcpServers().startConnect(ConnectInput.builder()
+    .mcpServerId("...")
+    .runtimeEnv(Map.of())
+    .org("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`ConnectInput`](#connectinput)
+
+**Returns**: [`McpServer`](#mcpserver)
 
 ## Types
 
@@ -1247,7 +1301,24 @@ McpServerStatus represents the system-managed state of an MCP server definition.
     discoveredCapabilities: { type: "DiscoveredCapabilities", description: "Tools and resource templates discovered from the MCP server.", typeDescriptionLink: "#discoveredcapabilities" },
     toolApprovals: { type: "ToolApprovalPolicy[]", description: "System-generated tool approval policies.", typeDescriptionLink: "#toolapprovalpolicy" },
     oauthStatus: { type: "OAuthStatus", description: "OAuth-related enrichment state, populated at query time by the backend.", typeDescriptionLink: "#oauthstatus" },
+    connectStatus: { type: "ConnectStatus", description: "State of the most recent connect (discovery + classification) operation.", typeDescriptionLink: "#connectstatus" },
     audit: { type: "ApiResourceAudit", description: "Standard audit information (created_at, updated_at, created_by, etc.).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourceaudit" },
+  }}
+/>
+
+### ConnectStatus
+
+ConnectStatus records one connect operation — the most recent one.
+
+<TypeTable
+  type={{
+    phase: { type: "ConnectPhase", description: "Where the operation stands.", typeDescriptionLink: "#connectphase" },
+    workflowId: { type: "string", description: "The Temporal workflow ID of the connect run — the operation handle." },
+    startedAt: { type: "string", description: "When the operation was accepted (workflow started)." },
+    finishedAt: { type: "string", description: "When the operation settled (success or failure)." },
+    failureCode: { type: "string", description: "gRPC status code name classifying the failure, mirroring what the blocking connect RPC returns for the same outcome: - \"FAILED_PRECONDITION\": the runner refused with a user-facing message (missing credentials, unreachable server) — failure_message renders verbatim." },
+    failureMessage: { type: "string", description: "Human-readable failure detail." },
+    warning: { type: "string", description: "Non-fatal advisory recorded at start time, rendered by clients alongside the CONNECTING state." },
   }}
 />
 
@@ -1332,6 +1403,16 @@ ValidationState represents the structural validity of an MCP server definition.
 |-------|-------------|
 | `valid` | The MCP server definition is structurally valid. |
 | `invalid` | The MCP server definition is invalid. |
+
+### ConnectPhase
+
+ConnectPhase is the lifecycle of a connect operation.
+
+| Value | Description |
+|-------|-------------|
+| `connect_phase_connecting` | A connect workflow is running (or was running when the backend last observed it — see ConnectStatus.workflow_id for how stale entries are reconciled). |
+| `connect_phase_succeeded` | The connect completed and its results were persisted to discovered_capabilities / tool_approvals. |
+| `connect_phase_failed` | The connect settled without usable results. |
 
 ### VendorApprovalStatus
 

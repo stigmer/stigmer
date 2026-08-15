@@ -85,6 +85,12 @@ public final class McpServerClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
+    public McpServer startConnect(ConnectInput input) {
+        try {
+            return command.startConnect(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
     public InitiateOAuthConnectOutput initiateOAuthConnect(InitiateOAuthConnectInput input) {
         try {
             return command.initiateOAuthConnect(input);

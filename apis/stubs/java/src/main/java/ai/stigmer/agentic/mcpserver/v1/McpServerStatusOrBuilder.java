@@ -230,6 +230,48 @@ public interface McpServerStatusOrBuilder extends
 
   /**
    * <pre>
+   * State of the most recent connect (discovery + classification) operation.
+   *
+   * Persisted (unlike oauth_status). Written by the backend when a connect
+   * operation starts and again when it settles; clients poll it through the
+   * ordinary get/getByReference queries after startConnect returns.
+   * Absent until the first connect is attempted.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.mcpserver.v1.ConnectStatus connect_status = 6 [json_name = "connectStatus"];</code>
+   * @return Whether the connectStatus field is set.
+   */
+  boolean hasConnectStatus();
+  /**
+   * <pre>
+   * State of the most recent connect (discovery + classification) operation.
+   *
+   * Persisted (unlike oauth_status). Written by the backend when a connect
+   * operation starts and again when it settles; clients poll it through the
+   * ordinary get/getByReference queries after startConnect returns.
+   * Absent until the first connect is attempted.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.mcpserver.v1.ConnectStatus connect_status = 6 [json_name = "connectStatus"];</code>
+   * @return The connectStatus.
+   */
+  ai.stigmer.agentic.mcpserver.v1.ConnectStatus getConnectStatus();
+  /**
+   * <pre>
+   * State of the most recent connect (discovery + classification) operation.
+   *
+   * Persisted (unlike oauth_status). Written by the backend when a connect
+   * operation starts and again when it settles; clients poll it through the
+   * ordinary get/getByReference queries after startConnect returns.
+   * Absent until the first connect is attempted.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.mcpserver.v1.ConnectStatus connect_status = 6 [json_name = "connectStatus"];</code>
+   */
+  ai.stigmer.agentic.mcpserver.v1.ConnectStatusOrBuilder getConnectStatusOrBuilder();
+
+  /**
+   * <pre>
    * Standard audit information (created_at, updated_at, created_by, etc.)
    * </pre>
    *

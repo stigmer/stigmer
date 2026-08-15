@@ -26,6 +26,9 @@ export function renderConnectResult(result: ConnectResult, sink: ConnectSink, co
   sink(result.updated !== undefined
     ? style.green("✓ Connected — capabilities and tool approvals saved")
     : style.yellow("⚠ Dry run — results not saved to backend"));
+  if (result.warning !== undefined) {
+    sink(style.yellow(`⚠ ${result.warning}`));
+  }
   sink("");
 }
 

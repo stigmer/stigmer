@@ -1,7 +1,9 @@
-// `connect mcp-server` orchestration. Mirrors Go's mcpserver.Connect (connect.go):
-// resolve the server, then either push to the backend (the Connect RPC runs
-// discovery server-side and persists capabilities + tool-approval policies) or,
-// for --dry-run, discover locally and return without persisting.
+// `connect mcp-server` orchestration. Resolve the server, then either run the
+// server-side connect (discovery + tool-approval classification, persisted on
+// the resource) or, for --dry-run, discover locally and return without
+// persisting. The server-side path uses the async lane — startConnect + poll
+// (stigmer/stigmer#425) — with a blocking-RPC fallback for backends that
+// predate it.
 //
 // OAuth: when a server requires OAuth, has no existing grant, and no --env was
 // supplied, the interactive browser flow (oauth.ts) shepherds the user through
@@ -11,10 +13,12 @@
 
 import { create } from "@bufbuild/protobuf";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
+import type { ConnectInput } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { ConnectInputSchema, GetOAuthGrantStatusInputSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import type { DiscoveredCapabilities } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { Stigmer } from "@stigmer/sdk";
+import { connectAndWait, ConnectStillRunningError, CONNECT_SETTLE_BOUND_MS } from "@stigmer/sdk";
 import type { BackendType } from "../../config/config.js";
 import { CliExitError, ExitCode, UsageError } from "../../errors/index.js";
 import { defaultRegistry } from "../../registry/index.js";
@@ -49,6 +53,13 @@ export interface ConnectResult {
   readonly capabilities: DiscoveredCapabilities | undefined;
   /** Set when capabilities were persisted (non-dry-run); undefined for dry-run. */
   readonly updated: McpServer | undefined;
+  /**
+   * Start-time advisory from the backend's connect pre-flight (e.g. "no
+   * runner appears to be polling the task queue"). Only set on the async
+   * lane, and only when the operation ultimately settled anyway — surfaced
+   * so the user learns their runner came up late.
+   */
+  readonly warning?: string;
 }
 
 /** Connect to an MCP server and discover its capabilities (push or dry-run). */
@@ -75,50 +86,65 @@ export async function connectMcpServer(client: Stigmer, opts: ConnectOptions): P
 
   await ensureOAuthSatisfied(client, server, opts);
 
-  const push = client.mcpServer.connect(
-    create(ConnectInputSchema, {
-      mcpServerId: server.metadata?.id ?? "",
-      org: opts.org,
-      runtimeEnv: buildRuntimeEnv(server, opts.envOverrides),
-    }),
-  );
-  const updated = opts.pushTimeoutMs === undefined
-    ? await push
-    : await boundedPush(push, opts.pushTimeoutMs, server);
-  return { server, capabilities: updated.status?.discoveredCapabilities, updated };
+  const input = create(ConnectInputSchema, {
+    mcpServerId: server.metadata?.id ?? "",
+    org: opts.org,
+    runtimeEnv: buildRuntimeEnv(server, opts.envOverrides),
+  });
+  return serverSideConnect(client, server, input, opts);
 }
 
-// Soft timeout on the server-side connect (the client/client.ts idiom): races
-// the RPC against a timer without cancelling it — the backend's connect
-// workflow keeps running and persists its result on its own, so the message
-// says exactly that instead of implying the connect failed.
-async function boundedPush<T>(push: Promise<T>, timeoutMs: number, server: McpServer): Promise<T> {
+// Run the server-side connect through the SDK's shared async-lane protocol
+// (connectAndWait, stigmer/stigmer#425): startConnect + poll, with the
+// blocking-RPC fallback for backends that predate the lane. The CLI's job is
+// only to translate its --timeout semantics and turn a still-running stop
+// into its own actionable guidance.
+async function serverSideConnect(
+  client: Stigmer,
+  server: McpServer,
+  input: ConnectInput,
+  opts: ConnectOptions,
+): Promise<ConnectResult> {
   const slug = server.metadata?.slug ?? server.metadata?.id ?? "the server";
-  let timer: NodeJS.Timeout | undefined;
-  const timeout = new Promise<never>((_, reject) => {
-    timer = setTimeout(
-      () =>
-        reject(
-          new CliExitError(
-            `Stopped waiting for the connect of MCP server '${slug}' after ${timeoutMs / 1000}s (--timeout)`,
-            ExitCode.Connection,
-            [
-              "The server-side connect is still running and will persist its result if it succeeds.",
-              `Check the outcome with: stigmer get mcp-server ${slug}`,
-              "Re-run without --timeout to wait for completion.",
-            ],
-          ),
-        ),
-      timeoutMs,
-    );
-  });
-  // The losing push may settle after the CLI has started exiting; swallow its
-  // late rejection so it cannot surface as an unhandled-rejection crash.
-  void push.catch(() => {});
+  let warning = "";
   try {
-    return await Promise.race([push, timeout]);
-  } finally {
-    if (timer !== undefined) clearTimeout(timer);
+    const updated = await connectAndWait(client.mcpServer, input, {
+      deadlineMs: opts.pushTimeoutMs,
+      onStarted: (started) => {
+        warning = started.status?.connectStatus?.warning ?? "";
+      },
+    });
+    return {
+      server,
+      capabilities: updated.status?.discoveredCapabilities,
+      updated,
+      warning: warning !== "" ? warning : undefined,
+    };
+  } catch (err) {
+    if (!(err instanceof ConnectStillRunningError)) throw err;
+    if (opts.pushTimeoutMs !== undefined) {
+      // The user's explicit --timeout fired: historical soft-bound semantics.
+      throw new CliExitError(
+        `Stopped waiting for the connect of MCP server '${slug}' after ${opts.pushTimeoutMs / 1000}s (--timeout)`,
+        ExitCode.Connection,
+        [
+          "The server-side connect is still running and will persist its result if it succeeds.",
+          `Check the outcome with: stigmer get mcp-server ${slug}`,
+          "Re-run without --timeout to wait for completion.",
+        ],
+      );
+    }
+    // The SDK's settle bound fired: past the backend's own ceiling, only a
+    // connect_status orphaned by a backend restart can still read CONNECTING.
+    throw new CliExitError(
+      `The connect of MCP server '${slug}' did not settle within ${CONNECT_SETTLE_BOUND_MS / 60_000} minutes`,
+      ExitCode.Connection,
+      [
+        "This usually means the backend restarted mid-operation.",
+        `Check the current state with: stigmer get mcp-server ${slug}`,
+        "Re-run the connect to start a fresh operation.",
+      ],
+    );
   }
 }
 

@@ -108,18 +108,23 @@ service McpServerCommandController {
   // Connects to the MCP server, enumerates tools and resource templates,
   // classifies tool approval policies via a lightweight LLM, and stores the
   // results in status.discovered_capabilities and status.tool_approvals.
-  // Blocks until completion (up to ~30 seconds) and returns the updated McpServer.
+  // Blocks until the operation settles — legitimately minutes for heavy
+  // stdio servers (the server-side workflow ceiling is the bound) — and
+  // returns the updated McpServer.
+  //
+  // Prefer startConnect for interactive clients: browsers can drop a
+  // no-bytes-yet unary response around ~300s, below the workflow ceiling,
+  // so a blocking connect can appear to fail while succeeding server-side.
+  // This RPC remains for callers that want synchronous semantics (and for
+  // backends that do not yet serve startConnect).
   //
   // @internal
   // Typical flows:
-  // - Web console: user clicks Connect, backend resolves env vars from the
-  //   user's personal environment, starts a Temporal workflow on the runner
-  //   (stigmer-runner).
-  // - CLI: `stigmer discover mcp-server <name>` calls connect with runtime_env
-  //   populated from local env vars, delegating discovery to the backend.
   // - Runner backfill: the runner calls connect on first use when
   //   status.discovered_capabilities is empty, passing runtime_env from the
   //   execution context (shared/connect-backfill.ts).
+  // - CLI / web console: legacy callers, and the fallback lane when
+  //   startConnect answers UNIMPLEMENTED (a backend predating it).
   //
   // Errors:
   // - FAILED_PRECONDITION: Required credentials missing from personal environment
@@ -128,6 +133,46 @@ service McpServerCommandController {
   //
   // Authorization: Requires can_connect permission on the mcp_server resource.
   rpc connect(ConnectInput) returns (McpServer) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = mcp_server;
+    option (ai.stigmer.commons.rpc.config).permission = can_connect;
+    option (ai.stigmer.commons.rpc.config).field_path = "mcp_server_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to connect to mcp server";
+  }
+
+  // Start a connect operation without waiting for it: discovery and
+  // classification run server-side, and the caller observes progress by
+  // polling the resource.
+  //
+  // Returns the McpServer immediately with status.connect_status describing
+  // the accepted operation (phase CONNECTING, plus a warning when no runner
+  // appears to be polling the task queue). Poll get/getByReference until
+  // status.connect_status reaches a terminal phase; results land in
+  // status.discovered_capabilities and status.tool_approvals exactly as with
+  // the blocking connect.
+  //
+  // Idempotent while an operation is in flight: a startConnect that finds a
+  // live CONNECTING operation attaches to it (the in-flight operation's
+  // runtime_env wins) instead of starting a second workflow. A CONNECTING
+  // entry orphaned by a backend restart is reconciled against Temporal
+  // before a new operation starts.
+  //
+  // @internal
+  // The async lane exists because every budget stretch inside the blocking
+  // shape hit a client transport limit eventually (stigmer/stigmer#425):
+  // browser fetch drops no-bytes unary responses (~300s), classification
+  // budgets scale with tool count past any flat ceiling, and dead-runner
+  // feedback rode the same timer. Setup that needs the caller's identity
+  // (OAuth refresh pre-flight, personal-environment resolution, EC creation)
+  // happens synchronously in this RPC; only awaiting the workflow moves to
+  // the background.
+  //
+  // Errors (start-time only — post-start failures land in connect_status):
+  // - FAILED_PRECONDITION: Required credentials missing from personal environment
+  // - NOT_FOUND: MCP server does not exist
+  // - UNIMPLEMENTED: backend predates the async lane (clients fall back to connect)
+  //
+  // Authorization: Requires can_connect permission on the mcp_server resource.
+  rpc startConnect(ConnectInput) returns (McpServer) {
     option (ai.stigmer.commons.rpc.config).resource_kind = mcp_server;
     option (ai.stigmer.commons.rpc.config).permission = can_connect;
     option (ai.stigmer.commons.rpc.config).field_path = "mcp_server_id";
