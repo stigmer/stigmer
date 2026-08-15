@@ -160,10 +160,16 @@ class IdentityAccountPreferencesInput:
     """SDK input type for IdentityAccountPreferences."""
 
     standing_context: str = ""
+    default_harness: str = ""
+    default_native_model: str = ""
+    default_cursor_model: str = ""
 
     def _to_proto(self) -> spec_pb2.IdentityAccountPreferences:
         msg = spec_pb2.IdentityAccountPreferences(
             standing_context=self.standing_context,
+            default_harness=self.default_harness,
+            default_native_model=self.default_native_model,
+            default_cursor_model=self.default_cursor_model,
         )
         return msg
 

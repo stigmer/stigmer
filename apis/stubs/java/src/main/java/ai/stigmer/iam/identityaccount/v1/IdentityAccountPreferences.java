@@ -13,10 +13,16 @@ package ai.stigmer.iam.identityaccount.v1;
  * &#64;internal
  * Self-service: mutable through the existing update RPC under FGA can_edit
  * (owner, via the self-ownership tuple written at account creation) — zero
- * new IAM. Grows along the user scope's taxonomy path (Phase 1.5
- * candidates: default harness, per-harness default model; Phase 2: memory
+ * new IAM. Grows along the user scope's taxonomy path (Phase 2: memory
  * opt-in). Never composed for machine accounts or platform-client user
  * tokens (DD-002 D4 as amended).
+ *
+ * The structured default fields (default_harness, default_*_model) are
+ * CLIENT-READ seeds per DD-003's resolution-point rule: clients read them
+ * to prefill the composer / fill an omitted CLI --model, and the chosen
+ * value rides the execution spec explicitly. The server never substitutes
+ * them at execution create. Precedence at the consuming client: explicit
+ * device-local pick &gt; these account defaults &gt; platform default.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences}
@@ -42,6 +48,9 @@ private static final long serialVersionUID = 0L;
   }
   private IdentityAccountPreferences() {
     standingContext_ = "";
+    defaultHarness_ = "";
+    defaultNativeModel_ = "";
+    defaultCursorModel_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -123,6 +132,185 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int DEFAULT_HARNESS_FIELD_NUMBER = 2;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object defaultHarness_ = "";
+  /**
+   * <pre>
+   * Default harness for new sessions: "native" or "cursor".
+   * Empty means no preference — the platform default applies.
+   *
+   * &#64;internal
+   * Deliberately a validated string, not the agentic Harness enum: importing
+   * agentic/session/v1 here would couple the iam bounded context to agentic,
+   * and the lowercase strings are already the client vocabulary (HarnessOption,
+   * model-registry harness field, workflow HARNESS_SHORTHANDS).
+   * </pre>
+   *
+   * <code>string default_harness = 2 [json_name = "defaultHarness", (.buf.validate.field) = { ... }</code>
+   * @return The defaultHarness.
+   */
+  @java.lang.Override
+  public java.lang.String getDefaultHarness() {
+    java.lang.Object ref = defaultHarness_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      defaultHarness_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Default harness for new sessions: "native" or "cursor".
+   * Empty means no preference — the platform default applies.
+   *
+   * &#64;internal
+   * Deliberately a validated string, not the agentic Harness enum: importing
+   * agentic/session/v1 here would couple the iam bounded context to agentic,
+   * and the lowercase strings are already the client vocabulary (HarnessOption,
+   * model-registry harness field, workflow HARNESS_SHORTHANDS).
+   * </pre>
+   *
+   * <code>string default_harness = 2 [json_name = "defaultHarness", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for defaultHarness.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getDefaultHarnessBytes() {
+    java.lang.Object ref = defaultHarness_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      defaultHarness_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
+  public static final int DEFAULT_NATIVE_MODEL_FIELD_NUMBER = 3;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object defaultNativeModel_ = "";
+  /**
+   * <pre>
+   * Default model (registry model ID) for native-harness sessions.
+   * Empty means no preference — the platform default applies.
+   *
+   * &#64;internal
+   * NOT registry-validated server-side, deliberately: clients validate
+   * against the harness-filtered registry on read and silently fall through
+   * to the platform default when the model is stale or removed
+   * (self-healing), so coupling the update RPC to the registry would add
+   * machinery without safety.
+   * </pre>
+   *
+   * <code>string default_native_model = 3 [json_name = "defaultNativeModel", (.buf.validate.field) = { ... }</code>
+   * @return The defaultNativeModel.
+   */
+  @java.lang.Override
+  public java.lang.String getDefaultNativeModel() {
+    java.lang.Object ref = defaultNativeModel_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      defaultNativeModel_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Default model (registry model ID) for native-harness sessions.
+   * Empty means no preference — the platform default applies.
+   *
+   * &#64;internal
+   * NOT registry-validated server-side, deliberately: clients validate
+   * against the harness-filtered registry on read and silently fall through
+   * to the platform default when the model is stale or removed
+   * (self-healing), so coupling the update RPC to the registry would add
+   * machinery without safety.
+   * </pre>
+   *
+   * <code>string default_native_model = 3 [json_name = "defaultNativeModel", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for defaultNativeModel.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getDefaultNativeModelBytes() {
+    java.lang.Object ref = defaultNativeModel_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      defaultNativeModel_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
+  public static final int DEFAULT_CURSOR_MODEL_FIELD_NUMBER = 4;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object defaultCursorModel_ = "";
+  /**
+   * <pre>
+   * Default model (registry model ID) for cursor-harness sessions.
+   * Empty means no preference — the platform default applies.
+   *
+   * &#64;internal
+   * Same client-side validation contract as default_native_model.
+   * </pre>
+   *
+   * <code>string default_cursor_model = 4 [json_name = "defaultCursorModel", (.buf.validate.field) = { ... }</code>
+   * @return The defaultCursorModel.
+   */
+  @java.lang.Override
+  public java.lang.String getDefaultCursorModel() {
+    java.lang.Object ref = defaultCursorModel_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      defaultCursorModel_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Default model (registry model ID) for cursor-harness sessions.
+   * Empty means no preference — the platform default applies.
+   *
+   * &#64;internal
+   * Same client-side validation contract as default_native_model.
+   * </pre>
+   *
+   * <code>string default_cursor_model = 4 [json_name = "defaultCursorModel", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for defaultCursorModel.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getDefaultCursorModelBytes() {
+    java.lang.Object ref = defaultCursorModel_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      defaultCursorModel_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -140,6 +328,15 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(standingContext_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 1, standingContext_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(defaultHarness_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 2, defaultHarness_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(defaultNativeModel_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 3, defaultNativeModel_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(defaultCursorModel_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 4, defaultCursorModel_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -151,6 +348,15 @@ private static final long serialVersionUID = 0L;
     size = 0;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(standingContext_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(1, standingContext_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(defaultHarness_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(2, defaultHarness_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(defaultNativeModel_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(3, defaultNativeModel_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(defaultCursorModel_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(4, defaultCursorModel_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -169,6 +375,12 @@ private static final long serialVersionUID = 0L;
 
     if (!getStandingContext()
         .equals(other.getStandingContext())) return false;
+    if (!getDefaultHarness()
+        .equals(other.getDefaultHarness())) return false;
+    if (!getDefaultNativeModel()
+        .equals(other.getDefaultNativeModel())) return false;
+    if (!getDefaultCursorModel()
+        .equals(other.getDefaultCursorModel())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -182,6 +394,12 @@ private static final long serialVersionUID = 0L;
     hash = (19 * hash) + getDescriptor().hashCode();
     hash = (37 * hash) + STANDING_CONTEXT_FIELD_NUMBER;
     hash = (53 * hash) + getStandingContext().hashCode();
+    hash = (37 * hash) + DEFAULT_HARNESS_FIELD_NUMBER;
+    hash = (53 * hash) + getDefaultHarness().hashCode();
+    hash = (37 * hash) + DEFAULT_NATIVE_MODEL_FIELD_NUMBER;
+    hash = (53 * hash) + getDefaultNativeModel().hashCode();
+    hash = (37 * hash) + DEFAULT_CURSOR_MODEL_FIELD_NUMBER;
+    hash = (53 * hash) + getDefaultCursorModel().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -287,10 +505,16 @@ private static final long serialVersionUID = 0L;
    * &#64;internal
    * Self-service: mutable through the existing update RPC under FGA can_edit
    * (owner, via the self-ownership tuple written at account creation) — zero
-   * new IAM. Grows along the user scope's taxonomy path (Phase 1.5
-   * candidates: default harness, per-harness default model; Phase 2: memory
+   * new IAM. Grows along the user scope's taxonomy path (Phase 2: memory
    * opt-in). Never composed for machine accounts or platform-client user
    * tokens (DD-002 D4 as amended).
+   *
+   * The structured default fields (default_harness, default_*_model) are
+   * CLIENT-READ seeds per DD-003's resolution-point rule: clients read them
+   * to prefill the composer / fill an omitted CLI --model, and the chosen
+   * value rides the execution spec explicitly. The server never substitutes
+   * them at execution create. Precedence at the consuming client: explicit
+   * device-local pick &gt; these account defaults &gt; platform default.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences}
@@ -327,6 +551,9 @@ private static final long serialVersionUID = 0L;
       super.clear();
       bitField0_ = 0;
       standingContext_ = "";
+      defaultHarness_ = "";
+      defaultNativeModel_ = "";
+      defaultCursorModel_ = "";
       return this;
     }
 
@@ -363,6 +590,15 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000001) != 0)) {
         result.standingContext_ = standingContext_;
       }
+      if (((from_bitField0_ & 0x00000002) != 0)) {
+        result.defaultHarness_ = defaultHarness_;
+      }
+      if (((from_bitField0_ & 0x00000004) != 0)) {
+        result.defaultNativeModel_ = defaultNativeModel_;
+      }
+      if (((from_bitField0_ & 0x00000008) != 0)) {
+        result.defaultCursorModel_ = defaultCursorModel_;
+      }
     }
 
     @java.lang.Override
@@ -380,6 +616,21 @@ private static final long serialVersionUID = 0L;
       if (!other.getStandingContext().isEmpty()) {
         standingContext_ = other.standingContext_;
         bitField0_ |= 0x00000001;
+        onChanged();
+      }
+      if (!other.getDefaultHarness().isEmpty()) {
+        defaultHarness_ = other.defaultHarness_;
+        bitField0_ |= 0x00000002;
+        onChanged();
+      }
+      if (!other.getDefaultNativeModel().isEmpty()) {
+        defaultNativeModel_ = other.defaultNativeModel_;
+        bitField0_ |= 0x00000004;
+        onChanged();
+      }
+      if (!other.getDefaultCursorModel().isEmpty()) {
+        defaultCursorModel_ = other.defaultCursorModel_;
+        bitField0_ |= 0x00000008;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -413,6 +664,21 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000001;
               break;
             } // case 10
+            case 18: {
+              defaultHarness_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000002;
+              break;
+            } // case 18
+            case 26: {
+              defaultNativeModel_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000004;
+              break;
+            } // case 26
+            case 34: {
+              defaultCursorModel_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000008;
+              break;
+            } // case 34
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -553,6 +819,377 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       standingContext_ = value;
       bitField0_ |= 0x00000001;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object defaultHarness_ = "";
+    /**
+     * <pre>
+     * Default harness for new sessions: "native" or "cursor".
+     * Empty means no preference — the platform default applies.
+     *
+     * &#64;internal
+     * Deliberately a validated string, not the agentic Harness enum: importing
+     * agentic/session/v1 here would couple the iam bounded context to agentic,
+     * and the lowercase strings are already the client vocabulary (HarnessOption,
+     * model-registry harness field, workflow HARNESS_SHORTHANDS).
+     * </pre>
+     *
+     * <code>string default_harness = 2 [json_name = "defaultHarness", (.buf.validate.field) = { ... }</code>
+     * @return The defaultHarness.
+     */
+    public java.lang.String getDefaultHarness() {
+      java.lang.Object ref = defaultHarness_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        defaultHarness_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Default harness for new sessions: "native" or "cursor".
+     * Empty means no preference — the platform default applies.
+     *
+     * &#64;internal
+     * Deliberately a validated string, not the agentic Harness enum: importing
+     * agentic/session/v1 here would couple the iam bounded context to agentic,
+     * and the lowercase strings are already the client vocabulary (HarnessOption,
+     * model-registry harness field, workflow HARNESS_SHORTHANDS).
+     * </pre>
+     *
+     * <code>string default_harness = 2 [json_name = "defaultHarness", (.buf.validate.field) = { ... }</code>
+     * @return The bytes for defaultHarness.
+     */
+    public com.google.protobuf.ByteString
+        getDefaultHarnessBytes() {
+      java.lang.Object ref = defaultHarness_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        defaultHarness_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Default harness for new sessions: "native" or "cursor".
+     * Empty means no preference — the platform default applies.
+     *
+     * &#64;internal
+     * Deliberately a validated string, not the agentic Harness enum: importing
+     * agentic/session/v1 here would couple the iam bounded context to agentic,
+     * and the lowercase strings are already the client vocabulary (HarnessOption,
+     * model-registry harness field, workflow HARNESS_SHORTHANDS).
+     * </pre>
+     *
+     * <code>string default_harness = 2 [json_name = "defaultHarness", (.buf.validate.field) = { ... }</code>
+     * @param value The defaultHarness to set.
+     * @return This builder for chaining.
+     */
+    public Builder setDefaultHarness(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      defaultHarness_ = value;
+      bitField0_ |= 0x00000002;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Default harness for new sessions: "native" or "cursor".
+     * Empty means no preference — the platform default applies.
+     *
+     * &#64;internal
+     * Deliberately a validated string, not the agentic Harness enum: importing
+     * agentic/session/v1 here would couple the iam bounded context to agentic,
+     * and the lowercase strings are already the client vocabulary (HarnessOption,
+     * model-registry harness field, workflow HARNESS_SHORTHANDS).
+     * </pre>
+     *
+     * <code>string default_harness = 2 [json_name = "defaultHarness", (.buf.validate.field) = { ... }</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearDefaultHarness() {
+      defaultHarness_ = getDefaultInstance().getDefaultHarness();
+      bitField0_ = (bitField0_ & ~0x00000002);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Default harness for new sessions: "native" or "cursor".
+     * Empty means no preference — the platform default applies.
+     *
+     * &#64;internal
+     * Deliberately a validated string, not the agentic Harness enum: importing
+     * agentic/session/v1 here would couple the iam bounded context to agentic,
+     * and the lowercase strings are already the client vocabulary (HarnessOption,
+     * model-registry harness field, workflow HARNESS_SHORTHANDS).
+     * </pre>
+     *
+     * <code>string default_harness = 2 [json_name = "defaultHarness", (.buf.validate.field) = { ... }</code>
+     * @param value The bytes for defaultHarness to set.
+     * @return This builder for chaining.
+     */
+    public Builder setDefaultHarnessBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      defaultHarness_ = value;
+      bitField0_ |= 0x00000002;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object defaultNativeModel_ = "";
+    /**
+     * <pre>
+     * Default model (registry model ID) for native-harness sessions.
+     * Empty means no preference — the platform default applies.
+     *
+     * &#64;internal
+     * NOT registry-validated server-side, deliberately: clients validate
+     * against the harness-filtered registry on read and silently fall through
+     * to the platform default when the model is stale or removed
+     * (self-healing), so coupling the update RPC to the registry would add
+     * machinery without safety.
+     * </pre>
+     *
+     * <code>string default_native_model = 3 [json_name = "defaultNativeModel", (.buf.validate.field) = { ... }</code>
+     * @return The defaultNativeModel.
+     */
+    public java.lang.String getDefaultNativeModel() {
+      java.lang.Object ref = defaultNativeModel_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        defaultNativeModel_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Default model (registry model ID) for native-harness sessions.
+     * Empty means no preference — the platform default applies.
+     *
+     * &#64;internal
+     * NOT registry-validated server-side, deliberately: clients validate
+     * against the harness-filtered registry on read and silently fall through
+     * to the platform default when the model is stale or removed
+     * (self-healing), so coupling the update RPC to the registry would add
+     * machinery without safety.
+     * </pre>
+     *
+     * <code>string default_native_model = 3 [json_name = "defaultNativeModel", (.buf.validate.field) = { ... }</code>
+     * @return The bytes for defaultNativeModel.
+     */
+    public com.google.protobuf.ByteString
+        getDefaultNativeModelBytes() {
+      java.lang.Object ref = defaultNativeModel_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        defaultNativeModel_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Default model (registry model ID) for native-harness sessions.
+     * Empty means no preference — the platform default applies.
+     *
+     * &#64;internal
+     * NOT registry-validated server-side, deliberately: clients validate
+     * against the harness-filtered registry on read and silently fall through
+     * to the platform default when the model is stale or removed
+     * (self-healing), so coupling the update RPC to the registry would add
+     * machinery without safety.
+     * </pre>
+     *
+     * <code>string default_native_model = 3 [json_name = "defaultNativeModel", (.buf.validate.field) = { ... }</code>
+     * @param value The defaultNativeModel to set.
+     * @return This builder for chaining.
+     */
+    public Builder setDefaultNativeModel(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      defaultNativeModel_ = value;
+      bitField0_ |= 0x00000004;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Default model (registry model ID) for native-harness sessions.
+     * Empty means no preference — the platform default applies.
+     *
+     * &#64;internal
+     * NOT registry-validated server-side, deliberately: clients validate
+     * against the harness-filtered registry on read and silently fall through
+     * to the platform default when the model is stale or removed
+     * (self-healing), so coupling the update RPC to the registry would add
+     * machinery without safety.
+     * </pre>
+     *
+     * <code>string default_native_model = 3 [json_name = "defaultNativeModel", (.buf.validate.field) = { ... }</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearDefaultNativeModel() {
+      defaultNativeModel_ = getDefaultInstance().getDefaultNativeModel();
+      bitField0_ = (bitField0_ & ~0x00000004);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Default model (registry model ID) for native-harness sessions.
+     * Empty means no preference — the platform default applies.
+     *
+     * &#64;internal
+     * NOT registry-validated server-side, deliberately: clients validate
+     * against the harness-filtered registry on read and silently fall through
+     * to the platform default when the model is stale or removed
+     * (self-healing), so coupling the update RPC to the registry would add
+     * machinery without safety.
+     * </pre>
+     *
+     * <code>string default_native_model = 3 [json_name = "defaultNativeModel", (.buf.validate.field) = { ... }</code>
+     * @param value The bytes for defaultNativeModel to set.
+     * @return This builder for chaining.
+     */
+    public Builder setDefaultNativeModelBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      defaultNativeModel_ = value;
+      bitField0_ |= 0x00000004;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object defaultCursorModel_ = "";
+    /**
+     * <pre>
+     * Default model (registry model ID) for cursor-harness sessions.
+     * Empty means no preference — the platform default applies.
+     *
+     * &#64;internal
+     * Same client-side validation contract as default_native_model.
+     * </pre>
+     *
+     * <code>string default_cursor_model = 4 [json_name = "defaultCursorModel", (.buf.validate.field) = { ... }</code>
+     * @return The defaultCursorModel.
+     */
+    public java.lang.String getDefaultCursorModel() {
+      java.lang.Object ref = defaultCursorModel_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        defaultCursorModel_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Default model (registry model ID) for cursor-harness sessions.
+     * Empty means no preference — the platform default applies.
+     *
+     * &#64;internal
+     * Same client-side validation contract as default_native_model.
+     * </pre>
+     *
+     * <code>string default_cursor_model = 4 [json_name = "defaultCursorModel", (.buf.validate.field) = { ... }</code>
+     * @return The bytes for defaultCursorModel.
+     */
+    public com.google.protobuf.ByteString
+        getDefaultCursorModelBytes() {
+      java.lang.Object ref = defaultCursorModel_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        defaultCursorModel_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Default model (registry model ID) for cursor-harness sessions.
+     * Empty means no preference — the platform default applies.
+     *
+     * &#64;internal
+     * Same client-side validation contract as default_native_model.
+     * </pre>
+     *
+     * <code>string default_cursor_model = 4 [json_name = "defaultCursorModel", (.buf.validate.field) = { ... }</code>
+     * @param value The defaultCursorModel to set.
+     * @return This builder for chaining.
+     */
+    public Builder setDefaultCursorModel(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      defaultCursorModel_ = value;
+      bitField0_ |= 0x00000008;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Default model (registry model ID) for cursor-harness sessions.
+     * Empty means no preference — the platform default applies.
+     *
+     * &#64;internal
+     * Same client-side validation contract as default_native_model.
+     * </pre>
+     *
+     * <code>string default_cursor_model = 4 [json_name = "defaultCursorModel", (.buf.validate.field) = { ... }</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearDefaultCursorModel() {
+      defaultCursorModel_ = getDefaultInstance().getDefaultCursorModel();
+      bitField0_ = (bitField0_ & ~0x00000008);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Default model (registry model ID) for cursor-harness sessions.
+     * Empty means no preference — the platform default applies.
+     *
+     * &#64;internal
+     * Same client-side validation contract as default_native_model.
+     * </pre>
+     *
+     * <code>string default_cursor_model = 4 [json_name = "defaultCursorModel", (.buf.validate.field) = { ... }</code>
+     * @param value The bytes for defaultCursorModel to set.
+     * @return This builder for chaining.
+     */
+    public Builder setDefaultCursorModelBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      defaultCursorModel_ = value;
+      bitField0_ |= 0x00000008;
       onChanged();
       return this;
     }

@@ -15,7 +15,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/iam/identityaccount/v1/spec.proto.
  */
 export const file_ai_stigmer_iam_identityaccount_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CixhaS9zdGlnbWVyL2lhbS9pZGVudGl0eWFjY291bnQvdjEvc3BlYy5wcm90bxIhYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlhY2NvdW50LnYxIpwDChNJZGVudGl0eUFjY291bnRTcGVjEhYKBmlkcF9pZBgBIAEoCUIGukgDyAEBEg0KBWVtYWlsGAIgASgJEhIKCmZpcnN0X25hbWUYAyABKAkSEQoJbGFzdF9uYW1lGAQgASgJEhMKC3BpY3R1cmVfdXJsGAUgASgJEhoKEmlzX21hY2hpbmVfYWNjb3VudBgGIAEoCBJdChFwcm92aXNpb25pbmdfbW9kZRgHIAEoDjJCLmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5YWNjb3VudC52MS5JZGVudGl0eUFjY291bnRQcm92aXNpb25pbmdNb2RlElMKFWlkZW50aXR5X3Byb3ZpZGVyX3JlZhgIIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZRJSCgtwcmVmZXJlbmNlcxgJIAEoCzI9LmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5YWNjb3VudC52MS5JZGVudGl0eUFjY291bnRQcmVmZXJlbmNlcyJAChpJZGVudGl0eUFjY291bnRQcmVmZXJlbmNlcxIiChBzdGFuZGluZ19jb250ZXh0GAEgASgJQgi6SAVyAxjQD2IGcHJvdG8z", [file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_iam_identityaccount_v1_enum, file_buf_validate_validate]);
+  fileDesc("CixhaS9zdGlnbWVyL2lhbS9pZGVudGl0eWFjY291bnQvdjEvc3BlYy5wcm90bxIhYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlhY2NvdW50LnYxIpwDChNJZGVudGl0eUFjY291bnRTcGVjEhYKBmlkcF9pZBgBIAEoCUIGukgDyAEBEg0KBWVtYWlsGAIgASgJEhIKCmZpcnN0X25hbWUYAyABKAkSEQoJbGFzdF9uYW1lGAQgASgJEhMKC3BpY3R1cmVfdXJsGAUgASgJEhoKEmlzX21hY2hpbmVfYWNjb3VudBgGIAEoCBJdChFwcm92aXNpb25pbmdfbW9kZRgHIAEoDjJCLmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5YWNjb3VudC52MS5JZGVudGl0eUFjY291bnRQcm92aXNpb25pbmdNb2RlElMKFWlkZW50aXR5X3Byb3ZpZGVyX3JlZhgIIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZRJSCgtwcmVmZXJlbmNlcxgJIAEoCzI9LmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5YWNjb3VudC52MS5JZGVudGl0eUFjY291bnRQcmVmZXJlbmNlcyLBAQoaSWRlbnRpdHlBY2NvdW50UHJlZmVyZW5jZXMSIgoQc3RhbmRpbmdfY29udGV4dBgBIAEoCUIIukgFcgMY0A8SMQoPZGVmYXVsdF9oYXJuZXNzGAIgASgJQhi6SBXYAQFyEFIGbmF0aXZlUgZjdXJzb3ISJQoUZGVmYXVsdF9uYXRpdmVfbW9kZWwYAyABKAlCB7pIBHICGGQSJQoUZGVmYXVsdF9jdXJzb3JfbW9kZWwYBCABKAlCB7pIBHICGGRiBnByb3RvMw", [file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_iam_identityaccount_v1_enum, file_buf_validate_validate]);
 
 /**
  * IdentityAccountSpec defines the configuration for an identity account.
@@ -139,6 +139,30 @@ export type IdentityAccountPreferences = Message<"ai.stigmer.iam.identityaccount
    * @generated from field: string standing_context = 1;
    */
   standingContext: string;
+
+  /**
+   * Default harness for new sessions: "native" or "cursor".
+   * Empty means no preference — the platform default applies.
+   *
+   * @generated from field: string default_harness = 2;
+   */
+  defaultHarness: string;
+
+  /**
+   * Default model (registry model ID) for native-harness sessions.
+   * Empty means no preference — the platform default applies.
+   *
+   * @generated from field: string default_native_model = 3;
+   */
+  defaultNativeModel: string;
+
+  /**
+   * Default model (registry model ID) for cursor-harness sessions.
+   * Empty means no preference — the platform default applies.
+   *
+   * @generated from field: string default_cursor_model = 4;
+   */
+  defaultCursorModel: string;
 };
 
 /**

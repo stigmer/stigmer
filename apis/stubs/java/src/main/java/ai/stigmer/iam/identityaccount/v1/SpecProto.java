@@ -63,14 +63,18 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "ceReferenceR\023identityProviderRef\022_\n\013pref" +
       "erences\030\t \001(\0132=.ai.stigmer.iam.identitya" +
       "ccount.v1.IdentityAccountPreferencesR\013pr" +
-      "eferences\"Q\n\032IdentityAccountPreferences\022" +
-      "3\n\020standing_context\030\001 \001(\tB\010\272H\005r\003\030\320\017R\017sta" +
-      "ndingContextB\264\001B\tSpecProtoP\001\242\002\004ASII\252\002!Ai" +
-      ".Stigmer.Iam.Identityaccount.V1\312\002!Ai\\Sti" +
-      "gmer\\Iam\\Identityaccount\\V1\342\002-Ai\\Stigmer" +
-      "\\Iam\\Identityaccount\\V1\\GPBMetadata\352\002%Ai" +
-      "::Stigmer::Iam::Identityaccount::V1b\006pro" +
-      "to3"
+      "eferences\"\212\002\n\032IdentityAccountPreferences" +
+      "\0223\n\020standing_context\030\001 \001(\tB\010\272H\005r\003\030\320\017R\017st" +
+      "andingContext\022A\n\017default_harness\030\002 \001(\tB\030" +
+      "\272H\025r\020R\006nativeR\006cursor\330\001\001R\016defaultHarness" +
+      "\0229\n\024default_native_model\030\003 \001(\tB\007\272H\004r\002\030dR" +
+      "\022defaultNativeModel\0229\n\024default_cursor_mo" +
+      "del\030\004 \001(\tB\007\272H\004r\002\030dR\022defaultCursorModelB\264" +
+      "\001B\tSpecProtoP\001\242\002\004ASII\252\002!Ai.Stigmer.Iam.I" +
+      "dentityaccount.V1\312\002!Ai\\Stigmer\\Iam\\Ident" +
+      "ityaccount\\V1\342\002-Ai\\Stigmer\\Iam\\Identitya" +
+      "ccount\\V1\\GPBMetadata\352\002%Ai::Stigmer::Iam" +
+      "::Identityaccount::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -90,7 +94,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_iam_identityaccount_v1_IdentityAccountPreferences_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_iam_identityaccount_v1_IdentityAccountPreferences_descriptor,
-        new java.lang.String[] { "StandingContext", });
+        new java.lang.String[] { "StandingContext", "DefaultHarness", "DefaultNativeModel", "DefaultCursorModel", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.commons.apiresource.IoProto.getDescriptor();
     ai.stigmer.iam.identityaccount.v1.EnumProto.getDescriptor();

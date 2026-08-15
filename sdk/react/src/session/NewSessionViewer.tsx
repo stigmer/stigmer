@@ -9,6 +9,7 @@ import type { WorkspaceContentSearcher } from "../workspace/WorkspaceContentSear
 import type { InteractionModeOption } from "../composer/index.js";
 import { SessionComposer } from "../composer/index.js";
 import type { HarnessOption } from "../models/harness.js";
+import type { AccountExecutionDefaults } from "../identity-account/useAccountExecutionDefaults.js";
 import { SessionViewerLayout } from "./SessionViewerLayout.js";
 import { useWorkspaceEditors } from "../internal/store/index.js";
 import { WorkspaceSurface } from "../workspace/WorkspaceSurface.js";
@@ -163,6 +164,15 @@ export interface NewSessionViewerProps {
    */
   readonly defaultHarness?: HarnessOption;
 
+  /**
+   * The user's account-level execution defaults, typically from
+   * `useAccountExecutionDefaults()`. Seeds the harness and model pickers
+   * under the layered precedence documented on
+   * {@link UseNewSessionFlowOptions.accountDefaults}; explicit device
+   * picks always win. Ignored for the `"guest"` audience.
+   */
+  readonly accountDefaults?: AccountExecutionDefaults;
+
   /** Agent to auto-select on mount (used for draft flows). */
   readonly initialAgentRef?: ResourceRef;
   /**
@@ -253,6 +263,7 @@ export function NewSessionViewer({
   panelOpen,
   onPanelOpenChange,
   defaultHarness,
+  accountDefaults,
   initialAgentRef,
   initialInstanceId,
   initialAttachments,
@@ -269,6 +280,7 @@ export function NewSessionViewer({
     onError,
     getRuntimeEnv,
     defaultHarness,
+    accountDefaults,
     audience,
     runConfig,
   });

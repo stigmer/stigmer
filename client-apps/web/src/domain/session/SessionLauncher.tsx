@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
   NewSessionViewer,
+  useAccountExecutionDefaults,
   useEditSessionPrep,
   useGitHubConnection,
   useGitHubTreeLister,
@@ -54,6 +55,7 @@ export function SessionLauncher() {
   const rawSearchParams = useSearchParams();
   const draftParams = parseDraftParams(rawSearchParams);
   const org = useActiveOrgSlug();
+  const accountDefaults = useAccountExecutionDefaults();
   const gitHubConnection = useGitHubConnection(org);
   const { enableGitHub, enableLocal } = useWorkspaceSources();
   const workspaceFileLister = useGitHubTreeLister(gitHubConnection.token);
@@ -151,6 +153,7 @@ export function SessionLauncher() {
       org={org}
       onSessionCreated={navigateToSession}
       onError={(msg) => toast.error(msg)}
+      accountDefaults={accountDefaults}
       gitHubConnection={enableGitHub ? gitHubConnection : undefined}
       enableGitHub={enableGitHub}
       enableLocal={enableLocal}

@@ -117,7 +117,10 @@ type IdentityAccountInput struct {
 
 // IdentityAccountPreferencesInput is the SDK input type for IdentityAccountPreferences.
 type IdentityAccountPreferencesInput struct {
-	StandingContext string
+	StandingContext    string
+	DefaultHarness     string
+	DefaultNativeModel string
+	DefaultCursorModel string
 }
 
 func (i *IdentityAccountInput) toProto() (*identityaccountv1.IdentityAccount, error) {
@@ -155,7 +158,10 @@ func (i *IdentityAccountInput) toProto() (*identityaccountv1.IdentityAccount, er
 
 func (i *IdentityAccountPreferencesInput) toProto() (*identityaccountv1.IdentityAccountPreferences, error) {
 	return &identityaccountv1.IdentityAccountPreferences{
-		StandingContext: i.StandingContext,
+		StandingContext:    i.StandingContext,
+		DefaultHarness:     i.DefaultHarness,
+		DefaultNativeModel: i.DefaultNativeModel,
+		DefaultCursorModel: i.DefaultCursorModel,
 	}, nil
 }
 
@@ -192,5 +198,8 @@ func identityAccountPreferencesInputFromProto(p *identityaccountv1.IdentityAccou
 	}
 	input := &IdentityAccountPreferencesInput{}
 	input.StandingContext = p.GetStandingContext()
+	input.DefaultHarness = p.GetDefaultHarness()
+	input.DefaultNativeModel = p.GetDefaultNativeModel()
+	input.DefaultCursorModel = p.GetDefaultCursorModel()
 	return input
 }

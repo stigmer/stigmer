@@ -9,6 +9,8 @@ import type { IdentityAccountInput } from "@stigmer/sdk";
 import type { DeploymentMode } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
 import { DeploymentModeContext } from "../../deployment-mode";
+import { ModelRegistryContext, type ModelRegistryState } from "../../models/ModelRegistryContext";
+import { parseRegistryJson } from "../../models/registry";
 import { AccountPreferencesPanel } from "../AccountPreferencesPanel";
 
 const ACCOUNT: IdentityAccount = create(IdentityAccountSchema, {
@@ -19,6 +21,20 @@ const ACCOUNT: IdentityAccount = create(IdentityAccountSchema, {
     preferences: { standingContext: "Keep answers terse." },
   },
 });
+
+const TEST_MODELS = parseRegistryJson({
+  models: [
+    { id: "claude-sonnet-4.6", displayName: "Claude Sonnet 4.6", shortDescription: "", speedTier: "fast", provider: "anthropic", harness: "native", costTier: "standard", featured: true, pricing: { inputPricePerMillion: 3, outputPricePerMillion: 15, cacheWritePricePerMillion: 3.75, cacheReadPricePerMillion: 0.3 } },
+    { id: "default", displayName: "Cursor Auto", shortDescription: "", speedTier: "fast", provider: "cursor", harness: "cursor", costTier: "standard", featured: true, pricing: { inputPricePerMillion: 1.25, outputPricePerMillion: 6, cacheWritePricePerMillion: 1.25, cacheReadPricePerMillion: 0.25 } },
+  ],
+});
+
+const REGISTRY_STATE: ModelRegistryState = {
+  models: TEST_MODELS,
+  isLoading: false,
+  error: null,
+  refetch: () => {},
+};
 
 function createMockStigmer(overrides?: {
   whoAmI?: ReturnType<typeof vi.fn>;
@@ -36,7 +52,9 @@ function renderPanel(client: unknown, mode: DeploymentMode = "cloud") {
   return render(
     <StigmerContext.Provider value={client as never}>
       <DeploymentModeContext.Provider value={mode}>
-        <AccountPreferencesPanel />
+        <ModelRegistryContext.Provider value={REGISTRY_STATE}>
+          <AccountPreferencesPanel />
+        </ModelRegistryContext.Provider>
       </DeploymentModeContext.Provider>
     </StigmerContext.Provider>,
   );
@@ -114,5 +132,102 @@ describe("AccountPreferencesPanel", () => {
 
     expect(await screen.findByRole("alert")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
+  });
+
+  describe("execution defaults (oss#293 Phase 1.5)", () => {
+    const ACCOUNT_WITH_DEFAULTS: IdentityAccount = create(IdentityAccountSchema, {
+      metadata: { id: "ia-1", name: "Ada Lovelace", slug: "ada", org: "acme" },
+      spec: {
+        idpId: "auth0|abc",
+        email: "ada@acme.example",
+        preferences: {
+          standingContext: "Keep answers terse.",
+          defaultHarness: "cursor",
+          defaultNativeModel: "claude-sonnet-4.6",
+          defaultCursorModel: "default",
+        },
+      },
+    });
+
+    it("renders the harness radio group and registry-fed model selects", async () => {
+      renderPanel(createMockStigmer());
+      await findSyncedField("Keep answers terse.");
+
+      expect(screen.getByRole("radio", { name: "Platform default" })).toBeTruthy();
+      expect(screen.getByRole("radio", { name: "Stigmer" })).toBeTruthy();
+      expect(screen.getByRole("radio", { name: "Cursor" })).toBeTruthy();
+      expect(screen.getByLabelText("Default model — Stigmer")).toBeTruthy();
+      expect(screen.getByLabelText("Default model — Cursor")).toBeTruthy();
+    });
+
+    it("reflects the saved defaults in the form", async () => {
+      renderPanel(createMockStigmer({ whoAmI: vi.fn(async () => ACCOUNT_WITH_DEFAULTS) }));
+      await findSyncedField("Keep answers terse.");
+
+      await waitFor(() => {
+        expect(screen.getByRole("radio", { name: "Cursor" })).toHaveProperty("checked", true);
+        expect(screen.getByLabelText("Default model — Stigmer")).toHaveProperty("value", "claude-sonnet-4.6");
+        expect(screen.getByLabelText("Default model — Cursor")).toHaveProperty("value", "default");
+      });
+    });
+
+    it("saves the complete preferences object — all default fields in one write", async () => {
+      const update = vi.fn(async (_input: IdentityAccountInput) => ACCOUNT);
+      renderPanel(createMockStigmer({ update }));
+      await findSyncedField("Keep answers terse.");
+
+      fireEvent.click(screen.getByRole("radio", { name: "Cursor" }));
+      fireEvent.change(screen.getByLabelText("Default model — Stigmer"), {
+        target: { value: "claude-sonnet-4.6" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+
+      await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+      expect(update.mock.calls[0]![0].preferences).toEqual({
+        standingContext: "Keep answers terse.",
+        defaultHarness: "cursor",
+        defaultNativeModel: "claude-sonnet-4.6",
+        defaultCursorModel: undefined,
+      });
+    });
+
+    it("editing only standing context preserves the structured defaults (nested wipe-bug guard)", async () => {
+      const update = vi.fn(async (_input: IdentityAccountInput) => ACCOUNT_WITH_DEFAULTS);
+      renderPanel(
+        createMockStigmer({ whoAmI: vi.fn(async () => ACCOUNT_WITH_DEFAULTS), update }),
+      );
+
+      const field = await findSyncedField("Keep answers terse.");
+      fireEvent.change(field, { target: { value: "Terser still." } });
+      fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+
+      await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+      expect(update.mock.calls[0]![0].preferences).toEqual({
+        standingContext: "Terser still.",
+        defaultHarness: "cursor",
+        defaultNativeModel: "claude-sonnet-4.6",
+        defaultCursorModel: "default",
+      });
+    });
+
+    it("keeps a stale saved model legible as an unavailable option", async () => {
+      const stale = create(IdentityAccountSchema, {
+        metadata: { id: "ia-1", name: "Ada", slug: "ada", org: "acme" },
+        spec: {
+          idpId: "auth0|abc",
+          preferences: { defaultNativeModel: "retired-model" },
+        },
+      });
+      renderPanel(createMockStigmer({ whoAmI: vi.fn(async () => stale) }));
+      await findSyncedField("");
+
+      await waitFor(() => {
+        const select = screen.getByLabelText("Default model — Stigmer") as HTMLSelectElement;
+        expect(select.value).toBe("retired-model");
+        expect(
+          Array.from(select.options).some((o) => o.text === "retired-model (unavailable)"),
+        ).toBe(true);
+      });
+    });
   });
 });

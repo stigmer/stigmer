@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
   NewSessionViewer,
+  useAccountExecutionDefaults,
   useEditSessionPrep,
   useActiveOrgSlug,
   useWorkspaceSources,
@@ -47,6 +48,10 @@ export function SessionLauncher() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const org = useActiveOrgSlug();
+  // Local mode has no IdentityAccount, so this resolves to undefined on a
+  // pure-local desktop — wired anyway for DD-016 parity with web, and it
+  // activates automatically when the desktop points at a cloud backend.
+  const accountDefaults = useAccountExecutionDefaults();
   const browseLocalFolder = useNativeFolderPicker();
   const { enableGitHub, enableLocal } = useWorkspaceSources({ hasLocalPicker: true });
   const workspaceFileLister = useNativeWorkspaceFiles();
@@ -152,6 +157,7 @@ export function SessionLauncher() {
       org={org}
       onSessionCreated={(id) => navigate(`/sessions/${id}`)}
       onError={(msg) => toast.error(msg)}
+      accountDefaults={accountDefaults}
       enableGitHub={enableGitHub}
       enableLocal={enableLocal}
       onBrowseLocalFolder={browseLocalFolder}

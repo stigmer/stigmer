@@ -65,6 +65,18 @@ export interface PreparedRun {
   readonly serviceTier: ServiceTierFlag;
 }
 
+/** Optional behavior switches for {@link prepareAgentExec}. */
+export interface PrepareAgentExecOptions {
+  /**
+   * When `true` (the caller's backend is Stigmer Cloud) and `--model` is
+   * omitted, the model is filled from the caller's account preference
+   * (`IdentityAccountPreferences.default_native_model`) via `whoAmI()`.
+   * Local mode has no IdentityAccount, so callers pass `false` there and
+   * the omitted model keeps resolving to the platform default.
+   */
+  readonly cloudBackend?: boolean;
+}
+
 /**
  * Validate flags and resolve all execution inputs. The `org` is used to inject
  * STIGMER_ORG_ID and the `client` to upload non-workspace attachments.
@@ -74,10 +86,21 @@ export async function prepareAgentExec(
   client: Stigmer,
   org: string,
   progress?: ProgressSink,
+  options?: PrepareAgentExecOptions,
 ): Promise<PreparedRun> {
   const defaultAction = parseApprovalAction(flags.approveDefault);
   validateMode(flags.mode);
   validateServiceTier(flags.serviceTier);
+
+  // Layered model seed (oss#293 Phase 1.5): an explicit --model always wins;
+  // an omitted one fills from the account preference on cloud. `run` and
+  // `draft` always create a NEW session (threading lives in `resume`, which
+  // does not pass through here), so the fill never injects a native model
+  // into an existing cursor-harness session.
+  const model =
+    flags.model === "" && options?.cloudBackend === true
+      ? await resolveModelFromAccountPreference(client)
+      : flags.model;
 
   const workspaceEntries = parseWorkspaceEntries(flags.workspace, flags.branch, flags.commit);
 
@@ -107,11 +130,28 @@ export async function prepareAgentExec(
     message: flags.message,
     detach: flags.detach,
     verbose: flags.verbose,
-    model: flags.model,
+    model,
     autoApproveAll: flags.autoApprove,
     mode: flags.mode,
     serviceTier: flags.serviceTier,
   };
+}
+
+/**
+ * Best-effort read of the caller's default model for native-harness runs
+ * (CLI sessions are native — there is no --harness flag yet, so the cursor
+ * default is deliberately not consulted). Any failure — network, auth, a
+ * backend without IdentityAccount — resolves to "" and the run proceeds
+ * exactly as an unfilled --model does today: a missing preference must
+ * never fail a run.
+ */
+async function resolveModelFromAccountPreference(client: Stigmer): Promise<string> {
+  try {
+    const account = await client.identityAccount.whoAmI();
+    return account.spec?.preferences?.defaultNativeModel ?? "";
+  } catch {
+    return "";
+  }
 }
 
 /**

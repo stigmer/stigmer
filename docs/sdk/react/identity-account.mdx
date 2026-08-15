@@ -63,6 +63,125 @@ switch (state.status) {
 ```
 
 
+### useMyIdentityAccount
+
+Data hook that fetches the current authenticated user's full
+`IdentityAccount` via `identityAccount.whoAmI()`.
+
+Unlike [`useWhoAmI`](/docs/sdk/react/iam-policy#usewhoami) (a cached identity lookup for "is this me?"
+checks), this hook is a refetchable data source for editors of the
+caller's own account — after a mutation, call `refetch()` to re-sync.
+`whoAmI()` returns the complete resource, so no follow-up `get()` is
+needed.
+
+Cloud-only by nature: the OSS local server does not implement
+IdentityAccount. Gate consumers with
+`useResourceAvailable(ApiResourceKind.identity_account)`.
+
+**Signature**
+
+```tsx
+function useMyIdentityAccount(): UseMyIdentityAccountReturn
+```
+
+**Returns** — `UseMyIdentityAccountReturn`
+
+<TypeTable
+  type={{
+    account: { type: "IdentityAccount | null", description: "The authenticated user's identity account, or `null` while loading / on error." },
+    error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
+    isLoading: { type: "boolean", description: "`true` while the initial fetch is in flight." },
+    isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight and stale data is shown." },
+    refetch: { type: "() => void", description: "Re-fetch the account from the server (e.g. after an update)." },
+  }}
+/>
+
+```tsx
+const { account, refetch } = useMyIdentityAccount();
+const standingContext =
+  account?.spec?.preferences?.standingContext ?? "";
+```
+
+
+### useUpdateIdentityAccount
+
+Mutation hook that wraps `identityAccount.update()` with loading and
+error state.
+
+The update RPC is a full-spec replacement addressed by `org` + `slug`
+(the generated input carries no id). Build the input from the loaded
+resource with `toIdentityAccountUpdateInput` from `@stigmer/sdk` and
+override only the fields being edited — sending a partial input wipes
+the unsent spec fields.
+
+Self-service: a user can always update their own account (`can_edit`
+via the self-ownership relationship written at account creation).
+
+**Signature**
+
+```tsx
+function useUpdateIdentityAccount(): UseUpdateIdentityAccountReturn
+```
+
+**Returns** — `UseUpdateIdentityAccountReturn`
+
+<TypeTable
+  type={{
+    clearError: { type: "() => void", description: "Reset `error` to `null`." },
+    error: { type: "Error | null", description: "Error from the last failed update, or `null` when healthy." },
+    isUpdating: { type: "boolean", description: "`true` while the update request is in flight." },
+    update: { type: "(input: IdentityAccountInput) => Promise<IdentityAccount>", description: "Submit an IdentityAccountInput to update an identity account. Resolves with the updated resource." },
+  }}
+/>
+
+```tsx
+const { update, isUpdating, error } = useUpdateIdentityAccount();
+
+await update({
+  ...toIdentityAccountUpdateInput(account),
+  preferences: { standingContext: "Keep answers terse." },
+});
+refetch(); // re-sync the editor
+```
+
+
+## Components
+
+### AccountPreferencesPanel
+
+Self-contained editor for the current user's declared preferences
+(`IdentityAccountSpec.preferences.standing_context`).
+
+The declared text is snapshotted into the user's own eligible agent
+executions and delivered to the agent as background context.
+Self-service: the account is resolved via `whoAmI()` and updated
+through the caller's self-ownership permission — no explicit
+permission check is needed. On save, calls `identityAccount.update()`
+with the complete mapped input (full-spec-replace safety) and fires
+`onUpdated`.
+
+Cloud-only: the OSS local server has no IdentityAccount (local mode
+is single-user, so the organization's preferences cover it). In local
+mode the panel renders a [`CloudFeatureNotice`](/docs/sdk/react/core#cloudfeaturenotice) instead.
+
+All visual properties flow through `--stgm-*` design tokens. Zero
+dependencies on Console routing, auth context, or layout — platform
+builders can embed it directly:
+
+**Props** — `AccountPreferencesPanelProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS class names for the root container." },
+    onUpdated: { type: "(account: IdentityAccount) => void", description: "Fired with the updated resource after a successful save." },
+  }}
+/>
+
+```tsx
+<AccountPreferencesPanel />
+```
+
+
 ## Types
 
 ### IdentityAccountGateState

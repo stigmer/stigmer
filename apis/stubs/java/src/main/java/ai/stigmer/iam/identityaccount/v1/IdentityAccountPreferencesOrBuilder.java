@@ -43,4 +43,102 @@ public interface IdentityAccountPreferencesOrBuilder extends
    */
   com.google.protobuf.ByteString
       getStandingContextBytes();
+
+  /**
+   * <pre>
+   * Default harness for new sessions: "native" or "cursor".
+   * Empty means no preference — the platform default applies.
+   *
+   * &#64;internal
+   * Deliberately a validated string, not the agentic Harness enum: importing
+   * agentic/session/v1 here would couple the iam bounded context to agentic,
+   * and the lowercase strings are already the client vocabulary (HarnessOption,
+   * model-registry harness field, workflow HARNESS_SHORTHANDS).
+   * </pre>
+   *
+   * <code>string default_harness = 2 [json_name = "defaultHarness", (.buf.validate.field) = { ... }</code>
+   * @return The defaultHarness.
+   */
+  java.lang.String getDefaultHarness();
+  /**
+   * <pre>
+   * Default harness for new sessions: "native" or "cursor".
+   * Empty means no preference — the platform default applies.
+   *
+   * &#64;internal
+   * Deliberately a validated string, not the agentic Harness enum: importing
+   * agentic/session/v1 here would couple the iam bounded context to agentic,
+   * and the lowercase strings are already the client vocabulary (HarnessOption,
+   * model-registry harness field, workflow HARNESS_SHORTHANDS).
+   * </pre>
+   *
+   * <code>string default_harness = 2 [json_name = "defaultHarness", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for defaultHarness.
+   */
+  com.google.protobuf.ByteString
+      getDefaultHarnessBytes();
+
+  /**
+   * <pre>
+   * Default model (registry model ID) for native-harness sessions.
+   * Empty means no preference — the platform default applies.
+   *
+   * &#64;internal
+   * NOT registry-validated server-side, deliberately: clients validate
+   * against the harness-filtered registry on read and silently fall through
+   * to the platform default when the model is stale or removed
+   * (self-healing), so coupling the update RPC to the registry would add
+   * machinery without safety.
+   * </pre>
+   *
+   * <code>string default_native_model = 3 [json_name = "defaultNativeModel", (.buf.validate.field) = { ... }</code>
+   * @return The defaultNativeModel.
+   */
+  java.lang.String getDefaultNativeModel();
+  /**
+   * <pre>
+   * Default model (registry model ID) for native-harness sessions.
+   * Empty means no preference — the platform default applies.
+   *
+   * &#64;internal
+   * NOT registry-validated server-side, deliberately: clients validate
+   * against the harness-filtered registry on read and silently fall through
+   * to the platform default when the model is stale or removed
+   * (self-healing), so coupling the update RPC to the registry would add
+   * machinery without safety.
+   * </pre>
+   *
+   * <code>string default_native_model = 3 [json_name = "defaultNativeModel", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for defaultNativeModel.
+   */
+  com.google.protobuf.ByteString
+      getDefaultNativeModelBytes();
+
+  /**
+   * <pre>
+   * Default model (registry model ID) for cursor-harness sessions.
+   * Empty means no preference — the platform default applies.
+   *
+   * &#64;internal
+   * Same client-side validation contract as default_native_model.
+   * </pre>
+   *
+   * <code>string default_cursor_model = 4 [json_name = "defaultCursorModel", (.buf.validate.field) = { ... }</code>
+   * @return The defaultCursorModel.
+   */
+  java.lang.String getDefaultCursorModel();
+  /**
+   * <pre>
+   * Default model (registry model ID) for cursor-harness sessions.
+   * Empty means no preference — the platform default applies.
+   *
+   * &#64;internal
+   * Same client-side validation contract as default_native_model.
+   * </pre>
+   *
+   * <code>string default_cursor_model = 4 [json_name = "defaultCursorModel", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for defaultCursorModel.
+   */
+  com.google.protobuf.ByteString
+      getDefaultCursorModelBytes();
 }

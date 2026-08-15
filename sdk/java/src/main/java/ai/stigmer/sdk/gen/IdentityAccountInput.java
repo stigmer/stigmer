@@ -131,15 +131,30 @@ public final class IdentityAccountInput {
     /** SDK input type for IdentityAccountPreferences. */
     public static final class IdentityAccountPreferencesInput {
         private final String standingContext;
+        private final String defaultHarness;
+        private final String defaultNativeModel;
+        private final String defaultCursorModel;
 
         private IdentityAccountPreferencesInput(Builder builder) {
             this.standingContext = builder.standingContext;
+            this.defaultHarness = builder.defaultHarness;
+            this.defaultNativeModel = builder.defaultNativeModel;
+            this.defaultCursorModel = builder.defaultCursorModel;
         }
 
         IdentityAccountPreferences toProto() {
             IdentityAccountPreferences.Builder builder = IdentityAccountPreferences.newBuilder();
             if (this.standingContext != null) {
                 builder.setStandingContext(this.standingContext);
+            }
+            if (this.defaultHarness != null) {
+                builder.setDefaultHarness(this.defaultHarness);
+            }
+            if (this.defaultNativeModel != null) {
+                builder.setDefaultNativeModel(this.defaultNativeModel);
+            }
+            if (this.defaultCursorModel != null) {
+                builder.setDefaultCursorModel(this.defaultCursorModel);
             }
             return builder.build();
         }
@@ -148,10 +163,16 @@ public final class IdentityAccountInput {
 
         public static final class Builder {
             private String standingContext;
+            private String defaultHarness;
+            private String defaultNativeModel;
+            private String defaultCursorModel;
 
             private Builder() {}
 
             public Builder standingContext(String standingContext) { this.standingContext = standingContext; return this; }
+            public Builder defaultHarness(String defaultHarness) { this.defaultHarness = defaultHarness; return this; }
+            public Builder defaultNativeModel(String defaultNativeModel) { this.defaultNativeModel = defaultNativeModel; return this; }
+            public Builder defaultCursorModel(String defaultCursorModel) { this.defaultCursorModel = defaultCursorModel; return this; }
 
             public IdentityAccountPreferencesInput build() { return new IdentityAccountPreferencesInput(this); }
         }

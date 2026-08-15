@@ -127,11 +127,17 @@ export interface IdentityAccountInput {
 /** SDK input type for IdentityAccountPreferences. */
 export interface IdentityAccountPreferencesInput {
   standingContext?: string;
+  defaultHarness?: string;
+  defaultNativeModel?: string;
+  defaultCursorModel?: string;
 }
 
 function buildIdentityAccountPreferencesProto(input: IdentityAccountPreferencesInput) {
   return Object.assign(create(IdentityAccountPreferencesSchema), stripUndefined({
     standingContext: input.standingContext,
+    defaultHarness: input.defaultHarness,
+    defaultNativeModel: input.defaultNativeModel,
+    defaultCursorModel: input.defaultCursorModel,
   }));
 }
 

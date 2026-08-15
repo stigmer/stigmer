@@ -66,6 +66,11 @@ public enum HumanInputTimeoutPolicy
    * Requires a corresponding outcome with then set, or a try_catch handler.
    * Use when timeout should trigger a different workflow path rather than
    * a simple approve/deny decision.
+   *
+   * NOT IMPLEMENTED YET (stigmer/stigmer#781): no runtime exists for this
+   * policy, so validation refuses it at apply and the runner refuses it at
+   * load (stigmer/stigmer#779 fail-closed ruling) — it must never silently
+   * behave as FAIL.
    * </pre>
    *
    * <code>HUMAN_INPUT_TIMEOUT_ESCALATE = 4;</code>
@@ -126,6 +131,11 @@ public enum HumanInputTimeoutPolicy
    * Requires a corresponding outcome with then set, or a try_catch handler.
    * Use when timeout should trigger a different workflow path rather than
    * a simple approve/deny decision.
+   *
+   * NOT IMPLEMENTED YET (stigmer/stigmer#781): no runtime exists for this
+   * policy, so validation refuses it at apply and the runner refuses it at
+   * load (stigmer/stigmer#779 fail-closed ruling) — it must never silently
+   * behave as FAIL.
    * </pre>
    *
    * <code>HUMAN_INPUT_TIMEOUT_ESCALATE = 4;</code>

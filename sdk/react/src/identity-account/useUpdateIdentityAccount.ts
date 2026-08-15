@@ -26,7 +26,9 @@ export interface UseUpdateIdentityAccountReturn {
  * (the generated input carries no id). Build the input from the loaded
  * resource with `toIdentityAccountUpdateInput` from `@stigmer/sdk` and
  * override only the fields being edited — sending a partial input wipes
- * the unsent spec fields.
+ * the unsent spec fields. The same rule applies INSIDE nested messages:
+ * override `preferences` by spreading the mapper's complete value first,
+ * or the untouched preference fields wipe.
  *
  * Self-service: a user can always update their own account (`can_edit`
  * via the self-ownership relationship written at account creation).
@@ -35,9 +37,10 @@ export interface UseUpdateIdentityAccountReturn {
  * ```tsx
  * const { update, isUpdating, error } = useUpdateIdentityAccount();
  *
+ * const mapped = toIdentityAccountUpdateInput(account);
  * await update({
- *   ...toIdentityAccountUpdateInput(account),
- *   preferences: { standingContext: "Keep answers terse." },
+ *   ...mapped,
+ *   preferences: { ...mapped.preferences, standingContext: "Keep answers terse." },
  * });
  * refetch(); // re-sync the editor
  * ```
