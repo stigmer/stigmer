@@ -63,7 +63,7 @@ tasks:
     kind: llm_call
     task_config:
       model: "gpt-4o-mini"
-      prompt: "Classify this: ${ $context.env.INPUT }"
+      prompt: "Classify this: ${ $env.INPUT }"
       response_schema:
         type: object
         properties:
@@ -108,10 +108,10 @@ Use `${ $context.<taskName>.<field> }` to access earlier task outputs:
 prompt: "Summarize: ${ $context.fetch_data.body }"
 ```
 
-Environment variables are available as `${ $context.env.<VAR_NAME> }`:
+Environment variables are available as `${ $env.<VAR_NAME> }`:
 
 ```yaml validate-as="task-config:llm_call"
-prompt: "Topic: ${ $context.env.TOPIC }"
+prompt: "Topic: ${ $env.TOPIC }"
 ```
 
 ### Setting variables
@@ -123,7 +123,7 @@ The `set_vars` task writes values directly into context:
   kind: set_vars
   task_config:
     variables:
-      started_at: "${ now() }"
+      started_at: "${ now }"
       environment: "production"
   export:
     as: "${ . }"
@@ -484,8 +484,7 @@ spec:
           You are a professional content writer. Write clear, engaging content
           that follows the provided guidelines.
         prompt: >
-          Write content about: ${ $context.env.TOPIC } Guidelines: ${
-          $context.env.GUIDELINES }
+          Write content about: ${ $env.TOPIC } Guidelines: ${ $env.GUIDELINES }
         temperature: 0.7
         max_tokens: 2000
       export:
@@ -529,7 +528,7 @@ spec:
           Revise the draft based on the reviewer's feedback. Preserve what
           works, fix what doesn't.
         prompt: >
-          Original topic: ${ $context.env.TOPIC } Previous draft: ${
+          Original topic: ${ $env.TOPIC } Previous draft: ${
           $context.draft_content.text } Feedback: ${
           $context.review_content.form_data.feedback }
         temperature: 0.5

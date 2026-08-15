@@ -39,9 +39,9 @@ spec:
         prompt: >
           Classify this support ticket:
 
-          ${ $context.env.TICKET_DESCRIPTION }
+          ${ $env.TICKET_DESCRIPTION }
 
-          Customer: ${ $context.env.CUSTOMER_EMAIL }
+          Customer: ${ $env.CUSTOMER_EMAIL }
         response_schema:
           type: object
           required:
@@ -100,10 +100,10 @@ spec:
           *Summary*: ${ $context.classify_ticket.summary }
           *Category*: ${ $context.classify_ticket.category }
           *Customer Impact*: ${ $context.classify_ticket.customer_impact }
-          *Customer*: ${ $context.env.CUSTOMER_EMAIL }
+          *Customer*: ${ $env.CUSTOMER_EMAIL }
 
           Original ticket:
-          ${ $context.env.TICKET_DESCRIPTION }
+          ${ $env.TICKET_DESCRIPTION }
 
           Approve escalation to the incident response team?
         outcomes:

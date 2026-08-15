@@ -51,7 +51,7 @@ the most common issues so the first validation pass is clean.
    them correctly.
 2. **Valid context references** — `${ $context.<task>... }` points at a task that
    runs **before** the referencing task and that uses `export`.
-3. **`env` references declared** — every `${ $context.env.NAME }` has a matching
+3. **`env` references declared** — every `${ $env.NAME }` has a matching
    entry in `spec.env`.
 4. **Structured output exported** — tasks read via `${ $context.<task>.<field> }`
    export their structured result (`export.as: "${ .structured }"` for agent/LLM

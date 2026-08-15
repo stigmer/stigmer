@@ -60,8 +60,8 @@ spec:
           You are a research analyst. Analyze the provided source material
           thoroughly. Identify key themes, claims, evidence, and gaps.
         prompt: >
-          Analyze the following material on "${ $context.env.TOPIC }": ${
-          $context.env.SOURCE_MATERIAL }
+          Analyze the following material on "${ $env.TOPIC }": ${
+          $env.SOURCE_MATERIAL }
         temperature: 0.3
         max_tokens: 3000
       export:
@@ -234,8 +234,7 @@ spec:
           You are a professional content writer. Write clear, engaging content
           that follows the provided guidelines.
         prompt: >
-          Write content about: ${ $context.env.TOPIC } Guidelines: ${
-          $context.env.GUIDELINES }
+          Write content about: ${ $env.TOPIC } Guidelines: ${ $env.GUIDELINES }
         temperature: 0.7
         max_tokens: 2000
       export:
@@ -279,7 +278,7 @@ spec:
           Revise the draft based on the reviewer's feedback. Preserve what
           works, fix what doesn't.
         prompt: >
-          Original topic: ${ $context.env.TOPIC } Previous draft: ${
+          Original topic: ${ $env.TOPIC } Previous draft: ${
           $context.draft_content.text } Feedback: ${
           $context.review_content.form_data.feedback }
         temperature: 0.5
@@ -345,7 +344,7 @@ tasks:
       system_prompt: >
         You are a support ticket classifier. Analyze the ticket and classify it
         by severity and category.
-      prompt: "Classify this ticket: ${ $context.env.TICKET_DESCRIPTION }"
+      prompt: "Classify this ticket: ${ $env.TICKET_DESCRIPTION }"
       response_schema:
         type: object
         required: [severity, category, summary]
@@ -482,7 +481,7 @@ spec:
       kind: llm_call
       task_config:
         model: "claude-sonnet-4-5"
-        prompt: "Deep analysis of: ${ $context.env.DATA }"
+        prompt: "Deep analysis of: ${ $env.DATA }"
         max_tokens: 4000
       export:
         as: "${ . }"

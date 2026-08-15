@@ -45,7 +45,7 @@ spec:
       task_config:
         model: "claude-sonnet-4-5"
         system_prompt: "You are a concise research assistant."
-        prompt: "Write a 3-paragraph summary about: ${ $context.env.TOPIC }"
+        prompt: "Write a 3-paragraph summary about: ${ $env.TOPIC }"
         temperature: 0.3
         max_tokens: 500
       export:

@@ -540,6 +540,7 @@ func main() {
 	apisDir := flag.String("apis-dir", "", "Root directory of proto API definitions (used by sdk-docs for overview.md loading and by task-docs for the index enrichment template)")
 	docsDir := flag.String("docs-dir", "", "Root directory of the documentation tree (used by the docs-yaml-check target)")
 	rules := flag.String("rules", "off", "Protovalidate rule evaluation for docs-yaml-check: off, report (print findings, never fail), or enforce (findings fail the gate)")
+	authoringDirs := flag.String("authoring-dirs", "", "Comma-separated raw authoring surfaces (e.g. examples,seedpack) the docs-yaml-check target also validates: YAML manifests decode fully, every file is scanned for the dead $context.env namespace")
 	flag.Parse()
 
 	// docs-yaml-check is a pass/fail validator over the docs tree: it reads
@@ -555,7 +556,13 @@ func main() {
 			fmt.Printf("Error: %v\n", err)
 			os.Exit(1)
 		}
-		if err := runDocsYamlCheck(*docsDir, ruleMode); err != nil {
+		var extraDirs []string
+		for _, dir := range strings.Split(*authoringDirs, ",") {
+			if trimmed := strings.TrimSpace(dir); trimmed != "" {
+				extraDirs = append(extraDirs, trimmed)
+			}
+		}
+		if err := runDocsYamlCheck(*docsDir, extraDirs, ruleMode); err != nil {
 			fmt.Printf("Error: %v\n", err)
 			os.Exit(1)
 		}

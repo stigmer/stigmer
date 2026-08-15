@@ -8,9 +8,10 @@
 import { type DescMessage, fromJson, type JsonValue } from "@bufbuild/protobuf";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
-import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
+import { type Workflow, WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ProjectSchema } from "@stigmer/protos/ai/stigmer/tenancy/project/v1/api_pb";
+import { decodeWorkflowTaskConfigs } from "./task-configs.js";
 
 // Exported for the verb/dispatch conformance suite (registry/registry.test.ts),
 // which holds this map and the matrix's Verb.Validate promises to strict
@@ -31,5 +32,12 @@ export function schemaForValidate(kind: ApiResourceKind): DescMessage | undefine
 export function validateDocument(schema: DescMessage, document: JsonValue): void {
   // ignoreUnknownFields mirrors the server's lenient unmarshal: forward-compat
   // fields a newer server adds should not fail a slightly older CLI.
-  fromJson(schema, document, { ignoreUnknownFields: true });
+  const message = fromJson(schema, document, { ignoreUnknownFields: true });
+
+  // Workflows carry per-kind typed configs inside an open Struct that the
+  // top-level decode cannot see into — decode them too, so validate stops
+  // passing configs a real apply rejects (stigmer/stigmer#778).
+  if (schema === WorkflowSchema) {
+    decodeWorkflowTaskConfigs(message as Workflow);
+  }
 }

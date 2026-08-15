@@ -124,7 +124,7 @@ Composition rules:
 - `flow.then` must reference a real task name. The last task in a path omits
   `flow.then` (implicit end). Use `then: end` to terminate a branch early.
 - Use `export.as` to publish a task's output; reference it downstream with
-  `${ $context.<task-name>.<field> }`. Run-time inputs are `${ $context.env.NAME }`.
+  `${ $context.<task-name>.<field> }`. Run-time inputs are `${ $env.NAME }`.
 - For `agent_call` and `llm_call` tasks, prefer a `budget` so runaway cost is
   capped. Use `on_invalid` / `max_retries` when you require structured output.
 - Use `switch_case` for branching, `fork` for parallel branches, `human_input`
