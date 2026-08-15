@@ -2,7 +2,7 @@
 
 import { type FormEvent, useCallback, useEffect, useId, useMemo, useState } from "react";
 import { cn } from "@stigmer/theme";
-import { getUserMessage } from "@stigmer/sdk";
+import { getUserMessage, toOrganizationUpdateInput } from "@stigmer/sdk";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { useOrganization } from "./useOrganization.js";
 import { useUpdateOrganization } from "./useUpdateOrganization.js";
@@ -116,10 +116,12 @@ export function OrgProfilePanel({
 
       clearError();
       try {
+        // update() is a full-spec replace: spread the complete mapped input
+        // so unedited spec fields (e.g. preferences) survive the save, and
+        // override only the fields this form edits.
         const updated = await update({
+          ...toOrganizationUpdateInput(organization),
           name: name.trim(),
-          slug: serverSlug,
-          org: serverSlug,
           description: description.trim() || undefined,
           logoUrl: logoUrl.trim() || undefined,
         });
@@ -135,7 +137,6 @@ export function OrgProfilePanel({
       name,
       description,
       logoUrl,
-      serverSlug,
       update,
       clearError,
       refetch,

@@ -16,5 +16,7 @@ export { CreateOrganizationForm } from "./CreateOrganizationForm.js";
 export type { CreateOrganizationFormProps } from "./CreateOrganizationForm.js";
 export { OrgProfilePanel } from "./OrgProfilePanel.js";
 export type { OrgProfilePanelProps } from "./OrgProfilePanel.js";
+export { OrgPreferencesPanel } from "./OrgPreferencesPanel.js";
+export type { OrgPreferencesPanelProps } from "./OrgPreferencesPanel.js";
 export { OrgSwitcher } from "./OrgSwitcher.js";
 export type { OrgSwitcherProps } from "./OrgSwitcher.js";

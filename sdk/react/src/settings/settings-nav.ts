@@ -13,6 +13,8 @@ import {
   Plug,
   Scale,
   ShieldCheck,
+  SlidersHorizontal,
+  UserCog,
   Users,
 } from "lucide-react";
 
@@ -55,6 +57,11 @@ export const SETTINGS_NAV_GROUPS: readonly SettingsNavGroup[] = [
       "Manage your team, organization identity, and identity providers.",
     items: [
       { href: "/settings/org-profile", label: "Org Profile", icon: Building2 },
+      {
+        href: "/settings/org-preferences",
+        label: "Preferences",
+        icon: SlidersHorizontal,
+      },
       { href: "/settings/members", label: "Members", icon: Users },
       { href: "/settings/invitations", label: "Invitations", icon: Link },
       {
@@ -90,6 +97,17 @@ export const SETTINGS_NAV_GROUPS: readonly SettingsNavGroup[] = [
     items: [
       { href: "/settings/billing", label: "Billing", icon: CreditCard },
       { href: "/settings/usage", label: "Usage", icon: BarChart3 },
+    ],
+  },
+  {
+    label: "Account",
+    description: "Personal settings that apply to you across the platform.",
+    items: [
+      {
+        href: "/settings/account-preferences",
+        label: "Preferences",
+        icon: UserCog,
+      },
     ],
   },
 ];

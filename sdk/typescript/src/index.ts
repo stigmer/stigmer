@@ -61,6 +61,12 @@ export {
   isResourceAvailable,
 } from "./resource-availability.js";
 
+// Complete update-input mappers (full-spec-replace round-trip safety)
+export {
+  toOrganizationUpdateInput,
+  toIdentityAccountUpdateInput,
+} from "./update-input.js";
+
 // Authorization config and IAM role utilities
 export {
   getGrantableRoles,

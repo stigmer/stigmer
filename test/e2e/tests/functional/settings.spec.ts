@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 /**
  * Settings pages structural tests.
  *
- * Verifies that all 12 settings routes render their section heading,
+ * Verifies that the settings routes render their section heading,
  * do not crash with an error boundary, and show either content or
  * a CloudFeatureNotice (role="status") when running against OSS.
  *
@@ -58,6 +58,16 @@ const SETTINGS_SECTIONS = [
     path: "/settings/org-profile",
     headingText: "Organization Profile",
     cloudGated: false,
+  },
+  {
+    path: "/settings/org-preferences",
+    headingText: "Organization Preferences",
+    cloudGated: false,
+  },
+  {
+    path: "/settings/account-preferences",
+    headingText: "Account Preferences",
+    cloudGated: true,
   },
   {
     path: "/settings/billing",

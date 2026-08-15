@@ -5,6 +5,7 @@ import {
   type RouteObject,
 } from "react-router-dom";
 import {
+  AccountPreferencesSection,
   ApiKeysSection,
   ChannelAppsSection,
   EnvironmentsSection,
@@ -12,6 +13,7 @@ import {
   InvitationsSection,
   MembersSection,
   OAuthAppsSection,
+  OrgPreferencesSection,
   OrgProfileSection,
   PlatformClientsSection,
   UsageSection,
@@ -281,6 +283,11 @@ const routes: RouteObject[] = [
               { path: "environments", element: <EnvironmentsSection /> },
               { path: "members", element: <MembersSection /> },
               { path: "org-profile", element: <OrgProfileSection /> },
+              { path: "org-preferences", element: <OrgPreferencesSection /> },
+              {
+                path: "account-preferences",
+                element: <AccountPreferencesSection />,
+              },
               { path: "invitations", element: <InvitationsSection /> },
               { path: "identity-providers", element: <IdentityProvidersSection /> },
               { path: "platform-clients", element: <PlatformClientsSection /> },
