@@ -121,6 +121,7 @@ class IdentityAccountInput:
     is_machine_account: bool = False
     provisioning_mode: int = 0
     identity_provider_ref: ResourceRef | None = None
+    preferences: IdentityAccountPreferencesInput | None = None
 
     def _to_proto(self) -> api_pb2.IdentityAccount:
         spec = spec_pb2.IdentityAccountSpec(
@@ -134,6 +135,8 @@ class IdentityAccountInput:
         )
         if self.identity_provider_ref is not None and (self.identity_provider_ref.org or self.identity_provider_ref.slug):
             spec.identity_provider_ref.CopyFrom(self.identity_provider_ref._to_proto())
+        if self.preferences is not None:
+            spec.preferences.CopyFrom(self.preferences._to_proto())
         metadata = metadata_pb2.ApiResourceMetadata(
             name=self.name,
             org=self.org,
@@ -150,4 +153,17 @@ class IdentityAccountInput:
             metadata=metadata,
             spec=spec,
         )
+
+
+@dataclass
+class IdentityAccountPreferencesInput:
+    """SDK input type for IdentityAccountPreferences."""
+
+    standing_context: str = ""
+
+    def _to_proto(self) -> spec_pb2.IdentityAccountPreferences:
+        msg = spec_pb2.IdentityAccountPreferences(
+            standing_context=self.standing_context,
+        )
+        return msg
 

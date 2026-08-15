@@ -164,4 +164,31 @@ public interface OrganizationSpecOrBuilder extends
    * @return The isPersonal.
    */
   boolean getIsPersonal();
+
+  /**
+   * <pre>
+   * Standing preferences declared by the organization.
+   * </pre>
+   *
+   * <code>.ai.stigmer.tenancy.organization.v1.OrganizationPreferences preferences = 7 [json_name = "preferences"];</code>
+   * @return Whether the preferences field is set.
+   */
+  boolean hasPreferences();
+  /**
+   * <pre>
+   * Standing preferences declared by the organization.
+   * </pre>
+   *
+   * <code>.ai.stigmer.tenancy.organization.v1.OrganizationPreferences preferences = 7 [json_name = "preferences"];</code>
+   * @return The preferences.
+   */
+  ai.stigmer.tenancy.organization.v1.OrganizationPreferences getPreferences();
+  /**
+   * <pre>
+   * Standing preferences declared by the organization.
+   * </pre>
+   *
+   * <code>.ai.stigmer.tenancy.organization.v1.OrganizationPreferences preferences = 7 [json_name = "preferences"];</code>
+   */
+  ai.stigmer.tenancy.organization.v1.OrganizationPreferencesOrBuilder getPreferencesOrBuilder();
 }

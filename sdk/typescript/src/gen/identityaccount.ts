@@ -15,7 +15,7 @@ import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
 import { IdentityAccountIdSchema, CreateFederatedAccountInputSchema, UpdateFederatedAccountInputSchema, DeprovisionFederatedAccountInputSchema, IdentityAccountEmailSchema, IdpIdSchema, ExternalSubLookupSchema, type CreateFederatedAccountInput, type UpdateFederatedAccountInput, type DeprovisionFederatedAccountInput, type IdentityAccountEmail, type ExternalSubLookup } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/io_pb";
 import { IdentityAccountQueryController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/query_pb";
-import { IdentityAccountSpecSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/spec_pb";
+import { IdentityAccountSpecSchema, IdentityAccountPreferencesSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/spec_pb";
 
 /** Provides operations on identityaccount resources. */
 export class IdentityAccountClient {
@@ -121,10 +121,23 @@ export interface IdentityAccountInput {
   isMachineAccount?: boolean;
   provisioningMode?: IdentityAccountProvisioningMode;
   identityProviderRef?: ResourceRef;
+  preferences?: IdentityAccountPreferencesInput;
+}
+
+/** SDK input type for IdentityAccountPreferences. */
+export interface IdentityAccountPreferencesInput {
+  standingContext?: string;
+}
+
+function buildIdentityAccountPreferencesProto(input: IdentityAccountPreferencesInput) {
+  return Object.assign(create(IdentityAccountPreferencesSchema), stripUndefined({
+    standingContext: input.standingContext,
+  }));
 }
 
 export function buildIdentityAccountProto(input: IdentityAccountInput): IdentityAccount {
   const identityProviderRef = (input.identityProviderRef?.slug || input.identityProviderRef?.org) ? create(ApiResourceReferenceSchema, input.identityProviderRef) : undefined;
+  const preferences = input.preferences ? buildIdentityAccountPreferencesProto(input.preferences) : undefined;
   return Object.assign(create(IdentityAccountSchema), {
     apiVersion: "iam.stigmer.ai/v1",
     kind: "IdentityAccount",
@@ -144,6 +157,7 @@ export function buildIdentityAccountProto(input: IdentityAccountInput): Identity
       isMachineAccount: input.isMachineAccount,
       provisioningMode: input.provisioningMode,
       identityProviderRef,
+      preferences,
     })),
   }) as IdentityAccount;
 }

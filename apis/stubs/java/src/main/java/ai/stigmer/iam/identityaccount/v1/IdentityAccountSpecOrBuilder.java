@@ -217,4 +217,31 @@ public interface IdentityAccountSpecOrBuilder extends
    * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 8 [json_name = "identityProviderRef"];</code>
    */
   ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getIdentityProviderRefOrBuilder();
+
+  /**
+   * <pre>
+   * Standing preferences declared by this identity account.
+   * </pre>
+   *
+   * <code>.ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences preferences = 9 [json_name = "preferences"];</code>
+   * @return Whether the preferences field is set.
+   */
+  boolean hasPreferences();
+  /**
+   * <pre>
+   * Standing preferences declared by this identity account.
+   * </pre>
+   *
+   * <code>.ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences preferences = 9 [json_name = "preferences"];</code>
+   * @return The preferences.
+   */
+  ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences getPreferences();
+  /**
+   * <pre>
+   * Standing preferences declared by this identity account.
+   * </pre>
+   *
+   * <code>.ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences preferences = 9 [json_name = "preferences"];</code>
+   */
+  ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferencesOrBuilder getPreferencesOrBuilder();
 }

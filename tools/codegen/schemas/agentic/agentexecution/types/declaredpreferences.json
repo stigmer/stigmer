@@ -1,0 +1,28 @@
+{
+  "name": "DeclaredPreferences",
+  "description": "DeclaredPreferences carries the standing preference texts injected into\n this execution's prompt, one field per declaring scope.",
+  "protoType": "ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences",
+  "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/spec.proto",
+  "fields": [
+    {
+      "name": "OrgContext",
+      "jsonName": "orgContext",
+      "protoField": "org_context",
+      "type": {
+        "kind": "string"
+      },
+      "description": "The organization's standing context, verbatim.",
+      "required": false
+    },
+    {
+      "name": "UserContext",
+      "jsonName": "userContext",
+      "protoField": "user_context",
+      "type": {
+        "kind": "string"
+      },
+      "description": "The calling user's standing context, verbatim.",
+      "required": false
+    }
+  ]
+}

@@ -76,4 +76,29 @@ message IdentityAccountSpec {
   // forms the unique identity for federated accounts.
   // (ignored for create) this value is assigned by backend.
   ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 8;
+
+  // Standing preferences declared by this identity account.
+  IdentityAccountPreferences preferences = 9;
+}
+
+// IdentityAccountPreferences holds user-declared defaults that apply to the
+// user's own agent executions.
+//
+// @internal
+// Self-service: mutable through the existing update RPC under FGA can_edit
+// (owner, via the self-ownership tuple written at account creation) — zero
+// new IAM. Grows along the user scope's taxonomy path (Phase 1.5
+// candidates: default harness, per-harness default model; Phase 2: memory
+// opt-in). Never composed for machine accounts or platform-client user
+// tokens (DD-002 D4 as amended).
+message IdentityAccountPreferences {
+  // Free-text standing context injected into this user's eligible agent
+  // executions. Example: "Keep answers terse."
+  //
+  // @internal
+  // Snapshotted verbatim into
+  // AgentExecutionSpec.declared_preferences.user_context at execution create
+  // (first-party human operators only, DD-002 D4 as amended). The runner
+  // frames it as context, not instructions that override the task.
+  string standing_context = 1 [(buf.validate.field).string.max_len = 2000];
 }

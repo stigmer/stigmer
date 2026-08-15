@@ -189,6 +189,9 @@ type AgentExecutionSpec struct {
 	// agent was not watching, the digest carries what happened so the agent
 	// re-enters informed. Absent on every other execution surface.
 	ConversationCatchup *ConversationCatchup `protobuf:"bytes,14,opt,name=conversation_catchup,json=conversationCatchup,proto3" json:"conversation_catchup,omitempty"`
+	// Standing preferences declared by the organization and the calling user,
+	// snapshotted into this execution at create time (optional).
+	DeclaredPreferences *DeclaredPreferences `protobuf:"bytes,15,opt,name=declared_preferences,json=declaredPreferences,proto3" json:"declared_preferences,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
@@ -317,6 +320,13 @@ func (x *AgentExecutionSpec) GetSupersedesExecutionId() string {
 func (x *AgentExecutionSpec) GetConversationCatchup() *ConversationCatchup {
 	if x != nil {
 		return x.ConversationCatchup
+	}
+	return nil
+}
+
+func (x *AgentExecutionSpec) GetDeclaredPreferences() *DeclaredPreferences {
+	if x != nil {
+		return x.DeclaredPreferences
 	}
 	return nil
 }
@@ -888,11 +898,67 @@ func (x *ConversationCatchup) GetWindowEnd() *timestamppb.Timestamp {
 	return nil
 }
 
+// DeclaredPreferences carries the standing preference texts injected into
+// this execution's prompt, one field per declaring scope.
+type DeclaredPreferences struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The organization's standing context, verbatim.
+	OrgContext string `protobuf:"bytes,1,opt,name=org_context,json=orgContext,proto3" json:"org_context,omitempty"`
+	// The calling user's standing context, verbatim.
+	UserContext   string `protobuf:"bytes,2,opt,name=user_context,json=userContext,proto3" json:"user_context,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeclaredPreferences) Reset() {
+	*x = DeclaredPreferences{}
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeclaredPreferences) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeclaredPreferences) ProtoMessage() {}
+
+func (x *DeclaredPreferences) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeclaredPreferences.ProtoReflect.Descriptor instead.
+func (*DeclaredPreferences) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *DeclaredPreferences) GetOrgContext() string {
+	if x != nil {
+		return x.OrgContext
+	}
+	return ""
+}
+
+func (x *DeclaredPreferences) GetUserContext() string {
+	if x != nil {
+		return x.UserContext
+	}
+	return ""
+}
+
 var File_ai_stigmer_agentic_agentexecution_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"/ai/stigmer/agentic/agentexecution/v1/spec.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a1ai/stigmer/agentic/executioncontext/v1/spec.proto\x1a(ai/stigmer/agentic/session/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x98\v\n" +
+	"/ai/stigmer/agentic/agentexecution/v1/spec.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a1ai/stigmer/agentic/executioncontext/v1/spec.proto\x1a(ai/stigmer/agentic/session/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x86\f\n" +
 	"\x12AgentExecutionSpec\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x19\n" +
@@ -910,7 +976,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc = "" +
 	" \x03(\tR\x11workspaceFileRefs\x12.\n" +
 	"\x13activity_task_queue\x18\v \x01(\tR\x11activityTaskQueue\x126\n" +
 	"\x17supersedes_execution_id\x18\f \x01(\tR\x15supersedesExecutionId\x12l\n" +
-	"\x14conversation_catchup\x18\x0e \x01(\v29.ai.stigmer.agentic.agentexecution.v1.ConversationCatchupR\x13conversationCatchup\x1au\n" +
+	"\x14conversation_catchup\x18\x0e \x01(\v29.ai.stigmer.agentic.agentexecution.v1.ConversationCatchupR\x13conversationCatchup\x12l\n" +
+	"\x14declared_preferences\x18\x0f \x01(\v29.ai.stigmer.agentic.agentexecution.v1.DeclaredPreferencesR\x13declaredPreferences\x1au\n" +
 	"\x0fRuntimeEnvEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12L\n" +
 	"\x05value\x18\x02 \x01(\v26.ai.stigmer.agentic.executioncontext.v1.ExecutionValueR\x05value:\x028\x01:\xb8\x03\xbaH\xb4\x03\x1a\xcb\x01\n" +
@@ -949,7 +1016,11 @@ const file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc = "" +
 	"\x13ConversationCatchup\x12\x16\n" +
 	"\x06digest\x18\x01 \x01(\tR\x06digest\x129\n" +
 	"\n" +
-	"window_end\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\twindowEndB\xca\x02\n" +
+	"window_end\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\twindowEnd\"Y\n" +
+	"\x13DeclaredPreferences\x12\x1f\n" +
+	"\vorg_context\x18\x01 \x01(\tR\n" +
+	"orgContext\x12!\n" +
+	"\fuser_context\x18\x02 \x01(\tR\vuserContextB\xca\x02\n" +
 	"(com.ai.stigmer.agentic.agentexecution.v1B\tSpecProtoP\x01Z^github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
 
 var (
@@ -964,40 +1035,42 @@ func file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_ai_stigmer_agentic_agentexecution_v1_spec_proto_goTypes = []any{
 	(*AgentExecutionSpec)(nil),      // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec
 	(*ExecutionConfig)(nil),         // 1: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig
 	(*ContextManagementConfig)(nil), // 2: ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig
 	(*Attachment)(nil),              // 3: ai.stigmer.agentic.agentexecution.v1.Attachment
 	(*ConversationCatchup)(nil),     // 4: ai.stigmer.agentic.agentexecution.v1.ConversationCatchup
-	nil,                             // 5: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.RuntimeEnvEntry
-	(*v1.SessionSpec)(nil),          // 6: ai.stigmer.agentic.session.v1.SessionSpec
-	(InteractionMode)(0),            // 7: ai.stigmer.agentic.agentexecution.v1.InteractionMode
-	(*structpb.Struct)(nil),         // 8: google.protobuf.Struct
-	(ApprovalMode)(0),               // 9: ai.stigmer.agentic.agentexecution.v1.ApprovalMode
-	(ServiceTier)(0),                // 10: ai.stigmer.agentic.agentexecution.v1.ServiceTier
-	(*timestamppb.Timestamp)(nil),   // 11: google.protobuf.Timestamp
-	(*v11.ExecutionValue)(nil),      // 12: ai.stigmer.agentic.executioncontext.v1.ExecutionValue
+	(*DeclaredPreferences)(nil),     // 5: ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences
+	nil,                             // 6: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.RuntimeEnvEntry
+	(*v1.SessionSpec)(nil),          // 7: ai.stigmer.agentic.session.v1.SessionSpec
+	(InteractionMode)(0),            // 8: ai.stigmer.agentic.agentexecution.v1.InteractionMode
+	(*structpb.Struct)(nil),         // 9: google.protobuf.Struct
+	(ApprovalMode)(0),               // 10: ai.stigmer.agentic.agentexecution.v1.ApprovalMode
+	(ServiceTier)(0),                // 11: ai.stigmer.agentic.agentexecution.v1.ServiceTier
+	(*timestamppb.Timestamp)(nil),   // 12: google.protobuf.Timestamp
+	(*v11.ExecutionValue)(nil),      // 13: ai.stigmer.agentic.executioncontext.v1.ExecutionValue
 }
 var file_ai_stigmer_agentic_agentexecution_v1_spec_proto_depIdxs = []int32{
-	6,  // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.session_spec:type_name -> ai.stigmer.agentic.session.v1.SessionSpec
+	7,  // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.session_spec:type_name -> ai.stigmer.agentic.session.v1.SessionSpec
 	1,  // 1: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.execution_config:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionConfig
-	5,  // 2: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.runtime_env:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.RuntimeEnvEntry
+	6,  // 2: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.runtime_env:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.RuntimeEnvEntry
 	3,  // 3: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.attachments:type_name -> ai.stigmer.agentic.agentexecution.v1.Attachment
 	4,  // 4: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.conversation_catchup:type_name -> ai.stigmer.agentic.agentexecution.v1.ConversationCatchup
-	2,  // 5: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.context_management:type_name -> ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig
-	7,  // 6: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.interaction_mode:type_name -> ai.stigmer.agentic.agentexecution.v1.InteractionMode
-	8,  // 7: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.structured_output_schema:type_name -> google.protobuf.Struct
-	9,  // 8: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.approval_mode:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalMode
-	10, // 9: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.service_tier:type_name -> ai.stigmer.agentic.agentexecution.v1.ServiceTier
-	11, // 10: ai.stigmer.agentic.agentexecution.v1.ConversationCatchup.window_end:type_name -> google.protobuf.Timestamp
-	12, // 11: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.RuntimeEnvEntry.value:type_name -> ai.stigmer.agentic.executioncontext.v1.ExecutionValue
-	12, // [12:12] is the sub-list for method output_type
-	12, // [12:12] is the sub-list for method input_type
-	12, // [12:12] is the sub-list for extension type_name
-	12, // [12:12] is the sub-list for extension extendee
-	0,  // [0:12] is the sub-list for field type_name
+	5,  // 5: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.declared_preferences:type_name -> ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences
+	2,  // 6: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.context_management:type_name -> ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig
+	8,  // 7: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.interaction_mode:type_name -> ai.stigmer.agentic.agentexecution.v1.InteractionMode
+	9,  // 8: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.structured_output_schema:type_name -> google.protobuf.Struct
+	10, // 9: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.approval_mode:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalMode
+	11, // 10: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.service_tier:type_name -> ai.stigmer.agentic.agentexecution.v1.ServiceTier
+	12, // 11: ai.stigmer.agentic.agentexecution.v1.ConversationCatchup.window_end:type_name -> google.protobuf.Timestamp
+	13, // 12: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.RuntimeEnvEntry.value:type_name -> ai.stigmer.agentic.executioncontext.v1.ExecutionValue
+	13, // [13:13] is the sub-list for method output_type
+	13, // [13:13] is the sub-list for method input_type
+	13, // [13:13] is the sub-list for extension type_name
+	13, // [13:13] is the sub-list for extension extendee
+	0,  // [0:13] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentexecution_v1_spec_proto_init() }
@@ -1012,7 +1085,7 @@ func file_ai_stigmer_agentic_agentexecution_v1_spec_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc), len(file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

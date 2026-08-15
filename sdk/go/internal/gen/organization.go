@@ -89,6 +89,12 @@ type OrganizationInput struct {
 	IdentityProviderRef ResourceRef
 	ExternalOrgId       string
 	IsPersonal          bool
+	Preferences         *OrganizationPreferencesInput
+}
+
+// OrganizationPreferencesInput is the SDK input type for OrganizationPreferences.
+type OrganizationPreferencesInput struct {
+	StandingContext string
 }
 
 func (i *OrganizationInput) toProto() (*organizationv1.Organization, error) {
@@ -112,7 +118,20 @@ func (i *OrganizationInput) toProto() (*organizationv1.Organization, error) {
 	}
 	resource.Spec.ExternalOrgId = i.ExternalOrgId
 	resource.Spec.IsPersonal = i.IsPersonal
+	if i.Preferences != nil {
+		v, err := i.Preferences.toProto()
+		if err != nil {
+			return nil, fieldErr("Preferences", err)
+		}
+		resource.Spec.Preferences = v
+	}
 	return resource, nil
+}
+
+func (i *OrganizationPreferencesInput) toProto() (*organizationv1.OrganizationPreferences, error) {
+	return &organizationv1.OrganizationPreferences{
+		StandingContext: i.StandingContext,
+	}, nil
 }
 
 // OrganizationInputFromProto creates a OrganizationInput from a proto Organization resource.
@@ -135,6 +154,16 @@ func OrganizationInputFromProto(p *organizationv1.Organization) *OrganizationInp
 		input.IdentityProviderRef = resourceRefFromProto(s.GetIdentityProviderRef())
 		input.ExternalOrgId = s.GetExternalOrgId()
 		input.IsPersonal = s.GetIsPersonal()
+		input.Preferences = organizationPreferencesInputFromProto(s.GetPreferences())
 	}
+	return input
+}
+
+func organizationPreferencesInputFromProto(p *organizationv1.OrganizationPreferences) *OrganizationPreferencesInput {
+	if p == nil {
+		return nil
+	}
+	input := &OrganizationPreferencesInput{}
+	input.StandingContext = p.GetStandingContext()
 	return input
 }

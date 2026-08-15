@@ -201,6 +201,56 @@ describe("buildPrompt", () => {
     expect(prompt).not.toContain("<session_context>");
   });
 
+  it("carries the declared preferences on the first execution, attributed per scope", () => {
+    const prompt = buildPrompt(
+      input({
+        resolution: resolution("local", "created_first_execution"),
+        declaredPreferences: {
+          orgContext: "We deploy to us-east-1.",
+          userContext: "Keep answers terse.",
+        },
+      }),
+    );
+    expect(prompt).toContain("<declared_preferences>");
+    expect(prompt).toContain("Declared by the organization:\nWe deploy to us-east-1.");
+    expect(prompt).toContain("Declared by the user:\nKeep answers terse.");
+    // Preferences are CONTEXT like the bridge; the approval protocol keeps
+    // its pinned last-before-task slot.
+    expect(prompt.indexOf("<declared_preferences>"))
+      .toBeLessThan(prompt.indexOf("<tool_approval_protocol>"));
+  });
+
+  it("orders platform-declared preferences before the embedder's session context (DD-002 D3)", () => {
+    const prompt = buildPrompt(
+      input({
+        resolution: resolution("local", "created_first_execution"),
+        declaredPreferences: { orgContext: "We deploy to us-east-1." },
+        sessionContext: "Role: platform admin",
+      }),
+    );
+    const preferences = prompt.indexOf("<declared_preferences>");
+    const context = prompt.indexOf("<session_context>");
+    expect(preferences).toBeGreaterThan(-1);
+    expect(context).toBeGreaterThan(preferences);
+  });
+
+  it("never re-sends the preferences to a successfully resumed agent — frozen per session by design (DD-002 D3)", () => {
+    const prompt = buildPrompt(
+      input({
+        resolution: resolution("local", "resumed_successfully"),
+        declaredPreferences: { orgContext: "We deploy to us-east-1." },
+      }),
+    );
+    expect(prompt).toBe(USER_MESSAGE);
+  });
+
+  it("omits the preferences section when the execution carries none", () => {
+    const prompt = buildPrompt(
+      input({ resolution: resolution("local", "created_first_execution") }),
+    );
+    expect(prompt).not.toContain("<declared_preferences>");
+  });
+
   it("uses the reinvocation prompt for a HITL reinvocation (human-meaningful, no opaque ids)", () => {
     const approvalDecisions = new Map<string, ApprovalAction>([
       ["tool-call-1", ApprovalAction.APPROVE],

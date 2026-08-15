@@ -192,6 +192,7 @@ type AgentExecutionInput struct {
 	ActivityTaskQueue     string
 	SupersedesExecutionId string
 	ConversationCatchup   *ConversationCatchupInput
+	DeclaredPreferences   *DeclaredPreferencesInput
 }
 
 // SessionSpecInput is the SDK input type for SessionSpec.
@@ -272,6 +273,12 @@ type ConversationCatchupInput struct {
 	WindowEnd string
 }
 
+// DeclaredPreferencesInput is the SDK input type for DeclaredPreferences.
+type DeclaredPreferencesInput struct {
+	OrgContext  string
+	UserContext string
+}
+
 func (i *AgentExecutionInput) toProto() (*agentexecutionv1.AgentExecution, error) {
 	resource := &agentexecutionv1.AgentExecution{
 		ApiVersion: "agentic.stigmer.ai/v1",
@@ -327,6 +334,13 @@ func (i *AgentExecutionInput) toProto() (*agentexecutionv1.AgentExecution, error
 			return nil, fieldErr("ConversationCatchup", err)
 		}
 		resource.Spec.ConversationCatchup = v
+	}
+	if i.DeclaredPreferences != nil {
+		v, err := i.DeclaredPreferences.toProto()
+		if err != nil {
+			return nil, fieldErr("DeclaredPreferences", err)
+		}
+		resource.Spec.DeclaredPreferences = v
 	}
 	return resource, nil
 }
@@ -457,6 +471,13 @@ func (i *ConversationCatchupInput) toProto() (*agentexecutionv1.ConversationCatc
 	return p, nil
 }
 
+func (i *DeclaredPreferencesInput) toProto() (*agentexecutionv1.DeclaredPreferences, error) {
+	return &agentexecutionv1.DeclaredPreferences{
+		OrgContext:  i.OrgContext,
+		UserContext: i.UserContext,
+	}, nil
+}
+
 // AgentExecutionInputFromProto creates a AgentExecutionInput from a proto AgentExecution resource.
 func AgentExecutionInputFromProto(p *agentexecutionv1.AgentExecution) *AgentExecutionInput {
 	if p == nil {
@@ -492,6 +513,7 @@ func AgentExecutionInputFromProto(p *agentexecutionv1.AgentExecution) *AgentExec
 		input.ActivityTaskQueue = s.GetActivityTaskQueue()
 		input.SupersedesExecutionId = s.GetSupersedesExecutionId()
 		input.ConversationCatchup = conversationCatchupInputFromProto(s.GetConversationCatchup())
+		input.DeclaredPreferences = declaredPreferencesInputFromProto(s.GetDeclaredPreferences())
 	}
 	return input
 }
@@ -617,5 +639,15 @@ func conversationCatchupInputFromProto(p *agentexecutionv1.ConversationCatchup) 
 	if ts := p.GetWindowEnd(); ts != nil {
 		input.WindowEnd = ts.AsTime().Format(time.RFC3339)
 	}
+	return input
+}
+
+func declaredPreferencesInputFromProto(p *agentexecutionv1.DeclaredPreferences) *DeclaredPreferencesInput {
+	if p == nil {
+		return nil
+	}
+	input := &DeclaredPreferencesInput{}
+	input.OrgContext = p.GetOrgContext()
+	input.UserContext = p.GetUserContext()
 	return input
 }

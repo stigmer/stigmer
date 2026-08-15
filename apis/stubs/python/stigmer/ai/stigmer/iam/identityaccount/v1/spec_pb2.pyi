@@ -9,7 +9,7 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class IdentityAccountSpec(_message.Message):
-    __slots__ = ("idp_id", "email", "first_name", "last_name", "picture_url", "is_machine_account", "provisioning_mode", "identity_provider_ref")
+    __slots__ = ("idp_id", "email", "first_name", "last_name", "picture_url", "is_machine_account", "provisioning_mode", "identity_provider_ref", "preferences")
     IDP_ID_FIELD_NUMBER: _ClassVar[int]
     EMAIL_FIELD_NUMBER: _ClassVar[int]
     FIRST_NAME_FIELD_NUMBER: _ClassVar[int]
@@ -18,6 +18,7 @@ class IdentityAccountSpec(_message.Message):
     IS_MACHINE_ACCOUNT_FIELD_NUMBER: _ClassVar[int]
     PROVISIONING_MODE_FIELD_NUMBER: _ClassVar[int]
     IDENTITY_PROVIDER_REF_FIELD_NUMBER: _ClassVar[int]
+    PREFERENCES_FIELD_NUMBER: _ClassVar[int]
     idp_id: str
     email: str
     first_name: str
@@ -26,4 +27,11 @@ class IdentityAccountSpec(_message.Message):
     is_machine_account: bool
     provisioning_mode: _enum_pb2.IdentityAccountProvisioningMode
     identity_provider_ref: _io_pb2.ApiResourceReference
-    def __init__(self, idp_id: _Optional[str] = ..., email: _Optional[str] = ..., first_name: _Optional[str] = ..., last_name: _Optional[str] = ..., picture_url: _Optional[str] = ..., is_machine_account: bool = ..., provisioning_mode: _Optional[_Union[_enum_pb2.IdentityAccountProvisioningMode, str]] = ..., identity_provider_ref: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ...) -> None: ...
+    preferences: IdentityAccountPreferences
+    def __init__(self, idp_id: _Optional[str] = ..., email: _Optional[str] = ..., first_name: _Optional[str] = ..., last_name: _Optional[str] = ..., picture_url: _Optional[str] = ..., is_machine_account: bool = ..., provisioning_mode: _Optional[_Union[_enum_pb2.IdentityAccountProvisioningMode, str]] = ..., identity_provider_ref: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ..., preferences: _Optional[_Union[IdentityAccountPreferences, _Mapping]] = ...) -> None: ...
+
+class IdentityAccountPreferences(_message.Message):
+    __slots__ = ("standing_context",)
+    STANDING_CONTEXT_FIELD_NUMBER: _ClassVar[int]
+    standing_context: str
+    def __init__(self, standing_context: _Optional[str] = ...) -> None: ...

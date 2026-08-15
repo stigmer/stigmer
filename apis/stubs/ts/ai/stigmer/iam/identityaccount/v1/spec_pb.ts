@@ -15,7 +15,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/iam/identityaccount/v1/spec.proto.
  */
 export const file_ai_stigmer_iam_identityaccount_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CixhaS9zdGlnbWVyL2lhbS9pZGVudGl0eWFjY291bnQvdjEvc3BlYy5wcm90bxIhYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlhY2NvdW50LnYxIsgCChNJZGVudGl0eUFjY291bnRTcGVjEhYKBmlkcF9pZBgBIAEoCUIGukgDyAEBEg0KBWVtYWlsGAIgASgJEhIKCmZpcnN0X25hbWUYAyABKAkSEQoJbGFzdF9uYW1lGAQgASgJEhMKC3BpY3R1cmVfdXJsGAUgASgJEhoKEmlzX21hY2hpbmVfYWNjb3VudBgGIAEoCBJdChFwcm92aXNpb25pbmdfbW9kZRgHIAEoDjJCLmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5YWNjb3VudC52MS5JZGVudGl0eUFjY291bnRQcm92aXNpb25pbmdNb2RlElMKFWlkZW50aXR5X3Byb3ZpZGVyX3JlZhgIIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZWIGcHJvdG8z", [file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_iam_identityaccount_v1_enum, file_buf_validate_validate]);
+  fileDesc("CixhaS9zdGlnbWVyL2lhbS9pZGVudGl0eWFjY291bnQvdjEvc3BlYy5wcm90bxIhYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlhY2NvdW50LnYxIpwDChNJZGVudGl0eUFjY291bnRTcGVjEhYKBmlkcF9pZBgBIAEoCUIGukgDyAEBEg0KBWVtYWlsGAIgASgJEhIKCmZpcnN0X25hbWUYAyABKAkSEQoJbGFzdF9uYW1lGAQgASgJEhMKC3BpY3R1cmVfdXJsGAUgASgJEhoKEmlzX21hY2hpbmVfYWNjb3VudBgGIAEoCBJdChFwcm92aXNpb25pbmdfbW9kZRgHIAEoDjJCLmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5YWNjb3VudC52MS5JZGVudGl0eUFjY291bnRQcm92aXNpb25pbmdNb2RlElMKFWlkZW50aXR5X3Byb3ZpZGVyX3JlZhgIIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZRJSCgtwcmVmZXJlbmNlcxgJIAEoCzI9LmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5YWNjb3VudC52MS5JZGVudGl0eUFjY291bnRQcmVmZXJlbmNlcyJAChpJZGVudGl0eUFjY291bnRQcmVmZXJlbmNlcxIiChBzdGFuZGluZ19jb250ZXh0GAEgASgJQgi6SAVyAxjQD2IGcHJvdG8z", [file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_iam_identityaccount_v1_enum, file_buf_validate_validate]);
 
 /**
  * IdentityAccountSpec defines the configuration for an identity account.
@@ -109,6 +109,13 @@ export type IdentityAccountSpec = Message<"ai.stigmer.iam.identityaccount.v1.Ide
    * @generated from field: ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 8;
    */
   identityProviderRef?: ApiResourceReference;
+
+  /**
+   * Standing preferences declared by this identity account.
+   *
+   * @generated from field: ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences preferences = 9;
+   */
+  preferences?: IdentityAccountPreferences;
 };
 
 /**
@@ -117,4 +124,27 @@ export type IdentityAccountSpec = Message<"ai.stigmer.iam.identityaccount.v1.Ide
  */
 export const IdentityAccountSpecSchema: GenMessage<IdentityAccountSpec> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_iam_identityaccount_v1_spec, 0);
+
+/**
+ * IdentityAccountPreferences holds user-declared defaults that apply to the
+ * user's own agent executions.
+ *
+ * @generated from message ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences
+ */
+export type IdentityAccountPreferences = Message<"ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences"> & {
+  /**
+   * Free-text standing context injected into this user's eligible agent
+   * executions. Example: "Keep answers terse."
+   *
+   * @generated from field: string standing_context = 1;
+   */
+  standingContext: string;
+};
+
+/**
+ * Describes the message ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences.
+ * Use `create(IdentityAccountPreferencesSchema)` to create a new message.
+ */
+export const IdentityAccountPreferencesSchema: GenMessage<IdentityAccountPreferences> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_iam_identityaccount_v1_spec, 1);
 

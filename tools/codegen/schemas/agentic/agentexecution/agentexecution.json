@@ -164,6 +164,17 @@
       },
       "description": "Conversation events the agent has not yet seen, composed by the platform\n for this turn (optional).\n\n Set on live channel-conversation turns (WhatsApp, Slack): when a human\n teammate handled the conversation or messages otherwise landed while the\n agent was not watching, the digest carries what happened so the agent\n re-enters informed. Absent on every other execution surface.",
       "required": false
+    },
+    {
+      "name": "DeclaredPreferences",
+      "jsonName": "declaredPreferences",
+      "protoField": "declared_preferences",
+      "type": {
+        "kind": "message",
+        "messageType": "DeclaredPreferences"
+      },
+      "description": "Standing preferences declared by the organization and the calling user,\n snapshotted into this execution at create time (optional).",
+      "required": false
     }
   ]
 }

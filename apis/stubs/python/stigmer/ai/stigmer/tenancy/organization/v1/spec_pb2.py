@@ -27,7 +27,7 @@ from ai.stigmer.tenancy.organization.v1 import enum_pb2 as ai_dot_stigmer_dot_te
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n-ai/stigmer/tenancy/organization/v1/spec.proto\x12\"ai.stigmer.tenancy.organization.v1\x1a\'ai/stigmer/commons/apiresource/io.proto\x1a-ai/stigmer/tenancy/organization/v1/enum.proto\x1a\x1b\x62uf/validate/validate.proto\"\xf3\x02\n\x10OrganizationSpec\x12*\n\x0b\x64\x65scription\x18\x01 \x01(\tB\x08\xbaH\x05r\x03\x18\xf4\x03R\x0b\x64\x65scription\x12#\n\x08logo_url\x18\x02 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x10R\x07logoUrl\x12[\n\x0fmanagement_mode\x18\x03 \x01(\x0e\x32\x32.ai.stigmer.tenancy.organization.v1.ManagementModeR\x0emanagementMode\x12h\n\x15identity_provider_ref\x18\x04 \x01(\x0b\x32\x34.ai.stigmer.commons.apiresource.ApiResourceReferenceR\x13identityProviderRef\x12&\n\x0f\x65xternal_org_id\x18\x05 \x01(\tR\rexternalOrgId\x12\x1f\n\x0bis_personal\x18\x06 \x01(\x08R\nisPersonalB\xe0\x01\n&com.ai.stigmer.tenancy.organization.v1B\tSpecProtoP\x01\xa2\x02\x04\x41STO\xaa\x02\"Ai.Stigmer.Tenancy.Organization.V1\xca\x02\"Ai\\Stigmer\\Tenancy\\Organization\\V1\xe2\x02.Ai\\Stigmer\\Tenancy\\Organization\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Tenancy::Organization::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n-ai/stigmer/tenancy/organization/v1/spec.proto\x12\"ai.stigmer.tenancy.organization.v1\x1a\'ai/stigmer/commons/apiresource/io.proto\x1a-ai/stigmer/tenancy/organization/v1/enum.proto\x1a\x1b\x62uf/validate/validate.proto\"\xd2\x03\n\x10OrganizationSpec\x12*\n\x0b\x64\x65scription\x18\x01 \x01(\tB\x08\xbaH\x05r\x03\x18\xf4\x03R\x0b\x64\x65scription\x12#\n\x08logo_url\x18\x02 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x10R\x07logoUrl\x12[\n\x0fmanagement_mode\x18\x03 \x01(\x0e\x32\x32.ai.stigmer.tenancy.organization.v1.ManagementModeR\x0emanagementMode\x12h\n\x15identity_provider_ref\x18\x04 \x01(\x0b\x32\x34.ai.stigmer.commons.apiresource.ApiResourceReferenceR\x13identityProviderRef\x12&\n\x0f\x65xternal_org_id\x18\x05 \x01(\tR\rexternalOrgId\x12\x1f\n\x0bis_personal\x18\x06 \x01(\x08R\nisPersonal\x12]\n\x0bpreferences\x18\x07 \x01(\x0b\x32;.ai.stigmer.tenancy.organization.v1.OrganizationPreferencesR\x0bpreferences\"N\n\x17OrganizationPreferences\x12\x33\n\x10standing_context\x18\x01 \x01(\tB\x08\xbaH\x05r\x03\x18\xd0\x0fR\x0fstandingContextB\xe0\x01\n&com.ai.stigmer.tenancy.organization.v1B\tSpecProtoP\x01\xa2\x02\x04\x41STO\xaa\x02\"Ai.Stigmer.Tenancy.Organization.V1\xca\x02\"Ai\\Stigmer\\Tenancy\\Organization\\V1\xe2\x02.Ai\\Stigmer\\Tenancy\\Organization\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Tenancy::Organization::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -39,6 +39,10 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_ORGANIZATIONSPEC'].fields_by_name['description']._serialized_options = b'\272H\005r\003\030\364\003'
   _globals['_ORGANIZATIONSPEC'].fields_by_name['logo_url']._loaded_options = None
   _globals['_ORGANIZATIONSPEC'].fields_by_name['logo_url']._serialized_options = b'\272H\005r\003\030\200\020'
+  _globals['_ORGANIZATIONPREFERENCES'].fields_by_name['standing_context']._loaded_options = None
+  _globals['_ORGANIZATIONPREFERENCES'].fields_by_name['standing_context']._serialized_options = b'\272H\005r\003\030\320\017'
   _globals['_ORGANIZATIONSPEC']._serialized_start=203
-  _globals['_ORGANIZATIONSPEC']._serialized_end=574
+  _globals['_ORGANIZATIONSPEC']._serialized_end=669
+  _globals['_ORGANIZATIONPREFERENCES']._serialized_start=671
+  _globals['_ORGANIZATIONPREFERENCES']._serialized_end=749
 # @@protoc_insertion_point(module_scope)

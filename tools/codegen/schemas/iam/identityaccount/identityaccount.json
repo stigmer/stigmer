@@ -95,6 +95,17 @@
       },
       "description": "Reference to the IdentityProvider that owns this federated account.\n Set only when provisioning_mode is FEDERATED. Identifies which external\n platform's identity provider scopes this account. Together with idp_id,\n forms the unique identity for federated accounts.\n (ignored for create) this value is assigned by backend.",
       "required": false
+    },
+    {
+      "name": "Preferences",
+      "jsonName": "preferences",
+      "protoField": "preferences",
+      "type": {
+        "kind": "message",
+        "messageType": "IdentityAccountPreferences"
+      },
+      "description": "Standing preferences declared by this identity account.",
+      "required": false
     }
   ]
 }

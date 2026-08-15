@@ -14,7 +14,7 @@ import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenanc
 import { ManagementMode } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/enum_pb";
 import { OrganizationIdSchema, OrganizationListSchema, OrganizationsSchema, OrganizationExternalLookupSchema, type OrganizationList, type Organizations, type OrganizationExternalLookup } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/io_pb";
 import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
-import { OrganizationSpecSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/spec_pb";
+import { OrganizationSpecSchema, OrganizationPreferencesSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/spec_pb";
 
 /** Provides operations on organization resources. */
 export class OrganizationClient {
@@ -88,10 +88,23 @@ export interface OrganizationInput {
   identityProviderRef?: ResourceRef;
   externalOrgId?: string;
   isPersonal?: boolean;
+  preferences?: OrganizationPreferencesInput;
+}
+
+/** SDK input type for OrganizationPreferences. */
+export interface OrganizationPreferencesInput {
+  standingContext?: string;
+}
+
+function buildOrganizationPreferencesProto(input: OrganizationPreferencesInput) {
+  return Object.assign(create(OrganizationPreferencesSchema), stripUndefined({
+    standingContext: input.standingContext,
+  }));
 }
 
 export function buildOrganizationProto(input: OrganizationInput): Organization {
   const identityProviderRef = (input.identityProviderRef?.slug || input.identityProviderRef?.org) ? create(ApiResourceReferenceSchema, input.identityProviderRef) : undefined;
+  const preferences = input.preferences ? buildOrganizationPreferencesProto(input.preferences) : undefined;
   return Object.assign(create(OrganizationSchema), {
     apiVersion: "tenancy.stigmer.ai/v1",
     kind: "Organization",
@@ -109,6 +122,7 @@ export function buildOrganizationProto(input: OrganizationInput): Organization {
       identityProviderRef,
       externalOrgId: input.externalOrgId,
       isPersonal: input.isPersonal,
+      preferences,
     })),
   }) as Organization;
 }

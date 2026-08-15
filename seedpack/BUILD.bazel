@@ -266,6 +266,7 @@ go_library(
         "mcp-servers/tavily.yaml",
         "mcp-servers/webflow.yaml",
         "mcp-servers/wix.yaml",
+        "mcp-servers/paypal-sandbox.yaml",
     ],
     importpath = "github.com/stigmer/stigmer/seedpack",
     visibility = ["//visibility:public"],

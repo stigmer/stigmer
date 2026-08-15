@@ -5,6 +5,7 @@ package ai.stigmer.sdk.gen;
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
 import ai.stigmer.commons.apiresource.ApiResourceVisibility;
 import ai.stigmer.iam.identityaccount.v1.IdentityAccount;
+import ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences;
 import ai.stigmer.iam.identityaccount.v1.IdentityAccountProvisioningMode;
 import ai.stigmer.iam.identityaccount.v1.IdentityAccountSpec;
 
@@ -23,6 +24,7 @@ public final class IdentityAccountInput {
     private final boolean isMachineAccount;
     private final IdentityAccountProvisioningMode provisioningMode;
     private final ResourceRef identityProviderRef;
+    private final IdentityAccountPreferencesInput preferences;
 
     private IdentityAccountInput(Builder builder) {
         this.name = builder.name;
@@ -38,6 +40,7 @@ public final class IdentityAccountInput {
         this.isMachineAccount = builder.isMachineAccount;
         this.provisioningMode = builder.provisioningMode;
         this.identityProviderRef = builder.identityProviderRef;
+        this.preferences = builder.preferences;
     }
 
     IdentityAccount toProto() {
@@ -63,6 +66,9 @@ public final class IdentityAccountInput {
         }
         if (this.identityProviderRef != null && this.identityProviderRef.hasIdentifier()) {
             spec.setIdentityProviderRef(this.identityProviderRef.toProto());
+        }
+        if (this.preferences != null) {
+            spec.setPreferences(this.preferences.toProto());
         }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name)
@@ -100,6 +106,7 @@ public final class IdentityAccountInput {
         private boolean isMachineAccount;
         private IdentityAccountProvisioningMode provisioningMode;
         private ResourceRef identityProviderRef;
+        private IdentityAccountPreferencesInput preferences;
 
         private Builder() {}
 
@@ -116,7 +123,37 @@ public final class IdentityAccountInput {
         public Builder isMachineAccount(boolean isMachineAccount) { this.isMachineAccount = isMachineAccount; return this; }
         public Builder provisioningMode(IdentityAccountProvisioningMode provisioningMode) { this.provisioningMode = provisioningMode; return this; }
         public Builder identityProviderRef(ResourceRef identityProviderRef) { this.identityProviderRef = identityProviderRef; return this; }
+        public Builder preferences(IdentityAccountPreferencesInput preferences) { this.preferences = preferences; return this; }
 
         public IdentityAccountInput build() { return new IdentityAccountInput(this); }
+    }
+
+    /** SDK input type for IdentityAccountPreferences. */
+    public static final class IdentityAccountPreferencesInput {
+        private final String standingContext;
+
+        private IdentityAccountPreferencesInput(Builder builder) {
+            this.standingContext = builder.standingContext;
+        }
+
+        IdentityAccountPreferences toProto() {
+            IdentityAccountPreferences.Builder builder = IdentityAccountPreferences.newBuilder();
+            if (this.standingContext != null) {
+                builder.setStandingContext(this.standingContext);
+            }
+            return builder.build();
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private String standingContext;
+
+            private Builder() {}
+
+            public Builder standingContext(String standingContext) { this.standingContext = standingContext; return this; }
+
+            public IdentityAccountPreferencesInput build() { return new IdentityAccountPreferencesInput(this); }
+        }
     }
 }

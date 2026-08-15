@@ -635,6 +635,7 @@ const agentExecution = await stigmer.agentExecution.create({
   activityTaskQueue: "...",
   supersedesExecutionId: "...",
   conversationCatchup: {},
+  declaredPreferences: {},
 });
 ```
 </Tab>
@@ -659,6 +660,7 @@ agentExecution, err := client.AgentExecution.Create(ctx, &stigmer.AgentExecution
   ActivityTaskQueue:     "...",
   SupersedesExecutionId: "...",
   ConversationCatchup:   &stigmer.ConversationCatchupInput{},
+  DeclaredPreferences:   &stigmer.DeclaredPreferencesInput{},
 })
 ```
 </Tab>
@@ -683,6 +685,7 @@ agent_execution = client.agent_executions.create(AgentExecutionInput(
     activity_task_queue="...",
     supersedes_execution_id="...",
     conversation_catchup=None,
+    declared_preferences=None,
 ))
 ```
 </Tab>
@@ -707,6 +710,7 @@ AgentExecution agentExecution = client.agentExecutions().create(AgentExecutionIn
     .activityTaskQueue("...")
     .supersedesExecutionId("...")
     .conversationCatchup(null)
+    .declaredPreferences(null)
     .build());
 ```
 </Tab>
@@ -742,6 +746,7 @@ const agentExecution = await stigmer.agentExecution.update({
   activityTaskQueue: "...",
   supersedesExecutionId: "...",
   conversationCatchup: {},
+  declaredPreferences: {},
 });
 ```
 </Tab>
@@ -766,6 +771,7 @@ agentExecution, err := client.AgentExecution.Update(ctx, &stigmer.AgentExecution
   ActivityTaskQueue:     "...",
   SupersedesExecutionId: "...",
   ConversationCatchup:   &stigmer.ConversationCatchupInput{},
+  DeclaredPreferences:   &stigmer.DeclaredPreferencesInput{},
 })
 ```
 </Tab>
@@ -790,6 +796,7 @@ agent_execution = client.agent_executions.update(AgentExecutionInput(
     activity_task_queue="...",
     supersedes_execution_id="...",
     conversation_catchup=None,
+    declared_preferences=None,
 ))
 ```
 </Tab>
@@ -814,6 +821,7 @@ AgentExecution agentExecution = client.agentExecutions().update(AgentExecutionIn
     .activityTaskQueue("...")
     .supersedesExecutionId("...")
     .conversationCatchup(null)
+    .declaredPreferences(null)
     .build());
 ```
 </Tab>
@@ -1313,6 +1321,7 @@ Input for creating or updating an Agent Execution.
     activityTaskQueue: { type: "string", description: "Explicit Temporal task queue override for activity routing." },
     supersedesExecutionId: { type: "string", description: "ID of the execution this one supersedes via edit-and-resubmit (optional)." },
     conversationCatchup: { type: "ConversationCatchupInput", description: "Conversation events the agent has not yet seen, composed by the platform for this turn (optional).", typeDescriptionLink: "#conversationcatchupinput" },
+    declaredPreferences: { type: "DeclaredPreferencesInput", description: "Standing preferences declared by the organization and the calling user, snapshotted into this execution at create time (optional).", typeDescriptionLink: "#declaredpreferencesinput" },
   }}
 />
 
@@ -1484,6 +1493,17 @@ ConversationCatchup carries the channel-conversation events an agent missed, com
   type={{
     digest: { type: "string", description: "Plain-text digest of what the agent missed, oldest first; empty when nothing was missed." },
     windowEnd: { type: "string", description: "The timeline instant this digest conveys through." },
+  }}
+/>
+
+### DeclaredPreferencesInput
+
+DeclaredPreferences carries the standing preference texts injected into this execution's prompt, one field per declaring scope.
+
+<TypeTable
+  type={{
+    orgContext: { type: "string", description: "The organization's standing context, verbatim." },
+    userContext: { type: "string", description: "The calling user's standing context, verbatim." },
   }}
 />
 

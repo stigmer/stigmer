@@ -10,6 +10,7 @@ import ai.stigmer.agentic.agentexecution.v1.ApprovalMode;
 import ai.stigmer.agentic.agentexecution.v1.Attachment;
 import ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig;
 import ai.stigmer.agentic.agentexecution.v1.ConversationCatchup;
+import ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences;
 import ai.stigmer.agentic.agentexecution.v1.ExecutionConfig;
 import ai.stigmer.agentic.agentexecution.v1.InteractionMode;
 import ai.stigmer.agentic.agentexecution.v1.ServiceTier;
@@ -50,6 +51,7 @@ public final class AgentExecutionInput {
     private final String activityTaskQueue;
     private final String supersedesExecutionId;
     private final ConversationCatchupInput conversationCatchup;
+    private final DeclaredPreferencesInput declaredPreferences;
 
     private AgentExecutionInput(Builder builder) {
         this.name = builder.name;
@@ -71,6 +73,7 @@ public final class AgentExecutionInput {
         this.activityTaskQueue = builder.activityTaskQueue;
         this.supersedesExecutionId = builder.supersedesExecutionId;
         this.conversationCatchup = builder.conversationCatchup;
+        this.declaredPreferences = builder.declaredPreferences;
     }
 
     AgentExecution toProto() {
@@ -122,6 +125,9 @@ public final class AgentExecutionInput {
         if (this.conversationCatchup != null) {
             spec.setConversationCatchup(this.conversationCatchup.toProto());
         }
+        if (this.declaredPreferences != null) {
+            spec.setDeclaredPreferences(this.declaredPreferences.toProto());
+        }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name)
             .setOrg(this.org);
@@ -164,6 +170,7 @@ public final class AgentExecutionInput {
         private String activityTaskQueue;
         private String supersedesExecutionId;
         private ConversationCatchupInput conversationCatchup;
+        private DeclaredPreferencesInput declaredPreferences;
 
         private Builder() {}
 
@@ -186,6 +193,7 @@ public final class AgentExecutionInput {
         public Builder activityTaskQueue(String activityTaskQueue) { this.activityTaskQueue = activityTaskQueue; return this; }
         public Builder supersedesExecutionId(String supersedesExecutionId) { this.supersedesExecutionId = supersedesExecutionId; return this; }
         public Builder conversationCatchup(ConversationCatchupInput conversationCatchup) { this.conversationCatchup = conversationCatchup; return this; }
+        public Builder declaredPreferences(DeclaredPreferencesInput declaredPreferences) { this.declaredPreferences = declaredPreferences; return this; }
 
         public AgentExecutionInput build() { return new AgentExecutionInput(this); }
     }
@@ -759,6 +767,42 @@ public final class AgentExecutionInput {
             public Builder windowEnd(String windowEnd) { this.windowEnd = windowEnd; return this; }
 
             public ConversationCatchupInput build() { return new ConversationCatchupInput(this); }
+        }
+    }
+
+    /** SDK input type for DeclaredPreferences. */
+    public static final class DeclaredPreferencesInput {
+        private final String orgContext;
+        private final String userContext;
+
+        private DeclaredPreferencesInput(Builder builder) {
+            this.orgContext = builder.orgContext;
+            this.userContext = builder.userContext;
+        }
+
+        DeclaredPreferences toProto() {
+            DeclaredPreferences.Builder builder = DeclaredPreferences.newBuilder();
+            if (this.orgContext != null) {
+                builder.setOrgContext(this.orgContext);
+            }
+            if (this.userContext != null) {
+                builder.setUserContext(this.userContext);
+            }
+            return builder.build();
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private String orgContext;
+            private String userContext;
+
+            private Builder() {}
+
+            public Builder orgContext(String orgContext) { this.orgContext = orgContext; return this; }
+            public Builder userContext(String userContext) { this.userContext = userContext; return this; }
+
+            public DeclaredPreferencesInput build() { return new DeclaredPreferencesInput(this); }
         }
     }
 }

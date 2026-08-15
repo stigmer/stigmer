@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "agentexecution_controller.go",
         "cancel.go",
+        "compose_declared_preferences_step.go",
         "create.go",
         "create_execution_context_step.go",
         "delete.go",
@@ -51,6 +52,7 @@ go_library(
         "//apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1:workflowinstance",
         "//apis/stubs/go/ai/stigmer/commons/apiresource",
         "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
+        "//apis/stubs/go/ai/stigmer/tenancy/organization/v1:organization",
         "//backend/libs/go/envmerge",
         "//backend/libs/go/grpc",
         "//backend/libs/go/grpc/interceptors/apiresource",
@@ -90,6 +92,7 @@ go_test(
     name = "controller_test",
     srcs = [
         "agentexecution_controller_test.go",
+        "compose_declared_preferences_step_test.go",
         "create_execution_context_workflow_refs_test.go",
         "create_session_bootstrap_test.go",
         "create_target_resolution_test.go",
@@ -118,6 +121,7 @@ go_test(
         "//apis/stubs/go/ai/stigmer/agentic/workflow/v1:workflow",
         "//apis/stubs/go/ai/stigmer/commons/apiresource",
         "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
+        "//apis/stubs/go/ai/stigmer/tenancy/organization/v1:organization",
         "//backend/libs/go/grpc/interceptors/apiresource",
         "//backend/libs/go/grpc/request/pipeline",
         "//backend/libs/go/grpc/request/pipeline/steps",

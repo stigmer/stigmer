@@ -27,7 +27,7 @@ from ai.stigmer.iam.identityaccount.v1 import enum_pb2 as ai_dot_stigmer_dot_iam
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n,ai/stigmer/iam/identityaccount/v1/spec.proto\x12!ai.stigmer.iam.identityaccount.v1\x1a\'ai/stigmer/commons/apiresource/io.proto\x1a,ai/stigmer/iam/identityaccount/v1/enum.proto\x1a\x1b\x62uf/validate/validate.proto\"\xb0\x03\n\x13IdentityAccountSpec\x12\x1d\n\x06idp_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05idpId\x12\x14\n\x05\x65mail\x18\x02 \x01(\tR\x05\x65mail\x12\x1d\n\nfirst_name\x18\x03 \x01(\tR\tfirstName\x12\x1b\n\tlast_name\x18\x04 \x01(\tR\x08lastName\x12\x1f\n\x0bpicture_url\x18\x05 \x01(\tR\npictureUrl\x12,\n\x12is_machine_account\x18\x06 \x01(\x08R\x10isMachineAccount\x12o\n\x11provisioning_mode\x18\x07 \x01(\x0e\x32\x42.ai.stigmer.iam.identityaccount.v1.IdentityAccountProvisioningModeR\x10provisioningMode\x12h\n\x15identity_provider_ref\x18\x08 \x01(\x0b\x32\x34.ai.stigmer.commons.apiresource.ApiResourceReferenceR\x13identityProviderRefB\xdb\x01\n%com.ai.stigmer.iam.identityaccount.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SII\xaa\x02!Ai.Stigmer.Iam.Identityaccount.V1\xca\x02!Ai\\Stigmer\\Iam\\Identityaccount\\V1\xe2\x02-Ai\\Stigmer\\Iam\\Identityaccount\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Iam::Identityaccount::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n,ai/stigmer/iam/identityaccount/v1/spec.proto\x12!ai.stigmer.iam.identityaccount.v1\x1a\'ai/stigmer/commons/apiresource/io.proto\x1a,ai/stigmer/iam/identityaccount/v1/enum.proto\x1a\x1b\x62uf/validate/validate.proto\"\x91\x04\n\x13IdentityAccountSpec\x12\x1d\n\x06idp_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05idpId\x12\x14\n\x05\x65mail\x18\x02 \x01(\tR\x05\x65mail\x12\x1d\n\nfirst_name\x18\x03 \x01(\tR\tfirstName\x12\x1b\n\tlast_name\x18\x04 \x01(\tR\x08lastName\x12\x1f\n\x0bpicture_url\x18\x05 \x01(\tR\npictureUrl\x12,\n\x12is_machine_account\x18\x06 \x01(\x08R\x10isMachineAccount\x12o\n\x11provisioning_mode\x18\x07 \x01(\x0e\x32\x42.ai.stigmer.iam.identityaccount.v1.IdentityAccountProvisioningModeR\x10provisioningMode\x12h\n\x15identity_provider_ref\x18\x08 \x01(\x0b\x32\x34.ai.stigmer.commons.apiresource.ApiResourceReferenceR\x13identityProviderRef\x12_\n\x0bpreferences\x18\t \x01(\x0b\x32=.ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferencesR\x0bpreferences\"Q\n\x1aIdentityAccountPreferences\x12\x33\n\x10standing_context\x18\x01 \x01(\tB\x08\xbaH\x05r\x03\x18\xd0\x0fR\x0fstandingContextB\xdb\x01\n%com.ai.stigmer.iam.identityaccount.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SII\xaa\x02!Ai.Stigmer.Iam.Identityaccount.V1\xca\x02!Ai\\Stigmer\\Iam\\Identityaccount\\V1\xe2\x02-Ai\\Stigmer\\Iam\\Identityaccount\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Iam::Identityaccount::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -37,6 +37,10 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._serialized_options = b'\n%com.ai.stigmer.iam.identityaccount.v1B\tSpecProtoP\001\242\002\004ASII\252\002!Ai.Stigmer.Iam.Identityaccount.V1\312\002!Ai\\Stigmer\\Iam\\Identityaccount\\V1\342\002-Ai\\Stigmer\\Iam\\Identityaccount\\V1\\GPBMetadata\352\002%Ai::Stigmer::Iam::Identityaccount::V1'
   _globals['_IDENTITYACCOUNTSPEC'].fields_by_name['idp_id']._loaded_options = None
   _globals['_IDENTITYACCOUNTSPEC'].fields_by_name['idp_id']._serialized_options = b'\272H\003\310\001\001'
+  _globals['_IDENTITYACCOUNTPREFERENCES'].fields_by_name['standing_context']._loaded_options = None
+  _globals['_IDENTITYACCOUNTPREFERENCES'].fields_by_name['standing_context']._serialized_options = b'\272H\005r\003\030\320\017'
   _globals['_IDENTITYACCOUNTSPEC']._serialized_start=200
-  _globals['_IDENTITYACCOUNTSPEC']._serialized_end=632
+  _globals['_IDENTITYACCOUNTSPEC']._serialized_end=729
+  _globals['_IDENTITYACCOUNTPREFERENCES']._serialized_start=731
+  _globals['_IDENTITYACCOUNTPREFERENCES']._serialized_end=812
 # @@protoc_insertion_point(module_scope)

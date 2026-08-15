@@ -76,6 +76,17 @@
       },
       "description": "Whether this is a personal organization, auto-created during identity provisioning.",
       "required": false
+    },
+    {
+      "name": "Preferences",
+      "jsonName": "preferences",
+      "protoField": "preferences",
+      "type": {
+        "kind": "message",
+        "messageType": "OrganizationPreferences"
+      },
+      "description": "Standing preferences declared by the organization.",
+      "required": false
     }
   ]
 }

@@ -32,6 +32,7 @@ import {
   resolveCallerIdentity,
 } from "../../shared/caller-identity.js";
 import { readSessionContext } from "../../shared/session-context.js";
+import { readDeclaredPreferences } from "../../shared/declared-preferences.js";
 import { connectMcpServers, type McpConnectionResult } from "../../shared/mcp-manager.js";
 import { mergeMcpServerUsages, resolveMcpServers } from "../../shared/mcp-resolver.js";
 import { resolveMcpTransportPosture } from "../../shared/mcp-transport-guard.js";
@@ -573,6 +574,9 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       contextBridge: readContextBridge(session.spec!.metadata),
       senderIdentity: readSenderIdentity(session.spec!.metadata),
       sessionContext: readSessionContext(session.spec!.metadata),
+      declaredPreferences: readDeclaredPreferences(
+        execution.spec!.declaredPreferences,
+      ),
     });
 
     // Step 9: Construct the LLM model. Resolution to the provider API id

@@ -15,7 +15,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/tenancy/organization/v1/spec.proto.
  */
 export const file_ai_stigmer_tenancy_organization_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("Ci1haS9zdGlnbWVyL3RlbmFuY3kvb3JnYW5pemF0aW9uL3YxL3NwZWMucHJvdG8SImFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEinQIKEE9yZ2FuaXphdGlvblNwZWMSHQoLZGVzY3JpcHRpb24YASABKAlCCLpIBXIDGPQDEhoKCGxvZ29fdXJsGAIgASgJQgi6SAVyAxiAEBJLCg9tYW5hZ2VtZW50X21vZGUYAyABKA4yMi5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLk1hbmFnZW1lbnRNb2RlElMKFWlkZW50aXR5X3Byb3ZpZGVyX3JlZhgEIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZRIXCg9leHRlcm5hbF9vcmdfaWQYBSABKAkSEwoLaXNfcGVyc29uYWwYBiABKAhiBnByb3RvMw", [file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_tenancy_organization_v1_enum, file_buf_validate_validate]);
+  fileDesc("Ci1haS9zdGlnbWVyL3RlbmFuY3kvb3JnYW5pemF0aW9uL3YxL3NwZWMucHJvdG8SImFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEi7wIKEE9yZ2FuaXphdGlvblNwZWMSHQoLZGVzY3JpcHRpb24YASABKAlCCLpIBXIDGPQDEhoKCGxvZ29fdXJsGAIgASgJQgi6SAVyAxiAEBJLCg9tYW5hZ2VtZW50X21vZGUYAyABKA4yMi5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLk1hbmFnZW1lbnRNb2RlElMKFWlkZW50aXR5X3Byb3ZpZGVyX3JlZhgEIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZRIXCg9leHRlcm5hbF9vcmdfaWQYBSABKAkSEwoLaXNfcGVyc29uYWwYBiABKAgSUAoLcHJlZmVyZW5jZXMYByABKAsyOy5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLk9yZ2FuaXphdGlvblByZWZlcmVuY2VzIj0KF09yZ2FuaXphdGlvblByZWZlcmVuY2VzEiIKEHN0YW5kaW5nX2NvbnRleHQYASABKAlCCLpIBXIDGNAPYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_tenancy_organization_v1_enum, file_buf_validate_validate]);
 
 /**
  * OrganizationSpec defines the configurable properties of an organization.
@@ -64,6 +64,13 @@ export type OrganizationSpec = Message<"ai.stigmer.tenancy.organization.v1.Organ
    * @generated from field: bool is_personal = 6;
    */
   isPersonal: boolean;
+
+  /**
+   * Standing preferences declared by the organization.
+   *
+   * @generated from field: ai.stigmer.tenancy.organization.v1.OrganizationPreferences preferences = 7;
+   */
+  preferences?: OrganizationPreferences;
 };
 
 /**
@@ -72,4 +79,27 @@ export type OrganizationSpec = Message<"ai.stigmer.tenancy.organization.v1.Organ
  */
 export const OrganizationSpecSchema: GenMessage<OrganizationSpec> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_tenancy_organization_v1_spec, 0);
+
+/**
+ * OrganizationPreferences holds organization-declared defaults that apply to
+ * every eligible agent execution in the organization.
+ *
+ * @generated from message ai.stigmer.tenancy.organization.v1.OrganizationPreferences
+ */
+export type OrganizationPreferences = Message<"ai.stigmer.tenancy.organization.v1.OrganizationPreferences"> & {
+  /**
+   * Free-text standing context injected into eligible agent executions in
+   * this organization. Example: "We deploy to us-east-1."
+   *
+   * @generated from field: string standing_context = 1;
+   */
+  standingContext: string;
+};
+
+/**
+ * Describes the message ai.stigmer.tenancy.organization.v1.OrganizationPreferences.
+ * Use `create(OrganizationPreferencesSchema)` to create a new message.
+ */
+export const OrganizationPreferencesSchema: GenMessage<OrganizationPreferences> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_tenancy_organization_v1_spec, 1);
 

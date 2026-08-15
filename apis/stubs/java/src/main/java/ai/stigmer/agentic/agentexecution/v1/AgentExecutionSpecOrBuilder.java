@@ -998,4 +998,76 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue);
    * <code>.ai.stigmer.agentic.agentexecution.v1.ConversationCatchup conversation_catchup = 14 [json_name = "conversationCatchup"];</code>
    */
   ai.stigmer.agentic.agentexecution.v1.ConversationCatchupOrBuilder getConversationCatchupOrBuilder();
+
+  /**
+   * <pre>
+   * Standing preferences declared by the organization and the calling user,
+   * snapshotted into this execution at create time (optional).
+   *
+   * &#64;internal
+   * Server-owned: the create pipeline stamps this field UNCONDITIONALLY —
+   * empty for non-eligible callers — overwriting any caller-supplied value,
+   * so external injection is moot by construction. Composed only for
+   * first-party human operators (DD-002 D4 as amended 2026-08-15: never for
+   * machine, impersonated, guest, channel, schedule, runner, or
+   * platform-client-user callers). The OSS server composes org_context only
+   * (single-user local mode; no IdentityAccount). A snapshot by design:
+   * preferences are mutable, executions are immutable audit records — this
+   * field records what the model actually saw. Composition is best-effort;
+   * a preference load failure never fails the create. Top-level rather than
+   * inside ExecutionConfig: preference content must not vanish with the
+   * execution-profile kill-switch (same rationale as conversation_catchup).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences declared_preferences = 15 [json_name = "declaredPreferences"];</code>
+   * @return Whether the declaredPreferences field is set.
+   */
+  boolean hasDeclaredPreferences();
+  /**
+   * <pre>
+   * Standing preferences declared by the organization and the calling user,
+   * snapshotted into this execution at create time (optional).
+   *
+   * &#64;internal
+   * Server-owned: the create pipeline stamps this field UNCONDITIONALLY —
+   * empty for non-eligible callers — overwriting any caller-supplied value,
+   * so external injection is moot by construction. Composed only for
+   * first-party human operators (DD-002 D4 as amended 2026-08-15: never for
+   * machine, impersonated, guest, channel, schedule, runner, or
+   * platform-client-user callers). The OSS server composes org_context only
+   * (single-user local mode; no IdentityAccount). A snapshot by design:
+   * preferences are mutable, executions are immutable audit records — this
+   * field records what the model actually saw. Composition is best-effort;
+   * a preference load failure never fails the create. Top-level rather than
+   * inside ExecutionConfig: preference content must not vanish with the
+   * execution-profile kill-switch (same rationale as conversation_catchup).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences declared_preferences = 15 [json_name = "declaredPreferences"];</code>
+   * @return The declaredPreferences.
+   */
+  ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences getDeclaredPreferences();
+  /**
+   * <pre>
+   * Standing preferences declared by the organization and the calling user,
+   * snapshotted into this execution at create time (optional).
+   *
+   * &#64;internal
+   * Server-owned: the create pipeline stamps this field UNCONDITIONALLY —
+   * empty for non-eligible callers — overwriting any caller-supplied value,
+   * so external injection is moot by construction. Composed only for
+   * first-party human operators (DD-002 D4 as amended 2026-08-15: never for
+   * machine, impersonated, guest, channel, schedule, runner, or
+   * platform-client-user callers). The OSS server composes org_context only
+   * (single-user local mode; no IdentityAccount). A snapshot by design:
+   * preferences are mutable, executions are immutable audit records — this
+   * field records what the model actually saw. Composition is best-effort;
+   * a preference load failure never fails the create. Top-level rather than
+   * inside ExecutionConfig: preference content must not vanish with the
+   * execution-profile kill-switch (same rationale as conversation_catchup).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences declared_preferences = 15 [json_name = "declaredPreferences"];</code>
+   */
+  ai.stigmer.agentic.agentexecution.v1.DeclaredPreferencesOrBuilder getDeclaredPreferencesOrBuilder();
 }

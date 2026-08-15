@@ -49,4 +49,30 @@ message OrganizationSpec {
   // Personal orgs serve as the user's default workspace (like GitHub personal accounts).
   // Immutable after creation. Set by the server — clients cannot set this to true.
   bool is_personal = 6;
+
+  // Standing preferences declared by the organization.
+  OrganizationPreferences preferences = 7;
+}
+
+// OrganizationPreferences holds organization-declared defaults that apply to
+// every eligible agent execution in the organization.
+//
+// @internal
+// Mutable through the existing update/apply RPCs under can_edit (admin) —
+// the same trust tier as agent instructions, so injecting the content into
+// member executions introduces no new trust boundary. Grows along the org
+// scope's taxonomy path (Phase 2: memory-policy flag). Org-side BOUNDS on
+// members (ceilings, clamps, allowlists) are policies, not preferences —
+// if they ever accumulate they get a sibling `policies` message (DD-003
+// refinement 2), never a stretched `preferences`.
+message OrganizationPreferences {
+  // Free-text standing context injected into eligible agent executions in
+  // this organization. Example: "We deploy to us-east-1."
+  //
+  // @internal
+  // Snapshotted verbatim into
+  // AgentExecutionSpec.declared_preferences.org_context at execution create
+  // (first-party human operators only, DD-002 D4 as amended). The runner
+  // frames it as context, not instructions that override the task.
+  string standing_context = 1 [(buf.validate.field).string.max_len = 2000];
 }

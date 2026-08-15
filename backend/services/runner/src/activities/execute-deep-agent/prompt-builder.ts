@@ -18,6 +18,10 @@ import {
 } from "../../shared/sender-identity.js";
 import { formatSessionContextText } from "../../shared/session-context.js";
 import {
+  formatDeclaredPreferencesText,
+  type DeclaredPreferencesContent,
+} from "../../shared/declared-preferences.js";
+import {
   visionDisclosureLines,
   type NotViewableEntry,
 } from "../../shared/attachment-vision.js";
@@ -166,6 +170,14 @@ export interface PromptBuilderInput {
    * context is standing session state, like skills.
    */
   sessionContext?: string;
+  /**
+   * Platform-declared standing preferences (stigmer/stigmer#293): the org's
+   * and user's standing context, server-snapshotted onto the execution
+   * spec's `declared_preferences` at create. Injected on EVERY turn like
+   * the bridge — the native system prompt is rebuilt per invocation, so an
+   * edited preference reaches the very next turn.
+   */
+  declaredPreferences?: DeclaredPreferencesContent;
 }
 
 // The prompt renders the injector's own result type — a local structural twin
@@ -227,6 +239,16 @@ export function buildEnhancedSystemPrompt(input: PromptBuilderInput): string {
     prompt +=
       "\n\n## Conversation sender\n\n" +
       formatSenderIdentityText(input.senderIdentity);
+  }
+
+  // Platform-declared standing facts precede embedder-supplied context
+  // (DD-002 D3): both are standing background, but the declared preferences
+  // are platform-authored while session context is the embedder's overlay —
+  // the more specific overlay reads later and naturally refines.
+  if (input.declaredPreferences) {
+    prompt +=
+      "\n\n## Declared preferences\n\n" +
+      formatDeclaredPreferencesText(input.declaredPreferences);
   }
 
   // Standing facts about the user (session context) come before the

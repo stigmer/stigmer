@@ -31,6 +31,11 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_tenancy_organization_v1_OrganizationSpec_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_tenancy_organization_v1_OrganizationPreferences_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_tenancy_organization_v1_OrganizationPreferences_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -45,7 +50,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       ".v1\032\'ai/stigmer/commons/apiresource/io.p" +
       "roto\032-ai/stigmer/tenancy/organization/v1" +
       "/enum.proto\032\033buf/validate/validate.proto" +
-      "\"\363\002\n\020OrganizationSpec\022*\n\013description\030\001 \001" +
+      "\"\322\003\n\020OrganizationSpec\022*\n\013description\030\001 \001" +
       "(\tB\010\272H\005r\003\030\364\003R\013description\022#\n\010logo_url\030\002 " +
       "\001(\tB\010\272H\005r\003\030\200\020R\007logoUrl\022[\n\017management_mod" +
       "e\030\003 \001(\01622.ai.stigmer.tenancy.organizatio" +
@@ -54,12 +59,16 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "commons.apiresource.ApiResourceReference" +
       "R\023identityProviderRef\022&\n\017external_org_id" +
       "\030\005 \001(\tR\rexternalOrgId\022\037\n\013is_personal\030\006 \001" +
-      "(\010R\nisPersonalB\270\001B\tSpecProtoP\001\242\002\004ASTO\252\002\"" +
-      "Ai.Stigmer.Tenancy.Organization.V1\312\002\"Ai\\" +
-      "Stigmer\\Tenancy\\Organization\\V1\342\002.Ai\\Sti" +
-      "gmer\\Tenancy\\Organization\\V1\\GPBMetadata" +
-      "\352\002&Ai::Stigmer::Tenancy::Organization::V" +
-      "1b\006proto3"
+      "(\010R\nisPersonal\022]\n\013preferences\030\007 \001(\0132;.ai" +
+      ".stigmer.tenancy.organization.v1.Organiz" +
+      "ationPreferencesR\013preferences\"N\n\027Organiz" +
+      "ationPreferences\0223\n\020standing_context\030\001 \001" +
+      "(\tB\010\272H\005r\003\030\320\017R\017standingContextB\270\001B\tSpecPr" +
+      "otoP\001\242\002\004ASTO\252\002\"Ai.Stigmer.Tenancy.Organi" +
+      "zation.V1\312\002\"Ai\\Stigmer\\Tenancy\\Organizat" +
+      "ion\\V1\342\002.Ai\\Stigmer\\Tenancy\\Organization" +
+      "\\V1\\GPBMetadata\352\002&Ai::Stigmer::Tenancy::" +
+      "Organization::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -73,7 +82,13 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_tenancy_organization_v1_OrganizationSpec_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_tenancy_organization_v1_OrganizationSpec_descriptor,
-        new java.lang.String[] { "Description", "LogoUrl", "ManagementMode", "IdentityProviderRef", "ExternalOrgId", "IsPersonal", });
+        new java.lang.String[] { "Description", "LogoUrl", "ManagementMode", "IdentityProviderRef", "ExternalOrgId", "IsPersonal", "Preferences", });
+    internal_static_ai_stigmer_tenancy_organization_v1_OrganizationPreferences_descriptor =
+      getDescriptor().getMessageType(1);
+    internal_static_ai_stigmer_tenancy_organization_v1_OrganizationPreferences_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_tenancy_organization_v1_OrganizationPreferences_descriptor,
+        new java.lang.String[] { "StandingContext", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.commons.apiresource.IoProto.getDescriptor();
     ai.stigmer.tenancy.organization.v1.EnumProto.getDescriptor();

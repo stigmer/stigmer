@@ -284,6 +284,7 @@ const identityAccount = await stigmer.identityAccount.create({
   isMachineAccount: false,
   provisioningMode: "...",
   identityProviderRef: {},
+  preferences: {},
 });
 ```
 </Tab>
@@ -302,6 +303,7 @@ identityAccount, err := client.IdentityAccount.Create(ctx, &stigmer.IdentityAcco
   IsMachineAccount:    false,
   ProvisioningMode:    "...",
   IdentityProviderRef: &stigmer.ResourceRef{},
+  Preferences:         &stigmer.IdentityAccountPreferencesInput{},
 })
 ```
 </Tab>
@@ -320,6 +322,7 @@ identity_account = client.identity_accounts.create(IdentityAccountInput(
     is_machine_account=False,
     provisioning_mode="...",
     identity_provider_ref=None,
+    preferences=None,
 ))
 ```
 </Tab>
@@ -338,6 +341,7 @@ IdentityAccount identityAccount = client.identityAccounts().create(IdentityAccou
     .isMachineAccount(false)
     .provisioningMode("...")
     .identityProviderRef(null)
+    .preferences(null)
     .build());
 ```
 </Tab>
@@ -367,6 +371,7 @@ const identityAccount = await stigmer.identityAccount.update({
   isMachineAccount: false,
   provisioningMode: "...",
   identityProviderRef: {},
+  preferences: {},
 });
 ```
 </Tab>
@@ -385,6 +390,7 @@ identityAccount, err := client.IdentityAccount.Update(ctx, &stigmer.IdentityAcco
   IsMachineAccount:    false,
   ProvisioningMode:    "...",
   IdentityProviderRef: &stigmer.ResourceRef{},
+  Preferences:         &stigmer.IdentityAccountPreferencesInput{},
 })
 ```
 </Tab>
@@ -403,6 +409,7 @@ identity_account = client.identity_accounts.update(IdentityAccountInput(
     is_machine_account=False,
     provisioning_mode="...",
     identity_provider_ref=None,
+    preferences=None,
 ))
 ```
 </Tab>
@@ -421,6 +428,7 @@ IdentityAccount identityAccount = client.identityAccounts().update(IdentityAccou
     .isMachineAccount(false)
     .provisioningMode("...")
     .identityProviderRef(null)
+    .preferences(null)
     .build());
 ```
 </Tab>
@@ -742,6 +750,7 @@ Input for creating or updating an Identity Account.
     isMachineAccount: { type: "boolean", description: "Indicates if this is a machine account used for inter-service communication." },
     provisioningMode: { type: "IdentityAccountProvisioningMode", description: "How this identity account was provisioned.", typeDescriptionLink: "#identityaccountprovisioningmode" },
     identityProviderRef: { type: "ResourceRef", description: "Reference to the IdentityProvider that owns this federated account.", typeDescriptionLink: "#resourceref" },
+    preferences: { type: "IdentityAccountPreferencesInput", description: "Standing preferences declared by this identity account.", typeDescriptionLink: "#identityaccountpreferencesinput" },
   }}
 />
 
@@ -755,6 +764,16 @@ Generic reference to any API resource by org and slug.
     kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcekind" },
     slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
     version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
+  }}
+/>
+
+### IdentityAccountPreferencesInput
+
+IdentityAccountPreferences holds user-declared defaults that apply to the user's own agent executions.
+
+<TypeTable
+  type={{
+    standingContext: { type: "string", description: "Free-text standing context injected into this user's eligible agent executions." },
   }}
 />
 

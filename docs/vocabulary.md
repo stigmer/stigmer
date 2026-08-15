@@ -66,6 +66,7 @@ definitions, API names, and examples follow below.
 | **Organization**  | Organization          | Organization                     | Organization        | Organization, `kind: organization`     | Organization   |
 | **Project**       | Project               | Project                          | Project             | Project, `kind: project`               | Project        |
 | **Environment**   | Environment           | Environment                      | Environment         | Environment, `kind: Environment`       | Environment    |
+| **Preference**    | preferences           | preference ("standing context")  | Preference          | `spec.preferences.standing_context`    | Preference     |
 
 <!-- vale Stigmer.terms = NO -->
 
@@ -466,6 +467,29 @@ used generically ("environment variables").
 - **Note**: Do not confuse with "Execution Context" (`kind: execution_context`,
   prefix `ectx`), which provides ephemeral runtime secrets to a specific
   execution. See [Execution Context](#execution-context).
+
+---
+
+#### Preference
+
+A standing default or free-text context a user or Organization declares once,
+applied to their Agent executions automatically, and always overridable where a
+per-action control exists.
+
+- **Capitalize**: Yes, when referring to the Stigmer concept.
+- **API surface**: not a resource kind — a spec message on existing kinds:
+  `OrganizationSpec.preferences` (`OrganizationPreferences`) and
+  `IdentityAccountSpec.preferences` (`IdentityAccountPreferences`), each with
+  `standing_context`. The server snapshots the texts onto
+  `AgentExecutionSpec.declared_preferences` at execution create.
+- **Boundaries**: a Preference is not a **Skill** (Agent knowledge), not an
+  **Environment** (workload config and secrets), not a **Session** (conversation
+  state), and not future **Memory** (learned facts).
+- **Related terms, never synonyms**: a **policy** is an org- or
+  platform-authored constraint that _bounds_ what lower layers may choose
+  (clamps, ceilings, allowlists) — a preference never binds anyone but its
+  author. A **setting** is client-app device-local state (theme, sidebar width)
+  — not an API concept. One term per concept, everywhere.
 
 ---
 
