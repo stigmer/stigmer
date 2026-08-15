@@ -1,0 +1,38 @@
+apiVersion: agentic.stigmer.ai/v1
+kind: McpServer
+metadata:
+  name: PayPal Sandbox
+  visibility: visibility_public
+  labels:
+    stigmer.ai/category: "payments"
+spec:
+  description: "PayPal sandbox MCP server for testing payments, invoicing, and e-commerce integrations against developer.paypal.com sandbox accounts. Same tools as the PayPal server; use PayPal for live payments."
+  icon_url: "https://raw.githubusercontent.com/stigmer/stigmer/main/seedpack/icons/mcp-servers/paypal.svg"
+  repository_url: "https://github.com/paypal/paypal-mcp-server"
+  github_stars: 9
+  tags:
+    - paypal
+    - sandbox
+    - payments
+    - e-commerce
+    - invoicing
+  http:
+    # PayPal's sandbox MCP origin — a separate deployment from mcp.paypal.com,
+    # not a path or parameter on it. OAuth grants are origin-scoped (RFC 8414
+    # discovery is scheme+host), so sandbox and production are distinct auth
+    # worlds; this tile exists so a sandbox sign-in and the sandbox endpoint
+    # stay consistent by construction (stigmer/stigmer#421). Verified live
+    # 2026-08-14: /mcp answers 401 with a spec-correct RFC 9728
+    # WWW-Authenticate challenge whose resource_metadata points at the sandbox
+    # origin, and the sandbox publishes its own RFC 8414 metadata with
+    # anonymous DCR at /register (PKCE S256) — the same shape as production.
+    url: "https://mcp.sandbox.paypal.com/mcp"
+    headers:
+      Authorization: "Bearer ${PAYPAL_ACCESS_TOKEN}"
+  env:
+    PAYPAL_ACCESS_TOKEN:
+      is_secret: true
+      description: "PayPal sandbox API key or OAuth access token (generate against a sandbox business account at developer.paypal.com/dashboard)"
+  auth:
+    target_env_var: "PAYPAL_ACCESS_TOKEN"
+    token_lifetime_hint: "1h"
