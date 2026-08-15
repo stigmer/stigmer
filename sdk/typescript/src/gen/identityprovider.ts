@@ -127,3 +127,39 @@ export function buildIdentityProviderProto(input: IdentityProviderInput): Identi
     })),
   }) as IdentityProvider;
 }
+
+/**
+ * Maps a fetched {@link IdentityProvider} to a complete {@link IdentityProviderInput} for `update()`.
+ *
+ * The update RPC replaces the ENTIRE spec — spread this mapper's output
+ * and override only the fields you edit (spread nested objects the same
+ * way):
+ *
+ *   await client.update({ ...toIdentityProviderUpdateInput(res), description: next });
+ *
+ * Proto3 defaults normalize to `undefined`; resource references keep
+ * `version` (pinned refs) and `kind`.
+ */
+export function toIdentityProviderUpdateInput(resource: IdentityProvider): IdentityProviderInput {
+  const meta = resource.metadata;
+  const spec = resource.spec ?? create(IdentityProviderSpecSchema);
+  return {
+    name: meta?.name ?? "",
+    slug: meta?.slug || undefined,
+    org: meta?.org ?? "",
+    labels: meta?.labels && Object.keys(meta.labels).length > 0 ? { ...meta.labels } : undefined,
+    visibility: meta?.visibility || undefined,
+    displayName: spec.displayName || undefined,
+    jwksUri: spec.jwksUri || undefined,
+    allowedIssuers: spec.allowedIssuers.length > 0 ? [...spec.allowedIssuers] : undefined,
+    expectedAudience: spec.expectedAudience || undefined,
+    rateLimitBudget: spec.rateLimitBudget || undefined,
+    userinfoEndpoint: spec.userinfoEndpoint || undefined,
+    isSsoProvider: spec.isSsoProvider || undefined,
+    oidcClientId: spec.oidcClientId || undefined,
+    autoProvisionAccounts: spec.autoProvisionAccounts || undefined,
+    autoGrantOnOrg: spec.autoGrantOnOrg || undefined,
+    autoGrantRole: spec.autoGrantRole || undefined,
+    tenantOrgClaim: spec.tenantOrgClaim || undefined,
+  };
+}

@@ -3,7 +3,7 @@
 import { wrapError } from "./errors.js";
 import { stripUndefined, toTimestamp } from "./proto-utils.js";
 import { create } from "@bufbuild/protobuf";
-import { EmptySchema } from "@bufbuild/protobuf/wkt";
+import { EmptySchema, timestampDate } from "@bufbuild/protobuf/wkt";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
@@ -92,4 +92,32 @@ export function buildApiKeyProto(input: ApiKeyInput): ApiKey {
       neverExpires: input.neverExpires,
     })),
   }) as ApiKey;
+}
+
+/**
+ * Maps a fetched {@link ApiKey} to a complete {@link ApiKeyInput} for `update()`.
+ *
+ * The update RPC replaces the ENTIRE spec — spread this mapper's output
+ * and override only the fields you edit (spread nested objects the same
+ * way):
+ *
+ *   await client.update({ ...toApiKeyUpdateInput(res), description: next });
+ *
+ * Proto3 defaults normalize to `undefined`; resource references keep
+ * `version` (pinned refs) and `kind`.
+ */
+export function toApiKeyUpdateInput(resource: ApiKey): ApiKeyInput {
+  const meta = resource.metadata;
+  const spec = resource.spec ?? create(ApiKeySpecSchema);
+  return {
+    name: meta?.name ?? "",
+    slug: meta?.slug || undefined,
+    org: meta?.org ?? "",
+    labels: meta?.labels && Object.keys(meta.labels).length > 0 ? { ...meta.labels } : undefined,
+    visibility: meta?.visibility || undefined,
+    keyHash: spec.keyHash || undefined,
+    fingerprint: spec.fingerprint || undefined,
+    expiresAt: spec.expiresAt ? timestampDate(spec.expiresAt) : undefined,
+    neverExpires: spec.neverExpires || undefined,
+  };
 }
