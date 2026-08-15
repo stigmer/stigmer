@@ -10,6 +10,8 @@ export { BillingSection } from "./BillingSection.js";
 export type { BillingSectionProps } from "./BillingSection.js";
 export { MembersSection } from "./MembersSection.js";
 export { OrgProfileSection } from "./OrgProfileSection.js";
+export { OrgPreferencesSection } from "./OrgPreferencesSection.js";
+export { AccountPreferencesSection } from "./AccountPreferencesSection.js";
 export { EnvironmentsSection } from "./EnvironmentsSection.js";
 export { InvitationsSection } from "./InvitationsSection.js";
 export { IdentityProvidersSection } from "./IdentityProvidersSection.js";

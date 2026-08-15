@@ -834,13 +834,20 @@ export type {
   ToolCredentialsReadiness,
 } from "./environment/index.js";
 
-// Identity Account — gate hook for ensuring the caller's identity account exists before app render
+// Identity Account — gate hook, self-account data/mutation hooks, and
+// the account preferences editor
 export {
   useIdentityAccountGate,
+  useMyIdentityAccount,
+  useUpdateIdentityAccount,
+  AccountPreferencesPanel,
 } from "./identity-account/index.js";
 export type {
   IdentityAccountGateState,
   UseIdentityAccountGateReturn,
+  UseMyIdentityAccountReturn,
+  UseUpdateIdentityAccountReturn,
+  AccountPreferencesPanelProps,
 } from "./identity-account/index.js";
 
 // IAM Policy — data hooks, behavior hooks, headless hook, and styled components for access management
@@ -922,6 +929,7 @@ export {
   useUpdateOrganization,
   CreateOrganizationForm,
   OrgProfilePanel,
+  OrgPreferencesPanel,
   OrgSwitcher,
 } from "./organization/index.js";
 export type {
@@ -934,6 +942,7 @@ export type {
   UseUpdateOrganizationReturn,
   CreateOrganizationFormProps,
   OrgProfilePanelProps,
+  OrgPreferencesPanelProps,
   OrgSwitcherProps,
 } from "./organization/index.js";
 
@@ -1066,6 +1075,8 @@ export type { SettingsNavItem, SettingsNavGroup } from "./settings/index.js";
 export { ApiKeysSection } from "./settings/index.js";
 export { MembersSection } from "./settings/index.js";
 export { OrgProfileSection } from "./settings/index.js";
+export { OrgPreferencesSection } from "./settings/index.js";
+export { AccountPreferencesSection } from "./settings/index.js";
 export { EnvironmentsSection } from "./settings/index.js";
 export { InvitationsSection } from "./settings/index.js";
 export { IdentityProvidersSection } from "./settings/index.js";
