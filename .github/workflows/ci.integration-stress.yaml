@@ -106,7 +106,9 @@ jobs:
         uses: temporalio/setup-temporal@v0
 
       - name: Install gotestsum
-        run: go install gotest.tools/gotestsum@v1.12.1
+        # v1.13.0 matches the offline/canary/seedpack lanes: v1.12.1's pinned
+        # x/tools v0.24.0 no longer compiles under Go 1.25+ (stigmer#799).
+        run: go install gotest.tools/gotestsum@v1.13.0
 
       - name: Install OpenFGA CLI
         run: |
