@@ -111,8 +111,11 @@ jobs:
         run: go install gotest.tools/gotestsum@v1.13.0
 
       - name: Install OpenFGA CLI
+        # go install matches ci.conformance-cloud: the curl installer
+        # (openfga.dev/api/installcli) started answering 404 — a second latent
+        # break this lane's dead gotestsum pin had been masking (stigmer#799).
         run: |
-          curl -fsSL https://openfga.dev/api/installcli | bash
+          go install github.com/openfga/cli/cmd/fga@latest
           fga version
 
       - name: Download FGA model
