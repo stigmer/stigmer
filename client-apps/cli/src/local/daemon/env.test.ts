@@ -28,6 +28,8 @@ describe("buildDaemonEnv + readDaemonConfig", () => {
       cursorApiKey: undefined,
       anthropicApiKey: undefined,
       activityRouting: undefined,
+      operatorEmail: undefined,
+      operatorName: undefined,
     });
   });
 
@@ -59,6 +61,25 @@ describe("buildDaemonEnv + readDaemonConfig", () => {
     const env = buildDaemonEnv(baseInputs, { ANTHROPIC_API_KEY: "sk-ant-env" });
     const config = readDaemonConfig(env);
     expect(config.anthropicApiKey).toBe("sk-ant-env");
+  });
+
+  // The operator identity rides the same config-file-only delivery path as the
+  // Anthropic key (oss#796): persisted by `stigmer setup`, absent from the
+  // shell, written into the contract explicitly by the launcher.
+  it("delivers a launcher-resolved operator identity with no help from the base env", () => {
+    const env = buildDaemonEnv(
+      { ...baseInputs, operatorEmail: "ada@example.com", operatorName: "Ada Lovelace" },
+      {},
+    );
+    const config = readDaemonConfig(env);
+    expect(config.operatorEmail).toBe("ada@example.com");
+    expect(config.operatorName).toBe("Ada Lovelace");
+  });
+
+  it("passes a shell-exported operator identity through from the base env", () => {
+    const env = buildDaemonEnv(baseInputs, { STIGMER_OPERATOR_EMAIL: "env@example.com" });
+    expect(readDaemonConfig(env).operatorEmail).toBe("env@example.com");
+    expect(readDaemonConfig(env).operatorName).toBeUndefined();
   });
 
   // Other provider keys have no contract slot; they reach the runner solely via

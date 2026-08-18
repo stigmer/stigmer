@@ -62,8 +62,17 @@ A self-hosted server has no login, so it cannot resolve a per-caller identity.
 By default every Session presents `anonymous`: tools list, identity-gated calls
 refuse, deny by default.
 
-To present a real identity, configure the operator identity before starting the
-server (for `stigmer up`, export it in the shell that starts the daemon):
+To present a real identity, persist it once with `stigmer setup` — the
+recommended path, because it survives shell changes and daemon restarts:
+
+```bash
+stigmer setup --operator-email "ada@example.com" --operator-name "Ada Lovelace"
+```
+
+The interactive `stigmer setup` asks the same question, and the identity lands
+in `~/.stigmer/config.yaml` alongside your API key. An environment value always
+wins over the persisted one, and remains the way to configure a bare server
+started without the CLI:
 
 ```bash
 export STIGMER_OPERATOR_EMAIL="ada@example.com" # the identity
@@ -80,9 +89,10 @@ everything the install does — console and CLI Sessions and locally scheduled
 runs alike. A grant for the operator email therefore also covers your unattended
 automation; keep that in mind when gating destructive tools.
 
-A malformed `STIGMER_OPERATOR_EMAIL` (no `@`) fails the server boot rather than
-silently stamping a typo: the value feeds your binding sheet, so a typo would
-mint a wrong grantable identity.
+A malformed email (no `@`) is refused at `stigmer setup` time, and a malformed
+`STIGMER_OPERATOR_EMAIL` fails the server boot rather than silently stamping a
+typo: the value feeds your binding sheet, so a typo would mint a wrong grantable
+identity.
 
 ## Declare the keys and template your headers
 

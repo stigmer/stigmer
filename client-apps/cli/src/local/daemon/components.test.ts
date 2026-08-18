@@ -26,6 +26,26 @@ describe("buildServerEnv", () => {
     expect(env.DB_PATH).toBe("/home/u/.stigmer/stigmer.db");
     expect(env.STORAGE_PATH).toBe("/home/u/.stigmer/storage");
   });
+
+  it("forwards the operator identity only when set, resolved value winning over the base env (oss#796)", () => {
+    const bare = buildServerEnv(config, {});
+    expect(bare.STIGMER_OPERATOR_EMAIL).toBeUndefined();
+    expect(bare.STIGMER_OPERATOR_NAME).toBeUndefined();
+
+    // Contract value authoritative over a stale inherited export — the
+    // ANTHROPIC_API_KEY precedent in buildRunnerEnv.
+    const env = buildServerEnv(
+      { ...config, operatorEmail: "ada@example.com", operatorName: "Ada" },
+      { STIGMER_OPERATOR_EMAIL: "stale@example.com" },
+    );
+    expect(env.STIGMER_OPERATOR_EMAIL).toBe("ada@example.com");
+    expect(env.STIGMER_OPERATOR_NAME).toBe("Ada");
+  });
+
+  it("does not deliver the operator identity to the runner — it resolves identity from session data", () => {
+    const env = buildRunnerEnv({ ...config, operatorEmail: "ada@example.com" }, {});
+    expect(env.STIGMER_OPERATOR_EMAIL).toBeUndefined();
+  });
 });
 
 describe("buildRunnerEnv", () => {

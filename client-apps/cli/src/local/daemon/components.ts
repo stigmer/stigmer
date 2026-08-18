@@ -23,7 +23,7 @@ const SERVER_GATE_TIMEOUT_MS = 30_000;
  */
 export function buildServerEnv(config: DaemonConfig, base: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
   const configDir = dirname(config.dataDir); // ~/.stigmer
-  return {
+  const env: NodeJS.ProcessEnv = {
     ...base,
     GRPC_PORT: String(SERVER_PORT),
     TEMPORAL_HOST_PORT: config.temporalAddress,
@@ -37,6 +37,14 @@ export function buildServerEnv(config: DaemonConfig, base: NodeJS.ProcessEnv = p
     // is visible and enforceable here, next to the runner's LOCAL_ARTIFACT_PATH.
     ARTIFACT_LOCAL_BASE_PATH: join(config.dataDir, ARTIFACTS_SUBDIR),
   };
+  // Explicit set (after the base spread) so the launcher-resolved identity wins
+  // over a stale inherited value — the delivery path for a `stigmer setup`-
+  // persisted operator identity (oss#796; the ANTHROPIC_API_KEY precedent in
+  // buildRunnerEnv). Server child only: the runner resolves caller identity
+  // from the session's stamped created_by, never from its own env.
+  if (config.operatorEmail !== undefined) env.STIGMER_OPERATOR_EMAIL = config.operatorEmail;
+  if (config.operatorName !== undefined) env.STIGMER_OPERATOR_NAME = config.operatorName;
+  return env;
 }
 
 /**
