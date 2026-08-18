@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -480,6 +479,9 @@ type UnifiedRunnerStatic struct {
 	logger    *slog.Logger
 	cfg       UnifiedRunnerConfig
 	taskQueue string
+	// waitCh delivers the startup Wait goroutine's result exactly once;
+	// Stop drains it to verify the kill (see killAndVerify, oss#801).
+	waitCh <-chan error
 }
 
 // LogPath returns the path to the runner's log file.
@@ -592,6 +594,7 @@ func StartUnifiedRunnerStatic(ctx context.Context, cfg UnifiedRunnerConfig, task
 		logger:    logger,
 		cfg:       cfg,
 		taskQueue: taskQueue,
+		waitCh:    waitCh,
 	}, nil
 }
 
@@ -600,12 +603,9 @@ func (r *UnifiedRunnerStatic) Stop() error {
 		return nil
 	}
 	r.logger.Info("stopping unified-runner-static")
-	err := r.cmd.Process.Kill()
-	// The startup Wait goroutine reaps the child, so a runner that already
-	// died is not an error worth surfacing to Stop's callers.
-	if errors.Is(err, os.ErrProcessDone) {
-		err = nil
-	}
+	// Same silent fire-and-forget defect as JavaService.Stop had (oss#801):
+	// kill-reap-verify via the startup Wait goroutine's channel instead.
+	err := killAndVerify(r.logger, "unified-runner-static", r.cmd, r.waitCh, processReapTimeout)
 	if r.logFile != nil {
 		r.logFile.Close()
 	}

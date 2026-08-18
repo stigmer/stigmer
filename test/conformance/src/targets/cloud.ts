@@ -67,7 +67,7 @@ export class CloudTarget implements TargetProfile {
     this.conformanceClients = makeClients(createTransport(this.grpcBaseUrl, { bearerToken: token }));
     await awaitGrpcReady(
       this.conformanceClients,
-      () => "(cloud environment: see the launcher's stderr and stigmer-service.log)",
+      () => "(cloud environment: see the launcher's stderr and stigmer-service-*.log)",
     );
   }
 
