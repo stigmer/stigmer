@@ -5,6 +5,7 @@
 // defaulting to the local OSS Go server. The same suite runs unchanged against
 // any registered target.
 import { CloudTarget } from "./cloud";
+import { CloudExecutionTarget } from "./cloud-execution";
 import { LocalGoTarget } from "./local-go";
 import { LocalGoExecutionTarget } from "./local-go-execution";
 import type { TargetProfile } from "./target";
@@ -13,6 +14,7 @@ const TARGET_FACTORIES: Record<string, () => TargetProfile> = {
   "local-go": () => new LocalGoTarget(),
   "local-go-execution": () => new LocalGoExecutionTarget(),
   cloud: () => new CloudTarget(),
+  "cloud-execution": () => new CloudExecutionTarget(),
 };
 
 export function createTarget(): TargetProfile {

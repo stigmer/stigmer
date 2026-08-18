@@ -141,26 +141,27 @@ export function awaitTerminal(
 }
 
 // Obtain the mock LLM proxy from an execution target, failing loudly if the
-// active target does not provide one (e.g. a CRUD or cloud target). Agent
-// execution suites must run against local-go-execution.
+// active target does not provide one (e.g. a CRUD-only target). Agent
+// execution suites require an execution target (local-go-execution or
+// cloud-execution).
 export function requireLlmProxy(target: TargetProfile): MockLlmProxy {
   if (target.llmProxy === undefined) {
     throw new Error(
       `target ${target.name} does not provide a mock LLM proxy; ` +
-        "agent execution suites require the local-go-execution target",
+        "agent execution suites require an execution target (local-go-execution or cloud-execution)",
     );
   }
   return target.llmProxy();
 }
 
 // Obtain the HTTP MCP tool fixture from an execution target, failing loudly if
-// the active target does not provide one. Tool-using (HITL) agent suites must
-// run against local-go-execution.
+// the active target does not provide one. Tool-using (HITL) agent suites
+// require an execution target (local-go-execution or cloud-execution).
 export function requireMcpFixture(target: TargetProfile): McpToolFixture {
   if (target.mcpFixture === undefined) {
     throw new Error(
       `target ${target.name} does not provide an MCP tool fixture; ` +
-        "tool-using agent suites require the local-go-execution target",
+        "tool-using agent suites require an execution target (local-go-execution or cloud-execution)",
     );
   }
   return target.mcpFixture();

@@ -100,6 +100,19 @@ export interface CapabilityFlags {
   // retire this flag when the harness gains a platform-privileged caller
   // (stigmer#547) — until then the pin runs OSS-side only.
   clientReservedLabelWrites: boolean;
+  // The execution target's runner shares an artifact store with the server,
+  // so a storage-key attachment the SERVER persisted resolves when the RUNNER
+  // materializes it (the #285 shared-dir wiring on local targets).
+  //
+  // False for cloud-execution — a HARNESS limitation, not an edition
+  // difference: the hermetic cloud service stores attachments in its MinIO,
+  // while the runner is pinned to a local artifact store (the mock LLM proxy
+  // cannot serve the presign calls a proxy-configured artifact store would
+  // make). Attachment-materialization assertions gate on this flag until the
+  // harness gains a presign-capable artifact lane for the cloud engine
+  // (stigmer#803). Attachment REJECTION contracts (foreign keys etc.) are
+  // server-side and run unconditionally.
+  sharedRunnerArtifactStore: boolean;
   // The conformance caller may set a resource's visibility to PUBLIC — the
   // only level that crosses every org boundary (the cross-org "explore"
   // catalog).

@@ -1,26 +1,43 @@
 // Conformance slice for the TypeScript MCP server (@stigmer/mcp-server).
-// Domain: MCP protocol bridge over the live OSS Go stigmer-server.
+// Domain: MCP protocol bridge over a live backend (OSS Go server or the cloud
+// Java service).
 //
 // Unlike the other suites — which drive the raw proto controllers via a
-// TargetProfile — this one boots the real Go server and exercises the MCP tool
-// surface end-to-end through an in-memory MCP client. It proves the full path:
-// MCP tool input -> codegen apply projection (toProto) -> gRPC Apply on the real
-// server -> protojson back through the read tool. A small helper (not a
-// TargetProfile) is used because the MCP server exposes tools, not proto clients.
+// TargetProfile — this one exercises the MCP tool surface end-to-end through
+// an in-memory MCP client. It proves the full path: MCP tool input -> codegen
+// apply projection (toProto) -> gRPC Apply on the real server -> protojson
+// back through the read tool. A small backend resolver (not a TargetProfile)
+// is used because the MCP server exposes tools, not proto clients — but it
+// still keys off CONFORMANCE_TARGET so the same assertions pin both editions:
+//   - local (default): boots the OSS Go server, unauthenticated (apiKey "").
+//   - cloud: connects to the CLOUD_ENV-provisioned environment as the primary
+//     conformance user; the bridge's startup apiKey carries the user's JWT
+//     (BackendTarget.apiKey is the stdio credential resolveToken falls back
+//     to), so every tool call traverses real auth + FGA.
 import { createClient } from "@connectrpc/connect";
-import { createGrpcTransport } from "@connectrpc/connect-node";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { createServer } from "@stigmer/mcp-server";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import { CLOUD_ENV } from "../harness/cloud-env";
+import { createTransport } from "../harness/clients";
 import { ensureServerBinary } from "../harness/go-build";
-import { spawnServer, type RunningServer } from "../harness/server-process";
+import { spawnServer } from "../harness/server-process";
 import { uniqueName } from "../support/naming";
 
-let server: RunningServer;
-let orgCommand: ReturnType<typeof createClient<typeof OrganizationCommandController>>;
+// What the bridge and the suite need from either edition: gRPC coordinates,
+// the startup credential, one org to work in, and a teardown for whatever the
+// resolver itself booted (nothing, for the pre-provisioned cloud env).
+interface BridgeBackend {
+  serverAddress: string;
+  apiKey: string;
+  orgSlug: string;
+  stop(): Promise<void>;
+}
+
+let backend: BridgeBackend;
 let mcpClient: Client;
 let orgSlug: string;
 
@@ -33,14 +50,13 @@ async function callTool(name: string, args: Record<string, unknown>): Promise<To
   return (await mcpClient.callTool({ name, arguments: args })) as ToolResult;
 }
 
-beforeAll(async () => {
+// Boots the OSS Go server and creates the working org tokenless (single-tenant,
+// no auth). The org create doubles as the gRPC-readiness gate.
+async function resolveLocalBackend(): Promise<BridgeBackend> {
   const binary = await ensureServerBinary();
-  server = await spawnServer(binary);
+  const server = await spawnServer(binary);
+  const orgCommand = createClient(OrganizationCommandController, createTransport(server.baseUrl));
 
-  const transport = createGrpcTransport({ baseUrl: server.baseUrl });
-  orgCommand = createClient(OrganizationCommandController, transport);
-
-  // gRPC-readiness gate: retry org creation until the store is serving.
   const deadline = Date.now() + 15_000;
   let created: Awaited<ReturnType<typeof orgCommand.create>> | undefined;
   let lastErr: unknown;
@@ -58,11 +74,63 @@ beforeAll(async () => {
     }
   }
   if (created === undefined) {
+    await server.stop();
     throw new Error(`server not ready: ${String(lastErr)}\n${server.logTail()}`);
   }
-  orgSlug = created.metadata!.slug;
+  return {
+    serverAddress: `127.0.0.1:${server.port}`,
+    apiKey: "",
+    orgSlug: created.metadata!.slug,
+    stop: () => server.stop(),
+  };
+}
 
-  const mcp = createServer({ serverAddress: `127.0.0.1:${server.port}`, apiKey: "" });
+// Connects to the provisioned cloud environment (the cloud global setup's
+// CLOUD_ENV contract) and creates the working org as the primary conformance
+// user via the production RPC — the same tenancy shape CloudTarget provisions.
+async function resolveCloudBackend(): Promise<BridgeBackend> {
+  const baseUrl = requireEnv(CLOUD_ENV.address);
+  const token = requireEnv(CLOUD_ENV.token);
+  const orgCommand = createClient(
+    OrganizationCommandController,
+    createTransport(baseUrl, { bearerToken: token }),
+  );
+  const created = await orgCommand.create({
+    apiVersion: "tenancy.stigmer.ai/v1",
+    kind: "Organization",
+    metadata: { name: uniqueName("mcp-conf-org") },
+  });
+  return {
+    serverAddress: baseUrl.replace(/^https?:\/\//, ""),
+    apiKey: token,
+    orgSlug: created.metadata!.slug,
+    // The org is this suite's only footprint; the environment belongs to the
+    // global setup.
+    stop: async () => {
+      await orgCommand.delete({ value: created.metadata!.id });
+    },
+  };
+}
+
+function requireEnv(name: string): string {
+  const value = process.env[name];
+  if (value === undefined || value === "") {
+    throw new Error(
+      `${name} is not set: the cloud bridge run expects a provisioned environment ` +
+        "(run via `npm run test:cloud`, or set the CLOUD_ENV variables).",
+    );
+  }
+  return value;
+}
+
+beforeAll(async () => {
+  backend =
+    process.env.CONFORMANCE_TARGET === "cloud"
+      ? await resolveCloudBackend()
+      : await resolveLocalBackend();
+  orgSlug = backend.orgSlug;
+
+  const mcp = createServer({ serverAddress: backend.serverAddress, apiKey: backend.apiKey });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   mcpClient = new Client({ name: "mcp-conformance", version: "test" });
   await Promise.all([mcp.connect(serverTransport), mcpClient.connect(clientTransport)]);
@@ -70,10 +138,10 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await mcpClient?.close();
-  await server?.stop();
+  await backend?.stop();
 });
 
-describe("MCP server conformance (live Go server)", () => {
+describe("MCP server conformance (live backend)", () => {
   it("advertises the full tool roster", async () => {
     const { tools } = await mcpClient.listTools();
     expect(tools.map((t) => t.name)).toEqual(

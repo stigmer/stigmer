@@ -8,6 +8,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:cloud": "vitest run -c vitest.cloud.config.ts",
+    "test:cloud-execution": "vitest run -c vitest.cloud-execution.config.ts",
     "test:execution": "vitest run -c vitest.execution.config.ts",
     "typecheck": "tsc --noEmit"
   },

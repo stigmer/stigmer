@@ -21,9 +21,10 @@
 // storage would default to `proxy` (presign calls -> setup-time throw) and, in
 // cloud mode, the checkpointer to `http` — so we pin both to local/memory.
 import { spawn } from "node:child_process";
+import { createWriteStream, mkdirSync, type WriteStream } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { runnerDir } from "./runner-build";
 
@@ -51,9 +52,20 @@ export interface RunnerOptions {
   // Absolute path to the runner's compiled entry (dist/main.js).
   entryPath: string;
   // host:port of the live Temporal frontend the runner should connect to.
-  temporalHostPort: string;
-  // http(s) base URL of the Go server's gRPC endpoint, for status streaming.
+  // Mutually exclusive with cloudBootstrap: an explicit address makes the
+  // runner skip its control-plane discovery entirely (bootstrap.ts branch 1).
+  temporalHostPort?: string;
+  // http(s) base URL of the backend's gRPC endpoint, for status streaming.
   backendEndpoint: string;
+  // Cloud engine wiring: boot as a production embedded runner. The token is a
+  // user credential (the primary conformance user); its presence — with NO
+  // explicit Temporal address — triggers the runner's own bootstrap lane
+  // (bootstrap.ts branch 2): getRunnerBootstrapConfig returns the Temporal
+  // coordinates and mints the embedded_runner proxy token, the same door a
+  // desktop embedder walks through. The user identity is what makes cloud
+  // authorization work: runner credentials carry the user as `sub`, so FGA
+  // authorizes the runner as the owner of the executions the suites create.
+  cloudBootstrap?: { token: string };
   // Optional hermetic LLM wiring; present only for agent-execution runs.
   proxy?: RunnerProxyOptions;
   // The server's artifact root + serve URL. When provided (with a proxy), the
@@ -62,6 +74,13 @@ export interface RunnerOptions {
   // fine for runs that never resolve a cross-process artifact.
   artifactDir?: string;
   artifactServeUrl?: string;
+  // When set, the runner's combined stdout/stderr is also streamed to this
+  // file (directory created as needed). The cloud-execution target points it
+  // under test/integration/.test-output/logs/ so a red CI run's uploaded
+  // environment-logs artifact carries the runner's side of the story — the
+  // in-memory logTail() only surfaces on SPAWN failure, which leaves an
+  // execution that failed mid-run undiagnosable after teardown.
+  logFile?: string;
 }
 
 export interface RunningRunner {
@@ -71,6 +90,13 @@ export interface RunningRunner {
 }
 
 export async function spawnRunner(opts: RunnerOptions): Promise<RunningRunner> {
+  if ((opts.temporalHostPort === undefined) === (opts.cloudBootstrap === undefined)) {
+    throw new Error(
+      "spawnRunner needs exactly one of temporalHostPort (local engine) or " +
+        "cloudBootstrap (embedded-runner discovery); got " +
+        (opts.temporalHostPort === undefined ? "neither" : "both"),
+    );
+  }
   const workspaceDir = await mkdtemp(join(tmpdir(), "stigmer-conformance-runner-"));
   // Share the server's artifact store when given (#285); otherwise mint a
   // throwaway one. Only a dir we minted here is ours to remove on stop — the
@@ -89,9 +115,19 @@ export async function spawnRunner(opts: RunnerOptions): Promise<RunningRunner> {
       // STIGMER_RUNNER_MODE intentionally unset -> static (single-queue) mode.
       MODE: "local",
       STIGMER_TASK_QUEUE: "stigmer_runner",
-      TEMPORAL_SERVICE_ADDRESS: opts.temporalHostPort,
-      TEMPORAL_NAMESPACE: "default",
+      // Local engine: pin the Temporal address (skips discovery). Cloud engine:
+      // deliberately UNSET, so the token below triggers the runner's own
+      // bootstrap discovery against the backend (bootstrap.ts branch 2).
+      ...(opts.temporalHostPort !== undefined
+        ? { TEMPORAL_SERVICE_ADDRESS: opts.temporalHostPort, TEMPORAL_NAMESPACE: "default" }
+        : {}),
       STIGMER_BACKEND_ENDPOINT: opts.backendEndpoint,
+      // The runner's one token env var serves control-plane auth AND (until a
+      // token is minted) the proxy bearer. Cloud bootstrap needs the USER
+      // credential here — discovery authenticates with it, and the coordinator
+      // swaps the proxy sink to the minted embedded_runner token afterwards —
+      // so it wins over the proxy's placeholder (which the mock ignores anyway).
+      ...(opts.cloudBootstrap !== undefined ? { STIGMER_TOKEN: opts.cloudBootstrap.token } : {}),
       WORKSPACE_ROOT_DIR: workspaceDir,
       LOG_LEVEL: "info",
       // Avoid a boot-time MCP backfill network call (hermetic test detail).
@@ -105,7 +141,7 @@ export async function spawnRunner(opts: RunnerOptions): Promise<RunningRunner> {
       ...(opts.proxy !== undefined
         ? {
             STIGMER_PROXY_ENDPOINT: opts.proxy.endpoint,
-            STIGMER_TOKEN: opts.proxy.token,
+            ...(opts.cloudBootstrap === undefined ? { STIGMER_TOKEN: opts.proxy.token } : {}),
             // The mock proxy speaks ONLY Anthropic. Background LLM callers
             // (session titling, #690) route by config.primaryModel, whose
             // baked default is an OpenAI model — without this pin their
@@ -127,11 +163,18 @@ export async function spawnRunner(opts: RunnerOptions): Promise<RunningRunner> {
     },
   });
 
+  let logSink: WriteStream | undefined;
+  if (opts.logFile !== undefined) {
+    mkdirSync(dirname(opts.logFile), { recursive: true });
+    logSink = createWriteStream(opts.logFile, { flags: "a" });
+  }
+
   let logTail = "";
   let ready = false;
   const appendLog = (chunk: Buffer): void => {
     const text = chunk.toString("utf8");
     logTail = (logTail + text).slice(-LOG_TAIL_BYTES);
+    logSink?.write(chunk);
     if (text.includes(READY_MARKER)) ready = true;
   };
   child.stdout.on("data", appendLog);
@@ -147,6 +190,7 @@ export async function spawnRunner(opts: RunnerOptions): Promise<RunningRunner> {
     if (exit === null) {
       child.kill("SIGTERM");
     }
+    logSink?.end();
     await rm(workspaceDir, { recursive: true, force: true });
     // Only remove a store we minted; a server-shared dir is the server's to clean.
     if (ownedArtifactDir !== undefined) {

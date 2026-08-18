@@ -65,6 +65,15 @@ export interface HttpMcpServerOptions {
   // McpToolFixture.url(). Satisfies the `server_type` oneof via http config.
   url: string;
   description?: string;
+  // HTTP headers sent with every request (spec.http.headers). Values may
+  // template declared env vars — including the reserved caller-identity keys
+  // — with `${VAR}` placeholders; every templated key MUST be declared in
+  // `env` or resolution fails (the docs guide's rule 1).
+  headers?: Record<string, string>;
+  // Env declarations (spec.env). The reserved caller-identity keys must be
+  // declared `optional: true` — their values come from the runner at
+  // execution time, not from an Environment (the docs guide's rule 2).
+  env?: Record<string, { optional?: boolean; isSecret?: boolean; description?: string }>;
 }
 
 // A complete, valid HTTP McpServer resource. Used by the execution suites to
@@ -78,7 +87,11 @@ export function makeHttpMcpServer(opts: HttpMcpServerOptions): MessageInitShape<
     metadata: { name: opts.name, org: opts.org },
     spec: {
       description: opts.description ?? "conformance HTTP MCP fixture",
-      serverType: { case: "http", value: { url: opts.url } },
+      serverType: {
+        case: "http",
+        value: { url: opts.url, ...(opts.headers !== undefined ? { headers: opts.headers } : {}) },
+      },
+      ...(opts.env !== undefined ? { env: opts.env } : {}),
     },
   };
 }
