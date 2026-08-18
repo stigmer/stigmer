@@ -116,7 +116,7 @@ export async function bootstrapPrimaryIdentity(grpcBaseUrl: string): Promise<Pri
   const tokenlessTransport = createTransport(grpcBaseUrl);
   await awaitGrpcReady(
     makeClients(tokenlessTransport),
-    () => "(cloud environment: see the launcher's stderr and stigmer-service.log)",
+    () => "(cloud environment: see the launcher's stderr and stigmer-service-*.log)",
   );
 
   const platformClientCommand = createClient(PlatformClientCommandController, tokenlessTransport);
@@ -192,10 +192,22 @@ async function waitForReadyLine(child: ChildProcess): Promise<string> {
 
   const timeout = new Promise<never>((_, rejectTimeout) => {
     const timer = setTimeout(() => {
-      child.kill("SIGKILL");
-      rejectTimeout(
-        new Error(`cloud environment not ready within ${ENVIRONMENT_READY_TIMEOUT_MS}ms`),
+      // Graceful teardown, NOT a naked SIGKILL (stigmer/stigmer#801): a boot
+      // can hang AFTER the service JVM is already up (FGA seeding, a slow
+      // container), and SIGKILLing the launcher at that point skipped its
+      // deferred teardown entirely — the JVM orphaned silently and the next
+      // attempt's clean logs masked the leak. SIGTERM triggers the deferred
+      // teardown; stopLauncher's own SIGKILL fallback still bounds a wedged
+      // one. The rejection waits for the teardown so vitest cannot exit
+      // underneath it.
+      console.error(
+        `[cloud-env] not ready within ${ENVIRONMENT_READY_TIMEOUT_MS}ms — tearing the launcher down`,
       );
+      void stopLauncher(child).finally(() => {
+        rejectTimeout(
+          new Error(`cloud environment not ready within ${ENVIRONMENT_READY_TIMEOUT_MS}ms`),
+        );
+      });
     }, ENVIRONMENT_READY_TIMEOUT_MS);
     timer.unref();
   });
@@ -209,14 +221,23 @@ async function waitForReadyLine(child: ChildProcess): Promise<string> {
 
 // SIGTERM triggers the launcher's deferred teardown (containers, JVM); the
 // SIGKILL fallback prevents a wedged teardown from hanging the vitest run,
-// at the cost of leaking containers (visible, reapable with `docker ps`).
+// at the cost of leaking whatever was not yet stopped — containers (visible,
+// reapable with `docker ps`) AND the naked service JVM, which nothing lists
+// (stigmer/stigmer#801) — so the fallback firing is always worth a loud line.
 async function stopLauncher(child: ChildProcess): Promise<void> {
   if (child.exitCode !== null || child.signalCode !== null) return;
 
   const exited = once(child, "exit");
   child.kill("SIGTERM");
 
-  const timer = setTimeout(() => child.kill("SIGKILL"), SHUTDOWN_GRACE_MS);
+  const timer = setTimeout(() => {
+    console.error(
+      `[cloud-env] launcher did not exit within ${SHUTDOWN_GRACE_MS}ms of SIGTERM — ` +
+        "SIGKILL fallback; containers and the service JVM may have leaked " +
+        "(check `docker ps` and `pgrep -f stigmer_service_fatjar`; stigmer/stigmer#801)",
+    );
+    child.kill("SIGKILL");
+  }, SHUTDOWN_GRACE_MS);
   timer.unref();
   try {
     await exited;

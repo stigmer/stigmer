@@ -22,6 +22,7 @@ import { findProcessByPort, isProcessAlive, killProcess } from "../state/proc.js
 import { type StartupConfig, removeStartupConfig, saveStartupConfig } from "../state/startup-config.js";
 import { rotateLogs } from "../state/log-rotation.js";
 import { resolveApiKey, resolveProvider } from "../llm-config.js";
+import { resolveOperatorIdentity } from "../operator-config.js";
 import { ensureRunner } from "../runtime/runner.js";
 import { ensureServerBinary } from "../runtime/server.js";
 import { TemporalManager } from "../temporal/manager.js";
@@ -77,6 +78,7 @@ export async function up(options: UpOptions = {}, home: string = homedir()): Pro
       serverBin,
       runner,
       ...resolveLlmKeyInputs(config),
+      ...resolveOperatorIdentityInputs(config),
     },
     process.env,
   );
@@ -233,6 +235,21 @@ function resolveLlmKeyInputs(config: Config): Pick<DaemonEnvInputs, "anthropicAp
   if (resolveProvider(config) !== "anthropic") return {};
   const key = resolveApiKey(config);
   return key === "" ? {} : { anthropicApiKey: key };
+}
+
+// Operator-identity delivery for the server child (oss#796): same persisted-
+// delivery reasoning as the LLM key above — a setup-persisted identity lives
+// only in the config file, so the launcher must write it into the daemon
+// contract explicitly. resolveOperatorIdentity's precedence (env > config,
+// sources never mixed) makes both cases one code path.
+function resolveOperatorIdentityInputs(
+  config: Config,
+): Pick<DaemonEnvInputs, "operatorEmail" | "operatorName"> {
+  const identity = resolveOperatorIdentity(config);
+  if (identity === undefined) return {};
+  return identity.name === undefined
+    ? { operatorEmail: identity.email }
+    : { operatorEmail: identity.email, operatorName: identity.name };
 }
 
 // Default to managed Temporal unless the opaque local config explicitly opts

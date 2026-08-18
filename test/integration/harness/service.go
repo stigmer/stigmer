@@ -41,6 +41,11 @@ type JavaService struct {
 	logFile       *os.File
 	logPath       string
 	logger        *slog.Logger
+	// exitCh delivers the startup Wait goroutine's result exactly once.
+	// Stop drains it to confirm the killed JVM was actually reaped —
+	// calling cmd.Wait() a second time is an error, so the channel is the
+	// only correct handle (oss#801).
+	exitCh <-chan error
 }
 
 // LogPath returns the path to the service log file.
@@ -236,12 +241,20 @@ func StartJavaService(ctx context.Context, cfg ServiceConfig, logger *slog.Logge
 			return nil, fmt.Errorf("create log dir: %w", mkErr)
 		}
 	}
-	logPath := filepath.Join(logDir, "stigmer-service.log")
+	// Per-run filename (oss#801): a constant name let a leaked JVM's still-open
+	// fd interleave a dead run's output into the next run's log — os.Create
+	// truncates the directory entry but not the orphan's handle to the old
+	// inode... which is the SAME inode when the name is reused. pid+nanos is
+	// collision-proof across concurrent harnesses and same-process restarts.
+	logPath := filepath.Join(logDir,
+		fmt.Sprintf("stigmer-service-%d-%d.log", os.Getpid(), time.Now().UnixNano()))
 	logFile, err := os.Create(logPath)
 	if err != nil {
 		return nil, fmt.Errorf("create log file: %w", err)
 	}
 	logger.Info("service log", "path", logPath)
+
+	warnStaleServiceJVMs(logger)
 
 	// Use exec.Command (not CommandContext) so the Java process lifetime
 	// is decoupled from the startup context. The caller's context governs
@@ -311,6 +324,7 @@ func StartJavaService(ctx context.Context, cfg ServiceConfig, logger *slog.Logge
 		logFile:       logFile,
 		logPath:       logPath,
 		logger:        logger,
+		exitCh:        exitCh,
 	}, nil
 }
 
@@ -331,7 +345,10 @@ func (s *JavaService) Stop() error {
 		return nil
 	}
 	s.logger.Info("stopping stigmer-service")
-	err := s.cmd.Process.Kill()
+	// Kill-reap-verify instead of fire-and-forget: the old bare Kill()
+	// could not tell anyone when a JVM survived, which is how oss#801's
+	// orphans stayed invisible until they destabilized later runs.
+	err := killAndVerify(s.logger, "stigmer-service", s.cmd, s.exitCh, processReapTimeout)
 	if s.logFile != nil {
 		s.logFile.Close()
 	}

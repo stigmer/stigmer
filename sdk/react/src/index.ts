@@ -222,6 +222,11 @@ export type {
   RuntimeEnvProvider,
   SessionAudience,
   SessionPanelMode,
+  // The #664 pinning seam's contract type: SessionViewer/NewSessionViewer/
+  // useNewSessionFlow all accept it, and the docs name it — embedders must
+  // be able to import it from the root (oss#802; the exports map exposes no
+  // ./session subpath on purpose).
+  SessionRunConfig,
   SetupTabProps,
   SetupTabMutationCallbacks,
 } from "./session/index.js";

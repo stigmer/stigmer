@@ -19,6 +19,8 @@ export const DaemonEnvVar = {
   CursorApiKey: "CURSOR_API_KEY",
   AnthropicApiKey: "ANTHROPIC_API_KEY",
   ActivityRouting: "STIGMER_ACTIVITY_ROUTING",
+  OperatorEmail: "STIGMER_OPERATOR_EMAIL",
+  OperatorName: "STIGMER_OPERATOR_NAME",
 } as const;
 
 /** Resolved runner launch coordinates. */
@@ -41,6 +43,8 @@ export interface DaemonConfig {
   cursorApiKey?: string;
   anthropicApiKey?: string;
   activityRouting?: string;
+  operatorEmail?: string;
+  operatorName?: string;
 }
 
 /** Inputs the launcher already resolved, to encode into the daemon env. */
@@ -60,6 +64,12 @@ export interface DaemonEnvInputs {
   // persisted delivery path — other keys (OPENAI_API_KEY, CURSOR_API_KEY)
   // reach the runner solely via shell-env inheritance.
   anthropicApiKey?: string;
+  // Operator identity resolved by the launcher (env > config file), the same
+  // persisted-delivery reasoning as the Anthropic key (oss#796). Consumed by
+  // the SERVER child only — the runner resolves caller identity from the
+  // session's stamped created_by, never from its own env.
+  operatorEmail?: string;
+  operatorName?: string;
 }
 
 /**
@@ -82,6 +92,8 @@ export function buildDaemonEnv(inputs: DaemonEnvInputs, base: NodeJS.ProcessEnv 
     env[DaemonEnvVar.RunnerAppDir] = inputs.runner.appDir;
   }
   if (inputs.anthropicApiKey !== undefined) env[DaemonEnvVar.AnthropicApiKey] = inputs.anthropicApiKey;
+  if (inputs.operatorEmail !== undefined) env[DaemonEnvVar.OperatorEmail] = inputs.operatorEmail;
+  if (inputs.operatorName !== undefined) env[DaemonEnvVar.OperatorName] = inputs.operatorName;
   return env;
 }
 
@@ -105,6 +117,8 @@ export function readDaemonConfig(env: NodeJS.ProcessEnv = process.env): DaemonCo
     cursorApiKey: nonEmpty(env[DaemonEnvVar.CursorApiKey]),
     anthropicApiKey: nonEmpty(env[DaemonEnvVar.AnthropicApiKey]),
     activityRouting: nonEmpty(env[DaemonEnvVar.ActivityRouting]),
+    operatorEmail: nonEmpty(env[DaemonEnvVar.OperatorEmail]),
+    operatorName: nonEmpty(env[DaemonEnvVar.OperatorName]),
   };
 }
 
