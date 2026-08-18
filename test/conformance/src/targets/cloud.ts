@@ -52,6 +52,10 @@ export class CloudTarget implements TargetProfile {
     // platform-privileged caller lane (stigmer#547).
     clientReservedLabelWrites: false,
     clientPublicVisibilityWrites: false,
+    // The hermetic cloud service stores attachments in MinIO while the
+    // TS runner (cloud-execution) keeps a local artifact store — a harness
+    // limitation, not edition drift; see the flag's contract in target.ts.
+    sharedRunnerArtifactStore: false,
   };
 
   private grpcBaseUrl: string | undefined;

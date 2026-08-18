@@ -54,8 +54,31 @@ function buildEchoServer(): McpServer {
   return server;
 }
 
+// One JSON-RPC request as observed by the fixture: the method from the body
+// plus the HTTP headers it arrived with (node lowercases header names). This
+// is the wire-level observation point the caller-identity contract needs
+// (stigmer#382): identity reaches an MCP server ONLY as templated headers, so
+// the receiving server — this fixture — is the one place a test can assert
+// what actually crossed the wire.
+export interface CapturedMcpRequest {
+  method: string;
+  headers: Record<string, string | string[] | undefined>;
+}
+
 export class McpToolFixture {
   private server: Server | undefined;
+  private captured: CapturedMcpRequest[] = [];
+
+  // Every JSON-RPC request observed since the last reset, oldest first.
+  // Suites reset in afterEach (the mock-LLM convention) so captures never
+  // leak across tests within a file.
+  capturedRequests(): readonly CapturedMcpRequest[] {
+    return this.captured;
+  }
+
+  resetCaptured(): void {
+    this.captured = [];
+  }
 
   // Binds to an ephemeral loopback port; resolves once listening.
   async start(): Promise<void> {
@@ -104,6 +127,14 @@ export class McpToolFixture {
       return;
     }
 
+    // Buffer and parse the body ourselves so each request can be captured with
+    // its JSON-RPC method (stigmer#382 asserts headers per wire request). The
+    // transport accepts a pre-parsed body for exactly this pattern.
+    const body: unknown = JSON.parse(await readBody(req));
+    for (const method of jsonRpcMethods(body)) {
+      this.captured.push({ method, headers: { ...req.headers } });
+    }
+
     const mcp = buildEchoServer();
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
     res.on("close", () => {
@@ -111,8 +142,24 @@ export class McpToolFixture {
       void mcp.close();
     });
     await mcp.connect(transport);
-    // The transport reads the request body off the stream itself; we deliberately
-    // do not pre-consume it.
-    await transport.handleRequest(req, res);
+    await transport.handleRequest(req, res, body);
   }
+}
+
+async function readBody(req: IncomingMessage): Promise<string> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of req) {
+    chunks.push(chunk as Buffer);
+  }
+  return Buffer.concat(chunks).toString("utf8");
+}
+
+// JSON-RPC over Streamable HTTP is a single message or a batch array; capture
+// one entry per message so batch requests stay individually assertable.
+function jsonRpcMethods(body: unknown): string[] {
+  const messages = Array.isArray(body) ? body : [body];
+  return messages.map((message) => {
+    const method = (message as { method?: unknown } | null)?.method;
+    return typeof method === "string" ? method : "(no method)";
+  });
 }

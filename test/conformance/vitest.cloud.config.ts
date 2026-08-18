@@ -6,10 +6,11 @@
 // targets use) and publishes it to workers via env vars; each suite file's
 // CloudTarget then just connects.
 //
-// mcp.conformance.test.ts is excluded deliberately: it is not target-driven —
-// it boots the OSS Go server directly to test the @stigmer/mcp-server bridge —
-// so under CONFORMANCE_TARGET=cloud it would silently test the wrong backend
-// and report a false green.
+// mcp.conformance.test.ts runs here too: its backend resolver keys off
+// CONFORMANCE_TARGET=cloud and points the @stigmer/mcp-server bridge at this
+// environment as the primary conformance user (stigmer#202's bridge-vs-cloud
+// item — it previously booted the OSS Go server unconditionally and had to be
+// excluded to avoid a false green against the wrong backend).
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
@@ -18,12 +19,12 @@ export default defineConfig({
     // up: firing needs the engine (which this environment boots) but no
     // runner and no LLM (fires target a deleted agent and fail inside the
     // tick), so it is the first Class B behavior assertable against cloud —
-    // and, once the OSS Go clock lands, against both editions.
+    // the full runner-backed Class B suites live in the cloud-execution run
+    // (vitest.cloud-execution.config.ts).
     include: [
       "src/suites/**/*.conformance.test.ts",
       "src/suites-execution/schedule-firing.conformance.test.ts",
     ],
-    exclude: ["src/suites/mcp.conformance.test.ts"],
     globalSetup: ["./src/harness/global-setup-cloud.ts"],
     env: {
       CONFORMANCE_TARGET: "cloud",
