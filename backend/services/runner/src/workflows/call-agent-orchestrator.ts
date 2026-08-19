@@ -32,13 +32,23 @@ import type { createCallAgentStatusActivities, AgentProgressSummary } from "../a
 import type { createWorkflowEventActivities } from "../activities/workflow-event-activities.js";
 import type { AgentCallConfig, AgentCallResult, WorkflowEventDescriptor } from "../workflow-engine/types.js";
 import { AgentCallError } from "../workflow-engine/types.js";
-import type { ChildApprovalNotification } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 
 // ─────────────────────────────────────────────────────────────────────
 // Signal Definitions
 // ─────────────────────────────────────────────────────────────────────
 
-export const childApprovalRequired = defineSignal<[ChildApprovalNotification]>(
+/**
+ * Identity-only "go look" trigger (DD-012, stigmer-cloud#509): the child's
+ * server signals just the gated child's execution id, and this workflow
+ * derives the gate from the child's persisted record. The payload MUST stay a
+ * bare string: it crosses the polyglot boundary from the Java server, whose
+ * client serializes proto messages as `json/protobuf` — an encoding this
+ * worker's default converter cannot decode, which poisoned the workflow task
+ * in a permanent retry loop (the original cloud#509 failure). The object
+ * shape is tolerated for a future Go sender's natural `{executionId}` JSON,
+ * mirroring child_execution_started's both-shapes handling below.
+ */
+export const childApprovalRequired = defineSignal<[string | { executionId?: string }]>(
   "child_approval_required",
 );
 
@@ -120,15 +130,27 @@ export async function orchestrateAgentCall(
   let activityDone = false;
   let activityResult: AgentCallResult = {};
   let activityError: unknown = undefined;
-  let pendingNotification: ChildApprovalNotification | undefined;
+  // Child ids whose approval gates await derivation. A set (not a flag)
+  // because one workflow has ONE live handler per signal name: with parallel
+  // agent_call tasks, whichever orchestration registered last receives every
+  // child's signal, and each gate must be derived under its OWN child id for
+  // the per-child status merge to file it correctly.
+  const pendingApprovalChildIds = new Set<string>();
   let childExecId: string | undefined;
   let initialProgressEmitted = false;
 
-  setHandler(childApprovalRequired, (notification: ChildApprovalNotification) => {
-    pendingNotification = notification;
-    if (!childExecId && notification.executionId) {
-      childExecId = notification.executionId;
+  setHandler(childApprovalRequired, (payload: string | { executionId?: string }) => {
+    // Identity-only signal (see the definition above): note the child and
+    // mark its gate for derivation in the main loop — approval details never
+    // travel through the signal itself.
+    const signaledId = typeof payload === "string" ? payload : payload?.executionId;
+    if (!signaledId) {
+      return;
     }
+    if (!childExecId) {
+      childExecId = signaledId;
+    }
+    pendingApprovalChildIds.add(signaledId);
   });
 
   setHandler(childExecutionStarted, (payload: { executionId: string } | string) => {
@@ -221,7 +243,7 @@ export async function orchestrateAgentCall(
     // Wait for a signal, activity completion, or periodic timeout for progress polling.
     // condition() returns false on timeout, true when the predicate became true.
     const conditionMet = await condition(
-      () => activityDone || pendingNotification !== undefined || (!!childExecId && !initialProgressEmitted),
+      () => activityDone || pendingApprovalChildIds.size > 0 || (!!childExecId && !initialProgressEmitted),
       PROGRESS_POLL_INTERVAL,
     );
 
@@ -251,22 +273,36 @@ export async function orchestrateAgentCall(
       await syncFileReviews(childExecId);
     }
 
-    // Handle HITL approval notification
-    if (pendingNotification) {
-      const notification = pendingNotification;
-      pendingNotification = undefined;
+    // Handle HITL approval notifications: derive each signaled child's gate
+    // from its persisted record (identity-only signal, DD-012). The child's
+    // server persists the gate BEFORE signaling, so an empty derivation means
+    // the gate already resolved — the activity answers false and there is
+    // deliberately no retry (see updateWorkflowTaskApprovalStatus).
+    if (pendingApprovalChildIds.size > 0) {
+      // Drain a deterministic snapshot: insertion order is replay-stable, and
+      // ids signaled during the awaits below land in the set for the next pass.
+      const toDerive = [...pendingApprovalChildIds];
+      pendingApprovalChildIds.clear();
 
-      try {
-        await statusProxy.UpdateWorkflowTaskApprovalStatus(
-          input.workflowExecutionId,
-          input.taskName,
-          notification,
-        );
-      } catch (statusErr) {
-        log.warn("Failed to update workflow approval status (non-fatal)", {
-          error: String(statusErr),
-          taskName: input.taskName,
-        });
+      for (const signaledChildId of toDerive) {
+        try {
+          const surfaced = await statusProxy.UpdateWorkflowTaskApprovalStatus(
+            input.workflowExecutionId,
+            input.taskName,
+            signaledChildId,
+          );
+          if (!surfaced) {
+            log.info("Child approval gate already resolved before derivation; nothing surfaced", {
+              taskName: input.taskName,
+              childExecId: signaledChildId,
+            });
+          }
+        } catch (statusErr) {
+          log.warn("Failed to update workflow approval status (non-fatal)", {
+            error: String(statusErr),
+            taskName: input.taskName,
+          });
+        }
       }
     }
   }

@@ -16,7 +16,6 @@ import { StigmerClient } from "../client/stigmer-client.js";
 import { loadConfig } from "../config.js";
 import { create } from "@bufbuild/protobuf";
 import { WorkflowExecutionStatusSchema, WorkflowPendingApprovalSchema, WorkflowPendingFileReviewSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import type { ChildApprovalNotification } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import { ToolCallStatus, FileChangeSetStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
 function buildClient(): StigmerClient {
@@ -27,22 +26,39 @@ function buildClient(): StigmerClient {
   });
 }
 
+/**
+ * Derives the child's approval gate onto the parent (DD-012: identity-only
+ * signal, derive-from-child). The signal carries only the child execution id;
+ * this activity reads the child's persisted `status.pending_approvals` — the
+ * single source of truth the child's server wrote BEFORE signaling — and
+ * mirrors it onto the parent as reference entries.
+ *
+ * Returns true when a gate was surfaced, false when the child currently has
+ * no pending approvals. The child persists its gate before the signal is
+ * sent (both editions), so an empty read means the gate already resolved
+ * (e.g. approved on the agent surface in the interim) — the caller must NOT
+ * retry: surfacing a resolved gate would show users a stale approval card.
+ */
 export async function updateWorkflowTaskApprovalStatus(
   executionId: string,
   _taskName: string,
-  notification: ChildApprovalNotification,
-): Promise<void> {
-  if (!executionId) return;
+  childExecutionId: string,
+): Promise<boolean> {
+  if (!executionId || !childExecutionId) return false;
 
-  const childExecId = notification.executionId;
   const client = buildClient();
-  const pendingApprovals = (notification.pendingApprovals ?? []).map(
+  const child = await client.getExecution(childExecutionId);
+  const pendingApprovals = (child?.status?.pendingApprovals ?? []).map(
     (approval) =>
       create(WorkflowPendingApprovalSchema, {
         approval,
-        childAgentExecutionId: childExecId,
+        childAgentExecutionId: childExecutionId,
       }),
   );
+
+  if (pendingApprovals.length === 0) {
+    return false;
+  }
 
   const status = create(WorkflowExecutionStatusSchema, {
     pendingApprovals,
@@ -52,8 +68,9 @@ export async function updateWorkflowTaskApprovalStatus(
   // approvals and preserves every parallel sibling's entries.
   await client.updateWorkflowExecutionStatus(executionId, status, {
     updatePendingApprovals: true,
-    pendingUpdateChildAgentExecutionId: childExecId,
+    pendingUpdateChildAgentExecutionId: childExecutionId,
   });
+  return true;
 }
 
 export async function clearWorkflowApprovalStatus(
