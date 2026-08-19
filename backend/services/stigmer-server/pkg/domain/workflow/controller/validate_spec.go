@@ -4,14 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strconv"
-	"strings"
 	"sync"
 
 	"buf.build/go/protovalidate"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	serverlessv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/serverless"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/validation"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -116,7 +115,10 @@ func protoFieldViolations(msg proto.Message) (violations []string, systemErr err
 	if errors.As(err, &validationErr) {
 		violations = make([]string, 0, len(validationErr.Violations))
 		for _, v := range validationErr.Violations {
-			violations = append(violations, formatViolation(v))
+			// The shared cross-edition rendering ("<field.path> – <message>")
+			// lives with the Layer-2 constraints step; both layers must emit
+			// identical strings for the same violation.
+			violations = append(violations, validation.FormatViolation(v))
 		}
 		return violations, nil
 	}
@@ -124,43 +126,4 @@ func protoFieldViolations(msg proto.Message) (violations []string, systemErr err
 	// Anything other than a ValidationError is a fault in the validation
 	// machinery itself, not a user-fixable spec problem.
 	return nil, err
-}
-
-// formatViolation renders one protovalidate violation as "<field.path> – <message>",
-// matching the Cloud Java formatter exactly (en-dash separator, "<message>"
-// sentinel when the rule is message-level, and [index] / ['key'] subscripts for
-// repeated/map elements).
-func formatViolation(v *protovalidate.Violation) string {
-	message := v.Proto.GetMessage()
-	if !v.Proto.HasField() {
-		return "<message> \u2013 " + message
-	}
-
-	var sb strings.Builder
-	for _, el := range v.Proto.GetField().GetElements() {
-		if sb.Len() > 0 {
-			sb.WriteByte('.')
-		}
-		// Prefer the field name; fall back to the field number when unknown.
-		if el.HasFieldName() {
-			sb.WriteString(el.GetFieldName())
-		} else {
-			sb.WriteString(strconv.Itoa(int(el.GetFieldNumber())))
-		}
-		// Repeated index or map key subscript, if present.
-		switch {
-		case el.HasIndex():
-			sb.WriteString("[" + strconv.FormatUint(el.GetIndex(), 10) + "]")
-		case el.HasBoolKey():
-			sb.WriteString("[" + strconv.FormatBool(el.GetBoolKey()) + "]")
-		case el.HasIntKey():
-			sb.WriteString("[" + strconv.FormatInt(el.GetIntKey(), 10) + "]")
-		case el.HasUintKey():
-			sb.WriteString("[" + strconv.FormatUint(el.GetUintKey(), 10) + "]")
-		case el.HasStringKey():
-			sb.WriteString("['" + el.GetStringKey() + "']")
-		}
-	}
-
-	return sb.String() + " \u2013 " + message
 }

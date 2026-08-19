@@ -271,158 +271,48 @@ func extractAndValidateRefs(
 	return errors
 }
 
-// ValidateTaskConfigRequiredFields checks that task-type-specific required
-// fields are present in each task's config struct.
-func ValidateTaskConfigRequiredFields(spec *workflowv1.WorkflowSpec) []string {
+// ValidateTaskConfigSurfaceRules checks the task-config semantics the config
+// protos cannot declare.
+//
+// Until stigmer#805 this function (then ValidateTaskConfigRequiredFields) also
+// hand-checked per-kind required fields, bounds, and oneof shapes — workarounds
+// for declared proto rules that could not fire through the opaque task_config
+// Struct. Those checks retired when ValidateTaskConfigConstraints armed the
+// declared rules over the strict-unmarshaled typed configs; each retirement is
+// probe-tested in task_config_constraints_test.go against the proto rule that
+// subsumed it. What remains is genuinely contextual:
+//
+//   - agent_call workspace_entries must use git_repo sources: WorkspaceSource's
+//     oneof legitimately offers local_path on the session surface, but no
+//     client is connected to serve one when a workflow task fires — a
+//     workflow-surface restriction, not a schema fact, so it cannot live on
+//     the shared proto. (Source presence and git_repo.url's HTTPS shape ARE
+//     schema facts — WorkspaceEntry.source's required rule and the
+//     git_repo_source.url.https CEL enforce them via the constraints step.)
+//
+// Keep the strings in lockstep with the cloud Java validator.
+func ValidateTaskConfigSurfaceRules(spec *workflowv1.WorkflowSpec) []string {
 	if spec == nil || len(spec.Tasks) == 0 {
 		return nil
 	}
 
 	var errors []string
 	for _, task := range spec.Tasks {
-		if task.TaskConfig == nil {
+		if task.Kind != workflowv1.WorkflowTaskKind_agent_call || task.TaskConfig == nil {
 			continue
 		}
-		fields := task.TaskConfig.GetFields()
-
-		switch task.Kind {
-		case workflowv1.WorkflowTaskKind_eval:
-			if model := getStringField(fields, "model"); model == "" {
-				errors = append(errors, fmt.Sprintf("task '%s' (eval): required field 'model' is missing or empty", task.Name))
+		for i, v := range getListField(task.TaskConfig.GetFields(), "workspace_entries") {
+			entry := v.GetStructValue()
+			if entry == nil {
+				continue
 			}
-			if subject := getStringField(fields, "subject"); subject == "" {
-				errors = append(errors, fmt.Sprintf("task '%s' (eval): required field 'subject' is missing or empty", task.Name))
+			source := getStructField(entry.GetFields(), "source")
+			if source == nil {
+				// Absence is the constraints step's required-rule to report.
+				continue
 			}
-			if rubric := getStringField(fields, "rubric"); rubric == "" {
-				errors = append(errors, fmt.Sprintf("task '%s' (eval): required field 'rubric' is missing or empty", task.Name))
-			}
-
-		case workflowv1.WorkflowTaskKind_http_call:
-			if method := getStringField(fields, "method"); method == "" {
-				errors = append(errors, fmt.Sprintf("task '%s' (http_call): required field 'method' is missing or empty", task.Name))
-			}
-			endpoint := getStructField(fields, "endpoint")
-			if endpoint == nil {
-				errors = append(errors, fmt.Sprintf("task '%s' (http_call): required field 'endpoint' is missing", task.Name))
-			} else if uri := getStringField(endpoint.GetFields(), "uri"); uri == "" {
-				errors = append(errors, fmt.Sprintf("task '%s' (http_call): required field 'endpoint.uri' is missing or empty", task.Name))
-			}
-
-		case workflowv1.WorkflowTaskKind_grpc_call:
-			if service := getStringField(fields, "service"); service == "" {
-				errors = append(errors, fmt.Sprintf("task '%s' (grpc_call): required field 'service' is missing or empty", task.Name))
-			}
-			if method := getStringField(fields, "method"); method == "" {
-				errors = append(errors, fmt.Sprintf("task '%s' (grpc_call): required field 'method' is missing or empty", task.Name))
-			}
-
-		case workflowv1.WorkflowTaskKind_activity_call:
-			if activity := getStringField(fields, "activity"); activity == "" {
-				errors = append(errors, fmt.Sprintf("task '%s' (activity_call): required field 'activity' is missing or empty", task.Name))
-			}
-
-		case workflowv1.WorkflowTaskKind_llm_call:
-			// model/prompt carry (buf.validate.field).required in the proto but
-			// Layer 1 cannot see inside the task_config Struct; without this
-			// case the first failure was the runner throwing at execution time
-			// (#685). Keep the strings in lockstep with the cloud Java validator.
-			if model := getStringField(fields, "model"); model == "" {
-				errors = append(errors, fmt.Sprintf("task '%s' (llm_call): required field 'model' is missing or empty", task.Name))
-			}
-			if prompt := getStringField(fields, "prompt"); prompt == "" {
-				errors = append(errors, fmt.Sprintf("task '%s' (llm_call): required field 'prompt' is missing or empty", task.Name))
-			}
-
-		case workflowv1.WorkflowTaskKind_raise_error:
-			// Only 'error' is required: the DSL converter derives the problem-
-			// details type/status/title from it, while 'message' feeds the
-			// optional detail field (#685 ruling — message is optional by
-			// contract; its proto required flag was relaxed to match).
-			if errName := getStringField(fields, "error"); errName == "" {
-				errors = append(errors, fmt.Sprintf("task '%s' (raise_error): required field 'error' is missing or empty", task.Name))
-			}
-
-		case workflowv1.WorkflowTaskKind_human_input:
-			// A prompt-less pause renders an empty approval card to the
-			// reviewer — degraded silently, so refuse at write time (#685).
-			if prompt := getStringField(fields, "prompt"); prompt == "" {
-				errors = append(errors, fmt.Sprintf("task '%s' (human_input): required field 'prompt' is missing or empty", task.Name))
-			}
-
-		case workflowv1.WorkflowTaskKind_agent_call:
-			// RunConfig's buf.validate gte-0 rules cannot run at Layer 1
-			// (task_config is an opaque Struct there), so the bounds are
-			// enforced here. Keep the strings in lockstep with the cloud
-			// Java validator.
-			if rc := getStructField(fields, "run_config"); rc != nil {
-				rcFields := rc.GetFields()
-				if v, ok := rcFields["max_cost_usd"]; ok && v.GetNumberValue() < 0 {
-					errors = append(errors, fmt.Sprintf("task '%s' (agent_call): run_config.max_cost_usd must be >= 0", task.Name))
-				}
-				if v, ok := rcFields["max_tool_rounds"]; ok && v.GetNumberValue() < 0 {
-					errors = append(errors, fmt.Sprintf("task '%s' (agent_call): run_config.max_tool_rounds must be >= 0", task.Name))
-				}
-			}
-
-			// Surface constraint on the shared WorkspaceEntry vocabulary
-			// (the schedule discipline, workflow-flavored): sources must
-			// be git_repo — no client is connected to serve a local_path
-			// when a workflow task fires. Refusing at write time beats a
-			// deterministic provisioning failure at run time. The https
-			// rule mirrors GitRepoSource's proto CEL, unreachable at
-			// Layer 1 through the Struct envelope.
-			for i, v := range getListField(fields, "workspace_entries") {
-				entry := v.GetStructValue()
-				if entry == nil {
-					continue
-				}
-				source := getStructField(entry.GetFields(), "source")
-				if source == nil {
-					errors = append(errors, fmt.Sprintf("task '%s' (agent_call): workspace_entries[%d] requires a source", task.Name, i))
-					continue
-				}
-				gitRepo := getStructField(source.GetFields(), "git_repo")
-				if gitRepo == nil {
-					errors = append(errors, fmt.Sprintf("task '%s' (agent_call): workspace_entries[%d] must use a git_repo source — no client is connected to serve a local_path when a workflow task fires", task.Name, i))
-					continue
-				}
-				if url := getStringField(gitRepo.GetFields(), "url"); !strings.HasPrefix(url, "https://") {
-					errors = append(errors, fmt.Sprintf("task '%s' (agent_call): workspace_entries[%d] url must use HTTPS (e.g. https://github.com/org/repo). SSH URLs are not supported.", task.Name, i))
-				}
-			}
-
-		case workflowv1.WorkflowTaskKind_emit_event:
-			// EmitDeliveryTarget's oneof-required and the member messages'
-			// required rules cannot run at Layer 1 (task_config is an opaque
-			// Struct there). A malformed target would otherwise degrade
-			// silently at run time: the runner's delivery is best-effort by
-			// contract, so it records a delivery_error instead of failing
-			// the task. Keep the strings in lockstep with the cloud Java
-			// validator.
-			for i, v := range getListField(fields, "delivery") {
-				target := v.GetStructValue()
-				if target == nil {
-					continue
-				}
-				webhook := getStructField(target.GetFields(), "webhook")
-				signal := getStructField(target.GetFields(), "signal")
-				switch {
-				case webhook == nil && signal == nil:
-					errors = append(errors, fmt.Sprintf("task '%s' (emit_event): delivery[%d] requires exactly one of 'webhook' or 'signal'", task.Name, i))
-				case webhook != nil && signal != nil:
-					errors = append(errors, fmt.Sprintf("task '%s' (emit_event): delivery[%d] must set only one of 'webhook' or 'signal'", task.Name, i))
-				case webhook != nil:
-					if url := getStringField(webhook.GetFields(), "url"); url == "" {
-						errors = append(errors, fmt.Sprintf("task '%s' (emit_event): delivery[%d] required field 'webhook.url' is missing or empty", task.Name, i))
-					}
-				case signal != nil:
-					if executionID := getStringField(signal.GetFields(), "execution_id"); executionID == "" {
-						errors = append(errors, fmt.Sprintf("task '%s' (emit_event): delivery[%d] required field 'signal.execution_id' is missing or empty", task.Name, i))
-					}
-					if signalName := getStringField(signal.GetFields(), "signal_name"); signalName == "" {
-						errors = append(errors, fmt.Sprintf("task '%s' (emit_event): delivery[%d] required field 'signal.signal_name' is missing or empty", task.Name, i))
-					}
-				}
+			if getStructField(source.GetFields(), "git_repo") == nil {
+				errors = append(errors, fmt.Sprintf("task '%s' (agent_call): workspace_entries[%d] must use a git_repo source — no client is connected to serve a local_path when a workflow task fires", task.Name, i))
 			}
 		}
 	}

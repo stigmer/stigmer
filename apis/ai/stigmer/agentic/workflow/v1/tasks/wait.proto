@@ -16,10 +16,16 @@ import "google/protobuf/timestamp.proto";
 //   - 2.5 hours: { hours: 2, minutes: 30 }
 //   - 90 seconds: { minutes: 1, seconds: 30 }
 message Duration {
+  // The 0u literals are load-bearing (stigmer#805): these fields are uint32,
+  // which CEL types as uint, and comparing uint to a signed int literal is a
+  // CROSS-TYPE comparison — an opt-in CEL extension protovalidate-go enables
+  // but protovalidate-java does not, so `> 0` compiles on Go and throws
+  // CompilationException on Java. uint-to-uint is core CEL and portable to
+  // every protovalidate implementation a schema consumer might run.
   option (buf.validate.message).cel = {
     id: "duration.non_zero"
     message: "at least one duration field must be non-zero"
-    expression: "this.days > 0 || this.hours > 0 || this.minutes > 0 || this.seconds > 0 || this.milliseconds > 0"
+    expression: "this.days > 0u || this.hours > 0u || this.minutes > 0u || this.seconds > 0u || this.milliseconds > 0u"
   };
 
   // Number of days to wait (24 hours each).
