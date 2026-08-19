@@ -84,17 +84,31 @@ func (v *InProcessValidator) Validate(ctx context.Context, spec *workflowv1.Work
 		errors = append(errors, crossRefErrors...)
 	}
 
-	// Step 2b: Task config required field validation
-	if configErrors := ValidateTaskConfigRequiredFields(spec); len(configErrors) > 0 {
-		errors = append(errors, configErrors...)
+	// Step 2b: typed task-config constraint validation — protovalidate over
+	// each strict-unmarshaled config, nested tasks included (stigmer#805). The
+	// rules declared on the task-config protos are the single source of truth
+	// for per-kind config constraints; hand-written checks exist only for
+	// semantics the protos cannot declare (Step 2c). A returned error is a
+	// fault in the validation machinery, not a spec problem, and aborts as a
+	// system error.
+	constraintErrors, constraintSysErr := ValidateTaskConfigConstraints(spec)
+	if constraintSysErr != nil {
+		return nil, fmt.Errorf("task config constraint validation could not run: %w", constraintSysErr)
+	}
+	errors = append(errors, constraintErrors...)
+
+	// Step 2c: bespoke task-config surface rules (semantics beyond what the
+	// config protos can declare)
+	if surfaceErrors := ValidateTaskConfigSurfaceRules(spec); len(surfaceErrors) > 0 {
+		errors = append(errors, surfaceErrors...)
 	}
 
-	// Step 2c: Model reference validation (harness-aware)
+	// Step 2d: Model reference validation (harness-aware)
 	if modelErrors := ValidateModelReferences(spec); len(modelErrors) > 0 {
 		errors = append(errors, modelErrors...)
 	}
 
-	// Step 2d: Human-input timeout policy validation (fail closed on
+	// Step 2e: Human-input timeout policy validation (fail closed on
 	// policies the runtime cannot honor)
 	if policyErrors := ValidateHumanInputTimeoutPolicies(spec); len(policyErrors) > 0 {
 		errors = append(errors, policyErrors...)

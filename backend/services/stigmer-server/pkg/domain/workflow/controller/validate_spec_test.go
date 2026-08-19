@@ -205,6 +205,69 @@ func TestValidateSpec_NilValidator(t *testing.T) {
 	assert.Equal(t, codes.Internal, status.Code(err))
 }
 
+// TestValidateSpec_Layer2TaskConfigConstraints: message-level CEL rules on the
+// typed task config fire at validate time (stigmer#805). wait's Duration carries
+// duration.non_zero, yet task_config is an opaque Struct at Layer 1 — only the
+// Layer-2 constraints step (protovalidate over the strict-unmarshaled typed
+// message) can see it. The error string is byte-lockstep with the cloud Java
+// validator: "task '<name>' (<kind>): <path> – <message>".
+func TestValidateSpec_Layer2TaskConfigConstraints(t *testing.T) {
+	c := newValidateSpecController()
+
+	wf := validWorkflow(t)
+	wf.Spec.Tasks = []*workflowv1.WorkflowTask{
+		{
+			Name:       "conditional_wait",
+			Kind:       workflowv1.WorkflowTaskKind_wait,
+			TaskConfig: mustStruct(t, map[string]any{"duration": map[string]any{}}),
+		},
+	}
+
+	result, err := c.ValidateSpec(context.Background(), wf)
+
+	require.NoError(t, err, "a config constraint violation is a user error, not a gRPC fault")
+	require.NotNil(t, result)
+	assert.Equal(t, serverlessv1.ValidationState_INVALID, result.GetState())
+	assert.Contains(t, result.GetErrors(),
+		"task 'conditional_wait' (wait): duration \u2013 at least one duration field must be non-zero")
+}
+
+// TestValidateSpec_Layer2TaskConfigConstraintsNested: the constraints step must
+// reach tasks nested inside control-flow configs (for_each/fork/try_catch do
+// blocks and compensate lists) — their task_config is a Struct inside the
+// parent's typed config, invisible to both Layer 1 and the parent's own
+// protovalidate run.
+func TestValidateSpec_Layer2TaskConfigConstraintsNested(t *testing.T) {
+	c := newValidateSpecController()
+
+	wf := validWorkflow(t)
+	wf.Spec.Tasks = []*workflowv1.WorkflowTask{
+		{
+			Name: "loopItems",
+			Kind: workflowv1.WorkflowTaskKind_for_each,
+			TaskConfig: mustStruct(t, map[string]any{
+				"each": "item",
+				"in":   "${ .items }",
+				"do": []any{
+					map[string]any{
+						"name":        "nestedWait",
+						"kind":        "wait",
+						"task_config": map[string]any{"duration": map[string]any{}},
+					},
+				},
+			}),
+		},
+	}
+
+	result, err := c.ValidateSpec(context.Background(), wf)
+
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Equal(t, serverlessv1.ValidationState_INVALID, result.GetState())
+	assert.Contains(t, result.GetErrors(),
+		"task 'nestedWait' (wait): duration \u2013 at least one duration field must be non-zero")
+}
+
 // TestProtoFieldViolations_Format locks the exact cross-edition format so a drift
 // away from the "<field.path> – <message>" shape (mirrored from the Java
 // ProtoMessageFieldsValidator) is caught.

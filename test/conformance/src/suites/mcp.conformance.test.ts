@@ -236,5 +236,19 @@ ${taskConfig}
     const invalidVerdict = JSON.parse(invalid.content[0]?.text ?? "{}");
     expect(invalidVerdict.state).toBe("INVALID");
     expect(JSON.stringify(invalidVerdict.errors)).toContain("conditional_wait");
+
+    // The typed-config CEL contract (stigmer#805): a present-but-all-zero
+    // duration parses cleanly (so the structural gate passes) but violates
+    // WaitTaskConfig's duration.non_zero message rule — the Layer-2 constraints
+    // step must surface it as a structured INVALID verdict.
+    const celInvalid = await callTool("validate_workflow_yaml", {
+      yaml: workflowYaml("        duration: {}"),
+    });
+    expect(celInvalid.isError, celInvalid.content[0]?.text).toBeFalsy();
+    const celVerdict = JSON.parse(celInvalid.content[0]?.text ?? "{}");
+    expect(celVerdict.state).toBe("INVALID");
+    expect(JSON.stringify(celVerdict.errors)).toContain(
+      "at least one duration field must be non-zero",
+    );
   });
 });

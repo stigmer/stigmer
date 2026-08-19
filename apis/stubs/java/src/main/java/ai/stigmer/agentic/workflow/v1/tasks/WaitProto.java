@@ -50,24 +50,24 @@ public final class WaitProto extends com.google.protobuf.GeneratedFile {
       "1.tasks\0322ai/stigmer/commons/apiresource/" +
       "field_options.proto\032\033buf/validate/valida" +
       "te.proto\032\037google/protobuf/timestamp.prot" +
-      "o\"\271\002\n\010Duration\022\022\n\004days\030\001 \001(\rR\004days\022\024\n\005ho" +
+      "o\"\276\002\n\010Duration\022\022\n\004days\030\001 \001(\rR\004days\022\024\n\005ho" +
       "urs\030\002 \001(\rR\005hours\022\030\n\007minutes\030\003 \001(\rR\007minut" +
       "es\022\030\n\007seconds\030\004 \001(\rR\007seconds\022\"\n\014millisec" +
-      "onds\030\005 \001(\rR\014milliseconds:\252\001\272H\246\001\032\243\001\n\021dura" +
+      "onds\030\005 \001(\rR\014milliseconds:\257\001\272H\253\001\032\250\001\n\021dura" +
       "tion.non_zero\022,at least one duration fie" +
-      "ld must be non-zero\032`this.days > 0 || th" +
-      "is.hours > 0 || this.minutes > 0 || this" +
-      ".seconds > 0 || this.milliseconds > 0\"\251\001" +
-      "\n\016WaitTaskConfig\022L\n\010duration\030\001 \001(\0132..ai." +
-      "stigmer.agentic.workflow.v1.tasks.Durati" +
-      "onH\000R\010duration\0222\n\005until\030\002 \001(\0132\032.google.p" +
-      "rotobuf.TimestampH\000R\005until:\010\352\213,\004waitB\013\n\t" +
-      "wait_typeB\303\001B\tWaitProtoP\001\242\002\006ASAWVT\252\002$Ai." +
-      "Stigmer.Agentic.Workflow.V1.Tasks\312\002$Ai\\S" +
-      "tigmer\\Agentic\\Workflow\\V1\\Tasks\342\0020Ai\\St" +
-      "igmer\\Agentic\\Workflow\\V1\\Tasks\\GPBMetad" +
-      "ata\352\002)Ai::Stigmer::Agentic::Workflow::V1" +
-      "::Tasksb\006proto3"
+      "ld must be non-zero\032ethis.days > 0u || t" +
+      "his.hours > 0u || this.minutes > 0u || t" +
+      "his.seconds > 0u || this.milliseconds > " +
+      "0u\"\251\001\n\016WaitTaskConfig\022L\n\010duration\030\001 \001(\0132" +
+      "..ai.stigmer.agentic.workflow.v1.tasks.D" +
+      "urationH\000R\010duration\0222\n\005until\030\002 \001(\0132\032.goo" +
+      "gle.protobuf.TimestampH\000R\005until:\010\352\213,\004wai" +
+      "tB\013\n\twait_typeB\303\001B\tWaitProtoP\001\242\002\006ASAWVT\252" +
+      "\002$Ai.Stigmer.Agentic.Workflow.V1.Tasks\312\002" +
+      "$Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\342\0020" +
+      "Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\\GPB" +
+      "Metadata\352\002)Ai::Stigmer::Agentic::Workflo" +
+      "w::V1::Tasksb\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
