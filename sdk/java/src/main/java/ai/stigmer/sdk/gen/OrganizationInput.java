@@ -129,9 +129,11 @@ public final class OrganizationInput {
     /** SDK input type for OrganizationPreferences. */
     public static final class OrganizationPreferencesInput {
         private final String standingContext;
+        private final boolean memoryEnabled;
 
         private OrganizationPreferencesInput(Builder builder) {
             this.standingContext = builder.standingContext;
+            this.memoryEnabled = builder.memoryEnabled;
         }
 
         OrganizationPreferences toProto() {
@@ -139,6 +141,7 @@ public final class OrganizationInput {
             if (this.standingContext != null) {
                 builder.setStandingContext(this.standingContext);
             }
+            builder.setMemoryEnabled(this.memoryEnabled);
             return builder.build();
         }
 
@@ -146,10 +149,12 @@ public final class OrganizationInput {
 
         public static final class Builder {
             private String standingContext;
+            private boolean memoryEnabled;
 
             private Builder() {}
 
             public Builder standingContext(String standingContext) { this.standingContext = standingContext; return this; }
+            public Builder memoryEnabled(boolean memoryEnabled) { this.memoryEnabled = memoryEnabled; return this; }
 
             public OrganizationPreferencesInput build() { return new OrganizationPreferencesInput(this); }
         }

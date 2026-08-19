@@ -1064,7 +1064,7 @@ apps inject platform-specific values via props (DD-004/DD-016).
     panel: { type: "SessionPanelMode", description: "Whether the launcher offers the session panel at all — `\"none\"` removes the panel and its toggle chip while keeping every composer capability the audience allows. Same contract as SessionViewerProps.panel (DD-016 parity); see SessionPanelMode.", typeDescriptionLink: "#sessionpanelmode" },
     panelOpen: { type: "boolean", description: "Controlled open state of the session panel. Same contract as SessionViewerProps.panelOpen (DD-016 parity)." },
     placeholder: { type: "string", description: "Placeholder for the composer textarea." },
-    runConfig: { type: "SessionRunConfig", description: "Owner-pinned model/tier for the session's first execution (stigmer/stigmer#664). Same contract as SessionViewerProps.runConfig (DD-016 parity): wins over the composer and the restored preference, hides the model picker, and is ignored for the `\"guest\"` audience. Pair with the same pin on the conversation's `SessionViewer` so follow-ups match. See SessionRunConfig." },
+    runConfig: { type: "SessionRunConfig", description: "Owner-pinned model/tier for the session's first execution (stigmer/stigmer#664). Same contract as SessionViewerProps.runConfig (DD-016 parity): wins over the composer and the restored preference, hides the model picker, and is ignored for the `\"guest\"` audience. Pair with the same pin on the conversation's `SessionViewer` so follow-ups match. See SessionRunConfig.", typeDescriptionLink: "#sessionrunconfig" },
     showModelSelector: { type: "boolean", description: "Whether the composer offers the model picker. Same contract as SessionViewerProps.showModelSelector (DD-016 parity): forced off by a NewSessionViewerProps.runConfig model pin and for the `\"guest\"` audience." },
     workspaceContentSearcher: { type: "WorkspaceContentSearcher", description: "Platform-injected content (text) searcher — the same capability `SessionViewer` accepts (DD-016 parity). Desktop injects a native ripgrep-backed searcher; web leaves it undefined (DD-09).", typeDescriptionLink: "/docs/sdk/react/workspace#workspacecontentsearcher" },
     workspaceFileLister: { type: "WorkspaceFileLister", description: "Platform-injected file lister for workspace entries. When provided, each entry in the Setup tab's workspace section renders an expandable file tree. (DD-004 capability injection, DD-011 opt-in.)", typeDescriptionLink: "/docs/sdk/react/workspace#workspacefilelister" },
@@ -1206,7 +1206,7 @@ apps inject platform-specific values via props (DD-004/DD-016).
     org: { type: "string", description: "Organization slug.", required: true },
     panel: { type: "SessionPanelMode", description: "Whether the viewer offers the session panel at all. `\"none\"` removes the panel AND its toggle chip, suppresses plan-mode auto-open, and lets transcript file paths keep their default copy behavior — for hosts whose surrounding surface already renders the workspace — while keeping every composer capability the audience allows. This is the panel half of what `audience=\"guest\"` does, WITHOUT guest's composer strip-down; guest still forces it regardless of this prop. A union (not a boolean) so a future mode (e.g. a host-rendered panel) extends rather than breaks it.", typeDescriptionLink: "#sessionpanelmode" },
     panelOpen: { type: "boolean", description: "Controlled open state of the session panel. When provided, the host owns the panel: the chip toggle, file/plan/artifact opens, and plan-mode auto-open surface through SessionViewerProps.onPanelOpenChange instead of flipping state, and the panel follows this value. Leave `undefined` for the self-managing default." },
-    runConfig: { type: "SessionRunConfig", description: "Owner-pinned model/tier for every execution sent from this viewer (stigmer/stigmer#664) — for product-embedded conversations where the platform, not the end user, decides what serves the session (pair with `audience=\"endUser\"`). A pinned model wins over the composer, the persisted Console preference, and the last execution's model — follow-ups and retries included — and hides the model picker (a control that has no effect must not render). Ignored for the `\"guest\"` audience, whose execution config the server-side share policy owns. See SessionRunConfig." },
+    runConfig: { type: "SessionRunConfig", description: "Owner-pinned model/tier for every execution sent from this viewer (stigmer/stigmer#664) — for product-embedded conversations where the platform, not the end user, decides what serves the session (pair with `audience=\"endUser\"`). A pinned model wins over the composer, the persisted Console preference, and the last execution's model — follow-ups and retries included — and hides the model picker (a control that has no effect must not render). Ignored for the `\"guest\"` audience, whose execution config the server-side share policy owns. See SessionRunConfig.", typeDescriptionLink: "#sessionrunconfig" },
     sessionId: { type: "string", description: "Session ID to load and display.", required: true },
     showModelSelector: { type: "boolean", description: "Whether the follow-up composer offers the model picker. `false` hides the picker while keeping the SDK's model sourcing (persisted preference, then the last execution's model) — for hosts whose surrounding surface owns model choice without pinning it. Forced off by a SessionViewerProps.runConfig model pin and for the `\"guest\"` audience." },
     threadSlots: { type: "MessageThreadSlots", description: "Component overrides for the conversation thread's chrome (message bubbles, approval card, to-dos card, plan cards, thinking indicator) — forwarded to the inner MessageThread. See MessageThreadSlots. Define the object and its components at module level (or memoize) so thread rows keep their streaming re-render guarantees.", typeDescriptionLink: "/docs/sdk/react/execution#messagethreadslots" },
@@ -1800,6 +1800,41 @@ looking, panel mode is what the host's geometry has room for. A union
 the SDK's controller — extends the vocabulary instead of breaking it.
 
 
+### SessionRunConfig
+
+Owner-pinned execution config for a session surface
+(stigmer/stigmer#664) — the client-side subset of the platform
+`RunConfig` that AgentShare and AgentChannel specs pin server-side
+(stigmer/stigmer#360). Budget clamps (`max_cost_usd`,
+`max_tool_rounds`) are deliberately absent: those are enforcement,
+which only the server can own.
+
+Passed to `SessionViewer` / `NewSessionViewer` (or the underlying
+flow hooks) by embedders whose product — not the end user — decides
+what serves the conversation: every execution on the surface (first
+message, follow-ups, retries) carries the pinned values, and the
+model picker hides automatically (a control that has no effect must
+not render).
+
+This is presentation-level pinning for product-embedded sessions,
+not a security boundary — a caller with the session's credentials
+can still create executions directly. Share/channel surfaces, where
+the audience is untrusted, get the server-enforced `RunConfig` on
+their specs instead.
+
+Ignored entirely for the `"guest"` audience: guest execution config
+is owned by the server-side share policy, and guest sends carrying
+no `modelName` is a pinned invariant.
+
+<TypeTable
+  type={{
+    modelName: { type: "string", description: "Model every execution runs, as a plain `modelId` from the model registry. Wins over the composer's selection, the persisted Console preference, and the last execution's model." },
+    serviceTier: { type: "ServiceTierOption", description: "Service tier for every execution. `\"fast\"` requires modelName: the fast tier is a per-model price (the server refuses it fail-closed for Auto), so a tier pin without a model pin is a host configuration error and throws at submit." },
+    thinkingMode: { type: "ThinkingModeOption", description: "Thinking mode for every execution (stigmer/stigmer#772). `\"enabled\"` requires modelName under the same contract as serviceTier: thinking is a per-model capability (the server refuses it fail-closed for Auto), so a mode pin without a model pin is a host configuration error and throws at submit." },
+  }}
+/>
+
+
 ### SessionWriteBackEntry
 
 A single write-back entry enriched with the execution context that
@@ -1863,7 +1898,7 @@ Options for [`useNewSessionFlow`](#usenewsessionflow).
     onError: { type: "(message: string) => void", description: "Called when an error occurs during session creation. The consumer can use this for toast notifications or other UI feedback. If not provided, errors are still available via UseNewSessionFlowReturn.submitError." },
     onSessionCreated: { type: "(sessionId: string) => void", description: "Called after a session and its first execution are created successfully. The consumer is responsible for navigation (e.g. `router.push`).", required: true },
     org: { type: "string", description: "Organization slug. Required for session and execution creation.", required: true },
-    runConfig: { type: "SessionRunConfig", description: "Owner-pinned model/tier for the session's first execution (stigmer/stigmer#664). Stamped at submit, winning over the composer's selection and the restored Console preference. Pair with the same pin on the conversation surface (`useSessionPageFlow` / `SessionViewer`) so follow-ups match. Ignored for the `\"guest\"` audience (the platform share policy owns guest execution config). See SessionRunConfig." },
+    runConfig: { type: "SessionRunConfig", description: "Owner-pinned model/tier for the session's first execution (stigmer/stigmer#664). Stamped at submit, winning over the composer's selection and the restored Console preference. Pair with the same pin on the conversation surface (`useSessionPageFlow` / `SessionViewer`) so follow-ups match. Ignored for the `\"guest\"` audience (the platform share policy owns guest execution config). See SessionRunConfig.", typeDescriptionLink: "#sessionrunconfig" },
     sessionContext: { type: "string", description: "Standing, per-user context the agent receives on every turn but the conversation UI never renders — who the caller is, their experience level, their standing instructions (stigmer/stigmer#286).  Stored on the created session's `SessionSpec.metadata` under `stigmer.ai/session-context`; the agent runner injects it into the system prompt as already-known background, so agents can greet the user by name and calibrate depth/defaults from the first turn without a visible context preamble.  Personalization, not authorization: anyone who can create the session can set this (the same trust level as authoring the first message). Hidden from the conversation thread, not from the API — `session.get` returns it, so never put secrets here; secrets belong in `runtimeEnv` or Environment resources. Large values bloat every prompt." },
   }}
 />
@@ -1907,7 +1942,7 @@ Options for [`useSessionPageFlow`](#usesessionpageflow).
     audience: { type: "SessionAudience", description: "Who this flow serves. `\"guest\"` adapts the orchestration to the guest principal's permission model: the session→agent derivation (`agentInstance.get` → `agent.get`) and the org default-agent lookup — reads a guest token cannot make — are skipped. Follow-ups then carry no agent override and simply continue on the session's bound instance, which is exactly right for a shared-agent page. See SessionAudience.", typeDescriptionLink: "#sessionaudience" },
     getRuntimeEnv: { type: "RuntimeEnvProvider", description: "Supplies host-app environment variables for every follow-up execution. Evaluated once per follow-up, at send time, so short-lived credentials stay fresh.  Host values win over composer-collected env on key collisions. If the provider throws, the follow-up is aborted before any optimistic UI or session mutation and the error surfaces via UseSessionPageFlowReturn.submitError. See RuntimeEnvProvider.", typeDescriptionLink: "#runtimeenvprovider" },
     org: { type: "string", description: "Organization slug.", required: true },
-    runConfig: { type: "SessionRunConfig", description: "Owner-pinned model/tier for every follow-up on this surface (stigmer/stigmer#664). Stamped at submit — after the composer, so it wins over composer state, the persisted Console preference, and the last execution's model — and therefore also covers retries, which re-enter the same submit path. Ignored for the `\"guest\"` audience (the server-side share policy owns guest execution config). See SessionRunConfig." },
+    runConfig: { type: "SessionRunConfig", description: "Owner-pinned model/tier for every follow-up on this surface (stigmer/stigmer#664). Stamped at submit — after the composer, so it wins over composer state, the persisted Console preference, and the last execution's model — and therefore also covers retries, which re-enter the same submit path. Ignored for the `\"guest\"` audience (the server-side share policy owns guest execution config). See SessionRunConfig.", typeDescriptionLink: "#sessionrunconfig" },
     sessionId: { type: "string", description: "Session ID to load and manage.", required: true },
   }}
 />

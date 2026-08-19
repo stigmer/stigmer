@@ -113,6 +113,23 @@ export interface CapabilityFlags {
   // (stigmer#803). Attachment REJECTION contracts (foreign keys etc.) are
   // server-side and run unconditionally.
   sharedRunnerArtifactStore: boolean;
+  // The conformance caller passes the Memory create RPC's strict
+  // first-party-human-operator gate (DD-002 D4 as amended, inherited by
+  // memory capture — DD-005 D2/DD-006 D1).
+  //
+  // True for the local OSS targets: single-user posture, no caller
+  // identity, no gate.
+  //
+  // False for cloud — BY RATIFIED DESIGN, not a harness gap: the
+  // conformance primary user is minted through the bootstrap
+  // PlatformClient, and platform-client user tokens are exactly the
+  // credential class DD-002 D4's amendment excludes from first-party
+  // gating. Where false, the suite pins the gate itself: create answers
+  // PermissionDenied even with both memory_enabled flags on. Cloud's
+  // full memory lifecycle is covered by test/integration (seeded rows +
+  // FGA tuples) and the Java handler unit tests — the same coverage
+  // split ComposeDeclaredPreferencesStep has.
+  firstPartyMemoryCapture: boolean;
   // The conformance caller may set a resource's visibility to PUBLIC — the
   // only level that crosses every org boundary (the cross-org "explore"
   // catalog).

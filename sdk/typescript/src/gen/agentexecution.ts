@@ -12,7 +12,7 @@ import { AgentExecutionCommandController } from "@stigmer/protos/ai/stigmer/agen
 import { InteractionMode, ApprovalMode, ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { AgentExecutionIdSchema, AgentExecutionUpdateStatusInputSchema, UpdateStatusResponseSchema, SubmitApprovalInputSchema, SubmitFileDecisionInputSchema, CancelAgentExecutionInputSchema, TerminateAgentExecutionInputSchema, RecoverAgentExecutionInputSchema, PauseAgentExecutionInputSchema, ResumeAgentExecutionInputSchema, UploadAttachmentRequestSchema, UploadAttachmentResponseSchema, ListAgentExecutionsRequestSchema, AgentExecutionListSchema, ListAgentExecutionsBySessionRequestSchema, GetArtifactDownloadUrlRequestSchema, GetArtifactDownloadUrlResponseSchema, GetArtifactContentRequestSchema, GetArtifactContentResponseSchema, GetExecutionUsageReportInputSchema, GetExecutionUsageReportOutputSchema, GetSessionUsageReportInputSchema, GetSessionUsageReportOutputSchema, GetAgentUsageReportInputSchema, GetAgentUsageReportOutputSchema, GetOrgUsageReportInputSchema, GetOrgUsageReportOutputSchema, GetAgentExecutionSummaryRequestSchema, AgentExecutionSummarySchema, type AgentExecutionUpdateStatusInput, type UpdateStatusResponse, type SubmitApprovalInput, type SubmitFileDecisionInput, type CancelAgentExecutionInput, type TerminateAgentExecutionInput, type RecoverAgentExecutionInput, type PauseAgentExecutionInput, type ResumeAgentExecutionInput, type UploadAttachmentRequest, type UploadAttachmentResponse, type ListAgentExecutionsRequest, type AgentExecutionList, type ListAgentExecutionsBySessionRequest, type GetArtifactDownloadUrlRequest, type GetArtifactDownloadUrlResponse, type GetArtifactContentRequest, type GetArtifactContentResponse, type GetExecutionUsageReportInput, type GetExecutionUsageReportOutput, type GetSessionUsageReportInput, type GetSessionUsageReportOutput, type GetAgentUsageReportInput, type GetAgentUsageReportOutput, type GetOrgUsageReportInput, type GetOrgUsageReportOutput, type GetAgentExecutionSummaryRequest, type AgentExecutionSummary } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
 import { AgentExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/query_pb";
-import { AgentExecutionSpecSchema, ContextManagementConfigSchema, ExecutionConfigSchema, AttachmentSchema, ConversationCatchupSchema, DeclaredPreferencesSchema, type ContextManagementConfig, type ExecutionConfig, type Attachment, type ConversationCatchup, type DeclaredPreferences } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+import { AgentExecutionSpecSchema, ContextManagementConfigSchema, ExecutionConfigSchema, AttachmentSchema, ConversationCatchupSchema, DeclaredPreferencesSchema, RecalledMemoryFactSchema, RecalledMemoriesSchema, type ContextManagementConfig, type ExecutionConfig, type Attachment, type ConversationCatchup, type DeclaredPreferences, type RecalledMemoryFact, type RecalledMemories } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import { ExecutionValueSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
 import { Harness, CursorMode, ExecutionTarget, GitWriteBackMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { SessionSpecSchema, type SessionSpec } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
@@ -202,6 +202,7 @@ export interface AgentExecutionInput {
   supersedesExecutionId?: string;
   conversationCatchup?: ConversationCatchupInput;
   declaredPreferences?: DeclaredPreferencesInput;
+  recalledMemories?: RecalledMemoriesInput;
 }
 
 /** SDK input type for SessionSpec. */
@@ -301,6 +302,18 @@ export interface ConversationCatchupInput {
 export interface DeclaredPreferencesInput {
   orgContext?: string;
   userContext?: string;
+}
+
+/** SDK input type for RecalledMemories. */
+export interface RecalledMemoriesInput {
+  enabled?: boolean;
+  facts?: RecalledMemoryFactInput[];
+}
+
+/** SDK input type for RecalledMemoryFact. */
+export interface RecalledMemoryFactInput {
+  memoryId?: string;
+  content?: string;
 }
 
 function buildGitRepoSourceProto(input: GitRepoSourceInput) {
@@ -417,6 +430,20 @@ function buildDeclaredPreferencesProto(input: DeclaredPreferencesInput) {
   }));
 }
 
+function buildRecalledMemoryFactProto(input: RecalledMemoryFactInput) {
+  return Object.assign(create(RecalledMemoryFactSchema), stripUndefined({
+    memoryId: input.memoryId,
+    content: input.content,
+  }));
+}
+
+function buildRecalledMemoriesProto(input: RecalledMemoriesInput) {
+  const msg = create(RecalledMemoriesSchema);
+  if (input.enabled !== undefined) msg.enabled = input.enabled;
+  if (input.facts) msg.facts = input.facts.map(buildRecalledMemoryFactProto);
+  return msg;
+}
+
 export function buildAgentExecutionProto(input: AgentExecutionInput): AgentExecution {
   const sessionSpec = input.sessionSpec ? buildSessionSpecProto(input.sessionSpec) : undefined;
   const executionConfig = input.executionConfig ? buildExecutionConfigProto(input.executionConfig) : undefined;
@@ -428,6 +455,7 @@ export function buildAgentExecutionProto(input: AgentExecutionInput): AgentExecu
   const attachments = input.attachments?.map(buildAttachmentProto);
   const conversationCatchup = input.conversationCatchup ? buildConversationCatchupProto(input.conversationCatchup) : undefined;
   const declaredPreferences = input.declaredPreferences ? buildDeclaredPreferencesProto(input.declaredPreferences) : undefined;
+  const recalledMemories = input.recalledMemories ? buildRecalledMemoriesProto(input.recalledMemories) : undefined;
   return Object.assign(create(AgentExecutionSchema), {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "AgentExecution",
@@ -455,6 +483,7 @@ export function buildAgentExecutionProto(input: AgentExecutionInput): AgentExecu
       supersedesExecutionId: input.supersedesExecutionId,
       conversationCatchup,
       declaredPreferences,
+      recalledMemories,
     })),
   }) as AgentExecution;
 }
@@ -570,6 +599,20 @@ function toDeclaredPreferencesInput(msg: DeclaredPreferences): DeclaredPreferenc
   };
 }
 
+function toRecalledMemoryFactInput(msg: RecalledMemoryFact): RecalledMemoryFactInput {
+  return {
+    memoryId: msg.memoryId || undefined,
+    content: msg.content || undefined,
+  };
+}
+
+function toRecalledMemoriesInput(msg: RecalledMemories): RecalledMemoriesInput {
+  return {
+    enabled: msg.enabled || undefined,
+    facts: msg.facts?.length ? msg.facts.map(toRecalledMemoryFactInput) : undefined,
+  };
+}
+
 /**
  * Maps a fetched {@link AgentExecution} to a complete {@link AgentExecutionInput} for `update()`.
  *
@@ -610,5 +653,6 @@ export function toAgentExecutionUpdateInput(resource: AgentExecution): AgentExec
     supersedesExecutionId: spec.supersedesExecutionId || undefined,
     conversationCatchup: spec.conversationCatchup ? toConversationCatchupInput(spec.conversationCatchup) : undefined,
     declaredPreferences: spec.declaredPreferences ? toDeclaredPreferencesInput(spec.declaredPreferences) : undefined,
+    recalledMemories: spec.recalledMemories ? toRecalledMemoriesInput(spec.recalledMemories) : undefined,
   };
 }

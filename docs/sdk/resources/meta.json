@@ -17,6 +17,7 @@
     "identity-provider",
     "invitation",
     "mcp-server",
+    "memory",
     "oauth-app",
     "organization",
     "platform-client",

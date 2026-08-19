@@ -1,0 +1,380 @@
+{
+  "resource": "memory",
+  "package": "ai.stigmer.agentic.memory.v1",
+  "goImportPath": "memoryv1",
+  "services": [
+    {
+      "name": "MemoryCommandController",
+      "role": "command",
+      "protoFile": "ai/stigmer/agentic/memory/v1/command.proto",
+      "methods": [
+        {
+          "name": "Create",
+          "inputType": "Memory",
+          "inputFullType": "ai.stigmer.agentic.memory.v1.Memory",
+          "outputType": "Memory",
+          "outputFullType": "ai.stigmer.agentic.memory.v1.Memory",
+          "description": "Create a memory in the proposed state.\n\n The memory starts its consent lifecycle as proposed: it is not\n recalled into any execution until the person it is about confirms\n it. The subject and provenance are derived by the server from the\n calling credential and request context — values supplied on the\n request are overwritten."
+        },
+        {
+          "name": "Update",
+          "inputType": "Memory",
+          "inputFullType": "ai.stigmer.agentic.memory.v1.Memory",
+          "outputType": "Memory",
+          "outputFullType": "ai.stigmer.agentic.memory.v1.Memory",
+          "description": "Update a memory's fact text.\n\n Replaces the spec wholesale, but only the content may actually\n change: the subject and provenance are immutable, and the consent\n lifecycle in status is never touched by updates — use confirm or\n reject to decide on a proposal."
+        },
+        {
+          "name": "Delete",
+          "inputType": "MemoryId",
+          "inputFullType": "ai.stigmer.agentic.memory.v1.MemoryId",
+          "outputType": "Memory",
+          "outputFullType": "ai.stigmer.agentic.memory.v1.Memory",
+          "description": "Delete a memory permanently, in any lifecycle state.\n\n Deletion is the retention mechanism: deleting a confirmed memory is\n how consent is revoked, and the fact stops reaching future\n executions immediately. Past executions that already recalled it\n keep their immutable snapshots."
+        },
+        {
+          "name": "Confirm",
+          "inputType": "MemoryId",
+          "inputFullType": "ai.stigmer.agentic.memory.v1.MemoryId",
+          "outputType": "Memory",
+          "outputFullType": "ai.stigmer.agentic.memory.v1.Memory",
+          "description": "Confirm a proposed memory, making it recallable.\n\n Confirmation is the consent act: from the next eligible execution\n on, the fact is injected as background context. Confirming an\n already-confirmed memory succeeds and changes nothing. Confirming a\n rejected memory is refused — delete it instead and let the agent\n propose again."
+        },
+        {
+          "name": "Reject",
+          "inputType": "MemoryId",
+          "inputFullType": "ai.stigmer.agentic.memory.v1.MemoryId",
+          "outputType": "Memory",
+          "outputFullType": "ai.stigmer.agentic.memory.v1.Memory",
+          "description": "Reject a proposed memory, keeping it as an audit record.\n\n A rejected memory is never recalled. The record is kept rather than\n deleted so the decision is auditable; delete it to remove it\n entirely. Rejecting an already-rejected memory succeeds and changes\n nothing. Rejecting a confirmed memory is refused — deleting it is\n how a confirmed fact is revoked."
+        }
+      ]
+    },
+    {
+      "name": "MemoryQueryController",
+      "role": "query",
+      "protoFile": "ai/stigmer/agentic/memory/v1/query.proto",
+      "methods": [
+        {
+          "name": "Get",
+          "inputType": "MemoryId",
+          "inputFullType": "ai.stigmer.agentic.memory.v1.MemoryId",
+          "outputType": "Memory",
+          "outputFullType": "ai.stigmer.agentic.memory.v1.Memory",
+          "description": "Get a single memory by ID."
+        },
+        {
+          "name": "List",
+          "inputType": "ListMemoriesRequest",
+          "inputFullType": "ai.stigmer.agentic.memory.v1.ListMemoriesRequest",
+          "outputType": "MemoryList",
+          "outputFullType": "ai.stigmer.agentic.memory.v1.MemoryList",
+          "description": "List the caller's memories in an organization.\n\n Returns only memories the caller can view — for memories that is\n always exactly the ones about the caller."
+        }
+      ]
+    }
+  ],
+  "methodTypes": [
+    {
+      "name": "ListMemoriesRequest",
+      "description": "Input for listing memories within an organization.",
+      "protoType": "ai.stigmer.agentic.memory.v1.ListMemoriesRequest",
+      "protoFile": "apis/ai/stigmer/agentic/memory/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization slug to scope the listing.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "PageInfo",
+          "jsonName": "pageInfo",
+          "protoField": "page_info",
+          "type": {
+            "kind": "message",
+            "messageType": "PageInfo"
+          },
+          "description": "Pagination options.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "MemoryList",
+      "description": "Response containing a paginated list of memories.",
+      "protoType": "ai.stigmer.agentic.memory.v1.MemoryList",
+      "protoFile": "apis/ai/stigmer/agentic/memory/v1/io.proto",
+      "fields": [
+        {
+          "name": "TotalCount",
+          "jsonName": "totalCount",
+          "protoField": "total_count",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Total number of memories matching the query.",
+          "required": false
+        },
+        {
+          "name": "Items",
+          "jsonName": "items",
+          "protoField": "items",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "Memory"
+            }
+          },
+          "description": "Memories in the current page.",
+          "required": false
+        }
+      ]
+    }
+  ],
+  "enumTypes": [
+    {
+      "name": "MemoryLifecycleState",
+      "description": "MemoryLifecycleState tracks a memory's consent lifecycle.",
+      "protoType": "ai.stigmer.agentic.memory.v1.MemoryLifecycleState",
+      "values": [
+        {
+          "name": "lifecycle_state_proposed",
+          "number": 1,
+          "description": "Proposed by an agent; awaiting the subject's decision. Never\n recalled."
+        },
+        {
+          "name": "lifecycle_state_confirmed",
+          "number": 2,
+          "description": "Confirmed by the subject. Recalled into the subject's future\n eligible executions."
+        },
+        {
+          "name": "lifecycle_state_rejected",
+          "number": 3,
+          "description": "Rejected by the subject. Kept for audit, never recalled."
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceVisibility",
+      "description": "Visibility controls who can access an API resource.\n This is orthogonal to ownership - visibility is about access control,\n while ownership (org) determines who manages the resource.\n\n Key distinction:\n - Ownership: Which organization controls/manages the resource\n - Visibility: Who can access/use the resource\n\n All resources belong to an organization. Visibility determines whether\n users outside that organization can access the resource.\n\n The visibility levels map to FGA tuples:\n - PRIVATE: no additional viewer tuples (owner-only access)\n - ORG: resource#viewer@organization:\u003corg\u003e#viewer tuple (everyone in the\n   org — the org role hierarchy flows downward, so owners, admins, members\n   AND read-only viewers all satisfy the organization#viewer userset)\n - PUBLIC: resource#viewer@identity_account:* with allow_public (all users)\n - PLATFORM: resource#platform_viewer@identity_provider:\u003cidp\u003e#platform_user\n   (all members of all organizations managed by the owning org's\n   IdentityProvider)",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
+      "values": [
+        {
+          "name": "visibility_private",
+          "number": 1,
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only."
+        },
+        {
+          "name": "visibility_public",
+          "number": 2,
+          "description": "Anyone can access (read) this resource.\n Used for marketplace-published resources (e.g., \"stigmer/web-search\").\n Write access still requires org membership.\n\n In the cloud edition, entering this level is operator-gated\n (can_set_public_visibility on platform:stigmer): public listing is a\n curation decision, requested by the resource owner and granted by the\n platform team — at both doors, updateVisibility escalation and\n create-with-public. Leaving this level stays self-service for anyone\n with can_edit. The OSS edition is unguarded (the self-hosted operator\n owns the store).\n Named visibility_public to avoid Java reserved keyword conflict."
+        },
+        {
+          "name": "visibility_org",
+          "number": 3,
+          "description": "Everyone in the owning organization can access (read) this resource —\n all org roles including read-only viewers (the role SSO auto-provisioning\n grants by default). Running or otherwise spending against the resource\n still requires the org-level member-or-guest permissions\n (can_create_session / can_create_execution_in); org visibility widens\n read, never spend.\n Used for instances where a team wants shared observability of executions\n without granting access to all authenticated users.\n\n FGA tuple: resource#viewer@organization:\u003corg\u003e#viewer\n (Before cloud#257 the tuple targeted organization#member, which\n excluded viewer-role users; legacy tuples keep resolving until the\n cloud's boot-time backfill converges them.)\n\n For workflow instances, this enables zero-tuple-per-execution shared\n observability: everyone in the org sees all executions via inheritance\n once the instance opts in."
+        },
+        {
+          "name": "visibility_platform",
+          "number": 4,
+          "description": "All members of all organizations managed by the owning org's\n IdentityProvider can access (read and execute) this resource.\n\n \"Platform\" here means an external platform that operates Stigmer orgs\n on behalf of its own customers (see ManagementMode.platform_managed) —\n NOT the Stigmer platform singleton used by\n AUTHORIZATION_SCOPE_TYPE_PLATFORM.\n\n This is the \"private catalog\" primitive for multi-tenant consumers:\n a platform (e.g. Planton) authors blueprints (agents, skills, MCP\n servers, workflows) in its own org and shares them with every child\n org it manages, without exposing them publicly. Child orgs created\n later gain access automatically. Instances, sessions, executions and\n environments are never platform-visible — each child org instantiates\n the shared blueprint inside its own tenant boundary.\n\n Only valid for blueprint kinds with supports_platform: true, and only\n when the owning org owns at least one IdentityProvider.\n\n FGA tuple: resource#platform_viewer@identity_provider:\u003cidp\u003e#platform_user"
+        }
+      ]
+    }
+  ],
+  "resourceDescription": "Memory is a single fact the platform remembers about a person.\n\n A memory is proposed by an agent during a session, and becomes active\n only after the person it is about confirms it. Confirmed memories are\n recalled into that person's future agent executions as background\n context. Every memory is individually listable, editable, and\n deletable — the record is the trust surface over the recall seam.",
+  "statusType": {
+    "name": "MemoryStatus",
+    "description": "MemoryStatus contains system-managed state for a memory.",
+    "protoType": "ai.stigmer.agentic.memory.v1.MemoryStatus",
+    "protoFile": "apis/ai/stigmer/agentic/memory/v1/status.proto",
+    "fields": [
+      {
+        "name": "LifecycleState",
+        "jsonName": "lifecycleState",
+        "protoField": "lifecycle_state",
+        "type": {
+          "kind": "string",
+          "enumType": "ai.stigmer.agentic.memory.v1.MemoryLifecycleState",
+          "enumValues": [
+            "lifecycle_state_proposed",
+            "lifecycle_state_confirmed",
+            "lifecycle_state_rejected"
+          ]
+        },
+        "description": "Where this memory is in its consent lifecycle.",
+        "required": false
+      },
+      {
+        "name": "StateChangedAt",
+        "jsonName": "stateChangedAt",
+        "protoField": "state_changed_at",
+        "type": {
+          "kind": "timestamp"
+        },
+        "description": "When the lifecycle state last changed.",
+        "required": false
+      },
+      {
+        "name": "Audit",
+        "jsonName": "audit",
+        "protoField": "audit",
+        "type": {
+          "kind": "message",
+          "messageType": "ApiResourceAudit"
+        },
+        "description": "Standard audit information (created_at, updated_at, created_by, etc.)",
+        "required": false
+      }
+    ]
+  },
+  "statusNestedTypes": [
+    {
+      "name": "ApiResourceAudit",
+      "description": "ApiResourceAudit contains both spec-level and status-level audit details.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAudit",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "SpecAudit",
+          "jsonName": "specAudit",
+          "protoField": "spec_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's specification (desired state).",
+          "required": false
+        },
+        {
+          "name": "StatusAudit",
+          "jsonName": "statusAudit",
+          "protoField": "status_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's status (actual state).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditActor",
+      "description": "ApiResourceAuditActor represents the entity that performed an action.\n\n This is the platform's single actor vocabulary: every \"who did this\"\n reference (created_by / updated_by, version-history applied_by / pushed_by,\n approval resolved_by_actor) uses this message, so actor rendering is\n uniform across all surfaces.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditActor",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Unique identifier of the actor.",
+          "required": false
+        },
+        {
+          "name": "Avatar",
+          "jsonName": "avatar",
+          "protoField": "avatar",
+          "type": {
+            "kind": "string"
+          },
+          "description": "URL to the actor's avatar image.",
+          "required": false
+        },
+        {
+          "name": "DisplayName",
+          "jsonName": "displayName",
+          "protoField": "display_name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable display name (e.g. \"Ada Lovelace\"). Empty when unknown;\n renderers fall back to email, then id.",
+          "required": false
+        },
+        {
+          "name": "Email",
+          "jsonName": "email",
+          "protoField": "email",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Email address of the actor. Empty when unknown or not applicable\n (e.g. machine accounts).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditInfo",
+      "description": "ApiResourceAuditInfo contains detailed audit information.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditInfo",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "CreatedBy",
+          "jsonName": "createdBy",
+          "protoField": "created_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Actor who created this resource.",
+          "required": false
+        },
+        {
+          "name": "CreatedAt",
+          "jsonName": "createdAt",
+          "protoField": "created_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Timestamp when the resource was created.",
+          "required": false
+        },
+        {
+          "name": "UpdatedBy",
+          "jsonName": "updatedBy",
+          "protoField": "updated_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Actor who last updated this resource.",
+          "required": false
+        },
+        {
+          "name": "UpdatedAt",
+          "jsonName": "updatedAt",
+          "protoField": "updated_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Timestamp when the resource was last updated.",
+          "required": false
+        },
+        {
+          "name": "Event",
+          "jsonName": "event",
+          "protoField": "event",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Type of the last event (e.g., \"created\", \"updated\").",
+          "required": false
+        }
+      ]
+    }
+  ]
+}

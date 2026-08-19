@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.memory.v1;
+
+import "ai/stigmer/agentic/memory/v1/spec.proto";
+import "ai/stigmer/agentic/memory/v1/status.proto";
+import "ai/stigmer/commons/apiresource/metadata.proto";
+import "buf/validate/validate.proto";
+
+// Memory is a single fact the platform remembers about a person.
+//
+// A memory is proposed by an agent during a session, and becomes active
+// only after the person it is about confirms it. Confirmed memories are
+// recalled into that person's future agent executions as background
+// context. Every memory is individually listable, editable, and
+// deletable — the record is the trust surface over the recall seam.
+//
+// @internal
+// DD-004: system-generated kind (no apply RPC — nobody authors a memory
+// manifest), org-scoped with a subject identity-account tuple, so
+// cross-org recall is structurally impossible and content visibility is
+// subject-only. The lifecycle (proposed → confirmed/rejected) lives in
+// status with confirm/reject as its sole writers (DD-005 D3); the fact
+// text lives in spec and is the subject's to edit after capture. Kind
+// number 57, id prefix "mem". Recall (DD-006) reads confirmed records
+// only; capture (DD-005) is the create RPC behind the remember tool.
+message Memory {
+  // API version for this resource type.
+  string api_version = 1 [(buf.validate.field).string.const = 'agentic.stigmer.ai/v1'];
+
+  // Resource kind identifier.
+  string kind = 2 [(buf.validate.field).string.const = 'Memory'];
+
+  // Resource metadata including name, organization, and labels.
+  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [(buf.validate.field).required = true];
+
+  // The remembered fact, its subject, and where it came from.
+  MemorySpec spec = 4;
+
+  // System-managed state: the consent lifecycle and audit trail.
+  MemoryStatus status = 5;
+}

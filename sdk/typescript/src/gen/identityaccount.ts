@@ -138,6 +138,7 @@ export interface IdentityAccountPreferencesInput {
   defaultHarness?: string;
   defaultNativeModel?: string;
   defaultCursorModel?: string;
+  memoryEnabled?: boolean;
 }
 
 function buildIdentityAccountPreferencesProto(input: IdentityAccountPreferencesInput) {
@@ -146,6 +147,7 @@ function buildIdentityAccountPreferencesProto(input: IdentityAccountPreferencesI
     defaultHarness: input.defaultHarness,
     defaultNativeModel: input.defaultNativeModel,
     defaultCursorModel: input.defaultCursorModel,
+    memoryEnabled: input.memoryEnabled,
   }));
 }
 
@@ -183,6 +185,7 @@ function toIdentityAccountPreferencesInput(msg: IdentityAccountPreferences): Ide
     defaultHarness: msg.defaultHarness || undefined,
     defaultNativeModel: msg.defaultNativeModel || undefined,
     defaultCursorModel: msg.defaultCursorModel || undefined,
+    memoryEnabled: msg.memoryEnabled || undefined,
   };
 }
 

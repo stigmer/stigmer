@@ -660,6 +660,11 @@
           "description": "Recurring trigger that runs an agent on a cron schedule."
         },
         {
+          "name": "memory",
+          "number": 57,
+          "description": "Agent-proposed, user-confirmed fact the platform remembers about a person."
+        },
+        {
           "name": "project",
           "number": 60,
           "description": "Aggregate root grouping related resources for lifecycle management."

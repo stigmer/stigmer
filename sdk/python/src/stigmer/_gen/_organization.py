@@ -129,10 +129,12 @@ class OrganizationPreferencesInput:
     """SDK input type for OrganizationPreferences."""
 
     standing_context: str = ""
+    memory_enabled: bool = False
 
     def _to_proto(self) -> spec_pb2.OrganizationPreferences:
         msg = spec_pb2.OrganizationPreferences(
             standing_context=self.standing_context,
+            memory_enabled=self.memory_enabled,
         )
         return msg
 

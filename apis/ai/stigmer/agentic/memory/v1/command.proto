@@ -1,0 +1,139 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.memory.v1;
+
+import "ai/stigmer/agentic/memory/v1/api.proto";
+import "ai/stigmer/agentic/memory/v1/io.proto";
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
+
+// MemoryCommandController handles write operations for memories.
+//
+// @internal
+// No apply RPC by design (DD-004): a memory is system-generated — an
+// agent proposes it, a person decides on it — so there is no manifest
+// lane, no SDK apply registry entry, and no CLI apply verb. The kind
+// belongs to the Session/AgentExecution/Artifact family: records the
+// platform creates that users inspect and manage.
+service MemoryCommandController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = memory;
+
+  // Create a memory in the proposed state.
+  //
+  // The memory starts its consent lifecycle as proposed: it is not
+  // recalled into any execution until the person it is about confirms
+  // it. The subject and provenance are derived by the server from the
+  // calling credential and request context — values supplied on the
+  // request are overwritten.
+  //
+  // @internal
+  // Authorization: skip standard resource authorization — the record
+  // does not exist yet and the subject IS the caller. In-handler
+  // enforcement instead (DD-005 D2, both editions where applicable):
+  // 1. Strict first-party-human gate (cloud): no token_type, no
+  //    platform_client_id, not machine, not impersonated. The remember
+  //    tool's session-scoped credential passes as its human subject.
+  // 2. Enablement re-check, FAIL-CLOSED: org memory_enabled AND (cloud
+  //    only) the caller's memory_enabled must both be true —
+  //    FAILED_PRECONDITION otherwise. The runner-side tool attachment
+  //    is convenience, never authorization; the server refuses.
+  // 3. subject_identity_account_id = caller's identity account (cloud)
+  //    / "" (OSS single-user sentinel); caller-supplied value ignored.
+  // 4. Per-subject-per-org count cap (100, all lifecycle states):
+  //    FAILED_PRECONDITION "memory is full — review and delete existing
+  //    memories" (visible-full, never silent eviction — DD-006 D5).
+  //
+  // Error Cases:
+  //
+  // - INVALID_ARGUMENT: content missing or over 500 characters
+  // - FAILED_PRECONDITION: memory not enabled, or the subject's memory
+  //   is full
+  // - PERMISSION_DENIED: caller is not a first-party human operator
+  rpc create(Memory) returns (Memory) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+
+  // Update a memory's fact text.
+  //
+  // Replaces the spec wholesale, but only the content may actually
+  // change: the subject and provenance are immutable, and the consent
+  // lifecycle in status is never touched by updates — use confirm or
+  // reject to decide on a proposal.
+  //
+  // @internal
+  // Authorization: requires can_edit on the memory (FGA: subject-only —
+  // DD-004 as ratified). Immutability of spec.subject_identity_account_id
+  // and spec.provenance is enforced by a validate step with
+  // FAILED_PRECONDITION (the Schedule agent_ref pattern): an editable
+  // subject would re-aim a record at another person, and editable
+  // provenance is no provenance at all. Status preserved verbatim.
+  rpc update(Memory) returns (Memory) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = memory;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "metadata.id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update memory";
+  }
+
+  // Delete a memory permanently, in any lifecycle state.
+  //
+  // Deletion is the retention mechanism: deleting a confirmed memory is
+  // how consent is revoked, and the fact stops reaching future
+  // executions immediately. Past executions that already recalled it
+  // keep their immutable snapshots.
+  //
+  // @internal
+  // Authorization: requires can_delete on the memory (subject-only).
+  // Any-state delete is load-bearing for the trust story: "delete this
+  // one" must never be refused on lifecycle grounds (DD-004).
+  rpc delete(MemoryId) returns (Memory) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = memory;
+    option (ai.stigmer.commons.rpc.config).permission = can_delete;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to delete memory";
+  }
+
+  // Confirm a proposed memory, making it recallable.
+  //
+  // Confirmation is the consent act: from the next eligible execution
+  // on, the fact is injected as background context. Confirming an
+  // already-confirmed memory succeeds and changes nothing. Confirming a
+  // rejected memory is refused — delete it instead and let the agent
+  // propose again.
+  //
+  // @internal
+  // Authorization: requires can_edit on the memory (subject-only) — the
+  // ONLY consent gate in the system; client-side approval mechanisms
+  // are never trusted with retention (DD-005 D3, three recorded
+  // bypasses). The cloud handler loads before authorizing (#224: a
+  // missing memory answers NOT_FOUND, not PERMISSION_DENIED) and
+  // patches status leaves rather than saving the row. OSS excludes the
+  // authorization step per its recorded single-user posture. Both
+  // editions write the transition atomically (status has one writer,
+  // but the discipline is free and the store supports it).
+  rpc confirm(MemoryId) returns (Memory) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = memory;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to confirm memory";
+  }
+
+  // Reject a proposed memory, keeping it as an audit record.
+  //
+  // A rejected memory is never recalled. The record is kept rather than
+  // deleted so the decision is auditable; delete it to remove it
+  // entirely. Rejecting an already-rejected memory succeeds and changes
+  // nothing. Rejecting a confirmed memory is refused — deleting it is
+  // how a confirmed fact is revoked.
+  //
+  // @internal
+  // Authorization and implementation posture identical to confirm (one
+  // command pair, one contract). Rejection is deliberately one click on
+  // every surface — expensive review teaches users to ignore the queue
+  // (DD-005 D4).
+  rpc reject(MemoryId) returns (Memory) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = memory;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to reject memory";
+  }
+}

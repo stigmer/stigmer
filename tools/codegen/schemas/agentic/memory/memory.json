@@ -1,0 +1,44 @@
+{
+  "name": "MemorySpec",
+  "kind": "MEMORY_SPEC",
+  "description": "MemorySpec holds the remembered fact, who it is about, and where it\n came from.",
+  "protoType": "ai.stigmer.agentic.memory.v1.MemorySpec",
+  "protoFile": "apis/ai/stigmer/agentic/memory/v1/spec.proto",
+  "fields": [
+    {
+      "name": "Content",
+      "jsonName": "content",
+      "protoField": "content",
+      "type": {
+        "kind": "string"
+      },
+      "description": "The remembered fact, verbatim. Proposed by an agent, owned by the\n subject after confirmation.",
+      "required": false,
+      "validation": {
+        "minLength": 1,
+        "maxLength": 500
+      }
+    },
+    {
+      "name": "SubjectIdentityAccountId",
+      "jsonName": "subjectIdentityAccountId",
+      "protoField": "subject_identity_account_id",
+      "type": {
+        "kind": "string"
+      },
+      "description": "The identity account this memory is about.",
+      "required": false
+    },
+    {
+      "name": "Provenance",
+      "jsonName": "provenance",
+      "protoField": "provenance",
+      "type": {
+        "kind": "message",
+        "messageType": "MemoryProvenance"
+      },
+      "description": "Where this fact came from — displayed beside the fact everywhere it\n appears.",
+      "required": false
+    }
+  ]
+}

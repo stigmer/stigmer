@@ -78,7 +78,7 @@ public final class ApiResourceKindProto extends com.google.protobuf.GeneratedFil
       "\020\000\022\006\n\002v1\020\001*N\n\014ResourceTier\022\035\n\031resource_t" +
       "ier_unspecified\020\000\022\017\n\013open_source\020\001\022\016\n\ncl" +
       "oud_only\020\002*A\n\017PlatformIdValue\022!\n\035platfor" +
-      "m_id_value_unspecified\020\000\022\013\n\007stigmer\020\001*\222\021" +
+      "m_id_value_unspecified\020\000\022\013\n\007stigmer\020\001*\201\022" +
       "\n\017ApiResourceKind\022\035\n\031api_resource_kind_u" +
       "nknown\020\000\022[\n\024api_resource_version\020\001\032A\252\377+=" +
       "\010\001\020\001\032\022ApiResourceVersion\"\024API Resource V" +
@@ -132,18 +132,21 @@ public final class ApiResourceKindProto extends com.google.protobuf.GeneratedFil
       "7\010\001\020\001\032\020ExecutionContext\"\021Execution Conte" +
       "xt*\004ectx@\001J\004\010\004\020\001\022=\n\010schedule\0208\032/\252\377++\010\001\020\001" +
       "\032\010Schedule\"\010Schedule*\003sch8\001@\001J\010\010\002\020\001:\002\001\004\022" +
-      "8\n\007project\020<\032+\252\377+\'\010\003\020\001\032\007Project\"\007Project" +
-      "*\003prj@\001J\010\010\002\020\001:\002\001\004\"\004\0101\0201*\tdatastore:\205\001\n\tk" +
-      "ind_meta\022!.google.protobuf.EnumValueOpti" +
-      "ons\030\365\277\005 \001(\0132C.ai.stigmer.commons.apireso" +
-      "urce.apiresourcekind.ApiResourceKindMeta" +
-      "R\010kindMetaB\364\001B\024ApiResourceKindProtoP\001\242\002\005" +
-      "ASCAA\252\002.Ai.Stigmer.Commons.Apiresource.A" +
-      "piresourcekind\312\002.Ai\\Stigmer\\Commons\\Apir" +
-      "esource\\Apiresourcekind\342\002:Ai\\Stigmer\\Com" +
-      "mons\\Apiresource\\Apiresourcekind\\GPBMeta" +
-      "data\352\0022Ai::Stigmer::Commons::Apiresource" +
-      "::Apiresourcekindb\006proto3"
+      "m\n\006memory\0209\032a\252\377+]\010\001\020\001\032\006Memory\"\006Memory*\003m" +
+      "em8\001@\001J>\010\002\020\004\"8\n\020identity_account\022\007subjec" +
+      "t\032\033subject_identity_account_id\0228\n\007projec" +
+      "t\020<\032+\252\377+\'\010\003\020\001\032\007Project\"\007Project*\003prj@\001J\010" +
+      "\010\002\020\001:\002\001\004\"\004\0101\0201*\tdatastore:\205\001\n\tkind_meta\022" +
+      "!.google.protobuf.EnumValueOptions\030\365\277\005 \001" +
+      "(\0132C.ai.stigmer.commons.apiresource.apir" +
+      "esourcekind.ApiResourceKindMetaR\010kindMet" +
+      "aB\364\001B\024ApiResourceKindProtoP\001\242\002\005ASCAA\252\002.A" +
+      "i.Stigmer.Commons.Apiresource.Apiresourc" +
+      "ekind\312\002.Ai\\Stigmer\\Commons\\Apiresource\\A" +
+      "piresourcekind\342\002:Ai\\Stigmer\\Commons\\Apir" +
+      "esource\\Apiresourcekind\\GPBMetadata\352\0022Ai" +
+      "::Stigmer::Commons::Apiresource::Apireso" +
+      "urcekindb\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

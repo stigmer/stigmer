@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.memory.v1;
+
+import "ai/stigmer/agentic/memory/v1/api.proto";
+import "ai/stigmer/commons/rpc/pagination.proto";
+import "buf/validate/validate.proto";
+
+// MemoryId wraps a memory identifier.
+message MemoryId {
+  // Unique identifier of the memory.
+  string value = 1 [(buf.validate.field).required = true];
+}
+
+// Input for listing memories within an organization.
+//
+// @internal
+// No subject filter by design: the cloud edition's list is FGA-filtered
+// to records the caller can view (can_view: subject), so every caller
+// already sees exactly their own memories; the OSS edition is
+// single-user. A subject parameter would be either redundant or an
+// information-disclosure bug.
+message ListMemoriesRequest {
+  // Organization slug to scope the listing.
+  string org = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Pagination options.
+  ai.stigmer.commons.rpc.PageInfo page_info = 2;
+}
+
+// Response containing a paginated list of memories.
+message MemoryList {
+  // Total number of memories matching the query.
+  int32 total_count = 1;
+
+  // Memories in the current page.
+  repeated Memory items = 2;
+}

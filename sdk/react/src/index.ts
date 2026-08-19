@@ -856,6 +856,28 @@ export type {
   AccountPreferencesPanelProps,
 } from "./identity-account/index.js";
 
+// Memory — agent-proposed, user-confirmed facts: data hook, decision
+// hooks (confirm/reject/delete/edit), grouping helpers, and the list panel
+export {
+  useMemories,
+  useConfirmMemory,
+  useRejectMemory,
+  useDeleteMemory,
+  useUpdateMemoryContent,
+  groupMemoriesByLifecycle,
+  formatMemoryProvenance,
+  MemoryListPanel,
+} from "./memory/index.js";
+export type {
+  UseMemoriesReturn,
+  UseConfirmMemoryReturn,
+  UseRejectMemoryReturn,
+  UseDeleteMemoryReturn,
+  UseUpdateMemoryContentReturn,
+  MemoryGroups,
+  MemoryListPanelProps,
+} from "./memory/index.js";
+
 // IAM Policy — data hooks, behavior hooks, headless hook, and styled components for access management
 export {
   useGrantableRoles,
@@ -1083,6 +1105,7 @@ export { MembersSection } from "./settings/index.js";
 export { OrgProfileSection } from "./settings/index.js";
 export { OrgPreferencesSection } from "./settings/index.js";
 export { AccountPreferencesSection } from "./settings/index.js";
+export { MemorySection } from "./settings/index.js";
 export { EnvironmentsSection } from "./settings/index.js";
 export { InvitationsSection } from "./settings/index.js";
 export { IdentityProvidersSection } from "./settings/index.js";

@@ -250,6 +250,13 @@ export {
   type ToolApprovalPolicyInput,
 } from "./gen/mcpserver.js";
 export {
+  MemoryClient,
+  buildMemoryProto,
+  toMemoryUpdateInput,
+  type MemoryInput,
+  type MemoryProvenanceInput,
+} from "./gen/memory.js";
+export {
   connectAndWait,
   ConnectStillRunningError,
   CONNECT_POLL_INTERVAL_MS,

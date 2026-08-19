@@ -50,6 +50,7 @@ export class LocalGoExecutionTarget implements TargetProfile {
     // Single-tenant OSS: the reserved-label write guard is cloud-only
     // (stigmer-cloud#320), so the caller may create labeled candidates.
     clientReservedLabelWrites: true,
+    firstPartyMemoryCapture: true,
     clientPublicVisibilityWrites: true,
     // The runner shares the server's artifact dir (the #285 wiring in setup),
     // so server-written storage-key attachments resolve in the runner.

@@ -690,6 +690,45 @@ enum ApiResourceKind {
     }
   }];
 
+  // Agentic - Memory (learned facts about people)
+
+  // Agent-proposed, user-confirmed fact the platform remembers about a person.
+  memory = 57 [(kind_meta) = {
+    group: agentic
+    version: v1
+    name: "Memory"
+    display_name: "Memory"
+    id_prefix: "mem"
+    is_versioned: false
+    // Not searchable by design (privacy): memory content is subject-only
+    // (DD-004 as ratified) and must never surface through the global
+    // search index, whose results are org-visible. Also skips the Go
+    // search-extractor boot contract, like agent_share/schedule.
+    not_search_indexed: true
+    tier: open_source
+    authorization: {
+      scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
+      // No owner tuple: the subject relation below is the ONLY principal
+      // on a memory. An agent authored the record and the subject decides
+      // on it — owner/creator vocabulary would misname both (DD-004).
+      owner_type: OWNER_ATTRIBUTION_TYPE_NONE
+      // The permanent subject tuple: memory#subject@identity_account:<id>,
+      // extracted from spec.subject_identity_account_id (itself
+      // server-derived from the calling credential — DD-005 D2). Content
+      // visibility is subject-only: org admins govern the org's
+      // memory_enabled switch but never read members' memories.
+      additional_parents: [
+        {
+          kind: "identity_account"
+          relation: "subject"
+          spec_field: "subject_identity_account_id"
+        }
+      ]
+      // No visibility config (private-only) and no grantable roles:
+      // memories are never shared, published, or granted.
+    }
+  }];
+
   // Tenancy - Project management
 
   // Aggregate root grouping related resources for lifecycle management.

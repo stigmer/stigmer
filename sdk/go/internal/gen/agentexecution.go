@@ -199,6 +199,7 @@ type AgentExecutionInput struct {
 	SupersedesExecutionId string
 	ConversationCatchup   *ConversationCatchupInput
 	DeclaredPreferences   *DeclaredPreferencesInput
+	RecalledMemories      *RecalledMemoriesInput
 }
 
 // SessionSpecInput is the SDK input type for SessionSpec.
@@ -286,6 +287,18 @@ type DeclaredPreferencesInput struct {
 	UserContext string
 }
 
+// RecalledMemoriesInput is the SDK input type for RecalledMemories.
+type RecalledMemoriesInput struct {
+	Enabled bool
+	Facts   []*RecalledMemoryFactInput
+}
+
+// RecalledMemoryFactInput is the SDK input type for RecalledMemoryFact.
+type RecalledMemoryFactInput struct {
+	MemoryId string
+	Content  string
+}
+
 func (i *AgentExecutionInput) toProto() (*agentexecutionv1.AgentExecution, error) {
 	resource := &agentexecutionv1.AgentExecution{
 		ApiVersion: "agentic.stigmer.ai/v1",
@@ -349,6 +362,13 @@ func (i *AgentExecutionInput) toProto() (*agentexecutionv1.AgentExecution, error
 			return nil, fieldErr("DeclaredPreferences", err)
 		}
 		resource.Spec.DeclaredPreferences = v
+	}
+	if i.RecalledMemories != nil {
+		v, err := i.RecalledMemories.toProto()
+		if err != nil {
+			return nil, fieldErr("RecalledMemories", err)
+		}
+		resource.Spec.RecalledMemories = v
 	}
 	return resource, nil
 }
@@ -487,6 +507,26 @@ func (i *DeclaredPreferencesInput) toProto() (*agentexecutionv1.DeclaredPreferen
 	}, nil
 }
 
+func (i *RecalledMemoriesInput) toProto() (*agentexecutionv1.RecalledMemories, error) {
+	p := &agentexecutionv1.RecalledMemories{}
+	p.Enabled = i.Enabled
+	for idx, item := range i.Facts {
+		v, err := item.toProto()
+		if err != nil {
+			return nil, indexErr("Facts", idx, err)
+		}
+		p.Facts = append(p.Facts, v)
+	}
+	return p, nil
+}
+
+func (i *RecalledMemoryFactInput) toProto() (*agentexecutionv1.RecalledMemoryFact, error) {
+	return &agentexecutionv1.RecalledMemoryFact{
+		MemoryId: i.MemoryId,
+		Content:  i.Content,
+	}, nil
+}
+
 // AgentExecutionInputFromProto creates a AgentExecutionInput from a proto AgentExecution resource.
 func AgentExecutionInputFromProto(p *agentexecutionv1.AgentExecution) *AgentExecutionInput {
 	if p == nil {
@@ -524,6 +564,7 @@ func AgentExecutionInputFromProto(p *agentexecutionv1.AgentExecution) *AgentExec
 		input.SupersedesExecutionId = s.GetSupersedesExecutionId()
 		input.ConversationCatchup = conversationCatchupInputFromProto(s.GetConversationCatchup())
 		input.DeclaredPreferences = declaredPreferencesInputFromProto(s.GetDeclaredPreferences())
+		input.RecalledMemories = recalledMemoriesInputFromProto(s.GetRecalledMemories())
 	}
 	return input
 }
@@ -660,5 +701,27 @@ func declaredPreferencesInputFromProto(p *agentexecutionv1.DeclaredPreferences) 
 	input := &DeclaredPreferencesInput{}
 	input.OrgContext = p.GetOrgContext()
 	input.UserContext = p.GetUserContext()
+	return input
+}
+
+func recalledMemoriesInputFromProto(p *agentexecutionv1.RecalledMemories) *RecalledMemoriesInput {
+	if p == nil {
+		return nil
+	}
+	input := &RecalledMemoriesInput{}
+	input.Enabled = p.GetEnabled()
+	for _, item := range p.GetFacts() {
+		input.Facts = append(input.Facts, recalledMemoryFactInputFromProto(item))
+	}
+	return input
+}
+
+func recalledMemoryFactInputFromProto(p *agentexecutionv1.RecalledMemoryFact) *RecalledMemoryFactInput {
+	if p == nil {
+		return nil
+	}
+	input := &RecalledMemoryFactInput{}
+	input.MemoryId = p.GetMemoryId()
+	input.Content = p.GetContent()
 	return input
 }

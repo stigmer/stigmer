@@ -31,13 +31,15 @@ class IdentityAccountSpec(_message.Message):
     def __init__(self, idp_id: _Optional[str] = ..., email: _Optional[str] = ..., first_name: _Optional[str] = ..., last_name: _Optional[str] = ..., picture_url: _Optional[str] = ..., is_machine_account: bool = ..., provisioning_mode: _Optional[_Union[_enum_pb2.IdentityAccountProvisioningMode, str]] = ..., identity_provider_ref: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ..., preferences: _Optional[_Union[IdentityAccountPreferences, _Mapping]] = ...) -> None: ...
 
 class IdentityAccountPreferences(_message.Message):
-    __slots__ = ("standing_context", "default_harness", "default_native_model", "default_cursor_model")
+    __slots__ = ("standing_context", "default_harness", "default_native_model", "default_cursor_model", "memory_enabled")
     STANDING_CONTEXT_FIELD_NUMBER: _ClassVar[int]
     DEFAULT_HARNESS_FIELD_NUMBER: _ClassVar[int]
     DEFAULT_NATIVE_MODEL_FIELD_NUMBER: _ClassVar[int]
     DEFAULT_CURSOR_MODEL_FIELD_NUMBER: _ClassVar[int]
+    MEMORY_ENABLED_FIELD_NUMBER: _ClassVar[int]
     standing_context: str
     default_harness: str
     default_native_model: str
     default_cursor_model: str
-    def __init__(self, standing_context: _Optional[str] = ..., default_harness: _Optional[str] = ..., default_native_model: _Optional[str] = ..., default_cursor_model: _Optional[str] = ...) -> None: ...
+    memory_enabled: bool
+    def __init__(self, standing_context: _Optional[str] = ..., default_harness: _Optional[str] = ..., default_native_model: _Optional[str] = ..., default_cursor_model: _Optional[str] = ..., memory_enabled: bool = ...) -> None: ...

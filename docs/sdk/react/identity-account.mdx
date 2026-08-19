@@ -195,7 +195,8 @@ refetch(); // re-sync the editor
 ### AccountPreferencesPanel
 
 Self-contained editor for the current user's declared preferences
-(`IdentityAccountSpec.preferences.standing_context`).
+(`IdentityAccountSpec.preferences`): standing context plus the
+execution defaults (default harness and per-harness default models).
 
 The declared text is snapshotted into the user's own eligible agent
 executions and delivered to the agent as background context.

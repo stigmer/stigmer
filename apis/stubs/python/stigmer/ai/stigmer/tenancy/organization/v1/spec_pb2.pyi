@@ -27,7 +27,9 @@ class OrganizationSpec(_message.Message):
     def __init__(self, description: _Optional[str] = ..., logo_url: _Optional[str] = ..., management_mode: _Optional[_Union[_enum_pb2.ManagementMode, str]] = ..., identity_provider_ref: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ..., external_org_id: _Optional[str] = ..., is_personal: bool = ..., preferences: _Optional[_Union[OrganizationPreferences, _Mapping]] = ...) -> None: ...
 
 class OrganizationPreferences(_message.Message):
-    __slots__ = ("standing_context",)
+    __slots__ = ("standing_context", "memory_enabled")
     STANDING_CONTEXT_FIELD_NUMBER: _ClassVar[int]
+    MEMORY_ENABLED_FIELD_NUMBER: _ClassVar[int]
     standing_context: str
-    def __init__(self, standing_context: _Optional[str] = ...) -> None: ...
+    memory_enabled: bool
+    def __init__(self, standing_context: _Optional[str] = ..., memory_enabled: bool = ...) -> None: ...

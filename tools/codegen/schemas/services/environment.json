@@ -274,6 +274,7 @@
               "artifact",
               "execution_context",
               "schedule",
+              "memory",
               "project"
             ]
           },
@@ -626,6 +627,11 @@
           "name": "schedule",
           "number": 56,
           "description": "Recurring trigger that runs an agent on a cron schedule."
+        },
+        {
+          "name": "memory",
+          "number": 57,
+          "description": "Agent-proposed, user-confirmed fact the platform remembers about a person."
         },
         {
           "name": "project",

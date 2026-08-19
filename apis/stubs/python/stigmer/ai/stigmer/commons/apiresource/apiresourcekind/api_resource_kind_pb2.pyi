@@ -54,6 +54,7 @@ class ApiResourceKind(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     artifact: _ClassVar[ApiResourceKind]
     execution_context: _ClassVar[ApiResourceKind]
     schedule: _ClassVar[ApiResourceKind]
+    memory: _ClassVar[ApiResourceKind]
     project: _ClassVar[ApiResourceKind]
 api_resource_version_unspecified: ApiResourceVersion
 v1: ApiResourceVersion
@@ -89,6 +90,7 @@ environment: ApiResourceKind
 artifact: ApiResourceKind
 execution_context: ApiResourceKind
 schedule: ApiResourceKind
+memory: ApiResourceKind
 project: ApiResourceKind
 KIND_META_FIELD_NUMBER: _ClassVar[int]
 kind_meta: _descriptor.FieldDescriptor

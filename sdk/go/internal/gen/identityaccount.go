@@ -127,6 +127,7 @@ type IdentityAccountPreferencesInput struct {
 	DefaultHarness     string
 	DefaultNativeModel string
 	DefaultCursorModel string
+	MemoryEnabled      bool
 }
 
 func (i *IdentityAccountInput) toProto() (*identityaccountv1.IdentityAccount, error) {
@@ -169,6 +170,7 @@ func (i *IdentityAccountPreferencesInput) toProto() (*identityaccountv1.Identity
 		DefaultHarness:     i.DefaultHarness,
 		DefaultNativeModel: i.DefaultNativeModel,
 		DefaultCursorModel: i.DefaultCursorModel,
+		MemoryEnabled:      i.MemoryEnabled,
 	}, nil
 }
 
@@ -209,5 +211,6 @@ func identityAccountPreferencesInputFromProto(p *identityaccountv1.IdentityAccou
 	input.DefaultHarness = p.GetDefaultHarness()
 	input.DefaultNativeModel = p.GetDefaultNativeModel()
 	input.DefaultCursorModel = p.GetDefaultCursorModel()
+	input.MemoryEnabled = p.GetMemoryEnabled()
 	return input
 }

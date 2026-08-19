@@ -484,12 +484,39 @@ per-action control exists.
   `AgentExecutionSpec.declared_preferences` at execution create.
 - **Boundaries**: a Preference is not a **Skill** (Agent knowledge), not an
   **Environment** (workload config and secrets), not a **Session** (conversation
-  state), and not future **Memory** (learned facts).
+  state), and not a **Memory** (a learned fact an agent proposed and you
+  confirmed — a preference is something you declared yourself).
 - **Related terms, never synonyms**: a **policy** is an org- or
   platform-authored constraint that _bounds_ what lower layers may choose
   (clamps, ceilings, allowlists) — a preference never binds anyone but its
   author. A **setting** is client-app device-local state (theme, sidebar width)
   — not an API concept. One term per concept, everywhere.
+
+---
+
+#### Memory
+
+A single fact the platform remembers about a person: an agent proposes it during
+a session, and it becomes active only after the person it is about confirms it.
+Confirmed Memories are recalled into that person's future Agent executions as
+background context.
+
+- **Capitalize**: Yes, when referring to the Stigmer concept. Lowercase when
+  used generically ("memory usage").
+- **API surface**: `kind: memory`, prefix `mem`. proto:
+  `agentic/memory/v1/spec.proto`. System-generated — there is no `apply` and no
+  manifest; records are managed from the console's Memory page.
+- **Key fields**: `content` (the fact, verbatim, max 500 chars),
+  `subject_identity_account_id` (who it is about — server-derived, never
+  client-supplied), `provenance` (which agent/session proposed it), and
+  `status.lifecycle_state` (`proposed` → `confirmed`/`rejected`).
+- **Boundaries**: a Memory is not a **Preference** (you declare a preference
+  yourself; an agent proposes a memory and you confirm it), not a **Skill**
+  (Agent knowledge, not knowledge about a person), and not a **Session**
+  (conversation state; a memory outlives every session).
+- **Note**: memory content is subject-only — org admins govern whether memory
+  operates in the org (`memory_enabled`), but never read members' memories. Both
+  the org and the member must opt in; the switch defaults off at both scopes.
 
 ---
 

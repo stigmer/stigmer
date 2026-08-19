@@ -141,4 +141,26 @@ public interface IdentityAccountPreferencesOrBuilder extends
    */
   com.google.protobuf.ByteString
       getDefaultCursorModelBytes();
+
+  /**
+   * <pre>
+   * Whether the platform may remember confirmed facts about this
+   * account. Off by default; operative only where the organization has
+   * also enabled memory.
+   *
+   * &#64;internal
+   * The member half of memory's double opt-in (DD-006 D1): effective
+   * enablement = org memory_enabled AND this flag AND first-party human
+   * operator. Self-service under the account's own can_edit (FGA
+   * owner), like every field on this message. Enforced fail-closed at
+   * memory create (DD-005 D2) and read at recall compose (DD-006 D3).
+   * Toggling off stops capture and recall from the next execution on;
+   * existing records remain until the subject deletes them (deletion is
+   * the retention mechanism, DD-006).
+   * </pre>
+   *
+   * <code>bool memory_enabled = 5 [json_name = "memoryEnabled"];</code>
+   * @return The memoryEnabled.
+   */
+  boolean getMemoryEnabled();
 }
