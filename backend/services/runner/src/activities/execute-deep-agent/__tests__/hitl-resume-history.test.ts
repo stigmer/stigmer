@@ -250,6 +250,7 @@ const baseConfig: Config = {
   cloudModeEnabled: true,
   checkpointerType: "http",
   checkpointerProxyEndpoint: "http://localhost:7234",
+  artifactProxyEndpoint: null,
   primaryModel: "claude-sonnet",
   cursorStreamStallTimeoutMs: 180000,
   agentResolveTimeoutMs: 120000,

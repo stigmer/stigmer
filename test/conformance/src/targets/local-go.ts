@@ -26,9 +26,6 @@ export class LocalGoTarget implements TargetProfile {
     // (stigmer-cloud#320), so the caller may create labeled candidates.
     clientReservedLabelWrites: true,
     clientPublicVisibilityWrites: true,
-    // CRUD target: no engine, so the flag is never consulted; true mirrors
-    // the local execution target (one store, one host).
-    sharedRunnerArtifactStore: true,
   };
 
   private server: RunningServer | undefined;

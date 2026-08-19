@@ -51,9 +51,6 @@ export class LocalGoExecutionTarget implements TargetProfile {
     // (stigmer-cloud#320), so the caller may create labeled candidates.
     clientReservedLabelWrites: true,
     clientPublicVisibilityWrites: true,
-    // The runner shares the server's artifact dir (the #285 wiring in setup),
-    // so server-written storage-key attachments resolve in the runner.
-    sharedRunnerArtifactStore: true,
   };
 
   private temporal: RunningTemporal | undefined;

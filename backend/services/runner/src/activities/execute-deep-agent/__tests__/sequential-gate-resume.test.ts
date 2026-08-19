@@ -256,6 +256,7 @@ const memoryConfig: Config = {
   cloudModeEnabled: false,
   checkpointerType: "memory",
   checkpointerProxyEndpoint: null,
+  artifactProxyEndpoint: null,
   primaryModel: "claude-sonnet",
   cursorStreamStallTimeoutMs: 180000,
   agentResolveTimeoutMs: 120000,
