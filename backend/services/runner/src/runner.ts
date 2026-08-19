@@ -18,7 +18,8 @@ import { homedir, tmpdir } from "node:os";
 import type { Config } from "./config.js";
 import { DEFAULT_CURSOR_AGENT_RESOLVE_TIMEOUT_MS, DEFAULT_CURSOR_STREAM_STALL_TIMEOUT_MS, DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS } from "./config.js";
 import type { WorkerActivities } from "./worker.js";
-import { resolveRunnerBootstrap } from "./bootstrap.js";
+import { resolveRunnerBootstrap, refreshRunnerAccessToken } from "./bootstrap.js";
+import { createRunnerTokenCoordinator } from "./runner-token-coordinator.js";
 import { assertLlmBackendsPreflight } from "./preflight.js";
 import {
   captureRunnerSecrets,
@@ -253,11 +254,6 @@ export async function createStigmerRunner(
   // Only the worker connection consumes these coordinates — no activity dials
   // Temporal directly (emit-event, the last one, now routes signals through
   // the server's SendSignal lane; see oss#517).
-  //
-  // The static runner brings its own already-proxy-valid token (harness/CLI),
-  // so it does not consume the minted runner token from the bootstrap response;
-  // that proxy-credential lifecycle lives in createStigmerRunnerManager (the
-  // long-lived desktop host that needs it). Only the coordinates are used here.
   const coordinates = await resolveRunnerBootstrap({
     explicitAddress: options.temporalAddress,
     explicitNamespace: options.temporalNamespace,
@@ -269,11 +265,44 @@ export async function createStigmerRunner(
   // activity clients read the ref per request instead of pinning the boot
   // token for the pod's whole life.
   const tokenRef = { current: baseConfig.stigmerToken };
+
+  // Adopt the bootstrap-minted embedded_runner credential for gRPC runner-class
+  // calls (stigmer-cloud#507). The static path historically discarded it ("the
+  // static token is already proxy-valid") — true for the PROXY lane, but the
+  // ExecutionContext decrypt lane is gated on runner-class token_type
+  // (stigmer-cloud#152/#155): a user-token static runner (conformance harness,
+  // CLI daemon with a cloud token) had its scoped-token exchange refused and
+  // silently read REDACTED secret values. The coordinator owns the mint's TTL
+  // (same module the desktop manager uses — one refresh implementation, not
+  // two); its only sink here is the gRPC runner-credential ref, because the
+  // static host's proxy token is provided by the host and stays untouched.
+  // Servers that mint nothing (explicit-address boots, tokenless OSS, cloud
+  // sandboxes with baked credentials) leave the ref null — byte-identical
+  // behavior to before.
+  const runnerTokenRef: { current: string | null } = { current: null };
+  const runnerTokenCoordinator = createRunnerTokenCoordinator({
+    applyProxyToken: (token) => {
+      runnerTokenRef.current = token;
+    },
+    reMint: () =>
+      refreshRunnerAccessToken({
+        token: tokenRef.current,
+        stigmerEndpoint: baseConfig.stigmerBackendEndpoint,
+      }),
+  });
+  if (coordinates.runnerAccessToken) {
+    runnerTokenCoordinator.adoptMintedToken(
+      coordinates.runnerAccessToken,
+      coordinates.runnerAccessTokenExpiresInSeconds,
+    );
+  }
+
   const config: Config = {
     ...baseConfig,
     temporalAddress: coordinates.temporalAddress,
     temporalNamespace: coordinates.temporalNamespace,
     stigmerTokenRef: tokenRef,
+    stigmerRunnerTokenRef: runnerTokenRef,
   };
   markBoot("bootstrap_resolved");
 
@@ -359,6 +388,7 @@ export async function createStigmerRunner(
     },
     shutdown() {
       tokenRenewal?.stop();
+      runnerTokenCoordinator.stop();
       // Classification first, drain second: an in-flight activity cancelled
       // by the drain must observe the signal already aborted (see
       // shared/worker-shutdown.ts for the ownership contract).

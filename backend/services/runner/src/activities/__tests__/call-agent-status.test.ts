@@ -104,17 +104,42 @@ describe("call-agent-status file-review activities", () => {
   });
 
   describe("approval activities are scoped per-child (unify)", () => {
-    it("updateWorkflowTaskApprovalStatus scopes the write to the notifying child", async () => {
-      await updateWorkflowTaskApprovalStatus("wfx_1", "task_a", {
-        executionId: "aex_child",
-        pendingApprovals: [{ toolCallId: "tc_1", toolName: "deploy" } as any],
-      } as any);
+    it("updateWorkflowTaskApprovalStatus derives the gate from the child record and scopes the write to it", async () => {
+      // Identity-only contract (DD-012, stigmer-cloud#509): the activity
+      // receives just the child id and reads the gate from the child's
+      // persisted status — the signal never carries approval details.
+      mockGetExecutionResult = {
+        status: {
+          pendingApprovals: [{ toolCallId: "tc_1", toolName: "deploy" } as any],
+        },
+      };
 
+      const surfaced = await updateWorkflowTaskApprovalStatus("wfx_1", "task_a", "aex_child");
+
+      expect(surfaced).toBe(true);
       expect(capturedUpdates).toHaveLength(1);
       const { status, options } = capturedUpdates[0];
       expect(options.updatePendingApprovals).toBe(true);
       expect(options.pendingUpdateChildAgentExecutionId).toBe("aex_child");
       expect(status.pendingApprovals[0].childAgentExecutionId).toBe("aex_child");
+      expect(status.pendingApprovals[0].approval.toolCallId).toBe("tc_1");
+    });
+
+    it("updateWorkflowTaskApprovalStatus answers false and writes nothing when the child's gate already resolved", async () => {
+      // The child persists its gate before signaling, so an empty read means
+      // the gate resolved in the interim — surfacing it would show a stale
+      // approval card, and the orchestrator deliberately does not retry.
+      mockGetExecutionResult = { status: { pendingApprovals: [] } };
+
+      const surfaced = await updateWorkflowTaskApprovalStatus("wfx_1", "task_a", "aex_child");
+
+      expect(surfaced).toBe(false);
+      expect(capturedUpdates).toHaveLength(0);
+    });
+
+    it("updateWorkflowTaskApprovalStatus is a no-op without a child id", async () => {
+      expect(await updateWorkflowTaskApprovalStatus("wfx_1", "task_a", "")).toBe(false);
+      expect(capturedUpdates).toHaveLength(0);
     });
 
     it("clearWorkflowApprovalStatus scopes the clear to the given child", async () => {
