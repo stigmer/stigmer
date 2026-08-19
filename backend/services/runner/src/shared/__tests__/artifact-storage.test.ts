@@ -654,6 +654,7 @@ describe("loadArtifactStorageConfig", () => {
     runnerId: null,
     checkpointerType: "memory" as const,
     checkpointerProxyEndpoint: null,
+    artifactProxyEndpoint: null,
     primaryModel: "gpt-4.1",
     cursorStreamStallTimeoutMs: 180000,
     agentResolveTimeoutMs: 120000,
@@ -672,10 +673,14 @@ describe("loadArtifactStorageConfig", () => {
   });
 
   it("defaults to proxy in cloud mode", () => {
+    // loadConfig derives artifactProxyEndpoint from proxyEndpoint when the
+    // STIGMER_ARTIFACT_PROXY_ENDPOINT override is unset; Config literals here
+    // mirror that invariant.
     const cfg = loadArtifactStorageConfig({
       ...baseConfig,
       mode: "cloud",
       proxyEndpoint: "https://proxy.example.com",
+      artifactProxyEndpoint: "https://proxy.example.com",
       stigmerToken: "tok",
     });
     expect(cfg.type).toBe("proxy");
@@ -689,11 +694,27 @@ describe("loadArtifactStorageConfig", () => {
       ...baseConfig,
       mode: "local",
       proxyEndpoint: "https://localhost:9090",
+      artifactProxyEndpoint: "https://localhost:9090",
       stigmerToken: "tok",
     });
     expect(cfg.type).toBe("proxy");
     expect(cfg.proxyEndpoint).toBe("https://localhost:9090");
     expect(cfg.proxyAuthToken).toBe("tok");
+  });
+
+  it("presigns against the artifact override when split from the LLM proxy endpoint (stigmer#803)", () => {
+    // The conformance harness points LLM traffic at a mock proxy that serves
+    // no presign routes; the artifact override routes storage at the real
+    // control plane independently (the checkpointer-override pattern).
+    process.env.ARTIFACT_STORAGE_TYPE = "proxy";
+    const cfg = loadArtifactStorageConfig({
+      ...baseConfig,
+      proxyEndpoint: "https://mock-llm.example.com",
+      artifactProxyEndpoint: "https://service.example.com",
+      stigmerToken: "tok",
+    });
+    expect(cfg.type).toBe("proxy");
+    expect(cfg.proxyEndpoint).toBe("https://service.example.com");
   });
 
   it("honors ARTIFACT_STORAGE_TYPE=none even when a proxy endpoint is configured", () => {

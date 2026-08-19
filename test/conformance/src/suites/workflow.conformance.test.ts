@@ -8,13 +8,12 @@
 // (listVersions / getVersion / getByReference resolution by hash and tag) and
 // the validateSpec endpoint.
 //
-// One deliberate, recorded boundary remains for the local-go target (see the
-// project plan's "Findings to file"):
-//   - validateSpec discards its structured result on structurally-invalid specs
-//     (returns an error instead of state=INVALID). This session asserts only the
-//     clean contract (VALID result; Layer-1 proto failures → InvalidArgument);
-//     the Layer-2 error-vs-result question is filed, not encoded here.
+// validateSpec's full contract is pinned here: VALID result with YAML, Layer-1
+// proto failures → InvalidArgument, and (stigmer#805) Layer-2 typed-config
+// constraint violations → structured INVALID with the cross-edition lockstep
+// error rendering.
 import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
+import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { ValidationState } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/serverless/validation_pb";
 import { Code } from "@connectrpc/connect";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -486,6 +485,33 @@ describe("Workflow conformance — validateSpec", () => {
         }),
       Code.InvalidArgument,
       "validateSpec Layer-1 violation",
+    );
+  });
+
+  // The Layer-2 typed-config contract (stigmer#805): message-level CEL rules on
+  // the strict-unmarshaled task_config fire at validate time, with a rendering
+  // that is byte-lockstep across editions — the exact-string assertion IS the
+  // lockstep verification, so loosening it to a substring would silently allow
+  // the editions to drift.
+  it("rejects a task_config violating its proto's CEL rules with a structured INVALID verdict", async () => {
+    const { org } = await target.provisionTenancy();
+    const workflow = makeWorkflow({ org, name: uniqueName("wf") });
+    // A present-but-all-zero duration violates WaitTaskConfig's
+    // duration.non_zero message rule; an absent duration stays VALID (the
+    // wait_type oneof is deliberately not required).
+    workflow.spec!.tasks = [
+      {
+        name: "conditional_wait",
+        kind: WorkflowTaskKind.wait,
+        taskConfig: { duration: {} },
+      },
+    ];
+
+    const result = await clients.workflowCommand.validateSpec(workflow);
+
+    expect(result.state, JSON.stringify(result.errors)).toBe(ValidationState.INVALID);
+    expect(result.errors).toContain(
+      "task 'conditional_wait' (wait): duration \u2013 at least one duration field must be non-zero",
     );
   });
 });

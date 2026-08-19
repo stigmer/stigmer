@@ -74,10 +74,6 @@ let mock: MockLlmProxy;
 const fixtures = new FixtureTracker();
 
 // Collection-time capability read (the schedule-firing/forwarder pattern):
-// gates the two attachment-materialization cases that require the runner and
-// server to share one artifact store — see the flag's contract in target.ts.
-const sharedArtifactStore = createTarget().capabilities.sharedRunnerArtifactStore;
-
 // Long enough to keep a held execution IN_PROGRESS across the poll-and-act window
 // (tests act within ~1s), well under the runner activity's 2-minute heartbeat and
 // 24-hour start-to-close. A held turn aborts the instant the client disconnects
@@ -648,15 +644,16 @@ describe("AgentExecution conformance — one-call session bootstrap (session_spe
 });
 
 // The cross-process artifact contract (stigmer/stigmer#285). Nothing else in the
-// suite exercises it: the server writes an uploaded attachment to its local
-// store, and the runner — a separate process — must read it back from the SAME
-// directory. Before the fix the two disagreed on the path and this failed; the
-// harness now points both at one root (see server-process.ts / runner-process.ts).
-// The two materialization cases gate on sharedRunnerArtifactStore (a harness
-// limitation on cloud-execution, not edition drift — see target.ts); the
-// presign/foreign-key rejection contract is server-side and runs everywhere.
+// suite exercises it: the server writes an uploaded attachment to its store,
+// and the runner — a separate process — must read it back from the SAME store.
+// Before the fix the two disagreed on the path and this failed; the harness
+// points local targets at one shared directory (server-process.ts /
+// runner-process.ts) and cloud-execution's runner presigns against the real
+// service's MinIO-backed artifact routes (stigmer#803), so every case here
+// runs unconditionally on every execution target (the retired
+// sharedRunnerArtifactStore gate — see target.ts).
 describe("AgentExecution conformance — attachments (#285)", () => {
-  it.skipIf(!sharedArtifactStore)("resolves a storage-key attachment (no local_path) the server wrote to the shared local store", async () => {
+  it("resolves a storage-key attachment (no local_path) the server wrote to the shared store", async () => {
     const { org } = await target.provisionTenancy();
     const agentId = await provisionAgent(org, uniqueName("agent-attach"));
 
@@ -772,7 +769,7 @@ describe("AgentExecution conformance — attachments (#285)", () => {
   // captured request is byte-for-byte what Anthropic would have received
   // (@langchain/anthropic converts the runner's image_url data-URL block into
   // the native base64 source block on the wire).
-  it.skipIf(!sharedArtifactStore)("delivers an image attachment to the provider as an inline base64 image block (vision, T04)", async () => {
+  it("delivers an image attachment to the provider as an inline base64 image block (vision, T04)", async () => {
     const { org } = await target.provisionTenancy();
     const agentId = await provisionAgent(org, uniqueName("agent-vision"));
 

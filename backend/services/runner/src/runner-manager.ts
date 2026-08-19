@@ -114,6 +114,9 @@ export interface RunnerManagerOptions {
   /** Checkpointer proxy endpoint. Falls back to proxyEndpoint. */
   readonly checkpointerProxyEndpoint?: string;
 
+  /** Artifact presign endpoint (stigmer#803). Falls back to proxyEndpoint. */
+  readonly artifactProxyEndpoint?: string;
+
   /** Enable Cursor cloud mode. @default false */
   readonly cloudModeEnabled?: boolean;
 
@@ -721,6 +724,8 @@ export function mapManagerOptionsToConfig(
       options.checkpointerType ?? (proxyActive ? "http" : "sqlite"),
     checkpointerProxyEndpoint:
       options.checkpointerProxyEndpoint ?? options.proxyEndpoint ?? null,
+    artifactProxyEndpoint:
+      options.artifactProxyEndpoint ?? options.proxyEndpoint ?? null,
     primaryModel: options.primaryModel ?? "gpt-4.1",
     cursorStreamStallTimeoutMs:
       options.cursorStreamStallTimeoutMs ?? DEFAULT_CURSOR_STREAM_STALL_TIMEOUT_MS,

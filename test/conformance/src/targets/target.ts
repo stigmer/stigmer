@@ -100,19 +100,15 @@ export interface CapabilityFlags {
   // retire this flag when the harness gains a platform-privileged caller
   // (stigmer#547) — until then the pin runs OSS-side only.
   clientReservedLabelWrites: boolean;
-  // The execution target's runner shares an artifact store with the server,
-  // so a storage-key attachment the SERVER persisted resolves when the RUNNER
-  // materializes it (the #285 shared-dir wiring on local targets).
-  //
-  // False for cloud-execution — a HARNESS limitation, not an edition
-  // difference: the hermetic cloud service stores attachments in its MinIO,
-  // while the runner is pinned to a local artifact store (the mock LLM proxy
-  // cannot serve the presign calls a proxy-configured artifact store would
-  // make). Attachment-materialization assertions gate on this flag until the
-  // harness gains a presign-capable artifact lane for the cloud engine
-  // (stigmer#803). Attachment REJECTION contracts (foreign keys etc.) are
-  // server-side and run unconditionally.
-  sharedRunnerArtifactStore: boolean;
+// NOTE: there is deliberately no shared-runner-artifact-store capability.
+  // Every execution target's runner resolves storage-key attachments the
+  // server persisted: local targets share the server's on-disk store (the
+  // #285 shared-dir wiring), and cloud-execution presigns against the real
+  // service's MinIO-backed artifact routes via the runner's
+  // STIGMER_ARTIFACT_PROXY_ENDPOINT override (stigmer#803). The flag that
+  // used to gate the attachment-materialization assertions
+  // (sharedRunnerArtifactStore) was retired when that lane landed — the
+  // executionContextSecretRedaction retirement precedent.
   // The conformance caller passes the Memory create RPC's strict
   // first-party-human-operator gate (DD-002 D4 as amended, inherited by
   // memory capture — DD-005 D2/DD-006 D1).

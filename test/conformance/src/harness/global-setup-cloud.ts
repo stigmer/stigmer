@@ -31,6 +31,7 @@ export default async function setup(): Promise<() => Promise<void>> {
   try {
     const identity = await bootstrapPrimaryIdentity(environment.grpcBaseUrl);
     process.env[CLOUD_ENV.address] = environment.grpcBaseUrl;
+    process.env[CLOUD_ENV.httpAddress] = environment.httpBaseUrl;
     process.env[CLOUD_ENV.token] = identity.token;
     process.env[CLOUD_ENV.platformClientId] = identity.platformClient.clientId;
     process.env[CLOUD_ENV.platformClientSecret] = identity.platformClient.clientSecret;

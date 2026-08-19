@@ -37,8 +37,12 @@ const bootTimeout = 10 * time.Minute
 
 // readySignal is the single JSON line printed to stdout once the environment
 // accepts gRPC traffic. The TS global setup parses it to locate the service.
+// The HTTP address carries the Spring routes the gRPC port does not — notably
+// the artifact presign endpoints (/v1/proxy/artifacts/...) the conformance
+// runner's proxy artifact store targets (stigmer#803).
 type readySignal struct {
 	GrpcAddress string `json:"grpcAddress"`
+	HTTPAddress string `json:"httpAddress"`
 }
 
 func main() {
@@ -118,13 +122,17 @@ func run(logger *slog.Logger) error {
 		return fmt.Errorf("seed base FGA tuples: %w", err)
 	}
 
-	ready, err := json.Marshal(readySignal{GrpcAddress: svc.GRPCAddress()})
+	ready, err := json.Marshal(readySignal{
+		GrpcAddress: svc.GRPCAddress(),
+		HTTPAddress: svc.HTTPAddress(),
+	})
 	if err != nil {
 		return fmt.Errorf("marshal ready signal: %w", err)
 	}
 	fmt.Println(string(ready))
 	logger.Info("conformance cloud environment ready",
 		"grpc_address", svc.GRPCAddress(),
+		"http_address", svc.HTTPAddress(),
 		"service_log", svc.LogPath(),
 	)
 

@@ -96,6 +96,16 @@ export interface Config {
   readonly cloudModeEnabled: boolean;
   readonly checkpointerType: "memory" | "http" | "sqlite";
   readonly checkpointerProxyEndpoint: string | null;
+  /**
+   * Endpoint the proxy artifact store presigns against
+   * (STIGMER_ARTIFACT_PROXY_ENDPOINT), defaulting to {@link proxyEndpoint} —
+   * the checkpointer-override pattern (stigmer#803). Splitting the two lets
+   * artifact traffic target the real control plane while LLM traffic goes
+   * elsewhere (the conformance harness points LLM calls at a mock proxy that
+   * serves no presign routes; embedders can route artifact storage
+   * independently the same way).
+   */
+  readonly artifactProxyEndpoint: string | null;
   readonly primaryModel: string;
   /**
    * No-progress bound for the Cursor harness stream (milliseconds). If no
@@ -197,6 +207,8 @@ export function loadConfig(): Config {
     ?? (mode === "cloud" ? "http" : "sqlite");
   const checkpointerProxyEndpoint = process.env.STIGMER_CHECKPOINTER_PROXY_ENDPOINT
     ?? proxyEndpoint;
+  const artifactProxyEndpoint = process.env.STIGMER_ARTIFACT_PROXY_ENDPOINT
+    ?? proxyEndpoint;
 
   const primaryModel = process.env.STIGMER_PRIMARY_MODEL ?? "gpt-4.1";
 
@@ -228,6 +240,7 @@ export function loadConfig(): Config {
     cloudModeEnabled: process.env.STIGMER_CURSOR_CLOUD_MODE_ENABLED === "true",
     checkpointerType,
     checkpointerProxyEndpoint,
+    artifactProxyEndpoint,
     primaryModel,
     cursorStreamStallTimeoutMs,
     agentResolveTimeoutMs,

@@ -89,6 +89,7 @@ async function runManagerMode(config: import("./config.js").Config): Promise<voi
       primaryModel: config.primaryModel,
       checkpointerType: config.checkpointerType,
       checkpointerProxyEndpoint: config.checkpointerProxyEndpoint ?? undefined,
+      artifactProxyEndpoint: config.artifactProxyEndpoint ?? undefined,
       cloudModeEnabled: config.cloudModeEnabled,
       executionMode: config.mode,
     });
@@ -213,6 +214,7 @@ async function runPoolMode(
     primaryModel: config.primaryModel,
     checkpointerType: config.checkpointerType,
     checkpointerProxyEndpoint: config.checkpointerProxyEndpoint ?? undefined,
+    artifactProxyEndpoint: config.artifactProxyEndpoint ?? undefined,
     cloudModeEnabled: config.cloudModeEnabled,
     executionMode: config.mode,
   });
@@ -338,6 +340,7 @@ async function runStaticMode(config: import("./config.js").Config): Promise<void
     primaryModel: config.primaryModel,
     checkpointerType: config.checkpointerType,
     checkpointerProxyEndpoint: config.checkpointerProxyEndpoint ?? undefined,
+    artifactProxyEndpoint: config.artifactProxyEndpoint ?? undefined,
     cloudModeEnabled: config.cloudModeEnabled,
     // Honor the operator's MODE env (resolved into config.mode) instead of
     // re-deriving execution location from the proxy. This keeps static mode

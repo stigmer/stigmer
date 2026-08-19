@@ -87,6 +87,9 @@ export interface StigmerRunnerOptions {
   /** Checkpointer proxy endpoint. Falls back to proxyEndpoint. */
   readonly checkpointerProxyEndpoint?: string;
 
+  /** Artifact presign endpoint (stigmer#803). Falls back to proxyEndpoint. */
+  readonly artifactProxyEndpoint?: string;
+
   /** Enable Cursor cloud mode for workspace-less execution. @default false */
   readonly cloudModeEnabled?: boolean;
 
@@ -446,6 +449,9 @@ export function mapOptionsToConfig(options: StigmerRunnerOptions): Config {
     checkpointerType: options.checkpointerType
       ?? (proxyActive ? "http" : "sqlite"),
     checkpointerProxyEndpoint: options.checkpointerProxyEndpoint
+      ?? options.proxyEndpoint
+      ?? null,
+    artifactProxyEndpoint: options.artifactProxyEndpoint
       ?? options.proxyEndpoint
       ?? null,
     primaryModel: options.primaryModel ?? "gpt-4.1",
