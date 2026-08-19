@@ -16,10 +16,14 @@
 //
 // An AgentExecution, by contrast, runs an LLM loop. When `proxy` is supplied the
 // runner is pointed at the mock LLM proxy (a base-URL override via
-// STIGMER_PROXY_ENDPOINT) and switched to fully local artifacts/checkpointer, so
-// the run stays hermetic. Configuring a proxy flips two runner defaults — artifact
-// storage would default to `proxy` (presign calls -> setup-time throw) and, in
-// cloud mode, the checkpointer to `http` — so we pin both to local/memory.
+// STIGMER_PROXY_ENDPOINT). Configuring a proxy flips two runner defaults —
+// artifact storage would default to `proxy` against the mock (which serves no
+// presign routes -> setup-time throw) and, in cloud mode, the checkpointer to
+// `http` — so the checkpointer is pinned to memory and artifacts default to a
+// local store, UNLESS `artifactProxy` routes them at a real presign-capable
+// endpoint via STIGMER_ARTIFACT_PROXY_ENDPOINT (stigmer#803): the
+// cloud-execution target points artifacts at the hermetic Java service's HTTP
+// port (MinIO-backed) while LLM traffic stays on the mock.
 import { spawn } from "node:child_process";
 import { createWriteStream, mkdirSync, type WriteStream } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
@@ -74,6 +78,12 @@ export interface RunnerOptions {
   // fine for runs that never resolve a cross-process artifact.
   artifactDir?: string;
   artifactServeUrl?: string;
+  // Presign-capable artifact lane (stigmer#803): base URL of a REAL service
+  // serving /v1/proxy/artifacts/... (the hermetic Java service's HTTP port).
+  // Routes the runner's artifact storage there via
+  // STIGMER_ARTIFACT_PROXY_ENDPOINT while LLM traffic stays on `proxy`.
+  // Mutually exclusive with artifactDir (shared-local vs proxy store).
+  artifactProxy?: { endpoint: string };
   // When set, the runner's combined stdout/stderr is also streamed to this
   // file (directory created as needed). The cloud-execution target points it
   // under test/integration/.test-output/logs/ so a red CI run's uploaded
@@ -135,8 +145,10 @@ export async function spawnRunner(opts: RunnerOptions): Promise<RunningRunner> {
       // Hermetic LLM wiring, only when an agent execution needs it. Absent for the
       // data-only WorkflowExecution path, which stays fully offline. When present:
       // - STIGMER_PROXY_ENDPOINT/STIGMER_TOKEN route LLM calls to the mock proxy;
-      // - ARTIFACT_STORAGE_TYPE=local keeps artifacts on disk (a configured proxy
-      //   would otherwise default artifacts to presign calls and throw at setup);
+      // - artifacts go to a local on-disk store (a configured proxy would
+      //   otherwise default artifacts to presign calls against the mock and
+      //   throw at setup) — UNLESS artifactProxy routes them at a real
+      //   presign-capable endpoint (stigmer#803);
       // - STIGMER_CHECKPOINTER_TYPE=memory pins the in-memory checkpointer.
       ...(opts.proxy !== undefined
         ? {
@@ -150,13 +162,21 @@ export async function spawnRunner(opts: RunnerOptions): Promise<RunningRunner> {
             // queued agent turns (#715). Keep every LLM caller on the one
             // provider the mock implements.
             STIGMER_PRIMARY_MODEL: "claude-sonnet-4-6",
-            ARTIFACT_STORAGE_TYPE: "local",
-            LOCAL_ARTIFACT_PATH: artifactDir,
-            // Point blob downloads at the server's artifact file server when we
-            // know it; the runner's own reads go straight to disk regardless.
-            ...(opts.artifactServeUrl !== undefined
-              ? { LOCAL_ARTIFACT_SERVE_URL: opts.artifactServeUrl }
-              : {}),
+            ...(opts.artifactProxy !== undefined
+              ? {
+                  ARTIFACT_STORAGE_TYPE: "proxy",
+                  STIGMER_ARTIFACT_PROXY_ENDPOINT: opts.artifactProxy.endpoint,
+                }
+              : {
+                  ARTIFACT_STORAGE_TYPE: "local",
+                  LOCAL_ARTIFACT_PATH: artifactDir,
+                  // Point blob downloads at the server's artifact file server
+                  // when we know it; the runner's own reads go straight to
+                  // disk regardless.
+                  ...(opts.artifactServeUrl !== undefined
+                    ? { LOCAL_ARTIFACT_SERVE_URL: opts.artifactServeUrl }
+                    : {}),
+                }),
             STIGMER_CHECKPOINTER_TYPE: "memory",
           }
         : {}),

@@ -30,6 +30,11 @@ import { uniqueName } from "../support/naming";
 export const CLOUD_ENV = {
   // gRPC base URL of the stigmer-service under test, e.g. http://127.0.0.1:52341.
   address: "STIGMER_CONFORMANCE_CLOUD_ADDRESS",
+  // HTTP (Spring) base URL of the same service — the routes the gRPC port
+  // does not serve, notably the artifact presign endpoints
+  // (/v1/proxy/artifacts/...) the cloud-execution runner's proxy artifact
+  // store targets (stigmer#803).
+  httpAddress: "STIGMER_CONFORMANCE_CLOUD_HTTP_ADDRESS",
   // Stigmer-signed JWT for the primary conformance user; every suite RPC
   // carries it as a Bearer token.
   token: "STIGMER_CONFORMANCE_CLOUD_TOKEN",
@@ -69,6 +74,7 @@ const SHUTDOWN_GRACE_MS = 60_000;
 
 export interface CloudEnvironment {
   readonly grpcBaseUrl: string;
+  readonly httpBaseUrl: string;
   stop(): Promise<void>;
 }
 
@@ -100,9 +106,10 @@ export async function spawnCloudEnvironment(): Promise<CloudEnvironment> {
     stdio: ["ignore", "pipe", "inherit"],
   });
 
-  const grpcAddress = await waitForReadyLine(child);
+  const readyLine = await waitForReadyLine(child);
   return {
-    grpcBaseUrl: `http://${grpcAddress}`,
+    grpcBaseUrl: `http://${readyLine.grpcAddress}`,
+    httpBaseUrl: readyLine.httpAddress,
     stop: () => stopLauncher(child),
   };
 }
@@ -161,19 +168,26 @@ export async function mintCloudUserToken(
   return response.accessToken;
 }
 
-async function waitForReadyLine(child: ChildProcess): Promise<string> {
+interface ReadyLine {
+  readonly grpcAddress: string;
+  readonly httpAddress: string;
+}
+
+async function waitForReadyLine(child: ChildProcess): Promise<ReadyLine> {
   if (child.stdout === null) {
     throw new Error("launcher spawned without a stdout pipe");
   }
   const lines = createInterface({ input: child.stdout });
 
-  const ready = new Promise<string>((resolveReady, rejectReady) => {
+  const ready = new Promise<ReadyLine>((resolveReady, rejectReady) => {
     lines.on("line", (line) => {
       try {
-        const parsed: unknown = JSON.parse(line);
-        const address = (parsed as { grpcAddress?: unknown }).grpcAddress;
-        if (typeof address === "string" && address !== "") {
-          resolveReady(address);
+        const parsed = JSON.parse(line) as { grpcAddress?: unknown; httpAddress?: unknown };
+        if (
+          typeof parsed.grpcAddress === "string" && parsed.grpcAddress !== "" &&
+          typeof parsed.httpAddress === "string" && parsed.httpAddress !== ""
+        ) {
+          resolveReady({ grpcAddress: parsed.grpcAddress, httpAddress: parsed.httpAddress });
         }
       } catch {
         // Not the ready-line; the launcher keeps stdout otherwise silent.

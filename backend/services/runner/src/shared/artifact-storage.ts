@@ -376,19 +376,22 @@ export function loadArtifactStorageConfig(config: Config): ArtifactStorageConfig
   // configured, push artifacts through it (the proxy brokers R2). This holds for
   // both cloud runners and the local desktop runner — the latter executes
   // locally (mode === "local") yet still uploads via the proxy. An explicit
-  // ARTIFACT_STORAGE_TYPE always wins.
+  // ARTIFACT_STORAGE_TYPE always wins. Presigns target artifactProxyEndpoint —
+  // STIGMER_ARTIFACT_PROXY_ENDPOINT when split from the LLM proxy endpoint
+  // (stigmer#803, the checkpointer-override pattern), the plain proxy
+  // endpoint otherwise.
   const envType = process.env.ARTIFACT_STORAGE_TYPE;
   const type: ArtifactStorageType =
     envType === "proxy" ? "proxy" :
     envType === "local" ? "local" :
     envType === "none" ? "none" :
-    config.proxyEndpoint ? "proxy" : "local";
+    config.artifactProxyEndpoint ? "proxy" : "local";
 
   return {
     type,
     localPath: process.env.LOCAL_ARTIFACT_PATH ?? defaultLocalArtifactPath(),
     localServeUrl: process.env.LOCAL_ARTIFACT_SERVE_URL ?? "http://localhost:7235",
-    proxyEndpoint: type === "proxy" ? (config.proxyEndpoint ?? null) : null,
+    proxyEndpoint: type === "proxy" ? (config.artifactProxyEndpoint ?? null) : null,
     // Prefer the live ref: renewal rotates the token in place and uploads
     // must present the current credential, not the boot one.
     proxyAuthToken: type === "proxy"
@@ -408,7 +411,9 @@ export function createArtifactStorage(cfg: ArtifactStorageConfig): ArtifactStora
   }
   if (cfg.type === "proxy") {
     if (!cfg.proxyEndpoint) {
-      throw new Error("Proxy artifact storage requires STIGMER_PROXY_ENDPOINT");
+      throw new Error(
+        "Proxy artifact storage requires STIGMER_ARTIFACT_PROXY_ENDPOINT or STIGMER_PROXY_ENDPOINT",
+      );
     }
     const tokenAtBoot = typeof cfg.proxyAuthToken === "string"
       ? cfg.proxyAuthToken

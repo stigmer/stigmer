@@ -913,6 +913,7 @@ function makeConfig() {
     runnerId: null,
     checkpointerType: "memory" as const,
     checkpointerProxyEndpoint: null,
+    artifactProxyEndpoint: null,
     primaryModel: "gpt-4.1",
     cursorStreamStallTimeoutMs: 180000,
     agentResolveTimeoutMs: 120000,
