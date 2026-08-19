@@ -13,6 +13,8 @@ import ai.stigmer.agentic.agentexecution.v1.ConversationCatchup;
 import ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences;
 import ai.stigmer.agentic.agentexecution.v1.ExecutionConfig;
 import ai.stigmer.agentic.agentexecution.v1.InteractionMode;
+import ai.stigmer.agentic.agentexecution.v1.RecalledMemories;
+import ai.stigmer.agentic.agentexecution.v1.RecalledMemoryFact;
 import ai.stigmer.agentic.agentexecution.v1.ServiceTier;
 import ai.stigmer.agentic.agentexecution.v1.ThinkingMode;
 import ai.stigmer.agentic.executioncontext.v1.ExecutionValue;
@@ -54,6 +56,7 @@ public final class AgentExecutionInput {
     private final String supersedesExecutionId;
     private final ConversationCatchupInput conversationCatchup;
     private final DeclaredPreferencesInput declaredPreferences;
+    private final RecalledMemoriesInput recalledMemories;
 
     private AgentExecutionInput(Builder builder) {
         this.id = builder.id;
@@ -77,6 +80,7 @@ public final class AgentExecutionInput {
         this.supersedesExecutionId = builder.supersedesExecutionId;
         this.conversationCatchup = builder.conversationCatchup;
         this.declaredPreferences = builder.declaredPreferences;
+        this.recalledMemories = builder.recalledMemories;
     }
 
     AgentExecution toProto() {
@@ -131,6 +135,9 @@ public final class AgentExecutionInput {
         if (this.declaredPreferences != null) {
             spec.setDeclaredPreferences(this.declaredPreferences.toProto());
         }
+        if (this.recalledMemories != null) {
+            spec.setRecalledMemories(this.recalledMemories.toProto());
+        }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name)
             .setOrg(this.org);
@@ -178,6 +185,7 @@ public final class AgentExecutionInput {
         private String supersedesExecutionId;
         private ConversationCatchupInput conversationCatchup;
         private DeclaredPreferencesInput declaredPreferences;
+        private RecalledMemoriesInput recalledMemories;
 
         private Builder() {}
 
@@ -207,6 +215,7 @@ public final class AgentExecutionInput {
         public Builder supersedesExecutionId(String supersedesExecutionId) { this.supersedesExecutionId = supersedesExecutionId; return this; }
         public Builder conversationCatchup(ConversationCatchupInput conversationCatchup) { this.conversationCatchup = conversationCatchup; return this; }
         public Builder declaredPreferences(DeclaredPreferencesInput declaredPreferences) { this.declaredPreferences = declaredPreferences; return this; }
+        public Builder recalledMemories(RecalledMemoriesInput recalledMemories) { this.recalledMemories = recalledMemories; return this; }
 
         public AgentExecutionInput build() { return new AgentExecutionInput(this); }
     }
@@ -823,6 +832,78 @@ public final class AgentExecutionInput {
             public Builder userContext(String userContext) { this.userContext = userContext; return this; }
 
             public DeclaredPreferencesInput build() { return new DeclaredPreferencesInput(this); }
+        }
+    }
+
+    /** SDK input type for RecalledMemories. */
+    public static final class RecalledMemoriesInput {
+        private final boolean enabled;
+        private final java.util.List<RecalledMemoryFactInput> facts;
+
+        private RecalledMemoriesInput(Builder builder) {
+            this.enabled = builder.enabled;
+            this.facts = builder.facts;
+        }
+
+        RecalledMemories toProto() {
+            RecalledMemories.Builder builder = RecalledMemories.newBuilder();
+            builder.setEnabled(this.enabled);
+            if (this.facts != null) {
+                for (RecalledMemoryFactInput item : this.facts) {
+                    builder.addFacts(item.toProto());
+                }
+            }
+            return builder.build();
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private boolean enabled;
+            private java.util.List<RecalledMemoryFactInput> facts;
+
+            private Builder() {}
+
+            public Builder enabled(boolean enabled) { this.enabled = enabled; return this; }
+            public Builder facts(java.util.List<RecalledMemoryFactInput> facts) { this.facts = facts; return this; }
+
+            public RecalledMemoriesInput build() { return new RecalledMemoriesInput(this); }
+        }
+    }
+
+    /** SDK input type for RecalledMemoryFact. */
+    public static final class RecalledMemoryFactInput {
+        private final String memoryId;
+        private final String content;
+
+        private RecalledMemoryFactInput(Builder builder) {
+            this.memoryId = builder.memoryId;
+            this.content = builder.content;
+        }
+
+        RecalledMemoryFact toProto() {
+            RecalledMemoryFact.Builder builder = RecalledMemoryFact.newBuilder();
+            if (this.memoryId != null) {
+                builder.setMemoryId(this.memoryId);
+            }
+            if (this.content != null) {
+                builder.setContent(this.content);
+            }
+            return builder.build();
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private String memoryId;
+            private String content;
+
+            private Builder() {}
+
+            public Builder memoryId(String memoryId) { this.memoryId = memoryId; return this; }
+            public Builder content(String content) { this.content = content; return this; }
+
+            public RecalledMemoryFactInput build() { return new RecalledMemoryFactInput(this); }
         }
     }
 }

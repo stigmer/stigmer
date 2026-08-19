@@ -61,14 +61,15 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "\030\005 \001(\tR\rexternalOrgId\022\037\n\013is_personal\030\006 \001" +
       "(\010R\nisPersonal\022]\n\013preferences\030\007 \001(\0132;.ai" +
       ".stigmer.tenancy.organization.v1.Organiz" +
-      "ationPreferencesR\013preferences\"N\n\027Organiz" +
+      "ationPreferencesR\013preferences\"u\n\027Organiz" +
       "ationPreferences\0223\n\020standing_context\030\001 \001" +
-      "(\tB\010\272H\005r\003\030\320\017R\017standingContextB\270\001B\tSpecPr" +
-      "otoP\001\242\002\004ASTO\252\002\"Ai.Stigmer.Tenancy.Organi" +
-      "zation.V1\312\002\"Ai\\Stigmer\\Tenancy\\Organizat" +
-      "ion\\V1\342\002.Ai\\Stigmer\\Tenancy\\Organization" +
-      "\\V1\\GPBMetadata\352\002&Ai::Stigmer::Tenancy::" +
-      "Organization::V1b\006proto3"
+      "(\tB\010\272H\005r\003\030\320\017R\017standingContext\022%\n\016memory_" +
+      "enabled\030\002 \001(\010R\rmemoryEnabledB\270\001B\tSpecPro" +
+      "toP\001\242\002\004ASTO\252\002\"Ai.Stigmer.Tenancy.Organiz" +
+      "ation.V1\312\002\"Ai\\Stigmer\\Tenancy\\Organizati" +
+      "on\\V1\342\002.Ai\\Stigmer\\Tenancy\\Organization\\" +
+      "V1\\GPBMetadata\352\002&Ai::Stigmer::Tenancy::O" +
+      "rganization::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -88,7 +89,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_tenancy_organization_v1_OrganizationPreferences_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_tenancy_organization_v1_OrganizationPreferences_descriptor,
-        new java.lang.String[] { "StandingContext", });
+        new java.lang.String[] { "StandingContext", "MemoryEnabled", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.commons.apiresource.IoProto.getDescriptor();
     ai.stigmer.tenancy.organization.v1.EnumProto.getDescriptor();

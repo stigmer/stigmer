@@ -1,0 +1,32 @@
+{
+  "name": "RecalledMemories",
+  "description": "RecalledMemories is the server-composed snapshot of the caller's\n confirmed memories for one execution.",
+  "protoType": "ai.stigmer.agentic.agentexecution.v1.RecalledMemories",
+  "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/spec.proto",
+  "fields": [
+    {
+      "name": "Enabled",
+      "jsonName": "enabled",
+      "protoField": "enabled",
+      "type": {
+        "kind": "bool"
+      },
+      "description": "Whether memory is enabled for this execution's caller.",
+      "required": false
+    },
+    {
+      "name": "Facts",
+      "jsonName": "facts",
+      "protoField": "facts",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "RecalledMemoryFact"
+        }
+      },
+      "description": "The confirmed facts, wholesale — every confirmed memory of the\n caller in this organization.",
+      "required": false
+    }
+  ]
+}

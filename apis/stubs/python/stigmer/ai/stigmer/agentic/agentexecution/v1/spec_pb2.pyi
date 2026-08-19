@@ -15,7 +15,7 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class AgentExecutionSpec(_message.Message):
-    __slots__ = ("session_id", "agent_id", "session_spec", "message", "execution_config", "runtime_env", "callback_token", "auto_approve_all", "parent_workflow_id", "attachments", "workspace_file_refs", "activity_task_queue", "supersedes_execution_id", "conversation_catchup", "declared_preferences")
+    __slots__ = ("session_id", "agent_id", "session_spec", "message", "execution_config", "runtime_env", "callback_token", "auto_approve_all", "parent_workflow_id", "attachments", "workspace_file_refs", "activity_task_queue", "supersedes_execution_id", "conversation_catchup", "declared_preferences", "recalled_memories")
     class RuntimeEnvEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -38,6 +38,7 @@ class AgentExecutionSpec(_message.Message):
     SUPERSEDES_EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
     CONVERSATION_CATCHUP_FIELD_NUMBER: _ClassVar[int]
     DECLARED_PREFERENCES_FIELD_NUMBER: _ClassVar[int]
+    RECALLED_MEMORIES_FIELD_NUMBER: _ClassVar[int]
     session_id: str
     agent_id: str
     session_spec: _spec_pb2_1.SessionSpec
@@ -53,7 +54,8 @@ class AgentExecutionSpec(_message.Message):
     supersedes_execution_id: str
     conversation_catchup: ConversationCatchup
     declared_preferences: DeclaredPreferences
-    def __init__(self, session_id: _Optional[str] = ..., agent_id: _Optional[str] = ..., session_spec: _Optional[_Union[_spec_pb2_1.SessionSpec, _Mapping]] = ..., message: _Optional[str] = ..., execution_config: _Optional[_Union[ExecutionConfig, _Mapping]] = ..., runtime_env: _Optional[_Mapping[str, _spec_pb2.ExecutionValue]] = ..., callback_token: _Optional[bytes] = ..., auto_approve_all: bool = ..., parent_workflow_id: _Optional[str] = ..., attachments: _Optional[_Iterable[_Union[Attachment, _Mapping]]] = ..., workspace_file_refs: _Optional[_Iterable[str]] = ..., activity_task_queue: _Optional[str] = ..., supersedes_execution_id: _Optional[str] = ..., conversation_catchup: _Optional[_Union[ConversationCatchup, _Mapping]] = ..., declared_preferences: _Optional[_Union[DeclaredPreferences, _Mapping]] = ...) -> None: ...
+    recalled_memories: RecalledMemories
+    def __init__(self, session_id: _Optional[str] = ..., agent_id: _Optional[str] = ..., session_spec: _Optional[_Union[_spec_pb2_1.SessionSpec, _Mapping]] = ..., message: _Optional[str] = ..., execution_config: _Optional[_Union[ExecutionConfig, _Mapping]] = ..., runtime_env: _Optional[_Mapping[str, _spec_pb2.ExecutionValue]] = ..., callback_token: _Optional[bytes] = ..., auto_approve_all: bool = ..., parent_workflow_id: _Optional[str] = ..., attachments: _Optional[_Iterable[_Union[Attachment, _Mapping]]] = ..., workspace_file_refs: _Optional[_Iterable[str]] = ..., activity_task_queue: _Optional[str] = ..., supersedes_execution_id: _Optional[str] = ..., conversation_catchup: _Optional[_Union[ConversationCatchup, _Mapping]] = ..., declared_preferences: _Optional[_Union[DeclaredPreferences, _Mapping]] = ..., recalled_memories: _Optional[_Union[RecalledMemories, _Mapping]] = ...) -> None: ...
 
 class ExecutionConfig(_message.Message):
     __slots__ = ("model_name", "context_management", "max_tool_rounds", "max_tool_result_chars", "max_cost_usd", "interaction_mode", "structured_output_schema", "build_from_plan", "approval_mode", "service_tier", "thinking_mode")
@@ -122,3 +124,19 @@ class DeclaredPreferences(_message.Message):
     org_context: str
     user_context: str
     def __init__(self, org_context: _Optional[str] = ..., user_context: _Optional[str] = ...) -> None: ...
+
+class RecalledMemories(_message.Message):
+    __slots__ = ("enabled", "facts")
+    ENABLED_FIELD_NUMBER: _ClassVar[int]
+    FACTS_FIELD_NUMBER: _ClassVar[int]
+    enabled: bool
+    facts: _containers.RepeatedCompositeFieldContainer[RecalledMemoryFact]
+    def __init__(self, enabled: bool = ..., facts: _Optional[_Iterable[_Union[RecalledMemoryFact, _Mapping]]] = ...) -> None: ...
+
+class RecalledMemoryFact(_message.Message):
+    __slots__ = ("memory_id", "content")
+    MEMORY_ID_FIELD_NUMBER: _ClassVar[int]
+    CONTENT_FIELD_NUMBER: _ClassVar[int]
+    memory_id: str
+    content: str
+    def __init__(self, memory_id: _Optional[str] = ..., content: _Optional[str] = ...) -> None: ...

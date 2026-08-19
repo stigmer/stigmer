@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.memory.v1;
+
+import "ai/stigmer/agentic/memory/v1/enum.proto";
+import "ai/stigmer/commons/apiresource/status.proto";
+import "google/protobuf/timestamp.proto";
+
+// MemoryStatus contains system-managed state for a memory.
+//
+// @internal
+// Server-owned; written only by the create pipeline (initial proposed
+// state) and the confirm/reject command RPCs — the sole lifecycle
+// writers (DD-005 D3). The update RPC never touches status: consent
+// must not be rewritable through a spec edit. Both editions preserve
+// status verbatim across updates (the Schedule/AgentChannel posture).
+message MemoryStatus {
+  // Where this memory is in its consent lifecycle.
+  MemoryLifecycleState lifecycle_state = 1;
+
+  // When the lifecycle state last changed.
+  //
+  // @internal
+  // Stamped by create (proposal time) and by confirm/reject (decision
+  // time). Surfaces "decided when" beside "decided what" without a
+  // parallel event log at dozens-of-records scale.
+  google.protobuf.Timestamp state_changed_at = 2;
+
+  // Standard audit information (created_at, updated_at, created_by, etc.)
+  ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
+}

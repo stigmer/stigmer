@@ -636,6 +636,7 @@ const agentExecution = await stigmer.agentExecution.create({
   supersedesExecutionId: "...",
   conversationCatchup: {},
   declaredPreferences: {},
+  recalledMemories: {},
 });
 ```
 </Tab>
@@ -661,6 +662,7 @@ agentExecution, err := client.AgentExecution.Create(ctx, &stigmer.AgentExecution
   SupersedesExecutionId: "...",
   ConversationCatchup:   &stigmer.ConversationCatchupInput{},
   DeclaredPreferences:   &stigmer.DeclaredPreferencesInput{},
+  RecalledMemories:      &stigmer.RecalledMemoriesInput{},
 })
 ```
 </Tab>
@@ -686,6 +688,7 @@ agent_execution = client.agent_executions.create(AgentExecutionInput(
     supersedes_execution_id="...",
     conversation_catchup=None,
     declared_preferences=None,
+    recalled_memories=None,
 ))
 ```
 </Tab>
@@ -711,6 +714,7 @@ AgentExecution agentExecution = client.agentExecutions().create(AgentExecutionIn
     .supersedesExecutionId("...")
     .conversationCatchup(null)
     .declaredPreferences(null)
+    .recalledMemories(null)
     .build());
 ```
 </Tab>
@@ -747,6 +751,7 @@ const agentExecution = await stigmer.agentExecution.update({
   supersedesExecutionId: "...",
   conversationCatchup: {},
   declaredPreferences: {},
+  recalledMemories: {},
 });
 ```
 </Tab>
@@ -772,6 +777,7 @@ agentExecution, err := client.AgentExecution.Update(ctx, &stigmer.AgentExecution
   SupersedesExecutionId: "...",
   ConversationCatchup:   &stigmer.ConversationCatchupInput{},
   DeclaredPreferences:   &stigmer.DeclaredPreferencesInput{},
+  RecalledMemories:      &stigmer.RecalledMemoriesInput{},
 })
 ```
 </Tab>
@@ -797,6 +803,7 @@ agent_execution = client.agent_executions.update(AgentExecutionInput(
     supersedes_execution_id="...",
     conversation_catchup=None,
     declared_preferences=None,
+    recalled_memories=None,
 ))
 ```
 </Tab>
@@ -822,6 +829,7 @@ AgentExecution agentExecution = client.agentExecutions().update(AgentExecutionIn
     .supersedesExecutionId("...")
     .conversationCatchup(null)
     .declaredPreferences(null)
+    .recalledMemories(null)
     .build());
 ```
 </Tab>
@@ -1322,6 +1330,7 @@ Input for creating or updating an Agent Execution.
     supersedesExecutionId: { type: "string", description: "ID of the execution this one supersedes via edit-and-resubmit (optional)." },
     conversationCatchup: { type: "ConversationCatchupInput", description: "Conversation events the agent has not yet seen, composed by the platform for this turn (optional).", typeDescriptionLink: "#conversationcatchupinput" },
     declaredPreferences: { type: "DeclaredPreferencesInput", description: "Standing preferences declared by the organization and the calling user, snapshotted into this execution at create time (optional).", typeDescriptionLink: "#declaredpreferencesinput" },
+    recalledMemories: { type: "RecalledMemoriesInput", description: "The caller's confirmed memories, snapshotted into this execution at create time (optional).", typeDescriptionLink: "#recalledmemoriesinput" },
   }}
 />
 
@@ -1505,6 +1514,28 @@ DeclaredPreferences carries the standing preference texts injected into this exe
   type={{
     orgContext: { type: "string", description: "The organization's standing context, verbatim." },
     userContext: { type: "string", description: "The calling user's standing context, verbatim." },
+  }}
+/>
+
+### RecalledMemoriesInput
+
+RecalledMemories is the server-composed snapshot of the caller's confirmed memories for one execution.
+
+<TypeTable
+  type={{
+    enabled: { type: "boolean", description: "Whether memory is enabled for this execution's caller." },
+    facts: { type: "RecalledMemoryFactInput[]", description: "The confirmed facts, wholesale — every confirmed memory of the caller in this organization.", typeDescriptionLink: "#recalledmemoryfactinput" },
+  }}
+/>
+
+### RecalledMemoryFactInput
+
+RecalledMemoryFact is one confirmed memory as injected into an execution.
+
+<TypeTable
+  type={{
+    memoryId: { type: "string", description: "ID of the memory record this fact came from." },
+    content: { type: "string", description: "The remembered fact, verbatim as stored at snapshot time." },
   }}
 />
 

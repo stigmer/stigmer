@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.memory.v1;
+
+import "ai/stigmer/agentic/memory/v1/api.proto";
+import "ai/stigmer/agentic/memory/v1/io.proto";
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
+
+// MemoryQueryController handles read operations for memories.
+//
+// @internal
+// Content visibility is subject-only (DD-004 as ratified): org admins
+// govern the memory_enabled switch but never read members' memories.
+// The one deliberate exception is the recalled_memories snapshot on an
+// execution spec, readable by anyone who can read that execution
+// (DD-006 D6 — snapshot transparency); these RPCs are not that
+// exception. Not search-indexed: memory content stays out of the
+// global search index by design.
+service MemoryQueryController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = memory;
+
+  // Get a single memory by ID.
+  rpc get(MemoryId) returns (Memory) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = memory;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to get memory";
+  }
+
+  // List the caller's memories in an organization.
+  //
+  // Returns only memories the caller can view — for memories that is
+  // always exactly the ones about the caller.
+  //
+  // @internal
+  // Authorization in-handler via FGA-filtered queries (cloud: ListObjects
+  // over can_view, which resolves to the subject relation) or
+  // unrestricted store queries (OSS single-user). The console memory
+  // page lists through this RPC and groups pending proposals first
+  // (DD-005 D4) — ordering is a presentation concern, deliberately not
+  // an RPC parameter at dozens-of-records scale.
+  rpc list(ListMemoriesRequest) returns (MemoryList) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+}

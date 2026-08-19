@@ -241,6 +241,14 @@ public enum ApiResourceKind
   schedule(56),
   /**
    * <pre>
+   * Agent-proposed, user-confirmed fact the platform remembers about a person.
+   * </pre>
+   *
+   * <code>memory = 57 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   */
+  memory(57),
+  /**
+   * <pre>
    * Aggregate root grouping related resources for lifecycle management.
    * </pre>
    *
@@ -485,6 +493,14 @@ public enum ApiResourceKind
   public static final int schedule_VALUE = 56;
   /**
    * <pre>
+   * Agent-proposed, user-confirmed fact the platform remembers about a person.
+   * </pre>
+   *
+   * <code>memory = 57 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   */
+  public static final int memory_VALUE = 57;
+  /**
+   * <pre>
    * Aggregate root grouping related resources for lifecycle management.
    * </pre>
    *
@@ -544,6 +560,7 @@ public enum ApiResourceKind
       case 55: return artifact;
       case 54: return execution_context;
       case 56: return schedule;
+      case 57: return memory;
       case 60: return project;
       default: return null;
     }

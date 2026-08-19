@@ -16,6 +16,16 @@
       "validation": {
         "maxLength": 2000
       }
+    },
+    {
+      "name": "MemoryEnabled",
+      "jsonName": "memoryEnabled",
+      "protoField": "memory_enabled",
+      "type": {
+        "kind": "bool"
+      },
+      "description": "Whether agents may retain learned facts about members of this\n organization. Off by default: when off, the remember tool is never\n offered and nothing is recalled, regardless of member opt-in.",
+      "required": false
     }
   ]
 }

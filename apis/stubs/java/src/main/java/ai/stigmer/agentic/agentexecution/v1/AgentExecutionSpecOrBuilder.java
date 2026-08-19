@@ -1070,4 +1070,97 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue);
    * <code>.ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences declared_preferences = 15 [json_name = "declaredPreferences"];</code>
    */
   ai.stigmer.agentic.agentexecution.v1.DeclaredPreferencesOrBuilder getDeclaredPreferencesOrBuilder();
+
+  /**
+   * <pre>
+   * The caller's confirmed memories, snapshotted into this execution at
+   * create time (optional).
+   *
+   * &#64;internal
+   * Every DD-002 D2 invariant carries over from declared_preferences
+   * verbatim (DD-006 D2): SERVER-OWNED (the create pipeline stamps this
+   * field unconditionally — enabled=false with no facts for excluded
+   * callers — overwriting any caller-supplied value, so injection via
+   * the create request is moot by construction); composed only for
+   * first-party human operators with BOTH memory_enabled flags on (org
+   * AND caller; OSS: the org flag alone); confirmed records only —
+   * proposed and rejected are never injected (the consent gate is
+   * meaningless otherwise); a SNAPSHOT (memories are mutable, executions
+   * are immutable audit records — this field records exactly what the
+   * model saw, and each fact carries its memory_id so the audit links
+   * back to the addressable record); best-effort (a memory load failure
+   * degrades to disabled, never fails the create); top-level rather than
+   * inside ExecutionConfig (must not vanish with the execution-profile
+   * kill-switch). The enabled bit doubles as the runner's signal to
+   * offer the remember tool (DD-005 D1) — one server-owned field, one
+   * writer, no parallel flag. Composed by Stage 2's compose steps; the
+   * field is reserved here by Stage 1 so all Phase 2 contract changes
+   * land in one codegen pass.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 16 [json_name = "recalledMemories"];</code>
+   * @return Whether the recalledMemories field is set.
+   */
+  boolean hasRecalledMemories();
+  /**
+   * <pre>
+   * The caller's confirmed memories, snapshotted into this execution at
+   * create time (optional).
+   *
+   * &#64;internal
+   * Every DD-002 D2 invariant carries over from declared_preferences
+   * verbatim (DD-006 D2): SERVER-OWNED (the create pipeline stamps this
+   * field unconditionally — enabled=false with no facts for excluded
+   * callers — overwriting any caller-supplied value, so injection via
+   * the create request is moot by construction); composed only for
+   * first-party human operators with BOTH memory_enabled flags on (org
+   * AND caller; OSS: the org flag alone); confirmed records only —
+   * proposed and rejected are never injected (the consent gate is
+   * meaningless otherwise); a SNAPSHOT (memories are mutable, executions
+   * are immutable audit records — this field records exactly what the
+   * model saw, and each fact carries its memory_id so the audit links
+   * back to the addressable record); best-effort (a memory load failure
+   * degrades to disabled, never fails the create); top-level rather than
+   * inside ExecutionConfig (must not vanish with the execution-profile
+   * kill-switch). The enabled bit doubles as the runner's signal to
+   * offer the remember tool (DD-005 D1) — one server-owned field, one
+   * writer, no parallel flag. Composed by Stage 2's compose steps; the
+   * field is reserved here by Stage 1 so all Phase 2 contract changes
+   * land in one codegen pass.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 16 [json_name = "recalledMemories"];</code>
+   * @return The recalledMemories.
+   */
+  ai.stigmer.agentic.agentexecution.v1.RecalledMemories getRecalledMemories();
+  /**
+   * <pre>
+   * The caller's confirmed memories, snapshotted into this execution at
+   * create time (optional).
+   *
+   * &#64;internal
+   * Every DD-002 D2 invariant carries over from declared_preferences
+   * verbatim (DD-006 D2): SERVER-OWNED (the create pipeline stamps this
+   * field unconditionally — enabled=false with no facts for excluded
+   * callers — overwriting any caller-supplied value, so injection via
+   * the create request is moot by construction); composed only for
+   * first-party human operators with BOTH memory_enabled flags on (org
+   * AND caller; OSS: the org flag alone); confirmed records only —
+   * proposed and rejected are never injected (the consent gate is
+   * meaningless otherwise); a SNAPSHOT (memories are mutable, executions
+   * are immutable audit records — this field records exactly what the
+   * model saw, and each fact carries its memory_id so the audit links
+   * back to the addressable record); best-effort (a memory load failure
+   * degrades to disabled, never fails the create); top-level rather than
+   * inside ExecutionConfig (must not vanish with the execution-profile
+   * kill-switch). The enabled bit doubles as the runner's signal to
+   * offer the remember tool (DD-005 D1) — one server-owned field, one
+   * writer, no parallel flag. Composed by Stage 2's compose steps; the
+   * field is reserved here by Stage 1 so all Phase 2 contract changes
+   * land in one codegen pass.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 16 [json_name = "recalledMemories"];</code>
+   */
+  ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesOrBuilder getRecalledMemoriesOrBuilder();
 }

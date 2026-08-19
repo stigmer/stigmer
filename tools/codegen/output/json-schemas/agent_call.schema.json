@@ -49,6 +49,7 @@
               "artifact",
               "execution_context",
               "schedule",
+              "memory",
               "project"
             ],
             "type": "string"

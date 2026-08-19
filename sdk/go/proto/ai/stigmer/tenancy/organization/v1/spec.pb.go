@@ -130,8 +130,12 @@ type OrganizationPreferences struct {
 	// Free-text standing context injected into eligible agent executions in
 	// this organization. Example: "We deploy to us-east-1."
 	StandingContext string `protobuf:"bytes,1,opt,name=standing_context,json=standingContext,proto3" json:"standing_context,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// Whether agents may retain learned facts about members of this
+	// organization. Off by default: when off, the remember tool is never
+	// offered and nothing is recalled, regardless of member opt-in.
+	MemoryEnabled bool `protobuf:"varint,2,opt,name=memory_enabled,json=memoryEnabled,proto3" json:"memory_enabled,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *OrganizationPreferences) Reset() {
@@ -171,6 +175,13 @@ func (x *OrganizationPreferences) GetStandingContext() string {
 	return ""
 }
 
+func (x *OrganizationPreferences) GetMemoryEnabled() bool {
+	if x != nil {
+		return x.MemoryEnabled
+	}
+	return false
+}
+
 var File_ai_stigmer_tenancy_organization_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_tenancy_organization_v1_spec_proto_rawDesc = "" +
@@ -184,9 +195,10 @@ const file_ai_stigmer_tenancy_organization_v1_spec_proto_rawDesc = "" +
 	"\x0fexternal_org_id\x18\x05 \x01(\tR\rexternalOrgId\x12\x1f\n" +
 	"\vis_personal\x18\x06 \x01(\bR\n" +
 	"isPersonal\x12]\n" +
-	"\vpreferences\x18\a \x01(\v2;.ai.stigmer.tenancy.organization.v1.OrganizationPreferencesR\vpreferences\"N\n" +
+	"\vpreferences\x18\a \x01(\v2;.ai.stigmer.tenancy.organization.v1.OrganizationPreferencesR\vpreferences\"u\n" +
 	"\x17OrganizationPreferences\x123\n" +
-	"\x10standing_context\x18\x01 \x01(\tB\b\xbaH\x05r\x03\x18\xd0\x0fR\x0fstandingContextB\xbe\x02\n" +
+	"\x10standing_context\x18\x01 \x01(\tB\b\xbaH\x05r\x03\x18\xd0\x0fR\x0fstandingContext\x12%\n" +
+	"\x0ememory_enabled\x18\x02 \x01(\bR\rmemoryEnabledB\xbe\x02\n" +
 	"&com.ai.stigmer.tenancy.organization.v1B\tSpecProtoP\x01Z\\github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/tenancy/organization/v1;organizationv1\xa2\x02\x04ASTO\xaa\x02\"Ai.Stigmer.Tenancy.Organization.V1\xca\x02\"Ai\\Stigmer\\Tenancy\\Organization\\V1\xe2\x02.Ai\\Stigmer\\Tenancy\\Organization\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Tenancy::Organization::V1b\x06proto3"
 
 var (

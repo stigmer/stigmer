@@ -12,6 +12,7 @@ export { MembersSection } from "./MembersSection.js";
 export { OrgProfileSection } from "./OrgProfileSection.js";
 export { OrgPreferencesSection } from "./OrgPreferencesSection.js";
 export { AccountPreferencesSection } from "./AccountPreferencesSection.js";
+export { MemorySection } from "./MemorySection.js";
 export { EnvironmentsSection } from "./EnvironmentsSection.js";
 export { InvitationsSection } from "./InvitationsSection.js";
 export { IdentityProvidersSection } from "./IdentityProvidersSection.js";

@@ -102,11 +102,13 @@ export interface OrganizationInput {
 /** SDK input type for OrganizationPreferences. */
 export interface OrganizationPreferencesInput {
   standingContext?: string;
+  memoryEnabled?: boolean;
 }
 
 function buildOrganizationPreferencesProto(input: OrganizationPreferencesInput) {
   return Object.assign(create(OrganizationPreferencesSchema), stripUndefined({
     standingContext: input.standingContext,
+    memoryEnabled: input.memoryEnabled,
   }));
 }
 
@@ -139,6 +141,7 @@ export function buildOrganizationProto(input: OrganizationInput): Organization {
 function toOrganizationPreferencesInput(msg: OrganizationPreferences): OrganizationPreferencesInput {
   return {
     standingContext: msg.standingContext || undefined,
+    memoryEnabled: msg.memoryEnabled || undefined,
   };
 }
 

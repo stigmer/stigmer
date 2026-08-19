@@ -19,6 +19,8 @@ import { ExecutionContextCommandController } from "@stigmer/protos/ai/stigmer/ag
 import { ExecutionContextQueryController } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/query_pb";
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
+import { MemoryCommandController } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/command_pb";
+import { MemoryQueryController } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/query_pb";
 import { ScheduleCommandController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/command_pb";
 import { ScheduleQueryController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/query_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
@@ -60,6 +62,8 @@ export interface ConformanceClients {
   executionContextQuery: Client<typeof ExecutionContextQueryController>;
   mcpServerCommand: Client<typeof McpServerCommandController>;
   mcpServerQuery: Client<typeof McpServerQueryController>;
+  memoryCommand: Client<typeof MemoryCommandController>;
+  memoryQuery: Client<typeof MemoryQueryController>;
   scheduleCommand: Client<typeof ScheduleCommandController>;
   scheduleQuery: Client<typeof ScheduleQueryController>;
   sessionCommand: Client<typeof SessionCommandController>;
@@ -115,6 +119,8 @@ export function makeClients(transport: Transport): ConformanceClients {
     executionContextQuery: createClient(ExecutionContextQueryController, transport),
     mcpServerCommand: createClient(McpServerCommandController, transport),
     mcpServerQuery: createClient(McpServerQueryController, transport),
+    memoryCommand: createClient(MemoryCommandController, transport),
+    memoryQuery: createClient(MemoryQueryController, transport),
     scheduleCommand: createClient(ScheduleCommandController, transport),
     scheduleQuery: createClient(ScheduleQueryController, transport),
     sessionCommand: createClient(SessionCommandController, transport),

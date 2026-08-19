@@ -311,6 +311,33 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int MEMORY_ENABLED_FIELD_NUMBER = 5;
+  private boolean memoryEnabled_ = false;
+  /**
+   * <pre>
+   * Whether the platform may remember confirmed facts about this
+   * account. Off by default; operative only where the organization has
+   * also enabled memory.
+   *
+   * &#64;internal
+   * The member half of memory's double opt-in (DD-006 D1): effective
+   * enablement = org memory_enabled AND this flag AND first-party human
+   * operator. Self-service under the account's own can_edit (FGA
+   * owner), like every field on this message. Enforced fail-closed at
+   * memory create (DD-005 D2) and read at recall compose (DD-006 D3).
+   * Toggling off stops capture and recall from the next execution on;
+   * existing records remain until the subject deletes them (deletion is
+   * the retention mechanism, DD-006).
+   * </pre>
+   *
+   * <code>bool memory_enabled = 5 [json_name = "memoryEnabled"];</code>
+   * @return The memoryEnabled.
+   */
+  @java.lang.Override
+  public boolean getMemoryEnabled() {
+    return memoryEnabled_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -337,6 +364,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(defaultCursorModel_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 4, defaultCursorModel_);
     }
+    if (memoryEnabled_ != false) {
+      output.writeBool(5, memoryEnabled_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -357,6 +387,10 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(defaultCursorModel_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(4, defaultCursorModel_);
+    }
+    if (memoryEnabled_ != false) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeBoolSize(5, memoryEnabled_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -381,6 +415,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getDefaultNativeModel())) return false;
     if (!getDefaultCursorModel()
         .equals(other.getDefaultCursorModel())) return false;
+    if (getMemoryEnabled()
+        != other.getMemoryEnabled()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -400,6 +436,9 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getDefaultNativeModel().hashCode();
     hash = (37 * hash) + DEFAULT_CURSOR_MODEL_FIELD_NUMBER;
     hash = (53 * hash) + getDefaultCursorModel().hashCode();
+    hash = (37 * hash) + MEMORY_ENABLED_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+        getMemoryEnabled());
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -554,6 +593,7 @@ private static final long serialVersionUID = 0L;
       defaultHarness_ = "";
       defaultNativeModel_ = "";
       defaultCursorModel_ = "";
+      memoryEnabled_ = false;
       return this;
     }
 
@@ -599,6 +639,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000008) != 0)) {
         result.defaultCursorModel_ = defaultCursorModel_;
       }
+      if (((from_bitField0_ & 0x00000010) != 0)) {
+        result.memoryEnabled_ = memoryEnabled_;
+      }
     }
 
     @java.lang.Override
@@ -632,6 +675,9 @@ private static final long serialVersionUID = 0L;
         defaultCursorModel_ = other.defaultCursorModel_;
         bitField0_ |= 0x00000008;
         onChanged();
+      }
+      if (other.getMemoryEnabled() != false) {
+        setMemoryEnabled(other.getMemoryEnabled());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -679,6 +725,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000008;
               break;
             } // case 34
+            case 40: {
+              memoryEnabled_ = input.readBool();
+              bitField0_ |= 0x00000010;
+              break;
+            } // case 40
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1190,6 +1241,86 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       defaultCursorModel_ = value;
       bitField0_ |= 0x00000008;
+      onChanged();
+      return this;
+    }
+
+    private boolean memoryEnabled_ ;
+    /**
+     * <pre>
+     * Whether the platform may remember confirmed facts about this
+     * account. Off by default; operative only where the organization has
+     * also enabled memory.
+     *
+     * &#64;internal
+     * The member half of memory's double opt-in (DD-006 D1): effective
+     * enablement = org memory_enabled AND this flag AND first-party human
+     * operator. Self-service under the account's own can_edit (FGA
+     * owner), like every field on this message. Enforced fail-closed at
+     * memory create (DD-005 D2) and read at recall compose (DD-006 D3).
+     * Toggling off stops capture and recall from the next execution on;
+     * existing records remain until the subject deletes them (deletion is
+     * the retention mechanism, DD-006).
+     * </pre>
+     *
+     * <code>bool memory_enabled = 5 [json_name = "memoryEnabled"];</code>
+     * @return The memoryEnabled.
+     */
+    @java.lang.Override
+    public boolean getMemoryEnabled() {
+      return memoryEnabled_;
+    }
+    /**
+     * <pre>
+     * Whether the platform may remember confirmed facts about this
+     * account. Off by default; operative only where the organization has
+     * also enabled memory.
+     *
+     * &#64;internal
+     * The member half of memory's double opt-in (DD-006 D1): effective
+     * enablement = org memory_enabled AND this flag AND first-party human
+     * operator. Self-service under the account's own can_edit (FGA
+     * owner), like every field on this message. Enforced fail-closed at
+     * memory create (DD-005 D2) and read at recall compose (DD-006 D3).
+     * Toggling off stops capture and recall from the next execution on;
+     * existing records remain until the subject deletes them (deletion is
+     * the retention mechanism, DD-006).
+     * </pre>
+     *
+     * <code>bool memory_enabled = 5 [json_name = "memoryEnabled"];</code>
+     * @param value The memoryEnabled to set.
+     * @return This builder for chaining.
+     */
+    public Builder setMemoryEnabled(boolean value) {
+
+      memoryEnabled_ = value;
+      bitField0_ |= 0x00000010;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Whether the platform may remember confirmed facts about this
+     * account. Off by default; operative only where the organization has
+     * also enabled memory.
+     *
+     * &#64;internal
+     * The member half of memory's double opt-in (DD-006 D1): effective
+     * enablement = org memory_enabled AND this flag AND first-party human
+     * operator. Self-service under the account's own can_edit (FGA
+     * owner), like every field on this message. Enforced fail-closed at
+     * memory create (DD-005 D2) and read at recall compose (DD-006 D3).
+     * Toggling off stops capture and recall from the next execution on;
+     * existing records remain until the subject deletes them (deletion is
+     * the retention mechanism, DD-006).
+     * </pre>
+     *
+     * <code>bool memory_enabled = 5 [json_name = "memoryEnabled"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearMemoryEnabled() {
+      bitField0_ = (bitField0_ & ~0x00000010);
+      memoryEnabled_ = false;
       onChanged();
       return this;
     }

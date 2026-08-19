@@ -14,6 +14,7 @@ import (
 	environmentv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/environment/v1"
 	executioncontextv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/executioncontext/v1"
 	mcpserverv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/mcpserver/v1"
+	memoryv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/memory/v1"
 	schedulev1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/schedule/v1"
 	sessionv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/session/v1"
 	skillv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/skill/v1"
@@ -104,6 +105,11 @@ func InvitationInputFromProto(p *invitationv1.Invitation) *InvitationInput {
 // McpServerInputFromProto creates a McpServerInput from a proto McpServer resource.
 func McpServerInputFromProto(p *mcpserverv1.McpServer) *McpServerInput {
 	return gen.McpServerInputFromProto(p)
+}
+
+// MemoryInputFromProto creates a MemoryInput from a proto Memory resource.
+func MemoryInputFromProto(p *memoryv1.Memory) *MemoryInput {
+	return gen.MemoryInputFromProto(p)
 }
 
 // OAuthAppInputFromProto creates a OAuthAppInput from a proto OAuthApp resource.

@@ -70,6 +70,11 @@ const SETTINGS_SECTIONS = [
     cloudGated: true,
   },
   {
+    path: "/settings/memory",
+    headingText: "Memory",
+    cloudGated: false,
+  },
+  {
     path: "/settings/billing",
     headingText: "Billing",
     cloudGated: true,

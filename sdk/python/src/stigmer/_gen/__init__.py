@@ -4,7 +4,7 @@ from ._bidi import BidiStream
 from ._client import GeneratedClient
 from ._agent import AgentClient, AgentInput, McpServerUsageInput, ToolApprovalOverrideInput, SubAgentInput, McpAccessInput, EnvVarDeclarationInput
 from ._agentchannel import AgentChannelClient, AgentChannelInput, SlackChannelConfigInput, WhatsAppChannelConfigInput, RunConfigInput
-from ._agentexecution import AgentExecutionClient, AgentExecutionInput, SessionSpecInput, WorkspaceEntryInput, WorkspaceSourceInput, GitRepoSourceInput, LocalPathSourceInput, ExecutionConfigInput, ContextManagementConfigInput, AttachmentInput, ConversationCatchupInput, DeclaredPreferencesInput
+from ._agentexecution import AgentExecutionClient, AgentExecutionInput, SessionSpecInput, WorkspaceEntryInput, WorkspaceSourceInput, GitRepoSourceInput, LocalPathSourceInput, ExecutionConfigInput, ContextManagementConfigInput, AttachmentInput, ConversationCatchupInput, DeclaredPreferencesInput, RecalledMemoriesInput, RecalledMemoryFactInput
 from ._agentinstance import AgentInstanceClient, AgentInstanceInput
 from ._agentshare import AgentShareClient, AgentShareInput, AgentShareMessagesInput
 from ._apikey import ApiKeyClient, ApiKeyInput
@@ -17,6 +17,7 @@ from ._identityaccount import IdentityAccountClient, IdentityAccountInput, Ident
 from ._identityprovider import IdentityProviderClient, IdentityProviderInput
 from ._invitation import InvitationClient, InvitationInput
 from ._mcpserver import McpServerClient, McpServerInput, StdioServerConfigInput, HttpServerConfigInput, ToolApprovalPolicyInput, McpServerAuthInput
+from ._memory import MemoryClient, MemoryInput, MemoryProvenanceInput
 from ._oauthapp import OAuthAppClient, OAuthAppInput
 from ._organization import OrganizationClient, OrganizationInput, OrganizationPreferencesInput
 from ._platformclient import PlatformClientClient, PlatformClientInput
@@ -73,6 +74,8 @@ __all__ = [
     "AttachmentInput",
     "ConversationCatchupInput",
     "DeclaredPreferencesInput",
+    "RecalledMemoriesInput",
+    "RecalledMemoryFactInput",
     "AgentInstanceClient",
     "AgentInstanceInput",
     "AgentShareClient",
@@ -108,6 +111,9 @@ __all__ = [
     "HttpServerConfigInput",
     "ToolApprovalPolicyInput",
     "McpServerAuthInput",
+    "MemoryClient",
+    "MemoryInput",
+    "MemoryProvenanceInput",
     "OAuthAppClient",
     "OAuthAppInput",
     "OrganizationClient",

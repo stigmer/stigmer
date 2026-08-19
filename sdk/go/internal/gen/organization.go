@@ -101,6 +101,7 @@ type OrganizationInput struct {
 // OrganizationPreferencesInput is the SDK input type for OrganizationPreferences.
 type OrganizationPreferencesInput struct {
 	StandingContext string
+	MemoryEnabled   bool
 }
 
 func (i *OrganizationInput) toProto() (*organizationv1.Organization, error) {
@@ -138,6 +139,7 @@ func (i *OrganizationInput) toProto() (*organizationv1.Organization, error) {
 func (i *OrganizationPreferencesInput) toProto() (*organizationv1.OrganizationPreferences, error) {
 	return &organizationv1.OrganizationPreferences{
 		StandingContext: i.StandingContext,
+		MemoryEnabled:   i.MemoryEnabled,
 	}, nil
 }
 
@@ -173,5 +175,6 @@ func organizationPreferencesInputFromProto(p *organizationv1.OrganizationPrefere
 	}
 	input := &OrganizationPreferencesInput{}
 	input.StandingContext = p.GetStandingContext()
+	input.MemoryEnabled = p.GetMemoryEnabled()
 	return input
 }

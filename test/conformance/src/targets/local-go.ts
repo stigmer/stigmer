@@ -25,6 +25,7 @@ export class LocalGoTarget implements TargetProfile {
     // Single-tenant OSS: the reserved-label write guard is cloud-only
     // (stigmer-cloud#320), so the caller may create labeled candidates.
     clientReservedLabelWrites: true,
+    firstPartyMemoryCapture: true,
     clientPublicVisibilityWrites: true,
   };
 

@@ -1,0 +1,28 @@
+{
+  "name": "RecalledMemoryFact",
+  "description": "RecalledMemoryFact is one confirmed memory as injected into an\n execution.",
+  "protoType": "ai.stigmer.agentic.agentexecution.v1.RecalledMemoryFact",
+  "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/spec.proto",
+  "fields": [
+    {
+      "name": "MemoryId",
+      "jsonName": "memoryId",
+      "protoField": "memory_id",
+      "type": {
+        "kind": "string"
+      },
+      "description": "ID of the memory record this fact came from.",
+      "required": false
+    },
+    {
+      "name": "Content",
+      "jsonName": "content",
+      "protoField": "content",
+      "type": {
+        "kind": "string"
+      },
+      "description": "The remembered fact, verbatim as stored at snapshot time.",
+      "required": false
+    }
+  ]
+}

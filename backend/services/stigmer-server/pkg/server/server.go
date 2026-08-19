@@ -24,6 +24,7 @@ import (
 	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 	executioncontextv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
+	memoryv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/memory/v1"
 	schedulev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/schedule/v1"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
@@ -57,6 +58,7 @@ import (
 	oauthappcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/oauthapp/controller"
 	organizationcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/organization/controller"
 	projectcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/project/controller"
+	memorycontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/memory/controller"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/project/reconcile"
 	schedulecontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/schedule/controller"
 	scheduletemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/schedule/temporal"
@@ -425,6 +427,16 @@ func Run() error {
 	schedulev1.RegisterScheduleQueryControllerServer(grpcServer, scheduleController)
 
 	log.Info().Msg("Registered Schedule controllers")
+
+	// Create and register Memory controller (Phase 2 Stage 1 of
+	// preferences-and-memory, stigmer/stigmer#293) — the record and its
+	// consent lifecycle; recall compose and the remember tool land with
+	// Stages 2–3.
+	memoryController := memorycontroller.NewMemoryController(store)
+	memoryv1.RegisterMemoryCommandControllerServer(grpcServer, memoryController)
+	memoryv1.RegisterMemoryQueryControllerServer(grpcServer, memoryController)
+
+	log.Info().Msg("Registered Memory controllers")
 
 	// Register AgentExecution controller (created earlier for Temporal worker dependency)
 	agentexecutionv1.RegisterAgentExecutionCommandControllerServer(grpcServer, agentExecutionController)

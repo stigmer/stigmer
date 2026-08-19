@@ -194,6 +194,7 @@ class AgentExecutionInput:
     supersedes_execution_id: str = ""
     conversation_catchup: ConversationCatchupInput | None = None
     declared_preferences: DeclaredPreferencesInput | None = None
+    recalled_memories: RecalledMemoriesInput | None = None
 
     def _to_proto(self) -> api_pb2.AgentExecution:
         spec = spec_pb2.AgentExecutionSpec(
@@ -222,6 +223,8 @@ class AgentExecutionInput:
             spec.conversation_catchup.CopyFrom(self.conversation_catchup._to_proto())
         if self.declared_preferences is not None:
             spec.declared_preferences.CopyFrom(self.declared_preferences._to_proto())
+        if self.recalled_memories is not None:
+            spec.recalled_memories.CopyFrom(self.recalled_memories._to_proto())
         metadata = metadata_pb2.ApiResourceMetadata(
             name=self.name,
             org=self.org,
@@ -450,6 +453,37 @@ class DeclaredPreferencesInput:
         msg = spec_pb2.DeclaredPreferences(
             org_context=self.org_context,
             user_context=self.user_context,
+        )
+        return msg
+
+
+@dataclass
+class RecalledMemoriesInput:
+    """SDK input type for RecalledMemories."""
+
+    enabled: bool = False
+    facts: list[RecalledMemoryFactInput] = field(default_factory=list)
+
+    def _to_proto(self) -> spec_pb2.RecalledMemories:
+        msg = spec_pb2.RecalledMemories(
+            enabled=self.enabled,
+        )
+        for item in self.facts:
+            msg.facts.append(item._to_proto())
+        return msg
+
+
+@dataclass
+class RecalledMemoryFactInput:
+    """SDK input type for RecalledMemoryFact."""
+
+    memory_id: str = ""
+    content: str = ""
+
+    def _to_proto(self) -> spec_pb2.RecalledMemoryFact:
+        msg = spec_pb2.RecalledMemoryFact(
+            memory_id=self.memory_id,
+            content=self.content,
         )
         return msg
 

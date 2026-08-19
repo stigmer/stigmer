@@ -58,6 +58,16 @@
       "validation": {
         "maxLength": 100
       }
+    },
+    {
+      "name": "MemoryEnabled",
+      "jsonName": "memoryEnabled",
+      "protoField": "memory_enabled",
+      "type": {
+        "kind": "bool"
+      },
+      "description": "Whether the platform may remember confirmed facts about this\n account. Off by default; operative only where the organization has\n also enabled memory.",
+      "required": false
     }
   ]
 }

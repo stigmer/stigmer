@@ -175,6 +175,17 @@
       },
       "description": "Standing preferences declared by the organization and the calling user,\n snapshotted into this execution at create time (optional).",
       "required": false
+    },
+    {
+      "name": "RecalledMemories",
+      "jsonName": "recalledMemories",
+      "protoField": "recalled_memories",
+      "type": {
+        "kind": "message",
+        "messageType": "RecalledMemories"
+      },
+      "description": "The caller's confirmed memories, snapshotted into this execution at\n create time (optional).",
+      "required": false
     }
   ]
 }

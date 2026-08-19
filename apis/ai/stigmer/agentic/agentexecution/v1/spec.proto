@@ -379,6 +379,31 @@ message AgentExecutionSpec {
   // inside ExecutionConfig: preference content must not vanish with the
   // execution-profile kill-switch (same rationale as conversation_catchup).
   DeclaredPreferences declared_preferences = 15;
+
+  // The caller's confirmed memories, snapshotted into this execution at
+  // create time (optional).
+  //
+  // @internal
+  // Every DD-002 D2 invariant carries over from declared_preferences
+  // verbatim (DD-006 D2): SERVER-OWNED (the create pipeline stamps this
+  // field unconditionally — enabled=false with no facts for excluded
+  // callers — overwriting any caller-supplied value, so injection via
+  // the create request is moot by construction); composed only for
+  // first-party human operators with BOTH memory_enabled flags on (org
+  // AND caller; OSS: the org flag alone); confirmed records only —
+  // proposed and rejected are never injected (the consent gate is
+  // meaningless otherwise); a SNAPSHOT (memories are mutable, executions
+  // are immutable audit records — this field records exactly what the
+  // model saw, and each fact carries its memory_id so the audit links
+  // back to the addressable record); best-effort (a memory load failure
+  // degrades to disabled, never fails the create); top-level rather than
+  // inside ExecutionConfig (must not vanish with the execution-profile
+  // kill-switch). The enabled bit doubles as the runner's signal to
+  // offer the remember tool (DD-005 D1) — one server-owned field, one
+  // writer, no parallel flag. Composed by Stage 2's compose steps; the
+  // field is reserved here by Stage 1 so all Phase 2 contract changes
+  // land in one codegen pass.
+  RecalledMemories recalled_memories = 16;
 }
 
 // Configuration that can be applied at execution time.
@@ -798,4 +823,42 @@ message DeclaredPreferences {
   // Cloud-only: the OSS server never sets it — OSS has no per-request user
   // identity, so the user scope collapses into the org scope (DD-002 D1).
   string user_context = 2;
+}
+
+// RecalledMemories is the server-composed snapshot of the caller's
+// confirmed memories for one execution.
+//
+// @internal
+// See the recalled_memories field comment for the full ownership and
+// composition contract. enabled=true with zero facts is a meaningful
+// state: memory is on for this caller, nothing is stored yet — the
+// runner still offers the remember tool (DD-005 D1).
+message RecalledMemories {
+  // Whether memory is enabled for this execution's caller.
+  bool enabled = 1;
+
+  // The confirmed facts, wholesale — every confirmed memory of the
+  // caller in this organization.
+  //
+  // @internal
+  // Wholesale by design at dozens-of-facts scale (DD-001); no relevance
+  // ranking, no compose-time truncation — what the model saw must equal
+  // what the user can audit (DD-006 D5). Semantic recall is Phase 3's
+  // trigger, not a truncation patch here.
+  repeated RecalledMemoryFact facts = 2;
+}
+
+// RecalledMemoryFact is one confirmed memory as injected into an
+// execution.
+message RecalledMemoryFact {
+  // ID of the memory record this fact came from.
+  //
+  // @internal
+  // The transparency link (DD-006 D2): the execution spec shows exactly
+  // which records the model saw, and each links back to the
+  // addressable, deletable memory.
+  string memory_id = 1;
+
+  // The remembered fact, verbatim as stored at snapshot time.
+  string content = 2;
 }

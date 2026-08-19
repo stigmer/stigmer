@@ -124,6 +124,36 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int MEMORY_ENABLED_FIELD_NUMBER = 2;
+  private boolean memoryEnabled_ = false;
+  /**
+   * <pre>
+   * Whether agents may retain learned facts about members of this
+   * organization. Off by default: when off, the remember tool is never
+   * offered and nothing is recalled, regardless of member opt-in.
+   *
+   * &#64;internal
+   * The org half of memory's double opt-in (DD-006 D1): effective
+   * enablement = org memory_enabled AND the member's own memory_enabled
+   * AND first-party human operator. An enablement gate, not a bound —
+   * it does not parameterize member behavior, so it lives in
+   * preferences legitimately (DD-003 refinement 2); real bounds
+   * (retention ceilings) would go to a sibling policies message.
+   * Deliberately a bool, not an enum: a genuine on/off switch — finer
+   * policy becomes new fields when evidence demands them. Enforced
+   * fail-closed at memory create (DD-005 D2) and read at recall compose
+   * (DD-006 D3). OSS local mode: this flag alone governs (single user,
+   * no account scope).
+   * </pre>
+   *
+   * <code>bool memory_enabled = 2 [json_name = "memoryEnabled"];</code>
+   * @return The memoryEnabled.
+   */
+  @java.lang.Override
+  public boolean getMemoryEnabled() {
+    return memoryEnabled_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -141,6 +171,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(standingContext_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 1, standingContext_);
     }
+    if (memoryEnabled_ != false) {
+      output.writeBool(2, memoryEnabled_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -152,6 +185,10 @@ private static final long serialVersionUID = 0L;
     size = 0;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(standingContext_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(1, standingContext_);
+    }
+    if (memoryEnabled_ != false) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeBoolSize(2, memoryEnabled_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -170,6 +207,8 @@ private static final long serialVersionUID = 0L;
 
     if (!getStandingContext()
         .equals(other.getStandingContext())) return false;
+    if (getMemoryEnabled()
+        != other.getMemoryEnabled()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -183,6 +222,9 @@ private static final long serialVersionUID = 0L;
     hash = (19 * hash) + getDescriptor().hashCode();
     hash = (37 * hash) + STANDING_CONTEXT_FIELD_NUMBER;
     hash = (53 * hash) + getStandingContext().hashCode();
+    hash = (37 * hash) + MEMORY_ENABLED_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+        getMemoryEnabled());
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -329,6 +371,7 @@ private static final long serialVersionUID = 0L;
       super.clear();
       bitField0_ = 0;
       standingContext_ = "";
+      memoryEnabled_ = false;
       return this;
     }
 
@@ -365,6 +408,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000001) != 0)) {
         result.standingContext_ = standingContext_;
       }
+      if (((from_bitField0_ & 0x00000002) != 0)) {
+        result.memoryEnabled_ = memoryEnabled_;
+      }
     }
 
     @java.lang.Override
@@ -383,6 +429,9 @@ private static final long serialVersionUID = 0L;
         standingContext_ = other.standingContext_;
         bitField0_ |= 0x00000001;
         onChanged();
+      }
+      if (other.getMemoryEnabled() != false) {
+        setMemoryEnabled(other.getMemoryEnabled());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -415,6 +464,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000001;
               break;
             } // case 10
+            case 16: {
+              memoryEnabled_ = input.readBool();
+              bitField0_ |= 0x00000002;
+              break;
+            } // case 16
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -555,6 +609,95 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       standingContext_ = value;
       bitField0_ |= 0x00000001;
+      onChanged();
+      return this;
+    }
+
+    private boolean memoryEnabled_ ;
+    /**
+     * <pre>
+     * Whether agents may retain learned facts about members of this
+     * organization. Off by default: when off, the remember tool is never
+     * offered and nothing is recalled, regardless of member opt-in.
+     *
+     * &#64;internal
+     * The org half of memory's double opt-in (DD-006 D1): effective
+     * enablement = org memory_enabled AND the member's own memory_enabled
+     * AND first-party human operator. An enablement gate, not a bound —
+     * it does not parameterize member behavior, so it lives in
+     * preferences legitimately (DD-003 refinement 2); real bounds
+     * (retention ceilings) would go to a sibling policies message.
+     * Deliberately a bool, not an enum: a genuine on/off switch — finer
+     * policy becomes new fields when evidence demands them. Enforced
+     * fail-closed at memory create (DD-005 D2) and read at recall compose
+     * (DD-006 D3). OSS local mode: this flag alone governs (single user,
+     * no account scope).
+     * </pre>
+     *
+     * <code>bool memory_enabled = 2 [json_name = "memoryEnabled"];</code>
+     * @return The memoryEnabled.
+     */
+    @java.lang.Override
+    public boolean getMemoryEnabled() {
+      return memoryEnabled_;
+    }
+    /**
+     * <pre>
+     * Whether agents may retain learned facts about members of this
+     * organization. Off by default: when off, the remember tool is never
+     * offered and nothing is recalled, regardless of member opt-in.
+     *
+     * &#64;internal
+     * The org half of memory's double opt-in (DD-006 D1): effective
+     * enablement = org memory_enabled AND the member's own memory_enabled
+     * AND first-party human operator. An enablement gate, not a bound —
+     * it does not parameterize member behavior, so it lives in
+     * preferences legitimately (DD-003 refinement 2); real bounds
+     * (retention ceilings) would go to a sibling policies message.
+     * Deliberately a bool, not an enum: a genuine on/off switch — finer
+     * policy becomes new fields when evidence demands them. Enforced
+     * fail-closed at memory create (DD-005 D2) and read at recall compose
+     * (DD-006 D3). OSS local mode: this flag alone governs (single user,
+     * no account scope).
+     * </pre>
+     *
+     * <code>bool memory_enabled = 2 [json_name = "memoryEnabled"];</code>
+     * @param value The memoryEnabled to set.
+     * @return This builder for chaining.
+     */
+    public Builder setMemoryEnabled(boolean value) {
+
+      memoryEnabled_ = value;
+      bitField0_ |= 0x00000002;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Whether agents may retain learned facts about members of this
+     * organization. Off by default: when off, the remember tool is never
+     * offered and nothing is recalled, regardless of member opt-in.
+     *
+     * &#64;internal
+     * The org half of memory's double opt-in (DD-006 D1): effective
+     * enablement = org memory_enabled AND the member's own memory_enabled
+     * AND first-party human operator. An enablement gate, not a bound —
+     * it does not parameterize member behavior, so it lives in
+     * preferences legitimately (DD-003 refinement 2); real bounds
+     * (retention ceilings) would go to a sibling policies message.
+     * Deliberately a bool, not an enum: a genuine on/off switch — finer
+     * policy becomes new fields when evidence demands them. Enforced
+     * fail-closed at memory create (DD-005 D2) and read at recall compose
+     * (DD-006 D3). OSS local mode: this flag alone governs (single user,
+     * no account scope).
+     * </pre>
+     *
+     * <code>bool memory_enabled = 2 [json_name = "memoryEnabled"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearMemoryEnabled() {
+      bitField0_ = (bitField0_ & ~0x00000002);
+      memoryEnabled_ = false;
       onChanged();
       return this;
     }

@@ -1,0 +1,48 @@
+{
+  "name": "MemoryProvenance",
+  "description": "MemoryProvenance records which agent proposed a memory and in which\n conversation.",
+  "protoType": "ai.stigmer.agentic.memory.v1.MemoryProvenance",
+  "protoFile": "apis/ai/stigmer/agentic/memory/v1/spec.proto",
+  "fields": [
+    {
+      "name": "AgentId",
+      "jsonName": "agentId",
+      "protoField": "agent_id",
+      "type": {
+        "kind": "string"
+      },
+      "description": "ID of the agent that proposed this memory.",
+      "required": false
+    },
+    {
+      "name": "SessionId",
+      "jsonName": "sessionId",
+      "protoField": "session_id",
+      "type": {
+        "kind": "string"
+      },
+      "description": "ID of the session in which this memory was proposed.",
+      "required": false
+    },
+    {
+      "name": "AgentExecutionId",
+      "jsonName": "agentExecutionId",
+      "protoField": "agent_execution_id",
+      "type": {
+        "kind": "string"
+      },
+      "description": "ID of the agent execution in which this memory was proposed.",
+      "required": false
+    },
+    {
+      "name": "ToolCallId",
+      "jsonName": "toolCallId",
+      "protoField": "tool_call_id",
+      "type": {
+        "kind": "string"
+      },
+      "description": "ID of the remember tool call that proposed this memory.",
+      "required": false
+    }
+  ]
+}

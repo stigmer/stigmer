@@ -51,6 +51,10 @@ export class CloudTarget implements TargetProfile {
     // writes from the ordinary conformance user; unguarding requires the
     // platform-privileged caller lane (stigmer#547).
     clientReservedLabelWrites: false,
+    // The primary conformance user is a PlatformClient-minted token —
+    // the credential class DD-002 D4 deliberately excludes; the suite
+    // pins the create-gate refusal instead (see target.ts).
+    firstPartyMemoryCapture: false,
     clientPublicVisibilityWrites: false,
     // The hermetic cloud service stores attachments in MinIO while the
   };

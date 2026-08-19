@@ -11,6 +11,7 @@ import (
 	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 	executionctxv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
+	memoryv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/memory/v1"
 	schedulev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/schedule/v1"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
@@ -70,6 +71,10 @@ type Clients struct {
 	// Schedule services
 	ScheduleCommand schedulev1.ScheduleCommandControllerClient
 	ScheduleQuery   schedulev1.ScheduleQueryControllerClient
+
+	// Memory services
+	MemoryCommand memoryv1.MemoryCommandControllerClient
+	MemoryQuery   memoryv1.MemoryQueryControllerClient
 
 	// Environment services
 	EnvironmentCommand environmentv1.EnvironmentCommandControllerClient
@@ -160,6 +165,9 @@ func NewClients(conn grpc.ClientConnInterface) *Clients {
 
 		ScheduleCommand: schedulev1.NewScheduleCommandControllerClient(conn),
 		ScheduleQuery:   schedulev1.NewScheduleQueryControllerClient(conn),
+
+		MemoryCommand: memoryv1.NewMemoryCommandControllerClient(conn),
+		MemoryQuery:   memoryv1.NewMemoryQueryControllerClient(conn),
 
 		EnvironmentCommand: environmentv1.NewEnvironmentCommandControllerClient(conn),
 		EnvironmentQuery:   environmentv1.NewEnvironmentQueryControllerClient(conn),

@@ -1,0 +1,77 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.memory.v1;
+
+import "buf/validate/validate.proto";
+
+// MemorySpec holds the remembered fact, who it is about, and where it
+// came from.
+//
+// @internal
+// Field ownership (DD-004): content is the subject's after capture
+// (editable via the update RPC); subject_identity_account_id and
+// provenance are server-stamped at create and immutable forever after —
+// the update pipeline refuses changes to them (metadata-guard pattern).
+// The consent lifecycle deliberately lives in status, not here: a spec
+// field would let a full-spec update rewrite consent.
+message MemorySpec {
+  // The remembered fact, verbatim. Proposed by an agent, owned by the
+  // subject after confirmation.
+  //
+  // @internal
+  // max_len 500 (DD-006 D5): readable-at-a-glance is both a UX and a
+  // security property — the confirmation UI shows this exact text, byte
+  // for byte, and what the user confirms is what future prompts inject
+  // (DD-005 D6). Enforced by protovalidate at every write; recall never
+  // truncates (write-time caps, never compose-time — the audit property
+  // outweighs pathological-case tokens).
+  string content = 1 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 500
+  }];
+
+  // The identity account this memory is about.
+  //
+  // @internal
+  // Server-derived from the calling credential at create — never
+  // client-supplied, so a forged subject is structurally impossible
+  // (DD-005 D2). OSS local mode stores the empty string (the
+  // single-user sentinel, matching the OAuth grant store). Named
+  // "subject" because the memory is ABOUT them — an agent authored it,
+  // so creator/owner vocabulary would misname the relationship (DD-004).
+  string subject_identity_account_id = 2;
+
+  // Where this fact came from — displayed beside the fact everywhere it
+  // appears.
+  //
+  // @internal
+  // Server-stamped from the request context at create, empty for
+  // records created directly through the API (no session in context).
+  // Immutable: provenance is attribution, and attribution that can be
+  // edited is not attribution. Trust requires "where did this come
+  // from" beside every fact (DD-004); out-of-character proposals carry
+  // their origin (DD-005 D6).
+  MemoryProvenance provenance = 3;
+}
+
+// MemoryProvenance records which agent proposed a memory and in which
+// conversation.
+//
+// @internal
+// The tool_call_id joins back to the ToolCall on the session's message
+// thread — the capture act itself stays auditable (DD-004). All fields
+// are optional-empty: a memory created directly via the API (rather
+// than by the remember tool) has no session context to record.
+message MemoryProvenance {
+  // ID of the agent that proposed this memory.
+  string agent_id = 1;
+
+  // ID of the session in which this memory was proposed.
+  string session_id = 2;
+
+  // ID of the agent execution in which this memory was proposed.
+  string agent_execution_id = 3;
+
+  // ID of the remember tool call that proposed this memory.
+  string tool_call_id = 4;
+}

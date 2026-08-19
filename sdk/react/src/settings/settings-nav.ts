@@ -4,6 +4,7 @@ import {
   AppWindow,
   BarChart3,
   Box,
+  Brain,
   Building2,
   CreditCard,
   KeyRound,
@@ -108,6 +109,7 @@ export const SETTINGS_NAV_GROUPS: readonly SettingsNavGroup[] = [
         label: "Preferences",
         icon: UserCog,
       },
+      { href: "/settings/memory", label: "Memory", icon: Brain },
     ],
   },
 ];
