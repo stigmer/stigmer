@@ -5,23 +5,8 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"runtime"
 	"testing"
 )
-
-// hitlCorpusDir locates the shared HITL vector corpus, mirroring scenariosDir in
-// fixtures_test.go. The corpus is the single source of truth the TS, Go, and Java
-// editions all reproduce.
-func hitlCorpusDir(t *testing.T) string {
-	t.Helper()
-	_, thisFile, _, ok := runtime.Caller(0)
-	if !ok {
-		t.Fatal("runtime.Caller failed; cannot locate the shared fixture corpus")
-	}
-	// thisFile: backend/services/stigmer-server/pkg/domain/agentexecution/approval/fingerprint_test.go
-	repoRoot := filepath.Join(filepath.Dir(thisFile), "../../../../../../..")
-	return filepath.Join(repoRoot, "apis", "testdata", "hitl")
-}
 
 // decodeJSONUseNumber decodes with UseNumber so integer literals in `args` arrive
 // as json.Number and are reproduced without float drift — the same discipline the

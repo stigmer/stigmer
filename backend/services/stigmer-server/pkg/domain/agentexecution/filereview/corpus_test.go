@@ -198,8 +198,15 @@ func parseExecutionPhase(t *testing.T, s string) agentexecutionv1.ExecutionPhase
 // repoTestdataHitl resolves apis/testdata/hitl from this test file's location.
 // filereview/ sits seven directories below the repo root, the same depth as the
 // approval package's corpus loader.
+// repoTestdataHitl locates the shared HITL corpus from either execution
+// environment: under `bazel test` it arrives in the runfiles via the go_test
+// data dep (oss#722); under plain `go test` (make check-go) it is reached
+// through the compiled-in source path of this file.
 func repoTestdataHitl(t *testing.T) string {
 	t.Helper()
+	if srcdir := os.Getenv("TEST_SRCDIR"); srcdir != "" {
+		return filepath.Join(srcdir, os.Getenv("TEST_WORKSPACE"), "apis", "testdata", "hitl")
+	}
 	_, thisFile, _, ok := runtime.Caller(0)
 	if !ok {
 		t.Fatal("runtime.Caller failed; cannot locate the corpus")

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"runtime"
 	"testing"
 
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
@@ -55,13 +54,7 @@ func TestPolicySourceCorpus(t *testing.T) {
 
 func loadPolicySourceCorpus(t *testing.T) []policySourceVector {
 	t.Helper()
-	_, thisFile, _, ok := runtime.Caller(0)
-	if !ok {
-		t.Fatal("runtime.Caller failed; cannot locate the policy-source corpus")
-	}
-	// repo root is seven directories up; the corpus lives under apis/testdata/hitl.
-	repoRoot := filepath.Join(filepath.Dir(thisFile), "../../../../../../..")
-	path := filepath.Join(repoRoot, "apis", "testdata", "hitl", "policy-source", "vectors.json")
+	path := filepath.Join(hitlCorpusDir(t), "policy-source", "vectors.json")
 
 	raw, err := os.ReadFile(path)
 	if err != nil {

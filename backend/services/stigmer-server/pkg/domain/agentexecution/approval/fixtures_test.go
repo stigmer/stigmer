@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"runtime"
 	"sort"
 	"testing"
 
@@ -77,14 +76,7 @@ func TestSharedFixtureCorpus(t *testing.T) {
 
 func scenariosDir(t *testing.T) string {
 	t.Helper()
-	_, thisFile, _, ok := runtime.Caller(0)
-	if !ok {
-		t.Fatal("runtime.Caller failed; cannot locate the shared fixture corpus")
-	}
-	// thisFile: backend/services/stigmer-server/pkg/domain/agentexecution/approval/fixtures_test.go
-	// repo root is seven directories up; the corpus lives under apis/testdata/hitl.
-	repoRoot := filepath.Join(filepath.Dir(thisFile), "../../../../../../..")
-	return filepath.Join(repoRoot, "apis", "testdata", "hitl", "scenarios")
+	return filepath.Join(hitlCorpusDir(t), "scenarios")
 }
 
 func loadFixture(t *testing.T, path string) fixture {

@@ -46,6 +46,7 @@ go_test(
         "push_test.go",
         "skill_controller_test.go",
         "transfer_lane_test.go",
+        "versioning_repoint_test.go",
     ],
     embed = [":controller"],
     deps = [

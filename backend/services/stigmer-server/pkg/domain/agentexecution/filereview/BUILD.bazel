@@ -31,6 +31,8 @@ go_test(
         "gate_test.go",
         "progress_test.go",
     ],
+    # keep: cross-package data deps are not gazelle-managed (oss#722).
+    data = ["//apis/testdata:hitl_corpus"],
     embed = [":filereview"],
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/agentexecution/v1:agentexecution",

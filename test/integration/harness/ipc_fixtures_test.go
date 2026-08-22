@@ -29,14 +29,20 @@ type ipcFixtures struct {
 	Responses          map[string]json.RawMessage `json:"responses"`
 }
 
-// goldenFixturesPath resolves the canonical artifact relative to this test file, so it is
-// independent of the working directory the test runs from.
+// goldenFixturesPath resolves the canonical artifact from either execution
+// environment: under `bazel test` it arrives in the runfiles via the go_test
+// data dep (oss#722); under plain `go test` it is resolved relative to this
+// test file, independent of the working directory the test runs from.
 func goldenFixturesPath(t *testing.T) string {
 	t.Helper()
+	fixtureRel := filepath.Join("backend", "services", "runner", "fixtures", "ipc-protocol.generated.json")
+	if srcdir := os.Getenv("TEST_SRCDIR"); srcdir != "" {
+		return filepath.Join(srcdir, os.Getenv("TEST_WORKSPACE"), fixtureRel)
+	}
 	_, thisFile, _, ok := runtime.Caller(0)
 	require.True(t, ok, "runtime.Caller failed to locate the test file")
 	repoRoot := filepath.Join(filepath.Dir(thisFile), "..", "..", "..")
-	return filepath.Join(repoRoot, "backend", "services", "runner", "fixtures", "ipc-protocol.generated.json")
+	return filepath.Join(repoRoot, fixtureRel)
 }
 
 func loadGoldenFixtures(t *testing.T) ipcFixtures {
