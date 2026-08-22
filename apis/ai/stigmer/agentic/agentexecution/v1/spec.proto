@@ -393,16 +393,19 @@ message AgentExecutionSpec {
   // AND caller; OSS: the org flag alone); confirmed records only —
   // proposed and rejected are never injected (the consent gate is
   // meaningless otherwise); a SNAPSHOT (memories are mutable, executions
-  // are immutable audit records — this field records exactly what the
-  // model saw, and each fact carries its memory_id so the audit links
-  // back to the addressable record); best-effort (a memory load failure
-  // degrades to disabled, never fails the create); top-level rather than
-  // inside ExecutionConfig (must not vanish with the execution-profile
-  // kill-switch). The enabled bit doubles as the runner's signal to
-  // offer the remember tool (DD-005 D1) — one server-owned field, one
-  // writer, no parallel flag. Composed by Stage 2's compose steps; the
-  // field is reserved here by Stage 1 so all Phase 2 contract changes
-  // land in one codegen pass.
+  // are immutable audit records — this field records the CANDIDATE set
+  // the prompt was built from, and each fact carries its memory_id so
+  // the audit links back to the addressable record; what the model
+  // actually saw is this snapshot joined to
+  // status.recalled_memories_report, whose absence means wholesale —
+  // the full set — by construction, DD-008 D5); best-effort (a memory
+  // load failure degrades to disabled, never fails the create);
+  // top-level rather than inside ExecutionConfig (must not vanish with
+  // the execution-profile kill-switch). The enabled bit doubles as the
+  // runner's signal to offer the remember tool (DD-005 D1) — one
+  // server-owned field, one writer, no parallel flag. Composed by
+  // Stage 2's compose steps; the field is reserved here by Stage 1 so
+  // all Phase 2 contract changes land in one codegen pass.
   RecalledMemories recalled_memories = 16;
 }
 
@@ -826,25 +829,33 @@ message DeclaredPreferences {
 }
 
 // RecalledMemories is the server-composed snapshot of the caller's
-// confirmed memories for one execution.
+// confirmed memories for one execution — the candidate set for prompt
+// injection.
 //
 // @internal
 // See the recalled_memories field comment for the full ownership and
-// composition contract. enabled=true with zero facts is a meaningful
-// state: memory is on for this caller, nothing is stored yet — the
-// runner still offers the remember tool (DD-005 D1).
+// composition contract, and status.recalled_memories_report for which
+// candidates the runner actually injected (DD-008 D5). enabled=true with
+// zero facts is a meaningful state: memory is on for this caller, nothing
+// is stored yet — the runner still offers the remember tool (DD-005 D1).
 message RecalledMemories {
   // Whether memory is enabled for this execution's caller.
   bool enabled = 1;
 
-  // The confirmed facts, wholesale — every confirmed memory of the
-  // caller in this organization.
+  // The confirmed facts — every confirmed memory of the caller in this
+  // organization, the candidate set for prompt injection.
   //
   // @internal
-  // Wholesale by design at dozens-of-facts scale (DD-001); no relevance
-  // ranking, no compose-time truncation — what the model saw must equal
-  // what the user can audit (DD-006 D5). Semantic recall is Phase 3's
-  // trigger, not a truncation patch here.
+  // The compose steps stamp EVERY confirmed fact, never a compose-time
+  // truncation (DD-006 D5 as revised by DD-008): this is the auditable
+  // CANDIDATE set, not necessarily the injected set. Above the
+  // retriever's activation threshold the runner selects the most
+  // relevant subset at prompt build and records it in
+  // status.recalled_memories_report (DD-008 D3/D5); at or below the
+  // threshold, or with no embeddings-capable provider, injection is
+  // wholesale and the report (when present) says so. Selection is
+  // recorded, never silent: what the model saw always equals what the
+  // user can audit — this snapshot joined to the report.
   repeated RecalledMemoryFact facts = 2;
 }
 

@@ -1421,16 +1421,19 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
    * AND caller; OSS: the org flag alone); confirmed records only —
    * proposed and rejected are never injected (the consent gate is
    * meaningless otherwise); a SNAPSHOT (memories are mutable, executions
-   * are immutable audit records — this field records exactly what the
-   * model saw, and each fact carries its memory_id so the audit links
-   * back to the addressable record); best-effort (a memory load failure
-   * degrades to disabled, never fails the create); top-level rather than
-   * inside ExecutionConfig (must not vanish with the execution-profile
-   * kill-switch). The enabled bit doubles as the runner's signal to
-   * offer the remember tool (DD-005 D1) — one server-owned field, one
-   * writer, no parallel flag. Composed by Stage 2's compose steps; the
-   * field is reserved here by Stage 1 so all Phase 2 contract changes
-   * land in one codegen pass.
+   * are immutable audit records — this field records the CANDIDATE set
+   * the prompt was built from, and each fact carries its memory_id so
+   * the audit links back to the addressable record; what the model
+   * actually saw is this snapshot joined to
+   * status.recalled_memories_report, whose absence means wholesale —
+   * the full set — by construction, DD-008 D5); best-effort (a memory
+   * load failure degrades to disabled, never fails the create);
+   * top-level rather than inside ExecutionConfig (must not vanish with
+   * the execution-profile kill-switch). The enabled bit doubles as the
+   * runner's signal to offer the remember tool (DD-005 D1) — one
+   * server-owned field, one writer, no parallel flag. Composed by
+   * Stage 2's compose steps; the field is reserved here by Stage 1 so
+   * all Phase 2 contract changes land in one codegen pass.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 16 [json_name = "recalledMemories"];</code>
@@ -1455,16 +1458,19 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
    * AND caller; OSS: the org flag alone); confirmed records only —
    * proposed and rejected are never injected (the consent gate is
    * meaningless otherwise); a SNAPSHOT (memories are mutable, executions
-   * are immutable audit records — this field records exactly what the
-   * model saw, and each fact carries its memory_id so the audit links
-   * back to the addressable record); best-effort (a memory load failure
-   * degrades to disabled, never fails the create); top-level rather than
-   * inside ExecutionConfig (must not vanish with the execution-profile
-   * kill-switch). The enabled bit doubles as the runner's signal to
-   * offer the remember tool (DD-005 D1) — one server-owned field, one
-   * writer, no parallel flag. Composed by Stage 2's compose steps; the
-   * field is reserved here by Stage 1 so all Phase 2 contract changes
-   * land in one codegen pass.
+   * are immutable audit records — this field records the CANDIDATE set
+   * the prompt was built from, and each fact carries its memory_id so
+   * the audit links back to the addressable record; what the model
+   * actually saw is this snapshot joined to
+   * status.recalled_memories_report, whose absence means wholesale —
+   * the full set — by construction, DD-008 D5); best-effort (a memory
+   * load failure degrades to disabled, never fails the create);
+   * top-level rather than inside ExecutionConfig (must not vanish with
+   * the execution-profile kill-switch). The enabled bit doubles as the
+   * runner's signal to offer the remember tool (DD-005 D1) — one
+   * server-owned field, one writer, no parallel flag. Composed by
+   * Stage 2's compose steps; the field is reserved here by Stage 1 so
+   * all Phase 2 contract changes land in one codegen pass.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 16 [json_name = "recalledMemories"];</code>
@@ -1489,16 +1495,19 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
    * AND caller; OSS: the org flag alone); confirmed records only —
    * proposed and rejected are never injected (the consent gate is
    * meaningless otherwise); a SNAPSHOT (memories are mutable, executions
-   * are immutable audit records — this field records exactly what the
-   * model saw, and each fact carries its memory_id so the audit links
-   * back to the addressable record); best-effort (a memory load failure
-   * degrades to disabled, never fails the create); top-level rather than
-   * inside ExecutionConfig (must not vanish with the execution-profile
-   * kill-switch). The enabled bit doubles as the runner's signal to
-   * offer the remember tool (DD-005 D1) — one server-owned field, one
-   * writer, no parallel flag. Composed by Stage 2's compose steps; the
-   * field is reserved here by Stage 1 so all Phase 2 contract changes
-   * land in one codegen pass.
+   * are immutable audit records — this field records the CANDIDATE set
+   * the prompt was built from, and each fact carries its memory_id so
+   * the audit links back to the addressable record; what the model
+   * actually saw is this snapshot joined to
+   * status.recalled_memories_report, whose absence means wholesale —
+   * the full set — by construction, DD-008 D5); best-effort (a memory
+   * load failure degrades to disabled, never fails the create);
+   * top-level rather than inside ExecutionConfig (must not vanish with
+   * the execution-profile kill-switch). The enabled bit doubles as the
+   * runner's signal to offer the remember tool (DD-005 D1) — one
+   * server-owned field, one writer, no parallel flag. Composed by
+   * Stage 2's compose steps; the field is reserved here by Stage 1 so
+   * all Phase 2 contract changes land in one codegen pass.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 16 [json_name = "recalledMemories"];</code>
@@ -6051,16 +6060,19 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * AND caller; OSS: the org flag alone); confirmed records only —
      * proposed and rejected are never injected (the consent gate is
      * meaningless otherwise); a SNAPSHOT (memories are mutable, executions
-     * are immutable audit records — this field records exactly what the
-     * model saw, and each fact carries its memory_id so the audit links
-     * back to the addressable record); best-effort (a memory load failure
-     * degrades to disabled, never fails the create); top-level rather than
-     * inside ExecutionConfig (must not vanish with the execution-profile
-     * kill-switch). The enabled bit doubles as the runner's signal to
-     * offer the remember tool (DD-005 D1) — one server-owned field, one
-     * writer, no parallel flag. Composed by Stage 2's compose steps; the
-     * field is reserved here by Stage 1 so all Phase 2 contract changes
-     * land in one codegen pass.
+     * are immutable audit records — this field records the CANDIDATE set
+     * the prompt was built from, and each fact carries its memory_id so
+     * the audit links back to the addressable record; what the model
+     * actually saw is this snapshot joined to
+     * status.recalled_memories_report, whose absence means wholesale —
+     * the full set — by construction, DD-008 D5); best-effort (a memory
+     * load failure degrades to disabled, never fails the create);
+     * top-level rather than inside ExecutionConfig (must not vanish with
+     * the execution-profile kill-switch). The enabled bit doubles as the
+     * runner's signal to offer the remember tool (DD-005 D1) — one
+     * server-owned field, one writer, no parallel flag. Composed by
+     * Stage 2's compose steps; the field is reserved here by Stage 1 so
+     * all Phase 2 contract changes land in one codegen pass.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 16 [json_name = "recalledMemories"];</code>
@@ -6084,16 +6096,19 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * AND caller; OSS: the org flag alone); confirmed records only —
      * proposed and rejected are never injected (the consent gate is
      * meaningless otherwise); a SNAPSHOT (memories are mutable, executions
-     * are immutable audit records — this field records exactly what the
-     * model saw, and each fact carries its memory_id so the audit links
-     * back to the addressable record); best-effort (a memory load failure
-     * degrades to disabled, never fails the create); top-level rather than
-     * inside ExecutionConfig (must not vanish with the execution-profile
-     * kill-switch). The enabled bit doubles as the runner's signal to
-     * offer the remember tool (DD-005 D1) — one server-owned field, one
-     * writer, no parallel flag. Composed by Stage 2's compose steps; the
-     * field is reserved here by Stage 1 so all Phase 2 contract changes
-     * land in one codegen pass.
+     * are immutable audit records — this field records the CANDIDATE set
+     * the prompt was built from, and each fact carries its memory_id so
+     * the audit links back to the addressable record; what the model
+     * actually saw is this snapshot joined to
+     * status.recalled_memories_report, whose absence means wholesale —
+     * the full set — by construction, DD-008 D5); best-effort (a memory
+     * load failure degrades to disabled, never fails the create);
+     * top-level rather than inside ExecutionConfig (must not vanish with
+     * the execution-profile kill-switch). The enabled bit doubles as the
+     * runner's signal to offer the remember tool (DD-005 D1) — one
+     * server-owned field, one writer, no parallel flag. Composed by
+     * Stage 2's compose steps; the field is reserved here by Stage 1 so
+     * all Phase 2 contract changes land in one codegen pass.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 16 [json_name = "recalledMemories"];</code>
@@ -6121,16 +6136,19 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * AND caller; OSS: the org flag alone); confirmed records only —
      * proposed and rejected are never injected (the consent gate is
      * meaningless otherwise); a SNAPSHOT (memories are mutable, executions
-     * are immutable audit records — this field records exactly what the
-     * model saw, and each fact carries its memory_id so the audit links
-     * back to the addressable record); best-effort (a memory load failure
-     * degrades to disabled, never fails the create); top-level rather than
-     * inside ExecutionConfig (must not vanish with the execution-profile
-     * kill-switch). The enabled bit doubles as the runner's signal to
-     * offer the remember tool (DD-005 D1) — one server-owned field, one
-     * writer, no parallel flag. Composed by Stage 2's compose steps; the
-     * field is reserved here by Stage 1 so all Phase 2 contract changes
-     * land in one codegen pass.
+     * are immutable audit records — this field records the CANDIDATE set
+     * the prompt was built from, and each fact carries its memory_id so
+     * the audit links back to the addressable record; what the model
+     * actually saw is this snapshot joined to
+     * status.recalled_memories_report, whose absence means wholesale —
+     * the full set — by construction, DD-008 D5); best-effort (a memory
+     * load failure degrades to disabled, never fails the create);
+     * top-level rather than inside ExecutionConfig (must not vanish with
+     * the execution-profile kill-switch). The enabled bit doubles as the
+     * runner's signal to offer the remember tool (DD-005 D1) — one
+     * server-owned field, one writer, no parallel flag. Composed by
+     * Stage 2's compose steps; the field is reserved here by Stage 1 so
+     * all Phase 2 contract changes land in one codegen pass.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 16 [json_name = "recalledMemories"];</code>
@@ -6163,16 +6181,19 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * AND caller; OSS: the org flag alone); confirmed records only —
      * proposed and rejected are never injected (the consent gate is
      * meaningless otherwise); a SNAPSHOT (memories are mutable, executions
-     * are immutable audit records — this field records exactly what the
-     * model saw, and each fact carries its memory_id so the audit links
-     * back to the addressable record); best-effort (a memory load failure
-     * degrades to disabled, never fails the create); top-level rather than
-     * inside ExecutionConfig (must not vanish with the execution-profile
-     * kill-switch). The enabled bit doubles as the runner's signal to
-     * offer the remember tool (DD-005 D1) — one server-owned field, one
-     * writer, no parallel flag. Composed by Stage 2's compose steps; the
-     * field is reserved here by Stage 1 so all Phase 2 contract changes
-     * land in one codegen pass.
+     * are immutable audit records — this field records the CANDIDATE set
+     * the prompt was built from, and each fact carries its memory_id so
+     * the audit links back to the addressable record; what the model
+     * actually saw is this snapshot joined to
+     * status.recalled_memories_report, whose absence means wholesale —
+     * the full set — by construction, DD-008 D5); best-effort (a memory
+     * load failure degrades to disabled, never fails the create);
+     * top-level rather than inside ExecutionConfig (must not vanish with
+     * the execution-profile kill-switch). The enabled bit doubles as the
+     * runner's signal to offer the remember tool (DD-005 D1) — one
+     * server-owned field, one writer, no parallel flag. Composed by
+     * Stage 2's compose steps; the field is reserved here by Stage 1 so
+     * all Phase 2 contract changes land in one codegen pass.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 16 [json_name = "recalledMemories"];</code>
@@ -6203,16 +6224,19 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * AND caller; OSS: the org flag alone); confirmed records only —
      * proposed and rejected are never injected (the consent gate is
      * meaningless otherwise); a SNAPSHOT (memories are mutable, executions
-     * are immutable audit records — this field records exactly what the
-     * model saw, and each fact carries its memory_id so the audit links
-     * back to the addressable record); best-effort (a memory load failure
-     * degrades to disabled, never fails the create); top-level rather than
-     * inside ExecutionConfig (must not vanish with the execution-profile
-     * kill-switch). The enabled bit doubles as the runner's signal to
-     * offer the remember tool (DD-005 D1) — one server-owned field, one
-     * writer, no parallel flag. Composed by Stage 2's compose steps; the
-     * field is reserved here by Stage 1 so all Phase 2 contract changes
-     * land in one codegen pass.
+     * are immutable audit records — this field records the CANDIDATE set
+     * the prompt was built from, and each fact carries its memory_id so
+     * the audit links back to the addressable record; what the model
+     * actually saw is this snapshot joined to
+     * status.recalled_memories_report, whose absence means wholesale —
+     * the full set — by construction, DD-008 D5); best-effort (a memory
+     * load failure degrades to disabled, never fails the create);
+     * top-level rather than inside ExecutionConfig (must not vanish with
+     * the execution-profile kill-switch). The enabled bit doubles as the
+     * runner's signal to offer the remember tool (DD-005 D1) — one
+     * server-owned field, one writer, no parallel flag. Composed by
+     * Stage 2's compose steps; the field is reserved here by Stage 1 so
+     * all Phase 2 contract changes land in one codegen pass.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 16 [json_name = "recalledMemories"];</code>
@@ -6250,16 +6274,19 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * AND caller; OSS: the org flag alone); confirmed records only —
      * proposed and rejected are never injected (the consent gate is
      * meaningless otherwise); a SNAPSHOT (memories are mutable, executions
-     * are immutable audit records — this field records exactly what the
-     * model saw, and each fact carries its memory_id so the audit links
-     * back to the addressable record); best-effort (a memory load failure
-     * degrades to disabled, never fails the create); top-level rather than
-     * inside ExecutionConfig (must not vanish with the execution-profile
-     * kill-switch). The enabled bit doubles as the runner's signal to
-     * offer the remember tool (DD-005 D1) — one server-owned field, one
-     * writer, no parallel flag. Composed by Stage 2's compose steps; the
-     * field is reserved here by Stage 1 so all Phase 2 contract changes
-     * land in one codegen pass.
+     * are immutable audit records — this field records the CANDIDATE set
+     * the prompt was built from, and each fact carries its memory_id so
+     * the audit links back to the addressable record; what the model
+     * actually saw is this snapshot joined to
+     * status.recalled_memories_report, whose absence means wholesale —
+     * the full set — by construction, DD-008 D5); best-effort (a memory
+     * load failure degrades to disabled, never fails the create);
+     * top-level rather than inside ExecutionConfig (must not vanish with
+     * the execution-profile kill-switch). The enabled bit doubles as the
+     * runner's signal to offer the remember tool (DD-005 D1) — one
+     * server-owned field, one writer, no parallel flag. Composed by
+     * Stage 2's compose steps; the field is reserved here by Stage 1 so
+     * all Phase 2 contract changes land in one codegen pass.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 16 [json_name = "recalledMemories"];</code>
@@ -6289,16 +6316,19 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * AND caller; OSS: the org flag alone); confirmed records only —
      * proposed and rejected are never injected (the consent gate is
      * meaningless otherwise); a SNAPSHOT (memories are mutable, executions
-     * are immutable audit records — this field records exactly what the
-     * model saw, and each fact carries its memory_id so the audit links
-     * back to the addressable record); best-effort (a memory load failure
-     * degrades to disabled, never fails the create); top-level rather than
-     * inside ExecutionConfig (must not vanish with the execution-profile
-     * kill-switch). The enabled bit doubles as the runner's signal to
-     * offer the remember tool (DD-005 D1) — one server-owned field, one
-     * writer, no parallel flag. Composed by Stage 2's compose steps; the
-     * field is reserved here by Stage 1 so all Phase 2 contract changes
-     * land in one codegen pass.
+     * are immutable audit records — this field records the CANDIDATE set
+     * the prompt was built from, and each fact carries its memory_id so
+     * the audit links back to the addressable record; what the model
+     * actually saw is this snapshot joined to
+     * status.recalled_memories_report, whose absence means wholesale —
+     * the full set — by construction, DD-008 D5); best-effort (a memory
+     * load failure degrades to disabled, never fails the create);
+     * top-level rather than inside ExecutionConfig (must not vanish with
+     * the execution-profile kill-switch). The enabled bit doubles as the
+     * runner's signal to offer the remember tool (DD-005 D1) — one
+     * server-owned field, one writer, no parallel flag. Composed by
+     * Stage 2's compose steps; the field is reserved here by Stage 1 so
+     * all Phase 2 contract changes land in one codegen pass.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 16 [json_name = "recalledMemories"];</code>
@@ -6323,16 +6353,19 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * AND caller; OSS: the org flag alone); confirmed records only —
      * proposed and rejected are never injected (the consent gate is
      * meaningless otherwise); a SNAPSHOT (memories are mutable, executions
-     * are immutable audit records — this field records exactly what the
-     * model saw, and each fact carries its memory_id so the audit links
-     * back to the addressable record); best-effort (a memory load failure
-     * degrades to disabled, never fails the create); top-level rather than
-     * inside ExecutionConfig (must not vanish with the execution-profile
-     * kill-switch). The enabled bit doubles as the runner's signal to
-     * offer the remember tool (DD-005 D1) — one server-owned field, one
-     * writer, no parallel flag. Composed by Stage 2's compose steps; the
-     * field is reserved here by Stage 1 so all Phase 2 contract changes
-     * land in one codegen pass.
+     * are immutable audit records — this field records the CANDIDATE set
+     * the prompt was built from, and each fact carries its memory_id so
+     * the audit links back to the addressable record; what the model
+     * actually saw is this snapshot joined to
+     * status.recalled_memories_report, whose absence means wholesale —
+     * the full set — by construction, DD-008 D5); best-effort (a memory
+     * load failure degrades to disabled, never fails the create);
+     * top-level rather than inside ExecutionConfig (must not vanish with
+     * the execution-profile kill-switch). The enabled bit doubles as the
+     * runner's signal to offer the remember tool (DD-005 D1) — one
+     * server-owned field, one writer, no parallel flag. Composed by
+     * Stage 2's compose steps; the field is reserved here by Stage 1 so
+     * all Phase 2 contract changes land in one codegen pass.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 16 [json_name = "recalledMemories"];</code>
@@ -6360,16 +6393,19 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * AND caller; OSS: the org flag alone); confirmed records only —
      * proposed and rejected are never injected (the consent gate is
      * meaningless otherwise); a SNAPSHOT (memories are mutable, executions
-     * are immutable audit records — this field records exactly what the
-     * model saw, and each fact carries its memory_id so the audit links
-     * back to the addressable record); best-effort (a memory load failure
-     * degrades to disabled, never fails the create); top-level rather than
-     * inside ExecutionConfig (must not vanish with the execution-profile
-     * kill-switch). The enabled bit doubles as the runner's signal to
-     * offer the remember tool (DD-005 D1) — one server-owned field, one
-     * writer, no parallel flag. Composed by Stage 2's compose steps; the
-     * field is reserved here by Stage 1 so all Phase 2 contract changes
-     * land in one codegen pass.
+     * are immutable audit records — this field records the CANDIDATE set
+     * the prompt was built from, and each fact carries its memory_id so
+     * the audit links back to the addressable record; what the model
+     * actually saw is this snapshot joined to
+     * status.recalled_memories_report, whose absence means wholesale —
+     * the full set — by construction, DD-008 D5); best-effort (a memory
+     * load failure degrades to disabled, never fails the create);
+     * top-level rather than inside ExecutionConfig (must not vanish with
+     * the execution-profile kill-switch). The enabled bit doubles as the
+     * runner's signal to offer the remember tool (DD-005 D1) — one
+     * server-owned field, one writer, no parallel flag. Composed by
+     * Stage 2's compose steps; the field is reserved here by Stage 1 so
+     * all Phase 2 contract changes land in one codegen pass.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 16 [json_name = "recalledMemories"];</code>

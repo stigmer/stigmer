@@ -1519,12 +1519,12 @@ DeclaredPreferences carries the standing preference texts injected into this exe
 
 ### RecalledMemoriesInput
 
-RecalledMemories is the server-composed snapshot of the caller's confirmed memories for one execution.
+RecalledMemories is the server-composed snapshot of the caller's confirmed memories for one execution — the candidate set for prompt injection.
 
 <TypeTable
   type={{
     enabled: { type: "boolean", description: "Whether memory is enabled for this execution's caller." },
-    facts: { type: "RecalledMemoryFactInput[]", description: "The confirmed facts, wholesale — every confirmed memory of the caller in this organization.", typeDescriptionLink: "#recalledmemoryfactinput" },
+    facts: { type: "RecalledMemoryFactInput[]", description: "The confirmed facts — every confirmed memory of the caller in this organization, the candidate set for prompt injection.", typeDescriptionLink: "#recalledmemoryfactinput" },
   }}
 />
 
@@ -1927,6 +1927,7 @@ AgentExecutionStatus contains all execution results and state.
     fileChangeSets: { type: "FileChangeSet[]", description: "Server-computed projection of file change sets awaiting or completing review for this execution.", typeDescriptionLink: "#filechangeset" },
     fileReviewEventStream: { type: "FileReviewEventStream", description: "Server-owned, append-only record of every file-review event (baseline / candidate capture, file decisions, reconcile, failures).", typeDescriptionLink: "#filerevieweventstream" },
     fileChangeProgress: { type: "FileChangeProgress", description: "Transient, non-authoritative snapshot of the workspace delta accumulating during the current turn — the live \"N files changed so far\" surface, shown before any review is possible.", typeDescriptionLink: "#filechangeprogress" },
+    recalledMemoriesReport: { type: "RecalledMemoriesReport", description: "Report of which recalled memories were injected into this execution's prompt.", typeDescriptionLink: "#recalledmemoriesreport" },
   }}
 />
 
@@ -2282,6 +2283,18 @@ A pending approval request for a tool call that requires user consent before exe
     headShaAtDeny: { type: "string", description: "Git HEAD SHA at the time the tool was denied." },
     toolKind: { type: "ToolKind", description: "Harness-agnostic category of the tool, copied from ToolCall.tool_kind by the server-side projection (exactly as mcp_server_slug above is).", typeDescriptionLink: "#toolkind" },
     approvalPolicySource: { type: "ApprovalPolicySource", description: "Policy layer that gated this tool call, copied from ToolCall.approval_policy_source by the server-side projection (exactly as tool_kind above is).", typeDescriptionLink: "#approvalpolicysource" },
+  }}
+/>
+
+### RecalledMemoriesReport
+
+RecalledMemoriesReport records the semantic retriever's injection outcome for one execution.
+
+<TypeTable
+  type={{
+    selectionActive: { type: "boolean", description: "Whether semantic selection was active for this execution's prompt." },
+    injectedMemoryIds: { type: "string[]", description: "IDs of the injected memories when selection was active." },
+    embeddingModel: { type: "string", description: "Embedding model that performed the selection." },
   }}
 />
 

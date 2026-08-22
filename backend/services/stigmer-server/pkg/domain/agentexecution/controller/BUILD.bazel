@@ -112,6 +112,7 @@ go_test(
         "tool_call_settle_test.go",
         "update_status_concurrency_test.go",
         "update_status_guard_test.go",
+        "update_status_recalled_memories_report_test.go",
         "update_status_transcript_test.go",
         "upload_attachment_test.go",
         "usage_aggregation_test.go",

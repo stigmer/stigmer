@@ -1655,6 +1655,107 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     return fileChangeProgress_ == null ? ai.stigmer.agentic.agentexecution.v1.FileChangeProgress.getDefaultInstance() : fileChangeProgress_;
   }
 
+  public static final int RECALLED_MEMORIES_REPORT_FIELD_NUMBER = 26;
+  private ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport recalledMemoriesReport_;
+  /**
+   * <pre>
+   * Report of which recalled memories were injected into this execution's
+   * prompt.
+   *
+   * Absent, or present with selection_active=false, means wholesale: every
+   * fact in the spec.recalled_memories snapshot was injected.
+   *
+   * &#64;internal
+   *
+   * Runner-owned, single writer (the streaming_usage / context_info
+   * posture): written at most once per execution, at prompt build, through
+   * the runner's status lane. The server merges it presence-guarded and
+   * never writes it — the create pipeline stamps only the spec snapshot
+   * (DD-008 D5, stigmer/stigmer#293 Phase 3a).
+   *
+   * The audit contract: spec.recalled_memories is the server-composed
+   * CANDIDATE set (everything the caller's consent state made recallable);
+   * what-the-model-saw = this report joined to that snapshot. Absent
+   * report = wholesale is true by construction — for every execution that
+   * predates this field and for every wholesale path since (selection
+   * below threshold, no embeddings-capable provider, embed/rank failure).
+   *
+   * Field 26: appended after file_change_progress (25), the prior maximum.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport recalled_memories_report = 26 [json_name = "recalledMemoriesReport"];</code>
+   * @return Whether the recalledMemoriesReport field is set.
+   */
+  @java.lang.Override
+  public boolean hasRecalledMemoriesReport() {
+    return ((bitField0_ & 0x00000100) != 0);
+  }
+  /**
+   * <pre>
+   * Report of which recalled memories were injected into this execution's
+   * prompt.
+   *
+   * Absent, or present with selection_active=false, means wholesale: every
+   * fact in the spec.recalled_memories snapshot was injected.
+   *
+   * &#64;internal
+   *
+   * Runner-owned, single writer (the streaming_usage / context_info
+   * posture): written at most once per execution, at prompt build, through
+   * the runner's status lane. The server merges it presence-guarded and
+   * never writes it — the create pipeline stamps only the spec snapshot
+   * (DD-008 D5, stigmer/stigmer#293 Phase 3a).
+   *
+   * The audit contract: spec.recalled_memories is the server-composed
+   * CANDIDATE set (everything the caller's consent state made recallable);
+   * what-the-model-saw = this report joined to that snapshot. Absent
+   * report = wholesale is true by construction — for every execution that
+   * predates this field and for every wholesale path since (selection
+   * below threshold, no embeddings-capable provider, embed/rank failure).
+   *
+   * Field 26: appended after file_change_progress (25), the prior maximum.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport recalled_memories_report = 26 [json_name = "recalledMemoriesReport"];</code>
+   * @return The recalledMemoriesReport.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport getRecalledMemoriesReport() {
+    return recalledMemoriesReport_ == null ? ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport.getDefaultInstance() : recalledMemoriesReport_;
+  }
+  /**
+   * <pre>
+   * Report of which recalled memories were injected into this execution's
+   * prompt.
+   *
+   * Absent, or present with selection_active=false, means wholesale: every
+   * fact in the spec.recalled_memories snapshot was injected.
+   *
+   * &#64;internal
+   *
+   * Runner-owned, single writer (the streaming_usage / context_info
+   * posture): written at most once per execution, at prompt build, through
+   * the runner's status lane. The server merges it presence-guarded and
+   * never writes it — the create pipeline stamps only the spec snapshot
+   * (DD-008 D5, stigmer/stigmer#293 Phase 3a).
+   *
+   * The audit contract: spec.recalled_memories is the server-composed
+   * CANDIDATE set (everything the caller's consent state made recallable);
+   * what-the-model-saw = this report joined to that snapshot. Absent
+   * report = wholesale is true by construction — for every execution that
+   * predates this field and for every wholesale path since (selection
+   * below threshold, no embeddings-capable provider, embed/rank failure).
+   *
+   * Field 26: appended after file_change_progress (25), the prior maximum.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport recalled_memories_report = 26 [json_name = "recalledMemoriesReport"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReportOrBuilder getRecalledMemoriesReportOrBuilder() {
+    return recalledMemoriesReport_ == null ? ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport.getDefaultInstance() : recalledMemoriesReport_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -1728,6 +1829,9 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     }
     if (((bitField0_ & 0x00000080) != 0)) {
       output.writeMessage(25, getFileChangeProgress());
+    }
+    if (((bitField0_ & 0x00000100) != 0)) {
+      output.writeMessage(26, getRecalledMemoriesReport());
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(99, getAudit());
@@ -1850,6 +1954,10 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(25, getFileChangeProgress());
     }
+    if (((bitField0_ & 0x00000100) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(26, getRecalledMemoriesReport());
+    }
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(99, getAudit());
@@ -1932,6 +2040,11 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       if (!getFileChangeProgress()
           .equals(other.getFileChangeProgress())) return false;
     }
+    if (hasRecalledMemoriesReport() != other.hasRecalledMemoriesReport()) return false;
+    if (hasRecalledMemoriesReport()) {
+      if (!getRecalledMemoriesReport()
+          .equals(other.getRecalledMemoriesReport())) return false;
+    }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -2012,6 +2125,10 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     if (hasFileChangeProgress()) {
       hash = (37 * hash) + FILE_CHANGE_PROGRESS_FIELD_NUMBER;
       hash = (53 * hash) + getFileChangeProgress().hashCode();
+    }
+    if (hasRecalledMemoriesReport()) {
+      hash = (37 * hash) + RECALLED_MEMORIES_REPORT_FIELD_NUMBER;
+      hash = (53 * hash) + getRecalledMemoriesReport().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -2184,6 +2301,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
         internalGetFileChangeSetsFieldBuilder();
         internalGetFileReviewEventStreamFieldBuilder();
         internalGetFileChangeProgressFieldBuilder();
+        internalGetRecalledMemoriesReportFieldBuilder();
       }
     }
     @java.lang.Override
@@ -2277,6 +2395,11 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       if (fileChangeProgressBuilder_ != null) {
         fileChangeProgressBuilder_.dispose();
         fileChangeProgressBuilder_ = null;
+      }
+      recalledMemoriesReport_ = null;
+      if (recalledMemoriesReportBuilder_ != null) {
+        recalledMemoriesReportBuilder_.dispose();
+        recalledMemoriesReportBuilder_ = null;
       }
       return this;
     }
@@ -2435,6 +2558,12 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
             ? fileChangeProgress_
             : fileChangeProgressBuilder_.build();
         to_bitField0_ |= 0x00000080;
+      }
+      if (((from_bitField0_ & 0x00100000) != 0)) {
+        result.recalledMemoriesReport_ = recalledMemoriesReportBuilder_ == null
+            ? recalledMemoriesReport_
+            : recalledMemoriesReportBuilder_.build();
+        to_bitField0_ |= 0x00000100;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -2655,6 +2784,9 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       if (other.hasFileChangeProgress()) {
         mergeFileChangeProgress(other.getFileChangeProgress());
       }
+      if (other.hasRecalledMemoriesReport()) {
+        mergeRecalledMemoriesReport(other.getRecalledMemoriesReport());
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -2842,6 +2974,13 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
               bitField0_ |= 0x00080000;
               break;
             } // case 202
+            case 210: {
+              input.readMessage(
+                  internalGetRecalledMemoriesReportFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00100000;
+              break;
+            } // case 210
             case 794: {
               input.readMessage(
                   internalGetAuditFieldBuilder().getBuilder(),
@@ -8627,6 +8766,352 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
         fileChangeProgress_ = null;
       }
       return fileChangeProgressBuilder_;
+    }
+
+    private ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport recalledMemoriesReport_;
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport, ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport.Builder, ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReportOrBuilder> recalledMemoriesReportBuilder_;
+    /**
+     * <pre>
+     * Report of which recalled memories were injected into this execution's
+     * prompt.
+     *
+     * Absent, or present with selection_active=false, means wholesale: every
+     * fact in the spec.recalled_memories snapshot was injected.
+     *
+     * &#64;internal
+     *
+     * Runner-owned, single writer (the streaming_usage / context_info
+     * posture): written at most once per execution, at prompt build, through
+     * the runner's status lane. The server merges it presence-guarded and
+     * never writes it — the create pipeline stamps only the spec snapshot
+     * (DD-008 D5, stigmer/stigmer#293 Phase 3a).
+     *
+     * The audit contract: spec.recalled_memories is the server-composed
+     * CANDIDATE set (everything the caller's consent state made recallable);
+     * what-the-model-saw = this report joined to that snapshot. Absent
+     * report = wholesale is true by construction — for every execution that
+     * predates this field and for every wholesale path since (selection
+     * below threshold, no embeddings-capable provider, embed/rank failure).
+     *
+     * Field 26: appended after file_change_progress (25), the prior maximum.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport recalled_memories_report = 26 [json_name = "recalledMemoriesReport"];</code>
+     * @return Whether the recalledMemoriesReport field is set.
+     */
+    public boolean hasRecalledMemoriesReport() {
+      return ((bitField0_ & 0x00100000) != 0);
+    }
+    /**
+     * <pre>
+     * Report of which recalled memories were injected into this execution's
+     * prompt.
+     *
+     * Absent, or present with selection_active=false, means wholesale: every
+     * fact in the spec.recalled_memories snapshot was injected.
+     *
+     * &#64;internal
+     *
+     * Runner-owned, single writer (the streaming_usage / context_info
+     * posture): written at most once per execution, at prompt build, through
+     * the runner's status lane. The server merges it presence-guarded and
+     * never writes it — the create pipeline stamps only the spec snapshot
+     * (DD-008 D5, stigmer/stigmer#293 Phase 3a).
+     *
+     * The audit contract: spec.recalled_memories is the server-composed
+     * CANDIDATE set (everything the caller's consent state made recallable);
+     * what-the-model-saw = this report joined to that snapshot. Absent
+     * report = wholesale is true by construction — for every execution that
+     * predates this field and for every wholesale path since (selection
+     * below threshold, no embeddings-capable provider, embed/rank failure).
+     *
+     * Field 26: appended after file_change_progress (25), the prior maximum.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport recalled_memories_report = 26 [json_name = "recalledMemoriesReport"];</code>
+     * @return The recalledMemoriesReport.
+     */
+    public ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport getRecalledMemoriesReport() {
+      if (recalledMemoriesReportBuilder_ == null) {
+        return recalledMemoriesReport_ == null ? ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport.getDefaultInstance() : recalledMemoriesReport_;
+      } else {
+        return recalledMemoriesReportBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * Report of which recalled memories were injected into this execution's
+     * prompt.
+     *
+     * Absent, or present with selection_active=false, means wholesale: every
+     * fact in the spec.recalled_memories snapshot was injected.
+     *
+     * &#64;internal
+     *
+     * Runner-owned, single writer (the streaming_usage / context_info
+     * posture): written at most once per execution, at prompt build, through
+     * the runner's status lane. The server merges it presence-guarded and
+     * never writes it — the create pipeline stamps only the spec snapshot
+     * (DD-008 D5, stigmer/stigmer#293 Phase 3a).
+     *
+     * The audit contract: spec.recalled_memories is the server-composed
+     * CANDIDATE set (everything the caller's consent state made recallable);
+     * what-the-model-saw = this report joined to that snapshot. Absent
+     * report = wholesale is true by construction — for every execution that
+     * predates this field and for every wholesale path since (selection
+     * below threshold, no embeddings-capable provider, embed/rank failure).
+     *
+     * Field 26: appended after file_change_progress (25), the prior maximum.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport recalled_memories_report = 26 [json_name = "recalledMemoriesReport"];</code>
+     */
+    public Builder setRecalledMemoriesReport(ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport value) {
+      if (recalledMemoriesReportBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        recalledMemoriesReport_ = value;
+      } else {
+        recalledMemoriesReportBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00100000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Report of which recalled memories were injected into this execution's
+     * prompt.
+     *
+     * Absent, or present with selection_active=false, means wholesale: every
+     * fact in the spec.recalled_memories snapshot was injected.
+     *
+     * &#64;internal
+     *
+     * Runner-owned, single writer (the streaming_usage / context_info
+     * posture): written at most once per execution, at prompt build, through
+     * the runner's status lane. The server merges it presence-guarded and
+     * never writes it — the create pipeline stamps only the spec snapshot
+     * (DD-008 D5, stigmer/stigmer#293 Phase 3a).
+     *
+     * The audit contract: spec.recalled_memories is the server-composed
+     * CANDIDATE set (everything the caller's consent state made recallable);
+     * what-the-model-saw = this report joined to that snapshot. Absent
+     * report = wholesale is true by construction — for every execution that
+     * predates this field and for every wholesale path since (selection
+     * below threshold, no embeddings-capable provider, embed/rank failure).
+     *
+     * Field 26: appended after file_change_progress (25), the prior maximum.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport recalled_memories_report = 26 [json_name = "recalledMemoriesReport"];</code>
+     */
+    public Builder setRecalledMemoriesReport(
+        ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport.Builder builderForValue) {
+      if (recalledMemoriesReportBuilder_ == null) {
+        recalledMemoriesReport_ = builderForValue.build();
+      } else {
+        recalledMemoriesReportBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00100000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Report of which recalled memories were injected into this execution's
+     * prompt.
+     *
+     * Absent, or present with selection_active=false, means wholesale: every
+     * fact in the spec.recalled_memories snapshot was injected.
+     *
+     * &#64;internal
+     *
+     * Runner-owned, single writer (the streaming_usage / context_info
+     * posture): written at most once per execution, at prompt build, through
+     * the runner's status lane. The server merges it presence-guarded and
+     * never writes it — the create pipeline stamps only the spec snapshot
+     * (DD-008 D5, stigmer/stigmer#293 Phase 3a).
+     *
+     * The audit contract: spec.recalled_memories is the server-composed
+     * CANDIDATE set (everything the caller's consent state made recallable);
+     * what-the-model-saw = this report joined to that snapshot. Absent
+     * report = wholesale is true by construction — for every execution that
+     * predates this field and for every wholesale path since (selection
+     * below threshold, no embeddings-capable provider, embed/rank failure).
+     *
+     * Field 26: appended after file_change_progress (25), the prior maximum.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport recalled_memories_report = 26 [json_name = "recalledMemoriesReport"];</code>
+     */
+    public Builder mergeRecalledMemoriesReport(ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport value) {
+      if (recalledMemoriesReportBuilder_ == null) {
+        if (((bitField0_ & 0x00100000) != 0) &&
+          recalledMemoriesReport_ != null &&
+          recalledMemoriesReport_ != ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport.getDefaultInstance()) {
+          getRecalledMemoriesReportBuilder().mergeFrom(value);
+        } else {
+          recalledMemoriesReport_ = value;
+        }
+      } else {
+        recalledMemoriesReportBuilder_.mergeFrom(value);
+      }
+      if (recalledMemoriesReport_ != null) {
+        bitField0_ |= 0x00100000;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Report of which recalled memories were injected into this execution's
+     * prompt.
+     *
+     * Absent, or present with selection_active=false, means wholesale: every
+     * fact in the spec.recalled_memories snapshot was injected.
+     *
+     * &#64;internal
+     *
+     * Runner-owned, single writer (the streaming_usage / context_info
+     * posture): written at most once per execution, at prompt build, through
+     * the runner's status lane. The server merges it presence-guarded and
+     * never writes it — the create pipeline stamps only the spec snapshot
+     * (DD-008 D5, stigmer/stigmer#293 Phase 3a).
+     *
+     * The audit contract: spec.recalled_memories is the server-composed
+     * CANDIDATE set (everything the caller's consent state made recallable);
+     * what-the-model-saw = this report joined to that snapshot. Absent
+     * report = wholesale is true by construction — for every execution that
+     * predates this field and for every wholesale path since (selection
+     * below threshold, no embeddings-capable provider, embed/rank failure).
+     *
+     * Field 26: appended after file_change_progress (25), the prior maximum.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport recalled_memories_report = 26 [json_name = "recalledMemoriesReport"];</code>
+     */
+    public Builder clearRecalledMemoriesReport() {
+      bitField0_ = (bitField0_ & ~0x00100000);
+      recalledMemoriesReport_ = null;
+      if (recalledMemoriesReportBuilder_ != null) {
+        recalledMemoriesReportBuilder_.dispose();
+        recalledMemoriesReportBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Report of which recalled memories were injected into this execution's
+     * prompt.
+     *
+     * Absent, or present with selection_active=false, means wholesale: every
+     * fact in the spec.recalled_memories snapshot was injected.
+     *
+     * &#64;internal
+     *
+     * Runner-owned, single writer (the streaming_usage / context_info
+     * posture): written at most once per execution, at prompt build, through
+     * the runner's status lane. The server merges it presence-guarded and
+     * never writes it — the create pipeline stamps only the spec snapshot
+     * (DD-008 D5, stigmer/stigmer#293 Phase 3a).
+     *
+     * The audit contract: spec.recalled_memories is the server-composed
+     * CANDIDATE set (everything the caller's consent state made recallable);
+     * what-the-model-saw = this report joined to that snapshot. Absent
+     * report = wholesale is true by construction — for every execution that
+     * predates this field and for every wholesale path since (selection
+     * below threshold, no embeddings-capable provider, embed/rank failure).
+     *
+     * Field 26: appended after file_change_progress (25), the prior maximum.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport recalled_memories_report = 26 [json_name = "recalledMemoriesReport"];</code>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport.Builder getRecalledMemoriesReportBuilder() {
+      bitField0_ |= 0x00100000;
+      onChanged();
+      return internalGetRecalledMemoriesReportFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * Report of which recalled memories were injected into this execution's
+     * prompt.
+     *
+     * Absent, or present with selection_active=false, means wholesale: every
+     * fact in the spec.recalled_memories snapshot was injected.
+     *
+     * &#64;internal
+     *
+     * Runner-owned, single writer (the streaming_usage / context_info
+     * posture): written at most once per execution, at prompt build, through
+     * the runner's status lane. The server merges it presence-guarded and
+     * never writes it — the create pipeline stamps only the spec snapshot
+     * (DD-008 D5, stigmer/stigmer#293 Phase 3a).
+     *
+     * The audit contract: spec.recalled_memories is the server-composed
+     * CANDIDATE set (everything the caller's consent state made recallable);
+     * what-the-model-saw = this report joined to that snapshot. Absent
+     * report = wholesale is true by construction — for every execution that
+     * predates this field and for every wholesale path since (selection
+     * below threshold, no embeddings-capable provider, embed/rank failure).
+     *
+     * Field 26: appended after file_change_progress (25), the prior maximum.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport recalled_memories_report = 26 [json_name = "recalledMemoriesReport"];</code>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReportOrBuilder getRecalledMemoriesReportOrBuilder() {
+      if (recalledMemoriesReportBuilder_ != null) {
+        return recalledMemoriesReportBuilder_.getMessageOrBuilder();
+      } else {
+        return recalledMemoriesReport_ == null ?
+            ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport.getDefaultInstance() : recalledMemoriesReport_;
+      }
+    }
+    /**
+     * <pre>
+     * Report of which recalled memories were injected into this execution's
+     * prompt.
+     *
+     * Absent, or present with selection_active=false, means wholesale: every
+     * fact in the spec.recalled_memories snapshot was injected.
+     *
+     * &#64;internal
+     *
+     * Runner-owned, single writer (the streaming_usage / context_info
+     * posture): written at most once per execution, at prompt build, through
+     * the runner's status lane. The server merges it presence-guarded and
+     * never writes it — the create pipeline stamps only the spec snapshot
+     * (DD-008 D5, stigmer/stigmer#293 Phase 3a).
+     *
+     * The audit contract: spec.recalled_memories is the server-composed
+     * CANDIDATE set (everything the caller's consent state made recallable);
+     * what-the-model-saw = this report joined to that snapshot. Absent
+     * report = wholesale is true by construction — for every execution that
+     * predates this field and for every wholesale path since (selection
+     * below threshold, no embeddings-capable provider, embed/rank failure).
+     *
+     * Field 26: appended after file_change_progress (25), the prior maximum.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport recalled_memories_report = 26 [json_name = "recalledMemoriesReport"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport, ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport.Builder, ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReportOrBuilder> 
+        internalGetRecalledMemoriesReportFieldBuilder() {
+      if (recalledMemoriesReportBuilder_ == null) {
+        recalledMemoriesReportBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport, ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport.Builder, ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReportOrBuilder>(
+                getRecalledMemoriesReport(),
+                getParentForChildren(),
+                isClean());
+        recalledMemoriesReport_ = null;
+      }
+      return recalledMemoriesReportBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus)

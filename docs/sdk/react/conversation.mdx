@@ -448,6 +448,7 @@ different layout compose `ConversationListPane`,
     now: { type: "Date", description: "Frozen instant for deterministic hosts (tests, documentation tours)." },
     onSelectionChange: { type: "(selection: ConversationIdentity | null) => void", description: "Called when the user opens or leaves a conversation.", required: true },
     org: { type: "string", description: "Organization whose conversations to show.", required: true },
+    scrollOnSend: { type: "boolean", description: "Scroll to the reader's own reply when they send one from a scrolled-up position (stigmer-cloud#267): an accepted send pins the timeline to the latest content and re-engages follow mode, so the reply stays in view when the refetch delivers its real ledger item. Refused sends never pin — the composer restores the draft and there is nothing to show. Default `true` on all three SDK thread surfaces at once (the ratified DD-011 divergence — cross-surface consistency is the point); set `false` to keep today's leave-the-reader-alone behavior." },
     selected: { type: "ConversationIdentity | null", description: "The open conversation. Controlled by the host so selection can live in the URL (deep links, reloads, back button).", required: true },
   }}
 />
@@ -528,6 +529,7 @@ Presentational — pair with `useConversationTimeline`, or compose via
     items: { type: "readonly ConversationTimelineItem[]", description: "Timeline items in chronological order (from `useConversationTimeline`).", required: true },
     loadOlder: { type: "() => void", description: "Load the next older page.", required: true },
     now: { type: "Date", description: "Frozen instant for deterministic hosts (tests, documentation tours)." },
+    pinToLatestSignal: { type: "number", description: "Scroll-on-send signal (stigmer-cloud#267): increment this counter when the reader dispatches a reply and the view pins to the latest content, re-engaging follow mode so the item stays in view when the timeline refetch delivers it — even for a reader who had deliberately scrolled up. The view stays presentational: it has no composer and deliberately renders no optimistic item (the SDK never fabricates what the provider might not have done), so the send moment must arrive from the host — `ConversationsWorkbench` wires its own composer's send here; headless hosts composing their own composer get the same seam. Omit to keep today's leave-the-reader-alone behavior. Incoming items never move a scrolled-up reader either way." },
     provider: { type: "ChannelProviderId | null", description: "The channel's provider, for the honest-timeline notice: providers whose inbound lane has no timeline source (Slack) render an explicit \"customer messages aren't shown\" notice instead of a silently one-sided thread. `null` renders no notice.", required: true },
   }}
 />

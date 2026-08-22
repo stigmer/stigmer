@@ -39,15 +39,19 @@ import (
 // nothing stored yet — the runner still offers the remember tool
 // (DD-005 D1; the enabled bit is the tool signal, no parallel flag).
 //
-// Recall is wholesale and CONFIRMED-ONLY: proposed and rejected records
-// are never injected — the consent gate (DD-005) is meaningless
-// otherwise. No compose-time truncation ever: what the model saw must
-// equal what the user can audit (DD-006 D5; caps are write-time). Facts
-// are ordered oldest-first on status.audit.spec_audit.created_at to
-// match the cloud repo's ORDER BY created_at ASC — identical prompt
-// order in both editions. The full-scan-and-filter load matches the
-// store's local/OSS posture at the kind's cap-bounded scale (the
-// checkMemoryCapStep precedent).
+// Recall stamps the CANDIDATE SET, CONFIRMED-ONLY: proposed and
+// rejected records are never injected — the consent gate (DD-005) is
+// meaningless otherwise. No compose-time truncation ever (DD-006 D5 as
+// revised by DD-008): this step stamps every confirmed fact; above the
+// retriever's activation threshold the shared runner selects the
+// injected subset at prompt build and records it on
+// status.recalled_memories_report — selection is runner-side, recorded,
+// never silent (DD-008 D3/D5), and this step stays byte-identical
+// either way. Facts are ordered oldest-first on
+// status.audit.spec_audit.created_at to match the cloud repo's ORDER BY
+// created_at ASC — identical prompt order in both editions. The
+// full-scan-and-filter load matches the store's local/OSS posture at
+// the kind's cap-bounded scale (the checkMemoryCapStep precedent).
 //
 // The Organization is loaded independently even though
 // composeDeclaredPreferencesStep loaded it one step earlier: sharing via
