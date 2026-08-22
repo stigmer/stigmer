@@ -214,6 +214,15 @@ func TestComposeRecalledMemoriesStep(t *testing.T) {
 				t.Fatalf("step must never fail the create (best-effort contract), got: %v", err)
 			}
 
+			// The step's contract is SPEC-ONLY: status.recalled_memories_report
+			// is runner-owned with a single writer (DD-008 D5) — the create
+			// pipeline never stamps it, on any path. If a future change makes
+			// this step (or the create pipeline around it) write the report,
+			// this pin fails and forces the DD-008 ownership conversation.
+			if report := reqCtx.NewState().GetStatus().GetRecalledMemoriesReport(); report != nil {
+				t.Fatalf("the compose step must never write status.recalled_memories_report (runner-owned, DD-008 D5), got %v", report)
+			}
+
 			got := reqCtx.NewState().GetSpec().GetRecalledMemories()
 			if got == nil {
 				t.Fatal("recalled_memories must be stamped on every path (server-owned field), got nil")

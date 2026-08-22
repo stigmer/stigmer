@@ -1,6 +1,6 @@
 {
   "name": "RecalledMemories",
-  "description": "RecalledMemories is the server-composed snapshot of the caller's\n confirmed memories for one execution.",
+  "description": "RecalledMemories is the server-composed snapshot of the caller's\n confirmed memories for one execution — the candidate set for prompt\n injection.",
   "protoType": "ai.stigmer.agentic.agentexecution.v1.RecalledMemories",
   "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/spec.proto",
   "fields": [
@@ -25,7 +25,7 @@
           "messageType": "RecalledMemoryFact"
         }
       },
-      "description": "The confirmed facts, wholesale — every confirmed memory of the\n caller in this organization.",
+      "description": "The confirmed facts — every confirmed memory of the caller in this\n organization, the candidate set for prompt injection.",
       "required": false
     }
   ]

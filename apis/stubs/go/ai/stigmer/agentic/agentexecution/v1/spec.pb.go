@@ -982,13 +982,14 @@ func (x *DeclaredPreferences) GetUserContext() string {
 }
 
 // RecalledMemories is the server-composed snapshot of the caller's
-// confirmed memories for one execution.
+// confirmed memories for one execution — the candidate set for prompt
+// injection.
 type RecalledMemories struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Whether memory is enabled for this execution's caller.
 	Enabled bool `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
-	// The confirmed facts, wholesale — every confirmed memory of the
-	// caller in this organization.
+	// The confirmed facts — every confirmed memory of the caller in this
+	// organization, the candidate set for prompt injection.
 	Facts         []*RecalledMemoryFact `protobuf:"bytes,2,rep,name=facts,proto3" json:"facts,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

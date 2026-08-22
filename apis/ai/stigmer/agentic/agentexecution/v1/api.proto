@@ -369,6 +369,37 @@ message AgentExecutionStatus {
   //
   // Field 25: appended after file_review_event_stream (24), the prior maximum.
   FileChangeProgress file_change_progress = 25;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Recalled-Memories Injection Report (Phase 3a Semantic Retriever)
+  //
+  // Runner-owned record of which spec.recalled_memories facts the semantic
+  // retriever injected into the prompt. Absent report = wholesale injection.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // Report of which recalled memories were injected into this execution's
+  // prompt.
+  //
+  // Absent, or present with selection_active=false, means wholesale: every
+  // fact in the spec.recalled_memories snapshot was injected.
+  //
+  // @internal
+  //
+  // Runner-owned, single writer (the streaming_usage / context_info
+  // posture): written at most once per execution, at prompt build, through
+  // the runner's status lane. The server merges it presence-guarded and
+  // never writes it — the create pipeline stamps only the spec snapshot
+  // (DD-008 D5, stigmer/stigmer#293 Phase 3a).
+  //
+  // The audit contract: spec.recalled_memories is the server-composed
+  // CANDIDATE set (everything the caller's consent state made recallable);
+  // what-the-model-saw = this report joined to that snapshot. Absent
+  // report = wholesale is true by construction — for every execution that
+  // predates this field and for every wholesale path since (selection
+  // below threshold, no embeddings-capable provider, embed/rank failure).
+  //
+  // Field 26: appended after file_change_progress (25), the prior maximum.
+  RecalledMemoriesReport recalled_memories_report = 26;
 }
 
 // Setup progress reported during the EXECUTION_PENDING phase.
@@ -382,4 +413,37 @@ message SetupProgress {
   // Examples: "Initializing sandbox…", "Setting up workspace…", "Loading skills…"
   // Empty when setup phase reporting has not started or is complete.
   string current_phase = 1;
+}
+
+// RecalledMemoriesReport records the semantic retriever's injection outcome
+// for one execution.
+//
+// @internal
+// Runner-owned, written at most once per execution at prompt build
+// (DD-008 D5). Selection activates only when the candidate set exceeds the
+// retriever's threshold (k); every other path — at-or-below threshold, no
+// embeddings-capable provider, embed/rank failure — injects the snapshot
+// wholesale and reports selection_active=false. Wholesale is never worse
+// than the shipped Phase 2 behavior: selection is an optimization, its
+// absence is not a degradation.
+message RecalledMemoriesReport {
+  // Whether semantic selection was active for this execution's prompt.
+  // False means wholesale: the full spec.recalled_memories snapshot was
+  // injected.
+  bool selection_active = 1;
+
+  // IDs of the injected memories when selection was active.
+  //
+  // @internal
+  // Always a subset of the spec.recalled_memories snapshot's memory_ids,
+  // in SNAPSHOT order (oldest-first): selection is by relevance, but
+  // presentation preserves the stable prompt order both editions pin
+  // (DD-008 D3). Empty when selection_active is false — readers fall back
+  // to the snapshot, which is exactly correct.
+  repeated string injected_memory_ids = 2;
+
+  // Embedding model that performed the selection.
+  // Example: "text-embedding-3-small". Empty when selection_active is
+  // false.
+  string embedding_model = 3;
 }

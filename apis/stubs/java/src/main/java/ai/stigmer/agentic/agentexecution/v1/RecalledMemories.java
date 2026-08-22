@@ -8,13 +8,15 @@ package ai.stigmer.agentic.agentexecution.v1;
 /**
  * <pre>
  * RecalledMemories is the server-composed snapshot of the caller's
- * confirmed memories for one execution.
+ * confirmed memories for one execution — the candidate set for prompt
+ * injection.
  *
  * &#64;internal
  * See the recalled_memories field comment for the full ownership and
- * composition contract. enabled=true with zero facts is a meaningful
- * state: memory is on for this caller, nothing is stored yet — the
- * runner still offers the remember tool (DD-005 D1).
+ * composition contract, and status.recalled_memories_report for which
+ * candidates the runner actually injected (DD-008 D5). enabled=true with
+ * zero facts is a meaningful state: memory is on for this caller, nothing
+ * is stored yet — the runner still offers the remember tool (DD-005 D1).
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.RecalledMemories}
@@ -80,14 +82,20 @@ private static final long serialVersionUID = 0L;
   private java.util.List<ai.stigmer.agentic.agentexecution.v1.RecalledMemoryFact> facts_;
   /**
    * <pre>
-   * The confirmed facts, wholesale — every confirmed memory of the
-   * caller in this organization.
+   * The confirmed facts — every confirmed memory of the caller in this
+   * organization, the candidate set for prompt injection.
    *
    * &#64;internal
-   * Wholesale by design at dozens-of-facts scale (DD-001); no relevance
-   * ranking, no compose-time truncation — what the model saw must equal
-   * what the user can audit (DD-006 D5). Semantic recall is Phase 3's
-   * trigger, not a truncation patch here.
+   * The compose steps stamp EVERY confirmed fact, never a compose-time
+   * truncation (DD-006 D5 as revised by DD-008): this is the auditable
+   * CANDIDATE set, not necessarily the injected set. Above the
+   * retriever's activation threshold the runner selects the most
+   * relevant subset at prompt build and records it in
+   * status.recalled_memories_report (DD-008 D3/D5); at or below the
+   * threshold, or with no embeddings-capable provider, injection is
+   * wholesale and the report (when present) says so. Selection is
+   * recorded, never silent: what the model saw always equals what the
+   * user can audit — this snapshot joined to the report.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.RecalledMemoryFact facts = 2 [json_name = "facts"];</code>
@@ -98,14 +106,20 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The confirmed facts, wholesale — every confirmed memory of the
-   * caller in this organization.
+   * The confirmed facts — every confirmed memory of the caller in this
+   * organization, the candidate set for prompt injection.
    *
    * &#64;internal
-   * Wholesale by design at dozens-of-facts scale (DD-001); no relevance
-   * ranking, no compose-time truncation — what the model saw must equal
-   * what the user can audit (DD-006 D5). Semantic recall is Phase 3's
-   * trigger, not a truncation patch here.
+   * The compose steps stamp EVERY confirmed fact, never a compose-time
+   * truncation (DD-006 D5 as revised by DD-008): this is the auditable
+   * CANDIDATE set, not necessarily the injected set. Above the
+   * retriever's activation threshold the runner selects the most
+   * relevant subset at prompt build and records it in
+   * status.recalled_memories_report (DD-008 D3/D5); at or below the
+   * threshold, or with no embeddings-capable provider, injection is
+   * wholesale and the report (when present) says so. Selection is
+   * recorded, never silent: what the model saw always equals what the
+   * user can audit — this snapshot joined to the report.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.RecalledMemoryFact facts = 2 [json_name = "facts"];</code>
@@ -117,14 +131,20 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The confirmed facts, wholesale — every confirmed memory of the
-   * caller in this organization.
+   * The confirmed facts — every confirmed memory of the caller in this
+   * organization, the candidate set for prompt injection.
    *
    * &#64;internal
-   * Wholesale by design at dozens-of-facts scale (DD-001); no relevance
-   * ranking, no compose-time truncation — what the model saw must equal
-   * what the user can audit (DD-006 D5). Semantic recall is Phase 3's
-   * trigger, not a truncation patch here.
+   * The compose steps stamp EVERY confirmed fact, never a compose-time
+   * truncation (DD-006 D5 as revised by DD-008): this is the auditable
+   * CANDIDATE set, not necessarily the injected set. Above the
+   * retriever's activation threshold the runner selects the most
+   * relevant subset at prompt build and records it in
+   * status.recalled_memories_report (DD-008 D3/D5); at or below the
+   * threshold, or with no embeddings-capable provider, injection is
+   * wholesale and the report (when present) says so. Selection is
+   * recorded, never silent: what the model saw always equals what the
+   * user can audit — this snapshot joined to the report.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.RecalledMemoryFact facts = 2 [json_name = "facts"];</code>
@@ -135,14 +155,20 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The confirmed facts, wholesale — every confirmed memory of the
-   * caller in this organization.
+   * The confirmed facts — every confirmed memory of the caller in this
+   * organization, the candidate set for prompt injection.
    *
    * &#64;internal
-   * Wholesale by design at dozens-of-facts scale (DD-001); no relevance
-   * ranking, no compose-time truncation — what the model saw must equal
-   * what the user can audit (DD-006 D5). Semantic recall is Phase 3's
-   * trigger, not a truncation patch here.
+   * The compose steps stamp EVERY confirmed fact, never a compose-time
+   * truncation (DD-006 D5 as revised by DD-008): this is the auditable
+   * CANDIDATE set, not necessarily the injected set. Above the
+   * retriever's activation threshold the runner selects the most
+   * relevant subset at prompt build and records it in
+   * status.recalled_memories_report (DD-008 D3/D5); at or below the
+   * threshold, or with no embeddings-capable provider, injection is
+   * wholesale and the report (when present) says so. Selection is
+   * recorded, never silent: what the model saw always equals what the
+   * user can audit — this snapshot joined to the report.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.RecalledMemoryFact facts = 2 [json_name = "facts"];</code>
@@ -153,14 +179,20 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The confirmed facts, wholesale — every confirmed memory of the
-   * caller in this organization.
+   * The confirmed facts — every confirmed memory of the caller in this
+   * organization, the candidate set for prompt injection.
    *
    * &#64;internal
-   * Wholesale by design at dozens-of-facts scale (DD-001); no relevance
-   * ranking, no compose-time truncation — what the model saw must equal
-   * what the user can audit (DD-006 D5). Semantic recall is Phase 3's
-   * trigger, not a truncation patch here.
+   * The compose steps stamp EVERY confirmed fact, never a compose-time
+   * truncation (DD-006 D5 as revised by DD-008): this is the auditable
+   * CANDIDATE set, not necessarily the injected set. Above the
+   * retriever's activation threshold the runner selects the most
+   * relevant subset at prompt build and records it in
+   * status.recalled_memories_report (DD-008 D3/D5); at or below the
+   * threshold, or with no embeddings-capable provider, injection is
+   * wholesale and the report (when present) says so. Selection is
+   * recorded, never silent: what the model saw always equals what the
+   * user can audit — this snapshot joined to the report.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.RecalledMemoryFact facts = 2 [json_name = "facts"];</code>
@@ -350,13 +382,15 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * RecalledMemories is the server-composed snapshot of the caller's
-   * confirmed memories for one execution.
+   * confirmed memories for one execution — the candidate set for prompt
+   * injection.
    *
    * &#64;internal
    * See the recalled_memories field comment for the full ownership and
-   * composition contract. enabled=true with zero facts is a meaningful
-   * state: memory is on for this caller, nothing is stored yet — the
-   * runner still offers the remember tool (DD-005 D1).
+   * composition contract, and status.recalled_memories_report for which
+   * candidates the runner actually injected (DD-008 D5). enabled=true with
+   * zero facts is a meaningful state: memory is on for this caller, nothing
+   * is stored yet — the runner still offers the remember tool (DD-005 D1).
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.RecalledMemories}
@@ -611,14 +645,20 @@ private static final long serialVersionUID = 0L;
 
     /**
      * <pre>
-     * The confirmed facts, wholesale — every confirmed memory of the
-     * caller in this organization.
+     * The confirmed facts — every confirmed memory of the caller in this
+     * organization, the candidate set for prompt injection.
      *
      * &#64;internal
-     * Wholesale by design at dozens-of-facts scale (DD-001); no relevance
-     * ranking, no compose-time truncation — what the model saw must equal
-     * what the user can audit (DD-006 D5). Semantic recall is Phase 3's
-     * trigger, not a truncation patch here.
+     * The compose steps stamp EVERY confirmed fact, never a compose-time
+     * truncation (DD-006 D5 as revised by DD-008): this is the auditable
+     * CANDIDATE set, not necessarily the injected set. Above the
+     * retriever's activation threshold the runner selects the most
+     * relevant subset at prompt build and records it in
+     * status.recalled_memories_report (DD-008 D3/D5); at or below the
+     * threshold, or with no embeddings-capable provider, injection is
+     * wholesale and the report (when present) says so. Selection is
+     * recorded, never silent: what the model saw always equals what the
+     * user can audit — this snapshot joined to the report.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.RecalledMemoryFact facts = 2 [json_name = "facts"];</code>
@@ -632,14 +672,20 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The confirmed facts, wholesale — every confirmed memory of the
-     * caller in this organization.
+     * The confirmed facts — every confirmed memory of the caller in this
+     * organization, the candidate set for prompt injection.
      *
      * &#64;internal
-     * Wholesale by design at dozens-of-facts scale (DD-001); no relevance
-     * ranking, no compose-time truncation — what the model saw must equal
-     * what the user can audit (DD-006 D5). Semantic recall is Phase 3's
-     * trigger, not a truncation patch here.
+     * The compose steps stamp EVERY confirmed fact, never a compose-time
+     * truncation (DD-006 D5 as revised by DD-008): this is the auditable
+     * CANDIDATE set, not necessarily the injected set. Above the
+     * retriever's activation threshold the runner selects the most
+     * relevant subset at prompt build and records it in
+     * status.recalled_memories_report (DD-008 D3/D5); at or below the
+     * threshold, or with no embeddings-capable provider, injection is
+     * wholesale and the report (when present) says so. Selection is
+     * recorded, never silent: what the model saw always equals what the
+     * user can audit — this snapshot joined to the report.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.RecalledMemoryFact facts = 2 [json_name = "facts"];</code>
@@ -653,14 +699,20 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The confirmed facts, wholesale — every confirmed memory of the
-     * caller in this organization.
+     * The confirmed facts — every confirmed memory of the caller in this
+     * organization, the candidate set for prompt injection.
      *
      * &#64;internal
-     * Wholesale by design at dozens-of-facts scale (DD-001); no relevance
-     * ranking, no compose-time truncation — what the model saw must equal
-     * what the user can audit (DD-006 D5). Semantic recall is Phase 3's
-     * trigger, not a truncation patch here.
+     * The compose steps stamp EVERY confirmed fact, never a compose-time
+     * truncation (DD-006 D5 as revised by DD-008): this is the auditable
+     * CANDIDATE set, not necessarily the injected set. Above the
+     * retriever's activation threshold the runner selects the most
+     * relevant subset at prompt build and records it in
+     * status.recalled_memories_report (DD-008 D3/D5); at or below the
+     * threshold, or with no embeddings-capable provider, injection is
+     * wholesale and the report (when present) says so. Selection is
+     * recorded, never silent: what the model saw always equals what the
+     * user can audit — this snapshot joined to the report.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.RecalledMemoryFact facts = 2 [json_name = "facts"];</code>
@@ -674,14 +726,20 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The confirmed facts, wholesale — every confirmed memory of the
-     * caller in this organization.
+     * The confirmed facts — every confirmed memory of the caller in this
+     * organization, the candidate set for prompt injection.
      *
      * &#64;internal
-     * Wholesale by design at dozens-of-facts scale (DD-001); no relevance
-     * ranking, no compose-time truncation — what the model saw must equal
-     * what the user can audit (DD-006 D5). Semantic recall is Phase 3's
-     * trigger, not a truncation patch here.
+     * The compose steps stamp EVERY confirmed fact, never a compose-time
+     * truncation (DD-006 D5 as revised by DD-008): this is the auditable
+     * CANDIDATE set, not necessarily the injected set. Above the
+     * retriever's activation threshold the runner selects the most
+     * relevant subset at prompt build and records it in
+     * status.recalled_memories_report (DD-008 D3/D5); at or below the
+     * threshold, or with no embeddings-capable provider, injection is
+     * wholesale and the report (when present) says so. Selection is
+     * recorded, never silent: what the model saw always equals what the
+     * user can audit — this snapshot joined to the report.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.RecalledMemoryFact facts = 2 [json_name = "facts"];</code>
@@ -702,14 +760,20 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The confirmed facts, wholesale — every confirmed memory of the
-     * caller in this organization.
+     * The confirmed facts — every confirmed memory of the caller in this
+     * organization, the candidate set for prompt injection.
      *
      * &#64;internal
-     * Wholesale by design at dozens-of-facts scale (DD-001); no relevance
-     * ranking, no compose-time truncation — what the model saw must equal
-     * what the user can audit (DD-006 D5). Semantic recall is Phase 3's
-     * trigger, not a truncation patch here.
+     * The compose steps stamp EVERY confirmed fact, never a compose-time
+     * truncation (DD-006 D5 as revised by DD-008): this is the auditable
+     * CANDIDATE set, not necessarily the injected set. Above the
+     * retriever's activation threshold the runner selects the most
+     * relevant subset at prompt build and records it in
+     * status.recalled_memories_report (DD-008 D3/D5); at or below the
+     * threshold, or with no embeddings-capable provider, injection is
+     * wholesale and the report (when present) says so. Selection is
+     * recorded, never silent: what the model saw always equals what the
+     * user can audit — this snapshot joined to the report.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.RecalledMemoryFact facts = 2 [json_name = "facts"];</code>
@@ -727,14 +791,20 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The confirmed facts, wholesale — every confirmed memory of the
-     * caller in this organization.
+     * The confirmed facts — every confirmed memory of the caller in this
+     * organization, the candidate set for prompt injection.
      *
      * &#64;internal
-     * Wholesale by design at dozens-of-facts scale (DD-001); no relevance
-     * ranking, no compose-time truncation — what the model saw must equal
-     * what the user can audit (DD-006 D5). Semantic recall is Phase 3's
-     * trigger, not a truncation patch here.
+     * The compose steps stamp EVERY confirmed fact, never a compose-time
+     * truncation (DD-006 D5 as revised by DD-008): this is the auditable
+     * CANDIDATE set, not necessarily the injected set. Above the
+     * retriever's activation threshold the runner selects the most
+     * relevant subset at prompt build and records it in
+     * status.recalled_memories_report (DD-008 D3/D5); at or below the
+     * threshold, or with no embeddings-capable provider, injection is
+     * wholesale and the report (when present) says so. Selection is
+     * recorded, never silent: what the model saw always equals what the
+     * user can audit — this snapshot joined to the report.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.RecalledMemoryFact facts = 2 [json_name = "facts"];</code>
@@ -754,14 +824,20 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The confirmed facts, wholesale — every confirmed memory of the
-     * caller in this organization.
+     * The confirmed facts — every confirmed memory of the caller in this
+     * organization, the candidate set for prompt injection.
      *
      * &#64;internal
-     * Wholesale by design at dozens-of-facts scale (DD-001); no relevance
-     * ranking, no compose-time truncation — what the model saw must equal
-     * what the user can audit (DD-006 D5). Semantic recall is Phase 3's
-     * trigger, not a truncation patch here.
+     * The compose steps stamp EVERY confirmed fact, never a compose-time
+     * truncation (DD-006 D5 as revised by DD-008): this is the auditable
+     * CANDIDATE set, not necessarily the injected set. Above the
+     * retriever's activation threshold the runner selects the most
+     * relevant subset at prompt build and records it in
+     * status.recalled_memories_report (DD-008 D3/D5); at or below the
+     * threshold, or with no embeddings-capable provider, injection is
+     * wholesale and the report (when present) says so. Selection is
+     * recorded, never silent: what the model saw always equals what the
+     * user can audit — this snapshot joined to the report.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.RecalledMemoryFact facts = 2 [json_name = "facts"];</code>
@@ -782,14 +858,20 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The confirmed facts, wholesale — every confirmed memory of the
-     * caller in this organization.
+     * The confirmed facts — every confirmed memory of the caller in this
+     * organization, the candidate set for prompt injection.
      *
      * &#64;internal
-     * Wholesale by design at dozens-of-facts scale (DD-001); no relevance
-     * ranking, no compose-time truncation — what the model saw must equal
-     * what the user can audit (DD-006 D5). Semantic recall is Phase 3's
-     * trigger, not a truncation patch here.
+     * The compose steps stamp EVERY confirmed fact, never a compose-time
+     * truncation (DD-006 D5 as revised by DD-008): this is the auditable
+     * CANDIDATE set, not necessarily the injected set. Above the
+     * retriever's activation threshold the runner selects the most
+     * relevant subset at prompt build and records it in
+     * status.recalled_memories_report (DD-008 D3/D5); at or below the
+     * threshold, or with no embeddings-capable provider, injection is
+     * wholesale and the report (when present) says so. Selection is
+     * recorded, never silent: what the model saw always equals what the
+     * user can audit — this snapshot joined to the report.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.RecalledMemoryFact facts = 2 [json_name = "facts"];</code>
@@ -807,14 +889,20 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The confirmed facts, wholesale — every confirmed memory of the
-     * caller in this organization.
+     * The confirmed facts — every confirmed memory of the caller in this
+     * organization, the candidate set for prompt injection.
      *
      * &#64;internal
-     * Wholesale by design at dozens-of-facts scale (DD-001); no relevance
-     * ranking, no compose-time truncation — what the model saw must equal
-     * what the user can audit (DD-006 D5). Semantic recall is Phase 3's
-     * trigger, not a truncation patch here.
+     * The compose steps stamp EVERY confirmed fact, never a compose-time
+     * truncation (DD-006 D5 as revised by DD-008): this is the auditable
+     * CANDIDATE set, not necessarily the injected set. Above the
+     * retriever's activation threshold the runner selects the most
+     * relevant subset at prompt build and records it in
+     * status.recalled_memories_report (DD-008 D3/D5); at or below the
+     * threshold, or with no embeddings-capable provider, injection is
+     * wholesale and the report (when present) says so. Selection is
+     * recorded, never silent: what the model saw always equals what the
+     * user can audit — this snapshot joined to the report.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.RecalledMemoryFact facts = 2 [json_name = "facts"];</code>
@@ -832,14 +920,20 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The confirmed facts, wholesale — every confirmed memory of the
-     * caller in this organization.
+     * The confirmed facts — every confirmed memory of the caller in this
+     * organization, the candidate set for prompt injection.
      *
      * &#64;internal
-     * Wholesale by design at dozens-of-facts scale (DD-001); no relevance
-     * ranking, no compose-time truncation — what the model saw must equal
-     * what the user can audit (DD-006 D5). Semantic recall is Phase 3's
-     * trigger, not a truncation patch here.
+     * The compose steps stamp EVERY confirmed fact, never a compose-time
+     * truncation (DD-006 D5 as revised by DD-008): this is the auditable
+     * CANDIDATE set, not necessarily the injected set. Above the
+     * retriever's activation threshold the runner selects the most
+     * relevant subset at prompt build and records it in
+     * status.recalled_memories_report (DD-008 D3/D5); at or below the
+     * threshold, or with no embeddings-capable provider, injection is
+     * wholesale and the report (when present) says so. Selection is
+     * recorded, never silent: what the model saw always equals what the
+     * user can audit — this snapshot joined to the report.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.RecalledMemoryFact facts = 2 [json_name = "facts"];</code>
@@ -858,14 +952,20 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The confirmed facts, wholesale — every confirmed memory of the
-     * caller in this organization.
+     * The confirmed facts — every confirmed memory of the caller in this
+     * organization, the candidate set for prompt injection.
      *
      * &#64;internal
-     * Wholesale by design at dozens-of-facts scale (DD-001); no relevance
-     * ranking, no compose-time truncation — what the model saw must equal
-     * what the user can audit (DD-006 D5). Semantic recall is Phase 3's
-     * trigger, not a truncation patch here.
+     * The compose steps stamp EVERY confirmed fact, never a compose-time
+     * truncation (DD-006 D5 as revised by DD-008): this is the auditable
+     * CANDIDATE set, not necessarily the injected set. Above the
+     * retriever's activation threshold the runner selects the most
+     * relevant subset at prompt build and records it in
+     * status.recalled_memories_report (DD-008 D3/D5); at or below the
+     * threshold, or with no embeddings-capable provider, injection is
+     * wholesale and the report (when present) says so. Selection is
+     * recorded, never silent: what the model saw always equals what the
+     * user can audit — this snapshot joined to the report.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.RecalledMemoryFact facts = 2 [json_name = "facts"];</code>
@@ -882,14 +982,20 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The confirmed facts, wholesale — every confirmed memory of the
-     * caller in this organization.
+     * The confirmed facts — every confirmed memory of the caller in this
+     * organization, the candidate set for prompt injection.
      *
      * &#64;internal
-     * Wholesale by design at dozens-of-facts scale (DD-001); no relevance
-     * ranking, no compose-time truncation — what the model saw must equal
-     * what the user can audit (DD-006 D5). Semantic recall is Phase 3's
-     * trigger, not a truncation patch here.
+     * The compose steps stamp EVERY confirmed fact, never a compose-time
+     * truncation (DD-006 D5 as revised by DD-008): this is the auditable
+     * CANDIDATE set, not necessarily the injected set. Above the
+     * retriever's activation threshold the runner selects the most
+     * relevant subset at prompt build and records it in
+     * status.recalled_memories_report (DD-008 D3/D5); at or below the
+     * threshold, or with no embeddings-capable provider, injection is
+     * wholesale and the report (when present) says so. Selection is
+     * recorded, never silent: what the model saw always equals what the
+     * user can audit — this snapshot joined to the report.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.RecalledMemoryFact facts = 2 [json_name = "facts"];</code>
@@ -906,14 +1012,20 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The confirmed facts, wholesale — every confirmed memory of the
-     * caller in this organization.
+     * The confirmed facts — every confirmed memory of the caller in this
+     * organization, the candidate set for prompt injection.
      *
      * &#64;internal
-     * Wholesale by design at dozens-of-facts scale (DD-001); no relevance
-     * ranking, no compose-time truncation — what the model saw must equal
-     * what the user can audit (DD-006 D5). Semantic recall is Phase 3's
-     * trigger, not a truncation patch here.
+     * The compose steps stamp EVERY confirmed fact, never a compose-time
+     * truncation (DD-006 D5 as revised by DD-008): this is the auditable
+     * CANDIDATE set, not necessarily the injected set. Above the
+     * retriever's activation threshold the runner selects the most
+     * relevant subset at prompt build and records it in
+     * status.recalled_memories_report (DD-008 D3/D5); at or below the
+     * threshold, or with no embeddings-capable provider, injection is
+     * wholesale and the report (when present) says so. Selection is
+     * recorded, never silent: what the model saw always equals what the
+     * user can audit — this snapshot joined to the report.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.RecalledMemoryFact facts = 2 [json_name = "facts"];</code>
@@ -924,14 +1036,20 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The confirmed facts, wholesale — every confirmed memory of the
-     * caller in this organization.
+     * The confirmed facts — every confirmed memory of the caller in this
+     * organization, the candidate set for prompt injection.
      *
      * &#64;internal
-     * Wholesale by design at dozens-of-facts scale (DD-001); no relevance
-     * ranking, no compose-time truncation — what the model saw must equal
-     * what the user can audit (DD-006 D5). Semantic recall is Phase 3's
-     * trigger, not a truncation patch here.
+     * The compose steps stamp EVERY confirmed fact, never a compose-time
+     * truncation (DD-006 D5 as revised by DD-008): this is the auditable
+     * CANDIDATE set, not necessarily the injected set. Above the
+     * retriever's activation threshold the runner selects the most
+     * relevant subset at prompt build and records it in
+     * status.recalled_memories_report (DD-008 D3/D5); at or below the
+     * threshold, or with no embeddings-capable provider, injection is
+     * wholesale and the report (when present) says so. Selection is
+     * recorded, never silent: what the model saw always equals what the
+     * user can audit — this snapshot joined to the report.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.RecalledMemoryFact facts = 2 [json_name = "facts"];</code>
@@ -945,14 +1063,20 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The confirmed facts, wholesale — every confirmed memory of the
-     * caller in this organization.
+     * The confirmed facts — every confirmed memory of the caller in this
+     * organization, the candidate set for prompt injection.
      *
      * &#64;internal
-     * Wholesale by design at dozens-of-facts scale (DD-001); no relevance
-     * ranking, no compose-time truncation — what the model saw must equal
-     * what the user can audit (DD-006 D5). Semantic recall is Phase 3's
-     * trigger, not a truncation patch here.
+     * The compose steps stamp EVERY confirmed fact, never a compose-time
+     * truncation (DD-006 D5 as revised by DD-008): this is the auditable
+     * CANDIDATE set, not necessarily the injected set. Above the
+     * retriever's activation threshold the runner selects the most
+     * relevant subset at prompt build and records it in
+     * status.recalled_memories_report (DD-008 D3/D5); at or below the
+     * threshold, or with no embeddings-capable provider, injection is
+     * wholesale and the report (when present) says so. Selection is
+     * recorded, never silent: what the model saw always equals what the
+     * user can audit — this snapshot joined to the report.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.RecalledMemoryFact facts = 2 [json_name = "facts"];</code>
@@ -967,14 +1091,20 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The confirmed facts, wholesale — every confirmed memory of the
-     * caller in this organization.
+     * The confirmed facts — every confirmed memory of the caller in this
+     * organization, the candidate set for prompt injection.
      *
      * &#64;internal
-     * Wholesale by design at dozens-of-facts scale (DD-001); no relevance
-     * ranking, no compose-time truncation — what the model saw must equal
-     * what the user can audit (DD-006 D5). Semantic recall is Phase 3's
-     * trigger, not a truncation patch here.
+     * The compose steps stamp EVERY confirmed fact, never a compose-time
+     * truncation (DD-006 D5 as revised by DD-008): this is the auditable
+     * CANDIDATE set, not necessarily the injected set. Above the
+     * retriever's activation threshold the runner selects the most
+     * relevant subset at prompt build and records it in
+     * status.recalled_memories_report (DD-008 D3/D5); at or below the
+     * threshold, or with no embeddings-capable provider, injection is
+     * wholesale and the report (when present) says so. Selection is
+     * recorded, never silent: what the model saw always equals what the
+     * user can audit — this snapshot joined to the report.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.RecalledMemoryFact facts = 2 [json_name = "facts"];</code>
@@ -985,14 +1115,20 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The confirmed facts, wholesale — every confirmed memory of the
-     * caller in this organization.
+     * The confirmed facts — every confirmed memory of the caller in this
+     * organization, the candidate set for prompt injection.
      *
      * &#64;internal
-     * Wholesale by design at dozens-of-facts scale (DD-001); no relevance
-     * ranking, no compose-time truncation — what the model saw must equal
-     * what the user can audit (DD-006 D5). Semantic recall is Phase 3's
-     * trigger, not a truncation patch here.
+     * The compose steps stamp EVERY confirmed fact, never a compose-time
+     * truncation (DD-006 D5 as revised by DD-008): this is the auditable
+     * CANDIDATE set, not necessarily the injected set. Above the
+     * retriever's activation threshold the runner selects the most
+     * relevant subset at prompt build and records it in
+     * status.recalled_memories_report (DD-008 D3/D5); at or below the
+     * threshold, or with no embeddings-capable provider, injection is
+     * wholesale and the report (when present) says so. Selection is
+     * recorded, never silent: what the model saw always equals what the
+     * user can audit — this snapshot joined to the report.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.RecalledMemoryFact facts = 2 [json_name = "facts"];</code>
@@ -1004,14 +1140,20 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The confirmed facts, wholesale — every confirmed memory of the
-     * caller in this organization.
+     * The confirmed facts — every confirmed memory of the caller in this
+     * organization, the candidate set for prompt injection.
      *
      * &#64;internal
-     * Wholesale by design at dozens-of-facts scale (DD-001); no relevance
-     * ranking, no compose-time truncation — what the model saw must equal
-     * what the user can audit (DD-006 D5). Semantic recall is Phase 3's
-     * trigger, not a truncation patch here.
+     * The compose steps stamp EVERY confirmed fact, never a compose-time
+     * truncation (DD-006 D5 as revised by DD-008): this is the auditable
+     * CANDIDATE set, not necessarily the injected set. Above the
+     * retriever's activation threshold the runner selects the most
+     * relevant subset at prompt build and records it in
+     * status.recalled_memories_report (DD-008 D3/D5); at or below the
+     * threshold, or with no embeddings-capable provider, injection is
+     * wholesale and the report (when present) says so. Selection is
+     * recorded, never silent: what the model saw always equals what the
+     * user can audit — this snapshot joined to the report.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.RecalledMemoryFact facts = 2 [json_name = "facts"];</code>

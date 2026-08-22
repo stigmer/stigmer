@@ -754,7 +754,8 @@ export const DeclaredPreferencesSchema: GenMessage<DeclaredPreferences> = /*@__P
 
 /**
  * RecalledMemories is the server-composed snapshot of the caller's
- * confirmed memories for one execution.
+ * confirmed memories for one execution — the candidate set for prompt
+ * injection.
  *
  * @generated from message ai.stigmer.agentic.agentexecution.v1.RecalledMemories
  */
@@ -767,8 +768,8 @@ export type RecalledMemories = Message<"ai.stigmer.agentic.agentexecution.v1.Rec
   enabled: boolean;
 
   /**
-   * The confirmed facts, wholesale — every confirmed memory of the
-   * caller in this organization.
+   * The confirmed facts — every confirmed memory of the caller in this
+   * organization, the candidate set for prompt injection.
    *
    * @generated from field: repeated ai.stigmer.agentic.agentexecution.v1.RecalledMemoryFact facts = 2;
    */

@@ -1266,4 +1266,94 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue);
    * <code>.ai.stigmer.agentic.agentexecution.v1.FileChangeProgress file_change_progress = 25 [json_name = "fileChangeProgress"];</code>
    */
   ai.stigmer.agentic.agentexecution.v1.FileChangeProgressOrBuilder getFileChangeProgressOrBuilder();
+
+  /**
+   * <pre>
+   * Report of which recalled memories were injected into this execution's
+   * prompt.
+   *
+   * Absent, or present with selection_active=false, means wholesale: every
+   * fact in the spec.recalled_memories snapshot was injected.
+   *
+   * &#64;internal
+   *
+   * Runner-owned, single writer (the streaming_usage / context_info
+   * posture): written at most once per execution, at prompt build, through
+   * the runner's status lane. The server merges it presence-guarded and
+   * never writes it — the create pipeline stamps only the spec snapshot
+   * (DD-008 D5, stigmer/stigmer#293 Phase 3a).
+   *
+   * The audit contract: spec.recalled_memories is the server-composed
+   * CANDIDATE set (everything the caller's consent state made recallable);
+   * what-the-model-saw = this report joined to that snapshot. Absent
+   * report = wholesale is true by construction — for every execution that
+   * predates this field and for every wholesale path since (selection
+   * below threshold, no embeddings-capable provider, embed/rank failure).
+   *
+   * Field 26: appended after file_change_progress (25), the prior maximum.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport recalled_memories_report = 26 [json_name = "recalledMemoriesReport"];</code>
+   * @return Whether the recalledMemoriesReport field is set.
+   */
+  boolean hasRecalledMemoriesReport();
+  /**
+   * <pre>
+   * Report of which recalled memories were injected into this execution's
+   * prompt.
+   *
+   * Absent, or present with selection_active=false, means wholesale: every
+   * fact in the spec.recalled_memories snapshot was injected.
+   *
+   * &#64;internal
+   *
+   * Runner-owned, single writer (the streaming_usage / context_info
+   * posture): written at most once per execution, at prompt build, through
+   * the runner's status lane. The server merges it presence-guarded and
+   * never writes it — the create pipeline stamps only the spec snapshot
+   * (DD-008 D5, stigmer/stigmer#293 Phase 3a).
+   *
+   * The audit contract: spec.recalled_memories is the server-composed
+   * CANDIDATE set (everything the caller's consent state made recallable);
+   * what-the-model-saw = this report joined to that snapshot. Absent
+   * report = wholesale is true by construction — for every execution that
+   * predates this field and for every wholesale path since (selection
+   * below threshold, no embeddings-capable provider, embed/rank failure).
+   *
+   * Field 26: appended after file_change_progress (25), the prior maximum.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport recalled_memories_report = 26 [json_name = "recalledMemoriesReport"];</code>
+   * @return The recalledMemoriesReport.
+   */
+  ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport getRecalledMemoriesReport();
+  /**
+   * <pre>
+   * Report of which recalled memories were injected into this execution's
+   * prompt.
+   *
+   * Absent, or present with selection_active=false, means wholesale: every
+   * fact in the spec.recalled_memories snapshot was injected.
+   *
+   * &#64;internal
+   *
+   * Runner-owned, single writer (the streaming_usage / context_info
+   * posture): written at most once per execution, at prompt build, through
+   * the runner's status lane. The server merges it presence-guarded and
+   * never writes it — the create pipeline stamps only the spec snapshot
+   * (DD-008 D5, stigmer/stigmer#293 Phase 3a).
+   *
+   * The audit contract: spec.recalled_memories is the server-composed
+   * CANDIDATE set (everything the caller's consent state made recallable);
+   * what-the-model-saw = this report joined to that snapshot. Absent
+   * report = wholesale is true by construction — for every execution that
+   * predates this field and for every wholesale path since (selection
+   * below threshold, no embeddings-capable provider, embed/rank failure).
+   *
+   * Field 26: appended after file_change_progress (25), the prior maximum.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport recalled_memories_report = 26 [json_name = "recalledMemoriesReport"];</code>
+   */
+  ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReportOrBuilder getRecalledMemoriesReportOrBuilder();
 }

@@ -2899,6 +2899,17 @@
         },
         "description": "Transient, non-authoritative snapshot of the workspace delta accumulating\n during the current turn — the live \"N files changed so far\" surface, shown\n before any review is possible.",
         "required": false
+      },
+      {
+        "name": "RecalledMemoriesReport",
+        "jsonName": "recalledMemoriesReport",
+        "protoField": "recalled_memories_report",
+        "type": {
+          "kind": "message",
+          "messageType": "RecalledMemoriesReport"
+        },
+        "description": "Report of which recalled memories were injected into this execution's\n prompt.\n\n Absent, or present with selection_active=false, means wholesale: every\n fact in the spec.recalled_memories snapshot was injected.",
+        "required": false
       }
     ]
   },
@@ -4933,6 +4944,47 @@
             ]
           },
           "description": "Policy layer that gated this tool call, copied from\n ToolCall.approval_policy_source by the server-side projection (exactly as\n tool_kind above is). Lets the approval surface explain WHY the tool requires\n approval (e.g. \"required by agent override\") without a client-side lookup.\n See ApprovalPolicySource.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "RecalledMemoriesReport",
+      "description": "RecalledMemoriesReport records the semantic retriever's injection outcome\n for one execution.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/api.proto",
+      "fields": [
+        {
+          "name": "SelectionActive",
+          "jsonName": "selectionActive",
+          "protoField": "selection_active",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "Whether semantic selection was active for this execution's prompt.\n False means wholesale: the full spec.recalled_memories snapshot was\n injected.",
+          "required": false
+        },
+        {
+          "name": "InjectedMemoryIds",
+          "jsonName": "injectedMemoryIds",
+          "protoField": "injected_memory_ids",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "string"
+            }
+          },
+          "description": "IDs of the injected memories when selection was active.",
+          "required": false
+        },
+        {
+          "name": "EmbeddingModel",
+          "jsonName": "embeddingModel",
+          "protoField": "embedding_model",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Embedding model that performed the selection.\n Example: \"text-embedding-3-small\". Empty when selection_active is\n false.",
           "required": false
         }
       ]

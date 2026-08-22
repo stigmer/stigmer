@@ -79,8 +79,11 @@ private static final long serialVersionUID = 0L;
    * security property — the confirmation UI shows this exact text, byte
    * for byte, and what the user confirms is what future prompts inject
    * (DD-005 D6). Enforced by protovalidate at every write; recall never
-   * truncates (write-time caps, never compose-time — the audit property
-   * outweighs pathological-case tokens).
+   * truncates a fact's content (write-time caps, never compose-time —
+   * the audit property outweighs pathological-case tokens). The semantic
+   * retriever may inject a SELECTED SUBSET of whole facts, recorded on
+   * the execution's status.recalled_memories_report — never silent,
+   * never a content truncation (DD-008 D3/D5).
    * </pre>
    *
    * <code>string content = 1 [json_name = "content", (.buf.validate.field) = { ... }</code>
@@ -109,8 +112,11 @@ private static final long serialVersionUID = 0L;
    * security property — the confirmation UI shows this exact text, byte
    * for byte, and what the user confirms is what future prompts inject
    * (DD-005 D6). Enforced by protovalidate at every write; recall never
-   * truncates (write-time caps, never compose-time — the audit property
-   * outweighs pathological-case tokens).
+   * truncates a fact's content (write-time caps, never compose-time —
+   * the audit property outweighs pathological-case tokens). The semantic
+   * retriever may inject a SELECTED SUBSET of whole facts, recorded on
+   * the execution's status.recalled_memories_report — never silent,
+   * never a content truncation (DD-008 D3/D5).
    * </pre>
    *
    * <code>string content = 1 [json_name = "content", (.buf.validate.field) = { ... }</code>
@@ -672,8 +678,11 @@ private static final long serialVersionUID = 0L;
      * security property — the confirmation UI shows this exact text, byte
      * for byte, and what the user confirms is what future prompts inject
      * (DD-005 D6). Enforced by protovalidate at every write; recall never
-     * truncates (write-time caps, never compose-time — the audit property
-     * outweighs pathological-case tokens).
+     * truncates a fact's content (write-time caps, never compose-time —
+     * the audit property outweighs pathological-case tokens). The semantic
+     * retriever may inject a SELECTED SUBSET of whole facts, recorded on
+     * the execution's status.recalled_memories_report — never silent,
+     * never a content truncation (DD-008 D3/D5).
      * </pre>
      *
      * <code>string content = 1 [json_name = "content", (.buf.validate.field) = { ... }</code>
@@ -701,8 +710,11 @@ private static final long serialVersionUID = 0L;
      * security property — the confirmation UI shows this exact text, byte
      * for byte, and what the user confirms is what future prompts inject
      * (DD-005 D6). Enforced by protovalidate at every write; recall never
-     * truncates (write-time caps, never compose-time — the audit property
-     * outweighs pathological-case tokens).
+     * truncates a fact's content (write-time caps, never compose-time —
+     * the audit property outweighs pathological-case tokens). The semantic
+     * retriever may inject a SELECTED SUBSET of whole facts, recorded on
+     * the execution's status.recalled_memories_report — never silent,
+     * never a content truncation (DD-008 D3/D5).
      * </pre>
      *
      * <code>string content = 1 [json_name = "content", (.buf.validate.field) = { ... }</code>
@@ -731,8 +743,11 @@ private static final long serialVersionUID = 0L;
      * security property — the confirmation UI shows this exact text, byte
      * for byte, and what the user confirms is what future prompts inject
      * (DD-005 D6). Enforced by protovalidate at every write; recall never
-     * truncates (write-time caps, never compose-time — the audit property
-     * outweighs pathological-case tokens).
+     * truncates a fact's content (write-time caps, never compose-time —
+     * the audit property outweighs pathological-case tokens). The semantic
+     * retriever may inject a SELECTED SUBSET of whole facts, recorded on
+     * the execution's status.recalled_memories_report — never silent,
+     * never a content truncation (DD-008 D3/D5).
      * </pre>
      *
      * <code>string content = 1 [json_name = "content", (.buf.validate.field) = { ... }</code>
@@ -757,8 +772,11 @@ private static final long serialVersionUID = 0L;
      * security property — the confirmation UI shows this exact text, byte
      * for byte, and what the user confirms is what future prompts inject
      * (DD-005 D6). Enforced by protovalidate at every write; recall never
-     * truncates (write-time caps, never compose-time — the audit property
-     * outweighs pathological-case tokens).
+     * truncates a fact's content (write-time caps, never compose-time —
+     * the audit property outweighs pathological-case tokens). The semantic
+     * retriever may inject a SELECTED SUBSET of whole facts, recorded on
+     * the execution's status.recalled_memories_report — never silent,
+     * never a content truncation (DD-008 D3/D5).
      * </pre>
      *
      * <code>string content = 1 [json_name = "content", (.buf.validate.field) = { ... }</code>
@@ -780,8 +798,11 @@ private static final long serialVersionUID = 0L;
      * security property — the confirmation UI shows this exact text, byte
      * for byte, and what the user confirms is what future prompts inject
      * (DD-005 D6). Enforced by protovalidate at every write; recall never
-     * truncates (write-time caps, never compose-time — the audit property
-     * outweighs pathological-case tokens).
+     * truncates a fact's content (write-time caps, never compose-time —
+     * the audit property outweighs pathological-case tokens). The semantic
+     * retriever may inject a SELECTED SUBSET of whole facts, recorded on
+     * the execution's status.recalled_memories_report — never silent,
+     * never a content truncation (DD-008 D3/D5).
      * </pre>
      *
      * <code>string content = 1 [json_name = "content", (.buf.validate.field) = { ... }</code>

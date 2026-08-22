@@ -372,6 +372,17 @@ func applyUpdateStatusMerge(
 		status.StreamingUsage = requestStatus.StreamingUsage
 	}
 
+	// Merge recalled_memories_report (replace with latest from request).
+	// Runner-owned, written at most once per execution at prompt build
+	// (DD-008 D5): records which spec.recalled_memories candidates the
+	// semantic retriever injected. Later persists omit it, so this
+	// presence guard is what preserves the stored report across the
+	// execution's remaining status writes; absent everywhere = wholesale,
+	// true by construction.
+	if requestStatus.RecalledMemoriesReport != nil {
+		status.RecalledMemoriesReport = requestStatus.RecalledMemoriesReport
+	}
+
 	// Merge context_info (replace with latest from request)
 	if requestStatus.ContextInfo != nil {
 		status.ContextInfo = requestStatus.ContextInfo
