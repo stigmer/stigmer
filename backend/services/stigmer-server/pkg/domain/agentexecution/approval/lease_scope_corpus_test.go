@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"runtime"
 	"testing"
 
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
@@ -63,14 +62,7 @@ func TestLeaseScopeCorpus(t *testing.T) {
 
 func loadLeaseScopeCorpus(t *testing.T) []leaseScopeVector {
 	t.Helper()
-	_, thisFile, _, ok := runtime.Caller(0)
-	if !ok {
-		t.Fatal("runtime.Caller failed; cannot locate the lease-scope corpus")
-	}
-	// thisFile: backend/services/stigmer-server/pkg/domain/agentexecution/approval/lease_scope_corpus_test.go
-	// repo root is seven directories up; the corpus lives under apis/testdata/hitl.
-	repoRoot := filepath.Join(filepath.Dir(thisFile), "../../../../../../..")
-	path := filepath.Join(repoRoot, "apis", "testdata", "hitl", "lease-scope", "vectors.json")
+	path := filepath.Join(hitlCorpusDir(t), "lease-scope", "vectors.json")
 
 	raw, err := os.ReadFile(path)
 	if err != nil {

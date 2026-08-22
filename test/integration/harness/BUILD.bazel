@@ -148,6 +148,8 @@ go_test(
         "process_test.go",
         "unified_runner_test.go",
     ],
+    # keep: cross-package data deps are not gazelle-managed (oss#722).
+    data = ["//backend/services/runner/fixtures:ipc_protocol_fixtures"],
     embed = [":harness"],
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/agent/v1:agent",

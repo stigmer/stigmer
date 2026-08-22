@@ -27,9 +27,7 @@
 #     - `bazelw test //...` for the residual signal build cannot see:
 #       sandbox/runfiles/data-dep drift in how tests run UNDER bazel. The
 #       tests themselves already run with stronger flags (-race) in check-go,
-#       so this arm is a canary, not the primary test gate. Three targets
-#       whose committed data files were never wired as bazel data deps are
-#       excluded until oss#722 lands them.
+#       so this arm is a canary, not the primary test gate.
 #
 # Required-check shape (the #709 lesson): this workflow triggers on EVERY
 # pull request and gates internally — the `changes` job reads the PR's file
@@ -183,18 +181,8 @@ jobs:
           disk-cache: bazel-graph
           repository-cache: true
 
-      # Three go_test targets read committed corpus/fixture files that were
-      # never wired as bazel data deps, so they cannot run in the sandbox
-      # (they are fully covered by check-go's `go test -race`). Excluded
-      # until oss#722 wires their runfiles; keep this list in lockstep with
-      # that issue.
       - name: Run the full test graph
-        run: >-
-          ./bazelw test --keep_going --test_output=errors --
-          //...
-          -//backend/services/stigmer-server/pkg/domain/agentexecution/approval:approval_test
-          -//backend/services/stigmer-server/pkg/domain/agentexecution/filereview:filereview_test
-          -//test/integration/harness:harness_test
+        run: ./bazelw test --keep_going --test_output=errors -- //...
 
   # Unattended-failure escalation (#477): a red nightly files or updates one
   # issue per breakage window instead of rotting unseen (the #323 lesson).

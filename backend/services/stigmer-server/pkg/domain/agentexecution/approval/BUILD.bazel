@@ -28,6 +28,7 @@ go_test(
     srcs = [
         "author_test.go",
         "compute_test.go",
+        "corpus_path_test.go",
         "fingerprint_test.go",
         "fixtures_test.go",
         "lease_scope_corpus_test.go",
@@ -38,6 +39,8 @@ go_test(
         "retraction_test.go",
         "sequence_corpus_test.go",
     ],
+    # keep: cross-package data deps are not gazelle-managed (oss#722).
+    data = ["//apis/testdata:hitl_corpus"],
     embed = [":approval"],
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/agentexecution/v1:agentexecution",
