@@ -24,9 +24,9 @@ const listResultKey = "listResult"
 //  2. ListMemoriesByOrg - Load all memories, filter by org
 //
 // Note: Unlike Stigmer Cloud, OSS excludes:
-// - Authorization filtering (single user — every record is the caller's;
-//   cloud filters to can_view via FGA, which resolves to the subject)
-// - Pagination (returns all matching results)
+//   - Authorization filtering (single user — every record is the caller's;
+//     cloud filters to can_view via FGA, which resolves to the subject)
+//   - Pagination (returns all matching results)
 func (c *MemoryController) List(ctx context.Context, req *memoryv1.ListMemoriesRequest) (*memoryv1.MemoryList, error) {
 	reqCtx := pipeline.NewRequestContext(ctx, req)
 

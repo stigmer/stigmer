@@ -33,6 +33,7 @@ import {
 } from "../../shared/caller-identity.js";
 import { readSessionContext } from "../../shared/session-context.js";
 import { readDeclaredPreferences } from "../../shared/declared-preferences.js";
+import { readRecalledMemories } from "../../shared/recalled-memories.js";
 import { connectMcpServers, type McpConnectionResult } from "../../shared/mcp-manager.js";
 import { mergeMcpServerUsages, resolveMcpServers } from "../../shared/mcp-resolver.js";
 import { resolveMcpTransportPosture } from "../../shared/mcp-transport-guard.js";
@@ -576,6 +577,9 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       sessionContext: readSessionContext(session.spec!.metadata),
       declaredPreferences: readDeclaredPreferences(
         execution.spec!.declaredPreferences,
+      ),
+      recalledMemories: readRecalledMemories(
+        execution.spec!.recalledMemories,
       ),
     });
 

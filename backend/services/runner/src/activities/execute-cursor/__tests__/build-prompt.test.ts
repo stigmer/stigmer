@@ -251,6 +251,85 @@ describe("buildPrompt", () => {
     expect(prompt).not.toContain("<declared_preferences>");
   });
 
+  it("carries the recalled memories on the first execution, framed as user-confirmed background", () => {
+    const prompt = buildPrompt(
+      input({
+        resolution: resolution("local", "created_first_execution"),
+        recalledMemories: {
+          facts: ["Deploys to us-east-1.", "Prefers OpenTofu."],
+        },
+      }),
+    );
+    expect(prompt).toContain("<recalled_memories>");
+    expect(prompt).toContain("- Deploys to us-east-1.");
+    expect(prompt).toContain("- Prefers OpenTofu.");
+    // Memories are CONTEXT like the bridge; the approval protocol keeps
+    // its pinned last-before-task slot.
+    expect(prompt.indexOf("<recalled_memories>"))
+      .toBeLessThan(prompt.indexOf("<tool_approval_protocol>"));
+  });
+
+  it("orders remembered facts after declared preferences, before the embedder's session context (DD-006 D4)", () => {
+    const prompt = buildPrompt(
+      input({
+        resolution: resolution("local", "created_first_execution"),
+        declaredPreferences: { orgContext: "We deploy to us-east-1." },
+        recalledMemories: { facts: ["Prefers OpenTofu."] },
+        sessionContext: "Role: platform admin",
+      }),
+    );
+    const preferences = prompt.indexOf("<declared_preferences>");
+    const memories = prompt.indexOf("<recalled_memories>");
+    const context = prompt.indexOf("<session_context>");
+    expect(preferences).toBeGreaterThan(-1);
+    expect(memories).toBeGreaterThan(preferences);
+    expect(context).toBeGreaterThan(memories);
+  });
+
+  it("never re-sends the memories to a successfully resumed agent — frozen per session by design (DD-002 D3, inherited by DD-006 D4)", () => {
+    const prompt = buildPrompt(
+      input({
+        resolution: resolution("local", "resumed_successfully"),
+        recalledMemories: { facts: ["Prefers OpenTofu."] },
+      }),
+    );
+    expect(prompt).toBe(USER_MESSAGE);
+  });
+
+  it("omits the memories section when the execution carries none", () => {
+    const prompt = buildPrompt(
+      input({ resolution: resolution("local", "created_first_execution") }),
+    );
+    expect(prompt).not.toContain("<recalled_memories>");
+  });
+
+  it("carries the recalled memories through the HITL-recovery shape — the standing-context drop hazard (the buildFromPlan lesson)", () => {
+    // A fresh agent replacing a lost one mid-HITL gets the full recovery
+    // shape. Standing context is hand-copied into that shape's options at
+    // the buildPrompt routing — a missed copy would silently lose the
+    // memories for the session's whole life (frozen per session).
+    const approvalDecisions = new Map<string, ApprovalAction>([
+      ["tool-call-1", ApprovalAction.APPROVE],
+    ]);
+    const prompt = buildPrompt(
+      input({
+        resolution: resolution("local", "created_after_resume_failure"),
+        approvalDecisions,
+        recalledMemories: { facts: ["Prefers OpenTofu."] },
+        pendingApprovals: [
+          create(PendingApprovalSchema, {
+            toolCallId: "tool-call-1",
+            toolName: "Write",
+            message: "Write file: gated.txt",
+          }),
+        ],
+      }),
+    );
+    expect(prompt).toContain("<recalled_memories>");
+    expect(prompt).toContain("- Prefers OpenTofu.");
+    expect(prompt).toContain("APPROVED");
+  });
+
   it("uses the reinvocation prompt for a HITL reinvocation (human-meaningful, no opaque ids)", () => {
     const approvalDecisions = new Map<string, ApprovalAction>([
       ["tool-call-1", ApprovalAction.APPROVE],

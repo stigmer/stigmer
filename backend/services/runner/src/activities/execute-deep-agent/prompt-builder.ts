@@ -22,6 +22,10 @@ import {
   type DeclaredPreferencesContent,
 } from "../../shared/declared-preferences.js";
 import {
+  formatRecalledMemoriesText,
+  type RecalledMemoriesContent,
+} from "../../shared/recalled-memories.js";
+import {
   visionDisclosureLines,
   type NotViewableEntry,
 } from "../../shared/attachment-vision.js";
@@ -178,6 +182,14 @@ export interface PromptBuilderInput {
    * edited preference reaches the very next turn.
    */
   declaredPreferences?: DeclaredPreferencesContent;
+  /**
+   * The subject's confirmed memories (stigmer/stigmer#293 Phase 2, DD-006):
+   * consent-gated facts server-snapshotted onto the execution spec's
+   * `recalled_memories` at create. Injected on EVERY turn like the
+   * preferences — the native system prompt is rebuilt per invocation, so a
+   * deleted memory is gone from the very next turn.
+   */
+  recalledMemories?: RecalledMemoriesContent;
 }
 
 // The prompt renders the injector's own result type — a local structural twin
@@ -249,6 +261,16 @@ export function buildEnhancedSystemPrompt(input: PromptBuilderInput): string {
     prompt +=
       "\n\n## Declared preferences\n\n" +
       formatDeclaredPreferencesText(input.declaredPreferences);
+  }
+
+  // Declared-by-humans precedes learned-and-confirmed (DD-006 D4): both
+  // are platform-authored standing background, but a preference is the
+  // user's exact words while a memory is an agent's confirmed inference —
+  // the exact statement reads first.
+  if (input.recalledMemories) {
+    prompt +=
+      "\n\n## Remembered facts\n\n" +
+      formatRecalledMemoriesText(input.recalledMemories);
   }
 
   // Standing facts about the user (session context) come before the

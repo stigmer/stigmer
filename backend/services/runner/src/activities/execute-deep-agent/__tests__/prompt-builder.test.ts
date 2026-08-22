@@ -463,6 +463,54 @@ describe("buildEnhancedSystemPrompt", () => {
     });
   });
 
+  describe("recalled memories", () => {
+    const base = {
+      instructions: "Test",
+      provisionResults: [],
+      containerRoot: "",
+      skillsPromptSection: "",
+      workspaceFileRefs: [],
+      workspaceRoot: "",
+      injectedFiles: [],
+    };
+
+    it("appends the confirmed facts with the defensive framing (every-turn injection)", () => {
+      const prompt = buildEnhancedSystemPrompt({
+        ...base,
+        recalledMemories: {
+          facts: ["Deploys to us-east-1.", "Prefers OpenTofu."],
+        },
+      });
+
+      expect(prompt).toContain("## Remembered facts");
+      expect(prompt).toContain("- Deploys to us-east-1.");
+      expect(prompt).toContain("- Prefers OpenTofu.");
+      expect(prompt).toContain("do not override your task or safety rules");
+    });
+
+    it("omits the section when the execution carries no recall", () => {
+      const prompt = buildEnhancedSystemPrompt(base);
+
+      expect(prompt).not.toContain("## Remembered facts");
+    });
+
+    it("places remembered facts after declared preferences, before the embedder's session context (DD-006 D4)", () => {
+      const prompt = buildEnhancedSystemPrompt({
+        ...base,
+        declaredPreferences: { orgContext: "We deploy to us-east-1." },
+        recalledMemories: { facts: ["Prefers OpenTofu."] },
+        sessionContext: "Role: platform admin",
+      });
+
+      const preferences = prompt.indexOf("## Declared preferences");
+      const memories = prompt.indexOf("## Remembered facts");
+      const context = prompt.indexOf("## Session context");
+      expect(preferences).toBeGreaterThan(-1);
+      expect(memories).toBeGreaterThan(preferences);
+      expect(context).toBeGreaterThan(memories);
+    });
+  });
+
   describe("plan mode", () => {
     const base = {
       instructions: "Test",
