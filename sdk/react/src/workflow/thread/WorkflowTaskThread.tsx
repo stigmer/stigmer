@@ -596,10 +596,11 @@ function ThreadTaskDetail({
   readonly inputIO: TaskDetailIO | null;
   readonly outputIO: TaskDetailIO | null;
 }) {
-  const rows: Array<[string, string]> = [["Status", statusLabel(item.status)]];
-  if (item.durationMs > 0) {
-    rows.push(["Duration", formatMetaChips({ durationMs: item.durationMs }) ?? ""]);
-  }
+  // No Status/Duration rows (R6-6): the card header is the single source
+  // for both — the status glyph and the duration meta chip. The detail
+  // body carries only what the header cannot: attempt count, usage, the
+  // agent slug.
+  const rows: Array<[string, string]> = [];
   if (item.attemptNumber > 1) rows.push(["Attempt", String(item.attemptNumber)]);
   const costChip = formatMetaChips({
     costMicros: item.costMicros,
@@ -612,14 +613,16 @@ function ThreadTaskDetail({
 
   return (
     <div className="stg:flex stg:flex-col stg:gap-2">
-      <dl className="stg:grid stg:grid-cols-[auto_1fr] stg:gap-x-4 stg:gap-y-1 stg:text-xs">
-        {rows.map(([label, value]) => (
-          <div key={label} className="stg:contents">
-            <dt className="stg:text-muted-foreground">{label}</dt>
-            <dd className="stg:text-foreground">{value}</dd>
-          </div>
-        ))}
-      </dl>
+      {rows.length > 0 && (
+        <dl className="stg:grid stg:grid-cols-[auto_1fr] stg:gap-x-4 stg:gap-y-1 stg:text-xs">
+          {rows.map(([label, value]) => (
+            <div key={label} className="stg:contents">
+              <dt className="stg:text-muted-foreground">{label}</dt>
+              <dd className="stg:text-foreground">{value}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
 
       {item.error && (
         <BoundedContent>
@@ -635,25 +638,6 @@ function ThreadTaskDetail({
       {outputIO && <ThreadTaskIOSection label="Output" io={outputIO} />}
     </div>
   );
-}
-
-function statusLabel(status: WorkflowThreadItem["status"]): string {
-  switch (status) {
-    case "waiting_approval":
-      return "Waiting for approval";
-    case "retrying":
-      return "Retrying";
-    case "running":
-      return "Running";
-    case "completed":
-      return "Completed";
-    case "failed":
-      return "Failed";
-    case "skipped":
-      return "Skipped";
-    case "pending":
-      return "Pending";
-  }
 }
 
 // ---------------------------------------------------------------------------
