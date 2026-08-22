@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { ReactFlowProvider } from "@xyflow/react";
-import type { Node } from "@xyflow/react";
+import type { Node, OnNodeDrag } from "@xyflow/react";
 import { useWorkflowCanvas } from "../useWorkflowCanvas";
 
 // Regression tests for oss#609: isDirty was a model-reference comparison
@@ -54,10 +54,12 @@ function renderCanvas() {
 
 type CanvasResult = ReturnType<typeof renderCanvas>["result"];
 
-// React Flow's drag handlers take the NATIVE event (@xyflow types accept
-// MouseEvent | TouchEvent); @types/react >= 19.2.18 no longer lets the
-// synthetic React.MouseEvent stand in for it.
-const DRAG_EVENT = {} as MouseEvent;
+// The drag fixture derives its type from the handler itself, so it tracks
+// whatever event type the installed @xyflow/react declares (the pinned
+// 12.10.2 takes the React synthetic event; newer majors take the native
+// event) — a dependency bump can never strand this cast again (#821's
+// hand-written native-MouseEvent cast did not compile under npm ci).
+const DRAG_EVENT = {} as Parameters<OnNodeDrag>[0];
 
 /** Drives one full drag gesture the way React Flow produces it. */
 function drag(result: CanvasResult, id: string, to: { x: number; y: number }) {
