@@ -48,9 +48,13 @@ afterAll(async () => {
 // separation, not waiting for async work.
 const separateTimestamps = () => new Promise((resolve) => setTimeout(resolve, 25));
 
-async function provisionAgentInstance(org: string): Promise<string> {
-  const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("agent") }));
-  fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
+// Helpers take the caller explicitly: most tests run as the ordinary user,
+// but the runtime-origin exclusion test seeds its lookalike sessions through
+// the privileged scope (reserved-label writes are operator-only on cloud
+// since stigmer-cloud#386, and the recents feed is caller-scoped anyway).
+async function provisionAgentInstance(caller: ConformanceClients, org: string): Promise<string> {
+  const agent = await caller.agentCommand.create(makeAgent({ org, name: uniqueName("agent") }));
+  fixtures.defer(() => caller.agentCommand.delete({ value: agent.metadata!.id }));
   const agentInstanceId = agent.status?.defaultInstanceId;
   if (agentInstanceId === undefined || agentInstanceId === "") {
     throw new Error("agent create did not provision a default instance id");
@@ -59,27 +63,28 @@ async function provisionAgentInstance(org: string): Promise<string> {
 }
 
 async function createSession(
+  caller: ConformanceClients,
   org: string,
   agentInstanceId: string,
   opts: { subject?: string; labels?: Record<string, string> } = {},
 ): Promise<string> {
-  const session = await clients.sessionCommand.create(
+  const session = await caller.sessionCommand.create(
     makeSession({ org, name: uniqueName("session"), agentInstanceId, ...opts }),
   );
-  fixtures.defer(() => clients.sessionCommand.delete({ value: session.metadata!.id }));
+  fixtures.defer(() => caller.sessionCommand.delete({ value: session.metadata!.id }));
   return session.metadata!.id;
 }
 
 describe("Activity conformance — listRecentActivity", () => {
   it("lists created sessions newest-first as projected sidebar entries", async () => {
     const { org } = await target.provisionTenancy();
-    const agentInstanceId = await provisionAgentInstance(org);
+    const agentInstanceId = await provisionAgentInstance(clients, org);
 
-    const first = await createSession(org, agentInstanceId, { subject: "Plan the migration" });
+    const first = await createSession(clients, org, agentInstanceId, { subject: "Plan the migration" });
     await separateTimestamps();
-    const second = await createSession(org, agentInstanceId, { subject: "Review the PR" });
+    const second = await createSession(clients, org, agentInstanceId, { subject: "Review the PR" });
     await separateTimestamps();
-    const third = await createSession(org, agentInstanceId, { subject: "Ship the release" });
+    const third = await createSession(clients, org, agentInstanceId, { subject: "Ship the release" });
 
     const response = await clients.activityQuery.listRecentActivity({ pageSize: 100, org });
     const ids = response.entries.map((entry) => entry.id);
@@ -100,9 +105,9 @@ describe("Activity conformance — listRecentActivity", () => {
 
   it("maps the auto-created sentinel subject to the display placeholder", async () => {
     const { org } = await target.provisionTenancy();
-    const agentInstanceId = await provisionAgentInstance(org);
+    const agentInstanceId = await provisionAgentInstance(clients, org);
 
-    const id = await createSession(org, agentInstanceId, { subject: "Auto-created session" });
+    const id = await createSession(clients, org, agentInstanceId, { subject: "Auto-created session" });
 
     const response = await clients.activityQuery.listRecentActivity({ pageSize: 100, org });
     const entry = response.entries.find((candidate) => candidate.id === id);
@@ -112,34 +117,51 @@ describe("Activity conformance — listRecentActivity", () => {
   });
 
   it("excludes runtime-origin sessions (personal sessions only)", async () => {
-    const { org } = await target.provisionTenancy();
-    const agentInstanceId = await provisionAgentInstance(org);
+    // The runtime-origin lookalikes carry server-stamped reserved keys, which
+    // an ordinary caller can no longer forge on cloud (GuardReservedLabelsStep,
+    // platform-wide since stigmer-cloud#386) — that rejection is itself pinned
+    // in the agent suite. This test therefore seeds them through the
+    // privileged scope (stigmer#547): the local targets' scope IS the ordinary
+    // caller, and the recents feed is caller-scoped, so listing as the same
+    // caller keeps the assertion identical across editions. Deployed endpoints
+    // carry no operator credential by design and skip.
+    if (target.provisionPrivilegedScope === undefined) return;
+    const scope = await target.provisionPrivilegedScope();
 
-    const channelSession = await createSession(org, agentInstanceId, {
-      subject: "Channel conversation",
-      labels: { "stigmer.ai/channel-id": "ach_conformance" },
-    });
-    const scheduleSession = await createSession(org, agentInstanceId, {
-      subject: "Schedule run",
-      labels: { "stigmer.ai/schedule-id": "sch_conformance" },
-    });
-    const consoleSession = await createSession(org, agentInstanceId, { subject: "Console session" });
+    try {
+      const org = scope.context.org;
+      const agentInstanceId = await provisionAgentInstance(scope.clients, org);
 
-    const response = await clients.activityQuery.listRecentActivity({ pageSize: 100, org });
-    const ids = response.entries.map((entry) => entry.id);
+      const channelSession = await createSession(scope.clients, org, agentInstanceId, {
+        subject: "Channel conversation",
+        labels: { "stigmer.ai/channel-id": "ach_conformance" },
+      });
+      const scheduleSession = await createSession(scope.clients, org, agentInstanceId, {
+        subject: "Schedule run",
+        labels: { "stigmer.ai/schedule-id": "sch_conformance" },
+      });
+      const consoleSession = await createSession(scope.clients, org, agentInstanceId, {
+        subject: "Console session",
+      });
 
-    expect(ids).toContain(consoleSession);
-    expect(ids, "channel-originated sessions must not appear in recents").not.toContain(channelSession);
-    expect(ids, "schedule-originated sessions must not appear in recents").not.toContain(scheduleSession);
+      const response = await scope.clients.activityQuery.listRecentActivity({ pageSize: 100, org });
+      const ids = response.entries.map((entry) => entry.id);
+
+      expect(ids).toContain(consoleSession);
+      expect(ids, "channel-originated sessions must not appear in recents").not.toContain(channelSession);
+      expect(ids, "schedule-originated sessions must not appear in recents").not.toContain(scheduleSession);
+    } finally {
+      await scope.cleanup();
+    }
   });
 
   it("trims to page_size, keeping the newest entries", async () => {
     const { org } = await target.provisionTenancy();
-    const agentInstanceId = await provisionAgentInstance(org);
+    const agentInstanceId = await provisionAgentInstance(clients, org);
 
-    await createSession(org, agentInstanceId, { subject: "older" });
+    await createSession(clients, org, agentInstanceId, { subject: "older" });
     await separateTimestamps();
-    const newest = await createSession(org, agentInstanceId, { subject: "newest" });
+    const newest = await createSession(clients, org, agentInstanceId, { subject: "newest" });
 
     const response = await clients.activityQuery.listRecentActivity({ pageSize: 1, org });
 

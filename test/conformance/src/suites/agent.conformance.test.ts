@@ -242,26 +242,23 @@ describe("Agent conformance — negative paths", () => {
 describe("Agent conformance — platform default resolution", () => {
   const DEFAULT_AGENT_LABEL = "stigmer.ai/default-agent";
 
-  // Creates a getDefault candidate: an agent carrying the platform default
-  // label, flipped public via updateVisibility (agents create org-visible —
-  // the blueprint default — and public is an explicit opt-in, the same lane
-  // the skill suite pins). The label assert gives a crisp failure if an
-  // edition ever strips labels at create, instead of an opaque NotFound later.
-  //
-  // NOTE: the stigmer.ai/* namespace is now guarded at the cloud write
-  // boundaries (stigmer-cloud#320): only platform operators may introduce
-  // reserved labels there, and the harness has no privileged caller yet —
-  // so this helper runs only where clientReservedLabelWrites holds (the
-  // local OSS targets, deliberately unguarded). stigmer#547 owns the
-  // privileged-caller lane that puts the cloud target back in.
-  async function createDefaultCandidate(org: string) {
-    const agent = await clients.agentCommand.create(
+  // Creates a getDefault candidate as the PRIVILEGED caller: an agent carrying
+  // the platform default label, flipped public via updateVisibility (agents
+  // create org-visible — the blueprint default — and public is an explicit
+  // opt-in). Both writes are operator-gated on cloud (GuardReservedLabelsStep,
+  // stigmer-cloud#320/#386; the public flip behind can_set_public_visibility),
+  // which is exactly why candidates ride the privileged scope (stigmer#547) —
+  // on the local targets that scope IS the ordinary caller. The label assert
+  // gives a crisp failure if an edition ever strips labels at create, instead
+  // of an opaque NotFound later.
+  async function createDefaultCandidate(privileged: ConformanceClients, org: string) {
+    const agent = await privileged.agentCommand.create(
       makeAgent({ org, name: uniqueName("default-cand"), labels: { [DEFAULT_AGENT_LABEL]: "true" } }),
     );
-    fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
+    fixtures.defer(() => privileged.agentCommand.delete({ value: agent.metadata!.id }));
     expect(agent.metadata?.labels?.[DEFAULT_AGENT_LABEL], "the default-agent label survives create").toBe("true");
 
-    const updated = await clients.agentCommand.updateVisibility({
+    const updated = await privileged.agentCommand.updateVisibility({
       resourceId: agent.metadata!.id,
       visibility: ApiResourceVisibility.visibility_public,
     });
@@ -270,43 +267,70 @@ describe("Agent conformance — platform default resolution", () => {
   }
 
   it("getDefault resolves the incumbent (first-created) when several public agents carry the label", async () => {
-    // Candidate creation writes a reserved label, which the cloud edition
-    // accepts only from platform operators (stigmer-cloud#320) — see the
-    // capability's doc in targets/target.ts and the helper NOTE above.
-    if (!target.capabilities.clientReservedLabelWrites) return;
+    // Candidate creation needs operator power on cloud; pre-provisioned and
+    // deployed endpoints carry no operator credential BY DESIGN (the
+    // stigmer#547 permanent-skip ruling), so the pin skips only there.
+    if (target.provisionPrivilegedScope === undefined) return;
+    const scope = await target.provisionPrivilegedScope();
+
+    try {
+      // Two labeled public agents is the normal mid-rotation state: the new
+      // default is applied before the old one is retired. The shared contract —
+      // pinned resolver-side on both editions (OSS pkg/domain/agent/defaultagent,
+      // stigmer#356 / PR #458; cloud PostgresAgentRepo.findDefault,
+      // stigmer-cloud#319) — is incumbent-wins: the lowest metadata.id (server
+      // ids are time-ordered ULIDs, so the first-created) keeps serving until
+      // its label is removed. Label removal is the explicit rotation cutover.
+      const incumbent = await createDefaultCandidate(scope.clients, scope.context.org);
+      const rotatedIn = await createDefaultCandidate(scope.clients, scope.context.org);
+
+      // Resolution is PLATFORM-global, so assert from a DIFFERENT, ordinary
+      // tenancy as the ordinary user — the production semantic itself: one
+      // operator-published default served to every org.
+      const { org } = await target.provisionTenancy();
+      const resolved = await clients.agentQuery.getDefault({ org });
+
+      // Two-step assert: first that the winner is one of THIS test's candidates
+      // (a foreign winner means the environment carries a pre-existing default
+      // agent — a broken precondition, reported distinctly), then that it is
+      // specifically the incumbent (the determinism contract under test).
+      expect(
+        [incumbent.metadata!.id, rotatedIn.metadata!.id],
+        "getDefault resolved an agent this test did not create — the environment already carries a default agent",
+      ).toContain(resolved.metadata?.id);
+      expect(resolved.metadata?.id, "the incumbent (lowest id) must win").toBe(incumbent.metadata!.id);
+
+      // getDefault is PLATFORM-global state and the deferred cleanup is
+      // best-effort by design — not enough to stand between this test and a
+      // leaked platform-wide default. Delete both candidates here (as their
+      // owner, the privileged caller) and prove the no-default state is
+      // restored (also what the negative-path pin and the session suite's
+      // no-default case rely on).
+      await scope.clients.agentCommand.delete({ value: rotatedIn.metadata!.id });
+      await scope.clients.agentCommand.delete({ value: incumbent.metadata!.id });
+      await expectGrpcCode(() => clients.agentQuery.getDefault({ org }), Code.NotFound, "getDefault after cleanup");
+    } finally {
+      await scope.cleanup();
+    }
+  });
+
+  it("an ordinary caller introducing a reserved stigmer.ai/* label is rejected where the guard holds", async () => {
+    // The write guard is cloud-only (stigmer-cloud#320, platform-wide since
+    // stigmer-cloud#386); the local OSS targets are deliberately unguarded
+    // (single-tenant, the operator owns the store), so this pin is the
+    // false-branch twin of the capability — where ordinary reserved writes
+    // are allowed there is nothing to reject.
+    if (target.capabilities.clientReservedLabelWrites) return;
 
     const { org } = await target.provisionTenancy();
-
-    // Two labeled public agents is the normal mid-rotation state: the new
-    // default is applied before the old one is retired. The shared contract —
-    // pinned resolver-side on both editions (OSS pkg/domain/agent/defaultagent,
-    // stigmer#356 / PR #458; cloud PostgresAgentRepo.findDefault,
-    // stigmer-cloud#319) — is incumbent-wins: the lowest metadata.id (server
-    // ids are time-ordered ULIDs, so the first-created) keeps serving until
-    // its label is removed. Label removal is the explicit rotation cutover.
-    const incumbent = await createDefaultCandidate(org);
-    const rotatedIn = await createDefaultCandidate(org);
-
-    const resolved = await clients.agentQuery.getDefault({ org });
-
-    // Two-step assert: first that the winner is one of THIS test's candidates
-    // (a foreign winner means the environment carries a pre-existing default
-    // agent — a broken precondition, reported distinctly), then that it is
-    // specifically the incumbent (the determinism contract under test).
-    expect(
-      [incumbent.metadata!.id, rotatedIn.metadata!.id],
-      "getDefault resolved an agent this test did not create — the environment already carries a default agent",
-    ).toContain(resolved.metadata?.id);
-    expect(resolved.metadata?.id, "the incumbent (lowest id) must win").toBe(incumbent.metadata!.id);
-
-    // getDefault is PLATFORM-global state and the deferred cleanup is
-    // best-effort by design — not enough to stand between this test and a
-    // leaked platform-wide default. Delete both candidates here and prove the
-    // no-default state is restored (also what the negative-path pin and the
-    // session suite's no-default case rely on).
-    await clients.agentCommand.delete({ value: rotatedIn.metadata!.id });
-    await clients.agentCommand.delete({ value: incumbent.metadata!.id });
-    await expectGrpcCode(() => clients.agentQuery.getDefault({ org }), Code.NotFound, "getDefault after cleanup");
+    await expectGrpcCode(
+      () =>
+        clients.agentCommand.create(
+          makeAgent({ org, name: uniqueName("forged-default"), labels: { [DEFAULT_AGENT_LABEL]: "true" } }),
+        ),
+      Code.InvalidArgument,
+      "reserved-label introduction by an ordinary caller",
+    );
   });
 });
 

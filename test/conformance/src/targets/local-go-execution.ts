@@ -27,7 +27,7 @@ import { spawnRunner, type RunningRunner } from "../harness/runner-process";
 import { spawnServer, type RunningServer } from "../harness/server-process";
 import { spawnTemporal, type RunningTemporal } from "../harness/temporal";
 import { uniqueOrg } from "../support/naming";
-import type { CapabilityFlags, TargetProfile, TenancyContext } from "./target";
+import type { CapabilityFlags, PrivilegedScope, TargetProfile, TenancyContext } from "./target";
 
 export class LocalGoExecutionTarget implements TargetProfile {
   readonly name = "local-go-execution";
@@ -139,6 +139,13 @@ export class LocalGoExecutionTarget implements TargetProfile {
 
   async cleanupTenancy(): Promise<void> {
     // No-op: resources are removed by fixtures and the per-file teardown.
+  }
+
+  // Single-tenant and deliberately unguarded: the one implicit caller IS the
+  // operator, so the ordinary clients and a fresh slug satisfy the privileged
+  // contract (stigmer#547).
+  async provisionPrivilegedScope(): Promise<PrivilegedScope> {
+    return { clients: this.clients(), context: { org: uniqueOrg() }, cleanup: async () => {} };
   }
 
   async teardown(): Promise<void> {

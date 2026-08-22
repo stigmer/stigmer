@@ -85,20 +85,20 @@ export interface CapabilityFlags {
   // execution is created) — which is what lets this be the first
   // execution-class behavior asserted cross-edition.
   scheduleFiring: boolean;
-  // The conformance caller may write labels in the reserved stigmer.ai/*
-  // namespace (the getDefault determinism pin creates its labeled
-  // candidates through the public API).
+  // The ORDINARY conformance caller may write labels in the reserved
+  // stigmer.ai/* namespace.
   //
   // True for the local OSS targets: single-tenant, deliberately unguarded —
   // the operator owns the store (stigmer-cloud#320 scoped OSS out).
   //
   // False for cloud: GuardReservedLabelsStep rejects non-operator
-  // introductions/changes of reserved labels at the agent write boundaries
-  // (stigmer-cloud#320), and the ordinary conformance user holds no
-  // platform-operator grant. Cloud determinism coverage lives at the
-  // adapter layer meanwhile (AgentRepoCustomQueryContractTest). Flip or
-  // retire this flag when the harness gains a platform-privileged caller
-  // (stigmer#547) — until then the pin runs OSS-side only.
+  // introductions/changes of reserved labels at every client-facing write
+  // boundary (stigmer-cloud#320 for agents, platform-wide since
+  // stigmer-cloud#386). Where false, the suite pins the guard itself: an
+  // ordinary caller introducing a reserved label gets INVALID_ARGUMENT.
+  // The getDefault determinism pin no longer rides this flag — it creates
+  // its labeled candidates through provisionPrivilegedScope (stigmer#547),
+  // so it runs on cloud again.
   clientReservedLabelWrites: boolean;
 // NOTE: there is deliberately no shared-runner-artifact-store capability.
   // Every execution target's runner resolves storage-key attachments the
@@ -154,6 +154,22 @@ export interface TenancyContext {
   org: string;
 }
 
+// A platform-operator caller plus a tenancy that caller may create resources
+// in — the privileged lane assertions that exercise operator-only writes
+// (reserved labels, the public flip) run through (stigmer#547).
+//
+// Platform-operator power deliberately does NOT propagate to organizations
+// (the cloud FGA model checks platform capabilities against platform:stigmer
+// only), so the scope carries its own org: on cloud the operator user creates
+// and owns it; on the local targets — single-tenant, unguarded, the caller IS
+// the operator — the ordinary clients and a unique slug already satisfy the
+// contract.
+export interface PrivilegedScope {
+  readonly clients: ConformanceClients;
+  readonly context: TenancyContext;
+  cleanup(): Promise<void>;
+}
+
 export interface TargetProfile {
   readonly name: string;
   readonly capabilities: CapabilityFlags;
@@ -185,4 +201,13 @@ export interface TargetProfile {
   // targets, where distinct identities exist; local targets have a single
   // implicit caller, so isolation is untestable there by construction.
   provisionIdentity?(): Promise<ConformanceClients>;
+
+  // A platform-operator caller with a tenancy of its own (stigmer#547) — see
+  // PrivilegedScope. Absent where no operator credential exists: hermetic
+  // cloud runs bootstrap one (a conf-operator user granted operator on
+  // platform:stigmer via the production bootstrapPolicy RPC), but
+  // pre-provisioned/deployed endpoints deliberately carry none — operator
+  // credentials against a real deployment is the permanent skip the stigmer#547
+  // ruling recorded — so privileged-lane assertions skip there.
+  provisionPrivilegedScope?(): Promise<PrivilegedScope>;
 }

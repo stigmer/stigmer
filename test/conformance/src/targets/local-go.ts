@@ -9,7 +9,7 @@ import { createTransport, makeClients, type ConformanceClients } from "../harnes
 import { awaitGrpcReady } from "../harness/grpc-ready";
 import { spawnServer, type RunningServer } from "../harness/server-process";
 import { uniqueOrg } from "../support/naming";
-import type { CapabilityFlags, TargetProfile, TenancyContext } from "./target";
+import type { CapabilityFlags, PrivilegedScope, TargetProfile, TenancyContext } from "./target";
 
 export class LocalGoTarget implements TargetProfile {
   readonly name = "local-go";
@@ -49,6 +49,13 @@ export class LocalGoTarget implements TargetProfile {
   async provisionTenancy(): Promise<TenancyContext> {
     // No auth and no bootstrap org: a unique slug is a fully isolated scope.
     return { org: uniqueOrg() };
+  }
+
+  // Single-tenant and deliberately unguarded: the one implicit caller IS the
+  // operator, so the ordinary clients and a fresh slug satisfy the privileged
+  // contract (stigmer#547).
+  async provisionPrivilegedScope(): Promise<PrivilegedScope> {
+    return { clients: this.clients(), context: { org: uniqueOrg() }, cleanup: async () => {} };
   }
 
   async cleanupTenancy(): Promise<void> {
