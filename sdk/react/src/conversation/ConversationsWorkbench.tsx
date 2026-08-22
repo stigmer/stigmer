@@ -82,6 +82,19 @@ export interface ConversationsWorkbenchProps {
   readonly channelHref?: (channel: AgentChannel) => string | null;
   /** Frozen instant for deterministic hosts (tests, documentation tours). */
   readonly now?: Date;
+  /**
+   * Scroll to the reader's own reply when they send one from a scrolled-up
+   * position (stigmer-cloud#267): an accepted send pins the timeline to the
+   * latest content and re-engages follow mode, so the reply stays in view
+   * when the refetch delivers its real ledger item. Refused sends never pin
+   * — the composer restores the draft and there is nothing to show. Default
+   * `true` on all three SDK thread surfaces at once (the ratified DD-011
+   * divergence — cross-surface consistency is the point); set `false` to
+   * keep today's leave-the-reader-alone behavior.
+   *
+   * @default true
+   */
+  readonly scrollOnSend?: boolean;
   /** Additional classes for the workbench container. */
   readonly className?: string;
 }
@@ -103,6 +116,7 @@ export function ConversationsWorkbench({
   headerAccessory,
   channelHref,
   now,
+  scrollOnSend = true,
   className,
 }: ConversationsWorkbenchProps) {
   const [channelFilter, setChannelFilter] = useState("");
@@ -233,6 +247,12 @@ export function ConversationsWorkbench({
     }
   }, [timeline.items, settlingItemId]);
 
+  // Scroll-on-send (stigmer-cloud#267): a monotonic counter the timeline
+  // view pins on. Lives outside the conversation-keyed column, which is
+  // safe by the signal contract: the view initializes to the current value
+  // on (re)mount and pins only on increments it observes.
+  const [sendPinSignal, setSendPinSignal] = useState(0);
+
   const handleSend = useCallback(
     async (payload: ConversationReplyPayload) => {
       const output = await participation.reply(payload);
@@ -252,6 +272,10 @@ export function ConversationsWorkbench({
           selectionKey,
           itemId: outboundItemIdOf(output.outboundMessageId),
         });
+        // The reply produced a ledger item to show — pin the timeline so
+        // it lands in view (a refusal pins nothing: the draft came back
+        // and the reader's position should not move for it).
+        setSendPinSignal((n) => n + 1);
       }
       timeline.refetch();
       return output;
@@ -379,6 +403,7 @@ export function ConversationsWorkbench({
             isLoadingOlder={timeline.isLoadingOlder}
             provider={descriptor?.id ?? null}
             now={now}
+            pinToLatestSignal={scrollOnSend ? sendPinSignal : undefined}
           />
 
           <ConversationComposer

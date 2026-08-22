@@ -17,7 +17,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "../internal/tooltip.js";
-import { useAutoScroll } from "../internal/useAutoScroll.js";
+import { useAutoScroll, usePinToLatestOnSignal } from "../internal/useAutoScroll.js";
 import { ConversationMediaAttachment } from "./ConversationMediaAttachment.js";
 import {
   attemptExplanationOf,
@@ -69,6 +69,20 @@ export interface ConversationTimelineViewProps {
   readonly provider: ChannelProviderId | null;
   /** Frozen instant for deterministic hosts (tests, documentation tours). */
   readonly now?: Date;
+  /**
+   * Scroll-on-send signal (stigmer-cloud#267): increment this counter when
+   * the reader dispatches a reply and the view pins to the latest content,
+   * re-engaging follow mode so the item stays in view when the timeline
+   * refetch delivers it — even for a reader who had deliberately scrolled
+   * up. The view stays presentational: it has no composer and deliberately
+   * renders no optimistic item (the SDK never fabricates what the provider
+   * might not have done), so the send moment must arrive from the host —
+   * `ConversationsWorkbench` wires its own composer's send here; headless
+   * hosts composing their own composer get the same seam. Omit to keep
+   * today's leave-the-reader-alone behavior. Incoming items never move a
+   * scrolled-up reader either way.
+   */
+  readonly pinToLatestSignal?: number;
   /** Additional classes for the view container. */
   readonly className?: string;
 }
@@ -100,10 +114,12 @@ export function ConversationTimelineView({
   isLoadingOlder,
   provider,
   now,
+  pinToLatestSignal,
   className,
 }: ConversationTimelineViewProps) {
   const { scrollRef, sentinelRef, contentRef, isFollowing, jumpToLatest } =
     useAutoScroll();
+  usePinToLatestOnSignal(pinToLatestSignal, jumpToLatest);
 
   const days = useMemo(() => groupByDay(items, now), [items, now]);
   const descriptor = channelProviderOf(provider ?? undefined);

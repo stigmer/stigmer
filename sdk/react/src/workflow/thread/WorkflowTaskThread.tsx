@@ -92,6 +92,19 @@ export interface WorkflowTaskThreadProps {
    * summaries already on the items.
    */
   readonly taskSnapshotsByName?: ReadonlyMap<string, WorkflowTask>;
+  /**
+   * Scroll to the latest content when the reader submits a HITL decision
+   * from a scrolled-up position (stigmer-cloud#267) — the workflow surface's
+   * send-analog: approving a gate, deciding a file review, or answering a
+   * task-level human_input gate re-engages follow mode, so the run's
+   * continuation lands in view. Incoming task activity is unaffected — it
+   * still never moves a scrolled-up reader. Default `true` on all three SDK
+   * thread surfaces at once (the ratified DD-011 divergence — cross-surface
+   * consistency is the point); set `false` to keep today's behavior.
+   *
+   * @default true
+   */
+  readonly scrollOnSend?: boolean;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -135,11 +148,37 @@ export const WorkflowTaskThread = memo(function WorkflowTaskThread({
   onNavigateToAgentExecution,
   hitl,
   taskSnapshotsByName,
+  scrollOnSend = true,
   className,
 }: WorkflowTaskThreadProps) {
   const { items, progress } = useWorkflowThreadItems(taskStates, totalTasks);
   const { scrollRef, sentinelRef, contentRef, isFollowing, jumpToLatest } =
     useAutoScroll();
+
+  // Scroll-on-send (stigmer-cloud#267): submitting a decision pins the
+  // thread before delegating, so the unblocked run's continuation lands in
+  // view. The wrapper's identity moves with the bundle's — deliberate: the
+  // bundle re-materializes exactly when its gate state flips (see the
+  // render-site note below), and a stale wrapper would leak stale state
+  // fields. `jumpToLatest` is referentially stable (useAutoScroll pins it).
+  const threadHitl = useMemo<WorkflowThreadHitl | undefined>(() => {
+    if (!hitl || !scrollOnSend) return hitl;
+    return {
+      ...hitl,
+      submitApproval: (...args: Parameters<WorkflowThreadHitl["submitApproval"]>) => {
+        jumpToLatest();
+        return hitl.submitApproval(...args);
+      },
+      submitTaskApproval: (...args: Parameters<WorkflowThreadHitl["submitTaskApproval"]>) => {
+        jumpToLatest();
+        return hitl.submitTaskApproval(...args);
+      },
+      submitFileDecision: (...args: Parameters<WorkflowThreadHitl["submitFileDecision"]>) => {
+        jumpToLatest();
+        return hitl.submitFileDecision(...args);
+      },
+    };
+  }, [hitl, scrollOnSend, jumpToLatest]);
 
   return (
     <div className={cn("stg:relative stg:flex stg:h-full stg:min-h-0 stg:flex-col", className)}>
@@ -164,7 +203,7 @@ export const WorkflowTaskThread = memo(function WorkflowTaskThread({
                 // would re-render the whole column per spinner tick. Scoped
                 // here, non-gating cards keep `undefined === undefined` and
                 // their memo bails hold.
-                hitl={item.status === "waiting_approval" ? hitl : undefined}
+                hitl={item.status === "waiting_approval" ? threadHitl : undefined}
                 snapshot={taskSnapshotsByName?.get(item.taskName)}
               />
             ))
@@ -412,6 +451,10 @@ const ThreadTaskCard = memo(function ThreadTaskCard({
                 </pre>
               </BoundedContent>
             )}
+            {/* Carries the card's (wrapped) bundle: a child-gate decision
+                inside this transcript is a send too, and the gating card is
+                the thread's active tail — pinning the outer thread keeps
+                the transcript's continuation in view as it streams. */}
             <WorkflowAgentCallTranscript
               childExecutionId={item.childExecutionId}
               agentSlug={item.agentSlug || undefined}
