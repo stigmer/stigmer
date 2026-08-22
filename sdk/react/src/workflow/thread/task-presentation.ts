@@ -124,9 +124,18 @@ export function getTaskPresenter(
  * the output-envelope follow-up standardizes them (DD-T04-3) — stays a
  * clean one-line row with zero cost. `set_vars` earns its place from live
  * data: the runner writes the seeded variables to task output (T05, R2-5).
+ * `try_catch` earns it the same way: its output is the try (or catch.do)
+ * block's settled result — the `transform` class. `raise_error` earns it
+ * from the OTHER `showBody` arm: it always fails, and the preview body
+ * renders the full failure detail without a click (R6-5).
  *
- * Only genuinely body-less kinds (control flow, `wait`/`listen`, and the
- * snapshot fallback's `unspecified`) stay compact summary rows.
+ * Only genuinely body-less kinds stay compact summary rows: `wait`/
+ * `listen`, the snapshot fallback's `unspecified`, and the remaining
+ * control flow — including `switch_case`, DELIBERATELY (an R6-5
+ * refinement): its entire settled content is the one-word flow directive,
+ * carried by its always-visible preview line below; a body would only
+ * re-render the raw `{__flow_directive__}` marker, failing the "does the
+ * body carry content the one-line row cannot?" rule.
  */
 const PREVIEW_KINDS: ReadonlySet<WorkflowTaskKind> = new Set([
   WorkflowTaskKind.transform,
@@ -142,6 +151,8 @@ const PREVIEW_KINDS: ReadonlySet<WorkflowTaskKind> = new Set([
   WorkflowTaskKind.grpc_call,
   WorkflowTaskKind.activity_call,
   WorkflowTaskKind.run_workflow,
+  WorkflowTaskKind.try_catch,
+  WorkflowTaskKind.raise_error,
 ]);
 
 /** Default disclosure mode for a task kind. */
@@ -218,12 +229,17 @@ function defaultPreviewLine(state: DerivedTaskState): string | null {
       return waitLine(state);
     case WorkflowTaskKind.listen:
       return listenLine(state);
+    case WorkflowTaskKind.switch_case:
+      return switchCaseLine(state.outputSummary);
+    case WorkflowTaskKind.try_catch:
+      return tryCatchLine(state);
     default:
-      // Control flow (branch-taken / fork progress need graph topology the
-      // thread does not have — deferred), raise_error (the failure
-      // precedence already shows the message), the invocation kinds
-      // (pending the backend output-envelope follow-up), and the snapshot
-      // fallback's `unspecified` all stay status-only.
+      // Remaining control flow (for_each / fork progress need graph
+      // topology the thread does not have — deferred), raise_error (the
+      // failure precedence already shows the message; its preview body
+      // carries the full detail), the invocation kinds (pending the
+      // backend output-envelope follow-up), and the snapshot fallback's
+      // `unspecified` all stay status-only.
       return null;
   }
 }
@@ -352,6 +368,35 @@ function listenLine(state: DerivedTaskState): string | null {
   if (state.status === "running") return "waiting for signal";
   if (state.status === "completed") return "signal received";
   return null;
+}
+
+/**
+ * `→ approved-path` / `→ exit` — the flow directive the switch settled on
+ * (R6-5). The switch executor's only output is the `__flow_directive__`
+ * marker carrying the matched case's `then` (a target task name, or the
+ * `continue`/`end`/`exit` terminals), and `do-executor` writes raw task
+ * output to the event summary — so the branch taken is already on the
+ * wire. No case matched means no output: status-only, honestly.
+ */
+function switchCaseLine(output: JsonObject | null): string | null {
+  const directive = asString(output?.["__flow_directive__"]);
+  return directive ? `\u2192 ${directive}` : null;
+}
+
+/**
+ * `recovered after 2 attempts` / snippet of the settled block result
+ * (R6-5). The try task's own `task_retrying` events drive
+ * `attemptNumber`, so a completion above attempt 1 IS a catch-retry
+ * recovery. A catch.do-path recovery (no retry configured) is NOT
+ * distinguishable from plain success in the emitted data — deliberately
+ * unmarked: adding a marker to task output would leak presentation into
+ * workflow dataflow (`processTaskOutput` consumes it downstream).
+ */
+function tryCatchLine(state: DerivedTaskState): string | null {
+  if (state.status === "completed" && state.attemptNumber > 1) {
+    return `recovered after ${state.attemptNumber} attempts`;
+  }
+  return state.outputSummary ? valueSnippet(state.outputSummary) : null;
 }
 
 // ---------------------------------------------------------------------------

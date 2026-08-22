@@ -286,21 +286,55 @@ describe("per-kind preview lines", () => {
       overrides: { agentSlug: "blog-writer", messagesCount: 12, toolCallsCount: 5 },
       expected: "blog-writer · 12 msgs · 5 tools",
     },
+    {
+      label: "switch_case settled on a target branch (R6-5)",
+      kind: WorkflowTaskKind.switch_case,
+      overrides: { outputSummary: { __flow_directive__: "approved-path" } },
+      expected: "→ approved-path",
+    },
+    {
+      label: "switch_case settled on a termination directive",
+      kind: WorkflowTaskKind.switch_case,
+      overrides: { outputSummary: { __flow_directive__: "exit" } },
+      expected: "→ exit",
+    },
+    {
+      label: "try_catch recovered via catch retry (R6-5)",
+      kind: WorkflowTaskKind.try_catch,
+      overrides: { attemptNumber: 3, outputSummary: { result: "ok" } },
+      expected: "recovered after 3 attempts",
+    },
+    {
+      label: "try_catch settled block result (first-attempt success)",
+      kind: WorkflowTaskKind.try_catch,
+      overrides: { outputSummary: { result: 42 } },
+      expected: "42",
+    },
   ])("$label", ({ kind, overrides, expected }) => {
     const { previewLine } = resolveTaskPreview(state({ taskKind: kind, ...overrides }));
     expect(previewLine).toBe(expected);
   });
 
-  // Kinds that deliberately stay status-only: control flow (branch/fork
-  // detail needs graph topology the thread lacks — deferred), raise_error
-  // (the failure precedence carries the message), the invocation kinds
-  // (no verified output envelope — backend follow-up), and unspecified
-  // (the snapshot fallback).
+  // switch_case degrades to status-only when no case matched: the executor
+  // returns no directive, so there is honestly nothing to say (R6-5).
+  it("switch_case yields an empty line without a flow directive", () => {
+    const { previewLine } = resolveTaskPreview(
+      state({
+        taskKind: WorkflowTaskKind.switch_case,
+        outputSummary: { some: "data" },
+      }),
+    );
+    expect(previewLine).toBe("");
+  });
+
+  // Kinds that deliberately stay status-only: remaining control flow
+  // (for/fork detail needs graph topology the thread lacks — deferred),
+  // raise_error (the failure precedence carries the message; its preview
+  // BODY carries the detail), the invocation kinds (no verified output
+  // envelope — backend follow-up), and unspecified (the snapshot fallback).
   it.each([
-    WorkflowTaskKind.switch_case,
     WorkflowTaskKind.for_each,
     WorkflowTaskKind.fork,
-    WorkflowTaskKind.try_catch,
     WorkflowTaskKind.raise_error,
     WorkflowTaskKind.http_call,
     WorkflowTaskKind.grpc_call,
@@ -396,9 +430,12 @@ type JsonValueLike = Parameters<typeof valueSnippet>[0];
 describe("defaultDisclosureForKind", () => {
   // T05 (DD-T05-5): every kind whose output CAN matter is a preview kind —
   // the showBody gate keeps output-less cards as one-line rows, so preview
-  // disclosure costs nothing until the runner writes real output. Only
-  // genuinely body-less kinds (control flow, wait/listen, unspecified)
-  // remain summary.
+  // disclosure costs nothing until the runner writes real output. R6-5
+  // adds try_catch (its output is the block's settled result) and
+  // raise_error (always fails; the preview body IS the always-visible
+  // failure detail). Only genuinely body-less kinds remain summary —
+  // including switch_case DELIBERATELY: its whole content is the one-word
+  // directive on its preview line; a body would only repeat it.
   it.each([
     [WorkflowTaskKind.transform, "preview"],
     [WorkflowTaskKind.validate, "preview"],
@@ -413,13 +450,13 @@ describe("defaultDisclosureForKind", () => {
     [WorkflowTaskKind.grpc_call, "preview"],
     [WorkflowTaskKind.activity_call, "preview"],
     [WorkflowTaskKind.run_workflow, "preview"],
+    [WorkflowTaskKind.try_catch, "preview"],
+    [WorkflowTaskKind.raise_error, "preview"],
     [WorkflowTaskKind.wait, "summary"],
     [WorkflowTaskKind.switch_case, "summary"],
     [WorkflowTaskKind.fork, "summary"],
-    [WorkflowTaskKind.try_catch, "summary"],
     [WorkflowTaskKind.for_each, "summary"],
     [WorkflowTaskKind.listen, "summary"],
-    [WorkflowTaskKind.raise_error, "summary"],
     [WorkflowTaskKind.workflow_task_kind_unspecified, "summary"],
   ] as const)("kind %d defaults to %s", (kind, expected) => {
     expect(defaultDisclosureForKind(kind)).toBe(expected);
