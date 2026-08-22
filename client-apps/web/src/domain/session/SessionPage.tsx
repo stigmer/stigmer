@@ -2,6 +2,7 @@
 
 import {
   SessionViewer,
+  useAccountExecutionDefaults,
   useGitHubConnection,
   useGitHubTreeLister,
   useGitHubFileReader,
@@ -27,12 +28,16 @@ export function SessionPageInner({ id }: { id: string }) {
   const { enableGitHub, enableLocal } = useWorkspaceSources();
   const workspaceFileLister = useGitHubTreeLister(gitHubConnection.token);
   const workspaceFileReader = useGitHubFileReader(gitHubConnection.token);
+  // Seeds session-scoped auto-approve from the account's
+  // default_auto_approve preference (same seam as the launcher's seed).
+  const accountDefaults = useAccountExecutionDefaults();
 
   return (
     <div className="flex h-full w-full flex-col">
       <SessionViewer
         sessionId={id}
         org={org}
+        accountDefaults={accountDefaults}
         gitHubConnection={enableGitHub ? gitHubConnection : undefined}
         enableGitHub={enableGitHub}
         enableLocal={enableLocal}

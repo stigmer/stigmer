@@ -1,5 +1,9 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { prepareImageForVision } from "../prepare-image.js";
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 /**
  * happy-dom half of the prepare-image coverage: the guard rails that make
@@ -17,11 +21,13 @@ describe("prepareImageForVision — environment guard rails", () => {
   });
 
   it("returns an image untouched when the canvas pipeline is unavailable", async () => {
-    // happy-dom has no createImageBitmap — the exact situation of an old
-    // browser or a privacy extension that blocks canvas. The paste must
-    // still work end to end with the original bytes; it merely degrades
-    // at the runner with the standard disclosure.
-    expect(typeof createImageBitmap).toBe("undefined");
+    // The situation of an old browser or a privacy extension that blocks
+    // canvas. Stubbed explicitly rather than relying on the DOM shim
+    // lacking createImageBitmap — newer shims ship one, and this guard
+    // must hold regardless of the test environment's capabilities. The
+    // paste must still work end to end with the original bytes; it merely
+    // degrades at the runner with the standard disclosure.
+    vi.stubGlobal("createImageBitmap", undefined);
 
     const png = new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], "shot.png", {
       type: "image/png",

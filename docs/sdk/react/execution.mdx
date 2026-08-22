@@ -2650,7 +2650,13 @@ Which empty file-change state to describe.
 
 Extracts the execution id from an artifact storage key of the form
 `artifacts/{executionId}/...`. Returns `null` for an unexpected shape so the
-caller skips the fetch rather than issuing a request the server would reject.
+caller skips the fetch rather than issuing a request the server would
+reject.
+
+The fetch id must always derive from the key, never from render or export
+context: offloaded outputs inside a sub-agent's transcript are stored under
+the PARENT execution's id (the execution whose status was persisted), and
+the key is the record of that.
 
 ```tsx
 function execIdFromStorageKey(storageKey: string): string | null

@@ -464,6 +464,62 @@ describe("useNewSessionFlow", () => {
       expect(execInput.autoApproveAll).toBeUndefined();
     });
 
+    it("arms from the account's default_auto_approve preference", async () => {
+      const opts = {
+        ...defaultOptions(),
+        accountDefaults: { autoApprove: true },
+      };
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
+
+      expect(result.current.autoApproveAll).toBe(true);
+
+      await act(async () => {
+        await result.current.submit("Hello");
+      });
+
+      const execInput = mockCreateExecution.mock.calls[0][0];
+      expect(execInput.autoApproveAll).toBe(true);
+    });
+
+    it("a LATE-arriving account preference still arms (derived, not initialized)", () => {
+      // whoAmI resolves after mount — the seed must be part of the
+      // derivation so it cannot be missed by a useState initializer.
+      const initialProps: { accountDefaults?: { autoApprove?: boolean } } = {};
+      const { result, rerender } = renderHook(
+        ({ accountDefaults }: typeof initialProps) =>
+          useNewSessionFlow({ ...defaultOptions(), accountDefaults }),
+        { wrapper: createWrapper(), initialProps },
+      );
+      expect(result.current.autoApproveAll).toBe(false);
+
+      rerender({ accountDefaults: { autoApprove: true } });
+      expect(result.current.autoApproveAll).toBe(true);
+    });
+
+    it("a late arrival never overrides the user's explicit OFF", () => {
+      const initialProps: { accountDefaults?: { autoApprove?: boolean } } = {};
+      const { result, rerender } = renderHook(
+        ({ accountDefaults }: typeof initialProps) =>
+          useNewSessionFlow({ ...defaultOptions(), accountDefaults }),
+        { wrapper: createWrapper(), initialProps },
+      );
+      act(() => result.current.setAutoApproveAll(false));
+
+      rerender({ accountDefaults: { autoApprove: true } });
+      expect(result.current.autoApproveAll).toBe(false);
+    });
+
+    it("guests never inherit the account auto-approve preference", () => {
+      const opts = {
+        ...defaultOptions(),
+        audience: "guest" as const,
+        accountDefaults: { autoApprove: true },
+      };
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
+
+      expect(result.current.autoApproveAll).toBe(false);
+    });
+
     it("passes cursor harness in the sessionSpec after switching", async () => {
       const opts = defaultOptions();
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });

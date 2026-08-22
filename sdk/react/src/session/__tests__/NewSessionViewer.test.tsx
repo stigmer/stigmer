@@ -33,6 +33,7 @@ const emptyWorkspace = {
   clear: vi.fn(),
 };
 
+const setAutoApproveAll = vi.fn();
 const stubEmptyFlow = {
   harness: "native" as const,
   setHarness: vi.fn(),
@@ -48,6 +49,8 @@ const stubEmptyFlow = {
   setSkillRefs: vi.fn(),
   workspace: emptyWorkspace,
   sessionVariables: { entries: [], isEmpty: true, clear: vi.fn() },
+  autoApproveAll: false,
+  setAutoApproveAll,
   isSubmitting: false,
   submitError: null,
   submit: vi.fn(),
@@ -122,6 +125,35 @@ describe("NewSessionViewer — persistent panel chip", () => {
     // an open panel always has its toggle (the vanishing-toggle defect the old
     // context gate could produce is impossible by construction).
     expect(screen.getByRole("button", { name: "Hide panel" })).toBeTruthy();
+  });
+});
+
+describe("NewSessionViewer — auto-approve placement (#816 rework)", () => {
+  const INDICATOR_TEXT = "Auto-approving tool calls for this session";
+
+  it("shows no indicator while auto-approve is off — the launcher stays clean", () => {
+    render(<NewSessionViewer org="acme" onSessionCreated={vi.fn()} />);
+    expect(screen.queryByText(INDICATOR_TEXT)).toBeNull();
+  });
+
+  it("shows the armed-only indicator when a seed pre-arms the session, with Turn off", () => {
+    mockFlow = { ...stubEmptyFlow, autoApproveAll: true };
+    render(<NewSessionViewer org="acme" onSessionCreated={vi.fn()} />);
+
+    expect(screen.getByText(INDICATOR_TEXT)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Turn off" }));
+    expect(setAutoApproveAll).toHaveBeenCalledExactlyOnceWith(false);
+  });
+
+  it("offers the auto-approve switch in the Config facet, wired to the flow", () => {
+    render(<NewSessionViewer org="acme" onSessionCreated={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Show panel" }));
+    const toggle = screen.getByRole("switch", { name: "Auto-approve" });
+    expect(toggle.getAttribute("aria-checked")).toBe("false");
+
+    fireEvent.click(toggle);
+    expect(setAutoApproveAll).toHaveBeenCalledExactlyOnceWith(true);
   });
 });
 

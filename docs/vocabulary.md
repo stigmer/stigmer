@@ -457,8 +457,10 @@ different settings and secrets.
 <!-- vale Stigmer.terms = NO -->
 
 - **Capitalize**: Yes, when referring to the Stigmer concept. Lowercase when
-used generically ("environment variables").
+  used generically ("environment variables").
+
 <!-- vale Stigmer.terms = YES -->
+
 - **API surface**: `kind: Environment`, prefix `env`. proto:
   `environment/v1/spec.proto`. CLI: `stigmer get environment`,
   `stigmer list environment`.
@@ -588,9 +590,10 @@ mint Stigmer-signed user tokens for embedding Stigmer in your product.
 - **Key fields**: `client_id`, `client_secret_hash`, `auto_provision_accounts`,
   `auto_grant_on_org`, `auto_grant_role`, `allowed_origins`.
 - **Context rule**: Do not use on the sales site---say "embed Stigmer in your
-app" or "add Stigmer to your product." In quickstart, avoid unless the tutorial
-covers PlatformClient setup. In concepts and how-to, capitalize as
-"PlatformClient." In reference, use `PlatformClient`.
+  app" or "add Stigmer to your product." In quickstart, avoid unless the
+  tutorial covers PlatformClient setup. In concepts and how-to, capitalize as
+  "PlatformClient." In reference, use `PlatformClient`.
+
 <!-- vale Vale.Spelling = NO -->
 
 - **Note**: PlatformClient credentials authenticate your backend, not your
@@ -958,6 +961,7 @@ matching the positioning document's category name.
 
 - `stigmer-cloud/README.md` line 7: "SDK-first agent orchestration platform"
 - `stigmer-cloud/README.md` line 15: repeats the phrase
+
 <!-- vale Stigmer.terms = YES -->
 
 **Recommendation**: Update to align with the positioning category "AI Agent

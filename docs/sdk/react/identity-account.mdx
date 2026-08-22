@@ -196,7 +196,8 @@ refetch(); // re-sync the editor
 
 Self-contained editor for the current user's declared preferences
 (`IdentityAccountSpec.preferences`): standing context plus the
-execution defaults (default harness and per-harness default models).
+execution defaults (default harness, per-harness default models, and
+the auto-approve default).
 
 The declared text is snapshotted into the user's own eligible agent
 executions and delivered to the agent as background context.
@@ -237,6 +238,7 @@ session launcher's `accountDefaults` prop.
 
 <TypeTable
   type={{
+    autoApprove: { type: "boolean", description: "Start sessions with \"auto-approve tool calls\" armed (`default_auto_approve`, stigmer/stigmer#816). A seed like every other field here: an explicit in-session flip beats it for that conversation, and it is never applied to guest/observer surfaces." },
     cursorModel: { type: "string", description: "Preferred model for cursor-harness sessions, when declared." },
     harness: { type: "HarnessOption", description: "Preferred harness for new sessions, when declared.", typeDescriptionLink: "/docs/sdk/react/models#harnessoption" },
     nativeModel: { type: "string", description: "Preferred model for native-harness sessions, when declared." },

@@ -115,6 +115,52 @@ describe("AccountPreferencesPanel", () => {
     expect(input.slug).toBe("ada");
   });
 
+  it("saves the auto-approve default when the toggle is flipped on", async () => {
+    const update = vi.fn(async (_input: IdentityAccountInput) => ACCOUNT);
+    renderPanel(createMockStigmer({ update }));
+
+    await findSyncedField("Keep answers terse.");
+    const toggle = screen.getByRole("switch", { name: "Auto-approve tool calls" });
+    expect(toggle.getAttribute("aria-checked")).toBe("false");
+
+    fireEvent.click(toggle);
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+    const input = update.mock.calls[0]![0];
+    expect(input.preferences?.defaultAutoApprove).toBe(true);
+  });
+
+  it("reflects a declared auto-approve default and omits it when turned off", async () => {
+    const armedAccount = create(IdentityAccountSchema, {
+      metadata: { id: "ia-1", name: "Ada Lovelace", slug: "ada", org: "acme" },
+      spec: {
+        idpId: "auth0|abc",
+        email: "ada@acme.example",
+        preferences: { defaultAutoApprove: true },
+      },
+    });
+    const update = vi.fn(async (_input: IdentityAccountInput) => armedAccount);
+    renderPanel(
+      createMockStigmer({ whoAmI: vi.fn(async () => armedAccount), update }),
+    );
+
+    const toggle = await screen.findByRole("switch", {
+      name: "Auto-approve tool calls",
+    });
+    await waitFor(() =>
+      expect(toggle.getAttribute("aria-checked")).toBe("true"),
+    );
+
+    fireEvent.click(toggle);
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+    // Only a declared true travels — off is the absent zero value.
+    const input = update.mock.calls[0]![0];
+    expect(input.preferences?.defaultAutoApprove).toBeUndefined();
+  });
+
   it("refetches the account after a successful save", async () => {
     const whoAmI = vi.fn(async () => ACCOUNT);
     renderPanel(createMockStigmer({ whoAmI }));

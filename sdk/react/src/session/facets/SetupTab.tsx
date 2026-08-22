@@ -1,11 +1,22 @@
 "use client";
 
+import { useId } from "react";
 import type { McpServerUsageInput, ResourceRef } from "@stigmer/sdk";
-import { cn } from "@stigmer/theme";
+import { Copy, FileJson, FileText } from "lucide-react";
 import type { HarnessOption } from "../../models/harness.js";
 import { HARNESS_META } from "../../models/harness.js";
+import { Switch } from "../../switch/Switch.js";
 import type { ExecutionTargetOption } from "../execution-target.js";
 import type { UseSessionVariablesReturn } from "../../execution/useSessionVariables.js";
+import { useExportTranscript } from "../useExportTranscript.js";
+import {
+  FACET_ROW_BUTTON,
+  FacetEmptyHint,
+  FacetKeyValueRow,
+  FacetRemoveButton,
+  FacetRow,
+  FacetSection,
+} from "./primitives.js";
 
 /** Interactive mutation callbacks for config items in SetupTab. */
 export interface SetupTabMutationCallbacks {
@@ -15,6 +26,24 @@ export interface SetupTabMutationCallbacks {
   readonly onRemoveMcp?: (ref: ResourceRef) => void;
   /** Remove a skill by its org/slug ref. */
   readonly onRemoveSkill?: (ref: ResourceRef) => void;
+}
+
+/**
+ * Wiring for the Run Config section's auto-approve switch — the session-level
+ * arming control (stigmer/stigmer#816 rework: config lives in Config, not the
+ * composer). Session-scoped: an explicit flip beats the account's
+ * `default_auto_approve` preference and the host's `approvalDefaults` for
+ * THIS conversation only, and is never persisted anywhere.
+ *
+ * Presence renders the switch; absence keeps the section read-only. Consumers
+ * must only wire it on surfaces whose viewer may submit approvals — never
+ * observer or guest audiences (the approval-submission withhold).
+ */
+export interface SetupTabAutoApprove {
+  /** Whether auto-approve is currently armed for this conversation. */
+  readonly armed: boolean;
+  /** Called with the next value when the user flips the switch. */
+  readonly onChange: (armed: boolean) => void;
 }
 
 /** Props for {@link SetupTab}. */
@@ -27,6 +56,23 @@ export interface SetupTabProps {
   readonly harness: HarnessOption;
   readonly executionTarget: ExecutionTargetOption | undefined;
   readonly modelId: string | undefined;
+  /**
+   * Session-level auto-approve switch in the Run Config section. When
+   * provided, the switch renders and is interactive at all times — including
+   * mid-run, where flipping it ON releases the in-flight execution's pending
+   * gates (the flow's standing responder). When absent (read-only audiences,
+   * demo fixtures), the section shows no approval control at all.
+   */
+  readonly autoApprove?: SetupTabAutoApprove;
+  /**
+   * The session whose transcript the Session section exports. When provided,
+   * the facet renders Copy / Download Markdown / Download JSON actions
+   * (stigmer/stigmer#814's export, relocated from the header). Omit on the
+   * launcher (no session exists yet) and in inert fixtures. Deliberately not
+   * audience-gated: the export is `can_view`-scoped — it serializes exactly
+   * what the viewer already shows — so observers keep it.
+   */
+  readonly sessionId?: string | null;
   /**
    * Interactive mutation callbacks. When provided, items render remove
    * buttons. When absent, sections are read-only (DD-011).
@@ -43,15 +89,18 @@ export interface SetupTabProps {
 }
 
 /**
- * Persistent session configuration panel (Configure tab) — shows agent,
- * MCP servers, skills, run config, session variables, and the host's
+ * Persistent session configuration panel (Config facet) — shows run config
+ * (harness, model, target, and the session-level auto-approve switch), agent,
+ * MCP servers, skills, session variables, transcript export, and the host's
  * access management control (via `accessSlot`).
  *
- * Workspace management has moved to the dedicated Workspace tab.
+ * Rendered in the session panel's shared facet vocabulary (see
+ * `./primitives.tsx`): dense rows, quiet right-aligned metadata, and
+ * hover/focus-revealed actions — the Artifacts facet's idiom.
  *
  * When mutation callbacks are provided via `mutations`, items render
- * inline remove/reconfigure affordances. When callbacks are absent,
- * sections render read-only (backward compatible, DD-011).
+ * inline remove affordances. When callbacks are absent, sections render
+ * read-only (backward compatible, DD-011).
  *
  * All visual properties flow through `--stgm-*` tokens (DD-005).
  */
@@ -64,6 +113,8 @@ export function SetupTab({
   harness,
   executionTarget,
   modelId,
+  autoApprove,
+  sessionId,
   mutations,
   accessSlot,
 }: SetupTabProps) {
@@ -75,6 +126,7 @@ export function SetupTab({
         harness={harness}
         executionTarget={executionTarget}
         modelId={modelId}
+        autoApprove={autoApprove}
       />
 
       <AgentSection
@@ -97,50 +149,10 @@ export function SetupTab({
         <SessionVarsSection entries={sessionVariables.entries} />
       )}
 
+      {sessionId && <TranscriptSection sessionId={sessionId} />}
+
       {accessSlot && <section>{accessSlot}</section>}
     </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Shared section primitives
-// ---------------------------------------------------------------------------
-
-function SectionHeading({ children }: { children: React.ReactNode }) {
-  return (
-    <h3 className="stg:text-[0.65rem] stg:font-semibold stg:uppercase stg:tracking-wider stg:text-muted-foreground">
-      {children}
-    </h3>
-  );
-}
-
-function EmptyHint({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="stg:text-xs stg:text-muted-foreground/70">{children}</p>
-  );
-}
-
-function ItemPill({ children, className: cls }: { children: React.ReactNode; className?: string }) {
-  return (
-    <span className={cn(
-      "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:bg-muted-subtle stg:px-2 stg:py-1 stg:text-xs stg:text-foreground",
-      cls,
-    )}>
-      {children}
-    </span>
-  );
-}
-
-function RemoveButton({ onClick, label }: { onClick: () => void; label: string }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="stg:shrink-0 stg:text-muted-foreground stg:hover:text-destructive stg:transition-colors"
-      aria-label={label}
-    >
-      <XIcon />
-    </button>
   );
 }
 
@@ -152,33 +164,38 @@ function RunConfigSection({
   harness,
   executionTarget,
   modelId,
+  autoApprove,
 }: {
   harness: HarnessOption;
   executionTarget: ExecutionTargetOption | undefined;
   modelId: string | undefined;
+  autoApprove: SetupTabAutoApprove | undefined;
 }) {
+  const autoApproveLabelId = useId();
+
   return (
-    <section className="stg:flex stg:flex-col stg:gap-1.5">
-      <SectionHeading>Run Config</SectionHeading>
-      <div className="stg:flex stg:flex-wrap stg:gap-1.5">
-        <ItemPill>
-          <span className="stg:text-muted-foreground">Harness</span>
-          {HARNESS_META[harness]?.label ?? harness}
-        </ItemPill>
-        {modelId && (
-          <ItemPill>
-            <span className="stg:text-muted-foreground">Model</span>
-            {modelId}
-          </ItemPill>
-        )}
-        {executionTarget && (
-          <ItemPill>
-            <span className="stg:text-muted-foreground">Target</span>
-            {executionTarget === "local" ? "Local" : "Cloud"}
-          </ItemPill>
-        )}
-      </div>
-    </section>
+    <FacetSection heading="Run Config">
+      <FacetKeyValueRow label="Harness">
+        {HARNESS_META[harness]?.label ?? harness}
+      </FacetKeyValueRow>
+      {modelId && (
+        <FacetKeyValueRow label="Model">{modelId}</FacetKeyValueRow>
+      )}
+      {executionTarget && (
+        <FacetKeyValueRow label="Target">
+          {executionTarget === "local" ? "Local" : "Cloud"}
+        </FacetKeyValueRow>
+      )}
+      {autoApprove && (
+        <FacetKeyValueRow label="Auto-approve" labelId={autoApproveLabelId}>
+          <Switch
+            checked={autoApprove.armed}
+            onCheckedChange={autoApprove.onChange}
+            aria-labelledby={autoApproveLabelId}
+          />
+        </FacetKeyValueRow>
+      )}
+    </FacetSection>
   );
 }
 
@@ -196,26 +213,25 @@ function AgentSection({
   onRemove?: () => void;
 }) {
   return (
-    <section className="stg:flex stg:flex-col stg:gap-1.5">
-      <SectionHeading>Agent</SectionHeading>
+    <FacetSection heading="Agent">
       {agentRef ? (
-        <div className="stg:flex stg:items-center stg:gap-1.5">
-          <ItemPill>
-            {agentRef.slug}
-            {onRemove && !isDefaultAgent && (
-              <RemoveButton onClick={onRemove} label={`Remove agent ${agentRef.slug}`} />
-            )}
-          </ItemPill>
-          {isDefaultAgent && (
-            <span className="stg:rounded stg:bg-primary/10 stg:px-1.5 stg:py-0.5 stg:text-[0.6rem] stg:font-medium stg:text-primary">
-              default
-            </span>
-          )}
-        </div>
+        <FacetRow
+          meta={isDefaultAgent ? "default" : undefined}
+          actions={
+            onRemove && !isDefaultAgent ? (
+              <FacetRemoveButton
+                onClick={onRemove}
+                label={`Remove agent ${agentRef.slug}`}
+              />
+            ) : undefined
+          }
+        >
+          <span className="stg:truncate">{agentRef.slug}</span>
+        </FacetRow>
       ) : (
-        <EmptyHint>No agent selected — using platform default.</EmptyHint>
+        <FacetEmptyHint>No agent selected — using platform default.</FacetEmptyHint>
       )}
-    </section>
+    </FacetSection>
   );
 }
 
@@ -231,40 +247,36 @@ function McpSection({
   onRemove?: (ref: ResourceRef) => void;
 }) {
   return (
-    <section className="stg:flex stg:flex-col stg:gap-1.5">
-      <SectionHeading>
-        MCP Servers
-        {mcpServerUsages.length > 0 && (
-          <span className="stg:ml-1 stg:text-muted-foreground/60">({mcpServerUsages.length})</span>
-        )}
-      </SectionHeading>
+    <FacetSection heading="MCP Servers" count={mcpServerUsages.length}>
       {mcpServerUsages.length > 0 ? (
-        <div className="stg:flex stg:flex-col stg:gap-1">
-          {mcpServerUsages.map((usage) => {
-            const slug = usage.mcpServerRef.slug;
-            const enabledCount = usage.enabledTools?.length;
-            return (
-              <ItemPill key={`${usage.mcpServerRef.org}/${slug}`}>
-                <span>{slug}</span>
-                {enabledCount != null && enabledCount > 0 && (
-                  <span className="stg:text-muted-foreground">
-                    {enabledCount} tool{enabledCount !== 1 ? "s" : ""}
-                  </span>
-                )}
-                {onRemove && (
-                  <RemoveButton
+        mcpServerUsages.map((usage) => {
+          const slug = usage.mcpServerRef.slug;
+          const enabledCount = usage.enabledTools?.length;
+          return (
+            <FacetRow
+              key={`${usage.mcpServerRef.org}/${slug}`}
+              meta={
+                enabledCount != null && enabledCount > 0
+                  ? `${enabledCount} tool${enabledCount !== 1 ? "s" : ""}`
+                  : undefined
+              }
+              actions={
+                onRemove ? (
+                  <FacetRemoveButton
                     onClick={() => onRemove(usage.mcpServerRef)}
                     label={`Remove MCP server ${slug}`}
                   />
-                )}
-              </ItemPill>
-            );
-          })}
-        </div>
+                ) : undefined
+              }
+            >
+              <span className="stg:truncate">{slug}</span>
+            </FacetRow>
+          );
+        })
       ) : (
-        <EmptyHint>No MCP servers attached.</EmptyHint>
+        <FacetEmptyHint>No MCP servers attached.</FacetEmptyHint>
       )}
-    </section>
+    </FacetSection>
   );
 }
 
@@ -280,31 +292,27 @@ function SkillsSection({
   onRemove?: (ref: ResourceRef) => void;
 }) {
   return (
-    <section className="stg:flex stg:flex-col stg:gap-1.5">
-      <SectionHeading>
-        Skills
-        {skillRefs.length > 0 && (
-          <span className="stg:ml-1 stg:text-muted-foreground/60">({skillRefs.length})</span>
-        )}
-      </SectionHeading>
+    <FacetSection heading="Skills" count={skillRefs.length}>
       {skillRefs.length > 0 ? (
-        <div className="stg:flex stg:flex-wrap stg:gap-1.5">
-          {skillRefs.map((ref) => (
-            <ItemPill key={`${ref.org}/${ref.slug}`}>
-              {ref.slug}
-              {onRemove && (
-                <RemoveButton
+        skillRefs.map((ref) => (
+          <FacetRow
+            key={`${ref.org}/${ref.slug}`}
+            actions={
+              onRemove ? (
+                <FacetRemoveButton
                   onClick={() => onRemove(ref)}
                   label={`Remove skill ${ref.slug}`}
                 />
-              )}
-            </ItemPill>
-          ))}
-        </div>
+              ) : undefined
+            }
+          >
+            <span className="stg:truncate">{ref.slug}</span>
+          </FacetRow>
+        ))
       ) : (
-        <EmptyHint>No skills attached.</EmptyHint>
+        <FacetEmptyHint>No skills attached.</FacetEmptyHint>
       )}
-    </section>
+    </FacetSection>
   );
 }
 
@@ -318,37 +326,65 @@ function SessionVarsSection({
   entries: UseSessionVariablesReturn["entries"];
 }) {
   return (
-    <section className="stg:flex stg:flex-col stg:gap-1.5">
-      <SectionHeading>
-        Session Variables
-        <span className="stg:ml-1 stg:font-normal stg:normal-case stg:tracking-normal stg:text-muted-foreground/60">
-          (next message only)
-        </span>
-      </SectionHeading>
-      <div className="stg:flex stg:flex-col stg:gap-1">
-        {entries.map((entry) => (
-          <ItemPill key={entry.id}>
-            <span className="stg:font-medium">{entry.key || "(unnamed)"}</span>
-            {entry.isSecret ? (
-              <span className="stg:text-muted-foreground">********</span>
+    <FacetSection heading="Session Variables" annotation="next message only">
+      {entries.map((entry) => (
+        <FacetRow
+          key={entry.id}
+          meta={
+            entry.isSecret ? (
+              "********"
             ) : (
-              <span className="stg:max-w-[140px] stg:truncate stg:text-muted-foreground">{entry.value}</span>
-            )}
-          </ItemPill>
-        ))}
-      </div>
-    </section>
+              <span className="stg:inline-block stg:max-w-[140px] stg:truncate stg:align-bottom">
+                {entry.value}
+              </span>
+            )
+          }
+        >
+          <span className="stg:truncate stg:font-medium">
+            {entry.key || "(unnamed)"}
+          </span>
+        </FacetRow>
+      ))}
+    </FacetSection>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Inline SVG icons (SDK independence — no lucide dependency)
+// Transcript export (stigmer/stigmer#814, relocated from the viewer header)
 // ---------------------------------------------------------------------------
 
-function XIcon() {
+function TranscriptSection({ sessionId }: { sessionId: string }) {
+  const exporter = useExportTranscript(sessionId);
+
   return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 4L10 10M10 4L4 10" />
-    </svg>
+    <FacetSection heading="Transcript">
+      <button
+        type="button"
+        onClick={() => void exporter.copyMarkdown()}
+        disabled={exporter.isExporting}
+        className={FACET_ROW_BUTTON}
+      >
+        <Copy className="stg:size-3.5 stg:shrink-0" aria-hidden="true" />
+        Copy transcript
+      </button>
+      <button
+        type="button"
+        onClick={() => void exporter.downloadMarkdown()}
+        disabled={exporter.isExporting}
+        className={FACET_ROW_BUTTON}
+      >
+        <FileText className="stg:size-3.5 stg:shrink-0" aria-hidden="true" />
+        Download Markdown
+      </button>
+      <button
+        type="button"
+        onClick={() => void exporter.downloadJson()}
+        disabled={exporter.isExporting}
+        className={FACET_ROW_BUTTON}
+      >
+        <FileJson className="stg:size-3.5 stg:shrink-0" aria-hidden="true" />
+        Download JSON
+      </button>
+    </FacetSection>
   );
 }

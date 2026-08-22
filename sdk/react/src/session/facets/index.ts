@@ -11,4 +11,5 @@ export { SetupTab } from "./SetupTab.js";
 export type {
   SetupTabProps,
   SetupTabMutationCallbacks,
+  SetupTabAutoApprove,
 } from "./SetupTab.js";

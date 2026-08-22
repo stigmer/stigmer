@@ -4,7 +4,7 @@ import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useMemo,
 import { cn } from "@stigmer/theme";
 import { getUserMessage, type AttachmentInput, type EnvVarInput, type McpServerUsageInput, type ResourceRef } from "@stigmer/sdk";
 import { useComposer } from "./useComposer.js";
-import { ComposerToolbar, type ComposerAutoApproveProps } from "./ComposerToolbar.js";
+import { ComposerToolbar } from "./ComposerToolbar.js";
 import { type ConfigureMenuItem } from "./ConfigureMenu.js";
 import type { HarnessOption } from "../models/harness.js";
 import { FAST_SERVICE_TIER, type ServiceTierOption } from "../models/service-tier.js";
@@ -299,16 +299,6 @@ export interface SessionComposerProps {
   readonly onModelChange?: (modelId: string) => void;
   /** Show the model selector. @default true */
   readonly showModelSelector?: boolean;
-
-  /**
-   * Always-visible "auto-approve tool calls" toggle in the toolbar
-   * (stigmer/stigmer#816). Presence renders it; omission keeps the composer
-   * byte-identical (DD-011). Stays interactive while the composer is
-   * `disabled` — the walk-away user flips it exactly while a turn streams —
-   * so consumers must only wire it on surfaces whose viewer may submit
-   * approvals (never guest/observer). See {@link ComposerAutoApproveProps}.
-   */
-  readonly autoApprove?: ComposerAutoApproveProps;
 
   /**
    * Workspace state managed by {@link useWorkspaceEntries}.
@@ -627,7 +617,6 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   defaultModelId,
   onModelChange,
   showModelSelector = true,
-  autoApprove,
   workspace,
   gitHubConnection,
   enableGitHub = true,
@@ -1931,7 +1920,6 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
           interactionMode={interactionMode}
           onInteractionModeChange={handleInteractionModeChange}
           showModelSelector={showModelSelector}
-          autoApprove={autoApprove}
           // The pill renders the effective selection — the same value the
           // submit payload carries (#663), never a fallback of its own.
           modelId={effective.modelId}
