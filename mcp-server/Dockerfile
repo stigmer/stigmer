@@ -47,7 +47,22 @@ WORKDIR /app
 
 # Install the published package globally; this pulls its full runtime dependency
 # tree and exposes the `mcp-server-stigmer` bin on PATH.
-RUN npm install --global --omit=dev "@stigmer/mcp-server@${MCP_SERVER_VERSION}"
+#
+# The install first WAITS for the pinned version to appear on the registry
+# (up to 10 minutes). The prod deploy pipeline fires the moment the tag
+# commit is pushed — ~6 minutes before release.npm-libs finishes publishing
+# that same version — so a bare install raced npm and failed first-try on
+# EVERY release from 3.12.3 through 3.12.8, silently leaving prod on the
+# previous bridge until someone noticed and reran (the v3.12.8 /memory
+# route sat undeployed this way, 2026-08-22). release.mcp-server solves
+# this with a workflow-level wait step; putting the wait here fixes every
+# builder of this file at once.
+RUN for i in $(seq 1 60); do \
+        npm view "@stigmer/mcp-server@${MCP_SERVER_VERSION}" version >/dev/null 2>&1 && break; \
+        echo "attempt $i/60: @stigmer/mcp-server@${MCP_SERVER_VERSION} not on npm yet; retrying in 10s"; \
+        sleep 10; \
+    done \
+    && npm install --global --omit=dev "@stigmer/mcp-server@${MCP_SERVER_VERSION}"
 
 # Run as the non-root user shipped with the node:alpine base.
 USER node
