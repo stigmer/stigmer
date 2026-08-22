@@ -20,7 +20,7 @@ import {
   ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
-import { displayFileChangeSets } from "@stigmer/sdk";
+import { displayFileChangeSets, syntheticUserPrompt } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
 import { isTerminalPhase } from "./execution-phases.js";
 import { MessageEntry, type MessageEntryProps } from "./MessageEntry.js";
@@ -764,17 +764,14 @@ export function buildThreadItems(
       });
     }
 
-    const specMessage = exec.spec?.message;
-    // A Build-from-plan turn synthesizes NO prompt item: its message is a
-    // machine-written label ("Build from plan"), not user prose — the real
-    // instruction is runner-injected from the same flag. The plan card
-    // directly above the turn is the visible cause; rendering the label as a
-    // user bubble would attribute words to the user they never typed.
-    const isBuildTurn = exec.spec?.executionConfig?.buildFromPlan === true;
-    if (specMessage && specMessage !== "execute" && !isBuildTurn) {
+    // The user-turn synthesis rule (empty / "execute" placeholder /
+    // Build-from-plan skips) is the shared conversation rule — see
+    // syntheticUserPrompt in @stigmer/sdk for the why of each skip.
+    const promptText = syntheticUserPrompt(exec);
+    if (promptText) {
       const syntheticHumanMsg = create(AgentMessageSchema);
       syntheticHumanMsg.type = MessageType.MESSAGE_HUMAN;
-      syntheticHumanMsg.content = specMessage;
+      syntheticHumanMsg.content = promptText;
 
       // When the active stream execution's spec message matches the
       // pending user message, use a shared bridging key so React
@@ -782,7 +779,7 @@ export function buildThreadItems(
       const bridgePending =
         isActiveStreamExec &&
         pendingUserMessage != null &&
-        specMessage === pendingUserMessage;
+        promptText === pendingUserMessage;
 
       // The turn's submitted files (spec.attachments, by reference — the spec
       // never mutates and structural sharing keeps the ref stable, so the

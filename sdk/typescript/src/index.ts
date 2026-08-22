@@ -322,6 +322,27 @@ export {
 } from "./execution/approval-provenance.js";
 export { isTerminalPhase } from "./execution/execution-phases.js";
 export {
+  sortChronologically,
+  supersededExecutionIds,
+  isBuildFromPlanTurn,
+  syntheticUserPrompt,
+  execIdFromStorageKey,
+} from "./execution/conversation-rules.js";
+export {
+  assembleSessionTranscript,
+  fetchSessionTranscript,
+  resolveOffloadedOutputs,
+  transcriptToMarkdown,
+  transcriptToJson,
+  type SessionTranscript,
+  type TranscriptTurn,
+  type ResolvedToolOutput,
+  type SessionTranscriptClient,
+  type AssembleSessionTranscriptOptions,
+  type FetchSessionTranscriptOptions,
+  type TranscriptToMarkdownOptions,
+} from "./execution/transcript.js";
+export {
   foldFileReviewEventStream,
   displayFileChangeSets,
 } from "./execution/file-review-fold.js";

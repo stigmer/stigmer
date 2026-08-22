@@ -5,8 +5,13 @@ import type {
   FileChange,
   FileContent,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import { execIdFromStorageKey } from "@stigmer/sdk";
 import { useArtifactContent } from "./useArtifactContent.js";
 import { useArtifactDownloadUrl } from "./useArtifactDownloadUrl.js";
+
+// The key-parsing rule lives in @stigmer/sdk with the other shared
+// conversation-assembly rules; re-exported here for existing consumers.
+export { execIdFromStorageKey };
 
 /** Return value of {@link useFileChangeContent}. */
 export interface UseFileChangeContentReturn {
@@ -135,15 +140,3 @@ function sideText(
   return fetched;
 }
 
-/**
- * Extracts the execution id from an artifact storage key of the form
- * `artifacts/{executionId}/...`. Returns `null` for an unexpected shape so the
- * caller skips the fetch rather than issuing a request the server would reject.
- */
-export function execIdFromStorageKey(storageKey: string): string | null {
-  const parts = storageKey.split("/");
-  if (parts.length >= 3 && parts[0] === "artifacts" && parts[1]) {
-    return parts[1];
-  }
-  return null;
-}

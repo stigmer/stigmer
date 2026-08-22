@@ -51,6 +51,7 @@ import { ArtifactDocument } from "../execution/ArtifactDocument.js";
 import { useSessionRailViews } from "./useSessionRailViews.js";
 import { useSessionPanel, type SessionPanelController } from "./useSessionPanel.js";
 import { SessionPanelChip } from "./SessionPanelChip.js";
+import { TranscriptExportMenu } from "./TranscriptExportMenu.js";
 import { useSessionWriteBacks } from "./useSessionWriteBacks.js";
 import { useWorkspaceReadRefs } from "./useWorkspaceReadRefs.js";
 import {
@@ -294,6 +295,19 @@ export interface SessionViewerProps {
    */
   readonly headerActions?: ReactNode;
   /**
+   * Whether the viewer renders its built-in whole-conversation export
+   * control ({@link TranscriptExportMenu}) in the header corner
+   * (stigmer/stigmer#814). Default ON — a deliberate DD-011 divergence,
+   * owner-ratified: wherever a conversation can be viewed its transcript
+   * should be one click away, the control is an additive header button (no
+   * rendering-strategy or DOM-structure change to existing content), and
+   * the export carries only what the current caller can already read.
+   * Hosts that own their export surface (or inert demo scenes) opt out.
+   *
+   * @default true
+   */
+  readonly transcriptExport?: boolean;
+  /**
    * Host-injected access management control (e.g. the Console's
    * `ManageAccessButton` with its own permission gating). Rendered inside
    * the panel's Config facet rather than the header — access is session
@@ -374,6 +388,7 @@ export function SessionViewer({
   panelOpen,
   onPanelOpenChange,
   headerActions,
+  transcriptExport = true,
   accessSlot,
   onApplied,
   threadSlots,
@@ -646,13 +661,23 @@ export function SessionViewer({
   return (
     <SessionViewerLayout
       className={className}
-      // Top-right controls: host actions + the panel chip. The chip is the
-      // panel's always-mounted toggle; while collapsed it carries only the
-      // pending-item count. Execution status is never surfaced as header
-      // chrome — the thread itself communicates run state. A viewer without
-      // a panel (guests — session configuration is not a visitor's business
-      // — or a host's panel="none") has no toggle: it is simply absent.
-      headerActions={headerActions}
+      // Top-right controls: host actions + the built-in transcript export +
+      // the panel chip. The chip is the panel's always-mounted toggle; while
+      // collapsed it carries only the pending-item count. Execution status
+      // is never surfaced as header chrome — the thread itself communicates
+      // run state. A viewer without a panel (guests — session configuration
+      // is not a visitor's business — or a host's panel="none") has no
+      // toggle: it is simply absent.
+      headerActions={
+        transcriptExport ? (
+          <>
+            {headerActions}
+            <TranscriptExportMenu sessionId={sessionId} />
+          </>
+        ) : (
+          headerActions
+        )
+      }
       chip={
         panelEnabled ? (
           <SessionPanelChip

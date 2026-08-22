@@ -361,6 +361,10 @@ describe("toAgentExecutionUpdateInput", () => {
           orgContext: "We deploy to us-east-1.",
           userContext: "Keep answers terse.",
         },
+        recalledMemories: {
+          enabled: true,
+          facts: [{ memoryId: "mem-1", content: "Prefers tabs." }],
+        },
       },
     });
 

@@ -8,6 +8,7 @@ import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/ap
 import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { serializeManifest } from "@stigmer/sdk";
 import { toast } from "../feedback/toast.js";
+import { downloadTextFile } from "../internal/download.js";
 import { useCopyFeedback } from "../internal/useCopyFeedback.js";
 import { serializeWorkflowYaml } from "../workflow/serialize-workflow-yaml.js";
 
@@ -121,33 +122,16 @@ export function useExportResource({
 
   const downloadYaml = useCallback(() => {
     if (!yaml) return;
-    downloadFile(yaml, `${slug}.yaml`, "text/yaml");
+    downloadTextFile(yaml, `${slug}.yaml`, "text/yaml");
   }, [yaml, slug]);
 
   const downloadJson = useCallback(() => {
     if (!json) return;
-    downloadFile(json, `${slug}.json`, "application/json");
+    downloadTextFile(json, `${slug}.json`, "application/json");
   }, [json, slug]);
 
   return useMemo(
     () => ({ copyYaml, copyJson, downloadYaml, downloadJson, yaml, json }),
     [copyYaml, copyJson, downloadYaml, downloadJson, yaml, json],
   );
-}
-
-// ---------------------------------------------------------------------------
-// File download
-// ---------------------------------------------------------------------------
-
-function downloadFile(content: string, filename: string, mimeType: string): void {
-  const blob = new Blob([content], { type: `${mimeType};charset=utf-8;` });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  link.style.display = "none";
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
 }

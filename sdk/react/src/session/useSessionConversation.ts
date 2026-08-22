@@ -10,6 +10,7 @@ import type { McpServerUsage as ProtoMcpServerUsage } from "@stigmer/protos/ai/s
 import type { WorkspaceEntry as ProtoWorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import type { ApiResourceReference as ProtoApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import {
+  supersededExecutionIds,
   toSessionUpdateInput,
   type AttachmentInput,
   type EnvVarInput,
@@ -544,13 +545,11 @@ export function useSessionConversation(
     }
   }, [activeExecutionId, stream.phase, refetch]);
 
-  // Executions replaced via edit-and-resubmit. The successor carries
-  // `spec.supersedes_execution_id`; hiding the superseded turn makes the
-  // edited message read as a single corrected exchange (in-place replace).
-  // The link must also be read off the live stream copy — right after a
-  // resubmit, the successor streams before the list refetch delivers it.
-  // Display-only: the raw `executions` list (and therefore active-id
-  // resolution above) is never filtered.
+  // Executions replaced via edit-and-resubmit (the shared conversation rule —
+  // see supersededExecutionIds in @stigmer/sdk for the why). The extra id is
+  // the live stream copy's link: right after a resubmit, the successor streams
+  // before the list refetch delivers it. Display-only: the raw `executions`
+  // list (and therefore active-id resolution above) is never filtered.
   //
   // Dep is the scalar link, NOT stream.execution: the stream object changes
   // reference every frame, and rebuilding the Set per frame would hand
@@ -558,15 +557,10 @@ export function useSessionConversation(
   // memoization (DD-010).
   const streamSupersededId =
     stream.execution?.spec?.supersedesExecutionId || null;
-  const supersededIds = useMemo(() => {
-    const ids = new Set<string>();
-    for (const e of executions) {
-      const superseded = e.spec?.supersedesExecutionId;
-      if (superseded) ids.add(superseded);
-    }
-    if (streamSupersededId) ids.add(streamSupersededId);
-    return ids;
-  }, [executions, streamSupersededId]);
+  const supersededIds = useMemo(
+    () => supersededExecutionIds(executions, streamSupersededId),
+    [executions, streamSupersededId],
+  );
 
   const completedExecutions = useMemo(() => {
     return executions.filter((e) => {

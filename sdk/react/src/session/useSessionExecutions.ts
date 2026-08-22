@@ -3,8 +3,13 @@
 import { create } from "@bufbuild/protobuf";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ListAgentExecutionsBySessionRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
+import { sortChronologically } from "@stigmer/sdk";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
+
+// The ordering rule lives in @stigmer/sdk with the other shared
+// conversation-assembly rules; re-exported here for existing consumers.
+export { sortChronologically };
 
 /** Options for {@link useSessionExecutions}. */
 export interface UseSessionExecutionsOptions {
@@ -71,32 +76,6 @@ export interface UseSessionExecutionsReturn {
  * const { executions } = useSessionExecutions(sessionId ?? null);
  * ```
  */
-/**
- * Returns the executions in chronological (oldest-first) order — the order
- * the conversation thread renders top-to-bottom.
- *
- * Defense-in-depth against an unordered list response: the executions ARE the
- * transcript, so a scrambled order drops the newest turns out of view (they no
- * longer sort to the bottom). The server orders this list, but the thread must
- * never depend on that alone. Resource ids are time-sortable ULIDs
- * (`aex_01k…`), so an ascending id sort is creation order without parsing
- * timestamps; entries missing an id sort last but keep a stable relative order.
- *
- * @internal Exported for testing — not part of the public API.
- */
-export function sortChronologically(
-  executions: readonly AgentExecution[],
-): AgentExecution[] {
-  return [...executions].sort((a, b) => {
-    const aId = a.metadata?.id ?? "";
-    const bId = b.metadata?.id ?? "";
-    if (aId === bId) return 0;
-    if (!aId) return 1;
-    if (!bId) return -1;
-    return aId < bId ? -1 : 1;
-  });
-}
-
 export function useSessionExecutions(
   sessionId: string | null,
   options?: UseSessionExecutionsOptions,
