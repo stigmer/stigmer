@@ -218,6 +218,18 @@ export interface UseNewSessionFlowReturn {
   /** Session variables (per-execution secrets) manager. */
   readonly sessionVariables: UseSessionVariablesReturn;
 
+  /**
+   * Pre-arm "auto-approve tool calls" for the session this surface will
+   * create (stigmer/stigmer#816, the walk-away scenario). Seeded from the
+   * host's `StigmerProvider` `approvalDefaults` (#302, guests excluded);
+   * the user's toggle wins from then on. Carried into the bootstrap create
+   * as `spec.auto_approve_all` — the whole-run server-side bypass — so the
+   * first run stays covered even if the user closes the tab.
+   */
+  readonly autoApproveAll: boolean;
+  /** Set the user's explicit auto-approve choice for the created session. */
+  readonly setAutoApproveAll: (value: boolean) => void;
+
   /** `true` while the create session + execution flow is in flight. */
   readonly isSubmitting: boolean;
   /** Human-readable error from the last failed submission, or `null`. */
@@ -311,13 +323,18 @@ export function useNewSessionFlow(
   const contextTarget = useExecutionTarget();
   const executionTarget = options.executionTarget ?? contextTarget;
   const adapter = useRunnerAdapter();
-  // Host approval default (#302): pre-arm auto_approve_all on the bootstrap
-  // create when the provider says so. Guests never inherit it — a share-link
-  // visitor is not the operator the host's trust judgment covers (the
-  // GUEST_HARNESS fixed-platform-policy reasoning).
+  // Auto-approve for the session about to be created (#816): the host
+  // approval default (#302) seeds the INITIAL state only; the user's
+  // composer toggle wins from then on. Guests never inherit the default
+  // and never see the toggle — a share-link visitor is not the operator
+  // the host's trust judgment covers (the GUEST_HARNESS
+  // fixed-platform-policy reasoning). Carried into the bootstrap create as
+  // spec.auto_approve_all, the whole-run server-side bypass — the created
+  // run stays covered even if this tab dies before its first gate.
   const approvalDefaults = useApprovalDefaults();
-  const autoApproveAll =
-    (!isGuest && approvalDefaults?.autoApproveAll) || undefined;
+  const [autoApproveAll, setAutoApproveAll] = useState(
+    () => !isGuest && (approvalDefaults?.autoApproveAll ?? false),
+  );
 
   const [harness, setHarnessRaw] = useState<HarnessOption>(() => {
     // Guests get the fixed platform policy (see GUEST_HARNESS) and never
@@ -496,7 +513,9 @@ export function useNewSessionFlow(
             ? (pinnedThinkingMode === "enabled" ? "enabled" : undefined)
             : context?.thinkingMode,
           workspaceFileRefs: context?.workspaceFileRefs,
-          autoApproveAll,
+          // Only an armed state travels; false stays off the wire (the
+          // serviceTier/thinkingMode only-explicit discipline).
+          autoApproveAll: autoApproveAll || undefined,
         };
 
         // Resolve which agent the bootstrapped session runs against: an
@@ -624,6 +643,8 @@ export function useNewSessionFlow(
     setSkillRefs,
     workspace,
     sessionVariables,
+    autoApproveAll,
+    setAutoApproveAll,
     isSubmitting,
     submitError,
     submit,

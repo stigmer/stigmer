@@ -546,6 +546,7 @@ export type {
   SessionComposerHandle,
   SessionComposerProps,
   SessionComposerSubmitContext,
+  ComposerAutoApproveProps,
   InteractionModePickerProps,
   InteractionModeOption,
 } from "./composer/index.js";

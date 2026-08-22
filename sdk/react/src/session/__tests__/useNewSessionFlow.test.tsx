@@ -431,6 +431,39 @@ describe("useNewSessionFlow", () => {
       expect(execInput.autoApproveAll).toBe(true);
     });
 
+    it("carries the user's pre-arm toggle into the bootstrap create (#816)", async () => {
+      const opts = defaultOptions();
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
+
+      expect(result.current.autoApproveAll).toBe(false);
+      act(() => result.current.setAutoApproveAll(true));
+      expect(result.current.autoApproveAll).toBe(true);
+
+      await act(async () => {
+        await result.current.submit("Hello");
+      });
+
+      const execInput = mockCreateExecution.mock.calls[0][0];
+      expect(execInput.autoApproveAll).toBe(true);
+    });
+
+    it("the user's toggle-off beats the host approval default (#816)", async () => {
+      const opts = defaultOptions();
+      const { result } = renderHook(() => useNewSessionFlow(opts), {
+        wrapper: createWrapper(undefined, null, { autoApproveAll: true }),
+      });
+
+      expect(result.current.autoApproveAll).toBe(true);
+      act(() => result.current.setAutoApproveAll(false));
+
+      await act(async () => {
+        await result.current.submit("Hello");
+      });
+
+      const execInput = mockCreateExecution.mock.calls[0][0];
+      expect(execInput.autoApproveAll).toBeUndefined();
+    });
+
     it("passes cursor harness in the sessionSpec after switching", async () => {
       const opts = defaultOptions();
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });

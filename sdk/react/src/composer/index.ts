@@ -7,6 +7,7 @@ export type {
   SessionComposerProps,
   SessionComposerSubmitContext,
 } from "./SessionComposer.js";
+export type { ComposerAutoApproveProps } from "./ComposerToolbar.js";
 
 export { InteractionModePicker } from "./InteractionModePicker.js";
 export type {

@@ -11,11 +11,20 @@ import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecutio
 const mockSubmitApproval = vi.fn<(t: string, a: ApprovalAction, c?: string) => Promise<void>>();
 const mockSendFollowUp = vi.fn();
 
+/** Loosely-typed conversation stub — individual tests mutate the arming and
+ * gate fields, and restore them in their afterEach. */
 const mockConv = {
-  session: { spec: {} },
+  session: { spec: {} } as {
+    spec: object;
+    metadata?: { labels?: Record<string, string> };
+  },
   isLoading: false,
   completedExecutions: [] as unknown[],
-  activeStreamExecution: null,
+  activeStreamExecution: null as {
+    spec?: { autoApproveAll?: boolean };
+    status?: object;
+  } | null,
+  pendingApprovals: [] as { toolCallId: string }[],
   workspaceEntries: [] as unknown[],
   submitApproval: mockSubmitApproval,
   sendFollowUp: mockSendFollowUp,
@@ -219,5 +228,170 @@ describe("useSessionPageFlow — host-set approval default (#302)", () => {
       wrapper: hostDefaultWrapper(false),
     });
     expect(result.current.autoApproveAll).toBe(false);
+  });
+});
+
+describe("useSessionPageFlow — arming derived from the in-flight run (#816)", () => {
+  afterEach(() => {
+    mockConv.activeStreamExecution = null;
+    mockConv.completedExecutions = [];
+    vi.clearAllMocks();
+  });
+
+  it("reflects an active execution armed at create (launcher handoff)", () => {
+    mockConv.activeStreamExecution = { spec: { autoApproveAll: true }, status: {} };
+    const { result } = renderHook(() => useSessionPageFlow(OPTS));
+    expect(result.current.autoApproveAll).toBe(true);
+  });
+
+  it("the user's explicit OFF beats the armed run for follow-up carry", async () => {
+    mockConv.activeStreamExecution = { spec: { autoApproveAll: true }, status: {} };
+    const { result } = renderHook(() => useSessionPageFlow(OPTS));
+
+    act(() => {
+      result.current.setAutoApproveAll(false);
+    });
+    expect(result.current.autoApproveAll).toBe(false);
+
+    await act(async () => {
+      await result.current.handleSubmit("after explicit off");
+    });
+    const followUpOpts = mockSendFollowUp.mock.calls.at(-1)?.[1];
+    expect(followUpOpts.autoApproveAll).toBeUndefined();
+  });
+
+  it("never derives from PAST executions (the reset-on-reload consent contract)", () => {
+    // A reloaded page whose history contains an armed run must come up at
+    // the host default — deriving from history would make the consent
+    // silently survive reloads.
+    mockConv.completedExecutions = [{ spec: { autoApproveAll: true }, status: {} }];
+    const { result } = renderHook(() => useSessionPageFlow(OPTS));
+    expect(result.current.autoApproveAll).toBe(false);
+  });
+});
+
+describe("useSessionPageFlow — armed responder (#816, the walk-away scenario)", () => {
+  beforeEach(() => {
+    mockSubmitApproval.mockResolvedValue(undefined);
+  });
+  afterEach(() => {
+    mockConv.pendingApprovals = [];
+    mockConv.activeStreamExecution = null;
+    mockConv.session = { spec: {} };
+    vi.clearAllMocks();
+  });
+
+  it("releases a gate that appears while armed", async () => {
+    const { rerender } = renderHook(() => useSessionPageFlow(OPTS), {
+      wrapper: hostDefaultWrapper(true),
+    });
+
+    mockConv.pendingApprovals = [{ toolCallId: "tc1" }];
+    await act(async () => rerender());
+
+    expect(mockSubmitApproval).toHaveBeenCalledExactlyOnceWith(
+      "tc1",
+      ApprovalAction.APPROVE_ALL,
+    );
+  });
+
+  it("releases a gate already waiting when the toggle flips ON", async () => {
+    mockConv.pendingApprovals = [{ toolCallId: "tc9" }];
+    const { result } = renderHook(() => useSessionPageFlow(OPTS));
+    expect(mockSubmitApproval).not.toHaveBeenCalled();
+
+    await act(async () => {
+      result.current.setAutoApproveAll(true);
+    });
+
+    expect(mockSubmitApproval).toHaveBeenCalledExactlyOnceWith(
+      "tc9",
+      ApprovalAction.APPROVE_ALL,
+    );
+  });
+
+  it("submits once per gate across re-renders", async () => {
+    const { rerender } = renderHook(() => useSessionPageFlow(OPTS), {
+      wrapper: hostDefaultWrapper(true),
+    });
+
+    mockConv.pendingApprovals = [{ toolCallId: "tc1" }];
+    await act(async () => rerender());
+    await act(async () => rerender());
+
+    expect(mockSubmitApproval).toHaveBeenCalledTimes(1);
+  });
+
+  it("covers a LATER gate of a different class (lease scope contract)", async () => {
+    // A gate-time APPROVE_ALL grants a class-scoped lease, so a second gate
+    // of another class still parks — the responder must answer it too.
+    const { rerender } = renderHook(() => useSessionPageFlow(OPTS), {
+      wrapper: hostDefaultWrapper(true),
+    });
+
+    mockConv.pendingApprovals = [{ toolCallId: "tc-shell" }];
+    await act(async () => rerender());
+    mockConv.pendingApprovals = [{ toolCallId: "tc-write" }];
+    await act(async () => rerender());
+
+    expect(mockSubmitApproval).toHaveBeenCalledTimes(2);
+    expect(mockSubmitApproval).toHaveBeenLastCalledWith(
+      "tc-write",
+      ApprovalAction.APPROVE_ALL,
+    );
+  });
+
+  it("does not retry a failed submission (the card stays for manual action)", async () => {
+    mockSubmitApproval.mockRejectedValue(new Error("boom"));
+    const { rerender } = renderHook(() => useSessionPageFlow(OPTS), {
+      wrapper: hostDefaultWrapper(true),
+    });
+
+    mockConv.pendingApprovals = [{ toolCallId: "tc1" }];
+    await act(async () => rerender());
+    await act(async () => rerender());
+
+    expect(mockSubmitApproval).toHaveBeenCalledTimes(1);
+  });
+
+  it("stays inert while OFF", async () => {
+    const { rerender } = renderHook(() => useSessionPageFlow(OPTS));
+
+    mockConv.pendingApprovals = [{ toolCallId: "tc1" }];
+    await act(async () => rerender());
+
+    expect(mockSubmitApproval).not.toHaveBeenCalled();
+  });
+
+  it("never fires for a guest, even when the run itself is armed", async () => {
+    mockConv.activeStreamExecution = { spec: { autoApproveAll: true }, status: {} };
+    mockConv.pendingApprovals = [{ toolCallId: "tc1" }];
+    renderHook(() => useSessionPageFlow({ ...OPTS, audience: "guest" }), {
+      wrapper: hostDefaultWrapper(true),
+    });
+
+    expect(mockSubmitApproval).not.toHaveBeenCalled();
+  });
+
+  it("never fires for an observer", async () => {
+    mockConv.pendingApprovals = [{ toolCallId: "tc1" }];
+    renderHook(() => useSessionPageFlow({ ...OPTS, audience: "observer" }), {
+      wrapper: hostDefaultWrapper(true),
+    });
+
+    expect(mockSubmitApproval).not.toHaveBeenCalled();
+  });
+
+  it("never fires for a channel-origin session (read-only by construction)", async () => {
+    mockConv.session = {
+      spec: {},
+      metadata: { labels: { "stigmer.ai/channel-id": "ch_1" } },
+    };
+    mockConv.pendingApprovals = [{ toolCallId: "tc1" }];
+    renderHook(() => useSessionPageFlow(OPTS), {
+      wrapper: hostDefaultWrapper(true),
+    });
+
+    expect(mockSubmitApproval).not.toHaveBeenCalled();
   });
 });

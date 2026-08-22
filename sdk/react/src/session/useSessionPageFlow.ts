@@ -20,6 +20,7 @@ import { useAgentRefFromSession } from "./useAgentRefFromSession.js";
 import { usePersistedModel, type UsePersistedModelReturn } from "./usePersistedModel.js";
 import { toSessionUpdateInput } from "@stigmer/sdk";
 import type { SessionAudience } from "./audience.js";
+import { isChannelOriginSession } from "./channelOrigin.js";
 import { assertValidRunConfig, type SessionRunConfig } from "./run-config.js";
 
 /**
@@ -140,20 +141,33 @@ export interface UseSessionPageFlowReturn {
   readonly sessionVariables: UseSessionVariablesReturn;
 
   /**
-   * Session-scoped "auto-approve tool calls" preference.
+   * Session-scoped "auto-approve tool calls" state (stigmer/stigmer#816).
    *
-   * `false` by default; a host can pre-arm it app-wide via
-   * `StigmerProvider`'s `approvalDefaults` (#302, guests excluded). Flipped
-   * to `true` when the user chooses "Approve & don't ask again" at an
-   * approval gate (see {@link submitApproval}), and carried into every
-   * subsequent follow-up via {@link handleSubmit}. Held in memory only —
-   * reset on reload / new session back to the host default, never persisted
-   * server-side.
+   * `false` by default. `true` when any of its sources arms it — the user's
+   * explicit choice always winning:
+   *
+   * 1. the user's composer toggle ({@link setAutoApproveAll});
+   * 2. "Approve & don't ask again" at an approval gate (see
+   *    {@link submitApproval});
+   * 3. the host's app-wide `StigmerProvider` `approvalDefaults` (#302,
+   *    guests excluded);
+   * 4. the active in-flight execution having been created with
+   *    `spec.auto_approve_all` (e.g. armed on the new-session surface), so
+   *    the state survives the launcher → session-page handoff.
+   *
+   * While `true`, follow-ups carry `auto_approve_all` ({@link handleSubmit})
+   * and gates appearing in the in-flight run are auto-released (never for
+   * guest/observer/channel-origin surfaces). Held in memory only — reset on
+   * reload back to the host default, never persisted server-side.
    */
   readonly autoApproveAll: boolean;
   /**
-   * Toggle the session-scoped auto-approve preference. The reversible "Turn off"
-   * control in the UI calls this with `false`.
+   * Set the user's explicit session-scoped auto-approve choice. Wired to the
+   * composer's always-visible toggle; an explicit `false` wins over the host
+   * default and over an armed in-flight run for everything the client
+   * controls (follow-up carry, gate auto-release) — an already-armed run's
+   * server-side bypass cannot be revoked mid-run, exactly as with today's
+   * gate-time "Approve & don't ask again".
    */
   readonly setAutoApproveAll: (value: boolean) => void;
 
@@ -322,17 +336,34 @@ export function useSessionPageFlow(
   const [skillRefs, setSkillRefs] = useState<ResourceRef[]>([]);
   const initialSyncDone = useRef(false);
 
-  // Session-scoped auto-approve. Armed either at the approval gate ("Approve &
-  // don't ask again") or from the host's provider-level approvalDefaults
-  // (#302) — an app-level trust judgment, so it seeds the INITIAL state only;
-  // the user's in-session "Turn off" always wins from then on. Guests never
-  // inherit the host default (a share-link visitor is not the operator the
-  // host's trust judgment covers). Lives only in memory for the life of this
-  // page — reset on reload re-applies the host default, never a user choice.
+  // Session-scoped auto-approve (#816). Derived like interactionMode above —
+  // the user's explicit in-session decision wins, otherwise the truth is
+  // computed from its sources — never an effect-synced copy:
+  //
+  //   effective = userChoice ?? (hostSeed || runArmed)
+  //
+  // - `userChoice`: the composer toggle, or the gate-time "Approve & don't
+  //   ask again" (which has always escalated the session preference).
+  // - `hostSeed`: the host's provider-level approvalDefaults (#302) — an
+  //   app-level trust judgment. Guests never inherit it (a share-link
+  //   visitor is not the operator the host's trust judgment covers).
+  // - `runArmed`: the ACTIVE execution was created with
+  //   spec.auto_approve_all, so the toggle reflects an armed in-flight run —
+  //   this is what carries the state across the new-session → session-page
+  //   handoff. Deliberately derived from the active execution ONLY, never
+  //   from history: deriving from past executions would silently survive a
+  //   reload and change the reset-on-reload consent contract below.
+  //
+  // Lives only in memory for the life of this page — reset on reload
+  // re-applies the host default, never a user choice.
   const approvalDefaults = useApprovalDefaults();
-  const [autoApproveAll, setAutoApproveAll] = useState(
-    () => !isGuest && (approvalDefaults?.autoApproveAll ?? false),
-  );
+  const [autoApproveChoice, setAutoApproveChoice] = useState<boolean | null>(null);
+  const hostSeed = !isGuest && (approvalDefaults?.autoApproveAll ?? false);
+  const runArmed = conv.activeStreamExecution?.spec?.autoApproveAll === true;
+  const autoApproveAll = autoApproveChoice ?? (hostSeed || runArmed);
+  const setAutoApproveAll = useCallback((value: boolean) => {
+    setAutoApproveChoice(value);
+  }, []);
 
   const submitApproval = useCallback<UseSessionConversationReturn["submitApproval"]>(
     async (toolCallId, action, comment) => {
@@ -341,12 +372,44 @@ export function useSessionPageFlow(
       // plane separately resolves the current execution's remaining gates and
       // the runner skips the gate for the rest of that run.
       if (action === ApprovalAction.APPROVE_ALL) {
-        setAutoApproveAll(true);
+        setAutoApproveChoice(true);
       }
       await conv.submitApproval(toolCallId, action, comment);
     },
     [conv.submitApproval],
   );
+
+  // Armed responder (#816, the walk-away scenario): while auto-approve is ON,
+  // answer each approval gate as it appears in the in-flight run. This must be
+  // a standing responder, not a flip-time one-shot: a gate-time APPROVE_ALL
+  // grants a lease scoped to ONE tool class (see APPROVAL_ACTION_APPROVE_ALL
+  // in agentexecution enum.proto), so a later gate of a different class would
+  // still park the run — the responder covers each class as it surfaces, and
+  // every released call keeps an honest audit decision.
+  //
+  // Read-only surfaces must never auto-submit approvals on a viewer's behalf:
+  // the predicate mirrors SessionViewer's read-only derivation (guest audience,
+  // observer audience, channel-origin session) exactly.
+  const canRespondToGates =
+    !isGuest &&
+    options.audience !== "observer" &&
+    !isChannelOriginSession(conv.session);
+  const respondedToolCallIds = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!autoApproveAll || !canRespondToGates) return;
+    for (const approval of conv.pendingApprovals) {
+      const toolCallId = approval.toolCallId;
+      // Marked before the submit resolves so a re-render mid-flight cannot
+      // double-submit. A failed submission is deliberately NOT retried — the
+      // approval card stays for a manual decision instead of a retry storm.
+      if (!toolCallId || respondedToolCallIds.current.has(toolCallId)) continue;
+      respondedToolCallIds.current.add(toolCallId);
+      void conv.submitApproval(toolCallId, ApprovalAction.APPROVE_ALL).catch(() => {
+        // Swallowed by design (see above); the card's own error surface
+        // reports the failure where the user can act on it.
+      });
+    }
+  }, [autoApproveAll, canRespondToGates, conv.pendingApprovals, conv.submitApproval]);
 
   // -------------------------------------------------------------------------
   // Agent — derive from session, allow mid-session changes

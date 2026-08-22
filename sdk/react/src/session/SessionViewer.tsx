@@ -17,7 +17,7 @@ import {
   WorkspaceSurface,
   type SurfaceVirtualDocument,
 } from "../workspace/WorkspaceSurface.js";
-import type { InteractionModeOption, SessionComposerHandle, SessionComposerSubmitContext } from "../composer/index.js";
+import type { ComposerAutoApproveProps, InteractionModeOption, SessionComposerHandle, SessionComposerSubmitContext } from "../composer/index.js";
 import type { ApplyResourceResult } from "../library/useApplyResource.js";
 import { SessionViewerLayout } from "./SessionViewerLayout.js";
 import { useWorkspaceEditors, isVirtualEntryId } from "../internal/store/index.js";
@@ -824,6 +824,20 @@ const ConversationColumn = memo(function ConversationColumn({
     void conv.stop();
   }, [conv.stop]);
 
+  // Always-visible auto-approve toggle (#816), replacing the old armed-only
+  // indicator banner: the walk-away user needs a way ON before any gate
+  // exists, not just a way off after one. Guests never get it (they don't
+  // inherit the host default and this is the operator's consent surface);
+  // observers have no composer at all. Memoized per DD-010 — the composer
+  // is memo'd and an inline object would defeat it.
+  const autoApprove = useMemo<ComposerAutoApproveProps | undefined>(
+    () =>
+      isGuest
+        ? undefined
+        : { armed: flow.autoApproveAll, onChange: flow.setAutoApproveAll },
+    [isGuest, flow.autoApproveAll, flow.setAutoApproveAll],
+  );
+
   // Edit-and-resubmit: stop the in-flight turn, pre-fill the composer with
   // the original text, and remember which execution is being edited. The
   // append-only execution log is never rewritten — submitting while editing
@@ -948,9 +962,6 @@ const ConversationColumn = memo(function ConversationColumn({
           />
         )}
         {!isObserver && sendError && <SendErrorBanner error={sendError} />}
-        {!isObserver && flow.autoApproveAll && (
-          <AutoApproveIndicator onTurnOff={() => flow.setAutoApproveAll(false)} />
-        )}
         {/* Pending file reviews dock here — pinned above the composer so the
             decision the agent is blocked on can never scroll out of view. The
             thread renders only observational rows (badges) and read-only
@@ -992,6 +1003,7 @@ const ConversationColumn = memo(function ConversationColumn({
             onInteractionModeChange={setInteractionMode}
             showInteractionModePicker={!isGuest}
             showModelSelector={modelSelectorVisible}
+            autoApprove={autoApprove}
             enableAttachments={!isGuest}
             workspace={isGuest ? undefined : flow.workspace}
             gitHubConnection={isGuest ? undefined : gitHubConnection}
@@ -1387,36 +1399,6 @@ function SessionStarting() {
 }
 
 /**
- * Low-weight, always-visible indicator shown while the session-scoped
- * auto-approve preference is active. The "Turn off" control reverts the
- * preference in one click — the safety affordance for "Approve & don't ask
- * again". Visible from the first render when the host pre-armed the
- * preference via `StigmerProvider`'s `approvalDefaults` (#302); otherwise
- * nothing about approvals appears until the user opts in at a gate. Either
- * way the user keeps the last word.
- */
-function AutoApproveIndicator({ onTurnOff }: { onTurnOff: () => void }) {
-  return (
-    <div
-      role="status"
-      className="stg:flex stg:items-center stg:gap-2 stg:border-t stg:border-border-muted stg:px-4 stg:py-1.5 stg:text-xs stg:text-muted-foreground"
-    >
-      <ShieldCheckIcon />
-      <span className="stg:min-w-0 stg:flex-1 stg:truncate">
-        Auto-approving tool calls for this session
-      </span>
-      <button
-        type="button"
-        onClick={onTurnOff}
-        className="stg:shrink-0 stg:rounded stg:font-medium stg:text-foreground stg:underline-offset-2 stg:hover:underline stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
-      >
-        Turn off
-      </button>
-    </div>
-  );
-}
-
-/**
  * The plan document tab's empty state — reachable only when a streaming plan
  * auto-opened the tab and its turn then ended without publishing (stopped or
  * failed) while the session has no earlier published plan to fall back to.
@@ -1616,11 +1598,3 @@ function LoaderIcon() {
   );
 }
 
-function ShieldCheckIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="stg:shrink-0 stg:text-success" aria-hidden="true">
-      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-      <path d="m9 12 2 2 4-4" />
-    </svg>
-  );
-}
