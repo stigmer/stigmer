@@ -35,6 +35,7 @@ export default async function setup(): Promise<() => Promise<void>> {
     process.env[CLOUD_ENV.token] = identity.token;
     process.env[CLOUD_ENV.platformClientId] = identity.platformClient.clientId;
     process.env[CLOUD_ENV.platformClientSecret] = identity.platformClient.clientSecret;
+    process.env[CLOUD_ENV.operatorToken] = identity.operatorToken;
   } catch (err) {
     await environment.stop();
     throw err;

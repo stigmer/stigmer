@@ -20,6 +20,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { createClient } from "@connectrpc/connect";
+import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
 import { PlatformClientCommandController } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/command_pb";
 import { PlatformClientTokenController } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/token_pb";
 import { createTransport, makeClients } from "./clients";
@@ -42,6 +43,14 @@ export const CLOUD_ENV = {
   // (CloudTarget.provisionIdentity), used by cross-tenant isolation assertions.
   platformClientId: "STIGMER_CONFORMANCE_CLOUD_PLATFORM_CLIENT_ID",
   platformClientSecret: "STIGMER_CONFORMANCE_CLOUD_PLATFORM_CLIENT_SECRET",
+  // Stigmer-signed JWT for the conf-operator user — a platform operator the
+  // hermetic bootstrap provisions through production RPCs (stigmer#547), used
+  // by CloudTarget.provisionPrivilegedScope for operator-only writes
+  // (reserved labels, the public flip). Deliberately UNSET on
+  // pre-provisioned/deployed endpoints: handing conformance operator
+  // credentials to a real deployment is the permanent skip the stigmer#547
+  // ruling recorded, so privileged-lane assertions skip there.
+  operatorToken: "STIGMER_CONFORMANCE_CLOUD_OPERATOR_TOKEN",
 } as const;
 
 // The org whose FGA ownership tuples the launcher seeds for the synthetic test
@@ -86,6 +95,8 @@ export interface PlatformClientCredentials {
 export interface PrimaryIdentity {
   readonly token: string;
   readonly platformClient: PlatformClientCredentials;
+  // The conf-operator user's JWT (platform operator via bootstrapPolicy).
+  readonly operatorToken: string;
 }
 
 // Builds and spawns the Go launcher, waiting for its single JSON ready-line on
@@ -143,7 +154,51 @@ export async function bootstrapPrimaryIdentity(grpcBaseUrl: string): Promise<Pri
   const platformClient: PlatformClientCredentials = { clientId, clientSecret: created.clientSecret };
 
   const token = await mintCloudUserToken(grpcBaseUrl, platformClient, uniqueName("conf-user"));
-  return { token, platformClient };
+  const operatorToken = await bootstrapOperatorIdentity(grpcBaseUrl, tokenlessTransport, platformClient);
+  return { token, platformClient, operatorToken };
+}
+
+// Provisions the conf-operator identity through production RPCs only
+// (stigmer#547): mint a fresh user via the bootstrap PlatformClient, then
+// grant it `operator` on platform:stigmer with bootstrapPolicy — the exact
+// row + FGA-tuple shape the production BootstrapIdentitySeeder writes for the
+// machine account. The tokenless caller qualifies because the launcher's FGA
+// seeding makes the synthetic test identity a platform operator, which
+// derives can_bootstrap_iam. (The ordinary IamPolicy `create` RPC cannot
+// express this grant: the platform kind declares no grantable_roles and
+// `operator` is not an IamRole — bootstrapPolicy is the sanctioned lane.)
+async function bootstrapOperatorIdentity(
+  grpcBaseUrl: string,
+  tokenlessTransport: ReturnType<typeof createTransport>,
+  platformClient: PlatformClientCredentials,
+): Promise<string> {
+  const operatorToken = await mintCloudUserToken(grpcBaseUrl, platformClient, uniqueName("conf-operator"));
+  const operatorAccountId = jwtSubject(operatorToken);
+
+  const iamPolicyCommand = createClient(IamPolicyCommandController, tokenlessTransport);
+  await iamPolicyCommand.bootstrapPolicy({
+    principal: { kind: "identity_account", id: operatorAccountId },
+    resource: { kind: "platform", id: "stigmer" },
+    relation: "operator",
+  });
+  return operatorToken;
+}
+
+// The minted JWT's `sub` is the JIT-provisioned identity-account id — the
+// principal the operator grant must name (the server chooses it; it is not
+// the userId the mint request carried).
+function jwtSubject(token: string): string {
+  const payloadSegment = token.split(".")[1];
+  if (payloadSegment === undefined) {
+    throw new Error("minted token is not a JWT (no payload segment)");
+  }
+  const payload = JSON.parse(Buffer.from(payloadSegment, "base64url").toString("utf8")) as {
+    sub?: unknown;
+  };
+  if (typeof payload.sub !== "string" || payload.sub === "") {
+    throw new Error("minted token carries no sub claim; cannot grant the operator role");
+  }
+  return payload.sub;
 }
 
 // Mints a Stigmer JWT for the given user id. mintUserToken authenticates via

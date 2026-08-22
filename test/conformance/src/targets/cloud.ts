@@ -15,7 +15,7 @@ import { CLOUD_ENV, mintCloudUserToken } from "../harness/cloud-env";
 import { createTransport, makeClients, type ConformanceClients } from "../harness/clients";
 import { awaitGrpcReady } from "../harness/grpc-ready";
 import { uniqueName, uniqueOrg } from "../support/naming";
-import type { CapabilityFlags, TargetProfile, TenancyContext } from "./target";
+import type { CapabilityFlags, PrivilegedScope, TargetProfile, TenancyContext } from "./target";
 
 const ORG_API_VERSION = "tenancy.stigmer.ai/v1";
 const ORG_KIND = "Organization";
@@ -47,24 +47,32 @@ export class CloudTarget implements TargetProfile {
     // The hermetic cloud env boots Temporal and the Java service runs the
     // schedule clock (T04 slice 2) — triggers fire for real.
     scheduleFiring: true,
-    // GuardReservedLabelsStep (stigmer-cloud#320) rejects reserved-label
-    // writes from the ordinary conformance user; unguarding requires the
-    // platform-privileged caller lane (stigmer#547).
+    // GuardReservedLabelsStep (stigmer-cloud#320, platform-wide since
+    // stigmer-cloud#386) rejects reserved-label writes from the ordinary
+    // conformance user — the suite pins that rejection where this is false.
+    // Operator-lane assertions run through provisionPrivilegedScope
+    // (stigmer#547) instead.
     clientReservedLabelWrites: false,
     // The primary conformance user is a PlatformClient-minted token —
     // the credential class DD-002 D4 deliberately excludes; the suite
     // pins the create-gate refusal instead (see target.ts).
     firstPartyMemoryCapture: false,
     clientPublicVisibilityWrites: false,
-    // The hermetic cloud service stores attachments in MinIO while the
   };
 
   private grpcBaseUrl: string | undefined;
   private conformanceClients: ConformanceClients | undefined;
+  private operatorClients: ConformanceClients | undefined;
   // Org slug -> resource id, so cleanupTenancy can delete by id without
   // widening TenancyContext beyond the shape the suites share with local
   // targets.
   private readonly provisionedOrgIds = new Map<string, string>();
+
+  // Present only when the environment carries an operator credential — the
+  // hermetic bootstrap always mints one; pre-provisioned/deployed endpoints
+  // deliberately never do (the stigmer#547 permanent-skip ruling), so the
+  // method itself is absent there and privileged-lane assertions skip.
+  provisionPrivilegedScope?: () => Promise<PrivilegedScope>;
 
   async setup(): Promise<void> {
     this.grpcBaseUrl = requireEnv(CLOUD_ENV.address);
@@ -74,6 +82,41 @@ export class CloudTarget implements TargetProfile {
       this.conformanceClients,
       () => "(cloud environment: see the launcher's stderr and stigmer-service-*.log)",
     );
+
+    const operatorToken = process.env[CLOUD_ENV.operatorToken];
+    if (operatorToken !== undefined && operatorToken !== "") {
+      this.operatorClients = makeClients(
+        createTransport(this.grpcBaseUrl, { bearerToken: operatorToken }),
+      );
+      this.provisionPrivilegedScope = () => this.createPrivilegedScope();
+    }
+  }
+
+  // Platform-operator power grants nothing at org level (the FGA model checks
+  // platform capabilities against platform:stigmer only), so the operator
+  // creates AND owns the scope's org; cleanup deletes it.
+  private async createPrivilegedScope(): Promise<PrivilegedScope> {
+    const operatorClients = this.operatorClients;
+    if (operatorClients === undefined) {
+      throw new Error("CloudTarget.setup() must run before provisionPrivilegedScope()");
+    }
+    const created = await operatorClients.organizationCommand.create({
+      apiVersion: ORG_API_VERSION,
+      kind: ORG_KIND,
+      metadata: { name: uniqueOrg() },
+    });
+    const slug = created.metadata?.slug;
+    const id = created.metadata?.id;
+    if (slug === undefined || slug === "" || id === undefined || id === "") {
+      throw new Error("operator organization create returned no slug/id; cannot provision the privileged scope");
+    }
+    return {
+      clients: operatorClients,
+      context: { org: slug },
+      cleanup: async () => {
+        await operatorClients.organizationCommand.delete({ value: id });
+      },
+    };
   }
 
   clients(): ConformanceClients {
@@ -128,6 +171,8 @@ export class CloudTarget implements TargetProfile {
     // it (the cloud global setup for hermetic runs).
     this.grpcBaseUrl = undefined;
     this.conformanceClients = undefined;
+    this.operatorClients = undefined;
+    this.provisionPrivilegedScope = undefined;
     this.provisionedOrgIds.clear();
   }
 }
