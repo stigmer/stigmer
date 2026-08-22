@@ -1,0 +1,61 @@
+# =============================================================================
+# Proto Breaking-Change Gate
+# =============================================================================
+# Runs `buf breaking` against main for every PR that touches apis/ — the
+# activation of the `breaking:` config block in apis/buf.yaml, which was
+# committed with the module but never invoked by any Makefile target or
+# workflow (stigmer/stigmer#326).
+#
+# Proto files are the platform's shared contract across two editions, five
+# generated languages, and external SDK consumers; field deletions, type
+# changes, and constraint tightening must not ship ungated.
+#
+# Deliberately NO push-to-main trigger: after a merge, main-vs-main is
+# vacuous (the check would always pass). The gate's value is entirely at
+# PR time; workflow_dispatch covers manual verification.
+# =============================================================================
+
+name: ci.proto-breaking
+
+on:
+  pull_request:
+    paths:
+      - "apis/**"
+      - ".github/workflows/ci.proto-breaking.yaml"
+  workflow_dispatch:
+
+concurrency:
+  group: proto-breaking-${{ github.head_ref || github.ref }}
+  # PR pushes cancel superseded runs; dispatch runs queue (stigmer#725 rule).
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
+jobs:
+  buf-breaking:
+    name: buf breaking against main
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Full history: the `--against` git input reads main from this
+          # clone's .git directory.
+          fetch-depth: 0
+
+      # A PR checkout is a detached HEAD with only remote-tracking refs;
+      # buf's `branch=main` git input resolves refs/heads/main, so
+      # materialize it. `|| true` covers dispatch runs ON main, where the
+      # local ref already exists and the refspec is a no-op rejection.
+      - name: Materialize local main ref
+        run: git fetch origin main:main || true
+
+      - name: Set up Buf
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check breaking changes against main
+        working-directory: apis
+        run: buf breaking --against '../.git#branch=main,subdir=apis'
