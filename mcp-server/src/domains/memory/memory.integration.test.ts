@@ -59,8 +59,13 @@ const openSessions = new Set<ServerHttp2Session>();
 /** The next stubbed created record; tests set this. */
 let createResponse: () => Memory;
 
-/** Requests the stub captured (object property for closure narrowing). */
-const captured: { create?: Memory } = {};
+// Requests the stub captured. An array, deliberately: resetting an optional
+// property to undefined narrows its type to `undefined` for the rest of the
+// flow (tsc does not un-narrow across the intervening callTool call), which
+// makes every later `req?.x` a property access on `never` under
+// `npm run typecheck` — the job that, unlike tsconfig.build.json, includes
+// tests. Clearing and reading an array never narrows.
+const capturedCreates: Memory[] = [];
 
 interface ToolResult {
   content: Array<{ type: string; text?: string }>;
@@ -91,7 +96,7 @@ beforeAll(async () => {
   const routes = (router: ConnectRouter) => {
     router.service(MemoryCommandController, {
       create: (req) => {
-        captured.create = req;
+        capturedCreates.push(req);
         return createResponse();
       },
     });
@@ -154,12 +159,12 @@ describe("memory roster (DD-005 D1)", () => {
 describe("argument + capture context → request mapping (DD-005 D2)", () => {
   it("maps the fact and the startup context; subject never travels", async () => {
     createResponse = () => proposedRecord("Prefers concise answers.");
-    captured.create = undefined;
+    capturedCreates.length = 0;
 
     const result = await remember({ fact: "Prefers concise answers." });
 
     expect(result.isError).toBeFalsy();
-    const req = captured.create;
+    const req = capturedCreates.at(-1);
     expect(req?.metadata?.org).toBe("acme");
     expect(req?.metadata?.name).toBe(""); // id-addressed; the server defaults the name
     expect(req?.spec?.content).toBe("Prefers concise answers.");
