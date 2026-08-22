@@ -2,6 +2,7 @@ package skill
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/rs/zerolog/log"
@@ -38,7 +39,8 @@ const (
 // 5. Checks if artifact exists and stores if new (deduplication)
 // 6. Constructs resource ID (org-scoped or platform-scoped)
 // 7. Loads existing skill if it exists
-// 8. Archives previous version if updating
+// 8. Archives the new version (repoint-never-duplicate; tag via the
+//    single-holder audit column — see ArchiveCurrentSkillStep)
 // 9. Updates skill with artifact info and timestamps
 // 10. Persists skill to SQLite
 //
@@ -397,26 +399,31 @@ func (s *CheckAndStoreArtifactStep) Execute(ctx *pipeline.RequestContext[*skillv
 	return nil
 }
 
-// ArchiveCurrentSkillStep archives the NEW skill (after populating fields)
+// ArchiveCurrentSkillStep archives the NEW skill version (after fields are
+// populated), under the content-addressed versioning model shared with
+// workflows (stigmer/stigmer#341, adopted for skills in #475):
 //
-// This step preserves version history by saving a snapshot of the current skill
-// to the dedicated audit table. The archive happens AFTER all fields are populated
-// (including new artifact data).
+//   - Versions are content-addressed identities — one content, one history
+//     row. Re-pushing content that was EVER archived repoints the head to
+//     the existing row instead of inserting a duplicate. A head-only
+//     comparison cannot see the A→B→A case (the hash is the SHA-256 of the
+//     artifact, so re-pushes reproduce it deterministically) and would
+//     duplicate A's row.
+//   - Snapshots are archived TAGLESS: the audit tag COLUMN is the tag's only
+//     home, assigned through the single-holder SetAuditTag primitive, so a
+//     tag names exactly one version and a later tag move never rewrites
+//     immutable snapshot content.
+//   - The tag is assigned even when the content is already archived: skills
+//     have no tagVersion RPC, so re-pushing existing content under a new tag
+//     is the only way to retag — it must reach the audit column.
 //
-// Archival is best-effort - failures are logged but don't stop the push operation.
-//
-// Audit Pattern:
-// - Each push triggers archival (both create and update)
-// - Archived records are immutable (never modified)
-// - Archive contains the CURRENT state (with new artifact data)
-// - Query by tag returns latest version with that tag (sorted by timestamp)
-// - Query by hash returns exact match
-//
-// The audit records are stored in a dedicated resource_audit table with:
-// - resource_id: references the main skill's ID
-// - version_hash: for exact version lookups
-// - tag: for tag-based lookups
-// - archived_at: timestamp for ordering
+// Safe-degradation (the workflow invariant): if archival fails, the version
+// hash is cleared from the in-context skill so the persisted head never
+// references an unresolvable audit entry — the push itself still succeeds,
+// just without version tracking for this apply (StoreSkill, the next step,
+// persists the reverted state). If only the tag assignment fails, the live
+// spec.tag is cleared so the head never advertises a tag the audit column
+// cannot resolve.
 type ArchiveCurrentSkillStep struct {
 	store store.Store
 }
@@ -434,51 +441,89 @@ func (s *ArchiveCurrentSkillStep) Name() string {
 func (s *ArchiveCurrentSkillStep) Execute(ctx *pipeline.RequestContext[*skillv1.PushSkillRequest]) error {
 	skill := ctx.Get(SkillKey).(*skillv1.Skill)
 
-	// Content-addressed change gate: a skill version is the immutable SHA-256 of
-	// its artifact, so re-pushing identical content must NOT append a duplicate
-	// audit row (the inverse of the "only one version" bug — duplicate timeline
-	// entries for the same content). Mirrors the workflow change gate and the
-	// cloud SkillPushHandler. New skills (no existing) always archive.
-	if existing, ok := ctx.Get(ExistingSkillKey).(*skillv1.Skill); ok && existing != nil &&
-		existing.Status != nil && existing.Status.VersionHash == skill.Status.VersionHash {
-		log.Info().
-			Str("skill_id", skill.Metadata.Id).
-			Str("version_hash", skill.Status.VersionHash).
-			Msg("ArchiveCurrentSkill: content unchanged, skipping version archival")
-		return nil
-	}
-
-	// Archive the current skill (with all new data populated)
-	if err := s.archiveSkill(ctx.Context(), skill); err != nil {
-		log.Warn().Err(err).
-			Str("skill_id", skill.Metadata.Id).
-			Msg("ArchiveCurrentSkill: failed to archive skill (best-effort)")
-	}
-
-	return nil
-}
-
-// archiveSkill saves a snapshot to the audit table for version history.
-// The archived skill can be queried by tag or hash.
-func (s *ArchiveCurrentSkillStep) archiveSkill(ctx context.Context, skill *skillv1.Skill) error {
-	// Extract version hash and tag for indexed queries
 	versionHash := ""
-	tag := ""
 	if skill.Status != nil {
 		versionHash = skill.Status.VersionHash
 	}
+	if versionHash == "" {
+		return nil
+	}
+	tag := ""
 	if skill.Spec != nil {
 		tag = skill.Spec.Tag
 	}
+	skillID := skill.Metadata.Id
 
-	// Save snapshot to audit table using the dedicated SaveAudit method
-	// This creates a proper audit record with:
-	// - resource_id: skill.Metadata.Id (for foreign key relationship)
-	// - version_hash: for exact version lookups
-	// - tag: for tag-based lookups
-	// - archived_at: auto-set to current timestamp
-	if err := s.store.SaveAudit(ctx, apiresourcekind.ApiResourceKind_skill, skill.Metadata.Id, skill, versionHash, tag); err != nil {
-		return fmt.Errorf("failed to archive skill: %w", err)
+	// Repoint, never duplicate: if this content was ever archived, the head
+	// simply repoints to the existing row and only the tag assignment below
+	// still runs. An unexpected lookup failure degrades to archiving anyway —
+	// a possible duplicate row beats a failed push (readers resolve
+	// duplicates newest-wins).
+	var existingSnapshot skillv1.Skill
+	lookupErr := s.store.GetAuditByHash(ctx.Context(), apiresourcekind.ApiResourceKind_skill, skillID, versionHash, &existingSnapshot)
+	alreadyArchived := lookupErr == nil
+	if lookupErr != nil && !errors.Is(lookupErr, store.ErrAuditNotFound) {
+		log.Warn().
+			Err(lookupErr).
+			Str("skill_id", skillID).
+			Str("version_hash", versionHash).
+			Msg("Could not check for an existing archived skill version — archiving anyway")
+	}
+
+	if !alreadyArchived {
+		// Archive the snapshot tagless. The tag lives only in the audit tag
+		// column (the source of truth), assigned below through the
+		// single-holder primitive. Snapshot blobs are never the tag's home,
+		// so a later tag move never rewrites this immutable content.
+		if err := s.store.SaveAudit(ctx.Context(), apiresourcekind.ApiResourceKind_skill, skillID, skill, versionHash, ""); err != nil {
+			log.Error().
+				Err(err).
+				Str("skill_id", skillID).
+				Str("version_hash", versionHash).
+				Msg("Failed to archive skill version — reverting the version hash to maintain the audit-resolvability invariant")
+
+			// Revert: the persisted head must never reference an audit entry
+			// that does not exist. The push still succeeds, but without
+			// version tracking for this apply.
+			skill.Status.VersionHash = ""
+			if skill.Metadata != nil && skill.Metadata.Version != nil {
+				skill.Metadata.Version.Id = ""
+			}
+			return nil
+		}
+	}
+
+	// Assign the requested tag through SetAuditTag — the single-holder
+	// primitive — so the head version (freshly archived or repointed-to)
+	// becomes the tag's sole holder; any prior holder is cleared.
+	if tag != "" {
+		if err := s.store.SetAuditTag(ctx.Context(), apiresourcekind.ApiResourceKind_skill, skillID, versionHash, tag); err != nil {
+			log.Error().
+				Err(err).
+				Str("skill_id", skillID).
+				Str("version_hash", versionHash).
+				Str("tag", tag).
+				Msg("Archived skill version but failed to assign its tag — clearing the live tag to stay consistent with the audit column")
+
+			// The audit head is now untagged; keep the live head consistent
+			// so get / getByReference never advertise a tag the store cannot
+			// resolve.
+			skill.Spec.Tag = ""
+		}
+	}
+
+	if alreadyArchived {
+		log.Info().
+			Str("skill_id", skillID).
+			Str("version_hash", versionHash).
+			Str("tag", tag).
+			Msg("Skill version content already archived — repointed head without a new history row")
+	} else {
+		log.Info().
+			Str("skill_id", skillID).
+			Str("version_hash", versionHash).
+			Str("tag", tag).
+			Msg("Archived skill version to audit history")
 	}
 
 	return nil
