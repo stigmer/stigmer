@@ -121,13 +121,20 @@ afterEach(() => {
  * observation-time geometry and can be delivered after the reader has
  * scrolled again (the stale-payload race pinned in the browser suite) —
  * so the entry list itself is deliberately empty here.
+ *
+ * The far-from-bottom position is 100, not 0, and that is load-bearing:
+ * the hook disengages only when the READER moved (scrollTop differs from
+ * the hook's own last write — the growth-vs-reader discriminator,
+ * stigmer-cloud#267), and in this harness the mount write landed at 0
+ * (happy-dom scrollHeight is 0 at mount). A real reader's scroll-up always
+ * moves scrollTop off the pin position; 100 simulates exactly that.
  */
 function fireIO(nearBottom: boolean) {
   const scroller = screen.getByTestId("scroller");
   Object.defineProperty(scroller, "scrollHeight", { value: 1000, configurable: true });
   Object.defineProperty(scroller, "clientHeight", { value: 200, configurable: true });
   // Within the 80px near-bottom margin, or far above it.
-  scroller.scrollTop = nearBottom ? 800 : 0;
+  scroller.scrollTop = nearBottom ? 800 : 100;
   act(() => {
     ioCallback([], {} as IntersectionObserver);
   });
@@ -210,6 +217,39 @@ describe("useAutoScroll", () => {
 
     fireIO(true);
     expect(latestResult.isFollowing).toBe(true);
+  });
+
+  it("holds follow when a not-visible delivery measures growth under the hook's own pin — only the READER may disengage (stigmer-cloud#267)", () => {
+    render(<Harness />);
+    const scroller = screen.getByTestId("scroller");
+    Object.defineProperty(scroller, "clientHeight", { value: 200, configurable: true });
+
+    // The hook pins: jumpToLatest writes scrollTop = scrollHeight and
+    // records the write.
+    Object.defineProperty(scroller, "scrollHeight", { value: 1000, configurable: true });
+    act(() => {
+      latestResult.jumpToLatest();
+    });
+    expect(scroller.scrollTop).toBe(1000);
+
+    // Content grows UNDER the pin before the RO write runs; a queued IO
+    // delivery measures the post-growth geometry: far from the bottom,
+    // yet scrollTop still sits exactly on the hook's own write — the
+    // reader never moved. Disengaging here would make the imminent RO
+    // callback drop its write and strand the thread (the deadlock the
+    // browser suite reproduced ~1-in-5 before the discriminator).
+    Object.defineProperty(scroller, "scrollHeight", { value: 2000, configurable: true });
+    act(() => {
+      ioCallback([], {} as IntersectionObserver);
+    });
+    expect(latestResult.isFollowing).toBe(true);
+
+    // The READER escapes (scrollTop moves off the pin): disengage holds.
+    scroller.scrollTop = 500;
+    act(() => {
+      ioCallback([], {} as IntersectionObserver);
+    });
+    expect(latestResult.isFollowing).toBe(false);
   });
 
   it("jumpToLatest re-engages follow mode", () => {

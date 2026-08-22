@@ -31,7 +31,11 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
 import type { WorkflowExecutionEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
-import { ExecutionPhase as AgentExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import {
+  ApprovalAction,
+  ExecutionPhase as AgentExecutionPhase,
+  FileDecisionAction,
+} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { DerivedCostSummary } from "../../internal/store/workflow-execution-event-store";
 import { WorkflowExecutionEventStore } from "../../internal/store/workflow-execution-event-store";
 import { useWorkflowExecution } from "../useWorkflowExecution";
@@ -303,14 +307,29 @@ describe("WorkflowExecutionViewer in-thread HITL (S10/T06/T07)", () => {
     const actions = arrange();
     render(<WorkflowExecutionViewer executionId="wex_1" />);
 
-    // Identity, not equivalence: the transcript submits through the SAME
-    // workflow-level handlers every other surface uses, so in-flight and
-    // error state can never fork — and never the child's agentExecution.*
-    // path (checked exhaustively in WorkflowAgentCallTranscript.test.tsx).
+    // The transcript submits through the SAME workflow-level handlers
+    // every other surface uses, so in-flight and error state can never
+    // fork — and never the child's agentExecution.* path (checked
+    // exhaustively in WorkflowAgentCallTranscript.test.tsx). State fields
+    // pass by IDENTITY; the submit fns are asserted by DELEGATION since
+    // the thread's scroll-on-send wrapper (stigmer-cloud#267) pins the
+    // view before handing each call to the single instance — a per-card
+    // duplicate would still fail here, because the delegate IS the
+    // viewer's own spy.
+    expect(mockedTranscript.mock.calls.length).toBeGreaterThan(0);
     for (const call of mockedTranscript.mock.calls) {
       const hitl = call[0].hitl!;
-      expect(hitl.submitApproval).toBe(actions.submitApproval);
-      expect(hitl.submitFileDecision).toBe(actions.submitFileDecision);
+      hitl.submitApproval("tc-probe", ApprovalAction.APPROVE);
+      expect(actions.submitApproval).toHaveBeenLastCalledWith(
+        "tc-probe",
+        ApprovalAction.APPROVE,
+      );
+      hitl.submitFileDecision("agx-probe", "cs-probe", FileDecisionAction.APPROVE);
+      expect(actions.submitFileDecision).toHaveBeenLastCalledWith(
+        "agx-probe",
+        "cs-probe",
+        FileDecisionAction.APPROVE,
+      );
       expect(hitl.approvalSubmittingToolCallIds).toBe(
         actions.approvalSubmittingToolCallIds,
       );

@@ -1,6 +1,6 @@
 "use client";
 
-import { lazy, memo, Suspense, useCallback, useMemo, type ComponentType } from "react";
+import { lazy, memo, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ComponentType } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
@@ -56,7 +56,7 @@ import {
   unwrapEnclosingMarkdownFence,
 } from "../internal/markdown-components.js";
 import { useRenderTracer, useKeyStability, useDomNodeCount, DevProfiler } from "../internal/dev/index.js";
-import { useAutoScroll } from "../internal/useAutoScroll.js";
+import { useAutoScroll, usePinToLatestOnSignal } from "../internal/useAutoScroll.js";
 import { JumpToLatestButton } from "../internal/JumpToLatestButton.js";
 import { ApprovalPeekBar } from "../internal/ApprovalPeekBar.js";
 import { ThreadItemWrapper } from "../internal/ThreadItemWrapper.js";
@@ -170,6 +170,25 @@ export interface MessageThreadProps {
    * "Retry" control when {@link pendingMessageFailed} is `true`.
    */
   readonly onRetrySend?: () => void;
+  /**
+   * Scroll to the reader's own message when they send one from a
+   * scrolled-up position (stigmer-cloud#267 — the WhatsApp convention:
+   * showing the result of the reader's own action is Nielsen #1
+   * system-status feedback). The send moment is the
+   * {@link pendingUserMessage} transition from empty to present; the pin
+   * re-engages follow mode, so the optimistic bubble and the streamed
+   * reply stay in view. Incoming content is unaffected — it still never
+   * moves a scrolled-up reader.
+   *
+   * Default `true` on all three SDK thread surfaces at once — a deliberate,
+   * ratified divergence from DD-011's opt-in default: the issue's whole
+   * point is cross-surface consistency, and a per-surface opt-in would
+   * re-create the inconsistency it fixes. Set `false` to keep today's
+   * leave-the-reader-alone behavior.
+   *
+   * @default true
+   */
+  readonly scrollOnSend?: boolean;
   /**
    * When provided, the in-flight human turn (the active execution's prompt)
    * shows a hover "Edit" affordance. Clicking it invokes this callback with
@@ -1163,6 +1182,7 @@ export function MessageThread({
   pendingAttachments,
   pendingMessageFailed = false,
   onRetrySend,
+  scrollOnSend = true,
   onRetryExecution,
   onEditMessage,
   className,
@@ -1198,6 +1218,22 @@ export function MessageThread({
   );
 
   useKeyStability(items);
+
+  // Scroll-on-send (stigmer-cloud#267): the send moment is the optimistic
+  // message's empty→present transition — the one signal both render paths
+  // share. A monotonic counter (not the message text) carries it down, so
+  // repeated sends of identical text still pin and a retry of a FAILED send
+  // (pending stays present throughout) deliberately does not re-pin.
+  const [sendSignal, setSendSignal] = useState(0);
+  const wasPendingRef = useRef(false);
+  useEffect(() => {
+    const isPending = !!pendingUserMessage;
+    if (isPending && !wasPendingRef.current) {
+      setSendSignal((n) => n + 1);
+    }
+    wasPendingRef.current = isPending;
+  }, [pendingUserMessage]);
+  const pinToLatestSignal = scrollOnSend ? sendSignal : undefined;
 
   const filePathCtx = useMemo<FilePathContextValue>(
     () => ({
@@ -1288,6 +1324,7 @@ export function MessageThread({
             onRetryExecution={onRetryExecution}
             onEditMessage={onEditMessage}
             slots={slots}
+            pinToLatestSignal={pinToLatestSignal}
           />
         </Suspense>
       </div>
@@ -1317,6 +1354,7 @@ export function MessageThread({
       onRetryExecution={onRetryExecution}
       onEditMessage={onEditMessage}
       slots={slots}
+      pinToLatestSignal={pinToLatestSignal}
     />
   );
 }
@@ -1352,6 +1390,8 @@ interface NonVirtualizedThreadProps {
   readonly onRetryExecution?: (message: string) => void;
   readonly onEditMessage?: (text: string) => void;
   readonly slots?: MessageThreadSlots;
+  /** Scroll-on-send counter from the parent (see `usePinToLatestOnSignal`). */
+  readonly pinToLatestSignal?: number;
 }
 
 function NonVirtualizedThread({
@@ -1376,9 +1416,11 @@ function NonVirtualizedThread({
   onRetryExecution,
   onEditMessage,
   slots,
+  pinToLatestSignal,
 }: NonVirtualizedThreadProps) {
   const { scrollRef, sentinelRef, contentRef, isFollowing, jumpToLatest } =
     useAutoScroll();
+  usePinToLatestOnSignal(pinToLatestSignal, jumpToLatest);
 
   useDomNodeCount(scrollRef, "MessageThread");
 

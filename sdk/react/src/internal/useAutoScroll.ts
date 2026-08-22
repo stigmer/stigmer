@@ -69,6 +69,13 @@ export function useAutoScroll(): UseAutoScrollReturn {
   const [isFollowing, setIsFollowing] = useState(true);
   const isFollowingRef = useRef(true);
   const rafIdRef = useRef(0);
+  // The last scrollTop THIS HOOK wrote (mount pin, rAF growth writes,
+  // jumpToLatest). The reader-vs-growth discriminator for the observer
+  // callbacks: content growth never moves scrollTop — only the reader
+  // does — so "not near bottom" while scrollTop still sits exactly on the
+  // system's own last write means content grew under a pin, not that the
+  // reader escaped.
+  const lastSystemScrollTopRef = useRef<number | null>(null);
 
   // Keep ref in sync with state so observer callbacks read the latest
   // value without re-subscribing on every state change.
@@ -85,6 +92,7 @@ export function useAutoScroll(): UseAutoScrollReturn {
     // Establish initial position at the bottom so the first IO
     // callback sees the sentinel as intersecting.
     scroller.scrollTop = scroller.scrollHeight;
+    lastSystemScrollTopRef.current = scroller.scrollTop;
 
     const io = new IntersectionObserver(
       () => {
@@ -101,6 +109,18 @@ export function useAutoScroll(): UseAutoScrollReturn {
         const visible =
           el.scrollHeight - el.scrollTop - el.clientHeight <=
           NEAR_BOTTOM_MARGIN_PX;
+        // The growth-vs-reader discriminator (the write-time guard's
+        // mirror, found via the stigmer-cloud#267 pin-on-send suite): a
+        // delivery can measure geometry where content ALREADY grew below
+        // a system pin but the pin's ResizeObserver write has not run
+        // yet. Measured live that reads "not visible" — yet the reader
+        // never moved (scrollTop still sits exactly on the system's own
+        // last write). Disengaging here would make the imminent RO
+        // callback drop its write and strand the thread one row shy of
+        // the bottom with follow off. Only the READER may disengage.
+        if (!visible && el.scrollTop === lastSystemScrollTopRef.current) {
+          return;
+        }
         isFollowingRef.current = visible;
         setIsFollowing(visible);
       },
@@ -147,6 +167,7 @@ export function useAutoScroll(): UseAutoScrollReturn {
         if (!el) return;
         if (scheduledAt !== null && el.scrollTop !== scheduledAt) return;
         el.scrollTop = el.scrollHeight;
+        lastSystemScrollTopRef.current = el.scrollTop;
       });
     });
     ro.observe(node);
@@ -157,6 +178,7 @@ export function useAutoScroll(): UseAutoScrollReturn {
     const el = scrollRef.current;
     if (!el) return;
     el.scrollTop = el.scrollHeight;
+    lastSystemScrollTopRef.current = el.scrollTop;
     // Eagerly set following — IO callback will confirm when the
     // sentinel becomes visible after the scroll.
     isFollowingRef.current = true;
@@ -164,4 +186,36 @@ export function useAutoScroll(): UseAutoScrollReturn {
   }, []);
 
   return { scrollRef, sentinelRef, contentRef, isFollowing, jumpToLatest };
+}
+
+/**
+ * Pins the thread to its latest content whenever `signal` changes — the
+ * scroll-on-send idiom (stigmer-cloud#267): each surface increments a
+ * monotonic counter at its own "the reader sent something" moment (an
+ * optimistic message appearing, a conversation reply dispatched, a HITL
+ * decision submitted), and the pin re-engages follow mode so the resulting
+ * content lands in view even for a reader who had deliberately scrolled up.
+ * WhatsApp convention: showing the result of the reader's OWN action is
+ * Nielsen #1 system-status feedback — distinct from INCOMING content, which
+ * must never move a scrolled-up reader (the F-09 posture, unchanged).
+ *
+ * <p>No pin fires on mount, on an `undefined` signal (surface opted out or
+ * prop not wired), or on the `undefined`→number transition (a prop
+ * appearing is not a send).
+ *
+ * @internal Not part of the public API.
+ */
+export function usePinToLatestOnSignal(
+  signal: number | undefined,
+  pinToLatest: () => void,
+): void {
+  const previousRef = useRef(signal);
+  useEffect(() => {
+    const previous = previousRef.current;
+    previousRef.current = signal;
+    if (signal === undefined || previous === undefined || signal === previous) {
+      return;
+    }
+    pinToLatest();
+  }, [signal, pinToLatest]);
 }
