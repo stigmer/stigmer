@@ -6,7 +6,7 @@ import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection.js
 import type { WorkspaceFileLister } from "../workspace/WorkspaceFileLister.js";
 import type { WorkspaceFileReader } from "../workspace/WorkspaceFileReader.js";
 import type { WorkspaceContentSearcher } from "../workspace/WorkspaceContentSearcher.js";
-import type { InteractionModeOption } from "../composer/index.js";
+import type { ComposerAutoApproveProps, InteractionModeOption } from "../composer/index.js";
 import { SessionComposer } from "../composer/index.js";
 import type { HarnessOption } from "../models/harness.js";
 import type { AccountExecutionDefaults } from "../identity-account/useAccountExecutionDefaults.js";
@@ -299,6 +299,19 @@ export function NewSessionViewer({
   // SessionViewer derives (DD-016), gating the chip and the region together.
   const panelEnabled = panelMode !== "none" && !isGuest;
 
+  // Always-visible auto-approve toggle (#816), present before the first
+  // message is ever typed — the walk-away user arms it here and the create
+  // carries spec.auto_approve_all server-side. Guests never get it (the
+  // operator-consent reasoning as the #302 host default). Memoized per
+  // DD-010 — the composer is memo'd and an inline object would defeat it.
+  const autoApprove = useMemo<ComposerAutoApproveProps | undefined>(
+    () =>
+      isGuest
+        ? undefined
+        : { armed: flow.autoApproveAll, onChange: flow.setAutoApproveAll },
+    [isGuest, flow.autoApproveAll, flow.setAutoApproveAll],
+  );
+
   // Guest agent binding is host configuration, not a picker interaction:
   // the composer's agent machinery (picker, env-collection, personal
   // environments — all org reads a guest token cannot make) stays fully
@@ -452,6 +465,7 @@ export function NewSessionViewer({
           onInteractionModeChange={setInteractionMode}
           showInteractionModePicker={!isGuest}
           showModelSelector={modelSelectorVisible}
+          autoApprove={autoApprove}
           enableAttachments={!isGuest}
           defaultModelId={flow.modelId}
           onModelChange={flow.setModelId}
