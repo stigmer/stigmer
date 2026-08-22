@@ -57,6 +57,7 @@ import {
 } from "../../shared/caller-identity.js";
 import { readSessionContext } from "../../shared/session-context.js";
 import { readDeclaredPreferences } from "../../shared/declared-preferences.js";
+import { readRecalledMemories } from "../../shared/recalled-memories.js";
 import { withholdSecretContentFromMessages } from "../../shared/tool-row.js";
 import { StallTimeoutError, formatStallFailure } from "../../shared/stall-watchdog.js";
 import { resolveUsableArtifactStorage, loadArtifactStorageConfig, type ArtifactStorage } from "../../shared/artifact-storage.js";
@@ -1179,6 +1180,7 @@ async function executeCursorInner(
       senderIdentity: readSenderIdentity(blueprint.sessionSpec.metadata),
       sessionContext: readSessionContext(blueprint.sessionSpec.metadata),
       declaredPreferences: readDeclaredPreferences(spec.declaredPreferences),
+      recalledMemories: readRecalledMemories(spec.recalledMemories),
       conversationCatchup: readConversationCatchup(spec.conversationCatchup),
       // The turn's recorded transcript, seeded from the persisted execution
       // on a reinvocation (Phase 3). Consumed only by the HITL-recovery
@@ -1886,6 +1888,7 @@ async function executeCursorInner(
             senderIdentity: readSenderIdentity(blueprint.sessionSpec.metadata),
             sessionContext: readSessionContext(blueprint.sessionSpec.metadata),
             declaredPreferences: readDeclaredPreferences(spec.declaredPreferences),
+            recalledMemories: readRecalledMemories(spec.recalledMemories),
             conversationCatchup: readConversationCatchup(spec.conversationCatchup),
             // Composed fresh (not reused from Phase 10): the failed primary
             // stream may have appended partial work onto status.messages,
@@ -2487,6 +2490,16 @@ export interface BuildPromptInput {
    */
   declaredPreferences?: import("../../shared/declared-preferences.js").DeclaredPreferencesContent;
   /**
+   * The subject's confirmed memories from the execution spec's
+   * `recalled_memories` (stigmer/stigmer#293 Phase 2, DD-006). Like the
+   * preferences, only the enhanced-prompt path consumes it — deliberately
+   * frozen per Cursor session (DD-002 D3, inherited by DD-006 D4): the
+   * first turn delivers it into the agent's own conversation store, and
+   * repeating it on resumed turns would bloat the store with identical
+   * content.
+   */
+  recalledMemories?: import("../../shared/recalled-memories.js").RecalledMemoriesContent;
+  /**
    * Conversation catchup from the execution spec's `conversation_catchup`
    * (cloud DD-006): what happened on the channel conversation that the
    * agent has not seen. PER-TURN, so unlike the standing values
@@ -2625,6 +2638,7 @@ export function buildPrompt(input: BuildPromptInput): string {
           senderIdentity: input.senderIdentity,
           sessionContext: input.sessionContext,
           declaredPreferences: input.declaredPreferences,
+          recalledMemories: input.recalledMemories,
           conversationCatchup,
         },
         {
@@ -2692,6 +2706,7 @@ export function buildPrompt(input: BuildPromptInput): string {
     senderIdentity: input.senderIdentity,
     sessionContext: input.sessionContext,
     declaredPreferences: input.declaredPreferences,
+    recalledMemories: input.recalledMemories,
     conversationCatchup,
   });
 }

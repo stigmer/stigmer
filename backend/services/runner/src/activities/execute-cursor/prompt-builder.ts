@@ -36,6 +36,10 @@ import {
   type DeclaredPreferencesContent,
 } from "../../shared/declared-preferences.js";
 import {
+  formatRecalledMemoriesText,
+  type RecalledMemoriesContent,
+} from "../../shared/recalled-memories.js";
+import {
   visionDisclosureLines,
   type NotViewableEntry,
 } from "../../shared/attachment-vision.js";
@@ -161,6 +165,16 @@ export interface EnhancedPromptOptions {
    */
   declaredPreferences?: DeclaredPreferencesContent;
   /**
+   * The subject's confirmed memories (stigmer/stigmer#293 Phase 2, DD-006):
+   * consent-gated facts server-snapshotted onto the execution spec's
+   * `recalled_memories` at create. Like the preferences, it lands in the
+   * first message and persists in the cursor agent's own conversation
+   * store — deliberately frozen per Cursor session (DD-002 D3, inherited
+   * by DD-006 D4): repeating it every resumed turn would bloat the store
+   * with identical content.
+   */
+  recalledMemories?: RecalledMemoriesContent;
+  /**
    * Conversation catchup (cloud DD-006): what happened on the channel
    * conversation that the agent has not seen, read from the execution
    * spec's `conversation_catchup`. PER-TURN, unlike the standing siblings
@@ -251,6 +265,14 @@ export function buildEnhancedPrompt(options: EnhancedPromptOptions): string {
   // the more specific overlay reads later and naturally refines.
   if (options.declaredPreferences) {
     sections.push(formatDeclaredPreferencesSection(options.declaredPreferences));
+  }
+
+  // Declared-by-humans precedes learned-and-confirmed (DD-006 D4): both
+  // are platform-authored standing background, but a preference is the
+  // user's exact words while a memory is an agent's confirmed inference —
+  // the exact statement reads first.
+  if (options.recalledMemories) {
+    sections.push(formatRecalledMemoriesSection(options.recalledMemories));
   }
 
   // Standing facts about the user (session context) come before the
@@ -470,6 +492,12 @@ export function formatDeclaredPreferencesSection(
   preferences: DeclaredPreferencesContent,
 ): string {
   return `<declared_preferences>\n${formatDeclaredPreferencesText(preferences)}\n</declared_preferences>`;
+}
+
+export function formatRecalledMemoriesSection(
+  memories: RecalledMemoriesContent,
+): string {
+  return `<recalled_memories>\n${formatRecalledMemoriesText(memories)}\n</recalled_memories>`;
 }
 
 export function formatSessionContextSection(context: string): string {

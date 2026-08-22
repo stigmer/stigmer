@@ -59,6 +59,8 @@ const autoCreatedSessionSubject = "Auto-created session"
 //  9. CreateSessionIfNeeded - Create session if session_id not provided (uses caller's org)
 //  10. ComposeDeclaredPreferences - Snapshot org standing context onto the spec
 //     (server-owned field, best-effort — see the step doc for the contract)
+//     10b. ComposeRecalledMemories - Snapshot confirmed memories onto the spec
+//     (server-owned field, best-effort, org memory_enabled gated — DD-006)
 //  11. SetInitialPhase - Set execution phase to PENDING
 //  12. CreateExecutionContext - Merge environment into execution context
 //  13. ProcessAttachments - Validate pre-uploaded attachments
@@ -100,6 +102,7 @@ func (c *AgentExecutionController) buildCreatePipeline() *pipeline.Pipeline[*age
 		AddStep(newCreateDefaultInstanceIfNeededStep(c.agentClient, c.agentInstanceClient, c.store)).                       // 8. Create default instance if needed
 		AddStep(newCreateSessionIfNeededStep(c.sessionClient)).                                                             // 9. Create session if needed
 		AddStep(newComposeDeclaredPreferencesStep(c.store)).                                                                // 10. Snapshot org standing context (server-owned field, best-effort)
+		AddStep(newComposeRecalledMemoriesStep(c.store)).                                                                   // 10b. Snapshot confirmed memories (server-owned field, best-effort)
 		AddStep(newSetInitialPhaseStep()).                                                                                  // 11. Set phase to PENDING
 		AddStep(c.newCreateExecutionContextStep()).                                                                         // 12. Create ExecutionContext with merged environment
 		AddStep(c.newProcessAttachmentsStep()).                                                                             // 13. Process attachments
