@@ -183,6 +183,72 @@ describe("AccountPreferencesPanel", () => {
     expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
   });
 
+  describe("memory consent (oss#293 Phase 2 Stage 3)", () => {
+    it("memory toggle applies instantly with the full mapped input (wipe-safe)", async () => {
+      const update = vi.fn(async (_input: IdentityAccountInput) => ACCOUNT);
+      renderPanel(createMockStigmer({ update }));
+      await findSyncedField("Keep answers terse.");
+
+      // No Save click: consent applies the moment it is flipped (the
+      // UX-checkpoint decision).
+      fireEvent.click(screen.getByRole("switch", { name: "Memory" }));
+
+      await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+      const input = update.mock.calls[0]![0];
+      expect(input.preferences?.memoryEnabled).toBe(true);
+      // The double spread: the flip preserves every sibling preference…
+      expect(input.preferences?.standingContext).toBe("Keep answers terse.");
+      // …and the identity fields the row never renders.
+      expect(input.id).toBe("ia-1");
+      expect(input.email).toBe("ada@acme.example");
+    });
+
+    it("saving the form preserves memory_enabled (the wipe-hazard regression)", async () => {
+      const accountWithMemoryOn = create(IdentityAccountSchema, {
+        metadata: { id: "ia-1", name: "Ada Lovelace", slug: "ada", org: "acme" },
+        spec: {
+          idpId: "auth0|abc",
+          email: "ada@acme.example",
+          preferences: {
+            standingContext: "Keep answers terse.",
+            memoryEnabled: true,
+          },
+        },
+      });
+      const update = vi.fn(async (_input: IdentityAccountInput) => accountWithMemoryOn);
+      renderPanel(
+        createMockStigmer({ whoAmI: vi.fn(async () => accountWithMemoryOn), update }),
+      );
+
+      const field = await findSyncedField("Keep answers terse.");
+      fireEvent.change(field, { target: { value: "Terser still." } });
+      fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+
+      await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+      // Update is a full-spec replace: without the nested preferences
+      // spread, this save would silently revoke the memory consent.
+      expect(update.mock.calls[0]![0].preferences?.memoryEnabled).toBe(true);
+    });
+
+    it("reflects the stored flag as the switch state", async () => {
+      const accountWithMemoryOn = create(IdentityAccountSchema, {
+        metadata: { id: "ia-1", name: "Ada", slug: "ada", org: "acme" },
+        spec: {
+          idpId: "auth0|abc",
+          preferences: { memoryEnabled: true },
+        },
+      });
+      renderPanel(createMockStigmer({ whoAmI: vi.fn(async () => accountWithMemoryOn) }));
+      await findSyncedField("");
+
+      await waitFor(() =>
+        expect(
+          screen.getByRole("switch", { name: "Memory" }).getAttribute("aria-checked"),
+        ).toBe("true"),
+      );
+    });
+  });
+
   describe("execution defaults (oss#293 Phase 1.5)", () => {
     const ACCOUNT_WITH_DEFAULTS: IdentityAccount = create(IdentityAccountSchema, {
       metadata: { id: "ia-1", name: "Ada Lovelace", slug: "ada", org: "acme" },

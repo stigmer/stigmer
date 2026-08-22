@@ -22,6 +22,8 @@ export interface McpToolSources {
   /** The serving channel id when this session IS a live channel
    *  conversation (the conversation attachment, DD-008). */
   readonly conversationChannelId: string | undefined;
+  /** The recall snapshot's enabled bit (the memory attachment, DD-005 D1). */
+  readonly memoryCaptureEnabled: boolean;
 }
 
 /** True when any tool source demands MCP resolution and connect. */
@@ -29,6 +31,7 @@ export function shouldConnectMcp(sources: McpToolSources): boolean {
   return (
     sources.mcpServerUsageCount > 0 ||
     sources.channelMessagingCount > 0 ||
-    sources.conversationChannelId !== undefined
+    sources.conversationChannelId !== undefined ||
+    sources.memoryCaptureEnabled
   );
 }

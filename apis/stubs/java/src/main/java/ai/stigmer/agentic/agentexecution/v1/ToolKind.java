@@ -150,6 +150,19 @@ public enum ToolKind
    * <code>TOOL_KIND_MCP = 13;</code>
    */
   TOOL_KIND_MCP(13),
+  /**
+   * <pre>
+   * Propose a durable fact about the user for the platform to remember
+   * (the first-party remember tool, injected via the synthesized memory
+   * attachment when the execution's recall snapshot is enabled — DD-005).
+   * Both harnesses: remember. Rendered as a memory-proposal consent chip
+   * (verbatim fact + Confirm/Reject), not the generic tool result view —
+   * the record it creates stays "proposed" until the user decides.
+   * </pre>
+   *
+   * <code>TOOL_KIND_MEMORY = 14;</code>
+   */
+  TOOL_KIND_MEMORY(14),
   UNRECOGNIZED(-1),
   ;
 
@@ -281,6 +294,19 @@ public enum ToolKind
    * <code>TOOL_KIND_MCP = 13;</code>
    */
   public static final int TOOL_KIND_MCP_VALUE = 13;
+  /**
+   * <pre>
+   * Propose a durable fact about the user for the platform to remember
+   * (the first-party remember tool, injected via the synthesized memory
+   * attachment when the execution's recall snapshot is enabled — DD-005).
+   * Both harnesses: remember. Rendered as a memory-proposal consent chip
+   * (verbatim fact + Confirm/Reject), not the generic tool result view —
+   * the record it creates stays "proposed" until the user decides.
+   * </pre>
+   *
+   * <code>TOOL_KIND_MEMORY = 14;</code>
+   */
+  public static final int TOOL_KIND_MEMORY_VALUE = 14;
 
 
   public final int getNumber() {
@@ -321,6 +347,7 @@ public enum ToolKind
       case 11: return TOOL_KIND_TODO;
       case 12: return TOOL_KIND_SUBAGENT;
       case 13: return TOOL_KIND_MCP;
+      case 14: return TOOL_KIND_MEMORY;
       default: return null;
     }
   }

@@ -23,8 +23,10 @@ export {
   CONVERSATION_ROUTE,
   createChannelsServer,
   createConversationServer,
+  createMemoryServer,
   createServer,
   FULL_ROUTE,
+  MEMORY_ROUTE,
   SERVER_VERSION,
 } from "./server.js";
 

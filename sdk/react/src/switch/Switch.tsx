@@ -17,6 +17,8 @@ export interface SwitchProps {
   readonly "aria-label"?: string;
   /** ID of the element that labels this switch. */
   readonly "aria-labelledby"?: string;
+  /** ID of the element that describes this switch (helper copy). */
+  readonly "aria-describedby"?: string;
   /** Element ID, for association with an external `<label htmlFor>`. */
   readonly id?: string;
   /** Additional CSS classes for the root button. */
@@ -54,6 +56,7 @@ export function Switch({
   disabled,
   "aria-label": ariaLabel,
   "aria-labelledby": ariaLabelledby,
+  "aria-describedby": ariaDescribedby,
   id,
   className,
 }: SwitchProps) {
@@ -65,6 +68,7 @@ export function Switch({
       aria-checked={checked}
       aria-label={ariaLabel}
       aria-labelledby={ariaLabelledby}
+      aria-describedby={ariaDescribedby}
       disabled={disabled}
       onClick={() => onCheckedChange(!checked)}
       className={cn(

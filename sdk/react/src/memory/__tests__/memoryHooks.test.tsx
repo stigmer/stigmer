@@ -5,9 +5,11 @@ import { create } from "@bufbuild/protobuf";
 import { MemorySchema, type Memory } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/api_pb";
 import { MemoryLifecycleState } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/enum_pb";
 import { MemoryListSchema } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/io_pb";
+import { StigmerError } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { useMemories } from "../useMemories";
+import { useMemory } from "../useMemory";
 import { useConfirmMemory } from "../useConfirmMemory";
 import { useRejectMemory } from "../useRejectMemory";
 import { useDeleteMemory } from "../useDeleteMemory";
@@ -98,6 +100,67 @@ describe("useMemories", () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.error).toBe(failure);
     expect(result.current.memories).toEqual([]);
+  });
+});
+
+describe("useMemory", () => {
+  it("fetches one record by id", async () => {
+    const get = vi.fn().mockResolvedValue(PROPOSED);
+    const client = { memory: { get } };
+
+    const { result } = renderHook(() => useMemory("mem_proposed"), {
+      wrapper: wrapper(client),
+    });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.memory).toBe(PROPOSED);
+    expect(result.current.notFound).toBe(false);
+    expect(result.current.error).toBeNull();
+    expect(get).toHaveBeenCalledWith("mem_proposed");
+  });
+
+  it("reports a deleted record as the notFound STATE, never an error", async () => {
+    // Deletion is the consent-revocation mechanism — a consumer must
+    // render "no longer stored", not a failure.
+    const get = vi
+      .fn()
+      .mockRejectedValue(new StigmerError("not-found", "memory not found", 5));
+    const client = { memory: { get } };
+
+    const { result } = renderHook(() => useMemory("mem_gone"), {
+      wrapper: wrapper(client),
+    });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.notFound).toBe(true);
+    expect(result.current.memory).toBeNull();
+    expect(result.current.error).toBeNull();
+  });
+
+  it("propagates every other failure as an error", async () => {
+    const failure = new StigmerError("unavailable", "server down", 14);
+    const client = { memory: { get: vi.fn().mockRejectedValue(failure) } };
+
+    const { result } = renderHook(() => useMemory("mem_x"), {
+      wrapper: wrapper(client),
+    });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.error).toBe(failure);
+    expect(result.current.notFound).toBe(false);
+  });
+
+  it("skips fetching when id is null", () => {
+    const get = vi.fn();
+    const client = { memory: { get } };
+
+    const { result } = renderHook(() => useMemory(null), {
+      wrapper: wrapper(client),
+    });
+
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.memory).toBeNull();
+    expect(get).not.toHaveBeenCalled();
   });
 });
 

@@ -153,6 +153,25 @@ test.describe("Settings sections", () => {
     });
   }
 
+  test("Organization Preferences carries the memory consent toggle", async ({
+    page,
+  }) => {
+    await page.goto("/settings/org-preferences");
+
+    const region = page.getByRole("region", { name: "Organization Preferences" });
+    await expect(region).toBeVisible({ timeout: 15_000 });
+
+    // The org half of the double opt-in (oss#293 Phase 2 Stage 3). In OSS
+    // local mode this is the ONLY memory switch (the account scope
+    // collapses), so its presence here is load-bearing. Read-only
+    // assertion — flipping would mutate the shared local org.
+    const memorySwitch = region.getByRole("switch", { name: "Memory" });
+    await expect(memorySwitch).toBeVisible();
+    await expect(memorySwitch).toHaveAttribute("aria-checked", /true|false/);
+    // The transparency helper copy is the switch's accessible description.
+    await expect(memorySwitch).toHaveAttribute("aria-describedby", /.+/);
+  });
+
   for (const section of SETTINGS_SECTIONS.filter((s) => s.cloudGated)) {
     test(`${section.headingText} shows content or cloud notice in OSS`, async ({
       page,

@@ -117,6 +117,49 @@ const groups = groupMemoriesByLifecycle(memories);
 ```
 
 
+### useMemory
+
+Data hook that fetches one memory record by id.
+
+Built for surfaces that hold a memory's identity but not its CURRENT
+lifecycle state — the in-thread proposal chip is the primary consumer:
+the tool result it renders from is frozen at capture time, while the
+record may have been confirmed, rejected, or deleted since (from the
+chip itself, the memory settings page, or another device). Content
+visibility is subject-only, so the fetch answers only for the person
+the memory is about.
+
+Pass `null` as `id` to skip fetching (stable no-op).
+
+**Signature**
+
+```tsx
+function useMemory(id: string | null): UseMemoryReturn
+```
+
+<TypeTable
+  type={{
+    id: { type: "string | null", description: "", required: true },
+  }}
+/>
+
+**Returns** — `UseMemoryReturn`
+
+<TypeTable
+  type={{
+    error: { type: "Error | null", description: "Error from the last failed request (never not-found), or `null`." },
+    isLoading: { type: "boolean", description: "`true` while the initial fetch is in flight." },
+    memory: { type: "Memory | null", description: "The memory record, or `null` while loading / not found / on error." },
+    notFound: { type: "boolean", description: "`true` when the record no longer exists. A first-class STATE, not an error: deletion is the platform's consent-revocation mechanism, so a consumer (the proposal chip, a deep link) must render \"no longer stored\" honestly rather than a failure." },
+    refetch: { type: "() => void", description: "Discard cached data and re-fetch the record from the server." },
+  }}
+/>
+
+```tsx
+const { memory, isLoading, notFound } = useMemory(memoryId);
+```
+
+
 ### useRejectMemory
 
 Behavior hook that wraps `memory.reject()`. A rejected memory is never
@@ -222,6 +265,37 @@ All visual properties flow through `--stgm-*` design tokens.
 ```tsx
 <MemoryListPanel org="acme" />
 ```
+
+
+### MemoryProposalCardBody
+
+The in-session consent surface for a memory proposal (DD-005 D4): the
+body of a `remember` tool call's row in the message thread, rendering
+the proposed fact verbatim with one-click Confirm / Reject actions.
+
+Lifecycle honesty across surfaces and reloads: the tool result this
+renders from is FROZEN at capture time, so the card fetches the
+record's current state ([`useMemory`](#usememory)) — a proposal decided from
+the memory settings page (or another device) shows its decided state
+here instead of stale action buttons, and a deleted record reads
+"no longer stored" rather than failing. Rejection is one click, no
+confirmation dialog (the T04 Cursor lesson: expensive review teaches
+users to ignore the queue); deletion-with-confirmation lives on the
+memory page, the catch-up surface.
+
+Borderless by design (the [`ApprovalCardBody`](/docs/sdk/react/execution#approvalcardbody) posture): the tool
+row's card owns the chrome, this component owns only the body. All
+visual properties flow through `--stgm-*` design tokens.
+
+**Props** — `MemoryProposalCardBodyProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS class names for the root container." },
+    fact: { type: "string", description: "The proposed fact as frozen in the tool result — shown VERBATIM (DD-005 D6: what you confirm is what future prompts inject, byte for byte). The live record's text supersedes it once fetched, so an edit made on the memory page is reflected here too.", required: true },
+    memoryId: { type: "string", description: "The proposed memory's resource id (from the remember tool's answer).", required: true },
+  }}
+/>
 
 
 ## Types

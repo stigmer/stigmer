@@ -98,11 +98,12 @@ func TestMemoryCreate_ProposedWithServerOwnedFields(t *testing.T) {
 	tc := newTestController(t)
 	seedOrg(t, tc, "test-org", true)
 
-	// The caller tries to smuggle a subject, provenance, and a decided
-	// lifecycle — every server-owned field must come back server-written.
+	// The caller tries to smuggle a subject and a decided lifecycle —
+	// the server-owned fields must come back server-written. (Provenance
+	// is capture-path-supplied since Stage 3 and covered by its own
+	// tests below.)
 	request := memoryFor("test-org", "Prefers terse answers.")
 	request.Spec.SubjectIdentityAccountId = "ida_forged"
-	request.Spec.Provenance = &memoryv1.MemoryProvenance{AgentId: "agt_forged"}
 	request.Status = &memoryv1.MemoryStatus{
 		LifecycleState: memoryv1.MemoryLifecycleState_lifecycle_state_confirmed,
 	}
@@ -118,10 +119,6 @@ func TestMemoryCreate_ProposedWithServerOwnedFields(t *testing.T) {
 	if created.GetSpec().GetSubjectIdentityAccountId() != "" {
 		t.Errorf("subject must be the OSS empty-string sentinel, got %q",
 			created.GetSpec().GetSubjectIdentityAccountId())
-	}
-	if created.GetSpec().GetProvenance() != nil {
-		t.Errorf("provenance must be server-cleared on a direct create, got %v",
-			created.GetSpec().GetProvenance())
 	}
 	if created.GetStatus().GetLifecycleState() != memoryv1.MemoryLifecycleState_lifecycle_state_proposed {
 		t.Errorf("every memory starts proposed, got %v", created.GetStatus().GetLifecycleState())
@@ -139,6 +136,53 @@ func TestMemoryCreate_ProposedWithServerOwnedFields(t *testing.T) {
 	}
 	if created.GetMetadata().GetSlug() == "" {
 		t.Error("slug must be derived")
+	}
+}
+
+func TestMemoryCreate_ProvenanceIsCapturePathSupplied(t *testing.T) {
+	tc := newTestController(t)
+	seedOrg(t, tc, "test-org", true)
+
+	// The Stage 3 provenance contract (owner-ratified 2026-08-22): the
+	// capture path threads the agent/session/execution triple, and OSS
+	// single-user local mode stores it as supplied — every caller IS the
+	// trusted local operator. tool_call_id is the one exception: MCP
+	// cannot carry the harness's tool-call identity in v1, so a supplied
+	// value could only be an invention and is force-cleared.
+	request := memoryFor("test-org", "Works primarily in Go.")
+	request.Spec.Provenance = &memoryv1.MemoryProvenance{
+		AgentId:          "agt_1",
+		SessionId:        "ses_1",
+		AgentExecutionId: "aex_1",
+		ToolCallId:       "call_invented",
+	}
+
+	created, err := tc.controller.Create(memoryCtx(), request)
+	if err != nil {
+		t.Fatalf("Create failed: %v", err)
+	}
+
+	prov := created.GetSpec().GetProvenance()
+	if prov.GetAgentId() != "agt_1" || prov.GetSessionId() != "ses_1" ||
+		prov.GetAgentExecutionId() != "aex_1" {
+		t.Errorf("supplied provenance triple must be stored, got %v", prov)
+	}
+	if prov.GetToolCallId() != "" {
+		t.Errorf("tool_call_id must be force-cleared in v1, got %q", prov.GetToolCallId())
+	}
+}
+
+func TestMemoryCreate_DirectCreateKeepsProvenanceEmpty(t *testing.T) {
+	tc := newTestController(t)
+	seedOrg(t, tc, "test-org", true)
+
+	// A direct create supplies no provenance and the field stays empty —
+	// the honest shape for a record with no session origin.
+	created := createMemory(t, tc, "test-org", "Deploys on Fridays.")
+
+	if created.GetSpec().GetProvenance() != nil {
+		t.Errorf("direct create must keep provenance empty, got %v",
+			created.GetSpec().GetProvenance())
 	}
 }
 

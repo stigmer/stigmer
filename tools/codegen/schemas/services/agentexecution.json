@@ -1854,6 +1854,11 @@
           "name": "TOOL_KIND_MCP",
           "number": 13,
           "description": "A tool provided by an MCP server. The server is identified by\n ToolCall.mcp_server_slug; the tool's bare name is in ToolCall.name."
+        },
+        {
+          "name": "TOOL_KIND_MEMORY",
+          "number": 14,
+          "description": "Propose a durable fact about the user for the platform to remember\n (the first-party remember tool, injected via the synthesized memory\n attachment when the execution's recall snapshot is enabled — DD-005).\n Both harnesses: remember. Rendered as a memory-proposal consent chip\n (verbatim fact + Confirm/Reject), not the generic tool result view —\n the record it creates stays \"proposed\" until the user decides."
         }
       ]
     },
@@ -3441,7 +3446,8 @@
               "TOOL_KIND_THINK",
               "TOOL_KIND_TODO",
               "TOOL_KIND_SUBAGENT",
-              "TOOL_KIND_MCP"
+              "TOOL_KIND_MCP",
+              "TOOL_KIND_MEMORY"
             ]
           },
           "description": "Harness-agnostic tool category. Copied from ToolCall.tool_kind.",
@@ -4901,7 +4907,8 @@
               "TOOL_KIND_THINK",
               "TOOL_KIND_TODO",
               "TOOL_KIND_SUBAGENT",
-              "TOOL_KIND_MCP"
+              "TOOL_KIND_MCP",
+              "TOOL_KIND_MEMORY"
             ]
           },
           "description": "Harness-agnostic category of the tool, copied from ToolCall.tool_kind by the\n server-side projection (exactly as mcp_server_slug above is). Lets approval\n surfaces — including workflow-parent approvals, where the originating\n ToolCall is not co-located with the approval — classify and render the tool\n without a client-side lookup. See ToolKind.",
@@ -5705,7 +5712,8 @@
               "TOOL_KIND_THINK",
               "TOOL_KIND_TODO",
               "TOOL_KIND_SUBAGENT",
-              "TOOL_KIND_MCP"
+              "TOOL_KIND_MCP",
+              "TOOL_KIND_MEMORY"
             ]
           },
           "description": "Harness-agnostic category of this tool, set by the runner so clients render\n the tool identically regardless of which engine produced it. The native and\n Cursor harnesses use different tool-name conventions; tool_kind erases that\n difference at the source.\n\n TOOL_KIND_UNSPECIFIED means unclassified — either the execution predates this\n field or the tool has no known kind. Clients fall back to a name-based\n lookup in that case. See ToolKind.\n\n Field 20: field 6 is a historical gap and 19 (streaming_source) is the prior\n maximum, so this is appended at 20.",

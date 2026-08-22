@@ -120,6 +120,18 @@ export type ToolResultView =
       readonly blocks: readonly ToolContentBlock[];
       readonly mcpServerSlug: string;
     }
+  // The first-party remember tool's answer (DD-005): the created Memory
+  // record's identity and verbatim fact, parsed from the tool's
+  // {outcome, memory} payload (pinned by the mcp-server's memory
+  // integration test on the writer side). The consent chip renders from
+  // this — memoryId is the handle the confirm/reject RPCs take, and fact
+  // is the EXACT stored text (DD-005 D6: what you confirm is what is
+  // injected, byte for byte).
+  | {
+      readonly type: "memoryProposal";
+      readonly memoryId: string;
+      readonly fact: string;
+    }
   | { readonly type: "text"; readonly text: string }
   | { readonly type: "json"; readonly value: unknown }
   | { readonly type: "error"; readonly message: string }
@@ -216,8 +228,22 @@ export function resolveToolKind(toolCall: Pick<ToolCall, "name" | "mcpServerSlug
   return resolveToolKindByName(toolCall.name, toolCall.mcpServerSlug);
 }
 
+/**
+ * The reserved slug of the runner-synthesized memory attachment (DD-005).
+ * Mirrors the runner's MEMORY_ATTACHMENT_SLUG (shared/memory-attachment.ts);
+ * kept honest by test/fixtures/tool-view/classification.json.
+ */
+export const MEMORY_ATTACHMENT_SLUG = "stigmer-memory";
+
 /** Name-based classification used as the legacy fallback for resolveToolKind. */
 export function resolveToolKindByName(name: string, mcpServerSlug?: string): ToolKind {
+  // The first-party remember tool (DD-005), slug-scoped on purpose: only
+  // the synthesized memory attachment's reserved slug earns the MEMORY
+  // kind (and its consent-chip rendering) — a third-party MCP server's
+  // coincidental `remember` stays a plain MCP tool.
+  if (name === "remember" && mcpServerSlug === MEMORY_ATTACHMENT_SLUG) {
+    return ToolKind.MEMORY;
+  }
   const builtin = NAME_TO_KIND.get(name);
   if (builtin !== undefined) {
     return builtin;
@@ -344,6 +370,8 @@ export function normalizeToolResult(toolCall: ToolCall): ToolResultView {
       return normalizeThink(args, result);
     case ToolKind.MCP:
       return normalizeMcp(result, toolCall.mcpServerSlug);
+    case ToolKind.MEMORY:
+      return normalizeMemory(result);
     default:
       return genericView(result);
   }
@@ -619,6 +647,34 @@ function normalizeList(result: string): ToolResultView {
 function normalizeThink(args: Args, result: string): ToolResultView {
   const thought = firstString(args, ["thought"]) ?? result;
   return { type: "text", text: thought };
+}
+
+// The remember tool answers {outcome, memory} (memory = the created record
+// as proto JSON — the mcp-server's calls.ts is the writer). Depending on the
+// harness the persisted result is that JSON directly or wrapped in MCP
+// content blocks, so both are unwrapped here; anything unrecognized degrades
+// to the generic json/text view rather than a broken chip.
+function normalizeMemory(result: string): ToolResultView {
+  const parsed = tryParseJson(result);
+
+  // Content-block wrapping: the payload rides the first text block.
+  const blocks = extractContentBlocks(parsed);
+  const payload = blocks
+    ? tryParseJson(blocks.find((b) => b.type === "text")?.text ?? "")
+    : parsed;
+
+  if (isRecord(payload) && isRecord(payload.memory)) {
+    const memory = payload.memory;
+    const metadata = isRecord(memory.metadata) ? memory.metadata : undefined;
+    const spec = isRecord(memory.spec) ? memory.spec : undefined;
+    const memoryId = asString(metadata?.id) ?? "";
+    const fact = asString(spec?.content) ?? "";
+    if (memoryId !== "" && fact !== "") {
+      return { type: "memoryProposal", memoryId, fact };
+    }
+  }
+
+  return genericView(result);
 }
 
 function normalizeMcp(result: string, mcpServerSlug: string): ToolResultView {

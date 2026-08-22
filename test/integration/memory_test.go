@@ -25,18 +25,23 @@ const memoryCaptureCallerMessage = "memory can only be captured for a first-part
 // COVERAGE MAP for the memory kind on the cloud edition — why this file
 // pins only the capture gate's REFUSALS:
 //
-// Memory create is guarded by the strict first-party-human-operator gate
-// (DD-002 D4 as amended, inherited by capture — DD-005 D2). The suite's
+// Memory create is guarded by the capture-eligibility gate (DD-002 D4 as
+// amended, inherited by capture — DD-005 D2; widened for the remember
+// tool by the Stage 3 decision, owner-ratified 2026-08-22). The suite's
 // default credentials are both excluded: the tokenless identity is
 // deliberately machine-class (IntegrationTestSecurityConfig), and every
-// PlatformClient-minted token is an embedder end-user. The ONE admitted
-// credential is a plain Stigmer JWT (harness.MintStigmerToken — the
+// PlatformClient-minted token is an embedder end-user. TWO credentials
+// are admitted: a plain Stigmer JWT (harness.MintStigmerToken — the
 // declared-preferences precedent, session-3 learning), which Stage 2's
 // TestAgentExecution_RecalledMemories uses to exercise capture + confirm
-// through the front door. Seeding memory rows behind the service's back
-// stays off the table (the IdentitySeeder doctrine: the pre-auth
-// bootstrap is the ONLY legitimate direct Tier-1 write; everything else
-// seeds through the front door).
+// through the front door, and the session-scoped SANDBOX token
+// (harness.MintSandboxTokenForOrg), which Stage 3's
+// TestMemory_SandboxCapture uses to exercise the remember tool's write
+// path (subject from sub, verified provenance, org binding, and the
+// session-less runner types' refusals). Seeding memory rows behind the
+// service's back stays off the table (the IdentitySeeder doctrine: the
+// pre-auth bootstrap is the ONLY legitimate direct Tier-1 write;
+// everything else seeds through the front door).
 //
 // The full behavioral matrix lives where each slice is best reachable:
 //   - OSS edition over the wire: test/conformance memory suite (create,

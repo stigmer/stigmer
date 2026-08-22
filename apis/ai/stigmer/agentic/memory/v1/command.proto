@@ -30,16 +30,24 @@ service MemoryCommandController {
   // Authorization: skip standard resource authorization — the record
   // does not exist yet and the subject IS the caller. In-handler
   // enforcement instead (DD-005 D2, both editions where applicable):
-  // 1. Strict first-party-human gate (cloud): no token_type, no
-  //    platform_client_id, not machine, not impersonated. The remember
-  //    tool's session-scoped credential passes as its human subject.
+  // 1. Capture-eligibility gate (cloud): a first-party human operator
+  //    (no token_type, no platform_client_id, not machine, not
+  //    impersonated) OR the remember tool's session-scoped sandbox
+  //    credential (token_type=sandbox — isSessionSandbox(), acting as
+  //    its human subject; the Stage 3 decision, owner-ratified
+  //    2026-08-22).
   // 2. Enablement re-check, FAIL-CLOSED: org memory_enabled AND (cloud
   //    only) the caller's memory_enabled must both be true —
   //    FAILED_PRECONDITION otherwise. The runner-side tool attachment
   //    is convenience, never authorization; the server refuses.
   // 3. subject_identity_account_id = caller's identity account (cloud)
   //    / "" (OSS single-user sentinel); caller-supplied value ignored.
-  // 4. Per-subject-per-org count cap (100, all lifecycle states):
+  // 4. spec.provenance is capture-path-supplied (see MemorySpec): cloud
+  //    accepts the agent/session/execution triple only from a sandbox
+  //    credential and overrides session_id with the token's claim; OSS
+  //    stores it as supplied (local single-user trust). tool_call_id is
+  //    force-cleared in v1 on both editions.
+  // 5. Per-subject-per-org count cap (100, all lifecycle states):
   //    FAILED_PRECONDITION "memory is full — review and delete existing
   //    memories" (visible-full, never silent eviction — DD-006 D5).
   //

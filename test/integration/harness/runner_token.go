@@ -76,6 +76,20 @@ func MintSandboxToken(sub, sessionID string) (string, error) {
 		})
 }
 
+// MintSandboxTokenForOrg is MintSandboxToken with an explicit org claim,
+// overriding the default TestOrg. Production sandbox tokens carry the
+// session's org (SandboxTokenService.mintForSession), and org-scoped
+// allowances — memory capture validates metadata.org against the token's
+// org claim — need the claim to name the test's own fresh org.
+func MintSandboxTokenForOrg(sub, sessionID, org string) (string, error) {
+	return mintStigmerToken(StigmerJWTSigningKeyBase64, "stigmer-signing-key-1", sub, "",
+		map[string]any{
+			"session_id": sessionID,
+			"token_type": "sandbox",
+			"org":        org,
+		})
+}
+
 // MintTokenOfType signs a Stigmer JWT carrying only the given token_type
 // claim (e.g. "embedded_runner", "guest", "channel"). The record RPCs'
 // reach layer dispatches on token_type alone, so this is all a test needs

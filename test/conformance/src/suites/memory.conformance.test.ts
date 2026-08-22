@@ -5,13 +5,16 @@
 // Drives MemoryCommandController + MemoryQueryController through the raw
 // proto stubs and asserts the contract: fail-closed enablement at create
 // (org memory_enabled off -> FAILED_PRECONDITION with pinned copy),
-// server ownership of subject/provenance/lifecycle (forged values come
-// back server-written), the consent lifecycle matrix (proposed ->
-// confirmed/rejected, idempotent re-decisions, cross-decisions refused
-// with pinned copy), update immutability (subject/provenance locked,
-// content editable, lifecycle preserved), any-state delete, the
-// per-subject record ceiling (visible-full, never silent eviction), and
-// org-scoped listing.
+// server ownership of subject/lifecycle (forged values come back
+// server-written), capture-path-supplied provenance (the Stage 3
+// contract: the supplied triple is stored, tool_call_id force-cleared,
+// a direct create stays empty, and the field is immutable after
+// create), the consent lifecycle matrix (proposed -> confirmed/rejected,
+// idempotent re-decisions, cross-decisions refused with pinned copy),
+// update immutability (subject/provenance locked, content editable,
+// lifecycle preserved), any-state delete, the per-subject record
+// ceiling (visible-full, never silent eviction), and org-scoped
+// listing.
 //
 // The create RPC's strict first-party-human-operator gate is capability
 // split (firstPartyMemoryCapture, see targets/target.ts): local OSS runs
@@ -119,14 +122,14 @@ describe("Memory conformance", () => {
     if (!target.capabilities.firstPartyMemoryCapture) return;
 
     const org = await createOrg(true);
-    // Forge everything the server owns; all of it must come back
-    // server-written.
+    // Forge the server-owned fields; all of them must come back
+    // server-written. (Provenance left the server-owned set in Stage 3 —
+    // its capture-path contract is pinned by the tests below.)
     const created = await clients.memoryCommand.create({
       ...makeMemory(org, { content: "Deploys to us-east-1." }),
       spec: {
         content: "Deploys to us-east-1.",
         subjectIdentityAccountId: "ida_forged",
-        provenance: { agentId: "agt_forged" },
       },
       status: { lifecycleState: MemoryLifecycleState.lifecycle_state_confirmed },
     });
@@ -138,11 +141,49 @@ describe("Memory conformance", () => {
     // sentinel ""; cloud: the caller's identity account) — but a forged
     // value never survives on either.
     expect(created.spec?.subjectIdentityAccountId).not.toBe("ida_forged");
-    expect(created.spec?.provenance?.agentId ?? "").not.toBe("agt_forged");
     expect(created.status?.lifecycleState).toBe(
       MemoryLifecycleState.lifecycle_state_proposed,
     );
     expect(created.status?.stateChangedAt).toBeDefined();
+  });
+
+  it("create stores capture-path provenance, force-clearing tool_call_id (Stage 3)", async () => {
+    if (!target.capabilities.firstPartyMemoryCapture) return;
+
+    // The Stage 3 provenance contract (owner-ratified 2026-08-22): the
+    // capture path — the remember tool via the runner-synthesized
+    // attachment — threads agent/session/execution, and the eligible
+    // capture caller's supplied triple is stored (OSS local trust: every
+    // caller is the operator; cloud: sandbox credential required, pinned
+    // in the Java handler tests). tool_call_id is unreachable via MCP in
+    // v1, so a supplied value could only be an invention: force-cleared.
+    const org = await createOrg(true);
+    const created = await clients.memoryCommand.create({
+      ...makeMemory(org, { content: "Works primarily in Go." }),
+      spec: {
+        content: "Works primarily in Go.",
+        provenance: {
+          agentId: "agt_1",
+          sessionId: "ses_1",
+          agentExecutionId: "aex_1",
+          toolCallId: "call_invented",
+        },
+      },
+    });
+    fixtures.defer(() => clients.memoryCommand.delete({ value: created.metadata!.id }));
+
+    expect(created.spec?.provenance?.agentId).toBe("agt_1");
+    expect(created.spec?.provenance?.sessionId).toBe("ses_1");
+    expect(created.spec?.provenance?.agentExecutionId).toBe("aex_1");
+    expect(created.spec?.provenance?.toolCallId ?? "").toBe("");
+  });
+
+  it("create without provenance keeps the field empty — a direct create has no origin", async () => {
+    if (!target.capabilities.firstPartyMemoryCapture) return;
+
+    const org = await createOrg(true);
+    const created = await createMemory(org, "Prefers table-driven tests.");
+    expect(created.spec?.provenance).toBeUndefined();
   });
 
   it("rejects content outside the 1..500 char contract", async () => {

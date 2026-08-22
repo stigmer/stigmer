@@ -14,6 +14,8 @@
 
 import { ToolKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
+import { MEMORY_ATTACHMENT_SLUG } from "./memory-attachment.js";
+
 // Bare tool name -> ToolKind, covering both harness naming conventions. A name
 // found here is a built-in and wins over a non-empty mcp_server_slug (an MCP
 // server is not expected to shadow a built-in name; matching the legacy resolver).
@@ -81,6 +83,14 @@ const TOOL_NAME_TO_KIND: ReadonlyMap<string, ToolKind> = new Map([
  * back to a name lookup, so this is never worse than no classification).
  */
 export function classifyTool(name: string, mcpServerSlug?: string): ToolKind {
+  // The first-party remember tool (DD-005), slug-scoped on purpose: it is
+  // served by the synthesized memory attachment, so only that reserved
+  // slug earns the MEMORY kind (and its consent-chip rendering) — a
+  // third-party MCP server's coincidental `remember` stays a plain MCP
+  // tool, and a bare `remember` with no slug stays unclassified.
+  if (name === "remember" && mcpServerSlug === MEMORY_ATTACHMENT_SLUG) {
+    return ToolKind.MEMORY;
+  }
   const builtin = TOOL_NAME_TO_KIND.get(name);
   if (builtin !== undefined) {
     return builtin;

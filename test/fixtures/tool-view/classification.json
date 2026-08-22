@@ -59,6 +59,10 @@
     { "name": "apply_mcp_server", "mcpServerSlug": "planton", "toolKind": "TOOL_KIND_MCP" },
     { "name": "create_issue", "mcpServerSlug": "github", "toolKind": "TOOL_KIND_MCP" },
 
+    { "name": "remember", "mcpServerSlug": "stigmer-memory", "toolKind": "TOOL_KIND_MEMORY", "note": "slug-scoped to the synthesized memory attachment (DD-005) — only the first-party tool earns the consent-chip kind" },
+    { "name": "remember", "mcpServerSlug": "third-party-notes", "toolKind": "TOOL_KIND_MCP", "note": "a coincidental third-party remember stays a plain MCP tool" },
+    { "name": "remember", "mcpServerSlug": "", "toolKind": "TOOL_KIND_UNSPECIFIED" },
+
     { "name": "read", "mcpServerSlug": "planton", "toolKind": "TOOL_KIND_FILE_READ", "note": "built-in name wins over a non-empty slug, matching the legacy resolver" },
 
     { "name": "ReadLints", "mcpServerSlug": "", "toolKind": "TOOL_KIND_UNSPECIFIED" },

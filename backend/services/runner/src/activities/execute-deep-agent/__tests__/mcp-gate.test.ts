@@ -14,6 +14,7 @@ const nothing = {
   mcpServerUsageCount: 0,
   channelMessagingCount: 0,
   conversationChannelId: undefined,
+  memoryCaptureEnabled: false,
 };
 
 describe("shouldConnectMcp", () => {
@@ -33,5 +34,11 @@ describe("shouldConnectMcp", () => {
     // The reply-only pilot shape: no declared servers, no proactive
     // channel — the escalation tool is the ONLY source.
     expect(shouldConnectMcp({ ...nothing, conversationChannelId: "agch_1" })).toBe(true);
+  });
+
+  it("enters on memory capture alone (the memory attachment)", () => {
+    // A tool-less agent whose user has memory on: the remember tool is
+    // the ONLY source, and skipping the block would silently drop it.
+    expect(shouldConnectMcp({ ...nothing, memoryCaptureEnabled: true })).toBe(true);
   });
 });

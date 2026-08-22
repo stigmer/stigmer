@@ -61,6 +61,8 @@ describe("result-view fixtures", () => {
       mcpServerSlug?: string;
       linesAdded?: number;
       linesRemoved?: number;
+      memoryId?: string;
+      fact?: string;
     };
   }
 
@@ -117,6 +119,12 @@ describe("result-view fixtures", () => {
       }
       if (c.expected.linesRemoved !== undefined && view.type === "diff") {
         expect(view.linesRemoved).toBe(c.expected.linesRemoved);
+      }
+      if (c.expected.memoryId !== undefined && view.type === "memoryProposal") {
+        expect(view.memoryId).toBe(c.expected.memoryId);
+      }
+      if (c.expected.fact !== undefined && view.type === "memoryProposal") {
+        expect(view.fact).toBe(c.expected.fact);
       }
     });
   }

@@ -84,6 +84,7 @@ import {
   readChannelConversationId,
   synthesizeConversationAttachment,
 } from "../../shared/conversation-attachment.js";
+import { synthesizeMemoryAttachment } from "../../shared/memory-attachment.js";
 import { injectSynthesizedAttachment } from "../../shared/synthesized-attachment.js";
 import { mergeApprovalPolicies } from "./approval-policy.js";
 import { deriveActiveLeases, isUnattendedApprovalMode } from "../../shared/approval-policy.js";
@@ -715,6 +716,33 @@ async function executeCursorInner(
     if (conversationAttachment) {
       resolvedMcpServers = injectSynthesizedAttachment(
         resolvedMcpServers, conversationAttachment, "conversation participation",
+      );
+    }
+
+    // Phase 4a5: Synthesize the memory capture attachment (DD-005 D1) —
+    // the fourth sibling. The recall snapshot's enabled bit IS the
+    // attachment decision (server-stamped at execution create; a free
+    // local read, like the conversation attachment's session label). The
+    // capture context is attribution the server verifies or trusts per
+    // edition (Stage 3 provenance decision); the subject is never
+    // threaded — it derives from the credential.
+    const memoryAttachment = synthesizeMemoryAttachment(
+      execution.spec?.recalledMemories,
+      {
+        org: session.metadata?.org ?? "",
+        agentId: blueprint.agent.metadata?.id ?? "",
+        sessionId,
+        agentExecutionId: executionId,
+      },
+      {
+        bridgeEndpoint: config.mcpBridgeEndpoint,
+        credential: attachmentCredential,
+        backendEndpoint: config.stigmerBackendEndpoint,
+      },
+    );
+    if (memoryAttachment) {
+      resolvedMcpServers = injectSynthesizedAttachment(
+        resolvedMcpServers, memoryAttachment, "memory capture",
       );
     }
     // The one projection point: every mutation above is now visible in the

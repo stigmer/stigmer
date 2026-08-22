@@ -90,10 +90,18 @@ public interface MemorySpecOrBuilder extends
    * appears.
    *
    * &#64;internal
-   * Server-stamped from the request context at create, empty for
-   * records created directly through the API (no session in context).
-   * Immutable: provenance is attribution, and attribution that can be
-   * edited is not attribution. Trust requires "where did this come
+   * Capture-path-supplied at create (the Stage 3 provenance decision,
+   * owner-ratified 2026-08-22): the remember tool threads the
+   * agent/session/execution triple from the runner-synthesized
+   * attachment's capture context; a direct API create supplies none and
+   * the field stays empty. tool_call_id is force-cleared in v1 — MCP
+   * cannot carry the harness's tool-call identity to the tool handler.
+   * Trust is per edition: the cloud create handler accepts the triple
+   * only from a session-sandbox credential and overrides session_id
+   * with the token's own claim; OSS single-user local mode stores it as
+   * supplied (every caller is the trusted local operator). Immutable
+   * after create: provenance is attribution, and attribution that can
+   * be edited is not attribution. Trust requires "where did this come
    * from" beside every fact (DD-004); out-of-character proposals carry
    * their origin (DD-005 D6).
    * </pre>
@@ -108,10 +116,18 @@ public interface MemorySpecOrBuilder extends
    * appears.
    *
    * &#64;internal
-   * Server-stamped from the request context at create, empty for
-   * records created directly through the API (no session in context).
-   * Immutable: provenance is attribution, and attribution that can be
-   * edited is not attribution. Trust requires "where did this come
+   * Capture-path-supplied at create (the Stage 3 provenance decision,
+   * owner-ratified 2026-08-22): the remember tool threads the
+   * agent/session/execution triple from the runner-synthesized
+   * attachment's capture context; a direct API create supplies none and
+   * the field stays empty. tool_call_id is force-cleared in v1 — MCP
+   * cannot carry the harness's tool-call identity to the tool handler.
+   * Trust is per edition: the cloud create handler accepts the triple
+   * only from a session-sandbox credential and overrides session_id
+   * with the token's own claim; OSS single-user local mode stores it as
+   * supplied (every caller is the trusted local operator). Immutable
+   * after create: provenance is attribution, and attribution that can
+   * be edited is not attribution. Trust requires "where did this come
    * from" beside every fact (DD-004); out-of-character proposals carry
    * their origin (DD-005 D6).
    * </pre>
@@ -126,10 +142,18 @@ public interface MemorySpecOrBuilder extends
    * appears.
    *
    * &#64;internal
-   * Server-stamped from the request context at create, empty for
-   * records created directly through the API (no session in context).
-   * Immutable: provenance is attribution, and attribution that can be
-   * edited is not attribution. Trust requires "where did this come
+   * Capture-path-supplied at create (the Stage 3 provenance decision,
+   * owner-ratified 2026-08-22): the remember tool threads the
+   * agent/session/execution triple from the runner-synthesized
+   * attachment's capture context; a direct API create supplies none and
+   * the field stays empty. tool_call_id is force-cleared in v1 — MCP
+   * cannot carry the harness's tool-call identity to the tool handler.
+   * Trust is per edition: the cloud create handler accepts the triple
+   * only from a session-sandbox credential and overrides session_id
+   * with the token's own claim; OSS single-user local mode stores it as
+   * supplied (every caller is the trusted local operator). Immutable
+   * after create: provenance is attribution, and attribution that can
+   * be edited is not attribution. Trust requires "where did this come
    * from" beside every fact (DD-004); out-of-character proposals carry
    * their origin (DD-005 D6).
    * </pre>

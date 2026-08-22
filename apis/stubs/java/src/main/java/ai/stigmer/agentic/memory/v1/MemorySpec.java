@@ -11,10 +11,12 @@ package ai.stigmer.agentic.memory.v1;
  * came from.
  *
  * &#64;internal
- * Field ownership (DD-004): content is the subject's after capture
- * (editable via the update RPC); subject_identity_account_id and
- * provenance are server-stamped at create and immutable forever after —
- * the update pipeline refuses changes to them (metadata-guard pattern).
+ * Field ownership (DD-004; provenance revised by the Stage 3 decision,
+ * owner-ratified 2026-08-22): content is the subject's after capture
+ * (editable via the update RPC); subject_identity_account_id is
+ * server-derived at create; provenance is capture-path-supplied at
+ * create (see its field doc). Both are immutable forever after — the
+ * update pipeline refuses changes to them (metadata-guard pattern).
  * The consent lifecycle deliberately lives in status, not here: a spec
  * field would let a full-spec update rewrite consent.
  * </pre>
@@ -200,10 +202,18 @@ private static final long serialVersionUID = 0L;
    * appears.
    *
    * &#64;internal
-   * Server-stamped from the request context at create, empty for
-   * records created directly through the API (no session in context).
-   * Immutable: provenance is attribution, and attribution that can be
-   * edited is not attribution. Trust requires "where did this come
+   * Capture-path-supplied at create (the Stage 3 provenance decision,
+   * owner-ratified 2026-08-22): the remember tool threads the
+   * agent/session/execution triple from the runner-synthesized
+   * attachment's capture context; a direct API create supplies none and
+   * the field stays empty. tool_call_id is force-cleared in v1 — MCP
+   * cannot carry the harness's tool-call identity to the tool handler.
+   * Trust is per edition: the cloud create handler accepts the triple
+   * only from a session-sandbox credential and overrides session_id
+   * with the token's own claim; OSS single-user local mode stores it as
+   * supplied (every caller is the trusted local operator). Immutable
+   * after create: provenance is attribution, and attribution that can
+   * be edited is not attribution. Trust requires "where did this come
    * from" beside every fact (DD-004); out-of-character proposals carry
    * their origin (DD-005 D6).
    * </pre>
@@ -221,10 +231,18 @@ private static final long serialVersionUID = 0L;
    * appears.
    *
    * &#64;internal
-   * Server-stamped from the request context at create, empty for
-   * records created directly through the API (no session in context).
-   * Immutable: provenance is attribution, and attribution that can be
-   * edited is not attribution. Trust requires "where did this come
+   * Capture-path-supplied at create (the Stage 3 provenance decision,
+   * owner-ratified 2026-08-22): the remember tool threads the
+   * agent/session/execution triple from the runner-synthesized
+   * attachment's capture context; a direct API create supplies none and
+   * the field stays empty. tool_call_id is force-cleared in v1 — MCP
+   * cannot carry the harness's tool-call identity to the tool handler.
+   * Trust is per edition: the cloud create handler accepts the triple
+   * only from a session-sandbox credential and overrides session_id
+   * with the token's own claim; OSS single-user local mode stores it as
+   * supplied (every caller is the trusted local operator). Immutable
+   * after create: provenance is attribution, and attribution that can
+   * be edited is not attribution. Trust requires "where did this come
    * from" beside every fact (DD-004); out-of-character proposals carry
    * their origin (DD-005 D6).
    * </pre>
@@ -242,10 +260,18 @@ private static final long serialVersionUID = 0L;
    * appears.
    *
    * &#64;internal
-   * Server-stamped from the request context at create, empty for
-   * records created directly through the API (no session in context).
-   * Immutable: provenance is attribution, and attribution that can be
-   * edited is not attribution. Trust requires "where did this come
+   * Capture-path-supplied at create (the Stage 3 provenance decision,
+   * owner-ratified 2026-08-22): the remember tool threads the
+   * agent/session/execution triple from the runner-synthesized
+   * attachment's capture context; a direct API create supplies none and
+   * the field stays empty. tool_call_id is force-cleared in v1 — MCP
+   * cannot carry the harness's tool-call identity to the tool handler.
+   * Trust is per edition: the cloud create handler accepts the triple
+   * only from a session-sandbox credential and overrides session_id
+   * with the token's own claim; OSS single-user local mode stores it as
+   * supplied (every caller is the trusted local operator). Immutable
+   * after create: provenance is attribution, and attribution that can
+   * be edited is not attribution. Trust requires "where did this come
    * from" beside every fact (DD-004); out-of-character proposals carry
    * their origin (DD-005 D6).
    * </pre>
@@ -445,10 +471,12 @@ private static final long serialVersionUID = 0L;
    * came from.
    *
    * &#64;internal
-   * Field ownership (DD-004): content is the subject's after capture
-   * (editable via the update RPC); subject_identity_account_id and
-   * provenance are server-stamped at create and immutable forever after —
-   * the update pipeline refuses changes to them (metadata-guard pattern).
+   * Field ownership (DD-004; provenance revised by the Stage 3 decision,
+   * owner-ratified 2026-08-22): content is the subject's after capture
+   * (editable via the update RPC); subject_identity_account_id is
+   * server-derived at create; provenance is capture-path-supplied at
+   * create (see its field doc). Both are immutable forever after — the
+   * update pipeline refuses changes to them (metadata-guard pattern).
    * The consent lifecycle deliberately lives in status, not here: a spec
    * field would let a full-spec update rewrite consent.
    * </pre>
@@ -911,10 +939,18 @@ private static final long serialVersionUID = 0L;
      * appears.
      *
      * &#64;internal
-     * Server-stamped from the request context at create, empty for
-     * records created directly through the API (no session in context).
-     * Immutable: provenance is attribution, and attribution that can be
-     * edited is not attribution. Trust requires "where did this come
+     * Capture-path-supplied at create (the Stage 3 provenance decision,
+     * owner-ratified 2026-08-22): the remember tool threads the
+     * agent/session/execution triple from the runner-synthesized
+     * attachment's capture context; a direct API create supplies none and
+     * the field stays empty. tool_call_id is force-cleared in v1 — MCP
+     * cannot carry the harness's tool-call identity to the tool handler.
+     * Trust is per edition: the cloud create handler accepts the triple
+     * only from a session-sandbox credential and overrides session_id
+     * with the token's own claim; OSS single-user local mode stores it as
+     * supplied (every caller is the trusted local operator). Immutable
+     * after create: provenance is attribution, and attribution that can
+     * be edited is not attribution. Trust requires "where did this come
      * from" beside every fact (DD-004); out-of-character proposals carry
      * their origin (DD-005 D6).
      * </pre>
@@ -931,10 +967,18 @@ private static final long serialVersionUID = 0L;
      * appears.
      *
      * &#64;internal
-     * Server-stamped from the request context at create, empty for
-     * records created directly through the API (no session in context).
-     * Immutable: provenance is attribution, and attribution that can be
-     * edited is not attribution. Trust requires "where did this come
+     * Capture-path-supplied at create (the Stage 3 provenance decision,
+     * owner-ratified 2026-08-22): the remember tool threads the
+     * agent/session/execution triple from the runner-synthesized
+     * attachment's capture context; a direct API create supplies none and
+     * the field stays empty. tool_call_id is force-cleared in v1 — MCP
+     * cannot carry the harness's tool-call identity to the tool handler.
+     * Trust is per edition: the cloud create handler accepts the triple
+     * only from a session-sandbox credential and overrides session_id
+     * with the token's own claim; OSS single-user local mode stores it as
+     * supplied (every caller is the trusted local operator). Immutable
+     * after create: provenance is attribution, and attribution that can
+     * be edited is not attribution. Trust requires "where did this come
      * from" beside every fact (DD-004); out-of-character proposals carry
      * their origin (DD-005 D6).
      * </pre>
@@ -955,10 +999,18 @@ private static final long serialVersionUID = 0L;
      * appears.
      *
      * &#64;internal
-     * Server-stamped from the request context at create, empty for
-     * records created directly through the API (no session in context).
-     * Immutable: provenance is attribution, and attribution that can be
-     * edited is not attribution. Trust requires "where did this come
+     * Capture-path-supplied at create (the Stage 3 provenance decision,
+     * owner-ratified 2026-08-22): the remember tool threads the
+     * agent/session/execution triple from the runner-synthesized
+     * attachment's capture context; a direct API create supplies none and
+     * the field stays empty. tool_call_id is force-cleared in v1 — MCP
+     * cannot carry the harness's tool-call identity to the tool handler.
+     * Trust is per edition: the cloud create handler accepts the triple
+     * only from a session-sandbox credential and overrides session_id
+     * with the token's own claim; OSS single-user local mode stores it as
+     * supplied (every caller is the trusted local operator). Immutable
+     * after create: provenance is attribution, and attribution that can
+     * be edited is not attribution. Trust requires "where did this come
      * from" beside every fact (DD-004); out-of-character proposals carry
      * their origin (DD-005 D6).
      * </pre>
@@ -984,10 +1036,18 @@ private static final long serialVersionUID = 0L;
      * appears.
      *
      * &#64;internal
-     * Server-stamped from the request context at create, empty for
-     * records created directly through the API (no session in context).
-     * Immutable: provenance is attribution, and attribution that can be
-     * edited is not attribution. Trust requires "where did this come
+     * Capture-path-supplied at create (the Stage 3 provenance decision,
+     * owner-ratified 2026-08-22): the remember tool threads the
+     * agent/session/execution triple from the runner-synthesized
+     * attachment's capture context; a direct API create supplies none and
+     * the field stays empty. tool_call_id is force-cleared in v1 — MCP
+     * cannot carry the harness's tool-call identity to the tool handler.
+     * Trust is per edition: the cloud create handler accepts the triple
+     * only from a session-sandbox credential and overrides session_id
+     * with the token's own claim; OSS single-user local mode stores it as
+     * supplied (every caller is the trusted local operator). Immutable
+     * after create: provenance is attribution, and attribution that can
+     * be edited is not attribution. Trust requires "where did this come
      * from" beside every fact (DD-004); out-of-character proposals carry
      * their origin (DD-005 D6).
      * </pre>
@@ -1011,10 +1071,18 @@ private static final long serialVersionUID = 0L;
      * appears.
      *
      * &#64;internal
-     * Server-stamped from the request context at create, empty for
-     * records created directly through the API (no session in context).
-     * Immutable: provenance is attribution, and attribution that can be
-     * edited is not attribution. Trust requires "where did this come
+     * Capture-path-supplied at create (the Stage 3 provenance decision,
+     * owner-ratified 2026-08-22): the remember tool threads the
+     * agent/session/execution triple from the runner-synthesized
+     * attachment's capture context; a direct API create supplies none and
+     * the field stays empty. tool_call_id is force-cleared in v1 — MCP
+     * cannot carry the harness's tool-call identity to the tool handler.
+     * Trust is per edition: the cloud create handler accepts the triple
+     * only from a session-sandbox credential and overrides session_id
+     * with the token's own claim; OSS single-user local mode stores it as
+     * supplied (every caller is the trusted local operator). Immutable
+     * after create: provenance is attribution, and attribution that can
+     * be edited is not attribution. Trust requires "where did this come
      * from" beside every fact (DD-004); out-of-character proposals carry
      * their origin (DD-005 D6).
      * </pre>
@@ -1045,10 +1113,18 @@ private static final long serialVersionUID = 0L;
      * appears.
      *
      * &#64;internal
-     * Server-stamped from the request context at create, empty for
-     * records created directly through the API (no session in context).
-     * Immutable: provenance is attribution, and attribution that can be
-     * edited is not attribution. Trust requires "where did this come
+     * Capture-path-supplied at create (the Stage 3 provenance decision,
+     * owner-ratified 2026-08-22): the remember tool threads the
+     * agent/session/execution triple from the runner-synthesized
+     * attachment's capture context; a direct API create supplies none and
+     * the field stays empty. tool_call_id is force-cleared in v1 — MCP
+     * cannot carry the harness's tool-call identity to the tool handler.
+     * Trust is per edition: the cloud create handler accepts the triple
+     * only from a session-sandbox credential and overrides session_id
+     * with the token's own claim; OSS single-user local mode stores it as
+     * supplied (every caller is the trusted local operator). Immutable
+     * after create: provenance is attribution, and attribution that can
+     * be edited is not attribution. Trust requires "where did this come
      * from" beside every fact (DD-004); out-of-character proposals carry
      * their origin (DD-005 D6).
      * </pre>
@@ -1071,10 +1147,18 @@ private static final long serialVersionUID = 0L;
      * appears.
      *
      * &#64;internal
-     * Server-stamped from the request context at create, empty for
-     * records created directly through the API (no session in context).
-     * Immutable: provenance is attribution, and attribution that can be
-     * edited is not attribution. Trust requires "where did this come
+     * Capture-path-supplied at create (the Stage 3 provenance decision,
+     * owner-ratified 2026-08-22): the remember tool threads the
+     * agent/session/execution triple from the runner-synthesized
+     * attachment's capture context; a direct API create supplies none and
+     * the field stays empty. tool_call_id is force-cleared in v1 — MCP
+     * cannot carry the harness's tool-call identity to the tool handler.
+     * Trust is per edition: the cloud create handler accepts the triple
+     * only from a session-sandbox credential and overrides session_id
+     * with the token's own claim; OSS single-user local mode stores it as
+     * supplied (every caller is the trusted local operator). Immutable
+     * after create: provenance is attribution, and attribution that can
+     * be edited is not attribution. Trust requires "where did this come
      * from" beside every fact (DD-004); out-of-character proposals carry
      * their origin (DD-005 D6).
      * </pre>
@@ -1092,10 +1176,18 @@ private static final long serialVersionUID = 0L;
      * appears.
      *
      * &#64;internal
-     * Server-stamped from the request context at create, empty for
-     * records created directly through the API (no session in context).
-     * Immutable: provenance is attribution, and attribution that can be
-     * edited is not attribution. Trust requires "where did this come
+     * Capture-path-supplied at create (the Stage 3 provenance decision,
+     * owner-ratified 2026-08-22): the remember tool threads the
+     * agent/session/execution triple from the runner-synthesized
+     * attachment's capture context; a direct API create supplies none and
+     * the field stays empty. tool_call_id is force-cleared in v1 — MCP
+     * cannot carry the harness's tool-call identity to the tool handler.
+     * Trust is per edition: the cloud create handler accepts the triple
+     * only from a session-sandbox credential and overrides session_id
+     * with the token's own claim; OSS single-user local mode stores it as
+     * supplied (every caller is the trusted local operator). Immutable
+     * after create: provenance is attribution, and attribution that can
+     * be edited is not attribution. Trust requires "where did this come
      * from" beside every fact (DD-004); out-of-character proposals carry
      * their origin (DD-005 D6).
      * </pre>
@@ -1116,10 +1208,18 @@ private static final long serialVersionUID = 0L;
      * appears.
      *
      * &#64;internal
-     * Server-stamped from the request context at create, empty for
-     * records created directly through the API (no session in context).
-     * Immutable: provenance is attribution, and attribution that can be
-     * edited is not attribution. Trust requires "where did this come
+     * Capture-path-supplied at create (the Stage 3 provenance decision,
+     * owner-ratified 2026-08-22): the remember tool threads the
+     * agent/session/execution triple from the runner-synthesized
+     * attachment's capture context; a direct API create supplies none and
+     * the field stays empty. tool_call_id is force-cleared in v1 — MCP
+     * cannot carry the harness's tool-call identity to the tool handler.
+     * Trust is per edition: the cloud create handler accepts the triple
+     * only from a session-sandbox credential and overrides session_id
+     * with the token's own claim; OSS single-user local mode stores it as
+     * supplied (every caller is the trusted local operator). Immutable
+     * after create: provenance is attribution, and attribution that can
+     * be edited is not attribution. Trust requires "where did this come
      * from" beside every fact (DD-004); out-of-character proposals carry
      * their origin (DD-005 D6).
      * </pre>

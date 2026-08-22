@@ -164,6 +164,33 @@
       "error": "command not found: boom",
       "status": "TOOL_CALL_FAILED",
       "expected": { "type": "error" }
+    },
+    {
+      "name": "remember_proposal_plain",
+      "harness": "native",
+      "toolName": "remember",
+      "mcpServerSlug": "stigmer-memory",
+      "args": { "fact": "Prefers concise answers with code examples." },
+      "result": "{\"outcome\":\"Proposed — the user decides. Nothing is remembered unless they confirm this fact.\",\"memory\":{\"api_version\":\"agentic.stigmer.ai/v1\",\"kind\":\"Memory\",\"metadata\":{\"id\":\"mem_01test\",\"org\":\"acme\"},\"spec\":{\"content\":\"Prefers concise answers with code examples.\",\"subject_identity_account_id\":\"ida_subject\"},\"status\":{\"lifecycle_state\":\"lifecycle_state_proposed\"}}}",
+      "expected": { "type": "memoryProposal", "memoryId": "mem_01test", "fact": "Prefers concise answers with code examples." }
+    },
+    {
+      "name": "remember_proposal_content_blocks",
+      "harness": "cursor",
+      "toolName": "remember",
+      "mcpServerSlug": "stigmer-memory",
+      "args": { "fact": "Works primarily in Go." },
+      "result": "{\"content\":[{\"type\":\"text\",\"text\":\"{\\\"outcome\\\":\\\"Proposed — the user decides. Nothing is remembered unless they confirm this fact.\\\",\\\"memory\\\":{\\\"metadata\\\":{\\\"id\\\":\\\"mem_02test\\\"},\\\"spec\\\":{\\\"content\\\":\\\"Works primarily in Go.\\\"}}}\"}]}",
+      "expected": { "type": "memoryProposal", "memoryId": "mem_02test", "fact": "Works primarily in Go." }
+    },
+    {
+      "name": "remember_unrecognized_payload_degrades",
+      "harness": "native",
+      "toolName": "remember",
+      "mcpServerSlug": "stigmer-memory",
+      "args": { "fact": "Any fact." },
+      "result": "unexpected plain text",
+      "expected": { "type": "text" }
     }
   ]
 }

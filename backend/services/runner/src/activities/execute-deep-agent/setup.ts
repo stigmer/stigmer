@@ -47,6 +47,10 @@ import {
   readChannelConversationId,
   synthesizeConversationAttachment,
 } from "../../shared/conversation-attachment.js";
+import {
+  memoryCaptureEnabled,
+  synthesizeMemoryAttachment,
+} from "../../shared/memory-attachment.js";
 import { injectSynthesizedAttachment } from "../../shared/synthesized-attachment.js";
 import { shouldConnectMcp } from "./mcp-gate.js";
 import { WorkspaceProvisioner } from "../../shared/workspace/provisioner.js";
@@ -390,11 +394,17 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
     // free, synchronous read, so no hoisted discovery needed.
     const conversationChannelId = readChannelConversationId(session.metadata?.labels);
 
+    // The memory-attachment decision (DD-005 D1): the recall snapshot's
+    // enabled bit, stamped server-side at execution create — like the
+    // conversation attachment, a free, synchronous spec read.
+    const captureMemories = memoryCaptureEnabled(execution.spec?.recalledMemories);
+
     let resolvedMcpServers: Awaited<ReturnType<typeof resolveMcpServers>> | null = null;
     if (shouldConnectMcp({
       mcpServerUsageCount: mcpServerUsages.length,
       channelMessagingCount: channelMessaging.length,
       conversationChannelId,
+      memoryCaptureEnabled: captureMemories,
     })) {
       await reportSetupProgress(client, executionId, "Connecting tools…");
       const transportPosture = resolveMcpTransportPosture(config.mode);
@@ -455,6 +465,32 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
         backfilledServers = injectSynthesizedAttachment(
           backfilledServers, conversationAttachment, "conversation participation",
         );
+      }
+
+      // The memory capture attachment (DD-005 D1) — same after-backfill
+      // rule. The capture context is attribution the server verifies or
+      // trusts per edition (Stage 3 provenance decision); the subject is
+      // never threaded — it derives from the credential.
+      if (captureMemories) {
+        const memoryAttachment = synthesizeMemoryAttachment(
+          execution.spec?.recalledMemories,
+          {
+            org: session.metadata?.org ?? "",
+            agentId: agent.metadata?.id ?? "",
+            sessionId,
+            agentExecutionId: executionId,
+          },
+          {
+            bridgeEndpoint: config.mcpBridgeEndpoint,
+            credential: attachmentCredential,
+            backendEndpoint: config.stigmerBackendEndpoint,
+          },
+        );
+        if (memoryAttachment) {
+          backfilledServers = injectSynthesizedAttachment(
+            backfilledServers, memoryAttachment, "memory capture",
+          );
+        }
       }
       resolvedMcpServers = { resolvedServers: backfilledServers };
       timing.mark("backfill_mcp");
