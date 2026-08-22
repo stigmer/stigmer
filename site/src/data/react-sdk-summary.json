@@ -186,8 +186,8 @@
       "slug": "memory",
       "title": "memory",
       "description": "",
-      "hooks": 5,
-      "components": 1
+      "hooks": 6,
+      "components": 2
     },
     {
       "slug": "models",

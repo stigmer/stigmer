@@ -99,20 +99,6 @@ function ComposerToolbar() {
 
 ## Types
 
-### ComposerAutoApproveProps
-
-Wiring for the always-available "auto-approve tool calls" toggle
-(stigmer/stigmer#816). Presence renders the control; omission keeps the
-toolbar byte-identical for consumers that don't wire it (DD-011).
-
-<TypeTable
-  type={{
-    armed: { type: "boolean", description: "Whether auto-approve is currently armed for this conversation.", required: true },
-    onChange: { type: "(armed: boolean) => void", description: "Called with the next value when the user flips the toggle.", required: true },
-  }}
-/>
-
-
 ### InteractionModeOption
 
 Interaction mode options for agent executions.
@@ -157,7 +143,6 @@ Props for [`SessionComposer`](#sessioncomposer).
   type={{
     agentRef: { type: "ResourceRef | null", description: "Currently selected agent reference, or null if none. When `onAgentRefChange` is provided, an agent trigger appears in the toolbar (single-select)." },
     ariaLabel: { type: "string", description: "ARIA label for the composer region." },
-    autoApprove: { type: "ComposerAutoApproveProps", description: "Always-visible \"auto-approve tool calls\" toggle in the toolbar (stigmer/stigmer#816). Presence renders it; omission keeps the composer byte-identical (DD-011). Stays interactive while the composer is `disabled` — the walk-away user flips it exactly while a turn streams — so consumers must only wire it on surfaces whose viewer may submit approvals (never guest/observer). See ComposerAutoApproveProps.", typeDescriptionLink: "#composerautoapproveprops" },
     autoFocus: { type: "boolean", description: "Auto-focus the textarea on mount." },
     className: { type: "string", description: "Additional CSS class names for the root container." },
     defaultModelId: { type: "string", description: "Initial model ID for the model selector." },

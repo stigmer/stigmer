@@ -147,9 +147,10 @@ describe("OrgPreferencesPanel", () => {
 
   it("saving standing context preserves memory_enabled (the wipe-hazard regression)", async () => {
     const orgWithMemoryOn = create(OrganizationSchema, {
-      ...ORG,
+      metadata: { id: "acme", name: "Acme Corp", slug: "acme", org: "acme" },
       spec: {
-        ...ORG.spec,
+        description: "We make everything.",
+        logoUrl: "https://acme.example/logo.png",
         preferences: {
           standingContext: "We deploy to us-east-1.",
           memoryEnabled: true,
