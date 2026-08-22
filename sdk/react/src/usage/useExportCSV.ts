@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import type { GetOrgUsageReportOutput } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
+import { downloadTextFile } from "../internal/download.js";
 
 /** Export format for the CSV download. */
 export type ExportFormat = "daily_summary" | "model_breakdown";
@@ -41,7 +42,7 @@ export function useExportCSV(
           ? buildDailySummaryCSV(report, orgId)
           : buildModelBreakdownCSV(report, orgId);
 
-        downloadCSV(csv, filename);
+        downloadTextFile(csv, filename, "text/csv");
       } finally {
         setIsExporting(false);
       }
@@ -99,17 +100,4 @@ function escapeCsvField(value: string): string {
     return `"${value.replace(/"/g, '""')}"`;
   }
   return value;
-}
-
-function downloadCSV(csv: string, filename: string): void {
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  link.style.display = "none";
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
 }

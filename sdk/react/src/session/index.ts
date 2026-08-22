@@ -39,6 +39,15 @@ export type {
   UseSessionConversationReturn,
 } from "./useSessionConversation.js";
 
+export { useExportTranscript } from "./useExportTranscript.js";
+export type {
+  UseExportTranscriptOptions,
+  UseExportTranscriptReturn,
+} from "./useExportTranscript.js";
+
+export { TranscriptExportMenu } from "./TranscriptExportMenu.js";
+export type { TranscriptExportMenuProps } from "./TranscriptExportMenu.js";
+
 export { useSessionArtifacts, artifactKey } from "./useSessionArtifacts.js";
 export type {
   SessionArtifactEntry,
