@@ -6,7 +6,7 @@ import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection.js
 import type { WorkspaceFileLister } from "../workspace/WorkspaceFileLister.js";
 import type { WorkspaceFileReader } from "../workspace/WorkspaceFileReader.js";
 import type { WorkspaceContentSearcher } from "../workspace/WorkspaceContentSearcher.js";
-import type { ComposerAutoApproveProps, InteractionModeOption } from "../composer/index.js";
+import type { InteractionModeOption } from "../composer/index.js";
 import { SessionComposer } from "../composer/index.js";
 import type { HarnessOption } from "../models/harness.js";
 import type { AccountExecutionDefaults } from "../identity-account/useAccountExecutionDefaults.js";
@@ -18,6 +18,7 @@ import { useNewSessionFlow } from "./useNewSessionFlow.js";
 import { useSessionPanel } from "./useSessionPanel.js";
 import { useSessionRailViews } from "./useSessionRailViews.js";
 import { SessionPanelChip } from "./SessionPanelChip.js";
+import { AutoApproveIndicator } from "./AutoApproveIndicator.js";
 import type { RuntimeEnvProvider } from "./runtime-env.js";
 import type { SessionAudience, SessionPanelMode } from "./audience.js";
 import type { SessionRunConfig } from "./run-config.js";
@@ -299,19 +300,6 @@ export function NewSessionViewer({
   // SessionViewer derives (DD-016), gating the chip and the region together.
   const panelEnabled = panelMode !== "none" && !isGuest;
 
-  // Always-visible auto-approve toggle (#816), present before the first
-  // message is ever typed — the walk-away user arms it here and the create
-  // carries spec.auto_approve_all server-side. Guests never get it (the
-  // operator-consent reasoning as the #302 host default). Memoized per
-  // DD-010 — the composer is memo'd and an inline object would defeat it.
-  const autoApprove = useMemo<ComposerAutoApproveProps | undefined>(
-    () =>
-      isGuest
-        ? undefined
-        : { armed: flow.autoApproveAll, onChange: flow.setAutoApproveAll },
-    [isGuest, flow.autoApproveAll, flow.setAutoApproveAll],
-  );
-
   // Guest agent binding is host configuration, not a picker interaction:
   // the composer's agent machinery (picker, env-collection, personal
   // environments — all org reads a guest token cannot make) stays fully
@@ -387,6 +375,13 @@ export function NewSessionViewer({
       harness: flow.harness,
       executionTarget: undefined,
       modelId: flow.modelId,
+      // Pre-session arming (#816): the switch covers the session this
+      // surface will create — the bootstrap execution carries
+      // spec.auto_approve_all. Guests never get it (they never render the
+      // panel either — belt and braces for the operator-consent withhold).
+      autoApprove: isGuest
+        ? undefined
+        : { armed: flow.autoApproveAll, onChange: flow.setAutoApproveAll },
       // Curated audiences see the configuration but cannot strip it — the
       // Setup tab renders read-only without mutation callbacks (DD-011).
       mutations: isCurated
@@ -400,6 +395,7 @@ export function NewSessionViewer({
     [
       flow.agentRef, flow.mcpServerUsages, flow.skillRefs,
       flow.sessionVariables, flow.harness, flow.modelId,
+      flow.autoApproveAll, flow.setAutoApproveAll, isGuest,
       isCurated, handleRemoveAgent, handleRemoveMcp, handleRemoveSkill,
     ],
   );
@@ -465,7 +461,6 @@ export function NewSessionViewer({
           onInteractionModeChange={setInteractionMode}
           showInteractionModePicker={!isGuest}
           showModelSelector={modelSelectorVisible}
-          autoApprove={autoApprove}
           enableAttachments={!isGuest}
           defaultModelId={flow.modelId}
           onModelChange={flow.setModelId}
@@ -474,6 +469,14 @@ export function NewSessionViewer({
           autoFocus={autoFocus}
           ariaLabel="Start a new session"
         />
+
+        {/* Armed-only disclosure (#816 rework): a persisted account preference
+            or the host's approvalDefaults can pre-arm the session this surface
+            will create — the user must see that before the first send, with
+            the one-click way off. Guests never inherit either seed. */}
+        {!isGuest && flow.autoApproveAll && (
+          <AutoApproveIndicator onTurnOff={() => flow.setAutoApproveAll(false)} />
+        )}
 
         {footerContent}
 

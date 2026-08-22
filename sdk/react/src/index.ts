@@ -234,6 +234,7 @@ export type {
   SessionRunConfig,
   SetupTabProps,
   SetupTabMutationCallbacks,
+  SetupTabAutoApprove,
 } from "./session/index.js";
 
 // Activity — unified recent activity (sessions + workflow executions)
@@ -551,7 +552,6 @@ export type {
   SessionComposerHandle,
   SessionComposerProps,
   SessionComposerSubmitContext,
-  ComposerAutoApproveProps,
   InteractionModePickerProps,
   InteractionModeOption,
 } from "./composer/index.js";

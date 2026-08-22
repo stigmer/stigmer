@@ -20,6 +20,7 @@ import { HARNESS_META, type HarnessOption } from "../models/harness.js";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
 import { StandingContextField } from "../internal/StandingContextField.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
+import { Switch } from "../switch/Switch.js";
 
 /** Props for {@link AccountPreferencesPanel}. */
 export interface AccountPreferencesPanelProps {
@@ -32,7 +33,8 @@ export interface AccountPreferencesPanelProps {
 /**
  * Self-contained editor for the current user's declared preferences
  * (`IdentityAccountSpec.preferences`): standing context plus the
- * execution defaults (default harness and per-harness default models).
+ * execution defaults (default harness, per-harness default models, and
+ * the auto-approve default).
  *
  * The declared text is snapshotted into the user's own eligible agent
  * executions and delivered to the agent as background context.
@@ -112,12 +114,14 @@ function AccountPreferencesForm({
   const [defaultHarness, setDefaultHarness] = useState("");
   const [defaultNativeModel, setDefaultNativeModel] = useState("");
   const [defaultCursorModel, setDefaultCursorModel] = useState("");
+  const [defaultAutoApprove, setDefaultAutoApprove] = useState(false);
 
   const serverPreferences = account?.spec?.preferences;
   const serverStandingContext = serverPreferences?.standingContext ?? "";
   const serverDefaultHarness = serverPreferences?.defaultHarness ?? "";
   const serverDefaultNativeModel = serverPreferences?.defaultNativeModel ?? "";
   const serverDefaultCursorModel = serverPreferences?.defaultCursorModel ?? "";
+  const serverDefaultAutoApprove = serverPreferences?.defaultAutoApprove ?? false;
 
   // Sync the form fields when server data changes.
   useEffect(() => {
@@ -127,6 +131,7 @@ function AccountPreferencesForm({
     setDefaultHarness(prefs?.defaultHarness ?? "");
     setDefaultNativeModel(prefs?.defaultNativeModel ?? "");
     setDefaultCursorModel(prefs?.defaultCursorModel ?? "");
+    setDefaultAutoApprove(prefs?.defaultAutoApprove ?? false);
   }, [account]);
 
   const hasChanges = useMemo(
@@ -134,16 +139,19 @@ function AccountPreferencesForm({
       standingContext.trim() !== serverStandingContext ||
       defaultHarness !== serverDefaultHarness ||
       defaultNativeModel !== serverDefaultNativeModel ||
-      defaultCursorModel !== serverDefaultCursorModel,
+      defaultCursorModel !== serverDefaultCursorModel ||
+      defaultAutoApprove !== serverDefaultAutoApprove,
     [
       standingContext,
       defaultHarness,
       defaultNativeModel,
       defaultCursorModel,
+      defaultAutoApprove,
       serverStandingContext,
       serverDefaultHarness,
       serverDefaultNativeModel,
       serverDefaultCursorModel,
+      serverDefaultAutoApprove,
     ],
   );
 
@@ -154,12 +162,14 @@ function AccountPreferencesForm({
     setDefaultHarness(serverDefaultHarness);
     setDefaultNativeModel(serverDefaultNativeModel);
     setDefaultCursorModel(serverDefaultCursorModel);
+    setDefaultAutoApprove(serverDefaultAutoApprove);
     clearError();
   }, [
     serverStandingContext,
     serverDefaultHarness,
     serverDefaultNativeModel,
     serverDefaultCursorModel,
+    serverDefaultAutoApprove,
     clearError,
   ]);
 
@@ -183,6 +193,7 @@ function AccountPreferencesForm({
             defaultHarness: defaultHarness || undefined,
             defaultNativeModel: defaultNativeModel || undefined,
             defaultCursorModel: defaultCursorModel || undefined,
+            defaultAutoApprove: defaultAutoApprove || undefined,
           },
         });
         refetch();
@@ -198,6 +209,7 @@ function AccountPreferencesForm({
       defaultHarness,
       defaultNativeModel,
       defaultCursorModel,
+      defaultAutoApprove,
       update,
       clearError,
       refetch,
@@ -330,6 +342,39 @@ function AccountPreferencesForm({
             on that harness — even when it isn&apos;t your default.
           </p>
         </fieldset>
+
+        {/* Auto-approve default (stigmer/stigmer#816): a client-read seed
+            like the harness/model defaults above — the session panel's
+            Config switch beats it per conversation, and armed sessions
+            always show the "Auto-approving tool calls" strip by the
+            composer. Never applied to guest or observer surfaces. */}
+        <div
+          className={cn(
+            "stg:flex stg:items-start stg:justify-between stg:gap-3 stg:rounded-md stg:border stg:border-input stg:px-3 stg:py-2.5",
+            isUpdating && "stg:opacity-50",
+          )}
+        >
+          <div className="stg:min-w-0">
+            <span
+              id={`${baseId}-default-auto-approve-title`}
+              className="stg:block stg:text-xs stg:font-medium stg:text-foreground"
+            >
+              Auto-approve tool calls
+            </span>
+            <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+              Start your sessions with tool calls running unattended — no
+              approval prompts. Each conversation can turn this off (or on)
+              in its session panel.
+            </p>
+          </div>
+          <Switch
+            checked={defaultAutoApprove}
+            onCheckedChange={setDefaultAutoApprove}
+            disabled={isUpdating}
+            aria-labelledby={`${baseId}-default-auto-approve-title`}
+            className="stg:mt-0.5"
+          />
+        </div>
       </div>
 
       {updateError && (

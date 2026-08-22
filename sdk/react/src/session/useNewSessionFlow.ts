@@ -116,6 +116,9 @@ export interface UseNewSessionFlowOptions {
    * - model: stored per-harness choice > the account's model for the
    *   active harness (validated against the registry; a stale model
    *   silently falls through) > the harness default.
+   * - autoApprove: explicit in-session flip > the account's
+   *   `default_auto_approve` > the host's `approvalDefaults` (derived,
+   *   so a late-arriving value applies without a touched-ref effect).
    *
    * Seeded values are never persisted to localStorage — the account
    * preference keeps applying until the user decides. Ignored for the
@@ -221,10 +224,12 @@ export interface UseNewSessionFlowReturn {
   /**
    * Pre-arm "auto-approve tool calls" for the session this surface will
    * create (stigmer/stigmer#816, the walk-away scenario). Seeded from the
-   * host's `StigmerProvider` `approvalDefaults` (#302, guests excluded);
-   * the user's toggle wins from then on. Carried into the bootstrap create
-   * as `spec.auto_approve_all` — the whole-run server-side bypass — so the
-   * first run stays covered even if the user closes the tab.
+   * account's `default_auto_approve` preference and the host's
+   * `StigmerProvider` `approvalDefaults` (#302) — guests inherit neither;
+   * the user's explicit flip (the Config facet switch) wins from then on.
+   * Carried into the bootstrap create as `spec.auto_approve_all` — the
+   * whole-run server-side bypass — so the first run stays covered even if
+   * the user closes the tab.
    */
   readonly autoApproveAll: boolean;
   /** Set the user's explicit auto-approve choice for the created session. */
@@ -323,18 +328,28 @@ export function useNewSessionFlow(
   const contextTarget = useExecutionTarget();
   const executionTarget = options.executionTarget ?? contextTarget;
   const adapter = useRunnerAdapter();
-  // Auto-approve for the session about to be created (#816): the host
-  // approval default (#302) seeds the INITIAL state only; the user's
-  // composer toggle wins from then on. Guests never inherit the default
-  // and never see the toggle — a share-link visitor is not the operator
-  // the host's trust judgment covers (the GUEST_HARNESS
-  // fixed-platform-policy reasoning). Carried into the bootstrap create as
-  // spec.auto_approve_all, the whole-run server-side bypass — the created
-  // run stays covered even if this tab dies before its first gate.
+  // Auto-approve for the session about to be created (#816): derived like
+  // useSessionPageFlow's — the user's explicit flip wins, otherwise the
+  // truth is computed from its seeds:
+  //
+  //   effective = userChoice ?? (accountSeed || hostSeed)
+  //
+  // Derived rather than useState-initialized because the account preference
+  // (default_auto_approve) resolves async with whoAmI — a mount-time
+  // initializer would silently miss it (the harness seed's late-arrival
+  // problem, solved here by derivation instead of a touched-ref effect).
+  // Guests inherit neither seed — a share-link visitor is not the operator
+  // either trust judgment covers (the GUEST_HARNESS fixed-platform-policy
+  // reasoning). Carried into the bootstrap create as spec.auto_approve_all,
+  // the whole-run server-side bypass — the created run stays covered even
+  // if this tab dies before its first gate.
   const approvalDefaults = useApprovalDefaults();
-  const [autoApproveAll, setAutoApproveAll] = useState(
-    () => !isGuest && (approvalDefaults?.autoApproveAll ?? false),
-  );
+  const [autoApproveChoice, setAutoApproveAll] = useState<boolean | null>(null);
+  const autoApproveAll =
+    autoApproveChoice ??
+    (!isGuest &&
+      ((accountDefaults?.autoApprove ?? false) ||
+        (approvalDefaults?.autoApproveAll ?? false)));
 
   const [harness, setHarnessRaw] = useState<HarnessOption>(() => {
     // Guests get the fixed platform policy (see GUEST_HARNESS) and never

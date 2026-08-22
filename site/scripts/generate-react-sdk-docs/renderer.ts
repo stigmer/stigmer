@@ -42,7 +42,9 @@ export const DOMAIN_GROUPS: readonly DomainGroup[] = [
   },
   {
     label: "Tools & Knowledge",
-    slugs: ["mcp-server", "skill", "library"],
+    // memory is the agent's consent-gated knowledge about the user —
+    // knowledge surface, not identity plumbing.
+    slugs: ["mcp-server", "skill", "library", "memory"],
   },
   {
     label: "Environment & Config",

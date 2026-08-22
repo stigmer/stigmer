@@ -183,6 +183,13 @@
       "components": 10
     },
     {
+      "slug": "memory",
+      "title": "memory",
+      "description": "",
+      "hooks": 5,
+      "components": 1
+    },
+    {
       "slug": "models",
       "title": "Models",
       "description": "Hooks and components for model registry data and selector.",
@@ -249,15 +256,15 @@
       "slug": "session",
       "title": "Session",
       "description": "Hooks for session lifecycle, message history, conversation state, and usage tracking.",
-      "hooks": 20,
-      "components": 6
+      "hooks": 21,
+      "components": 7
     },
     {
       "slug": "settings",
       "title": "Settings",
       "description": "Pre-composed settings sections for organization console embedding.",
       "hooks": 1,
-      "components": 12
+      "components": 13
     },
     {
       "slug": "sharing",

@@ -163,4 +163,25 @@ public interface IdentityAccountPreferencesOrBuilder extends
    * @return The memoryEnabled.
    */
   boolean getMemoryEnabled();
+
+  /**
+   * <pre>
+   * Whether new interactive sessions start with "auto-approve tool calls"
+   * armed. Off by default — sessions prompt at each approval gate.
+   *
+   * &#64;internal
+   * A CLIENT-READ seed like default_harness/default_*_model (DD-003's
+   * resolution-point rule): clients read it to seed the session-scoped
+   * auto-approve state, and an armed session rides each execution spec
+   * explicitly (execution_config.auto_approve_all). The server NEVER reads
+   * this field at execution create — it is a UI default, not a server-side
+   * blanket grant. Client precedence: explicit in-session flip &gt; this
+   * account default &gt; the host app's StigmerProvider approvalDefaults &gt;
+   * fail-closed (gated). Never applied to guest/observer surfaces.
+   * </pre>
+   *
+   * <code>bool default_auto_approve = 6 [json_name = "defaultAutoApprove"];</code>
+   * @return The defaultAutoApprove.
+   */
+  boolean getDefaultAutoApprove();
 }

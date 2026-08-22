@@ -68,6 +68,16 @@
       },
       "description": "Whether the platform may remember confirmed facts about this\n account. Off by default; operative only where the organization has\n also enabled memory.",
       "required": false
+    },
+    {
+      "name": "DefaultAutoApprove",
+      "jsonName": "defaultAutoApprove",
+      "protoField": "default_auto_approve",
+      "type": {
+        "kind": "bool"
+      },
+      "description": "Whether new interactive sessions start with \"auto-approve tool calls\"\n armed. Off by default — sessions prompt at each approval gate.",
+      "required": false
     }
   ]
 }

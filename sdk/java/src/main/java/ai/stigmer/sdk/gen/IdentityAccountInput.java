@@ -147,6 +147,7 @@ public final class IdentityAccountInput {
         private final String defaultNativeModel;
         private final String defaultCursorModel;
         private final boolean memoryEnabled;
+        private final boolean defaultAutoApprove;
 
         private IdentityAccountPreferencesInput(Builder builder) {
             this.standingContext = builder.standingContext;
@@ -154,6 +155,7 @@ public final class IdentityAccountInput {
             this.defaultNativeModel = builder.defaultNativeModel;
             this.defaultCursorModel = builder.defaultCursorModel;
             this.memoryEnabled = builder.memoryEnabled;
+            this.defaultAutoApprove = builder.defaultAutoApprove;
         }
 
         IdentityAccountPreferences toProto() {
@@ -171,6 +173,7 @@ public final class IdentityAccountInput {
                 builder.setDefaultCursorModel(this.defaultCursorModel);
             }
             builder.setMemoryEnabled(this.memoryEnabled);
+            builder.setDefaultAutoApprove(this.defaultAutoApprove);
             return builder.build();
         }
 
@@ -182,6 +185,7 @@ public final class IdentityAccountInput {
             private String defaultNativeModel;
             private String defaultCursorModel;
             private boolean memoryEnabled;
+            private boolean defaultAutoApprove;
 
             private Builder() {}
 
@@ -190,6 +194,7 @@ public final class IdentityAccountInput {
             public Builder defaultNativeModel(String defaultNativeModel) { this.defaultNativeModel = defaultNativeModel; return this; }
             public Builder defaultCursorModel(String defaultCursorModel) { this.defaultCursorModel = defaultCursorModel; return this; }
             public Builder memoryEnabled(boolean memoryEnabled) { this.memoryEnabled = memoryEnabled; return this; }
+            public Builder defaultAutoApprove(boolean defaultAutoApprove) { this.defaultAutoApprove = defaultAutoApprove; return this; }
 
             public IdentityAccountPreferencesInput build() { return new IdentityAccountPreferencesInput(this); }
         }

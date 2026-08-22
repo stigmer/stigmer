@@ -16,6 +16,13 @@ export interface AccountExecutionDefaults {
   readonly nativeModel?: string;
   /** Preferred model for cursor-harness sessions, when declared. */
   readonly cursorModel?: string;
+  /**
+   * Start sessions with "auto-approve tool calls" armed
+   * (`default_auto_approve`, stigmer/stigmer#816). A seed like every other
+   * field here: an explicit in-session flip beats it for that conversation,
+   * and it is never applied to guest/observer surfaces.
+   */
+  readonly autoApprove?: boolean;
 }
 
 /**
@@ -56,8 +63,11 @@ export function useAccountExecutionDefaults(): AccountExecutionDefaults | undefi
         : undefined;
     const nativeModel = prefs.defaultNativeModel || undefined;
     const cursorModel = prefs.defaultCursorModel || undefined;
+    // Only a declared `true` travels — an unset bool is "no preference",
+    // matching the empty-string convention of the fields above.
+    const autoApprove = prefs.defaultAutoApprove || undefined;
 
-    if (!harness && !nativeModel && !cursorModel) return undefined;
-    return { harness, nativeModel, cursorModel };
+    if (!harness && !nativeModel && !cursorModel && !autoApprove) return undefined;
+    return { harness, nativeModel, cursorModel, autoApprove };
   }, [account]);
 }

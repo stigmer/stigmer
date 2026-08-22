@@ -4,6 +4,7 @@ import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexe
 import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { useSessionUsage, type ExecutionUsageEntry } from "../useSessionUsage.js";
 import { UsageWidget, formatCost } from "../../execution/UsageWidget.js";
+import { FacetSection } from "./primitives.js";
 
 export interface UsageTabProps {
   readonly executions: readonly AgentExecution[];
@@ -21,7 +22,8 @@ export interface UsageTabProps {
  * left in control). Requested-vs-billed divergence is a platform alarm
  * (`stigmer.billing.service_tier.mismatch`), not a per-row UI concern.
  *
- * Shows an empty state when no usage data is available.
+ * Rendered in the session panel's shared facet vocabulary (see
+ * `./primitives.tsx`). Shows an empty state when no usage data is available.
  */
 export function UsageTab({ executions }: UsageTabProps) {
   const usage = useSessionUsage(executions);
@@ -37,7 +39,7 @@ export function UsageTab({ executions }: UsageTabProps) {
   }
 
   return (
-    <div className="stg:flex stg:flex-col stg:gap-4">
+    <div className="stg:flex stg:flex-col stg:gap-5">
       <UsageWidget executions={executions} />
       {usage.executionBreakdown.length > 0 && (
         <ExecutionModelList
@@ -61,43 +63,41 @@ function ExecutionModelList({
   readonly executions: readonly AgentExecution[];
 }) {
   return (
-    <div
-      className="stg:flex stg:flex-col stg:gap-1"
-      role="list"
-      aria-label="Per-execution model and tier"
-    >
-      <div className="stg:text-xs stg:font-medium stg:text-foreground">
-        Models per run
+    <FacetSection heading="Models per run">
+      <div role="list" aria-label="Per-execution model and tier" className="stg:flex stg:flex-col">
+        {entries.map((entry, index) => {
+          const requestedTier = requestedTierLabel(executions, entry.executionId);
+          return (
+            <div
+              key={entry.executionId}
+              className="stg:flex stg:items-baseline stg:justify-between stg:gap-2 stg:px-2 stg:py-1 stg:text-xs"
+              role="listitem"
+            >
+              <span className="stg:min-w-0 stg:truncate stg:text-foreground">
+                <span className="stg:tabular-nums stg:text-muted-foreground">
+                  #{index + 1}
+                </span>{" "}
+                {entry.resolvedModel || "—"}
+                {requestedTier && <RowBadge>{requestedTier} requested</RowBadge>}
+                {entry.isEstimated && <RowBadge>Estimated</RowBadge>}
+              </span>
+              <span className="stg:shrink-0 stg:tabular-nums stg:text-[0.65rem] stg:text-muted-foreground">
+                {formatCost(entry.billableCostUsd)}
+              </span>
+            </div>
+          );
+        })}
       </div>
-      {entries.map((entry, index) => {
-        const requestedTier = requestedTierLabel(executions, entry.executionId);
-        return (
-          <div
-            key={entry.executionId}
-            className="stg:flex stg:items-baseline stg:justify-between stg:gap-2 stg:text-xs stg:text-muted-foreground"
-            role="listitem"
-          >
-            <span className="stg:truncate">
-              <span className="stg:tabular-nums">#{index + 1}</span>{" "}
-              {entry.resolvedModel || "—"}
-              {requestedTier && (
-                <span className="stg:ml-1 stg:rounded stg:bg-muted stg:px-1 stg:py-0.5 stg:text-[10px] stg:font-medium stg:leading-none">
-                  {requestedTier} requested
-                </span>
-              )}
-              {entry.isEstimated && (
-                <span className="stg:ml-1 stg:rounded stg:bg-muted stg:px-1 stg:py-0.5 stg:text-[10px] stg:font-medium stg:leading-none">
-                  Estimated
-                </span>
-              )}
-            </span>
-            <span className="stg:shrink-0 stg:tabular-nums">
-              {formatCost(entry.billableCostUsd)}
-            </span>
-          </div>
-        );
-      })}
-    </div>
+    </FacetSection>
+  );
+}
+
+/** Quiet inline qualifier chip for a provenance row. */
+function RowBadge({ children }: { readonly children: React.ReactNode }) {
+  return (
+    <span className="stg:ml-1 stg:rounded stg:bg-muted stg:px-1 stg:py-0.5 stg:text-[0.6rem] stg:font-medium stg:leading-none stg:text-muted-foreground">
+      {children}
+    </span>
   );
 }
 

@@ -20,6 +20,7 @@
     "mcp-server",
     "skill",
     "library",
+    "memory",
     "---Environment & Config---",
     "environment",
     "workspace",

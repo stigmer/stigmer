@@ -867,7 +867,7 @@ when `bytes` carries a renderable image.
 <TypeTable
   type={{
     bytes: { type: "Uint8Array<ArrayBufferLike>", description: "The complete raw bytes, populated **only** for binary files that are renderable images (workspaceImageMimeType) within MAX_WORKSPACE_IMAGE_READ_BYTES — never a channel for arbitrary binaries, and never partial (a truncated image cannot render). Optional and additive: readers that predate it remain valid, and the viewer falls back to the binary notice when it is absent (stigmer/stigmer#379)." },
-    encoding: { type: "\"unknown\" | \"none\" | \"utf-8\" | \"base64\"", description: "How the backend delivered the bytes. `\"none\"` is GitHub's >1 MB signal.", required: true },
+    encoding: { type: "\"unknown\" | \"utf-8\" | \"none\" | \"base64\"", description: "How the backend delivered the bytes. `\"none\"` is GitHub's >1 MB signal.", required: true },
     isBinary: { type: "boolean", description: "Whether the bytes were detected as binary (NUL-byte heuristic).", required: true },
     size: { type: "number", description: "Full file size in bytes — independent of truncation.", required: true },
     text: { type: "string | null", description: "Decoded UTF-8 text, or `null` when binary or undecodable.", required: true },

@@ -12,7 +12,7 @@ import { DeploymentModeContext } from "../../deployment-mode";
 import { useAccountExecutionDefaults } from "../useAccountExecutionDefaults";
 
 function accountWithPreferences(
-  preferences: Record<string, string>,
+  preferences: Record<string, string | boolean>,
 ): IdentityAccount {
   return create(IdentityAccountSchema, {
     metadata: { id: "ia-1", name: "Ada", slug: "ada", org: "acme" },
@@ -100,6 +100,39 @@ describe("useAccountExecutionDefaults", () => {
         cursorModel: undefined,
       }),
     );
+  });
+
+  it("a declared auto-approve default alone counts as a declared default", async () => {
+    const whoAmI = vi.fn(async () =>
+      accountWithPreferences({ defaultAutoApprove: true }),
+    );
+    const { result } = renderHook(() => useAccountExecutionDefaults(), {
+      wrapper: createWrapper(whoAmI),
+    });
+
+    await waitFor(() =>
+      expect(result.current).toEqual({
+        harness: undefined,
+        nativeModel: undefined,
+        cursorModel: undefined,
+        autoApprove: true,
+      }),
+    );
+  });
+
+  it("an unset auto-approve bool is no preference, not an explicit false", async () => {
+    const whoAmI = vi.fn(async () =>
+      accountWithPreferences({
+        defaultHarness: "native",
+        defaultAutoApprove: false,
+      }),
+    );
+    const { result } = renderHook(() => useAccountExecutionDefaults(), {
+      wrapper: createWrapper(whoAmI),
+    });
+
+    await waitFor(() => expect(result.current?.harness).toBe("native"));
+    expect(result.current?.autoApprove).toBeUndefined();
   });
 
   it("returns undefined on a whoAmI failure — degrades to platform defaults", async () => {

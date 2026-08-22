@@ -231,6 +231,93 @@ describe("useSessionPageFlow — host-set approval default (#302)", () => {
   });
 });
 
+describe("useSessionPageFlow — account preference seed (default_auto_approve)", () => {
+  beforeEach(() => {
+    mockSubmitApproval.mockResolvedValue(undefined);
+  });
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("arms autoApproveAll from the account preference", () => {
+    const { result } = renderHook(() =>
+      useSessionPageFlow({ ...OPTS, accountDefaults: { autoApprove: true } }),
+    );
+    expect(result.current.autoApproveAll).toBe(true);
+  });
+
+  it("a LATE-arriving preference still applies (whoAmI resolves async)", () => {
+    // The preference is part of the derivation, not a mount-time
+    // initializer — a value arriving after mount must not be missed.
+    const initialProps: { accountDefaults?: { autoApprove?: boolean } } = {};
+    const { result, rerender } = renderHook(
+      ({ accountDefaults }: typeof initialProps) =>
+        useSessionPageFlow({ ...OPTS, accountDefaults }),
+      { initialProps },
+    );
+    expect(result.current.autoApproveAll).toBe(false);
+
+    rerender({ accountDefaults: { autoApprove: true } });
+    expect(result.current.autoApproveAll).toBe(true);
+  });
+
+  it("a late arrival never overrides an explicit in-session OFF", () => {
+    const initialProps: { accountDefaults?: { autoApprove?: boolean } } = {};
+    const { result, rerender } = renderHook(
+      ({ accountDefaults }: typeof initialProps) =>
+        useSessionPageFlow({ ...OPTS, accountDefaults }),
+      { initialProps },
+    );
+    act(() => {
+      result.current.setAutoApproveAll(false);
+    });
+
+    rerender({ accountDefaults: { autoApprove: true } });
+    expect(result.current.autoApproveAll).toBe(false);
+  });
+
+  it("the user's Turn off beats the preference for this session only", async () => {
+    const { result } = renderHook(() =>
+      useSessionPageFlow({ ...OPTS, accountDefaults: { autoApprove: true } }),
+    );
+
+    act(() => {
+      result.current.setAutoApproveAll(false);
+    });
+    expect(result.current.autoApproveAll).toBe(false);
+
+    await act(async () => {
+      await result.current.handleSubmit("after turn off");
+    });
+    const followUpOpts = mockSendFollowUp.mock.calls.at(-1)?.[1];
+    expect(followUpOpts.autoApproveAll).toBeUndefined();
+  });
+
+  it("carries the preference-armed state into follow-ups", async () => {
+    const { result } = renderHook(() =>
+      useSessionPageFlow({ ...OPTS, accountDefaults: { autoApprove: true } }),
+    );
+
+    await act(async () => {
+      await result.current.handleSubmit("first message");
+    });
+
+    const followUpOpts = mockSendFollowUp.mock.calls[0][1];
+    expect(followUpOpts.autoApproveAll).toBe(true);
+  });
+
+  it("guests never inherit the account preference", () => {
+    const { result } = renderHook(() =>
+      useSessionPageFlow({
+        ...OPTS,
+        audience: "guest",
+        accountDefaults: { autoApprove: true },
+      }),
+    );
+    expect(result.current.autoApproveAll).toBe(false);
+  });
+});
+
 describe("useSessionPageFlow — arming derived from the in-flight run (#816)", () => {
   afterEach(() => {
     mockConv.activeStreamExecution = null;
