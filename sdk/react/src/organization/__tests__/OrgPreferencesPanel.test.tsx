@@ -125,6 +125,70 @@ describe("OrgPreferencesPanel", () => {
     expect(screen.queryByRole("button", { name: "Save changes" })).toBeNull();
   });
 
+  it("memory toggle applies instantly with the full mapped input (wipe-safe)", async () => {
+    const update = vi.fn(async (_input: OrganizationInput) => ORG);
+    renderPanel(createMockStigmer({ update }));
+    await findSyncedField("We deploy to us-east-1.");
+
+    // No Save click: consent applies the moment it is flipped (the
+    // UX-checkpoint decision — a flipped-but-unsaved consent bit that
+    // silently reverts on navigation is the failure this prevents).
+    fireEvent.click(screen.getByRole("switch", { name: "Memory" }));
+
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+    const input = update.mock.calls[0]![0];
+    expect(input.preferences?.memoryEnabled).toBe(true);
+    // The double spread: the flip must not wipe the sibling preference…
+    expect(input.preferences?.standingContext).toBe("We deploy to us-east-1.");
+    // …nor any profile field this row never renders.
+    expect(input.name).toBe("Acme Corp");
+    expect(input.description).toBe("We make everything.");
+  });
+
+  it("saving standing context preserves memory_enabled (the wipe-hazard regression)", async () => {
+    const orgWithMemoryOn = create(OrganizationSchema, {
+      ...ORG,
+      spec: {
+        ...ORG.spec,
+        preferences: {
+          standingContext: "We deploy to us-east-1.",
+          memoryEnabled: true,
+        },
+      },
+    });
+    const update = vi.fn(async (_input: OrganizationInput) => orgWithMemoryOn);
+    const client = {
+      organization: {
+        get: vi.fn(async () => orgWithMemoryOn),
+        update,
+      },
+      iamPolicy: {
+        checkMyPermission: vi.fn(async () => ({ isAuthorized: true })),
+      },
+    } as never;
+    renderPanel(client);
+
+    const field = await findSyncedField("We deploy to us-east-1.");
+    fireEvent.change(field, { target: { value: "Prefer terse answers." } });
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+    // Update is a full-spec replace: without the nested preferences
+    // spread, this save would silently switch the org's memory OFF.
+    expect(update.mock.calls[0]![0].preferences?.memoryEnabled).toBe(true);
+  });
+
+  it("memory toggle is read-only without can_edit", async () => {
+    renderPanel(createMockStigmer({ canEdit: false }));
+    await screen.findByLabelText("Standing context");
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("switch", { name: "Memory" }).hasAttribute("disabled"),
+      ).toBe(true),
+    );
+  });
+
   it("shows the fetch error with a retry action when loading fails", async () => {
     const client = {
       organization: {

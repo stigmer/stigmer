@@ -56,6 +56,10 @@ export const DOMAIN_GROUPS: readonly DomainGroup[] = [
       "access",
       "identity-provider",
       "identity-account",
+      // Memory records are ABOUT the identity account (DD-004's subject
+      // relationship) and are managed beside its preferences — the same
+      // reasoning that placed MemorySection under settings → Account.
+      "memory",
       "invitation",
       "oauth-app",
       "api-key",

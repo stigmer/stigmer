@@ -65,10 +65,19 @@ const (
 //     sentinel — the OSS single-user subject (the OAuth grant store
 //     convention). Server-derived, never client-supplied (DD-005 D2):
 //     the cloud edition writes the caller's identity account here.
-//  4. Overwrites spec.provenance with what the server can derive from
-//     the request context — nothing, for a direct RPC create (no session
-//     in context), so the field is cleared. The field is server-owned;
-//     a caller cannot dress up a record with forged attribution.
+//  4. Stores spec.provenance as supplied (Stage 3 provenance decision,
+//     owner-ratified 2026-08-22): the capture path — the remember tool
+//     via the runner-synthesized attachment — threads the agent/session/
+//     execution triple, and in OSS single-user local mode every caller
+//     IS the trusted local operator, so supplied attribution is stored
+//     rather than cleared. A direct create simply supplies none and the
+//     field stays empty. tool_call_id is force-cleared: MCP cannot carry
+//     the harness's tool-call identity in v1, so a supplied value could
+//     only be an invention. The cloud edition is stricter — it accepts
+//     the triple only from a session-sandbox credential and overrides
+//     session/org with the token's own claims. Post-create the field is
+//     immutable either way (validateMemoryUpdateStep): attribution that
+//     can be edited is not attribution.
 type resolveMemoryDefaultsStep struct{}
 
 func (s *resolveMemoryDefaultsStep) Name() string {
@@ -90,10 +99,16 @@ func (s *resolveMemoryDefaultsStep) Execute(ctx *pipeline.RequestContext[*memory
 		metadata.Name = metadata.GetId()
 	}
 
-	// Server-owned identity fields (DD-005 D2). The OSS sentinel; the
-	// cloud edition derives both from the calling credential/context.
+	// The subject stays server-owned (DD-005 D2): the OSS sentinel; the
+	// cloud edition derives it from the calling credential.
 	memory.Spec.SubjectIdentityAccountId = ""
-	memory.Spec.Provenance = nil
+
+	// Provenance is capture-path-supplied (see the step doc, point 4);
+	// only tool_call_id is force-cleared — unreachable via MCP in v1, so
+	// a supplied value could only be an invention.
+	if memory.Spec.GetProvenance() != nil {
+		memory.Spec.Provenance.ToolCallId = ""
+	}
 
 	return nil
 }

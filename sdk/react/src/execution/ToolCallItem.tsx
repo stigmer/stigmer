@@ -26,6 +26,7 @@ import { TerminalTail } from "./TerminalSession.js";
 import { ToolCallDetail, formatHeaderDuration } from "./ToolCallDetail.js";
 import { SubAgentSection } from "./SubAgentSection.js";
 import { ApprovalCardBody } from "./ApprovalCard.js";
+import { MemoryProposalCardBody } from "../memory/MemoryProposalCard.js";
 import { useApproval } from "./ApprovalContext.js";
 import { useFileReviewRowState } from "./FileReviewContext.js";
 import type { FileReviewRowState } from "./file-review-status.js";
@@ -351,7 +352,8 @@ export const ToolCallItem = memo(function ToolCallItem({
     (disclosure === "preview" || (isTailCategory && tailSession == null));
 
   // The disclosed body, shared by both layouts: a pending gate decides inline,
-  // a sub-agent shows its delegation, otherwise the category detail.
+  // a sub-agent shows its delegation, a settled remember call renders the
+  // memory-proposal consent surface, otherwise the category detail.
   const body = isSubAgent ? (
     <SubAgentSection subAgentExecution={subAgentExecution} collapsible={false} />
   ) : approval ? (
@@ -364,6 +366,12 @@ export const ToolCallItem = memo(function ToolCallItem({
       isSubmitting={approval.isSubmitting}
       error={approval.error}
     />
+  ) : result.type === "memoryProposal" ? (
+    // The remember tool's consent chip (DD-005 D4): verbatim fact +
+    // Confirm/Reject, with the record's CURRENT lifecycle fetched so a
+    // reloaded thread never shows stale action buttons. Borderless — this
+    // row's card owns the chrome (the ApprovalCardBody posture).
+    <MemoryProposalCardBody memoryId={result.memoryId} fact={result.fact} />
   ) : (
     <ToolCallDetail
       toolCall={toolCall}
@@ -608,8 +616,17 @@ export const CATEGORY_ICON: Record<ToolCategory, () => React.JSX.Element> = {
   "sub-agent": BotIcon,
   internal: WrenchIcon,
   mcp: McpPlugIcon,
+  memory: BookmarkIcon,
   unknown: WrenchIcon,
 };
+
+function BookmarkIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 11L6 8.5L3 11V2.5C3 1.95 3.45 1.5 4 1.5H8C8.55 1.5 9 1.95 9 2.5V11Z" />
+    </svg>
+  );
+}
 
 function GlobeIcon() {
   return (

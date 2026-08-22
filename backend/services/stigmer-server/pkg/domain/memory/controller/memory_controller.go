@@ -10,10 +10,14 @@
 // Session/AgentExecution/Artifact family: records the platform creates
 // that users inspect and manage.
 //
-// Field ownership (DD-004): spec.content is the subject's after capture
-// (editable via update); spec.subject_identity_account_id and
-// spec.provenance are server-stamped at create and immutable forever
-// after; status.lifecycle_state is written ONLY by create (initial
+// Field ownership (DD-004, provenance revised by the Stage 3 decision,
+// owner-ratified 2026-08-22): spec.content is the subject's after
+// capture (editable via update); spec.subject_identity_account_id is
+// server-derived at create and immutable forever; spec.provenance is
+// capture-path-supplied at create (the remember tool threads it; direct
+// creates leave it empty; tool_call_id force-cleared in v1) and
+// immutable forever after — attribution that can be edited is not
+// attribution; status.lifecycle_state is written ONLY by create (initial
 // proposed) and the confirm/reject commands. Updates graft
 // metadata+spec+status.audit onto the live row and never touch the
 // lifecycle — consent must not be rewritable through a spec edit.

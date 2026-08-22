@@ -52,6 +52,7 @@ class ToolKind(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     TOOL_KIND_TODO: _ClassVar[ToolKind]
     TOOL_KIND_SUBAGENT: _ClassVar[ToolKind]
     TOOL_KIND_MCP: _ClassVar[ToolKind]
+    TOOL_KIND_MEMORY: _ClassVar[ToolKind]
 
 class TodoStatus(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -285,6 +286,7 @@ TOOL_KIND_THINK: ToolKind
 TOOL_KIND_TODO: ToolKind
 TOOL_KIND_SUBAGENT: ToolKind
 TOOL_KIND_MCP: ToolKind
+TOOL_KIND_MEMORY: ToolKind
 TODO_STATUS_UNSPECIFIED: TodoStatus
 TODO_PENDING: TodoStatus
 TODO_IN_PROGRESS: TodoStatus

@@ -31,6 +31,11 @@ import { registerEnvironmentTools } from "./domains/environments/tools.js";
 import { registerExecutionControlTools } from "./domains/executions/tools.js";
 import { registerMcpServerResources } from "./domains/mcpservers/resources.js";
 import { registerMcpServerTools } from "./domains/mcpservers/tools.js";
+import {
+  loadCaptureContextFromEnv,
+  type CaptureContext,
+} from "./domains/memory/context.js";
+import { registerMemoryTools } from "./domains/memory/tools.js";
 import { registerSearchTools } from "./domains/search/tools.js";
 import { registerSkillResources } from "./domains/skills/resources.js";
 import { registerSkillTools } from "./domains/skills/tools.js";
@@ -104,6 +109,29 @@ export function createConversationServer(target: BackendTarget): McpServer {
   });
   const tools = registerConversationTools(server, target);
   log.info("tools registered (conversation roster)", { count: tools.length, tools });
+  return server;
+}
+
+/**
+ * Build a memory-only MCP server: remember with the agent-facing argument
+ * surface, and nothing else (DD-005 D1 — the channels-roster pattern).
+ * This is the roster the runner-synthesized memory attachment connects
+ * to; the structural guarantee mirrors the channels roster's. Served on
+ * the /memory HTTP route and as the stdio roster when
+ * STIGMER_MCP_ROSTER=memory.
+ *
+ * `startupContext` is the stdio-shape capture context, read from the
+ * runner-set STIGMER_MEMORY_* environment at construction (the startup
+ * API key pattern). Over HTTP each request's provenance headers
+ * supersede it, so the http factory's env read is a harmless no-op.
+ */
+export function createMemoryServer(
+  target: BackendTarget,
+  startupContext: CaptureContext = loadCaptureContextFromEnv(),
+): McpServer {
+  const server = new McpServer({ name: "mcp-server-stigmer-memory", version: SERVER_VERSION });
+  const tools = registerMemoryTools(server, target, startupContext);
+  log.info("tools registered (memory roster)", { count: tools.length, tools });
   return server;
 }
 
@@ -193,10 +221,14 @@ export const CHANNELS_ROUTE = "/channels";
 /** HTTP route serving the conversation-only roster (channel-conversations A14). */
 export const CONVERSATION_ROUTE = "/conversation";
 
+/** HTTP route serving the memory-only roster (memory capture, DD-005 D1). */
+export const MEMORY_ROUTE = "/memory";
+
 /**
  * The standard HTTP route dispatch: the full roster on {@link FULL_ROUTE},
  * the channels-only roster on {@link CHANNELS_ROUTE}, the
- * conversation-only roster on {@link CONVERSATION_ROUTE} — and NOTHING
+ * conversation-only roster on {@link CONVERSATION_ROUTE}, the
+ * memory-only roster on {@link MEMORY_ROUTE} — and NOTHING
  * anywhere else.
  *
  * The closed route table is load-bearing, not tidiness. This dispatch
@@ -214,6 +246,7 @@ export function routedServerFactory(target: BackendTarget): RouteServerFactory {
     if (path === FULL_ROUTE) return createServer(target);
     if (path === CHANNELS_ROUTE) return createChannelsServer(target);
     if (path === CONVERSATION_ROUTE) return createConversationServer(target);
+    if (path === MEMORY_ROUTE) return createMemoryServer(target);
     return undefined;
   };
 }
@@ -425,12 +458,13 @@ async function routeRequest(
 }
 
 /**
- * The stdio server for the configured roster: the channels-only roster
- * when STIGMER_MCP_ROSTER names it (what the OSS runner-synthesized
- * attachment spawns), the full roster otherwise.
+ * The stdio server for the configured roster: the channels-only or
+ * memory-only roster when STIGMER_MCP_ROSTER names one (what the OSS
+ * runner-synthesized attachments spawn), the full roster otherwise.
  */
 export function stdioServer(target: BackendTarget, cfg: Config): McpServer {
   if (cfg.roster === "channels") return createChannelsServer(target);
+  if (cfg.roster === "memory") return createMemoryServer(target);
   return createServer(target);
 }
 

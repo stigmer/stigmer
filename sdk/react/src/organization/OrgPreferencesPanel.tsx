@@ -7,6 +7,7 @@ import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organizati
 import { useOrganization } from "./useOrganization.js";
 import { useUpdateOrganization } from "./useUpdateOrganization.js";
 import { useCheckPermission } from "../iam-policy/useCheckPermission.js";
+import { MemoryEnabledRow } from "../internal/MemoryEnabledRow.js";
 import { StandingContextField } from "../internal/StandingContextField.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 
@@ -60,6 +61,14 @@ export function OrgPreferencesPanel({
     clearError,
   } = useUpdateOrganization();
 
+  // The memory toggle saves instantly (its own hook instance, so a flip's
+  // in-flight/error state never bleeds into the form's Save button).
+  const {
+    update: updateMemoryFlag,
+    isUpdating: isSavingMemoryFlag,
+    error: memoryFlagError,
+  } = useUpdateOrganization();
+
   // Fail-open: OSS local mode has no IAM service, so editing stays
   // available there; cloud gets a genuine server verdict.
   const { allowed: canEdit } = useCheckPermission(
@@ -100,10 +109,16 @@ export function OrgPreferencesPanel({
       clearError();
       try {
         // update() is a full-spec replace: spread the complete mapped input
-        // so unedited spec fields survive, and override only preferences.
+        // so unedited spec fields survive. `preferences` is a nested message,
+        // so the override spreads the mapper's COMPLETE preferences too —
+        // fields this form does not own (memory_enabled) survive the save.
+        const mapped = toOrganizationUpdateInput(organization);
         const updated = await update({
-          ...toOrganizationUpdateInput(organization),
-          preferences: { standingContext: standingContext.trim() || undefined },
+          ...mapped,
+          preferences: {
+            ...mapped.preferences,
+            standingContext: standingContext.trim() || undefined,
+          },
         });
         refetch();
         onUpdated?.(updated);
@@ -112,6 +127,30 @@ export function OrgPreferencesPanel({
       }
     },
     [canSubmit, organization, standingContext, update, clearError, refetch, onUpdated],
+  );
+
+  // The memory consent flag applies instantly (the UX-checkpoint decision):
+  // a consent bit flipped-but-unsaved that silently reverts on navigation is
+  // the failure consent UX must not have. Same wipe-safe double spread.
+  const handleMemoryToggle = useCallback(
+    async (next: boolean) => {
+      if (!organization) return;
+      try {
+        const mapped = toOrganizationUpdateInput(organization);
+        const updated = await updateMemoryFlag({
+          ...mapped,
+          preferences: {
+            ...mapped.preferences,
+            memoryEnabled: next || undefined,
+          },
+        });
+        refetch();
+        onUpdated?.(updated);
+      } catch {
+        // error state is managed by the toggle's own hook instance
+      }
+    },
+    [organization, updateMemoryFlag, refetch, onUpdated],
   );
 
   // -----------------------------------------------------------------------
@@ -173,6 +212,16 @@ export function OrgPreferencesPanel({
           "e.g. We deploy to us-east-1. Our stack is Go and TypeScript. Prefer concise answers."
         }
         helperText="Shared with agents as background context — not instructions. Applies to executions started by signed-in members of this organization and is visible on their execution records."
+      />
+
+      <MemoryEnabledRow
+        id={`${baseId}-memory-enabled`}
+        checked={organization.spec?.preferences?.memoryEnabled ?? false}
+        onToggle={(next) => void handleMemoryToggle(next)}
+        saving={isSavingMemoryFlag}
+        readOnly={!canEdit}
+        error={memoryFlagError}
+        helperText="Allow agents to remember confirmed facts about members of this organization. Each member must also turn memory on in their own account preferences. Changes apply immediately."
       />
 
       {!canEdit && (

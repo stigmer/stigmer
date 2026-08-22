@@ -5,11 +5,16 @@
 
 export { MemoryListPanel, type MemoryListPanelProps } from "./MemoryListPanel.js";
 export {
+  MemoryProposalCardBody,
+  type MemoryProposalCardBodyProps,
+} from "./MemoryProposalCard.js";
+export {
   groupMemoriesByLifecycle,
   formatMemoryProvenance,
   type MemoryGroups,
 } from "./memoryGroups.js";
 export { useMemories, type UseMemoriesReturn } from "./useMemories.js";
+export { useMemory, type UseMemoryReturn } from "./useMemory.js";
 export { useConfirmMemory, type UseConfirmMemoryReturn } from "./useConfirmMemory.js";
 export { useRejectMemory, type UseRejectMemoryReturn } from "./useRejectMemory.js";
 export { useDeleteMemory, type UseDeleteMemoryReturn } from "./useDeleteMemory.js";

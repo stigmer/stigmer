@@ -19,8 +19,11 @@ export type Transport = "stdio" | "http" | "both";
  *   D8) with the agent-facing argument surface. This is what the
  *   runner-synthesized channel attachment spawns over stdio; over HTTP
  *   the same roster is served on the /channels route.
+ * - "memory": only remember (memory capture, DD-005 D1). What the
+ *   runner-synthesized memory attachment spawns over stdio in local
+ *   mode; over HTTP the same roster is served on the /memory route.
  */
-export type Roster = "full" | "channels";
+export type Roster = "full" | "channels" | "memory";
 
 /**
  * OAuth 2.0 Protected Resource Metadata (RFC 9728) discovery settings.
@@ -58,7 +61,7 @@ export interface Config {
 }
 
 const VALID_TRANSPORTS: readonly string[] = ["stdio", "http", "both"];
-const VALID_ROSTERS: readonly string[] = ["full", "channels"];
+const VALID_ROSTERS: readonly string[] = ["full", "channels", "memory"];
 const VALID_LOG_FORMATS: readonly string[] = ["text", "json"];
 const VALID_LOG_LEVELS: readonly string[] = ["debug", "info", "warn", "error"];
 
@@ -98,7 +101,7 @@ export function validateConfig(cfg: Config): void {
 
   if (!VALID_ROSTERS.includes(cfg.roster)) {
     throw new Error(
-      `invalid STIGMER_MCP_ROSTER "${cfg.roster}": must be full or channels`,
+      `invalid STIGMER_MCP_ROSTER "${cfg.roster}": must be full, channels, or memory`,
     );
   }
 

@@ -474,6 +474,13 @@ const (
 	// A tool provided by an MCP server. The server is identified by
 	// ToolCall.mcp_server_slug; the tool's bare name is in ToolCall.name.
 	ToolKind_TOOL_KIND_MCP ToolKind = 13
+	// Propose a durable fact about the user for the platform to remember
+	// (the first-party remember tool, injected via the synthesized memory
+	// attachment when the execution's recall snapshot is enabled — DD-005).
+	// Both harnesses: remember. Rendered as a memory-proposal consent chip
+	// (verbatim fact + Confirm/Reject), not the generic tool result view —
+	// the record it creates stays "proposed" until the user decides.
+	ToolKind_TOOL_KIND_MEMORY ToolKind = 14
 )
 
 // Enum value maps for ToolKind.
@@ -493,6 +500,7 @@ var (
 		11: "TOOL_KIND_TODO",
 		12: "TOOL_KIND_SUBAGENT",
 		13: "TOOL_KIND_MCP",
+		14: "TOOL_KIND_MEMORY",
 	}
 	ToolKind_value = map[string]int32{
 		"TOOL_KIND_UNSPECIFIED": 0,
@@ -509,6 +517,7 @@ var (
 		"TOOL_KIND_TODO":        11,
 		"TOOL_KIND_SUBAGENT":    12,
 		"TOOL_KIND_MCP":         13,
+		"TOOL_KIND_MEMORY":      14,
 	}
 )
 
@@ -2554,7 +2563,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc = "" +
 	"\x10TOOL_CALL_FAILED\x10\x04\x12\x1e\n" +
 	"\x1aTOOL_CALL_WAITING_APPROVAL\x10\x05\x12\x15\n" +
 	"\x11TOOL_CALL_SKIPPED\x10\x06\x12\x19\n" +
-	"\x15TOOL_CALL_INTERRUPTED\x10\a*\xce\x02\n" +
+	"\x15TOOL_CALL_INTERRUPTED\x10\a*\xe4\x02\n" +
 	"\bToolKind\x12\x19\n" +
 	"\x15TOOL_KIND_UNSPECIFIED\x10\x00\x12\x17\n" +
 	"\x13TOOL_KIND_FILE_READ\x10\x01\x12\x18\n" +
@@ -2570,7 +2579,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc = "" +
 	"\x12\x12\n" +
 	"\x0eTOOL_KIND_TODO\x10\v\x12\x16\n" +
 	"\x12TOOL_KIND_SUBAGENT\x10\f\x12\x11\n" +
-	"\rTOOL_KIND_MCP\x10\r*y\n" +
+	"\rTOOL_KIND_MCP\x10\r\x12\x14\n" +
+	"\x10TOOL_KIND_MEMORY\x10\x0e*y\n" +
 	"\n" +
 	"TodoStatus\x12\x1b\n" +
 	"\x17TODO_STATUS_UNSPECIFIED\x10\x00\x12\x10\n" +

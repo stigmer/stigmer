@@ -866,6 +866,7 @@ export type {
 // hooks (confirm/reject/delete/edit), grouping helpers, and the list panel
 export {
   useMemories,
+  useMemory,
   useConfirmMemory,
   useRejectMemory,
   useDeleteMemory,
@@ -873,15 +874,18 @@ export {
   groupMemoriesByLifecycle,
   formatMemoryProvenance,
   MemoryListPanel,
+  MemoryProposalCardBody,
 } from "./memory/index.js";
 export type {
   UseMemoriesReturn,
+  UseMemoryReturn,
   UseConfirmMemoryReturn,
   UseRejectMemoryReturn,
   UseDeleteMemoryReturn,
   UseUpdateMemoryContentReturn,
   MemoryGroups,
   MemoryListPanelProps,
+  MemoryProposalCardBodyProps,
 } from "./memory/index.js";
 
 // IAM Policy — data hooks, behavior hooks, headless hook, and styled components for access management

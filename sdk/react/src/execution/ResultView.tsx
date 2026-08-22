@@ -80,6 +80,12 @@ export function ResultView({ view, showFileName = true, showStats = true, classN
       return view.text ? <CollapsiblePre content={view.text} className={cn("stg:text-foreground", className)} /> : null;
     case "json":
       return <CollapsibleCode label="Result" content={formatJson(view.value)} className={className} />;
+    case "memoryProposal":
+      // Fallback for consumers composing ResultView directly: the verbatim
+      // proposed fact (DD-005 D6 — never paraphrased). The consent chip
+      // (Confirm/Reject, live lifecycle state) is the thread's primary
+      // surface for this view and renders it in place of this.
+      return <CollapsiblePre content={view.fact} className={cn("stg:text-foreground", className)} />;
     case "error":
       return <ErrorResultView message={view.message} className={className} />;
     case "empty":

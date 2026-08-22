@@ -30,6 +30,7 @@
     "access",
     "identity-provider",
     "identity-account",
+    "memory",
     "invitation",
     "oauth-app",
     "api-key",

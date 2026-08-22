@@ -18,6 +18,7 @@ import { useResourceAvailable, ApiResourceKind } from "../deployment-mode.js";
 import { useModelRegistry } from "../models/index.js";
 import { HARNESS_META, type HarnessOption } from "../models/harness.js";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
+import { MemoryEnabledRow } from "../internal/MemoryEnabledRow.js";
 import { StandingContextField } from "../internal/StandingContextField.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 
@@ -106,6 +107,14 @@ function AccountPreferencesForm({
     isUpdating,
     error: updateError,
     clearError,
+  } = useUpdateIdentityAccount();
+
+  // The memory toggle saves instantly (its own hook instance, so a flip's
+  // in-flight/error state never bleeds into the form's Save button).
+  const {
+    update: updateMemoryFlag,
+    isUpdating: isSavingMemoryFlag,
+    error: memoryFlagError,
   } = useUpdateIdentityAccount();
 
   const [standingContext, setStandingContext] = useState("");
@@ -203,6 +212,30 @@ function AccountPreferencesForm({
       refetch,
       onUpdated,
     ],
+  );
+
+  // The memory consent flag applies instantly (the UX-checkpoint decision):
+  // a consent bit flipped-but-unsaved that silently reverts on navigation is
+  // the failure consent UX must not have. Same wipe-safe double spread.
+  const handleMemoryToggle = useCallback(
+    async (next: boolean) => {
+      if (!account) return;
+      try {
+        const mapped = toIdentityAccountUpdateInput(account);
+        const updated = await updateMemoryFlag({
+          ...mapped,
+          preferences: {
+            ...mapped.preferences,
+            memoryEnabled: next || undefined,
+          },
+        });
+        refetch();
+        onUpdated?.(updated);
+      } catch {
+        // error state is managed by the toggle's own hook instance
+      }
+    },
+    [account, updateMemoryFlag, refetch, onUpdated],
   );
 
   // -----------------------------------------------------------------------
@@ -331,6 +364,15 @@ function AccountPreferencesForm({
           </p>
         </fieldset>
       </div>
+
+      <MemoryEnabledRow
+        id={`${baseId}-memory-enabled`}
+        checked={account.spec?.preferences?.memoryEnabled ?? false}
+        onToggle={(next) => void handleMemoryToggle(next)}
+        saving={isSavingMemoryFlag}
+        error={memoryFlagError}
+        helperText="When on, agents may propose facts to remember about you; only facts you confirm are stored. Confirmed memories are shared with your future sessions and appear on those executions' records. Requires your organization to have memory enabled. Changes apply immediately."
+      />
 
       {updateError && (
         <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">

@@ -32,6 +32,7 @@ export type ToolCategory =
   | "sub-agent"
   | "internal"
   | "mcp"
+  | "memory"
   | "unknown";
 
 /**
@@ -122,6 +123,11 @@ const PREVIEW_CATEGORIES: ReadonlySet<ToolCategory> = new Set<ToolCategory>([
   "mcp",
   "web-search",
   "fetch",
+  // A memory proposal is a decision surface: the verbatim fact and the
+  // Confirm/Reject actions ARE the content — never fold it behind a chevron
+  // (DD-005 D4: a proposal the user scrolled past is caught by the memory
+  // page, but the chip must not hide itself while in view).
+  "memory",
   "unknown",
 ]);
 
@@ -232,6 +238,7 @@ const KIND_DISPLAY: Partial<Record<ToolKind, KindDisplayEntry>> = {
   [ToolKind.THINK]:       { category: "think",     label: "Thinking",  primaryField: "thought" },
   [ToolKind.SUBAGENT]:    { category: "sub-agent", label: "Sub-agent", primaryField: "description", fallbackFields: ["prompt"] },
   [ToolKind.TODO]:        { category: "internal",  label: "Todos",     primaryField: "todos" },
+  [ToolKind.MEMORY]:      { category: "memory",    label: "Remember",  primaryField: "fact" },
 };
 
 /**
