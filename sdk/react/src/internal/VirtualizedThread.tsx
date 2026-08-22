@@ -25,6 +25,7 @@ import { ApprovalContext, type ApprovalContextValue } from "../execution/Approva
 import { FileReviewContext, type FileReviewContextValue } from "../execution/FileReviewContext.js";
 import { DevProfiler, useDomNodeCount } from "./dev/index.js";
 import { JumpToLatestButton } from "./JumpToLatestButton.js";
+import { usePinToLatestOnSignal } from "./useAutoScroll.js";
 import { ApprovalPeekBar } from "./ApprovalPeekBar.js";
 import { ThreadItemWrapper } from "./ThreadItemWrapper.js";
 
@@ -57,6 +58,8 @@ export interface VirtualizedThreadProps {
   readonly onRetryExecution?: (message: string) => void;
   readonly onEditMessage?: (text: string) => void;
   readonly slots?: MessageThreadSlots;
+  /** Scroll-on-send counter from `MessageThread` (see `usePinToLatestOnSignal`). */
+  readonly pinToLatestSignal?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -127,6 +130,7 @@ export function VirtualizedThread({
   onRetryExecution,
   onEditMessage,
   slots,
+  pinToLatestSignal,
 }: VirtualizedThreadProps) {
   const virtuosoRef = useRef<VirtuosoHandle>(null);
   const scrollerRef = useRef<HTMLDivElement | null>(null);
@@ -149,6 +153,7 @@ export function VirtualizedThread({
       behavior: "smooth",
     });
   }, []);
+  usePinToLatestOnSignal(pinToLatestSignal, jumpToLatest);
 
   const renderProps = useMemo(
     () => ({

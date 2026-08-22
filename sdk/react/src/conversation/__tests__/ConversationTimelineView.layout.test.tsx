@@ -35,7 +35,13 @@ function items(count: number): ConversationTimelineItem[] {
           ? ConversationItemAuthor.author_customer
           : ConversationItemAuthor.author_agent,
       text: `message ${i}`,
-      at: timestampFromDate(new Date(NOW.getTime() - (count - i) * 60_000)),
+      // Anchored by INDEX, never by count: growth must only APPEND rows,
+      // as production items keep their timestamps. A count-relative time
+      // rewrote every existing row on growth — the resulting full-thread
+      // reflow could clamp scrollTop mid-pin and trip the hook's
+      // reader-took-control guard (measured flaky ~1-in-5 on the
+      // scroll-on-send case).
+      at: timestampFromDate(new Date(NOW.getTime() - (1_000 - i) * 60_000)),
     }),
   );
 }
@@ -43,6 +49,7 @@ function items(count: number): ConversationTimelineItem[] {
 function view(props: {
   readonly items: readonly ConversationTimelineItem[];
   readonly isLoading: boolean;
+  readonly pinToLatestSignal?: number;
 }): ReactElement {
   return (
     <ConversationTimelineView
@@ -54,6 +61,7 @@ function view(props: {
       isLoadingOlder={false}
       provider="whatsapp"
       now={NOW}
+      pinToLatestSignal={props.pinToLatestSignal}
     />
   );
 }
@@ -156,5 +164,33 @@ describe("ConversationTimelineView scroll behavior (F-09)", () => {
       expect(isPinnedToBottom(scroller())).toBe(true);
       expect(jumpButton().getAttribute("aria-hidden")).toBe("true");
     });
+  });
+
+  it("pins a scrolled-up reader on their OWN send via pinToLatestSignal, and keeps following as the reply's real item lands (stigmer-cloud#267)", async () => {
+    const { rerender } = renderInPane(
+      view({ items: [], isLoading: true, pinToLatestSignal: 0 }),
+    );
+    rerender(view({ items: items(40), isLoading: false, pinToLatestSignal: 0 }));
+    await settled(() => expect(isPinnedToBottom(scroller())).toBe(true));
+
+    // The reader scrolls up to read history.
+    scroller().scrollTop = 0;
+    await settled(() =>
+      expect(jumpButton().getAttribute("aria-hidden")).toBe("false"),
+    );
+
+    // They send a reply: the workbench increments the signal on the
+    // accepted send. The view pins and re-engages follow — the timeline
+    // has no optimistic item, so re-engaged follow is what carries the
+    // reply's REAL ledger item into view when the refetch delivers it.
+    rerender(view({ items: items(40), isLoading: false, pinToLatestSignal: 1 }));
+    await settled(() => {
+      expect(isPinnedToBottom(scroller())).toBe(true);
+      expect(jumpButton().getAttribute("aria-hidden")).toBe("true");
+    });
+
+    // The refetch delivers the item — still pinned, the reply visible.
+    rerender(view({ items: items(41), isLoading: false, pinToLatestSignal: 1 }));
+    await settled(() => expect(isPinnedToBottom(scroller())).toBe(true));
   });
 });

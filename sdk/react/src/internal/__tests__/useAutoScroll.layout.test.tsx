@@ -17,7 +17,11 @@
 
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, cleanup } from "@testing-library/react";
-import { useAutoScroll, type UseAutoScrollReturn } from "../useAutoScroll";
+import {
+  useAutoScroll,
+  usePinToLatestOnSignal,
+  type UseAutoScrollReturn,
+} from "../useAutoScroll";
 
 const VIEWPORT_PX = 240;
 const ITEM_PX = 48;
@@ -125,9 +129,11 @@ describe("useAutoScroll under real layout (F-09)", () => {
     scroller().scrollTop = 0;
     await settled(() => expect(latest.isFollowing).toBe(false));
 
-    // Growth while disengaged (an incoming message, or the reader's own
-    // send arriving via refetch): the view must NOT move under them.
-    // This is the measured scroll-on-send posture — see the F-09 record.
+    // Growth while disengaged (an INCOMING message): the view must NOT
+    // move under them. Unchanged by scroll-on-send (stigmer-cloud#267):
+    // the reader's OWN send now pins via the surface-driven signal
+    // (`usePinToLatestOnSignal`, suite below) — the hook's growth pathway
+    // itself still never moves a scrolled-up reader.
     rerender(<AsyncThread items={messages(31)} />);
     await new Promise((resolve) => setTimeout(resolve, 100));
     expect(scroller().scrollTop).toBe(0);
@@ -139,5 +145,100 @@ describe("useAutoScroll under real layout (F-09)", () => {
       expect(isPinnedToBottom(scroller())).toBe(true);
       expect(latest.isFollowing).toBe(true);
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Scroll-on-send: the surface-driven pin signal (stigmer-cloud#267)
+// ---------------------------------------------------------------------------
+
+/**
+ * AsyncThread plus the send-signal seam every thread surface wires — same
+ * late-mounting wrapper shape (see the determinism note above: the bottom
+ * pin coming from the ResizeObserver pathway is what makes the scroll-up
+ * steps race-free).
+ */
+function SignalThread({
+  items,
+  signal,
+}: {
+  readonly items: readonly string[];
+  readonly signal: number | undefined;
+}) {
+  const hook = useAutoScroll();
+  latest = hook;
+  usePinToLatestOnSignal(signal, hook.jumpToLatest);
+  return (
+    <div
+      ref={hook.scrollRef}
+      data-testid="scroller"
+      style={{ height: VIEWPORT_PX, overflowY: "auto" }}
+    >
+      {items.length === 0 ? (
+        <div data-testid="skeleton" style={{ height: 100 }} />
+      ) : (
+        <div ref={hook.contentRef} data-testid="content">
+          {items.map((text) => (
+            <div key={text} style={{ height: ITEM_PX }}>
+              {text}
+            </div>
+          ))}
+        </div>
+      )}
+      <div ref={hook.sentinelRef} aria-hidden="true" />
+    </div>
+  );
+}
+
+describe("usePinToLatestOnSignal under real layout (stigmer-cloud#267)", () => {
+  it("a signal increment pins a scrolled-up reader to the latest content and re-engages follow", async () => {
+    const { rerender } = render(<SignalThread items={[]} signal={0} />);
+    rerender(<SignalThread items={messages(30)} signal={0} />);
+    await settled(() => {
+      expect(isPinnedToBottom(scroller())).toBe(true);
+      // Follow-STATE quiescence before the reader scrolls (the F-09
+      // case's own discipline) — a queued pre-scroll TRUE must not
+      // re-arm follow behind the scroll-up.
+      expect(latest.isFollowing).toBe(true);
+    });
+
+    // The reader deliberately scrolls up — follow disengages.
+    scroller().scrollTop = 0;
+    await settled(() => expect(latest.isFollowing).toBe(false));
+
+    // Their OWN send: the surface increments the signal. The pin fires
+    // AND re-engages follow, so the reply that streams in next stays in
+    // view — the whole point of stigmer-cloud#267.
+    rerender(<SignalThread items={messages(30)} signal={1} />);
+    await settled(() => {
+      expect(isPinnedToBottom(scroller())).toBe(true);
+      expect(latest.isFollowing).toBe(true);
+    });
+
+    // And subsequent growth (the streamed reply) keeps following.
+    rerender(<SignalThread items={messages(31)} signal={1} />);
+    await settled(() => expect(isPinnedToBottom(scroller())).toBe(true));
+  });
+
+  it("never pins on mount, on an unchanged signal, or on the undefined→number transition (opt-out and prop-appearing are not sends)", async () => {
+    // Mount without a signal: no pin beyond the hook's own first-fill.
+    const { rerender } = render(<SignalThread items={[]} signal={undefined} />);
+    rerender(<SignalThread items={messages(30)} signal={undefined} />);
+    await settled(() => {
+      expect(isPinnedToBottom(scroller())).toBe(true);
+      expect(latest.isFollowing).toBe(true);
+    });
+
+    scroller().scrollTop = 0;
+    await settled(() => expect(latest.isFollowing).toBe(false));
+
+    // undefined → number (the surface flips scrollOnSend back on, or the
+    // prop gets wired late): a prop appearing is not a send.
+    rerender(<SignalThread items={messages(30)} signal={3} />);
+    // Unchanged signal on a later render: also not a send.
+    rerender(<SignalThread items={messages(30)} signal={3} />);
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(scroller().scrollTop).toBe(0);
+    expect(latest.isFollowing).toBe(false);
   });
 });
