@@ -695,8 +695,16 @@ function EditorArea({
     <div className="stg:flex stg:h-full stg:min-h-0 stg:flex-col">
       {/* Collapse control + tab strip. The far right is kept clear (pr-24):
           the session viewer floats its top-right controls (host
-          `headerActions` and the panel chip) over this region. */}
-      <div className="stg:flex stg:shrink-0 stg:items-stretch stg:border-b stg:border-border stg:pr-24">
+          `headerActions` and the panel chip) over this region. Fixed to the
+          shared HEADER_ROW_HEIGHT so this row's bottom border stays flush
+          with the sidebar facet header's — and so an empty tab strip (no
+          open editors) cannot collapse the row. */}
+      <div
+        className={cn(
+          HEADER_ROW_HEIGHT,
+          "stg:flex stg:shrink-0 stg:items-stretch stg:border-b stg:border-border stg:pr-24",
+        )}
+      >
         <Tooltip>
           <TooltipTrigger
             render={
@@ -843,9 +851,24 @@ function Breadcrumbs({
 // Shared sidebar chrome
 // ---------------------------------------------------------------------------
 
+/**
+ * One fixed height for every header row across the surface — the sidebar
+ * facet header AND the editor area's tab-strip row — so their bottom borders
+ * form a single continuous line across the panel. Fixed rather than
+ * padding-derived: the two rows have different content (micro-caps title vs
+ * text-xs tabs, sometimes no tabs at all), so padding math can never keep
+ * them aligned.
+ */
+const HEADER_ROW_HEIGHT = "stg:h-8";
+
 function SidebarHeader({ title }: { readonly title: string }) {
   return (
-    <div className="stg:shrink-0 stg:border-b stg:border-border stg:px-3 stg:py-2 stg:text-[0.65rem] stg:font-semibold stg:uppercase stg:tracking-wide stg:text-muted-foreground">
+    <div
+      className={cn(
+        HEADER_ROW_HEIGHT,
+        "stg:flex stg:shrink-0 stg:items-center stg:border-b stg:border-border stg:px-3 stg:text-[0.65rem] stg:font-semibold stg:uppercase stg:tracking-wide stg:text-muted-foreground",
+      )}
+    >
       {title}
     </div>
   );

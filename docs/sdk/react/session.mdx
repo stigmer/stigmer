@@ -216,7 +216,7 @@ function useNewSessionFlow(options: UseNewSessionFlowOptions): UseNewSessionFlow
 <TypeTable
   type={{
     agentRef: { type: "ResourceRef | null", description: "Currently selected agent reference, or `null` for the default agent." },
-    autoApproveAll: { type: "boolean", description: "Pre-arm \"auto-approve tool calls\" for the session this surface will create (stigmer/stigmer#816, the walk-away scenario). Seeded from the host's `StigmerProvider` `approvalDefaults` (#302, guests excluded); the user's toggle wins from then on. Carried into the bootstrap create as `spec.auto_approve_all` — the whole-run server-side bypass — so the first run stays covered even if the user closes the tab." },
+    autoApproveAll: { type: "boolean", description: "Pre-arm \"auto-approve tool calls\" for the session this surface will create (stigmer/stigmer#816, the walk-away scenario). Seeded from the account's `default_auto_approve` preference and the host's `StigmerProvider` `approvalDefaults` (#302) — guests inherit neither; the user's explicit flip (the Config facet switch) wins from then on. Carried into the bootstrap create as `spec.auto_approve_all` — the whole-run server-side bypass — so the first run stays covered even if the user closes the tab." },
     harness: { type: "HarnessOption", description: "Currently selected harness (persisted to localStorage).", typeDescriptionLink: "/docs/sdk/react/models#harnessoption" },
     isSubmitting: { type: "boolean", description: "`true` while the create session + execution flow is in flight." },
     mcpServerUsages: { type: "McpServerUsageInput[]", description: "Active MCP server configurations." },
@@ -739,7 +739,7 @@ function useSessionPageFlow(options: UseSessionPageFlowOptions): UseSessionPageF
   type={{
     agentRef: { type: "ResourceRef | null", description: "Currently selected agent reference (derived from session, or overridden by user)." },
     allExecutions: { type: "readonly AgentExecution[]", description: "All executions for widget display (completed + active stream)." },
-    autoApproveAll: { type: "boolean", description: "Session-scoped \"auto-approve tool calls\" state (stigmer/stigmer#816).  `false` by default. `true` when any of its sources arms it — the user's explicit choice always winning:  1. the user's composer toggle (setAutoApproveAll); 2. \"Approve & don't ask again\" at an approval gate (see    submitApproval); 3. the host's app-wide `StigmerProvider` `approvalDefaults` (#302,    guests excluded); 4. the active in-flight execution having been created with    `spec.auto_approve_all` (e.g. armed on the new-session surface), so    the state survives the launcher → session-page handoff.  While `true`, follow-ups carry `auto_approve_all` (handleSubmit) and gates appearing in the in-flight run are auto-released (never for guest/observer/channel-origin surfaces). Held in memory only — reset on reload back to the host default, never persisted server-side." },
+    autoApproveAll: { type: "boolean", description: "Session-scoped \"auto-approve tool calls\" state (stigmer/stigmer#816).  `false` by default. `true` when any of its sources arms it — the user's explicit choice always winning:  1. the user's Config facet switch (setAutoApproveAll); 2. \"Approve & don't ask again\" at an approval gate (see    submitApproval); 3. the account's `default_auto_approve` preference    (`UseSessionPageFlowOptions.accountDefaults`, guests excluded); 4. the host's app-wide `StigmerProvider` `approvalDefaults` (#302,    guests excluded); 5. the active in-flight execution having been created with    `spec.auto_approve_all` (e.g. armed on the new-session surface), so    the state survives the launcher → session-page handoff.  While `true`, follow-ups carry `auto_approve_all` (handleSubmit) and gates appearing in the in-flight run are auto-released (never for guest/observer/channel-origin surfaces). The explicit per-session flip is held in memory only — reset on reload back to the seeds; the account preference is the one persisted default, declared by the user in Account Preferences." },
     conv: { type: "UseSessionConversationReturn", description: "Full conversation state from `useSessionConversation`.", typeDescriptionLink: "#usesessionconversationreturn" },
     displayExecution: { type: "AgentExecution | null", description: "The most relevant execution for sidebar display — the active streaming execution, or the last completed one." },
     executionTarget: { type: "ExecutionTargetOption | undefined", description: "Where session activities execute (read-only, derived from session spec).  `\"local\"` when the client's embedded runner handles activities, `\"cloud\"` when the server provisions a sandbox, or `undefined` when the server decides (UNSPECIFIED)." },
@@ -753,7 +753,7 @@ function useSessionPageFlow(options: UseSessionPageFlowOptions): UseSessionPageF
     sandboxWorkspaceRoot: { type: "string | undefined", description: "Sandbox workspace root for file path normalization, or `undefined` when the session has no git-repo workspace entries." },
     sessionVariables: { type: "UseSessionVariablesReturn", description: "Session variables (per-execution secrets) manager.", typeDescriptionLink: "/docs/sdk/react/execution#usesessionvariablesreturn" },
     setAgentRef: { type: "(ref: ResourceRef | null) => void", description: "Update the agent reference for future follow-ups." },
-    setAutoApproveAll: { type: "(value: boolean) => void", description: "Set the user's explicit session-scoped auto-approve choice. Wired to the composer's always-visible toggle; an explicit `false` wins over the host default and over an armed in-flight run for everything the client controls (follow-up carry, gate auto-release) — an already-armed run's server-side bypass cannot be revoked mid-run, exactly as with today's gate-time \"Approve & don't ask again\"." },
+    setAutoApproveAll: { type: "(value: boolean) => void", description: "Set the user's explicit session-scoped auto-approve choice. Wired to the Config facet's switch; an explicit `false` wins over both seeds and over an armed in-flight run for everything the client controls (follow-up carry, gate auto-release) — an already-armed run's server-side bypass cannot be revoked mid-run, exactly as with today's gate-time \"Approve & don't ask again\". Never written back to the account preference: the flip is scoped to THIS conversation." },
     setMcpServerUsages: { type: "(usages: McpServerUsageInput[]) => void", description: "Update MCP server configurations." },
     setResolution: { type: "(r: AgentResolution | null) => void", description: "Update the agent resolution." },
     setSkillRefs: { type: "(refs: ResourceRef[]) => void", description: "Update skill references." },
@@ -1271,6 +1271,7 @@ apps inject platform-specific values via props (DD-004/DD-016).
 <TypeTable
   type={{
     accessSlot: { type: "ReactNode", description: "Host-injected access management control (e.g. the Console's `ManageAccessButton` with its own permission gating). Rendered inside the panel's Config facet rather than the header — access is session configuration, not a moment-to-moment action (DD-004 slot injection)." },
+    accountDefaults: { type: "AccountExecutionDefaults", description: "The user's account-level execution defaults, typically from `useAccountExecutionDefaults()` — same seam as `NewSessionViewer.accountDefaults` (DD-016). On the session page only the `autoApprove` default applies: it seeds the session-scoped auto-approve state so a declared `default_auto_approve` preference covers follow-ups on existing sessions too. An explicit flip of the Config facet's switch wins for this session. Ignored for the `\"guest\"` audience.", typeDescriptionLink: "/docs/sdk/react/identity-account#accountexecutiondefaults" },
     audience: { type: "SessionAudience", description: "Presentation audience for the viewer. `\"endUser\"` locks the session's agent and hides the MCP server, skill, and session-variable configuration in both the composer and the inspector's Setup tab — for product-embedded chat where the agent is configured upstream by the platform. The model selector, interaction mode, attachments, and workspace picker remain.  `\"guest\"` (anonymous visitor with a guest token) is pure chat: it additionally hides the model/mode pickers, attachments, the workspace picker, and the session panel, and skips the org-level reads a guest principal cannot make — follow-ups simply continue on the session's bound agent instance.  `\"observer\"` is a read-only transcript: no composer, no approval/edit/retry/build affordances, no access management. The viewer also self-selects observer for channel-originated sessions (the `stigmer.ai/channel-id` label) regardless of this prop, since channel viewers hold `can_view` only.  See SessionAudience.", typeDescriptionLink: "#sessionaudience" },
     className: { type: "string", description: "Additional CSS classes for the root container." },
     defaultPanelOpen: { type: "boolean", description: "Initial open state of the session panel in uncontrolled mode — a docking host that wants the workspace visible from the first paint passes `true`. Ignored when SessionViewerProps.panelOpen is provided." },
@@ -1289,7 +1290,7 @@ apps inject platform-specific values via props (DD-004/DD-016).
     sessionId: { type: "string", description: "Session ID to load and display.", required: true },
     showModelSelector: { type: "boolean", description: "Whether the follow-up composer offers the model picker. `false` hides the picker while keeping the SDK's model sourcing (persisted preference, then the last execution's model) — for hosts whose surrounding surface owns model choice without pinning it. Forced off by a SessionViewerProps.runConfig model pin and for the `\"guest\"` audience." },
     threadSlots: { type: "MessageThreadSlots", description: "Component overrides for the conversation thread's chrome (message bubbles, approval card, to-dos card, plan cards, thinking indicator) — forwarded to the inner MessageThread. See MessageThreadSlots. Define the object and its components at module level (or memoize) so thread rows keep their streaming re-render guarantees.", typeDescriptionLink: "/docs/sdk/react/execution#messagethreadslots" },
-    transcriptExport: { type: "boolean", description: "Whether the viewer renders its built-in whole-conversation export control (TranscriptExportMenu) in the header corner (stigmer/stigmer#814). Default ON — a deliberate DD-011 divergence, owner-ratified: wherever a conversation can be viewed its transcript should be one click away, the control is an additive header button (no rendering-strategy or DOM-structure change to existing content), and the export carries only what the current caller can already read. Hosts that own their export surface (or inert demo scenes) opt out." },
+    transcriptExport: { type: "boolean", description: "Whether the viewer offers its built-in whole-conversation export (stigmer/stigmer#814). Placement is panel-aware: viewers with the session panel export from the Config facet's Transcript section, and panel-less viewers (guests, `panel=\"none\"`) render the header TranscriptExportMenu instead — so wherever a conversation can be viewed, its transcript stays reachable. The export carries only what the current caller can already read (`can_view`-scoped). Hosts that own their export surface (or inert demo scenes) opt out." },
     workspaceContentSearcher: { type: "WorkspaceContentSearcher", description: "Platform-injected content (text) searcher. When provided, the session panel's Search pane gains a `Name | Text` toggle for full-text search across the workspace. Desktop injects a native ripgrep-backed searcher; web leaves it undefined (git content search needs a branch-accurate backend — DD-09), keeping Search filename-only there (DD-004, DD-011 opt-in).", typeDescriptionLink: "/docs/sdk/react/workspace#workspacecontentsearcher" },
     workspaceFileLister: { type: "WorkspaceFileLister", description: "Platform-injected file lister for workspace entries. When provided, each entry in the Setup tab's workspace section renders an expandable file tree. (DD-004 capability injection, DD-011 opt-in.)", typeDescriptionLink: "/docs/sdk/react/workspace#workspacefilelister" },
     workspaceFileReader: { type: "WorkspaceFileReader", description: "Platform-injected content reader for the read-only file viewer. When provided, clicking a file in the Workspace tree opens it in a contextual \"Viewer\" tab. GitHub Contents/blob on web, Tauri fs on desktop; `undefined` degrades the viewer to an \"unavailable here\" state (DD-004, DD-011 opt-in).", typeDescriptionLink: "/docs/sdk/react/workspace#workspacefilereader" },
@@ -1359,15 +1360,18 @@ takes opaque `ReactNode`s and never inspects them.
 
 ### SetupTab
 
-Persistent session configuration panel (Configure tab) — shows agent,
-MCP servers, skills, run config, session variables, and the host's
+Persistent session configuration panel (Config facet) — shows run config
+(harness, model, target, and the session-level auto-approve switch), agent,
+MCP servers, skills, session variables, transcript export, and the host's
 access management control (via `accessSlot`).
 
-Workspace management has moved to the dedicated Workspace tab.
+Rendered in the session panel's shared facet vocabulary (see
+`./primitives.tsx`): dense rows, quiet right-aligned metadata, and
+hover/focus-revealed actions — the Artifacts facet's idiom.
 
 When mutation callbacks are provided via `mutations`, items render
-inline remove/reconfigure affordances. When callbacks are absent,
-sections render read-only (backward compatible, DD-011).
+inline remove affordances. When callbacks are absent, sections render
+read-only (backward compatible, DD-011).
 
 All visual properties flow through `--stgm-*` tokens (DD-005).
 
@@ -1377,12 +1381,14 @@ All visual properties flow through `--stgm-*` tokens (DD-005).
   type={{
     accessSlot: { type: "ReactNode", description: "Host-injected access management control (e.g. the Console's `ManageAccessButton`) rendered as the facet's final section. A slot keeps the SDK auth-agnostic (DD-004); the injected control owns its own visibility (permission gating), so this section renders no chrome of its own — an empty heading over a denied control would read as breakage." },
     agentRef: { type: "ResourceRef | null", description: "", required: true },
+    autoApprove: { type: "SetupTabAutoApprove", description: "Session-level auto-approve switch in the Run Config section. When provided, the switch renders and is interactive at all times — including mid-run, where flipping it ON releases the in-flight execution's pending gates (the flow's standing responder). When absent (read-only audiences, demo fixtures), the section shows no approval control at all.", typeDescriptionLink: "#setuptabautoapprove" },
     executionTarget: { type: "ExecutionTargetOption | undefined", description: "", required: true },
     harness: { type: "HarnessOption", description: "", required: true, typeDescriptionLink: "/docs/sdk/react/models#harnessoption" },
     isDefaultAgent: { type: "boolean", description: "", required: true },
     mcpServerUsages: { type: "readonly McpServerUsageInput[]", description: "", required: true },
     modelId: { type: "string | undefined", description: "", required: true },
     mutations: { type: "SetupTabMutationCallbacks", description: "Interactive mutation callbacks. When provided, items render remove buttons. When absent, sections are read-only (DD-011).", typeDescriptionLink: "#setuptabmutationcallbacks" },
+    sessionId: { type: "string | null", description: "The session whose transcript the Session section exports. When provided, the facet renders Copy / Download Markdown / Download JSON actions (stigmer/stigmer#814's export, relocated from the header). Omit on the launcher (no session exists yet) and in inert fixtures. Deliberately not audience-gated: the export is `can_view`-scoped — it serializes exactly what the viewer already shows — so observers keep it." },
     sessionVariables: { type: "UseSessionVariablesReturn | null", description: "", required: true },
     skillRefs: { type: "readonly ResourceRef[]", description: "", required: true },
   }}
@@ -1957,6 +1963,26 @@ for traceability in the UI (e.g., tooltip or detail view).
 />
 
 
+### SetupTabAutoApprove
+
+Wiring for the Run Config section's auto-approve switch — the session-level
+arming control (stigmer/stigmer#816 rework: config lives in Config, not the
+composer). Session-scoped: an explicit flip beats the account's
+`default_auto_approve` preference and the host's `approvalDefaults` for
+THIS conversation only, and is never persisted anywhere.
+
+Presence renders the switch; absence keeps the section read-only. Consumers
+must only wire it on surfaces whose viewer may submit approvals — never
+observer or guest audiences (the approval-submission withhold).
+
+<TypeTable
+  type={{
+    armed: { type: "boolean", description: "Whether auto-approve is currently armed for this conversation.", required: true },
+    onChange: { type: "(armed: boolean) => void", description: "Called with the next value when the user flips the switch.", required: true },
+  }}
+/>
+
+
 ### SetupTabMutationCallbacks
 
 Interactive mutation callbacks for config items in SetupTab.
@@ -2006,7 +2032,7 @@ Options for [`useNewSessionFlow`](#usenewsessionflow).
 
 <TypeTable
   type={{
-    accountDefaults: { type: "AccountExecutionDefaults", description: "The user's account-level execution defaults (`IdentityAccountPreferences.default_*`), typically from `useAccountExecutionDefaults()`. A SEED in the layered precedence — explicit device-local choices always outrank it:  - harness: stored choice > `accountDefaults.harness` >   defaultHarness > platform default. May arrive after mount   (whoAmI resolves async); a late value still seeds unless the user   has already picked a harness this mount. - model: stored per-harness choice > the account's model for the   active harness (validated against the registry; a stale model   silently falls through) > the harness default.  Seeded values are never persisted to localStorage — the account preference keeps applying until the user decides. Ignored for the `\"guest\"` audience (platform share policy owns guest config), and consumers must not fetch identity for guest/embed surfaces.", typeDescriptionLink: "/docs/sdk/react/identity-account#accountexecutiondefaults" },
+    accountDefaults: { type: "AccountExecutionDefaults", description: "The user's account-level execution defaults (`IdentityAccountPreferences.default_*`), typically from `useAccountExecutionDefaults()`. A SEED in the layered precedence — explicit device-local choices always outrank it:  - harness: stored choice > `accountDefaults.harness` >   defaultHarness > platform default. May arrive after mount   (whoAmI resolves async); a late value still seeds unless the user   has already picked a harness this mount. - model: stored per-harness choice > the account's model for the   active harness (validated against the registry; a stale model   silently falls through) > the harness default. - autoApprove: explicit in-session flip > the account's   `default_auto_approve` > the host's `approvalDefaults` (derived,   so a late-arriving value applies without a touched-ref effect).  Seeded values are never persisted to localStorage — the account preference keeps applying until the user decides. Ignored for the `\"guest\"` audience (platform share policy owns guest config), and consumers must not fetch identity for guest/embed surfaces.", typeDescriptionLink: "/docs/sdk/react/identity-account#accountexecutiondefaults" },
     audience: { type: "SessionAudience", description: "Who this flow serves. `\"guest\"` adapts the orchestration to the guest principal's permission model: the org default-agent lookup (which a guest token cannot read) is skipped, and submission requires an explicit agent resolution instead of falling back to the org's default agent — a shared-agent page must never run anything but the pinned shared agent. See SessionAudience.", typeDescriptionLink: "#sessionaudience" },
     defaultHarness: { type: "HarnessOption", description: "Harness pre-selected for new sessions when the user has not made an explicit choice yet (e.g. an embedder whose agents primarily run coding tasks defaults to `\"cursor\"`).  Read once on mount. The user's own selection — persisted to localStorage on explicit change — always takes precedence on subsequent visits.  Ignored for the `\"guest\"` audience: guest sessions always run the platform's share-surface policy (cursor harness, Auto model), never an embedder preference or a stored Console choice.", typeDescriptionLink: "/docs/sdk/react/models#harnessoption" },
     executionTarget: { type: "ExecutionTargetOption", description: "Where session activities should execute.", typeDescriptionLink: "#executiontargetoption" },
@@ -2056,6 +2082,7 @@ Options for [`useSessionPageFlow`](#usesessionpageflow).
 
 <TypeTable
   type={{
+    accountDefaults: { type: "AccountExecutionDefaults", description: "The user's account-level execution defaults, typically from `useAccountExecutionDefaults()`. On the session page only `autoApprove` applies — it seeds the session-scoped auto-approve state so a user whose `default_auto_approve` preference is ON gets armed follow-ups on every session, not just newly created ones. An explicit in-session flip always wins for this session; the seed may arrive after mount (whoAmI resolves async) and still applies, being part of the derivation rather than an initializer. Ignored for the `\"guest\"` audience (guests inherit no identity-derived preference).", typeDescriptionLink: "/docs/sdk/react/identity-account#accountexecutiondefaults" },
     audience: { type: "SessionAudience", description: "Who this flow serves. `\"guest\"` adapts the orchestration to the guest principal's permission model: the session→agent derivation (`agentInstance.get` → `agent.get`) and the org default-agent lookup — reads a guest token cannot make — are skipped. Follow-ups then carry no agent override and simply continue on the session's bound instance, which is exactly right for a shared-agent page. See SessionAudience.", typeDescriptionLink: "#sessionaudience" },
     getRuntimeEnv: { type: "RuntimeEnvProvider", description: "Supplies host-app environment variables for every follow-up execution. Evaluated once per follow-up, at send time, so short-lived credentials stay fresh.  Host values win over composer-collected env on key collisions. If the provider throws, the follow-up is aborted before any optimistic UI or session mutation and the error surfaces via UseSessionPageFlowReturn.submitError. See RuntimeEnvProvider.", typeDescriptionLink: "#runtimeenvprovider" },
     org: { type: "string", description: "Organization slug.", required: true },

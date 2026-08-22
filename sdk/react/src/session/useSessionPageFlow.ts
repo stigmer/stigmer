@@ -22,6 +22,7 @@ import { toSessionUpdateInput } from "@stigmer/sdk";
 import type { SessionAudience } from "./audience.js";
 import { isChannelOriginSession } from "./channelOrigin.js";
 import { assertValidRunConfig, type SessionRunConfig } from "./run-config.js";
+import type { AccountExecutionDefaults } from "../identity-account/useAccountExecutionDefaults.js";
 
 /**
  * Well-known Daytona sandbox workspace root. Used as the SDK safety-net
@@ -69,6 +70,18 @@ export interface UseSessionPageFlowOptions {
    * config). See {@link SessionRunConfig}.
    */
   readonly runConfig?: SessionRunConfig;
+  /**
+   * The user's account-level execution defaults, typically from
+   * `useAccountExecutionDefaults()`. On the session page only
+   * `autoApprove` applies — it seeds the session-scoped auto-approve
+   * state so a user whose `default_auto_approve` preference is ON gets
+   * armed follow-ups on every session, not just newly created ones. An
+   * explicit in-session flip always wins for this session; the seed may
+   * arrive after mount (whoAmI resolves async) and still applies, being
+   * part of the derivation rather than an initializer. Ignored for the
+   * `"guest"` audience (guests inherit no identity-derived preference).
+   */
+  readonly accountDefaults?: AccountExecutionDefaults;
 }
 
 /** Return value of {@link useSessionPageFlow}. */
@@ -146,28 +159,33 @@ export interface UseSessionPageFlowReturn {
    * `false` by default. `true` when any of its sources arms it — the user's
    * explicit choice always winning:
    *
-   * 1. the user's composer toggle ({@link setAutoApproveAll});
+   * 1. the user's Config facet switch ({@link setAutoApproveAll});
    * 2. "Approve & don't ask again" at an approval gate (see
    *    {@link submitApproval});
-   * 3. the host's app-wide `StigmerProvider` `approvalDefaults` (#302,
+   * 3. the account's `default_auto_approve` preference
+   *    (`UseSessionPageFlowOptions.accountDefaults`, guests excluded);
+   * 4. the host's app-wide `StigmerProvider` `approvalDefaults` (#302,
    *    guests excluded);
-   * 4. the active in-flight execution having been created with
+   * 5. the active in-flight execution having been created with
    *    `spec.auto_approve_all` (e.g. armed on the new-session surface), so
    *    the state survives the launcher → session-page handoff.
    *
    * While `true`, follow-ups carry `auto_approve_all` ({@link handleSubmit})
    * and gates appearing in the in-flight run are auto-released (never for
-   * guest/observer/channel-origin surfaces). Held in memory only — reset on
-   * reload back to the host default, never persisted server-side.
+   * guest/observer/channel-origin surfaces). The explicit per-session flip is
+   * held in memory only — reset on reload back to the seeds; the account
+   * preference is the one persisted default, declared by the user in
+   * Account Preferences.
    */
   readonly autoApproveAll: boolean;
   /**
    * Set the user's explicit session-scoped auto-approve choice. Wired to the
-   * composer's always-visible toggle; an explicit `false` wins over the host
-   * default and over an armed in-flight run for everything the client
-   * controls (follow-up carry, gate auto-release) — an already-armed run's
-   * server-side bypass cannot be revoked mid-run, exactly as with today's
-   * gate-time "Approve & don't ask again".
+   * Config facet's switch; an explicit `false` wins over both seeds and over
+   * an armed in-flight run for everything the client controls (follow-up
+   * carry, gate auto-release) — an already-armed run's server-side bypass
+   * cannot be revoked mid-run, exactly as with today's gate-time "Approve &
+   * don't ask again". Never written back to the account preference: the
+   * flip is scoped to THIS conversation.
    */
   readonly setAutoApproveAll: (value: boolean) => void;
 
@@ -340,27 +358,33 @@ export function useSessionPageFlow(
   // the user's explicit in-session decision wins, otherwise the truth is
   // computed from its sources — never an effect-synced copy:
   //
-  //   effective = userChoice ?? (hostSeed || runArmed)
+  //   effective = userChoice ?? (accountSeed || hostSeed || runArmed)
   //
-  // - `userChoice`: the composer toggle, or the gate-time "Approve & don't
-  //   ask again" (which has always escalated the session preference).
+  // - `userChoice`: the Config facet's switch, or the gate-time "Approve &
+  //   don't ask again" (which has always escalated the session preference).
+  // - `accountSeed`: the account's default_auto_approve preference — the
+  //   user's own persisted walk-away default. Resolves async with whoAmI;
+  //   being part of the derivation (not an initializer), a late arrival
+  //   still applies unless the user has already flipped this session.
   // - `hostSeed`: the host's provider-level approvalDefaults (#302) — an
-  //   app-level trust judgment. Guests never inherit it (a share-link
-  //   visitor is not the operator the host's trust judgment covers).
+  //   app-level trust judgment. Guests inherit neither seed (a share-link
+  //   visitor is not the operator either trust judgment covers).
   // - `runArmed`: the ACTIVE execution was created with
-  //   spec.auto_approve_all, so the toggle reflects an armed in-flight run —
+  //   spec.auto_approve_all, so the switch reflects an armed in-flight run —
   //   this is what carries the state across the new-session → session-page
   //   handoff. Deliberately derived from the active execution ONLY, never
   //   from history: deriving from past executions would silently survive a
-  //   reload and change the reset-on-reload consent contract below.
+  //   reload independent of the seeds above.
   //
-  // Lives only in memory for the life of this page — reset on reload
-  // re-applies the host default, never a user choice.
+  // The explicit choice lives only in memory for the life of this page —
+  // reset on reload re-applies the seeds (the account preference now being
+  // the persisted one the user actually declared), never a per-session flip.
   const approvalDefaults = useApprovalDefaults();
   const [autoApproveChoice, setAutoApproveChoice] = useState<boolean | null>(null);
+  const accountSeed = !isGuest && (options.accountDefaults?.autoApprove ?? false);
   const hostSeed = !isGuest && (approvalDefaults?.autoApproveAll ?? false);
   const runArmed = conv.activeStreamExecution?.spec?.autoApproveAll === true;
-  const autoApproveAll = autoApproveChoice ?? (hostSeed || runArmed);
+  const autoApproveAll = autoApproveChoice ?? (accountSeed || hostSeed || runArmed);
   const setAutoApproveAll = useCallback((value: boolean) => {
     setAutoApproveChoice(value);
   }, []);

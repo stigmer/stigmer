@@ -192,8 +192,11 @@ type IdentityAccountPreferences struct {
 	// account. Off by default; operative only where the organization has
 	// also enabled memory.
 	MemoryEnabled bool `protobuf:"varint,5,opt,name=memory_enabled,json=memoryEnabled,proto3" json:"memory_enabled,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	// Whether new interactive sessions start with "auto-approve tool calls"
+	// armed. Off by default — sessions prompt at each approval gate.
+	DefaultAutoApprove bool `protobuf:"varint,6,opt,name=default_auto_approve,json=defaultAutoApprove,proto3" json:"default_auto_approve,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *IdentityAccountPreferences) Reset() {
@@ -261,6 +264,13 @@ func (x *IdentityAccountPreferences) GetMemoryEnabled() bool {
 	return false
 }
 
+func (x *IdentityAccountPreferences) GetDefaultAutoApprove() bool {
+	if x != nil {
+		return x.DefaultAutoApprove
+	}
+	return false
+}
+
 var File_ai_stigmer_iam_identityaccount_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_identityaccount_v1_spec_proto_rawDesc = "" +
@@ -277,13 +287,14 @@ const file_ai_stigmer_iam_identityaccount_v1_spec_proto_rawDesc = "" +
 	"\x12is_machine_account\x18\x06 \x01(\bR\x10isMachineAccount\x12o\n" +
 	"\x11provisioning_mode\x18\a \x01(\x0e2B.ai.stigmer.iam.identityaccount.v1.IdentityAccountProvisioningModeR\x10provisioningMode\x12h\n" +
 	"\x15identity_provider_ref\x18\b \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceR\x13identityProviderRef\x12_\n" +
-	"\vpreferences\x18\t \x01(\v2=.ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferencesR\vpreferences\"\xb1\x02\n" +
+	"\vpreferences\x18\t \x01(\v2=.ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferencesR\vpreferences\"\xe3\x02\n" +
 	"\x1aIdentityAccountPreferences\x123\n" +
 	"\x10standing_context\x18\x01 \x01(\tB\b\xbaH\x05r\x03\x18\xd0\x0fR\x0fstandingContext\x12A\n" +
 	"\x0fdefault_harness\x18\x02 \x01(\tB\x18\xbaH\x15\xd8\x01\x01r\x10R\x06nativeR\x06cursorR\x0edefaultHarness\x129\n" +
 	"\x14default_native_model\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x18dR\x12defaultNativeModel\x129\n" +
 	"\x14default_cursor_model\x18\x04 \x01(\tB\a\xbaH\x04r\x02\x18dR\x12defaultCursorModel\x12%\n" +
-	"\x0ememory_enabled\x18\x05 \x01(\bR\rmemoryEnabledB\xbb\x02\n" +
+	"\x0ememory_enabled\x18\x05 \x01(\bR\rmemoryEnabled\x120\n" +
+	"\x14default_auto_approve\x18\x06 \x01(\bR\x12defaultAutoApproveB\xbb\x02\n" +
 	"%com.ai.stigmer.iam.identityaccount.v1B\tSpecProtoP\x01Z^github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/identityaccount/v1;identityaccountv1\xa2\x02\x04ASII\xaa\x02!Ai.Stigmer.Iam.Identityaccount.V1\xca\x02!Ai\\Stigmer\\Iam\\Identityaccount\\V1\xe2\x02-Ai\\Stigmer\\Iam\\Identityaccount\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Iam::Identityaccount::V1b\x06proto3"
 
 var (

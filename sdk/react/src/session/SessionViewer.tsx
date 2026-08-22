@@ -17,7 +17,8 @@ import {
   WorkspaceSurface,
   type SurfaceVirtualDocument,
 } from "../workspace/WorkspaceSurface.js";
-import type { ComposerAutoApproveProps, InteractionModeOption, SessionComposerHandle, SessionComposerSubmitContext } from "../composer/index.js";
+import type { InteractionModeOption, SessionComposerHandle, SessionComposerSubmitContext } from "../composer/index.js";
+import type { AccountExecutionDefaults } from "../identity-account/useAccountExecutionDefaults.js";
 import type { ApplyResourceResult } from "../library/useApplyResource.js";
 import { SessionViewerLayout } from "./SessionViewerLayout.js";
 import { useWorkspaceEditors, isVirtualEntryId } from "../internal/store/index.js";
@@ -52,6 +53,7 @@ import { useSessionRailViews } from "./useSessionRailViews.js";
 import { useSessionPanel, type SessionPanelController } from "./useSessionPanel.js";
 import { SessionPanelChip } from "./SessionPanelChip.js";
 import { TranscriptExportMenu } from "./TranscriptExportMenu.js";
+import { AutoApproveIndicator } from "./AutoApproveIndicator.js";
 import { useSessionWriteBacks } from "./useSessionWriteBacks.js";
 import { useWorkspaceReadRefs } from "./useWorkspaceReadRefs.js";
 import {
@@ -241,6 +243,17 @@ export interface SessionViewerProps {
    */
   readonly runConfig?: SessionRunConfig;
   /**
+   * The user's account-level execution defaults, typically from
+   * `useAccountExecutionDefaults()` — same seam as
+   * `NewSessionViewer.accountDefaults` (DD-016). On the session page only
+   * the `autoApprove` default applies: it seeds the session-scoped
+   * auto-approve state so a declared `default_auto_approve` preference
+   * covers follow-ups on existing sessions too. An explicit flip of the
+   * Config facet's switch wins for this session. Ignored for the
+   * `"guest"` audience.
+   */
+  readonly accountDefaults?: AccountExecutionDefaults;
+  /**
    * Whether the follow-up composer offers the model picker. `false`
    * hides the picker while keeping the SDK's model sourcing (persisted
    * preference, then the last execution's model) — for hosts whose
@@ -295,14 +308,14 @@ export interface SessionViewerProps {
    */
   readonly headerActions?: ReactNode;
   /**
-   * Whether the viewer renders its built-in whole-conversation export
-   * control ({@link TranscriptExportMenu}) in the header corner
-   * (stigmer/stigmer#814). Default ON — a deliberate DD-011 divergence,
-   * owner-ratified: wherever a conversation can be viewed its transcript
-   * should be one click away, the control is an additive header button (no
-   * rendering-strategy or DOM-structure change to existing content), and
-   * the export carries only what the current caller can already read.
-   * Hosts that own their export surface (or inert demo scenes) opt out.
+   * Whether the viewer offers its built-in whole-conversation export
+   * (stigmer/stigmer#814). Placement is panel-aware: viewers with the
+   * session panel export from the Config facet's Transcript section, and
+   * panel-less viewers (guests, `panel="none"`) render the header
+   * {@link TranscriptExportMenu} instead — so wherever a conversation can
+   * be viewed, its transcript stays reachable. The export carries only
+   * what the current caller can already read (`can_view`-scoped). Hosts
+   * that own their export surface (or inert demo scenes) opt out.
    *
    * @default true
    */
@@ -382,6 +395,7 @@ export function SessionViewer({
   getRuntimeEnv,
   audience = "integrator",
   runConfig,
+  accountDefaults,
   showModelSelector = true,
   panel: panelMode = "auto",
   defaultPanelOpen,
@@ -400,6 +414,7 @@ export function SessionViewer({
     getRuntimeEnv,
     audience,
     runConfig,
+    accountDefaults,
   });
   const { conv } = flow;
   const isGuest = audience === "guest";
@@ -661,15 +676,18 @@ export function SessionViewer({
   return (
     <SessionViewerLayout
       className={className}
-      // Top-right controls: host actions + the built-in transcript export +
-      // the panel chip. The chip is the panel's always-mounted toggle; while
-      // collapsed it carries only the pending-item count. Execution status
-      // is never surfaced as header chrome — the thread itself communicates
-      // run state. A viewer without a panel (guests — session configuration
-      // is not a visitor's business — or a host's panel="none") has no
-      // toggle: it is simply absent.
+      // Top-right controls: host actions + the panel chip. The chip is the
+      // panel's always-mounted toggle; while collapsed it carries only the
+      // pending-item count. Execution status is never surfaced as header
+      // chrome — the thread itself communicates run state. A viewer without
+      // a panel (guests — session configuration is not a visitor's business —
+      // or a host's panel="none") has no toggle: it is simply absent.
+      //
+      // Transcript export lives in the panel's Config facet; the header menu
+      // renders ONLY for panel-less viewers, so no audience loses export
+      // (guests and panel="none" hosts have no facet to reach it through).
       headerActions={
-        transcriptExport ? (
+        transcriptExport && !panelEnabled ? (
           <>
             {headerActions}
             <TranscriptExportMenu sessionId={sessionId} />
@@ -745,6 +763,10 @@ export function SessionViewer({
             workspaceFileReader={workspaceFileReader}
             workspaceContentSearcher={workspaceContentSearcher}
             isCurated={isCurated}
+            isObserver={isObserver}
+            // Drives the Config facet's Transcript section only — a host
+            // that opted out of export gets no facet section either.
+            exportSessionId={transcriptExport ? sessionId : null}
           />
         ) : null
       }
@@ -848,20 +870,6 @@ const ConversationColumn = memo(function ConversationColumn({
   const handleStop = useCallback(() => {
     void conv.stop();
   }, [conv.stop]);
-
-  // Always-visible auto-approve toggle (#816), replacing the old armed-only
-  // indicator banner: the walk-away user needs a way ON before any gate
-  // exists, not just a way off after one. Guests never get it (they don't
-  // inherit the host default and this is the operator's consent surface);
-  // observers have no composer at all. Memoized per DD-010 — the composer
-  // is memo'd and an inline object would defeat it.
-  const autoApprove = useMemo<ComposerAutoApproveProps | undefined>(
-    () =>
-      isGuest
-        ? undefined
-        : { armed: flow.autoApproveAll, onChange: flow.setAutoApproveAll },
-    [isGuest, flow.autoApproveAll, flow.setAutoApproveAll],
-  );
 
   // Edit-and-resubmit: stop the in-flight turn, pre-fill the composer with
   // the original text, and remember which execution is being edited. The
@@ -987,6 +995,13 @@ const ConversationColumn = memo(function ConversationColumn({
           />
         )}
         {!isObserver && sendError && <SendErrorBanner error={sendError} />}
+        {/* Armed-only disclosure (#816 rework): auto-approve's way ON lives in
+            the Config facet and the account preference — this strip is the
+            always-visible proof it is on, plus the one-click way off. Never
+            shown to observers (they cannot arm or disarm anything). */}
+        {!isObserver && flow.autoApproveAll && (
+          <AutoApproveIndicator onTurnOff={() => flow.setAutoApproveAll(false)} />
+        )}
         {/* Pending file reviews dock here — pinned above the composer so the
             decision the agent is blocked on can never scroll out of view. The
             thread renders only observational rows (badges) and read-only
@@ -1028,7 +1043,6 @@ const ConversationColumn = memo(function ConversationColumn({
             onInteractionModeChange={setInteractionMode}
             showInteractionModePicker={!isGuest}
             showModelSelector={modelSelectorVisible}
-            autoApprove={autoApprove}
             enableAttachments={!isGuest}
             workspace={isGuest ? undefined : flow.workspace}
             gitHubConnection={isGuest ? undefined : gitHubConnection}
@@ -1105,6 +1119,17 @@ interface SessionPanelRegionProps {
   readonly workspaceContentSearcher?: WorkspaceContentSearcher;
   /** Curated audience (endUser or guest): the Setup facet renders read-only. */
   readonly isCurated: boolean;
+  /**
+   * Observer audience (incl. channel-origin sessions): read-only viewers who
+   * must never receive the Config facet's auto-approve switch — the same
+   * withhold as approval submission. (Guests never render the panel at all.)
+   */
+  readonly isObserver: boolean;
+  /**
+   * Session id for the Config facet's Transcript export section, or `null`
+   * when the host opted out of export (`transcriptExport={false}`).
+   */
+  readonly exportSessionId: string | null;
 }
 
 function SessionPanelRegion({
@@ -1128,6 +1153,8 @@ function SessionPanelRegion({
   workspaceFileReader,
   workspaceContentSearcher,
   isCurated,
+  isObserver,
+  exportSessionId,
 }: SessionPanelRegionProps) {
   const { editors, activeKey, activeFile, reveal } = useWorkspaceEditors(
     panel.editorsStore,
@@ -1295,6 +1322,16 @@ function SessionPanelRegion({
       harness: flow.harness,
       executionTarget: flow.executionTarget,
       modelId: flow.model[0],
+      // Arming auto-approve is an operator decision — withheld from
+      // observers with the same gate as approval submission (guests never
+      // render the panel). The switch stays interactive mid-run: flipping
+      // it ON releases the in-flight run's gates via the flow's standing
+      // responder (#816).
+      autoApprove: isObserver
+        ? undefined
+        : { armed: flow.autoApproveAll, onChange: flow.setAutoApproveAll },
+      // Transcript export is view-scoped, so observers keep it (#814).
+      sessionId: exportSessionId,
       // Curated audiences see the configuration but cannot strip it — the
       // Config facet renders read-only without mutation callbacks (DD-011).
       mutations: isCurated
@@ -1309,6 +1346,7 @@ function SessionPanelRegion({
     [
       flow.agentRef, flow.isDefaultAgent, flow.mcpServerUsages, flow.skillRefs,
       flow.sessionVariables, flow.harness, flow.executionTarget, flow.model,
+      flow.autoApproveAll, flow.setAutoApproveAll, isObserver, exportSessionId,
       isCurated, handleRemoveAgent, handleRemoveMcp, handleRemoveSkill,
       accessSlot,
     ],

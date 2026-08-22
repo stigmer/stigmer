@@ -1,6 +1,7 @@
 import { useParams } from "react-router-dom";
 import {
   SessionViewer,
+  useAccountExecutionDefaults,
   useActiveOrgSlug,
   useActiveOrgId,
   useWorkspaceSources,
@@ -27,12 +28,17 @@ function SessionPageInner({ id }: { id: string }) {
   const workspaceFileLister = useNativeWorkspaceFiles();
   const workspaceFileReader = useNativeWorkspaceFileReader();
   const workspaceContentSearcher = useNativeWorkspaceContentSearcher();
+  // Seeds session-scoped auto-approve from the account's
+  // default_auto_approve preference (same seam as the launcher's seed;
+  // no-op in pure-local mode where IdentityAccount is unavailable).
+  const accountDefaults = useAccountExecutionDefaults();
 
   return (
     <div className="flex h-full w-full flex-col">
       <SessionViewer
         sessionId={id}
         org={org}
+        accountDefaults={accountDefaults}
         enableGitHub={enableGitHub}
         enableLocal={enableLocal}
         onBrowseLocalFolder={browseLocalFolder}

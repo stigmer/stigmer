@@ -1,6 +1,5 @@
 "use client";
 
-import { useId } from "react";
 import { cn } from "@stigmer/theme";
 import {
   Tooltip,
@@ -8,7 +7,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "../internal/tooltip.js";
-import { Switch } from "../switch/Switch.js";
 import { ContextPopover } from "./ContextPopover.js";
 import { ConfigureMenu, type ConfigureMenuItem } from "./ConfigureMenu.js";
 import { ModelSelector } from "../models/ModelSelector.js";
@@ -24,18 +22,6 @@ import {
   StopIcon,
 } from "./icons.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
-
-/**
- * Wiring for the always-available "auto-approve tool calls" toggle
- * (stigmer/stigmer#816). Presence renders the control; omission keeps the
- * toolbar byte-identical for consumers that don't wire it (DD-011).
- */
-export interface ComposerAutoApproveProps {
-  /** Whether auto-approve is currently armed for this conversation. */
-  readonly armed: boolean;
-  /** Called with the next value when the user flips the toggle. */
-  readonly onChange: (armed: boolean) => void;
-}
 
 export interface ComposerToolbarProps {
   readonly disabled: boolean;
@@ -60,14 +46,6 @@ export interface ComposerToolbarProps {
   readonly showInteractionModePicker: boolean;
   readonly interactionMode?: InteractionModeOption;
   readonly onInteractionModeChange: (mode: InteractionModeOption) => void;
-
-  /**
-   * Always-available auto-approve toggle (#816). Deliberately NOT bound to
-   * {@link disabled}: the walk-away user flips it exactly while a turn
-   * streams, so it stays interactive under the composer lock — the same
-   * exemption the Stop button carries.
-   */
-  readonly autoApprove?: ComposerAutoApproveProps;
 
   readonly showModelSelector: boolean;
   readonly modelId?: string;
@@ -150,7 +128,6 @@ export function ComposerToolbar({
   showInteractionModePicker,
   interactionMode,
   onInteractionModeChange,
-  autoApprove,
   showModelSelector,
   modelId,
   onModelChange,
@@ -160,7 +137,6 @@ export function ComposerToolbar({
   onThinkingModeChange,
 }: ComposerToolbarProps) {
   const showHarnessSeparate = showHarnessSelector && !showModelSelector;
-  const autoApproveLabelId = useId();
 
   return (
     <div className="stg:flex stg:items-center stg:justify-between stg:gap-2 stg:border-t stg:border-border-muted stg:px-3 stg:py-2">
@@ -198,39 +174,6 @@ export function ComposerToolbar({
           />
         )}
 
-        {/* Auto-approve (#816): primary state like Mode and Model — armed
-            vs gated is something the user glances at before walking away.
-            Never bound to `disabled` (see ComposerAutoApproveProps): the
-            whole point is flipping it while a turn streams. Scoped provider:
-            this tooltip does not share the icon cluster's hover-delay group. */}
-        {autoApprove && (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger render={<span className="stg:inline-flex" />}>
-                <span className="stg:flex stg:shrink-0 stg:items-center stg:gap-1.5 stg:px-1">
-                  <label
-                    id={autoApproveLabelId}
-                    htmlFor={`${autoApproveLabelId}-switch`}
-                    className="stg:cursor-pointer stg:select-none stg:text-xs stg:text-muted-foreground"
-                  >
-                    Auto-approve
-                  </label>
-                  <Switch
-                    id={`${autoApproveLabelId}-switch`}
-                    checked={autoApprove.armed}
-                    onCheckedChange={autoApprove.onChange}
-                    aria-labelledby={autoApproveLabelId}
-                  />
-                </span>
-              </TooltipTrigger>
-              <TooltipContent side="top">
-                {autoApprove.armed
-                  ? "Tool calls run without asking — this conversation only. Turn off to be asked again."
-                  : "Run this conversation's tool calls without asking for approval, including the run in progress."}
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        )}
       </div>
 
       {/* ---- Right group: Secondary actions (icon-only) + Send ----

@@ -128,6 +128,7 @@ type IdentityAccountPreferencesInput struct {
 	DefaultNativeModel string
 	DefaultCursorModel string
 	MemoryEnabled      bool
+	DefaultAutoApprove bool
 }
 
 func (i *IdentityAccountInput) toProto() (*identityaccountv1.IdentityAccount, error) {
@@ -171,6 +172,7 @@ func (i *IdentityAccountPreferencesInput) toProto() (*identityaccountv1.Identity
 		DefaultNativeModel: i.DefaultNativeModel,
 		DefaultCursorModel: i.DefaultCursorModel,
 		MemoryEnabled:      i.MemoryEnabled,
+		DefaultAutoApprove: i.DefaultAutoApprove,
 	}, nil
 }
 
@@ -212,5 +214,6 @@ func identityAccountPreferencesInputFromProto(p *identityaccountv1.IdentityAccou
 	input.DefaultNativeModel = p.GetDefaultNativeModel()
 	input.DefaultCursorModel = p.GetDefaultCursorModel()
 	input.MemoryEnabled = p.GetMemoryEnabled()
+	input.DefaultAutoApprove = p.GetDefaultAutoApprove()
 	return input
 }

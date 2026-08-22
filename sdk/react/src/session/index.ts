@@ -170,6 +170,7 @@ export { SetupTab } from "./facets/index.js";
 export type {
   SetupTabProps,
   SetupTabMutationCallbacks,
+  SetupTabAutoApprove,
 } from "./facets/index.js";
 
 // Session utilities (re-exported from @stigmer/sdk)

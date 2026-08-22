@@ -338,6 +338,32 @@ private static final long serialVersionUID = 0L;
     return memoryEnabled_;
   }
 
+  public static final int DEFAULT_AUTO_APPROVE_FIELD_NUMBER = 6;
+  private boolean defaultAutoApprove_ = false;
+  /**
+   * <pre>
+   * Whether new interactive sessions start with "auto-approve tool calls"
+   * armed. Off by default — sessions prompt at each approval gate.
+   *
+   * &#64;internal
+   * A CLIENT-READ seed like default_harness/default_*_model (DD-003's
+   * resolution-point rule): clients read it to seed the session-scoped
+   * auto-approve state, and an armed session rides each execution spec
+   * explicitly (execution_config.auto_approve_all). The server NEVER reads
+   * this field at execution create — it is a UI default, not a server-side
+   * blanket grant. Client precedence: explicit in-session flip &gt; this
+   * account default &gt; the host app's StigmerProvider approvalDefaults &gt;
+   * fail-closed (gated). Never applied to guest/observer surfaces.
+   * </pre>
+   *
+   * <code>bool default_auto_approve = 6 [json_name = "defaultAutoApprove"];</code>
+   * @return The defaultAutoApprove.
+   */
+  @java.lang.Override
+  public boolean getDefaultAutoApprove() {
+    return defaultAutoApprove_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -367,6 +393,9 @@ private static final long serialVersionUID = 0L;
     if (memoryEnabled_ != false) {
       output.writeBool(5, memoryEnabled_);
     }
+    if (defaultAutoApprove_ != false) {
+      output.writeBool(6, defaultAutoApprove_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -391,6 +420,10 @@ private static final long serialVersionUID = 0L;
     if (memoryEnabled_ != false) {
       size += com.google.protobuf.CodedOutputStream
         .computeBoolSize(5, memoryEnabled_);
+    }
+    if (defaultAutoApprove_ != false) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeBoolSize(6, defaultAutoApprove_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -417,6 +450,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getDefaultCursorModel())) return false;
     if (getMemoryEnabled()
         != other.getMemoryEnabled()) return false;
+    if (getDefaultAutoApprove()
+        != other.getDefaultAutoApprove()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -439,6 +474,9 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + MEMORY_ENABLED_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
         getMemoryEnabled());
+    hash = (37 * hash) + DEFAULT_AUTO_APPROVE_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+        getDefaultAutoApprove());
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -594,6 +632,7 @@ private static final long serialVersionUID = 0L;
       defaultNativeModel_ = "";
       defaultCursorModel_ = "";
       memoryEnabled_ = false;
+      defaultAutoApprove_ = false;
       return this;
     }
 
@@ -642,6 +681,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000010) != 0)) {
         result.memoryEnabled_ = memoryEnabled_;
       }
+      if (((from_bitField0_ & 0x00000020) != 0)) {
+        result.defaultAutoApprove_ = defaultAutoApprove_;
+      }
     }
 
     @java.lang.Override
@@ -678,6 +720,9 @@ private static final long serialVersionUID = 0L;
       }
       if (other.getMemoryEnabled() != false) {
         setMemoryEnabled(other.getMemoryEnabled());
+      }
+      if (other.getDefaultAutoApprove() != false) {
+        setDefaultAutoApprove(other.getDefaultAutoApprove());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -730,6 +775,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000010;
               break;
             } // case 40
+            case 48: {
+              defaultAutoApprove_ = input.readBool();
+              bitField0_ |= 0x00000020;
+              break;
+            } // case 48
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1321,6 +1371,83 @@ private static final long serialVersionUID = 0L;
     public Builder clearMemoryEnabled() {
       bitField0_ = (bitField0_ & ~0x00000010);
       memoryEnabled_ = false;
+      onChanged();
+      return this;
+    }
+
+    private boolean defaultAutoApprove_ ;
+    /**
+     * <pre>
+     * Whether new interactive sessions start with "auto-approve tool calls"
+     * armed. Off by default — sessions prompt at each approval gate.
+     *
+     * &#64;internal
+     * A CLIENT-READ seed like default_harness/default_*_model (DD-003's
+     * resolution-point rule): clients read it to seed the session-scoped
+     * auto-approve state, and an armed session rides each execution spec
+     * explicitly (execution_config.auto_approve_all). The server NEVER reads
+     * this field at execution create — it is a UI default, not a server-side
+     * blanket grant. Client precedence: explicit in-session flip &gt; this
+     * account default &gt; the host app's StigmerProvider approvalDefaults &gt;
+     * fail-closed (gated). Never applied to guest/observer surfaces.
+     * </pre>
+     *
+     * <code>bool default_auto_approve = 6 [json_name = "defaultAutoApprove"];</code>
+     * @return The defaultAutoApprove.
+     */
+    @java.lang.Override
+    public boolean getDefaultAutoApprove() {
+      return defaultAutoApprove_;
+    }
+    /**
+     * <pre>
+     * Whether new interactive sessions start with "auto-approve tool calls"
+     * armed. Off by default — sessions prompt at each approval gate.
+     *
+     * &#64;internal
+     * A CLIENT-READ seed like default_harness/default_*_model (DD-003's
+     * resolution-point rule): clients read it to seed the session-scoped
+     * auto-approve state, and an armed session rides each execution spec
+     * explicitly (execution_config.auto_approve_all). The server NEVER reads
+     * this field at execution create — it is a UI default, not a server-side
+     * blanket grant. Client precedence: explicit in-session flip &gt; this
+     * account default &gt; the host app's StigmerProvider approvalDefaults &gt;
+     * fail-closed (gated). Never applied to guest/observer surfaces.
+     * </pre>
+     *
+     * <code>bool default_auto_approve = 6 [json_name = "defaultAutoApprove"];</code>
+     * @param value The defaultAutoApprove to set.
+     * @return This builder for chaining.
+     */
+    public Builder setDefaultAutoApprove(boolean value) {
+
+      defaultAutoApprove_ = value;
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Whether new interactive sessions start with "auto-approve tool calls"
+     * armed. Off by default — sessions prompt at each approval gate.
+     *
+     * &#64;internal
+     * A CLIENT-READ seed like default_harness/default_*_model (DD-003's
+     * resolution-point rule): clients read it to seed the session-scoped
+     * auto-approve state, and an armed session rides each execution spec
+     * explicitly (execution_config.auto_approve_all). The server NEVER reads
+     * this field at execution create — it is a UI default, not a server-side
+     * blanket grant. Client precedence: explicit in-session flip &gt; this
+     * account default &gt; the host app's StigmerProvider approvalDefaults &gt;
+     * fail-closed (gated). Never applied to guest/observer surfaces.
+     * </pre>
+     *
+     * <code>bool default_auto_approve = 6 [json_name = "defaultAutoApprove"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearDefaultAutoApprove() {
+      bitField0_ = (bitField0_ & ~0x00000020);
+      defaultAutoApprove_ = false;
       onChanged();
       return this;
     }
