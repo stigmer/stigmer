@@ -529,6 +529,86 @@ describe("Skill conformance — listVersions", () => {
   });
 });
 
+// The content-addressed versioning contract (stigmer/stigmer#475 — the model
+// workflows pinned in #341): one content is one history row, re-pushing
+// archived content repoints the head instead of duplicating it, a tag names
+// exactly one version (single-holder, moving on every assignment), and
+// is_current follows the live head rather than row recency.
+describe("Skill conformance — content-addressed versioning (repoint, single-holder tags)", () => {
+  it("A→B→A re-push repoints the head without a duplicate row and the tag follows", async () => {
+    const { org } = await target.provisionTenancy();
+    const name = uniqueName("skill");
+
+    const vA = await pushSkill(org, makeSkillArtifact({ name, body: "# body A" }), { tag: "stable" });
+    const vB = await pushSkill(org, makeSkillArtifact({ name, body: "# body B" }), { tag: "stable", track: false });
+    expect(vB.status?.versionHash).not.toBe(vA.status?.versionHash);
+
+    // Re-push A's content: the artifact hash is deterministic, so this is
+    // hash A again — the head must repoint, not insert a third row.
+    const rolledBack = await pushSkill(org, makeSkillArtifact({ name, body: "# body A" }), {
+      tag: "stable",
+      track: false,
+    });
+    expect(rolledBack.status?.versionHash, "re-pushed prior content keeps its hash").toBe(vA.status?.versionHash);
+
+    const history = await clients.skillQuery.listVersions({ org, slug: name });
+    expect(history.versions, "one content, one history row — no duplicate for the re-push").toHaveLength(2);
+
+    // Newest-archived first (B), but currency and the tag sit on the OLDER
+    // repointed-to row (A): recency and currency legitimately diverge.
+    expect(history.versions[0]?.versionHash).toBe(vB.status?.versionHash);
+    expect(history.versions[0]?.isCurrent).toBe(false);
+    expect(history.versions[0]?.tag, "the moved-away holder is untagged").toBe("");
+    expect(history.versions[1]?.versionHash).toBe(vA.status?.versionHash);
+    expect(history.versions[1]?.isCurrent, "is_current follows the live head, not row recency").toBe(true);
+    expect(history.versions[1]?.tag).toBe("stable");
+
+    const byTag = await clients.skillQuery.getByReference({ org, slug: name, version: "stable" });
+    expect(byTag.status?.versionHash, "the tag resolves to its sole holder").toBe(vA.status?.versionHash);
+  });
+
+  it("re-pushing identical content under a new tag moves the tag without a new row", async () => {
+    const { org } = await target.provisionTenancy();
+    const name = uniqueName("skill");
+
+    const v1 = await pushSkill(org, makeSkillArtifact({ name, body: "# same body" }), { tag: "v1" });
+    const retagged = await pushSkill(org, makeSkillArtifact({ name, body: "# same body" }), {
+      tag: "v2",
+      track: false,
+    });
+    expect(retagged.status?.versionHash, "identical content keeps its hash").toBe(v1.status?.versionHash);
+
+    const history = await clients.skillQuery.listVersions({ org, slug: name });
+    expect(history.versions, "retagging adds no history row").toHaveLength(1);
+    expect(history.versions[0]?.tag, "the tag moved to the new name").toBe("v2");
+
+    const byNewTag = await clients.skillQuery.getByReference({ org, slug: name, version: "v2" });
+    expect(byNewTag.status?.versionHash).toBe(v1.status?.versionHash);
+
+    await expectGrpcCode(
+      () => clients.skillQuery.getByReference({ org, slug: name, version: "v1" }),
+      Code.NotFound,
+      "a moved-away tag stops resolving",
+    );
+  });
+
+  it('"latest" (the CLI default tag) moves to each new push', async () => {
+    const { org } = await target.provisionTenancy();
+    const name = uniqueName("skill");
+
+    const vA = await pushSkill(org, makeSkillArtifact({ name, body: "# first" }), { tag: "latest" });
+    const vB = await pushSkill(org, makeSkillArtifact({ name, body: "# second" }), { tag: "latest", track: false });
+
+    const history = await clients.skillQuery.listVersions({ org, slug: name });
+    expect(history.versions).toHaveLength(2);
+    expect(history.versions[0]?.versionHash).toBe(vB.status?.versionHash);
+    expect(history.versions[0]?.tag, '"latest" names the newest push').toBe("latest");
+    expect(history.versions[0]?.isCurrent).toBe(true);
+    expect(history.versions[1]?.versionHash).toBe(vA.status?.versionHash);
+    expect(history.versions[1]?.tag, "the prior holder is untagged").toBe("");
+  });
+});
+
 describe("Skill conformance — updateVisibility", () => {
   it("changes an org-default skill to public", async () => {
     // Escalation to PUBLIC is operator-gated in the cloud edition (both

@@ -173,7 +173,11 @@ func (s *LoadSkillByReferenceStep) skillMatchesVersion(skill *skillv1.Skill, ver
 		return skill.Status.VersionHash == version
 	}
 
-	// Otherwise, treat as tag
+	// Otherwise, treat as tag. Matching the live head's spec.tag is honest
+	// under the single-holder tag model (stigmer/stigmer#475): the push
+	// pipeline reconciles the live tag with the audit tag column (assigning
+	// through SetAuditTag, clearing spec.tag if that assignment fails), so a
+	// live head advertising a tag IS that tag's current holder.
 	if skill.Spec != nil && skill.Spec.Tag == version {
 		return true
 	}
@@ -186,7 +190,9 @@ func (s *LoadSkillByReferenceStep) skillMatchesVersion(skill *skillv1.Skill, ver
 //
 // Query strategy:
 //   - If version is a hash: Use GetAuditByHash for O(log n) indexed lookup
-//   - If version is a tag: Use GetAuditByTag which returns most recent by archived_at
+//   - If version is a tag: Use GetAuditByTag, which reads the audit tag
+//     column — under the single-holder model at most one row matches
+//     (newest-wins is only a defensive tiebreaker for legacy multi-holder data)
 func (s *LoadSkillByReferenceStep) findAuditSkillByVersion(ctx context.Context, skillID, version string) (*skillv1.Skill, bool, error) {
 	var skill skillv1.Skill
 
