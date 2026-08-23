@@ -14,6 +14,8 @@
  *        (e.g. dist/main.js or dist-slim/main.js)
  */
 import { spawn } from "node:child_process";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -27,7 +29,15 @@ const serverRoot = fileURLToPath(new URL("..", import.meta.url));
 const BOOT_TIMEOUT_MS = 15_000;
 
 const child = spawn(process.execPath, [join(serverRoot, entry)], {
-  env: { ...process.env, GRPC_PORT: "0", LOG_LEVEL: "info", ENV: "ci" },
+  env: {
+    ...process.env,
+    GRPC_PORT: "0",
+    LOG_LEVEL: "info",
+    ENV: "ci",
+    // The storage stage opens DB_PATH for real — point it at a throwaway
+    // file so the boot check never writes the operator's ~/.stigmer.
+    DB_PATH: join(mkdtempSync(join(tmpdir(), "verify-boot-")), "stigmer.db"),
+  },
   stdio: ["ignore", "inherit", "pipe"],
 });
 

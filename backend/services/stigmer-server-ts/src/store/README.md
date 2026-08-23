@@ -1,7 +1,15 @@
-# store/ — reserved seam
+# store/ — the persistence layer
 
-The storage interface and `node:sqlite` driver land here with sub-project
-`sp.ts-server-storage-and-pipeline` (D4 entry #4): the `store.Store` surface
-ported surface-for-surface, migrations v1–v6 adopted plus the v7 consolidation,
-and spike SP-C (FTS5 availability). See D2 §3 and DD-003 in the parent project.
-Nothing in the scaffold may import from this directory.
+Ports `backend/libs/go/store` (D2 §3, DD-003): `interface.ts` is the
+driver-agnostic contract (surface-for-surface with Go's `store.Store`, plus
+the consolidated members Go kept behind the `DB()` escape hatch — bootstrap
+state, signal dedupe, MCP OAuth); `sqlite/` is the phase-1 `node:sqlite`
+driver with the versioned migration chain (v1–v6 adopted from Go
+DDL-faithful, v7 = the OD-3 consolidation).
+
+Domain code depends on `interface.ts` only — never on `sqlite/` — so the
+phase-2 Postgres driver drops in behind the same contract. Schema
+continuity across cutover (any Go-created database adopts forward; a v7
+database rolls back to Go untouched) is proven by
+`sqlite/__tests__/migrations.test.ts` against a real Go-created fixture;
+regenerate it with `scripts/regen-go-db-fixture.sh`.
