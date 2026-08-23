@@ -170,4 +170,44 @@ describe("Activity conformance — listRecentActivity", () => {
     expect(response.entries).toHaveLength(1);
     expect(response.entries[0]?.id, "the trimmed page must keep the newest entry").toBe(newest);
   });
+
+  // The page_size normalization contract. The exact constants (default 30,
+  // cap 100) are pinned byte-identical in both editions' handler unit tests;
+  // what is black-box assertable over the wire — and what a client actually
+  // relies on — is the normalization SHAPE: out-of-range values are folded
+  // into range, never rejected, and never answered with an empty page while
+  // data exists. Proving the exact ceiling would need >100 live fixtures per
+  // run — cost without additional contract signal.
+  it("treats an unspecified page_size as the default page, not an empty one", async () => {
+    const { org } = await target.provisionTenancy();
+    const agentInstanceId = await provisionAgentInstance(clients, org);
+    const session = await createSession(clients, org, agentInstanceId, { subject: "default page" });
+
+    const response = await clients.activityQuery.listRecentActivity({ org });
+
+    expect(
+      response.entries.map((entry) => entry.id),
+      "page_size 0 must mean 'the default page', never 'zero entries'",
+    ).toContain(session);
+  });
+
+  it("normalizes a negative page_size instead of rejecting it", async () => {
+    const { org } = await target.provisionTenancy();
+    const agentInstanceId = await provisionAgentInstance(clients, org);
+    const session = await createSession(clients, org, agentInstanceId, { subject: "negative page" });
+
+    const response = await clients.activityQuery.listRecentActivity({ pageSize: -5, org });
+
+    expect(response.entries.map((entry) => entry.id)).toContain(session);
+  });
+
+  it("caps an oversize page_size instead of rejecting it", async () => {
+    const { org } = await target.provisionTenancy();
+    const agentInstanceId = await provisionAgentInstance(clients, org);
+    const session = await createSession(clients, org, agentInstanceId, { subject: "oversize page" });
+
+    const response = await clients.activityQuery.listRecentActivity({ pageSize: 100_000, org });
+
+    expect(response.entries.map((entry) => entry.id)).toContain(session);
+  });
 });

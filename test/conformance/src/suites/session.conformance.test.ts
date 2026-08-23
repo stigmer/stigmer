@@ -302,6 +302,72 @@ describe("Session conformance — queries", () => {
       Code.InvalidArgument,
       "listByAgentInstance empty agent_instance_id",
     ));
+
+  it("listByChannel answers an empty list for a channel with no sessions — ordinary sessions never leak into a channel view", async () => {
+    // Channel sessions are created by the cloud channel runtime, which stamps
+    // the stigmer.ai/channel-id label at create time. The OSS runtime has no
+    // channel broker, so nothing ever stamps it there — the empty answer IS
+    // the OSS contract. Creating an ordinary session first makes this a real
+    // filter assertion rather than a vacuous empty-store read: a broken
+    // filter that returned unlabeled sessions would fail here.
+    const { org } = await target.provisionTenancy();
+    const agentInstanceId = await provisionAgentInstance(org);
+    await createSession(org, uniqueName("session"), agentInstanceId);
+
+    const listed = await clients.sessionQuery.listByChannel({ channelId: uniqueName("ach") });
+
+    expect(listed.entries).toHaveLength(0);
+  });
+
+  it("listByChannel returns exactly the sessions stamped with the channel's label", async () => {
+    // The positive arm: the filter must key on the stigmer.ai/channel-id
+    // label, not on emptiness. The label is a server-stamped reserved key an
+    // ordinary caller cannot forge on cloud (GuardReservedLabelsStep), so the
+    // channel-originated session is seeded through the privileged scope
+    // (stigmer#547) — the activity suite's runtime-origin seeding pattern.
+    // Deployed endpoints carry no operator credential by design and skip.
+    if (target.provisionPrivilegedScope === undefined) return;
+    const scope = await target.provisionPrivilegedScope();
+
+    try {
+      const org = scope.context.org;
+      const agent = await scope.clients.agentCommand.create(
+        makeAgent({ org, name: uniqueName("agent") }),
+      );
+      const agentInstanceId = agent.status!.defaultInstanceId;
+      const channelId = uniqueName("ach");
+
+      const channelSession = await scope.clients.sessionCommand.create(
+        makeSession({
+          org,
+          name: uniqueName("session"),
+          agentInstanceId,
+          labels: { "stigmer.ai/channel-id": channelId },
+        }),
+      );
+      await scope.clients.sessionCommand.create(
+        makeSession({ org, name: uniqueName("session"), agentInstanceId }),
+      );
+
+      const listed = await scope.clients.sessionQuery.listByChannel({ channelId });
+      const ids = listed.entries.map((s) => s.metadata?.id);
+
+      expect(ids, "the channel-stamped session is the one result").toEqual([
+        channelSession.metadata?.id,
+      ]);
+
+      await scope.clients.agentCommand.delete({ value: agent.metadata!.id });
+    } finally {
+      await scope.cleanup();
+    }
+  });
+
+  it("listByChannel rejects an empty channel_id with InvalidArgument", () =>
+    expectGrpcCode(
+      () => clients.sessionQuery.listByChannel({ channelId: "" }),
+      Code.InvalidArgument,
+      "listByChannel empty channel_id",
+    ));
 });
 
 describe("Session conformance — negative paths", () => {

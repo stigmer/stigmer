@@ -77,6 +77,12 @@ export async function spawnServer(
       TEMPORAL_HOST_PORT: temporalHostPort,
       ENV: "local",
       LOG_LEVEL: "warn",
+      // Hermeticity: the server's background model-registry refresh dials the
+      // public cloud endpoint on boot and would swap the served document
+      // mid-run when the network happens to be up — making any assertion on
+      // the registry lane pass offline and flake online. Conformance servers
+      // always serve the bundled snapshot.
+      STIGMER_MODEL_REGISTRY_REFRESH: "off",
       ...(opts.env ?? {}),
     },
   });

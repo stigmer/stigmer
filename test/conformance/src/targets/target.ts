@@ -202,6 +202,15 @@ export interface TargetProfile {
   // implicit caller, so isolation is untestable there by construction.
   provisionIdentity?(): Promise<ConformanceClients>;
 
+  // Base URL of the server's unified HTTP port, for the plain-HTTP lanes that
+  // route AROUND gRPC (the registry proxies). Present only on targets whose
+  // OSS-lane HTTP surface is under test: the local targets own their spawned
+  // server's port; the cloud edition serves registries through its own
+  // authenticated routes (a different contract), so the method is absent
+  // there and the registry-proxy suite reports SKIPPED — the DD-012
+  // "genuinely skipped, not false green" posture. Valid only after setup().
+  httpBaseUrl?(): string;
+
   // A platform-operator caller with a tenancy of its own (stigmer#547) — see
   // PrivilegedScope. Absent where no operator credential exists: hermetic
   // cloud runs bootstrap one (a conf-operator user granted operator on
