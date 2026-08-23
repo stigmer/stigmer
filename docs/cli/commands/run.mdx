@@ -55,6 +55,7 @@ stigmer run my-agent -m "Summarize the Q4 earnings report"
 | `--download`        | `string` |         | download artifacts to directory when complete                                                                                                           |
 | `--env`             | `string` |         | runtime env var KEY=VALUE (repeatable)                                                                                                                  |
 | `--env-file`        | `string` |         | load env from file (repeatable, later override earlier)                                                                                                 |
+| `--harness`         | `string` |         | execution harness for the new session: "native" (default) or "cursor"                                                                                   |
 | `--json`            | `bool`   |         | stream events as newline-delimited JSON                                                                                                                 |
 | `--message`, `-m`   | `string` |         | initial message/prompt for execution                                                                                                                    |
 | `--mode`            | `string` |         | interaction mode: "agent" (default) or "plan" (read-only)                                                                                               |
@@ -154,6 +155,7 @@ stigmer run my-agent --detach -m "Generate weekly report"
 | Flag                | Purpose                                                                             |
 | ------------------- | ----------------------------------------------------------------------------------- |
 | `--model`           | Override the LLM model (e.g., `claude-sonnet-4-6`)                                  |
+| `--harness`         | Choose the execution engine for the new session (`native` or `cursor`)              |
 | `--auto-approve`    | Approve all tool executions without prompting (bypasses approval policies)          |
 | `--approve-default` | Auto-resolve approval prompts in non-interactive mode (`approve`, `skip`, `reject`) |
 | `--verbose`, `-v`   | Show execution IDs and phase transitions in the TUI transcript                      |
@@ -165,6 +167,30 @@ stigmer run my-agent --model claude-opus-4.6 -m "Analyze this codebase"
 # Skip all approval prompts (use with caution)
 stigmer run my-agent --auto-approve -m "Deploy to staging"
 ```
+
+### Choosing a harness
+
+The harness is the engine that executes your session: `native` (Stigmer's own
+runtime, the default) or `cursor` (the Cursor engine, billed at its premium
+tier). A session keeps its harness for life — `stigmer resume` always continues
+on the engine the session started with.
+
+You rarely need the flag. If your account declares a default harness (Account
+settings → Execution defaults, or `default_harness` on your identity account),
+`stigmer run` applies it automatically on Stigmer Cloud, and an omitted
+`--model` fills from your default model for that harness. The flag is the
+per-run override:
+
+```bash
+# Start a cursor-harness session explicitly
+stigmer run code-reviewer --harness cursor -w . -m "Review my changes"
+
+# Force one native run without changing your cursor account default
+stigmer run my-agent --harness native -m "Quick question"
+```
+
+When a session starts on the cursor harness, the session header says so — you
+always see the engine before output streams.
 
 ## Examples
 

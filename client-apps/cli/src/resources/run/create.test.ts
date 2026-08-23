@@ -6,6 +6,7 @@
 import { describe, expect, it } from "vitest";
 import { InteractionMode, ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { create } from "@bufbuild/protobuf";
+import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import {
   LocalPathSourceSchema,
   WorkspaceEntrySchema,
@@ -43,6 +44,7 @@ describe("createAgentExecution", () => {
       serviceTier: "",
       thinking: "",
       autoApproveAll: true,
+      harness: "",
     });
 
     expect(exec.kind).toBe("AgentExecution");
@@ -72,6 +74,7 @@ describe("createAgentExecution", () => {
       serviceTier: "",
       thinking: "",
       autoApproveAll: false,
+      harness: "",
     });
     expect(exec.spec?.message).toBe("hi");
     expect(exec.spec?.executionConfig).toBeUndefined();
@@ -92,6 +95,7 @@ describe("createAgentExecution", () => {
       serviceTier: "fast",
       thinking: "",
       autoApproveAll: false,
+      harness: "",
     });
     expect(exec.spec?.executionConfig?.serviceTier).toBe(ServiceTier.FAST);
   });
@@ -113,6 +117,7 @@ describe("createAgentExecution", () => {
       serviceTier: "standard",
       thinking: "",
       autoApproveAll: false,
+      harness: "",
     });
     expect(exec.spec?.executionConfig?.serviceTier).toBe(ServiceTier.STANDARD);
   });
@@ -132,6 +137,7 @@ describe("createAgentExecution", () => {
       serviceTier: "",
       thinking: "enabled",
       autoApproveAll: false,
+      harness: "",
     });
     expect(exec.spec?.executionConfig?.thinkingMode).toBe(ThinkingMode.ENABLED);
   });
@@ -153,6 +159,7 @@ describe("createAgentExecution", () => {
       serviceTier: "",
       thinking: "disabled",
       autoApproveAll: false,
+      harness: "",
     });
     expect(exec.spec?.executionConfig?.thinkingMode).toBe(ThinkingMode.DISABLED);
   });
@@ -172,6 +179,7 @@ describe("createAgentExecution", () => {
       serviceTier: "",
       thinking: "",
       autoApproveAll: false,
+      harness: "",
     });
     expect(exec.spec?.sessionId).toBe("ses_1");
     expect(exec.spec?.executionConfig?.interactionMode).toBe(InteractionMode.UNSPECIFIED);
@@ -199,6 +207,7 @@ describe("createAgentExecution", () => {
       serviceTier: "",
       thinking: "",
       autoApproveAll: false,
+      harness: "",
     });
 
     expect(exec.spec?.sessionId).toBe("");
@@ -206,9 +215,16 @@ describe("createAgentExecution", () => {
     // Subject stays empty so the server defaults its sentinel and the async
     // title activity generates a real one.
     expect(exec.spec?.sessionSpec?.subject).toBe("");
+    // No harness opinion: the field stays UNSPECIFIED so the server default
+    // (native) applies — a workspace-only run is byte-identical to before
+    // the --harness flag existed.
+    expect(exec.spec?.sessionSpec?.harness).toBe(Harness.UNSPECIFIED);
   });
 
-  it("omits session_spec when there are no workspace entries", async () => {
+  it("omits session_spec when there are no workspace entries and no harness (wire-shape regression pin)", async () => {
+    // The pre---harness wire shape for a plain run: NO embedded session_spec
+    // at all. If this pin fails, plain runs have started carrying a spec they
+    // never carried before — a silent contract change, not a feature.
     const { fn } = fakeController();
     const exec = await createAgentExecution(fn, {
       agentId: "agt_1",
@@ -223,8 +239,83 @@ describe("createAgentExecution", () => {
       serviceTier: "",
       thinking: "",
       autoApproveAll: false,
+      harness: "",
     });
     expect(exec.spec?.sessionSpec).toBeUndefined();
+  });
+
+  it("stamps cursor harness on a session_spec created just for it (oss#293)", async () => {
+    const { fn } = fakeController();
+    const exec = await createAgentExecution(fn, {
+      agentId: "agt_1",
+      orgId: "acme",
+      message: "hi",
+      runtimeEnv: {},
+      attachments: [],
+      workspaceFileRefs: [],
+      workspaceEntries: [],
+      model: "",
+      mode: "",
+      serviceTier: "",
+      thinking: "",
+      autoApproveAll: false,
+      harness: "cursor",
+    });
+    // Harness alone justifies the embedded spec: the server clones it onto
+    // the auto-created session (the one-call bootstrap contract).
+    expect(exec.spec?.sessionSpec?.harness).toBe(Harness.CURSOR);
+    expect(exec.spec?.sessionSpec?.workspaceEntries).toEqual([]);
+  });
+
+  it("stamps an explicit native harness rather than leaving it unspecified", async () => {
+    // "native" may be a deliberate per-run escape from the account's
+    // default_harness preference — it must survive on the wire so it beats
+    // any future change to the server-side default (D3).
+    const { fn } = fakeController();
+    const exec = await createAgentExecution(fn, {
+      agentId: "agt_1",
+      orgId: "acme",
+      message: "hi",
+      runtimeEnv: {},
+      attachments: [],
+      workspaceFileRefs: [],
+      workspaceEntries: [],
+      model: "",
+      mode: "",
+      serviceTier: "",
+      thinking: "",
+      autoApproveAll: false,
+      harness: "native",
+    });
+    expect(exec.spec?.sessionSpec?.harness).toBe(Harness.NATIVE);
+  });
+
+  it("carries harness and workspace entries together on one session_spec", async () => {
+    const entry = create(WorkspaceEntrySchema, {
+      name: "repo",
+      source: create(WorkspaceSourceSchema, {
+        source: { case: "localPath", value: create(LocalPathSourceSchema, { path: "/home/user/repo" }) },
+      }),
+    });
+
+    const { fn } = fakeController();
+    const exec = await createAgentExecution(fn, {
+      agentId: "agt_1",
+      orgId: "acme",
+      message: "hi",
+      runtimeEnv: {},
+      attachments: [],
+      workspaceFileRefs: [],
+      workspaceEntries: [entry],
+      model: "",
+      mode: "",
+      serviceTier: "",
+      thinking: "",
+      autoApproveAll: false,
+      harness: "cursor",
+    });
+    expect(exec.spec?.sessionSpec?.harness).toBe(Harness.CURSOR);
+    expect(exec.spec?.sessionSpec?.workspaceEntries).toEqual([entry]);
   });
 });
 

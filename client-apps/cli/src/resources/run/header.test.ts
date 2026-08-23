@@ -31,6 +31,24 @@ describe("renderSessionHeader", () => {
     expect(agent.text()).not.toContain("Mode:");
   });
 
+  it("surfaces the cursor harness but not native/default (oss#293 D2 visibility)", () => {
+    // A cursor session may have been selected by the account preference, not
+    // a flag — the header is the CLI's only pre-stream channel to say so.
+    const cursor = capture();
+    renderSessionHeader(cursor.out, { agentName: "", sessionId: "s", model: "", mode: "", harness: "cursor", workspaces: [] });
+    expect(cursor.text()).toContain("Harness:");
+    expect(cursor.text()).toContain("Cursor");
+
+    // Native (explicit or defaulted) stays implicit, like agent mode.
+    const native = capture();
+    renderSessionHeader(native.out, { agentName: "", sessionId: "s", model: "", mode: "", harness: "native", workspaces: [] });
+    expect(native.text()).not.toContain("Harness:");
+
+    const unset = capture();
+    renderSessionHeader(unset.out, { agentName: "", sessionId: "s", model: "", mode: "", workspaces: [] });
+    expect(unset.text()).not.toContain("Harness:");
+  });
+
   it("indents extra workspaces under the first", () => {
     const { out, text } = capture();
     renderSessionHeader(out, {

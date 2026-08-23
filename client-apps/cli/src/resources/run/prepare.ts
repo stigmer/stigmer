@@ -32,6 +32,15 @@ export type ServiceTierFlag = "" | "standard" | "fast";
  */
 export type ThinkingFlag = "" | "disabled" | "enabled";
 
+/**
+ * The `--harness` flag's value space (oss#293): empty means unset — the
+ * account preference may fill it (see {@link prepareAgentExec}), and when
+ * nothing resolves the server defaults the session to native. Deliberately
+ * only the two shipped engines, mirroring the proto validation on
+ * `IdentityAccountPreferences.default_harness`.
+ */
+export type HarnessFlag = "" | "native" | "cursor";
+
 /** Raw agent-execution flags shared by `run` and `draft` (Go's agentExecFlags). */
 export interface AgentExecFlags {
   readonly message: string;
@@ -51,6 +60,7 @@ export interface AgentExecFlags {
   readonly mode: RunMode;
   readonly serviceTier: ServiceTierFlag;
   readonly thinking: ThinkingFlag;
+  readonly harness: HarnessFlag;
 }
 
 /**
@@ -71,6 +81,13 @@ export interface PreparedRun {
   readonly mode: RunMode;
   readonly serviceTier: ServiceTierFlag;
   readonly thinking: ThinkingFlag;
+  /**
+   * The RESOLVED harness for the new session: the explicit flag, else the
+   * account preference (when the caller opted in), else "" — which stays off
+   * the wire so the server default (native) applies. Also drives the header's
+   * visibility row: a cursor session is never entered silently.
+   */
+  readonly harness: HarnessFlag;
 }
 
 /** Optional behavior switches for {@link prepareAgentExec}. */
@@ -78,11 +95,24 @@ export interface PrepareAgentExecOptions {
   /**
    * When `true` (the caller's backend is Stigmer Cloud) and `--model` is
    * omitted, the model is filled from the caller's account preference
-   * (`IdentityAccountPreferences.default_native_model`) via `whoAmI()`.
-   * Local mode has no IdentityAccount, so callers pass `false` there and
-   * the omitted model keeps resolving to the platform default.
+   * (`IdentityAccountPreferences.default_*_model` for the resolved harness)
+   * via `whoAmI()`. Local mode has no IdentityAccount, so callers pass
+   * `false` there and the omitted model keeps resolving to the platform
+   * default.
    */
   readonly cloudBackend?: boolean;
+  /**
+   * When `true` and `--harness` is omitted, the harness is filled from the
+   * caller's account preference (`IdentityAccountPreferences.default_harness`)
+   * on cloud. `run` opts in; `draft` deliberately does not: draft executes the
+   * seedpack's system creator agents (a utility flow, not the user's own
+   * conversation), which are built and exercised on the native harness —
+   * silently rerouting them onto the cursor engine (different toolset,
+   * premium billing tier) would fail the least-surprise test. An explicit
+   * `--harness` on draft still wins; only the silent preference fill is
+   * scoped out. Owner-ratified (D5, 2026-08-23).
+   */
+  readonly applyAccountHarnessDefault?: boolean;
 }
 
 /**
@@ -100,16 +130,28 @@ export async function prepareAgentExec(
   validateMode(flags.mode);
   validateServiceTier(flags.serviceTier);
   validateThinking(flags.thinking);
+  validateHarness(flags.harness);
 
-  // Layered model seed (oss#293 Phase 1.5): an explicit --model always wins;
-  // an omitted one fills from the account preference on cloud. `run` and
-  // `draft` always create a NEW session (threading lives in `resume`, which
-  // does not pass through here), so the fill never injects a native model
-  // into an existing cursor-harness session.
-  const model =
-    flags.model === "" && options?.cloudBackend === true
-      ? await resolveModelFromAccountPreference(client)
-      : flags.model;
+  // Layered seeds (oss#293, DD-003): explicit flag > account preference
+  // (cloud only) > platform default. Harness resolves first because the model
+  // fill is harness-aware: a cursor session fills from default_cursor_model,
+  // everything else from default_native_model. `run` and `draft` always
+  // create a NEW session (threading lives in `resume`, which does not pass
+  // through here), so neither fill can ever contradict an existing session's
+  // immutable harness. One whoAmI round trip serves both fills, and it is
+  // skipped entirely when explicit flags leave nothing to fill.
+  const wantsHarnessFill = flags.harness === "" && options?.applyAccountHarnessDefault === true;
+  const wantsModelFill = flags.model === "";
+  const accountDefaults =
+    options?.cloudBackend === true && (wantsHarnessFill || wantsModelFill)
+      ? await resolveAccountExecutionDefaults(client)
+      : NO_ACCOUNT_DEFAULTS;
+  const harness = flags.harness !== "" ? flags.harness : wantsHarnessFill ? accountDefaults.harness : "";
+  const model = wantsModelFill
+    ? harness === "cursor"
+      ? accountDefaults.cursorModel
+      : accountDefaults.nativeModel
+    : flags.model;
 
   const workspaceEntries = parseWorkspaceEntries(flags.workspace, flags.branch, flags.commit);
 
@@ -144,23 +186,43 @@ export async function prepareAgentExec(
     mode: flags.mode,
     serviceTier: flags.serviceTier,
     thinking: flags.thinking,
+    harness,
   };
 }
 
+/** The account's execution defaults, "" for anything undeclared. */
+interface AccountExecutionDefaults {
+  readonly harness: HarnessFlag;
+  readonly nativeModel: string;
+  readonly cursorModel: string;
+}
+
+const NO_ACCOUNT_DEFAULTS: AccountExecutionDefaults = { harness: "", nativeModel: "", cursorModel: "" };
+
 /**
- * Best-effort read of the caller's default model for native-harness runs
- * (CLI sessions are native — there is no --harness flag yet, so the cursor
- * default is deliberately not consulted). Any failure — network, auth, a
- * backend without IdentityAccount — resolves to "" and the run proceeds
- * exactly as an unfilled --model does today: a missing preference must
- * never fail a run.
+ * Best-effort read of the caller's execution defaults
+ * (`IdentityAccountPreferences.default_harness` / `default_*_model`) in one
+ * whoAmI round trip. Any failure — network, auth, a backend without
+ * IdentityAccount — resolves to no defaults and the run proceeds exactly as
+ * unfilled flags do today: a missing preference must never fail a run.
+ *
+ * The persisted harness value is allowlist-guarded to the shipped engines
+ * (the same guard the web launcher's useAccountExecutionDefaults applies):
+ * a client must not trust stored data it did not write, so anything outside
+ * native/cursor is treated as undeclared rather than stamped on the wire.
  */
-async function resolveModelFromAccountPreference(client: Stigmer): Promise<string> {
+async function resolveAccountExecutionDefaults(client: Stigmer): Promise<AccountExecutionDefaults> {
   try {
     const account = await client.identityAccount.whoAmI();
-    return account.spec?.preferences?.defaultNativeModel ?? "";
+    const prefs = account.spec?.preferences;
+    const declared = prefs?.defaultHarness;
+    return {
+      harness: declared === "native" || declared === "cursor" ? declared : "",
+      nativeModel: prefs?.defaultNativeModel ?? "",
+      cursorModel: prefs?.defaultCursorModel ?? "",
+    };
   } catch {
-    return "";
+    return NO_ACCOUNT_DEFAULTS;
   }
 }
 
@@ -224,6 +286,22 @@ export function validateThinking(mode: string): asserts mode is ThinkingFlag {
   if (mode !== "" && mode !== "disabled" && mode !== "enabled") {
     throw new UsageError(
       `invalid --thinking value "${mode}": must be "disabled" or "enabled"`,
+    );
+  }
+}
+
+/**
+ * Validate the `--harness` flag. Empty means "use default": the account
+ * preference when the caller opted in, else the platform default (native).
+ * Only the shipped engines are accepted — other harness names that appear in
+ * UI metadata (copilot, codex, ...) have no proto mapping yet, so rejecting
+ * them here is honest, and this check catches spelling errors before a
+ * network round trip.
+ */
+export function validateHarness(harness: string): asserts harness is HarnessFlag {
+  if (harness !== "" && harness !== "native" && harness !== "cursor") {
+    throw new UsageError(
+      `invalid --harness value "${harness}": must be "native" or "cursor"`,
     );
   }
 }
