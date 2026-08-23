@@ -1,0 +1,39 @@
+{
+  "name": "@stigmer/server",
+  "version": "0.0.0-dev",
+  "description": "TypeScript control plane for the Stigmer OSS edition — a parity-gated port of stigmer-server (Go), serving the unified one-port gRPC/gRPC-Web/Connect transport",
+  "license": "Apache-2.0",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": "^22.13.0 || >=23.4.0"
+  },
+  "scripts": {
+    "build": "rm -rf dist && tsc -p tsconfig.build.json",
+    "build:slim": "npm run build && node scripts/bundle-slim.mjs",
+    "start": "tsx src/main.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist dist-slim"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stigmer/stigmer.git",
+    "directory": "backend/services/stigmer-server-ts"
+  },
+  "dependencies": {
+    "@bufbuild/protobuf": "2.12.0",
+    "@bufbuild/protovalidate": "^1.1.1",
+    "@connectrpc/connect": "^2.0.0",
+    "@connectrpc/connect-node": "^2.0.0",
+    "@stigmer/protos": "file:../../../apis/stubs/ts"
+  },
+  "devDependencies": {
+    "@connectrpc/connect-web": "^2.0.0",
+    "esbuild": "^0.28.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.2.4"
+  }
+}
