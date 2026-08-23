@@ -20,6 +20,10 @@
 //   - workflow + workflowinstance — sub-project #7 (sp.workflow-family;
 //     authoring/validation/versioning incl. the #341 head-repoint and the
 //     CW-9 updateVisibility block).
+//   - executioncontext — sub-project #15 (sp.executioncontext; the
+//     create-only secret-delivery domain. The suite is user-shaped by
+//     design — the runner-token decrypt lane is proven by the domain's
+//     own __tests__/executioncontext.test.ts).
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
@@ -34,6 +38,7 @@ export default defineConfig({
       "src/suites/memory.conformance.test.ts",
       "src/suites/workflow.conformance.test.ts",
       "src/suites/workflowinstance.conformance.test.ts",
+      "src/suites/executioncontext.conformance.test.ts",
     ],
     globalSetup: ["./src/harness/global-setup-ts.ts"],
     env: {

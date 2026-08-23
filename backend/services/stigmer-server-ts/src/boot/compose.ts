@@ -23,6 +23,7 @@ import { registerAgentServices } from "../domain/agent/controller.js";
 import { newConfigFromEnv } from "../domain/agentexecution/temporal/config.js";
 import { registerAgentInstanceServices } from "../domain/agentinstance/controller.js";
 import { registerEnvironmentServices } from "../domain/environment/controller.js";
+import { registerExecutionContextServices } from "../domain/executioncontext/controller.js";
 import { registerMemoryServices } from "../domain/memory/controller.js";
 import { registerOrganizationServices } from "../domain/organization/controller.js";
 import { registerSessionServices } from "../domain/session/controller.js";
@@ -52,9 +53,10 @@ export interface ComposedServer {
   /** The persistence layer (exposed for tests; domain code gets it injected). */
   store: Store;
   /**
-   * The runner-token service (exposed for its future consumers' wiring —
-   * the platform exchange RPC and the executioncontext decrypt lane land
-   * with their own sub-projects — and for boot tests).
+   * The runner-token service (exposed for boot tests and for the
+   * executioncontext decrypt-lane tests, which mint scope-bound tokens
+   * against the SAME key the server verifies with; the platform exchange
+   * RPC — the mint side — lands with its own sub-project).
    */
   runnerAuthService: RunnerAuthService;
   /** Completes wiring, flips SERVING, binds the port; returns the bound port. */
@@ -94,9 +96,9 @@ export function composeServer(options: ComposeOptions): ComposedServer {
   //     by default, so a server that cannot mint runner tokens would hand
   //     every execution redaction markers instead of its secrets — the
   //     exact silent-junk failure the oss#405 fail-loud doctrine forbids.
-  //     (Its consumers — the platform exchange RPC, the EC decrypt lane —
-  //     arrive with their sub-projects; the boot posture is wired now so
-  //     their wiring PRs never restructure boot.)
+  //     (The verify side is live: the executioncontext decrypt lane. The
+  //     mint side — the platform exchange RPC — arrives with its
+  //     sub-project.)
   let secretService: SecretService;
   try {
     secretService = SecretService.fromEnv();
@@ -160,6 +162,12 @@ export function composeServer(options: ComposeOptions): ComposedServer {
     registerHealthService(router, healthState);
     registerOrganizationServices(router, { store, logger });
     registerEnvironmentServices(router, { store, logger, secretService });
+    registerExecutionContextServices(router, {
+      store,
+      logger,
+      secretService,
+      runnerAuthService,
+    });
     registerAgentServices(router, {
       store,
       logger,
