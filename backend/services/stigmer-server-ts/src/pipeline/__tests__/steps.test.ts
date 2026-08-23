@@ -11,6 +11,7 @@
  * spec carries ApiResourceReference fields) as vehicles.
  */
 import { create, clone } from "@bufbuild/protobuf";
+import { TimestampSchema } from "@bufbuild/protobuf/wkt";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { Code, ConnectError } from "@connectrpc/connect";
 
@@ -39,6 +40,7 @@ import {
   newLoadExistingForDeleteStep,
   RESOURCE_ID_KEY,
 } from "../steps/delete.js";
+import { compareCreatedAtDesc, matchesAllLabels } from "../steps/helpers.js";
 import { newIndexSearchStep } from "../steps/index-search.js";
 import { EXISTING_RESOURCE_KEY, newLoadExistingStep } from "../steps/load-existing.js";
 import {
@@ -477,5 +479,53 @@ describe("references (agent spec as the vehicle)", () => {
     expect((error as ConnectError).rawMessage).toContain(
       "referenced MCP server(s) not found: 'ghost' (org: acme)",
     );
+  });
+});
+
+describe("list helpers (consolidated from the per-domain Go copies)", () => {
+  function ts(seconds: number, nanos = 0) {
+    return create(TimestampSchema, { seconds: BigInt(seconds), nanos });
+  }
+
+  describe("compareCreatedAtDesc", () => {
+    it("answers 0 when both timestamps are missing", () => {
+      expect(compareCreatedAtDesc(undefined, undefined)).toBe(0);
+    });
+
+    it("orders a timestamped entry before an untimestamped one", () => {
+      expect(compareCreatedAtDesc(ts(1), undefined)).toBe(-1);
+      expect(compareCreatedAtDesc(undefined, ts(1))).toBe(1);
+    });
+
+    it("orders by seconds descending (newest first)", () => {
+      expect(compareCreatedAtDesc(ts(20), ts(10))).toBe(-1);
+      expect(compareCreatedAtDesc(ts(10), ts(20))).toBe(1);
+    });
+
+    it("breaks a seconds tie by nanos descending", () => {
+      expect(compareCreatedAtDesc(ts(10, 500), ts(10, 100))).toBe(-1);
+      expect(compareCreatedAtDesc(ts(10, 100), ts(10, 500))).toBe(1);
+    });
+
+    it("answers 0 on a full tie", () => {
+      expect(compareCreatedAtDesc(ts(10, 100), ts(10, 100))).toBe(0);
+    });
+  });
+
+  describe("matchesAllLabels", () => {
+    it("matches everything when the filter is empty", () => {
+      expect(matchesAllLabels({}, {})).toBe(true);
+      expect(matchesAllLabels({ a: "1" }, {})).toBe(true);
+    });
+
+    it("requires EVERY filter entry to match (AND semantics)", () => {
+      const labels = { a: "1", b: "2" };
+      expect(matchesAllLabels(labels, { a: "1", b: "2" })).toBe(true);
+      expect(matchesAllLabels(labels, { a: "1", c: "3" })).toBe(false);
+    });
+
+    it("rejects a value mismatch on a present key", () => {
+      expect(matchesAllLabels({ a: "1" }, { a: "2" })).toBe(false);
+    });
   });
 });

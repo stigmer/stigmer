@@ -54,3 +54,53 @@ export function unavailableError(message: string): ConnectError {
 export function internalError(cause: unknown, message: string): ConnectError {
   return new ConnectError(message, Code.Internal, undefined, undefined, cause);
 }
+
+/**
+ * grpc-go's codes.Code.String() names, keyed by the connect Code enum.
+ * Record<Code, string> keeps the map compile-time exhaustive: a new code
+ * in the enum fails typecheck here instead of rendering "undefined" on
+ * the wire.
+ */
+const GRPC_CODE_NAMES: Readonly<Record<Code, string>> = {
+  [Code.Canceled]: "Canceled",
+  [Code.Unknown]: "Unknown",
+  [Code.InvalidArgument]: "InvalidArgument",
+  [Code.DeadlineExceeded]: "DeadlineExceeded",
+  [Code.NotFound]: "NotFound",
+  [Code.AlreadyExists]: "AlreadyExists",
+  [Code.PermissionDenied]: "PermissionDenied",
+  [Code.ResourceExhausted]: "ResourceExhausted",
+  [Code.FailedPrecondition]: "FailedPrecondition",
+  [Code.Aborted]: "Aborted",
+  [Code.OutOfRange]: "OutOfRange",
+  [Code.Unimplemented]: "Unimplemented",
+  [Code.Internal]: "Internal",
+  [Code.Unavailable]: "Unavailable",
+  [Code.DataLoss]: "DataLoss",
+  [Code.Unauthenticated]: "Unauthenticated",
+};
+
+/**
+ * Reproduces the wire message grpc-go's status.FromError manufactures for
+ * %w-wrapped status errors: when Go wraps a downstream in-process client
+ * error with fmt.Errorf("%s: %w", ...), PipelineError.GRPCStatus's
+ * errors.As branch keeps the INNER code but rewrites the message to the
+ * full wrapped text — and the inner client error's Error() renders as
+ * `rpc error: code = <CodeName> desc = <message>`. Byte-parity with Go on
+ * the two arms that hit this (agent create's CreateDefaultInstance,
+ * session create's ResolveDefaultAgentInstance). The transport-formatting
+ * leak is filed as stigmer/stigmer#852 for a both-editions post-cutover
+ * fix; until then this shim IS the wire contract.
+ *
+ * rawMessage is the code-prefix-free message — ConnectError.message
+ * prepends "[code_name] ", which must not ride the manufactured desc.
+ */
+export function goWrappedStatusError(
+  prefix: string,
+  error: ConnectError,
+): ConnectError {
+  return new ConnectError(
+    `${prefix}: rpc error: code = ${GRPC_CODE_NAMES[error.code]} desc = ${error.rawMessage}`,
+    error.code,
+  );
+}

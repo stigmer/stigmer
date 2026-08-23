@@ -4,8 +4,9 @@
 // Drives AgentCommandController + AgentQueryController through the raw proto
 // stubs and asserts the contract: CRUD round-trips, apply create/update
 // branching, immutable identity fields, default-instance provisioning, reference
-// resolution, slug semantics, spec-first negative paths, and — the headline of
-// this slice — the cross-aggregate Agent->McpServer reference invariant.
+// resolution, slug semantics, and spec-first negative paths. The cross-aggregate
+// Agent->McpServer reference invariant lives in
+// agent-mcpserver-references.conformance.test.ts (split out by DD-001).
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { Code } from "@connectrpc/connect";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -17,7 +18,6 @@ import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { AGENT_API_VERSION, AGENT_KIND, makeAgent, makeAgentSpec } from "../support/agents";
 import { makeAgentInstance } from "../support/agentinstances";
-import { makeMcpServer } from "../support/mcpservers";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
 
@@ -550,34 +550,5 @@ describe("Agent conformance — plain-update visibility door (stigmer#573)", () 
 
     const stored = await clients.agentInstanceQuery.get({ value: defaultInstanceId! });
     expect(stored.metadata?.visibility, "the stored level is untouched").toBe(storedLevel);
-  });
-});
-
-describe("Agent conformance — McpServer references", () => {
-  it("accepts an agent referencing an existing McpServer and normalizes the reference org", async () => {
-    const { org } = await target.provisionTenancy();
-    const mcpServer = await clients.mcpServerCommand.create(makeMcpServer({ org, name: uniqueName("tools") }));
-    fixtures.defer(() => clients.mcpServerCommand.delete({ resourceId: mcpServer.metadata!.id }));
-    const mcpSlug = mcpServer.metadata!.slug;
-
-    const agent = await createAgent(org, uniqueName("agent"), { mcpServerRefs: [mcpSlug] });
-
-    const usages = agent.spec?.mcpServerUsages ?? [];
-    expect(usages, "the referenced MCP server is preserved on the agent").toHaveLength(1);
-    expect(usages[0]?.mcpServerRef?.slug).toBe(mcpSlug);
-    // The request left org empty; NormalizeReferences resolves it to the agent's org.
-    expect(usages[0]?.mcpServerRef?.org, "the empty reference org is normalized to the agent's org").toBe(org);
-  });
-
-  it("rejects an agent referencing a non-existent McpServer (FailedPrecondition)", async () => {
-    const { org } = await target.provisionTenancy();
-    const missingSlug = "ghost-mcp-server";
-
-    const err = await expectGrpcCode(
-      () => clients.agentCommand.create(makeAgent({ org, name: uniqueName("agent"), mcpServerRefs: [missingSlug] })),
-      Code.FailedPrecondition,
-      "create agent with missing MCP server reference",
-    );
-    expect(err.message, "the error names the missing MCP server slug").toContain(missingSlug);
   });
 });

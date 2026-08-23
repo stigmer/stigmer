@@ -5,6 +5,7 @@
  */
 import { fromBinary } from "@bufbuild/protobuf";
 import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
+import type { Timestamp } from "@bufbuild/protobuf/wkt";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { AuthorizationScopeType } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/authorization_config_pb";
@@ -115,4 +116,39 @@ export function requireOrgForReference(
   if (scopeType === AuthorizationScopeType.ORGANIZATION) {
     throw invalidArgumentError(`org is required for ${kindName} lookup`);
   }
+}
+
+// The two list-step helpers below are duplicated per package in Go (each
+// controller carries its own copy); the TS tree consolidates them here
+// because the shared-steps guideline promotes a helper on its second
+// consumer.
+
+/** Go's sort.Slice comparator: newest first; nil timestamps last. */
+export function compareCreatedAtDesc(
+  a: Timestamp | undefined,
+  b: Timestamp | undefined,
+): number {
+  if (a === undefined || b === undefined) {
+    if (a === undefined && b === undefined) {
+      return 0;
+    }
+    return a !== undefined ? -1 : 1;
+  }
+  if (a.seconds !== b.seconds) {
+    return a.seconds > b.seconds ? -1 : 1;
+  }
+  if (a.nanos !== b.nanos) {
+    return a.nanos > b.nanos ? -1 : 1;
+  }
+  return 0;
+}
+
+/** True when resourceLabels contains every filter entry (empty = all). */
+export function matchesAllLabels(
+  resourceLabels: Record<string, string>,
+  filterLabels: Record<string, string>,
+): boolean {
+  return Object.entries(filterLabels).every(
+    ([key, value]) => resourceLabels[key] === value,
+  );
 }

@@ -15,10 +15,17 @@
  * that — the CLI's serverGate TCP probe treats port-bind as readiness.
  * Shutdown is the reverse (grpc lib Stop): NOT_SERVING first, then drain.
  */
+import type { ConnectRouter } from "@connectrpc/connect";
+
 import { HealthCheckResponse_ServingStatus as ServingStatus } from "@stigmer/protos/grpc/health/v1/health_pb";
 
+import { registerAgentServices } from "../domain/agent/controller.js";
+import { newConfigFromEnv } from "../domain/agentexecution/temporal/config.js";
+import { registerAgentInstanceServices } from "../domain/agentinstance/controller.js";
 import { registerEnvironmentServices } from "../domain/environment/controller.js";
+import { registerMemoryServices } from "../domain/memory/controller.js";
 import { registerOrganizationServices } from "../domain/organization/controller.js";
+import { registerSessionServices } from "../domain/session/controller.js";
 import { SecretService } from "../encryption/encryption.js";
 import { buildInterceptorChain } from "../pipeline/chain.js";
 import { RunnerAuthService } from "../runnerauth/runnerauth.js";
@@ -28,6 +35,8 @@ import { HealthState, registerHealthService } from "../transport/health.js";
 import { createRegistryLanes } from "../transport/registry/lanes.js";
 import { createUnifiedPortServer } from "../transport/server.js";
 import type { ServerConfig } from "./config.js";
+import { createInProcessClients } from "./inprocess.js";
+import type { InProcessClients } from "./inprocess.js";
 import type { Logger } from "./logger.js";
 
 export interface ComposedServer {
@@ -95,6 +104,12 @@ export function composeServer(options: ComposeOptions): ComposedServer {
   // Stage: temporal — seam (execution cluster sub-projects).
 
   // Stage: controllers + routes.
+  // The agent-execution temporal config is env-derived strings only — the
+  // temporal seam stays empty. It lives here (not with the seam) because
+  // the session update pipeline's execution-target immutability step must
+  // resolve UNSPECIFIED through the SAME default dispatch will use — one
+  // definition, so policy and dispatch can never disagree (oss#397).
+  const temporalConfig = newConfigFromEnv();
   const healthState = new HealthState();
   const registryLanes = createRegistryLanes({
     modelRegistryUpstream: config.modelRegistryUpstream,
@@ -102,13 +117,51 @@ export function composeServer(options: ComposeOptions): ComposedServer {
     logger,
     fetchImpl: options.fetchImpl,
   });
+  // The SAME `routes` function registers every service on BOTH the serving
+  // router and the in-process router transport (createInProcessClients).
+  // Handlers are stateless over the same store, so the two routers behave
+  // as one server — Go's single-server bufconn shape. Chain traversal on
+  // internal calls is the point (DD-002): an in-process apply/get is
+  // validated, logged, and kind-tagged exactly like an external one.
+  //
+  // requireInProcess breaks the routes↔clients definition cycle: the lazy
+  // domain providers are only invoked at request time, after boot
+  // completes, so the throw is the composition-root loudness idiom — never
+  // expected to fire.
+  let inProcess: InProcessClients | undefined;
+  function requireInProcess(): InProcessClients {
+    if (inProcess === undefined) {
+      throw new Error("in-process clients not wired (boot ordering bug)");
+    }
+    return inProcess;
+  }
+  const routes = (router: ConnectRouter): void => {
+    registerHealthService(router, healthState);
+    registerOrganizationServices(router, { store, logger });
+    registerEnvironmentServices(router, { store, logger, secretService });
+    registerAgentServices(router, {
+      store,
+      logger,
+      agentInstanceApplier: () => requireInProcess().agentInstanceApplier,
+    });
+    registerAgentInstanceServices(router, {
+      store,
+      logger,
+      parentAgentLoader: () => requireInProcess().parentAgentLoader,
+    });
+    registerSessionServices(router, {
+      store,
+      logger,
+      temporalConfig,
+      agentInstanceCreator: () => requireInProcess().agentInstanceCreator,
+    });
+    registerMemoryServices(router, { store, logger });
+  };
+  inProcess = createInProcessClients(routes, logger);
+
   const server = createUnifiedPortServer({
     logger,
-    routes: (router) => {
-      registerHealthService(router, healthState);
-      registerOrganizationServices(router, { store, logger });
-      registerEnvironmentServices(router, { store, logger, secretService });
-    },
+    routes,
     interceptors: buildInterceptorChain(logger),
     taskKindRegistryLane: registryLanes.taskKindRegistryLane,
     modelRegistryLane: registryLanes.modelRegistryLane,
