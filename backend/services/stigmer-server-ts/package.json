@@ -29,7 +29,8 @@
     "@bufbuild/protovalidate": "^1.1.1",
     "@connectrpc/connect": "^2.0.0",
     "@connectrpc/connect-node": "^2.0.0",
-    "@stigmer/protos": "file:../../../apis/stubs/ts"
+    "@stigmer/protos": "file:../../../apis/stubs/ts",
+    "ulidx": "2.4.1"
   },
   "devDependencies": {
     "@connectrpc/connect-web": "^2.0.0",
