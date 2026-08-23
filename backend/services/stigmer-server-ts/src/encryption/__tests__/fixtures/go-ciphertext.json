@@ -1,0 +1,40 @@
+{
+  "keyBase64": "AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyA=",
+  "entries": [
+    {
+      "name": "simple",
+      "plaintext": "hello world",
+      "ciphertext": "enc:v1:jupEOoxuQVw/iL3XziK9WOz6HVlbEeEzCZRoSBtnqemWrSvw8tcM"
+    },
+    {
+      "name": "empty",
+      "plaintext": "",
+      "ciphertext": "enc:v1:E81ikcSKFZ33STrromvZVgIsmL8OSGviFjLrQw=="
+    },
+    {
+      "name": "single-byte",
+      "plaintext": "x",
+      "ciphertext": "enc:v1:yR3smYjaVfMHtzVxk21uDJ0+D7iioyKdLg1jzNw="
+    },
+    {
+      "name": "api-key-like",
+      "plaintext": "sk-proj-AbCdEf0123456789_secretSECRET-9876543210fedcba",
+      "ciphertext": "enc:v1:GTgZKvd3fFHQ+0Q5n7ACp7jpTnv1wknpfG7ZY+QZ4snH45EdX5LzGUARsNfW5BNb3gC0ccP3Grc2f8RcTqWGAyD/LqqjsdI0vsNF7q52ZAr0MQ=="
+    },
+    {
+      "name": "unicode",
+      "plaintext": "秘密のパスワード🔐 — ключ",
+      "ciphertext": "enc:v1:dkjLnurtg1n5xNQLeHGh1+WLoKpWgDGRTFgCyZPAkMHLbhmo4hI1Nmm9l1oPicrXgwA40uGMPtQ7476b9PdmhgkZIphj"
+    },
+    {
+      "name": "multiline",
+      "plaintext": "line one\nline two\r\n\ttabbed",
+      "ciphertext": "enc:v1:LVuS/7HghJSoMyXSLujV3y4PUO6DlVCQjAgtU+YSiJRIe7+l7HjT0hcdjRZMpPBKcP18Yy9l"
+    },
+    {
+      "name": "long",
+      "plaintext": "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdef",
+      "ciphertext": "enc:v1:98zB4kVU8pKT2nuwY3+V1wX9AwVsz6EptgFS0YdTJOUOVeI1BK6TUpkvGLfOUQDDyv1Kd1KVLuBsDJy7e5RGpn1ZVyObU1LOUmy5SDxXtf2cQbkCchH97/hOV7Iwk17uNF0QJLanh5r1OAaZGPpyDefc96l+fW/m2bBdhJca+/27DFNA5V8X8tgxX6AmdKMdFfdhCRdU3TnUxaNV3JF7zyk7EJlJwc8OL/d5ZIegIrShifzk87OaZ27przBvTZdPmEG523hcKMs/WbMOFgTcxfGyo/v9sa5NkznnanY5EnDSVXdBClO6KaG0k4R9E64HY0h+AEp8S4aIl6eiZtUDtWV0N1DeCdcaiesK0x5u3ADO4EfBPVOzgTZuHUL0LACzmMxmlJcPDR7w1FM6pOadYqTSj0RR/qSf8xEXxwIU00oGUV+nIy6wNND6d4USNNz4zTCyPQu3Q5Iz5L5K2+68Anjvn6tgTS6SoYEHmBWKIEnjtRpC6gEWXqdDlNBufShDXdY+DLH3Glbi0AC+dgOgSpcUOeZ+5QkAlgj0iuODtCPwZRh8Af9ZnDSW+AFmqGjobIgU6cFOikJAzobmA18crG+I8AkzvuOvuwPecUVdmtCh7Ir+HZrk7bSnDY8VNR8gNF7o/E8f44PFBVSu8ZNg8KGu6XANnJN8fQ7jQV/jJqG5aiu+XOsX+6wOHscRi/8R"
+    }
+  ]
+}
