@@ -45,7 +45,11 @@ import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { create } from "@bufbuild/protobuf";
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import {
+  ExecutionPhase,
+  FileDecisionAction,
+  FileDecisionScope,
+} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { UploadAttachmentRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { Code } from "@connectrpc/connect";
@@ -57,6 +61,7 @@ import { FixtureTracker } from "../harness/fixtures";
 import type { MockLlmProxy } from "../harness/mock-llm";
 import { anthropicText } from "../harness/mock-llm";
 import { makeAgent } from "../support/agents";
+import { collectStream } from "../support/collect-stream";
 import {
   AGENT_EXECUTION_API_VERSION,
   AGENT_EXECUTION_KIND,
@@ -842,5 +847,97 @@ describe("AgentExecution conformance — attachments (#285)", () => {
       },
       expect.objectContaining({ type: "text", text: "What is in this image?" }),
     ]);
+  });
+});
+
+// --- CW-7: the subscribe lane and the read surfaces a real run populates ----
+//
+// Streams are consumed through collectStream, the bounded reader that keeps
+// the S4 idle-forever quirk (pinned below) from hanging the suite.
+
+describe("AgentExecution conformance — subscribe & populated read surfaces (CW-7)", () => {
+  it("subscribe on a LIVE run streams the snapshot, its updates, and closes on the terminal one", async () => {
+    const { org } = await target.provisionTenancy();
+    const agentId = await provisionAgent(org);
+    const created = await createExecution(org, agentId);
+
+    // Subscribed while the run is in flight: the lane's contract is
+    // snapshot-first, then full-snapshot updates, then a clean server close
+    // when an UPDATE reaches a terminal phase.
+    const stream = await collectStream((signal) =>
+      clients.agentExecutionQuery.subscribe({ value: created.metadata!.id }, { signal }),
+    );
+    expect(stream.outcome, "the server closes on the terminal update").toBe("closed");
+    expect(stream.messages.length, "at least the snapshot plus the terminal update").toBeGreaterThanOrEqual(2);
+    expect(stream.messages[0]?.metadata?.id).toBe(created.metadata?.id);
+    expect(stream.messages.at(-1)?.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+  });
+
+  it("subscribe sends the snapshot but never closes on an already-terminal run (the pinned S4 quirk)", async () => {
+    const { org } = await target.provisionTenancy();
+    const agentId = await provisionAgent(org);
+    const created = await createExecution(org, agentId);
+    await awaitTerminal(clients, created.metadata!.id);
+
+    // The terminal-close check fires only on broker UPDATES, never on the
+    // initial snapshot — a subscription to a finished run receives the
+    // snapshot and then idles forever. Pinned deliberately (wave-2 S4): the
+    // TS port must reproduce it consciously or fix it in both editions.
+    const stream = await collectStream(
+      (signal) => clients.agentExecutionQuery.subscribe({ value: created.metadata!.id }, { signal }),
+      { timeoutMs: 3_000 },
+    );
+    expect(stream.outcome, "no server close — the bounded reader had to abort").toBe("timeout");
+    expect(stream.messages).toHaveLength(1);
+    expect(stream.messages[0]?.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+  });
+
+  it("a completed run's usage report answers the zero-valued aggregate (this edition records no usage)", async () => {
+    const { org } = await target.provisionTenancy();
+    const agentId = await provisionAgent(org);
+    const created = await createExecution(org, agentId);
+    await awaitTerminal(clients, created.metadata!.id);
+
+    // The strongest form of the zero-shapes contract: the execution EXISTS
+    // (the NotFound arm is Class A), yet the aggregate is still a
+    // structurally complete zero report — OSS deliberately aggregates no
+    // usage data at all.
+    const report = await clients.agentExecutionQuery.getExecutionUsageReport({
+      executionId: created.metadata!.id,
+    });
+    expect(report.aggregate, "the aggregate is always present").toBeDefined();
+    expect(report.aggregate?.totalTokens).toBe(0n);
+    expect(report.aggregate?.inputTokens).toBe(0n);
+    expect(report.aggregate?.outputTokens).toBe(0n);
+    expect(report.modelBreakdown).toHaveLength(0);
+  });
+
+  it("submitFileDecision refuses a run with no actionable file change sets (FailedPrecondition)", async () => {
+    const { org } = await target.provisionTenancy();
+    const agentId = await provisionAgent(org);
+    const created = await createExecution(org, agentId);
+    await awaitTerminal(clients, created.metadata!.id);
+
+    // A text-only completed run has an empty file-review stream AND a
+    // terminal phase — both fold into the same precondition refusal (there
+    // is deliberately no separate wrong-phase arm). The deeper arms (digest
+    // mismatch, unknown change set) need file-edit choreography and land
+    // with #17. Message prefix only: the copy embeds the phase enum's
+    // rendering, which is the Go formatter's, not a contract.
+    const err = await expectGrpcCode(
+      () =>
+        clients.agentExecutionCommand.submitFileDecision({
+          agentExecutionId: created.metadata!.id,
+          changeSetId: "cs_x",
+          expectedDigest: "digest",
+          scope: FileDecisionScope.CHANGE_SET,
+          action: FileDecisionAction.APPROVE,
+        }),
+      Code.FailedPrecondition,
+      "submitFileDecision on a run that produced no file changes",
+    );
+    expect(err.rawMessage).toContain(
+      `execution ${created.metadata!.id} has no actionable file change sets`,
+    );
   });
 });

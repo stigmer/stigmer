@@ -52,6 +52,10 @@ export class LocalGoExecutionTarget implements TargetProfile {
     clientReservedLabelWrites: true,
     firstPartyMemoryCapture: true,
     clientPublicVisibilityWrites: true,
+    // No channel runtime in this edition (T02 §0-b): the engine this target
+    // provisions is the agent/workflow execution engine, not a channel
+    // delivery runtime — the refusal posture is identical to local-go.
+    channelMessaging: false,
   };
 
   private temporal: RunningTemporal | undefined;

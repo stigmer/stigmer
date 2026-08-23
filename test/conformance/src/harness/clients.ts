@@ -9,10 +9,22 @@ import { createGrpcTransport } from "@connectrpc/connect-node";
 import { ActivityQueryController } from "@stigmer/protos/ai/stigmer/activity/v1/query_pb";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
+import { AgentChannelCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/command_pb";
+import { ChannelConversationCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_command_pb";
+import { ChannelConversationQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_query_pb";
+import { ChannelMessageCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_command_pb";
+import { ChannelMessageQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_query_pb";
+import { AgentChannelQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/query_pb";
 import { AgentExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/command_pb";
 import { AgentExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/query_pb";
 import { AgentInstanceCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/command_pb";
 import { AgentInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/query_pb";
+import { AgentShareCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/command_pb";
+import { AgentShareQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/query_pb";
+import { ArtifactCommandController } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/command_pb";
+import { ArtifactQueryController } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/query_pb";
+import { ChannelAppCommandController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/command_pb";
+import { ChannelAppQueryController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/query_pb";
 import { EnvironmentCommandController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/command_pb";
 import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
 import { ExecutionContextCommandController } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/command_pb";
@@ -37,6 +49,7 @@ import { OAuthAppCommandController } from "@stigmer/protos/ai/stigmer/iam/oautha
 import { OAuthAppQueryController } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/query_pb";
 import { GitHubService } from "@stigmer/protos/ai/stigmer/platform/github/v1/service_pb";
 import { PlatformQueryController } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
+import { SearchService } from "@stigmer/protos/ai/stigmer/search/v1/query_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
 import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
 import { ProjectCommandController } from "@stigmer/protos/ai/stigmer/tenancy/project/v1/command_pb";
@@ -44,6 +57,19 @@ import { ProjectQueryController } from "@stigmer/protos/ai/stigmer/tenancy/proje
 
 export interface ConformanceClients {
   activityQuery: Client<typeof ActivityQueryController>;
+  agentChannelCommand: Client<typeof AgentChannelCommandController>;
+  agentChannelQuery: Client<typeof AgentChannelQueryController>;
+  agentShareCommand: Client<typeof AgentShareCommandController>;
+  agentShareQuery: Client<typeof AgentShareQueryController>;
+  artifactCommand: Client<typeof ArtifactCommandController>;
+  artifactQuery: Client<typeof ArtifactQueryController>;
+  channelAppCommand: Client<typeof ChannelAppCommandController>;
+  channelAppQuery: Client<typeof ChannelAppQueryController>;
+  channelConversationCommand: Client<typeof ChannelConversationCommandController>;
+  channelConversationQuery: Client<typeof ChannelConversationQueryController>;
+  channelMessageCommand: Client<typeof ChannelMessageCommandController>;
+  channelMessageQuery: Client<typeof ChannelMessageQueryController>;
+  search: Client<typeof SearchService>;
   projectCommand: Client<typeof ProjectCommandController>;
   projectQuery: Client<typeof ProjectQueryController>;
   organizationCommand: Client<typeof OrganizationCommandController>;
@@ -105,6 +131,19 @@ export function createTransport(baseUrl: string, options: TransportOptions = {})
 export function makeClients(transport: Transport): ConformanceClients {
   return {
     activityQuery: createClient(ActivityQueryController, transport),
+    agentChannelCommand: createClient(AgentChannelCommandController, transport),
+    agentChannelQuery: createClient(AgentChannelQueryController, transport),
+    agentShareCommand: createClient(AgentShareCommandController, transport),
+    agentShareQuery: createClient(AgentShareQueryController, transport),
+    artifactCommand: createClient(ArtifactCommandController, transport),
+    artifactQuery: createClient(ArtifactQueryController, transport),
+    channelAppCommand: createClient(ChannelAppCommandController, transport),
+    channelAppQuery: createClient(ChannelAppQueryController, transport),
+    channelConversationCommand: createClient(ChannelConversationCommandController, transport),
+    channelConversationQuery: createClient(ChannelConversationQueryController, transport),
+    channelMessageCommand: createClient(ChannelMessageCommandController, transport),
+    channelMessageQuery: createClient(ChannelMessageQueryController, transport),
+    search: createClient(SearchService, transport),
     projectCommand: createClient(ProjectCommandController, transport),
     projectQuery: createClient(ProjectQueryController, transport),
     organizationCommand: createClient(OrganizationCommandController, transport),

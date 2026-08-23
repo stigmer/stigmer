@@ -27,6 +27,9 @@ export class LocalGoTarget implements TargetProfile {
     clientReservedLabelWrites: true,
     firstPartyMemoryCapture: true,
     clientPublicVisibilityWrites: true,
+    // No channel runtime in this edition (T02 §0-b) — the suite pins the
+    // documented refusal copy on every runtime lane.
+    channelMessaging: false,
   };
 
   private server: RunningServer | undefined;
@@ -53,6 +56,16 @@ export class LocalGoTarget implements TargetProfile {
       throw new Error("LocalGoTarget.setup() must be called before httpBaseUrl()");
     }
     return this.server.baseUrl;
+  }
+
+  // The artifact file server's own port (local artifact storage only) — the
+  // harness already pins it for the runner's serve URL; the artifact suite
+  // drives its download-disposition contract through the same address.
+  artifactHttpBaseUrl(): string {
+    if (this.server === undefined) {
+      throw new Error("LocalGoTarget.setup() must be called before artifactHttpBaseUrl()");
+    }
+    return this.server.artifactServeUrl;
   }
 
   async provisionTenancy(): Promise<TenancyContext> {

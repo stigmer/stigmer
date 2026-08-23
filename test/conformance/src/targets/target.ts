@@ -126,6 +126,34 @@ export interface CapabilityFlags {
   // FGA tuples) and the Java handler unit tests — the same coverage
   // split ComposeDeclaredPreferencesStep has.
   firstPartyMemoryCapture: boolean;
+  // The channel RUNTIME lanes exist here: provider installs
+  // (initiateInstall/completeInstall), conversation participation
+  // (reply/takeOver/handBack/clearAttention/escalate), and proactive
+  // messaging (sendMessage/listTemplates).
+  //
+  // False for the local OSS targets — BY DOCUMENTED DESIGN, not a gap
+  // (channel-integrations T02 §0-b and its siblings): this edition has no
+  // webhook receiver, no delivery runtime, and no participation state
+  // machine, so every runtime command refuses with FAILED_PRECONDITION and
+  // per-surface copy ("channel installs require Stigmer Cloud" /
+  // "conversation participation requires Stigmer Cloud" / "proactive
+  // channel messaging requires Stigmer Cloud"). Where false, the suite
+  // byte-pins those refusals — they are the OSS contract, and the TS port
+  // must reproduce them exactly.
+  //
+  // True for cloud, whose channel runtime serves these lanes for real.
+  // The refusal pins are gated OFF there; the lanes' full cloud behavior
+  // needs live provider workspaces (a real Slack install), which no
+  // hermetic target can provision — it stays covered by cloud's own
+  // integration tests, the same coverage split ComposeDeclaredPreferences
+  // has. What runs unconditionally on both editions: input validation
+  // (INVALID_ARGUMENT — the Go controllers deliberately validate before
+  // refusing so this contract matches cloud), the install lanes'
+  // load-then-NOT_FOUND for unknown channels, and the discovery reads'
+  // truthful-emptiness postures (empty lists / uniform NOT_FOUND), which
+  // hold wherever no conversation traffic exists — exactly the state a
+  // fresh conformance fixture is in on either edition.
+  channelMessaging: boolean;
   // The conformance caller may set a resource's visibility to PUBLIC — the
   // only level that crosses every org boundary (the cross-org "explore"
   // catalog).
@@ -210,6 +238,17 @@ export interface TargetProfile {
   // there and the registry-proxy suite reports SKIPPED — the DD-012
   // "genuinely skipped, not false green" posture. Valid only after setup().
   httpBaseUrl?(): string;
+
+  // Base URL of the server's artifact HTTP file server — the ONE lane that
+  // deliberately lives on its own port beside the unified one (D1: plain
+  // FileServer over the artifact base path, served only when artifact
+  // storage is local). Present only on the local managed targets, whose
+  // spawned server pins the port (ARTIFACT_HTTP_PORT); absent on cloud,
+  // where artifact bytes travel through the service's own authenticated,
+  // presigned routes (a different contract) — the artifact suite's
+  // file-server block then reports SKIPPED at collection time, the
+  // registry-proxy posture. Valid only after setup().
+  artifactHttpBaseUrl?(): string;
 
   // A platform-operator caller with a tenancy of its own (stigmer#547) — see
   // PrivilegedScope. Absent where no operator credential exists: hermetic
