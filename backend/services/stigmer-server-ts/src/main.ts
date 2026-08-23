@@ -11,12 +11,16 @@
 import { loadConfig } from "./boot/config.js";
 import { composeServer } from "./boot/compose.js";
 import { createLogger } from "./boot/logger.js";
+import { setOperatorIdentity } from "./pipeline/steps/defaults.js";
 
 const config = loadConfig();
 const logger = createLogger({
   level: config.logLevel,
   pretty: config.env === "local",
 });
+// Once per process, before any writer exists (#400) — the one-shot guard
+// makes a duplicate install a loud boot bug.
+setOperatorIdentity(config.operatorEmail, config.operatorName);
 const server = composeServer({ config, logger });
 
 let shuttingDown = false;

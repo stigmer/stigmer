@@ -18,6 +18,10 @@ import {
 import { connect as netConnect } from "node:net";
 import { describe, expect, it } from "vitest";
 
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
+
 import { loadConfig } from "../config.js";
 import { composeServer } from "../compose.js";
 import { createLogger } from "../logger.js";
@@ -29,7 +33,12 @@ const silentLogger = createLogger({
 });
 
 function compose() {
-  const config = loadConfig({ STIGMER_MODEL_REGISTRY_REFRESH: "off" });
+  // Each composed server gets a throwaway database — the storage stage
+  // opens DB_PATH for real (never the developer's ~/.stigmer).
+  const config = loadConfig({
+    STIGMER_MODEL_REGISTRY_REFRESH: "off",
+    DB_PATH: path.join(mkdtempSync(path.join(tmpdir(), "compose-test-")), "stigmer.db"),
+  });
   return composeServer({
     config,
     logger: silentLogger,

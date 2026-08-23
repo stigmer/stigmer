@@ -17,7 +17,10 @@
  */
 import { HealthCheckResponse_ServingStatus as ServingStatus } from "@stigmer/protos/grpc/health/v1/health_pb";
 
+import { registerOrganizationServices } from "../domain/organization/controller.js";
 import { buildInterceptorChain } from "../pipeline/chain.js";
+import { SqliteStore } from "../store/sqlite/store.js";
+import type { Store } from "../store/interface.js";
 import { HealthState, registerHealthService } from "../transport/health.js";
 import { createRegistryLanes } from "../transport/registry/lanes.js";
 import { createUnifiedPortServer } from "../transport/server.js";
@@ -26,6 +29,8 @@ import type { Logger } from "./logger.js";
 
 export interface ComposedServer {
   healthState: HealthState;
+  /** The persistence layer (exposed for tests; domain code gets it injected). */
+  store: Store;
   /** Completes wiring, flips SERVING, binds the port; returns the bound port. */
   start(): Promise<number>;
   /** NOT_SERVING first, stop background work, drain connections. */
@@ -45,7 +50,14 @@ export interface ComposeOptions {
 export function composeServer(options: ComposeOptions): ComposedServer {
   const { config, logger } = options;
 
-  // Stage: storage — seam (sub-project #4).
+  // Stage: storage. Opening the store runs migrations (v1–v7, incl.
+  // adopting a Go-created database — D2 §3 schema continuity); a failure
+  // here is a loud boot throw, never a degraded server. The operator
+  // identity (#400) is installed by main.ts — once per PROCESS, before any
+  // writer exists — not here: composeServer is re-entrant for tests, the
+  // identity seam deliberately is not.
+  const store: Store = SqliteStore.open(config.dbPath, logger);
+
   // Stage: temporal — seam (execution cluster sub-projects).
 
   // Stage: controllers + routes.
@@ -60,6 +72,7 @@ export function composeServer(options: ComposeOptions): ComposedServer {
     logger,
     routes: (router) => {
       registerHealthService(router, healthState);
+      registerOrganizationServices(router, { store, logger });
     },
     interceptors: buildInterceptorChain(logger),
     taskKindRegistryLane: registryLanes.taskKindRegistryLane,
@@ -68,6 +81,7 @@ export function composeServer(options: ComposeOptions): ComposedServer {
 
   return {
     healthState,
+    store,
 
     async start(): Promise<number> {
       // Wiring complete → SERVING → background refresh → bind. The port
@@ -86,6 +100,9 @@ export function composeServer(options: ComposeOptions): ComposedServer {
       healthState.setOverall(ServingStatus.NOT_SERVING);
       registryLanes.stop();
       await server.shutdown();
+      // The store closes LAST: in-flight handlers drained above may still
+      // be mid-write (Go closes the store after grpcServer.Stop too).
+      await store.close();
       logger.info("stigmer-server-ts stopped");
     },
   };
