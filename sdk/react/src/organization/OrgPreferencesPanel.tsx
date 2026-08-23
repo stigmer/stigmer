@@ -221,7 +221,7 @@ export function OrgPreferencesPanel({
         saving={isSavingMemoryFlag}
         readOnly={!canEdit}
         error={memoryFlagError}
-        helperText="Allow agents to remember confirmed facts about members of this organization. Each member must also turn memory on in their own account preferences. Changes apply immediately."
+        helperText="Allow agents to remember confirmed facts about members of this organization. Each member must also turn memory on in their own account preferences; once a member has many memories, each conversation recalls their most relevant ones, shown on the execution. Changes apply immediately."
       />
 
       {!canEdit && (

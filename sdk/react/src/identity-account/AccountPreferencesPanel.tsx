@@ -416,7 +416,7 @@ function AccountPreferencesForm({
         onToggle={(next) => void handleMemoryToggle(next)}
         saving={isSavingMemoryFlag}
         error={memoryFlagError}
-        helperText="When on, agents may propose facts to remember about you; only facts you confirm are stored. Confirmed memories are shared with your future sessions and appear on those executions' records. Requires your organization to have memory enabled. Changes apply immediately."
+        helperText="When on, agents may propose facts to remember about you; only facts you confirm are stored. Confirmed memories are shared with your future sessions and appear on those executions' records; once you have many, each conversation recalls the most relevant ones, shown on the execution. Requires your organization to have memory enabled. Changes apply immediately."
       />
 
       {updateError && (

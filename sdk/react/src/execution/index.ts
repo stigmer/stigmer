@@ -42,6 +42,8 @@ export type { SummarizationBadgeProps } from "./SummarizationBadge.js";
 
 export { SummarizationCard } from "./SummarizationCard.js";
 export type { SummarizationCardProps } from "./SummarizationCard.js";
+export { RecalledMemoriesCard, resolveInjectedFacts } from "./RecalledMemoriesCard.js";
+export type { RecalledMemoriesCardProps } from "./RecalledMemoriesCard.js";
 
 export { PlanCompletionCard } from "./PlanCompletionCard.js";
 export type { PlanCompletionCardProps } from "./PlanCompletionCard.js";

@@ -5,11 +5,13 @@ import { create } from "@bufbuild/protobuf";
 import {
   AgentExecutionSchema,
   AgentExecutionStatusSchema,
+  RecalledMemoriesReportSchema,
   type AgentExecution,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import {
   AgentExecutionSpecSchema,
   ExecutionConfigSchema,
+  RecalledMemoriesSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
@@ -32,6 +34,7 @@ import type { ExecutionErrorNoticeProps } from "../ExecutionErrorNotice";
 import type { TodoCardProps } from "../TodoCard";
 import type { TodoRowProps } from "../TodoList";
 import type { SetupProgressProps } from "../SetupProgress";
+import type { RecalledMemoriesCardProps } from "../RecalledMemoriesCard";
 import type { LivenessStatusLineProps } from "../LivenessStatusLine";
 import type { PlanCompletionCardProps } from "../PlanCompletionCard";
 import type { PlanArtifactCardProps } from "../PlanArtifactCard";
@@ -316,6 +319,39 @@ describe("MessageThread slots", () => {
     );
 
     expect(screen.getByTestId("custom-setup").textContent).toBe("waiting");
+  });
+
+  it("renders the RecalledMemoriesCard slot for a selection-active execution", () => {
+    const CustomRecalled = ({ report, facts }: RecalledMemoriesCardProps) => (
+      <div data-testid="custom-recalled">
+        {report.injectedMemoryIds.length} of {facts.length}
+      </div>
+    );
+
+    const exec = makeExecution({ id: "e1" });
+    exec.spec!.recalledMemories = create(RecalledMemoriesSchema, {
+      enabled: true,
+      facts: [
+        { memoryId: "mem_a", content: "Prefers concise answers." },
+        { memoryId: "mem_b", content: "Deploys with Bazel." },
+      ],
+    });
+    exec.status!.recalledMemoriesReport = create(RecalledMemoriesReportSchema, {
+      selectionActive: true,
+      injectedMemoryIds: ["mem_a"],
+      embeddingModel: "text-embedding-3-small",
+    });
+
+    render(
+      <MessageThread
+        executions={[exec]}
+        slots={{ RecalledMemoriesCard: CustomRecalled }}
+      />,
+    );
+
+    expect(screen.getByTestId("custom-recalled").textContent).toBe("1 of 2");
+    // The built-in card must not render alongside the override.
+    expect(screen.queryByRole("status", { name: /Recalled/ })).toBeNull();
   });
 
   it("renders the LivenessStatusLine slot while the execution is live between events", () => {
