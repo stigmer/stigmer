@@ -31,6 +31,14 @@ import { buildInterceptorChain } from "../pipeline/chain.js";
 import { RunnerAuthService } from "../runnerauth/runnerauth.js";
 import { SqliteStore } from "../store/sqlite/store.js";
 import type { Store } from "../store/interface.js";
+import { registerWorkflowServices } from "../domain/workflow/controller.js";
+import {
+  bundledModelRegistryDocument,
+  bundledTaskKindRegistryDocument,
+} from "../domain/workflow/registry/bundled.js";
+import { ModelRegistryStore } from "../domain/workflow/registry/model-registry-store.js";
+import { InProcessValidator } from "../domain/workflow/validation/validator.js";
+import { registerWorkflowInstanceServices } from "../domain/workflowinstance/controller.js";
 import { HealthState, registerHealthService } from "../transport/health.js";
 import { createRegistryLanes } from "../transport/registry/lanes.js";
 import { createUnifiedPortServer } from "../transport/server.js";
@@ -111,12 +119,25 @@ export function composeServer(options: ComposeOptions): ComposedServer {
   // definition, so policy and dispatch can never disagree (oss#397).
   const temporalConfig = newConfigFromEnv();
   const healthState = new HealthState();
-  const registryLanes = createRegistryLanes({
-    modelRegistryUpstream: config.modelRegistryUpstream,
-    modelRegistryRefreshEnabled: config.modelRegistryRefreshEnabled,
+  // The model-registry store is DOMAIN-owned (workflow-family DD-A,
+  // restoring Go's ownership): workflow validation and the transport's
+  // registry lane read this one store, so the pickers and validation can
+  // never drift (DD-004). The composition root owns its refresh lifecycle.
+  const modelRegistryStore = new ModelRegistryStore({
+    bundledDocument: bundledModelRegistryDocument(),
+    upstreamOrigin: config.modelRegistryUpstream,
+    refreshEnabled: config.modelRegistryRefreshEnabled,
     logger,
     fetchImpl: options.fetchImpl,
   });
+  const registryLanes = createRegistryLanes({
+    taskKindRegistryDocument: bundledTaskKindRegistryDocument(),
+    modelRegistryStore,
+  });
+  // The Layer-2 workflow validator reads the domain-owned registry store
+  // per validation call, keeping validation and the served pickers in
+  // lockstep (DD-004).
+  const workflowValidator = new InProcessValidator(modelRegistryStore, logger);
   // The SAME `routes` function registers every service on BOTH the serving
   // router and the in-process router transport (createInProcessClients).
   // Handlers are stateless over the same store, so the two routers behave
@@ -156,6 +177,17 @@ export function composeServer(options: ComposeOptions): ComposedServer {
       agentInstanceCreator: () => requireInProcess().agentInstanceCreator,
     });
     registerMemoryServices(router, { store, logger });
+    registerWorkflowServices(router, {
+      store,
+      logger,
+      validator: workflowValidator,
+      workflowInstanceCreator: () => requireInProcess().workflowInstanceCreator,
+    });
+    registerWorkflowInstanceServices(router, {
+      store,
+      logger,
+      parentWorkflowLoader: () => requireInProcess().parentWorkflowLoader,
+    });
   };
   inProcess = createInProcessClients(routes, logger);
 
@@ -176,7 +208,7 @@ export function composeServer(options: ComposeOptions): ComposedServer {
       // Wiring complete → SERVING → background refresh → bind. The port
       // must be the LAST observable effect (serverGate contract).
       healthState.setOverall(ServingStatus.SERVING);
-      registryLanes.start();
+      modelRegistryStore.startRefresh();
       const port = await server.listen(
         options.portOverride ?? config.grpcPort,
         options.host,
@@ -187,7 +219,7 @@ export function composeServer(options: ComposeOptions): ComposedServer {
 
     async shutdown(): Promise<void> {
       healthState.setOverall(ServingStatus.NOT_SERVING);
-      registryLanes.stop();
+      modelRegistryStore.stopRefresh();
       await server.shutdown();
       // The store closes LAST: in-flight handlers drained above may still
       // be mid-write (Go closes the store after grpcServer.Stop too).
