@@ -11,6 +11,8 @@
   "scripts": {
     "build": "rm -rf dist && tsc -p tsconfig.build.json",
     "build:slim": "npm run build && node scripts/bundle-slim.mjs",
+    "verify:dist": "node scripts/verify-boot.mjs dist/main.js",
+    "verify:slim": "node scripts/verify-boot.mjs dist-slim/main.js",
     "start": "tsx src/main.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
