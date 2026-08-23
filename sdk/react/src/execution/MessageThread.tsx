@@ -2,7 +2,8 @@
 
 import { lazy, memo, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ComponentType } from "react";
 import { create } from "@bufbuild/protobuf";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentExecution, RecalledMemoriesReport } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { RecalledMemoryFact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
@@ -29,6 +30,7 @@ import { ToolCallGroup } from "./ToolCallGroup.js";
 import { SubAgentSection } from "./SubAgentSection.js";
 import { ExecutionPhaseBadge } from "./ExecutionPhaseBadge.js";
 import { SetupProgress, type SetupProgressProps } from "./SetupProgress.js";
+import { RecalledMemoriesCard, type RecalledMemoriesCardProps } from "./RecalledMemoriesCard.js";
 import {
   LivenessStatusLine,
   type LivenessStatusLineProps,
@@ -113,6 +115,11 @@ export interface MessageThreadSlots {
   readonly PlanStreamingCard?: ComponentType<PlanStreamingCardProps>;
   /** Pre-first-token setup / "Thinking…" indicator. */
   readonly SetupProgress?: ComponentType<SetupProgressProps>;
+  /**
+   * The retriever transparency card at a selection-active execution's
+   * segment start — "Recalled N of M memories" (DD-008 D5).
+   */
+  readonly RecalledMemoriesCard?: ComponentType<RecalledMemoriesCardProps>;
   /**
    * The terminal execution-failure notice. Receives the raw server-reported
    * reason and the retry wiring, so a host can turn the failure into its own
@@ -398,6 +405,7 @@ export type ThreadItem =
   | { readonly kind: "approval-request"; readonly pendingApproval: PendingApproval; readonly key: string }
   | { readonly kind: "file-review-record"; readonly fileChangeSet: FileChangeSet; readonly key: string }
   | { readonly kind: "setup-progress"; readonly workspaceEntries: readonly WorkspaceEntry[]; readonly serverPhase?: string; readonly isAwaitingResponse?: boolean; readonly key: string }
+  | { readonly kind: "recalled-memories"; readonly report: RecalledMemoriesReport; readonly facts: readonly RecalledMemoryFact[]; readonly key: string }
   | { readonly kind: "context-compacted"; readonly event: SummarizationEventView; readonly key: string }
   | {
       readonly kind: "todos";
@@ -821,6 +829,24 @@ export function buildThreadItems(
             ? specAttachments
             : undefined,
         executionId: exec.metadata?.id,
+      });
+    }
+
+    // The retriever transparency card (stigmer#293 Phase 3a, DD-008 D5):
+    // this execution ran semantic selection over its memory snapshot, so
+    // its segment discloses the subset right after the user's turn —
+    // spec.message is the query the retriever embedded. Absent report or
+    // selection_active=false means wholesale (unchanged Phase 2 behavior)
+    // and renders nothing. Gated on the REPORT, not the prompt bubble:
+    // syntheticUserPrompt deliberately skips some user turns (empty
+    // prompt, build-from-plan) that can still be selection-active.
+    const recalledReport = exec.status?.recalledMemoriesReport;
+    if (recalledReport?.selectionActive) {
+      items.push({
+        kind: "recalled-memories",
+        report: recalledReport,
+        facts: exec.spec?.recalledMemories?.facts ?? [],
+        key: `${execId}-recalled-memories`,
       });
     }
 
@@ -1634,6 +1660,10 @@ export function ThreadItemRenderer({
           isAwaitingResponse={item.isAwaitingResponse}
         />
       );
+    }
+    case "recalled-memories": {
+      const Recalled = slots?.RecalledMemoriesCard ?? RecalledMemoriesCard;
+      return <Recalled report={item.report} facts={item.facts} />;
     }
     case "context-compacted":
       return <SummarizationCard event={item.event} />;
