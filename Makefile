@@ -334,8 +334,8 @@ gen-ipc-fixtures: $(RUNNER_DIR)/node_modules ## Regenerate golden IPC fixtures f
 gen-ipc-fixtures-check: $(RUNNER_DIR)/node_modules ## Verify golden IPC fixtures are fresh (CI) — fails if the contract changed without regenerating
 	@cd $(RUNNER_DIR) && npm run gen:ipc-fixtures -- --check
 
-build-ts-stubs: node_modules ## Rebuild @stigmer/protos dist after stub regeneration
-	npm run build -w @stigmer/protos
+build-ts-stubs: node_modules ## Rebuild the runner-linked workspace lib dists (@stigmer/protos after stub regeneration + @stigmer/temporal-codecs)
+	npm run build:runner-deps
 
 # ─── Test ─────────────────────────────────────
 

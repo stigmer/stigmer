@@ -25,7 +25,7 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadWorkflowFromYaml } from "../workflow-engine/loader.js";
 import { evaluateExpressionBatch } from "../workflow-engine/expression.js";
-import { EncryptionPayloadCodec } from "../encryption/payload-codec.js";
+import { EncryptionPayloadCodec } from "@stigmer/temporal-codecs";
 import type { ExecuteServerlessWorkflowInput } from "../workflows/execute-serverless-workflow.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));

@@ -1,17 +1,22 @@
 /**
  * Temporal PayloadCodec that transparently offloads large payloads to
- * external storage (ArtifactStorage). Payloads below the threshold pass
- * through unchanged. Payloads at or above the threshold are compressed
- * (optional), uploaded, and replaced with a small reference marker.
+ * external storage ({@link ClaimcheckStorage}). Payloads below the
+ * threshold pass through unchanged. Payloads at or above the threshold
+ * are compressed (optional), uploaded, and replaced with a small
+ * reference marker.
  *
  * On decode, markers are detected, the original payload is downloaded
  * and decompressed, and the original bytes are restored — transparent
  * to workflow/activity code.
+ *
+ * Moved from backend/services/runner/src/claimcheck/payload-codec.ts when
+ * the codecs became @stigmer/temporal-codecs (one home for the
+ * cross-language envelope contract; the TS server is the second consumer).
  */
 
 import { randomUUID } from "node:crypto";
 import type { Payload, PayloadCodec } from "@temporalio/common";
-import type { ArtifactStorage } from "../shared/artifact-storage.js";
+import type { ClaimcheckStorage } from "./storage.js";
 import type { ClaimcheckConfig } from "./config.js";
 import { compress, decompress } from "./compressor.js";
 
@@ -34,7 +39,7 @@ interface ClaimcheckMarker {
 
 export class ClaimcheckPayloadCodec implements PayloadCodec {
   constructor(
-    private readonly storage: ArtifactStorage,
+    private readonly storage: ClaimcheckStorage,
     private readonly config: ClaimcheckConfig,
   ) {}
 

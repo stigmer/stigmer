@@ -63,7 +63,8 @@ export const RUNNER_CREDENTIAL_ENV_KEYS: readonly string[] = [
  * rotation bookkeeping, not secrets.
  */
 export const RUNNER_ENCRYPTION_ENV_KEYS: readonly string[] = [
-  // Temporal payload-encryption keys (encryption/config.ts). An agent that
+  // Temporal payload-encryption keys (@stigmer/temporal-codecs' encryption
+  // config, read through the injected getRunnerSecret). An agent that
   // reads these could decrypt the runner's Temporal history payloads.
   "STIGMER_PAYLOAD_ENCRYPTION_KEY",
   "STIGMER_PAYLOAD_ENCRYPTION_SECONDARY_KEY",

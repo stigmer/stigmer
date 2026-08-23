@@ -23,9 +23,18 @@
  * secondary pair while new payloads are written under the primary key.
  * Workers capture keys at construction, so a rotated bootstrap key lands
  * on the next runner boot — there is no live re-key.
+ *
+ * Moved from backend/services/runner/src/encryption/config.ts when the
+ * codecs became @stigmer/temporal-codecs (one home for the cross-language
+ * envelope contract; the TS server is the second consumer). Key VALUES are
+ * read through an injected {@link SecretReader} because secret custody is
+ * consumer policy, not codec policy: the runner routes reads through its
+ * boot-capture credential store (stigmer#508 — secrets must not live in
+ * process.env where agent shells could read them), while other consumers
+ * read their own stores. No process.env default is provided for the
+ * VALUES: a forgotten injection must fail to compile, not silently bypass
+ * a consumer's secret custody.
  */
-
-import { getRunnerSecret } from "../shared/runner-credential-store.js";
 
 export interface EncryptionKey {
   readonly keyId: string;
@@ -41,10 +50,17 @@ export interface PayloadEncryptionConfig {
 }
 
 /**
- * Server-managed key material delivered by getRunnerBootstrapConfig.
- * Structurally mirrors {@link BootstrapPayloadEncryptionKeys} in
- * stigmer-client.ts — declared here so this leaf module stays free of
- * client imports.
+ * Reads one secret VALUE by its env-var name. Consumers inject their own
+ * custody policy (see the module doc); the *_KEY_ID companions are
+ * rotation bookkeeping, not secrets, and stay plain `process.env` reads.
+ */
+export type SecretReader = (name: string) => string | undefined;
+
+/**
+ * Server-managed key material delivered by the runner's
+ * getRunnerBootstrapConfig. Structurally mirrors
+ * {@link BootstrapPayloadEncryptionKeys} in the runner's stigmer-client.ts
+ * — declared here so the library stays free of client imports.
  */
 export interface BootstrapKeyMaterial {
   readonly key: string;
@@ -75,20 +91,17 @@ const AES_256_KEY_BYTES = 32;
  *   defeat the feature.
  */
 export function loadPayloadEncryptionConfig(
+  readSecret: SecretReader,
   bootstrap?: BootstrapKeyMaterial,
 ): PayloadEncryptionConfig | undefined {
-  // Key VALUES resolve through the credential store (the #508 boot capture
-  // moves them out of process.env — agent shells must not read them); the
-  // *_KEY_ID companions are rotation bookkeeping, not secrets, and stay
-  // plain env reads.
-  const rawKey = getRunnerSecret(KEY_ENV);
+  const rawKey = readSecret(KEY_ENV);
   if (rawKey) {
     const primary: EncryptionKey = {
       keyId: requireKeyId(KEY_ID_ENV),
       key: parseKey(rawKey, KEY_ENV),
     };
 
-    const rawSecondary = getRunnerSecret(SECONDARY_KEY_ENV);
+    const rawSecondary = readSecret(SECONDARY_KEY_ENV);
     const secondary: EncryptionKey | undefined = rawSecondary
       ? {
           keyId: requireKeyId(SECONDARY_KEY_ID_ENV),

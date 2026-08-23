@@ -256,7 +256,7 @@ jobs:
       - name: Build runner
         run: make build-runner
 
-      - name: Stamp version and pin protos dependency
+      - name: Stamp version and pin workspace lib dependencies
         working-directory: backend/services/runner
         env:
           VERSION: ${{ needs.determine-version.outputs.npm_version }}
@@ -267,25 +267,32 @@ jobs:
             const pkg = JSON.parse(fs.readFileSync(path, 'utf8'));
             pkg.version = process.env.VERSION;
             pkg.dependencies['@stigmer/protos'] = process.env.VERSION;
+            pkg.dependencies['@stigmer/temporal-codecs'] = process.env.VERSION;
             fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + '\n');
-            console.log('stamped @stigmer/runner@' + pkg.version + ' (protos: ' + pkg.dependencies['@stigmer/protos'] + ')');
+            console.log('stamped @stigmer/runner@' + pkg.version + ' (protos: ' + pkg.dependencies['@stigmer/protos'] + ', temporal-codecs: ' + pkg.dependencies['@stigmer/temporal-codecs'] + ')');
           "
 
-      - name: Wait for @stigmer/protos on npm
+      - name: Wait for workspace libs on npm
         env:
           VERSION: ${{ needs.determine-version.outputs.npm_version }}
         run: |
-          echo "Confirming @stigmer/protos@$VERSION is queryable on npm..."
-          for i in $(seq 1 30); do
-            if npm view "@stigmer/protos@$VERSION" version >/dev/null 2>&1; then
-              echo "Found @stigmer/protos@$VERSION"
-              exit 0
+          for pkg in @stigmer/protos @stigmer/temporal-codecs; do
+            echo "Confirming $pkg@$VERSION is queryable on npm..."
+            found=""
+            for i in $(seq 1 30); do
+              if npm view "$pkg@$VERSION" version >/dev/null 2>&1; then
+                echo "Found $pkg@$VERSION"
+                found=1
+                break
+              fi
+              echo "Attempt $i/30: not yet visible, waiting 10s..."
+              sleep 10
+            done
+            if [ -z "$found" ]; then
+              echo "ERROR: $pkg@$VERSION not visible on npm after 5 minutes." >&2
+              exit 1
             fi
-            echo "Attempt $i/30: not yet visible, waiting 10s..."
-            sleep 10
           done
-          echo "ERROR: @stigmer/protos@$VERSION not visible on npm after 5 minutes." >&2
-          exit 1
 
       # Last gate before publish (#786) — mirrors release.npm-libs.yaml:
       # fresh consumer-style install of the packed tarball + manager boot,
