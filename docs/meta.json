@@ -9,6 +9,7 @@
     "getting-started/connect-tools",
     "getting-started/create-agent",
     "getting-started/first-workflow",
+    "getting-started/embed-agent",
     "---Agents---",
     "concepts/agents",
     "concepts/skills",
