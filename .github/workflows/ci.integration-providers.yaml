@@ -108,8 +108,9 @@ jobs:
       - name: Install npm workspace dependencies
         run: npm ci
 
-      - name: Build proto stubs
-        run: npm run build -w @stigmer/protos
+      # The runner links workspace libs by file: and imports their built dists.
+      - name: Build runner-linked workspace libs
+        run: npm run build:runner-deps
 
       - name: Install and build unified runner
         working-directory: backend/services/runner

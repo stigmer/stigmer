@@ -25,6 +25,17 @@ test("PACKAGES publishes @stigmer/seedpack before the CLI that acquires it", () 
   );
 });
 
+test("PACKAGES publishes the workspace libs the runner's release stamps as deps", () => {
+  // The runner release workflows rewrite these file: links to the exact
+  // release version right before `npm publish` — a lib missing from the
+  // publish set makes every embedder's fresh runner install unresolvable.
+  assert.ok(PACKAGES.includes("apis/stubs/ts"), "@stigmer/protos must be in PACKAGES");
+  assert.ok(
+    PACKAGES.includes("backend/libs/ts/temporal-codecs"),
+    "@stigmer/temporal-codecs must be in PACKAGES",
+  );
+});
+
 test("rewriteBinPaths rewrites the dist prefix for the object form", () => {
   const out = rewriteBinPaths({
     "mcp-server-stigmer": "./dist/cli/mcp-server-stigmer.js",

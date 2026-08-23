@@ -1,3 +1,13 @@
+/**
+ * Claim-check configuration, env-driven with an enabled-iff-configured
+ * gate (CLAIMCHECK_ENABLED) — unlike encryption, the offload threshold and
+ * key prefix are operational tuning, not secrets, so plain env reads are
+ * the whole policy.
+ *
+ * Moved from backend/services/runner/src/claimcheck/config.ts when the
+ * codecs became @stigmer/temporal-codecs.
+ */
+
 export interface ClaimcheckConfig {
   readonly enabled: boolean;
   readonly thresholdBytes: number;

@@ -42,6 +42,11 @@ const root = resolve(__dirname, "..");
 
 export const PACKAGES = [
   "apis/stubs/ts",
+  // @stigmer/temporal-codecs has no @stigmer/* deps, so its position is
+  // order-free. It MUST publish: the runner (published separately by the
+  // release workflows) depends on it, pinned to the exact release version
+  // at stamp time — exactly like @stigmer/protos.
+  "backend/libs/ts/temporal-codecs",
   "sdk/typescript",
   "sdk/theme",
   "sdk/react",

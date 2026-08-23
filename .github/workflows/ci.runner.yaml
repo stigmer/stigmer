@@ -25,8 +25,8 @@
 # and manages its OWN test-server binary — it never consults a system `temporal`
 # on PATH — and self-skips if that fails, so it can never hard-fail this job.
 #
-# Path filter is intentionally narrow (the runner's own tree + the proto stubs
-# it imports). Root package.json/package-lock.json are deliberately omitted: the
+# Path filter is intentionally narrow (the runner's own tree + the workspace
+# libs it file:-links). Root package.json/package-lock.json are deliberately omitted: the
 # runner's deps live in its own lockfile, and a root-dep change that broke the
 # proto build is already caught by ci.conformance-execution.
 #
@@ -42,6 +42,7 @@ on:
     paths:
       - "backend/services/runner/**"
       - "apis/stubs/ts/**"
+      - "backend/libs/ts/**"
       - "Makefile"
       - ".github/workflows/ci.runner.yaml"
   push:
@@ -49,6 +50,7 @@ on:
     paths:
       - "backend/services/runner/**"
       - "apis/stubs/ts/**"
+      - "backend/libs/ts/**"
       - "Makefile"
       - ".github/workflows/ci.runner.yaml"
 
@@ -77,9 +79,10 @@ jobs:
       - name: Install npm workspace dependencies
         run: npm ci
 
-      # The runner imports the built proto stubs (dist), not source.
-      - name: Build proto stubs
-        run: npm run build -w @stigmer/protos
+      # The runner file:-links its workspace libs (@stigmer/protos,
+      # @stigmer/temporal-codecs) and imports their built dists, not source.
+      - name: Build runner-linked workspace libs
+        run: npm run build:runner-deps
 
       # The runner is a standalone package with its own lockfile, so it needs
       # its own install (mirrors ci.integration-offline).

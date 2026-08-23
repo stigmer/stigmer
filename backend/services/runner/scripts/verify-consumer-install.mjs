@@ -37,12 +37,13 @@
  *      (verify-dist-boot.mjs's sentinel-dial technique — no Temporal
  *      server needed).
  *
- * The dev-tree `file:` link to @stigmer/protos cannot resolve from
- * inside a packed tarball, so when the manifest still carries it (every
- * context except the release workflow, which pins the published version
- * before packing) the script packs the local stubs too and points the
- * spec at that tarball — @temporalio and friends still resolve live
- * from the registry, which is exactly the consumer reality under test.
+ * The dev-tree `file:` links to the workspace libs (@stigmer/protos,
+ * @stigmer/temporal-codecs) cannot resolve from inside a packed tarball,
+ * so when the manifest still carries them (every context except the
+ * release workflow, which pins the published versions before packing)
+ * the script packs each local lib too and points its spec at that
+ * tarball — @temporalio and friends still resolve live from the
+ * registry, which is exactly the consumer reality under test.
  *
  * Needs network (registry install) and a prior `npm run build` (and
  * built stub dist). Runs in ~1–2 minutes; wired into ci.runner and the
@@ -56,8 +57,17 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const runnerDir = fileURLToPath(new URL("..", import.meta.url));
-const protosDir = join(runnerDir, "..", "..", "..", "apis", "stubs", "ts");
 const bootCheck = join(runnerDir, "scripts", "verify-dist-boot.mjs");
+
+/**
+ * The workspace libs the runner consumes via dev-tree `file:` links. Each
+ * needs its built dist packed into a stand-in tarball for the consumer
+ * install (see the module doc). A new runner-linked lib gets one entry here.
+ */
+const LOCAL_LIBS = [
+  { name: "@stigmer/protos", dir: join(runnerDir, "..", "..", "..", "apis", "stubs", "ts") },
+  { name: "@stigmer/temporal-codecs", dir: join(runnerDir, "..", "..", "libs", "ts", "temporal-codecs") },
+];
 
 function fail(message) {
   console.error(`verify-consumer-install: FAIL — ${message}`);
@@ -92,7 +102,7 @@ console.log(
   `verify-consumer-install: @temporalio family pinned at ${[...exactVersions][0]}`,
 );
 
-// ─── Pack the runner (and the local proto stubs when still file:-linked) ────
+// ─── Pack the runner (and the local workspace libs when still file:-linked) ──
 
 if (!existsSync(join(runnerDir, "dist", "main.js"))) {
   fail("dist/main.js not found — run `npm run build` first");
@@ -101,20 +111,24 @@ if (!existsSync(join(runnerDir, "dist", "main.js"))) {
 const workDir = mkdtempSync(join(tmpdir(), "stigmer-consumer-install-"));
 process.on("exit", () => rmSync(workDir, { recursive: true, force: true }));
 
-const protosSpec = manifest.dependencies["@stigmer/protos"];
-const needsProtosRewrite = typeof protosSpec === "string" && protosSpec.startsWith("file:");
-
 let runnerTarball;
 const originalManifest = readFileSync(manifestPath, "utf8");
 try {
-  if (needsProtosRewrite) {
-    if (!existsSync(join(protosDir, "dist"))) {
-      fail("@stigmer/protos dist not built — run `npm run build -w @stigmer/protos` at the repo root first");
+  let manifestRewritten = false;
+  for (const lib of LOCAL_LIBS) {
+    const spec = manifest.dependencies[lib.name];
+    if (typeof spec !== "string" || !spec.startsWith("file:")) continue;
+
+    if (!existsSync(join(lib.dir, "dist"))) {
+      fail(`${lib.name} dist not built — run \`npm run build:runner-deps\` at the repo root first`);
     }
-    const [protosPack] = JSON.parse(npm(["pack", "--json", "--pack-destination", workDir], protosDir));
-    manifest.dependencies["@stigmer/protos"] = `file:${join(workDir, protosPack.filename)}`;
+    const [libPack] = JSON.parse(npm(["pack", "--json", "--pack-destination", workDir], lib.dir));
+    manifest.dependencies[lib.name] = `file:${join(workDir, libPack.filename)}`;
+    manifestRewritten = true;
+    console.log(`verify-consumer-install: packed local ${lib.name} (dev file: link rewritten for the tarball)`);
+  }
+  if (manifestRewritten) {
     writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
-    console.log("verify-consumer-install: packed local @stigmer/protos (dev file: link rewritten for the tarball)");
   }
   const [runnerPack] = JSON.parse(npm(["pack", "--json", "--pack-destination", workDir], runnerDir));
   runnerTarball = join(workDir, runnerPack.filename);

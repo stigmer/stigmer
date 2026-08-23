@@ -1,0 +1,77 @@
+# =============================================================================
+# Shared TypeScript libraries (backend/libs/ts/**) — build, typecheck, tests
+# =============================================================================
+# The libs' own independent signal, separate from their consumers' lanes:
+# ci.runner proves the runner still works AGAINST the libs, but a lib's unit
+# suite (e.g. @stigmer/temporal-codecs' cross-language envelope fixture — the
+# wire contract the Java decode-only codec in stigmer-cloud pins against)
+# must fail attributably on a lib change even when no consumer file moved.
+#
+# Mirrors the shape of ci.ts-sdk's locked-resolution job: root npm ci against
+# the tracked lockfile, then per-package build (tsconfig.build.json — what
+# ships), typecheck (tsconfig.json — the only config that includes the test
+# files), and vitest. A new lib under backend/libs/ts/ adds its three steps
+# here and an entry to the root build:runner-deps script if the runner links
+# it.
+# =============================================================================
+
+name: ci.ts-libs
+
+on:
+  pull_request:
+    paths:
+      - "backend/libs/ts/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/ci.ts-libs.yaml"
+  push:
+    branches: [main]
+    paths:
+      - "backend/libs/ts/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/ci.ts-libs.yaml"
+  workflow_dispatch: {}
+
+concurrency:
+  group: ci-ts-libs-${{ github.head_ref || github.ref }}
+  # PR pushes cancel superseded runs; main pushes queue instead, so every
+  # merge gets a completed, attributable run (stigmer/stigmer#725).
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
+# Make installs resilient to transient registry drops (ECONNRESET) — the same
+# npm_config_* retry knobs ci.frontend uses.
+env:
+  npm_config_fetch_retries: "5"
+  npm_config_fetch_retry_factor: "2"
+  npm_config_fetch_retry_mintimeout: "20000"
+  npm_config_fetch_retry_maxtimeout: "120000"
+
+jobs:
+  ts-libs:
+    name: TS libs build + typecheck + tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: npm
+
+      - name: Install dependencies (npm ci, tracked lockfile)
+        run: npm ci
+
+      - name: Build @stigmer/temporal-codecs
+        run: npm run build -w @stigmer/temporal-codecs
+
+      - name: Typecheck @stigmer/temporal-codecs (incl. tests)
+        run: npm run typecheck -w @stigmer/temporal-codecs
+
+      - name: Test @stigmer/temporal-codecs
+        run: npm run test -w @stigmer/temporal-codecs

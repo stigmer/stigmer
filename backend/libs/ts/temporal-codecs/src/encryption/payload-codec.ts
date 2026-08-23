@@ -27,6 +27,10 @@
  * in-flight histories working with zero migration. Everything else
  * fails closed: unknown key id, missing key id, and ciphertext tampering
  * all throw rather than surfacing bogus payloads.
+ *
+ * Moved from backend/services/runner/src/encryption/payload-codec.ts when
+ * the codecs became @stigmer/temporal-codecs (one home for the
+ * cross-language envelope contract; the TS server is the second consumer).
  */
 
 import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";

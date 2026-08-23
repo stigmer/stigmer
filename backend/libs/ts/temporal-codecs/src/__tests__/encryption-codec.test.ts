@@ -19,7 +19,7 @@ import { EncryptionPayloadCodec } from "../encryption/payload-codec.js";
 import { loadPayloadEncryptionConfig } from "../encryption/config.js";
 import type { PayloadEncryptionConfig } from "../encryption/config.js";
 import { ClaimcheckPayloadCodec } from "../claimcheck/payload-codec.js";
-import { makeInMemoryArtifactStorage } from "../__test-utils__/fake-artifact-storage.js";
+import { makeInMemoryClaimcheckStorage } from "../__test-utils__/fake-claimcheck-storage.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -127,7 +127,7 @@ describe("EncryptionPayloadCodec", () => {
 
 describe("composition with claim-check (encrypt, then relocate)", () => {
   it("stores only ciphertext in object storage and round-trips exactly", async () => {
-    const { storage, blobs } = makeInMemoryArtifactStorage();
+    const { storage, blobs } = makeInMemoryClaimcheckStorage();
     const encryption = new EncryptionPayloadCodec(makeKeyConfig());
     const claimcheck = new ClaimcheckPayloadCodec(storage, {
       enabled: true,
@@ -163,12 +163,17 @@ describe("loadPayloadEncryptionConfig", () => {
     "STIGMER_PAYLOAD_ENCRYPTION_SECONDARY_KEY_ID",
   ];
 
+  // Consumers inject their secret custody (see SecretReader); a plain env
+  // read is exactly what these tests exercised before the extraction, when
+  // the runner's getRunnerSecret fell back to process.env with no capture.
+  const readEnv = (name: string) => process.env[name];
+
   afterEach(() => {
     for (const name of ENV_VARS) delete process.env[name];
   });
 
   it("returns undefined when no key is configured", () => {
-    expect(loadPayloadEncryptionConfig()).toBeUndefined();
+    expect(loadPayloadEncryptionConfig(readEnv)).toBeUndefined();
   });
 
   it("loads primary and secondary keys", () => {
@@ -177,7 +182,7 @@ describe("loadPayloadEncryptionConfig", () => {
     process.env.STIGMER_PAYLOAD_ENCRYPTION_SECONDARY_KEY = randomBytes(32).toString("base64");
     process.env.STIGMER_PAYLOAD_ENCRYPTION_SECONDARY_KEY_ID = "k1";
 
-    const config = loadPayloadEncryptionConfig();
+    const config = loadPayloadEncryptionConfig(readEnv);
     expect(config?.primary.keyId).toBe("k2");
     expect(config?.primary.key.length).toBe(32);
     expect(config?.secondary?.keyId).toBe("k1");
@@ -185,7 +190,7 @@ describe("loadPayloadEncryptionConfig", () => {
 
   it("fails the boot when a key is set without an id", () => {
     process.env.STIGMER_PAYLOAD_ENCRYPTION_KEY = randomBytes(32).toString("base64");
-    expect(() => loadPayloadEncryptionConfig()).toThrow(
+    expect(() => loadPayloadEncryptionConfig(readEnv)).toThrow(
       /STIGMER_PAYLOAD_ENCRYPTION_KEY_ID is required/,
     );
   });
@@ -193,7 +198,7 @@ describe("loadPayloadEncryptionConfig", () => {
   it("fails the boot on a key of the wrong length", () => {
     process.env.STIGMER_PAYLOAD_ENCRYPTION_KEY = randomBytes(16).toString("base64");
     process.env.STIGMER_PAYLOAD_ENCRYPTION_KEY_ID = "k1";
-    expect(() => loadPayloadEncryptionConfig()).toThrow(/must decode to 32 bytes/);
+    expect(() => loadPayloadEncryptionConfig(readEnv)).toThrow(/must decode to 32 bytes/);
   });
 
   // Server-managed key material from getRunnerBootstrapConfig (stigmer#398):
@@ -208,7 +213,7 @@ describe("loadPayloadEncryptionConfig", () => {
     });
 
     it("enables encryption from bootstrap material when no env key is set", () => {
-      const config = loadPayloadEncryptionConfig(bootstrapKeys());
+      const config = loadPayloadEncryptionConfig(readEnv, bootstrapKeys());
       expect(config?.primary.keyId).toBe("identity-key-v1");
       expect(config?.primary.key.length).toBe(32);
       expect(config?.secondary?.keyId).toBe("identity-key-v0");
@@ -218,20 +223,20 @@ describe("loadPayloadEncryptionConfig", () => {
       process.env.STIGMER_PAYLOAD_ENCRYPTION_KEY = randomBytes(32).toString("base64");
       process.env.STIGMER_PAYLOAD_ENCRYPTION_KEY_ID = "env-key";
 
-      const config = loadPayloadEncryptionConfig(bootstrapKeys());
+      const config = loadPayloadEncryptionConfig(readEnv, bootstrapKeys());
       expect(config?.primary.keyId).toBe("env-key");
       expect(config?.secondary).toBeUndefined();
     });
 
     it("fails the boot on a bootstrap key without its id (server contract violation)", () => {
       expect(() =>
-        loadPayloadEncryptionConfig({ key: randomBytes(32).toString("base64") }),
+        loadPayloadEncryptionConfig(readEnv, { key: randomBytes(32).toString("base64") }),
       ).toThrow(/payload_encryption_key_id/);
     });
 
     it("fails the boot on a malformed bootstrap key rather than running plaintext", () => {
       expect(() =>
-        loadPayloadEncryptionConfig({
+        loadPayloadEncryptionConfig(readEnv, {
           key: randomBytes(16).toString("base64"),
           keyId: "identity-key-v1",
         }),
@@ -240,7 +245,7 @@ describe("loadPayloadEncryptionConfig", () => {
 
     it("fails the boot on a bootstrap secondary key without its id", () => {
       expect(() =>
-        loadPayloadEncryptionConfig({
+        loadPayloadEncryptionConfig(readEnv, {
           key: randomBytes(32).toString("base64"),
           keyId: "identity-key-v1",
           secondaryKey: randomBytes(32).toString("base64"),

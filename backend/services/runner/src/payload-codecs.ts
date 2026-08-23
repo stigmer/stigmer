@@ -12,9 +12,9 @@
  *   decode: claim-check → decrypt   (restore the blob, then decrypt)
  */
 
+import type { BootstrapKeyMaterial } from "@stigmer/temporal-codecs";
 import type { PayloadCodec } from "@temporalio/common";
 import type { Config } from "./config.js";
-import type { BootstrapKeyMaterial } from "./encryption/config.js";
 import { getRunnerSecret } from "./shared/runner-credential-store.js";
 
 export async function createPayloadCodecs(
@@ -23,12 +23,18 @@ export async function createPayloadCodecs(
 ): Promise<PayloadCodec[] | undefined> {
   const codecs: PayloadCodec[] = [];
 
-  const { loadPayloadEncryptionConfig, EncryptionPayloadCodec } = await import(
-    "./encryption/index.js"
-  );
+  const {
+    loadPayloadEncryptionConfig,
+    EncryptionPayloadCodec,
+    loadClaimcheckConfig,
+    ClaimcheckPayloadCodec,
+  } = await import("@stigmer/temporal-codecs");
   // Env-configured keys win outright; server-managed (bootstrap) keys apply
-  // only when the env is silent — see encryption/config.ts for the rationale.
-  const encryptionConfig = loadPayloadEncryptionConfig(bootstrapKeys);
+  // only when the env is silent — see the lib's encryption/config.ts for the
+  // rationale. Key VALUES resolve through getRunnerSecret (the #508 boot
+  // capture moves them out of process.env — agent shells must not read
+  // them), which is why the loader takes the reader as an argument.
+  const encryptionConfig = loadPayloadEncryptionConfig(getRunnerSecret, bootstrapKeys);
   if (encryptionConfig) {
     codecs.push(new EncryptionPayloadCodec(encryptionConfig));
     const source = getRunnerSecret("STIGMER_PAYLOAD_ENCRYPTION_KEY") ? "env" : "bootstrap";
@@ -41,9 +47,6 @@ export async function createPayloadCodecs(
     );
   }
 
-  const { loadClaimcheckConfig, ClaimcheckPayloadCodec } = await import(
-    "./claimcheck/index.js"
-  );
   const claimcheckConfig = loadClaimcheckConfig();
   if (claimcheckConfig.enabled) {
     const { loadArtifactStorageConfig, createArtifactStorage } = await import(

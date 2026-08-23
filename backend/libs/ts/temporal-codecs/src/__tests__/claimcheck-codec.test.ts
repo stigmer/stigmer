@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { ClaimcheckPayloadCodec } from "../claimcheck/payload-codec.js";
 import { compress } from "../claimcheck/compressor.js";
 import type { ClaimcheckConfig } from "../claimcheck/config.js";
-import { makeInMemoryArtifactStorage } from "../__test-utils__/fake-artifact-storage.js";
+import { makeInMemoryClaimcheckStorage } from "../__test-utils__/fake-claimcheck-storage.js";
 import type { Payload } from "@temporalio/common";
 
 function makeConfig(overrides: Partial<ClaimcheckConfig> = {}): ClaimcheckConfig {
@@ -19,7 +19,7 @@ function makeStorage() {
   // The canonical in-memory double; `uploads` aliases its backing Map so the
   // existing `storage.uploads.*` assertions keep working, and `download` reads
   // straight from what `encode` uploaded (no fetch to stub).
-  const { storage, blobs } = makeInMemoryArtifactStorage();
+  const { storage, blobs } = makeInMemoryClaimcheckStorage();
   return Object.assign(storage, { uploads: blobs });
 }
 

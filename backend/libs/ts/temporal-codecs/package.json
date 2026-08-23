@@ -1,0 +1,60 @@
+{
+  "name": "@stigmer/temporal-codecs",
+  "version": "0.0.0-dev",
+  "description": "Temporal payload codecs shared by Stigmer's TypeScript Temporal processes — AES-256-GCM payload encryption and claim-check offloading, the one home for the cross-language envelope contract",
+  "license": "Apache-2.0",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": "^22.13.0 || >=23.4.0"
+  },
+  "keywords": [
+    "stigmer",
+    "temporal",
+    "payload-codec",
+    "encryption",
+    "claim-check"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js",
+        "default": "./dist/index.js"
+      }
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stigmer/stigmer.git",
+    "directory": "backend/libs/ts/temporal-codecs"
+  },
+  "dependencies": {
+    "@temporalio/common": "1.16.2",
+    "@temporalio/proto": "1.16.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.1",
+    "typescript": "^5.7.0",
+    "vitest": "^3.2.4"
+  }
+}
