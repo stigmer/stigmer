@@ -501,15 +501,21 @@ function blockText(b: Record<string, unknown>): string | undefined {
  *
  * The Cursor SDK returns sub-agent work as a blob in the task tool's
  * completed event (not as streaming events with a distinct agent_id).
- * Re-verified 2026-07-02 with live recordings on both the pinned SDK (1.0.13)
- * and the latest (1.0.22): zero events reach the parent's run.stream() between
- * the task tool's "running" and "completed" events, every event carries the
- * parent's agent_id, and the child agentId visible in the task args at spawn
- * is NOT queryable mid-run through any public read surface (Agent.listRuns /
- * Agent.messages.list / Agent.getRun all return not-found for it; the SDK's
- * on-disk sub-agent transcript is written only at completion). Live nested
- * visibility is therefore an upstream SDK limitation — do not try to fake it
- * here; the UI shows an elapsed-time affordance instead (SubAgentSection).
+ * Re-verified 2026-08-23 on the pinned SDK (1.0.13) AND the latest (1.0.28),
+ * this time including the write side (stigmer/stigmer#839): an injected
+ * platform.eventStore/eventNotifier receives parent events only on 1.0.13 and
+ * is bypassed entirely on 1.0.28 (persistence moved into the executor daemon's
+ * own state dir); zero events reach the parent's run.stream() mid-task; the
+ * agentId in the task args is not a platform-store agent id at all, so it can
+ * never be addressable via Agent.listRuns / Agent.getRun (this is WHY the
+ * 2026-07-02 read-side polls all returned not-found). On 1.0.28 the child
+ * transcript lands at a deterministic path knowable at spawn
+ * (~/.cursor/projects/<slug>/agent-transcripts/<parentId>/subagents/<argsAgentId>.jsonl)
+ * but is flushed only at completion — verified with 200ms sampling across a
+ * full sub-agent run. Live nested visibility is therefore still an upstream
+ * SDK limitation — do not try to fake it here; the UI shows an elapsed-time
+ * affordance instead (SubAgentSection). Probe scripts and recordings:
+ * stigmer-cloud _projects/2026-08/20260823.03.cursor-subagent-live-progress.
  * The result shape is:
  *
  *   { status: "success", value: { conversationSteps: ConversationStep[] } }
