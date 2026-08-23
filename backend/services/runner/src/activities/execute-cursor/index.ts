@@ -57,7 +57,8 @@ import {
 } from "../../shared/caller-identity.js";
 import { readSessionContext } from "../../shared/session-context.js";
 import { readDeclaredPreferences } from "../../shared/declared-preferences.js";
-import { readRecalledMemories } from "../../shared/recalled-memories.js";
+import type { RecalledMemoriesContent } from "../../shared/recalled-memories.js";
+import { selectRecalledFacts } from "../../shared/memory-retrieval.js";
 import { withholdSecretContentFromMessages } from "../../shared/tool-row.js";
 import { StallTimeoutError, formatStallFailure } from "../../shared/stall-watchdog.js";
 import { resolveUsableArtifactStorage, loadArtifactStorageConfig, type ArtifactStorage } from "../../shared/artifact-storage.js";
@@ -1182,6 +1183,38 @@ async function executeCursorInner(
     const structuredOutputSchema = spec.executionConfig?.structuredOutputSchema as
       Record<string, unknown> | undefined;
 
+    // Phase 9c: Semantic memory selection (DD-008), memoized to at most one
+    // run per invocation. Deliberately NOT decided by the Phase-10
+    // resolution alone: a resumed-agent primary send carries no memories,
+    // but a mid-send poisoned-handle failure rebuilds on a FRESH agent
+    // whose recovery prompt does — the buildFromPlan drop-hazard class —
+    // so every memory-carrying build site awaits this lazily instead.
+    // Selection runs against the frozen first message's semantics: above
+    // the activation threshold it picks top-k for spec.message, otherwise
+    // (and on any failure) it injects the full candidate set — Phase 2
+    // behavior. The outcome report is stamped on the turn's status ONCE,
+    // picked up by the next persist; a re-invocation replays the report
+    // already persisted on the execution rather than re-selecting (the
+    // written-once rule).
+    let memorySelection: Promise<RecalledMemoriesContent | undefined> | undefined;
+    const selectMemoriesOnce = (): Promise<RecalledMemoriesContent | undefined> => {
+      memorySelection ??= selectRecalledFacts(spec.recalledMemories, spec.message, {
+        proxyEndpoint: config.proxyEndpoint,
+        stigmerToken: config.stigmerToken,
+        executionId,
+        priorReport: execution.status?.recalledMemoriesReport,
+      }).then((selection) => {
+        if (selection.report !== undefined) {
+          status.recalledMemoriesReport = selection.report;
+        }
+        return selection.content;
+      });
+      return memorySelection;
+    };
+    const recalledMemories = promptCarriesStandingContext(resolution.reason)
+      ? await selectMemoriesOnce()
+      : undefined;
+
     // Phase 10: Build the prompt
     const interactionMode = spec.executionConfig?.interactionMode
       ?? InteractionMode.UNSPECIFIED;
@@ -1208,7 +1241,7 @@ async function executeCursorInner(
       senderIdentity: readSenderIdentity(blueprint.sessionSpec.metadata),
       sessionContext: readSessionContext(blueprint.sessionSpec.metadata),
       declaredPreferences: readDeclaredPreferences(spec.declaredPreferences),
-      recalledMemories: readRecalledMemories(spec.recalledMemories),
+      recalledMemories,
       conversationCatchup: readConversationCatchup(spec.conversationCatchup),
       // The turn's recorded transcript, seeded from the persisted execution
       // on a reinvocation (Phase 3). Consumed only by the HITL-recovery
@@ -1916,7 +1949,10 @@ async function executeCursorInner(
             senderIdentity: readSenderIdentity(blueprint.sessionSpec.metadata),
             sessionContext: readSessionContext(blueprint.sessionSpec.metadata),
             declaredPreferences: readDeclaredPreferences(spec.declaredPreferences),
-            recalledMemories: readRecalledMemories(spec.recalledMemories),
+            // Lazily selected: the primary send may have been a resumed-agent
+            // shape that carried no memories, but this fresh agent's prompt
+            // must (see the Phase 9c memoized selection).
+            recalledMemories: await selectMemoriesOnce(),
             conversationCatchup: readConversationCatchup(spec.conversationCatchup),
             // Composed fresh (not reused from Phase 10): the failed primary
             // stream may have appended partial work onto status.messages,
@@ -2607,6 +2643,23 @@ export function primarySendCarriesImages(
 }
 
 /**
+ * Whether a prompt built for this resolution carries the STANDING context —
+ * instructions, skills, declared preferences, recalled memories, session
+ * context. Exactly one resolution shape does not: a successfully RESUMED
+ * agent, whose native conversation already holds the first message's
+ * context (both its prompt shapes — the raw follow-up and the
+ * decisions-only HITL reinvocation — send no standing sections).
+ *
+ * The named authority for that routing property (the
+ * primarySendCarriesImages idiom): buildPrompt's internal routing and the
+ * activity's standing-context preparation (e.g. the memory selection gate)
+ * both consult THIS predicate, so the two can never drift.
+ */
+export function promptCarriesStandingContext(reason: AgentResolutionReason): boolean {
+  return reason !== "resumed_successfully";
+}
+
+/**
  * Append the structured-output contract to a prompt when the execution
  * requests one. A per-turn directive (the buildFromPlan rule): it must ride
  * every prompt this turn sends — the primary send AND the poisoned-handle
@@ -2647,7 +2700,7 @@ export function buildPrompt(input: BuildPromptInput): string {
   // an empty conversation strand the agent with instructions and no story,
   // and the session inherits that amnesia permanently (issue #366).
   if (isHitlReinvocation(approvalDecisions)) {
-    if (resolution.reason !== "resumed_successfully") {
+    if (promptCarriesStandingContext(resolution.reason)) {
       return buildHitlRecoveryPrompt(
         {
           instructions,
@@ -2698,7 +2751,7 @@ export function buildPrompt(input: BuildPromptInput): string {
   // cloud DD-006). Catchup last: it is context, and context sits closest to
   // the task (the enhanced prompt's own ordering doctrine); the input files
   // precede it because they are this turn's payload, not background.
-  if (resolution.reason === "resumed_successfully") {
+  if (!promptCarriesStandingContext(resolution.reason)) {
     const prefixes = [
       formatInteractionModePrefix(interactionMode),
       formatImplementPlanSection(buildFromPlan, attachments),
