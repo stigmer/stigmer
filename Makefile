@@ -9,6 +9,7 @@ GO_MODULES := \
 	tools
 
 RUNNER_DIR := backend/services/runner
+SERVER_TS_DIR := backend/services/stigmer-server-ts
 
 # Prettier renders formatting VERDICTS (format-docs-check, the gen-*-docs-check
 # freshness gates), so it must always run at the version package-lock.json pins.
@@ -88,7 +89,7 @@ install-vale: ## Install Vale prose linter (auto-detects OS)
 
 # ─── Build ────────────────────────────────────
 
-.PHONY: build build-java-protos build-java-sdk build-runner build-runner-slim protos codegen build-ts-stubs gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-theme-docs gen-task-docs gen-task-registry gen-task-registry-check gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-theme-docs-check gen-task-docs-check gen-ipc-fixtures gen-ipc-fixtures-check stubs-internal-check
+.PHONY: build build-java-protos build-java-sdk build-runner build-runner-slim build-server-ts protos codegen build-ts-stubs gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-theme-docs gen-task-docs gen-task-registry gen-task-registry-check gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-theme-docs-check gen-task-docs-check gen-ipc-fixtures gen-ipc-fixtures-check stubs-internal-check
 build: libs-build build-web verify-desktop docs-build build-java-sdk build-runner ## Build all project artifacts
 	@mkdir -p bin
 	cd backend/services/stigmer-server && go build -o ../../../bin/stigmer-server ./cmd/server
@@ -126,6 +127,18 @@ build-runner: build-ts-stubs $(RUNNER_DIR)/node_modules ## Compile unified runne
 build-runner-slim: build-runner ## Build the slim embedding artifact (dist-slim/, see stigmer/stigmer#170)
 	@echo "bundle   $(RUNNER_DIR)/dist-slim"
 	@cd $(RUNNER_DIR) && node scripts/bundle-slim.mjs
+
+# The TS server follows the runner's standalone-package model: own lockfile,
+# file:-linked @stigmer/protos, NOT an npm workspace (D2 §5 of the OSS TS
+# server blueprint).
+$(SERVER_TS_DIR)/node_modules: $(SERVER_TS_DIR)/package.json
+	@echo "npm install  $(SERVER_TS_DIR)"
+	@cd $(SERVER_TS_DIR) && npm install
+	@touch $(SERVER_TS_DIR)/node_modules
+
+build-server-ts: build-ts-stubs $(SERVER_TS_DIR)/node_modules ## Compile the TypeScript server (parity port of stigmer-server)
+	@echo "build    $(SERVER_TS_DIR)"
+	@cd $(SERVER_TS_DIR) && npm run build
 
 protos: ## Generate protocol buffer stubs and SDK client code
 	$(MAKE) -C apis build
@@ -351,6 +364,11 @@ test: ## Run all unit tests
 test-runner: $(RUNNER_DIR)/node_modules ## Run the unified runner vitest suite (CI env caps fork concurrency)
 	@echo "testing  $(RUNNER_DIR)"
 	@cd $(RUNNER_DIR) && npm test
+
+.PHONY: test-server-ts
+test-server-ts: build-ts-stubs $(SERVER_TS_DIR)/node_modules ## Run the TypeScript server vitest suite
+	@echo "testing  $(SERVER_TS_DIR)"
+	@cd $(SERVER_TS_DIR) && npm test
 
 # ─── Integration Test ─────────────────────────
 # Integration test logic lives in each suite's Makefile under test/.
@@ -813,6 +831,10 @@ check-node: ## check bucket: npm typecheck/lint/build/test (web, react, sdk, des
 	# ESM/CJS import crashes that kill `node dist/main.js` at startup (#399).
 	cd $(RUNNER_DIR) && npm run verify:dist
 	cd $(RUNNER_DIR) && npm run check-deps
+	cd $(SERVER_TS_DIR) && npm run typecheck
+	cd $(SERVER_TS_DIR) && npm run build
+	# Same #399-class gate for the TS server's compiled entry.
+	cd $(SERVER_TS_DIR) && npm run verify:dist
 	cd sdk/ink && npm run tsdoc:check
 	cd sdk/react && npm run tsdoc:check
 
