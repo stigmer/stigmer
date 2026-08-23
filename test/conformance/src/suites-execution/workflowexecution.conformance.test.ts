@@ -23,14 +23,17 @@
 //   contracts ARE asserted; their success paths await the human-input slice.
 // - updateStatus is the runner's internal status-merge RPC, exercised implicitly
 //   by every completion rather than as a user-facing contract.
+import { FileDecisionAction, FileDecisionScope } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import { WorkflowEventType, type WorkflowExecutionEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
 import { Code } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import { assertResourceParity } from "../contract/parity";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
+import { collectStream } from "../support/collect-stream";
 import { uniqueName } from "../support/naming";
 import {
   WORKFLOW_EXECUTION_API_VERSION,
@@ -447,6 +450,125 @@ describe("WorkflowExecution conformance — create negative paths", () => {
         }),
       Code.InvalidArgument,
       "create without name",
+    );
+  });
+});
+
+// --- CW-7: the event log's cursor pagination and the streaming lanes --------
+//
+// A completed single-task set_vars run emits exactly FOUR events
+// (execution_started, task_started, task_completed, execution_completed) —
+// small enough to be cheap, rich enough to walk a real has_more/
+// latest_sequence cursor with page_size 1. Streams are consumed through
+// collectStream, the bounded reader that keeps the S4 idle-forever quirk
+// (pinned below) from hanging the suite.
+
+describe("WorkflowExecution conformance — event log pagination & streaming (CW-7)", () => {
+  it("getEventLog walks the after_sequence cursor: page_size 1, has_more, exhaustion", async () => {
+    const { org } = await target.provisionTenancy();
+    const workflowId = await provisionWorkflow(org);
+    const created = await createExecution(org, workflowId);
+    await awaitTerminal(clients, created.metadata!.id);
+    const executionId = created.metadata!.id;
+
+    // Walk the whole log one event at a time — real cursor semantics, no
+    // manufactured event floods.
+    const walked: WorkflowExecutionEvent[] = [];
+    let afterSequence = 0n;
+    for (;;) {
+      const page = await clients.workflowExecutionQuery.getEventLog({
+        executionId,
+        afterSequence,
+        pageSize: 1,
+      });
+      if (page.events.length === 0) break;
+      expect(page.events, "page_size 1 is honored").toHaveLength(1);
+      walked.push(page.events[0]!);
+      // has_more reflects records beyond this page; the cursor is the
+      // page's latest sequence, strictly-greater-than on the next read.
+      expect(page.hasMore).toBe(walked.length < 4);
+      expect(page.latestSequence).toBe(page.events[0]!.sequenceNumber);
+      afterSequence = page.latestSequence;
+      if (!page.hasMore) break;
+    }
+
+    // The four-event shape of a single-task run, sequences dense from 1.
+    expect(walked).toHaveLength(4);
+    expect(walked.map((e) => e.sequenceNumber)).toEqual([1n, 2n, 3n, 4n]);
+    expect(walked[0]?.eventType).toBe(WorkflowEventType.execution_started);
+    expect(walked[3]?.eventType).toBe(WorkflowEventType.execution_completed);
+
+    // One unpaginated read returns the same log with has_more exhausted.
+    const full = await clients.workflowExecutionQuery.getEventLog({ executionId });
+    expect(full.events.map((e) => e.eventId)).toEqual(walked.map((e) => e.eventId));
+    expect(full.hasMore).toBe(false);
+    expect(full.latestSequence).toBe(4n);
+  });
+
+  it("subscribeEvents replays a terminal run's whole log and closes cleanly", async () => {
+    const { org } = await target.provisionTenancy();
+    const workflowId = await provisionWorkflow(org);
+    const created = await createExecution(org, workflowId);
+    await awaitTerminal(clients, created.metadata!.id);
+
+    // Replay-then-close: on an already-terminal execution the stream sends
+    // every persisted event and ends on its own — the deterministic way to
+    // prove the lane without racing a live run.
+    const stream = await collectStream((signal) =>
+      clients.workflowExecutionQuery.subscribeEvents(
+        { executionId: created.metadata!.id },
+        { signal },
+      ),
+    );
+    expect(stream.outcome, "the server closes after draining a terminal run").toBe("closed");
+    expect(stream.messages.map((e) => e.sequenceNumber)).toEqual([1n, 2n, 3n, 4n]);
+    expect(stream.messages[3]?.eventType).toBe(WorkflowEventType.execution_completed);
+  });
+
+  it("subscribe sends the snapshot but never closes on an already-terminal run (the pinned S4 quirk)", async () => {
+    const { org } = await target.provisionTenancy();
+    const workflowId = await provisionWorkflow(org);
+    const created = await createExecution(org, workflowId);
+    await awaitTerminal(clients, created.metadata!.id);
+
+    // The terminal-close check fires only on broker UPDATES, never on the
+    // initial snapshot — so a subscription to a finished run receives the
+    // snapshot and then idles forever. Pinned deliberately (wave-2 S4): the
+    // TS port must reproduce it consciously or fix it in both editions.
+    const stream = await collectStream(
+      (signal) =>
+        clients.workflowExecutionQuery.subscribe({ executionId: created.metadata!.id }, { signal }),
+      { timeoutMs: 3_000 },
+    );
+    expect(stream.outcome, "no server close — the bounded reader had to abort").toBe("timeout");
+    expect(stream.messages).toHaveLength(1);
+    expect(stream.messages[0]?.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+  });
+
+  it("submitFileDecision refuses an execution with no pending file reviews (FailedPrecondition)", async () => {
+    const { org } = await target.provisionTenancy();
+    const workflowId = await provisionWorkflow(org);
+    const created = await createExecution(org, workflowId);
+    await awaitTerminal(clients, created.metadata!.id);
+
+    // The deeper file-review arms (digest mismatch, unknown change set)
+    // need mock-LLM file-edit choreography and land with the execution
+    // ports (#17/#20) — this pins the reachable precondition arm.
+    const err = await expectGrpcCode(
+      () =>
+        clients.workflowExecutionCommand.submitFileDecision({
+          executionId: created.metadata!.id,
+          childAgentExecutionId: "aexec_x",
+          changeSetId: "cs_x",
+          expectedDigest: "digest",
+          scope: FileDecisionScope.CHANGE_SET,
+          action: FileDecisionAction.APPROVE,
+        }),
+      Code.FailedPrecondition,
+      "submitFileDecision on a run that never produced file reviews",
+    );
+    expect(err.rawMessage).toBe(
+      `workflow execution ${created.metadata!.id} has no pending file reviews`,
     );
   });
 });

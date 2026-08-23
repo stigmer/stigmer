@@ -145,6 +145,16 @@ describe("WorkflowExecution submitWorkflowTaskApproval — gate & resolution", (
       ExecutionPhase.EXECUTION_IN_PROGRESS,
     );
 
+    // The gate is also the listPendingApprovals populated arm (CW-7): the
+    // read scans per-task status projections, and the entry carries the
+    // TASK NAME (deliberately not the composite task id — the value
+    // submitWorkflowTaskApproval accepts).
+    const pending = await clients.workflowExecutionQuery.listPendingApprovals({ org });
+    expect(pending.totalCount).toBe(1);
+    expect(pending.entries).toHaveLength(1);
+    expect(pending.entries[0]?.executionId).toBe(executionId);
+    expect(pending.entries[0]?.taskName).toBe(HUMAN_INPUT_TASK_NAME);
+
     // Settle so the run terminates cleanly.
     await clients.workflowExecutionCommand.submitWorkflowTaskApproval({
       executionId,
@@ -153,6 +163,11 @@ describe("WorkflowExecution submitWorkflowTaskApproval — gate & resolution", (
       reviewer: "conformance",
     });
     await awaitTerminal(clients, executionId);
+
+    // Resolved gates leave the pending view — the read reflects live task
+    // state, not a ledger of past gates.
+    const drained = await clients.workflowExecutionQuery.listPendingApprovals({ org });
+    expect(drained.totalCount).toBe(0);
   });
 
   it("approve resolves the gate; the execution completes and the downstream task runs", async () => {
