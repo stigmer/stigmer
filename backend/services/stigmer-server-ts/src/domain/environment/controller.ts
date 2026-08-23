@@ -19,8 +19,6 @@
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 import { create, fromBinary } from "@bufbuild/protobuf";
-import type { Timestamp } from "@bufbuild/protobuf/wkt";
-
 import { EnvironmentCommandController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/command_pb";
 import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
 import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
@@ -66,6 +64,7 @@ import {
   newDeleteSearchIndexStep,
   newIndexSearchStep,
 } from "../../pipeline/steps/index-search.js";
+import { compareCreatedAtDesc, matchesAllLabels } from "../../pipeline/steps/helpers.js";
 import { EXISTING_RESOURCE_KEY, newLoadExistingStep } from "../../pipeline/steps/load-existing.js";
 import { SHOULD_CREATE_KEY, newLoadForApplyStep } from "../../pipeline/steps/load-for-apply.js";
 import { newLoadByReferenceStep } from "../../pipeline/steps/load-by-reference.js";
@@ -644,34 +643,4 @@ function newListByOrgAndLabelsStep(
       );
     },
   };
-}
-
-/** True when resourceLabels contains every filter entry (empty = all). */
-function matchesAllLabels(
-  resourceLabels: Record<string, string>,
-  filterLabels: Record<string, string>,
-): boolean {
-  return Object.entries(filterLabels).every(
-    ([key, value]) => resourceLabels[key] === value,
-  );
-}
-
-/** Go's sort.Slice comparator: newest first; nil timestamps last. */
-function compareCreatedAtDesc(
-  a: Timestamp | undefined,
-  b: Timestamp | undefined,
-): number {
-  if (a === undefined || b === undefined) {
-    if (a === undefined && b === undefined) {
-      return 0;
-    }
-    return a !== undefined ? -1 : 1;
-  }
-  if (a.seconds !== b.seconds) {
-    return a.seconds > b.seconds ? -1 : 1;
-  }
-  if (a.nanos !== b.nanos) {
-    return a.nanos > b.nanos ? -1 : 1;
-  }
-  return 0;
 }

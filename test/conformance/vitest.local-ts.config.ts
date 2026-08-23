@@ -12,6 +12,11 @@
 //     registry-proxy exercises the #3 transport lanes, DD-003).
 //   - environment — sub-project #5 (encryption + runnerauth + the
 //     Environment domain; the first secret-bearing suite).
+//   - agent + agentinstance + session + memory — sub-project #6
+//     (sp.agent-family; the agent aggregate and its satellite domains).
+//     agent-mcpserver-references.conformance.test.ts (split out of the
+//     agent suite by sub-project DD-001) will roster here when entry #9
+//     (McpServer CRUD) lands; until then it runs only on the Go rosters.
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
@@ -20,6 +25,10 @@ export default defineConfig({
       "src/suites/organization.conformance.test.ts",
       "src/suites/registry-proxy.conformance.test.ts",
       "src/suites/environment.conformance.test.ts",
+      "src/suites/agent.conformance.test.ts",
+      "src/suites/agentinstance.conformance.test.ts",
+      "src/suites/session.conformance.test.ts",
+      "src/suites/memory.conformance.test.ts",
     ],
     globalSetup: ["./src/harness/global-setup-ts.ts"],
     env: {
