@@ -1,0 +1,105 @@
+---
+description: Coding standards for the TypeScript server (backend/services/stigmer-server-ts) and backend TS libs — the parity-gated port of the Go stigmer-server
+globs: backend/services/stigmer-server-ts/**/*.ts, backend/libs/ts/**/*.ts
+alwaysApply: false
+---
+
+# TypeScript Server Guidelines
+
+`backend/services/stigmer-server-ts` is a strict-parity port of the Go
+`stigmer-server`, built domain by domain behind `test/conformance/`. During
+coexistence the Go package is the behavioral reference for every review
+question of the form "is this what Go does?". These rules are the distilled,
+in-repo form of the project's ratified coding guidelines; each carries its
+rationale — a rule you cannot justify is a rule you will eventually violate
+creatively.
+
+## Parity is the prime directive
+
+- **Byte-pinned wire identifiers are never "cleaned up."** Workflow names
+  (`stigmer/agent-execution/invoke`), task-queue names and env pins, signal
+  names, memo keys, id prefixes (`agt_`, `ses_`), refusal copy, and error
+  messages are cross-edition wire constants. Copy them character-for-character
+  from Go, however inconsistent their casing looks in TS. Renaming one is a
+  wire-protocol break the conformance suite catches late and expensively.
+- **Deliberate Go divergences are contract, not bugs to fix** (e.g.
+  `EnsureSessionOrAgentResolved`: Internal on agentexecution vs
+  InvalidArgument on workflowexecution, #196). Preserve them with a comment
+  citing the issue. A NEW cross-edition divergence goes to the project owner
+  before it ships — nothing diverges silently.
+- **A value that looks arbitrary is not therefore tunable.** Every semantic
+  timeout, loop cap, TTL, and retry policy is a named constant carrying its
+  recorded rationale as a comment (see `src/transport/constants.ts` for the
+  shape). If you cannot find a value's rationale in the Go source or the
+  project blueprint, ask — do not normalize.
+
+## Module shape
+
+- One domain directory per Go `pkg/domain/` package, named identically —
+  "port domain X" needs no map when the trees correspond.
+- **Every module opens with an intent header**: what the module is FOR, the
+  trade-offs it embodies, issue links where behavior traces to one. Ported
+  domain modules also cite the Go package they port and the conformance
+  suite that proves them.
+- Tests are co-located `__tests__/*.test.ts` (runner convention). Never a
+  parallel test tree. Test files open with a header stating what they pin.
+- Functions do one thing. A handler that validates, loads, mutates,
+  persists, and formats in one body is what the steps library exists to
+  prevent.
+
+## Pipeline and composition
+
+- **Pipeline step names are shared vocabulary** (`ValidateProto`,
+  `ResolveSlug`, `CheckDuplicate`, `Persist`, …) — never rename, never
+  introduce a synonym; the domain inventory and the Go chains read straight
+  onto the code. Domain-specific steps stay domain-local; promote to shared
+  only when a second domain needs the identical step.
+- **The composition root is staged plain functions** (config → storage →
+  temporal → controllers → routes → listen). No DI framework. A missing
+  dependency is a compile error or a loud boot throw, never a silent no-op.
+  Lazy providers are for true cycles only.
+- **Optional infrastructure is an explicit modeled state, never a nullable**
+  ("Temporal is down" and "forgot to wire Temporal" must be distinguishable).
+
+## Language posture
+
+- Strict TS, runner-shaped config (ES2022, NodeNext, `"type": "module"`).
+  **No ESLint** — quality is `tsc --noEmit`, Prettier (repo root config),
+  tests, and review. No `any`; no `@ts-ignore`/`@ts-expect-error` without a
+  justification comment. Every `switch` over a union closes with a `never`
+  default.
+- **No TODO comments** — improvements discovered en route are filed as
+  issues, not left as drift markers.
+- Comments state intent and trade-offs, never narration. Issue numbers are
+  verifiable sources; "for compatibility reasons" is not.
+
+## Errors
+
+- Errors are API surface: correct codes (`NotFound`, `AlreadyExists`,
+  `InvalidArgument`, `FailedPrecondition`), never `Internal` as a catch-all,
+  messages in domain terms with the identifying handle
+  (`agent "x" not found`), byte-pinned copy in one constants module per
+  domain.
+- Log the real error; the wire carries the sanitized message. Never log
+  secrets — the redaction doctrine (`***REDACTED***`, `enc:v1:`) extends to
+  logs and Temporal payloads.
+
+## Tests ship with the feature
+
+- Unit tests for every step/converter/validation rule with branching logic;
+  Temporal tests via `@temporalio/testing` where workflows change; the
+  domain's conformance suite green on `local-ts` before the port counts as
+  done.
+- Determinism is non-negotiable: no sleeps (poll with timeout), no shared
+  mutable state, unique resources per test, failure paths tested on purpose.
+- Validation runs per touched layer: `npm run typecheck && npm test` always;
+  the conformance target for domain work; the runner's full suite when
+  `backend/libs/ts/temporal-codecs` changes.
+
+## When surprised
+
+Anything the Go source or the blueprint did not anticipate — framework
+behavior, an unexpected Go nuance, a spike-class failure — goes to the
+project owner BEFORE a workaround is adopted. Record resolved surprises in
+the project's `wrong-assumptions/` folder so the next agent doesn't re-walk
+the trap.
