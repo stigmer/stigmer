@@ -1,8 +1,6 @@
 # @stigmer/react
 
-React provider and client hook for the Stigmer platform SDK. Provides the foundational wiring for connecting React applications to a Stigmer backend — style-isolated and theme-aware.
-
-> Feature components (agent picker, execution stream, session history, etc.) have been removed as part of the session-first UX redesign and will be rebuilt with a platform-for-platforms architecture.
+React provider, hooks, and feature components for the Stigmer platform SDK. Ships the same session, execution, and resource surfaces the Stigmer Console is built from — style-isolated, theme-aware, and embeddable in any React application. This README covers the foundational wiring (provider, theming, local execution); the full hook and component catalog is documented in the [React SDK reference](https://stigmer.ai/docs/sdk/react), and the [Add agent chat to your app](https://stigmer.ai/docs/getting-started/embed-agent) tutorial is the fastest path to a working embed.
 
 ## Install
 

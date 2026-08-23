@@ -131,6 +131,22 @@ pages:
       a runtime env var.
     medium: none
 
+  getting-started/embed-agent:
+    fate: keep
+    diataxis: tutorial
+    teaches:
+      Install @stigmer/react, wrap a React app in StigmerProvider, and embed a
+      pinned-Agent chat with NewSessionViewer and SessionViewer against the
+      local server.
+    medium: animated-tour
+    why:
+      The payoff is the chat streaming inside a third-party product; the motion
+      is the demonstration (owner-ratified deviation from the
+      screenshot-journey default for getting-started pages, T03 review
+      2026-08-23).
+    embeds:
+      embed-agent-tour: keep
+
   # ── Agents ─────────────────────────────────────────────────────────────
   concepts/agents:
     fate: keep

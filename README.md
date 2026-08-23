@@ -149,6 +149,27 @@ See [mcp-server/README.md](mcp-server/README.md) for IDE configuration (Cursor, 
 
 The Go, TypeScript, Python, and Java SDKs provide typed API clients for all platform resources. The React SDK renders agent UIs — session composers, message threads, and approval views. The Ink SDK brings the same components to the terminal.
 
+### Embed in your app
+
+The React SDK ships the same chat surface the Stigmer Console uses — as drop-in components. One provider and two components put your agent in front of your users:
+
+```tsx
+<StigmerProvider client={client}>
+  {sessionId ? (
+    <SessionViewer sessionId={sessionId} org="my-org" audience="endUser" />
+  ) : (
+    <NewSessionViewer
+      org="my-org"
+      audience="endUser"
+      initialAgentRef={{ org: "my-org", slug: "support-agent" }}
+      onSessionCreated={setSessionId}
+    />
+  )}
+</StigmerProvider>
+```
+
+Every component is themeable with design tokens, and the hooks underneath are exported for fully custom UIs. Follow the [Add agent chat to your app](https://stigmer.ai/docs/getting-started/embed-agent) tutorial for the complete walkthrough.
+
 ## Local vs Cloud
 
 | | Local Mode (Open Source) | Cloud Mode (Stigmer Cloud) |

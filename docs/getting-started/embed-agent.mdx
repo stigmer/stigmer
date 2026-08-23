@@ -1,0 +1,238 @@
+---
+title: Add agent chat to your app
+description:
+  Embed your Agent as a chat panel inside your own React app with @stigmer/react
+  — two components and a provider.
+---
+
+## What you'll build
+
+Your Agent, chatting with users inside your own React app. You'll install
+`@stigmer/react`, wrap your app in a provider, and drop in two components: a
+launcher that starts the conversation and a viewer that streams it. The same
+components power the Stigmer Console — your app gets the production chat
+experience, themed to match your product.
+
+**Time**: ~10 minutes **Prerequisites**: the local stack running (`stigmer up`),
+Node.js 22.13 or newer, and the Agent you created in
+[Create your Agent](/docs/getting-started/create-agent) — or the built-in
+`assistant` if you're jumping in here.
+
+Here's the result in a fictional product — a support page with the chat
+embedded, from first message to streamed reply:
+
+<ScenarEmbed id="embed-agent-tour" title="Agent chat embedded in an app" />
+
+<Callout type="info">
+  Want a chat widget on a website, without a React app? The [embed
+  widget](/docs/guides/sharing/embed-an-agent) does that in two lines of HTML.
+  This tutorial is for products: your app, your users, your UI.
+</Callout>
+
+<Steps>
+<Step>
+
+## Create a React app
+
+Skip this step if you're embedding into an existing app. Otherwise, scaffold one
+with Vite:
+
+```bash
+npm create vite@latest my-app -- --template react-ts
+cd my-app
+npm install
+```
+
+</Step>
+<Step>
+
+## Install the SDK packages
+
+```bash
+npm install @stigmer/react @stigmer/sdk @stigmer/protos @bufbuild/protobuf
+```
+
+`@stigmer/react` provides the components, `@stigmer/sdk` the API client, and
+`@stigmer/protos` (with its `@bufbuild/protobuf` runtime) the types. React 19 is
+required — the Vite template from the first step already uses it.
+
+</Step>
+<Step>
+
+## Wire the provider
+
+Replace the contents of `src/App.tsx`:
+
+```tsx
+import { useMemo, useState } from "react";
+import { Stigmer } from "@stigmer/sdk";
+import {
+  NewSessionViewer,
+  SessionViewer,
+  StigmerProvider,
+} from "@stigmer/react";
+import "@stigmer/react/styles.css";
+
+export default function App() {
+  const client = useMemo(
+    () =>
+      new Stigmer({
+        baseUrl: "http://localhost:7234",
+        getAccessToken: () => null,
+      }),
+    [],
+  );
+
+  return (
+    <StigmerProvider client={client} deploymentMode="local">
+      <main style={{ maxWidth: 960, margin: "0 auto", padding: 24 }}>
+        <h1>Acme Support</h1>
+        <div style={{ height: 600 }}>
+          <SupportChat />
+        </div>
+      </main>
+    </StigmerProvider>
+  );
+}
+```
+
+Three things happen here:
+
+1. **The client** points at your local server. It runs without authentication,
+   so `getAccessToken: () => null` tells the SDK to send requests without a
+   token.
+2. **`StigmerProvider`** hands the client to every Stigmer component below it
+   and scopes all Stigmer styles to its own container — nothing leaks into your
+   app's CSS.
+3. **The stylesheet import** loads the components' compiled styles once, at the
+   app root.
+
+</Step>
+<Step>
+
+## Add the chat component
+
+The chat is two components with one hand-off. `NewSessionViewer` renders the
+composer where the user types their first message; when they send it, the
+platform creates a <Term>Session</Term> and hands you its ID. `SessionViewer`
+takes over from there and streams the conversation. Add this below your `App`
+component:
+
+```tsx
+function SupportChat() {
+  const [sessionId, setSessionId] = useState<string | null>(null);
+
+  if (sessionId) {
+    return (
+      <SessionViewer sessionId={sessionId} org="stigmer" audience="endUser" />
+    );
+  }
+
+  return (
+    <NewSessionViewer
+      org="stigmer"
+      audience="endUser"
+      initialAgentRef={{ org: "stigmer", slug: "assistant" }}
+      onSessionCreated={setSessionId}
+    />
+  );
+}
+```
+
+`initialAgentRef` pins the conversation to one Agent, and `audience="endUser"`
+presents it as product chat: your user can't swap the Agent or reconfigure its
+tools — you decided that upstream.
+
+On the local server every resource lives in the `stigmer` Organization, so
+`org="stigmer"` works as written. Swap `assistant` for the slug of the Agent you
+created earlier — `support-agent` — to chat with your own tools and Skills.
+
+</Step>
+<Step>
+
+## Run it
+
+```bash
+npm run dev
+```
+
+Open `http://localhost:5173`, type a message, and press Enter. The composer
+becomes a conversation: your message posts, the Agent's reply streams in token
+by token, and a follow-up composer waits at the bottom.
+
+<Callout type="info">
+  If the reply fails with "Anthropic API key not found", your local stack has no
+  LLM key yet — run `stigmer setup`, then retry from the error card in the chat.
+</Callout>
+
+</Step>
+<Step>
+
+## Make it match your product
+
+The components are themed with design tokens, not hardcoded styles. Pass a
+preset to restyle every component at once:
+
+```tsx
+<StigmerProvider client={client} deploymentMode="local" preset="corporate">
+```
+
+Five presets ship with the SDK — `default`, `corporate`, `startup`, `friendly`,
+and `fintech` — and every token they set can be overridden individually to match
+your brand. See [Theming](/docs/sdk/theme/theming) for the full model.
+
+</Step>
+</Steps>
+
+## What just happened
+
+You embedded the Stigmer Console's own chat surface into your app. Behind the
+two components:
+
+1. `NewSessionViewer` collected the first message and created a Session bound to
+   your Agent — the same Session model you used from the SDK in earlier
+   tutorials.
+2. `onSessionCreated` handed the new Session's ID to your state, and your
+   component swapped in `SessionViewer`.
+3. `SessionViewer` subscribed to the execution stream and rendered it live —
+   messages, tool calls, and approval gates, with a composer for follow-ups.
+
+Every piece is independently replaceable. Want your own UI? The same package
+exports the hooks these components are built on — start with
+[`useNewSessionFlow` and `useSessionConversation`](/docs/sdk/react/session).
+
+## Going to production
+
+Your local server accepts unauthenticated requests; Stigmer Cloud does not — and
+browsers must never hold API keys. In production, `getAccessToken` returns a
+real token per request. Two paths provide one:
+
+- **[Identity federation](/docs/guides/authentication/federation/overview)** —
+  your users already sign in through an OIDC provider (Auth0, Okta, Cognito,
+  Entra ID); the SDK forwards their JWT to Stigmer.
+- **[PlatformClient](/docs/guides/authentication/platform-client/overview)** —
+  your backend authenticates users its own way and mints Stigmer tokens through
+  one endpoint.
+
+Everything else on this page stays the same — swap the client config, keep the
+components.
+
+## What's next
+
+<Cards>
+  <Card
+    title="React SDK reference"
+    description="Every hook, component, and prop — session, execution, agent, and more."
+    href="/docs/sdk/react"
+  />
+  <Card
+    title="Theming"
+    description="Presets, design tokens, dark mode, and style isolation for embedded components."
+    href="/docs/sdk/theme/theming"
+  />
+  <Card
+    title="Embed widget"
+    description="Put a shared Agent's chat on any website with two lines of HTML."
+    href="/docs/guides/sharing/embed-an-agent"
+  />
+</Cards>
