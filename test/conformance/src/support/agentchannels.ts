@@ -19,6 +19,14 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 export const AGENTCHANNEL_API_VERSION = "agentic.stigmer.ai/v1";
 export const AGENTCHANNEL_KIND = "AgentChannel";
 
+// The default model pin every channel fixture carries. Cloud REQUIRES a
+// pinned model on channel writes (its channel execution profile serves the
+// Cursor harness, where an unpinned run would bill as Auto —
+// stigmer/stigmer#362); OSS merely validates a pin that is present. One
+// registry-valid pin keeps every fixture accepted by both editions; the
+// pin-REQUIRED divergence itself is pinned two-armed in the suite.
+export const CHANNEL_FIXTURE_MODEL = "composer-2.5";
+
 export interface SlackAgentChannelOptions {
   // Explicit agent_ref org, for the cross-org negative; empty means
   // same-org (the platform's relative-reference convention).
@@ -28,8 +36,10 @@ export interface SlackAgentChannelOptions {
   // shared platform app.
   appRefSlug?: string;
   appRefOrg?: string;
-  // Per-channel model pin, for the model-registry existence rule (#774).
-  modelName?: string;
+  // Per-channel model pin. Defaults to CHANNEL_FIXTURE_MODEL (see its
+  // comment); pass an unknown name for the existence-rule negative (#774)
+  // or `null` to omit the pin entirely (the two-armed #362 divergence).
+  modelName?: string | null;
 }
 
 // A complete, valid Slack AgentChannel for the given agent. Slack's provider
@@ -62,7 +72,9 @@ export function makeSlackAgentChannel(
             },
           }
         : {}),
-      ...(options.modelName !== undefined ? { runConfig: { modelName: options.modelName } } : {}),
+      ...(options.modelName !== null
+        ? { runConfig: { modelName: options.modelName ?? CHANNEL_FIXTURE_MODEL } }
+        : {}),
     },
   };
 }
@@ -83,6 +95,7 @@ export function makeWhatsAppAgentChannel(
       agentRef: { slug: agentSlug, kind: ApiResourceKind.agent },
       enabled: true,
       providerConfig: { case: "whatsapp", value: { phoneNumberId: "106540352242922" } },
+      runConfig: { modelName: CHANNEL_FIXTURE_MODEL },
       ...(options.appRefSlug !== undefined
         ? { appRef: { slug: options.appRefSlug, kind: ApiResourceKind.channel_app } }
         : {}),

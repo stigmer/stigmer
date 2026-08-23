@@ -60,7 +60,12 @@ afterAll(async () => {
 });
 
 describe("WorkflowExecution conformance — the engine gate (Class A)", () => {
-  it("create refuses Unavailable before any side effect when no engine is connected", async () => {
+  it("create refuses Unavailable before any side effect when no engine is connected", async (ctx) => {
+    // Only the engineless local CRUD targets can observe this boundary —
+    // scheduleFiring doubles as "a Temporal engine backs this target" (its
+    // local-CRUD value documents 'no Temporal behind this target at all'),
+    // and the cloud CRUD target serves a live engine.
+    if (target.capabilities.scheduleFiring) return ctx.skip();
     const { org } = await target.provisionTenancy();
     // A real workflow: the engine gate sits AFTER reference validation, so
     // the refusal proves the gate specifically, not an earlier miss.
@@ -97,13 +102,22 @@ describe("WorkflowExecution conformance — zero-record read surfaces (Class A)"
     expect(summary.activeCount).toBe(0);
     expect(summary.phaseCounts).toEqual({});
     expect(summary.totalCount).toBe(0);
-    // -1 is the "no terminal runs yet" sentinel — deliberately not 0,
-    // which would read as a real 0% success rate.
-    expect(summary.successRate).toBe(-1);
-    // The cost summary is ALWAYS present, zero-valued — consumers never
-    // null-check it.
-    expect(summary.totalCost).toBeDefined();
-    expect(summary.totalCost?.totalCostUsd ?? 0).toBe(0);
+    // The zero-record success rate is a VERIFIED cross-edition
+    // inconsistency, pinned as-is per edition (the wave-2 PR records the
+    // harmonization candidate): OSS answers the -1 "no terminal runs yet"
+    // sentinel — deliberately distinguishable from a real 0% — while the
+    // multi-tenant edition answers a plain 0.
+    expect(summary.successRate).toBe(target.capabilities.multiTenant ? 0 : -1);
+    // The zero-record cost summary is the second shape inconsistency
+    // pinned as-is per edition (same PR record): OSS ALWAYS materializes a
+    // zero-valued summary so consumers never null-check it; the
+    // multi-tenant edition omits the message entirely when nothing ran.
+    if (target.capabilities.multiTenant) {
+      expect(summary.totalCost).toBeUndefined();
+    } else {
+      expect(summary.totalCost).toBeDefined();
+      expect(summary.totalCost?.totalCostUsd ?? 0).toBe(0);
+    }
     // An average over nothing is absence, not 0.
     expect(summary.avgDuration).toBeUndefined();
     expect(summary.topFailingWorkflows).toHaveLength(0);
@@ -126,14 +140,18 @@ describe("WorkflowExecution conformance — zero-record read surfaces (Class A)"
       "getEventLog without an execution id",
     );
 
-    // No existence check by design: the event log of a never-seen id is
-    // truthfully empty, and has_more/latest_sequence are zero-valued.
-    const page = await clients.workflowExecutionQuery.getEventLog({
-      executionId: "wfe_01conformancemissing",
-    });
-    expect(page.events).toHaveLength(0);
-    expect(page.hasMore).toBe(false);
-    expect(page.latestSequence).toBe(0n);
+    // The unknown-id arm is single-user-posture only: the multi-tenant
+    // edition's authorization fails closed on an unresolvable id
+    // (PermissionDenied — no existence leak), never reaching the handler's
+    // no-existence-check behavior.
+    if (!target.capabilities.multiTenant) {
+      const page = await clients.workflowExecutionQuery.getEventLog({
+        executionId: "wfe_01conformancemissing",
+      });
+      expect(page.events).toHaveLength(0);
+      expect(page.hasMore).toBe(false);
+      expect(page.latestSequence).toBe(0n);
+    }
   });
 
   it("the subscribe lanes refuse empty ids (InvalidArgument) and unknown ids (NotFound)", async () => {
@@ -151,6 +169,20 @@ describe("WorkflowExecution conformance — zero-record read surfaces (Class A)"
     await expectGrpcCode(
       () =>
         collectStream((signal) =>
+          clients.workflowExecutionQuery.subscribeEvents({ executionId: "" }, { signal }),
+        ),
+      Code.InvalidArgument,
+      "subscribeEvents with an empty id",
+    );
+
+    // The unknown-id NotFound arms hold where the caller can see everything
+    // (single-user); the multi-tenant edition answers PermissionDenied for
+    // an unresolvable id instead (authorization fail-closed, no existence
+    // leak) — the same split as getEventLog above.
+    if (target.capabilities.multiTenant) return;
+    await expectGrpcCode(
+      () =>
+        collectStream((signal) =>
           clients.workflowExecutionQuery.subscribe(
             { executionId: "wfe_01conformancemissing" },
             { signal },
@@ -158,14 +190,6 @@ describe("WorkflowExecution conformance — zero-record read surfaces (Class A)"
         ),
       Code.NotFound,
       "subscribe to an unknown execution",
-    );
-    await expectGrpcCode(
-      () =>
-        collectStream((signal) =>
-          clients.workflowExecutionQuery.subscribeEvents({ executionId: "" }, { signal }),
-        ),
-      Code.InvalidArgument,
-      "subscribeEvents with an empty id",
     );
     await expectGrpcCode(
       () =>
@@ -182,7 +206,13 @@ describe("WorkflowExecution conformance — zero-record read surfaces (Class A)"
 });
 
 describe("WorkflowExecution conformance — submitFileDecision negatives (Class A)", () => {
-  it("rejects structurally invalid inputs before any load (InvalidArgument)", async () => {
+  // Single-user-posture arms: the multi-tenant edition's authorization
+  // interceptor resolves the execution BEFORE proto validation, so
+  // structurally invalid or unknown ids surface as NotFound/PermissionDenied
+  // there instead — a verified ordering divergence, disclosed in the wave-2
+  // PR for the parity register.
+  it("rejects structurally invalid inputs before any load (InvalidArgument)", async (ctx) => {
+    if (target.capabilities.multiTenant) return ctx.skip();
     // Proto-validation arms: min_len on the ids/digest, defined-and-nonzero
     // on the enums — all fire before the execution load, so a fake id is
     // never touched.
@@ -227,7 +257,8 @@ describe("WorkflowExecution conformance — submitFileDecision negatives (Class 
     );
   });
 
-  it("an unknown execution answers NotFound", async () => {
+  it("an unknown execution answers NotFound", async (ctx) => {
+    if (target.capabilities.multiTenant) return ctx.skip();
     await expectGrpcCode(
       () =>
         clients.workflowExecutionCommand.submitFileDecision({

@@ -186,7 +186,12 @@ describe("AgentExecution conformance — thinking-mode fail-closed validation (#
 // populated arms live in suites-execution/.
 
 describe("AgentExecution conformance — the engine gate (CW-7)", () => {
-  it("create refuses Unavailable before any side effect when no engine is connected", async () => {
+  it("create refuses Unavailable before any side effect when no engine is connected", async (ctx) => {
+    // Only the engineless local CRUD targets observe this boundary —
+    // scheduleFiring doubles as "a Temporal engine backs this target", and
+    // the cloud CRUD target serves a live engine (and resolves the agent
+    // reference before its gate).
+    if (target.capabilities.scheduleFiring) return ctx.skip();
     const { org } = await target.provisionTenancy();
     // agt_fake passes the reference-presence guard; existence is resolved
     // AFTER the engine gate (default-instance creation), so the refusal
@@ -224,6 +229,9 @@ describe("AgentExecution conformance — zero-record read surfaces (CW-7)", () =
       Code.InvalidArgument,
       "execution usage report without an id",
     );
+    // Single-user arm: the multi-tenant edition's authorization fails
+    // closed on an unresolvable id (PermissionDenied, no existence leak).
+    if (target.capabilities.multiTenant) return;
     await expectGrpcCode(
       () =>
         clients.agentExecutionQuery.getExecutionUsageReport({
@@ -234,7 +242,11 @@ describe("AgentExecution conformance — zero-record read surfaces (CW-7)", () =
     );
   });
 
-  it("the session/agent/org usage reports answer zero-valued SHAPES with no existence check", async () => {
+  it("the session/agent/org usage reports answer zero-valued SHAPES with no existence check", async (ctx) => {
+    // Single-user posture only: where orgs are real, an unauthorized scope
+    // answers PermissionDenied instead of a zero report — the aggregation
+    // reads are authorization-gated per scope on the multi-tenant edition.
+    if (target.capabilities.multiTenant) return ctx.skip();
     // The zero-shapes contract: these aggregation reads never error for
     // "nothing to aggregate" — they answer structurally complete,
     // zero-valued reports (OSS deliberately records no usage data at all,
@@ -296,6 +308,9 @@ describe("AgentExecution conformance — zero-record read surfaces (CW-7)", () =
       Code.InvalidArgument,
       "subscribe with an empty id",
     );
+    // Single-user arm: the multi-tenant edition answers PermissionDenied
+    // for an unresolvable id (authorization fail-closed, no existence leak).
+    if (target.capabilities.multiTenant) return;
     await expectGrpcCode(
       () =>
         collectStream((signal) =>
@@ -308,7 +323,12 @@ describe("AgentExecution conformance — zero-record read surfaces (CW-7)", () =
 });
 
 describe("AgentExecution conformance — submitFileDecision negatives (CW-7)", () => {
-  it("rejects structurally invalid inputs before any load (InvalidArgument)", async () => {
+  // Single-user-posture arms: the multi-tenant edition's authorization
+  // interceptor resolves the execution BEFORE proto validation, so invalid
+  // or unknown ids surface as NotFound/PermissionDenied there instead — the
+  // ordering divergence disclosed in the wave-2 PR.
+  it("rejects structurally invalid inputs before any load (InvalidArgument)", async (ctx) => {
+    if (target.capabilities.multiTenant) return ctx.skip();
     await expectGrpcCode(
       () =>
         clients.agentExecutionCommand.submitFileDecision({
@@ -335,7 +355,8 @@ describe("AgentExecution conformance — submitFileDecision negatives (CW-7)", (
     );
   });
 
-  it("an unknown execution answers NotFound", async () => {
+  it("an unknown execution answers NotFound", async (ctx) => {
+    if (target.capabilities.multiTenant) return ctx.skip();
     await expectGrpcCode(
       () =>
         clients.agentExecutionCommand.submitFileDecision({

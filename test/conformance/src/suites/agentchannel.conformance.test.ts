@@ -222,6 +222,34 @@ describe("AgentChannel conformance — create validation", () => {
     expect(err.rawMessage).toBe("Agent not found: no-such-agent");
   });
 
+  it("the pin-REQUIRED rule is edition-split: OSS stores an unpinned channel, cloud refuses it (#362)", async () => {
+    const { org } = await target.provisionTenancy();
+    const agent = await createAgentFixture(org);
+    const unpinned = makeSlackAgentChannel(org, uniqueName("channel"), agent.metadata!.slug, {
+      modelName: null,
+    });
+
+    if (target.capabilities.channelMessaging) {
+      // The edition that SERVES channels refuses an unpinned one at write
+      // time: its channel execution profile runs the Cursor harness, where
+      // no pin means billing as Auto.
+      const err = await expectGrpcCode(
+        () => clients.agentChannelCommand.create(unpinned),
+        Code.InvalidArgument,
+        "unpinned channel where the channel runtime serves Cursor",
+      );
+      expect(err.rawMessage).toContain(
+        "spec.run_config.model_name must name a pinned model when the run would use the Cursor harness",
+      );
+    } else {
+      // The edition that only STORES channels accepts the unpinned spec —
+      // there is no serving profile to bill against.
+      const created = await clients.agentChannelCommand.create(unpinned);
+      fixtures.defer(() => clients.agentChannelCommand.delete({ value: created.metadata!.id }));
+      expect(created.spec?.runConfig?.modelName ?? "").toBe("");
+    }
+  });
+
   it("rejects an unknown model pin (InvalidArgument, stable message prefix)", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgentFixture(org);
@@ -405,35 +433,45 @@ describe("AgentChannel conformance — the install lanes", () => {
 });
 
 describe("AgentChannel conformance — conversation lanes", () => {
-  it("discovery reads answer truthful emptiness (both editions, no traffic exists)", async () => {
+  // The reads probe a REAL channel of the caller's own org: on cloud a
+  // fabricated channel id fails closed in authorization (PermissionDenied,
+  // no existence leak) before any handler runs, so only an owned channel
+  // reaches the shared truthful-emptiness contract on both editions.
+  it("discovery reads answer truthful emptiness (no conversation traffic exists)", async () => {
     const { org } = await target.provisionTenancy();
+    const agent = await createAgentFixture(org);
+    const channel = await createChannelFixture(org, agent.metadata!.slug);
 
     const conversations = await clients.channelConversationQuery.listConversations({ org });
     expect(conversations.totalCount).toBe(0);
     expect(conversations.items).toHaveLength(0);
 
     const timeline = await clients.channelConversationQuery.getTimeline({
-      agentChannelId: "ach_01confmissing",
+      agentChannelId: channel.metadata!.id,
       conversationKey: "conf-conversation",
     });
     expect(timeline.items ?? []).toHaveLength(0);
   });
 
   it("single-row reads answer uniform NotFound (no local probing, no existence leak)", async () => {
+    const { org } = await target.provisionTenancy();
+    const agent = await createAgentFixture(org);
+    const channel = await createChannelFixture(org, agent.metadata!.slug);
+
     await expectGrpcCode(
       () =>
         clients.channelConversationQuery.getConversation({
-          agentChannelId: "ach_01confmissing",
+          agentChannelId: channel.metadata!.id,
           conversationKey: "conf-conversation",
         }),
       Code.NotFound,
-      "getConversation — this edition never materializes conversations",
+      "getConversation on a channel with no conversations",
     );
 
     const media = await expectGrpcCode(
       () =>
         clients.channelConversationQuery.getMediaDownloadUrl({
-          agentChannelId: "ach_01confmissing",
+          agentChannelId: channel.metadata!.id,
           conversationKey: "conf-conversation",
           itemId: "conf-item",
         }),
@@ -486,11 +524,24 @@ describe("AgentChannel conformance — conversation lanes", () => {
 });
 
 describe("AgentChannel conformance — messaging lanes", () => {
-  it("listMessagingChannels answers truthful emptiness (both editions — a capability-DISCOVERY read)", async () => {
-    // The runner issues this read on every agent execution to decide
-    // whether to attach the send tool; "none" is the honest answer wherever
-    // no proactive-enabled installed channel exists — which is everywhere a
-    // fresh conformance run looks.
+  it("listMessagingChannels answers truthful emptiness on the storing edition, a refusal on the serving one", async () => {
+    if (target.capabilities.channelMessaging) {
+      // The serving edition resolves this read from an agent SESSION (the
+      // runner's identity), so a bare direct call is refused with guidance
+      // toward the resource surface — a verified edition divergence,
+      // pinned two-armed rather than skipped.
+      const err = await expectGrpcCode(
+        () => clients.channelMessageQuery.listMessagingChannels({}),
+        Code.InvalidArgument,
+        "direct listMessagingChannels where the channel runtime serves",
+      );
+      expect(err.rawMessage).toContain("resolves from an agent session");
+      return;
+    }
+    // The storing edition answers "none" for everyone: the runner issues
+    // this read on every agent execution to decide whether to attach the
+    // send tool, and an expected-error path in that hot loop would be
+    // noise.
     const channels = await clients.channelMessageQuery.listMessagingChannels({});
     expect(channels.entries ?? []).toHaveLength(0);
   });

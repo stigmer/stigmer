@@ -124,9 +124,15 @@ describe("Search conformance — search mode (text query)", () => {
     // Four hits from two creates: agent and workflow creates each spawn a
     // system-managed default INSTANCE named for its parent, and instances
     // are search-indexed by kind_meta — discover truthfully surfaces all
-    // of them. Pinning the full set documents that behavior.
+    // of them. Compared on the NON-ZERO entries: whether zero-count kinds
+    // appear in the map is an edition presentation difference (the
+    // multi-tenant edition enumerates every kind at 0; local omits them),
+    // while the non-zero membership is the shared contract.
     expect(response.totalCount).toBe(4);
-    expect(response.countsByKind).toEqual({
+    const nonZeroCounts = Object.fromEntries(
+      Object.entries(response.countsByKind).filter(([, count]) => count > 0),
+    );
+    expect(nonZeroCounts).toEqual({
       agent: 1,
       agent_instance: 1,
       workflow: 1,
