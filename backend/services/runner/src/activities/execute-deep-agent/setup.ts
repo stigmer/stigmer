@@ -15,7 +15,7 @@ import { z } from "zod";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AgentGraph = any;
 
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentExecution, RecalledMemoriesReport } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { DynamicStructuredTool } from "@langchain/core/tools";
@@ -33,7 +33,7 @@ import {
 } from "../../shared/caller-identity.js";
 import { readSessionContext } from "../../shared/session-context.js";
 import { readDeclaredPreferences } from "../../shared/declared-preferences.js";
-import { readRecalledMemories } from "../../shared/recalled-memories.js";
+import { selectRecalledFacts } from "../../shared/memory-retrieval.js";
 import { connectMcpServers, type McpConnectionResult } from "../../shared/mcp-manager.js";
 import { mergeMcpServerUsages, resolveMcpServers } from "../../shared/mcp-resolver.js";
 import { resolveMcpTransportPosture } from "../../shared/mcp-transport-guard.js";
@@ -201,6 +201,15 @@ export interface SetupResult {
    * baseline/candidate/reconcile seam (`capture.ts`) and the CAS capture-class.
    */
   readonly gitWorkspace: boolean;
+  /**
+   * The semantic retriever's injection outcome (DD-008 D5), produced at
+   * prompt build (Step 8) — the one place selection runs. The activity
+   * stamps it onto the turn's status proto before the first persist; the
+   * server's presence-guarded merge preserves it across report-less
+   * writes. Undefined when nothing was injected (recall absent, disabled,
+   * or empty) — absent report = wholesale, true by construction.
+   */
+  readonly recalledMemoriesReport: RecalledMemoriesReport | undefined;
 }
 
 export interface SetupDependencies {
@@ -590,7 +599,27 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
     }
     timing.mark("inject_attachments");
 
-    // Step 8: Build enhanced system prompt
+    // Step 8: Build enhanced system prompt.
+    //
+    // Recalled memories go through the semantic retriever (DD-008), not the
+    // raw snapshot read: above the activation threshold it selects the
+    // top-k facts for THIS turn's message (one batched embeddings call);
+    // otherwise — and on any failure — it injects the full candidate set,
+    // exactly the Phase 2 behavior. A re-invocation of this execution
+    // (approval resume) replays the outcome recorded on the execution's
+    // status instead of re-selecting, so the prompt never shifts
+    // mid-execution. The report returned here is stamped onto the turn's
+    // status by the activity (index.ts) — setup has no status object yet.
+    const memorySelection = await selectRecalledFacts(
+      execution.spec!.recalledMemories,
+      execution.spec!.message,
+      {
+        proxyEndpoint: config.proxyEndpoint,
+        stigmerToken: config.stigmerToken,
+        executionId,
+        priorReport: execution.status?.recalledMemoriesReport,
+      },
+    );
     const systemPrompt = buildEnhancedSystemPrompt({
       instructions,
       provisionResults,
@@ -614,9 +643,7 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       declaredPreferences: readDeclaredPreferences(
         execution.spec!.declaredPreferences,
       ),
-      recalledMemories: readRecalledMemories(
-        execution.spec!.recalledMemories,
-      ),
+      recalledMemories: memorySelection.content,
     });
 
     // Step 9: Construct the LLM model. Resolution to the provider API id
@@ -964,6 +991,7 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       casObserver,
       captureMode,
       gitWorkspace,
+      recalledMemoriesReport: memorySelection.report,
     };
   } catch (err) {
     if (mcpConnection) {

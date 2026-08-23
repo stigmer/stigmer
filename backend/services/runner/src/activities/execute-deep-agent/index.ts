@@ -180,6 +180,16 @@ export function createDeepAgentActivities(config: Config) {
           ? seedStatusFromExecution(setup.execution)
           : create(AgentExecutionStatusSchema, {});
 
+        // The semantic retriever's injection outcome (DD-008 D5), computed at
+        // prompt build in setup Step 8. Stamped here — before the first
+        // persist — because setup predates this status object; the server's
+        // presence-guarded merge preserves it across report-less writes. On a
+        // re-invocation the seeded status already carries the (replayed)
+        // report, so this stamp is idempotent by construction.
+        if (setup.recalledMemoriesReport !== undefined) {
+          initialStatus.recalledMemoriesReport = setup.recalledMemoriesReport;
+        }
+
         const statusBuilder = new StatusBuilder(executionId, initialStatus);
 
         statusBuilder.setApprovalProvider({

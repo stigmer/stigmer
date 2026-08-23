@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -54,6 +55,12 @@ type MockLLMProxyServer struct {
 	cursor   int
 	requests []map[string]any
 	registry []map[string]any
+	// Embeddings requests are recorded separately from the sequential chat
+	// entries: the runner's memory retriever (DD-008) makes at most one
+	// batched embeddings call per execution, and tests assert on call count
+	// and inputs rather than scripting responses — the mock computes
+	// deterministic vectors (see handleEmbeddings).
+	embeddingsRequests []map[string]any
 }
 
 // NewMockLLMProxyServer creates a mock server from a fixture file.
@@ -101,6 +108,14 @@ func (m *MockLLMProxyServer) handleRequest(w http.ResponseWriter, r *http.Reques
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(map[string]any{"models": reg})
+		return
+	}
+
+	// Embeddings are served by computation, not recorded entries — see
+	// handleEmbeddings. Checked before the sequential LLM handling so an
+	// embeddings call can never consume a scripted chat entry.
+	if pathContains(path, "/embeddings") {
+		m.handleEmbeddings(w, r)
 		return
 	}
 
@@ -422,6 +437,76 @@ func intVal(m map[string]any, key string) int {
 	default:
 		return 0
 	}
+}
+
+// handleEmbeddings answers POST .../embeddings with deterministic 2D unit
+// vectors: input 0 (the retriever sends the query first) embeds to [1, 0],
+// and each later input's angle grows with its position — so cosine
+// similarity to the query strictly DECREASES with input position. Under the
+// retriever's contract (facts sent in snapshot order) top-k selection is
+// therefore exactly the first k facts of the snapshot, which tests assert
+// against the report's injected_memory_ids.
+func (m *MockLLMProxyServer) handleEmbeddings(w http.ResponseWriter, r *http.Request) {
+	bodyBytes, _ := io.ReadAll(r.Body)
+	r.Body.Close()
+
+	var reqBody map[string]any
+	if len(bodyBytes) > 0 {
+		_ = json.Unmarshal(bodyBytes, &reqBody)
+	}
+
+	m.mu.Lock()
+	if reqBody != nil {
+		m.embeddingsRequests = append(m.embeddingsRequests, reqBody)
+	}
+	m.mu.Unlock()
+
+	inputs := toAnySlice(reqBody["input"])
+	n := len(inputs)
+
+	data := make([]map[string]any, 0, n)
+	totalChars := 0
+	for i := 0; i < n; i++ {
+		if s, ok := inputs[i].(string); ok {
+			totalChars += len(s)
+		}
+		angle := 0.0
+		if n > 1 {
+			angle = (float64(i) / float64(n)) * (math.Pi / 2)
+		}
+		data = append(data, map[string]any{
+			"object":    "embedding",
+			"index":     i,
+			"embedding": []float64{math.Cos(angle), math.Sin(angle)},
+		})
+	}
+
+	// The OpenAI embeddings response shape: JSON (never SSE), usage carries
+	// prompt_tokens/total_tokens only. The rough chars/4 token estimate keeps
+	// metering-shaped consumers honest without a tokenizer.
+	promptTokens := totalChars / 4
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]any{
+		"object": "list",
+		"model":  reqBody["model"],
+		"data":   data,
+		"usage": map[string]any{
+			"prompt_tokens": promptTokens,
+			"total_tokens":  promptTokens,
+		},
+	})
+}
+
+// EmbeddingsRequests returns a copy of every captured embeddings request
+// body, in order. Tests assert call COUNT (the threshold gate: at or below
+// k the retriever must make no call at all) and the batched input shape.
+func (m *MockLLMProxyServer) EmbeddingsRequests() []map[string]any {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	out := make([]map[string]any, len(m.embeddingsRequests))
+	copy(out, m.embeddingsRequests)
+	return out
 }
 
 // URL returns the base URL of the mock server.

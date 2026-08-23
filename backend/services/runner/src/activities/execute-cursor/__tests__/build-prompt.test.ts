@@ -12,7 +12,7 @@ import { create } from "@bufbuild/protobuf";
 import { ApprovalAction, InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 
-import { appendStructuredOutputDirective, buildPrompt, isHitlReinvocation, primarySendCarriesImages } from "../index.js";
+import { appendStructuredOutputDirective, buildPrompt, isHitlReinvocation, primarySendCarriesImages, promptCarriesStandingContext } from "../index.js";
 import type { BuildPromptInput } from "../index.js";
 import { buildReinvocationPrompt, formatInteractionModePrefix, formatImplementPlanSection, formatToolApprovalProtocol, buildToolApprovalRuleFile } from "../prompt-builder.js";
 import { PLAN_MODE_DIRECTIVE } from "../../../shared/plan-mode-prompt.js";
@@ -328,6 +328,45 @@ describe("buildPrompt", () => {
     expect(prompt).toContain("<recalled_memories>");
     expect(prompt).toContain("- Prefers OpenTofu.");
     expect(prompt).toContain("APPROVED");
+  });
+
+  it("agrees with promptCarriesStandingContext on every resolution shape — the memory-selection gate can never drift from the routing (DD-008)", () => {
+    // The activity gates the (potentially embedding-backed) memory
+    // selection on this predicate; buildPrompt routes on the same one.
+    // Pin their agreement across the full reason × HITL matrix: memories
+    // reach the prompt exactly when the predicate says the prompt carries
+    // standing context.
+    const reasons: AgentResolutionReason[] = [
+      "created_first_execution",
+      "created_after_resume_failure",
+      "resumed_successfully",
+    ];
+    const hitlDecisions = new Map<string, ApprovalAction>([
+      ["tool-call-1", ApprovalAction.APPROVE],
+    ]);
+    const hitlApprovals = [
+      create(PendingApprovalSchema, {
+        toolCallId: "tool-call-1",
+        toolName: "Write",
+        message: "Write file: gated.txt",
+      }),
+    ];
+
+    for (const reason of reasons) {
+      for (const hitl of [false, true]) {
+        const prompt = buildPrompt(
+          input({
+            resolution: resolution("local", reason),
+            approvalDecisions: hitl ? hitlDecisions : undefined,
+            pendingApprovals: hitl ? hitlApprovals : [],
+            recalledMemories: { facts: ["Prefers OpenTofu."] },
+          }),
+        );
+        expect(prompt.includes("<recalled_memories>")).toBe(
+          promptCarriesStandingContext(reason),
+        );
+      }
+    }
   });
 
   it("uses the reinvocation prompt for a HITL reinvocation (human-meaningful, no opaque ids)", () => {
