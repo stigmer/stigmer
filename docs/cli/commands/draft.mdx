@@ -47,6 +47,11 @@ Each draft command:
 
 The generated files follow Stigmer's best practices for the resource type.
 
+Draft sessions always run on the native harness, even when your account declares
+a cursor default — the creator agents are built for the native engine. Pass
+`--harness cursor` explicitly if you want a draft to run on the Cursor engine
+anyway.
+
 ### Supported resource types
 
 | Subcommand         | Creates                     | System agent       |
@@ -96,6 +101,7 @@ stigmer draft agent [flags]
 | `--detach`          | `bool`   |         | start execution and return immediately without streaming                                                                                                |
 | `--env`             | `string` |         | runtime env var KEY=VALUE (repeatable)                                                                                                                  |
 | `--env-file`        | `string` |         | load env from file (repeatable, later override earlier)                                                                                                 |
+| `--harness`         | `string` |         | execution harness for the new session: "native" (default) or "cursor"                                                                                   |
 | `--json`            | `bool`   |         | stream events as newline-delimited JSON                                                                                                                 |
 | `--message`, `-m`   | `string` |         | initial message/prompt for execution                                                                                                                    |
 | `--mode`            | `string` |         | interaction mode: "agent" (default) or "plan" (read-only)                                                                                               |
@@ -126,6 +132,7 @@ stigmer draft mcp-server [flags]
 | `--detach`          | `bool`   |         | start execution and return immediately without streaming                                                                                                |
 | `--env`             | `string` |         | runtime env var KEY=VALUE (repeatable)                                                                                                                  |
 | `--env-file`        | `string` |         | load env from file (repeatable, later override earlier)                                                                                                 |
+| `--harness`         | `string` |         | execution harness for the new session: "native" (default) or "cursor"                                                                                   |
 | `--json`            | `bool`   |         | stream events as newline-delimited JSON                                                                                                                 |
 | `--message`, `-m`   | `string` |         | initial message/prompt for execution                                                                                                                    |
 | `--mode`            | `string` |         | interaction mode: "agent" (default) or "plan" (read-only)                                                                                               |
@@ -156,6 +163,7 @@ stigmer draft skill [flags]
 | `--detach`          | `bool`   |         | start execution and return immediately without streaming                                                                                                |
 | `--env`             | `string` |         | runtime env var KEY=VALUE (repeatable)                                                                                                                  |
 | `--env-file`        | `string` |         | load env from file (repeatable, later override earlier)                                                                                                 |
+| `--harness`         | `string` |         | execution harness for the new session: "native" (default) or "cursor"                                                                                   |
 | `--json`            | `bool`   |         | stream events as newline-delimited JSON                                                                                                                 |
 | `--message`, `-m`   | `string` |         | initial message/prompt for execution                                                                                                                    |
 | `--mode`            | `string` |         | interaction mode: "agent" (default) or "plan" (read-only)                                                                                               |

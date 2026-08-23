@@ -36,6 +36,11 @@ Each draft command:
 
 The generated files follow Stigmer's best practices for the resource type.
 
+Draft sessions always run on the native harness, even when your account
+declares a cursor default — the creator agents are built for the native
+engine. Pass `--harness cursor` explicitly if you want a draft to run on
+the Cursor engine anyway.
+
 ### Supported resource types
 
 | Subcommand | Creates | System agent |

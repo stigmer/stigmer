@@ -11,7 +11,7 @@
 
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import { shouldColorize, styler } from "../../output/style.js";
-import type { RunMode } from "./prepare.js";
+import type { HarnessFlag, RunMode } from "./prepare.js";
 
 export interface SessionHeaderInfo {
   readonly agentName: string;
@@ -20,6 +20,14 @@ export interface SessionHeaderInfo {
   readonly subject?: string;
   readonly model: string;
   readonly mode: RunMode;
+  /**
+   * Resolved harness for the session. Surfaced only when it is "cursor":
+   * a harness switch changes the toolset, conversation-state model, and
+   * billing tier, and it may come from the account preference rather than
+   * a flag — a cursor session must never start silently (the CLI
+   * counterpart of the web composer's harness selector).
+   */
+  readonly harness?: HarnessFlag;
   readonly workspaces: readonly string[];
 }
 
@@ -39,6 +47,8 @@ export function renderSessionHeader(out: { write(chunk: string): unknown; isTTY?
   if (info.sessionId !== "") lines.push(row(s, "Session", info.sessionId));
   if ((info.subject ?? "") !== "") lines.push(row(s, "Subject", info.subject ?? ""));
   if (info.model !== "") lines.push(row(s, "Model", info.model));
+  // Only "cursor" is surfaced; native/"" is the default and stays implicit.
+  if (info.harness === "cursor") lines.push(row(s, "Harness", "Cursor"));
   // Only "plan" is surfaced; "agent"/"" is the default and stays implicit.
   if (info.mode === "plan") lines.push(row(s, "Mode", "Plan (read-only)"));
   if (info.workspaces.length > 0) {

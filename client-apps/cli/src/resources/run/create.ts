@@ -18,7 +18,8 @@ import {
   ExecutionConfigSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import type { ExecutionValue } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
-import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
+import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import { type SessionSpec, SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import {
   type WorkflowExecution,
@@ -29,7 +30,7 @@ import { WorkflowExecutionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/
 import { ExecutionValueSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import type { RuntimeEnv } from "./env.js";
-import type { RunMode, ServiceTierFlag, ThinkingFlag } from "./prepare.js";
+import type { HarnessFlag, RunMode, ServiceTierFlag, ThinkingFlag } from "./prepare.js";
 
 const API_VERSION = "agentic.stigmer.ai/v1";
 
@@ -60,6 +61,7 @@ export interface CreateAgentExecutionInput {
   readonly serviceTier: ServiceTierFlag;
   readonly thinking: ThinkingFlag;
   readonly autoApproveAll: boolean;
+  readonly harness: HarnessFlag;
 }
 
 /** Create an agent execution. Mirrors Go's createAgentExecution. */
@@ -81,10 +83,7 @@ export async function createAgentExecution(
       agentId: input.agentId ?? "",
       // Subject is left empty: the server defaults its sentinel and the async
       // title activity replaces it, same as any auto-created session.
-      sessionSpec:
-        input.workspaceEntries.length > 0
-          ? create(SessionSpecSchema, { workspaceEntries: [...input.workspaceEntries] })
-          : undefined,
+      sessionSpec: buildSessionSpec(input.workspaceEntries, input.harness),
       executionConfig: buildExecutionConfig(input.model, input.mode, input.serviceTier, input.thinking),
     }),
   });
@@ -119,6 +118,26 @@ export async function createWorkflowExecution(
     }),
   });
   return controller(WorkflowExecutionCommandController).create(execution);
+}
+
+// Build the embedded session spec for the one-call bootstrap
+// (stigmer/stigmer#249), or undefined when there is nothing to carry — the
+// pre-existing wire shape for a plain run must stay byte-identical. A resolved
+// harness is stamped explicitly, including "native": the value may be a
+// deliberate per-run escape from the account's default_harness preference, so
+// it must survive any future change to the server-side default. Empty means
+// "no opinion" and stays off the wire (server defaults to native). The server
+// clones this spec onto the auto-created session and then clears it from the
+// persisted execution — the Session resource stays the single source of truth.
+function buildSessionSpec(
+  workspaceEntries: readonly WorkspaceEntry[],
+  harness: HarnessFlag,
+): SessionSpec | undefined {
+  if (workspaceEntries.length === 0 && harness === "") return undefined;
+  const spec = create(SessionSpecSchema, { workspaceEntries: [...workspaceEntries] });
+  if (harness === "cursor") spec.harness = Harness.CURSOR;
+  else if (harness === "native") spec.harness = Harness.NATIVE;
+  return spec;
 }
 
 // Build ExecutionConfig, or undefined when no flag is set so the backend

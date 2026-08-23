@@ -45,6 +45,7 @@ export async function executeResolvedAgent(input: ResolvedAgentExecInput): Promi
     serviceTier: prepared.serviceTier,
     thinking: prepared.thinking,
     autoApproveAll: prepared.autoApproveAll,
+    harness: prepared.harness,
   });
 
   // The backend owns the canonical session id: it creates the session and
@@ -56,6 +57,7 @@ export async function executeResolvedAgent(input: ResolvedAgentExecInput): Promi
     sessionId,
     model: prepared.model,
     mode: prepared.mode,
+    harness: prepared.harness,
     workspaces: workspaceNames(prepared.workspaceEntries),
   };
 

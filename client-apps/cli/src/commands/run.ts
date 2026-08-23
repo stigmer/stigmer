@@ -173,6 +173,9 @@ async function runResolvedAgent(
 
   const prepared = await prepareAgentExec(toAgentExecFlags(options), client.stigmer, org, stderrProgress(), {
     cloudBackend: isCloudMode(client.config),
+    // run opts into the account default_harness fill; draft deliberately
+    // does not (see the option's doc comment for the D5 rationale).
+    applyAccountHarnessDefault: true,
   });
   await executeResolvedAgent({
     agent,
