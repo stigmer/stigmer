@@ -33,7 +33,10 @@ import { createServer as createHttp2Server } from "node:http2";
 import { connect as netConnect, type Server, type Socket } from "node:net";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { createProtocolDemuxServer, HTTP2_CONNECTION_PREFACE } from "../demux.js";
+import {
+  createProtocolDemuxServer,
+  HTTP2_CONNECTION_PREFACE,
+} from "../demux.js";
 
 let demux: Server;
 let baseUrl: string;
@@ -86,7 +89,9 @@ afterAll(async () => {
   await closed;
 });
 
-async function checkHealth(transport: Transport): Promise<HealthCheckResponse_ServingStatus> {
+async function checkHealth(
+  transport: Transport,
+): Promise<HealthCheckResponse_ServingStatus> {
   const client = createClient(Health, transport);
   const response = await client.check({});
   return response.status;
@@ -157,7 +162,9 @@ describe("SP-A: socket shapes that must not wedge the port", () => {
     await new Promise((resolve) => setTimeout(resolve, 50));
     socket.write(HTTP2_CONNECTION_PREFACE.subarray(10));
     // Client SETTINGS (empty) — required before other frames — then PING.
-    socket.write(Buffer.from([0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00]));
+    socket.write(
+      Buffer.from([0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00]),
+    );
     const pingPayload = Buffer.from("spike-a!", "latin1");
     socket.write(
       Buffer.concat([
@@ -198,6 +205,9 @@ describe("SP-A: socket shapes that must not wedge the port", () => {
     });
     socket.destroy();
 
-    expect(sawPingAck, "h2 session accepted the replayed preface and ACKed the ping").toBe(true);
+    expect(
+      sawPingAck,
+      "h2 session accepted the replayed preface and ACKed the ping",
+    ).toBe(true);
   });
 });

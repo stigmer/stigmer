@@ -74,7 +74,10 @@ export function composeServer(options: ComposeOptions): ComposedServer {
       // must be the LAST observable effect (serverGate contract).
       healthState.setOverall(ServingStatus.SERVING);
       registryLanes.start();
-      const port = await server.listen(options.portOverride ?? config.grpcPort, options.host);
+      const port = await server.listen(
+        options.portOverride ?? config.grpcPort,
+        options.host,
+      );
       logger.info("stigmer-server-ts listening", { port });
       return port;
     },

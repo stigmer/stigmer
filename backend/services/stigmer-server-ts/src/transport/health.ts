@@ -55,12 +55,18 @@ export class HealthState {
 }
 
 /** Registers the health service backed by the given state. */
-export function registerHealthService(router: ConnectRouter, state: HealthState): void {
+export function registerHealthService(
+  router: ConnectRouter,
+  state: HealthState,
+): void {
   router.service(Health, {
     check: (request) => {
       const status = state.status(request.service);
       if (status === undefined) {
-        throw new ConnectError(`unknown service ${request.service}`, Code.NotFound);
+        throw new ConnectError(
+          `unknown service ${request.service}`,
+          Code.NotFound,
+        );
       }
       return { status };
     },
@@ -78,7 +84,8 @@ export function registerHealthService(router: ConnectRouter, state: HealthState)
       // Immediate current status (SERVICE_UNKNOWN for unset — grpc-go keeps
       // the stream OPEN in that case rather than failing, so a client can
       // watch a service that registers later).
-      let latest = state.status(request.service) ?? ServingStatus.SERVICE_UNKNOWN;
+      let latest =
+        state.status(request.service) ?? ServingStatus.SERVICE_UNKNOWN;
       yield { status: latest };
 
       // Stream every change until the client disconnects. The queue-plus-
@@ -91,13 +98,18 @@ export function registerHealthService(router: ConnectRouter, state: HealthState)
         notify?.();
       });
       const abort = new Promise<void>((resolve) => {
-        context.signal.addEventListener("abort", () => resolve(), { once: true });
+        context.signal.addEventListener("abort", () => resolve(), {
+          once: true,
+        });
       });
 
       try {
         while (!context.signal.aborted) {
           if (pending.length === 0) {
-            await Promise.race([abort, new Promise<void>((resolve) => (notify = resolve))]);
+            await Promise.race([
+              abort,
+              new Promise<void>((resolve) => (notify = resolve)),
+            ]);
             notify = undefined;
             continue;
           }

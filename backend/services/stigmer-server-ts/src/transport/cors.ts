@@ -50,7 +50,10 @@ export function handleRegistryPreflight(
   }
   applyRegistryCorsHeaders(response);
   response.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
-  response.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
+  response.setHeader(
+    "Access-Control-Allow-Headers",
+    "Authorization, Content-Type",
+  );
   response.statusCode = 204;
   response.end();
   return true;
@@ -68,7 +71,10 @@ export function isRpcPreflight(request: LaneRequest): boolean {
  * Answers an RPC-lane preflight in rs/cors v1.7 shape: 200, Origin echoed,
  * requested method and headers echoed, credentials allowed, Max-Age 600.
  */
-export function handleRpcPreflight(request: LaneRequest, response: LaneResponse): void {
+export function handleRpcPreflight(
+  request: LaneRequest,
+  response: LaneResponse,
+): void {
   const origin = request.headers["origin"];
   response.setHeader("Vary", [
     "Origin",
@@ -80,7 +86,10 @@ export function handleRpcPreflight(request: LaneRequest, response: LaneResponse)
     response.setHeader("Access-Control-Allow-Credentials", "true");
     const requestedMethod = request.headers["access-control-request-method"];
     if (typeof requestedMethod === "string") {
-      response.setHeader("Access-Control-Allow-Methods", requestedMethod.toUpperCase());
+      response.setHeader(
+        "Access-Control-Allow-Methods",
+        requestedMethod.toUpperCase(),
+      );
     }
     const requestedHeaders = request.headers["access-control-request-headers"];
     if (typeof requestedHeaders === "string" && requestedHeaders !== "") {
@@ -97,7 +106,10 @@ export function handleRpcPreflight(request: LaneRequest, response: LaneResponse)
  * response when the request is cross-origin: Origin echoed + credentials,
  * as rs/cors handleActualRequest does for the Go wrapper.
  */
-export function applyRpcCorsHeaders(request: LaneRequest, response: LaneResponse): void {
+export function applyRpcCorsHeaders(
+  request: LaneRequest,
+  response: LaneResponse,
+): void {
   response.setHeader("Vary", "Origin");
   const origin = request.headers["origin"];
   if (typeof origin === "string") {

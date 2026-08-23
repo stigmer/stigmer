@@ -40,21 +40,26 @@ describe("loadConfig", () => {
     ["not-a-number", DEFAULT_GRPC_PORT],
     ["7234x", DEFAULT_GRPC_PORT],
     ["", DEFAULT_GRPC_PORT],
-  ])("falls back on malformed GRPC_PORT %j exactly as Go's getEnvInt", (raw, expected) => {
-    expect(loadConfig({ GRPC_PORT: raw }).grpcPort).toBe(expected);
-  });
+  ])(
+    "falls back on malformed GRPC_PORT %j exactly as Go's getEnvInt",
+    (raw, expected) => {
+      expect(loadConfig({ GRPC_PORT: raw }).grpcPort).toBe(expected);
+    },
+  );
 
   it("treats empty-string env values as absent (Go's getEnvString)", () => {
     expect(loadConfig({ LOG_LEVEL: "" }).logLevel).toBe("info");
   });
 
   it("disables the model-registry refresh only for the literal 'off'", () => {
-    expect(loadConfig({ STIGMER_MODEL_REGISTRY_REFRESH: "off" }).modelRegistryRefreshEnabled).toBe(
-      false,
-    );
-    expect(loadConfig({ STIGMER_MODEL_REGISTRY_REFRESH: "false" }).modelRegistryRefreshEnabled).toBe(
-      true,
-    );
+    expect(
+      loadConfig({ STIGMER_MODEL_REGISTRY_REFRESH: "off" })
+        .modelRegistryRefreshEnabled,
+    ).toBe(false);
+    expect(
+      loadConfig({ STIGMER_MODEL_REGISTRY_REFRESH: "false" })
+        .modelRegistryRefreshEnabled,
+    ).toBe(true);
     expect(loadConfig({}).modelRegistryRefreshEnabled).toBe(true);
   });
 });

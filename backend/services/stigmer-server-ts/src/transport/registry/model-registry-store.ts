@@ -52,7 +52,9 @@ export class ModelRegistryStore {
     // A broken bundled snapshot is a build defect, not a runtime condition:
     // fail loud at construction rather than serving an empty registry.
     if (!passesSanityGate(options.bundledDocument)) {
-      throw new Error("bundled model-registry snapshot is invalid or carries no models");
+      throw new Error(
+        "bundled model-registry snapshot is invalid or carries no models",
+      );
     }
     this.currentDocument = options.bundledDocument;
     this.options = options;
@@ -103,11 +105,20 @@ export class ModelRegistryStore {
       this.currentDocument = body;
       this.failureLogged = false;
     } catch (error) {
-      const fields = { url, error: error instanceof Error ? error.message : String(error) };
+      const fields = {
+        url,
+        error: error instanceof Error ? error.message : String(error),
+      };
       if (this.failureLogged) {
-        this.options.logger.debug("model-registry refresh failed; serving current document", fields);
+        this.options.logger.debug(
+          "model-registry refresh failed; serving current document",
+          fields,
+        );
       } else {
-        this.options.logger.warn("model-registry refresh failed; serving current document", fields);
+        this.options.logger.warn(
+          "model-registry refresh failed; serving current document",
+          fields,
+        );
         this.failureLogged = true;
       }
     }

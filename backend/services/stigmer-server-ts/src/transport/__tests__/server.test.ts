@@ -23,7 +23,11 @@ import { createLogger } from "../../boot/logger.js";
 import { HealthState, registerHealthService } from "../health.js";
 import { createUnifiedPortServer, type UnifiedPortServer } from "../server.js";
 
-const silentLogger = createLogger({ level: "error", pretty: false, write: () => {} });
+const silentLogger = createLogger({
+  level: "error",
+  pretty: false,
+  write: () => {},
+});
 
 let server: UnifiedPortServer;
 let baseUrl: string;
@@ -66,7 +70,9 @@ describe("lane priority", () => {
   });
 
   it("answers 404 for the skill-transfer prefix while the seam is empty", async () => {
-    const response = await fetch(`${baseUrl}/v1/skill-artifacts/some-key`, { method: "GET" });
+    const response = await fetch(`${baseUrl}/v1/skill-artifacts/some-key`, {
+      method: "GET",
+    });
     expect(response.status).toBe(404);
   });
 
@@ -88,10 +94,16 @@ describe("RPC-lane CORS (rs/cors v1.7 shape, allow-all)", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(response.headers.get("access-control-allow-origin")).toBe("http://localhost:3000");
-    expect(response.headers.get("access-control-allow-credentials")).toBe("true");
+    expect(response.headers.get("access-control-allow-origin")).toBe(
+      "http://localhost:3000",
+    );
+    expect(response.headers.get("access-control-allow-credentials")).toBe(
+      "true",
+    );
     expect(response.headers.get("access-control-allow-methods")).toBe("POST");
-    expect(response.headers.get("access-control-allow-headers")).toBe("content-type,x-grpc-web");
+    expect(response.headers.get("access-control-allow-headers")).toBe(
+      "content-type,x-grpc-web",
+    );
     expect(response.headers.get("access-control-max-age")).toBe("600");
   });
 
@@ -106,8 +118,12 @@ describe("RPC-lane CORS (rs/cors v1.7 shape, allow-all)", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(response.headers.get("access-control-allow-origin")).toBe("http://localhost:3000");
-    expect(response.headers.get("access-control-allow-credentials")).toBe("true");
+    expect(response.headers.get("access-control-allow-origin")).toBe(
+      "http://localhost:3000",
+    );
+    expect(response.headers.get("access-control-allow-credentials")).toBe(
+      "true",
+    );
   });
 });
 

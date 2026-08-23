@@ -13,7 +13,10 @@ import { composeServer } from "./boot/compose.js";
 import { createLogger } from "./boot/logger.js";
 
 const config = loadConfig();
-const logger = createLogger({ level: config.logLevel, pretty: config.env === "local" });
+const logger = createLogger({
+  level: config.logLevel,
+  pretty: config.env === "local",
+});
 const server = composeServer({ config, logger });
 
 let shuttingDown = false;
@@ -35,6 +38,8 @@ process.on("SIGTERM", () => shutdown("SIGTERM"));
 process.on("SIGINT", () => shutdown("SIGINT"));
 
 server.start().catch((error: unknown) => {
-  logger.error("boot failed", { error: error instanceof Error ? error.message : String(error) });
+  logger.error("boot failed", {
+    error: error instanceof Error ? error.message : String(error),
+  });
   process.exit(1);
 });

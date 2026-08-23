@@ -11,4 +11,7 @@ import type { Http2ServerRequest, Http2ServerResponse } from "node:http2";
 export type LaneRequest = IncomingMessage | Http2ServerRequest;
 export type LaneResponse = ServerResponse | Http2ServerResponse;
 
-export type LaneHandler = (request: LaneRequest, response: LaneResponse) => void;
+export type LaneHandler = (
+  request: LaneRequest,
+  response: LaneResponse,
+) => void;

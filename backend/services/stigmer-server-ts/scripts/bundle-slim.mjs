@@ -46,7 +46,8 @@ await build({
 // The module-type marker for `node main.js`: the bundle is ESM.
 writeFileSync(
   join(outDir, "package.json"),
-  JSON.stringify({ name: "@stigmer/server-slim", type: "module" }, null, 2) + "\n",
+  JSON.stringify({ name: "@stigmer/server-slim", type: "module" }, null, 2) +
+    "\n",
 );
 
 console.log("bundle-slim: dist-slim/main.js written");

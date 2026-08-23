@@ -17,7 +17,12 @@
  * A failure here is a protocol surprise (collaboration protocol): the
  * fallback (a bufconn-equivalent in-memory HTTP pair) is an OWNER decision.
  */
-import { Code, ConnectError, createClient, createRouterTransport } from "@connectrpc/connect";
+import {
+  Code,
+  ConnectError,
+  createClient,
+  createRouterTransport,
+} from "@connectrpc/connect";
 import type { Interceptor } from "@connectrpc/connect";
 import {
   Health,
@@ -48,7 +53,14 @@ describe("SP-B: interceptors traverse createRouterTransport in-process calls", (
           watch: async function* () {},
         });
       },
-      { router: { interceptors: [recordingInterceptor("first", log), recordingInterceptor("second", log)] } },
+      {
+        router: {
+          interceptors: [
+            recordingInterceptor("first", log),
+            recordingInterceptor("second", log),
+          ],
+        },
+      },
     );
 
     const response = await createClient(Health, transport).check({});
@@ -89,6 +101,8 @@ describe("SP-B: interceptors traverse createRouterTransport in-process calls", (
 
     expect(failure).toBeInstanceOf(ConnectError);
     expect((failure as ConnectError).code).toBe(Code.InvalidArgument);
-    expect(log, "the handler never ran — the chain short-circuited").toEqual([]);
+    expect(log, "the handler never ran — the chain short-circuited").toEqual(
+      [],
+    );
   });
 });

@@ -48,7 +48,9 @@ export interface RegistryLanesOptions {
   fetchImpl?: typeof fetch;
 }
 
-export function createRegistryLanes(options: RegistryLanesOptions): RegistryLanes {
+export function createRegistryLanes(
+  options: RegistryLanesOptions,
+): RegistryLanes {
   const store = new ModelRegistryStore({
     bundledDocument: JSON.stringify(modelRegistryBundle),
     upstreamOrigin: options.modelRegistryUpstream,

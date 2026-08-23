@@ -22,11 +22,20 @@ import { loadConfig } from "../config.js";
 import { composeServer } from "../compose.js";
 import { createLogger } from "../logger.js";
 
-const silentLogger = createLogger({ level: "error", pretty: false, write: () => {} });
+const silentLogger = createLogger({
+  level: "error",
+  pretty: false,
+  write: () => {},
+});
 
 function compose() {
   const config = loadConfig({ STIGMER_MODEL_REGISTRY_REFRESH: "off" });
-  return composeServer({ config, logger: silentLogger, portOverride: 0, host: "127.0.0.1" });
+  return composeServer({
+    config,
+    logger: silentLogger,
+    portOverride: 0,
+    host: "127.0.0.1",
+  });
 }
 
 describe("composition-root boot ordering", () => {

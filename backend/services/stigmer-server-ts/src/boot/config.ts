@@ -46,11 +46,16 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     ),
     // Only the literal "off" disables the refresh — any other value keeps
     // the default-on behavior, exactly as Go tests the variable.
-    modelRegistryRefreshEnabled: env["STIGMER_MODEL_REGISTRY_REFRESH"] !== "off",
+    modelRegistryRefreshEnabled:
+      env["STIGMER_MODEL_REGISTRY_REFRESH"] !== "off",
   };
 }
 
-function envString(env: NodeJS.ProcessEnv, key: string, fallback: string): string {
+function envString(
+  env: NodeJS.ProcessEnv,
+  key: string,
+  fallback: string,
+): string {
   const value = env[key];
   return value !== undefined && value !== "" ? value : fallback;
 }
@@ -63,5 +68,7 @@ function envInt(env: NodeJS.ProcessEnv, key: string, fallback: number): number {
   const parsed = Number.parseInt(value, 10);
   // Go's strconv.Atoi rejects trailing garbage ("7234x"); Number.parseInt
   // would accept it, so the round-trip check keeps the two loaders aligned.
-  return Number.isSafeInteger(parsed) && String(parsed) === value.trim() ? parsed : fallback;
+  return Number.isSafeInteger(parsed) && String(parsed) === value.trim()
+    ? parsed
+    : fallback;
 }

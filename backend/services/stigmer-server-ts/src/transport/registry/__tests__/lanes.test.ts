@@ -19,7 +19,11 @@ import { loadConfig } from "../../../boot/config.js";
 import { composeServer, type ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
 
-const silentLogger = createLogger({ level: "error", pretty: false, write: () => {} });
+const silentLogger = createLogger({
+  level: "error",
+  pretty: false,
+  write: () => {},
+});
 
 let server: ComposedServer;
 let baseUrl: string;
@@ -28,7 +32,12 @@ beforeAll(async () => {
   // Refresh pinned off, as the conformance harness pins it — the served
   // model registry IS the embedded snapshot, deterministic offline.
   const config = loadConfig({ STIGMER_MODEL_REGISTRY_REFRESH: "off" });
-  server = composeServer({ config, logger: silentLogger, portOverride: 0, host: "127.0.0.1" });
+  server = composeServer({
+    config,
+    logger: silentLogger,
+    portOverride: 0,
+    host: "127.0.0.1",
+  });
   const port = await server.start();
   baseUrl = `http://127.0.0.1:${port}`;
 });
@@ -68,7 +77,9 @@ describe("registry proxy lanes (CW-10 contract)", () => {
 
         expect(response.status).toBe(204);
         expect(response.headers.get("access-control-allow-origin")).toBe("*");
-        expect(response.headers.get("access-control-allow-methods")).toBe("GET, OPTIONS");
+        expect(response.headers.get("access-control-allow-methods")).toBe(
+          "GET, OPTIONS",
+        );
         expect(response.headers.get("access-control-allow-headers")).toBe(
           "Authorization, Content-Type",
         );

@@ -37,7 +37,11 @@ export function createProtovalidateInterceptor(): Interceptor {
   };
 }
 
-function assertValid(validator: Validator, schema: DescMessage, message: unknown): void {
+function assertValid(
+  validator: Validator,
+  schema: DescMessage,
+  message: unknown,
+): void {
   const result = validator.validate(schema, message as Message);
   if (result.kind === "valid") {
     return;
@@ -46,7 +50,10 @@ function assertValid(validator: Validator, schema: DescMessage, message: unknown
     throw new ConnectError(result.error.message, Code.InvalidArgument);
   }
   // A rule that fails to compile/evaluate is a server defect, not bad input.
-  throw new ConnectError(`validation could not run: ${result.error.message}`, Code.Internal);
+  throw new ConnectError(
+    `validation could not run: ${result.error.message}`,
+    Code.Internal,
+  );
 }
 
 async function* validateEach<T>(

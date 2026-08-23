@@ -10,7 +10,7 @@
  * This is the only gate that executes the artifact the way the CLI daemon
  * will.
  *
- * Usage: node scripts/verify-boot.mjs <entry-relative-to-package> 
+ * Usage: node scripts/verify-boot.mjs <entry-relative-to-package>
  *        (e.g. dist/main.js or dist-slim/main.js)
  */
 import { spawn } from "node:child_process";
@@ -35,7 +35,9 @@ let stderr = "";
 let sawListening = false;
 
 const timer = setTimeout(() => {
-  console.error(`verify-boot: no "listening" log within ${BOOT_TIMEOUT_MS}ms\n${stderr}`);
+  console.error(
+    `verify-boot: no "listening" log within ${BOOT_TIMEOUT_MS}ms\n${stderr}`,
+  );
   child.kill("SIGKILL");
   process.exit(1);
 }, BOOT_TIMEOUT_MS);

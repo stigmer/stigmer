@@ -14,7 +14,12 @@
  *     errors error — and the REAL error message is logged while the wire
  *     carries whatever the handler threw.
  */
-import { Code, ConnectError, createClient, createRouterTransport } from "@connectrpc/connect";
+import {
+  Code,
+  ConnectError,
+  createClient,
+  createRouterTransport,
+} from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
@@ -34,7 +39,9 @@ const VALID_AGENT = {
   apiVersion: "agentic.stigmer.ai/v1",
   kind: "Agent",
   metadata: { name: "chain test agent" },
-  spec: { instructions: "You are a helpful test agent used by interceptor tests." },
+  spec: {
+    instructions: "You are a helpful test agent used by interceptor tests.",
+  },
 } as const;
 
 interface CapturedLine {
@@ -99,7 +106,10 @@ describe("interceptor chain over the in-process transport", () => {
     // InvalidArgument is the client's mistake: warn tier, never error.
     const logged = rpcLines(lines);
     expect(logged).toHaveLength(1);
-    expect(logged[0]).toMatchObject({ level: "warn", message: "rpc client error" });
+    expect(logged[0]).toMatchObject({
+      level: "warn",
+      message: "rpc client error",
+    });
   });
 
   it("passes a valid Agent through and injects the service's api_resource_kind", async () => {
@@ -113,11 +123,15 @@ describe("interceptor chain over the in-process transport", () => {
 
     await createClient(AgentCommandController, transport).create(VALID_AGENT);
 
-    expect(observedKind, "AgentCommandController carries option api_resource_kind = agent").toBe(
-      ApiResourceKind.agent,
-    );
+    expect(
+      observedKind,
+      "AgentCommandController carries option api_resource_kind = agent",
+    ).toBe(ApiResourceKind.agent);
     const logged = rpcLines(lines);
-    expect(logged[0]).toMatchObject({ level: "info", message: "rpc completed" });
+    expect(logged[0]).toMatchObject({
+      level: "info",
+      message: "rpc completed",
+    });
   });
 
   it("logs health-service successes at debug, not info (polled chatter)", async () => {
@@ -147,7 +161,10 @@ describe("interceptor chain over the in-process transport", () => {
 
     expect(failure?.code).toBe(Code.NotFound);
     const logged = rpcLines(lines);
-    expect(logged[0]).toMatchObject({ level: "debug", message: "rpc returned not found" });
+    expect(logged[0]).toMatchObject({
+      level: "debug",
+      message: "rpc returned not found",
+    });
     expect(String(logged[0]?.["error"])).toContain('agent "ghost" not found');
   });
 

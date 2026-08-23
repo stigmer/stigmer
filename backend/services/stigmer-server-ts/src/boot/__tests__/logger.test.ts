@@ -24,8 +24,14 @@ describe("createLogger", () => {
     logger.error("e");
 
     expect(lines).toHaveLength(2);
-    expect(JSON.parse(lines[0]!)).toMatchObject({ level: "warn", message: "w" });
-    expect(JSON.parse(lines[1]!)).toMatchObject({ level: "error", message: "e" });
+    expect(JSON.parse(lines[0]!)).toMatchObject({
+      level: "warn",
+      message: "w",
+    });
+    expect(JSON.parse(lines[1]!)).toMatchObject({
+      level: "error",
+      message: "e",
+    });
   });
 
   it("emits NDJSON with structured fields merged at the top level", () => {

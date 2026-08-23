@@ -39,7 +39,11 @@ import {
   SKILL_ARTIFACTS_PATH_PREFIX,
   TASK_KIND_REGISTRY_PATH,
 } from "./constants.js";
-import { applyRpcCorsHeaders, handleRpcPreflight, isRpcPreflight } from "./cors.js";
+import {
+  applyRpcCorsHeaders,
+  handleRpcPreflight,
+  isRpcPreflight,
+} from "./cors.js";
 import { createProtocolDemuxServer } from "./demux.js";
 import type { LaneHandler, LaneRequest, LaneResponse } from "./lanes.js";
 
@@ -70,7 +74,9 @@ export interface UnifiedPortServer {
   shutdown(): Promise<void>;
 }
 
-export function createUnifiedPortServer(options: UnifiedPortServerOptions): UnifiedPortServer {
+export function createUnifiedPortServer(
+  options: UnifiedPortServerOptions,
+): UnifiedPortServer {
   const rpcHandler = connectNodeAdapter({
     routes: options.routes,
     interceptors: options.interceptors,
@@ -89,7 +95,10 @@ export function createUnifiedPortServer(options: UnifiedPortServerOptions): Unif
       options.modelRegistryLane(request, response);
       return;
     }
-    if (options.skillTransferLane !== undefined && path.startsWith(SKILL_ARTIFACTS_PATH_PREFIX)) {
+    if (
+      options.skillTransferLane !== undefined &&
+      path.startsWith(SKILL_ARTIFACTS_PATH_PREFIX)
+    ) {
       options.skillTransferLane(request, response);
       return;
     }
@@ -149,7 +158,9 @@ export function createUnifiedPortServer(options: UnifiedPortServerOptions): Unif
       // session (in-flight streams finish, idle sessions close now) and
       // drop idle http1 keep-alives; then the drain race below only ever
       // waits on genuinely active requests.
-      const closed = new Promise<void>((resolve) => demux.close(() => resolve()));
+      const closed = new Promise<void>((resolve) =>
+        demux.close(() => resolve()),
+      );
       http1.close();
       http1.closeIdleConnections();
       http2.close();
@@ -165,9 +176,12 @@ export function createUnifiedPortServer(options: UnifiedPortServerOptions): Unif
       ]);
 
       if (!drained) {
-        options.logger.warn("shutdown drain budget exhausted; destroying remaining connections", {
-          remaining: liveSockets.size,
-        });
+        options.logger.warn(
+          "shutdown drain budget exhausted; destroying remaining connections",
+          {
+            remaining: liveSockets.size,
+          },
+        );
       }
       for (const socket of liveSockets) {
         socket.destroy();
@@ -208,4 +222,3 @@ function armKeepalivePings(session: ServerHttp2Session, logger: Logger): void {
   interval.unref();
   session.on("close", () => clearInterval(interval));
 }
-

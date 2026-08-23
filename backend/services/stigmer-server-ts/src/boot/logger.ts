@@ -43,7 +43,8 @@ export interface LoggerOptions {
 
 export function createLogger(options: LoggerOptions): Logger {
   const threshold = LEVEL_RANK[options.level as LogLevel] ?? LEVEL_RANK.info;
-  const write = options.write ?? ((line: string) => process.stderr.write(line + "\n"));
+  const write =
+    options.write ?? ((line: string) => process.stderr.write(line + "\n"));
 
   const emit = (level: LogLevel, message: string, fields?: LogFields): void => {
     if (LEVEL_RANK[level] < threshold) {

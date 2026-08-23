@@ -92,10 +92,20 @@ function routeByPreface(socket: Socket, targets: DemuxTargets): void {
     peeked.push(chunk);
     peekedLength += chunk.length;
 
-    const seen = Buffer.concat(peeked, Math.min(peekedLength, HTTP2_CONNECTION_PREFACE.length));
-    const comparable = seen.subarray(0, Math.min(seen.length, HTTP2_CONNECTION_PREFACE.length));
+    const seen = Buffer.concat(
+      peeked,
+      Math.min(peekedLength, HTTP2_CONNECTION_PREFACE.length),
+    );
+    const comparable = seen.subarray(
+      0,
+      Math.min(seen.length, HTTP2_CONNECTION_PREFACE.length),
+    );
 
-    if (!HTTP2_CONNECTION_PREFACE.subarray(0, comparable.length).equals(comparable)) {
+    if (
+      !HTTP2_CONNECTION_PREFACE.subarray(0, comparable.length).equals(
+        comparable,
+      )
+    ) {
       handoffHttp1();
       return;
     }
@@ -120,7 +130,10 @@ function routeByPreface(socket: Socket, targets: DemuxTargets): void {
   function handoffHttp2(): void {
     cleanup();
     socket.pause();
-    const replay = createReplayDuplex(socket, Buffer.concat(peeked, peekedLength));
+    const replay = createReplayDuplex(
+      socket,
+      Buffer.concat(peeked, peekedLength),
+    );
     targets.http2.emit("connection", replay);
   }
 
@@ -141,13 +154,20 @@ function createReplayDuplex(socket: Socket, head: Buffer): Duplex {
     read(): void {
       socket.resume();
     },
-    write(chunk: Buffer, encoding: BufferEncoding, callback: (error?: Error | null) => void): void {
+    write(
+      chunk: Buffer,
+      encoding: BufferEncoding,
+      callback: (error?: Error | null) => void,
+    ): void {
       socket.write(chunk, encoding, callback);
     },
     final(callback: (error?: Error | null) => void): void {
       socket.end(callback);
     },
-    destroy(error: Error | null, callback: (error?: Error | null) => void): void {
+    destroy(
+      error: Error | null,
+      callback: (error?: Error | null) => void,
+    ): void {
       socket.destroy();
       callback(error);
     },

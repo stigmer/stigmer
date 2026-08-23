@@ -7,10 +7,15 @@
 import { describe, expect, it } from "vitest";
 
 import { createLogger } from "../../../boot/logger.js";
-import { MODEL_REGISTRY_MAX_BYTES, ModelRegistryStore } from "../model-registry-store.js";
+import {
+  MODEL_REGISTRY_MAX_BYTES,
+  ModelRegistryStore,
+} from "../model-registry-store.js";
 
 const VALID_BUNDLE = JSON.stringify({ models: [{ id: "anthropic/claude" }] });
-const UPGRADED = JSON.stringify({ models: [{ id: "anthropic/claude" }, { id: "openai/gpt" }] });
+const UPGRADED = JSON.stringify({
+  models: [{ id: "anthropic/claude" }, { id: "openai/gpt" }],
+});
 
 function capturingLogger() {
   const lines: Array<{ level: string; message: string }> = [];
@@ -19,12 +24,16 @@ function capturingLogger() {
     logger: createLogger({
       level: "debug",
       pretty: false,
-      write: (line) => lines.push(JSON.parse(line) as { level: string; message: string }),
+      write: (line) =>
+        lines.push(JSON.parse(line) as { level: string; message: string }),
     }),
   };
 }
 
-function store(fetchImpl: typeof fetch, logger = capturingLogger().logger): ModelRegistryStore {
+function store(
+  fetchImpl: typeof fetch,
+  logger = capturingLogger().logger,
+): ModelRegistryStore {
   return new ModelRegistryStore({
     bundledDocument: VALID_BUNDLE,
     upstreamOrigin: "http://upstream.test",
@@ -59,13 +68,16 @@ describe("ModelRegistryStore", () => {
     ["non-JSON body", "not json at all"],
     ["empty models array", JSON.stringify({ models: [] })],
     ["missing models key", JSON.stringify({ descriptors: [] })],
-  ])("keeps the current document when the upstream serves %s", async (_case, body) => {
-    const subject = store(async () => new Response(body, { status: 200 }));
+  ])(
+    "keeps the current document when the upstream serves %s",
+    async (_case, body) => {
+      const subject = store(async () => new Response(body, { status: 200 }));
 
-    await subject.refreshOnce();
+      await subject.refreshOnce();
 
-    expect(subject.document()).toBe(VALID_BUNDLE);
-  });
+      expect(subject.document()).toBe(VALID_BUNDLE);
+    },
+  );
 
   it("keeps the current document on upstream errors and oversized bodies", async () => {
     const failing = store(async () => new Response("nope", { status: 503 }));
@@ -74,9 +86,12 @@ describe("ModelRegistryStore", () => {
 
     const oversized = store(
       async () =>
-        new Response(`{"models":[{"pad":"${"x".repeat(MODEL_REGISTRY_MAX_BYTES)}"}]}`, {
-          status: 200,
-        }),
+        new Response(
+          `{"models":[{"pad":"${"x".repeat(MODEL_REGISTRY_MAX_BYTES)}"}]}`,
+          {
+            status: 200,
+          },
+        ),
     );
     await oversized.refreshOnce();
     expect(oversized.document()).toBe(VALID_BUNDLE);
