@@ -78,6 +78,16 @@ jobs:
       - name: Build unified runner
         run: make build-runner
 
+      # Memory-enabled executions spawn `stigmer mcp-server` as a stdio child
+      # (the runner's memory capture attachment, shared/memory-attachment.ts).
+      # Every real OSS install carries the CLI by construction; give the lane
+      # the same from-source shim `make local` installs on dev machines, so
+      # those executions run instead of failing on a missing binary.
+      - name: Install stigmer CLI shim
+        run: |
+          make install-cli-shim
+          echo "$HOME/bin" >> "$GITHUB_PATH"
+
       # Typecheck the runner's tests too (the production build above excludes
       # them via tsconfig.build.json). Cheap (~5s), pure, and the only pre-merge
       # gate that keeps the runner's test types from drifting out of sync with
