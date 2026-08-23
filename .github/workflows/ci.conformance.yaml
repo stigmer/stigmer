@@ -70,3 +70,38 @@ jobs:
         env:
           CONFORMANCE_TARGET: local-go
         run: npm run test -w @stigmer/conformance
+
+  # The TS rewrite's parity gate (stigmer-cloud program 20260822.01, DD-004):
+  # the SAME suites, unchanged, against stigmer-server-ts. The roster
+  # (vitest.local-ts.config.ts) grows per domain sub-project until it equals
+  # the full local-go glob — that equality is the cutover gate.
+  conformance-local-ts:
+    name: Conformance (local-ts)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Install npm workspace dependencies
+        run: npm ci
+
+      # Both the suite and the server import the built proto stubs (dist).
+      - name: Build proto stubs
+        run: npm run build -w @stigmer/protos
+
+      # The server is standalone (own lockfile, file-linked protos); its
+      # global-setup compiles it, but the install must happen here where
+      # network access is expected.
+      - name: Install stigmer-server-ts dependencies
+        working-directory: backend/services/stigmer-server-ts
+        run: npm ci
+
+      - name: Run conformance roster (local-ts)
+        env:
+          CONFORMANCE_TARGET: local-ts
+        run: npm run test:local-ts -w @stigmer/conformance

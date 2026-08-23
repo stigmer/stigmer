@@ -456,6 +456,11 @@ test-conformance: build-ts-stubs ## Run gRPC conformance CRUD suite (local-go; b
 	@echo "=== conformance: CRUD contract (local-go) ==="
 	CONFORMANCE_TARGET=local-go npm run test -w @stigmer/conformance
 
+.PHONY: test-conformance-ts
+test-conformance-ts: build-ts-stubs ## Run the local-ts conformance roster against stigmer-server-ts (the TS rewrite's parity gate; roster grows per sub-project)
+	@echo "=== conformance: local-ts roster (stigmer-server-ts) ==="
+	CONFORMANCE_TARGET=local-ts npm run test:local-ts -w @stigmer/conformance
+
 .PHONY: test-conformance-execution
 test-conformance-execution: build-runner ## Run gRPC conformance execution suite (local-go-execution; needs the `temporal` and `stigmer` CLIs)
 	@command -v go >/dev/null 2>&1 || { echo "error: go not found — the harness builds stigmer-server from source"; exit 1; }

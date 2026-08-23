@@ -8,11 +8,13 @@ import { CloudTarget } from "./cloud";
 import { CloudExecutionTarget } from "./cloud-execution";
 import { LocalGoTarget } from "./local-go";
 import { LocalGoExecutionTarget } from "./local-go-execution";
+import { LocalTsTarget } from "./local-ts";
 import type { TargetProfile } from "./target";
 
 const TARGET_FACTORIES: Record<string, () => TargetProfile> = {
   "local-go": () => new LocalGoTarget(),
   "local-go-execution": () => new LocalGoExecutionTarget(),
+  "local-ts": () => new LocalTsTarget(),
   cloud: () => new CloudTarget(),
   "cloud-execution": () => new CloudExecutionTarget(),
 };
