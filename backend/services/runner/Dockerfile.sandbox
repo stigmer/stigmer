@@ -36,8 +36,17 @@ RUN cd apis/stubs/ts && npm install --ignore-scripts
 COPY apis/stubs/ts/ apis/stubs/ts/
 RUN cd apis/stubs/ts && npm run build
 
+# Build @stigmer/temporal-codecs (file: dependency of the runner) — the
+# shared Temporal payload-codec lib extracted from the runner. Same
+# treatment as the proto stubs: install, copy source, build dist.
+COPY backend/libs/ts/temporal-codecs/package.json backend/libs/ts/temporal-codecs/
+RUN cd backend/libs/ts/temporal-codecs && npm install --ignore-scripts
+COPY backend/libs/ts/temporal-codecs/ backend/libs/ts/temporal-codecs/
+RUN cd backend/libs/ts/temporal-codecs && npm run build
+
 # Install runner production dependencies.
-# The directory layout preserves the file:../../../apis/stubs/ts reference.
+# The directory layout preserves the file:../../../apis/stubs/ts and
+# file:../../libs/ts/temporal-codecs references.
 COPY backend/services/runner/package.json backend/services/runner/package-lock.json backend/services/runner/
 WORKDIR /build/backend/services/runner
 RUN npm ci --legacy-peer-deps
@@ -46,14 +55,17 @@ RUN npm ci --legacy-peer-deps
 COPY backend/services/runner/ .
 RUN npm run build
 
-# Strip dev dependencies and resolve the @stigmer/protos symlink into a
-# real copy so the runtime stage doesn't need the stubs directory tree.
+# Strip dev dependencies and resolve the @stigmer/protos and
+# @stigmer/temporal-codecs symlinks into real copies so the runtime stage
+# doesn't need the stubs/libs directory trees.
 RUN npm prune --omit=dev --legacy-peer-deps && \
-    if [ -L node_modules/@stigmer/protos ]; then \
-      target="$(readlink -f node_modules/@stigmer/protos)" && \
-      rm node_modules/@stigmer/protos && \
-      cp -r "$target" node_modules/@stigmer/protos; \
-    fi
+    for dep in protos temporal-codecs; do \
+      if [ -L "node_modules/@stigmer/$dep" ]; then \
+        target="$(readlink -f "node_modules/@stigmer/$dep")" && \
+        rm "node_modules/@stigmer/$dep" && \
+        cp -r "$target" "node_modules/@stigmer/$dep"; \
+      fi; \
+    done
 
 # ---------- Runtime ----------
 FROM debian:bookworm-slim
