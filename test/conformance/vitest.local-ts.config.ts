@@ -17,6 +17,9 @@
 //     agent-mcpserver-references.conformance.test.ts (split out of the
 //     agent suite by sub-project DD-001) will roster here when entry #9
 //     (McpServer CRUD) lands; until then it runs only on the Go rosters.
+//   - workflow + workflowinstance — sub-project #7 (sp.workflow-family;
+//     authoring/validation/versioning incl. the #341 head-repoint and the
+//     CW-9 updateVisibility block).
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
@@ -29,6 +32,8 @@ export default defineConfig({
       "src/suites/agentinstance.conformance.test.ts",
       "src/suites/session.conformance.test.ts",
       "src/suites/memory.conformance.test.ts",
+      "src/suites/workflow.conformance.test.ts",
+      "src/suites/workflowinstance.conformance.test.ts",
     ],
     globalSetup: ["./src/harness/global-setup-ts.ts"],
     env: {

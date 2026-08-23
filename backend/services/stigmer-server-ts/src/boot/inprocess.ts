@@ -21,10 +21,15 @@ import { create } from "@bufbuild/protobuf";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import { AgentIdSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
 import { AgentInstanceCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/command_pb";
+import { WorkflowQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/query_pb";
+import { WorkflowIdSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/io_pb";
+import { WorkflowInstanceCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/command_pb";
 
 import type { AgentInstanceApplier } from "../domain/agent/steps.js";
 import type { ParentAgentLoader } from "../domain/agentinstance/steps.js";
 import type { AgentInstanceCreator } from "../domain/session/steps.js";
+import type { WorkflowInstanceCreator } from "../domain/workflow/steps.js";
+import type { ParentWorkflowLoader } from "../domain/workflowinstance/steps.js";
 import { buildInterceptorChain } from "../pipeline/chain.js";
 import type { Logger } from "./logger.js";
 
@@ -33,6 +38,8 @@ export interface InProcessClients {
   readonly agentInstanceApplier: AgentInstanceApplier;
   readonly agentInstanceCreator: AgentInstanceCreator;
   readonly parentAgentLoader: ParentAgentLoader;
+  readonly workflowInstanceCreator: WorkflowInstanceCreator;
+  readonly parentWorkflowLoader: ParentWorkflowLoader;
 }
 
 /**
@@ -53,6 +60,11 @@ export function createInProcessClients(
     transport,
   );
   const agentQuery = createClient(AgentQueryController, transport);
+  const workflowInstanceCommand = createClient(
+    WorkflowInstanceCommandController,
+    transport,
+  );
+  const workflowQuery = createClient(WorkflowQueryController, transport);
 
   return {
     // Go's ApplyAsSystem is the Apply RPC with no extra identity attached:
@@ -72,6 +84,20 @@ export function createInProcessClients(
     parentAgentLoader: {
       get: (agentId) =>
         agentQuery.get(create(AgentIdSchema, { value: agentId })),
+    },
+    // Go's workflowinstance.Client.CreateAsSystem is the Create RPC under
+    // the process-global operator identity; workflow create's
+    // default-instance step uses CREATE (not apply) so a duplicate
+    // default-instance slug surfaces as AlreadyExists instead of silently
+    // updating — same posture as the agent edge above.
+    workflowInstanceCreator: {
+      createAsSystem: (instance) => workflowInstanceCommand.create(instance),
+    },
+    // Go's workflow.Client.Get for workflowinstance create's parent load
+    // (server.go 657: the other direction of the mutual edge).
+    parentWorkflowLoader: {
+      get: (workflowId) =>
+        workflowQuery.get(create(WorkflowIdSchema, { value: workflowId })),
     },
   };
 }
