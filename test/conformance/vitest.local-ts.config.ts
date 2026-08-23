@@ -10,6 +10,8 @@
 // Roster history:
 //   - organization + registry-proxy — sub-project #4 (storage + pipeline;
 //     registry-proxy exercises the #3 transport lanes, DD-003).
+//   - environment — sub-project #5 (encryption + runnerauth + the
+//     Environment domain; the first secret-bearing suite).
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
@@ -17,6 +19,7 @@ export default defineConfig({
     include: [
       "src/suites/organization.conformance.test.ts",
       "src/suites/registry-proxy.conformance.test.ts",
+      "src/suites/environment.conformance.test.ts",
     ],
     globalSetup: ["./src/harness/global-setup-ts.ts"],
     env: {

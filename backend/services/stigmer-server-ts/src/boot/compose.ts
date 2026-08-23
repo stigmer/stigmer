@@ -17,8 +17,11 @@
  */
 import { HealthCheckResponse_ServingStatus as ServingStatus } from "@stigmer/protos/grpc/health/v1/health_pb";
 
+import { registerEnvironmentServices } from "../domain/environment/controller.js";
 import { registerOrganizationServices } from "../domain/organization/controller.js";
+import { SecretService } from "../encryption/encryption.js";
 import { buildInterceptorChain } from "../pipeline/chain.js";
+import { RunnerAuthService } from "../runnerauth/runnerauth.js";
 import { SqliteStore } from "../store/sqlite/store.js";
 import type { Store } from "../store/interface.js";
 import { HealthState, registerHealthService } from "../transport/health.js";
@@ -31,6 +34,12 @@ export interface ComposedServer {
   healthState: HealthState;
   /** The persistence layer (exposed for tests; domain code gets it injected). */
   store: Store;
+  /**
+   * The runner-token service (exposed for its future consumers' wiring —
+   * the platform exchange RPC and the executioncontext decrypt lane land
+   * with their own sub-projects — and for boot tests).
+   */
+  runnerAuthService: RunnerAuthService;
   /** Completes wiring, flips SERVING, binds the port; returns the bound port. */
   start(): Promise<number>;
   /** NOT_SERVING first, stop background work, drain connections. */
@@ -58,6 +67,31 @@ export function composeServer(options: ComposeOptions): ComposedServer {
   // identity seam deliberately is not.
   const store: Store = SqliteStore.open(config.dbPath, logger);
 
+  // Stage: keys — the ratified fail-loud boot ASYMMETRY (D2 cross-domain
+  // invariants; Go server.go:277-293):
+  //
+  //   - Encryption key failure → WARN and continue with a keyless
+  //     pass-through service. Plaintext at rest is tolerable (the write
+  //     steps WARN per request, oss#394); refusing to boot over it is not.
+  //   - Runner-token key failure → FATAL (throw). The EC read RPCs redact
+  //     by default, so a server that cannot mint runner tokens would hand
+  //     every execution redaction markers instead of its secrets — the
+  //     exact silent-junk failure the oss#405 fail-loud doctrine forbids.
+  //     (Its consumers — the platform exchange RPC, the EC decrypt lane —
+  //     arrive with their sub-projects; the boot posture is wired now so
+  //     their wiring PRs never restructure boot.)
+  let secretService: SecretService;
+  try {
+    secretService = SecretService.fromEnv();
+  } catch (error) {
+    logger.warn(
+      "Failed to initialize encryption - secret values will be stored in plaintext",
+      { error: error instanceof Error ? error.message : String(error) },
+    );
+    secretService = SecretService.create(undefined);
+  }
+  const runnerAuthService = RunnerAuthService.fromEnv();
+
   // Stage: temporal — seam (execution cluster sub-projects).
 
   // Stage: controllers + routes.
@@ -73,6 +107,7 @@ export function composeServer(options: ComposeOptions): ComposedServer {
     routes: (router) => {
       registerHealthService(router, healthState);
       registerOrganizationServices(router, { store, logger });
+      registerEnvironmentServices(router, { store, logger, secretService });
     },
     interceptors: buildInterceptorChain(logger),
     taskKindRegistryLane: registryLanes.taskKindRegistryLane,
@@ -82,6 +117,7 @@ export function composeServer(options: ComposeOptions): ComposedServer {
   return {
     healthState,
     store,
+    runnerAuthService,
 
     async start(): Promise<number> {
       // Wiring complete → SERVING → background refresh → bind. The port
