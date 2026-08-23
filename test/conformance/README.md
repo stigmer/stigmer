@@ -9,8 +9,10 @@ implement the API:
   schedule firing suite: the first execution-class behavior asserted on BOTH
   editions, possible because schedule fires need the engine but no runner).
 
-(A TypeScript server rewrite was once a planned third target; it was
-cancelled 2026-06-14 — the Go server is retained as the OSS backend.)
+(A TypeScript OSS server is in active development as the third target: the
+`local-ts` roster grows per sub-project until it matches the `local-go`
+configuration — that roster equality is the cutover gate. See the
+stigmer-cloud program `20260822.01.oss-ts-server-and-self-hosting`.)
 
 The contract — not any one implementation — is the product. This suite is what
 keeps the implementations honest and makes agentic dual-maintenance safe:

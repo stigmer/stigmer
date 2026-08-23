@@ -46,6 +46,15 @@ export class LocalGoTarget implements TargetProfile {
     return this.conformanceClients;
   }
 
+  // The spawned server's unified port also serves the plain-HTTP lanes (the
+  // registry proxies) — expose it so those suites can drive them directly.
+  httpBaseUrl(): string {
+    if (this.server === undefined) {
+      throw new Error("LocalGoTarget.setup() must be called before httpBaseUrl()");
+    }
+    return this.server.baseUrl;
+  }
+
   async provisionTenancy(): Promise<TenancyContext> {
     // No auth and no bootstrap org: a unique slug is a fully isolated scope.
     return { org: uniqueOrg() };

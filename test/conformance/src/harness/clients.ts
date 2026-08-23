@@ -33,6 +33,10 @@ import { WorkflowExecutionCommandController } from "@stigmer/protos/ai/stigmer/a
 import { WorkflowExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/query_pb";
 import { WorkflowInstanceCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/command_pb";
 import { WorkflowInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/query_pb";
+import { OAuthAppCommandController } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/command_pb";
+import { OAuthAppQueryController } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/query_pb";
+import { GitHubService } from "@stigmer/protos/ai/stigmer/platform/github/v1/service_pb";
+import { PlatformQueryController } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
 import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
 import { ProjectCommandController } from "@stigmer/protos/ai/stigmer/tenancy/project/v1/command_pb";
@@ -70,6 +74,10 @@ export interface ConformanceClients {
   sessionQuery: Client<typeof SessionQueryController>;
   skillCommand: Client<typeof SkillCommandController>;
   skillQuery: Client<typeof SkillQueryController>;
+  platformQuery: Client<typeof PlatformQueryController>;
+  github: Client<typeof GitHubService>;
+  oauthAppCommand: Client<typeof OAuthAppCommandController>;
+  oauthAppQuery: Client<typeof OAuthAppQueryController>;
 }
 
 export interface TransportOptions {
@@ -127,5 +135,9 @@ export function makeClients(transport: Transport): ConformanceClients {
     sessionQuery: createClient(SessionQueryController, transport),
     skillCommand: createClient(SkillCommandController, transport),
     skillQuery: createClient(SkillQueryController, transport),
+    platformQuery: createClient(PlatformQueryController, transport),
+    github: createClient(GitHubService, transport),
+    oauthAppCommand: createClient(OAuthAppCommandController, transport),
+    oauthAppQuery: createClient(OAuthAppQueryController, transport),
   };
 }
