@@ -22,6 +22,7 @@ import { HealthCheckResponse_ServingStatus as ServingStatus } from "@stigmer/pro
 import { registerAgentServices } from "../domain/agent/controller.js";
 import { newConfigFromEnv } from "../domain/agentexecution/temporal/config.js";
 import { registerAgentExecutionServices } from "../domain/agentexecution/controller.js";
+import { ENGINE_DISCONNECTED } from "../domain/agentexecution/engine.js";
 import { StreamBroker } from "../domain/agentexecution/stream-broker.js";
 import { registerAgentInstanceServices } from "../domain/agentinstance/controller.js";
 import { registerEnvironmentServices } from "../domain/environment/controller.js";
@@ -201,6 +202,10 @@ export function composeServer(options: ComposeOptions): ComposedServer {
       store,
       logger,
       broker: agentExecutionStreamBroker,
+      // Permanently disconnected until #18 lands the worker infra; the
+      // provider shape lets its TemporalManager flip availability at
+      // runtime without controller changes.
+      engineState: () => ENGINE_DISCONNECTED,
     });
     registerWorkflowServices(router, {
       store,

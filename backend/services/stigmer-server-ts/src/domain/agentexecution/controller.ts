@@ -65,9 +65,13 @@ import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import type { Store } from "../../store/interface.js";
 
+import type { ExecutionEngineStateProvider } from "./engine.js";
 import { agentExecutionSearchExtractor } from "./search-extractor.js";
 import type { StreamBroker } from "./stream-broker.js";
+import { submitApproval } from "./submit-approval.js";
+import { submitFileDecision } from "./submit-file-decision.js";
 import { subscribeExecution } from "./subscribe.js";
+import { updateStatus } from "./update-status.js";
 import {
   EXECUTION_LIST_KEY,
   newApplyPhaseFilterStep,
@@ -95,6 +99,12 @@ export interface AgentExecutionControllerDeps {
    * constructor + GetStreamBroker for the Temporal activities).
    */
   readonly broker: StreamBroker;
+  /**
+   * The execution-engine seam (engine.ts): permanently disconnected until
+   * #18's TemporalManager flips it. Consumed by the engine gate, the
+   * lifecycle RPCs, and the two HITL signal steps.
+   */
+  readonly engineState: ExecutionEngineStateProvider;
 }
 
 /** Registers both agentexecution services on the router (routes stage). */
@@ -104,6 +114,9 @@ export function registerAgentExecutionServices(
 ): void {
   router.service(AgentExecutionCommandController, {
     update: (execution, ctx) => update(deps, execution, ctx),
+    updateStatus: (input) => updateStatus(deps, input),
+    submitApproval: (input) => submitApproval(deps, input),
+    submitFileDecision: (input) => submitFileDecision(deps, input),
     delete: (id, ctx) => deleteExecution(deps, id, ctx),
   });
   router.service(AgentExecutionQueryController, {

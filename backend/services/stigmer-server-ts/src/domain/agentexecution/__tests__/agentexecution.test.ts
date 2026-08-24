@@ -34,7 +34,22 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/command_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import {
+  ApprovalAction,
+  ApprovalEventType,
+  DiffCompleteness,
+  ExecutionPhase,
+  FileChangeKind,
+  FileChangeSetStatus,
+  FileDecisionAction,
+  FileDecisionOrigin,
+  FileDecisionScope,
+  FileReviewEventType,
+  MessageType,
+  ToolCallStatus,
+} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { CapturedFileChangeSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
+import { SubmitApprovalInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
 import { AgentExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/query_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
@@ -43,6 +58,13 @@ import { composeServer } from "../../../boot/compose.js";
 import type { ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
 import { executionUsageReportNotFoundMessage } from "../constants.js";
+import type {
+  ConnectedExecutionEngine,
+  ExecutionEngineState,
+} from "../engine.js";
+import { EngineWorkflowNotFoundError } from "../engine.js";
+import { aggregateDigest, fileDigest } from "../filereview/digest.js";
+import { submitApproval } from "../submit-approval.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -558,6 +580,628 @@ describe("subscribe — the first domain stream through the real transport", () 
         timeout: 2000,
       })
       .toBe(0);
+  });
+});
+
+function gatedSeed(overrides?: {
+  id?: string;
+  toolCalls?: Array<{
+    id: string;
+    name: string;
+    mcpServerSlug?: string;
+  }>;
+}): MessageInitShape<typeof AgentExecutionSchema> & {
+  metadata: { id: string };
+} {
+  counter += 1;
+  const id = overrides?.id ?? `aexec_gated_${counter}`;
+  const slug = `exec-${id.replaceAll("_", "-")}`;
+  const toolCalls = overrides?.toolCalls ?? [{ id: "tc-1", name: "Write" }];
+  return {
+    apiVersion: API_VERSION,
+    kind: KIND,
+    metadata: { id, name: slug, slug, org: ORG },
+    spec: { sessionId: `ses_${id}`, agentId: `agt_${id}`, message: "Say hello." },
+    status: {
+      phase: ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+      messages: [
+        {
+          toolCalls: toolCalls.map((tc) => ({
+            id: tc.id,
+            name: tc.name,
+            status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
+            requiresApproval: true,
+            ...(tc.mcpServerSlug !== undefined
+              ? { mcpServerSlug: tc.mcpServerSlug }
+              : {}),
+          })),
+        },
+      ],
+    },
+  };
+}
+
+describe("updateStatus over the wire (ADR 011 write path)", () => {
+  it("answers NotFound for an unknown execution and InvalidArgument without a status", async () => {
+    await expectCode(
+      () =>
+        command.updateStatus({
+          executionId: "aexec_missing",
+          status: { phase: ExecutionPhase.EXECUTION_IN_PROGRESS },
+        }),
+      Code.NotFound,
+    );
+    await expectCode(
+      () => command.updateStatus({ executionId: "aexec_missing" }),
+      Code.InvalidArgument,
+    );
+  });
+
+  it("persists the merge and broadcasts to a live subscriber in one write path", async () => {
+    const init = seedInput({ phase: ExecutionPhase.EXECUTION_IN_PROGRESS });
+    const id = await seed(init);
+
+    // A live subscriber; the snapshot arrives first.
+    const controller = new AbortController();
+    const frames: ExecutionPhase[] = [];
+    let sawFrame: (() => void) | undefined;
+    const consuming = (async () => {
+      try {
+        for await (const frame of query.subscribe(
+          { value: id },
+          { signal: controller.signal },
+        )) {
+          frames.push(
+            frame.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED,
+          );
+          sawFrame?.();
+        }
+      } catch (error) {
+        if (!(error instanceof ConnectError && error.code === Code.Canceled)) {
+          throw error;
+        }
+      }
+    })();
+    await new Promise<void>((resolve) => {
+      if (frames.length >= 1) {
+        resolve();
+        return;
+      }
+      sawFrame = () => {
+        sawFrame = undefined;
+        resolve();
+      };
+    });
+
+    // The runner's terminal persist: merged, persisted, broadcast.
+    await command.updateStatus({
+      executionId: id,
+      status: {
+        phase: ExecutionPhase.EXECUTION_COMPLETED,
+        completedAt: "2026-08-24T10:00:00Z",
+        messages: [{ content: "done" }],
+      },
+    });
+
+    const reloaded = await query.get({ value: id });
+    expect(reloaded.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(reloaded.status?.messages[0]?.content).toBe("done");
+
+    // The broadcast reached the subscriber and, being terminal, closed the
+    // stream server-side.
+    await consuming;
+    expect(frames).toEqual([
+      ExecutionPhase.EXECUTION_IN_PROGRESS,
+      ExecutionPhase.EXECUTION_COMPLETED,
+    ]);
+  });
+});
+
+describe("submitApproval over the wire (submit_approval_contract_test.go arms)", () => {
+  it("records the decision, empties the gate, and authors the event pair", async () => {
+    const init = gatedSeed();
+    const id = await seed(init);
+
+    const result = await command.submitApproval({
+      agentExecutionId: id,
+      toolCallId: "tc-1",
+      action: ApprovalAction.APPROVE,
+      comment: "go ahead",
+    });
+
+    const tc = result.status?.messages[0]?.toolCalls[0];
+    expect(tc?.approvalAction).toBe(ApprovalAction.APPROVE);
+    expect(tc?.approvalDecidedAt).not.toBe("");
+    expect(result.status?.pendingApprovals).toHaveLength(0);
+
+    // The append-only stream carries exactly one REQUESTED + one APPROVED,
+    // the decision with the user's comment.
+    const events = result.status?.approvalEventStream?.events ?? [];
+    const mine = events.filter((ev) => ev.approvalRequestId === "tc-1");
+    expect(mine.map((ev) => ev.eventType).sort()).toEqual(
+      [ApprovalEventType.REQUESTED, ApprovalEventType.APPROVED].sort(),
+    );
+    const decided = mine.find(
+      (ev) => ev.eventType === ApprovalEventType.APPROVED,
+    );
+    expect(
+      decided?.payload.case === "decided" ? decided.payload.value.comment : "",
+    ).toBe("go ahead");
+  });
+
+  it("is idempotent for a repeated identical submit and refuses a conflicting change", async () => {
+    const id = await seed(gatedSeed());
+
+    await command.submitApproval({
+      agentExecutionId: id,
+      toolCallId: "tc-1",
+      action: ApprovalAction.SKIP,
+    });
+    // Same action again: a no-op answering current state.
+    const repeat = await command.submitApproval({
+      agentExecutionId: id,
+      toolCallId: "tc-1",
+      action: ApprovalAction.SKIP,
+    });
+    expect(repeat.status?.messages[0]?.toolCalls[0]?.approvalAction).toBe(
+      ApprovalAction.SKIP,
+    );
+    // A different action on a decided call refuses.
+    await expectCode(
+      () =>
+        command.submitApproval({
+          agentExecutionId: id,
+          toolCallId: "tc-1",
+          action: ApprovalAction.REJECT,
+        }),
+      Code.FailedPrecondition,
+    );
+  });
+
+  it("refuses non-approvable phases, unknown tool calls, and unknown executions", async () => {
+    const terminal = await seed(
+      seedInput({ phase: ExecutionPhase.EXECUTION_COMPLETED }),
+    );
+    await expectCode(
+      () =>
+        command.submitApproval({
+          agentExecutionId: terminal,
+          toolCallId: "tc-1",
+          action: ApprovalAction.APPROVE,
+        }),
+      Code.FailedPrecondition,
+    );
+
+    const gated = await seed(gatedSeed());
+    await expectCode(
+      () =>
+        command.submitApproval({
+          agentExecutionId: gated,
+          toolCallId: "tc-unknown",
+          action: ApprovalAction.APPROVE,
+        }),
+      Code.InvalidArgument,
+    );
+
+    await expectCode(
+      () =>
+        command.submitApproval({
+          agentExecutionId: "aexec_missing",
+          toolCallId: "tc-1",
+          action: ApprovalAction.APPROVE,
+        }),
+      Code.NotFound,
+    );
+  });
+
+  it("APPROVE_ALL bulk-approves only the clicked tool's lease class", async () => {
+    const id = await seed(
+      gatedSeed({
+        toolCalls: [
+          { id: "tc-shell-1", name: "shell" },
+          { id: "tc-shell-2", name: "bash" },
+          { id: "tc-write", name: "Write" },
+        ],
+      }),
+    );
+
+    const result = await command.submitApproval({
+      agentExecutionId: id,
+      toolCallId: "tc-shell-1",
+      action: ApprovalAction.APPROVE_ALL,
+    });
+
+    const calls = result.status?.messages[0]?.toolCalls ?? [];
+    const byId = new Map(calls.map((tc) => [tc.id, tc]));
+    // The clicked tool carries APPROVE_ALL (the user's escalation point).
+    expect(byId.get("tc-shell-1")?.approvalAction).toBe(
+      ApprovalAction.APPROVE_ALL,
+    );
+    // The same-class co-pending call carries a plain APPROVE.
+    expect(byId.get("tc-shell-2")?.approvalAction).toBe(ApprovalAction.APPROVE);
+    // The different-class call stays gated — pending_approvals still
+    // lists it, so the gate stays open.
+    expect(byId.get("tc-write")?.approvalAction).toBe(
+      ApprovalAction.UNSPECIFIED,
+    );
+    expect(result.status?.pendingApprovals).toHaveLength(1);
+    expect(result.status?.pendingApprovals[0]?.toolCallId).toBe("tc-write");
+  });
+
+  it("the approve-all resume round-trip preserves earlier thinking and the first tool call (transcript test)", async () => {
+    counter += 1;
+    const id = `aexec_resume_${counter}`;
+    const slug = `exec-${id.replaceAll("_", "-")}`;
+    await seed({
+      apiVersion: API_VERSION,
+      kind: KIND,
+      metadata: { id, name: slug, slug, org: ORG },
+      spec: { message: "Say hello." },
+      status: {
+        phase: ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+        messages: [
+          {
+            type: MessageType.MESSAGE_THINKING,
+            content: "planning the self-DM",
+          },
+          {
+            type: MessageType.MESSAGE_AI,
+            toolCalls: [
+              {
+                id: "tc-getappstate",
+                name: "getAppState",
+                status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
+                requiresApproval: true,
+                mcpServerSlug: "open-computer-use",
+              },
+            ],
+          },
+        ],
+      },
+    });
+
+    await command.submitApproval({
+      agentExecutionId: id,
+      toolCallId: "tc-getappstate",
+      action: ApprovalAction.APPROVE_ALL,
+    });
+
+    // The durable-checkpoint resume sends a regressed transcript: leading
+    // thinking + getAppState gone, later leased tools appended.
+    await command.updateStatus({
+      executionId: id,
+      status: {
+        phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+        messages: [
+          {
+            type: MessageType.MESSAGE_AI,
+            toolCalls: [
+              { id: "tc-click", name: "click", status: ToolCallStatus.TOOL_CALL_COMPLETED },
+            ],
+          },
+          {
+            type: MessageType.MESSAGE_AI,
+            toolCalls: [
+              { id: "tc-scroll", name: "scroll", status: ToolCallStatus.TOOL_CALL_COMPLETED },
+            ],
+          },
+          { type: MessageType.MESSAGE_AI, content: "done" },
+        ],
+      },
+    });
+
+    const final = await query.get({ value: id });
+    const hasThinking = final.status?.messages.some(
+      (m) =>
+        m.type === MessageType.MESSAGE_THINKING &&
+        m.content === "planning the self-DM",
+    );
+    expect(
+      hasThinking,
+      "the leading thinking block survives the resume round-trip",
+    ).toBe(true);
+    const gated = final.status?.messages
+      .flatMap((m) => m.toolCalls)
+      .find((tc) => tc.id === "tc-getappstate");
+    expect(gated, "the first tool call survives").toBeDefined();
+    expect(
+      gated?.approvalAction,
+      "the recorded APPROVE_ALL decision survives",
+    ).toBe(ApprovalAction.APPROVE_ALL);
+  });
+
+  it("a racing heartbeat never clobbers the decision, and REQUESTED never duplicates", async () => {
+    // The designed overlap window (update_status_concurrency_test.go):
+    // both paths persist via the lock-serialized atomic updateResource.
+    for (let i = 0; i < 20; i++) {
+      const id = await seed(gatedSeed());
+      const heartbeat = command.updateStatus({
+        executionId: id,
+        status: {
+          phase: ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+          messages: [
+            {
+              toolCalls: [
+                {
+                  id: "tc-1",
+                  name: "Write",
+                  status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
+                  requiresApproval: true,
+                },
+              ],
+            },
+          ],
+        },
+      });
+      const approval = command.submitApproval({
+        agentExecutionId: id,
+        toolCallId: "tc-1",
+        action: ApprovalAction.APPROVE,
+      });
+      await Promise.all([heartbeat, approval]);
+
+      const final = await query.get({ value: id });
+      const tc = final.status?.messages
+        .flatMap((m) => m.toolCalls)
+        .find((c) => c.id === "tc-1");
+      expect(tc?.approvalAction, `iteration ${i}: decision lost`).toBe(
+        ApprovalAction.APPROVE,
+      );
+      const events = (
+        final.status?.approvalEventStream?.events ?? []
+      ).filter((ev) => ev.approvalRequestId === "tc-1");
+      expect(
+        events.filter((ev) => ev.eventType === ApprovalEventType.REQUESTED),
+        `iteration ${i}: REQUESTED duplicated`,
+      ).toHaveLength(1);
+      expect(
+        events.filter((ev) => ev.eventType === ApprovalEventType.APPROVED),
+        `iteration ${i}: decision event lost`,
+      ).toHaveLength(1);
+    }
+  });
+});
+
+describe("the engine-connected signal arms (stubbed engine, direct calls)", () => {
+  function stubDeps(engine: ConnectedExecutionEngine) {
+    return {
+      store: server.store,
+      logger: silentLogger,
+      broker: server.agentExecutionStreamBroker,
+      engineState: () =>
+        ({ connected: true, engine }) as ExecutionEngineState,
+    };
+  }
+
+  it("signals approvalGateResolved exactly once, only when the unified gate clears", async () => {
+    const id = await seed(
+      gatedSeed({
+        toolCalls: [
+          { id: "tc-shell", name: "shell" },
+          { id: "tc-write", name: "Write" },
+        ],
+      }),
+    );
+    const signalled: string[] = [];
+    const deps = stubDeps({
+      signalApprovalGateResolved: async (executionId) => {
+        signalled.push(executionId);
+      },
+    });
+
+    // First decision: a different-class call stays gated → no signal.
+    await submitApproval(deps,
+      create(SubmitApprovalInputSchema, {
+        agentExecutionId: id,
+        toolCallId: "tc-shell",
+        action: ApprovalAction.APPROVE,
+      }),
+    );
+    expect(signalled).toHaveLength(0);
+
+    // Second decision clears the gate → exactly one signal.
+    await submitApproval(deps,
+      create(SubmitApprovalInputSchema, {
+        agentExecutionId: id,
+        toolCallId: "tc-write",
+        action: ApprovalAction.REJECT,
+      }),
+    );
+    expect(signalled).toEqual([id]);
+  });
+
+  it("a vanished workflow reconciles the execution to FAILED with settled tool calls (pinned copy)", async () => {
+    const id = await seed(gatedSeed({ toolCalls: [{ id: "tc-1", name: "Write" }] }));
+    const deps = stubDeps({
+      signalApprovalGateResolved: async (executionId) => {
+        throw new EngineWorkflowNotFoundError(executionId);
+      },
+    });
+
+    const err = await expectCode(
+      () =>
+        submitApproval(deps,
+          create(SubmitApprovalInputSchema, {
+            agentExecutionId: id,
+            toolCallId: "tc-1",
+            action: ApprovalAction.APPROVE,
+          }),
+        ),
+      Code.FailedPrecondition,
+    );
+    expect(err.rawMessage).toBe(
+      `workflow not running for execution ${id} - the backing workflow has terminated unexpectedly and the execution has been marked as failed`,
+    );
+
+    const final = await query.get({ value: id });
+    expect(final.status?.phase).toBe(ExecutionPhase.EXECUTION_FAILED);
+    expect(final.status?.error).toBe(
+      "Workflow backing this execution is no longer running. Execution has been marked as failed.",
+    );
+    // The system message is appended and in-flight calls settle (#207).
+    expect(
+      final.status?.messages.at(-1)?.type,
+    ).toBe(MessageType.MESSAGE_SYSTEM);
+    const tc = final.status?.messages
+      .flatMap((m) => m.toolCalls)
+      .find((c) => c.id === "tc-1");
+    expect(tc?.status).toBe(ToolCallStatus.TOOL_CALL_INTERRUPTED);
+    // The ledger is preserved for the audit trail; the projection is empty
+    // (terminal).
+    expect(
+      (final.status?.approvalEventStream?.events ?? []).length,
+    ).toBeGreaterThan(0);
+    expect(final.status?.pendingApprovals).toHaveLength(0);
+  });
+});
+
+describe("submitFileDecision over the wire", () => {
+  function ledgerSeed(): {
+    init: MessageInitShape<typeof AgentExecutionSchema> & {
+      metadata: { id: string };
+    };
+    changeSetId: string;
+    change: ReturnType<typeof buildChange>;
+    aggregate: string;
+  } {
+    counter += 1;
+    const id = `aexec_review_${counter}`;
+    const slug = `exec-${id.replaceAll("_", "-")}`;
+    const changeSetId = `cs_${counter}`;
+    const change = buildChange();
+    const aggregate = aggregateDigest([change]);
+    return {
+      init: {
+        apiVersion: API_VERSION,
+        kind: KIND,
+        metadata: { id, name: slug, slug, org: ORG },
+        spec: { message: "Say hello." },
+        status: {
+          phase: ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+          fileReviewEventStream: {
+            executionId: id,
+            events: [
+              {
+                eventId: `${changeSetId}:${changeSetId}:BASELINE`,
+                changeSetId,
+                eventType: FileReviewEventType.BASELINE_CAPTURED,
+                actor: "runner",
+                payload: {
+                  case: "baselineCaptured",
+                  value: { turnId: "turn-1", harnessId: "harness-1" },
+                },
+              },
+              {
+                eventId: `${changeSetId}:${changeSetId}:CANDIDATE`,
+                changeSetId,
+                eventType: FileReviewEventType.CANDIDATE_CAPTURED,
+                actor: "runner",
+                payload: {
+                  case: "candidateCaptured",
+                  value: {
+                    changes: [change],
+                    aggregateDigest: aggregate,
+                    diffCompleteness: DiffCompleteness.COMPLETE,
+                  },
+                },
+              },
+            ],
+          },
+        },
+      },
+      changeSetId,
+      change,
+      aggregate,
+    };
+  }
+
+  function buildChange() {
+    const change = create(CapturedFileChangeSchema, {
+      id: "fc-1",
+      pathBefore: "src/a.ts",
+      pathAfter: "src/a.ts",
+      kind: FileChangeKind.MODIFY,
+      beforeSha256: "a".repeat(64),
+      afterSha256: "b".repeat(64),
+      diffComplete: true,
+    });
+    change.fileDigest = fileDigest(change);
+    return change;
+  }
+
+  it("records a CHANGE_SET keep, projects DECIDED, and is idempotent on resubmit", async () => {
+    const { init, changeSetId, aggregate } = ledgerSeed();
+    const id = await seed(init);
+
+    const result = await command.submitFileDecision({
+      agentExecutionId: id,
+      changeSetId,
+      scope: FileDecisionScope.CHANGE_SET,
+      action: FileDecisionAction.APPROVE,
+      expectedDigest: aggregate,
+    });
+    const cs = result.status?.fileChangeSets.find((c) => c.id === changeSetId);
+    expect(cs?.status).toBe(FileChangeSetStatus.DECIDED);
+    expect(cs?.decisions).toHaveLength(1);
+    expect(cs?.decisions[0]?.origin).toBe(FileDecisionOrigin.USER);
+
+    // Idempotent resubmit: the same deterministic event id — no error, no
+    // duplicate decision.
+    const repeat = await command.submitFileDecision({
+      agentExecutionId: id,
+      changeSetId,
+      scope: FileDecisionScope.CHANGE_SET,
+      action: FileDecisionAction.APPROVE,
+      expectedDigest: aggregate,
+    });
+    const csRepeat = repeat.status?.fileChangeSets.find(
+      (c) => c.id === changeSetId,
+    );
+    expect(csRepeat?.decisions).toHaveLength(1);
+  });
+
+  it("refuses a stale digest, an unknown change set, and FILE scope without an id", async () => {
+    const { init, changeSetId } = ledgerSeed();
+    const id = await seed(init);
+
+    const staleErr = await expectCode(
+      () =>
+        command.submitFileDecision({
+          agentExecutionId: id,
+          changeSetId,
+          scope: FileDecisionScope.CHANGE_SET,
+          action: FileDecisionAction.APPROVE,
+          expectedDigest: "0".repeat(64),
+        }),
+      Code.InvalidArgument,
+    );
+    expect(staleErr.rawMessage).toBe(
+      `expected_digest mismatch for change set ${changeSetId}: the captured content changed since it was reviewed`,
+    );
+
+    await expectCode(
+      () =>
+        command.submitFileDecision({
+          agentExecutionId: id,
+          changeSetId: "cs_unknown",
+          scope: FileDecisionScope.CHANGE_SET,
+          action: FileDecisionAction.APPROVE,
+          expectedDigest: "0".repeat(64),
+        }),
+      Code.FailedPrecondition,
+    );
+
+    await expectCode(
+      () =>
+        command.submitFileDecision({
+          agentExecutionId: id,
+          changeSetId,
+          scope: FileDecisionScope.FILE,
+          action: FileDecisionAction.APPROVE,
+          expectedDigest: "0".repeat(64),
+        }),
+      Code.InvalidArgument,
+    );
   });
 });
 

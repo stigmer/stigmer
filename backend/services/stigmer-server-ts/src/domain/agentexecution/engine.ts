@@ -19,10 +19,11 @@
  * and submitApproval records the decision but skips the resolved-gate
  * signal with a WARN (submit_approval.go signalWorkflowStep).
  *
- * The connected variant's operation surface is deliberately EMPTY here:
- * #18 owns its shape (workflow creator + lifecycle client + signals), and
- * pre-declaring it would be an architecture decision made outside that
- * sub-project's plan gate.
+ * The connected variant's surface carries exactly the operations THIS
+ * controller consumes (the seam Go defines through
+ * workflowCreator/temporalClient method calls); #18 owns the
+ * implementations. Operations the controller does not consume are not
+ * pre-declared — #18's worker internals are its own plan's business.
  */
 import type { RequestContext } from "../../pipeline/request-context.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
@@ -36,7 +37,28 @@ import { ENGINE_UNAVAILABLE_MESSAGE } from "./constants.js";
  * Populated by #18 (sp.agentexecution-orchestration); empty by design
  * until then — see the module header.
  */
-export interface ConnectedExecutionEngine {}
+export interface ConnectedExecutionEngine {
+  /**
+   * Sends the approvalGateResolved signal to the execution's running
+   * workflow (Go InvokeAgentExecutionWorkflowCreator.
+   * SignalApprovalGateResolved). Throws EngineWorkflowNotFoundError when
+   * the backing workflow no longer runs — SubmitApproval's signal step
+   * then reconciles the stale execution to FAILED.
+   */
+  signalApprovalGateResolved(executionId: string): Promise<void>;
+}
+
+/**
+ * The engine's "workflow not found" sentinel (Go
+ * agentexecutiontemporal.ErrWorkflowNotFound). #18's implementation maps
+ * Temporal's not-found onto it; tests construct it directly.
+ */
+export class EngineWorkflowNotFoundError extends Error {
+  constructor(executionId: string) {
+    super(`workflow not found for execution ${executionId}`);
+    this.name = "EngineWorkflowNotFoundError";
+  }
+}
 
 /** Engine availability as an explicit modeled state (guidelines §4). */
 export type ExecutionEngineState =

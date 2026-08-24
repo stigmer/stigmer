@@ -44,7 +44,7 @@ describe("the execution-engine seam", () => {
   });
 
   it("passes while connected", () => {
-    const connected: ExecutionEngineState = { connected: true, engine: {} };
+    const connected: ExecutionEngineState = { connected: true, engine: { signalApprovalGateResolved: async () => {} } };
     const step = newEnsureEngineAvailableStep(() => connected);
     expect(() => step.execute(contextFor())).not.toThrow();
   });
@@ -55,7 +55,7 @@ describe("the execution-engine seam", () => {
 
     expect(() => step.execute(contextFor())).toThrow(ConnectError);
 
-    state = { connected: true, engine: {} };
+    state = { connected: true, engine: { signalApprovalGateResolved: async () => {} } };
     expect(() => step.execute(contextFor())).not.toThrow();
   });
 });

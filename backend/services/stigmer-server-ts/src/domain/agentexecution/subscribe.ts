@@ -47,24 +47,13 @@ import {
 } from "../../pipeline/errors.js";
 import type { Store } from "../../store/interface.js";
 
+import { isTranscriptTerminalPhase } from "./phases.js";
 import type { StreamBroker } from "./stream-broker.js";
 
 export interface SubscribeDeps {
   readonly store: Store;
   readonly logger: Logger;
   readonly broker: StreamBroker;
-}
-
-/**
- * Subscribe's OWN terminal set (subscribe.go isTerminalPhase) — narrower
- * than the merge engine's: TERMINATED is absent (the disclosed quirk).
- */
-function isSubscribeTerminalPhase(phase: ExecutionPhase): boolean {
-  return (
-    phase === ExecutionPhase.EXECUTION_COMPLETED ||
-    phase === ExecutionPhase.EXECUTION_FAILED ||
-    phase === ExecutionPhase.EXECUTION_CANCELLED
-  );
 }
 
 export async function* subscribeExecution(
@@ -139,9 +128,11 @@ export async function* subscribeExecution(
       yield updated;
       lastSent = updated;
 
+      // Subscribe's close set is the NARROW transcript-terminal set
+      // (phases.ts) — TERMINATED absent, the disclosed quirk.
       const phase =
         updated.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
-      if (isSubscribeTerminalPhase(phase)) {
+      if (isTranscriptTerminalPhase(phase)) {
         deps.logger.info(
           "Execution reached terminal state, ending subscription",
           { executionId: id, phase: ExecutionPhase[phase] },
