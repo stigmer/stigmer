@@ -422,6 +422,25 @@ describe("getEventLog over the wire (CW-7 pagination contract)", () => {
     const page = await query.getEventLog({ executionId: id });
     expect(page.events.map((event) => event.sequenceNumber)).toEqual([1n, 3n]);
     expect(page.hasMore).toBe(false);
+
+    // A malformed record must NOT advance latest_sequence (Go updates it
+    // only after a successful unmarshal): with the malformed row as the
+    // HIGHEST sequence, latest stays at the last parsed one.
+    const tail = await seed(seedInput());
+    await server.store.appendWorkflowExecutionEvents(tail, [
+      eventRecord(tail, 1, WorkflowEventType.execution_started),
+      {
+        executionId: tail,
+        sequenceNumber: 2,
+        eventType: "execution_started",
+        taskName: "",
+        data: new Uint8Array([0xff, 0xff, 0xff, 0x01, 0x02]),
+        createdAt: "2026-05-23T10:00:00Z",
+      },
+    ]);
+    const tailPage = await query.getEventLog({ executionId: tail });
+    expect(tailPage.events.map((event) => event.sequenceNumber)).toEqual([1n]);
+    expect(tailPage.latestSequence, "malformed rows never advance the cursor").toBe(1n);
   });
 
   it("caps page_size at 500 and defaults to 100", async () => {
