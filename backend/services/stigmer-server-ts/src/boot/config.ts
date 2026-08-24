@@ -42,6 +42,15 @@ export interface ServerConfig {
   readonly operatorEmail: string;
   readonly operatorName: string;
   /**
+   * Temporal coordinates this server runs against (Go TemporalHostPort/
+   * TemporalNamespace). Published to embedded runners via the platform
+   * domain's getRunnerBootstrapConfig — in OSS the server and its runners
+   * are co-located, so the address the server dials is the one runners
+   * dial too. The Temporal workers (#18) read the same fields.
+   */
+  readonly temporalHostPort: string;
+  readonly temporalNamespace: string;
+  /**
    * Artifact blob storage (attachments + execution outputs; Go
    * config.ArtifactStorage). "local" is the OSS default; "r2" boot-fails
    * on this server until #13 (the owner-ratified deferral).
@@ -70,6 +79,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
   const artifactHttpPort = envInt(env, "ARTIFACT_HTTP_PORT", grpcPort + 1);
   return {
     grpcPort,
+    temporalHostPort: envString(env, "TEMPORAL_HOST_PORT", "localhost:7233"),
+    temporalNamespace: envString(env, "TEMPORAL_NAMESPACE", "default"),
     artifactStorageType: envString(env, "ARTIFACT_STORAGE_TYPE", "local"),
     artifactLocalBasePath: envString(
       env,

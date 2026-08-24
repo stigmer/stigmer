@@ -27,6 +27,16 @@ const outDir = join(serverRoot, "dist-slim");
 rmSync(outDir, { recursive: true, force: true });
 mkdirSync(outDir, { recursive: true });
 
+// The ldflags equivalent (platform domain, D4 #13): release lanes export
+// STIGMER_SERVER_VERSION and the define stamps it into
+// src/domain/platform/version.ts's fallback chain. Unset keeps the "dev"
+// default — exactly Go's unstamped build.
+const versionDefine =
+  process.env.STIGMER_SERVER_VERSION !== undefined &&
+  process.env.STIGMER_SERVER_VERSION !== ""
+    ? { __STIGMER_SERVER_VERSION__: JSON.stringify(process.env.STIGMER_SERVER_VERSION) }
+    : { __STIGMER_SERVER_VERSION__: "undefined" };
+
 await build({
   entryPoints: [join(distDir, "main.js")],
   outfile: join(outDir, "main.js"),
@@ -34,6 +44,7 @@ await build({
   platform: "node",
   format: "esm",
   target: "node22",
+  define: versionDefine,
   // Identifiers stay readable in stack traces; the external sourcemap
   // recovers file/line (runner precedent).
   minifyWhitespace: true,

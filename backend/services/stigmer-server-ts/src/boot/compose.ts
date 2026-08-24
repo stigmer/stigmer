@@ -33,6 +33,7 @@ import { registerExecutionContextServices } from "../domain/executioncontext/con
 import { registerMemoryServices } from "../domain/memory/controller.js";
 import { registerOAuthAppServices } from "../domain/oauthapp/controller.js";
 import { registerOrganizationServices } from "../domain/organization/controller.js";
+import { registerPlatformServices } from "../domain/platform/controller.js";
 import { registerSessionServices } from "../domain/session/controller.js";
 import { SecretService } from "../encryption/encryption.js";
 import { buildInterceptorChain } from "../pipeline/chain.js";
@@ -270,6 +271,13 @@ export function composeServer(options: ComposeOptions): ComposedServer {
       store,
       logger,
       parentWorkflowLoader: () => requireInProcess().parentWorkflowLoader,
+    });
+    // Platform registers LAST of all controllers (Go server.go 530–535).
+    registerPlatformServices(router, {
+      temporalHostPort: config.temporalHostPort,
+      temporalNamespace: config.temporalNamespace,
+      runnerAuthService,
+      logger,
     });
   };
   inProcess = createInProcessClients(routes, logger);
