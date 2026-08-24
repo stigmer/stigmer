@@ -34,12 +34,20 @@ import { registerAgentChannelServices } from "../domain/agentchannel/controller.
 import { registerChannelConversationServices } from "../domain/agentchannel/conversation.js";
 import { registerChannelMessageServices } from "../domain/agentchannel/message.js";
 import { registerAgentShareServices } from "../domain/agentshare/controller.js";
+import { registerArtifactServices } from "../domain/artifact/controller.js";
+import {
+  createArtifactFileServer,
+  warnOnLegacyArtifactLayout,
+} from "../domain/artifact/file-server.js";
 import { registerChannelAppServices } from "../domain/channelapp/controller.js";
 import { registerEnvironmentServices } from "../domain/environment/controller.js";
 import { registerExecutionContextServices } from "../domain/executioncontext/controller.js";
+import { registerGitHubServices } from "../domain/github/controller.js";
 import { registerMemoryServices } from "../domain/memory/controller.js";
+import { registerOAuthAppServices } from "../domain/oauthapp/controller.js";
 import { registerOrganizationServices } from "../domain/organization/controller.js";
 import { registerMcpServerServices } from "../domain/mcpserver/controller.js";
+import { registerPlatformServices } from "../domain/platform/controller.js";
 import { registerSessionServices } from "../domain/session/controller.js";
 import { registerSkillServices } from "../domain/skill/controller.js";
 import { DEFAULT_SLOT_TTL_MS, MAX_ZIP_SIZE } from "../domain/skill/constants.js";
@@ -184,14 +192,30 @@ export function composeServer(options: ComposeOptions): ComposedServer {
     logger,
   );
   // The artifact blob store (Go server.go 349: shared by agentexecution
-  // attachments now, the artifact domain + skill push later). Construction
-  // boot-fails on ARTIFACT_STORAGE_TYPE=r2 (the ratified #13 deferral);
-  // the health probe runs in start(), matching Go's boot check.
+  // attachments, the artifact domain (#13), and skill push (#8)). The r2
+  // arm landed with #13; the health probe runs in start(), matching Go's
+  // boot check.
   const artifactStorage = newArtifactStorage({
     type: config.artifactStorageType,
     localBasePath: config.artifactLocalBasePath,
     localServeUrl: config.artifactLocalServeUrl,
+    r2Bucket: config.r2Bucket,
+    r2Endpoint: config.r2Endpoint,
+    r2AccessKeyId: config.r2AccessKeyId,
+    r2SecretAccessKey: config.r2SecretAccessKey,
+    r2Region: config.r2Region,
   });
+  // The artifact download lane: a SECOND loopback listener on
+  // ARTIFACT_HTTP_PORT, local storage only (Go server.go 849–870) —
+  // deliberately not a unified-port lane. Lifecycle rides start()/
+  // shutdown().
+  const artifactFileServer =
+    config.artifactStorageType === "local"
+      ? createArtifactFileServer({
+          basePath: config.artifactLocalBasePath,
+          logger,
+        })
+      : undefined;
   // The skill artifact store + transfer lane (Go server.go:318-340). The
   // store is content-addressed and never-GC at {storagePath}/skills/;
   // the slots registry wipes {storagePath}/skills-staging at boot (orphans
@@ -249,6 +273,9 @@ export function composeServer(options: ComposeOptions): ComposedServer {
     registerHealthService(router, healthState);
     registerOrganizationServices(router, { store, logger });
     registerEnvironmentServices(router, { store, logger, secretService });
+    // OAuthApp reuses the environment's SecretService instance — Go wires
+    // ONE encryption service for both (server.go 302–307).
+    registerOAuthAppServices(router, { store, secretService, logger });
     registerExecutionContextServices(router, {
       store,
       logger,
@@ -368,6 +395,23 @@ export function composeServer(options: ComposeOptions): ComposedServer {
         baseUrl: config.skillTransferBaseUrl,
       },
     });
+    // Artifact CRUD shares the ONE blob store with agentexecution's
+    // attachment lanes (Go server.go 347–374).
+    registerArtifactServices(router, { store, artifactStorage, logger });
+    // GitHub broker: config-only, no store (Go server.go 524–528).
+    registerGitHubServices(router, {
+      clientId: config.gitHubOAuthClientId,
+      clientSecret: config.gitHubOAuthClientSecret,
+      logger,
+      fetchImpl: options.fetchImpl,
+    });
+    // Platform registers LAST of all controllers (Go server.go 530–535).
+    registerPlatformServices(router, {
+      temporalHostPort: config.temporalHostPort,
+      temporalNamespace: config.temporalNamespace,
+      runnerAuthService,
+      logger,
+    });
   };
   inProcess = createInProcessClients(routes, logger);
 
@@ -400,12 +444,26 @@ export function composeServer(options: ComposeOptions): ComposedServer {
         options.host,
       );
       logger.info("stigmer-server-ts listening", { port });
+      // The artifact file server binds AFTER the main server, exactly Go's
+      // boot order; a bind failure is logged but NOT fatal (Go's
+      // ListenAndServe goroutine logs and dies while the server runs on).
+      if (artifactFileServer !== undefined) {
+        await warnOnLegacyArtifactLayout(config.artifactLocalBasePath, logger);
+        try {
+          await artifactFileServer.listen(config.artifactHttpPort);
+        } catch (error) {
+          logger.error("Artifact HTTP file server failed", {
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      }
       return port;
     },
 
     async shutdown(): Promise<void> {
       healthState.setOverall(ServingStatus.NOT_SERVING);
       modelRegistryStore.stopRefresh();
+      await artifactFileServer?.shutdown();
       await server.shutdown();
       // The store closes LAST: in-flight handlers drained above may still
       // be mid-write (Go closes the store after grpcServer.Stop too).

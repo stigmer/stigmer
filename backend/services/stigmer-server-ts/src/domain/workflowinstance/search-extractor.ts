@@ -3,7 +3,7 @@
  * pkg/query/search/extractor/workflow_instance_extractor.go. The search
  * summary is spec.description (for the default instance that is the
  * factory's canonical copy). The query side of the extractor contract
- * arrives with the search service sub-project (#13).
+ * arrives with the search service sub-project (#14).
  */
 import type { Message } from "@bufbuild/protobuf";
 

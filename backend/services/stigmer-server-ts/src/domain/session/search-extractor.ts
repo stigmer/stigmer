@@ -3,7 +3,7 @@
  * pkg/query/search/extractor/session_extractor.go. Sessions are
  * conversation threads between a user and an agent instance; the summary
  * is spec.subject (the conversation topic). The query side of the
- * extractor contract arrives with the search service sub-project (#13).
+ * extractor contract arrives with the search service sub-project (#14).
  */
 import type { Message } from "@bufbuild/protobuf";
 

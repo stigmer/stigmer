@@ -5,7 +5,7 @@
  * prompt) — the common pattern where older agents may not have a dedicated
  * description field, but all agents have instructions. The query side of
  * the extractor contract arrives with the search service sub-project
- * (#13), exactly as the organization extractor's header records.
+ * (#14), exactly as the organization extractor's header records.
  */
 import type { Message } from "@bufbuild/protobuf";
 

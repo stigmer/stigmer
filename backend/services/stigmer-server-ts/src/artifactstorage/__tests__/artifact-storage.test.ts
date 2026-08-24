@@ -156,6 +156,14 @@ describe("LocalArtifactStorage", () => {
   });
 });
 
+const NO_R2 = {
+  r2Bucket: "",
+  r2Endpoint: "",
+  r2AccessKeyId: "",
+  r2SecretAccessKey: "",
+  r2Region: "",
+} as const;
+
 describe("newArtifactStorage factory", () => {
   it("empty type defaults to local", () => {
     const parent = mkdtempSync(path.join(tmpdir(), "artifact-factory-"));
@@ -164,6 +172,7 @@ describe("newArtifactStorage factory", () => {
         type: "",
         localBasePath: path.join(parent, "store"),
         localServeUrl: "http://localhost:7235",
+        ...NO_R2,
       });
       expect(s).toBeInstanceOf(LocalArtifactStorage);
     } finally {
@@ -171,15 +180,17 @@ describe("newArtifactStorage factory", () => {
     }
   });
 
-  it("r2 refuses with the deferral message", () => {
+  it("r2 constructs the R2 backend (validation pins live in r2-storage tests)", () => {
+    // The former boot-fail deferral test: the r2 arm now constructs, and
+    // an incomplete config fails with Go NewR2Storage's copy.
     expect(() =>
-      newArtifactStorage({ type: "r2", localBasePath: "", localServeUrl: "" }),
-    ).toThrow("ARTIFACT_STORAGE_TYPE=r2 is not yet supported by the TS server");
+      newArtifactStorage({ type: "r2", localBasePath: "", localServeUrl: "", ...NO_R2 }),
+    ).toThrow("R2 bucket name is required");
   });
 
   it("unknown type refuses", () => {
     expect(() =>
-      newArtifactStorage({ type: "s3", localBasePath: "", localServeUrl: "" }),
+      newArtifactStorage({ type: "s3", localBasePath: "", localServeUrl: "", ...NO_R2 }),
     ).toThrow("unknown storage type: s3 (must be 'local' or 'r2')");
   });
 });

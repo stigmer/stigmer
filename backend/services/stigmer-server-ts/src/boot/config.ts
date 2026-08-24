@@ -42,6 +42,15 @@ export interface ServerConfig {
   readonly operatorEmail: string;
   readonly operatorName: string;
   /**
+   * Temporal coordinates this server runs against (Go TemporalHostPort/
+   * TemporalNamespace). Published to embedded runners via the platform
+   * domain's getRunnerBootstrapConfig — in OSS the server and its runners
+   * are co-located, so the address the server dials is the one runners
+   * dial too. The Temporal workers (#18) read the same fields.
+   */
+  readonly temporalHostPort: string;
+  readonly temporalNamespace: string;
+  /**
    * Artifact blob storage (attachments + execution outputs; Go
    * config.ArtifactStorage). "local" is the OSS default; "r2" boot-fails
    * on this server until #13 (the owner-ratified deferral).
@@ -55,6 +64,26 @@ export interface ServerConfig {
    * full path).
    */
   readonly artifactLocalServeUrl: string;
+  /**
+   * The artifact file server's own port (ARTIFACT_HTTP_PORT, default
+   * grpcPort+1). Only bound when artifact storage is local.
+   */
+  readonly artifactHttpPort: number;
+  /** Cloudflare R2 settings (S3-compatible; validated when type is "r2"). */
+  readonly r2Bucket: string;
+  readonly r2Endpoint: string;
+  readonly r2AccessKeyId: string;
+  readonly r2SecretAccessKey: string;
+  readonly r2Region: string;
+  /**
+   * GitHub OAuth credentials for workspace repo selection (the github
+   * broker domain). Override via STIGMER_GITHUB_CLIENT_ID /
+   * STIGMER_GITHUB_CLIENT_SECRET — an empty value is treated as unset
+   * (Go getEnvString), so no configuration can blank the bundled
+   * defaults on OSS.
+   */
+  readonly gitHubOAuthClientId: string;
+  readonly gitHubOAuthClientSecret: string;
   /**
    * Skill artifact storage root (STORAGE_PATH; Go defaultStoragePath
    * ~/.stigmer/storage). Artifacts live at {storagePath}/skills/,
@@ -72,6 +101,26 @@ export interface ServerConfig {
   readonly skillTransferBaseUrl: string;
 }
 
+// The bundled "Stigmer Local" OAuth App credentials (callback:
+// localhost:3000), hardcoded in source following the GitHub CLI (gh)
+// pattern: a localhost-only OAuth App's client_secret has negligible
+// security value. Byte-mirrored from Go pkg/config/config.go. Release
+// bundles may stamp the Cloud OAuth App via the esbuild defines in
+// scripts/bundle-slim.mjs — the ldflags equivalent.
+declare const __STIGMER_GITHUB_CLIENT_ID__: string | undefined;
+declare const __STIGMER_GITHUB_CLIENT_SECRET__: string | undefined;
+
+const DEFAULT_GITHUB_OAUTH_CLIENT_ID: string =
+  typeof __STIGMER_GITHUB_CLIENT_ID__ === "string" &&
+  __STIGMER_GITHUB_CLIENT_ID__ !== ""
+    ? __STIGMER_GITHUB_CLIENT_ID__
+    : "Ov23li4q5kgj90QMr226";
+const DEFAULT_GITHUB_OAUTH_CLIENT_SECRET: string =
+  typeof __STIGMER_GITHUB_CLIENT_SECRET__ === "string" &&
+  __STIGMER_GITHUB_CLIENT_SECRET__ !== ""
+    ? __STIGMER_GITHUB_CLIENT_SECRET__
+    : "edc089d10b6cc0dcee898f9680d62d1504e2c89a";
+
 /** Default unified port; the CLI's env contract pins the same value. */
 export const DEFAULT_GRPC_PORT = 7234;
 
@@ -83,9 +132,27 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
   const grpcPort = envInt(env, "GRPC_PORT", DEFAULT_GRPC_PORT);
   // Go: ARTIFACT_HTTP_PORT defaults to the gRPC port + 1.
   const artifactHttpPort = envInt(env, "ARTIFACT_HTTP_PORT", grpcPort + 1);
+  const artifactStorageType = envString(env, "ARTIFACT_STORAGE_TYPE", "local");
+  const r2 = {
+    r2Bucket: envString(env, "R2_BUCKET", ""),
+    r2Endpoint: envString(env, "R2_ENDPOINT", ""),
+    r2AccessKeyId: envString(env, "R2_ACCESS_KEY_ID", ""),
+    r2SecretAccessKey: envString(env, "R2_SECRET_ACCESS_KEY", ""),
+    r2Region: envString(env, "R2_REGION", "auto"),
+  };
+  // Go validateR2Config: boot-fatal on incomplete r2 configuration — a
+  // second deliberate exception to the lenient-loader posture (a server
+  // that silently ignored half an R2 config would write blobs nowhere).
+  if (artifactStorageType === "r2") {
+    validateR2Config(r2);
+  }
   return {
     grpcPort,
-    artifactStorageType: envString(env, "ARTIFACT_STORAGE_TYPE", "local"),
+    artifactHttpPort,
+    ...r2,
+    temporalHostPort: envString(env, "TEMPORAL_HOST_PORT", "localhost:7233"),
+    temporalNamespace: envString(env, "TEMPORAL_NAMESPACE", "default"),
+    artifactStorageType,
     artifactLocalBasePath: envString(
       env,
       "ARTIFACT_LOCAL_BASE_PATH",
@@ -116,7 +183,39 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     ),
     operatorEmail,
     operatorName,
+    gitHubOAuthClientId: envString(
+      env,
+      "STIGMER_GITHUB_CLIENT_ID",
+      DEFAULT_GITHUB_OAUTH_CLIENT_ID,
+    ),
+    gitHubOAuthClientSecret: envString(
+      env,
+      "STIGMER_GITHUB_CLIENT_SECRET",
+      DEFAULT_GITHUB_OAUTH_CLIENT_SECRET,
+    ),
   };
+}
+
+/** Go validateR2Config — the four required fields, error copy mirrored. */
+function validateR2Config(r2: {
+  r2Bucket: string;
+  r2Endpoint: string;
+  r2AccessKeyId: string;
+  r2SecretAccessKey: string;
+}): void {
+  const requirements: Array<[string, string]> = [
+    [r2.r2Bucket, "R2_BUCKET"],
+    [r2.r2Endpoint, "R2_ENDPOINT"],
+    [r2.r2AccessKeyId, "R2_ACCESS_KEY_ID"],
+    [r2.r2SecretAccessKey, "R2_SECRET_ACCESS_KEY"],
+  ];
+  for (const [value, name] of requirements) {
+    if (value === "") {
+      throw new Error(
+        `invalid R2 configuration: ${name} is required when ARTIFACT_STORAGE_TYPE=r2`,
+      );
+    }
+  }
 }
 
 /** Go defaultStoragePath: ~/.stigmer/storage, ./storage without a home. */

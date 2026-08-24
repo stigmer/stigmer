@@ -3,7 +3,7 @@
  * pkg/query/search/extractor/agent_instance_extractor.go. Agent instances
  * are configured incarnations of an agent blueprint; the summary is
  * spec.description. The query side of the extractor contract arrives with
- * the search service sub-project (#13).
+ * the search service sub-project (#14).
  */
 import type { Message } from "@bufbuild/protobuf";
 

@@ -50,6 +50,12 @@
 //     the per-field secret rotation. The agentshare suite's cross-org
 //     blocker test creates a McpServer, so this entry rostered after
 //     entry #9 merged — the ratified merge-order ruling).
+//   - oauthapp + platform + github + artifact — sub-project #13
+//     (sp.small-domains; the four small remaining Class A domains, incl.
+//     the client-secret contract, the runner-bootstrap shapes, the broker
+//     Layer-1 arms, and the artifact file-server disposition lane). The
+//     oauthapp suite's delete-block test drives McpServer create/delete,
+//     so it rosters here only after #9 (McpServer CRUD) merged.
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
@@ -73,6 +79,10 @@ export default defineConfig({
       "src/suites/agentshare.conformance.test.ts",
       "src/suites/agentchannel.conformance.test.ts",
       "src/suites/channelapp.conformance.test.ts",
+      "src/suites/oauthapp.conformance.test.ts",
+      "src/suites/platform.conformance.test.ts",
+      "src/suites/github.conformance.test.ts",
+      "src/suites/artifact.conformance.test.ts",
     ],
     globalSetup: ["./src/harness/global-setup-ts.ts"],
     env: {
