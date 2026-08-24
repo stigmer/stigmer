@@ -28,6 +28,13 @@
 //     deepest domain: 23 RPCs incl. the subscribe stream, the HITL
 //     surfaces, and the engine-gate/lifecycle negatives that pin the
 //     no-Temporal posture until #18).
+//   - oauthapp + platform + github + artifact — sub-project #13
+//     (sp.small-domains; the four small remaining Class A domains, incl.
+//     the client-secret contract, the runner-bootstrap shapes, the broker
+//     Layer-1 arms, and the artifact file-server disposition lane). The
+//     oauthapp suite's delete-block test drives McpServer create/delete —
+//     it goes green here the moment #9 (McpServer CRUD) merges, the
+//     recorded merge-order dependency of this entry.
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
@@ -44,6 +51,10 @@ export default defineConfig({
       "src/suites/workflowinstance.conformance.test.ts",
       "src/suites/executioncontext.conformance.test.ts",
       "src/suites/agentexecution.conformance.test.ts",
+      "src/suites/oauthapp.conformance.test.ts",
+      "src/suites/platform.conformance.test.ts",
+      "src/suites/github.conformance.test.ts",
+      "src/suites/artifact.conformance.test.ts",
     ],
     globalSetup: ["./src/harness/global-setup-ts.ts"],
     env: {
