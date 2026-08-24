@@ -47,6 +47,10 @@ export const PACKAGES = [
   // release workflows) depends on it, pinned to the exact release version
   // at stamp time — exactly like @stigmer/protos.
   "backend/libs/ts/temporal-codecs",
+  // @stigmer/zip-structure has no deps at all, so its position is order-free.
+  // It MUST publish for the same reason as temporal-codecs: the runner links
+  // it and pins the exact release version at stamp time.
+  "backend/libs/ts/zip-structure",
   "sdk/typescript",
   "sdk/theme",
   "sdk/react",

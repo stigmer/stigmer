@@ -28,6 +28,10 @@
 //     deepest domain: 23 RPCs incl. the subscribe stream, the HITL
 //     surfaces, and the engine-gate/lifecycle negatives that pin the
 //     no-Temporal posture until #18).
+//   - skill — sub-project #8 (sp.skill; push-only content-addressed
+//     artifacts, the version-resolution ladder, and the #675 HTTP transfer
+//     lane — skillArtifactTransferLane is honest on this target from this
+//     entry on).
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
@@ -44,6 +48,7 @@ export default defineConfig({
       "src/suites/workflowinstance.conformance.test.ts",
       "src/suites/executioncontext.conformance.test.ts",
       "src/suites/agentexecution.conformance.test.ts",
+      "src/suites/skill.conformance.test.ts",
     ],
     globalSetup: ["./src/harness/global-setup-ts.ts"],
     env: {

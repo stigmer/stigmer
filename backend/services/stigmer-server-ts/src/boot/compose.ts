@@ -15,6 +15,8 @@
  * that — the CLI's serverGate TCP probe treats port-bind as readiness.
  * Shutdown is the reverse (grpc lib Stop): NOT_SERVING first, then drain.
  */
+import path from "node:path";
+
 import type { ConnectRouter } from "@connectrpc/connect";
 
 import { HealthCheckResponse_ServingStatus as ServingStatus } from "@stigmer/protos/grpc/health/v1/health_pb";
@@ -33,6 +35,11 @@ import { registerExecutionContextServices } from "../domain/executioncontext/con
 import { registerMemoryServices } from "../domain/memory/controller.js";
 import { registerOrganizationServices } from "../domain/organization/controller.js";
 import { registerSessionServices } from "../domain/session/controller.js";
+import { registerSkillServices } from "../domain/skill/controller.js";
+import { DEFAULT_SLOT_TTL_MS, MAX_ZIP_SIZE } from "../domain/skill/constants.js";
+import { LocalFileStorage as SkillLocalFileStorage } from "../domain/skill/storage/artifact-storage.js";
+import { newSkillTransferLane } from "../domain/skill/transfer/handler.js";
+import { UploadSlots } from "../domain/skill/transfer/slots.js";
 import { SecretService } from "../encryption/encryption.js";
 import { buildInterceptorChain } from "../pipeline/chain.js";
 import { RunnerAuthService } from "../runnerauth/runnerauth.js";
@@ -165,6 +172,24 @@ export function composeServer(options: ComposeOptions): ComposedServer {
     localBasePath: config.artifactLocalBasePath,
     localServeUrl: config.artifactLocalServeUrl,
   });
+  // The skill artifact store + transfer lane (Go server.go:318-340). The
+  // store is content-addressed and never-GC at {storagePath}/skills/;
+  // the slots registry wipes {storagePath}/skills-staging at boot (orphans
+  // from a dead process are useless — the registry died with it). On OSS
+  // the lane is ALWAYS configured (Go wires it unconditionally too): the
+  // FailedPrecondition lane-absent arms exist for construction-order
+  // safety, and the capability matrix pins skillArtifactTransferLane=true.
+  const skillArtifactStorage = new SkillLocalFileStorage(config.storagePath);
+  const skillUploadSlots = new UploadSlots(
+    path.join(config.storagePath, "skills-staging"),
+    DEFAULT_SLOT_TTL_MS,
+    MAX_ZIP_SIZE,
+  );
+  const skillTransferLane = newSkillTransferLane(
+    skillUploadSlots,
+    skillArtifactStorage,
+    logger,
+  );
   // The environment runtime-resolution service (#5) — the decrypt-for-
   // execution path the EC builder uses to resolve environment_refs (the
   // RPC surface redacts secret values, oss#405).
@@ -267,6 +292,18 @@ export function composeServer(options: ComposeOptions): ComposedServer {
       logger,
       parentWorkflowLoader: () => requireInProcess().parentWorkflowLoader,
     });
+    registerSkillServices(router, {
+      store,
+      logger,
+      artifactStorage: skillArtifactStorage,
+      // The agentexecution blob store (server.go:362-363) — read side of
+      // pushFromExecutionArtifact.
+      executionArtifactStorage: artifactStorage,
+      transferLane: {
+        slots: skillUploadSlots,
+        baseUrl: config.skillTransferBaseUrl,
+      },
+    });
   };
   inProcess = createInProcessClients(routes, logger);
 
@@ -276,6 +313,7 @@ export function composeServer(options: ComposeOptions): ComposedServer {
     interceptors: buildInterceptorChain(logger),
     taskKindRegistryLane: registryLanes.taskKindRegistryLane,
     modelRegistryLane: registryLanes.modelRegistryLane,
+    skillTransferLane,
   });
 
   return {

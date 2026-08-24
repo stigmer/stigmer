@@ -28,15 +28,22 @@ if (entry === undefined) {
 const serverRoot = fileURLToPath(new URL("..", import.meta.url));
 const BOOT_TIMEOUT_MS = 15_000;
 
+// Every filesystem-touching stage gets a throwaway root: the boot check
+// must never write the operator's ~/.stigmer. STORAGE_PATH matters beyond
+// hygiene — the skill domain WIPES {STORAGE_PATH}/skills-staging at boot
+// (crash recovery, #8), which against the real default would clear a
+// running server's in-flight uploads.
+const scratch = mkdtempSync(join(tmpdir(), "verify-boot-"));
+
 const child = spawn(process.execPath, [join(serverRoot, entry)], {
   env: {
     ...process.env,
     GRPC_PORT: "0",
     LOG_LEVEL: "info",
     ENV: "ci",
-    // The storage stage opens DB_PATH for real — point it at a throwaway
-    // file so the boot check never writes the operator's ~/.stigmer.
-    DB_PATH: join(mkdtempSync(join(tmpdir(), "verify-boot-")), "stigmer.db"),
+    DB_PATH: join(scratch, "stigmer.db"),
+    STORAGE_PATH: join(scratch, "storage"),
+    ARTIFACT_LOCAL_BASE_PATH: join(scratch, "artifacts"),
   },
   stdio: ["ignore", "inherit", "pipe"],
 });

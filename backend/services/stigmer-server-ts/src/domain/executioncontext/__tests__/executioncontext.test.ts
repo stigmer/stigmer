@@ -89,6 +89,9 @@ async function startServer(env: Record<string, string>): Promise<TestServer> {
     config: loadConfig({
       STIGMER_MODEL_REGISTRY_REFRESH: "off",
       DB_PATH: path.join(dir, "stigmer.db"),
+      // The skill artifact store + staging wipe (#8) must stay inside the
+      // test dir — the default resolves to ~/.stigmer/storage.
+      STORAGE_PATH: path.join(dir, "storage"),
       // Keep the artifact store inside the test dir — the default
       // resolves to ~/.stigmer, which tests must never touch.
       ARTIFACT_LOCAL_BASE_PATH: path.join(dir, "artifacts"),

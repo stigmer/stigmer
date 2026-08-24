@@ -75,3 +75,12 @@ jobs:
 
       - name: Test @stigmer/temporal-codecs
         run: npm run test -w @stigmer/temporal-codecs
+
+      - name: Build @stigmer/zip-structure
+        run: npm run build -w @stigmer/zip-structure
+
+      - name: Typecheck @stigmer/zip-structure (incl. tests)
+        run: npm run typecheck -w @stigmer/zip-structure
+
+      - name: Test @stigmer/zip-structure
+        run: npm run test -w @stigmer/zip-structure

@@ -55,6 +55,21 @@ export interface ServerConfig {
    * full path).
    */
   readonly artifactLocalServeUrl: string;
+  /**
+   * Skill artifact storage root (STORAGE_PATH; Go defaultStoragePath
+   * ~/.stigmer/storage). Artifacts live at {storagePath}/skills/,
+   * upload staging at {storagePath}/skills-staging/ — byte-identical to
+   * Go's layout, so a Go-written directory is served in place at cutover.
+   */
+  readonly storagePath: string;
+  /**
+   * Externally-reachable base of the skill artifact transfer lane's
+   * capability URLs (#675). Defaults to the server's own port on
+   * localhost; SKILL_TRANSFER_BASE_URL overrides when the server is
+   * reached through a tunnel or reverse proxy (the ARTIFACT_LOCAL_SERVE_URL
+   * idiom, Go config.go:52-58).
+   */
+  readonly skillTransferBaseUrl: string;
 }
 
 /** Default unified port; the CLI's env contract pins the same value. */
@@ -93,9 +108,24 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     modelRegistryRefreshEnabled:
       env["STIGMER_MODEL_REGISTRY_REFRESH"] !== "off",
     dbPath: envString(env, "DB_PATH", defaultDbPath()),
+    storagePath: envString(env, "STORAGE_PATH", defaultStoragePath()),
+    skillTransferBaseUrl: envString(
+      env,
+      "SKILL_TRANSFER_BASE_URL",
+      `http://localhost:${grpcPort}`,
+    ),
     operatorEmail,
     operatorName,
   };
+}
+
+/** Go defaultStoragePath: ~/.stigmer/storage, ./storage without a home. */
+function defaultStoragePath(): string {
+  try {
+    return path.join(os.homedir(), ".stigmer", "storage");
+  } catch {
+    return "./storage";
+  }
 }
 
 /** Go defaultDBPath: ~/.stigmer/stigmer.db, ./stigmer.db without a home. */
