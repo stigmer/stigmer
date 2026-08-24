@@ -24,7 +24,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { create } from "@bufbuild/protobuf";
+import { create, fromBinary } from "@bufbuild/protobuf";
 import type { MessageInitShape } from "@bufbuild/protobuf";
 import { Code, ConnectError, createClient } from "@connectrpc/connect";
 import type { Client, Transport } from "@connectrpc/connect";
@@ -46,6 +46,7 @@ import {
   FileDecisionScope,
   FileReviewEventType,
   MessageType,
+  ServiceTier,
   ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { CapturedFileChangeSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
@@ -181,6 +182,83 @@ async function expectCode(
   }
   throw new Error(`expected code ${Code[code]}, call succeeded`);
 }
+
+describe("create over the wire (engine gate)", () => {
+  it("valid create refuses Unavailable at the engine gate, BEFORE any side effect", async () => {
+    // Seed an agent the request references, so target resolution and
+    // validation pass and the refusal is provably the engine gate.
+    await server.store.saveResource(
+      ApiResourceKind.agent,
+      "agt_create_gate",
+      AgentSchema,
+      create(AgentSchema, {
+        apiVersion: "agentic.stigmer.ai/v1",
+        kind: "Agent",
+        metadata: { id: "agt_create_gate", name: "gate-agent", org: ORG },
+      }),
+    );
+
+    const err = await expectCode(
+      () =>
+        command.create({
+          apiVersion: API_VERSION,
+          kind: KIND,
+          metadata: { name: "gated-exec", org: ORG },
+          spec: { agentId: "agt_create_gate", message: "hello" },
+        }),
+      Code.Unavailable,
+    );
+    expect(err.rawMessage).toBe(
+      "The execution engine is temporarily unavailable. Please try again shortly.",
+    );
+
+    // The gate ran before the side-effecting steps: nothing persisted.
+    const executions = await server.store.listResources(
+      ApiResourceKind.agent_execution,
+    );
+    const sessions = await server.store.listResources(ApiResourceKind.session);
+    for (const data of executions) {
+      const row = fromBinary(AgentExecutionSchema, data);
+      expect(row.metadata?.name).not.toBe("gated-exec");
+    }
+    expect(sessions).toHaveLength(0);
+  });
+
+  it("validation runs before the gate: a tier without a model answers InvalidArgument", async () => {
+    const err = await expectCode(
+      () =>
+        command.create({
+          apiVersion: API_VERSION,
+          kind: KIND,
+          metadata: { name: "bad-tier-exec", org: ORG },
+          spec: {
+            agentId: "agt_create_gate",
+            message: "hello",
+            executionConfig: { serviceTier: ServiceTier.FAST },
+          },
+        }),
+      Code.InvalidArgument,
+    );
+    expect(err.rawMessage).toContain("requires execution_config.model_name");
+  });
+
+  it("session_id and session_spec together refuse at proto validation", async () => {
+    await expectCode(
+      () =>
+        command.create({
+          apiVersion: API_VERSION,
+          kind: KIND,
+          metadata: { name: "both-exec", org: ORG },
+          spec: {
+            message: "hello",
+            sessionId: "ses_1",
+            sessionSpec: { agentInstanceId: "inst_1" },
+          },
+        }),
+      Code.InvalidArgument,
+    );
+  });
+});
 
 describe("get / list / listBySession over the wire", () => {
   it("get answers NotFound for an unknown id and the record for a seeded one", async () => {

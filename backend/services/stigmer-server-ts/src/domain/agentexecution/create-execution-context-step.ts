@@ -602,7 +602,7 @@ async function resolveWorkflowTaskEnvironments(
  * config all answer empty — the binding no longer exists in the current
  * revision, the degrade-not-fail case (Go agentCallTaskEnvironmentRefs).
  */
-function agentCallTaskEnvironmentRefs(
+export function agentCallTaskEnvironmentRefs(
   logger: Logger,
   workflow: Workflow,
   taskName: string,
