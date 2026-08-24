@@ -51,6 +51,9 @@ import {
 import { ModelRegistryStore } from "../domain/workflow/registry/model-registry-store.js";
 import { InProcessValidator } from "../domain/workflow/validation/validator.js";
 import { registerWorkflowInstanceServices } from "../domain/workflowinstance/controller.js";
+import { registerWorkflowExecutionServices } from "../domain/workflowexecution/controller.js";
+import { ENGINE_DISCONNECTED as WORKFLOW_EXECUTION_ENGINE_DISCONNECTED } from "../domain/workflowexecution/engine.js";
+import { StreamBroker as WorkflowExecutionStreamBroker } from "../domain/workflowexecution/stream-broker.js";
 import { HealthState, registerHealthService } from "../transport/health.js";
 import { createRegistryLanes } from "../transport/registry/lanes.js";
 import { createUnifiedPortServer } from "../transport/server.js";
@@ -76,6 +79,12 @@ export interface ComposedServer {
    * UpdateStatus is the production writer.
    */
   agentExecutionStreamBroker: StreamBroker;
+  /**
+   * The workflowexecution broadcast fabric (exposed for tests and, with
+   * #21, its Temporal worker's broadcasts — Go's GetStreamBroker).
+   * UpdateStatus and the lifecycle RPCs are the production writers.
+   */
+  workflowExecutionStreamBroker: WorkflowExecutionStreamBroker;
   /** Completes wiring, flips SERVING, binds the port; returns the bound port. */
   start(): Promise<number>;
   /** NOT_SERVING first, stop background work, drain connections. */
@@ -161,6 +170,11 @@ export function composeServer(options: ComposeOptions): ComposedServer {
   // status through the in-process client, and those broadcasts must reach
   // externally-connected subscribe streams (Go's GetStreamBroker seam).
   const agentExecutionStreamBroker = new StreamBroker(logger);
+  // The workflowexecution twin (domain-local per that sub-project's
+  // DD-002); #21's activities broadcast through it the same way.
+  const workflowExecutionStreamBroker = new WorkflowExecutionStreamBroker(
+    logger,
+  );
   // The artifact blob store (Go server.go 349: shared by agentexecution
   // attachments now, the artifact domain + skill push later). Construction
   // boot-fails on ARTIFACT_STORAGE_TYPE=r2 (the ratified #13 deferral);
@@ -289,6 +303,30 @@ export function composeServer(options: ComposeOptions): ComposedServer {
       logger,
       parentWorkflowLoader: () => requireInProcess().parentWorkflowLoader,
     });
+    registerWorkflowExecutionServices(router, {
+      store,
+      logger,
+      // Permanently disconnected until #21 lands the workflow-execution
+      // orchestrator on #18's worker infra; same provider shape as the
+      // agentexecution seam above.
+      engineState: () => WORKFLOW_EXECUTION_ENGINE_DISCONNECTED,
+      broker: workflowExecutionStreamBroker,
+      workflowInstanceCreator: () =>
+        requireInProcess().workflowExecutionInstanceCreator,
+      approvalForwarder: () =>
+        requireInProcess().workflowExecutionApprovalForwarder,
+      fileDecisionForwarder: () =>
+        requireInProcess().workflowExecutionFileDecisionForwarder,
+      executionContextBuilder: {
+        store,
+        logger,
+        workflowInstanceLoader: () =>
+          requireInProcess().workflowExecutionInstanceLoader,
+        environmentResolution,
+        executionContextCreator: () =>
+          requireInProcess().workflowExecutionContextCreator,
+      },
+    });
   };
   inProcess = createInProcessClients(routes, logger);
 
@@ -305,6 +343,7 @@ export function composeServer(options: ComposeOptions): ComposedServer {
     store,
     runnerAuthService,
     agentExecutionStreamBroker,
+    workflowExecutionStreamBroker,
 
     async start(): Promise<number> {
       // Artifact storage must be reachable and writable before the server

@@ -32,6 +32,9 @@ import { SessionIdSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/i
 import { WorkflowQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/query_pb";
 import { WorkflowIdSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/io_pb";
 import { WorkflowInstanceCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/command_pb";
+import { WorkflowInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/query_pb";
+import { WorkflowInstanceIdSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/io_pb";
+import { AgentExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/command_pb";
 
 import type { AgentInstanceApplier } from "../domain/agent/steps.js";
 import type { ParentAgentLoader } from "../domain/agentinstance/steps.js";
@@ -49,6 +52,13 @@ import type {
 import type { ManagedEnvironmentClient } from "../domain/mcpserver/oauth/managed-env.js";
 import type { AgentInstanceCreator } from "../domain/session/steps.js";
 import type { WorkflowInstanceCreator } from "../domain/workflow/steps.js";
+import type { ExecutionWorkflowInstanceCreator } from "../domain/workflowexecution/create-steps.js";
+import type {
+  ExecutionWorkflowInstanceLoader,
+  WorkflowExecutionContextCreator,
+} from "../domain/workflowexecution/create-execution-context-step.js";
+import type { AgentExecutionApprovalForwarder } from "../domain/workflowexecution/submit-approval.js";
+import type { AgentExecutionFileDecisionForwarder } from "../domain/workflowexecution/submit-file-decision.js";
 import type { ParentWorkflowLoader } from "../domain/workflowinstance/steps.js";
 import { buildInterceptorChain } from "../pipeline/chain.js";
 import type { Logger } from "./logger.js";
@@ -76,6 +86,14 @@ export interface InProcessClients {
   readonly executionEnvironmentReader: EnvironmentReader &
     ManagedEnvironmentClient;
   readonly executionContextCreator: ExecutionContextCreator;
+  // The workflowexecution edges (server.go 636–642: the controller's
+  // workflowinstance/executioncontext clients and the two HITL forwarding
+  // interfaces satisfied by the agentexecution controller).
+  readonly workflowExecutionInstanceCreator: ExecutionWorkflowInstanceCreator;
+  readonly workflowExecutionInstanceLoader: ExecutionWorkflowInstanceLoader;
+  readonly workflowExecutionContextCreator: WorkflowExecutionContextCreator;
+  readonly workflowExecutionApprovalForwarder: AgentExecutionApprovalForwarder;
+  readonly workflowExecutionFileDecisionForwarder: AgentExecutionFileDecisionForwarder;
 }
 
 /**
@@ -115,7 +133,15 @@ export function createInProcessClients(
     WorkflowInstanceCommandController,
     transport,
   );
+  const workflowInstanceQuery = createClient(
+    WorkflowInstanceQueryController,
+    transport,
+  );
   const workflowQuery = createClient(WorkflowQueryController, transport);
+  const agentExecutionCommand = createClient(
+    AgentExecutionCommandController,
+    transport,
+  );
 
   return {
     // Go's ApplyAsSystem is the Apply RPC with no extra identity attached:
@@ -179,6 +205,32 @@ export function createInProcessClients(
     },
     executionContextCreator: {
       create: (ec) => executionContextCommand.create(ec),
+    },
+    // The workflowexecution edges. CreateAsSystem semantics per the
+    // workflow edge above: create under the process-global operator
+    // identity (default-instance self-heal must surface duplicate slugs
+    // as AlreadyExists).
+    workflowExecutionInstanceCreator: {
+      createAsSystem: (instance) => workflowInstanceCommand.create(instance),
+    },
+    workflowExecutionInstanceLoader: {
+      get: (instanceId) =>
+        workflowInstanceQuery.get(
+          create(WorkflowInstanceIdSchema, { value: instanceId }),
+        ),
+    },
+    workflowExecutionContextCreator: {
+      create: (ec) => executionContextCommand.create(ec),
+    },
+    // The two HITL forwarding edges — Go's method-segregated
+    // AgentExecutionApprovalClient / AgentExecutionFileDecisionClient,
+    // both satisfied by the in-process agentexecution controller.
+    workflowExecutionApprovalForwarder: {
+      submitApproval: (input) => agentExecutionCommand.submitApproval(input),
+    },
+    workflowExecutionFileDecisionForwarder: {
+      submitFileDecision: (input) =>
+        agentExecutionCommand.submitFileDecision(input),
     },
   };
 }

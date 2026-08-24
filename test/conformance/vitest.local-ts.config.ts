@@ -28,6 +28,11 @@
 //     deepest domain: 23 RPCs incl. the subscribe stream, the HITL
 //     surfaces, and the engine-gate/lifecycle negatives that pin the
 //     no-Temporal posture until #18).
+//   - workflowexecution — sub-project #20 (sp.workflowexecution-domain;
+//     the Class A engineless surface: the create gate, the CW-7
+//     zero-record reads, the subscribe/subscribeEvents error arms, and
+//     the submitFileDecision negatives. The Class B suites in
+//     suites-execution/ roster with #21's orchestrator).
 //   - agentshare + agentchannel + channelapp — sub-project #12
 //     (sp.sharing-and-channels; the sharing/channel family: the anonymous
 //     getSharedProfile lane + cross-org contract, the four channel
@@ -51,6 +56,7 @@ export default defineConfig({
       "src/suites/workflowinstance.conformance.test.ts",
       "src/suites/executioncontext.conformance.test.ts",
       "src/suites/agentexecution.conformance.test.ts",
+      "src/suites/workflowexecution.conformance.test.ts",
       "src/suites/agentshare.conformance.test.ts",
       "src/suites/agentchannel.conformance.test.ts",
       "src/suites/channelapp.conformance.test.ts",
