@@ -422,6 +422,145 @@ describe("usage reports over the wire", () => {
   });
 });
 
+describe("subscribe — the first domain stream through the real transport", () => {
+  /**
+   * Collects frames from a live subscribe stream. `done` resolves when
+   * the server ends the stream; the caller aborts for the
+   * client-disconnect arms.
+   */
+  function openStream(id: string) {
+    const controller = new AbortController();
+    const frames: string[] = [];
+    let sawFrame: (() => void) | undefined;
+    const done = (async () => {
+      try {
+        for await (const frame of query.subscribe(
+          { value: id },
+          { signal: controller.signal },
+        )) {
+          frames.push(frame.status?.error ?? "");
+          sawFrame?.();
+        }
+        return "server-ended" as const;
+      } catch (error) {
+        if (
+          error instanceof ConnectError &&
+          error.code === Code.Canceled
+        ) {
+          return "client-cancelled" as const;
+        }
+        throw error;
+      }
+    })();
+    // Deterministic wait: resolves once frames.length >= n (no sleeps).
+    const untilFrames = (n: number) =>
+      new Promise<void>((resolve) => {
+        if (frames.length >= n) {
+          resolve();
+          return;
+        }
+        sawFrame = () => {
+          if (frames.length >= n) {
+            sawFrame = undefined;
+            resolve();
+          }
+        };
+      });
+    return { controller, frames, done, untilFrames };
+  }
+
+  it("refuses an empty id (InvalidArgument) and an unknown id (NotFound, pinned copy)", async () => {
+    const emptyErr = await expectCode(async () => {
+      for await (const frame of query.subscribe({ value: "" })) {
+        void frame;
+      }
+    }, Code.InvalidArgument);
+    // The protovalidate STREAM interceptor fires before the handler in
+    // both editions (Go StreamServerInterceptor); the handler's inline
+    // guard is the direct-call defense. protovalidate-go and
+    // protovalidate-es render this violation byte-identically (the #7
+    // probe).
+    expect(emptyErr.rawMessage).toBe("value: value is required [required]");
+
+    const unknownErr = await expectCode(async () => {
+      for await (const frame of query.subscribe({ value: "aexec_missing" })) {
+        void frame;
+      }
+    }, Code.NotFound);
+    expect(unknownErr.rawMessage).toBe(
+      "AgentExecution not found: aexec_missing",
+    );
+  });
+
+  it("streams snapshot → live update → terminal close, suppressing duplicate frames", async () => {
+    const init = seedInput({
+      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+    });
+    const id = await seed(init);
+
+    const stream = openStream(id);
+    await stream.untilFrames(1); // the snapshot
+
+    // The overlap frame: byte-equal to the snapshot — must be suppressed.
+    server.agentExecutionStreamBroker.broadcast(
+      create(AgentExecutionSchema, init),
+    );
+    // A genuinely new frame follows; its arrival proves the equal frame
+    // was dropped (ordered queue — had it been delivered, it would appear
+    // before this one).
+    const progressed = create(AgentExecutionSchema, {
+      apiVersion: API_VERSION,
+      kind: KIND,
+      metadata: init.metadata,
+      spec: init.spec,
+      status: {
+        phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+        error: "marker-live-update",
+      },
+    });
+    server.agentExecutionStreamBroker.broadcast(progressed);
+    await stream.untilFrames(2);
+    expect(stream.frames).toEqual(["", "marker-live-update"]);
+
+    // A terminal broadcast ends the stream server-side.
+    server.agentExecutionStreamBroker.broadcast(
+      create(AgentExecutionSchema, {
+        apiVersion: API_VERSION,
+        kind: KIND,
+        metadata: init.metadata,
+        spec: init.spec,
+        status: {
+          phase: ExecutionPhase.EXECUTION_COMPLETED,
+          error: "marker-terminal",
+        },
+      }),
+    );
+    await expect(stream.done).resolves.toBe("server-ended");
+    expect(stream.frames).toEqual(["", "marker-live-update", "marker-terminal"]);
+    expect(server.agentExecutionStreamBroker.getSubscriberCount(id)).toBe(0);
+  });
+
+  it("a terminal SNAPSHOT leaves the stream open until the client disconnects (faithful port)", async () => {
+    const id = await seed(
+      seedInput({ phase: ExecutionPhase.EXECUTION_COMPLETED }),
+    );
+
+    const stream = openStream(id);
+    await stream.untilFrames(1);
+    expect(server.agentExecutionStreamBroker.getSubscriberCount(id)).toBe(1);
+
+    stream.controller.abort();
+    await expect(stream.done).resolves.toBe("client-cancelled");
+    // The generator's finally runs server-side after the client observes
+    // the cancellation — poll (bounded, no sleeps) for the unsubscribe.
+    await expect
+      .poll(() => server.agentExecutionStreamBroker.getSubscriberCount(id), {
+        timeout: 2000,
+      })
+      .toBe(0);
+  });
+});
+
 describe("getExecutionSummary — the populated arm", () => {
   it("counts phases, actives, completion durations, and failure ranks", async () => {
     // Seeded records carry no audit timestamps, so the window cutoff

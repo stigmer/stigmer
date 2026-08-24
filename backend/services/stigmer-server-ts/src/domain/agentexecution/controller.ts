@@ -66,6 +66,8 @@ import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import type { Store } from "../../store/interface.js";
 
 import { agentExecutionSearchExtractor } from "./search-extractor.js";
+import type { StreamBroker } from "./stream-broker.js";
+import { subscribeExecution } from "./subscribe.js";
 import {
   EXECUTION_LIST_KEY,
   newApplyPhaseFilterStep,
@@ -86,6 +88,13 @@ import {
 export interface AgentExecutionControllerDeps {
   readonly store: Store;
   readonly logger: Logger;
+  /**
+   * The shared broadcast fabric for subscribe streams. ONE instance spans
+   * both routers (serving + in-process) — see stream-broker.ts; the
+   * composition root owns it (Go: NewStreamBroker in the controller
+   * constructor + GetStreamBroker for the Temporal activities).
+   */
+  readonly broker: StreamBroker;
 }
 
 /** Registers both agentexecution services on the router (routes stage). */
@@ -101,6 +110,7 @@ export function registerAgentExecutionServices(
     get: (id, ctx) => get(deps, id, ctx),
     list: (req, ctx) => list(deps, req, ctx),
     listBySession: (req, ctx) => listBySession(deps, req, ctx),
+    subscribe: (id, ctx) => subscribeExecution(deps, id, ctx),
     getExecutionUsageReport: (req) => getExecutionUsageReport(deps, req),
     getSessionUsageReport: (req) => getSessionUsageReport(deps, req),
     getAgentUsageReport: (req) => getAgentUsageReport(deps, req),

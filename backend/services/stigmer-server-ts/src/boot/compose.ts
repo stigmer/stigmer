@@ -22,6 +22,7 @@ import { HealthCheckResponse_ServingStatus as ServingStatus } from "@stigmer/pro
 import { registerAgentServices } from "../domain/agent/controller.js";
 import { newConfigFromEnv } from "../domain/agentexecution/temporal/config.js";
 import { registerAgentExecutionServices } from "../domain/agentexecution/controller.js";
+import { StreamBroker } from "../domain/agentexecution/stream-broker.js";
 import { registerAgentInstanceServices } from "../domain/agentinstance/controller.js";
 import { registerEnvironmentServices } from "../domain/environment/controller.js";
 import { registerExecutionContextServices } from "../domain/executioncontext/controller.js";
@@ -60,6 +61,12 @@ export interface ComposedServer {
    * RPC — the mint side — lands with its own sub-project).
    */
   runnerAuthService: RunnerAuthService;
+  /**
+   * The agentexecution broadcast fabric (exposed for tests and, with #18,
+   * the Temporal worker's recovery broadcasts — Go's GetStreamBroker).
+   * UpdateStatus is the production writer.
+   */
+  agentExecutionStreamBroker: StreamBroker;
   /** Completes wiring, flips SERVING, binds the port; returns the bound port. */
   start(): Promise<number>;
   /** NOT_SERVING first, stop background work, drain connections. */
@@ -141,6 +148,10 @@ export function composeServer(options: ComposeOptions): ComposedServer {
   // per validation call, keeping validation and the served pickers in
   // lockstep (DD-004).
   const workflowValidator = new InProcessValidator(modelRegistryStore, logger);
+  // ONE broker spans both routers: #18's Temporal activities update
+  // status through the in-process client, and those broadcasts must reach
+  // externally-connected subscribe streams (Go's GetStreamBroker seam).
+  const agentExecutionStreamBroker = new StreamBroker(logger);
   // The SAME `routes` function registers every service on BOTH the serving
   // router and the in-process router transport (createInProcessClients).
   // Handlers are stateless over the same store, so the two routers behave
@@ -186,7 +197,11 @@ export function composeServer(options: ComposeOptions): ComposedServer {
       agentInstanceCreator: () => requireInProcess().agentInstanceCreator,
     });
     registerMemoryServices(router, { store, logger });
-    registerAgentExecutionServices(router, { store, logger });
+    registerAgentExecutionServices(router, {
+      store,
+      logger,
+      broker: agentExecutionStreamBroker,
+    });
     registerWorkflowServices(router, {
       store,
       logger,
@@ -213,6 +228,7 @@ export function composeServer(options: ComposeOptions): ComposedServer {
     healthState,
     store,
     runnerAuthService,
+    agentExecutionStreamBroker,
 
     async start(): Promise<number> {
       // Wiring complete → SERVING → background refresh → bind. The port
