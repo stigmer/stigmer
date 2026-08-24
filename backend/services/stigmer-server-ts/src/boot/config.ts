@@ -64,7 +64,36 @@ export interface ServerConfig {
    * full path).
    */
   readonly artifactLocalServeUrl: string;
+  /**
+   * GitHub OAuth credentials for workspace repo selection (the github
+   * broker domain). Override via STIGMER_GITHUB_CLIENT_ID /
+   * STIGMER_GITHUB_CLIENT_SECRET — an empty value is treated as unset
+   * (Go getEnvString), so no configuration can blank the bundled
+   * defaults on OSS.
+   */
+  readonly gitHubOAuthClientId: string;
+  readonly gitHubOAuthClientSecret: string;
 }
+
+// The bundled "Stigmer Local" OAuth App credentials (callback:
+// localhost:3000), hardcoded in source following the GitHub CLI (gh)
+// pattern: a localhost-only OAuth App's client_secret has negligible
+// security value. Byte-mirrored from Go pkg/config/config.go. Release
+// bundles may stamp the Cloud OAuth App via the esbuild defines in
+// scripts/bundle-slim.mjs — the ldflags equivalent.
+declare const __STIGMER_GITHUB_CLIENT_ID__: string | undefined;
+declare const __STIGMER_GITHUB_CLIENT_SECRET__: string | undefined;
+
+const DEFAULT_GITHUB_OAUTH_CLIENT_ID: string =
+  typeof __STIGMER_GITHUB_CLIENT_ID__ === "string" &&
+  __STIGMER_GITHUB_CLIENT_ID__ !== ""
+    ? __STIGMER_GITHUB_CLIENT_ID__
+    : "Ov23li4q5kgj90QMr226";
+const DEFAULT_GITHUB_OAUTH_CLIENT_SECRET: string =
+  typeof __STIGMER_GITHUB_CLIENT_SECRET__ === "string" &&
+  __STIGMER_GITHUB_CLIENT_SECRET__ !== ""
+    ? __STIGMER_GITHUB_CLIENT_SECRET__
+    : "edc089d10b6cc0dcee898f9680d62d1504e2c89a";
 
 /** Default unified port; the CLI's env contract pins the same value. */
 export const DEFAULT_GRPC_PORT = 7234;
@@ -106,6 +135,16 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     dbPath: envString(env, "DB_PATH", defaultDbPath()),
     operatorEmail,
     operatorName,
+    gitHubOAuthClientId: envString(
+      env,
+      "STIGMER_GITHUB_CLIENT_ID",
+      DEFAULT_GITHUB_OAUTH_CLIENT_ID,
+    ),
+    gitHubOAuthClientSecret: envString(
+      env,
+      "STIGMER_GITHUB_CLIENT_SECRET",
+      DEFAULT_GITHUB_OAUTH_CLIENT_SECRET,
+    ),
   };
 }
 

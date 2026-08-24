@@ -27,15 +27,25 @@ const outDir = join(serverRoot, "dist-slim");
 rmSync(outDir, { recursive: true, force: true });
 mkdirSync(outDir, { recursive: true });
 
-// The ldflags equivalent (platform domain, D4 #13): release lanes export
-// STIGMER_SERVER_VERSION and the define stamps it into
-// src/domain/platform/version.ts's fallback chain. Unset keeps the "dev"
-// default — exactly Go's unstamped build.
-const versionDefine =
-  process.env.STIGMER_SERVER_VERSION !== undefined &&
-  process.env.STIGMER_SERVER_VERSION !== ""
-    ? { __STIGMER_SERVER_VERSION__: JSON.stringify(process.env.STIGMER_SERVER_VERSION) }
-    : { __STIGMER_SERVER_VERSION__: "undefined" };
+// The ldflags equivalent (D4 #13): release lanes export these env vars and
+// the defines stamp them into their fallback chains
+// (src/domain/platform/version.ts, boot/config.ts's bundled GitHub OAuth
+// defaults). Unset keeps each source default — exactly Go's unstamped
+// build.
+const defineFromEnv = (identifier, envName) => ({
+  [identifier]:
+    process.env[envName] !== undefined && process.env[envName] !== ""
+      ? JSON.stringify(process.env[envName])
+      : "undefined",
+});
+const versionDefine = {
+  ...defineFromEnv("__STIGMER_SERVER_VERSION__", "STIGMER_SERVER_VERSION"),
+  ...defineFromEnv("__STIGMER_GITHUB_CLIENT_ID__", "STIGMER_GITHUB_CLIENT_ID"),
+  ...defineFromEnv(
+    "__STIGMER_GITHUB_CLIENT_SECRET__",
+    "STIGMER_GITHUB_CLIENT_SECRET",
+  ),
+};
 
 await build({
   entryPoints: [join(distDir, "main.js")],

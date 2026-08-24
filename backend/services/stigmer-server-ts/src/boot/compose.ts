@@ -30,6 +30,7 @@ import { ManagedEnvironmentService } from "../domain/mcpserver/oauth/managed-env
 import { registerAgentInstanceServices } from "../domain/agentinstance/controller.js";
 import { registerEnvironmentServices } from "../domain/environment/controller.js";
 import { registerExecutionContextServices } from "../domain/executioncontext/controller.js";
+import { registerGitHubServices } from "../domain/github/controller.js";
 import { registerMemoryServices } from "../domain/memory/controller.js";
 import { registerOAuthAppServices } from "../domain/oauthapp/controller.js";
 import { registerOrganizationServices } from "../domain/organization/controller.js";
@@ -271,6 +272,13 @@ export function composeServer(options: ComposeOptions): ComposedServer {
       store,
       logger,
       parentWorkflowLoader: () => requireInProcess().parentWorkflowLoader,
+    });
+    // GitHub broker: config-only, no store (Go server.go 524–528).
+    registerGitHubServices(router, {
+      clientId: config.gitHubOAuthClientId,
+      clientSecret: config.gitHubOAuthClientSecret,
+      logger,
+      fetchImpl: options.fetchImpl,
     });
     // Platform registers LAST of all controllers (Go server.go 530–535).
     registerPlatformServices(router, {

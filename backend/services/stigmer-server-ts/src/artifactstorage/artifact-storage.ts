@@ -29,6 +29,8 @@ import {
 } from "node:fs/promises";
 import path from "node:path";
 
+import { goQueryEscape } from "../gocompat/query-escape.js";
+
 /** Query key carrying the desired download filename on local URLs; the
  * artifact file server (#13) reads it to set Content-Disposition. */
 export const LOCAL_DOWNLOAD_QUERY_PARAM = "download";
@@ -223,26 +225,9 @@ export class LocalArtifactStorage implements ArtifactStorage {
   }
 }
 
-/**
- * Go url.QueryEscape, byte-exact: unreserved [A-Za-z0-9-_.~] pass, space
- * becomes '+', everything else percent-encodes. URLSearchParams differs
- * on two characters ('~' escaped, '*' bare), so the stdlib encoder would
- * break URL byte parity for filenames carrying them.
- */
-function goQueryEscape(s: string): string {
-  let out = "";
-  for (const byte of Buffer.from(s, "utf-8")) {
-    const c = String.fromCharCode(byte);
-    if (/[A-Za-z0-9\-_.~]/.test(c)) {
-      out += c;
-    } else if (c === " ") {
-      out += "+";
-    } else {
-      out += `%${byte.toString(16).toUpperCase().padStart(2, "0")}`;
-    }
-  }
-  return out;
-}
+// goQueryEscape moved to src/gocompat/query-escape.ts when the github
+// broker became its second consumer (#13) — the shared-steps promotion
+// rule. Behavior unchanged; the URL parity tests below still pin it.
 
 /**
  * Whether `p` is `root` itself or a descendant — cleaned-path comparison
