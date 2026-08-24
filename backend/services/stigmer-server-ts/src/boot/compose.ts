@@ -30,11 +30,16 @@ import { StreamBroker } from "../domain/agentexecution/stream-broker.js";
 import { RuntimeResolutionService } from "../domain/environment/resolution/resolution.js";
 import { ManagedEnvironmentService } from "../domain/mcpserver/oauth/managed-env.js";
 import { registerAgentInstanceServices } from "../domain/agentinstance/controller.js";
+import { registerAgentChannelServices } from "../domain/agentchannel/controller.js";
+import { registerChannelConversationServices } from "../domain/agentchannel/conversation.js";
+import { registerChannelMessageServices } from "../domain/agentchannel/message.js";
+import { registerAgentShareServices } from "../domain/agentshare/controller.js";
 import { registerArtifactServices } from "../domain/artifact/controller.js";
 import {
   createArtifactFileServer,
   warnOnLegacyArtifactLayout,
 } from "../domain/artifact/file-server.js";
+import { registerChannelAppServices } from "../domain/channelapp/controller.js";
 import { registerEnvironmentServices } from "../domain/environment/controller.js";
 import { registerExecutionContextServices } from "../domain/executioncontext/controller.js";
 import { registerGitHubServices } from "../domain/github/controller.js";
@@ -293,6 +298,23 @@ export function composeServer(options: ComposeOptions): ComposedServer {
       temporalConfig,
       agentInstanceCreator: () => requireInProcess().agentInstanceCreator,
     });
+    // The sharing/channel family registers after the agent family, as in
+    // Go server.go (agent 378 → agentshare 384 → agentchannel 391 →
+    // channelmessage 399 → channelconversation 408 → channelapp 416).
+    // ChannelApp shares the ONE SecretService instance with Environment —
+    // one key, one enc:v1: format (Go wires the same pointer).
+    registerAgentShareServices(router, { store, logger });
+    registerAgentChannelServices(router, {
+      store,
+      logger,
+      // The SAME domain-owned registry instance the workflow validator
+      // and the registry lanes read — the channel model-pin rule
+      // (stigmer/stigmer#774) can never drift from the served pickers.
+      modelRegistry: modelRegistryStore,
+    });
+    registerChannelMessageServices(router);
+    registerChannelConversationServices(router);
+    registerChannelAppServices(router, { store, logger, secretService });
     registerMemoryServices(router, { store, logger });
     registerAgentExecutionServices(router, {
       store,

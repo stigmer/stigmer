@@ -43,6 +43,13 @@
 //     artifacts, the version-resolution ladder, and the #675 HTTP transfer
 //     lane — skillArtifactTransferLane is honest on this target from this
 //     entry on).
+//   - agentshare + agentchannel + channelapp — sub-project #12
+//     (sp.sharing-and-channels; the sharing/channel family: the anonymous
+//     getSharedProfile lane + cross-org contract, the four channel
+//     registration blocks with the three cloud-only refusal postures, and
+//     the per-field secret rotation. The agentshare suite's cross-org
+//     blocker test creates a McpServer, so this entry rostered after
+//     entry #9 merged — the ratified merge-order ruling).
 //   - oauthapp + platform + github + artifact — sub-project #13
 //     (sp.small-domains; the four small remaining Class A domains, incl.
 //     the client-secret contract, the runner-bootstrap shapes, the broker
@@ -69,6 +76,9 @@ export default defineConfig({
       "src/suites/mcpserver.conformance.test.ts",
       "src/suites/agent-mcpserver-references.conformance.test.ts",
       "src/suites/skill.conformance.test.ts",
+      "src/suites/agentshare.conformance.test.ts",
+      "src/suites/agentchannel.conformance.test.ts",
+      "src/suites/channelapp.conformance.test.ts",
       "src/suites/oauthapp.conformance.test.ts",
       "src/suites/platform.conformance.test.ts",
       "src/suites/github.conformance.test.ts",
