@@ -3,7 +3,7 @@
  * pkg/query/search/extractor/organization_extractor.go (the search summary
  * is spec.description). Indexed domains carry their extractors (D4); the
  * QUERY side of the extractor contract (ToSearchResult, the registry
- * validation) arrives with the search service sub-project (#13) — only the
+ * validation) arrives with the search service sub-project (#14) — only the
  * write-path extraction the IndexSearch step needs lives here.
  */
 import type { Message } from "@bufbuild/protobuf";

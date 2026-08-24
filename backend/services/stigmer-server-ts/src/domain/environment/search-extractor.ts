@@ -4,7 +4,7 @@
  * is spec.description). Secret DATA is deliberately never indexed — only
  * name, description, tags, org, and visibility reach FTS5. The query side
  * of the extractor contract arrives with the search service sub-project
- * (#13), exactly as the organization extractor's header records.
+ * (#14), exactly as the organization extractor's header records.
  */
 import type { Message } from "@bufbuild/protobuf";
 

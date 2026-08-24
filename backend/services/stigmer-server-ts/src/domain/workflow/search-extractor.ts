@@ -3,7 +3,7 @@
  * pkg/query/search/extractor/workflow_extractor.go. The search summary is
  * spec.description (workflows are serverless workflow definitions; the
  * spec-level description is the authored summary). The query side of the
- * extractor contract arrives with the search service sub-project (#13),
+ * extractor contract arrives with the search service sub-project (#14),
  * exactly as the organization extractor's header records.
  */
 import type { Message } from "@bufbuild/protobuf";
