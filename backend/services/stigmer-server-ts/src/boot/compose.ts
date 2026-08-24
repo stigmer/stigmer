@@ -31,6 +31,7 @@ import { registerAgentInstanceServices } from "../domain/agentinstance/controlle
 import { registerEnvironmentServices } from "../domain/environment/controller.js";
 import { registerExecutionContextServices } from "../domain/executioncontext/controller.js";
 import { registerMemoryServices } from "../domain/memory/controller.js";
+import { registerOAuthAppServices } from "../domain/oauthapp/controller.js";
 import { registerOrganizationServices } from "../domain/organization/controller.js";
 import { registerSessionServices } from "../domain/session/controller.js";
 import { SecretService } from "../encryption/encryption.js";
@@ -204,6 +205,9 @@ export function composeServer(options: ComposeOptions): ComposedServer {
     registerHealthService(router, healthState);
     registerOrganizationServices(router, { store, logger });
     registerEnvironmentServices(router, { store, logger, secretService });
+    // OAuthApp reuses the environment's SecretService instance — Go wires
+    // ONE encryption service for both (server.go 302–307).
+    registerOAuthAppServices(router, { store, secretService, logger });
     registerExecutionContextServices(router, {
       store,
       logger,
