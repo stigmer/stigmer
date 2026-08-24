@@ -11,12 +11,9 @@
  * segment, so the server and the runner (LOCAL_ARTIFACT_PATH) share one
  * store by construction (#285).
  *
- * The R2 backend (S3-compatible, AWS SDK) is DEFERRED to #13 per the
- * owner-ratified plan decision: it would drag the AWS SDK into this
- * package's dependency surface and its presigned-URL semantics are
- * asserted on #13's RPC surface. Until then ARTIFACT_STORAGE_TYPE=r2
- * boot-fails with an explicit message — a disclosed, temporary
- * coexistence divergence (the Go server serves r2 today).
+ * The R2 backend (S3-compatible, AWS SDK) lives in r2-storage.ts — it
+ * arrived with the artifact domain (#13) per the ratified deferral, closing
+ * the temporary ARTIFACT_STORAGE_TYPE=r2 boot-fail divergence #17 shipped.
  */
 import { mkdirSync } from "node:fs";
 import {
@@ -30,6 +27,7 @@ import {
 import path from "node:path";
 
 import { goQueryEscape } from "../gocompat/query-escape.js";
+import { R2ArtifactStorage } from "./r2-storage.js";
 
 /** Query key carrying the desired download filename on local URLs; the
  * artifact file server (#13) reads it to set Content-Disposition. */
@@ -63,9 +61,15 @@ export interface ArtifactStorageConfig {
   readonly type: string;
   readonly localBasePath: string;
   readonly localServeUrl: string;
+  /** Cloudflare R2 (S3-compatible) settings — required when type is "r2". */
+  readonly r2Bucket: string;
+  readonly r2Endpoint: string;
+  readonly r2AccessKeyId: string;
+  readonly r2SecretAccessKey: string;
+  readonly r2Region: string;
 }
 
-/** Factory mirroring Go NewArtifactStorage; r2 is the deferred arm. */
+/** Factory mirroring Go NewArtifactStorage. */
 export function newArtifactStorage(
   config: ArtifactStorageConfig,
 ): ArtifactStorage {
@@ -77,13 +81,13 @@ export function newArtifactStorage(
         config.localServeUrl,
       );
     case "r2":
-      // Deferred to #13 (owner-ratified): fail loud at boot rather than
-      // serving a silently different artifact store than configured.
-      throw new Error(
-        "ARTIFACT_STORAGE_TYPE=r2 is not yet supported by the TS server; " +
-          "the R2 backend arrives with the artifact domain sub-project (D4 #13). " +
-          "Use the Go server for r2-backed deployments during coexistence.",
-      );
+      return new R2ArtifactStorage({
+        bucket: config.r2Bucket,
+        endpoint: config.r2Endpoint,
+        accessKeyId: config.r2AccessKeyId,
+        secretAccessKey: config.r2SecretAccessKey,
+        region: config.r2Region,
+      });
     default:
       throw new Error(
         `unknown storage type: ${storageType} (must be 'local' or 'r2')`,

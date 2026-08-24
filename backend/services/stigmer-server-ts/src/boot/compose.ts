@@ -28,6 +28,11 @@ import { StreamBroker } from "../domain/agentexecution/stream-broker.js";
 import { RuntimeResolutionService } from "../domain/environment/resolution/resolution.js";
 import { ManagedEnvironmentService } from "../domain/mcpserver/oauth/managed-env.js";
 import { registerAgentInstanceServices } from "../domain/agentinstance/controller.js";
+import { registerArtifactServices } from "../domain/artifact/controller.js";
+import {
+  createArtifactFileServer,
+  warnOnLegacyArtifactLayout,
+} from "../domain/artifact/file-server.js";
 import { registerEnvironmentServices } from "../domain/environment/controller.js";
 import { registerExecutionContextServices } from "../domain/executioncontext/controller.js";
 import { registerGitHubServices } from "../domain/github/controller.js";
@@ -160,14 +165,30 @@ export function composeServer(options: ComposeOptions): ComposedServer {
   // externally-connected subscribe streams (Go's GetStreamBroker seam).
   const agentExecutionStreamBroker = new StreamBroker(logger);
   // The artifact blob store (Go server.go 349: shared by agentexecution
-  // attachments now, the artifact domain + skill push later). Construction
-  // boot-fails on ARTIFACT_STORAGE_TYPE=r2 (the ratified #13 deferral);
-  // the health probe runs in start(), matching Go's boot check.
+  // attachments, the artifact domain (#13), and skill push (#8)). The r2
+  // arm landed with #13; the health probe runs in start(), matching Go's
+  // boot check.
   const artifactStorage = newArtifactStorage({
     type: config.artifactStorageType,
     localBasePath: config.artifactLocalBasePath,
     localServeUrl: config.artifactLocalServeUrl,
+    r2Bucket: config.r2Bucket,
+    r2Endpoint: config.r2Endpoint,
+    r2AccessKeyId: config.r2AccessKeyId,
+    r2SecretAccessKey: config.r2SecretAccessKey,
+    r2Region: config.r2Region,
   });
+  // The artifact download lane: a SECOND loopback listener on
+  // ARTIFACT_HTTP_PORT, local storage only (Go server.go 849–870) —
+  // deliberately not a unified-port lane. Lifecycle rides start()/
+  // shutdown().
+  const artifactFileServer =
+    config.artifactStorageType === "local"
+      ? createArtifactFileServer({
+          basePath: config.artifactLocalBasePath,
+          logger,
+        })
+      : undefined;
   // The environment runtime-resolution service (#5) — the decrypt-for-
   // execution path the EC builder uses to resolve environment_refs (the
   // RPC surface redacts secret values, oss#405).
@@ -273,6 +294,9 @@ export function composeServer(options: ComposeOptions): ComposedServer {
       logger,
       parentWorkflowLoader: () => requireInProcess().parentWorkflowLoader,
     });
+    // Artifact CRUD shares the ONE blob store with agentexecution's
+    // attachment lanes (Go server.go 347–374).
+    registerArtifactServices(router, { store, artifactStorage, logger });
     // GitHub broker: config-only, no store (Go server.go 524–528).
     registerGitHubServices(router, {
       clientId: config.gitHubOAuthClientId,
@@ -317,12 +341,26 @@ export function composeServer(options: ComposeOptions): ComposedServer {
         options.host,
       );
       logger.info("stigmer-server-ts listening", { port });
+      // The artifact file server binds AFTER the main server, exactly Go's
+      // boot order; a bind failure is logged but NOT fatal (Go's
+      // ListenAndServe goroutine logs and dies while the server runs on).
+      if (artifactFileServer !== undefined) {
+        await warnOnLegacyArtifactLayout(config.artifactLocalBasePath, logger);
+        try {
+          await artifactFileServer.listen(config.artifactHttpPort);
+        } catch (error) {
+          logger.error("Artifact HTTP file server failed", {
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      }
       return port;
     },
 
     async shutdown(): Promise<void> {
       healthState.setOverall(ServingStatus.NOT_SERVING);
       modelRegistryStore.stopRefresh();
+      await artifactFileServer?.shutdown();
       await server.shutdown();
       // The store closes LAST: in-flight handlers drained above may still
       // be mid-write (Go closes the store after grpcServer.Stop too).

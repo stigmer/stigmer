@@ -65,6 +65,17 @@ export interface ServerConfig {
    */
   readonly artifactLocalServeUrl: string;
   /**
+   * The artifact file server's own port (ARTIFACT_HTTP_PORT, default
+   * grpcPort+1). Only bound when artifact storage is local.
+   */
+  readonly artifactHttpPort: number;
+  /** Cloudflare R2 settings (S3-compatible; validated when type is "r2"). */
+  readonly r2Bucket: string;
+  readonly r2Endpoint: string;
+  readonly r2AccessKeyId: string;
+  readonly r2SecretAccessKey: string;
+  readonly r2Region: string;
+  /**
    * GitHub OAuth credentials for workspace repo selection (the github
    * broker domain). Override via STIGMER_GITHUB_CLIENT_ID /
    * STIGMER_GITHUB_CLIENT_SECRET — an empty value is treated as unset
@@ -106,11 +117,27 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
   const grpcPort = envInt(env, "GRPC_PORT", DEFAULT_GRPC_PORT);
   // Go: ARTIFACT_HTTP_PORT defaults to the gRPC port + 1.
   const artifactHttpPort = envInt(env, "ARTIFACT_HTTP_PORT", grpcPort + 1);
+  const artifactStorageType = envString(env, "ARTIFACT_STORAGE_TYPE", "local");
+  const r2 = {
+    r2Bucket: envString(env, "R2_BUCKET", ""),
+    r2Endpoint: envString(env, "R2_ENDPOINT", ""),
+    r2AccessKeyId: envString(env, "R2_ACCESS_KEY_ID", ""),
+    r2SecretAccessKey: envString(env, "R2_SECRET_ACCESS_KEY", ""),
+    r2Region: envString(env, "R2_REGION", "auto"),
+  };
+  // Go validateR2Config: boot-fatal on incomplete r2 configuration — a
+  // second deliberate exception to the lenient-loader posture (a server
+  // that silently ignored half an R2 config would write blobs nowhere).
+  if (artifactStorageType === "r2") {
+    validateR2Config(r2);
+  }
   return {
     grpcPort,
+    artifactHttpPort,
+    ...r2,
     temporalHostPort: envString(env, "TEMPORAL_HOST_PORT", "localhost:7233"),
     temporalNamespace: envString(env, "TEMPORAL_NAMESPACE", "default"),
-    artifactStorageType: envString(env, "ARTIFACT_STORAGE_TYPE", "local"),
+    artifactStorageType,
     artifactLocalBasePath: envString(
       env,
       "ARTIFACT_LOCAL_BASE_PATH",
@@ -146,6 +173,28 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
       DEFAULT_GITHUB_OAUTH_CLIENT_SECRET,
     ),
   };
+}
+
+/** Go validateR2Config — the four required fields, error copy mirrored. */
+function validateR2Config(r2: {
+  r2Bucket: string;
+  r2Endpoint: string;
+  r2AccessKeyId: string;
+  r2SecretAccessKey: string;
+}): void {
+  const requirements: Array<[string, string]> = [
+    [r2.r2Bucket, "R2_BUCKET"],
+    [r2.r2Endpoint, "R2_ENDPOINT"],
+    [r2.r2AccessKeyId, "R2_ACCESS_KEY_ID"],
+    [r2.r2SecretAccessKey, "R2_SECRET_ACCESS_KEY"],
+  ];
+  for (const [value, name] of requirements) {
+    if (value === "") {
+      throw new Error(
+        `invalid R2 configuration: ${name} is required when ARTIFACT_STORAGE_TYPE=r2`,
+      );
+    }
+  }
 }
 
 /** Go defaultDBPath: ~/.stigmer/stigmer.db, ./stigmer.db without a home. */
