@@ -25,6 +25,16 @@ export default defineConfig({
       "src/suites/**/*.conformance.test.ts",
       "src/suites-execution/schedule-firing.conformance.test.ts",
     ],
+    // mcpserver-oauth is EXCLUDED (deliberately, the mcp.conformance
+    // convention): the OAuth initiate lanes need STIGMER_OAUTH_REDIRECT_URI
+    // on the service, which the hermetic launcher does not yet pass to the
+    // JAR — and the Java edition's refusal copy is already known to diverge
+    // (its unset-redirect message names the `stigmer.oauth.redirect-uri`
+    // property where the Go edition names the env var). Enabling this suite
+    // here is an owner-gated follow-up: wire the env var through the
+    // launcher, run hermetically, and two-arm the divergent copy from that
+    // evidence (CW-1 wrap-up, sub-project 20260824.05).
+    exclude: ["src/suites/mcpserver-oauth.conformance.test.ts"],
     globalSetup: ["./src/harness/global-setup-cloud.ts"],
     env: {
       CONFORMANCE_TARGET: "cloud",

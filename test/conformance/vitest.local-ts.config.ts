@@ -28,6 +28,17 @@
 //     deepest domain: 23 RPCs incl. the subscribe stream, the HITL
 //     surfaces, and the engine-gate/lifecycle negatives that pin the
 //     no-Temporal posture until #18).
+//   - workflowexecution — sub-project #20 (sp.workflowexecution-domain;
+//     the Class A engineless surface: the create gate, the CW-7
+//     zero-record reads, the subscribe/subscribeEvents error arms, and
+//     the submitFileDecision negatives. The Class B suites in
+//     suites-execution/ roster with #21's orchestrator).
+//   - mcpserver + agent-mcpserver-references — sub-project #9
+//     (sp.mcpserver-crud; the declarative CRUD slice with the #402
+//     enabledtools validation and the #558 org-OAuth UNIMPLEMENTED pins;
+//     the agent-references suite was split out by sp.agent-family DD-001
+//     and held for this entry, whose McpServer service its accept-path
+//     fixture needs. The connect/OAuth slice arrives with #19).
 //   - skill — sub-project #8 (sp.skill; push-only content-addressed
 //     artifacts, the version-resolution ladder, and the #675 HTTP transfer
 //     lane — skillArtifactTransferLane is honest on this target from this
@@ -48,6 +59,9 @@ export default defineConfig({
       "src/suites/workflowinstance.conformance.test.ts",
       "src/suites/executioncontext.conformance.test.ts",
       "src/suites/agentexecution.conformance.test.ts",
+      "src/suites/workflowexecution.conformance.test.ts",
+      "src/suites/mcpserver.conformance.test.ts",
+      "src/suites/agent-mcpserver-references.conformance.test.ts",
       "src/suites/skill.conformance.test.ts",
     ],
     globalSetup: ["./src/harness/global-setup-ts.ts"],
