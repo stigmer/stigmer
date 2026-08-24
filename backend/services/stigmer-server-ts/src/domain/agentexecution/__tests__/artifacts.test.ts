@@ -315,6 +315,25 @@ describe("getArtifactContent CAS blob integrity", () => {
     expect(resp.truncated).toBe(true);
   });
 
+  it("max_bytes <= 0 falls back to the 512KB default (fail-safe)", async () => {
+    await seedExecution(execId);
+    const body = Buffer.from("small body");
+    const key = casBlobKeyFor(execId, body);
+    await upload(key, body);
+
+    const resp = await getArtifactContent(
+      deps,
+      create(GetArtifactContentRequestSchema, {
+        executionId: execId,
+        storageKey: key,
+        maxBytes: BigInt(-1),
+      }),
+    );
+    // The default (512KB) applies, so the whole small object is served.
+    expect(resp.truncated).toBe(false);
+    expect(Buffer.from(resp.content).toString()).toBe("small body");
+  });
+
   it("unknown execution answers NotFound", async () => {
     await expectCode(
       () =>

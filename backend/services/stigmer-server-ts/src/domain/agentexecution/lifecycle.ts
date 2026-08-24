@@ -284,6 +284,11 @@ export function cancelInProgressSubAgents(
   completedAt: string,
 ): void {
   for (const sa of subAgents) {
+    // Go skips nil elements (lifecycle_cancel_cascade_test.go NilSafe);
+    // the defensive twin for a hole smuggled past the type system.
+    if (sa === undefined) {
+      continue;
+    }
     if (
       sa.status === SubAgentStatus.SUB_AGENT_IN_PROGRESS ||
       sa.status === SubAgentStatus.SUB_AGENT_PENDING

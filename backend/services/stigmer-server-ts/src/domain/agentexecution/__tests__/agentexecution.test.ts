@@ -52,6 +52,7 @@ import {
 import { CapturedFileChangeSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
 import { SubmitApprovalInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
 import { AgentExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/query_pb";
+import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { loadConfig } from "../../../boot/config.js";
@@ -213,15 +214,22 @@ describe("create over the wire (engine gate)", () => {
     );
 
     // The gate ran before the side-effecting steps: nothing persisted.
+    // Both checks filter to THIS request's artifacts rather than
+    // asserting global emptiness, so future seeding elsewhere in the
+    // file can never make them order-dependent.
     const executions = await server.store.listResources(
       ApiResourceKind.agent_execution,
     );
-    const sessions = await server.store.listResources(ApiResourceKind.session);
     for (const data of executions) {
       const row = fromBinary(AgentExecutionSchema, data);
       expect(row.metadata?.name).not.toBe("gated-exec");
     }
-    expect(sessions).toHaveLength(0);
+    const sessions = await server.store.listResources(ApiResourceKind.session);
+    for (const data of sessions) {
+      const row = fromBinary(SessionSchema, data);
+      expect(row.spec?.agentInstanceId ?? "").not.toContain("agt_create_gate");
+      expect(row.spec?.subject).not.toBe("Auto-created session");
+    }
   });
 
   it("validation runs before the gate: a tier without a model answers InvalidArgument", async () => {
@@ -253,6 +261,28 @@ describe("create over the wire (engine gate)", () => {
             message: "hello",
             sessionId: "ses_1",
             sessionSpec: { agentInstanceId: "inst_1" },
+          },
+        }),
+      Code.InvalidArgument,
+    );
+  });
+
+  it("a forged server-owned harness_state_id in session_spec refuses at proto validation", async () => {
+    // Go create_session_bootstrap_test.go: harness_state_id is
+    // server-owned — a caller seeding thread state must be rejected by
+    // the CEL rule, not silently honored.
+    await expectCode(
+      () =>
+        command.create({
+          apiVersion: API_VERSION,
+          kind: KIND,
+          metadata: { name: "forged-exec", org: ORG },
+          spec: {
+            message: "hello",
+            sessionSpec: {
+              agentInstanceId: "inst_1",
+              harnessStateId: "thread-forged",
+            },
           },
         }),
       Code.InvalidArgument,

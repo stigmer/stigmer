@@ -302,6 +302,11 @@ export async function getArtifactContent(
  * Reads a single file from an in-memory ZIP archive (Go extractZipEntry
  * over archive/zip; here fflate's unzipSync with a name filter so only
  * the requested entry inflates). undefined = not found / unreadable.
+ *
+ * The max_bytes guard applies AFTER inflation (both editions): a crafted
+ * entry inflates fully in memory first. Acceptable under the current
+ * trust boundary — ZIP artifacts are runner-written, and single-user OSS
+ * has no hostile tenant — revisit if artifacts ever become user-supplied.
  */
 function extractZipEntry(
   zipData: Uint8Array,

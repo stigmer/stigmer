@@ -28,6 +28,11 @@ export function mergeEnvironmentLayers(
   const merged = new Map<string, ExecutionValue>();
 
   for (const env of environments) {
+    // Go skips nil slice elements; the defensive twin for a hole smuggled
+    // past the type system (Go merge_test.go pins this).
+    if (env === undefined) {
+      continue;
+    }
     for (const [key, ev] of Object.entries(env.spec?.data ?? {})) {
       if (ev.value === "") {
         continue;

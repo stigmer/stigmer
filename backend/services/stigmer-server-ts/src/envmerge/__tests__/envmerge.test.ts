@@ -141,6 +141,16 @@ describe("mergeEnvironmentLayers", () => {
     });
   }
 
+  it("undefined environments in the array are skipped (Go nil elements)", () => {
+    const environments = [
+      undefined,
+      makeEnv({ KEY: envVal("val", false) }),
+    ] as unknown as Environment[];
+    const got = mergeEnvironmentLayers(environments, {});
+    expect([...got.keys()]).toEqual(["KEY"]);
+    expect(got.get("KEY")?.value).toBe("val");
+  });
+
   it("explicitly-undefined runtime_env entries are skipped (Go nil entries)", () => {
     const runtimeEnv = { GOOD: execVal("ok", false) } as {
       [key: string]: ExecutionValue;

@@ -140,9 +140,15 @@ describe("cancelInProgressSubAgents", () => {
     expect(subAgents[3]?.completedAt).toBe("preexisting");
   });
 
-  it("is safe on an empty list", () => {
+  it("is safe on an empty list and on undefined elements (Go NilSafe)", () => {
     expect(() =>
       cancelInProgressSubAgents([], "2026-06-05T00:00:00Z"),
+    ).not.toThrow();
+    expect(() =>
+      cancelInProgressSubAgents(
+        [undefined] as unknown as SubAgentExecution[],
+        "2026-06-05T00:00:00Z",
+      ),
     ).not.toThrow();
   });
 });
@@ -679,6 +685,125 @@ describe("lifecycle pipelines", () => {
     expect(result.status?.completedAt).toBe("");
   });
 
+  it("recover proceeds when the previous workflow is already gone (NotFound = success)", async () => {
+    // Go terminate_existing_workflow_step_test.go NotFound_Succeeds: a
+    // FAILED execution's workflow has normally already completed; the
+    // recreate + fresh start must still run.
+    const starts: string[] = [];
+    const createdEcs: ExecutionContext[] = [];
+    const deps: LifecycleDeps = {
+      store,
+      logger: silentLogger,
+      broker: new StreamBroker(silentLogger),
+      engineState: () =>
+        connected(
+          stubConnectedEngine({
+            terminateWorkflow: async (executionId) => {
+              throw new EngineWorkflowNotFoundError(executionId);
+            },
+            startInvokeWorkflow: async (params) => {
+              starts.push(params.executionId);
+            },
+          }),
+        ),
+      executionContextBuilder: stubBuilderDeps({
+        onEcCreate: (ec) => createdEcs.push(ec),
+      }),
+    };
+    const id = await seedExecution({
+      phase: ExecutionPhase.EXECUTION_FAILED,
+      sessionId: "ses_lc",
+      error: "runner exploded",
+    });
+    const result = await recoverExecution(deps, recoverInput(id));
+    expect(createdEcs).toHaveLength(1);
+    expect(starts).toEqual([id]);
+    expect(result.status?.phase).toBe(ExecutionPhase.EXECUTION_IN_PROGRESS);
+  });
+
+  it("recover aborts when the terminate fails with a real error — nothing re-started", async () => {
+    // Go terminate_existing_workflow_step_test.go TerminateFails: the
+    // workflow ID must be terminal before the fresh start reuses it, so a
+    // genuine terminate failure gates the whole recovery.
+    const starts: string[] = [];
+    const createdEcs: ExecutionContext[] = [];
+    const deps: LifecycleDeps = {
+      store,
+      logger: silentLogger,
+      broker: new StreamBroker(silentLogger),
+      engineState: () =>
+        connected(
+          stubConnectedEngine({
+            terminateWorkflow: async () => {
+              throw new Error("temporal unavailable");
+            },
+            startInvokeWorkflow: async (params) => {
+              starts.push(params.executionId);
+            },
+          }),
+        ),
+      executionContextBuilder: stubBuilderDeps({
+        onEcCreate: (ec) => createdEcs.push(ec),
+      }),
+    };
+    const id = await seedExecution({
+      phase: ExecutionPhase.EXECUTION_FAILED,
+      sessionId: "ses_lc",
+      error: "runner exploded",
+    });
+    const err = await expectCode(
+      () => recoverExecution(deps, recoverInput(id)),
+      Code.Internal,
+    );
+    expect(err.rawMessage).toBe(
+      "failed to terminate previous workflow during recovery",
+    );
+    expect(createdEcs).toHaveLength(0);
+    expect(starts).toHaveLength(0);
+    // The execution stays FAILED (recover can be retried).
+    const persisted = await store.getResource(
+      ApiResourceKind.agent_execution,
+      id,
+      AgentExecutionSchema,
+    );
+    expect(persisted.status?.phase).toBe(ExecutionPhase.EXECUTION_FAILED);
+    expect(persisted.status?.error).toBe("runner exploded");
+  });
+
+  it("recover already IN_PROGRESS is idempotent success without touching the engine", async () => {
+    // Go terminate_existing_workflow_step_test.go
+    // SkipsWhenAlreadyInTargetState, driven through the full pipeline.
+    let engineCalls = 0;
+    const deps: LifecycleDeps = {
+      store,
+      logger: silentLogger,
+      broker: new StreamBroker(silentLogger),
+      engineState: () =>
+        connected(
+          stubConnectedEngine({
+            terminateWorkflow: async () => {
+              engineCalls += 1;
+            },
+            startInvokeWorkflow: async () => {
+              engineCalls += 1;
+            },
+          }),
+        ),
+      executionContextBuilder: stubBuilderDeps({
+        onEcCreate: () => {
+          engineCalls += 1;
+        },
+      }),
+    };
+    const id = await seedExecution({
+      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      sessionId: "ses_lc",
+    });
+    const result = await recoverExecution(deps, recoverInput(id));
+    expect(result.status?.phase).toBe(ExecutionPhase.EXECUTION_IN_PROGRESS);
+    expect(engineCalls).toBe(0);
+  });
+
   it("recover with a disconnected engine refuses before any side effect", async () => {
     const deps = lifecycleDeps(DISCONNECTED);
     const id = await seedExecution({
@@ -698,6 +823,86 @@ describe("lifecycle pipelines", () => {
     );
     expect(persisted.status?.phase).toBe(ExecutionPhase.EXECUTION_FAILED);
   });
+});
+
+// The lifecycle persist must go through the atomic store.updateResource,
+// never the whole-resource saveResource it replaced (Go
+// TestLifecyclePersist_UsesUpdateResource): a saveResource here is the
+// regression that lets a concurrent SubmitApproval append be clobbered.
+// The mechanism pin complements the race test below — it pinpoints the
+// regression without depending on interleaving.
+describe("lifecycle persist uses the atomic updateResource", () => {
+  const cases: Array<{
+    name: string;
+    run: (deps: LifecycleDeps, id: string) => Promise<unknown>;
+    fromPhase: ExecutionPhase;
+    wantPhase: ExecutionPhase;
+  }> = [
+    {
+      name: "pause",
+      run: (deps, id) => pauseExecution(deps, pauseInput(id)),
+      fromPhase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      wantPhase: ExecutionPhase.EXECUTION_PAUSED,
+    },
+    {
+      name: "cancel",
+      run: (deps, id) => cancelExecution(deps, cancelInput(id)),
+      fromPhase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      wantPhase: ExecutionPhase.EXECUTION_CANCELLED,
+    },
+    {
+      name: "terminate",
+      run: (deps, id) => terminateExecution(deps, terminateInput(id)),
+      fromPhase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      wantPhase: ExecutionPhase.EXECUTION_TERMINATED,
+    },
+  ];
+
+  for (const tc of cases) {
+    it(tc.name, async () => {
+      let updateCalls = 0;
+      let saveCalls = 0;
+      const countingStore = new Proxy(store, {
+        get(target, prop, receiver) {
+          if (prop === "updateResource") {
+            return (...args: Parameters<Store["updateResource"]>) => {
+              updateCalls += 1;
+              return target.updateResource(...args);
+            };
+          }
+          if (prop === "saveResource") {
+            return (...args: Parameters<Store["saveResource"]>) => {
+              saveCalls += 1;
+              return target.saveResource(...args);
+            };
+          }
+          return Reflect.get(target, prop, receiver);
+        },
+      });
+      const deps: LifecycleDeps = {
+        store: countingStore,
+        logger: silentLogger,
+        broker: new StreamBroker(silentLogger),
+        engineState: () => connected(stubConnectedEngine()),
+        executionContextBuilder: stubBuilderDeps(),
+      };
+
+      // Seed through the RAW store so the seed write is not counted.
+      const id = await seedExecution({ phase: tc.fromPhase });
+
+      await tc.run(deps, id);
+
+      expect(updateCalls, "exactly 1 atomic updateResource").toBe(1);
+      expect(saveCalls, "0 whole-resource saveResource").toBe(0);
+
+      const final = await store.getResource(
+        ApiResourceKind.agent_execution,
+        id,
+        AgentExecutionSchema,
+      );
+      expect(final.status?.phase).toBe(tc.wantPhase);
+    });
+  }
 });
 
 // The append-only invariant on the lifecycle path: a pause and an
