@@ -23,6 +23,12 @@ export default defineConfig({
     exclude: [
       "src/suites-execution/schedule-firing.conformance.test.ts",
       "src/suites-execution/open-computer-use.conformance.test.ts",
+      // EXCLUDED for the same reason as mcpserver-oauth in
+      // vitest.cloud.config.ts: its OAuth handshake setup needs
+      // STIGMER_OAUTH_REDIRECT_URI on the service, which the hermetic
+      // launcher does not yet pass to the JAR. Cloud enablement is an
+      // owner-gated follow-up (CW-1 wrap-up, sub-project 20260824.05).
+      "src/suites-execution/mcpserver-connect.conformance.test.ts",
     ],
     globalSetup: ["./src/harness/global-setup-cloud-execution.ts"],
     env: {

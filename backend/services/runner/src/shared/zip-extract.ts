@@ -33,7 +33,7 @@
  */
 
 import { createInflateRaw } from "node:zlib";
-import { EOCD_MIN_SIZE, parseZipStructure, type ZipStructuralEntry } from "./zip-structure.js";
+import { EOCD_MIN_SIZE, parseZipStructure, type ZipStructuralEntry } from "@stigmer/zip-structure";
 
 // ─── Public API ──────────────────────────────────────────────────────────
 

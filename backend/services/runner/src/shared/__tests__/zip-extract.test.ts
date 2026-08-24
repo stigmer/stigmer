@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { extractZipFileEntries, type ZipFileEntry } from "../zip-extract.js";
-import { buildZip } from "../../__test-utils__/zip-fixtures.js";
+import { buildZip } from "@stigmer/zip-structure/testing";
 
 /**
  * Decode entries for text-content assertions. The production contract is

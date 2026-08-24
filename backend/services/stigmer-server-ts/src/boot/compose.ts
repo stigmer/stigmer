@@ -15,6 +15,8 @@
  * that — the CLI's serverGate TCP probe treats port-bind as readiness.
  * Shutdown is the reverse (grpc lib Stop): NOT_SERVING first, then drain.
  */
+import path from "node:path";
+
 import type { ConnectRouter } from "@connectrpc/connect";
 
 import { HealthCheckResponse_ServingStatus as ServingStatus } from "@stigmer/protos/grpc/health/v1/health_pb";
@@ -39,8 +41,14 @@ import { registerGitHubServices } from "../domain/github/controller.js";
 import { registerMemoryServices } from "../domain/memory/controller.js";
 import { registerOAuthAppServices } from "../domain/oauthapp/controller.js";
 import { registerOrganizationServices } from "../domain/organization/controller.js";
+import { registerMcpServerServices } from "../domain/mcpserver/controller.js";
 import { registerPlatformServices } from "../domain/platform/controller.js";
 import { registerSessionServices } from "../domain/session/controller.js";
+import { registerSkillServices } from "../domain/skill/controller.js";
+import { DEFAULT_SLOT_TTL_MS, MAX_ZIP_SIZE } from "../domain/skill/constants.js";
+import { LocalFileStorage as SkillLocalFileStorage } from "../domain/skill/storage/artifact-storage.js";
+import { newSkillTransferLane } from "../domain/skill/transfer/handler.js";
+import { UploadSlots } from "../domain/skill/transfer/slots.js";
 import { SecretService } from "../encryption/encryption.js";
 import { buildInterceptorChain } from "../pipeline/chain.js";
 import { RunnerAuthService } from "../runnerauth/runnerauth.js";
@@ -54,6 +62,9 @@ import {
 import { ModelRegistryStore } from "../domain/workflow/registry/model-registry-store.js";
 import { InProcessValidator } from "../domain/workflow/validation/validator.js";
 import { registerWorkflowInstanceServices } from "../domain/workflowinstance/controller.js";
+import { registerWorkflowExecutionServices } from "../domain/workflowexecution/controller.js";
+import { ENGINE_DISCONNECTED as WORKFLOW_EXECUTION_ENGINE_DISCONNECTED } from "../domain/workflowexecution/engine.js";
+import { StreamBroker as WorkflowExecutionStreamBroker } from "../domain/workflowexecution/stream-broker.js";
 import { HealthState, registerHealthService } from "../transport/health.js";
 import { createRegistryLanes } from "../transport/registry/lanes.js";
 import { createUnifiedPortServer } from "../transport/server.js";
@@ -79,6 +90,12 @@ export interface ComposedServer {
    * UpdateStatus is the production writer.
    */
   agentExecutionStreamBroker: StreamBroker;
+  /**
+   * The workflowexecution broadcast fabric (exposed for tests and, with
+   * #21, its Temporal worker's broadcasts — Go's GetStreamBroker).
+   * UpdateStatus and the lifecycle RPCs are the production writers.
+   */
+  workflowExecutionStreamBroker: WorkflowExecutionStreamBroker;
   /** Completes wiring, flips SERVING, binds the port; returns the bound port. */
   start(): Promise<number>;
   /** NOT_SERVING first, stop background work, drain connections. */
@@ -164,6 +181,11 @@ export function composeServer(options: ComposeOptions): ComposedServer {
   // status through the in-process client, and those broadcasts must reach
   // externally-connected subscribe streams (Go's GetStreamBroker seam).
   const agentExecutionStreamBroker = new StreamBroker(logger);
+  // The workflowexecution twin (domain-local per that sub-project's
+  // DD-002); #21's activities broadcast through it the same way.
+  const workflowExecutionStreamBroker = new WorkflowExecutionStreamBroker(
+    logger,
+  );
   // The artifact blob store (Go server.go 349: shared by agentexecution
   // attachments, the artifact domain (#13), and skill push (#8)). The r2
   // arm landed with #13; the health probe runs in start(), matching Go's
@@ -189,6 +211,24 @@ export function composeServer(options: ComposeOptions): ComposedServer {
           logger,
         })
       : undefined;
+  // The skill artifact store + transfer lane (Go server.go:318-340). The
+  // store is content-addressed and never-GC at {storagePath}/skills/;
+  // the slots registry wipes {storagePath}/skills-staging at boot (orphans
+  // from a dead process are useless — the registry died with it). On OSS
+  // the lane is ALWAYS configured (Go wires it unconditionally too): the
+  // FailedPrecondition lane-absent arms exist for construction-order
+  // safety, and the capability matrix pins skillArtifactTransferLane=true.
+  const skillArtifactStorage = new SkillLocalFileStorage(config.storagePath);
+  const skillUploadSlots = new UploadSlots(
+    path.join(config.storagePath, "skills-staging"),
+    DEFAULT_SLOT_TTL_MS,
+    MAX_ZIP_SIZE,
+  );
+  const skillTransferLane = newSkillTransferLane(
+    skillUploadSlots,
+    skillArtifactStorage,
+    logger,
+  );
   // The environment runtime-resolution service (#5) — the decrypt-for-
   // execution path the EC builder uses to resolve environment_refs (the
   // RPC surface redacts secret values, oss#405).
@@ -294,6 +334,45 @@ export function composeServer(options: ComposeOptions): ComposedServer {
       logger,
       parentWorkflowLoader: () => requireInProcess().parentWorkflowLoader,
     });
+    registerWorkflowExecutionServices(router, {
+      store,
+      logger,
+      // Permanently disconnected until #21 lands the workflow-execution
+      // orchestrator on #18's worker infra; same provider shape as the
+      // agentexecution seam above.
+      engineState: () => WORKFLOW_EXECUTION_ENGINE_DISCONNECTED,
+      broker: workflowExecutionStreamBroker,
+      workflowInstanceCreator: () =>
+        requireInProcess().workflowExecutionInstanceCreator,
+      approvalForwarder: () =>
+        requireInProcess().workflowExecutionApprovalForwarder,
+      fileDecisionForwarder: () =>
+        requireInProcess().workflowExecutionFileDecisionForwarder,
+      executionContextBuilder: {
+        store,
+        logger,
+        workflowInstanceLoader: () =>
+          requireInProcess().workflowExecutionInstanceLoader,
+        environmentResolution,
+        executionContextCreator: () =>
+          requireInProcess().workflowExecutionContextCreator,
+      },
+    });
+    // CRUD slice only (D4 #9) — Go's constructor takes exactly the store
+    // for this slice; the connect/OAuth deps arrive with #19.
+    registerMcpServerServices(router, { store, logger });
+    registerSkillServices(router, {
+      store,
+      logger,
+      artifactStorage: skillArtifactStorage,
+      // The agentexecution blob store (server.go:362-363) — read side of
+      // pushFromExecutionArtifact.
+      executionArtifactStorage: artifactStorage,
+      transferLane: {
+        slots: skillUploadSlots,
+        baseUrl: config.skillTransferBaseUrl,
+      },
+    });
     // Artifact CRUD shares the ONE blob store with agentexecution's
     // attachment lanes (Go server.go 347–374).
     registerArtifactServices(router, { store, artifactStorage, logger });
@@ -320,6 +399,7 @@ export function composeServer(options: ComposeOptions): ComposedServer {
     interceptors: buildInterceptorChain(logger),
     taskKindRegistryLane: registryLanes.taskKindRegistryLane,
     modelRegistryLane: registryLanes.modelRegistryLane,
+    skillTransferLane,
   });
 
   return {
@@ -327,6 +407,7 @@ export function composeServer(options: ComposeOptions): ComposedServer {
     store,
     runnerAuthService,
     agentExecutionStreamBroker,
+    workflowExecutionStreamBroker,
 
     async start(): Promise<number> {
       // Artifact storage must be reachable and writable before the server

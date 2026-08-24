@@ -30,6 +30,9 @@ export class LocalGoTarget implements TargetProfile {
     // No channel runtime in this edition (T02 §0-b) — the suite pins the
     // documented refusal copy on every runtime lane.
     channelMessaging: false,
+    // The org BYOA lane is UNIMPLEMENTED on OSS by design (stigmer#558) —
+    // the suite pins the three refusals here.
+    orgOAuthAppConfiguration: false,
   };
 
   private server: RunningServer | undefined;

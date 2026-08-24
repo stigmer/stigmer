@@ -12,6 +12,7 @@
 import type { MessageInitShape } from "@bufbuild/protobuf";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { McpServerSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 export const MCPSERVER_API_VERSION = "agentic.stigmer.ai/v1";
 export const MCPSERVER_KIND = "McpServer";
@@ -74,6 +75,56 @@ export interface HttpMcpServerOptions {
   // declared `optional: true` — their values come from the runner at
   // execution time, not from an Environment (the docs guide's rule 2).
   env?: Record<string, { optional?: boolean; isSecret?: boolean; description?: string }>;
+}
+
+export interface OAuthMcpServerOptions {
+  org: string;
+  name: string;
+  // The env var the acquired access token is stored under (auth.target_env_var).
+  targetEnvVar: string;
+  // Base URL of an HTTP MCP server. When omitted the server is a stdio shape
+  // whose command never runs — the right isolation for handshake-only tests.
+  url?: string;
+  // auth.discovery_url — point at a mock authorization server's origin for
+  // the DCR arm (priority: discovery_url > http.url, so this also works on
+  // http servers whose URL serves no metadata).
+  discoveryUrl?: string;
+  // auth.oauth_app_ref slug — selects the vendor arm.
+  oauthAppSlug?: string;
+  // auth.oauth_only — flips the vendor refusal's alternative sentence.
+  oauthOnly?: boolean;
+  // auth.scope_hints — DCR scope selection (fallback: discovered metadata).
+  scopeHints?: string[];
+}
+
+// A complete, valid McpServer with an OAuth auth block — the fixture shape for
+// the connect/OAuth conformance suites (CW-1). Defaults to a stdio server with
+// a command that never executes: the OAuth handshake RPCs never touch the
+// server process itself, so a no-op command isolates them completely. Pass
+// `url` for the connect-time tests that need the runner to reach a real
+// (fixture) MCP endpoint after the handshake.
+export function makeOAuthMcpServer(opts: OAuthMcpServerOptions): MessageInitShape<typeof McpServerSchema> {
+  return {
+    apiVersion: MCPSERVER_API_VERSION,
+    kind: MCPSERVER_KIND,
+    metadata: { name: opts.name, org: opts.org },
+    spec: {
+      description: "OAuth conformance fixture",
+      serverType:
+        opts.url !== undefined
+          ? { case: "http", value: { url: opts.url } }
+          : { case: "stdio", value: { command: "conformance-oauth-noop" } },
+      auth: {
+        targetEnvVar: opts.targetEnvVar,
+        ...(opts.discoveryUrl !== undefined ? { discoveryUrl: opts.discoveryUrl } : {}),
+        ...(opts.oauthAppSlug !== undefined
+          ? { oauthAppRef: { kind: ApiResourceKind.oauth_app, org: opts.org, slug: opts.oauthAppSlug } }
+          : {}),
+        ...(opts.oauthOnly !== undefined ? { oauthOnly: opts.oauthOnly } : {}),
+        ...(opts.scopeHints !== undefined ? { scopeHints: opts.scopeHints } : {}),
+      },
+    },
+  };
 }
 
 // A complete, valid HTTP McpServer resource. Used by the execution suites to

@@ -62,6 +62,10 @@ export class CloudTarget implements TargetProfile {
     // and proactive messaging for real — the OSS refusal pins are gated off
     // here (their full behavior needs live provider workspaces; see target.ts).
     channelMessaging: true,
+    // Cloud implements the org BYOA lane for real; the OSS UNIMPLEMENTED
+    // pins gate off here (full behavior needs a real vendor OAuth app — the
+    // channelMessaging coverage split).
+    orgOAuthAppConfiguration: true,
   };
 
   private grpcBaseUrl: string | undefined;

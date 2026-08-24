@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { ConnectError, Code } from "@connectrpc/connect";
 import { resolveSkills } from "../skill-resolver.js";
-import { buildZip } from "../../../__test-utils__/zip-fixtures.js";
+import { buildZip } from "@stigmer/zip-structure/testing";
 
 /** A server that predates the transfer lane (#675) answers the mint RPC
  * with UNIMPLEMENTED — the default posture for these tests, which keeps

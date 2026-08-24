@@ -12,6 +12,10 @@
 // support/agents.ts convention: this module is validity by construction.
 import type { MessageInitShape } from "@bufbuild/protobuf";
 import { OAuthAppSchema } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
+import type {
+  TokenEndpointAuthMethod,
+  VendorApprovalStatus,
+} from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
 
 export const OAUTHAPP_API_VERSION = "iam.stigmer.ai/v1";
 export const OAUTHAPP_KIND = "OAuthApp";
@@ -33,6 +37,14 @@ export interface OAuthAppOptions {
   authorizationUrl?: string;
   tokenUrl?: string;
   scopes?: string[];
+  // Vendor marketplace approval state; PENDING/REJECTED gate the McpServer
+  // OAuth initiate flow with byte-pinned refusal copy.
+  vendorApprovalStatus?: VendorApprovalStatus;
+  // Non-standard scope query parameter name (e.g. Slack's user_scope).
+  scopeParameterName?: string;
+  // How the client secret is presented at the token endpoint; unset means
+  // HTTP Basic (the backwards-compatible baseline).
+  tokenEndpointAuthMethod?: TokenEndpointAuthMethod;
 }
 
 // A complete, valid OAuthApp resource ready to hand to create/apply/update.
@@ -52,6 +64,15 @@ export function makeOAuthApp(
       authorizationUrl: options.authorizationUrl ?? "https://vendor.example.com/oauth/authorize",
       tokenUrl: options.tokenUrl ?? "https://vendor.example.com/oauth/token",
       scopes: options.scopes ?? ["read", "write"],
+      ...(options.vendorApprovalStatus !== undefined
+        ? { vendorApprovalStatus: options.vendorApprovalStatus }
+        : {}),
+      ...(options.scopeParameterName !== undefined
+        ? { scopeParameterName: options.scopeParameterName }
+        : {}),
+      ...(options.tokenEndpointAuthMethod !== undefined
+        ? { tokenEndpointAuthMethod: options.tokenEndpointAuthMethod }
+        : {}),
     },
   };
 }

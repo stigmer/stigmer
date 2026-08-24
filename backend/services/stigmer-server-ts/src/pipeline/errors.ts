@@ -100,7 +100,19 @@ export function goWrappedStatusError(
   error: ConnectError,
 ): ConnectError {
   return new ConnectError(
-    `${prefix}: rpc error: code = ${GRPC_CODE_NAMES[error.code]} desc = ${error.rawMessage}`,
+    `${prefix}: ${goGrpcErrorText(error)}`,
     error.code,
   );
+}
+
+/**
+ * The `%v` rendering of a grpc-go status error — `rpc error: code = <Name>
+ * desc = <message>` — for sites that embed a downstream error's text under
+ * a DIFFERENT outer code (e.g. workflowexecution's approval forwarding
+ * flattens the child's status to Unavailable but Go's %v still prints the
+ * inner wire text). goWrappedStatusError above is the %w twin that also
+ * keeps the inner code.
+ */
+export function goGrpcErrorText(error: ConnectError): string {
+  return `rpc error: code = ${GRPC_CODE_NAMES[error.code]} desc = ${error.rawMessage}`;
 }

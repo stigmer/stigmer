@@ -28,13 +28,27 @@
 //     deepest domain: 23 RPCs incl. the subscribe stream, the HITL
 //     surfaces, and the engine-gate/lifecycle negatives that pin the
 //     no-Temporal posture until #18).
+//   - workflowexecution — sub-project #20 (sp.workflowexecution-domain;
+//     the Class A engineless surface: the create gate, the CW-7
+//     zero-record reads, the subscribe/subscribeEvents error arms, and
+//     the submitFileDecision negatives. The Class B suites in
+//     suites-execution/ roster with #21's orchestrator).
+//   - mcpserver + agent-mcpserver-references — sub-project #9
+//     (sp.mcpserver-crud; the declarative CRUD slice with the #402
+//     enabledtools validation and the #558 org-OAuth UNIMPLEMENTED pins;
+//     the agent-references suite was split out by sp.agent-family DD-001
+//     and held for this entry, whose McpServer service its accept-path
+//     fixture needs. The connect/OAuth slice arrives with #19).
+//   - skill — sub-project #8 (sp.skill; push-only content-addressed
+//     artifacts, the version-resolution ladder, and the #675 HTTP transfer
+//     lane — skillArtifactTransferLane is honest on this target from this
+//     entry on).
 //   - oauthapp + platform + github + artifact — sub-project #13
 //     (sp.small-domains; the four small remaining Class A domains, incl.
 //     the client-secret contract, the runner-bootstrap shapes, the broker
 //     Layer-1 arms, and the artifact file-server disposition lane). The
-//     oauthapp suite's delete-block test drives McpServer create/delete —
-//     it goes green here the moment #9 (McpServer CRUD) merges, the
-//     recorded merge-order dependency of this entry.
+//     oauthapp suite's delete-block test drives McpServer create/delete,
+//     so it rosters here only after #9 (McpServer CRUD) merged.
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
@@ -51,6 +65,10 @@ export default defineConfig({
       "src/suites/workflowinstance.conformance.test.ts",
       "src/suites/executioncontext.conformance.test.ts",
       "src/suites/agentexecution.conformance.test.ts",
+      "src/suites/workflowexecution.conformance.test.ts",
+      "src/suites/mcpserver.conformance.test.ts",
+      "src/suites/agent-mcpserver-references.conformance.test.ts",
+      "src/suites/skill.conformance.test.ts",
       "src/suites/oauthapp.conformance.test.ts",
       "src/suites/platform.conformance.test.ts",
       "src/suites/github.conformance.test.ts",

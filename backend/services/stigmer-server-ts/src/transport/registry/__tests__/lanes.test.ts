@@ -10,6 +10,10 @@
  * the data now — src/domain/workflow/registry/__tests__/bundled.test.ts
  * (the registry moved home to the domain, workflow-family DD-A).
  */
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
+
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { loadConfig } from "../../../boot/config.js";
@@ -25,10 +29,23 @@ const silentLogger = createLogger({
 let server: ComposedServer;
 let baseUrl: string;
 
+let testDir: string;
+
 beforeAll(async () => {
   // Refresh pinned off, as the conformance harness pins it — the served
   // model registry IS the embedded snapshot, deterministic offline.
-  const config = loadConfig({ STIGMER_MODEL_REGISTRY_REFRESH: "off" });
+  // Every filesystem-touching stage is pinned into a throwaway dir: this
+  // test previously composed against the DEFAULT paths, which meant
+  // opening the developer's real ~/.stigmer/stigmer.db — and with the
+  // skill domain's boot-time staging wipe (#8) it would now also clear
+  // ~/.stigmer/storage/skills-staging. Tests never touch the home dir.
+  testDir = mkdtempSync(path.join(tmpdir(), "registry-lanes-test-"));
+  const config = loadConfig({
+    STIGMER_MODEL_REGISTRY_REFRESH: "off",
+    DB_PATH: path.join(testDir, "stigmer.db"),
+    ARTIFACT_LOCAL_BASE_PATH: path.join(testDir, "artifacts"),
+    STORAGE_PATH: path.join(testDir, "storage"),
+  });
   server = composeServer({
     config,
     logger: silentLogger,
@@ -41,6 +58,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await server.shutdown();
+  rmSync(testDir, { recursive: true, force: true });
 });
 
 const routes = [
