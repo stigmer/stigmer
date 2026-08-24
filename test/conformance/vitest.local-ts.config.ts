@@ -24,6 +24,10 @@
 //     create-only secret-delivery domain. The suite is user-shaped by
 //     design — the runner-token decrypt lane is proven by the domain's
 //     own __tests__/executioncontext.test.ts).
+//   - agentexecution — sub-project #17 (sp.agentexecution-domain; the
+//     deepest domain: 23 RPCs incl. the subscribe stream, the HITL
+//     surfaces, and the engine-gate/lifecycle negatives that pin the
+//     no-Temporal posture until #18).
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
@@ -39,6 +43,7 @@ export default defineConfig({
       "src/suites/workflow.conformance.test.ts",
       "src/suites/workflowinstance.conformance.test.ts",
       "src/suites/executioncontext.conformance.test.ts",
+      "src/suites/agentexecution.conformance.test.ts",
     ],
     globalSetup: ["./src/harness/global-setup-ts.ts"],
     env: {
