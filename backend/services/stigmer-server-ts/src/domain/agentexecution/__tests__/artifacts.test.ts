@@ -335,6 +335,42 @@ describe("getArtifactContent CAS blob integrity", () => {
     expect(Buffer.from(resp.content).toString()).toBe("small body");
   });
 
+  it("a `..` key that clean-resolves into ANOTHER execution's prefix is rejected", async () => {
+    // stigmer/stigmer#858: the raw key starts with the caller's own
+    // prefix, but path-cleaning resolves it into the victim's artifacts —
+    // the ownership check must run on the normalized form. Deliberate
+    // fail-closed divergence from Go until #858 lands there.
+    await seedExecution(execId);
+    const victimBody = Buffer.from("victim's secret");
+    await upload(`artifacts/aex_victim/secret.txt`, victimBody);
+
+    await expectCode(
+      () =>
+        getArtifactContent(
+          deps,
+          create(GetArtifactContentRequestSchema, {
+            executionId: execId,
+            storageKey: `artifacts/${execId}/../aex_victim/secret.txt`,
+          }),
+        ),
+      Code.InvalidArgument,
+    );
+  });
+
+  it("a `..` key that stays within the caller's own prefix remains allowed", async () => {
+    await seedExecution(execId);
+    await upload(`artifacts/${execId}/y.txt`, Buffer.from("mine"));
+
+    const resp = await getArtifactContent(
+      deps,
+      create(GetArtifactContentRequestSchema, {
+        executionId: execId,
+        storageKey: `artifacts/${execId}/x/../y.txt`,
+      }),
+    );
+    expect(Buffer.from(resp.content).toString()).toBe("mine");
+  });
+
   it("unknown execution answers NotFound", async () => {
     await expectCode(
       () =>
@@ -466,6 +502,22 @@ describe("getArtifactDownloadUrl", () => {
             create(GetArtifactDownloadUrlRequestSchema, {
               executionId: attachExecId,
               storageKey: "attachments/01JXOTHERULIDULIDULIDULIDX/other.png",
+            }),
+          ),
+        Code.InvalidArgument,
+      );
+    });
+
+    it("a `..` key clean-resolving into another execution's prefix is rejected (presign)", async () => {
+      // stigmer/stigmer#858, the presign arm.
+      await seedExecution(attachExecId, attachmentKey);
+      await expectCode(
+        () =>
+          getArtifactDownloadUrl(
+            deps,
+            create(GetArtifactDownloadUrlRequestSchema, {
+              executionId: attachExecId,
+              storageKey: `artifacts/${attachExecId}/../aex_victim/secret.txt`,
             }),
           ),
         Code.InvalidArgument,

@@ -22,6 +22,8 @@
  * lands with #13 — the URL is correctly shaped before then, with nothing
  * serving it on THIS server.
  */
+import path from "node:path";
+
 import { ulid } from "ulidx";
 import { unzipSync } from "fflate";
 import { Code, ConnectError } from "@connectrpc/connect";
@@ -212,8 +214,14 @@ export async function getArtifactContent(
     throw invalidArgumentError("storage_key is required");
   }
 
+  // Ownership is checked on the NORMALIZED key and the normalized key is
+  // what gets served: the storage layer path-cleans `.`/`..` segments, so
+  // a raw-key prefix check would let `artifacts/{mine}/../{other}/f` pass
+  // yet resolve into another execution's artifacts. Deliberate fail-closed
+  // divergence from Go until stigmer/stigmer#858 lands there.
+  const storageKey = path.posix.normalize(req.storageKey);
   const expectedPrefix = `artifacts/${req.executionId}/`;
-  if (!req.storageKey.startsWith(expectedPrefix)) {
+  if (!storageKey.startsWith(expectedPrefix)) {
     deps.logger.warn(
       "Storage key does not belong to execution - potential path traversal attempt",
       {
@@ -246,7 +254,7 @@ export async function getArtifactContent(
 
   let data: Uint8Array;
   try {
-    data = await deps.artifactStorage.download(req.storageKey);
+    data = await deps.artifactStorage.download(storageKey);
   } catch (error) {
     throw internalError(error, "failed to read artifact content");
   }
@@ -254,7 +262,7 @@ export async function getArtifactContent(
   // Serve-time integrity for CAS blobs — only over the COMPLETE object
   // (untruncated, no entry extraction); non-CAS keys fail open.
   if (req.entryPath === "" && data.length <= maxBytes) {
-    const reason = casBlobContentMismatch(req.storageKey, data);
+    const reason = casBlobContentMismatch(storageKey, data);
     if (reason !== "") {
       deps.logger.error("CAS blob failed content-address integrity check", {
         executionId: req.executionId,
@@ -288,7 +296,7 @@ export async function getArtifactContent(
     truncated = true;
   }
 
-  const contentKey = req.entryPath !== "" ? req.entryPath : req.storageKey;
+  const contentKey = req.entryPath !== "" ? req.entryPath : storageKey;
   const contentType = detectContentType(contentKey);
 
   deps.logger.info("Successfully read artifact content", {
@@ -401,10 +409,15 @@ export async function getArtifactDownloadUrl(
     );
   }
 
+  // Same normalize-before-check posture as getArtifactContent
+  // (stigmer/stigmer#858); spec.attachments membership also compares the
+  // normalized form — stored attachment keys are always clean, so a
+  // dot-segment-carrying alias of a listed key matches its verbatim row.
+  const storageKey = path.posix.normalize(req.storageKey);
   const expectedPrefix = `artifacts/${req.executionId}/`;
   if (
-    !req.storageKey.startsWith(expectedPrefix) &&
-    !isSpecAttachmentKey(execution, req.storageKey)
+    !storageKey.startsWith(expectedPrefix) &&
+    !isSpecAttachmentKey(execution, storageKey)
   ) {
     deps.logger.warn(
       "Storage key does not belong to execution - potential path traversal attempt",
@@ -423,13 +436,13 @@ export async function getArtifactDownloadUrl(
   // A browser download saves under the key's basename (already validated
   // to be scoped to this execution); empty serves inline.
   const downloadFilename = req.asAttachment
-    ? (req.storageKey.split("/").pop() ?? "")
+    ? (storageKey.split("/").pop() ?? "")
     : "";
 
   let downloadUrl: string;
   try {
     downloadUrl = await deps.artifactStorage.getSignedUrl(
-      req.storageKey,
+      storageKey,
       expiresInMs,
       downloadFilename,
     );
