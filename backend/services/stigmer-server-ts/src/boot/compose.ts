@@ -32,6 +32,7 @@ import { registerEnvironmentServices } from "../domain/environment/controller.js
 import { registerExecutionContextServices } from "../domain/executioncontext/controller.js";
 import { registerMemoryServices } from "../domain/memory/controller.js";
 import { registerOrganizationServices } from "../domain/organization/controller.js";
+import { registerMcpServerServices } from "../domain/mcpserver/controller.js";
 import { registerSessionServices } from "../domain/session/controller.js";
 import { SecretService } from "../encryption/encryption.js";
 import { buildInterceptorChain } from "../pipeline/chain.js";
@@ -305,6 +306,9 @@ export function composeServer(options: ComposeOptions): ComposedServer {
           requireInProcess().workflowExecutionContextCreator,
       },
     });
+    // CRUD slice only (D4 #9) — Go's constructor takes exactly the store
+    // for this slice; the connect/OAuth deps arrive with #19.
+    registerMcpServerServices(router, { store, logger });
   };
   inProcess = createInProcessClients(routes, logger);
 
