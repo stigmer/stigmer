@@ -14,7 +14,7 @@ import {
 } from "../attachment-injector.js";
 import { mockWorkspaceBackend } from "../../../__test-utils__/mock-workspace.js";
 import { makeInMemoryArtifactStorage } from "../../../__test-utils__/fake-artifact-storage.js";
-import { buildZip, type ZipFixtureFile } from "../../../__test-utils__/zip-fixtures.js";
+import { buildZip, type ZipFixtureFile } from "@stigmer/zip-structure/testing";
 import {
   DEEP_AGENT_VISION_PROFILE,
   VisionBudget,
@@ -22,7 +22,8 @@ import {
 
 // ── ZIP Construction Helpers ─────────────────────────────────────────
 //
-// All archives come from the shared real-shape builder (zip-fixtures.ts):
+// All archives come from the shared real-shape builder
+// (@stigmer/zip-structure/testing):
 // local headers, payloads, central directory, EOCD — the only shape real
 // ZIP writers produce and the shape central-directory parsing requires.
 // The record-form helpers below keep ordinary call sites terse; tests that

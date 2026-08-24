@@ -12,7 +12,7 @@ import {
 } from "../skill-writer.js";
 import type { Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import { buildZip } from "../../__test-utils__/zip-fixtures.js";
+import { buildZip } from "@stigmer/zip-structure/testing";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────
 

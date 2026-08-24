@@ -7,7 +7,7 @@
  *
  * Security model: attachments are untrusted user uploads. ZIP archives are
  * parsed from the central directory — the format's authoritative index —
- * via the shared structural layer (shared/zip-structure.ts; issue #567,
+ * via the shared structural layer (@stigmer/zip-structure; issue #567,
  * which killed this module's local-header walk: it silently truncated
  * stored streaming entries and rejected Go-default archives outright).
  * Every entry is validated for path traversal, zip bombs, and format
@@ -48,7 +48,7 @@ import {
   EOCD_MIN_SIZE,
   parseZipStructure,
   type ZipStructuralEntry,
-} from "../../shared/zip-structure.js";
+} from "@stigmer/zip-structure";
 
 // ── Constants ────────────────────────────────────────────────────────
 

@@ -1,24 +1,27 @@
 /**
- * Shared ZIP fixture builder for runner unit tests.
+ * Byte-level ZIP fixture builder for the structural parser's consumers'
+ * tests (exported as `@stigmer/zip-structure/testing`). Moved here from the
+ * runner's src/__test-utils__/zip-fixtures.ts when the lib was extracted —
+ * the lib's own tests, the runner's, and the TS server's skill-gate tests
+ * all craft archives with it, and one builder keeps their fixture shapes
+ * from drifting apart.
  *
  * Emits complete, real-shaped archives — local file headers (optionally
  * streaming-style, the Go stdlib writer's default), payloads, central
  * directory, and EOCD — because that is the only shape that can reach the
  * runner: both editions' skill push gates validate artifacts with
- * central-directory-based readers (see zip-extract.ts's module doc and
- * design record 017). Earlier fixtures emitted local headers only, a
- * shape no real ZIP writer produces, and were coupled to the old parser's
- * front-to-back walk.
+ * central-directory-based readers (see zip-structure.ts's module doc).
+ * Earlier fixtures emitted local headers only, a shape no real ZIP writer
+ * produces, and were coupled to the old parser's front-to-back walk.
  *
  * Mirrors the conformance suite's `zipFilesStreaming()`
  * (test/conformance/src/support/skills.ts) so unit fixtures and
  * cross-edition fixtures share one shape.
- *
- * Lives in src/__test-utils__/ so `tsc --noEmit` covers it while
- * tsconfig.build.json keeps it out of dist/.
  */
 
 import { deflateRawSync } from "node:zlib";
+
+import { crc32 } from "./zip-structure.js";
 
 export interface ZipFixtureFile {
   name: string;
@@ -40,6 +43,17 @@ export interface ZipFixtureFile {
    * exists to reject (issue #567).
    */
   declaredUncompressedSize?: number;
+  /**
+   * The central directory's "version made by" field. Defaults to 20
+   * (MS-DOS creator, the historical fixture value). Set the high byte to
+   * 3 (`0x0300 | 20`) to model a Unix creator, which makes readers
+   * interpret `externalAttributes`' high 16 bits as a POSIX mode — how
+   * symlink and device entries are represented (the server's
+   * safearchive-parity pre-filter fixtures need this).
+   */
+  versionMadeBy?: number;
+  /** The central directory's external file attributes field. Defaults to 0. */
+  externalAttributes?: number;
 }
 
 export interface ZipFixtureOptions {
@@ -64,6 +78,8 @@ export function buildZip(files: ZipFixtureFile[], options?: ZipFixtureOptions): 
     crc: number;
     flags: number;
     method: number;
+    versionMadeBy: number;
+    externalAttributes: number;
     localHeaderOffset: number;
   }
   const written: WrittenEntry[] = [];
@@ -80,6 +96,8 @@ export function buildZip(files: ZipFixtureFile[], options?: ZipFixtureOptions): 
       crc: crc32(contentBytes),
       flags: file.streaming ? 0x0008 : 0,
       method: deflated ? 8 : 0,
+      versionMadeBy: file.versionMadeBy ?? 20,
+      externalAttributes: file.externalAttributes ?? 0,
       localHeaderOffset: out.length,
     };
     written.push(entry);
@@ -113,7 +131,7 @@ export function buildZip(files: ZipFixtureFile[], options?: ZipFixtureOptions): 
   const centralDirectoryOffset = out.length;
   for (const entry of written) {
     out.u32(0x02014b50); // central directory record signature
-    out.u16(20); // version made by
+    out.u16(entry.versionMadeBy);
     out.u16(20); // version needed to extract
     out.u16(entry.flags);
     out.u16(entry.method);
@@ -127,7 +145,7 @@ export function buildZip(files: ZipFixtureFile[], options?: ZipFixtureOptions): 
     out.u16(0); // comment length
     out.u16(0); // disk number start
     out.u16(0); // internal attributes
-    out.u32(0); // external attributes
+    out.u32(entry.externalAttributes);
     out.u32(entry.localHeaderOffset);
     out.raw(entry.nameBytes);
   }
@@ -182,25 +200,6 @@ class ByteWriter {
   }
 }
 
-// Standard CRC-32 (IEEE 802.3, the ZIP checksum), table-driven so fixtures
-// at the injector's 100 MB limit stay cheap to build. Semantically identical
-// to the conformance suite's inline bit-loop helper.
-const CRC_TABLE = (() => {
-  const table = new Uint32Array(256);
-  for (let n = 0; n < 256; n++) {
-    let c = n;
-    for (let bit = 0; bit < 8; bit++) {
-      c = (c >>> 1) ^ (0xedb88320 & -(c & 1));
-    }
-    table[n] = c;
-  }
-  return table;
-})();
-
-function crc32(data: Uint8Array): number {
-  let crc = 0xffffffff;
-  for (let i = 0; i < data.length; i++) {
-    crc = (crc >>> 8) ^ CRC_TABLE[(crc ^ data[i]!) & 0xff]!;
-  }
-  return (crc ^ 0xffffffff) >>> 0;
-}
+// CRC-32 comes from the structural module (one implementation for the
+// parser's consumers and this builder; semantically identical to the
+// conformance suite's inline bit-loop helper).

@@ -150,8 +150,9 @@ jobs:
             pkg.version = process.env.VERSION;
             pkg.dependencies['@stigmer/protos'] = process.env.VERSION;
             pkg.dependencies['@stigmer/temporal-codecs'] = process.env.VERSION;
+            pkg.dependencies['@stigmer/zip-structure'] = process.env.VERSION;
             fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + '\n');
-            console.log('stamped @stigmer/runner@' + pkg.version + ' (protos: ' + pkg.dependencies['@stigmer/protos'] + ', temporal-codecs: ' + pkg.dependencies['@stigmer/temporal-codecs'] + ')');
+            console.log('stamped @stigmer/runner@' + pkg.version + ' (protos: ' + pkg.dependencies['@stigmer/protos'] + ', temporal-codecs: ' + pkg.dependencies['@stigmer/temporal-codecs'] + ', zip-structure: ' + pkg.dependencies['@stigmer/zip-structure'] + ')');
           "
 
       - name: Verify published file list
@@ -164,7 +165,7 @@ jobs:
         env:
           VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
-          for pkg in @stigmer/protos @stigmer/temporal-codecs; do
+          for pkg in @stigmer/protos @stigmer/temporal-codecs @stigmer/zip-structure; do
             echo "Confirming $pkg@$VERSION is queryable on npm..."
             found=""
             for i in $(seq 1 30); do

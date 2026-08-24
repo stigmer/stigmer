@@ -9,7 +9,7 @@ import {
   downloadArtifact,
   writeSkillMount,
 } from "../skill-mount.js";
-import { buildZip } from "../../__test-utils__/zip-fixtures.js";
+import { buildZip } from "@stigmer/zip-structure/testing";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────
 
