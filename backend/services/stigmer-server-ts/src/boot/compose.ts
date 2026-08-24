@@ -46,6 +46,8 @@ import {
 import { ModelRegistryStore } from "../domain/workflow/registry/model-registry-store.js";
 import { InProcessValidator } from "../domain/workflow/validation/validator.js";
 import { registerWorkflowInstanceServices } from "../domain/workflowinstance/controller.js";
+import { registerWorkflowExecutionServices } from "../domain/workflowexecution/controller.js";
+import { ENGINE_DISCONNECTED as WORKFLOW_EXECUTION_ENGINE_DISCONNECTED } from "../domain/workflowexecution/engine.js";
 import { HealthState, registerHealthService } from "../transport/health.js";
 import { createRegistryLanes } from "../transport/registry/lanes.js";
 import { createUnifiedPortServer } from "../transport/server.js";
@@ -266,6 +268,14 @@ export function composeServer(options: ComposeOptions): ComposedServer {
       store,
       logger,
       parentWorkflowLoader: () => requireInProcess().parentWorkflowLoader,
+    });
+    registerWorkflowExecutionServices(router, {
+      store,
+      logger,
+      // Permanently disconnected until #21 lands the workflow-execution
+      // orchestrator on #18's worker infra; same provider shape as the
+      // agentexecution seam above.
+      engineState: () => WORKFLOW_EXECUTION_ENGINE_DISCONNECTED,
     });
   };
   inProcess = createInProcessClients(routes, logger);
