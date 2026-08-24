@@ -2,6 +2,11 @@
  * Policy-free structural ZIP parsing: end-of-central-directory (EOCD)
  * location plus central-directory walk, producing one record per entry.
  *
+ * Lived in the runner (src/shared/zip-structure.ts) until the TS server's
+ * skill push gate became its second consumer; extracted to backend/libs/ts/
+ * per the program's shared-library rule (a library moves here when a second
+ * consumer exists — @stigmer/temporal-codecs is the precedent).
+ *
  * Parsing is *central-directory-based* — never a front-to-back walk of
  * local file headers. This is a correctness decision, not a style choice
  * (issues #450 and #567): local headers of streaming entries
@@ -17,15 +22,18 @@
  * a structural failure means, which entries are acceptable, how payloads
  * are decoded — belongs to the consumers, and they differ on purpose:
  *
- *   - shared/zip-extract.ts (skill artifacts): structural failure is
- *     NON-FATAL — both editions' push gates validated every artifact
+ *   - runner shared/zip-extract.ts (skill artifacts): structural failure
+ *     is NON-FATAL — both editions' push gates validated every artifact
  *     with a central-directory-based reader before storage, so a defect
  *     here can only be a truncated or corrupted download.
- *   - execute-deep-agent/attachment-injector.ts (user attachments):
- *     structural failure is FAIL-HARD — the input is an untrusted
- *     upload and nothing upstream vouched for it.
+ *   - runner execute-deep-agent/attachment-injector.ts (user
+ *     attachments): structural failure is FAIL-HARD — the input is an
+ *     untrusted upload and nothing upstream vouched for it.
+ *   - stigmer-server-ts src/domain/skill/storage/ (the push gate):
+ *     FAIL-HARD, plus a safearchive-parity entry pre-filter decoded from
+ *     the raw creator/attribute fields exposed below.
  *
- * ZIP64 is deliberately unsupported: both consumers cap input far below
+ * ZIP64 is deliberately unsupported: every consumer caps input far below
  * every ZIP64 threshold (skill push gates: 100MB / 10,000 files;
  * attachment uploads: 10MB).
  *
@@ -49,6 +57,29 @@ export interface ZipStructuralEntry {
    * against the actual decompressed output.
    */
   readonly uncompressedSize: number;
+  /** The central directory's declared compressed size (the payload length). */
+  readonly compressedSize: number;
+  /**
+   * The central directory's CRC-32 of the uncompressed content, verbatim.
+   * Raw fact for consumers that verify payload integrity after
+   * decompression (Go's archive/zip checks it on every read); consumers
+   * that trust their input ignore it.
+   */
+  readonly crc32: number;
+  /**
+   * The central directory's "version made by" field, verbatim. The high
+   * byte identifies the creator OS (0 = MS-DOS/FAT, 3 = Unix, 19 = macOS),
+   * which decides how `externalAttributes` is interpreted. Raw facts for
+   * policy layers that decode entry file modes; most consumers ignore it.
+   */
+  readonly versionMadeBy: number;
+  /**
+   * The central directory's external file attributes field, verbatim.
+   * Unix creators store the POSIX mode in the high 16 bits; MS-DOS
+   * creators store FAT attribute bits in the low byte. Interpretation is
+   * policy — see the server's safearchive-parity pre-filter.
+   */
+  readonly externalAttributes: number;
   /** The entry's raw payload slice (a view, not a copy) of the archive buffer. */
   readonly compressedData: Uint8Array;
 }
@@ -88,12 +119,15 @@ export function parseZipStructure(data: Uint8Array): ZipStructuralEntry[] {
       throw new Error(`invalid central directory record at offset ${offset}`);
     }
 
+    const versionMadeBy = view.getUint16(offset + 4, true);
     const compressionMethod = view.getUint16(offset + 10, true);
+    const crc32 = view.getUint32(offset + 16, true);
     const compressedSize = view.getUint32(offset + 20, true);
     const uncompressedSize = view.getUint32(offset + 24, true);
     const fileNameLength = view.getUint16(offset + 28, true);
     const extraFieldLength = view.getUint16(offset + 30, true);
     const commentLength = view.getUint16(offset + 32, true);
+    const externalAttributes = view.getUint32(offset + 38, true);
     const localHeaderOffset = view.getUint32(offset + 42, true);
 
     const fileName = new TextDecoder().decode(
@@ -114,6 +148,10 @@ export function parseZipStructure(data: Uint8Array): ZipStructuralEntry[] {
       isDirectory: fileName.endsWith("/"),
       compressionMethod,
       uncompressedSize,
+      compressedSize,
+      crc32,
+      versionMadeBy,
+      externalAttributes,
       compressedData: data.subarray(dataStart, dataStart + compressedSize),
     });
 
@@ -159,6 +197,35 @@ function findEndOfCentralDirectory(data: Uint8Array, view: DataView): EndOfCentr
   }
 
   throw new Error("no end-of-central-directory record found");
+}
+
+// ─── CRC-32 ──────────────────────────────────────────────────────────────
+
+// Standard CRC-32 (IEEE 802.3, the ZIP checksum), table-driven so callers
+// hashing payloads at the consumers' 100 MB caps stay cheap.
+const CRC_TABLE = (() => {
+  const table = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let bit = 0; bit < 8; bit++) {
+      c = (c >>> 1) ^ (0xedb88320 & -(c & 1));
+    }
+    table[n] = c;
+  }
+  return table;
+})();
+
+/**
+ * CRC-32 of `data` — the ZIP checksum. Exported for consumers that verify
+ * decompressed payloads against an entry's declared `crc32` (Go's
+ * archive/zip does this on every read) and for the fixture builder.
+ */
+export function crc32(data: Uint8Array): number {
+  let crc = 0xffffffff;
+  for (let i = 0; i < data.length; i++) {
+    crc = (crc >>> 8) ^ CRC_TABLE[(crc ^ data[i]!) & 0xff]!;
+  }
+  return (crc ^ 0xffffffff) >>> 0;
 }
 
 /** Resolve where an entry's payload begins, from its local file header. */

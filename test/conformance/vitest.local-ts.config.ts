@@ -33,13 +33,23 @@
 //     zero-record reads, the subscribe/subscribeEvents error arms, and
 //     the submitFileDecision negatives. The Class B suites in
 //     suites-execution/ roster with #21's orchestrator).
+//   - mcpserver + agent-mcpserver-references — sub-project #9
+//     (sp.mcpserver-crud; the declarative CRUD slice with the #402
+//     enabledtools validation and the #558 org-OAuth UNIMPLEMENTED pins;
+//     the agent-references suite was split out by sp.agent-family DD-001
+//     and held for this entry, whose McpServer service its accept-path
+//     fixture needs. The connect/OAuth slice arrives with #19).
+//   - skill — sub-project #8 (sp.skill; push-only content-addressed
+//     artifacts, the version-resolution ladder, and the #675 HTTP transfer
+//     lane — skillArtifactTransferLane is honest on this target from this
+//     entry on).
 //   - agentshare + agentchannel + channelapp — sub-project #12
 //     (sp.sharing-and-channels; the sharing/channel family: the anonymous
 //     getSharedProfile lane + cross-org contract, the four channel
 //     registration blocks with the three cloud-only refusal postures, and
 //     the per-field secret rotation. The agentshare suite's cross-org
-//     blocker test creates a McpServer, so this roster entry lands after
-//     entry #9 (McpServer CRUD) merges).
+//     blocker test creates a McpServer, so this entry rostered after
+//     entry #9 merged — the ratified merge-order ruling).
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
@@ -57,6 +67,9 @@ export default defineConfig({
       "src/suites/executioncontext.conformance.test.ts",
       "src/suites/agentexecution.conformance.test.ts",
       "src/suites/workflowexecution.conformance.test.ts",
+      "src/suites/mcpserver.conformance.test.ts",
+      "src/suites/agent-mcpserver-references.conformance.test.ts",
+      "src/suites/skill.conformance.test.ts",
       "src/suites/agentshare.conformance.test.ts",
       "src/suites/agentchannel.conformance.test.ts",
       "src/suites/channelapp.conformance.test.ts",
