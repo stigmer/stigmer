@@ -21,9 +21,12 @@ import type { SubmitWorkflowApprovalInput } from "@stigmer/protos/ai/stigmer/age
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { create } from "@bufbuild/protobuf";
 
+import { ConnectError } from "@connectrpc/connect";
+
 import type { Logger } from "../../boot/logger.js";
 import {
   failedPreconditionError,
+  goGrpcErrorText,
   internalError,
   invalidArgumentError,
   notFoundError,
@@ -141,9 +144,17 @@ export async function submitApproval(
             }),
           );
         } catch (error) {
-          // Flattened to Unavailable — Go's %v embeds the child error text.
+          // Flattened to Unavailable; Go's %v embeds the child's grpc-go
+          // wire text ("rpc error: code = ... desc = ..."), byte-matched
+          // here via goGrpcErrorText.
+          const embedded =
+            error instanceof ConnectError
+              ? goGrpcErrorText(error)
+              : error instanceof Error
+                ? error.message
+                : String(error);
           throw unavailableError(
-            `failed to forward approval to child agent: ${error instanceof Error ? error.message : String(error)}`,
+            `failed to forward approval to child agent: ${embedded}`,
           );
         }
       },

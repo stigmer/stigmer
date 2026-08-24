@@ -1054,7 +1054,8 @@ describe("submitApproval over the wire (forwarding through the REAL in-process e
       },
     );
     // The forward goes through the REAL in-process agentexecution
-    // controller; the missing child's NotFound is flattened.
+    // controller; the missing child's NotFound is flattened to
+    // Unavailable, with Go's %v grpc-go wire text embedded byte-for-byte.
     const err = await expectCode(
       () =>
         command.submitApproval({
@@ -1064,8 +1065,8 @@ describe("submitApproval over the wire (forwarding through the REAL in-process e
         }),
       Code.Unavailable,
     );
-    expect(err.rawMessage).toContain(
-      "failed to forward approval to child agent:",
+    expect(err.rawMessage).toBe(
+      "failed to forward approval to child agent: rpc error: code = NotFound desc = agent_execution not found: aexec_child_missing",
     );
   });
 });
