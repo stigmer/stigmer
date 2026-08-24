@@ -56,6 +56,9 @@ export class LocalGoExecutionTarget implements TargetProfile {
     // provisions is the agent/workflow execution engine, not a channel
     // delivery runtime — the refusal posture is identical to local-go.
     channelMessaging: false,
+    // The org BYOA lane is UNIMPLEMENTED on OSS by design (stigmer#558) —
+    // the suite pins the three refusals here.
+    orgOAuthAppConfiguration: false,
   };
 
   private temporal: RunningTemporal | undefined;
