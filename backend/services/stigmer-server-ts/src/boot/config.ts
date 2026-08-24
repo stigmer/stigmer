@@ -41,6 +41,20 @@ export interface ServerConfig {
    */
   readonly operatorEmail: string;
   readonly operatorName: string;
+  /**
+   * Artifact blob storage (attachments + execution outputs; Go
+   * config.ArtifactStorage). "local" is the OSS default; "r2" boot-fails
+   * on this server until #13 (the owner-ratified deferral).
+   */
+  readonly artifactStorageType: string;
+  /** The artifact root — shared with the runner's LOCAL_ARTIFACT_PATH (#285). */
+  readonly artifactLocalBasePath: string;
+  /**
+   * Base URL for local artifact download URLs — the port+1 artifact file
+   * server (#13); no trailing path segment (the storage key carries the
+   * full path).
+   */
+  readonly artifactLocalServeUrl: string;
 }
 
 /** Default unified port; the CLI's env contract pins the same value. */
@@ -51,8 +65,22 @@ export const DEFAULT_MODEL_REGISTRY_UPSTREAM = "https://api.stigmer.ai";
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
   const { operatorEmail, operatorName } = loadOperatorIdentity(env);
+  const grpcPort = envInt(env, "GRPC_PORT", DEFAULT_GRPC_PORT);
+  // Go: ARTIFACT_HTTP_PORT defaults to the gRPC port + 1.
+  const artifactHttpPort = envInt(env, "ARTIFACT_HTTP_PORT", grpcPort + 1);
   return {
-    grpcPort: envInt(env, "GRPC_PORT", DEFAULT_GRPC_PORT),
+    grpcPort,
+    artifactStorageType: envString(env, "ARTIFACT_STORAGE_TYPE", "local"),
+    artifactLocalBasePath: envString(
+      env,
+      "ARTIFACT_LOCAL_BASE_PATH",
+      defaultArtifactPath(),
+    ),
+    artifactLocalServeUrl: envString(
+      env,
+      "ARTIFACT_LOCAL_SERVE_URL",
+      `http://localhost:${artifactHttpPort}`,
+    ),
     logLevel: envString(env, "LOG_LEVEL", "info"),
     env: envString(env, "ENV", "local"),
     modelRegistryUpstream: envString(
@@ -76,6 +104,15 @@ function defaultDbPath(): string {
     return path.join(os.homedir(), ".stigmer", "stigmer.db");
   } catch {
     return "./stigmer.db";
+  }
+}
+
+/** Go defaultArtifactPath: ~/.stigmer/data/artifacts, ./artifacts without a home. */
+function defaultArtifactPath(): string {
+  try {
+    return path.join(os.homedir(), ".stigmer", "data", "artifacts");
+  } catch {
+    return "./artifacts";
   }
 }
 

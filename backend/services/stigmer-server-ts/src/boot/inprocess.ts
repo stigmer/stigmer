@@ -21,12 +21,32 @@ import { create } from "@bufbuild/protobuf";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import { AgentIdSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
 import { AgentInstanceCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/command_pb";
+import { AgentInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/query_pb";
+import { AgentInstanceIdSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/io_pb";
+import { EnvironmentCommandController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/command_pb";
+import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
+import { ExecutionContextCommandController } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/command_pb";
+import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
+import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
+import { SessionIdSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 import { WorkflowQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/query_pb";
 import { WorkflowIdSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/io_pb";
 import { WorkflowInstanceCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/command_pb";
 
 import type { AgentInstanceApplier } from "../domain/agent/steps.js";
 import type { ParentAgentLoader } from "../domain/agentinstance/steps.js";
+import type {
+  AgentLoader,
+  ExecutionAgentInstanceCreator,
+  SessionCreator,
+} from "../domain/agentexecution/create-steps.js";
+import type {
+  AgentInstanceLoader,
+  EnvironmentReader,
+  ExecutionContextCreator,
+  SessionLoader,
+} from "../domain/agentexecution/create-execution-context-step.js";
+import type { ManagedEnvironmentClient } from "../domain/mcpserver/oauth/managed-env.js";
 import type { AgentInstanceCreator } from "../domain/session/steps.js";
 import type { WorkflowInstanceCreator } from "../domain/workflow/steps.js";
 import type { ParentWorkflowLoader } from "../domain/workflowinstance/steps.js";
@@ -40,6 +60,22 @@ export interface InProcessClients {
   readonly parentAgentLoader: ParentAgentLoader;
   readonly workflowInstanceCreator: WorkflowInstanceCreator;
   readonly parentWorkflowLoader: ParentWorkflowLoader;
+  // The agentexecution create/EC-builder edges (server.go 565–566: the
+  // controller's agent/agentinstance/session/environment/executioncontext
+  // in-process clients).
+  readonly executionAgentLoader: AgentLoader;
+  readonly executionAgentInstanceLoader: AgentInstanceLoader;
+  readonly executionAgentInstanceCreator: ExecutionAgentInstanceCreator;
+  readonly executionSessionLoader: SessionLoader;
+  readonly executionSessionCreator: SessionCreator;
+  /**
+   * Reads for the EC builder plus the secret rewrite the OAuth pre-flight
+   * refresh needs (ManagedEnvironmentClient) — one surface, every call
+   * through the full chain.
+   */
+  readonly executionEnvironmentReader: EnvironmentReader &
+    ManagedEnvironmentClient;
+  readonly executionContextCreator: ExecutionContextCreator;
 }
 
 /**
@@ -59,7 +95,22 @@ export function createInProcessClients(
     AgentInstanceCommandController,
     transport,
   );
+  const agentInstanceQuery = createClient(
+    AgentInstanceQueryController,
+    transport,
+  );
   const agentQuery = createClient(AgentQueryController, transport);
+  const sessionCommand = createClient(SessionCommandController, transport);
+  const sessionQuery = createClient(SessionQueryController, transport);
+  const environmentCommand = createClient(
+    EnvironmentCommandController,
+    transport,
+  );
+  const environmentQuery = createClient(EnvironmentQueryController, transport);
+  const executionContextCommand = createClient(
+    ExecutionContextCommandController,
+    transport,
+  );
   const workflowInstanceCommand = createClient(
     WorkflowInstanceCommandController,
     transport,
@@ -98,6 +149,36 @@ export function createInProcessClients(
     parentWorkflowLoader: {
       get: (workflowId) =>
         workflowQuery.get(create(WorkflowIdSchema, { value: workflowId })),
+    },
+    // The agentexecution edges. CreateAsSystem semantics per the agent
+    // edge above: create under the process-global operator identity.
+    executionAgentLoader: {
+      get: (agentId) =>
+        agentQuery.get(create(AgentIdSchema, { value: agentId })),
+    },
+    executionAgentInstanceLoader: {
+      get: (instanceId) =>
+        agentInstanceQuery.get(
+          create(AgentInstanceIdSchema, { value: instanceId }),
+        ),
+    },
+    executionAgentInstanceCreator: {
+      createAsSystem: (instance) => agentInstanceCommand.create(instance),
+    },
+    executionSessionLoader: {
+      get: (sessionId) =>
+        sessionQuery.get(create(SessionIdSchema, { value: sessionId })),
+    },
+    executionSessionCreator: {
+      create: (session) => sessionCommand.create(session),
+    },
+    executionEnvironmentReader: {
+      list: (request) => environmentQuery.list(request),
+      getSecretValue: (input) => environmentQuery.getSecretValue(input),
+      updateVariables: (request) => environmentCommand.updateVariables(request),
+    },
+    executionContextCreator: {
+      create: (ec) => executionContextCommand.create(ec),
     },
   };
 }

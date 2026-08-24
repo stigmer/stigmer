@@ -20,6 +20,7 @@ import {
   newEnsureEngineAvailableStep,
 } from "../engine.js";
 import type { ExecutionEngineState } from "../engine.js";
+import { stubConnectedEngine } from "./engine-stub.js";
 
 function contextFor(): RequestContext<typeof AgentExecutionSchema> {
   return new RequestContext(
@@ -44,7 +45,10 @@ describe("the execution-engine seam", () => {
   });
 
   it("passes while connected", () => {
-    const connected: ExecutionEngineState = { connected: true, engine: { signalApprovalGateResolved: async () => {} } };
+    const connected: ExecutionEngineState = {
+      connected: true,
+      engine: stubConnectedEngine(),
+    };
     const step = newEnsureEngineAvailableStep(() => connected);
     expect(() => step.execute(contextFor())).not.toThrow();
   });
@@ -55,7 +59,7 @@ describe("the execution-engine seam", () => {
 
     expect(() => step.execute(contextFor())).toThrow(ConnectError);
 
-    state = { connected: true, engine: { signalApprovalGateResolved: async () => {} } };
+    state = { connected: true, engine: stubConnectedEngine() };
     expect(() => step.execute(contextFor())).not.toThrow();
   });
 });

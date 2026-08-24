@@ -4,14 +4,6 @@
  * controller implements both services; this module mirrors that with one
  * deps object and one registration function.
  *
- * Ported in phases within sub-project #17 (D4). This phase carries the
- * read/write surfaces without engine coupling: get/list/listBySession,
- * the update and delete pipelines, the four usage reports and the
- * dashboard summary. The create pipeline, updateStatus merge engine,
- * approval/file-review ledgers, subscribe stream, attachments, and
- * lifecycle RPCs land in the following phases of the same PR; ConnectRPC
- * answers Unimplemented for them until their phase.
- *
  * Pipeline per RPC mirrors the Go step chains character-for-character.
  * Proven by agentexecution.conformance.test.ts
  * (CONFORMANCE_TARGET=local-ts) and __tests__/.
@@ -65,13 +57,51 @@ import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import type { Store } from "../../store/interface.js";
 
+import type { ArtifactStorage } from "../../artifactstorage/artifact-storage.js";
+import type { ModelRegistryStore } from "../workflow/registry/model-registry-store.js";
+
+import {
+  getArtifactContent,
+  getArtifactDownloadUrl,
+  uploadAttachment,
+} from "./artifacts.js";
+import type {
+  AgentLoaderProvider,
+  ExecutionAgentInstanceCreatorProvider,
+  SessionCreatorProvider,
+} from "./create-steps.js";
+import {
+  newComposeDeclaredPreferencesStep,
+  newComposeRecalledMemoriesStep,
+  newCreateDefaultInstanceIfNeededStep,
+  newCreateSessionIfNeededStep,
+  newEnsureSessionOrAgentResolvedStep,
+  newProcessAttachmentsStep,
+  newResolveDefaultAgentStep,
+  newSetInitialPhaseStep,
+  newStartWorkflowStep,
+} from "./create-steps.js";
+import type { ExecutionContextBuilderDeps } from "./create-execution-context-step.js";
+import { newCreateExecutionContextStep } from "./create-execution-context-step.js";
 import type { ExecutionEngineStateProvider } from "./engine.js";
+import { newEnsureEngineAvailableStep } from "./engine.js";
+import {
+  cancelExecution,
+  pauseExecution,
+  recoverExecution,
+  resumeExecution,
+  terminateExecution,
+} from "./lifecycle.js";
 import { agentExecutionSearchExtractor } from "./search-extractor.js";
 import type { StreamBroker } from "./stream-broker.js";
 import { submitApproval } from "./submit-approval.js";
 import { submitFileDecision } from "./submit-file-decision.js";
 import { subscribeExecution } from "./subscribe.js";
 import { updateStatus } from "./update-status.js";
+import { newValidateServiceTierStep } from "./validate-service-tier.js";
+import { newValidateThinkingModeStep } from "./validate-thinking-mode.js";
+import { newValidateVisibilityStep } from "../../pipeline/steps/validate-visibility.js";
+import { newBuildNewStateStep } from "../../pipeline/steps/defaults.js";
 import {
   EXECUTION_LIST_KEY,
   newApplyPhaseFilterStep,
@@ -102,9 +132,27 @@ export interface AgentExecutionControllerDeps {
   /**
    * The execution-engine seam (engine.ts): permanently disconnected until
    * #18's TemporalManager flips it. Consumed by the engine gate, the
-   * lifecycle RPCs, and the two HITL signal steps.
+   * lifecycle RPCs, the create/recover workflow starts, and the two HITL
+   * signal steps.
    */
   readonly engineState: ExecutionEngineStateProvider;
+  /**
+   * The bundled+refreshed model registry (the composition root's single
+   * instance, DD-004) — the #357/#772 tier and thinking-mode validators
+   * read it at create.
+   */
+  readonly modelRegistry: ModelRegistryStore;
+  /** The shared artifact blob store (attachments + artifact reads). */
+  readonly artifactStorage: ArtifactStorage;
+  /**
+   * The in-process edges the create pipeline consumes (lazy providers —
+   * the routes↔clients cycle resolves at request time, DD-002).
+   */
+  readonly agentLoader: AgentLoaderProvider;
+  readonly agentInstanceCreator: ExecutionAgentInstanceCreatorProvider;
+  readonly sessionCreator: SessionCreatorProvider;
+  /** The shared EC-builder deps (create's step 16 + recover's recreate). */
+  readonly executionContextBuilder: ExecutionContextBuilderDeps;
 }
 
 /** Registers both agentexecution services on the router (routes stage). */
@@ -112,11 +160,30 @@ export function registerAgentExecutionServices(
   router: ConnectRouter,
   deps: AgentExecutionControllerDeps,
 ): void {
+  const lifecycleDeps = {
+    store: deps.store,
+    logger: deps.logger,
+    broker: deps.broker,
+    engineState: deps.engineState,
+    executionContextBuilder: deps.executionContextBuilder,
+  };
+  const artifactDeps = {
+    store: deps.store,
+    logger: deps.logger,
+    artifactStorage: deps.artifactStorage,
+  };
   router.service(AgentExecutionCommandController, {
+    create: (execution, ctx) => createExecution(deps, execution, ctx),
     update: (execution, ctx) => update(deps, execution, ctx),
     updateStatus: (input) => updateStatus(deps, input),
     submitApproval: (input) => submitApproval(deps, input),
     submitFileDecision: (input) => submitFileDecision(deps, input),
+    cancel: (input) => cancelExecution(lifecycleDeps, input),
+    terminate: (input) => terminateExecution(lifecycleDeps, input),
+    recover: (input) => recoverExecution(lifecycleDeps, input),
+    pause: (input) => pauseExecution(lifecycleDeps, input),
+    resume: (input) => resumeExecution(lifecycleDeps, input),
+    uploadAttachment: (req) => uploadAttachment(artifactDeps, req),
     delete: (id, ctx) => deleteExecution(deps, id, ctx),
   });
   router.service(AgentExecutionQueryController, {
@@ -124,12 +191,88 @@ export function registerAgentExecutionServices(
     list: (req, ctx) => list(deps, req, ctx),
     listBySession: (req, ctx) => listBySession(deps, req, ctx),
     subscribe: (id, ctx) => subscribeExecution(deps, id, ctx),
+    getArtifactDownloadUrl: (req) => getArtifactDownloadUrl(artifactDeps, req),
+    getArtifactContent: (req) => getArtifactContent(artifactDeps, req),
     getExecutionUsageReport: (req) => getExecutionUsageReport(deps, req),
     getSessionUsageReport: (req) => getSessionUsageReport(deps, req),
     getAgentUsageReport: (req) => getAgentUsageReport(deps, req),
     getOrgUsageReport: (req) => getOrgUsageReport(deps, req),
     getExecutionSummary: (req) => getExecutionSummary(deps, req),
   });
+}
+
+/**
+ * Create — create.go buildCreatePipeline, step-for-step: validation
+ * (proto → visibility → tier #357 → thinking #772) → target resolution
+ * (default agent → invariant guard) → the standard build → the engine
+ * gate (fail fast BEFORE the first side effect, so a down engine orphans
+ * nothing) → the side-effecting steps (default instance, session
+ * bootstrap, preference/memory snapshots, initial phase, the
+ * ExecutionContext with merged env, attachment validation) → Persist →
+ * IndexSearch → StartWorkflow (after persist; a start failure marks the
+ * execution FAILED, recoverable via Recover).
+ */
+async function createExecution(
+  deps: AgentExecutionControllerDeps,
+  execution: AgentExecution,
+  ctx: HandlerContext,
+): Promise<AgentExecution> {
+  const reqCtx = new RequestContext(
+    AgentExecutionSchema,
+    execution,
+    kindOf(ctx),
+  );
+  await newPipeline<typeof AgentExecutionSchema>(
+    "agent-execution-create",
+    deps.logger,
+  )
+    .addStep(newValidateProtoStep())
+    .addStep(newValidateVisibilityStep())
+    .addStep(newValidateServiceTierStep(deps.modelRegistry))
+    .addStep(newValidateThinkingModeStep(deps.modelRegistry))
+    .addStep(newResolveDefaultAgentStep(deps.store, deps.logger))
+    .addStep(newEnsureSessionOrAgentResolvedStep(deps.logger))
+    .addStep(newResolveSlugStep())
+    .addStep(newBuildNewStateStep())
+    .addStep(newNormalizeReferencesStep())
+    .addStep(newEnsureEngineAvailableStep(deps.engineState))
+    .addStep(
+      newCreateDefaultInstanceIfNeededStep({
+        store: deps.store,
+        logger: deps.logger,
+        agentLoader: deps.agentLoader,
+        agentInstanceCreator: deps.agentInstanceCreator,
+      }),
+    )
+    .addStep(
+      newCreateSessionIfNeededStep({
+        logger: deps.logger,
+        sessionCreator: deps.sessionCreator,
+      }),
+    )
+    .addStep(newComposeDeclaredPreferencesStep(deps.store, deps.logger))
+    .addStep(newComposeRecalledMemoriesStep(deps.store, deps.logger))
+    .addStep(newSetInitialPhaseStep())
+    .addStep(newCreateExecutionContextStep(deps.executionContextBuilder))
+    .addStep(newProcessAttachmentsStep(deps.logger))
+    .addStep(newPersistStep(deps.store))
+    .addStep(
+      newIndexSearchStep(
+        deps.store,
+        agentExecutionSearchExtractor,
+        deps.logger,
+      ),
+    )
+    .addStep(
+      newStartWorkflowStep({
+        store: deps.store,
+        logger: deps.logger,
+        engineState: deps.engineState,
+      }),
+    )
+    .build()
+    .execute(reqCtx);
+  return reqCtx.newState;
 }
 
 function kindOf(ctx: HandlerContext): ApiResourceKind {

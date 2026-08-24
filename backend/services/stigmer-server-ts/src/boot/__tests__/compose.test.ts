@@ -35,9 +35,12 @@ const silentLogger = createLogger({
 function compose() {
   // Each composed server gets a throwaway database — the storage stage
   // opens DB_PATH for real (never the developer's ~/.stigmer).
+  const testDir = mkdtempSync(path.join(tmpdir(), "compose-test-"));
   const config = loadConfig({
     STIGMER_MODEL_REGISTRY_REFRESH: "off",
-    DB_PATH: path.join(mkdtempSync(path.join(tmpdir(), "compose-test-")), "stigmer.db"),
+    DB_PATH: path.join(testDir, "stigmer.db"),
+    // Keep the artifact store inside the test dir (never ~/.stigmer).
+    ARTIFACT_LOCAL_BASE_PATH: path.join(testDir, "artifacts"),
   });
   return composeServer({
     config,

@@ -46,6 +46,60 @@ export interface ConnectedExecutionEngine {
    * then reconciles the stale execution to FAILED.
    */
   signalApprovalGateResolved(executionId: string): Promise<void>;
+
+  /**
+   * Starts the invoke-agent-execution workflow (Go's dispatch resolution
+   * — ResolveActivityTaskQueue over the session + config — plus
+   * workflowCreator.Create, both temporal-slice code that lands with
+   * #18). Throws EngineDispatchError for dispatch-resolution failures
+   * (the create step maps them to FailedPrecondition, exactly Go's
+   * boundary); any other throw marks the execution FAILED.
+   */
+  startInvokeWorkflow(input: StartInvokeWorkflowInput): Promise<void>;
+
+  /**
+   * The lifecycle client operations (Go temporalClient.SignalWorkflow /
+   * CancelWorkflow / TerminateWorkflow against the byte-pinned workflow
+   * id). Each throws EngineWorkflowNotFoundError when the workflow no
+   * longer exists — the lifecycle steps treat that as
+   * warn-and-proceed (the local state update still applies).
+   */
+  signalPause(executionId: string, reason: string): Promise<void>;
+  signalResume(executionId: string): Promise<void>;
+  cancelWorkflow(executionId: string): Promise<void>;
+  terminateWorkflow(executionId: string, reason: string): Promise<void>;
+}
+
+/**
+ * The slim workflow-start input (Go
+ * workflows.InvokeAgentExecutionWorkflowInput plus the dispatch
+ * coordinates the engine resolves): only orchestration coordinates —
+ * secrets (runtime_env) were already consumed into the ExecutionContext.
+ */
+export interface StartInvokeWorkflowInput {
+  readonly executionId: string;
+  readonly sessionId: string;
+  readonly agentId: string;
+  readonly callbackToken: Uint8Array;
+  readonly autoApproveAll: boolean;
+  readonly parentWorkflowId: string;
+  /**
+   * The spec's activity_task_queue override; "" lets the engine
+   * re-resolve routing from the session (the recover path always passes
+   * "" — see StartFreshWorkflowStep's rationale).
+   */
+  readonly activityTaskQueueOverride: string;
+}
+
+/**
+ * Dispatch-resolution failure sentinel: the create/recover steps map it
+ * to FailedPrecondition (Go's ResolveActivityTaskQueue error boundary).
+ */
+export class EngineDispatchError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "EngineDispatchError";
+  }
 }
 
 /**

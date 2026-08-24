@@ -65,6 +65,7 @@ import type {
 import { EngineWorkflowNotFoundError } from "../engine.js";
 import { aggregateDigest, fileDigest } from "../filereview/digest.js";
 import { submitApproval } from "../submit-approval.js";
+import { stubConnectedEngine } from "./engine-stub.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -92,6 +93,9 @@ beforeAll(async () => {
     config: loadConfig({
       STIGMER_MODEL_REGISTRY_REFRESH: "off",
       DB_PATH: path.join(dir, "stigmer.db"),
+      // Keep the artifact store inside the test dir — the default
+      // resolves to ~/.stigmer, which tests must never touch.
+      ARTIFACT_LOCAL_BASE_PATH: path.join(dir, "artifacts"),
     }),
     logger: silentLogger,
     portOverride: 0,
@@ -983,11 +987,13 @@ describe("the engine-connected signal arms (stubbed engine, direct calls)", () =
       }),
     );
     const signalled: string[] = [];
-    const deps = stubDeps({
-      signalApprovalGateResolved: async (executionId) => {
-        signalled.push(executionId);
-      },
-    });
+    const deps = stubDeps(
+      stubConnectedEngine({
+        signalApprovalGateResolved: async (executionId) => {
+          signalled.push(executionId);
+        },
+      }),
+    );
 
     // First decision: a different-class call stays gated → no signal.
     await submitApproval(deps,
@@ -1012,11 +1018,13 @@ describe("the engine-connected signal arms (stubbed engine, direct calls)", () =
 
   it("a vanished workflow reconciles the execution to FAILED with settled tool calls (pinned copy)", async () => {
     const id = await seed(gatedSeed({ toolCalls: [{ id: "tc-1", name: "Write" }] }));
-    const deps = stubDeps({
-      signalApprovalGateResolved: async (executionId) => {
-        throw new EngineWorkflowNotFoundError(executionId);
-      },
-    });
+    const deps = stubDeps(
+      stubConnectedEngine({
+        signalApprovalGateResolved: async (executionId) => {
+          throw new EngineWorkflowNotFoundError(executionId);
+        },
+      }),
+    );
 
     const err = await expectCode(
       () =>
