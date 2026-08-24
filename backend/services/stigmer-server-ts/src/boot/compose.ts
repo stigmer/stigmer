@@ -289,6 +289,21 @@ export function composeServer(options: ComposeOptions): ComposedServer {
       // agentexecution seam above.
       engineState: () => WORKFLOW_EXECUTION_ENGINE_DISCONNECTED,
       broker: workflowExecutionStreamBroker,
+      workflowInstanceCreator: () =>
+        requireInProcess().workflowExecutionInstanceCreator,
+      approvalForwarder: () =>
+        requireInProcess().workflowExecutionApprovalForwarder,
+      fileDecisionForwarder: () =>
+        requireInProcess().workflowExecutionFileDecisionForwarder,
+      executionContextBuilder: {
+        store,
+        logger,
+        workflowInstanceLoader: () =>
+          requireInProcess().workflowExecutionInstanceLoader,
+        environmentResolution,
+        executionContextCreator: () =>
+          requireInProcess().workflowExecutionContextCreator,
+      },
     });
   };
   inProcess = createInProcessClients(routes, logger);

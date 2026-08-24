@@ -41,6 +41,9 @@ import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import { newBuildUpdateStateStep } from "../../pipeline/steps/build-update-state.js";
+import { newBuildNewStateStep } from "../../pipeline/steps/defaults.js";
+import { newCheckDuplicateStep } from "../../pipeline/steps/duplicate.js";
+import { newValidateVisibilityStep } from "../../pipeline/steps/validate-visibility.js";
 import {
   newDeleteResourceStep,
   newExtractResourceIdStep,
@@ -64,12 +67,41 @@ import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import type { Store } from "../../store/interface.js";
 
+import type {
+  AgentExecutionApprovalForwarderProvider,
+} from "./submit-approval.js";
+import { submitApproval } from "./submit-approval.js";
+import type {
+  AgentExecutionFileDecisionForwarderProvider,
+} from "./submit-file-decision.js";
+import { submitFileDecision } from "./submit-file-decision.js";
+import { submitWorkflowTaskApproval } from "./submit-workflow-task-approval.js";
+import type { ExecutionWorkflowInstanceCreatorProvider } from "./create-steps.js";
+import {
+  newCreateDefaultInstanceIfNeededStep,
+  newSetInitialPhaseStep,
+  newStartWorkflowStep,
+  newValidateWorkflowOrInstanceStep,
+} from "./create-steps.js";
+import type { WorkflowExecutionContextBuilderDeps } from "./create-execution-context-step.js";
+import { newCreateExecutionContextStep } from "./create-execution-context-step.js";
 import type { WorkflowExecutionEngineStateProvider } from "./engine.js";
+import { newEnsureEngineAvailableStep } from "./engine.js";
 import {
   applyFilterCriteria,
   applyLegacyPhaseFilter,
   applySortField,
 } from "./execution-filter.js";
+import {
+  cancelExecution,
+  pauseExecution,
+  recoverExecution,
+  resumeExecution,
+  terminateExecution,
+} from "./lifecycle.js";
+import { newNormalizeWorkflowRefStep } from "./normalize-workflow-ref-step.js";
+import { newPinWorkflowVersionStep } from "./pin-workflow-version-step.js";
+import { sendSignal } from "./send-signal.js";
 import { getEventLog } from "./get-event-log.js";
 import { getExecutionSummary } from "./get-execution-summary.js";
 import { listPendingApprovals } from "./list-pending-approvals.js";
@@ -97,6 +129,17 @@ export interface WorkflowExecutionControllerDeps {
    * constructor + GetStreamBroker for #21's Temporal activities).
    */
   readonly broker: StreamBroker;
+  /**
+   * The in-process edges (lazy providers — the routes↔clients cycle
+   * resolves at request time): the default-instance creator, the two
+   * HITL forwarding edges into the agentexecution controller, and the
+   * EC-builder loaders.
+   */
+  readonly workflowInstanceCreator: ExecutionWorkflowInstanceCreatorProvider;
+  readonly approvalForwarder: AgentExecutionApprovalForwarderProvider;
+  readonly fileDecisionForwarder: AgentExecutionFileDecisionForwarderProvider;
+  /** The shared EC-builder deps (create's step 12 + recover's recreate). */
+  readonly executionContextBuilder: WorkflowExecutionContextBuilderDeps;
 }
 
 /** Registers both workflowexecution services on the router (routes stage). */
@@ -104,10 +147,28 @@ export function registerWorkflowExecutionServices(
   router: ConnectRouter,
   deps: WorkflowExecutionControllerDeps,
 ): void {
+  const lifecycleDeps = {
+    store: deps.store,
+    logger: deps.logger,
+    broker: deps.broker,
+    engineState: deps.engineState,
+    executionContextBuilder: deps.executionContextBuilder,
+  };
   router.service(WorkflowExecutionCommandController, {
+    create: (execution, ctx) => createExecution(deps, execution, ctx),
     update: (execution, ctx) => update(deps, execution, ctx),
     updateStatus: (input) => updateStatus(deps, input),
+    submitApproval: (input) => submitApproval(deps, input),
+    submitFileDecision: (input) => submitFileDecision(deps, input),
+    submitWorkflowTaskApproval: (input) =>
+      submitWorkflowTaskApproval(deps, input),
     delete: (id, ctx) => deleteExecution(deps, id, ctx),
+    sendSignal: (input) => sendSignal(deps, input),
+    cancel: (input) => cancelExecution(lifecycleDeps, input),
+    terminate: (input) => terminateExecution(lifecycleDeps, input),
+    recover: (input) => recoverExecution(lifecycleDeps, input),
+    pause: (input) => pauseExecution(lifecycleDeps, input),
+    resume: (input) => resumeExecution(lifecycleDeps, input),
   });
   router.service(WorkflowExecutionQueryController, {
     get: (id, ctx) => get(deps, id, ctx),
@@ -119,6 +180,71 @@ export function registerWorkflowExecutionServices(
     getExecutionSummary: (req) => getExecutionSummary(deps, req),
     listPendingApprovals: (req) => listPendingApprovals(deps, req),
   });
+}
+
+/**
+ * Create — create.go buildCreatePipeline, step-for-step (the numbered
+ * 15-step chain): validation (proto → visibility → slug →
+ * workflow-or-instance presence, the #196 InvalidArgument contrast) →
+ * the ENGINE GATE at its pinned position (before every side effect — a
+ * down engine orphans nothing; Go's unit test pins that it precedes even
+ * the workflow lookup) → default-instance resolution → the standard
+ * build → PENDING phase → workflow-ref denormalization → version pin →
+ * the ExecutionContext with merged env (runtime_env consumed and
+ * cleared) → Persist → IndexSearch → StartWorkflow (after persist; a
+ * start failure marks the execution FAILED, recoverable via Recover).
+ */
+async function createExecution(
+  deps: WorkflowExecutionControllerDeps,
+  execution: WorkflowExecution,
+  ctx: HandlerContext,
+): Promise<WorkflowExecution> {
+  const reqCtx = new RequestContext(
+    WorkflowExecutionSchema,
+    execution,
+    kindOf(ctx),
+  );
+  await newPipeline<typeof WorkflowExecutionSchema>(
+    "workflowexecution-create",
+    deps.logger,
+  )
+    .addStep(newValidateProtoStep())
+    .addStep(newValidateVisibilityStep())
+    .addStep(newResolveSlugStep())
+    .addStep(newValidateWorkflowOrInstanceStep())
+    .addStep(newEnsureEngineAvailableStep(deps.engineState))
+    .addStep(
+      newCreateDefaultInstanceIfNeededStep({
+        store: deps.store,
+        logger: deps.logger,
+        workflowInstanceCreator: deps.workflowInstanceCreator,
+      }),
+    )
+    .addStep(newCheckDuplicateStep(deps.store))
+    .addStep(newBuildNewStateStep())
+    .addStep(newNormalizeReferencesStep())
+    .addStep(newSetInitialPhaseStep())
+    .addStep(newNormalizeWorkflowRefStep(deps.store, deps.logger))
+    .addStep(newPinWorkflowVersionStep(deps.store, deps.logger))
+    .addStep(newCreateExecutionContextStep(deps.executionContextBuilder))
+    .addStep(newPersistStep(deps.store))
+    .addStep(
+      newIndexSearchStep(
+        deps.store,
+        workflowExecutionSearchExtractor,
+        deps.logger,
+      ),
+    )
+    .addStep(
+      newStartWorkflowStep({
+        store: deps.store,
+        logger: deps.logger,
+        engineState: deps.engineState,
+      }),
+    )
+    .build()
+    .execute(reqCtx);
+  return reqCtx.newState;
 }
 
 function kindOf(ctx: HandlerContext): ApiResourceKind {

@@ -36,14 +36,29 @@ import type { Client, Transport } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
+import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import {
+  ApprovalAction,
+  DiffCompleteness,
+  ExecutionPhase as AgentExecutionPhase,
+  FileChangeKind,
+  FileDecisionAction,
+  FileDecisionScope,
+  FileReviewEventType,
+} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { CapturedFileChangeSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
+import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import {
   WorkflowExecutionSchema,
+  WorkflowPendingApprovalSchema,
+  WorkflowPendingFileReviewSchema,
   WorkflowTaskSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import { WorkflowExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/command_pb";
 import {
   ExecutionPhase,
   WorkflowTaskStatus,
+  WorkflowTaskType,
 } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
 import {
   WorkflowEventType,
@@ -60,6 +75,10 @@ import { loadConfig } from "../../../boot/config.js";
 import { composeServer } from "../../../boot/compose.js";
 import type { ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
+import {
+  aggregateDigest,
+  fileDigest,
+} from "../../agentexecution/filereview/digest.js";
 import type { WorkflowExecutionEventRecord } from "../../../store/interface.js";
 
 const silentLogger = createLogger({
@@ -190,7 +209,7 @@ async function expectCode(
   } catch (error) {
     expect(error).toBeInstanceOf(ConnectError);
     const connectError = error as ConnectError;
-    expect(connectError.code).toBe(code);
+    expect(connectError.code, connectError.rawMessage).toBe(code);
     return connectError;
   }
   throw new Error(`expected code ${Code[code]}, call succeeded`);
@@ -800,6 +819,529 @@ describe("subscribeEvents over the wire (the first server-side poll loop)", () =
       types.push(event.eventType);
     }
     expect(types).toEqual([WorkflowEventType.task_started]);
+  });
+});
+
+describe("create over the wire (the engine gate, F7 regression)", () => {
+  async function seedWorkflow(slug: string): Promise<string> {
+    const id = `wf_${slug.replaceAll("-", "_")}`;
+    await server.store.saveResource(
+      ApiResourceKind.workflow,
+      id,
+      WorkflowSchema,
+      create(WorkflowSchema, {
+        apiVersion: API_VERSION,
+        kind: "Workflow",
+        metadata: { id, name: slug, slug, org: ORG },
+      }),
+    );
+    return id;
+  }
+
+  it("valid create refuses Unavailable at the gate, BEFORE any side effect", async () => {
+    // A real workflow, so the refusal is provably the gate and not an
+    // earlier miss.
+    const workflowId = await seedWorkflow("gate-flow");
+    const before = (
+      await server.store.listResources(ApiResourceKind.workflow_execution)
+    ).length;
+
+    const err = await expectCode(
+      () =>
+        command.create({
+          apiVersion: API_VERSION,
+          kind: KIND,
+          metadata: { name: "Gate Execution", org: ORG },
+          spec: { workflowId },
+        }),
+      Code.Unavailable,
+    );
+    expect(err.rawMessage).toBe(
+      "The execution engine is temporarily unavailable. Please try again shortly.",
+    );
+
+    // Zero trace: no execution record, no ExecutionContext.
+    const after = (
+      await server.store.listResources(ApiResourceKind.workflow_execution)
+    ).length;
+    expect(after, "nothing persisted behind the gate").toBe(before);
+  });
+
+  it("the gate takes precedence over the workflow lookup", async () => {
+    // A nonexistent workflow_id would answer NotFound if resolution ran
+    // first; the gate fires before any lookup (Go's precedence pin).
+    const err = await expectCode(
+      () =>
+        command.create({
+          apiVersion: API_VERSION,
+          kind: KIND,
+          metadata: { name: "Gate Precedence", org: ORG },
+          spec: { workflowId: "wf_does_not_exist" },
+        }),
+      Code.Unavailable,
+    );
+    expect(err.rawMessage).toBe(
+      "The execution engine is temporarily unavailable. Please try again shortly.",
+    );
+  });
+
+  it("neither reference refuses InvalidArgument BEFORE the gate (#196)", async () => {
+    const err = await expectCode(
+      () =>
+        command.create({
+          apiVersion: API_VERSION,
+          kind: KIND,
+          metadata: { name: "No Refs", org: ORG },
+          spec: {},
+        }),
+      Code.InvalidArgument,
+    );
+    expect(err.rawMessage).toBe(
+      "either workflow_id or workflow_instance_id must be provided",
+    );
+  });
+});
+
+describe("lifecycle over the wire (engineless postures)", () => {
+  it("cancel: unknown NotFound; live FailedPrecondition; terminal-target idempotent", async () => {
+    await expectCode(
+      () => command.cancel({ id: "wfexec_missing" }),
+      Code.NotFound,
+    );
+
+    const running = await seed(
+      seedInput({ phase: ExecutionPhase.EXECUTION_IN_PROGRESS }),
+    );
+    const engineless = await expectCode(
+      () => command.cancel({ id: running }),
+      Code.FailedPrecondition,
+    );
+    expect(engineless.rawMessage).toBe("Temporal is not available");
+
+    const cancelled = await seed(
+      seedInput({ phase: ExecutionPhase.EXECUTION_CANCELLED }),
+    );
+    const result = await command.cancel({ id: cancelled });
+    expect(result.status?.phase).toBe(ExecutionPhase.EXECUTION_CANCELLED);
+  });
+
+  it("pause refuses terminal phases with the pinned copy", async () => {
+    const completed = await seed(
+      seedInput({ phase: ExecutionPhase.EXECUTION_COMPLETED }),
+    );
+    const err = await expectCode(
+      () => command.pause({ id: completed }),
+      Code.FailedPrecondition,
+    );
+    expect(err.rawMessage).toBe(
+      "cannot pause execution in phase EXECUTION_COMPLETED; only PENDING or IN_PROGRESS can be paused",
+    );
+  });
+
+  it("recover refuses non-FAILED phases", async () => {
+    const completed = await seed(
+      seedInput({ phase: ExecutionPhase.EXECUTION_COMPLETED }),
+    );
+    const err = await expectCode(
+      () => command.recover({ id: completed }),
+      Code.FailedPrecondition,
+    );
+    expect(err.rawMessage).toBe(
+      "cannot recover execution in phase EXECUTION_COMPLETED; only FAILED executions can be recovered",
+    );
+  });
+});
+
+describe("sendSignal over the wire (engineless)", () => {
+  it("unknown NotFound; live execution refuses at the creator seam", async () => {
+    await expectCode(
+      () =>
+        command.sendSignal({
+          executionId: "wfexec_missing",
+          signalName: "sig",
+        }),
+      Code.NotFound,
+    );
+    const running = await seed(
+      seedInput({ phase: ExecutionPhase.EXECUTION_IN_PROGRESS }),
+    );
+    const err = await expectCode(
+      () => command.sendSignal({ executionId: running, signalName: "sig" }),
+      Code.FailedPrecondition,
+    );
+    expect(err.rawMessage).toBe("workflow creator is not available");
+  });
+});
+
+describe("submitApproval over the wire (forwarding through the REAL in-process edge)", () => {
+  it("no pending approvals refuses FailedPrecondition", async () => {
+    const id = await seed(
+      seedInput({ phase: ExecutionPhase.EXECUTION_IN_PROGRESS }),
+    );
+    const err = await expectCode(
+      () =>
+        command.submitApproval({
+          executionId: id,
+          toolCallId: "tc_x",
+          action: ApprovalAction.APPROVE,
+        }),
+      Code.FailedPrecondition,
+    );
+    expect(err.rawMessage).toBe(
+      `workflow execution ${id} has no pending approvals`,
+    );
+  });
+
+  it("tool_call_id mismatch refuses InvalidArgument; empty child FailedPrecondition", async () => {
+    const withGate = await seed(
+      seedInput({ phase: ExecutionPhase.EXECUTION_IN_PROGRESS }),
+    );
+    await server.store.updateResource(
+      ApiResourceKind.workflow_execution,
+      withGate,
+      WorkflowExecutionSchema,
+      (execution) => {
+        execution.status!.pendingApprovals = [
+          create(WorkflowPendingApprovalSchema, {
+            approval: { toolCallId: "tc_real", toolName: "deploy" },
+            childAgentExecutionId: "",
+          }),
+        ];
+      },
+    );
+    const mismatch = await expectCode(
+      () =>
+        command.submitApproval({
+          executionId: withGate,
+          toolCallId: "tc_wrong",
+          action: ApprovalAction.APPROVE,
+        }),
+      Code.InvalidArgument,
+    );
+    expect(mismatch.rawMessage).toBe(
+      `tool_call_id tc_wrong not found in pending_approvals for workflow execution ${withGate}`,
+    );
+
+    const noChild = await expectCode(
+      () =>
+        command.submitApproval({
+          executionId: withGate,
+          toolCallId: "tc_real",
+          action: ApprovalAction.APPROVE,
+        }),
+      Code.FailedPrecondition,
+    );
+    expect(noChild.rawMessage).toBe(
+      `workflow execution ${withGate} has no child agent execution ID for tool_call tc_real - approval must be submitted directly to the agent`,
+    );
+  });
+
+  it("forwarding failures FLATTEN to Unavailable (the approval asymmetry)", async () => {
+    const id = await seed(
+      seedInput({ phase: ExecutionPhase.EXECUTION_IN_PROGRESS }),
+    );
+    await server.store.updateResource(
+      ApiResourceKind.workflow_execution,
+      id,
+      WorkflowExecutionSchema,
+      (execution) => {
+        execution.status!.pendingApprovals = [
+          create(WorkflowPendingApprovalSchema, {
+            approval: { toolCallId: "tc_fwd", toolName: "deploy" },
+            childAgentExecutionId: "aexec_child_missing",
+          }),
+        ];
+      },
+    );
+    // The forward goes through the REAL in-process agentexecution
+    // controller; the missing child's NotFound is flattened.
+    const err = await expectCode(
+      () =>
+        command.submitApproval({
+          executionId: id,
+          toolCallId: "tc_fwd",
+          action: ApprovalAction.APPROVE,
+        }),
+      Code.Unavailable,
+    );
+    expect(err.rawMessage).toContain(
+      "failed to forward approval to child agent:",
+    );
+  });
+});
+
+describe("submitFileDecision over the wire (propagation through the REAL in-process edge)", () => {
+  function buildChange() {
+    const change = create(CapturedFileChangeSchema, {
+      id: "fc-1",
+      pathBefore: "src/a.ts",
+      pathAfter: "src/a.ts",
+      kind: FileChangeKind.MODIFY,
+      beforeSha256: "a".repeat(64),
+      afterSha256: "b".repeat(64),
+      diffComplete: true,
+    });
+    change.fileDigest = fileDigest(change);
+    return change;
+  }
+
+  async function seedChildWithLedger(): Promise<{
+    childId: string;
+    changeSetId: string;
+    aggregate: string;
+  }> {
+    counter += 1;
+    const childId = `aexec_wf_child_${counter}`;
+    const changeSetId = `cs_wf_${counter}`;
+    const change = buildChange();
+    const aggregate = aggregateDigest([change]);
+    await server.store.saveResource(
+      ApiResourceKind.agent_execution,
+      childId,
+      AgentExecutionSchema,
+      create(AgentExecutionSchema, {
+        apiVersion: API_VERSION,
+        kind: "AgentExecution",
+        metadata: {
+          id: childId,
+          name: childId.replaceAll("_", "-"),
+          slug: childId.replaceAll("_", "-"),
+          org: ORG,
+        },
+        spec: { message: "Say hello." },
+        status: {
+          phase: AgentExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+          fileReviewEventStream: {
+            executionId: childId,
+            events: [
+              {
+                eventId: `${changeSetId}:${changeSetId}:BASELINE`,
+                changeSetId,
+                eventType: FileReviewEventType.BASELINE_CAPTURED,
+                actor: "runner",
+                payload: {
+                  case: "baselineCaptured",
+                  value: { turnId: "turn-1", harnessId: "harness-1" },
+                },
+              },
+              {
+                eventId: `${changeSetId}:${changeSetId}:CANDIDATE`,
+                changeSetId,
+                eventType: FileReviewEventType.CANDIDATE_CAPTURED,
+                actor: "runner",
+                payload: {
+                  case: "candidateCaptured",
+                  value: {
+                    changes: [change],
+                    aggregateDigest: aggregate,
+                    diffCompleteness: DiffCompleteness.COMPLETE,
+                  },
+                },
+              },
+            ],
+          },
+        },
+      }),
+    );
+    return { childId, changeSetId, aggregate };
+  }
+
+  async function seedParentSurfacing(
+    childId: string,
+    changeSetId: string,
+  ): Promise<string> {
+    const parentId = await seed(
+      seedInput({ phase: ExecutionPhase.EXECUTION_IN_PROGRESS }),
+    );
+    await server.store.updateResource(
+      ApiResourceKind.workflow_execution,
+      parentId,
+      WorkflowExecutionSchema,
+      (execution) => {
+        execution.status!.pendingFileReviews = [
+          create(WorkflowPendingFileReviewSchema, {
+            childAgentExecutionId: childId,
+            changeSetId: [changeSetId],
+          }),
+        ];
+      },
+    );
+    return parentId;
+  }
+
+  it("refuses an unsurfaced (child, change_set) pair", async () => {
+    const id = await seed(
+      seedInput({ phase: ExecutionPhase.EXECUTION_IN_PROGRESS }),
+    );
+    const noReviews = await expectCode(
+      () =>
+        command.submitFileDecision({
+          executionId: id,
+          childAgentExecutionId: "aexec_x",
+          changeSetId: "cs_x",
+          scope: FileDecisionScope.CHANGE_SET,
+          action: FileDecisionAction.APPROVE,
+          expectedDigest: "0".repeat(64),
+        }),
+      Code.FailedPrecondition,
+    );
+    expect(noReviews.rawMessage).toBe(
+      `workflow execution ${id} has no pending file reviews`,
+    );
+
+    const { childId, changeSetId } = await seedChildWithLedger();
+    const parentId = await seedParentSurfacing(childId, changeSetId);
+    const wrongPair = await expectCode(
+      () =>
+        command.submitFileDecision({
+          executionId: parentId,
+          childAgentExecutionId: childId,
+          changeSetId: "cs_unsurfaced",
+          scope: FileDecisionScope.CHANGE_SET,
+          action: FileDecisionAction.APPROVE,
+          expectedDigest: "0".repeat(64),
+        }),
+      Code.FailedPrecondition,
+    );
+    expect(wrongPair.rawMessage).toBe(
+      `workflow execution ${parentId} has no pending file review for child ${childId} change set cs_unsurfaced`,
+    );
+  });
+
+  it("forwards to the real child: the decision lands on the child's ledger", async () => {
+    const { childId, changeSetId, aggregate } = await seedChildWithLedger();
+    const parentId = await seedParentSurfacing(childId, changeSetId);
+
+    const result = await command.submitFileDecision({
+      executionId: parentId,
+      childAgentExecutionId: childId,
+      changeSetId,
+      scope: FileDecisionScope.CHANGE_SET,
+      action: FileDecisionAction.APPROVE,
+      expectedDigest: aggregate,
+    });
+    // The parent state returns unchanged (the gate clears later through
+    // call-agent-status).
+    expect(result.metadata?.id).toBe(parentId);
+
+    const child = await server.store.getResource(
+      ApiResourceKind.agent_execution,
+      childId,
+      AgentExecutionSchema,
+    );
+    const changeSet = child.status?.fileChangeSets.find(
+      (cs) => cs.id === changeSetId,
+    );
+    expect(changeSet?.decisions, "the child recorded the decision").toHaveLength(1);
+  });
+
+  it("the child's actionable rejection PROPAGATES unchanged (the file-decision asymmetry)", async () => {
+    const { childId, changeSetId } = await seedChildWithLedger();
+    const parentId = await seedParentSurfacing(childId, changeSetId);
+
+    const err = await expectCode(
+      () =>
+        command.submitFileDecision({
+          executionId: parentId,
+          childAgentExecutionId: childId,
+          changeSetId,
+          scope: FileDecisionScope.CHANGE_SET,
+          action: FileDecisionAction.APPROVE,
+          expectedDigest: "0".repeat(64),
+        }),
+      Code.InvalidArgument,
+    );
+    expect(err.rawMessage).toBe(
+      `expected_digest mismatch for change set ${changeSetId}: the captured content changed since it was reviewed`,
+    );
+  });
+});
+
+describe("submitWorkflowTaskApproval over the wire", () => {
+  it("validates the task and its type with the pinned copy", async () => {
+    const id = await seed(
+      seedInput({
+        phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+        tasks: [
+          {
+            taskName: "not-a-gate",
+            taskType: WorkflowTaskType.WORKFLOW_TASK_AGENT_INVOCATION,
+            status: WorkflowTaskStatus.WORKFLOW_TASK_IN_PROGRESS,
+          },
+        ],
+      }),
+    );
+
+    const missing = await expectCode(
+      () =>
+        command.submitWorkflowTaskApproval({
+          executionId: id,
+          taskName: "no-such-task",
+          outcome: "approved",
+        }),
+      Code.InvalidArgument,
+    );
+    expect(missing.rawMessage).toBe(
+      "task 'no-such-task' not found in execution status",
+    );
+
+    const wrongType = await expectCode(
+      () =>
+        command.submitWorkflowTaskApproval({
+          executionId: id,
+          taskName: "not-a-gate",
+          outcome: "approved",
+        }),
+      Code.InvalidArgument,
+    );
+    expect(wrongType.rawMessage).toBe(
+      "task 'not-a-gate' is not a human_input task (type: WORKFLOW_TASK_AGENT_INVOCATION)",
+    );
+  });
+
+  it("a valid human_input task refuses Unavailable at the creator seam (engineless)", async () => {
+    const id = await seed(
+      seedInput({
+        phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+        tasks: [
+          {
+            taskName: "gate",
+            taskType: WorkflowTaskType.WORKFLOW_TASK_APPROVAL,
+            status: WorkflowTaskStatus.WORKFLOW_TASK_WAITING_APPROVAL,
+          },
+        ],
+      }),
+    );
+    const err = await expectCode(
+      () =>
+        command.submitWorkflowTaskApproval({
+          executionId: id,
+          taskName: "gate",
+          outcome: "approved",
+        }),
+      Code.Unavailable,
+    );
+    expect(err.rawMessage).toBe(
+      "workflow creator not configured for task 'gate'",
+    );
+  });
+
+  it("refuses non-signalable phases with the pinned copy", async () => {
+    const completed = await seed(
+      seedInput({ phase: ExecutionPhase.EXECUTION_COMPLETED }),
+    );
+    const err = await expectCode(
+      () =>
+        command.submitWorkflowTaskApproval({
+          executionId: completed,
+          taskName: "gate",
+          outcome: "approved",
+        }),
+      Code.FailedPrecondition,
+    );
+    expect(err.rawMessage).toBe(
+      "cannot submit task approval: execution is in EXECUTION_COMPLETED phase",
+    );
   });
 });
 
