@@ -96,7 +96,16 @@ async function serveArtifact(
     }
 
     const url = new URL(req.url ?? "/", "http://localhost");
-    const key = decodeURIComponent(url.pathname.replace(/^\/+/, ""));
+    let key: string;
+    try {
+      key = decodeURIComponent(url.pathname.replace(/^\/+/, ""));
+    } catch {
+      // Malformed percent-escapes are a client error, not a server fault
+      // (Go's net/http rejects them before the file server runs).
+      res.writeHead(404);
+      res.end("404 page not found\n");
+      return;
+    }
 
     // The same containment guard LocalArtifactStorage applies on writes: a
     // crafted path must never escape the artifact root.
