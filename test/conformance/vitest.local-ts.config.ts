@@ -28,6 +28,13 @@
 //     deepest domain: 23 RPCs incl. the subscribe stream, the HITL
 //     surfaces, and the engine-gate/lifecycle negatives that pin the
 //     no-Temporal posture until #18).
+//   - agentshare + agentchannel + channelapp — sub-project #12
+//     (sp.sharing-and-channels; the sharing/channel family: the anonymous
+//     getSharedProfile lane + cross-org contract, the four channel
+//     registration blocks with the three cloud-only refusal postures, and
+//     the per-field secret rotation. The agentshare suite's cross-org
+//     blocker test creates a McpServer, so this roster entry lands after
+//     entry #9 (McpServer CRUD) merges).
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
@@ -44,6 +51,9 @@ export default defineConfig({
       "src/suites/workflowinstance.conformance.test.ts",
       "src/suites/executioncontext.conformance.test.ts",
       "src/suites/agentexecution.conformance.test.ts",
+      "src/suites/agentshare.conformance.test.ts",
+      "src/suites/agentchannel.conformance.test.ts",
+      "src/suites/channelapp.conformance.test.ts",
     ],
     globalSetup: ["./src/harness/global-setup-ts.ts"],
     env: {
