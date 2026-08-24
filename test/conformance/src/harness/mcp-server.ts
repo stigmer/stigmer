@@ -68,6 +68,7 @@ export interface CapturedMcpRequest {
 export class McpToolFixture {
   private server: Server | undefined;
   private captured: CapturedMcpRequest[] = [];
+  private hold: { promise: Promise<void>; release: () => void } | undefined;
 
   // Every JSON-RPC request observed since the last reset, oldest first.
   // Suites reset in afterEach (the mock-LLM convention) so captures never
@@ -78,6 +79,31 @@ export class McpToolFixture {
 
   resetCaptured(): void {
     this.captured = [];
+  }
+
+  // Hold every request open until releaseHolds() — the mock-llm `delayMs`
+  // analogue for this fixture. The lever for observing an IN-FLIGHT connect:
+  // discovery blocks on the held initialize, keeping connect_status in the
+  // `connecting` phase for a controllable window (the startConnect
+  // idempotent-attach contract needs exactly that window). Holds must stay
+  // comfortably inside the runner's 30s HTTP init budget
+  // (HTTP_INIT_TIMEOUT_MS in discover-mcp-server.ts), or the held connect
+  // classifies as a failure instead of staying in flight.
+  holdRequests(): void {
+    if (this.hold !== undefined) {
+      return;
+    }
+    let release!: () => void;
+    const promise = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    this.hold = { promise, release };
+  }
+
+  releaseHolds(): void {
+    const hold = this.hold;
+    this.hold = undefined;
+    hold?.release();
   }
 
   // Binds to an ephemeral loopback port; resolves once listening.
@@ -133,6 +159,12 @@ export class McpToolFixture {
     const body: unknown = JSON.parse(await readBody(req));
     for (const method of jsonRpcMethods(body)) {
       this.captured.push({ method, headers: { ...req.headers } });
+    }
+
+    // The capture above happens BEFORE the hold, so a test can already see
+    // that the in-flight request arrived while the response is still pending.
+    if (this.hold !== undefined) {
+      await this.hold.promise;
     }
 
     const mcp = buildEchoServer();

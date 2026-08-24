@@ -172,6 +172,24 @@ export interface CapabilityFlags {
   // this flag when the harness gains a platform-privileged caller
   // (stigmer#547) — until then the happy-path pin runs OSS-side only.
   clientPublicVisibilityWrites: boolean;
+  // The org-level OAuth-app configuration surface exists here: the McpServer
+  // service's setOrgOAuthApp / getOrgOAuthApp / deleteOrgOAuthApp RPCs (the
+  // hosted BYOA lane — an org admin registers their own vendor OAuth app for
+  // an MCP server).
+  //
+  // False for the local OSS targets — BY DOCUMENTED DESIGN, not a gap: the
+  // proto pins all three RPCs as "UNIMPLEMENTED on the OSS server by design"
+  // (one capability, probed via getOrgOAuthApp — stigmer/stigmer#558, the SDK
+  // gates its BYOA UI on exactly that answer). Where false, the suite pins
+  // the three UNIMPLEMENTED refusals — they are the OSS contract the TS port
+  // must reproduce, the same refusal-pin posture versionTagging and
+  // channelMessaging document above.
+  //
+  // True for cloud, whose Java service implements the lane for real. The
+  // pins are gated OFF there; the lane's full cloud behavior needs a real
+  // vendor OAuth app no hermetic target can provision, so it stays covered
+  // by cloud's own integration tests — the channelMessaging coverage split.
+  orgOAuthAppConfiguration: boolean;
 }
 
 // Tenancy scope a test operates within. Locally this is just a unique org slug
