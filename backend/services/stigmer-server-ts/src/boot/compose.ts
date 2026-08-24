@@ -21,6 +21,7 @@ import { HealthCheckResponse_ServingStatus as ServingStatus } from "@stigmer/pro
 
 import { registerAgentServices } from "../domain/agent/controller.js";
 import { newConfigFromEnv } from "../domain/agentexecution/temporal/config.js";
+import { registerAgentExecutionServices } from "../domain/agentexecution/controller.js";
 import { registerAgentInstanceServices } from "../domain/agentinstance/controller.js";
 import { registerEnvironmentServices } from "../domain/environment/controller.js";
 import { registerExecutionContextServices } from "../domain/executioncontext/controller.js";
@@ -185,6 +186,7 @@ export function composeServer(options: ComposeOptions): ComposedServer {
       agentInstanceCreator: () => requireInProcess().agentInstanceCreator,
     });
     registerMemoryServices(router, { store, logger });
+    registerAgentExecutionServices(router, { store, logger });
     registerWorkflowServices(router, {
       store,
       logger,
