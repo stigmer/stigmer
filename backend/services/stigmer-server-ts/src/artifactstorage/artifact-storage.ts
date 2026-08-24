@@ -131,11 +131,7 @@ export class LocalArtifactStorage implements ArtifactStorage {
     }
     let url = `${this.serveUrl}/${key}`;
     if (downloadFilename !== "") {
-      // URLSearchParams matches Go url.Values.Encode (space → '+').
-      const query = new URLSearchParams({
-        [LOCAL_DOWNLOAD_QUERY_PARAM]: downloadFilename,
-      });
-      url += `?${query.toString()}`;
+      url += `?${LOCAL_DOWNLOAD_QUERY_PARAM}=${goQueryEscape(downloadFilename)}`;
     }
     return url;
   }
@@ -225,6 +221,27 @@ export class LocalArtifactStorage implements ArtifactStorage {
     }
     await this.cleanupEmptyDirs(path.dirname(dir));
   }
+}
+
+/**
+ * Go url.QueryEscape, byte-exact: unreserved [A-Za-z0-9-_.~] pass, space
+ * becomes '+', everything else percent-encodes. URLSearchParams differs
+ * on two characters ('~' escaped, '*' bare), so the stdlib encoder would
+ * break URL byte parity for filenames carrying them.
+ */
+function goQueryEscape(s: string): string {
+  let out = "";
+  for (const byte of Buffer.from(s, "utf-8")) {
+    const c = String.fromCharCode(byte);
+    if (/[A-Za-z0-9\-_.~]/.test(c)) {
+      out += c;
+    } else if (c === " ") {
+      out += "+";
+    } else {
+      out += `%${byte.toString(16).toUpperCase().padStart(2, "0")}`;
+    }
+  }
+  return out;
 }
 
 /**

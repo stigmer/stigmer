@@ -35,6 +35,7 @@ import { clone } from "@bufbuild/protobuf";
 import type { Logger } from "../../boot/logger.js";
 import {
   failedPreconditionError,
+  goWrappedStatusError,
   internalError,
   invalidArgumentError,
   notFoundError,
@@ -286,6 +287,11 @@ export function newCreateDefaultInstanceIfNeededStep(
           "internal server error",
         );
       }
+      // Go create.go wraps the downstream error with %w and the pipeline's
+      // errors.As branch keeps the inner CODE with the wrapped text on the
+      // wire (the #852 leak, mirrored via goWrappedStatusError, exactly as
+      // the agent domain's apply-default-instance arm). Unstatused
+      // failures fall to the pipeline's Internal fallback.
       let createdId: string;
       try {
         const created = await deps
@@ -293,13 +299,20 @@ export function newCreateDefaultInstanceIfNeededStep(
           .createAsSystem(buildDefaultInstanceRequest(metadata));
         createdId = created.metadata?.id ?? "";
       } catch (error) {
-        throw internalError(error, "failed to create default instance");
+        if (error instanceof ConnectError) {
+          throw goWrappedStatusError("failed to create default instance", error);
+        }
+        throw new Error(
+          `failed to create default instance: ${error instanceof Error ? error.message : String(error)}`,
+        );
       }
 
       // 3. Update agent status with default_instance_id — direct store
       // save (matching Java agentRepo.save), bypassing the Update
       // pipeline; the AGENT kind is explicit since the pipeline's kind is
-      // agent_execution.
+      // agent_execution. A store failure is a plain (non-status) error in
+      // Go, so both editions land on the pipeline's Internal fallback
+      // ("internal server error" — the #478 sanitization posture).
       const status = (agent.status ??= create(AgentStatusSchema));
       status.defaultInstanceId = createdId;
       try {
@@ -310,9 +323,8 @@ export function newCreateDefaultInstanceIfNeededStep(
           agent,
         );
       } catch (error) {
-        throw internalError(
-          error,
-          "failed to persist agent with default instance",
+        throw new Error(
+          `failed to update agent with default instance: ${error instanceof Error ? error.message : String(error)}`,
         );
       }
 
@@ -425,12 +437,20 @@ export function newCreateSessionIfNeededStep(
         spec: buildAutoCreateSessionSpec(callerSpec, defaultInstanceId),
       });
 
-      // 4. Create via in-process gRPC (single source of truth).
+      // 4. Create via in-process gRPC (single source of truth). Go wraps
+      // with %w — the inner code survives to the wire (a session_spec
+      // failing session validation answers InvalidArgument, not
+      // Internal); goWrappedStatusError mirrors the #852 wire shape.
       let createdSession: Session;
       try {
         createdSession = await deps.sessionCreator().create(sessionRequest);
       } catch (error) {
-        throw internalError(error, "failed to create session");
+        if (error instanceof ConnectError) {
+          throw goWrappedStatusError("failed to create session", error);
+        }
+        throw new Error(
+          `failed to create session: ${error instanceof Error ? error.message : String(error)}`,
+        );
       }
       sessionId = createdSession.metadata?.id ?? "";
       deps.logger.info("Successfully auto-created session", {
@@ -658,7 +678,12 @@ async function loadConfirmedFacts(store: Store, orgId: string) {
     const ta = a.status?.audit?.specAudit?.createdAt;
     const tb = b.status?.audit?.specAudit?.createdAt;
     if (ta === undefined || tb === undefined) {
-      return tb !== undefined ? -1 : 0;
+      // Nil-first, symmetrically (Go: `return tj != nil` sorts an
+      // untimestamped row before a timestamped one from EITHER side).
+      if (ta === tb) {
+        return 0;
+      }
+      return ta === undefined ? -1 : 1;
     }
     if (ta.seconds !== tb.seconds) {
       return ta.seconds < tb.seconds ? -1 : 1;

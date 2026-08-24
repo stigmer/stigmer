@@ -18,6 +18,7 @@
  * real); lifecycle simply authors no approval events.
  */
 import { create } from "@bufbuild/protobuf";
+import { ConnectError } from "@connectrpc/connect";
 
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import {
@@ -687,7 +688,11 @@ function newRecreateExecutionContextStep(
 
       // No pre-resolved instance id on the recover path: a persisted
       // execution always carries session_id (the create pipeline
-      // guarantees it), so the builder resolves via the session.
+      // guarantees it), so the builder resolves via the session. Go wraps
+      // with %w — the inner status code survives to the wire (notably the
+      // FailedPrecondition OAuth pre-flight refusal and NotFound loads,
+      // exactly as the same failure surfaces on the create path); plain
+      // errors chain to the pipeline's Internal fallback.
       try {
         await buildAndPersistExecutionContext(
           deps.executionContextBuilder,
@@ -695,12 +700,14 @@ function newRecreateExecutionContextStep(
           "",
         );
       } catch (error) {
-        if (error instanceof EngineDispatchError) {
-          throw failedPreconditionError(error.message);
+        if (error instanceof ConnectError) {
+          throw new ConnectError(
+            `recreate execution context for recovered execution ${executionId}: ${error.rawMessage}`,
+            error.code,
+          );
         }
-        throw internalError(
-          error,
-          "internal server error",
+        throw new Error(
+          `recreate execution context for recovered execution ${executionId}: ${error instanceof Error ? error.message : String(error)}`,
         );
       }
     },

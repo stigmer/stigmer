@@ -12,6 +12,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { create } from "@bufbuild/protobuf";
+import { Code, ConnectError } from "@connectrpc/connect";
 import { afterAll, beforeAll, expect, it } from "vitest";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
@@ -48,6 +49,82 @@ beforeAll(() => {
 
 afterAll(() => {
   rmSync(dir, { recursive: true, force: true });
+});
+
+it("an unresolvable environment ref surfaces the inner status code with Go's wrap chain", async () => {
+  // Go wraps the typed resolution status with %w — a deleted environment
+  // answers NotFound (caller-fixable), never an opaque Internal.
+  const deps: ExecutionContextBuilderDeps = {
+    store,
+    logger: silentLogger,
+    agentLoader: () => ({
+      get: async () =>
+        create(AgentSchema, { metadata: { id: "agt_x", org: "acme" } }),
+    }),
+    agentInstanceLoader: () => ({
+      get: async (instanceId) =>
+        create(AgentInstanceSchema, {
+          metadata: { id: instanceId, org: "acme" },
+          spec: {
+            agentId: "agt_x",
+            environmentRefs: [
+              {
+                kind: ApiResourceKind.environment,
+                org: "acme",
+                slug: "deleted-env",
+              },
+            ],
+          },
+        }),
+    }),
+    sessionLoader: () => ({
+      get: async (sessionId) =>
+        create(SessionSchema, {
+          metadata: { id: sessionId, org: "acme" },
+          spec: { agentInstanceId: "agi_x" },
+        }),
+    }),
+    environmentReader: () => ({
+      list: async () => {
+        throw new Error("unreached");
+      },
+      getSecretValue: async () => {
+        throw new Error("unreached");
+      },
+    }),
+    environmentResolution: {
+      resolveByReference: async () => {
+        throw new ConnectError(
+          "environment not found: deleted-env",
+          Code.NotFound,
+        );
+      },
+    } as unknown as ExecutionContextBuilderDeps["environmentResolution"],
+    executionContextCreator: () => ({
+      create: async (ec) => ec,
+    }),
+    managedEnvService: {
+      readSecretValue: async () => "",
+      updateSecrets: async () => {},
+    } as unknown as ManagedEnvironmentService,
+  };
+
+  const execution = create(AgentExecutionSchema, {
+    metadata: { id: "aexec_ref_gone", org: "acme" },
+    spec: { sessionId: "ses_x", message: "hi" },
+  });
+
+  try {
+    await buildAndPersistExecutionContext(deps, execution, "");
+    expect.unreachable("expected NotFound");
+  } catch (error) {
+    const connectError = ConnectError.from(error);
+    expect(connectError.code).toBe(Code.NotFound);
+    expect(connectError.rawMessage).toBe(
+      "resolve environment ref (org=acme, slug=deleted-env): " +
+        "rpc error: code = NotFound desc = environment not found: deleted-env",
+    );
+  }
 });
 
 it("assembles merge → filter → OAuth injection → EC persist over a non-empty environment", async () => {

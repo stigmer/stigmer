@@ -56,13 +56,18 @@ import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/a
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { MessageInitShape } from "@bufbuild/protobuf";
 
+import { ConnectError } from "@connectrpc/connect";
+
 import type { Logger } from "../../boot/logger.js";
 import {
   filterByDeclaredKeys,
   mergeEnvironmentLayers,
   validateRequiredKeys,
 } from "../../envmerge/envmerge.js";
-import { failedPreconditionError } from "../../pipeline/errors.js";
+import {
+  failedPreconditionError,
+  goWrappedStatusError,
+} from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { findResourceBySlug } from "../../pipeline/steps/helpers.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
@@ -202,17 +207,42 @@ export async function buildAndPersistExecutionContext(
   const executionOrg = execution.metadata?.org ?? "";
 
   // 1. Resolve agent_instance_id.
-  const agentInstanceId = await resolveAgentInstanceId(
-    deps,
-    execution,
-    preResolvedInstanceId,
-  );
+  let agentInstanceId: string;
+  try {
+    agentInstanceId = await resolveAgentInstanceId(
+      deps,
+      execution,
+      preResolvedInstanceId,
+    );
+  } catch (error) {
+    chainError("resolve agent instance", error);
+  }
 
   // 2.–3. Load the instance (environment_refs + agent_id), then the
-  // agent (env declarations) — in-process, full chain traversal.
-  const instance = await deps.agentInstanceLoader().get(agentInstanceId);
+  // agent (env declarations) — in-process, full chain traversal. Load
+  // failures keep the inner status code with Go's wrap prefix.
+  let instance: AgentInstance;
+  try {
+    instance = await deps.agentInstanceLoader().get(agentInstanceId);
+  } catch (error) {
+    if (error instanceof ConnectError) {
+      throw goWrappedStatusError(
+        `load agent instance ${agentInstanceId}`,
+        error,
+      );
+    }
+    chainError(`load agent instance ${agentInstanceId}`, error);
+  }
   const agentId = instance.spec?.agentId ?? "";
-  const agentResource = await deps.agentLoader().get(agentId);
+  let agentResource: Agent;
+  try {
+    agentResource = await deps.agentLoader().get(agentId);
+  } catch (error) {
+    if (error instanceof ConnectError) {
+      throw goWrappedStatusError(`load agent ${agentId}`, error);
+    }
+    chainError(`load agent ${agentId}`, error);
+  }
 
   // 4. Resolve environments from instance environment_refs.
   let environments = await resolveEnvironments(
@@ -355,13 +385,42 @@ export async function buildAndPersistExecutionContext(
       data: Object.fromEntries(filtered),
     },
   });
-  const created = await deps.executionContextCreator().create(ec);
+  let created: ExecutionContext;
+  try {
+    created = await deps.executionContextCreator().create(ec);
+  } catch (error) {
+    if (error instanceof ConnectError) {
+      throw goWrappedStatusError(
+        `create execution context for ${executionId}`,
+        error,
+      );
+    }
+    chainError(`create execution context for ${executionId}`, error);
+  }
 
   deps.logger.info("Successfully created execution context", {
     executionContextId: created.metadata?.id ?? "",
     executionId,
     dataEntries: filtered.size,
   });
+}
+
+/**
+ * Go's %w wrap chains, mirrored: the INNERMOST status boundary renders
+ * through goWrappedStatusError ("prefix: rpc error: code = X desc = …");
+ * every OUTER wrap prepends plain text while preserving the inner code —
+ * exactly how nested fmt.Errorf("%s: %w") chains reach the wire through
+ * the pipeline's errors.As branch (the #852 leak). Plain errors chain as
+ * plain errors and land on the pipeline's Internal fallback, Go's
+ * non-status path.
+ */
+function chainError(prefix: string, error: unknown): never {
+  if (error instanceof ConnectError) {
+    throw new ConnectError(`${prefix}: ${error.rawMessage}`, error.code);
+  }
+  throw new Error(
+    `${prefix}: ${error instanceof Error ? error.message : String(error)}`,
+  );
 }
 
 /** Path A/Path B instance resolution (Go resolveAgentInstanceID). */
@@ -379,7 +438,17 @@ async function resolveAgentInstanceId(
       "neither a pre-resolved instance id nor session_id on execution",
     );
   }
-  const session = await deps.sessionLoader().get(sessionId);
+  let session: Session;
+  try {
+    session = await deps.sessionLoader().get(sessionId);
+  } catch (error) {
+    if (error instanceof ConnectError) {
+      throw goWrappedStatusError(`load session ${sessionId}`, error);
+    }
+    throw new Error(
+      `load session ${sessionId}: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
   const agentInstanceId = session.spec?.agentInstanceId ?? "";
   if (agentInstanceId === "") {
     throw new Error(`session ${sessionId} has no agent_instance_id`);
@@ -407,8 +476,18 @@ async function resolveEnvironments(
     try {
       environments.push(await deps.environmentResolution.resolveByReference(ref));
     } catch (error) {
-      throw new Error(
-        `resolve environment ref (org=${ref.org}, slug=${ref.slug}): ${error instanceof Error ? error.message : String(error)}`,
+      // The resolution service throws typed statuses (NotFound for a
+      // deleted environment) — the inner code must reach the wire so a
+      // caller-fixable authoring error never masquerades as a 500.
+      if (error instanceof ConnectError) {
+        throw goWrappedStatusError(
+          `resolve environment ref (org=${ref.org}, slug=${ref.slug})`,
+          error,
+        );
+      }
+      chainError(
+        `resolve environment ref (org=${ref.org}, slug=${ref.slug})`,
+        error,
       );
     }
   }
@@ -474,9 +553,7 @@ async function resolveScheduleEnvironments(
   try {
     return await resolveEnvironments(deps, resolved);
   } catch (error) {
-    throw new Error(
-      `resolve schedule ${scheduleId} environment_refs: ${error instanceof Error ? error.message : String(error)}`,
-    );
+    chainError(`resolve schedule ${scheduleId} environment_refs`, error);
   }
 }
 
@@ -590,8 +667,9 @@ async function resolveWorkflowTaskEnvironments(
   try {
     return await resolveEnvironments(deps, resolved);
   } catch (error) {
-    throw new Error(
-      `resolve workflow ${workflowId} task "${taskName}" environment_refs: ${error instanceof Error ? error.message : String(error)}`,
+    chainError(
+      `resolve workflow ${workflowId} task "${taskName}" environment_refs`,
+      error,
     );
   }
 }
@@ -735,8 +813,9 @@ async function injectFromPersonalEnvironment(
   let injected = false;
   for (const key of missing) {
     // The personal env's spec.data keys are present even when redacted,
-    // so existence is checkable before the GetSecretValue call.
-    if (!(key in (personalEnv.spec?.data ?? {}))) {
+    // so existence is checkable before the GetSecretValue call. Own-key
+    // membership (Go map semantics — never the prototype chain).
+    if (!Object.hasOwn(personalEnv.spec?.data ?? {}, key)) {
       continue;
     }
     let secretValue: EnvironmentValue;

@@ -134,6 +134,11 @@ describe("LocalArtifactStorage", () => {
     expect(download).toBe(
       `http://localhost:7235/${key}?download=my+plan.plan.md`,
     );
+
+    // Go url.QueryEscape byte-exactness on the two characters where
+    // URLSearchParams disagrees: '~' stays bare, '*' percent-encodes.
+    const exotic = await storage.getSignedUrl(key, 3600_000, "a~b*c.md");
+    expect(exotic).toBe(`http://localhost:7235/${key}?download=a~b%2Ac.md`);
   });
 
   it("delete removes the artifact and prunes empty parents, never the root", async () => {

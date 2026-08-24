@@ -152,8 +152,8 @@ async function doTokenRequest(
   return tokenResponse;
 }
 
-/** Bounded error detail (Go truncateBody's posture: never dump a page). */
+/** Bounded error detail — Go truncateBody's 256-byte cap, verbatim. */
 function truncateBody(body: string): string {
-  const MAX = 512;
+  const MAX = 256;
   return body.length <= MAX ? body : `${body.slice(0, MAX)}...`;
 }

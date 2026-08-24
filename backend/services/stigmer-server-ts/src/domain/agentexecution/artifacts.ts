@@ -97,24 +97,30 @@ const KNOWN_CONTENT_TYPES: ReadonlyMap<string, string> = new Map([
 ]);
 
 /**
- * The fallback extension table standing in for Go's mime.TypeByExtension
- * (Node has no OS MIME database binding): the common web/media types the
- * OS table would answer. Everything else falls to octet-stream, exactly
- * Go's final default.
+ * The stand-in for Go's mime.TypeByExtension (Node has no OS MIME
+ * database binding): Go's mime package BUILTIN table verbatim, including
+ * its charset-qualified text types — the deterministic subset both
+ * editions agree on. Go additionally consults the OS mime.types database
+ * for other extensions; that residue is an accepted, recorded parity gap
+ * (everything else falls to octet-stream, Go's final default).
  */
 const OS_MIME_FALLBACK: ReadonlyMap<string, string> = new Map([
-  [".png", "image/png"],
-  [".jpg", "image/jpeg"],
-  [".jpeg", "image/jpeg"],
+  [".avif", "image/avif"],
+  [".css", "text/css; charset=utf-8"],
   [".gif", "image/gif"],
-  [".svg", "image/svg+xml"],
-  [".webp", "image/webp"],
+  [".htm", "text/html; charset=utf-8"],
+  [".html", "text/html; charset=utf-8"],
+  [".jpeg", "image/jpeg"],
+  [".jpg", "image/jpeg"],
+  [".js", "text/javascript; charset=utf-8"],
+  [".json", "application/json"],
+  [".mjs", "text/javascript; charset=utf-8"],
   [".pdf", "application/pdf"],
-  [".css", "text/css"],
-  [".htm", "text/html"],
-  [".mp4", "video/mp4"],
-  [".mp3", "audio/mpeg"],
-  [".wav", "audio/wav"],
+  [".png", "image/png"],
+  [".svg", "image/svg+xml"],
+  [".wasm", "application/wasm"],
+  [".webp", "image/webp"],
+  [".xml", "text/xml; charset=utf-8"],
 ]);
 
 // ---------------------------------------------------------------------------
@@ -138,7 +144,12 @@ export async function uploadAttachment(
   const uploadId = ulid();
   let contentType = req.contentType;
   if (contentType === "") {
-    contentType = detectContentType(req.filename);
+    // Go's UPLOAD path consults ONLY mime.TypeByExtension — never the
+    // artifact-relevant knownContentTypes table, which is a read-path
+    // (detectContentType) concern. Mirrored so stored object metadata
+    // stays edition-identical when the R2 backend (#13) starts carrying
+    // it.
+    contentType = osMimeTypeByExtension(req.filename);
   }
 
   const storageKey = `attachments/${uploadId}/${req.filename}`;
@@ -327,20 +338,36 @@ function extractZipEntry(
  * OS-table stand-in second, octet-stream last (Go detectContentType).
  */
 export function detectContentType(storageKey: string): string {
-  const dot = storageKey.lastIndexOf(".");
-  const slash = Math.max(
-    storageKey.lastIndexOf("/"),
-    storageKey.lastIndexOf("\\"),
-  );
-  if (dot <= slash || dot === -1) {
+  const ext = fileExtension(storageKey);
+  if (ext === "") {
     return "application/octet-stream";
   }
-  const ext = storageKey.slice(dot).toLowerCase();
   return (
     KNOWN_CONTENT_TYPES.get(ext) ??
     OS_MIME_FALLBACK.get(ext) ??
     "application/octet-stream"
   );
+}
+
+/**
+ * The upload path's MIME detection (Go mime.TypeByExtension +
+ * octet-stream fallback — see uploadAttachment).
+ */
+export function osMimeTypeByExtension(filename: string): string {
+  const ext = fileExtension(filename);
+  if (ext === "") {
+    return "application/octet-stream";
+  }
+  return OS_MIME_FALLBACK.get(ext) ?? "application/octet-stream";
+}
+
+function fileExtension(name: string): string {
+  const dot = name.lastIndexOf(".");
+  const slash = Math.max(name.lastIndexOf("/"), name.lastIndexOf("\\"));
+  if (dot <= slash || dot === -1) {
+    return "";
+  }
+  return name.slice(dot).toLowerCase();
 }
 
 // ---------------------------------------------------------------------------

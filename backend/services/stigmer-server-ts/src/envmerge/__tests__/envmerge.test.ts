@@ -254,6 +254,24 @@ describe("filterByDeclaredKeys", () => {
     });
   }
 
+  it("prototype-chain names never slip the filter (own-key membership)", () => {
+    // `key in declarations` would answer true for inherited
+    // Object.prototype names — an undeclared secret named `constructor`
+    // (or toString/__proto__/…) would leak past the least-privilege
+    // filter. Go's map lookup is exact; the filter must be too.
+    const merged = new Map([
+      ["constructor", execVal("smuggled-1", true)],
+      ["toString", execVal("smuggled-2", true)],
+      ["__proto__", execVal("smuggled-3", true)],
+      ["DECLARED", execVal("ok", false)],
+    ]);
+    const { filtered, excludedKeys } = filterByDeclaredKeys(merged, {
+      DECLARED: decl(false),
+    });
+    expect([...filtered.keys()]).toEqual(["DECLARED"]);
+    expect(excludedKeys).toEqual(["__proto__", "constructor", "toString"]);
+  });
+
   it("returns the same map reference when declarations are empty", () => {
     const original = new Map([["KEY", execVal("val", false)]]);
     const { filtered, excludedKeys } = filterByDeclaredKeys(original, {});

@@ -32,6 +32,7 @@ import {
   detectContentType,
   getArtifactContent,
   getArtifactDownloadUrl,
+  osMimeTypeByExtension,
   uploadAttachment,
 } from "../artifacts.js";
 
@@ -497,10 +498,33 @@ describe("detectContentType", () => {
       "application/json",
     );
     expect(detectContentType("artifacts/x/image.png")).toBe("image/png");
+    // Go's mime builtins carry charset qualifiers for text types the
+    // KNOWN table doesn't intercept (.css falls through; .html does not).
+    expect(detectContentType("artifacts/x/style.css")).toBe(
+      "text/css; charset=utf-8",
+    );
+    expect(detectContentType("artifacts/x/page.html")).toBe("text/html");
     expect(detectContentType("artifacts/x/unknown.zzz")).toBe(
       "application/octet-stream",
     );
     expect(detectContentType("artifacts/x/no-extension")).toBe(
+      "application/octet-stream",
+    );
+  });
+});
+
+describe("osMimeTypeByExtension (the upload path's detection)", () => {
+  it("consults only the mime-builtin table — never the artifact table", () => {
+    // Go's upload path uses mime.TypeByExtension alone: .yaml is NOT a
+    // Go mime builtin, so an uploaded YAML stores octet-stream even
+    // though the READ path reports text/yaml (edition-identical object
+    // metadata for #13's R2 backend).
+    expect(osMimeTypeByExtension("values.yaml")).toBe(
+      "application/octet-stream",
+    );
+    expect(osMimeTypeByExtension("photo.png")).toBe("image/png");
+    expect(osMimeTypeByExtension("doc.pdf")).toBe("application/pdf");
+    expect(osMimeTypeByExtension("no-extension")).toBe(
       "application/octet-stream",
     );
   });

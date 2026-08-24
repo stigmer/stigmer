@@ -285,6 +285,30 @@ it("createDefaultInstanceIfNeeded skips for a bootstrap instance", async () => {
   expect(ctx.get(DEFAULT_INSTANCE_ID_KEY)).toBeUndefined();
 });
 
+// Go wraps the in-process create with %w — the inner status code reaches
+// the wire (a session_spec failing session validation answers
+// InvalidArgument, never Internal), with the wrapped #852 message shape.
+it("createSessionIfNeeded surfaces the inner status code of a failed session create", async () => {
+  const step = newCreateSessionIfNeededStep({
+    logger: silentLogger,
+    sessionCreator: () => ({
+      create: async () => {
+        throw new ConnectError(
+          "session subject too long",
+          Code.InvalidArgument,
+        );
+      },
+    }),
+  });
+  const execution = newExecution("", "agt_1");
+  const ctx = newContext(execution);
+  ctx.set(DEFAULT_INSTANCE_ID_KEY, "inst_1");
+  const err = await expectCode(() => step.execute(ctx), Code.InvalidArgument);
+  expect(err.rawMessage).toBe(
+    "failed to create session: rpc error: code = InvalidArgument desc = session subject too long",
+  );
+});
+
 // The unchanged skip contract: an existing session_id bypasses
 // auto-creation entirely.
 it("createSessionIfNeeded skips when a session is provided", async () => {
@@ -544,7 +568,7 @@ async function seedMemory(init: {
   subject?: string;
   content: string;
   state: MemoryLifecycleState;
-  createdAt: Date;
+  createdAt: Date | undefined;
 }): Promise<void> {
   await store.saveResource(
     ApiResourceKind.memory,
@@ -560,9 +584,12 @@ async function seedMemory(init: {
       },
       status: {
         lifecycleState: init.state,
-        audit: {
-          specAudit: { createdAt: timestampFromDate(init.createdAt) },
-        },
+        audit:
+          init.createdAt === undefined
+            ? undefined
+            : {
+                specAudit: { createdAt: timestampFromDate(init.createdAt) },
+              },
       },
     }),
   );
@@ -577,7 +604,8 @@ describe("newComposeRecalledMemoriesStep", () => {
     subject?: string;
     content: string;
     state: MemoryLifecycleState;
-    offsetMinutes: number;
+    /** undefined = untimestamped row (sorts first, Go's nil-first). */
+    offsetMinutes: number | undefined;
   }
 
   const cases: Array<{
@@ -613,6 +641,30 @@ describe("newComposeRecalledMemoriesStep", () => {
       ],
       wantEnabled: true,
       wantMemoryIds: ["mem_older", "mem_newer"],
+    },
+    {
+      name: "untimestamped memory sorts first even when seeded after a timestamped one",
+      // Exercises the (timestamped, untimestamped) comparator arm — Go's
+      // nil-first ordering is symmetric.
+      orgId: "test-org",
+      seedOrg: true,
+      memoryEnabled: true,
+      memories: [
+        {
+          id: "mem_stamped",
+          content: "stamped",
+          state: MemoryLifecycleState.lifecycle_state_confirmed,
+          offsetMinutes: 0,
+        },
+        {
+          id: "mem_unstamped",
+          content: "unstamped",
+          state: MemoryLifecycleState.lifecycle_state_confirmed,
+          offsetMinutes: undefined,
+        },
+      ],
+      wantEnabled: true,
+      wantMemoryIds: ["mem_unstamped", "mem_stamped"],
     },
     {
       name: "proposed and rejected records are never injected",
@@ -734,7 +786,10 @@ describe("newComposeRecalledMemoriesStep", () => {
           subject: m.subject ?? "",
           content: m.content,
           state: m.state,
-          createdAt: minutes(m.offsetMinutes),
+          createdAt:
+            m.offsetMinutes === undefined
+              ? undefined
+              : minutes(m.offsetMinutes),
         });
       }
       let stepStore = store;

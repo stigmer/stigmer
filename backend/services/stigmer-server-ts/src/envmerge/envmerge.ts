@@ -79,7 +79,11 @@ export function filterByDeclaredKeys(
   const filtered = new Map<string, ExecutionValue>();
   const excludedKeys: string[] = [];
   for (const [key, val] of merged) {
-    if (key in declarations) {
+    // Own-key membership only: `in` would answer true for inherited
+    // Object.prototype names (constructor, toString, __proto__, …),
+    // letting an undeclared secret with an exotic name slip the
+    // least-privilege filter. Go's map lookup is exact.
+    if (Object.hasOwn(declarations, key)) {
       filtered.set(key, val);
     } else {
       excludedKeys.push(key);

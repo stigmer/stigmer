@@ -804,6 +804,41 @@ describe("lifecycle pipelines", () => {
     expect(engineCalls).toBe(0);
   });
 
+  it("recover surfaces the inner status code when the EC rebuild fails (never Internal)", async () => {
+    // Go's recreate step wraps with %w: a NotFound session load (or the
+    // FailedPrecondition OAuth refusal) keeps its code on the wire with
+    // the recover prefix — the caller-actionable copy must not collapse
+    // into an opaque 500.
+    const builderDeps = stubBuilderDeps();
+    const deps: LifecycleDeps = {
+      store,
+      logger: silentLogger,
+      broker: new StreamBroker(silentLogger),
+      engineState: () => connected(stubConnectedEngine()),
+      executionContextBuilder: {
+        ...builderDeps,
+        sessionLoader: () => ({
+          get: async () => {
+            throw new ConnectError("session not found: ses_gone", Code.NotFound);
+          },
+        }),
+      },
+    };
+    const id = await seedExecution({
+      phase: ExecutionPhase.EXECUTION_FAILED,
+      sessionId: "ses_gone",
+    });
+    const err = await expectCode(
+      () => recoverExecution(deps, recoverInput(id)),
+      Code.NotFound,
+    );
+    expect(err.rawMessage).toBe(
+      `recreate execution context for recovered execution ${id}: ` +
+        "resolve agent instance: load session ses_gone: " +
+        "rpc error: code = NotFound desc = session not found: ses_gone",
+    );
+  });
+
   it("recover with a disconnected engine refuses before any side effect", async () => {
     const deps = lifecycleDeps(DISCONNECTED);
     const id = await seedExecution({
