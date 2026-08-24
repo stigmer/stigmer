@@ -75,6 +75,10 @@ import { getExecutionSummary } from "./get-execution-summary.js";
 import { listPendingApprovals } from "./list-pending-approvals.js";
 import { loadAllWorkflowExecutions } from "./queries.js";
 import { workflowExecutionSearchExtractor } from "./search-extractor.js";
+import type { StreamBroker } from "./stream-broker.js";
+import { subscribeExecution } from "./subscribe.js";
+import { subscribeEvents } from "./subscribe-events.js";
+import { updateStatus } from "./update-status.js";
 
 export interface WorkflowExecutionControllerDeps {
   readonly store: Store;
@@ -86,6 +90,13 @@ export interface WorkflowExecutionControllerDeps {
    * submitWorkflowTaskApproval.
    */
   readonly engineState: WorkflowExecutionEngineStateProvider;
+  /**
+   * The shared broadcast fabric for subscribe streams. ONE instance spans
+   * both routers (serving + in-process) — see stream-broker.ts; the
+   * composition root owns it (Go: NewStreamBroker in the controller
+   * constructor + GetStreamBroker for #21's Temporal activities).
+   */
+  readonly broker: StreamBroker;
 }
 
 /** Registers both workflowexecution services on the router (routes stage). */
@@ -95,13 +106,16 @@ export function registerWorkflowExecutionServices(
 ): void {
   router.service(WorkflowExecutionCommandController, {
     update: (execution, ctx) => update(deps, execution, ctx),
+    updateStatus: (input) => updateStatus(deps, input),
     delete: (id, ctx) => deleteExecution(deps, id, ctx),
   });
   router.service(WorkflowExecutionQueryController, {
     get: (id, ctx) => get(deps, id, ctx),
     list: (req) => list(deps, req),
     listByWorkflow: (req) => listByWorkflow(deps, req),
+    subscribe: (req, ctx) => subscribeExecution(deps, req, ctx),
     getEventLog: (req) => getEventLog(deps, req),
+    subscribeEvents: (req, ctx) => subscribeEvents(deps, req, ctx),
     getExecutionSummary: (req) => getExecutionSummary(deps, req),
     listPendingApprovals: (req) => listPendingApprovals(deps, req),
   });

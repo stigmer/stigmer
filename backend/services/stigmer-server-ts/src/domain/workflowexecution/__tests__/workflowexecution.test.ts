@@ -581,6 +581,228 @@ describe("listPendingApprovals over the wire", () => {
   });
 });
 
+describe("updateStatus over the wire", () => {
+  it("merges status, persists events, and broadcasts to subscribers", async () => {
+    const id = await seed(
+      seedInput({ phase: ExecutionPhase.EXECUTION_IN_PROGRESS }),
+    );
+
+    const subscription = server.workflowExecutionStreamBroker.subscribe(id);
+    try {
+      const merged = await command.updateStatus({
+        executionId: id,
+        status: {
+          phase: ExecutionPhase.EXECUTION_COMPLETED,
+          completedAt: "2026-05-23T10:05:00Z",
+          totalCostMicros: 1234n,
+        },
+        events: [
+          {
+            eventId: "evt_1",
+            eventType: WorkflowEventType.execution_completed,
+            sequenceNumber: 1n,
+            occurredAt: "2026-05-23T10:05:00Z",
+          },
+        ],
+      });
+      expect(merged.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+      expect(merged.status?.totalCostMicros).toBe(1234n);
+
+      // The event batch persisted through the insert-or-skip lane.
+      const log = await query.getEventLog({ executionId: id });
+      expect(log.events).toHaveLength(1);
+      expect(log.latestSequence).toBe(1n);
+
+      // The broadcast carries the merged state (ADR 011 write path).
+      expect(subscription.queue).toHaveLength(1);
+      expect(subscription.queue[0].status?.phase).toBe(
+        ExecutionPhase.EXECUTION_COMPLETED,
+      );
+    } finally {
+      server.workflowExecutionStreamBroker.unsubscribe(id, subscription);
+    }
+  });
+
+  it("retried event batches are idempotent (insert-or-skip)", async () => {
+    const id = await seed(
+      seedInput({ phase: ExecutionPhase.EXECUTION_IN_PROGRESS }),
+    );
+    const events = [
+      {
+        eventId: "evt_r1",
+        eventType: WorkflowEventType.task_started,
+        sequenceNumber: 1n,
+        occurredAt: "2026-05-23T10:00:00Z",
+        taskName: "t1",
+      },
+    ];
+    await command.updateStatus({
+      executionId: id,
+      status: { phase: ExecutionPhase.EXECUTION_IN_PROGRESS },
+      events,
+    });
+    // The runner's retried batch: same sequence, first-writer-wins.
+    await command.updateStatus({
+      executionId: id,
+      status: { phase: ExecutionPhase.EXECUTION_IN_PROGRESS },
+      events,
+    });
+    const log = await query.getEventLog({ executionId: id });
+    expect(log.events).toHaveLength(1);
+  });
+
+  it("unknown execution answers NotFound; missing status InvalidArgument", async () => {
+    await expectCode(
+      () =>
+        command.updateStatus({
+          executionId: "wfexec_missing",
+          status: { phase: ExecutionPhase.EXECUTION_IN_PROGRESS },
+        }),
+      Code.NotFound,
+    );
+    await expectCode(
+      () => command.updateStatus({ executionId: "wfexec_missing" }),
+      Code.InvalidArgument,
+    );
+  });
+});
+
+describe("subscribe over the wire (streaming smoke through the real transport)", () => {
+  it("refuses empty id InvalidArgument and unknown id NotFound", async () => {
+    await expectCode(async () => {
+      for await (const _ of query.subscribe({ executionId: "" })) {
+        break;
+      }
+    }, Code.InvalidArgument);
+    await expectCode(async () => {
+      for await (const _ of query.subscribe({ executionId: "wfexec_missing" })) {
+        break;
+      }
+    }, Code.NotFound);
+  });
+
+  it("streams the snapshot, then live updates, closing on a terminal frame", async () => {
+    const id = await seed(
+      seedInput({ phase: ExecutionPhase.EXECUTION_IN_PROGRESS }),
+    );
+
+    const frames: ExecutionPhase[] = [];
+    const stream = (async () => {
+      for await (const frame of query.subscribe({ executionId: id })) {
+        frames.push(
+          frame.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED,
+        );
+        if (frames.length === 1) {
+          // Snapshot received — drive a terminal transition through the
+          // REAL write path (updateStatus persists then broadcasts).
+          await command.updateStatus({
+            executionId: id,
+            status: { phase: ExecutionPhase.EXECUTION_COMPLETED },
+          });
+        }
+      }
+    })();
+
+    await stream;
+    expect(frames).toEqual([
+      ExecutionPhase.EXECUTION_IN_PROGRESS,
+      ExecutionPhase.EXECUTION_COMPLETED,
+    ]);
+  });
+});
+
+describe("subscribeEvents over the wire (the first server-side poll loop)", () => {
+  it("refuses empty id InvalidArgument and unknown id NotFound", async () => {
+    await expectCode(async () => {
+      for await (const _ of query.subscribeEvents({ executionId: "" })) {
+        break;
+      }
+    }, Code.InvalidArgument);
+    await expectCode(async () => {
+      for await (const _ of query.subscribeEvents({
+        executionId: "wfexec_missing",
+      })) {
+        break;
+      }
+    }, Code.NotFound);
+  });
+
+  it("replays persisted events and closes after the terminal drain", async () => {
+    // Terminal execution with three persisted events: the stream replays
+    // everything after the cursor, hits the terminal check, drains, and
+    // closes — fully deterministic, no timing dependence.
+    const id = await seed(
+      seedInput({ phase: ExecutionPhase.EXECUTION_COMPLETED }),
+    );
+    await server.store.appendWorkflowExecutionEvents(id, [
+      eventRecord(id, 1, WorkflowEventType.execution_started),
+      eventRecord(id, 2, WorkflowEventType.task_started, "t1"),
+      eventRecord(id, 3, WorkflowEventType.execution_completed),
+    ]);
+
+    const sequences: bigint[] = [];
+    for await (const event of query.subscribeEvents({
+      executionId: id,
+      afterSequence: 1n,
+    })) {
+      sequences.push(event.sequenceNumber);
+    }
+    expect(sequences, "replay strictly after the cursor").toEqual([2n, 3n]);
+  });
+
+  it("live-tails new events until the execution turns terminal", async () => {
+    const id = await seed(
+      seedInput({ phase: ExecutionPhase.EXECUTION_IN_PROGRESS }),
+    );
+    await server.store.appendWorkflowExecutionEvents(id, [
+      eventRecord(id, 1, WorkflowEventType.execution_started),
+    ]);
+
+    const sequences: bigint[] = [];
+    for await (const event of query.subscribeEvents({ executionId: id })) {
+      sequences.push(event.sequenceNumber);
+      if (event.sequenceNumber === 1n) {
+        // First frame received — append the tail AND flip terminal
+        // through the real write path; the poll loop must deliver the
+        // tail event and then close on the terminal drain.
+        await command.updateStatus({
+          executionId: id,
+          status: { phase: ExecutionPhase.EXECUTION_COMPLETED },
+          events: [
+            {
+              eventId: "evt_tail",
+              eventType: WorkflowEventType.execution_completed,
+              sequenceNumber: 2n,
+              occurredAt: "2026-05-23T10:05:00Z",
+            },
+          ],
+        });
+      }
+    }
+    expect(sequences).toEqual([1n, 2n]);
+  });
+
+  it("filters the stream by event type", async () => {
+    const id = await seed(
+      seedInput({ phase: ExecutionPhase.EXECUTION_COMPLETED }),
+    );
+    await server.store.appendWorkflowExecutionEvents(id, [
+      eventRecord(id, 1, WorkflowEventType.execution_started),
+      eventRecord(id, 2, WorkflowEventType.task_started, "t1"),
+      eventRecord(id, 3, WorkflowEventType.execution_completed),
+    ]);
+
+    const types: WorkflowEventType[] = [];
+    for await (const event of query.subscribeEvents({
+      executionId: id,
+      eventTypes: [WorkflowEventType.task_started],
+    })) {
+      types.push(event.eventType);
+    }
+    expect(types).toEqual([WorkflowEventType.task_started]);
+  });
+});
+
 describe("update / delete over the wire", () => {
   it("update rewrites the spec through the standard build", async () => {
     const init = seedInput({ phase: ExecutionPhase.EXECUTION_FAILED });
