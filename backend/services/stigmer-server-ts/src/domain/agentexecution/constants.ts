@@ -21,7 +21,7 @@ export const ENGINE_UNAVAILABLE_MESSAGE =
  * helper's signature is (resource, id) rendering "%s not found: %s", so
  * the literal '%s' and the doubled "not found" reach the wire. Ported
  * byte-faithfully per sub-project DD-001 (owner-ratified 2026-08-24);
- * the both-editions fix ships through the OSS issue filed at wrap-up.
+ * the both-editions fix is stigmer/stigmer#859.
  */
 export function executionUsageReportNotFoundMessage(
   executionId: string,
