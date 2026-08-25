@@ -62,6 +62,18 @@
 //     orphan-prune lanes are proven by the domain's own
 //     __tests__/{reconcile,project.composed}.test.ts, which drive real
 //     deletes through the four in-process command clients).
+//   - search + activity — sub-project #14 (sp.search-and-activity; the
+//     two CQRS query services: the FTS5 SearchService with the 13-kind
+//     extractor registry — project's full-contract extractor shipped with
+//     this entry per DD-D and reconciled at the #16/#14 merge — boot-time
+//     RebuildIndex, and the ActivityQueryController recents feed,
+//     stigmer#461).
+//   - mcpserver-oauth — sub-project #19 (sp.mcpserver-connect-oauth; the
+//     CW-1 Class A slice: initiate guards + the DCR arm against the mock
+//     authorization server + the vendor arm's byte-pinned refusals +
+//     grant-free reads + the three org-OAuth UNIMPLEMENTED pins. The
+//     handshake-completion lanes run Class B on local-ts-execution —
+//     CW-1's execution-time DB-1 amendment).
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
@@ -90,6 +102,9 @@ export default defineConfig({
       "src/suites/github.conformance.test.ts",
       "src/suites/artifact.conformance.test.ts",
       "src/suites/project.conformance.test.ts",
+      "src/suites/search.conformance.test.ts",
+      "src/suites/activity.conformance.test.ts",
+      "src/suites/mcpserver-oauth.conformance.test.ts",
       // schedule — sub-project #22 (sp.schedule; the last Class B domain):
       // the CW-6 CRUD + trigger/resume refusal contract. Temporal-free by
       // design — the firing lanes roster on local-ts-execution.
