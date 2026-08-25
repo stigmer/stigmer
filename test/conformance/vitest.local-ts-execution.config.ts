@@ -17,32 +17,48 @@
 //   half needs the #20/#21 engine; the file was split for exactly this
 //   roster — sub-project 20260824.03 brief #3), and open-computer-use
 //   (the STIGMER_DESKTOP_TESTS opt-in gate — CI-inert exactly as on the
-//   Go target). #18 deferred agentexecution-approval (the HITL matrix),
-//   mcp.harness.smoke, and mcp-caller-identity "to #9's PR" — but #9 had
-//   already merged when #18's roster landed, so the handoff fell between
-//   the parallel sessions; #19 absorbed them (below).
+//   Go target). DEFERRED to #9 mcpserver-crud (sub-project 20260824.03
+//   DD-002, owner-ratified): agentexecution-approval (the HITL matrix),
+//   mcp.harness.smoke, and mcp-caller-identity register McpServer
+//   resources as their tool surface — a domain this server serves only
+//   once #9 ports it.
+//
+//   #21 (2026-08-25): the DD-002 deferral's carrier corrected — #9 merged
+//   BEFORE this roster file existed, so its PR could not roster the three
+//   MCP-dependent suites; they enter in #21's pre-flight, proven green
+//   against the TS engine (the "HITL matrix green" acceptance transfers
+//   to #21's PR). The workflowexecution slice: the four workflowexecution
+//   suites + the envmerge workflow half (split at #18 for exactly this
+//   moment). Still out: workflowexecution-child-approval (the #23 flag
+//   flip) and schedule-firing (#22). (#19, running in parallel, absorbed
+//   the same three suites independently — the concurrent sessions closed
+//   the same gap; #21 landed first, so its rostering stands.)
+//
 //   #19 (2026-08-25, sp.mcpserver-connect-oauth): mcpserver-connect —
-//   the CW-1 Class B slice (connect/startConnect discovery through the
-//   runner's workflow, handshake completion, refresh-on-connect) — plus
-//   the three suites orphaned above (owner-ratified DB-2): they need
-//   only #9's McpServer CRUD + #18's engine ("create only — no
-//   connect/discovery step"), and this entry carries the "HITL matrix
-//   green" acceptance #18 reassigned.
+//   the CW-1 Class B slice: connect/startConnect discovery through the
+//   runner's stigmer/mcp-server/connect workflow (deterministic-ID
+//   attach, dead-runner warning), handshake completion against the mock
+//   authorization server, and the refresh-on-connect pre-flight.
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
     include: [
       "src/suites-execution/agentexecution.conformance.test.ts",
+      "src/suites-execution/agentexecution-approval.conformance.test.ts",
       "src/suites-execution/agentexecution-recover.conformance.test.ts",
       "src/suites-execution/agentexecution-memory-retrieval.conformance.test.ts",
       "src/suites-execution/agent.harness.smoke.test.ts",
+      "src/suites-execution/mcp.harness.smoke.test.ts",
+      "src/suites-execution/mcp-caller-identity.conformance.test.ts",
       "src/suites-execution/open-computer-use.conformance.test.ts",
       "src/suites-execution/session-immutability.conformance.test.ts",
       "src/suites-execution/envmerge-agent.conformance.test.ts",
-      "src/suites-execution/agentexecution-approval.conformance.test.ts",
-      "src/suites-execution/mcp.harness.smoke.test.ts",
-      "src/suites-execution/mcp-caller-identity.conformance.test.ts",
+      "src/suites-execution/envmerge-workflow.conformance.test.ts",
+      "src/suites-execution/workflowexecution.conformance.test.ts",
+      "src/suites-execution/workflowexecution-approval.conformance.test.ts",
+      "src/suites-execution/workflowexecution-signal.conformance.test.ts",
+      "src/suites-execution/workflowexecution-recover.conformance.test.ts",
       "src/suites-execution/mcpserver-connect.conformance.test.ts",
     ],
     globalSetup: ["./src/harness/global-setup-ts-execution.ts"],

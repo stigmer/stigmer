@@ -60,6 +60,12 @@ import { LocalFileStorage as SkillLocalFileStorage } from "../domain/skill/stora
 import { newSkillTransferLane } from "../domain/skill/transfer/handler.js";
 import { UploadSlots } from "../domain/skill/transfer/slots.js";
 import { SecretService } from "../encryption/encryption.js";
+import { registerActivityServices } from "../query/activity/controller.js";
+import { ActivityHandler } from "../query/activity/handler.js";
+import { registerSearchServices } from "../query/search/controller.js";
+import { SearchHandler } from "../query/search/handler.js";
+import { SqliteSearchQueryStore } from "../query/search/query-store.js";
+import { newSearchableResourceRegistry } from "../query/search/registry.js";
 import { buildInterceptorChain } from "../pipeline/chain.js";
 import { RunnerAuthService } from "../runnerauth/runnerauth.js";
 import { SqliteStore } from "../store/sqlite/store.js";
@@ -73,8 +79,10 @@ import { ModelRegistryStore } from "../domain/workflow/registry/model-registry-s
 import { InProcessValidator } from "../domain/workflow/validation/validator.js";
 import { registerWorkflowInstanceServices } from "../domain/workflowinstance/controller.js";
 import { registerWorkflowExecutionServices } from "../domain/workflowexecution/controller.js";
-import { ENGINE_DISCONNECTED as WORKFLOW_EXECUTION_ENGINE_DISCONNECTED } from "../domain/workflowexecution/engine.js";
 import { StreamBroker as WorkflowExecutionStreamBroker } from "../domain/workflowexecution/stream-broker.js";
+import { newWorkflowExecutionConfigFromEnv } from "../domain/workflowexecution/temporal/config.js";
+import { newWorkflowExecutionEngineStateProvider } from "../temporal/workflowexecution/engine-client.js";
+import { newWorkflowExecutionWorkerFactory } from "../temporal/workflowexecution/worker.js";
 import { HealthState, registerHealthService } from "../transport/health.js";
 import { createRegistryLanes } from "../transport/registry/lanes.js";
 import { createUnifiedPortServer } from "../transport/server.js";
@@ -108,9 +116,10 @@ export interface ComposedServer {
    */
   agentExecutionStreamBroker: StreamBroker;
   /**
-   * The workflowexecution broadcast fabric (exposed for tests and, with
-   * #21, its Temporal worker's broadcasts — Go's GetStreamBroker).
-   * UpdateStatus and the lifecycle RPCs are the production writers.
+   * The workflowexecution broadcast fabric (exposed for tests and for the
+   * Temporal worker's persist broadcasts, #21 — Go's GetStreamBroker).
+   * UpdateStatus, the lifecycle RPCs, and the worker's activities are the
+   * production writers.
    */
   workflowExecutionStreamBroker: WorkflowExecutionStreamBroker;
   /** Completes wiring, flips SERVING, binds the port; returns the bound port. */
@@ -179,6 +188,9 @@ export function composeServer(options: ComposeOptions): ComposedServer {
   // dispatch uses — one definition, so policy and dispatch can never
   // disagree (oss#397).
   const temporalConfig = newConfigFromEnv();
+  // The workflow-execution twin (#21) — its config has no policy
+  // consumer, so it lives here with the temporal stage.
+  const workflowExecutionTemporalConfig = newWorkflowExecutionConfigFromEnv();
   const healthState = new HealthState();
   // The model-registry store is DOMAIN-owned (workflow-family DD-A,
   // restoring Go's ownership): workflow validation and the transport's
@@ -209,9 +221,9 @@ export function composeServer(options: ComposeOptions): ComposedServer {
   const workflowExecutionStreamBroker = new WorkflowExecutionStreamBroker(
     logger,
   );
-  // The manager owns the connection lifecycle; the agent-execution worker
-  // is the first factory (workflow-execution and the schedule clock
-  // append theirs in #21/#22 — Go createWorkers' list).
+  // The manager owns the connection lifecycle; one factory per domain
+  // worker (Go createWorkers' list) — agent-execution (#18),
+  // workflow-execution (#21); the schedule clock appends its own in #22.
   const temporalManager = new TemporalManager({
     hostPort: config.temporalHostPort,
     namespace: config.temporalNamespace,
@@ -224,6 +236,12 @@ export function composeServer(options: ComposeOptions): ComposedServer {
         broker: agentExecutionStreamBroker,
         temporalConfig,
       }),
+      newWorkflowExecutionWorkerFactory({
+        store,
+        logger,
+        broker: workflowExecutionStreamBroker,
+        temporalConfig: workflowExecutionTemporalConfig,
+      }),
     ],
   });
   // The provider IS the injection mechanism (no Go-style creator
@@ -235,6 +253,15 @@ export function composeServer(options: ComposeOptions): ComposedServer {
     store,
     logger,
   });
+  // The workflow-execution twin: the same provider-is-the-injection
+  // mechanism, filling the seam #20 left disconnected.
+  const workflowExecutionEngineState = newWorkflowExecutionEngineStateProvider(
+    {
+      manager: temporalManager,
+      config: workflowExecutionTemporalConfig,
+      logger,
+    },
+  );
   // The artifact blob store (Go server.go 349: shared by agentexecution
   // attachments, the artifact domain (#13), and skill push (#8)). The r2
   // arm landed with #13; the health probe runs in start(), matching Go's
@@ -278,6 +305,21 @@ export function composeServer(options: ComposeOptions): ComposedServer {
     skillArtifactStorage,
     logger,
   );
+  // The search read side (#14): the 13-kind extractor registry, the query
+  // store over the driver's FTS5 read (OD-3 — no DB() escape hatch), and
+  // the CQRS handler. Registry validation is warn-only, Go server.go:509's
+  // posture — run ONCE here rather than inside routes(), which executes
+  // twice (serving router + in-process router).
+  const searchRegistry = newSearchableResourceRegistry();
+  searchRegistry.validateExpectedKinds(logger);
+  const searchQueryStore = new SqliteSearchQueryStore(
+    store,
+    searchRegistry,
+    logger,
+  );
+  const searchHandler = new SearchHandler(searchQueryStore, logger);
+  // The activity recents feed (#14) — pure reads over listResources.
+  const activityHandler = new ActivityHandler(store, logger);
   // The environment runtime-resolution service (#5) — the decrypt-for-
   // execution path the EC builder uses to resolve environment_refs (the
   // RPC surface redacts secret values, oss#405).
@@ -427,10 +469,7 @@ export function composeServer(options: ComposeOptions): ComposedServer {
     registerWorkflowExecutionServices(router, {
       store,
       logger,
-      // Permanently disconnected until #21 lands the workflow-execution
-      // orchestrator on #18's worker infra; same provider shape as the
-      // agentexecution seam above.
-      engineState: () => WORKFLOW_EXECUTION_ENGINE_DISCONNECTED,
+      engineState: workflowExecutionEngineState,
       broker: workflowExecutionStreamBroker,
       workflowInstanceCreator: () =>
         requireInProcess().workflowExecutionInstanceCreator,
@@ -507,6 +546,12 @@ export function composeServer(options: ComposeOptions): ComposedServer {
       logger,
       orphanDeleter: () => requireInProcess().projectOrphanDeleter,
     });
+    // The two CQRS query services register between the domains and the
+    // github/platform tail, mirroring Go's registration order
+    // (server.go: project 478 → organization 487 → search 493 →
+    // activity 513 → github 524 → platform 530).
+    registerSearchServices(router, { handler: searchHandler, logger });
+    registerActivityServices(router, { handler: activityHandler, logger });
     // GitHub broker: config-only, no store (Go server.go 524–528).
     registerGitHubServices(router, {
       clientId: config.gitHubOAuthClientId,
@@ -555,6 +600,20 @@ export function composeServer(options: ComposeOptions): ComposedServer {
       // Artifact storage must be reachable and writable before the server
       // answers (Go server.go boots-fatal on the same probe).
       await artifactStorage.health();
+      // Rebuild the FTS5 search index before the port binds (Go
+      // server.go:617): the index is separate from the resources table,
+      // and rebuilding here makes every resource — including seedpack
+      // rows bootstrapped into an earlier database — discoverable the
+      // moment the server accepts connections. Warn-only: a partial
+      // rebuild degrades search, never boot.
+      try {
+        const indexed = await searchQueryStore.rebuildIndex();
+        logger.info("Search index rebuilt at startup", { indexed });
+      } catch (error) {
+        logger.warn("Failed to rebuild search index at startup", {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
       // Wiring complete → SERVING → background refresh → bind. The port
       // must be the LAST observable effect (serverGate contract).
       healthState.setOverall(ServingStatus.SERVING);
