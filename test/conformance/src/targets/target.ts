@@ -53,17 +53,19 @@ export interface CapabilityFlags {
   // False for local OSS: the *forwarder* is fully built (submit_approval.go, the
   // runner's call-agent orchestrator, all protos), but the upstream half — the
   // `child_approval_required` signal the agent-execution workflow emits when it
-  // gates — is cloud-only. The OSS Go agent-execution workflow never emits it, so
-  // a gated agent_call child never populates the parent's pending_approvals and
-  // the forwarder's happy path is structurally unreachable (source-confirmed, not
-  // a timing artifact; see DD-012). The reachable *negatives* (no pending
-  // approval, proto validation, missing execution) are edition-agnostic and are
-  // asserted unconditionally.
+  // gates — splits by SERVER: cloud's Java workflow and (since D4 #23) the TS
+  // server's HITL loop emit it; the Go agent-execution workflow never does, so
+  // against the Go server a gated agent_call child never populates the parent's
+  // pending_approvals and the forwarder's happy path is structurally
+  // unreachable (source-confirmed, not a timing artifact; see DD-012). The
+  // reachable *negatives* (no pending approval, proto validation, missing
+  // execution) are sender-independent and are asserted unconditionally.
   //
-  // True for cloud, which emits the signal and surfaces the gate to the parent.
-  // The forwarder happy-path assertions are gated on this flag so they run only
-  // where the full round-trip exists — including the future local-ts-execution
-  // (T04) target, which is where the OSS implementation will finally land.
+  // True for cloud and local-ts-execution, which emit the signal and surface
+  // the gate to the parent. The forwarder happy-path assertions are gated on
+  // this flag so they run only where the full round-trip exists — this is the
+  // one deliberate capability divergence between the local-go-execution and
+  // local-ts-execution matrices (the D4 parity-plus delta).
   workflowChildApprovalForwarding: boolean;
   // Schedules actually FIRE here: a trigger records status.last_fire_at,
   // repeated failed fires accumulate status.consecutive_failures into the

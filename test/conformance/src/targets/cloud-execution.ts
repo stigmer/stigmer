@@ -62,11 +62,10 @@ export class CloudExecutionTarget implements TargetProfile {
 
   // Same service, same edition differences: capabilities are delegated to the
   // inner CloudTarget verbatim (having an engine is not a CapabilityFlag —
-  // the same reasoning local-go-execution records). Notably this makes
-  // workflowChildApprovalForwarding=true reachable for the first time: cloud
-  // is the only edition whose agent-execution workflow emits the
-  // child_approval_required signal (DD-012), and this target is the first
-  // with both that signal and a runner to drive it.
+  // the same reasoning local-go-execution records). This target was the FIRST
+  // with both the child_approval_required signal and a runner to drive it
+  // (DD-012); since D4 #23 the TS server's HITL loop emits the same signal,
+  // so local-ts-execution runs the identical forwarding round-trip.
   private readonly cloud = new CloudTarget();
 
   private runner: RunningRunner | undefined;

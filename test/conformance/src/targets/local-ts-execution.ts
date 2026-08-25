@@ -22,21 +22,22 @@ import type { CapabilityFlags, PrivilegedScope, TargetProfile, TenancyContext } 
 
 export class LocalTsExecutionTarget implements TargetProfile {
   readonly name = "local-ts-execution";
-  // The local-go-execution matrix, byte-identical since D4 #22 ported the
-  // schedule clock (scheduleFiring was the one disclosed deviation while
-  // the TS server had no Temporal Schedule reconciler). The remaining
-  // false-at-#18 → true-at-#23 path is workflowChildApprovalForwarding —
-  // the ratified parity-plus delta, not a gap.
+  // The local-go-execution matrix plus exactly ONE deliberate difference:
+  // workflowChildApprovalForwarding is true here and false there — the D4
+  // ratified parity-plus delta (#23), not drift. Everything else is
+  // byte-identical since #22 ported the schedule clock.
   readonly capabilities: CapabilityFlags = {
     multiTenant: false,
     externalOrgLookup: false,
     organizationEnumeration: true,
     versionTagging: false,
     skillArtifactTransferLane: true,
-    // The engine runs here, but the child-approval signal sender is cloud-only,
-    // so a gated agent_call child never surfaces its gate to the parent workflow
-    // (DD-012). #23 flips this flag on THIS target — the parity-plus delta.
-    workflowChildApprovalForwarding: false,
+    // True since D4 #23: this server's agent-execution workflow emits the
+    // child_approval_required signal from its HITL loop (DD-012 identity-only
+    // sender), so a gated agent_call child surfaces at the parent workflow's
+    // pending_approvals. Go OSS never sends it — local-go-execution stays
+    // false forever; this is the one ratified capability divergence.
+    workflowChildApprovalForwarding: true,
     // True since D4 #22 ported the schedule clock (tick workflow +
     // reconciler on the schedule_stigmer queue) — the firing suite runs
     // against this engine exactly as against local-go-execution.

@@ -165,15 +165,18 @@ execution := &agentexecutionv1.AgentExecution{
 ```
 Agent enters WAITING_FOR_APPROVAL
     │
-    ├── Java sends Temporal signal "child_approval_required" to parent workflow ID
+    ├── The control plane (cloud Java, or the OSS TS server since D4 #23)
+    │   sends Temporal signal "child_approval_required" to parent workflow ID
     │
-    ├── Signal payload (ChildApprovalNotification):
-    │   ├── execution_id: "aex_abc123"
-    │   └── pending_approvals: [all pending entries]
+    ├── Signal payload: the bare child execution id string, e.g. "aex_abc123"
+    │   (identity-only per DD-012; the legacy ChildApprovalNotification
+    │   full-payload shape was retired after stigmer-cloud#509 — proto-encoded
+    │   payloads poisoned the receiving workflow task)
     │
-    ├── Go workflow receives signal via signal channel
+    ├── The runner's call-agent orchestrator receives the signal
+    ├── Derives the gate from the child's persisted pending_approvals
     ├── Updates WorkflowTask status to WORKFLOW_TASK_WAITING_APPROVAL
-    └── Populates WorkflowExecution.status.pending_approvals
+    └── Populates WorkflowExecution.status.pending_approvals (per-child merge)
 ```
 
 The Go workflow then surfaces the approval to users. Once approved, it forwards the decision to the agent via `AgentExecution.submitApproval` RPC using the `child_agent_execution_id` from the pending approval.

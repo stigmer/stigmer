@@ -31,7 +31,9 @@ const historyFiles = readdirSync(HISTORY_DIR).filter((name) =>
 
 describe("invoke-agent-execution replay determinism", () => {
   it("has committed histories to replay (the gate cannot be empty)", () => {
-    expect(historyFiles.length).toBeGreaterThanOrEqual(3);
+    // 3 from #18 (happy, HITL, pause/resume) + the parented HITL history
+    // that pins the #23 child_approval_required sender.
+    expect(historyFiles.length).toBeGreaterThanOrEqual(4);
   });
 
   it("replays every committed history deterministically", async () => {

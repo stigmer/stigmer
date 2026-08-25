@@ -98,6 +98,7 @@ import {
   MEMO_ACTIVITY_TASK_QUEUE,
   READ_HARNESS_STATE_ID_ACTIVITY_NAME,
   SIGNAL_APPROVAL_GATE_RESOLVED,
+  SIGNAL_CHILD_APPROVAL_REQUIRED,
   SIGNAL_CHILD_EXECUTION_STARTED,
   SIGNAL_PAUSE,
   SIGNAL_RESUME,
@@ -544,6 +545,7 @@ async function executeDeepAgentFlow(
       executeWithHitlLoop({
         executionId,
         signals,
+        parentWorkflowId: input.parent_workflow_id ?? "",
         firstInvoke: () =>
           agentProxy[EXECUTE_DEEP_AGENT_ACTIVITY_NAME]({
             execution_id: executionId,
@@ -598,6 +600,7 @@ async function executeCursorFlow(
       executeWithHitlLoop({
         executionId,
         signals,
+        parentWorkflowId: input.parent_workflow_id ?? "",
         firstInvoke: async () => {
           let harnessStateId: string;
           try {
@@ -872,10 +875,63 @@ async function runPausableAttempt(
 interface HitlLoopOptions {
   readonly executionId: string;
   readonly signals: SignalBuffers;
+  /**
+   * The workflow input's parent_workflow_id ("" when invoked directly) —
+   * the HITL loop notifies this parent whenever the gate engages (D4 #23,
+   * DD-012). The loop cannot read the workflow input itself, so the flows
+   * thread it through.
+   */
+  readonly parentWorkflowId: string;
   readonly firstInvoke: () => Promise<RunnerActivityResult | null>;
   readonly reinvoke: (turnSeq: number) => Promise<RunnerActivityResult | null>;
   readonly nullResultMessage: string;
   readonly nullResultAfterApprovalMessage: string;
+}
+
+/**
+ * Notify the parent workflow that this child is gated — the OSS sender half
+ * of the DD-012 child-approval forwarding contract (D4 #23, parity-plus:
+ * cloud's InvokeAgentExecutionWorkflowImpl.notifyParentWorkflowOfApproval;
+ * Go OSS never sends it). Identity-only BARE-STRING payload — the parent
+ * (the runner's call-agent orchestrator) derives the gate from this
+ * execution's persisted pending_approvals, so approval details never travel
+ * through the signal (see SIGNAL_CHILD_APPROVAL_REQUIRED in names.ts).
+ *
+ * Fire-and-forget with the same posture as child_execution_started: a
+ * completed/missing parent must never affect this run — the user can still
+ * approve directly through AgentExecution.submitApproval.
+ */
+function signalParentApprovalRequired(
+  parentWorkflowId: string,
+  executionId: string,
+  loadedStatus: AgentExecutionStatus | undefined,
+): void {
+  if (parentWorkflowId === "") {
+    // Invoked directly (API/CLI/schedule) — no parent to notify.
+    return;
+  }
+
+  const pendingApprovals = loadedStatus?.pendingApprovals ?? [];
+  log.info("Notifying parent workflow of approval requirement", {
+    parentWorkflowId,
+    executionId,
+    pendingCount: pendingApprovals.length,
+    firstToolName: pendingApprovals[0]?.toolName ?? "unknown",
+  });
+
+  void (async () => {
+    try {
+      await getExternalWorkflowHandle(parentWorkflowId).signal(
+        SIGNAL_CHILD_APPROVAL_REQUIRED,
+        executionId,
+      );
+    } catch (error) {
+      log.warn("Failed to notify parent workflow of approval (non-fatal)", {
+        parentWorkflowId,
+        error: errorMessage(error),
+      });
+    }
+  })();
 }
 
 /**
@@ -948,6 +1004,13 @@ async function executeWithHitlLoop(
       cycle: approvalCycle,
       gateCount,
     });
+
+    // Cloud parity (both Java HITL loops call notifyParentWorkflowOfApproval
+    // here): the parent is notified on EVERY cycle — after the phase persist
+    // and gate re-read, BEFORE the gate-count branch — including zero-gate
+    // and file-review-only cycles. The runner derives from the persisted
+    // gate, so an empty derivation is a harmless "already resolved" no-op.
+    signalParentApprovalRequired(options.parentWorkflowId, executionId, loadedStatus);
 
     if (gateCount === 0) {
       if (loadedStatus !== undefined && hasDecidedAwaitingReconcile(loadedStatus)) {

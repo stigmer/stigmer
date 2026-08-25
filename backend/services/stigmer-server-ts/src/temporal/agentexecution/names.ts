@@ -47,6 +47,18 @@ export const SIGNAL_APPROVAL_GATE_RESOLVED = "approvalGateResolved";
 export const SIGNAL_CHILD_EXECUTION_STARTED = "child_execution_started";
 
 /**
+ * The outbound parent notification the workflow fires from the HITL loop
+ * when it has a parent_workflow_id — the OSS half of the DD-012 forwarding
+ * contract (D4 #23, parity-plus: Go never sends this). Mirrors cloud's
+ * AgentExecutionTemporalWorkflowTypes.SIGNAL_CHILD_APPROVAL_REQUIRED; the
+ * receiver is the runner's call-agent orchestrator. The payload is a BARE
+ * STRING (the child execution id): proto-shaped payloads poisoned the
+ * receiving workflow task under the Java sender's json/protobuf encoding
+ * (stigmer-cloud#509), so the identity-only string is the pinned wire shape.
+ */
+export const SIGNAL_CHILD_APPROVAL_REQUIRED = "child_approval_required";
+
+/**
  * The ONLY memo key this domain writes (workflow_creator.go); the workflow
  * reads it back on every dispatch. workflowexecution's `runnerTaskQueue`
  * memo key arrives with #21 — it does not exist in this domain.

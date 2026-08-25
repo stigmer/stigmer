@@ -14,7 +14,7 @@
  * Usage: npx tsx scripts/capture-replay-histories.ts
  * (requires the `temporal` CLI on PATH — same as the workflow tests)
  */
-import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import proto from "@temporalio/proto";
 import { TestWorkflowEnvironment } from "@temporalio/testing";
@@ -85,6 +85,15 @@ async function main(): Promise<void> {
     input: Record<string, unknown>,
     drive: (handle: import("@temporalio/client").WorkflowHandle) => Promise<void>,
   ): Promise<void> {
+    // Committed histories are the replay gate's CONTRACT (replay.test.ts):
+    // regenerating one from current code silently hollows the gate out, so
+    // existing files are never overwritten. Adding a NEW scenario just works;
+    // deliberate regeneration (only when no producing release is still
+    // supported) is --force.
+    if (existsSync(`${OUT_DIR}/${name}.json`) && !process.argv.includes("--force")) {
+      console.log(`skipped ${name}.json (committed history — --force to regenerate)`);
+      return;
+    }
     const handle = await env.client.workflow.start(
       "stigmer/agent-execution/invoke",
       {
@@ -162,6 +171,33 @@ async function main(): Promise<void> {
       await handle.signal("resume");
       await handle.result();
       releaseHold?.();
+    },
+  );
+
+  // 4. Parented HITL cycle (D4 #23): same gate as scenario 2 but with a
+  //    parent_workflow_id, so the history carries the two parent
+  //    notifications (child_execution_started at start,
+  //    child_approval_required from the HITL loop) — the DD-012 sender
+  //    pinned in the replay gate. The parent id is deliberately
+  //    nonexistent: the sends fail non-fatally, which is itself part of
+  //    the recorded command shape.
+  executeBehaviors = [
+    async () => slim("EXECUTION_WAITING_FOR_APPROVAL"),
+    async () => slim("EXECUTION_COMPLETED"),
+  ];
+  loadResults = [executionWithPendingApproval()];
+  await capture(
+    "hitl-approval-parented",
+    {
+      execution_id: "exec-replay",
+      session_id: "ses-1",
+      agent_id: "agt-1",
+      parent_workflow_id: "replay-parent-probe",
+    },
+    async (handle) => {
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      await handle.signal("approvalGateResolved");
+      await handle.result();
     },
   );
 
