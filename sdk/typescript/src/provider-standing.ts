@@ -14,7 +14,7 @@ import { wrapError } from "./gen/errors.js";
  * account health: the latest canary-probe verdict per provider (status,
  * HTTP status, latency, bounded error summary, probe time) recorded by
  * the hourly standing probe. Requires `can_view_provider_standing` on
- * `platform:stigmer`. Cloud-only — the OSS Go server does not implement
+ * `platform:stigmer`. Cloud-only — the OSS server does not implement
  * this controller.
  */
 export class ProviderStandingClient {

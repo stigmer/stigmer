@@ -23,7 +23,7 @@ import (
 // effect (no session, no execution, no workflow), so these cases run
 // offline: no provider keys, no runner round trip.
 //
-// The OSS Go server pins the same rules with the same messages in
+// The OSS server pins the same rules with the same messages in
 // validate_service_tier_test.go (unit) — this suite proves the cloud Java
 // pipeline (ValidateServiceTierStep) enforces them through the real gRPC
 // boundary.

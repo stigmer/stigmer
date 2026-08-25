@@ -32,7 +32,7 @@ Use this mapping to decide which targets to run. A file matching **any** row tri
 | `crates/stigmer-runner-host/**` | `cd crates/stigmer-runner-host && cargo fmt --check && cargo clippy --all-targets -- -D warnings && cargo build && cargo test` (mirrors `ci.crate`) | Rust fmt + clippy + build + test |
 | `client-apps/cli/src/**`, `client-apps/cli/scripts/**` | `npm run typecheck -w @stigmer/cli && npm run test -w @stigmer/cli` | CLI type check + tests |
 | `client-apps/cli/docs/**`, `client-apps/cli/src/**` | `make gen-cli-docs-check` | CLI reference docs are up to date |
-| `backend/services/stigmer-server/**/*.go` | `make build` (server binary) | Server builds cleanly |
+| `backend/services/stigmer-server/**/*.ts` | `make test-server` | The server's typecheck + vitest suite |
 | `docs/**/*.md`, `docs/**/*.mdx` | `make lint-docs && make format-docs-check && make check-docs-yaml` | Vale prose lint + Prettier format + every YAML block validates against the proto contracts |
 | `site/**` | `make -C site lint && make -C site typecheck` | Site lint + typecheck |
 

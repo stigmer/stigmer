@@ -1,336 +1,40 @@
 # Release Workflow Guide
 
-This document explains how the release workflow works and how to use it properly.
+This document explains how `release.cli.yaml` works and how to use it.
 
-## The Problem We Solved
+## What ships where
 
-**Before:** The workflow required creating a git tag before building, which caused issues:
-- ❌ Failed builds created useless tags (e.g., `v0.1.5`, `v0.1.6` with no releases)
-- ❌ Tags accumulated in the repository without corresponding working releases
-- ❌ Impossible to test builds without creating permanent tags
-- ❌ No way to verify a build works before releasing it
+Every product artifact is an npm package, published by `release.npm-libs.yaml` on version tags:
 
-**After:** The workflow builds first, then creates tags/releases only on success:
-- ✅ Test builds run without creating any tags
-- ✅ Tags are only created after ALL platforms build successfully
-- ✅ Failed builds don't pollute the tag/release history
-- ✅ Clean, working releases only
+- `@stigmer/cli` — the `stigmer` command itself.
+- `@stigmer/server-slim` (+ its per-platform native packages) — the server the CLI acquires into `~/.stigmer/runtimes/<version>/` on first `stigmer up`.
+- The runner and library packages.
 
-## How It Works
+`release.cli.yaml` no longer builds or attaches any binaries: the Go `stigmer-server` tarballs it used to cross-compile for three platforms retired with the Go server (go-server-retirement, D4 #25). What remains is the GitHub Release itself.
+
+## What release.cli.yaml does
 
 ```mermaid
 flowchart TB
-    A[Push to main / Manual Trigger] --> B{Determine Version}
-    B -->|Test Build| C[test-abc123]
-    B -->|Release Build| D[v1.0.0]
-    
-    C --> E[Build All Platforms]
-    D --> E
-    
-    E --> F{All Builds OK?}
-    F -->|No| G[❌ Stop - No Tag Created]
-    F -->|Yes, Test| H[✅ Success - Artifacts Only]
-    F -->|Yes, Release| I[✅ Create Tag]
-    
-    I --> J[Create GitHub Release]
-    J --> K[Update Homebrew]
-    
-    style G fill:#f88
-    style H fill:#8f8
-    style I fill:#8f8
-    style J fill:#8f8
-    style K fill:#8f8
+    A[Tag push v1.0.0 / Manual Trigger] --> B{Determine Version}
+    B -->|should_release| C[Verify or create the tag]
+    C --> D[Generate changelog from the annotated tag body]
+    D --> E[Create GitHub Release]
 ```
 
-## Usage
+1. **Determine version** — a `v*` tag push releases that tag; a manual dispatch with a version + "Create a release" does the same; anything else is a no-op.
+2. **Verify tag exists** — tag pushes already have it; manual dispatch creates and pushes the annotated tag.
+3. **Generate changelog** — the annotated tag body (curated by `@release-stigmer-oss`) becomes the release notes, prefixed with install instructions; falls back to `git log` when the tag carries no body.
+4. **Create GitHub Release** — notes only, no assets.
 
-### 1. Test Builds (No Release)
+## Creating a release
 
-**Push to main branch:**
-```bash
-git push origin main
-```
+Use the repo's `@release-stigmer-oss` action rule: it curates the annotated tag with rich release notes and pushes it, which triggers this workflow. Manual path: GitHub Actions → "release.cli" → "Run workflow" with a version and "Create a release" = `true`.
 
-**Result:**
-- Builds all platforms (macOS ARM, macOS Intel, Linux)
-- Version: `test-<commit-hash>` (e.g., `test-a1b2c3d`)
-- Artifacts uploaded to GitHub Actions (downloadable for 90 days)
-- **No tag created**
-- **No release created**
+## Version numbering
 
-**Use this to:**
-- Test if your code compiles on all platforms
-- Check binary sizes
-- Download and manually test binaries before releasing
+Semantic versioning, `MAJOR.MINOR.PATCH`. The CLI, server-slim, runner, and proto packages all publish the same version per release — the CLI pins its runtime acquisitions to its own version, so the stack stays in lockstep.
 
-### 2. Create a Release (Manual Trigger)
+## Homebrew
 
-Go to GitHub Actions → "release.cli" → "Run workflow"
-
-**Option A: Just build and test (no release)**
-- Leave version empty
-- Set "Create a release" to `false`
-- Click "Run workflow"
-
-**Option B: Build and release**
-- Enter version: `1.0.0` (without the `v` prefix)
-- Set "Create a release" to `true`
-- Click "Run workflow"
-
-**Result:**
-1. Builds all platforms
-2. If ANY build fails → stops, no tag, no release
-3. If ALL builds succeed:
-   - Creates git tag `v1.0.0`
-   - Pushes tag to GitHub
-   - Creates GitHub release with binaries
-   - Updates Homebrew formula
-
-## Workflow Stages
-
-### Stage 1: Determine Version
-- **On push to main:** `test-<commit>`
-- **On manual trigger (no version):** `test-<commit>`
-- **On manual trigger (with version):** `v<version>`
-
-### Stage 2: Build All Platforms
-Runs in parallel:
-- `build-darwin-arm64` (macOS Apple Silicon)
-- `build-darwin-amd64` (macOS Intel, cross-compiled)
-- `build-linux-amd64` (Linux x86_64)
-
-Each job builds the **`stigmer-server`** binary (API server for local mode),
-compiled from `backend/services/stigmer-server/cmd/server` with OAuth client
-credentials injected via `-ldflags`, packaged into a tarball with a checksum and
-uploaded as artifacts.
-
-The `stigmer` CLI itself is no longer a Go binary: it ships as the
-`@stigmer/cli` npm package (published by `release.npm-libs.yaml`) and downloads
-the matching `stigmer-server` asset on demand.
-
-### Stage 3: Release (Conditional)
-Only runs if `should_release == true`:
-1. **Create and push tag** (after successful builds!)
-2. Download all artifacts
-3. Generate changelog from git history
-4. Create GitHub release with all binaries
-5. Update Homebrew formula
-
-## Files Created
-
-### Tarball Contents
-
-Each tarball contains the server binary:
-
-| Binary | Source | Purpose |
-|--------|--------|---------|
-| `stigmer-server` | `backend/services/stigmer-server/cmd/server` | API server for local mode |
-
-### For Test Builds
-Artifacts (temporary, 90 days):
-- `stigmer-test-abc123-darwin-arm64.tar.gz`
-- `stigmer-test-abc123-darwin-amd64.tar.gz`
-- `stigmer-test-abc123-linux-amd64.tar.gz`
-- Checksums (`.sha256` files)
-
-### For Releases
-Git tag:
-- `v1.0.0`
-
-GitHub Release assets:
-- `stigmer-v1.0.0-darwin-arm64.tar.gz`
-- `stigmer-server-v1.0.0-darwin-amd64.tar.gz`
-- `stigmer-server-v1.0.0-linux-amd64.tar.gz`
-- Checksums (`.sha256` files)
-
-Distribution:
-- The `stigmer` CLI ships as the `@stigmer/cli` npm package; it downloads the
-  matching standalone `stigmer-server` asset on demand
-- The Homebrew tap (`stigmer/tap/stigmer`) is deliberately NOT bumped by this
-  workflow (see the note in `release.cli.yaml`)
-
-## Version Numbering Strategy
-
-### Semantic Versioning
-Use semantic versioning: `MAJOR.MINOR.PATCH`
-
-- **MAJOR:** Breaking changes (e.g., `1.0.0` → `2.0.0`)
-- **MINOR:** New features, backward compatible (e.g., `1.0.0` → `1.1.0`)
-- **PATCH:** Bug fixes (e.g., `1.0.0` → `1.0.1`)
-
-### Pre-releases (Optional)
-For alpha/beta releases:
-- `1.0.0-alpha.1`
-- `1.0.0-beta.1`
-- `1.0.0-rc.1`
-
-Mark as pre-release in GitHub Actions or manually edit the release.
-
-### Test Builds
-- Format: `test-<commit-hash>`
-- Automatically generated
-- Not meant for distribution
-- Good for internal testing
-
-## Best Practices
-
-### Before Releasing
-
-1. **Test locally first**
-   ```bash
-   make build
-   ls -lh bin/stigmer-server
-   # The CLI ships as the @stigmer/cli npm package — no local bin/stigmer
-   ```
-
-2. **Push to main and verify test build**
-   ```bash
-   git push origin main
-   # Wait for workflow to complete
-   # Download artifacts and test
-   ```
-
-3. **If test build works, create release**
-   - Go to GitHub Actions
-   - Run workflow with version number
-   - Set "Create a release" to `true`
-
-### Release Checklist
-
-- [ ] The server binary compiles locally (`make build`)
-- [ ] Tests pass
-- [ ] Test build succeeded on all platforms
-- [ ] Downloaded and verified test binaries work (CLI via npm, server)
-- [ ] Decided on version number (e.g., `1.0.1`)
-- [ ] Ready to create git tag and release
-
-### After Release
-
-- [ ] Verify release appears on GitHub releases page
-- [ ] Check that Homebrew formula updated
-- [ ] Test installation: `brew update && brew upgrade stigmer`
-- [ ] Announce release (if applicable)
-
-## Troubleshooting
-
-### Build Fails
-
-**Problem:** One of the build jobs fails
-
-**Solution:**
-- Check the failed job logs
-- Fix the code
-- Push to main (creates new test build)
-- No tags were created, nothing to clean up
-
-### Tag Already Exists
-
-**Problem:** Workflow fails at "Create and push tag" step
-
-**Solution:**
-- You tried to release a version that already has a tag
-- Choose a new version number
-- Or delete the old tag if it was a mistake:
-  ```bash
-  git tag -d v1.0.0
-  git push origin :refs/tags/v1.0.0
-  ```
-
-### Homebrew Update Fails
-
-**Problem:** Homebrew formula update fails to download checksums
-
-**Solution:**
-- The release assets might not be available yet (race condition)
-- The workflow includes a 10-second wait, but might need more
-- Manually update the Homebrew formula if needed
-
-## Comparison: Before vs After
-
-| Aspect | Before (Tag-First) | After (Build-First) |
-|--------|-------------------|-------------------|
-| **Failed builds** | Create useless tags | No tags created |
-| **Testing** | Must create tags | Test builds without tags |
-| **Tag history** | Polluted with failures | Clean, working releases only |
-| **Process** | Tag → Build → Fail ❌ | Build → Pass → Tag ✅ |
-| **Cleanup needed** | Delete bad tags manually | No cleanup needed |
-| **Confidence** | Unknown if it works | Know it works before tagging |
-
-## Examples
-
-### Example 1: Feature Development
-
-```bash
-# Day 1: Working on new feature
-git commit -m "feat: add new workflow feature"
-git push origin main
-# → Creates test-a1b2c3d build
-# → Download and test locally
-
-# Day 2: Bug fixes
-git commit -m "fix: resolve edge case"
-git push origin main  
-# → Creates test-b2c3d4e build
-# → Download and test locally
-
-# Day 3: Ready to release
-# GitHub Actions → Run workflow
-# Version: 1.1.0
-# Create release: true
-# → Creates v1.1.0 tag and release
-```
-
-### Example 2: Hotfix Release
-
-```bash
-# Bug discovered in production
-git commit -m "fix: critical security issue"
-git push origin main
-# → Creates test-c3d4e5f build
-# → Verify fix works
-
-# Immediately release hotfix
-# GitHub Actions → Run workflow  
-# Version: 1.0.1
-# Create release: true
-# → Creates v1.0.1 tag and release
-```
-
-## Common Questions
-
-### Q: Can I still create tags manually?
-
-**A:** Yes, but don't. Let the workflow create tags after successful builds. Manual tags won't trigger releases.
-
-### Q: What if I need to rebuild the same version?
-
-**A:** You can't. Each version should be unique. If a release is broken, create a new patch version (e.g., `1.0.1` → `1.0.2`).
-
-### Q: Can I delete a bad release?
-
-**A:** Yes, you can delete GitHub releases and tags, but it's messy. Better to just create a new fixed version.
-
-### Q: How do I test a specific branch?
-
-**A:** The workflow only runs on `main`. For branch testing, temporarily change the workflow trigger or merge to main as a test build.
-
-### Q: What happens to old artifacts?
-
-**A:** GitHub artifacts are automatically deleted after 90 days. Releases are permanent until manually deleted.
-
-## Summary
-
-The workflow follows a **build → verify → tag → release** pattern:
-
-1. ✅ **Build first** - Compile the `stigmer-server` binary on all platforms
-   (the CLI ships separately as the `@stigmer/cli` npm package)
-2. ✅ **Verify** - All builds must succeed  
-3. ✅ **Tag** - Create git tag only after success
-4. ✅ **Release** - Publish the `stigmer-server` tarballs to GitHub
-
-This ensures:
-- Clean git history (no failed release tags)
-- Confidence (only working versions get released)
-- Testability (can test builds before releasing)
-- Flexibility (test builds vs release builds)
-- Local mode works out of the box (server and runner ship alongside the CLI)
+The Homebrew tap (`stigmer/tap/stigmer`) is deliberately NOT bumped by this workflow: Homebrew runs formula npm installs with `--min-release-age=1`, which rejects same-day `@stigmer/*` versions for ~24h (stigmer/stigmer#210). `reconcile-homebrew.yaml` bumps the tap on a schedule once the packages are old enough.

@@ -42,7 +42,7 @@ export interface NodeClientConfig {
    * - `"grpc"` is native gRPC over HTTP/2. Use it for in-cluster,
    *   server-to-server callers that dial a gRPC endpoint directly — a
    *   Java gRPC server (like stigmer-service on its internal address)
-   *   rejects gRPC-Web content types with HTTP 415, and the OSS Go server
+   *   rejects gRPC-Web content types with HTTP 415, and the OSS server
    *   serves native gRPC on the same listener, so `"grpc"` is correct
    *   against both. This mirrors the runner's own backend client
    *   (`backend/services/runner/src/client/stigmer-client.ts`), the other

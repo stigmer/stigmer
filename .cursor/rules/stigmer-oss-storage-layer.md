@@ -53,7 +53,7 @@ Stigmer uses **SQLite** with the pure Go modernc.org/sqlite driver.
 
 ### Component Descriptions
 
-**stigmer-server**: Go gRPC API server with **SQLite** storage
+**stigmer-server**: TypeScript gRPC API server with **SQLite** storage
 
 **Local Mode**: SQLite database in `~/.stigmer/stigmer.db` (single-file, portable)
 

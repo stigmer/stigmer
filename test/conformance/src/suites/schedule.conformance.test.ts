@@ -3,7 +3,7 @@
 //
 // Everything in this file is edition-unconditional: it needs no Temporal, no
 // clock, no runner. The trigger/resume refusal matrix (DD-014 D-B) is part of
-// the contract even where nothing can fire yet — the OSS Go server enforces
+// the contract even where nothing can fire yet — the OSS server enforces
 // it ahead of its clock precisely so these negatives hold on both editions.
 // Coverage spans the full CRUD + query surface: create/delete, apply
 // create/update branching, update spec replacement with the immutable

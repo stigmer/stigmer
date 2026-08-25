@@ -58,7 +58,7 @@ export function resolveToken(extra: RequestAuth | undefined, fallback: string): 
  * caller dialing stigmer-server directly: the cloud Java server accepts only
  * `application/grpc` (it answers gRPC-web with HTTP 415 `Content-Type ... is
  * not supported`, which the tool layer would relay to the model as an opaque
- * "Content-Type error"), and the OSS Go server serves native gRPC on the same
+ * "Content-Type error"), and the OSS server serves native gRPC on the same
  * listener. This matches the runner's own backend client — the other
  * in-cluster Node caller — which likewise uses native gRPC over HTTP/2.
  */

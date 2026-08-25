@@ -4,15 +4,16 @@ An implementation-agnostic suite that defines the Stigmer gRPC/proto API as an
 executable contract. It runs unchanged against any backend that claims to
 implement the API:
 
-- the OSS Go `stigmer-server` (the `local-go` / `local-go-execution` targets),
-- the Java cloud `stigmer-service` (the `cloud` target — Class A, plus the
-  schedule firing suite: the first execution-class behavior asserted on BOTH
-  editions, possible because schedule fires need the engine but no runner).
+- the OSS TypeScript `stigmer-server` (the `local` / `local-execution`
+  targets),
+- the Java cloud `stigmer-service` (the `cloud` / `cloud-execution` targets).
 
-(A TypeScript OSS server is in active development as the third target: the
-`local-ts` roster grows per sub-project until it matches the `local-go`
-configuration — that roster equality is the cutover gate. See the
-stigmer-cloud program `20260822.01.oss-ts-server-and-self-hosting`.)
+(History: the targets were born as `local-go`/`local-go-execution` against the
+original Go server, then grew `local-ts` twins whose per-sub-project roster
+growth gated the TypeScript rewrite — roster equality was the cutover gate.
+The Go server retired at go-server-retirement (D4 #25) and the surviving
+targets took the plain names. See the stigmer-cloud program
+`20260822.01.oss-ts-server-and-self-hosting`.)
 
 The contract — not any one implementation — is the product. This suite is what
 keeps the implementations honest and makes agentic dual-maintenance safe:
@@ -21,7 +22,7 @@ task. See the project's `design-decisions/001-cloud-convergence-strategy.md`.
 
 ## Status
 
-Covered against the `local-go` target:
+Covered against the `local` target:
 
 - **Project** and **Organization** — flat tenancy resources.
 - **Workflow** — the first **versioned** domain (CRUD, apply create/update
@@ -108,33 +109,31 @@ npm run build -w @stigmer/protos
 npm run test -w @stigmer/conformance
 ```
 
-`go` must be on `PATH`: the `local-go` target builds `stigmer-server` from
-source (always testing HEAD) and boots it against a throwaway SQLite database on
-an ephemeral port. No Temporal, runner, or external services are required for
-this slice.
+The `local` target compiles `stigmer-server` from source (always testing HEAD)
+and boots it against a throwaway SQLite database on an ephemeral port. No
+Temporal, runner, or external services are required for this slice.
 
-Select a target with `CONFORMANCE_TARGET` (default `local-go`):
+Select a target with `CONFORMANCE_TARGET` (default `local`):
 
 ```bash
-CONFORMANCE_TARGET=local-go npm run test -w @stigmer/conformance
+CONFORMANCE_TARGET=local npm run test -w @stigmer/conformance
 ```
 
 ### Execution-engine suites (Class B)
 
 The CRUD suites above (Class A) need no Temporal or runner. The **execution**
-suites do: they provision the Go server's engine — a real Temporal dev server
-plus the TypeScript unified runner — and drive a real execution end-to-end.
+suites do: they provision the server's engine — a real Temporal dev server
+plus the unified runner — and drive a real execution end-to-end.
 
 ```bash
 npm run test:execution -w @stigmer/conformance
 ```
 
-This needs the **`temporal` CLI** on `PATH` (`brew install temporal`, or see the
-[Temporal CLI docs](https://docs.temporal.io/cli)) in addition to `go` and
-`node`. The execution `globalSetup` builds the Go server and the runner from
-source and fails fast with an install hint if the CLI is missing. The default
-target is `local-go-execution`; the same suites will later run against the
-`cloud` target via `CONFORMANCE_TARGET`.
+This needs the **`temporal` CLI** on `PATH` (`brew install temporal`, or see
+the [Temporal CLI docs](https://docs.temporal.io/cli)). The execution
+`globalSetup` builds the server and the runner from source and fails fast with
+an install hint if the CLI is missing. The default target is
+`local-execution`.
 
 ### Cloud target (Class A vs the Java `stigmer-service`)
 
@@ -161,7 +160,7 @@ sibling `stigmer-cloud` checkout with
 `./bazelw build //backend/services/stigmer-service:stigmer_service_fatjar`.
 Files run serially (they share one multi-tenant service), and
 `mcp.conformance.test.ts` is excluded (it tests the `@stigmer/mcp-server`
-bridge against the OSS Go server specifically, not a target). Tenancy is real
+bridge against the OSS server specifically, not a target). Tenancy is real
 here: `provisionTenancy()` creates an organization through the production RPC
 (the primary user becomes owner; a zero-balance billing account is provisioned
 automatically), unlike the local targets where an org is just a unique slug.
@@ -194,7 +193,7 @@ the test quietly asserting the wrong behavior. `expectCodeOrDeviation(...)`:
 
 So the registry can never hide a regression or bless a bug permanently. There
 are currently no tracked deviations: every target returns the contract code.
-The previous `local-go` entries — duplicate-create / missing-name / missing-spec
+The previous local-target entries — duplicate-create / missing-name / missing-spec
 returning `Unknown`, and `getVersion` with a malformed hash returning `NotFound`
 — were resolved (stigmer/stigmer#192) by enforcing protovalidate at the gRPC
 transport boundary and by making the affected pipeline steps return typed gRPC
@@ -216,13 +215,11 @@ with no IAM filtering), `versionTagging` is `true` (the dedicated `tagVersion`
 RPC is implemented in both editions; assigning a tag moves it to name exactly
 one version, and apply-time `metadata.version.tag` flows through the same
 single-holder primitive), and
-`workflowChildApprovalForwarding` splits by SERVER, not edition (the
-`WorkflowExecution.submitApproval` forwarder is built everywhere, but the
-`child_approval_required` signal that surfaces a child agent's gate to its
-parent workflow is sent only by cloud and — since D4 #23 — the TS server's
-HITL loop; the Go server never sends it, so the flag stays `false` on the
-`local-go*` targets and the forwarder's happy path stays unreachable there —
-see `design-decisions/012-workflowexecution-child-approval-forwarding-contract.md`).
+`workflowChildApprovalForwarding` is `true` where the
+`child_approval_required` signal — which surfaces a child agent's gate to its
+parent workflow — is sent: cloud and, since D4 #23, this server's HITL loop.
+(The retired Go server never sent it, which is why the flag exists — see
+`design-decisions/012-workflowexecution-child-approval-forwarding-contract.md`).
 Capabilities are retired when a surface converges: secret redaction was gated
 per edition until the Environment (stigmer#405) and ExecutionContext
 (stigmer#535) surfaces converged, after which the suites assert redaction
@@ -232,9 +229,9 @@ flag's rationale.
 
 ### Harness (`src/harness/`)
 
-`go-build` builds the server once per run (vitest `globalSetup`); each suite file
-boots its own instance (`server-process` + `ports`) against a private temp dir,
-so files run in parallel without colliding. `clients` builds the Connect
+`ts-build` compiles the server once per run (vitest `globalSetup`); each suite
+file boots its own instance (`server-process` + `ports`) against a private temp
+dir, so files run in parallel without colliding. `clients` builds the Connect
 clients; `grpc-ready` is the shared store-probe readiness gate; `fixtures`
 tracks created resources for best-effort reverse-order cleanup.
 
@@ -248,9 +245,9 @@ Class A signal fast (no Temporal/runner) — see the project's
 
 Having an execution engine is **not** an edition difference (cloud has one too),
 so it is not a `CapabilityFlag`. Instead it is a heavier **target**:
-`local-go-execution` boots Temporal (`temporal.ts`) -> the Go server pointed at
-it (`server-process` with `temporalHostPort`) -> the runner in static mode
-(`runner-process`, built by `runner-build` via `make build-runner`). The Go
+`local-execution` boots Temporal (`temporal.ts`) -> the server pointed at it
+(`server-process` with `temporalHostPort`) -> the runner in static mode
+(`runner-process`, built by `runner-build` via `make build-runner`). The
 server is a pure orchestrator: on create it persists an execution then starts a
 Temporal workflow that dispatches the real work to the runner on `stigmer_runner`.
 
@@ -267,14 +264,14 @@ execution — IN_PROGRESS, cancel, terminate, pause/resume). It asserts the
 formerly the F7/F8 asymmetry) is now one symmetric contract across both execution
 domains — a create while the engine is down fails fast with Unavailable and
 persists nothing — and is only reachable with Temporal down, so it is covered by
-the Go controller unit tests (and the Java guard unit tests) rather than asserted
+the server's controller unit tests (and the Java guard unit tests) rather than asserted
 here — see
 `design-decisions/008-workflowexecution-domain-engine-present-contract.md`. Class
 B files run serially (`fileParallelism: false`) so multiple suites don't boot
 multiple Temporal+runner stacks at once.
 
 `agentexecution.conformance.test.ts` is the second whole execution domain. An
-agent run always hits an LLM, so the `local-go-execution` target also boots a
+agent run always hits an LLM, so the `local-execution` target also boots a
 **TS-pure mock-LLM proxy** (`harness/mock-llm.ts`): a long-lived HTTP server with
 a programmable response queue that replays canned Anthropic SSE to the runner via
 a base-URL override (`STIGMER_PROXY_ENDPOINT`) — no API key, no network. A single
@@ -292,7 +289,7 @@ execution domains share one enum-agnostic poll core (`support/execution-poll.ts`
 `agentexecution-approval.conformance.test.ts` adds the **HITL tool-approval**
 (`submitApproval`) contract. It is the first slice that exercises a real *tool*:
 an agent can only reach `EXECUTION_WAITING_FOR_APPROVAL` when it references an
-McpServer that exposes an approval-gated tool, so the `local-go-execution` target
+McpServer that exposes an approval-gated tool, so the `local-execution` target
 also boots a **TS-pure HTTP (Streamable) MCP fixture** (`harness/mcp-server.ts`):
 a long-lived `node:http` server fronting `@modelcontextprotocol/sdk`'s `McpServer`
 that exposes one deterministic `echo` tool. Crucially, the McpServer resource is
@@ -306,7 +303,7 @@ APPROVE_ALL, the `pending_approvals` read model (`tool_call_id`, `tool_name`,
 `mcp_server_slug`), `auto_approve_all` bypass, idempotency, and the negative
 codes — and deliberately does **not** assert runner-internal projections that are
 not stable black-box observables (per-tool-call *final* status after the approval
-resume, and `args_preview`), exactly the boundary the Go integration HITL suite
+resume, and `args_preview`), exactly the boundary the integration HITL suite
 draws. See the project's
 `design-decisions/010-mcp-server-fixture-and-agentexecution-hitl-contract.md`.
 
@@ -349,31 +346,29 @@ approval FORWARDING** (`submitApproval`) contract — distinct from `human_input
 *child* AgentExecution gates on a tool, the gate surfaces at the parent's
 `status.pending_approvals` (carrying `child_agent_execution_id`); `submitApproval`
 routes the decision down to the child's `AgentExecution.submitApproval`. The
-forwarder is **half-built in the Go server by design**: the receiver is complete,
-but the `child_approval_required` signal that populates the parent's
-`pending_approvals` is sent only by cloud and — since D4 #23 — the TS server's
-HITL loop (the DD-012 derivation design: identity-only signal, the runner
-derives the gate from the child's persisted record). A gated child never
-surfaces against the Go server (source-confirmed), which never gains the
-sender. The suite splits along the `workflowChildApprovalForwarding`
+`child_approval_required` signal that populates the parent's
+`pending_approvals` is sent by cloud and — since D4 #23 — this server's HITL
+loop (the DD-012 derivation design: identity-only signal, the runner derives
+the gate from the child's persisted record; the retired Go server had the
+receiver but never the sender, which is what the capability flag encoded).
+The suite splits along the `workflowChildApprovalForwarding`
 capability: the **negatives** never need a populated `pending_approvals` and run
 unconditionally against every target (empty `execution_id`/`tool_call_id` /
 UNSPECIFIED action -> `InvalidArgument`; missing execution -> `NotFound`; a running
 *or* terminal execution with no pending approvals -> `FailedPrecondition`); the
 **happy path** is `describe.skipIf`-gated so it reports as genuinely **SKIPPED**
-(not a false green) on the `local-go*` targets, and RUNS on `local-ts-execution`
-— the one deliberate capability divergence between the two execution targets
-(the D4 parity-plus delta). See the project's
+(not a false green) where the sender or the mock fixtures are absent, and RUNS
+on `local-execution`. See the project's
 `design-decisions/012-workflowexecution-child-approval-forwarding-contract.md`.
 
 ## Layout
 
 ```
 src/
-  harness/          go-build, ports, server-process, grpc-ready, clients, fixtures, global-setup
+  harness/          ts-build, ports, server-process, grpc-ready, clients, fixtures, global-setup
                     + execution: temporal, runner-build, runner-process, mock-llm, mcp-server, global-setup-execution
                     + cloud: cloud-env, global-setup-cloud
-  targets/          target (interface + capabilities), local-go, local-go-execution, cloud, index
+  targets/          target (interface + capabilities), local, local-execution, cloud, cloud-execution, index
   contract/         errors, deviations, parity
   support/          naming, workflows (set_vars + wait + human_input + agent_call), execution-poll, workflowexecutions, agentexecutions,
                     agents, mcpservers, skills, environments, executioncontexts, sessions
@@ -389,6 +384,6 @@ src/
 1. Add its controllers to `ConformanceClients` in `harness/clients.ts`.
 2. Add `src/suites/<domain>.conformance.test.ts` (Class A) — or, for an
    execution domain, `src/suites-execution/<domain>.conformance.test.ts` driven
-   by the `local-go-execution` target.
+   by the `local-execution` target.
 3. Assert the intended contract; register any genuine implementation bug as a
    known deviation rather than asserting the wrong behavior.
