@@ -111,7 +111,7 @@ test.describe("Workflow execution thread", () => {
     }
   });
 
-  test("a summary-kind card expands from its header to reveal task detail", async ({
+  test("a body-less summary-kind card is a plain header row — status and duration live on the header", async ({
     page,
     stigmerClient,
     testWaitWorkflow,
@@ -127,18 +127,18 @@ test.describe("Workflow execution thread", () => {
       // The wait workflow blocks ~10s before completing.
       await waitForPhaseBadge(page, "Completed", { timeout: 45_000 });
 
-      // The retired inspector's promise, on its successor surface: task
-      // detail (status, duration) opens ON the card. Wait tasks are
-      // summary-kind — their header is the expand gesture (aria-expanded).
+      // The retired inspector's promise, on its successor surface: since
+      // R6-6 the card HEADER is the single source for a task's status
+      // (glyph) and duration (meta chip) — the old Status/Duration detail
+      // rows are gone. A settled wait task has nothing left for a detail
+      // body, so the card offers no expand gesture at all (stigmer#886) —
+      // the same no-toggle contract tool-call-disclosure.spec.ts pins for
+      // always-visible session cards.
       const card = getThreadTaskCard(page, "blocking_wait");
-      const header = card.getByRole("button", { expanded: false });
-      await expect(header).toBeVisible({ timeout: 15_000 });
-      await header.click();
-
-      await expect(card.getByRole("button", { expanded: true })).toBeVisible();
-      await expect(card).toContainText("Status");
-      await expect(card).toContainText("Completed");
-      await expect(card).toContainText("Duration");
+      await expect(card).toBeVisible({ timeout: 15_000 });
+      await expect(card).toContainText("Wait"); // kind label
+      await expect(card).toContainText(/\d+(\.\d+)?\s?(ms|s|m)/); // duration chip
+      await expect(card.locator('[role="button"][aria-expanded]')).toHaveCount(0);
     } finally {
       await execution.cleanup();
     }

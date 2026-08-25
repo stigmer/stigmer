@@ -451,6 +451,48 @@ describe("WorkflowTaskThread", () => {
     expect(screen.getByText(/at dial tcp 10\.0\.0\.1:443/)).toBeTruthy();
   });
 
+  it("a summary-kind card with a body-less detail renders no expand gesture (stigmer#886)", () => {
+    // A settled wait card with nothing the header cannot carry — no retry,
+    // no usage, no error, no I/O. Since R6-6 moved Status/Duration onto
+    // the header, its detail body would be empty, so the header is a plain
+    // row: offering a chevron that reveals nothing is worse than none.
+    render(
+      <WorkflowTaskThread
+        taskStates={statesOf(
+          taskState({ taskName: "blocking_wait", taskKind: WorkflowTaskKind.wait }),
+        )}
+        totalTasks={1}
+        isRunning={false}
+      />,
+    );
+
+    expect(screen.getByText("blocking_wait")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /^blocking_wait/ })).toBeNull();
+  });
+
+  it("the expand gesture returns the moment the detail body has content (stigmer#886)", () => {
+    // The same wait card with a retry behind it: the Attempt row gives the
+    // body content, so the header is the expand gesture again.
+    render(
+      <WorkflowTaskThread
+        taskStates={statesOf(
+          taskState({
+            taskName: "blocking_wait",
+            taskKind: WorkflowTaskKind.wait,
+            attemptNumber: 2,
+          }),
+        )}
+        totalTasks={1}
+        isRunning={false}
+      />,
+    );
+
+    const header = screen.getByRole("button", { name: /^blocking_wait/ });
+    fireEvent.click(header);
+    expect(screen.getByText("Attempt")).toBeTruthy();
+    expect(screen.getByText("2")).toBeTruthy();
+  });
+
   it("shows the full error in a summary-kind card's expanded body", () => {
     render(
       <WorkflowTaskThread
@@ -471,9 +513,15 @@ describe("WorkflowTaskThread", () => {
   });
 
   it("keeps a card's expanded state across streaming updates (no remount)", () => {
+    // The wait card carries input so its detail body has content — a
+    // body-less summary card has no expand gesture at all (stigmer#886).
     const running = () =>
       statesOf(
-        taskState({ taskName: "settled", taskKind: WorkflowTaskKind.wait }),
+        taskState({
+          taskName: "settled",
+          taskKind: WorkflowTaskKind.wait,
+          inputSummary: { duration: "10s" },
+        }),
         taskState({ taskName: "live", status: "running", messagesCount: 1 }),
       );
     const { rerender } = render(
@@ -495,7 +543,11 @@ describe("WorkflowTaskThread", () => {
     rerender(
       <WorkflowTaskThread
         taskStates={statesOf(
-          taskState({ taskName: "settled", taskKind: WorkflowTaskKind.wait }),
+          taskState({
+            taskName: "settled",
+            taskKind: WorkflowTaskKind.wait,
+            inputSummary: { duration: "10s" },
+          }),
           taskState({ taskName: "live", status: "running", messagesCount: 2 }),
         )}
         totalTasks={2}

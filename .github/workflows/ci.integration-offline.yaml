@@ -238,8 +238,11 @@ jobs:
         run: go install gotest.tools/gotestsum@v1.13.0
 
       - name: Install OpenFGA CLI
+        # Pinned like gotestsum above: @latest re-resolves (and re-verifies
+        # against sum.golang.org) on every run — a pure flake surface and
+        # drift risk (stigmer#886).
         run: |
-          go install github.com/openfga/cli/cmd/fga@latest
+          go install github.com/openfga/cli/cmd/fga@v0.7.20
           fga version
 
       - name: Download FGA model

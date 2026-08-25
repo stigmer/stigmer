@@ -48,9 +48,13 @@ func TestOffline_TaskIO_PopulatesInputOutputTokens(t *testing.T) {
 	deployer := harness.NewFixtureDeployer(clients, "offline-task-io", suiteLogger)
 	defer deployer.Cleanup(ctx)
 
+	// SetTaskConfig is `variables: map<string,string>` — string literals only;
+	// anything richer is an expression (stigmer#886).
 	setVarsConfig, err := structpb.NewStruct(map[string]any{
-		"greeting": "hello",
-		"count":    float64(42),
+		"variables": map[string]any{
+			"greeting": "hello",
+			"count":    "42",
+		},
 	})
 	require.NoError(t, err)
 

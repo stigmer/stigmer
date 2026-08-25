@@ -383,19 +383,21 @@ describe("WorkflowExecutionViewer (center-column Thread|Graph toggle, S9)", () =
   it("a thread card offers no selection or drill-down gesture — the card IS the surface (T06)", () => {
     renderViewer();
 
-    // build-report has kind 0 (unspecified → summary disclosure): its header
-    // is the expand gesture, never a selection.
-    const header = screen.getByRole("button", { name: /^build-report/ });
-    expect(header.getAttribute("aria-expanded")).toBe("false");
-    expect(header.getAttribute("aria-pressed")).toBeNull();
+    // build-report renders from the snapshot fallback (no events): kind 0
+    // (unspecified → summary disclosure) with nothing beyond what its
+    // header row already carries — so it is a PLAIN row (stigmer#886): no
+    // expand chevron, no selection, no Inspect drill-down. (Expansion
+    // being card-local for content-bearing summary cards is pinned in
+    // WorkflowTaskThread.test.tsx.)
+    expect(
+      screen.queryByRole("button", { name: /^build-report/ }),
+    ).toBeNull();
     expect(
       screen.queryByRole("button", { name: "Inspect build-report" }),
     ).toBeNull();
 
-    fireEvent.click(header);
-
-    // Expansion is card-local; the panel never opens on a card gesture.
-    expect(header.getAttribute("aria-expanded")).toBe("true");
+    // Clicking the row is inert: the panel never opens on a card gesture.
+    fireEvent.click(screen.getByText("build-report"));
     expect(screen.queryByRole("radio", { name: "Inspect" })).toBeNull();
   });
 
