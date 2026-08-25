@@ -3405,6 +3405,7 @@ render defeats that for its rows.
     PlanArtifactCard: { type: "ComponentType<PlanArtifactCardProps>", description: "Completed Plan turn that published a plan artifact." },
     PlanCompletionCard: { type: "ComponentType<PlanCompletionCardProps>", description: "Completed Plan turn without an artifact — the bare Implement CTA." },
     PlanStreamingCard: { type: "ComponentType<PlanStreamingCardProps>", description: "Live stand-in card while a Plan turn is writing its document." },
+    RecalledMemoriesCard: { type: "ComponentType<RecalledMemoriesCardProps>", description: "The retriever transparency card at a selection-active execution's segment start — \"Recalled N of M memories\" (DD-008 D5)." },
     SetupProgress: { type: "ComponentType<SetupProgressProps>", description: "Pre-first-token setup / \"Thinking…\" indicator." },
     TodoCard: { type: "ComponentType<TodoCardProps>", description: "The collapsible in-thread to-dos card." },
     TodoRow: { type: "ComponentType<TodoRowProps>", description: "One to-do row inside the built-in TodoCard's list. Ignored when `TodoCard` is also overridden (the replacement receives it via TodoCardProps.TodoRow and may forward or ignore it)." },
@@ -3614,6 +3615,40 @@ Props for [`PlanStreamingCard`](#planstreamingcard).
 />
 
 
+### RecalledMemoriesCard
+
+Inline timeline card disclosing the semantic retriever's selection for
+one execution: "Recalled N of M memories", expandable to the injected
+facts (stigmer/stigmer#293 Phase 3a, DD-008 D5's transparency promise).
+
+Renders at the top of the execution's [`MessageThread`](#messagethread) segment,
+right after the user's turn — `spec.message` is the query the
+retriever embedded, so the card reads as "for this message, these
+memories were most relevant".
+
+Renders NOTHING unless the report says selection was active: an
+absent report and `selection_active=false` both mean wholesale (every
+snapshot fact injected — the shipped Phase 2 behavior), and unchanged
+behavior earns no UI noise. The same rule is applied by the thread
+builder; it is repeated here so directly-embedding platform builders
+get the correct contract by construction.
+
+All visual properties flow through `--stgm-*` tokens.
+
+
+### RecalledMemoriesCardProps
+
+Props for [`RecalledMemoriesCard`](#recalledmemoriescard).
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS classes for the root element." },
+    facts: { type: "readonly RecalledMemoryFact[]", description: "The full candidate set from `spec.recalled_memories.facts`.", required: true },
+    report: { type: "RecalledMemoriesReport", description: "The runner's injection report from the execution's status.", required: true },
+  }}
+/>
+
+
 ### registerToolPresenter
 
 Registers a custom presenter for a `ToolKind`, overriding the default
@@ -3656,6 +3691,23 @@ caller falls back to copy-to-clipboard).
 
 ```tsx
 function resolveGitBrowseUrl(gitUrl: string, branch: string, commit: string, relPath: string): string | null
+```
+
+
+### resolveInjectedFacts
+
+Resolve the report's injected memory ids against the execution's
+snapshot facts, preserving snapshot order (the stable prompt order —
+the selector re-sorts its subset the same way, so this join renders
+the facts exactly as the agent saw them).
+
+The contract guarantees injected ids are a subset of the snapshot
+(the merge path's never-invent pin), so an unknown id can only mean a
+bug upstream — it is skipped, never invented. The summary count stays
+the wire truth (`injectedMemoryIds.length`) regardless.
+
+```tsx
+function resolveInjectedFacts(report: RecalledMemoriesReport, facts: readonly RecalledMemoryFact[]): RecalledMemoryFact[]
 ```
 
 
