@@ -25,8 +25,11 @@ import { registerAgentServices } from "../domain/agent/controller.js";
 import { newConfigFromEnv } from "../domain/agentexecution/temporal/config.js";
 import { registerAgentExecutionServices } from "../domain/agentexecution/controller.js";
 import { newArtifactStorage } from "../artifactstorage/artifact-storage.js";
-import { ENGINE_DISCONNECTED } from "../domain/agentexecution/engine.js";
 import { StreamBroker } from "../domain/agentexecution/stream-broker.js";
+import { newExecutionEngineStateProvider } from "../temporal/agentexecution/engine-client.js";
+import { newAgentExecutionWorkerFactory } from "../temporal/agentexecution/worker.js";
+import { TemporalManager } from "../temporal/manager.js";
+import { loadServerPayloadCodecs } from "../temporal/payload-codec.js";
 import { RuntimeResolutionService } from "../domain/environment/resolution/resolution.js";
 import { ManagedEnvironmentService } from "../domain/mcpserver/oauth/managed-env.js";
 import { registerAgentInstanceServices } from "../domain/agentinstance/controller.js";
@@ -82,6 +85,13 @@ export interface ComposedServer {
   healthState: HealthState;
   /** The persistence layer (exposed for tests; domain code gets it injected). */
   store: Store;
+  /**
+   * The Temporal lifecycle manager (exposed for composed tests asserting
+   * engine-state behavior). Health semantics are unchanged by it: a down
+   * engine never flips gRPC health — that is the engine-unavailable
+   * posture the agentexecution suites pin.
+   */
+  temporalManager: TemporalManager;
   /**
    * The runner-token service (exposed for boot tests and for the
    * executioncontext decrypt-lane tests, which mint scope-bound tokens
@@ -153,14 +163,19 @@ export function composeServer(options: ComposeOptions): ComposedServer {
   }
   const runnerAuthService = RunnerAuthService.fromEnv();
 
-  // Stage: temporal — seam (execution cluster sub-projects).
-
-  // Stage: controllers + routes.
-  // The agent-execution temporal config is env-derived strings only — the
-  // temporal seam stays empty. It lives here (not with the seam) because
-  // the session update pipeline's execution-target immutability step must
-  // resolve UNSPECIFIED through the SAME default dispatch will use — one
-  // definition, so policy and dispatch can never disagree (oss#397).
+  // Stage: temporal (#18). Construction is sync and connection-free —
+  // initialConnect/startWorkers/startHealthMonitor run in start(), all
+  // NON-fatal (Go server.go: the server boots and serves with the engine
+  // unavailable; the health monitor keeps retrying). The one boot-fatal
+  // arm is a PRESENT-but-malformed payload-encryption key: an operator
+  // who set the key intended runner history to be encrypted, and failing
+  // on the first runner payload read would be worse than failing here.
+  //
+  // The agent-execution temporal config lives with the controllers stage
+  // (not here) because the session update pipeline's execution-target
+  // immutability step must resolve UNSPECIFIED through the SAME default
+  // dispatch uses — one definition, so policy and dispatch can never
+  // disagree (oss#397).
   const temporalConfig = newConfigFromEnv();
   const healthState = new HealthState();
   // The model-registry store is DOMAIN-owned (workflow-family DD-A,
@@ -182,15 +197,42 @@ export function composeServer(options: ComposeOptions): ComposedServer {
   // per validation call, keeping validation and the served pickers in
   // lockstep (DD-004).
   const workflowValidator = new InProcessValidator(modelRegistryStore, logger);
-  // ONE broker spans both routers: #18's Temporal activities update
-  // status through the in-process client, and those broadcasts must reach
-  // externally-connected subscribe streams (Go's GetStreamBroker seam).
+  // ONE broker spans both routers AND the Temporal worker's activities:
+  // the worker's status persists broadcast through the same fabric, so
+  // recovery/fallback updates reach externally-connected subscribe
+  // streams (Go's GetStreamBroker seam).
   const agentExecutionStreamBroker = new StreamBroker(logger);
   // The workflowexecution twin (domain-local per that sub-project's
   // DD-002); #21's activities broadcast through it the same way.
   const workflowExecutionStreamBroker = new WorkflowExecutionStreamBroker(
     logger,
   );
+  // The manager owns the connection lifecycle; the agent-execution worker
+  // is the first factory (workflow-execution and the schedule clock
+  // append theirs in #21/#22 — Go createWorkers' list).
+  const temporalManager = new TemporalManager({
+    hostPort: config.temporalHostPort,
+    namespace: config.temporalNamespace,
+    logger,
+    payloadCodecs: loadServerPayloadCodecs(),
+    workerFactories: [
+      newAgentExecutionWorkerFactory({
+        store,
+        logger,
+        broker: agentExecutionStreamBroker,
+        temporalConfig,
+      }),
+    ],
+  });
+  // The provider IS the injection mechanism (no Go-style creator
+  // re-injection): controllers observe the manager's CURRENT client at
+  // request time, so reconnects propagate with zero re-wiring.
+  const executionEngineState = newExecutionEngineStateProvider({
+    manager: temporalManager,
+    config: temporalConfig,
+    store,
+    logger,
+  });
   // The artifact blob store (Go server.go 349: shared by agentexecution
   // attachments, the artifact domain (#13), and skill push (#8)). The r2
   // arm landed with #13; the health probe runs in start(), matching Go's
@@ -320,10 +362,7 @@ export function composeServer(options: ComposeOptions): ComposedServer {
       store,
       logger,
       broker: agentExecutionStreamBroker,
-      // Permanently disconnected until #18 lands the worker infra; the
-      // provider shape lets its TemporalManager flip availability at
-      // runtime without controller changes.
-      engineState: () => ENGINE_DISCONNECTED,
+      engineState: executionEngineState,
       modelRegistry: modelRegistryStore,
       artifactStorage,
       agentLoader: () => requireInProcess().executionAgentLoader,
@@ -427,11 +466,22 @@ export function composeServer(options: ComposeOptions): ComposedServer {
   return {
     healthState,
     store,
+    temporalManager,
     runnerAuthService,
     agentExecutionStreamBroker,
     workflowExecutionStreamBroker,
 
     async start(): Promise<number> {
+      // Temporal boot is NON-fatal end to end (Go server.go): a failed
+      // initial connect leaves the engine unavailable and the monitor
+      // retrying; a failed worker start is a warning. Health below flips
+      // SERVING regardless — engine availability is modeled in the
+      // agentexecution domain, never in gRPC health.
+      const connected = await temporalManager.initialConnect();
+      if (connected) {
+        await temporalManager.startWorkers();
+      }
+      temporalManager.startHealthMonitor();
       // Artifact storage must be reachable and writable before the server
       // answers (Go server.go boots-fatal on the same probe).
       await artifactStorage.health();
@@ -464,6 +514,9 @@ export function composeServer(options: ComposeOptions): ComposedServer {
       healthState.setOverall(ServingStatus.NOT_SERVING);
       modelRegistryStore.stopRefresh();
       await artifactFileServer?.shutdown();
+      // Workers stop before the transport drains: an in-flight activity
+      // may still write through the store, which closes LAST.
+      await temporalManager.close();
       await server.shutdown();
       // The store closes LAST: in-flight handlers drained above may still
       // be mid-write (Go closes the store after grpcServer.Stop too).

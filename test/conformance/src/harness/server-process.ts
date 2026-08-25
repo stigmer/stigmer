@@ -6,6 +6,7 @@
 // files can boot servers concurrently without colliding. TCP-readiness only
 // proves the listener is up; the gRPC-level readiness gate lives in the target.
 import { spawn } from "node:child_process";
+import { createWriteStream } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { connect } from "node:net";
 import { tmpdir } from "node:os";
@@ -104,8 +105,22 @@ export async function spawnServer(
   });
 
   let logTail = "";
+  // Debug lever: STIGMER_CONFORMANCE_LOG_DIR tees the child's full output
+  // to a per-process file that SURVIVES teardown — the in-memory logTail
+  // only surfaces on spawn failure, which makes intermittent mid-suite
+  // races (writer-ordering flakes) undiagnosable without it.
+  const teeStream = process.env.STIGMER_CONFORMANCE_LOG_DIR
+    ? createWriteStream(
+        join(
+          process.env.STIGMER_CONFORMANCE_LOG_DIR,
+          `server-${port}-${Date.now()}.log`,
+        ),
+        { flags: "a" },
+      )
+    : undefined;
   const appendLog = (chunk: Buffer): void => {
     logTail = (logTail + chunk.toString("utf8")).slice(-LOG_TAIL_BYTES);
+    teeStream?.write(chunk);
   };
   child.stdout.on("data", appendLog);
   child.stderr.on("data", appendLog);

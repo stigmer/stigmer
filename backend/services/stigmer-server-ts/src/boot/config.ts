@@ -46,7 +46,10 @@ export interface ServerConfig {
    * TemporalNamespace). Published to embedded runners via the platform
    * domain's getRunnerBootstrapConfig — in OSS the server and its runners
    * are co-located, so the address the server dials is the one runners
-   * dial too. The Temporal workers (#18) read the same fields.
+   * dial too. The Temporal workers (#18) read the same fields; connection
+   * failure is NON-fatal (the server serves with the engine unavailable
+   * and the TemporalManager's health monitor keeps retrying — Go
+   * server.go InitialConnect posture).
    */
   readonly temporalHostPort: string;
   readonly temporalNamespace: string;

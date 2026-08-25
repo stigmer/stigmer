@@ -42,6 +42,10 @@ beforeAll(async () => {
   testDir = mkdtempSync(path.join(tmpdir(), "registry-lanes-test-"));
   const config = loadConfig({
     STIGMER_MODEL_REGISTRY_REFRESH: "off",
+    // No engine behind composed tests: 127.0.0.1:1 is deterministically
+    // closed, so boots fail the non-fatal connect fast and can never touch
+    // a live local Temporal (the conformance CRUD harness does the same).
+    TEMPORAL_HOST_PORT: "127.0.0.1:1",
     DB_PATH: path.join(testDir, "stigmer.db"),
     ARTIFACT_LOCAL_BASE_PATH: path.join(testDir, "artifacts"),
     STORAGE_PATH: path.join(testDir, "storage"),
