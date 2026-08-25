@@ -2,27 +2,23 @@
 // Domain: conformance targets.
 //
 // CONFORMANCE_TARGET selects which implementation the suite runs against,
-// defaulting to the local OSS Go server. The same suite runs unchanged against
+// defaulting to the local OSS server. The same suite runs unchanged against
 // any registered target.
 import { CloudTarget } from "./cloud";
 import { CloudExecutionTarget } from "./cloud-execution";
-import { LocalGoTarget } from "./local-go";
-import { LocalGoExecutionTarget } from "./local-go-execution";
-import { LocalTsTarget } from "./local-ts";
-import { LocalTsExecutionTarget } from "./local-ts-execution";
+import { LocalTarget } from "./local";
+import { LocalExecutionTarget } from "./local-execution";
 import type { TargetProfile } from "./target";
 
 const TARGET_FACTORIES: Record<string, () => TargetProfile> = {
-  "local-go": () => new LocalGoTarget(),
-  "local-go-execution": () => new LocalGoExecutionTarget(),
-  "local-ts": () => new LocalTsTarget(),
-  "local-ts-execution": () => new LocalTsExecutionTarget(),
+  local: () => new LocalTarget(),
+  "local-execution": () => new LocalExecutionTarget(),
   cloud: () => new CloudTarget(),
   "cloud-execution": () => new CloudExecutionTarget(),
 };
 
 export function createTarget(): TargetProfile {
-  const name = process.env.CONFORMANCE_TARGET ?? "local-go";
+  const name = process.env.CONFORMANCE_TARGET ?? "local";
   const factory = TARGET_FACTORIES[name];
   if (factory === undefined) {
     const known = Object.keys(TARGET_FACTORIES).join(", ");

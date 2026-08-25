@@ -62,7 +62,7 @@ describe("Organization conformance", () => {
 
     // Organization is the one resource whose id is its slug (the globally unique
     // tenancy root is addressed by slug, not a minted id). This holds uniformly
-    // across local-go and cloud targets.
+    // across local and cloud targets.
     expect(created.metadata?.id, "org id should equal its slug").toBe(created.metadata?.slug);
     expect(created.status?.audit?.specAudit?.event).toBe("created");
   });

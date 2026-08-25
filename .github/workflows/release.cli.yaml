@@ -1,9 +1,15 @@
+# Creates the GitHub Release for a version tag: tag verification (or creation
+# on manual dispatch) plus curated release notes from the annotated tag.
+#
+# No binary assets ship here anymore: the Go stigmer-server tarballs this
+# workflow used to cross-compile and attach retired with the Go server
+# (go-server-retirement, D4 #25). The served implementation is acquired as
+# the @stigmer/server-slim npm package (published by release.npm-libs.yaml),
+# and the CLI itself ships as the @stigmer/cli npm package.
 name: release.cli
 
 on:
   push:
-    branches:
-      - main
     tags:
       - 'v*'  # Trigger on version tags (v1.0.0, v1.2.3, etc.)
   workflow_dispatch:  # Allow manual trigger
@@ -20,7 +26,6 @@ on:
 
 permissions:
   contents: write
-  packages: write
 
 # Force JavaScript actions onto Node 24. GitHub is removing the Node 20 runtime
 # from runners in 2026; this opts in early and silences the deprecation warnings
@@ -59,296 +64,16 @@ jobs:
               SHOULD_RELEASE="false"
             fi
           else
-            # For push to main, generate test version
             VERSION="test-$(git rev-parse --short HEAD)"
             SHOULD_RELEASE="false"
           fi
-          
+
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "should_release=$SHOULD_RELEASE" >> $GITHUB_OUTPUT
           echo "Building version: $VERSION (release: $SHOULD_RELEASE)"
 
-  # Generate all proto stubs once and share with downstream jobs.
-  # Consolidates BSR requests to a single job to avoid rate limiting.
-  generate-protos:
-    needs: determine-version
-    runs-on: ubuntu-latest
-    # Pin Go's module + build caches to workspace-relative paths so they can be
-    # cached uniformly across Linux and macOS runners (see Cache Go step below).
-    env:
-      GOMODCACHE: ${{ github.workspace }}/.gomodcache
-      GOCACHE: ${{ github.workspace }}/.gocache
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.25'
-          # This repo is a go.work workspace with no root go.sum, so setup-go's
-          # built-in cache silently no-ops. We manage the cache explicitly below.
-          cache: false
-
-      - name: Cache Go modules and build
-        uses: actions/cache@v4
-        with:
-          path: |
-            ${{ github.workspace }}/.gomodcache
-            ${{ github.workspace }}/.gocache
-          key: go-protos-${{ runner.os }}-${{ hashFiles('**/go.sum') }}
-          restore-keys: go-protos-${{ runner.os }}-
-
-      - name: Set up Buf
-        uses: bufbuild/buf-setup-action@v1
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Cache buf modules
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/buf
-          key: buf-${{ hashFiles('apis/buf.lock') }}
-          restore-keys: buf-
-
-      - name: Generate proto stubs
-        env:
-          BUF_TOKEN: ${{ secrets.BUF_TOKEN }}
-        run: make protos
-
-      - name: Package generated stubs
-        run: |
-          tar -czf proto-stubs.tar.gz \
-            apis/stubs/ \
-            sdk/go/proto/ \
-            sdk/go/internal/gen/ \
-            tools/codegen/schemas/ \
-            mcp-server/src/gen/ \
-            sdk/typescript/src/gen/ \
-            sdk/python/src/stigmer/_gen/ \
-            sdk/java/src/main/java/ai/stigmer/sdk/gen/
-
-      - name: Upload proto stubs
-        uses: actions/upload-artifact@v4
-        with:
-          name: proto-stubs
-          path: proto-stubs.tar.gz
-          retention-days: 1
-
-  # Build for macOS Apple Silicon
-  build-darwin-arm64:
-    needs: [determine-version, generate-protos]
-    runs-on: macos-latest  # macOS 14 (M1)
-    env:
-      GOMODCACHE: ${{ github.workspace }}/.gomodcache
-      GOCACHE: ${{ github.workspace }}/.gocache
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.25'
-          cache: false
-
-      - name: Cache Go modules and build
-        uses: actions/cache@v4
-        with:
-          path: |
-            ${{ github.workspace }}/.gomodcache
-            ${{ github.workspace }}/.gocache
-          key: go-darwin-arm64-${{ runner.os }}-${{ hashFiles('**/go.sum') }}
-          restore-keys: go-darwin-arm64-${{ runner.os }}-
-
-      - name: Download proto stubs
-        uses: actions/download-artifact@v4
-        with:
-          name: proto-stubs
-
-      - name: Extract proto stubs
-        run: tar -xzf proto-stubs.tar.gz
-
-      - name: Build stigmer-server
-        env:
-          GH_OAUTH_CLIENT_ID: ${{ secrets.STIGMER_LOCAL_GITHUB_OAUTH_CLIENT_ID }}
-          GH_OAUTH_CLIENT_SECRET: ${{ secrets.STIGMER_LOCAL_GITHUB_OAUTH_CLIENT_SECRET }}
-        run: |
-          cd backend/services/stigmer-server
-          go build -ldflags="-s -w \
-            -X github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config.defaultGitHubOAuthClientID=$GH_OAUTH_CLIENT_ID \
-            -X github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config.defaultGitHubOAuthClientSecret=$GH_OAUTH_CLIENT_SECRET" \
-            -o ../../../bin/stigmer-server ./cmd/server
-
-      - name: Verify binary
-        run: |
-          file bin/stigmer-server
-          ls -lh bin/
-
-      - name: Package
-        env:
-          VERSION: ${{ needs.determine-version.outputs.version }}
-        run: |
-          cd bin
-          # Standalone stigmer-server asset: the npm CLI downloads this on demand
-          # and verifies the sha256 before first use (DD-003).
-          tar -czf stigmer-server-$VERSION-darwin-arm64.tar.gz stigmer-server
-          shasum -a 256 stigmer-server-$VERSION-darwin-arm64.tar.gz > stigmer-server-$VERSION-darwin-arm64.tar.gz.sha256
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: stigmer-server-darwin-arm64
-          path: bin/*
-
-  # Build CLI for Intel Mac (cross-compiled from ARM runner)
-  build-darwin-amd64:
-    needs: [determine-version, generate-protos]
-    runs-on: macos-latest  # ARM Mac (cross-compile Go CLI to Intel)
-    env:
-      GOMODCACHE: ${{ github.workspace }}/.gomodcache
-      GOCACHE: ${{ github.workspace }}/.gocache
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.25'
-          cache: false
-
-      - name: Cache Go modules and build
-        uses: actions/cache@v4
-        with:
-          path: |
-            ${{ github.workspace }}/.gomodcache
-            ${{ github.workspace }}/.gocache
-          key: go-darwin-amd64-${{ runner.os }}-${{ hashFiles('**/go.sum') }}
-          restore-keys: go-darwin-amd64-${{ runner.os }}-
-
-      - name: Download proto stubs
-        uses: actions/download-artifact@v4
-        with:
-          name: proto-stubs
-
-      - name: Extract proto stubs
-        run: tar -xzf proto-stubs.tar.gz
-
-      - name: Build stigmer-server (cross-compile to Intel)
-        env:
-          GOARCH: amd64
-          GOOS: darwin
-          GH_OAUTH_CLIENT_ID: ${{ secrets.STIGMER_LOCAL_GITHUB_OAUTH_CLIENT_ID }}
-          GH_OAUTH_CLIENT_SECRET: ${{ secrets.STIGMER_LOCAL_GITHUB_OAUTH_CLIENT_SECRET }}
-        run: |
-          cd backend/services/stigmer-server
-          go build -ldflags="-s -w \
-            -X github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config.defaultGitHubOAuthClientID=$GH_OAUTH_CLIENT_ID \
-            -X github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config.defaultGitHubOAuthClientSecret=$GH_OAUTH_CLIENT_SECRET" \
-            -o ../../../bin/stigmer-server ./cmd/server
-
-      - name: Verify binary
-        env:
-          VERSION: ${{ needs.determine-version.outputs.version }}
-        run: |
-          file bin/stigmer-server
-          ls -lh bin/
-          echo "Version: $VERSION (Intel binary, cannot run on ARM Mac)"
-
-      - name: Package
-        env:
-          VERSION: ${{ needs.determine-version.outputs.version }}
-        run: |
-          cd bin
-          # Standalone stigmer-server asset: the npm CLI downloads this on demand
-          # and verifies the sha256 before first use (DD-003).
-          tar -czf stigmer-server-$VERSION-darwin-amd64.tar.gz stigmer-server
-          shasum -a 256 stigmer-server-$VERSION-darwin-amd64.tar.gz > stigmer-server-$VERSION-darwin-amd64.tar.gz.sha256
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: stigmer-server-darwin-amd64
-          path: bin/*
-
-  # Build for Linux
-  build-linux-amd64:
-    needs: [determine-version, generate-protos]
-    runs-on: ubuntu-latest
-    env:
-      GOMODCACHE: ${{ github.workspace }}/.gomodcache
-      GOCACHE: ${{ github.workspace }}/.gocache
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.25'
-          cache: false
-
-      - name: Cache Go modules and build
-        uses: actions/cache@v4
-        with:
-          path: |
-            ${{ github.workspace }}/.gomodcache
-            ${{ github.workspace }}/.gocache
-          key: go-linux-amd64-${{ runner.os }}-${{ hashFiles('**/go.sum') }}
-          restore-keys: go-linux-amd64-${{ runner.os }}-
-
-      - name: Download proto stubs
-        uses: actions/download-artifact@v4
-        with:
-          name: proto-stubs
-
-      - name: Extract proto stubs
-        run: tar -xzf proto-stubs.tar.gz
-
-      - name: Build stigmer-server
-        env:
-          GH_OAUTH_CLIENT_ID: ${{ secrets.STIGMER_LOCAL_GITHUB_OAUTH_CLIENT_ID }}
-          GH_OAUTH_CLIENT_SECRET: ${{ secrets.STIGMER_LOCAL_GITHUB_OAUTH_CLIENT_SECRET }}
-        run: |
-          cd backend/services/stigmer-server
-          go build -ldflags="-s -w \
-            -X github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config.defaultGitHubOAuthClientID=$GH_OAUTH_CLIENT_ID \
-            -X github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config.defaultGitHubOAuthClientSecret=$GH_OAUTH_CLIENT_SECRET" \
-            -o ../../../bin/stigmer-server ./cmd/server
-
-      - name: Verify binary
-        run: |
-          file bin/stigmer-server
-          ls -lh bin/
-
-      - name: Package
-        env:
-          VERSION: ${{ needs.determine-version.outputs.version }}
-        run: |
-          cd bin
-          # Standalone stigmer-server asset: the npm CLI downloads this on demand
-          # and verifies the sha256 before first use (DD-003).
-          tar -czf stigmer-server-$VERSION-linux-amd64.tar.gz stigmer-server
-          sha256sum stigmer-server-$VERSION-linux-amd64.tar.gz > stigmer-server-$VERSION-linux-amd64.tar.gz.sha256
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: stigmer-server-linux-amd64
-          path: bin/*
-
-  # Create GitHub Release (only if requested)
   release:
-    needs: [determine-version, build-darwin-arm64, build-darwin-amd64, build-linux-amd64]
+    needs: [determine-version]
     runs-on: ubuntu-latest
     if: needs.determine-version.outputs.should_release == 'true'
     steps:
@@ -369,7 +94,7 @@ jobs:
             # If triggered by workflow_dispatch, create and push tag
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            
+
             # Check if tag already exists
             if git rev-parse "$VERSION" >/dev/null 2>&1; then
               echo "Tag $VERSION already exists, skipping tag creation"
@@ -380,23 +105,6 @@ jobs:
               echo "Created and pushed tag: $VERSION"
             fi
           fi
-
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-
-      - name: Display structure of downloaded files
-        run: ls -R artifacts
-
-      - name: Prepare release assets
-        run: |
-          mkdir -p release-assets
-          # Copy CLI tarballs
-          find artifacts -name "*.tar.gz" -exec cp {} release-assets/ \;
-          # Copy all checksums
-          find artifacts -name "*.sha256" -exec cp {} release-assets/ \;
-          ls -lh release-assets/
 
       - name: Generate changelog
         id: changelog
@@ -426,8 +134,12 @@ jobs:
           brew upgrade stigmer
           ```
 
-          ### Manual Installation
-          Download the appropriate binary for your platform from the assets below.
+          ### npm
+          ```bash
+          npm install -g @stigmer/cli
+          ```
+
+          The server and runner are acquired automatically on first `stigmer up`.
           INST
           )
 
@@ -446,9 +158,6 @@ jobs:
           \`\`\`bash
           brew install stigmer/tap/stigmer
           \`\`\`
-
-          ### Manual Installation
-          Download the appropriate binary for your platform from the assets below.
 
           ## What's New
 
@@ -478,13 +187,12 @@ jobs:
           tag_name: ${{ needs.determine-version.outputs.version }}
           name: Release ${{ needs.determine-version.outputs.version }}
           body_path: ${{ steps.changelog.outputs.changelog_file }}
-          files: release-assets/*
           draft: false
           prerelease: false
 
-  # NOTE: The Homebrew tap is intentionally NOT bumped here. Homebrew runs
-  # formula npm installs with `--min-release-age=1`, which rejects the
-  # same-day @stigmer/* dependency versions for ~24h and breaks
-  # `brew install stigmer` right after a release (stigmer/stigmer#210). The
-  # tap is instead reconciled by .github/workflows/reconcile-homebrew.yaml
-  # once the published packages have aged past that window.
+# NOTE: The Homebrew tap is intentionally NOT bumped here. Homebrew runs
+# formula npm installs with `--min-release-age=1`, which rejects the
+# same-day @stigmer/* dependency versions for ~24h and breaks
+# `brew install stigmer` right after a release (stigmer/stigmer#210). The
+# tap is instead reconciled by .github/workflows/reconcile-homebrew.yaml
+# on a schedule, once the packages are old enough.

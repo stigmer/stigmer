@@ -1,5 +1,5 @@
-// Builds the TypeScript stigmer-server-ts from source so the suite always
-// tests HEAD — the go-build.ts twin for the local-ts target.
+// Builds the TypeScript server from source so the suite always tests HEAD —
+// used by the local targets and the MCP bridge suite.
 // Domain: conformance harness (server lifecycle).
 //
 // The build compiles in place (backend/services/stigmer-server-ts/dist):

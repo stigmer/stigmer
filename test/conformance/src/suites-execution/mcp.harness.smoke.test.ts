@@ -2,7 +2,7 @@
 // Domain: agentic / agentexecution — proves the tool surface is wired, not the
 // HITL contract (that lives in agentexecution-approval.conformance.test.ts).
 //
-// This is the cheap, permanent guard that the local-go-execution target's MCP
+// This is the cheap, permanent guard that the local-execution target's MCP
 // machinery works end-to-end: an HTTP McpServer is registered (create only — no
 // connect/discovery), an agent references it, and a real agent run dispatches the
 // fixture's `echo` tool live. Approval is bypassed here (auto_approve_all) so the

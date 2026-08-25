@@ -1,9 +1,7 @@
-// Pins the cutover switch (D4 #24): STIGMER_SERVER_BIN selects the Go
-// rollback binary before anything else; otherwise the TS server resolves
-// exactly like the runner (explicit dir → repo tree → acquired slim package).
+// Pins the server resolution: exactly like the runner's (explicit dir →
+// repo tree → acquired slim package).
 
 import {
-  chmodSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -20,9 +18,8 @@ function tempDir(prefix: string): string {
 
 const fakeNode = (): string => "/usr/bin/node";
 
-// Snapshot and restore the env vars the switch reads, so tests don't leak.
+// Snapshot and restore the env vars the resolution reads, so tests don't leak.
 const TOUCHED = [
-  "STIGMER_SERVER_BIN",
   "STIGMER_SERVER_DIR",
   "STIGMER_NODE_BIN",
 ] as const;
@@ -51,41 +48,12 @@ function builtServerDir(): string {
   return dir;
 }
 
-describe("ensureServer (the switch)", () => {
-  it("selects the Go binary when STIGMER_SERVER_BIN is set — the rollback lever", () => {
-    const dir = tempDir("stigmer-go-");
-    const bin = join(dir, "stigmer-server");
-    writeFileSync(bin, "#!/bin/sh\n");
-    chmodSync(bin, 0o755);
-    process.env.STIGMER_SERVER_BIN = bin;
-
-    expect(ensureServer({ node: fakeNode })).toEqual({ kind: "binary", bin });
-  });
-
-  it("prefers the binary override even when a TS server dir is also set", () => {
-    const dir = tempDir("stigmer-go-");
-    const bin = join(dir, "stigmer-server");
-    writeFileSync(bin, "#!/bin/sh\n");
-    chmodSync(bin, 0o755);
-    process.env.STIGMER_SERVER_BIN = bin;
-    process.env.STIGMER_SERVER_DIR = builtServerDir();
-
-    expect(ensureServer({ node: fakeNode }).kind).toBe("binary");
-  });
-
-  it("rejects a binary override that does not exist, with rollback guidance", () => {
-    process.env.STIGMER_SERVER_BIN = "/nonexistent/stigmer-server";
-    expect(() => ensureServer({ node: fakeNode })).toThrow(
-      /STIGMER_SERVER_BIN does not exist/,
-    );
-  });
-
-  it("resolves the TS server when no override is set", () => {
+describe("ensureServer", () => {
+  it("resolves the server from STIGMER_SERVER_DIR", () => {
     const dir = builtServerDir();
     process.env.STIGMER_SERVER_DIR = dir;
 
     expect(ensureServer({ node: fakeNode })).toEqual({
-      kind: "node",
       nodeBin: "/usr/bin/node",
       entryPath: join(dir, "dist", "main.js"),
       appDir: dir,
@@ -99,24 +67,21 @@ describe("resolveServerTs", () => {
     process.env.STIGMER_SERVER_DIR = dir;
 
     expect(resolveServerTs(fakeNode)).toEqual({
-      kind: "node",
       nodeBin: "/usr/bin/node",
       entryPath: join(dir, "dist", "main.js"),
       appDir: dir,
     });
   });
 
-  it("errors with build guidance (and the rollback hint) when dist/main.js is missing", () => {
+  it("errors with build guidance when dist/main.js is missing", () => {
     const dir = tempDir("stigmer-server-ts-");
     writeFileSync(join(dir, "package.json"), "{}");
     process.env.STIGMER_SERVER_DIR = dir;
 
     expect(() => resolveServerTs(fakeNode)).toThrow(/not built/);
-    // Remediation rides in hints, not the message: the build command and the
-    // Go rollback lever must both be offered.
+    // Remediation rides in hints, not the message.
     const hints = captureHints(() => resolveServerTs(fakeNode));
     expect(hints.join("\n")).toMatch(/make build-server-ts/);
-    expect(hints.join("\n")).toMatch(/STIGMER_SERVER_BIN/);
   });
 
   it("rejects an override that is not a server package", () => {
@@ -147,7 +112,6 @@ describe("acquireServer", () => {
 
     const installDir = join(home, ".stigmer", "runtimes", "0.5.0");
     expect(launch).toEqual({
-      kind: "node",
       nodeBin: "/usr/bin/node",
       entryPath: join(
         installDir,
@@ -185,7 +149,7 @@ describe("acquireServer", () => {
       install,
     });
 
-    expect(launch.kind).toBe("node");
+    expect(launch.nodeBin).toBe("/usr/bin/node");
     expect(install).not.toHaveBeenCalled();
   });
 
@@ -226,7 +190,7 @@ describe("acquireServer", () => {
     expect(hints).toMatch(/Remove .* and retry/);
   });
 
-  it("refuses to acquire for a non-release (dev) build, naming both fallbacks", () => {
+  it("refuses to acquire for a non-release (dev) build, naming the fallback", () => {
     const home = tempDir("stigmer-home-");
     const attempt = (): unknown =>
       acquireServer({
@@ -236,10 +200,9 @@ describe("acquireServer", () => {
         install: vi.fn(),
       });
     expect(attempt).toThrow(/non-release build/);
-    // Both escape hatches ride in the hints: the TS dir and the Go rollback.
+    // The escape hatch rides in the hints: the explicit server dir.
     const hints = captureHints(attempt);
     expect(hints.join("\n")).toMatch(/STIGMER_SERVER_DIR/);
-    expect(hints.join("\n")).toMatch(/STIGMER_SERVER_BIN/);
   });
 });
 

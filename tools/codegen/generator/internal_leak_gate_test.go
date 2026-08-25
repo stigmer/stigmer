@@ -35,7 +35,7 @@ func TestNoInternalSectionsLeak(t *testing.T) {
 		"tools/codegen/schemas",
 		"tools/codegen/output",
 		"mcp-server/src/gen",
-		"backend/services/stigmer-server/pkg/domain/workflow/registry/data",
+		"backend/services/stigmer-server-ts/src/domain/workflow/registry/data",
 	}
 
 	for _, root := range scanRoots {

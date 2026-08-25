@@ -15,7 +15,7 @@
 // Capability split: seeding memories requires the first-party capture gate
 // (firstPartyMemoryCapture, targets/target.ts) — the cloud conformance user
 // is a PlatformClient-minted token that structurally cannot capture, so the
-// scenario is buildable only on local-go-execution. The capture-gate
+// scenario is buildable only on local-execution. The capture-gate
 // refusal itself is pinned in the CRUD-level memory suite.
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";

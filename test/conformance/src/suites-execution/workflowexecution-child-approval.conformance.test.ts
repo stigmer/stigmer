@@ -31,11 +31,11 @@
 // capability:
 //   - Negatives are edition-agnostic (they never need a populated
 //     pending_approvals) and run unconditionally, against OSS today.
-//   - The happy path is gated. It is written in full so it is genuinely runnable —
-//     but it needs BOTH the forwarder (cloud / local-ts) AND the local mock-LLM +
-//     MCP fixtures to drive a child to its gate. Only the future local-ts-execution
-//     (T04) target has both; cloud has the forwarder but real LLMs. On local-go it
-//     reports as SKIPPED (not a false green) via describe.skipIf.
+//   - The happy path is gated. It needs BOTH the forwarder AND the local
+//     mock-LLM + MCP fixtures to drive a child to its gate: local-execution
+//     has both (the TS HITL loop emits the signal since D4 #23); cloud has
+//     the forwarder but real LLMs, so it reports as SKIPPED (not a false
+//     green) via describe.skipIf.
 //
 // ## Asserted contract (sourced from submit_approval.go)
 //
@@ -228,10 +228,10 @@ describe("WorkflowExecution submitApproval (child-agent forwarder) — negatives
   });
 });
 
-// Happy path — gated on workflowChildApprovalForwarding. Reports as SKIPPED on
-// local-go (forwarder present, signal sender absent) rather than a false green;
-// runs on the future local-ts-execution (T04) target, which has both the
-// forwarder and the local mock-LLM + MCP fixtures. See DD-012.
+// Happy path — gated on workflowChildApprovalForwarding: it runs where the
+// signal sender AND the local mock-LLM + MCP fixtures coexist
+// (local-execution), and reports as SKIPPED elsewhere rather than a false
+// green. See DD-012.
 describe.skipIf(!forwarderEnabled)(
   "WorkflowExecution submitApproval (child-agent forwarder) — forwarding round-trip",
   () => {

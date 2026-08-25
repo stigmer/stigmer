@@ -1,12 +1,12 @@
 // Cloud execution target: the Java stigmer-service with its execution engine
 // reachable — the Class B twin of `cloud`, and the cloud twin of
-// `local-go-execution`.
+// `local-execution`.
 // Domain: conformance targets (execution engine).
 //
 // Composes rather than forks: the connect-only identity/tenancy machinery is
 // delegated to CloudTarget (CLOUD_ENV contract, real orgs, PlatformClient
-// minting), and this target adds exactly what `local-go-execution` adds to
-// `local-go` — the TS-owned engine trio (runner, mock LLM proxy, MCP tool
+// minting), and this target adds exactly what `local-execution` adds to
+// `local` — the TS-owned engine trio (runner, mock LLM proxy, MCP tool
 // fixture). The fixtures stay TS-pure per DD-002 (no cross-language coupling
 // with the Go integration harness), which is what lets the execution suites
 // program `llmProxy()` per test identically on both editions.
@@ -22,7 +22,7 @@
 // ExecutionContext decrypt rides the runner's ordinary scoped-token exchange
 // (getRunnerScopedToken, issue #156). Nothing here is test-only plumbing.
 //
-// setup() boot order mirrors local-go-execution: fixtures before the runner
+// setup() boot order mirrors local-execution: fixtures before the runner
 // (their URLs must be known when it boots); the service itself is already up
 // (the hermetic launcher or a pre-provisioned endpoint owns its lifecycle).
 import { dirname, join, resolve } from "node:path";
@@ -62,10 +62,10 @@ export class CloudExecutionTarget implements TargetProfile {
 
   // Same service, same edition differences: capabilities are delegated to the
   // inner CloudTarget verbatim (having an engine is not a CapabilityFlag —
-  // the same reasoning local-go-execution records). This target was the FIRST
+  // the same reasoning local-execution records). This target was the FIRST
   // with both the child_approval_required signal and a runner to drive it
   // (DD-012); since D4 #23 the TS server's HITL loop emits the same signal,
-  // so local-ts-execution runs the identical forwarding round-trip.
+  // so local-execution runs the identical forwarding round-trip.
   private readonly cloud = new CloudTarget();
 
   private runner: RunningRunner | undefined;

@@ -16,7 +16,7 @@
 // ephemeral ports for its internal services (metrics, history, matching,
 // worker), and there is no CLI flag to pin them. A bare TCP accept on the
 // frontend returns while those internal ports are still being bound, and the
-// caller (LocalGoExecutionTarget.setup) immediately allocates more ephemeral
+// caller (LocalExecutionTarget.setup) immediately allocates more ephemeral
 // ports via getFreePort() for the server, mock LLM, and MCP fixture. Those
 // allocations can grab a port Temporal was about to bind, killing an internal
 // service and taking the dev server down *after* its frontend already passed a

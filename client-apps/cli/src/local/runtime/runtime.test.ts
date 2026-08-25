@@ -5,7 +5,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CliExitError } from "../../errors/cli-exit-error.js";
 import { resolveNode, resolveServerNode } from "./node.js";
 import { acquireRunner, resolveRunner } from "./runner.js";
-import { resolveServerBinary } from "./server.js";
 import { which } from "./which.js";
 
 function tempDir(prefix: string): string {
@@ -13,7 +12,7 @@ function tempDir(prefix: string): string {
 }
 
 // Snapshot and restore the env vars these resolvers read, so tests don't leak.
-const TOUCHED = ["PATH", "STIGMER_SERVER_BIN", "STIGMER_RUNNER_DIR", "STIGMER_NODE_BIN"] as const;
+const TOUCHED = ["PATH", "STIGMER_RUNNER_DIR", "STIGMER_NODE_BIN"] as const;
 let saved: Record<string, string | undefined>;
 
 beforeEach(() => {
@@ -151,17 +150,6 @@ describe("resolveServerNode", () => {
       return false;
     }
   }
-});
-
-describe("resolveServerBinary", () => {
-  it("honors the STIGMER_SERVER_BIN override", () => {
-    const dir = tempDir("stigmer-server-");
-    const bin = join(dir, "stigmer-server");
-    writeFileSync(bin, "#!/bin/sh\n");
-    chmodSync(bin, 0o755);
-    process.env.STIGMER_SERVER_BIN = bin;
-    expect(resolveServerBinary()).toBe(bin);
-  });
 });
 
 describe("resolveRunner", () => {

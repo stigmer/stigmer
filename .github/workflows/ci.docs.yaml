@@ -240,7 +240,7 @@ jobs:
             docs/sdk \
             docs/guides/workflows/task-types \
             docs/cli/commands \
-            backend/services/stigmer-server/pkg/domain/workflow/registry/data \
+            backend/services/stigmer-server-ts/src/domain/workflow/registry/data \
             tools/codegen/output \
             site/src/data/react-sdk-summary.json \
             site/yarn.lock

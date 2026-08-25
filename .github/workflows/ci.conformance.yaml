@@ -1,14 +1,15 @@
 # =============================================================================
-# gRPC Conformance Suite (local-go target)
+# gRPC Conformance Suite (local target)
 # =============================================================================
-# Runs the implementation-agnostic gRPC conformance suite against the OSS Go
-# stigmer-server, built from source. The suite is the shared API contract for
-# the OSS server (Go now, TypeScript later) and the Java cloud service.
+# Runs the implementation-agnostic gRPC conformance suite against the OSS
+# server, built from source. The suite is the shared API contract for the OSS
+# server and the Java cloud service — it turns OSS<->cloud behavioral drift
+# into a failing test.
 #
-# This slice covers the Project and Organization domains. It needs no Temporal,
-# no runner, and no Java service: the suite builds the Go server, boots it
-# against a throwaway SQLite database, and drives it through generated Connect
-# clients. Additional domains and the cloud target are added in later slices.
+# This slice is the dependency-light Class A signal: no Temporal, no runner,
+# no Java service. The suite compiles the server, boots it against a
+# throwaway SQLite database, and drives it through generated Connect clients.
+# The execution-engine suites (Class B) run in ci.conformance-execution.yaml.
 # =============================================================================
 
 name: ci.conformance
@@ -19,8 +20,6 @@ on:
       - "backend/**"
       - "test/conformance/**"
       - "apis/**"
-      - "go.work"
-      - "go.work.sum"
       - ".github/workflows/ci.conformance.yaml"
   push:
     branches: [main]
@@ -28,8 +27,6 @@ on:
       - "backend/**"
       - "test/conformance/**"
       - "apis/**"
-      - "go.work"
-      - "go.work.sum"
       - ".github/workflows/ci.conformance.yaml"
 
 concurrency:
@@ -42,41 +39,8 @@ permissions:
   contents: read
 
 jobs:
-  conformance-local-go:
-    name: Conformance (local-go)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: go.work
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: ".nvmrc"
-
-      - name: Install npm workspace dependencies
-        run: npm ci
-
-      # The suite imports the built proto stubs (dist), not their source.
-      - name: Build proto stubs
-        run: npm run build -w @stigmer/protos
-
-      - name: Run conformance suite (local-go)
-        env:
-          CONFORMANCE_TARGET: local-go
-        run: npm run test -w @stigmer/conformance
-
-  # The TS rewrite's parity gate (stigmer-cloud program 20260822.01, DD-004):
-  # the SAME suites, unchanged, against stigmer-server-ts. The roster
-  # (vitest.local-ts.config.ts) grows per domain sub-project until it equals
-  # the full local-go glob — that equality is the cutover gate.
-  conformance-local-ts:
-    name: Conformance (local-ts)
+  conformance-local:
+    name: Conformance (local)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -97,11 +61,11 @@ jobs:
       # The server is standalone (own lockfile, file-linked protos); its
       # global-setup compiles it, but the install must happen here where
       # network access is expected.
-      - name: Install stigmer-server-ts dependencies
+      - name: Install server dependencies
         working-directory: backend/services/stigmer-server-ts
         run: npm ci
 
-      - name: Run conformance roster (local-ts)
+      - name: Run conformance suite (local)
         env:
-          CONFORMANCE_TARGET: local-ts
-        run: npm run test:local-ts -w @stigmer/conformance
+          CONFORMANCE_TARGET: local
+        run: npm run test -w @stigmer/conformance

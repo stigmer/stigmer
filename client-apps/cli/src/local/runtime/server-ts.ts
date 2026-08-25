@@ -1,28 +1,20 @@
-// Resolution and on-demand acquisition of the TypeScript stigmer server —
-// the served implementation since the DD-006 cutover (D4 #24) — plus the
-// cutover switch itself (ensureServer).
+// Resolution and on-demand acquisition of the stigmer server — the
+// TypeScript implementation serving since the DD-006 cutover (D4 #24; the Go
+// binary ladder that backed rollback retired with #25).
 //
 // The server is launched exactly like the runner: a compiled `node main.js`,
 // never `tsx src/main.ts` (the workers bundle Temporal workflows on boot in
 // dev shape, and the slim artifact ships pre-built bundles — either way the
-// entry must be compiled; see backend/services/stigmer-server-ts's
-// workflow-source.ts).
+// entry must be compiled; see the server package's workflow-source.ts).
 //
 // Resolution order (the D2 §6 switch semantics):
-//   1. STIGMER_SERVER_BIN — the Go binary, the no-code-change ROLLBACK lever.
-//      Checked before anything else, deliberately before the Node capability
-//      probe: rollback must work even on a Node the TS server rejects.
-//   2. STIGMER_SERVER_DIR — an explicit TS server package dir (dist/main.js
+//   1. STIGMER_SERVER_DIR — an explicit server package dir (dist/main.js
 //      required), the STIGMER_RUNNER_DIR mirror.
-//   3. The repo-tree backend/services/stigmer-server-ts (dev; build required).
-//   4. The published `@stigmer/server-slim`, installed on demand into
+//   2. The repo-tree server package (dev; build required).
+//   3. The published `@stigmer/server-slim`, installed on demand into
 //      ~/.stigmer/runtimes/<version>/ alongside the runner's package — one
 //      CJS main.js, pre-built workflow bundles, and the per-platform
 //      Temporal native bridge selected by npm via optionalDependencies.
-//
-// The Go binary ladder (./server.ts) remains intact behind the override —
-// re-flipping ensureServer back to it is the whole rollback (D2 §6). The
-// Go ladder and its GitHub-release download die with #25 go-server-retirement.
 
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
@@ -55,28 +47,12 @@ export interface EnsureServerOptions {
 }
 
 /**
- * THE cutover switch (D4 #24): resolve what the daemon launches as
- * `stigmer-server`. Honors the STIGMER_SERVER_BIN rollback override first;
- * otherwise resolves the TS server (explicit dir → repo tree → acquire the
- * published slim package). Throws actionable guidance on a missing build, an
+ * Resolve what the daemon launches as `stigmer-server`: the explicit
+ * STIGMER_SERVER_DIR override, then the repo tree, then acquiring the
+ * published slim package. Throws actionable guidance on a missing build, an
  * invalid override, or a non-release CLI build with nothing local.
  */
 export function ensureServer(opts: EnsureServerOptions = {}): ServerLaunch {
-  const binOverride = process.env.STIGMER_SERVER_BIN;
-  if (binOverride !== undefined && binOverride !== "") {
-    if (!existsSync(binOverride)) {
-      throw new CliExitError(
-        `STIGMER_SERVER_BIN does not exist: ${binOverride}`,
-        ExitCode.General,
-        [
-          "Point STIGMER_SERVER_BIN at a stigmer-server executable (the Go rollback",
-          "binary), or unset it to launch the TypeScript server.",
-        ],
-      );
-    }
-    return { kind: "binary", bin: binOverride };
-  }
-
   const node = opts.node ?? resolveServerNode;
   const local = resolveServerTs(node);
   if (local !== null) return local;
@@ -131,7 +107,7 @@ export function acquireServer(opts: EnsureServerOptions = {}): ServerLaunch {
       ExitCode.General,
       [
         "Run from the repo with a built server (make build-server-ts), or set",
-        "STIGMER_SERVER_DIR — or STIGMER_SERVER_BIN for the Go rollback binary.",
+        "STIGMER_SERVER_DIR to a built server package.",
         "On-demand acquisition is only available for published releases.",
       ],
     );
@@ -169,7 +145,6 @@ export function acquireServer(opts: EnsureServerOptions = {}): ServerLaunch {
   }
 
   return {
-    kind: "node",
     nodeBin,
     entryPath,
     appDir: dirname(entryPath),
@@ -188,11 +163,11 @@ function resolveBuiltServer(appDir: string, node: () => string): ServerLaunch {
         "Temporal workers bundle workflow code from the compiled dist).",
         "STIGMER_SERVER_DIR expects the source package (dist/main.js); to run an",
         "acquired @stigmer/server-slim install, unset it — the CLI resolves that",
-        "shape itself. To launch the Go server instead, set STIGMER_SERVER_BIN.",
+        "shape itself.",
       ],
     );
   }
-  return { kind: "node", nodeBin: node(), entryPath, appDir };
+  return { nodeBin: node(), entryPath, appDir };
 }
 
 function hasPackageJson(dir: string): boolean {

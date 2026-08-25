@@ -6,8 +6,6 @@
   "description": "Implementation-agnostic gRPC conformance suite for the Stigmer API contract.",
   "scripts": {
     "test": "vitest run",
-    "test:local-ts": "vitest run -c vitest.local-ts.config.ts",
-    "test:ts-execution": "vitest run -c vitest.local-ts-execution.config.ts",
     "test:watch": "vitest",
     "test:cloud": "vitest run -c vitest.cloud.config.ts",
     "test:cloud-execution": "vitest run -c vitest.cloud-execution.config.ts",

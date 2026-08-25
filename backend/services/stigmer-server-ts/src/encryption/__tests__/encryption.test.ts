@@ -161,6 +161,10 @@ describe("isCiphertextShaped (the oss#395 boundary guard)", () => {
   });
 });
 
+// The fixture is FROZEN: it was produced by the retired Go server's real
+// encryption code (regen script lived until go-server-retirement, D4 #25;
+// git history has it). It permanently pins that values written by
+// pre-cutover databases stay decryptable.
 describe("cross-edition compatibility (Go-generated fixture, DD-001)", () => {
   interface FixtureEntry {
     name: string;

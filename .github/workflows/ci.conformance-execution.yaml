@@ -1,15 +1,13 @@
 # =============================================================================
-# gRPC Conformance Suite — Execution Engine (local-go-execution target)
+# gRPC Conformance Suite — Execution Engine (local-execution target)
 # =============================================================================
-# Runs the execution-engine conformance suites (Class B) against the OSS Go
-# stigmer-server with its engine provisioned: a real Temporal dev server plus
-# the TypeScript unified runner, all built from source.
+# Runs the execution-engine conformance suites (Class B) against the OSS
+# server with its engine provisioned: a real Temporal dev server plus the
+# TypeScript unified runner, all built from source.
 #
 # This is intentionally a SEPARATE job from ci.conformance.yaml so the
-# dependency-light CRUD signal stays fast (DD-002). It needs the `temporal` CLI
-# and a runner build that the CRUD job does not. Today it proves the engine via
-# a data-only set_vars WorkflowExecution smoke test; later execution-domain
-# suites run on the same harness without further CI changes.
+# dependency-light CRUD signal stays fast (DD-002). It needs the `temporal`
+# CLI and a runner build that the CRUD job does not.
 # =============================================================================
 
 name: ci.conformance-execution
@@ -20,8 +18,6 @@ on:
       - "backend/**"
       - "test/conformance/**"
       - "apis/**"
-      - "go.work"
-      - "go.work.sum"
       - ".github/workflows/ci.conformance-execution.yaml"
   push:
     branches: [main]
@@ -29,8 +25,6 @@ on:
       - "backend/**"
       - "test/conformance/**"
       - "apis/**"
-      - "go.work"
-      - "go.work.sum"
       - ".github/workflows/ci.conformance-execution.yaml"
 
 concurrency:
@@ -43,17 +37,12 @@ permissions:
   contents: read
 
 jobs:
-  conformance-execution-local-go:
-    name: Conformance Execution (local-go-execution)
+  conformance-execution-local:
+    name: Conformance Execution (local-execution)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: go.work
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -63,9 +52,15 @@ jobs:
       - name: Install npm workspace dependencies
         run: npm ci
 
-      # The runner and suites import the built proto stubs (dist), not source.
+      # The runner, the server, and the suites import the built proto stubs.
       - name: Build proto stubs
         run: npm run build -w @stigmer/protos
+
+      # The server is standalone with its own lockfile (runner-style, not a
+      # workspace member) — the ci.stigmer-server-ts.yaml precedent.
+      - name: Install server dependencies
+        working-directory: backend/services/stigmer-server-ts
+        run: npm ci
 
       # Install the Temporal CLI; the dev server backs the execution harness.
       - name: Install Temporal CLI
@@ -81,8 +76,8 @@ jobs:
       # Memory-enabled executions spawn `stigmer mcp-server` as a stdio child
       # (the runner's memory capture attachment, shared/memory-attachment.ts).
       # Every real OSS install carries the CLI by construction; give the lane
-      # the same from-source shim `make local` installs on dev machines, so
-      # those executions run instead of failing on a missing binary.
+      # the same from-source tsx shim `make local` installs on dev machines,
+      # so those executions run instead of failing on a missing binary.
       - name: Install stigmer CLI shim
         run: |
           make install-cli-shim
@@ -96,62 +91,7 @@ jobs:
         working-directory: backend/services/runner
         run: npm run typecheck
 
-      - name: Run execution conformance suite (local-go-execution)
+      - name: Run execution conformance suite (local-execution)
         env:
-          CONFORMANCE_TARGET: local-go-execution
+          CONFORMANCE_TARGET: local-execution
         run: npm run test:execution -w @stigmer/conformance
-
-  conformance-execution-local-ts:
-    name: Conformance Execution (local-ts-execution)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      # Go is NOT needed for the TS server — but the stigmer CLI shim below
-      # is built from source, and memory-enabled executions FAIL (not skip)
-      # without it, so the toolchain stays.
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: go.work
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: ".nvmrc"
-
-      - name: Install npm workspace dependencies
-        run: npm ci
-
-      # The runner, the server, and the suites import the built proto stubs.
-      - name: Build proto stubs
-        run: npm run build -w @stigmer/protos
-
-      # stigmer-server-ts is standalone with its own lockfile (runner-style,
-      # not a workspace member) — the ci.stigmer-server-ts.yaml precedent.
-      - name: Install stigmer-server-ts dependencies
-        working-directory: backend/services/stigmer-server-ts
-        run: npm ci
-
-      - name: Install Temporal CLI
-        run: |
-          curl -sSf https://temporal.download/cli.sh | sh
-          echo "$HOME/.temporalio/bin" >> "$GITHUB_PATH"
-
-      # Build the runner explicitly so a runner build break is an isolated,
-      # legible failure rather than a confusing globalSetup error.
-      - name: Build unified runner
-        run: make build-runner
-
-      # Memory-enabled executions spawn `stigmer mcp-server` as a stdio child
-      # (the runner's memory capture attachment) — same shim as the Go job.
-      - name: Install stigmer CLI shim
-        run: |
-          make install-cli-shim
-          echo "$HOME/bin" >> "$GITHUB_PATH"
-
-      - name: Run execution conformance suite (local-ts-execution)
-        env:
-          CONFORMANCE_TARGET: local-ts-execution
-        run: npm run test:ts-execution -w @stigmer/conformance

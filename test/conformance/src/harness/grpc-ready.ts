@@ -4,8 +4,8 @@
 // TCP-readiness only proves the listener is up; this probe proves the gRPC
 // pipeline and backing store answer real requests before any test runs.
 // findMyOrganizations takes Empty and runs no validation, so it is a pure store
-// probe with no request to construct. Shared by every managed target (local-go
-// CRUD, local-go-execution) so they gate on one identical readiness definition.
+// probe with no request to construct. Shared by every managed target (local
+// CRUD, local-execution) so they gate on one identical readiness definition.
 import { setTimeout as delay } from "node:timers/promises";
 import type { ConformanceClients } from "./clients";
 

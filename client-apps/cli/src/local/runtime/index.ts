@@ -8,19 +8,12 @@ export {
   ensureRunner,
   resolveRunner,
 } from "./runner.js";
-// The TS server — the served implementation since the DD-006 cutover (D4 #24).
+// The TS server — the served implementation since the DD-006 cutover (D4 #24;
+// the Go binary ladder that backed rollback retired with #25).
 export {
   type EnsureServerOptions,
   acquireServer,
   ensureServer,
   resolveServerTs,
 } from "./server-ts.js";
-// The Go binary ladder — the rollback path until #25 go-server-retirement.
-export {
-  type EnsureServerBinaryOptions,
-  type ServerDownloadTarget,
-  downloadServerBinary,
-  ensureServerBinary,
-  resolveServerBinary,
-} from "./server.js";
 export { which } from "./which.js";

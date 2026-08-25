@@ -8,18 +8,16 @@ const baseInputs: DaemonEnvInputs = {
   temporalAddress: "127.0.0.1:7233",
   serverOnly: false,
   noWeb: false,
-  // The node shape is the served default since the DD-006 cutover (D4 #24).
   server: {
-    kind: "node",
     nodeBin: "/usr/bin/node",
-    entryPath: "/repo/server-ts/dist/main.js",
-    appDir: "/repo/server-ts",
+    entryPath: "/repo/server/dist/main.js",
+    appDir: "/repo/server",
   },
   runner: { nodeBin: "/usr/bin/node", entryPath: "/repo/runner/dist/main.js", appDir: "/repo/runner" },
 };
 
 describe("buildDaemonEnv + readDaemonConfig", () => {
-  it("round-trips the full launcher -> daemon contract (node server shape)", () => {
+  it("round-trips the full launcher -> daemon contract", () => {
     const env = buildDaemonEnv(baseInputs, {});
     const config = readDaemonConfig(env);
     expect(config).toEqual({
@@ -30,10 +28,9 @@ describe("buildDaemonEnv + readDaemonConfig", () => {
       serverOnly: false,
       noWeb: false,
       server: {
-        kind: "node",
         nodeBin: "/usr/bin/node",
-        entryPath: "/repo/server-ts/dist/main.js",
-        appDir: "/repo/server-ts",
+        entryPath: "/repo/server/dist/main.js",
+        appDir: "/repo/server",
       },
       runner: { nodeBin: "/usr/bin/node", entryPath: "/repo/runner/dist/main.js", appDir: "/repo/runner" },
       cursorApiKey: undefined,
@@ -42,44 +39,6 @@ describe("buildDaemonEnv + readDaemonConfig", () => {
       operatorEmail: undefined,
       operatorName: undefined,
     });
-  });
-
-  it("round-trips the binary server shape (the Go rollback path)", () => {
-    const env = buildDaemonEnv({ ...baseInputs, server: { kind: "binary", bin: "/usr/local/bin/stigmer-server" } }, {});
-    const config = readDaemonConfig(env);
-    expect(config.server).toEqual({ kind: "binary", bin: "/usr/local/bin/stigmer-server" });
-  });
-
-  // The rollback lever's delivery guarantee, both directions:
-  // - a caller-exported STIGMER_SERVER_BIN must not leak past a launcher that
-  //   resolved the node shape (the launcher already honored the override
-  //   upstream — a node-shape contract means it was NOT set);
-  // - when both shapes somehow reach the daemon, the binary override wins,
-  //   because setting it means "run the Go server".
-  it("scrubs a stale STIGMER_SERVER_BIN from the base env when the node shape was resolved", () => {
-    const env = buildDaemonEnv(baseInputs, { STIGMER_SERVER_BIN: "/stale/go-server" });
-    expect(env.STIGMER_SERVER_BIN).toBeUndefined();
-    expect(readDaemonConfig(env).server.kind).toBe("node");
-  });
-
-  it("prefers the binary override when both shapes are present in the env", () => {
-    const env = buildDaemonEnv(baseInputs, {});
-    env.STIGMER_SERVER_BIN = "/operator/override/stigmer-server";
-    expect(readDaemonConfig(env).server).toEqual({
-      kind: "binary",
-      bin: "/operator/override/stigmer-server",
-    });
-  });
-
-  it("scrubs a stale node triple from the base env when the binary shape was resolved", () => {
-    const env = buildDaemonEnv(
-      { ...baseInputs, server: { kind: "binary", bin: "/usr/local/bin/stigmer-server" } },
-      { STIGMER_SERVER_NODE_BIN: "/stale/node", STIGMER_SERVER_ENTRY: "/stale/main.js", STIGMER_SERVER_APP_DIR: "/stale" },
-    );
-    expect(env.STIGMER_SERVER_NODE_BIN).toBeUndefined();
-    expect(env.STIGMER_SERVER_ENTRY).toBeUndefined();
-    expect(env.STIGMER_SERVER_APP_DIR).toBeUndefined();
-    expect(readDaemonConfig(env).server.kind).toBe("binary");
   });
 
   it("omits runner coordinates in server-only mode", () => {
@@ -139,11 +98,9 @@ describe("buildDaemonEnv + readDaemonConfig", () => {
     expect(readDaemonConfig(env)).not.toHaveProperty("openaiApiKey");
   });
 
-  it("requires the data dir and one server launch shape", () => {
+  it("requires the data dir and the full server launch triple", () => {
     expect(() => readDaemonConfig({})).toThrow(/STIGMER_DATA_DIR/);
-    // Neither the binary override nor the full node triple: actionable throw
-    // naming both shapes.
-    expect(() => readDaemonConfig({ STIGMER_DATA_DIR: "/x" })).toThrow(/STIGMER_SERVER_BIN/);
+    expect(() => readDaemonConfig({ STIGMER_DATA_DIR: "/x" })).toThrow(/STIGMER_SERVER_NODE_BIN/);
     expect(() => readDaemonConfig({ STIGMER_DATA_DIR: "/x", STIGMER_SERVER_NODE_BIN: "/usr/bin/node" })).toThrow(
       /STIGMER_SERVER_ENTRY/,
     );

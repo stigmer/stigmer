@@ -11,7 +11,7 @@
 // and redirect URI unconditionally, so initiate works with no Temporal behind
 // the server — but completeOAuthConnect ALSO requires the managed environment
 // service, which server.go builds only inside the Temporal-gated
-// SetConnectDependencies. On the Temporal-less local-go target, complete
+// SetConnectDependencies. On the Temporal-less local target, complete
 // refuses before validating input. The handshake-completion scenarios
 // (complete/grant-health/disconnect-teardown) therefore live in
 // suites-execution/mcpserver-connect.conformance.test.ts, where the engine is

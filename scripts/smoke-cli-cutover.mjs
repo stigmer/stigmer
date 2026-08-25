@@ -1,23 +1,20 @@
 #!/usr/bin/env node
 
 /**
- * CLI cutover E2E smoke (D4 #24): `stigmer up` → apply → run → stream →
- * `stigmer down`, against an ISOLATED home, proving the daemon launches the
- * intended server implementation end-to-end. Nothing before this script
- * exercised `stigmer up` whole — the e2e suites boot the server binary
- * directly, bypassing the CLI (verified during #24 planning).
+ * CLI E2E smoke (born as the D4 #24 cutover gate): `stigmer up` → apply →
+ * run → stream → `stigmer down`, against an ISOLATED home, proving the
+ * daemon launches the packaged server end-to-end. Nothing else exercises
+ * `stigmer up` whole — the e2e suites boot the server entry directly,
+ * bypassing the CLI (verified during #24 planning).
  *
- * Two arms, same assertions — the rollback exercise the cutover gate
- * requires is literally this script's other arm:
+ * The script stages the SLIM server artifact (dist-slim) as a server
+ * package and launches it through the daemon's node+entry path — the exact
+ * packaged entry users get from @stigmer/server-slim. (The script's second
+ * arm — the STIGMER_SERVER_BIN Go rollback — retired with #25
+ * go-server-retirement.)
  *
- *   --arm=ts (default): stages the SLIM server artifact (dist-slim) as a
- *     server package and launches it through the daemon's node+entry path —
- *     the exact packaged entry users get from @stigmer/server-slim.
- *   --arm=go: sets STIGMER_SERVER_BIN to the repo's Go build — the
- *     no-code-change rollback lever, proven live.
- *
- * The arm is verified, not assumed: after `up`, the server child's real
- * command line (via its PID file) must match the arm.
+ * The launch is verified, not assumed: after `up`, the server child's real
+ * command line (via its PID file) must be a node+entry process.
  *
  * The workflow under test is a single deterministic set_vars task — no LLM,
  * no API keys, no network beyond npm/Temporal's own machinery. What it
@@ -27,14 +24,13 @@
  *
  * The CLI itself runs from source under tsx — the repo's documented dev
  * launch (its `start` script; the daemon re-exec replays the loader via
- * process.execArgv, see daemon/launch.ts). The CLI's own packaging is
- * unchanged by the cutover; the packaged artifact under test here is the
- * SERVER slim bundle, which the ts arm stages byte-for-byte.
+ * process.execArgv, see daemon/launch.ts). The packaged artifact under test
+ * here is the SERVER slim bundle, staged byte-for-byte.
  *
- * Prereqs (the gate's build steps): backend/services/runner built (dist/),
- * and per arm: stigmer-server-ts dist-slim/ (ts) or bin/stigmer-server (go).
+ * Prereqs (the gate's build steps): backend/services/runner built (dist/)
+ * and the server's dist-slim/ (make smoke-cli-cutover builds both).
  *
- * Usage: node scripts/smoke-cli-cutover.mjs [--arm=ts|go]
+ * Usage: node scripts/smoke-cli-cutover.mjs
  */
 
 import { execFileSync, spawnSync } from "node:child_process";
@@ -71,7 +67,6 @@ const slimDir = join(
   "stigmer-server-ts",
   "dist-slim",
 );
-const goBinary = join(repoRoot, "bin", "stigmer-server");
 
 /** The seedpack's default local org — created by `stigmer up` itself. */
 const ORG = "stigmer";
@@ -92,37 +87,25 @@ function fail(message) {
   process.exit(1);
 }
 
-function parseArm() {
-  let arm = "ts";
-  for (const arg of process.argv.slice(2)) {
-    const m = arg.match(/^--arm=(ts|go)$/);
-    if (m) arm = m[1];
-    else fail(`unknown argument: ${arg} (usage: --arm=ts|go)`);
-  }
-  return arm;
-}
-
-const arm = parseArm();
-
 // ─── Preflight ───────────────────────────────────────────────────────────────
 
+if (process.argv.length > 2) {
+  fail(`unknown argument: ${process.argv[2]} (usage: node scripts/smoke-cli-cutover.mjs)`);
+}
 if (!existsSync(cliEntry)) fail(`CLI source not found: ${cliEntry}`);
 if (!existsSync(tsxBin)) fail(`tsx not installed: ${tsxBin} (npm ci)`);
 if (!existsSync(runnerEntry))
   fail(`runner not built: ${runnerEntry} (make build-runner)`);
-if (arm === "ts" && !existsSync(join(slimDir, "main.js"))) {
+if (!existsSync(join(slimDir, "main.js"))) {
   fail(
-    `slim server artifact not built: ${slimDir}/main.js (npm run build:slim in stigmer-server-ts)`,
+    `slim server artifact not built: ${slimDir}/main.js (node scripts/bundle-slim.mjs in the server package)`,
   );
-}
-if (arm === "go" && !existsSync(goBinary)) {
-  fail(`Go server not built: ${goBinary} (make build)`);
 }
 
 // ─── Isolated home ───────────────────────────────────────────────────────────
 
 const home = mkdtempSync(join(tmpdir(), "stigmer-smoke-"));
-console.log(`smoke-cli-cutover: arm=${arm} home=${home}`);
+console.log(`smoke-cli-cutover: home=${home}`);
 
 // Seed a PATH-resolvable Temporal binary into the managed location when the
 // host has one, so the smoke skips the manager's one-time download. Purely an
@@ -140,28 +123,23 @@ try {
 }
 
 const env = { ...process.env, HOME: home };
-// The arms must not cross-contaminate through the caller's shell.
-delete env.STIGMER_SERVER_BIN;
+// The caller's shell must not contaminate the resolution.
 delete env.STIGMER_SERVER_DIR;
 delete env.STIGMER_RUNNER_DIR;
 
-if (arm === "ts") {
-  // Stage the slim artifact in the server-package shape resolveServerTs
-  // expects (dist/main.js under a package dir). The staged dist keeps the
-  // artifact's own siblings — workflow bundles, worker-thread entry, staged
-  // node_modules, and its untyped package.json (the CJS marker) — exactly as
-  // an acquired @stigmer/server-slim install lays them out.
-  const pkgDir = join(home, "server-pkg");
-  mkdirSync(pkgDir, { recursive: true });
-  writeFileSync(
-    join(pkgDir, "package.json"),
-    JSON.stringify({ name: "@stigmer/server", private: true }, null, 2),
-  );
-  cpSync(slimDir, join(pkgDir, "dist"), { recursive: true });
-  env.STIGMER_SERVER_DIR = pkgDir;
-} else {
-  env.STIGMER_SERVER_BIN = goBinary;
-}
+// Stage the slim artifact in the server-package shape resolveServerTs
+// expects (dist/main.js under a package dir). The staged dist keeps the
+// artifact's own siblings — workflow bundles, worker-thread entry, staged
+// node_modules, and its untyped package.json (the CJS marker) — exactly as
+// an acquired @stigmer/server-slim install lays them out.
+const pkgDir = join(home, "server-pkg");
+mkdirSync(pkgDir, { recursive: true });
+writeFileSync(
+  join(pkgDir, "package.json"),
+  JSON.stringify({ name: "@stigmer/server", private: true }, null, 2),
+);
+cpSync(slimDir, join(pkgDir, "dist"), { recursive: true });
+env.STIGMER_SERVER_DIR = pkgDir;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -172,8 +150,7 @@ function cli(args, opts = {}) {
     env,
     encoding: "utf8",
     timeout: opts.timeoutMs ?? 60_000,
-    // A timed-out child must not outlive the smoke (the go arm EXPECTS a
-    // lingering client after COMPLETED, #884 — SIGTERM alone might not do).
+    // A timed-out child must not outlive the smoke (SIGTERM alone might not do).
     killSignal: "SIGKILL",
   });
   if (result.error && opts.allowFailure !== true)
@@ -197,25 +174,21 @@ function teardownBestEffort() {
 // ─── The smoke ───────────────────────────────────────────────────────────────
 
 try {
-  // 1. Up — the daemon resolves the arm's server, gates on the gRPC port,
+  // 1. Up — the daemon resolves the staged server, gates on the gRPC port,
   //    and applies the seedpack (which creates the org).
   upAttempted = true;
   cli(["up", "--no-web"], { timeoutMs: UP_TIMEOUT_MS });
 
   // 2. Prove WHICH server is running: the server child's command line must
-  //    match the arm. The PID file is the daemon's own record.
+  //    be the node+entry launch. The PID file is the daemon's own record.
   const pidFile = join(home, ".stigmer", "data", "stigmer-server.pid");
   const pid = readFileSync(pidFile, "utf8").trim().split("\n")[0].trim();
   const command = execFileSync("ps", ["-p", pid, "-o", "command="], {
     encoding: "utf8",
   }).trim();
   console.log(`smoke-cli-cutover: server pid ${pid}: ${command}`);
-  if (arm === "ts") {
-    if (!(command.includes("node") && command.includes("main.js"))) {
-      fail(`expected a node+entry server process for arm=ts, got: ${command}`);
-    }
-  } else if (!command.includes("stigmer-server")) {
-    fail(`expected the Go stigmer-server binary for arm=go, got: ${command}`);
+  if (!(command.includes("node") && command.includes("main.js"))) {
+    fail(`expected a node+entry server process, got: ${command}`);
   }
 
   // 3. Apply the deterministic workflow.
@@ -246,34 +219,11 @@ spec:
   // --org is a root-level global option, so it precedes the subcommand.
   cli(["--org", ORG, "apply", "-f", workflowPath]);
 
-  // 4. Run it and stream to completion (JSON events on stdout).
-  //
-  // The ts arm requires a CLEAN EXIT — the cutover's behavior. The go arm
-  // tolerates a lingering process after the completed result: the shipped
-  // CLI never exits after runs against the Go server (pre-existing,
-  // stigmer/stigmer#884 — found by this smoke; the server side is clean),
-  // so the rollback arm asserts the streamed COMPLETED result within a
-  // bounded wait instead.
-  const run = cli(
-    ["--org", ORG, "run", "workflow", "cutover-smoke", "--json"],
-    {
-      timeoutMs: RUN_TIMEOUT_MS,
-      allowFailure: arm === "go",
-    },
-  );
-  if (arm === "go" && run.status !== 0) {
-    const timedOut =
-      run.error !== undefined && /ETIMEDOUT/.test(String(run.error));
-    if (!(timedOut && /completed/i.test(run.stdout))) {
-      fail(
-        `go-arm run neither exited cleanly nor streamed COMPLETED within the bounded wait\n` +
-          `status=${run.status} error=${run.error}\nstdout:\n${run.stdout}\nstderr:\n${run.stderr}`,
-      );
-    }
-    console.log(
-      "smoke-cli-cutover: go arm streamed COMPLETED; lingering process tolerated (stigmer/stigmer#884)",
-    );
-  }
+  // 4. Run it and stream to completion (JSON events on stdout) — a clean
+  //    exit is required.
+  const run = cli(["--org", ORG, "run", "workflow", "cutover-smoke", "--json"], {
+    timeoutMs: RUN_TIMEOUT_MS,
+  });
   if (!/completed/i.test(run.stdout)) {
     fail(
       `run did not reach COMPLETED\nstdout:\n${run.stdout}\nstderr:\n${run.stderr}`,
@@ -290,10 +240,10 @@ spec:
     fail(`stack still reports running after down\n${status.stdout}`);
   }
 
-  console.log(`smoke-cli-cutover: PASS (arm=${arm})`);
+  console.log("smoke-cli-cutover: PASS");
   // Success-path hygiene: the isolated home carries a full slim copy plus a
-  // Temporal binary (~100 MB per arm) — keep failures around for debugging,
-  // never successes.
+  // Temporal binary (~100 MB) — keep failures around for debugging, never
+  // successes.
   rmSync(home, { recursive: true, force: true });
 } catch (err) {
   teardownBestEffort();

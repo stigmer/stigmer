@@ -9,7 +9,10 @@ DDL-faithful, v7 = the OD-3 consolidation).
 
 Domain code depends on `interface.ts` only — never on `sqlite/` — so the
 phase-2 Postgres driver drops in behind the same contract. Schema
-continuity across cutover (any Go-created database adopts forward; a v7
-database rolls back to Go untouched) is proven by
-`sqlite/__tests__/migrations.test.ts` against a real Go-created fixture;
-regenerate it with `scripts/regen-go-db-fixture.sh`.
+continuity across the cutover (any Go-created database adopts forward) is
+proven by `sqlite/__tests__/migrations.test.ts` against a real Go-created
+fixture. The fixture is FROZEN: the Go server retired (go-server-retirement,
+D4 #25), its schema can no longer change, and the committed v6 dump is the
+permanent record of what real pre-cutover databases look like. The
+generator script (`scripts/regen-go-db-fixture.sh`) lived until #25 and
+remains in git history should the fixture ever need forensic regeneration.
