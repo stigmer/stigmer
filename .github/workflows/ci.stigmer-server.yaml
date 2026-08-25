@@ -112,3 +112,58 @@ jobs:
 
       - name: Run the vitest suite
         run: make test-server
+
+  # linux-arm64 boot smoke (owner ruling at go-server-retirement, D4 #25):
+  # when the Go server retired, arm64 Linux lost its only fallback, so this
+  # server must be PROVEN to boot there — not assumed from x64 green. The
+  # platform-sensitive surface is exactly what the deep slim verify
+  # exercises: node:sqlite with FTS5, the per-platform Temporal core-bridge
+  # (the one native component, selected by npm optionalDependencies), and
+  # the worker boot path. Native arm64 runner — no QEMU, no emulation
+  # blind spots. The full vitest suite stays on the x64 job; this job is
+  # the platform proof, kept boot-scoped so per-PR cost stays sane.
+  # Windows remains deferred and platform claims stay quiet (#24 ruling).
+  server-linux-arm64:
+    name: Server Boot Smoke (linux-arm64)
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Install npm workspace dependencies
+        run: npm ci
+
+      - name: Build the proto stubs and temporal-codecs
+        run: npm run build:runner-deps
+
+      - name: Install server dependencies
+        working-directory: backend/services/stigmer-server
+        run: npm ci
+
+      - name: Build and boot-check the compiled dist
+        working-directory: backend/services/stigmer-server
+        run: npm run build && npm run verify:dist
+
+      - name: Bundle and boot-check the slim artifact
+        working-directory: backend/services/stigmer-server
+        run: node scripts/bundle-slim.mjs && npm run verify:slim
+
+      - name: Set up Temporal CLI
+        uses: temporalio/setup-temporal@v0
+
+      - name: Deep-verify the slim artifact (isolated copy + Temporal workers)
+        working-directory: backend/services/stigmer-server
+        run: |
+          temporal server start-dev --headless --log-level error &
+          TEMPORAL_PID=$!
+          trap "kill $TEMPORAL_PID" EXIT
+          for i in $(seq 1 30); do
+            temporal operator cluster health >/dev/null 2>&1 && break
+            sleep 1
+          done
+          node scripts/verify-slim-artifact.mjs
