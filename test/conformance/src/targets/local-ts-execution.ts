@@ -50,6 +50,11 @@ export class LocalTsExecutionTarget implements TargetProfile {
     // provisions is the agent/workflow execution engine, not a channel
     // delivery runtime — the refusal posture is identical to local-ts.
     channelMessaging: false,
+    // The org BYOA lane is UNIMPLEMENTED on OSS by design (stigmer#558) —
+    // the suite pins the three refusals here. This line was CW-1's (#11)
+    // merge-coordination ask of whichever execution PR merged second; #18
+    // merged second and missed it — restored by D4 #21's pre-flight.
+    orgOAuthAppConfiguration: false,
   };
 
   private temporal: RunningTemporal | undefined;

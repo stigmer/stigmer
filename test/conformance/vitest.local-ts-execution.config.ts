@@ -21,17 +21,25 @@
 //   DD-002, owner-ratified): agentexecution-approval (the HITL matrix),
 //   mcp.harness.smoke, and mcp-caller-identity register McpServer
 //   resources as their tool surface — a domain this server serves only
-//   once #9 ports it. #9's PR rosters them and carries the "HITL matrix
-//   green" acceptance.
+//   once #9 ports it.
+//
+//   #21 (2026-08-25): the DD-002 deferral's carrier corrected — #9 merged
+//   BEFORE this roster file existed, so its PR could not roster the three
+//   MCP-dependent suites; they enter in #21's pre-flight, proven green
+//   against the TS engine (the "HITL matrix green" acceptance transfers
+//   to #21's PR).
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
     include: [
       "src/suites-execution/agentexecution.conformance.test.ts",
+      "src/suites-execution/agentexecution-approval.conformance.test.ts",
       "src/suites-execution/agentexecution-recover.conformance.test.ts",
       "src/suites-execution/agentexecution-memory-retrieval.conformance.test.ts",
       "src/suites-execution/agent.harness.smoke.test.ts",
+      "src/suites-execution/mcp.harness.smoke.test.ts",
+      "src/suites-execution/mcp-caller-identity.conformance.test.ts",
       "src/suites-execution/open-computer-use.conformance.test.ts",
       "src/suites-execution/session-immutability.conformance.test.ts",
       "src/suites-execution/envmerge-agent.conformance.test.ts",
