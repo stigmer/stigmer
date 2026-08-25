@@ -51,6 +51,7 @@ import { registerOAuthAppServices } from "../domain/oauthapp/controller.js";
 import { registerOrganizationServices } from "../domain/organization/controller.js";
 import { registerMcpServerServices } from "../domain/mcpserver/controller.js";
 import { registerPlatformServices } from "../domain/platform/controller.js";
+import { registerProjectServices } from "../domain/project/controller.js";
 import { registerSessionServices } from "../domain/session/controller.js";
 import { registerSkillServices } from "../domain/skill/controller.js";
 import { DEFAULT_SLOT_TTL_MS, MAX_ZIP_SIZE } from "../domain/skill/constants.js";
@@ -458,10 +459,20 @@ export function composeServer(options: ComposeOptions): ComposedServer {
     // Artifact CRUD shares the ONE blob store with agentexecution's
     // attachment lanes (Go server.go 347–374).
     registerArtifactServices(router, { store, artifactStorage, logger });
+    // Project registers after all four reconciled kinds (agent, workflow,
+    // mcpserver, skill) — the last Class A domain. The lazy deleter
+    // provider replaces Go's SetReconciliationService late-bind
+    // (server.go 478 registration + 635–648 injection): orphan deletes
+    // route through the in-process command clients' FULL pipelines.
+    registerProjectServices(router, {
+      store,
+      logger,
+      orphanDeleter: () => requireInProcess().projectOrphanDeleter,
+    });
     // The two CQRS query services register between the domains and the
     // github/platform tail, mirroring Go's registration order
-    // (server.go: organization 487 → search 493 → activity 513 →
-    // github 524 → platform 530).
+    // (server.go: project 478 → organization 487 → search 493 →
+    // activity 513 → github 524 → platform 530).
     registerSearchServices(router, { handler: searchHandler, logger });
     registerActivityServices(router, { handler: activityHandler, logger });
     // GitHub broker: config-only, no store (Go server.go 524–528).

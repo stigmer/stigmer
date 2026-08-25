@@ -3,16 +3,16 @@
  * project_extractor.go (both sides; the search summary is
  * spec.description).
  *
- * Shipped by #14 (sp.search-and-activity) AHEAD of the project domain
- * port (#16, in flight): boot RebuildIndex re-indexes every registered
- * kind from the resources table, and an adopted Go database may already
- * hold projects — without this extractor those rows would silently vanish
- * from search (D4 #14 DD-D, owner-ratified). The extractor depends only
- * on the generated Project proto; #16 wires it into the domain's write
- * pipelines (IndexSearch/DeleteSearchIndex steps) when the domain lands.
- * Coordination note on both PRs: #16's branch creates this same file
- * (index side only) — second-to-merge reconciles to this full-contract
- * version.
+ * Written by #14 (sp.search-and-activity) under ratified DD-D: boot
+ * RebuildIndex re-indexes every registered kind from the resources table,
+ * and an adopted Go database may already hold projects — without the
+ * query side those rows would silently vanish from search. #16
+ * (sp.project) merged first with the index-only half of this file and
+ * wired it into the domain's write pipelines (IndexSearch/
+ * DeleteSearchIndex steps); the #14 merge reconciled to this
+ * full-contract version per the coordination note both PRs carried —
+ * getSearchIndexEntry is byte-identical to #16's, so the domain's write
+ * path is unchanged.
  */
 import type { Message } from "@bufbuild/protobuf";
 

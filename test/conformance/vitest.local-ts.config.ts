@@ -56,11 +56,18 @@
 //     Layer-1 arms, and the artifact file-server disposition lane). The
 //     oauthapp suite's delete-block test drives McpServer create/delete,
 //     so it rosters here only after #9 (McpServer CRUD) merged.
+//   - project — sub-project #16 (sp.project; the LAST Class A domain: the
+//     aggregate root with apply-time membership reconciliation. The suite
+//     is CRUD/apply-branching/reference-contract only — the reconciler's
+//     orphan-prune lanes are proven by the domain's own
+//     __tests__/{reconcile,project.composed}.test.ts, which drive real
+//     deletes through the four in-process command clients).
 //   - search + activity — sub-project #14 (sp.search-and-activity; the
 //     two CQRS query services: the FTS5 SearchService with the 13-kind
-//     extractor registry — project's extractor rides this entry per DD-D,
-//     ahead of #16's domain — boot-time RebuildIndex, and the
-//     ActivityQueryController recents feed, stigmer#461).
+//     extractor registry — project's full-contract extractor shipped with
+//     this entry per DD-D and reconciled at the #16/#14 merge — boot-time
+//     RebuildIndex, and the ActivityQueryController recents feed,
+//     stigmer#461).
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
@@ -88,6 +95,7 @@ export default defineConfig({
       "src/suites/platform.conformance.test.ts",
       "src/suites/github.conformance.test.ts",
       "src/suites/artifact.conformance.test.ts",
+      "src/suites/project.conformance.test.ts",
       "src/suites/search.conformance.test.ts",
       "src/suites/activity.conformance.test.ts",
     ],
