@@ -62,7 +62,7 @@ jobs:
       # global-setup compiles it, but the install must happen here where
       # network access is expected.
       - name: Install server dependencies
-        working-directory: backend/services/stigmer-server-ts
+        working-directory: backend/services/stigmer-server
         run: npm ci
 
       - name: Run conformance suite (local)

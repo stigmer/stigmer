@@ -64,7 +64,7 @@ const slimDir = join(
   repoRoot,
   "backend",
   "services",
-  "stigmer-server-ts",
+  "stigmer-server",
   "dist-slim",
 );
 

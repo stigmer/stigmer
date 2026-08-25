@@ -85,7 +85,7 @@ export function resolveServerTs(
 
   const root = repoRoot();
   if (root !== null) {
-    const candidate = join(root, "backend", "services", "stigmer-server-ts");
+    const candidate = join(root, "backend", "services", "stigmer-server");
     if (hasPackageJson(candidate)) return resolveBuiltServer(candidate, node);
   }
   return null;
@@ -106,7 +106,7 @@ export function acquireServer(opts: EnsureServerOptions = {}): ServerLaunch {
       `cannot acquire ${SLIM_PACKAGE} for a non-release build (${version})`,
       ExitCode.General,
       [
-        "Run from the repo with a built server (make build-server-ts), or set",
+        "Run from the repo with a built server (make build-server), or set",
         "STIGMER_SERVER_DIR to a built server package.",
         "On-demand acquisition is only available for published releases.",
       ],
@@ -158,7 +158,7 @@ function resolveBuiltServer(appDir: string, node: () => string): ServerLaunch {
       `TS server not built: ${entryPath} is missing`,
       ExitCode.General,
       [
-        "Build it with: make build-server-ts",
+        "Build it with: make build-server",
         "The server must be compiled — it cannot run from source via tsx (its",
         "Temporal workers bundle workflow code from the compiled dist).",
         "STIGMER_SERVER_DIR expects the source package (dist/main.js); to run an",
@@ -180,7 +180,7 @@ function repoRoot(): string | null {
   for (let i = 0; i < 10; i += 1) {
     if (
       existsSync(
-        join(dir, "backend", "services", "stigmer-server-ts", "package.json"),
+        join(dir, "backend", "services", "stigmer-server", "package.json"),
       )
     )
       return dir;

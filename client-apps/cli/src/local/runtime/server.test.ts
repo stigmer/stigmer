@@ -10,7 +10,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { acquireServer, ensureServer, resolveServerTs } from "./server-ts.js";
+import { acquireServer, ensureServer, resolveServerTs } from "./server.js";
 
 function tempDir(prefix: string): string {
   return mkdtempSync(join(tmpdir(), prefix));
@@ -41,7 +41,7 @@ afterEach(() => {
 });
 
 function builtServerDir(): string {
-  const dir = tempDir("stigmer-server-ts-");
+  const dir = tempDir("stigmer-server-");
   writeFileSync(join(dir, "package.json"), "{}");
   mkdirSync(join(dir, "dist"));
   writeFileSync(join(dir, "dist", "main.js"), "//");
@@ -74,18 +74,18 @@ describe("resolveServerTs", () => {
   });
 
   it("errors with build guidance when dist/main.js is missing", () => {
-    const dir = tempDir("stigmer-server-ts-");
+    const dir = tempDir("stigmer-server-");
     writeFileSync(join(dir, "package.json"), "{}");
     process.env.STIGMER_SERVER_DIR = dir;
 
     expect(() => resolveServerTs(fakeNode)).toThrow(/not built/);
     // Remediation rides in hints, not the message.
     const hints = captureHints(() => resolveServerTs(fakeNode));
-    expect(hints.join("\n")).toMatch(/make build-server-ts/);
+    expect(hints.join("\n")).toMatch(/make build-server/);
   });
 
   it("rejects an override that is not a server package", () => {
-    const dir = tempDir("stigmer-server-ts-");
+    const dir = tempDir("stigmer-server-");
     process.env.STIGMER_SERVER_DIR = join(dir, "no-package-here"); // no package.json
     expect(() => resolveServerTs(fakeNode)).toThrow(/not a server package/);
   });

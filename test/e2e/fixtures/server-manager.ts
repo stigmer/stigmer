@@ -146,7 +146,7 @@ function resolveServerEntrypoint(): string {
     REPO_ROOT,
     "backend",
     "services",
-    "stigmer-server-ts",
+    "stigmer-server",
     "dist",
     "main.js",
   );
@@ -154,7 +154,7 @@ function resolveServerEntrypoint(): string {
 
   throw new Error(
     `stigmer-server not built: ${distEntry} not found.\n` +
-    `  Run: make build-server-ts`,
+    `  Run: make build-server`,
   );
 }
 
@@ -261,7 +261,7 @@ export async function startBackendStack(opts: {
 
   if (!server.pid) {
     temporal.kill();
-    throw new Error(`Failed to spawn stigmer-server at ${serverEntry}. Build with: make build-server-ts`);
+    throw new Error(`Failed to spawn stigmer-server at ${serverEntry}. Build with: make build-server`);
   }
   drainStdio(server);
 

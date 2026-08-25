@@ -1,5 +1,5 @@
 /**
- * Process entry for stigmer-server-ts. The CLI's daemon launches this the
+ * Process entry for stigmer-server. The CLI's daemon launches this the
  * way it launches the runner: a node binary + bundled entry path, with the
  * env contract from daemon/env.ts (GRPC_PORT et al.) and a TCP readiness
  * probe on the bound port.

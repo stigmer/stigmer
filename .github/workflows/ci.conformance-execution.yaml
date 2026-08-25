@@ -57,9 +57,9 @@ jobs:
         run: npm run build -w @stigmer/protos
 
       # The server is standalone with its own lockfile (runner-style, not a
-      # workspace member) — the ci.stigmer-server-ts.yaml precedent.
+      # workspace member) — the ci.stigmer-server.yaml precedent.
       - name: Install server dependencies
-        working-directory: backend/services/stigmer-server-ts
+        working-directory: backend/services/stigmer-server
         run: npm ci
 
       # Install the Temporal CLI; the dev server backs the execution harness.

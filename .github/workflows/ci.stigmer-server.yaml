@@ -2,15 +2,15 @@
 # TypeScript Server — Vitest Suite + Artifact Boot Gates
 # =============================================================================
 # Runs the standalone TypeScript server's (`@stigmer/server`,
-# backend/services/stigmer-server-ts) full gate: typecheck, vitest suite,
+# backend/services/stigmer-server) full gate: typecheck, vitest suite,
 # and plain-`node` boot checks of BOTH compiled artifacts (tsc dist and the
 # esbuild slim bundle).
 #
-# The service is the parity-gated TS port of stigmer-server (Go) — see the
-# directory's README.md. Like the runner, it is NOT part of the root npm
-# workspaces: own package-lock.json, file:-linked @stigmer/protos, installed
-# and built separately (this mirrors ci.runner.yaml, the per-service CI
-# pattern).
+# The service began as the parity-gated TS port of the retired Go server
+# (go-server-retirement, D4 #25) — see the directory's README.md. Like the
+# runner, it is NOT part of the root npm workspaces: own package-lock.json,
+# file:-linked @stigmer/protos, installed and built separately (this mirrors
+# ci.runner.yaml, the per-service CI pattern).
 #
 # The boot checks exist for the #399 failure class: vitest/tsx module
 # interop tolerates ESM/CJS import shapes that Node's real loader rejects,
@@ -19,28 +19,28 @@
 # SIGTERM → exit 0) the way the CLI daemon will.
 #
 # Path filter mirrors ci.runner.yaml's: the service's own tree, the proto
-# stubs it links, the Makefile (test-server-ts lives there), and this file.
+# stubs it links, the Makefile (test-server lives there), and this file.
 # =============================================================================
 
-name: ci.stigmer-server-ts
+name: ci.stigmer-server
 
 on:
   pull_request:
     paths:
-      - "backend/services/stigmer-server-ts/**"
+      - "backend/services/stigmer-server/**"
       - "apis/stubs/ts/**"
       - "Makefile"
-      - ".github/workflows/ci.stigmer-server-ts.yaml"
+      - ".github/workflows/ci.stigmer-server.yaml"
   push:
     branches: [main]
     paths:
-      - "backend/services/stigmer-server-ts/**"
+      - "backend/services/stigmer-server/**"
       - "apis/stubs/ts/**"
       - "Makefile"
-      - ".github/workflows/ci.stigmer-server-ts.yaml"
+      - ".github/workflows/ci.stigmer-server.yaml"
 
 concurrency:
-  group: stigmer-server-ts-${{ github.head_ref || github.ref }}
+  group: stigmer-server-${{ github.head_ref || github.ref }}
   # PR pushes cancel superseded runs; main pushes queue instead, so every
   # merge gets a completed, attributable run (stigmer/stigmer#725).
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
@@ -49,8 +49,8 @@ permissions:
   contents: read
 
 jobs:
-  server-ts:
-    name: Server TS Gate
+  server:
+    name: Server Gate
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -72,19 +72,19 @@ jobs:
 
       # Standalone package with its own lockfile (mirrors ci.runner.yaml).
       - name: Install server dependencies
-        working-directory: backend/services/stigmer-server-ts
+        working-directory: backend/services/stigmer-server
         run: npm ci
 
       - name: Typecheck
-        working-directory: backend/services/stigmer-server-ts
+        working-directory: backend/services/stigmer-server
         run: npm run typecheck
 
       - name: Build and boot-check the compiled dist
-        working-directory: backend/services/stigmer-server-ts
+        working-directory: backend/services/stigmer-server
         run: npm run build && npm run verify:dist
 
       - name: Bundle and boot-check the slim artifact
-        working-directory: backend/services/stigmer-server-ts
+        working-directory: backend/services/stigmer-server
         run: node scripts/bundle-slim.mjs && npm run verify:slim
 
       # The deep slim gate at PR time (D4 #24 panel finding): verify:slim
@@ -99,7 +99,7 @@ jobs:
         uses: temporalio/setup-temporal@v0
 
       - name: Deep-verify the slim artifact (isolated copy + Temporal workers)
-        working-directory: backend/services/stigmer-server-ts
+        working-directory: backend/services/stigmer-server
         run: |
           temporal server start-dev --headless --log-level error &
           TEMPORAL_PID=$!
@@ -111,4 +111,4 @@ jobs:
           node scripts/verify-slim-artifact.mjs
 
       - name: Run the vitest suite
-        run: make test-server-ts
+        run: make test-server

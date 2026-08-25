@@ -2,7 +2,7 @@
 // used by the local targets and the MCP bridge suite.
 // Domain: conformance harness (server lifecycle).
 //
-// The build compiles in place (backend/services/stigmer-server-ts/dist):
+// The build compiles in place (backend/services/stigmer-server/dist):
 // tsc is deterministic and the dist path is stable, so workers locate the
 // entry without env-var plumbing, exactly like the Go binary's temp path.
 // Dependencies install only when node_modules is missing (a fresh checkout
@@ -20,7 +20,7 @@ const execFileAsync = promisify(execFile);
 // Repo root is four levels up from test/conformance/src/harness/.
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
 
-const SERVER_DIR = join(REPO_ROOT, "backend", "services", "stigmer-server-ts");
+const SERVER_DIR = join(REPO_ROOT, "backend", "services", "stigmer-server");
 
 export function tsServerEntryPath(): string {
   return join(SERVER_DIR, "dist", "main.js");

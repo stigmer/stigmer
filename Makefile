@@ -7,7 +7,7 @@ GO_MODULES := \
 	tools
 
 RUNNER_DIR := backend/services/runner
-SERVER_TS_DIR := backend/services/stigmer-server-ts
+SERVER_DIR := backend/services/stigmer-server
 
 # Prettier renders formatting VERDICTS (format-docs-check, the gen-*-docs-check
 # freshness gates), so it must always run at the version package-lock.json pins.
@@ -87,10 +87,10 @@ install-vale: ## Install Vale prose linter (auto-detects OS)
 
 # ─── Build ────────────────────────────────────
 
-.PHONY: build build-java-protos build-java-sdk build-runner build-runner-slim build-server-ts protos codegen build-ts-stubs gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-theme-docs gen-task-docs gen-task-registry gen-task-registry-check gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-theme-docs-check gen-task-docs-check gen-ipc-fixtures gen-ipc-fixtures-check stubs-internal-check
-build: libs-build build-web verify-desktop docs-build build-java-sdk build-runner build-server-ts ## Build all project artifacts
+.PHONY: build build-java-protos build-java-sdk build-runner build-runner-slim build-server protos codegen build-ts-stubs gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-theme-docs gen-task-docs gen-task-registry gen-task-registry-check gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-theme-docs-check gen-task-docs-check gen-ipc-fixtures gen-ipc-fixtures-check stubs-internal-check
+build: libs-build build-web verify-desktop docs-build build-java-sdk build-runner build-server ## Build all project artifacts
 	@echo ""
-	@echo "built: the server ($(SERVER_TS_DIR)/dist) and runner (the CLI ships as the @stigmer/cli npm package)"
+	@echo "built: the server ($(SERVER_DIR)/dist) and runner (the CLI ships as the @stigmer/cli npm package)"
 
 build-java-protos: ## Install Java proto stubs to local Maven repo
 	@echo "mvn install  apis/stubs/java"
@@ -127,14 +127,14 @@ build-runner-slim: build-runner ## Build the slim embedding artifact (dist-slim/
 # The TS server follows the runner's standalone-package model: own lockfile,
 # file:-linked @stigmer/protos, NOT an npm workspace (D2 §5 of the OSS TS
 # server blueprint).
-$(SERVER_TS_DIR)/node_modules: $(SERVER_TS_DIR)/package.json
-	@echo "npm install  $(SERVER_TS_DIR)"
-	@cd $(SERVER_TS_DIR) && npm install
-	@touch $(SERVER_TS_DIR)/node_modules
+$(SERVER_DIR)/node_modules: $(SERVER_DIR)/package.json
+	@echo "npm install  $(SERVER_DIR)"
+	@cd $(SERVER_DIR) && npm install
+	@touch $(SERVER_DIR)/node_modules
 
-build-server-ts: build-ts-stubs $(SERVER_TS_DIR)/node_modules ## Compile the TypeScript server (parity port of stigmer-server)
-	@echo "build    $(SERVER_TS_DIR)"
-	@cd $(SERVER_TS_DIR) && npm run build
+build-server: build-ts-stubs $(SERVER_DIR)/node_modules ## Compile the TypeScript server
+	@echo "build    $(SERVER_DIR)"
+	@cd $(SERVER_DIR) && npm run build
 
 protos: ## Generate protocol buffer stubs and SDK client code
 	$(MAKE) -C apis build
@@ -165,7 +165,7 @@ gen-task-registry: ## Generate task-kind-registry.json + JSON Schemas and sync t
 		--schema-dir tools/codegen/schemas --output-dir tools/codegen/output \
 		--meta-dir apis/ai/stigmer/agentic/workflow/v1/tasks/meta
 	cp tools/codegen/output/task-kind-registry.json \
-		$(SERVER_TS_DIR)/src/domain/workflow/registry/data/task-kind-registry.json
+		$(SERVER_DIR)/src/domain/workflow/registry/data/task-kind-registry.json
 
 # Source of truth for the model registry is the cloud platform's database
 # (DD-004: baseline + ledger-derived overrides, served publicly). The bundled
@@ -175,7 +175,7 @@ gen-task-registry: ## Generate task-kind-registry.json + JSON Schemas and sync t
 # it is no longer correctness-critical.
 MODEL_REGISTRY_UPSTREAM ?= https://api.stigmer.ai
 
-MODEL_REGISTRY_DATA := $(SERVER_TS_DIR)/src/domain/workflow/registry/data
+MODEL_REGISTRY_DATA := $(SERVER_DIR)/src/domain/workflow/registry/data
 
 sync-model-registry: ## Refresh the bundled model-registry.json snapshot from the public cloud endpoint
 	@curl -fsSL "$(MODEL_REGISTRY_UPSTREAM)/api/v1/public/model-registry" \
@@ -192,7 +192,7 @@ gen-task-registry-check: ## Verify the task kind registry is up to date and sync
 		--schema-dir tools/codegen/schemas --output-dir tools/codegen/output \
 		--meta-dir apis/ai/stigmer/agentic/workflow/v1/tasks/meta && \
 	if ! diff -q tools/codegen/output/task-kind-registry.json \
-		$(SERVER_TS_DIR)/src/domain/workflow/registry/data/task-kind-registry.json > /dev/null 2>&1; then \
+		$(SERVER_DIR)/src/domain/workflow/registry/data/task-kind-registry.json > /dev/null 2>&1; then \
 		echo "error: task kind registry is stale or unsynced — run 'make gen-task-registry'"; exit 1; \
 	fi; \
 	if ! git diff --quiet tools/codegen/output/task-kind-registry.json tools/codegen/output/json-schemas/; then \
@@ -355,10 +355,10 @@ test-runner: $(RUNNER_DIR)/node_modules ## Run the unified runner vitest suite (
 	@echo "testing  $(RUNNER_DIR)"
 	@cd $(RUNNER_DIR) && npm test
 
-.PHONY: test-server-ts
-test-server-ts: build-ts-stubs $(SERVER_TS_DIR)/node_modules ## Run the TypeScript server vitest suite
-	@echo "testing  $(SERVER_TS_DIR)"
-	@cd $(SERVER_TS_DIR) && npm test
+.PHONY: test-server
+test-server: build-ts-stubs $(SERVER_DIR)/node_modules ## Run the TypeScript server vitest suite
+	@echo "testing  $(SERVER_DIR)"
+	@cd $(SERVER_DIR) && npm test
 
 # ─── Integration Test ─────────────────────────
 # Integration test logic lives in each suite's Makefile under test/.
@@ -463,9 +463,9 @@ test-conformance-execution: build-runner ## Run gRPC conformance execution suite
 	CONFORMANCE_TARGET=local-execution npm run test:execution -w @stigmer/conformance
 
 .PHONY: smoke-cli-cutover
-smoke-cli-cutover: build-runner build-server-ts ## Run the CLI E2E smoke: `stigmer up` against the packaged slim server artifact (needs `temporal` on PATH for speed)
+smoke-cli-cutover: build-runner build-server ## Run the CLI E2E smoke: `stigmer up` against the packaged slim server artifact (needs `temporal` on PATH for speed)
 	@command -v node >/dev/null 2>&1 || { echo "error: node not found"; exit 1; }
-	@cd $(SERVER_TS_DIR) && node scripts/bundle-slim.mjs
+	@cd $(SERVER_DIR) && node scripts/bundle-slim.mjs
 	node scripts/smoke-cli-cutover.mjs
 
 .PHONY: test-conformance-cloud
@@ -823,10 +823,10 @@ check-node: ## check bucket: npm typecheck/lint/build/test (web, react, sdk, des
 	# ESM/CJS import crashes that kill `node dist/main.js` at startup (#399).
 	cd $(RUNNER_DIR) && npm run verify:dist
 	cd $(RUNNER_DIR) && npm run check-deps
-	cd $(SERVER_TS_DIR) && npm run typecheck
-	cd $(SERVER_TS_DIR) && npm run build
+	cd $(SERVER_DIR) && npm run typecheck
+	cd $(SERVER_DIR) && npm run build
 	# Same #399-class gate for the TS server's compiled entry.
-	cd $(SERVER_TS_DIR) && npm run verify:dist
+	cd $(SERVER_DIR) && npm run verify:dist
 	cd sdk/ink && npm run tsdoc:check
 	cd sdk/react && npm run tsdoc:check
 
@@ -930,9 +930,9 @@ install-cli-shim: node_modules ## Install ~/bin/stigmer — a shim running the @
 	@command -v stigmer >/dev/null 2>&1 || echo "note: add $(HOME)/bin to your PATH, then reopen your shell, to use 'stigmer'"
 
 .PHONY: local
-local: node_modules build-ts-stubs install-cli-shim build-server-ts ## One-shot local setup: JS deps + proto stubs + a built server + a `stigmer` command
+local: node_modules build-ts-stubs install-cli-shim build-server ## One-shot local setup: JS deps + proto stubs + a built server + a `stigmer` command
 	@rm -f bin/stigmer 2>/dev/null || true
-	@echo "built: the server ($(SERVER_TS_DIR)/dist)"
+	@echo "built: the server ($(SERVER_DIR)/dist)"
 	@echo ""
 	@echo "Now run:"
 	@echo "  stigmer up          # start the local stack"
@@ -1054,6 +1054,6 @@ publish-dev-maven-local: ## Local dev publish, Maven only (alias for publish-dev
 .PHONY: clean
 clean: ## Remove all build artifacts
 	rm -rf bin/ coverage/ coverage.txt coverage.html
-	rm -rf $(SERVER_TS_DIR)/dist/ $(SERVER_TS_DIR)/dist-slim/
+	rm -rf $(SERVER_DIR)/dist/ $(SERVER_DIR)/dist-slim/
 	rm -rf client-apps/web/out/ client-apps/web/.next/
 	$(MAKE) -C apis clean

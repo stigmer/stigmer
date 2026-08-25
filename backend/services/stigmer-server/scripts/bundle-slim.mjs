@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Builds the slim distribution artifact for stigmer-server-ts — the entry
+ * Builds the slim distribution artifact for stigmer-server — the entry
  * the CLI daemon launches after the cutover (STIGMER_SERVER_ENTRY, D2 §6
  * cutover mechanics; D4 #24).
  *
@@ -615,7 +615,7 @@ function emitNpmPackages() {
   writeFileSync(
     join(metaDir, "README.md"),
     `# @stigmer/server-slim\n\n` +
-      `Self-contained build of the Stigmer TypeScript control plane (\`backend/services/stigmer-server-ts\`). ` +
+      `Self-contained build of the Stigmer TypeScript control plane (\`backend/services/stigmer-server\`). ` +
       `The [stigmer CLI](https://www.npmjs.com/package/@stigmer/cli) installs this package on demand and ` +
       `launches \`node node_modules/@stigmer/server-slim/main.js\` as the local stack's server — same port, ` +
       `same database, same behavior as the Go \`stigmer-server\` it replaces (parity-gated by the repo's ` +

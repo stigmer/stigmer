@@ -11,7 +11,7 @@ const config: DaemonConfig = {
   temporalAddress: "127.0.0.1:7233",
   serverOnly: false,
   noWeb: false,
-  server: { nodeBin: "/bin/node", entryPath: "/repo/server-ts/dist/main.js", appDir: "/repo/server-ts" },
+  server: { nodeBin: "/bin/node", entryPath: "/repo/server/dist/main.js", appDir: "/repo/server-ts" },
   runner: { nodeBin: "/bin/node", entryPath: "/repo/runner/dist/main.js", appDir: "/repo/runner" },
 };
 
@@ -138,7 +138,7 @@ describe("buildComponents", () => {
     const [server] = buildComponents(config, {});
     const spawn = server.resolve();
     expect(spawn.command).toBe("/bin/node");
-    expect(spawn.args).toEqual(["/repo/server-ts/dist/main.js"]);
+    expect(spawn.args).toEqual(["/repo/server/dist/main.js"]);
   });
 
   it("omits the runner in server-only mode", () => {

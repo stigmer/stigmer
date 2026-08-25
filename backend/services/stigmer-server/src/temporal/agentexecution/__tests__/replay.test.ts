@@ -8,7 +8,7 @@
  * domain's rule, adopted at #18).
  *
  * Fully local: replay needs no Temporal server, so this gate runs in the
- * plain vitest suite (and the ci.stigmer-server-ts workflow) on every
+ * plain vitest suite (and the ci.stigmer-server workflow) on every
  * change. Histories are captured by scripts/capture-replay-histories.ts
  * (mock payloads only).
  */

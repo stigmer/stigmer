@@ -24,7 +24,7 @@ import { rotateLogs } from "../state/log-rotation.js";
 import { resolveApiKey, resolveProvider } from "../llm-config.js";
 import { resolveOperatorIdentity } from "../operator-config.js";
 import { ensureRunner } from "../runtime/runner.js";
-import { ensureServer } from "../runtime/server-ts.js";
+import { ensureServer } from "../runtime/server.js";
 import { TemporalManager } from "../temporal/manager.js";
 import { buildDaemonEnv, type DaemonEnvInputs } from "./env.js";
 

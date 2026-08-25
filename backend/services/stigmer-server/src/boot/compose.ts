@@ -691,7 +691,7 @@ export function composeServer(options: ComposeOptions): ComposedServer {
         options.portOverride ?? config.grpcPort,
         options.host,
       );
-      logger.info("stigmer-server-ts listening", { port });
+      logger.info("stigmer-server listening", { port });
       // The artifact file server binds AFTER the main server, exactly Go's
       // boot order; a bind failure is logged but NOT fatal (Go's
       // ListenAndServe goroutine logs and dies while the server runs on).
@@ -723,7 +723,7 @@ export function composeServer(options: ComposeOptions): ComposedServer {
       // The store closes LAST: in-flight handlers drained above may still
       // be mid-write (Go closes the store after grpcServer.Stop too).
       await store.close();
-      logger.info("stigmer-server-ts stopped");
+      logger.info("stigmer-server stopped");
     },
   };
 }

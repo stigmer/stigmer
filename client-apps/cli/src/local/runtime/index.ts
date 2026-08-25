@@ -15,5 +15,5 @@ export {
   acquireServer,
   ensureServer,
   resolveServerTs,
-} from "./server-ts.js";
+} from "./server.js";
 export { which } from "./which.js";

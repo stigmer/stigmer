@@ -3,5 +3,5 @@ docs/sdk/
 
 # Byte-exact copies of the Go server's go:embed registry artifacts — a
 # co-located test pins them to the Go source, so formatting must not touch
-# them (backend/services/stigmer-server-ts/src/transport/registry/lanes.ts).
-backend/services/stigmer-server-ts/src/transport/registry/data/
+# them (backend/services/stigmer-server/src/transport/registry/lanes.ts).
+backend/services/stigmer-server/src/transport/registry/data/

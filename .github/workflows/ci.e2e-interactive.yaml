@@ -153,7 +153,7 @@ jobs:
       # rather than a confusing globalSetup error (the
       # ci.conformance-execution precedent).
       - name: Build stigmer-server
-        run: make build-server-ts
+        run: make build-server
 
       - name: Build unified runner
         run: make build-runner
@@ -227,7 +227,7 @@ jobs:
           echo "$HOME/.temporalio/bin" >> "$GITHUB_PATH"
 
       - name: Build stigmer-server
-        run: make build-server-ts
+        run: make build-server
 
       - name: Build unified runner
         run: make build-runner

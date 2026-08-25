@@ -1,7 +1,7 @@
 {
   "name": "@stigmer/server",
   "version": "0.0.0-dev",
-  "description": "TypeScript control plane for the Stigmer OSS edition — a parity-gated port of stigmer-server (Go), serving the unified one-port gRPC/gRPC-Web/Connect transport",
+  "description": "The Stigmer OSS control plane, serving the unified one-port gRPC/gRPC-Web/Connect transport",
   "license": "Apache-2.0",
   "type": "module",
   "private": true,
@@ -23,7 +23,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/stigmer/stigmer.git",
-    "directory": "backend/services/stigmer-server-ts"
+    "directory": "backend/services/stigmer-server"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "3.1116.0",
