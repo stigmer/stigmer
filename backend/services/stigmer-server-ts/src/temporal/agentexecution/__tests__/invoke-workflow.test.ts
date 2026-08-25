@@ -45,6 +45,8 @@ import {
   INVOKE_AGENT_EXECUTION_WORKFLOW_NAME,
   MEMO_ACTIVITY_TASK_QUEUE,
   SIGNAL_APPROVAL_GATE_RESOLVED,
+  SIGNAL_CHILD_APPROVAL_REQUIRED,
+  SIGNAL_CHILD_EXECUTION_STARTED,
   SIGNAL_PAUSE,
   SIGNAL_RESUME,
 } from "../names.js";
@@ -275,6 +277,42 @@ async function startWorkflow(
     args: [input],
     memo: { [MEMO_ACTIVITY_TASK_QUEUE]: TASK_QUEUE },
   });
+}
+
+/**
+ * Every outbound external signal, straight from the workflow's own event
+ * history — SignalExternalWorkflowExecutionInitiated carries the wire
+ * exactly as sent (signal name, target workflow id, payload bytes), so
+ * the parent-notification contract is asserted without a live receiver.
+ */
+async function externalSignalsSent(
+  handle: import("@temporalio/client").WorkflowHandle,
+): Promise<
+  Array<{ signalName: string; targetWorkflowId: string; payload: unknown }>
+> {
+  const { defaultPayloadConverter } = await import("@temporalio/common");
+  const history = await handle.fetchHistory();
+  const sent: Array<{
+    signalName: string;
+    targetWorkflowId: string;
+    payload: unknown;
+  }> = [];
+  for (const event of history.events ?? []) {
+    const attrs = event.signalExternalWorkflowExecutionInitiatedEventAttributes;
+    if (!attrs) continue;
+    const payloads = attrs.input?.payloads ?? [];
+    sent.push({
+      signalName: attrs.signalName ?? "",
+      targetWorkflowId: attrs.workflowExecution?.workflowId ?? "",
+      payload:
+        payloads.length > 0
+          ? defaultPayloadConverter.fromPayload(
+              payloads[0] as import("@temporalio/common").Payload,
+            )
+          : undefined,
+    });
+  }
+  return sent;
 }
 
 /** Polls the recorder until a status with the given phase lands. */
@@ -634,5 +672,114 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     await handle.result();
 
     expect(script.executeCalls).toHaveLength(1);
+  }, 30_000);
+
+  // ─── The child_approval_required sender (DD-012, D4 #23) ───────────────
+  // The OSS half of the child-approval forwarding contract: the HITL loop
+  // notifies parent_workflow_id on EVERY cycle with an identity-only
+  // BARE-STRING payload (cloud#509 — the one shape every SDK's default
+  // converter decodes). Asserted from the workflow's own history, the
+  // exact wire a real parent would receive.
+
+  it("emits child_approval_required to the parent on every HITL cycle, including the zero-gate reconcile cycle", async (testCtx) => {    if (!envReady) return testCtx.skip();
+    script.executeBehaviors = [
+      async () => slimResult(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL),
+      async () => slimResult(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL),
+      async () => slimResult(ExecutionPhase.EXECUTION_COMPLETED),
+    ];
+    // Cycle 1: a real pending-approval gate (signal, then wait). Cycle 2:
+    // decided-awaiting-reconcile — the zero-gate immediate re-invoke, which
+    // must STILL notify (cloud calls notifyParentWorkflowOfApproval before
+    // its gate-count branch; the runner treats an empty derivation as
+    // "already resolved").
+    script.loadResults = [
+      executionJson(statusWithPendingApproval()),
+      executionJson(statusDecidedAwaitingReconcile()),
+    ];
+
+    // A nonexistent parent doubles as the non-fatal arm: every signal send
+    // fails, and the run must still complete.
+    const handle = await startWorkflow(
+      workflowInput({ parent_workflow_id: "parent-probe" }),
+    );
+    await waitForPersistedPhase(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL);
+    await handle.signal(SIGNAL_APPROVAL_GATE_RESOLVED);
+    await handle.result();
+
+    const approvalSignals = (await externalSignalsSent(handle)).filter(
+      (signal) => signal.signalName === SIGNAL_CHILD_APPROVAL_REQUIRED,
+    );
+    expect(approvalSignals, "one notification per HITL cycle").toHaveLength(2);
+    for (const signal of approvalSignals) {
+      expect(signal.targetWorkflowId).toBe("parent-probe");
+      // The BARE-STRING wire shape — cloud's exact payload, NOT the
+      // {executionId} object child_execution_started carries.
+      expect(signal.payload).toBe("exec-1");
+    }
+
+    // Ordering pin (cloud parity): the notify happens BEFORE the gate wait —
+    // the first outbound child_approval_required must precede the inbound
+    // approvalGateResolved in the event history. A sender moved after the
+    // wait would deadlock the real round-trip (the parent never learns).
+    const events = (await handle.fetchHistory()).events ?? [];
+    const notifyIdx = events.findIndex(
+      (event) =>
+        event.signalExternalWorkflowExecutionInitiatedEventAttributes
+          ?.signalName === SIGNAL_CHILD_APPROVAL_REQUIRED,
+    );
+    const gateResolvedIdx = events.findIndex(
+      (event) =>
+        event.workflowExecutionSignaledEventAttributes?.signalName ===
+        SIGNAL_APPROVAL_GATE_RESOLVED,
+    );
+    expect(notifyIdx).toBeGreaterThanOrEqual(0);
+    expect(gateResolvedIdx).toBeGreaterThanOrEqual(0);
+    expect(
+      notifyIdx,
+      "the parent notification precedes the gate wait",
+    ).toBeLessThan(gateResolvedIdx);
+  }, 30_000);
+
+  it("does not emit child_approval_required when the run never gates", async (testCtx) => {    if (!envReady) return testCtx.skip();
+    script.executeBehaviors = [
+      async () => slimResult(ExecutionPhase.EXECUTION_COMPLETED),
+    ];
+
+    const handle = await startWorkflow(
+      workflowInput({ parent_workflow_id: "parent-probe" }),
+    );
+    await handle.result();
+
+    const signals = await externalSignalsSent(handle);
+    // The started notification is the parent-liveness lane and always fires;
+    // the approval notification is gate-scoped and must not.
+    const started = signals.filter(
+      (signal) => signal.signalName === SIGNAL_CHILD_EXECUTION_STARTED,
+    );
+    expect(started).toHaveLength(1);
+    // The sibling-signal payload asymmetry, pinned: started carries the
+    // {executionId} object (the shape the runner's handler tolerates),
+    // while child_approval_required carries cloud's bare string.
+    expect(started[0]!.payload).toEqual({ executionId: "exec-1" });
+    expect(
+      signals.filter((signal) => signal.signalName === SIGNAL_CHILD_APPROVAL_REQUIRED),
+    ).toHaveLength(0);
+  }, 30_000);
+
+  it("does not signal any parent when invoked directly (no parent_workflow_id)", async (testCtx) => {    if (!envReady) return testCtx.skip();
+    script.executeBehaviors = [
+      async () => slimResult(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL),
+      async () => slimResult(ExecutionPhase.EXECUTION_COMPLETED),
+    ];
+    script.loadResults = [executionJson(statusWithPendingApproval())];
+
+    const handle = await startWorkflow(workflowInput());
+    await waitForPersistedPhase(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL);
+    await handle.signal(SIGNAL_APPROVAL_GATE_RESOLVED);
+    await handle.result();
+
+    // Gated AND resumed, yet zero external signals of any kind: the guard
+    // keys on parent_workflow_id presence, not on the gate.
+    expect(await externalSignalsSent(handle)).toHaveLength(0);
   }, 30_000);
 });

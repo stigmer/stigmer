@@ -216,11 +216,13 @@ with no IAM filtering), `versionTagging` is `true` (the dedicated `tagVersion`
 RPC is implemented in both editions; assigning a tag moves it to name exactly
 one version, and apply-time `metadata.version.tag` flows through the same
 single-holder primitive), and
-`workflowChildApprovalForwarding` is `false` (the `WorkflowExecution.submitApproval`
-forwarder is built in OSS, but the `child_approval_required` signal that surfaces a
-child agent's gate to its parent workflow is cloud-only, so the forwarder's
-happy path is unreachable against the Go server — see
-`design-decisions/012-workflowexecution-child-approval-forwarding-contract.md`).
+`workflowChildApprovalForwarding` splits by SERVER, not edition (the
+`WorkflowExecution.submitApproval` forwarder is built everywhere, but the
+`child_approval_required` signal that surfaces a child agent's gate to its
+parent workflow is sent only by cloud and — since D4 #23 — the TS server's
+HITL loop; the Go server never sends it, so the flag stays `false` on the
+`local-go*` targets and the forwarder's happy path stays unreachable there —
+see `design-decisions/012-workflowexecution-child-approval-forwarding-contract.md`).
 Capabilities are retired when a surface converges: secret redaction was gated
 per edition until the Environment (stigmer#405) and ExecutionContext
 (stigmer#535) surfaces converged, after which the suites assert redaction
@@ -347,20 +349,21 @@ approval FORWARDING** (`submitApproval`) contract — distinct from `human_input
 *child* AgentExecution gates on a tool, the gate surfaces at the parent's
 `status.pending_approvals` (carrying `child_agent_execution_id`); `submitApproval`
 routes the decision down to the child's `AgentExecution.submitApproval`. The
-forwarder is **half-built in OSS by design**: the receiver is complete, but the
-`child_approval_required` signal that populates the parent's `pending_approvals` is
-**cloud-only**, so a gated child never surfaces against the Go server (source-
-confirmed). The suite splits along the `workflowChildApprovalForwarding`
+forwarder is **half-built in the Go server by design**: the receiver is complete,
+but the `child_approval_required` signal that populates the parent's
+`pending_approvals` is sent only by cloud and — since D4 #23 — the TS server's
+HITL loop (the DD-012 derivation design: identity-only signal, the runner
+derives the gate from the child's persisted record). A gated child never
+surfaces against the Go server (source-confirmed), which never gains the
+sender. The suite splits along the `workflowChildApprovalForwarding`
 capability: the **negatives** never need a populated `pending_approvals` and run
-unconditionally against OSS today (empty `execution_id`/`tool_call_id` /
+unconditionally against every target (empty `execution_id`/`tool_call_id` /
 UNSPECIFIED action -> `InvalidArgument`; missing execution -> `NotFound`; a running
 *or* terminal execution with no pending approvals -> `FailedPrecondition`); the
-**happy path** is written in full but `describe.skipIf`-gated so it reports as
-genuinely **SKIPPED** (not a false green) on `local-go` — it needs both the
-forwarder *and* the local mock-LLM + MCP fixtures, which only the future
-`local-ts-execution` (T04) target has. The eventual OSS implementation lands in the
-T04 TS rewrite (not the retiring Go server) and should surface the child gate by
-**derivation** (identity-only signal + derive-from-child). See the project's
+**happy path** is `describe.skipIf`-gated so it reports as genuinely **SKIPPED**
+(not a false green) on the `local-go*` targets, and RUNS on `local-ts-execution`
+— the one deliberate capability divergence between the two execution targets
+(the D4 parity-plus delta). See the project's
 `design-decisions/012-workflowexecution-child-approval-forwarding-contract.md`.
 
 ## Layout

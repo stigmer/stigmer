@@ -39,6 +39,15 @@
 //   runner's stigmer/mcp-server/connect workflow (deterministic-ID
 //   attach, dead-runner warning), handshake completion against the mock
 //   authorization server, and the refresh-on-connect pre-flight.
+//
+//   #23 (2026-08-25, sp.child-approval-derivation): workflowexecution-
+//   child-approval — the June-written suite runs whole (negatives + the
+//   DD-012 forwarding round-trip) now that the TS HITL loop emits
+//   child_approval_required. Pre-flight debt cleared alongside it:
+//   harness.smoke (the target-agnostic set_vars engine smoke) was in the
+//   execution glob but never rostered by #20/#21 — proven green here.
+//   With both entries the roster EQUALS the execution glob: the Class B
+//   half of the cutover gate (D4 #24) is satisfied.
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
@@ -65,6 +74,15 @@ export default defineConfig({
       // the listRuns history surface, active now that scheduleFiring
       // flipped true on this target.
       "src/suites-execution/schedule-firing.conformance.test.ts",
+      // child-approval forwarding — sub-project #23 (the LAST roster entries
+      // before the #24 cutover gate): the June-written DD-012 suite, whole —
+      // the edition-agnostic submitApproval negatives AND the forwarding
+      // round-trip, active now that workflowChildApprovalForwarding flipped
+      // true on this target (the TS HITL loop emits child_approval_required).
+      "src/suites-execution/workflowexecution-child-approval.conformance.test.ts",
+      // The target-agnostic set_vars engine smoke — glob-resident since June,
+      // missed by #20/#21's rostering; carried in by #23 for glob equality.
+      "src/suites-execution/harness.smoke.test.ts",
     ],
     globalSetup: ["./src/harness/global-setup-ts-execution.ts"],
     env: {
