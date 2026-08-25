@@ -6,9 +6,9 @@
 // tsc is deterministic and the dist path is stable, so workers locate the
 // entry without env-var plumbing, exactly like the Go binary's temp path.
 // Dependencies install only when node_modules is missing (a fresh checkout
-// or CI); the file-linked @stigmer/protos dist must exist first — the
-// make target's build-ts-stubs dependency guarantees it, and the fallback
-// here keeps single-file editor runs working.
+// or CI); the file-linked workspace-lib dists must exist first — built
+// below through the canonical root script, which also keeps single-file
+// editor runs working from a fresh checkout.
 import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -27,11 +27,15 @@ export function tsServerEntryPath(): string {
 }
 
 export async function buildTsServer(): Promise<string> {
-  // The server file-links @stigmer/temporal-codecs (its decode-only payload
-  // codec wraps the lib since D4 #18), so the lib's dist must exist before
-  // the server compiles — built through the root workspace, same as
-  // @stigmer/protos. Idempotent tsc; always fresh so the suite tests HEAD.
-  await execFileAsync("npm", ["run", "build", "-w", "@stigmer/temporal-codecs"], {
+  // The server file-links the workspace libs (@stigmer/protos,
+  // @stigmer/temporal-codecs since D4 #18, @stigmer/zip-structure since
+  // D4 #8), so their dists must exist before the server compiles. The root
+  // build:runner-deps script is the one canonical list of those libs —
+  // building through it (rather than naming libs here) means a future
+  // file-linked lib cannot silently break this harness the way
+  // zip-structure did when only temporal-codecs was built. Idempotent tsc;
+  // always fresh so the suite tests HEAD.
+  await execFileAsync("npm", ["run", "build:runner-deps"], {
     cwd: REPO_ROOT,
     maxBuffer: 64 * 1024 * 1024,
   });

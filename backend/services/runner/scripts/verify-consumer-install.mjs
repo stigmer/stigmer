@@ -67,6 +67,7 @@ const bootCheck = join(runnerDir, "scripts", "verify-dist-boot.mjs");
 const LOCAL_LIBS = [
   { name: "@stigmer/protos", dir: join(runnerDir, "..", "..", "..", "apis", "stubs", "ts") },
   { name: "@stigmer/temporal-codecs", dir: join(runnerDir, "..", "..", "libs", "ts", "temporal-codecs") },
+  { name: "@stigmer/zip-structure", dir: join(runnerDir, "..", "..", "libs", "ts", "zip-structure") },
 ];
 
 function fail(message) {
