@@ -432,6 +432,10 @@ test-integration-all: ## Run all integration suites. PROVIDERS=true includes pro
 	$(MAKE) test-conformance
 	@echo "=== Conformance: execution engine (local-go-execution) ==="
 	$(MAKE) test-conformance-execution
+	@echo "=== Conformance: CRUD contract (local-ts / stigmer-server-ts) ==="
+	$(MAKE) test-conformance-ts
+	@echo "=== Conformance: execution engine (local-ts-execution / stigmer-server-ts) ==="
+	$(MAKE) test-conformance-ts-execution
 ifeq ($(PROVIDERS),true)
 	@echo "=== Provider: integration (LLM) ==="
 	$(MAKE) test-integration-providers
@@ -495,6 +499,14 @@ test-conformance-ts-execution: build-runner ## Run the local-ts-execution confor
 	}
 	@echo "=== conformance: execution engine (local-ts-execution / stigmer-server-ts) ==="
 	CONFORMANCE_TARGET=local-ts-execution npm run test:ts-execution -w @stigmer/conformance
+
+.PHONY: smoke-cli-cutover
+smoke-cli-cutover: build-runner build-server-ts ## Run the CLI cutover E2E smoke, both arms: the packaged TS entry AND the STIGMER_SERVER_BIN Go rollback (needs `temporal` on PATH for speed; bin/stigmer-server via `make build` for the go arm)
+	@command -v node >/dev/null 2>&1 || { echo "error: node not found"; exit 1; }
+	@test -f bin/stigmer-server || { echo "error: bin/stigmer-server missing — build the Go rollback binary first (cd backend/services/stigmer-server && go build -o ../../../bin/stigmer-server ./cmd/server)"; exit 1; }
+	@cd $(SERVER_TS_DIR) && node scripts/bundle-slim.mjs
+	node scripts/smoke-cli-cutover.mjs --arm=ts
+	node scripts/smoke-cli-cutover.mjs --arm=go
 
 .PHONY: test-conformance-cloud
 test-conformance-cloud: build-ts-stubs ## Run gRPC conformance CRUD suite against the Java cloud service (hermetic; needs Docker, `fga`, `temporal`, and the fat JAR)

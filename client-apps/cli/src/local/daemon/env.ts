@@ -13,6 +13,9 @@ export const DaemonEnvVar = {
   ServerOnly: "STIGMER_SERVER_ONLY",
   NoWeb: "STIGMER_NO_WEB",
   ServerBin: "STIGMER_SERVER_BIN",
+  ServerNodeBin: "STIGMER_SERVER_NODE_BIN",
+  ServerEntry: "STIGMER_SERVER_ENTRY",
+  ServerAppDir: "STIGMER_SERVER_APP_DIR",
   RunnerNodeBin: "STIGMER_RUNNER_NODE_BIN",
   RunnerEntry: "STIGMER_RUNNER_ENTRY",
   RunnerAppDir: "STIGMER_RUNNER_APP_DIR",
@@ -30,6 +33,17 @@ export interface RunnerLaunch {
   appDir: string;
 }
 
+/**
+ * Resolved server launch coordinates — a modeled state, not an inference
+ * (D4 #24). "node" is the TypeScript server (the served implementation
+ * since the DD-006 cutover): a node binary + bundled entry, the runner's
+ * launch shape. "binary" is the Go stigmer-server executable — the
+ * rollback path, selected by the STIGMER_SERVER_BIN override.
+ */
+export type ServerLaunch =
+  | { kind: "binary"; bin: string }
+  | { kind: "node"; nodeBin: string; entryPath: string; appDir: string };
+
 /** The daemon's resolved configuration, parsed from the environment. */
 export interface DaemonConfig {
   dataDir: string;
@@ -38,7 +52,7 @@ export interface DaemonConfig {
   temporalAddress: string;
   serverOnly: boolean;
   noWeb: boolean;
-  serverBin: string;
+  server: ServerLaunch;
   runner?: RunnerLaunch;
   cursorApiKey?: string;
   anthropicApiKey?: string;
@@ -55,7 +69,7 @@ export interface DaemonEnvInputs {
   temporalAddress: string;
   serverOnly: boolean;
   noWeb: boolean;
-  serverBin: string;
+  server: ServerLaunch;
   runner?: RunnerLaunch;
   // Anthropic API key resolved by the launcher (env > config file). Must be
   // written into the daemon env explicitly: unlike a shell-exported key, a key
@@ -83,7 +97,23 @@ export function buildDaemonEnv(inputs: DaemonEnvInputs, base: NodeJS.ProcessEnv 
   env[DaemonEnvVar.LogDir] = inputs.logDir;
   env[DaemonEnvVar.TemporalManaged] = String(inputs.temporalManaged);
   env[DaemonEnvVar.TemporalAddress] = inputs.temporalAddress;
-  env[DaemonEnvVar.ServerBin] = inputs.serverBin;
+  if (inputs.server.kind === "binary") {
+    env[DaemonEnvVar.ServerBin] = inputs.server.bin;
+    // Symmetric scrub: a stale node triple inherited from the caller's shell
+    // must not ride the base spread into the children's environments.
+    delete env[DaemonEnvVar.ServerNodeBin];
+    delete env[DaemonEnvVar.ServerEntry];
+    delete env[DaemonEnvVar.ServerAppDir];
+  } else {
+    env[DaemonEnvVar.ServerNodeBin] = inputs.server.nodeBin;
+    env[DaemonEnvVar.ServerEntry] = inputs.server.entryPath;
+    env[DaemonEnvVar.ServerAppDir] = inputs.server.appDir;
+    // A caller-exported STIGMER_SERVER_BIN must not leak through the base
+    // spread when the launcher resolved the node shape — the daemon prefers
+    // the binary override precisely because setting it means "run the Go
+    // server", and the launcher already honored that upstream.
+    delete env[DaemonEnvVar.ServerBin];
+  }
   if (inputs.serverOnly) env[DaemonEnvVar.ServerOnly] = "true";
   if (inputs.noWeb) env[DaemonEnvVar.NoWeb] = "1";
   if (inputs.runner !== undefined && !inputs.serverOnly) {
@@ -112,7 +142,7 @@ export function readDaemonConfig(env: NodeJS.ProcessEnv = process.env): DaemonCo
     temporalAddress: env[DaemonEnvVar.TemporalAddress] ?? "127.0.0.1:7233",
     serverOnly,
     noWeb: env[DaemonEnvVar.NoWeb] === "1",
-    serverBin: required(env, DaemonEnvVar.ServerBin),
+    server: readServer(env),
     runner: serverOnly ? undefined : runner,
     cursorApiKey: nonEmpty(env[DaemonEnvVar.CursorApiKey]),
     anthropicApiKey: nonEmpty(env[DaemonEnvVar.AnthropicApiKey]),
@@ -120,6 +150,25 @@ export function readDaemonConfig(env: NodeJS.ProcessEnv = process.env): DaemonCo
     operatorEmail: nonEmpty(env[DaemonEnvVar.OperatorEmail]),
     operatorName: nonEmpty(env[DaemonEnvVar.OperatorName]),
   };
+}
+
+// The binary override wins when both shapes are present: STIGMER_SERVER_BIN
+// is the no-code-change rollback lever (D2 §6), and buildDaemonEnv never
+// writes both, so a both-present env means an operator override.
+function readServer(env: NodeJS.ProcessEnv): ServerLaunch {
+  const bin = env[DaemonEnvVar.ServerBin];
+  if (bin !== undefined && bin !== "") {
+    return { kind: "binary", bin };
+  }
+  const nodeBin = env[DaemonEnvVar.ServerNodeBin];
+  const entryPath = env[DaemonEnvVar.ServerEntry];
+  const appDir = env[DaemonEnvVar.ServerAppDir];
+  if (!nodeBin || !entryPath || !appDir) {
+    throw new Error(
+      `${DaemonEnvVar.ServerBin} or the ${DaemonEnvVar.ServerNodeBin}/${DaemonEnvVar.ServerEntry}/${DaemonEnvVar.ServerAppDir} triple is required for the daemon process`,
+    );
+  }
+  return { kind: "node", nodeBin, entryPath, appDir };
 }
 
 function readRunner(env: NodeJS.ProcessEnv): RunnerLaunch | undefined {

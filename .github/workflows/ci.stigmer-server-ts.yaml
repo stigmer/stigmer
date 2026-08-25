@@ -87,5 +87,28 @@ jobs:
         working-directory: backend/services/stigmer-server-ts
         run: node scripts/bundle-slim.mjs && npm run verify:slim
 
+      # The deep slim gate at PR time (D4 #24 panel finding): verify:slim
+      # boots WITHOUT Temporal, so the slim-only machinery — prebuilt
+      # workflow-bundle discovery, the threaded-vm patch, per-platform
+      # core-bridge dispatch — never executes there. A drifted bundle would
+      # otherwise merge green and wedge the release train at publish time
+      # (the workers fail SOFT: manager.ts retries instead of crashing).
+      # This runs the isolated-copy + real-Temporal check the release lane
+      # gates publishing on.
+      - name: Set up Temporal CLI
+        uses: temporalio/setup-temporal@v0
+
+      - name: Deep-verify the slim artifact (isolated copy + Temporal workers)
+        working-directory: backend/services/stigmer-server-ts
+        run: |
+          temporal server start-dev --headless --log-level error &
+          TEMPORAL_PID=$!
+          trap "kill $TEMPORAL_PID" EXIT
+          for i in $(seq 1 30); do
+            temporal operator cluster health >/dev/null 2>&1 && break
+            sleep 1
+          done
+          node scripts/verify-slim-artifact.mjs
+
       - name: Run the vitest suite
         run: make test-server-ts

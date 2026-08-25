@@ -2,7 +2,7 @@
 // `down` (signal + wait + safety-net cleanup), and a liveness check.
 //
 // `up` resolves every heavy dependency in the foreground (Temporal binary,
-// server binary, runner entry) so failures surface with a clear message before
+// server launch, runner entry) so failures surface with a clear message before
 // a detached daemon is spawned, then re-execs this same CLI as the hidden
 // `internal-daemon` and waits until the server's gRPC port answers.
 
@@ -24,7 +24,7 @@ import { rotateLogs } from "../state/log-rotation.js";
 import { resolveApiKey, resolveProvider } from "../llm-config.js";
 import { resolveOperatorIdentity } from "../operator-config.js";
 import { ensureRunner } from "../runtime/runner.js";
-import { ensureServerBinary } from "../runtime/server.js";
+import { ensureServer } from "../runtime/server-ts.js";
 import { TemporalManager } from "../temporal/manager.js";
 import { buildDaemonEnv, type DaemonEnvInputs } from "./env.js";
 
@@ -64,7 +64,10 @@ export async function up(options: UpOptions = {}, home: string = homedir()): Pro
     await temporal.ensureInstalled();
   }
 
-  const serverBin = await ensureServerBinary({ home });
+  // THE cutover switch (D4 #24): resolves the TS server (repo tree or the
+  // acquired @stigmer/server-slim), or the Go binary when STIGMER_SERVER_BIN
+  // is set — the rollback lever.
+  const server = ensureServer({ home });
   const runner = options.serverOnly === true ? undefined : ensureRunner({ home });
 
   const env = buildDaemonEnv(
@@ -75,7 +78,7 @@ export async function up(options: UpOptions = {}, home: string = homedir()): Pro
       temporalAddress: temporal.address,
       serverOnly: options.serverOnly === true,
       noWeb: options.noWeb === true,
-      serverBin,
+      server,
       runner,
       ...resolveLlmKeyInputs(config),
       ...resolveOperatorIdentityInputs(config),

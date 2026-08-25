@@ -247,3 +247,100 @@ jobs:
             (cd "$pkg" && npm publish --access public --tag "$NPM_TAG")
           done
           cd dist-slim-pkgs/runner-slim && npm publish --access public --tag "$NPM_TAG"
+
+  # The TS server's slim artifact (D4 #24 cli-cutover): @stigmer/server-slim
+  # plus per-platform native-bridge packages, the runner-slim pattern exactly.
+  # The CLI installs it on demand at `stigmer up` and launches `node main.js`
+  # as the local stack's server — the DD-006 cutover's distribution half.
+  # Runs after `publish` only for release-train symmetry: the slim artifact
+  # bundles everything, so it has no registry dependency on @stigmer/protos.
+  publish-server-slim:
+    needs: [determine-version, publish]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Buf
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: 'npm'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install workspace dependencies
+        run: npm ci
+
+      # Builds the ts stubs + the server-linked lib dists (build-ts-stubs),
+      # installs the server's own deps, and compiles the server to dist/.
+      - name: Build TS server
+        run: make build-server-ts
+
+      # Stamp the release version into the package manifest; the bundle
+      # script propagates it into every generated slim manifest. The file:
+      # lib deps are NOT pinned to registry versions — the slim bundle
+      # compiles them in, so the published packages carry no @stigmer/* deps.
+      - name: Stamp version
+        working-directory: backend/services/stigmer-server-ts
+        env:
+          VERSION: ${{ needs.determine-version.outputs.version }}
+        run: |
+          node -e "
+            const fs = require('node:fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            pkg.version = process.env.VERSION;
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+            console.log('stamped @stigmer/server-slim@' + pkg.version);
+          "
+
+      # The defines are the Go build's ldflags equivalent (release.cli.yaml):
+      # the version for getServerInfo and the bundled GitHub OAuth app the
+      # local github broker defaults to.
+      - name: Build slim artifact packages
+        working-directory: backend/services/stigmer-server-ts
+        env:
+          STIGMER_SERVER_VERSION: ${{ needs.determine-version.outputs.version }}
+          STIGMER_GITHUB_CLIENT_ID: ${{ secrets.STIGMER_LOCAL_GITHUB_OAUTH_CLIENT_ID }}
+          STIGMER_GITHUB_CLIENT_SECRET: ${{ secrets.STIGMER_LOCAL_GITHUB_OAUTH_CLIENT_SECRET }}
+        run: node scripts/bundle-slim.mjs --emit-packages
+
+      # Gate the publish on the artifact actually working: an ISOLATED copy
+      # (nothing resolves from this checkout) must serve the transport AND
+      # start all three Temporal workers from the pre-built workflow bundles
+      # through the per-platform native bridge, against a real Temporal dev
+      # server, then shut down cleanly.
+      - name: Set up Temporal CLI
+        uses: temporalio/setup-temporal@v0
+
+      - name: Verify slim artifact boots and starts workers
+        working-directory: backend/services/stigmer-server-ts
+        run: |
+          temporal server start-dev --headless --log-level error &
+          TEMPORAL_PID=$!
+          trap "kill $TEMPORAL_PID" EXIT
+          for i in $(seq 1 30); do
+            temporal operator cluster health >/dev/null 2>&1 && break
+            sleep 1
+          done
+          node scripts/verify-slim-artifact.mjs
+
+      - name: Publish slim packages to npm
+        working-directory: backend/services/stigmer-server-ts
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          VERSION="${{ needs.determine-version.outputs.version }}"
+          if [[ "$VERSION" == *-* ]]; then NPM_TAG="next"; else NPM_TAG="latest"; fi
+          # Platform packages first so the meta package's optionalDependencies
+          # resolve the moment it lands.
+          for pkg in dist-slim-pkgs/server-slim-*; do
+            (cd "$pkg" && npm publish --access public --tag "$NPM_TAG")
+          done
+          cd dist-slim-pkgs/server-slim && npm publish --access public --tag "$NPM_TAG"

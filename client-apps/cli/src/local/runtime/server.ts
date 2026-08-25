@@ -1,4 +1,11 @@
-// Resolution and on-demand acquisition of the `stigmer-server` control plane.
+// Resolution and on-demand acquisition of the GO `stigmer-server` binary —
+// the ROLLBACK path since the DD-006 cutover (D4 #24; see ./server-ts.ts for
+// the served TypeScript implementation and the switch itself).
+//
+// This ladder is no longer walked by `stigmer up` unless STIGMER_SERVER_BIN
+// selects a binary explicitly; it remains intact, code and download included,
+// so re-flipping ensureServer back to it is the whole rollback. It dies with
+// #25 go-server-retirement.
 //
 // DD-003: a TypeScript CLI cannot `go:embed` a Go binary, so it resolves an
 // existing `stigmer-server` (dev build / Homebrew / a prior download) and, when
@@ -47,7 +54,7 @@ export function resolveServerBinary(home: string = homedir()): string | null {
   return which(SERVER_BINARY);
 }
 
-export interface EnsureServerOptions {
+export interface EnsureServerBinaryOptions {
   home?: string;
   /** Release version to download if needed (defaults to the CLI's own version). */
   version?: string;
@@ -62,7 +69,7 @@ export interface EnsureServerOptions {
  * exists and a download is not possible (a source/dev build, or an unsupported
  * platform).
  */
-export async function ensureServerBinary(opts: EnsureServerOptions = {}): Promise<string> {
+export async function ensureServerBinary(opts: EnsureServerBinaryOptions = {}): Promise<string> {
   const home = opts.home ?? homedir();
   const existing = resolveServerBinary(home);
   if (existing !== null) return existing;

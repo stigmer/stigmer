@@ -128,7 +128,7 @@ describe("runInternalDaemon (full body with fakes)", () => {
       temporalAddress: "127.0.0.1:7233",
       serverOnly: false,
       noWeb: true,
-      serverBin: "server-cmd",
+      server: { kind: "node", nodeBin: "node-cmd", entryPath: join(data, "server-entry.js"), appDir: data },
       runner: { nodeBin: "node-cmd", entryPath: join(data, "entry.js"), appDir: data },
     };
 

@@ -234,6 +234,10 @@ export class TemporalManager {
     }
     try {
       await this.createAndRunWorkers();
+      // This exact wording is LOAD-BEARING: scripts/verify-slim-artifact.mjs
+      // (the slim-artifact CI/release gate) waits for it, and the Go server
+      // emits the identical line (temporal_manager.go). Reword all three
+      // together or the gate fails as an opaque timeout.
       this.logger.info("All Temporal workers started", {
         worker_count: this.workers.length,
       });
