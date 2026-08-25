@@ -78,6 +78,12 @@ async function stubChild(
   });
 
   await recorder[TEST_RECORD_CHILD_EVENT_ACTIVITY]("started");
+  if (input.recovery_mode === true) {
+    // Pins that the orchestrator forwards the input UNCHANGED to the
+    // child (Go TestChildWorkflow_RecoveryModeAccepted) — the recover
+    // lane depends on this flag arriving.
+    await recorder[TEST_RECORD_CHILD_EVENT_ACTIVITY]("recovery-mode");
+  }
   await condition(() => released);
 }
 

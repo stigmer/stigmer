@@ -103,6 +103,7 @@ let workflowSeq = 0;
 
 async function startOrchestrator(
   executionId: string,
+  overrides: Partial<InvokeWorkflowExecutionWorkflowInput> = {},
 ): Promise<import("@temporalio/client").WorkflowHandle> {
   if (!env) throw new Error("TestWorkflowEnvironment not initialized");
   workflowSeq++;
@@ -111,6 +112,7 @@ async function startOrchestrator(
     workflow_instance_id: "wfi-1",
     workflow_id: "wf-1",
     org_id: "org-1",
+    ...overrides,
   };
   return env.client.workflow.start(INVOKE_WORKFLOW_EXECUTION_WORKFLOW_NAME, {
     taskQueue: TASK_QUEUE,
@@ -239,17 +241,13 @@ describe("invoke-workflow-execution workflow (TestWorkflowEnvironment)", () => {
     const handle = await startOrchestrator("wfe-hold-pr");
     await waitFor(() => childEvents.includes("started"), "child start");
 
+    // Back-to-back, no intermediate wait — Go's resume test's shape: the
+    // two signals typically land buffered in one workflow task, so this
+    // also exercises the serialized loop's pause-first tie rule, not just
+    // sequential arrival order.
     await handle.signal(PAUSE_SIGNAL_NAME, "take a break");
-    await waitFor(
-      () => persistedPhases().includes(ExecutionPhase.EXECUTION_PAUSED),
-      "PAUSED persist",
-    );
-    await waitFor(
-      () => childEvents.includes("pause:take a break"),
-      "pause relay at the child",
-    );
-
     await handle.signal(RESUME_SIGNAL_NAME);
+
     await waitFor(
       () => persistedPhases().includes(ExecutionPhase.EXECUTION_IN_PROGRESS),
       "IN_PROGRESS persist",
@@ -296,6 +294,22 @@ describe("invoke-workflow-execution workflow (TestWorkflowEnvironment)", () => {
     expect(childEvents).toContain('custom:{"answer":42}');
     // No status persist rides the relay lane (Go relays without one).
     expect(persistedStatuses).toEqual([]);
+  }, 30_000);
+
+  it("forwards the input to the child UNCHANGED — recovery_mode included", async (testCtx) => {
+    if (!envReady) return testCtx.skip();
+    const handle = await startOrchestrator("wfe-hold-recovery", {
+      recovery_mode: true,
+    });
+    await waitFor(
+      () => childEvents.includes("recovery-mode"),
+      "recovery flag at the child",
+    );
+    await releaseChild(handle);
+    await handle.result();
+
+    expect(childEvents).toContain("recovery-mode");
+    expect(deletedExecutionContexts).toEqual(["wfe-hold-recovery"]);
   }, 30_000);
 
   it("ignores a malformed relay envelope without failing the workflow", async (testCtx) => {
