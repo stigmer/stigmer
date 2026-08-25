@@ -30,7 +30,15 @@
 //   to #21's PR). The workflowexecution slice: the four workflowexecution
 //   suites + the envmerge workflow half (split at #18 for exactly this
 //   moment). Still out: workflowexecution-child-approval (the #23 flag
-//   flip) and schedule-firing (#22).
+//   flip) and schedule-firing (#22). (#19, running in parallel, absorbed
+//   the same three suites independently — the concurrent sessions closed
+//   the same gap; #21 landed first, so its rostering stands.)
+//
+//   #19 (2026-08-25, sp.mcpserver-connect-oauth): mcpserver-connect —
+//   the CW-1 Class B slice: connect/startConnect discovery through the
+//   runner's stigmer/mcp-server/connect workflow (deterministic-ID
+//   attach, dead-runner warning), handshake completion against the mock
+//   authorization server, and the refresh-on-connect pre-flight.
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
@@ -51,6 +59,7 @@ export default defineConfig({
       "src/suites-execution/workflowexecution-approval.conformance.test.ts",
       "src/suites-execution/workflowexecution-signal.conformance.test.ts",
       "src/suites-execution/workflowexecution-recover.conformance.test.ts",
+      "src/suites-execution/mcpserver-connect.conformance.test.ts",
     ],
     globalSetup: ["./src/harness/global-setup-ts-execution.ts"],
     env: {

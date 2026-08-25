@@ -68,6 +68,12 @@
 //     this entry per DD-D and reconciled at the #16/#14 merge — boot-time
 //     RebuildIndex, and the ActivityQueryController recents feed,
 //     stigmer#461).
+//   - mcpserver-oauth — sub-project #19 (sp.mcpserver-connect-oauth; the
+//     CW-1 Class A slice: initiate guards + the DCR arm against the mock
+//     authorization server + the vendor arm's byte-pinned refusals +
+//     grant-free reads + the three org-OAuth UNIMPLEMENTED pins. The
+//     handshake-completion lanes run Class B on local-ts-execution —
+//     CW-1's execution-time DB-1 amendment).
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
@@ -98,6 +104,7 @@ export default defineConfig({
       "src/suites/project.conformance.test.ts",
       "src/suites/search.conformance.test.ts",
       "src/suites/activity.conformance.test.ts",
+      "src/suites/mcpserver-oauth.conformance.test.ts",
     ],
     globalSetup: ["./src/harness/global-setup-ts.ts"],
     env: {

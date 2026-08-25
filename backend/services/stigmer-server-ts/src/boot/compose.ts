@@ -27,6 +27,7 @@ import { registerAgentExecutionServices } from "../domain/agentexecution/control
 import { newArtifactStorage } from "../artifactstorage/artifact-storage.js";
 import { StreamBroker } from "../domain/agentexecution/stream-broker.js";
 import { newExecutionEngineStateProvider } from "../temporal/agentexecution/engine-client.js";
+import { newMcpServerEngineStateProvider } from "../temporal/mcpserver/engine-client.js";
 import { newAgentExecutionWorkerFactory } from "../temporal/agentexecution/worker.js";
 import { TemporalManager } from "../temporal/manager.js";
 import { loadServerPayloadCodecs } from "../temporal/payload-codec.js";
@@ -327,15 +328,42 @@ export function composeServer(options: ComposeOptions): ComposedServer {
     secretService,
     logger,
   );
-  // OAuth-managed token access for the EC builder's injection (server.go
-  // 732–735); rides the environment in-process client so encryption,
-  // validation, and audit ride the environment pipeline.
-  const managedEnvService = new ManagedEnvironmentService({
-    getSecretValue: (input) =>
-      requireInProcess().executionEnvironmentReader.getSecretValue(input),
-    updateVariables: (request) =>
-      requireInProcess().executionEnvironmentReader.updateVariables(request),
+  // The managed-environment lifecycle — OAuth token access for the EC
+  // builder's injection (server.go 732–735) plus the create/delete halves
+  // the connect/OAuth slice mints and tears environments with (#19).
+  // Rides the environment in-process client so encryption, validation,
+  // and audit ride the environment pipeline. ONE instance shared by
+  // agentexecution and mcpserver — Go builds two, both stateless over the
+  // same client, so sharing is behavior-identical.
+  const managedEnvService = new ManagedEnvironmentService(
+    {
+      getSecretValue: (input) =>
+        requireInProcess().executionEnvironmentReader.getSecretValue(input),
+      updateVariables: (request) =>
+        requireInProcess().executionEnvironmentReader.updateVariables(request),
+      create: (environment) =>
+        requireInProcess().executionEnvironmentReader.create(environment),
+      delete: (input) =>
+        requireInProcess().executionEnvironmentReader.delete(input),
+    },
+    logger,
+  );
+  // The mcpserver connect-engine provider — the same manager-backed
+  // request-time idiom as executionEngineState above; the connect lanes
+  // start the RUNNER's workflow, so no worker factory is added here.
+  const mcpServerEngineState = newMcpServerEngineStateProvider({
+    manager: temporalManager,
+    config: temporalConfig,
+    logger,
   });
+  // WARN-degrade, not boot-fatal (Go server.go:722-729): every OAuth RPC
+  // except initiateOAuthConnect works without the redirect URI, and
+  // initiate refuses with the pinned FailedPrecondition copy.
+  if (config.oauthRedirectUri === "") {
+    logger.warn(
+      "STIGMER_OAUTH_REDIRECT_URI is not set — OAuth Connect flows for MCP servers are unavailable (initiateOAuthConnect will refuse)",
+    );
+  }
   // The SAME `routes` function registers every service on BOTH the serving
   // router and the in-process router transport (createInProcessClients).
   // Handlers are stateless over the same store, so the two routers behave
@@ -459,9 +487,40 @@ export function composeServer(options: ComposeOptions): ComposedServer {
           requireInProcess().workflowExecutionContextCreator,
       },
     });
-    // CRUD slice only (D4 #9) — Go's constructor takes exactly the store
-    // for this slice; the connect/OAuth deps arrive with #19.
-    registerMcpServerServices(router, { store, logger });
+    // The whole surface: the CRUD slice (D4 #9) plus the connect/OAuth
+    // slice (D4 #19). All connect deps are wired unconditionally per the
+    // composition-root idiom — engine availability is the modeled state
+    // the provider answers at request time, and the managed-env service
+    // has no Temporal dependency (DB-1, sub-project 20260825.02).
+    registerMcpServerServices(router, {
+      store,
+      logger,
+      connect: {
+        store,
+        logger,
+        engineState: mcpServerEngineState,
+        environmentReader: {
+          list: (request) =>
+            requireInProcess().executionEnvironmentReader.list(request),
+          getSecretValue: (input) =>
+            requireInProcess().executionEnvironmentReader.getSecretValue(input),
+        },
+        executionContext: {
+          create: (ec) =>
+            requireInProcess().connectExecutionContextClient.create(ec),
+          delete: (input) =>
+            requireInProcess().connectExecutionContextClient.delete(input),
+        },
+        runnerAuth: runnerAuthService,
+        managedEnv: managedEnvService,
+        // The SAME grant-store instance agentexecution's session-time
+        // token injection reads (Go server.go:732-735 shares it too).
+        oauthGrants: store.oauthGrants,
+        pendingOAuthStates: store.pendingOAuthStates,
+        secretService,
+        oauthRedirectUri: config.oauthRedirectUri,
+      },
+    });
     registerSkillServices(router, {
       store,
       logger,

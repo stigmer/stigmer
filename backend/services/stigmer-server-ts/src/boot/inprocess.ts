@@ -55,6 +55,7 @@ import type {
   ExecutionContextCreator,
   SessionLoader,
 } from "../domain/agentexecution/create-execution-context-step.js";
+import type { ConnectExecutionContextClient } from "../domain/mcpserver/connect.js";
 import type { ManagedEnvironmentClient } from "../domain/mcpserver/oauth/managed-env.js";
 import type { AgentInstanceCreator } from "../domain/session/steps.js";
 import type { WorkflowInstanceCreator } from "../domain/workflow/steps.js";
@@ -87,13 +88,21 @@ export interface InProcessClients {
   readonly executionSessionLoader: SessionLoader;
   readonly executionSessionCreator: SessionCreator;
   /**
-   * Reads for the EC builder plus the secret rewrite the OAuth pre-flight
-   * refresh needs (ManagedEnvironmentClient) — one surface, every call
-   * through the full chain.
+   * Reads for the EC builder plus the full managed-environment lifecycle
+   * (ManagedEnvironmentClient): the secret rewrite the OAuth pre-flight
+   * refresh needs (#17) and the create/delete edges the connect/OAuth
+   * slice mints and tears managed environments with (#19) — one surface,
+   * every call through the full chain.
    */
   readonly executionEnvironmentReader: EnvironmentReader &
     ManagedEnvironmentClient;
   readonly executionContextCreator: ExecutionContextCreator;
+  /**
+   * The connect lanes' ephemeral-EC lifecycle (server.go 693–705: the
+   * mcpserver controller's executioncontext client) — create before the
+   * discovery workflow starts, delete when the operation settles.
+   */
+  readonly connectExecutionContextClient: ConnectExecutionContextClient;
   // The workflowexecution edges (server.go 636–642: the controller's
   // workflowinstance/executioncontext clients and the two HITL forwarding
   // interfaces satisfied by the agentexecution controller).
@@ -223,9 +232,15 @@ export function createInProcessClients(
       list: (request) => environmentQuery.list(request),
       getSecretValue: (input) => environmentQuery.getSecretValue(input),
       updateVariables: (request) => environmentCommand.updateVariables(request),
+      create: (environment) => environmentCommand.create(environment),
+      delete: (input) => environmentCommand.delete(input),
     },
     executionContextCreator: {
       create: (ec) => executionContextCommand.create(ec),
+    },
+    connectExecutionContextClient: {
+      create: (ec) => executionContextCommand.create(ec),
+      delete: (input) => executionContextCommand.delete(input),
     },
     // The workflowexecution edges. CreateAsSystem semantics per the
     // workflow edge above: create under the process-global operator

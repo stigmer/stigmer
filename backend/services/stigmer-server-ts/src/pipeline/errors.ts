@@ -81,6 +81,16 @@ const GRPC_CODE_NAMES: Readonly<Record<Code, string>> = {
 };
 
 /**
+ * grpc-go's codes.Code.String() name for a connect Code — for surfaces
+ * that persist the code NAME rather than raise it (McpServer
+ * connect_status.failure_code copies the blocking RPC's classification in
+ * CamelCase form per status.proto's field doc).
+ */
+export function grpcCodeName(code: Code): string {
+  return GRPC_CODE_NAMES[code];
+}
+
+/**
  * Reproduces the wire message grpc-go's status.FromError manufactures for
  * %w-wrapped status errors: when Go wraps a downstream in-process client
  * error with fmt.Errorf("%s: %w", ...), PipelineError.GRPCStatus's
