@@ -288,7 +288,12 @@ function ThreadEmptyState({ isRunning }: { readonly isRunning: boolean }) {
  *   card chevron — `BoundedContent` owns its own in-place reveal, so the
  *   old "expand, then Show more" double control never comes back).
  * - `"summary"` kinds expand from the header — the session card's own
- *   gesture, the chevron appended by the shell (T06).
+ *   gesture, the chevron appended by the shell (T06) — but ONLY when the
+ *   detail body would carry content (stigmer#886): since R6-6 moved
+ *   Status/Duration onto the header, a settled wait card often has
+ *   nothing left to reveal, and a chevron that opens an empty body is
+ *   worse than no chevron. The gate is the summary twin of
+ *   `showPreviewBody` below.
  * - AGENT_CALL cards with a spawned child render the child's inline
  *   transcript as the body (T07) — keyed on the VARIANT, not the
  *   disclosure, so a platform builder's presenter override can never route
@@ -362,6 +367,17 @@ const ThreadTaskCard = memo(function ThreadTaskCard({
     !showTranscript &&
     isPreview &&
     (outputIO !== null || !!item.error || showApprovalSummary);
+  // The summary twin of that gate (stigmer#886): the expand gesture exists
+  // only when `ThreadTaskDetail` would render something. Short-circuits
+  // before the row build for preview/transcript cards, which never render
+  // the detail body.
+  const summaryHasDetail =
+    !isPreview &&
+    !showTranscript &&
+    (taskDetailRows(item).length > 0 ||
+      !!item.error ||
+      inputIO !== null ||
+      outputIO !== null);
 
   const meta = formatMetaChips({
     durationMs: item.durationMs,
@@ -378,19 +394,19 @@ const ThreadTaskCard = memo(function ThreadTaskCard({
       accent={item.status === "waiting_approval" ? "warning" : null}
       cursorTarget="workflow-task-row"
     >
-      {/* The session card's gestures exactly (T06): summary rows expand
-          from the header (chevron appended by the shell); preview and
-          transcript rows' bodies are always visible, so the header is a
-          plain layout row. */}
+      {/* The session card's gestures exactly (T06): summary rows with a
+          content-bearing detail expand from the header (chevron appended
+          by the shell); preview, transcript, and body-less summary rows
+          are plain layout rows. */}
       <ThreadCardHeader
         gesture={
-          isPreview || showTranscript
-            ? { kind: "none" }
-            : {
+          summaryHasDetail
+            ? {
                 kind: "expand",
                 expanded,
                 onToggle: () => setExpanded((v) => !v),
               }
+            : { kind: "none" }
         }
       >
         <StatusGlyph status={item.status} />
@@ -486,7 +502,7 @@ const ThreadTaskCard = memo(function ThreadTaskCard({
         </ThreadCardBody>
       )}
 
-      {!isPreview && !showTranscript && expanded && (
+      {summaryHasDetail && expanded && (
         <ThreadCardBody>
           <ThreadTaskDetail item={item} inputIO={inputIO} outputIO={outputIO} />
         </ThreadCardBody>
@@ -630,19 +646,15 @@ function ThreadTaskPreviewBody({
   );
 }
 
-function ThreadTaskDetail({
-  item,
-  inputIO,
-  outputIO,
-}: {
-  readonly item: WorkflowThreadItem;
-  readonly inputIO: TaskDetailIO | null;
-  readonly outputIO: TaskDetailIO | null;
-}) {
-  // No Status/Duration rows (R6-6): the card header is the single source
-  // for both — the status glyph and the duration meta chip. The detail
-  // body carries only what the header cannot: attempt count, usage, the
-  // agent slug.
+/**
+ * The detail body's label/value rows. No Status/Duration rows (R6-6): the
+ * card header is the single source for both — the status glyph and the
+ * duration meta chip. The detail carries only what the header cannot:
+ * attempt count, usage, the agent slug. Shared with the card's
+ * `summaryHasDetail` gate so "would the body render anything?" can never
+ * drift from what the body actually renders (stigmer#886).
+ */
+function taskDetailRows(item: WorkflowThreadItem): Array<[string, string]> {
   const rows: Array<[string, string]> = [];
   if (item.attemptNumber > 1) rows.push(["Attempt", String(item.attemptNumber)]);
   const costChip = formatMetaChips({
@@ -653,6 +665,19 @@ function ThreadTaskDetail({
   if (item.variant === "agent-call" && item.agentSlug) {
     rows.push(["Agent", item.agentSlug]);
   }
+  return rows;
+}
+
+function ThreadTaskDetail({
+  item,
+  inputIO,
+  outputIO,
+}: {
+  readonly item: WorkflowThreadItem;
+  readonly inputIO: TaskDetailIO | null;
+  readonly outputIO: TaskDetailIO | null;
+}) {
+  const rows = taskDetailRows(item);
 
   return (
     <div className="stg:flex stg:flex-col stg:gap-2">

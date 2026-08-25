@@ -130,12 +130,12 @@ func TestWorkflow_ContextChain_StructuredOutputInSwitch(t *testing.T) {
 	deployer := harness.NewFixtureDeployer(clients, "ctx-struct-switch", suiteLogger)
 	defer deployer.Cleanup(ctx)
 
+	// SetTaskConfig values are strings (map<string,string>) — a structured
+	// variable is authored as a jq object-construction expression, which the
+	// runner's set executor evaluates to a real object in state (stigmer#886).
 	initConfig, err := structpb.NewStruct(map[string]any{
 		"variables": map[string]any{
-			"nested": map[string]any{
-				"field": "value",
-				"count": float64(5),
-			},
+			"nested": `${ {field: "value", count: 5} }`,
 		},
 	})
 	require.NoError(t, err)

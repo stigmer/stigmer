@@ -14,6 +14,7 @@ import (
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	identityaccountv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/identityaccount/v1"
+	iampolicyv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/iampolicy/v1"
 	organizationv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/tenancy/organization/v1"
 	"github.com/stigmer/stigmer/test/integration/harness"
 	"github.com/stretchr/testify/assert"
@@ -86,6 +87,15 @@ func TestOffline_MemoryRetrieval(t *testing.T) {
 		}
 	})
 
+	// Fund the fresh org — execution create is gated on the org's balance,
+	// so an unfunded org fails closed before recall ever runs (stigmer#886).
+	// The org id doubles as the idempotency-key discriminator: per-run
+	// unique, so a rerun re-provisions a fresh org and its credit seed is
+	// never deduplicated against the previous attempt.
+	require.NoError(t,
+		harness.ProvisionTestBillingAccount(ctx, grpcConn, orgID, "memory-retrieval-seed-"+orgID),
+		"fund the retrieval org's billing account")
+
 	// The user half: a real account opting in via self-service update, with
 	// a plain human JWT — the one credential shape recall admits.
 	account := harness.CreateIdentityAccount(t, ctx, machineClients,
@@ -115,6 +125,22 @@ func TestOffline_MemoryRetrieval(t *testing.T) {
 		agent.GetStatus().GetDefaultInstanceId(), sessionv1.Harness_HARNESS_NATIVE,
 		[]harness.SessionResourceOption{harness.WithSessionOrg(orgID)})
 	sessionID := session.GetMetadata().GetId()
+
+	// The offline harness hands the runner the MACHINE account's JWT, and
+	// agent_execution can_view/can_edit resolve strictly through the
+	// SESSION's owner — so on this human-owned session the runner's
+	// callbacks fail closed at FGA (stigmer#886). Bridge: the human session
+	// owner grants the machine account session owner through the real
+	// IamPolicy pipeline (session.owner is directly assignable;
+	// can_grant_access is owner-held). Production instead runs the
+	// embedded-runner credential lane, which this harness does not
+	// provision — the long-term follow-up recorded on stigmer#886.
+	_, err = humanClients.IamPolicyCommand.Create(ctx, &iampolicyv1.IamPolicySpec{
+		Principal: &iampolicyv1.ApiResourceRef{Kind: "identity_account", Id: harness.OwnerAccountID},
+		Resource:  &iampolicyv1.ApiResourceRef{Kind: "session", Id: sessionID},
+		Relation:  "owner",
+	})
+	require.NoError(t, err, "grant the runner's machine identity owner on the session")
 
 	_, err = mgr.AddSession(ctx, sessionID)
 	require.NoError(t, err, "AddSession should succeed")
