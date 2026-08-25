@@ -541,6 +541,29 @@ describe("completeOAuthConnect → grant → disconnect (the full lifecycle)", (
       OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_NO_GRANT,
     );
   });
+
+  it("refuses a REPLAYED state after a successful complete (single-use atomicity at the wire)", async () => {
+    mockAs.reset();
+    const id = await applyServer();
+    const initiated = await command.initiateOAuthConnect({
+      mcpServerId: id,
+      org: ORG,
+    });
+    await command.completeOAuthConnect({
+      mcpServerId: id,
+      state: initiated.state,
+      authorizationCode: "auth-code-replay-1",
+    });
+    await expectCode(
+      command.completeOAuthConnect({
+        mcpServerId: id,
+        state: initiated.state,
+        authorizationCode: "auth-code-replay-2",
+      }),
+      Code.FailedPrecondition,
+      "no pending OAuth state found for the given state parameter (expired or already used)",
+    );
+  });
 });
 
 describe("getOAuthGrantStatus", () => {
@@ -582,6 +605,31 @@ describe("getOAuthGrantStatus", () => {
     });
     expect(status.connectionHealth).toBe(
       OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED_REFRESHABLE,
+    );
+  });
+
+  it("answers TOKEN_EXPIRED only for a grant WITHOUT a refresh var — unreachable through the real flow (oss#863)", async () => {
+    await server.store.oauthGrants.upsert({
+      identityAccountId: "",
+      resourceId: "mcps_expired_norefresh",
+      resourceKind: "mcp_server",
+      orgId: ORG,
+      accessTokenExpiresAt: Math.floor(Date.now() / 1000) - 3600,
+      clientId: "c",
+      authMethod: "mcp_oauth",
+      tokenEndpoint: `${asBaseUrl}/token`,
+      accessTokenEnvVar: "T",
+      refreshTokenEnvVar: "",
+      environmentId: "env_x",
+      createdAt: 0,
+      updatedAt: 0,
+    });
+    const status = await query.getOAuthGrantStatus({
+      resourceId: "mcps_expired_norefresh",
+      org: ORG,
+    });
+    expect(status.connectionHealth).toBe(
+      OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED,
     );
   });
 });

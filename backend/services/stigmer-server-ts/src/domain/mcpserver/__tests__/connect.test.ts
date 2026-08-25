@@ -38,6 +38,7 @@ import {
   startBestEffortConnect,
 } from "../connect.js";
 import type { McpServerConnectDeps } from "../connect.js";
+import { ManagedEnvironmentService } from "../oauth/managed-env.js";
 import { RUNNER_QUEUE_WARNING, startConnect } from "../start-connect.js";
 import type {
   ConnectRunOutcome,
@@ -155,19 +156,27 @@ function makeHarness(options: FakeEngineOptions = {}): Harness {
         },
       },
       runnerAuth: RunnerAuthService.fromEnv(),
-      // A fake managed-env client backed by nothing: the refresh
+      // The REAL service over a client backed by nothing: the refresh
       // pre-flight arms that need it are exercised in the handshake
       // composed test; here every read throws, which the pre-flight
       // treats as its silent-skip arm (oss#863).
-      managedEnv: {
-        readSecretValue: async () => {
-          throw new Error("no managed env in this harness");
+      managedEnv: new ManagedEnvironmentService(
+        {
+          getSecretValue: async () => {
+            throw new Error("no managed env in this harness");
+          },
+          updateVariables: async () => {
+            throw new Error("no managed env in this harness");
+          },
+          create: async () => {
+            throw new Error("no managed env in this harness");
+          },
+          delete: async () => {
+            throw new Error("no managed env in this harness");
+          },
         },
-        updateSecrets: async () => {},
-        createManagedEnvironment: async () => "env_1",
-        deleteManagedEnvironment: async () => {},
-        // Structural stand-in for the class instance.
-      } as unknown as McpServerConnectDeps["managedEnv"],
+        silentLogger,
+      ),
       oauthGrants: store.oauthGrants,
       pendingOAuthStates: store.pendingOAuthStates,
       secretService: SecretService.create(undefined),
