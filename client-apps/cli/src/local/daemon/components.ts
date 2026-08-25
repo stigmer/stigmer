@@ -91,9 +91,15 @@ export function buildComponents(config: DaemonConfig, base: NodeJS.ProcessEnv = 
       name: "stigmer-server",
       pidFile: join(config.dataDir, SERVER_PID_FILE),
       critical: true,
+      // Two launch shapes, one child contract: the TS server is `node <entry>`
+      // (the runner's shape, the served implementation since the DD-006
+      // cutover); the Go binary is the rollback path. Name, pid file, log
+      // file, env, and readiness gate are identical either way — that
+      // sameness IS the cutover's zero-visible-change guarantee.
       resolve: () => ({
-        command: config.serverBin,
-        args: [],
+        ...(config.server.kind === "binary"
+          ? { command: config.server.bin, args: [] }
+          : { command: config.server.nodeBin, args: [config.server.entryPath] }),
         env: buildServerEnv(config, base),
         logFile: join(config.logDir, "stigmer-server.log"),
       }),

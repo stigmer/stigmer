@@ -17,8 +17,7 @@
 // launch contract (`node main.js`) is identical to the repo-tree runner, so the
 // daemon spawns either the same way.
 
-import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -28,6 +27,7 @@ import { log } from "../../logger.js";
 import { VERSION } from "../../version.js";
 import { runtimesDir } from "../paths.js";
 import { resolveNode } from "./node.js";
+import { ensureRuntimesRoot, isAcquirableRelease, npmInstallIntoRuntimes, type NpmInstall } from "./runtimes-install.js";
 
 const SLIM_PACKAGE = "@stigmer/runner-slim";
 
@@ -48,7 +48,7 @@ export interface EnsureRunnerOptions {
   /** Node resolver (injectable for tests). */
   node?: () => string;
   /** npm install implementation (injectable for tests). */
-  install?: (installDir: string, spec: string) => void;
+  install?: NpmInstall;
 }
 
 /**
@@ -111,14 +111,8 @@ export function acquireRunner(opts: EnsureRunnerOptions = {}): RunnerResolution 
 
   if (!existsSync(entryPath)) {
     log.info(`acquiring ${SLIM_PACKAGE}`, { version, dir: installDir });
-    mkdirSync(installDir, { recursive: true });
-    // A stable package.json root makes the install deterministic and records the
-    // pinned dependency rather than letting npm synthesize an ad-hoc root.
-    writeFileSync(
-      join(installDir, "package.json"),
-      `${JSON.stringify({ name: "stigmer-runtime", private: true, version: "0.0.0" }, null, 2)}\n`,
-    );
-    const install = opts.install ?? installRunnerSlim;
+    ensureRuntimesRoot(installDir);
+    const install = opts.install ?? npmInstallIntoRuntimes;
     install(installDir, `${SLIM_PACKAGE}@${version}`);
   }
 
@@ -132,24 +126,6 @@ export function acquireRunner(opts: EnsureRunnerOptions = {}): RunnerResolution 
   return { nodeBin: node(), entryPath, appDir: dirname(entryPath) };
 }
 
-// Install the slim package (plus its platform-native optional dependency) into an
-// isolated prefix. `--omit=dev` drops devDependencies while keeping the optional
-// native package npm selects by os/cpu; output is inherited so the user sees the
-// one-time download progress.
-function installRunnerSlim(installDir: string, spec: string): void {
-  try {
-    execFileSync("npm", ["install", spec, "--prefix", installDir, "--omit=dev", "--no-audit", "--no-fund"], {
-      stdio: "inherit",
-    });
-  } catch (err) {
-    throw new CliExitError(`failed to install ${spec}`, ExitCode.General, [
-      `Command: npm install ${spec} --prefix ${installDir}`,
-      "Ensure npm is on PATH and the network is reachable.",
-      String(err),
-    ]);
-  }
-}
-
 function resolveBuiltRunner(appDir: string, node: () => string): RunnerResolution {
   const entryPath = join(appDir, "dist", "main.js");
   if (!existsSync(entryPath)) {
@@ -160,13 +136,6 @@ function resolveBuiltRunner(appDir: string, node: () => string): RunnerResolutio
     ]);
   }
   return { nodeBin: node(), entryPath, appDir };
-}
-
-// A source build reports "0.0.0-dev" and the dev npm channel stamps "<v>-dev.<stamp>"
-// versions; neither publishes a matching @stigmer/runner-slim, so they are not
-// acquirable. Release and rc/next versions are.
-function isAcquirableRelease(version: string): boolean {
-  return !version.includes("-dev");
 }
 
 function hasPackageJson(dir: string): boolean {

@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CliExitError } from "../../errors/cli-exit-error.js";
-import { resolveNode } from "./node.js";
+import { resolveNode, resolveServerNode } from "./node.js";
 import { acquireRunner, resolveRunner } from "./runner.js";
 import { resolveServerBinary } from "./server.js";
 import { which } from "./which.js";
@@ -52,12 +52,19 @@ describe("which", () => {
 
 // A fake "node" whose --version and capability-probe behavior the test
 // controls, making these tests deterministic regardless of which Node runs
-// the suite itself.
-function fakeNodeBinary(opts: { version: string; hasSqlite: boolean }): string {
+// the suite itself. The fake INSPECTS the probe script it receives ("fts5"
+// in the source distinguishes the server's FTS5 probe from the runner's
+// module-presence probe), so a mutation that wires resolveServerNode to the
+// weaker probe — or neuters the FTS5 probe's failure exit — fails here.
+function fakeNodeBinary(opts: { version: string; hasSqlite: boolean; hasFts5?: boolean }): string {
   const bin = join(tempDir("stigmer-node-"), "node");
+  const fts5Exit = (opts.hasFts5 ?? opts.hasSqlite) ? 0 : 1;
   writeFileSync(
     bin,
-    `#!/bin/sh\nif [ "$1" = "--version" ]; then echo "${opts.version}"; exit 0; fi\nexit ${opts.hasSqlite ? 0 : 1}\n`,
+    `#!/bin/sh\n` +
+      `if [ "$1" = "--version" ]; then echo "${opts.version}"; exit 0; fi\n` +
+      `case "$2" in *fts5*) exit ${fts5Exit};; esac\n` +
+      `exit ${opts.hasSqlite ? 0 : 1}\n`,
   );
   chmodSync(bin, 0o755);
   return bin;
@@ -95,6 +102,55 @@ describe("resolveNode", () => {
     expect(() => resolveNode()).toThrow(/node:sqlite/);
     expect(() => resolveNode()).toThrow(/v23\.1\.0/);
   });
+});
+
+describe("resolveServerNode", () => {
+  it("honors an override that passes the FTS5 capability probe", () => {
+    const bin = fakeNodeBinary({ version: "v22.13.0", hasSqlite: true });
+    process.env.STIGMER_NODE_BIN = bin;
+    expect(resolveServerNode()).toBe(bin);
+  });
+
+  it("rejects a Node whose sqlite lacks FTS5, naming the capability (the 23.4 trap)", () => {
+    // The shape of a REAL 23.4 binary: node:sqlite present (the module probe
+    // would pass), FTS5 absent (the fts5 probe fails) — pinning that the
+    // server resolution dispatches the STRONGER probe (D4 #14).
+    process.env.STIGMER_NODE_BIN = fakeNodeBinary({ version: "v23.4.0", hasSqlite: true, hasFts5: false });
+
+    expect(() => resolveServerNode()).toThrow(/FTS5/);
+    expect(() => resolveServerNode()).toThrow(/v23\.4\.0/);
+  });
+
+  it("the runner resolution still accepts the 23.4 shape (module present, FTS5 absent)", () => {
+    // The two probes deliberately differ: the runner needs only node:sqlite.
+    const bin = fakeNodeBinary({ version: "v23.4.0", hasSqlite: true, hasFts5: false });
+    process.env.STIGMER_NODE_BIN = bin;
+    expect(resolveNode()).toBe(bin);
+  });
+
+  it("runs the real FTS5 probe against the current runtime", () => {
+    // The one place the REAL probe script executes end-to-end (the fake-node
+    // tests above only exercise the dispatch and error copy). Conditional on
+    // the runtime's own capability — the resolveNode own-runtime pattern —
+    // so a no-FTS5 Node (e.g. 23.4) asserts the throw instead of the pass.
+    delete process.env.STIGMER_NODE_BIN;
+    if (currentRuntimeHasFts5()) {
+      expect(resolveServerNode()).toBe(process.execPath);
+    } else {
+      expect(() => resolveServerNode()).toThrow(/FTS5/);
+    }
+  });
+
+  function currentRuntimeHasFts5(): boolean {
+    const sqlite = process.getBuiltinModule?.("node:sqlite");
+    if (sqlite === undefined) return false;
+    try {
+      new sqlite.DatabaseSync(":memory:").exec("CREATE VIRTUAL TABLE t USING fts5(x)");
+      return true;
+    } catch {
+      return false;
+    }
+  }
 });
 
 describe("resolveServerBinary", () => {
