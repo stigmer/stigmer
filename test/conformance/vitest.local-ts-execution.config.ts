@@ -27,7 +27,10 @@
 //   BEFORE this roster file existed, so its PR could not roster the three
 //   MCP-dependent suites; they enter in #21's pre-flight, proven green
 //   against the TS engine (the "HITL matrix green" acceptance transfers
-//   to #21's PR).
+//   to #21's PR). The workflowexecution slice: the four workflowexecution
+//   suites + the envmerge workflow half (split at #18 for exactly this
+//   moment). Still out: workflowexecution-child-approval (the #23 flag
+//   flip) and schedule-firing (#22).
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
@@ -43,6 +46,11 @@ export default defineConfig({
       "src/suites-execution/open-computer-use.conformance.test.ts",
       "src/suites-execution/session-immutability.conformance.test.ts",
       "src/suites-execution/envmerge-agent.conformance.test.ts",
+      "src/suites-execution/envmerge-workflow.conformance.test.ts",
+      "src/suites-execution/workflowexecution.conformance.test.ts",
+      "src/suites-execution/workflowexecution-approval.conformance.test.ts",
+      "src/suites-execution/workflowexecution-signal.conformance.test.ts",
+      "src/suites-execution/workflowexecution-recover.conformance.test.ts",
     ],
     globalSetup: ["./src/harness/global-setup-ts-execution.ts"],
     env: {
