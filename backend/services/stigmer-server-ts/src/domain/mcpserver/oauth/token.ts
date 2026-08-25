@@ -1,9 +1,10 @@
 /**
- * OAuth token-endpoint client — ports the refresh slice of
- * pkg/domain/mcpserver/oauth/token.go (D4 #17 consumes the pre-flight
- * refresh; ExchangeCode and the DCR/discovery/PKCE machinery arrive with
- * the connect/OAuth sub-project, #19).
+ * OAuth token-endpoint client — ports pkg/domain/mcpserver/oauth/token.go
+ * whole: the pre-flight refresh (#17) and the authorization-code exchange
+ * (#19). Proven by mcpserver-oauth.conformance.test.ts and the Class B
+ * mcpserver-connect suite.
  */
+import { truncateBody } from "./truncate-body.js";
 
 /** Token-endpoint response (Go TokenResponse). */
 export interface TokenResponse {
@@ -24,6 +25,39 @@ export const TOKEN_AUTH_METHOD_POST = "client_secret_post";
 
 /** Go's tokenHTTPClient 15s timeout — a named constant per guidelines. */
 export const TOKEN_REQUEST_TIMEOUT_MS = 15_000;
+
+/**
+ * Exchanges an authorization code for tokens using the
+ * authorization_code grant with PKCE (Go ExchangeCode). For public
+ * clients (DCR), clientSecret is empty; for confidential clients (vendor
+ * OAuth) tokenAuthMethod selects how the secret is presented.
+ */
+export async function exchangeCode(
+  tokenEndpoint: string,
+  code: string,
+  redirectUri: string,
+  codeVerifier: string,
+  clientId: string,
+  clientSecret: string,
+  tokenAuthMethod: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<TokenResponse> {
+  const params = new URLSearchParams({
+    grant_type: "authorization_code",
+    code,
+    redirect_uri: redirectUri,
+    code_verifier: codeVerifier,
+    client_id: clientId,
+  });
+  return doTokenRequest(
+    tokenEndpoint,
+    params,
+    clientId,
+    clientSecret,
+    tokenAuthMethod,
+    fetchImpl,
+  );
+}
 
 /**
  * Exchanges a refresh token for a new access token (refresh_token
@@ -150,10 +184,4 @@ async function doTokenRequest(
     );
   }
   return tokenResponse;
-}
-
-/** Bounded error detail — Go truncateBody's 256-byte cap, verbatim. */
-function truncateBody(body: string): string {
-  const MAX = 256;
-  return body.length <= MAX ? body : `${body.slice(0, MAX)}...`;
 }

@@ -88,6 +88,14 @@ export interface ServerConfig {
   readonly gitHubOAuthClientId: string;
   readonly gitHubOAuthClientSecret: string;
   /**
+   * The OAuth callback URL for the McpServer OAuth Connect flows
+   * (STIGMER_OAUTH_REDIRECT_URI; Go config.go OAuthRedirectURI). Unset is
+   * a WARN at wiring time, not a boot failure — every RPC except
+   * initiateOAuthConnect works without it, and initiate refuses with a
+   * FailedPrecondition naming the variable (the pinned copy).
+   */
+  readonly oauthRedirectUri: string;
+  /**
    * Skill artifact storage root (STORAGE_PATH; Go defaultStoragePath
    * ~/.stigmer/storage). Artifacts live at {storagePath}/skills/,
    * upload staging at {storagePath}/skills-staging/ — byte-identical to
@@ -196,6 +204,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
       "STIGMER_GITHUB_CLIENT_SECRET",
       DEFAULT_GITHUB_OAUTH_CLIENT_SECRET,
     ),
+    oauthRedirectUri: envString(env, "STIGMER_OAUTH_REDIRECT_URI", ""),
   };
 }
 

@@ -17,12 +17,17 @@
 //   half needs the #20/#21 engine; the file was split for exactly this
 //   roster — sub-project 20260824.03 brief #3), and open-computer-use
 //   (the STIGMER_DESKTOP_TESTS opt-in gate — CI-inert exactly as on the
-//   Go target). DEFERRED to #9 mcpserver-crud (sub-project 20260824.03
-//   DD-002, owner-ratified): agentexecution-approval (the HITL matrix),
-//   mcp.harness.smoke, and mcp-caller-identity register McpServer
-//   resources as their tool surface — a domain this server serves only
-//   once #9 ports it. #9's PR rosters them and carries the "HITL matrix
-//   green" acceptance.
+//   Go target). #18 deferred agentexecution-approval (the HITL matrix),
+//   mcp.harness.smoke, and mcp-caller-identity "to #9's PR" — but #9 had
+//   already merged when #18's roster landed, so the handoff fell between
+//   the parallel sessions; #19 absorbed them (below).
+//   #19 (2026-08-25, sp.mcpserver-connect-oauth): mcpserver-connect —
+//   the CW-1 Class B slice (connect/startConnect discovery through the
+//   runner's workflow, handshake completion, refresh-on-connect) — plus
+//   the three suites orphaned above (owner-ratified DB-2): they need
+//   only #9's McpServer CRUD + #18's engine ("create only — no
+//   connect/discovery step"), and this entry carries the "HITL matrix
+//   green" acceptance #18 reassigned.
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
@@ -35,6 +40,10 @@ export default defineConfig({
       "src/suites-execution/open-computer-use.conformance.test.ts",
       "src/suites-execution/session-immutability.conformance.test.ts",
       "src/suites-execution/envmerge-agent.conformance.test.ts",
+      "src/suites-execution/agentexecution-approval.conformance.test.ts",
+      "src/suites-execution/mcp.harness.smoke.test.ts",
+      "src/suites-execution/mcp-caller-identity.conformance.test.ts",
+      "src/suites-execution/mcpserver-connect.conformance.test.ts",
     ],
     globalSetup: ["./src/harness/global-setup-ts-execution.ts"],
     env: {

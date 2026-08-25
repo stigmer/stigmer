@@ -56,6 +56,12 @@
 //     Layer-1 arms, and the artifact file-server disposition lane). The
 //     oauthapp suite's delete-block test drives McpServer create/delete,
 //     so it rosters here only after #9 (McpServer CRUD) merged.
+//   - mcpserver-oauth — sub-project #19 (sp.mcpserver-connect-oauth; the
+//     CW-1 Class A slice: initiate guards + the DCR arm against the mock
+//     authorization server + the vendor arm's byte-pinned refusals +
+//     grant-free reads + the three org-OAuth UNIMPLEMENTED pins. The
+//     handshake-completion lanes run Class B on local-ts-execution —
+//     CW-1's execution-time DB-1 amendment).
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
@@ -83,6 +89,7 @@ export default defineConfig({
       "src/suites/platform.conformance.test.ts",
       "src/suites/github.conformance.test.ts",
       "src/suites/artifact.conformance.test.ts",
+      "src/suites/mcpserver-oauth.conformance.test.ts",
     ],
     globalSetup: ["./src/harness/global-setup-ts.ts"],
     env: {
