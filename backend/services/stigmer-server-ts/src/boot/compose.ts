@@ -71,8 +71,10 @@ import { ModelRegistryStore } from "../domain/workflow/registry/model-registry-s
 import { InProcessValidator } from "../domain/workflow/validation/validator.js";
 import { registerWorkflowInstanceServices } from "../domain/workflowinstance/controller.js";
 import { registerWorkflowExecutionServices } from "../domain/workflowexecution/controller.js";
-import { ENGINE_DISCONNECTED as WORKFLOW_EXECUTION_ENGINE_DISCONNECTED } from "../domain/workflowexecution/engine.js";
 import { StreamBroker as WorkflowExecutionStreamBroker } from "../domain/workflowexecution/stream-broker.js";
+import { newWorkflowExecutionConfigFromEnv } from "../domain/workflowexecution/temporal/config.js";
+import { newWorkflowExecutionEngineStateProvider } from "../temporal/workflowexecution/engine-client.js";
+import { newWorkflowExecutionWorkerFactory } from "../temporal/workflowexecution/worker.js";
 import { HealthState, registerHealthService } from "../transport/health.js";
 import { createRegistryLanes } from "../transport/registry/lanes.js";
 import { createUnifiedPortServer } from "../transport/server.js";
@@ -106,9 +108,10 @@ export interface ComposedServer {
    */
   agentExecutionStreamBroker: StreamBroker;
   /**
-   * The workflowexecution broadcast fabric (exposed for tests and, with
-   * #21, its Temporal worker's broadcasts — Go's GetStreamBroker).
-   * UpdateStatus and the lifecycle RPCs are the production writers.
+   * The workflowexecution broadcast fabric (exposed for tests and for the
+   * Temporal worker's persist broadcasts, #21 — Go's GetStreamBroker).
+   * UpdateStatus, the lifecycle RPCs, and the worker's activities are the
+   * production writers.
    */
   workflowExecutionStreamBroker: WorkflowExecutionStreamBroker;
   /** Completes wiring, flips SERVING, binds the port; returns the bound port. */
@@ -177,6 +180,9 @@ export function composeServer(options: ComposeOptions): ComposedServer {
   // dispatch uses — one definition, so policy and dispatch can never
   // disagree (oss#397).
   const temporalConfig = newConfigFromEnv();
+  // The workflow-execution twin (#21) — its config has no policy
+  // consumer, so it lives here with the temporal stage.
+  const workflowExecutionTemporalConfig = newWorkflowExecutionConfigFromEnv();
   const healthState = new HealthState();
   // The model-registry store is DOMAIN-owned (workflow-family DD-A,
   // restoring Go's ownership): workflow validation and the transport's
@@ -207,9 +213,9 @@ export function composeServer(options: ComposeOptions): ComposedServer {
   const workflowExecutionStreamBroker = new WorkflowExecutionStreamBroker(
     logger,
   );
-  // The manager owns the connection lifecycle; the agent-execution worker
-  // is the first factory (workflow-execution and the schedule clock
-  // append theirs in #21/#22 — Go createWorkers' list).
+  // The manager owns the connection lifecycle; one factory per domain
+  // worker (Go createWorkers' list) — agent-execution (#18),
+  // workflow-execution (#21); the schedule clock appends its own in #22.
   const temporalManager = new TemporalManager({
     hostPort: config.temporalHostPort,
     namespace: config.temporalNamespace,
@@ -222,6 +228,12 @@ export function composeServer(options: ComposeOptions): ComposedServer {
         broker: agentExecutionStreamBroker,
         temporalConfig,
       }),
+      newWorkflowExecutionWorkerFactory({
+        store,
+        logger,
+        broker: workflowExecutionStreamBroker,
+        temporalConfig: workflowExecutionTemporalConfig,
+      }),
     ],
   });
   // The provider IS the injection mechanism (no Go-style creator
@@ -233,6 +245,15 @@ export function composeServer(options: ComposeOptions): ComposedServer {
     store,
     logger,
   });
+  // The workflow-execution twin: the same provider-is-the-injection
+  // mechanism, filling the seam #20 left disconnected.
+  const workflowExecutionEngineState = newWorkflowExecutionEngineStateProvider(
+    {
+      manager: temporalManager,
+      config: workflowExecutionTemporalConfig,
+      logger,
+    },
+  );
   // The artifact blob store (Go server.go 349: shared by agentexecution
   // attachments, the artifact domain (#13), and skill push (#8)). The r2
   // arm landed with #13; the health probe runs in start(), matching Go's
@@ -398,10 +419,7 @@ export function composeServer(options: ComposeOptions): ComposedServer {
     registerWorkflowExecutionServices(router, {
       store,
       logger,
-      // Permanently disconnected until #21 lands the workflow-execution
-      // orchestrator on #18's worker infra; same provider shape as the
-      // agentexecution seam above.
-      engineState: () => WORKFLOW_EXECUTION_ENGINE_DISCONNECTED,
+      engineState: workflowExecutionEngineState,
       broker: workflowExecutionStreamBroker,
       workflowInstanceCreator: () =>
         requireInProcess().workflowExecutionInstanceCreator,
