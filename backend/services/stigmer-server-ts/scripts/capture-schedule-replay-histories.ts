@@ -57,13 +57,16 @@ async function main(): Promise<void> {
   const runPromise = worker.run();
 
   async function capture(name: string): Promise<void> {
+    // The artifact's workflow-id shape with an RFC-3339 fire suffix — the
+    // tick's tier-2 nominal derivation, exactly what a real fire replays:
+    // workflowId = artifactId(scheduleId) + "-" + fireTime, so the
+    // scenario name rides the SCHEDULE id and the suffix stays a pure
+    // timestamp the tier-2 parser accepts.
+    const scheduleId = `sch-replay-${name}`;
     const handle = await env.client.workflow.start("schedule/tick", {
       taskQueue: TASK_QUEUE,
-      // The artifact's workflow-id shape with an RFC-3339 fire suffix —
-      // the tick's tier-2 nominal derivation, exactly what a real fire
-      // replays.
-      workflowId: `schedule/tick/sch-replay-2026-08-25T09:30:00Z-${name}`,
-      args: ["sch-replay"],
+      workflowId: `schedule/tick/${scheduleId}-2026-08-25T09:30:00Z`,
+      args: [scheduleId],
     });
     await handle.result();
     const history = await handle.fetchHistory();

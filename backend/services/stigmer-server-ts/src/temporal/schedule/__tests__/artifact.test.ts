@@ -6,6 +6,7 @@
  */
 import { create } from "@bufbuild/protobuf";
 import { ScheduleOverlapPolicy } from "@temporalio/client";
+import type { ScheduleDescription } from "@temporalio/client";
 import { describe, expect, it } from "vitest";
 
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
@@ -111,10 +112,12 @@ describe("applyDesiredState — the update half of ensure", () => {
   const artifact = new ScheduleArtifact(config);
 
   it("rewrites spec, action, policy, and state to the complete desired state", () => {
+    // A partial double narrowed through unknown — the target type stays
+    // named, so a ScheduleDescription shape change flags this test.
     const previous = {
       state: { paused: true, note: "cron=old tz=old", remainingActions: 0 },
       info: {},
-    } as never;
+    } as unknown as ScheduleDescription;
     const update = artifact.applyDesiredState(
       previous,
       schedule({ cron: "30 8 * * *", timeZone: "UTC" }),
@@ -134,7 +137,7 @@ describe("applyDesiredState — the update half of ensure", () => {
     const previous = {
       state: { paused: false, note: "x", remainingActions: 7 },
       info: {},
-    } as never;
+    } as unknown as ScheduleDescription;
     const update = artifact.applyDesiredState(previous, schedule());
     expect((update.state as { remainingActions?: number }).remainingActions).toBe(7);
   });

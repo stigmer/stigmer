@@ -4,7 +4,7 @@
  * threshold and retention floors, and Go's strict strconv parsing
  * (malformed values keep the default, never NaN).
  */
-import { afterEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { ScheduleTemporalConfig, newScheduleConfigFromEnv } from "../config.js";
 
@@ -21,9 +21,30 @@ const ENV_KEYS = [
   "STIGMER_SCHEDULES_RUN_HISTORY_RETENTION_DAYS",
 ];
 
-afterEach(() => {
+// Snapshot-and-restore rather than delete-and-hope: the invoking shell may
+// legitimately carry STIGMER_SCHEDULES_* values, and a test must neither
+// fail on them nor destroy them for the rest of the worker process.
+const saved = new Map<string, string | undefined>();
+
+beforeAll(() => {
+  for (const key of ENV_KEYS) {
+    saved.set(key, process.env[key]);
+  }
+});
+
+beforeEach(() => {
   for (const key of ENV_KEYS) {
     delete process.env[key];
+  }
+});
+
+afterAll(() => {
+  for (const [key, value] of saved) {
+    if (value === undefined) {
+      delete process.env[key];
+    } else {
+      process.env[key] = value;
+    }
   }
 });
 
@@ -105,5 +126,12 @@ describe("threshold and retention floors", () => {
   it("floors the ledger retention at 1 day (never prune history as it lands)", () => {
     expect(config({ retention: 0 }).resolvedRunHistoryRetentionDays()).toBe(1);
     expect(config({ retention: 90 }).resolvedRunHistoryRetentionDays()).toBe(90);
+  });
+
+  it("floors the reconciliation interval at 1 minute (a zero would hot-loop where Go panics)", () => {
+    const zero = new ScheduleTemporalConfig("q", 60, 24, 5, 60, true, 0, 20, 1.0, 90);
+    expect(zero.resolvedReconciliationIntervalMinutes()).toBe(1);
+    const five = new ScheduleTemporalConfig("q", 60, 24, 5, 60, true, 5, 20, 1.0, 90);
+    expect(five.resolvedReconciliationIntervalMinutes()).toBe(5);
   });
 });

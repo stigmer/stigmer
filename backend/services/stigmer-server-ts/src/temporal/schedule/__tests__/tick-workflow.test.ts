@@ -43,9 +43,10 @@ import {
   type FailureKind,
   type RunPhase,
   type RunStart,
+  type ScheduleTickActivities,
   type TickOutcome,
 } from "../names.js";
-import { MAX_TRACKING_CYCLES } from "../workflows/tick.js";
+import { MAX_TRACKING_CYCLES, trackingBackoffMs } from "../workflows/tick.js";
 
 const TASK_QUEUE = "tick-workflow-test";
 const WORKFLOWS_PATH = new URL("../workflows/index.ts", import.meta.url).pathname;
@@ -106,44 +107,35 @@ async function nonRetryable(message: string): Promise<never> {
   throw ApplicationFailure.nonRetryable(message);
 }
 
-function scriptedActivities(): Record<string, (...args: never[]) => Promise<unknown>> {
+// Typed as the REAL activity surface: a signature change in
+// ScheduleTickActivities flags these doubles at compile time instead of
+// silently decoupling the tests from the contract they pin.
+function scriptedActivities(): ScheduleTickActivities {
   return {
-    "stigmer/schedule/record-tick": (async (
-      scheduleId: string,
-      nominal: string,
-    ): Promise<TickOutcome> => {
+    "stigmer/schedule/record-tick": async (scheduleId, nominal) => {
       script.recordTickArgs.push({ scheduleId, nominal });
       if (script.tickError !== undefined) {
         await nonRetryable(script.tickError);
       }
       return script.tickOutcome;
-    }) as never,
-    "stigmer/schedule/start-run": (async (): Promise<RunStart> =>
-      script.runStart) as never,
-    "stigmer/schedule/poll-phase": (async (): Promise<RunPhase> => {
+    },
+    "stigmer/schedule/start-run": async () => script.runStart,
+    "stigmer/schedule/poll-phase": async () => {
       if (script.pollError !== undefined) {
         await nonRetryable(script.pollError);
       }
       script.pollCount++;
-      const result =
-        script.pollResults.length > 1
-          ? script.pollResults.shift()!
-          : script.pollResults[0]!;
-      return result;
-    }) as never,
-    "stigmer/schedule/record-success": (async (
-      scheduleId: string,
-    ): Promise<void> => {
+      return script.pollResults.length > 1
+        ? script.pollResults.shift()!
+        : script.pollResults[0]!;
+    },
+    "stigmer/schedule/record-success": async (scheduleId) => {
       script.successCalls.push(scheduleId);
-    }) as never,
-    "stigmer/schedule/record-failure": (async (
-      scheduleId: string,
-      reason: string,
-      kind: FailureKind,
-    ): Promise<{ consecutiveFailures: number; paused: boolean }> => {
+    },
+    "stigmer/schedule/record-failure": async (scheduleId, reason, kind) => {
       script.failureCalls.push({ scheduleId, reason, kind });
       return { consecutiveFailures: script.failureCalls.length, paused: false };
-    }) as never,
+    },
   };
 }
 
@@ -252,6 +244,18 @@ describe("schedule/tick workflow (TestWorkflowEnvironment)", () => {
     expect(script.failureCalls).toEqual([]);
   }, 30_000);
 
+  it("re-polls a still-RUNNING run through the backoff sleep to its verdict", async (testCtx) => {
+    if (!envReady) return testCtx.skip();
+    // Two polls with one real cycle-1 backoff (5s) between them — the
+    // sleep→re-poll path the single-poll scenarios never execute.
+    script.pollResults = [PHASE_RUNNING, PHASE_COMPLETED];
+
+    await runTick();
+    expect(script.pollCount).toBe(2);
+    expect(script.successCalls).toEqual(["sch_tick"]);
+    expect(script.failureCalls).toEqual([]);
+  }, 30_000);
+
   it("an ALREADY_STARTED retry tracks exactly like STARTED", async (testCtx) => {
     if (!envReady) return testCtx.skip();
     script.runStart = {
@@ -351,5 +355,14 @@ describe("schedule/tick workflow (TestWorkflowEnvironment)", () => {
 describe("tick loop bounds (plain unit)", () => {
   it("pins MAX_TRACKING_CYCLES at 240 (the recorded-history backstop)", () => {
     expect(MAX_TRACKING_CYCLES).toBe(240);
+  });
+
+  it("pins the tracking backoff curve: linear cycle×5s, capped at 60s by cycle twelve", () => {
+    expect(trackingBackoffMs(1)).toBe(5_000);
+    expect(trackingBackoffMs(2)).toBe(10_000);
+    expect(trackingBackoffMs(11)).toBe(55_000);
+    expect(trackingBackoffMs(12)).toBe(60_000);
+    expect(trackingBackoffMs(13)).toBe(60_000);
+    expect(trackingBackoffMs(240)).toBe(60_000);
   });
 });

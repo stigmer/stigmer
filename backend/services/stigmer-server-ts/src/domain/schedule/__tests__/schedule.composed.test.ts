@@ -452,6 +452,47 @@ describe("queries — list, getByAgent, listRuns", () => {
     const err = await refusal(() => query.listRuns({ scheduleId: "sch_missing" }));
     expect(err.code).toBe(Code.NotFound);
   });
+
+  it("listRuns pages newest-first with 1-indexed pages (fire-identity rows via the ledger)", async () => {
+    const created = await command.create(scheduleInput({ name: "Paged Runs", slug: "paged-runs" }));
+    const id = created.metadata?.id ?? "";
+    // Three fires with distinct nominal times, inserted through the store
+    // (a trigger's nominal is "now", so real fires within one second would
+    // upsert the same row — the ledger key IS the fire identity).
+    for (const hour of ["09", "10", "11"]) {
+      await server.store.upsertScheduleRun({
+        scheduleId: id,
+        org: "acme",
+        nominalFireTime: `2026-08-25T${hour}:00:00Z`,
+        origin: "cron",
+        outcome: "completed",
+        reason: "",
+        executionId: "aex_paged",
+        recordedAt: `2026-08-25T${hour}:00:00Z`,
+        completedAt: `2026-08-25T${hour}:30:00Z`,
+      });
+    }
+
+    const pageOne = await query.listRuns({ scheduleId: id, pageInfo: { size: 2, num: 1 } });
+    expect(pageOne.totalCount).toBe(3);
+    expect(pageOne.items).toHaveLength(2);
+    // Newest first: 11:00 then 10:00.
+    expect(pageOne.items[0]?.nominalFireTime?.seconds).toBe(
+      BigInt(Date.parse("2026-08-25T11:00:00Z") / 1000),
+    );
+
+    const pageTwo = await query.listRuns({ scheduleId: id, pageInfo: { size: 2, num: 2 } });
+    expect(pageTwo.items).toHaveLength(1);
+    expect(pageTwo.items[0]?.nominalFireTime?.seconds).toBe(
+      BigInt(Date.parse("2026-08-25T09:00:00Z") / 1000),
+    );
+
+    // A zero/absent page reads as the first (1-indexed contract).
+    const defaulted = await query.listRuns({ scheduleId: id, pageInfo: { size: 2, num: 0 } });
+    expect(defaulted.items[0]?.nominalFireTime?.seconds).toBe(
+      pageOne.items[0]?.nominalFireTime?.seconds,
+    );
+  });
 });
 
 describe("delete — teardown posture and the ledger cascade", () => {

@@ -276,14 +276,24 @@ export class RunStarter {
       switch (error.code) {
         case Code.AlreadyExists: {
           // The session auto-create's duplicate check can refuse even
-          // though the execution create has none — re-read the winner.
-          const winner = await findResourceBySlug(
-            store,
-            ApiResourceKind.agent_execution,
-            AgentExecutionSchema,
-            executionName,
-            org,
-          );
+          // though the execution create has none — re-read the winner. A
+          // re-find ERROR carries the same diagnostic wrapper as a missing
+          // winner (Go wraps findErr != nil || !found identically).
+          let winner;
+          try {
+            winner = await findResourceBySlug(
+              store,
+              ApiResourceKind.agent_execution,
+              AgentExecutionSchema,
+              executionName,
+              org,
+            );
+          } catch (findError) {
+            throw new Error(
+              `duplicate-check refusal but no execution row for ${executionName}: ${findError instanceof Error ? findError.message : String(findError)}`,
+              { cause: findError },
+            );
+          }
           if (winner === undefined) {
             throw new Error(
               `duplicate-check refusal but no execution row for ${executionName}: ${error.message}`,

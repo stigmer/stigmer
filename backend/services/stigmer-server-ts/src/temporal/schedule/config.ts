@@ -108,6 +108,20 @@ export class ScheduleTemporalConfig {
   resolvedRunHistoryRetentionDays(): number {
     return this.runHistoryRetentionDays < 1 ? 1 : this.runHistoryRetentionDays;
   }
+
+  /**
+   * Floors the periodic-pass cadence at 1 minute. Go has no clamp here and
+   * time.NewTicker(0) PANICS the process; a zero interval through
+   * setInterval would instead hot-loop full-table reconciliation passes
+   * silently — the worse failure mode. The floor follows this file's
+   * sibling clamps and is a disclosed divergence (crash → clamp) on a
+   * misconfiguration no healthy deployment carries.
+   */
+  resolvedReconciliationIntervalMinutes(): number {
+    return this.reconciliationIntervalMinutes < 1
+      ? 1
+      : this.reconciliationIntervalMinutes;
+  }
 }
 
 /** Loads configuration from environment variables (Go LoadConfig). */

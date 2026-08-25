@@ -70,7 +70,8 @@ export class ScheduleReconciler {
   constructor(
     private readonly clientProvider: () => Client | undefined,
     private readonly store: Store,
-    private readonly syncer: ScheduleSyncer,
+    /** The narrow syncer slice the pass calls (satisfied by ScheduleSyncer). */
+    private readonly syncer: Pick<ScheduleSyncer, "ensureAndRecord" | "teardown">,
     private readonly config: ScheduleTemporalConfig,
     private readonly logger: Logger,
   ) {}
@@ -237,7 +238,7 @@ export class ScheduleReconciler {
     if (this.config.reconciliationEnabled) {
       this.interval = setInterval(
         () => void this.enqueuePass(),
-        this.config.reconciliationIntervalMinutes * 60_000,
+        this.config.resolvedReconciliationIntervalMinutes() * 60_000,
       );
       // Unref'd like the manager's monitor: an unclosed reconciler must
       // not keep the process alive past main's intent.
@@ -270,6 +271,14 @@ export class ScheduleReconciler {
    * Serializes passes (Go's single goroutine consuming ticker + kicks): at
    * most one pass runs at a time, and at most one further pass queues —
    * exactly the 1-buffered kick channel's coalescing.
+   *
+   * The chained callback CONTAINS every rejection: `running` must never
+   * become a rejected promise, because the next enqueue would chain onto a
+   * callback that never runs (kickQueued stuck true — the reconciler
+   * bricked), stop() would rethrow into the compose shutdown, and an
+   * unawaited rejection kills the process under Node's default policy.
+   * runPass already catches per-phase errors; this is the backstop for
+   * the invariant no type can enforce (panel finding).
    */
   private enqueuePass(): Promise<void> {
     if (this.stopped) {
@@ -284,7 +293,14 @@ export class ScheduleReconciler {
       if (this.stopped) {
         return;
       }
-      await this.runPass();
+      try {
+        await this.runPass();
+      } catch (error) {
+        this.logger.error(
+          "Schedule reconciliation pass failed unexpectedly (the loop continues; the next tick or kick retries)",
+          { error: message(error) },
+        );
+      }
     });
     return this.running;
   }

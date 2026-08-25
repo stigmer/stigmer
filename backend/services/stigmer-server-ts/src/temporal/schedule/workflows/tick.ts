@@ -190,10 +190,14 @@ export async function tick(scheduleResourceId: string): Promise<void> {
     case RUN_ALREADY_STARTED:
       await trackRun(scheduleResourceId, nominalRfc3339, runStart);
       return;
-    default:
+    default: {
+      // Compile-time exhaustiveness; the runtime throw stands for
+      // deserialized history data outside the union.
+      const exhaustive: never = runStart.outcome;
       throw ApplicationFailure.nonRetryable(
-        `unknown run outcome "${runStart.outcome}"`,
+        `unknown run outcome "${String(exhaustive)}"`,
       );
+    }
   }
 }
 
@@ -289,9 +293,9 @@ async function trackRun(
  * recoveryBackoff's exact shape, the only backoff curve this platform runs
  * in production workflow code. It notices a 30-120s run (the common case)
  * within seconds and reaches its cap by cycle twelve, bounding poll volume
- * on long runs (Go trackingBackoff).
+ * on long runs (Go trackingBackoff). Exported for the curve's unit pin.
  */
-function trackingBackoffMs(cycle: number): number {
+export function trackingBackoffMs(cycle: number): number {
   const ms = cycle * 5_000;
   return ms > 60_000 ? 60_000 : ms;
 }
