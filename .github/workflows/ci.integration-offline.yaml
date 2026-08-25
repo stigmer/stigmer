@@ -231,6 +231,22 @@ jobs:
         working-directory: backend/services/runner
         run: npm ci && npm run build
 
+      # The memory feature's OSS lane spawns `stigmer mcp-server` as a stdio
+      # child (runner memory-attachment.ts), so the deterministic suite's
+      # memory tests need a runnable `stigmer` on PATH. In-tree the workspace
+      # packages export src/*.ts (publishConfig flips them to dist at publish
+      # time), so the CLI runs the repo's own dev way — tsx — via a PATH
+      # shim (stigmer#886).
+      - name: Put the stigmer CLI on PATH (memory MCP stdio server)
+        if: matrix.suite == 'offline'
+        run: |
+          mkdir -p "$RUNNER_TEMP/stigmer-cli-bin"
+          printf '#!/usr/bin/env bash\nexec "%s/node_modules/.bin/tsx" "%s/client-apps/cli/src/cli/stigmer.ts" "$@"\n' \
+            "$GITHUB_WORKSPACE" "$GITHUB_WORKSPACE" > "$RUNNER_TEMP/stigmer-cli-bin/stigmer"
+          chmod +x "$RUNNER_TEMP/stigmer-cli-bin/stigmer"
+          "$RUNNER_TEMP/stigmer-cli-bin/stigmer" --version
+          echo "$RUNNER_TEMP/stigmer-cli-bin" >> "$GITHUB_PATH"
+
       - name: Install Temporal CLI
         uses: temporalio/setup-temporal@v0
 
