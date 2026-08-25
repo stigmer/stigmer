@@ -184,9 +184,20 @@ export async function spawnRunner(opts: RunnerOptions): Promise<RunningRunner> {
   });
 
   let logSink: WriteStream | undefined;
-  if (opts.logFile !== undefined) {
-    mkdirSync(dirname(opts.logFile), { recursive: true });
-    logSink = createWriteStream(opts.logFile, { flags: "a" });
+  // STIGMER_CONFORMANCE_LOG_DIR: the same teardown-surviving tee the
+  // server harness offers, for diagnosing writer-ordering races that need
+  // the runner's cancellation/persist lines (see server-process.ts).
+  const teeFile =
+    opts.logFile ??
+    (process.env.STIGMER_CONFORMANCE_LOG_DIR
+      ? join(
+          process.env.STIGMER_CONFORMANCE_LOG_DIR,
+          `runner-${Date.now()}.log`,
+        )
+      : undefined);
+  if (teeFile !== undefined) {
+    mkdirSync(dirname(teeFile), { recursive: true });
+    logSink = createWriteStream(teeFile, { flags: "a" });
   }
 
   let logTail = "";

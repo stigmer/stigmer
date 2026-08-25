@@ -45,6 +45,7 @@ import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { create } from "@bufbuild/protobuf";
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import {
   ExecutionPhase,
   FileDecisionAction,
@@ -68,6 +69,7 @@ import {
   awaitPhase,
   awaitTerminal,
   makeAgentExecution,
+  pollExecution,
   requireLlmProxy,
 } from "../support/agentexecutions";
 import { uniqueName } from "../support/naming";
@@ -349,24 +351,89 @@ describe("AgentExecution conformance — lifecycle (running execution)", () => {
     await clients.agentExecutionCommand.pause({ id, reason: "conformance" });
     await awaitPhase(clients, id, ExecutionPhase.EXECUTION_PAUSED);
 
-    // On pause the workflow cancels the activity and re-invokes it on resume, but
-    // the runner does NOT preempt an in-flight LLM call — it only checks for
-    // cancellation between coarse graph events, and a single held turn produces
-    // none until it resolves. So the paused turn keeps running and holds the
-    // session workspace lock; a resume re-invocation would deadlock behind it for
-    // the whole hold window. Release the held turn first so the paused activity
-    // unblocks and frees the lock, letting the resumed activity actually run.
-    mock.releaseHolds();
-
-    // Resume re-invokes the activity, which issues a fresh LLM call; queue a turn
-    // for it and observe the return to IN_PROGRESS (set server-side by resume).
-    mock.enqueue(anthropicText("Working..."));
+    // Resume WHILE the first turn is still held. The paused activity is
+    // NOT promptly cancelled (cancellation reaches the runner lazily,
+    // between coarse graph events), so once its held turn is released it
+    // completes and persists a terminal COMPLETED that races everything
+    // after it (stigmer#869 family; verified identical on the Go target).
+    // While the turn is still HELD, that rogue writer cannot write, and
+    // the resumed re-invocation is queued behind the session workspace
+    // lock — so the resume RPC's IN_PROGRESS persist is a STABLE
+    // observation, not a race. The resumed-era responses are enqueued
+    // with differentiated text and THEFT TOLERANCE: when activity
+    // cancellation happens to reach the superseded turn mid-stream, the
+    // provider client retries the aborted call (retry budget 2) and each
+    // retry consumes one queued response (observed on BOTH targets,
+    // ~1-in-6); enough copies cover the worst-case theft so the resumed
+    // turn is never starved. The afterEach reset clears unconsumed
+    // leftovers.
+    for (let copy = 0; copy < 4; copy++) {
+      mock.enqueue(anthropicText("Working RESUMED..."));
+    }
     await clients.agentExecutionCommand.resume({ id });
     await awaitPhase(clients, id, ExecutionPhase.EXECUTION_IN_PROGRESS);
 
-    // The resumed turn runs to completion on its own; settle to a terminal phase
-    // before the next test so no activity leaks across the boundary.
-    await awaitTerminal(clients, id);
+    // Settle fence: give the WORKER time to consume the buffered pause +
+    // resume signals before the held turn can complete. The PAUSED and
+    // IN_PROGRESS observations above are the RPCs' own persists — they say
+    // nothing about the workflow's signal processing, and a pause signal
+    // that is still unprocessed when the original turn's completion
+    // reaches the workflow is DROPPED in favor of the completion
+    // (`err != nil && pauseRequested` — deliberate byte-parity with Go;
+    // the run then finishes with the original text and never re-invokes,
+    // which is exactly the ~1-in-5 full-suite flake this fences, observed
+    // as the result and the pause landing in ONE activation ~50ms apart).
+    // A time fence is the only option: every clean observable of the
+    // workflow's progress is value-identical to an RPC write and therefore
+    // suppressed by subscribe's consecutive-duplicate guard (Go
+    // sameFrame), and the cancelled-but-parked activity neither
+    // heartbeats nor touches the mock. 2s is ~40x the worst observed
+    // activation lag; a lost race still fails loudly downstream, it just
+    // cannot silently pass.
+    await new Promise((resolve) => setTimeout(resolve, 2_000));
+
+    // Releasing the held turn lets BOTH turns finish: the superseded one
+    // persists its stale terminal COMPLETED ("Working...") and the
+    // resumed one persists its own ("Working RESUMED...") — in EITHER
+    // order (stigmer#869: neither edition guards stale writes yet). Proof
+    // that the resumed re-invocation ran must therefore not depend on the
+    // order: the subscribe stream catches the resumed persist when the
+    // rogue write lands LAST (a poll of the stored state would miss it —
+    // observed ~1-in-3 on this machine), and the stored-state poll
+    // catches it when the rogue write lands FIRST. The release fires
+    // inside the stream's first predicate call (the registration
+    // snapshot), guaranteeing the subscription sees every later persist.
+    const hasResumedText = (e: AgentExecution): boolean =>
+      e.status?.messages.some((m) => m.content === "Working RESUMED...") ?? false;
+    let released = false;
+    const stream = await collectStream(
+      (signal) => clients.agentExecutionQuery.subscribe({ value: id }, { signal }),
+      {
+        until: (messages) => {
+          if (!released) {
+            released = true;
+            mock.releaseHolds();
+          }
+          return hasResumedText(messages.at(-1)!);
+        },
+        timeoutMs: 60_000,
+      },
+    );
+
+    if (!stream.messages.some(hasResumedText)) {
+      // The stream closed on the rogue's terminal update instead — then
+      // the resumed persist lands LAST and the stored state proves it.
+      // This poll also FENCES the resumed turn's queue consumption inside
+      // this test (ending earlier would let the still-running resumed
+      // activity steal the NEXT test's enqueued response); in the stream
+      // arm above, the resumed text in status.messages already proves the
+      // queue was consumed.
+      await pollExecution(clients, id, hasResumedText, {
+        label: "the resumed turn's persisted state",
+      });
+    }
+    const settled = await awaitTerminal(clients, id);
+    expect(settled.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
   });
 });
 

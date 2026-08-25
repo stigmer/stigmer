@@ -27,6 +27,14 @@ export function tsServerEntryPath(): string {
 }
 
 export async function buildTsServer(): Promise<string> {
+  // The server file-links @stigmer/temporal-codecs (its decode-only payload
+  // codec wraps the lib since D4 #18), so the lib's dist must exist before
+  // the server compiles — built through the root workspace, same as
+  // @stigmer/protos. Idempotent tsc; always fresh so the suite tests HEAD.
+  await execFileAsync("npm", ["run", "build", "-w", "@stigmer/temporal-codecs"], {
+    cwd: REPO_ROOT,
+    maxBuffer: 64 * 1024 * 1024,
+  });
   if (!existsSync(join(SERVER_DIR, "node_modules"))) {
     await execFileAsync("npm", ["ci", "--no-audit", "--no-fund"], {
       cwd: SERVER_DIR,

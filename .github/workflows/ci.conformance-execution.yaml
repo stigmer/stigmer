@@ -100,3 +100,58 @@ jobs:
         env:
           CONFORMANCE_TARGET: local-go-execution
         run: npm run test:execution -w @stigmer/conformance
+
+  conformance-execution-local-ts:
+    name: Conformance Execution (local-ts-execution)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Go is NOT needed for the TS server — but the stigmer CLI shim below
+      # is built from source, and memory-enabled executions FAIL (not skip)
+      # without it, so the toolchain stays.
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.work
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Install npm workspace dependencies
+        run: npm ci
+
+      # The runner, the server, and the suites import the built proto stubs.
+      - name: Build proto stubs
+        run: npm run build -w @stigmer/protos
+
+      # stigmer-server-ts is standalone with its own lockfile (runner-style,
+      # not a workspace member) — the ci.stigmer-server-ts.yaml precedent.
+      - name: Install stigmer-server-ts dependencies
+        working-directory: backend/services/stigmer-server-ts
+        run: npm ci
+
+      - name: Install Temporal CLI
+        run: |
+          curl -sSf https://temporal.download/cli.sh | sh
+          echo "$HOME/.temporalio/bin" >> "$GITHUB_PATH"
+
+      # Build the runner explicitly so a runner build break is an isolated,
+      # legible failure rather than a confusing globalSetup error.
+      - name: Build unified runner
+        run: make build-runner
+
+      # Memory-enabled executions spawn `stigmer mcp-server` as a stdio child
+      # (the runner's memory capture attachment) — same shim as the Go job.
+      - name: Install stigmer CLI shim
+        run: |
+          make install-cli-shim
+          echo "$HOME/bin" >> "$GITHUB_PATH"
+
+      - name: Run execution conformance suite (local-ts-execution)
+        env:
+          CONFORMANCE_TARGET: local-ts-execution
+        run: npm run test:ts-execution -w @stigmer/conformance

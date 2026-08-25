@@ -39,6 +39,7 @@ import {
   internalError,
   invalidArgumentError,
   notFoundError,
+  rethrownStatusError,
 } from "../../pipeline/errors.js";
 import { ConnectError, Code } from "@connectrpc/connect";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
@@ -260,8 +261,20 @@ export function newCreateDefaultInstanceIfNeededStep(
         return;
       }
 
-      // 1. Load agent via in-process gRPC (single source of truth).
-      const agent = await deps.agentLoader().get(agentId);
+      // 1. Load agent via in-process gRPC (single source of truth). Go
+      // returns the client error AS-IS here (create.go: "already a gRPC
+      // error from the client") — rethrownStatusError preserves that wire
+      // shape while shedding the in-process response metadata a raw
+      // rethrow would corrupt the outer trailers with.
+      let agent: Agent;
+      try {
+        agent = await deps.agentLoader().get(agentId);
+      } catch (error) {
+        if (error instanceof ConnectError) {
+          throw rethrownStatusError(error);
+        }
+        throw error;
+      }
 
       const defaultInstanceId = agent.status?.defaultInstanceId ?? "";
       if (defaultInstanceId !== "") {

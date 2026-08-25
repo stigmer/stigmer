@@ -116,3 +116,21 @@ export function goWrappedStatusError(
 export function goGrpcErrorText(error: ConnectError): string {
   return `rpc error: code = ${GRPC_CODE_NAMES[error.code]} desc = ${error.rawMessage}`;
 }
+
+/**
+ * Re-throws a downstream in-process client error UNWRAPPED — Go's
+ * `return err // already a gRPC error from the client` arms, where the
+ * inner status reaches the wire verbatim (no prefix, no manufactured
+ * desc).
+ *
+ * A FRESH ConnectError is constructed on purpose: the router-transport
+ * client's error instance carries the INNER response's metadata, and
+ * serializing that metadata into the outer response's trailers produces
+ * malformed HTTP/2 (the client surfaces NGHTTP2_PROTOCOL_ERROR instead of
+ * the status — found by the local-ts-execution roster on agent-execution
+ * create's unknown-agent arm, which is unreachable while the engine gate
+ * refuses first). Same code, same rawMessage, no inherited metadata.
+ */
+export function rethrownStatusError(error: ConnectError): ConnectError {
+  return new ConnectError(error.rawMessage, error.code);
+}

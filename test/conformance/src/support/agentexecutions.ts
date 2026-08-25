@@ -94,21 +94,36 @@ export interface PollOptions extends PollCoreOptions {
 }
 
 // Polls get() until `predicate` holds, returning the matching execution.
-// Throws with the last observed phase on timeout (never sleeps blindly).
+// Throws with the OBSERVED PHASE TRACE on timeout (never sleeps blindly):
+// a phase-transition assertion that times out is a race report, and the
+// sequence of phases the poll actually saw is what makes the failure
+// attributable to a writer without re-running under instrumentation.
 export function pollExecution(
   clients: ConformanceClients,
   executionId: string,
   predicate: (exec: AgentExecution) => boolean,
   opts: PollOptions = {},
 ): Promise<AgentExecution> {
+  const phaseTrace: string[] = [];
   return pollUntil(
-    () => clients.agentExecutionQuery.get({ value: executionId }),
+    async () => {
+      const execution = await clients.agentExecutionQuery.get({ value: executionId });
+      const phase =
+        ExecutionPhase[execution.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED];
+      if (phaseTrace.at(-1) !== phase) {
+        phaseTrace.push(phase);
+      }
+      return execution;
+    },
     predicate,
     (last, timeoutMs) => {
-      const phase = last?.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+      const lastMessage = last?.status?.messages?.at(-1)?.content ?? "";
       return (
         `execution ${executionId} did not satisfy ${opts.label ?? "the predicate"} ` +
-        `within ${timeoutMs}ms (last phase: ${ExecutionPhase[phase]})`
+        `within ${timeoutMs}ms (observed phases: ${phaseTrace.join(" -> ")}; ` +
+        `status.error: ${JSON.stringify(last?.status?.error ?? "")}; ` +
+        `messages: ${last?.status?.messages?.length ?? 0}, ` +
+        `last: ${JSON.stringify(lastMessage.slice(0, 160))})`
       );
     },
     opts,

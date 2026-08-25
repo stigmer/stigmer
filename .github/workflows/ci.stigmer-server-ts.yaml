@@ -64,9 +64,11 @@ jobs:
       - name: Install npm workspace dependencies
         run: npm ci
 
-      # The server file:-links @stigmer/protos and imports its built dist.
-      - name: Build the proto stubs
-        run: npm run build -w @stigmer/protos
+      # The server file:-links @stigmer/protos AND @stigmer/temporal-codecs
+      # (the decode-only payload codec wraps the lib since D4 #18) and
+      # imports their built dists — build:runner-deps builds exactly both.
+      - name: Build the proto stubs and temporal-codecs
+        run: npm run build:runner-deps
 
       # Standalone package with its own lockfile (mirrors ci.runner.yaml).
       - name: Install server dependencies

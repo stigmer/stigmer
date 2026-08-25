@@ -479,6 +479,23 @@ test-conformance-execution: build-runner ## Run gRPC conformance execution suite
 	@echo "=== conformance: execution engine (local-go-execution) ==="
 	CONFORMANCE_TARGET=local-go-execution npm run test:execution -w @stigmer/conformance
 
+.PHONY: test-conformance-ts-execution
+test-conformance-ts-execution: build-runner ## Run the local-ts-execution conformance roster against stigmer-server-ts (Class B on the TS engine; needs the `temporal` and `stigmer` CLIs)
+	@command -v temporal >/dev/null 2>&1 || { \
+		echo "error: temporal CLI not found — the dev server backs the execution harness"; \
+		echo "  install: curl -sSf https://temporal.download/cli.sh | sh"; \
+		exit 1; \
+	}
+	@command -v stigmer >/dev/null 2>&1 || { \
+		echo "error: stigmer CLI not found — memory-enabled executions spawn 'stigmer mcp-server'"; \
+		echo "  as the capture tool's stdio child (runner shared/memory-attachment.ts); without"; \
+		echo "  it those executions FAIL instead of skipping."; \
+		echo "  install the from-source shim: make install-cli-shim   (writes ~/bin/stigmer)"; \
+		exit 1; \
+	}
+	@echo "=== conformance: execution engine (local-ts-execution / stigmer-server-ts) ==="
+	CONFORMANCE_TARGET=local-ts-execution npm run test:ts-execution -w @stigmer/conformance
+
 .PHONY: test-conformance-cloud
 test-conformance-cloud: build-ts-stubs ## Run gRPC conformance CRUD suite against the Java cloud service (hermetic; needs Docker, `fga`, `temporal`, and the fat JAR)
 	@command -v go >/dev/null 2>&1 || { echo "error: go not found — the harness builds the cloud environment launcher"; exit 1; }

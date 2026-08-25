@@ -5,15 +5,21 @@
  * the CLI's npm package will ship and the daemon will launch
  * (STIGMER_SERVER_ENTRY, D2 §6 cutover mechanics).
  *
- * Deliberately simple next to the runner's bundle-slim.mjs: the server has
- * no native dependencies, no Temporal workflow sandbox, and no lazy-import
- * load-order constraints (those arrive with the Temporal worker
- * sub-projects, which will extend this script the way the runner's grew).
- * Today the whole service — ConnectRPC, protobuf, protovalidate, the
- * bundled registry JSON — compiles into one platform-independent main.js.
+ * Deliberately simple next to the runner's bundle-slim.mjs: ConnectRPC,
+ * protobuf, protovalidate, and the bundled registry JSON compile into one
+ * platform-independent main.js. The @temporalio/* packages are EXTERNAL
+ * (ratified sub-project 20260824.03 brief #7): @temporalio/worker carries
+ * the native core-bridge that esbuild cannot bundle, so the slim entry
+ * imports them from node_modules at runtime. Distribution-grade packaging
+ * — the prebuilt workflow bundle, the bundled sandbox worker-thread
+ * entry, per-platform core-bridge packages (the runner's five-step
+ * bundle-slim machinery) — is #24 cli-cutover's scope; until then the
+ * operative deployment mode runs from dist/ with node_modules present.
  *
  * Build with `npm run build` first; this consumes the compiled dist/.
- * Verify with `npm run verify:slim` (boots the bundle with plain node).
+ * Verify with `npm run verify:slim` (boots the bundle with plain node —
+ * which resolves the external @temporalio imports from this package's
+ * node_modules).
  */
 import { build } from "esbuild";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
@@ -65,6 +71,9 @@ await build({
       'import { createRequire as __stigmerCreateRequire } from "node:module";' +
       "const require = __stigmerCreateRequire(import.meta.url);",
   },
+  // Native core-bridge + the workflow sandbox make @temporalio/*
+  // unbundleable (see the header); resolved from node_modules at runtime.
+  external: ["@temporalio/*"],
   // Identifiers stay readable in stack traces; the external sourcemap
   // recovers file/line (runner precedent).
   minifyWhitespace: true,
