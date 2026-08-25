@@ -13,7 +13,7 @@
  * is_skip_authorization (cross-aggregate CQRS read; single-tenant OSS has
  * no authorization set to enumerate — stigmer#461).
  *
- * Proven by activity.conformance.test.ts (CONFORMANCE_TARGET=local-ts)
+ * Proven by activity.conformance.test.ts (CONFORMANCE_TARGET=local)
  * and __tests__/handler.test.ts.
  */
 import type { ConnectRouter } from "@connectrpc/connect";

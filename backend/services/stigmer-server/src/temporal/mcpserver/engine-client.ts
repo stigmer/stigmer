@@ -14,7 +14,7 @@
  * engine per client instance, so reconnects propagate automatically.
  *
  * Proven by mcpserver-connect.conformance.test.ts
- * (CONFORMANCE_TARGET=local-ts-execution).
+ * (CONFORMANCE_TARGET=local-execution).
  */
 import type { Client } from "@temporalio/client";
 import { WorkflowFailedError, WorkflowNotFoundError } from "@temporalio/client";

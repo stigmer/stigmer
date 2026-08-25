@@ -18,7 +18,7 @@
  * Publish steps (single-user local posture); validation, secret handling,
  * and the referential delete block are byte-compatible.
  *
- * Proven by channelapp.conformance.test.ts (CONFORMANCE_TARGET=local-ts)
+ * Proven by channelapp.conformance.test.ts (CONFORMANCE_TARGET=local)
  * and __tests__/channelapp.test.ts.
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";

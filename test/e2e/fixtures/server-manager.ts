@@ -250,7 +250,7 @@ export async function startBackendStack(opts: {
     STIGMER_MODEL_REGISTRY_REFRESH: "off",
   };
 
-  const server = spawn("node", [serverEntry], { env: serverEnv, stdio: ["ignore", "pipe", "pipe"] });
+  const server = spawn(process.execPath, [serverEntry], { env: serverEnv, stdio: ["ignore", "pipe", "pipe"] });
 
   // Opt-in: tee server logs for the post-approval resume-wedge probe (see diag.ts).
   if (diagEnabled()) {

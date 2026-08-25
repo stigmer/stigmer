@@ -15,9 +15,9 @@
  * environment.
  *
  * Proven by mcpserver-oauth.conformance.test.ts (guards + no-grant
- * idempotence, CONFORMANCE_TARGET=local-ts) and
+ * idempotence, CONFORMANCE_TARGET=local) and
  * mcpserver-connect.conformance.test.ts (teardown,
- * CONFORMANCE_TARGET=local-ts-execution).
+ * CONFORMANCE_TARGET=local-execution).
  */
 import { create } from "@bufbuild/protobuf";
 

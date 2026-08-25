@@ -4,7 +4,7 @@
  * in-process workflow client (the other direction of the mutual edge),
  * the same-org business rule, the spec.workflow_id immutability guard
  * (oss#646), and the default-instance visibility guard (oss#556). Proven by
- * workflowinstance.conformance.test.ts (CONFORMANCE_TARGET=local-ts) and
+ * workflowinstance.conformance.test.ts (CONFORMANCE_TARGET=local) and
  * the family test ../workflow/__tests__/workflow.test.ts (the mutual edge
  * makes the two domains one testable unit).
  */

@@ -4,7 +4,7 @@
  * URL ORIGIN (scheme + host), not under the server's path — a Linear-style
  * MCP URL like https://mcp.linear.app/mcp discovers at
  * https://mcp.linear.app/.well-known/oauth-authorization-server.
- * Proven by mcpserver-oauth.conformance.test.ts (CONFORMANCE_TARGET=local-ts).
+ * Proven by mcpserver-oauth.conformance.test.ts (CONFORMANCE_TARGET=local).
  */
 
 /**

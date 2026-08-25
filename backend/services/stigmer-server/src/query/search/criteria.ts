@@ -22,7 +22,7 @@
  * (stigmer/stigmer#440).
  *
  * Proven by __tests__/criteria.test.ts (Go's tables case-for-case) and
- * search.conformance.test.ts on local-ts.
+ * search.conformance.test.ts on local.
  */
 import {
   ApiResourceKind,

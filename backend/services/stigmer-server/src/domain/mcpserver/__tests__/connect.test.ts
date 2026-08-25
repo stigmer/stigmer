@@ -9,7 +9,7 @@
  * startConnect's two-layer idempotency + dead-runner warning.
  *
  * The wire-level halves are pinned by
- * mcpserver-connect.conformance.test.ts on local-ts-execution.
+ * mcpserver-connect.conformance.test.ts on local-execution.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";

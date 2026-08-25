@@ -15,7 +15,7 @@
  * store's contract, the same pattern every OSS list handler uses).
  *
  * Proven by __tests__/handler.test.ts (Go's handler_test.go arms) and
- * activity.conformance.test.ts on local-ts.
+ * activity.conformance.test.ts on local.
  */
 import { create, fromBinary } from "@bufbuild/protobuf";
 import { TimestampSchema } from "@bufbuild/protobuf/wkt";

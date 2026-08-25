@@ -7,7 +7,7 @@
  * mapping, and the provider's memoization/disconnected semantics.
  *
  * The Temporal Client is a recording double — the real dial path is
- * proven by local-ts-execution.
+ * proven by local-execution.
  */
 import { describe, expect, it } from "vitest";
 

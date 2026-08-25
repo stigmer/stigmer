@@ -8,7 +8,7 @@
  * the platform default-agent resolution (defaultagent.ts).
  *
  * Pipeline per RPC mirrors the Go step chains character-for-character.
- * Proven by agent.conformance.test.ts (CONFORMANCE_TARGET=local-ts) and
+ * Proven by agent.conformance.test.ts (CONFORMANCE_TARGET=local) and
  * __tests__/agent.test.ts.
  *
  * Versus Stigmer Cloud, OSS excludes the Authorize, CreateIamPolicies, and

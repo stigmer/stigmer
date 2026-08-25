@@ -12,7 +12,7 @@
  * sources are pinned in each domain's search-extractor.ts and in the
  * conformance suite (D4 #14 DD-C, owner-ratified).
  *
- * Proven by search.conformance.test.ts (CONFORMANCE_TARGET=local-ts) and
+ * Proven by search.conformance.test.ts (CONFORMANCE_TARGET=local) and
  * the registry/extractor unit tests.
  */
 import { create } from "@bufbuild/protobuf";

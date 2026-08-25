@@ -2,7 +2,7 @@
  * The agent-execution orchestrator workflow — ports
  * pkg/domain/agentexecution/temporal/workflows/invoke_workflow_impl.go
  * (registered as "stigmer/agent-execution/invoke"; proven by the
- * agentexecution execution suites on local-ts-execution and the
+ * agentexecution execution suites on local-execution and the
  * co-located TestWorkflowEnvironment tests).
  *
  * Orchestration only — the TS unified runner owns the agent activities

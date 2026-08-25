@@ -14,7 +14,7 @@
  * ValidateReferences: members referencing nonexistent resources persist
  * silently. Delete removes ONLY the project — members are never cascaded.
  *
- * Proven by project.conformance.test.ts (CONFORMANCE_TARGET=local-ts) and
+ * Proven by project.conformance.test.ts (CONFORMANCE_TARGET=local) and
  * __tests__/{reconcile,project.composed}.test.ts (the conformance suite
  * never touches spec.members or last_reconciliation; the composed tests own
  * those pins).

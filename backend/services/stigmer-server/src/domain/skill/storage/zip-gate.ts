@@ -19,7 +19,7 @@
  * than Go flate's.
  *
  * Proven by __tests__/zip-gate.test.ts and the skill conformance suite's
- * push-validation negatives (CONFORMANCE_TARGET=local-ts).
+ * push-validation negatives (CONFORMANCE_TARGET=local).
  */
 import { createHash } from "node:crypto";
 import { inflateRawSync } from "node:zlib";

@@ -14,7 +14,7 @@
  *
  * The manager's private dial and the SDK's NativeConnection are stubbed
  * (module mock + private-seam override): the real connect path is proven
- * end-to-end by local-ts-execution; these tests pin the manager's OWN
+ * end-to-end by local-execution; these tests pin the manager's OWN
  * state machine, which only misbehaves in windows no live harness can
  * schedule deterministically.
  */

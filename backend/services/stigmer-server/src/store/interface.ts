@@ -24,7 +24,7 @@
  * survive verbatim for the #19/#20 domain ports.
  *
  * Proven by the driver unit tests (sqlite/__tests__/) and, end-to-end, by
- * every conformance suite on CONFORMANCE_TARGET=local-ts.
+ * every conformance suite on CONFORMANCE_TARGET=local.
  */
 import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
 

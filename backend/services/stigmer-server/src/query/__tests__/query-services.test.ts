@@ -1,6 +1,6 @@
 /**
  * Composed-server tests for the two query services (D4 #14): the arms
- * conformance cannot cover on local-ts plus the wiring proofs —
+ * conformance cannot cover on local plus the wiring proofs —
  * search/activity ANSWER on the composed server (stigmer#461: OSS
  * historically returned UNIMPLEMENTED for activity), synchronous
  * index-on-write feeds search over the wire, the protovalidate

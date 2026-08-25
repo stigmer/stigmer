@@ -18,7 +18,7 @@
  * interceptor injects nothing and the auth slot is a pass-through, both
  * verified; no interceptor changes ride this port.
  *
- * Proven by search.conformance.test.ts (CONFORMANCE_TARGET=local-ts) and
+ * Proven by search.conformance.test.ts (CONFORMANCE_TARGET=local) and
  * __tests__/handler.test.ts's mapping arms.
  */
 import type { ConnectRouter } from "@connectrpc/connect";

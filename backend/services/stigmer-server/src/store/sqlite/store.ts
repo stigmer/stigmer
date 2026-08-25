@@ -24,7 +24,7 @@
  *
  * Proven by __tests__/ (migrations incl. the DD-002 Go-database fixture,
  * per-method contracts, the permanent SP-C FTS5 probe) and end-to-end by
- * the conformance suites on local-ts.
+ * the conformance suites on local.
  */
 import { mkdirSync } from "node:fs";
 import path from "node:path";

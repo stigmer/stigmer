@@ -15,7 +15,7 @@
  *      by design and must not hit the forgery rejection.
  *   3. Redaction (redact.ts) runs AFTER Persist, outside the pipeline.
  *
- * Proven by environment.conformance.test.ts (CONFORMANCE_TARGET=local-ts)
+ * Proven by environment.conformance.test.ts (CONFORMANCE_TARGET=local)
  * and __tests__/environment.test.ts.
  */
 import { create } from "@bufbuild/protobuf";

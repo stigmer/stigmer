@@ -5,7 +5,7 @@
  * byte-pinned from Go.
  *
  * Proven by __tests__/mcpserver.test.ts and mcpserver.conformance.test.ts
- * (CONFORMANCE_TARGET=local-ts).
+ * (CONFORMANCE_TARGET=local).
  */
 import { create } from "@bufbuild/protobuf";
 import type { DescMessage } from "@bufbuild/protobuf";

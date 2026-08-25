@@ -14,7 +14,7 @@
  * pin). Disclosed divergence; the Go-side issue files at wrap-up.
  *
  * Proven by mcpserver-connect.conformance.test.ts
- * (CONFORMANCE_TARGET=local-ts-execution) and
+ * (CONFORMANCE_TARGET=local-execution) and
  * __tests__/complete-oauth-connect.test.ts.
  */
 import { create } from "@bufbuild/protobuf";

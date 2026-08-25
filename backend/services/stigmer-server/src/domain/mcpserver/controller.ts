@@ -24,9 +24,9 @@
  *
  * Proven by mcpserver.conformance.test.ts +
  * agent-mcpserver-references.conformance.test.ts +
- * mcpserver-oauth.conformance.test.ts (CONFORMANCE_TARGET=local-ts),
+ * mcpserver-oauth.conformance.test.ts (CONFORMANCE_TARGET=local),
  * mcpserver-connect.conformance.test.ts
- * (CONFORMANCE_TARGET=local-ts-execution), and __tests__/.
+ * (CONFORMANCE_TARGET=local-execution), and __tests__/.
  */
 import { Code, ConnectError } from "@connectrpc/connect";
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";

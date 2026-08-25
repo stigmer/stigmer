@@ -7,7 +7,7 @@
  * single-holder, audit-failure revert invariant), default-instance
  * choreography (create.go), and the #592 instance cascade
  * (delete_cascade.go). Proven by workflow.conformance.test.ts
- * (CONFORMANCE_TARGET=local-ts) and __tests__/workflow.test.ts.
+ * (CONFORMANCE_TARGET=local) and __tests__/workflow.test.ts.
  */
 import { createHash } from "node:crypto";
 import { ConnectError } from "@connectrpc/connect";

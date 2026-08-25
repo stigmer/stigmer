@@ -21,7 +21,7 @@ Use this mapping to decide which targets to run. A file matching **any** row tri
 |---|---|---|
 | `apis/**` | `make -C apis lint` | Proto linting (buf lint) |
 | `apis/**/*.proto` | `make check-docs-yaml && make gen-proto-sdk-docs-check && make gen-task-docs-check && make gen-task-registry-check` | Docs YAML examples still match the proto contracts; generated proto/task docs and the task registry are regenerated. All are fast Go generators (seconds each) — historically the most frequently broken CI gates after proto changes |
-| `backend/**/*.go`, `mcp-server/**/*.go`, `sdk/go/**/*.go`, `tools/**/*.go` | `make tidy && make lint` (Go portions only: `go vet` + `gofmt`) | Go vet, format, mod tidy |
+| `mcp-server/**/*.go`, `sdk/go/**/*.go`, `tools/**/*.go`, `seedpack/**/*.go` | `make tidy && make lint` (Go portions only: `go vet` + `gofmt`) | Go vet, format, mod tidy |
 | `backend/services/agent-runner/**/*.py`, `backend/libs/python/**/*.py` | Python lint from `make lint` (`ruff check`, `mypy`) | Python lint + type check |
 | `sdk/typescript/src/**` | `npm run typecheck -w @stigmer/sdk` | SDK TypeScript type check |
 | `sdk/react/src/**` | `npm run lint -w @stigmer/react && npm run typecheck -w @stigmer/react` | React SDK lint + type check |

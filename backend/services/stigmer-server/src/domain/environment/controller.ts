@@ -8,7 +8,7 @@
  * design: limited blast radius, per-key audit, the industry "reveal" UX).
  *
  * Pipeline per RPC mirrors the Go step chains character-for-character.
- * Proven by environment.conformance.test.ts (CONFORMANCE_TARGET=local-ts)
+ * Proven by environment.conformance.test.ts (CONFORMANCE_TARGET=local)
  * and __tests__/environment.test.ts.
  *
  * Versus Stigmer Cloud, OSS excludes the Authorize, CreateIamPolicies,

@@ -14,7 +14,7 @@
  * workflowexecution, #21) and forces ExecutionTarget LOCAL to suppress
  * sandbox provisioning — exactly Go's contract.
  *
- * Proven by the agentexecution suites on local-ts-execution and by the
+ * Proven by the agentexecution suites on local-execution and by the
  * co-located dispatch tests (ports dispatch_test.go).
  */
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";

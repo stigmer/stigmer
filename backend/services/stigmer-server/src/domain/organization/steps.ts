@@ -10,7 +10,7 @@
  * uniqueness guarantee, mirroring cloud's OrganizationCreateHandler
  * (CheckDuplicate + CopySlugToId) step-for-step.
  *
- * Proven by organization.conformance.test.ts (CONFORMANCE_TARGET=local-ts)
+ * Proven by organization.conformance.test.ts (CONFORMANCE_TARGET=local)
  * and __tests__/organization.test.ts.
  */
 import { ResourceNotFoundError } from "../../store/interface.js";

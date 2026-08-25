@@ -21,7 +21,7 @@
  * which is both the repair and the caller's intent.
  *
  * Proven by mcpserver-connect.conformance.test.ts
- * (CONFORMANCE_TARGET=local-ts-execution) and
+ * (CONFORMANCE_TARGET=local-execution) and
  * __tests__/start-connect.test.ts.
  */
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";

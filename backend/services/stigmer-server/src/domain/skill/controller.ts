@@ -18,7 +18,7 @@
  * serves artifact bytes itself instead of R2 pre-signed URLs — same
  * capability-URL trust model, same client semantics.
  *
- * Proven by skill.conformance.test.ts (CONFORMANCE_TARGET=local-ts) and
+ * Proven by skill.conformance.test.ts (CONFORMANCE_TARGET=local) and
  * the co-located __tests__/ suites.
  */
 import { Code, ConnectError } from "@connectrpc/connect";

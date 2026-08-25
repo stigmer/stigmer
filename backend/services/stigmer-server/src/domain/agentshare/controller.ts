@@ -18,7 +18,7 @@
  * cloud edition enforces the same contracts via FGA plus app-level gates
  * for the anonymous resolution paths.
  *
- * Proven by agentshare.conformance.test.ts (CONFORMANCE_TARGET=local-ts)
+ * Proven by agentshare.conformance.test.ts (CONFORMANCE_TARGET=local)
  * and __tests__/agentshare.test.ts.
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";

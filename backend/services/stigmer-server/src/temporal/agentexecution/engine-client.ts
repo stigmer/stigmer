@@ -19,7 +19,7 @@
  * engine per client instance — a new engine object per RPC would be
  * garbage for no behavior.
  *
- * Proven by the agentexecution suites on local-ts-execution.
+ * Proven by the agentexecution suites on local-execution.
  */
 import type { Client } from "@temporalio/client";
 import { WorkflowNotFoundError } from "@temporalio/common";

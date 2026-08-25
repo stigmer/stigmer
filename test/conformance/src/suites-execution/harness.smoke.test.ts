@@ -3,8 +3,8 @@
 // domain contract.
 //
 // This is deliberately a `.smoke.test.ts`, not a `.conformance.test.ts`: it is
-// the cheap, permanent guard that the local-execution target (Go server +
-// Temporal + TS runner) actually runs an execution end-to-end. The whole
+// the cheap, permanent guard that the local-execution target (server +
+// Temporal + runner) actually runs an execution end-to-end. The whole
 // WorkflowExecution domain contract lives in workflowexecution.conformance.test.ts.
 //
 // The vehicle is a data-only `set_vars` workflow: it runs through the runner's

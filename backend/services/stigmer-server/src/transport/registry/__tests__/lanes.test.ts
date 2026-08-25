@@ -2,7 +2,7 @@
  * Registry-lane tests, mirroring the CW-10 conformance suite's assertions
  * (test/conformance/src/suites/registry-proxy.conformance.test.ts — the
  * self-declared gate for these lanes) against the FULLY composed server,
- * demux and lane router included. When #4 lands the `local-ts` target, the
+ * demux and lane router included. When #4 lands the `local` target, the
  * real suite runs these same assertions over the wire; until then this
  * file keeps the contract enforced in this package's own gate.
  *

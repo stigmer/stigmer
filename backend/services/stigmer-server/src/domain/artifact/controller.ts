@@ -8,7 +8,7 @@
  * content bytes — not a HasMetadata resource), delete is a soft
  * storage_state transition rather than the hard-delete pipeline; only
  * get/listByExecution ride pipelines. Proven by
- * artifact.conformance.test.ts (CONFORMANCE_TARGET=local-ts, incl. the
+ * artifact.conformance.test.ts (CONFORMANCE_TARGET=local, incl. the
  * file-server lane) and __tests__/artifact.test.ts.
  *
  * Go tolerates a nil ArtifactStorage (two-phase wiring) and answers

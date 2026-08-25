@@ -1,6 +1,6 @@
-# IntelliJ/GoLand Run Configurations
+# IntelliJ IDEA Run Configurations
 
-This directory contains run configurations for IntelliJ IDEA and GoLand to make development easier.
+This directory contains run configurations for IntelliJ IDEA to make development easier.
 
 ## Available Configurations
 
@@ -8,22 +8,10 @@ This directory contains run configurations for IntelliJ IDEA and GoLand to make 
 
 - **build-protos** - Generate protobuf stubs using `make protos`
 - **gazelle** - Run Gazelle to generate/update BUILD.bazel files
-- **bazel-build-all** - Build all Bazel targets with `./bazelw build //...`
 
-### Services
-
-- **stigmer-server.launch** - Launch the Stigmer gRPC server via Bazel
-- **stigmer-cli.launch** - Launch the Stigmer CLI via Bazel
-
-### Debugging
-
-- **stigmer-server.remote-debug** - Attach remote Go debugger to running stigmer-server
-  - Default port: 2345 (standard Delve port)
-  - Start stigmer-server with debugging enabled first
+(The Go server/CLI launch and remote-debug configs retired with the Go server — go-server-retirement, D4 #25. The TypeScript server runs via `make build-server && node dist/main.js`, or through `stigmer up`.)
 
 ## Usage
-
-### In IntelliJ/GoLand
 
 1. Open the "Run/Debug Configurations" dropdown in the toolbar
 2. Select the desired configuration
@@ -31,18 +19,14 @@ This directory contains run configurations for IntelliJ IDEA and GoLand to make 
 
 ### Bazel Plugin Required
 
-The `.launch` configurations require the [Bazel plugin](https://plugins.jetbrains.com/plugin/8609-bazel) for IntelliJ.
+The `gazelle` configuration requires the [Bazel plugin](https://plugins.jetbrains.com/plugin/8609-bazel) for IntelliJ.
 
 Install via: **Settings → Plugins → Marketplace → Search "Bazel"**
 
 ## Typical Workflow
 
 1. **After proto changes**: Run `build-protos`
-2. **After adding new Go files**: Run `gazelle` to update BUILD files
-3. **To run the server**: Run `stigmer-server.launch`
-4. **To debug the server**: 
-   - Start server with `dlv debug` or with `--debug` flag
-   - Run `stigmer-server.remote-debug` to attach
+2. **After adding new Go files** (sdk/go, tools, seedpack): Run `gazelle` to update BUILD files
 
 ## Customization
 

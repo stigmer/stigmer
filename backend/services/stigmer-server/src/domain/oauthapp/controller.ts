@@ -6,7 +6,7 @@
  * counterpart to IdentityProvider (inbound auth).
  *
  * Pipeline per RPC mirrors the Go step chains character-for-character.
- * Proven by oauthapp.conformance.test.ts (CONFORMANCE_TARGET=local-ts)
+ * Proven by oauthapp.conformance.test.ts (CONFORMANCE_TARGET=local)
  * and __tests__/oauthapp.test.ts.
  *
  * The secret contract: client_secret is AES-256-GCM encrypted at rest via

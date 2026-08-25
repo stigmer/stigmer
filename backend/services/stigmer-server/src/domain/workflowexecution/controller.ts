@@ -10,7 +10,7 @@
  * get_execution_summary.go / list_pending_approvals.go).
  *
  * Proven by workflowexecution.conformance.test.ts
- * (CONFORMANCE_TARGET=local-ts) and __tests__/.
+ * (CONFORMANCE_TARGET=local) and __tests__/.
  *
  * Versus Stigmer Cloud, OSS excludes the Authorize, Publish,
  * PublishToRedis, and TransformResponse steps (no multi-tenant auth,

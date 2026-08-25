@@ -9,7 +9,7 @@
  * identity_account_id is always empty (single-user).
  *
  * Proven by mcpserver-oauth.conformance.test.ts
- * (CONFORMANCE_TARGET=local-ts) and
+ * (CONFORMANCE_TARGET=local) and
  * __tests__/get-oauth-grant-status.test.ts.
  */
 import { create } from "@bufbuild/protobuf";

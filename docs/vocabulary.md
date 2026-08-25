@@ -852,7 +852,7 @@ LangGraph.js deep-agent.
 
 #### Stigmer Server
 
-The Go gRPC API server that powers the local development experience.
+The gRPC API server that powers the local development experience.
 
 - **Capitalize**: Yes.
 - **CLI**: `stigmer server`, `stigmer server status`, `stigmer server stop`,

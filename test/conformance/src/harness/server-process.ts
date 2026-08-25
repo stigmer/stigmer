@@ -53,9 +53,10 @@ export interface SpawnServerOptions {
   // auto-pause threshold so the firing suite proves the pause in two fires).
   // Keys here win over the base on collision.
   env?: Record<string, string>;
-  // Arguments for the spawned executable. The Go server is a bare binary
-  // (no args); the TS server target passes its entry module here and node
-  // as binaryPath — both servers honor the identical env contract above.
+  // Arguments for the spawned executable: the server is a node entry, so
+  // callers pass node as binaryPath and the entry module here. (The shape
+  // survives from the retired Go binary, which spawned bare — the identical
+  // env contract is what let the two servers share this harness.)
   args?: string[];
 }
 

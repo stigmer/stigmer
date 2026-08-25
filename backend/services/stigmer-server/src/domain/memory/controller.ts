@@ -47,7 +47,7 @@
  * no IndexSearch/DeleteSearchIndex steps anywhere in this domain.
  *
  * Pipeline per RPC mirrors the Go step chains character-for-character.
- * Proven by memory.conformance.test.ts (CONFORMANCE_TARGET=local-ts) and
+ * Proven by memory.conformance.test.ts (CONFORMANCE_TARGET=local) and
  * __tests__/memory.test.ts.
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";

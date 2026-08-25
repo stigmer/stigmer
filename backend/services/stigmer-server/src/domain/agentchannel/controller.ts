@@ -20,7 +20,7 @@
  * (only same-org shares are) — a dangling channel is tolerated because
  * OSS has no serving runtime and cloud fails closed elsewhere.
  *
- * Proven by agentchannel.conformance.test.ts (CONFORMANCE_TARGET=local-ts)
+ * Proven by agentchannel.conformance.test.ts (CONFORMANCE_TARGET=local)
  * and __tests__/agentchannel.test.ts.
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";

@@ -14,7 +14,7 @@
  * run the backfill on every upgraded installation. Ratified in the D4
  * breakdown (entry #12) and disclosed in the PR.
  *
- * Proven by agentshare.conformance.test.ts (CONFORMANCE_TARGET=local-ts)
+ * Proven by agentshare.conformance.test.ts (CONFORMANCE_TARGET=local)
  * and __tests__/agentshare.test.ts.
  */
 import { randomBytes, timingSafeEqual } from "node:crypto";

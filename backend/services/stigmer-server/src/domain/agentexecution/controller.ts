@@ -6,7 +6,7 @@
  *
  * Pipeline per RPC mirrors the Go step chains character-for-character.
  * Proven by agentexecution.conformance.test.ts
- * (CONFORMANCE_TARGET=local-ts) and __tests__/.
+ * (CONFORMANCE_TARGET=local) and __tests__/.
  *
  * Versus Stigmer Cloud, OSS excludes the Authorize, CreateIamPolicies,
  * Publish, PublishToRedis, and TransformResponse steps (no multi-tenant

@@ -26,7 +26,7 @@
  * signal/cancel/terminate operations take a workflowId verbatim. That
  * asymmetry is the seam's documented contract.
  *
- * Proven by the workflowexecution suites on local-ts-execution.
+ * Proven by the workflowexecution suites on local-execution.
  */
 import type { JsonValue } from "@bufbuild/protobuf";
 import type { Client } from "@temporalio/client";

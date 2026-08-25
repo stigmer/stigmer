@@ -10,7 +10,7 @@
  * truth; tagVersion moves tags single-holder (oss#341).
  *
  * Pipeline per RPC mirrors the Go step chains character-for-character.
- * Proven by workflow.conformance.test.ts (CONFORMANCE_TARGET=local-ts) and
+ * Proven by workflow.conformance.test.ts (CONFORMANCE_TARGET=local) and
  * __tests__/.
  *
  * Versus Stigmer Cloud, OSS excludes the Authorize, CreateIamPolicies, and

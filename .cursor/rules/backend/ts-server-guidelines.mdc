@@ -93,7 +93,7 @@ eventually violate creatively.
 
 - Unit tests for every step/converter/validation rule with branching logic;
   Temporal tests via `@temporalio/testing` where workflows change; the
-  domain's conformance suite green on `local-ts` before the port counts as
+  domain's conformance suite green on `local` before the change counts as
   done.
 - Determinism is non-negotiable: no sleeps (poll with timeout), no shared
   mutable state, unique resources per test, failure paths tested on purpose.

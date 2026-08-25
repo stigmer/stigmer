@@ -12,7 +12,7 @@
  * silently depend on the caller's chain.
  *
  * Proven by __tests__/handler.test.ts and search.conformance.test.ts on
- * local-ts.
+ * local.
  */
 import { create } from "@bufbuild/protobuf";
 import { createValidator } from "@bufbuild/protovalidate";

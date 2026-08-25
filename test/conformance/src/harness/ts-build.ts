@@ -4,7 +4,7 @@
 //
 // The build compiles in place (backend/services/stigmer-server/dist):
 // tsc is deterministic and the dist path is stable, so workers locate the
-// entry without env-var plumbing, exactly like the Go binary's temp path.
+// entry without env-var plumbing.
 // Dependencies install only when node_modules is missing (a fresh checkout
 // or CI); the file-linked workspace-lib dists must exist first — built
 // below through the canonical root script, which also keeps single-file

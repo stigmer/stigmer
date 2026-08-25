@@ -4,7 +4,7 @@
  * (create/apply) and the update validator, plus the workspace and
  * model-pinning rules both share.
  *
- * Proven by schedule.conformance.test.ts (CONFORMANCE_TARGET=local-ts) and
+ * Proven by schedule.conformance.test.ts (CONFORMANCE_TARGET=local) and
  * __tests__/schedule.composed.test.ts.
  */
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";

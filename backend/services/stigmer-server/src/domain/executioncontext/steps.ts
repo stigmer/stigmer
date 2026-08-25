@@ -17,7 +17,7 @@
  *   2. Redaction (redact.ts) runs AFTER Persist, outside the pipeline.
  *
  * Proven by executioncontext.conformance.test.ts
- * (CONFORMANCE_TARGET=local-ts) and __tests__/executioncontext.test.ts.
+ * (CONFORMANCE_TARGET=local) and __tests__/executioncontext.test.ts.
  */
 import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import type { ExecutionContext } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";

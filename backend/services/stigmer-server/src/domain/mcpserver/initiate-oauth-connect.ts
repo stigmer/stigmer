@@ -8,7 +8,7 @@
  * credentials and build the auth URL from its endpoints.
  *
  * Proven by mcpserver-oauth.conformance.test.ts
- * (CONFORMANCE_TARGET=local-ts) and
+ * (CONFORMANCE_TARGET=local) and
  * __tests__/initiate-oauth-connect.test.ts.
  */
 import { create } from "@bufbuild/protobuf";

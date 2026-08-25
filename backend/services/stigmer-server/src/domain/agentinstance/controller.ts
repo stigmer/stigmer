@@ -7,7 +7,7 @@
  * refuses default instances outright (stigmer/stigmer#556).
  *
  * Pipeline per RPC mirrors the Go step chains character-for-character.
- * Proven by agentinstance.conformance.test.ts (CONFORMANCE_TARGET=local-ts)
+ * Proven by agentinstance.conformance.test.ts (CONFORMANCE_TARGET=local)
  * and __tests__/agentinstance.test.ts.
  *
  * Versus Stigmer Cloud, OSS excludes the Authorize (FGA

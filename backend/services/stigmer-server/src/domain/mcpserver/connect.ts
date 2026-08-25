@@ -12,7 +12,7 @@
  * (engine.ts) and never registers a worker.
  *
  * Proven by mcpserver-connect.conformance.test.ts
- * (CONFORMANCE_TARGET=local-ts-execution) and __tests__/connect.test.ts.
+ * (CONFORMANCE_TARGET=local-execution) and __tests__/connect.test.ts.
  */
 import { create } from "@bufbuild/protobuf";
 import type { MessageInitShape } from "@bufbuild/protobuf";

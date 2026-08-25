@@ -10,7 +10,7 @@
  * read-modify-write.
  *
  * Pipeline per RPC mirrors the Go step chains character-for-character.
- * Proven by session.conformance.test.ts (CONFORMANCE_TARGET=local-ts) and
+ * Proven by session.conformance.test.ts (CONFORMANCE_TARGET=local) and
  * __tests__/session.test.ts.
  *
  * Versus Stigmer Cloud, OSS excludes the Authorize, CreateIamPolicies, and

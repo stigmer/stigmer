@@ -21,7 +21,7 @@
  *
  * Pipeline per RPC mirrors the Go step chains character-for-character.
  * Proven by executioncontext.conformance.test.ts
- * (CONFORMANCE_TARGET=local-ts) and __tests__/executioncontext.test.ts
+ * (CONFORMANCE_TARGET=local) and __tests__/executioncontext.test.ts
  * (the decrypt-lane matrix conformance deliberately never exercises —
  * its harness authenticates as a user).
  *

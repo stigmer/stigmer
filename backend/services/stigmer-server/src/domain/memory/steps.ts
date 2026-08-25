@@ -14,7 +14,7 @@
  * domain: memory is not_search_indexed by design (privacy — content is
  * subject-only and must not surface in org-visible search).
  *
- * Proven by memory.conformance.test.ts (CONFORMANCE_TARGET=local-ts) and
+ * Proven by memory.conformance.test.ts (CONFORMANCE_TARGET=local) and
  * __tests__/memory.test.ts.
  */
 import { create, equals, fromBinary } from "@bufbuild/protobuf";

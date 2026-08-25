@@ -26,8 +26,8 @@
  * cloud edition enforces the same contracts via FGA.
  *
  * Pipeline per RPC mirrors the Go step chains character-for-character.
- * Proven by schedule.conformance.test.ts (local-ts), the firing suite
- * (local-ts-execution), and __tests__/schedule.composed.test.ts.
+ * Proven by schedule.conformance.test.ts (local), the firing suite
+ * (local-execution), and __tests__/schedule.composed.test.ts.
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 import { create, fromBinary } from "@bufbuild/protobuf";

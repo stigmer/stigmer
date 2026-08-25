@@ -11,7 +11,7 @@ const config: DaemonConfig = {
   temporalAddress: "127.0.0.1:7233",
   serverOnly: false,
   noWeb: false,
-  server: { nodeBin: "/bin/node", entryPath: "/repo/server/dist/main.js", appDir: "/repo/server-ts" },
+  server: { nodeBin: "/bin/node", entryPath: "/repo/server/dist/main.js", appDir: "/repo/server" },
   runner: { nodeBin: "/bin/node", entryPath: "/repo/runner/dist/main.js", appDir: "/repo/runner" },
 };
 

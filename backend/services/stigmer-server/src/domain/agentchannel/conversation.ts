@@ -21,7 +21,7 @@
  * every request (matching Go's explicit SharedValidator calls), so the
  * INVALID_ARGUMENT contract holds before every refusal.
  *
- * Proven by agentchannel.conformance.test.ts (CONFORMANCE_TARGET=local-ts)
+ * Proven by agentchannel.conformance.test.ts (CONFORMANCE_TARGET=local)
  * and __tests__/agentchannel.test.ts.
  */
 import type { ConnectRouter } from "@connectrpc/connect";

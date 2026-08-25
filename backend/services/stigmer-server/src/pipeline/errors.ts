@@ -137,7 +137,7 @@ export function goGrpcErrorText(error: ConnectError): string {
  * client's error instance carries the INNER response's metadata, and
  * serializing that metadata into the outer response's trailers produces
  * malformed HTTP/2 (the client surfaces NGHTTP2_PROTOCOL_ERROR instead of
- * the status — found by the local-ts-execution roster on agent-execution
+ * the status — found by the local-execution roster on agent-execution
  * create's unknown-agent arm, which is unreachable while the engine gate
  * refuses first). Same code, same rawMessage, no inherited metadata.
  */

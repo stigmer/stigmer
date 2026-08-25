@@ -15,7 +15,7 @@
  * design.)
  *
  * Proven by __tests__/query-store.test.ts (Go's store test tables +
- * the scope-filter matrix) and search.conformance.test.ts on local-ts.
+ * the scope-filter matrix) and search.conformance.test.ts on local.
  */
 import { fromBinary } from "@bufbuild/protobuf";
 

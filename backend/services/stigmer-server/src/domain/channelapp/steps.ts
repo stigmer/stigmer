@@ -11,7 +11,7 @@
  * ratified promotion rule requires an identical second consumer — recorded
  * in the sub-project plan so review does not re-litigate.
  *
- * Proven by channelapp.conformance.test.ts (CONFORMANCE_TARGET=local-ts)
+ * Proven by channelapp.conformance.test.ts (CONFORMANCE_TARGET=local)
  * and __tests__/channelapp.test.ts.
  */
 import { fromBinary } from "@bufbuild/protobuf";

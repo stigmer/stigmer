@@ -10,17 +10,17 @@ are retired; one TypeScript runner now executes everything.
 
 ### stigmer-server
 
-Go gRPC control plane for local Stigmer deployment.
+TypeScript gRPC control plane for local Stigmer deployment.
 
 **Location**: `services/stigmer-server/`
-**Language**: Go (version pinned in `go.work`)
-**Entry point**: `cmd/server/`
+**Language**: TypeScript (Node version pinned in `.nvmrc`; needs `node:sqlite` with FTS5, Node >= 22.13)
+**Entry point**: `src/main.ts` (compiled; the daemon launches `dist/main.js`)
 
 **Key responsibilities**:
 
-- gRPC command/query controllers for every API resource (Agent, Workflow,
-  Skill, Session, Environment, McpServer, …)
-- SQLite storage (see [Storage](#storage) below)
+- gRPC/gRPC-Web/Connect command/query controllers for every API resource
+  (Agent, Workflow, Skill, Session, Environment, McpServer, …) on one port
+- SQLite storage via `node:sqlite` (see [Storage](#storage) below)
 - Temporal workflow orchestration for agent executions, workflow
   executions, and MCP server discovery
 - Serves platform documents such as the model registry
@@ -56,16 +56,14 @@ harnesses:
 The same runner image runs in the cloud edition — execution behavior is
 identical in both editions by construction.
 
-## Libraries (`backend/libs/go/`)
+## Libraries (`backend/libs/ts/`)
 
 | Library | Purpose |
 |---------|---------|
-| `store` | Storage interface + SQLite implementation (generic resource table, audit, execution events) |
-| `grpc` | gRPC server lifecycle, request pipeline, interceptors, error mapping |
-| `apiresource` | API resource metadata/kind helpers shared across domains |
-| `envmerge` | Environment variable merge semantics (personal env ⊕ runtime env) |
-| `mcpdiscovery` | MCP server capability discovery shared logic |
-| `telemetry` | OpenTelemetry wiring |
+| `temporal-codecs` | Temporal payload codecs (AES-256-GCM encryption + claim-check), shared by the server and the runner |
+| `zip-structure` | Policy-free structural ZIP parsing (skill artifacts), shared by the server and the runner |
+
+(The Go library tree, `backend/libs/go/`, retired with the Go server — go-server-retirement, D4 #25.)
 
 ## Architecture
 
@@ -78,12 +76,12 @@ identical in both editions by construction.
        │ gRPC (local port)│                │
        ↓                  ↓                ↓
 ┌─────────────────────────────────────────────────┐
-│                 stigmer-server (Go)             │
+│              stigmer-server (TypeScript)        │
 │  command/query controllers per API resource     │
 │                       │                         │
 │              ┌────────┴────────┐                │
 │              │ SQLite storage  │                │
-│              │ (libs/go/store) │                │
+│              │  (node:sqlite)  │                │
 │              └─────────────────┘                │
 └──────────────────────┬──────────────────────────┘
                        │ Temporal
@@ -96,7 +94,8 @@ identical in both editions by construction.
         └──────────────────────────────┘
 ```
 
-In local mode the CLI acts as a supervisor: it downloads `stigmer-server`
+In local mode the CLI acts as a supervisor: it acquires the server
+(`@stigmer/server-slim`) and runner packages into `~/.stigmer/runtimes/`
 and the Temporal dev server into `~/.stigmer/bin`, launches them as
 daemons, and talks to the server over gRPC on a local port
 (`client-apps/cli/src/local/`).
@@ -105,7 +104,6 @@ daemons, and talks to the server over gRPC on a local port
 
 ### Prerequisites
 
-- Go (version pinned in `go.work`)
 - Node.js (version pinned in `.nvmrc` — `nvm use`)
 - Temporal dev server (the CLI downloads one automatically; for manual
   runs use the [Temporal CLI](https://docs.temporal.io/cli))
@@ -113,7 +111,7 @@ daemons, and talks to the server over gRPC on a local port
 ### Building and running
 
 ```bash
-# Build the control plane → bin/stigmer-server
+# Build the control plane → backend/services/stigmer-server/dist/
 make build-server
 
 # One-shot prep for the runner (proto stub dist + deps)
@@ -122,8 +120,9 @@ make bootstrap-runner
 # Run the runner (Temporal worker)
 cd backend/services/runner && npm start
 
-# Run the control plane directly
-cd backend/services/stigmer-server && go run ./cmd/server
+# Run the control plane directly (must be compiled — the Temporal workers
+# bundle workflow code from the built dist)
+cd backend/services/stigmer-server && npm run build && node dist/main.js
 ```
 
 For the end-user path, the published `stigmer` CLI (npm:
@@ -148,7 +147,8 @@ Adding a new resource kind requires **no schema migration** — define the
 proto, run `make codegen`, add the controller. Purpose-built side tables
 exist where a generic row is the wrong shape (resource audit history,
 workflow execution events, bootstrap state) — see
-`backend/libs/go/store/sqlite/store.go` for the authoritative schema.
+`backend/services/stigmer-server/src/store/sqlite/` (the migration chain in
+`migrations.ts`) for the authoritative schema.
 
 **Trade-offs**: no type safety at the DB level (validation lives at the
 proto layer); queries by anything other than `(kind, id)` scan — fine for
@@ -165,7 +165,7 @@ single-user local development:
 
 | Component | Cloud (`stigmer-cloud`) | Open source (this repo) |
 |-----------|------------------------|-------------------------|
-| Control plane | `stigmer-service` (Java, Spring Boot) | `stigmer-server` (Go) |
+| Control plane | `stigmer-service` (Java, Spring Boot) | `stigmer-server` (TypeScript) |
 | Runner | same TypeScript runner image | `services/runner` |
 | Storage | MongoDB (+ Redis, Postgres, object storage) | SQLite |
 | Auth | Auth0 + OpenFGA | lightweight local identity |

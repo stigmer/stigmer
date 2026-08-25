@@ -10,7 +10,7 @@
  * the handler modules cycle-free.
  *
  * Proven by mcpserver-connect.conformance.test.ts
- * (CONFORMANCE_TARGET=local-ts-execution).
+ * (CONFORMANCE_TARGET=local-execution).
  */
 import { create } from "@bufbuild/protobuf";
 import type { JsonObject } from "@bufbuild/protobuf";

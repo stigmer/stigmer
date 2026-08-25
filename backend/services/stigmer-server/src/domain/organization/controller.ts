@@ -5,7 +5,7 @@
  *
  * Pipeline per RPC mirrors the Go step chains character-for-character;
  * see the domain row in blueprint/01-domain-inventory.md. Proven by
- * organization.conformance.test.ts (CONFORMANCE_TARGET=local-ts) and
+ * organization.conformance.test.ts (CONFORMANCE_TARGET=local) and
  * __tests__/organization.test.ts.
  *
  * getByExternalOrgId is DELIBERATELY not implemented: it is the single
