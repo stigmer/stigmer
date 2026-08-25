@@ -12,6 +12,12 @@
  */
 import yaml from "js-yaml";
 
+// goTrimSpace: Go's exact TrimSpace set — a .trim()-based delimiter check
+// would accept BOM'd "---" lines Go rejects (found by the #8 parity review
+// panel; promoted to gocompat when search criteria became the second
+// consumer, #14).
+import { goTrimSpace } from "../../../gocompat/trim.js";
+
 /** Parsed SKILL.md frontmatter (Go SkillFrontmatter). */
 export interface SkillFrontmatter {
   /** Canonical skill identifier (required; kebab-case, optionally dot-scoped). */
@@ -30,23 +36,6 @@ export interface SkillFrontmatter {
  * separators. The derived slug renders dots as hyphens (generateSlug).
  */
 const SKILL_NAME_PATTERN = /^[a-z0-9]+([.-][a-z0-9]+)*$/;
-
-/**
- * Go strings.TrimSpace trims by unicode.IsSpace — the Unicode White_Space
- * property (ASCII spaces, U+0085, U+00A0, U+1680, U+2000–U+200A, U+2028,
- * U+2029, U+202F, U+205F, U+3000) — which EXCLUDES U+FEFF. JS
- * String.trim's set is White_Space PLUS U+FEFF, so a BOM'd "---" first
- * line would pass a .trim() delimiter check while Go rejects the file.
- * The delimiter comparisons must trim exactly Go's set or the two
- * editions disagree on BOM'd SKILL.md files (found by the #8 parity
- * review panel).
- */
-const GO_TRIM_PATTERN =
-  /^[\t\n\v\f\r \u0085\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000]+|[\t\n\v\f\r \u0085\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000]+$/g;
-
-function goTrimSpace(value: string): string {
-  return value.replace(GO_TRIM_PATTERN, "");
-}
 
 /**
  * bufio.Scanner's default token cap (Go bufio.MaxScanTokenSize): lines

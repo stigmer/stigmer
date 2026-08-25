@@ -143,6 +143,55 @@ export interface SearchIndexEntry {
   readonly createdAt: number;
 }
 
+/**
+ * Parameters for one FTS5 read (Go SQLiteSearchQueryStore.Search's two
+ * statements, D4 #14 / OD-3: the SQL lives in the driver, the search
+ * service composes criteria). The caller guarantees `kinds` is non-empty —
+ * the empty effective-kind set short-circuits ABOVE the store
+ * (stigmer/stigmer#440), never as an `IN ()` syntax accident here.
+ */
+export interface SearchIndexQuery {
+  /** Kind NAME strings (the search_index.kind column values). */
+  readonly kinds: readonly string[];
+  /**
+   * Pre-escaped FTS5 MATCH expression (search mode), or undefined for
+   * list mode (created_at ordering, rank pinned 1.0). Escaping is search
+   * semantics and stays in the search service (escapeFTS5Query).
+   */
+  readonly matchExpression: string | undefined;
+  /** Org scope; "" = no org filter. */
+  readonly orgFilter: string;
+  /** With orgFilter: also admit visibility_public rows from ANY org. */
+  readonly crossOrgPublic: boolean;
+  /** Independent subtraction: drop visibility_public rows from any scope. */
+  readonly excludePublic: boolean;
+  readonly limit: number;
+  readonly offset: number;
+}
+
+/** One page row of a search-index read, in result order. */
+export interface SearchIndexHit {
+  /** Kind NAME string as stored (parsed back to the enum by the caller). */
+  readonly kind: string;
+  readonly resourceId: string;
+  /**
+   * bm25() rank (negative, lower = better) in search mode; the pinned
+   * 1.0 in list mode. Normalization to the wire's 0–1 score happens in
+   * the search service (normalizeScore).
+   */
+  readonly rank: number;
+}
+
+/** A search-index read: full counts plus the requested page. */
+export interface SearchIndexQueryResult {
+  /** Total matches per kind NAME (GROUP BY kind — zero-count kinds absent). */
+  readonly countsByKind: Record<string, number>;
+  /** Sum of countsByKind values. */
+  readonly totalCount: number;
+  /** The requested page, empty when totalCount is 0 (count short-circuit). */
+  readonly hits: readonly SearchIndexHit[];
+}
+
 // =============================================================================
 // Bootstrap state (Go: concrete-type methods, sqlite/store.go:1480-1611)
 // =============================================================================
@@ -668,6 +717,21 @@ export interface Store {
 
   /** Removes a resource's search-index row (post-delete). */
   deleteSearchIndex(kind: ApiResourceKind, resourceId: string): Promise<void>;
+
+  /**
+   * One FTS5 read: the count statement (GROUP BY kind), short-circuiting
+   * to an empty page at zero matches, then the ranked page statement —
+   * Go SQLiteSearchQueryStore's searchWithQuery/listWithoutQuery pair,
+   * SQL byte-identical (D4 #14, OD-3: no DB() escape hatch; the driver
+   * owns the SQL, the search service owns criteria and conversion).
+   */
+  querySearchIndex(query: SearchIndexQuery): Promise<SearchIndexQueryResult>;
+
+  /**
+   * Empties the search index (RebuildIndex's wipe before re-indexing from
+   * the resources table — Go's `DELETE FROM search_index`).
+   */
+  clearSearchIndex(): Promise<void>;
 
   // ---------------------------------------------------------------------------
   // Consolidated sub-stores (D2 §3 — inside the boundary, no DB() hatch)

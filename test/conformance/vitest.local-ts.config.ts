@@ -62,6 +62,12 @@
 //     orphan-prune lanes are proven by the domain's own
 //     __tests__/{reconcile,project.composed}.test.ts, which drive real
 //     deletes through the four in-process command clients).
+//   - search + activity — sub-project #14 (sp.search-and-activity; the
+//     two CQRS query services: the FTS5 SearchService with the 13-kind
+//     extractor registry — project's full-contract extractor shipped with
+//     this entry per DD-D and reconciled at the #16/#14 merge — boot-time
+//     RebuildIndex, and the ActivityQueryController recents feed,
+//     stigmer#461).
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
@@ -90,6 +96,8 @@ export default defineConfig({
       "src/suites/github.conformance.test.ts",
       "src/suites/artifact.conformance.test.ts",
       "src/suites/project.conformance.test.ts",
+      "src/suites/search.conformance.test.ts",
+      "src/suites/activity.conformance.test.ts",
     ],
     globalSetup: ["./src/harness/global-setup-ts.ts"],
     env: {
