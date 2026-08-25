@@ -247,13 +247,23 @@ export class RunStarter {
     // fire at the same nominal time) finds the winner instead of sending
     // the reminder twice. The deterministic name IS the execution's slug
     // (every character is already slug-shaped, pinned by test).
-    const existing = await findResourceBySlug(
-      store,
-      ApiResourceKind.agent_execution,
-      AgentExecutionSchema,
-      executionName,
-      org,
-    );
+    let existing;
+    try {
+      existing = await findResourceBySlug(
+        store,
+        ApiResourceKind.agent_execution,
+        AgentExecutionSchema,
+        executionName,
+        org,
+      );
+    } catch (error) {
+      // Go's wrap label (runstarter.go): the activity retries either way;
+      // the label keeps history/trigger diagnostics identical.
+      throw new Error(
+        `look up execution ${executionName}: ${error instanceof Error ? error.message : String(error)}`,
+        { cause: error },
+      );
+    }
     if (existing !== undefined) {
       const executionId = existing.metadata?.id ?? "";
       logger.info("Schedule fire already has its execution (idempotent retry)", {

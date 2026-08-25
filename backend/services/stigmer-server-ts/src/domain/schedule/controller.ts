@@ -269,7 +269,7 @@ async function deleteSchedule(
   if (deleted === undefined) {
     throw internalError(
       new Error("deleted schedule not found in context"),
-      "delete operation lost its loaded resource",
+      "deleted schedule not found in context",
     );
   }
   return deleted as Schedule;
