@@ -69,6 +69,7 @@ import type { AgentExecutionFileDecisionForwarder } from "../domain/workflowexec
 import type { ParentWorkflowLoader } from "../domain/workflowinstance/steps.js";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { OrphanDeleter } from "../domain/project/reconcile.js";
+import type { ScheduleExecutionCreator } from "../temporal/schedule/run-starter.js";
 import { buildInterceptorChain } from "../pipeline/chain.js";
 import type { Logger } from "./logger.js";
 
@@ -120,6 +121,14 @@ export interface InProcessClients {
    * the same interceptor chain as an external delete.
    */
   readonly projectOrphanDeleter: OrphanDeleter;
+  /**
+   * The schedule clock's fire edge (server.go 581: the RunStarter's
+   * in-process agentexecution client): every fire — cron tick or manual
+   * trigger — enters the FULL execution create pipeline, so session
+   * auto-create, execution context, launch gates, and workflow start all
+   * run exactly as for an external create.
+   */
+  readonly scheduleExecutionCreator: ScheduleExecutionCreator;
 }
 
 /**
@@ -267,6 +276,12 @@ export function createInProcessClients(
     workflowExecutionFileDecisionForwarder: {
       submitFileDecision: (input) =>
         agentExecutionCommand.submitFileDecision(input),
+    },
+    // The schedule clock's fire edge — the plain Create RPC under the
+    // process-global operator identity (Go's ExecutionCreator; OSS has no
+    // caller identity by design, DD-015 D-G).
+    scheduleExecutionCreator: {
+      create: (execution) => agentExecutionCommand.create(execution),
     },
     // The project reconciler's delete routing — Go's
     // ResourceDeleterAdapter.Delete switch (execution_engine.go:75-92).

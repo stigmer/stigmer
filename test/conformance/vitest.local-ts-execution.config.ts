@@ -60,6 +60,11 @@ export default defineConfig({
       "src/suites-execution/workflowexecution-signal.conformance.test.ts",
       "src/suites-execution/workflowexecution-recover.conformance.test.ts",
       "src/suites-execution/mcpserver-connect.conformance.test.ts",
+      // schedule firing — sub-project #22 (sp.schedule): the synchronous
+      // trigger outcome, the manual-fires-never-feed-the-streak pin, and
+      // the listRuns history surface, active now that scheduleFiring
+      // flipped true on this target.
+      "src/suites-execution/schedule-firing.conformance.test.ts",
     ],
     globalSetup: ["./src/harness/global-setup-ts-execution.ts"],
     env: {

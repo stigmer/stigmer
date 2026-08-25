@@ -105,6 +105,10 @@ export default defineConfig({
       "src/suites/search.conformance.test.ts",
       "src/suites/activity.conformance.test.ts",
       "src/suites/mcpserver-oauth.conformance.test.ts",
+      // schedule — sub-project #22 (sp.schedule; the last Class B domain):
+      // the CW-6 CRUD + trigger/resume refusal contract. Temporal-free by
+      // design — the firing lanes roster on local-ts-execution.
+      "src/suites/schedule.conformance.test.ts",
     ],
     globalSetup: ["./src/harness/global-setup-ts.ts"],
     env: {

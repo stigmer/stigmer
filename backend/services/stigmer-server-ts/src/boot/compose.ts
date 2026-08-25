@@ -31,6 +31,15 @@ import { newMcpServerEngineStateProvider } from "../temporal/mcpserver/engine-cl
 import { newAgentExecutionWorkerFactory } from "../temporal/agentexecution/worker.js";
 import { TemporalManager } from "../temporal/manager.js";
 import { loadServerPayloadCodecs } from "../temporal/payload-codec.js";
+import type { Client as TemporalClient } from "@temporalio/client";
+
+import { ScheduleArtifact } from "../temporal/schedule/artifact.js";
+import { newScheduleConfigFromEnv } from "../temporal/schedule/config.js";
+import { ScheduleReconciler } from "../temporal/schedule/reconciler.js";
+import { RunStarter } from "../temporal/schedule/run-starter.js";
+import { ScheduleSyncer } from "../temporal/schedule/syncer.js";
+import { newScheduleWorkerFactory } from "../temporal/schedule/worker.js";
+import { registerScheduleServices } from "../domain/schedule/controller.js";
 import { RuntimeResolutionService } from "../domain/environment/resolution/resolution.js";
 import { ManagedEnvironmentService } from "../domain/mcpserver/oauth/managed-env.js";
 import { registerAgentInstanceServices } from "../domain/agentinstance/controller.js";
@@ -221,9 +230,45 @@ export function composeServer(options: ComposeOptions): ComposedServer {
   const workflowExecutionStreamBroker = new WorkflowExecutionStreamBroker(
     logger,
   );
+  // Stage: schedule clock (#22) — Go server.go 578–592 injection order:
+  // config → artifact → syncer → run starter → (worker below) →
+  // reconciler. The client provider closes over `temporalManager`,
+  // declared just below — legal and deliberate: the manager's factory list
+  // must include the schedule worker at construction, while the syncer and
+  // reconciler only READ the client at call time, long after boot (a call
+  // before initialization would throw loudly, the composition-root idiom).
+  const scheduleTemporalConfig = newScheduleConfigFromEnv();
+  const scheduleClientProvider = (): TemporalClient | undefined =>
+    temporalManager.getClient();
+  const scheduleArtifact = new ScheduleArtifact(scheduleTemporalConfig);
+  const scheduleSyncer = new ScheduleSyncer(
+    scheduleClientProvider,
+    store,
+    scheduleArtifact,
+    logger,
+  );
+  // Every fire enters the FULL execution create pipeline through the
+  // in-process agentexecution client (Go server.go 581: the RunStarter's
+  // ExecutionCreator edge).
+  const scheduleRunStarter = new RunStarter({
+    store,
+    config: scheduleTemporalConfig,
+    executions: {
+      create: (execution) =>
+        requireInProcess().scheduleExecutionCreator.create(execution),
+    },
+    logger,
+  });
+  const scheduleReconciler = new ScheduleReconciler(
+    scheduleClientProvider,
+    store,
+    scheduleSyncer,
+    scheduleTemporalConfig,
+    logger,
+  );
   // The manager owns the connection lifecycle; one factory per domain
   // worker (Go createWorkers' list) — agent-execution (#18),
-  // workflow-execution (#21); the schedule clock appends its own in #22.
+  // workflow-execution (#21), and the schedule clock (#22).
   const temporalManager = new TemporalManager({
     hostPort: config.temporalHostPort,
     namespace: config.temporalNamespace,
@@ -241,6 +286,13 @@ export function composeServer(options: ComposeOptions): ComposedServer {
         logger,
         broker: workflowExecutionStreamBroker,
         temporalConfig: workflowExecutionTemporalConfig,
+      }),
+      newScheduleWorkerFactory({
+        store,
+        config: scheduleTemporalConfig,
+        syncer: scheduleSyncer,
+        runStarter: scheduleRunStarter,
+        logger,
       }),
     ],
   });
@@ -428,6 +480,18 @@ export function composeServer(options: ComposeOptions): ComposedServer {
     registerChannelMessageServices(router);
     registerChannelConversationServices(router);
     registerChannelAppServices(router, { store, logger, secretService });
+    // Schedule registers between channelapp and memory (Go server.go
+    // 417 → 426 → 436). The clock and runner ride constant providers —
+    // production wiring always has both (Go SetClock/SetRunner beside the
+    // manager); the provider SHAPE exists for embedded/test assemblies
+    // that skip Temporal wiring, where undefined degrades per DD-015 D-A.
+    registerScheduleServices(router, {
+      store,
+      logger,
+      modelRegistry: modelRegistryStore,
+      clock: () => scheduleSyncer,
+      runner: () => scheduleRunStarter,
+    });
     registerMemoryServices(router, { store, logger });
     registerAgentExecutionServices(router, {
       store,
@@ -597,6 +661,11 @@ export function composeServer(options: ComposeOptions): ComposedServer {
         await temporalManager.startWorkers();
       }
       temporalManager.startHealthMonitor();
+      // Schedule reconciliation: an immediate boot pass (the dev server may
+      // have restarted with empty state while the daemon was down), the
+      // periodic loop, and the reconnect kick — Go server.go 763–764.
+      const kickScheduleReconcile = scheduleReconciler.startReconciliation();
+      temporalManager.addReconnectHook(kickScheduleReconcile);
       // Artifact storage must be reachable and writable before the server
       // answers (Go server.go boots-fatal on the same probe).
       await artifactStorage.health();
@@ -643,6 +712,10 @@ export function composeServer(options: ComposeOptions): ComposedServer {
       healthState.setOverall(ServingStatus.NOT_SERVING);
       modelRegistryStore.stopRefresh();
       await artifactFileServer?.shutdown();
+      // The reconciler stops before the manager: a pass mid-flight may
+      // still call through the manager's client, and nothing may fire
+      // after shutdown (the #18 close-race lesson).
+      await scheduleReconciler.stop();
       // Workers stop before the transport drains: an in-flight activity
       // may still write through the store, which closes LAST.
       await temporalManager.close();
