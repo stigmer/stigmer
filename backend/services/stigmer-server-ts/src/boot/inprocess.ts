@@ -18,8 +18,14 @@ import { createClient, createRouterTransport } from "@connectrpc/connect";
 import type { ConnectRouter } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
 
+import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import { AgentIdSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
+import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
+import { ApiResourceDeleteInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import { SkillCommandController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/command_pb";
+import { SkillIdSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
+import { WorkflowCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/command_pb";
 import { AgentInstanceCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/command_pb";
 import { AgentInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/query_pb";
 import { AgentInstanceIdSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/io_pb";
@@ -49,6 +55,7 @@ import type {
   ExecutionContextCreator,
   SessionLoader,
 } from "../domain/agentexecution/create-execution-context-step.js";
+import type { ConnectExecutionContextClient } from "../domain/mcpserver/connect.js";
 import type { ManagedEnvironmentClient } from "../domain/mcpserver/oauth/managed-env.js";
 import type { AgentInstanceCreator } from "../domain/session/steps.js";
 import type { WorkflowInstanceCreator } from "../domain/workflow/steps.js";
@@ -60,6 +67,8 @@ import type {
 import type { AgentExecutionApprovalForwarder } from "../domain/workflowexecution/submit-approval.js";
 import type { AgentExecutionFileDecisionForwarder } from "../domain/workflowexecution/submit-file-decision.js";
 import type { ParentWorkflowLoader } from "../domain/workflowinstance/steps.js";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { OrphanDeleter } from "../domain/project/reconcile.js";
 import { buildInterceptorChain } from "../pipeline/chain.js";
 import type { Logger } from "./logger.js";
 
@@ -79,13 +88,21 @@ export interface InProcessClients {
   readonly executionSessionLoader: SessionLoader;
   readonly executionSessionCreator: SessionCreator;
   /**
-   * Reads for the EC builder plus the secret rewrite the OAuth pre-flight
-   * refresh needs (ManagedEnvironmentClient) — one surface, every call
-   * through the full chain.
+   * Reads for the EC builder plus the full managed-environment lifecycle
+   * (ManagedEnvironmentClient): the secret rewrite the OAuth pre-flight
+   * refresh needs (#17) and the create/delete edges the connect/OAuth
+   * slice mints and tears managed environments with (#19) — one surface,
+   * every call through the full chain.
    */
   readonly executionEnvironmentReader: EnvironmentReader &
     ManagedEnvironmentClient;
   readonly executionContextCreator: ExecutionContextCreator;
+  /**
+   * The connect lanes' ephemeral-EC lifecycle (server.go 693–705: the
+   * mcpserver controller's executioncontext client) — create before the
+   * discovery workflow starts, delete when the operation settles.
+   */
+  readonly connectExecutionContextClient: ConnectExecutionContextClient;
   // The workflowexecution edges (server.go 636–642: the controller's
   // workflowinstance/executioncontext clients and the two HITL forwarding
   // interfaces satisfied by the agentexecution controller).
@@ -94,6 +111,15 @@ export interface InProcessClients {
   readonly workflowExecutionContextCreator: WorkflowExecutionContextCreator;
   readonly workflowExecutionApprovalForwarder: AgentExecutionApprovalForwarder;
   readonly workflowExecutionFileDecisionForwarder: AgentExecutionFileDecisionForwarder;
+  /**
+   * The project reconciler's orphan-delete edge (server.go 635-648: Go's
+   * DownstreamClients + ResourceDeleterAdapter). Go retains the four full
+   * CRUD client interfaces; the reconciler uses ONLY Delete, so this
+   * surface exposes only the delete routing — every orphan delete runs the
+   * owning domain's FULL pipeline (referential blocks included) through
+   * the same interceptor chain as an external delete.
+   */
+  readonly projectOrphanDeleter: OrphanDeleter;
 }
 
 /**
@@ -142,6 +168,10 @@ export function createInProcessClients(
     AgentExecutionCommandController,
     transport,
   );
+  const agentCommand = createClient(AgentCommandController, transport);
+  const workflowCommand = createClient(WorkflowCommandController, transport);
+  const mcpServerCommand = createClient(McpServerCommandController, transport);
+  const skillCommand = createClient(SkillCommandController, transport);
 
   return {
     // Go's ApplyAsSystem is the Apply RPC with no extra identity attached:
@@ -202,9 +232,15 @@ export function createInProcessClients(
       list: (request) => environmentQuery.list(request),
       getSecretValue: (input) => environmentQuery.getSecretValue(input),
       updateVariables: (request) => environmentCommand.updateVariables(request),
+      create: (environment) => environmentCommand.create(environment),
+      delete: (input) => environmentCommand.delete(input),
     },
     executionContextCreator: {
       create: (ec) => executionContextCommand.create(ec),
+    },
+    connectExecutionContextClient: {
+      create: (ec) => executionContextCommand.create(ec),
+      delete: (input) => executionContextCommand.delete(input),
     },
     // The workflowexecution edges. CreateAsSystem semantics per the
     // workflow edge above: create under the process-global operator
@@ -231,6 +267,44 @@ export function createInProcessClients(
     workflowExecutionFileDecisionForwarder: {
       submitFileDecision: (input) =>
         agentExecutionCommand.submitFileDecision(input),
+    },
+    // The project reconciler's delete routing — Go's
+    // ResourceDeleterAdapter.Delete switch (execution_engine.go:75-92).
+    // The unsupported-kind default is defense-in-depth kept for Go parity:
+    // the reconciler's slug resolver rejects unsupported kinds before any
+    // delete is attempted, in both editions. Log-only surface: reconcile
+    // failures never reach the wire.
+    projectOrphanDeleter: {
+      async delete(kind, resourceId) {
+        switch (kind) {
+          case ApiResourceKind.agent:
+            await agentCommand.delete(
+              create(AgentIdSchema, { value: resourceId }),
+            );
+            return;
+          case ApiResourceKind.workflow:
+            await workflowCommand.delete(
+              create(WorkflowIdSchema, { value: resourceId }),
+            );
+            return;
+          case ApiResourceKind.mcp_server:
+            // McpServer's delete input is the commons ApiResourceDeleteInput
+            // (not an id wrapper) — Go's client builds the same message.
+            await mcpServerCommand.delete(
+              create(ApiResourceDeleteInputSchema, { resourceId }),
+            );
+            return;
+          case ApiResourceKind.skill:
+            await skillCommand.delete(
+              create(SkillIdSchema, { value: resourceId }),
+            );
+            return;
+          default:
+            throw new Error(
+              `unsupported resource kind for delete: ${ApiResourceKind[kind] ?? String(kind)}`,
+            );
+        }
+      },
     },
   };
 }

@@ -1,30 +1,32 @@
 /**
- * McpServer controller — ports pkg/domain/mcpserver/controller's CRUD
- * slice (D4 entry #9): the declarative MCP server surface. Registered
- * methods: apply/create/update/delete/updateVisibility on the command
- * side; get/getByReference on the query side; plus the three org-OAuth
- * RPCs as PERMANENT UNIMPLEMENTED stubs (below).
+ * McpServer controller — ports pkg/domain/mcpserver/controller whole:
+ * the CRUD slice (D4 entry #9) and the connect/OAuth slice (D4 entry
+ * #19). Registered methods: apply/create/update/delete/updateVisibility +
+ * connect/startConnect/initiateOAuthConnect/completeOAuthConnect/
+ * disconnectOAuth on the command side; get/getByReference/
+ * getOAuthGrantStatus on the query side; plus the three org-OAuth RPCs as
+ * PERMANENT UNIMPLEMENTED stubs (below).
  *
- * The connect/OAuth slice (connect, startConnect, initiateOAuthConnect,
- * completeOAuthConnect, disconnectOAuth, getOAuthGrantStatus) arrives
- * with #19 — those methods stay unregistered here; connect-es answers
- * them Unimplemented with its own generated text. Go's constructor takes
- * only the store for exactly this slice; its connect/OAuth deps are
- * optional setters. The interim gap is DISCLOSED, not uniform
- * "unported" lag: Go wires the OAuth deps unconditionally (server.go:718),
- * so getOAuthGrantStatus, completeOAuthConnect, and disconnectOAuth give
- * real answers on Go today (grant-status even answers NO_GRANT with a nil
- * store), and connect/startConnect answer FailedPrecondition on a
- * Temporal-less Go rather than Unimplemented. Clients treating
- * Unimplemented as capability-absent (the SDK's posture) degrade
- * gracefully; the surfaces themselves return with #19.
+ * The connect/OAuth slice lives in sibling modules named for their Go
+ * files (connect.ts, start-connect.ts, initiate-oauth-connect.ts,
+ * complete-oauth-connect.ts, disconnect-oauth.ts,
+ * get-oauth-grant-status.ts; shared status bookkeeping in
+ * connect-status.ts). They are plain handlers — Go uses no pipeline for
+ * this slice — over the McpServerConnectDeps the composition root wires.
+ * Engine availability is the modeled state: connect/startConnect refuse
+ * FailedPrecondition while disconnected; the OAuth RPCs serve
+ * unconditionally (DB-1, sub-project 20260825.02 — Go's Temporal-gated
+ * managed-env wiring is a disclosed, deliberately unpinned composition
+ * artifact).
  *
  * Versus Stigmer Cloud, OSS excludes the Authorize, CreateIamPolicies,
  * and Publish steps (no multi-tenant auth, IAM/FGA, or event publishing).
  *
  * Proven by mcpserver.conformance.test.ts +
- * agent-mcpserver-references.conformance.test.ts
- * (CONFORMANCE_TARGET=local-ts) and __tests__/mcpserver.test.ts.
+ * agent-mcpserver-references.conformance.test.ts +
+ * mcpserver-oauth.conformance.test.ts (CONFORMANCE_TARGET=local-ts),
+ * mcpserver-connect.conformance.test.ts
+ * (CONFORMANCE_TARGET=local-ts-execution), and __tests__/.
  */
 import { Code, ConnectError } from "@connectrpc/connect";
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
@@ -72,7 +74,14 @@ import {
   newValidateVisibilityUpdateStep,
 } from "../../pipeline/steps/validate-visibility.js";
 import type { Store } from "../../store/interface.js";
+import { completeOAuthConnect } from "./complete-oauth-connect.js";
+import { connect, startBestEffortConnect } from "./connect.js";
+import type { McpServerConnectDeps } from "./connect.js";
+import { disconnectOAuth } from "./disconnect-oauth.js";
+import { getOAuthGrantStatus } from "./get-oauth-grant-status.js";
+import { initiateOAuthConnect } from "./initiate-oauth-connect.js";
 import { mcpServerSearchExtractor } from "./search-extractor.js";
+import { startConnect } from "./start-connect.js";
 import {
   newEnrichOAuthStatusStep,
   newValidateDefaultEnabledToolsStep,
@@ -81,6 +90,8 @@ import {
 export interface McpServerControllerDeps {
   readonly store: Store;
   readonly logger: Logger;
+  /** The connect/OAuth slice's dependencies (D4 #19). */
+  readonly connect: McpServerConnectDeps;
 }
 
 /** Registers both mcpserver services on the router (routes stage). */
@@ -94,6 +105,11 @@ export function registerMcpServerServices(
     update: (server, ctx) => update(deps, server, ctx),
     updateVisibility: (input, ctx) => updateVisibility(deps, input, ctx),
     delete: (input, ctx) => deleteMcpServer(deps, input, ctx),
+    connect: (input) => connect(deps.connect, input),
+    startConnect: (input) => startConnect(deps.connect, input),
+    initiateOAuthConnect: (input) => initiateOAuthConnect(deps.connect, input),
+    completeOAuthConnect: (input) => completeOAuthConnect(deps.connect, input),
+    disconnectOAuth: (input) => disconnectOAuth(deps.connect, input),
     setOrgOAuthApp: () => {
       throw orgOAuthAppUnimplemented("SetOrgOAuthApp");
     },
@@ -104,6 +120,7 @@ export function registerMcpServerServices(
   router.service(McpServerQueryController, {
     get: (id, ctx) => get(deps, id, ctx),
     getByReference: (ref, ctx) => getByReference(deps, ref, ctx),
+    getOAuthGrantStatus: (input) => getOAuthGrantStatus(deps.connect, input),
     getOrgOAuthApp: () => {
       throw orgOAuthAppUnimplemented("GetOrgOAuthApp");
     },
@@ -193,12 +210,11 @@ async function update(
  * Apply — kubectl-style create-or-update: a minimal probe pipeline
  * decides existence, then delegates with the ORIGINAL request message.
  *
- * Go's tail fires `go StartBestEffortConnect(result)` here — auto
- * discovery through the runner's Temporal workflow. That call is a SILENT
- * no-op when connect dependencies are absent (connect.go:1046: nil
- * temporalClient returns immediately), which is this server's exact state
- * until #19 wires the connect slice — so its absence here IS byte-parity,
- * not an approximation. #19 adds the seam.
+ * The tail fires startBestEffortConnect on the result — Go's
+ * `go StartBestEffortConnect(result)` (apply.go:76), auto discovery
+ * through the runner's connect workflow. Fire-and-forget on purpose: the
+ * gRPC response must not wait on a discovery run; a disconnected engine
+ * makes it a silent no-op (byte parity with Go's nil-client return).
  */
 async function apply(
   deps: McpServerControllerDeps,
@@ -220,9 +236,20 @@ async function apply(
       "apply operation failed to determine create vs update",
     );
   }
-  return shouldCreate
-    ? createMcpServer(deps, server, ctx)
-    : update(deps, server, ctx);
+  const result = shouldCreate
+    ? await createMcpServer(deps, server, ctx)
+    : await update(deps, server, ctx);
+
+  // startBestEffortConnect's arms never throw by design; the catch is
+  // the process-safety net an unhandled rejection would pierce.
+  void startBestEffortConnect(deps.connect, result).catch((error: unknown) => {
+    deps.logger.warn("Best-effort connect task failed unexpectedly", {
+      mcp_server_id: result.metadata?.id ?? "",
+      error: error instanceof Error ? error.message : String(error),
+    });
+  });
+
+  return result;
 }
 
 /**

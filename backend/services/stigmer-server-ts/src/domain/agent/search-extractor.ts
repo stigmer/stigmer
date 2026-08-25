@@ -1,21 +1,45 @@
 /**
- * Agent search extractor — ports the GetSearchIndexEntry side of
- * pkg/query/search/extractor/agent_extractor.go. The search summary uses
- * spec.description if available, falling back to instructions (the system
- * prompt) — the common pattern where older agents may not have a dedicated
- * description field, but all agents have instructions. The query side of
- * the extractor contract arrives with the search service sub-project
- * (#14), exactly as the organization extractor's header records.
+ * Agent search extractor — ports pkg/query/search/extractor/
+ * agent_extractor.go (both sides: the #4 index side, the #14 query side).
+ * The search summary uses spec.description if available, falling back to
+ * instructions (the system prompt) — the common pattern where older agents
+ * may not have a dedicated description field, but all agents have
+ * instructions. Agents are one of the two kinds carrying an icon_url on
+ * the search projection.
  */
 import type { Message } from "@bufbuild/protobuf";
 
+import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 
 import type { SearchIndexEntry } from "../../store/interface.js";
-import type { SearchIndexExtractor } from "../../pipeline/steps/index-search.js";
+import { buildSearchResult } from "../../query/search/extractor.js";
+import type { SearchableExtractor } from "../../query/search/extractor.js";
 
-export const agentSearchExtractor: SearchIndexExtractor = {
+export const agentSearchExtractor: SearchableExtractor = {
+  kind: ApiResourceKind.agent,
+  schema: AgentSchema,
+
+  getSearchSummary(resource: Message): string {
+    return agentSearchSummary(resource as unknown as Agent);
+  },
+
+  toSearchResult(resource: Message, score: number): SearchResult | undefined {
+    const agent = resource as unknown as Agent;
+    return buildSearchResult({
+      kind: ApiResourceKind.agent,
+      metadata: agent.metadata,
+      summary: agentSearchSummary(agent),
+      score,
+      createdAt: agent.status?.audit?.specAudit?.createdAt,
+      updatedAt: agent.status?.audit?.specAudit?.updatedAt,
+      iconUrl: agent.spec?.iconUrl ?? "",
+    });
+  },
+
   getSearchIndexEntry(resource: Message): SearchIndexEntry | undefined {
     const agent = resource as unknown as Agent;
     const metadata = agent.metadata;

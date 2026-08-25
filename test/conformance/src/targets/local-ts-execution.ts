@@ -51,7 +51,9 @@ export class LocalTsExecutionTarget implements TargetProfile {
     // delivery runtime — the refusal posture is identical to local-ts.
     channelMessaging: false,
     // The org BYOA lane is UNIMPLEMENTED on OSS by design (stigmer#558) —
-    // the TS port must reproduce the three refusals byte-for-byte.
+    // the suite pins the three refusals here. This line was CW-1's (#11)
+    // merge-coordination ask of whichever execution PR merged second; #18
+    // merged second and missed it — restored by D4 #21's pre-flight.
     orgOAuthAppConfiguration: false,
   };
 

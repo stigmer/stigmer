@@ -51,6 +51,9 @@ import type {
   PendingOAuthStateStore,
   ScheduleRunRecord,
   SearchIndexEntry,
+  SearchIndexHit,
+  SearchIndexQuery,
+  SearchIndexQueryResult,
   SignalDedupeRecord,
   SignalDedupeStatus,
   SignalDedupeStore,
@@ -770,6 +773,104 @@ export class SqliteStore implements Store {
     db.prepare(
       `DELETE FROM search_index WHERE kind = ? AND resource_id = ?`,
     ).run(apiResourceKindName(kind), resourceId);
+  }
+
+  async querySearchIndex(
+    query: SearchIndexQuery,
+  ): Promise<SearchIndexQueryResult> {
+    const db = this.open();
+
+    const kindPlaceholders = query.kinds.map(() => "?").join(",");
+    const kindArgs = [...query.kinds];
+
+    // The scope-filter fragments, byte-identical to Go's buildScopeFilter:
+    // org (strict or public-widened) and the independent public subtraction.
+    const scopeClauses: string[] = [];
+    const scopeArgs: string[] = [];
+    if (query.orgFilter !== "") {
+      scopeClauses.push(
+        query.crossOrgPublic
+          ? `AND (org = ? OR visibility = 'visibility_public')`
+          : `AND org = ?`,
+      );
+      scopeArgs.push(query.orgFilter);
+    }
+    if (query.excludePublic) {
+      scopeClauses.push(`AND visibility != 'visibility_public'`);
+    }
+    const scopeSql = scopeClauses.join("\n        ");
+
+    const searchMode = query.matchExpression !== undefined;
+    const matchClause = searchMode ? `search_index MATCH ? AND ` : "";
+    const matchArgs = searchMode ? [query.matchExpression as string] : [];
+
+    // Statement 1 — full counts per kind (Go's count query; zero-count
+    // kinds never appear: the counts come from GROUP BY over matches).
+    const countRows = db
+      .prepare(
+        `SELECT kind, COUNT(*) as cnt
+         FROM search_index
+         WHERE ${matchClause}kind IN (${kindPlaceholders})
+         ${scopeSql}
+         GROUP BY kind`,
+      )
+      .all(...matchArgs, ...kindArgs, ...scopeArgs) as Array<{
+      kind: string;
+      cnt: number;
+    }>;
+
+    const countsByKind: Record<string, number> = {};
+    let totalCount = 0;
+    for (const row of countRows) {
+      countsByKind[row.kind] = row.cnt;
+      totalCount += row.cnt;
+    }
+
+    // Go short-circuits to EmptyResult before the page statement.
+    if (totalCount === 0) {
+      return { countsByKind: {}, totalCount: 0, hits: [] };
+    }
+
+    // Statement 2 — the ranked page. Search mode: bm25 with the pinned
+    // weight vector (kind=1, resource_id=0, name=10, description=5,
+    // tags=5), ascending rank (bm25 is negative, lower = better). List
+    // mode: rank pinned 1.0, newest first.
+    const pageSql = searchMode
+      ? `SELECT kind, resource_id, bm25(search_index, 1.0, 0, 10.0, 5.0, 5.0) as rank
+         FROM search_index
+         WHERE search_index MATCH ? AND kind IN (${kindPlaceholders})
+         ${scopeSql}
+         ORDER BY rank
+         LIMIT ? OFFSET ?`
+      : `SELECT kind, resource_id, 1.0 as rank
+         FROM search_index
+         WHERE kind IN (${kindPlaceholders})
+         ${scopeSql}
+         ORDER BY created_at DESC
+         LIMIT ? OFFSET ?`;
+
+    const pageRows = db
+      .prepare(pageSql)
+      .all(
+        ...matchArgs,
+        ...kindArgs,
+        ...scopeArgs,
+        query.limit,
+        query.offset,
+      ) as Array<{ kind: string; resource_id: string; rank: number }>;
+
+    const hits: SearchIndexHit[] = pageRows.map((row) => ({
+      kind: row.kind,
+      resourceId: row.resource_id,
+      rank: row.rank,
+    }));
+
+    return { countsByKind, totalCount, hits };
+  }
+
+  async clearSearchIndex(): Promise<void> {
+    const db = this.open();
+    db.exec("DELETE FROM search_index");
   }
 
   // ---------------------------------------------------------------------------
