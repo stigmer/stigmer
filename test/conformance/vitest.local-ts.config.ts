@@ -56,6 +56,12 @@
 //     Layer-1 arms, and the artifact file-server disposition lane). The
 //     oauthapp suite's delete-block test drives McpServer create/delete,
 //     so it rosters here only after #9 (McpServer CRUD) merged.
+//   - project — sub-project #16 (sp.project; the LAST Class A domain: the
+//     aggregate root with apply-time membership reconciliation. The suite
+//     is CRUD/apply-branching/reference-contract only — the reconciler's
+//     orphan-prune lanes are proven by the domain's own
+//     __tests__/{reconcile,project.composed}.test.ts, which drive real
+//     deletes through the four in-process command clients).
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
@@ -83,6 +89,7 @@ export default defineConfig({
       "src/suites/platform.conformance.test.ts",
       "src/suites/github.conformance.test.ts",
       "src/suites/artifact.conformance.test.ts",
+      "src/suites/project.conformance.test.ts",
     ],
     globalSetup: ["./src/harness/global-setup-ts.ts"],
     env: {
