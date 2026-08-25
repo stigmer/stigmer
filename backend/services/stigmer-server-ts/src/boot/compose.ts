@@ -58,6 +58,12 @@ import { LocalFileStorage as SkillLocalFileStorage } from "../domain/skill/stora
 import { newSkillTransferLane } from "../domain/skill/transfer/handler.js";
 import { UploadSlots } from "../domain/skill/transfer/slots.js";
 import { SecretService } from "../encryption/encryption.js";
+import { registerActivityServices } from "../query/activity/controller.js";
+import { ActivityHandler } from "../query/activity/handler.js";
+import { registerSearchServices } from "../query/search/controller.js";
+import { SearchHandler } from "../query/search/handler.js";
+import { SqliteSearchQueryStore } from "../query/search/query-store.js";
+import { newSearchableResourceRegistry } from "../query/search/registry.js";
 import { buildInterceptorChain } from "../pipeline/chain.js";
 import { RunnerAuthService } from "../runnerauth/runnerauth.js";
 import { SqliteStore } from "../store/sqlite/store.js";
@@ -276,6 +282,21 @@ export function composeServer(options: ComposeOptions): ComposedServer {
     skillArtifactStorage,
     logger,
   );
+  // The search read side (#14): the 13-kind extractor registry, the query
+  // store over the driver's FTS5 read (OD-3 — no DB() escape hatch), and
+  // the CQRS handler. Registry validation is warn-only, Go server.go:509's
+  // posture — run ONCE here rather than inside routes(), which executes
+  // twice (serving router + in-process router).
+  const searchRegistry = newSearchableResourceRegistry();
+  searchRegistry.validateExpectedKinds(logger);
+  const searchQueryStore = new SqliteSearchQueryStore(
+    store,
+    searchRegistry,
+    logger,
+  );
+  const searchHandler = new SearchHandler(searchQueryStore, logger);
+  // The activity recents feed (#14) — pure reads over listResources.
+  const activityHandler = new ActivityHandler(store, logger);
   // The environment runtime-resolution service (#5) — the decrypt-for-
   // execution path the EC builder uses to resolve environment_refs (the
   // RPC surface redacts secret values, oss#405).
@@ -437,6 +458,12 @@ export function composeServer(options: ComposeOptions): ComposedServer {
     // Artifact CRUD shares the ONE blob store with agentexecution's
     // attachment lanes (Go server.go 347–374).
     registerArtifactServices(router, { store, artifactStorage, logger });
+    // The two CQRS query services register between the domains and the
+    // github/platform tail, mirroring Go's registration order
+    // (server.go: organization 487 → search 493 → activity 513 →
+    // github 524 → platform 530).
+    registerSearchServices(router, { handler: searchHandler, logger });
+    registerActivityServices(router, { handler: activityHandler, logger });
     // GitHub broker: config-only, no store (Go server.go 524–528).
     registerGitHubServices(router, {
       clientId: config.gitHubOAuthClientId,
@@ -485,6 +512,20 @@ export function composeServer(options: ComposeOptions): ComposedServer {
       // Artifact storage must be reachable and writable before the server
       // answers (Go server.go boots-fatal on the same probe).
       await artifactStorage.health();
+      // Rebuild the FTS5 search index before the port binds (Go
+      // server.go:617): the index is separate from the resources table,
+      // and rebuilding here makes every resource — including seedpack
+      // rows bootstrapped into an earlier database — discoverable the
+      // moment the server accepts connections. Warn-only: a partial
+      // rebuild degrades search, never boot.
+      try {
+        const indexed = await searchQueryStore.rebuildIndex();
+        logger.info("Search index rebuilt at startup", { indexed });
+      } catch (error) {
+        logger.warn("Failed to rebuild search index at startup", {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
       // Wiring complete → SERVING → background refresh → bind. The port
       // must be the LAST observable effect (serverGate contract).
       healthState.setOverall(ServingStatus.SERVING);

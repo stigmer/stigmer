@@ -1,21 +1,44 @@
 /**
- * ExecutionContext search extractor — ports the GetSearchIndexEntry side
- * of pkg/query/search/extractor/execution_context_extractor.go. Execution
- * contexts have no description field, so the summary is empty — and
- * secret DATA is deliberately never indexed: only name, tags, org, and
- * visibility reach FTS5. The query side of the extractor contract
- * (ToSearchResult) arrives with the search service sub-project (#14
- * sp.search-and-activity).
+ * ExecutionContext search extractor — ports pkg/query/search/extractor/
+ * execution_context_extractor.go (both sides: the #4 index side, the #14
+ * query side). Execution contexts have no description field, so the
+ * summary is empty everywhere — and secret DATA is deliberately never
+ * indexed nor projected: only name, tags, org, and visibility reach FTS5
+ * and the SearchResult.
  */
 import type { Message } from "@bufbuild/protobuf";
 
+import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import type { ExecutionContext } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 
 import type { SearchIndexEntry } from "../../store/interface.js";
-import type { SearchIndexExtractor } from "../../pipeline/steps/index-search.js";
+import { buildSearchResult } from "../../query/search/extractor.js";
+import type { SearchableExtractor } from "../../query/search/extractor.js";
 
-export const executionContextSearchExtractor: SearchIndexExtractor = {
+export const executionContextSearchExtractor: SearchableExtractor = {
+  kind: ApiResourceKind.execution_context,
+  schema: ExecutionContextSchema,
+
+  getSearchSummary(): string {
+    // Go ExecutionContextExtractor.GetSearchSummary: always "".
+    return "";
+  },
+
+  toSearchResult(resource: Message, score: number): SearchResult | undefined {
+    const ec = resource as unknown as ExecutionContext;
+    return buildSearchResult({
+      kind: ApiResourceKind.execution_context,
+      metadata: ec.metadata,
+      summary: "",
+      score,
+      createdAt: ec.status?.audit?.specAudit?.createdAt,
+      updatedAt: ec.status?.audit?.specAudit?.updatedAt,
+    });
+  },
+
   getSearchIndexEntry(resource: Message): SearchIndexEntry | undefined {
     const ec = resource as unknown as ExecutionContext;
     const metadata = ec.metadata;

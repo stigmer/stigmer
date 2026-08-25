@@ -56,6 +56,11 @@
 //     Layer-1 arms, and the artifact file-server disposition lane). The
 //     oauthapp suite's delete-block test drives McpServer create/delete,
 //     so it rosters here only after #9 (McpServer CRUD) merged.
+//   - search + activity — sub-project #14 (sp.search-and-activity; the
+//     two CQRS query services: the FTS5 SearchService with the 13-kind
+//     extractor registry — project's extractor rides this entry per DD-D,
+//     ahead of #16's domain — boot-time RebuildIndex, and the
+//     ActivityQueryController recents feed, stigmer#461).
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
@@ -83,6 +88,8 @@ export default defineConfig({
       "src/suites/platform.conformance.test.ts",
       "src/suites/github.conformance.test.ts",
       "src/suites/artifact.conformance.test.ts",
+      "src/suites/search.conformance.test.ts",
+      "src/suites/activity.conformance.test.ts",
     ],
     globalSetup: ["./src/harness/global-setup-ts.ts"],
     env: {
