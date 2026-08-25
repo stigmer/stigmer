@@ -90,6 +90,10 @@ export default defineConfig({
       "src/suites/github.conformance.test.ts",
       "src/suites/artifact.conformance.test.ts",
       "src/suites/project.conformance.test.ts",
+      // schedule — sub-project #22 (sp.schedule; the last Class B domain):
+      // the CW-6 CRUD + trigger/resume refusal contract. Temporal-free by
+      // design — the firing lanes roster on local-ts-execution.
+      "src/suites/schedule.conformance.test.ts",
     ],
     globalSetup: ["./src/harness/global-setup-ts.ts"],
     env: {

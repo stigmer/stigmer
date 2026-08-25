@@ -22,13 +22,11 @@ import type { CapabilityFlags, PrivilegedScope, TargetProfile, TenancyContext } 
 
 export class LocalTsExecutionTarget implements TargetProfile {
   readonly name = "local-ts-execution";
-  // The local-go-execution matrix with ONE honest deviation: scheduleFiring
-  // stays false until the schedule clock ports (D4 #22 flips it) — the TS
-  // server has no Temporal Schedule reconciler yet, so declaring the
-  // capability would let a manually-selected firing suite run against an
-  // engine that cannot fire. Disclosed exactly like the documented
-  // workflowChildApprovalForwarding false-at-#18 → true-at-#23 path
-  // (sub-project 20260824.03 ratified brief #4).
+  // The local-go-execution matrix, byte-identical since D4 #22 ported the
+  // schedule clock (scheduleFiring was the one disclosed deviation while
+  // the TS server had no Temporal Schedule reconciler). The remaining
+  // false-at-#18 → true-at-#23 path is workflowChildApprovalForwarding —
+  // the ratified parity-plus delta, not a gap.
   readonly capabilities: CapabilityFlags = {
     multiTenant: false,
     externalOrgLookup: false,
@@ -39,8 +37,10 @@ export class LocalTsExecutionTarget implements TargetProfile {
     // so a gated agent_call child never surfaces its gate to the parent workflow
     // (DD-012). #23 flips this flag on THIS target — the parity-plus delta.
     workflowChildApprovalForwarding: false,
-    // False until D4 #22 ports the schedule clock (see the class comment).
-    scheduleFiring: false,
+    // True since D4 #22 ported the schedule clock (tick workflow +
+    // reconciler on the schedule_stigmer queue) — the firing suite runs
+    // against this engine exactly as against local-go-execution.
+    scheduleFiring: true,
     // Single-tenant OSS: the reserved-label write guard is cloud-only
     // (stigmer-cloud#320), so the caller may create labeled candidates.
     clientReservedLabelWrites: true,
@@ -73,9 +73,9 @@ export class LocalTsExecutionTarget implements TargetProfile {
       args: [entry],
       temporalHostPort: this.temporal.hostPort,
       env: {
-        // The schedule failure-streak override the Go target pins — inert
-        // until #22 ports the schedule clock, set now so the env contract
-        // stays byte-identical across both execution targets.
+        // The schedule failure-streak override the Go target pins — makes
+        // the auto-pause provable in two fires (active since #22 ported
+        // the schedule clock).
         STIGMER_SCHEDULES_MAX_CONSECUTIVE_FAILURES: "2",
       },
     });
