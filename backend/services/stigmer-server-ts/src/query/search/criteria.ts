@@ -30,6 +30,7 @@ import {
   ResourceTier,
 } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
+import { goTrimSpace } from "../../gocompat/trim.js";
 import { getKindMeta } from "../../pipeline/apiresource-meta.js";
 
 /** Go DefaultPageSize. */
@@ -102,6 +103,12 @@ export class SearchCriteria {
    * verbatim. Throws on an over-length query — defensive twin of the
    * proto's max_len 500, which the protovalidate interceptor answers
    * first on the wire (Go carries the same unreachable guard).
+   *
+   * Trimming is goTrimSpace, NOT String.trim: hasQuery() decides
+   * list-vs-search mode from the trimmed query, and the two trim sets
+   * disagree on U+FEFF/U+0085 — a BOM-only query would read as list mode
+   * (return everything) where Go runs an empty-match search (the #8 BOM
+   * divergence class, caught again by this sub-project's parity panel).
    */
   static create(
     kinds: readonly ApiResourceKind[],
@@ -112,7 +119,7 @@ export class SearchCriteria {
     pageNumber: number,
     pageSize: number,
   ): SearchCriteria {
-    const normalizedQuery = query.trim();
+    const normalizedQuery = goTrimSpace(query);
     if (normalizedQuery.length > MAX_QUERY_LENGTH) {
       throw new Error(
         `search query exceeds maximum length of ${MAX_QUERY_LENGTH} characters`,
@@ -121,7 +128,7 @@ export class SearchCriteria {
     return new SearchCriteria(
       [...kinds],
       normalizedQuery,
-      orgFilter.trim(),
+      goTrimSpace(orgFilter),
       excludePublic,
       crossOrgPublic,
       pageNumber < 1 ? 1 : pageNumber,

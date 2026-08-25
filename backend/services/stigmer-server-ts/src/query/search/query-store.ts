@@ -23,6 +23,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 
 import type { Logger } from "../../boot/logger.js";
+import { goFields, goTrimSpace } from "../../gocompat/trim.js";
 import { apiResourceKindName } from "../../store/sqlite/proto-fields.js";
 import type { Store } from "../../store/interface.js";
 import type { SearchCriteria } from "./criteria.js";
@@ -235,15 +236,20 @@ export class SqliteSearchQueryStore implements SearchQueryStore {
  * trailing `*` for prefix matching (valid on quoted terms); multi-token
  * queries use FTS5's implicit AND. The porter unicode61 tokenizer still
  * stems inside quotes.
+ *
+ * Trim and split are the gocompat twins of Go's strings.TrimSpace and
+ * strings.Fields — JS .trim()/\s+ disagree with Go on U+FEFF/U+0085,
+ * which changes the produced tokens on exactly those inputs (the #8 BOM
+ * divergence class).
  */
 export function escapeFTS5Query(query: string): string {
-  const trimmed = query.trim();
+  const trimmed = goTrimSpace(query);
   if (trimmed === "") {
     return trimmed;
   }
 
   const quoted: string[] = [];
-  for (const word of trimmed.split(/\s+/)) {
+  for (const word of goFields(trimmed)) {
     const clean = word.replaceAll('"', "");
     if (clean === "") {
       continue;

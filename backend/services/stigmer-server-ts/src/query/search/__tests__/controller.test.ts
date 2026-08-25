@@ -103,23 +103,26 @@ describe("activity error mapping", () => {
     // A CLOSED store's reads throw — the handler's only failure mode,
     // reached without stubbing the wide Store interface.
     const temp: TempStore = tempStore();
-    await temp.store.close();
+    try {
+      await temp.store.close();
 
-    const transport = createRouterTransport((router) => {
-      registerActivityServices(router, {
-        handler: new ActivityHandler(temp.store, silentLogger),
-        logger: silentLogger,
+      const transport = createRouterTransport((router) => {
+        registerActivityServices(router, {
+          handler: new ActivityHandler(temp.store, silentLogger),
+          logger: silentLogger,
+        });
       });
-    });
-    const client = createClient(ActivityQueryController, transport);
+      const client = createClient(ActivityQueryController, transport);
 
-    const error = await grpcError(
-      client.listRecentActivity(
-        create(ListRecentActivityRequestSchema, { pageSize: 10 }),
-      ),
-    );
-    expect(error.code).toBe(Code.Internal);
-    expect(error.rawMessage).toBe("failed to list recent activity");
-    await temp.cleanup();
+      const error = await grpcError(
+        client.listRecentActivity(
+          create(ListRecentActivityRequestSchema, { pageSize: 10 }),
+        ),
+      );
+      expect(error.code).toBe(Code.Internal);
+      expect(error.rawMessage).toBe("failed to list recent activity");
+    } finally {
+      await temp.cleanup();
+    }
   });
 });

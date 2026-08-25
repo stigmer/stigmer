@@ -60,13 +60,18 @@ export class SearchableResourceRegistry {
   }
 
   /**
-   * Go SupportedKinds: registered kinds sorted by their NAME strings
-   * (Go sorts on kind.String()) — RebuildIndex's deterministic order.
+   * Go SupportedKinds: registered kinds sorted by their NAME strings —
+   * RebuildIndex's deterministic order. Code-unit `<`, not localeCompare:
+   * Go's sort is byte-wise on kind.String(), and locale collation could
+   * reorder names around `_` (not wire-visible, but log/error order is
+   * part of the operator-facing contract).
    */
   supportedKinds(): readonly ApiResourceKind[] {
-    return [...this.extractors.keys()].sort((a, b) =>
-      (ApiResourceKind[a] ?? "").localeCompare(ApiResourceKind[b] ?? ""),
-    );
+    return [...this.extractors.keys()].sort((a, b) => {
+      const nameA = ApiResourceKind[a] ?? "";
+      const nameB = ApiResourceKind[b] ?? "";
+      return nameA < nameB ? -1 : nameA > nameB ? 1 : 0;
+    });
   }
 
   /**

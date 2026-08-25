@@ -203,7 +203,9 @@ function hasRuntimeOriginLabel(
   if (labels === undefined) {
     return false;
   }
-  return RUNTIME_ORIGIN_LABELS.some((key) => key in labels);
+  // Object.hasOwn, not `in`: own keys only, matching Go's map lookup
+  // (the #17 least-privilege-filter precedent).
+  return RUNTIME_ORIGIN_LABELS.some((key) => Object.hasOwn(labels, key));
 }
 
 /**

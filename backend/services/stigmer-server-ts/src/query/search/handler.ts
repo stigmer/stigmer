@@ -29,6 +29,7 @@ import type {
 
 import type { Logger } from "../../boot/logger.js";
 import { SearchCriteria } from "./criteria.js";
+import type { SearchPagedResult } from "./paged-result.js";
 import type { SearchQueryStore } from "./query-store.js";
 
 export class SearchHandler {
@@ -70,7 +71,7 @@ export class SearchHandler {
       );
     }
 
-    let result;
+    let result: SearchPagedResult;
     try {
       result = await this.store.search(criteria);
     } catch (error) {
