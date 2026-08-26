@@ -4,7 +4,7 @@
 //
 // This is the AgentExecution counterpart to harness.smoke.test.ts (which uses a
 // data-only set_vars WorkflowExecution). Where that one needs no LLM, an agent
-// run does — so this is the cheap, permanent guard that the local-go-execution
+// run does — so this is the cheap, permanent guard that the local-execution
 // target's LLM machinery works end-to-end: Go server -> Temporal dispatch ->
 // runner pickup -> hydration -> a real LLM loop served by the mock proxy ->
 // terminal status streamed back via gRPC. The whole AgentExecution domain

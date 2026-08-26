@@ -1,0 +1,169 @@
+# =============================================================================
+# TypeScript Server — Vitest Suite + Artifact Boot Gates
+# =============================================================================
+# Runs the standalone TypeScript server's (`@stigmer/server`,
+# backend/services/stigmer-server) full gate: typecheck, vitest suite,
+# and plain-`node` boot checks of BOTH compiled artifacts (tsc dist and the
+# esbuild slim bundle).
+#
+# The service began as the parity-gated TS port of the retired Go server
+# (go-server-retirement, D4 #25) — see the directory's README.md. Like the
+# runner, it is NOT part of the root npm workspaces: own package-lock.json,
+# file:-linked @stigmer/protos, installed and built separately (this mirrors
+# ci.runner.yaml, the per-service CI pattern).
+#
+# The boot checks exist for the #399 failure class: vitest/tsx module
+# interop tolerates ESM/CJS import shapes that Node's real loader rejects,
+# so an import-time crash in `node dist/main.js` can pass every other gate.
+# scripts/verify-boot.mjs runs the full lifecycle (bind → listening →
+# SIGTERM → exit 0) the way the CLI daemon will.
+#
+# Path filter mirrors ci.runner.yaml's: the service's own tree, the proto
+# stubs it links, the Makefile (test-server lives there), and this file.
+# =============================================================================
+
+name: ci.stigmer-server
+
+on:
+  pull_request:
+    paths:
+      - "backend/services/stigmer-server/**"
+      - "apis/stubs/ts/**"
+      - "Makefile"
+      - ".github/workflows/ci.stigmer-server.yaml"
+  push:
+    branches: [main]
+    paths:
+      - "backend/services/stigmer-server/**"
+      - "apis/stubs/ts/**"
+      - "Makefile"
+      - ".github/workflows/ci.stigmer-server.yaml"
+
+concurrency:
+  group: stigmer-server-${{ github.head_ref || github.ref }}
+  # PR pushes cancel superseded runs; main pushes queue instead, so every
+  # merge gets a completed, attributable run (stigmer/stigmer#725).
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
+jobs:
+  server:
+    name: Server Gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Install npm workspace dependencies
+        run: npm ci
+
+      # The server file:-links @stigmer/protos AND @stigmer/temporal-codecs
+      # (the decode-only payload codec wraps the lib since D4 #18) and
+      # imports their built dists — build:runner-deps builds exactly both.
+      - name: Build the proto stubs and temporal-codecs
+        run: npm run build:runner-deps
+
+      # Standalone package with its own lockfile (mirrors ci.runner.yaml).
+      - name: Install server dependencies
+        working-directory: backend/services/stigmer-server
+        run: npm ci
+
+      - name: Typecheck
+        working-directory: backend/services/stigmer-server
+        run: npm run typecheck
+
+      - name: Build and boot-check the compiled dist
+        working-directory: backend/services/stigmer-server
+        run: npm run build && npm run verify:dist
+
+      - name: Bundle and boot-check the slim artifact
+        working-directory: backend/services/stigmer-server
+        run: node scripts/bundle-slim.mjs && npm run verify:slim
+
+      # The deep slim gate at PR time (D4 #24 panel finding): verify:slim
+      # boots WITHOUT Temporal, so the slim-only machinery — prebuilt
+      # workflow-bundle discovery, the threaded-vm patch, per-platform
+      # core-bridge dispatch — never executes there. A drifted bundle would
+      # otherwise merge green and wedge the release train at publish time
+      # (the workers fail SOFT: manager.ts retries instead of crashing).
+      # This runs the isolated-copy + real-Temporal check the release lane
+      # gates publishing on.
+      - name: Set up Temporal CLI
+        uses: temporalio/setup-temporal@v0
+
+      - name: Deep-verify the slim artifact (isolated copy + Temporal workers)
+        working-directory: backend/services/stigmer-server
+        run: |
+          temporal server start-dev --headless --log-level error &
+          TEMPORAL_PID=$!
+          trap "kill $TEMPORAL_PID" EXIT
+          for i in $(seq 1 30); do
+            temporal operator cluster health >/dev/null 2>&1 && break
+            sleep 1
+          done
+          node scripts/verify-slim-artifact.mjs
+
+      - name: Run the vitest suite
+        run: make test-server
+
+  # linux-arm64 boot smoke (owner ruling at go-server-retirement, D4 #25):
+  # when the Go server retired, arm64 Linux lost its only fallback, so this
+  # server must be PROVEN to boot there — not assumed from x64 green. The
+  # platform-sensitive surface is exactly what the deep slim verify
+  # exercises: node:sqlite with FTS5, the per-platform Temporal core-bridge
+  # (the one native component, selected by npm optionalDependencies), and
+  # the worker boot path. Native arm64 runner — no QEMU, no emulation
+  # blind spots. The full vitest suite stays on the x64 job; this job is
+  # the platform proof, kept boot-scoped so per-PR cost stays sane.
+  # Windows remains deferred and platform claims stay quiet (#24 ruling).
+  server-linux-arm64:
+    name: Server Boot Smoke (linux-arm64)
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Install npm workspace dependencies
+        run: npm ci
+
+      - name: Build the proto stubs and temporal-codecs
+        run: npm run build:runner-deps
+
+      - name: Install server dependencies
+        working-directory: backend/services/stigmer-server
+        run: npm ci
+
+      - name: Build and boot-check the compiled dist
+        working-directory: backend/services/stigmer-server
+        run: npm run build && npm run verify:dist
+
+      - name: Bundle and boot-check the slim artifact
+        working-directory: backend/services/stigmer-server
+        run: node scripts/bundle-slim.mjs && npm run verify:slim
+
+      - name: Set up Temporal CLI
+        uses: temporalio/setup-temporal@v0
+
+      - name: Deep-verify the slim artifact (isolated copy + Temporal workers)
+        working-directory: backend/services/stigmer-server
+        run: |
+          temporal server start-dev --headless --log-level error &
+          TEMPORAL_PID=$!
+          trap "kill $TEMPORAL_PID" EXIT
+          for i in $(seq 1 30); do
+            temporal operator cluster health >/dev/null 2>&1 && break
+            sleep 1
+          done
+          node scripts/verify-slim-artifact.mjs

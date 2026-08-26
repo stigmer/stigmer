@@ -14,7 +14,7 @@
 //     the suite polls get() (task-level via awaitTaskWaitingApproval / awaitTaskStatus).
 //
 // Fully hermetic: a human_input task needs only Temporal + the TS runner (both
-// provisioned by local-go-execution) — no LLM, no MCP, no child execution. The
+// provisioned by local-execution) — no LLM, no MCP, no child execution. The
 // canonical fixture (support/workflows.ts) is `awaitApproval` (human_input) ->
 // `afterApproval` (set_vars); the downstream set_vars completing is the proof the
 // gate resumed.

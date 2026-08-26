@@ -1,27 +1,20 @@
-// Resolution and on-demand acquisition of the GO `stigmer-server` binary —
-// the ROLLBACK path since the DD-006 cutover (D4 #24; see ./server-ts.ts for
-// the served TypeScript implementation and the switch itself).
+// Resolution and on-demand acquisition of the stigmer server — the
+// TypeScript implementation serving since the DD-006 cutover (D4 #24; the Go
+// binary ladder that backed rollback retired with #25).
 //
-// This ladder is no longer walked by `stigmer up` unless STIGMER_SERVER_BIN
-// selects a binary explicitly; it remains intact, code and download included,
-// so re-flipping ensureServer back to it is the whole rollback. It dies with
-// #25 go-server-retirement.
+// The server is launched exactly like the runner: a compiled `node main.js`,
+// never `tsx src/main.ts` (the workers bundle Temporal workflows on boot in
+// dev shape, and the slim artifact ships pre-built bundles — either way the
+// entry must be compiled; see the server package's workflow-source.ts).
 //
-// DD-003: a TypeScript CLI cannot `go:embed` a Go binary, so it resolves an
-// existing `stigmer-server` (dev build / Homebrew / a prior download) and, when
-// none is present, downloads the standalone release asset into ~/.stigmer/bin and
-// verifies its sha256 before first use. The fetch/extract mechanics are shared
-// with the Temporal downloader (`../artifact.ts`); the one deliberate difference
-// is the checksum step — this is our own executable, and DD-003 makes integrity
-// non-negotiable.
-//
-// Resolution order (first existing hit wins; download is the last resort):
-//   1. STIGMER_SERVER_BIN — explicit override (tests, custom installs)
-//   2. repo `bin/stigmer-server` — the dev build (`make build`)
-//   3. ~/bin/stigmer-server — a common local install location
-//   4. ~/.stigmer/bin/stigmer-server — a previously-downloaded release asset
-//   5. PATH — `stigmer-server`
-//   6. download the pinned release asset into ~/.stigmer/bin (checksum-verified)
+// Resolution order (the D2 §6 switch semantics):
+//   1. STIGMER_SERVER_DIR — an explicit server package dir (dist/main.js
+//      required), the STIGMER_RUNNER_DIR mirror.
+//   2. The repo-tree server package (dev; build required).
+//   3. The published `@stigmer/server-slim`, installed on demand into
+//      ~/.stigmer/runtimes/<version>/ alongside the runner's package — one
+//      CJS main.js, pre-built workflow bundles, and the per-platform
+//      Temporal native bridge selected by npm via optionalDependencies.
 
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
@@ -29,148 +22,168 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { CliExitError } from "../../errors/cli-exit-error.js";
 import { ExitCode } from "../../errors/exit-codes.js";
+import { log } from "../../logger.js";
 import { VERSION } from "../../version.js";
-import { fetchTarballBinary, mapReleaseArch, mapReleaseOs } from "../artifact.js";
-import { binDir } from "../paths.js";
-import { which } from "./which.js";
+import { runtimesDir } from "../paths.js";
+import type { ServerLaunch } from "../daemon/env.js";
+import { resolveServerNode } from "./node.js";
+import {
+  ensureRuntimesRoot,
+  isAcquirableRelease,
+  npmInstallIntoRuntimes,
+  type NpmInstall,
+} from "./runtimes-install.js";
 
-const SERVER_BINARY = "stigmer-server";
-const GITHUB_REPO = "stigmer/stigmer";
+const SLIM_PACKAGE = "@stigmer/server-slim";
 
-// Platform/arch combos for which `release.cli.yaml` publishes a stigmer-server
-// asset. The npm CLI installs on more platforms than this (e.g. linux-arm64,
-// Windows), so an unsupported `stigmer up` must fail with clear guidance rather
-// than a confusing 404.
-const SUPPORTED_PLATFORMS = new Set(["darwin-arm64", "darwin-amd64", "linux-amd64"]);
-
-/**
- * Find an already-present `stigmer-server` binary, or null. Pure: never
- * downloads. `home` is injectable for tests.
- */
-export function resolveServerBinary(home: string = homedir()): string | null {
-  for (const candidate of serverCandidates(home)) {
-    if (existsSync(candidate)) return candidate;
-  }
-  return which(SERVER_BINARY);
-}
-
-export interface EnsureServerBinaryOptions {
+export interface EnsureServerOptions {
   home?: string;
-  /** Release version to download if needed (defaults to the CLI's own version). */
+  /** Release version of the slim server to acquire (defaults to the CLI version). */
   version?: string;
-  /** Override the fetch implementation (tests). */
-  fetchImpl?: typeof fetch;
+  /** Node resolver (injectable for tests). */
+  node?: () => string;
+  /** npm install implementation (injectable for tests). */
+  install?: NpmInstall;
 }
 
 /**
- * Ensure a `stigmer-server` binary is available, returning its path. Reuses an
- * existing binary if found; otherwise downloads the pinned release asset into
- * ~/.stigmer/bin (checksum-verified). Throws actionable guidance when no binary
- * exists and a download is not possible (a source/dev build, or an unsupported
- * platform).
+ * Resolve what the daemon launches as `stigmer-server`: the explicit
+ * STIGMER_SERVER_DIR override, then the repo tree, then acquiring the
+ * published slim package. Throws actionable guidance on a missing build, an
+ * invalid override, or a non-release CLI build with nothing local.
  */
-export async function ensureServerBinary(opts: EnsureServerBinaryOptions = {}): Promise<string> {
-  const home = opts.home ?? homedir();
-  const existing = resolveServerBinary(home);
-  if (existing !== null) return existing;
-
-  const version = opts.version ?? VERSION;
-  if (!isDownloadableRelease(version)) {
-    throw notFoundError();
-  }
-
-  const binPath = join(binDir(home), SERVER_BINARY);
-  await downloadServerBinary({ version, binPath, fetchImpl: opts.fetchImpl });
-  return binPath;
-}
-
-export interface ServerDownloadTarget {
-  /** Release version, e.g. "0.5.0" or "0.5.0-rc.1" (with or without a leading "v"). */
-  version: string;
-  /** Absolute path to write the extracted `stigmer-server` binary to. */
-  binPath: string;
-  /** Node platform (defaults to process.platform). */
-  platform?: NodeJS.Platform;
-  /** Node arch (defaults to process.arch). */
-  arch?: string;
-  /** Override the fetch implementation (tests). */
-  fetchImpl?: typeof fetch;
+export function ensureServer(opts: EnsureServerOptions = {}): ServerLaunch {
+  const node = opts.node ?? resolveServerNode;
+  const local = resolveServerTs(node);
+  if (local !== null) return local;
+  return acquireServer({ ...opts, node });
 }
 
 /**
- * Download, checksum-verify, and install the standalone `stigmer-server` release
- * asset. Throws a {@link CliExitError} on an unsupported platform or any
- * network/checksum/extraction failure.
+ * Resolve a repo-tree TS server (dev) or an explicit STIGMER_SERVER_DIR, or
+ * null when neither is present (the caller then acquires the slim package).
+ * Throws when an override is set but invalid, or when a found server is not
+ * built — both are actionable user-facing conditions, not a reason to
+ * silently download. `node` is injectable for tests.
  */
-export async function downloadServerBinary(target: ServerDownloadTarget): Promise<void> {
-  const os = mapReleaseOs(target.platform ?? process.platform);
-  const arch = mapReleaseArch(target.arch ?? process.arch);
-  const platformKey = `${os}-${arch}`;
-  if (!SUPPORTED_PLATFORMS.has(platformKey)) {
-    throw unsupportedPlatformError(platformKey);
+export function resolveServerTs(
+  node: () => string = resolveServerNode,
+): ServerLaunch | null {
+  const override = process.env.STIGMER_SERVER_DIR;
+  if (override !== undefined && override !== "") {
+    if (!hasPackageJson(override)) {
+      throw new CliExitError(
+        `STIGMER_SERVER_DIR is not a server package: ${override}`,
+        ExitCode.General,
+        [
+          "Point STIGMER_SERVER_DIR at the @stigmer/server package directory (the one with package.json).",
+        ],
+      );
+    }
+    return resolveBuiltServer(override, node);
   }
-
-  const tag = releaseTag(target.version);
-  const archive = `${SERVER_BINARY}-${tag}-${platformKey}.tar.gz`;
-  const url = `https://github.com/${GITHUB_REPO}/releases/download/${tag}/${archive}`;
-
-  await fetchTarballBinary({
-    url,
-    checksumUrl: `${url}.sha256`,
-    entryName: SERVER_BINARY,
-    binPath: target.binPath,
-    label: SERVER_BINARY,
-    fetchImpl: target.fetchImpl,
-  });
-}
-
-function serverCandidates(home: string): string[] {
-  const candidates: string[] = [];
-  const override = process.env.STIGMER_SERVER_BIN;
-  if (override !== undefined && override !== "") candidates.push(override);
 
   const root = repoRoot();
-  if (root !== null) candidates.push(join(root, "bin", SERVER_BINARY));
-  candidates.push(join(home, "bin", SERVER_BINARY));
-  candidates.push(join(binDir(home), SERVER_BINARY)); // a previously-downloaded asset
-  return candidates;
+  if (root !== null) {
+    const candidate = join(root, "backend", "services", "stigmer-server");
+    if (hasPackageJson(candidate)) return resolveBuiltServer(candidate, node);
+  }
+  return null;
 }
 
-// Only tagged releases publish a downloadable asset. A source build reports the
-// "0.0.0-dev" sentinel and the dev npm channel stamps "<v>-dev.<stamp>" versions
-// (release.dev.yaml) that never cut a GitHub release — neither is downloadable.
-function isDownloadableRelease(version: string): boolean {
-  return !version.includes("-dev");
+/**
+ * Acquire the published `@stigmer/server-slim@<version>` into
+ * ~/.stigmer/runtimes/<version>/ (idempotent: reuses a prior install; shares
+ * the install root with the runner's package) and resolve its `main.js`
+ * entry. The version is pinned to the CLI's own version so the server's
+ * protos and behavior stay in lockstep with the CLI and the runner.
+ */
+export function acquireServer(opts: EnsureServerOptions = {}): ServerLaunch {
+  const home = opts.home ?? homedir();
+  const version = opts.version ?? VERSION;
+  if (!isAcquirableRelease(version)) {
+    throw new CliExitError(
+      `cannot acquire ${SLIM_PACKAGE} for a non-release build (${version})`,
+      ExitCode.General,
+      [
+        "Run from the repo with a built server (make build-server), or set",
+        "STIGMER_SERVER_DIR to a built server package.",
+        "On-demand acquisition is only available for published releases.",
+      ],
+    );
+  }
+
+  // Probe the Node capability BEFORE the download: a user on an FTS5-less
+  // Node must not fetch the full slim artifact only to be rejected after.
+  const node = opts.node ?? resolveServerNode;
+  const nodeBin = node();
+  const installDir = join(runtimesDir(home), version);
+  const entryPath = join(
+    installDir,
+    "node_modules",
+    "@stigmer",
+    "server-slim",
+    "main.js",
+  );
+
+  if (!existsSync(entryPath)) {
+    log.info(`acquiring ${SLIM_PACKAGE}`, { version, dir: installDir });
+    ensureRuntimesRoot(installDir);
+    const install = opts.install ?? npmInstallIntoRuntimes;
+    install(installDir, `${SLIM_PACKAGE}@${version}`);
+  }
+
+  if (!existsSync(entryPath)) {
+    throw new CliExitError(
+      `${SLIM_PACKAGE} install did not produce ${entryPath}`,
+      ExitCode.General,
+      [
+        "The install may have skipped the platform-native package for this OS/arch.",
+        `Remove ${installDir} and retry, or set STIGMER_SERVER_DIR to a built server.`,
+      ],
+    );
+  }
+
+  return {
+    nodeBin,
+    entryPath,
+    appDir: dirname(entryPath),
+  };
 }
 
-// The npm package version maps to the GitHub release tag by prefixing "v"
-// (npm 0.5.0 -> tag v0.5.0; npm 0.5.0-rc.1 -> tag v0.5.0-rc.1).
-function releaseTag(version: string): string {
-  return version.startsWith("v") ? version : `v${version}`;
+function resolveBuiltServer(appDir: string, node: () => string): ServerLaunch {
+  const entryPath = join(appDir, "dist", "main.js");
+  if (!existsSync(entryPath)) {
+    throw new CliExitError(
+      `TS server not built: ${entryPath} is missing`,
+      ExitCode.General,
+      [
+        "Build it with: make build-server",
+        "The server must be compiled — it cannot run from source via tsx (its",
+        "Temporal workers bundle workflow code from the compiled dist).",
+        "STIGMER_SERVER_DIR expects the source package (dist/main.js); to run an",
+        "acquired @stigmer/server-slim install, unset it — the CLI resolves that",
+        "shape itself.",
+      ],
+    );
+  }
+  return { nodeBin: node(), entryPath, appDir };
 }
 
-function notFoundError(): CliExitError {
-  return new CliExitError(`${SERVER_BINARY} binary not found`, ExitCode.General, [
-    "Build it from the repo with `make build` (produces ./bin/stigmer-server),",
-    "or set STIGMER_SERVER_BIN to an existing binary.",
-    "Automatic download is only available for tagged releases.",
-  ]);
+function hasPackageJson(dir: string): boolean {
+  return existsSync(join(dir, "package.json"));
 }
 
-function unsupportedPlatformError(platformKey: string): CliExitError {
-  return new CliExitError(`the local stack does not support this platform (${platformKey})`, ExitCode.General, [
-    "`stigmer up` needs a stigmer-server release asset, which is published for",
-    "macOS (arm64/amd64) and Linux (amd64) only.",
-    "Point STIGMER_SERVER_BIN at a server binary you built yourself to proceed.",
-  ]);
-}
-
-// Walk up from this module to the repo root (the directory containing
-// `bin/stigmer-server` in a dev checkout). Returns null outside a checkout.
+// Walk up from this module to a repo root containing the TS server package.
 function repoRoot(): string | null {
   let dir = dirname(fileURLToPath(import.meta.url));
-  for (let i = 0; i < 8; i += 1) {
-    if (existsSync(join(dir, "bin", SERVER_BINARY))) return dir;
+  for (let i = 0; i < 10; i += 1) {
+    if (
+      existsSync(
+        join(dir, "backend", "services", "stigmer-server", "package.json"),
+      )
+    )
+      return dir;
     const parent = dirname(dir);
     if (parent === dir) break;
     dir = parent;

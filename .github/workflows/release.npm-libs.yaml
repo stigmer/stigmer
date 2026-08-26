@@ -281,14 +281,14 @@ jobs:
       # Builds the ts stubs + the server-linked lib dists (build-ts-stubs),
       # installs the server's own deps, and compiles the server to dist/.
       - name: Build TS server
-        run: make build-server-ts
+        run: make build-server
 
       # Stamp the release version into the package manifest; the bundle
       # script propagates it into every generated slim manifest. The file:
       # lib deps are NOT pinned to registry versions — the slim bundle
       # compiles them in, so the published packages carry no @stigmer/* deps.
       - name: Stamp version
-        working-directory: backend/services/stigmer-server-ts
+        working-directory: backend/services/stigmer-server
         env:
           VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
@@ -304,7 +304,7 @@ jobs:
       # the version for getServerInfo and the bundled GitHub OAuth app the
       # local github broker defaults to.
       - name: Build slim artifact packages
-        working-directory: backend/services/stigmer-server-ts
+        working-directory: backend/services/stigmer-server
         env:
           STIGMER_SERVER_VERSION: ${{ needs.determine-version.outputs.version }}
           STIGMER_GITHUB_CLIENT_ID: ${{ secrets.STIGMER_LOCAL_GITHUB_OAUTH_CLIENT_ID }}
@@ -320,7 +320,7 @@ jobs:
         uses: temporalio/setup-temporal@v0
 
       - name: Verify slim artifact boots and starts workers
-        working-directory: backend/services/stigmer-server-ts
+        working-directory: backend/services/stigmer-server
         run: |
           temporal server start-dev --headless --log-level error &
           TEMPORAL_PID=$!
@@ -332,7 +332,7 @@ jobs:
           node scripts/verify-slim-artifact.mjs
 
       - name: Publish slim packages to npm
-        working-directory: backend/services/stigmer-server-ts
+        working-directory: backend/services/stigmer-server
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |

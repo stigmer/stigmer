@@ -9,7 +9,7 @@
 // mcp.conformance.test.ts runs here too: its backend resolver keys off
 // CONFORMANCE_TARGET=cloud and points the @stigmer/mcp-server bridge at this
 // environment as the primary conformance user (stigmer#202's bridge-vs-cloud
-// item — it previously booted the OSS Go server unconditionally and had to be
+// item — it previously booted the OSS server unconditionally and had to be
 // excluded to avoid a false green against the wrong backend).
 import { defineConfig } from "vitest/config";
 

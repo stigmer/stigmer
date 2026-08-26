@@ -139,17 +139,23 @@ function waitForOutput(
   });
 }
 
-function findStigmerServerBinary(): string {
-  const candidates = [
-    path.join(REPO_ROOT, "bin", "stigmer-server"),
-    path.join(os.homedir(), "bin", "stigmer-server"),
-  ];
+// The server is a compiled node entry (the CLI daemon's launch shape) — the
+// suite boots it directly, bypassing the CLI, so the stack is hermetic.
+function resolveServerEntrypoint(): string {
+  const distEntry = path.join(
+    REPO_ROOT,
+    "backend",
+    "services",
+    "stigmer-server",
+    "dist",
+    "main.js",
+  );
+  if (fs.existsSync(distEntry)) return distEntry;
 
-  for (const candidate of candidates) {
-    if (fs.existsSync(candidate)) return candidate;
-  }
-
-  return "stigmer-server";
+  throw new Error(
+    `stigmer-server not built: ${distEntry} not found.\n` +
+    `  Run: make build-server`,
+  );
 }
 
 function findRunnerDir(): string {
@@ -224,7 +230,7 @@ export async function startBackendStack(opts: {
 
   // 2. stigmer-server
   console.log(`[e2e] Starting stigmer-server on :${apiPort}...`);
-  const serverBin = findStigmerServerBinary();
+  const serverEntry = resolveServerEntrypoint();
   const serverEnv: Record<string, string> = {
     ...process.env as Record<string, string>,
     GRPC_PORT: String(apiPort),
@@ -244,7 +250,7 @@ export async function startBackendStack(opts: {
     STIGMER_MODEL_REGISTRY_REFRESH: "off",
   };
 
-  const server = spawn(serverBin, [], { env: serverEnv, stdio: ["ignore", "pipe", "pipe"] });
+  const server = spawn(process.execPath, [serverEntry], { env: serverEnv, stdio: ["ignore", "pipe", "pipe"] });
 
   // Opt-in: tee server logs for the post-approval resume-wedge probe (see diag.ts).
   if (diagEnabled()) {
@@ -255,7 +261,7 @@ export async function startBackendStack(opts: {
 
   if (!server.pid) {
     temporal.kill();
-    throw new Error(`Failed to spawn stigmer-server at ${serverBin}. Build with: make build`);
+    throw new Error(`Failed to spawn stigmer-server at ${serverEntry}. Build with: make build-server`);
   }
   drainStdio(server);
 

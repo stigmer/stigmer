@@ -61,11 +61,12 @@ export interface CapabilityFlags {
   // reachable *negatives* (no pending approval, proto validation, missing
   // execution) are sender-independent and are asserted unconditionally.
   //
-  // True for cloud and local-ts-execution, which emit the signal and surface
+  // True for cloud and local-execution, which emit the signal and surface
   // the gate to the parent. The forwarder happy-path assertions are gated on
-  // this flag so they run only where the full round-trip exists — this is the
-  // one deliberate capability divergence between the local-go-execution and
-  // local-ts-execution matrices (the D4 parity-plus delta).
+  // this flag so they run only where the full round-trip exists. (History:
+  // the retired Go server never sent the signal — this flag was the one
+  // deliberate capability divergence of the TS port, the D4 parity-plus
+  // delta.)
   workflowChildApprovalForwarding: boolean;
   // Schedules actually FIRE here: a trigger records status.last_fire_at,
   // repeated failed fires accumulate status.consecutive_failures into the
@@ -73,13 +74,11 @@ export interface CapabilityFlags {
   // Temporal-backed scheduling clock behind the server.
   //
   // True for cloud (the hermetic cloud env boots Temporal and the Java
-  // service runs the schedule clock shipped in T04 slice 2). False for
-  // local-go (the CRUD target runs without Temporal at all) and for
-  // local-go-execution UNTIL the OSS Go clock lands (T04 slice 3) — the
-  // Schedule contract, CLI, and trigger/resume refusal matrix all exist in
-  // OSS today, but nothing fires. Flipping this flag to true for
-  // local-go-execution is slice 3's finish line: the firing suite then runs
-  // identically against both editions.
+  // service runs the schedule clock shipped in T04 slice 2) and for
+  // local-execution (the OSS schedule clock, D4 #22). False for the plain
+  // local target, which runs without Temporal at all — the Schedule
+  // contract, CLI, and trigger/resume refusal matrix all exist there, but
+  // nothing fires.
   //
   // Deliberately a capability flag and not a heavier target: firing needs
   // the engine but NOT a runner or LLM (the suite fires against a

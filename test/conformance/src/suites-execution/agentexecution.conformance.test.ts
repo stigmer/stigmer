@@ -3,7 +3,7 @@
 // engine (Temporal orchestrator + TS runner + mock LLM), driven via the raw proto
 // stubs. The second execution domain after WorkflowExecution.
 //
-// Runs against the local-go-execution target, so Temporal is always present and
+// Runs against the local-execution target, so Temporal is always present and
 // the workflowCreator is injected: create starts a real workflow that the runner
 // picks up and drives through an LLM loop served by the in-process mock proxy.
 // Every run is scripted by enqueuing turns on that mock — a single text turn

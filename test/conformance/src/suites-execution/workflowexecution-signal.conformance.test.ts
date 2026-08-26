@@ -38,7 +38,7 @@
 //   request whose delivery is in flight is rejected with the retryable
 //   ABORTED rather than ALREADY_EXISTS. (The cloud conformance run
 //   does not include this file today — its environment boots no TS runner —
-//   so in CI the pin executes against local-go-execution; it becomes a live
+//   so in CI the pin executes against local-execution; it becomes a live
 //   cross-edition pin automatically if the cloud lane gains a runner.)
 //
 // Dedupe test shape: the duplicate is sent while the execution is still

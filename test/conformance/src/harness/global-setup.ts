@@ -1,10 +1,10 @@
-// Vitest global setup: build the server binary once before any suite runs.
+// Vitest global setup (Class A): compile the TS server once before any
+// suite runs. Paying the cold build here keeps it off the per-file hook
+// budget and out of the parallel critical path — workers reuse the stable
+// dist entry path.
 // Domain: conformance harness (server lifecycle).
-//
-// Paying the cold Go build here keeps it off the per-file hook budget and out
-// of the parallel critical path — workers reuse the deterministic binary path.
-import { buildServer } from "./go-build";
+import { buildTsServer } from "./ts-build";
 
 export default async function setup(): Promise<void> {
-  await buildServer();
+  await buildTsServer();
 }

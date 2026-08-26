@@ -13,7 +13,7 @@ import { expectGrpcCode } from "./errors";
 export interface KnownDeviation {
   // Stable identifier used by tests to opt a case into the registry.
   id: string;
-  // Target names that currently exhibit the deviation (e.g. "local-go").
+  // Target names that currently exhibit the deviation (e.g. "local").
   targets: string[];
   // The code the contract requires.
   expected: Code;

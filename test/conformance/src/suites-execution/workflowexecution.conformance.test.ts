@@ -2,7 +2,7 @@
 // Domain: agentic / workflowexecution — a single run of a Workflow through the
 // engine (Temporal orchestrator + TS runner), driven via the raw proto stubs.
 //
-// Runs against the local-go-execution target, so Temporal is always present and
+// Runs against the local-execution target, so Temporal is always present and
 // workflowCreator is injected: create starts a real workflow. Two hermetic
 // fixtures carry the whole suite — `set_vars` (completes sub-second, for
 // create/complete/query/terminal-precondition cases) and `wait` (a durable

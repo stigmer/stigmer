@@ -1,6 +1,6 @@
 // Conformance slice for the TypeScript MCP server (@stigmer/mcp-server).
-// Domain: MCP protocol bridge over a live backend (OSS Go server or the cloud
-// Java service).
+// Domain: MCP protocol bridge over a live backend (the OSS server or the
+// cloud Java service).
 //
 // Unlike the other suites — which drive the raw proto controllers via a
 // TargetProfile — this one exercises the MCP tool surface end-to-end through
@@ -9,7 +9,7 @@
 // back through the read tool. A small backend resolver (not a TargetProfile)
 // is used because the MCP server exposes tools, not proto clients — but it
 // still keys off CONFORMANCE_TARGET so the same assertions pin both editions:
-//   - local (default): boots the OSS Go server, unauthenticated (apiKey "").
+//   - local (default): boots the OSS server, unauthenticated (apiKey "").
 //   - cloud: connects to the CLOUD_ENV-provisioned environment as the primary
 //     conformance user; the bridge's startup apiKey carries the user's JWT
 //     (BackendTarget.apiKey is the stdio credential resolveToken falls back
@@ -23,8 +23,8 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { CLOUD_ENV } from "../harness/cloud-env";
 import { createTransport } from "../harness/clients";
-import { ensureServerBinary } from "../harness/go-build";
 import { spawnServer } from "../harness/server-process";
+import { ensureTsServerEntry } from "../harness/ts-build";
 import { uniqueName } from "../support/naming";
 
 // What the bridge and the suite need from either edition: gRPC coordinates,
@@ -50,11 +50,12 @@ async function callTool(name: string, args: Record<string, unknown>): Promise<To
   return (await mcpClient.callTool({ name, arguments: args })) as ToolResult;
 }
 
-// Boots the OSS Go server and creates the working org tokenless (single-tenant,
-// no auth). The org create doubles as the gRPC-readiness gate.
+// Boots the OSS server (a node entry, the LocalTarget launch shape) and
+// creates the working org tokenless (single-tenant, no auth). The org create
+// doubles as the gRPC-readiness gate.
 async function resolveLocalBackend(): Promise<BridgeBackend> {
-  const binary = await ensureServerBinary();
-  const server = await spawnServer(binary);
+  const entry = await ensureTsServerEntry();
+  const server = await spawnServer(process.execPath, { args: [entry] });
   const orgCommand = createClient(OrganizationCommandController, createTransport(server.baseUrl));
 
   const deadline = Date.now() + 15_000;

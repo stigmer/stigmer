@@ -1,51 +1,36 @@
-import { createHash } from "node:crypto";
-import { chmodSync, mkdtempSync, readFileSync, statSync, writeFileSync } from "node:fs";
+// Pins the server resolution: exactly like the runner's (explicit dir →
+// repo tree → acquired slim package).
+
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { gzipSync } from "fflate";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { downloadServerBinary, ensureServerBinary } from "./server.js";
+import { acquireServer, ensureServer, resolveServerTs } from "./server.js";
 
-// Build a minimal ustar archive with a single regular-file entry.
-function makeTar(name: string, content: Buffer): Buffer {
-  const header = Buffer.alloc(512);
-  header.write(name, 0, "utf8");
-  header.write(content.length.toString(8).padStart(11, "0"), 124, "ascii");
-  header.write("0", 156, "ascii");
-  const data = Buffer.alloc(Math.ceil(content.length / 512) * 512);
-  content.copy(data);
-  const trailer = Buffer.alloc(1024);
-  return Buffer.concat([header, data, trailer]);
+function tempDir(prefix: string): string {
+  return mkdtempSync(join(tmpdir(), prefix));
 }
 
-function sha256(bytes: Uint8Array): string {
-  return createHash("sha256").update(bytes).digest("hex");
-}
+const fakeNode = (): string => "/usr/bin/node";
 
-// A fetch double that serves a gzipped tar for the archive URL and a
-// shasum-format checksum for the `.sha256` URL. `corruptChecksum` flips the
-// returned hash to exercise the verification failure path.
-function fakeFetch(archiveGz: Uint8Array, opts: { corruptChecksum?: boolean; capturedUrls?: string[] } = {}): typeof fetch {
-  const checksum = opts.corruptChecksum === true ? "0".repeat(64) : sha256(archiveGz);
-  return (async (url: string) => {
-    opts.capturedUrls?.push(url);
-    if (url.endsWith(".sha256")) {
-      return { ok: true, status: 200, text: async () => `${checksum}  archive.tar.gz\n` };
-    }
-    return {
-      ok: true,
-      status: 200,
-      arrayBuffer: async () => archiveGz.buffer.slice(archiveGz.byteOffset, archiveGz.byteOffset + archiveGz.byteLength),
-    };
-  }) as unknown as typeof fetch;
-}
-
-const TOUCHED = ["STIGMER_SERVER_BIN"] as const;
+// Snapshot and restore the env vars the resolution reads, so tests don't leak.
+const TOUCHED = [
+  "STIGMER_SERVER_DIR",
+  "STIGMER_NODE_BIN",
+] as const;
 let saved: Record<string, string | undefined>;
 
 beforeEach(() => {
   saved = {};
-  for (const key of TOUCHED) saved[key] = process.env[key];
+  for (const key of TOUCHED) {
+    saved[key] = process.env[key];
+    delete process.env[key];
+  }
 });
 
 afterEach(() => {
@@ -55,98 +40,177 @@ afterEach(() => {
   }
 });
 
-describe("downloadServerBinary", () => {
-  it("downloads, verifies the checksum, extracts, and writes an executable", async () => {
-    const payload = Buffer.from("the-stigmer-server-binary");
-    const gz = gzipSync(new Uint8Array(makeTar("stigmer-server", payload)));
-    const capturedUrls: string[] = [];
-    const binPath = join(mkdtempSync(join(tmpdir(), "stigmer-server-")), "bin", "stigmer-server");
+function builtServerDir(): string {
+  const dir = tempDir("stigmer-server-");
+  writeFileSync(join(dir, "package.json"), "{}");
+  mkdirSync(join(dir, "dist"));
+  writeFileSync(join(dir, "dist", "main.js"), "//");
+  return dir;
+}
 
-    await downloadServerBinary({
+describe("ensureServer", () => {
+  it("resolves the server from STIGMER_SERVER_DIR", () => {
+    const dir = builtServerDir();
+    process.env.STIGMER_SERVER_DIR = dir;
+
+    expect(ensureServer({ node: fakeNode })).toEqual({
+      nodeBin: "/usr/bin/node",
+      entryPath: join(dir, "dist", "main.js"),
+      appDir: dir,
+    });
+  });
+});
+
+describe("resolveServerTs", () => {
+  it("resolves a built server from STIGMER_SERVER_DIR", () => {
+    const dir = builtServerDir();
+    process.env.STIGMER_SERVER_DIR = dir;
+
+    expect(resolveServerTs(fakeNode)).toEqual({
+      nodeBin: "/usr/bin/node",
+      entryPath: join(dir, "dist", "main.js"),
+      appDir: dir,
+    });
+  });
+
+  it("errors with build guidance when dist/main.js is missing", () => {
+    const dir = tempDir("stigmer-server-");
+    writeFileSync(join(dir, "package.json"), "{}");
+    process.env.STIGMER_SERVER_DIR = dir;
+
+    expect(() => resolveServerTs(fakeNode)).toThrow(/not built/);
+    // Remediation rides in hints, not the message.
+    const hints = captureHints(() => resolveServerTs(fakeNode));
+    expect(hints.join("\n")).toMatch(/make build-server/);
+  });
+
+  it("rejects an override that is not a server package", () => {
+    const dir = tempDir("stigmer-server-");
+    process.env.STIGMER_SERVER_DIR = join(dir, "no-package-here"); // no package.json
+    expect(() => resolveServerTs(fakeNode)).toThrow(/not a server package/);
+  });
+});
+
+describe("acquireServer", () => {
+  it("installs the slim package and resolves its main.js entry", () => {
+    const home = tempDir("stigmer-home-");
+    const installed: Array<{ dir: string; spec: string }> = [];
+    const install = (dir: string, spec: string): void => {
+      installed.push({ dir, spec });
+      // Simulate the npm install laying down the slim package.
+      const pkgDir = join(dir, "node_modules", "@stigmer", "server-slim");
+      mkdirSync(pkgDir, { recursive: true });
+      writeFileSync(join(pkgDir, "main.js"), "// slim bundle");
+    };
+
+    const launch = acquireServer({
+      home,
       version: "0.5.0",
-      binPath,
-      platform: "darwin",
-      arch: "arm64",
-      fetchImpl: fakeFetch(gz, { capturedUrls }),
+      node: fakeNode,
+      install,
     });
 
-    expect(readFileSync(binPath, "utf8")).toBe("the-stigmer-server-binary");
-    expect(statSync(binPath).mode & 0o111).not.toBe(0); // executable
-    expect(capturedUrls).toContain(
-      "https://github.com/stigmer/stigmer/releases/download/v0.5.0/stigmer-server-v0.5.0-darwin-arm64.tar.gz",
-    );
-    expect(capturedUrls).toContain(
-      "https://github.com/stigmer/stigmer/releases/download/v0.5.0/stigmer-server-v0.5.0-darwin-arm64.tar.gz.sha256",
-    );
+    const installDir = join(home, ".stigmer", "runtimes", "0.5.0");
+    expect(launch).toEqual({
+      nodeBin: "/usr/bin/node",
+      entryPath: join(
+        installDir,
+        "node_modules",
+        "@stigmer",
+        "server-slim",
+        "main.js",
+      ),
+      appDir: join(installDir, "node_modules", "@stigmer", "server-slim"),
+    });
+    expect(installed).toEqual([
+      { dir: installDir, spec: "@stigmer/server-slim@0.5.0" },
+    ]);
   });
 
-  it("maps a prerelease version to its v-prefixed release tag", async () => {
-    const gz = gzipSync(new Uint8Array(makeTar("stigmer-server", Buffer.from("x"))));
-    const capturedUrls: string[] = [];
-    const binPath = join(mkdtempSync(join(tmpdir(), "stigmer-server-")), "stigmer-server");
+  it("reuses a prior install without reinstalling", () => {
+    const home = tempDir("stigmer-home-");
+    const pkgDir = join(
+      home,
+      ".stigmer",
+      "runtimes",
+      "0.5.0",
+      "node_modules",
+      "@stigmer",
+      "server-slim",
+    );
+    mkdirSync(pkgDir, { recursive: true });
+    writeFileSync(join(pkgDir, "main.js"), "// slim bundle");
 
-    await downloadServerBinary({
-      version: "0.5.0-rc.1",
-      binPath,
-      platform: "linux",
-      arch: "x64",
-      fetchImpl: fakeFetch(gz, { capturedUrls }),
+    const install = vi.fn();
+    const launch = acquireServer({
+      home,
+      version: "0.5.0",
+      node: fakeNode,
+      install,
     });
 
-    expect(capturedUrls[0]).toBe(
-      "https://github.com/stigmer/stigmer/releases/download/v0.5.0-rc.1/stigmer-server-v0.5.0-rc.1-linux-amd64.tar.gz",
+    expect(launch.nodeBin).toBe("/usr/bin/node");
+    expect(install).not.toHaveBeenCalled();
+  });
+
+  // The runner and the server share one per-version install root; acquiring
+  // the server after the runner must ADD to it, never clobber the root
+  // manifest the runner's install already wrote.
+  it("shares the runtimes install root with the runner without clobbering it", () => {
+    const home = tempDir("stigmer-home-");
+    const installDir = join(home, ".stigmer", "runtimes", "0.5.0");
+    mkdirSync(installDir, { recursive: true });
+    writeFileSync(
+      join(installDir, "package.json"),
+      '{"name":"stigmer-runtime","marker":"pre-existing"}\n',
+    );
+
+    const install = (dir: string): void => {
+      const pkgDir = join(dir, "node_modules", "@stigmer", "server-slim");
+      mkdirSync(pkgDir, { recursive: true });
+      writeFileSync(join(pkgDir, "main.js"), "// slim bundle");
+    };
+    acquireServer({ home, version: "0.5.0", node: fakeNode, install });
+
+    expect(readFileSync(join(installDir, "package.json"), "utf8")).toContain(
+      "pre-existing",
     );
   });
 
-  it("refuses a mismatched checksum", async () => {
-    const gz = gzipSync(new Uint8Array(makeTar("stigmer-server", Buffer.from("x"))));
-    const binPath = join(mkdtempSync(join(tmpdir(), "stigmer-server-")), "stigmer-server");
-    await expect(
-      downloadServerBinary({
-        version: "0.5.0",
-        binPath,
-        platform: "darwin",
-        arch: "arm64",
-        fetchImpl: fakeFetch(gz, { corruptChecksum: true }),
-      }),
-    ).rejects.toThrow(/checksum mismatch/);
+  // The hunted npm failure shape: the install runs but the platform-native
+  // package was skipped (unsupported OS/arch), so the entry never appears.
+  it("errors actionably when the install produces no entry", () => {
+    const home = tempDir("stigmer-home-");
+    const install = vi.fn(); // runs, lays down nothing
+    const attempt = (): unknown => acquireServer({ home, version: "0.5.0", node: fakeNode, install });
+    expect(attempt).toThrow(/install did not produce/);
+    expect(install).toHaveBeenCalledOnce();
+    const hints = captureHints(attempt).join("\n");
+    expect(hints).toMatch(/platform-native/);
+    expect(hints).toMatch(/Remove .* and retry/);
   });
 
-  it("fails clearly on a non-OK archive response", async () => {
-    const fetchImpl = (async (url: string) => ({
-      ok: false,
-      status: 404,
-      arrayBuffer: async () => new ArrayBuffer(0),
-      text: async () => "",
-    })) as unknown as typeof fetch;
-    const binPath = join(mkdtempSync(join(tmpdir(), "stigmer-server-")), "stigmer-server");
-    await expect(
-      downloadServerBinary({ version: "9.9.9", binPath, platform: "darwin", arch: "arm64", fetchImpl }),
-    ).rejects.toThrow(/HTTP 404/);
-  });
-
-  it("refuses an unsupported platform with actionable guidance", async () => {
-    const binPath = join(mkdtempSync(join(tmpdir(), "stigmer-server-")), "stigmer-server");
-    const fetchImpl = vi.fn() as unknown as typeof fetch;
-    await expect(
-      downloadServerBinary({ version: "0.5.0", binPath, platform: "win32", arch: "x64", fetchImpl }),
-    ).rejects.toThrow(/does not support this platform/);
-    expect(fetchImpl).not.toHaveBeenCalled();
+  it("refuses to acquire for a non-release (dev) build, naming the fallback", () => {
+    const home = tempDir("stigmer-home-");
+    const attempt = (): unknown =>
+      acquireServer({
+        home,
+        version: "0.0.0-dev",
+        node: fakeNode,
+        install: vi.fn(),
+      });
+    expect(attempt).toThrow(/non-release build/);
+    // The escape hatch rides in the hints: the explicit server dir.
+    const hints = captureHints(attempt);
+    expect(hints.join("\n")).toMatch(/STIGMER_SERVER_DIR/);
   });
 });
 
-describe("ensureServerBinary", () => {
-  it("returns an existing override binary without downloading", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "stigmer-server-"));
-    const bin = join(dir, "stigmer-server");
-    writeFileSync(bin, "#!/bin/sh\n");
-    chmodSync(bin, 0o755);
-    process.env.STIGMER_SERVER_BIN = bin;
-
-    const fetchImpl = vi.fn() as unknown as typeof fetch;
-    const resolved = await ensureServerBinary({ home: dir, version: "0.5.0", fetchImpl });
-
-    expect(resolved).toBe(bin);
-    expect(fetchImpl).not.toHaveBeenCalled();
-  });
-});
+function captureHints(attempt: () => unknown): readonly string[] {
+  try {
+    attempt();
+  } catch (err) {
+    return (err as { hints?: readonly string[] }).hints ?? [];
+  }
+  throw new Error("expected the attempt to throw");
+}

@@ -11,8 +11,8 @@ This project follows the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.
 ### Development Setup
 
 **Prerequisites**:
-- Go 1.25 or later
-- Node.js 22 or later (web console + unified runner)
+- Node.js 22.13 or later (server, runner, CLI, web console)
+- Go 1.25 or later (Go SDK, codegen tools, integration harnesses)
 - `buf` CLI tool
 
 **Clone and build**:
@@ -42,12 +42,12 @@ npm start -w @stigmer/cli -- up
 stigmer/
 ├── apis/                          # Protobuf definitions and generated stubs
 ├── backend/
-│   ├── libs/                      # Shared libraries (Go)
+│   ├── libs/                      # Shared libraries (TypeScript)
 │   └── services/
-│       ├── stigmer-server/        # Main gRPC server
+│       ├── stigmer-server/        # Main gRPC server (TypeScript)
 │       └── runner/                # Unified TypeScript runner (agent sessions + workflow tasks)
 ├── client-apps/
-│   ├── cli/                       # Go CLI (stigmer command)
+│   ├── cli/                       # TypeScript CLI (stigmer command)
 │   └── web/                       # Next.js web console
 ├── sdk/go/                        # Go SDK
 ├── mcp-server/                    # MCP server

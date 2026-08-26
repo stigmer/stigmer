@@ -69,7 +69,7 @@ const LAUNCHER_PACKAGE = "./cmd/conformance-cloudenv";
 // Built to a deterministic temp path and spawned directly (never `go run`,
 // which would put the go tool between us and the launcher: a SIGKILL fallback
 // would then orphan the JVM and containers instead of stopping them). Same
-// convention as go-build.ts for the OSS server binary.
+// convention as ts-build.ts for the OSS server build.
 const LAUNCHER_OUTPUT_DIR = join(tmpdir(), "stigmer-conformance");
 const LAUNCHER_BINARY = join(
   LAUNCHER_OUTPUT_DIR,

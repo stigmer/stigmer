@@ -2,7 +2,7 @@
 # Interactive E2E (Playwright, full local stack)
 # =============================================================================
 # Runs the interactive Playwright project (test/e2e/tests/interactive) against
-# the full locally-booted stack: stigmer-server (Go), the unified runner,
+# the full locally-booted stack: stigmer-server, the unified runner,
 # a Temporal dev server, and the Next.js web console — everything
 # test/e2e/global-setup.ts orchestrates. This is the lane issue #572 asked
 # for: the suite rotted undetected for three months (2026-05 → 2026-08,
@@ -40,8 +40,6 @@ on:
       - "client-apps/web/**"
       - "sdk/**"
       - "apis/**"
-      - "go.work"
-      - "go.work.sum"
       - ".nvmrc"
       - ".github/workflows/ci.e2e-interactive.yaml"
   workflow_dispatch:
@@ -101,8 +99,6 @@ jobs:
               - "client-apps/web/**"
               - "sdk/**"
               - "apis/**"
-              - "go.work"
-              - "go.work.sum"
               - ".nvmrc"
               - ".github/workflows/ci.e2e-interactive.yaml"
 
@@ -124,16 +120,11 @@ jobs:
     if: needs.changes.outputs.stack == 'true'
     # The Playwright config has no globalTimeout, so this is the only
     # wall-clock cap. Measured: ~2.2 min for the suite once built; the
-    # builds (Go toolchain + two npm trees + Chromium) dominate.
+    # builds (two npm trees + Chromium) dominate.
     timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: go.work
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -157,13 +148,12 @@ jobs:
           curl -sSf https://temporal.download/cli.sh | sh
           echo "$HOME/.temporalio/bin" >> "$GITHUB_PATH"
 
-      # global-setup expects a prebuilt server binary and runner dist; build
+      # global-setup expects a prebuilt server dist and runner dist; build
       # them explicitly so a build break is an isolated, legible failure
       # rather than a confusing globalSetup error (the
       # ci.conformance-execution precedent).
       - name: Build stigmer-server
-        working-directory: backend/services/stigmer-server
-        run: go build -o ../../../bin/stigmer-server ./cmd/server
+        run: make build-server
 
       - name: Build unified runner
         run: make build-runner
@@ -220,11 +210,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: go.work
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -242,8 +227,7 @@ jobs:
           echo "$HOME/.temporalio/bin" >> "$GITHUB_PATH"
 
       - name: Build stigmer-server
-        working-directory: backend/services/stigmer-server
-        run: go build -o ../../../bin/stigmer-server ./cmd/server
+        run: make build-server
 
       - name: Build unified runner
         run: make build-runner

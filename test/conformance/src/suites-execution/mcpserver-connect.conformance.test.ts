@@ -12,7 +12,7 @@
 // 2. completeOAuthConnect / getOAuthGrantStatus / disconnectOAuth happy paths
 //    — conceptually Temporal-free, but the Go server builds their managed
 //    environment service inside the Temporal-gated SetConnectDependencies, so
-//    on the Temporal-less local-go target complete refuses before validating
+//    on the Temporal-less local target complete refuses before validating
 //    input. The initiate lanes and Layer-1 guards (genuinely engine-free) live
 //    in suites/mcpserver-oauth.conformance.test.ts; everything that needs the
 //    managed-env service runs here. (The wiring gap is disclosed, not pinned:

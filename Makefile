@@ -2,14 +2,12 @@ bump ?= patch
 
 GO_MODULES := \
 	apis/stubs/go \
-	backend/libs/go \
-	backend/services/stigmer-server \
 	sdk/go \
 	seedpack \
 	tools
 
 RUNNER_DIR := backend/services/runner
-SERVER_TS_DIR := backend/services/stigmer-server-ts
+SERVER_DIR := backend/services/stigmer-server
 
 # Prettier renders formatting VERDICTS (format-docs-check, the gen-*-docs-check
 # freshness gates), so it must always run at the version package-lock.json pins.
@@ -89,12 +87,10 @@ install-vale: ## Install Vale prose linter (auto-detects OS)
 
 # ─── Build ────────────────────────────────────
 
-.PHONY: build build-java-protos build-java-sdk build-runner build-runner-slim build-server-ts protos codegen build-ts-stubs gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-theme-docs gen-task-docs gen-task-registry gen-task-registry-check gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-theme-docs-check gen-task-docs-check gen-ipc-fixtures gen-ipc-fixtures-check stubs-internal-check
-build: libs-build build-web verify-desktop docs-build build-java-sdk build-runner ## Build all project artifacts
-	@mkdir -p bin
-	cd backend/services/stigmer-server && go build -o ../../../bin/stigmer-server ./cmd/server
+.PHONY: build build-java-protos build-java-sdk build-runner build-runner-slim build-server protos codegen build-ts-stubs gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-theme-docs gen-task-docs gen-task-registry gen-task-registry-check gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-theme-docs-check gen-task-docs-check gen-ipc-fixtures gen-ipc-fixtures-check stubs-internal-check
+build: libs-build build-web verify-desktop docs-build build-java-sdk build-runner build-server ## Build all project artifacts
 	@echo ""
-	@echo "built: bin/stigmer-server (the CLI ships as the @stigmer/cli npm package)"
+	@echo "built: the server ($(SERVER_DIR)/dist) and runner (the CLI ships as the @stigmer/cli npm package)"
 
 build-java-protos: ## Install Java proto stubs to local Maven repo
 	@echo "mvn install  apis/stubs/java"
@@ -131,14 +127,14 @@ build-runner-slim: build-runner ## Build the slim embedding artifact (dist-slim/
 # The TS server follows the runner's standalone-package model: own lockfile,
 # file:-linked @stigmer/protos, NOT an npm workspace (D2 §5 of the OSS TS
 # server blueprint).
-$(SERVER_TS_DIR)/node_modules: $(SERVER_TS_DIR)/package.json
-	@echo "npm install  $(SERVER_TS_DIR)"
-	@cd $(SERVER_TS_DIR) && npm install
-	@touch $(SERVER_TS_DIR)/node_modules
+$(SERVER_DIR)/node_modules: $(SERVER_DIR)/package.json
+	@echo "npm install  $(SERVER_DIR)"
+	@cd $(SERVER_DIR) && npm install
+	@touch $(SERVER_DIR)/node_modules
 
-build-server-ts: build-ts-stubs $(SERVER_TS_DIR)/node_modules ## Compile the TypeScript server (parity port of stigmer-server)
-	@echo "build    $(SERVER_TS_DIR)"
-	@cd $(SERVER_TS_DIR) && npm run build
+build-server: build-ts-stubs $(SERVER_DIR)/node_modules ## Compile the TypeScript server
+	@echo "build    $(SERVER_DIR)"
+	@cd $(SERVER_DIR) && npm run build
 
 protos: ## Generate protocol buffer stubs and SDK client code
 	$(MAKE) -C apis build
@@ -161,19 +157,15 @@ gen-task-docs: ## Generate per-task reference docs from schemas
 	@$(PRETTIER_GUARD)
 	$(PRETTIER) --write --prose-wrap always docs/guides/workflows/task-types/*.mdx
 
-gen-task-registry: ## Generate task-kind-registry.json + JSON Schemas and sync into the backend embed
+# The JSON Schemas live at their generator home (tools/codegen/output only):
+# the server bundles just the registry JSON (registry/bundled.ts), so the
+# per-schema copy the Go embed carried retired with the Go server (D4 #25).
+gen-task-registry: ## Generate task-kind-registry.json + JSON Schemas and sync the registry into the server bundle
 	go run ./tools/codegen/generator --target=task-registry \
 		--schema-dir tools/codegen/schemas --output-dir tools/codegen/output \
 		--meta-dir apis/ai/stigmer/agentic/workflow/v1/tasks/meta
-	# Remove only this generator's own artifacts — registry/data/ also hosts
-	# model-registry.json (owned by sync-model-registry), which must survive.
-	rm -f backend/services/stigmer-server/pkg/domain/workflow/registry/data/task-kind-registry.json
-	rm -rf backend/services/stigmer-server/pkg/domain/workflow/registry/data/json-schemas
-	mkdir -p backend/services/stigmer-server/pkg/domain/workflow/registry/data
 	cp tools/codegen/output/task-kind-registry.json \
-		backend/services/stigmer-server/pkg/domain/workflow/registry/data/task-kind-registry.json
-	cp -R tools/codegen/output/json-schemas \
-		backend/services/stigmer-server/pkg/domain/workflow/registry/data/json-schemas
+		$(SERVER_DIR)/src/domain/workflow/registry/data/task-kind-registry.json
 
 # Source of truth for the model registry is the cloud platform's database
 # (DD-004: baseline + ledger-derived overrides, served publicly). The bundled
@@ -183,14 +175,16 @@ gen-task-registry: ## Generate task-kind-registry.json + JSON Schemas and sync i
 # it is no longer correctness-critical.
 MODEL_REGISTRY_UPSTREAM ?= https://api.stigmer.ai
 
+MODEL_REGISTRY_DATA := $(SERVER_DIR)/src/domain/workflow/registry/data
+
 sync-model-registry: ## Refresh the bundled model-registry.json snapshot from the public cloud endpoint
 	@curl -fsSL "$(MODEL_REGISTRY_UPSTREAM)/api/v1/public/model-registry" \
-		-o backend/services/stigmer-server/pkg/domain/workflow/registry/data/model-registry.json.tmp \
+		-o $(MODEL_REGISTRY_DATA)/model-registry.json.tmp \
 		|| { echo "error: could not fetch $(MODEL_REGISTRY_UPSTREAM)/api/v1/public/model-registry"; \
-		     rm -f backend/services/stigmer-server/pkg/domain/workflow/registry/data/model-registry.json.tmp; \
+		     rm -f $(MODEL_REGISTRY_DATA)/model-registry.json.tmp; \
 		     exit 1; }
-	@mv backend/services/stigmer-server/pkg/domain/workflow/registry/data/model-registry.json.tmp \
-		backend/services/stigmer-server/pkg/domain/workflow/registry/data/model-registry.json
+	@mv $(MODEL_REGISTRY_DATA)/model-registry.json.tmp \
+		$(MODEL_REGISTRY_DATA)/model-registry.json
 	@echo "✓ model-registry.json snapshot refreshed from $(MODEL_REGISTRY_UPSTREAM)"
 
 gen-task-registry-check: ## Verify the task kind registry is up to date and synced (CI)
@@ -198,12 +192,8 @@ gen-task-registry-check: ## Verify the task kind registry is up to date and sync
 		--schema-dir tools/codegen/schemas --output-dir tools/codegen/output \
 		--meta-dir apis/ai/stigmer/agentic/workflow/v1/tasks/meta && \
 	if ! diff -q tools/codegen/output/task-kind-registry.json \
-		backend/services/stigmer-server/pkg/domain/workflow/registry/data/task-kind-registry.json > /dev/null 2>&1; then \
+		$(SERVER_DIR)/src/domain/workflow/registry/data/task-kind-registry.json > /dev/null 2>&1; then \
 		echo "error: task kind registry is stale or unsynced — run 'make gen-task-registry'"; exit 1; \
-	fi; \
-	if ! diff -rq tools/codegen/output/json-schemas \
-		backend/services/stigmer-server/pkg/domain/workflow/registry/data/json-schemas > /dev/null 2>&1; then \
-		echo "error: task kind JSON Schemas are unsynced with the backend embed — run 'make gen-task-registry'"; exit 1; \
 	fi; \
 	if ! git diff --quiet tools/codegen/output/task-kind-registry.json tools/codegen/output/json-schemas/; then \
 		echo "error: task kind registry is stale — run 'make gen-task-registry'"; exit 1; \
@@ -365,10 +355,10 @@ test-runner: $(RUNNER_DIR)/node_modules ## Run the unified runner vitest suite (
 	@echo "testing  $(RUNNER_DIR)"
 	@cd $(RUNNER_DIR) && npm test
 
-.PHONY: test-server-ts
-test-server-ts: build-ts-stubs $(SERVER_TS_DIR)/node_modules ## Run the TypeScript server vitest suite
-	@echo "testing  $(SERVER_TS_DIR)"
-	@cd $(SERVER_TS_DIR) && npm test
+.PHONY: test-server
+test-server: build-ts-stubs $(SERVER_DIR)/node_modules ## Run the TypeScript server vitest suite
+	@echo "testing  $(SERVER_DIR)"
+	@cd $(SERVER_DIR) && npm test
 
 # ─── Integration Test ─────────────────────────
 # Integration test logic lives in each suite's Makefile under test/.
@@ -428,14 +418,10 @@ test-integration-all: ## Run all integration suites. PROVIDERS=true includes pro
 	$(MAKE) test-integration-wfexec-routing
 	@echo "=== Offline: deterministic (recorded LLM) ==="
 	$(MAKE) test-integration-offline
-	@echo "=== Conformance: CRUD contract (local-go) ==="
+	@echo "=== Conformance: CRUD contract (local) ==="
 	$(MAKE) test-conformance
-	@echo "=== Conformance: execution engine (local-go-execution) ==="
+	@echo "=== Conformance: execution engine (local-execution) ==="
 	$(MAKE) test-conformance-execution
-	@echo "=== Conformance: CRUD contract (local-ts / stigmer-server-ts) ==="
-	$(MAKE) test-conformance-ts
-	@echo "=== Conformance: execution engine (local-ts-execution / stigmer-server-ts) ==="
-	$(MAKE) test-conformance-ts-execution
 ifeq ($(PROVIDERS),true)
 	@echo "=== Provider: integration (LLM) ==="
 	$(MAKE) test-integration-providers
@@ -447,27 +433,20 @@ endif
 # ─── Conformance Test (gRPC API contract) ─────
 # The conformance suite (test/conformance, @stigmer/conformance) is an
 # implementation-agnostic gRPC contract, distinct from the integration suites
-# above: it is a TypeScript/vitest workspace that builds the OSS Go
-# stigmer-server from source and drives it through generated Connect clients —
-# the shared contract that turns OSS<->cloud behavioral drift into a failing
-# test. The two slices are deliberately separate (DD-002): the dependency-light
-# CRUD signal stays fast, while execution additionally needs the `temporal` CLI
+# above: it is a TypeScript/vitest workspace that builds the OSS server from
+# source and drives it through generated Connect clients — the shared
+# contract that turns OSS<->cloud behavioral drift into a failing test. The
+# two slices are deliberately separate (DD-002): the dependency-light CRUD
+# signal stays fast, while execution additionally needs the `temporal` CLI
 # and a runner build. See test/conformance/README.md.
 
 .PHONY: test-conformance
-test-conformance: build-ts-stubs ## Run gRPC conformance CRUD suite (local-go; builds the Go server from source, no Temporal)
-	@command -v go >/dev/null 2>&1 || { echo "error: go not found — the harness builds stigmer-server from source"; exit 1; }
-	@echo "=== conformance: CRUD contract (local-go) ==="
-	CONFORMANCE_TARGET=local-go npm run test -w @stigmer/conformance
-
-.PHONY: test-conformance-ts
-test-conformance-ts: build-ts-stubs ## Run the local-ts conformance roster against stigmer-server-ts (the TS rewrite's parity gate; roster grows per sub-project)
-	@echo "=== conformance: local-ts roster (stigmer-server-ts) ==="
-	CONFORMANCE_TARGET=local-ts npm run test:local-ts -w @stigmer/conformance
+test-conformance: build-ts-stubs ## Run gRPC conformance CRUD suite (local; builds the server from source, no Temporal)
+	@echo "=== conformance: CRUD contract (local) ==="
+	CONFORMANCE_TARGET=local npm run test -w @stigmer/conformance
 
 .PHONY: test-conformance-execution
-test-conformance-execution: build-runner ## Run gRPC conformance execution suite (local-go-execution; needs the `temporal` and `stigmer` CLIs)
-	@command -v go >/dev/null 2>&1 || { echo "error: go not found — the harness builds stigmer-server from source"; exit 1; }
+test-conformance-execution: build-runner ## Run gRPC conformance execution suite (local-execution; needs the `temporal` and `stigmer` CLIs)
 	@command -v temporal >/dev/null 2>&1 || { \
 		echo "error: temporal CLI not found — the dev server backs the execution harness"; \
 		echo "  install: curl -sSf https://temporal.download/cli.sh | sh"; \
@@ -480,33 +459,14 @@ test-conformance-execution: build-runner ## Run gRPC conformance execution suite
 		echo "  install the from-source shim: make install-cli-shim   (writes ~/bin/stigmer)"; \
 		exit 1; \
 	}
-	@echo "=== conformance: execution engine (local-go-execution) ==="
-	CONFORMANCE_TARGET=local-go-execution npm run test:execution -w @stigmer/conformance
-
-.PHONY: test-conformance-ts-execution
-test-conformance-ts-execution: build-runner ## Run the local-ts-execution conformance roster against stigmer-server-ts (Class B on the TS engine; needs the `temporal` and `stigmer` CLIs)
-	@command -v temporal >/dev/null 2>&1 || { \
-		echo "error: temporal CLI not found — the dev server backs the execution harness"; \
-		echo "  install: curl -sSf https://temporal.download/cli.sh | sh"; \
-		exit 1; \
-	}
-	@command -v stigmer >/dev/null 2>&1 || { \
-		echo "error: stigmer CLI not found — memory-enabled executions spawn 'stigmer mcp-server'"; \
-		echo "  as the capture tool's stdio child (runner shared/memory-attachment.ts); without"; \
-		echo "  it those executions FAIL instead of skipping."; \
-		echo "  install the from-source shim: make install-cli-shim   (writes ~/bin/stigmer)"; \
-		exit 1; \
-	}
-	@echo "=== conformance: execution engine (local-ts-execution / stigmer-server-ts) ==="
-	CONFORMANCE_TARGET=local-ts-execution npm run test:ts-execution -w @stigmer/conformance
+	@echo "=== conformance: execution engine (local-execution) ==="
+	CONFORMANCE_TARGET=local-execution npm run test:execution -w @stigmer/conformance
 
 .PHONY: smoke-cli-cutover
-smoke-cli-cutover: build-runner build-server-ts ## Run the CLI cutover E2E smoke, both arms: the packaged TS entry AND the STIGMER_SERVER_BIN Go rollback (needs `temporal` on PATH for speed; bin/stigmer-server via `make build` for the go arm)
+smoke-cli-cutover: build-runner build-server ## Run the CLI E2E smoke: `stigmer up` against the packaged slim server artifact (needs `temporal` on PATH for speed)
 	@command -v node >/dev/null 2>&1 || { echo "error: node not found"; exit 1; }
-	@test -f bin/stigmer-server || { echo "error: bin/stigmer-server missing — build the Go rollback binary first (cd backend/services/stigmer-server && go build -o ../../../bin/stigmer-server ./cmd/server)"; exit 1; }
-	@cd $(SERVER_TS_DIR) && node scripts/bundle-slim.mjs
-	node scripts/smoke-cli-cutover.mjs --arm=ts
-	node scripts/smoke-cli-cutover.mjs --arm=go
+	@cd $(SERVER_DIR) && node scripts/bundle-slim.mjs
+	node scripts/smoke-cli-cutover.mjs
 
 .PHONY: test-conformance-cloud
 test-conformance-cloud: build-ts-stubs ## Run gRPC conformance CRUD suite against the Java cloud service (hermetic; needs Docker, `fga`, `temporal`, and the fat JAR)
@@ -530,7 +490,7 @@ test-conformance-cloud: build-ts-stubs ## Run gRPC conformance CRUD suite agains
 test-conformance-all: ## Run both conformance slices (CRUD + execution)
 	$(MAKE) test-conformance
 	$(MAKE) test-conformance-execution
-	@echo "Conformance suite complete (local-go + local-go-execution)."
+	@echo "Conformance suite complete (local + local-execution)."
 
 .PHONY: test-replay
 test-replay: ## Run Temporal workflow replay determinism tests (fast, no infra needed)
@@ -826,8 +786,6 @@ check-go: ## check bucket: Go vet/test/build + buf lint + binaries
 		echo "testing  $$mod"; \
 		(cd $$mod && go test -race -timeout 30s ./...) || exit 1; \
 	done
-	@mkdir -p bin
-	cd backend/services/stigmer-server && go build -o ../../../bin/stigmer-server ./cmd/server
 
 # Local twin of ci.bazel's required graph arm (oss#616). Build compiles and
 # links every target including test binaries (catches the #596/#604 class);
@@ -865,10 +823,10 @@ check-node: ## check bucket: npm typecheck/lint/build/test (web, react, sdk, des
 	# ESM/CJS import crashes that kill `node dist/main.js` at startup (#399).
 	cd $(RUNNER_DIR) && npm run verify:dist
 	cd $(RUNNER_DIR) && npm run check-deps
-	cd $(SERVER_TS_DIR) && npm run typecheck
-	cd $(SERVER_TS_DIR) && npm run build
+	cd $(SERVER_DIR) && npm run typecheck
+	cd $(SERVER_DIR) && npm run build
 	# Same #399-class gate for the TS server's compiled entry.
-	cd $(SERVER_TS_DIR) && npm run verify:dist
+	cd $(SERVER_DIR) && npm run verify:dist
 	cd sdk/ink && npm run tsdoc:check
 	cd sdk/react && npm run tsdoc:check
 
@@ -972,11 +930,9 @@ install-cli-shim: node_modules ## Install ~/bin/stigmer — a shim running the @
 	@command -v stigmer >/dev/null 2>&1 || echo "note: add $(HOME)/bin to your PATH, then reopen your shell, to use 'stigmer'"
 
 .PHONY: local
-local: node_modules build-ts-stubs install-cli-shim ## One-shot local setup: JS deps + proto stubs + server binary + a `stigmer` command
+local: node_modules build-ts-stubs install-cli-shim build-server ## One-shot local setup: JS deps + proto stubs + a built server + a `stigmer` command
 	@rm -f bin/stigmer 2>/dev/null || true
-	@mkdir -p bin
-	@cd backend/services/stigmer-server && go build -o ../../../bin/stigmer-server ./cmd/server
-	@echo "built: bin/stigmer-server"
+	@echo "built: the server ($(SERVER_DIR)/dist)"
 	@echo ""
 	@echo "Now run:"
 	@echo "  stigmer up          # start the local stack"
@@ -1098,6 +1054,6 @@ publish-dev-maven-local: ## Local dev publish, Maven only (alias for publish-dev
 .PHONY: clean
 clean: ## Remove all build artifacts
 	rm -rf bin/ coverage/ coverage.txt coverage.html
-	rm -rf backend/services/stigmer-server/bin/
+	rm -rf $(SERVER_DIR)/dist/ $(SERVER_DIR)/dist-slim/
 	rm -rf client-apps/web/out/ client-apps/web/.next/
 	$(MAKE) -C apis clean

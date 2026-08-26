@@ -21,7 +21,7 @@ Use this mapping to decide which targets to run. A file matching **any** row tri
 |---|---|---|
 | `apis/**` | `make -C apis lint` | Proto linting (buf lint) |
 | `apis/**/*.proto` | `make check-docs-yaml && make gen-proto-sdk-docs-check && make gen-task-docs-check && make gen-task-registry-check` | Docs YAML examples still match the proto contracts; generated proto/task docs and the task registry are regenerated. All are fast Go generators (seconds each) — historically the most frequently broken CI gates after proto changes |
-| `backend/**/*.go`, `mcp-server/**/*.go`, `sdk/go/**/*.go`, `tools/**/*.go` | `make tidy && make lint` (Go portions only: `go vet` + `gofmt`) | Go vet, format, mod tidy |
+| `mcp-server/**/*.go`, `sdk/go/**/*.go`, `tools/**/*.go`, `seedpack/**/*.go` | `make tidy && make lint` (Go portions only: `go vet` + `gofmt`) | Go vet, format, mod tidy |
 | `backend/services/agent-runner/**/*.py`, `backend/libs/python/**/*.py` | Python lint from `make lint` (`ruff check`, `mypy`) | Python lint + type check |
 | `sdk/typescript/src/**` | `npm run typecheck -w @stigmer/sdk` | SDK TypeScript type check |
 | `sdk/react/src/**` | `npm run lint -w @stigmer/react && npm run typecheck -w @stigmer/react` | React SDK lint + type check |
@@ -32,7 +32,7 @@ Use this mapping to decide which targets to run. A file matching **any** row tri
 | `crates/stigmer-runner-host/**` | `cd crates/stigmer-runner-host && cargo fmt --check && cargo clippy --all-targets -- -D warnings && cargo build && cargo test` (mirrors `ci.crate`) | Rust fmt + clippy + build + test |
 | `client-apps/cli/src/**`, `client-apps/cli/scripts/**` | `npm run typecheck -w @stigmer/cli && npm run test -w @stigmer/cli` | CLI type check + tests |
 | `client-apps/cli/docs/**`, `client-apps/cli/src/**` | `make gen-cli-docs-check` | CLI reference docs are up to date |
-| `backend/services/stigmer-server/**/*.go` | `make build` (server binary) | Server builds cleanly |
+| `backend/services/stigmer-server/**/*.ts` | `make test-server` | The server's typecheck + vitest suite |
 | `docs/**/*.md`, `docs/**/*.mdx` | `make lint-docs && make format-docs-check && make check-docs-yaml` | Vale prose lint + Prettier format + every YAML block validates against the proto contracts |
 | `site/**` | `make -C site lint && make -C site typecheck` | Site lint + typecheck |
 

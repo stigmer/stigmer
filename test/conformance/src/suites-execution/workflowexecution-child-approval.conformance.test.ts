@@ -14,28 +14,26 @@
 //     child's AgentExecution.submitApproval. The parent owns no gate of its own — it
 //     is a conduit.
 //
-// ## OSS vs. cloud: the forwarder is half-built in OSS by design (DD-012)
+// ## History: the forwarder was half-built in OSS by design (DD-012)
 //
-// The receiver/forwarder is complete in OSS (submit_approval.go, the runner's
-// call-agent orchestrator, all protos). But the upstream half — the
-// `child_approval_required` signal the agent-execution workflow emits when it
-// gates — is cloud-only. The OSS Go agent-execution workflow never emits it, so a
-// gated agent_call child never populates the parent's pending_approvals, and the
-// forwarder's happy path is structurally unreachable against the Go server
-// (source-confirmed, not a timing artifact). The eventual OSS implementation lands
-// in the T04 TypeScript rewrite — NOT the retiring Go server — and should surface
-// the child gate by derivation (identity-only signal + derive-from-child), per
-// DD-012.
+// The receiver/forwarder was complete in OSS from the start (submitApproval,
+// the runner's call-agent orchestrator, all protos), but the upstream half —
+// the `child_approval_required` signal the agent-execution workflow emits
+// when it gates — was cloud-only for months: the retired Go agent-execution
+// workflow never emitted it (source-confirmed), so the happy path was
+// structurally unreachable against it. The OSS sender landed with the
+// TypeScript server (D4 #23), by derivation exactly as DD-012 specified
+// (identity-only signal + derive-from-child).
 //
 // Accordingly this suite splits along the workflowChildApprovalForwarding
 // capability:
 //   - Negatives are edition-agnostic (they never need a populated
-//     pending_approvals) and run unconditionally, against OSS today.
-//   - The happy path is gated. It is written in full so it is genuinely runnable —
-//     but it needs BOTH the forwarder (cloud / local-ts) AND the local mock-LLM +
-//     MCP fixtures to drive a child to its gate. Only the future local-ts-execution
-//     (T04) target has both; cloud has the forwarder but real LLMs. On local-go it
-//     reports as SKIPPED (not a false green) via describe.skipIf.
+//     pending_approvals) and run unconditionally against every target.
+//   - The happy path is gated on the flag, which is true on every current
+//     target (local-execution and cloud-execution both provision the
+//     mock-LLM + MCP fixtures it needs). The gate stays: it is what made
+//     the suite honest on the sender-less Go targets, and it keeps any
+//     future sender-less target SKIPPED rather than falsely green.
 //
 // ## Asserted contract (sourced from submit_approval.go)
 //
@@ -228,10 +226,9 @@ describe("WorkflowExecution submitApproval (child-agent forwarder) — negatives
   });
 });
 
-// Happy path — gated on workflowChildApprovalForwarding. Reports as SKIPPED on
-// local-go (forwarder present, signal sender absent) rather than a false green;
-// runs on the future local-ts-execution (T04) target, which has both the
-// forwarder and the local mock-LLM + MCP fixtures. See DD-012.
+// Happy path — gated on workflowChildApprovalForwarding: true on every
+// current target (local-execution and cloud-execution). The gate keeps any
+// future sender-less target SKIPPED rather than falsely green. See DD-012.
 describe.skipIf(!forwarderEnabled)(
   "WorkflowExecution submitApproval (child-agent forwarder) — forwarding round-trip",
   () => {

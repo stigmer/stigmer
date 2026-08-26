@@ -195,8 +195,8 @@ Resource definitions are portable across both modes. The CLI talks to the same g
 
 ### Prerequisites
 
-- Go 1.25+
-- Node.js 22+
+- Node.js 22+ (22.13 or newer; the server needs `node:sqlite` with FTS5)
+- Go 1.25+ (for the Go SDK, codegen tools, and integration harnesses)
 - Git, Make
 
 ### Building from Source

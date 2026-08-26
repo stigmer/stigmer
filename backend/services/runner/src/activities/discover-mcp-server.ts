@@ -63,7 +63,7 @@ const STDIO_INIT_TIMEOUT_MS = 270_000;
  * The server-side secret-redaction sentinel. Byte-for-byte the value both
  * editions substitute for secret values a caller may not decrypt
  * (`SecretEncryptionService.REDACTED_MARKER` in stigmer-cloud,
- * `RedactedMarker` in the OSS Go server). Discovery dialing an
+ * `RedactedMarker` in the OSS server). Discovery dialing an
  * endpoint with a redacted credential is guaranteed to fail confusingly
  * (e.g. `Authorization: Bearer ***REDACTED***` → 401 → SSE-fallback limbo),
  * so it is refused up front with an actionable error instead.

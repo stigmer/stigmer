@@ -24,7 +24,7 @@ import { rotateLogs } from "../state/log-rotation.js";
 import { resolveApiKey, resolveProvider } from "../llm-config.js";
 import { resolveOperatorIdentity } from "../operator-config.js";
 import { ensureRunner } from "../runtime/runner.js";
-import { ensureServer } from "../runtime/server-ts.js";
+import { ensureServer } from "../runtime/server.js";
 import { TemporalManager } from "../temporal/manager.js";
 import { buildDaemonEnv, type DaemonEnvInputs } from "./env.js";
 
@@ -64,9 +64,7 @@ export async function up(options: UpOptions = {}, home: string = homedir()): Pro
     await temporal.ensureInstalled();
   }
 
-  // THE cutover switch (D4 #24): resolves the TS server (repo tree or the
-  // acquired @stigmer/server-slim), or the Go binary when STIGMER_SERVER_BIN
-  // is set — the rollback lever.
+  // Resolves the server (repo tree or the acquired @stigmer/server-slim).
   const server = ensureServer({ home });
   const runner = options.serverOnly === true ? undefined : ensureRunner({ home });
 

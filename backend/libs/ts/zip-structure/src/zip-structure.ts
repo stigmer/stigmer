@@ -29,7 +29,7 @@
  *   - runner execute-deep-agent/attachment-injector.ts (user
  *     attachments): structural failure is FAIL-HARD — the input is an
  *     untrusted upload and nothing upstream vouched for it.
- *   - stigmer-server-ts src/domain/skill/storage/ (the push gate):
+ *   - stigmer-server src/domain/skill/storage/ (the push gate):
  *     FAIL-HARD, plus a safearchive-parity entry pre-filter decoded from
  *     the raw creator/attribute fields exposed below.
  *

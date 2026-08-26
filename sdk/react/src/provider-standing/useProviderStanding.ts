@@ -25,7 +25,7 @@ export interface UseProviderStandingReturn {
  *
  * Platform-operator surface: the caller needs
  * `can_view_provider_standing` on `platform:stigmer`. Cloud-only — the
- * OSS Go server does not implement the controller.
+ * OSS server does not implement the controller.
  *
  * Pass `enabled: false` to skip fetching (stable no-op).
  *

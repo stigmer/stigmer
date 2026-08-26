@@ -1,283 +1,41 @@
-# Stigmer Server
+# stigmer-server
 
-Go gRPC API server for local Stigmer deployment.
+**What this directory is**: the control plane of the Stigmer OSS edition —
+the server `stigmer up` launches. A single-tenant TypeScript service serving
+the unified one-port gRPC/gRPC-Web/Connect transport over a `node:sqlite`
+store, with Temporal workers for the execution engine.
 
-## Overview
+**Where it came from**: born as `stigmer-server-ts`, a domain-by-domain
+TypeScript port of the original Go server, built behind the cross-edition
+conformance suite in [`test/conformance/`](../../../test/conformance) and cut
+over once its roster equalled the Go server's whole gate. The Go server
+retired shortly after (go-server-retirement; its source lives in git
+history). Ported modules cite the Go packages they came from — those
+citations are the port's provenance record.
 
-Stigmer Server is the main API server for the open-source Stigmer agentic framework. It provides gRPC APIs for managing agents, workflows, skills, and other resources using SQLite storage.
+## Contract promise
 
-## Architecture
-
-```
-┌─────────────────────────────────────────┐
-│    Stigmer CLI (@stigmer/cli, TS)       │
-└────────────────┬────────────────────────┘
-                 │ gRPC (local port)
-                 ↓
-┌─────────────────────────────────────────┐
-│         Stigmer Server                  │
-│                                         │
-│  Controllers:                           │
-│  - AgentController                      │
-│  - WorkflowController                   │
-│  - SkillController                      │
-│  - EnvironmentController                │
-│  - SessionController                    │
-│                                         │
-│         ↓                               │
-│  ┌──────────────────┐                  │
-│  │  SQLite Storage  │                  │
-│  │  (Generic Table) │                  │
-│  └──────────────────┘                  │
-└─────────────────────────────────────────┘
-```
-
-## Features
-
-- **gRPC API Controllers** - Command and Query controllers for all resource types
-- **SQLite Storage** - Generic resource table with serialized proto documents
-- **Local-First** - Supervised by the TypeScript `stigmer` CLI as a daemon on a local gRPC port
-- **Protobuf Validation** - Request validation using proto constraints
-- **Zero Schema Migrations** - Add new resource types without database changes
-
-## Quick Start
-
-### Build
-
-```bash
-cd backend/services/stigmer-server
-go build -o stigmer-server cmd/server/main.go
-```
-
-### Run
-
-```bash
-./stigmer-server
-```
-
-Default configuration:
-- **Port**: 7234
-- **Database**: `~/.stigmer/stigmer.db`
-- **Log Level**: INFO
-
-### Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `GRPC_PORT` | gRPC server port | 7234 |
-| `DB_PATH` | SQLite database path | `~/.stigmer/stigmer.db` |
-| `STORAGE_PATH` | Skill artifact storage directory | `~/.stigmer/storage` |
-| `LOG_LEVEL` | Logging level (debug, info, warn, error) | info |
-| `ENV` | Environment (local, dev, prod) | local |
-| `STIGMER_OAUTH_REDIRECT_URI` | Frontend OAuth callback URL for MCP server auth (e.g. `http://localhost:8234/auth/oauth/callback`). When empty, OAuth Connect is disabled. | _(empty)_ |
-| `ARTIFACT_STORAGE_TYPE` | Artifact backend: `local` (filesystem) or `r2` (S3-compatible object storage). | local |
-| `ARTIFACT_LOCAL_BASE_PATH` | Root of the local artifact store. A key `K` is stored at `<base>/<K>` (no implicit `artifacts` segment). **In local mode the runner's `LOCAL_ARTIFACT_PATH` must equal this**, or artifacts written by the server will not resolve in the runner (stigmer/stigmer#285). | `~/.stigmer/data/artifacts` |
-| `ARTIFACT_HTTP_PORT` | Port of the HTTP file server that serves local artifacts (used only when `ARTIFACT_STORAGE_TYPE=local`). | `GRPC_PORT + 1` (7235) |
-
-## Controllers
-
-### Agent Controller
-
-Implements `AgentCommandController` and `AgentQueryController`.
-
-**Commands**:
-- `Create` - Create a new agent
-- `Update` - Update an existing agent
-- `Delete` - Delete an agent
-
-**Queries**:
-- `Get` - Get agent by ID
-- `List` - List all agents
-- `FindByName` - Find agent by name
-
-### Workflow Controller
-
-Implements `WorkflowCommandController` and `WorkflowQueryController`.
-
-**Commands**:
-- `Create` - Create a new workflow
-- `Update` - Update an existing workflow
-- `Delete` - Delete a workflow
-
-**Queries**:
-- `Get` - Get workflow by ID
-- `List` - List all workflows
-- `FindByName` - Find workflow by name
-
-## Storage
-
-Stigmer Server uses the **Generic Single-Table Pattern** to avoid migration hell.
-
-**See**: [ADR-007: Generic Resource Storage Strategy](../../../docs/adr/2026-01/2026-01-19-170000-sqllite-with-json-data.md)
-
-### How It Works
-
-All resources are stored in a single `resources` table:
-
-```sql
-CREATE TABLE resources (
-    id TEXT PRIMARY KEY,
-    kind TEXT NOT NULL,           -- "Agent", "Workflow", "Skill"
-    org_id TEXT DEFAULT '',
-    project_id TEXT DEFAULT '',
-    data JSON NOT NULL,           -- Full proto serialized to JSON
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-**Benefits**:
-- Zero schema migrations when adding new resource kinds
-- 90% less persistence layer code
-- Cloud parity (mimics MongoDB document model)
+The wire contract is shared: the cloud Java service, the runner, every
+published SDK, and databases written before the cutover all speak it.
+Byte-pinned identifiers, error copy, and streaming behavior are contract —
+every deliberate exception is recorded in the program's parity-deltas
+register, and nothing diverges silently. The conformance suite
+(`test/conformance/`, targets `local` and `local-execution`) is the gate for
+every change that lands here.
 
 ## Development
 
-### Project Structure
-
-```
-stigmer-server/
-├── cmd/
-│   └── server/
-│       └── main.go              # Server entry point
-├── pkg/
-│   ├── config/
-│   │   └── config.go            # Configuration
-│   └── controllers/
-│       ├── agent_controller.go  # Agent command/query controller
-│       ├── workflow_controller.go
-│       └── skill_controller.go
-├── docs/
-│   └── README.md
-└── README.md
-```
-
-### Adding a New Controller
-
-1. **Create controller file**:
-
-```go
-package controllers
-
-import (
-    "context"
-    "github.com/stigmer/stigmer/backend/libs/go/grpc"
-    "github.com/stigmer/stigmer/backend/libs/go/sqlite"
-    resourcev1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/resource/v1"
-)
-
-type ResourceController struct {
-    resourcev1.UnimplementedResourceCommandControllerServer
-    resourcev1.UnimplementedResourceQueryControllerServer
-    store *sqlite.Store
-}
-
-func NewResourceController(store *sqlite.Store) *ResourceController {
-    return &ResourceController{store: store}
-}
-
-// Implement command methods (Create, Update, Delete)
-// Implement query methods (Get, List, Find...)
-```
-
-2. **Register in main.go**:
-
-```go
-resourceController := controllers.NewResourceController(store)
-resourcev1.RegisterResourceCommandControllerServer(grpcServer, resourceController)
-resourcev1.RegisterResourceQueryControllerServer(grpcServer, resourceController)
-```
-
-3. **Done!** - No database migrations needed.
-
-### Testing
+Standalone package (own lockfile, not an npm workspace — the runner's model):
 
 ```bash
-# Run tests
-go test ./...
-
-# Run with coverage
-go test -cover ./...
+npm install          # after: npm run build -w @stigmer/protos (repo root)
+npm run typecheck
+npm test
+npm run build && npm run verify:dist    # compiled entry, booted with plain node
+npm run build:slim && npm run verify:slim
 ```
 
-### Testing with grpcurl
+Or from the repo root: `make build-server`, `make test-server`.
 
-```bash
-# Install grpcurl
-brew install grpcurl
-
-# List services
-grpcurl -plaintext localhost:8080 list
-
-# Create an agent
-grpcurl -plaintext -d @ localhost:8080 ai.stigmer.agentic.agent.v1.AgentCommandController/Create <<EOF
-{
-  "agent": {
-    "api_resource_metadata": {
-      "name": "test-agent"
-    },
-    "spec": {
-      "description": "A test agent",
-      "model": "gpt-4"
-    }
-  }
-}
-EOF
-
-# Get an agent
-grpcurl -plaintext -d '{"id": "agent-123"}' localhost:8080 ai.stigmer.agentic.agent.v1.AgentQueryController/Get
-
-# List agents
-grpcurl -plaintext localhost:8080 ai.stigmer.agentic.agent.v1.AgentQueryController/List
-
-# Check readiness via the standard health service (reports SERVING once wired)
-grpcurl -plaintext localhost:8080 grpc.health.v1.Health/Check
-```
-
-## Deployment
-
-### Docker
-
-```dockerfile
-FROM golang:1.21-alpine AS builder
-
-WORKDIR /app
-COPY . .
-RUN go build -o stigmer-server cmd/server/main.go
-
-FROM alpine:latest
-RUN apk --no-cache add ca-certificates
-COPY --from=builder /app/stigmer-server /stigmer-server
-ENTRYPOINT ["/stigmer-server"]
-```
-
-### Kubernetes
-
-Not applicable for open-source local deployment. Stigmer Server runs as a local binary.
-
-## Differences from Stigmer Cloud
-
-| Feature | Stigmer Cloud (stigmer-service) | Stigmer Server (open source) |
-|---------|--------------------------------|------------------------------|
-| Language | Java (Spring Boot) | Go |
-| Storage | MongoDB | SQLite + JSON |
-| Auth | Auth0 + FGA | None (local only) |
-| Multi-tenancy | Yes (org_id isolation) | No |
-| Deployment | Kubernetes | Local binary |
-| Scale | Hundreds of orgs | Single user |
-
-## Related Services
-
-- **runner** (`backend/services/runner`) - Unified TypeScript Temporal worker
-  that executes agent sessions and workflow tasks
-
-## Related Documentation
-
-- [Backend Architecture](../../README.md)
-- [SQLite Storage](../../libs/go/sqlite/README.md)
-- [gRPC Utilities](../../libs/go/grpc/README.md)
-- [ADR-007: Generic Resource Storage](../../../docs/adr/2026-01/2026-01-19-170000-sqllite-with-json-data.md)
-
----
-
-**Last Updated**: August 13, 2026  
-**Maintained By**: Stigmer Engineering Team
+Coding standards for this service live in
+`.cursor/rules/backend/ts-server-guidelines.mdc`.

@@ -2,7 +2,7 @@
 // execution harness always tests HEAD.
 // Domain: conformance harness (execution engine).
 //
-// Mirrors go-build.ts. We delegate to `make build-runner` rather than re-encode
+// We delegate to `make build-runner` rather than re-encode
 // the npm ordering here: that target is the maintained single entry that builds
 // the @stigmer/protos dist, installs the runner's own node_modules (the runner
 // is NOT a root npm workspace member), and compiles dist/ — including the

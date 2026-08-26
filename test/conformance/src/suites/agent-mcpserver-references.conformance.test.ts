@@ -9,22 +9,17 @@
 // to a non-existent McpServer.
 //
 // WHY this is a separate file: the accept-path test creates/deletes an
-// McpServer as a fixture, so the suite requires the McpServer service —
-// which the TS server (stigmer-server-ts) only gains at D4 entry #9
-// (McpServer CRUD). This block was split out of agent.conformance.test.ts by
-// sub-project decision DD-001 (sp.agent-family) so the main agent suite can
-// roster on local-ts now; this file stays on the Go-target rosters (picked up
-// by vitest.config.ts's suites/ glob) and rosters on local-ts when entry #9
-// lands.
+// McpServer as a fixture, so the suite requires the McpServer service. It
+// was split out of agent.conformance.test.ts during the TS port (sub-project
+// decision DD-001, sp.agent-family) so the agent suite could roster before
+// McpServer CRUD landed (D4 entry #9); the split stays because the fixture
+// dependency it isolates is real either way.
 //
 // Note: the missing-reference rejection test below does NOT need the
 // McpServer fixture (it only calls agentCommand.create), and that rejection
-// is already TS-implemented and unit-tested in the server (the shared
-// ValidateReferences test in src/pipeline/__tests__/steps.test.ts, which
-// pins the FailedPrecondition code and Go's copy) — so no behavior goes
-// unproven
-// while this file waits for entry #9. The whole describe block moves anyway:
-// DD-001's split criterion is the describe block, keeping the diff reviewable.
+// is also unit-tested in the server (the shared ValidateReferences test in
+// src/pipeline/__tests__/steps.test.ts, which pins the FailedPrecondition
+// code and copy).
 import { Code } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
