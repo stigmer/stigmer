@@ -22,6 +22,14 @@
  *     oss#861: the TS error completion WORKS);
  *   - the cursor flow's harness_state_id re-read discipline.
  *
+ * Recorder discipline (oss#892): Temporal activities are at-least-once —
+ * a workflow task whose completion fails to commit re-executes its local
+ * activities (their markers never landed), so count-exact recorder pins
+ * flake under CI load. Delete-recorder assertions therefore pin
+ * identity + at-least-once, every test mints a unique execution id, and
+ * afterEach settles every started workflow so none outlives its script
+ * window.
+ *
  * Follows the runner's golden-e2e precedent: TestWorkflowEnvironment
  * .createLocal (needs the `temporal` CLI on PATH); every test skips
  * gracefully when the local test server cannot start.
@@ -112,10 +120,20 @@ interface ActivityScript {
 
 let script: ActivityScript;
 
+/**
+ * Per-test execution identity (oss#892): a workflow that outlives its
+ * test window keeps pushing into the CURRENT test's recorders. Unique
+ * ids make any such leak attributable to its test — with a shared id, a
+ * foreign push is indistinguishable from a legitimate one.
+ */
+let executionSeq = 0;
+let currentExecutionId = "exec-0";
+
 function resetScript(): void {
   for (const release of script?.releaseBlocked ?? []) {
     release();
   }
+  currentExecutionId = `exec-${++executionSeq}`;
   script = {
     executeBehaviors: [],
     executeCalls: [],
@@ -155,7 +173,7 @@ function executionJson(status: AgentExecutionStatus): JsonValue {
   return toJson(
     AgentExecutionSchema,
     create(AgentExecutionSchema, {
-      metadata: { id: "exec-1" },
+      metadata: { id: currentExecutionId },
       status,
     }),
   );
@@ -180,7 +198,7 @@ function statusDecidedAwaitingReconcile(): AgentExecutionStatus {
     phase: ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
     fileChangeSets: [
       {
-        id: "exec-1:1",
+        id: `${currentExecutionId}:1`,
         status: FileChangeSetStatus.DECIDED,
       },
     ],
@@ -257,7 +275,7 @@ function workflowInput(
   overrides: Partial<InvokeAgentExecutionWorkflowInput> = {},
 ): InvokeAgentExecutionWorkflowInput {
   return {
-    execution_id: "exec-1",
+    execution_id: currentExecutionId,
     session_id: "ses-1",
     agent_id: "agt-1",
     ...overrides,
@@ -266,17 +284,25 @@ function workflowInput(
 
 let workflowSeq = 0;
 
+/** Every started workflow, settled by afterEach (oss#892). */
+const startedHandles: Array<import("@temporalio/client").WorkflowHandle> = [];
+
 async function startWorkflow(
   input: InvokeAgentExecutionWorkflowInput,
 ): Promise<import("@temporalio/client").WorkflowHandle> {
   if (!env) throw new Error("TestWorkflowEnvironment not initialized");
   workflowSeq++;
-  return env.client.workflow.start(INVOKE_AGENT_EXECUTION_WORKFLOW_NAME, {
-    taskQueue: TASK_QUEUE,
-    workflowId: `invoke-test-${workflowSeq}-${Date.now()}`,
-    args: [input],
-    memo: { [MEMO_ACTIVITY_TASK_QUEUE]: TASK_QUEUE },
-  });
+  const handle = await env.client.workflow.start(
+    INVOKE_AGENT_EXECUTION_WORKFLOW_NAME,
+    {
+      taskQueue: TASK_QUEUE,
+      workflowId: `invoke-test-${workflowSeq}-${Date.now()}`,
+      args: [input],
+      memo: { [MEMO_ACTIVITY_TASK_QUEUE]: TASK_QUEUE },
+    },
+  );
+  startedHandles.push(handle);
+  return handle;
 }
 
 /**
@@ -333,6 +359,27 @@ async function waitForPersistedPhase(
   );
 }
 
+/**
+ * The EC-delete pin, honest to Temporal's contract (oss#892):
+ * DeleteExecutionContext is a LOCAL activity, and local activities are
+ * at-least-once — a workflow task whose completion fails to commit
+ * re-executes them (their markers never landed), so an exactly-once
+ * count assertion flakes under CI load while the production delete is
+ * idempotent by design. The pin is "fired, and only ever for THIS
+ * execution": a duplicate is legal; a foreign id is a test-isolation
+ * leak and must fail loudly.
+ */
+function expectExecutionContextDeleted(): void {
+  expect(
+    script.deletedExecutionContexts.length,
+    "the ExecutionContext delete must fire",
+  ).toBeGreaterThanOrEqual(1);
+  expect(
+    script.deletedExecutionContexts.filter((id) => id !== currentExecutionId),
+    "every recorded delete must belong to this test's execution",
+  ).toEqual([]);
+}
+
 describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
   beforeAll(async () => {
     try {
@@ -365,9 +412,22 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     if (env) await env.teardown();
   }, 30_000);
 
-  afterEach(() => {
+  afterEach(async () => {
+    // Settle every workflow this test started BEFORE the script resets:
+    // a workflow that outlives its test re-enters the NEXT test's script
+    // (observed on CI as "test script exhausted" activity retries plus a
+    // foreign recorder push — oss#892). Terminating an already-terminal
+    // workflow throws; that is the common case and is ignored.
+    for (const handle of startedHandles.splice(0)) {
+      try {
+        await handle.terminate("test window closed (oss#892 settle fence)");
+      } catch {
+        // Already terminal.
+      }
+      await handle.result().catch(() => {});
+    }
     resetScript();
-  });
+  }, 15_000);
 
   it("completes the deep-agent happy path and cleans up the ExecutionContext", async (testCtx) => {    if (!envReady) return testCtx.skip();
     script.executeBehaviors = [
@@ -378,7 +438,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     await handle.result();
 
     expect(script.executeCalls).toEqual([{ thread_id: "thread-1", turn_seq: 0 }]);
-    expect(script.deletedExecutionContexts).toEqual(["exec-1"]);
+    expectExecutionContextDeleted();
     expect(script.completions).toEqual([]);
   }, 30_000);
 
@@ -406,7 +466,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
           entry.status.phase === ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
       ),
     ).toBe(true);
-    expect(script.deletedExecutionContexts).toEqual(["exec-1"]);
+    expectExecutionContextDeleted();
   }, 30_000);
 
   it("re-invokes immediately without a signal when the gate is decided-awaiting-reconcile (DD-28)", async (testCtx) => {    if (!envReady) return testCtx.skip();
@@ -525,7 +585,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     );
     expect(failed.length).toBeGreaterThan(0);
     expect(failed[0]!.status.error).toBe("agent blew up");
-    expect(script.deletedExecutionContexts).toEqual(["exec-1"]);
+    expectExecutionContextDeleted();
   }, 30_000);
 
   it("cancellation persists CANCELLED quietly and still deletes the ExecutionContext (stigmer#282)", async (testCtx) => {    if (!envReady) return testCtx.skip();
@@ -554,7 +614,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     expect(cancelled.status.messages.map((message) => message.content)).toEqual([
       "Execution was cancelled.",
     ]);
-    expect(script.deletedExecutionContexts).toEqual(["exec-1"]);
+    expectExecutionContextDeleted();
   }, 60_000);
 
   it("completes the callback token with the result on success", async (testCtx) => {    if (!envReady) return testCtx.skip();
@@ -569,7 +629,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
       toJson(
         AgentExecutionSchema,
         create(AgentExecutionSchema, {
-          metadata: { id: "exec-1" },
+          metadata: { id: currentExecutionId },
           status: {
             phase: ExecutionPhase.EXECUTION_COMPLETED,
             streamingUsage: { totalTokens: 1234n, estimatedCostUsd: 0.05 },
@@ -587,7 +647,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     const completion = script.completions[0]!;
     expect(completion.errorMessage).toBeUndefined();
     expect(completion.result).toEqual({
-      agent_execution_id: "exec-1",
+      agent_execution_id: currentExecutionId,
       structured: { verdict: "ok" },
       final_text: "done",
       // total_tokens is a JSON NUMBER (the cross-component contract; the
@@ -714,7 +774,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
       expect(signal.targetWorkflowId).toBe("parent-probe");
       // The BARE-STRING wire shape — cloud's exact payload, NOT the
       // {executionId} object child_execution_started carries.
-      expect(signal.payload).toBe("exec-1");
+      expect(signal.payload).toBe(currentExecutionId);
     }
 
     // Ordering pin (cloud parity): the notify happens BEFORE the gate wait —
@@ -760,7 +820,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     // The sibling-signal payload asymmetry, pinned: started carries the
     // {executionId} object (the shape the runner's handler tolerates),
     // while child_approval_required carries cloud's bare string.
-    expect(started[0]!.payload).toEqual({ executionId: "exec-1" });
+    expect(started[0]!.payload).toEqual({ executionId: currentExecutionId });
     expect(
       signals.filter((signal) => signal.signalName === SIGNAL_CHILD_APPROVAL_REQUIRED),
     ).toHaveLength(0);
