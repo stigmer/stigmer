@@ -21,6 +21,9 @@
  * Follows #18's discipline: TestWorkflowEnvironment.createLocal (needs
  * the `temporal` CLI); every test skips VISIBLY when the local test
  * server cannot start — never a vacuous green (panel finding B3).
+ * Delete-recorder pins are at-least-once-honest (oss#892): Temporal
+ * activities re-execute when a completion fails to commit, so the pin is
+ * identity + at-least-once, never an exact count.
  */
 import { fromJson } from "@bufbuild/protobuf";
 import type { JsonValue } from "@bufbuild/protobuf";
@@ -144,6 +147,27 @@ function persistedPhases(): ExecutionPhase[] {
 }
 
 /**
+ * The EC-delete pin, honest to Temporal's contract (oss#892): every
+ * activity is at-least-once — a completion that fails to commit
+ * re-executes code that already ran (the delete here is a REGULAR
+ * activity, but the transient class is the same one observed on the
+ * agentexecution twin's local activity), so an exactly-once count
+ * assertion flakes under CI load while the production delete is
+ * idempotent by design. The pin is "fired, and only ever for THIS
+ * execution".
+ */
+function expectExecutionContextDeleted(executionId: string): void {
+  expect(
+    deletedExecutionContexts.length,
+    "the ExecutionContext delete must fire",
+  ).toBeGreaterThanOrEqual(1);
+  expect(
+    deletedExecutionContexts.filter((id) => id !== executionId),
+    "every recorded delete must belong to this test's execution",
+  ).toEqual([]);
+}
+
+/**
  * Releases a holding stub child THROUGH the orchestrator's relay lane —
  * the orchestrator has no test-release handler of its own; the envelope
  * is exactly how any task-specific signal reaches the child in
@@ -199,7 +223,7 @@ describe("invoke-workflow-execution workflow (TestWorkflowEnvironment)", () => {
     const handle = await startOrchestrator("wfe-ok");
     await handle.result();
 
-    expect(deletedExecutionContexts).toEqual(["wfe-ok"]);
+    expectExecutionContextDeleted("wfe-ok");
     // The runner streams real statuses via gRPC; the orchestrator's own
     // persists exist only for the failure/cancel/pause lanes.
     expect(persistedStatuses).toEqual([]);
@@ -218,7 +242,7 @@ describe("invoke-workflow-execution workflow (TestWorkflowEnvironment)", () => {
     // Go: "Workflow execution failed: %s" over the child's error text.
     expect(failed.status.error).toMatch(/^Workflow execution failed: /);
     expect(failed.status.error).toContain("child engine boom");
-    expect(deletedExecutionContexts).toEqual(["wfe-fail"]);
+    expectExecutionContextDeleted("wfe-fail");
   }, 30_000);
 
   it("cancellation persists a QUIET CANCELLED (no error) and cleans up the EC", async (testCtx) => {
@@ -233,7 +257,7 @@ describe("invoke-workflow-execution workflow (TestWorkflowEnvironment)", () => {
     // stigmer#282: a user cancel is a quiet terminal state — display
     // layers key error styling on status.error.
     expect(persistedStatuses[0]!.status.error).toBe("");
-    expect(deletedExecutionContexts).toEqual(["wfe-hold-cancel"]);
+    expectExecutionContextDeleted("wfe-hold-cancel");
   }, 30_000);
 
   it("pause then resume: persists PAUSED/IN_PROGRESS in order and relays reach the child in arrival order", async (testCtx) => {
@@ -271,7 +295,7 @@ describe("invoke-workflow-execution workflow (TestWorkflowEnvironment)", () => {
       "pause:take a break",
       "resume",
     ]);
-    expect(deletedExecutionContexts).toEqual(["wfe-hold-pr"]);
+    expectExecutionContextDeleted("wfe-hold-pr");
   }, 30_000);
 
   it("forwards relaySignal envelopes to the child's task-specific channel with the payload", async (testCtx) => {
@@ -309,7 +333,7 @@ describe("invoke-workflow-execution workflow (TestWorkflowEnvironment)", () => {
     await handle.result();
 
     expect(childEvents).toContain("recovery-mode");
-    expect(deletedExecutionContexts).toEqual(["wfe-hold-recovery"]);
+    expectExecutionContextDeleted("wfe-hold-recovery");
   }, 30_000);
 
   it("ignores a malformed relay envelope without failing the workflow", async (testCtx) => {
@@ -325,6 +349,6 @@ describe("invoke-workflow-execution workflow (TestWorkflowEnvironment)", () => {
     await handle.result();
 
     expect(childEvents.filter((event) => event !== "started")).toEqual([]);
-    expect(deletedExecutionContexts).toEqual(["wfe-hold-badrelay"]);
+    expectExecutionContextDeleted("wfe-hold-badrelay");
   }, 30_000);
 });
