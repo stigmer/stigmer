@@ -712,21 +712,25 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
    *
    * &#64;internal
    *
-   * Signal Pattern:
-   * 1. Go workflow passes its workflow ID when creating AgentExecution
-   * 2. Go workflow starts signal listener for "child_approval_required"
-   * 3. When agent enters WAITING_FOR_APPROVAL, Java sends signal to parent
-   * 4. Go workflow receives signal, updates task status to WAITING_APPROVAL
+   * Signal pattern (identical in both editions — the OSS TypeScript server
+   * and the cloud Java service implement the same sender):
+   * 1. The runner's workflow-execution child workflow passes its own
+   * workflow ID when creating the AgentExecution (engine-core.ts).
+   * 2. The agent-execution workflow's HITL loop signals
+   * "child_approval_required" to this workflow ID on EVERY approval
+   * cycle, carrying only the child execution id as a bare string
+   * (identity-only, cloud#509).
+   * 3. The receiver derives the pending approvals by reading the child
+   * execution record — the signal is never a payload copy that can drift.
    *
    * Format:
-   * Temporal workflow ID, typically: "stigmer/workflow-execution/invoke/{execution-id}"
+   * A Temporal workflow ID; typically the runner's workflow-execution child
+   * workflow ("workflow-exec-{workflow-execution-id}").
    *
    * Backward Compatibility:
    * This field is optional. Agents invoked without a parent workflow ID will
    * continue to work normally - approval is submitted directly via the
    * AgentExecution.SubmitApproval RPC.
-   *
-   * &#64;since Phase 5.1 (Events-Based Approval Notification)
    * </pre>
    *
    * <code>string parent_workflow_id = 8 [json_name = "parentWorkflowId"];</code>
@@ -755,21 +759,25 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
    *
    * &#64;internal
    *
-   * Signal Pattern:
-   * 1. Go workflow passes its workflow ID when creating AgentExecution
-   * 2. Go workflow starts signal listener for "child_approval_required"
-   * 3. When agent enters WAITING_FOR_APPROVAL, Java sends signal to parent
-   * 4. Go workflow receives signal, updates task status to WAITING_APPROVAL
+   * Signal pattern (identical in both editions — the OSS TypeScript server
+   * and the cloud Java service implement the same sender):
+   * 1. The runner's workflow-execution child workflow passes its own
+   * workflow ID when creating the AgentExecution (engine-core.ts).
+   * 2. The agent-execution workflow's HITL loop signals
+   * "child_approval_required" to this workflow ID on EVERY approval
+   * cycle, carrying only the child execution id as a bare string
+   * (identity-only, cloud#509).
+   * 3. The receiver derives the pending approvals by reading the child
+   * execution record — the signal is never a payload copy that can drift.
    *
    * Format:
-   * Temporal workflow ID, typically: "stigmer/workflow-execution/invoke/{execution-id}"
+   * A Temporal workflow ID; typically the runner's workflow-execution child
+   * workflow ("workflow-exec-{workflow-execution-id}").
    *
    * Backward Compatibility:
    * This field is optional. Agents invoked without a parent workflow ID will
    * continue to work normally - approval is submitted directly via the
    * AgentExecution.SubmitApproval RPC.
-   *
-   * &#64;since Phase 5.1 (Events-Based Approval Notification)
    * </pre>
    *
    * <code>string parent_workflow_id = 8 [json_name = "parentWorkflowId"];</code>
@@ -3974,21 +3982,25 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      *
      * &#64;internal
      *
-     * Signal Pattern:
-     * 1. Go workflow passes its workflow ID when creating AgentExecution
-     * 2. Go workflow starts signal listener for "child_approval_required"
-     * 3. When agent enters WAITING_FOR_APPROVAL, Java sends signal to parent
-     * 4. Go workflow receives signal, updates task status to WAITING_APPROVAL
+     * Signal pattern (identical in both editions — the OSS TypeScript server
+     * and the cloud Java service implement the same sender):
+     * 1. The runner's workflow-execution child workflow passes its own
+     * workflow ID when creating the AgentExecution (engine-core.ts).
+     * 2. The agent-execution workflow's HITL loop signals
+     * "child_approval_required" to this workflow ID on EVERY approval
+     * cycle, carrying only the child execution id as a bare string
+     * (identity-only, cloud#509).
+     * 3. The receiver derives the pending approvals by reading the child
+     * execution record — the signal is never a payload copy that can drift.
      *
      * Format:
-     * Temporal workflow ID, typically: "stigmer/workflow-execution/invoke/{execution-id}"
+     * A Temporal workflow ID; typically the runner's workflow-execution child
+     * workflow ("workflow-exec-{workflow-execution-id}").
      *
      * Backward Compatibility:
      * This field is optional. Agents invoked without a parent workflow ID will
      * continue to work normally - approval is submitted directly via the
      * AgentExecution.SubmitApproval RPC.
-     *
-     * &#64;since Phase 5.1 (Events-Based Approval Notification)
      * </pre>
      *
      * <code>string parent_workflow_id = 8 [json_name = "parentWorkflowId"];</code>
@@ -4016,21 +4028,25 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      *
      * &#64;internal
      *
-     * Signal Pattern:
-     * 1. Go workflow passes its workflow ID when creating AgentExecution
-     * 2. Go workflow starts signal listener for "child_approval_required"
-     * 3. When agent enters WAITING_FOR_APPROVAL, Java sends signal to parent
-     * 4. Go workflow receives signal, updates task status to WAITING_APPROVAL
+     * Signal pattern (identical in both editions — the OSS TypeScript server
+     * and the cloud Java service implement the same sender):
+     * 1. The runner's workflow-execution child workflow passes its own
+     * workflow ID when creating the AgentExecution (engine-core.ts).
+     * 2. The agent-execution workflow's HITL loop signals
+     * "child_approval_required" to this workflow ID on EVERY approval
+     * cycle, carrying only the child execution id as a bare string
+     * (identity-only, cloud#509).
+     * 3. The receiver derives the pending approvals by reading the child
+     * execution record — the signal is never a payload copy that can drift.
      *
      * Format:
-     * Temporal workflow ID, typically: "stigmer/workflow-execution/invoke/{execution-id}"
+     * A Temporal workflow ID; typically the runner's workflow-execution child
+     * workflow ("workflow-exec-{workflow-execution-id}").
      *
      * Backward Compatibility:
      * This field is optional. Agents invoked without a parent workflow ID will
      * continue to work normally - approval is submitted directly via the
      * AgentExecution.SubmitApproval RPC.
-     *
-     * &#64;since Phase 5.1 (Events-Based Approval Notification)
      * </pre>
      *
      * <code>string parent_workflow_id = 8 [json_name = "parentWorkflowId"];</code>
@@ -4059,21 +4075,25 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      *
      * &#64;internal
      *
-     * Signal Pattern:
-     * 1. Go workflow passes its workflow ID when creating AgentExecution
-     * 2. Go workflow starts signal listener for "child_approval_required"
-     * 3. When agent enters WAITING_FOR_APPROVAL, Java sends signal to parent
-     * 4. Go workflow receives signal, updates task status to WAITING_APPROVAL
+     * Signal pattern (identical in both editions — the OSS TypeScript server
+     * and the cloud Java service implement the same sender):
+     * 1. The runner's workflow-execution child workflow passes its own
+     * workflow ID when creating the AgentExecution (engine-core.ts).
+     * 2. The agent-execution workflow's HITL loop signals
+     * "child_approval_required" to this workflow ID on EVERY approval
+     * cycle, carrying only the child execution id as a bare string
+     * (identity-only, cloud#509).
+     * 3. The receiver derives the pending approvals by reading the child
+     * execution record — the signal is never a payload copy that can drift.
      *
      * Format:
-     * Temporal workflow ID, typically: "stigmer/workflow-execution/invoke/{execution-id}"
+     * A Temporal workflow ID; typically the runner's workflow-execution child
+     * workflow ("workflow-exec-{workflow-execution-id}").
      *
      * Backward Compatibility:
      * This field is optional. Agents invoked without a parent workflow ID will
      * continue to work normally - approval is submitted directly via the
      * AgentExecution.SubmitApproval RPC.
-     *
-     * &#64;since Phase 5.1 (Events-Based Approval Notification)
      * </pre>
      *
      * <code>string parent_workflow_id = 8 [json_name = "parentWorkflowId"];</code>
@@ -4098,21 +4118,25 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      *
      * &#64;internal
      *
-     * Signal Pattern:
-     * 1. Go workflow passes its workflow ID when creating AgentExecution
-     * 2. Go workflow starts signal listener for "child_approval_required"
-     * 3. When agent enters WAITING_FOR_APPROVAL, Java sends signal to parent
-     * 4. Go workflow receives signal, updates task status to WAITING_APPROVAL
+     * Signal pattern (identical in both editions — the OSS TypeScript server
+     * and the cloud Java service implement the same sender):
+     * 1. The runner's workflow-execution child workflow passes its own
+     * workflow ID when creating the AgentExecution (engine-core.ts).
+     * 2. The agent-execution workflow's HITL loop signals
+     * "child_approval_required" to this workflow ID on EVERY approval
+     * cycle, carrying only the child execution id as a bare string
+     * (identity-only, cloud#509).
+     * 3. The receiver derives the pending approvals by reading the child
+     * execution record — the signal is never a payload copy that can drift.
      *
      * Format:
-     * Temporal workflow ID, typically: "stigmer/workflow-execution/invoke/{execution-id}"
+     * A Temporal workflow ID; typically the runner's workflow-execution child
+     * workflow ("workflow-exec-{workflow-execution-id}").
      *
      * Backward Compatibility:
      * This field is optional. Agents invoked without a parent workflow ID will
      * continue to work normally - approval is submitted directly via the
      * AgentExecution.SubmitApproval RPC.
-     *
-     * &#64;since Phase 5.1 (Events-Based Approval Notification)
      * </pre>
      *
      * <code>string parent_workflow_id = 8 [json_name = "parentWorkflowId"];</code>
@@ -4134,21 +4158,25 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      *
      * &#64;internal
      *
-     * Signal Pattern:
-     * 1. Go workflow passes its workflow ID when creating AgentExecution
-     * 2. Go workflow starts signal listener for "child_approval_required"
-     * 3. When agent enters WAITING_FOR_APPROVAL, Java sends signal to parent
-     * 4. Go workflow receives signal, updates task status to WAITING_APPROVAL
+     * Signal pattern (identical in both editions — the OSS TypeScript server
+     * and the cloud Java service implement the same sender):
+     * 1. The runner's workflow-execution child workflow passes its own
+     * workflow ID when creating the AgentExecution (engine-core.ts).
+     * 2. The agent-execution workflow's HITL loop signals
+     * "child_approval_required" to this workflow ID on EVERY approval
+     * cycle, carrying only the child execution id as a bare string
+     * (identity-only, cloud#509).
+     * 3. The receiver derives the pending approvals by reading the child
+     * execution record — the signal is never a payload copy that can drift.
      *
      * Format:
-     * Temporal workflow ID, typically: "stigmer/workflow-execution/invoke/{execution-id}"
+     * A Temporal workflow ID; typically the runner's workflow-execution child
+     * workflow ("workflow-exec-{workflow-execution-id}").
      *
      * Backward Compatibility:
      * This field is optional. Agents invoked without a parent workflow ID will
      * continue to work normally - approval is submitted directly via the
      * AgentExecution.SubmitApproval RPC.
-     *
-     * &#64;since Phase 5.1 (Events-Based Approval Notification)
      * </pre>
      *
      * <code>string parent_workflow_id = 8 [json_name = "parentWorkflowId"];</code>

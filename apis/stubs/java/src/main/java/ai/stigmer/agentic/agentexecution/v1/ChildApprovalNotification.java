@@ -7,28 +7,24 @@ package ai.stigmer.agentic.agentexecution.v1;
 
 /**
  * <pre>
- * Notification sent to a parent workflow when a child agent needs tool approval.
+ * Legacy full-payload notification for a child agent needing tool approval.
  *
- * Contains all pending approvals from a single child agent execution,
- * enabling the parent workflow to surface approval requests to users
- * without polling.
+ * Retained for wire compatibility; the platform no longer produces or
+ * consumes it. The live "child_approval_required" signal is identity-only —
+ * a bare-string child execution id — and the parent side derives pending
+ * approvals by reading the child execution record (a single source of truth
+ * instead of a payload copy that can drift).
  *
  * &#64;internal
  *
- * Signal Flow:
- * 1. Child agent requires tool approval (phase = WAITING_FOR_APPROVAL)
- * 2. Java workflow detects this and builds ChildApprovalNotification
- * 3. Java sends Temporal signal "child_approval_required" to parent workflow
- * 4. Parent Go workflow receives signal via signal channel
- * 5. Parent updates task status to WORKFLOW_TASK_WAITING_APPROVAL
- * 6. Parent populates WorkflowExecution.status.pending_approvals
+ * The identity-only shape replaced this message in both editions (cloud#509);
+ * both the OSS TypeScript server's and the cloud Java service's
+ * agent-execution workflows send the bare-string signal on every HITL cycle.
  *
- * Graceful Degradation:
+ * Graceful Degradation (unchanged):
  * If the signal fails to send (parent workflow completed, network error),
  * the system continues to function. Users can still submit approvals directly
  * via the AgentExecution.SubmitApproval RPC.
- *
- * &#64;since Phase 5.1 (Events-Based Approval Notification)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.ChildApprovalNotification}
@@ -408,28 +404,24 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Notification sent to a parent workflow when a child agent needs tool approval.
+   * Legacy full-payload notification for a child agent needing tool approval.
    *
-   * Contains all pending approvals from a single child agent execution,
-   * enabling the parent workflow to surface approval requests to users
-   * without polling.
+   * Retained for wire compatibility; the platform no longer produces or
+   * consumes it. The live "child_approval_required" signal is identity-only —
+   * a bare-string child execution id — and the parent side derives pending
+   * approvals by reading the child execution record (a single source of truth
+   * instead of a payload copy that can drift).
    *
    * &#64;internal
    *
-   * Signal Flow:
-   * 1. Child agent requires tool approval (phase = WAITING_FOR_APPROVAL)
-   * 2. Java workflow detects this and builds ChildApprovalNotification
-   * 3. Java sends Temporal signal "child_approval_required" to parent workflow
-   * 4. Parent Go workflow receives signal via signal channel
-   * 5. Parent updates task status to WORKFLOW_TASK_WAITING_APPROVAL
-   * 6. Parent populates WorkflowExecution.status.pending_approvals
+   * The identity-only shape replaced this message in both editions (cloud#509);
+   * both the OSS TypeScript server's and the cloud Java service's
+   * agent-execution workflows send the bare-string signal on every HITL cycle.
    *
-   * Graceful Degradation:
+   * Graceful Degradation (unchanged):
    * If the signal fails to send (parent workflow completed, network error),
    * the system continues to function. Users can still submit approvals directly
    * via the AgentExecution.SubmitApproval RPC.
-   *
-   * &#64;since Phase 5.1 (Events-Based Approval Notification)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.ChildApprovalNotification}

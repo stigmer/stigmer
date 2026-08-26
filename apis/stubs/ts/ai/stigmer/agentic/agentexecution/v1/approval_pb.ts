@@ -195,11 +195,13 @@ export const PendingApprovalSchema: GenMessage<PendingApproval> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_agentexecution_v1_approval, 0);
 
 /**
- * Notification sent to a parent workflow when a child agent needs tool approval.
+ * Legacy full-payload notification for a child agent needing tool approval.
  *
- * Contains all pending approvals from a single child agent execution,
- * enabling the parent workflow to surface approval requests to users
- * without polling.
+ * Retained for wire compatibility; the platform no longer produces or
+ * consumes it. The live "child_approval_required" signal is identity-only —
+ * a bare-string child execution id — and the parent side derives pending
+ * approvals by reading the child execution record (a single source of truth
+ * instead of a payload copy that can drift).
  *
  * @generated from message ai.stigmer.agentic.agentexecution.v1.ChildApprovalNotification
  */
