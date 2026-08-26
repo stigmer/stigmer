@@ -65,13 +65,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.25'
-          cache-dependency-path: tools/go.sum
-
-      # stubscrub (stubs-internal-check) runs from TypeScript source via the
+      # The whole codegen toolchain runs from TypeScript source via the
       # repo-pinned tsx, so the root npm install must exist before any step
       # that reaches it.
       - name: Set up Node.js

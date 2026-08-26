@@ -38,7 +38,7 @@ MCP client ──JSON-RPC──▶ stdio | HTTP session ──▶ tool handler
 - **`apply_*` ergonomics are generated.** The flattened, LLM-friendly input
   schemas for the `apply_*` tools (metadata hoisting, enum→string, reference
   flattening, oneof / `task_config` expansion) are produced at build time by the
-  codegen in `tools/codegen/generator/mcp_ts.go`. Never hand-edit `src/gen/`.
+  codegen in `tools/codegen/src/generator/mcp-ts.ts`. Never hand-edit `src/gen/`.
 
 ## Tools (30)
 
@@ -175,9 +175,10 @@ The `apply_*` tool schemas and proto bridges in `src/gen/` are generated:
 make codegen-apply
 ```
 
-This runs the Go emitter (`tools/codegen/generator`, target `mcp-ts`) over the
-proto contracts. Adding an `apply_*` tool for a new resource is an append to
-`mcpTSApplyResources` in `tools/codegen/generator/mcp_ts.go` plus regeneration.
+This runs the TypeScript emitter (`tools/codegen/src/generator`, target
+`mcp-ts`) over the proto contracts. Adding an `apply_*` tool for a new resource
+is an append to `MCP_TS_APPLY_RESOURCES` in
+`tools/codegen/src/generator/mcp-ts.ts` plus regeneration.
 
 ## Conventions
 

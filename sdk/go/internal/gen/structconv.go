@@ -22,10 +22,6 @@ import (
 // the fallback normalizes through a JSON round-trip (encoding/json
 // semantics, which Go callers already know), and only values JSON cannot
 // represent (channels, funcs, cycles) surface an error.
-//
-// tools/codegen/generator/main.go emits this same JSON normalization for
-// the task-config builder DSL — keep the two conversion behaviors
-// converged.
 
 // structFromMap converts a struct-kind input field to structpb.Struct,
 // normalizing structpb-unsupported (but JSON-representable) values.

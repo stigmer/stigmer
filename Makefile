@@ -228,8 +228,10 @@ gen-theme-docs: ## Generate theme token reference docs from tokens.css
 gen-sdk-docs-check: gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-theme-docs-check gen-cli-docs-check gen-task-docs-check gen-task-registry-check ## Verify all SDK docs are up to date (CI)
 
 gen-proto-sdk-docs-check: ## Verify proto SDK docs are up to date (CI)
+	@test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
+	@npm run build -w @stigmer/protos --silent
 	@tmpdir=$$(mktemp -d) && \
-	go run ./tools/codegen/generator --target=sdk-docs \
+	node_modules/.bin/tsx tools/codegen/src/generator/main.ts --target=sdk-docs \
 		--schema-dir tools/codegen/schemas --output-dir "$$tmpdir" --apis-dir apis && \
 	rc=0; \
 	for f in "$$tmpdir"/*; do \
@@ -245,8 +247,10 @@ gen-proto-sdk-docs-check: ## Verify proto SDK docs are up to date (CI)
 
 gen-task-docs-check: ## Verify task docs are up to date (CI)
 	@$(PRETTIER_GUARD)
+	@test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
+	@npm run build -w @stigmer/protos --silent
 	@tmpdir=$$(mktemp -d) && \
-	go run ./tools/codegen/generator --target=task-docs \
+	node_modules/.bin/tsx tools/codegen/src/generator/main.ts --target=task-docs \
 		--schema-dir tools/codegen/schemas --output-dir "$$tmpdir" \
 		--meta-dir apis/ai/stigmer/agentic/workflow/v1/tasks/meta --apis-dir apis && \
 	$(PRETTIER) --write --prose-wrap always --config .prettierrc --ignore-path /dev/null "$$tmpdir"/*.mdx > /dev/null 2>&1; \
