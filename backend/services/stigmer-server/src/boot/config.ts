@@ -36,6 +36,16 @@ export interface ServerConfig {
   /** SQLite database file (DB_PATH; Go defaultDBPath ~/.stigmer/stigmer.db). */
   readonly dbPath: string;
   /**
+   * Postgres connection URL (DATABASE_URL; DD-010). PRECEDENCE: when set
+   * (non-empty), the Postgres driver is selected and dbPath is ignored —
+   * DB_PATH always has a value (it defaults), so "Postgres wins" is the
+   * only order under which DATABASE_URL can select anything. "" = sqlite,
+   * the laptop-tier default; there is no half-configured state to
+   * validate (the URL's reachability is proven by the boot connect, which
+   * fails loudly).
+   */
+  readonly databaseUrl: string;
+  /**
    * Operator identity for audit stamping (stigmer/stigmer#400). Empty email
    * keeps the "system" placeholder; the runner demotes that to anonymous.
    */
@@ -195,6 +205,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     modelRegistryRefreshEnabled:
       env["STIGMER_MODEL_REGISTRY_REFRESH"] !== "off",
     dbPath: envString(env, "DB_PATH", defaultDbPath()),
+    databaseUrl: envString(env, "DATABASE_URL", ""),
     storagePath: envString(env, "STORAGE_PATH", defaultStoragePath()),
     skillTransferBaseUrl: envString(
       env,

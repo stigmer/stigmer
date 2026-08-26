@@ -12,7 +12,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import type { Store } from "../../store/interface.js";
 import { getKindName } from "../apiresource-meta.js";
 import { invalidArgumentError, notFoundError } from "../errors.js";
-import { apiResourceKindName } from "../../store/sqlite/proto-fields.js";
+import { apiResourceKindName } from "../../store/proto-fields.js";
 import type { PipelineStep } from "../pipeline.js";
 import type { RequestContext } from "../request-context.js";
 import { findResourceBySlug, requireOrgForReference } from "./helpers.js";

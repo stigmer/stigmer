@@ -66,7 +66,7 @@ async function reserveFreePort(): Promise<number> {
 beforeAll(async () => {
   dir = mkdtempSync(path.join(tmpdir(), "skill-domain-test-"));
   const grpcPort = await reserveFreePort();
-  server = composeServer({
+  server = await composeServer({
     config: loadConfig({
       STIGMER_MODEL_REGISTRY_REFRESH: "off",
       // No engine behind composed tests: 127.0.0.1:1 is deterministically

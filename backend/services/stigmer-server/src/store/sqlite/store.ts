@@ -60,24 +60,21 @@ import type {
   Store,
   WorkflowExecutionEventRecord,
 } from "../interface.js";
-import { normalizeBm25Score, renderFts5MatchExpression } from "./fts5.js";
-import { runMigrations } from "./migrations.js";
+import { NOOP_STORE_LOGGER } from "../logger.js";
+import type { StoreLogger } from "../logger.js";
 import {
   apiResourceKindName,
-  extractFieldValue,
-  extractLabelValue,
-} from "./proto-fields.js";
+  filterRowsByLabel,
+  scanForFieldMatch,
+} from "../proto-fields.js";
+import { rfc3339Seconds } from "../rfc3339.js";
+import { normalizeBm25Score, renderFts5MatchExpression } from "./fts5.js";
+import { runMigrations } from "./migrations.js";
 
-/**
- * Minimal logging seam (structurally compatible with boot/logger.ts —
- * declared here so the store layer never imports upward from boot/).
- */
-export interface StoreLogger {
-  debug(message: string, fields?: Record<string, unknown>): void;
-  warn(message: string, fields?: Record<string, unknown>): void;
-}
-
-const NOOP_LOGGER: StoreLogger = { debug() {}, warn() {} };
+// The logging seam lived here through Phase 1; re-exported after its
+// promotion to ../logger.ts (second consumer: the Postgres driver) so the
+// import path stays stable for existing consumers.
+export type { StoreLogger } from "../logger.js";
 
 export class SqliteStore implements Store {
   readonly bootstrapState: BootstrapStateStore;
@@ -105,7 +102,10 @@ export class SqliteStore implements Store {
    * Opens (or creates) the database at dbPath, applies the pragmas in Go's
    * order, and runs migrations — Go NewStore.
    */
-  static open(dbPath: string, logger: StoreLogger = NOOP_LOGGER): SqliteStore {
+  static open(
+    dbPath: string,
+    logger: StoreLogger = NOOP_STORE_LOGGER,
+  ): SqliteStore {
     const dir = path.dirname(dbPath);
     if (dir !== "" && dir !== ".") {
       mkdirSync(dir, { recursive: true });
@@ -238,21 +238,16 @@ export class SqliteStore implements Store {
       .prepare(`SELECT data FROM resources WHERE kind = ?`)
       .all(kindName) as Array<{ data: Uint8Array }>;
 
-    for (const row of rows) {
-      let msg: MessageShape<Desc>;
-      try {
-        msg = fromBinary(schema, row.data);
-      } catch {
-        continue; // skip malformed records, as Go does
-      }
-      if (extractFieldValue(schema, msg, fieldPath) === value) {
-        return msg;
-      }
-    }
-
-    throw new ResourceNotFoundError(
-      `${kindName} where ${fieldPath}=${value}`,
+    const match = scanForFieldMatch(
+      rows.map((row) => row.data),
+      schema,
+      fieldPath,
+      value,
     );
+    if (match === undefined) {
+      throw new ResourceNotFoundError(`${kindName} where ${fieldPath}=${value}`);
+    }
+    return match;
   }
 
   async findAllByField(
@@ -279,19 +274,12 @@ export class SqliteStore implements Store {
       .prepare(`SELECT data FROM resources WHERE kind = ?`)
       .all(apiResourceKindName(kind)) as Array<{ data: Uint8Array }>;
 
-    const results: Uint8Array[] = [];
-    for (const row of rows) {
-      let msg: MessageShape<Desc>;
-      try {
-        msg = fromBinary(schema, row.data);
-      } catch {
-        continue;
-      }
-      if (extractLabelValue(schema, msg, labelKey) === labelValue) {
-        results.push(row.data);
-      }
-    }
-    return results;
+    return filterRowsByLabel(
+      rows.map((row) => row.data),
+      schema,
+      labelKey,
+      labelValue,
+    );
   }
 
   async deleteResourcesByKind(kind: ApiResourceKind): Promise<number> {
@@ -1321,9 +1309,4 @@ class SqlitePendingOAuthStateStore implements PendingOAuthStateStore {
       .run(cutoff);
     return Number(result.changes);
   }
-}
-
-/** RFC-3339 UTC, whole seconds (Go time.RFC3339): "2026-08-23T11:07:16Z". */
-function rfc3339Seconds(date: Date): string {
-  return date.toISOString().replace(/\.\d{3}Z$/, "Z");
 }

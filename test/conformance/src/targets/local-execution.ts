@@ -21,7 +21,7 @@ import { uniqueOrg } from "../support/naming";
 import type { CapabilityFlags, PrivilegedScope, TargetProfile, TenancyContext } from "./target";
 
 export class LocalExecutionTarget implements TargetProfile {
-  readonly name = "local-execution";
+  readonly name: string = "local-execution";
   // The retired local-go-execution matrix plus exactly ONE deliberate
   // difference: workflowChildApprovalForwarding is true here (the D4
   // ratified parity-plus delta, #23) where the Go server never sent it.
@@ -79,6 +79,7 @@ export class LocalExecutionTarget implements TargetProfile {
         // the auto-pause provable in two fires (active since #22 ported
         // the schedule clock).
         STIGMER_SCHEDULES_MAX_CONSECUTIVE_FAILURES: "2",
+        ...this.extraServerEnv(),
       },
     });
     this.conformanceClients = makeClients(createTransport(this.server.baseUrl));
@@ -106,6 +107,15 @@ export class LocalExecutionTarget implements TargetProfile {
       artifactDir: this.server.artifactBaseDir,
       artifactServeUrl: this.server.artifactServeUrl,
     });
+  }
+
+  // The storage-driver seam: local-postgres-execution overrides this to
+  // inject DATABASE_URL (winning over the harness's DB_PATH — the
+  // documented config precedence). EVERYTHING else about the target is
+  // inherited, so the capability matrix is byte-identical by construction,
+  // not by copy discipline (DD-011: the driver must be wire-invisible).
+  protected extraServerEnv(): Record<string, string> {
+    return {};
   }
 
   llmProxy(): MockLlmProxy {

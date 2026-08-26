@@ -69,3 +69,47 @@ jobs:
         env:
           CONFORMANCE_TARGET: local
         run: npm run test -w @stigmer/conformance
+
+  # The same full roster on the Postgres Store driver (Phase-2 P2, DD-011:
+  # the gate requires the Postgres targets at byte-identical capability
+  # matrices — the driver must be wire-invisible). The database is a
+  # service container pinned to the major the compose stack ships (DD-013).
+  conformance-local-postgres:
+    name: Conformance (local-postgres)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Install npm workspace dependencies
+        run: npm ci
+
+      - name: Build proto stubs
+        run: npm run build -w @stigmer/protos
+
+      - name: Install server dependencies
+        working-directory: backend/services/stigmer-server
+        run: npm ci
+
+      - name: Run conformance suite (local-postgres)
+        env:
+          CONFORMANCE_TARGET: local-postgres
+          CONFORMANCE_POSTGRES_URL: postgres://postgres:postgres@127.0.0.1:5432/postgres
+        run: npm run test -w @stigmer/conformance

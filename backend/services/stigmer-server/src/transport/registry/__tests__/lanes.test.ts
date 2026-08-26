@@ -50,7 +50,7 @@ beforeAll(async () => {
     ARTIFACT_LOCAL_BASE_PATH: path.join(testDir, "artifacts"),
     STORAGE_PATH: path.join(testDir, "storage"),
   });
-  server = composeServer({
+  server = await composeServer({
     config,
     logger: silentLogger,
     portOverride: 0,

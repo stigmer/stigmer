@@ -20,10 +20,12 @@
     "@stigmer/mcp-server": "*",
     "@stigmer/protos": "*",
     "fflate": "^0.8.3",
+    "pg": "8.23.0",
     "zod": "^3.25.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "@types/pg": "8.23.1",
     "typescript": "^5.8.0",
     "vitest": "^3.2.4"
   }

@@ -95,3 +95,62 @@ jobs:
         env:
           CONFORMANCE_TARGET: local-execution
         run: npm run test:execution -w @stigmer/conformance
+
+  # The same execution roster on the Postgres Store driver (Phase-2 P2,
+  # DD-011): the execution suites hammer exactly the surfaces where a
+  # Postgres driver most plausibly diverges from sqlite's single-writer
+  # serialization — event-append idempotence, fire-identity upserts, signal
+  # dedupe under real concurrency. A Postgres gate that skipped them would
+  # certify the driver everywhere except where it is most at risk.
+  conformance-execution-local-postgres:
+    name: Conformance Execution (local-postgres-execution)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Install npm workspace dependencies
+        run: npm ci
+
+      - name: Build proto stubs
+        run: npm run build -w @stigmer/protos
+
+      - name: Install server dependencies
+        working-directory: backend/services/stigmer-server
+        run: npm ci
+
+      - name: Install Temporal CLI
+        run: |
+          curl -sSf https://temporal.download/cli.sh | sh
+          echo "$HOME/.temporalio/bin" >> "$GITHUB_PATH"
+
+      - name: Build unified runner
+        run: make build-runner
+
+      - name: Install stigmer CLI shim
+        run: |
+          make install-cli-shim
+          echo "$HOME/bin" >> "$GITHUB_PATH"
+
+      - name: Run execution conformance suite (local-postgres-execution)
+        env:
+          CONFORMANCE_TARGET: local-postgres-execution
+          CONFORMANCE_POSTGRES_URL: postgres://postgres:postgres@127.0.0.1:5432/postgres
+        run: npm run test:execution -w @stigmer/conformance

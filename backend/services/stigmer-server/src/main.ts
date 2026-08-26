@@ -7,43 +7,61 @@
  * SIGTERM/SIGINT run the composed shutdown (NOT_SERVING → drain → exit) —
  * the daemon stops components with signals, and in-flight requests get the
  * drain budget rather than a mid-write connection reset.
+ *
+ * The async main() wrapper (not top-level await) is load-bearing: the slim
+ * artifact bundles this entry as CJS (scripts/bundle-slim.mjs), where
+ * top-level await cannot exist.
  */
 import { loadConfig } from "./boot/config.js";
 import { composeServer } from "./boot/compose.js";
 import { createLogger } from "./boot/logger.js";
 import { setOperatorIdentity } from "./pipeline/steps/defaults.js";
 
-const config = loadConfig();
-const logger = createLogger({
-  level: config.logLevel,
-  pretty: config.env === "local",
-});
-// Once per process, before any writer exists (#400) — the one-shot guard
-// makes a duplicate install a loud boot bug.
-setOperatorIdentity(config.operatorEmail, config.operatorName);
-const server = composeServer({ config, logger });
-
-let shuttingDown = false;
-const shutdown = (signal: string): void => {
-  if (shuttingDown) {
-    return;
-  }
-  shuttingDown = true;
-  logger.info("shutting down", { signal });
-  server
-    .shutdown()
-    .then(() => process.exit(0))
-    .catch((error: unknown) => {
-      logger.error("shutdown failed", { error: String(error) });
-      process.exit(1);
-    });
-};
-process.on("SIGTERM", () => shutdown("SIGTERM"));
-process.on("SIGINT", () => shutdown("SIGINT"));
-
-server.start().catch((error: unknown) => {
-  logger.error("boot failed", {
-    error: error instanceof Error ? error.message : String(error),
+async function main(): Promise<void> {
+  const config = loadConfig();
+  const logger = createLogger({
+    level: config.logLevel,
+    pretty: config.env === "local",
   });
+  // Once per process, before any writer exists (#400) — the one-shot guard
+  // makes a duplicate install a loud boot bug.
+  setOperatorIdentity(config.operatorEmail, config.operatorName);
+  const server = await composeServer({ config, logger });
+
+  let shuttingDown = false;
+  const shutdown = (signal: string): void => {
+    if (shuttingDown) {
+      return;
+    }
+    shuttingDown = true;
+    logger.info("shutting down", { signal });
+    server
+      .shutdown()
+      .then(() => process.exit(0))
+      .catch((error: unknown) => {
+        logger.error("shutdown failed", { error: String(error) });
+        process.exit(1);
+      });
+  };
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
+  process.on("SIGINT", () => shutdown("SIGINT"));
+
+  try {
+    await server.start();
+  } catch (error) {
+    logger.error("boot failed", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    process.exit(1);
+  }
+}
+
+main().catch((error: unknown) => {
+  // The logger may not exist yet (config/compose failures) — stderr is the
+  // one channel that always does.
+  console.error(
+    "boot failed:",
+    error instanceof Error ? error.message : String(error),
+  );
   process.exit(1);
 });
