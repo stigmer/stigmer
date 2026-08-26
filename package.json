@@ -16,6 +16,7 @@
     "client-apps/cli",
     "client-apps/web",
     "client-apps/desktop",
+    "tools/codegen",
     "tools/eslint-plugin-stigmer",
     "test/conformance",
     "test/e2e",

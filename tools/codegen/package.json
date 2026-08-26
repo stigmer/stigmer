@@ -1,0 +1,28 @@
+{
+  "name": "@stigmer/codegen",
+  "version": "0.0.0-dev",
+  "description": "Stigmer codegen toolchain — schema extraction buf plugin, artifact generator, and stub scrubber",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "rm -rf dist tsconfig.build.tsbuildinfo",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stigmer/stigmer.git",
+    "directory": "tools/codegen"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.1",
+    "typescript": "^5.7.0",
+    "vitest": "^3.2.4"
+  }
+}

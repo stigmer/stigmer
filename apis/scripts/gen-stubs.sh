@@ -68,7 +68,7 @@ compute_hash() {
   {
     find . -name '*.proto' -not -path './stubs/*' | LC_ALL=C sort | xargs cat
     cat buf.yaml buf.lock "$template"
-    find ../tools/codegen/stubscrub ../tools/codegen/internalcomment -name '*.go' | LC_ALL=C sort | xargs cat
+    find ../tools/codegen/src/stubscrub ../tools/codegen/src/internalcomment -name '*.ts' | LC_ALL=C sort | xargs cat
   } | shasum -a 256 | cut -d' ' -f1
 }
 
@@ -96,8 +96,11 @@ fi
 # non-destructive guarantee: protoc copies proto leading comments into stubs
 # verbatim, the one generated surface the proto2schema strip cannot reach
 # (oss#497). Java is a structural no-op (protoc-java emits no doc comments
-# from proto sources) — the tool only touches .go/.ts/.py files.
-(cd .. && go run ./tools/codegen/stubscrub "$tmp/$outroot")
+# from proto sources) — the tool only touches .go/.ts/.py files. stubscrub
+# runs from TypeScript source via the repo-pinned tsx (never bare npx —
+# oss#531): fail loudly if the root npm install is missing.
+test -x ../node_modules/.bin/tsx || { echo "gen-stubs: ../node_modules/.bin/tsx not found — run 'npm install' at the repo root (stubscrub runs via the pinned tsx)" >&2; exit 1; }
+(cd .. && node_modules/.bin/tsx tools/codegen/src/stubscrub/main.ts "$tmp/$outroot")
 
 # Atomic-ish swap: replace each managed subtree only now that generation worked.
 mkdir -p "$outroot"

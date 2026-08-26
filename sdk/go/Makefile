@@ -58,8 +58,11 @@ codegen-stubs: ## Generate proto stubs inside the SDK module
 	@# Scrub @internal comment sections: proto/ is a subpackage of the
 	@# published SDK module, so protoc-copied internal notes would render on
 	@# pkg.go.dev and in IDE hovers (oss#497). This generation path bypasses
-	@# apis/scripts/gen-stubs.sh, hence its own scrub hook.
-	@cd ../.. && go run ./tools/codegen/stubscrub sdk/go/proto
+	@# apis/scripts/gen-stubs.sh, hence its own scrub hook. stubscrub runs
+	@# from TypeScript source via the repo-pinned tsx (never bare npx —
+	@# oss#531), so the root npm install must exist.
+	@cd ../.. && test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
+	@cd ../.. && node_modules/.bin/tsx tools/codegen/src/stubscrub/main.ts sdk/go/proto
 	@echo "Proto stubs generated in proto/"
 
 .PHONY: codegen-schemas

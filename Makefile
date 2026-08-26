@@ -201,7 +201,8 @@ gen-task-registry-check: ## Verify the task kind registry is up to date and sync
 	echo "✓ Task kind registry is up to date"
 
 stubs-internal-check: ## Verify committed stubs carry no @internal comment sections (CI)
-	@go run ./tools/codegen/stubscrub -check apis/stubs sdk/go/proto
+	@test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
+	@node_modules/.bin/tsx tools/codegen/src/stubscrub/main.ts -check apis/stubs sdk/go/proto
 
 gen-react-sdk-docs: ## Generate React SDK reference docs from TypeDoc
 	cd sdk/react && npm run typedoc:json
