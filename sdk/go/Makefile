@@ -58,17 +58,21 @@ codegen-stubs: ## Generate proto stubs inside the SDK module
 	@# Scrub @internal comment sections: proto/ is a subpackage of the
 	@# published SDK module, so protoc-copied internal notes would render on
 	@# pkg.go.dev and in IDE hovers (oss#497). This generation path bypasses
-	@# apis/scripts/gen-stubs.sh, hence its own scrub hook.
-	@cd ../.. && go run ./tools/codegen/stubscrub sdk/go/proto
+	@# apis/scripts/gen-stubs.sh, hence its own scrub hook. stubscrub runs
+	@# from TypeScript source via the repo-pinned tsx (never bare npx —
+	@# oss#531), so the root npm install must exist.
+	@cd ../.. && test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
+	@cd ../.. && node_modules/.bin/tsx tools/codegen/src/stubscrub/main.ts sdk/go/proto
 	@echo "Proto stubs generated in proto/"
 
 .PHONY: codegen-schemas
 codegen-schemas: ## Generate JSON schemas from proto files (Stage 1)
 	@echo "Stage 1: Generating JSON schemas from protos..."
-	@cd ../.. && go run ./tools/codegen/proto2schema/ \
-		--comprehensive \
-		--include-dir apis \
-		--output-dir tools/codegen/schemas
+	@# The protoc-gen-stigmer-schema buf plugin runs from TypeScript source
+	@# via the repo-pinned tsx (never bare npx — oss#531); buf compiles the
+	@# protos and owns all writes (clean: true wipes stale schemas).
+	@cd ../.. && test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
+	@cd ../../apis && buf generate --template buf.gen.schema.yaml
 
 .PHONY: codegen-clients
 codegen-clients: ## Generate SDK client code from service schemas (Stage 2)
@@ -76,7 +80,12 @@ codegen-clients: ## Generate SDK client code from service schemas (Stage 2)
 	@echo "  Wiping internal/gen/ directory..."
 	@rm -rf internal/gen
 	@mkdir -p internal/gen
-	@cd ../.. && go run ./tools/codegen/generator/ \
+	@# The generator runs from TypeScript source via the repo-pinned tsx
+	@# (never bare npx — oss#531). It pipes generated Go through gofmt, so
+	@# the Go toolchain must be on PATH (it already is — the SDK build
+	@# follows).
+	@cd ../.. && test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
+	@cd ../.. && node_modules/.bin/tsx tools/codegen/src/generator/main.ts \
 		--schema-dir tools/codegen/schemas \
 		--output-dir sdk/go/internal/gen \
 		--target sdk-client

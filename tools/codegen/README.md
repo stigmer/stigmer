@@ -1,17 +1,11 @@
 # Stigmer Code Generation Toolchain
 
-A two-stage pipeline that turns the proto API definitions into client-facing
-artifacts for every SDK language, the MCP servers, the docs site, and the
-server's task registry:
+A TypeScript toolchain (`@stigmer/codegen`, an npm workspace living in this directory) that turns the proto API definitions into client-facing artifacts for every SDK language, the MCP servers, the docs site, and the server's task registry. Two stages:
 
-1. **`proto2schema`** — extracts JSON schemas from `.proto` files (messages,
-   field types, doc comments, `buf.validate` required flags). The schemas are
-   **committed** under `tools/codegen/schemas/` and are the single input every
-   generator target consumes. Proto comment sections below a line that is
-   exactly `@internal` are stripped here — this is the one owner of that
-   convention (see `TestNoInternalSectionsLeak`).
-2. **`generator`** — emits code/docs from the committed schemas, dispatched
-   by `--target`.
+1. **`protoc-gen-stigmer-schema`** — a buf plugin that extracts JSON schemas from `.proto` files (messages, field types, doc comments, `buf.validate` required flags). buf compiles the protos and drives the plugin (`apis/buf.gen.schema.yaml`, `clean: true`); the schemas are **committed** under `tools/codegen/schemas/` and are the single input every generator target consumes. Proto comment sections below a line that is exactly `@internal` are stripped here — this is the one owner of that convention.
+2. **`generator`** — emits code/docs from the committed schemas, dispatched by `--target`.
+
+Everything runs from TypeScript source via the repo-pinned `tsx` (never bare `npx` — oss#531): `node_modules/.bin/tsx tools/codegen/src/<tool>/main.ts`. The `sdk-client` (Go) target additionally pipes its output through the `gofmt` binary, so the Go toolchain must be on PATH for that one target — which it always is, since the Go SDK build follows it.
 
 ## Generator targets
 
@@ -27,12 +21,7 @@ server's task registry:
 | `task-registry` | `task-kind-registry.json` + JSON Schemas (synced into the server embed) | `make gen-task-registry` |
 | `docs-yaml-check` | none — pass/fail validation of docs YAML blocks | `make check-docs-yaml` |
 
-Every generated directory above is committed, and every one is freshness-gated
-in CI (regenerate + `git diff --exit-code`): the Go and Java SDK dirs in their
-own lanes (`ci.go-sdk.yaml`, `ci.java-sdk.yaml`), the TypeScript / Python /
-mcp-server dirs in `ci.codegen.yaml`, and the docs/registry outputs in
-`ci.docs.yaml`. Hand-edits and stale regenerations fail CI instead of
-drifting.
+Every generated directory above is committed, and every one is freshness-gated in CI (regenerate + `git diff --exit-code`): the Go and Java SDK dirs in their own lanes (`ci.go-sdk.yaml`, `ci.java-sdk.yaml`), the TypeScript / Python / mcp-server dirs in `ci.codegen.yaml`, and the docs/registry outputs in `ci.docs.yaml`. Hand-edits and stale regenerations fail CI instead of drifting.
 
 ## Quick start
 
@@ -44,7 +33,7 @@ make -C sdk/go codegen-schemas
 make -C sdk/typescript codegen
 
 # Or invoke the generator directly from the repo root:
-go run ./tools/codegen/generator \
+node_modules/.bin/tsx tools/codegen/src/generator/main.ts \
   --schema-dir tools/codegen/schemas \
   --output-dir sdk/typescript/src/gen \
   --target sdk-client-ts
@@ -58,27 +47,24 @@ Generator flags:
 - `--meta-dir` — sidecar YAML metadata dir (`task-registry`, `task-docs`)
 - `--apis-dir` — proto root (`sdk-docs`, `task-docs`)
 - `--docs-dir` — docs root (`docs-yaml-check` only)
-
-## Dependency management (proto2schema)
-
-Proto dependencies (like `buf/validate`) come from buf:
-
-1. Declared in `apis/buf.yaml`, version-locked in `apis/buf.lock`.
-2. `make protos` (or any buf command) populates `~/.cache/buf/v3/modules/`;
-   proto2schema finds and uses that cache automatically (`--use-buf-cache`,
-   default true).
-3. If imports fail to resolve, run `make protos` once, or refresh with
-   `cd apis && buf dep update`.
+- `--authoring-dirs` — comma-separated raw authoring surfaces (`docs-yaml-check`)
+- `--rules` — protovalidate rule mode `off`/`report`/`enforce` (`docs-yaml-check`)
 
 ## Directory structure
 
 ```
 tools/codegen/
-├── proto2schema/        # Stage 1: proto → JSON schemas
-├── generator/           # Stage 2: schemas → code/docs (one file per target:
-│                        #   main.go (loading + dispatch), sdk_client*.go,
-│                        #   mcp_ts.go + mcp_model.go, sdk_docs.go,
-│                        #   task_registry.go, task_docs.go, docs_yaml_*.go)
+├── src/
+│   ├── protoc-gen-stigmer-schema/  # Stage 1: buf plugin, proto → JSON schemas
+│   ├── generator/                  # Stage 2: schemas → code/docs (one module
+│   │                               #   per target: main.ts (dispatch),
+│   │                               #   sdk-client*.ts, mcp-ts.ts + mcp-model.ts,
+│   │                               #   sdk-docs.ts, task-registry.ts,
+│   │                               #   task-docs.ts, docs-yaml-*.ts)
+│   ├── stubscrub/                  # @internal scrub for protoc-copied stubs
+│   ├── internalcomment/            # the @internal comment-section contract
+│   ├── decode-manifest/            # debug: binary Agent manifest → JSON
+│   └── gojson.ts                   # Go json.MarshalIndent-equivalent serializer
 ├── schemas/
 │   ├── tasks/           # workflow task configs (+ tasks/types/ shared types)
 │   ├── agentic/         # per-resource spec schemas (+ <resource>/types/)
@@ -87,6 +73,8 @@ tools/codegen/
 │   └── services/        # service/RPC schemas (sdk-docs)
 └── output/              # task-registry staging (synced into the server embed)
 ```
+
+The generator reads typed proto metadata (kind_meta options, discriminator options, protovalidate consts) from `@stigmer/protos` — the committed TS stubs — so `npm run build -w @stigmer/protos` must have run for the targets that need it (the Makefile targets handle this).
 
 ## Schema format
 
@@ -112,25 +100,22 @@ Task/resource config schema:
 }
 ```
 
-Type kinds: `string`, `int32`, `uint32`, `int64`, `bool`, `float`, `double`,
-`bytes`, `map` (`keyType`/`valueType`), `array` (`elementType`), `message`
-(`messageType`), `struct`, `timestamp`; enums carry `enumType`/`enumValues`.
+Type kinds: `string`, `int32`, `uint32`, `int64`, `bool`, `float`, `double`, `bytes`, `map` (`keyType`/`valueType`), `array` (`elementType`), `message` (`messageType`), `struct`, `timestamp`; enums carry `enumType`/`enumValues`.
+
+Schemas are serialized with `src/gojson.ts`, a byte-exact equivalent of Go's `json.MarshalIndent` (HTML escaping, sorted map keys, two-space indent) — the toolchain was ported from Go and every committed artifact reproduces byte-for-byte, so diffs stay meaningful.
 
 ## Development
 
 ```bash
-# The toolchain's own tests (includes the @internal leak gate and the
-# docs YAML gate) — also run by ci.go-sdk.yaml:
-cd tools && go test ./codegen/...
-```
+# The toolchain's own tests (includes the @internal strip contract and the
+# gojson serializer's pinned Go-equivalence corpus) — also run by
+# ci.go-sdk.yaml:
+npm run test -w @stigmer/codegen
 
-Never commit compiled binaries of these tools (they are gitignored); both are
-always run via `go run`.
+# Typecheck:
+npm run typecheck -w @stigmer/codegen
+```
 
 ## History
 
-The generator originally had a single hardcoded target that emitted Go task
-structs and per-resource Args packages into `sdk/go/gen`. That surface was
-never consumed and drifted for months; oss#496 deleted the target and its
-outputs. The current generator is dispatch-only: every target is explicit,
-every output is gated.
+The toolchain was originally written in Go (`proto2schema` + `generator`); it was ported to TypeScript with byte-identical output in 2026-08 so the codegen stack matches the language of the project it generates for, with Stage 1 becoming a proper buf plugin. Before that, the generator once had a single hardcoded target that emitted Go task structs into `sdk/go/gen`; that surface was never consumed and drifted for months, so oss#496 deleted it. The current generator is dispatch-only: every target is explicit, every output is gated.

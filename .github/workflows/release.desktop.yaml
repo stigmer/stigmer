@@ -83,6 +83,17 @@ jobs:
           key: buf-${{ hashFiles('apis/buf.lock') }}
           restore-keys: buf-
 
+      # The stub scrub inside gen-stubs.sh runs from TypeScript source via
+      # the repo-pinned tsx, so the root npm install must precede `make protos`.
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
       - name: Generate proto stubs
         env:
           BUF_TOKEN: ${{ secrets.BUF_TOKEN }}

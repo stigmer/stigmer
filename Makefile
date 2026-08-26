@@ -147,11 +147,15 @@ protos: ## Generate protocol buffer stubs and SDK client code
 gen-sdk-docs: gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-theme-docs gen-cli-docs gen-task-docs gen-task-registry ## Generate all SDK reference docs
 
 gen-proto-sdk-docs: ## Generate SDK resource docs from proto schemas
-	go run ./tools/codegen/generator --target=sdk-docs \
+	@test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
+	@npm run build -w @stigmer/protos --silent
+	node_modules/.bin/tsx tools/codegen/src/generator/main.ts --target=sdk-docs \
 		--schema-dir tools/codegen/schemas --output-dir docs/sdk/resources --apis-dir apis
 
 gen-task-docs: ## Generate per-task reference docs from schemas
-	go run ./tools/codegen/generator --target=task-docs \
+	@test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
+	@npm run build -w @stigmer/protos --silent
+	node_modules/.bin/tsx tools/codegen/src/generator/main.ts --target=task-docs \
 		--schema-dir tools/codegen/schemas --output-dir docs/guides/workflows/task-types \
 		--meta-dir apis/ai/stigmer/agentic/workflow/v1/tasks/meta --apis-dir apis
 	@$(PRETTIER_GUARD)
@@ -161,7 +165,11 @@ gen-task-docs: ## Generate per-task reference docs from schemas
 # the server bundles just the registry JSON (registry/bundled.ts), so the
 # per-schema copy the Go embed carried retired with the Go server (D4 #25).
 gen-task-registry: ## Generate task-kind-registry.json + JSON Schemas and sync the registry into the server bundle
-	go run ./tools/codegen/generator --target=task-registry \
+	@test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
+	@# The generator validates sidecar YAML examples against the typed proto
+	@# messages via @stigmer/protos, which must be built first (incremental).
+	@npm run build -w @stigmer/protos --silent
+	node_modules/.bin/tsx tools/codegen/src/generator/main.ts --target=task-registry \
 		--schema-dir tools/codegen/schemas --output-dir tools/codegen/output \
 		--meta-dir apis/ai/stigmer/agentic/workflow/v1/tasks/meta
 	cp tools/codegen/output/task-kind-registry.json \
@@ -188,7 +196,9 @@ sync-model-registry: ## Refresh the bundled model-registry.json snapshot from th
 	@echo "✓ model-registry.json snapshot refreshed from $(MODEL_REGISTRY_UPSTREAM)"
 
 gen-task-registry-check: ## Verify the task kind registry is up to date and synced (CI)
-	@go run ./tools/codegen/generator --target=task-registry \
+	@test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
+	@npm run build -w @stigmer/protos --silent
+	@node_modules/.bin/tsx tools/codegen/src/generator/main.ts --target=task-registry \
 		--schema-dir tools/codegen/schemas --output-dir tools/codegen/output \
 		--meta-dir apis/ai/stigmer/agentic/workflow/v1/tasks/meta && \
 	if ! diff -q tools/codegen/output/task-kind-registry.json \
@@ -201,7 +211,8 @@ gen-task-registry-check: ## Verify the task kind registry is up to date and sync
 	echo "✓ Task kind registry is up to date"
 
 stubs-internal-check: ## Verify committed stubs carry no @internal comment sections (CI)
-	@go run ./tools/codegen/stubscrub -check apis/stubs sdk/go/proto
+	@test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
+	@node_modules/.bin/tsx tools/codegen/src/stubscrub/main.ts -check apis/stubs sdk/go/proto
 
 gen-react-sdk-docs: ## Generate React SDK reference docs from TypeDoc
 	cd sdk/react && npm run typedoc:json
@@ -217,8 +228,10 @@ gen-theme-docs: ## Generate theme token reference docs from tokens.css
 gen-sdk-docs-check: gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-theme-docs-check gen-cli-docs-check gen-task-docs-check gen-task-registry-check ## Verify all SDK docs are up to date (CI)
 
 gen-proto-sdk-docs-check: ## Verify proto SDK docs are up to date (CI)
+	@test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
+	@npm run build -w @stigmer/protos --silent
 	@tmpdir=$$(mktemp -d) && \
-	go run ./tools/codegen/generator --target=sdk-docs \
+	node_modules/.bin/tsx tools/codegen/src/generator/main.ts --target=sdk-docs \
 		--schema-dir tools/codegen/schemas --output-dir "$$tmpdir" --apis-dir apis && \
 	rc=0; \
 	for f in "$$tmpdir"/*; do \
@@ -234,8 +247,10 @@ gen-proto-sdk-docs-check: ## Verify proto SDK docs are up to date (CI)
 
 gen-task-docs-check: ## Verify task docs are up to date (CI)
 	@$(PRETTIER_GUARD)
+	@test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
+	@npm run build -w @stigmer/protos --silent
 	@tmpdir=$$(mktemp -d) && \
-	go run ./tools/codegen/generator --target=task-docs \
+	node_modules/.bin/tsx tools/codegen/src/generator/main.ts --target=task-docs \
 		--schema-dir tools/codegen/schemas --output-dir "$$tmpdir" \
 		--meta-dir apis/ai/stigmer/agentic/workflow/v1/tasks/meta --apis-dir apis && \
 	$(PRETTIER) --write --prose-wrap always --config .prettierrc --ignore-path /dev/null "$$tmpdir"/*.mdx > /dev/null 2>&1; \
@@ -889,10 +904,14 @@ format-docs-check: ## Check documentation formatting (CI, no writes)
 	@$(PRETTIER) --check --prose-wrap always $(DOCS_SOURCES)
 
 check-docs-yaml: ## Validate every docs YAML block + raw examples/seedpack manifests against the proto contracts, incl. platform-parity protovalidate rules (CI)
-	@go run ./tools/codegen/generator --target=docs-yaml-check --docs-dir docs --authoring-dirs examples,seedpack --rules=enforce
+	@test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
+	@npm run build -w @stigmer/protos --silent
+	@node_modules/.bin/tsx tools/codegen/src/generator/main.ts --target=docs-yaml-check --docs-dir docs --authoring-dirs examples,seedpack --rules=enforce
 
 report-docs-yaml-rules: ## Full-depth protovalidate rule report over docs YAML (incl. latent platform-blind findings; never fails)
-	@go run ./tools/codegen/generator --target=docs-yaml-check --docs-dir docs --rules=report
+	@test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
+	@npm run build -w @stigmer/protos --silent
+	@node_modules/.bin/tsx tools/codegen/src/generator/main.ts --target=docs-yaml-check --docs-dir docs --rules=report
 
 check-docs-inventory: ## Verify every docs page is classified in docs/_inventory/classification.yaml (CI)
 	$(MAKE) -C site check-docs-inventory
