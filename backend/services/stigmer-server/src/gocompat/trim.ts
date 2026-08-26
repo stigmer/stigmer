@@ -28,7 +28,7 @@ export function goTrimSpace(value: string): string {
 /**
  * Go strings.Fields — splits around runs of unicode.IsSpace. The JS twin
  * hazard mirrors trim's: `\s` splits on U+FEFF (Go does not) and misses
- * U+0085 (Go splits) — a `\s+`-based split changes which FTS5 tokens a
+ * U+0085 (Go splits) — a `\s+`-based split changes which search terms a
  * query produces on exactly those inputs. Returns no empty fields; an
  * all-space (or empty) input yields [].
  */

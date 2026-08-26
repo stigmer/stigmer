@@ -60,6 +60,7 @@ import type {
   Store,
   WorkflowExecutionEventRecord,
 } from "../interface.js";
+import { normalizeBm25Score, renderFts5MatchExpression } from "./fts5.js";
 import { runMigrations } from "./migrations.js";
 import {
   apiResourceKindName,
@@ -800,9 +801,13 @@ export class SqliteStore implements Store {
     }
     const scopeSql = scopeClauses.join("\n        ");
 
-    const searchMode = query.matchExpression !== undefined;
+    // Search mode is "terms present", even when they sanitize to an empty
+    // MATCH expression — FTS5's rejection of that expression is the
+    // preserved behavior for such queries (see fts5.ts).
+    const searchMode = query.terms !== undefined;
     const matchClause = searchMode ? `search_index MATCH ? AND ` : "";
-    const matchArgs = searchMode ? [query.matchExpression as string] : [];
+    const matchArgs =
+      query.terms !== undefined ? [renderFts5MatchExpression(query.terms)] : [];
 
     // Statement 1 — full counts per kind (Go's count query; zero-count
     // kinds never appear: the counts come from GROUP BY over matches).
@@ -859,10 +864,13 @@ export class SqliteStore implements Store {
         query.offset,
       ) as Array<{ kind: string; resource_id: string; rank: number }>;
 
+    // The interface promises wire-ready scores (DD-001): normalize bm25
+    // here; list mode's pinned 1.0 maps to exactly 1.0 through the same
+    // function.
     const hits: SearchIndexHit[] = pageRows.map((row) => ({
       kind: row.kind,
       resourceId: row.resource_id,
-      rank: row.rank,
+      score: normalizeBm25Score(row.rank),
     }));
 
     return { countsByKind, totalCount, hits };

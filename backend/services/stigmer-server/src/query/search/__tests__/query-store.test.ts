@@ -1,13 +1,16 @@
 /**
  * Pins the search query store against Go's
- * sqlite_search_query_store_test.go (the escaping / kind-parsing /
- * score-normalization tables) and
+ * sqlite_search_query_store_test.go (the kind-parsing table) and
  * sqlite_search_query_store_query_test.go (the end-to-end
  * write→index→query pins: session list mode, the #440 emptiness arm, the
  * #439 newly-searchable-kind arm), plus the scope-filter matrix
  * (org strict / crossOrgPublic / excludePublic) and RebuildIndex —
  * including the DD-D proof: rebuilding over an ADOPTED Go-created
- * database re-indexes its project rows.
+ * database re-indexes its project rows. The escaping and
+ * score-normalization tables moved with their code into the sqlite
+ * driver (DD-009 seam redraw): see store/sqlite/__tests__/fts5.test.ts.
+ * These tests still run the REAL driver through tempStore — the
+ * two-layer service→driver integration proof.
  */
 import { create, toBinary } from "@bufbuild/protobuf";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -29,12 +32,7 @@ import {
   type TempStore,
 } from "../../../store/sqlite/__tests__/support.js";
 import { SearchCriteria } from "../criteria.js";
-import {
-  SqliteSearchQueryStore,
-  escapeFTS5Query,
-  normalizeScore,
-  parseKind,
-} from "../query-store.js";
+import { SqliteSearchQueryStore, parseKind } from "../query-store.js";
 import { newSearchableResourceRegistry } from "../registry.js";
 
 const silentLogger = createLogger({
@@ -134,45 +132,6 @@ function criteria(overrides: {
   );
 }
 
-describe("escapeFTS5Query (Go's table, case-for-case)", () => {
-  const cases: Array<[name: string, input: string, expected: string]> = [
-    ["empty query", "", ""],
-    ["single word", "kubernetes", `"kubernetes"*`],
-    ["multiple words", "kubernetes deployment", `"kubernetes" "deployment"`],
-    ["whitespace trimmed", "  hello  ", `"hello"*`],
-    ["AND treated as literal", "foo AND bar", `"foo" "AND" "bar"`],
-    ["OR treated as literal", "foo OR bar", `"foo" "OR" "bar"`],
-    ["NOT treated as literal", "foo NOT bar", `"foo" "NOT" "bar"`],
-    ["NEAR treated as literal", "foo NEAR bar", `"foo" "NEAR" "bar"`],
-    ["colon in single token", "server:skill-creator", `"server:skill-creator"*`],
-    ["colon with simple term", "name:kubernetes", `"name:kubernetes"*`],
-    [
-      "colon in multi-word query",
-      "find server:something here",
-      `"find" "server:something" "here"`,
-    ],
-    ["dash in token", "mcp-server", `"mcp-server"*`],
-    ["leading dash", "-excluded", `"-excluded"*`],
-    ["dash in multi-word", "mcp-server deployment", `"mcp-server" "deployment"`],
-    ["asterisk in token", "kube*", `"kube*"*`],
-    ["parentheses", "NEAR(a b)", `"NEAR(a" "b)"`],
-    ["brackets", "test[0]", `"test[0]"*`],
-    ["caret", "^boost", `"^boost"*`],
-    ["embedded quotes stripped", `foo"bar`, `"foobar"*`],
-    ["only quotes", `"""`, ""],
-    [
-      "mixed specials multi-word",
-      `server:x mcp-server kube*`,
-      `"server:x" "mcp-server" "kube*"`,
-    ],
-  ];
-  for (const [name, input, expected] of cases) {
-    it(name, () => {
-      expect(escapeFTS5Query(input)).toBe(expected);
-    });
-  }
-});
-
 describe("parseKind (Go's table)", () => {
   it("parses known kind names and rejects unknown ones", () => {
     expect(parseKind("agent")).toBe(ApiResourceKind.agent);
@@ -182,23 +141,6 @@ describe("parseKind (Go's table)", () => {
     expect(parseKind("invalid_kind")).toBeUndefined();
     expect(parseKind("")).toBeUndefined();
   });
-});
-
-describe("normalizeScore (Go's table)", () => {
-  const cases: Array<[bm25: number, min: number, max: number]> = [
-    [0, 1.0, 1.0],
-    [1.0, 1.0, 1.0],
-    [-1.0, 0.8, 1.0],
-    [-5.0, 0.4, 0.6],
-    [-15.0, 0, 0.1],
-  ];
-  for (const [bm25, min, max] of cases) {
-    it(`bm25 ${bm25} → [${min}, ${max}]`, () => {
-      const score = normalizeScore(bm25);
-      expect(score).toBeGreaterThanOrEqual(min);
-      expect(score).toBeLessThanOrEqual(max);
-    });
-  }
 });
 
 describe("write→index→query pins (Go's query_test.go)", () => {
