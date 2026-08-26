@@ -10,6 +10,7 @@
 import * as process from "node:process";
 
 import { runMCPTSGeneration } from "./mcp-ts.js";
+import { runSDKClientTSGeneration } from "./sdk-client-ts.js";
 import { runTaskRegistryGeneration } from "./task-registry.js";
 
 interface Flags {
@@ -86,6 +87,9 @@ function main(): void {
       break;
     case "mcp-ts":
       runMCPTSGeneration(flags.schemaDir, flags.outputDir);
+      break;
+    case "sdk-client-ts":
+      runSDKClientTSGeneration(flags.schemaDir, flags.outputDir);
       break;
     default:
       process.stderr.write(
