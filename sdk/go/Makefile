@@ -80,7 +80,12 @@ codegen-clients: ## Generate SDK client code from service schemas (Stage 2)
 	@echo "  Wiping internal/gen/ directory..."
 	@rm -rf internal/gen
 	@mkdir -p internal/gen
-	@cd ../.. && go run ./tools/codegen/generator/ \
+	@# The generator runs from TypeScript source via the repo-pinned tsx
+	@# (never bare npx — oss#531). It pipes generated Go through gofmt, so
+	@# the Go toolchain must be on PATH (it already is — the SDK build
+	@# follows).
+	@cd ../.. && test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
+	@cd ../.. && node_modules/.bin/tsx tools/codegen/src/generator/main.ts \
 		--schema-dir tools/codegen/schemas \
 		--output-dir sdk/go/internal/gen \
 		--target sdk-client

@@ -161,6 +161,56 @@ export function protoTypeName(protoType: string): string {
   return parts[parts.length - 1];
 }
 
+/**
+ * Go import path for a proto type's package under the given module prefix
+ * (port of protoTypeToGoImportPath).
+ */
+export function protoTypeToGoImportPath(protoType: string, prefix: string): string {
+  const parts = protoType.split(".");
+  if (parts.length < 4) return "";
+  return prefix + "/" + parts.slice(0, -1).join("/");
+}
+
+/**
+ * Go package alias for a proto type (port of protoTypeToPackageAlias):
+ * "ai.stigmer.agentic.agent.v1.X" → "agentv1";
+ * "ai.stigmer.commons.apiresource.X" → "apiresource".
+ */
+export function protoTypeToPackageAlias(protoType: string): string {
+  const parts = protoType.split(".");
+  if (parts.length < 4) return "";
+  if (parts.length >= 5 && parts[parts.length - 2].startsWith("v")) {
+    return parts[parts.length - 3] + parts[parts.length - 2];
+  }
+  return parts[parts.length - 2];
+}
+
+/** Go proto struct field name (port of goProtoFieldName, with overrides). */
+export function goProtoFieldName(protoField: string): string {
+  const parts = protoField.split("_");
+  for (let i = 0; i < parts.length; i++) {
+    const p = parts[i];
+    if (p.length > 0) {
+      parts[i] = p.slice(0, 1).toUpperCase() + p.slice(1);
+    }
+    switch (p.toLowerCase()) {
+      case "url":
+        parts[i] = "Url";
+        break;
+      case "id":
+        parts[i] = "Id";
+        break;
+      case "md":
+        parts[i] = "Md";
+        break;
+      case "usd":
+        parts[i] = "Usd";
+        break;
+    }
+  }
+  return parts.join("");
+}
+
 /** Proto package of a fully-qualified type (all but the final segment). */
 export function tsProtoPkg(protoType: string): string {
   const parts = protoType.split(".");

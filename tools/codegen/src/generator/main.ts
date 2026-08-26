@@ -12,6 +12,9 @@ import * as process from "node:process";
 import { runDocsYamlCheck } from "./docs-yaml-gate.js";
 import { parseDocsYamlRuleMode } from "./docs-yaml-rules.js";
 import { runMCPTSGeneration } from "./mcp-ts.js";
+import { runSDKClientGeneration } from "./sdk-client-go.js";
+import { runSDKClientJavaGeneration } from "./sdk-client-java.js";
+import { runSDKClientPythonGeneration } from "./sdk-client-python.js";
 import { runSDKClientTSGeneration } from "./sdk-client-ts.js";
 import { runSDKDocsGeneration } from "./sdk-docs.js";
 import { runTaskDocsGeneration } from "./task-docs.js";
@@ -110,6 +113,15 @@ function main(): void {
       break;
     case "sdk-client-ts":
       runSDKClientTSGeneration(flags.schemaDir, flags.outputDir);
+      break;
+    case "sdk-client-python":
+      runSDKClientPythonGeneration(flags.schemaDir, flags.outputDir);
+      break;
+    case "sdk-client-java":
+      runSDKClientJavaGeneration(flags.schemaDir, flags.outputDir);
+      break;
+    case "sdk-client":
+      runSDKClientGeneration(flags.schemaDir, flags.outputDir);
       break;
     case "sdk-docs":
       runSDKDocsGeneration(flags.schemaDir, flags.outputDir, flags.apisDir);

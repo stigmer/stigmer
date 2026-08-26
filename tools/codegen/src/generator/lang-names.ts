@@ -47,6 +47,63 @@ export function pyFieldName(protoField: string): string {
   return PYTHON_KEYWORDS.has(protoField) ? protoField + "_" : protoField;
 }
 
+export function isPythonKeyword(name: string): boolean {
+  return PYTHON_KEYWORDS.has(name);
+}
+
+const isUpper = (c: string): boolean => c >= "A" && c <= "Z";
+const isLower = (c: string): boolean => c >= "a" && c <= "z";
+const isDigit = (c: string): boolean => c >= "0" && c <= "9";
+
+/**
+ * PascalCase → snake_case for Python SDK method names (port of
+ * pyMethodName's acronym-aware splitting: "GetByReference" →
+ * "get_by_reference").
+ */
+export function pyMethodName(name: string): string {
+  let result = "";
+  for (let i = 0; i < name.length; i++) {
+    const r = name[i];
+    if (i > 0 && isUpper(r)) {
+      const prev = name[i - 1];
+      if (isLower(prev) || isDigit(prev)) {
+        result += "_";
+      } else if (isUpper(prev) && i + 1 < name.length && isLower(name[i + 1])) {
+        result += "_";
+      }
+    }
+    result += r.toLowerCase();
+  }
+  return result;
+}
+
+/** PascalCase → lowerCamelCase for Python gRPC stub calls. */
+export function pyStubMethodName(name: string): string {
+  if (name.length === 0) return name;
+  return name.slice(0, 1).toLowerCase() + name.slice(1);
+}
+
+/** "apis/.../token.proto" → "token_pb2". */
+export function pyProtoFileToModule(protoFile: string): string {
+  const base = protoFile.slice(protoFile.lastIndexOf("/") + 1);
+  const name = base.endsWith(".proto") ? base.slice(0, -".proto".length) : base;
+  return name + "_pb2";
+}
+
+/** "ai.stigmer.agentic.agent.v1" → "agent_spec_pb2". */
+export function pyProtoModuleAlias(protoPkg: string): string {
+  const parts = protoPkg.split(".");
+  if (parts.length >= 2) {
+    return parts[parts.length - 2] + "_spec_pb2";
+  }
+  return protoPkg + "_spec_pb2";
+}
+
+/** Cross-package proto import line for Python. */
+export function pyProtoImportLine(protoPkg: string): string {
+  return `from ${protoPkg} import spec_pb2 as ${pyProtoModuleAlias(protoPkg)}`;
+}
+
 /** snake_case → CapCamel with the house acronym overrides. */
 export function javaCapCamel(protoField: string): string {
   const parts = protoField.split("_");
