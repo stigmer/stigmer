@@ -20,6 +20,9 @@
     "url": "git+https://github.com/stigmer/stigmer.git",
     "directory": "tools/codegen"
   },
+  "dependencies": {
+    "@bufbuild/protobuf": "2.12.0"
+  },
   "devDependencies": {
     "@types/node": "^22.13.1",
     "typescript": "^5.7.0",

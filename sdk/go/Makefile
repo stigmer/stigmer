@@ -68,10 +68,11 @@ codegen-stubs: ## Generate proto stubs inside the SDK module
 .PHONY: codegen-schemas
 codegen-schemas: ## Generate JSON schemas from proto files (Stage 1)
 	@echo "Stage 1: Generating JSON schemas from protos..."
-	@cd ../.. && go run ./tools/codegen/proto2schema/ \
-		--comprehensive \
-		--include-dir apis \
-		--output-dir tools/codegen/schemas
+	@# The protoc-gen-stigmer-schema buf plugin runs from TypeScript source
+	@# via the repo-pinned tsx (never bare npx — oss#531); buf compiles the
+	@# protos and owns all writes (clean: true wipes stale schemas).
+	@cd ../.. && test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
+	@cd ../../apis && buf generate --template buf.gen.schema.yaml
 
 .PHONY: codegen-clients
 codegen-clients: ## Generate SDK client code from service schemas (Stage 2)

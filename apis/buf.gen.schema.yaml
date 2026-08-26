@@ -1,0 +1,18 @@
+# Stage 1 of the codegen pipeline: proto definitions → committed JSON
+# schemas (tools/codegen/schemas), consumed by the Stage 2 generator.
+#
+# The plugin runs from TypeScript source via the repo-pinned tsx (never bare
+# npx — oss#531). `clean: true` wipes the out directory first, replacing the
+# per-namespace RemoveAll the retired Go extractor did — schemas for deleted
+# protos can never linger.
+#
+# Invoked from `make -C sdk/go codegen-schemas` (repo convention: run buf
+# from the apis/ directory).
+version: v2
+clean: true
+plugins:
+  - local: ["../node_modules/.bin/tsx", "../tools/codegen/src/protoc-gen-stigmer-schema/main.ts"]
+    out: ../tools/codegen/schemas
+    strategy: all
+inputs:
+  - directory: .
