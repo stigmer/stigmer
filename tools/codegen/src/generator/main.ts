@@ -9,6 +9,7 @@
 
 import * as process from "node:process";
 
+import { runMCPTSGeneration } from "./mcp-ts.js";
 import { runTaskRegistryGeneration } from "./task-registry.js";
 
 interface Flags {
@@ -82,6 +83,9 @@ function main(): void {
         process.exit(1);
       }
       runTaskRegistryGeneration(flags.schemaDir, flags.outputDir, flags.metaDir);
+      break;
+    case "mcp-ts":
+      runMCPTSGeneration(flags.schemaDir, flags.outputDir);
       break;
     default:
       process.stderr.write(
