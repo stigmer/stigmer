@@ -54,6 +54,7 @@ jobs:
               - 'backend/services/runner/tsconfig*.json'
               - 'backend/services/runner/Dockerfile.sandbox'
               - 'apis/stubs/ts/**'
+              - 'backend/libs/ts/**'
 
       - name: Decide whether to build
         id: decide
