@@ -69,9 +69,8 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Generate TypeScript proto stubs
-        run: STUBS_FORCE=1 make -C apis ts-stubs
-
+      # Node before stub generation: the stub scrub inside gen-stubs.sh runs
+      # from TypeScript source via the repo-pinned tsx.
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -80,6 +79,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Generate TypeScript proto stubs
+        run: STUBS_FORCE=1 make -C apis ts-stubs
 
       # Pre-publish hard gate for #209: build the libs and prove every published
       # dist is resolvable under plain Node ESM before anything reaches npm. A
@@ -114,9 +116,8 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Generate TypeScript proto stubs
-        run: STUBS_FORCE=1 make -C apis ts-stubs
-
+      # Node before stub generation: the stub scrub inside gen-stubs.sh runs
+      # from TypeScript source via the repo-pinned tsx.
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -126,6 +127,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Generate TypeScript proto stubs
+        run: STUBS_FORCE=1 make -C apis ts-stubs
 
       # Builds the workspace lib dists the runner links (@stigmer/protos,
       # @stigmer/temporal-codecs — via build-ts-stubs), installs the runner's own

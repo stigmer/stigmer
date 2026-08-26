@@ -72,9 +72,19 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: go.work
-          cache-dependency-path: |
-            sdk/go/go.sum
-            tools/go.sum
+          cache-dependency-path: sdk/go/go.sum
+
+      # The client generator runs from TypeScript source via the repo-pinned
+      # tsx (never bare npx — oss#531), so the root npm install must exist
+      # before the codegen step.
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
 
       # Stage 2 only: proto stubs and JSON schemas are committed; the client
       # generator is a pure function of tools/codegen/schemas.
@@ -111,9 +121,8 @@ jobs:
           go vet ./...
           go test -race -timeout 30s ./... -count=1
 
-      # ./codegen/... (not just ./codegen/generator/...) so the proto2schema
-      # extraction tests run too — the @internal strip (oss#327) lives there
-      # and the generator package's leak gate depends on it.
+      # The codegen toolchain's own tests (vitest) — includes the @internal
+      # strip contract (oss#327) and the gojson serializer's pinned Go
+      # equivalence corpus.
       - name: Run the codegen toolchain's own tests
-        working-directory: tools
-        run: go test ./codegen/... -count=1
+        run: npm run test -w @stigmer/codegen

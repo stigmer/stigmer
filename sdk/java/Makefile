@@ -32,7 +32,10 @@ codegen-clients: ## Generate SDK client code from service schemas (Stage 2)
 	@echo "  Wiping $(SDK_GEN_DIR)/ directory..."
 	@rm -rf $(SDK_GEN_DIR)
 	@mkdir -p $(SDK_GEN_DIR)
-	@cd ../.. && go run ./tools/codegen/generator/ \
+	@# The generator runs from TypeScript source via the repo-pinned tsx
+	@# (never bare npx — oss#531).
+	@cd ../.. && test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
+	@cd ../.. && node_modules/.bin/tsx tools/codegen/src/generator/main.ts \
 		--schema-dir tools/codegen/schemas \
 		--output-dir sdk/java/$(SDK_GEN_DIR) \
 		--target sdk-client-java
