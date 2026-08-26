@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "@bufbuild/protobuf": "2.12.0",
+    "@bufbuild/protovalidate": "^1.1.1",
     "@stigmer/protos": "*",
     "yaml": "^2.8.2"
   },

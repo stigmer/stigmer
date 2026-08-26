@@ -25,6 +25,9 @@ export interface KindMetaEntry {
   grantableRoles: number[];
 }
 
+/** kind_meta.name → kind_meta.id_prefix (port of buildIdPrefixMap). */
+export const idPrefixByMetaName = new Map<string, string>();
+
 const entries: KindMetaEntry[] = [];
 
 for (const value of ApiResourceKindSchema.values) {
@@ -36,6 +39,9 @@ for (const value of ApiResourceKindSchema.values) {
 
   if (meta.isVersioned) {
     versionedKinds.add(value.number);
+  }
+  if (meta.name !== "") {
+    idPrefixByMetaName.set(meta.name, meta.idPrefix);
   }
   entries.push({
     enumName: value.name,

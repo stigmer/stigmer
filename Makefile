@@ -147,11 +147,15 @@ protos: ## Generate protocol buffer stubs and SDK client code
 gen-sdk-docs: gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-theme-docs gen-cli-docs gen-task-docs gen-task-registry ## Generate all SDK reference docs
 
 gen-proto-sdk-docs: ## Generate SDK resource docs from proto schemas
-	go run ./tools/codegen/generator --target=sdk-docs \
+	@test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
+	@npm run build -w @stigmer/protos --silent
+	node_modules/.bin/tsx tools/codegen/src/generator/main.ts --target=sdk-docs \
 		--schema-dir tools/codegen/schemas --output-dir docs/sdk/resources --apis-dir apis
 
 gen-task-docs: ## Generate per-task reference docs from schemas
-	go run ./tools/codegen/generator --target=task-docs \
+	@test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
+	@npm run build -w @stigmer/protos --silent
+	node_modules/.bin/tsx tools/codegen/src/generator/main.ts --target=task-docs \
 		--schema-dir tools/codegen/schemas --output-dir docs/guides/workflows/task-types \
 		--meta-dir apis/ai/stigmer/agentic/workflow/v1/tasks/meta --apis-dir apis
 	@$(PRETTIER_GUARD)
@@ -893,10 +897,14 @@ format-docs-check: ## Check documentation formatting (CI, no writes)
 	@$(PRETTIER) --check --prose-wrap always $(DOCS_SOURCES)
 
 check-docs-yaml: ## Validate every docs YAML block + raw examples/seedpack manifests against the proto contracts, incl. platform-parity protovalidate rules (CI)
-	@go run ./tools/codegen/generator --target=docs-yaml-check --docs-dir docs --authoring-dirs examples,seedpack --rules=enforce
+	@test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
+	@npm run build -w @stigmer/protos --silent
+	@node_modules/.bin/tsx tools/codegen/src/generator/main.ts --target=docs-yaml-check --docs-dir docs --authoring-dirs examples,seedpack --rules=enforce
 
 report-docs-yaml-rules: ## Full-depth protovalidate rule report over docs YAML (incl. latent platform-blind findings; never fails)
-	@go run ./tools/codegen/generator --target=docs-yaml-check --docs-dir docs --rules=report
+	@test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
+	@npm run build -w @stigmer/protos --silent
+	@node_modules/.bin/tsx tools/codegen/src/generator/main.ts --target=docs-yaml-check --docs-dir docs --rules=report
 
 check-docs-inventory: ## Verify every docs page is classified in docs/_inventory/classification.yaml (CI)
 	$(MAKE) -C site check-docs-inventory

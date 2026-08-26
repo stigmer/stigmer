@@ -9,8 +9,12 @@
 
 import * as process from "node:process";
 
+import { runDocsYamlCheck } from "./docs-yaml-gate.js";
+import { parseDocsYamlRuleMode } from "./docs-yaml-rules.js";
 import { runMCPTSGeneration } from "./mcp-ts.js";
 import { runSDKClientTSGeneration } from "./sdk-client-ts.js";
+import { runSDKDocsGeneration } from "./sdk-docs.js";
+import { runTaskDocsGeneration } from "./task-docs.js";
 import { runTaskRegistryGeneration } from "./task-registry.js";
 
 interface Flags {
@@ -72,6 +76,22 @@ function parseFlags(argv: string[]): Flags {
 function main(): void {
   const flags = parseFlags(process.argv.slice(2));
 
+  // docs-yaml-check is a pass/fail validator over the docs tree: it reads
+  // no schemas and emits no files, so it has its own flag contract.
+  if (flags.target === "docs-yaml-check") {
+    if (flags.docsDir === "") {
+      process.stderr.write("--docs-dir is required for --target=docs-yaml-check\n");
+      process.exit(1);
+    }
+    const ruleMode = parseDocsYamlRuleMode(flags.rules);
+    const extraDirs = flags.authoringDirs
+      .split(",")
+      .map((d) => d.trim())
+      .filter((d) => d !== "");
+    runDocsYamlCheck(flags.docsDir, extraDirs, ruleMode);
+    return;
+  }
+
   if (flags.schemaDir === "" || flags.outputDir === "" || flags.target === "") {
     process.stderr.write("Usage: generator --schema-dir <dir> --output-dir <dir> --target <target>\n");
     process.exit(1);
@@ -90,6 +110,20 @@ function main(): void {
       break;
     case "sdk-client-ts":
       runSDKClientTSGeneration(flags.schemaDir, flags.outputDir);
+      break;
+    case "sdk-docs":
+      runSDKDocsGeneration(flags.schemaDir, flags.outputDir, flags.apisDir);
+      break;
+    case "task-docs":
+      if (flags.metaDir === "") {
+        process.stderr.write("--meta-dir is required for --target=task-docs\n");
+        process.exit(1);
+      }
+      if (flags.apisDir === "") {
+        process.stderr.write("--apis-dir is required for --target=task-docs (index enrichment template)\n");
+        process.exit(1);
+      }
+      runTaskDocsGeneration(flags.schemaDir, flags.outputDir, flags.metaDir, flags.apisDir);
       break;
     default:
       process.stderr.write(
