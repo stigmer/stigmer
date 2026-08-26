@@ -12,7 +12,7 @@ import { classify, ExitCode, UsageError } from "../errors/index.js";
 import { shareAgent } from "./share.js";
 
 const CLOUD = { appOrigin: "https://app.stigmer.ai", isLocal: false };
-const LOCAL = { appOrigin: "http://localhost:8234", isLocal: true };
+const LOCAL = { appOrigin: "http://localhost:7234", isLocal: true };
 
 function makeAgent(): Agent {
   return create(AgentSchema, {
@@ -350,7 +350,7 @@ describe("shareAgent output", () => {
     const result = await shareAgent(client, "acme/support-agent", "acme", { enabled: true, ...LOCAL });
 
     const link = result.sections.find((s) => s.title === "Public chat link");
-    expect(link?.items).toEqual(["http://localhost:8234/chat/acme/support-agent"]);
+    expect(link?.items).toEqual(["http://localhost:7234/chat/acme/support-agent"]);
     expect(result.hints.some((h) => h.includes("Stigmer Cloud"))).toBe(true);
   });
 

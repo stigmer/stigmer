@@ -1275,7 +1275,10 @@ async function readHarnessStateId(sessionId: string): Promise<string> {
  * Deletes the ephemeral ExecutionContext (fully-merged environment incl.
  * secrets) on a non-cancellable scope so cleanup runs even after
  * cancellation. Best-effort; the delete activity itself never throws on
- * missing contexts (#15's seam).
+ * missing contexts (#15's seam). A failed cleanup is never retried — no
+ * TTL sweep exists (oss#892; the retired Go server's log claimed one
+ * that never did) — the row stays encrypted at rest (oss#535) and this
+ * WARN is the operator's signal.
  */
 async function deleteExecutionContext(executionId: string): Promise<void> {
   await CancellationScope.nonCancellable(async () => {
@@ -1283,10 +1286,13 @@ async function deleteExecutionContext(executionId: string): Promise<void> {
       await localActivities[DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME](executionId);
       log.info("ExecutionContext cleaned up", { executionId });
     } catch (error) {
-      log.warn("ExecutionContext cleanup failed (will rely on TTL backup)", {
-        executionId,
-        error: errorMessage(error),
-      });
+      log.warn(
+        "ExecutionContext cleanup failed — nothing retries it; any remaining row stays encrypted at rest (operator cleanup)",
+        {
+          executionId,
+          error: errorMessage(error),
+        },
+      );
     }
   });
 }

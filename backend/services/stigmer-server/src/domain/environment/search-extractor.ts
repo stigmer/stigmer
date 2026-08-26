@@ -3,8 +3,8 @@
  * environment_extractor.go (both sides: the #4 index side, the #14 query
  * side; the search summary is spec.description). Secret DATA is
  * deliberately never indexed — only name, description, tags, org, and
- * visibility reach FTS5, and the query projection carries the same
- * non-secret fields.
+ * visibility reach the search index, and the query projection carries
+ * the same non-secret fields.
  */
 import type { Message } from "@bufbuild/protobuf";
 
@@ -49,7 +49,8 @@ export const environmentSearchExtractor: SearchableExtractor = {
     return {
       name: metadata.name,
       description: env.spec?.description ?? "",
-      // Tags join space-separated for FTS5 (Go extractor.JoinTags).
+      // Tags join space-separated — the index entry carries one tags
+      // string (Go extractor.JoinTags).
       tags: metadata.tags.join(" "),
       org: metadata.org,
       // The enum NAME string, exactly Go's visibility.String().

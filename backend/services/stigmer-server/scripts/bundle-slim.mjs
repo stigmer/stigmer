@@ -27,6 +27,13 @@
  *      workflow-worker-thread.cjs             ← Temporal's sandbox thread entry;
  *                                               worker_threads needs a real file
  *      mappings.wasm                          ← source-map's lazy-loaded wasm
+ *      console/                               ← the web console's static export
+ *                                               (client-apps/web/out), served on
+ *                                               the unified port's lane 4 and
+ *                                               discovered as a main.js sibling
+ *                                               by src/transport/console/assets.ts
+ *                                               (DD-012: the console ships INSIDE
+ *                                               this artifact — no skew possible)
  *      node_modules/
  *        @stigmer/server-slim-<platform>      ← Temporal native bridge, pruned
  *                                               to ONE platform
@@ -114,6 +121,23 @@ const BUNDLED_MODULE_ASSETS = [
   { from: "source-map/lib/mappings.wasm", to: "mappings.wasm" },
 ];
 
+/**
+ * The web console's static export, built by `npm run build -w
+ * client-apps/web` (`make build-web`). Its ABSENCE fails the build: a
+ * slim artifact without the console would resurrect the version-skew
+ * failure mode DD-012 dissolved by shipping both in one artifact — and
+ * would ship a `stigmer up` that silently lost its console again.
+ */
+const CONSOLE_EXPORT_DIR = join(
+  serverRoot,
+  "..",
+  "..",
+  "..",
+  "client-apps",
+  "web",
+  "out",
+);
+
 /** node platform-arch → Temporal core-bridge release triple. */
 const CORE_BRIDGE_TRIPLES = {
   "darwin-arm64": "aarch64-apple-darwin",
@@ -181,7 +205,7 @@ const stampDefines = {
  * the artifact entirely.
  */
 async function buildWorkflowBundles() {
-  console.log("[1/5] Pre-building Temporal workflow bundles...");
+  console.log("[1/6] Pre-building Temporal workflow bundles...");
   const { bundleWorkflowCode } = await import("@temporalio/worker");
   for (const { entry, worker, sibling } of WORKFLOW_BUNDLES) {
     const workflowsPath = join(distDir, entry);
@@ -217,7 +241,7 @@ async function buildWorkflowBundles() {
  * is patched to point at it (see the plugin below). Runner recipe verbatim.
  */
 async function buildWorkerThreadBundle() {
-  console.log("[2/5] Bundling Temporal workflow worker-thread entry...");
+  console.log("[2/6] Bundling Temporal workflow worker-thread entry...");
   await build({
     entryPoints: [
       join(
@@ -335,7 +359,7 @@ globalThis.__stigmerWorkflowWorkerThreadPath = () => __stigmerJoin(__dirname, "w
 `;
 
 async function buildMainBundle() {
-  console.log("[3/5] Bundling server entry (dist/main.js)...");
+  console.log("[3/6] Bundling server entry (dist/main.js)...");
   const result = await build({
     entryPoints: [join(distDir, "main.js")],
     outfile: join(outDir, "main.js"),
@@ -510,7 +534,38 @@ function metaPackageJson() {
   };
 }
 
-// ─── Step 4: Stage node_modules for the self-contained shape ────────────────
+// ─── Step 4: Stage the web console's static export ──────────────────────────
+
+/**
+ * Copies client-apps/web/out into dist-slim/console/, where the console
+ * lane's asset discovery (src/transport/console/assets.ts) finds it as a
+ * main.js sibling. The two sanity files are the lane's own load-bearing
+ * documents: index.html (the root route) and 404.html (the not-found
+ * posture — nginx.conf's error_page and the lane both serve it).
+ */
+function stageConsoleExport() {
+  console.log("[4/6] Staging web console static export...");
+  if (!existsSync(join(CONSOLE_EXPORT_DIR, "index.html"))) {
+    fail(
+      `web console export not found at ${CONSOLE_EXPORT_DIR} — ` +
+        "run `npm run build -w client-apps/web` (make build-web) first. " +
+        "The console ships INSIDE this artifact (DD-012); an artifact " +
+        "without it would silently lose `stigmer up`'s web console.",
+    );
+  }
+  if (!existsSync(join(CONSOLE_EXPORT_DIR, "404.html"))) {
+    fail(
+      `web console export at ${CONSOLE_EXPORT_DIR} has no 404.html — ` +
+        "the export looks partial; rebuild with `npm run build -w client-apps/web`.",
+    );
+  }
+  cpSync(CONSOLE_EXPORT_DIR, join(outDir, "console"), {
+    recursive: true,
+    dereference: true,
+  });
+}
+
+// ─── Step 5: Stage node_modules for the self-contained shape ────────────────
 
 /**
  * Unlike the runner, the server has zero JS runtime externals — everything
@@ -521,7 +576,7 @@ function metaPackageJson() {
  * exactly the failure verify-slim-artifact.mjs exists to catch.
  */
 function stageSelfContained(platform) {
-  console.log("[4/5] Staging native bridge packages...");
+  console.log("[5/6] Staging native bridge packages...");
   const stagedRoot = join(outDir, "node_modules");
   const staged = new Set();
 
@@ -585,10 +640,13 @@ const META_PACKAGE_FILES = [
   ...WORKFLOW_BUNDLES.map(({ sibling }) => sibling),
   "workflow-worker-thread.cjs",
   "mappings.wasm",
+  // The console export rides the meta package (DD-012): it is platform-
+  // independent, so it ships once here, never in the platform packages.
+  "console",
 ];
 
 function emitNpmPackages() {
-  console.log("[5/5] Emitting npm package directories...");
+  console.log("[6/6] Emitting npm package directories...");
   rmSync(pkgsDir, { recursive: true, force: true });
 
   const metaDir = join(pkgsDir, "server-slim");
@@ -605,7 +663,8 @@ function emitNpmPackages() {
       );
       writeFileSync(dest, code);
     } else {
-      cpSync(src, dest);
+      // recursive covers the console/ directory entry; a no-op for files.
+      cpSync(src, dest, { recursive: true });
     }
   }
   writeFileSync(
@@ -684,6 +743,7 @@ mkdirSync(outDir, { recursive: true });
 await buildWorkflowBundles();
 await buildWorkerThreadBundle();
 await buildMainBundle();
+stageConsoleExport();
 stageSelfContained(platform);
 if (emitPackages) {
   emitNpmPackages();

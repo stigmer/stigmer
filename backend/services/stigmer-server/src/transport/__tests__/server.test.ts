@@ -10,6 +10,12 @@
  *   - the skill-transfer prefix is a seam: with no handler installed it
  *     falls through to 404 exactly like an unknown path;
  *   - shutdown drains promptly with idle keepalive clients connected.
+ *
+ * This suite boots WITHOUT a console lane, so its arms also pin the
+ * lane-absent posture (no bundled export → the router behaves exactly as
+ * before lane 4 existed). The with-console behavior — including the guard
+ * that keeps RPC and /v1/* flowing to the adapter — is pinned in
+ * console/__tests__/handler.test.ts through this same composed server.
  */
 import { createClient } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";

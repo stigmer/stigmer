@@ -477,8 +477,11 @@ test-conformance-execution: build-runner ## Run gRPC conformance execution suite
 	@echo "=== conformance: execution engine (local-execution) ==="
 	CONFORMANCE_TARGET=local-execution npm run test:execution -w @stigmer/conformance
 
+# build-web rides the dependency list because bundle-slim stages the web
+# console's static export into the artifact (DD-012) and loud-fails
+# without a built client-apps/web/out.
 .PHONY: smoke-cli-cutover
-smoke-cli-cutover: build-runner build-server ## Run the CLI E2E smoke: `stigmer up` against the packaged slim server artifact (needs `temporal` on PATH for speed)
+smoke-cli-cutover: build-runner build-server build-web ## Run the CLI E2E smoke: `stigmer up` against the packaged slim server artifact (needs `temporal` on PATH for speed)
 	@command -v node >/dev/null 2>&1 || { echo "error: node not found"; exit 1; }
 	@cd $(SERVER_DIR) && node scripts/bundle-slim.mjs
 	node scripts/smoke-cli-cutover.mjs

@@ -318,7 +318,7 @@ async function updateSubject(
 }
 
 /**
- * Refreshes the FTS5 search index for a session. Best-effort: logs on
+ * Refreshes the search index for a session. Best-effort: logs on
  * failure but does not propagate (Go indexSessionSearch — an undefined
  * entry returns silently, without the shared step's warn).
  */

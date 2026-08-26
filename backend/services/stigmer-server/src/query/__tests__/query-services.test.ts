@@ -112,7 +112,7 @@ describe("query services on the composed server", () => {
     }
 
     // Query mode: the unique description token matches with a positive
-    // relevance score (membership only — never pinned BM25 values).
+    // relevance score (membership only — never pinned engine ranking values).
     const queried = await search.search({
       kinds: [ApiResourceKind.organization],
       query: "zebrawire",

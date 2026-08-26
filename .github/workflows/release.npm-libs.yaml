@@ -287,6 +287,12 @@ jobs:
       - name: Build TS server
         run: make build-server
 
+      # The slim artifact ships the web console's static export (DD-012:
+      # console and server travel in ONE artifact, so no version skew can
+      # exist); bundle-slim loud-fails without a built client-apps/web/out.
+      - name: Build the web console static export
+        run: make build-web
+
       # Stamp the release version into the package manifest; the bundle
       # script propagates it into every generated slim manifest. The file:
       # lib deps are NOT pinned to registry versions — the slim bundle
@@ -319,7 +325,9 @@ jobs:
       # (nothing resolves from this checkout) must serve the transport AND
       # start all three Temporal workers from the pre-built workflow bundles
       # through the per-platform native bridge, against a real Temporal dev
-      # server, then shut down cleanly.
+      # server, answer the console lane's live-HTTP probes (config.json,
+      # documents, flight payloads, the 404 posture — DD-012), then shut
+      # down cleanly.
       - name: Set up Temporal CLI
         uses: temporalio/setup-temporal@v0
 
