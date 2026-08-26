@@ -9,8 +9,10 @@
  *   2. exact match  /v1/proxy/model-registry       (registry proxy)
  *   3. prefix       /v1/skill-artifacts            (seam — lands with the
  *                                                   skill domain sub-project)
- *   4. [reserved]   console statics                (phase 2, DD-005 — the
- *                                                   branch slot exists, no code)
+ *   4. guarded      console statics                (phase 2, DD-005/DD-012 —
+ *                                                   GET/HEAD only, never RPC
+ *                                                   or /v1/* paths; absent
+ *                                                   when no export is bundled)
  *   5. RPC adapter  gRPC + gRPC-Web + Connect      (replaces Go's lanes
  *                                                   4–5; WebSocket retired
  *                                                   per ratified delta 1)
@@ -39,6 +41,7 @@ import {
   SKILL_ARTIFACTS_PATH_PREFIX,
   TASK_KIND_REGISTRY_PATH,
 } from "./constants.js";
+import { consoleLaneEligible } from "./console/handler.js";
 import {
   applyRpcCorsHeaders,
   handleRpcPreflight,
@@ -65,6 +68,14 @@ export interface UnifiedPortServerOptions {
    * the adapter's 404, which is also what Go answers for unknown paths.
    */
   skillTransferLane?: LaneHandler;
+  /**
+   * Lane 4: console statics + /config.json (DD-012). Present only when a
+   * console export is bundled/configured — absent, every request flows
+   * exactly as before the lane existed. The eligibility guard lives with
+   * the handler (console/handler.ts): GET/HEAD only, never /v1/* or
+   * service-shaped paths.
+   */
+  consoleLane?: LaneHandler;
 }
 
 export interface UnifiedPortServer {
@@ -102,7 +113,10 @@ export function createUnifiedPortServer(
       options.skillTransferLane(request, response);
       return;
     }
-    // Reserved: console statics branch (phase 2, DD-005) slots in here.
+    if (options.consoleLane !== undefined && consoleLaneEligible(request)) {
+      options.consoleLane(request, response);
+      return;
+    }
 
     if (isRpcPreflight(request)) {
       // Go answers preflights for ALL endpoints, registered or not

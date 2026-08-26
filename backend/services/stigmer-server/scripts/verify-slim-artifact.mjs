@@ -15,7 +15,16 @@
  *   1. the "listening" transport log,
  *   2. "All Temporal workers started" — all three workers created from the
  *      pre-built bundles through the native bridge,
- *   3. SIGTERM → clean exit 0.
+ *   3. the console lane answers over live HTTP (DD-012; the #24 lesson —
+ *      packaging gaps are invisible at PR time unless a gate exercises
+ *      the artifact): /config.json synthesizes with a Host-derived
+ *      apiUrl, the root and a dynamic deep link serve documents, an
+ *      unknown URL serves the export's 404 page WITH a 404 status, and a
+ *      flight .txt request serves its placeholder payload,
+ *   4. SIGTERM → clean exit 0.
+ *
+ * The console assets themselves are asserted present in the isolated copy
+ * before boot — a missing console/ is a packaging failure by itself.
  *
  * Usage: node scripts/verify-slim-artifact.mjs
  *        (expects a Temporal dev server on TEMPORAL_HOST_PORT, default
@@ -48,6 +57,18 @@ if (!existsSync(join(slimDir, "main.js"))) {
 // so a missing staged dependency fails HERE instead of in a user's install.
 const isolated = mkdtempSync(join(tmpdir(), "verify-slim-artifact-"));
 cpSync(slimDir, isolated, { recursive: true });
+
+// Console assets must ride the artifact (DD-012): assert the lane's two
+// load-bearing documents before boot so a staging regression names itself.
+for (const consoleFile of ["console/index.html", "console/404.html"]) {
+  if (!existsSync(join(isolated, consoleFile))) {
+    console.error(
+      `verify-slim-artifact: ${consoleFile} missing from the slim artifact — ` +
+        "the console staging step (bundle-slim.mjs stageConsoleExport) did not run or was gutted",
+    );
+    process.exit(1);
+  }
+}
 
 const scratch = mkdtempSync(join(tmpdir(), "verify-slim-scratch-"));
 
@@ -89,20 +110,99 @@ child.on("error", (err) => {
   process.exit(1);
 });
 
+/**
+ * Live-HTTP console probes (GRPC_PORT=0 binds ephemeral; the bound port
+ * rides the structured "stigmer-server listening" log line). Each probe
+ * asserts the status and a body/header property that only the real lane
+ * produces — a 200 with the wrong document would pass a status-only check.
+ */
+async function probeConsole() {
+  const portMatch = stderr
+    .split("\n")
+    .find((line) => line.includes("stigmer-server listening"))
+    ?.match(/"port":\s*(\d+)/);
+  if (!portMatch) {
+    throw new Error(
+      `could not parse the bound port from the listening log line`,
+    );
+  }
+  const baseUrl = `http://127.0.0.1:${portMatch[1]}`;
+
+  const config = await fetch(`${baseUrl}/config.json`);
+  if (config.status !== 200) {
+    throw new Error(`/config.json answered ${config.status}`);
+  }
+  const configBody = await config.json();
+  if (configBody.authMode !== "disabled" || configBody.apiUrl !== baseUrl) {
+    throw new Error(
+      `/config.json synthesized wrong (authMode=${configBody.authMode}, apiUrl=${configBody.apiUrl}, expected apiUrl ${baseUrl})`,
+    );
+  }
+
+  const root = await fetch(`${baseUrl}/`);
+  if (
+    root.status !== 200 ||
+    !(root.headers.get("content-type") ?? "").includes("text/html")
+  ) {
+    throw new Error(`/ answered ${root.status} ${root.headers.get("content-type")}`);
+  }
+
+  // A dynamic deep link and its flight payload: /sessions/[id] is a core
+  // route; if the route tree ever drops it, update this probe with it.
+  const deepLink = await fetch(`${baseUrl}/sessions/zz-verify-probe`);
+  if (
+    deepLink.status !== 200 ||
+    !(deepLink.headers.get("content-type") ?? "").includes("text/html")
+  ) {
+    throw new Error(
+      `dynamic deep link answered ${deepLink.status} ${deepLink.headers.get("content-type")} — the placeholder rewrite is not serving`,
+    );
+  }
+  const flight = await fetch(`${baseUrl}/sessions/zz-verify-probe.txt`);
+  if (flight.status !== 200) {
+    throw new Error(
+      `flight payload answered ${flight.status} — the RSC .txt rewrite is not serving`,
+    );
+  }
+
+  const notFound = await fetch(`${baseUrl}/zz-no-such-route`);
+  if (
+    notFound.status !== 404 ||
+    !(notFound.headers.get("content-type") ?? "").includes("text/html")
+  ) {
+    throw new Error(
+      `unknown URL answered ${notFound.status} ${notFound.headers.get("content-type")} — expected the export's 404 page WITH a 404 status`,
+    );
+  }
+  console.log("verify-slim-artifact: console lane probes passed");
+}
+
 child.stderr.on("data", (chunk) => {
   stderr += String(chunk);
   if (!sawListening && stderr.includes("listening")) sawListening = true;
   if (!sawWorkers && stderr.includes(WORKERS_MARKER)) sawWorkers = true;
   if (sawListening && sawWorkers && shutdownTimer === null) {
     clearTimeout(timer);
-    child.kill("SIGTERM");
+    // Arm the deadline over probes + shutdown so a hung probe fails the
+    // job instead of hanging it (the same posture as the boot timeout).
     shutdownTimer = setTimeout(() => {
       console.error(
-        `verify-slim-artifact: shutdown did not complete within ${SHUTDOWN_TIMEOUT_MS}ms after SIGTERM\n${stderr}`,
+        `verify-slim-artifact: probes/shutdown did not complete within ${SHUTDOWN_TIMEOUT_MS}ms\n${stderr}`,
       );
       child.kill("SIGKILL");
       process.exit(1);
     }, SHUTDOWN_TIMEOUT_MS);
+    probeConsole()
+      .then(() => {
+        child.kill("SIGTERM");
+      })
+      .catch((error) => {
+        console.error(
+          `verify-slim-artifact: console probe failed — ${error instanceof Error ? error.message : String(error)}\n${stderr}`,
+        );
+        child.kill("SIGKILL");
+        process.exit(1);
+      });
   }
 });
 

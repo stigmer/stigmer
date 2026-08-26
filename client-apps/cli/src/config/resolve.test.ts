@@ -109,7 +109,7 @@ describe("resolveConsoleURL", () => {
   });
 
   it("uses the local web-console port for the local backend", () => {
-    expect(resolveConsoleURL("local", {} as NodeJS.ProcessEnv)).toBe("http://localhost:8234");
+    expect(resolveConsoleURL("local", {} as NodeJS.ProcessEnv)).toBe("http://localhost:7234");
   });
 
   it("uses the cloud console URL for the cloud backend", () => {

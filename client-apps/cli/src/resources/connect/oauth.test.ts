@@ -127,6 +127,6 @@ describe("runOAuthFlow", () => {
       sleep: noopSleep,
       log: () => {},
     });
-    expect(openBrowser).toHaveBeenCalledWith("http://localhost:8234/acme/mcp-servers/github");
+    expect(openBrowser).toHaveBeenCalledWith("http://localhost:7234/acme/mcp-servers/github");
   });
 });

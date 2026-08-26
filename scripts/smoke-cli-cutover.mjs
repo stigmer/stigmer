@@ -20,7 +20,10 @@
  * no API keys, no network beyond npm/Temporal's own machinery. What it
  * proves: CLI daemon → server (gRPC gate) → seedpack apply → workflow apply
  * → Temporal orchestration → runner execution → event streaming → clean
- * shutdown.
+ * shutdown. Since the console restoration (DD-012) it also proves the
+ * unified port serves the bundled web console: /config.json synthesis, a
+ * dynamic deep link, and the 404 posture — the P3 acceptance's
+ * "`stigmer up` serves the console end-to-end" arm.
  *
  * The CLI itself runs from source under tsx — the repo's documented dev
  * launch (its `start` script; the daemon re-exec replays the loader via
@@ -191,7 +194,40 @@ try {
     fail(`expected a node+entry server process, got: ${command}`);
   }
 
-  // 3. Apply the deterministic workflow.
+  // 3. Console restoration (DD-012): the slim artifact ships the web
+  //    console and the server serves it from the unified port. Probe the
+  //    three load-bearing arms a browser exercises: the synthesized
+  //    /config.json (Host-derived apiUrl), a dynamic deep link resolving
+  //    to its placeholder document, and the 404 posture (the export's
+  //    not-found page WITH a 404 status — never the blank app shell).
+  //    `--no-web` only suppresses URL reporting; serving is unconditional.
+  const consoleBase = `http://127.0.0.1:7234`;
+  const config = await fetch(`${consoleBase}/config.json`);
+  if (config.status !== 200) {
+    fail(`console /config.json answered ${config.status}`);
+  }
+  const configBody = await config.json();
+  if (configBody.authMode !== "disabled" || configBody.apiUrl !== consoleBase) {
+    fail(
+      `console /config.json synthesized wrong: ${JSON.stringify(configBody)}`,
+    );
+  }
+  const deepLink = await fetch(`${consoleBase}/sessions/zz-smoke-probe`);
+  if (
+    deepLink.status !== 200 ||
+    !(deepLink.headers.get("content-type") ?? "").includes("text/html")
+  ) {
+    fail(
+      `console deep link answered ${deepLink.status} ${deepLink.headers.get("content-type")}`,
+    );
+  }
+  const notFound = await fetch(`${consoleBase}/zz-no-such-route`);
+  if (notFound.status !== 404) {
+    fail(`console unknown URL answered ${notFound.status}, expected 404`);
+  }
+  console.log("smoke-cli-cutover: console serving verified");
+
+  // 4. Apply the deterministic workflow.
   const workflowPath = join(home, "cutover-smoke.yaml");
   writeFileSync(
     workflowPath,
@@ -219,7 +255,7 @@ spec:
   // --org is a root-level global option, so it precedes the subcommand.
   cli(["--org", ORG, "apply", "-f", workflowPath]);
 
-  // 4. Run it and stream to completion (JSON events on stdout) — a clean
+  // 5. Run it and stream to completion (JSON events on stdout) — a clean
   //    exit is required.
   const run = cli(["--org", ORG, "run", "workflow", "cutover-smoke", "--json"], {
     timeoutMs: RUN_TIMEOUT_MS,
@@ -230,7 +266,7 @@ spec:
     );
   }
 
-  // 5. Down — clean teardown, port released.
+  // 6. Down — clean teardown, port released.
   cli(["down"]);
   const status = cli(["status"], { allowFailure: true });
   if (

@@ -12,7 +12,7 @@ import { join } from "node:path";
 import { load as loadConfig } from "../config/config.js";
 import { configPath } from "../config/paths.js";
 import { CommandResult } from "../output/command-result.js";
-import { SERVER_PORT, TEMPORAL_UI_PORT, WEB_CONSOLE_PORT } from "./constants.js";
+import { SERVER_PORT, TEMPORAL_UI_PORT } from "./constants.js";
 import { resolveApiKey, resolveProvider } from "./llm-config.js";
 import { tcpConnects } from "./net/tcp.js";
 import { dataDir } from "./paths.js";
@@ -144,7 +144,9 @@ function addWebUiSection(result: CommandResult, health: HealthState): void {
   if (!temporalRunning && !webRunning) return;
 
   const section = result.addSection("Web UI");
-  if (webRunning) section.field("Console", `http://localhost:${WEB_CONSOLE_PORT}`);
+  // The console shares the server's unified port (DD-012) — same origin as
+  // the API, served by the server itself.
+  if (webRunning) section.field("Console", `http://localhost:${SERVER_PORT}`);
   if (temporalRunning) section.field("Temporal", `http://localhost:${TEMPORAL_UI_PORT}`);
 }
 

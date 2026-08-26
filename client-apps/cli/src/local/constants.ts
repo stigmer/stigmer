@@ -7,11 +7,15 @@
 // runner-poll can never drift (see the T05 plan's "Critical correctness
 // finding").
 
-/** Port `stigmer-server` listens on (gRPC). Matches the Go CLI's `DaemonPort`. */
+/**
+ * Port `stigmer-server` listens on (gRPC). Matches the Go CLI's `DaemonPort`.
+ *
+ * This is also the web console's origin: since DD-012 the server serves the
+ * console's static export on this same unified port (lane 4), so the Go-era
+ * WEB_CONSOLE_PORT (8234, a separate CLI-embedded listener) is retired —
+ * one process, one origin, no CORS hop.
+ */
 export const SERVER_PORT = 7234;
-
-/** Port the embedded web console is served on (7xxx=API, 8xxx=UI convention). */
-export const WEB_CONSOLE_PORT = 8234;
 
 /** Temporal frontend gRPC port (dev server default). */
 export const TEMPORAL_PORT = 7233;
