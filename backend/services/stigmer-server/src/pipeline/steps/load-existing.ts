@@ -3,6 +3,12 @@
  * by id when provided (direct lookup), else by org-scoped slug (the
  * fallback populates the id back into metadata so merge/persist have it).
  * NotFound FAILS here — apply's tolerant probe is LoadForApply.
+ *
+ * Deliberate divergence from the Go source (ratified 2026-08-26): Go
+ * mapped ANY store error to NotFound. Here only the typed
+ * ResourceNotFoundError is NotFound; other store failures rethrow to the
+ * executor's sanitized Internal (see pipeline.ts and load-target.ts —
+ * the same narrowing, applied at every store-read site).
  */
 import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
 

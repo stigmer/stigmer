@@ -83,8 +83,26 @@ eventually violate creatively.
 - Errors are API surface: correct codes (`NotFound`, `AlreadyExists`,
   `InvalidArgument`, `FailedPrecondition`), never `Internal` as a catch-all,
   messages in domain terms with the identifying handle
-  (`agent "x" not found`), byte-pinned copy in one constants module per
+  (`agent 'x' not found`), byte-pinned copy in one constants module per
   domain.
+- **Store-fault mapping (ratified 2026-08-26)**: a typed store not-found
+  (`ResourceNotFoundError`, `AuditNotFoundError` — `instanceof` check) maps
+  to `NotFound`; ANY other store failure is an infrastructure fault —
+  rethrow in pipeline steps (the executor answers a sanitized `Internal`,
+  see `src/pipeline/pipeline.ts`) or throw
+  `internalError(cause, "failed to <do thing>")` in direct handlers. This
+  is a classified infrastructure fault, not a catch-all. The retired Go
+  server mapped ANY store error to NotFound (`load_target.go`, git
+  history) — a fidelity bug deliberately not ported: presenting a locked
+  file or corrupted page as "not found" invites clients to discard real
+  state. The idiom applies at every store-read site.
+- **Quoting in error copy (ratified 2026-08-26)**: NEW messages quote
+  identifiers single-quote `'${x}'` and render lists with `quoteJoin`
+  (`domain/mcpserver/enabledtools/`). The 11 legacy double-quote `"${x}"`
+  sites (e.g. `domain/schedule/cron.ts`) are FROZEN wire constants shared
+  with the cloud edition — contract, not style to imitate. No `goQuote`
+  helper: its only purpose was emulating Go's `%q` escaping, retired with
+  the Go server.
 - Log the real error; the wire carries the sanitized message. Never log
   secrets — the redaction doctrine (`***REDACTED***`, `enc:v1:`) extends to
   logs and Temporal payloads.

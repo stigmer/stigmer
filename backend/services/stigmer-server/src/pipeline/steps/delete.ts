@@ -2,6 +2,13 @@
  * Delete steps — port steps/delete.go: ExtractResourceId (ID-wrapper →
  * context), LoadExistingForDelete (loads the doomed resource so Delete can
  * return it; NotFound when absent), DeleteResource (the store delete).
+ *
+ * Deliberate divergence from the Go source (ratified 2026-08-26): Go
+ * mapped ANY store error on the load to NotFound. Here only the typed
+ * ResourceNotFoundError is NotFound; other store failures surface as
+ * sanitized Internal — rethrown from the load (the executor converts,
+ * see pipeline.ts) or thrown directly by DeleteResource. Same narrowing
+ * as load-target.ts, applied at every store-read site.
  */
 import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
 
