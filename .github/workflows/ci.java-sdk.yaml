@@ -58,10 +58,17 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Set up Go
-        uses: actions/setup-go@v5
+      # The client generator runs from TypeScript source via the repo-pinned
+      # tsx (never bare npx — oss#531), so the root npm install must exist
+      # before the codegen step.
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          go-version: '1.25'
+          node-version-file: ".nvmrc"
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
 
       # The SDK pom depends on stigmer-java-protos:0.0.1-SNAPSHOT, so the
       # stubs must be in the local repository before the SDK can compile
