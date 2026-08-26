@@ -527,6 +527,14 @@ smoke-cli-cutover: build-runner build-server build-web ## Run the CLI E2E smoke:
 	@cd $(SERVER_DIR) && node scripts/bundle-slim.mjs
 	node scripts/smoke-cli-cutover.mjs
 
+# The bundle targets linux for THIS machine's arch (the docker daemon's
+# native platform), not the host OS — the smoke builds a linux container.
+.PHONY: smoke-docker-image
+smoke-docker-image: build-server build-web ## Build the server Docker image from a fresh slim bundle and boot-smoke it (DD-014; needs Docker)
+	@command -v docker >/dev/null 2>&1 || { echo "error: docker not found — the image smoke needs a Docker daemon"; exit 1; }
+	@cd $(SERVER_DIR) && node scripts/bundle-slim.mjs --platform=linux-$$(node -e "process.stdout.write(process.arch==='x64'?'x64':'arm64')")
+	@cd $(SERVER_DIR) && node scripts/smoke-docker-image.mjs
+
 .PHONY: test-conformance-cloud
 test-conformance-cloud: build-ts-stubs ## Run gRPC conformance CRUD suite against the Java cloud service (hermetic; needs Docker, `fga`, `temporal`, and the fat JAR)
 	@command -v go >/dev/null 2>&1 || { echo "error: go not found — the harness builds the cloud environment launcher"; exit 1; }

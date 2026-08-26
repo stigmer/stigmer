@@ -8,6 +8,9 @@ bin/
 dist/
 dist-slim/
 dist-slim-pkgs/
+# Per-arch trees the Docker image build stages (scripts/smoke-docker-image.mjs).
+dist-slim-amd64/
+dist-slim-arm64/
 
 # Desktop embedded-runner staging: a symlink in dev (setup-runner-dev.sh),
 # the staged slim artifact in packaged builds (stage-runner-slim.sh).

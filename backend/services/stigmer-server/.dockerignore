@@ -1,0 +1,7 @@
+# Whitelist: the image consumes ONLY the staged per-arch slim trees.
+# Everything else in this directory (node_modules, src, dist, the npm
+# package staging) would bloat the build context by hundreds of MB and
+# invalidate layer caching on every source edit.
+*
+!dist-slim-amd64
+!dist-slim-arm64

@@ -82,6 +82,16 @@ export interface ServerConfig {
    * grpcPort+1). Only bound when artifact storage is local.
    */
   readonly artifactHttpPort: number;
+  /**
+   * The artifact file server's bind host (ARTIFACT_HTTP_HOST, DD-013;
+   * shipped with the Docker image, Phase-2 P4). Defaults to 127.0.0.1 —
+   * the retired Go server's posture, byte-identical for every bare-metal
+   * install: download URLs are minted for the local machine. Containers
+   * set 0.0.0.0 (the official image does, with its rationale) because a
+   * loopback bind is unreachable through the container boundary even
+   * with the port published.
+   */
+  readonly artifactHttpHost: string;
   /** Cloudflare R2 settings (S3-compatible; validated when type is "r2"). */
   readonly r2Bucket: string;
   readonly r2Endpoint: string;
@@ -162,6 +172,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
   const grpcPort = envInt(env, "GRPC_PORT", DEFAULT_GRPC_PORT);
   // Go: ARTIFACT_HTTP_PORT defaults to the gRPC port + 1.
   const artifactHttpPort = envInt(env, "ARTIFACT_HTTP_PORT", grpcPort + 1);
+  const artifactHttpHost = envString(env, "ARTIFACT_HTTP_HOST", "127.0.0.1");
   const artifactStorageType = envString(env, "ARTIFACT_STORAGE_TYPE", "local");
   const r2 = {
     r2Bucket: envString(env, "R2_BUCKET", ""),
@@ -179,6 +190,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
   return {
     grpcPort,
     artifactHttpPort,
+    artifactHttpHost,
     ...r2,
     temporalHostPort: envString(env, "TEMPORAL_HOST_PORT", "localhost:7233"),
     temporalNamespace: envString(env, "TEMPORAL_NAMESPACE", "default"),

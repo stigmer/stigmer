@@ -38,8 +38,15 @@ export interface ArtifactFileServerOptions {
 }
 
 export interface ArtifactFileServer {
-  /** Binds 127.0.0.1:<port> (an explicit port 0 picks ephemeral for tests). */
-  listen(port: number): Promise<number>;
+  /**
+   * Binds <host>:<port> (an explicit port 0 picks ephemeral for tests).
+   * The host is the composition root's call: 127.0.0.1 everywhere by
+   * default (ARTIFACT_HTTP_HOST, DD-013) — download URLs are minted for
+   * the local machine — and 0.0.0.0 only inside the official container
+   * image, where the loopback bind would strand the lane behind the
+   * container boundary (Phase-2 P4).
+   */
+  listen(port: number, host: string): Promise<number>;
   shutdown(): Promise<void>;
 }
 
@@ -53,12 +60,15 @@ export function createArtifactFileServer(
   });
 
   return {
-    listen(port: number): Promise<number> {
+    listen(port: number, host: string): Promise<number> {
       return new Promise((resolve, reject) => {
         server.once("error", reject);
-        // Loopback-only, as Go binds "127.0.0.1:<port>": download URLs are
-        // minted for the local machine, never a network interface.
-        server.listen(port, "127.0.0.1", () => {
+        // Loopback by DEFAULT, as Go bound "127.0.0.1:<port>": download
+        // URLs are minted for the local machine, never a network
+        // interface. The host became configurable (ARTIFACT_HTTP_HOST,
+        // DD-013) for containers, where 127.0.0.1 is unreachable from
+        // outside; the default preserves Go's posture byte-for-byte.
+        server.listen(port, host, () => {
           server.removeListener("error", reject);
           const address = server.address();
           const boundPort =
