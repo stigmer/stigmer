@@ -55,7 +55,7 @@ describe("platform domain (composed server)", () => {
     dir = mkdtempSync(path.join(tmpdir(), "platform-domain-test-"));
     vi.stubEnv("STIGMER_RUNNER_TOKEN_KEY", RUNNER_KEY.toString("base64"));
     vi.stubEnv("STIGMER_ENCRYPTION_KEY", ENC_KEY.toString("base64"));
-    server = composeServer({
+    server = await composeServer({
       config: loadConfig({
         STIGMER_MODEL_REGISTRY_REFRESH: "off",
         DB_PATH: path.join(dir, "stigmer.db"),

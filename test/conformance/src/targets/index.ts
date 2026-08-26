@@ -8,11 +8,17 @@ import { CloudTarget } from "./cloud";
 import { CloudExecutionTarget } from "./cloud-execution";
 import { LocalTarget } from "./local";
 import { LocalExecutionTarget } from "./local-execution";
+import {
+  LocalPostgresExecutionTarget,
+  LocalPostgresTarget,
+} from "./local-postgres";
 import type { TargetProfile } from "./target";
 
 const TARGET_FACTORIES: Record<string, () => TargetProfile> = {
   local: () => new LocalTarget(),
   "local-execution": () => new LocalExecutionTarget(),
+  "local-postgres": () => new LocalPostgresTarget(),
+  "local-postgres-execution": () => new LocalPostgresExecutionTarget(),
   cloud: () => new CloudTarget(),
   "cloud-execution": () => new CloudExecutionTarget(),
 };

@@ -25,7 +25,7 @@ import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import { goFields } from "../../gocompat/trim.js";
-import { apiResourceKindName } from "../../store/sqlite/proto-fields.js";
+import { apiResourceKindName } from "../../store/proto-fields.js";
 import type { Store } from "../../store/interface.js";
 import type { SearchCriteria } from "./criteria.js";
 import { emptyResult, newSearchPagedResult } from "./paged-result.js";

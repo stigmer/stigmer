@@ -77,6 +77,7 @@ import { SqliteSearchQueryStore } from "../query/search/query-store.js";
 import { newSearchableResourceRegistry } from "../query/search/registry.js";
 import { buildInterceptorChain } from "../pipeline/chain.js";
 import { RunnerAuthService } from "../runnerauth/runnerauth.js";
+import { PostgresStore } from "../store/postgres/store.js";
 import { SqliteStore } from "../store/sqlite/store.js";
 import type { Store } from "../store/interface.js";
 import { registerWorkflowServices } from "../domain/workflow/controller.js";
@@ -149,16 +150,32 @@ export interface ComposeOptions {
   host?: string;
 }
 
-export function composeServer(options: ComposeOptions): ComposedServer {
+export async function composeServer(
+  options: ComposeOptions,
+): Promise<ComposedServer> {
   const { config, logger } = options;
 
-  // Stage: storage. Opening the store runs migrations (v1–v7, incl.
-  // adopting a Go-created database — D2 §3 schema continuity); a failure
-  // here is a loud boot throw, never a degraded server. The operator
-  // identity (#400) is installed by main.ts — once per PROCESS, before any
-  // writer exists — not here: composeServer is re-entrant for tests, the
+  // Stage: storage — the driver selection seam (DD-010): DATABASE_URL
+  // present → Postgres (async connect + advisory-locked migrations), else
+  // sqlite on DB_PATH (migrations v1–v7, incl. adopting a Go-created
+  // database — D2 §3 schema continuity). Postgres wins when both are set:
+  // DB_PATH always has a default value, so no other precedence could ever
+  // select Postgres (config.ts documents the contract). A failure here is
+  // a loud boot throw, never a degraded server. The operator identity
+  // (#400) is installed by main.ts — once per PROCESS, before any writer
+  // exists — not here: composeServer is re-entrant for tests, the
   // identity seam deliberately is not.
-  const store: Store = SqliteStore.open(config.dbPath, logger);
+  let store: Store;
+  if (config.databaseUrl !== "") {
+    store = await PostgresStore.open(config.databaseUrl, logger);
+    logger.info("storage driver selected", { driver: "postgres" });
+  } else {
+    store = SqliteStore.open(config.dbPath, logger);
+    logger.info("storage driver selected", {
+      driver: "sqlite",
+      dbPath: config.dbPath,
+    });
+  }
 
   // Stage: keys — the ratified fail-loud boot ASYMMETRY (D2 cross-domain
   // invariants; Go server.go:277-293):

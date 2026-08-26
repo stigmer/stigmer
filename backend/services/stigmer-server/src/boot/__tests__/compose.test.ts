@@ -59,7 +59,7 @@ function compose() {
 
 describe("composition-root boot ordering", () => {
   it("is NOT_SERVING at construction and SERVING once the port answers", async () => {
-    const server = compose();
+    const server = await compose();
     expect(server.healthState.status("")).toBe(ServingStatus.NOT_SERVING);
 
     const port = await server.start();
@@ -78,7 +78,7 @@ describe("composition-root boot ordering", () => {
   });
 
   it("flips NOT_SERVING on shutdown and stops answering the port", async () => {
-    const server = compose();
+    const server = await compose();
     const port = await server.start();
 
     await server.shutdown();

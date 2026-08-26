@@ -61,7 +61,7 @@ async function startServer(env: Record<string, string>): Promise<TestServer> {
   for (const [key, value] of Object.entries(env)) {
     vi.stubEnv(key, value);
   }
-  const server = composeServer({
+  const server = await composeServer({
     config: loadConfig({
       STIGMER_MODEL_REGISTRY_REFRESH: "off",
       // No engine behind composed tests: 127.0.0.1:1 is deterministically

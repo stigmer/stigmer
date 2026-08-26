@@ -29,7 +29,7 @@ import {
   internalError,
   invalidArgumentError,
 } from "../errors.js";
-import { apiResourceKindName } from "../../store/sqlite/proto-fields.js";
+import { apiResourceKindName } from "../../store/proto-fields.js";
 import type { PipelineStep } from "../pipeline.js";
 import type { RequestContext } from "../request-context.js";
 import { metadataOf } from "./shapes.js";

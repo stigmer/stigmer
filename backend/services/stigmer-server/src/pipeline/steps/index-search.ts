@@ -11,7 +11,7 @@ import type { Message } from "@bufbuild/protobuf";
 
 import type { SearchIndexEntry, Store } from "../../store/interface.js";
 import type { Logger } from "../../boot/logger.js";
-import { apiResourceKindName } from "../../store/sqlite/proto-fields.js";
+import { apiResourceKindName } from "../../store/proto-fields.js";
 import type { PipelineStep } from "../pipeline.js";
 import type { RequestContext } from "../request-context.js";
 import { RESOURCE_ID_KEY } from "./delete.js";

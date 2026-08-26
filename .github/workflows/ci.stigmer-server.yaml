@@ -63,6 +63,22 @@ jobs:
   server:
     name: Server Gate
     runs-on: ubuntu-latest
+    # The Postgres driver's unit/contract tests are gated on
+    # TEST_DATABASE_URL (visible skips without it) — this container makes
+    # CI the place they ALWAYS run for real (Phase-2 P2; the pinned major
+    # is the one the compose stack ships, DD-011/DD-013).
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -103,6 +119,16 @@ jobs:
         working-directory: backend/services/stigmer-server
         run: node scripts/bundle-slim.mjs && npm run verify:slim
 
+      # D-5: `pg` lazy-requires optional pg-native; the slim bundle marks
+      # it external so the JS client is used. This is the first boot of
+      # that artifact against a real Postgres — a packaging break must
+      # not silently defer to the Docker-image sub-project (P4).
+      - name: Boot-check the slim artifact against Postgres
+        working-directory: backend/services/stigmer-server
+        env:
+          DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/postgres
+        run: npm run verify:slim
+
       # The deep slim gate at PR time (D4 #24 panel finding): verify:slim
       # boots WITHOUT Temporal, so the slim-only machinery — prebuilt
       # workflow-bundle discovery, the threaded-vm patch, per-platform
@@ -127,6 +153,8 @@ jobs:
           node scripts/verify-slim-artifact.mjs
 
       - name: Run the vitest suite
+        env:
+          TEST_DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/postgres
         run: make test-server
 
   # linux-arm64 boot smoke (owner ruling at go-server-retirement, D4 #25):

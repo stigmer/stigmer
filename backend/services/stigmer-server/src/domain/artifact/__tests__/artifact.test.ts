@@ -72,7 +72,7 @@ beforeAll(async () => {
   artifactPort = await freePort();
   vi.stubEnv("STIGMER_ENCRYPTION_KEY", Buffer.alloc(32, 3).toString("base64"));
   vi.stubEnv("STIGMER_RUNNER_TOKEN_KEY", Buffer.alloc(32, 4).toString("base64"));
-  server = composeServer({
+  server = await composeServer({
     config: loadConfig({
       STIGMER_MODEL_REGISTRY_REFRESH: "off",
       // No engine behind composed tests: 127.0.0.1:1 is deterministically

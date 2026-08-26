@@ -1,16 +1,25 @@
 /**
- * Proto reflection helpers for the sqlite driver — ports the private
- * helpers in backend/libs/go/store/sqlite/store.go (extractFieldValue
- * :991, toSnakeCase :1027, extractLabelValue :951) plus the kind-name
- * mapping Go gets from `kind.String()`.
+ * Proto reflection helpers shared by every store driver — ports the private
+ * helpers in the retired Go server's backend/libs/go/store/sqlite/store.go
+ * (extractFieldValue :991, toSnakeCase :1027, extractLabelValue :951, git
+ * history) plus the kind-name mapping Go got from `kind.String()`.
+ *
+ * Lived at sqlite/proto-fields.ts through Phase 1; promoted here when the
+ * Postgres driver became the second consumer (the codecs/gocompat
+ * second-consumer rule) — by then five modules OUTSIDE the driver already
+ * imported it, so the move also restores the layering the path implied.
+ * Nothing in this module is engine-specific: both drivers store resources
+ * as marshaled proto bytes and implement the find* contracts as
+ * deserialize-and-scan (the interface documents the full-scan semantics).
  *
  * The kind's PROTO NAME is a physical-layout constant: it is the value of
- * the `kind` column in every table the Go server ever wrote, so the TS
+ * the `kind` column in every table the Go server ever wrote, so every
  * driver must produce the identical string for the identical enum value —
  * byte-pinned by __tests__/proto-fields.test.ts.
  */
 import { enumToJson } from "@bufbuild/protobuf";
-import type { DescField, DescMessage } from "@bufbuild/protobuf";
+import type { DescField, DescMessage, MessageShape } from "@bufbuild/protobuf";
+import { fromBinary } from "@bufbuild/protobuf";
 import { reflect } from "@bufbuild/protobuf/reflect";
 import type { ReflectMessage } from "@bufbuild/protobuf/reflect";
 import type { Message } from "@bufbuild/protobuf";
@@ -90,6 +99,60 @@ export function extractLabelValue(
   const labels = metadata.get(labelsField);
   const value = labels.get(labelKey);
   return typeof value === "string" ? value : "";
+}
+
+/**
+ * The findByField scan every driver shares: deserialize each stored blob,
+ * probe fieldPath, return the FIRST match (scan order is the driver's row
+ * order — Go's semantics). Malformed records are skipped, as Go does.
+ * Returns undefined when nothing matches — the driver owns the typed
+ * not-found error (it knows the kind name for the message).
+ */
+export function scanForFieldMatch<Desc extends DescMessage>(
+  rows: Iterable<Uint8Array>,
+  schema: Desc,
+  fieldPath: string,
+  value: string,
+): MessageShape<Desc> | undefined {
+  for (const data of rows) {
+    let msg: MessageShape<Desc>;
+    try {
+      msg = fromBinary(schema, data);
+    } catch {
+      continue; // skip malformed records, as Go does
+    }
+    if (extractFieldValue(schema, msg, fieldPath) === value) {
+      return msg;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * The findAllByLabel scan every driver shares: deserialize each stored
+ * blob, keep the ORIGINAL bytes of rows whose metadata.labels[labelKey]
+ * equals labelValue (callers receive stored bytes, not re-marshaled ones).
+ * Malformed records are skipped, as Go does.
+ */
+export function filterRowsByLabel<Desc extends DescMessage>(
+  rows: Iterable<Uint8Array>,
+  schema: Desc,
+  labelKey: string,
+  labelValue: string,
+): Uint8Array[] {
+  const results: Uint8Array[] = [];
+  for (const data of rows) {
+    let msg: MessageShape<Desc>;
+    try {
+      msg = fromBinary(schema, data);
+    } catch {
+      continue;
+    }
+    if (extractLabelValue(schema, msg, labelKey) === labelValue) {
+      results.push(data);
+    }
+  }
+  return results;
 }
 
 function findFieldByProtoName(

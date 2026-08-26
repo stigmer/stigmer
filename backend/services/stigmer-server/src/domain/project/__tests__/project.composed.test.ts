@@ -53,7 +53,7 @@ let mcpServerQuery: Client<typeof McpServerQueryController>;
 
 beforeAll(async () => {
   dir = mkdtempSync(path.join(tmpdir(), "project-domain-test-"));
-  server = composeServer({
+  server = await composeServer({
     config: loadConfig({
       STIGMER_MODEL_REGISTRY_REFRESH: "off",
       // No engine behind composed tests: 127.0.0.1:1 is deterministically

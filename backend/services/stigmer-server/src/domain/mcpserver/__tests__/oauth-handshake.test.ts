@@ -154,7 +154,7 @@ beforeAll(async () => {
   dir = mkdtempSync(path.join(tmpdir(), "mcpserver-oauth-handshake-"));
   mockAs = new MockAuthorizationServer();
   asBaseUrl = await mockAs.start();
-  server = composeServer({
+  server = await composeServer({
     config: loadConfig({
       STIGMER_MODEL_REGISTRY_REFRESH: "off",
       // No engine: 127.0.0.1:1 is deterministically closed (the composed

@@ -15,7 +15,7 @@ import { uniqueOrg } from "../support/naming";
 import type { CapabilityFlags, PrivilegedScope, TargetProfile, TenancyContext } from "./target";
 
 export class LocalTarget implements TargetProfile {
-  readonly name = "local";
+  readonly name: string = "local";
   // The retired Go server's exact matrix — the parity promise the TS port
   // was gated on (D4). The one deliberate divergence, workflowChild-
   // ApprovalForwarding, lives on local-execution (#23).
@@ -48,9 +48,21 @@ export class LocalTarget implements TargetProfile {
     const entry = await ensureTsServerEntry();
     // The TS server is a node entry, not a binary — same env contract,
     // same TCP-readiness gate (server-process.ts).
-    this.server = await spawnServer(process.execPath, { args: [entry] });
+    this.server = await spawnServer(process.execPath, {
+      args: [entry],
+      env: this.extraServerEnv(),
+    });
     this.conformanceClients = makeClients(createTransport(this.server.baseUrl));
     await awaitGrpcReady(this.conformanceClients, () => this.server?.logTail() ?? "(no server)");
+  }
+
+  // The storage-driver seam: local-postgres overrides this to inject
+  // DATABASE_URL (winning over the harness's DB_PATH — the documented
+  // config precedence). EVERYTHING else about the target is inherited, so
+  // the capability matrix is byte-identical by construction, not by copy
+  // discipline (DD-011: the driver must be wire-invisible).
+  protected extraServerEnv(): Record<string, string> {
+    return {};
   }
 
   clients(): ConformanceClients {

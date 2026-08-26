@@ -1,19 +1,17 @@
 /**
- * Shared helpers for the sqlite driver tests: temp-dir stores, the DD-002
- * Go-database fixture loader, and a small organization factory (the proto
- * type the vertical slice ports, so tests exercise real resource bytes).
+ * Shared helpers for the sqlite driver tests: temp-dir stores and the
+ * DD-002 Go-database fixture loader. The organization factory moved to
+ * ../../__tests__/support.ts with the contract-suite extraction (T01
+ * D-4); re-exported here so existing driver tests keep their import path.
  */
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
-import { create } from "@bufbuild/protobuf";
-
-import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
-import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
-
 import { SqliteStore } from "../store.js";
+
+export { makeOrganization } from "../../__tests__/support.js";
 
 export interface TempStore {
   store: SqliteStore;
@@ -61,26 +59,4 @@ export function materializeGoFixture(): { dbPath: string; cleanup(): void } {
       rmSync(dir, { recursive: true, force: true });
     },
   };
-}
-
-/** Minimal valid organization resource for storage round-trips. */
-export function makeOrganization(overrides?: {
-  id?: string;
-  name?: string;
-  slug?: string;
-  description?: string;
-  labels?: Record<string, string>;
-}): Organization {
-  const id = overrides?.id ?? "acme";
-  return create(OrganizationSchema, {
-    apiVersion: "tenancy.stigmer.ai/v1",
-    kind: "Organization",
-    metadata: {
-      id,
-      name: overrides?.name ?? "Acme",
-      slug: overrides?.slug ?? id,
-      labels: overrides?.labels ?? {},
-    },
-    spec: { description: overrides?.description ?? "a test organization" },
-  });
 }

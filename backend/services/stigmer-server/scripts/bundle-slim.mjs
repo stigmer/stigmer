@@ -13,6 +13,13 @@
  * artifact bundles ALL JavaScript into one main.js and carries the native
  * bridge as a per-platform package.
  *
+ * `pg` (the Postgres driver, Phase-2 P2) lazy-requires optional `pg-native`.
+ * That package is NEVER a dependency — `pg` catches the MODULE_NOT_FOUND
+ * and uses its JS client. esbuild would otherwise fail the slim build
+ * trying to resolve it; it is marked `external` on the main bundle so the
+ * runtime require still throws and `pg`'s catch takes the JS path. The
+ * slim-against-Postgres boot smoke in ci.stigmer-server proves this.
+ *
  * Two output shapes, same contents:
  *
  * 1. Self-contained directory (default) — `dist-slim/`; run `node main.js`.
@@ -388,6 +395,11 @@ async function buildMainBundle() {
         "core-bridge-shim.cjs",
       ),
     },
+    // pg's optional native bindings are never installed; leave the
+    // require() in the bundle so pg's try/catch takes the JS client
+    // (D-5). Aliasing to an empty module would make pg THINK native
+    // exists and then crash calling into it.
+    external: ["pg-native"],
     banner: { js: CJS_BANNER },
     plugins: [stubTemporalBundlerPlugin, patchThreadedVmPlugin],
     metafile: true,

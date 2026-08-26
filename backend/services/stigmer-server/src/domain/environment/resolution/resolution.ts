@@ -37,7 +37,7 @@ import {
   findResourceBySlug,
   requireOrgForReference,
 } from "../../../pipeline/steps/helpers.js";
-import { apiResourceKindName } from "../../../store/sqlite/proto-fields.js";
+import { apiResourceKindName } from "../../../store/proto-fields.js";
 import type { Store } from "../../../store/interface.js";
 
 /**

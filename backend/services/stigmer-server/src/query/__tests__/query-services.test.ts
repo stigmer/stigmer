@@ -39,7 +39,7 @@ const silentLogger = createLogger({
   write: () => undefined,
 });
 
-function bootServer(dir: string): ComposedServer {
+function bootServer(dir: string): Promise<ComposedServer> {
   return composeServer({
     config: loadConfig({
       STIGMER_MODEL_REGISTRY_REFRESH: "off",
@@ -75,7 +75,7 @@ describe("query services on the composed server", () => {
 
   beforeAll(async () => {
     dir = mkdtempSync(path.join(tmpdir(), "query-services-test-"));
-    server = bootServer(dir);
+    server = await bootServer(dir);
     const port = await server.start();
     const transport = createGrpcTransport({
       baseUrl: `http://127.0.0.1:${port}`,
@@ -181,7 +181,7 @@ describe("boot-time RebuildIndex (DD-D/DD-F)", () => {
     );
     await seedStore.close();
 
-    server = bootServer(dir);
+    server = await bootServer(dir);
     port = await server.start();
   });
 

@@ -477,6 +477,47 @@ test-conformance-execution: build-runner ## Run gRPC conformance execution suite
 	@echo "=== conformance: execution engine (local-execution) ==="
 	CONFORMANCE_TARGET=local-execution npm run test:execution -w @stigmer/conformance
 
+.PHONY: postgres-dev
+postgres-dev: ## Start a throwaway Postgres 16 for the postgres targets (docker; port 55432)
+	@command -v docker >/dev/null 2>&1 || { echo "error: docker not found — the postgres targets need a real Postgres (DD-011)"; exit 1; }
+	@docker rm -f stigmer-postgres-dev >/dev/null 2>&1 || true
+	docker run -d --name stigmer-postgres-dev -e POSTGRES_PASSWORD=postgres -p 55432:5432 postgres:16-alpine
+	@until docker exec stigmer-postgres-dev pg_isready -U postgres >/dev/null 2>&1; do sleep 0.5; done
+	@echo "Postgres 16 ready. Export for the postgres test lanes:"
+	@echo "  export CONFORMANCE_POSTGRES_URL=postgres://postgres:postgres@127.0.0.1:55432/postgres"
+	@echo "  export TEST_DATABASE_URL=postgres://postgres:postgres@127.0.0.1:55432/postgres"
+	@echo "Stop with: docker rm -f stigmer-postgres-dev"
+
+.PHONY: test-conformance-postgres
+test-conformance-postgres: build-ts-stubs ## Run gRPC conformance CRUD suite on the Postgres driver (needs CONFORMANCE_POSTGRES_URL; see `make postgres-dev`)
+	@test -n "$$CONFORMANCE_POSTGRES_URL" || { \
+		echo "error: CONFORMANCE_POSTGRES_URL is not set — the postgres targets need a real Postgres."; \
+		echo "  start one: make postgres-dev"; \
+		exit 1; \
+	}
+	@echo "=== conformance: CRUD contract (local-postgres) ==="
+	CONFORMANCE_TARGET=local-postgres npm run test -w @stigmer/conformance
+
+.PHONY: test-conformance-postgres-execution
+test-conformance-postgres-execution: build-runner ## Run gRPC conformance execution suite on the Postgres driver (needs CONFORMANCE_POSTGRES_URL + the `temporal` and `stigmer` CLIs)
+	@test -n "$$CONFORMANCE_POSTGRES_URL" || { \
+		echo "error: CONFORMANCE_POSTGRES_URL is not set — the postgres targets need a real Postgres."; \
+		echo "  start one: make postgres-dev"; \
+		exit 1; \
+	}
+	@command -v temporal >/dev/null 2>&1 || { \
+		echo "error: temporal CLI not found — the dev server backs the execution harness"; \
+		echo "  install: curl -sSf https://temporal.download/cli.sh | sh"; \
+		exit 1; \
+	}
+	@command -v stigmer >/dev/null 2>&1 || { \
+		echo "error: stigmer CLI not found — memory-enabled executions spawn 'stigmer mcp-server'"; \
+		echo "  install the from-source shim: make install-cli-shim   (writes ~/bin/stigmer)"; \
+		exit 1; \
+	}
+	@echo "=== conformance: execution engine (local-postgres-execution) ==="
+	CONFORMANCE_TARGET=local-postgres-execution npm run test:execution -w @stigmer/conformance
+
 # build-web rides the dependency list because bundle-slim stages the web
 # console's static export into the artifact (DD-012) and loud-fails
 # without a built client-apps/web/out.
