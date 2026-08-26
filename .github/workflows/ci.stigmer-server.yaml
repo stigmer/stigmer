@@ -152,6 +152,29 @@ jobs:
           done
           node scripts/verify-slim-artifact.mjs
 
+      # The Docker image smoke (DD-014, Phase-2 P4): the SAME dist-slim the
+      # deep verify just proved, packaged by the service's Dockerfile and
+      # proven as a container — HEALTHCHECK reaches healthy, Connect-JSON
+      # health answers SERVING, the console lane serves, a CRUD round-trip
+      # lands, state survives a restart, SIGTERM exits clean. Native amd64;
+      # the arm64 twin runs in the boot-smoke job below. This is what makes
+      # the image PR-testable at all — the release lane consumes the same
+      # Dockerfile and the same smoke script.
+      - name: Boot-smoke the Docker image (sqlite + volume)
+        working-directory: backend/services/stigmer-server
+        run: node scripts/smoke-docker-image.mjs
+
+      # The image against Postgres: without this, the first time the
+      # image ever met Postgres would be the compose gate (P5). Reuses the
+      # image the sqlite smoke just built and this job's service container,
+      # reached from the sibling container via the host gateway.
+      - name: Boot-smoke the Docker image (Postgres)
+        working-directory: backend/services/stigmer-server
+        run: |
+          node scripts/smoke-docker-image.mjs \
+            --image=stigmer-server:smoke-local \
+            --database-url=postgres://postgres:postgres@host.docker.internal:5432/postgres
+
       - name: Run the vitest suite
         env:
           TEST_DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/postgres
@@ -216,3 +239,11 @@ jobs:
             sleep 1
           done
           node scripts/verify-slim-artifact.mjs
+
+      # The arm64 half of the Docker image's both-arch acceptance (DD-014,
+      # Phase-2 P4): the tree bundled above IS linux-arm64 on this native
+      # runner, so the container smoke here is the exact platform proof —
+      # no QEMU, no emulation blind spots (this job's founding posture).
+      - name: Boot-smoke the Docker image (sqlite + volume, native arm64)
+        working-directory: backend/services/stigmer-server
+        run: node scripts/smoke-docker-image.mjs

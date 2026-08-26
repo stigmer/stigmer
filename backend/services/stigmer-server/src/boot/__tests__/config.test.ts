@@ -51,6 +51,23 @@ describe("loadConfig", () => {
     expect(loadConfig({ LOG_LEVEL: "" }).logLevel).toBe("info");
   });
 
+  // DD-013 / Phase-2 P4: the loopback default is the retired Go server's
+  // posture and must survive any future refactor — a changed default would
+  // silently expose every bare-metal install's artifact lane.
+  it("defaults the artifact file server host to loopback", () => {
+    expect(loadConfig({}).artifactHttpHost).toBe("127.0.0.1");
+  });
+
+  it("reads an explicit ARTIFACT_HTTP_HOST (the container override)", () => {
+    expect(
+      loadConfig({ ARTIFACT_HTTP_HOST: "0.0.0.0" }).artifactHttpHost,
+    ).toBe("0.0.0.0");
+    // Empty string is absent, per the Go getEnvString leniency.
+    expect(loadConfig({ ARTIFACT_HTTP_HOST: "" }).artifactHttpHost).toBe(
+      "127.0.0.1",
+    );
+  });
+
   it("disables the model-registry refresh only for the literal 'off'", () => {
     expect(
       loadConfig({ STIGMER_MODEL_REGISTRY_REFRESH: "off" })

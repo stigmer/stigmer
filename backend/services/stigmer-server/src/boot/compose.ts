@@ -739,7 +739,10 @@ export async function composeServer(
       if (artifactFileServer !== undefined) {
         await warnOnLegacyArtifactLayout(config.artifactLocalBasePath, logger);
         try {
-          await artifactFileServer.listen(config.artifactHttpPort);
+          await artifactFileServer.listen(
+            config.artifactHttpPort,
+            config.artifactHttpHost,
+          );
         } catch (error) {
           logger.error("Artifact HTTP file server failed", {
             error: error instanceof Error ? error.message : String(error),

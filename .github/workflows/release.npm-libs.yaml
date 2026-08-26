@@ -343,6 +343,40 @@ jobs:
           done
           node scripts/verify-slim-artifact.mjs
 
+      # ── The Docker image's input (DD-014, Phase-2 P4) ──
+      # The amd64 tree is a byte copy of the tree the deep verify above
+      # just proved; the arm64 tree is the same bundle invocation
+      # retargeted (core-bridge's npm tarball carries every platform's
+      # prebuilds, so cross-building is exact — the pushed arm64 image is
+      # booted on a native arm64 runner before `latest` moves). Staged
+      # under the TARGETARCH names the Dockerfile's COPY expects and
+      # handed to publish-server-image as a workflow artifact: the image
+      # consumes the already-built slim artifact, never a rebuild of its
+      # own. The stamp env must ride along — the defines are baked at
+      # bundle time.
+      - name: Stage the per-arch image trees
+        working-directory: backend/services/stigmer-server
+        env:
+          STIGMER_SERVER_VERSION: ${{ needs.determine-version.outputs.version }}
+          STIGMER_GITHUB_CLIENT_ID: ${{ secrets.STIGMER_LOCAL_GITHUB_OAUTH_CLIENT_ID }}
+          STIGMER_GITHUB_CLIENT_SECRET: ${{ secrets.STIGMER_LOCAL_GITHUB_OAUTH_CLIENT_SECRET }}
+        run: |
+          cp -R dist-slim dist-slim-amd64
+          node scripts/bundle-slim.mjs --platform=linux-arm64
+          cp -R dist-slim dist-slim-arm64
+
+      # Before the npm publish so a failed upload leaves the version
+      # unpublished and the whole run safely re-runnable.
+      - name: Upload the per-arch image trees
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-slim-image-trees
+          path: |
+            backend/services/stigmer-server/dist-slim-amd64
+            backend/services/stigmer-server/dist-slim-arm64
+          retention-days: 3
+          if-no-files-found: error
+
       - name: Publish slim packages to npm
         working-directory: backend/services/stigmer-server
         env:
@@ -356,3 +390,154 @@ jobs:
             (cd "$pkg" && npm publish --access public --tag "$NPM_TAG")
           done
           cd dist-slim-pkgs/server-slim && npm publish --access public --tag "$NPM_TAG"
+
+  # ══ The official server Docker image (DD-014, Phase-2 P4) ══
+  # Push → prove → promote: the version tag is pushed first, both-arch
+  # NATIVE boot smokes run against the PUSHED bytes, and only then does
+  # `latest` move (the release.sandbox-cloud :prod blessing pattern applied
+  # to the public tag). `latest` is only ever an image that has booted on
+  # each platform it claims.
+  publish-server-image:
+    needs: [determine-version, publish-server-slim]
+    runs-on: ubuntu-latest
+    # A healthy build is a few minutes — the Dockerfile is COPY-only, so
+    # nothing executes under QEMU. Cap the job so a stalled buildx/QEMU
+    # step fails fast (the release.mcp-server ~1h hang on v3.1.11).
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download the per-arch image trees
+        uses: actions/download-artifact@v4
+        with:
+          name: server-slim-image-trees
+          path: backend/services/stigmer-server
+
+      # QEMU only assembles the foreign-arch layers (no RUN under
+      # emulation); registered explicitly rather than relying on
+      # preinstalled binfmt (release.mcp-server precedent).
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # No gha build cache: a COPY-only build gains nothing from it, and
+      # `cache-to type=gha` has hung the export for up to an hour
+      # (release.mcp-server, v3.1.11). Only the version tag is pushed
+      # here — `latest` waits for the smoke jobs below.
+      - name: Build and push the image (version tag only)
+        env:
+          VERSION: ${{ needs.determine-version.outputs.version }}
+        run: |
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            --file backend/services/stigmer-server/Dockerfile \
+            --build-arg IMAGE_VERSION="v${VERSION}" \
+            --build-arg IMAGE_REVISION="${{ github.sha }}" \
+            --tag "ghcr.io/${{ github.repository_owner }}/stigmer-server:v${VERSION}" \
+            --push \
+            backend/services/stigmer-server
+
+      # New GHCR packages default to private; this image is the OSS
+      # self-host artifact. Idempotent, so it rides every release. The
+      # first push above came from this repo's workflow, which auto-links
+      # the package to stigmer/stigmer — keeping GITHUB_TOKEN write access
+      # (the linkage whose absence broke the mirror packages).
+      - name: Ensure GHCR package is public
+        continue-on-error: true
+        run: |
+          gh api \
+            -X PUT \
+            /orgs/${{ github.repository_owner }}/packages/container/stigmer-server/visibility \
+            -f visibility=public
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Native smokes of the PUSHED tag — the same script PR CI and local dev
+  # run (scripts/smoke-docker-image.mjs): docker health, Connect-JSON
+  # health SERVING, console lane, CRUD round-trip, restart persistence,
+  # clean SIGTERM. No QEMU: each arch proves itself on its own runner.
+  smoke-server-image-amd64:
+    needs: [determine-version, publish-server-image]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Boot-smoke the pushed image (native amd64)
+        run: |
+          node backend/services/stigmer-server/scripts/smoke-docker-image.mjs \
+            --image="ghcr.io/${{ github.repository_owner }}/stigmer-server:v${{ needs.determine-version.outputs.version }}"
+
+  smoke-server-image-arm64:
+    needs: [determine-version, publish-server-image]
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Boot-smoke the pushed image (native arm64)
+        run: |
+          node backend/services/stigmer-server/scripts/smoke-docker-image.mjs \
+            --image="ghcr.io/${{ github.repository_owner }}/stigmer-server:v${{ needs.determine-version.outputs.version }}"
+
+  promote-server-image-latest:
+    needs: [determine-version, smoke-server-image-amd64, smoke-server-image-arm64]
+    # Stable only: a prerelease (any '-') never becomes `latest` — the npm
+    # `next`-tag logic applied to the image channel (DD-014: latest on
+    # stable). imagetools create re-points the manifest list without
+    # rebuilding, so `latest` is bit-identical to the smoked version tag.
+    if: ${{ !contains(needs.determine-version.outputs.version, '-') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      packages: write
+    steps:
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Promote latest to the smoked version tag
+        env:
+          VERSION: ${{ needs.determine-version.outputs.version }}
+        run: |
+          docker buildx imagetools create \
+            --tag "ghcr.io/${{ github.repository_owner }}/stigmer-server:latest" \
+            "ghcr.io/${{ github.repository_owner }}/stigmer-server:v${VERSION}"
