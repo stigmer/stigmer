@@ -83,8 +83,11 @@ codegen-clients: ## Generate SDK client code from service schemas (Stage 2)
 	@# The generator runs from TypeScript source via the repo-pinned tsx
 	@# (never bare npx — oss#531). It pipes generated Go through gofmt, so
 	@# the Go toolchain must be on PATH (it already is — the SDK build
-	@# follows).
+	@# follows), and it reads proto metadata from @stigmer/protos, which
+	@# must be built first (incremental; a no-op when fresh). A bare CI
+	@# checkout has no dist/ — skipping this fails module resolution.
 	@cd ../.. && test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
+	@cd ../.. && npm run build -w @stigmer/protos --silent
 	@cd ../.. && node_modules/.bin/tsx tools/codegen/src/generator/main.ts \
 		--schema-dir tools/codegen/schemas \
 		--output-dir sdk/go/internal/gen \

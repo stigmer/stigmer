@@ -26,10 +26,8 @@ go_deps.from_file(go_work = "//:go.work")
 use_repo(
     go_deps,
     "build_buf_gen_go_bufbuild_protovalidate_protocolbuffers_go",  # keep: Required for protovalidate protobuf types
-    "build_buf_go_protovalidate",  # keep: Required for protovalidate runtime validation
     "com_github_golang_jwt_jwt_v5",
     "com_github_google_uuid",
-    "com_github_jhump_protoreflect",
     "com_github_minio_minio_go_v7",
     "com_github_modelcontextprotocol_go_sdk",  # keep: Required for MCP server discovery in CLI
     "com_github_pkg_errors",  # keep: Required by the seedpack package
