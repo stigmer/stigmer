@@ -358,7 +358,7 @@ export function composeServer(options: ComposeOptions): ComposedServer {
     logger,
   );
   // The search read side (#14): the 13-kind extractor registry, the query
-  // store over the driver's FTS5 read (OD-3 — no DB() escape hatch), and
+  // store over the driver's index read (OD-3 — no DB() escape hatch), and
   // the CQRS handler. Registry validation is warn-only, Go server.go:509's
   // posture — run ONCE here rather than inside routes(), which executes
   // twice (serving router + in-process router).
@@ -669,7 +669,7 @@ export function composeServer(options: ComposeOptions): ComposedServer {
       // Artifact storage must be reachable and writable before the server
       // answers (Go server.go boots-fatal on the same probe).
       await artifactStorage.health();
-      // Rebuild the FTS5 search index before the port binds (Go
+      // Rebuild the search index before the port binds (Go
       // server.go:617): the index is separate from the resources table,
       // and rebuilding here makes every resource — including seedpack
       // rows bootstrapped into an earlier database — discoverable the

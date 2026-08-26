@@ -1,10 +1,11 @@
 /**
  * Search query store — ports
  * pkg/query/search/store/sqlite_search_query_store.go: the CQRS read path
- * over the FTS5 index. The SQL itself lives in the storage driver
- * (Store.querySearchIndex / clearSearchIndex — OD-3: no DB() escape
- * hatch); this module owns what Go's store layer owned around the SQL —
- * MATCH-expression escaping, BM25 score normalization, per-hit
+ * over the search index. The SQL, engine query syntax, and score
+ * normalization all live in the storage driver (Store.querySearchIndex /
+ * clearSearchIndex — OD-3: no DB() escape hatch; DD-009: engine
+ * specifics inside each driver); this module owns query SHAPING — the
+ * engine-neutral tokenization of the user's query — plus per-hit
  * load-and-convert through the extractor registry, and RebuildIndex.
  *
  * Per-hit loading is Go's shape ported faithfully: each page row loads
@@ -23,7 +24,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 
 import type { Logger } from "../../boot/logger.js";
-import { goFields, goTrimSpace } from "../../gocompat/trim.js";
+import { goFields } from "../../gocompat/trim.js";
 import { apiResourceKindName } from "../../store/sqlite/proto-fields.js";
 import type { Store } from "../../store/interface.js";
 import type { SearchCriteria } from "./criteria.js";
@@ -35,7 +36,7 @@ import type { SearchableResourceRegistry } from "./registry.js";
 export interface SearchQueryStore {
   search(criteria: SearchCriteria): Promise<SearchPagedResult>;
   /**
-   * Wipes and repopulates the FTS5 index from the resources table.
+   * Wipes and repopulates the search index from the resources table.
    * Returns the indexed-row count; throws AFTER indexing what it could
    * when one or more kinds failed (the caller warns and boots on —
    * Go server.go:617's posture).
@@ -61,9 +62,11 @@ export class SqliteSearchQueryStore implements SearchQueryStore {
     const { countsByKind, totalCount, hits } =
       await this.store.querySearchIndex({
         kinds: effectiveKinds.map((kind) => apiResourceKindName(kind)),
-        matchExpression: criteria.hasQuery()
-          ? escapeFTS5Query(criteria.query())
-          : undefined,
+        // Engine-neutral tokenization: whitespace terms via the gocompat
+        // twin of Go's strings.Fields (JS \s+ disagrees with Go on
+        // U+FEFF/U+0085 — the #8 BOM divergence class; criteria.query()
+        // is already goTrimSpace'd). Engine syntax is the driver's job.
+        terms: criteria.hasQuery() ? goFields(criteria.query()) : undefined,
         orgFilter: criteria.orgFilter(),
         crossOrgPublic: criteria.crossOrgPublic(),
         excludePublic: criteria.excludePublic(),
@@ -87,7 +90,7 @@ export class SqliteSearchQueryStore implements SearchQueryStore {
       const result = await this.loadAndConvertResource(
         kind,
         hit.resourceId,
-        normalizeScore(hit.rank),
+        hit.score,
       );
       if (result !== undefined) {
         results.push(result);
@@ -227,63 +230,6 @@ export class SqliteSearchQueryStore implements SearchQueryStore {
     }
     return count;
   }
-}
-
-/**
- * Go escapeFTS5Query: every whitespace-delimited token individually
- * double-quoted (operator syntax — NOT/NEAR, column filters — becomes
- * literal text); embedded double quotes stripped; a single token gets a
- * trailing `*` for prefix matching (valid on quoted terms); multi-token
- * queries use FTS5's implicit AND. The porter unicode61 tokenizer still
- * stems inside quotes.
- *
- * Trim and split are the gocompat twins of Go's strings.TrimSpace and
- * strings.Fields — JS .trim()/\s+ disagree with Go on U+FEFF/U+0085,
- * which changes the produced tokens on exactly those inputs (the #8 BOM
- * divergence class).
- */
-export function escapeFTS5Query(query: string): string {
-  const trimmed = goTrimSpace(query);
-  if (trimmed === "") {
-    return trimmed;
-  }
-
-  const quoted: string[] = [];
-  for (const word of goFields(trimmed)) {
-    const clean = word.replaceAll('"', "");
-    if (clean === "") {
-      continue;
-    }
-    quoted.push(`"${clean}"`);
-  }
-
-  if (quoted.length === 0) {
-    return "";
-  }
-  if (quoted.length === 1) {
-    return `${quoted[0]}*`;
-  }
-  return quoted.join(" ");
-}
-
-/**
- * Go normalizeScore: FTS5 bm25() is negative (lower = better); map to the
- * wire's 0–1 (higher = better). Non-negative input (list mode's pinned
- * 1.0) → exactly 1.0; else 1 + bm25/10, clamped to [0, 1] — the linear
- * mapping for bm25's typical −5..0 range.
- */
-export function normalizeScore(bm25Score: number): number {
-  if (bm25Score >= 0) {
-    return 1.0;
-  }
-  const score = 1.0 + bm25Score / 10.0;
-  if (score < 0) {
-    return 0;
-  }
-  if (score > 1) {
-    return 1;
-  }
-  return score;
 }
 
 /** Go parseKind: the enum-name string back to the enum value. */

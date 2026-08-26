@@ -49,7 +49,8 @@ export const skillSearchExtractor: SearchableExtractor = {
       name: metadata.name,
       // Go SkillExtractor.GetSearchSummary: spec.description.
       description: skill.spec?.description ?? "",
-      // Tags join space-separated for FTS5 (Go extractor.JoinTags).
+      // Tags join space-separated — the index entry carries one tags
+      // string (Go extractor.JoinTags).
       tags: metadata.tags.join(" "),
       org: metadata.org,
       // The enum NAME string, exactly Go's visibility.String().

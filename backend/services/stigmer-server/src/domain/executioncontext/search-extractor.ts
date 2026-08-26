@@ -3,8 +3,8 @@
  * execution_context_extractor.go (both sides: the #4 index side, the #14
  * query side). Execution contexts have no description field, so the
  * summary is empty everywhere — and secret DATA is deliberately never
- * indexed nor projected: only name, tags, org, and visibility reach FTS5
- * and the SearchResult.
+ * indexed nor projected: only name, tags, org, and visibility reach the
+ * search index and the SearchResult.
  */
 import type { Message } from "@bufbuild/protobuf";
 
@@ -49,7 +49,8 @@ export const executionContextSearchExtractor: SearchableExtractor = {
       name: metadata.name,
       // No description field on the spec; Go's GetSearchSummary returns "".
       description: "",
-      // Tags join space-separated for FTS5 (Go extractor.JoinTags).
+      // Tags join space-separated — the index entry carries one tags
+      // string (Go extractor.JoinTags).
       tags: metadata.tags.join(" "),
       org: metadata.org,
       // The enum NAME string, exactly Go's visibility.String().

@@ -2,7 +2,7 @@
 
 The two cross-aggregate query services (D4 #14; Go `pkg/query/`):
 
-- `search/` — the FTS5-backed SearchService: criteria value object, the
+- `search/` — the SearchService over the store's search index: criteria value object, the
   searchable-extractor registry (13 kinds, `kind_meta`-derived set), the
   query store over `Store.querySearchIndex`, and boot-time RebuildIndex.
 - `activity/` — the ActivityQueryController recents feed: sessions +

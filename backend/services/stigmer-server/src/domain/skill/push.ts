@@ -460,7 +460,7 @@ export function newStoreSkillStep(store: Store): PipelineStep<PushDesc> {
 }
 
 /**
- * IndexSkillSearch — FTS5 upsert, best-effort by contract. Domain-local
+ * IndexSkillSearch — search-index upsert, best-effort by contract. Domain-local
  * (not the shared IndexSearch step) because the push pipeline's message is
  * PushSkillRequest: the skill rides SKILL_KEY, not newState.
  */

@@ -121,16 +121,16 @@ export interface ScheduleRunRecord {
 }
 
 /**
- * Searchable fields extracted from a resource for the FTS5 index.
+ * Searchable fields extracted from a resource for the search index.
  * Extraction is per-domain (each domain registers its extractor); the
  * store only persists what it is handed.
  */
 export interface SearchIndexEntry {
-  /** Display name (metadata.name) — highest BM25 weight. */
+  /** Display name (metadata.name) — every driver weights it highest for relevance. */
   readonly name: string;
   /** Description; source field varies by resource type. */
   readonly description: string;
-  /** Space-separated tags (metadata.tags), one string for FTS5. */
+  /** Space-separated tags (metadata.tags) — the index carries one tags string. */
   readonly tags: string;
   /** Owning org (metadata.org) — org-scoped filtering. */
   readonly org: string;
@@ -144,21 +144,26 @@ export interface SearchIndexEntry {
 }
 
 /**
- * Parameters for one FTS5 read (Go SQLiteSearchQueryStore.Search's two
- * statements, D4 #14 / OD-3: the SQL lives in the driver, the search
- * service composes criteria). The caller guarantees `kinds` is non-empty —
- * the empty effective-kind set short-circuits ABOVE the store
- * (stigmer/stigmer#440), never as an `IN ()` syntax accident here.
+ * Parameters for one search-index read, stated engine-neutrally (DD-009:
+ * each driver renders its own engine's query syntax; OD-3: the SQL lives
+ * in the driver, the search service composes criteria). The caller
+ * guarantees `kinds` is non-empty — the empty effective-kind set
+ * short-circuits ABOVE the store (stigmer/stigmer#440), never as an
+ * `IN ()` syntax accident here.
  */
 export interface SearchIndexQuery {
   /** Kind NAME strings (the search_index.kind column values). */
   readonly kinds: readonly string[];
   /**
-   * Pre-escaped FTS5 MATCH expression (search mode), or undefined for
-   * list mode (created_at ordering, rank pinned 1.0). Escaping is search
-   * semantics and stays in the search service (escapeFTS5Query).
+   * The user's whitespace-tokenized query terms (search mode), or
+   * undefined for list mode (created_at ordering, score pinned 1.0).
+   * Declared semantics every driver implements: each term matches as a
+   * token (engine tokenization/stemming is driver-relative); a SINGLE
+   * term is a prefix match; multiple terms compose with AND. Rendering
+   * the engine's syntax — including sanitizing hostile term content — is
+   * the driver's job (sqlite: `sqlite/fts5.ts`).
    */
-  readonly matchExpression: string | undefined;
+  readonly terms: readonly string[] | undefined;
   /** Org scope; "" = no org filter. */
   readonly orgFilter: string;
   /** With orgFilter: also admit visibility_public rows from ANY org. */
@@ -175,11 +180,13 @@ export interface SearchIndexHit {
   readonly kind: string;
   readonly resourceId: string;
   /**
-   * bm25() rank (negative, lower = better) in search mode; the pinned
-   * 1.0 in list mode. Normalization to the wire's 0–1 score happens in
-   * the search service (normalizeScore).
+   * Wire-ready relevance: 0–1, higher = better, exactly 1.0 in list
+   * mode. Each driver normalizes from its own engine's ranking; absolute
+   * values and cross-driver ordering are NOT contract — only
+   * deterministic ordering WITHIN a driver is (DD-009; the driver-side
+   * normalization is this sub-project's DD-001).
    */
-  readonly rank: number;
+  readonly score: number;
 }
 
 /** A search-index read: full counts plus the requested page. */
@@ -701,13 +708,13 @@ export interface Store {
   pruneScheduleRuns(recordedBefore: string): Promise<number>;
 
   // ---------------------------------------------------------------------------
-  // Search index (FTS5)
+  // Search index
   // ---------------------------------------------------------------------------
 
   /**
-   * Inserts or replaces a resource's search-index row (DELETE + INSERT in
-   * one transaction — FTS5 has no UPDATE). Maintained explicitly by the
-   * write pipelines (IndexSearch step), decoupled from the resources table.
+   * Inserts or replaces a resource's search-index row (how "replace" is
+   * implemented is driver-internal). Maintained explicitly by the write
+   * pipelines (IndexSearch step), decoupled from the resources table.
    */
   upsertSearchIndex(
     kind: ApiResourceKind,
@@ -719,11 +726,13 @@ export interface Store {
   deleteSearchIndex(kind: ApiResourceKind, resourceId: string): Promise<void>;
 
   /**
-   * One FTS5 read: the count statement (GROUP BY kind), short-circuiting
-   * to an empty page at zero matches, then the ranked page statement —
-   * Go SQLiteSearchQueryStore's searchWithQuery/listWithoutQuery pair,
-   * SQL byte-identical (D4 #14, OD-3: no DB() escape hatch; the driver
-   * owns the SQL, the search service owns criteria and conversion).
+   * One search-index read: full counts per kind, short-circuiting to an
+   * empty page at zero matches, then the ranked page — order is
+   * deterministic within the driver (relevance in search mode, newest
+   * first in list mode). Engine query syntax and score normalization are
+   * rendered INSIDE the driver from the structured query (DD-009; OD-3:
+   * no DB() escape hatch — the driver owns the SQL, the search service
+   * owns criteria and conversion).
    */
   querySearchIndex(query: SearchIndexQuery): Promise<SearchIndexQueryResult>;
 

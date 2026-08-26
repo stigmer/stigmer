@@ -49,7 +49,8 @@ export const workflowExecutionSearchExtractor: SearchableExtractor = {
       // No description field on executions (Go leaves entry.Description
       // at its zero value).
       description: "",
-      // Tags join space-separated for FTS5 (Go extractor.JoinTags).
+      // Tags join space-separated — the index entry carries one tags
+      // string (Go extractor.JoinTags).
       tags: metadata.tags.join(" "),
       org: metadata.org,
       // The enum NAME string, exactly Go's visibility.String().
