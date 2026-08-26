@@ -161,7 +161,11 @@ gen-task-docs: ## Generate per-task reference docs from schemas
 # the server bundles just the registry JSON (registry/bundled.ts), so the
 # per-schema copy the Go embed carried retired with the Go server (D4 #25).
 gen-task-registry: ## Generate task-kind-registry.json + JSON Schemas and sync the registry into the server bundle
-	go run ./tools/codegen/generator --target=task-registry \
+	@test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
+	@# The generator validates sidecar YAML examples against the typed proto
+	@# messages via @stigmer/protos, which must be built first (incremental).
+	@npm run build -w @stigmer/protos --silent
+	node_modules/.bin/tsx tools/codegen/src/generator/main.ts --target=task-registry \
 		--schema-dir tools/codegen/schemas --output-dir tools/codegen/output \
 		--meta-dir apis/ai/stigmer/agentic/workflow/v1/tasks/meta
 	cp tools/codegen/output/task-kind-registry.json \
@@ -188,7 +192,9 @@ sync-model-registry: ## Refresh the bundled model-registry.json snapshot from th
 	@echo "✓ model-registry.json snapshot refreshed from $(MODEL_REGISTRY_UPSTREAM)"
 
 gen-task-registry-check: ## Verify the task kind registry is up to date and synced (CI)
-	@go run ./tools/codegen/generator --target=task-registry \
+	@test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
+	@npm run build -w @stigmer/protos --silent
+	@node_modules/.bin/tsx tools/codegen/src/generator/main.ts --target=task-registry \
 		--schema-dir tools/codegen/schemas --output-dir tools/codegen/output \
 		--meta-dir apis/ai/stigmer/agentic/workflow/v1/tasks/meta && \
 	if ! diff -q tools/codegen/output/task-kind-registry.json \
