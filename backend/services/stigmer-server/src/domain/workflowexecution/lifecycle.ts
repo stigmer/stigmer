@@ -398,7 +398,8 @@ function newRecreateExecutionContextStep<Desc extends DescMessage>(
       const executionOrg = execution.metadata?.org ?? "";
       const workflowInstanceId = execution.spec?.workflowInstanceId ?? "";
 
-      // Delete a stale EC if the TTL has not reclaimed it (best-effort).
+      // Delete a stale EC left by the interrupted run (best-effort; no
+      // TTL sweep exists — a leftover row stays until deleted, oss#892).
       await deleteStaleExecutionContext(deps, executionId);
 
       let instance: WorkflowInstance;

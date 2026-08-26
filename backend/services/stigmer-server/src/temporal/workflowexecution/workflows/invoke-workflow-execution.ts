@@ -498,7 +498,10 @@ async function updateStatusOnCancellation(executionId: string): Promise<void> {
  * exit path, cancellation included (Go's disconnected context). REGULAR
  * activity (Go's v1 arm — agentexecution's Go uses a local activity here;
  * this domain's Go does not, and the port follows ITS source). Errors are
- * logged, never propagated.
+ * logged, never propagated. A failed cleanup is never retried — no TTL
+ * sweep exists (oss#892; the retired Go server's log claimed one that
+ * never did) — the row stays encrypted at rest (oss#535) and the WARN is
+ * the operator's signal.
  */
 async function deleteExecutionContext(executionId: string): Promise<void> {
   await CancellationScope.nonCancellable(async () => {
@@ -508,10 +511,13 @@ async function deleteExecutionContext(executionId: string): Promise<void> {
       );
       log.info("ExecutionContext cleaned up", { executionId });
     } catch (error) {
-      log.warn("ExecutionContext cleanup failed (will rely on TTL backup)", {
-        executionId,
-        error: errorMessage(error),
-      });
+      log.warn(
+        "ExecutionContext cleanup failed — nothing retries it; any remaining row stays encrypted at rest (operator cleanup)",
+        {
+          executionId,
+          error: errorMessage(error),
+        },
+      );
     }
   });
 }
