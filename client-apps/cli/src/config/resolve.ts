@@ -3,7 +3,7 @@
 // precedence keeps every call site consistent (mirrors the Go CLI's Resolve*).
 
 import { CliExitError, ExitCode } from "../errors/index.js";
-import { WEB_CONSOLE_PORT } from "../local/constants.js";
+import { SERVER_PORT } from "../local/constants.js";
 import { type BackendType, type Config, isCloudMode } from "./config.js";
 
 const DEFAULT_CLOUD_ENDPOINT = "api.stigmer.ai:443";
@@ -76,17 +76,20 @@ export function resolveOrganization(config: Config, flagOrg?: string): string {
 /**
  * Resolve the web console URL:
  *   1. `STIGMER_CONSOLE_URL` (explicit override)
- *   2. local backend → `http://localhost:{WEB_CONSOLE_PORT}`
+ *   2. local backend → `http://localhost:{SERVER_PORT}` — the server's own
+ *      unified port serves the console since DD-012 (one origin for UI and
+ *      API; the Go-era separate 8234 listener is retired)
  *   3. cloud backend → {@link DEFAULT_CLOUD_CONSOLE_URL}
  *
  * The console origin is also the app origin that serves the hosted chat
  * page (`/chat/<org>/<slug>`) and the embed loader (`/embed.js`), so
- * share-link builders use this same resolver.
+ * share-link builders use this same resolver — both routes live in the
+ * same static export the server serves.
  */
 export function resolveConsoleURL(backendType: BackendType, env: NodeJS.ProcessEnv = process.env): string {
   const override = env.STIGMER_CONSOLE_URL;
   if (override !== undefined && override !== "") return override;
-  if (backendType === "local") return `http://localhost:${WEB_CONSOLE_PORT}`;
+  if (backendType === "local") return `http://localhost:${SERVER_PORT}`;
   return DEFAULT_CLOUD_CONSOLE_URL;
 }
 

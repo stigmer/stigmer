@@ -93,6 +93,8 @@ import { newWorkflowExecutionConfigFromEnv } from "../domain/workflowexecution/t
 import { newWorkflowExecutionEngineStateProvider } from "../temporal/workflowexecution/engine-client.js";
 import { newWorkflowExecutionWorkerFactory } from "../temporal/workflowexecution/worker.js";
 import { HealthState, registerHealthService } from "../transport/health.js";
+import { resolveConsoleAssets } from "../transport/console/assets.js";
+import { createConsoleLane } from "../transport/console/handler.js";
 import { createRegistryLanes } from "../transport/registry/lanes.js";
 import { createUnifiedPortServer } from "../transport/server.js";
 import type { ServerConfig } from "./config.js";
@@ -357,6 +359,27 @@ export function composeServer(options: ComposeOptions): ComposedServer {
     skillArtifactStorage,
     logger,
   );
+  // The console lane (lane 4, DD-012): present only when a static export
+  // is bundled (slim artifacts) or configured (STIGMER_CONSOLE_DIR) —
+  // "not bundled" is a modeled state, logged once, with the router
+  // behaving exactly as it did before the lane existed.
+  const consoleAssets = resolveConsoleAssets(config.consoleDir, logger);
+  if (consoleAssets !== undefined) {
+    logger.info("web console serving from unified port", {
+      dir: consoleAssets.root,
+      files: consoleAssets.fileCount,
+    });
+  } else {
+    logger.debug("no web console export bundled; console lane disabled");
+  }
+  const consoleLane =
+    consoleAssets !== undefined
+      ? createConsoleLane({
+          assets: consoleAssets,
+          grpcPort: options.portOverride ?? config.grpcPort,
+          logger,
+        })
+      : undefined;
   // The search read side (#14): the 13-kind extractor registry, the query
   // store over the driver's index read (OD-3 — no DB() escape hatch), and
   // the CQRS handler. Registry validation is warn-only, Go server.go:509's
@@ -640,6 +663,7 @@ export function composeServer(options: ComposeOptions): ComposedServer {
     taskKindRegistryLane: registryLanes.taskKindRegistryLane,
     modelRegistryLane: registryLanes.modelRegistryLane,
     skillTransferLane,
+    consoleLane,
   });
 
   return {

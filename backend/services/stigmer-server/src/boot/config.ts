@@ -110,6 +110,15 @@ export interface ServerConfig {
    * idiom, Go config.go:52-58).
    */
   readonly skillTransferBaseUrl: string;
+  /**
+   * Web console asset directory override (STIGMER_CONSOLE_DIR). Empty —
+   * the default — discovers the export as a `console/` sibling of the
+   * running bundle (slim artifacts ship it there; dev dist trees have
+   * none, so dev/test servers boot without the console lane). The
+   * override serves a local `client-apps/web/out` build in development
+   * and pins fixture exports in tests.
+   */
+  readonly consoleDir: string;
 }
 
 // The bundled "Stigmer Local" OAuth App credentials (callback:
@@ -205,6 +214,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
       DEFAULT_GITHUB_OAUTH_CLIENT_SECRET,
     ),
     oauthRedirectUri: envString(env, "STIGMER_OAUTH_REDIRECT_URI", ""),
+    consoleDir: envString(env, "STIGMER_CONSOLE_DIR", ""),
   };
 }
 

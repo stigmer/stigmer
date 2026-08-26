@@ -24,11 +24,20 @@
 
 name: ci.stigmer-server
 
+# client-apps/web/nginx.conf rides the filter because it is a CONTRACT
+# input here since the console lane landed: the server's nginx-equivalence
+# test (src/transport/console/__tests__/) holds the lane's resolver to the
+# parsed nginx model, so a serving-rule change must run this gate in its
+# own PR, not redden main later. Route-tree changes need no filter entry —
+# the resolver implements the model generically, and unmodelled router
+# constructs already fail verify-web in the web PR itself.
 on:
   pull_request:
     paths:
       - "backend/services/stigmer-server/**"
       - "apis/stubs/ts/**"
+      - "client-apps/web/nginx.conf"
+      - "scripts/verify-static-export-routes.mjs"
       - "Makefile"
       - ".github/workflows/ci.stigmer-server.yaml"
   push:
@@ -36,6 +45,8 @@ on:
     paths:
       - "backend/services/stigmer-server/**"
       - "apis/stubs/ts/**"
+      - "client-apps/web/nginx.conf"
+      - "scripts/verify-static-export-routes.mjs"
       - "Makefile"
       - ".github/workflows/ci.stigmer-server.yaml"
 
@@ -74,6 +85,11 @@ jobs:
       - name: Install server dependencies
         working-directory: backend/services/stigmer-server
         run: npm ci
+
+      # The slim artifact ships the console's static export (DD-012);
+      # bundle-slim loud-fails without a built client-apps/web/out.
+      - name: Build the web console static export
+        run: make build-web
 
       - name: Typecheck
         working-directory: backend/services/stigmer-server
@@ -144,6 +160,11 @@ jobs:
       - name: Install server dependencies
         working-directory: backend/services/stigmer-server
         run: npm ci
+
+      # Same DD-012 requirement as the x64 job: the slim bundle stages the
+      # console export and loud-fails without it.
+      - name: Build the web console static export
+        run: make build-web
 
       - name: Build and boot-check the compiled dist
         working-directory: backend/services/stigmer-server

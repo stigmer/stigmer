@@ -103,15 +103,18 @@ export async function runInternalDaemon(deps: InternalDaemonDeps): Promise<numbe
   await clock.sleep(SETTLE_DELAY_MS);
   supervisor.settleCheck();
 
-  // Web console: detect-and-skip until T06 wires real serving.
+  // Web console: the SERVER serves it from its unified port (DD-012); the
+  // daemon probes and records what a browser would actually find. pid 0 is
+  // truthful — there is no separate console process to supervise.
+  const consoleAvailable = config.noWeb ? false : await isWebConsoleAvailable();
   healthState.components["web-console"] = {
     pid: 0,
-    state: config.noWeb || !isWebConsoleAvailable() ? "stopped" : "running",
+    state: consoleAvailable ? "running" : "stopped",
     started_at: "",
     restart_count: 0,
   };
-  if (config.noWeb) log.info("web console disabled via --no-web");
-  else if (!isWebConsoleAvailable()) log.debug("web console not bundled in this build, skipping");
+  if (config.noWeb) log.info("web console suppressed via --no-web");
+  else if (!consoleAvailable) log.debug("server did not answer the console probe (no export bundled), skipping");
   persist();
 
   // --- Health monitor: sync Temporal + drive one supervisor tick per interval. ---
