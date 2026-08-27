@@ -86,12 +86,22 @@ export type {
   StagedUploadLane,
 } from "./artifactstorage/artifact-storage.js";
 export { ArtifactStorageNotFoundError } from "./artifactstorage/artifact-storage.js";
+// The R2 driver constructor (C1 seam, 20260827.04): compositions register
+// per-domain R2 drivers with their own bucket/credential config while the
+// S3 plumbing lives exactly once in OSS (the §6b registration shape).
+export { newR2ArtifactStorage } from "./artifactstorage/r2-storage.js";
+export type { R2StorageConfig } from "./artifactstorage/r2-storage.js";
 
 // The O5 driver seams (§6a/§6c): the model-catalog read surface with the
 // DD-008 disciplines in its contract, and the per-lane runner-credential
 // seam with its OSS lane constant (an extension's verify callers name the
 // lane they accept).
 export type { ModelCatalogProvider } from "./domain/workflow/registry/model-catalog-provider.js";
+// The document-driven provider constructor (C1 seam, 20260827.04): a
+// composition whose catalog source is its own (the cloud's DB-resident
+// baseline) builds providers from documents with the SAME interpretation
+// ModelRegistryStore uses — the semantics live exactly once in OSS.
+export { newModelCatalogProviderFromDocument } from "./domain/workflow/registry/document-catalog.js";
 export type { RunnerCredentialProvider } from "./runnerauth/runner-credential-provider.js";
 export type { MintedToken } from "./runnerauth/runnerauth.js";
 export {

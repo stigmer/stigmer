@@ -60,6 +60,19 @@ export interface R2Clients {
   readonly presign: typeof presignGetObject;
 }
 
+/**
+ * The exported R2 driver constructor (C1 seam, 20260827.04): a composition
+ * registers R2-backed drivers with ITS OWN config — the cloud's verified
+ * shape is distinct buckets/credentials per domain (blueprint §6b) — while
+ * the S3 plumbing, presign clamp, and not-found mapping live exactly once
+ * here. Loud-fail: the required-config throws below fire at driver
+ * construction, which the registered lazy factory defers to first use of
+ * the named driver (the factory contract in drivers.ts).
+ */
+export function newR2ArtifactStorage(config: R2StorageConfig): ArtifactStorage {
+  return new R2ArtifactStorage(config);
+}
+
 export class R2ArtifactStorage implements ArtifactStorage {
   private readonly client: S3Client;
   private readonly presign: typeof presignGetObject;

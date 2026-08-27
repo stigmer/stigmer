@@ -23,8 +23,14 @@
  * Since O5 (20260827.02) this class is the OSS implementation of the
  * ModelCatalogProvider seam (DD-008) — consumers hold the interface; the
  * refresh lifecycle below stays composition-owned, outside the contract.
+ * The document INTERPRETATION (sanity gate, indexes, the query methods)
+ * lives in document-catalog.ts since the C1 seam extraction (20260827.04):
+ * this class owns only the bundled/upstream lifecycle and delegates every
+ * read to the current DocumentModelCatalog, swapped atomically per
+ * accepted document.
  */
 import type { Logger } from "../../../boot/logger.js";
+import { DocumentModelCatalog } from "./document-catalog.js";
 import type { ModelCatalogProvider } from "./model-catalog-provider.js";
 
 /** Upstream refresh cadence (Go modelRegistryRefreshInterval, :34). */
@@ -67,45 +73,8 @@ export interface ModelRegistryStoreOptions {
   fetchImpl?: typeof fetch;
 }
 
-/**
- * The subset of a registry entry the store indexes (Go modelRegistryEntry).
- * Both canonical ids and provider api ids are accepted as valid references
- * because the runner resolves canonical ids via the registry and passes
- * unknown-but-registered api ids to the provider verbatim (oss#240).
- * Pricing-variant VALUES are deliberately not modeled — only the key set
- * matters for capability; capability values are checked for literal `true`
- * only (the tri-state rule: absence is "unknown", never a claim either way).
- */
-interface ModelRegistryEntry {
-  id?: unknown;
-  harness?: unknown;
-  apiModelId?: unknown;
-  pricingVariants?: Record<string, unknown>;
-  capabilities?: Record<string, unknown>;
-}
-
-/** The derived valid-model indexes, swapped atomically per document. */
-interface RegistryIndexes {
-  /** harness → model reference (canonical or api id) → true. */
-  modelsByHarness: Map<string, Set<string>>;
-  /** harness → sorted canonical ids (suggestion pools; may repeat a
-   *  duplicated document entry, exactly as Go's per-harness list does). */
-  sortedModelsByHarness: Map<string, string[]>;
-  /** variant → harness → model reference → true (oss#357). */
-  modelsByVariant: Map<string, Map<string, Set<string>>>;
-  /** variant → sorted deduped canonical ids across harnesses. */
-  sortedModelsByVariant: Map<string, string[]>;
-  /** variant → harness → sorted canonical ids. */
-  sortedModelsByVariantHarness: Map<string, Map<string, string[]>>;
-  /** capability → harness → model reference → true (oss#772). */
-  modelsByCapability: Map<string, Map<string, Set<string>>>;
-  /** capability → harness → sorted canonical ids. */
-  sortedModelsByCapabilityHarness: Map<string, Map<string, string[]>>;
-}
-
 export class ModelRegistryStore implements ModelCatalogProvider {
-  private currentDocument: string;
-  private indexes: RegistryIndexes;
+  private currentCatalog: DocumentModelCatalog;
   private refreshTimer: NodeJS.Timeout | undefined;
   private failureLogged = false;
   private readonly options: ModelRegistryStoreOptions;
@@ -114,20 +83,19 @@ export class ModelRegistryStore implements ModelCatalogProvider {
     // A broken bundled snapshot is a build defect, not a runtime condition:
     // fail loud at construction rather than serving an empty registry
     // (Go log.Fatal in Store()).
-    const indexes = buildIndexes(options.bundledDocument);
-    if (indexes === undefined) {
+    const catalog = DocumentModelCatalog.tryBuild(options.bundledDocument);
+    if (catalog === undefined) {
       throw new Error(
         "bundled model-registry snapshot is invalid or indexes no models",
       );
     }
-    this.currentDocument = options.bundledDocument;
-    this.indexes = indexes;
+    this.currentCatalog = catalog;
     this.options = options;
   }
 
   /** The served bytes; always complete and valid by construction. */
   document(): string {
-    return this.currentDocument;
+    return this.currentCatalog.document();
   }
 
   /**
@@ -135,12 +103,12 @@ export class ModelRegistryStore implements ModelCatalogProvider {
    * executable on the given harness.
    */
   isValidModel(harness: string, model: string): boolean {
-    return this.indexes.modelsByHarness.get(harness)?.has(model) ?? false;
+    return this.currentCatalog.isValidModel(harness, model);
   }
 
   /** Whether the registry knows any models for a harness. */
   hasHarness(harness: string): boolean {
-    return (this.indexes.modelsByHarness.get(harness)?.size ?? 0) > 0;
+    return this.currentCatalog.hasHarness(harness);
   }
 
   /**
@@ -148,7 +116,7 @@ export class ModelRegistryStore implements ModelCatalogProvider {
    * rather than rejecting everything when it did not.
    */
   hasAnyModels(): boolean {
-    return this.indexes.modelsByHarness.size > 0;
+    return this.currentCatalog.hasAnyModels();
   }
 
   /**
@@ -158,12 +126,7 @@ export class ModelRegistryStore implements ModelCatalogProvider {
    * pin valid anywhere may be right where the spec actually serves.
    */
   isValidModelOnAnyHarness(model: string): boolean {
-    for (const models of this.indexes.modelsByHarness.values()) {
-      if (models.has(model)) {
-        return true;
-      }
-    }
-    return false;
+    return this.currentCatalog.isValidModelOnAnyHarness(model);
   }
 
   /**
@@ -172,13 +135,7 @@ export class ModelRegistryStore implements ModelCatalogProvider {
    * existence check. Computed per call (refusal-path only).
    */
   canonicalModelsAcrossHarnesses(): string[] {
-    const seen = new Set<string>();
-    for (const models of this.indexes.sortedModelsByHarness.values()) {
-      for (const name of models) {
-        seen.add(name);
-      }
-    }
-    return [...seen].sort();
+    return this.currentCatalog.canonicalModelsAcrossHarnesses();
   }
 
   /**
@@ -187,7 +144,7 @@ export class ModelRegistryStore implements ModelCatalogProvider {
    * suggestions never surface provider api ids). Callers must not mutate.
    */
   canonicalModels(harness: string): string[] {
-    return this.indexes.sortedModelsByHarness.get(harness) ?? [];
+    return this.currentCatalog.canonicalModels(harness);
   }
 
   /**
@@ -197,16 +154,7 @@ export class ModelRegistryStore implements ModelCatalogProvider {
    * deliberately harness-free (it never resolves the session).
    */
   hasPricingVariant(model: string, variant: string): boolean {
-    const byHarness = this.indexes.modelsByVariant.get(variant);
-    if (byHarness === undefined) {
-      return false;
-    }
-    for (const refs of byHarness.values()) {
-      if (refs.has(model)) {
-        return true;
-      }
-    }
-    return false;
+    return this.currentCatalog.hasPricingVariant(model, variant);
   }
 
   /**
@@ -220,9 +168,10 @@ export class ModelRegistryStore implements ModelCatalogProvider {
     model: string,
     variant: string,
   ): boolean {
-    return (
-      this.indexes.modelsByVariant.get(variant)?.get(harness)?.has(model) ??
-      false
+    return this.currentCatalog.hasPricingVariantForHarness(
+      harness,
+      model,
+      variant,
     );
   }
 
@@ -231,7 +180,7 @@ export class ModelRegistryStore implements ModelCatalogProvider {
    * any harness, for actionable refusal messages. Callers must not mutate.
    */
   canonicalModelsWithVariant(variant: string): string[] {
-    return this.indexes.sortedModelsByVariant.get(variant) ?? [];
+    return this.currentCatalog.canonicalModelsWithVariant(variant);
   }
 
   /**
@@ -242,8 +191,9 @@ export class ModelRegistryStore implements ModelCatalogProvider {
     harness: string,
     variant: string,
   ): string[] {
-    return (
-      this.indexes.sortedModelsByVariantHarness.get(variant)?.get(harness) ?? []
+    return this.currentCatalog.canonicalModelsWithVariantForHarness(
+      harness,
+      variant,
     );
   }
 
@@ -261,9 +211,10 @@ export class ModelRegistryStore implements ModelCatalogProvider {
     model: string,
     capability: string,
   ): boolean {
-    return (
-      this.indexes.modelsByCapability.get(capability)?.get(harness)?.has(model) ??
-      false
+    return this.currentCatalog.hasCapabilityForHarness(
+      harness,
+      model,
+      capability,
     );
   }
 
@@ -275,10 +226,9 @@ export class ModelRegistryStore implements ModelCatalogProvider {
     harness: string,
     capability: string,
   ): string[] {
-    return (
-      this.indexes.sortedModelsByCapabilityHarness
-        .get(capability)
-        ?.get(harness) ?? []
+    return this.currentCatalog.canonicalModelsWithCapabilityForHarness(
+      harness,
+      capability,
     );
   }
 
@@ -316,16 +266,15 @@ export class ModelRegistryStore implements ModelCatalogProvider {
       if (Buffer.byteLength(body) > MODEL_REGISTRY_MAX_BYTES) {
         throw new Error("upstream document exceeds the size cap");
       }
-      const indexes = buildIndexes(body);
-      if (indexes === undefined) {
+      const catalog = DocumentModelCatalog.tryBuild(body);
+      if (catalog === undefined) {
         throw new Error(
           "upstream document failed the sanity gate (no indexable models)",
         );
       }
       // Document and indexes swap together — a reader never sees a
       // document whose indexes describe a different registry.
-      this.currentDocument = body;
-      this.indexes = indexes;
+      this.currentCatalog = catalog;
       this.failureLogged = false;
     } catch (error) {
       const fields = {
@@ -346,158 +295,4 @@ export class ModelRegistryStore implements ModelCatalogProvider {
       }
     }
   }
-}
-
-/**
- * Parses a registry document and derives the valid-model indexes — the TS
- * half of Go's applyDocument (:302-412). Returns undefined when the
- * document fails the sanity gate: it must parse AND index at least one
- * model entry ($comment section dividers carry no id/harness and index
- * nothing, so a divider-only document is as unusable as an empty one).
- */
-function buildIndexes(document: string): RegistryIndexes | undefined {
-  let parsed: { models?: unknown };
-  try {
-    parsed = JSON.parse(document) as { models?: unknown };
-  } catch {
-    return undefined;
-  }
-  if (!Array.isArray(parsed.models)) {
-    return undefined;
-  }
-
-  const modelsByHarness = new Map<string, Set<string>>();
-  const sortedModelsByHarness = new Map<string, string[]>();
-  const modelsByVariant = new Map<string, Map<string, Set<string>>>();
-  // Set-backed: the same canonical id may price a variant under more than
-  // one harness, and the union list must not repeat it.
-  const canonicalByVariantSet = new Map<string, Set<string>>();
-  const sortedModelsByVariantHarness = new Map<string, Map<string, string[]>>();
-  const modelsByCapability = new Map<string, Map<string, Set<string>>>();
-  const sortedModelsByCapabilityHarness = new Map<
-    string,
-    Map<string, string[]>
-  >();
-
-  for (const raw of parsed.models as ModelRegistryEntry[]) {
-    if (raw === null || typeof raw !== "object") {
-      continue;
-    }
-    const id = typeof raw.id === "string" ? raw.id : "";
-    const harness = typeof raw.harness === "string" ? raw.harness : "";
-    if (id === "" || harness === "") {
-      continue;
-    }
-    const apiModelId =
-      typeof raw.apiModelId === "string" ? raw.apiModelId : "";
-
-    mapSet(modelsByHarness, harness).add(id);
-    mapList(sortedModelsByHarness, harness).push(id);
-    if (apiModelId !== "") {
-      mapSet(modelsByHarness, harness).add(apiModelId);
-    }
-
-    if (raw.pricingVariants !== null && typeof raw.pricingVariants === "object") {
-      for (const variant of Object.keys(raw.pricingVariants)) {
-        const byHarness = mapMap(modelsByVariant, variant);
-        mapSet(byHarness, harness).add(id);
-        if (apiModelId !== "") {
-          mapSet(byHarness, harness).add(apiModelId);
-        }
-        mapSet(canonicalByVariantSet, variant).add(id);
-        mapList(mapMapList(sortedModelsByVariantHarness, variant), harness).push(id);
-      }
-    }
-
-    if (raw.capabilities !== null && typeof raw.capabilities === "object") {
-      for (const [capability, value] of Object.entries(raw.capabilities)) {
-        // Only literal `true` declares the capability; false, null, or a
-        // future non-boolean shape indexes nothing (tri-state rule:
-        // absence is "unknown", never a claim either way).
-        if (value !== true) {
-          continue;
-        }
-        const byHarness = mapMap(modelsByCapability, capability);
-        mapSet(byHarness, harness).add(id);
-        if (apiModelId !== "") {
-          mapSet(byHarness, harness).add(apiModelId);
-        }
-        mapList(mapMapList(sortedModelsByCapabilityHarness, capability), harness).push(id);
-      }
-    }
-  }
-
-  if (modelsByHarness.size === 0) {
-    return undefined;
-  }
-
-  for (const ids of sortedModelsByHarness.values()) {
-    ids.sort();
-  }
-  const sortedModelsByVariant = new Map<string, string[]>();
-  for (const [variant, idSet] of canonicalByVariantSet) {
-    sortedModelsByVariant.set(variant, [...idSet].sort());
-  }
-  for (const byHarness of sortedModelsByVariantHarness.values()) {
-    for (const ids of byHarness.values()) {
-      ids.sort();
-    }
-  }
-  for (const byHarness of sortedModelsByCapabilityHarness.values()) {
-    for (const ids of byHarness.values()) {
-      ids.sort();
-    }
-  }
-
-  return {
-    modelsByHarness,
-    sortedModelsByHarness,
-    modelsByVariant,
-    sortedModelsByVariant,
-    sortedModelsByVariantHarness,
-    modelsByCapability,
-    sortedModelsByCapabilityHarness,
-  };
-}
-
-function mapSet(m: Map<string, Set<string>>, key: string): Set<string> {
-  let v = m.get(key);
-  if (v === undefined) {
-    v = new Set();
-    m.set(key, v);
-  }
-  return v;
-}
-
-function mapList(m: Map<string, string[]>, key: string): string[] {
-  let v = m.get(key);
-  if (v === undefined) {
-    v = [];
-    m.set(key, v);
-  }
-  return v;
-}
-
-function mapMap(
-  m: Map<string, Map<string, Set<string>>>,
-  key: string,
-): Map<string, Set<string>> {
-  let v = m.get(key);
-  if (v === undefined) {
-    v = new Map();
-    m.set(key, v);
-  }
-  return v;
-}
-
-function mapMapList(
-  m: Map<string, Map<string, string[]>>,
-  key: string,
-): Map<string, string[]> {
-  let v = m.get(key);
-  if (v === undefined) {
-    v = new Map();
-    m.set(key, v);
-  }
-  return v;
 }
