@@ -33,6 +33,8 @@ import {
   InvalidTokenError,
   loadConfig,
   MintingDisabledError,
+  newModelCatalogProviderFromDocument,
+  newR2ArtifactStorage,
   notFoundError,
   ResourceNotFoundError,
   TOKEN_TYPE_EXECUTION_SCOPED,
@@ -126,24 +128,15 @@ const workerFactory: WorkerFactory = () =>
   Promise.reject(new Error("compile-proof worker — never started"));
 
 /**
- * A consumer-shaped model-catalog provider (the O5 §6a shape — the cloud's
- * DB-resident baseline implements exactly this surface, read per call).
+ * A consumer-shaped model-catalog provider built the way the cloud's
+ * DB-resident baseline builds one (the C1 seam, 20260827.04): a document
+ * from the consumer's own source, interpreted by the exported constructor
+ * so the semantics stay OSS-owned. The interface remains implementable by
+ * hand (ConsumerDriverBundle below keeps the type position covered).
  */
-const catalogProvider: ModelCatalogProvider = {
-  document: () => `{"models":[]}`,
-  isValidModel: () => false,
-  hasHarness: () => false,
-  hasAnyModels: () => false,
-  isValidModelOnAnyHarness: () => false,
-  canonicalModelsAcrossHarnesses: () => [],
-  canonicalModels: () => [],
-  hasPricingVariant: () => false,
-  hasPricingVariantForHarness: () => false,
-  canonicalModelsWithVariant: () => [],
-  canonicalModelsWithVariantForHarness: () => [],
-  hasCapabilityForHarness: () => false,
-  canonicalModelsWithCapabilityForHarness: () => [],
-};
+const catalogProvider: ModelCatalogProvider = newModelCatalogProviderFromDocument(
+  `{"models":[{"id":"consumer-model","harness":"native"}]}`,
+);
 
 /**
  * A consumer-shaped runner-credential provider (the O5 §6c shape). The
@@ -164,6 +157,20 @@ const credentialProvider: RunnerCredentialProvider = {
     throw new InvalidTokenError();
   },
 };
+
+/**
+ * A consumer-registered R2 driver built through the exported constructor
+ * (the C1 seam, 20260827.04) — the cloud's per-domain-bucket registration
+ * shape: the composition owns the config, OSS owns the S3 plumbing.
+ */
+const consumerR2Driver: ArtifactStorageDriverFactory = () =>
+  newR2ArtifactStorage({
+    bucket: "consumer-domain-bucket",
+    endpoint: "https://r2.invalid",
+    accessKeyId: "consumer-key",
+    secretAccessKey: "consumer-secret",
+    region: "auto",
+  });
 
 /**
  * A consumer-registered blob driver (the O5 §6b registration shape) —
@@ -235,7 +242,10 @@ export const fakeExtension: ServerExtension = {
   drivers: {
     modelCatalogProvider: catalogProvider,
     runnerCredentialProvider: credentialProvider,
-    artifactStorageDrivers: new Map([["consumer-blob", consumerBlobDriver]]),
+    artifactStorageDrivers: new Map([
+      ["consumer-blob", consumerBlobDriver],
+      ["consumer-r2", consumerR2Driver],
+    ]),
     sandboxProvisionerDrivers: new Map([
       ["consumer-sandbox", consumerSandboxDriver],
     ]),
