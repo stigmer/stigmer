@@ -110,6 +110,12 @@ func run(logger *slog.Logger) error {
 		VaultToken:      h.OpenBao.RootToken,
 		LogDir:          h.LogDir(),
 		Security:        harness.SecurityModeTest,
+		// The conformance global setup (cloud-env.ts) sets this on the
+		// launcher's environment from the suite's own redirect-URI constant —
+		// the single source of truth the OAuth suites assert against. Passed
+		// through explicitly (never via ambient environment inheritance) so
+		// the service's OAuth posture is visible right here.
+		OAuthRedirectURI: os.Getenv("STIGMER_OAUTH_REDIRECT_URI"),
 	}, logger)
 	if err != nil {
 		return fmt.Errorf("start stigmer-service: %w", err)

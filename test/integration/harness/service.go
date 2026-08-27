@@ -131,6 +131,15 @@ type ServiceConfig struct {
 	// stall on a live HTTP call.
 	WhatsAppGraphBaseURL string
 
+	// OAuthRedirectURI is the frontend callback URL for MCP OAuth Connect
+	// flows (STIGMER_OAUTH_REDIRECT_URI → stigmer.oauth.redirect-uri). The
+	// conformance suites' mock authorization server never redirects, so the
+	// URL is never fetched — but initiateOAuthConnect refuses without it,
+	// which kept the mcpserver OAuth suites off the cloud targets until the
+	// launcher passed it through. When empty, OAuth Connect is unavailable
+	// (the production default).
+	OAuthRedirectURI string
+
 	// LogDir is the directory for the service log file.
 	// If empty, a temporary directory is used.
 	LogDir string
@@ -570,6 +579,12 @@ func buildServiceEnv(cfg ServiceConfig) []string {
 	if cfg.WhatsAppGraphBaseURL != "" {
 		env = append(env,
 			fmt.Sprintf("STIGMER_CHANNELS_WHATSAPP_GRAPH_API_BASE_URL=%s", cfg.WhatsAppGraphBaseURL),
+		)
+	}
+
+	if cfg.OAuthRedirectURI != "" {
+		env = append(env,
+			fmt.Sprintf("STIGMER_OAUTH_REDIRECT_URI=%s", cfg.OAuthRedirectURI),
 		)
 	}
 

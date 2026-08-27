@@ -478,8 +478,22 @@ describe("McpServer OAuth conformance — grant-free reads", () => {
   });
 
   it("disconnectOAuth is idempotent: no grant answers disconnected=false, not an error", async () => {
+    // The probe targets a REAL owned server (the wave-2 real-owned-resource
+    // convention): on the multi-tenant edition a fabricated id fails closed
+    // in authorization (PermissionDenied, no existence leak) before the
+    // handler runs, so only an owned server reaches the shared idempotence
+    // contract on both editions — which is also the stronger assertion: a
+    // real grant-free server, not a nonexistent one.
     const { org } = await target.provisionTenancy();
-    const out = await clients.mcpServerCommand.disconnectOAuth({ resourceId: "mcp_nogrant", org });
+    const server = await createOAuthMcpServer({
+      org,
+      name: uniqueName("nogrant-disconnect"),
+      discoveryUrl: mockAs.origin(),
+    });
+    const out = await clients.mcpServerCommand.disconnectOAuth({
+      resourceId: server.metadata!.id,
+      org,
+    });
     expect(out.disconnected).toBe(false);
   });
 });

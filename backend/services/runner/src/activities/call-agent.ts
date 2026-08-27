@@ -22,7 +22,7 @@
 import { randomUUID } from "node:crypto";
 import { Context, CompleteAsyncError } from "@temporalio/activity";
 import { StigmerClient } from "../client/stigmer-client.js";
-import { loadConfig } from "../config.js";
+import { loadConfig, type Config } from "../config.js";
 import { resolveObjectPlaceholders } from "../workflow-engine/resolve.js";
 import type { AgentCallConfig } from "../workflow-engine/types.js";
 import { startHeartbeat } from "../shared/heartbeat.js";
@@ -49,6 +49,7 @@ export async function callAgentAction(
   config: AgentCallConfig,
   runtimeEnv: Record<string, unknown>,
   parentWorkflowId: string,
+  appConfig: Config = loadConfig(),
 ): Promise<void> {
   const taskToken = Context.current().info.taskToken;
 
@@ -81,10 +82,19 @@ export async function callAgentAction(
     );
   }
 
-  const appConfig = loadConfig();
   const client = new StigmerClient({
     endpoint: appConfig.stigmerBackendEndpoint,
     token: appConfig.stigmerToken,
+    tokenRef: appConfig.stigmerTokenRef,
+    // The child-execution create must authenticate as the RUNNER, not the
+    // user: it stamps the workflow lineage labels, which cloud's
+    // reserved-label guard and environment composer accept only from
+    // runner-class callers. The client's credential-selection table routes
+    // exactly that create to this credential; null (OSS/local, no mint)
+    // falls through to the control-plane token unchanged. The refs live only
+    // on the runner's INJECTED Config (loadConfig() rebuilds from env and
+    // never carries them), which is why the factory passes it in.
+    runnerTokenRef: appConfig.stigmerRunnerTokenRef,
   });
 
   const agentRef = parseAgentReference(resolved.agent, orgId);
@@ -382,7 +392,7 @@ function resolveExecutionTarget(target?: number): ExecutionTarget {
   return ExecutionTarget.UNSPECIFIED;
 }
 
-export function createCallAgentActivities() {
+export function createCallAgentActivities(appConfig: Config) {
   return {
     CallAgent: async (
       config: AgentCallConfig,
@@ -391,7 +401,7 @@ export function createCallAgentActivities() {
     ): Promise<void> => {
       const hb = startHeartbeat(15_000, () => ({ phase: "creating_agent_execution" }));
       try {
-        return await callAgentAction(config, runtimeEnv, parentWorkflowId);
+        return await callAgentAction(config, runtimeEnv, parentWorkflowId, appConfig);
       } finally {
         hb.stop();
       }

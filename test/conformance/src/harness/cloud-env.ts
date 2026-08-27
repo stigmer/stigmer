@@ -25,6 +25,7 @@ import { PlatformClientCommandController } from "@stigmer/protos/ai/stigmer/iam/
 import { PlatformClientTokenController } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/token_pb";
 import { createTransport, makeClients } from "./clients";
 import { awaitGrpcReady } from "./grpc-ready";
+import { CONFORMANCE_OAUTH_REDIRECT_URI } from "./server-process";
 import { uniqueName } from "../support/naming";
 
 // Contract between global-setup-cloud.ts (writer) and CloudTarget (reader).
@@ -115,6 +116,15 @@ export async function spawnCloudEnvironment(): Promise<CloudEnvironment> {
     // .test-output/ like the integration tests' own runs.
     cwd: LAUNCHER_MODULE_DIR,
     stdio: ["ignore", "pipe", "inherit"],
+    env: {
+      ...process.env,
+      // The launcher passes this through to the Java service (an explicit
+      // ServiceConfig field, never ambient inheritance). The suite's own
+      // constant is the single source of truth: the mcpserver OAuth suites
+      // assert this exact value inside DCR requests and authorize URLs, so
+      // a second definition anywhere would drift.
+      STIGMER_OAUTH_REDIRECT_URI: CONFORMANCE_OAUTH_REDIRECT_URI,
+    },
   });
 
   const readyLine = await waitForReadyLine(child);

@@ -444,17 +444,21 @@ describe("McpServer connect conformance — grant health boundaries", () => {
       org,
     });
 
-    // PINNED CURRENT BEHAVIOR, arguably a bug: completeOAuthConnect records
-    // the refresh-token ENV VAR NAME on the grant unconditionally (the
-    // `_REFRESH_TOKEN` naming convention), and evaluateHealth keys
-    // "refreshable" off that name being non-empty — so a grant whose vendor
-    // never issued a refresh token still reports TOKEN_EXPIRED_REFRESHABLE,
-    // and the TOKEN_EXPIRED health state is unreachable through this flow.
-    // Filed as stigmer/stigmer#863 — when fixed (both editions), flip this
-    // pin to TOKEN_EXPIRED.
+    // TWO-ARMED implementation-lag pin (stigmer/stigmer#863; the multiTenant
+    // flag is only the edition discriminant here, not a tenancy semantic):
+    //  - OSS arm — PINNED CURRENT BEHAVIOR, arguably a bug: completeOAuthConnect
+    //    records the refresh-token ENV VAR NAME on the grant unconditionally
+    //    (the `_REFRESH_TOKEN` naming convention), and evaluateHealth keys
+    //    "refreshable" off that name being non-empty — so a grant whose vendor
+    //    never issued a refresh token still reports TOKEN_EXPIRED_REFRESHABLE,
+    //    and TOKEN_EXPIRED is unreachable through this flow.
+    //  - Cloud arm — already answers the correct TOKEN_EXPIRED.
+    // When #863 is fixed in OSS, collapse both arms to TOKEN_EXPIRED.
     expect(status.connected).toBe(true);
     expect(status.connectionHealth).toBe(
-      OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED_REFRESHABLE,
+      target.capabilities.multiTenant
+        ? OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED
+        : OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED_REFRESHABLE,
     );
   });
 });
@@ -738,21 +742,43 @@ describe("McpServer connect conformance — refresh-on-connect pre-flight", () =
     const exchangesBeforeConnect = mockAs.capturedTokenRequests().length;
     scriptClassifierVerdict(true);
 
+    // TWO-ARMED implementation-lag pin (stigmer/stigmer#863; multiTenant is
+    // only the edition discriminant, not a tenancy semantic):
+    //  - Cloud arm — refuses honestly: an expired grant with no refresh token
+    //    answers FailedPrecondition with the re-authenticate copy, before any
+    //    connect run starts. This is the behavior #863's fix converges on.
+    //  - OSS arm — PINNED CURRENT BEHAVIOR: with no refresh token stored, the
+    //    pre-flight's managed-env read fails and the refresh is SKIPPED
+    //    silently — connect proceeds with the expired token rather than
+    //    refusing (the refusal copy is unreachable through the wire: it fires
+    //    only when the managed env returns an EMPTY refresh token, which
+    //    completeOAuthConnect never writes). The stale token only fails
+    //    later, at the target server — which the echo fixture, needing no
+    //    auth, never does. The silent skip hides an expired, unrefreshable
+    //    grant.
+    // When #863 is fixed in OSS, collapse both arms to the cloud arm.
+    if (target.capabilities.multiTenant) {
+      const err = await expectGrpcCode(
+        () => clients.mcpServerCommand.connect({ mcpServerId: server.metadata!.id, org }),
+        Code.FailedPrecondition,
+        "connect with an expired, unrefreshable grant",
+      );
+      expect(err.rawMessage).toBe(
+        `Access token for MCP server '${server.metadata!.id}' has expired and no refresh ` +
+          "token is available. Please re-authenticate via OAuth Connect",
+      );
+      expect(
+        mockAs.capturedTokenRequests().length,
+        "no refresh attempt must reach the vendor",
+      ).toBe(exchangesBeforeConnect);
+      return;
+    }
+
     const connected = await clients.mcpServerCommand.connect({
       mcpServerId: server.metadata!.id,
       org,
     });
 
-    // PINNED CURRENT BEHAVIOR: with no refresh token stored, the pre-flight's
-    // managed-env read fails and the refresh is SKIPPED silently — connect
-    // proceeds with the expired token rather than refusing with the
-    // "no refresh token is available" re-authenticate error (that copy is
-    // unreachable through the wire: it fires only when the managed env
-    // returns an EMPTY refresh token, which completeOAuthConnect never
-    // writes). The stale token only fails later, at the target server —
-    // which the echo fixture, needing no auth, never does. Filed as
-    // stigmer/stigmer#863: the silent skip hides an expired, unrefreshable
-    // grant.
     expect(connected.status?.connectStatus?.phase).toBe(ConnectPhase.succeeded);
     expect(mockAs.capturedTokenRequests().length, "no refresh attempt must reach the vendor").toBe(
       exchangesBeforeConnect,

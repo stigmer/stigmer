@@ -234,7 +234,10 @@ export class StigmerClient {
         //    scoped-token exchange itself requires the embedded_runner
         //    bootstrap credential (a desktop runner's control-plane token is
         //    the user's own Auth0 token, which the server correctly treats as
-        //    a browsing user).
+        //    a browsing user); and the workflow child-execution create stamps
+        //    the platform's workflow lineage labels, which cloud's
+        //    reserved-label guard and environment composer accept only from
+        //    runner-class callers — a user-token create is rejected outright.
         //
         // 3. Everything else uses the control-plane token. Falls through
         //    unchanged when no runner token exists (OSS/local, where the
@@ -246,7 +249,9 @@ export class StigmerClient {
           const usesRunnerCredential =
             req.service.typeName === ExecutionContextQueryController.typeName ||
             (req.service.typeName === PlatformQueryController.typeName &&
-              req.method.name === PlatformQueryController.method.getRunnerScopedToken.name);
+              req.method.name === PlatformQueryController.method.getRunnerScopedToken.name) ||
+            (req.service.typeName === AgentExecutionCommandController.typeName &&
+              req.method.name === AgentExecutionCommandController.method.create.name);
           const token =
             (usesRunnerCredential ? this.runnerTokenRef?.current : null)
             ?? this.tokenRef?.current

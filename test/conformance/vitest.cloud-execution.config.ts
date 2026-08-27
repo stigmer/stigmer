@@ -15,6 +15,10 @@
 // - open-computer-use is EXCLUDED: a local-only developer gate (macOS
 //   accessibility + STIGMER_DESKTOP_TESTS opt-in) that can never run in the
 //   headless CI this config exists for.
+// - mcpserver-connect runs here like every other Class B suite: the cloud
+//   global setup passes STIGMER_OAUTH_REDIRECT_URI through the hermetic
+//   launcher to the JAR (the 20260824.05 owner-gated follow-up, closed by
+//   sub-project 20260826.08).
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
@@ -23,12 +27,6 @@ export default defineConfig({
     exclude: [
       "src/suites-execution/schedule-firing.conformance.test.ts",
       "src/suites-execution/open-computer-use.conformance.test.ts",
-      // EXCLUDED for the same reason as mcpserver-oauth in
-      // vitest.cloud.config.ts: its OAuth handshake setup needs
-      // STIGMER_OAUTH_REDIRECT_URI on the service, which the hermetic
-      // launcher does not yet pass to the JAR. Cloud enablement is an
-      // owner-gated follow-up (CW-1 wrap-up, sub-project 20260824.05).
-      "src/suites-execution/mcpserver-connect.conformance.test.ts",
     ],
     globalSetup: ["./src/harness/global-setup-cloud-execution.ts"],
     env: {

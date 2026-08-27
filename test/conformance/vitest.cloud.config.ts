@@ -21,20 +21,15 @@ export default defineConfig({
     // tick), so it is the first Class B behavior assertable against cloud —
     // the full runner-backed Class B suites live in the cloud-execution run
     // (vitest.cloud-execution.config.ts).
+    // mcpserver-oauth runs here like every other Class A suite: the cloud
+    // global setup passes STIGMER_OAUTH_REDIRECT_URI through the hermetic
+    // launcher to the JAR (the 20260824.05 owner-gated follow-up, closed by
+    // sub-project 20260826.08 — the Java unset-redirect refusal copy was
+    // byte-aligned to the shared message in the same change).
     include: [
       "src/suites/**/*.conformance.test.ts",
       "src/suites-execution/schedule-firing.conformance.test.ts",
     ],
-    // mcpserver-oauth is EXCLUDED (deliberately, the mcp.conformance
-    // convention): the OAuth initiate lanes need STIGMER_OAUTH_REDIRECT_URI
-    // on the service, which the hermetic launcher does not yet pass to the
-    // JAR — and the Java edition's refusal copy is already known to diverge
-    // (its unset-redirect message names the `stigmer.oauth.redirect-uri`
-    // property where the Go edition names the env var). Enabling this suite
-    // here is an owner-gated follow-up: wire the env var through the
-    // launcher, run hermetically, and two-arm the divergent copy from that
-    // evidence (CW-1 wrap-up, sub-project 20260824.05).
-    exclude: ["src/suites/mcpserver-oauth.conformance.test.ts"],
     globalSetup: ["./src/harness/global-setup-cloud.ts"],
     env: {
       CONFORMANCE_TARGET: "cloud",
@@ -43,7 +38,7 @@ export default defineConfig({
     // organization suite's count/pagination baselines would race across
     // concurrently running files.
     fileParallelism: false,
-    // Cloud RPCs traverse real auth + Mongo + FGA; give each test headroom
+    // Cloud RPCs traverse real auth + Postgres + FGA; give each test headroom
     // over the local budget.
     testTimeout: 30_000,
     // Covers the per-file readiness probe against the shared environment.
