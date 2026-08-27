@@ -82,6 +82,27 @@ eventually violate creatively.
   chain-internal skip shortcuts (idempotent-replay flags) — a gate owns
   its own idempotency; a gate refuses by throwing a `ConnectError` with
   the correct code and byte-pinned copy, exactly as OSS steps do.
+- **The tuple-lifecycle steps are part of every resource chain** (C2,
+  20260827.10 ruling Q2 — the config-driven port of the cloud's
+  CreateAuthorizationTuplesStepV2 machinery). Three shared steps in
+  `src/pipeline/steps/authorization-tuples.ts`, no-ops unless a
+  composition registers `drivers.resourceAuthorizationLifecycle`:
+  `CreateAuthorizationTuples` (post-Persist in EVERY create chain — in
+  the org chain BEFORE the `org-create:post-persist` slot, the verified
+  Java order; a driver failure fails the request, the row survives),
+  `CleanupIamPolicies` (after the store delete, best-effort — never
+  fails the delete), and `UpdateVisibilityTuples` (post-persist in every
+  updateVisibility chain, paired with `RecordVisibilityBeforeUpdate`
+  after the load). A NEW create/delete/updateVisibility chain MUST
+  splice the matching step; the skill push lane has a domain-local
+  adapter (`SkillPushAuthorizationTuples` — push is an upsert whose
+  message is the request, not the resource). All resolution (kind
+  config from `kind_meta`, parent ids from `spec_field` reflection, the
+  visibility shape diff with its org floor) is OSS-owned and
+  edition-neutral; drivers receive resolved events and write tuples.
+  The organization query forks (enumeration refusal, my-orgs filtering,
+  `getByExternalOrgId`) ride the `drivers.organizationDirectory` point —
+  never a second registration of an OSS-served RPC.
 - **Status-transition hooks fire from EVERY phase-transition persist
   site**, not one chokepoint (O4 ruling Q3) — the five sites are
   enumerated in `src/domain/agentexecution/status-observers.ts`, and a

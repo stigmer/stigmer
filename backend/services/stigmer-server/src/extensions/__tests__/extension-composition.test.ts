@@ -22,6 +22,9 @@ import type { Transport } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
+import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/command_pb";
 import {
@@ -34,6 +37,7 @@ import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/sessi
 import { BillingQueryController } from "@stigmer/protos/ai/stigmer/billing/v1/query_pb";
 import { BillingAccountSchema } from "@stigmer/protos/ai/stigmer/billing/v1/billing_account_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import {
   PlatformQueryController,
   ServerEdition,
@@ -49,6 +53,13 @@ import type { ComposedServer } from "../../boot/compose.js";
 import { createLogger } from "../../boot/logger.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { GateSlotName } from "../gate-slots.js";
+import type { OrganizationDirectory } from "../organization-directory.js";
+import type {
+  ResourceAuthorizationLifecycle,
+  ResourceCreatedEvent,
+  ResourceDeletedEvent,
+  VisibilityChangedEvent,
+} from "../resource-authorization.js";
 import type { AgentExecutionStatusTransition } from "../status-hooks.js";
 import type { ServerExtension } from "../registry.js";
 
@@ -478,5 +489,278 @@ describe("extension composition (O4 gate slots + status hooks)", () => {
     });
     expect(repeat.signal).toBe(ExecutionControlSignal.STOP);
     expect(observed).toHaveLength(1);
+  });
+});
+
+describe("extension composition (C2 tuple lifecycle + organization directory)", () => {
+  let server: ComposedServer;
+  let dir: string;
+  let portTransport: Transport;
+
+  const createdEvents: ResourceCreatedEvent[] = [];
+  const deletedEvents: ResourceDeletedEvent[] = [];
+  const visibilityEvents: VisibilityChangedEvent[] = [];
+  let failCreates = false;
+  let failDeletes = false;
+
+  const fakeLifecycle: ResourceAuthorizationLifecycle = {
+    async onResourceCreated(event): Promise<void> {
+      if (failCreates) {
+        throw new Error("fga is down");
+      }
+      createdEvents.push(event);
+    },
+    async onResourceDeleted(event): Promise<void> {
+      if (failDeletes) {
+        throw new Error("fga is down");
+      }
+      deletedEvents.push(event);
+    },
+    async onVisibilityChanged(event): Promise<void> {
+      visibilityEvents.push(event);
+    },
+  };
+
+  // The directory answers are test-mutable so each case can stage its
+  // own world without a second composed server.
+  const myOrgIds: string[] = [];
+  const externalOrgMap = new Map<string, string>();
+  const fakeDirectory: OrganizationDirectory = {
+    refusesEnumeration: true,
+    listMyOrganizationIds: async () => [...myOrgIds],
+    getOrganizationIdByExternalOrgId: async (externalOrgId) =>
+      externalOrgMap.get(externalOrgId),
+  };
+
+  const iamExtension: ServerExtension = {
+    name: "fake-iam",
+    drivers: {
+      resourceAuthorizationLifecycle: fakeLifecycle,
+      organizationDirectory: fakeDirectory,
+    },
+  };
+
+  beforeAll(async () => {
+    dir = mkdtempSync(path.join(tmpdir(), "tuple-lifecycle-test-"));
+    server = await composeServer({
+      config: loadConfig({
+        STIGMER_MODEL_REGISTRY_REFRESH: "off",
+        DB_PATH: path.join(dir, "stigmer.db"),
+        STORAGE_PATH: path.join(dir, "storage"),
+        ARTIFACT_LOCAL_BASE_PATH: path.join(dir, "artifacts"),
+      }),
+      logger: createLogger({ level: "error", pretty: false, write: () => {} }),
+      extensions: [iamExtension],
+      portOverride: 0,
+      host: "127.0.0.1",
+    });
+    const port = await server.start();
+    portTransport = createGrpcTransport({
+      baseUrl: `http://127.0.0.1:${port}`,
+    });
+  });
+
+  afterAll(async () => {
+    await server.shutdown();
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("org create fires the creation event: OWNER_ONLY — direct owner, no scope link", async () => {
+    const command = createClient(OrganizationCommandController, portTransport);
+    createdEvents.length = 0;
+    const org = await command.create(
+      create(OrganizationSchema, {
+        apiVersion: "tenancy.stigmer.ai/v1",
+        kind: "Organization",
+        metadata: { name: "C2 Seeded Org", slug: "c2seededorg" },
+      }),
+    );
+    expect(createdEvents).toHaveLength(1);
+    const event = createdEvents[0]!;
+    expect(event.kind).toBe(ApiResourceKind.organization);
+    expect(event.resourceId).toBe(org.metadata?.id);
+    expect(event.parentLinks).toEqual([]);
+    expect(event.caller.identityId).not.toBe("");
+    myOrgIds.push(org.metadata?.id ?? "");
+    externalOrgMap.set("ext-org-42", org.metadata?.id ?? "");
+  });
+
+  it("agent create fires creation events for the agent AND its in-process default instance", async () => {
+    const command = createClient(AgentCommandController, portTransport);
+    createdEvents.length = 0;
+    const agent = await command.create(
+      create(AgentSchema, {
+        apiVersion: "agentic.stigmer.ai/v1",
+        kind: "Agent",
+        metadata: {
+          name: "c2-seeded-agent",
+          org: "c2seededorg",
+          visibility: ApiResourceVisibility.visibility_org,
+        },
+        spec: { instructions: "a conformant instruction body" },
+      }),
+    );
+    // TWO events: the agent, and the default AgentInstance the create
+    // chain applies through the in-process client — the seam runs
+    // wherever its chain runs, including in-process invocations (the
+    // same inherited fact the gate slots record).
+    expect(createdEvents).toHaveLength(2);
+    const agentEvent = createdEvents.find(
+      (event) => event.kind === ApiResourceKind.agent,
+    );
+    expect(agentEvent?.parentLinks).toEqual([
+      {
+        relation: "organization",
+        parentKind: ApiResourceKind.organization,
+        parentId: "c2seededorg",
+      },
+    ]);
+    expect(agentEvent?.visibilityShapes).toEqual(["org-viewer"]);
+    const instanceEvent = createdEvents.find(
+      (event) => event.kind === ApiResourceKind.agent_instance,
+    );
+    expect(instanceEvent?.parentLinks).toContainEqual({
+      relation: "agent",
+      parentKind: ApiResourceKind.agent,
+      parentId: agent.metadata?.id,
+    });
+  });
+
+  it("updateVisibility fires the set-diff transition (org→public keeps the floor)", async () => {
+    const command = createClient(AgentCommandController, portTransport);
+    const agent = await command.create(
+      create(AgentSchema, {
+        apiVersion: "agentic.stigmer.ai/v1",
+        kind: "Agent",
+        metadata: {
+          name: "c2-visibility-agent",
+          org: "c2seededorg",
+          visibility: ApiResourceVisibility.visibility_org,
+        },
+        spec: { instructions: "a conformant instruction body" },
+      }),
+    );
+    visibilityEvents.length = 0;
+    await command.updateVisibility({
+      resourceId: agent.metadata?.id ?? "",
+      visibility: ApiResourceVisibility.visibility_public,
+    });
+    expect(visibilityEvents).toHaveLength(1);
+    const event = visibilityEvents[0]!;
+    expect(event.shapesToCreate).toEqual(["public-viewer"]);
+    expect(event.shapesToDelete).toEqual([]);
+  });
+
+  it("delete fires the cleanup event; a cleanup failure never fails the delete", async () => {
+    const command = createClient(AgentCommandController, portTransport);
+    const query = createClient(AgentQueryController, portTransport);
+
+    const first = await command.create(
+      create(AgentSchema, {
+        apiVersion: "agentic.stigmer.ai/v1",
+        kind: "Agent",
+        metadata: { name: "c2-deleted-agent", org: "c2seededorg" },
+        spec: { instructions: "a conformant instruction body" },
+      }),
+    );
+    deletedEvents.length = 0;
+    await command.delete({ value: first.metadata?.id ?? "" });
+    expect(deletedEvents).toHaveLength(1);
+    expect(deletedEvents[0]!.resourceId).toBe(first.metadata?.id);
+
+    const second = await command.create(
+      create(AgentSchema, {
+        apiVersion: "agentic.stigmer.ai/v1",
+        kind: "Agent",
+        metadata: { name: "c2-orphaned-agent", org: "c2seededorg" },
+        spec: { instructions: "a conformant instruction body" },
+      }),
+    );
+    deletedEvents.length = 0;
+    failDeletes = true;
+    try {
+      // Best-effort contract: the delete succeeds although the driver threw.
+      await command.delete({ value: second.metadata?.id ?? "" });
+    } finally {
+      failDeletes = false;
+    }
+    expect(deletedEvents).toHaveLength(0);
+    let getError: ConnectError | undefined;
+    try {
+      await query.get({ value: second.metadata?.id ?? "" });
+    } catch (error) {
+      getError = ConnectError.from(error);
+    }
+    expect(getError?.code).toBe(Code.NotFound);
+  });
+
+  it("a driver failure on create fails the request but the row survives (inherited semantics)", async () => {
+    const command = createClient(AgentCommandController, portTransport);
+    const query = createClient(AgentQueryController, portTransport);
+    failCreates = true;
+    let refused: ConnectError | undefined;
+    try {
+      await command.create(
+        create(AgentSchema, {
+          apiVersion: "agentic.stigmer.ai/v1",
+          kind: "Agent",
+          metadata: { name: "c2-halfcreated-agent", org: "c2seededorg" },
+          spec: { instructions: "a conformant instruction body" },
+        }),
+      );
+    } catch (error) {
+      refused = ConnectError.from(error);
+    } finally {
+      failCreates = false;
+    }
+    expect(refused?.code).toBe(Code.Internal);
+    expect(refused?.rawMessage).toBe("failed to create authorization tuples");
+    // The step runs post-persist: the row survived the failed request
+    // (ids are generated, so the surviving row is found by reference).
+    const half = await query.getByReference({
+      org: "c2seededorg",
+      slug: "c2-halfcreated-agent",
+    });
+    expect(half.metadata?.name).toBe("c2-halfcreated-agent");
+  });
+
+  it("the directory's enumeration refusal answers UNIMPLEMENTED on a valid find", async () => {
+    const query = createClient(OrganizationQueryController, portTransport);
+    let refused: ConnectError | undefined;
+    try {
+      await query.find({ org: "c2seededorg", pageSize: 10, pageNumber: 1 });
+    } catch (error) {
+      refused = ConnectError.from(error);
+    }
+    expect(refused?.code).toBe(Code.Unimplemented);
+  });
+
+  it("findMyOrganizations answers exactly the directory's authorized set", async () => {
+    const query = createClient(OrganizationQueryController, portTransport);
+    const mine = await query.findMyOrganizations({});
+    expect(mine.entries.map((org) => org.metadata?.id)).toEqual(myOrgIds);
+  });
+
+  it("getByExternalOrgId registers with the directory lookup and resolves the mapping", async () => {
+    const query = createClient(OrganizationQueryController, portTransport);
+    // identity_provider_ref is proto-required on the lookup message; the
+    // directory's resolution key is the (globally unique) external id.
+    const idpRef = { org: "c2seededorg", slug: "test-idp" };
+    const org = await query.getByExternalOrgId({
+      identityProviderRef: idpRef,
+      externalOrgId: "ext-org-42",
+    });
+    expect(org.metadata?.id).toBe(myOrgIds[0]);
+
+    let missing: ConnectError | undefined;
+    try {
+      await query.getByExternalOrgId({
+        identityProviderRef: idpRef,
+        externalOrgId: "ext-org-unknown",
+      });
+    } catch (error) {
+      missing = ConnectError.from(error);
+    }
+    expect(missing?.code).toBe(Code.NotFound);
   });
 });

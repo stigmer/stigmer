@@ -56,6 +56,7 @@ import {
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
+import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import {
   internalError,
@@ -99,6 +100,12 @@ import {
   newLoadTargetStep,
 } from "../../pipeline/steps/load-target.js";
 import { newNormalizeReferencesStep } from "../../pipeline/steps/references.js";
+import {
+  newCleanupIamPoliciesStep,
+  newCreateAuthorizationTuplesStep,
+  newRecordVisibilityBeforeUpdateStep,
+  newUpdateVisibilityTuplesStep,
+} from "../../pipeline/steps/authorization-tuples.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import {
@@ -137,6 +144,8 @@ export interface WorkflowControllerDeps {
   readonly logger: Logger;
   /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
   readonly authorizer: Authorizer;
+  /** The composed tuple-lifecycle driver — undefined = the shared steps no-op (C2). */
+  readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   /** The Layer-2 validator (converter + structural checks + registry). */
   readonly validator: InProcessValidator;
   /**
@@ -214,6 +223,12 @@ async function createWorkflow(
     .addStep(newComputeVersionHashStep(deps.logger))
     .addStep(newPopulateVersionHashStep(true))
     .addStep(newPersistStep(deps.store))
+    .addStep(
+      newCreateAuthorizationTuplesStep(
+        deps.authorizationLifecycle,
+        deps.logger,
+      ),
+    )
     .addStep(
       newCreateDefaultInstanceStep(deps.workflowInstanceCreator, deps.logger),
     )
@@ -342,6 +357,9 @@ async function deleteWorkflow(
     .addStep(newLoadExistingForDeleteStep(deps.store, WorkflowSchema))
     .addStep(newCascadeDeleteWorkflowInstancesStep(deps.store, deps.logger))
     .addStep(newDeleteResourceStep(deps.store))
+    .addStep(
+      newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
+    )
     .addStep(newDeleteSearchIndexStep(deps.store, deps.logger))
     .build()
     .execute(reqCtx);
@@ -392,9 +410,18 @@ async function updateVisibility(
     )
     .addStep(newValidateProtoStep())
     .addStep(newLoadWorkflowForVisibilityUpdateStep(deps.store))
+    .addStep(
+      newRecordVisibilityBeforeUpdateStep(UPDATE_VISIBILITY_WORKFLOW_KEY),
+    )
     .addStep(newValidateVisibilityUpdateStep())
     .addStep(newSetWorkflowVisibilityStep())
     .addStep(newPersistWorkflowForVisibilityUpdateStep(deps.store))
+    .addStep(
+      newUpdateVisibilityTuplesStep(
+        deps.authorizationLifecycle,
+        UPDATE_VISIBILITY_WORKFLOW_KEY,
+      ),
+    )
     .addStep(newIndexWorkflowAfterVisibilityUpdateStep(deps.store, deps.logger))
     .build()
     .execute(reqCtx);

@@ -8,17 +8,22 @@
  * organization.conformance.test.ts (CONFORMANCE_TARGET=local) and
  * __tests__/organization.test.ts.
  *
- * getByExternalOrgId is DELIBERATELY not implemented: it is the single
- * genuinely Unimplemented RPC across all registered domains (Go falls to
- * the embedded Unimplemented struct; here the method is simply absent from
- * the partial service implementation, and ConnectRPC answers Unimplemented)
- * — the SDK capability-probes this and must see UNIMPLEMENTED, not
- * NotFound (conformance pins it via externalOrgLookup=false).
+ * getByExternalOrgId is implemented ONLY when the composed
+ * OrganizationDirectory provides the lookup (C2, ruling Q7) — with no
+ * directory the method stays absent from the partial service
+ * implementation and ConnectRPC answers Unimplemented (the SDK
+ * capability-probes this and must see UNIMPLEMENTED, not NotFound;
+ * conformance pins it via externalOrgLookup=false). The directory also
+ * carries the other two edition forks: find's enumeration posture and
+ * findMyOrganizations' filtering (see organization-directory.ts).
  *
- * Versus Stigmer Cloud, OSS excludes the Authorize, CreateIamPolicies, and
- * Publish steps (no multi-tenant auth, IAM/FGA, or event publishing here).
+ * Versus Stigmer Cloud's Java service, plain OSS excludes the
+ * CreateIamPolicies and Publish steps; with the C2 seam composed, the
+ * CreateAuthorizationTuples/CleanupIamPolicies steps deliver the same
+ * lifecycle through the resourceAuthorizationLifecycle driver.
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
+import { Code, ConnectError } from "@connectrpc/connect";
 import { fromBinary } from "@bufbuild/protobuf";
 import { create } from "@bufbuild/protobuf";
 
@@ -33,6 +38,7 @@ import {
   OrganizationsSchema,
 } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/io_pb";
 import type {
+  OrganizationExternalLookup,
   OrganizationId,
   OrganizationList,
   Organizations,
@@ -42,8 +48,15 @@ import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
 import type { ResolvedGateSteps } from "../../extensions/gate-slots.js";
 import { stepsForSlot } from "../../extensions/gate-slots.js";
+import { ALL_ORGANIZATIONS } from "../../extensions/organization-directory.js";
+import type { OrganizationDirectory } from "../../extensions/organization-directory.js";
+import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
-import { internalError } from "../../pipeline/errors.js";
+import {
+  internalError,
+  invalidArgumentError,
+  notFoundError,
+} from "../../pipeline/errors.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
@@ -72,10 +85,15 @@ import {
   newLoadTargetStep,
   TARGET_RESOURCE_KEY,
 } from "../../pipeline/steps/load-target.js";
+import {
+  newCleanupIamPoliciesStep,
+  newCreateAuthorizationTuplesStep,
+} from "../../pipeline/steps/authorization-tuples.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import { newValidateVisibilityStep } from "../../pipeline/steps/validate-visibility.js";
+import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import { organizationSearchExtractor } from "./search-extractor.js";
 import { newCheckOrgDuplicateStep, newCopySlugToIdStep } from "./steps.js";
@@ -87,6 +105,10 @@ export interface OrganizationControllerDeps {
   readonly authorizer: Authorizer;
   /** The composed slot registrations — this domain's post-persist slot (O4). */
   readonly gateSteps: ResolvedGateSteps;
+  /** The composed tuple-lifecycle driver — undefined = the shared steps no-op (C2). */
+  readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
+  /** The composed query directory — undefined = OSS single-tenant behavior (C2). */
+  readonly organizationDirectory: OrganizationDirectory | undefined;
 }
 
 /** Registers both organization services on the router (routes stage). */
@@ -100,12 +122,26 @@ export function registerOrganizationServices(
     update: (org, ctx) => update(deps, org, ctx),
     delete: (orgId, ctx) => deleteOrganization(deps, orgId, ctx),
   });
-  // getByExternalOrgId deliberately absent → ConnectRPC answers
-  // Unimplemented (the capability-probed pin; see the module header).
+  // getByExternalOrgId registers ONLY when the composed directory carries
+  // the lookup (ruling Q7); otherwise the method stays absent from the
+  // partial implementation and ConnectRPC answers Unimplemented (the
+  // capability-probed pin; see the module header).
+  const externalLookup =
+    deps.organizationDirectory?.getOrganizationIdByExternalOrgId?.bind(
+      deps.organizationDirectory,
+    );
   router.service(OrganizationQueryController, {
     get: (orgId, ctx) => get(deps, orgId, ctx),
     find: (req, ctx) => find(deps, req, ctx),
-    findMyOrganizations: () => findMyOrganizations(deps),
+    findMyOrganizations: (_, ctx) => findMyOrganizations(deps, ctx),
+    ...(externalLookup === undefined
+      ? {}
+      : {
+          getByExternalOrgId: (
+            lookup: OrganizationExternalLookup,
+            ctx: HandlerContext,
+          ) => getByExternalOrgId(deps, externalLookup, lookup, ctx),
+        }),
   });
 }
 
@@ -152,7 +188,16 @@ async function createOrganization(
     .addStep(newCheckOrgDuplicateStep(deps.store))
     .addStep(newBuildNewStateStep())
     .addStep(newCopySlugToIdStep())
-    .addStep(newPersistStep(deps.store));
+    .addStep(newPersistStep(deps.store))
+    // The C2 tuple step runs BEFORE the slot — the verified Java order
+    // (createAuthorizationTuples → linkManagedOrgToIdentityProvider →
+    // provisionBillingAccount). No-op with no driver composed.
+    .addStep(
+      newCreateAuthorizationTuplesStep(
+        deps.authorizationLifecycle,
+        deps.logger,
+      ),
+    );
   // The ratified post-persist gate slot (blueprint 03 §3a; O4 — see the
   // doc comment above for the inherited failure semantics). Empty in OSS.
   for (const step of stepsForSlot<typeof OrganizationSchema>(
@@ -275,6 +320,9 @@ async function deleteOrganization(
     .addStep(newExtractResourceIdStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, OrganizationSchema))
     .addStep(newDeleteResourceStep(deps.store))
+    .addStep(
+      newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
+    )
     .addStep(newDeleteSearchIndexStep(deps.store, deps.logger))
     .build()
     .execute(reqCtx);
@@ -321,14 +369,22 @@ const FIND_RESULT_KEY = "findResult";
  * Find — enumerates ALL organizations with manual pagination (page size
  * default 20, cap 100). The request's org field is accepted but IGNORED
  * for filtering: organizations are the top-level scope and belong to no
- * org. Single-tenant OSS enumerates freely; cloud gates this behind
- * admin access (the organizationEnumeration capability fork).
+ * org. Single-tenant OSS enumerates freely; a composed directory with
+ * refusesEnumeration answers UNIMPLEMENTED before any work — the
+ * organizationEnumeration capability fork, byte-matching the
+ * absent-method semantics the cloud edition pins.
  */
 async function find(
   deps: OrganizationControllerDeps,
   req: FindApiResourcesRequest,
   ctx: HandlerContext,
 ): Promise<OrganizationList> {
+  if (deps.organizationDirectory?.refusesEnumeration === true) {
+    throw new ConnectError(
+      "ai.stigmer.tenancy.organization.v1.OrganizationQueryController.find is not implemented",
+      Code.Unimplemented,
+    );
+  }
   const reqCtx = new RequestContext(
     OrganizationQueryController.method.find.input,
     req,
@@ -419,12 +475,42 @@ function newListAllOrganizationsStep(
 /**
  * FindMyOrganizations — deliberately pipeline-less (Go): the input is
  * Empty, there is nothing to validate, and single-user OSS applies no IAM
- * filtering — ALL organizations are "mine". Cloud filters by the caller's
- * IAM policies instead (the multiTenant capability fork).
+ * filtering — ALL organizations are "mine". A composed directory filters
+ * to the caller's authorized set instead (the multiTenant capability
+ * fork, ruling Q7): the directory answers ids, the controller loads
+ * them, and ids whose rows are gone are skipped (grants can outlive
+ * rows).
  */
 async function findMyOrganizations(
   deps: OrganizationControllerDeps,
+  ctx: HandlerContext,
 ): Promise<Organizations> {
+  const directory = deps.organizationDirectory;
+  if (directory !== undefined) {
+    const authorized = await directory.listMyOrganizationIds(
+      callerIdentityOf(ctx),
+    );
+    if (authorized !== ALL_ORGANIZATIONS) {
+      const entries: Organization[] = [];
+      for (const id of authorized) {
+        try {
+          entries.push(
+            await deps.store.getResource(
+              ApiResourceKind.organization,
+              id,
+              OrganizationSchema,
+            ),
+          );
+        } catch (error) {
+          if (error instanceof ResourceNotFoundError) {
+            continue;
+          }
+          throw internalError(error, "failed to list organizations");
+        }
+      }
+      return create(OrganizationsSchema, { entries });
+    }
+  }
   let data: Uint8Array[];
   try {
     data = await deps.store.listResources(ApiResourceKind.organization);
@@ -440,4 +526,58 @@ async function findMyOrganizations(
     }
   }
   return create(OrganizationsSchema, { entries });
+}
+
+/**
+ * GetByExternalOrgId — registered only with a directory lookup composed
+ * (ruling Q7). The chain stays controller-owned: Authorize → validate →
+ * directory resolves the external id → LoadTarget-shaped store read.
+ * Both miss arms (no mapping, mapped row gone) answer the same NotFound
+ * — an external caller cannot distinguish a stale mapping from a
+ * missing org.
+ */
+async function getByExternalOrgId(
+  deps: OrganizationControllerDeps,
+  lookup: (externalOrgId: string) => Promise<string | undefined>,
+  input: OrganizationExternalLookup,
+  ctx: HandlerContext,
+): Promise<Organization> {
+  const reqCtx = new RequestContext(
+    OrganizationQueryController.method.getByExternalOrgId.input,
+    input,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
+  await newPipeline<
+    typeof OrganizationQueryController.method.getByExternalOrgId.input
+  >("organization-get-by-external-org-id", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        OrganizationQueryController.method.getByExternalOrgId,
+        deps.authorizer,
+      ),
+    )
+    .addStep(newValidateProtoStep())
+    .build()
+    .execute(reqCtx);
+
+  if (input.externalOrgId === "") {
+    throw invalidArgumentError("external_org_id is required");
+  }
+  const orgId = await lookup(input.externalOrgId);
+  if (orgId === undefined) {
+    throw notFoundError("Organization", input.externalOrgId);
+  }
+  try {
+    return await deps.store.getResource(
+      ApiResourceKind.organization,
+      orgId,
+      OrganizationSchema,
+    );
+  } catch (error) {
+    if (error instanceof ResourceNotFoundError) {
+      throw notFoundError("Organization", input.externalOrgId);
+    }
+    throw internalError(error, "failed to load organization");
+  }
 }

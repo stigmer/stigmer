@@ -37,6 +37,7 @@ import { ProjectStatusSchema } from "@stigmer/protos/ai/stigmer/tenancy/project/
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
+import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import { internalError } from "../../pipeline/errors.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
@@ -68,6 +69,10 @@ import {
   TARGET_RESOURCE_KEY,
   newLoadTargetStep,
 } from "../../pipeline/steps/load-target.js";
+import {
+  newCleanupIamPoliciesStep,
+  newCreateAuthorizationTuplesStep,
+} from "../../pipeline/steps/authorization-tuples.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { newNormalizeReferencesStep } from "../../pipeline/steps/references.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
@@ -87,6 +92,8 @@ export interface ProjectControllerDeps {
   readonly logger: Logger;
   /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
   readonly authorizer: Authorizer;
+  /** The composed tuple-lifecycle driver — undefined = the shared steps no-op (C2). */
+  readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   /**
    * The four downstream delete edges (agent/workflow/mcp_server/skill),
    * lazy per the compose root's boot-ordering idiom — the TS replacement
@@ -144,6 +151,12 @@ async function createProject(
     .addStep(newBuildNewStateStep())
     .addStep(newNormalizeReferencesStep())
     .addStep(newPersistStep(deps.store))
+    .addStep(
+      newCreateAuthorizationTuplesStep(
+        deps.authorizationLifecycle,
+        deps.logger,
+      ),
+    )
     .addStep(
       newIndexSearchStep(deps.store, projectSearchExtractor, deps.logger),
     )
@@ -286,6 +299,9 @@ async function deleteProject(
     .addStep(newExtractResourceIdStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, ProjectSchema))
     .addStep(newDeleteResourceStep(deps.store))
+    .addStep(
+      newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
+    )
     .addStep(newDeleteSearchIndexStep(deps.store, deps.logger))
     .build()
     .execute(reqCtx);

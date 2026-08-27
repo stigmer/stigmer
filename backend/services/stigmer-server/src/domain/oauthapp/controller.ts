@@ -43,6 +43,7 @@ import { OAuthAppQueryController } from "@stigmer/protos/ai/stigmer/iam/oauthapp
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
+import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import type { SecretService } from "../../encryption/encryption.js";
 import { internalError } from "../../pipeline/errors.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
@@ -73,6 +74,10 @@ import {
   TARGET_RESOURCE_KEY,
   newLoadTargetStep,
 } from "../../pipeline/steps/load-target.js";
+import {
+  newCleanupIamPoliciesStep,
+  newCreateAuthorizationTuplesStep,
+} from "../../pipeline/steps/authorization-tuples.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
@@ -91,6 +96,8 @@ export interface OAuthAppControllerDeps {
   readonly logger: Logger;
   /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
   readonly authorizer: Authorizer;
+  /** The composed tuple-lifecycle driver — undefined = the shared steps no-op (C2). */
+  readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
 }
 
 /** Registers both OAuthApp services on the router (routes stage). */
@@ -149,6 +156,12 @@ async function createOAuthApp(
     )
     .addStep(newBuildNewStateStep())
     .addStep(newPersistStep(deps.store))
+    .addStep(
+      newCreateAuthorizationTuplesStep(
+        deps.authorizationLifecycle,
+        deps.logger,
+      ),
+    )
     .build()
     .execute(reqCtx);
   const result = reqCtx.newState;
@@ -265,6 +278,9 @@ async function deleteOAuthApp(
     .addStep(newLoadExistingForDeleteStep(deps.store, OAuthAppSchema))
     .addStep(newCheckNoReferencingMcpServersStep(deps.store, deps.logger))
     .addStep(newDeleteResourceStep(deps.store))
+    .addStep(
+      newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
+    )
     .build()
     .execute(reqCtx);
 

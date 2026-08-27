@@ -52,13 +52,18 @@ import type {
   IdentityVerifier,
   MintedToken,
   ModelCatalogProvider,
+  OrganizationDirectory,
   PipelineStep,
   PresignedUpload,
+  ResourceAuthorizationLifecycle,
+  ResourceCreatedEvent,
+  ResourceDeletedEvent,
   RunnerCredentialProvider,
   SandboxProvisioner,
   SandboxProvisionerFactory,
   ServerExtension,
   Store,
+  VisibilityChangedEvent,
   WorkerFactory,
 } from "@stigmer/server";
 
@@ -232,6 +237,41 @@ const registerBillingService = (router: ConnectRouter): void => {
   });
 };
 
+/**
+ * A consumer tuple-lifecycle driver (the C2 seam, ruling Q2) — receives
+ * fully-resolved events; the tuple writes are the consumer's own.
+ */
+const authorizationLifecycle: ResourceAuthorizationLifecycle = {
+  onResourceCreated: (event: ResourceCreatedEvent) => {
+    void event.parentLinks;
+    void event.ownerAttribution;
+    void event.visibilityShapes;
+    return Promise.resolve();
+  },
+  onResourceDeleted: (event: ResourceDeletedEvent) => {
+    void event.resourceId;
+    return Promise.resolve();
+  },
+  onVisibilityChanged: (event: VisibilityChangedEvent) => {
+    void event.shapesToCreate;
+    void event.shapesToDelete;
+    return Promise.resolve();
+  },
+};
+
+/** A consumer organization directory (the C2 seam, ruling Q7). */
+const organizationDirectory: OrganizationDirectory = {
+  refusesEnumeration: true,
+  listMyOrganizationIds: (caller: CallerIdentity) => {
+    void caller.identityId;
+    return Promise.resolve<ReadonlyArray<string>>([]);
+  },
+  getOrganizationIdByExternalOrgId: (externalOrgId: string) => {
+    void externalOrgId;
+    return Promise.resolve<string | undefined>(undefined);
+  },
+};
+
 /** The whole unit — every point a consumer can populate today. */
 export const fakeExtension: ServerExtension = {
   name: "consumer-fake",
@@ -258,6 +298,8 @@ export const fakeExtension: ServerExtension = {
     sandboxProvisionerDrivers: new Map([
       ["consumer-sandbox", consumerSandboxDriver],
     ]),
+    resourceAuthorizationLifecycle: authorizationLifecycle,
+    organizationDirectory,
   },
   services: [registerBillingService],
   workers: [workerFactory],

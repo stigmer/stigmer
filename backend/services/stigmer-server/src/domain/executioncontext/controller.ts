@@ -48,6 +48,7 @@ import type {
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
+import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import type { SecretService } from "../../encryption/encryption.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import { alreadyExistsError, internalError } from "../../pipeline/errors.js";
@@ -77,6 +78,10 @@ import {
   newLoadTargetStep,
 } from "../../pipeline/steps/load-target.js";
 import { newNormalizeReferencesStep } from "../../pipeline/steps/references.js";
+import {
+  newCleanupIamPoliciesStep,
+  newCreateAuthorizationTuplesStep,
+} from "../../pipeline/steps/authorization-tuples.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
@@ -97,6 +102,8 @@ export interface ExecutionContextControllerDeps {
   readonly logger: Logger;
   /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
   readonly authorizer: Authorizer;
+  /** The composed tuple-lifecycle driver — undefined = the shared steps no-op (C2). */
+  readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   /**
    * Shared with the Environment/OAuthApp controllers so the
    * encrypt-on-write / decrypt-on-read key pair always matches.
@@ -171,6 +178,12 @@ async function createExecutionContext(
     .addStep(newNormalizeReferencesStep())
     .addStep(newEncryptSecretValuesStep(deps.secretService, deps.logger))
     .addStep(newPersistStep(deps.store))
+    .addStep(
+      newCreateAuthorizationTuplesStep(
+        deps.authorizationLifecycle,
+        deps.logger,
+      ),
+    )
     .addStep(
       newIndexSearchStep(
         deps.store,
@@ -269,6 +282,9 @@ async function deleteExecutionContext(
     .addStep(newValidateProtoStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, ExecutionContextSchema))
     .addStep(newDeleteResourceStep(deps.store))
+    .addStep(
+      newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
+    )
     .addStep(newDeleteSearchIndexStep(deps.store, deps.logger))
     .build()
     .execute(reqCtx);
