@@ -737,10 +737,12 @@ jobs:
   # The compose pin is release-lane-managed (P5 gate ruling Q-A): after
   # both published-tag compose smokes pass on a stable release, open a PR
   # re-pointing docker-compose.yml's STIGMER_VERSION default (and the
-  # .env.example doc line) at this version. A PR, not a push: main stays
-  # protected and the bump is reviewable. Requires the org setting
-  # "Allow GitHub Actions to create and approve pull requests"; if the
-  # job fails on that, flip the setting — do not hand-edit the pin.
+  # .env.example doc line) at this version. Pushed DIRECTLY to main (owner
+  # ruling, oss#915): the bump is mechanical and is proven by this very run
+  # — both published-tag compose smokes gate this job — and the PR route
+  # required an org setting that blocked the v3.13.0 lane. The push uses
+  # the workflow's own GITHUB_TOKEN, so it never retriggers push workflows
+  # (the SDK-docs self-heal precedent, ci.docs.yaml).
   bump-compose-pins:
     needs: [determine-version, smoke-compose-amd64, smoke-compose-arm64]
     if: ${{ !contains(needs.determine-version.outputs.version, '-') }}
@@ -748,17 +750,15 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: write
-      pull-requests: write
     steps:
       - name: Checkout main
         uses: actions/checkout@v4
         with:
           ref: main
 
-      - name: Re-point the compose pins and open the bump PR
+      - name: Re-point the compose pins and push to main
         env:
           VERSION: ${{ needs.determine-version.outputs.version }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           sed -i -E "s/STIGMER_VERSION:-v[0-9A-Za-z.+-]+/STIGMER_VERSION:-v${VERSION}/g" docker-compose.yml
@@ -767,12 +767,13 @@ jobs:
             echo "pins already at v${VERSION} — nothing to bump"
             exit 0
           fi
-          BRANCH="release/compose-pin-v${VERSION}"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git checkout -b "$BRANCH"
-          git commit -am "chore(release): pin the compose stack to v${VERSION}"
-          git push -u origin "$BRANCH"
-          gh pr create \
-            --title "chore(release): pin the compose stack to v${VERSION}" \
-            --body "Automated by release.npm-libs.yaml after both published-tag compose smokes passed (amd64 + arm64). Re-points the \`STIGMER_VERSION\` default in docker-compose.yml (and the .env.example doc line) at the release both images were proven under."
+          git commit \
+            -am "chore(release): pin the compose stack to v${VERSION}" \
+            -m "Automated by release.npm-libs.yaml after both published-tag compose smokes passed (amd64 + arm64)."
+          # Race-resilient like the SDK-docs self-heal, but a lost pin must
+          # FAIL loudly (a stale pin points fresh clones at the wrong
+          # images), so no warning fallback: rebase once, then give up.
+          git push origin HEAD:main \
+            || { git pull --rebase origin main && git push origin HEAD:main; }
