@@ -73,6 +73,7 @@ import {
 import {
   SHOULD_CREATE_KEY,
   newLoadForApplyStep,
+  withResolvedApplyId,
 } from "../../pipeline/steps/load-for-apply.js";
 import { newLoadByReferenceStep } from "../../pipeline/steps/load-by-reference.js";
 import {
@@ -236,7 +237,10 @@ async function update(
   return reqCtx.newState;
 }
 
-/** Apply — kubectl-style create-or-update, delegating the ORIGINAL request. */
+/**
+ * Apply — kubectl-style create-or-update, delegating the ORIGINAL request;
+ * the update arm carries the resolved id via withResolvedApplyId.
+ */
 async function apply(
   deps: WorkflowInstanceControllerDeps,
   instance: WorkflowInstance,
@@ -273,7 +277,11 @@ async function apply(
   }
   return shouldCreate
     ? createInstance(deps, instance, ctx)
-    : update(deps, instance, ctx);
+    : update(
+        deps,
+        withResolvedApplyId(WorkflowInstanceSchema, instance, reqCtx),
+        ctx,
+      );
 }
 
 /**

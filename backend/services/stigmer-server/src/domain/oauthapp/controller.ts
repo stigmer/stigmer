@@ -68,6 +68,7 @@ import {
 import {
   SHOULD_CREATE_KEY,
   newLoadForApplyStep,
+  withResolvedApplyId,
 } from "../../pipeline/steps/load-for-apply.js";
 import { newLoadByReferenceStep } from "../../pipeline/steps/load-by-reference.js";
 import {
@@ -211,7 +212,8 @@ async function update(
 /**
  * Apply — kubectl-style idempotent create-or-update: a minimal pipeline
  * decides existence, then delegates to Create or Update with the ORIGINAL
- * request message (Go delegates `app`, not the pipeline's mutated clone).
+ * request message (Go delegates `app`, not the pipeline's mutated clone);
+ * the update arm carries the resolved id via withResolvedApplyId.
  */
 async function apply(
   deps: OAuthAppControllerDeps,
@@ -241,7 +243,9 @@ async function apply(
       "apply operation failed to determine create vs update",
     );
   }
-  return shouldCreate ? createOAuthApp(deps, app, ctx) : update(deps, app, ctx);
+  return shouldCreate
+    ? createOAuthApp(deps, app, ctx)
+    : update(deps, withResolvedApplyId(OAuthAppSchema, app, reqCtx), ctx);
 }
 
 /**

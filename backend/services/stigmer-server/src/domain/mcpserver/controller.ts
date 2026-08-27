@@ -75,6 +75,7 @@ import {
 import {
   SHOULD_CREATE_KEY,
   newLoadForApplyStep,
+  withResolvedApplyId,
 } from "../../pipeline/steps/load-for-apply.js";
 import { newLoadByReferenceStep } from "../../pipeline/steps/load-by-reference.js";
 import {
@@ -269,7 +270,8 @@ async function update(
 
 /**
  * Apply — kubectl-style create-or-update: a minimal probe pipeline
- * decides existence, then delegates with the ORIGINAL request message.
+ * decides existence, then delegates with the ORIGINAL request message
+ * (the update arm carries the resolved id via withResolvedApplyId).
  *
  * The tail fires startBestEffortConnect on the result — Go's
  * `go StartBestEffortConnect(result)` (apply.go:76), auto discovery
@@ -310,7 +312,11 @@ async function apply(
   }
   const result = shouldCreate
     ? await createMcpServer(deps, server, ctx)
-    : await update(deps, server, ctx);
+    : await update(
+        deps,
+        withResolvedApplyId(McpServerSchema, server, reqCtx),
+        ctx,
+      );
 
   // startBestEffortConnect's arms never throw by design; the catch is
   // the process-safety net an unhandled rejection would pierce.

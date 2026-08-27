@@ -68,6 +68,7 @@ import {
 import {
   SHOULD_CREATE_KEY,
   newLoadForApplyStep,
+  withResolvedApplyId,
 } from "../../pipeline/steps/load-for-apply.js";
 import { newLoadByReferenceStep } from "../../pipeline/steps/load-by-reference.js";
 import {
@@ -229,7 +230,8 @@ async function update(
 
 /**
  * Apply — kubectl-style create-or-update; delegates with the ORIGINAL
- * request message. The create route is the default-instance path (the
+ * request message (the update arm carries the resolved id via
+ * withResolvedApplyId). The create route is the default-instance path (the
  * agent controller's CreateDefaultInstance applies through here); the
  * update route is the self-heal for pre-cascade legacy orphans.
  */
@@ -269,7 +271,11 @@ async function apply(
   }
   return shouldCreate
     ? createInstance(deps, instance, ctx)
-    : update(deps, instance, ctx);
+    : update(
+        deps,
+        withResolvedApplyId(AgentInstanceSchema, instance, reqCtx),
+        ctx,
+      );
 }
 
 /** Delete — no cascade of its own; returns the deleted instance. */

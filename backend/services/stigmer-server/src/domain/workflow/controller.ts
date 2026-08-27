@@ -94,6 +94,7 @@ import {
 import {
   SHOULD_CREATE_KEY,
   newLoadForApplyStep,
+  withResolvedApplyId,
 } from "../../pipeline/steps/load-for-apply.js";
 import {
   TARGET_RESOURCE_KEY,
@@ -291,7 +292,8 @@ async function update(
 /**
  * Apply — kubectl-style create-or-update: a minimal probe pipeline decides
  * existence, then delegates to Create or Update with the ORIGINAL request
- * message (Go delegates `workflow`, not the pipeline's mutated clone).
+ * message (Go delegates `workflow`, not the pipeline's mutated clone);
+ * the update arm carries the resolved id via withResolvedApplyId.
  */
 async function apply(
   deps: WorkflowControllerDeps,
@@ -323,7 +325,7 @@ async function apply(
   }
   return shouldCreate
     ? createWorkflow(deps, workflow, ctx)
-    : update(deps, workflow, ctx);
+    : update(deps, withResolvedApplyId(WorkflowSchema, workflow, reqCtx), ctx);
 }
 
 /**

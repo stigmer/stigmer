@@ -80,6 +80,7 @@ import {
 import {
   SHOULD_CREATE_KEY,
   newLoadForApplyStep,
+  withResolvedApplyId,
 } from "../../pipeline/steps/load-for-apply.js";
 import {
   newLoadTargetStep,
@@ -253,7 +254,8 @@ async function update(
 /**
  * Apply — kubectl-style idempotent create-or-update: a minimal pipeline
  * decides existence, then delegates to Create or Update with the ORIGINAL
- * request message (Go delegates `org`, not the pipeline's mutated clone).
+ * request message (Go delegates `org`, not the pipeline's mutated clone);
+ * the update arm carries the resolved id via withResolvedApplyId.
  */
 async function apply(
   deps: OrganizationControllerDeps,
@@ -291,7 +293,7 @@ async function apply(
   }
   return shouldCreate
     ? createOrganization(deps, org, ctx)
-    : update(deps, org, ctx);
+    : update(deps, withResolvedApplyId(OrganizationSchema, org, reqCtx), ctx);
 }
 
 /** Delete — returns the deleted organization (gRPC audit-trail convention). */

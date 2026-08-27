@@ -62,6 +62,7 @@ import {
 import {
   SHOULD_CREATE_KEY,
   newLoadForApplyStep,
+  withResolvedApplyId,
 } from "../../pipeline/steps/load-for-apply.js";
 import { newLoadByReferenceStep } from "../../pipeline/steps/load-by-reference.js";
 import {
@@ -219,7 +220,8 @@ async function update(
 /**
  * Apply — kubectl-style create-or-update: a minimal probe pipeline decides
  * existence, then delegates to Create or Update with the ORIGINAL request
- * message (Go delegates `agent`, not the pipeline's mutated clone).
+ * message (Go delegates `agent`, not the pipeline's mutated clone);
+ * the update arm carries the resolved id via withResolvedApplyId.
  */
 async function apply(
   deps: AgentControllerDeps,
@@ -251,7 +253,7 @@ async function apply(
   }
   return shouldCreate
     ? createAgent(deps, agent, ctx)
-    : update(deps, agent, ctx);
+    : update(deps, withResolvedApplyId(AgentSchema, agent, reqCtx), ctx);
 }
 
 /**

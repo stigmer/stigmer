@@ -67,6 +67,7 @@ import {
 import {
   SHOULD_CREATE_KEY,
   newLoadForApplyStep,
+  withResolvedApplyId,
 } from "../../pipeline/steps/load-for-apply.js";
 import { newLoadByReferenceStep } from "../../pipeline/steps/load-by-reference.js";
 import {
@@ -213,7 +214,8 @@ async function update(
  * minimal probe pipeline decides existence, then delegates to Create or
  * Update with the ORIGINAL request message (Go delegates `app`, not the
  * pipeline's clone — unlike agentshare/agentchannel, whose defaults live
- * on the clone; channelapp's Update re-resolves the slug itself). Sending
+ * on the clone; channelapp's Update re-resolves the slug itself); the
+ * update arm carries the resolved id via withResolvedApplyId. Sending
  * the marker for a secret field on an apply that resolves to update
  * preserves the stored value; on an apply that resolves to create it is
  * refused — there is nothing to preserve.
@@ -251,7 +253,7 @@ async function apply(
   }
   return shouldCreate
     ? createChannelApp(deps, app, ctx)
-    : update(deps, app, ctx);
+    : update(deps, withResolvedApplyId(ChannelAppSchema, app, reqCtx), ctx);
 }
 
 /**

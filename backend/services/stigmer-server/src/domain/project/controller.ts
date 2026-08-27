@@ -64,6 +64,7 @@ import {
 import {
   SHOULD_CREATE_KEY,
   newLoadForApplyStep,
+  withResolvedApplyId,
 } from "../../pipeline/steps/load-for-apply.js";
 import {
   TARGET_RESOURCE_KEY,
@@ -252,7 +253,11 @@ async function apply(
 
   const persisted = shouldCreate
     ? await createProject(deps, project, ctx)
-    : await update(deps, project, ctx);
+    : await update(
+        deps,
+        withResolvedApplyId(ProjectSchema, project, reqCtx),
+        ctx,
+      );
 
   const currentMembers = persisted.spec?.members ?? [];
 
