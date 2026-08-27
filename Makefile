@@ -535,6 +535,17 @@ smoke-docker-image: build-server build-web ## Build the server Docker image from
 	@cd $(SERVER_DIR) && node scripts/bundle-slim.mjs --platform=linux-$$(node -e "process.stdout.write(process.arch==='x64'?'x64':'arm64')")
 	@cd $(SERVER_DIR) && node scripts/smoke-docker-image.mjs
 
+# The compose gate (DD-013, Phase-2 P5): build both images from source and
+# prove the full self-host stack — server + Postgres + Temporal + runner —
+# up to one end-to-end workflow run. The same script the PR gate
+# (ci.compose-stack.yaml) and the release lane run. Fixed ports 7234/7235:
+# stop any running `stigmer up` first.
+.PHONY: smoke-compose
+smoke-compose: build-server build-web ## Build the compose stack from source and run the clean-clone gate smoke (DD-013; needs Docker)
+	@command -v docker >/dev/null 2>&1 || { echo "error: docker not found — the compose smoke needs a Docker daemon"; exit 1; }
+	@cd $(SERVER_DIR) && node scripts/bundle-slim.mjs --platform=linux-$$(node -e "process.stdout.write(process.arch==='x64'?'x64':'arm64')")
+	node scripts/smoke-compose.mjs --build
+
 .PHONY: test-conformance-cloud
 test-conformance-cloud: build-ts-stubs ## Run gRPC conformance CRUD suite against the Java cloud service (hermetic; needs Docker, `fga`, `temporal`, and the fat JAR)
 	@command -v go >/dev/null 2>&1 || { echo "error: go not found — the harness builds the cloud environment launcher"; exit 1; }

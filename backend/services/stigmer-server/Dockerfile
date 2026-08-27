@@ -62,7 +62,16 @@ ENV HOME=/data \
 # /data must exist owned by the runtime user before VOLUME freezes it:
 # named volumes initialize from the image and inherit this ownership.
 # (Bind mounts keep host ownership — the docker run docs cover chown.)
-RUN mkdir -p /data && chown node:node /data
+#
+# The artifact path is pre-created for the compose stack (DD-013): compose
+# mounts a SHARED named volume at this exact path (the runner reads what
+# the server writes). A nested mountpoint that does not pre-exist would be
+# created root-owned by the docker daemon INSIDE the outer /data volume —
+# and this non-root server would then fail its boot mkdirs with EACCES.
+# Pre-created node-owned, both the intermediate dirs and the volume's
+# initialized content stay writable. Harmless outside compose: the boot
+# mkdir -p of the same default path becomes a no-op.
+RUN mkdir -p /data/.stigmer/data/artifacts && chown -R node:node /data
 
 WORKDIR /app
 COPY --chown=node:node dist-slim-${TARGETARCH}/ /app/

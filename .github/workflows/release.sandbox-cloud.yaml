@@ -99,10 +99,17 @@ jobs:
           echo "short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
           echo "Building: latest + main-$SHORT_SHA"
 
+      # --target sandbox: the Dockerfile's final stage is the self-host
+      # compose runner (sandbox + stigmer CLI, published separately as
+      # ghcr.io/stigmer/stigmer-runner by release.npm-libs.yaml); this lane
+      # ships the CLOUD sandbox stage, byte-identical to before the stage
+      # split. amd64 stays this lane's platform — the cloud fleet is amd64;
+      # the multi-arch proof lives on the compose-runner lane.
       - name: Build and push sandbox image
         run: |
           docker buildx build \
             --platform linux/amd64 \
+            --target sandbox \
             --file backend/services/runner/Dockerfile.sandbox \
             --tag ghcr.io/${{ github.repository_owner }}/runner:latest \
             --tag ghcr.io/${{ github.repository_owner }}/runner:main-${{ steps.tags.outputs.short_sha }} \

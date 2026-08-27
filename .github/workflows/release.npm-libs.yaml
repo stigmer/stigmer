@@ -541,3 +541,238 @@ jobs:
           docker buildx imagetools create \
             --tag "ghcr.io/${{ github.repository_owner }}/stigmer-server:latest" \
             "ghcr.io/${{ github.repository_owner }}/stigmer-server:v${VERSION}"
+
+  # ══ The compose-runner image (DD-013/DD-014, Phase-2 P5) ══
+  # The self-host stack's runner: Dockerfile.sandbox's `compose-runner`
+  # stage (the cloud sandbox stage + the stigmer CLI the OSS-shape MCP
+  # attachments spawn). Published as ghcr.io/stigmer/stigmer-runner with
+  # the server image's tag policy: push the version tag → prove it with
+  # the FULL compose smoke on both native arches → promote `latest` and
+  # bump the committed compose pin.
+  #
+  # Unlike the server image (COPY-only, QEMU-safe), this build compiles
+  # the runner and npm-installs the CLI in RUN steps — so each arch builds
+  # NATIVELY on its own runner (per-arch tags), and a manifest job merges
+  # them. Needs `publish`: the CLI installs from the npm registry at this
+  # release's version.
+  publish-runner-image-amd64:
+    needs: [determine-version, publish]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push (native amd64, per-arch tag)
+        env:
+          VERSION: ${{ needs.determine-version.outputs.version }}
+        run: |
+          docker buildx build \
+            --platform linux/amd64 \
+            --target compose-runner \
+            --build-arg STIGMER_CLI_VERSION="${VERSION}" \
+            --file backend/services/runner/Dockerfile.sandbox \
+            --tag "ghcr.io/${{ github.repository_owner }}/stigmer-runner:v${VERSION}-amd64" \
+            --push \
+            .
+
+  publish-runner-image-arm64:
+    needs: [determine-version, publish]
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push (native arm64, per-arch tag)
+        env:
+          VERSION: ${{ needs.determine-version.outputs.version }}
+        run: |
+          docker buildx build \
+            --platform linux/arm64 \
+            --target compose-runner \
+            --build-arg STIGMER_CLI_VERSION="${VERSION}" \
+            --file backend/services/runner/Dockerfile.sandbox \
+            --tag "ghcr.io/${{ github.repository_owner }}/stigmer-runner:v${VERSION}-arm64" \
+            --push \
+            .
+
+  publish-runner-image:
+    needs: [determine-version, publish-runner-image-amd64, publish-runner-image-arm64]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      packages: write
+    steps:
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Merge the per-arch tags into the version manifest
+        env:
+          VERSION: ${{ needs.determine-version.outputs.version }}
+        run: |
+          docker buildx imagetools create \
+            --tag "ghcr.io/${{ github.repository_owner }}/stigmer-runner:v${VERSION}" \
+            "ghcr.io/${{ github.repository_owner }}/stigmer-runner:v${VERSION}-amd64" \
+            "ghcr.io/${{ github.repository_owner }}/stigmer-runner:v${VERSION}-arm64"
+
+      - name: Ensure GHCR package is public
+        continue-on-error: true
+        run: |
+          gh api \
+            -X PUT \
+            /orgs/${{ github.repository_owner }}/packages/container/stigmer-runner/visibility \
+            -f visibility=public
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # The published-tag re-verification the P5 gate ruled (Q-A): the SAME
+  # scripts/smoke-compose.mjs that gates PRs (there: build-from-source)
+  # runs the full stack — Postgres, Temporal, server, runner — from the
+  # images just pushed, up to one end-to-end workflow run, natively per
+  # arch. `stigmer-runner:latest` and the compose pin only move after
+  # the stack these tags name has actually run somewhere.
+  smoke-compose-amd64:
+    needs: [determine-version, publish-server-image, publish-runner-image]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compose smoke against the pushed tags (native amd64)
+        run: |
+          node scripts/smoke-compose.mjs --published \
+            --version="v${{ needs.determine-version.outputs.version }}"
+
+  smoke-compose-arm64:
+    needs: [determine-version, publish-server-image, publish-runner-image]
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compose smoke against the pushed tags (native arm64)
+        run: |
+          node scripts/smoke-compose.mjs --published \
+            --version="v${{ needs.determine-version.outputs.version }}"
+
+  promote-runner-image-latest:
+    needs: [determine-version, smoke-compose-amd64, smoke-compose-arm64]
+    # Stable only — same channel policy as the server image, with a
+    # stronger proof: `latest` moves only after the full compose stack ran
+    # end-to-end on both arches from the pushed tags.
+    if: ${{ !contains(needs.determine-version.outputs.version, '-') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      packages: write
+    steps:
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Promote latest to the smoked version tag
+        env:
+          VERSION: ${{ needs.determine-version.outputs.version }}
+        run: |
+          docker buildx imagetools create \
+            --tag "ghcr.io/${{ github.repository_owner }}/stigmer-runner:latest" \
+            "ghcr.io/${{ github.repository_owner }}/stigmer-runner:v${VERSION}"
+
+  # The compose pin is release-lane-managed (P5 gate ruling Q-A): after
+  # both published-tag compose smokes pass on a stable release, open a PR
+  # re-pointing docker-compose.yml's STIGMER_VERSION default (and the
+  # .env.example doc line) at this version. A PR, not a push: main stays
+  # protected and the bump is reviewable. Requires the org setting
+  # "Allow GitHub Actions to create and approve pull requests"; if the
+  # job fails on that, flip the setting — do not hand-edit the pin.
+  bump-compose-pins:
+    needs: [determine-version, smoke-compose-amd64, smoke-compose-arm64]
+    if: ${{ !contains(needs.determine-version.outputs.version, '-') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Re-point the compose pins and open the bump PR
+        env:
+          VERSION: ${{ needs.determine-version.outputs.version }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          sed -i -E "s/STIGMER_VERSION:-v[0-9A-Za-z.+-]+/STIGMER_VERSION:-v${VERSION}/g" docker-compose.yml
+          sed -i -E "s/^#STIGMER_VERSION=.*/#STIGMER_VERSION=v${VERSION}/" .env.example
+          if git diff --quiet; then
+            echo "pins already at v${VERSION} — nothing to bump"
+            exit 0
+          fi
+          BRANCH="release/compose-pin-v${VERSION}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git commit -am "chore(release): pin the compose stack to v${VERSION}"
+          git push -u origin "$BRANCH"
+          gh pr create \
+            --title "chore(release): pin the compose stack to v${VERSION}" \
+            --body "Automated by release.npm-libs.yaml after both published-tag compose smokes passed (amd64 + arm64). Re-points the \`STIGMER_VERSION\` default in docker-compose.yml (and the .env.example doc line) at the release both images were proven under."

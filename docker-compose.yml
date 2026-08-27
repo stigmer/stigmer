@@ -1,0 +1,186 @@
+# Stigmer self-host compose stack (Phase-2 P5; design record: DD-013/DD-014).
+#
+#   cp .env.example .env   # fill in the three required values (see the file)
+#   docker compose up -d
+#   open http://localhost:7234
+#
+# Topology — four services, one Postgres instance:
+#   postgres        one instance, three databases: `stigmer` (the app, created
+#                   by POSTGRES_DB), plus `temporal` + `temporal_visibility`
+#                   (created by Temporal's auto-setup). One container, one
+#                   volume, one backup story.
+#   temporal        a real Temporal server (temporalio/auto-setup), NOT the
+#                   CLI's dev-server binary.
+#   stigmer-server  the control plane + web console + artifact file server.
+#   stigmer-runner  the execution worker (agents + workflows). stdio MCP
+#                   servers spawn INSIDE this container — they can reach this
+#                   container's filesystem and network, not your host's.
+#
+# Image pins: the STIGMER_VERSION default below is managed by the release
+# lane (release.npm-libs.yaml bumps it via PR after both published images
+# pass the compose smoke on both architectures). Override in .env to run a
+# different released version.
+#
+# The env blocks below set every load-bearing variable EXPLICITLY, even
+# where the image default would coincide — two independent defaults
+# agreeing by luck is not a contract (the client-apps/cli daemon's
+# components.ts discipline, applied to compose).
+
+# The ONE runner task queue: the server dispatches to it and the runner
+# polls it, both from this anchor, so the two can never drift.
+x-runner-task-queue: &runner-task-queue "stigmer_runner"
+
+# The artifact root. The server WRITES artifacts here and the runner READS
+# them from the same named volume (stigmer/stigmer#285's local pattern,
+# ported: filesystem sharing is the contract, not HTTP). The path is the
+# daemon's ~/.stigmer/data/artifacts layout under the containers' HOME=/data.
+x-artifacts-path: &artifacts-path "/data/.stigmer/data/artifacts"
+
+# Where artifact download URLs point. These URLs are minted for HOST-side
+# consumers (your browser, the CLI), so they use the host-published port —
+# NOT the in-network address. Serving this stack to other machines? Change
+# this to an address they can reach.
+x-artifact-serve-url: &artifact-serve-url "http://localhost:7235"
+
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?missing — copy .env.example to .env and fill it in}
+      # The app database. Temporal's auto-setup creates its own two
+      # (`temporal`, `temporal_visibility`) on this same instance at first
+      # boot.
+      POSTGRES_DB: stigmer
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  temporal:
+    image: temporalio/auto-setup:1.28.0
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB: postgres12
+      DB_PORT: "5432"
+      POSTGRES_USER: postgres
+      POSTGRES_PWD: ${POSTGRES_PASSWORD:?missing — copy .env.example to .env and fill it in}
+      POSTGRES_SEEDS: postgres
+    # Ready means "the default namespace is registered", NOT "the frontend
+    # answers": auto-setup registers the namespace a few seconds AFTER the
+    # frontend starts serving, and a server that connects in that window
+    # fails its Temporal worker creation without a later retry (the health
+    # monitor watches connection health, which is green — issue #904,
+    # stigmer-server src/temporal/manager.ts). Encoding real readiness
+    # here makes first boot deterministic. $$ is compose-escaping for a
+    # literal $; the CLI must dial the container IP because the frontend
+    # binds it, not loopback.
+    healthcheck:
+      test: ["CMD-SHELL", "temporal operator namespace describe -n default --address $$(hostname -i):7233"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  stigmer-server:
+    image: ghcr.io/stigmer/stigmer-server:${STIGMER_VERSION:-v3.12.9}
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      # service_healthy = the default namespace exists (see the temporal
+      # service): the server's worker creation needs the namespace, and its
+      # health monitor does not re-run it on a healthy connection.
+      temporal:
+        condition: service_healthy
+    ports:
+      # 7234: the unified port — gRPC, Connect, the web console.
+      # 7235: the artifact file server (downloads); a separate listener by
+      #       design, bound 0.0.0.0 inside the container (the image sets
+      #       ARTIFACT_HTTP_HOST; the laptop tier keeps its loopback default).
+      - "7234:7234"
+      - "7235:7235"
+    environment:
+      GRPC_PORT: "7234"
+      # Non-empty DATABASE_URL selects the Postgres driver (DD-010); the
+      # image's sqlite path is the single-container `docker run` tier.
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:?missing — copy .env.example to .env and fill it in}@postgres:5432/stigmer
+      TEMPORAL_HOST_PORT: temporal:7233
+      TEMPORAL_NAMESPACE: default
+      TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE: *runner-task-queue
+      TEMPORAL_WORKFLOW_EXECUTION_RUNNER_TASK_QUEUE: *runner-task-queue
+      ARTIFACT_STORAGE_TYPE: local
+      ARTIFACT_LOCAL_BASE_PATH: *artifacts-path
+      ARTIFACT_LOCAL_SERVE_URL: *artifact-serve-url
+      # Skill push/download capability URLs are host-consumed too (the CLI
+      # and SDKs); same reasoning as the artifact serve URL.
+      SKILL_TRANSFER_BASE_URL: "http://localhost:7234"
+      # Explicit keys, loud fail (DD-013): the server would otherwise
+      # auto-generate keys into the volume, making the backup/rotation
+      # story invisible exactly where self-hosters need it explicit.
+      STIGMER_ENCRYPTION_KEY: ${STIGMER_ENCRYPTION_KEY:?missing — copy .env.example to .env and fill it in}
+      STIGMER_RUNNER_TOKEN_KEY: ${STIGMER_RUNNER_TOKEN_KEY:?missing — copy .env.example to .env and fill it in}
+      # Optional operator identity for audit attribution (see .env.example).
+      STIGMER_OPERATOR_EMAIL: ${STIGMER_OPERATOR_EMAIL:-}
+      STIGMER_OPERATOR_NAME: ${STIGMER_OPERATOR_NAME:-}
+    volumes:
+      # Server state beyond Postgres: the skill content store
+      # (~/.stigmer/storage) and anything else under the image's HOME=/data.
+      - server-data:/data
+      # The shared artifact root — the same named volume the runner mounts.
+      - type: volume
+        source: artifacts
+        target: *artifacts-path
+    # Healthcheck comes from the image (Connect-JSON health probe); the
+    # runner's depends_on gates on it.
+
+  stigmer-runner:
+    image: ghcr.io/stigmer/stigmer-runner:${STIGMER_VERSION:-v3.12.9}
+    restart: unless-stopped
+    depends_on:
+      stigmer-server:
+        condition: service_healthy
+      temporal:
+        condition: service_healthy
+    environment:
+      # local mode: stdio MCP servers are allowed (they spawn inside this
+      # container — see the header) and the LangGraph checkpointer uses its
+      # durable sqlite saver under HOME.
+      MODE: local
+      STIGMER_BACKEND_ENDPOINT: http://stigmer-server:7234
+      TEMPORAL_SERVICE_ADDRESS: temporal:7233
+      TEMPORAL_NAMESPACE: default
+      STIGMER_TASK_QUEUE: *runner-task-queue
+      # The daemon's ~/.stigmer/data/workspace layout under HOME=/data —
+      # agent workspaces live on the runner-data volume with the session
+      # state.
+      WORKSPACE_ROOT_DIR: /data/.stigmer/data/workspace
+      ARTIFACT_STORAGE_TYPE: local
+      LOCAL_ARTIFACT_PATH: *artifacts-path
+      LOCAL_ARTIFACT_SERVE_URL: *artifact-serve-url
+      # LLM provider keys (optional at boot; agent executions need one —
+      # see .env.example). Workflow executions without agent tasks run
+      # key-free.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      CURSOR_API_KEY: ${CURSOR_API_KEY:-}
+    volumes:
+      # Runner state (HITL/pause checkpoints, session dirs, workspaces)
+      # lives under HOME=/data — on a volume so in-flight paused sessions
+      # survive container recreation, the durability the laptop tier gets
+      # from the user's own disk. Lifecycle state, not backup state: the
+      # complete backup is postgres-data + artifacts + server-data + .env.
+      - runner-data:/data
+      - type: volume
+        source: artifacts
+        target: *artifacts-path
+
+volumes:
+  postgres-data:
+  server-data:
+  runner-data:
+  artifacts:
