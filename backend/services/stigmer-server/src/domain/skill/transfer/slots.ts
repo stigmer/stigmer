@@ -210,11 +210,22 @@ export class UploadSlots {
   }
 
   /**
+   * The staging file name for a reference. Public since O5: the local
+   * driver's presigned-PUT arm maps refs onto driver staging keys
+   * (boot/compose.ts), and that mapping must come from HERE — a
+   * re-declared "<ref>.zip" in the composition would drift from stagePath
+   * with nothing to catch it.
+   */
+  stagedFileName(ref: string): string {
+    return `${ref}.zip`;
+  }
+
+  /**
    * Maps a reference to its staging file. refs are server-generated hex
    * (never client-supplied paths), so simple joining is safe.
    */
   private stagePath(ref: string): string {
-    return path.join(this.stagingDir, `${ref}.zip`);
+    return path.join(this.stagingDir, this.stagedFileName(ref));
   }
 }
 

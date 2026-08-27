@@ -4,18 +4,27 @@
  * contained dot-segment keys allowed), the #285 no-implicit-segment
  * layout contract, the local signed-URL shape, and the
  * Content-Disposition builder. Adds the factory's r2/unknown refusals
- * (Go's are boot asserted; here they're the disclosed deferral).
+ * (Go's are boot asserted; here they're the disclosed deferral), and the
+ * O5 widened surface: size, the typed not-found, presigned-PUT over the
+ * skill-transfer-lane mechanism, and registered-driver factory selection.
  */
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { Readable } from "node:stream";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { UPLOADS_SEGMENT } from "../../domain/skill/constants.js";
+import { UploadSlots } from "../../domain/skill/transfer/slots.js";
+import { uploadUrl } from "../../domain/skill/transfer/handler.js";
+import { SKILL_ARTIFACTS_PATH_PREFIX } from "../../transport/constants.js";
 import {
+  ArtifactStorageNotFoundError,
   LocalArtifactStorage,
   contentDispositionAttachment,
   newArtifactStorage,
 } from "../artifact-storage.js";
+import type { ArtifactStorage } from "../artifact-storage.js";
 
 // Keys that, once cleaned, resolve outside the artifact root — the
 // containment guard must refuse every one of them.
@@ -154,6 +163,92 @@ describe("LocalArtifactStorage", () => {
     await expect(storage.health()).resolves.toBeUndefined();
     expect(existsSync(path.join(base, ".health_check"))).toBe(false);
   });
+
+  describe("O5 widened surface", () => {
+    it("size stats the stored byte count without loading", async () => {
+      await storage.upload("attachments/01S/f.bin", Buffer.from("12345"), "");
+      expect(await storage.size("attachments/01S/f.bin")).toBe(5);
+    });
+
+    it("download and size answer the typed not-found with the historical copy", async () => {
+      for (const op of [
+        () => storage.download("attachments/absent.bin"),
+        () => storage.size("attachments/absent.bin"),
+      ]) {
+        const error = await op().catch((e: unknown) => e);
+        expect(error).toBeInstanceOf(ArtifactStorageNotFoundError);
+        expect((error as Error).message).toBe(
+          "artifact not found: attachments/absent.bin",
+        );
+      }
+    });
+
+    it("presignPut without a wired lane is the explicit not-configured throw, never a silent no-op", async () => {
+      await expect(storage.presignPut(16, 60_000)).rejects.toThrow(
+        "local presigned uploads not configured",
+      );
+    });
+  });
+});
+
+// The local presigned-PUT arm over the REAL skill-transfer-lane slot
+// mechanism (§6b, the Q1 ruling: one upload surface, no new lane) — the
+// adapter below mirrors boot/compose.ts's wiring exactly.
+describe("LocalArtifactStorage presignPut over the transfer-lane slots", () => {
+  const BASE_URL = "http://localhost:8080";
+  let root: string;
+  let slots: UploadSlots;
+  let driver: ArtifactStorage;
+
+  beforeEach(() => {
+    root = mkdtempSync(path.join(tmpdir(), "artifact-presign-"));
+    slots = new UploadSlots(
+      path.join(root, "skills-staging"),
+      60_000,
+      1024 * 1024,
+    );
+    driver = new LocalArtifactStorage(root, "", {
+      mint: (declaredSizeBytes) => slots.mint(declaredSizeBytes),
+      uploadUrl: (ref) => uploadUrl(BASE_URL, ref),
+      stagedKey: (ref) => `skills-staging/${slots.stagedFileName(ref)}`,
+    });
+  });
+
+  afterEach(() => {
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("mint → PUT (lane receive) → download(stagingKey) round-trips the bytes", async () => {
+    const bytes = Buffer.from("staged artifact bytes");
+    const upload = await driver.presignPut(bytes.length, 999_999_999);
+
+    // The URL is the lane's wire shape and the ref is its last segment —
+    // exactly how the lane handler dispatches a PUT.
+    expect(
+      upload.url.startsWith(
+        `${BASE_URL}${SKILL_ARTIFACTS_PATH_PREFIX}${UPLOADS_SEGMENT}`,
+      ),
+    ).toBe(true);
+    // The lane's slot TTL governs, not the caller's larger ask.
+    expect(upload.ttlMs).toBe(60_000);
+
+    const ref = upload.url.slice(upload.url.lastIndexOf("/") + 1);
+    await slots.receive(ref, Readable.from(bytes));
+
+    expect(Buffer.from(await driver.download(upload.stagingKey))).toEqual(
+      bytes,
+    );
+    expect(await driver.size(upload.stagingKey)).toBe(bytes.length);
+  });
+
+  it("the staged key never resolves outside the driver root", async () => {
+    const upload = await driver.presignPut(4, 60_000);
+    expect(upload.stagingKey.startsWith("skills-staging/")).toBe(true);
+    // Unreceived slot: the key is honest about absence.
+    await expect(driver.download(upload.stagingKey)).rejects.toThrow(
+      ArtifactStorageNotFoundError,
+    );
+  });
 });
 
 const NO_R2 = {
@@ -192,6 +287,46 @@ describe("newArtifactStorage factory", () => {
     expect(() =>
       newArtifactStorage({ type: "s3", localBasePath: "", localServeUrl: "", ...NO_R2 }),
     ).toThrow("unknown storage type: s3 (must be 'local' or 'r2')");
+  });
+
+  it("selects a registered driver by name — and only constructs the selected one (O5)", () => {
+    let constructed = 0;
+    let neverConstructed = 0;
+    const fake = { health: () => Promise.resolve() } as unknown as ReturnType<
+      typeof newArtifactStorage
+    >;
+    const registered = new Map([
+      [
+        "cloud-r2",
+        () => {
+          constructed += 1;
+          return fake;
+        },
+      ],
+      [
+        "unused",
+        () => {
+          neverConstructed += 1;
+          return fake;
+        },
+      ],
+    ]);
+    const s = newArtifactStorage(
+      { type: "cloud-r2", localBasePath: "", localServeUrl: "", ...NO_R2 },
+      registered,
+    );
+    expect(s).toBe(fake);
+    expect(constructed).toBe(1);
+    expect(neverConstructed, "unselected drivers must construct nothing").toBe(0);
+  });
+
+  it("unknown type names the registered drivers in its refusal (O5)", () => {
+    expect(() =>
+      newArtifactStorage(
+        { type: "s3", localBasePath: "", localServeUrl: "", ...NO_R2 },
+        new Map([["cloud-r2", () => ({}) as never]]),
+      ),
+    ).toThrow("unknown storage type: s3 (must be 'local' or 'r2' or 'cloud-r2')");
   });
 });
 

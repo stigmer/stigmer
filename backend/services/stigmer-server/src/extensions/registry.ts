@@ -23,14 +23,21 @@
  *
  * Consumption map (each point's consumer entry): services + workers +
  * edition are consumed here in O1; identity verifiers + authorizer land
- * with O2; gate steps + status hooks with O4; driver kinds with O5/O6.
+ * with O2; gate steps + status hooks with O4; the O5 driver kinds
+ * (catalog provider, artifact-storage registration, runner-credential
+ * provider) are consumed at their compose.ts construction sites; sandbox
+ * provisioners land with O6.
  */
 import type { DescMessage } from "@bufbuild/protobuf";
 import type { ConnectRouter } from "@connectrpc/connect";
 
 import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 
+import type { ArtifactStorageDriverFactory } from "../artifactstorage/artifact-storage.js";
+import { BUILT_IN_STORAGE_TYPES } from "../artifactstorage/artifact-storage.js";
+import type { ModelCatalogProvider } from "../domain/workflow/registry/model-catalog-provider.js";
 import type { PipelineStep } from "../pipeline/pipeline.js";
+import type { RunnerCredentialProvider } from "../runnerauth/runner-credential-provider.js";
 import type { WorkerFactory } from "../temporal/manager.js";
 import type { Authorizer } from "./authorizer.js";
 import type { ExtensionDrivers } from "./drivers.js";
@@ -85,7 +92,7 @@ export interface ServerExtension {
   >;
   /** Agent-execution status observers/decorators (consumed by O4). */
   readonly statusTransitionHooks?: AgentExecutionStatusHooks;
-  /** Driver substitutions (no kinds registrable yet — see drivers.ts). */
+  /** Driver substitutions (the O5 kinds — see drivers.ts). */
   readonly drivers?: ExtensionDrivers;
   /** Service registrations, appended to the routes closure after the OSS set. */
   readonly services?: ReadonlyArray<ExtensionServiceRegistration>;
@@ -118,9 +125,25 @@ export interface ResolvedExtensions {
   >;
   readonly statusObservers: ReadonlyArray<AgentExecutionStatusObserver>;
   readonly responseDecorators: ReadonlyArray<AgentExecutionResponseDecorator>;
-  readonly drivers: ExtensionDrivers;
+  readonly drivers: ResolvedExtensionDrivers;
   readonly services: ReadonlyArray<ExtensionServiceRegistration>;
   readonly workers: ReadonlyArray<WorkerFactory>;
+}
+
+/**
+ * The merged driver points. The two providers follow the authorizer
+ * shape — undefined when no unit declares one, and the compose.ts
+ * consumption site installs the OSS default (the default lives with the
+ * consumer that defines its semantics, not with this data holder).
+ */
+export interface ResolvedExtensionDrivers {
+  readonly modelCatalogProvider: ModelCatalogProvider | undefined;
+  readonly runnerCredentialProvider: RunnerCredentialProvider | undefined;
+  /** Registered name → factory, validated against the built-in names. */
+  readonly artifactStorageDrivers: ReadonlyMap<
+    string,
+    ArtifactStorageDriverFactory
+  >;
 }
 
 /**
@@ -144,6 +167,15 @@ export function resolveExtensions(
   let editionDeclaredBy: string | undefined;
   let authorizer: Authorizer | undefined;
   let authorizerDeclaredBy: string | undefined;
+  let modelCatalogProvider: ModelCatalogProvider | undefined;
+  let catalogDeclaredBy: string | undefined;
+  let runnerCredentialProvider: RunnerCredentialProvider | undefined;
+  let credentialDeclaredBy: string | undefined;
+  const artifactStorageDrivers = new Map<
+    string,
+    ArtifactStorageDriverFactory
+  >();
+  const storageDriverDeclaredBy = new Map<string, string>();
 
   for (const unit of units) {
     if (unit.name === "") {
@@ -183,6 +215,44 @@ export function resolveExtensions(
       authorizerDeclaredBy = unit.name;
     }
 
+    if (unit.drivers?.modelCatalogProvider !== undefined) {
+      if (catalogDeclaredBy !== undefined) {
+        throw new Error(
+          `extension '${unit.name}' registers a ModelCatalogProvider, but '${catalogDeclaredBy}' already did — exactly one may be composed`,
+        );
+      }
+      modelCatalogProvider = unit.drivers.modelCatalogProvider;
+      catalogDeclaredBy = unit.name;
+    }
+
+    if (unit.drivers?.runnerCredentialProvider !== undefined) {
+      if (credentialDeclaredBy !== undefined) {
+        throw new Error(
+          `extension '${unit.name}' registers a RunnerCredentialProvider, but '${credentialDeclaredBy}' already did — exactly one may be composed`,
+        );
+      }
+      runnerCredentialProvider = unit.drivers.runnerCredentialProvider;
+      credentialDeclaredBy = unit.name;
+    }
+
+    if (unit.drivers?.artifactStorageDrivers !== undefined) {
+      for (const [name, factory] of unit.drivers.artifactStorageDrivers) {
+        if ((BUILT_IN_STORAGE_TYPES as ReadonlyArray<string>).includes(name)) {
+          throw new Error(
+            `extension '${unit.name}' registers artifact-storage driver '${name}', which shadows a built-in backend — built-in names are reserved`,
+          );
+        }
+        const declaredBy = storageDriverDeclaredBy.get(name);
+        if (declaredBy !== undefined) {
+          throw new Error(
+            `extension '${unit.name}' registers artifact-storage driver '${name}', but '${declaredBy}' already did — driver names must be unique across the composed set`,
+          );
+        }
+        artifactStorageDrivers.set(name, factory);
+        storageDriverDeclaredBy.set(name, unit.name);
+      }
+    }
+
     if (unit.gateSteps !== undefined) {
       for (const [slot, steps] of unit.gateSteps) {
         if (!DECLARED_GATE_SLOTS.has(slot)) {
@@ -218,7 +288,11 @@ export function resolveExtensions(
     gateSteps,
     statusObservers,
     responseDecorators,
-    drivers: {},
+    drivers: {
+      modelCatalogProvider,
+      runnerCredentialProvider,
+      artifactStorageDrivers,
+    },
     services,
     workers,
   };

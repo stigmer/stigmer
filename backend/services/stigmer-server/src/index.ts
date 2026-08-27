@@ -18,8 +18,9 @@
  *   - the pipeline primitives extensions build gates from (PipelineStep,
  *     RequestContext, the semantic error helpers, and the typed store
  *     not-found errors the ratified store-fault mapping keys on)
- *   - the driver interfaces (Store, ArtifactStorage; §6's new interfaces
- *     join with their extraction entries O5/O6)
+ *   - the driver interfaces (Store, ArtifactStorage; O5 added §6a/§6b/§6c —
+ *     ModelCatalogProvider, the widened storage surface, and
+ *     RunnerCredentialProvider; §6d's sandbox provisioner joins with O6)
  *   - the worker factory types extension workers implement (§8)
  *
  * The package stays private and unpublished: this is the library contract
@@ -58,6 +59,7 @@ export type {
   AgentExecutionStatusTransition,
 } from "./extensions/status-hooks.js";
 export type { ExtensionDrivers } from "./extensions/drivers.js";
+export type { ResolvedExtensionDrivers } from "./extensions/registry.js";
 
 // The pipeline primitives extensions build gate steps from.
 export type { PipelineStep } from "./pipeline/pipeline.js";
@@ -77,7 +79,26 @@ export {
 // infrastructure fault — the guidelines' instanceof idiom).
 export type { Store } from "./store/interface.js";
 export { AuditNotFoundError, ResourceNotFoundError } from "./store/interface.js";
-export type { ArtifactStorage } from "./artifactstorage/artifact-storage.js";
+export type {
+  ArtifactStorage,
+  ArtifactStorageDriverFactory,
+  PresignedUpload,
+  StagedUploadLane,
+} from "./artifactstorage/artifact-storage.js";
+export { ArtifactStorageNotFoundError } from "./artifactstorage/artifact-storage.js";
+
+// The O5 driver seams (§6a/§6c): the model-catalog read surface with the
+// DD-008 disciplines in its contract, and the per-lane runner-credential
+// seam with its OSS lane constant (an extension's verify callers name the
+// lane they accept).
+export type { ModelCatalogProvider } from "./domain/workflow/registry/model-catalog-provider.js";
+export type { RunnerCredentialProvider } from "./runnerauth/runner-credential-provider.js";
+export type { MintedToken } from "./runnerauth/runnerauth.js";
+export {
+  InvalidTokenError,
+  MintingDisabledError,
+  TOKEN_TYPE_EXECUTION_SCOPED,
+} from "./runnerauth/runnerauth.js";
 
 // The worker factory types extension workers implement (§8).
 export type { WorkerFactory, WorkerFactoryDeps } from "./temporal/manager.js";

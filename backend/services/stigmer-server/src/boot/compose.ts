@@ -23,6 +23,7 @@
  * extensions composed, every stage below behaves byte-identically to
  * before the parameter existed; the conformance rosters pin that.
  */
+import { mkdirSync } from "node:fs";
 import path from "node:path";
 
 import type { ConnectRouter, Transport } from "@connectrpc/connect";
@@ -32,7 +33,11 @@ import { HealthCheckResponse_ServingStatus as ServingStatus } from "@stigmer/pro
 import { registerAgentServices } from "../domain/agent/controller.js";
 import { newConfigFromEnv } from "../domain/agentexecution/temporal/config.js";
 import { registerAgentExecutionServices } from "../domain/agentexecution/controller.js";
-import { newArtifactStorage } from "../artifactstorage/artifact-storage.js";
+import {
+  LocalArtifactStorage,
+  newArtifactStorage,
+} from "../artifactstorage/artifact-storage.js";
+import type { ArtifactStorage } from "../artifactstorage/artifact-storage.js";
 import { StreamBroker } from "../domain/agentexecution/stream-broker.js";
 import { newExecutionEngineStateProvider } from "../temporal/agentexecution/engine-client.js";
 import { newMcpServerEngineStateProvider } from "../temporal/mcpserver/engine-client.js";
@@ -73,8 +78,11 @@ import { registerProjectServices } from "../domain/project/controller.js";
 import { registerSessionServices } from "../domain/session/controller.js";
 import { registerSkillServices } from "../domain/skill/controller.js";
 import { DEFAULT_SLOT_TTL_MS, MAX_ZIP_SIZE } from "../domain/skill/constants.js";
-import { LocalFileStorage as SkillLocalFileStorage } from "../domain/skill/storage/artifact-storage.js";
-import { newSkillTransferLane } from "../domain/skill/transfer/handler.js";
+import { newSkillArtifactStorage } from "../domain/skill/storage/artifact-storage.js";
+import {
+  newSkillTransferLane,
+  uploadUrl as skillUploadUrl,
+} from "../domain/skill/transfer/handler.js";
 import { UploadSlots } from "../domain/skill/transfer/slots.js";
 import { SecretService } from "../encryption/encryption.js";
 import { registerActivityServices } from "../query/activity/controller.js";
@@ -84,6 +92,7 @@ import { SearchHandler } from "../query/search/handler.js";
 import { SqliteSearchQueryStore } from "../query/search/query-store.js";
 import { newSearchableResourceRegistry } from "../query/search/registry.js";
 import { buildInterceptorChain } from "../pipeline/chain.js";
+import { newExecutionScopedRunnerCredentialProvider } from "../runnerauth/runner-credential-provider.js";
 import { RunnerAuthService } from "../runnerauth/runnerauth.js";
 import { PostgresStore } from "../store/postgres/store.js";
 import { SqliteStore } from "../store/sqlite/store.js";
@@ -95,6 +104,7 @@ import {
   bundledModelRegistryDocument,
   bundledTaskKindRegistryDocument,
 } from "../domain/workflow/registry/bundled.js";
+import type { ModelCatalogProvider } from "../domain/workflow/registry/model-catalog-provider.js";
 import { ModelRegistryStore } from "../domain/workflow/registry/model-registry-store.js";
 import { InProcessValidator } from "../domain/workflow/validation/validator.js";
 import { registerWorkflowInstanceServices } from "../domain/workflowinstance/controller.js";
@@ -237,6 +247,14 @@ export async function composeServer(
     secretService = SecretService.create(undefined);
   }
   const runnerAuthService = RunnerAuthService.fromEnv();
+  // The runner-credential seam (§6c, O5): the composed provider, or the
+  // OSS execution-scoped default over the service above. The concrete
+  // service is constructed and exposed UNCONDITIONALLY either way — its
+  // boot-fatal key posture is the ratified cross-domain invariant, and the
+  // boot/EC-decrypt tests mint against the server's own key through it.
+  const runnerCredentials =
+    extensions.drivers.runnerCredentialProvider ??
+    newExecutionScopedRunnerCredentialProvider(runnerAuthService);
 
   // Stage: temporal (#18). Construction is sync and connection-free —
   // initialConnect/startWorkers/startHealthMonitor run in start(), all
@@ -256,25 +274,36 @@ export async function composeServer(
   // consumer, so it lives here with the temporal stage.
   const workflowExecutionTemporalConfig = newWorkflowExecutionConfigFromEnv();
   const healthState = new HealthState();
-  // The model-registry store is DOMAIN-owned (workflow-family DD-A,
-  // restoring Go's ownership): workflow validation and the transport's
-  // registry lane read this one store, so the pickers and validation can
-  // never drift (DD-004). The composition root owns its refresh lifecycle.
-  const modelRegistryStore = new ModelRegistryStore({
-    bundledDocument: bundledModelRegistryDocument(),
-    upstreamOrigin: config.modelRegistryUpstream,
-    refreshEnabled: config.modelRegistryRefreshEnabled,
-    logger,
-    fetchImpl: options.fetchImpl,
-  });
+  // The model catalog (DD-008, O5): ONE provider instance feeds workflow
+  // validation, the pin checks, and the transport's registry lane, so the
+  // pickers and validation can never drift (DD-004) — on either arm. With
+  // no extension provider composed, the OSS domain-owned ModelRegistryStore
+  // (workflow-family DD-A, restoring Go's ownership) is constructed and
+  // this root owns its refresh lifecycle; with one composed, the OSS store
+  // and its hourly upstream refresh are never built — a substituted
+  // composition must not keep fetching registry data nobody reads.
+  let modelCatalog: ModelCatalogProvider;
+  let ossModelRegistryStore: ModelRegistryStore | undefined;
+  if (extensions.drivers.modelCatalogProvider !== undefined) {
+    modelCatalog = extensions.drivers.modelCatalogProvider;
+  } else {
+    ossModelRegistryStore = new ModelRegistryStore({
+      bundledDocument: bundledModelRegistryDocument(),
+      upstreamOrigin: config.modelRegistryUpstream,
+      refreshEnabled: config.modelRegistryRefreshEnabled,
+      logger,
+      fetchImpl: options.fetchImpl,
+    });
+    modelCatalog = ossModelRegistryStore;
+  }
   const registryLanes = createRegistryLanes({
     taskKindRegistryDocument: bundledTaskKindRegistryDocument(),
-    modelRegistryStore,
+    modelRegistryStore: modelCatalog,
   });
-  // The Layer-2 workflow validator reads the domain-owned registry store
+  // The Layer-2 workflow validator reads the composed catalog provider
   // per validation call, keeping validation and the served pickers in
   // lockstep (DD-004).
-  const workflowValidator = new InProcessValidator(modelRegistryStore, logger);
+  const workflowValidator = new InProcessValidator(modelCatalog, logger);
   // ONE broker spans both routers AND the Temporal worker's activities:
   // the worker's status persists broadcast through the same fabric, so
   // recovery/fallback updates reach externally-connected subscribe
@@ -375,17 +404,21 @@ export async function composeServer(
   // The artifact blob store (Go server.go 349: shared by agentexecution
   // attachments, the artifact domain (#13), and skill push (#8)). The r2
   // arm landed with #13; the health probe runs in start(), matching Go's
-  // boot check.
-  const artifactStorage = newArtifactStorage({
-    type: config.artifactStorageType,
-    localBasePath: config.artifactLocalBasePath,
-    localServeUrl: config.artifactLocalServeUrl,
-    r2Bucket: config.r2Bucket,
-    r2Endpoint: config.r2Endpoint,
-    r2AccessKeyId: config.r2AccessKeyId,
-    r2SecretAccessKey: config.r2SecretAccessKey,
-    r2Region: config.r2Region,
-  });
+  // boot check. Since O5 the factory consults the composition's registered
+  // drivers for non-built-in types (§6b).
+  const artifactStorage = newArtifactStorage(
+    {
+      type: config.artifactStorageType,
+      localBasePath: config.artifactLocalBasePath,
+      localServeUrl: config.artifactLocalServeUrl,
+      r2Bucket: config.r2Bucket,
+      r2Endpoint: config.r2Endpoint,
+      r2AccessKeyId: config.r2AccessKeyId,
+      r2SecretAccessKey: config.r2SecretAccessKey,
+      r2Region: config.r2Region,
+    },
+    extensions.drivers.artifactStorageDrivers,
+  );
   // The artifact download lane: a SECOND loopback listener on
   // ARTIFACT_HTTP_PORT, local storage only (Go server.go 849–870) —
   // deliberately not a unified-port lane. Lifecycle rides start()/
@@ -404,12 +437,61 @@ export async function composeServer(
   // the lane is ALWAYS configured (Go wires it unconditionally too): the
   // FailedPrecondition lane-absent arms exist for construction-order
   // safety, and the capability matrix pins skillArtifactTransferLane=true.
-  const skillArtifactStorage = new SkillLocalFileStorage(config.storagePath);
+  //
+  // Since O5 the store is the skill-domain port over a PER-DOMAIN blob
+  // driver (§6b, Q2/Q2b rulings): skill keeps its own root and its own
+  // backend knob (SKILL_ARTIFACT_STORAGE_TYPE), so an r2-configured
+  // deployment changes nothing for skill artifacts until it opts in
+  // explicitly, and the Go-written skills/ directory keeps serving in
+  // place on the default arm.
   const skillUploadSlots = new UploadSlots(
     path.join(config.storagePath, "skills-staging"),
     DEFAULT_SLOT_TTL_MS,
     MAX_ZIP_SIZE,
   );
+  const skillStorageDriver = ((): ArtifactStorage => {
+    const skillType =
+      config.skillArtifactStorageType === ""
+        ? "local"
+        : config.skillArtifactStorageType;
+    if (skillType === "local") {
+      // Go layout invariant: {storagePath}/skills exists from boot with
+      // 0755 (the retired LocalFileStorage constructor's mkdir; the
+      // generic driver only creates directories on demand).
+      mkdirSync(path.join(config.storagePath, "skills"), {
+        recursive: true,
+        mode: 0o755,
+      });
+      // The local presigned-PUT arm rides the skill transfer lane's slot
+      // mechanism (§6b Q1 ruling: one upload surface, no new lane). The
+      // slots stage inside THIS driver's root, so a minted stagingKey
+      // reads back through the same instance; the empty serve URL is the
+      // honest state — skill downloads ride the transfer lane, never
+      // getSignedUrl.
+      return new LocalArtifactStorage(config.storagePath, "", {
+        mint: (declaredSizeBytes) => skillUploadSlots.mint(declaredSizeBytes),
+        uploadUrl: (ref) => skillUploadUrl(config.skillTransferBaseUrl, ref),
+        stagedKey: (ref) =>
+          `skills-staging/${skillUploadSlots.stagedFileName(ref)}`,
+      });
+    }
+    // Non-local skill backends share the artifact store's R2 settings for
+    // the built-in arm and the composition's registered drivers beyond it.
+    return newArtifactStorage(
+      {
+        type: skillType,
+        localBasePath: config.storagePath,
+        localServeUrl: "",
+        r2Bucket: config.r2Bucket,
+        r2Endpoint: config.r2Endpoint,
+        r2AccessKeyId: config.r2AccessKeyId,
+        r2SecretAccessKey: config.r2SecretAccessKey,
+        r2Region: config.r2Region,
+      },
+      extensions.drivers.artifactStorageDrivers,
+    );
+  })();
+  const skillArtifactStorage = newSkillArtifactStorage(skillStorageDriver);
   const skillTransferLane = newSkillTransferLane(
     skillUploadSlots,
     skillArtifactStorage,
@@ -524,7 +606,7 @@ export async function composeServer(
       store,
       logger,
       secretService,
-      runnerAuthService,
+      runnerAuthService: runnerCredentials,
     });
     registerAgentServices(router, {
       store,
@@ -554,7 +636,7 @@ export async function composeServer(
       // The SAME domain-owned registry instance the workflow validator
       // and the registry lanes read — the channel model-pin rule
       // (stigmer/stigmer#774) can never drift from the served pickers.
-      modelRegistry: modelRegistryStore,
+      modelRegistry: modelCatalog,
     });
     registerChannelMessageServices(router);
     registerChannelConversationServices(router);
@@ -567,7 +649,7 @@ export async function composeServer(
     registerScheduleServices(router, {
       store,
       logger,
-      modelRegistry: modelRegistryStore,
+      modelRegistry: modelCatalog,
       clock: () => scheduleSyncer,
       runner: () => scheduleRunStarter,
     });
@@ -577,7 +659,7 @@ export async function composeServer(
       logger,
       broker: agentExecutionStreamBroker,
       engineState: executionEngineState,
-      modelRegistry: modelRegistryStore,
+      modelRegistry: modelCatalog,
       artifactStorage,
       agentLoader: () => requireInProcess().executionAgentLoader,
       agentInstanceCreator: () =>
@@ -654,7 +736,7 @@ export async function composeServer(
           delete: (input) =>
             requireInProcess().connectExecutionContextClient.delete(input),
         },
-        runnerAuth: runnerAuthService,
+        runnerAuth: runnerCredentials,
         managedEnv: managedEnvService,
         // The SAME grant-store instance agentexecution's session-time
         // token injection reads (Go server.go:732-735 shares it too).
@@ -706,7 +788,7 @@ export async function composeServer(
     registerPlatformServices(router, {
       temporalHostPort: config.temporalHostPort,
       temporalNamespace: config.temporalNamespace,
-      runnerAuthService,
+      runnerAuthService: runnerCredentials,
       edition: extensions.edition,
       logger,
     });
@@ -776,7 +858,9 @@ export async function composeServer(
       // Wiring complete → SERVING → background refresh → bind. The port
       // must be the LAST observable effect (serverGate contract).
       healthState.setOverall(ServingStatus.SERVING);
-      modelRegistryStore.startRefresh();
+      // Undefined when an extension provider substituted the catalog —
+      // that implementation owns its own freshness.
+      ossModelRegistryStore?.startRefresh();
       const port = await server.listen(
         options.portOverride ?? config.grpcPort,
         options.host,
@@ -803,7 +887,7 @@ export async function composeServer(
 
     async shutdown(): Promise<void> {
       healthState.setOverall(ServingStatus.NOT_SERVING);
-      modelRegistryStore.stopRefresh();
+      ossModelRegistryStore?.stopRefresh();
       await artifactFileServer?.shutdown();
       // The reconciler stops before the manager: a pass mid-flight may
       // still call through the manager's client, and nothing may fire

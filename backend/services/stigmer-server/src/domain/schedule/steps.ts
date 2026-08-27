@@ -29,12 +29,12 @@ import {
   harnessName,
   unknownModelPinRefusal,
 } from "../workflow/registry/pin-validation.js";
-import type { ModelRegistryStore } from "../workflow/registry/model-registry-store.js";
+import type { ModelCatalogProvider } from "../workflow/registry/model-catalog-provider.js";
 import { validateScheduleCron, validateScheduleTimeZone } from "./cron.js";
 
 export interface ScheduleValidationDeps {
   readonly store: Store;
-  readonly modelRegistry: ModelRegistryStore;
+  readonly modelRegistry: ModelCatalogProvider;
 }
 
 /**
@@ -167,7 +167,7 @@ export function validateScheduleWorkspace(spec: ScheduleSpec | undefined): void 
  *     must never break an existing schedule at its 3 AM fire).
  */
 export function validateScheduleModelPinning(
-  modelRegistry: ModelRegistryStore,
+  modelRegistry: ModelCatalogProvider,
   spec: ScheduleSpec | undefined,
 ): void {
   const presence = scheduleModelPinningRefusal(spec);

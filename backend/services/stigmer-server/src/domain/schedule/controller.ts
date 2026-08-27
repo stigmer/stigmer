@@ -78,7 +78,7 @@ import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import { newValidateVisibilityStep } from "../../pipeline/steps/validate-visibility.js";
 import type { Store } from "../../store/interface.js";
-import type { ModelRegistryStore } from "../workflow/registry/model-registry-store.js";
+import type { ModelCatalogProvider } from "../workflow/registry/model-catalog-provider.js";
 import {
   newArmResumedScheduleStep,
   newArmScheduleStep,
@@ -107,7 +107,7 @@ import {
 export interface ScheduleControllerDeps {
   readonly store: Store;
   readonly logger: Logger;
-  readonly modelRegistry: ModelRegistryStore;
+  readonly modelRegistry: ModelCatalogProvider;
   /**
    * The scheduling runtime (clock.ts), resolved at call time so the
    * compose root can wire it after the Temporal stage — Go's SetClock,

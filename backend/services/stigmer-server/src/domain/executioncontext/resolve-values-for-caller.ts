@@ -47,14 +47,15 @@ import type { Logger } from "../../boot/logger.js";
 import { EncryptionDisabledError } from "../../encryption/encryption.js";
 import type { SecretService } from "../../encryption/encryption.js";
 import { internalError } from "../../pipeline/errors.js";
-import type { RunnerAuthService } from "../../runnerauth/runnerauth.js";
+import type { RunnerCredentialProvider } from "../../runnerauth/runner-credential-provider.js";
+import { TOKEN_TYPE_EXECUTION_SCOPED } from "../../runnerauth/runnerauth.js";
 import { encryptionKeyMissingMessage } from "./constants.js";
 import { redactExecutionContextSecrets } from "./redact.js";
 
 export interface ResolveValuesDeps {
   readonly logger: Logger;
   readonly secretService: SecretService;
-  readonly runnerAuthService: RunnerAuthService;
+  readonly runnerAuthService: RunnerCredentialProvider;
 }
 
 /**
@@ -86,8 +87,10 @@ export function resolveValuesForCaller(
  * the caller falls closed to redaction — with the mismatch case
  * WARN-logged because a runner reading across executions indicates a bug,
  * while an absent header is just an ordinary user-shaped read. A keyless
- * RunnerAuthService rejects every token (verify throws), the TS shape of
- * Go's nil-service arm: without a key no token can be genuine.
+ * provider rejects every token (verify throws), the TS shape of Go's
+ * nil-service arm: without a key no token can be genuine. This lane
+ * accepts exactly the execution_scoped credential lane — the caller-side
+ * trust statement the provider contract requires.
  */
 function verifyRunnerToken(
   deps: ResolveValuesDeps,
@@ -101,7 +104,10 @@ function verifyRunnerToken(
 
   let tokenExecutionId: string;
   try {
-    tokenExecutionId = deps.runnerAuthService.verify(token);
+    tokenExecutionId = deps.runnerAuthService.verify(
+      TOKEN_TYPE_EXECUTION_SCOPED,
+      token,
+    );
   } catch {
     deps.logger.debug(
       "Presented runner token failed verification - redacting execution context secrets",

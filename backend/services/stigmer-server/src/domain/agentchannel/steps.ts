@@ -34,7 +34,7 @@ import { findResourceBySlug } from "../../pipeline/steps/helpers.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import type { Store } from "../../store/interface.js";
 import { unknownModelPinRefusal } from "../workflow/registry/pin-validation.js";
-import type { ModelRegistryStore } from "../workflow/registry/model-registry-store.js";
+import type { ModelCatalogProvider } from "../workflow/registry/model-catalog-provider.js";
 import {
   AGENT_REF_SLUG_REQUIRED_MESSAGE,
   APP_REF_FROZEN_WHILE_INSTALLED_MESSAGE,
@@ -55,12 +55,12 @@ type AgentChannelDesc = typeof AgentChannelSchema;
  * channel serves. Validated against EVERY registry harness section (the
  * "" harness mode) because this edition stores channel specs without a
  * serving runtime (the DD-015 divergence posture). Go reads a
- * package-level registry; the TS registry is the domain-owned
- * ModelRegistryStore (workflow-family DD-A), passed explicitly. Shared by
- * create (ResolveChannelDefaults) and update (ValidateChannelUpdate).
+ * package-level registry; here the composed ModelCatalogProvider (DD-008,
+ * workflow-family DD-A) is passed explicitly. Shared by create
+ * (ResolveChannelDefaults) and update (ValidateChannelUpdate).
  */
 function validateChannelModelPin(
-  registry: ModelRegistryStore,
+  registry: ModelCatalogProvider,
   spec: AgentChannelSpec | undefined,
 ): void {
   const reason = unknownModelPinRefusal(
@@ -96,7 +96,7 @@ function validateChannelModelPin(
  */
 export function newResolveChannelDefaultsStep(
   store: Store,
-  registry: ModelRegistryStore,
+  registry: ModelCatalogProvider,
 ): PipelineStep<AgentChannelDesc> {
   return {
     name: "ResolveChannelDefaults",
@@ -216,7 +216,7 @@ export function providerFieldName(spec: AgentChannelSpec | undefined): string {
  * generic BuildUpdateState preserves them wholesale.
  */
 export function newValidateChannelUpdateStep(
-  registry: ModelRegistryStore,
+  registry: ModelCatalogProvider,
 ): PipelineStep<AgentChannelDesc> {
   return {
     name: "ValidateChannelUpdate",

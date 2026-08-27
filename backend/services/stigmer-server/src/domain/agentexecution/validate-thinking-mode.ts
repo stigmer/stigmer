@@ -30,14 +30,12 @@ import { ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/
 
 import { invalidArgumentError } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
-import {
-  THINKING_CAPABILITY_KEY,
-  type ModelRegistryStore,
-} from "../workflow/registry/model-registry-store.js";
+import type { ModelCatalogProvider } from "../workflow/registry/model-catalog-provider.js";
+import { THINKING_CAPABILITY_KEY } from "../workflow/registry/model-registry-store.js";
 import { HARNESS_NAME_CURSOR } from "../workflow/registry/pin-validation.js";
 
 export function newValidateThinkingModeStep(
-  registry: ModelRegistryStore,
+  registry: ModelCatalogProvider,
 ): PipelineStep<typeof AgentExecutionSchema> {
   return {
     name: "ValidateThinkingMode",
@@ -80,7 +78,7 @@ export function newValidateThinkingModeStep(
  * sorted (the store keeps the list sorted), empty when the registry
  * declares none.
  */
-function thinkingCapableSuffix(registry: ModelRegistryStore): string {
+function thinkingCapableSuffix(registry: ModelCatalogProvider): string {
   const capable = registry.canonicalModelsWithCapabilityForHarness(
     HARNESS_NAME_CURSOR,
     THINKING_CAPABILITY_KEY,

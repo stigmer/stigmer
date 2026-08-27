@@ -58,7 +58,7 @@ import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import type { Store } from "../../store/interface.js";
 
 import type { ArtifactStorage } from "../../artifactstorage/artifact-storage.js";
-import type { ModelRegistryStore } from "../workflow/registry/model-registry-store.js";
+import type { ModelCatalogProvider } from "../workflow/registry/model-catalog-provider.js";
 
 import {
   getArtifactContent,
@@ -141,7 +141,7 @@ export interface AgentExecutionControllerDeps {
    * instance, DD-004) — the #357/#772 tier and thinking-mode validators
    * read it at create.
    */
-  readonly modelRegistry: ModelRegistryStore;
+  readonly modelRegistry: ModelCatalogProvider;
   /** The shared artifact blob store (attachments + artifact reads). */
   readonly artifactStorage: ArtifactStorage;
   /**

@@ -2,32 +2,43 @@
  * Pins the skill artifact store against Go's artifact_storage_test.go:
  * path layout ({root}/skills/{hash}.zip — cutover inherits Go-written
  * directories), permissions, traversal-guarded reads, and the dedupe
- * surface (exists/getStorageKey).
+ * surface (exists/getStorageKey). Since O5 the store is the domain port
+ * over the local blob driver — the assertions are UNCHANGED from the
+ * pre-reconciliation class on purpose: they are the byte-identity proof.
  */
-import { mkdtempSync, rmSync, statSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { ArtifactNotFoundError, LocalFileStorage } from "../storage/artifact-storage.js";
+import { LocalArtifactStorage } from "../../../artifactstorage/artifact-storage.js";
+import {
+  ArtifactNotFoundError,
+  newSkillArtifactStorage,
+} from "../storage/artifact-storage.js";
+import type { SkillArtifactStorage } from "../storage/artifact-storage.js";
 
 const HASH = "a".repeat(64);
 const DATA = new TextEncoder().encode("zip bytes");
 
 let dir: string;
-let storage: LocalFileStorage;
+let storage: SkillArtifactStorage;
 
 beforeEach(() => {
   dir = mkdtempSync(path.join(tmpdir(), "skill-artifact-test-"));
-  storage = new LocalFileStorage(dir);
+  // Mirrors the compose local arm (boot/compose.ts): skills/ boot-created
+  // 0755 (the Go layout invariant), the driver rooted at the storage path,
+  // the port owning keys and the not-found vocabulary.
+  mkdirSync(path.join(dir, "skills"), { recursive: true, mode: 0o755 });
+  storage = newSkillArtifactStorage(new LocalArtifactStorage(dir, ""));
 });
 
 afterEach(() => {
   rmSync(dir, { recursive: true, force: true });
 });
 
-describe("LocalFileStorage", () => {
+describe("skill artifact store over the local driver", () => {
   it("stores under skills/{hash}.zip — a LITERAL forward-slash key on every platform — and round-trips the bytes", async () => {
     const key = await storage.store(HASH, DATA);
     expect(key).toBe(`skills/${HASH}.zip`);

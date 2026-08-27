@@ -19,8 +19,13 @@
  * Failure logging matches Go (:454-476): the FIRST consecutive refresh
  * failure logs at warn, repeats at debug until a success resets the flag —
  * an offline laptop must not fill its log with hourly warnings.
+ *
+ * Since O5 (20260827.02) this class is the OSS implementation of the
+ * ModelCatalogProvider seam (DD-008) — consumers hold the interface; the
+ * refresh lifecycle below stays composition-owned, outside the contract.
  */
 import type { Logger } from "../../../boot/logger.js";
+import type { ModelCatalogProvider } from "./model-catalog-provider.js";
 
 /** Upstream refresh cadence (Go modelRegistryRefreshInterval, :34). */
 export const MODEL_REGISTRY_REFRESH_INTERVAL_MS = 60 * 60 * 1000;
@@ -98,7 +103,7 @@ interface RegistryIndexes {
   sortedModelsByCapabilityHarness: Map<string, Map<string, string[]>>;
 }
 
-export class ModelRegistryStore {
+export class ModelRegistryStore implements ModelCatalogProvider {
   private currentDocument: string;
   private indexes: RegistryIndexes;
   private refreshTimer: NodeJS.Timeout | undefined;

@@ -2,12 +2,11 @@
  * Harness-aware model-reference validation — ports
  * pkg/domain/workflow/validation/model_validation.go.
  *
- * Model validity comes from the domain's ModelRegistryStore — the same
- * document the /v1/proxy/model-registry HTTP lane serves (the bundled
- * registry, upgraded by the background refresh when reachable). Reading the
- * store per validation call instead of a boot-time snapshot is what keeps
- * validation and the served pickers in lockstep: a model that appears in
- * every picker after a refresh must also validate (DD-004).
+ * Model validity comes from the composed ModelCatalogProvider (DD-008) —
+ * the same document the /v1/proxy/model-registry HTTP lane serves. Reading
+ * the provider per validation call instead of a boot-time snapshot is what
+ * keeps validation and the served pickers in lockstep: a model that appears
+ * in every picker after a refresh must also validate (DD-004).
  *
  * Harness names, suggestion machinery, and the write-time pin-existence
  * rule all live in the registry module (the shared validation authority) —
@@ -28,7 +27,7 @@ import {
   FAST_VARIANT_KEY,
   THINKING_CAPABILITY_KEY,
 } from "../registry/model-registry-store.js";
-import type { ModelRegistryStore } from "../registry/model-registry-store.js";
+import type { ModelCatalogProvider } from "../registry/model-catalog-provider.js";
 import {
   HARNESS_NAME_NATIVE,
   harnessName,
@@ -45,7 +44,7 @@ import {
  *   - eval: model (required) against the native harness
  */
 export function validateModelReferences(
-  models: ModelRegistryStore,
+  models: ModelCatalogProvider,
   spec: WorkflowSpec | undefined,
 ): string[] {
   if (spec === undefined || spec.tasks.length === 0) {
@@ -144,7 +143,7 @@ export function validateModelReferences(
  * function (strict unmarshaling refuses non-canonical enum values).
  */
 function validateAgentCallServiceTier(
-  models: ModelRegistryStore,
+  models: ModelCatalogProvider,
   taskName: string,
   harness: string,
   rc: RunConfig | undefined,
@@ -181,7 +180,7 @@ function validateAgentCallServiceTier(
  * function (strict unmarshaling refuses non-canonical enum values).
  */
 function validateAgentCallThinkingMode(
-  models: ModelRegistryStore,
+  models: ModelCatalogProvider,
   taskName: string,
   harness: string,
   rc: RunConfig | undefined,
@@ -212,7 +211,7 @@ function validateAgentCallThinkingMode(
  * empty when the registry declares none for that harness.
  */
 function thinkingCapableSuffix(
-  models: ModelRegistryStore,
+  models: ModelCatalogProvider,
   harness: string,
 ): string {
   const capable = models.canonicalModelsWithCapabilityForHarness(
@@ -230,7 +229,7 @@ function thinkingCapableSuffix(
  * empty when the registry prices none for that harness.
  */
 function fastCapableSuffix(
-  models: ModelRegistryStore,
+  models: ModelCatalogProvider,
   harness: string,
 ): string {
   const capable = models.canonicalModelsWithVariantForHarness(
@@ -244,7 +243,7 @@ function fastCapableSuffix(
 }
 
 function buildModelError(
-  models: ModelRegistryStore,
+  models: ModelCatalogProvider,
   taskName: string,
   kindLabel: string,
   model: string,

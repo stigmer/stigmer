@@ -2,8 +2,10 @@
  * Pins the extension registry's merge semantics and the DD-006 §2b
  * loud-fail contract (sub-project 20260826.09/O1): explicit empty
  * defaults, unit-order concatenation for list points, single-declaration
- * enforcement for authorizer and edition, unique unit names, and the
- * unknown-gate-slot boot throw. The composed-server behavior (services on
+ * enforcement for authorizer and edition, unique unit names, the
+ * unknown-gate-slot boot throw, and the O5 driver points (single-instance
+ * providers, name-keyed storage-driver registration with duplicate and
+ * built-in-shadow throws). The composed-server behavior (services on
  * both routers, edition on the wire) is pinned by
  * extension-composition.test.ts; empty-set wire byte-identity is pinned by
  * the conformance rosters.
@@ -13,7 +15,10 @@ import { describe, expect, it } from "vitest";
 import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 import type { DescMessage } from "@bufbuild/protobuf";
 
+import type { ArtifactStorage } from "../../artifactstorage/artifact-storage.js";
+import type { ModelCatalogProvider } from "../../domain/workflow/registry/model-catalog-provider.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
+import type { RunnerCredentialProvider } from "../../runnerauth/runner-credential-provider.js";
 import type { WorkerFactory } from "../../temporal/manager.js";
 import type { Authorizer } from "../authorizer.js";
 import type { GateSlotName } from "../gate-slots.js";
@@ -37,6 +42,41 @@ function verifier(name: string): IdentityVerifier {
 const workerFactory: WorkerFactory = () =>
   Promise.reject(new Error("unit-test worker factory — never started"));
 
+// Driver fakes: identity is all the merge tests assert; no method runs.
+function fakeCatalog(): ModelCatalogProvider {
+  return {
+    document: () => "{}",
+    isValidModel: () => false,
+    hasHarness: () => false,
+    hasAnyModels: () => false,
+    isValidModelOnAnyHarness: () => false,
+    canonicalModelsAcrossHarnesses: () => [],
+    canonicalModels: () => [],
+    hasPricingVariant: () => false,
+    hasPricingVariantForHarness: () => false,
+    canonicalModelsWithVariant: () => [],
+    canonicalModelsWithVariantForHarness: () => [],
+    hasCapabilityForHarness: () => false,
+    canonicalModelsWithCapabilityForHarness: () => [],
+  };
+}
+
+function fakeCredentials(): RunnerCredentialProvider {
+  return {
+    isEnabled: () => false,
+    mint: () => {
+      throw new Error("unit-test credential provider — never minted");
+    },
+    verify: () => {
+      throw new Error("unit-test credential provider — never verified");
+    },
+  };
+}
+
+const fakeStorageDriver = (): ArtifactStorage => {
+  throw new Error("unit-test storage driver factory — never constructed");
+};
+
 describe("resolveExtensions — defaults", () => {
   it("resolves the omitted set to explicit empty defaults, edition oss", () => {
     const resolved = resolveExtensions();
@@ -47,6 +87,9 @@ describe("resolveExtensions — defaults", () => {
     expect(resolved.gateSteps.size).toBe(0);
     expect(resolved.statusObservers).toEqual([]);
     expect(resolved.responseDecorators).toEqual([]);
+    expect(resolved.drivers.modelCatalogProvider).toBeUndefined();
+    expect(resolved.drivers.runnerCredentialProvider).toBeUndefined();
+    expect(resolved.drivers.artifactStorageDrivers.size).toBe(0);
     expect(resolved.services).toEqual([]);
     expect(resolved.workers).toEqual([]);
   });
@@ -91,6 +134,36 @@ describe("resolveExtensions — merge semantics", () => {
     expect(resolved.workers).toEqual([workerFactory]);
     expect(resolved.statusObservers).toEqual([observerA]);
     expect(resolved.responseDecorators).toEqual([decoratorB]);
+  });
+
+  it("merges the O5 driver points: singleton providers, name-keyed storage drivers across units", () => {
+    const catalog = fakeCatalog();
+    const credentials = fakeCredentials();
+    const resolved = resolveExtensions([
+      {
+        name: "catalog-unit",
+        drivers: {
+          modelCatalogProvider: catalog,
+          artifactStorageDrivers: new Map([["r2-skill", fakeStorageDriver]]),
+        },
+      },
+      {
+        name: "credential-unit",
+        drivers: {
+          runnerCredentialProvider: credentials,
+          artifactStorageDrivers: new Map([["r2-artifacts", fakeStorageDriver]]),
+        },
+      },
+    ]);
+    expect(resolved.drivers.modelCatalogProvider).toBe(catalog);
+    expect(resolved.drivers.runnerCredentialProvider).toBe(credentials);
+    expect([...resolved.drivers.artifactStorageDrivers.keys()].sort()).toEqual([
+      "r2-artifacts",
+      "r2-skill",
+    ]);
+    expect(resolved.drivers.artifactStorageDrivers.get("r2-skill")).toBe(
+      fakeStorageDriver,
+    );
   });
 });
 
@@ -157,5 +230,67 @@ describe("resolveExtensions — loud-fail throws (DD-006 §2b)", () => {
     expect(() => resolveExtensions([unit])).toThrowError(
       /extension 'early-gate' registered gate steps into unknown slot 'agent-execution-create:pre-side-effect-gate'.*none in this build/,
     );
+  });
+
+  it("throws on a second ModelCatalogProvider, naming both units", () => {
+    expect(() =>
+      resolveExtensions([
+        { name: "first-catalog", drivers: { modelCatalogProvider: fakeCatalog() } },
+        { name: "second-catalog", drivers: { modelCatalogProvider: fakeCatalog() } },
+      ]),
+    ).toThrowError(
+      /extension 'second-catalog' registers a ModelCatalogProvider, but 'first-catalog' already did/,
+    );
+  });
+
+  it("throws on a second RunnerCredentialProvider, naming both units", () => {
+    expect(() =>
+      resolveExtensions([
+        {
+          name: "first-cred",
+          drivers: { runnerCredentialProvider: fakeCredentials() },
+        },
+        {
+          name: "second-cred",
+          drivers: { runnerCredentialProvider: fakeCredentials() },
+        },
+      ]),
+    ).toThrowError(
+      /extension 'second-cred' registers a RunnerCredentialProvider, but 'first-cred' already did/,
+    );
+  });
+
+  it("throws on a duplicate storage-driver name across units, naming both", () => {
+    expect(() =>
+      resolveExtensions([
+        {
+          name: "first-blob",
+          drivers: { artifactStorageDrivers: new Map([["gcs", fakeStorageDriver]]) },
+        },
+        {
+          name: "second-blob",
+          drivers: { artifactStorageDrivers: new Map([["gcs", fakeStorageDriver]]) },
+        },
+      ]),
+    ).toThrowError(
+      /extension 'second-blob' registers artifact-storage driver 'gcs', but 'first-blob' already did/,
+    );
+  });
+
+  it("throws on a storage-driver name shadowing a built-in backend", () => {
+    for (const name of ["local", "r2"]) {
+      expect(() =>
+        resolveExtensions([
+          {
+            name: "shadowing",
+            drivers: { artifactStorageDrivers: new Map([[name, fakeStorageDriver]]) },
+          },
+        ]),
+      ).toThrowError(
+        new RegExp(
+          `extension 'shadowing' registers artifact-storage driver '${name}', which shadows a built-in backend`,
+        ),
+      );
+    }
   });
 });

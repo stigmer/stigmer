@@ -7,11 +7,20 @@
  * the interface: historical versions stay downloadable through the storage
  * keys listVersions exposes.
  *
+ * Since O5 (20260827.02, blueprint 03 §6b) this is a DOMAIN PORT layered
+ * over the one ArtifactStorage blob driver (the Q2 gate ruling): the
+ * driver stores blobs; this module owns the keys, the write-once posture,
+ * and the not-found vocabulary. The compose root hands it a PER-DOMAIN
+ * driver instance rooted at storagePath (the Q2b ruling) — skill artifacts
+ * never silently follow the generic artifact store's backend selection.
+ *
  * Proven by __tests__/artifact-storage.test.ts and the skill conformance
  * suite's getArtifact/round-trip tests.
  */
-import fs from "node:fs";
 import path from "node:path";
+
+import type { ArtifactStorage } from "../../../artifactstorage/artifact-storage.js";
+import { ArtifactStorageNotFoundError } from "../../../artifactstorage/artifact-storage.js";
 
 /**
  * Storage abstraction for skill artifacts (Go ArtifactStorage). The
@@ -43,111 +52,88 @@ export class ArtifactNotFoundError extends Error {
   }
 }
 
-/** Filesystem implementation (Go LocalFileStorage). */
-export class LocalFileStorage implements SkillArtifactStorage {
-  private readonly storagePath: string;
+/** Skill artifacts are zip archives; the driver stores the honest type. */
+const SKILL_ARTIFACT_CONTENT_TYPE = "application/zip";
 
-  /** Creates the backend and ensures {storagePath}/skills exists (0755). */
-  constructor(storagePath: string) {
-    this.storagePath = storagePath;
-    fs.mkdirSync(path.join(storagePath, "skills"), {
-      recursive: true,
-      mode: 0o755,
-    });
-  }
+/**
+ * The skill store over a blob driver. Object-literal factory rather than a
+ * class: all state is the captured driver, and the seam-adapter shape
+ * matches runner-credential-provider.ts (the O5 house style for ports).
+ */
+export function newSkillArtifactStorage(
+  driver: ArtifactStorage,
+): SkillArtifactStorage {
+  return {
+    /**
+     * "skills/<hash>.zip" — the relative key format shared with cloud R2.
+     * Deliberately a LITERAL forward-slash join, not path.join: the key is
+     * a wire-visible identifier (status.artifact_storage_key, download
+     * URLs, the lane's "skills/" prefix check), and Windows support
+     * arrives only through this server (#24) — path.join would mint
+     * backslash keys there that the download lane could never serve.
+     */
+    getStorageKey(hash: string): string {
+      return `skills/${hash}.zip`;
+    },
 
-  /** Writes with 0600 (owner-only) — artifacts are not world-readable. */
-  async store(hash: string, data: Uint8Array): Promise<string> {
-    const storageKey = this.getStorageKey(hash);
-    const filePath = path.join(this.storagePath, storageKey);
-    await fs.promises.mkdir(path.dirname(filePath), {
-      recursive: true,
-      mode: 0o755,
-    });
-    await fs.promises.writeFile(filePath, data, { mode: 0o600 });
-    return storageKey;
-  }
+    async store(hash: string, data: Uint8Array): Promise<string> {
+      const storageKey = this.getStorageKey(hash);
+      await driver.upload(storageKey, data, SKILL_ARTIFACT_CONTENT_TYPE);
+      return storageKey;
+    },
 
-  async get(storageKey: string): Promise<Uint8Array> {
-    const filePath = this.resolveWithinRoot(storageKey);
-    if (filePath === undefined) {
-      throw new ArtifactNotFoundError(storageKey);
-    }
-    try {
-      return await fs.promises.readFile(filePath);
-    } catch (error) {
-      if (isNotFound(error)) {
+    async get(storageKey: string): Promise<Uint8Array> {
+      if (keyEscapesStore(storageKey)) {
         throw new ArtifactNotFoundError(storageKey);
       }
-      throw new Error(
-        `failed to read artifact: ${error instanceof Error ? error.message : String(error)}`,
-      );
-    }
-  }
-
-  async exists(hash: string): Promise<boolean> {
-    const filePath = path.join(this.storagePath, this.getStorageKey(hash));
-    try {
-      await fs.promises.stat(filePath);
-      return true;
-    } catch (error) {
-      if (isNotFound(error)) {
-        return false;
+      try {
+        return await driver.download(storageKey);
+      } catch (error) {
+        if (error instanceof ArtifactStorageNotFoundError) {
+          throw new ArtifactNotFoundError(storageKey);
+        }
+        throw new Error(
+          `failed to read artifact: ${error instanceof Error ? error.message : String(error)}`,
+        );
       }
-      throw error;
-    }
-  }
+    },
 
-  /**
-   * "skills/<hash>.zip" — the relative key format shared with cloud R2.
-   * Deliberately a LITERAL forward-slash join, not path.join: the key is
-   * a wire-visible identifier (status.artifact_storage_key, download
-   * URLs, the lane's "skills/" prefix check), and Windows support arrives
-   * only through this server (#24) — path.join would mint backslash keys
-   * there that the download lane could never serve. Filesystem access
-   * re-joins the key per-OS (store/get/size).
-   */
-  getStorageKey(hash: string): string {
-    return `skills/${hash}.zip`;
-  }
+    async exists(hash: string): Promise<boolean> {
+      return driver.exists(this.getStorageKey(hash));
+    },
 
-  async size(storageKey: string): Promise<number> {
-    const filePath = this.resolveWithinRoot(storageKey);
-    if (filePath === undefined) {
-      throw new ArtifactNotFoundError(storageKey);
-    }
-    try {
-      const info = await fs.promises.stat(filePath);
-      return info.size;
-    } catch (error) {
-      if (isNotFound(error)) {
+    async size(storageKey: string): Promise<number> {
+      if (keyEscapesStore(storageKey)) {
         throw new ArtifactNotFoundError(storageKey);
       }
-      throw new Error(
-        `failed to stat artifact: ${error instanceof Error ? error.message : String(error)}`,
-      );
-    }
-  }
-
-  /**
-   * Joins a client-supplied storage key to the root and confirms the
-   * resolved path stays inside it (Go resolveWithinRoot) — traversal keys
-   * ("../../etc/passwd") address nothing inside the store.
-   */
-  private resolveWithinRoot(storageKey: string): string | undefined {
-    const root = path.resolve(this.storagePath);
-    const filePath = path.resolve(root, storageKey);
-    if (filePath !== root && !filePath.startsWith(root + path.sep)) {
-      return undefined;
-    }
-    return filePath;
-  }
+      try {
+        return await driver.size(storageKey);
+      } catch (error) {
+        if (error instanceof ArtifactStorageNotFoundError) {
+          throw new ArtifactNotFoundError(storageKey);
+        }
+        throw new Error(
+          `failed to stat artifact: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    },
+  };
 }
 
-function isNotFound(error: unknown): boolean {
+/**
+ * The domain's own traversal guard (Go resolveWithinRoot, kept HERE per
+ * "the domain owns keys"): a client-supplied storage key that resolves
+ * outside the store addresses nothing inside it, and must collapse to the
+ * same not-found as a missing file BEFORE the driver sees it — the
+ * driver's own containment refusal is a distinguishable error, and
+ * distinguishing them would tell a probing caller which escapes exist.
+ * Lexical, against a fixed virtual root, so the judgment is identical on
+ * every backend rather than an accident of the local driver's directory.
+ */
+function keyEscapesStore(storageKey: string): boolean {
+  const virtualRoot = path.resolve(path.sep, "skill-store");
+  const resolved = path.resolve(virtualRoot, storageKey);
   return (
-    typeof error === "object" &&
-    error !== null &&
-    (error as NodeJS.ErrnoException).code === "ENOENT"
+    resolved !== virtualRoot && !resolved.startsWith(virtualRoot + path.sep)
   );
 }

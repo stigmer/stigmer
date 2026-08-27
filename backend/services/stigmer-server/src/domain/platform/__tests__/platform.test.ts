@@ -36,6 +36,7 @@ import { loadConfig } from "../../../boot/config.js";
 import { composeServer } from "../../../boot/compose.js";
 import type { ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
+import { newExecutionScopedRunnerCredentialProvider } from "../../../runnerauth/runner-credential-provider.js";
 import { RunnerAuthService } from "../../../runnerauth/runnerauth.js";
 import { registerPlatformServices } from "../controller.js";
 
@@ -167,7 +168,9 @@ describe("platform domain (keyless runner-token service)", () => {
       registerPlatformServices(router, {
         temporalHostPort: "localhost:7233",
         temporalNamespace: "default",
-        runnerAuthService: RunnerAuthService.create(undefined),
+        runnerAuthService: newExecutionScopedRunnerCredentialProvider(
+          RunnerAuthService.create(undefined),
+        ),
         edition: ServerEdition.oss,
         logger: silentLogger,
       });

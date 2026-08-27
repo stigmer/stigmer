@@ -3,11 +3,19 @@
  * pure local SigV4 computation; no call leaves the host). The Go tree
  * ships r2_storage.go untested; these pins are what the port adds:
  * required-config copy, the 7-day presign clamp, the signed
- * Content-Disposition, and the not-found mapping.
+ * Content-Disposition, the not-found mapping, and the O5 widened surface
+ * (typed not-found on download/size, presigned-PUT under the pinned
+ * staging prefix with the signed Content-Length).
  */
 import { describe, expect, it } from "vitest";
 
-import { R2ArtifactStorage, R2_MAX_EXPIRATION_MS, isNotFoundError } from "../r2-storage.js";
+import { ArtifactStorageNotFoundError } from "../artifact-storage.js";
+import {
+  R2ArtifactStorage,
+  R2_MAX_EXPIRATION_MS,
+  R2_STAGING_PREFIX,
+  isNotFoundError,
+} from "../r2-storage.js";
 
 const VALID = {
   bucket: "stigmer-artifacts",
@@ -52,6 +60,62 @@ describe("R2ArtifactStorage presigned URLs", () => {
     // Signed as a response-content-disposition override, mirroring Go.
     expect(url).toContain("response-content-disposition=");
     expect(decodeURIComponent(url)).toContain('attachment; filename="report.txt"');
+  });
+});
+
+describe("R2ArtifactStorage O5 widened surface", () => {
+  it("presignPut mints under the pinned staging prefix, clamps the TTL, and signs the declared size", async () => {
+    const storage = new R2ArtifactStorage(VALID);
+    const upload = await storage.presignPut(1234, R2_MAX_EXPIRATION_MS * 5);
+
+    expect(upload.stagingKey.startsWith(R2_STAGING_PREFIX)).toBe(true);
+    expect(upload.ttlMs).toBe(R2_MAX_EXPIRATION_MS);
+    expect(
+      upload.url.startsWith(
+        `${VALID.endpoint}/${VALID.bucket}/${upload.stagingKey}?`,
+      ),
+    ).toBe(true);
+    expect(upload.url).toContain("X-Amz-Expires=604800");
+    // Content-Length rides the signature: a body of a different size
+    // fails the check — R2's arm of the exact-size contract.
+    expect(upload.url.toLowerCase()).toContain("content-length");
+  });
+
+  it("two mints never share a staging key (the URL is the credential)", async () => {
+    const storage = new R2ArtifactStorage(VALID);
+    const a = await storage.presignPut(1, 60_000);
+    const b = await storage.presignPut(1, 60_000);
+    expect(a.stagingKey).not.toBe(b.stagingKey);
+  });
+
+  it("download and size map the SDK's not-found onto the typed class; real faults stay wrapped", async () => {
+    const notFound = Object.assign(new Error("no such key"), {
+      name: "NoSuchKey",
+    });
+    const refused = new Error("connection refused");
+    let nextError: Error = notFound;
+    const failingClient = {
+      send: () => Promise.reject(nextError),
+    };
+    const storage = new R2ArtifactStorage(VALID, {
+      client: failingClient as never,
+      presign: () => Promise.resolve("unused"),
+    });
+
+    await expect(storage.download("k")).rejects.toThrow(
+      ArtifactStorageNotFoundError,
+    );
+    await expect(storage.size("k")).rejects.toThrow(
+      ArtifactStorageNotFoundError,
+    );
+
+    nextError = refused;
+    await expect(storage.download("k")).rejects.toThrow(
+      "r2 download failed: connection refused",
+    );
+    await expect(storage.size("k")).rejects.toThrow(
+      "r2 head failed: connection refused",
+    );
   });
 });
 

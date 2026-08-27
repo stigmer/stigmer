@@ -35,7 +35,8 @@ import type {
 } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 
 import type { Logger } from "../../boot/logger.js";
-import type { RunnerAuthService } from "../../runnerauth/runnerauth.js";
+import type { RunnerCredentialProvider } from "../../runnerauth/runner-credential-provider.js";
+import { TOKEN_TYPE_EXECUTION_SCOPED } from "../../runnerauth/runnerauth.js";
 import { SERVER_VERSION } from "./version.js";
 
 export interface PlatformControllerDeps {
@@ -54,7 +55,7 @@ export interface PlatformControllerDeps {
    * nil service in tests; the composition root here always wires one — a
    * keyless instance is the modeled disabled state.)
    */
-  readonly runnerAuthService: RunnerAuthService;
+  readonly runnerAuthService: RunnerCredentialProvider;
   /**
    * The served edition, composition-derived (DD-006; blueprint §11 item
    * 11): the extension registry declares it and defaults to oss, so the
@@ -147,12 +148,19 @@ function getRunnerScopedToken(
     }
   }
 
-  if (executionId === "" || !deps.runnerAuthService.isEnabled()) {
+  if (
+    executionId === "" ||
+    !deps.runnerAuthService.isEnabled(TOKEN_TYPE_EXECUTION_SCOPED)
+  ) {
     return create(GetRunnerScopedTokenOutputSchema);
   }
 
   try {
-    const minted = deps.runnerAuthService.mint(executionId, 0);
+    const minted = deps.runnerAuthService.mint(
+      TOKEN_TYPE_EXECUTION_SCOPED,
+      executionId,
+      0,
+    );
     return create(GetRunnerScopedTokenOutputSchema, {
       runnerScopedToken: minted.token,
       tokenType: "Bearer",

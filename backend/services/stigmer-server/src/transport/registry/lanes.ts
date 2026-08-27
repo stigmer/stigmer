@@ -19,7 +19,7 @@
  *   other   → 405 (with the allow-all header — the CORS wrap is
  *             unconditional in Go).
  */
-import type { ModelRegistryStore } from "../../domain/workflow/registry/model-registry-store.js";
+import type { ModelCatalogProvider } from "../../domain/workflow/registry/model-catalog-provider.js";
 import { applyRegistryCorsHeaders, handleRegistryPreflight } from "../cors.js";
 import type { LaneHandler } from "../lanes.js";
 
@@ -34,8 +34,8 @@ export interface RegistryLanes {
 export interface RegistryLanesOptions {
   /** The task-kind registry document (static per release). */
   taskKindRegistryDocument: string;
-  /** The domain-owned model-registry store the lane serves from. */
-  modelRegistryStore: ModelRegistryStore;
+  /** The composed model-catalog provider the lane serves from (DD-008). */
+  modelRegistryStore: ModelCatalogProvider;
 }
 
 export function createRegistryLanes(
