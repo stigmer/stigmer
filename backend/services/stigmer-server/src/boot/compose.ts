@@ -226,6 +226,13 @@ export async function composeServer(
   // position 1 of every chain calls it (O2).
   const authorizer =
     extensions.authorizer ?? newPermissiveSingleTeamAuthorizer();
+  // The C2 tuple-lifecycle driver (ruling Q2): undefined = the three
+  // shared tuple steps (CreateAuthorizationTuples / CleanupIamPolicies /
+  // UpdateVisibilityTuples) no-op — OSS behavior byte-identical. Handed
+  // to every resource controller as an explicit dependency, the same
+  // threading as the authorizer.
+  const authorizationLifecycle =
+    extensions.drivers.resourceAuthorizationLifecycle;
 
   // Stage: storage — the driver selection seam (DD-010): DATABASE_URL
   // present → Postgres (async connect + advisory-locked migrations), else
@@ -684,18 +691,26 @@ export async function composeServer(
       logger,
       authorizer,
       gateSteps: extensions.gateSteps,
+      authorizationLifecycle,
+      organizationDirectory: extensions.drivers.organizationDirectory,
     });
     // ApiKey is the first domain born AFTER the Go port (O3, 20260827.06 —
     // DD-003: the apikey contract is wholly OSS), so it has no Go
     // registration order to mirror; it registers with the tenancy/IAM
     // family at the top. The chassis's apikey VERIFIER shares this
     // domain's lookup module — not the RPC (domain/apikey/lookup.ts).
-    registerApiKeyServices(router, { store, logger, authorizer });
+    registerApiKeyServices(router, {
+      store,
+      logger,
+      authorizer,
+      authorizationLifecycle,
+    });
     registerEnvironmentServices(router, {
       store,
       logger,
       authorizer,
       secretService,
+      authorizationLifecycle,
     });
     // OAuthApp reuses the environment's SecretService instance — Go wires
     // ONE encryption service for both (server.go 302–307).
@@ -704,6 +719,7 @@ export async function composeServer(
       secretService,
       logger,
       authorizer,
+      authorizationLifecycle,
     });
     registerExecutionContextServices(router, {
       store,
@@ -711,17 +727,20 @@ export async function composeServer(
       authorizer,
       secretService,
       runnerAuthService: runnerCredentials,
+      authorizationLifecycle,
     });
     registerAgentServices(router, {
       store,
       logger,
       authorizer,
+      authorizationLifecycle,
       agentInstanceApplier: () => requireInProcess().agentInstanceApplier,
     });
     registerAgentInstanceServices(router, {
       store,
       logger,
       authorizer,
+      authorizationLifecycle,
       parentAgentLoader: () => requireInProcess().parentAgentLoader,
     });
     registerSessionServices(router, {
@@ -732,17 +751,24 @@ export async function composeServer(
       agentInstanceCreator: () => requireInProcess().agentInstanceCreator,
       gateSteps: extensions.gateSteps,
       sandboxLane,
+      authorizationLifecycle,
     });
     // The sharing/channel family registers after the agent family, as in
     // Go server.go (agent 378 → agentshare 384 → agentchannel 391 →
     // channelmessage 399 → channelconversation 408 → channelapp 416).
     // ChannelApp shares the ONE SecretService instance with Environment —
     // one key, one enc:v1: format (Go wires the same pointer).
-    registerAgentShareServices(router, { store, logger, authorizer });
+    registerAgentShareServices(router, {
+      store,
+      logger,
+      authorizer,
+      authorizationLifecycle,
+    });
     registerAgentChannelServices(router, {
       store,
       logger,
       authorizer,
+      authorizationLifecycle,
       // The SAME domain-owned registry instance the workflow validator
       // and the registry lanes read — the channel model-pin rule
       // (stigmer/stigmer#774) can never drift from the served pickers.
@@ -755,6 +781,7 @@ export async function composeServer(
       logger,
       authorizer,
       secretService,
+      authorizationLifecycle,
     });
     // Schedule registers between channelapp and memory (Go server.go
     // 417 → 426 → 436). The clock and runner ride constant providers —
@@ -768,12 +795,19 @@ export async function composeServer(
       modelRegistry: modelCatalog,
       clock: () => scheduleSyncer,
       runner: () => scheduleRunStarter,
+      authorizationLifecycle,
     });
-    registerMemoryServices(router, { store, logger, authorizer });
+    registerMemoryServices(router, {
+      store,
+      logger,
+      authorizer,
+      authorizationLifecycle,
+    });
     registerAgentExecutionServices(router, {
       store,
       logger,
       authorizer,
+      authorizationLifecycle,
       broker: agentExecutionStreamBroker,
       engineState: executionEngineState,
       modelRegistry: modelCatalog,
@@ -805,6 +839,7 @@ export async function composeServer(
       store,
       logger,
       authorizer,
+      authorizationLifecycle,
       validator: workflowValidator,
       workflowInstanceCreator: () => requireInProcess().workflowInstanceCreator,
     });
@@ -812,12 +847,14 @@ export async function composeServer(
       store,
       logger,
       authorizer,
+      authorizationLifecycle,
       parentWorkflowLoader: () => requireInProcess().parentWorkflowLoader,
     });
     registerWorkflowExecutionServices(router, {
       store,
       logger,
       authorizer,
+      authorizationLifecycle,
       gateSteps: extensions.gateSteps,
       engineState: workflowExecutionEngineState,
       broker: workflowExecutionStreamBroker,
@@ -849,6 +886,7 @@ export async function composeServer(
       store,
       logger,
       authorizer,
+      authorizationLifecycle,
       connect: {
         store,
         logger,
@@ -879,6 +917,7 @@ export async function composeServer(
       store,
       logger,
       authorizer,
+      authorizationLifecycle,
       artifactStorage: skillArtifactStorage,
       // The agentexecution blob store (server.go:362-363) — read side of
       // pushFromExecutionArtifact.
@@ -905,6 +944,7 @@ export async function composeServer(
       store,
       logger,
       authorizer,
+      authorizationLifecycle,
       orphanDeleter: () => requireInProcess().projectOrphanDeleter,
     });
     // The two CQRS query services register between the domains and the

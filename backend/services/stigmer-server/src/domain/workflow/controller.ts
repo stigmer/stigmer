@@ -56,6 +56,7 @@ import {
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
+import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import {
   internalError,
@@ -93,12 +94,19 @@ import {
 import {
   SHOULD_CREATE_KEY,
   newLoadForApplyStep,
+  withResolvedApplyId,
 } from "../../pipeline/steps/load-for-apply.js";
 import {
   TARGET_RESOURCE_KEY,
   newLoadTargetStep,
 } from "../../pipeline/steps/load-target.js";
 import { newNormalizeReferencesStep } from "../../pipeline/steps/references.js";
+import {
+  newCleanupIamPoliciesStep,
+  newCreateAuthorizationTuplesStep,
+  newRecordVisibilityBeforeUpdateStep,
+  newUpdateVisibilityTuplesStep,
+} from "../../pipeline/steps/authorization-tuples.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import {
@@ -137,6 +145,8 @@ export interface WorkflowControllerDeps {
   readonly logger: Logger;
   /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
   readonly authorizer: Authorizer;
+  /** The composed tuple-lifecycle driver — undefined = the shared steps no-op (C2). */
+  readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   /** The Layer-2 validator (converter + structural checks + registry). */
   readonly validator: InProcessValidator;
   /**
@@ -215,6 +225,12 @@ async function createWorkflow(
     .addStep(newPopulateVersionHashStep(true))
     .addStep(newPersistStep(deps.store))
     .addStep(
+      newCreateAuthorizationTuplesStep(
+        deps.authorizationLifecycle,
+        deps.logger,
+      ),
+    )
+    .addStep(
       newCreateDefaultInstanceStep(deps.workflowInstanceCreator, deps.logger),
     )
     .addStep(
@@ -276,7 +292,8 @@ async function update(
 /**
  * Apply — kubectl-style create-or-update: a minimal probe pipeline decides
  * existence, then delegates to Create or Update with the ORIGINAL request
- * message (Go delegates `workflow`, not the pipeline's mutated clone).
+ * message (Go delegates `workflow`, not the pipeline's mutated clone);
+ * the update arm carries the resolved id via withResolvedApplyId.
  */
 async function apply(
   deps: WorkflowControllerDeps,
@@ -308,7 +325,7 @@ async function apply(
   }
   return shouldCreate
     ? createWorkflow(deps, workflow, ctx)
-    : update(deps, workflow, ctx);
+    : update(deps, withResolvedApplyId(WorkflowSchema, workflow, reqCtx), ctx);
 }
 
 /**
@@ -342,6 +359,9 @@ async function deleteWorkflow(
     .addStep(newLoadExistingForDeleteStep(deps.store, WorkflowSchema))
     .addStep(newCascadeDeleteWorkflowInstancesStep(deps.store, deps.logger))
     .addStep(newDeleteResourceStep(deps.store))
+    .addStep(
+      newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
+    )
     .addStep(newDeleteSearchIndexStep(deps.store, deps.logger))
     .build()
     .execute(reqCtx);
@@ -392,9 +412,18 @@ async function updateVisibility(
     )
     .addStep(newValidateProtoStep())
     .addStep(newLoadWorkflowForVisibilityUpdateStep(deps.store))
+    .addStep(
+      newRecordVisibilityBeforeUpdateStep(UPDATE_VISIBILITY_WORKFLOW_KEY),
+    )
     .addStep(newValidateVisibilityUpdateStep())
     .addStep(newSetWorkflowVisibilityStep())
     .addStep(newPersistWorkflowForVisibilityUpdateStep(deps.store))
+    .addStep(
+      newUpdateVisibilityTuplesStep(
+        deps.authorizationLifecycle,
+        UPDATE_VISIBILITY_WORKFLOW_KEY,
+      ),
+    )
     .addStep(newIndexWorkflowAfterVisibilityUpdateStep(deps.store, deps.logger))
     .build()
     .execute(reqCtx);

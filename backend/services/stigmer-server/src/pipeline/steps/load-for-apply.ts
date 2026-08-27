@@ -4,7 +4,8 @@
  * flags the controller branches on (create vs update), and populates the
  * id when the resource exists.
  */
-import type { DescMessage } from "@bufbuild/protobuf";
+import { clone } from "@bufbuild/protobuf";
+import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
 
 import type { Store } from "../../store/interface.js";
 import type { PipelineStep } from "../pipeline.js";
@@ -53,4 +54,29 @@ export function newLoadForApplyStep<Desc extends DescMessage>(
       }
     },
   };
+}
+
+/**
+ * The apply update-arm delegation message: the ORIGINAL request (the Go
+ * pin — never the pipeline's mutated clone) with ONLY the resolved id
+ * copied on. Apply requests identify by name+org, not id, so without
+ * this the delegated update chain's Authorize step checks an EMPTY
+ * resource id — the permissive OSS default never noticed, but a real
+ * Authorizer (the cloud edition) must check the true target, exactly as
+ * the Java edition's post-load authorize order does (C2, 20260827.10).
+ * OSS wire behavior is unchanged: the update chain re-resolves and
+ * loads by slug regardless, and the rosters pin the byte-identity.
+ */
+export function withResolvedApplyId<Desc extends DescMessage>(
+  schema: Desc,
+  original: MessageShape<Desc>,
+  resolved: RequestContext<Desc>,
+): MessageShape<Desc> {
+  const enriched = clone(schema, original);
+  const metadata = metadataOf(enriched);
+  const resolvedId = metadataOf(resolved.newState)?.id ?? "";
+  if (metadata !== undefined && metadata.id === "" && resolvedId !== "") {
+    metadata.id = resolvedId;
+  }
+  return enriched;
 }

@@ -38,6 +38,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
+import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import { internalError, notFoundError } from "../../pipeline/errors.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
@@ -67,6 +68,7 @@ import {
 import {
   SHOULD_CREATE_KEY,
   newLoadForApplyStep,
+  withResolvedApplyId,
 } from "../../pipeline/steps/load-for-apply.js";
 import { newLoadByReferenceStep } from "../../pipeline/steps/load-by-reference.js";
 import {
@@ -74,6 +76,12 @@ import {
   newLoadTargetStep,
 } from "../../pipeline/steps/load-target.js";
 import { newNormalizeReferencesStep } from "../../pipeline/steps/references.js";
+import {
+  newCleanupIamPoliciesStep,
+  newCreateAuthorizationTuplesStep,
+  newRecordVisibilityBeforeUpdateStep,
+  newUpdateVisibilityTuplesStep,
+} from "../../pipeline/steps/authorization-tuples.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
@@ -100,6 +108,8 @@ export interface AgentInstanceControllerDeps {
   readonly logger: Logger;
   /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
   readonly authorizer: Authorizer;
+  /** The composed tuple-lifecycle driver — undefined = the shared steps no-op (C2). */
+  readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   /**
    * The agent in-process edge — a lazy provider because
    * agent↔agentinstance is a true dependency cycle (DD-002; the ratified
@@ -168,6 +178,12 @@ async function createInstance(
     .addStep(newNormalizeReferencesStep())
     .addStep(newPersistStep(deps.store))
     .addStep(
+      newCreateAuthorizationTuplesStep(
+        deps.authorizationLifecycle,
+        deps.logger,
+      ),
+    )
+    .addStep(
       newIndexSearchStep(deps.store, agentInstanceSearchExtractor, deps.logger),
     )
     .build()
@@ -214,7 +230,8 @@ async function update(
 
 /**
  * Apply — kubectl-style create-or-update; delegates with the ORIGINAL
- * request message. The create route is the default-instance path (the
+ * request message (the update arm carries the resolved id via
+ * withResolvedApplyId). The create route is the default-instance path (the
  * agent controller's CreateDefaultInstance applies through here); the
  * update route is the self-heal for pre-cascade legacy orphans.
  */
@@ -254,7 +271,11 @@ async function apply(
   }
   return shouldCreate
     ? createInstance(deps, instance, ctx)
-    : update(deps, instance, ctx);
+    : update(
+        deps,
+        withResolvedApplyId(AgentInstanceSchema, instance, reqCtx),
+        ctx,
+      );
 }
 
 /** Delete — no cascade of its own; returns the deleted instance. */
@@ -283,6 +304,9 @@ async function deleteInstance(
     .addStep(newExtractResourceIdStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, AgentInstanceSchema))
     .addStep(newDeleteResourceStep(deps.store))
+    .addStep(
+      newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
+    )
     .addStep(newDeleteSearchIndexStep(deps.store, deps.logger))
     .build()
     .execute(reqCtx);
@@ -330,10 +354,19 @@ async function updateVisibility(
     )
     .addStep(newValidateProtoStep())
     .addStep(newLoadInstanceForVisibilityUpdateStep(deps.store))
+    .addStep(
+      newRecordVisibilityBeforeUpdateStep(UPDATE_VISIBILITY_INSTANCE_KEY),
+    )
     .addStep(newRejectDefaultInstanceVisibilityUpdateStep(deps.store))
     .addStep(newValidateVisibilityUpdateStep())
     .addStep(newSetInstanceVisibilityStep())
     .addStep(newPersistInstanceForVisibilityUpdateStep(deps.store))
+    .addStep(
+      newUpdateVisibilityTuplesStep(
+        deps.authorizationLifecycle,
+        UPDATE_VISIBILITY_INSTANCE_KEY,
+      ),
+    )
     .addStep(newIndexInstanceAfterVisibilityUpdateStep(deps.store, deps.logger))
     .build()
     .execute(reqCtx);

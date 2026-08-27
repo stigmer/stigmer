@@ -13,6 +13,10 @@
  *   allow       → the chain proceeds;
  *   deny        → PERMISSION_DENIED, carrying the annotation's byte-pinned
  *                 `error_msg` (the reason arm is the fallback copy);
+ *   not-found   → NOT_FOUND with the load-first chain's copy (the C2
+ *                 ruling-Q1 refinement: a resource-scoped check on a
+ *                 nonexistent id answers what Java's load-before-authorize
+ *                 order answers, stigmer#224);
  *   unavailable → INTERNAL — an authorization-backend outage is NEVER
  *                 softened into a denial (the verified Java StepResult
  *                 lesson, DD-007's wire-visible contract).
@@ -43,8 +47,13 @@ import {
   is_skip_authorization,
 } from "@stigmer/protos/ai/stigmer/commons/rpc/method_options_pb";
 
-import type { Authorizer, AuthzDecision } from "../../extensions/authorizer.js";
-import { internalError } from "../errors.js";
+import type {
+  Authorizer,
+  AuthzCheck,
+  AuthzDecision,
+} from "../../extensions/authorizer.js";
+import { getKindName } from "../apiresource-meta.js";
+import { internalError, notFoundError } from "../errors.js";
 import type { PipelineStep } from "../pipeline.js";
 import type { RequestContext } from "../request-context.js";
 
@@ -89,7 +98,10 @@ export function newAuthorizeStep<Desc extends DescMessage>(
       if (ctx.callerIdentity.callerClass === "internal") {
         return;
       }
-      if (getOption(method, is_public) || getOption(method, is_skip_authorization)) {
+      if (
+        getOption(method, is_public) ||
+        getOption(method, is_skip_authorization)
+      ) {
         return;
       }
       if (!hasOption(method, rpcAuthorizationConfig)) {
@@ -97,7 +109,12 @@ export function newAuthorizeStep<Desc extends DescMessage>(
       }
       const config = getOption(method, rpcAuthorizationConfig);
 
-      const decision = await runAuthorizer(authorizer, ctx, config);
+      const check: AuthzCheck = {
+        permission: config.permission,
+        resourceKind: resolveResourceKind(ctx.input, config),
+        resourceId: resolveResourceId(ctx.input, config),
+      };
+      const decision = await runAuthorizer(authorizer, ctx, check);
       switch (decision.kind) {
         case "allow":
           return;
@@ -110,8 +127,31 @@ export function newAuthorizeStep<Desc extends DescMessage>(
                 : AUTHORIZATION_DENIED_FALLBACK_MESSAGE,
             Code.PermissionDenied,
           );
+        case "not-found": {
+          // The ruling-Q1 arm: the exact copy the load-first chain would
+          // answer for the missing id (LoadTarget's notFoundError), so
+          // the wire cannot distinguish which step spoke.
+          if (
+            check.resourceId === "" ||
+            check.resourceKind === ApiResourceKind.api_resource_kind_unknown
+          ) {
+            throw internalError(
+              new Error(
+                "authorizer answered not-found for a non-resource-scoped check",
+              ),
+              AUTHORIZATION_UNAVAILABLE_MESSAGE,
+            );
+          }
+          throw notFoundError(
+            getKindName(check.resourceKind),
+            check.resourceId,
+          );
+        }
         case "unavailable":
-          throw internalError(decision.cause, AUTHORIZATION_UNAVAILABLE_MESSAGE);
+          throw internalError(
+            decision.cause,
+            AUTHORIZATION_UNAVAILABLE_MESSAGE,
+          );
         default: {
           const exhaustive: never = decision;
           throw internalError(
@@ -132,14 +172,10 @@ export function newAuthorizeStep<Desc extends DescMessage>(
 async function runAuthorizer<Desc extends DescMessage>(
   authorizer: Authorizer,
   ctx: RequestContext<Desc>,
-  config: RpcAuthorizationConfig,
+  check: AuthzCheck,
 ): Promise<AuthzDecision> {
   try {
-    return await authorizer.authorize(ctx.callerIdentity, {
-      permission: config.permission,
-      resourceKind: resolveResourceKind(ctx.input, config),
-      resourceId: resolveResourceId(ctx.input, config),
-    });
+    return await authorizer.authorize(ctx.callerIdentity, check);
   } catch (error) {
     return {
       kind: "unavailable",

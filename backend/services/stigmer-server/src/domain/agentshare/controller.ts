@@ -46,6 +46,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
+import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import {
   internalError,
@@ -86,6 +87,10 @@ import {
   newLoadTargetStep,
 } from "../../pipeline/steps/load-target.js";
 import { newNormalizeReferencesStep } from "../../pipeline/steps/references.js";
+import {
+  newCleanupIamPoliciesStep,
+  newCreateAuthorizationTuplesStep,
+} from "../../pipeline/steps/authorization-tuples.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
@@ -108,6 +113,8 @@ export interface AgentShareControllerDeps {
   readonly logger: Logger;
   /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
   readonly authorizer: Authorizer;
+  /** The composed tuple-lifecycle driver — undefined = the shared steps no-op (C2). */
+  readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
 }
 
 /** Registers both agentshare services on the router (routes stage). */
@@ -170,6 +177,12 @@ async function createShare(
     .addStep(newStampAgentPinStep())
     .addStep(newNormalizeReferencesStep())
     .addStep(newPersistStep(deps.store))
+    .addStep(
+      newCreateAuthorizationTuplesStep(
+        deps.authorizationLifecycle,
+        deps.logger,
+      ),
+    )
     .build()
     .execute(reqCtx);
   return reqCtx.newState;
@@ -406,6 +419,9 @@ async function deleteShare(
     .addStep(newExtractResourceIdStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, AgentShareSchema))
     .addStep(newDeleteResourceStep(deps.store))
+    .addStep(
+      newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
+    )
     .build()
     .execute(reqCtx);
 

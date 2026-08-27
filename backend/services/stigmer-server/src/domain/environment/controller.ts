@@ -43,6 +43,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
+import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import type { SecretService } from "../../encryption/encryption.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import {
@@ -81,6 +82,7 @@ import {
 import {
   SHOULD_CREATE_KEY,
   newLoadForApplyStep,
+  withResolvedApplyId,
 } from "../../pipeline/steps/load-for-apply.js";
 import { newLoadByReferenceStep } from "../../pipeline/steps/load-by-reference.js";
 import {
@@ -88,6 +90,12 @@ import {
   newLoadTargetStep,
 } from "../../pipeline/steps/load-target.js";
 import { newNormalizeReferencesStep } from "../../pipeline/steps/references.js";
+import {
+  newCleanupIamPoliciesStep,
+  newCreateAuthorizationTuplesStep,
+  newRecordVisibilityBeforeUpdateStep,
+  newUpdateVisibilityTuplesStep,
+} from "../../pipeline/steps/authorization-tuples.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
@@ -116,6 +124,8 @@ export interface EnvironmentControllerDeps {
   readonly logger: Logger;
   /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
   readonly authorizer: Authorizer;
+  /** The composed tuple-lifecycle driver — undefined = the shared steps no-op (C2). */
+  readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   readonly secretService: SecretService;
 }
 
@@ -179,6 +189,12 @@ async function createEnvironment(
     .addStep(newEncryptSecretValuesStep(deps.secretService, deps.logger))
     .addStep(newPersistStep(deps.store))
     .addStep(
+      newCreateAuthorizationTuplesStep(
+        deps.authorizationLifecycle,
+        deps.logger,
+      ),
+    )
+    .addStep(
       newIndexSearchStep(deps.store, environmentSearchExtractor, deps.logger),
     )
     .build()
@@ -226,7 +242,8 @@ async function update(
 /**
  * Apply — kubectl-style create-or-update: a minimal probe pipeline decides
  * existence, then delegates to Create or Update with the ORIGINAL request
- * message (Go delegates `environment`, not the pipeline's mutated clone).
+ * message (Go delegates `environment`, not the pipeline's mutated clone);
+ * the update arm carries the resolved id via withResolvedApplyId.
  */
 async function apply(
   deps: EnvironmentControllerDeps,
@@ -261,7 +278,7 @@ async function apply(
   }
   return shouldCreate
     ? createEnvironment(deps, env, ctx)
-    : update(deps, env, ctx);
+    : update(deps, withResolvedApplyId(EnvironmentSchema, env, reqCtx), ctx);
 }
 
 /**
@@ -296,6 +313,9 @@ async function deleteEnvironment(
     .addStep(newValidateProtoStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, EnvironmentSchema))
     .addStep(newDeleteResourceStep(deps.store))
+    .addStep(
+      newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
+    )
     .addStep(newDeleteSearchIndexStep(deps.store, deps.logger))
     .build()
     .execute(reqCtx);
@@ -348,12 +368,21 @@ async function updateVisibility(
     )
     .addStep(newValidateProtoStep())
     .addStep(newLoadEnvironmentForVisibilityUpdateStep(deps.store))
+    .addStep(
+      newRecordVisibilityBeforeUpdateStep(UPDATE_VISIBILITY_ENVIRONMENT_KEY),
+    )
     // After load, per the cross-edition error precedence: unknown id +
     // bad level = NOT_FOUND on both editions.
     .addStep(newValidateVisibilityUpdateStep())
     .addStep(newValidateEnvironmentShareRestrictionStep())
     .addStep(newSetEnvironmentVisibilityStep())
     .addStep(newPersistEnvironmentForVisibilityUpdateStep(deps.store))
+    .addStep(
+      newUpdateVisibilityTuplesStep(
+        deps.authorizationLifecycle,
+        UPDATE_VISIBILITY_ENVIRONMENT_KEY,
+      ),
+    )
     .addStep(
       newIndexEnvironmentAfterVisibilityUpdateStep(deps.store, deps.logger),
     )
