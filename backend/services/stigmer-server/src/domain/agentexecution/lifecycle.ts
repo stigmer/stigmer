@@ -716,6 +716,7 @@ export async function recoverExecution(
               temporalConfig: deps.temporalConfig,
             },
             loadedExecution(ctx),
+            ctx.callerIdentity.identityId,
           );
         },
       },

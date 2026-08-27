@@ -111,13 +111,36 @@ export type { ModelCatalogProvider } from "./domain/workflow/registry/model-cata
 // baseline) builds providers from documents with the SAME interpretation
 // ModelRegistryStore uses — the semantics live exactly once in OSS.
 export { newModelCatalogProviderFromDocument } from "./domain/workflow/registry/document-catalog.js";
-export type { RunnerCredentialProvider } from "./runnerauth/runner-credential-provider.js";
+export type {
+  RunnerCredentialProvider,
+  // The C4 capability shapes (gate ruling Q1): the optional methods'
+  // domain-shaped request/result types — a composition implementing the
+  // exchange, bootstrap, sandbox-mint, or EC-read capabilities types
+  // against these, never against wire messages.
+  RunnerBootstrapCredentials,
+  RunnerScopedTokenExchange,
+  RunnerScopedTokenRequest,
+  SandboxCredentialRequest,
+} from "./runnerauth/runner-credential-provider.js";
 export type { MintedToken } from "./runnerauth/runnerauth.js";
 export {
   InvalidTokenError,
   MintingDisabledError,
   TOKEN_TYPE_EXECUTION_SCOPED,
 } from "./runnerauth/runnerauth.js";
+
+// The cross-edition secret envelope (enc:v1 — AES-256-GCM, the format the
+// Java SecretEncryptionService shares): compositions building extension
+// domains with secret-bearing columns seal under the SAME envelope the
+// OSS store uses (C4 gate ruling Q4's interim posture; C2/C3 inherit the
+// seam). The service, not the primitives — the format stays defined
+// exactly once.
+export {
+  DecryptionFailedError,
+  EncryptionDisabledError,
+  InvalidCiphertextError,
+  SecretService,
+} from "./encryption/encryption.js";
 
 // The O6 driver seam (§6d): the sandbox-provisioner contract an extension
 // implements to register its own isolation driver (selected through the

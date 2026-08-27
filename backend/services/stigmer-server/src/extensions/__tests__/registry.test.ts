@@ -319,6 +319,7 @@ describe("resolveExtensions — loud-fail throws (DD-006 §2b)", () => {
       "agent-execution-recover:pre-side-effect-gate",
       "agent-execution-submit-approval:gate",
       "org-create:post-persist",
+      "sandbox-acquisition:gate",
       "session-create:pre-side-effect-gate",
     ]);
   });

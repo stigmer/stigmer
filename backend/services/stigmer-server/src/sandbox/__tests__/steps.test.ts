@@ -40,7 +40,10 @@ import {
   WORKFLOW_ROUTING_GLOBAL,
   WorkflowExecutionTemporalConfig,
 } from "../../domain/workflowexecution/temporal/config.js";
-import type { RunnerCredentialProvider } from "../../runnerauth/runner-credential-provider.js";
+import type {
+  RunnerCredentialProvider,
+  SandboxCredentialRequest,
+} from "../../runnerauth/runner-credential-provider.js";
 import { SqliteStore } from "../../store/sqlite/store.js";
 import type { SandboxLane } from "../lane.js";
 import type { SandboxEnvironment, SandboxProvisioner } from "../provisioner.js";
@@ -51,6 +54,13 @@ import {
   newWorkflowSandboxTerminalObserver,
   SANDBOX_PROVISIONING_FAILED_PREFIX,
 } from "../steps.js";
+
+/**
+ * The caller identity the ensure bodies thread into the credential mint
+ * (C4): the OSS execution-scoped mint ignores it, so these tests pass a
+ * fixed value and the token assertions stay binding-shaped.
+ */
+const TEST_CALLER_IDENTITY_ID = "ida_test_caller";
 
 const silentLogger = createLogger({
   level: "error",
@@ -117,6 +127,38 @@ const disabledCredentials: RunnerCredentialProvider = {
     throw new Error("verify is not under test");
   },
 };
+
+/**
+ * A provider with the C4 mintSandboxCredential capability: records the
+ * full provisioning context it received and returns a distinguishable
+ * token — proving the ensure steps delegate the WHOLE mint decision
+ * (the primitives must never be consulted on this path).
+ */
+function capabilityCredentials(): RunnerCredentialProvider & {
+  minted: SandboxCredentialRequest[];
+} {
+  const minted: SandboxCredentialRequest[] = [];
+  return {
+    minted,
+    isEnabled: () => {
+      throw new Error(
+        "primitives must not be consulted on the capability path",
+      );
+    },
+    mint: () => {
+      throw new Error(
+        "primitives must not be consulted on the capability path",
+      );
+    },
+    verify: () => {
+      throw new Error("verify is not under test");
+    },
+    mintSandboxCredential: (request) => {
+      minted.push(request);
+      return `cloud-tok-${request.scope}`;
+    },
+  };
+}
 
 function lane(
   provisioner: SandboxProvisioner,
@@ -193,6 +235,7 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
         temporalConfig: sessionRoutingCloudDefault,
       },
       execution,
+      TEST_CALLER_IDENTITY_ID,
     );
     expect(provisioner.ensured).toEqual([
       {
@@ -206,6 +249,49 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
     ]);
   });
 
+  it("delegates the mint to the capability provider with the full provisioning context (C4)", async () => {
+    const provisioner = fakeProvisioner();
+    const credentials = capabilityCredentials();
+    counter += 1;
+    const sessionId = `ses_sbx_${counter}`;
+    const executionId = `axr_sbx_${counter}`;
+    await store.saveResource(
+      ApiResourceKind.session,
+      sessionId,
+      SessionSchema,
+      create(SessionSchema, {
+        metadata: { id: sessionId, name: sessionId },
+        spec: { executionTarget: ExecutionTarget.CLOUD },
+      }),
+    );
+    const execution = create(AgentExecutionSchema, {
+      metadata: { id: executionId, name: executionId, org: "org-test" },
+      spec: { sessionId },
+    });
+
+    await ensureSessionSandboxForExecution(
+      {
+        store,
+        logger: silentLogger,
+        lane: lane(provisioner, credentials),
+        temporalConfig: sessionRoutingCloudDefault,
+      },
+      execution,
+      TEST_CALLER_IDENTITY_ID,
+    );
+
+    expect(credentials.minted).toEqual([
+      {
+        scope: "session",
+        sessionId,
+        executionId,
+        org: "org-test",
+        callerIdentityId: TEST_CALLER_IDENTITY_ID,
+      },
+    ]);
+    expect(provisioner.ensured[0]?.env.stigmerToken).toBe("cloud-tok-session");
+  });
+
   it("skips on resolved LOCAL target — the roster fast path", async () => {
     const provisioner = fakeProvisioner();
     const { execution } = await seed(ExecutionTarget.LOCAL);
@@ -217,6 +303,7 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
         temporalConfig: sessionRoutingCloudDefault,
       },
       execution,
+      TEST_CALLER_IDENTITY_ID,
     );
     expect(provisioner.ensured).toEqual([]);
   });
@@ -240,6 +327,7 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
         temporalConfig: sessionRoutingCloudDefault,
       },
       execution,
+      TEST_CALLER_IDENTITY_ID,
     );
   });
 
@@ -257,6 +345,7 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
         temporalConfig: sessionRoutingCloudDefault,
       },
       execution,
+      TEST_CALLER_IDENTITY_ID,
     );
     expect(provisioner.ensured).toEqual([]);
   });
@@ -277,6 +366,7 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
         ),
       },
       execution,
+      TEST_CALLER_IDENTITY_ID,
     );
     expect(provisioner.ensured).toEqual([]);
   });
@@ -292,6 +382,7 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
         temporalConfig: sessionRoutingCloudDefault,
       },
       execution,
+      TEST_CALLER_IDENTITY_ID,
     );
     expect(provisioner.ensured[0]?.env.stigmerToken).toBe("");
   });
@@ -310,6 +401,7 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
         temporalConfig: sessionRoutingCloudDefault,
       },
       execution,
+      TEST_CALLER_IDENTITY_ID,
     );
     const stamped = await store.getResource(
       ApiResourceKind.agent_execution,
@@ -347,6 +439,7 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
         temporalConfig: sessionRoutingCloudDefault,
       },
       execution,
+      TEST_CALLER_IDENTITY_ID,
     );
     const after = await store.getResource(
       ApiResourceKind.agent_execution,
@@ -374,6 +467,7 @@ describe("the workflow lane (ensureWorkflowSandboxForExecution)", () => {
         temporalConfig: executionRoutingConfig,
       },
       workflowExecution(ExecutionTarget.CLOUD),
+      TEST_CALLER_IDENTITY_ID,
     );
     expect(provisioner.ensured).toEqual([
       {
@@ -382,6 +476,33 @@ describe("the workflow lane (ensureWorkflowSandboxForExecution)", () => {
         env: { taskQueue: "wfexec:wfx_sbx_1", stigmerToken: "tok-wfx_sbx_1" },
       },
     ]);
+  });
+
+  it("delegates the mint to the capability provider on the workflow scope (C4)", async () => {
+    const provisioner = fakeProvisioner();
+    const credentials = capabilityCredentials();
+    await ensureWorkflowSandboxForExecution(
+      {
+        logger: silentLogger,
+        lane: lane(provisioner, credentials),
+        temporalConfig: executionRoutingConfig,
+      },
+      create(WorkflowExecutionSchema, {
+        metadata: { id: "wfx_sbx_cap", name: "wfx_sbx_cap", org: "org-test" },
+        spec: { executionTarget: ExecutionTarget.CLOUD },
+      }),
+      TEST_CALLER_IDENTITY_ID,
+    );
+    expect(credentials.minted).toEqual([
+      {
+        scope: "workflow",
+        sessionId: "",
+        executionId: "wfx_sbx_cap",
+        org: "org-test",
+        callerIdentityId: TEST_CALLER_IDENTITY_ID,
+      },
+    ]);
+    expect(provisioner.ensured[0]?.env.stigmerToken).toBe("cloud-tok-workflow");
   });
 
   it("skips on LOCAL target and on global routing", async () => {
@@ -393,6 +514,7 @@ describe("the workflow lane (ensureWorkflowSandboxForExecution)", () => {
         temporalConfig: executionRoutingConfig,
       },
       workflowExecution(ExecutionTarget.LOCAL),
+      TEST_CALLER_IDENTITY_ID,
     );
     await ensureWorkflowSandboxForExecution(
       {
@@ -406,6 +528,7 @@ describe("the workflow lane (ensureWorkflowSandboxForExecution)", () => {
         ),
       },
       workflowExecution(ExecutionTarget.CLOUD),
+      TEST_CALLER_IDENTITY_ID,
     );
     expect(provisioner.ensured).toEqual([]);
   });
@@ -422,6 +545,7 @@ describe("the workflow lane (ensureWorkflowSandboxForExecution)", () => {
           temporalConfig: executionRoutingConfig,
         },
         workflowExecution(ExecutionTarget.CLOUD),
+        TEST_CALLER_IDENTITY_ID,
       );
       expect.unreachable("the workflow lane must throw on failure");
     } catch (error) {

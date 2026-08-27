@@ -37,6 +37,8 @@ import { create } from "@bufbuild/protobuf";
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
+import type { ResolvedGateSteps } from "../../extensions/gate-slots.js";
+import { stepsForSlot } from "../../extensions/gate-slots.js";
 import { internalError, invalidArgumentError } from "../../pipeline/errors.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
@@ -121,6 +123,13 @@ export interface WorkflowExecutionControllerDeps {
   /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
   readonly authorizer: Authorizer;
   /**
+   * The merged slot registrations (O1/O4; DD-006 §2). This domain
+   * carries `sandbox-acquisition:gate` on the create and recover chains
+   * at the Java-verified capacity-gate position (C4, 20260827.09) —
+   * empty in OSS.
+   */
+  readonly gateSteps: ResolvedGateSteps;
+  /**
    * The workflow-execution engine seam (engine.ts): permanently
    * disconnected until #21's TemporalManager flips it. Consumed by the
    * create gate, the lifecycle RPCs, sendSignal, and
@@ -177,6 +186,7 @@ export function registerWorkflowExecutionServices(
     sandboxLane: deps.sandboxLane,
     temporalConfig: deps.temporalConfig,
     sandboxTerminalObserver: deps.sandboxTerminalObserver,
+    gateSteps: deps.gateSteps,
   };
   router.service(WorkflowExecutionCommandController, {
     create: (execution, ctx) => createExecution(deps, execution, ctx),
@@ -237,7 +247,7 @@ async function createExecution(
     callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<typeof WorkflowExecutionSchema>(
+  const builder = newPipeline<typeof WorkflowExecutionSchema>(
     "workflowexecution-create",
     deps.logger,
   )
@@ -261,7 +271,19 @@ async function createExecution(
     )
     .addStep(newCheckDuplicateStep(deps.store))
     .addStep(newBuildNewStateStep())
-    .addStep(newNormalizeReferencesStep())
+    .addStep(newNormalizeReferencesStep());
+  // The ratified sandbox-acquisition gate slot (blueprint 03 §3a; C4):
+  // the Java-verified capacity-gate position — after Authorize and every
+  // resolution step (the default instance, like Java's, side-effects
+  // pre-gate: orphan-on-refusal is inherited semantics), before the
+  // phase stamp and every later side effect, pre-provision. Empty in OSS.
+  for (const step of stepsForSlot<typeof WorkflowExecutionSchema>(
+    deps.gateSteps,
+    "sandbox-acquisition:gate",
+  )) {
+    builder.addStep(step);
+  }
+  await builder
     .addStep(newSetInitialPhaseStep())
     .addStep(newNormalizeWorkflowRefStep(deps.store, deps.logger))
     .addStep(newPinWorkflowVersionStep(deps.store, deps.logger))

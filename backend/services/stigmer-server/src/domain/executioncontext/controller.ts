@@ -387,6 +387,6 @@ async function getByExecutionId(
   // scope-bound runner token, redact for everyone else. Both transforms
   // mutate the fresh store unmarshal, never the stored row.
   const ec = reqCtx.get(TARGET_RESOURCE_KEY) as ExecutionContext;
-  resolveValuesForCaller(deps, ctx, ec);
+  await resolveValuesForCaller(deps, ctx, ec);
   return ec;
 }

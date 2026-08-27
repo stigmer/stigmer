@@ -32,13 +32,101 @@
  * substitute an implementation through the drivers registry point
  * (extensions/drivers.ts); with none composed, behavior is byte-identical
  * to the direct-service wiring this seam replaced.
+ *
+ * # The optional capability methods (C4, 20260827.09 — gate ruling Q1)
+ *
+ * Beyond the mint/verify primitives, an edition's runner credentials
+ * surface at four OSS-owned touchpoints whose POLICY is edition-specific:
+ * the platform scoped-token exchange, the bootstrap credential response,
+ * the token baked into a provisioned sandbox, and the ExecutionContext
+ * decrypt trust decision. Each is an OPTIONAL method here; each OSS call
+ * site falls back to today's exact behavior when the method is absent,
+ * and the OSS default provider defines none — empty-composition behavior
+ * is byte-identical by construction (the local conformance rosters pin
+ * it). One provider object carries the edition's whole credential story;
+ * the rejected alternative (a second single-instance driver for the
+ * exchange) split that story across two objects whose only consumer is
+ * the same composition.
+ *
+ * Capability implementations REFUSE by throwing (a ConnectError with the
+ * implementation's own byte-pinned copy — the gate-step refusal shape)
+ * and DEGRADE by returning their not-minted/empty results. The
+ * distinction is contract: a refusal fails the RPC, a degrade rides the
+ * presence-based response the runner already handles.
  */
+import type { CallerIdentity } from "../extensions/identity.js";
 import type { MintedToken } from "./runnerauth.js";
 import {
   InvalidTokenError,
   RunnerAuthService,
   TOKEN_TYPE_EXECUTION_SCOPED,
 } from "./runnerauth.js";
+
+/**
+ * The domain shape of a getRunnerScopedToken request — one arm per proto
+ * scope (server_info.proto), transcribed so implementations never import
+ * wire types. The renewal arm is deliberately empty: every renewal
+ * parameter comes from the CALLER's verified credential, never the
+ * request (the Java exchange's ruled posture).
+ */
+export type RunnerScopedTokenRequest =
+  | { readonly arm: "agent-execution"; readonly executionId: string }
+  | { readonly arm: "workflow-execution"; readonly executionId: string }
+  | { readonly arm: "pool-claim"; readonly sessionId: string }
+  | { readonly arm: "renewal" }
+  // The proto oneof left unset — carried so implementations own the
+  // refusal (the Java exchange answers INVALID_ARGUMENT; OSS's
+  // capability-less fallback answers not-minted). Erasing this arm into
+  // any other would let a malformed request impersonate that arm's
+  // semantics.
+  | { readonly arm: "unset" };
+
+/**
+ * An exchange outcome: minted, or the presence-based "not minted" shape
+ * (empty output on the wire — the runner's degrade contract). Refusals
+ * are NOT an arm of this type: implementations throw them.
+ */
+export type RunnerScopedTokenExchange =
+  | { readonly minted: false }
+  | {
+      readonly minted: true;
+      readonly token: string;
+      readonly expiresInSeconds: number;
+    };
+
+/**
+ * The credential portion of a getRunnerBootstrapConfig response. Both
+ * arms are independently optional — the Java contract's presence-based
+ * coupling (token fields all-or-nothing, key fields all-or-nothing) is
+ * expressed structurally.
+ */
+export interface RunnerBootstrapCredentials {
+  readonly accessToken?: {
+    readonly token: string;
+    readonly expiresInSeconds: number;
+  };
+  readonly payloadKeys?: {
+    readonly keyId: string;
+    readonly keyBase64: string;
+    readonly secondaryKeyId?: string;
+    readonly secondaryKeyBase64?: string;
+  };
+}
+
+/**
+ * What the sandbox ensure steps know when they mint the credential baked
+ * into a provisioned sandbox (steps.ts). `sessionId` is empty on the
+ * workflow scope; `callerIdentityId` is empty when the invocation site
+ * has no caller (the Java ensure step's null-identity arm, which mints
+ * nothing rather than minting unattributed).
+ */
+export interface SandboxCredentialRequest {
+  readonly scope: "session" | "workflow";
+  readonly sessionId: string;
+  readonly executionId: string;
+  readonly org: string;
+  readonly callerIdentityId: string;
+}
 
 /**
  * Mints and verifies runner credentials per lane. Implementations must be
@@ -65,6 +153,57 @@ export interface RunnerCredentialProvider {
    * returns the binding. ANY failure throws InvalidTokenError.
    */
   verify(lane: string, token: string): string;
+
+  /**
+   * The whole getRunnerScopedToken policy: per-arm caller-class gating,
+   * authorization, and mint (the cloud edition's four-arm exchange).
+   * When present, the platform controller delegates EVERY arm here;
+   * absent, the controller keeps the OSS behavior (execution arms mint
+   * on the execution_scoped lane; pool-claim/renewal answer not-minted).
+   * Refusals throw; keyless degrade returns `{ minted: false }`.
+   */
+  exchangeScopedToken?(
+    request: RunnerScopedTokenRequest,
+    caller: CallerIdentity,
+  ): Promise<RunnerScopedTokenExchange>;
+
+  /**
+   * The credential portion of getRunnerBootstrapConfig (the runner access
+   * token and per-identity payload-encryption keys). When present, the
+   * platform controller merges the result into the response; absent, the
+   * fields stay empty (the OSS posture — minting a proxy credential is a
+   * cloud capability). Both arms are best-effort by contract: a failure
+   * inside an arm degrades that arm to absent, never fails the bootstrap
+   * the Temporal coordinates ride on.
+   */
+  bootstrapCredentials?(
+    caller: CallerIdentity,
+  ): Promise<RunnerBootstrapCredentials>;
+
+  /**
+   * The credential baked into a provisioned sandbox (SandboxEnvironment.
+   * stigmerToken). When present, the ensure steps delegate here with the
+   * full provisioning context; absent, they mint on the execution_scoped
+   * lane exactly as before. Returns "" to launch tokenless (the
+   * redaction-fallback contract lane.ts documents); a thrown error
+   * propagates to the invoking step's own failure posture.
+   */
+  mintSandboxCredential?(request: SandboxCredentialRequest): string;
+
+  /**
+   * The ExecutionContext decrypt trust decision for getByExecutionId
+   * (`executionId` is the EC's spec.execution_id). When present, it IS
+   * the entire decision — the implementation owns its lane set and scope
+   * bindings (the cloud's session/workflow/connect scope rules, including
+   * any resource loads through its own clients); absent, the decrypt gate
+   * keeps the OSS decision (execution_scoped verify + binding equality).
+   * True decrypts; false redacts; never throws for an unrecognized or
+   * invalid token — redaction-as-success is the pinned contract.
+   */
+  authorizeExecutionContextRead?(
+    rawToken: string,
+    executionId: string,
+  ): Promise<boolean>;
 }
 
 /**
