@@ -126,7 +126,7 @@ enum ApiResourceKind {
     id_prefix: "key"
     is_versioned: false
     not_search_indexed: true
-    tier: cloud_only
+    tier: open_source
     authorization: {
       scope_type: AUTHORIZATION_SCOPE_TYPE_OWNER_ONLY
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT

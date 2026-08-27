@@ -1,0 +1,108 @@
+---
+title: Enable authentication
+description:
+  Turn on authentication for a self-hosted Stigmer server with your own OIDC
+  identity provider and API keys.
+---
+
+By default, a self-hosted Stigmer server trusts every request. That is the right
+posture for a single-user machine, and the wrong one the moment the port is
+reachable by anyone else. This guide turns authentication on: people sign in
+through your identity provider, and machines (CI jobs, the runner, scripts) use
+API keys.
+
+## What you need
+
+- A running self-hosted stack
+  ([Docker Compose](/docs/guides/self-hosting/docker-compose)).
+- An OIDC identity provider you control — Keycloak, Okta, Auth0, Dex, or any
+  server that supports OIDC discovery. You need two values from it:
+  - the **issuer URL** (for example `https://auth.example.com/realms/main`)
+  - the **audience** your provider stamps on access tokens minted for Stigmer
+    (you usually configure this in the provider as an "API" or "resource server"
+    entry)
+
+## Mint your API keys first
+
+API keys are created through the server itself, so mint the keys you know you
+will need — one for the runner, one for CI — **before** turning authentication
+on, while the server still trusts you:
+
+```bash
+stigmer apikey create --name runner
+stigmer apikey create --name ci
+```
+
+Each command prints the key exactly once. Save them somewhere safe — the server
+stores only a hash and cannot show them again.
+
+You can also mint keys later with an access token from your identity provider:
+
+```bash
+STIGMER_API_KEY=<oidc-access-token> stigmer apikey create --name another
+```
+
+## Turn authentication on
+
+Set two environment variables on the server and restart it. In the Docker
+Compose stack, add them to the `server` service:
+
+```yaml no-validate="docker-compose service fragment, not a Stigmer resource"
+services:
+  server:
+    environment:
+      STIGMER_OIDC_ISSUER: "https://auth.example.com/realms/main"
+      STIGMER_OIDC_AUDIENCE: "https://stigmer.example.com/"
+```
+
+Both must be set together — the server refuses to boot on a half configuration
+rather than silently serving unauthenticated.
+
+Give the runner its API key in the same file:
+
+```yaml no-validate="docker-compose service fragment, not a Stigmer resource"
+services:
+  runner:
+    environment:
+      STIGMER_TOKEN: "stk_..." # the key you minted for the runner
+```
+
+## What changes
+
+From the next boot, every request needs a credential:
+
+- **People** send an access token from your identity provider. The server
+  verifies it against the issuer's published keys and checks the audience.
+- **Machines** send an API key (`stk_...`) the same way — as a bearer token.
+  `stigmer apikey create` mints them; deleting a key revokes it immediately.
+- Requests without a credential are rejected with
+  `authentication token missing`. Requests with a bad credential get a specific
+  reason (`token has expired`, `token signature verification failed`, and so
+  on).
+
+Point your CLI at the stack as a named backend with its key:
+
+```bash
+stigmer config backend add prod --endpoint stigmer.example.com:7234 --api-key stk_...
+stigmer config backend use prod
+```
+
+## Known limitation: The web console
+
+The web console served by the stack cannot sign in to an authenticated server
+yet — console login is planned separately. Use the CLI and SDKs against an
+authenticated stack; keep the console for unauthenticated local use.
+
+## Next step
+
+With authentication on, your stack's state is worth protecting properly.
+
+<Cards>
+  <Card
+    title="Back up and upgrade your stack"
+    href="/docs/guides/self-hosting/operations"
+  >
+    The complete backup story — three volumes plus your `.env` — and the
+    version-pin upgrade path.
+  </Card>
+</Cards>

@@ -187,8 +187,10 @@ export STIGMER_SERVER_ADDRESS=<stack-host>:7234
 
 Two things to know before you do:
 
-- **There is no authentication.** Every machine that can reach the port has full
-  control. Treat network reachability as the access boundary.
+- **There is no authentication by default.** Every machine that can reach the
+  port has full control. Treat network reachability as the access boundary — or
+  [turn authentication on](/docs/guides/self-hosting/authentication) with your
+  own identity provider and API keys.
 - Artifact download links are minted for the stack host by default
   (`http://localhost:7235`). To serve them to other machines, change the
   `x-artifact-serve-url` anchor in `docker-compose.yml` to an address they can

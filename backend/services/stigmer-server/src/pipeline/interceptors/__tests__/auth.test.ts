@@ -2,20 +2,27 @@
  * Pins the identity chassis (O2, DD-007 §1): the claim-or-pass verifier
  * walk, the Q6 conditional-strictness contract (zero verifiers = silent
  * fall-through for unclaimed tokens; any verifier configured = unclaimed
- * is UNAUTHENTICATED), the trusted-local modeled state in both operator
- * postures, the internal caller class's structural minting invariant
- * (ruling Q4 — a wire request can never carry it), and the shared bearer
- * parser's shape.
+ * is UNAUTHENTICATED), the O3 require-authentication posture (rulings
+ * Q1+Q2 — tokenless is UNAUTHENTICATED with the Java byte-pinned copy,
+ * except is_public methods), the trusted-local modeled state in both
+ * operator postures, the internal caller class's structural minting
+ * invariant (ruling Q4 — a wire request can never carry it), and the
+ * shared bearer parser's shape.
  */
 import { describe, expect, it, afterEach } from "vitest";
 import { Code, ConnectError, createContextValues } from "@connectrpc/connect";
 import type { Interceptor } from "@connectrpc/connect";
+import type { DescMethod } from "@bufbuild/protobuf";
+
+import { ApiKeyQueryController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/query_pb";
+import { PlatformQueryController } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 
 import type {
   CallerIdentity,
   IdentityVerifier,
 } from "../../../extensions/identity.js";
 import {
+  AUTHENTICATION_TOKEN_MISSING_MESSAGE,
   callerIdentityKey,
   createInProcessCallerInterceptor,
   createVerifierChainInterceptor,
@@ -41,10 +48,14 @@ afterEach(() => {
 /**
  * Drives an interceptor with a minimal unary-shaped request and returns
  * the identity it stamped (undefined when it rejected before next()).
+ * The method defaults to a config-annotated (non-public) descriptor so
+ * the require-auth arm sees the common case; tests of the is_public
+ * exemption pass their own.
  */
 async function runInterceptor(
   interceptor: Interceptor,
   authorizationHeader?: string,
+  method: DescMethod = ApiKeyQueryController.method.get,
 ): Promise<CallerIdentity | undefined> {
   const header = new Headers();
   if (authorizationHeader !== undefined) {
@@ -59,6 +70,7 @@ async function runInterceptor(
   await interceptor(next as never)({
     header,
     contextValues,
+    method,
     stream: false,
   } as never);
   return stamped;
@@ -171,7 +183,7 @@ describe("conditional strictness (ruling Q6 — both postures)", () => {
     );
   });
 
-  it("an absent token falls to trusted-local in both postures (the require-auth posture is O3's)", async () => {
+  it("an absent token falls to trusted-local in both verifier postures when authentication is not required", async () => {
     expect(
       await runInterceptor(createVerifierChainInterceptor([], silentLogger)),
     ).toEqual(trustedLocalIdentity());
@@ -183,6 +195,53 @@ describe("conditional strictness (ruling Q6 — both postures)", () => {
         ),
       ),
     ).toEqual(trustedLocalIdentity());
+  });
+});
+
+describe("require-authentication posture (O3 rulings Q1+Q2)", () => {
+  const requiringChassis = createVerifierChainInterceptor(
+    [
+      verifier("oidc", (token) =>
+        Promise.resolve(token === "tok" ? CLAIMED : null),
+      ),
+    ],
+    silentLogger,
+    true,
+  );
+
+  it("an absent token is UNAUTHENTICATED with the Java byte-pinned copy", async () => {
+    const error = await runInterceptor(requiringChassis).catch(
+      (e: unknown) => e,
+    );
+    expect(error).toBeInstanceOf(ConnectError);
+    expect((error as ConnectError).code).toBe(Code.Unauthenticated);
+    expect((error as ConnectError).rawMessage).toBe(
+      AUTHENTICATION_TOKEN_MISSING_MESSAGE,
+    );
+  });
+
+  it("an is_public method stays reachable tokenless (the Java isPublic skip)", async () => {
+    const identity = await runInterceptor(
+      requiringChassis,
+      undefined,
+      PlatformQueryController.method.getServerInfo,
+    );
+    expect(identity).toEqual(trustedLocalIdentity());
+  });
+
+  it("a claimed credential authenticates exactly as in the lenient posture", async () => {
+    const identity = await runInterceptor(requiringChassis, "Bearer tok");
+    expect(identity).toEqual(CLAIMED);
+  });
+
+  it("a presented-but-unclaimed token keeps the Q6 rejection (not the missing-token copy)", async () => {
+    const error = await runInterceptor(
+      requiringChassis,
+      "Bearer garbage",
+    ).catch((e: unknown) => e);
+    expect((error as ConnectError).rawMessage).toBe(
+      "the presented token was not accepted by any configured identity verifier",
+    );
   });
 });
 

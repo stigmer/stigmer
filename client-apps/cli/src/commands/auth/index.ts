@@ -4,12 +4,24 @@
 // the standard mutating-output flags.
 
 import type { Command } from "commander";
-import { ensureAuthenticated, load, resolveContextOrganization, save } from "../../config/index.js";
-import { CommandResult, type OutputFlags, renderResult } from "../../output/index.js";
+import {
+  activeBackend,
+  ensureAuthenticated,
+  load,
+  resolveContextOrganization,
+  save,
+} from "../../config/index.js";
+import {
+  CommandResult,
+  type OutputFlags,
+  renderResult,
+} from "../../output/index.js";
 import { addResultFlags, resultFormat } from "../shared.js";
 
 export function registerAuth(program: Command): void {
-  const auth = program.command("auth").description("manage authentication with Stigmer Cloud");
+  const auth = program
+    .command("auth")
+    .description("manage authentication with Stigmer Cloud");
 
   auth
     .command("login")
@@ -44,15 +56,32 @@ export function registerAuth(program: Command): void {
 
 function runLogout(): CommandResult {
   const config = load();
-  const cloud = config.backend.cloud;
-  if (cloud === undefined || (cloud.token === undefined && cloud.refresh_token === undefined)) {
-    return CommandResult.warning("Not currently logged in").hint("Run 'stigmer auth login' to authenticate.");
+  const { name, entry } = activeBackend(config);
+  if (entry?.type === "selfhost") {
+    if (entry.api_key === undefined) {
+      return CommandResult.warning("No API key stored for this backend");
+    }
+    entry.api_key = undefined;
+    save(config);
+    return CommandResult.success(
+      `Cleared the stored API key for backend "${name}"`,
+    );
   }
-  cloud.token = undefined;
-  cloud.refresh_token = undefined;
-  cloud.token_expiry = undefined;
+  if (
+    entry === undefined ||
+    (entry.token === undefined && entry.refresh_token === undefined)
+  ) {
+    return CommandResult.warning("Not currently logged in").hint(
+      "Run 'stigmer auth login' to authenticate.",
+    );
+  }
+  entry.token = undefined;
+  entry.refresh_token = undefined;
+  entry.token_expiry = undefined;
   save(config);
-  return CommandResult.success("Logged out from Stigmer Cloud").hint("Run 'stigmer auth login' to authenticate again.");
+  return CommandResult.success("Logged out from Stigmer Cloud").hint(
+    "Run 'stigmer auth login' to authenticate again.",
+  );
 }
 
 async function runWhoami(): Promise<CommandResult> {
@@ -66,21 +95,30 @@ async function runWhoami(): Promise<CommandResult> {
 
   if (account.metadata !== undefined) {
     section.field("Account ID", account.metadata.id);
-    if (account.metadata.name !== "") section.field("Name", account.metadata.name);
+    if (account.metadata.name !== "")
+      section.field("Name", account.metadata.name);
   }
   if (account.spec !== undefined) {
     if (account.spec.email !== "") section.field("Email", account.spec.email);
     if (account.spec.firstName !== "" || account.spec.lastName !== "") {
-      section.field("Full Name", `${account.spec.firstName} ${account.spec.lastName}`.trim());
+      section.field(
+        "Full Name",
+        `${account.spec.firstName} ${account.spec.lastName}`.trim(),
+      );
     }
-    section.field("Account Type", account.spec.isMachineAccount ? "Machine Account" : "User Account");
+    section.field(
+      "Account Type",
+      account.spec.isMachineAccount ? "Machine Account" : "User Account",
+    );
   }
 
   const org = resolveContextOrganization(client.config);
   if (org !== "") {
     section.field("Organization", org);
   } else {
-    result.hint("No organization set. Use: stigmer config context set --org <slug>");
+    result.hint(
+      "No organization set. Use: stigmer config context set --org <slug>",
+    );
   }
 
   return result;

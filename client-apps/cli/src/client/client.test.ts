@@ -4,7 +4,13 @@ import type { Config } from "../config/index.js";
 import { createBackendClient } from "./client.js";
 
 function cloud(token?: string): Config {
-  return { backend: { type: "cloud", cloud: { endpoint: "api.stigmer.ai:443", token } } };
+  return {
+    backend: { type: "cloud" },
+    backends: {
+      cloud: { type: "cloud", endpoint: "api.stigmer.ai:443", token },
+    },
+    current_backend: "cloud",
+  };
 }
 
 afterEach(() => {
@@ -19,7 +25,9 @@ describe("createBackendClient — endpoint normalization", () => {
   });
 
   it("normalizes the local endpoint to a plaintext base URL", () => {
-    const client = createBackendClient({ config: { backend: { type: "local" } } });
+    const client = createBackendClient({
+      config: { backend: { type: "local" } },
+    });
     expect(client.stigmer.baseUrl).toBe("http://localhost:7234");
   });
 });

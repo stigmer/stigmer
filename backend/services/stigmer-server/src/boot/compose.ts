@@ -60,7 +60,10 @@ import { registerAgentChannelServices } from "../domain/agentchannel/controller.
 import { registerChannelConversationServices } from "../domain/agentchannel/conversation.js";
 import { registerChannelMessageServices } from "../domain/agentchannel/message.js";
 import { registerAgentShareServices } from "../domain/agentshare/controller.js";
+import { registerApiKeyServices } from "../domain/apikey/controller.js";
+import { newApiKeyIdentityVerifier } from "../domain/apikey/verifier.js";
 import { registerArtifactServices } from "../domain/artifact/controller.js";
+import { newOidcIdentityVerifier } from "../identity/oidc-verifier.js";
 import {
   createArtifactFileServer,
   warnOnLegacyArtifactLayout,
@@ -612,6 +615,12 @@ export async function composeServer(
   const routes = (router: ConnectRouter): void => {
     registerHealthService(router, healthState);
     registerOrganizationServices(router, { store, logger, authorizer });
+    // ApiKey is the first domain born AFTER the Go port (O3, 20260827.06 —
+    // DD-003: the apikey contract is wholly OSS), so it has no Go
+    // registration order to mirror; it registers with the tenancy/IAM
+    // family at the top. The chassis's apikey VERIFIER shares this
+    // domain's lookup module — not the RPC (domain/apikey/lookup.ts).
+    registerApiKeyServices(router, { store, logger, authorizer });
     registerEnvironmentServices(router, {
       store,
       logger,
@@ -849,6 +858,26 @@ export async function composeServer(
   const inProcessWiring = createInProcessClients(routes, logger);
   inProcess = inProcessWiring.clients;
 
+  // The auth-enabled modeled state (O3 rulings Q1+Q2): a configured OIDC
+  // issuer registers the two OSS verifiers — API tokens first (cheap
+  // prefix claim, the Java ProviderManager's order), then OIDC — ahead of
+  // the extension entries ("OSS entries first", the registry contract),
+  // and turns on the require-authentication posture. No issuer = zero OSS
+  // verifiers = the trusted-local posture, byte-identical wire behavior.
+  // The runner's credential in this posture is an operator-minted API
+  // token via STIGMER_TOKEN (ruling Q3) — no runner-specific verifier.
+  const authEnabled = config.oidcIssuer !== "";
+  const identityVerifiers = authEnabled
+    ? [
+        newApiKeyIdentityVerifier(store),
+        newOidcIdentityVerifier({
+          issuer: config.oidcIssuer,
+          audience: config.oidcAudience,
+        }),
+        ...extensions.identityVerifiers,
+      ]
+    : extensions.identityVerifiers;
+
   const server = createUnifiedPortServer({
     logger,
     routes,
@@ -859,7 +888,7 @@ export async function composeServer(
     // caller class only it can mint (ruling Q4).
     interceptors: buildInterceptorChain(
       logger,
-      createVerifierChainInterceptor(extensions.identityVerifiers, logger),
+      createVerifierChainInterceptor(identityVerifiers, logger, authEnabled),
     ),
     taskKindRegistryLane: registryLanes.taskKindRegistryLane,
     modelRegistryLane: registryLanes.modelRegistryLane,

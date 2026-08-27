@@ -15,8 +15,6 @@ import { create } from "@bufbuild/protobuf";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { GetOAuthGrantStatusInputSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import type { Stigmer } from "@stigmer/sdk";
-import type { BackendType } from "../../config/config.js";
-import { resolveConsoleURL } from "../../config/index.js";
 import { UsageError } from "../../errors/index.js";
 
 const POLL_INTERVAL_MS = 3000;
@@ -28,7 +26,11 @@ export interface OAuthFlowDeps {
   readonly client: Stigmer;
   readonly server: McpServer;
   readonly org: string;
-  readonly backendType: BackendType;
+  /** The web console origin (resolveConsoleURL over the caller's config). */
+  readonly consoleURL: string;
+  /** Probe the console before opening the browser (the local daemon's
+   * console may simply not be running; remote consoles answer or 404). */
+  readonly probeLocalConsole: boolean;
   /** Opens the page URL in the user's browser. Defaults to the OS opener. */
   readonly openBrowser?: (url: string) => Promise<void>;
   /** Probes whether the local web console is reachable. Defaults to a 2s GET. */
@@ -48,11 +50,12 @@ export interface OAuthFlowDeps {
  */
 export async function runOAuthFlow(deps: OAuthFlowDeps): Promise<void> {
   const log = deps.log ?? stderrLog;
-  const consoleURL = resolveConsoleURL(deps.backendType);
+  const consoleURL = deps.consoleURL;
 
-  if (deps.backendType === "local") {
+  if (deps.probeLocalConsole) {
     const probe = deps.probeConsole ?? probeWebConsole;
-    if (!(await probe(consoleURL))) throw consoleUnavailableError(deps.server.metadata?.slug ?? "<slug>");
+    if (!(await probe(consoleURL)))
+      throw consoleUnavailableError(deps.server.metadata?.slug ?? "<slug>");
   }
 
   const slug = deps.server.metadata?.slug ?? "";
@@ -67,7 +70,9 @@ export async function runOAuthFlow(deps: OAuthFlowDeps): Promise<void> {
   try {
     await open(pageURL);
   } catch {
-    log("  Could not open browser automatically. Please open the URL above in your browser.");
+    log(
+      "  Could not open browser automatically. Please open the URL above in your browser.",
+    );
   }
 
   await waitForOAuthGrant(deps);
@@ -89,7 +94,9 @@ export async function waitForOAuthGrant(deps: OAuthFlowDeps): Promise<void> {
   for (;;) {
     await sleep(POLL_INTERVAL_MS);
     if (now() >= deadline) {
-      throw new UsageError("timed out waiting for OAuth connection — please try again");
+      throw new UsageError(
+        "timed out waiting for OAuth connection — please try again",
+      );
     }
     if (await checkOAuthGrant(deps.client, serverId, deps.org)) {
       log("OAuth connection established.\n");
@@ -99,7 +106,11 @@ export async function waitForOAuthGrant(deps: OAuthFlowDeps): Promise<void> {
 }
 
 /** Query the backend for an existing/just-created OAuth grant. */
-export async function checkOAuthGrant(client: Stigmer, mcpServerId: string, org: string): Promise<boolean> {
+export async function checkOAuthGrant(
+  client: Stigmer,
+  mcpServerId: string,
+  org: string,
+): Promise<boolean> {
   const status = await client.mcpServer.getOAuthGrantStatus(
     create(GetOAuthGrantStatusInputSchema, { resourceId: mcpServerId, org }),
   );
@@ -110,7 +121,9 @@ export async function checkOAuthGrant(client: Stigmer, mcpServerId: string, org:
 // an error status) means it's serving; a network/timeout failure means it isn't.
 async function probeWebConsole(url: string): Promise<boolean> {
   try {
-    const response = await fetch(url, { signal: AbortSignal.timeout(CONSOLE_PROBE_TIMEOUT_MS) });
+    const response = await fetch(url, {
+      signal: AbortSignal.timeout(CONSOLE_PROBE_TIMEOUT_MS),
+    });
     // Drain the body so the socket can close promptly.
     await response.body?.cancel();
     return true;
@@ -153,7 +166,10 @@ function openInBrowser(url: string): Promise<void> {
 }
 
 /** The OS-specific command + args to open a URL. Exported for tests. */
-export function browserCommand(platform: NodeJS.Platform, url: string): [string | undefined, string[]] {
+export function browserCommand(
+  platform: NodeJS.Platform,
+  url: string,
+): [string | undefined, string[]] {
   switch (platform) {
     case "darwin":
       return ["open", [url]];

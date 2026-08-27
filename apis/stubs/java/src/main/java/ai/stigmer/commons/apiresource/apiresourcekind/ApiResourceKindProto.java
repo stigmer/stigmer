@@ -87,7 +87,7 @@ public final class ApiResourceKindProto extends com.google.protobuf.GeneratedFil
       "J\004\010\002\020\001\022N\n\020identity_account\020\013\0328\252\377+4\010\002\020\001\032\017" +
       "IdentityAccount\"\020Identity Account*\003ida@\002" +
       "J\004\010\004\020\003\0225\n\007api_key\020\014\032(\252\377+$\010\002\020\001\032\006ApiKey\"\007A" +
-      "PI Key*\003key8\001@\002J\004\010\004\020\001\022?\n\ninvitation\020\024\032/\252" +
+      "PI Key*\003key8\001@\001J\004\010\004\020\001\022?\n\ninvitation\020\024\032/\252" +
       "\377++\010\002\020\001\032\nInvitation\"\nInvitation*\003inv8\001@\002" +
       "J\004\010\002\020\001\022W\n\021identity_provider\020\025\032@\252\377+<\010\002\020\001\032" +
       "\020IdentityProvider\"\021Identity Provider*\003id" +

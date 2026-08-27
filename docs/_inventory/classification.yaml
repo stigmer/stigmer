@@ -688,6 +688,16 @@ pages:
       structure; the compose file's inline comments can't orient a reader the
       way one flowchart does.
 
+  guides/self-hosting/authentication:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Turn on authentication for a self-hosted server with your own OIDC
+      identity provider (issuer + audience) and API keys — including minting
+      keys before enabling, the runner's key, pointing the CLI at the
+      authenticated stack as a named backend, and the console limitation.
+    medium: none
+
   guides/self-hosting/operations:
     fate: keep
     diataxis: how-to

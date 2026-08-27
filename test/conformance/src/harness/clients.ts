@@ -4,7 +4,12 @@
 // The suite drives the server through the raw generated @stigmer/protos
 // controllers (no SDK) so it tests the proto contract directly, independent of
 // any client convenience layer that could drift from it.
-import { createClient, type Client, type Interceptor, type Transport } from "@connectrpc/connect";
+import {
+  createClient,
+  type Client,
+  type Interceptor,
+  type Transport,
+} from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
 import { ActivityQueryController } from "@stigmer/protos/ai/stigmer/activity/v1/query_pb";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
@@ -52,11 +57,15 @@ import { PlatformQueryController } from "@stigmer/protos/ai/stigmer/platform/v1/
 import { SearchService } from "@stigmer/protos/ai/stigmer/search/v1/query_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
 import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
+import { ApiKeyCommandController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/command_pb";
+import { ApiKeyQueryController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/query_pb";
 import { ProjectCommandController } from "@stigmer/protos/ai/stigmer/tenancy/project/v1/command_pb";
 import { ProjectQueryController } from "@stigmer/protos/ai/stigmer/tenancy/project/v1/query_pb";
 
 export interface ConformanceClients {
   activityQuery: Client<typeof ActivityQueryController>;
+  apiKeyCommand: Client<typeof ApiKeyCommandController>;
+  apiKeyQuery: Client<typeof ApiKeyQueryController>;
   agentChannelCommand: Client<typeof AgentChannelCommandController>;
   agentChannelQuery: Client<typeof AgentChannelQueryController>;
   agentShareCommand: Client<typeof AgentShareCommandController>;
@@ -65,7 +74,9 @@ export interface ConformanceClients {
   artifactQuery: Client<typeof ArtifactQueryController>;
   channelAppCommand: Client<typeof ChannelAppCommandController>;
   channelAppQuery: Client<typeof ChannelAppQueryController>;
-  channelConversationCommand: Client<typeof ChannelConversationCommandController>;
+  channelConversationCommand: Client<
+    typeof ChannelConversationCommandController
+  >;
   channelConversationQuery: Client<typeof ChannelConversationQueryController>;
   channelMessageCommand: Client<typeof ChannelMessageCommandController>;
   channelMessageQuery: Client<typeof ChannelMessageQueryController>;
@@ -113,7 +124,10 @@ export interface TransportOptions {
   bearerToken?: string;
 }
 
-export function createTransport(baseUrl: string, options: TransportOptions = {}): Transport {
+export function createTransport(
+  baseUrl: string,
+  options: TransportOptions = {},
+): Transport {
   // Plain gRPC over h2c: createGrpcTransport always speaks HTTP/2, matching
   // both backends — the OSS server and the hermetic cloud service each serve
   // native gRPC on a single insecure local port.
@@ -139,31 +153,66 @@ export function makeClients(transport: Transport): ConformanceClients {
     artifactQuery: createClient(ArtifactQueryController, transport),
     channelAppCommand: createClient(ChannelAppCommandController, transport),
     channelAppQuery: createClient(ChannelAppQueryController, transport),
-    channelConversationCommand: createClient(ChannelConversationCommandController, transport),
-    channelConversationQuery: createClient(ChannelConversationQueryController, transport),
-    channelMessageCommand: createClient(ChannelMessageCommandController, transport),
+    channelConversationCommand: createClient(
+      ChannelConversationCommandController,
+      transport,
+    ),
+    channelConversationQuery: createClient(
+      ChannelConversationQueryController,
+      transport,
+    ),
+    channelMessageCommand: createClient(
+      ChannelMessageCommandController,
+      transport,
+    ),
     channelMessageQuery: createClient(ChannelMessageQueryController, transport),
     search: createClient(SearchService, transport),
+    apiKeyCommand: createClient(ApiKeyCommandController, transport),
+    apiKeyQuery: createClient(ApiKeyQueryController, transport),
     projectCommand: createClient(ProjectCommandController, transport),
     projectQuery: createClient(ProjectQueryController, transport),
     organizationCommand: createClient(OrganizationCommandController, transport),
     organizationQuery: createClient(OrganizationQueryController, transport),
     workflowCommand: createClient(WorkflowCommandController, transport),
     workflowQuery: createClient(WorkflowQueryController, transport),
-    workflowExecutionCommand: createClient(WorkflowExecutionCommandController, transport),
-    workflowExecutionQuery: createClient(WorkflowExecutionQueryController, transport),
-    workflowInstanceCommand: createClient(WorkflowInstanceCommandController, transport),
-    workflowInstanceQuery: createClient(WorkflowInstanceQueryController, transport),
-    agentExecutionCommand: createClient(AgentExecutionCommandController, transport),
+    workflowExecutionCommand: createClient(
+      WorkflowExecutionCommandController,
+      transport,
+    ),
+    workflowExecutionQuery: createClient(
+      WorkflowExecutionQueryController,
+      transport,
+    ),
+    workflowInstanceCommand: createClient(
+      WorkflowInstanceCommandController,
+      transport,
+    ),
+    workflowInstanceQuery: createClient(
+      WorkflowInstanceQueryController,
+      transport,
+    ),
+    agentExecutionCommand: createClient(
+      AgentExecutionCommandController,
+      transport,
+    ),
     agentExecutionQuery: createClient(AgentExecutionQueryController, transport),
-    agentInstanceCommand: createClient(AgentInstanceCommandController, transport),
+    agentInstanceCommand: createClient(
+      AgentInstanceCommandController,
+      transport,
+    ),
     agentInstanceQuery: createClient(AgentInstanceQueryController, transport),
     agentCommand: createClient(AgentCommandController, transport),
     agentQuery: createClient(AgentQueryController, transport),
     environmentCommand: createClient(EnvironmentCommandController, transport),
     environmentQuery: createClient(EnvironmentQueryController, transport),
-    executionContextCommand: createClient(ExecutionContextCommandController, transport),
-    executionContextQuery: createClient(ExecutionContextQueryController, transport),
+    executionContextCommand: createClient(
+      ExecutionContextCommandController,
+      transport,
+    ),
+    executionContextQuery: createClient(
+      ExecutionContextQueryController,
+      transport,
+    ),
     mcpServerCommand: createClient(McpServerCommandController, transport),
     mcpServerQuery: createClient(McpServerQueryController, transport),
     memoryCommand: createClient(MemoryCommandController, transport),

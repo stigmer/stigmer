@@ -7,7 +7,12 @@
 // fast (DD-001).
 
 import type { Command } from "commander";
-import { ensureAuthenticated, resolveOrganization } from "../config/index.js";
+import {
+  activeBackend,
+  ensureAuthenticated,
+  resolveConsoleURL,
+  resolveOrganization,
+} from "../config/index.js";
 import { UsageError } from "../errors/index.js";
 import { shouldColorize } from "../output/style.js";
 import { globalOrg } from "./shared.js";
@@ -21,7 +26,9 @@ interface ConnectFlags {
 const DEFAULT_TIMEOUT_SECONDS = 30;
 
 export function registerConnect(program: Command): void {
-  const connect = program.command("connect").description("connect to external services and discover capabilities");
+  const connect = program
+    .command("connect")
+    .description("connect to external services and discover capabilities");
 
   connect
     .command("mcp-server <slug-or-id>")
@@ -32,17 +39,26 @@ export function registerConnect(program: Command): void {
         "bounds the server-side connect only when set explicitly)",
       String(DEFAULT_TIMEOUT_SECONDS),
     )
-    .option("--dry-run", "discover and display results without pushing to the backend")
+    .option(
+      "--dry-run",
+      "discover and display results without pushing to the backend",
+    )
     .option(
       "--env <KEY=VALUE>",
       "environment variable for the MCP server (repeatable)",
       (value: string, previous: string[]) => [...previous, value],
       [],
     )
-    .action((reference: string, options: ConnectFlags, command: Command) => runConnect(reference, options, command));
+    .action((reference: string, options: ConnectFlags, command: Command) =>
+      runConnect(reference, options, command),
+    );
 }
 
-async function runConnect(reference: string, options: ConnectFlags, command: Command): Promise<void> {
+async function runConnect(
+  reference: string,
+  options: ConnectFlags,
+  command: Command,
+): Promise<void> {
   const timeoutMs = parseTimeout(options.timeout);
   // The 30s default exists for --dry-run's local discovery. A real connect
   // legitimately takes minutes (server-side sandbox boot + discovery + tool
@@ -50,11 +66,12 @@ async function runConnect(reference: string, options: ConnectFlags, command: Com
   // connects — the wait is bounded only when the user set --timeout
   // explicitly (issue #239: the flag used to be silently ignored here).
   const timeoutIsExplicit = command.getOptionValueSource("timeout") === "cli";
-  const [{ connectBackend }, { connectMcpServer }, { renderConnectResult }] = await Promise.all([
-    import("../backend.js"),
-    import("../resources/connect/connect.js"),
-    import("../resources/connect/display.js"),
-  ]);
+  const [{ connectBackend }, { connectMcpServer }, { renderConnectResult }] =
+    await Promise.all([
+      import("../backend.js"),
+      import("../resources/connect/connect.js"),
+      import("../resources/connect/display.js"),
+    ]);
 
   const client = connectBackend();
   ensureAuthenticated(client.config);
@@ -81,12 +98,17 @@ async function runConnect(reference: string, options: ConnectFlags, command: Com
     pushTimeoutMs: timeoutIsExplicit ? timeoutMs : undefined,
     dryRun: options.dryRun === true,
     envOverrides: options.env,
-    backendType: client.config.backend.type,
+    consoleURL: resolveConsoleURL(client.config),
+    probeLocalConsole: activeBackend(client.config).entry === undefined,
     interactive: process.stderr.isTTY === true,
   });
 
   const colorize = shouldColorize(process.stdout);
-  renderConnectResult(result, (line) => process.stdout.write(`${line}\n`), colorize);
+  renderConnectResult(
+    result,
+    (line) => process.stdout.write(`${line}\n`),
+    colorize,
+  );
 }
 
 // Parse --timeout seconds into milliseconds. Mirrors Go's DurationVar default
@@ -95,7 +117,9 @@ function parseTimeout(raw: string | undefined): number {
   if (raw === undefined || raw === "") return DEFAULT_TIMEOUT_SECONDS * 1000;
   const seconds = Number(raw);
   if (!Number.isFinite(seconds) || seconds < 0) {
-    throw new UsageError(`invalid --timeout '${raw}': expected a number of seconds`);
+    throw new UsageError(
+      `invalid --timeout '${raw}': expected a number of seconds`,
+    );
   }
   return Math.round(seconds * 1000);
 }

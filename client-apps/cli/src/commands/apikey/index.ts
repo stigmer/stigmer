@@ -6,11 +6,22 @@
 import { createHash } from "node:crypto";
 import { create } from "@bufbuild/protobuf";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import { type ApiKey, ApiKeySchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
+import {
+  type ApiKey,
+  ApiKeySchema,
+} from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 import { ApiKeyHashSchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/io_pb";
 import type { Command } from "commander";
-import { ensureAuthenticated, resolveContextOrganization } from "../../config/index.js";
-import { type OutputFlags, type OutputFormat, renderProtoJson, renderProtoYaml } from "../../output/index.js";
+import {
+  ensureAuthenticated,
+  resolveContextOrganization,
+} from "../../config/index.js";
+import {
+  type OutputFlags,
+  type OutputFormat,
+  renderProtoJson,
+  renderProtoYaml,
+} from "../../output/index.js";
 import { addReadFlags, readFormat } from "../shared.js";
 import { parseExpiration } from "./duration.js";
 
@@ -23,7 +34,9 @@ interface ApiKeyCreateFlags extends OutputFlags {
 }
 
 export function registerApiKey(program: Command): void {
-  const apikey = program.command("apikey").description("manage API keys for Stigmer Cloud authentication");
+  const apikey = program
+    .command("apikey")
+    .description("manage API keys for Stigmer Cloud authentication");
 
   const create = apikey
     .command("create")
@@ -71,14 +84,23 @@ async function runCreate(options: ApiKeyCreateFlags): Promise<void> {
   process.stdout.write(renderCreatedBanner(created));
 }
 
-async function runFingerprint(rawKey: string, options: OutputFlags): Promise<void> {
-  const hash = createHash("sha256").update(rawKey).digest("hex");
+async function runFingerprint(
+  rawKey: string,
+  options: OutputFlags,
+): Promise<void> {
+  // Base64URL without padding — the server's storage encoding (the Java
+  // ApiKeyHasher and the TS keymaterial module agree). This was hex until
+  // O3, which meant the computed hash could never match a stored key_hash
+  // and the lookup below always answered NotFound (gate ruling Q7).
+  const hash = createHash("sha256").update(rawKey).digest("base64url");
 
   const { connectBackend } = await import("../../backend.js");
   const client = connectBackend();
   ensureAuthenticated(client.config);
 
-  const key = await client.stigmer.apiKey.getByKeyHash(create(ApiKeyHashSchema, { value: hash }));
+  const key = await client.stigmer.apiKey.getByKeyHash(
+    create(ApiKeyHashSchema, { value: hash }),
+  );
   renderApiKey(key, readFormat(options));
 }
 
@@ -101,7 +123,8 @@ function renderApiKey(key: ApiKey, format: OutputFormat): void {
   }
   const lines = [`API Key: ${key.metadata?.id ?? ""}`, ""];
   if (key.metadata?.name) lines.push(`  Name:        ${key.metadata.name}`);
-  if (key.spec?.fingerprint) lines.push(`  Fingerprint: ***${key.spec.fingerprint}`);
+  if (key.spec?.fingerprint)
+    lines.push(`  Fingerprint: ***${key.spec.fingerprint}`);
   lines.push(`  Expires:     ${formatExpiry(key)}`);
   process.stdout.write(`${lines.join("\n")}\n`);
 }
@@ -121,13 +144,21 @@ function renderCreatedBanner(key: ApiKey): string {
     `  ID:          ${key.metadata?.id ?? ""}`,
   ];
   if (key.metadata?.name) lines.push(`  Name:        ${key.metadata.name}`);
-  if (key.spec?.fingerprint) lines.push(`  Fingerprint: ***${key.spec.fingerprint}`);
-  lines.push(`  Expires:     ${formatExpiry(key)}`, "", "Usage:", `  export STIGMER_API_KEY='${key.spec?.keyHash ?? ""}'`, "");
+  if (key.spec?.fingerprint)
+    lines.push(`  Fingerprint: ***${key.spec.fingerprint}`);
+  lines.push(
+    `  Expires:     ${formatExpiry(key)}`,
+    "",
+    "Usage:",
+    `  export STIGMER_API_KEY='${key.spec?.keyHash ?? ""}'`,
+    "",
+  );
   return `${lines.join("\n")}\n`;
 }
 
 function formatExpiry(key: ApiKey): string {
   if (key.spec?.neverExpires) return "Never";
-  if (key.spec?.expiresAt !== undefined) return timestampDate(key.spec.expiresAt).toISOString();
+  if (key.spec?.expiresAt !== undefined)
+    return timestampDate(key.spec.expiresAt).toISOString();
   return "Never";
 }
