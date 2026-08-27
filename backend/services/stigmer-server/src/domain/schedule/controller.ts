@@ -52,6 +52,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
+import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import { internalError } from "../../pipeline/errors.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
@@ -84,6 +85,10 @@ import {
   newLoadTargetStep,
   TARGET_RESOURCE_KEY,
 } from "../../pipeline/steps/load-target.js";
+import {
+  newCleanupIamPoliciesStep,
+  newCreateAuthorizationTuplesStep,
+} from "../../pipeline/steps/authorization-tuples.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { newNormalizeReferencesStep } from "../../pipeline/steps/references.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
@@ -121,6 +126,8 @@ export interface ScheduleControllerDeps {
   readonly logger: Logger;
   /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
   readonly authorizer: Authorizer;
+  /** The composed tuple-lifecycle driver — undefined = the shared steps no-op (C2). */
+  readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   readonly modelRegistry: ModelCatalogProvider;
   /**
    * The scheduling runtime (clock.ts), resolved at call time so the
@@ -194,6 +201,12 @@ async function createSchedule(
     .addStep(newBuildNewStateStep())
     .addStep(newNormalizeReferencesStep())
     .addStep(newPersistStep(deps.store))
+    .addStep(
+      newCreateAuthorizationTuplesStep(
+        deps.authorizationLifecycle,
+        deps.logger,
+      ),
+    )
     .addStep(newArmScheduleStep(deps.clock, deps.logger))
     .build()
     .execute(reqCtx);
@@ -311,6 +324,9 @@ async function deleteSchedule(
     .addStep(newExtractResourceIdStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, ScheduleSchema))
     .addStep(newDeleteResourceStep(deps.store))
+    .addStep(
+      newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
+    )
     .addStep(newTeardownScheduleArtifactStep(deps.clock, deps.logger))
     .addStep(newDeleteScheduleRunsStep(deps.store, deps.logger))
     .build()

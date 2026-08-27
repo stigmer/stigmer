@@ -9,6 +9,8 @@
  *     registration + runner-credential provider (§6b/§6c) — landed, O5
  *     (20260827.02)
  *   - sandbox provisioners (§6d) — landed, O6 (20260827.05)
+ *   - resource-authorization lifecycle + organization directory —
+ *     landed with C2 (20260827.10, rulings Q2/Q7)
  *   - channel runtime (DD-004's serving seam) — landed with C3
  *     (20260827.11, plan-gate ruling Q1)
  *
@@ -27,6 +29,8 @@ import type { ChannelRuntime } from "../domain/agentchannel/channel-runtime.js";
 import type { ModelCatalogProvider } from "../domain/workflow/registry/model-catalog-provider.js";
 import type { RunnerCredentialProvider } from "../runnerauth/runner-credential-provider.js";
 import type { SandboxProvisionerFactory } from "../sandbox/provisioner.js";
+import type { OrganizationDirectory } from "./organization-directory.js";
+import type { ResourceAuthorizationLifecycle } from "./resource-authorization.js";
 
 /** The driver contributions of one extension unit. */
 export interface ExtensionDrivers {
@@ -63,6 +67,21 @@ export interface ExtensionDrivers {
     string,
     SandboxProvisionerFactory
   >;
+  /**
+   * The resource-authorization lifecycle seam (C2, ruling Q2;
+   * single-instance point). When composed, the three shared tuple steps
+   * (CreateAuthorizationTuples / CleanupIamPolicies /
+   * UpdateVisibilityTuples) deliver resolved events to it; when absent,
+   * those steps no-op — OSS behavior byte-identical.
+   */
+  readonly resourceAuthorizationLifecycle?: ResourceAuthorizationLifecycle;
+  /**
+   * The organization query directory (C2, ruling Q7; single-instance
+   * point). When composed, the organization controller consults it for
+   * the three edition forks (enumeration posture, my-orgs filtering,
+   * external-org lookup); when absent, OSS behavior byte-identical.
+   */
+  readonly organizationDirectory?: OrganizationDirectory;
   /**
    * The channel delivery runtime (DD-004's serving seam; single-instance
    * point). When composed, the agentchannel install arms, the whole

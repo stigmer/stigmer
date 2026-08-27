@@ -47,6 +47,7 @@ import { ApiResourceAuditSchema } from "@stigmer/protos/ai/stigmer/commons/apire
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 
 import type { Logger } from "../../boot/logger.js";
+import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import {
   defaultVisibilityFor,
   getIdPrefix,
@@ -58,6 +59,10 @@ import {
 } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
+import {
+  diffVisibilityShapes,
+  resolveResourceCreatedEvent,
+} from "../../pipeline/steps/authorization-tuples.js";
 import {
   generateId,
   setAuditFieldsForCreate,
@@ -492,6 +497,78 @@ export function newStoreSkillStep(store: Store): PipelineStep<PushDesc> {
         );
       } catch (error) {
         throw internalError(error, "failed to save skill");
+      }
+    },
+  };
+}
+
+/**
+ * SkillPushAuthorizationTuples — the C2 tuple-lifecycle splice for the
+ * push lane. Domain-local for the same reason as IndexSkillSearch (the
+ * skill rides SKILL_KEY, not newState), and push is an UPSERT, so the
+ * lane has both arms:
+ *   - a genuine create (SHOULD_CREATE_SKILL_KEY) fires the full creation
+ *     event — the Java SkillPushHandler runs the same create-tuples path;
+ *   - a re-push diffs the existing skill's visibility against the pushed
+ *     head and fires a visibility transition only when it changed (the
+ *     reconciler's same-level no-op, preserved).
+ * Failure semantics match the shared create step: a driver throw fails
+ * the push (post-persist; retry converges).
+ */
+export function newSkillPushAuthorizationTuplesStep(
+  lifecycle: ResourceAuthorizationLifecycle | undefined,
+  logger: Logger,
+): PipelineStep<PushDesc> {
+  return {
+    name: "SkillPushAuthorizationTuples",
+    async execute(ctx: RequestContext<PushDesc>): Promise<void> {
+      if (lifecycle === undefined) {
+        return;
+      }
+      const skill = ctx.get(SKILL_KEY) as Skill;
+      const shouldCreate = ctx.get(SHOULD_CREATE_SKILL_KEY) as boolean;
+      if (shouldCreate) {
+        const event = resolveResourceCreatedEvent(
+          ctx.apiResourceKind,
+          skill,
+          ctx.callerIdentity,
+          logger,
+        );
+        if (event === undefined) {
+          return;
+        }
+        try {
+          await lifecycle.onResourceCreated(event);
+        } catch (error) {
+          throw internalError(error, "failed to create authorization tuples");
+        }
+        return;
+      }
+      const existing = ctx.get(EXISTING_SKILL_KEY) as Skill | undefined;
+      const oldLevel =
+        existing?.metadata?.visibility ??
+        ApiResourceVisibility.api_resource_visibility_unspecified;
+      const newLevel =
+        skill.metadata?.visibility ??
+        ApiResourceVisibility.api_resource_visibility_unspecified;
+      const { shapesToCreate, shapesToDelete } = diffVisibilityShapes(
+        ctx.apiResourceKind,
+        oldLevel,
+        newLevel,
+      );
+      if (shapesToCreate.length === 0 && shapesToDelete.length === 0) {
+        return;
+      }
+      try {
+        await lifecycle.onVisibilityChanged({
+          kind: ctx.apiResourceKind,
+          resourceId: skill.metadata?.id ?? "",
+          orgId: skill.metadata?.org ?? "",
+          shapesToCreate,
+          shapesToDelete,
+        });
+      } catch (error) {
+        throw internalError(error, "failed to update visibility tuples");
       }
     },
   };

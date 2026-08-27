@@ -66,6 +66,23 @@ export type {
 } from "./extensions/status-hooks.js";
 export type { ExtensionDrivers } from "./extensions/drivers.js";
 export type { ResolvedExtensionDrivers } from "./extensions/registry.js";
+// The C2 seams (20260827.10): the tuple-lifecycle driver point and the
+// organization query directory, plus the shape-policy helpers a driver's
+// tests pin against.
+export type {
+  ResourceAuthorizationLifecycle,
+  ResourceCreatedEvent,
+  ResourceDeletedEvent,
+  VisibilityChangedEvent,
+  VisibilityTupleShape,
+  ResolvedParentLink,
+} from "./extensions/resource-authorization.js";
+export type { OrganizationDirectory } from "./extensions/organization-directory.js";
+export { ALL_ORGANIZATIONS } from "./extensions/organization-directory.js";
+export {
+  diffVisibilityShapes,
+  visibilityShapesFor,
+} from "./pipeline/steps/authorization-tuples.js";
 
 // The pipeline primitives extensions build gate steps from.
 export type { PipelineStep } from "./pipeline/pipeline.js";

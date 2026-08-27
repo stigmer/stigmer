@@ -37,6 +37,7 @@ import { create } from "@bufbuild/protobuf";
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
+import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import type { ResolvedGateSteps } from "../../extensions/gate-slots.js";
 import { stepsForSlot } from "../../extensions/gate-slots.js";
 import type { AgentExecutionTemporalConfig } from "../agentexecution/temporal/config.js";
@@ -73,12 +74,17 @@ import {
 import {
   SHOULD_CREATE_KEY,
   newLoadForApplyStep,
+  withResolvedApplyId,
 } from "../../pipeline/steps/load-for-apply.js";
 import {
   TARGET_RESOURCE_KEY,
   newLoadTargetStep,
 } from "../../pipeline/steps/load-target.js";
 import { newNormalizeReferencesStep } from "../../pipeline/steps/references.js";
+import {
+  newCleanupIamPoliciesStep,
+  newCreateAuthorizationTuplesStep,
+} from "../../pipeline/steps/authorization-tuples.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
@@ -107,6 +113,8 @@ export interface SessionControllerDeps {
   readonly logger: Logger;
   /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
   readonly authorizer: Authorizer;
+  /** The composed tuple-lifecycle driver — undefined = the shared steps no-op (C2). */
+  readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   /**
    * The agent-execution temporal config — the update pipeline's
    * execution-target immutability step resolves UNSPECIFIED through the
@@ -207,6 +215,12 @@ async function createSession(
   await builder
     .addStep(newPersistStep(deps.store))
     .addStep(
+      newCreateAuthorizationTuplesStep(
+        deps.authorizationLifecycle,
+        deps.logger,
+      ),
+    )
+    .addStep(
       newIndexSearchStep(deps.store, sessionSearchExtractor, deps.logger),
     )
     .build()
@@ -253,7 +267,8 @@ async function update(
 /**
  * Apply — kubectl-style create-or-update: a minimal probe pipeline decides
  * existence, then delegates to Create or Update with the ORIGINAL request
- * message (Go delegates `session`, not the pipeline's mutated clone).
+ * message (Go delegates `session`, not the pipeline's mutated clone);
+ * the update arm carries the resolved id via withResolvedApplyId.
  */
 async function apply(
   deps: SessionControllerDeps,
@@ -285,7 +300,7 @@ async function apply(
   }
   return shouldCreate
     ? createSession(deps, session, ctx)
-    : update(deps, session, ctx);
+    : update(deps, withResolvedApplyId(SessionSchema, session, reqCtx), ctx);
 }
 
 /**
@@ -318,6 +333,9 @@ async function deleteSession(
     .addStep(newRejectDeleteWithActiveExecutionsStep(deps.store, deps.logger))
     .addStep(newCascadeDeleteAgentExecutionsStep(deps.store, deps.logger))
     .addStep(newDeleteResourceStep(deps.store))
+    .addStep(
+      newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
+    )
     .addStep(newDeleteSearchIndexStep(deps.store, deps.logger))
     .build()
     .execute(reqCtx);

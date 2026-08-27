@@ -121,6 +121,42 @@ describe("decision arms (wire contract, both pinned)", () => {
     );
     await expect(step.execute(agentCreateCtx())).resolves.toBeUndefined();
   });
+
+  it("not-found → NOT_FOUND with the load-first chain's copy (the C2 ruling-Q1 arm)", async () => {
+    const { authorizer } = fakeAuthorizer({ kind: "not-found" });
+    const step = newAuthorizeStep<typeof AgentSchema>(
+      AgentCommandController.method.create,
+      authorizer,
+    );
+    const error = await step
+      .execute(agentCreateCtx())
+      ?.catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(ConnectError);
+    expect((error as ConnectError).code).toBe(Code.NotFound);
+    // Exactly what LoadTarget would answer for the missing target — the
+    // wire cannot tell which step spoke (stigmer#224 semantics).
+    expect((error as ConnectError).rawMessage).toBe(
+      "Organization not found: acme",
+    );
+  });
+
+  it("not-found on a non-resource-scoped check is an authorizer contract bug → INTERNAL", async () => {
+    const { authorizer } = fakeAuthorizer({ kind: "not-found" });
+    const step = newAuthorizeStep<typeof AgentSchema>(
+      AgentCommandController.method.create,
+      authorizer,
+    );
+    // Empty org → the resolved resource id is empty: not-found is
+    // meaningless here and must never soften into a NotFound answer.
+    const ctx = new RequestContext(
+      AgentSchema,
+      create(AgentSchema, { metadata: { name: "a", org: "" } }),
+      testCallerIdentity(),
+      ApiResourceKind.agent,
+    );
+    const error = await step.execute(ctx)?.catch((e: unknown) => e);
+    expect((error as ConnectError).code).toBe(Code.Internal);
+  });
 });
 
 describe("skip arms (the authorizer is never consulted)", () => {

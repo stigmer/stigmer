@@ -57,6 +57,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import type { ArtifactStorage } from "../../artifactstorage/artifact-storage.js";
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
+import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import {
   failedPreconditionError,
@@ -69,6 +70,11 @@ import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
+import {
+  newCleanupIamPoliciesStep,
+  newRecordVisibilityBeforeUpdateStep,
+  newUpdateVisibilityTuplesStep,
+} from "../../pipeline/steps/authorization-tuples.js";
 import { setAuditFieldsForUpdate } from "../../pipeline/steps/defaults.js";
 import {
   RESOURCE_ID_KEY,
@@ -98,6 +104,7 @@ import {
   newPopulateSkillFieldsStep,
   newResolveArtifactSourceStep,
   newResolveSlugForPushStep,
+  newSkillPushAuthorizationTuplesStep,
   newStoreSkillStep,
 } from "./push.js";
 import { skillSearchExtractor } from "./search-extractor.js";
@@ -131,6 +138,8 @@ export interface SkillControllerDeps {
   readonly logger: Logger;
   /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
   readonly authorizer: Authorizer;
+  /** The composed tuple-lifecycle driver — undefined = the shared steps no-op (C2). */
+  readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   readonly artifactStorage: SkillArtifactStorage;
   /**
    * Execution artifact storage for pushFromExecutionArtifact (Go
@@ -212,6 +221,12 @@ async function push(
     .addStep(newPopulateSkillFieldsStep())
     .addStep(newArchiveCurrentSkillStep(deps.store, deps.logger))
     .addStep(newStoreSkillStep(deps.store))
+    .addStep(
+      newSkillPushAuthorizationTuplesStep(
+        deps.authorizationLifecycle,
+        deps.logger,
+      ),
+    )
     .addStep(newIndexSkillSearchStep(deps.store, deps.logger))
     .build()
     .execute(reqCtx);
@@ -396,9 +411,16 @@ async function updateVisibility(
     )
     .addStep(newValidateProtoStep())
     .addStep(newLoadSkillForVisibilityUpdateStep(deps.store))
+    .addStep(newRecordVisibilityBeforeUpdateStep(UPDATE_VISIBILITY_SKILL_KEY))
     .addStep(newValidateVisibilityUpdateStep())
     .addStep(newSetVisibilityStep())
     .addStep(newPersistSkillForVisibilityUpdateStep(deps.store))
+    .addStep(
+      newUpdateVisibilityTuplesStep(
+        deps.authorizationLifecycle,
+        UPDATE_VISIBILITY_SKILL_KEY,
+      ),
+    )
     .addStep(newIndexSkillAfterVisibilityUpdateStep(deps.store, deps.logger))
     .build()
     .execute(reqCtx);
@@ -532,6 +554,9 @@ async function deleteSkill(
     .addStep(newLoadExistingForDeleteStep(deps.store, SkillSchema))
     .addStep(newDeleteSkillArchivesStep(deps.store, deps.logger))
     .addStep(newDeleteResourceStep(deps.store))
+    .addStep(
+      newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
+    )
     .addStep(newDeleteSearchIndexStep(deps.store, deps.logger))
     .build()
     .execute(reqCtx);

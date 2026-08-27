@@ -45,6 +45,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
+import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import { internalError, notFoundError } from "../../pipeline/errors.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
@@ -74,6 +75,7 @@ import {
 import {
   SHOULD_CREATE_KEY,
   newLoadForApplyStep,
+  withResolvedApplyId,
 } from "../../pipeline/steps/load-for-apply.js";
 import { newLoadByReferenceStep } from "../../pipeline/steps/load-by-reference.js";
 import {
@@ -81,6 +83,12 @@ import {
   newLoadTargetStep,
 } from "../../pipeline/steps/load-target.js";
 import { newNormalizeReferencesStep } from "../../pipeline/steps/references.js";
+import {
+  newCleanupIamPoliciesStep,
+  newCreateAuthorizationTuplesStep,
+  newRecordVisibilityBeforeUpdateStep,
+  newUpdateVisibilityTuplesStep,
+} from "../../pipeline/steps/authorization-tuples.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
@@ -107,6 +115,8 @@ export interface McpServerControllerDeps {
   readonly logger: Logger;
   /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
   readonly authorizer: Authorizer;
+  /** The composed tuple-lifecycle driver — undefined = the shared steps no-op (C2). */
+  readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   /** The connect/OAuth slice's dependencies (D4 #19). */
   readonly connect: McpServerConnectDeps;
 }
@@ -207,6 +217,12 @@ async function createMcpServer(
     .addStep(newNormalizeReferencesStep())
     .addStep(newPersistStep(deps.store))
     .addStep(
+      newCreateAuthorizationTuplesStep(
+        deps.authorizationLifecycle,
+        deps.logger,
+      ),
+    )
+    .addStep(
       newIndexSearchStep(deps.store, mcpServerSearchExtractor, deps.logger),
     )
     .build()
@@ -254,7 +270,8 @@ async function update(
 
 /**
  * Apply — kubectl-style create-or-update: a minimal probe pipeline
- * decides existence, then delegates with the ORIGINAL request message.
+ * decides existence, then delegates with the ORIGINAL request message
+ * (the update arm carries the resolved id via withResolvedApplyId).
  *
  * The tail fires startBestEffortConnect on the result — Go's
  * `go StartBestEffortConnect(result)` (apply.go:76), auto discovery
@@ -295,7 +312,11 @@ async function apply(
   }
   const result = shouldCreate
     ? await createMcpServer(deps, server, ctx)
-    : await update(deps, server, ctx);
+    : await update(
+        deps,
+        withResolvedApplyId(McpServerSchema, server, reqCtx),
+        ctx,
+      );
 
   // startBestEffortConnect's arms never throw by design; the catch is
   // the process-safety net an unhandled rejection would pierce.
@@ -340,6 +361,9 @@ async function deleteMcpServer(
     .addStep(newValidateProtoStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, McpServerSchema))
     .addStep(newDeleteResourceStep(deps.store))
+    .addStep(
+      newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
+    )
     .addStep(newDeleteSearchIndexStep(deps.store, deps.logger))
     .build()
     .execute(reqCtx);
@@ -388,9 +412,18 @@ async function updateVisibility(
     )
     .addStep(newValidateProtoStep())
     .addStep(newLoadMcpServerForVisibilityUpdateStep(deps.store))
+    .addStep(
+      newRecordVisibilityBeforeUpdateStep(UPDATE_VISIBILITY_MCP_SERVER_KEY),
+    )
     .addStep(newValidateVisibilityUpdateStep())
     .addStep(newSetMcpServerVisibilityStep())
     .addStep(newPersistMcpServerForVisibilityUpdateStep(deps.store))
+    .addStep(
+      newUpdateVisibilityTuplesStep(
+        deps.authorizationLifecycle,
+        UPDATE_VISIBILITY_MCP_SERVER_KEY,
+      ),
+    )
     .addStep(
       newIndexMcpServerAfterVisibilityUpdateStep(deps.store, deps.logger),
     )

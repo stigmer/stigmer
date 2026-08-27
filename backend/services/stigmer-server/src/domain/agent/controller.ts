@@ -32,6 +32,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
+import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import { internalError, notFoundError } from "../../pipeline/errors.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
@@ -61,6 +62,7 @@ import {
 import {
   SHOULD_CREATE_KEY,
   newLoadForApplyStep,
+  withResolvedApplyId,
 } from "../../pipeline/steps/load-for-apply.js";
 import { newLoadByReferenceStep } from "../../pipeline/steps/load-by-reference.js";
 import {
@@ -71,6 +73,12 @@ import {
   newNormalizeReferencesStep,
   newValidateReferencesStep,
 } from "../../pipeline/steps/references.js";
+import {
+  newCleanupIamPoliciesStep,
+  newCreateAuthorizationTuplesStep,
+  newRecordVisibilityBeforeUpdateStep,
+  newUpdateVisibilityTuplesStep,
+} from "../../pipeline/steps/authorization-tuples.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
@@ -96,6 +104,8 @@ export interface AgentControllerDeps {
   readonly logger: Logger;
   /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
   readonly authorizer: Authorizer;
+  /** The composed tuple-lifecycle driver — undefined = the shared steps no-op (C2). */
+  readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   /**
    * The agentinstance in-process edge — a lazy provider because
    * agent↔agentinstance is a true dependency cycle (DD-002; the ratified
@@ -159,6 +169,12 @@ async function createAgent(
     .addStep(newMergeMcpServerEnvSpecsStep(deps.store, deps.logger))
     .addStep(newPersistStep(deps.store))
     .addStep(
+      newCreateAuthorizationTuplesStep(
+        deps.authorizationLifecycle,
+        deps.logger,
+      ),
+    )
+    .addStep(
       newCreateDefaultInstanceStep(deps.agentInstanceApplier, deps.logger),
     )
     .addStep(
@@ -204,7 +220,8 @@ async function update(
 /**
  * Apply — kubectl-style create-or-update: a minimal probe pipeline decides
  * existence, then delegates to Create or Update with the ORIGINAL request
- * message (Go delegates `agent`, not the pipeline's mutated clone).
+ * message (Go delegates `agent`, not the pipeline's mutated clone);
+ * the update arm carries the resolved id via withResolvedApplyId.
  */
 async function apply(
   deps: AgentControllerDeps,
@@ -236,7 +253,7 @@ async function apply(
   }
   return shouldCreate
     ? createAgent(deps, agent, ctx)
-    : update(deps, agent, ctx);
+    : update(deps, withResolvedApplyId(AgentSchema, agent, reqCtx), ctx);
 }
 
 /**
@@ -268,6 +285,9 @@ async function deleteAgent(
     .addStep(newCascadeDeleteInstancesStep(deps.store, deps.logger))
     .addStep(newCascadeDeleteSharesStep(deps.store, deps.logger))
     .addStep(newDeleteResourceStep(deps.store))
+    .addStep(
+      newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
+    )
     .addStep(newDeleteSearchIndexStep(deps.store, deps.logger))
     .build()
     .execute(reqCtx);
@@ -317,9 +337,16 @@ async function updateVisibility(
     )
     .addStep(newValidateProtoStep())
     .addStep(newLoadAgentForVisibilityUpdateStep(deps.store))
+    .addStep(newRecordVisibilityBeforeUpdateStep(UPDATE_VISIBILITY_AGENT_KEY))
     .addStep(newValidateVisibilityUpdateStep())
     .addStep(newSetAgentVisibilityStep())
     .addStep(newPersistAgentForVisibilityUpdateStep(deps.store))
+    .addStep(
+      newUpdateVisibilityTuplesStep(
+        deps.authorizationLifecycle,
+        UPDATE_VISIBILITY_AGENT_KEY,
+      ),
+    )
     .addStep(newIndexAgentAfterVisibilityUpdateStep(deps.store, deps.logger))
     .build()
     .execute(reqCtx);

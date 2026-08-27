@@ -49,6 +49,8 @@ import type { ExtensionDrivers } from "./drivers.js";
 import { DECLARED_GATE_SLOTS } from "./gate-slots.js";
 import type { GateSlotName, ResolvedGateSteps } from "./gate-slots.js";
 import type { IdentityVerifier } from "./identity.js";
+import type { OrganizationDirectory } from "./organization-directory.js";
+import type { ResourceAuthorizationLifecycle } from "./resource-authorization.js";
 import type {
   AgentExecutionResponseDecorator,
   AgentExecutionStatusHooks,
@@ -141,6 +143,12 @@ export interface ResolvedExtensions {
 export interface ResolvedExtensionDrivers {
   readonly modelCatalogProvider: ModelCatalogProvider | undefined;
   readonly runnerCredentialProvider: RunnerCredentialProvider | undefined;
+  /** The C2 tuple-lifecycle driver — undefined = the shared steps no-op. */
+  readonly resourceAuthorizationLifecycle:
+    | ResourceAuthorizationLifecycle
+    | undefined;
+  /** The C2 organization query directory — undefined = OSS behavior. */
+  readonly organizationDirectory: OrganizationDirectory | undefined;
   /** Registered name → factory, validated against the built-in names. */
   readonly artifactStorageDrivers: ReadonlyMap<
     string,
@@ -185,6 +193,12 @@ export function resolveExtensions(
   let catalogDeclaredBy: string | undefined;
   let runnerCredentialProvider: RunnerCredentialProvider | undefined;
   let credentialDeclaredBy: string | undefined;
+  let resourceAuthorizationLifecycle:
+    | ResourceAuthorizationLifecycle
+    | undefined;
+  let authorizationLifecycleDeclaredBy: string | undefined;
+  let organizationDirectory: OrganizationDirectory | undefined;
+  let organizationDirectoryDeclaredBy: string | undefined;
   let channelRuntime: ChannelRuntime | undefined;
   let channelRuntimeDeclaredBy: string | undefined;
   const artifactStorageDrivers = new Map<
@@ -254,6 +268,27 @@ export function resolveExtensions(
       }
       runnerCredentialProvider = unit.drivers.runnerCredentialProvider;
       credentialDeclaredBy = unit.name;
+    }
+
+    if (unit.drivers?.resourceAuthorizationLifecycle !== undefined) {
+      if (authorizationLifecycleDeclaredBy !== undefined) {
+        throw new Error(
+          `extension '${unit.name}' registers a ResourceAuthorizationLifecycle, but '${authorizationLifecycleDeclaredBy}' already did — exactly one may be composed`,
+        );
+      }
+      resourceAuthorizationLifecycle =
+        unit.drivers.resourceAuthorizationLifecycle;
+      authorizationLifecycleDeclaredBy = unit.name;
+    }
+
+    if (unit.drivers?.organizationDirectory !== undefined) {
+      if (organizationDirectoryDeclaredBy !== undefined) {
+        throw new Error(
+          `extension '${unit.name}' registers an OrganizationDirectory, but '${organizationDirectoryDeclaredBy}' already did — exactly one may be composed`,
+        );
+      }
+      organizationDirectory = unit.drivers.organizationDirectory;
+      organizationDirectoryDeclaredBy = unit.name;
     }
 
     if (unit.drivers?.channelRuntime !== undefined) {
@@ -344,6 +379,8 @@ export function resolveExtensions(
     drivers: {
       modelCatalogProvider,
       runnerCredentialProvider,
+      resourceAuthorizationLifecycle,
+      organizationDirectory,
       artifactStorageDrivers,
       sandboxProvisionerDrivers,
       channelRuntime,
