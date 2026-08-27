@@ -27,6 +27,7 @@ import { Worker } from "@temporalio/worker";
 import type { Logger } from "../../boot/logger.js";
 import type { WorkflowExecutionTemporalConfig } from "../../domain/workflowexecution/temporal/config.js";
 import type { StreamBroker } from "../../domain/workflowexecution/stream-broker.js";
+import type { WorkflowSandboxTerminalObserver } from "../../sandbox/steps.js";
 import type { Store } from "../../store/interface.js";
 import type { WorkerFactory } from "../manager.js";
 import { resolveWorkflowSource } from "../workflow-source.js";
@@ -37,6 +38,8 @@ export interface WorkflowExecutionWorkerDeps {
   readonly logger: Logger;
   readonly broker: StreamBroker;
   readonly temporalConfig: WorkflowExecutionTemporalConfig;
+  /** The activity persist site's sandbox teardown observer (§6d, O6). */
+  readonly sandboxTerminalObserver: WorkflowSandboxTerminalObserver;
 }
 
 export function newWorkflowExecutionWorkerFactory(
@@ -47,6 +50,7 @@ export function newWorkflowExecutionWorkerFactory(
       store: deps.store,
       logger: deps.logger,
       broker: deps.broker,
+      sandboxTerminalObserver: deps.sandboxTerminalObserver,
     });
 
     const workflowSource = resolveWorkflowSource({

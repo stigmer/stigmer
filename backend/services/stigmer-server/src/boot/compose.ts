@@ -31,7 +31,10 @@ import type { ConnectRouter, Transport } from "@connectrpc/connect";
 import { HealthCheckResponse_ServingStatus as ServingStatus } from "@stigmer/protos/grpc/health/v1/health_pb";
 
 import { registerAgentServices } from "../domain/agent/controller.js";
-import { newConfigFromEnv } from "../domain/agentexecution/temporal/config.js";
+import {
+  newConfigFromEnv,
+  ROUTING_SESSION,
+} from "../domain/agentexecution/temporal/config.js";
 import { registerAgentExecutionServices } from "../domain/agentexecution/controller.js";
 import {
   LocalArtifactStorage,
@@ -115,7 +118,14 @@ import { InProcessValidator } from "../domain/workflow/validation/validator.js";
 import { registerWorkflowInstanceServices } from "../domain/workflowinstance/controller.js";
 import { registerWorkflowExecutionServices } from "../domain/workflowexecution/controller.js";
 import { StreamBroker as WorkflowExecutionStreamBroker } from "../domain/workflowexecution/stream-broker.js";
-import { newWorkflowExecutionConfigFromEnv } from "../domain/workflowexecution/temporal/config.js";
+import {
+  newWorkflowExecutionConfigFromEnv,
+  WORKFLOW_ROUTING_EXECUTION,
+} from "../domain/workflowexecution/temporal/config.js";
+import { builtInSandboxProvisionerFactories } from "../sandbox/builtins.js";
+import { newSandboxLane } from "../sandbox/lane.js";
+import { newSandboxProvisioner } from "../sandbox/provisioner.js";
+import { newWorkflowSandboxTerminalObserver } from "../sandbox/steps.js";
 import { newWorkflowExecutionEngineStateProvider } from "../temporal/workflowexecution/engine-client.js";
 import { newWorkflowExecutionWorkerFactory } from "../temporal/workflowexecution/worker.js";
 import { HealthState, registerHealthService } from "../transport/health.js";
@@ -286,6 +296,52 @@ export async function composeServer(
   // The workflow-execution twin (#21) — its config has no policy
   // consumer, so it lives here with the temporal stage.
   const workflowExecutionTemporalConfig = newWorkflowExecutionConfigFromEnv();
+  // The sandbox lane (§6d, O6): the configured driver — built-in tier or
+  // composition-registered — or the default external-runner posture
+  // (SANDBOX_PROVISIONER_TYPE unset: no driver constructed, the ensure
+  // steps short-circuit, an operator-managed runner polls the queues).
+  // Selection is loud-fail inside newSandboxProvisioner; the routing
+  // coherence check lives HERE because both temporal configs do — a
+  // provisioner that no routing mode can ever dispatch to is dark
+  // configuration, the validateR2Config class of boot fault.
+  const sandboxProvisioner = newSandboxProvisioner(
+    config.sandboxProvisionerType,
+    {
+      config: {
+        backendEndpoint: config.sandboxBackendEndpoint,
+        temporalAddress: config.sandboxTemporalAddress,
+        runnerImage: config.sandboxRunnerImage,
+        runnerCommand: config.sandboxRunnerCommand,
+        kubernetesNamespace: config.sandboxKubernetesNamespace,
+      },
+      logger,
+    },
+    builtInSandboxProvisionerFactories(),
+    extensions.drivers.sandboxProvisionerDrivers,
+  );
+  if (
+    sandboxProvisioner !== undefined &&
+    temporalConfig.activityRouting !== ROUTING_SESSION &&
+    workflowExecutionTemporalConfig.workflowActivityRouting !==
+      WORKFLOW_ROUTING_EXECUTION
+  ) {
+    throw new Error(
+      `SANDBOX_PROVISIONER_TYPE='${config.sandboxProvisionerType}' requires a per-queue routing mode — set STIGMER_ACTIVITY_ROUTING=session and/or STIGMER_WORKFLOW_ACTIVITY_ROUTING=execution (a provisioner no dispatch can reach must fail loudly, not sit dark)`,
+    );
+  }
+  const sandboxLane = newSandboxLane(sandboxProvisioner, runnerCredentials);
+  if (sandboxLane.enabled) {
+    logger.info("sandbox provisioner composed", {
+      type: config.sandboxProvisionerType,
+    });
+  }
+  // ONE terminal observer instance feeds all three workflow-execution
+  // status write sites (the UpdateStatus RPC, the orchestrator's persist
+  // activity, the lifecycle persists) — gate ruling Q3b.
+  const workflowSandboxTerminalObserver = newWorkflowSandboxTerminalObserver(
+    sandboxLane,
+    logger,
+  );
   const healthState = new HealthState();
   // The model catalog (DD-008, O5): ONE provider instance feeds workflow
   // validation, the pin checks, and the transport's registry lane, so the
@@ -388,6 +444,7 @@ export async function composeServer(
         logger,
         broker: workflowExecutionStreamBroker,
         temporalConfig: workflowExecutionTemporalConfig,
+        sandboxTerminalObserver: workflowSandboxTerminalObserver,
       }),
       newScheduleWorkerFactory({
         store,
@@ -665,6 +722,7 @@ export async function composeServer(
       temporalConfig,
       agentInstanceCreator: () => requireInProcess().agentInstanceCreator,
       gateSteps: extensions.gateSteps,
+      sandboxLane,
     });
     // The sharing/channel family registers after the agent family, as in
     // Go server.go (agent 378 → agentshare 384 → agentchannel 391 →
@@ -714,6 +772,8 @@ export async function composeServer(
       gateSteps: extensions.gateSteps,
       statusObservers: extensions.statusObservers,
       responseDecorators: extensions.responseDecorators,
+      sandboxLane,
+      temporalConfig,
       agentLoader: () => requireInProcess().executionAgentLoader,
       agentInstanceCreator: () =>
         requireInProcess().executionAgentInstanceCreator,
@@ -751,6 +811,9 @@ export async function composeServer(
       authorizer,
       engineState: workflowExecutionEngineState,
       broker: workflowExecutionStreamBroker,
+      sandboxLane,
+      temporalConfig: workflowExecutionTemporalConfig,
+      sandboxTerminalObserver: workflowSandboxTerminalObserver,
       workflowInstanceCreator: () =>
         requireInProcess().workflowExecutionInstanceCreator,
       approvalForwarder: () =>

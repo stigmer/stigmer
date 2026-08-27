@@ -106,6 +106,10 @@ import { getExecutionSummary } from "./get-execution-summary.js";
 import { listPendingApprovals } from "./list-pending-approvals.js";
 import { loadAllWorkflowExecutions } from "./queries.js";
 import { workflowExecutionSearchExtractor } from "./search-extractor.js";
+import type { SandboxLane } from "../../sandbox/lane.js";
+import type { WorkflowSandboxTerminalObserver } from "../../sandbox/steps.js";
+import { newEnsureWorkflowSandboxStep } from "../../sandbox/steps.js";
+import type { WorkflowExecutionTemporalConfig } from "./temporal/config.js";
 import type { StreamBroker } from "./stream-broker.js";
 import { subscribeExecution } from "./subscribe.js";
 import { subscribeEvents } from "./subscribe-events.js";
@@ -141,6 +145,21 @@ export interface WorkflowExecutionControllerDeps {
   readonly fileDecisionForwarder: AgentExecutionFileDecisionForwarderProvider;
   /** The shared EC-builder deps (create's step 12 + recover's recreate). */
   readonly executionContextBuilder: WorkflowExecutionContextBuilderDeps;
+  /**
+   * The sandbox lane (§6d, O6): disabled on the OSS default. Create and
+   * recover ensure the per-execution sandbox CRITICALLY (pre-persist /
+   * pre-start — a refusal orphans nothing); the terminal observer below
+   * tears it down.
+   */
+  readonly sandboxLane: SandboxLane;
+  /** Dispatch config — the sandbox ensure resolves target/queue through it. */
+  readonly temporalConfig: WorkflowExecutionTemporalConfig;
+  /**
+   * Fired after every persisted status write that transitions the phase
+   * (gate ruling Q3b) — updateStatus and the lifecycle persists call it;
+   * the worker's activity carries its own copy of the same observer.
+   */
+  readonly sandboxTerminalObserver: WorkflowSandboxTerminalObserver;
 }
 
 /** Registers both workflowexecution services on the router (routes stage). */
@@ -155,6 +174,9 @@ export function registerWorkflowExecutionServices(
     broker: deps.broker,
     engineState: deps.engineState,
     executionContextBuilder: deps.executionContextBuilder,
+    sandboxLane: deps.sandboxLane,
+    temporalConfig: deps.temporalConfig,
+    sandboxTerminalObserver: deps.sandboxTerminalObserver,
   };
   router.service(WorkflowExecutionCommandController, {
     create: (execution, ctx) => createExecution(deps, execution, ctx),
@@ -244,6 +266,17 @@ async function createExecution(
     .addStep(newNormalizeWorkflowRefStep(deps.store, deps.logger))
     .addStep(newPinWorkflowVersionStep(deps.store, deps.logger))
     .addStep(newCreateExecutionContextStep(deps.executionContextBuilder))
+    // The workflow-lane sandbox ensure (§6d, O6): CRITICAL and
+    // pre-persist — a provisioning refusal answers Unavailable with zero
+    // orphaned state (no row, no Temporal workflow), the verified Java
+    // ordering. Skips instantly when no provisioner is composed.
+    .addStep(
+      newEnsureWorkflowSandboxStep({
+        logger: deps.logger,
+        lane: deps.sandboxLane,
+        temporalConfig: deps.temporalConfig,
+      }),
+    )
     .addStep(newPersistStep(deps.store))
     .addStep(
       newIndexSearchStep(

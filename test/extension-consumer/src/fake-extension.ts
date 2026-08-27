@@ -55,6 +55,8 @@ import type {
   PipelineStep,
   PresignedUpload,
   RunnerCredentialProvider,
+  SandboxProvisioner,
+  SandboxProvisionerFactory,
   ServerExtension,
   Store,
   WorkerFactory,
@@ -194,6 +196,35 @@ const consumerBlobDriver: ArtifactStorageDriverFactory =
     health: () => Promise.resolve(),
   });
 
+/**
+ * A consumer-registered sandbox driver (the O6 §6d registration shape) —
+ * the full scoped contract: ensure-as-state-machine per scope, idempotent
+ * teardown, the Q5 live-state probe. Selected at runtime through
+ * SANDBOX_PROVISIONER_TYPE naming the registered key.
+ */
+const consumerSandboxDriver: SandboxProvisionerFactory = ({
+  config,
+  logger,
+}): SandboxProvisioner => {
+  void config.backendEndpoint;
+  void logger;
+  return {
+    ensureSessionSandbox: (sessionId, env) => {
+      void sessionId;
+      void env.taskQueue;
+      void env.stigmerToken;
+      return Promise.resolve();
+    },
+    deprovisionSessionSandbox: () => Promise.resolve(),
+    ensureWorkflowSandbox: () => Promise.resolve(),
+    deprovisionWorkflowSandbox: () => Promise.resolve(),
+    createConnectSandbox: (connectRequestId) =>
+      Promise.resolve(connectRequestId),
+    deprovisionConnectSandbox: () => Promise.resolve(),
+    probe: () => Promise.resolve("absent" as const),
+  };
+};
+
 const registerBillingService = (router: ConnectRouter): void => {
   router.service(BillingQueryController, {
     getBillingAccount: (input) =>
@@ -223,6 +254,9 @@ export const fakeExtension: ServerExtension = {
     artifactStorageDrivers: new Map([
       ["consumer-blob", consumerBlobDriver],
       ["consumer-r2", consumerR2Driver],
+    ]),
+    sandboxProvisionerDrivers: new Map([
+      ["consumer-sandbox", consumerSandboxDriver],
     ]),
   },
   services: [registerBillingService],

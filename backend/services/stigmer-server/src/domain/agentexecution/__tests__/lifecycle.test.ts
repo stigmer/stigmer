@@ -67,6 +67,7 @@ import {
   recordDecisionEvent,
 } from "../approval/author.js";
 import type { ExecutionContextBuilderDeps } from "../create-execution-context-step.js";
+import { newConfigFromEnv } from "../temporal/config.js";
 import type {
   ConnectedExecutionEngine,
   ExecutionEngineState,
@@ -446,6 +447,10 @@ function lifecycleDeps(engineState: ExecutionEngineState): LifecycleDeps {
     executionContextBuilder: stubBuilderDeps(),
     gateSteps: new Map(),
     statusObservers: [],
+    // The OSS default sandbox posture (§6d, O6): lane disabled — the
+    // recover chain's EnsureSessionSandbox step short-circuits.
+    sandboxLane: { enabled: false },
+    temporalConfig: newConfigFromEnv(),
   };
 }
 
@@ -795,6 +800,8 @@ describe("lifecycle pipelines", () => {
       broker: new StreamBroker(silentLogger),
       gateSteps: new Map(),
       statusObservers: [],
+      sandboxLane: { enabled: false },
+      temporalConfig: newConfigFromEnv(),
       engineState: () =>
         connected(
           stubConnectedEngine({
@@ -850,6 +857,8 @@ describe("lifecycle pipelines", () => {
       broker: new StreamBroker(silentLogger),
       gateSteps: new Map(),
       statusObservers: [],
+      sandboxLane: { enabled: false },
+      temporalConfig: newConfigFromEnv(),
       engineState: () =>
         connected(
           stubConnectedEngine({
@@ -893,6 +902,8 @@ describe("lifecycle pipelines", () => {
       broker: new StreamBroker(silentLogger),
       gateSteps: new Map(),
       statusObservers: [],
+      sandboxLane: { enabled: false },
+      temporalConfig: newConfigFromEnv(),
       engineState: () =>
         connected(
           stubConnectedEngine({
@@ -943,6 +954,8 @@ describe("lifecycle pipelines", () => {
       broker: new StreamBroker(silentLogger),
       gateSteps: new Map(),
       statusObservers: [],
+      sandboxLane: { enabled: false },
+      temporalConfig: newConfigFromEnv(),
       engineState: () =>
         connected(
           stubConnectedEngine({
@@ -986,6 +999,8 @@ describe("lifecycle pipelines", () => {
       broker: new StreamBroker(silentLogger),
       gateSteps: new Map(),
       statusObservers: [],
+      sandboxLane: { enabled: false },
+      temporalConfig: newConfigFromEnv(),
       engineState: () => connected(stubConnectedEngine()),
       executionContextBuilder: {
         ...builderDeps,
@@ -1101,6 +1116,8 @@ describe("lifecycle persist uses the atomic updateResource", () => {
         executionContextBuilder: stubBuilderDeps(),
         gateSteps: new Map(),
         statusObservers: [],
+        sandboxLane: { enabled: false },
+        temporalConfig: newConfigFromEnv(),
       };
 
       // Seed through the RAW store so the seed write is not counted.

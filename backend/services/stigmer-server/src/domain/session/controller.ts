@@ -85,6 +85,8 @@ import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import { newValidateVisibilityStep } from "../../pipeline/steps/validate-visibility.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
+import type { SandboxLane } from "../../sandbox/lane.js";
+import { deprovisionSessionSandboxBestEffort } from "../../sandbox/steps.js";
 import { sessionSearchExtractor } from "./search-extractor.js";
 import {
   LIST_RESULT_KEY,
@@ -119,6 +121,11 @@ export interface SessionControllerDeps {
   readonly agentInstanceCreator: AgentInstanceCreatorProvider;
   /** The composed slot registrations — this domain's create slot (O4). */
   readonly gateSteps: ResolvedGateSteps;
+  /**
+   * The sandbox lane (§6d, O6): session delete tears the session's
+   * sandbox down best-effort (the Java SessionDeleteHandler posture).
+   */
+  readonly sandboxLane: SandboxLane;
 }
 
 /** Registers both session services on the router (routes stage). */
@@ -322,6 +329,14 @@ async function deleteSession(
       "deleted session not found in context",
     );
   }
+  // The session's sandbox tears down AFTER the row is gone (§6d, O6) —
+  // best-effort, never failing the delete (the Java SessionDeleteHandler
+  // posture; the helper carries the leak-logging rationale).
+  await deprovisionSessionSandboxBestEffort(
+    deps.sandboxLane,
+    deps.logger,
+    (deleted as Session).metadata?.id ?? "",
+  );
   return deleted as Session;
 }
 

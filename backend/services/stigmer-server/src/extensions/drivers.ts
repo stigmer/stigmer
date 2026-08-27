@@ -8,20 +8,22 @@
  *   - model-catalog provider (§6a) and artifact-storage driver
  *     registration + runner-credential provider (§6b/§6c) — landed, O5
  *     (20260827.02)
- *   - sandbox provisioners (§6d) — O6
+ *   - sandbox provisioners (§6d) — landed, O6 (20260827.05)
  *
  * Merge rules (enforced by resolveExtensions, DD-006 §2b): the two
  * provider kinds are single-instance points — a second declaring unit is
  * a boot throw naming both units (the authorizer rule); artifact-storage
- * drivers merge as a name-keyed map — a duplicated name, or a name
- * shadowing a built-in backend, is a boot throw (the gateSteps rule: a
- * registration the factory could never reach must fail loudly, not sit
- * dark). OSS defaults install at the boot/compose.ts consumption sites,
- * never here (the default-lives-with-the-consumer doctrine).
+ * and sandbox-provisioner drivers merge as name-keyed maps — a
+ * duplicated name, or a name shadowing a built-in, is a boot throw (the
+ * gateSteps rule: a registration the factory could never reach must fail
+ * loudly, not sit dark). OSS defaults install at the boot/compose.ts
+ * consumption sites, never here (the default-lives-with-the-consumer
+ * doctrine).
  */
 import type { ArtifactStorageDriverFactory } from "../artifactstorage/artifact-storage.js";
 import type { ModelCatalogProvider } from "../domain/workflow/registry/model-catalog-provider.js";
 import type { RunnerCredentialProvider } from "../runnerauth/runner-credential-provider.js";
+import type { SandboxProvisionerFactory } from "../sandbox/provisioner.js";
 
 /** The driver contributions of one extension unit. */
 export interface ExtensionDrivers {
@@ -46,5 +48,16 @@ export interface ExtensionDrivers {
   readonly artifactStorageDrivers?: ReadonlyMap<
     string,
     ArtifactStorageDriverFactory
+  >;
+  /**
+   * Sandbox provisioners registrable by name (§6d), selectable through
+   * the SANDBOX_PROVISIONER_TYPE config knob. Factories, not instances —
+   * an unselected driver constructs nothing. The built-in names
+   * (local-process, docker, kubernetes — src/sandbox/provisioner.ts) are
+   * reserved.
+   */
+  readonly sandboxProvisionerDrivers?: ReadonlyMap<
+    string,
+    SandboxProvisionerFactory
   >;
 }

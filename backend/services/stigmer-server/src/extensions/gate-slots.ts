@@ -9,9 +9,12 @@
  * O1 (20260826.09) shipped the mechanism; O4 (20260827.07) declares the
  * ratified slots at their Java-verified semantic positions. FIVE of the
  * six ratified names are declared here — `sandbox-acquisition:gate` is
- * declared by O6 together with the provisioner invocation step it gates
- * (O4 plan-gate ruling Q1: a declared slot whose steps can never run
- * would be a silent no-op, the exact failure §2b exists to prevent).
+ * deferred to the entry that builds the gated provisioning position (O4
+ * plan-gate ruling Q1: a declared slot whose steps can never run would be
+ * a silent no-op, the exact failure §2b exists to prevent; O6 shipped the
+ * SandboxProvisioner as a driver seam with its own chain steps, so the
+ * capacity-gate splice site — and with it the sixth name — arrives with
+ * the C4 wave's OSS-side seam work).
  *
  * Two enforcement layers, deliberately redundant, both derived from the
  * ONE literal tuple below (lockstep by construction):

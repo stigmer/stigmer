@@ -62,9 +62,10 @@ eventually violate creatively.
 - **Gate-slot names are PROTECTED VOCABULARY** (convergence blueprint
   20260826.02/03 §3a; declared in `src/extensions/gate-slots.ts`, spliced
   where the table says, empty when no extension is composed). Never rename
-  a slot; adding one is an owner-visible act (O6 adds
-  `sandbox-acquisition:gate` with the provisioner invocation step). The
-  ratified table — the code must match it exactly:
+  a slot; adding one is an owner-visible act (the deferred
+  `sandbox-acquisition:gate` arrives with the entry that builds the gated
+  provisioning splice — O4 ruling Q1). The ratified table — the code must
+  match it exactly:
 
   | Slot | Position |
   |---|---|

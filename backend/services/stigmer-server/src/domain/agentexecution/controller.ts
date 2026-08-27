@@ -90,8 +90,11 @@ import {
   newSetInitialPhaseStep,
   newStartWorkflowStep,
 } from "./create-steps.js";
+import type { SandboxLane } from "../../sandbox/lane.js";
+import { newEnsureSessionSandboxStep } from "../../sandbox/steps.js";
 import type { ExecutionContextBuilderDeps } from "./create-execution-context-step.js";
 import { newCreateExecutionContextStep } from "./create-execution-context-step.js";
+import type { AgentExecutionTemporalConfig } from "./temporal/config.js";
 import type { ExecutionEngineStateProvider } from "./engine.js";
 import { newEnsureEngineAvailableStep } from "./engine.js";
 import {
@@ -175,6 +178,14 @@ export interface AgentExecutionControllerDeps {
    */
   readonly statusObservers: ReadonlyArray<AgentExecutionStatusObserver>;
   readonly responseDecorators: ReadonlyArray<AgentExecutionResponseDecorator>;
+  /**
+   * The sandbox lane (§6d, O6): disabled on the OSS default; the create
+   * and recover chains ensure the session sandbox through it after their
+   * workflow starts.
+   */
+  readonly sandboxLane: SandboxLane;
+  /** Dispatch config — the sandbox ensure resolves target/queue through it. */
+  readonly temporalConfig: AgentExecutionTemporalConfig;
 }
 
 /** Registers both agentexecution services on the router (routes stage). */
@@ -191,6 +202,8 @@ export function registerAgentExecutionServices(
     executionContextBuilder: deps.executionContextBuilder,
     gateSteps: deps.gateSteps,
     statusObservers: deps.statusObservers,
+    sandboxLane: deps.sandboxLane,
+    temporalConfig: deps.temporalConfig,
   };
   const artifactDeps = {
     store: deps.store,
@@ -324,6 +337,18 @@ async function createExecution(
         logger: deps.logger,
         engineState: deps.engineState,
         statusObservers: deps.statusObservers,
+      }),
+    )
+    // The session-lane sandbox ensure (§6d, O6): after StartWorkflow,
+    // NON-critical — a provisioning failure pre-stamps status.error and
+    // never fails the create (sandbox/steps.ts carries the posture's
+    // full rationale). Skips instantly when no provisioner is composed.
+    .addStep(
+      newEnsureSessionSandboxStep({
+        store: deps.store,
+        logger: deps.logger,
+        lane: deps.sandboxLane,
+        temporalConfig: deps.temporalConfig,
       }),
     )
     .build()

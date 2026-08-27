@@ -164,6 +164,7 @@ describe("UpdateWorkflowExecutionStatus activity (real store)", () => {
       store,
       logger: silentLogger,
       broker,
+      sandboxTerminalObserver: () => {},
     });
     return activities[UPDATE_WORKFLOW_EXECUTION_STATUS_ACTIVITY_NAME] as (
       executionId: string,
