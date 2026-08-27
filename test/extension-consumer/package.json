@@ -1,0 +1,20 @@
+{
+  "name": "@stigmer/extension-consumer",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Compile-proof consumer of the @stigmer/server library contract: a fake extension that typechecks against the exports map alone (DD-005). Deliberately NOT a root-workspace member — it file:-links the server exactly the way the commit-pin consumer (the cloud composition) will.",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@bufbuild/protobuf": "2.12.0",
+    "@connectrpc/connect": "^2.0.0",
+    "@stigmer/protos": "file:../../apis/stubs/ts",
+    "@stigmer/server": "file:../../backend/services/stigmer-server"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.1",
+    "typescript": "^5.7.0"
+  }
+}

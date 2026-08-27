@@ -15,7 +15,7 @@
  * supplies the client objects those providers close over.
  */
 import { createClient, createRouterTransport } from "@connectrpc/connect";
-import type { ConnectRouter } from "@connectrpc/connect";
+import type { ConnectRouter, Transport } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
 
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
@@ -132,6 +132,20 @@ export interface InProcessClients {
 }
 
 /**
+ * The in-process wiring: the narrow typed clients above PLUS the transport
+ * they ride. The transport is exposed because it is the one lane that can
+ * reach EVERY service the routes closure registers — extension services
+ * included (blueprint 20260826.02/03 §8) — which the fixed client set
+ * above cannot know about; it doubles as the extension test suite's
+ * both-router visibility proof (O1) and stays behavior-identical to the
+ * clients' own calls (same routes, same interceptor chain).
+ */
+export interface InProcessWiring {
+  readonly clients: InProcessClients;
+  readonly transport: Transport;
+}
+
+/**
  * Builds the in-process clients over a router transport that registers the
  * SAME routes and runs the SAME interceptor chain as the serving router —
  * validation parity is the point, exactly Go's bufconn shape.
@@ -139,7 +153,7 @@ export interface InProcessClients {
 export function createInProcessClients(
   routes: (router: ConnectRouter) => void,
   logger: Logger,
-): InProcessClients {
+): InProcessWiring {
   const transport = createRouterTransport(routes, {
     router: { interceptors: buildInterceptorChain(logger) },
   });
@@ -182,7 +196,7 @@ export function createInProcessClients(
   const mcpServerCommand = createClient(McpServerCommandController, transport);
   const skillCommand = createClient(SkillCommandController, transport);
 
-  return {
+  const clients: InProcessClients = {
     // Go's ApplyAsSystem is the Apply RPC with no extra identity attached:
     // the audit actor comes from the process-global operator identity
     // (installed once by main.ts, #400), so a plain apply IS the
@@ -322,4 +336,6 @@ export function createInProcessClients(
       },
     },
   };
+
+  return { clients, transport };
 }

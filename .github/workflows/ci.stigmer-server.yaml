@@ -38,6 +38,7 @@ on:
       - "apis/stubs/ts/**"
       - "client-apps/web/nginx.conf"
       - "scripts/verify-static-export-routes.mjs"
+      - "test/extension-consumer/**"
       - "Makefile"
       - ".github/workflows/ci.stigmer-server.yaml"
   push:
@@ -47,6 +48,7 @@ on:
       - "apis/stubs/ts/**"
       - "client-apps/web/nginx.conf"
       - "scripts/verify-static-export-routes.mjs"
+      - "test/extension-consumer/**"
       - "Makefile"
       - ".github/workflows/ci.stigmer-server.yaml"
 
@@ -114,6 +116,17 @@ jobs:
       - name: Build and boot-check the compiled dist
         working-directory: backend/services/stigmer-server
         run: npm run build && npm run verify:dist
+
+      # The exports-map compile proof (DD-005, sub-project 20260826.09/O1):
+      # a standalone consumer typechecks a fake extension against the
+      # @stigmer/server library contract ALONE — a missing export fails
+      # here, at PR time, instead of at the cloud composition's pin bump.
+      # Runs after the dist build above because the exports map points into
+      # dist. Standalone install, the same per-service pattern as the
+      # server itself.
+      - name: Compile-proof the exports map (test/extension-consumer)
+        working-directory: test/extension-consumer
+        run: npm ci --no-audit --no-fund && npm run typecheck
 
       - name: Bundle and boot-check the slim artifact
         working-directory: backend/services/stigmer-server

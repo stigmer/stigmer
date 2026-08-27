@@ -55,6 +55,12 @@ export interface PlatformControllerDeps {
    * keyless instance is the modeled disabled state.)
    */
   readonly runnerAuthService: RunnerAuthService;
+  /**
+   * The served edition, composition-derived (DD-006; blueprint §11 item
+   * 11): the extension registry declares it and defaults to oss, so the
+   * cloud composition answers `cloud` without forking this controller.
+   */
+  readonly edition: ServerEdition;
   readonly logger: Logger;
 }
 
@@ -64,16 +70,16 @@ export function registerPlatformServices(
   deps: PlatformControllerDeps,
 ): void {
   router.service(PlatformQueryController, {
-    getServerInfo: () => getServerInfo(),
+    getServerInfo: () => getServerInfo(deps),
     getRunnerBootstrapConfig: () => getRunnerBootstrapConfig(deps),
     getRunnerScopedToken: (input) => getRunnerScopedToken(deps, input),
   });
 }
 
 /** Go GetServerInfo: the server edition and build version. */
-function getServerInfo(): GetServerInfoOutput {
+function getServerInfo(deps: PlatformControllerDeps): GetServerInfoOutput {
   return create(GetServerInfoOutputSchema, {
-    edition: ServerEdition.oss,
+    edition: deps.edition,
     version: SERVER_VERSION,
   });
 }
