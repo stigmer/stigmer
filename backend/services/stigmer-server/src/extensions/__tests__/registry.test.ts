@@ -16,6 +16,7 @@ import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_inf
 import type { DescMessage } from "@bufbuild/protobuf";
 
 import type { ArtifactStorage } from "../../artifactstorage/artifact-storage.js";
+import type { ChannelRuntime } from "../../domain/agentchannel/channel-runtime.js";
 import type { ModelCatalogProvider } from "../../domain/workflow/registry/model-catalog-provider.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RunnerCredentialProvider } from "../../runnerauth/runner-credential-provider.js";
@@ -83,6 +84,33 @@ const fakeSandboxDriver: SandboxProvisionerFactory = () => {
   throw new Error("unit-test sandbox driver factory — never constructed");
 };
 
+function fakeChannelRuntime(): ChannelRuntime {
+  const never = (): never => {
+    throw new Error("unit-test channel runtime — never invoked");
+  };
+  return {
+    installs: { initiateInstall: never, completeInstall: never },
+    messaging: {
+      sendMessage: never,
+      listTemplates: never,
+      listMessagingChannels: never,
+    },
+    conversations: {
+      listConversations: never,
+      getConversation: never,
+      getTimeline: never,
+      getMediaDownloadUrl: never,
+      reply: never,
+      takeOver: never,
+      handBack: never,
+      clearAttention: never,
+      escalate: never,
+    },
+    enforceWriteConstraints: never,
+    teardownOnDelete: never,
+  };
+}
+
 describe("resolveExtensions — defaults", () => {
   it("resolves the omitted set to explicit empty defaults, edition oss", () => {
     const resolved = resolveExtensions();
@@ -97,6 +125,7 @@ describe("resolveExtensions — defaults", () => {
     expect(resolved.drivers.runnerCredentialProvider).toBeUndefined();
     expect(resolved.drivers.artifactStorageDrivers.size).toBe(0);
     expect(resolved.drivers.sandboxProvisionerDrivers.size).toBe(0);
+    expect(resolved.drivers.channelRuntime).toBeUndefined();
     expect(resolved.services).toEqual([]);
     expect(resolved.workers).toEqual([]);
   });
@@ -200,6 +229,14 @@ describe("resolveExtensions — merge semantics", () => {
     expect(resolved.drivers.sandboxProvisionerDrivers.get("fly-machines")).toBe(
       fakeSandboxDriver,
     );
+  });
+
+  it("keeps the declared ChannelRuntime as the resolved singleton (C3 ruling Q1)", () => {
+    const runtime = fakeChannelRuntime();
+    const resolved = resolveExtensions([
+      { name: "channels", drivers: { channelRuntime: runtime } },
+    ]);
+    expect(resolved.drivers.channelRuntime).toBe(runtime);
   });
 });
 
@@ -338,6 +375,23 @@ describe("resolveExtensions — loud-fail throws (DD-006 §2b)", () => {
       ]),
     ).toThrowError(
       /extension 'second-catalog' registers a ModelCatalogProvider, but 'first-catalog' already did/,
+    );
+  });
+
+  it("throws on a second ChannelRuntime, naming both units", () => {
+    expect(() =>
+      resolveExtensions([
+        {
+          name: "channels-a",
+          drivers: { channelRuntime: fakeChannelRuntime() },
+        },
+        {
+          name: "channels-b",
+          drivers: { channelRuntime: fakeChannelRuntime() },
+        },
+      ]),
+    ).toThrow(
+      "extension 'channels-b' registers a ChannelRuntime, but 'channels-a' already did — exactly one may be composed",
     );
   });
 

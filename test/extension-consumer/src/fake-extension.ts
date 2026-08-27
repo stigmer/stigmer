@@ -23,6 +23,19 @@ import { create } from "@bufbuild/protobuf";
 import type { DescMessage } from "@bufbuild/protobuf";
 import type { ConnectRouter } from "@connectrpc/connect";
 
+import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
+import {
+  ChannelConversationListSchema,
+  ChannelConversationSchema,
+  ConversationMediaDownloadUrlSchema,
+  ConversationTimelineSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
+import { InitiateChannelInstallOutputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/io_pb";
+import {
+  ChannelTemplatesSchema,
+  MessagingChannelsSchema,
+  SendChannelMessageOutputSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
 import { BillingAccountSchema } from "@stigmer/protos/ai/stigmer/billing/v1/billing_account_pb";
 import { BillingQueryController } from "@stigmer/protos/ai/stigmer/billing/v1/query_pb";
 import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
@@ -47,6 +60,7 @@ import type {
   ArtifactStorageDriverFactory,
   Authorizer,
   CallerIdentity,
+  ChannelRuntime,
   ComposedServer,
   GateSlotName,
   IdentityVerifier,
@@ -254,6 +268,59 @@ const consumerSandboxDriver: SandboxProvisionerFactory = ({
   };
 };
 
+/**
+ * A consumer-shaped channel runtime (the C3 seam, 20260827.11 ruling Q1) —
+ * the full grouped surface: install delegation, whole-method messaging
+ * and conversation serving, and the two edition-split CRUD hooks. All
+ * groups are required by the type, so a composition that forgets an arm
+ * fails THIS compile rather than serving a storing-posture refusal to a
+ * live channel user.
+ */
+const channelRuntime: ChannelRuntime = {
+  installs: {
+    initiateInstall: (channel, input, caller) => {
+      void channel.metadata?.id;
+      void caller.identityId;
+      return Promise.resolve(
+        create(InitiateChannelInstallOutputSchema, {
+          authorizationUrl: `https://consent.invalid/${input.resourceId}`,
+          state: "fake-state",
+        }),
+      );
+    },
+    completeInstall: (channel) =>
+      Promise.resolve(create(AgentChannelSchema, channel)),
+  },
+  messaging: {
+    sendMessage: () => Promise.resolve(create(SendChannelMessageOutputSchema)),
+    listTemplates: () => Promise.resolve(create(ChannelTemplatesSchema)),
+    listMessagingChannels: () =>
+      Promise.resolve(create(MessagingChannelsSchema)),
+  },
+  conversations: {
+    listConversations: () =>
+      Promise.resolve(create(ChannelConversationListSchema)),
+    getConversation: () => Promise.resolve(create(ChannelConversationSchema)),
+    getTimeline: () => Promise.resolve(create(ConversationTimelineSchema)),
+    getMediaDownloadUrl: () =>
+      Promise.resolve(create(ConversationMediaDownloadUrlSchema)),
+    reply: () => Promise.resolve(create(SendChannelMessageOutputSchema)),
+    takeOver: () => Promise.resolve(create(ChannelConversationSchema)),
+    handBack: () => Promise.resolve(create(ChannelConversationSchema)),
+    clearAttention: () => Promise.resolve(create(ChannelConversationSchema)),
+    escalate: () => Promise.resolve(create(ChannelConversationSchema)),
+  },
+  enforceWriteConstraints: (channel) => {
+    void channel.spec?.runConfig?.modelName;
+    return Promise.resolve();
+  },
+  teardownOnDelete: (channel, caller) => {
+    void channel.status?.installState;
+    void caller.callerClass;
+    return Promise.resolve();
+  },
+};
+
 const registerBillingService = (router: ConnectRouter): void => {
   router.service(BillingQueryController, {
     getBillingAccount: (input) =>
@@ -327,6 +394,9 @@ export const fakeExtension: ServerExtension = {
     ]),
     resourceAuthorizationLifecycle: authorizationLifecycle,
     organizationDirectory,
+    // The C3 serving seam: a composed runtime flips the agentchannel
+    // install/messaging/conversation arms from refusal to serving.
+    channelRuntime,
   },
   services: [registerBillingService],
   workers: [workerFactory],

@@ -173,5 +173,18 @@ export type {
 } from "./sandbox/provisioner.js";
 export { BUILT_IN_SANDBOX_PROVISIONER_TYPES } from "./sandbox/provisioner.js";
 
+// The C3 driver seam (DD-004's serving half, ruling Q1): the channel
+// delivery runtime a composition registers to SERVE the install,
+// messaging, and conversation arms the storing posture refuses — plus
+// the write-constraints and delete-teardown hooks that carry the two
+// edition-split CRUD sites. One driver, grouped by the surfaces it takes
+// over; with none composed the byte-pinned refusals serve unchanged.
+export type {
+  ChannelRuntime,
+  ChannelRuntimeConversations,
+  ChannelRuntimeInstalls,
+  ChannelRuntimeMessaging,
+} from "./domain/agentchannel/channel-runtime.js";
+
 // The worker factory types extension workers implement (§8).
 export type { WorkerFactory, WorkerFactoryDeps } from "./temporal/manager.js";

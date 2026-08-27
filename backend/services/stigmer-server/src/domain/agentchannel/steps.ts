@@ -10,6 +10,7 @@
  * and __tests__/agentchannel.test.ts.
  */
 import { create } from "@bufbuild/protobuf";
+import type { DescMessage } from "@bufbuild/protobuf";
 
 import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
@@ -35,6 +36,7 @@ import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import type { Store } from "../../store/interface.js";
 import { unknownModelPinRefusal } from "../workflow/registry/pin-validation.js";
 import type { ModelCatalogProvider } from "../workflow/registry/model-catalog-provider.js";
+import type { ChannelRuntime } from "./channel-runtime.js";
 import {
   AGENT_REF_SLUG_REQUIRED_MESSAGE,
   APP_REF_FROZEN_WHILE_INSTALLED_MESSAGE,
@@ -97,6 +99,7 @@ function validateChannelModelPin(
 export function newResolveChannelDefaultsStep(
   store: Store,
   registry: ModelCatalogProvider,
+  channelRuntime: ChannelRuntime | undefined,
 ): PipelineStep<AgentChannelDesc> {
   return {
     name: "ResolveChannelDefaults",
@@ -158,6 +161,15 @@ export function newResolveChannelDefaultsStep(
       }
 
       agentRef!.org = refOrg;
+
+      // Write-time constraints only a serving runtime can state (the
+      // pin-REQUIRED rule and its successors — channel-runtime.ts).
+      // AFTER every edition-neutral rule so a composed runtime never
+      // changes their order or copy; absent runtime = the storing
+      // edition's posture, unchanged.
+      if (channelRuntime !== undefined) {
+        await channelRuntime.enforceWriteConstraints(ctx.newState);
+      }
     },
   };
 }
@@ -217,11 +229,14 @@ export function providerFieldName(spec: AgentChannelSpec | undefined): string {
  */
 export function newValidateChannelUpdateStep(
   registry: ModelCatalogProvider,
+  channelRuntime: ChannelRuntime | undefined,
 ): PipelineStep<AgentChannelDesc> {
   return {
     name: "ValidateChannelUpdate",
-    execute(ctx: RequestContext<AgentChannelDesc>): void {
-      const existing = ctx.get(EXISTING_RESOURCE_KEY) as AgentChannel | undefined;
+    async execute(ctx: RequestContext<AgentChannelDesc>): Promise<void> {
+      const existing = ctx.get(EXISTING_RESOURCE_KEY) as
+        | AgentChannel
+        | undefined;
       if (existing === undefined) {
         throw internalError(
           new Error("existing agent channel not found in context"),
@@ -235,26 +250,75 @@ export function newValidateChannelUpdateStep(
       // Normalize the input ref's org the same way create does (empty
       // means the channel's own org) before comparing.
       const inputOrg =
-        (inputRef?.org ?? "") !== "" ? inputRef!.org : (existing.metadata?.org ?? "");
+        (inputRef?.org ?? "") !== ""
+          ? inputRef!.org
+          : (existing.metadata?.org ?? "");
 
       if (
         (inputRef?.slug ?? "") !== (existingRef?.slug ?? "") ||
         inputOrg !== (existingRef?.org ?? "")
       ) {
         throw failedPreconditionError(
-          agentRefImmutableMessage(existingRef?.org ?? "", existingRef?.slug ?? ""),
+          agentRefImmutableMessage(
+            existingRef?.org ?? "",
+            existingRef?.slug ?? "",
+          ),
         );
       }
 
       const inputProvider = providerFieldName(ctx.input.spec);
       const existingProvider = providerFieldName(existing.spec);
       if (inputProvider !== existingProvider) {
-        throw failedPreconditionError(providerImmutableMessage(existingProvider));
+        throw failedPreconditionError(
+          providerImmutableMessage(existingProvider),
+        );
       }
 
       validateChannelModelPin(registry, ctx.input.spec);
 
       validateAppRefUpdate(ctx, existing);
+
+      // The serving runtime's write constraints, on the spec that would
+      // be written (ctx.input carries it here — BuildUpdateState runs
+      // after this step). Same posture as ResolveChannelDefaults: last,
+      // and only when composed.
+      if (channelRuntime !== undefined) {
+        await channelRuntime.enforceWriteConstraints(ctx.input);
+      }
+    },
+  };
+}
+
+/**
+ * TeardownChannelRuntime — the serving runtime's delete-time cascade
+ * (channel-runtime.ts: credentials environment, OAuth grant, pending
+ * deliveries). Spliced into the delete chain ONLY when a runtime is
+ * composed, after LoadExistingForDelete and before DeleteResource —
+ * dependent runtime state dies before the row (the cloud#425 ordering
+ * family), and a thrown teardown error leaves the row for an idempotent
+ * retry. The storing edition's delete chain is byte-identical to before
+ * this seam existed.
+ *
+ * Generic over the chain desc: the delete chain is typed on the delete
+ * INPUT (AgentChannelId), and this step reads the loaded resource from
+ * EXISTING_RESOURCE_KEY exactly as the controller's post-chain read does.
+ */
+export function newTeardownChannelRuntimeStep<Desc extends DescMessage>(
+  channelRuntime: ChannelRuntime,
+): PipelineStep<Desc> {
+  return {
+    name: "TeardownChannelRuntime",
+    async execute(ctx: RequestContext<Desc>): Promise<void> {
+      const existing = ctx.get(EXISTING_RESOURCE_KEY) as
+        | AgentChannel
+        | undefined;
+      if (existing === undefined) {
+        throw internalError(
+          new Error("existing agent channel not found in context"),
+          "existing agent channel not found in context",
+        );
+      }
+      await channelRuntime.teardownOnDelete(existing, ctx.callerIdentity);
     },
   };
 }
@@ -285,7 +349,9 @@ function validateAppRefUpdate(
   let inputAppOrg = "";
   if ((inputAppRef?.slug ?? "") !== "") {
     inputAppOrg =
-      inputAppRef!.org !== "" ? inputAppRef!.org : (existing.metadata?.org ?? "");
+      inputAppRef!.org !== ""
+        ? inputAppRef!.org
+        : (existing.metadata?.org ?? "");
   }
 
   if (inputAppOrg !== "" && inputAppOrg !== (existing.metadata?.org ?? "")) {
@@ -296,7 +362,8 @@ function validateAppRefUpdate(
     existing.status?.installState === AgentChannelInstallState.installed;
   const changed =
     (inputAppRef?.slug ?? "") !== (existingAppRef?.slug ?? "") ||
-    ((inputAppRef?.slug ?? "") !== "" && inputAppOrg !== (existingAppRef?.org ?? ""));
+    ((inputAppRef?.slug ?? "") !== "" &&
+      inputAppOrg !== (existingAppRef?.org ?? ""));
 
   if (installed && changed) {
     throw failedPreconditionError(APP_REF_FROZEN_WHILE_INSTALLED_MESSAGE);

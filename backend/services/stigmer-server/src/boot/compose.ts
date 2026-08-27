@@ -773,9 +773,15 @@ export async function composeServer(
       // and the registry lanes read — the channel model-pin rule
       // (stigmer/stigmer#774) can never drift from the served pickers.
       modelRegistry: modelCatalog,
+      // DD-004's serving seam (C3): undefined = the byte-pinned refusal
+      // posture; a composed runtime serves install + write/delete hooks.
+      channelRuntime: extensions.drivers.channelRuntime,
     });
-    registerChannelMessageServices(router);
-    registerChannelConversationServices(router);
+    registerChannelMessageServices(router, extensions.drivers.channelRuntime);
+    registerChannelConversationServices(
+      router,
+      extensions.drivers.channelRuntime,
+    );
     registerChannelAppServices(router, {
       store,
       logger,
