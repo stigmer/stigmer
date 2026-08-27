@@ -26,6 +26,7 @@ import { assertResourceParity } from "../contract/parity";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { makeAgent } from "../support/agents";
+import { makeSlackAgentChannel } from "../support/agentchannels";
 import { uniqueName } from "../support/naming";
 import { SESSION_API_VERSION, SESSION_KIND, makeSession, makeSessionSpec } from "../support/sessions";
 import { createTarget, type TargetProfile } from "../targets";
@@ -305,28 +306,41 @@ describe("Session conformance — queries", () => {
     ));
 
   it("listByChannel answers an empty list for a channel with no sessions — ordinary sessions never leak into a channel view", async () => {
-    // Channel sessions are created by the cloud channel runtime, which stamps
-    // the stigmer.ai/channel-id label at create time. The OSS runtime has no
-    // channel broker, so nothing ever stamps it there — the empty answer IS
-    // the OSS contract. Creating an ordinary session first makes this a real
-    // filter assertion rather than a vacuous empty-store read: a broken
-    // filter that returned unlabeled sessions would fail here.
+    // The probe targets a REAL owned channel (the conversation-lane
+    // convention, wave-2): on cloud a fabricated channel id fails closed in
+    // the channel can_view gate (PermissionDenied, no existence leak —
+    // DD-012) before the filter ever runs, so only an owned channel reaches
+    // the shared truthful-emptiness contract on both editions. Channel
+    // sessions are created by the cloud channel runtime, which stamps the
+    // stigmer.ai/channel-id label at create time; the OSS runtime has no
+    // channel broker, so nothing ever stamps it there. Creating an ordinary
+    // session first makes this a real filter assertion rather than a vacuous
+    // empty-store read: a broken filter that returned unlabeled sessions
+    // would fail here.
     const { org } = await target.provisionTenancy();
-    const agentInstanceId = await provisionAgentInstance(org);
-    await createSession(org, uniqueName("session"), agentInstanceId);
+    const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("agent") }));
+    fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
+    const channel = await clients.agentChannelCommand.create(
+      makeSlackAgentChannel(org, uniqueName("channel"), agent.metadata!.slug),
+    );
+    fixtures.defer(() => clients.agentChannelCommand.delete({ value: channel.metadata!.id }));
+    await createSession(org, uniqueName("session"), agent.status!.defaultInstanceId);
 
-    const listed = await clients.sessionQuery.listByChannel({ channelId: uniqueName("ach") });
+    const listed = await clients.sessionQuery.listByChannel({ channelId: channel.metadata!.id });
 
     expect(listed.entries).toHaveLength(0);
   });
 
   it("listByChannel returns exactly the sessions stamped with the channel's label", async () => {
     // The positive arm: the filter must key on the stigmer.ai/channel-id
-    // label, not on emptiness. The label is a server-stamped reserved key an
-    // ordinary caller cannot forge on cloud (GuardReservedLabelsStep), so the
-    // channel-originated session is seeded through the privileged scope
-    // (stigmer#547) — the activity suite's runtime-origin seeding pattern.
-    // Deployed endpoints carry no operator credential by design and skip.
+    // label, not on emptiness. The channel is a REAL owned resource (the
+    // wave-2 conversation-lane convention — cloud's DD-012 can_view gate
+    // passes only for channels the caller can open), and the label is a
+    // server-stamped reserved key an ordinary caller cannot forge on cloud
+    // (GuardReservedLabelsStep), so the channel-originated session is seeded
+    // through the privileged scope (stigmer#547) — the activity suite's
+    // runtime-origin seeding pattern. Deployed endpoints carry no operator
+    // credential by design and skip.
     if (target.provisionPrivilegedScope === undefined) return;
     const scope = await target.provisionPrivilegedScope();
 
@@ -336,7 +350,10 @@ describe("Session conformance — queries", () => {
         makeAgent({ org, name: uniqueName("agent") }),
       );
       const agentInstanceId = agent.status!.defaultInstanceId;
-      const channelId = uniqueName("ach");
+      const channel = await scope.clients.agentChannelCommand.create(
+        makeSlackAgentChannel(org, uniqueName("channel"), agent.metadata!.slug),
+      );
+      const channelId = channel.metadata!.id;
 
       const channelSession = await scope.clients.sessionCommand.create(
         makeSession({
@@ -357,6 +374,7 @@ describe("Session conformance — queries", () => {
         channelSession.metadata?.id,
       ]);
 
+      await scope.clients.agentChannelCommand.delete({ value: channel.metadata!.id });
       await scope.clients.agentCommand.delete({ value: agent.metadata!.id });
     } finally {
       await scope.cleanup();
