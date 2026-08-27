@@ -88,7 +88,7 @@ services:
       retries: 30
 
   stigmer-server:
-    image: ghcr.io/stigmer/stigmer-server:${STIGMER_VERSION:-v3.12.9}
+    image: ghcr.io/stigmer/stigmer-server:${STIGMER_VERSION:-v3.13.0}
     restart: unless-stopped
     depends_on:
       postgres:
@@ -140,7 +140,7 @@ services:
     # runner's depends_on gates on it.
 
   stigmer-runner:
-    image: ghcr.io/stigmer/stigmer-runner:${STIGMER_VERSION:-v3.12.9}
+    image: ghcr.io/stigmer/stigmer-runner:${STIGMER_VERSION:-v3.13.0}
     restart: unless-stopped
     depends_on:
       stigmer-server:
