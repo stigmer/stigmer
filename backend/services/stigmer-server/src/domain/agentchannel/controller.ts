@@ -13,8 +13,11 @@
  * channel (byte-identical NOT_FOUND with cloud's LoadChannel step), then
  * refuse FailedPrecondition — this edition has no webhook receiver and no
  * delivery runtime, so an installed channel could never serve traffic.
- * Nothing is persisted on that path. The messaging/conversation runtime
- * surfaces live in message.ts / conversation.ts (Go's file seams).
+ * Nothing is persisted on that path. A composition WITH a delivery
+ * runtime registers a ChannelRuntime driver (channel-runtime.ts, C3
+ * ruling Q1) and the final refuse line becomes a delegation instead —
+ * everything before it is posture-independent. The messaging/conversation
+ * runtime surfaces live in message.ts / conversation.ts (Go's file seams).
  *
  * NOT search-indexed by design; channels are NOT swept on agent delete
  * (only same-org shares are) — a dangling channel is tolerated because
@@ -89,10 +92,12 @@ import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import { newValidateVisibilityStep } from "../../pipeline/steps/validate-visibility.js";
 import type { Store } from "../../store/interface.js";
 import type { ModelCatalogProvider } from "../workflow/registry/model-catalog-provider.js";
+import type { ChannelRuntime } from "./channel-runtime.js";
 import { INSTALL_UNAVAILABLE_MESSAGE } from "./constants.js";
 import {
   newInitInstallStateStep,
   newResolveChannelDefaultsStep,
+  newTeardownChannelRuntimeStep,
   newValidateChannelUpdateStep,
 } from "./steps.js";
 
@@ -102,6 +107,13 @@ export interface AgentChannelControllerDeps {
   /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
   readonly authorizer: Authorizer;
   readonly modelRegistry: ModelCatalogProvider;
+  /**
+   * The composed channel delivery runtime, or undefined on the storing
+   * edition (channel-runtime.ts — DD-004's serving seam, C3 ruling Q1).
+   * Explicitly `| undefined` rather than optional: every construction
+   * site states which posture it composes.
+   */
+  readonly channelRuntime: ChannelRuntime | undefined;
 }
 
 /** Registers both agentchannel resource services on the router. */
@@ -157,7 +169,13 @@ async function createChannel(
     )
     .addStep(newValidateProtoStep())
     .addStep(newValidateVisibilityStep())
-    .addStep(newResolveChannelDefaultsStep(deps.store, deps.modelRegistry))
+    .addStep(
+      newResolveChannelDefaultsStep(
+        deps.store,
+        deps.modelRegistry,
+        deps.channelRuntime,
+      ),
+    )
     .addStep(newResolveSlugStep())
     .addStep(newCheckDuplicateStep(deps.store))
     .addStep(newBuildNewStateStep())
@@ -199,7 +217,9 @@ async function update(
     .addStep(newValidateProtoStep())
     .addStep(newResolveSlugStep())
     .addStep(newLoadExistingStep(deps.store))
-    .addStep(newValidateChannelUpdateStep(deps.modelRegistry))
+    .addStep(
+      newValidateChannelUpdateStep(deps.modelRegistry, deps.channelRuntime),
+    )
     .addStep(newBuildUpdateStateStep())
     .addStep(newNormalizeReferencesStep())
     .addStep(newPersistStep(deps.store))
@@ -241,7 +261,13 @@ async function apply(
       ),
     )
     .addStep(newValidateProtoStep())
-    .addStep(newResolveChannelDefaultsStep(deps.store, deps.modelRegistry))
+    .addStep(
+      newResolveChannelDefaultsStep(
+        deps.store,
+        deps.modelRegistry,
+        deps.channelRuntime,
+      ),
+    )
     .addStep(newResolveSlugStep())
     .addStep(newLoadForApplyStep(deps.store))
     .build()
@@ -264,8 +290,10 @@ async function apply(
 // Install lane — Go install.go. Input validation is Layer-1 (the transport
 // interceptor chain validates every request, matching Go's explicit
 // SharedValidator call); the channel is loaded FIRST so the NOT_FOUND
-// contract is identical to cloud's LoadChannel step, and only the final
-// step diverges — the documented one. Nothing is persisted.
+// contract is identical to cloud's LoadChannel step in BOTH postures, and
+// only the final step splits: refuse-or-delegate (channel-runtime.ts, C3
+// ruling Q1). With no runtime composed nothing is persisted; a composed
+// runtime owns the install flow end to end.
 // ---------------------------------------------------------------------------
 
 async function initiateInstall(
@@ -273,32 +301,54 @@ async function initiateInstall(
   input: InitiateChannelInstallInput,
   ctx: HandlerContext,
 ): Promise<InitiateChannelInstallOutput> {
-  await loadChannelForInstall(deps, ctx, input.resourceId);
-  throw failedPreconditionError(INSTALL_UNAVAILABLE_MESSAGE);
+  const channel = await loadChannelForInstall(deps, ctx, input.resourceId);
+  if (deps.channelRuntime === undefined) {
+    throw failedPreconditionError(INSTALL_UNAVAILABLE_MESSAGE);
+  }
+  return deps.channelRuntime.installs.initiateInstall(
+    channel,
+    input,
+    callerIdentityOf(ctx),
+  );
 }
 
 /**
- * CompleteInstall — same load-then-refuse contract; a completion can only
- * be reached with a state token from a successful initiate, which this
- * edition never issues.
+ * CompleteInstall — same load-then-X contract; on the storing edition a
+ * completion can only be reached with a state token from a successful
+ * initiate, which it never issues.
  */
 async function completeInstall(
   deps: AgentChannelControllerDeps,
   input: CompleteChannelInstallInput,
   ctx: HandlerContext,
 ): Promise<AgentChannel> {
-  await loadChannelForInstall(deps, ctx, input.resourceId);
-  throw failedPreconditionError(INSTALL_UNAVAILABLE_MESSAGE);
+  const channel = await loadChannelForInstall(deps, ctx, input.resourceId);
+  if (deps.channelRuntime === undefined) {
+    throw failedPreconditionError(INSTALL_UNAVAILABLE_MESSAGE);
+  }
+  return deps.channelRuntime.installs.completeInstall(
+    channel,
+    input,
+    callerIdentityOf(ctx),
+  );
 }
 
-/** Verifies the target exists — cloud's LoadChannel NOT_FOUND, verbatim. */
+/**
+ * Loads the install target — cloud's LoadChannel NOT_FOUND, verbatim.
+ * Returns the loaded channel so a composed runtime receives it without a
+ * second load (the load-then-X contract stays OSS-owned).
+ */
 async function loadChannelForInstall(
   deps: AgentChannelControllerDeps,
   ctx: HandlerContext,
   resourceId: string,
-): Promise<void> {
+): Promise<AgentChannel> {
   try {
-    await deps.store.getResource(kindOf(ctx), resourceId, AgentChannelSchema);
+    return await deps.store.getResource(
+      kindOf(ctx),
+      resourceId,
+      AgentChannelSchema,
+    );
   } catch {
     throw notFoundError("AgentChannel", resourceId);
   }
@@ -306,10 +356,12 @@ async function loadChannelForInstall(
 
 /**
  * Delete — the connection's full teardown; disabling (update with
- * enabled=false) is the config-preserving pause. Versus cloud, OSS
- * excludes the teardown cascade (managed credentials environment, OAuth
- * grant, pending-delivery abandonment) — none of that state can exist
- * here because the install flow never runs (§0-b).
+ * enabled=false) is the config-preserving pause. On the storing edition
+ * there is no teardown cascade — none of that state can exist because the
+ * install flow never runs (§0-b). A composed runtime splices its cascade
+ * (TeardownChannelRuntime — credentials environment, OAuth grant, pending
+ * deliveries) between the load and the row delete, so dependent runtime
+ * state dies before the row (the cloud#425 ordering family).
  */
 async function deleteChannel(
   deps: AgentChannelControllerDeps,
@@ -322,10 +374,9 @@ async function deleteChannel(
     callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<typeof AgentChannelCommandController.method.delete.input>(
-    "agent-channel-delete",
-    deps.logger,
-  )
+  const pipeline = newPipeline<
+    typeof AgentChannelCommandController.method.delete.input
+  >("agent-channel-delete", deps.logger)
     .addStep(
       newAuthorizeStep(
         AgentChannelCommandController.method.delete,
@@ -334,7 +385,11 @@ async function deleteChannel(
     )
     .addStep(newValidateProtoStep())
     .addStep(newExtractResourceIdStep())
-    .addStep(newLoadExistingForDeleteStep(deps.store, AgentChannelSchema))
+    .addStep(newLoadExistingForDeleteStep(deps.store, AgentChannelSchema));
+  if (deps.channelRuntime !== undefined) {
+    pipeline.addStep(newTeardownChannelRuntimeStep(deps.channelRuntime));
+  }
+  await pipeline
     .addStep(newDeleteResourceStep(deps.store))
     .build()
     .execute(reqCtx);

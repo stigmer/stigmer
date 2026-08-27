@@ -37,6 +37,7 @@ import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_inf
 
 import type { ArtifactStorageDriverFactory } from "../artifactstorage/artifact-storage.js";
 import { BUILT_IN_STORAGE_TYPES } from "../artifactstorage/artifact-storage.js";
+import type { ChannelRuntime } from "../domain/agentchannel/channel-runtime.js";
 import type { ModelCatalogProvider } from "../domain/workflow/registry/model-catalog-provider.js";
 import type { PipelineStep } from "../pipeline/pipeline.js";
 import type { RunnerCredentialProvider } from "../runnerauth/runner-credential-provider.js";
@@ -150,6 +151,13 @@ export interface ResolvedExtensionDrivers {
     string,
     SandboxProvisionerFactory
   >;
+  /**
+   * The composed channel runtime, or undefined when none is registered —
+   * the agentchannel consumption sites serve the byte-pinned refusal
+   * posture for the undefined arm (the default lives with the consumer
+   * that defines its semantics, not with this data holder).
+   */
+  readonly channelRuntime: ChannelRuntime | undefined;
 }
 
 /**
@@ -177,6 +185,8 @@ export function resolveExtensions(
   let catalogDeclaredBy: string | undefined;
   let runnerCredentialProvider: RunnerCredentialProvider | undefined;
   let credentialDeclaredBy: string | undefined;
+  let channelRuntime: ChannelRuntime | undefined;
+  let channelRuntimeDeclaredBy: string | undefined;
   const artifactStorageDrivers = new Map<
     string,
     ArtifactStorageDriverFactory
@@ -246,6 +256,16 @@ export function resolveExtensions(
       credentialDeclaredBy = unit.name;
     }
 
+    if (unit.drivers?.channelRuntime !== undefined) {
+      if (channelRuntimeDeclaredBy !== undefined) {
+        throw new Error(
+          `extension '${unit.name}' registers a ChannelRuntime, but '${channelRuntimeDeclaredBy}' already did — exactly one may be composed`,
+        );
+      }
+      channelRuntime = unit.drivers.channelRuntime;
+      channelRuntimeDeclaredBy = unit.name;
+    }
+
     if (unit.drivers?.artifactStorageDrivers !== undefined) {
       for (const [name, factory] of unit.drivers.artifactStorageDrivers) {
         if ((BUILT_IN_STORAGE_TYPES as ReadonlyArray<string>).includes(name)) {
@@ -267,9 +287,9 @@ export function resolveExtensions(
     if (unit.drivers?.sandboxProvisionerDrivers !== undefined) {
       for (const [name, factory] of unit.drivers.sandboxProvisionerDrivers) {
         if (
-          (BUILT_IN_SANDBOX_PROVISIONER_TYPES as ReadonlyArray<string>).includes(
-            name,
-          )
+          (
+            BUILT_IN_SANDBOX_PROVISIONER_TYPES as ReadonlyArray<string>
+          ).includes(name)
         ) {
           throw new Error(
             `extension '${unit.name}' registers sandbox provisioner '${name}', which shadows a built-in driver — built-in names are reserved`,
@@ -326,6 +346,7 @@ export function resolveExtensions(
       runnerCredentialProvider,
       artifactStorageDrivers,
       sandboxProvisionerDrivers,
+      channelRuntime,
     },
     services,
     workers,

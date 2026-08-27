@@ -9,6 +9,8 @@
  *     registration + runner-credential provider (§6b/§6c) — landed, O5
  *     (20260827.02)
  *   - sandbox provisioners (§6d) — landed, O6 (20260827.05)
+ *   - channel runtime (DD-004's serving seam) — landed with C3
+ *     (20260827.11, plan-gate ruling Q1)
  *
  * Merge rules (enforced by resolveExtensions, DD-006 §2b): the two
  * provider kinds are single-instance points — a second declaring unit is
@@ -21,6 +23,7 @@
  * doctrine).
  */
 import type { ArtifactStorageDriverFactory } from "../artifactstorage/artifact-storage.js";
+import type { ChannelRuntime } from "../domain/agentchannel/channel-runtime.js";
 import type { ModelCatalogProvider } from "../domain/workflow/registry/model-catalog-provider.js";
 import type { RunnerCredentialProvider } from "../runnerauth/runner-credential-provider.js";
 import type { SandboxProvisionerFactory } from "../sandbox/provisioner.js";
@@ -60,4 +63,12 @@ export interface ExtensionDrivers {
     string,
     SandboxProvisionerFactory
   >;
+  /**
+   * The channel delivery runtime (DD-004's serving seam; single-instance
+   * point). When composed, the agentchannel install arms, the whole
+   * messaging and conversation surfaces, and the two write/delete hooks
+   * delegate to it; with none, the byte-pinned refusal posture serves
+   * (src/domain/agentchannel/channel-runtime.ts carries the contract).
+   */
+  readonly channelRuntime?: ChannelRuntime;
 }
