@@ -13,10 +13,10 @@ Verification notes: every registration map in `src/boot/compose.ts`'s routes clo
 
 ## Totals
 
-- Registered services: 27 (26 Stigmer services + the standard gRPC health service).
-- Registered RPC methods: 227.
-- Handler classes: 173 `chain-with-Authorize`, 54 `direct`.
-- Annotation classes: 136 `config`, 71 `is_skip_authorization`, 2 `is_public`, 18 `none` (15 apply RPCs + 3 health methods).
+- Registered services: 29 (28 Stigmer services + the standard gRPC health service; ApiKey command + query added by O3, 20260827.06).
+- Registered RPC methods: 233.
+- Handler classes: 179 `chain-with-Authorize`, 54 `direct`.
+- Annotation classes: 139 `config`, 74 `is_skip_authorization`, 2 `is_public`, 18 `none` (15 apply RPCs + 3 health methods).
 - Config-annotated methods served by direct handlers (annotation declared, Authorize step not running): 30 — enumerated before the notes section.
 
 ## 1. Health (`grpc.health.v1.Health`, `src/transport/health.ts`)
@@ -42,6 +42,19 @@ The standard gRPC health protocol — an external proto with no Stigmer annotati
 | OrganizationQueryController.findMyOrganizations | is_skip_authorization | direct: full store list — single-team OSS posture, ALL organizations are "mine" (cloud filters by IAM policy instead) |
 
 Proto method NOT registered by this server: `OrganizationQueryController.getByExternalOrgId` (is_skip_authorization) — see the unregistered-methods list.
+
+## 2a. ApiKey (`src/domain/apikey/controller.ts` — registered by O3, 20260827.06)
+
+The first domain registered after this inventory's O2 baseline (registration order: immediately after Organization). The identity chassis's apikey VERIFIER reads the store through `domain/apikey/lookup.ts`, never through these RPCs — verification is not an entry point here.
+
+| Method | Annotation | Handler |
+|---|---|---|
+| ApiKeyCommandController.create | is_skip_authorization | chain-with-Authorize |
+| ApiKeyCommandController.update | config: can_edit on api_key (field metadata.id), error_msg yes | chain-with-Authorize |
+| ApiKeyCommandController.delete | config: can_delete on api_key (field value), error_msg yes | chain-with-Authorize |
+| ApiKeyQueryController.get | config: can_view on api_key (field value), error_msg yes | chain-with-Authorize |
+| ApiKeyQueryController.getByKeyHash | is_skip_authorization | chain-with-Authorize (the cloud edition additionally gates this inside its handler via a platform-admin FGA check; the OSS permissive posture serves it openly — O3 ruling Q5) |
+| ApiKeyQueryController.findAll | is_skip_authorization | chain-with-Authorize (returns all keys under the single-team posture; the cloud filters through FGA can_view — O3 ruling Q5) |
 
 ## 3. Environment (`src/domain/environment/controller.ts`)
 
@@ -414,7 +427,7 @@ No other mismatch exists: every other `newAuthorizeStep` call site passes the de
 
 - `OrganizationQueryController.getByExternalOrgId` (is_skip_authorization) exists in the proto but is not in the server's registration map — the only partially-registered service.
 - `TaskKindRegistryQueryController.getTaskKindRegistry` is a proto service the server never registers as an RPC; the task-kind registry is served over the HTTP registry lane instead (below).
-- Entire proto service families exist under `apis/ai/stigmer/` that this server does not register at all — they are cloud-edition surfaces: Billing (command + query), CursorAccount (command + query), ProviderStanding (query), and the IAM family: ApiKey, IamPolicy, IdentityAccount, IdentityProvider, Invitation, PlatformClient (command + query each, plus PlatformClientTokenController with the two `is_public` mint RPCs). Their annotations (including the `resource_id = "stigmer"` platform-operator checks and the config-without-resource_kind IamPolicy arms) are already declared in the protos for C1/C2 to consume.
+- Entire proto service families exist under `apis/ai/stigmer/` that this server does not register at all — they are cloud-edition surfaces: Billing (command + query), CursorAccount (command + query), ProviderStanding (query), and the remaining IAM family: IamPolicy, IdentityAccount, IdentityProvider, Invitation, PlatformClient (command + query each, plus PlatformClientTokenController with the two `is_public` mint RPCs). ApiKey left this list with O3 (20260827.06 — section 2a; DD-003: the apikey contract is wholly OSS). The remaining families' annotations (including the `resource_id = "stigmer"` platform-operator checks and the config-without-resource_kind IamPolicy arms) are already declared in the protos for C1/C2 to consume.
 
 ## Non-RPC HTTP lanes
 

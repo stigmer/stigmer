@@ -2,7 +2,7 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { Config } from "../config/index.js";
+import type { Config, NamedBackendConfig } from "../config/index.js";
 import { createRefreshingTokenProvider } from "./token.js";
 
 // The provider persists refreshed tokens via config.save(), which writes to
@@ -10,11 +10,35 @@ import { createRefreshingTokenProvider } from "./token.js";
 // the developer's real config.
 let originalHome: string | undefined;
 
-function cloudConfig(overrides: Partial<NonNullable<Config["backend"]["cloud"]>>): Config {
-  return { backend: { type: "cloud", cloud: { endpoint: "api.stigmer.ai:443", ...overrides } } };
+function cloudConfig(overrides: Partial<NamedBackendConfig>): Config {
+  return {
+    backend: { type: "cloud" },
+    backends: {
+      cloud: { type: "cloud", endpoint: "api.stigmer.ai:443", ...overrides },
+    },
+    current_backend: "cloud",
+  };
 }
 
-function mockFetch(response: { ok: boolean; status?: number; body: unknown }): void {
+function selfhostConfig(overrides: Partial<NamedBackendConfig> = {}): Config {
+  return {
+    backend: { type: "cloud" },
+    backends: {
+      staging: {
+        type: "selfhost",
+        endpoint: "stigmer.example.com:7234",
+        ...overrides,
+      },
+    },
+    current_backend: "staging",
+  };
+}
+
+function mockFetch(response: {
+  ok: boolean;
+  status?: number;
+  body: unknown;
+}): void {
   vi.stubGlobal(
     "fetch",
     vi.fn(async () => ({
@@ -42,7 +66,9 @@ describe("createRefreshingTokenProvider", () => {
     process.env.STIGMER_API_KEY = "env-key";
     const fetchSpy = vi.fn();
     vi.stubGlobal("fetch", fetchSpy);
-    const provider = createRefreshingTokenProvider(cloudConfig({ token: "stale", token_expiry: past() }));
+    const provider = createRefreshingTokenProvider(
+      cloudConfig({ token: "stale", token_expiry: past() }),
+    );
     expect(await provider()).toBe("env-key");
     expect(fetchSpy).not.toHaveBeenCalled();
   });
@@ -50,24 +76,52 @@ describe("createRefreshingTokenProvider", () => {
   it("returns a non-expired token without refreshing", async () => {
     const fetchSpy = vi.fn();
     vi.stubGlobal("fetch", fetchSpy);
-    const provider = createRefreshingTokenProvider(cloudConfig({ token: "good", token_expiry: future() }));
+    const provider = createRefreshingTokenProvider(
+      cloudConfig({ token: "good", token_expiry: future() }),
+    );
     expect(await provider()).toBe("good");
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  it("refreshes an expired token and persists the new one", async () => {
-    mockFetch({ ok: true, body: { access_token: "fresh", refresh_token: "r2", expires_in: 3600 } });
-    const config = cloudConfig({ token: "expired", token_expiry: past(), refresh_token: "r1" });
+  it("refreshes an expired token and persists the new one into the entry", async () => {
+    mockFetch({
+      ok: true,
+      body: { access_token: "fresh", refresh_token: "r2", expires_in: 3600 },
+    });
+    const config = cloudConfig({
+      token: "expired",
+      token_expiry: past(),
+      refresh_token: "r1",
+    });
     const provider = createRefreshingTokenProvider(config);
     expect(await provider()).toBe("fresh");
-    expect(config.backend.cloud?.token).toBe("fresh");
-    expect(config.backend.cloud?.refresh_token).toBe("r2");
+    expect(config.backends?.["cloud"]?.token).toBe("fresh");
+    expect(config.backends?.["cloud"]?.refresh_token).toBe("r2");
+  });
+
+  it("returns the selfhost entry's api_key without any refresh machinery", async () => {
+    const fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+    const provider = createRefreshingTokenProvider(
+      selfhostConfig({ api_key: "stk_stored" }),
+    );
+    expect(await provider()).toBe("stk_stored");
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("returns null on a selfhost backend with no stored key", async () => {
+    const provider = createRefreshingTokenProvider(selfhostConfig());
+    expect(await provider()).toBeNull();
   });
 
   it("falls back to the existing token when refresh fails", async () => {
     mockFetch({ ok: false, status: 401, body: { error: "invalid_grant" } });
     const provider = createRefreshingTokenProvider(
-      cloudConfig({ token: "expired", token_expiry: past(), refresh_token: "r1" }),
+      cloudConfig({
+        token: "expired",
+        token_expiry: past(),
+        refresh_token: "r1",
+      }),
     );
     expect(await provider()).toBe("expired");
   });
@@ -80,7 +134,9 @@ describe("createRefreshingTokenProvider", () => {
   it("treats a token without an expiry as valid (legacy)", async () => {
     const fetchSpy = vi.fn();
     vi.stubGlobal("fetch", fetchSpy);
-    const provider = createRefreshingTokenProvider(cloudConfig({ token: "legacy" }));
+    const provider = createRefreshingTokenProvider(
+      cloudConfig({ token: "legacy" }),
+    );
     expect(await provider()).toBe("legacy");
     expect(fetchSpy).not.toHaveBeenCalled();
   });

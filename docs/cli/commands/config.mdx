@@ -46,6 +46,39 @@ stigmer config backend set cloud
 stigmer config context set --org my-org
 ```
 
+### Named backends
+
+Beyond the built-in `local` and `cloud` backends, you can register any
+self-hosted Stigmer server as a named backend. Each backend keeps its own
+endpoint and its own credentials, so switching never clobbers another backend's
+login.
+
+```bash
+# Register a self-hosted server (mint the key with `stigmer apikey create`)
+stigmer config backend add staging --endpoint stigmer.example.com:7234 --api-key stk_...
+
+# Switch between backends
+stigmer config backend use staging
+stigmer config backend use cloud
+stigmer config backend use local
+
+# See what is configured
+stigmer config backend list
+stigmer config backend status
+
+# Remove one (switch away from it first)
+stigmer config backend remove staging
+```
+
+Backend types:
+
+- `selfhost` (the default for `add`) — any OSS Stigmer server. Its credential is
+  an API key (`--api-key`, or the `STIGMER_API_KEY` environment variable per
+  invocation). A server running without authentication needs no credential at
+  all.
+- `cloud` — a Stigmer Cloud endpoint. Its credential is the browser login
+  (`stigmer auth login`).
+
 ### Available configuration keys
 
 | Key                       | Purpose                                                           |

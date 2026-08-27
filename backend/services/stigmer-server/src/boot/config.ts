@@ -151,6 +151,26 @@ export interface ServerConfig {
    */
   readonly consoleDir: string;
   /**
+   * The OIDC issuer URL (STIGMER_OIDC_ISSUER) — THE auth-enabled switch
+   * (O3, 20260827.06, gate ruling Q1): non-empty registers the OSS
+   * identity verifiers (API tokens + OIDC) on the chassis and turns on
+   * the require-authentication posture (absent token → UNAUTHENTICATED
+   * except is_public methods, ruling Q2 — the Java interceptor's
+   * posture). Empty — the default — is the trusted-local single-operator
+   * state, byte-identical to the pre-O3 wire behavior. For Stigmer Cloud
+   * this is the Auth0 issuer URL: DD-003's "Auth0 is configuration, not
+   * code", literally this field.
+   */
+  readonly oidcIssuer: string;
+  /**
+   * The audience OIDC access tokens must carry (STIGMER_OIDC_AUDIENCE).
+   * Required whenever the issuer is set — a verifier that skipped
+   * audience validation would accept any token the issuer ever minted
+   * for any other service (the confused-deputy failure). Half-configured
+   * OIDC is boot-fatal, the R2/operator-identity loud-fail precedent.
+   */
+  readonly oidcAudience: string;
+  /**
    * Sandbox provisioner driver (SANDBOX_PROVISIONER_TYPE; §6d, O6). ""
    * — the default — is the external-runner posture: no provisioner is
    * constructed and an operator-managed runner polls the queues (today's
@@ -308,6 +328,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     ),
     oauthRedirectUri: envString(env, "STIGMER_OAUTH_REDIRECT_URI", ""),
     consoleDir: envString(env, "STIGMER_CONSOLE_DIR", ""),
+    ...loadOidcConfig(env),
     sandboxProvisionerType: envString(env, "SANDBOX_PROVISIONER_TYPE", ""),
     sandboxBackendEndpoint: envString(
       env,
@@ -335,6 +356,45 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
       "stigmer-sandboxes",
     ),
   };
+}
+
+/**
+ * OIDC issuer/audience (O3 ruling Q1) — boot-FATAL on the two certain
+ * misconfigurations, joining the operator-identity and R2 exceptions to
+ * the lenient-loader posture: an issuer that is not an http(s) URL can
+ * never complete discovery, and an issuer without an audience (or the
+ * reverse) is half an auth configuration — silently serving trusted-local
+ * when the operator believes authentication is on would be a security
+ * failure, not a convenience.
+ */
+function loadOidcConfig(env: NodeJS.ProcessEnv): {
+  oidcIssuer: string;
+  oidcAudience: string;
+} {
+  const issuer = (env["STIGMER_OIDC_ISSUER"] ?? "").trim();
+  const audience = (env["STIGMER_OIDC_AUDIENCE"] ?? "").trim();
+  if (issuer === "" && audience === "") {
+    return { oidcIssuer: "", oidcAudience: "" };
+  }
+  if (issuer === "" || audience === "") {
+    throw new Error(
+      "incomplete OIDC configuration: STIGMER_OIDC_ISSUER and STIGMER_OIDC_AUDIENCE must be set together — set both or neither",
+    );
+  }
+  let parsed: URL;
+  try {
+    parsed = new URL(issuer);
+  } catch {
+    throw new Error(
+      `STIGMER_OIDC_ISSUER "${issuer}" is not a valid URL — OIDC discovery requires the issuer's https URL`,
+    );
+  }
+  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+    throw new Error(
+      `STIGMER_OIDC_ISSUER "${issuer}" must be an http(s) URL — OIDC discovery requires it`,
+    );
+  }
+  return { oidcIssuer: issuer, oidcAudience: audience };
 }
 
 /** Go validateR2Config — the four required fields, error copy mirrored. */

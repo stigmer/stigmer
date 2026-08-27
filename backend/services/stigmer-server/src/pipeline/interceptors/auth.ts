@@ -31,10 +31,16 @@
  *   - ONE OR MORE verifiers: a presented-but-unclaimed token is
  *     UNAUTHENTICATED. A configured issuer must never silently admit
  *     garbage tokens as trusted-local.
- *   - An ABSENT token falls to trusted-local in both postures. The
- *     require-authentication question for issuer-configured deployments
- *     (and its interplay with is_public methods) is O3's ruling — this
- *     chassis deliberately does not invent it.
+ *   - An ABSENT token falls to trusted-local UNLESS the composition asks
+ *     for the require-authentication posture (O3 rulings Q1+Q2,
+ *     20260827.06): with requireAuthentication on — compose.ts sets it
+ *     exactly when STIGMER_OIDC_ISSUER is configured — a tokenless
+ *     request is UNAUTHENTICATED "authentication token missing" (the
+ *     Java interceptor's byte-pinned copy), EXCEPT on is_public-marked
+ *     methods, mirroring the Java isPublic skip. Extension-only verifier
+ *     sets (no issuer) keep the fall-to-trusted-local arm: strictness
+ *     against PRESENTED tokens is a function of verifier count (Q6);
+ *     strictness against ABSENT tokens is the composition's explicit ask.
  *
  * # Trusted-local identity (the explicit modeled state)
  *
@@ -55,6 +61,9 @@
  */
 import { Code, ConnectError, createContextKey } from "@connectrpc/connect";
 import type { HandlerContext, Interceptor } from "@connectrpc/connect";
+import { getOption } from "@bufbuild/protobuf";
+
+import { is_public } from "@stigmer/protos/ai/stigmer/commons/rpc/method_options_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type {
@@ -63,6 +72,13 @@ import type {
 } from "../../extensions/identity.js";
 import { internalError } from "../errors.js";
 import { operatorIdentitySnapshot } from "../steps/defaults.js";
+
+/**
+ * The tokenless-request refusal under the require-authentication posture —
+ * the Java interceptor's copy (GrpcSecurityConfigBase), byte-pinned.
+ */
+export const AUTHENTICATION_TOKEN_MISSING_MESSAGE =
+  "authentication token missing";
 
 /**
  * Context key for the request's caller identity. The default is
@@ -130,6 +146,7 @@ export function trustedLocalIdentity(): CallerIdentity {
 export function createVerifierChainInterceptor(
   verifiers: ReadonlyArray<IdentityVerifier>,
   logger: Logger,
+  requireAuthentication = false,
 ): Interceptor {
   return (next) => async (request) => {
     const token = parseBearerToken(request.header.get("authorization") ?? "");
@@ -147,6 +164,15 @@ export function createVerifierChainInterceptor(
           Code.Unauthenticated,
         );
       }
+    } else if (requireAuthentication && !getOption(request.method, is_public)) {
+      // Rulings Q1+Q2: the auth-enabled posture requires a credential on
+      // every non-public method — the Java interceptor's exact behavior
+      // and copy. is_public methods stay reachable tokenless (the Java
+      // isPublic skip), so unauthenticated health-style probes survive.
+      throw new ConnectError(
+        AUTHENTICATION_TOKEN_MISSING_MESSAGE,
+        Code.Unauthenticated,
+      );
     }
     request.contextValues.set(
       callerIdentityKey,

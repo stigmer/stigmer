@@ -8,7 +8,12 @@
 // lazy-imported so `--help` stays fast (DD-001).
 
 import type { Command } from "commander";
-import { ensureAuthenticated, resolveConsoleURL, resolveOrganization } from "../config/index.js";
+import {
+  activeBackend,
+  ensureAuthenticated,
+  resolveConsoleURL,
+  resolveOrganization,
+} from "../config/index.js";
 import { UsageError } from "../errors/index.js";
 import type { OutputFlags } from "../output/index.js";
 import type { ShareAudience } from "../resources/share.js";
@@ -22,11 +27,15 @@ interface ShareAgentFlags extends OutputFlags {
 }
 
 export function registerShare(program: Command): void {
-  const share = program.command("share").description("share resources via a hosted link");
+  const share = program
+    .command("share")
+    .description("share resources via a hosted link");
 
   const agent = share
     .command("agent <ref>")
-    .description("enable sharing for an agent and print its chat link and embed snippet")
+    .description(
+      "enable sharing for an agent and print its chat link and embed snippet",
+    )
     .option("--off", "disable sharing (the link stops working immediately)")
     .option(
       "--audience <audience>",
@@ -37,7 +46,9 @@ export function registerShare(program: Command): void {
       "generate a new share link and kill the current one immediately (public audience)",
     )
     .option("--open", "open the chat link in your browser")
-    .action((ref: string, options: ShareAgentFlags, command: Command) => runShareAgent(ref, options, command));
+    .action((ref: string, options: ShareAgentFlags, command: Command) =>
+      runShareAgent(ref, options, command),
+    );
   addResultFlags(agent);
 }
 
@@ -45,24 +56,30 @@ export function registerShare(program: Command): void {
 function parseAudience(value: string | undefined): ShareAudience | undefined {
   if (value === undefined) return undefined;
   if (value === "public" || value === "org") return value;
-  throw new UsageError(`invalid --audience '${value}'\n\nExpected 'public' or 'org'.`);
+  throw new UsageError(
+    `invalid --audience '${value}'\n\nExpected 'public' or 'org'.`,
+  );
 }
 
-async function runShareAgent(ref: string, options: ShareAgentFlags, command: Command): Promise<void> {
+async function runShareAgent(
+  ref: string,
+  options: ShareAgentFlags,
+  command: Command,
+): Promise<void> {
   const format = resultFormat(options);
 
-  const [{ connectBackend }, { shareAgent }, { renderResult }] = await Promise.all([
-    import("../backend.js"),
-    import("../resources/share.js"),
-    import("../output/command-result.js"),
-  ]);
+  const [{ connectBackend }, { shareAgent }, { renderResult }] =
+    await Promise.all([
+      import("../backend.js"),
+      import("../resources/share.js"),
+      import("../output/command-result.js"),
+    ]);
 
   const client = connectBackend();
   ensureAuthenticated(client.config);
   const org = resolveOrganization(client.config, globalOrg(command));
 
-  const backendType = client.config.backend.type;
-  const appOrigin = resolveConsoleURL(backendType);
+  const appOrigin = resolveConsoleURL(client.config);
   const enabled = options.off !== true;
   const audience = parseAudience(options.audience);
   const resetLink = options.resetLink === true;
@@ -79,20 +96,23 @@ async function runShareAgent(ref: string, options: ShareAgentFlags, command: Com
     ...(audience !== undefined ? { audience } : {}),
     resetLink,
     appOrigin,
-    isLocal: backendType === "local",
+    isLocal: activeBackend(client.config).entry === undefined,
   });
   renderResult(result, format);
 
   if (options.open === true && enabled) {
     // Best-effort: the link is already rendered above, so a launch failure
     // only needs a nudge, never an error exit (mirrors auth login).
-    const url = result.sections.find((s) => s.title.endsWith("chat link"))?.items[0];
+    const url = result.sections.find((s) => s.title.endsWith("chat link"))
+      ?.items[0];
     if (url !== undefined) {
       try {
         const { default: open } = await import("open");
         await open(url);
       } catch {
-        process.stderr.write("Could not open the browser automatically. Please open the link above.\n");
+        process.stderr.write(
+          "Could not open the browser automatically. Please open the link above.\n",
+        );
       }
     }
   }

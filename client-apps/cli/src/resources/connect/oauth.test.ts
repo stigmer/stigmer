@@ -3,7 +3,12 @@ import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1
 import type { Stigmer } from "@stigmer/sdk";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { UsageError } from "../../errors/index.js";
-import { browserCommand, runOAuthFlow, waitForOAuthGrant, type OAuthFlowDeps } from "./oauth.js";
+import {
+  browserCommand,
+  runOAuthFlow,
+  waitForOAuthGrant,
+  type OAuthFlowDeps,
+} from "./oauth.js";
 
 const server = create(McpServerSchema, {
   metadata: { id: "mcp_1", slug: "github", name: "GitHub" },
@@ -11,7 +16,10 @@ const server = create(McpServerSchema, {
 
 // A fake client whose getOAuthGrantStatus reports `connected` once the call
 // count reaches `connectOnCall` (1 = first poll). Records the call count.
-function fakeClient(connectOnCall: number): { client: Stigmer; calls: () => number } {
+function fakeClient(connectOnCall: number): {
+  client: Stigmer;
+  calls: () => number;
+} {
   let calls = 0;
   const client = {
     mcpServer: {
@@ -28,9 +36,18 @@ const noopSleep = async (): Promise<void> => {};
 
 describe("browserCommand", () => {
   it("maps each supported platform to its opener", () => {
-    expect(browserCommand("darwin", "https://x")).toEqual(["open", ["https://x"]]);
-    expect(browserCommand("linux", "https://x")).toEqual(["xdg-open", ["https://x"]]);
-    expect(browserCommand("win32", "https://x")).toEqual(["rundll32", ["url.dll,FileProtocolHandler", "https://x"]]);
+    expect(browserCommand("darwin", "https://x")).toEqual([
+      "open",
+      ["https://x"],
+    ]);
+    expect(browserCommand("linux", "https://x")).toEqual([
+      "xdg-open",
+      ["https://x"],
+    ]);
+    expect(browserCommand("win32", "https://x")).toEqual([
+      "rundll32",
+      ["url.dll,FileProtocolHandler", "https://x"],
+    ]);
   });
 
   it("returns no command for unsupported platforms", () => {
@@ -45,7 +62,8 @@ describe("waitForOAuthGrant", () => {
       client,
       server,
       org: "acme",
-      backendType: "cloud",
+      consoleURL: "https://app.stigmer.ai",
+      probeLocalConsole: false,
       now: () => 0,
       sleep: noopSleep,
       log: () => {},
@@ -63,7 +81,8 @@ describe("waitForOAuthGrant", () => {
       client,
       server,
       org: "acme",
-      backendType: "cloud",
+      consoleURL: "https://app.stigmer.ai",
+      probeLocalConsole: false,
       now: () => clock.shift() ?? 10 * 60 * 1000,
       sleep: noopSleep,
       log: () => {},
@@ -85,13 +104,16 @@ describe("runOAuthFlow", () => {
       client,
       server,
       org: "acme",
-      backendType: "cloud",
+      consoleURL: "https://app.stigmer.ai",
+      probeLocalConsole: false,
       openBrowser,
       now: () => 0,
       sleep: noopSleep,
       log: () => {},
     });
-    expect(openBrowser).toHaveBeenCalledWith("https://app.stigmer.ai/acme/mcp-servers/github");
+    expect(openBrowser).toHaveBeenCalledWith(
+      "https://app.stigmer.ai/acme/mcp-servers/github",
+    );
   });
 
   it("aborts before opening the browser when the local console is unreachable", async () => {
@@ -102,7 +124,8 @@ describe("runOAuthFlow", () => {
         client,
         server,
         org: "acme",
-        backendType: "local",
+        consoleURL: "http://localhost:7234",
+        probeLocalConsole: true,
         probeConsole: async () => false,
         openBrowser,
         now: () => 0,
@@ -120,13 +143,16 @@ describe("runOAuthFlow", () => {
       client,
       server,
       org: "acme",
-      backendType: "local",
+      consoleURL: "http://localhost:7234",
+      probeLocalConsole: true,
       probeConsole: async () => true,
       openBrowser,
       now: () => 0,
       sleep: noopSleep,
       log: () => {},
     });
-    expect(openBrowser).toHaveBeenCalledWith("http://localhost:7234/acme/mcp-servers/github");
+    expect(openBrowser).toHaveBeenCalledWith(
+      "http://localhost:7234/acme/mcp-servers/github",
+    );
   });
 });

@@ -18,7 +18,11 @@ import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcp
 import { McpServerAuthSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { createNodeClient, normalizeEndpoint } from "@stigmer/sdk/node";
-import { createServer as createHttp2Server, type Http2Server, type ServerHttp2Session } from "node:http2";
+import {
+  createServer as createHttp2Server,
+  type Http2Server,
+  type ServerHttp2Session,
+} from "node:http2";
 import type { AddressInfo } from "node:net";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -26,7 +30,9 @@ import { UsageError } from "../../errors/index.js";
 import { connectMcpServer } from "./connect.js";
 import { renderConnectResult } from "./display.js";
 
-const FIXTURE = fileURLToPath(new URL("./__fixtures__/stdio-server.mjs", import.meta.url));
+const FIXTURE = fileURLToPath(
+  new URL("./__fixtures__/stdio-server.mjs", import.meta.url),
+);
 
 let backend: Http2Server;
 let client: Stigmer;
@@ -48,7 +54,10 @@ beforeEach(() => {
   servedSpec = create(McpServerSchema, {
     metadata: { id: "mcp_1", name: "github", slug: "github", org: "acme" },
     spec: {
-      serverType: { case: "stdio", value: { command: process.execPath, args: [FIXTURE] } },
+      serverType: {
+        case: "stdio",
+        value: { command: process.execPath, args: [FIXTURE] },
+      },
       env: { GITHUB_TOKEN: { isSecret: true } },
     },
   });
@@ -61,7 +70,9 @@ const updatedServer = create(McpServerSchema, {
   status: {
     discoveredCapabilities: {
       tools: [{ name: "search_issues", description: "search issues" }],
-      resourceTemplates: [{ name: "issue", uriTemplate: "github:///issues/{id}" }],
+      resourceTemplates: [
+        { name: "issue", uriTemplate: "github:///issues/{id}" },
+      ],
     },
   },
 });
@@ -71,16 +82,23 @@ beforeAll(async () => {
     router.service(McpServerQueryController, {
       getByReference: () => servedSpec,
       get: () => servedSpec,
-      getOAuthGrantStatus: () => create(GetOAuthGrantStatusOutputSchema, { connected: grantConnected }),
+      getOAuthGrantStatus: () =>
+        create(GetOAuthGrantStatusOutputSchema, { connected: grantConnected }),
     });
     router.service(McpServerCommandController, {
       // Mirror the backend's protovalidate rule (org min_len=1): reject an empty
       // org so a regression that drops org fails loudly here instead of silently
       // passing (the mock adapter does not run protovalidate on its own).
       connect: async (req) => {
-        if (req.org === "") throw new ConnectError("org – value length must be at least 1 characters", Code.InvalidArgument);
+        if (req.org === "")
+          throw new ConnectError(
+            "org – value length must be at least 1 characters",
+            Code.InvalidArgument,
+          );
         if (connectDelayMs > 0) {
-          await new Promise((resolve) => setTimeout(resolve, connectDelayMs).unref());
+          await new Promise((resolve) =>
+            setTimeout(resolve, connectDelayMs).unref(),
+          );
         }
         connectCalls.push(req);
         return updatedServer;
@@ -95,7 +113,9 @@ beforeAll(async () => {
   });
   await new Promise<void>((resolve) => backend.listen(0, "127.0.0.1", resolve));
   const port = (backend.address() as AddressInfo).port;
-  client = createNodeClient({ baseUrl: normalizeEndpoint(`127.0.0.1:${port}`) });
+  client = createNodeClient({
+    baseUrl: normalizeEndpoint(`127.0.0.1:${port}`),
+  });
 });
 
 afterAll(async () => {
@@ -111,7 +131,8 @@ describe("connect push path", () => {
       timeoutMs: 30_000,
       dryRun: false,
       envOverrides: ["GITHUB_TOKEN=ghp-override"],
-      backendType: "cloud",
+      consoleURL: "https://app.stigmer.ai",
+      probeLocalConsole: false,
       interactive: false,
     });
 
@@ -124,7 +145,9 @@ describe("connect push path", () => {
     expect(connectCalls[0].runtimeEnv.GITHUB_TOKEN.isSecret).toBe(true);
 
     expect(result.updated?.metadata?.id).toBe("mcp_1");
-    expect(result.capabilities?.tools.map((t) => t.name)).toEqual(["search_issues"]);
+    expect(result.capabilities?.tools.map((t) => t.name)).toEqual([
+      "search_issues",
+    ]);
   });
 });
 
@@ -139,10 +162,13 @@ describe("--timeout bounds the server-side connect (issue #239)", () => {
         pushTimeoutMs: 150,
         dryRun: false,
         envOverrides: ["GITHUB_TOKEN=ghp-x"],
-        backendType: "cloud",
+        consoleURL: "https://app.stigmer.ai",
+        probeLocalConsole: false,
         interactive: false,
       }),
-    ).rejects.toThrow(/Stopped waiting for the connect of MCP server 'github' after 0\.15s/);
+    ).rejects.toThrow(
+      /Stopped waiting for the connect of MCP server 'github' after 0\.15s/,
+    );
   });
 
   it("does not bound the wait when pushTimeoutMs is unset (default --timeout)", async () => {
@@ -157,7 +183,8 @@ describe("--timeout bounds the server-side connect (issue #239)", () => {
       timeoutMs: 100,
       dryRun: false,
       envOverrides: ["GITHUB_TOKEN=ghp-x"],
-      backendType: "cloud",
+      consoleURL: "https://app.stigmer.ai",
+      probeLocalConsole: false,
       interactive: false,
     });
     expect(result.updated?.metadata?.id).toBe("mcp_1");
@@ -166,7 +193,9 @@ describe("--timeout bounds the server-side connect (issue #239)", () => {
 
 describe("OAuth guidance gate", () => {
   beforeEach(() => {
-    servedSpec.spec!.auth = create(McpServerAuthSchema, { targetEnvVar: "GITHUB_TOKEN" });
+    servedSpec.spec!.auth = create(McpServerAuthSchema, {
+      targetEnvVar: "GITHUB_TOKEN",
+    });
   });
 
   it("stops with actionable guidance when auth is required off an interactive terminal", async () => {
@@ -177,7 +206,8 @@ describe("OAuth guidance gate", () => {
         timeoutMs: 30_000,
         dryRun: false,
         envOverrides: [],
-        backendType: "cloud",
+        consoleURL: "https://app.stigmer.ai",
+        probeLocalConsole: false,
         interactive: false,
       }),
     ).rejects.toThrow(UsageError);
@@ -192,7 +222,8 @@ describe("OAuth guidance gate", () => {
       timeoutMs: 30_000,
       dryRun: false,
       envOverrides: [],
-      backendType: "cloud",
+      consoleURL: "https://app.stigmer.ai",
+      probeLocalConsole: false,
       interactive: false,
     });
     expect(connectCalls).toHaveLength(1);
@@ -205,7 +236,8 @@ describe("OAuth guidance gate", () => {
       timeoutMs: 30_000,
       dryRun: false,
       envOverrides: ["GITHUB_TOKEN=ghp-x"],
-      backendType: "cloud",
+      consoleURL: "https://app.stigmer.ai",
+      probeLocalConsole: false,
       interactive: false,
     });
     expect(connectCalls).toHaveLength(1);
@@ -227,7 +259,8 @@ describe("oauth_only servers reject the manual-token routes", () => {
       timeoutMs: 30_000,
       dryRun: false,
       envOverrides: ["GITHUB_TOKEN=ghp-x"],
-      backendType: "cloud",
+      consoleURL: "https://app.stigmer.ai",
+      probeLocalConsole: false,
       interactive: false,
     }).catch((e: unknown) => e);
 
@@ -245,7 +278,8 @@ describe("oauth_only servers reject the manual-token routes", () => {
       timeoutMs: 30_000,
       dryRun: false,
       envOverrides: [],
-      backendType: "cloud",
+      consoleURL: "https://app.stigmer.ai",
+      probeLocalConsole: false,
       interactive: false,
     }).catch((e: unknown) => e);
 
@@ -261,7 +295,8 @@ describe("oauth_only servers reject the manual-token routes", () => {
       timeoutMs: 10_000,
       dryRun: true,
       envOverrides: [],
-      backendType: "cloud",
+      consoleURL: "https://app.stigmer.ai",
+      probeLocalConsole: false,
       interactive: false,
     }).catch((e: unknown) => e);
 
@@ -280,13 +315,17 @@ describe("dry-run path", () => {
       timeoutMs: 10_000,
       dryRun: true,
       envOverrides: [],
-      backendType: "cloud",
+      consoleURL: "https://app.stigmer.ai",
+      probeLocalConsole: false,
       interactive: false,
     });
 
     expect(connectCalls).toHaveLength(0);
     expect(result.updated).toBeUndefined();
-    expect(result.capabilities?.tools.map((t) => t.name)).toEqual(["echo", "noop"]);
+    expect(result.capabilities?.tools.map((t) => t.name)).toEqual([
+      "echo",
+      "noop",
+    ]);
 
     const lines: string[] = [];
     renderConnectResult(result, (l) => lines.push(l), false);
@@ -301,13 +340,26 @@ describe("dry-run path", () => {
     // Server references a declared env var in its args, but it is not set.
     delete process.env.NEEDED_DIR;
     servedSpec = create(McpServerSchema, {
-      metadata: { id: "mcp_1", name: "filesystem", slug: "filesystem", org: "acme" },
+      metadata: {
+        id: "mcp_1",
+        name: "filesystem",
+        slug: "filesystem",
+        org: "acme",
+      },
       spec: {
         serverType: {
           case: "stdio",
-          value: { command: process.execPath, args: [FIXTURE, "${NEEDED_DIR}"] },
+          value: {
+            command: process.execPath,
+            args: [FIXTURE, "${NEEDED_DIR}"],
+          },
         },
-        env: { NEEDED_DIR: { isSecret: false, description: "Root directory the server may access" } },
+        env: {
+          NEEDED_DIR: {
+            isSecret: false,
+            description: "Root directory the server may access",
+          },
+        },
       },
     });
 
@@ -317,7 +369,8 @@ describe("dry-run path", () => {
       timeoutMs: 10_000,
       dryRun: true,
       envOverrides: [],
-      backendType: "cloud",
+      consoleURL: "https://app.stigmer.ai",
+      probeLocalConsole: false,
       interactive: false,
     }).catch((e: unknown) => e);
 

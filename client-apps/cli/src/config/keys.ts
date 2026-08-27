@@ -3,7 +3,12 @@
 // managed by their own (later) commands and preserved opaquely on save.
 
 import { UsageError } from "../errors/usage-error.js";
-import type { BackendType, Config } from "./config.js";
+import {
+  CLOUD_BACKEND_NAME,
+  type Config,
+  LOCAL_BACKEND_NAME,
+  activeBackendName,
+} from "./config.js";
 
 interface ConfigKey {
   /** Stored (non-resolved) value, "" when unset. */
@@ -12,26 +17,54 @@ interface ConfigKey {
   set(config: Config, value: string): void;
 }
 
+// The backend.cloud.* keys predate named backends and remain the documented
+// kv surface for the reserved "cloud" entry; `current_backend` is the named
+// model's own key. `backend.type` stays the simple local/cloud switch
+// (named backends switch through `config backend use`).
 const KEYS: Record<string, ConfigKey> = {
   "backend.type": {
-    get: (config) => config.backend.type,
+    get: (config) =>
+      activeBackendName(config) === LOCAL_BACKEND_NAME ? "local" : "cloud",
     set: (config, value) => {
       if (value !== "local" && value !== "cloud") {
-        throw new UsageError(`invalid backend.type "${value}" (expected: local, cloud)`);
+        throw new UsageError(
+          `invalid backend.type "${value}" (expected: local, cloud)`,
+        );
       }
-      config.backend.type = value as BackendType;
+      if (value === "cloud") {
+        (config.backends ??= {})[CLOUD_BACKEND_NAME] ??= { type: "cloud" };
+        config.current_backend = CLOUD_BACKEND_NAME;
+      } else {
+        config.current_backend = LOCAL_BACKEND_NAME;
+      }
+    },
+  },
+  current_backend: {
+    get: (config) => activeBackendName(config),
+    set: (config, value) => {
+      if (
+        value !== LOCAL_BACKEND_NAME &&
+        config.backends?.[value] === undefined
+      ) {
+        throw new UsageError(
+          `unknown backend "${value}" (add it first: stigmer config backend add)`,
+        );
+      }
+      config.current_backend = value;
     },
   },
   "backend.cloud.endpoint": {
-    get: (config) => config.backend.cloud?.endpoint ?? "",
+    get: (config) => config.backends?.[CLOUD_BACKEND_NAME]?.endpoint ?? "",
     set: (config, value) => {
-      (config.backend.cloud ??= {}).endpoint = value;
+      const backends = (config.backends ??= {});
+      (backends[CLOUD_BACKEND_NAME] ??= { type: "cloud" }).endpoint = value;
     },
   },
   "backend.cloud.org_id": {
-    get: (config) => config.backend.cloud?.org_id ?? "",
+    get: (config) => config.backends?.[CLOUD_BACKEND_NAME]?.org_id ?? "",
     set: (config, value) => {
-      (config.backend.cloud ??= {}).org_id = value;
+      const backends = (config.backends ??= {});
+      (backends[CLOUD_BACKEND_NAME] ??= { type: "cloud" }).org_id = value;
     },
   },
   "context.organization": {
@@ -53,7 +86,11 @@ export function getConfigValue(config: Config, key: string): string {
   return entry.get(config);
 }
 
-export function setConfigValue(config: Config, key: string, value: string): void {
+export function setConfigValue(
+  config: Config,
+  key: string,
+  value: string,
+): void {
   const entry = KEYS[key];
   if (entry === undefined) throw new UsageError(unknownKeyMessage(key));
   entry.set(config, value);

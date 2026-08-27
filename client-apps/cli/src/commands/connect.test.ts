@@ -31,7 +31,11 @@ vi.mock("../config/index.js", async (importOriginal) => {
 
 /** An authenticated cloud config with no org selected — the guard's target shape. */
 function cloudConfigWithoutOrg(): Config {
-  return { backend: { type: "cloud", cloud: { token: "test-token" } } };
+  return {
+    backend: { type: "cloud" },
+    backends: { cloud: { type: "cloud", token: "test-token" } },
+    current_backend: "cloud",
+  };
 }
 
 interface RunOutcome {
@@ -43,16 +47,30 @@ interface RunOutcome {
 // suppressed, returning the thrown error's classified exit code and message (or
 // a success sentinel). `--standalone` is a program-global flag, so it must
 // precede the subcommand (commander's enablePositionalOptions).
-async function runConnect(ref: string, ...flags: string[]): Promise<RunOutcome> {
+async function runConnect(
+  ref: string,
+  ...flags: string[]
+): Promise<RunOutcome> {
   const program = buildProgram();
   program.exitOverride();
   const outSpy = vi.spyOn(process.stdout, "write").mockReturnValue(true);
   const errSpy = vi.spyOn(process.stderr, "write").mockReturnValue(true);
   try {
-    await program.parseAsync(["node", "stigmer", "--standalone", "connect", "mcp-server", ref, ...flags]);
+    await program.parseAsync([
+      "node",
+      "stigmer",
+      "--standalone",
+      "connect",
+      "mcp-server",
+      ref,
+      ...flags,
+    ]);
     return { exitCode: ExitCode.Success, message: "" };
   } catch (err) {
-    return { exitCode: classify(err)?.exitCode ?? -1, message: err instanceof Error ? err.message : String(err) };
+    return {
+      exitCode: classify(err)?.exitCode ?? -1,
+      message: err instanceof Error ? err.message : String(err),
+    };
   } finally {
     outSpy.mockRestore();
     errSpy.mockRestore();
