@@ -81,7 +81,12 @@ export function newClearSchedulePauseStep<Desc extends DescMessage>(
             // Resuming with strikes left would re-pause on the next
             // failure — a lie; both clear together, always.
             row.status!.consecutiveFailures = 0;
-            setAuditFieldsForUpdate(ScheduleSchema, row, "status_audit");
+            setAuditFieldsForUpdate(
+              ScheduleSchema,
+              row,
+              "status_audit",
+              ctx.callerIdentity,
+            );
           },
         );
       } catch (error) {

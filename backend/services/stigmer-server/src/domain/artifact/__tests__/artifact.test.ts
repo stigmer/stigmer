@@ -16,6 +16,7 @@
  *   - the file server's traversal guard (a crafted key must never escape
  *     the artifact root — the SQLite db file lives right next to it).
  */
+import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/authorize.js";
 import { mkdtempSync, rmSync } from "node:fs";
 import { createHash } from "node:crypto";
 import net from "node:net";
@@ -23,7 +24,12 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { create } from "@bufbuild/protobuf";
-import { Code, ConnectError, createClient, createRouterTransport } from "@connectrpc/connect";
+import {
+  Code,
+  ConnectError,
+  createClient,
+  createRouterTransport,
+} from "@connectrpc/connect";
 import type { Client, Transport } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
@@ -37,13 +43,18 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { LocalArtifactStorage } from "../../../artifactstorage/artifact-storage.js";
 import { loadConfig } from "../../../boot/config.js";
 import { composeServer } from "../../../boot/compose.js";
+import { createVerifierChainInterceptor } from "../../../pipeline/interceptors/auth.js";
 import type { ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
 import { MAX_CONTENT_BYTES, artifactNotFoundMessage } from "../constants.js";
 import { registerArtifactServices } from "../controller.js";
 
-const silentLogger = createLogger({ level: "error", pretty: false, write: () => {} });
+const silentLogger = createLogger({
+  level: "error",
+  pretty: false,
+  write: () => {},
+});
 
 type CommandClient = Client<typeof ArtifactCommandController>;
 type QueryClient = Client<typeof ArtifactQueryController>;
@@ -55,7 +66,8 @@ async function freePort(): Promise<number> {
     probe.once("error", reject);
     probe.listen(0, "127.0.0.1", () => {
       const address = probe.address();
-      const port = address !== null && typeof address === "object" ? address.port : 0;
+      const port =
+        address !== null && typeof address === "object" ? address.port : 0;
       probe.close(() => resolve(port));
     });
   });
@@ -71,7 +83,10 @@ beforeAll(async () => {
   dir = mkdtempSync(path.join(tmpdir(), "artifact-domain-test-"));
   artifactPort = await freePort();
   vi.stubEnv("STIGMER_ENCRYPTION_KEY", Buffer.alloc(32, 3).toString("base64"));
-  vi.stubEnv("STIGMER_RUNNER_TOKEN_KEY", Buffer.alloc(32, 4).toString("base64"));
+  vi.stubEnv(
+    "STIGMER_RUNNER_TOKEN_KEY",
+    Buffer.alloc(32, 4).toString("base64"),
+  );
   server = await composeServer({
     config: loadConfig({
       STIGMER_MODEL_REGISTRY_REFRESH: "off",
@@ -126,7 +141,8 @@ function artifactInput(overrides?: {
         ? { retention: { ttlDays: overrides.ttlDays } }
         : {}),
     },
-    content: overrides?.content ?? new TextEncoder().encode(`content ${counter}\n`),
+    content:
+      overrides?.content ?? new TextEncoder().encode(`content ${counter}\n`),
   };
 }
 
@@ -153,7 +169,9 @@ describe("artifact domain — create & content addressing", () => {
       createHash("sha256").update(input.content).digest("hex"),
     );
     expect(created.status?.sizeBytes).toBe(BigInt(input.content.byteLength));
-    expect(created.status?.storageState).toBe(ArtifactStorageState.storage_state_stored);
+    expect(created.status?.storageState).toBe(
+      ArtifactStorageState.storage_state_stored,
+    );
   });
 
   it("expires_at is RFC3339 WITHOUT fractional seconds, ~30 days out by default", async () => {
@@ -208,16 +226,28 @@ describe("artifact domain — create & content addressing", () => {
     const storeDir = mkdtempSync(path.join(tmpdir(), "artifact-cap-test-"));
     const store = SqliteStore.open(path.join(storeDir, "cap.db"), silentLogger);
     try {
-      const transport = createRouterTransport((router) => {
-        registerArtifactServices(router, {
-          store,
-          artifactStorage: new LocalArtifactStorage(
-            path.join(storeDir, "artifacts"),
-            "http://localhost:1",
-          ),
-          logger: silentLogger,
-        });
-      });
+      // ONLY the position-1 identity source (O2: an identityless
+      // transport fails loudly by design) — positions 2-4 stay absent on
+      // purpose so the DOMAIN cap is reachable past the transport's
+      // protovalidate/size gates, the whole point of this arm.
+      const transport = createRouterTransport(
+        (router) => {
+          registerArtifactServices(router, {
+            store,
+            authorizer: newPermissiveSingleTeamAuthorizer(),
+            artifactStorage: new LocalArtifactStorage(
+              path.join(storeDir, "artifacts"),
+              "http://localhost:1",
+            ),
+            logger: silentLogger,
+          });
+        },
+        {
+          router: {
+            interceptors: [createVerifierChainInterceptor([], silentLogger)],
+          },
+        },
+      );
       const local = createClient(ArtifactCommandController, transport);
       const err = await grpcError(() =>
         local.create(
@@ -245,12 +275,16 @@ describe("artifact domain — read surfaces", () => {
     const fetched = await query.get({ value: created.metadata!.id });
     expect(fetched.status?.contentHash).toBe(created.status?.contentHash);
 
-    const listed = await query.listByExecution({ workflowExecutionId: executionId });
+    const listed = await query.listByExecution({
+      workflowExecutionId: executionId,
+    });
     expect(listed.totalPages).toBe(1);
     expect(listed.entries).toHaveLength(1);
 
     // The OTHER source arm must not match the same id.
-    const other = await query.listByExecution({ agentExecutionId: executionId });
+    const other = await query.listByExecution({
+      agentExecutionId: executionId,
+    });
     expect(other.entries).toHaveLength(0);
   });
 
@@ -282,7 +316,9 @@ describe("artifact domain — read surfaces", () => {
 
   it("getDownloadUrl reports the unconditional 604800 ttl and blob facts", async () => {
     const created = await command.create(artifactInput());
-    const download = await query.getDownloadUrl({ value: created.metadata!.id });
+    const download = await query.getDownloadUrl({
+      value: created.metadata!.id,
+    });
     expect(download.url).toContain(created.status!.contentHash);
     expect(download.ttlSeconds).toBe(604800);
     expect(download.sizeBytes).toBe(created.status?.sizeBytes);
@@ -308,10 +344,14 @@ describe("artifact domain — soft delete", () => {
     const created = await command.create(artifactInput());
 
     const deleted = await command.delete({ value: created.metadata!.id });
-    expect(deleted.status?.storageState).toBe(ArtifactStorageState.storage_state_deleted);
+    expect(deleted.status?.storageState).toBe(
+      ArtifactStorageState.storage_state_deleted,
+    );
 
     const fetched = await query.get({ value: created.metadata!.id });
-    expect(fetched.status?.storageState).toBe(ArtifactStorageState.storage_state_deleted);
+    expect(fetched.status?.storageState).toBe(
+      ArtifactStorageState.storage_state_deleted,
+    );
 
     const download = await grpcError(() =>
       query.getDownloadUrl({ value: created.metadata!.id }),
@@ -327,7 +367,9 @@ describe("artifact domain — soft delete", () => {
   });
 
   it("deleting a missing artifact answers NotFound", async () => {
-    const err = await grpcError(() => command.delete({ value: "art_01nothere" }));
+    const err = await grpcError(() =>
+      command.delete({ value: "art_01nothere" }),
+    );
     expect(err.code).toBe(Code.NotFound);
   });
 });
@@ -336,7 +378,9 @@ describe("artifact domain — the local file-server lane", () => {
   it("serves the blob inline; ?download= adds the attachment disposition", async () => {
     const content = new TextEncoder().encode("file-server domain test body\n");
     const created = await command.create(artifactInput({ content }));
-    const download = await query.getDownloadUrl({ value: created.metadata!.id });
+    const download = await query.getDownloadUrl({
+      value: created.metadata!.id,
+    });
 
     const inline = await fetch(download.url);
     expect(inline.status).toBe(200);

@@ -29,10 +29,13 @@ import type { ApiResourceId } from "@stigmer/protos/ai/stigmer/commons/apiresour
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
+import type { Authorizer } from "../../extensions/authorizer.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import { internalError } from "../../pipeline/errors.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
+import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
+import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
 import { newBuildUpdateStateStep } from "../../pipeline/steps/build-update-state.js";
 import {
   newDeleteResourceStep,
@@ -122,6 +125,8 @@ import {
 export interface AgentExecutionControllerDeps {
   readonly store: Store;
   readonly logger: Logger;
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  readonly authorizer: Authorizer;
   /**
    * The shared broadcast fabric for subscribe streams. ONE instance spans
    * both routers (serving + in-process) — see stream-broker.ts; the
@@ -163,6 +168,7 @@ export function registerAgentExecutionServices(
   const lifecycleDeps = {
     store: deps.store,
     logger: deps.logger,
+    authorizer: deps.authorizer,
     broker: deps.broker,
     engineState: deps.engineState,
     executionContextBuilder: deps.executionContextBuilder,
@@ -175,14 +181,22 @@ export function registerAgentExecutionServices(
   router.service(AgentExecutionCommandController, {
     create: (execution, ctx) => createExecution(deps, execution, ctx),
     update: (execution, ctx) => update(deps, execution, ctx),
-    updateStatus: (input) => updateStatus(deps, input),
-    submitApproval: (input) => submitApproval(deps, input),
-    submitFileDecision: (input) => submitFileDecision(deps, input),
-    cancel: (input) => cancelExecution(lifecycleDeps, input),
-    terminate: (input) => terminateExecution(lifecycleDeps, input),
-    recover: (input) => recoverExecution(lifecycleDeps, input),
-    pause: (input) => pauseExecution(lifecycleDeps, input),
-    resume: (input) => resumeExecution(lifecycleDeps, input),
+    updateStatus: (input, ctx) =>
+      updateStatus(deps, input, callerIdentityOf(ctx)),
+    submitApproval: (input, ctx) =>
+      submitApproval(deps, input, callerIdentityOf(ctx)),
+    submitFileDecision: (input, ctx) =>
+      submitFileDecision(deps, input, callerIdentityOf(ctx)),
+    cancel: (input, ctx) =>
+      cancelExecution(lifecycleDeps, input, callerIdentityOf(ctx)),
+    terminate: (input, ctx) =>
+      terminateExecution(lifecycleDeps, input, callerIdentityOf(ctx)),
+    recover: (input, ctx) =>
+      recoverExecution(lifecycleDeps, input, callerIdentityOf(ctx)),
+    pause: (input, ctx) =>
+      pauseExecution(lifecycleDeps, input, callerIdentityOf(ctx)),
+    resume: (input, ctx) =>
+      resumeExecution(lifecycleDeps, input, callerIdentityOf(ctx)),
     uploadAttachment: (req) => uploadAttachment(artifactDeps, req),
     delete: (id, ctx) => deleteExecution(deps, id, ctx),
   });
@@ -193,10 +207,14 @@ export function registerAgentExecutionServices(
     subscribe: (id, ctx) => subscribeExecution(deps, id, ctx),
     getArtifactDownloadUrl: (req) => getArtifactDownloadUrl(artifactDeps, req),
     getArtifactContent: (req) => getArtifactContent(artifactDeps, req),
-    getExecutionUsageReport: (req) => getExecutionUsageReport(deps, req),
-    getSessionUsageReport: (req) => getSessionUsageReport(deps, req),
-    getAgentUsageReport: (req) => getAgentUsageReport(deps, req),
-    getOrgUsageReport: (req) => getOrgUsageReport(deps, req),
+    getExecutionUsageReport: (req, ctx) =>
+      getExecutionUsageReport(deps, req, callerIdentityOf(ctx)),
+    getSessionUsageReport: (req, ctx) =>
+      getSessionUsageReport(deps, req, callerIdentityOf(ctx)),
+    getAgentUsageReport: (req, ctx) =>
+      getAgentUsageReport(deps, req, callerIdentityOf(ctx)),
+    getOrgUsageReport: (req, ctx) =>
+      getOrgUsageReport(deps, req, callerIdentityOf(ctx)),
     getExecutionSummary: (req) => getExecutionSummary(deps, req),
   });
 }
@@ -220,12 +238,19 @@ async function createExecution(
   const reqCtx = new RequestContext(
     AgentExecutionSchema,
     execution,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<typeof AgentExecutionSchema>(
     "agent-execution-create",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(
+        AgentExecutionCommandController.method.create,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newValidateVisibilityStep())
     .addStep(newValidateServiceTierStep(deps.modelRegistry))
@@ -292,12 +317,19 @@ async function update(
   const reqCtx = new RequestContext(
     AgentExecutionSchema,
     execution,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<typeof AgentExecutionSchema>(
     "agent-execution-update",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(
+        AgentExecutionCommandController.method.update,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newResolveSlugStep())
     .addStep(newLoadExistingStep(deps.store))
@@ -328,12 +360,19 @@ async function deleteExecution(
   const reqCtx = new RequestContext(
     AgentExecutionCommandController.method.delete.input,
     id,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<typeof AgentExecutionCommandController.method.delete.input>(
     "agent-execution-delete",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(
+        AgentExecutionCommandController.method.delete,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newExtractResourceIdStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, AgentExecutionSchema))
@@ -361,12 +400,19 @@ async function get(
   const reqCtx = new RequestContext(
     AgentExecutionQueryController.method.get.input,
     id,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<typeof AgentExecutionQueryController.method.get.input>(
     "agent-execution-get",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(
+        AgentExecutionQueryController.method.get,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newLoadTargetStep(deps.store, AgentExecutionSchema))
     .build()
@@ -387,12 +433,19 @@ async function list(
   const reqCtx = new RequestContext(
     AgentExecutionQueryController.method.list.input,
     req,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<typeof AgentExecutionQueryController.method.list.input>(
     "agent-execution-list",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(
+        AgentExecutionQueryController.method.list,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateListRequestStep())
     .addStep(newQueryAllExecutionsStep(deps.store, deps.logger))
     .addStep(newApplyPhaseFilterStep(deps.logger))
@@ -411,11 +464,18 @@ async function listBySession(
   const reqCtx = new RequestContext(
     AgentExecutionQueryController.method.listBySession.input,
     req,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<
     typeof AgentExecutionQueryController.method.listBySession.input
   >("agent-execution-list-by-session", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        AgentExecutionQueryController.method.listBySession,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateListBySessionRequestStep())
     .addStep(newQueryExecutionsBySessionStep(deps.store, deps.logger))
     .addStep(newBuildExecutionListResponseStep())

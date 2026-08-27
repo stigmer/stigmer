@@ -35,7 +35,10 @@ import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb"
 import type { Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import type { PushSkillRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
 import { SkillSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/spec_pb";
-import { SkillState, SkillStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/status_pb";
+import {
+  SkillState,
+  SkillStatusSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/skill/v1/status_pb";
 import {
   ApiResourceMetadataSchema,
   ApiResourceMetadataVersionSchema,
@@ -44,7 +47,10 @@ import { ApiResourceAuditSchema } from "@stigmer/protos/ai/stigmer/commons/apire
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 
 import type { Logger } from "../../boot/logger.js";
-import { defaultVisibilityFor, getIdPrefix } from "../../pipeline/apiresource-meta.js";
+import {
+  defaultVisibilityFor,
+  getIdPrefix,
+} from "../../pipeline/apiresource-meta.js";
 import {
   failedPreconditionError,
   internalError,
@@ -187,7 +193,9 @@ export function newResolveSlugForPushStep(): PipelineStep<PushDesc> {
  * FindExistingBySlug — push is upsert-by-slug: an existing skill's ID is
  * adopted (update), otherwise the create flag is raised.
  */
-export function newFindExistingBySlugStep(store: Store): PipelineStep<PushDesc> {
+export function newFindExistingBySlugStep(
+  store: Store,
+): PipelineStep<PushDesc> {
   return {
     name: "FindExistingBySlug",
     async execute(ctx: RequestContext<PushDesc>): Promise<void> {
@@ -255,7 +263,10 @@ export function newCheckAndStoreArtifactStep(
         storageKey = artifactStorage.getStorageKey(extractResult.hash);
       } else {
         try {
-          storageKey = await artifactStorage.store(extractResult.hash, artifactBytes);
+          storageKey = await artifactStorage.store(
+            extractResult.hash,
+            artifactBytes,
+          );
         } catch (error) {
           throw internalError(error, "failed to store artifact");
         }
@@ -317,7 +328,7 @@ export function newPopulateSkillFieldsStep(): PipelineStep<PushDesc> {
       });
 
       if (shouldCreate) {
-        setAuditFieldsForCreate(SkillSchema, skill);
+        setAuditFieldsForCreate(SkillSchema, skill, ctx.callerIdentity);
       } else {
         const existing = ctx.get(EXISTING_SKILL_KEY) as Skill;
         if (existing.status?.audit !== undefined) {
@@ -329,7 +340,12 @@ export function newPopulateSkillFieldsStep(): PipelineStep<PushDesc> {
           status.audit.specAudit = existing.status.audit.specAudit;
           status.audit.statusAudit = existing.status.audit.statusAudit;
         }
-        setAuditFieldsForUpdate(SkillSchema, skill, "spec_audit");
+        setAuditFieldsForUpdate(
+          SkillSchema,
+          skill,
+          "spec_audit",
+          ctx.callerIdentity,
+        );
       }
     },
   };
@@ -363,7 +379,12 @@ export function newArchiveCurrentSkillStep(
       // (readers resolve duplicates newest-wins).
       let alreadyArchived = false;
       try {
-        await store.getAuditByHash(ctx.apiResourceKind, skillId, versionHash, SkillSchema);
+        await store.getAuditByHash(
+          ctx.apiResourceKind,
+          skillId,
+          versionHash,
+          SkillSchema,
+        );
         alreadyArchived = true;
       } catch (error) {
         if (!(error instanceof AuditNotFoundError)) {
@@ -384,7 +405,14 @@ export function newArchiveCurrentSkillStep(
         // single-holder primitive — a later tag move never rewrites this
         // immutable content.
         try {
-          await store.saveAudit(ctx.apiResourceKind, skillId, SkillSchema, skill, versionHash, "");
+          await store.saveAudit(
+            ctx.apiResourceKind,
+            skillId,
+            SkillSchema,
+            skill,
+            versionHash,
+            "",
+          );
         } catch (error) {
           logger.error(
             "Failed to archive skill version — reverting the version hash to maintain the audit-resolvability invariant",
@@ -410,7 +438,12 @@ export function newArchiveCurrentSkillStep(
       // becomes the tag's sole holder; any prior holder is cleared.
       if (tag !== "") {
         try {
-          await store.setAuditTag(ctx.apiResourceKind, skillId, versionHash, tag);
+          await store.setAuditTag(
+            ctx.apiResourceKind,
+            skillId,
+            versionHash,
+            tag,
+          );
         } catch (error) {
           logger.error(
             "Archived skill version but failed to assign its tag — clearing the live tag to stay consistent with the audit column",
@@ -451,7 +484,12 @@ export function newStoreSkillStep(store: Store): PipelineStep<PushDesc> {
     async execute(ctx: RequestContext<PushDesc>): Promise<void> {
       const skill = ctx.get(SKILL_KEY) as Skill;
       try {
-        await store.saveResource(ctx.apiResourceKind, skill.metadata!.id, SkillSchema, skill);
+        await store.saveResource(
+          ctx.apiResourceKind,
+          skill.metadata!.id,
+          SkillSchema,
+          skill,
+        );
       } catch (error) {
         throw internalError(error, "failed to save skill");
       }
@@ -474,18 +512,28 @@ export function newIndexSkillSearchStep(
       const skill = ctx.get(SKILL_KEY) as Skill;
       const entry = skillSearchExtractor.getSearchIndexEntry(skill);
       if (entry === undefined) {
-        logger.warn("IndexSkillSearch: extractor returned nil entry, skipping", {
-          id: skill.metadata?.id ?? "",
-        });
+        logger.warn(
+          "IndexSkillSearch: extractor returned nil entry, skipping",
+          {
+            id: skill.metadata?.id ?? "",
+          },
+        );
         return;
       }
       try {
-        await store.upsertSearchIndex(ctx.apiResourceKind, skill.metadata!.id, entry);
+        await store.upsertSearchIndex(
+          ctx.apiResourceKind,
+          skill.metadata!.id,
+          entry,
+        );
       } catch (error) {
-        logger.warn("IndexSkillSearch: failed to update search index (best-effort)", {
-          id: skill.metadata?.id ?? "",
-          error: error instanceof Error ? error.message : String(error),
-        });
+        logger.warn(
+          "IndexSkillSearch: failed to update search index (best-effort)",
+          {
+            id: skill.metadata?.id ?? "",
+            error: error instanceof Error ? error.message : String(error),
+          },
+        );
       }
     },
   };

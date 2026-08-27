@@ -20,7 +20,10 @@ import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { AgentId, GetDefaultAgentRequest } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
+import type {
+  AgentId,
+  GetDefaultAgentRequest,
+} from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
 import type {
   ApiResourceReference,
   UpdateVisibilityInput,
@@ -28,12 +31,18 @@ import type {
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
+import type { Authorizer } from "../../extensions/authorizer.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import { internalError, notFoundError } from "../../pipeline/errors.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
+import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
-import { newBuildNewStateStep, setAuditFieldsForUpdate } from "../../pipeline/steps/defaults.js";
+import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
+import {
+  newBuildNewStateStep,
+  setAuditFieldsForUpdate,
+} from "../../pipeline/steps/defaults.js";
 import { newBuildUpdateStateStep } from "../../pipeline/steps/build-update-state.js";
 import { newCheckDuplicateStep } from "../../pipeline/steps/duplicate.js";
 import {
@@ -45,10 +54,19 @@ import {
   newDeleteSearchIndexStep,
   newIndexSearchStep,
 } from "../../pipeline/steps/index-search.js";
-import { EXISTING_RESOURCE_KEY, newLoadExistingStep } from "../../pipeline/steps/load-existing.js";
-import { SHOULD_CREATE_KEY, newLoadForApplyStep } from "../../pipeline/steps/load-for-apply.js";
+import {
+  EXISTING_RESOURCE_KEY,
+  newLoadExistingStep,
+} from "../../pipeline/steps/load-existing.js";
+import {
+  SHOULD_CREATE_KEY,
+  newLoadForApplyStep,
+} from "../../pipeline/steps/load-for-apply.js";
 import { newLoadByReferenceStep } from "../../pipeline/steps/load-by-reference.js";
-import { TARGET_RESOURCE_KEY, newLoadTargetStep } from "../../pipeline/steps/load-target.js";
+import {
+  TARGET_RESOURCE_KEY,
+  newLoadTargetStep,
+} from "../../pipeline/steps/load-target.js";
 import {
   newNormalizeReferencesStep,
   newValidateReferencesStep,
@@ -76,6 +94,8 @@ import type { AgentInstanceApplierProvider } from "./steps.js";
 export interface AgentControllerDeps {
   readonly store: Store;
   readonly logger: Logger;
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  readonly authorizer: Authorizer;
   /**
    * The agentinstance in-process edge — a lazy provider because
    * agent↔agentinstance is a true dependency cycle (DD-002; the ratified
@@ -118,8 +138,16 @@ async function createAgent(
   agent: Agent,
   ctx: HandlerContext,
 ): Promise<Agent> {
-  const reqCtx = new RequestContext(AgentSchema, agent, kindOf(ctx));
+  const reqCtx = new RequestContext(
+    AgentSchema,
+    agent,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
   await newPipeline<typeof AgentSchema>("agent-create", deps.logger)
+    .addStep(
+      newAuthorizeStep(AgentCommandController.method.create, deps.authorizer),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newValidateVisibilityStep())
     .addStep(newResolveSlugStep())
@@ -130,8 +158,12 @@ async function createAgent(
     .addStep(newValidateEnabledToolsStep(deps.store))
     .addStep(newMergeMcpServerEnvSpecsStep(deps.store, deps.logger))
     .addStep(newPersistStep(deps.store))
-    .addStep(newCreateDefaultInstanceStep(deps.agentInstanceApplier, deps.logger))
-    .addStep(newUpdateAgentStatusWithDefaultInstanceStep(deps.store, deps.logger))
+    .addStep(
+      newCreateDefaultInstanceStep(deps.agentInstanceApplier, deps.logger),
+    )
+    .addStep(
+      newUpdateAgentStatusWithDefaultInstanceStep(deps.store, deps.logger),
+    )
     .addStep(newIndexSearchStep(deps.store, agentSearchExtractor, deps.logger))
     .build()
     .execute(reqCtx);
@@ -144,8 +176,16 @@ async function update(
   agent: Agent,
   ctx: HandlerContext,
 ): Promise<Agent> {
-  const reqCtx = new RequestContext(AgentSchema, agent, kindOf(ctx));
+  const reqCtx = new RequestContext(
+    AgentSchema,
+    agent,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
   await newPipeline<typeof AgentSchema>("agent-update", deps.logger)
+    .addStep(
+      newAuthorizeStep(AgentCommandController.method.update, deps.authorizer),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newResolveSlugStep())
     .addStep(newLoadExistingStep(deps.store))
@@ -171,8 +211,16 @@ async function apply(
   agent: Agent,
   ctx: HandlerContext,
 ): Promise<Agent> {
-  const reqCtx = new RequestContext(AgentSchema, agent, kindOf(ctx));
+  const reqCtx = new RequestContext(
+    AgentSchema,
+    agent,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
   await newPipeline<typeof AgentSchema>("agent-apply", deps.logger)
+    .addStep(
+      newAuthorizeStep(AgentCommandController.method.apply, deps.authorizer),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newResolveSlugStep())
     .addStep(newLoadForApplyStep(deps.store))
@@ -186,7 +234,9 @@ async function apply(
       "apply operation failed to determine create vs update",
     );
   }
-  return shouldCreate ? createAgent(deps, agent, ctx) : update(deps, agent, ctx);
+  return shouldCreate
+    ? createAgent(deps, agent, ctx)
+    : update(deps, agent, ctx);
 }
 
 /**
@@ -202,12 +252,16 @@ async function deleteAgent(
   const reqCtx = new RequestContext(
     AgentCommandController.method.delete.input,
     agentId,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<typeof AgentCommandController.method.delete.input>(
     "agent-delete",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(AgentCommandController.method.delete, deps.authorizer),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newExtractResourceIdStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, AgentSchema))
@@ -248,12 +302,19 @@ async function updateVisibility(
   const reqCtx = new RequestContext(
     AgentCommandController.method.updateVisibility.input,
     input,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<UpdateVisibilityDesc>(
     "agent-update-visibility",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(
+        AgentCommandController.method.updateVisibility,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newLoadAgentForVisibilityUpdateStep(deps.store))
     .addStep(newValidateVisibilityUpdateStep())
@@ -298,7 +359,12 @@ function newSetAgentVisibilityStep(): PipelineStep<UpdateVisibilityDesc> {
       if (agent.metadata !== undefined) {
         agent.metadata.visibility = ctx.input.visibility;
       }
-      setAuditFieldsForUpdate(AgentSchema, agent, "status_audit");
+      setAuditFieldsForUpdate(
+        AgentSchema,
+        agent,
+        "status_audit",
+        ctx.callerIdentity,
+      );
     },
   };
 }
@@ -371,12 +437,14 @@ async function get(
   const reqCtx = new RequestContext(
     AgentQueryController.method.get.input,
     id,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<typeof AgentQueryController.method.get.input>(
     "agent-get",
     deps.logger,
   )
+    .addStep(newAuthorizeStep(AgentQueryController.method.get, deps.authorizer))
     .addStep(newValidateProtoStep())
     .addStep(newLoadTargetStep(deps.store, AgentSchema))
     .build()
@@ -393,12 +461,19 @@ async function getByReference(
   const reqCtx = new RequestContext(
     AgentQueryController.method.getByReference.input,
     ref,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<typeof AgentQueryController.method.getByReference.input>(
     "agent-get-by-reference",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(
+        AgentQueryController.method.getByReference,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newLoadByReferenceStep(deps.store, AgentSchema))
     .build()
@@ -419,12 +494,16 @@ async function getDefault(
   const reqCtx = new RequestContext(
     AgentQueryController.method.getDefault.input,
     req,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<typeof AgentQueryController.method.getDefault.input>(
     "agent-get-default",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(AgentQueryController.method.getDefault, deps.authorizer),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newLoadDefaultAgentStep(deps.store, deps.logger))
     .build()

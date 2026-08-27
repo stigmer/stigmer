@@ -14,6 +14,7 @@
  *     tag assignment still runs (re-pushing under a new tag is skills'
  *     only retag path).
  */
+import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 
@@ -27,7 +28,11 @@ import { AuditNotFoundError } from "../../../store/interface.js";
 import type { Store } from "../../../store/interface.js";
 import { SKILL_KEY, newArchiveCurrentSkillStep } from "../push.js";
 
-const silentLogger = createLogger({ level: "error", pretty: false, write: () => {} });
+const silentLogger = createLogger({
+  level: "error",
+  pretty: false,
+  write: () => {},
+});
 
 const HASH = "b".repeat(64);
 
@@ -40,7 +45,10 @@ interface FakeAuditStore {
 }
 
 /** A store exposing ONLY the members the step touches; the cast is the seam. */
-function fakeStore(overrides?: Partial<FakeAuditStore>): { store: Store; state: FakeAuditStore } {
+function fakeStore(overrides?: Partial<FakeAuditStore>): {
+  store: Store;
+  state: FakeAuditStore;
+} {
   const state: FakeAuditStore = {
     getAuditByHashError: new AuditNotFoundError("not archived"),
     saveAuditError: undefined,
@@ -62,7 +70,12 @@ function fakeStore(overrides?: Partial<FakeAuditStore>): { store: Store; state: 
         throw state.saveAuditError;
       }
     },
-    async setAuditTag(_k: unknown, _r: unknown, versionHash: string, tag: string): Promise<void> {
+    async setAuditTag(
+      _k: unknown,
+      _r: unknown,
+      versionHash: string,
+      tag: string,
+    ): Promise<void> {
       state.setAuditTagCalls.push({ versionHash, tag });
       if (state.setAuditTagError !== undefined) {
         throw state.setAuditTagError;
@@ -76,6 +89,7 @@ function contextWithSkill(tag: string) {
   const ctx = new RequestContext(
     PushSkillRequestSchema,
     create(PushSkillRequestSchema, {}),
+    testCallerIdentity(),
     ApiResourceKind.skill,
   );
   const skill = create(SkillSchema, {
@@ -101,7 +115,9 @@ describe("ArchiveCurrentSkill — safe degradation", () => {
   });
 
   it("tag-assignment failure clears the live spec.tag; the archived row stands", async () => {
-    const { store, state } = fakeStore({ setAuditTagError: new Error("tag column locked") });
+    const { store, state } = fakeStore({
+      setAuditTagError: new Error("tag column locked"),
+    });
     const { ctx, skill } = contextWithSkill("stable");
 
     await newArchiveCurrentSkillStep(store, silentLogger).execute(ctx);
@@ -130,7 +146,9 @@ describe("ArchiveCurrentSkill — safe degradation", () => {
     await newArchiveCurrentSkillStep(store, silentLogger).execute(ctx);
 
     expect(state.saveAuditCalls).toBe(0);
-    expect(state.setAuditTagCalls).toEqual([{ versionHash: HASH, tag: "stable" }]);
+    expect(state.setAuditTagCalls).toEqual([
+      { versionHash: HASH, tag: "stable" },
+    ]);
   });
 
   it("a skill with no version hash is a no-op (nothing to archive)", async () => {
@@ -138,6 +156,7 @@ describe("ArchiveCurrentSkill — safe degradation", () => {
     const ctx = new RequestContext(
       PushSkillRequestSchema,
       create(PushSkillRequestSchema, {}),
+      testCallerIdentity(),
       ApiResourceKind.skill,
     );
     ctx.set(

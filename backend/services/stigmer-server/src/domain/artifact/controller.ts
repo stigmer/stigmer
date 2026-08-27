@@ -56,16 +56,23 @@ import type { ApiResourceId } from "@stigmer/protos/ai/stigmer/commons/apiresour
 
 import type { ArtifactStorage } from "../../artifactstorage/artifact-storage.js";
 import type { Logger } from "../../boot/logger.js";
+import type { Authorizer } from "../../extensions/authorizer.js";
 import { internalError, invalidArgumentError } from "../../pipeline/errors.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
+import type { CallerIdentity } from "../../extensions/identity.js";
+import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
+import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
 import {
   generateId,
   setAuditFieldsForCreate,
   setAuditFieldsForUpdate,
 } from "../../pipeline/steps/defaults.js";
-import { TARGET_RESOURCE_KEY, newLoadTargetStep } from "../../pipeline/steps/load-target.js";
+import {
+  TARGET_RESOURCE_KEY,
+  newLoadTargetStep,
+} from "../../pipeline/steps/load-target.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import type { Store } from "../../store/interface.js";
 import {
@@ -83,6 +90,8 @@ export interface ArtifactControllerDeps {
   readonly store: Store;
   readonly artifactStorage: ArtifactStorage;
   readonly logger: Logger;
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  readonly authorizer: Authorizer;
 }
 
 /** Registers both artifact services on the router (routes stage). */
@@ -91,8 +100,8 @@ export function registerArtifactServices(
   deps: ArtifactControllerDeps,
 ): void {
   router.service(ArtifactCommandController, {
-    create: (input) => createArtifact(deps, input),
-    delete: (id) => deleteArtifact(deps, id),
+    create: (input, ctx) => createArtifact(deps, input, callerIdentityOf(ctx)),
+    delete: (id, ctx) => deleteArtifact(deps, id, callerIdentityOf(ctx)),
   });
   router.service(ArtifactQueryController, {
     get: (id, ctx) => get(deps, id, ctx),
@@ -119,6 +128,7 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
 async function createArtifact(
   deps: ArtifactControllerDeps,
   input: CreateArtifactInput,
+  identity: CallerIdentity,
 ): Promise<Artifact> {
   const spec = input.spec;
   if (spec === undefined) {
@@ -186,7 +196,7 @@ async function createArtifact(
   // Go: SetAuditFieldsForCreate failure is LOG-ONLY — an artifact write
   // must not fail over audit stamping.
   try {
-    setAuditFieldsForCreate(ArtifactSchema, artifact);
+    setAuditFieldsForCreate(ArtifactSchema, artifact, identity);
   } catch (error) {
     deps.logger.error("failed to set audit fields on artifact", {
       error: error instanceof Error ? error.message : String(error),
@@ -230,7 +240,10 @@ async function deriveOrgFromSource(
   source: ArtifactSource,
 ): Promise<string> {
   const lookups: Array<{ id: string; kind: ApiResourceKind }> = [
-    { id: source.workflowExecutionId, kind: ApiResourceKind.workflow_execution },
+    {
+      id: source.workflowExecutionId,
+      kind: ApiResourceKind.workflow_execution,
+    },
     { id: source.agentExecutionId, kind: ApiResourceKind.agent_execution },
   ];
   for (const lookup of lookups) {
@@ -279,6 +292,7 @@ function computeExpiresAt(ttlDaysInput: number | undefined): string {
 async function deleteArtifact(
   deps: ArtifactControllerDeps,
   id: ApiResourceId,
+  identity: CallerIdentity,
 ): Promise<Artifact> {
   const resourceId = id.value;
   if (resourceId === "") {
@@ -301,7 +315,7 @@ async function deleteArtifact(
   // currently stamps neither slot; OSS stays honest rather than copying
   // that omission (stigmer/stigmer#540). Failure is LOG-ONLY, as in Go.
   try {
-    setAuditFieldsForUpdate(ArtifactSchema, artifact, "status_audit");
+    setAuditFieldsForUpdate(ArtifactSchema, artifact, "status_audit", identity);
   } catch (error) {
     deps.logger.error("failed to set audit fields on artifact delete", {
       error: error instanceof Error ? error.message : String(error),
@@ -339,12 +353,16 @@ async function get(
   const reqCtx = new RequestContext(
     ArtifactQueryController.method.get.input,
     id,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<typeof ArtifactQueryController.method.get.input>(
     "artifact-get",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(ArtifactQueryController.method.get, deps.authorizer),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newLoadTargetStep(deps.store, ArtifactSchema))
     .build()
@@ -369,12 +387,18 @@ async function listByExecution(
   const reqCtx = new RequestContext(
     ArtifactQueryController.method.listByExecution.input,
     req,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<typeof ArtifactQueryController.method.listByExecution.input>(
-    "artifact-list-by-execution",
-    deps.logger,
-  )
+  await newPipeline<
+    typeof ArtifactQueryController.method.listByExecution.input
+  >("artifact-list-by-execution", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        ArtifactQueryController.method.listByExecution,
+        deps.authorizer,
+      ),
+    )
     .addStep({
       name: "ValidateListByExecutionRequest",
       execute(stepCtx): void {

@@ -65,10 +65,13 @@ import { UsageReportAggregateSchema } from "@stigmer/protos/ai/stigmer/agentic/a
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
+import type { Authorizer } from "../../extensions/authorizer.js";
 import { internalError, invalidArgumentError } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
+import type { CallerIdentity } from "../../extensions/identity.js";
 import { RequestContext } from "../../pipeline/request-context.js";
+import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
 import type { Store } from "../../store/interface.js";
 
 import { executionUsageReportNotFoundMessage } from "./constants.js";
@@ -77,6 +80,8 @@ import { EXECUTION_LIST_KEY, loadAllAgentExecutions } from "./steps.js";
 export interface UsageReportDeps {
   readonly store: Store;
   readonly logger: Logger;
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  readonly authorizer: Authorizer;
 }
 
 // Context keys for inter-step communication — Go's key strings, verbatim.
@@ -397,16 +402,24 @@ type ExecutionReportDesc =
 export async function getExecutionUsageReport(
   deps: UsageReportDeps,
   req: RequestContext<ExecutionReportDesc>["input"],
+  identity: CallerIdentity,
 ): Promise<GetExecutionUsageReportOutput> {
   const reqCtx = new RequestContext(
     AgentExecutionQueryController.method.getExecutionUsageReport.input,
     req,
+    identity,
     ApiResourceKind.agent_execution,
   );
   await newPipeline<ExecutionReportDesc>(
     "get-execution-usage-report",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(
+        AgentExecutionQueryController.method.getExecutionUsageReport,
+        deps.authorizer,
+      ),
+    )
     .addStep({
       name: "ValidateExecutionUsageReport",
       execute(ctx) {
@@ -441,9 +454,7 @@ export async function getExecutionUsageReport(
  * (mangled, DD-001) NotFound exactly as Go's step converts every
  * GetResource error.
  */
-function newLoadExecutionStep(
-  store: Store,
-): PipelineStep<ExecutionReportDesc> {
+function newLoadExecutionStep(store: Store): PipelineStep<ExecutionReportDesc> {
   return {
     name: "LoadExecution",
     async execute(ctx) {
@@ -478,13 +489,21 @@ type SessionReportDesc =
 export async function getSessionUsageReport(
   deps: UsageReportDeps,
   req: RequestContext<SessionReportDesc>["input"],
+  identity: CallerIdentity,
 ): Promise<GetSessionUsageReportOutput> {
   const reqCtx = new RequestContext(
     AgentExecutionQueryController.method.getSessionUsageReport.input,
     req,
+    identity,
     ApiResourceKind.agent_execution,
   );
   await newPipeline<SessionReportDesc>("get-session-usage-report", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        AgentExecutionQueryController.method.getSessionUsageReport,
+        deps.authorizer,
+      ),
+    )
     .addStep({
       name: "ValidateSessionUsageReport",
       execute(ctx) {
@@ -547,13 +566,21 @@ type AgentReportDesc =
 export async function getAgentUsageReport(
   deps: UsageReportDeps,
   req: RequestContext<AgentReportDesc>["input"],
+  identity: CallerIdentity,
 ): Promise<GetAgentUsageReportOutput> {
   const reqCtx = new RequestContext(
     AgentExecutionQueryController.method.getAgentUsageReport.input,
     req,
+    identity,
     ApiResourceKind.agent_execution,
   );
   await newPipeline<AgentReportDesc>("get-agent-usage-report", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        AgentExecutionQueryController.method.getAgentUsageReport,
+        deps.authorizer,
+      ),
+    )
     .addStep({
       name: "ValidateAgentUsageReport",
       execute(ctx) {
@@ -644,13 +671,21 @@ type OrgReportDesc =
 export async function getOrgUsageReport(
   deps: UsageReportDeps,
   req: RequestContext<OrgReportDesc>["input"],
+  identity: CallerIdentity,
 ): Promise<GetOrgUsageReportOutput> {
   const reqCtx = new RequestContext(
     AgentExecutionQueryController.method.getOrgUsageReport.input,
     req,
+    identity,
     ApiResourceKind.agent_execution,
   );
   await newPipeline<OrgReportDesc>("get-org-usage-report", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        AgentExecutionQueryController.method.getOrgUsageReport,
+        deps.authorizer,
+      ),
+    )
     .addStep({
       name: "ValidateOrgUsageReport",
       execute(ctx) {
@@ -804,9 +839,7 @@ export async function getExecutionSummary(
     for (const d of completedDurationsMs) {
       totalMs += d;
     }
-    summary.avgDuration = durationFromMs(
-      totalMs / completedDurationsMs.length,
-    );
+    summary.avgDuration = durationFromMs(totalMs / completedDurationsMs.length);
   }
 
   summary.topFailingAgents = buildAgentFailureRanks(

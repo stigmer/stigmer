@@ -44,12 +44,18 @@ import type {
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
+import type { Authorizer } from "../../extensions/authorizer.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import { internalError, notFoundError } from "../../pipeline/errors.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
+import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
-import { setAuditFieldsForUpdate, newBuildNewStateStep } from "../../pipeline/steps/defaults.js";
+import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
+import {
+  setAuditFieldsForUpdate,
+  newBuildNewStateStep,
+} from "../../pipeline/steps/defaults.js";
 import { newBuildUpdateStateStep } from "../../pipeline/steps/build-update-state.js";
 import { newCheckDuplicateStep } from "../../pipeline/steps/duplicate.js";
 import {
@@ -61,10 +67,19 @@ import {
   newDeleteSearchIndexStep,
   newIndexSearchStep,
 } from "../../pipeline/steps/index-search.js";
-import { EXISTING_RESOURCE_KEY, newLoadExistingStep } from "../../pipeline/steps/load-existing.js";
-import { SHOULD_CREATE_KEY, newLoadForApplyStep } from "../../pipeline/steps/load-for-apply.js";
+import {
+  EXISTING_RESOURCE_KEY,
+  newLoadExistingStep,
+} from "../../pipeline/steps/load-existing.js";
+import {
+  SHOULD_CREATE_KEY,
+  newLoadForApplyStep,
+} from "../../pipeline/steps/load-for-apply.js";
 import { newLoadByReferenceStep } from "../../pipeline/steps/load-by-reference.js";
-import { TARGET_RESOURCE_KEY, newLoadTargetStep } from "../../pipeline/steps/load-target.js";
+import {
+  TARGET_RESOURCE_KEY,
+  newLoadTargetStep,
+} from "../../pipeline/steps/load-target.js";
 import { newNormalizeReferencesStep } from "../../pipeline/steps/references.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
@@ -90,6 +105,8 @@ import {
 export interface McpServerControllerDeps {
   readonly store: Store;
   readonly logger: Logger;
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  readonly authorizer: Authorizer;
   /** The connect/OAuth slice's dependencies (D4 #19). */
   readonly connect: McpServerConnectDeps;
 }
@@ -153,7 +170,10 @@ export function registerMcpServerServices(
  * stubs exist to carry that text byte-for-byte and this doc block.
  */
 function orgOAuthAppUnimplemented(method: string): ConnectError {
-  return new ConnectError(`method ${method} not implemented`, Code.Unimplemented);
+  return new ConnectError(
+    `method ${method} not implemented`,
+    Code.Unimplemented,
+  );
 }
 
 function kindOf(ctx: HandlerContext): ApiResourceKind {
@@ -166,8 +186,19 @@ async function createMcpServer(
   server: McpServer,
   ctx: HandlerContext,
 ): Promise<McpServer> {
-  const reqCtx = new RequestContext(McpServerSchema, server, kindOf(ctx));
+  const reqCtx = new RequestContext(
+    McpServerSchema,
+    server,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
   await newPipeline<typeof McpServerSchema>("mcpserver-create", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        McpServerCommandController.method.create,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newValidateVisibilityStep())
     .addStep(newResolveSlugStep())
@@ -175,7 +206,9 @@ async function createMcpServer(
     .addStep(newBuildNewStateStep())
     .addStep(newNormalizeReferencesStep())
     .addStep(newPersistStep(deps.store))
-    .addStep(newIndexSearchStep(deps.store, mcpServerSearchExtractor, deps.logger))
+    .addStep(
+      newIndexSearchStep(deps.store, mcpServerSearchExtractor, deps.logger),
+    )
     .build()
     .execute(reqCtx);
   return reqCtx.newState;
@@ -191,8 +224,19 @@ async function update(
   server: McpServer,
   ctx: HandlerContext,
 ): Promise<McpServer> {
-  const reqCtx = new RequestContext(McpServerSchema, server, kindOf(ctx));
+  const reqCtx = new RequestContext(
+    McpServerSchema,
+    server,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
   await newPipeline<typeof McpServerSchema>("mcpserver-update", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        McpServerCommandController.method.update,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newResolveSlugStep())
     .addStep(newLoadExistingStep(deps.store))
@@ -200,7 +244,9 @@ async function update(
     .addStep(newValidateDefaultEnabledToolsStep())
     .addStep(newNormalizeReferencesStep())
     .addStep(newPersistStep(deps.store))
-    .addStep(newIndexSearchStep(deps.store, mcpServerSearchExtractor, deps.logger))
+    .addStep(
+      newIndexSearchStep(deps.store, mcpServerSearchExtractor, deps.logger),
+    )
     .build()
     .execute(reqCtx);
   return reqCtx.newState;
@@ -221,8 +267,19 @@ async function apply(
   server: McpServer,
   ctx: HandlerContext,
 ): Promise<McpServer> {
-  const reqCtx = new RequestContext(McpServerSchema, server, kindOf(ctx));
+  const reqCtx = new RequestContext(
+    McpServerSchema,
+    server,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
   await newPipeline<typeof McpServerSchema>("mcpserver-apply", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        McpServerCommandController.method.apply,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newResolveSlugStep())
     .addStep(newLoadForApplyStep(deps.store))
@@ -266,6 +323,7 @@ async function deleteMcpServer(
   const reqCtx = new RequestContext(
     McpServerCommandController.method.delete.input,
     input,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   reqCtx.set(RESOURCE_ID_KEY, input.resourceId);
@@ -273,6 +331,12 @@ async function deleteMcpServer(
     "mcpserver-delete",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(
+        McpServerCommandController.method.delete,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, McpServerSchema))
     .addStep(newDeleteResourceStep(deps.store))
@@ -309,15 +373,27 @@ async function updateVisibility(
   const reqCtx = new RequestContext(
     McpServerCommandController.method.updateVisibility.input,
     input,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<UpdateVisibilityDesc>("mcpserver-update-visibility", deps.logger)
+  await newPipeline<UpdateVisibilityDesc>(
+    "mcpserver-update-visibility",
+    deps.logger,
+  )
+    .addStep(
+      newAuthorizeStep(
+        McpServerCommandController.method.updateVisibility,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newLoadMcpServerForVisibilityUpdateStep(deps.store))
     .addStep(newValidateVisibilityUpdateStep())
     .addStep(newSetMcpServerVisibilityStep())
     .addStep(newPersistMcpServerForVisibilityUpdateStep(deps.store))
-    .addStep(newIndexMcpServerAfterVisibilityUpdateStep(deps.store, deps.logger))
+    .addStep(
+      newIndexMcpServerAfterVisibilityUpdateStep(deps.store, deps.logger),
+    )
     .build()
     .execute(reqCtx);
   return reqCtx.get(UPDATE_VISIBILITY_MCP_SERVER_KEY) as McpServer;
@@ -355,7 +431,12 @@ function newSetMcpServerVisibilityStep(): PipelineStep<UpdateVisibilityDesc> {
       if (mcpServer.metadata !== undefined) {
         mcpServer.metadata.visibility = ctx.input.visibility;
       }
-      setAuditFieldsForUpdate(McpServerSchema, mcpServer, "status_audit");
+      setAuditFieldsForUpdate(
+        McpServerSchema,
+        mcpServer,
+        "status_audit",
+        ctx.callerIdentity,
+      );
     },
   };
 }
@@ -406,10 +487,13 @@ function newIndexMcpServerAfterVisibilityUpdateStep(
           entry,
         );
       } catch (error) {
-        logger.warn("IndexMcpServerAfterVisibilityUpdate: failed (best-effort)", {
-          id: mcpServer.metadata?.id ?? "",
-          error: error instanceof Error ? error.message : String(error),
-        });
+        logger.warn(
+          "IndexMcpServerAfterVisibilityUpdate: failed (best-effort)",
+          {
+            id: mcpServer.metadata?.id ?? "",
+            error: error instanceof Error ? error.message : String(error),
+          },
+        );
       }
     },
   };
@@ -424,12 +508,16 @@ async function get(
   const reqCtx = new RequestContext(
     McpServerQueryController.method.get.input,
     id,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<typeof McpServerQueryController.method.get.input>(
     "mcpserver-get",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(McpServerQueryController.method.get, deps.authorizer),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newLoadTargetStep(deps.store, McpServerSchema))
     .addStep(newEnrichOAuthStatusStep(deps.store, deps.logger))
@@ -447,12 +535,18 @@ async function getByReference(
   const reqCtx = new RequestContext(
     McpServerQueryController.method.getByReference.input,
     ref,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<typeof McpServerQueryController.method.getByReference.input>(
-    "mcpserver-get-by-reference",
-    deps.logger,
-  )
+  await newPipeline<
+    typeof McpServerQueryController.method.getByReference.input
+  >("mcpserver-get-by-reference", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        McpServerQueryController.method.getByReference,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newLoadByReferenceStep(deps.store, McpServerSchema))
     .addStep(newEnrichOAuthStatusStep(deps.store, deps.logger))

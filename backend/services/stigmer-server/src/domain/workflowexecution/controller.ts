@@ -36,10 +36,13 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { create } from "@bufbuild/protobuf";
 
 import type { Logger } from "../../boot/logger.js";
+import type { Authorizer } from "../../extensions/authorizer.js";
 import { internalError, invalidArgumentError } from "../../pipeline/errors.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
+import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
+import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
 import { newBuildUpdateStateStep } from "../../pipeline/steps/build-update-state.js";
 import { newBuildNewStateStep } from "../../pipeline/steps/defaults.js";
 import { newCheckDuplicateStep } from "../../pipeline/steps/duplicate.js";
@@ -67,13 +70,9 @@ import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import type { Store } from "../../store/interface.js";
 
-import type {
-  AgentExecutionApprovalForwarderProvider,
-} from "./submit-approval.js";
+import type { AgentExecutionApprovalForwarderProvider } from "./submit-approval.js";
 import { submitApproval } from "./submit-approval.js";
-import type {
-  AgentExecutionFileDecisionForwarderProvider,
-} from "./submit-file-decision.js";
+import type { AgentExecutionFileDecisionForwarderProvider } from "./submit-file-decision.js";
 import { submitFileDecision } from "./submit-file-decision.js";
 import { submitWorkflowTaskApproval } from "./submit-workflow-task-approval.js";
 import type { ExecutionWorkflowInstanceCreatorProvider } from "./create-steps.js";
@@ -115,6 +114,8 @@ import { updateStatus } from "./update-status.js";
 export interface WorkflowExecutionControllerDeps {
   readonly store: Store;
   readonly logger: Logger;
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  readonly authorizer: Authorizer;
   /**
    * The workflow-execution engine seam (engine.ts): permanently
    * disconnected until #21's TemporalManager flips it. Consumed by the
@@ -150,6 +151,7 @@ export function registerWorkflowExecutionServices(
   const lifecycleDeps = {
     store: deps.store,
     logger: deps.logger,
+    authorizer: deps.authorizer,
     broker: deps.broker,
     engineState: deps.engineState,
     executionContextBuilder: deps.executionContextBuilder,
@@ -157,18 +159,26 @@ export function registerWorkflowExecutionServices(
   router.service(WorkflowExecutionCommandController, {
     create: (execution, ctx) => createExecution(deps, execution, ctx),
     update: (execution, ctx) => update(deps, execution, ctx),
-    updateStatus: (input) => updateStatus(deps, input),
-    submitApproval: (input) => submitApproval(deps, input),
-    submitFileDecision: (input) => submitFileDecision(deps, input),
-    submitWorkflowTaskApproval: (input) =>
-      submitWorkflowTaskApproval(deps, input),
+    updateStatus: (input, ctx) =>
+      updateStatus(deps, input, callerIdentityOf(ctx)),
+    submitApproval: (input, ctx) =>
+      submitApproval(deps, input, callerIdentityOf(ctx)),
+    submitFileDecision: (input, ctx) =>
+      submitFileDecision(deps, input, callerIdentityOf(ctx)),
+    submitWorkflowTaskApproval: (input, ctx) =>
+      submitWorkflowTaskApproval(deps, input, callerIdentityOf(ctx)),
     delete: (id, ctx) => deleteExecution(deps, id, ctx),
-    sendSignal: (input) => sendSignal(deps, input),
-    cancel: (input) => cancelExecution(lifecycleDeps, input),
-    terminate: (input) => terminateExecution(lifecycleDeps, input),
-    recover: (input) => recoverExecution(lifecycleDeps, input),
-    pause: (input) => pauseExecution(lifecycleDeps, input),
-    resume: (input) => resumeExecution(lifecycleDeps, input),
+    sendSignal: (input, ctx) => sendSignal(deps, input, callerIdentityOf(ctx)),
+    cancel: (input, ctx) =>
+      cancelExecution(lifecycleDeps, input, callerIdentityOf(ctx)),
+    terminate: (input, ctx) =>
+      terminateExecution(lifecycleDeps, input, callerIdentityOf(ctx)),
+    recover: (input, ctx) =>
+      recoverExecution(lifecycleDeps, input, callerIdentityOf(ctx)),
+    pause: (input, ctx) =>
+      pauseExecution(lifecycleDeps, input, callerIdentityOf(ctx)),
+    resume: (input, ctx) =>
+      resumeExecution(lifecycleDeps, input, callerIdentityOf(ctx)),
   });
   router.service(WorkflowExecutionQueryController, {
     get: (id, ctx) => get(deps, id, ctx),
@@ -202,12 +212,19 @@ async function createExecution(
   const reqCtx = new RequestContext(
     WorkflowExecutionSchema,
     execution,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<typeof WorkflowExecutionSchema>(
     "workflowexecution-create",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(
+        WorkflowExecutionCommandController.method.create,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newValidateVisibilityStep())
     .addStep(newResolveSlugStep())
@@ -264,12 +281,19 @@ async function update(
   const reqCtx = new RequestContext(
     WorkflowExecutionSchema,
     execution,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<typeof WorkflowExecutionSchema>(
     "workflowexecution-update",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(
+        WorkflowExecutionCommandController.method.update,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newResolveSlugStep())
     .addStep(newLoadExistingStep(deps.store))
@@ -302,16 +326,21 @@ async function deleteExecution(
   const reqCtx = new RequestContext(
     WorkflowExecutionCommandController.method.delete.input,
     id,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<
     typeof WorkflowExecutionCommandController.method.delete.input
   >("workflowexecution-delete", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        WorkflowExecutionCommandController.method.delete,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newExtractResourceIdStep())
-    .addStep(
-      newLoadExistingForDeleteStep(deps.store, WorkflowExecutionSchema),
-    )
+    .addStep(newLoadExistingForDeleteStep(deps.store, WorkflowExecutionSchema))
     .addStep(newDeleteResourceStep(deps.store))
     .addStep(newDeleteSearchIndexStep(deps.store, deps.logger))
     .build()
@@ -336,12 +365,19 @@ async function get(
   const reqCtx = new RequestContext(
     WorkflowExecutionQueryController.method.get.input,
     id,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<typeof WorkflowExecutionQueryController.method.get.input>(
     "workflowexecution-get",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(
+        WorkflowExecutionQueryController.method.get,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newLoadTargetStep(deps.store, WorkflowExecutionSchema))
     .build()

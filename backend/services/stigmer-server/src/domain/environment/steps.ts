@@ -192,9 +192,7 @@ export function newEncryptSecretValuesStep(
 }
 
 /** Whether any entry would have been encrypted — keeps the WARN honest. */
-function hasNonEmptySecret(
-  data: Record<string, EnvironmentValue>,
-): boolean {
+function hasNonEmptySecret(data: Record<string, EnvironmentValue>): boolean {
   return Object.values(data).some((v) => v.isSecret && v.value !== "");
 }
 
@@ -272,9 +270,8 @@ export function newLoadEnvironmentByIdStep<Desc extends DescMessage>(
   return {
     name: "LoadEnvironmentByID",
     async execute(ctx: RequestContext<Desc>): Promise<void> {
-      const environmentId = (
-        ctx.input as { environmentId?: unknown }
-      ).environmentId;
+      const environmentId = (ctx.input as { environmentId?: unknown })
+        .environmentId;
       if (typeof environmentId !== "string" || environmentId === "") {
         throw invalidArgumentError("environment_id is required");
       }
@@ -435,7 +432,12 @@ export function newMergeVariablesAndPersistStep(
       }
 
       try {
-        setAuditFieldsForUpdate(EnvironmentSchema, env, "spec_audit");
+        setAuditFieldsForUpdate(
+          EnvironmentSchema,
+          env,
+          "spec_audit",
+          ctx.callerIdentity,
+        );
       } catch (error) {
         throw internalError(error, "failed to set audit fields");
       }
@@ -490,7 +492,12 @@ export function newRemoveVariableKeysAndPersistStep(
       }
 
       try {
-        setAuditFieldsForUpdate(EnvironmentSchema, env, "spec_audit");
+        setAuditFieldsForUpdate(
+          EnvironmentSchema,
+          env,
+          "spec_audit",
+          ctx.callerIdentity,
+        );
       } catch (error) {
         throw internalError(error, "failed to set audit fields");
       }

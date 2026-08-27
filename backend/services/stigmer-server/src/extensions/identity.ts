@@ -1,8 +1,8 @@
 /**
  * Identity extension-point types — the verifier-chain contract of the
  * convergence blueprint (20260826.02 blueprint/03 §4, DD-007), carried by
- * the extension registry from O1 (20260826.09) and CONSUMED by O2, which
- * turns the pass-through auth interceptor into the ordered verifier chain.
+ * the extension registry from O1 (20260826.09) and consumed by the
+ * verifier-chain chassis (O2, 20260827.01 — pipeline/interceptors/auth.ts).
  *
  * The shapes are transcribed from the ratified design, not invented here:
  * a verifier either CLAIMS a token (verifying it fully, throwing on
@@ -14,13 +14,26 @@
  */
 
 /**
- * The caller-class discriminant. OSS knows user / machine / runner; the
- * cloud composition extends the vocabulary (guest / channel / schedule)
- * without an OSS enum change — hence the open string arm. `string & {}`
- * keeps literal autocomplete while admitting extension values (a plain
- * `string` would erase the known classes from the type surface).
+ * The caller-class discriminant. OSS knows user / machine / runner plus
+ * the in-process `internal` class (O2 ruling Q4: the TS rendering of the
+ * Java in-process authorization skip); the cloud composition extends the
+ * vocabulary (guest / channel / schedule) without an OSS enum change —
+ * hence the open string arm. `string & {}` keeps literal autocomplete
+ * while admitting extension values (a plain `string` would erase the
+ * known classes from the type surface).
+ *
+ * `internal` is ratified contract with a structural guarantee: it is
+ * minted ONLY by the in-process chain's identity interceptor
+ * (boot/inprocess.ts). No IdentityVerifier may produce it — the serving
+ * chain always overwrites the position-1 identity from the wire, so a
+ * spoofed internal class cannot enter through a transport.
  */
-export type CallerClass = "user" | "machine" | "runner" | (string & {});
+export type CallerClass =
+  | "user"
+  | "machine"
+  | "runner"
+  | "internal"
+  | (string & {});
 
 /**
  * The authenticated caller, produced by the verifier chain and read by the
@@ -36,6 +49,15 @@ export interface CallerIdentity {
   readonly issuer: string;
   /** The raw presented token, carried for downstream propagation. */
   readonly rawToken: string;
+  /**
+   * Optional display identity for the audit-actor seam (O2 ruling Q5, the
+   * ratified DD-007 amendment): OIDC-class verifiers carry the caller's
+   * email/name claims here; the trusted-local identity carries the #400
+   * operator identity. Absent on identities whose issuer provides no
+   * display claims — the audit actor then falls back to identityId alone.
+   */
+  readonly email?: string;
+  readonly displayName?: string;
 }
 
 /**

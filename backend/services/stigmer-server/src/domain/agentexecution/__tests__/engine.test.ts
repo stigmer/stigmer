@@ -6,6 +6,7 @@
  * EXECUTION time (a reconnect between requests must be observed, Go's
  * SetWorkflowCreator re-injection).
  */
+import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { describe, expect, it } from "vitest";
@@ -26,6 +27,7 @@ function contextFor(): RequestContext<typeof AgentExecutionSchema> {
   return new RequestContext(
     AgentExecutionSchema,
     create(AgentExecutionSchema, {}),
+    testCallerIdentity(),
     ApiResourceKind.agent_execution,
   );
 }

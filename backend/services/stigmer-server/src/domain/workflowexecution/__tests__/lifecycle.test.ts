@@ -8,6 +8,8 @@
  * full choreography (terminate both tree members, EC recreate
  * degrade-gracefully, fresh start with recovery_mode, error clear).
  */
+import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/authorize.js";
+import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -114,6 +116,7 @@ function deps(engineStub?: EngineStub): LifecycleDeps {
   return {
     store,
     logger: silentLogger,
+    authorizer: newPermissiveSingleTeamAuthorizer(),
     broker,
     engineState: () => engineStub?.state ?? ENGINE_DISCONNECTED,
     executionContextBuilder: builderDeps(),
@@ -132,7 +135,10 @@ async function seed(
     WorkflowExecutionSchema,
     create(WorkflowExecutionSchema, {
       metadata: { id, name: id, org: "acme" },
-      spec: { workflowId: `wf_${counter}`, workflowInstanceId: `wfi_${counter}` },
+      spec: {
+        workflowId: `wf_${counter}`,
+        workflowInstanceId: `wfi_${counter}`,
+      },
       status: { phase, ...overrides },
     }),
   );
@@ -156,21 +162,34 @@ async function expectCode(
 describe("shared load + validation arms (lifecycle_test.go)", () => {
   it("empty id refuses InvalidArgument; unknown id NotFound", async () => {
     const err = await expectCode(
-      () => cancelExecution(deps(), cancelInput({ id: "" })),
+      () =>
+        cancelExecution(deps(), cancelInput({ id: "" }), testCallerIdentity()),
       Code.InvalidArgument,
     );
     expect(err.rawMessage).toBe("execution id is required");
     const missing = await expectCode(
-      () => cancelExecution(deps(), cancelInput({ id: "wfx_missing" })),
+      () =>
+        cancelExecution(
+          deps(),
+          cancelInput({ id: "wfx_missing" }),
+          testCallerIdentity(),
+        ),
       Code.NotFound,
     );
-    expect(missing.rawMessage).toBe("workflow_execution not found: wfx_missing");
+    expect(missing.rawMessage).toBe(
+      "workflow_execution not found: wfx_missing",
+    );
   });
 
   it("phase validators refuse with the pinned copy", async () => {
     const completed = await seed(ExecutionPhase.EXECUTION_COMPLETED);
     const cancelErr = await expectCode(
-      () => cancelExecution(deps(), cancelInput({ id: completed })),
+      () =>
+        cancelExecution(
+          deps(),
+          cancelInput({ id: completed }),
+          testCallerIdentity(),
+        ),
       Code.FailedPrecondition,
     );
     expect(cancelErr.rawMessage).toBe(
@@ -178,7 +197,12 @@ describe("shared load + validation arms (lifecycle_test.go)", () => {
     );
 
     const terminateErr = await expectCode(
-      () => terminateExecution(deps(), terminateInput({ id: completed })),
+      () =>
+        terminateExecution(
+          deps(),
+          terminateInput({ id: completed }),
+          testCallerIdentity(),
+        ),
       Code.FailedPrecondition,
     );
     expect(terminateErr.rawMessage).toBe(
@@ -187,7 +211,12 @@ describe("shared load + validation arms (lifecycle_test.go)", () => {
 
     const paused = await seed(ExecutionPhase.EXECUTION_PAUSED);
     const pauseErr = await expectCode(
-      () => pauseExecution(deps(), pauseInput({ id: completed })),
+      () =>
+        pauseExecution(
+          deps(),
+          pauseInput({ id: completed }),
+          testCallerIdentity(),
+        ),
       Code.FailedPrecondition,
     );
     expect(pauseErr.rawMessage).toBe(
@@ -195,7 +224,12 @@ describe("shared load + validation arms (lifecycle_test.go)", () => {
     );
 
     const resumeErr = await expectCode(
-      () => resumeExecution(deps(), resumeInput({ id: completed })),
+      () =>
+        resumeExecution(
+          deps(),
+          resumeInput({ id: completed }),
+          testCallerIdentity(),
+        ),
       Code.FailedPrecondition,
     );
     expect(resumeErr.rawMessage).toBe(
@@ -204,13 +238,23 @@ describe("shared load + validation arms (lifecycle_test.go)", () => {
     // PAUSED is resumable — engineless it fails at the ENGINE, not the
     // validator (proving validator pass-through).
     const engineErr = await expectCode(
-      () => resumeExecution(deps(), resumeInput({ id: paused })),
+      () =>
+        resumeExecution(
+          deps(),
+          resumeInput({ id: paused }),
+          testCallerIdentity(),
+        ),
       Code.FailedPrecondition,
     );
     expect(engineErr.rawMessage).toBe(TEMPORAL_UNAVAILABLE_MESSAGE);
 
     const recoverErr = await expectCode(
-      () => recoverExecution(deps(), recoverInput({ id: completed })),
+      () =>
+        recoverExecution(
+          deps(),
+          recoverInput({ id: completed }),
+          testCallerIdentity(),
+        ),
       Code.FailedPrecondition,
     );
     expect(recoverErr.rawMessage).toBe(
@@ -220,26 +264,61 @@ describe("shared load + validation arms (lifecycle_test.go)", () => {
 
   it("target-phase idempotency succeeds without touching the engine", async () => {
     const cancelled = await seed(ExecutionPhase.EXECUTION_CANCELLED);
-    const result = await cancelExecution(deps(), cancelInput({ id: cancelled }));
+    const result = await cancelExecution(
+      deps(),
+      cancelInput({ id: cancelled }),
+      testCallerIdentity(),
+    );
     expect(result.status?.phase).toBe(ExecutionPhase.EXECUTION_CANCELLED);
 
     const terminated = await seed(ExecutionPhase.EXECUTION_TERMINATED);
-    await terminateExecution(deps(), terminateInput({ id: terminated }));
+    await terminateExecution(
+      deps(),
+      terminateInput({ id: terminated }),
+      testCallerIdentity(),
+    );
 
     const inProgress = await seed(ExecutionPhase.EXECUTION_IN_PROGRESS);
-    await resumeExecution(deps(), resumeInput({ id: inProgress }));
-    await recoverExecution(deps(), recoverInput({ id: inProgress }));
+    await resumeExecution(
+      deps(),
+      resumeInput({ id: inProgress }),
+      testCallerIdentity(),
+    );
+    await recoverExecution(
+      deps(),
+      recoverInput({ id: inProgress }),
+      testCallerIdentity(),
+    );
 
     const paused = await seed(ExecutionPhase.EXECUTION_PAUSED);
-    await pauseExecution(deps(), pauseInput({ id: paused }));
+    await pauseExecution(
+      deps(),
+      pauseInput({ id: paused }),
+      testCallerIdentity(),
+    );
   });
 
   it("engineless postures: FailedPrecondition per pinned copy", async () => {
     const running = await seed(ExecutionPhase.EXECUTION_IN_PROGRESS);
     const englessOps = [
-      () => cancelExecution(deps(), cancelInput({ id: running })),
-      () => terminateExecution(deps(), terminateInput({ id: running })),
-      () => pauseExecution(deps(), pauseInput({ id: running })),
+      () =>
+        cancelExecution(
+          deps(),
+          cancelInput({ id: running }),
+          testCallerIdentity(),
+        ),
+      () =>
+        terminateExecution(
+          deps(),
+          terminateInput({ id: running }),
+          testCallerIdentity(),
+        ),
+      () =>
+        pauseExecution(
+          deps(),
+          pauseInput({ id: running }),
+          testCallerIdentity(),
+        ),
     ];
     for (const op of englessOps) {
       const err = await expectCode(op, Code.FailedPrecondition);
@@ -248,7 +327,12 @@ describe("shared load + validation arms (lifecycle_test.go)", () => {
     // Recover's first engine touch is the terminate-existing step.
     const failed = await seed(ExecutionPhase.EXECUTION_FAILED);
     const recoverErr = await expectCode(
-      () => recoverExecution(deps(), recoverInput({ id: failed })),
+      () =>
+        recoverExecution(
+          deps(),
+          recoverInput({ id: failed }),
+          testCallerIdentity(),
+        ),
       Code.FailedPrecondition,
     );
     expect(recoverErr.rawMessage).toBe(TEMPORAL_UNAVAILABLE_MESSAGE);
@@ -263,7 +347,11 @@ describe("connected-engine transitions", () => {
 
   it("cancel: CancelWorkflow on the orchestrator id, CANCELLED persisted with completed_at", async () => {
     const id = await seed(ExecutionPhase.EXECUTION_IN_PROGRESS);
-    const result = await cancelExecution(deps(engine), cancelInput({ id }));
+    const result = await cancelExecution(
+      deps(engine),
+      cancelInput({ id }),
+      testCallerIdentity(),
+    );
 
     expect(engine.calls).toEqual([
       { method: "cancelWorkflow", args: [orchestratorWorkflowId(id)] },
@@ -283,7 +371,11 @@ describe("connected-engine transitions", () => {
     engine.failures.cancelWorkflow = new EngineWorkflowNotFoundError(
       orchestratorWorkflowId(id),
     );
-    const result = await cancelExecution(deps(engine), cancelInput({ id }));
+    const result = await cancelExecution(
+      deps(engine),
+      cancelInput({ id }),
+      testCallerIdentity(),
+    );
     expect(result.status?.phase).toBe(ExecutionPhase.EXECUTION_CANCELLED);
   });
 
@@ -291,7 +383,12 @@ describe("connected-engine transitions", () => {
     const id = await seed(ExecutionPhase.EXECUTION_IN_PROGRESS);
     engine.failures.cancelWorkflow = new Error("temporal exploded");
     const err = await expectCode(
-      () => cancelExecution(deps(engine), cancelInput({ id })),
+      () =>
+        cancelExecution(
+          deps(engine),
+          cancelInput({ id }),
+          testCallerIdentity(),
+        ),
       Code.Internal,
     );
     expect(err.rawMessage).toBe("failed to cancel Temporal workflow");
@@ -299,8 +396,11 @@ describe("connected-engine transitions", () => {
 
   it("terminate: reason default + 'Terminated: {reason}' error copy", async () => {
     const id = await seed(ExecutionPhase.EXECUTION_IN_PROGRESS);
-    const result = await terminateExecution(deps(engine), terminateInput({ id,
-      reason: "stuck", }));
+    const result = await terminateExecution(
+      deps(engine),
+      terminateInput({ id, reason: "stuck" }),
+      testCallerIdentity(),
+    );
     expect(engine.calls).toEqual([
       {
         method: "terminateWorkflow",
@@ -311,7 +411,11 @@ describe("connected-engine transitions", () => {
     expect(result.status?.error).toBe("Terminated: stuck");
 
     const defaulted = await seed(ExecutionPhase.EXECUTION_IN_PROGRESS);
-    const result2 = await terminateExecution(deps(engine), terminateInput({ id: defaulted, }));
+    const result2 = await terminateExecution(
+      deps(engine),
+      terminateInput({ id: defaulted }),
+      testCallerIdentity(),
+    );
     expect(result2.status?.error).toBe("Terminated: Terminated by user");
   });
 
@@ -322,19 +426,30 @@ describe("connected-engine transitions", () => {
     );
     // Go's NotFound arm returns before ReasonKey is recorded — even an
     // explicit reason is lost and the default copy applies.
-    const result = await terminateExecution(deps(engine), terminateInput({ id,
-      reason: "explicit reason", }));
+    const result = await terminateExecution(
+      deps(engine),
+      terminateInput({ id, reason: "explicit reason" }),
+      testCallerIdentity(),
+    );
     expect(result.status?.error).toBe("Terminated by user");
   });
 
   it("pause/resume: the byte-pinned signal names with the reason payload", async () => {
     const id = await seed(ExecutionPhase.EXECUTION_IN_PROGRESS);
-    const paused = await pauseExecution(deps(engine), pauseInput({ id }));
+    const paused = await pauseExecution(
+      deps(engine),
+      pauseInput({ id }),
+      testCallerIdentity(),
+    );
     expect(paused.status?.phase).toBe(ExecutionPhase.EXECUTION_PAUSED);
     // PAUSED is not terminal — completed_at stays empty.
     expect(paused.status?.completedAt).toBe("");
 
-    const resumed = await resumeExecution(deps(engine), resumeInput({ id }));
+    const resumed = await resumeExecution(
+      deps(engine),
+      resumeInput({ id }),
+      testCallerIdentity(),
+    );
     expect(resumed.status?.phase).toBe(ExecutionPhase.EXECUTION_IN_PROGRESS);
 
     expect(engine.calls).toEqual([
@@ -354,7 +469,11 @@ describe("connected-engine transitions", () => {
       error: "boom",
       completedAt: "2026-05-23T10:00:00Z",
     });
-    const result = await recoverExecution(deps(engine), recoverInput({ id }));
+    const result = await recoverExecution(
+      deps(engine),
+      recoverInput({ id }),
+      testCallerIdentity(),
+    );
 
     expect(engine.calls[0]).toEqual({
       method: "terminateWorkflow",
@@ -376,20 +495,32 @@ describe("connected-engine transitions", () => {
 
     expect(result.status?.phase).toBe(ExecutionPhase.EXECUTION_IN_PROGRESS);
     expect(result.status?.error, "recover clears the error").toBe("");
-    expect(result.status?.completedAt, "back to IN_PROGRESS clears completed_at").toBe("");
+    expect(
+      result.status?.completedAt,
+      "back to IN_PROGRESS clears completed_at",
+    ).toBe("");
   });
 
   it("recover: NOT_FOUND on either tree member is tolerated; orchestrator failure short-circuits the child", async () => {
     const tolerated = await seed(ExecutionPhase.EXECUTION_FAILED);
     engine.failures.terminateWorkflow = new EngineWorkflowNotFoundError("x");
-    const result = await recoverExecution(deps(engine), recoverInput({ id: tolerated, }));
+    const result = await recoverExecution(
+      deps(engine),
+      recoverInput({ id: tolerated }),
+      testCallerIdentity(),
+    );
     expect(result.status?.phase).toBe(ExecutionPhase.EXECUTION_IN_PROGRESS);
 
     const failing = await seed(ExecutionPhase.EXECUTION_FAILED);
     const hardFail = stubConnectedEngine();
     hardFail.failures.terminateWorkflow = new Error("terminate exploded");
     const err = await expectCode(
-      () => recoverExecution(deps(hardFail), recoverInput({ id: failing })),
+      () =>
+        recoverExecution(
+          deps(hardFail),
+          recoverInput({ id: failing }),
+          testCallerIdentity(),
+        ),
       Code.Internal,
     );
     expect(err.rawMessage).toBe(
@@ -405,7 +536,12 @@ describe("connected-engine transitions", () => {
     const id = await seed(ExecutionPhase.EXECUTION_FAILED, { error: "boom" });
     engine.failures.startInvokeWorkflow = new Error("start exploded");
     const err = await expectCode(
-      () => recoverExecution(deps(engine), recoverInput({ id })),
+      () =>
+        recoverExecution(
+          deps(engine),
+          recoverInput({ id }),
+          testCallerIdentity(),
+        ),
       Code.Internal,
     );
     expect(err.rawMessage).toBe(
@@ -426,7 +562,11 @@ describe("connected-engine transitions", () => {
     const id = await seed(ExecutionPhase.EXECUTION_IN_PROGRESS);
     const subscription = broker.subscribe(id);
     try {
-      await cancelExecution(deps(engine), cancelInput({ id }));
+      await cancelExecution(
+        deps(engine),
+        cancelInput({ id }),
+        testCallerIdentity(),
+      );
       expect(subscription.queue).toHaveLength(1);
       expect(subscription.queue[0].status?.phase).toBe(
         ExecutionPhase.EXECUTION_CANCELLED,

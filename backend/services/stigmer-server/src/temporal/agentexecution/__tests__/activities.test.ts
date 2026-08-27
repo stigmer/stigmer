@@ -14,6 +14,7 @@
  *     error-over-result precedence — the DD-001 lane Go cannot deliver
  *     (oss#861), so the ERROR path is the load-bearing assertion.
  */
+import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/authorize.js";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -92,6 +93,7 @@ function newFixture() {
     store,
     logger: silentLogger,
     broker,
+    authorizer: newPermissiveSingleTeamAuthorizer(),
     client: () => stubClient,
   });
   return { store, broker, activities, completions };

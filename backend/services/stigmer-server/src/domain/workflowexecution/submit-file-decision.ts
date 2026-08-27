@@ -31,6 +31,9 @@ import {
   notFoundError,
 } from "../../pipeline/errors.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
+import type { Authorizer } from "../../extensions/authorizer.js";
+import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
+import type { CallerIdentity } from "../../extensions/identity.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import type { Store } from "../../store/interface.js";
@@ -51,6 +54,8 @@ export type AgentExecutionFileDecisionForwarderProvider =
 export interface SubmitFileDecisionDeps {
   readonly store: Store;
   readonly logger: Logger;
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  readonly authorizer: Authorizer;
   readonly fileDecisionForwarder: AgentExecutionFileDecisionForwarderProvider;
 }
 
@@ -62,16 +67,24 @@ const TARGET_EXECUTION_KEY = "targetResource";
 export async function submitFileDecision(
   deps: SubmitFileDecisionDeps,
   input: SubmitWorkflowFileDecisionInput,
+  identity: CallerIdentity,
 ): Promise<WorkflowExecution> {
   const reqCtx = new RequestContext(
     WorkflowExecutionCommandController.method.submitFileDecision.input,
     input,
+    identity,
     ApiResourceKind.workflow_execution,
   );
   await newPipeline<SubmitFileDecisionDesc>(
     "workflow-execution-submit-file-decision",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(
+        WorkflowExecutionCommandController.method.submitFileDecision,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep({
       name: "LoadExisting",

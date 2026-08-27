@@ -13,6 +13,8 @@
  * different-children race through the REAL sqlite store, where
  * load-then-save would drop one child's gate.
  */
+import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/authorize.js";
+import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -140,7 +142,10 @@ describe("pending_approvals per-child merge (update_status_test.go)", () => {
   // The core regression: two parallel children must not clobber each other.
   it("parallel children not clobbered on set", () => {
     const existing = makeExecution({
-      pendingApprovals: [wfApproval("aex_A", "tc_A"), wfApproval("aex_B", "tc_B")],
+      pendingApprovals: [
+        wfApproval("aex_A", "tc_A"),
+        wfApproval("aex_B", "tc_B"),
+      ],
     });
     const result = executeMerge(existing, {
       executionId: "wfx_test",
@@ -161,7 +166,10 @@ describe("pending_approvals per-child merge (update_status_test.go)", () => {
 
   it("scoped clear preserves siblings", () => {
     const existing = makeExecution({
-      pendingApprovals: [wfApproval("aex_A", "tc_A"), wfApproval("aex_B", "tc_B")],
+      pendingApprovals: [
+        wfApproval("aex_A", "tc_A"),
+        wfApproval("aex_B", "tc_B"),
+      ],
     });
     const result = executeMerge(existing, {
       executionId: "wfx_test",
@@ -290,10 +298,7 @@ describe("mergePendingByChild (pure contract)", () => {
     expect(mergePendingByChild(["A", "B"], [], childOf, "B")).toEqual(["A"]);
   });
   it("adds new child", () => {
-    expect(mergePendingByChild(["A"], ["C"], childOf, "C")).toEqual([
-      "A",
-      "C",
-    ]);
+    expect(mergePendingByChild(["A"], ["C"], childOf, "C")).toEqual(["A", "C"]);
   });
   it("empty existing", () => {
     expect(mergePendingByChild([], ["A"], childOf, "A")).toEqual(["A"]);
@@ -427,11 +432,17 @@ describe("updateStatus persistence mechanism (DD-001)", () => {
   it("unknown execution answers NotFound (Go LoadExistingExecution)", async () => {
     try {
       await updateStatus(
-        { store, logger: silentLogger, broker },
+        {
+          store,
+          logger: silentLogger,
+          broker,
+          authorizer: newPermissiveSingleTeamAuthorizer(),
+        },
         create(WorkflowExecutionUpdateStatusInputSchema, {
           executionId: "wfx_missing",
           status: { phase: ExecutionPhase.EXECUTION_IN_PROGRESS },
         }),
+        testCallerIdentity(),
       );
       expect.unreachable("expected NotFound");
     } catch (error) {
@@ -457,13 +468,22 @@ describe("updateStatus persistence mechanism (DD-001)", () => {
 
     await seed("wfx_mechanism");
     await updateStatus(
-      { store: countingStore, logger: silentLogger, broker },
+      {
+        store: countingStore,
+        logger: silentLogger,
+        broker,
+        authorizer: newPermissiveSingleTeamAuthorizer(),
+      },
       create(WorkflowExecutionUpdateStatusInputSchema, {
         executionId: "wfx_mechanism",
         status: { phase: ExecutionPhase.EXECUTION_IN_PROGRESS },
       }),
+      testCallerIdentity(),
     );
-    expect(calls.updateResource, "the merge must run inside updateResource").toBe(1);
+    expect(
+      calls.updateResource,
+      "the merge must run inside updateResource",
+    ).toBe(1);
     expect(
       calls.saveResource,
       "a saveResource write here would reintroduce the lost-update window",
@@ -480,13 +500,19 @@ describe("updateStatus persistence mechanism (DD-001)", () => {
     for (let iteration = 0; iteration < 25; iteration++) {
       const writeFor = (child: string, toolCallId: string) =>
         updateStatus(
-          { store, logger: silentLogger, broker },
+          {
+            store,
+            logger: silentLogger,
+            broker,
+            authorizer: newPermissiveSingleTeamAuthorizer(),
+          },
           create(WorkflowExecutionUpdateStatusInputSchema, {
             executionId: id,
             status: { pendingApprovals: [wfApproval(child, toolCallId)] },
             updatePendingApprovals: true,
             pendingUpdateChildAgentExecutionId: child,
           }),
+          testCallerIdentity(),
         );
       await Promise.all([
         writeFor("aex_A", `tc_A_${iteration}`),
@@ -516,11 +542,17 @@ describe("updateStatus persistence mechanism (DD-001)", () => {
     const subscription = broker.subscribe(id);
     try {
       await updateStatus(
-        { store, logger: silentLogger, broker },
+        {
+          store,
+          logger: silentLogger,
+          broker,
+          authorizer: newPermissiveSingleTeamAuthorizer(),
+        },
         create(WorkflowExecutionUpdateStatusInputSchema, {
           executionId: id,
           status: { phase: ExecutionPhase.EXECUTION_COMPLETED },
         }),
+        testCallerIdentity(),
       );
       expect(subscription.queue).toHaveLength(1);
       expect(subscription.queue[0].status?.phase).toBe(

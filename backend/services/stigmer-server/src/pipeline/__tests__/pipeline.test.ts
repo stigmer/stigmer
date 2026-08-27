@@ -5,6 +5,7 @@
  * error reaches the wire as Internal/"internal server error" with the real
  * cause kept server-side. Also pins RequestContext's input immutability.
  */
+import { testCallerIdentity } from "./support.js";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { describe, expect, it } from "vitest";
 
@@ -31,6 +32,7 @@ function orgContext(): RequestContext<typeof OrganizationSchema> {
       kind: "Organization",
       metadata: { name: "Acme" },
     }),
+    testCallerIdentity(),
   );
 }
 
@@ -50,7 +52,10 @@ function step(
 describe("pipeline execution", () => {
   it("runs steps in order and stops on the first error", async () => {
     const order: string[] = [];
-    const pipeline = newPipeline<typeof OrganizationSchema>("test", silentLogger)
+    const pipeline = newPipeline<typeof OrganizationSchema>(
+      "test",
+      silentLogger,
+    )
       .addStep(step("First", (o) => o.push("first"), order))
       .addStep({
         name: "Boom",
@@ -66,11 +71,17 @@ describe("pipeline execution", () => {
   });
 
   it("preserves a ConnectError's code and clean message on the wire", async () => {
-    const pipeline = newPipeline<typeof OrganizationSchema>("test", silentLogger)
+    const pipeline = newPipeline<typeof OrganizationSchema>(
+      "test",
+      silentLogger,
+    )
       .addStep({
         name: "Reject",
         execute() {
-          throw new ConnectError("Organization already exists: slug 'acme'", Code.AlreadyExists);
+          throw new ConnectError(
+            "Organization already exists: slug 'acme'",
+            Code.AlreadyExists,
+          );
         },
       })
       .build();
@@ -85,8 +96,13 @@ describe("pipeline execution", () => {
   });
 
   it("sanitizes a plain error to Internal/'internal server error' with the cause kept server-side (#478)", async () => {
-    const raw = new Error("SQLITE_IOERR: /home/user/.stigmer/stigmer.db is corrupt");
-    const pipeline = newPipeline<typeof OrganizationSchema>("test", silentLogger)
+    const raw = new Error(
+      "SQLITE_IOERR: /home/user/.stigmer/stigmer.db is corrupt",
+    );
+    const pipeline = newPipeline<typeof OrganizationSchema>(
+      "test",
+      silentLogger,
+    )
       .addStep({
         name: "Leaky",
         execute() {
