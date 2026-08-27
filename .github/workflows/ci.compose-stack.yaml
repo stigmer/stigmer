@@ -1,0 +1,78 @@
+# =============================================================================
+# Compose Stack — the self-host phase gate (DD-013, Phase-2 P5)
+# =============================================================================
+# Proves `docker compose up` from a clean clone: server + one Postgres +
+# real Temporal + containerized runner, up to ONE END-TO-END workflow run
+# through the runner (LLM-free, zero provider secrets — the gate ruling Q-C).
+#
+# Both images build FROM SOURCE via docker-compose.dev.yml (the gate ruling
+# Q-A): the committed docker-compose.yml pins published version tags for
+# users, but a PR must prove the real topology without waiting for a
+# release. The published-tag path is re-proven by the release lane
+# (release.npm-libs.yaml), which runs the SAME scripts/smoke-compose.mjs
+# against the pushed images on native amd64 + arm64 runners.
+#
+# Path filter: the compose surface only. Server/runner SOURCE changes are
+# gated by ci.stigmer-server / ci.runner (+ the conformance lanes); this
+# workflow guards the topology, the images' packaging seams, and the smoke
+# itself.
+# =============================================================================
+
+name: ci.compose-stack
+
+on:
+  pull_request:
+    paths:
+      - "docker-compose.yml"
+      - "docker-compose.dev.yml"
+      - ".env.example"
+      - "scripts/smoke-compose.mjs"
+      - "backend/services/runner/Dockerfile.sandbox"
+      - "backend/services/stigmer-server/Dockerfile"
+      - "Makefile"
+      - ".github/workflows/ci.compose-stack.yaml"
+  push:
+    branches: [main]
+    paths:
+      - "docker-compose.yml"
+      - "docker-compose.dev.yml"
+      - ".env.example"
+      - "scripts/smoke-compose.mjs"
+      - "backend/services/runner/Dockerfile.sandbox"
+      - "backend/services/stigmer-server/Dockerfile"
+      - "Makefile"
+      - ".github/workflows/ci.compose-stack.yaml"
+  workflow_dispatch:
+
+concurrency:
+  group: compose-stack-${{ github.head_ref || github.ref }}
+  # PR pushes cancel superseded runs; main pushes queue instead, so every
+  # merge gets a completed, attributable run (stigmer/stigmer#725).
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
+jobs:
+  compose-gate:
+    name: Compose Gate (build-from-source)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Install npm workspace dependencies
+        run: npm ci
+
+      # make smoke-compose = build-server (stubs + deps + compile) +
+      # build-web (the console export bundle-slim stages, DD-012) +
+      # bundle-slim + scripts/smoke-compose.mjs --build. One entry point,
+      # identical to what a contributor runs locally.
+      - name: Build the stack from source and run the gate smoke
+        run: make smoke-compose

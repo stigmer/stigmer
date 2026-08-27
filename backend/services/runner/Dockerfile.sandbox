@@ -1,10 +1,26 @@
-# Cloud Sandbox — Unified TypeScript Runner
-# Sandbox image for cloud-mode execution. Published to GHCR.
+# Unified TypeScript Runner — Sandbox + Compose Images
 #
 # Build context: Repository root
 # Build command: docker build -f backend/services/runner/Dockerfile.sandbox .
 #
-# This image provides:
+# TWO published images derive from one stage chain (DD-014: the compose
+# runner derives from the sandbox image; no second runner image is invented):
+#
+#   builder        — compiles the runner + its file:-linked @stigmer libs
+#   sandbox        — the CLOUD sandbox image (release.sandbox-cloud builds
+#                    `--target sandbox`; stigmer-service launches sandboxes
+#                    from it). The runner process is started by the control
+#                    plane (the Kubernetes provisioner sets the pod command),
+#                    so CMD stays /bin/bash and an ad-hoc `docker run` lands
+#                    in a shell.
+#   compose-runner — the SELF-HOST compose stack's runner (the default,
+#                    last stage; docker-compose.yml consumes it as
+#                    ghcr.io/stigmer/stigmer-runner). Compose is this
+#                    image's control plane, so the runner launch command is
+#                    baked in, and the stigmer CLI rides along for the
+#                    OSS-shape MCP attachments (see the stage comment).
+#
+# The image provides:
 #   1. Unified Temporal worker (Node.js) handling all execution types:
 #      ExecuteDeepAgent, ExecuteCursor, ExecuteServerlessWorkflow
 #   2. Language runtimes for agent shell work: Node.js 22 LTS, Python (uv), Go
@@ -13,13 +29,13 @@
 # Stdio MCP servers do NOT run on cloud runners (stdio is local-runner-only;
 # see shared/mcp-transport-guard.ts), so no MCP package caches are pre-warmed.
 # The runtimes stay because agents legitimately shell out to node/python/go
-# in their workspaces.
+# in their workspaces. The compose runner runs MODE=local, where stdio MCP
+# IS allowed — its subprocesses spawn inside this container.
 #
-# The runner process is started by the control plane (the Kubernetes
-# provisioner sets the pod command to launch the runner) — CMD stays
-# /bin/bash so an ad-hoc `docker run` lands in a shell.
-#
-# Platform: linux/amd64 only (Temporal native bindings are arch-specific)
+# Platforms: linux/amd64 + linux/arm64. The historical amd64-only claim
+# (arch-specific Temporal native bindings) was re-verified stale at Phase-2
+# P5: @temporalio/core-bridge ships linux-arm64 prebuilds and loads cleanly;
+# the only arch-named asset here is the yq download, parameterized below.
 
 # ---------- Build Proto Stubs + Runner ----------
 FROM node:22-slim AS builder
@@ -76,8 +92,14 @@ RUN npm prune --omit=dev --legacy-peer-deps && \
       fi; \
     done
 
-# ---------- Runtime ----------
-FROM debian:bookworm-slim
+# ---------- Runtime (the cloud sandbox image) ----------
+FROM debian:bookworm-slim AS sandbox
+
+# TARGETARCH (amd64|arm64) is populated by BuildKit per platform leg —
+# needed by the yq download below, which is the only arch-named asset in
+# this stage (node/go/uv all resolve their arch via multi-arch images or
+# installer detection).
+ARG TARGETARCH
 
 # --- Node.js 22 LTS (copied from official image, not Debian's v18) ---
 COPY --from=node:22-slim /usr/local/bin/node /usr/local/bin/node
@@ -109,7 +131,7 @@ RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
     mv /root/.local/bin/uvx /usr/local/bin/uvx
 
 # --- yq (YAML processor) ---
-RUN curl -fsSL https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 \
+RUN curl -fsSL "https://github.com/mikefarah/yq/releases/latest/download/yq_linux_${TARGETARCH}" \
         -o /usr/local/bin/yq && \
     chmod +x /usr/local/bin/yq
 
@@ -121,3 +143,39 @@ COPY --from=builder /build/backend/services/runner/package.json /runner/package.
 WORKDIR /workspace
 
 CMD ["/bin/bash"]
+
+# ---------- Compose runner (the self-host stack's runner) ----------
+# The sandbox stage plus the stigmer CLI. Why the CLI: in the OSS/local
+# shape (no STIGMER_MCP_BRIDGE_ENDPOINT) the runner synthesizes the memory
+# and channel MCP attachments as a spawned `stigmer mcp-server` stdio child
+# (shared/memory-attachment.ts, shared/channel-attachment.ts). On a laptop
+# the CLI is on PATH by definition; in a container it must be baked in, or
+# every memory-enabled session fails at spawn (ENOENT). The npm registry is
+# the CLI's canonical distribution channel — these are the same bytes a
+# laptop's global install resolves. The release lane pins the in-train
+# version; dev/CI source builds default to the latest published CLI.
+FROM sandbox AS compose-runner
+
+ARG STIGMER_CLI_VERSION=latest
+RUN npm install -g "@stigmer/cli@${STIGMER_CLI_VERSION}"
+
+# State home. The runner keeps session state — HITL/pause checkpoints
+# (sessions/<id>/checkpoints.db), the HITL gate dir — under $HOME/.stigmer
+# (shared/workspace/platform-dir.ts). /data mirrors the server image's
+# HOME=/data posture so compose can pin ONE volume mount point per
+# container; without it, in-flight paused sessions die with the container.
+#
+# The artifact path is pre-created uid/gid 1000 — the SERVER image's
+# non-root `node` user. Compose mounts one shared artifacts volume into
+# both containers at this path, and docker initializes a named volume from
+# whichever container mounts it FIRST: if that is this (root-running)
+# image and the path were root-owned, the non-root server could never
+# write an artifact. Pinning 1000 here makes initialization order
+# irrelevant; the runner itself runs as root and reads regardless.
+RUN mkdir -p /data/.stigmer/data/artifacts && chown -R 1000:1000 /data/.stigmer/data/artifacts
+ENV HOME=/data
+
+# Compose is this image's control plane (the sandbox header's contract),
+# so the launch command is baked here rather than repeated in every
+# compose file. dist/main.js is the runner package's published bin entry.
+CMD ["node", "/runner/dist/main.js"]

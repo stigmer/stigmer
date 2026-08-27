@@ -1,0 +1,36 @@
+# Build-from-source override for the compose stack (contributors + CI).
+#
+#   make smoke-compose            # the full gate: build, up, probe, teardown
+#
+# or by hand — the server image COPYs a prebuilt slim tree, so stage it first:
+#
+#   make build-server build-web
+#   cd backend/services/stigmer-server && node scripts/bundle-slim.mjs && cd -
+#   node scripts/smoke-compose.mjs --build --keep
+#
+# (smoke-compose.mjs stages dist-slim into the dist-slim-<arch>/ directory
+# the Dockerfile's TARGETARCH COPY expects, then runs `docker compose build`
+# with both files. The runner image builds straight from the repo tree.)
+#
+# The published-image pins in docker-compose.yml stay the user contract;
+# this file exists so every PR can prove the real topology without waiting
+# for a release (the P5 gate ruling Q-A).
+
+services:
+  stigmer-server:
+    image: stigmer-server:compose-dev
+    build:
+      context: ./backend/services/stigmer-server
+    pull_policy: never
+
+  stigmer-runner:
+    image: stigmer-runner:compose-dev
+    build:
+      context: .
+      dockerfile: backend/services/runner/Dockerfile.sandbox
+      target: compose-runner
+      args:
+        # Source builds take the latest published CLI (the CLI is
+        # npm-distributed; the release lane pins the in-train version).
+        STIGMER_CLI_VERSION: ${STIGMER_CLI_VERSION:-latest}
+    pull_policy: never
