@@ -14,6 +14,14 @@
  * The R2 backend (S3-compatible, AWS SDK) lives in r2-storage.ts — it
  * arrived with the artifact domain (#13) per the ratified deferral, closing
  * the temporary ARTIFACT_STORAGE_TYPE=r2 boot-fail divergence #17 shipped.
+ *
+ * Since O5 (20260827.02, blueprint 03 §6b) this is the ONE blob-driver
+ * seam of the convergence program: it gained the presigned-PUT capability,
+ * `size`, a typed not-found error, and registry-driven driver registration
+ * (extensions/drivers.ts). Domain semantics — content-addressed keys,
+ * staging lanes, write-once postures — deliberately live ABOVE this
+ * interface in their owning domains: the driver stores blobs; the domain
+ * owns keys and lanes.
  */
 import { mkdirSync } from "node:fs";
 import {
@@ -33,11 +41,52 @@ import { R2ArtifactStorage } from "./r2-storage.js";
  * artifact file server (#13) reads it to set Content-Disposition. */
 export const LOCAL_DOWNLOAD_QUERY_PARAM = "download";
 
+/**
+ * A storage key that addresses no stored blob. Consumers that must map
+ * "missing" onto their own domain vocabulary (skill's ArtifactNotFoundError,
+ * a NotFound wire code) branch on this class per the ratified store-fault
+ * instanceof idiom; every OTHER driver failure is an infrastructure fault
+ * to rethrow or wrap, never a not-found.
+ */
+export class ArtifactStorageNotFoundError extends Error {
+  constructor(key: string) {
+    // The local backend's historical copy, kept verbatim — this class adds
+    // a type to the existing message, not a new message.
+    super(`artifact not found: ${key}`);
+    this.name = "ArtifactStorageNotFoundError";
+  }
+}
+
+/**
+ * A staged upload minted by presignPut: the URL receives the bytes, the
+ * stagingKey reads them back through the same driver. Staged blobs are
+ * short-lived by contract — the local lane sweeps them on TTL expiry and
+ * boot; R2 deployments configure a bucket lifecycle rule on the staging
+ * prefix (the §6b driver-side sweep expectation).
+ */
+export interface PresignedUpload {
+  /** Accepts one HTTP PUT of exactly the declared byte count. */
+  readonly url: string;
+  /** Driver key where the staged bytes land, readable via download(). */
+  readonly stagingKey: string;
+  /** The TTL actually granted, after per-driver clamping. */
+  readonly ttlMs: number;
+}
+
 export interface ArtifactStorage {
   /** Stores artifact data under the key. */
   upload(key: string, data: Uint8Array, contentType: string): Promise<void>;
-  /** Retrieves artifact data by key. */
+  /**
+   * Retrieves artifact data by key; a key addressing no stored blob
+   * throws ArtifactStorageNotFoundError.
+   */
   download(key: string): Promise<Uint8Array>;
+  /**
+   * The stored blob's byte size without loading its content (local stat /
+   * R2 HeadObject); a key addressing no stored blob throws
+   * ArtifactStorageNotFoundError.
+   */
+  size(key: string): Promise<number>;
   /**
    * A time-limited download URL. downloadFilename, when non-empty, bakes
    * a browser-download disposition into the URL (browsers ignore the HTML
@@ -48,12 +97,55 @@ export interface ArtifactStorage {
     expiresInMs: number,
     downloadFilename: string,
   ): Promise<string>;
+  /**
+   * A time-limited upload URL for a staging-prefixed blob of exactly
+   * declaredSizeBytes (§6b). Per-driver semantics differ DELIBERATELY and
+   * are contract, not accident: the local backend rides the skill transfer
+   * lane's URL-as-credential slot mechanism (single-use, exact-size
+   * enforced by the lane, TTL clamped to the lane's slot TTL) and answers
+   * only on instances with a staged-upload lane wired — unwired instances
+   * throw the explicit not-configured error, never a silent no-op. The R2
+   * backend presigns a PUT (repeatable within its TTL, size enforced by
+   * the signed Content-Length header, TTL clamped to the 7-day R2
+   * maximum).
+   */
+  presignPut(declaredSizeBytes: number, ttlMs: number): Promise<PresignedUpload>;
   /** Removes the artifact; missing is not an error. */
   delete(key: string): Promise<void>;
   /** Whether an artifact with the key exists. */
   exists(key: string): Promise<boolean>;
   /** Storage connectivity/writability probe (boot health check). */
   health(): Promise<void>;
+}
+
+/**
+ * Constructs a registered driver. Lazy DELIBERATELY (the WorkerFactory
+ * precedent): driver constructors may have side effects — the local
+ * backend mkdirs its root — and a composition must not pay them for
+ * drivers its config never selects. Extensions close over their own
+ * configuration; the factory takes nothing.
+ */
+export type ArtifactStorageDriverFactory = () => ArtifactStorage;
+
+/**
+ * The staged-upload mechanism a LocalArtifactStorage instance rides for
+ * presignPut — the seam the composition root adapts the skill transfer
+ * lane's UploadSlots + URL renderer into (Q1 ruling, 20260827.02 T01: one
+ * upload surface, no new lane). Declared HERE, not imported from the skill
+ * domain: the §6b layering runs domain-over-driver, so the driver states
+ * the shape it needs and stays ignorant of who provides it.
+ */
+export interface StagedUploadLane {
+  /** Reserves a single-use upload slot; returns its reference + TTL. */
+  mint(declaredSizeBytes: number): { ref: string; ttlMs: number };
+  /** The externally-reachable PUT URL for a minted reference. */
+  uploadUrl(ref: string): string;
+  /**
+   * The driver key where the reference's staged bytes land — MUST resolve
+   * inside the driver instance's root, or download(stagingKey) could
+   * never read what the lane received.
+   */
+  stagedKey(ref: string): string;
 }
 
 export interface ArtifactStorageConfig {
@@ -69,9 +161,22 @@ export interface ArtifactStorageConfig {
   readonly r2Region: string;
 }
 
-/** Factory mirroring Go NewArtifactStorage. */
+/**
+ * The built-in driver names. Registered drivers may not shadow them —
+ * resolveExtensions enforces that at boot (a shadowed built-in would be
+ * silently unreachable, the §2b loud-fail rules forbid exactly that).
+ */
+export const BUILT_IN_STORAGE_TYPES = ["local", "r2"] as const;
+
+/**
+ * Factory mirroring Go NewArtifactStorage, opened to registered drivers
+ * with O5 (§6b): built-ins first, then the composition's registered driver
+ * map — the cloud substitutes its per-domain R2 drivers without this
+ * switch ever growing a case.
+ */
 export function newArtifactStorage(
   config: ArtifactStorageConfig,
+  registeredDrivers: ReadonlyMap<string, ArtifactStorageDriverFactory> = new Map(),
 ): ArtifactStorage {
   const storageType = config.type === "" ? "local" : config.type;
   switch (storageType) {
@@ -88,10 +193,16 @@ export function newArtifactStorage(
         secretAccessKey: config.r2SecretAccessKey,
         region: config.r2Region,
       });
-    default:
-      throw new Error(
-        `unknown storage type: ${storageType} (must be 'local' or 'r2')`,
-      );
+    default: {
+      const registered = registeredDrivers.get(storageType);
+      if (registered !== undefined) {
+        return registered();
+      }
+      const known = [...BUILT_IN_STORAGE_TYPES, ...registeredDrivers.keys()]
+        .map((name) => `'${name}'`)
+        .join(" or ");
+      throw new Error(`unknown storage type: ${storageType} (must be ${known})`);
+    }
   }
 }
 
@@ -99,6 +210,14 @@ export class LocalArtifactStorage implements ArtifactStorage {
   constructor(
     private readonly basePath: string,
     private readonly serveUrl: string,
+    /**
+     * The staged-upload mechanism backing presignPut — optional because
+     * only instances whose root the lane stages into can serve it (the
+     * skill store instance today); presignPut on an unwired instance is
+     * the explicit not-configured throw, mirroring getSignedUrl's
+     * serve-URL posture.
+     */
+    private readonly stagedUploadLane?: StagedUploadLane,
   ) {
     // Ensure the artifact root exists (Go NewLocalStorage MkdirAll).
     mkdirSync(this.root(), { recursive: true });
@@ -121,10 +240,42 @@ export class LocalArtifactStorage implements ArtifactStorage {
       return await readFile(filePath);
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-        throw new Error(`artifact not found: ${key}`);
+        throw new ArtifactStorageNotFoundError(key);
       }
       throw error;
     }
+  }
+
+  async size(key: string): Promise<number> {
+    const filePath = this.resolveWithinRoot(key);
+    try {
+      return (await stat(filePath)).size;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+        throw new ArtifactStorageNotFoundError(key);
+      }
+      throw error;
+    }
+  }
+
+  async presignPut(
+    declaredSizeBytes: number,
+    _ttlMs: number,
+  ): Promise<PresignedUpload> {
+    if (this.stagedUploadLane === undefined) {
+      throw new Error(
+        "local presigned uploads not configured - no staged-upload lane is wired to this store instance",
+      );
+    }
+    // The lane's slot TTL governs, not the caller's ask — the slot
+    // registry sweeps on ITS clock, and a URL outliving its slot would be
+    // a credential for nothing.
+    const { ref, ttlMs } = this.stagedUploadLane.mint(declaredSizeBytes);
+    return {
+      url: this.stagedUploadLane.uploadUrl(ref),
+      stagingKey: this.stagedUploadLane.stagedKey(ref),
+      ttlMs,
+    };
   }
 
   async getSignedUrl(

@@ -88,7 +88,7 @@ import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import { newValidateVisibilityStep } from "../../pipeline/steps/validate-visibility.js";
 import type { Store } from "../../store/interface.js";
-import type { ModelRegistryStore } from "../workflow/registry/model-registry-store.js";
+import type { ModelCatalogProvider } from "../workflow/registry/model-catalog-provider.js";
 import { INSTALL_UNAVAILABLE_MESSAGE } from "./constants.js";
 import {
   newInitInstallStateStep,
@@ -101,7 +101,7 @@ export interface AgentChannelControllerDeps {
   readonly logger: Logger;
   /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
   readonly authorizer: Authorizer;
-  readonly modelRegistry: ModelRegistryStore;
+  readonly modelRegistry: ModelCatalogProvider;
 }
 
 /** Registers both agentchannel resource services on the router. */

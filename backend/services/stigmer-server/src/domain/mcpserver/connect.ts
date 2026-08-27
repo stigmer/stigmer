@@ -49,7 +49,8 @@ import {
   invalidArgumentError,
   unavailableError,
 } from "../../pipeline/errors.js";
-import type { RunnerAuthService } from "../../runnerauth/runnerauth.js";
+import type { RunnerCredentialProvider } from "../../runnerauth/runner-credential-provider.js";
+import { TOKEN_TYPE_EXECUTION_SCOPED } from "../../runnerauth/runnerauth.js";
 import type {
   OAuthGrantStore,
   PendingOAuthStateStore,
@@ -190,7 +191,7 @@ export interface McpServerConnectDeps {
   readonly engineState: McpServerEngineStateProvider;
   readonly environmentReader: ConnectEnvironmentReader;
   readonly executionContext: ConnectExecutionContextClient;
-  readonly runnerAuth: RunnerAuthService;
+  readonly runnerAuth: RunnerCredentialProvider;
   readonly managedEnv: ManagedEnvironmentService;
   readonly oauthGrants: OAuthGrantStore;
   readonly pendingOAuthStates: PendingOAuthStateStore;
@@ -391,9 +392,16 @@ export async function prepareConnect(
   // with declared credentials will refuse the redacted read with an
   // actionable error, and credential-less servers connect fine without
   // the token.
-  if (ecResourceId !== "" && deps.runnerAuth.isEnabled()) {
+  if (
+    ecResourceId !== "" &&
+    deps.runnerAuth.isEnabled(TOKEN_TYPE_EXECUTION_SCOPED)
+  ) {
     try {
-      const minted = deps.runnerAuth.mint(executionId, 0);
+      const minted = deps.runnerAuth.mint(
+        TOKEN_TYPE_EXECUTION_SCOPED,
+        executionId,
+        0,
+      );
       return {
         workflowInput: {
           ...workflowInput,

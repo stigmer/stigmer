@@ -28,6 +28,7 @@ import {
   ServerEdition,
 } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 
+import type { ArtifactStorage } from "../../artifactstorage/artifact-storage.js";
 import { loadConfig } from "../../boot/config.js";
 import { composeServer } from "../../boot/compose.js";
 import type { ComposedServer } from "../../boot/compose.js";
@@ -134,5 +135,119 @@ describe("extension composition (composed server)", () => {
     );
     expect(bootLine).toBeDefined();
     expect(bootLine).toContain("fake-billing");
+  });
+});
+
+/**
+ * The O5 driver-substitution arm: every consumption site routes through
+ * the composed drivers — the registry lane serves the substituted
+ * catalog's document, the platform exchange mints through the substituted
+ * credential provider, and the artifact factory selects the registered
+ * blob driver by its configured name.
+ */
+describe("extension composition (O5 driver substitution)", () => {
+  const FAKE_DOCUMENT = `{"models":[{"id":"fake/model","harness":"native"}]}`;
+  let server: ComposedServer;
+  let dir: string;
+  let port: number;
+  let blobDriverConstructed = 0;
+
+  const driverExtension: ServerExtension = {
+    name: "fake-drivers",
+    drivers: {
+      modelCatalogProvider: {
+        document: () => FAKE_DOCUMENT,
+        isValidModel: () => true,
+        hasHarness: () => true,
+        hasAnyModels: () => true,
+        isValidModelOnAnyHarness: () => true,
+        canonicalModelsAcrossHarnesses: () => ["fake/model"],
+        canonicalModels: () => ["fake/model"],
+        hasPricingVariant: () => true,
+        hasPricingVariantForHarness: () => true,
+        canonicalModelsWithVariant: () => ["fake/model"],
+        canonicalModelsWithVariantForHarness: () => ["fake/model"],
+        hasCapabilityForHarness: () => true,
+        canonicalModelsWithCapabilityForHarness: () => ["fake/model"],
+      },
+      runnerCredentialProvider: {
+        isEnabled: () => true,
+        mint: (lane, binding) => ({
+          token: `fake-${lane}-${binding}`,
+          ttlSeconds: 42,
+        }),
+        verify: (lane, token) => `${lane}:${token}`,
+      },
+      artifactStorageDrivers: new Map([
+        [
+          "fake-blob",
+          (): ArtifactStorage => {
+            blobDriverConstructed += 1;
+            const blobs = new Map<string, Uint8Array>();
+            return {
+              upload: (key, data) => {
+                blobs.set(key, data);
+                return Promise.resolve();
+              },
+              download: (key) =>
+                Promise.resolve(blobs.get(key) ?? new Uint8Array()),
+              size: (key) => Promise.resolve(blobs.get(key)?.length ?? 0),
+              presignPut: () =>
+                Promise.reject(new Error("not exercised here")),
+              getSignedUrl: () => Promise.resolve("https://blob.invalid"),
+              delete: () => Promise.resolve(),
+              exists: (key) => Promise.resolve(blobs.has(key)),
+              health: () => Promise.resolve(),
+            };
+          },
+        ],
+      ]),
+    },
+  };
+
+  beforeAll(async () => {
+    dir = mkdtempSync(path.join(tmpdir(), "driver-substitution-test-"));
+    server = await composeServer({
+      config: loadConfig({
+        STIGMER_MODEL_REGISTRY_REFRESH: "off",
+        DB_PATH: path.join(dir, "stigmer.db"),
+        STORAGE_PATH: path.join(dir, "storage"),
+        // The registered driver serves the GENERIC artifact store; the
+        // skill store stays on its default local arm (Q2b: per-domain).
+        ARTIFACT_STORAGE_TYPE: "fake-blob",
+        ARTIFACT_LOCAL_BASE_PATH: path.join(dir, "artifacts"),
+      }),
+      logger: createLogger({ level: "error", pretty: false, write: () => {} }),
+      extensions: [driverExtension],
+      portOverride: 0,
+      host: "127.0.0.1",
+    });
+    port = await server.start();
+  });
+
+  afterAll(async () => {
+    await server.shutdown();
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("the registry lane serves the substituted catalog's document verbatim", async () => {
+    const response = await fetch(
+      `http://127.0.0.1:${port}/v1/proxy/model-registry`,
+    );
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe(FAKE_DOCUMENT);
+  });
+
+  it("the platform exchange mints through the substituted credential provider", async () => {
+    const client = createClient(PlatformQueryController, server.inProcessTransport);
+    const out = await client.getRunnerScopedToken({
+      scope: { case: "agentExecutionId", value: "aex_substituted" },
+    });
+    expect(out.runnerScopedToken).toBe("fake-execution_scoped-aex_substituted");
+    expect(out.expiresInSeconds).toBe(42);
+  });
+
+  it("the artifact factory constructed the registered blob driver exactly once", () => {
+    expect(blobDriverConstructed).toBe(1);
   });
 });

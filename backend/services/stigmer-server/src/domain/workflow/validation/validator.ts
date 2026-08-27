@@ -28,7 +28,7 @@ import type { ServerlessWorkflowValidation } from "@stigmer/protos/ai/stigmer/ag
 
 import type { Logger } from "../../../boot/logger.js";
 import { protoToYaml } from "../converter/converter.js";
-import type { ModelRegistryStore } from "../registry/model-registry-store.js";
+import type { ModelCatalogProvider } from "../registry/model-catalog-provider.js";
 import { checkBudgetWarnings } from "./budget-warnings.js";
 import {
   validateCrossTaskReferences,
@@ -42,7 +42,7 @@ import { validateTaskConfigConstraints } from "./task-config-constraints.js";
 
 export class InProcessValidator {
   constructor(
-    private readonly modelRegistry: ModelRegistryStore,
+    private readonly modelRegistry: ModelCatalogProvider,
     private readonly logger: Logger,
   ) {}
 

@@ -13,7 +13,7 @@
  */
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 
-import type { ModelRegistryStore } from "./model-registry-store.js";
+import type { ModelCatalogProvider } from "./model-catalog-provider.js";
 
 /**
  * Harness section names as the registry document spells them. Exported so
@@ -67,7 +67,7 @@ export function harnessName(h: Harness): string {
  * Returns the refusal copy, or "" when the pin is valid (or unverifiable).
  */
 export function unknownModelPinRefusal(
-  store: ModelRegistryStore,
+  store: ModelCatalogProvider,
   fieldPath: string,
   harness: string,
   model: string,

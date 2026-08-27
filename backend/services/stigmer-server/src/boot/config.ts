@@ -123,6 +123,17 @@ export interface ServerConfig {
    */
   readonly storagePath: string;
   /**
+   * Skill artifact storage backend (SKILL_ARTIFACT_STORAGE_TYPE) — the
+   * per-domain opt-in of §6b/O5, deliberately SEPARATE from
+   * ARTIFACT_STORAGE_TYPE: skill artifacts stay on the local storagePath
+   * root (the Go-written-directory serving invariant) regardless of the
+   * generic artifact store's backend, until a deployment opts skill in
+   * here explicitly. "" or "local" is today's local arm; "r2" shares the
+   * artifact store's R2 settings; any other name selects a
+   * composition-registered driver.
+   */
+  readonly skillArtifactStorageType: string;
+  /**
    * Externally-reachable base of the skill artifact transfer lane's
    * capability URLs (#675). Defaults to the server's own port on
    * localhost; SKILL_TRANSFER_BASE_URL overrides when the server is
@@ -181,10 +192,17 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     r2SecretAccessKey: envString(env, "R2_SECRET_ACCESS_KEY", ""),
     r2Region: envString(env, "R2_REGION", "auto"),
   };
+  const skillArtifactStorageType = envString(
+    env,
+    "SKILL_ARTIFACT_STORAGE_TYPE",
+    "",
+  );
   // Go validateR2Config: boot-fatal on incomplete r2 configuration — a
   // second deliberate exception to the lenient-loader posture (a server
   // that silently ignored half an R2 config would write blobs nowhere).
-  if (artifactStorageType === "r2") {
+  // Skill's per-domain knob (O5) shares the settings, so its r2 arm gets
+  // the same completeness gate.
+  if (artifactStorageType === "r2" || skillArtifactStorageType === "r2") {
     validateR2Config(r2);
   }
   return {
@@ -219,6 +237,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     dbPath: envString(env, "DB_PATH", defaultDbPath()),
     databaseUrl: envString(env, "DATABASE_URL", ""),
     storagePath: envString(env, "STORAGE_PATH", defaultStoragePath()),
+    skillArtifactStorageType,
     skillTransferBaseUrl: envString(
       env,
       "SKILL_TRANSFER_BASE_URL",

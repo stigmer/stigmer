@@ -81,7 +81,7 @@ import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import { newValidateVisibilityStep } from "../../pipeline/steps/validate-visibility.js";
-import type { RunnerAuthService } from "../../runnerauth/runnerauth.js";
+import type { RunnerCredentialProvider } from "../../runnerauth/runner-credential-provider.js";
 import type { Store } from "../../store/interface.js";
 import { redactExecutionContextSecrets } from "./redact.js";
 import { resolveValuesForCaller } from "./resolve-values-for-caller.js";
@@ -109,7 +109,7 @@ export interface ExecutionContextControllerDeps {
    * token, every read redacts — is the modeled "disabled" arm, the TS
    * shape of Go's nil-service check.
    */
-  readonly runnerAuthService: RunnerAuthService;
+  readonly runnerAuthService: RunnerCredentialProvider;
 }
 
 /** Registers both executioncontext services on the router (routes stage). */

@@ -11,12 +11,12 @@
  *
  * It exercises every extension point a consumer can touch today: the
  * seven-point unit shape (services, workers, edition, authorizer,
- * verifiers, status hooks; gate slots are compile-closed until O4 declares
- * the ratified names), a gate-step body built from the pipeline
- * primitives, the store-fault idiom, and the compose entry itself. It is
- * never executed — the runtime behavior is pinned by the server's own
- * extension suite; execution here would need real infrastructure for no
- * additional proof.
+ * verifiers, status hooks, the O5 driver kinds; gate slots are
+ * compile-closed until O4 declares the ratified names), a gate-step body
+ * built from the pipeline primitives, the store-fault idiom, and the
+ * compose entry itself. It is never executed — the runtime behavior is
+ * pinned by the server's own extension suite; execution here would need
+ * real infrastructure for no additional proof.
  */
 import { create } from "@bufbuild/protobuf";
 import type { DescMessage } from "@bufbuild/protobuf";
@@ -27,21 +27,30 @@ import { BillingQueryController } from "@stigmer/protos/ai/stigmer/billing/v1/qu
 import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 
 import {
+  ArtifactStorageNotFoundError,
   composeServer,
   createLogger,
+  InvalidTokenError,
   loadConfig,
+  MintingDisabledError,
   notFoundError,
   ResourceNotFoundError,
+  TOKEN_TYPE_EXECUTION_SCOPED,
 } from "@stigmer/server";
 import type {
   AgentExecutionResponseDecorator,
   AgentExecutionStatusObserver,
   ArtifactStorage,
+  ArtifactStorageDriverFactory,
   Authorizer,
   CallerIdentity,
   ComposedServer,
   IdentityVerifier,
+  MintedToken,
+  ModelCatalogProvider,
   PipelineStep,
+  PresignedUpload,
+  RunnerCredentialProvider,
   ServerExtension,
   Store,
   WorkerFactory,
@@ -114,6 +123,67 @@ const responseDecorator: AgentExecutionResponseDecorator = (
 const workerFactory: WorkerFactory = () =>
   Promise.reject(new Error("compile-proof worker — never started"));
 
+/**
+ * A consumer-shaped model-catalog provider (the O5 §6a shape — the cloud's
+ * DB-resident baseline implements exactly this surface, read per call).
+ */
+const catalogProvider: ModelCatalogProvider = {
+  document: () => `{"models":[]}`,
+  isValidModel: () => false,
+  hasHarness: () => false,
+  hasAnyModels: () => false,
+  isValidModelOnAnyHarness: () => false,
+  canonicalModelsAcrossHarnesses: () => [],
+  canonicalModels: () => [],
+  hasPricingVariant: () => false,
+  hasPricingVariantForHarness: () => false,
+  canonicalModelsWithVariant: () => [],
+  canonicalModelsWithVariantForHarness: () => [],
+  hasCapabilityForHarness: () => false,
+  canonicalModelsWithCapabilityForHarness: () => [],
+};
+
+/**
+ * A consumer-shaped runner-credential provider (the O5 §6c shape). The
+ * per-arm fail posture is contract: verify failures collapse to
+ * InvalidTokenError (callers fall closed to redaction); a provided lane
+ * that cannot mint throws MintingDisabledError (mapped to the
+ * presence-based not-minted response).
+ */
+const credentialProvider: RunnerCredentialProvider = {
+  isEnabled: (lane) => lane === TOKEN_TYPE_EXECUTION_SCOPED,
+  mint: (lane, _binding, ttlSeconds): MintedToken => {
+    if (lane !== TOKEN_TYPE_EXECUTION_SCOPED) {
+      throw new MintingDisabledError();
+    }
+    return { token: "fake-token", ttlSeconds };
+  },
+  verify: (): string => {
+    throw new InvalidTokenError();
+  },
+};
+
+/**
+ * A consumer-registered blob driver (the O5 §6b registration shape) —
+ * lazy factory, typed not-found, the widened size/presignPut surface.
+ */
+const consumerBlobDriver: ArtifactStorageDriverFactory =
+  (): ArtifactStorage => ({
+    upload: () => Promise.resolve(),
+    download: (key) => Promise.reject(new ArtifactStorageNotFoundError(key)),
+    size: (key) => Promise.reject(new ArtifactStorageNotFoundError(key)),
+    presignPut: (declaredSizeBytes, ttlMs): Promise<PresignedUpload> =>
+      Promise.resolve({
+        url: `https://blob.invalid/put?size=${declaredSizeBytes}`,
+        stagingKey: "staging/fake",
+        ttlMs,
+      }),
+    getSignedUrl: () => Promise.resolve("https://blob.invalid/get"),
+    delete: () => Promise.resolve(),
+    exists: () => Promise.resolve(false),
+    health: () => Promise.resolve(),
+  });
+
 const registerBillingService = (router: ConnectRouter): void => {
   router.service(BillingQueryController, {
     getBillingAccount: (input) =>
@@ -131,6 +201,11 @@ export const fakeExtension: ServerExtension = {
     observers: [statusObserver],
     responseDecorators: [responseDecorator],
   },
+  drivers: {
+    modelCatalogProvider: catalogProvider,
+    runnerCredentialProvider: credentialProvider,
+    artifactStorageDrivers: new Map([["consumer-blob", consumerBlobDriver]]),
+  },
   services: [registerBillingService],
   workers: [workerFactory],
 };
@@ -146,9 +221,12 @@ export async function composeFakeCloud(): Promise<ComposedServer> {
 
 /**
  * The exported driver interfaces are consumable in extension signatures —
- * the shape O5's registrations will take.
+ * the O5 registrations above populate them; this bundle keeps the plain
+ * type positions covered too.
  */
 export interface ConsumerDriverBundle {
   readonly store: Store;
   readonly artifactStorage: ArtifactStorage;
+  readonly modelCatalog: ModelCatalogProvider;
+  readonly runnerCredentials: RunnerCredentialProvider;
 }

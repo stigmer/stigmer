@@ -28,6 +28,7 @@ import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/execu
 
 import { createLogger } from "../../../boot/logger.js";
 import { SecretService } from "../../../encryption/encryption.js";
+import { newExecutionScopedRunnerCredentialProvider } from "../../../runnerauth/runner-credential-provider.js";
 import { RunnerAuthService } from "../../../runnerauth/runnerauth.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
 import {
@@ -155,7 +156,9 @@ function makeHarness(options: FakeEngineOptions = {}): Harness {
           return create(ExecutionContextSchema);
         },
       },
-      runnerAuth: RunnerAuthService.fromEnv(),
+      runnerAuth: newExecutionScopedRunnerCredentialProvider(
+        RunnerAuthService.fromEnv(),
+      ),
       // The REAL service over a client backed by nothing: the refresh
       // pre-flight arms that need it are exercised in the handshake
       // composed test; here every read throws, which the pre-flight
