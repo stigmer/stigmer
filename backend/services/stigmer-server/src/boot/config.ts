@@ -150,6 +150,51 @@ export interface ServerConfig {
    * and pins fixture exports in tests.
    */
   readonly consoleDir: string;
+  /**
+   * Sandbox provisioner driver (SANDBOX_PROVISIONER_TYPE; §6d, O6). ""
+   * — the default — is the external-runner posture: no provisioner is
+   * constructed and an operator-managed runner polls the queues (today's
+   * behavior, named). "local-process" / "docker" / "kubernetes" select
+   * the built-in isolation tiers (DD-002's ladder); any other name
+   * selects a composition-registered driver, and an unknown name is a
+   * boot throw. Routing coherence (a selected driver requires at least
+   * one per-queue routing mode) is validated in compose.ts where the
+   * temporal configs live — one definition, oss#397's discipline.
+   */
+  readonly sandboxProvisionerType: string;
+  /**
+   * The server endpoint as reachable FROM INSIDE a provisioned sandbox
+   * (STIGMER_SANDBOX_BACKEND_ENDPOINT) — a container cannot use this
+   * process's localhost. Required (boot-fatal in compose.ts) when a
+   * container-based provisioner is selected; ignored on the default arm.
+   */
+  readonly sandboxBackendEndpoint: string;
+  /**
+   * Temporal address as reachable from inside a sandbox
+   * (STIGMER_SANDBOX_TEMPORAL_ADDRESS). Defaults to TEMPORAL_HOST_PORT —
+   * right whenever both resolve the same way (host networking,
+   * cluster-internal DNS); overridden when the sandbox network differs.
+   */
+  readonly sandboxTemporalAddress: string;
+  /**
+   * The runner image container-based provisioners launch
+   * (STIGMER_SANDBOX_RUNNER_IMAGE). The default is the published cloud
+   * sandbox image (Dockerfile.sandbox's `sandbox` stage — DD-014's
+   * release lane).
+   */
+  readonly sandboxRunnerImage: string;
+  /**
+   * The runner executable the local-process driver spawns
+   * (STIGMER_SANDBOX_RUNNER_COMMAND). The default is the npm-distributed
+   * `stigmer-runner` binary on PATH.
+   */
+  readonly sandboxRunnerCommand: string;
+  /**
+   * The namespace the kubernetes driver provisions into
+   * (STIGMER_SANDBOX_K8S_NAMESPACE) — one shared namespace, never
+   * per-sandbox namespaces (the cloud provisioner's verified posture).
+   */
+  readonly sandboxKubernetesNamespace: string;
 }
 
 // The bundled "Stigmer Local" OAuth App credentials (callback:
@@ -177,6 +222,12 @@ export const DEFAULT_GRPC_PORT = 7234;
 
 /** Default model-registry origin (model_registry_store.go). */
 export const DEFAULT_MODEL_REGISTRY_UPSTREAM = "https://api.stigmer.ai";
+
+/**
+ * The published cloud sandbox runner image (release.sandbox-cloud.yaml
+ * pushes it; the cloud's Kubernetes provisioner launches the same image).
+ */
+export const DEFAULT_SANDBOX_RUNNER_IMAGE = "ghcr.io/stigmer/runner:latest";
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
   const { operatorEmail, operatorName } = loadOperatorIdentity(env);
@@ -257,6 +308,32 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     ),
     oauthRedirectUri: envString(env, "STIGMER_OAUTH_REDIRECT_URI", ""),
     consoleDir: envString(env, "STIGMER_CONSOLE_DIR", ""),
+    sandboxProvisionerType: envString(env, "SANDBOX_PROVISIONER_TYPE", ""),
+    sandboxBackendEndpoint: envString(
+      env,
+      "STIGMER_SANDBOX_BACKEND_ENDPOINT",
+      "",
+    ),
+    sandboxTemporalAddress: envString(
+      env,
+      "STIGMER_SANDBOX_TEMPORAL_ADDRESS",
+      envString(env, "TEMPORAL_HOST_PORT", "localhost:7233"),
+    ),
+    sandboxRunnerImage: envString(
+      env,
+      "STIGMER_SANDBOX_RUNNER_IMAGE",
+      DEFAULT_SANDBOX_RUNNER_IMAGE,
+    ),
+    sandboxRunnerCommand: envString(
+      env,
+      "STIGMER_SANDBOX_RUNNER_COMMAND",
+      "stigmer-runner",
+    ),
+    sandboxKubernetesNamespace: envString(
+      env,
+      "STIGMER_SANDBOX_K8S_NAMESPACE",
+      "stigmer-sandboxes",
+    ),
   };
 }
 

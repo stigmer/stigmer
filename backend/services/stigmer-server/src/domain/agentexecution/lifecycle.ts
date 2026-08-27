@@ -60,8 +60,11 @@ import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 
+import type { SandboxLane } from "../../sandbox/lane.js";
+import { ensureSessionSandboxForExecution } from "../../sandbox/steps.js";
 import type { ExecutionContextBuilderDeps } from "./create-execution-context-step.js";
 import { buildAndPersistExecutionContext } from "./create-execution-context-step.js";
+import type { AgentExecutionTemporalConfig } from "./temporal/config.js";
 import type { ExecutionEngineStateProvider } from "./engine.js";
 import { EngineDispatchError, EngineWorkflowNotFoundError } from "./engine.js";
 import { settleInterruptedToolCalls } from "./tool-call-settle.js";
@@ -84,6 +87,10 @@ export interface LifecycleDeps {
   readonly engineState: ExecutionEngineStateProvider;
   /** The shared EC-builder deps, consumed by recover's recreate step. */
   readonly executionContextBuilder: ExecutionContextBuilderDeps;
+  /** The sandbox lane (§6d, O6) — recover re-ensures the session sandbox. */
+  readonly sandboxLane: SandboxLane;
+  /** Dispatch config for the sandbox ensure's target/queue resolution. */
+  readonly temporalConfig: AgentExecutionTemporalConfig;
 }
 
 /** Inputs that carry an execution id (Go LifecycleInput). */
@@ -668,6 +675,27 @@ export async function recoverExecution(
       }),
       newRecreateExecutionContextStep(deps),
       newStartFreshWorkflowStep(deps),
+      // The session-lane sandbox ensure (§6d, O6) — same position and
+      // non-critical posture as the create chain's step: after the
+      // workflow start, never failing the recover (the shared body
+      // pre-stamps failures onto status.error instead).
+      {
+        name: "EnsureSessionSandbox",
+        async execute(ctx) {
+          if (ctx.get(ALREADY_IN_TARGET_STATE_KEY) === true) {
+            return;
+          }
+          await ensureSessionSandboxForExecution(
+            {
+              store: deps.store,
+              logger: deps.logger,
+              lane: deps.sandboxLane,
+              temporalConfig: deps.temporalConfig,
+            },
+            loadedExecution(ctx),
+          );
+        },
+      },
       newUpdateExecutionPhaseAndPersistStep(
         deps,
         ExecutionPhase.EXECUTION_IN_PROGRESS,
