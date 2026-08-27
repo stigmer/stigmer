@@ -77,7 +77,10 @@ import { registerPlatformServices } from "../domain/platform/controller.js";
 import { registerProjectServices } from "../domain/project/controller.js";
 import { registerSessionServices } from "../domain/session/controller.js";
 import { registerSkillServices } from "../domain/skill/controller.js";
-import { DEFAULT_SLOT_TTL_MS, MAX_ZIP_SIZE } from "../domain/skill/constants.js";
+import {
+  DEFAULT_SLOT_TTL_MS,
+  MAX_ZIP_SIZE,
+} from "../domain/skill/constants.js";
 import { newSkillArtifactStorage } from "../domain/skill/storage/artifact-storage.js";
 import {
   newSkillTransferLane,
@@ -92,6 +95,8 @@ import { SearchHandler } from "../query/search/handler.js";
 import { SqliteSearchQueryStore } from "../query/search/query-store.js";
 import { newSearchableResourceRegistry } from "../query/search/registry.js";
 import { buildInterceptorChain } from "../pipeline/chain.js";
+import { createVerifierChainInterceptor } from "../pipeline/interceptors/auth.js";
+import { newPermissiveSingleTeamAuthorizer } from "../pipeline/steps/authorize.js";
 import { newExecutionScopedRunnerCredentialProvider } from "../runnerauth/runner-credential-provider.js";
 import { RunnerAuthService } from "../runnerauth/runnerauth.js";
 import { PostgresStore } from "../store/postgres/store.js";
@@ -156,11 +161,13 @@ export interface ComposedServer {
   workflowExecutionStreamBroker: WorkflowExecutionStreamBroker;
   /**
    * The in-process router transport — the same routes and interceptor
-   * chain as the serving router (DD-002's bufconn shape). Exposed because
-   * it is the one lane that reaches EVERY registered service, extension
-   * services included (blueprint 20260826.02/03 §8): compositions build
-   * clients to their extension services over it, and the O1 extension
-   * suite proves both-router visibility through it.
+   * chain as the serving router EXCEPT the position-1 identity source
+   * (DD-002's bufconn shape; O2 ruling Q4: this lane stamps the internal
+   * caller class, the serving chain runs the verifier chassis). Exposed
+   * because it is the one lane that reaches EVERY registered service,
+   * extension services included (blueprint 20260826.02/03 §8):
+   * compositions build clients to their extension services over it, and
+   * the O1 extension suite proves both-router visibility through it.
    */
   inProcessTransport: Transport;
   /** Completes wiring, flips SERVING, binds the port; returns the bound port. */
@@ -200,6 +207,12 @@ export async function composeServer(
       units: extensions.unitNames.join(", "),
     });
   }
+  // The ONE composed Authorizer (DD-007 §3): an extension's registration
+  // or the OSS permissive single-team default. Resolved here, handed to
+  // every controller as an explicit dependency — the Authorize step at
+  // position 1 of every chain calls it (O2).
+  const authorizer =
+    extensions.authorizer ?? newPermissiveSingleTeamAuthorizer();
 
   // Stage: storage — the driver selection seam (DD-010): DATABASE_URL
   // present → Postgres (async connect + advisory-locked migrations), else
@@ -363,6 +376,7 @@ export async function composeServer(
         store,
         logger,
         broker: agentExecutionStreamBroker,
+        authorizer,
         temporalConfig,
       }),
       newWorkflowExecutionWorkerFactory({
@@ -394,13 +408,11 @@ export async function composeServer(
   });
   // The workflow-execution twin: the same provider-is-the-injection
   // mechanism, filling the seam #20 left disconnected.
-  const workflowExecutionEngineState = newWorkflowExecutionEngineStateProvider(
-    {
-      manager: temporalManager,
-      config: workflowExecutionTemporalConfig,
-      logger,
-    },
-  );
+  const workflowExecutionEngineState = newWorkflowExecutionEngineStateProvider({
+    manager: temporalManager,
+    config: workflowExecutionTemporalConfig,
+    logger,
+  });
   // The artifact blob store (Go server.go 349: shared by agentexecution
   // attachments, the artifact domain (#13), and skill push (#8)). The r2
   // arm landed with #13; the health probe runs in start(), matching Go's
@@ -582,7 +594,9 @@ export async function composeServer(
   // Handlers are stateless over the same store, so the two routers behave
   // as one server — Go's single-server bufconn shape. Chain traversal on
   // internal calls is the point (DD-002): an in-process apply/get is
-  // validated, logged, and kind-tagged exactly like an external one.
+  // validated, logged, and kind-tagged exactly like an external one — the
+  // one deliberate difference is position 1 (O2): internal calls carry the
+  // internal caller class, wire calls the verifier chassis's identity.
   //
   // requireInProcess breaks the routes↔clients definition cycle: the lazy
   // domain providers are only invoked at request time, after boot
@@ -597,30 +611,44 @@ export async function composeServer(
   }
   const routes = (router: ConnectRouter): void => {
     registerHealthService(router, healthState);
-    registerOrganizationServices(router, { store, logger });
-    registerEnvironmentServices(router, { store, logger, secretService });
+    registerOrganizationServices(router, { store, logger, authorizer });
+    registerEnvironmentServices(router, {
+      store,
+      logger,
+      authorizer,
+      secretService,
+    });
     // OAuthApp reuses the environment's SecretService instance — Go wires
     // ONE encryption service for both (server.go 302–307).
-    registerOAuthAppServices(router, { store, secretService, logger });
+    registerOAuthAppServices(router, {
+      store,
+      secretService,
+      logger,
+      authorizer,
+    });
     registerExecutionContextServices(router, {
       store,
       logger,
+      authorizer,
       secretService,
       runnerAuthService: runnerCredentials,
     });
     registerAgentServices(router, {
       store,
       logger,
+      authorizer,
       agentInstanceApplier: () => requireInProcess().agentInstanceApplier,
     });
     registerAgentInstanceServices(router, {
       store,
       logger,
+      authorizer,
       parentAgentLoader: () => requireInProcess().parentAgentLoader,
     });
     registerSessionServices(router, {
       store,
       logger,
+      authorizer,
       temporalConfig,
       agentInstanceCreator: () => requireInProcess().agentInstanceCreator,
     });
@@ -629,10 +657,11 @@ export async function composeServer(
     // channelmessage 399 → channelconversation 408 → channelapp 416).
     // ChannelApp shares the ONE SecretService instance with Environment —
     // one key, one enc:v1: format (Go wires the same pointer).
-    registerAgentShareServices(router, { store, logger });
+    registerAgentShareServices(router, { store, logger, authorizer });
     registerAgentChannelServices(router, {
       store,
       logger,
+      authorizer,
       // The SAME domain-owned registry instance the workflow validator
       // and the registry lanes read — the channel model-pin rule
       // (stigmer/stigmer#774) can never drift from the served pickers.
@@ -640,7 +669,12 @@ export async function composeServer(
     });
     registerChannelMessageServices(router);
     registerChannelConversationServices(router);
-    registerChannelAppServices(router, { store, logger, secretService });
+    registerChannelAppServices(router, {
+      store,
+      logger,
+      authorizer,
+      secretService,
+    });
     // Schedule registers between channelapp and memory (Go server.go
     // 417 → 426 → 436). The clock and runner ride constant providers —
     // production wiring always has both (Go SetClock/SetRunner beside the
@@ -649,14 +683,16 @@ export async function composeServer(
     registerScheduleServices(router, {
       store,
       logger,
+      authorizer,
       modelRegistry: modelCatalog,
       clock: () => scheduleSyncer,
       runner: () => scheduleRunStarter,
     });
-    registerMemoryServices(router, { store, logger });
+    registerMemoryServices(router, { store, logger, authorizer });
     registerAgentExecutionServices(router, {
       store,
       logger,
+      authorizer,
       broker: agentExecutionStreamBroker,
       engineState: executionEngineState,
       modelRegistry: modelCatalog,
@@ -672,8 +708,7 @@ export async function composeServer(
         agentInstanceLoader: () =>
           requireInProcess().executionAgentInstanceLoader,
         sessionLoader: () => requireInProcess().executionSessionLoader,
-        environmentReader: () =>
-          requireInProcess().executionEnvironmentReader,
+        environmentReader: () => requireInProcess().executionEnvironmentReader,
         environmentResolution,
         executionContextCreator: () =>
           requireInProcess().executionContextCreator,
@@ -683,17 +718,20 @@ export async function composeServer(
     registerWorkflowServices(router, {
       store,
       logger,
+      authorizer,
       validator: workflowValidator,
       workflowInstanceCreator: () => requireInProcess().workflowInstanceCreator,
     });
     registerWorkflowInstanceServices(router, {
       store,
       logger,
+      authorizer,
       parentWorkflowLoader: () => requireInProcess().parentWorkflowLoader,
     });
     registerWorkflowExecutionServices(router, {
       store,
       logger,
+      authorizer,
       engineState: workflowExecutionEngineState,
       broker: workflowExecutionStreamBroker,
       workflowInstanceCreator: () =>
@@ -720,6 +758,7 @@ export async function composeServer(
     registerMcpServerServices(router, {
       store,
       logger,
+      authorizer,
       connect: {
         store,
         logger,
@@ -749,6 +788,7 @@ export async function composeServer(
     registerSkillServices(router, {
       store,
       logger,
+      authorizer,
       artifactStorage: skillArtifactStorage,
       // The agentexecution blob store (server.go:362-363) — read side of
       // pushFromExecutionArtifact.
@@ -760,7 +800,12 @@ export async function composeServer(
     });
     // Artifact CRUD shares the ONE blob store with agentexecution's
     // attachment lanes (Go server.go 347–374).
-    registerArtifactServices(router, { store, artifactStorage, logger });
+    registerArtifactServices(router, {
+      store,
+      artifactStorage,
+      logger,
+      authorizer,
+    });
     // Project registers after all four reconciled kinds (agent, workflow,
     // mcpserver, skill) — the last Class A domain. The lazy deleter
     // provider replaces Go's SetReconciliationService late-bind
@@ -769,6 +814,7 @@ export async function composeServer(
     registerProjectServices(router, {
       store,
       logger,
+      authorizer,
       orphanDeleter: () => requireInProcess().projectOrphanDeleter,
     });
     // The two CQRS query services register between the domains and the
@@ -806,7 +852,15 @@ export async function composeServer(
   const server = createUnifiedPortServer({
     logger,
     routes,
-    interceptors: buildInterceptorChain(logger),
+    // The serving chain's position-1 identity source is the verifier
+    // chassis over the composed verifiers (O2; zero verifiers = the
+    // trusted-local posture, byte-identical wire behavior). The in-process
+    // transport above carries its own position-1 source — the internal
+    // caller class only it can mint (ruling Q4).
+    interceptors: buildInterceptorChain(
+      logger,
+      createVerifierChainInterceptor(extensions.identityVerifiers, logger),
+    ),
     taskKindRegistryLane: registryLanes.taskKindRegistryLane,
     modelRegistryLane: registryLanes.modelRegistryLane,
     skillTransferLane,

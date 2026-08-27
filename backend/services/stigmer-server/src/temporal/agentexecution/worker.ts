@@ -25,6 +25,7 @@ import type { Logger } from "../../boot/logger.js";
 import type { AgentExecutionTemporalConfig } from "../../domain/agentexecution/temporal/config.js";
 import type { StreamBroker } from "../../domain/agentexecution/stream-broker.js";
 import type { Store } from "../../store/interface.js";
+import type { Authorizer } from "../../extensions/authorizer.js";
 import type { WorkerFactory } from "../manager.js";
 import { resolveWorkflowSource } from "../workflow-source.js";
 import { createAgentExecutionActivities } from "./activities.js";
@@ -33,6 +34,8 @@ export interface AgentExecutionWorkerDeps {
   readonly store: Store;
   readonly logger: Logger;
   readonly broker: StreamBroker;
+  /** The composed Authorizer — the status-merge activity's updateStatus pipeline carries the Authorize step like every chain (O2). */
+  readonly authorizer: Authorizer;
   readonly temporalConfig: AgentExecutionTemporalConfig;
 }
 
@@ -44,6 +47,7 @@ export function newAgentExecutionWorkerFactory(
       store: deps.store,
       logger: deps.logger,
       broker: deps.broker,
+      authorizer: deps.authorizer,
       client,
     });
 
@@ -77,9 +81,7 @@ export function newAgentExecutionWorkerFactory(
       // The decode-only codec chain: workflow tasks replay history
       // containing runner-encrypted activity results (manager.ts's
       // choke-point note).
-      ...(payloadCodecs.length > 0
-        ? { dataConverter: { payloadCodecs } }
-        : {}),
+      ...(payloadCodecs.length > 0 ? { dataConverter: { payloadCodecs } } : {}),
     });
   };
 }

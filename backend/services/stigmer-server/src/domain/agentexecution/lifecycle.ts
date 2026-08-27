@@ -41,10 +41,11 @@ import type {
 import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
-import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
+import type { DescMessage, DescMethod, MessageShape } from "@bufbuild/protobuf";
 import { enumToJson } from "@bufbuild/protobuf";
 
 import type { Logger } from "../../boot/logger.js";
+import type { Authorizer } from "../../extensions/authorizer.js";
 import {
   failedPreconditionError,
   internalError,
@@ -53,19 +54,16 @@ import {
 } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
+import type { CallerIdentity } from "../../extensions/identity.js";
 import { RequestContext } from "../../pipeline/request-context.js";
+import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 
-import type {
-  ExecutionContextBuilderDeps,
-} from "./create-execution-context-step.js";
+import type { ExecutionContextBuilderDeps } from "./create-execution-context-step.js";
 import { buildAndPersistExecutionContext } from "./create-execution-context-step.js";
 import type { ExecutionEngineStateProvider } from "./engine.js";
-import {
-  EngineDispatchError,
-  EngineWorkflowNotFoundError,
-} from "./engine.js";
+import { EngineDispatchError, EngineWorkflowNotFoundError } from "./engine.js";
 import { settleInterruptedToolCalls } from "./tool-call-settle.js";
 import type { StreamBroker } from "./stream-broker.js";
 
@@ -80,6 +78,8 @@ export const TEMPORAL_UNAVAILABLE_MESSAGE = "Temporal is not available";
 export interface LifecycleDeps {
   readonly store: Store;
   readonly logger: Logger;
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  readonly authorizer: Authorizer;
   readonly broker: StreamBroker;
   readonly engineState: ExecutionEngineStateProvider;
   /** The shared EC-builder deps, consumed by recover's recreate step. */
@@ -268,7 +268,8 @@ export function applyLifecyclePhaseTransition(
   }
 
   if (setError) {
-    status.error = reason !== "" ? `Terminated: ${reason}` : "Terminated by user";
+    status.error =
+      reason !== "" ? `Terminated: ${reason}` : "Terminated by user";
   }
   if (clearError) {
     status.error = "";
@@ -381,14 +382,18 @@ async function runLifecyclePipeline<Desc extends DescMessage>(
   pipelineName: string,
   schema: Desc,
   input: MessageShape<Desc>,
+  method: DescMethod,
+  identity: CallerIdentity,
   steps: PipelineStep<Desc>[],
 ): Promise<AgentExecution> {
   const reqCtx = new RequestContext(
     schema,
     input,
+    identity,
     ApiResourceKind.agent_execution,
   );
   const builder = newPipeline<Desc>(pipelineName, deps.logger);
+  builder.addStep(newAuthorizeStep(method, deps.authorizer));
   for (const step of steps) {
     builder.addStep(step);
   }
@@ -411,6 +416,7 @@ async function runLifecyclePipeline<Desc extends DescMessage>(
 export async function cancelExecution(
   deps: LifecycleDeps,
   input: CancelAgentExecutionInput,
+  identity: CallerIdentity,
 ): Promise<AgentExecution> {
   type Desc = typeof AgentExecutionCommandController.method.cancel.input;
   deps.logger.info("Cancel agent execution request", {
@@ -422,6 +428,8 @@ export async function cancelExecution(
     "agentexecution-cancel",
     AgentExecutionCommandController.method.cancel.input,
     input,
+    AgentExecutionCommandController.method.cancel,
+    identity,
     [
       newLoadExecutionByIdStep(deps),
       newValidatePhaseStep({
@@ -457,6 +465,7 @@ export async function cancelExecution(
 export async function terminateExecution(
   deps: LifecycleDeps,
   input: TerminateAgentExecutionInput,
+  identity: CallerIdentity,
 ): Promise<AgentExecution> {
   type Desc = typeof AgentExecutionCommandController.method.terminate.input;
   deps.logger.info("Terminate agent execution request", {
@@ -468,6 +477,8 @@ export async function terminateExecution(
     "agentexecution-terminate",
     AgentExecutionCommandController.method.terminate.input,
     input,
+    AgentExecutionCommandController.method.terminate,
+    identity,
     [
       newLoadExecutionByIdStep(deps),
       newValidatePhaseStep({
@@ -486,8 +497,8 @@ export async function terminateExecution(
         deps,
         invoke: async (engine, executionId, ctx) => {
           const reason =
-            (ctx.newState as unknown as LifecycleInputWithReasonShape)
-              .reason || "Terminated by user";
+            (ctx.newState as unknown as LifecycleInputWithReasonShape).reason ||
+            "Terminated by user";
           await engine.engine.terminateWorkflow(executionId, reason);
           // Store the resolved reason for the phase update's error text.
           ctx.set(REASON_KEY, reason);
@@ -509,6 +520,7 @@ export async function terminateExecution(
 export async function pauseExecution(
   deps: LifecycleDeps,
   input: PauseAgentExecutionInput,
+  identity: CallerIdentity,
 ): Promise<AgentExecution> {
   type Desc = typeof AgentExecutionCommandController.method.pause.input;
   deps.logger.info("Pause agent execution request", {
@@ -520,6 +532,8 @@ export async function pauseExecution(
     "agentexecution-pause",
     AgentExecutionCommandController.method.pause.input,
     input,
+    AgentExecutionCommandController.method.pause,
+    identity,
     [
       newLoadExecutionByIdStep(deps),
       newValidatePhaseStep({
@@ -538,8 +552,8 @@ export async function pauseExecution(
         deps,
         invoke: async (engine, executionId, ctx) => {
           const reason =
-            (ctx.newState as unknown as LifecycleInputWithReasonShape)
-              .reason || "Paused by user";
+            (ctx.newState as unknown as LifecycleInputWithReasonShape).reason ||
+            "Paused by user";
           await engine.engine.signalPause(executionId, reason);
           ctx.set(REASON_KEY, reason);
         },
@@ -560,6 +574,7 @@ export async function pauseExecution(
 export async function resumeExecution(
   deps: LifecycleDeps,
   input: ResumeAgentExecutionInput,
+  identity: CallerIdentity,
 ): Promise<AgentExecution> {
   type Desc = typeof AgentExecutionCommandController.method.resume.input;
   deps.logger.info("Resume agent execution request", {
@@ -570,6 +585,8 @@ export async function resumeExecution(
     "agentexecution-resume",
     AgentExecutionCommandController.method.resume.input,
     input,
+    AgentExecutionCommandController.method.resume,
+    identity,
     [
       newLoadExecutionByIdStep(deps),
       newValidatePhaseStep({
@@ -611,6 +628,7 @@ export async function resumeExecution(
 export async function recoverExecution(
   deps: LifecycleDeps,
   input: RecoverAgentExecutionInput,
+  identity: CallerIdentity,
 ): Promise<AgentExecution> {
   type Desc = typeof AgentExecutionCommandController.method.recover.input;
   deps.logger.info("Recover agent execution request", {
@@ -621,6 +639,8 @@ export async function recoverExecution(
     "agentexecution-recover",
     AgentExecutionCommandController.method.recover.input,
     input,
+    AgentExecutionCommandController.method.recover,
+    identity,
     [
       newLoadExecutionByIdStep(deps),
       newValidatePhaseStep({
@@ -644,8 +664,7 @@ export async function recoverExecution(
             executionId,
             "Recovery: terminating before fresh workflow start",
           ),
-        failureMessage:
-          "failed to terminate previous workflow during recovery",
+        failureMessage: "failed to terminate previous workflow during recovery",
       }),
       newRecreateExecutionContextStep(deps),
       newStartFreshWorkflowStep(deps),

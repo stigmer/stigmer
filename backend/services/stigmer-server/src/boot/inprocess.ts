@@ -5,8 +5,11 @@
  * executes: an internal call is validated, logged, and kind-tagged exactly
  * like an external one. Here the bufconn equivalent is ConnectRPC's
  * `createRouterTransport` built from the SAME routes registration function
- * the unified-port server uses, with the SAME interceptor chain — proven by
- * spike SP-B (src/pipeline/__tests__/router-transport.test.ts): every
+ * the unified-port server uses, with the SAME interceptor chain EXCEPT the
+ * position-1 identity source (O2, ruling Q4): this chain stamps the
+ * `internal` caller class only it can mint, where the serving chain runs
+ * the verifier chassis over the wire's credentials. Chain traversal proven
+ * by spike SP-B (src/pipeline/__tests__/router-transport.test.ts): every
  * interceptor runs, in registration order, and a chain rejection
  * short-circuits with a ConnectError the in-process caller sees (DD-002).
  *
@@ -71,6 +74,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import type { OrphanDeleter } from "../domain/project/reconcile.js";
 import type { ScheduleExecutionCreator } from "../temporal/schedule/run-starter.js";
 import { buildInterceptorChain } from "../pipeline/chain.js";
+import { createInProcessCallerInterceptor } from "../pipeline/interceptors/auth.js";
 import type { Logger } from "./logger.js";
 
 /** The narrow in-process surfaces the domains consume (DD-002). */
@@ -154,8 +158,18 @@ export function createInProcessClients(
   routes: (router: ConnectRouter) => void,
   logger: Logger,
 ): InProcessWiring {
+  // Position 1 of this chain is the in-process identity stamper, NOT the
+  // serving chassis (O2, ruling Q4): every call through this transport
+  // carries the internal caller class, which only this chain can mint —
+  // the TS rendering of the Java in-process authorization skip. Positions
+  // 2–4 stay identical to the serving chain (validation parity, DD-002).
   const transport = createRouterTransport(routes, {
-    router: { interceptors: buildInterceptorChain(logger) },
+    router: {
+      interceptors: buildInterceptorChain(
+        logger,
+        createInProcessCallerInterceptor(),
+      ),
+    },
   });
 
   const agentInstanceCommand = createClient(
@@ -197,10 +211,10 @@ export function createInProcessClients(
   const skillCommand = createClient(SkillCommandController, transport);
 
   const clients: InProcessClients = {
-    // Go's ApplyAsSystem is the Apply RPC with no extra identity attached:
-    // the audit actor comes from the process-global operator identity
-    // (installed once by main.ts, #400), so a plain apply IS the
-    // system-actor apply in this edition.
+    // Go's ApplyAsSystem is the Apply RPC through this transport: the
+    // position-1 interceptor stamps the internal caller identity (O2),
+    // whose audit derivation equals the #400 operator actor — so a plain
+    // apply IS the system-actor apply in this edition.
     agentInstanceApplier: {
       applyAsSystem: (instance) => agentInstanceCommand.apply(instance),
     },
@@ -291,9 +305,10 @@ export function createInProcessClients(
       submitFileDecision: (input) =>
         agentExecutionCommand.submitFileDecision(input),
     },
-    // The schedule clock's fire edge — the plain Create RPC under the
-    // process-global operator identity (Go's ExecutionCreator; OSS has no
-    // caller identity by design, DD-015 D-G).
+    // The schedule clock's fire edge — the plain Create RPC (Go's
+    // ExecutionCreator). Since O2 every call through this transport
+    // carries the internal caller class stamped at position 1; its audit
+    // derivation equals the old process-global operator identity.
     scheduleExecutionCreator: {
       create: (execution) => agentExecutionCommand.create(execution),
     },

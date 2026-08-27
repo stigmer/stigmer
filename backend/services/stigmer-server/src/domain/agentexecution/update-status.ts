@@ -43,13 +43,16 @@ import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecu
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
+import type { Authorizer } from "../../extensions/authorizer.js";
 import {
   internalError,
   invalidArgumentError,
   notFoundError,
 } from "../../pipeline/errors.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
+import type { CallerIdentity } from "../../extensions/identity.js";
 import { RequestContext } from "../../pipeline/request-context.js";
+import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 
@@ -70,6 +73,8 @@ import type { StreamBroker } from "./stream-broker.js";
 export interface UpdateStatusDeps {
   readonly store: Store;
   readonly logger: Logger;
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  readonly authorizer: Authorizer;
   readonly broker: StreamBroker;
 }
 
@@ -81,16 +86,24 @@ const EXECUTION_KEY = "execution";
 export async function updateStatus(
   deps: UpdateStatusDeps,
   input: AgentExecutionUpdateStatusInput,
+  identity: CallerIdentity,
 ): Promise<UpdateStatusResponse> {
   const reqCtx = new RequestContext(
     AgentExecutionCommandController.method.updateStatus.input,
     input,
+    identity,
     ApiResourceKind.agent_execution,
   );
   await newPipeline<UpdateStatusDesc>(
     "agentexecution-update-status",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(
+        AgentExecutionCommandController.method.updateStatus,
+        deps.authorizer,
+      ),
+    )
     .addStep({
       name: "ValidateUpdateStatusInput",
       execute(ctx) {

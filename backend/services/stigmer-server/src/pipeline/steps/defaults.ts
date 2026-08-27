@@ -35,6 +35,7 @@ import type {
   ApiResourceAuditInfo,
 } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
 
+import type { CallerIdentity } from "../../extensions/identity.js";
 import { defaultVisibilityFor, getIdPrefix } from "../apiresource-meta.js";
 import { internalError } from "../errors.js";
 import type { PipelineStep } from "../pipeline.js";
@@ -47,14 +48,19 @@ import {
   metadataOf,
 } from "./shapes.js";
 
-export function newBuildNewStateStep<Desc extends DescMessage>(): PipelineStep<Desc> {
+export function newBuildNewStateStep<
+  Desc extends DescMessage,
+>(): PipelineStep<Desc> {
   return {
     name: "BuildNewState",
     execute(ctx: RequestContext<Desc>): void {
       const resource = ctx.newState;
       const metadata = metadataOf(resource);
       if (metadata === undefined) {
-        throw internalError(new Error("resource metadata is nil"), "build new state");
+        throw internalError(
+          new Error("resource metadata is nil"),
+          "build new state",
+        );
       }
 
       // 1. Clear the status field — system-managed, never client-provided.
@@ -67,9 +73,10 @@ export function newBuildNewStateStep<Desc extends DescMessage>(): PipelineStep<D
         metadata.id = generateId(getIdPrefix(ctx.apiResourceKind));
       }
 
-      // 3. Stamp both audit slots identically with event "created".
+      // 3. Stamp both audit slots identically with event "created",
+      // attributed to the request's caller (O2 ruling Q5).
       if (hasStatusField(ctx.schema)) {
-        setAuditFieldsForCreate(ctx.schema, resource);
+        setAuditFieldsForCreate(ctx.schema, resource, ctx.callerIdentity);
       }
 
       // 4. Default visibility from the kind's proto config when the client
@@ -97,14 +104,18 @@ export function clearStatusField(schema: DescMessage, msg: Message): void {
 
 /**
  * Go SetAuditFieldsForCreate: both slots identical, event "created". A
- * resource without a status (or audit) field is a no-op.
+ * resource without a status (or audit) field is a no-op. The actor is
+ * derived from the REQUEST's caller identity (O2 ruling Q5 — the
+ * DD-007 amendment): every call site holds a RequestContext, so audit
+ * attribution follows the caller, not a process-global.
  */
 export function setAuditFieldsForCreate(
   schema: DescMessage,
   resource: Message,
+  identity: CallerIdentity,
 ): void {
   const now = timestampNow();
-  const actor = currentAuditActor();
+  const actor = auditActorFor(identity);
   const info = create(ApiResourceAuditInfoSchema, {
     createdBy: actor,
     createdAt: now,
@@ -139,9 +150,10 @@ export function setAuditFieldsForUpdate(
   schema: DescMessage,
   resource: Message,
   slot: AuditSlot,
+  identity: CallerIdentity,
 ): void {
   const now = timestampNow();
-  const actor = currentAuditActor();
+  const actor = auditActorFor(identity);
   const { createdBy, createdAt } = creationAuditOf(schema, resource, slot);
   setAuditSlotReflect(
     schema,
@@ -152,11 +164,14 @@ export function setAuditFieldsForUpdate(
 }
 
 // Operator identity (stigmer/stigmer#400): installed once at boot — before
-// any request — and read on every audit stamp. The module-level seam is
-// Go's, kept deliberately: threading a boot-time constant through every
-// step constructor would be machinery without a beneficiary. The one-shot
-// guard adds the composition-root idiom's loudness: a second install is a
-// wiring bug and throws at boot, not a silent overwrite.
+// any request — and read by the identity chassis when it mints the
+// trusted-local CallerIdentity (O2; audit stamping now derives its actor
+// from that identity rather than reading this seam directly). The
+// module-level seam is Go's, kept deliberately: threading a boot-time
+// constant through every step constructor would be machinery without a
+// beneficiary. The one-shot guard adds the composition-root idiom's
+// loudness: a second install is a wiring bug and throws at boot, not a
+// silent overwrite.
 let operatorEmail = "";
 let operatorName = "";
 let operatorIdentityInstalled = false;
@@ -183,26 +198,41 @@ export function resetOperatorIdentityForTests(): void {
 }
 
 /**
- * Go currentAuditActor: a FRESH message per call (audit stamping shares
- * the returned reference across created_by/updated_by; a singleton would
- * alias unrelated resources' audit state).
- *
- * With a configured operator, every write this process makes is attributed
- * to that operator — a self-hosted install is a single-operator trust
- * domain. The id deliberately carries the email (no local identity
- * accounts exist to reference; downstream caller-identity resolution is
- * email-first). Unconfigured keeps the "system" placeholder, which the
- * runner deliberately demotes to anonymous (SYSTEM_CREATOR_SENTINEL).
+ * The installed operator identity, read by the verifier-chain chassis to
+ * mint the trusted-local CallerIdentity (O2): the single-operator trust
+ * domain's one principal. Empty email = unconfigured, the "system"
+ * placeholder posture. Audit stamping no longer reads this seam directly —
+ * it derives the actor from the request's CallerIdentity (ruling Q5),
+ * which for local postures carries exactly these values, so the stamped
+ * bytes are unchanged.
  */
-export function currentAuditActor(): ApiResourceAuditActor {
-  if (operatorEmail !== "") {
-    return create(ApiResourceAuditActorSchema, {
-      id: operatorEmail,
-      email: operatorEmail,
-      displayName: operatorName,
-    });
-  }
-  return create(ApiResourceAuditActorSchema, { id: "system", avatar: "" });
+export function operatorIdentitySnapshot(): {
+  email: string;
+  displayName: string;
+} {
+  return { email: operatorEmail, displayName: operatorName };
+}
+
+/**
+ * The audit actor derived from a caller identity (O2 ruling Q5 — replaces
+ * the retired process-global currentAuditActor). A FRESH message per call
+ * (audit stamping shares the returned reference across created_by/
+ * updated_by; a singleton would alias unrelated resources' audit state).
+ *
+ * For local postures the trusted-local identity carries the #400 operator
+ * identity, so the derived actor is byte-identical to what the retired
+ * seam stamped: configured operator → email-first id with display fields;
+ * unconfigured → the "system" placeholder, which the runner deliberately
+ * demotes to anonymous (SYSTEM_CREATOR_SENTINEL). Verifier-produced
+ * identities (O3's OIDC claims onward) stamp their own email/displayName
+ * when present, identityId alone otherwise.
+ */
+export function auditActorFor(identity: CallerIdentity): ApiResourceAuditActor {
+  return create(ApiResourceAuditActorSchema, {
+    id: identity.identityId,
+    email: identity.email ?? "",
+    displayName: identity.displayName ?? "",
+  });
 }
 
 /**
@@ -244,7 +274,8 @@ export function creationAuditOf(
       info?.createdBy !== undefined
         ? clone(ApiResourceAuditActorSchema, info.createdBy)
         : undefined,
-    createdAt: info?.createdAt !== undefined ? { ...info.createdAt } : undefined,
+    createdAt:
+      info?.createdAt !== undefined ? { ...info.createdAt } : undefined,
   };
 }
 

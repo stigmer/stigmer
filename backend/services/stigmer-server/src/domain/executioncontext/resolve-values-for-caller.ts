@@ -10,22 +10,25 @@
  *
  * # The lane
  *
- * getByExecutionId is the runner's secret-delivery path. OSS has no
- * caller identity, so the runner distinguishes itself with an
- * execution-scoped token minted by getRunnerScopedToken and presented as
- * a Bearer authorization header (the same header shape a cloud runner
- * uses for its sandbox credential). Decrypt requires the FULL binding: a
- * valid, unexpired token whose execution_id claim equals this EC's
- * spec.execution_id. Everything else — no header, malformed or expired
- * token, or a token minted for a different execution — falls closed to
- * the same redaction get/getByReference apply, as a SUCCESSFUL response,
- * not an error.
+ * getByExecutionId is the runner's secret-delivery path. The runner
+ * distinguishes itself with an execution-scoped token minted by
+ * getRunnerScopedToken and presented as a Bearer authorization header
+ * (the same header shape a cloud runner uses for its sandbox credential).
+ * Decrypt requires the FULL binding: a valid, unexpired token whose
+ * execution_id claim equals this EC's spec.execution_id. Everything else
+ * — no header, malformed or expired token, or a token minted for a
+ * different execution — falls closed to the same redaction
+ * get/getByReference apply, as a SUCCESSFUL response, not an error.
  *
- * Bearer verification lives HERE, in the domain, not in the interceptor
- * chain: the auth interceptor stays a pass-through seam (phase-3 server
- * mode), and this is the one RPC that reads the header — exactly the
- * consumer the runnerauth module header reserves ("the executioncontext
- * resolve step").
+ * Token verification lives HERE, in the domain, not on the identity
+ * chassis (O2, 20260827.01): the runner token is a lane discriminator,
+ * not a caller identity — the chassis deliberately lets it fall through
+ * to the trusted-local identity (ruling Q6), and this is the one RPC
+ * that reads the raw header — exactly the consumer the runnerauth module
+ * header reserves ("the executioncontext resolve step"). The
+ * redaction-as-success contract is pinned by the conformance suites and
+ * must survive every future verifier: a runner token is NEVER an
+ * authentication credential.
  *
  * # Decrypt error doctrine (the oss#405 runtime-resolution doctrine)
  *
@@ -47,6 +50,7 @@ import type { Logger } from "../../boot/logger.js";
 import { EncryptionDisabledError } from "../../encryption/encryption.js";
 import type { SecretService } from "../../encryption/encryption.js";
 import { internalError } from "../../pipeline/errors.js";
+import { parseBearerToken } from "../../pipeline/interceptors/auth.js";
 import type { RunnerCredentialProvider } from "../../runnerauth/runner-credential-provider.js";
 import { TOKEN_TYPE_EXECUTION_SCOPED } from "../../runnerauth/runnerauth.js";
 import { encryptionKeyMissingMessage } from "./constants.js";
@@ -130,29 +134,14 @@ function verifyRunnerToken(
 }
 
 /**
- * Go bearerToken: the Bearer credential from the request's authorization
- * header; empty when absent or differently shaped. Ports Go's exact
- * shape: case-insensitive "bearer " prefix match, the remainder must be
- * non-empty before trimming, trailing/leading whitespace trimmed.
- *
- * Repeated headers: Go's metadata.Get returns a slice and the Go server
- * reads values[0]; Node's http2 layer joins repeated headers with ", "
- * before Connect ever sees them, so the first comma segment IS Go's
- * first value — a genuine token (base64url segments joined by dots) can
- * never contain a comma, so the split is lossless for every legitimate
- * shape.
+ * The Bearer credential from the request's authorization header; empty
+ * when absent or differently shaped. The parsing shape (Go's exact
+ * bearerToken semantics, including the repeated-header first-segment
+ * rule) is the ONE shared definition in the identity chassis — promoted
+ * there when the verifier chain became its second consumer (O2).
  */
 function bearerToken(ctx: HandlerContext): string {
-  const joined = ctx.requestHeader.get("authorization") ?? "";
-  const header = joined.split(",")[0] ?? "";
-  const prefix = "bearer ";
-  if (
-    header.length <= prefix.length ||
-    header.slice(0, prefix.length).toLowerCase() !== prefix
-  ) {
-    return "";
-  }
-  return header.slice(prefix.length).trim();
+  return parseBearerToken(ctx.requestHeader.get("authorization") ?? "");
 }
 
 /**

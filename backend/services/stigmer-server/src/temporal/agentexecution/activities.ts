@@ -41,6 +41,8 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import type { Logger } from "../../boot/logger.js";
 import type { StreamBroker } from "../../domain/agentexecution/stream-broker.js";
 import { updateStatus } from "../../domain/agentexecution/update-status.js";
+import type { Authorizer } from "../../extensions/authorizer.js";
+import { trustedLocalIdentity } from "../../pipeline/interceptors/auth.js";
 import {
   DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME,
   deleteExecutionContextForExecution,
@@ -57,6 +59,8 @@ export interface AgentExecutionActivityDeps {
   readonly store: Store;
   readonly logger: Logger;
   readonly broker: StreamBroker;
+  /** The composed Authorizer, required by the status-merge updateStatus pipeline (O2). */
+  readonly authorizer: Authorizer;
   /** Live Temporal client (reads the manager's CURRENT client). */
   readonly client: () => Client;
 }
@@ -81,7 +85,7 @@ export interface CompleteExternalActivityInput {
 export function createAgentExecutionActivities(
   deps: AgentExecutionActivityDeps,
 ): Record<string, (...args: never[]) => Promise<unknown>> {
-  const { store, logger, broker } = deps;
+  const { store, logger, broker, authorizer } = deps;
 
   return {
     /**
@@ -95,12 +99,17 @@ export function createAgentExecutionActivities(
       statusJson: JsonValue,
     ): Promise<void> => {
       const status = fromJson(AgentExecutionStatusSchema, statusJson);
+      // The worker is the server process acting as itself — no wire
+      // request exists here, so the trusted-local operator identity is
+      // the one honest principal (O2; audit bytes unchanged: the derived
+      // actor equals the pre-O2 process-global operator actor).
       await updateStatus(
-        { store, logger, broker },
+        { store, logger, broker, authorizer },
         create(AgentExecutionUpdateStatusInputSchema, {
           executionId,
           status,
         }),
+        trustedLocalIdentity(),
       );
     },
 

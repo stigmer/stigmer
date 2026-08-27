@@ -27,6 +27,7 @@
  *     exists (exact count copy), terminal phases don't block, and the
  *     cascade removes exactly the session's own executions.
  */
+import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -502,6 +503,7 @@ describe("session update — execution-target immutability (oss#397)", () => {
       create(SessionSchema, {
         spec: { executionTarget: ExecutionTarget.CLOUD },
       }),
+      testCallerIdentity(),
       ApiResourceKind.session,
     );
     passCtx.set(EXISTING_RESOURCE_KEY, existing);
@@ -514,6 +516,7 @@ describe("session update — execution-target immutability (oss#397)", () => {
       create(SessionSchema, {
         spec: { executionTarget: ExecutionTarget.LOCAL },
       }),
+      testCallerIdentity(),
       ApiResourceKind.session,
     );
     failCtx.set(EXISTING_RESOURCE_KEY, existing);

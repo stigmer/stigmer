@@ -39,11 +39,14 @@ import type {
 } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/io_pb";
 
 import type { Logger } from "../../boot/logger.js";
+import type { Authorizer } from "../../extensions/authorizer.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import { internalError } from "../../pipeline/errors.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
+import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
+import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
 import { newBuildNewStateStep } from "../../pipeline/steps/defaults.js";
 import { newBuildUpdateStateStep } from "../../pipeline/steps/build-update-state.js";
 import {
@@ -55,9 +58,18 @@ import {
   newDeleteSearchIndexStep,
   newIndexSearchStep,
 } from "../../pipeline/steps/index-search.js";
-import { EXISTING_RESOURCE_KEY, newLoadExistingStep } from "../../pipeline/steps/load-existing.js";
-import { SHOULD_CREATE_KEY, newLoadForApplyStep } from "../../pipeline/steps/load-for-apply.js";
-import { newLoadTargetStep, TARGET_RESOURCE_KEY } from "../../pipeline/steps/load-target.js";
+import {
+  EXISTING_RESOURCE_KEY,
+  newLoadExistingStep,
+} from "../../pipeline/steps/load-existing.js";
+import {
+  SHOULD_CREATE_KEY,
+  newLoadForApplyStep,
+} from "../../pipeline/steps/load-for-apply.js";
+import {
+  newLoadTargetStep,
+  TARGET_RESOURCE_KEY,
+} from "../../pipeline/steps/load-target.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
@@ -69,6 +81,8 @@ import { newCheckOrgDuplicateStep, newCopySlugToIdStep } from "./steps.js";
 export interface OrganizationControllerDeps {
   readonly store: Store;
   readonly logger: Logger;
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  readonly authorizer: Authorizer;
 }
 
 /** Registers both organization services on the router (routes stage). */
@@ -105,8 +119,22 @@ async function createOrganization(
   org: Organization,
   ctx: HandlerContext,
 ): Promise<Organization> {
-  const reqCtx = new RequestContext(OrganizationSchema, org, kindOf(ctx));
-  await newPipeline<typeof OrganizationSchema>("organization-create", deps.logger)
+  const reqCtx = new RequestContext(
+    OrganizationSchema,
+    org,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
+  await newPipeline<typeof OrganizationSchema>(
+    "organization-create",
+    deps.logger,
+  )
+    .addStep(
+      newAuthorizeStep(
+        OrganizationCommandController.method.create,
+        deps.authorizer,
+      ),
+    )
     .addStep(newResolveSlugStep())
     .addStep(newValidateProtoStep())
     .addStep(newValidateVisibilityStep())
@@ -114,7 +142,9 @@ async function createOrganization(
     .addStep(newBuildNewStateStep())
     .addStep(newCopySlugToIdStep())
     .addStep(newPersistStep(deps.store))
-    .addStep(newIndexSearchStep(deps.store, organizationSearchExtractor, deps.logger))
+    .addStep(
+      newIndexSearchStep(deps.store, organizationSearchExtractor, deps.logger),
+    )
     .build()
     .execute(reqCtx);
   return reqCtx.newState;
@@ -126,14 +156,30 @@ async function update(
   org: Organization,
   ctx: HandlerContext,
 ): Promise<Organization> {
-  const reqCtx = new RequestContext(OrganizationSchema, org, kindOf(ctx));
-  await newPipeline<typeof OrganizationSchema>("organization-update", deps.logger)
+  const reqCtx = new RequestContext(
+    OrganizationSchema,
+    org,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
+  await newPipeline<typeof OrganizationSchema>(
+    "organization-update",
+    deps.logger,
+  )
+    .addStep(
+      newAuthorizeStep(
+        OrganizationCommandController.method.update,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newResolveSlugStep())
     .addStep(newLoadExistingStep(deps.store))
     .addStep(newBuildUpdateStateStep())
     .addStep(newPersistStep(deps.store))
-    .addStep(newIndexSearchStep(deps.store, organizationSearchExtractor, deps.logger))
+    .addStep(
+      newIndexSearchStep(deps.store, organizationSearchExtractor, deps.logger),
+    )
     .build()
     .execute(reqCtx);
   return reqCtx.newState;
@@ -149,8 +195,22 @@ async function apply(
   org: Organization,
   ctx: HandlerContext,
 ): Promise<Organization> {
-  const reqCtx = new RequestContext(OrganizationSchema, org, kindOf(ctx));
-  await newPipeline<typeof OrganizationSchema>("organization-apply", deps.logger)
+  const reqCtx = new RequestContext(
+    OrganizationSchema,
+    org,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
+  await newPipeline<typeof OrganizationSchema>(
+    "organization-apply",
+    deps.logger,
+  )
+    .addStep(
+      newAuthorizeStep(
+        OrganizationCommandController.method.apply,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newResolveSlugStep())
     .addStep(newLoadForApplyStep(deps.store))
@@ -178,12 +238,19 @@ async function deleteOrganization(
   const reqCtx = new RequestContext(
     OrganizationCommandController.method.delete.input,
     orgId,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<typeof OrganizationCommandController.method.delete.input>(
     "organization-delete",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(
+        OrganizationCommandController.method.delete,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newExtractResourceIdStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, OrganizationSchema))
@@ -211,12 +278,16 @@ async function get(
   const reqCtx = new RequestContext(
     OrganizationQueryController.method.get.input,
     orgId,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<typeof OrganizationQueryController.method.get.input>(
     "organization-get",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(OrganizationQueryController.method.get, deps.authorizer),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newLoadTargetStep(deps.store, OrganizationSchema))
     .build()
@@ -241,12 +312,19 @@ async function find(
   const reqCtx = new RequestContext(
     OrganizationQueryController.method.find.input,
     req,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<typeof OrganizationQueryController.method.find.input>(
     "organization-find",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(
+        OrganizationQueryController.method.find,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newListAllOrganizationsStep(deps.store))
     .build()
@@ -307,7 +385,8 @@ function newListAllOrganizationsStep(
 
       const totalPages = Math.ceil(orgs.length / pageSize);
       const start = (pageNumber - 1) * pageSize;
-      const entries = start >= orgs.length ? [] : orgs.slice(start, start + pageSize);
+      const entries =
+        start >= orgs.length ? [] : orgs.slice(start, start + pageSize);
 
       ctx.set(
         FIND_RESULT_KEY,

@@ -7,6 +7,7 @@
  * message — the conformance tier suite asserts the codes on every target;
  * these tests additionally pin the message fragments.
  */
+import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import { create } from "@bufbuild/protobuf";
 import type { MessageInitShape } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
@@ -49,11 +50,14 @@ function contextFor(
         ...(config === undefined ? {} : { executionConfig: config }),
       },
     }),
+    testCallerIdentity(),
     ApiResourceKind.agent_execution,
   );
 }
 
-function refusal(config: MessageInitShape<typeof ExecutionConfigSchema>): ConnectError {
+function refusal(
+  config: MessageInitShape<typeof ExecutionConfigSchema>,
+): ConnectError {
   try {
     step.execute(contextFor(config));
   } catch (error) {

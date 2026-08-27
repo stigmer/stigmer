@@ -33,6 +33,7 @@ import { describe, expect, it } from "vitest";
 import { createLogger } from "../../boot/logger.js";
 import type { LogFields } from "../../boot/logger.js";
 import { buildInterceptorChain } from "../chain.js";
+import { createVerifierChainInterceptor } from "../interceptors/auth.js";
 import { apiResourceKindKey } from "../interceptors/apiresource.js";
 
 const VALID_AGENT = {
@@ -75,7 +76,16 @@ function testHarness(handlers: {
         watch: async function* () {},
       });
     },
-    { router: { interceptors: buildInterceptorChain(logger) } },
+    // The serving-shape identity source with zero verifiers — the OSS
+    // default posture (O2): every request resolves to trusted-local.
+    {
+      router: {
+        interceptors: buildInterceptorChain(
+          logger,
+          createVerifierChainInterceptor([], logger),
+        ),
+      },
+    },
   );
   return { transport, lines };
 }

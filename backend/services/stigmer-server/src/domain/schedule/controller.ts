@@ -51,11 +51,14 @@ import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/ap
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
+import type { Authorizer } from "../../extensions/authorizer.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import { internalError } from "../../pipeline/errors.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
+import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
+import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
 import { newBuildNewStateStep } from "../../pipeline/steps/defaults.js";
 import { newBuildUpdateStateStep } from "../../pipeline/steps/build-update-state.js";
 import { newCheckDuplicateStep } from "../../pipeline/steps/duplicate.js";
@@ -68,10 +71,19 @@ import {
   compareCreatedAtDesc,
   matchesAllLabels,
 } from "../../pipeline/steps/helpers.js";
-import { EXISTING_RESOURCE_KEY, newLoadExistingStep } from "../../pipeline/steps/load-existing.js";
-import { SHOULD_CREATE_KEY, newLoadForApplyStep } from "../../pipeline/steps/load-for-apply.js";
+import {
+  EXISTING_RESOURCE_KEY,
+  newLoadExistingStep,
+} from "../../pipeline/steps/load-existing.js";
+import {
+  SHOULD_CREATE_KEY,
+  newLoadForApplyStep,
+} from "../../pipeline/steps/load-for-apply.js";
 import { newLoadByReferenceStep } from "../../pipeline/steps/load-by-reference.js";
-import { newLoadTargetStep, TARGET_RESOURCE_KEY } from "../../pipeline/steps/load-target.js";
+import {
+  newLoadTargetStep,
+  TARGET_RESOURCE_KEY,
+} from "../../pipeline/steps/load-target.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { newNormalizeReferencesStep } from "../../pipeline/steps/references.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
@@ -107,6 +119,8 @@ import {
 export interface ScheduleControllerDeps {
   readonly store: Store;
   readonly logger: Logger;
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  readonly authorizer: Authorizer;
   readonly modelRegistry: ModelCatalogProvider;
   /**
    * The scheduling runtime (clock.ts), resolved at call time so the
@@ -159,8 +173,19 @@ async function createSchedule(
   schedule: Schedule,
   ctx: HandlerContext,
 ): Promise<Schedule> {
-  const reqCtx = new RequestContext(ScheduleSchema, schedule, kindOf(ctx));
+  const reqCtx = new RequestContext(
+    ScheduleSchema,
+    schedule,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
   await newPipeline<typeof ScheduleSchema>("schedule-create", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        ScheduleCommandController.method.create,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newValidateVisibilityStep())
     .addStep(newResolveScheduleDefaultsStep(deps))
@@ -181,8 +206,19 @@ async function update(
   schedule: Schedule,
   ctx: HandlerContext,
 ): Promise<Schedule> {
-  const reqCtx = new RequestContext(ScheduleSchema, schedule, kindOf(ctx));
+  const reqCtx = new RequestContext(
+    ScheduleSchema,
+    schedule,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
   await newPipeline<typeof ScheduleSchema>("schedule-update", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        ScheduleCommandController.method.update,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newResolveSlugStep())
     .addStep(newLoadExistingStep(deps.store))
@@ -213,8 +249,16 @@ async function apply(
   schedule: Schedule,
   ctx: HandlerContext,
 ): Promise<Schedule> {
-  const reqCtx = new RequestContext(ScheduleSchema, schedule, kindOf(ctx));
+  const reqCtx = new RequestContext(
+    ScheduleSchema,
+    schedule,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
   await newPipeline<typeof ScheduleSchema>("schedule-apply", deps.logger)
+    .addStep(
+      newAuthorizeStep(ScheduleCommandController.method.apply, deps.authorizer),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newResolveScheduleDefaultsStep(deps))
     .addStep(newResolveSlugStep())
@@ -253,9 +297,16 @@ async function deleteSchedule(
   const reqCtx = new RequestContext(
     ScheduleCommandController.method.delete.input,
     scheduleId,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<DeleteInput>("schedule-delete", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        ScheduleCommandController.method.delete,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newExtractResourceIdStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, ScheduleSchema))
@@ -285,9 +336,16 @@ async function resume(
   const reqCtx = new RequestContext(
     ScheduleCommandController.method.resume.input,
     scheduleId,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<ResumeInput>("schedule-resume", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        ScheduleCommandController.method.resume,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newExtractResourceIdStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, ScheduleSchema))
@@ -316,14 +374,27 @@ async function trigger(
   const reqCtx = new RequestContext(
     ScheduleCommandController.method.trigger.input,
     scheduleId,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<TriggerInput>("schedule-trigger", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        ScheduleCommandController.method.trigger,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newExtractResourceIdStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, ScheduleSchema))
     .addStep(newValidateTriggerableStep())
-    .addStep(newFireDirectRunStep({ store: deps.store, runner: deps.runner, logger: deps.logger }))
+    .addStep(
+      newFireDirectRunStep({
+        store: deps.store,
+        runner: deps.runner,
+        logger: deps.logger,
+      }),
+    )
     .build()
     .execute(reqCtx);
 
@@ -347,9 +418,13 @@ async function get(
   const reqCtx = new RequestContext(
     ScheduleQueryController.method.get.input,
     scheduleId,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<GetInput>("schedule-get", deps.logger)
+    .addStep(
+      newAuthorizeStep(ScheduleQueryController.method.get, deps.authorizer),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newLoadTargetStep(deps.store, ScheduleSchema))
     .build()
@@ -367,9 +442,16 @@ async function getByReference(
   const reqCtx = new RequestContext(
     ScheduleQueryController.method.getByReference.input,
     ref,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<RefInput>("schedule-get-by-reference", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        ScheduleQueryController.method.getByReference,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newLoadByReferenceStep(deps.store, ScheduleSchema))
     .build()
@@ -399,9 +481,16 @@ async function getByAgent(
   const reqCtx = new RequestContext(
     ScheduleQueryController.method.getByAgent.input,
     req,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<ByAgentInput>("schedule-get-by-agent", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        ScheduleQueryController.method.getByAgent,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newLoadSchedulesByAgentStep(deps.store))
     .build()
@@ -423,7 +512,9 @@ function newLoadSchedulesByAgentStep(
   return {
     name: "LoadSchedulesByAgent",
     async execute(
-      ctx: RequestContext<typeof ScheduleQueryController.method.getByAgent.input>,
+      ctx: RequestContext<
+        typeof ScheduleQueryController.method.getByAgent.input
+      >,
     ): Promise<void> {
       const req = ctx.input;
 
@@ -502,9 +593,13 @@ async function list(
   const reqCtx = new RequestContext(
     ScheduleQueryController.method.list.input,
     req,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<ListInput>("schedule-list", deps.logger)
+    .addStep(
+      newAuthorizeStep(ScheduleQueryController.method.list, deps.authorizer),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newListByOrgAndLabelsStep(deps.store))
     .build()
@@ -582,9 +677,16 @@ async function listRuns(
   const reqCtx = new RequestContext(
     ScheduleQueryController.method.listRuns.input,
     req,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<ListRunsInput>("schedule-list-runs", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        ScheduleQueryController.method.listRuns,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newLoadScheduleForRunsStep(deps.store))
     .addStep(newListRunsFromLedgerStep(deps.store))

@@ -46,6 +46,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { enumToJson } from "@bufbuild/protobuf";
 
 import type { Logger } from "../../boot/logger.js";
+import type { Authorizer } from "../../extensions/authorizer.js";
 import {
   failedPreconditionError,
   internalError,
@@ -54,17 +55,20 @@ import {
   unavailableError,
 } from "../../pipeline/errors.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
+import type { CallerIdentity } from "../../extensions/identity.js";
 import { RequestContext } from "../../pipeline/request-context.js";
+import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 
-import { ensureApprovalRequests, recordDecisionEvent } from "./approval/author.js";
+import {
+  ensureApprovalRequests,
+  recordDecisionEvent,
+} from "./approval/author.js";
 import { deriveLeaseScope, sameLeaseScope } from "./approval/lease-scope.js";
 import { projectPendingApprovals } from "./approval/project.js";
-import type {
-  ExecutionEngineStateProvider,
-} from "./engine.js";
+import type { ExecutionEngineStateProvider } from "./engine.js";
 import { EngineWorkflowNotFoundError } from "./engine.js";
 import { countAwaitingReview } from "./filereview/gate.js";
 import { settleInterruptedToolCalls } from "./tool-call-settle.js";
@@ -73,6 +77,8 @@ import type { StreamBroker } from "./stream-broker.js";
 export interface SubmitApprovalDeps {
   readonly store: Store;
   readonly logger: Logger;
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  readonly authorizer: Authorizer;
   readonly broker: StreamBroker;
   readonly engineState: ExecutionEngineStateProvider;
 }
@@ -87,16 +93,24 @@ const TARGET_RESOURCE_KEY = "targetResource";
 export async function submitApproval(
   deps: SubmitApprovalDeps,
   input: SubmitApprovalInput,
+  identity: CallerIdentity,
 ): Promise<AgentExecution> {
   const reqCtx = new RequestContext(
     AgentExecutionCommandController.method.submitApproval.input,
     input,
+    identity,
     ApiResourceKind.agent_execution,
   );
   await newPipeline<SubmitApprovalDesc>(
     "agent-execution-submit-approval",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(
+        AgentExecutionCommandController.method.submitApproval,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep({
       name: "LoadExisting",
@@ -129,8 +143,7 @@ export async function submitApproval(
         const requestedToolCallId = ctx.input.toolCallId;
         const requestedAction = ctx.input.action;
         const currentPhase =
-          execution.status?.phase ??
-          ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+          execution.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
 
         // Approval is accepted during active execution phases where tool
         // calls may await decisions; terminal and pre-start phases refuse.
@@ -305,8 +318,7 @@ export async function submitApproval(
 
         const execution = ctx.get(TARGET_RESOURCE_KEY) as AgentExecution;
         const executionId = execution.metadata?.id ?? "";
-        const pendingRemaining =
-          execution.status?.pendingApprovals.length ?? 0;
+        const pendingRemaining = execution.status?.pendingApprovals.length ?? 0;
         const awaitingReview = countAwaitingReview(
           execution.status?.fileChangeSets ?? [],
         );
@@ -440,10 +452,9 @@ async function reconcileStaleExecution(
     return;
   }
 
-  deps.logger.info(
-    "RECONCILIATION: Updated stale execution status to FAILED",
-    { executionId },
-  );
+  deps.logger.info("RECONCILIATION: Updated stale execution status to FAILED", {
+    executionId,
+  });
 }
 
 /**

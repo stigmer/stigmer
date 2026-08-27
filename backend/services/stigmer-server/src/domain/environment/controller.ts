@@ -42,6 +42,7 @@ import type {
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
+import type { Authorizer } from "../../extensions/authorizer.js";
 import type { SecretService } from "../../encryption/encryption.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import {
@@ -51,8 +52,13 @@ import {
 } from "../../pipeline/errors.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
+import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
-import { newBuildNewStateStep, setAuditFieldsForUpdate } from "../../pipeline/steps/defaults.js";
+import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
+import {
+  newBuildNewStateStep,
+  setAuditFieldsForUpdate,
+} from "../../pipeline/steps/defaults.js";
 import { newBuildUpdateStateStep } from "../../pipeline/steps/build-update-state.js";
 import { newCheckDuplicateStep } from "../../pipeline/steps/duplicate.js";
 import {
@@ -64,11 +70,23 @@ import {
   newDeleteSearchIndexStep,
   newIndexSearchStep,
 } from "../../pipeline/steps/index-search.js";
-import { compareCreatedAtDesc, matchesAllLabels } from "../../pipeline/steps/helpers.js";
-import { EXISTING_RESOURCE_KEY, newLoadExistingStep } from "../../pipeline/steps/load-existing.js";
-import { SHOULD_CREATE_KEY, newLoadForApplyStep } from "../../pipeline/steps/load-for-apply.js";
+import {
+  compareCreatedAtDesc,
+  matchesAllLabels,
+} from "../../pipeline/steps/helpers.js";
+import {
+  EXISTING_RESOURCE_KEY,
+  newLoadExistingStep,
+} from "../../pipeline/steps/load-existing.js";
+import {
+  SHOULD_CREATE_KEY,
+  newLoadForApplyStep,
+} from "../../pipeline/steps/load-for-apply.js";
 import { newLoadByReferenceStep } from "../../pipeline/steps/load-by-reference.js";
-import { TARGET_RESOURCE_KEY, newLoadTargetStep } from "../../pipeline/steps/load-target.js";
+import {
+  TARGET_RESOURCE_KEY,
+  newLoadTargetStep,
+} from "../../pipeline/steps/load-target.js";
 import { newNormalizeReferencesStep } from "../../pipeline/steps/references.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
@@ -96,6 +114,8 @@ import {
 export interface EnvironmentControllerDeps {
   readonly store: Store;
   readonly logger: Logger;
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  readonly authorizer: Authorizer;
   readonly secretService: SecretService;
 }
 
@@ -136,8 +156,19 @@ async function createEnvironment(
   env: Environment,
   ctx: HandlerContext,
 ): Promise<Environment> {
-  const reqCtx = new RequestContext(EnvironmentSchema, env, kindOf(ctx));
+  const reqCtx = new RequestContext(
+    EnvironmentSchema,
+    env,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
   await newPipeline<typeof EnvironmentSchema>("environment-create", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        EnvironmentCommandController.method.create,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newValidateVisibilityStep())
     .addStep(newResolveSlugStep())
@@ -147,7 +178,9 @@ async function createEnvironment(
     .addStep(newPreserveRedactedSecretsStep())
     .addStep(newEncryptSecretValuesStep(deps.secretService, deps.logger))
     .addStep(newPersistStep(deps.store))
-    .addStep(newIndexSearchStep(deps.store, environmentSearchExtractor, deps.logger))
+    .addStep(
+      newIndexSearchStep(deps.store, environmentSearchExtractor, deps.logger),
+    )
     .build()
     .execute(reqCtx);
   redactEnvironmentSecrets(reqCtx.newState);
@@ -160,8 +193,19 @@ async function update(
   env: Environment,
   ctx: HandlerContext,
 ): Promise<Environment> {
-  const reqCtx = new RequestContext(EnvironmentSchema, env, kindOf(ctx));
+  const reqCtx = new RequestContext(
+    EnvironmentSchema,
+    env,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
   await newPipeline<typeof EnvironmentSchema>("environment-update", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        EnvironmentCommandController.method.update,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newResolveSlugStep())
     .addStep(newLoadExistingStep(deps.store))
@@ -170,7 +214,9 @@ async function update(
     .addStep(newEncryptSecretValuesStep(deps.secretService, deps.logger))
     .addStep(newNormalizeReferencesStep())
     .addStep(newPersistStep(deps.store))
-    .addStep(newIndexSearchStep(deps.store, environmentSearchExtractor, deps.logger))
+    .addStep(
+      newIndexSearchStep(deps.store, environmentSearchExtractor, deps.logger),
+    )
     .build()
     .execute(reqCtx);
   redactEnvironmentSecrets(reqCtx.newState);
@@ -187,8 +233,19 @@ async function apply(
   env: Environment,
   ctx: HandlerContext,
 ): Promise<Environment> {
-  const reqCtx = new RequestContext(EnvironmentSchema, env, kindOf(ctx));
+  const reqCtx = new RequestContext(
+    EnvironmentSchema,
+    env,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
   await newPipeline<typeof EnvironmentSchema>("environment-apply", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        EnvironmentCommandController.method.apply,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newResolveSlugStep())
     .addStep(newLoadForApplyStep(deps.store))
@@ -222,6 +279,7 @@ async function deleteEnvironment(
   const reqCtx = new RequestContext(
     EnvironmentCommandController.method.delete.input,
     input,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   reqCtx.set(RESOURCE_ID_KEY, input.resourceId);
@@ -229,6 +287,12 @@ async function deleteEnvironment(
     "environment-delete",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(
+        EnvironmentCommandController.method.delete,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, EnvironmentSchema))
     .addStep(newDeleteResourceStep(deps.store))
@@ -269,12 +333,19 @@ async function updateVisibility(
   const reqCtx = new RequestContext(
     EnvironmentCommandController.method.updateVisibility.input,
     input,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<UpdateVisibilityDesc>(
     "environment-update-visibility",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(
+        EnvironmentCommandController.method.updateVisibility,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newLoadEnvironmentForVisibilityUpdateStep(deps.store))
     // After load, per the cross-edition error precedence: unknown id +
@@ -283,7 +354,9 @@ async function updateVisibility(
     .addStep(newValidateEnvironmentShareRestrictionStep())
     .addStep(newSetEnvironmentVisibilityStep())
     .addStep(newPersistEnvironmentForVisibilityUpdateStep(deps.store))
-    .addStep(newIndexEnvironmentAfterVisibilityUpdateStep(deps.store, deps.logger))
+    .addStep(
+      newIndexEnvironmentAfterVisibilityUpdateStep(deps.store, deps.logger),
+    )
     .build()
     .execute(reqCtx);
 
@@ -350,7 +423,12 @@ function newSetEnvironmentVisibilityStep(): PipelineStep<UpdateVisibilityDesc> {
       // Go wraps a stamping failure as a PLAIN error (not grpclib) — the
       // wire then carries the sanitized "internal server error", exactly
       // what the pipeline's non-Connect fallback produces here.
-      setAuditFieldsForUpdate(EnvironmentSchema, env, "status_audit");
+      setAuditFieldsForUpdate(
+        EnvironmentSchema,
+        env,
+        "status_audit",
+        ctx.callerIdentity,
+      );
     },
   };
 }
@@ -431,16 +509,26 @@ async function updateVariables(
   const reqCtx = new RequestContext(
     EnvironmentCommandController.method.updateVariables.input,
     req,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<typeof EnvironmentCommandController.method.updateVariables.input>(
-    "environment-update-variables",
-    deps.logger,
-  )
+  await newPipeline<
+    typeof EnvironmentCommandController.method.updateVariables.input
+  >("environment-update-variables", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        EnvironmentCommandController.method.updateVariables,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newLoadEnvironmentByIdStep(deps.store))
     .addStep(
-      newMergeVariablesAndPersistStep(deps.store, deps.secretService, deps.logger),
+      newMergeVariablesAndPersistStep(
+        deps.store,
+        deps.secretService,
+        deps.logger,
+      ),
     )
     .build()
     .execute(reqCtx);
@@ -459,12 +547,18 @@ async function removeVariables(
   const reqCtx = new RequestContext(
     EnvironmentCommandController.method.removeVariables.input,
     req,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<typeof EnvironmentCommandController.method.removeVariables.input>(
-    "environment-remove-variables",
-    deps.logger,
-  )
+  await newPipeline<
+    typeof EnvironmentCommandController.method.removeVariables.input
+  >("environment-remove-variables", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        EnvironmentCommandController.method.removeVariables,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newLoadEnvironmentByIdStep(deps.store))
     .addStep(newRemoveVariableKeysAndPersistStep(deps.store))
@@ -485,12 +579,16 @@ async function get(
   const reqCtx = new RequestContext(
     EnvironmentQueryController.method.get.input,
     id,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<typeof EnvironmentQueryController.method.get.input>(
     "environment-get",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(EnvironmentQueryController.method.get, deps.authorizer),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newLoadTargetStep(deps.store, EnvironmentSchema))
     .build()
@@ -509,12 +607,18 @@ async function getByReference(
   const reqCtx = new RequestContext(
     EnvironmentQueryController.method.getByReference.input,
     ref,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<typeof EnvironmentQueryController.method.getByReference.input>(
-    "environment-get-by-reference",
-    deps.logger,
-  )
+  await newPipeline<
+    typeof EnvironmentQueryController.method.getByReference.input
+  >("environment-get-by-reference", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        EnvironmentQueryController.method.getByReference,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newLoadByReferenceStep(deps.store, EnvironmentSchema))
     .build()
@@ -536,12 +640,18 @@ async function getSecretValue(
   const reqCtx = new RequestContext(
     EnvironmentQueryController.method.getSecretValue.input,
     input,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<typeof EnvironmentQueryController.method.getSecretValue.input>(
-    "environment-get-secret-value",
-    deps.logger,
-  )
+  await newPipeline<
+    typeof EnvironmentQueryController.method.getSecretValue.input
+  >("environment-get-secret-value", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        EnvironmentQueryController.method.getSecretValue,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newLoadEnvironmentByIdStep(deps.store))
     .addStep(newExtractAndDecryptSingleKeyStep(deps.secretService, deps.logger))
@@ -565,12 +675,16 @@ async function list(
   const reqCtx = new RequestContext(
     EnvironmentQueryController.method.list.input,
     req,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<typeof EnvironmentQueryController.method.list.input>(
     "environment-list",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(EnvironmentQueryController.method.list, deps.authorizer),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newListByOrgAndLabelsStep(deps.store))
     .build()
