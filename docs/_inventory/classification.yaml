@@ -675,6 +675,27 @@ pages:
       pricing and spend-reduction mechanics that belong nearer the billing
       guides; the concept survives, the operational halves move out.
 
+  guides/self-hosting/docker-compose:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Run the complete stack (server, Postgres, Temporal, runner) on your own
+      machine with Docker Compose, bootstrap it with the CLI, and run a first
+      Agent — with the no-auth trust model stated up front.
+    medium: diagram
+    why:
+      The four-service topology and which volume holds what state is
+      structure; the compose file's inline comments can't orient a reader the
+      way one flowchart does.
+
+  guides/self-hosting/operations:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      What a complete backup of a self-hosted stack is (three volumes plus
+      .env), how to restore one, and the version-pin upgrade path.
+    medium: none
+
   # ── CLI ────────────────────────────────────────────────────────────────
   cli:
     fate: keep
