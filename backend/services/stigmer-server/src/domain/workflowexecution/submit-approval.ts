@@ -24,6 +24,7 @@ import { create } from "@bufbuild/protobuf";
 import { ConnectError } from "@connectrpc/connect";
 
 import type { Logger } from "../../boot/logger.js";
+import type { Authorizer } from "../../extensions/authorizer.js";
 import {
   failedPreconditionError,
   goGrpcErrorText,
@@ -33,7 +34,9 @@ import {
   unavailableError,
 } from "../../pipeline/errors.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
+import type { CallerIdentity } from "../../extensions/identity.js";
 import { RequestContext } from "../../pipeline/request-context.js";
+import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import type { Store } from "../../store/interface.js";
 
@@ -52,6 +55,8 @@ export type AgentExecutionApprovalForwarderProvider =
 export interface SubmitApprovalDeps {
   readonly store: Store;
   readonly logger: Logger;
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  readonly authorizer: Authorizer;
   readonly approvalForwarder: AgentExecutionApprovalForwarderProvider;
 }
 
@@ -64,16 +69,24 @@ const CHILD_EXECUTION_ID_KEY = "childAgentExecutionId";
 export async function submitApproval(
   deps: SubmitApprovalDeps,
   input: SubmitWorkflowApprovalInput,
+  identity: CallerIdentity,
 ): Promise<WorkflowExecution> {
   const reqCtx = new RequestContext(
     WorkflowExecutionCommandController.method.submitApproval.input,
     input,
+    identity,
     ApiResourceKind.workflow_execution,
   );
   await newPipeline<SubmitApprovalDesc>(
     "workflow-execution-submit-approval",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(
+        WorkflowExecutionCommandController.method.submitApproval,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep({
       name: "LoadExisting",

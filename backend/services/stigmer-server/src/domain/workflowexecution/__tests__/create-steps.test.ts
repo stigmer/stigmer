@@ -8,6 +8,7 @@
  * (execution marked FAILED with the error text and persisted —
  * recoverable via Recover).
  */
+import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -64,6 +65,7 @@ function executionCtx(
   return new RequestContext(
     WorkflowExecutionSchema,
     create(WorkflowExecutionSchema, init),
+    testCallerIdentity(),
     ApiResourceKind.workflow_execution,
   );
 }
@@ -332,6 +334,7 @@ describe("StartWorkflow failure posture (create.go startWorkflowStep)", () => {
     const ctx = new RequestContext(
       WorkflowExecutionSchema,
       execution,
+      testCallerIdentity(),
       ApiResourceKind.workflow_execution,
     );
     const step = newStartWorkflowStep({

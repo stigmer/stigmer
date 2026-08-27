@@ -23,6 +23,7 @@
  */
 import { Code, ConnectError } from "@connectrpc/connect";
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
+import type { DescMethod } from "@bufbuild/protobuf";
 import { create } from "@bufbuild/protobuf";
 
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
@@ -55,6 +56,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 
 import type { ArtifactStorage } from "../../artifactstorage/artifact-storage.js";
 import type { Logger } from "../../boot/logger.js";
+import type { Authorizer } from "../../extensions/authorizer.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import {
   failedPreconditionError,
@@ -64,7 +66,9 @@ import {
 } from "../../pipeline/errors.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
+import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
+import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
 import { setAuditFieldsForUpdate } from "../../pipeline/steps/defaults.js";
 import {
   RESOURCE_ID_KEY,
@@ -74,7 +78,10 @@ import {
 } from "../../pipeline/steps/delete.js";
 import { newDeleteSearchIndexStep } from "../../pipeline/steps/index-search.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
-import { TARGET_RESOURCE_KEY, newLoadTargetStep } from "../../pipeline/steps/load-target.js";
+import {
+  TARGET_RESOURCE_KEY,
+  newLoadTargetStep,
+} from "../../pipeline/steps/load-target.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import { newValidateVisibilityUpdateStep } from "../../pipeline/steps/validate-visibility.js";
 import type { Store } from "../../store/interface.js";
@@ -122,6 +129,8 @@ export interface SkillTransferLaneDeps {
 export interface SkillControllerDeps {
   readonly store: Store;
   readonly logger: Logger;
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  readonly authorizer: Authorizer;
   readonly artifactStorage: SkillArtifactStorage;
   /**
    * Execution artifact storage for pushFromExecutionArtifact (Go
@@ -143,9 +152,12 @@ export function registerSkillServices(
   deps: SkillControllerDeps,
 ): void {
   router.service(SkillCommandController, {
-    push: (req, ctx) => push(deps, req, ctx),
-    createArtifactUploadUrl: (req, ctx) => createArtifactUploadUrl(deps, req, ctx),
-    pushFromExecutionArtifact: (req, ctx) => pushFromExecutionArtifact(deps, req, ctx),
+    push: (req, ctx) =>
+      push(deps, req, ctx, SkillCommandController.method.push),
+    createArtifactUploadUrl: (req, ctx) =>
+      createArtifactUploadUrl(deps, req, ctx),
+    pushFromExecutionArtifact: (req, ctx) =>
+      pushFromExecutionArtifact(deps, req, ctx),
     updateVisibility: (input, ctx) => updateVisibility(deps, input, ctx),
     delete: (id, ctx) => deleteSkill(deps, id, ctx),
   });
@@ -153,7 +165,8 @@ export function registerSkillServices(
     get: (id, ctx) => get(deps, id, ctx),
     getByReference: (ref, ctx) => getByReference(deps, ref, ctx),
     getArtifact: (req, ctx) => getArtifact(deps, req, ctx),
-    getArtifactDownloadUrl: (req, ctx) => getArtifactDownloadUrl(deps, req, ctx),
+    getArtifactDownloadUrl: (req, ctx) =>
+      getArtifactDownloadUrl(deps, req, ctx),
     listVersions: (req, ctx) => listVersions(deps, req, ctx),
   });
 }
@@ -166,14 +179,28 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
  * Push — the 12-step upsert-by-slug pipeline (push.ts holds the steps and
  * the versioning discipline). Returns the built skill from context: the
  * pipeline's message type is the request, so the resource rides SKILL_KEY.
+ *
+ * `method` is the AUTHORIZING descriptor, passed by the caller because two
+ * RPCs run this pipeline: push itself and pushFromExecutionArtifact (which
+ * delegates here after its artifact download). Each authorizes under its
+ * OWN annotation — a hardcoded method.push would silently evaluate the
+ * wrong config the day the two annotations diverge (the runLifecyclePipeline
+ * pattern, O2).
  */
 async function push(
   deps: SkillControllerDeps,
   req: PushSkillRequest,
   ctx: HandlerContext,
+  method: DescMethod,
 ): Promise<Skill> {
-  const reqCtx = new RequestContext(PushSkillRequestSchema, req, kindOf(ctx));
+  const reqCtx = new RequestContext(
+    PushSkillRequestSchema,
+    req,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
   await newPipeline<typeof PushSkillRequestSchema>("skill-push", deps.logger)
+    .addStep(newAuthorizeStep(method, deps.authorizer))
     .addStep(newValidateProtoStep())
     .addStep(newResolveArtifactSourceStep(deps.transferLane?.slots))
     .addStep(newBuildInitialSkillStep())
@@ -211,12 +238,18 @@ async function createArtifactUploadUrl(
   const reqCtx = new RequestContext(
     SkillCommandController.method.createArtifactUploadUrl.input,
     req,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<typeof SkillCommandController.method.createArtifactUploadUrl.input>(
-    "skill-create-artifact-upload-url",
-    deps.logger,
-  )
+  await newPipeline<
+    typeof SkillCommandController.method.createArtifactUploadUrl.input
+  >("skill-create-artifact-upload-url", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        SkillCommandController.method.createArtifactUploadUrl,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .build()
     .execute(reqCtx);
@@ -315,6 +348,7 @@ async function pushFromExecutionArtifact(
       tag: req.tag,
     }),
     ctx,
+    SkillCommandController.method.pushFromExecutionArtifact,
   );
 
   deps.logger.info("Successfully pushed skill from execution artifact", {
@@ -347,9 +381,19 @@ async function updateVisibility(
   const reqCtx = new RequestContext(
     SkillCommandController.method.updateVisibility.input,
     input,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<UpdateVisibilityDesc>("skill-update-visibility", deps.logger)
+  await newPipeline<UpdateVisibilityDesc>(
+    "skill-update-visibility",
+    deps.logger,
+  )
+    .addStep(
+      newAuthorizeStep(
+        SkillCommandController.method.updateVisibility,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newLoadSkillForVisibilityUpdateStep(deps.store))
     .addStep(newValidateVisibilityUpdateStep())
@@ -393,7 +437,12 @@ function newSetVisibilityStep(): PipelineStep<UpdateVisibilityDesc> {
       if (skill.metadata !== undefined) {
         skill.metadata.visibility = ctx.input.visibility;
       }
-      setAuditFieldsForUpdate(SkillSchema, skill, "status_audit");
+      setAuditFieldsForUpdate(
+        SkillSchema,
+        skill,
+        "status_audit",
+        ctx.callerIdentity,
+      );
     },
   };
 }
@@ -431,13 +480,20 @@ function newIndexSkillAfterVisibilityUpdateStep(
       const skill = ctx.get(UPDATE_VISIBILITY_SKILL_KEY) as Skill;
       const entry = skillSearchExtractor.getSearchIndexEntry(skill);
       if (entry === undefined) {
-        logger.warn("IndexSkillAfterVisibilityUpdate: extractor returned nil, skipping", {
-          id: skill.metadata?.id ?? "",
-        });
+        logger.warn(
+          "IndexSkillAfterVisibilityUpdate: extractor returned nil, skipping",
+          {
+            id: skill.metadata?.id ?? "",
+          },
+        );
         return;
       }
       try {
-        await store.upsertSearchIndex(ctx.apiResourceKind, skill.metadata?.id ?? "", entry);
+        await store.upsertSearchIndex(
+          ctx.apiResourceKind,
+          skill.metadata?.id ?? "",
+          entry,
+        );
       } catch (error) {
         logger.warn("IndexSkillAfterVisibilityUpdate: failed (best-effort)", {
           id: skill.metadata?.id ?? "",
@@ -461,12 +517,16 @@ async function deleteSkill(
   const reqCtx = new RequestContext(
     SkillCommandController.method.delete.input,
     id,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<typeof SkillCommandController.method.delete.input>(
     "skill-delete",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(SkillCommandController.method.delete, deps.authorizer),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newExtractResourceIdStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, SkillSchema))
@@ -535,12 +595,14 @@ async function get(
   const reqCtx = new RequestContext(
     SkillQueryController.method.get.input,
     id,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<typeof SkillQueryController.method.get.input>(
     "skill-get",
     deps.logger,
   )
+    .addStep(newAuthorizeStep(SkillQueryController.method.get, deps.authorizer))
     .addStep(newValidateProtoStep())
     .addStep(newLoadTargetStep(deps.store, SkillSchema))
     .build()
@@ -557,12 +619,19 @@ async function getByReference(
   const reqCtx = new RequestContext(
     SkillQueryController.method.getByReference.input,
     ref,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<typeof SkillQueryController.method.getByReference.input>(
     "skill-get-by-reference",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(
+        SkillQueryController.method.getByReference,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newLoadSkillByReferenceStep(deps.store))
     .build()
@@ -583,12 +652,19 @@ async function getArtifact(
   const reqCtx = new RequestContext(
     SkillQueryController.method.getArtifact.input,
     req,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<typeof SkillQueryController.method.getArtifact.input>(
     "skill-get-artifact",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(
+        SkillQueryController.method.getArtifact,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .build()
     .execute(reqCtx);
@@ -629,12 +705,18 @@ async function getArtifactDownloadUrl(
   const reqCtx = new RequestContext(
     SkillQueryController.method.getArtifactDownloadUrl.input,
     req,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<typeof SkillQueryController.method.getArtifactDownloadUrl.input>(
-    "skill-get-artifact-download-url",
-    deps.logger,
-  )
+  await newPipeline<
+    typeof SkillQueryController.method.getArtifactDownloadUrl.input
+  >("skill-get-artifact-download-url", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        SkillQueryController.method.getArtifactDownloadUrl,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .build()
     .execute(reqCtx);
@@ -668,12 +750,19 @@ async function listVersions(
   const reqCtx = new RequestContext(
     SkillQueryController.method.listVersions.input,
     req,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<typeof SkillQueryController.method.listVersions.input>(
     "skill-list-versions",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(
+        SkillQueryController.method.listVersions,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newResolveSkillBySlugStep(deps.store))
     .addStep(newLoadAndMapVersionsStep(deps.store))
@@ -683,7 +772,10 @@ async function listVersions(
 }
 
 /** Bounds a promise by the named deadline (Go's context.WithTimeout arm). */
-async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+async function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+): Promise<T> {
   let timer: NodeJS.Timeout | undefined;
   try {
     return await Promise.race([

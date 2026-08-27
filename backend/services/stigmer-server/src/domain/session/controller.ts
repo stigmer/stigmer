@@ -36,6 +36,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { create } from "@bufbuild/protobuf";
 
 import type { Logger } from "../../boot/logger.js";
+import type { Authorizer } from "../../extensions/authorizer.js";
 import type { AgentExecutionTemporalConfig } from "../agentexecution/temporal/config.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import {
@@ -44,7 +45,10 @@ import {
   notFoundError,
 } from "../../pipeline/errors.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
+import type { CallerIdentity } from "../../extensions/identity.js";
+import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
+import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
 import {
   newBuildNewStateStep,
   setAuditFieldsForUpdate,
@@ -97,6 +101,8 @@ import type { AgentInstanceCreatorProvider } from "./steps.js";
 export interface SessionControllerDeps {
   readonly store: Store;
   readonly logger: Logger;
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  readonly authorizer: Authorizer;
   /**
    * The agent-execution temporal config — the update pipeline's
    * execution-target immutability step resolves UNSPECIFIED through the
@@ -120,7 +126,8 @@ export function registerSessionServices(
     apply: (session, ctx) => apply(deps, session, ctx),
     create: (session, ctx) => createSession(deps, session, ctx),
     update: (session, ctx) => update(deps, session, ctx),
-    updateSubject: (req) => updateSubject(deps, req),
+    updateSubject: (req, ctx) =>
+      updateSubject(deps, req, callerIdentityOf(ctx)),
     delete: (id, ctx) => deleteSession(deps, id, ctx),
   });
   router.service(SessionQueryController, {
@@ -145,8 +152,16 @@ async function createSession(
   session: Session,
   ctx: HandlerContext,
 ): Promise<Session> {
-  const reqCtx = new RequestContext(SessionSchema, session, kindOf(ctx));
+  const reqCtx = new RequestContext(
+    SessionSchema,
+    session,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
   await newPipeline<typeof SessionSchema>("session-create", deps.logger)
+    .addStep(
+      newAuthorizeStep(SessionCommandController.method.create, deps.authorizer),
+    )
     .addStep(
       newResolveDefaultAgentInstanceStep(
         deps.store,
@@ -179,8 +194,16 @@ async function update(
   session: Session,
   ctx: HandlerContext,
 ): Promise<Session> {
-  const reqCtx = new RequestContext(SessionSchema, session, kindOf(ctx));
+  const reqCtx = new RequestContext(
+    SessionSchema,
+    session,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
   await newPipeline<typeof SessionSchema>("session-update", deps.logger)
+    .addStep(
+      newAuthorizeStep(SessionCommandController.method.update, deps.authorizer),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newResolveSlugStep())
     .addStep(newLoadExistingStep(deps.store))
@@ -207,8 +230,16 @@ async function apply(
   session: Session,
   ctx: HandlerContext,
 ): Promise<Session> {
-  const reqCtx = new RequestContext(SessionSchema, session, kindOf(ctx));
+  const reqCtx = new RequestContext(
+    SessionSchema,
+    session,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
   await newPipeline<typeof SessionSchema>("session-apply", deps.logger)
+    .addStep(
+      newAuthorizeStep(SessionCommandController.method.apply, deps.authorizer),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newResolveSlugStep())
     .addStep(newLoadForApplyStep(deps.store))
@@ -241,12 +272,16 @@ async function deleteSession(
   const reqCtx = new RequestContext(
     SessionCommandController.method.delete.input,
     sessionId,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<typeof SessionCommandController.method.delete.input>(
     "session-delete",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(SessionCommandController.method.delete, deps.authorizer),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newExtractResourceIdStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, SessionSchema))
@@ -279,6 +314,7 @@ async function deleteSession(
 async function updateSubject(
   deps: SessionControllerDeps,
   req: UpdateSessionSubjectRequest,
+  identity: CallerIdentity,
 ): Promise<Session> {
   // Field validation is guaranteed at the transport boundary by the
   // protovalidate interceptor; this guard covers the direct-call path
@@ -304,7 +340,7 @@ async function updateSubject(
   }
   session.spec.subject = req.subject;
 
-  setAuditFieldsForUpdate(SessionSchema, session, "spec_audit");
+  setAuditFieldsForUpdate(SessionSchema, session, "spec_audit", identity);
 
   try {
     await deps.store.saveResource(kind, req.id, SessionSchema, session);
@@ -353,12 +389,16 @@ async function get(
   const reqCtx = new RequestContext(
     SessionQueryController.method.get.input,
     id,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<typeof SessionQueryController.method.get.input>(
     "session-get",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(SessionQueryController.method.get, deps.authorizer),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newLoadTargetStep(deps.store, SessionSchema))
     .build()
@@ -375,12 +415,16 @@ async function list(
   const reqCtx = new RequestContext(
     SessionQueryController.method.list.input,
     req,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<typeof SessionQueryController.method.list.input>(
     "session-list",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(SessionQueryController.method.list, deps.authorizer),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newListAllSessionsStep(deps.store, deps.logger))
     .build()
@@ -397,11 +441,18 @@ async function listByAgentInstance(
   const reqCtx = new RequestContext(
     SessionQueryController.method.listByAgentInstance.input,
     req,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<
     typeof SessionQueryController.method.listByAgentInstance.input
   >("session-list-by-agent-instance", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        SessionQueryController.method.listByAgentInstance,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newFilterByAgentInstanceStep(deps.store, deps.logger))
     .build()
@@ -418,12 +469,19 @@ async function listByChannel(
   const reqCtx = new RequestContext(
     SessionQueryController.method.listByChannel.input,
     req,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<typeof SessionQueryController.method.listByChannel.input>(
     "session-list-by-channel",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(
+        SessionQueryController.method.listByChannel,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newFilterByChannelStep(deps.store, deps.logger))
     .build()

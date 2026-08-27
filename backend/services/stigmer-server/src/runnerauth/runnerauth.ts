@@ -6,15 +6,20 @@
  * caller — the same contract the cloud edition enforces — but the runner
  * still needs the real values to serve executions. Cloud distinguishes the
  * runner by the token_type claim of its platform-minted credential; OSS
- * has no authentication at all, so this module supplies the minimal
- * equivalent: the platform exchange mints a short-lived token bound to ONE
- * execution, and the EC handler decrypts only for a token whose binding
- * matches the requested ExecutionContext.
+ * ships no token VERIFIERS on its identity chassis (O2, 20260827.01 — the
+ * verifier chain exists but resolves every request to the trusted-local
+ * identity until O3 lands the first verifiers), so this module supplies
+ * the minimal equivalent: the platform exchange mints a short-lived token
+ * bound to ONE execution, and the EC handler decrypts only for a token
+ * whose binding matches the requested ExecutionContext.
  *
- * A LANE DISCRIMINATOR, NOT A TRUST BOUNDARY (DD-004): single-user OSS has
- * no identity to verify — anyone who can reach the server can mint. What
- * the token buys is the redaction-by-default read contract converging with
- * cloud, on top of oss#405's encryption at rest.
+ * A LANE DISCRIMINATOR, NOT A TRUST BOUNDARY (DD-004): in the trusted-local
+ * posture anyone who can reach the server can mint. What the token buys is
+ * the redaction-by-default read contract converging with cloud, on top of
+ * oss#405's encryption at rest. It is deliberately NOT an IdentityVerifier
+ * on the chassis: presenting it must never change the caller's identity
+ * (the Q6 fall-through keeps the runner's Bearer-on-every-RPC behavior
+ * byte-identical), only unlock this one decrypt lane.
  *
  * Token shape (field names are wire contract — the runner's
  * token-claims.ts reads token_type by name):

@@ -45,6 +45,7 @@ import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/ap
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
+import type { Authorizer } from "../../extensions/authorizer.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import {
   internalError,
@@ -53,8 +54,13 @@ import {
 } from "../../pipeline/errors.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
+import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
-import { newBuildNewStateStep, setAuditFieldsForUpdate } from "../../pipeline/steps/defaults.js";
+import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
+import {
+  newBuildNewStateStep,
+  setAuditFieldsForUpdate,
+} from "../../pipeline/steps/defaults.js";
 import { newBuildUpdateStateStep } from "../../pipeline/steps/build-update-state.js";
 import { newCheckDuplicateStep } from "../../pipeline/steps/duplicate.js";
 import {
@@ -62,11 +68,23 @@ import {
   newExtractResourceIdStep,
   newLoadExistingForDeleteStep,
 } from "../../pipeline/steps/delete.js";
-import { compareCreatedAtDesc, matchesAllLabels } from "../../pipeline/steps/helpers.js";
-import { EXISTING_RESOURCE_KEY, newLoadExistingStep } from "../../pipeline/steps/load-existing.js";
-import { SHOULD_CREATE_KEY, newLoadForApplyStep } from "../../pipeline/steps/load-for-apply.js";
+import {
+  compareCreatedAtDesc,
+  matchesAllLabels,
+} from "../../pipeline/steps/helpers.js";
+import {
+  EXISTING_RESOURCE_KEY,
+  newLoadExistingStep,
+} from "../../pipeline/steps/load-existing.js";
+import {
+  SHOULD_CREATE_KEY,
+  newLoadForApplyStep,
+} from "../../pipeline/steps/load-for-apply.js";
 import { newLoadByReferenceStep } from "../../pipeline/steps/load-by-reference.js";
-import { TARGET_RESOURCE_KEY, newLoadTargetStep } from "../../pipeline/steps/load-target.js";
+import {
+  TARGET_RESOURCE_KEY,
+  newLoadTargetStep,
+} from "../../pipeline/steps/load-target.js";
 import { newNormalizeReferencesStep } from "../../pipeline/steps/references.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
@@ -88,6 +106,8 @@ import {
 export interface AgentShareControllerDeps {
   readonly store: Store;
   readonly logger: Logger;
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  readonly authorizer: Authorizer;
 }
 
 /** Registers both agentshare services on the router (routes stage). */
@@ -108,7 +128,8 @@ export function registerAgentShareServices(
     getByAgent: (req, ctx) => getByAgent(deps, req, ctx),
     list: (req, ctx) => list(deps, req, ctx),
     getSharedProfile: (req, ctx) => getSharedProfile(deps, req, ctx),
-    getSharedProfileForMember: (ref, ctx) => getSharedProfileForMember(deps, ref, ctx),
+    getSharedProfileForMember: (ref, ctx) =>
+      getSharedProfileForMember(deps, ref, ctx),
   });
 }
 
@@ -127,8 +148,19 @@ async function createShare(
   share: AgentShare,
   ctx: HandlerContext,
 ): Promise<AgentShare> {
-  const reqCtx = new RequestContext(AgentShareSchema, share, kindOf(ctx));
+  const reqCtx = new RequestContext(
+    AgentShareSchema,
+    share,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
   await newPipeline<typeof AgentShareSchema>("agent-share-create", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        AgentShareCommandController.method.create,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newValidateVisibilityStep())
     .addStep(newResolveShareDefaultsStep(deps.store))
@@ -155,8 +187,19 @@ async function update(
   share: AgentShare,
   ctx: HandlerContext,
 ): Promise<AgentShare> {
-  const reqCtx = new RequestContext(AgentShareSchema, share, kindOf(ctx));
+  const reqCtx = new RequestContext(
+    AgentShareSchema,
+    share,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
   await newPipeline<typeof AgentShareSchema>("agent-share-update", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        AgentShareCommandController.method.update,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newResolveSlugStep())
     .addStep(newLoadExistingStep(deps.store))
@@ -182,8 +225,19 @@ async function apply(
   share: AgentShare,
   ctx: HandlerContext,
 ): Promise<AgentShare> {
-  const reqCtx = new RequestContext(AgentShareSchema, share, kindOf(ctx));
+  const reqCtx = new RequestContext(
+    AgentShareSchema,
+    share,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
   await newPipeline<typeof AgentShareSchema>("agent-share-apply", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        AgentShareCommandController.method.apply,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newResolveShareDefaultsStep(deps.store))
     .addStep(newResolveSlugStep())
@@ -213,7 +267,8 @@ async function apply(
 
 const ROTATE_SHARE_KEY = "rotateShareLinkShare";
 
-type RotateDesc = typeof AgentShareCommandController.method.rotateShareLink.input;
+type RotateDesc =
+  typeof AgentShareCommandController.method.rotateShareLink.input;
 
 async function rotateShareLink(
   deps: AgentShareControllerDeps,
@@ -223,9 +278,16 @@ async function rotateShareLink(
   const reqCtx = new RequestContext(
     AgentShareCommandController.method.rotateShareLink.input,
     input,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<RotateDesc>("agent-share-rotate-share-link", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        AgentShareCommandController.method.rotateShareLink,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newLoadShareForLinkRotationStep(deps.store))
     .addStep(newRotateShareLinkTokenStep())
@@ -236,7 +298,9 @@ async function rotateShareLink(
 }
 
 /** Loads the share by resource_id; ANY load failure → NotFound (Go). */
-function newLoadShareForLinkRotationStep(store: Store): PipelineStep<RotateDesc> {
+function newLoadShareForLinkRotationStep(
+  store: Store,
+): PipelineStep<RotateDesc> {
   return {
     name: "LoadShareForLinkRotation",
     async execute(ctx: RequestContext<RotateDesc>): Promise<void> {
@@ -279,13 +343,20 @@ function newRotateShareLinkTokenStep(): PipelineStep<RotateDesc> {
       const status = share.status ?? create(AgentShareStatusSchema);
       status.shareLinkToken = token;
       share.status = status;
-      setAuditFieldsForUpdate(AgentShareSchema, share, "status_audit");
+      setAuditFieldsForUpdate(
+        AgentShareSchema,
+        share,
+        "status_audit",
+        ctx.callerIdentity,
+      );
     },
   };
 }
 
 /** Saves the rotated share. */
-function newPersistShareForLinkRotationStep(store: Store): PipelineStep<RotateDesc> {
+function newPersistShareForLinkRotationStep(
+  store: Store,
+): PipelineStep<RotateDesc> {
   return {
     name: "PersistShareForLinkRotation",
     async execute(ctx: RequestContext<RotateDesc>): Promise<void> {
@@ -318,12 +389,19 @@ async function deleteShare(
   const reqCtx = new RequestContext(
     AgentShareCommandController.method.delete.input,
     shareId,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<typeof AgentShareCommandController.method.delete.input>(
     "agent-share-delete",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(
+        AgentShareCommandController.method.delete,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newExtractResourceIdStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, AgentShareSchema))
@@ -350,12 +428,16 @@ async function get(
   const reqCtx = new RequestContext(
     AgentShareQueryController.method.get.input,
     shareId,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<typeof AgentShareQueryController.method.get.input>(
     "agent-share-get",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(AgentShareQueryController.method.get, deps.authorizer),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newLoadTargetStep(deps.store, AgentShareSchema))
     .build()
@@ -372,12 +454,18 @@ async function getByReference(
   const reqCtx = new RequestContext(
     AgentShareQueryController.method.getByReference.input,
     ref,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<typeof AgentShareQueryController.method.getByReference.input>(
-    "agent-share-get-by-reference",
-    deps.logger,
-  )
+  await newPipeline<
+    typeof AgentShareQueryController.method.getByReference.input
+  >("agent-share-get-by-reference", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        AgentShareQueryController.method.getByReference,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newLoadByReferenceStep(deps.store, AgentShareSchema))
     .build()
@@ -404,12 +492,19 @@ async function getByAgent(
   const reqCtx = new RequestContext(
     AgentShareQueryController.method.getByAgent.input,
     req,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<typeof AgentShareQueryController.method.getByAgent.input>(
     "agent-share-get-by-agent",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(
+        AgentShareQueryController.method.getByAgent,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newLoadSharesByAgentStep(deps.store))
     .build()
@@ -437,10 +532,15 @@ function newLoadSharesByAgentStep(
   return {
     name: "LoadSharesByAgent",
     async execute(
-      ctx: RequestContext<typeof AgentShareQueryController.method.getByAgent.input>,
+      ctx: RequestContext<
+        typeof AgentShareQueryController.method.getByAgent.input
+      >,
     ): Promise<void> {
       const req = ctx.input;
-      const emptyList = create(AgentShareListSchema, { totalCount: 0, items: [] });
+      const emptyList = create(AgentShareListSchema, {
+        totalCount: 0,
+        items: [],
+      });
 
       let agentOrg: string;
       let agentSlug: string;
@@ -484,7 +584,10 @@ function newLoadSharesByAgentStep(
 
       ctx.set(
         SHARE_LIST_KEY,
-        create(AgentShareListSchema, { totalCount: shares.length, items: shares }),
+        create(AgentShareListSchema, {
+          totalCount: shares.length,
+          items: shares,
+        }),
       );
     },
   };
@@ -505,12 +608,16 @@ async function list(
   const reqCtx = new RequestContext(
     AgentShareQueryController.method.list.input,
     req,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<typeof AgentShareQueryController.method.list.input>(
     "agent-share-list",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(AgentShareQueryController.method.list, deps.authorizer),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newListByOrgAndLabelsStep(deps.store, deps.logger))
     .build()
@@ -572,7 +679,10 @@ function newListByOrgAndLabelsStep(
 
       ctx.set(
         LIST_RESULT_KEY,
-        create(AgentShareListSchema, { totalCount: shares.length, items: shares }),
+        create(AgentShareListSchema, {
+          totalCount: shares.length,
+          items: shares,
+        }),
       );
     },
   };
@@ -591,7 +701,8 @@ function newListByOrgAndLabelsStep(
 const RESOLVED_SHARE_KEY = "resolvedAgentShare";
 const SHARED_PROFILE_KEY = "sharedAgentProfile";
 
-type ProfileDesc = typeof AgentShareQueryController.method.getSharedProfile.input;
+type ProfileDesc =
+  typeof AgentShareQueryController.method.getSharedProfile.input;
 type MemberProfileDesc =
   typeof AgentShareQueryController.method.getSharedProfileForMember.input;
 
@@ -603,9 +714,16 @@ async function getSharedProfile(
   const reqCtx = new RequestContext(
     AgentShareQueryController.method.getSharedProfile.input,
     req,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<ProfileDesc>("agent-share-get-shared-profile", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        AgentShareQueryController.method.getSharedProfile,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newLoadShareForProfileStep(deps.store))
     .addStep(newProjectSharedProfileStep(deps.store))
@@ -622,12 +740,19 @@ async function getSharedProfileForMember(
   const reqCtx = new RequestContext(
     AgentShareQueryController.method.getSharedProfileForMember.input,
     ref,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<MemberProfileDesc>(
     "agent-share-get-shared-profile-for-member",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(
+        AgentShareQueryController.method.getSharedProfileForMember,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newLoadShareForMemberProfileStep(deps.store))
     .addStep(newProjectMemberSharedProfileStep(deps.store))
@@ -659,7 +784,9 @@ function newLoadShareForProfileStep(store: Store): PipelineStep<ProfileDesc> {
 }
 
 /** The member path's loader — same org-required contract, same refusal. */
-function newLoadShareForMemberProfileStep(store: Store): PipelineStep<MemberProfileDesc> {
+function newLoadShareForMemberProfileStep(
+  store: Store,
+): PipelineStep<MemberProfileDesc> {
   return {
     name: "LoadShareForMemberProfile",
     async execute(ctx: RequestContext<MemberProfileDesc>): Promise<void> {
@@ -692,7 +819,12 @@ function newProjectSharedProfileStep(store: Store): PipelineStep<ProfileDesc> {
       if (share.spec?.enabled !== true) {
         throw sharedNotFound(req.slug);
       }
-      if (!sharingLinkTokenAllowed(req.linkToken, share.status?.shareLinkToken ?? "")) {
+      if (
+        !sharingLinkTokenAllowed(
+          req.linkToken,
+          share.status?.shareLinkToken ?? "",
+        )
+      ) {
         throw sharedNotFound(req.slug);
       }
 
@@ -708,7 +840,9 @@ function newProjectSharedProfileStep(store: Store): PipelineStep<ProfileDesc> {
  * through GetSharedProfile with the matching token. Org-audience shares
  * are unaffected — their gate is membership, not the link token.
  */
-function newProjectMemberSharedProfileStep(store: Store): PipelineStep<MemberProfileDesc> {
+function newProjectMemberSharedProfileStep(
+  store: Store,
+): PipelineStep<MemberProfileDesc> {
   return {
     name: "ProjectMemberSharedProfile",
     async execute(ctx: RequestContext<MemberProfileDesc>): Promise<void> {

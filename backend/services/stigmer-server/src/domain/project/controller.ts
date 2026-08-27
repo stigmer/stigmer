@@ -36,10 +36,13 @@ import { ProjectQueryController } from "@stigmer/protos/ai/stigmer/tenancy/proje
 import { ProjectStatusSchema } from "@stigmer/protos/ai/stigmer/tenancy/project/v1/status_pb";
 
 import type { Logger } from "../../boot/logger.js";
+import type { Authorizer } from "../../extensions/authorizer.js";
 import { internalError } from "../../pipeline/errors.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
+import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
+import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
 import { newBuildUpdateStateStep } from "../../pipeline/steps/build-update-state.js";
 import { newBuildNewStateStep } from "../../pipeline/steps/defaults.js";
 import {
@@ -82,6 +85,8 @@ import { projectSearchExtractor } from "./search-extractor.js";
 export interface ProjectControllerDeps {
   readonly store: Store;
   readonly logger: Logger;
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  readonly authorizer: Authorizer;
   /**
    * The four downstream delete edges (agent/workflow/mcp_server/skill),
    * lazy per the compose root's boot-ordering idiom — the TS replacement
@@ -122,8 +127,16 @@ async function createProject(
   project: Project,
   ctx: HandlerContext,
 ): Promise<Project> {
-  const reqCtx = new RequestContext(ProjectSchema, project, kindOf(ctx));
+  const reqCtx = new RequestContext(
+    ProjectSchema,
+    project,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
   await newPipeline<typeof ProjectSchema>("project-create", deps.logger)
+    .addStep(
+      newAuthorizeStep(ProjectCommandController.method.create, deps.authorizer),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newValidateVisibilityStep())
     .addStep(newResolveSlugStep())
@@ -131,7 +144,9 @@ async function createProject(
     .addStep(newBuildNewStateStep())
     .addStep(newNormalizeReferencesStep())
     .addStep(newPersistStep(deps.store))
-    .addStep(newIndexSearchStep(deps.store, projectSearchExtractor, deps.logger))
+    .addStep(
+      newIndexSearchStep(deps.store, projectSearchExtractor, deps.logger),
+    )
     .build()
     .execute(reqCtx);
   return reqCtx.newState;
@@ -147,14 +162,24 @@ async function update(
   project: Project,
   ctx: HandlerContext,
 ): Promise<Project> {
-  const reqCtx = new RequestContext(ProjectSchema, project, kindOf(ctx));
+  const reqCtx = new RequestContext(
+    ProjectSchema,
+    project,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
   await newPipeline<typeof ProjectSchema>("project-update", deps.logger)
+    .addStep(
+      newAuthorizeStep(ProjectCommandController.method.update, deps.authorizer),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newResolveSlugStep())
     .addStep(newLoadExistingStep(deps.store))
     .addStep(newBuildUpdateStateStep())
     .addStep(newPersistStep(deps.store))
-    .addStep(newIndexSearchStep(deps.store, projectSearchExtractor, deps.logger))
+    .addStep(
+      newIndexSearchStep(deps.store, projectSearchExtractor, deps.logger),
+    )
     .build()
     .execute(reqCtx);
   return reqCtx.newState;
@@ -181,8 +206,16 @@ async function apply(
   project: Project,
   ctx: HandlerContext,
 ): Promise<Project> {
-  const reqCtx = new RequestContext(ProjectSchema, project, kindOf(ctx));
+  const reqCtx = new RequestContext(
+    ProjectSchema,
+    project,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
   await newPipeline<typeof ProjectSchema>("project-apply", deps.logger)
+    .addStep(
+      newAuthorizeStep(ProjectCommandController.method.apply, deps.authorizer),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newResolveSlugStep())
     .addStep(newLoadForApplyStep(deps.store))
@@ -239,12 +272,16 @@ async function deleteProject(
   const reqCtx = new RequestContext(
     ProjectCommandController.method.delete.input,
     projectId,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<typeof ProjectCommandController.method.delete.input>(
     "project-delete",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(ProjectCommandController.method.delete, deps.authorizer),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newExtractResourceIdStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, ProjectSchema))
@@ -274,12 +311,16 @@ async function get(
   const reqCtx = new RequestContext(
     ProjectQueryController.method.get.input,
     projectId,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<typeof ProjectQueryController.method.get.input>(
     "project-get",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(ProjectQueryController.method.get, deps.authorizer),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newLoadTargetStep(deps.store, ProjectSchema))
     .build()
@@ -302,12 +343,19 @@ async function getByReference(
   const reqCtx = new RequestContext(
     ProjectQueryController.method.getByReference.input,
     ref,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<typeof ProjectQueryController.method.getByReference.input>(
     "project-get-by-reference",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(
+        ProjectQueryController.method.getByReference,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newLoadByReferenceStep(deps.store, ProjectSchema))
     .build()

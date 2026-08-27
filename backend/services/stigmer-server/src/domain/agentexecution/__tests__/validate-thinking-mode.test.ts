@@ -8,6 +8,7 @@
  * capability but only on its NATIVE entry, which has no thinking wire
  * mapping in v1 and must refuse.
  */
+import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import { create } from "@bufbuild/protobuf";
 import type { MessageInitShape } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
@@ -53,11 +54,14 @@ function contextFor(
         ...(config === undefined ? {} : { executionConfig: config }),
       },
     }),
+    testCallerIdentity(),
     ApiResourceKind.agent_execution,
   );
 }
 
-function refusal(config: MessageInitShape<typeof ExecutionConfigSchema>): ConnectError {
+function refusal(
+  config: MessageInitShape<typeof ExecutionConfigSchema>,
+): ConnectError {
   try {
     step.execute(contextFor(config));
   } catch (error) {

@@ -51,6 +51,7 @@
  * __tests__/memory.test.ts.
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
+import type { DescMethod } from "@bufbuild/protobuf";
 
 import { MemoryCommandController } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/command_pb";
 import { MemoryQueryController } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/query_pb";
@@ -66,10 +67,13 @@ import type {
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
+import type { Authorizer } from "../../extensions/authorizer.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import { internalError } from "../../pipeline/errors.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
+import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
+import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
 import { newBuildNewStateStep } from "../../pipeline/steps/defaults.js";
 import { newBuildUpdateStateStep } from "../../pipeline/steps/build-update-state.js";
 import { newCheckDuplicateStep } from "../../pipeline/steps/duplicate.js";
@@ -110,6 +114,8 @@ import {
 export interface MemoryControllerDeps {
   readonly store: Store;
   readonly logger: Logger;
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  readonly authorizer: Authorizer;
 }
 
 /** Registers both memory services on the router (routes stage). */
@@ -154,8 +160,16 @@ async function createMemory(
   memory: Memory,
   ctx: HandlerContext,
 ): Promise<Memory> {
-  const reqCtx = new RequestContext(MemorySchema, memory, kindOf(ctx));
+  const reqCtx = new RequestContext(
+    MemorySchema,
+    memory,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
   await newPipeline<typeof MemorySchema>("memory-create", deps.logger)
+    .addStep(
+      newAuthorizeStep(MemoryCommandController.method.create, deps.authorizer),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newValidateVisibilityStep())
     .addStep(newResolveMemoryDefaultsStep())
@@ -191,8 +205,16 @@ async function update(
   memory: Memory,
   ctx: HandlerContext,
 ): Promise<Memory> {
-  const reqCtx = new RequestContext(MemorySchema, memory, kindOf(ctx));
+  const reqCtx = new RequestContext(
+    MemorySchema,
+    memory,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
   await newPipeline<typeof MemorySchema>("memory-update", deps.logger)
+    .addStep(
+      newAuthorizeStep(MemoryCommandController.method.update, deps.authorizer),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newLoadExistingStep(deps.store))
     .addStep(newValidateMemoryUpdateStep())
@@ -229,6 +251,7 @@ async function confirm(
     memoryId,
     ctx,
     "memory-confirm",
+    MemoryCommandController.method.confirm,
     MemoryLifecycleState.lifecycle_state_confirmed,
     MEMORY_CONFIRM_REJECTED_MESSAGE,
   );
@@ -258,6 +281,7 @@ async function reject(
     memoryId,
     ctx,
     "memory-reject",
+    MemoryCommandController.method.reject,
     MemoryLifecycleState.lifecycle_state_rejected,
     MEMORY_REJECT_CONFIRMED_MESSAGE,
   );
@@ -277,11 +301,18 @@ async function runTransition(
   memoryId: MemoryId,
   ctx: HandlerContext,
   name: string,
+  method: DescMethod,
   target: MemoryLifecycleState,
   blockedMessage: string,
 ): Promise<Memory> {
-  const reqCtx = new RequestContext(MemoryIdSchema, memoryId, kindOf(ctx));
+  const reqCtx = new RequestContext(
+    MemoryIdSchema,
+    memoryId,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
   await newPipeline<typeof MemoryIdSchema>(name, deps.logger)
+    .addStep(newAuthorizeStep(method, deps.authorizer))
     .addStep(newValidateProtoStep())
     .addStep(newExtractResourceIdStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, MemorySchema))
@@ -321,8 +352,16 @@ async function deleteMemory(
   memoryId: MemoryId,
   ctx: HandlerContext,
 ): Promise<Memory> {
-  const reqCtx = new RequestContext(MemoryIdSchema, memoryId, kindOf(ctx));
+  const reqCtx = new RequestContext(
+    MemoryIdSchema,
+    memoryId,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
   await newPipeline<typeof MemoryIdSchema>("memory-delete", deps.logger)
+    .addStep(
+      newAuthorizeStep(MemoryCommandController.method.delete, deps.authorizer),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newExtractResourceIdStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, MemorySchema))
@@ -352,8 +391,16 @@ async function get(
   memoryId: MemoryId,
   ctx: HandlerContext,
 ): Promise<Memory> {
-  const reqCtx = new RequestContext(MemoryIdSchema, memoryId, kindOf(ctx));
+  const reqCtx = new RequestContext(
+    MemoryIdSchema,
+    memoryId,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
   await newPipeline<typeof MemoryIdSchema>("memory-get", deps.logger)
+    .addStep(
+      newAuthorizeStep(MemoryQueryController.method.get, deps.authorizer),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newExtractResourceIdStep())
     .addStep(newLoadTargetStep(deps.store, MemorySchema))
@@ -390,12 +437,16 @@ async function list(
   const reqCtx = new RequestContext(
     MemoryQueryController.method.list.input,
     req,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<typeof MemoryQueryController.method.list.input>(
     "memory-list",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(MemoryQueryController.method.list, deps.authorizer),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newListMemoriesByOrgStep(deps.store))
     .build()

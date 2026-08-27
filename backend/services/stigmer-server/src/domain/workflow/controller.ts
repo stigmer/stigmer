@@ -41,14 +41,21 @@ import type {
   TagWorkflowVersionInput,
   WorkflowVersionEntry,
 } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/version_pb";
-import { ApiResourceKind, ApiResourceKindSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import {
+  ApiResourceKind,
+  ApiResourceKindSchema,
+} from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type {
   ApiResourceReference,
   UpdateVisibilityInput,
 } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import { ApiResourceMetadataSchema, ApiResourceMetadataVersionSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+import {
+  ApiResourceMetadataSchema,
+  ApiResourceMetadataVersionSchema,
+} from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
 import type { Logger } from "../../boot/logger.js";
+import type { Authorizer } from "../../extensions/authorizer.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import {
   internalError,
@@ -57,32 +64,55 @@ import {
 } from "../../pipeline/errors.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
+import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
+import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
 import { newBuildUpdateStateStep } from "../../pipeline/steps/build-update-state.js";
-import { setAuditFieldsForUpdate, newBuildNewStateStep } from "../../pipeline/steps/defaults.js";
+import {
+  setAuditFieldsForUpdate,
+  newBuildNewStateStep,
+} from "../../pipeline/steps/defaults.js";
 import { newCheckDuplicateStep } from "../../pipeline/steps/duplicate.js";
 import {
   newDeleteResourceStep,
   newExtractResourceIdStep,
   newLoadExistingForDeleteStep,
 } from "../../pipeline/steps/delete.js";
-import { findResourceBySlug, requireOrgForReference } from "../../pipeline/steps/helpers.js";
+import {
+  findResourceBySlug,
+  requireOrgForReference,
+} from "../../pipeline/steps/helpers.js";
 import {
   newDeleteSearchIndexStep,
   newIndexSearchStep,
 } from "../../pipeline/steps/index-search.js";
-import { EXISTING_RESOURCE_KEY, newLoadExistingStep } from "../../pipeline/steps/load-existing.js";
-import { SHOULD_CREATE_KEY, newLoadForApplyStep } from "../../pipeline/steps/load-for-apply.js";
-import { TARGET_RESOURCE_KEY, newLoadTargetStep } from "../../pipeline/steps/load-target.js";
+import {
+  EXISTING_RESOURCE_KEY,
+  newLoadExistingStep,
+} from "../../pipeline/steps/load-existing.js";
+import {
+  SHOULD_CREATE_KEY,
+  newLoadForApplyStep,
+} from "../../pipeline/steps/load-for-apply.js";
+import {
+  TARGET_RESOURCE_KEY,
+  newLoadTargetStep,
+} from "../../pipeline/steps/load-target.js";
 import { newNormalizeReferencesStep } from "../../pipeline/steps/references.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
-import { newValidateProtoStep, validator } from "../../pipeline/steps/validation.js";
+import {
+  newValidateProtoStep,
+  validator,
+} from "../../pipeline/steps/validation.js";
 import {
   newValidateVisibilityStep,
   newValidateVisibilityUpdateStep,
 } from "../../pipeline/steps/validate-visibility.js";
-import { AuditNotFoundError, ResourceNotFoundError } from "../../store/interface.js";
+import {
+  AuditNotFoundError,
+  ResourceNotFoundError,
+} from "../../store/interface.js";
 import type { AuditRecord, Store } from "../../store/interface.js";
 import { formatViolation } from "./validation/format-violation.js";
 import type { InProcessValidator } from "./validation/validator.js";
@@ -105,6 +135,8 @@ import type { WorkflowInstanceCreatorProvider } from "./steps.js";
 export interface WorkflowControllerDeps {
   readonly store: Store;
   readonly logger: Logger;
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  readonly authorizer: Authorizer;
   /** The Layer-2 validator (converter + structural checks + registry). */
   readonly validator: InProcessValidator;
   /**
@@ -158,8 +190,19 @@ async function createWorkflow(
   workflow: Workflow,
   ctx: HandlerContext,
 ): Promise<Workflow> {
-  const reqCtx = new RequestContext(WorkflowSchema, workflow, kindOf(ctx));
+  const reqCtx = new RequestContext(
+    WorkflowSchema,
+    workflow,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
   await newPipeline<typeof WorkflowSchema>("workflow-create", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        WorkflowCommandController.method.create,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newValidateVisibilityStep())
     .addStep(newValidateWorkflowSpecStep(deps.validator, deps.logger))
@@ -171,10 +214,16 @@ async function createWorkflow(
     .addStep(newComputeVersionHashStep(deps.logger))
     .addStep(newPopulateVersionHashStep(true))
     .addStep(newPersistStep(deps.store))
-    .addStep(newCreateDefaultInstanceStep(deps.workflowInstanceCreator, deps.logger))
-    .addStep(newUpdateWorkflowStatusWithDefaultInstanceStep(deps.store, deps.logger))
+    .addStep(
+      newCreateDefaultInstanceStep(deps.workflowInstanceCreator, deps.logger),
+    )
+    .addStep(
+      newUpdateWorkflowStatusWithDefaultInstanceStep(deps.store, deps.logger),
+    )
     .addStep(newSaveVersionAuditStep(deps.store, deps.logger, true, true))
-    .addStep(newIndexSearchStep(deps.store, workflowSearchExtractor, deps.logger))
+    .addStep(
+      newIndexSearchStep(deps.store, workflowSearchExtractor, deps.logger),
+    )
     .build()
     .execute(reqCtx);
   return reqCtx.newState;
@@ -191,8 +240,19 @@ async function update(
   workflow: Workflow,
   ctx: HandlerContext,
 ): Promise<Workflow> {
-  const reqCtx = new RequestContext(WorkflowSchema, workflow, kindOf(ctx));
+  const reqCtx = new RequestContext(
+    WorkflowSchema,
+    workflow,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
   await newPipeline<typeof WorkflowSchema>("workflow-update", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        WorkflowCommandController.method.update,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newValidateWorkflowSpecStep(deps.validator, deps.logger))
     .addStep(newResolveSlugStep())
@@ -205,7 +265,9 @@ async function update(
     .addStep(newPopulateVersionHashStep(false))
     .addStep(newSaveVersionAuditStep(deps.store, deps.logger, false, false))
     .addStep(newPersistStep(deps.store))
-    .addStep(newIndexSearchStep(deps.store, workflowSearchExtractor, deps.logger))
+    .addStep(
+      newIndexSearchStep(deps.store, workflowSearchExtractor, deps.logger),
+    )
     .build()
     .execute(reqCtx);
   return reqCtx.newState;
@@ -221,8 +283,16 @@ async function apply(
   workflow: Workflow,
   ctx: HandlerContext,
 ): Promise<Workflow> {
-  const reqCtx = new RequestContext(WorkflowSchema, workflow, kindOf(ctx));
+  const reqCtx = new RequestContext(
+    WorkflowSchema,
+    workflow,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
   await newPipeline<typeof WorkflowSchema>("workflow-apply", deps.logger)
+    .addStep(
+      newAuthorizeStep(WorkflowCommandController.method.apply, deps.authorizer),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newResolveSlugStep())
     .addStep(newLoadForApplyStep(deps.store))
@@ -254,12 +324,19 @@ async function deleteWorkflow(
   const reqCtx = new RequestContext(
     WorkflowCommandController.method.delete.input,
     workflowId,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<typeof WorkflowCommandController.method.delete.input>(
     "workflow-delete",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(
+        WorkflowCommandController.method.delete,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newExtractResourceIdStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, WorkflowSchema))
@@ -300,9 +377,19 @@ async function updateVisibility(
   const reqCtx = new RequestContext(
     WorkflowCommandController.method.updateVisibility.input,
     input,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<UpdateVisibilityDesc>("workflow-update-visibility", deps.logger)
+  await newPipeline<UpdateVisibilityDesc>(
+    "workflow-update-visibility",
+    deps.logger,
+  )
+    .addStep(
+      newAuthorizeStep(
+        WorkflowCommandController.method.updateVisibility,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newLoadWorkflowForVisibilityUpdateStep(deps.store))
     .addStep(newValidateVisibilityUpdateStep())
@@ -349,7 +436,12 @@ function newSetWorkflowVisibilityStep(): PipelineStep<UpdateVisibilityDesc> {
       workflow.metadata!.visibility = input.visibility;
 
       try {
-        setAuditFieldsForUpdate(WorkflowSchema, workflow, "status_audit");
+        setAuditFieldsForUpdate(
+          WorkflowSchema,
+          workflow,
+          "status_audit",
+          ctx.callerIdentity,
+        );
       } catch (error) {
         throw new Error(
           `failed to set audit fields: ${error instanceof Error ? error.message : String(error)}`,
@@ -406,10 +498,13 @@ function newIndexWorkflowAfterVisibilityUpdateStep(
           entry,
         );
       } catch (error) {
-        logger.warn("IndexWorkflowAfterVisibilityUpdate: failed (best-effort)", {
-          error: error instanceof Error ? error.message : String(error),
-          id: workflow.metadata?.id ?? "",
-        });
+        logger.warn(
+          "IndexWorkflowAfterVisibilityUpdate: failed (best-effort)",
+          {
+            error: error instanceof Error ? error.message : String(error),
+            id: workflow.metadata?.id ?? "",
+          },
+        );
       }
     },
   };
@@ -499,9 +594,16 @@ async function tagVersion(
   const reqCtx = new RequestContext(
     WorkflowCommandController.method.tagVersion.input,
     input,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<TagVersionDesc>("workflow-tag-version", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        WorkflowCommandController.method.tagVersion,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newTagWorkflowVersionStep(deps.store))
     .build()
@@ -619,12 +721,16 @@ async function get(
   const reqCtx = new RequestContext(
     WorkflowQueryController.method.get.input,
     workflowId,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<typeof WorkflowQueryController.method.get.input>(
     "workflow-get",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(WorkflowQueryController.method.get, deps.authorizer),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newLoadTargetStep(deps.store, WorkflowSchema))
     .build()
@@ -656,7 +762,10 @@ async function getByReference(
   // empty-org reference is under-specified.
   requireOrgForReference(ApiResourceKind.workflow, ref.org);
 
-  if (ref.kind !== ApiResourceKind.api_resource_kind_unknown && ref.kind !== ApiResourceKind.workflow) {
+  if (
+    ref.kind !== ApiResourceKind.api_resource_kind_unknown &&
+    ref.kind !== ApiResourceKind.workflow
+  ) {
     // Go renders both sides with .String(): the NAME for defined values and
     // the bare NUMBER for unknown ones (proto3 open enums preserve them, and
     // ref.kind carries no defined_only rule) — enumToJson would throw on the
@@ -723,8 +832,16 @@ async function findAuditWorkflowByVersion(
   let rec: AuditRecord;
   try {
     rec = WORKFLOW_HASH_PATTERN.test(version)
-      ? await store.getAuditRecordByHash(ApiResourceKind.workflow, workflowId, version)
-      : await store.getAuditRecordByTag(ApiResourceKind.workflow, workflowId, version);
+      ? await store.getAuditRecordByHash(
+          ApiResourceKind.workflow,
+          workflowId,
+          version,
+        )
+      : await store.getAuditRecordByTag(
+          ApiResourceKind.workflow,
+          workflowId,
+          version,
+        );
   } catch (error) {
     if (error instanceof AuditNotFoundError) {
       return undefined;
@@ -763,7 +880,8 @@ const LIST_VERSIONS_WORKFLOW_ID_KEY = "listVersionsWorkflowId";
 const LIST_VERSIONS_HEAD_HASH_KEY = "listVersionsHeadHash";
 const LIST_VERSIONS_RESPONSE_KEY = "listVersionsResponse";
 
-type ListVersionsDesc = typeof WorkflowQueryController.method.listVersions.input;
+type ListVersionsDesc =
+  typeof WorkflowQueryController.method.listVersions.input;
 
 async function listVersions(
   deps: WorkflowControllerDeps,
@@ -773,9 +891,16 @@ async function listVersions(
   const reqCtx = new RequestContext(
     WorkflowQueryController.method.listVersions.input,
     input,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<ListVersionsDesc>("workflow-list-versions", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        WorkflowQueryController.method.listVersions,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newResolveWorkflowBySlugStep(deps.store))
     .addStep(newLoadAndMapWorkflowVersionsStep(deps.store))
@@ -786,7 +911,9 @@ async function listVersions(
 }
 
 /** Finds the workflow by org+slug; stashes its id and live head hash. */
-function newResolveWorkflowBySlugStep(store: Store): PipelineStep<ListVersionsDesc> {
+function newResolveWorkflowBySlugStep(
+  store: Store,
+): PipelineStep<ListVersionsDesc> {
   return {
     name: "ResolveWorkflowBySlug",
     async execute(ctx: RequestContext<ListVersionsDesc>): Promise<void> {
@@ -829,12 +956,16 @@ function newLoadAndMapWorkflowVersionsStep(
 
       let records: AuditRecord[];
       try {
-        records = await store.listAuditRecords(ApiResourceKind.workflow, workflowId);
+        records = await store.listAuditRecords(
+          ApiResourceKind.workflow,
+          workflowId,
+        );
       } catch (error) {
         throw internalError(error, "failed to load workflow version history");
       }
 
-      const headHash = (ctx.get(LIST_VERSIONS_HEAD_HASH_KEY) as string | undefined) ?? "";
+      const headHash =
+        (ctx.get(LIST_VERSIONS_HEAD_HASH_KEY) as string | undefined) ?? "";
       let currentMarked = false;
       const entries: WorkflowVersionEntry[] = [];
       for (const rec of records) {
@@ -845,7 +976,9 @@ function newLoadAndMapWorkflowVersionsStep(
           continue;
         }
         const isCurrent: boolean =
-          !currentMarked && headHash !== "" && (wf.status?.versionHash ?? "") === headHash;
+          !currentMarked &&
+          headHash !== "" &&
+          (wf.status?.versionHash ?? "") === headHash;
         currentMarked = currentMarked || isCurrent;
         // Tag comes from the audit column (source of truth), not the snapshot.
         entries.push(mapWorkflowToVersionEntry(wf, isCurrent, rec.tag));

@@ -20,6 +20,8 @@
  *     avg duration, failure ranks) that the zero-record conformance arm
  *     cannot reach.
  */
+import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/authorize.js";
+import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -90,7 +92,10 @@ let query: QueryClient;
 beforeAll(async () => {
   dir = mkdtempSync(path.join(tmpdir(), "aexec-domain-test-"));
   vi.stubEnv("STIGMER_ENCRYPTION_KEY", Buffer.alloc(32, 7).toString("base64"));
-  vi.stubEnv("STIGMER_RUNNER_TOKEN_KEY", Buffer.alloc(32, 8).toString("base64"));
+  vi.stubEnv(
+    "STIGMER_RUNNER_TOKEN_KEY",
+    Buffer.alloc(32, 8).toString("base64"),
+  );
   server = await composeServer({
     config: loadConfig({
       STIGMER_MODEL_REGISTRY_REFRESH: "off",
@@ -136,7 +141,9 @@ function seedInput(overrides?: {
   phase?: ExecutionPhase;
   startedAt?: string;
   completedAt?: string;
-}): MessageInitShape<typeof AgentExecutionSchema> & { metadata: { id: string } } {
+}): MessageInitShape<typeof AgentExecutionSchema> & {
+  metadata: { id: string };
+} {
   counter += 1;
   const id = overrides?.id ?? `aexec_test_${counter}`;
   const slug = `exec-${id.replaceAll("_", "-")}`;
@@ -584,10 +591,7 @@ describe("subscribe — the first domain stream through the real transport", () 
         }
         return "server-ended" as const;
       } catch (error) {
-        if (
-          error instanceof ConnectError &&
-          error.code === Code.Canceled
-        ) {
+        if (error instanceof ConnectError && error.code === Code.Canceled) {
           return "client-cancelled" as const;
         }
         throw error;
@@ -677,7 +681,11 @@ describe("subscribe — the first domain stream through the real transport", () 
       }),
     );
     await expect(stream.done).resolves.toBe("server-ended");
-    expect(stream.frames).toEqual(["", "marker-live-update", "marker-terminal"]);
+    expect(stream.frames).toEqual([
+      "",
+      "marker-live-update",
+      "marker-terminal",
+    ]);
     expect(server.agentExecutionStreamBroker.getSubscriberCount(id)).toBe(0);
   });
 
@@ -720,7 +728,11 @@ function gatedSeed(overrides?: {
     apiVersion: API_VERSION,
     kind: KIND,
     metadata: { id, name: slug, slug, org: ORG },
-    spec: { sessionId: `ses_${id}`, agentId: `agt_${id}`, message: "Say hello." },
+    spec: {
+      sessionId: `ses_${id}`,
+      agentId: `agt_${id}`,
+      message: "Say hello.",
+    },
     status: {
       phase: ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
       messages: [
@@ -995,13 +1007,21 @@ describe("submitApproval over the wire (submit_approval_contract_test.go arms)",
           {
             type: MessageType.MESSAGE_AI,
             toolCalls: [
-              { id: "tc-click", name: "click", status: ToolCallStatus.TOOL_CALL_COMPLETED },
+              {
+                id: "tc-click",
+                name: "click",
+                status: ToolCallStatus.TOOL_CALL_COMPLETED,
+              },
             ],
           },
           {
             type: MessageType.MESSAGE_AI,
             toolCalls: [
-              { id: "tc-scroll", name: "scroll", status: ToolCallStatus.TOOL_CALL_COMPLETED },
+              {
+                id: "tc-scroll",
+                name: "scroll",
+                status: ToolCallStatus.TOOL_CALL_COMPLETED,
+              },
             ],
           },
           { type: MessageType.MESSAGE_AI, content: "done" },
@@ -1066,9 +1086,9 @@ describe("submitApproval over the wire (submit_approval_contract_test.go arms)",
       expect(tc?.approvalAction, `iteration ${i}: decision lost`).toBe(
         ApprovalAction.APPROVE,
       );
-      const events = (
-        final.status?.approvalEventStream?.events ?? []
-      ).filter((ev) => ev.approvalRequestId === "tc-1");
+      const events = (final.status?.approvalEventStream?.events ?? []).filter(
+        (ev) => ev.approvalRequestId === "tc-1",
+      );
       expect(
         events.filter((ev) => ev.eventType === ApprovalEventType.REQUESTED),
         `iteration ${i}: REQUESTED duplicated`,
@@ -1086,9 +1106,9 @@ describe("the engine-connected signal arms (stubbed engine, direct calls)", () =
     return {
       store: server.store,
       logger: silentLogger,
+      authorizer: newPermissiveSingleTeamAuthorizer(),
       broker: server.agentExecutionStreamBroker,
-      engineState: () =>
-        ({ connected: true, engine }) as ExecutionEngineState,
+      engineState: () => ({ connected: true, engine }) as ExecutionEngineState,
     };
   }
 
@@ -1111,28 +1131,34 @@ describe("the engine-connected signal arms (stubbed engine, direct calls)", () =
     );
 
     // First decision: a different-class call stays gated → no signal.
-    await submitApproval(deps,
+    await submitApproval(
+      deps,
       create(SubmitApprovalInputSchema, {
         agentExecutionId: id,
         toolCallId: "tc-shell",
         action: ApprovalAction.APPROVE,
       }),
+      testCallerIdentity(),
     );
     expect(signalled).toHaveLength(0);
 
     // Second decision clears the gate → exactly one signal.
-    await submitApproval(deps,
+    await submitApproval(
+      deps,
       create(SubmitApprovalInputSchema, {
         agentExecutionId: id,
         toolCallId: "tc-write",
         action: ApprovalAction.REJECT,
       }),
+      testCallerIdentity(),
     );
     expect(signalled).toEqual([id]);
   });
 
   it("a vanished workflow reconciles the execution to FAILED with settled tool calls (pinned copy)", async () => {
-    const id = await seed(gatedSeed({ toolCalls: [{ id: "tc-1", name: "Write" }] }));
+    const id = await seed(
+      gatedSeed({ toolCalls: [{ id: "tc-1", name: "Write" }] }),
+    );
     const deps = stubDeps(
       stubConnectedEngine({
         signalApprovalGateResolved: async (executionId) => {
@@ -1143,12 +1169,14 @@ describe("the engine-connected signal arms (stubbed engine, direct calls)", () =
 
     const err = await expectCode(
       () =>
-        submitApproval(deps,
+        submitApproval(
+          deps,
           create(SubmitApprovalInputSchema, {
             agentExecutionId: id,
             toolCallId: "tc-1",
             action: ApprovalAction.APPROVE,
           }),
+          testCallerIdentity(),
         ),
       Code.FailedPrecondition,
     );
@@ -1162,9 +1190,9 @@ describe("the engine-connected signal arms (stubbed engine, direct calls)", () =
       "Workflow backing this execution is no longer running. Execution has been marked as failed.",
     );
     // The system message is appended and in-flight calls settle (#207).
-    expect(
-      final.status?.messages.at(-1)?.type,
-    ).toBe(MessageType.MESSAGE_SYSTEM);
+    expect(final.status?.messages.at(-1)?.type).toBe(
+      MessageType.MESSAGE_SYSTEM,
+    );
     const tc = final.status?.messages
       .flatMap((m) => m.toolCalls)
       .find((c) => c.id === "tc-1");

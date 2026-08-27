@@ -28,6 +28,7 @@ import type { SendSignalInput } from "@stigmer/protos/ai/stigmer/agentic/workflo
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
+import type { Authorizer } from "../../extensions/authorizer.js";
 import {
   abortedError,
   alreadyExistsError,
@@ -37,7 +38,9 @@ import {
   notFoundError,
 } from "../../pipeline/errors.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
+import type { CallerIdentity } from "../../extensions/identity.js";
 import { RequestContext } from "../../pipeline/request-context.js";
+import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
 import { IN_FLIGHT_CLAIM_TTL_MS } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 
@@ -50,6 +53,8 @@ import type { WorkflowExecutionEngineStateProvider } from "./engine.js";
 export interface SendSignalDeps {
   readonly store: Store;
   readonly logger: Logger;
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  readonly authorizer: Authorizer;
   readonly engineState: WorkflowExecutionEngineStateProvider;
 }
 
@@ -64,10 +69,12 @@ const DEDUPE_SKIPPED_KEY = "dedupe_skipped";
 export async function sendSignal(
   deps: SendSignalDeps,
   input: SendSignalInput,
+  identity: CallerIdentity,
 ): Promise<WorkflowExecution> {
   const reqCtx = new RequestContext(
     WorkflowExecutionCommandController.method.sendSignal.input,
     input,
+    identity,
     ApiResourceKind.workflow_execution,
   );
 
@@ -75,6 +82,12 @@ export async function sendSignal(
     "workflowexecution-send-signal",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(
+        WorkflowExecutionCommandController.method.sendSignal,
+        deps.authorizer,
+      ),
+    )
     .addStep({
       name: "ValidateSignalInput",
       execute(ctx) {

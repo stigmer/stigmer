@@ -51,6 +51,9 @@ import {
   notFoundError,
 } from "../../pipeline/errors.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
+import type { Authorizer } from "../../extensions/authorizer.js";
+import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
+import type { CallerIdentity } from "../../extensions/identity.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type {
@@ -63,6 +66,8 @@ import type { StreamBroker } from "./stream-broker.js";
 export interface UpdateStatusDeps {
   readonly store: Store;
   readonly logger: Logger;
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  readonly authorizer: Authorizer;
   readonly broker: StreamBroker;
 }
 
@@ -74,16 +79,24 @@ const EXECUTION_KEY = "execution";
 export async function updateStatus(
   deps: UpdateStatusDeps,
   input: WorkflowExecutionUpdateStatusInput,
+  identity: CallerIdentity,
 ): Promise<WorkflowExecution> {
   const reqCtx = new RequestContext(
     WorkflowExecutionCommandController.method.updateStatus.input,
     input,
+    identity,
     ApiResourceKind.workflow_execution,
   );
   await newPipeline<UpdateStatusDesc>(
     "workflowexecution-update-status",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(
+        WorkflowExecutionCommandController.method.updateStatus,
+        deps.authorizer,
+      ),
+    )
     .addStep({
       name: "ValidateUpdateStatusInput",
       execute(ctx) {
@@ -285,8 +298,7 @@ export function applyUpdateStatusMerge(
   if (isPhaseTransition) {
     const audit = status.audit ?? create(ApiResourceAuditSchema);
     status.audit = audit;
-    const statusAudit =
-      audit.statusAudit ?? create(ApiResourceAuditInfoSchema);
+    const statusAudit = audit.statusAudit ?? create(ApiResourceAuditInfoSchema);
     audit.statusAudit = statusAudit;
     statusAudit.updatedAt = timestampNow();
     statusAudit.event = "updated";

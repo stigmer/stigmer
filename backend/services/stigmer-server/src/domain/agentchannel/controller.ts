@@ -45,6 +45,7 @@ import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/ap
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
+import type { Authorizer } from "../../extensions/authorizer.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import {
   failedPreconditionError,
@@ -53,7 +54,9 @@ import {
 } from "../../pipeline/errors.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
+import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
+import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
 import { newBuildNewStateStep } from "../../pipeline/steps/defaults.js";
 import { newBuildUpdateStateStep } from "../../pipeline/steps/build-update-state.js";
 import { newCheckDuplicateStep } from "../../pipeline/steps/duplicate.js";
@@ -62,11 +65,23 @@ import {
   newExtractResourceIdStep,
   newLoadExistingForDeleteStep,
 } from "../../pipeline/steps/delete.js";
-import { compareCreatedAtDesc, matchesAllLabels } from "../../pipeline/steps/helpers.js";
-import { EXISTING_RESOURCE_KEY, newLoadExistingStep } from "../../pipeline/steps/load-existing.js";
-import { SHOULD_CREATE_KEY, newLoadForApplyStep } from "../../pipeline/steps/load-for-apply.js";
+import {
+  compareCreatedAtDesc,
+  matchesAllLabels,
+} from "../../pipeline/steps/helpers.js";
+import {
+  EXISTING_RESOURCE_KEY,
+  newLoadExistingStep,
+} from "../../pipeline/steps/load-existing.js";
+import {
+  SHOULD_CREATE_KEY,
+  newLoadForApplyStep,
+} from "../../pipeline/steps/load-for-apply.js";
 import { newLoadByReferenceStep } from "../../pipeline/steps/load-by-reference.js";
-import { TARGET_RESOURCE_KEY, newLoadTargetStep } from "../../pipeline/steps/load-target.js";
+import {
+  TARGET_RESOURCE_KEY,
+  newLoadTargetStep,
+} from "../../pipeline/steps/load-target.js";
 import { newNormalizeReferencesStep } from "../../pipeline/steps/references.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
@@ -84,6 +99,8 @@ import {
 export interface AgentChannelControllerDeps {
   readonly store: Store;
   readonly logger: Logger;
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  readonly authorizer: Authorizer;
   readonly modelRegistry: ModelRegistryStore;
 }
 
@@ -122,8 +139,22 @@ async function createChannel(
   channel: AgentChannel,
   ctx: HandlerContext,
 ): Promise<AgentChannel> {
-  const reqCtx = new RequestContext(AgentChannelSchema, channel, kindOf(ctx));
-  await newPipeline<typeof AgentChannelSchema>("agent-channel-create", deps.logger)
+  const reqCtx = new RequestContext(
+    AgentChannelSchema,
+    channel,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
+  await newPipeline<typeof AgentChannelSchema>(
+    "agent-channel-create",
+    deps.logger,
+  )
+    .addStep(
+      newAuthorizeStep(
+        AgentChannelCommandController.method.create,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newValidateVisibilityStep())
     .addStep(newResolveChannelDefaultsStep(deps.store, deps.modelRegistry))
@@ -149,8 +180,22 @@ async function update(
   channel: AgentChannel,
   ctx: HandlerContext,
 ): Promise<AgentChannel> {
-  const reqCtx = new RequestContext(AgentChannelSchema, channel, kindOf(ctx));
-  await newPipeline<typeof AgentChannelSchema>("agent-channel-update", deps.logger)
+  const reqCtx = new RequestContext(
+    AgentChannelSchema,
+    channel,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
+  await newPipeline<typeof AgentChannelSchema>(
+    "agent-channel-update",
+    deps.logger,
+  )
+    .addStep(
+      newAuthorizeStep(
+        AgentChannelCommandController.method.update,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newResolveSlugStep())
     .addStep(newLoadExistingStep(deps.store))
@@ -179,8 +224,22 @@ async function apply(
   channel: AgentChannel,
   ctx: HandlerContext,
 ): Promise<AgentChannel> {
-  const reqCtx = new RequestContext(AgentChannelSchema, channel, kindOf(ctx));
-  await newPipeline<typeof AgentChannelSchema>("agent-channel-apply", deps.logger)
+  const reqCtx = new RequestContext(
+    AgentChannelSchema,
+    channel,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
+  await newPipeline<typeof AgentChannelSchema>(
+    "agent-channel-apply",
+    deps.logger,
+  )
+    .addStep(
+      newAuthorizeStep(
+        AgentChannelCommandController.method.apply,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newResolveChannelDefaultsStep(deps.store, deps.modelRegistry))
     .addStep(newResolveSlugStep())
@@ -260,12 +319,19 @@ async function deleteChannel(
   const reqCtx = new RequestContext(
     AgentChannelCommandController.method.delete.input,
     channelId,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<typeof AgentChannelCommandController.method.delete.input>(
     "agent-channel-delete",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(
+        AgentChannelCommandController.method.delete,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newExtractResourceIdStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, AgentChannelSchema))
@@ -292,12 +358,16 @@ async function get(
   const reqCtx = new RequestContext(
     AgentChannelQueryController.method.get.input,
     channelId,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<typeof AgentChannelQueryController.method.get.input>(
     "agent-channel-get",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(AgentChannelQueryController.method.get, deps.authorizer),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newLoadTargetStep(deps.store, AgentChannelSchema))
     .build()
@@ -314,12 +384,18 @@ async function getByReference(
   const reqCtx = new RequestContext(
     AgentChannelQueryController.method.getByReference.input,
     ref,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<typeof AgentChannelQueryController.method.getByReference.input>(
-    "agent-channel-get-by-reference",
-    deps.logger,
-  )
+  await newPipeline<
+    typeof AgentChannelQueryController.method.getByReference.input
+  >("agent-channel-get-by-reference", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        AgentChannelQueryController.method.getByReference,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newLoadByReferenceStep(deps.store, AgentChannelSchema))
     .build()
@@ -346,12 +422,19 @@ async function getByAgent(
   const reqCtx = new RequestContext(
     AgentChannelQueryController.method.getByAgent.input,
     req,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<typeof AgentChannelQueryController.method.getByAgent.input>(
     "agent-channel-get-by-agent",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(
+        AgentChannelQueryController.method.getByAgent,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newLoadChannelsByAgentStep(deps.store))
     .build()
@@ -374,10 +457,15 @@ function newLoadChannelsByAgentStep(
   return {
     name: "LoadChannelsByAgent",
     async execute(
-      ctx: RequestContext<typeof AgentChannelQueryController.method.getByAgent.input>,
+      ctx: RequestContext<
+        typeof AgentChannelQueryController.method.getByAgent.input
+      >,
     ): Promise<void> {
       const req = ctx.input;
-      const emptyList = create(AgentChannelListSchema, { totalCount: 0, items: [] });
+      const emptyList = create(AgentChannelListSchema, {
+        totalCount: 0,
+        items: [],
+      });
 
       let agentOrg: string;
       let agentSlug: string;
@@ -441,12 +529,19 @@ async function list(
   const reqCtx = new RequestContext(
     AgentChannelQueryController.method.list.input,
     req,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<typeof AgentChannelQueryController.method.list.input>(
     "agent-channel-list",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(
+        AgentChannelQueryController.method.list,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newListByOrgAndLabelsStep(deps.store))
     .build()

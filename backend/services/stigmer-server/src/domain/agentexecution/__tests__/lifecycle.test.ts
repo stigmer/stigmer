@@ -14,6 +14,8 @@
  *     store.updateResource under the write lock, so a concurrent approval
  *     append is never clobbered (the Go 50-iteration regression).
  */
+import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/authorize.js";
+import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -437,6 +439,7 @@ function lifecycleDeps(engineState: ExecutionEngineState): LifecycleDeps {
   return {
     store,
     logger: silentLogger,
+    authorizer: newPermissiveSingleTeamAuthorizer(),
     broker: new StreamBroker(silentLogger),
     engineState: () => engineState,
     executionContextBuilder: stubBuilderDeps(),
@@ -466,10 +469,7 @@ async function expectCode(
 function cancelInput(id: string): CancelAgentExecutionInput {
   return create(CancelAgentExecutionInputSchema, { id });
 }
-function terminateInput(
-  id: string,
-  reason = "",
-): TerminateAgentExecutionInput {
+function terminateInput(id: string, reason = ""): TerminateAgentExecutionInput {
   return create(TerminateAgentExecutionInputSchema, { id, reason });
 }
 function pauseInput(id: string, reason = ""): PauseAgentExecutionInput {
@@ -486,7 +486,7 @@ describe("lifecycle pipelines", () => {
   it("empty id refuses InvalidArgument before any load", async () => {
     const deps = lifecycleDeps(DISCONNECTED);
     const err = await expectCode(
-      () => cancelExecution(deps, cancelInput("")),
+      () => cancelExecution(deps, cancelInput(""), testCallerIdentity()),
       Code.InvalidArgument,
     );
     expect(err.rawMessage).toBe("execution id is required");
@@ -495,7 +495,12 @@ describe("lifecycle pipelines", () => {
   it("unknown id answers NotFound", async () => {
     const deps = lifecycleDeps(DISCONNECTED);
     await expectCode(
-      () => cancelExecution(deps, cancelInput("aexec_missing")),
+      () =>
+        cancelExecution(
+          deps,
+          cancelInput("aexec_missing"),
+          testCallerIdentity(),
+        ),
       Code.NotFound,
     );
   });
@@ -506,7 +511,7 @@ describe("lifecycle pipelines", () => {
       phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
     });
     const err = await expectCode(
-      () => cancelExecution(deps, cancelInput(id)),
+      () => cancelExecution(deps, cancelInput(id), testCallerIdentity()),
       Code.FailedPrecondition,
     );
     expect(err.rawMessage).toBe("Temporal is not available");
@@ -519,23 +524,31 @@ describe("lifecycle pipelines", () => {
     });
     const cases: Array<[() => Promise<unknown>, string]> = [
       [
-        () => cancelExecution(deps, cancelInput(completed)),
+        () =>
+          cancelExecution(deps, cancelInput(completed), testCallerIdentity()),
         "cannot cancel execution in phase EXECUTION_COMPLETED; only PENDING or IN_PROGRESS can be cancelled",
       ],
       [
-        () => terminateExecution(deps, terminateInput(completed)),
+        () =>
+          terminateExecution(
+            deps,
+            terminateInput(completed),
+            testCallerIdentity(),
+          ),
         "cannot terminate execution in phase EXECUTION_COMPLETED; only PENDING or IN_PROGRESS can be terminated",
       ],
       [
-        () => pauseExecution(deps, pauseInput(completed)),
+        () => pauseExecution(deps, pauseInput(completed), testCallerIdentity()),
         "cannot pause execution in phase EXECUTION_COMPLETED; only PENDING or IN_PROGRESS can be paused",
       ],
       [
-        () => resumeExecution(deps, resumeInput(completed)),
+        () =>
+          resumeExecution(deps, resumeInput(completed), testCallerIdentity()),
         "cannot resume execution in phase EXECUTION_COMPLETED; only PAUSED executions can be resumed",
       ],
       [
-        () => recoverExecution(deps, recoverInput(completed)),
+        () =>
+          recoverExecution(deps, recoverInput(completed), testCallerIdentity()),
         "cannot recover execution in phase EXECUTION_COMPLETED; only FAILED executions can be recovered",
       ],
     ];
@@ -559,7 +572,11 @@ describe("lifecycle pipelines", () => {
     const id = await seedExecution({
       phase: ExecutionPhase.EXECUTION_CANCELLED,
     });
-    const result = await cancelExecution(deps, cancelInput(id));
+    const result = await cancelExecution(
+      deps,
+      cancelInput(id),
+      testCallerIdentity(),
+    );
     expect(result.status?.phase).toBe(ExecutionPhase.EXECUTION_CANCELLED);
     expect(engineCalls).toBe(0);
   });
@@ -578,7 +595,11 @@ describe("lifecycle pipelines", () => {
     const id = await seedExecution({
       phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
     });
-    const result = await cancelExecution(deps, cancelInput(id));
+    const result = await cancelExecution(
+      deps,
+      cancelInput(id),
+      testCallerIdentity(),
+    );
     expect(cancelled).toEqual([id]);
     expect(result.status?.phase).toBe(ExecutionPhase.EXECUTION_CANCELLED);
     expect(result.status?.completedAt).not.toBe("");
@@ -604,7 +625,11 @@ describe("lifecycle pipelines", () => {
     const id = await seedExecution({
       phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
     });
-    const result = await cancelExecution(deps, cancelInput(id));
+    const result = await cancelExecution(
+      deps,
+      cancelInput(id),
+      testCallerIdentity(),
+    );
     expect(result.status?.phase).toBe(ExecutionPhase.EXECUTION_CANCELLED);
   });
 
@@ -616,6 +641,7 @@ describe("lifecycle pipelines", () => {
     const result = await terminateExecution(
       deps,
       terminateInput(id, "disk full"),
+      testCallerIdentity(),
     );
     expect(result.status?.phase).toBe(ExecutionPhase.EXECUTION_TERMINATED);
     expect(result.status?.error).toBe("Terminated: disk full");
@@ -633,7 +659,11 @@ describe("lifecycle pipelines", () => {
       ),
     );
     const id = await seedExecution({ phase: ExecutionPhase.EXECUTION_PAUSED });
-    const result = await resumeExecution(deps, resumeInput(id));
+    const result = await resumeExecution(
+      deps,
+      resumeInput(id),
+      testCallerIdentity(),
+    );
     expect(resumed).toEqual([id]);
     expect(result.status?.phase).toBe(ExecutionPhase.EXECUTION_IN_PROGRESS);
     expect(result.status?.completedAt).toBe("");
@@ -646,6 +676,7 @@ describe("lifecycle pipelines", () => {
     const deps: LifecycleDeps = {
       store,
       logger: silentLogger,
+      authorizer: newPermissiveSingleTeamAuthorizer(),
       broker: new StreamBroker(silentLogger),
       engineState: () =>
         connected(
@@ -668,7 +699,11 @@ describe("lifecycle pipelines", () => {
       sessionId: "ses_lc",
       error: "runner exploded",
     });
-    const result = await recoverExecution(deps, recoverInput(id));
+    const result = await recoverExecution(
+      deps,
+      recoverInput(id),
+      testCallerIdentity(),
+    );
 
     expect(terminations).toEqual([
       {
@@ -694,6 +729,7 @@ describe("lifecycle pipelines", () => {
     const deps: LifecycleDeps = {
       store,
       logger: silentLogger,
+      authorizer: newPermissiveSingleTeamAuthorizer(),
       broker: new StreamBroker(silentLogger),
       engineState: () =>
         connected(
@@ -715,7 +751,11 @@ describe("lifecycle pipelines", () => {
       sessionId: "ses_lc",
       error: "runner exploded",
     });
-    const result = await recoverExecution(deps, recoverInput(id));
+    const result = await recoverExecution(
+      deps,
+      recoverInput(id),
+      testCallerIdentity(),
+    );
     expect(createdEcs).toHaveLength(1);
     expect(starts).toEqual([id]);
     expect(result.status?.phase).toBe(ExecutionPhase.EXECUTION_IN_PROGRESS);
@@ -730,6 +770,7 @@ describe("lifecycle pipelines", () => {
     const deps: LifecycleDeps = {
       store,
       logger: silentLogger,
+      authorizer: newPermissiveSingleTeamAuthorizer(),
       broker: new StreamBroker(silentLogger),
       engineState: () =>
         connected(
@@ -752,7 +793,7 @@ describe("lifecycle pipelines", () => {
       error: "runner exploded",
     });
     const err = await expectCode(
-      () => recoverExecution(deps, recoverInput(id)),
+      () => recoverExecution(deps, recoverInput(id), testCallerIdentity()),
       Code.Internal,
     );
     expect(err.rawMessage).toBe(
@@ -777,6 +818,7 @@ describe("lifecycle pipelines", () => {
     const deps: LifecycleDeps = {
       store,
       logger: silentLogger,
+      authorizer: newPermissiveSingleTeamAuthorizer(),
       broker: new StreamBroker(silentLogger),
       engineState: () =>
         connected(
@@ -799,7 +841,11 @@ describe("lifecycle pipelines", () => {
       phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
       sessionId: "ses_lc",
     });
-    const result = await recoverExecution(deps, recoverInput(id));
+    const result = await recoverExecution(
+      deps,
+      recoverInput(id),
+      testCallerIdentity(),
+    );
     expect(result.status?.phase).toBe(ExecutionPhase.EXECUTION_IN_PROGRESS);
     expect(engineCalls).toBe(0);
   });
@@ -813,13 +859,17 @@ describe("lifecycle pipelines", () => {
     const deps: LifecycleDeps = {
       store,
       logger: silentLogger,
+      authorizer: newPermissiveSingleTeamAuthorizer(),
       broker: new StreamBroker(silentLogger),
       engineState: () => connected(stubConnectedEngine()),
       executionContextBuilder: {
         ...builderDeps,
         sessionLoader: () => ({
           get: async () => {
-            throw new ConnectError("session not found: ses_gone", Code.NotFound);
+            throw new ConnectError(
+              "session not found: ses_gone",
+              Code.NotFound,
+            );
           },
         }),
       },
@@ -829,7 +879,7 @@ describe("lifecycle pipelines", () => {
       sessionId: "ses_gone",
     });
     const err = await expectCode(
-      () => recoverExecution(deps, recoverInput(id)),
+      () => recoverExecution(deps, recoverInput(id), testCallerIdentity()),
       Code.NotFound,
     );
     expect(err.rawMessage).toBe(
@@ -846,7 +896,7 @@ describe("lifecycle pipelines", () => {
       sessionId: "ses_lc",
     });
     const err = await expectCode(
-      () => recoverExecution(deps, recoverInput(id)),
+      () => recoverExecution(deps, recoverInput(id), testCallerIdentity()),
       Code.FailedPrecondition,
     );
     expect(err.rawMessage).toBe("Temporal is not available");
@@ -875,19 +925,22 @@ describe("lifecycle persist uses the atomic updateResource", () => {
   }> = [
     {
       name: "pause",
-      run: (deps, id) => pauseExecution(deps, pauseInput(id)),
+      run: (deps, id) =>
+        pauseExecution(deps, pauseInput(id), testCallerIdentity()),
       fromPhase: ExecutionPhase.EXECUTION_IN_PROGRESS,
       wantPhase: ExecutionPhase.EXECUTION_PAUSED,
     },
     {
       name: "cancel",
-      run: (deps, id) => cancelExecution(deps, cancelInput(id)),
+      run: (deps, id) =>
+        cancelExecution(deps, cancelInput(id), testCallerIdentity()),
       fromPhase: ExecutionPhase.EXECUTION_IN_PROGRESS,
       wantPhase: ExecutionPhase.EXECUTION_CANCELLED,
     },
     {
       name: "terminate",
-      run: (deps, id) => terminateExecution(deps, terminateInput(id)),
+      run: (deps, id) =>
+        terminateExecution(deps, terminateInput(id), testCallerIdentity()),
       fromPhase: ExecutionPhase.EXECUTION_IN_PROGRESS,
       wantPhase: ExecutionPhase.EXECUTION_TERMINATED,
     },
@@ -917,6 +970,7 @@ describe("lifecycle persist uses the atomic updateResource", () => {
       const deps: LifecycleDeps = {
         store: countingStore,
         logger: silentLogger,
+        authorizer: newPermissiveSingleTeamAuthorizer(),
         broker: new StreamBroker(silentLogger),
         engineState: () => connected(stubConnectedEngine()),
         executionContextBuilder: stubBuilderDeps(),
@@ -973,7 +1027,7 @@ describe("lifecycle pause racing a decision append", () => {
       );
 
       await Promise.all([
-        pauseExecution(deps, pauseInput(id)),
+        pauseExecution(deps, pauseInput(id), testCallerIdentity()),
         store.updateResource(
           ApiResourceKind.agent_execution,
           id,

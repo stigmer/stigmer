@@ -31,7 +31,10 @@ import type {
 } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/io_pb";
 import { WorkflowInstanceSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/spec_pb";
 import { WorkflowInstanceListSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/io_pb";
-import type { GetWorkflowInstancesByWorkflowRequest, WorkflowInstanceList } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/io_pb";
+import type {
+  GetWorkflowInstancesByWorkflowRequest,
+  WorkflowInstanceList,
+} from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type {
   ApiResourceReference,
@@ -39,12 +42,18 @@ import type {
 } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 
 import type { Logger } from "../../boot/logger.js";
+import type { Authorizer } from "../../extensions/authorizer.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import { internalError, notFoundError } from "../../pipeline/errors.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
+import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
-import { newBuildNewStateStep, setAuditFieldsForUpdate } from "../../pipeline/steps/defaults.js";
+import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
+import {
+  newBuildNewStateStep,
+  setAuditFieldsForUpdate,
+} from "../../pipeline/steps/defaults.js";
 import { newBuildUpdateStateStep } from "../../pipeline/steps/build-update-state.js";
 import { newCheckDuplicateStep } from "../../pipeline/steps/duplicate.js";
 import {
@@ -56,10 +65,19 @@ import {
   newDeleteSearchIndexStep,
   newIndexSearchStep,
 } from "../../pipeline/steps/index-search.js";
-import { EXISTING_RESOURCE_KEY, newLoadExistingStep } from "../../pipeline/steps/load-existing.js";
-import { SHOULD_CREATE_KEY, newLoadForApplyStep } from "../../pipeline/steps/load-for-apply.js";
+import {
+  EXISTING_RESOURCE_KEY,
+  newLoadExistingStep,
+} from "../../pipeline/steps/load-existing.js";
+import {
+  SHOULD_CREATE_KEY,
+  newLoadForApplyStep,
+} from "../../pipeline/steps/load-for-apply.js";
 import { newLoadByReferenceStep } from "../../pipeline/steps/load-by-reference.js";
-import { TARGET_RESOURCE_KEY, newLoadTargetStep } from "../../pipeline/steps/load-target.js";
+import {
+  TARGET_RESOURCE_KEY,
+  newLoadTargetStep,
+} from "../../pipeline/steps/load-target.js";
 import { newNormalizeReferencesStep } from "../../pipeline/steps/references.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
@@ -81,6 +99,8 @@ import type { ParentWorkflowLoaderProvider } from "./steps.js";
 export interface WorkflowInstanceControllerDeps {
   readonly store: Store;
   readonly logger: Logger;
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  readonly authorizer: Authorizer;
   /**
    * The workflow in-process edge — a lazy provider because
    * workflow↔workflowinstance is a true dependency cycle (DD-002).
@@ -123,11 +143,22 @@ async function createInstance(
   instance: WorkflowInstance,
   ctx: HandlerContext,
 ): Promise<WorkflowInstance> {
-  const reqCtx = new RequestContext(WorkflowInstanceSchema, instance, kindOf(ctx));
+  const reqCtx = new RequestContext(
+    WorkflowInstanceSchema,
+    instance,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
   await newPipeline<typeof WorkflowInstanceSchema>(
     "workflow-instance-create",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(
+        WorkflowInstanceCommandController.method.create,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newValidateVisibilityStep())
     .addStep(newResolveSlugStep())
@@ -137,7 +168,13 @@ async function createInstance(
     .addStep(newBuildNewStateStep())
     .addStep(newNormalizeReferencesStep())
     .addStep(newPersistStep(deps.store))
-    .addStep(newIndexSearchStep(deps.store, workflowInstanceSearchExtractor, deps.logger))
+    .addStep(
+      newIndexSearchStep(
+        deps.store,
+        workflowInstanceSearchExtractor,
+        deps.logger,
+      ),
+    )
     .build()
     .execute(reqCtx);
   return reqCtx.newState;
@@ -149,11 +186,22 @@ async function update(
   instance: WorkflowInstance,
   ctx: HandlerContext,
 ): Promise<WorkflowInstance> {
-  const reqCtx = new RequestContext(WorkflowInstanceSchema, instance, kindOf(ctx));
+  const reqCtx = new RequestContext(
+    WorkflowInstanceSchema,
+    instance,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
   await newPipeline<typeof WorkflowInstanceSchema>(
     "workflow-instance-update",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(
+        WorkflowInstanceCommandController.method.update,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newResolveSlugStep())
     .addStep(newLoadExistingStep(deps.store))
@@ -161,7 +209,13 @@ async function update(
     .addStep(newBuildUpdateStateStep())
     .addStep(newNormalizeReferencesStep())
     .addStep(newPersistStep(deps.store))
-    .addStep(newIndexSearchStep(deps.store, workflowInstanceSearchExtractor, deps.logger))
+    .addStep(
+      newIndexSearchStep(
+        deps.store,
+        workflowInstanceSearchExtractor,
+        deps.logger,
+      ),
+    )
     .build()
     .execute(reqCtx);
   return reqCtx.newState;
@@ -173,11 +227,22 @@ async function apply(
   instance: WorkflowInstance,
   ctx: HandlerContext,
 ): Promise<WorkflowInstance> {
-  const reqCtx = new RequestContext(WorkflowInstanceSchema, instance, kindOf(ctx));
+  const reqCtx = new RequestContext(
+    WorkflowInstanceSchema,
+    instance,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
   await newPipeline<typeof WorkflowInstanceSchema>(
     "workflow-instance-apply",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(
+        WorkflowInstanceCommandController.method.apply,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newResolveSlugStep())
     .addStep(newLoadForApplyStep(deps.store))
@@ -209,12 +274,18 @@ async function deleteInstance(
   const reqCtx = new RequestContext(
     WorkflowInstanceCommandController.method.delete.input,
     instanceId,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<typeof WorkflowInstanceCommandController.method.delete.input>(
-    "workflow-instance-delete",
-    deps.logger,
-  )
+  await newPipeline<
+    typeof WorkflowInstanceCommandController.method.delete.input
+  >("workflow-instance-delete", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        WorkflowInstanceCommandController.method.delete,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newExtractResourceIdStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, WorkflowInstanceSchema))
@@ -253,12 +324,19 @@ async function updateVisibility(
   const reqCtx = new RequestContext(
     WorkflowInstanceCommandController.method.updateVisibility.input,
     input,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<UpdateVisibilityDesc>(
     "workflow-instance-update-visibility",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(
+        WorkflowInstanceCommandController.method.updateVisibility,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(
       newLoadInstanceStep<UpdateVisibilityDesc>(
@@ -303,12 +381,19 @@ function newSetInstanceVisibilityStep(): PipelineStep<UpdateVisibilityDesc> {
     name: "SetInstanceVisibility",
     execute(ctx: RequestContext<UpdateVisibilityDesc>): void {
       const input = ctx.input;
-      const instance = ctx.get(UPDATE_VISIBILITY_INSTANCE_KEY) as WorkflowInstance;
+      const instance = ctx.get(
+        UPDATE_VISIBILITY_INSTANCE_KEY,
+      ) as WorkflowInstance;
 
       instance.metadata!.visibility = input.visibility;
 
       try {
-        setAuditFieldsForUpdate(WorkflowInstanceSchema, instance, "status_audit");
+        setAuditFieldsForUpdate(
+          WorkflowInstanceSchema,
+          instance,
+          "status_audit",
+          ctx.callerIdentity,
+        );
       } catch (error) {
         throw new Error(
           `failed to set audit fields: ${error instanceof Error ? error.message : String(error)}`,
@@ -330,7 +415,8 @@ function newSetInstanceVisibilityStep(): PipelineStep<UpdateVisibilityDesc> {
 // cloud allows it on them too; do not "fix" that.
 // ---------------------------------------------------------------------------
 
-const UPDATE_EXECUTION_VISIBILITY_INSTANCE_KEY = "updateExecutionVisibilityInstance";
+const UPDATE_EXECUTION_VISIBILITY_INSTANCE_KEY =
+  "updateExecutionVisibilityInstance";
 
 type UpdateExecutionVisibilityDesc =
   typeof WorkflowInstanceCommandController.method.updateExecutionVisibility.input;
@@ -343,12 +429,19 @@ async function updateExecutionVisibility(
   const reqCtx = new RequestContext(
     WorkflowInstanceCommandController.method.updateExecutionVisibility.input,
     input,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<UpdateExecutionVisibilityDesc>(
     "workflow-instance-update-execution-visibility",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(
+        WorkflowInstanceCommandController.method.updateExecutionVisibility,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(
       newLoadInstanceStep<UpdateExecutionVisibilityDesc>(
@@ -377,7 +470,9 @@ async function updateExecutionVisibility(
     .build()
     .execute(reqCtx);
 
-  return reqCtx.get(UPDATE_EXECUTION_VISIBILITY_INSTANCE_KEY) as WorkflowInstance;
+  return reqCtx.get(
+    UPDATE_EXECUTION_VISIBILITY_INSTANCE_KEY,
+  ) as WorkflowInstance;
 }
 
 /** Sets spec.execution_visibility and refreshes the status-audit fields. */
@@ -394,7 +489,12 @@ function newSetInstanceExecutionVisibilityStep(): PipelineStep<UpdateExecutionVi
       instance.spec.executionVisibility = input.executionVisibility;
 
       try {
-        setAuditFieldsForUpdate(WorkflowInstanceSchema, instance, "status_audit");
+        setAuditFieldsForUpdate(
+          WorkflowInstanceSchema,
+          instance,
+          "status_audit",
+          ctx.callerIdentity,
+        );
       } catch (error) {
         throw new Error(
           `failed to set audit fields: ${error instanceof Error ? error.message : String(error)}`,
@@ -476,7 +576,8 @@ function newIndexInstanceStep<Desc extends DescMessage>(
     name: stepName,
     async execute(ctx: RequestContext<Desc>): Promise<void> {
       const instance = ctx.get(instanceKey) as WorkflowInstance;
-      const entry = workflowInstanceSearchExtractor.getSearchIndexEntry(instance);
+      const entry =
+        workflowInstanceSearchExtractor.getSearchIndexEntry(instance);
       if (entry === undefined) {
         logger.warn(`${stepName}: extractor returned nil, skipping`, {
           id: instance.metadata?.id ?? "",
@@ -511,12 +612,19 @@ async function get(
   const reqCtx = new RequestContext(
     WorkflowInstanceQueryController.method.get.input,
     instanceId,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<typeof WorkflowInstanceQueryController.method.get.input>(
     "workflow-instance-get",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(
+        WorkflowInstanceQueryController.method.get,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newLoadTargetStep(deps.store, WorkflowInstanceSchema))
     .build()
@@ -532,12 +640,18 @@ async function getByReference(
   const reqCtx = new RequestContext(
     WorkflowInstanceQueryController.method.getByReference.input,
     ref,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<typeof WorkflowInstanceQueryController.method.getByReference.input>(
-    "workflow-instance-get-by-reference",
-    deps.logger,
-  )
+  await newPipeline<
+    typeof WorkflowInstanceQueryController.method.getByReference.input
+  >("workflow-instance-get-by-reference", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        WorkflowInstanceQueryController.method.getByReference,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newLoadByReferenceStep(deps.store, WorkflowInstanceSchema))
     .build()
@@ -567,12 +681,19 @@ async function getByWorkflow(
   const reqCtx = new RequestContext(
     WorkflowInstanceQueryController.method.getByWorkflow.input,
     request,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<GetByWorkflowDesc>(
     "workflow-instance-get-by-workflow",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(
+        WorkflowInstanceQueryController.method.getByWorkflow,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newLoadByWorkflowStep(deps.store, deps.logger))
     .build()

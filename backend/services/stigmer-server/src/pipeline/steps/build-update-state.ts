@@ -25,17 +25,20 @@ import {
 import { internalError } from "../errors.js";
 import type { PipelineStep } from "../pipeline.js";
 import type { RequestContext } from "../request-context.js";
+import type { CallerIdentity } from "../../extensions/identity.js";
 import {
+  auditActorFor,
   clearStatusField,
   creationAuditOf,
-  currentAuditActor,
   setAuditReflect,
   updatedAuditInfo,
 } from "./defaults.js";
 import { EXISTING_RESOURCE_KEY } from "./load-existing.js";
 import { hasStatusField, messageFieldByName, metadataOf } from "./shapes.js";
 
-export function newBuildUpdateStateStep<Desc extends DescMessage>(): PipelineStep<Desc> {
+export function newBuildUpdateStateStep<
+  Desc extends DescMessage,
+>(): PipelineStep<Desc> {
   return {
     name: "BuildUpdateState",
     execute(ctx: RequestContext<Desc>): void {
@@ -44,7 +47,9 @@ export function newBuildUpdateStateStep<Desc extends DescMessage>(): PipelineSte
         | undefined;
       if (existing === undefined) {
         throw internalError(
-          new Error("existing resource not found in context - LoadExisting must run first"),
+          new Error(
+            "existing resource not found in context - LoadExisting must run first",
+          ),
           "build update state",
         );
       }
@@ -60,7 +65,7 @@ export function newBuildUpdateStateStep<Desc extends DescMessage>(): PipelineSte
         // carried over — only audit gets refreshed below.
         clearStatusField(ctx.schema, merged);
         copyStatusFromExisting(ctx.schema, merged, existing);
-        updateAuditFields(ctx.schema, merged, existing);
+        updateAuditFields(ctx.schema, merged, existing, ctx.callerIdentity);
       }
 
       ctx.setNewState(merged);
@@ -77,7 +82,10 @@ function preserveImmutableFields(merged: Message, existing: Message): void {
   const mergedMeta = metadataOf(merged);
   const existingMeta = metadataOf(existing);
   if (mergedMeta === undefined || existingMeta === undefined) {
-    throw internalError(new Error("metadata is nil"), "preserve immutable fields");
+    throw internalError(
+      new Error("metadata is nil"),
+      "preserve immutable fields",
+    );
   }
   mergedMeta.id = existingMeta.id;
   mergedMeta.slug = existingMeta.slug;
@@ -113,10 +121,15 @@ function updateAuditFields(
   schema: DescMessage,
   resource: Message,
   existing: Message,
+  identity: CallerIdentity,
 ): void {
   const now = timestampNow();
-  const actor = currentAuditActor();
-  const { createdBy, createdAt } = creationAuditOf(schema, existing, "spec_audit");
+  const actor = auditActorFor(identity);
+  const { createdBy, createdAt } = creationAuditOf(
+    schema,
+    existing,
+    "spec_audit",
+  );
 
   setAuditReflect(
     schema,

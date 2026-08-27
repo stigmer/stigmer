@@ -449,7 +449,12 @@ export function newTransitionMemoryLifecycleStep(
             }
             row.status.lifecycleState = target;
             row.status.stateChangedAt = timestampNow();
-            setAuditFieldsForUpdate(MemorySchema, row, "status_audit");
+            setAuditFieldsForUpdate(
+              MemorySchema,
+              row,
+              "status_audit",
+              ctx.callerIdentity,
+            );
           },
         );
       } catch (error) {

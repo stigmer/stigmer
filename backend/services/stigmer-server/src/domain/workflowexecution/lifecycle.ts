@@ -21,7 +21,7 @@
  * sequential flows; disclosed with DD-001.
  */
 import { create } from "@bufbuild/protobuf";
-import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
+import type { DescMessage, DescMethod, MessageShape } from "@bufbuild/protobuf";
 import { ConnectError } from "@connectrpc/connect";
 
 import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
@@ -45,6 +45,7 @@ import type { WorkflowInstance } from "@stigmer/protos/ai/stigmer/agentic/workfl
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
+import type { Authorizer } from "../../extensions/authorizer.js";
 import {
   filterByDeclaredKeys,
   mergeEnvironmentLayers,
@@ -58,7 +59,9 @@ import {
 } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
+import type { CallerIdentity } from "../../extensions/identity.js";
 import { RequestContext } from "../../pipeline/request-context.js";
+import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 
 import {
@@ -82,6 +85,8 @@ const ALREADY_IN_TARGET_STATE_KEY = "alreadyInTargetState";
 export interface LifecycleDeps {
   readonly store: WorkflowExecutionContextBuilderDeps["store"];
   readonly logger: Logger;
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  readonly authorizer: Authorizer;
   readonly broker: StreamBroker;
   readonly engineState: WorkflowExecutionEngineStateProvider;
   /** Recover's RecreateExecutionContext consumes the same builder deps. */
@@ -404,7 +409,9 @@ function newRecreateExecutionContextStep<Desc extends DescMessage>(
 
       let instance: WorkflowInstance;
       try {
-        instance = await builder.workflowInstanceLoader().get(workflowInstanceId);
+        instance = await builder
+          .workflowInstanceLoader()
+          .get(workflowInstanceId);
       } catch (error) {
         deps.logger.warn(
           "WorkflowInstance not found during recovery EC recreation. Proceeding without environment — workflow tasks may fail if they need env vars.",
@@ -589,14 +596,18 @@ async function runLifecyclePipeline<Desc extends DescMessage>(
   pipelineName: string,
   schema: Desc,
   input: MessageShape<Desc>,
+  method: DescMethod,
+  identity: CallerIdentity,
   steps: PipelineStep<Desc>[],
 ): Promise<WorkflowExecution> {
   const reqCtx = new RequestContext(
     schema,
     input,
+    identity,
     ApiResourceKind.workflow_execution,
   );
   const builder = newPipeline<Desc>(pipelineName, deps.logger);
+  builder.addStep(newAuthorizeStep(method, deps.authorizer));
   for (const step of steps) {
     builder.addStep(step);
   }
@@ -619,6 +630,7 @@ async function runLifecyclePipeline<Desc extends DescMessage>(
 export async function cancelExecution(
   deps: LifecycleDeps,
   input: CancelWorkflowExecutionInput,
+  identity: CallerIdentity,
 ): Promise<WorkflowExecution> {
   type Desc = typeof WorkflowExecutionCommandController.method.cancel.input;
   return runLifecyclePipeline<Desc>(
@@ -626,6 +638,8 @@ export async function cancelExecution(
     "workflowexecution-cancel",
     WorkflowExecutionCommandController.method.cancel.input,
     input,
+    WorkflowExecutionCommandController.method.cancel,
+    identity,
     [
       newLoadExecutionByIdStep(deps),
       newValidatePhaseStep(
@@ -667,6 +681,7 @@ export async function cancelExecution(
 export async function terminateExecution(
   deps: LifecycleDeps,
   input: TerminateWorkflowExecutionInput,
+  identity: CallerIdentity,
 ): Promise<WorkflowExecution> {
   type Desc = typeof WorkflowExecutionCommandController.method.terminate.input;
   return runLifecyclePipeline<Desc>(
@@ -674,6 +689,8 @@ export async function terminateExecution(
     "workflowexecution-terminate",
     WorkflowExecutionCommandController.method.terminate.input,
     input,
+    WorkflowExecutionCommandController.method.terminate,
+    identity,
     [
       newLoadExecutionByIdStep(deps),
       newValidatePhaseStep(
@@ -695,9 +712,10 @@ export async function terminateExecution(
           // The reason default and its ReasonKey record happen HERE, on
           // the successful-send path only (Go's quirk: a workflow-gone
           // terminate falls back to "Terminated by user").
-          const inputReason =
-            (ctx.input as unknown as { reason: string }).reason;
-          const reason = inputReason !== "" ? inputReason : "Terminated by user";
+          const inputReason = (ctx.input as unknown as { reason: string })
+            .reason;
+          const reason =
+            inputReason !== "" ? inputReason : "Terminated by user";
           await engine.terminateWorkflow(
             orchestratorWorkflowId(execution.metadata?.id ?? ""),
             reason,
@@ -724,6 +742,7 @@ export async function terminateExecution(
 export async function pauseExecution(
   deps: LifecycleDeps,
   input: PauseWorkflowExecutionInput,
+  identity: CallerIdentity,
 ): Promise<WorkflowExecution> {
   type Desc = typeof WorkflowExecutionCommandController.method.pause.input;
   return runLifecyclePipeline<Desc>(
@@ -731,6 +750,8 @@ export async function pauseExecution(
     "workflowexecution-pause",
     WorkflowExecutionCommandController.method.pause.input,
     input,
+    WorkflowExecutionCommandController.method.pause,
+    identity,
     [
       newLoadExecutionByIdStep(deps),
       newValidatePhaseStep(
@@ -748,8 +769,8 @@ export async function pauseExecution(
         "SignalPauseToTemporal",
         "failed to send pause signal to Temporal workflow",
         async (engine, execution, ctx) => {
-          const inputReason =
-            (ctx.input as unknown as { reason: string }).reason;
+          const inputReason = (ctx.input as unknown as { reason: string })
+            .reason;
           const reason = inputReason !== "" ? inputReason : "Paused by user";
           await engine.signalWorkflow(
             orchestratorWorkflowId(execution.metadata?.id ?? ""),
@@ -778,6 +799,7 @@ export async function pauseExecution(
 export async function resumeExecution(
   deps: LifecycleDeps,
   input: ResumeWorkflowExecutionInput,
+  identity: CallerIdentity,
 ): Promise<WorkflowExecution> {
   type Desc = typeof WorkflowExecutionCommandController.method.resume.input;
   return runLifecyclePipeline<Desc>(
@@ -785,6 +807,8 @@ export async function resumeExecution(
     "workflowexecution-resume",
     WorkflowExecutionCommandController.method.resume.input,
     input,
+    WorkflowExecutionCommandController.method.resume,
+    identity,
     [
       newLoadExecutionByIdStep(deps),
       newValidatePhaseStep(
@@ -828,6 +852,7 @@ export async function resumeExecution(
 export async function recoverExecution(
   deps: LifecycleDeps,
   input: RecoverWorkflowExecutionInput,
+  identity: CallerIdentity,
 ): Promise<WorkflowExecution> {
   type Desc = typeof WorkflowExecutionCommandController.method.recover.input;
   return runLifecyclePipeline<Desc>(
@@ -835,6 +860,8 @@ export async function recoverExecution(
     "workflowexecution-recover",
     WorkflowExecutionCommandController.method.recover.input,
     input,
+    WorkflowExecutionCommandController.method.recover,
+    identity,
     [
       newLoadExecutionByIdStep(deps),
       newValidatePhaseStep(

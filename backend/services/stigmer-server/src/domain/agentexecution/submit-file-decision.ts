@@ -45,6 +45,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { enumToJson } from "@bufbuild/protobuf";
 
 import type { Logger } from "../../boot/logger.js";
+import type { Authorizer } from "../../extensions/authorizer.js";
 import {
   failedPreconditionError,
   internalError,
@@ -53,7 +54,9 @@ import {
   unavailableError,
 } from "../../pipeline/errors.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
+import type { CallerIdentity } from "../../extensions/identity.js";
 import { RequestContext } from "../../pipeline/request-context.js";
+import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
@@ -77,6 +80,8 @@ import type { StreamBroker } from "./stream-broker.js";
 export interface SubmitFileDecisionDeps {
   readonly store: Store;
   readonly logger: Logger;
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  readonly authorizer: Authorizer;
   readonly broker: StreamBroker;
   readonly engineState: ExecutionEngineStateProvider;
 }
@@ -91,16 +96,24 @@ const TARGET_RESOURCE_KEY = "targetResource";
 export async function submitFileDecision(
   deps: SubmitFileDecisionDeps,
   input: SubmitFileDecisionInput,
+  identity: CallerIdentity,
 ): Promise<AgentExecution> {
   const reqCtx = new RequestContext(
     AgentExecutionCommandController.method.submitFileDecision.input,
     input,
+    identity,
     ApiResourceKind.agent_execution,
   );
   await newPipeline<SubmitFileDecisionDesc>(
     "agent-execution-submit-file-decision",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(
+        AgentExecutionCommandController.method.submitFileDecision,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep({
       name: "LoadExisting",

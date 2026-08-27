@@ -42,12 +42,15 @@ import type {
 import { OAuthAppQueryController } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/query_pb";
 
 import type { Logger } from "../../boot/logger.js";
+import type { Authorizer } from "../../extensions/authorizer.js";
 import type { SecretService } from "../../encryption/encryption.js";
 import { internalError } from "../../pipeline/errors.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
+import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
+import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
 import { newBuildUpdateStateStep } from "../../pipeline/steps/build-update-state.js";
 import { newBuildNewStateStep } from "../../pipeline/steps/defaults.js";
 import {
@@ -57,10 +60,19 @@ import {
 } from "../../pipeline/steps/delete.js";
 import { newCheckDuplicateStep } from "../../pipeline/steps/duplicate.js";
 import { compareCreatedAtDesc } from "../../pipeline/steps/helpers.js";
-import { EXISTING_RESOURCE_KEY, newLoadExistingStep } from "../../pipeline/steps/load-existing.js";
-import { SHOULD_CREATE_KEY, newLoadForApplyStep } from "../../pipeline/steps/load-for-apply.js";
+import {
+  EXISTING_RESOURCE_KEY,
+  newLoadExistingStep,
+} from "../../pipeline/steps/load-existing.js";
+import {
+  SHOULD_CREATE_KEY,
+  newLoadForApplyStep,
+} from "../../pipeline/steps/load-for-apply.js";
 import { newLoadByReferenceStep } from "../../pipeline/steps/load-by-reference.js";
-import { TARGET_RESOURCE_KEY, newLoadTargetStep } from "../../pipeline/steps/load-target.js";
+import {
+  TARGET_RESOURCE_KEY,
+  newLoadTargetStep,
+} from "../../pipeline/steps/load-target.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
@@ -77,6 +89,8 @@ export interface OAuthAppControllerDeps {
   readonly store: Store;
   readonly secretService: SecretService;
   readonly logger: Logger;
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  readonly authorizer: Authorizer;
 }
 
 /** Registers both OAuthApp services on the router (routes stage). */
@@ -113,13 +127,26 @@ async function createOAuthApp(
   app: OAuthApp,
   ctx: HandlerContext,
 ): Promise<OAuthApp> {
-  const reqCtx = new RequestContext(OAuthAppSchema, app, kindOf(ctx));
+  const reqCtx = new RequestContext(
+    OAuthAppSchema,
+    app,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
   await newPipeline<typeof OAuthAppSchema>("oauthapp-create", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        OAuthAppCommandController.method.create,
+        deps.authorizer,
+      ),
+    )
     .addStep(newResolveSlugStep())
     .addStep(newValidateProtoStep())
     .addStep(newValidateVisibilityStep())
     .addStep(newCheckDuplicateStep(deps.store))
-    .addStep(newEncryptClientSecretForCreateStep(deps.secretService, deps.logger))
+    .addStep(
+      newEncryptClientSecretForCreateStep(deps.secretService, deps.logger),
+    )
     .addStep(newBuildNewStateStep())
     .addStep(newPersistStep(deps.store))
     .build()
@@ -140,13 +167,26 @@ async function update(
   app: OAuthApp,
   ctx: HandlerContext,
 ): Promise<OAuthApp> {
-  const reqCtx = new RequestContext(OAuthAppSchema, app, kindOf(ctx));
+  const reqCtx = new RequestContext(
+    OAuthAppSchema,
+    app,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
   await newPipeline<typeof OAuthAppSchema>("oauthapp-update", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        OAuthAppCommandController.method.update,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newResolveSlugStep())
     .addStep(newLoadExistingStep(deps.store))
     .addStep(newBuildUpdateStateStep())
-    .addStep(newEncryptClientSecretForUpdateStep(deps.secretService, deps.logger))
+    .addStep(
+      newEncryptClientSecretForUpdateStep(deps.secretService, deps.logger),
+    )
     .addStep(newPersistStep(deps.store))
     .build()
     .execute(reqCtx);
@@ -165,8 +205,16 @@ async function apply(
   app: OAuthApp,
   ctx: HandlerContext,
 ): Promise<OAuthApp> {
-  const reqCtx = new RequestContext(OAuthAppSchema, app, kindOf(ctx));
+  const reqCtx = new RequestContext(
+    OAuthAppSchema,
+    app,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
   await newPipeline<typeof OAuthAppSchema>("oauthapp-apply", deps.logger)
+    .addStep(
+      newAuthorizeStep(OAuthAppCommandController.method.apply, deps.authorizer),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newResolveSlugStep())
     .addStep(newLoadForApplyStep(deps.store))
@@ -180,9 +228,7 @@ async function apply(
       "apply operation failed to determine create vs update",
     );
   }
-  return shouldCreate
-    ? createOAuthApp(deps, app, ctx)
-    : update(deps, app, ctx);
+  return shouldCreate ? createOAuthApp(deps, app, ctx) : update(deps, app, ctx);
 }
 
 /**
@@ -201,6 +247,7 @@ async function deleteOAuthApp(
   const reqCtx = new RequestContext(
     OAuthAppCommandController.method.delete.input,
     input,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   reqCtx.set(RESOURCE_ID_KEY, input.resourceId);
@@ -208,6 +255,12 @@ async function deleteOAuthApp(
     "oauthapp-delete",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(
+        OAuthAppCommandController.method.delete,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, OAuthAppSchema))
     .addStep(newCheckNoReferencingMcpServersStep(deps.store, deps.logger))
@@ -234,12 +287,16 @@ async function get(
   const reqCtx = new RequestContext(
     OAuthAppQueryController.method.get.input,
     id,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<typeof OAuthAppQueryController.method.get.input>(
     "oauthapp-get",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(OAuthAppQueryController.method.get, deps.authorizer),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newLoadTargetStep(deps.store, OAuthAppSchema))
     .build()
@@ -258,12 +315,19 @@ async function getByReference(
   const reqCtx = new RequestContext(
     OAuthAppQueryController.method.getByReference.input,
     ref,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<typeof OAuthAppQueryController.method.getByReference.input>(
     "oauthapp-get-by-reference",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(
+        OAuthAppQueryController.method.getByReference,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newLoadByReferenceStep(deps.store, OAuthAppSchema))
     .build()
@@ -288,12 +352,19 @@ async function listByOrg(
   const reqCtx = new RequestContext(
     OAuthAppQueryController.method.listByOrg.input,
     req,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<typeof OAuthAppQueryController.method.listByOrg.input>(
     "oauthapp-list-by-org",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(
+        OAuthAppQueryController.method.listByOrg,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newListByOrgStep(deps.store, deps.logger))
     .build()
@@ -317,7 +388,9 @@ function newListByOrgStep(
   return {
     name: "ListByOrg",
     async execute(
-      ctx: RequestContext<typeof OAuthAppQueryController.method.listByOrg.input>,
+      ctx: RequestContext<
+        typeof OAuthAppQueryController.method.listByOrg.input
+      >,
     ): Promise<void> {
       const org = ctx.input.org;
 

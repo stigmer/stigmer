@@ -1,0 +1,446 @@
+# Authorization Coverage Inventory
+
+This document is the ratified coverage inventory for the stigmer-server authorization surface (sub-project 20260827.01, identity-context-and-authorizer, ruling Q2). It classifies EVERY entry point the server exposes — every RPC method of every registered service, plus the non-RPC HTTP lanes — by its authorization posture: whether the shared `Authorize` pipeline step (`src/pipeline/steps/authorize.ts`) runs for it, what proto method annotation it carries, and what a direct handler does instead. It is a permanent acceptance artifact: the follow-up cloud sub-projects (C1/C2) inherit this map instead of discovering gaps against FGA. It MUST be updated whenever a method is added or removed, a handler changes between pipeline and direct form, or a `(ai.stigmer.commons.rpc.config)` / `is_public` / `is_skip_authorization` annotation changes.
+
+How to read the tables:
+
+- **Annotation** is what the method's proto declares: a `config` summary (`permission` on `resource_kind`, the `field_path` or literal `resource_id` the target is resolved from, and whether `error_msg` is set), `is_public` (50057), `is_skip_authorization` (50058), or `none` (no option at all — the apply RPCs and the gRPC health service).
+- **Handler** is what the server actually runs: `chain-with-Authorize` means the handler builds a `newPipeline(...)` whose FIRST `.addStep` is `newAuthorizeStep(<its own method descriptor>, authorizer)`; `direct: <posture>` means no pipeline is built and the Authorize step never runs for that method.
+- The two columns are independent facts. A method can carry a `config` annotation and still be a direct handler — for such methods the annotation is declared but not evaluated by the Authorize step today. Every such method is called out in the "annotated but direct" list before the notes section.
+- Authorize step semantics (verified in `src/pipeline/steps/authorize.ts`): the step returns immediately for the `internal` caller class, then for `is_public`, then for `is_skip_authorization`, then for methods with no `config` option; only a present `config` reaches the composed Authorizer. So even on chain methods, a skip/public annotation means the Authorizer is never consulted — the step's presence still gives C1/C2 the uniform interception point.
+
+Verification notes: every registration map in `src/boot/compose.ts`'s routes closure was cross-checked against its controller file and its proto service definition; every `newAuthorizeStep` call site was checked for descriptor/RPC agreement (all ten lifecycle RPCs pass their own descriptor through the shared `runLifecyclePipeline` builder; memory `confirm`/`reject` pass their own descriptors through the shared `runTransition` helper); a mechanical scan confirmed `newAuthorizeStep` is the first `.addStep` of every `newPipeline` in the server (zero exceptions).
+
+## Totals
+
+- Registered services: 27 (26 Stigmer services + the standard gRPC health service).
+- Registered RPC methods: 227.
+- Handler classes: 173 `chain-with-Authorize`, 54 `direct`.
+- Annotation classes: 136 `config`, 71 `is_skip_authorization`, 2 `is_public`, 18 `none` (15 apply RPCs + 3 health methods).
+- Config-annotated methods served by direct handlers (annotation declared, Authorize step not running): 30 — enumerated before the notes section.
+
+## 1. Health (`grpc.health.v1.Health`, `src/transport/health.ts`)
+
+The standard gRPC health protocol — an external proto with no Stigmer annotations.
+
+| Method | Annotation | Handler |
+|---|---|---|
+| check | none (external proto) | direct: pure in-memory health-state read |
+| list | none (external proto) | direct: pure in-memory health-state read |
+| watch | none (external proto) | direct: server-stream over in-memory health-state notifications |
+
+## 2. Organization (`src/domain/organization/controller.ts`)
+
+| Method | Annotation | Handler |
+|---|---|---|
+| OrganizationCommandController.apply | none | chain-with-Authorize |
+| OrganizationCommandController.create | is_skip_authorization | chain-with-Authorize |
+| OrganizationCommandController.update | config: can_edit on organization (field metadata.id), error_msg yes | chain-with-Authorize |
+| OrganizationCommandController.delete | config: can_delete on organization (field value), error_msg yes | chain-with-Authorize |
+| OrganizationQueryController.get | config: can_view on organization (field value), error_msg yes | chain-with-Authorize |
+| OrganizationQueryController.find | is_skip_authorization | chain-with-Authorize |
+| OrganizationQueryController.findMyOrganizations | is_skip_authorization | direct: full store list — single-team OSS posture, ALL organizations are "mine" (cloud filters by IAM policy instead) |
+
+Proto method NOT registered by this server: `OrganizationQueryController.getByExternalOrgId` (is_skip_authorization) — see the unregistered-methods list.
+
+## 3. Environment (`src/domain/environment/controller.ts`)
+
+| Method | Annotation | Handler |
+|---|---|---|
+| EnvironmentCommandController.apply | none | chain-with-Authorize |
+| EnvironmentCommandController.create | config: can_create_environment on organization (field metadata.org), error_msg yes | chain-with-Authorize |
+| EnvironmentCommandController.update | config: can_edit on environment (field metadata.id), error_msg yes | chain-with-Authorize |
+| EnvironmentCommandController.updateVisibility | config: can_edit on environment (field resource_id), error_msg yes | chain-with-Authorize |
+| EnvironmentCommandController.delete | config: can_edit on environment (field resource_id), error_msg yes | chain-with-Authorize |
+| EnvironmentCommandController.updateVariables | config: can_edit on environment (field environment_id), error_msg yes | chain-with-Authorize |
+| EnvironmentCommandController.removeVariables | config: can_edit on environment (field environment_id), error_msg yes | chain-with-Authorize |
+| EnvironmentQueryController.get | config: can_view on environment (field value), error_msg yes | chain-with-Authorize |
+| EnvironmentQueryController.getByReference | is_skip_authorization | chain-with-Authorize |
+| EnvironmentQueryController.getSecretValue | config: can_read_secrets on environment (field environment_id), error_msg yes | chain-with-Authorize |
+| EnvironmentQueryController.list | is_skip_authorization | chain-with-Authorize |
+
+## 4. OAuthApp (`src/domain/oauthapp/controller.ts`)
+
+| Method | Annotation | Handler |
+|---|---|---|
+| OAuthAppCommandController.apply | none | chain-with-Authorize |
+| OAuthAppCommandController.create | config: can_create_oauth_app on organization (field metadata.org), error_msg yes | chain-with-Authorize |
+| OAuthAppCommandController.update | config: can_edit on oauth_app (field metadata.id), error_msg yes | chain-with-Authorize |
+| OAuthAppCommandController.delete | config: can_delete on oauth_app (field resource_id), error_msg yes | chain-with-Authorize |
+| OAuthAppQueryController.get | config: can_view on oauth_app (field value), error_msg yes | chain-with-Authorize |
+| OAuthAppQueryController.getByReference | is_skip_authorization | chain-with-Authorize |
+| OAuthAppQueryController.listByOrg | config: can_view on organization (field org), error_msg yes | chain-with-Authorize |
+
+## 5. ExecutionContext (`src/domain/executioncontext/controller.ts`)
+
+All six RPCs are chains, and the proto deliberately marks every one `is_skip_authorization` with a real handler-level check instead (the proto's own header documents this): the read RPCs redact secret values by default, and getByExecutionId's domain step verifies an execution-scoped runner token — a matching scope-bound token gets decrypted values, everyone else gets the same response shape redacted, as a SUCCESS ("redaction-as-success": no error discloses the lane).
+
+| Method | Annotation | Handler |
+|---|---|---|
+| ExecutionContextCommandController.apply | none | chain-with-Authorize |
+| ExecutionContextCommandController.create | is_skip_authorization | chain-with-Authorize |
+| ExecutionContextCommandController.delete | is_skip_authorization | chain-with-Authorize |
+| ExecutionContextQueryController.get | is_skip_authorization | chain-with-Authorize (response redacted) |
+| ExecutionContextQueryController.getByReference | is_skip_authorization | chain-with-Authorize (response redacted) |
+| ExecutionContextQueryController.getByExecutionId | is_skip_authorization | chain-with-Authorize (runner-token verified in domain; redaction-as-success) |
+
+## 6. Agent (`src/domain/agent/controller.ts`)
+
+| Method | Annotation | Handler |
+|---|---|---|
+| AgentCommandController.apply | none | chain-with-Authorize |
+| AgentCommandController.create | config: can_create_agent on organization (field metadata.org), error_msg yes | chain-with-Authorize |
+| AgentCommandController.update | config: can_edit on agent (field metadata.id), error_msg yes | chain-with-Authorize |
+| AgentCommandController.updateVisibility | config: can_edit on agent (field resource_id), error_msg yes | chain-with-Authorize |
+| AgentCommandController.delete | config: can_delete on agent (field value), error_msg yes | chain-with-Authorize |
+| AgentQueryController.get | config: can_view on agent (field value), error_msg yes | chain-with-Authorize |
+| AgentQueryController.getByReference | is_skip_authorization | chain-with-Authorize |
+| AgentQueryController.getDefault | is_skip_authorization | chain-with-Authorize |
+
+## 7. AgentInstance (`src/domain/agentinstance/controller.ts`)
+
+| Method | Annotation | Handler |
+|---|---|---|
+| AgentInstanceCommandController.apply | none | chain-with-Authorize |
+| AgentInstanceCommandController.create | is_skip_authorization | chain-with-Authorize |
+| AgentInstanceCommandController.update | config: can_edit on agent_instance (field metadata.id), error_msg yes | chain-with-Authorize |
+| AgentInstanceCommandController.updateVisibility | config: can_edit on agent_instance (field resource_id), error_msg yes | chain-with-Authorize |
+| AgentInstanceCommandController.delete | config: can_delete on agent_instance (field value), error_msg yes | chain-with-Authorize |
+| AgentInstanceQueryController.get | config: can_view on agent_instance (field value), error_msg yes | chain-with-Authorize |
+| AgentInstanceQueryController.getByAgent | is_skip_authorization | chain-with-Authorize |
+| AgentInstanceQueryController.getByReference | is_skip_authorization | chain-with-Authorize |
+| AgentInstanceQueryController.list | is_skip_authorization | chain-with-Authorize |
+
+## 8. Session (`src/domain/session/controller.ts`)
+
+| Method | Annotation | Handler |
+|---|---|---|
+| SessionCommandController.apply | none | chain-with-Authorize |
+| SessionCommandController.create | config: can_create_session on organization (field metadata.org), error_msg yes | chain-with-Authorize |
+| SessionCommandController.update | config: can_edit on session (field metadata.id), error_msg yes | chain-with-Authorize |
+| SessionCommandController.updateSubject | config: can_edit on session (field id), error_msg yes | direct: field-level read-modify-write on the server (no pipeline by design — ports Go update_subject.go); annotated but Authorize does not run |
+| SessionCommandController.delete | config: can_delete on session (field value), error_msg yes | chain-with-Authorize |
+| SessionQueryController.get | config: can_view on session (field value), error_msg yes | chain-with-Authorize |
+| SessionQueryController.list | is_skip_authorization | chain-with-Authorize |
+| SessionQueryController.listByAgentInstance | is_skip_authorization | chain-with-Authorize |
+| SessionQueryController.listByChannel | is_skip_authorization | chain-with-Authorize |
+
+## 9. AgentShare (`src/domain/agentshare/controller.ts`)
+
+| Method | Annotation | Handler |
+|---|---|---|
+| AgentShareCommandController.apply | none | chain-with-Authorize |
+| AgentShareCommandController.create | is_skip_authorization | chain-with-Authorize |
+| AgentShareCommandController.update | config: can_edit on agent_share (field metadata.id), error_msg yes | chain-with-Authorize |
+| AgentShareCommandController.rotateShareLink | config: can_edit on agent_share (field resource_id), error_msg yes | chain-with-Authorize |
+| AgentShareCommandController.delete | config: can_delete on agent_share (field value), error_msg yes | chain-with-Authorize |
+| AgentShareQueryController.get | config: can_view on agent_share (field value), error_msg yes | chain-with-Authorize |
+| AgentShareQueryController.getByReference | is_skip_authorization | chain-with-Authorize |
+| AgentShareQueryController.getByAgent | is_skip_authorization | chain-with-Authorize |
+| AgentShareQueryController.list | is_skip_authorization | chain-with-Authorize |
+| AgentShareQueryController.getSharedProfile | is_public | chain-with-Authorize (the public share-link read; the step's is_public arm skips the Authorizer) |
+| AgentShareQueryController.getSharedProfileForMember | is_skip_authorization | chain-with-Authorize |
+
+## 10. AgentChannel (`src/domain/agentchannel/controller.ts`)
+
+| Method | Annotation | Handler |
+|---|---|---|
+| AgentChannelCommandController.apply | none | chain-with-Authorize |
+| AgentChannelCommandController.create | is_skip_authorization | chain-with-Authorize |
+| AgentChannelCommandController.update | config: can_edit on agent_channel (field metadata.id), error_msg yes | chain-with-Authorize |
+| AgentChannelCommandController.initiateInstall | config: can_edit on agent_channel (field resource_id), error_msg yes | direct: OSS stub — loads the channel (NOT_FOUND contract matches cloud), then refuses FAILED_PRECONDITION (install unavailable on this edition) |
+| AgentChannelCommandController.completeInstall | config: can_edit on agent_channel (field resource_id), error_msg yes | direct: OSS stub — same load-then-refuse FAILED_PRECONDITION |
+| AgentChannelCommandController.delete | config: can_delete on agent_channel (field value), error_msg yes | chain-with-Authorize |
+| AgentChannelQueryController.get | config: can_view on agent_channel (field value), error_msg yes | chain-with-Authorize |
+| AgentChannelQueryController.getByReference | is_skip_authorization | chain-with-Authorize |
+| AgentChannelQueryController.getByAgent | is_skip_authorization | chain-with-Authorize |
+| AgentChannelQueryController.list | is_skip_authorization | chain-with-Authorize |
+
+## 11. ChannelMessage (`src/domain/agentchannel/message.ts`)
+
+The proactive-messaging surface is a cloud capability; OSS serves edition stubs, all direct.
+
+| Method | Annotation | Handler |
+|---|---|---|
+| ChannelMessageCommandController.sendMessage | is_skip_authorization | direct: OSS stub — refuses FAILED_PRECONDITION (proactive messaging unavailable) |
+| ChannelMessageQueryController.listTemplates | is_skip_authorization | direct: OSS stub — refuses FAILED_PRECONDITION |
+| ChannelMessageQueryController.listMessagingChannels | is_skip_authorization | direct: returns an empty list |
+
+## 12. ChannelConversation (`src/domain/agentchannel/conversation.ts`)
+
+The conversation surface is a cloud capability; OSS serves edition stubs, all direct.
+
+| Method | Annotation | Handler |
+|---|---|---|
+| ChannelConversationQueryController.listConversations | is_skip_authorization | direct: returns an empty list |
+| ChannelConversationQueryController.getConversation | config: can_view on agent_channel (field agent_channel_id), error_msg yes | direct: OSS stub — answers NOT_FOUND unconditionally (no load-then-miss probing) |
+| ChannelConversationQueryController.getTimeline | config: can_view on agent_channel (field agent_channel_id), error_msg yes | direct: returns an empty timeline |
+| ChannelConversationQueryController.getMediaDownloadUrl | config: can_view on agent_channel (field agent_channel_id), error_msg yes | direct: OSS stub — byte-pinned uniform NOT_FOUND miss (a prober cannot learn which items exist) |
+| ChannelConversationCommandController.reply | config: can_participate on agent_channel (field agent_channel_id), error_msg yes | direct: OSS stub — refuses FAILED_PRECONDITION (participation unavailable) |
+| ChannelConversationCommandController.takeOver | config: can_participate on agent_channel (field agent_channel_id), error_msg yes | direct: OSS stub — refuses FAILED_PRECONDITION |
+| ChannelConversationCommandController.handBack | config: can_participate on agent_channel (field agent_channel_id), error_msg yes | direct: OSS stub — refuses FAILED_PRECONDITION |
+| ChannelConversationCommandController.clearAttention | config: can_participate on agent_channel (field agent_channel_id), error_msg yes | direct: OSS stub — refuses FAILED_PRECONDITION |
+| ChannelConversationCommandController.escalate | is_skip_authorization | direct: OSS stub — refuses FAILED_PRECONDITION |
+
+## 13. ChannelApp (`src/domain/channelapp/controller.ts`)
+
+| Method | Annotation | Handler |
+|---|---|---|
+| ChannelAppCommandController.apply | none | chain-with-Authorize |
+| ChannelAppCommandController.create | config: can_create_channel_app on organization (field metadata.org), error_msg yes | chain-with-Authorize |
+| ChannelAppCommandController.update | config: can_edit on channel_app (field metadata.id), error_msg yes | chain-with-Authorize |
+| ChannelAppCommandController.delete | config: can_delete on channel_app (field resource_id), error_msg yes | chain-with-Authorize |
+| ChannelAppQueryController.get | config: can_view on channel_app (field value), error_msg yes | chain-with-Authorize |
+| ChannelAppQueryController.getByReference | is_skip_authorization | chain-with-Authorize |
+| ChannelAppQueryController.listByOrg | config: can_view on organization (field org), error_msg yes | chain-with-Authorize |
+
+## 14. Schedule (`src/domain/schedule/controller.ts`)
+
+| Method | Annotation | Handler |
+|---|---|---|
+| ScheduleCommandController.apply | none | chain-with-Authorize |
+| ScheduleCommandController.create | is_skip_authorization | chain-with-Authorize |
+| ScheduleCommandController.update | config: can_edit on schedule (field metadata.id), error_msg yes | chain-with-Authorize |
+| ScheduleCommandController.delete | config: can_delete on schedule (field value), error_msg yes | chain-with-Authorize |
+| ScheduleCommandController.resume | config: can_edit on schedule (field value), error_msg yes | chain-with-Authorize |
+| ScheduleCommandController.trigger | config: can_edit on schedule (field value), error_msg yes | chain-with-Authorize |
+| ScheduleQueryController.get | config: can_view on schedule (field value), error_msg yes | chain-with-Authorize |
+| ScheduleQueryController.getByReference | is_skip_authorization | chain-with-Authorize |
+| ScheduleQueryController.getByAgent | is_skip_authorization | chain-with-Authorize |
+| ScheduleQueryController.list | is_skip_authorization | chain-with-Authorize |
+| ScheduleQueryController.listRuns | config: can_view on schedule (field schedule_id), error_msg yes | chain-with-Authorize |
+
+## 15. Memory (`src/domain/memory/controller.ts`)
+
+| Method | Annotation | Handler |
+|---|---|---|
+| MemoryCommandController.create | is_skip_authorization | chain-with-Authorize |
+| MemoryCommandController.update | config: can_edit on memory (field metadata.id), error_msg yes | chain-with-Authorize |
+| MemoryCommandController.delete | config: can_delete on memory (field value), error_msg yes | chain-with-Authorize |
+| MemoryCommandController.confirm | config: can_edit on memory (field value), error_msg yes | chain-with-Authorize (shared runTransition helper, own descriptor) |
+| MemoryCommandController.reject | config: can_edit on memory (field value), error_msg yes | chain-with-Authorize (shared runTransition helper, own descriptor) |
+| MemoryQueryController.get | config: can_view on memory (field value), error_msg yes | chain-with-Authorize |
+| MemoryQueryController.list | is_skip_authorization | chain-with-Authorize |
+
+## 16. AgentExecution (`src/domain/agentexecution/controller.ts` + lifecycle.ts, update-status.ts, submit-approval.ts, submit-file-decision.ts, usage.ts, artifacts.ts, subscribe.ts)
+
+| Method | Annotation | Handler |
+|---|---|---|
+| AgentExecutionCommandController.create | is_skip_authorization | chain-with-Authorize |
+| AgentExecutionCommandController.update | config: can_edit on agent_execution (field metadata.id), error_msg yes | chain-with-Authorize |
+| AgentExecutionCommandController.updateStatus | config: can_edit on agent_execution (field execution_id), error_msg yes | chain-with-Authorize (update-status.ts) |
+| AgentExecutionCommandController.submitApproval | config: can_edit on agent_execution (field agent_execution_id), error_msg yes | chain-with-Authorize (submit-approval.ts) |
+| AgentExecutionCommandController.submitFileDecision | config: can_edit on agent_execution (field agent_execution_id), error_msg yes | chain-with-Authorize (submit-file-decision.ts) |
+| AgentExecutionCommandController.cancel | config: can_edit on agent_execution (field id), error_msg yes | chain-with-Authorize (lifecycle.ts, own descriptor) |
+| AgentExecutionCommandController.terminate | config: can_edit on agent_execution (field id), error_msg yes | chain-with-Authorize (lifecycle.ts, own descriptor) |
+| AgentExecutionCommandController.recover | config: can_edit on agent_execution (field id), error_msg yes | chain-with-Authorize (lifecycle.ts, own descriptor) |
+| AgentExecutionCommandController.pause | config: can_edit on agent_execution (field id), error_msg yes | chain-with-Authorize (lifecycle.ts, own descriptor) |
+| AgentExecutionCommandController.resume | config: can_edit on agent_execution (field id), error_msg yes | chain-with-Authorize (lifecycle.ts, own descriptor) |
+| AgentExecutionCommandController.uploadAttachment | is_skip_authorization | direct: blob-store write; the returned storage_key acts as the capability token for the later create |
+| AgentExecutionCommandController.delete | config: can_edit on agent_execution (field value), error_msg yes | chain-with-Authorize |
+| AgentExecutionQueryController.get | config: can_view on agent_execution (field value), error_msg yes | chain-with-Authorize |
+| AgentExecutionQueryController.list | is_skip_authorization | chain-with-Authorize |
+| AgentExecutionQueryController.listBySession | is_skip_authorization | chain-with-Authorize |
+| AgentExecutionQueryController.subscribe | config: can_view on agent_execution (field value), error_msg yes | direct: stream subscribe over broker (register-before-snapshot; server-stream generator cannot run inside the pipeline executor) |
+| AgentExecutionQueryController.getArtifactDownloadUrl | config: can_view on agent_execution (field execution_id), error_msg yes | direct: key-prefix / attachment-membership ownership check, then time-limited URL mint |
+| AgentExecutionQueryController.getArtifactContent | config: can_view on agent_execution (field execution_id), error_msg yes | direct: key-prefix ownership check, CAS-blob integrity check, truncated bytes in response |
+| AgentExecutionQueryController.getExecutionUsageReport | config: can_view on agent_execution (field execution_id), error_msg yes | chain-with-Authorize (usage.ts) |
+| AgentExecutionQueryController.getSessionUsageReport | config: can_view on session (field session_id), error_msg yes | chain-with-Authorize (usage.ts) |
+| AgentExecutionQueryController.getAgentUsageReport | config: can_view on organization (field org_id), error_msg yes | chain-with-Authorize (usage.ts) |
+| AgentExecutionQueryController.getOrgUsageReport | config: can_view on organization (field org_id), error_msg yes | chain-with-Authorize (usage.ts) |
+| AgentExecutionQueryController.getExecutionSummary | is_skip_authorization | direct: full-scan store aggregate for the dashboard (a direct handler in Go as well) |
+
+## 17. Workflow (`src/domain/workflow/controller.ts`)
+
+| Method | Annotation | Handler |
+|---|---|---|
+| WorkflowCommandController.apply | none | chain-with-Authorize |
+| WorkflowCommandController.create | config: can_create_workflow on organization (field metadata.org), error_msg yes | chain-with-Authorize |
+| WorkflowCommandController.update | config: can_edit on workflow (field metadata.id), error_msg yes | chain-with-Authorize |
+| WorkflowCommandController.updateVisibility | config: can_edit on workflow (field resource_id), error_msg yes | chain-with-Authorize |
+| WorkflowCommandController.delete | config: can_delete on workflow (field value), error_msg yes | chain-with-Authorize |
+| WorkflowCommandController.validateSpec | config: can_create_workflow on organization (field metadata.org), error_msg yes | direct: validation-only, nothing persisted (Layer-2 validator over the domain-owned registry store) |
+| WorkflowCommandController.tagVersion | config: can_edit on workflow (field workflow_id), error_msg yes | chain-with-Authorize |
+| WorkflowQueryController.get | config: can_view on workflow (field value), error_msg yes | chain-with-Authorize |
+| WorkflowQueryController.getByReference | is_skip_authorization | direct: branching slug/org read (Go's own direct-handler note) |
+| WorkflowQueryController.listVersions | is_skip_authorization | chain-with-Authorize |
+| WorkflowQueryController.getVersion | config: can_view on workflow (field workflow_id), error_msg yes | direct: live-then-audit version read |
+
+## 18. WorkflowInstance (`src/domain/workflowinstance/controller.ts`)
+
+| Method | Annotation | Handler |
+|---|---|---|
+| WorkflowInstanceCommandController.apply | none | chain-with-Authorize |
+| WorkflowInstanceCommandController.create | is_skip_authorization | chain-with-Authorize |
+| WorkflowInstanceCommandController.update | config: can_edit on workflow_instance (field metadata.id), error_msg yes | chain-with-Authorize |
+| WorkflowInstanceCommandController.updateVisibility | config: can_edit on workflow_instance (field resource_id), error_msg yes | chain-with-Authorize |
+| WorkflowInstanceCommandController.updateExecutionVisibility | config: can_grant_access on workflow_instance (field resource_id), error_msg yes | chain-with-Authorize |
+| WorkflowInstanceCommandController.delete | config: can_delete on workflow_instance (field value), error_msg yes | chain-with-Authorize |
+| WorkflowInstanceQueryController.get | config: can_view on workflow_instance (field value), error_msg yes | chain-with-Authorize |
+| WorkflowInstanceQueryController.getByReference | is_skip_authorization | chain-with-Authorize |
+| WorkflowInstanceQueryController.getByWorkflow | is_skip_authorization | chain-with-Authorize |
+
+## 19. WorkflowExecution (`src/domain/workflowexecution/controller.ts` + lifecycle.ts, update-status.ts, submit-approval.ts, submit-file-decision.ts, submit-workflow-task-approval.ts, send-signal.ts, queries.ts, subscribe.ts, subscribe-events.ts, get-event-log.ts, get-execution-summary.ts, list-pending-approvals.ts)
+
+| Method | Annotation | Handler |
+|---|---|---|
+| WorkflowExecutionCommandController.create | is_skip_authorization | chain-with-Authorize |
+| WorkflowExecutionCommandController.update | config: can_edit on workflow_execution (field metadata.id), error_msg yes | chain-with-Authorize |
+| WorkflowExecutionCommandController.updateStatus | config: can_edit on workflow_execution (field execution_id), error_msg yes | chain-with-Authorize (update-status.ts) |
+| WorkflowExecutionCommandController.submitApproval | config: can_edit on workflow_execution (field execution_id), error_msg yes | chain-with-Authorize (submit-approval.ts) |
+| WorkflowExecutionCommandController.submitFileDecision | config: can_edit on workflow_execution (field execution_id), error_msg yes | chain-with-Authorize (submit-file-decision.ts) |
+| WorkflowExecutionCommandController.submitWorkflowTaskApproval | config: can_edit on workflow_execution (field execution_id), error_msg yes | chain-with-Authorize (submit-workflow-task-approval.ts) |
+| WorkflowExecutionCommandController.delete | config: can_edit on workflow_execution (field value), error_msg yes | chain-with-Authorize |
+| WorkflowExecutionCommandController.sendSignal | config: can_edit on workflow_execution (field execution_id), error_msg yes | chain-with-Authorize (send-signal.ts) |
+| WorkflowExecutionCommandController.cancel | config: can_edit on workflow_execution (field id), error_msg yes | chain-with-Authorize (lifecycle.ts, own descriptor) |
+| WorkflowExecutionCommandController.terminate | config: can_edit on workflow_execution (field id), error_msg yes | chain-with-Authorize (lifecycle.ts, own descriptor) |
+| WorkflowExecutionCommandController.recover | config: can_edit on workflow_execution (field id), error_msg yes | chain-with-Authorize (lifecycle.ts, own descriptor) |
+| WorkflowExecutionCommandController.pause | config: can_edit on workflow_execution (field id), error_msg yes | chain-with-Authorize (lifecycle.ts, own descriptor) |
+| WorkflowExecutionCommandController.resume | config: can_edit on workflow_execution (field id), error_msg yes | chain-with-Authorize (lifecycle.ts, own descriptor) |
+| WorkflowExecutionQueryController.get | config: can_view on workflow_execution (field value), error_msg yes | chain-with-Authorize |
+| WorkflowExecutionQueryController.list | is_skip_authorization | direct: full-scan store read (malformed rows skipped) |
+| WorkflowExecutionQueryController.listByWorkflow | is_skip_authorization | direct: full-scan store read filtered by workflow |
+| WorkflowExecutionQueryController.subscribe | config: can_view on workflow_execution (field execution_id), error_msg yes | direct: stream subscribe over broker |
+| WorkflowExecutionQueryController.getEventLog | config: can_view on workflow_execution (field execution_id), error_msg yes | direct: cursor-paginated read over the event side table (no existence check by contract) |
+| WorkflowExecutionQueryController.subscribeEvents | config: can_view on workflow_execution (field execution_id), error_msg yes | direct: event-log replay + poll stream (existence-checked NotFound before streaming) |
+| WorkflowExecutionQueryController.getExecutionSummary | is_skip_authorization | direct: full-scan store aggregate for the dashboard |
+| WorkflowExecutionQueryController.listPendingApprovals | is_skip_authorization | direct: scan of IN_PROGRESS executions for waiting-approval tasks |
+
+## 20. McpServer (`src/domain/mcpserver/controller.ts` + connect.ts, start-connect.ts, initiate-oauth-connect.ts, complete-oauth-connect.ts, disconnect-oauth.ts, get-oauth-grant-status.ts)
+
+| Method | Annotation | Handler |
+|---|---|---|
+| McpServerCommandController.apply | none | chain-with-Authorize |
+| McpServerCommandController.create | is_skip_authorization | chain-with-Authorize |
+| McpServerCommandController.update | config: can_edit on mcp_server (field metadata.id), error_msg yes | chain-with-Authorize |
+| McpServerCommandController.updateVisibility | config: can_edit on mcp_server (field resource_id), error_msg yes | chain-with-Authorize |
+| McpServerCommandController.delete | config: can_delete on mcp_server (field resource_id), error_msg yes | chain-with-Authorize |
+| McpServerCommandController.connect | config: can_connect on mcp_server (field mcp_server_id), error_msg yes | direct: blocking connect flow over the engine seam (ephemeral ExecutionContext, decrypt-lane token mint, runner workflow start) |
+| McpServerCommandController.startConnect | config: can_connect on mcp_server (field mcp_server_id), error_msg yes | direct: async connect lane over the engine seam |
+| McpServerCommandController.initiateOAuthConnect | config: can_connect on mcp_server (field mcp_server_id), error_msg yes | direct: OAuth authorize-URL mint (refuses FAILED_PRECONDITION without a configured redirect URI) |
+| McpServerCommandController.completeOAuthConnect | config: can_connect on mcp_server (field mcp_server_id), error_msg yes | direct: OAuth code exchange + grant persistence |
+| McpServerCommandController.disconnectOAuth | config: can_connect on mcp_server (field resource_id), error_msg yes | direct: grant teardown |
+| McpServerCommandController.setOrgOAuthApp | config: can_create_oauth_app on organization (field org), error_msg yes | direct: OSS stub — throws Unimplemented (org OAuth-app overrides are cloud-only) |
+| McpServerCommandController.deleteOrgOAuthApp | config: can_create_oauth_app on organization (field org), error_msg yes | direct: OSS stub — throws Unimplemented |
+| McpServerQueryController.get | config: can_view on mcp_server (field value), error_msg yes | chain-with-Authorize |
+| McpServerQueryController.getByReference | is_skip_authorization | chain-with-Authorize |
+| McpServerQueryController.getOAuthGrantStatus | config: can_view on mcp_server (field resource_id), error_msg yes | direct: grant-store read |
+| McpServerQueryController.getOrgOAuthApp | config: can_view on mcp_server (field resource_id), error_msg yes | direct: OSS stub — throws Unimplemented |
+
+## 21. Skill (`src/domain/skill/controller.ts` + push.ts)
+
+| Method | Annotation | Handler |
+|---|---|---|
+| SkillCommandController.push | config: can_create_skill on organization (field org), error_msg yes | chain-with-Authorize |
+| SkillCommandController.createArtifactUploadUrl | config: can_create_skill on organization (field org), error_msg yes | chain-with-Authorize |
+| SkillCommandController.pushFromExecutionArtifact | config: can_create_skill on organization (field org), error_msg yes | chain-with-Authorize BY DELEGATION: the handler validates the storage-key ownership prefix directly, downloads the execution artifact, then calls the shared push pipeline WITH ITS OWN method descriptor (the runLifecyclePipeline pattern — the pipeline's authorizing descriptor is a caller-supplied parameter), so this method's own annotation is the one evaluated. |
+| SkillCommandController.updateVisibility | config: can_edit on skill (field resource_id), error_msg yes | chain-with-Authorize |
+| SkillCommandController.delete | config: can_delete on skill (field value), error_msg yes | chain-with-Authorize |
+| SkillQueryController.get | config: can_view on skill (field value), error_msg yes | chain-with-Authorize |
+| SkillQueryController.getByReference | is_skip_authorization | chain-with-Authorize |
+| SkillQueryController.getArtifact | is_skip_authorization | chain-with-Authorize |
+| SkillQueryController.getArtifactDownloadUrl | is_skip_authorization | chain-with-Authorize |
+| SkillQueryController.listVersions | is_skip_authorization | chain-with-Authorize |
+
+## 22. Artifact (`src/domain/artifact/controller.ts`)
+
+| Method | Annotation | Handler |
+|---|---|---|
+| ArtifactCommandController.create | is_skip_authorization | direct: content-addressed blob write + metadata row persist |
+| ArtifactCommandController.delete | config: can_edit on artifact (field value), error_msg yes | direct: soft delete — storage_state transition, never a row removal |
+| ArtifactQueryController.get | config: can_view on artifact (field value), error_msg yes | chain-with-Authorize |
+| ArtifactQueryController.listByExecution | is_skip_authorization | chain-with-Authorize |
+| ArtifactQueryController.getDownloadUrl | config: can_view on artifact (field value), error_msg yes | direct: time-limited URL mint against the blob store |
+| ArtifactQueryController.getContent | config: can_view on artifact (field artifact_id), error_msg yes | direct: truncated bytes in the response (512KB default cap) |
+
+## 23. Project (`src/domain/project/controller.ts`)
+
+| Method | Annotation | Handler |
+|---|---|---|
+| ProjectCommandController.apply | none | chain-with-Authorize |
+| ProjectCommandController.create | config: can_create_project on organization (field metadata.org), error_msg yes | chain-with-Authorize |
+| ProjectCommandController.update | config: can_edit on project (field metadata.id), error_msg yes | chain-with-Authorize |
+| ProjectCommandController.delete | config: can_delete on project (field value), error_msg yes | chain-with-Authorize |
+| ProjectQueryController.get | config: can_view on project (field value), error_msg yes | chain-with-Authorize |
+| ProjectQueryController.getByReference | is_skip_authorization | chain-with-Authorize |
+
+## 24. Search (`src/query/search/controller.ts`)
+
+| Method | Annotation | Handler |
+|---|---|---|
+| SearchService.search | is_skip_authorization | direct: CQRS read over the search query store (cross-aggregate; carries no api_resource_kind option) |
+
+## 25. Activity (`src/query/activity/controller.ts`)
+
+| Method | Annotation | Handler |
+|---|---|---|
+| ActivityQueryController.listRecentActivity | is_skip_authorization | direct: CQRS recents read over listResources (the request's org merely narrows the result) |
+
+## 26. GitHub (`src/domain/github/controller.ts`)
+
+| Method | Annotation | Handler |
+|---|---|---|
+| GitHubService.getOAuthAuthorizeUrl | is_skip_authorization | direct: stateless OAuth broker — authorize-URL mint from config, nothing persisted |
+| GitHubService.exchangeOAuthCode | is_skip_authorization | direct: stateless OAuth broker — code-for-token exchange, token returned to the caller, never stored |
+
+## 27. Platform (`src/domain/platform/controller.ts`)
+
+| Method | Annotation | Handler |
+|---|---|---|
+| PlatformQueryController.getServerInfo | is_public | direct: static edition + version read |
+| PlatformQueryController.getRunnerBootstrapConfig | is_skip_authorization | direct: publishes the Temporal coordinates for embedded runners (token fields deliberately empty on OSS) |
+| PlatformQueryController.getRunnerScopedToken | is_skip_authorization | direct: mints the execution-scoped runner token for the ExecutionContext decrypt lane; fail-soft (empty id, keyless service, or mint error answer the not-minted shape). On OSS there is no caller credential to verify — the token is the lane discriminator, not a trust boundary (DD-004). |
+
+## Config-annotated methods served by direct handlers
+
+These 30 methods declare a `(ai.stigmer.commons.rpc.config)` annotation but run no pipeline, so the Authorize step never evaluates them on this server. C1/C2 must decide per method whether the cloud edition enforces the annotation in its own handler (several already do — the cloud conversation/install handlers are real) or whether the method needs to move onto a chain.
+
+- Session: updateSubject
+- AgentChannel: initiateInstall, completeInstall
+- ChannelConversation: getConversation, getTimeline, getMediaDownloadUrl, reply, takeOver, handBack, clearAttention
+- AgentExecution: subscribe, getArtifactDownloadUrl, getArtifactContent
+- Workflow: validateSpec, getVersion
+- WorkflowExecution: subscribe, getEventLog, subscribeEvents
+- McpServer: connect, startConnect, initiateOAuthConnect, completeOAuthConnect, disconnectOAuth, setOrgOAuthApp, deleteOrgOAuthApp, getOAuthGrantStatus, getOrgOAuthApp
+- Artifact: delete, getDownloadUrl, getContent
+
+## Descriptor mismatches found
+
+- `SkillCommandController.pushFromExecutionArtifact` delegates into the shared push pipeline. This WAS a descriptor mismatch (the delegated pipeline hardcoded `method.push`); the inventory pass caught it and the pipeline now takes the authorizing descriptor from its caller, so each of the two RPCs authorizes under its own annotation. Recorded here because the trap shape — shared pipeline, hardcoded descriptor — is the one thing a future delegating handler must not reintroduce.
+
+No other mismatch exists: every other `newAuthorizeStep` call site passes the descriptor of the RPC it serves, including all ten lifecycle RPCs (shared builder, per-method descriptor) and memory confirm/reject (shared transition helper, per-method descriptor).
+
+## Unregistered proto methods and services
+
+- `OrganizationQueryController.getByExternalOrgId` (is_skip_authorization) exists in the proto but is not in the server's registration map — the only partially-registered service.
+- `TaskKindRegistryQueryController.getTaskKindRegistry` is a proto service the server never registers as an RPC; the task-kind registry is served over the HTTP registry lane instead (below).
+- Entire proto service families exist under `apis/ai/stigmer/` that this server does not register at all — they are cloud-edition surfaces: Billing (command + query), CursorAccount (command + query), ProviderStanding (query), and the IAM family: ApiKey, IamPolicy, IdentityAccount, IdentityProvider, Invitation, PlatformClient (command + query each, plus PlatformClientTokenController with the two `is_public` mint RPCs). Their annotations (including the `resource_id = "stigmer"` platform-operator checks and the config-without-resource_kind IamPolicy arms) are already declared in the protos for C1/C2 to consume.
+
+## Non-RPC HTTP lanes
+
+### taskKindRegistryLane (`src/transport/registry/lanes.ts`)
+
+`GET /v1/proxy/task-kind-registry` on the unified port. Unauthenticated by design: serves the bundled, static-per-release task-kind registry JSON with the fixed registry CORS contract (allow-origin `*`, `Cache-Control: public, max-age=3600`; OPTIONS 204, other methods 405).
+
+### modelRegistryLane (`src/transport/registry/lanes.ts`)
+
+`GET /v1/proxy/model-registry` on the unified port. Same unauthenticated CORS/caching posture; serves from the domain-owned model-registry store (bundled document plus optional upstream refresh).
+
+### skillTransferLane (`src/domain/skill/transfer/handler.ts`)
+
+`PUT /v1/skill-artifacts/uploads/{ref}` and `GET /v1/skill-artifacts/{storage_key}` on the unified port. Deliberately URL-as-credential — the handler header documents this: neither route carries bearer auth, mirroring cloud's pre-signed R2 URLs. Minting an upload URL requires the same gRPC authorization as push (createArtifactUploadUrl's chain); download keys are unguessable content hashes handed out by authorized skill reads.
+
+### consoleLane (`src/transport/console/handler.ts`)
+
+Static web-console assets on the unified port, present only when a console export is bundled or configured. GET/HEAD only; never claims `/v1/*` or service-shaped RPC paths. Unauthenticated static-asset serving plus a synthesized `/config.json`.
+
+### Artifact HTTP file server (`src/domain/artifact/file-server.ts`)
+
+A SECOND listener, not a unified-port lane: `GET /<storage_key>` on `127.0.0.1:ARTIFACT_HTTP_PORT` (default grpcPort+1), started only when artifact storage is local. Serves the exact bytes local artifact storage wrote; the loopback bind is the posture (download URLs are minted for the local machine; 0.0.0.0 only inside the official container).
+
+## Notes for C1/C2
+
+- (a) The interceptor-level protovalidate interceptor runs at position 3 of the chain (`src/pipeline/chain.ts`, ratified D2 §2 order: identity source → logging → protovalidate → apiresource), before any handler or pipeline — a malformed request answers INVALID_ARGUMENT before the Authorize step ever runs. Pre-existing, ratified ordering.
+- (b) The in-process router transport (`src/boot/inprocess.ts`) runs the same chain except position 1, which stamps the `internal` caller class only that chain can mint (ruling Q4). The Authorize step returns immediately for `callerClass === "internal"`, so cross-domain in-process calls skip the authorization decision while still traversing validation, logging, and kind-tagging.
+- (c) The Temporal worker's status-merge activity (`src/temporal/agentexecution/activities.ts`) calls the domain `updateStatus` — the full pipeline, Authorize step included — with `trustedLocalIdentity()`; no wire request exists at that point, so the trusted-local identity is the caller.
+- (d) Methods with NO config annotation skip the authorizer by design (`authorize.ts`: no `config` option → the step returns before consulting the Authorizer), and every such method is visible in the tables above — the annotation column says `none`, `is_public`, or `is_skip_authorization`.

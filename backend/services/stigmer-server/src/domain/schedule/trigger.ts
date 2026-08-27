@@ -41,15 +41,14 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { ConnectError } from "@connectrpc/connect";
 
 import type { Logger } from "../../boot/logger.js";
+import type { CallerIdentity } from "../../extensions/identity.js";
 import {
   failedPreconditionError,
   rethrownStatusError,
 } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
-import {
-  setAuditFieldsForUpdate,
-} from "../../pipeline/steps/defaults.js";
+import { setAuditFieldsForUpdate } from "../../pipeline/steps/defaults.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
@@ -91,7 +90,10 @@ export const TRIGGER_NO_RUNNER_MESSAGE =
  * toast the owner hit (Go Runner).
  */
 export interface ScheduleRunner {
-  startRun(schedule: Schedule, nominalFireTime: Date): Promise<RunOutcomeResult>;
+  startRun(
+    schedule: Schedule,
+    nominalFireTime: Date,
+  ): Promise<RunOutcomeResult>;
 }
 
 /** A provider so the compose root can wire the runner after the clock stage. */
@@ -107,7 +109,9 @@ export const TRIGGER_RESULT_KEY = "trigger_result";
  * guards manual fires because manual fires no longer pass through the
  * tick). Go validateTriggerableStep.
  */
-export function newValidateTriggerableStep<Desc extends DescMessage>(): PipelineStep<Desc> {
+export function newValidateTriggerableStep<
+  Desc extends DescMessage,
+>(): PipelineStep<Desc> {
   return {
     name: "ValidateTriggerable",
     execute(ctx: RequestContext<Desc>): void {
@@ -157,21 +161,26 @@ export function newFireDirectRunStep<Desc extends DescMessage>(
       try {
         outcome = await runner.startRun(schedule, nominal);
       } catch (error) {
-        deps.logger.warn("Manual trigger's run start failed on infrastructure", {
-          schedule_id: scheduleId,
-          error: error instanceof Error ? error.message : String(error),
-        });
+        deps.logger.warn(
+          "Manual trigger's run start failed on infrastructure",
+          {
+            schedule_id: scheduleId,
+            error: error instanceof Error ? error.message : String(error),
+          },
+        );
         // The in-process client's error instance carries the INNER
         // response's metadata; echoing it corrupts the serving HTTP/2
         // trailers (NGHTTP2_PROTOCOL_ERROR — the #18 transport finding).
         // Re-mint code + message, exactly the workflowexecution
         // forwarding posture.
-        throw error instanceof ConnectError ? rethrownStatusError(error) : error;
+        throw error instanceof ConnectError
+          ? rethrownStatusError(error)
+          : error;
       }
 
       // The fire happened: record it — last_fire_at on status (the tick is
       // not in this path to do it) and the ledger row (origin=manual).
-      await stampLastFireAt(deps, scheduleId, nominal);
+      await stampLastFireAt(deps, scheduleId, nominal, ctx.callerIdentity);
       await recordManualFire(
         deps.store,
         deps.logger,
@@ -244,6 +253,7 @@ async function stampLastFireAt(
   deps: FireDirectRunDeps,
   scheduleId: string,
   nominal: Date,
+  identity: CallerIdentity,
 ): Promise<void> {
   try {
     await deps.store.updateResource(
@@ -255,7 +265,7 @@ async function stampLastFireAt(
           live.status = create(ScheduleStatusSchema);
         }
         live.status.lastFireAt = timestampFromDate(nominal);
-        setAuditFieldsForUpdate(ScheduleSchema, live, "status_audit");
+        setAuditFieldsForUpdate(ScheduleSchema, live, "status_audit", identity);
       },
     );
   } catch (error) {

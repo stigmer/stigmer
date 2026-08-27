@@ -8,6 +8,7 @@
  * providers — reaching the client would fail the test just as a nil
  * dereference would panic Go.
  */
+import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -91,6 +92,7 @@ function newContext(
   return new RequestContext(
     AgentExecutionSchema,
     execution,
+    testCallerIdentity(),
     ApiResourceKind.agent_execution,
   );
 }
@@ -192,7 +194,10 @@ describe("newResolveDefaultAgentStep", () => {
   });
 
   it("public default agent -> resolves agent_id onto newState", async () => {
-    await seedDefaultAgent("agt_default", ApiResourceVisibility.visibility_public);
+    await seedDefaultAgent(
+      "agt_default",
+      ApiResourceVisibility.visibility_public,
+    );
     const step = newResolveDefaultAgentStep(store, silentLogger);
     const ctx = newContext(newExecution("", ""));
 
@@ -250,7 +255,10 @@ describe("newResolveDefaultAgentStep", () => {
     // A one-call bootstrap naming an explicit instance must NOT resolve
     // the platform default agent: doing so would stamp misleading
     // metadata pointing at an agent the session does not run against.
-    await seedDefaultAgent("agt_default", ApiResourceVisibility.visibility_public);
+    await seedDefaultAgent(
+      "agt_default",
+      ApiResourceVisibility.visibility_public,
+    );
     const step = newResolveDefaultAgentStep(store, silentLogger);
     const execution = newExecution("", "");
     execution.spec!.sessionSpec = create(SessionSpecSchema, {
@@ -521,19 +529,19 @@ describe("newComposeDeclaredPreferencesStep", () => {
       execution.metadata!.org = tt.orgId;
       // The injection attempt: a caller-supplied value must never survive
       // — the field is server-owned (DD-002 D2).
-      execution.spec!.declaredPreferences = create(
-        DeclaredPreferencesSchema,
-        {
-          orgContext: "injected org context",
-          userContext: "injected user context",
-        },
-      );
+      execution.spec!.declaredPreferences = create(DeclaredPreferencesSchema, {
+        orgContext: "injected org context",
+        userContext: "injected user context",
+      });
       const ctx = newContext(execution);
 
       await step.execute(ctx);
 
       const got = ctx.newState.spec?.declaredPreferences;
-      expect(got, "server-owned field must be stamped on every path").toBeDefined();
+      expect(
+        got,
+        "server-owned field must be stamped on every path",
+      ).toBeDefined();
       expect(got?.orgContext).toBe(tt.wantOrgContext);
       // user_context must stay empty in OSS (no per-request user identity).
       expect(got?.userContext).toBe("");
@@ -821,7 +829,10 @@ describe("newComposeRecalledMemoriesStep", () => {
       ).toBeUndefined();
 
       const got = ctx.newState.spec?.recalledMemories;
-      expect(got, "server-owned field must be stamped on every path").toBeDefined();
+      expect(
+        got,
+        "server-owned field must be stamped on every path",
+      ).toBeDefined();
       expect(got?.enabled).toBe(tt.wantEnabled);
       expect(got?.facts.map((f) => f.memoryId)).toEqual(tt.wantMemoryIds);
       for (const fact of got?.facts ?? []) {

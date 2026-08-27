@@ -36,6 +36,9 @@ import {
   unavailableError,
 } from "../../pipeline/errors.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
+import type { Authorizer } from "../../extensions/authorizer.js";
+import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
+import type { CallerIdentity } from "../../extensions/identity.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import type { Store } from "../../store/interface.js";
 
@@ -48,6 +51,8 @@ import type { WorkflowExecutionEngineStateProvider } from "./engine.js";
 export interface SubmitWorkflowTaskApprovalDeps {
   readonly store: Store;
   readonly logger: Logger;
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  readonly authorizer: Authorizer;
   readonly engineState: WorkflowExecutionEngineStateProvider;
 }
 
@@ -59,16 +64,24 @@ const LOADED_EXECUTION_KEY = "loadedExecution";
 export async function submitWorkflowTaskApproval(
   deps: SubmitWorkflowTaskApprovalDeps,
   input: SubmitWorkflowTaskApprovalInput,
+  identity: CallerIdentity,
 ): Promise<WorkflowExecution> {
   const reqCtx = new RequestContext(
     WorkflowExecutionCommandController.method.submitWorkflowTaskApproval.input,
     input,
+    identity,
     ApiResourceKind.workflow_execution,
   );
   await newPipeline<TaskApprovalDesc>(
     "workflowexecution-submit-task-approval",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(
+        WorkflowExecutionCommandController.method.submitWorkflowTaskApproval,
+        deps.authorizer,
+      ),
+    )
     .addStep({
       name: "ValidateTaskApprovalInput",
       execute(ctx) {

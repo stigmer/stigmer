@@ -10,6 +10,8 @@
  * Uses the organization resource (the vertical slice) and agent (whose
  * spec carries ApiResourceReference fields) as vehicles.
  */
+import { testCallerIdentity } from "./support.js";
+import { trustedLocalIdentity } from "../interceptors/auth.js";
 import { create, clone } from "@bufbuild/protobuf";
 import { TimestampSchema } from "@bufbuild/protobuf/wkt";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -30,7 +32,7 @@ import {
   generateId,
   setOperatorIdentity,
   resetOperatorIdentityForTests,
-  currentAuditActor,
+  auditActorFor,
 } from "../steps/defaults.js";
 import { newBuildUpdateStateStep } from "../steps/build-update-state.js";
 import { newCheckDuplicateStep } from "../steps/duplicate.js";
@@ -42,13 +44,19 @@ import {
 } from "../steps/delete.js";
 import { compareCreatedAtDesc, matchesAllLabels } from "../steps/helpers.js";
 import { newIndexSearchStep } from "../steps/index-search.js";
-import { EXISTING_RESOURCE_KEY, newLoadExistingStep } from "../steps/load-existing.js";
+import {
+  EXISTING_RESOURCE_KEY,
+  newLoadExistingStep,
+} from "../steps/load-existing.js";
 import {
   EXISTS_IN_DATABASE_KEY,
   SHOULD_CREATE_KEY,
   newLoadForApplyStep,
 } from "../steps/load-for-apply.js";
-import { newLoadTargetStep, TARGET_RESOURCE_KEY } from "../steps/load-target.js";
+import {
+  newLoadTargetStep,
+  TARGET_RESOURCE_KEY,
+} from "../steps/load-target.js";
 import { newPersistStep } from "../steps/persist.js";
 import {
   newNormalizeReferencesStep,
@@ -89,7 +97,12 @@ afterEach(async () => {
   resetOperatorIdentityForTests();
 });
 
-function org(overrides?: { id?: string; name?: string; slug?: string; org?: string }) {
+function org(overrides?: {
+  id?: string;
+  name?: string;
+  slug?: string;
+  org?: string;
+}) {
   return create(OrganizationSchema, {
     apiVersion: "tenancy.stigmer.ai/v1",
     kind: "Organization",
@@ -104,7 +117,12 @@ function org(overrides?: { id?: string; name?: string; slug?: string; org?: stri
 }
 
 function orgCtx(input = org()): RequestContext<typeof OrganizationSchema> {
-  return new RequestContext(OrganizationSchema, input, ORG);
+  return new RequestContext(
+    OrganizationSchema,
+    input,
+    testCallerIdentity(),
+    ORG,
+  );
 }
 
 describe("generateSlug (Go GenerateSlug, cloud-Java-identical)", () => {
@@ -137,7 +155,9 @@ describe("ResolveSlug", () => {
       .then(() => newResolveSlugStep<typeof OrganizationSchema>().execute(ctx))
       .catch((e: unknown) => e);
     expect((error as ConnectError).code).toBe(Code.InvalidArgument);
-    expect((error as ConnectError).rawMessage).toBe("resource name is required");
+    expect((error as ConnectError).rawMessage).toBe(
+      "resource name is required",
+    );
   });
 });
 
@@ -180,9 +200,14 @@ describe("BuildNewState", () => {
     expect(state.metadata?.id).toMatch(/^org_[0-9a-hjkmnp-tv-z]{26}$/);
     expect(state.status?.audit?.specAudit?.event).toBe("created");
     expect(state.status?.audit?.statusAudit?.event).toBe("created");
-    expect(state.status?.audit?.specAudit?.createdBy?.id).toBe("system");
+    // O2 ruling Q5: the audit actor derives from the REQUEST's caller
+    // identity — here the explicit test identity (production wire
+    // requests derive the same bytes as the retired process-global seam).
+    expect(state.status?.audit?.specAudit?.createdBy?.id).toBe("test-caller");
     // Organization is not a blueprint kind → private default.
-    expect(state.metadata?.visibility).toBe(ApiResourceVisibility.visibility_private);
+    expect(state.metadata?.visibility).toBe(
+      ApiResourceVisibility.visibility_private,
+    );
   });
 
   it("keeps a client-provided id and explicit visibility (idempotent)", async () => {
@@ -190,7 +215,9 @@ describe("BuildNewState", () => {
     ctx.newState.metadata!.visibility = ApiResourceVisibility.visibility_org;
     await newBuildNewStateStep<typeof OrganizationSchema>().execute(ctx);
     expect(ctx.newState.metadata?.id).toBe("acme");
-    expect(ctx.newState.metadata?.visibility).toBe(ApiResourceVisibility.visibility_org);
+    expect(ctx.newState.metadata?.visibility).toBe(
+      ApiResourceVisibility.visibility_org,
+    );
   });
 });
 
@@ -202,12 +229,12 @@ describe("generateId", () => {
   });
 });
 
-describe("operator identity (#400)", () => {
-  it("stamps the system placeholder when unconfigured and the operator when configured", () => {
-    expect(currentAuditActor().id).toBe("system");
+describe("operator identity (#400) → audit-actor derivation (O2 ruling Q5)", () => {
+  it("derives the system placeholder when unconfigured and the operator when configured — the pre-O2 bytes", () => {
+    expect(auditActorFor(trustedLocalIdentity()).id).toBe("system");
 
     setOperatorIdentity("op@example.test", "Op");
-    const actor = currentAuditActor();
+    const actor = auditActorFor(trustedLocalIdentity());
     expect(actor.id).toBe("op@example.test");
     expect(actor.email).toBe("op@example.test");
     expect(actor.displayName).toBe("Op");
@@ -245,7 +272,9 @@ describe("BuildUpdateState", () => {
     expect(updated.metadata?.id).toBe(existing.metadata?.id);
     expect(updated.metadata?.slug).toBe(existing.metadata?.slug);
     expect(updated.metadata?.org).toBe(existing.metadata?.org);
-    expect(updated.metadata?.visibility).toBe(ApiResourceVisibility.visibility_org);
+    expect(updated.metadata?.visibility).toBe(
+      ApiResourceVisibility.visibility_org,
+    );
     expect(updated.metadata?.name).toBe("Acme Renamed");
     expect(updated.spec?.description).toBe("updated description");
     expect(updated.status?.audit?.specAudit?.event).toBe("updated");
@@ -272,7 +301,9 @@ describe("loaders", () => {
       newLoadExistingStep<typeof OrganizationSchema>(store).execute(missing),
     );
     expect((error as ConnectError).code).toBe(Code.NotFound);
-    expect((error as ConnectError).rawMessage).toBe("Organization not found: ghost");
+    expect((error as ConnectError).rawMessage).toBe(
+      "Organization not found: ghost",
+    );
 
     const neither = orgCtx(org({ name: "" }));
     const iaError = await captureError(() =>
@@ -289,7 +320,12 @@ describe("loaders", () => {
     expect(fresh.get(SHOULD_CREATE_KEY)).toBe(true);
     expect(fresh.get(EXISTS_IN_DATABASE_KEY)).toBe(false);
 
-    await store.saveResource(ORG, "acme", OrganizationSchema, org({ id: "acme", slug: "acme" }));
+    await store.saveResource(
+      ORG,
+      "acme",
+      OrganizationSchema,
+      org({ id: "acme", slug: "acme" }),
+    );
     const found = orgCtx(org({ slug: "acme" }));
     await newLoadForApplyStep<typeof OrganizationSchema>(store).execute(found);
     expect(found.get(SHOULD_CREATE_KEY)).toBe(false);
@@ -297,11 +333,17 @@ describe("loaders", () => {
   });
 
   it("LoadTarget loads by id-wrapper and rejects empty/unknown ids", async () => {
-    await store.saveResource(ORG, "acme", OrganizationSchema, org({ id: "acme", slug: "acme" }));
+    await store.saveResource(
+      ORG,
+      "acme",
+      OrganizationSchema,
+      org({ id: "acme", slug: "acme" }),
+    );
 
     const ctx = new RequestContext(
       ApiResourceIdSchema,
       create(ApiResourceIdSchema, { value: "acme" }),
+      testCallerIdentity(),
       ORG,
     );
     await newLoadTargetStep(store, OrganizationSchema).execute(ctx);
@@ -310,6 +352,7 @@ describe("loaders", () => {
     const empty = new RequestContext(
       ApiResourceIdSchema,
       create(ApiResourceIdSchema, { value: "" }),
+      testCallerIdentity(),
       ORG,
     );
     const error = await captureError(() =>
@@ -321,11 +364,17 @@ describe("loaders", () => {
 
 describe("delete steps + persist", () => {
   it("Extract → LoadForDelete → Delete round-trips through the store", async () => {
-    await store.saveResource(ORG, "acme", OrganizationSchema, org({ id: "acme", slug: "acme" }));
+    await store.saveResource(
+      ORG,
+      "acme",
+      OrganizationSchema,
+      org({ id: "acme", slug: "acme" }),
+    );
 
     const ctx = new RequestContext(
       ApiResourceIdSchema,
       create(ApiResourceIdSchema, { value: "acme" }),
+      testCallerIdentity(),
       ORG,
     );
     await newExtractResourceIdStep<typeof ApiResourceIdSchema>().execute(ctx);
@@ -370,13 +419,17 @@ describe("IndexSearch (best-effort)", () => {
 
   it("indexes the persisted resource", async () => {
     const ctx = orgCtx(org({ id: "acme", slug: "acme" }));
-    await newIndexSearchStep<typeof OrganizationSchema>(store, extractor, silentLogger).execute(ctx);
+    await newIndexSearchStep<typeof OrganizationSchema>(
+      store,
+      extractor,
+      silentLogger,
+    ).execute(ctx);
 
     const { DatabaseSync } = await import("node:sqlite");
     const db = new DatabaseSync(store.path());
-    const row = db.prepare(`SELECT name FROM search_index WHERE resource_id = 'acme'`).get() as
-      | { name: string }
-      | undefined;
+    const row = db
+      .prepare(`SELECT name FROM search_index WHERE resource_id = 'acme'`)
+      .get() as { name: string } | undefined;
     db.close();
     expect(row?.name).toBe("Acme");
   });
@@ -392,7 +445,11 @@ describe("IndexSearch (best-effort)", () => {
     };
     const ctx = orgCtx(org({ id: "acme" }));
     await expect(
-      newIndexSearchStep<typeof OrganizationSchema>(store, extractor, logger).execute(ctx),
+      newIndexSearchStep<typeof OrganizationSchema>(
+        store,
+        extractor,
+        logger,
+      ).execute(ctx),
     ).resolves.toBeUndefined();
     expect(warnings.some((w) => w.includes("best-effort"))).toBe(true);
   });
@@ -401,12 +458,16 @@ describe("IndexSearch (best-effort)", () => {
 describe("ValidateProto", () => {
   it("passes a valid resource and maps violations to InvalidArgument", async () => {
     await expect(
-      Promise.resolve(newValidateProtoStep<typeof OrganizationSchema>().execute(orgCtx())),
+      Promise.resolve(
+        newValidateProtoStep<typeof OrganizationSchema>().execute(orgCtx()),
+      ),
     ).resolves.toBeUndefined();
 
     const bad = orgCtx(org({ slug: "BadSlug" }));
     const error = await Promise.resolve()
-      .then(() => newValidateProtoStep<typeof OrganizationSchema>().execute(bad))
+      .then(() =>
+        newValidateProtoStep<typeof OrganizationSchema>().execute(bad),
+      )
       .catch((e: unknown) => e);
     expect((error as ConnectError).code).toBe(Code.InvalidArgument);
   });
@@ -418,18 +479,26 @@ describe("ValidateVisibility", () => {
     input.metadata!.visibility = ApiResourceVisibility.visibility_platform;
     const ctx = orgCtx(input);
     const error = await Promise.resolve()
-      .then(() => newValidateVisibilityStep<typeof OrganizationSchema>().execute(ctx))
+      .then(() =>
+        newValidateVisibilityStep<typeof OrganizationSchema>().execute(ctx),
+      )
       .catch((e: unknown) => e);
     expect((error as ConnectError).code).toBe(Code.InvalidArgument);
     expect((error as ConnectError).rawMessage).toContain(
       "organization resources cannot be set to visibility_platform",
     );
-    expect((error as ConnectError).rawMessage).toContain("Supported visibility levels:");
+    expect((error as ConnectError).rawMessage).toContain(
+      "Supported visibility levels:",
+    );
   });
 
   it("always accepts private and unspecified (no visibility grant)", async () => {
     await expect(
-      Promise.resolve(newValidateVisibilityStep<typeof OrganizationSchema>().execute(orgCtx())),
+      Promise.resolve(
+        newValidateVisibilityStep<typeof OrganizationSchema>().execute(
+          orgCtx(),
+        ),
+      ),
     ).resolves.toBeUndefined();
   });
 });
@@ -450,11 +519,21 @@ describe("references (agent spec as the vehicle)", () => {
   }
 
   it("NormalizeReferences fills EMPTY ref orgs from metadata.org and preserves explicit ones", async () => {
-    const ctx = new RequestContext(AgentSchema, agent(""), ApiResourceKind.agent);
+    const ctx = new RequestContext(
+      AgentSchema,
+      agent(""),
+      testCallerIdentity(),
+      ApiResourceKind.agent,
+    );
     await newNormalizeReferencesStep<typeof AgentSchema>().execute(ctx);
     expect(ctx.newState.spec?.skillRefs[0]?.org).toBe("acme");
 
-    const explicit = new RequestContext(AgentSchema, agent("other-org"), ApiResourceKind.agent);
+    const explicit = new RequestContext(
+      AgentSchema,
+      agent("other-org"),
+      testCallerIdentity(),
+      ApiResourceKind.agent,
+    );
     await newNormalizeReferencesStep<typeof AgentSchema>().execute(explicit);
     expect(explicit.newState.spec?.skillRefs[0]?.org).toBe("other-org");
   });
@@ -467,11 +546,22 @@ describe("references (agent spec as the vehicle)", () => {
       spec: {
         instructions: "help the user with their tasks",
         mcpServerUsages: [
-          { mcpServerRef: { kind: ApiResourceKind.mcp_server, slug: "ghost", org: "acme" } },
+          {
+            mcpServerRef: {
+              kind: ApiResourceKind.mcp_server,
+              slug: "ghost",
+              org: "acme",
+            },
+          },
         ],
       },
     });
-    const ctx = new RequestContext(AgentSchema, withMcp, ApiResourceKind.agent);
+    const ctx = new RequestContext(
+      AgentSchema,
+      withMcp,
+      testCallerIdentity(),
+      ApiResourceKind.agent,
+    );
     const error = await captureError(() =>
       newValidateReferencesStep<typeof AgentSchema>(store).execute(ctx),
     );

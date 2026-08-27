@@ -41,12 +41,15 @@ import type {
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
+import type { Authorizer } from "../../extensions/authorizer.js";
 import type { SecretService } from "../../encryption/encryption.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import { internalError } from "../../pipeline/errors.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
+import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
+import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
 import { newBuildNewStateStep } from "../../pipeline/steps/defaults.js";
 import { newBuildUpdateStateStep } from "../../pipeline/steps/build-update-state.js";
 import { newCheckDuplicateStep } from "../../pipeline/steps/duplicate.js";
@@ -56,10 +59,19 @@ import {
   newLoadExistingForDeleteStep,
 } from "../../pipeline/steps/delete.js";
 import { compareCreatedAtDesc } from "../../pipeline/steps/helpers.js";
-import { EXISTING_RESOURCE_KEY, newLoadExistingStep } from "../../pipeline/steps/load-existing.js";
-import { SHOULD_CREATE_KEY, newLoadForApplyStep } from "../../pipeline/steps/load-for-apply.js";
+import {
+  EXISTING_RESOURCE_KEY,
+  newLoadExistingStep,
+} from "../../pipeline/steps/load-existing.js";
+import {
+  SHOULD_CREATE_KEY,
+  newLoadForApplyStep,
+} from "../../pipeline/steps/load-for-apply.js";
 import { newLoadByReferenceStep } from "../../pipeline/steps/load-by-reference.js";
-import { TARGET_RESOURCE_KEY, newLoadTargetStep } from "../../pipeline/steps/load-target.js";
+import {
+  TARGET_RESOURCE_KEY,
+  newLoadTargetStep,
+} from "../../pipeline/steps/load-target.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
@@ -76,6 +88,8 @@ import {
 export interface ChannelAppControllerDeps {
   readonly store: Store;
   readonly logger: Logger;
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  readonly authorizer: Authorizer;
   readonly secretService: SecretService;
 }
 
@@ -113,13 +127,26 @@ async function createChannelApp(
   app: ChannelApp,
   ctx: HandlerContext,
 ): Promise<ChannelApp> {
-  const reqCtx = new RequestContext(ChannelAppSchema, app, kindOf(ctx));
+  const reqCtx = new RequestContext(
+    ChannelAppSchema,
+    app,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
   await newPipeline<typeof ChannelAppSchema>("channelapp-create", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        ChannelAppCommandController.method.create,
+        deps.authorizer,
+      ),
+    )
     .addStep(newResolveSlugStep())
     .addStep(newValidateProtoStep())
     .addStep(newValidateVisibilityStep())
     .addStep(newCheckDuplicateStep(deps.store))
-    .addStep(newEncryptChannelAppSecretsForCreateStep(deps.secretService, deps.logger))
+    .addStep(
+      newEncryptChannelAppSecretsForCreateStep(deps.secretService, deps.logger),
+    )
     .addStep(newBuildNewStateStep())
     .addStep(newPersistStep(deps.store))
     .build()
@@ -140,14 +167,27 @@ async function update(
   app: ChannelApp,
   ctx: HandlerContext,
 ): Promise<ChannelApp> {
-  const reqCtx = new RequestContext(ChannelAppSchema, app, kindOf(ctx));
+  const reqCtx = new RequestContext(
+    ChannelAppSchema,
+    app,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
   await newPipeline<typeof ChannelAppSchema>("channelapp-update", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        ChannelAppCommandController.method.update,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newResolveSlugStep())
     .addStep(newLoadExistingStep(deps.store))
     .addStep(newValidateProviderImmutableStep())
     .addStep(newBuildUpdateStateStep())
-    .addStep(newEncryptChannelAppSecretsForUpdateStep(deps.secretService, deps.logger))
+    .addStep(
+      newEncryptChannelAppSecretsForUpdateStep(deps.secretService, deps.logger),
+    )
     .addStep(newPersistStep(deps.store))
     .build()
     .execute(reqCtx);
@@ -170,8 +210,19 @@ async function apply(
   app: ChannelApp,
   ctx: HandlerContext,
 ): Promise<ChannelApp> {
-  const reqCtx = new RequestContext(ChannelAppSchema, app, kindOf(ctx));
+  const reqCtx = new RequestContext(
+    ChannelAppSchema,
+    app,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
   await newPipeline<typeof ChannelAppSchema>("channelapp-apply", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        ChannelAppCommandController.method.apply,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newResolveSlugStep())
     .addStep(newLoadForApplyStep(deps.store))
@@ -205,6 +256,7 @@ async function deleteChannelApp(
   const reqCtx = new RequestContext(
     ChannelAppCommandController.method.delete.input,
     input,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   reqCtx.set(RESOURCE_ID_KEY, input.resourceId);
@@ -212,6 +264,12 @@ async function deleteChannelApp(
     "channelapp-delete",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(
+        ChannelAppCommandController.method.delete,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, ChannelAppSchema))
     .addStep(newCheckNoReferencingChannelsStep(deps.store, deps.logger))
@@ -240,12 +298,16 @@ async function get(
   const reqCtx = new RequestContext(
     ChannelAppQueryController.method.get.input,
     id,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<typeof ChannelAppQueryController.method.get.input>(
     "channelapp-get",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(ChannelAppQueryController.method.get, deps.authorizer),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newLoadTargetStep(deps.store, ChannelAppSchema))
     .build()
@@ -264,12 +326,18 @@ async function getByReference(
   const reqCtx = new RequestContext(
     ChannelAppQueryController.method.getByReference.input,
     ref,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<typeof ChannelAppQueryController.method.getByReference.input>(
-    "channelapp-get-by-reference",
-    deps.logger,
-  )
+  await newPipeline<
+    typeof ChannelAppQueryController.method.getByReference.input
+  >("channelapp-get-by-reference", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        ChannelAppQueryController.method.getByReference,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newLoadByReferenceStep(deps.store, ChannelAppSchema))
     .build()
@@ -294,12 +362,19 @@ async function listByOrg(
   const reqCtx = new RequestContext(
     ChannelAppQueryController.method.listByOrg.input,
     req,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<typeof ChannelAppQueryController.method.listByOrg.input>(
     "channelapp-list-by-org",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(
+        ChannelAppQueryController.method.listByOrg,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newListByOrgStep(deps.store, deps.logger))
     .build()
@@ -328,7 +403,9 @@ function newListByOrgStep(
   return {
     name: "ListByOrg",
     async execute(
-      ctx: RequestContext<typeof ChannelAppQueryController.method.listByOrg.input>,
+      ctx: RequestContext<
+        typeof ChannelAppQueryController.method.listByOrg.input
+      >,
     ): Promise<void> {
       const org = ctx.input.org;
 

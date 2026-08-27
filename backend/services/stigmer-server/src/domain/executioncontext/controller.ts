@@ -47,11 +47,14 @@ import type {
 } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 
 import type { Logger } from "../../boot/logger.js";
+import type { Authorizer } from "../../extensions/authorizer.js";
 import type { SecretService } from "../../encryption/encryption.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import { alreadyExistsError, internalError } from "../../pipeline/errors.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
+import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
+import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
 import { newBuildNewStateStep } from "../../pipeline/steps/defaults.js";
 import {
   RESOURCE_ID_KEY,
@@ -92,6 +95,8 @@ import {
 export interface ExecutionContextControllerDeps {
   readonly store: Store;
   readonly logger: Logger;
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  readonly authorizer: Authorizer;
   /**
    * Shared with the Environment/OAuthApp controllers so the
    * encrypt-on-write / decrypt-on-read key pair always matches.
@@ -141,11 +146,22 @@ async function createExecutionContext(
   ec: ExecutionContext,
   ctx: HandlerContext,
 ): Promise<ExecutionContext> {
-  const reqCtx = new RequestContext(ExecutionContextSchema, ec, kindOf(ctx));
+  const reqCtx = new RequestContext(
+    ExecutionContextSchema,
+    ec,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
   await newPipeline<typeof ExecutionContextSchema>(
     "execution-context-create",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(
+        ExecutionContextCommandController.method.create,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newValidateVisibilityStep())
     .addStep(newRejectCiphertextShapedStep())
@@ -182,11 +198,22 @@ async function apply(
   ec: ExecutionContext,
   ctx: HandlerContext,
 ): Promise<ExecutionContext> {
-  const reqCtx = new RequestContext(ExecutionContextSchema, ec, kindOf(ctx));
+  const reqCtx = new RequestContext(
+    ExecutionContextSchema,
+    ec,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
   await newPipeline<typeof ExecutionContextSchema>(
     "execution-context-apply",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(
+        ExecutionContextCommandController.method.apply,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newResolveSlugStep())
     .addStep(newLoadForApplyStep(deps.store))
@@ -226,12 +253,19 @@ async function deleteExecutionContext(
   const reqCtx = new RequestContext(
     ExecutionContextCommandController.method.delete.input,
     input,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   reqCtx.set(RESOURCE_ID_KEY, input.resourceId);
   await newPipeline<
     typeof ExecutionContextCommandController.method.delete.input
   >("execution-context-delete", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        ExecutionContextCommandController.method.delete,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, ExecutionContextSchema))
     .addStep(newDeleteResourceStep(deps.store))
@@ -260,12 +294,19 @@ async function get(
   const reqCtx = new RequestContext(
     ExecutionContextQueryController.method.get.input,
     id,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<typeof ExecutionContextQueryController.method.get.input>(
     "execution-context-get",
     deps.logger,
   )
+    .addStep(
+      newAuthorizeStep(
+        ExecutionContextQueryController.method.get,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newLoadTargetStep(deps.store, ExecutionContextSchema))
     .build()
@@ -284,11 +325,18 @@ async function getByReference(
   const reqCtx = new RequestContext(
     ExecutionContextQueryController.method.getByReference.input,
     ref,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<
     typeof ExecutionContextQueryController.method.getByReference.input
   >("execution-context-get-by-reference", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        ExecutionContextQueryController.method.getByReference,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newLoadByReferenceStep(deps.store, ExecutionContextSchema))
     .build()
@@ -318,11 +366,18 @@ async function getByExecutionId(
   const reqCtx = new RequestContext(
     ExecutionContextQueryController.method.getByExecutionId.input,
     input,
+    callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<
     typeof ExecutionContextQueryController.method.getByExecutionId.input
   >("execution-context-get-by-execution-id", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        ExecutionContextQueryController.method.getByExecutionId,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateProtoStep())
     .addStep(newLoadByExecutionIdStep(deps.store))
     .build()
