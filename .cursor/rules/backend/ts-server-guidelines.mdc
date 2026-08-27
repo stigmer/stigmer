@@ -62,10 +62,10 @@ eventually violate creatively.
 - **Gate-slot names are PROTECTED VOCABULARY** (convergence blueprint
   20260826.02/03 §3a; declared in `src/extensions/gate-slots.ts`, spliced
   where the table says, empty when no extension is composed). Never rename
-  a slot; adding one is an owner-visible act (the deferred
-  `sandbox-acquisition:gate` arrives with the entry that builds the gated
-  provisioning splice — O4 ruling Q1). The ratified table — the code must
-  match it exactly:
+  a slot; adding one is an owner-visible act (all six ratified names are
+  now declared — `sandbox-acquisition:gate` landed with the C4 wave's
+  OSS-side seam work, closing O4 ruling Q1's deferral). The ratified
+  table — the code must match it exactly:
 
   | Slot | Position |
   |---|---|
@@ -74,6 +74,7 @@ eventually violate creatively.
   | `agent-execution-submit-approval:gate` | after `ValidateApproval`, before `RecordApprovalDecision` |
   | `session-create:pre-side-effect-gate` | after `NormalizeReferences`, before `Persist` (Q2 ruling: mirrors Java's post-resolution position; the pre-validation default-instance resolution side-effects pre-gate in BOTH editions) |
   | `org-create:post-persist` | after `Persist`, before `IndexSearch` (non-transactional in BOTH editions: a slot failure fails the request, the row survives, idempotent retry heals) |
+  | `sandbox-acquisition:gate` | workflow-execution CREATE: after `NormalizeReferences`, before `SetInitialPhase`; workflow-execution RECOVER: after `ValidateRecoverable`, before `TerminateExistingWorkflow` (the Java capacity-gate positions, cloud#355/#290 — post-authorize, pre-side-effect, pre-provision; the default instance side-effects pre-gate in BOTH editions, inherited orphan-on-refusal semantics; the SESSION lane's capacity gates ride the two agent-execution slots above, whose positions coincide with Java's session gate) |
 
   Facts gate AUTHORS inherit (recorded, not mechanisms): slots run
   wherever their chain runs, INCLUDING in-process invocations (the Java

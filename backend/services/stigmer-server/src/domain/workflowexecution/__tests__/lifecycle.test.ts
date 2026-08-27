@@ -126,6 +126,9 @@ function deps(engineStub?: EngineStub): LifecycleDeps {
     sandboxLane: { enabled: false },
     temporalConfig: newWorkflowExecutionConfigFromEnv(),
     sandboxTerminalObserver: () => {},
+    // Empty slots — the OSS shape; the recover chain's
+    // sandbox-acquisition:gate splice contributes nothing here (C4).
+    gateSteps: new Map(),
   };
 }
 

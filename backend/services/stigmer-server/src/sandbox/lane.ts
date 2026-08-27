@@ -13,8 +13,17 @@
  * arm degenerates to per-execution re-mint here; a disabled mint lane
  * launches the sandbox with no token and ExecutionContext decrypt falls
  * back to redaction (oss#535's posture), degraded but never dark.
+ *
+ * A provider with the mintSandboxCredential capability (C4, gate ruling
+ * Q1) owns the mint instead: the ensure steps hand it the full
+ * provisioning context and bake whatever it returns — the cloud's
+ * session/workflow-scoped tokens ride this without the steps knowing any
+ * lane vocabulary beyond their own identifiers.
  */
-import type { RunnerCredentialProvider } from "../runnerauth/runner-credential-provider.js";
+import type {
+  RunnerCredentialProvider,
+  SandboxCredentialRequest,
+} from "../runnerauth/runner-credential-provider.js";
 import { TOKEN_TYPE_EXECUTION_SCOPED } from "../runnerauth/runnerauth.js";
 import type { Logger } from "../boot/logger.js";
 import type { SandboxProvisioner } from "./provisioner.js";
@@ -47,26 +56,34 @@ export function newSandboxLane(
 }
 
 /**
- * Mints the sandbox's STIGMER_TOKEN on the execution-scoped lane, or ""
- * when minting is disabled (module header). A mint FAILURE on an enabled
- * lane is a real fault and propagates to the caller's failure posture —
- * never swallowed into the no-token arm.
+ * Mints the sandbox's STIGMER_TOKEN, or "" to launch tokenless (module
+ * header). With the mintSandboxCredential capability composed, the
+ * provider owns the whole decision from the provisioning context;
+ * otherwise the OSS execution-scoped mint runs exactly as before. A mint
+ * FAILURE on an enabled lane is a real fault and propagates to the
+ * caller's failure posture — never swallowed into the no-token arm.
  */
 export function mintSandboxToken(
   lane: Extract<SandboxLane, { enabled: true }>,
-  executionId: string,
+  request: SandboxCredentialRequest,
   logger: Logger,
 ): string {
+  const mintSandboxCredential = lane.credentials.mintSandboxCredential?.bind(
+    lane.credentials,
+  );
+  if (mintSandboxCredential !== undefined) {
+    return mintSandboxCredential(request);
+  }
   if (!lane.credentials.isEnabled(TOKEN_TYPE_EXECUTION_SCOPED)) {
     logger.warn(
       "Sandbox launching without a runner token (credential lane disabled) — ExecutionContext reads will be redacted",
-      { executionId },
+      { executionId: request.executionId },
     );
     return "";
   }
   return lane.credentials.mint(
     TOKEN_TYPE_EXECUTION_SCOPED,
-    executionId,
+    request.executionId,
     SANDBOX_TOKEN_TTL_SECONDS,
   ).token;
 }

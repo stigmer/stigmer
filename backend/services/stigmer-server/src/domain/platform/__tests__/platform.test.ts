@@ -20,7 +20,12 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { Code, ConnectError, createClient, createRouterTransport } from "@connectrpc/connect";
+import {
+  Code,
+  ConnectError,
+  createClient,
+  createRouterTransport,
+} from "@connectrpc/connect";
 import type { Client, Transport } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
@@ -37,10 +42,21 @@ import { composeServer } from "../../../boot/compose.js";
 import type { ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
 import { newExecutionScopedRunnerCredentialProvider } from "../../../runnerauth/runner-credential-provider.js";
-import { RunnerAuthService } from "../../../runnerauth/runnerauth.js";
+import type {
+  RunnerCredentialProvider,
+  RunnerScopedTokenRequest,
+} from "../../../runnerauth/runner-credential-provider.js";
+import {
+  InvalidTokenError,
+  RunnerAuthService,
+} from "../../../runnerauth/runnerauth.js";
 import { registerPlatformServices } from "../controller.js";
 
-const silentLogger = createLogger({ level: "error", pretty: false, write: () => {} });
+const silentLogger = createLogger({
+  level: "error",
+  pretty: false,
+  write: () => {},
+});
 
 const RUNNER_KEY = Buffer.alloc(32, 5);
 const ENC_KEY = Buffer.alloc(32, 6);
@@ -183,5 +199,179 @@ describe("platform domain (keyless runner-token service)", () => {
     expect(out.runnerScopedToken).toBe("");
     expect(out.tokenType).toBe("");
     expect(out.expiresInSeconds).toBe(0);
+  });
+});
+
+/**
+ * The C4 capability delegation (gate ruling Q1), proven through the FULL
+ * stack: a provider registered via the extension registry, the identity
+ * interceptor stamping the trusted-local caller, and the platform
+ * controller delegating every arm. This is the seam the cloud
+ * composition's exchange rides — the fakes record exactly what crossed
+ * it.
+ */
+describe("platform domain (capability-delegating provider — C4)", () => {
+  let server: ComposedServer;
+  let client: PlatformClient;
+  let dir: string;
+  const exchanged: {
+    request: RunnerScopedTokenRequest;
+    callerIdentityId: string;
+    callerClass: string;
+  }[] = [];
+  let bootstrapCallerIds: string[] = [];
+  let bootstrapThrows = false;
+
+  const capabilityProvider: RunnerCredentialProvider = {
+    isEnabled: () => false,
+    mint: () => {
+      throw new Error("primitive mint is not under test here");
+    },
+    verify: () => {
+      throw new InvalidTokenError();
+    },
+    async exchangeScopedToken(request, caller) {
+      exchanged.push({
+        request,
+        callerIdentityId: caller.identityId,
+        callerClass: caller.callerClass,
+      });
+      if (request.arm === "pool-claim" && request.sessionId === "ses_denied") {
+        throw new ConnectError(
+          "pool member holds no claim for session ses_denied",
+          Code.PermissionDenied,
+        );
+      }
+      if (request.arm === "renewal") {
+        return { minted: false };
+      }
+      return { minted: true, token: "cloud-token", expiresInSeconds: 14400 };
+    },
+    async bootstrapCredentials(caller) {
+      if (bootstrapThrows) {
+        throw new Error("payload key store unavailable");
+      }
+      bootstrapCallerIds.push(caller.identityId);
+      return {
+        accessToken: { token: "cloud-bootstrap-token", expiresInSeconds: 900 },
+        payloadKeys: {
+          keyId: "rpk_test1",
+          keyBase64: "a2V5",
+          secondaryKeyId: "rpk_test0",
+          secondaryKeyBase64: "b2xk",
+        },
+      };
+    },
+  };
+
+  beforeAll(async () => {
+    dir = mkdtempSync(path.join(tmpdir(), "platform-capability-test-"));
+    vi.stubEnv("STIGMER_ENCRYPTION_KEY", ENC_KEY.toString("base64"));
+    server = await composeServer({
+      config: loadConfig({
+        STIGMER_MODEL_REGISTRY_REFRESH: "off",
+        DB_PATH: path.join(dir, "stigmer.db"),
+        ARTIFACT_LOCAL_BASE_PATH: path.join(dir, "artifacts"),
+        TEMPORAL_HOST_PORT: "127.0.0.1:7777",
+        TEMPORAL_NAMESPACE: "conformance-ns",
+      }),
+      logger: silentLogger,
+      portOverride: 0,
+      host: "127.0.0.1",
+      extensions: [
+        {
+          name: "fake-cloud-credentials",
+          drivers: { runnerCredentialProvider: capabilityProvider },
+        },
+      ],
+    });
+    const port = await server.start();
+    client = createClient(
+      PlatformQueryController,
+      createGrpcTransport({ baseUrl: `http://127.0.0.1:${port}` }),
+    );
+  });
+
+  afterAll(async () => {
+    await server.shutdown();
+    rmSync(dir, { recursive: true, force: true });
+    vi.unstubAllEnvs();
+  });
+
+  it("delegates every exchange arm with the stamped caller identity", async () => {
+    exchanged.length = 0;
+
+    const minted = await client.getRunnerScopedToken({
+      scope: { case: "agentExecutionId", value: "aexec_cap1" },
+    });
+    expect(minted.runnerScopedToken).toBe("cloud-token");
+    expect(minted.tokenType).toBe("Bearer");
+    expect(minted.expiresInSeconds).toBe(14400);
+
+    await client.getRunnerScopedToken({
+      scope: { case: "workflowExecutionId", value: "wexec_cap1" },
+    });
+    const renewal = await client.getRunnerScopedToken({
+      scope: { case: "renewal", value: {} },
+    });
+    // The implementation's not-minted degrade rides the presence-based
+    // empty output — same wire shape as the OSS pool/renewal answer.
+    expect(renewal.runnerScopedToken).toBe("");
+    expect(renewal.tokenType).toBe("");
+    expect(renewal.expiresInSeconds).toBe(0);
+
+    expect(exchanged.map((e) => e.request)).toEqual([
+      { arm: "agent-execution", executionId: "aexec_cap1" },
+      { arm: "workflow-execution", executionId: "wexec_cap1" },
+      { arm: "renewal" },
+    ]);
+    // The trusted-local identity the chain stamped is what crossed the
+    // seam — the cloud implementation gates its arms on exactly this.
+    for (const call of exchanged) {
+      expect(call.callerIdentityId).not.toBe("");
+      expect(call.callerClass).toBe("user");
+    }
+  });
+
+  it("a refusal thrown by the implementation propagates as the gRPC error", async () => {
+    try {
+      await client.getRunnerScopedToken({
+        scope: { case: "poolClaim", value: { sessionId: "ses_denied" } },
+      });
+      throw new Error("expected the call to fail");
+    } catch (error) {
+      expect(error).toBeInstanceOf(ConnectError);
+      expect((error as ConnectError).code).toBe(Code.PermissionDenied);
+      expect((error as ConnectError).rawMessage).toBe(
+        "pool member holds no claim for session ses_denied",
+      );
+    }
+  });
+
+  it("merges bootstrap credentials into the coordinate response", async () => {
+    bootstrapCallerIds = [];
+    const config = await client.getRunnerBootstrapConfig({});
+    expect(config.temporalAddress).toBe("127.0.0.1:7777");
+    expect(config.runnerAccessToken).toBe("cloud-bootstrap-token");
+    expect(config.tokenType).toBe("Bearer");
+    expect(config.runnerAccessTokenExpiresInSeconds).toBe(900);
+    expect(config.payloadEncryptionKeyId).toBe("rpk_test1");
+    expect(config.payloadEncryptionKey).toBe("a2V5");
+    expect(config.payloadEncryptionSecondaryKeyId).toBe("rpk_test0");
+    expect(config.payloadEncryptionSecondaryKey).toBe("b2xk");
+    expect(bootstrapCallerIds).toHaveLength(1);
+  });
+
+  it("a bootstrap-credentials failure degrades to coordinates-only, never an error", async () => {
+    bootstrapThrows = true;
+    try {
+      const config = await client.getRunnerBootstrapConfig({});
+      expect(config.temporalAddress).toBe("127.0.0.1:7777");
+      expect(config.runnerAccessToken).toBe("");
+      expect(config.tokenType).toBe("");
+      expect(config.payloadEncryptionKey).toBe("");
+    } finally {
+      bootstrapThrows = false;
+    }
   });
 });

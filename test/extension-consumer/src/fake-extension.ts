@@ -58,7 +58,11 @@ import type {
   ResourceAuthorizationLifecycle,
   ResourceCreatedEvent,
   ResourceDeletedEvent,
+  RunnerBootstrapCredentials,
   RunnerCredentialProvider,
+  RunnerScopedTokenExchange,
+  RunnerScopedTokenRequest,
+  SandboxCredentialRequest,
   SandboxProvisioner,
   SandboxProvisionerFactory,
   ServerExtension,
@@ -164,6 +168,26 @@ const credentialProvider: RunnerCredentialProvider = {
   verify: (): string => {
     throw new InvalidTokenError();
   },
+  // The C4 capability methods (gate ruling Q1): the four edition-policy
+  // touchpoints a composition may take over — the platform exchange, the
+  // bootstrap credential fields, the sandbox-provisioning mint, and the
+  // ExecutionContext decrypt trust decision. All optional; this consumer
+  // proves the shapes compile against the exports map alone.
+  exchangeScopedToken: async (
+    request: RunnerScopedTokenRequest,
+  ): Promise<RunnerScopedTokenExchange> => {
+    if (request.arm === "unset") {
+      return { minted: false };
+    }
+    return { minted: true, token: "fake-scoped-token", expiresInSeconds: 60 };
+  },
+  bootstrapCredentials: async (): Promise<RunnerBootstrapCredentials> => ({
+    accessToken: { token: "fake-bootstrap-token", expiresInSeconds: 60 },
+    payloadKeys: { keyId: "rpk_fake", keyBase64: "a2V5" },
+  }),
+  mintSandboxCredential: (request: SandboxCredentialRequest): string =>
+    `fake-${request.scope}-token`,
+  authorizeExecutionContextRead: async (): Promise<boolean> => false,
 };
 
 /**
@@ -283,6 +307,9 @@ export const fakeExtension: ServerExtension = {
   gateSteps: new Map<GateSlotName, ReadonlyArray<PipelineStep<DescMessage>>>([
     ["agent-execution-create:pre-side-effect-gate", [consumerGateStep()]],
     ["org-create:post-persist", [consumerGateStep()]],
+    // The sixth ratified slot (C4): the workflow-execution chains'
+    // capacity-gate position.
+    ["sandbox-acquisition:gate", [consumerGateStep()]],
   ]),
   statusTransitionHooks: {
     observers: [statusObserver],

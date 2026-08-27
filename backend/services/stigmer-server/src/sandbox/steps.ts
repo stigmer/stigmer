@@ -98,7 +98,11 @@ export function newEnsureSessionSandboxStep(
   return {
     name: "EnsureSessionSandbox",
     async execute(ctx) {
-      await ensureSessionSandboxForExecution(deps, ctx.newState);
+      await ensureSessionSandboxForExecution(
+        deps,
+        ctx.newState,
+        ctx.callerIdentity.identityId,
+      );
     },
   };
 }
@@ -109,10 +113,16 @@ export function newEnsureSessionSandboxStep(
  * precedent wires ONE step bean into both pipelines; here the two
  * chains' differing context shapes (newState vs loaded execution) meet
  * at this seam instead.
+ *
+ * `callerIdentityId` rides into the credential mint (lane.ts): the Java
+ * ensure step mints session tokens FOR the requesting caller, so the
+ * capability mint needs the identity the OSS execution-scoped mint never
+ * did. Empty when the invoking site has no caller.
  */
 export async function ensureSessionSandboxForExecution(
   deps: EnsureSessionSandboxDeps,
   execution: AgentExecution,
+  callerIdentityId: string,
 ): Promise<void> {
   if (!deps.lane.enabled) {
     return;
@@ -150,7 +160,17 @@ export async function ensureSessionSandboxForExecution(
     }
     await lane.provisioner.ensureSessionSandbox(sessionId, {
       taskQueue: dispatch.taskQueue,
-      stigmerToken: mintSandboxToken(lane, executionId, deps.logger),
+      stigmerToken: mintSandboxToken(
+        lane,
+        {
+          scope: "session",
+          sessionId,
+          executionId,
+          org: execution.metadata?.org ?? "",
+          callerIdentityId,
+        },
+        deps.logger,
+      ),
     });
   } catch (error) {
     // Non-critical: never fail the launch — but never silent either
@@ -224,7 +244,11 @@ export function newEnsureWorkflowSandboxStep(
   return {
     name: "EnsureWorkflowSandbox",
     async execute(ctx) {
-      await ensureWorkflowSandboxForExecution(deps, ctx.newState);
+      await ensureWorkflowSandboxForExecution(
+        deps,
+        ctx.newState,
+        ctx.callerIdentity.identityId,
+      );
     },
   };
 }
@@ -234,11 +258,13 @@ export function newEnsureWorkflowSandboxStep(
  * re-provision (lifecycle.ts — the previous sandbox was deprovisioned at
  * the terminal FAILED, so a recovered execution needs a fresh one before
  * its fresh workflow starts). Throws Unavailable on provisioning failure
- * — the critical posture in both chains.
+ * — the critical posture in both chains. `callerIdentityId` rides into
+ * the credential mint exactly as on the session body.
  */
 export async function ensureWorkflowSandboxForExecution(
   deps: EnsureWorkflowSandboxDeps,
   execution: WorkflowExecution,
+  callerIdentityId: string,
 ): Promise<void> {
   if (!deps.lane.enabled) {
     return;
@@ -263,7 +289,17 @@ export async function ensureWorkflowSandboxForExecution(
   try {
     await lane.provisioner.ensureWorkflowSandbox(executionId, {
       taskQueue: dispatch.taskQueue,
-      stigmerToken: mintSandboxToken(lane, executionId, deps.logger),
+      stigmerToken: mintSandboxToken(
+        lane,
+        {
+          scope: "workflow",
+          sessionId: "",
+          executionId,
+          org: execution.metadata?.org ?? "",
+          callerIdentityId,
+        },
+        deps.logger,
+      ),
     });
   } catch (error) {
     deps.logger.error(
