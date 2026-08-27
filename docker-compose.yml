@@ -17,9 +17,9 @@
 #                   container's filesystem and network, not your host's.
 #
 # Image pins: the STIGMER_VERSION default below is managed by the release
-# lane (release.npm-libs.yaml bumps it via PR after both published images
-# pass the compose smoke on both architectures). Override in .env to run a
-# different released version.
+# lane (release.npm-libs.yaml pushes the bump to main after both published
+# images pass the compose smoke on both architectures). Override in .env to
+# run a different released version.
 #
 # The env blocks below set every load-bearing variable EXPLICITLY, even
 # where the image default would coincide — two independent defaults
