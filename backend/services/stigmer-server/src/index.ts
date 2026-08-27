@@ -92,6 +92,11 @@ export { ArtifactStorageNotFoundError } from "./artifactstorage/artifact-storage
 // seam with its OSS lane constant (an extension's verify callers name the
 // lane they accept).
 export type { ModelCatalogProvider } from "./domain/workflow/registry/model-catalog-provider.js";
+// The document-driven provider constructor (C1 seam, 20260827.04): a
+// composition whose catalog source is its own (the cloud's DB-resident
+// baseline) builds providers from documents with the SAME interpretation
+// ModelRegistryStore uses — the semantics live exactly once in OSS.
+export { newModelCatalogProviderFromDocument } from "./domain/workflow/registry/document-catalog.js";
 export type { RunnerCredentialProvider } from "./runnerauth/runner-credential-provider.js";
 export type { MintedToken } from "./runnerauth/runnerauth.js";
 export {

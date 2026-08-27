@@ -33,6 +33,7 @@ import {
   InvalidTokenError,
   loadConfig,
   MintingDisabledError,
+  newModelCatalogProviderFromDocument,
   notFoundError,
   ResourceNotFoundError,
   TOKEN_TYPE_EXECUTION_SCOPED,
@@ -124,24 +125,15 @@ const workerFactory: WorkerFactory = () =>
   Promise.reject(new Error("compile-proof worker — never started"));
 
 /**
- * A consumer-shaped model-catalog provider (the O5 §6a shape — the cloud's
- * DB-resident baseline implements exactly this surface, read per call).
+ * A consumer-shaped model-catalog provider built the way the cloud's
+ * DB-resident baseline builds one (the C1 seam, 20260827.04): a document
+ * from the consumer's own source, interpreted by the exported constructor
+ * so the semantics stay OSS-owned. The interface remains implementable by
+ * hand (ConsumerDriverBundle below keeps the type position covered).
  */
-const catalogProvider: ModelCatalogProvider = {
-  document: () => `{"models":[]}`,
-  isValidModel: () => false,
-  hasHarness: () => false,
-  hasAnyModels: () => false,
-  isValidModelOnAnyHarness: () => false,
-  canonicalModelsAcrossHarnesses: () => [],
-  canonicalModels: () => [],
-  hasPricingVariant: () => false,
-  hasPricingVariantForHarness: () => false,
-  canonicalModelsWithVariant: () => [],
-  canonicalModelsWithVariantForHarness: () => [],
-  hasCapabilityForHarness: () => false,
-  canonicalModelsWithCapabilityForHarness: () => [],
-};
+const catalogProvider: ModelCatalogProvider = newModelCatalogProviderFromDocument(
+  `{"models":[{"id":"consumer-model","harness":"native"}]}`,
+);
 
 /**
  * A consumer-shaped runner-credential provider (the O5 §6c shape). The
