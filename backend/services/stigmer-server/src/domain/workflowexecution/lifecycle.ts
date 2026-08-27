@@ -46,6 +46,8 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
+import type { ResolvedGateSteps } from "../../extensions/gate-slots.js";
+import { stepsForSlot } from "../../extensions/gate-slots.js";
 import {
   filterByDeclaredKeys,
   mergeEnvironmentLayers,
@@ -101,6 +103,13 @@ export interface LifecycleDeps {
   readonly temporalConfig: WorkflowExecutionTemporalConfig;
   /** Fires the workflow-sandbox teardown on terminal transitions (§6d, O6). */
   readonly sandboxTerminalObserver: WorkflowSandboxTerminalObserver;
+  /**
+   * The merged slot registrations (O1/O4; DD-006 §2) — recover carries
+   * `sandbox-acquisition:gate` at the Java-verified position (C4):
+   * recover re-provisions a deprovisioned sandbox, which is capacity
+   * growth (cloud#355's recover-parity shape). Empty in OSS.
+   */
+  readonly gateSteps: ResolvedGateSteps;
 }
 
 // ---------------------------------------------------------------------------
@@ -894,6 +903,12 @@ export async function recoverExecution(
         (phase) =>
           `cannot recover execution in phase ${phase}; only FAILED executions can be recovered`,
       ),
+      // The ratified sandbox-acquisition gate slot (blueprint 03 §3a;
+      // C4): after load/authorize/phase validation, before the first
+      // side effect (the terminate) — recover re-provisions a
+      // deprovisioned sandbox, which is capacity growth (the Java
+      // recover chain's verified 3b position, cloud#355). Empty in OSS.
+      ...stepsForSlot<Desc>(deps.gateSteps, "sandbox-acquisition:gate"),
       newTerminateExistingWorkflowStep(deps),
       newRecreateExecutionContextStep(deps),
       // The workflow-lane sandbox re-ensure (§6d, O6): the terminal
@@ -914,6 +929,7 @@ export async function recoverExecution(
               temporalConfig: deps.temporalConfig,
             },
             loadedExecution(ctx),
+            ctx.callerIdentity.identityId,
           );
         },
       },

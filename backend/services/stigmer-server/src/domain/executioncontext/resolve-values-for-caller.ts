@@ -66,22 +66,67 @@ export interface ResolveValuesDeps {
  * Applies the credential-dispatched transform in place: decrypt for a
  * scope-bound runner token, redact for everyone else. Both transforms
  * mutate the fresh store unmarshal, never the stored row.
+ *
+ * With the authorizeExecutionContextRead capability composed (C4, gate
+ * ruling Q1), the provider owns the ENTIRE trust decision — its lane set
+ * and scope bindings (the cloud's session/workflow/connect rules) replace
+ * the OSS execution-scoped check below. Redaction-as-success stays the
+ * contract on every arm.
  */
-export function resolveValuesForCaller(
+export async function resolveValuesForCaller(
   deps: ResolveValuesDeps,
   ctx: HandlerContext,
   ec: ExecutionContext,
-): void {
+): Promise<void> {
+  if (await runnerMayDecrypt(deps, ctx, ec)) {
+    decryptSecretValues(deps, ec);
+    return;
+  }
+  redactExecutionContextSecrets(ec);
+}
+
+/**
+ * The trust decision: the composed capability when present, the OSS
+ * execution-scoped verify otherwise. A capability that THROWS is a bug in
+ * the composition, not a credential failure — it still falls closed to
+ * redaction, WARN-logged, because a read that would have redacted must
+ * never start failing outright on a policy fault (the
+ * redaction-as-success contract).
+ */
+async function runnerMayDecrypt(
+  deps: ResolveValuesDeps,
+  ctx: HandlerContext,
+  ec: ExecutionContext,
+): Promise<boolean> {
+  const authorizeRead =
+    deps.runnerAuthService.authorizeExecutionContextRead?.bind(
+      deps.runnerAuthService,
+    );
+  if (authorizeRead !== undefined) {
+    const token = bearerToken(ctx);
+    if (token === "") {
+      return false;
+    }
+    try {
+      return await authorizeRead(token, ec.spec?.executionId ?? "");
+    } catch (error) {
+      deps.logger.warn(
+        "ExecutionContext read authorization failed — redacting secrets",
+        { error: error instanceof Error ? error.message : String(error) },
+      );
+      return false;
+    }
+  }
+
   const executionId = verifyRunnerToken(deps, ctx, ec);
   if (executionId !== undefined) {
     deps.logger.debug(
       "Scope-bound runner token presented - decrypting execution context secrets",
       { executionId },
     );
-    decryptSecretValues(deps, ec);
-    return;
+    return true;
   }
-  redactExecutionContextSecrets(ec);
+  return false;
 }
 
 /**

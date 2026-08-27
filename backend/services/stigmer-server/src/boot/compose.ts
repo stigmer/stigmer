@@ -818,6 +818,7 @@ export async function composeServer(
       store,
       logger,
       authorizer,
+      gateSteps: extensions.gateSteps,
       engineState: workflowExecutionEngineState,
       broker: workflowExecutionStreamBroker,
       sandboxLane,

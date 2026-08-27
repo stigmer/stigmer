@@ -111,7 +111,17 @@ export type { ModelCatalogProvider } from "./domain/workflow/registry/model-cata
 // baseline) builds providers from documents with the SAME interpretation
 // ModelRegistryStore uses — the semantics live exactly once in OSS.
 export { newModelCatalogProviderFromDocument } from "./domain/workflow/registry/document-catalog.js";
-export type { RunnerCredentialProvider } from "./runnerauth/runner-credential-provider.js";
+export type {
+  RunnerCredentialProvider,
+  // The C4 capability shapes (gate ruling Q1): the optional methods'
+  // domain-shaped request/result types — a composition implementing the
+  // exchange, bootstrap, sandbox-mint, or EC-read capabilities types
+  // against these, never against wire messages.
+  RunnerBootstrapCredentials,
+  RunnerScopedTokenExchange,
+  RunnerScopedTokenRequest,
+  SandboxCredentialRequest,
+} from "./runnerauth/runner-credential-provider.js";
 export type { MintedToken } from "./runnerauth/runnerauth.js";
 export {
   InvalidTokenError,
