@@ -524,7 +524,7 @@ async function createAllActivities(config: Config): Promise<WorkerActivities> {
     ...createCallGrpcActivities(),
     ...createCallFunctionActivities(),
     ...createCallLlmActivities(),
-    ...createCallAgentActivities(),
+    ...createCallAgentActivities(config),
     ...createCallAgentStatusActivities(),
     ...createRunCommandActivities(),
     ...createHydrateWorkflowActivities(config),
