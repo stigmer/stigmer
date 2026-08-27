@@ -14,10 +14,18 @@
  * flips SERVING only when wiring is complete, and the port binds AFTER
  * that — the CLI's serverGate TCP probe treats port-bind as readiness.
  * Shutdown is the reverse (grpc lib Stop): NOT_SERVING first, then drain.
+ *
+ * Extensions (DD-006, sub-project 20260826.09/O1): the optional
+ * `extensions` units resolve FIRST — a bad registry aborts boot before any
+ * stage has side effects — and their contributions ride the existing
+ * stages (services in the one routes closure, workers on the manager's
+ * factory list, the edition into the platform controller). With no
+ * extensions composed, every stage below behaves byte-identically to
+ * before the parameter existed; the conformance rosters pin that.
  */
 import path from "node:path";
 
-import type { ConnectRouter } from "@connectrpc/connect";
+import type { ConnectRouter, Transport } from "@connectrpc/connect";
 
 import { HealthCheckResponse_ServingStatus as ServingStatus } from "@stigmer/protos/grpc/health/v1/health_pb";
 
@@ -80,6 +88,8 @@ import { RunnerAuthService } from "../runnerauth/runnerauth.js";
 import { PostgresStore } from "../store/postgres/store.js";
 import { SqliteStore } from "../store/sqlite/store.js";
 import type { Store } from "../store/interface.js";
+import { resolveExtensions } from "../extensions/registry.js";
+import type { ServerExtension } from "../extensions/registry.js";
 import { registerWorkflowServices } from "../domain/workflow/controller.js";
 import {
   bundledModelRegistryDocument,
@@ -134,6 +144,15 @@ export interface ComposedServer {
    * production writers.
    */
   workflowExecutionStreamBroker: WorkflowExecutionStreamBroker;
+  /**
+   * The in-process router transport — the same routes and interceptor
+   * chain as the serving router (DD-002's bufconn shape). Exposed because
+   * it is the one lane that reaches EVERY registered service, extension
+   * services included (blueprint 20260826.02/03 §8): compositions build
+   * clients to their extension services over it, and the O1 extension
+   * suite proves both-router visibility through it.
+   */
+  inProcessTransport: Transport;
   /** Completes wiring, flips SERVING, binds the port; returns the bound port. */
   start(): Promise<number>;
   /** NOT_SERVING first, stop background work, drain connections. */
@@ -143,6 +162,12 @@ export interface ComposedServer {
 export interface ComposeOptions {
   config: ServerConfig;
   logger: Logger;
+  /**
+   * Named extension units composed into this server (DD-006). Omitted or
+   * empty means plain OSS — byte-identical wire behavior, pinned by the
+   * conformance rosters.
+   */
+  extensions?: ReadonlyArray<ServerExtension>;
   /** Test seam forwarded to the model-registry upstream fetch. */
   fetchImpl?: typeof fetch;
   /** Test seam: bind an ephemeral port instead of config.grpcPort. */
@@ -154,6 +179,17 @@ export async function composeServer(
   options: ComposeOptions,
 ): Promise<ComposedServer> {
   const { config, logger } = options;
+
+  // Stage: extensions — resolves and validates BEFORE any stage has side
+  // effects (DD-006 §2b: a bad registry is a loud boot throw, never a
+  // partially-wired server). The empty set resolves to explicit defaults
+  // and logs nothing, keeping today's boot output stable.
+  const extensions = resolveExtensions(options.extensions);
+  if (extensions.unitNames.length > 0) {
+    logger.info("extension units composed", {
+      units: extensions.unitNames.join(", "),
+    });
+  }
 
   // Stage: storage — the driver selection seam (DD-010): DATABASE_URL
   // present → Postgres (async connect + advisory-locked migrations), else
@@ -313,6 +349,9 @@ export async function composeServer(
         runStarter: scheduleRunStarter,
         logger,
       }),
+      // Extension workers append after the OSS set — their own queues,
+      // the Java worker-per-queue split as precedent (blueprint §8).
+      ...extensions.workers,
     ],
   });
   // The provider IS the injection mechanism (no Go-style creator
@@ -668,10 +707,19 @@ export async function composeServer(
       temporalHostPort: config.temporalHostPort,
       temporalNamespace: config.temporalNamespace,
       runnerAuthService,
+      edition: extensions.edition,
       logger,
     });
+    // Extension services register after the whole OSS set, inside the ONE
+    // routes closure — so the serving router AND the in-process transport
+    // see them by construction (blueprint §2a; DD-002's parity doctrine
+    // extends to extension services unchanged).
+    for (const registerExtensionServices of extensions.services) {
+      registerExtensionServices(router);
+    }
   };
-  inProcess = createInProcessClients(routes, logger);
+  const inProcessWiring = createInProcessClients(routes, logger);
+  inProcess = inProcessWiring.clients;
 
   const server = createUnifiedPortServer({
     logger,
@@ -690,6 +738,7 @@ export async function composeServer(
     runnerAuthService,
     agentExecutionStreamBroker,
     workflowExecutionStreamBroker,
+    inProcessTransport: inProcessWiring.transport,
 
     async start(): Promise<number> {
       // Temporal boot is NON-fatal end to end (Go server.go): a failed

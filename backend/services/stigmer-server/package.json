@@ -5,6 +5,13 @@
   "license": "Apache-2.0",
   "type": "module",
   "private": true,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
   "engines": {
     "node": ">=22.13.0 <23 || >=24"
   },

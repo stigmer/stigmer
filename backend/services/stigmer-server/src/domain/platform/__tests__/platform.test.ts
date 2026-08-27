@@ -168,6 +168,7 @@ describe("platform domain (keyless runner-token service)", () => {
         temporalHostPort: "localhost:7233",
         temporalNamespace: "default",
         runnerAuthService: RunnerAuthService.create(undefined),
+        edition: ServerEdition.oss,
         logger: silentLogger,
       });
     });
