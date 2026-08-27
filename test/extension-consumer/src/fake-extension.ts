@@ -34,6 +34,7 @@ import {
   loadConfig,
   MintingDisabledError,
   newModelCatalogProviderFromDocument,
+  newR2ArtifactStorage,
   notFoundError,
   ResourceNotFoundError,
   TOKEN_TYPE_EXECUTION_SCOPED,
@@ -156,6 +157,20 @@ const credentialProvider: RunnerCredentialProvider = {
 };
 
 /**
+ * A consumer-registered R2 driver built through the exported constructor
+ * (the C1 seam, 20260827.04) — the cloud's per-domain-bucket registration
+ * shape: the composition owns the config, OSS owns the S3 plumbing.
+ */
+const consumerR2Driver: ArtifactStorageDriverFactory = () =>
+  newR2ArtifactStorage({
+    bucket: "consumer-domain-bucket",
+    endpoint: "https://r2.invalid",
+    accessKeyId: "consumer-key",
+    secretAccessKey: "consumer-secret",
+    region: "auto",
+  });
+
+/**
  * A consumer-registered blob driver (the O5 §6b registration shape) —
  * lazy factory, typed not-found, the widened size/presignPut surface.
  */
@@ -196,7 +211,10 @@ export const fakeExtension: ServerExtension = {
   drivers: {
     modelCatalogProvider: catalogProvider,
     runnerCredentialProvider: credentialProvider,
-    artifactStorageDrivers: new Map([["consumer-blob", consumerBlobDriver]]),
+    artifactStorageDrivers: new Map([
+      ["consumer-blob", consumerBlobDriver],
+      ["consumer-r2", consumerR2Driver],
+    ]),
   },
   services: [registerBillingService],
   workers: [workerFactory],
