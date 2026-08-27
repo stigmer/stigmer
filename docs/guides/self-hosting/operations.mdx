@@ -1,0 +1,99 @@
+---
+title: Back up and upgrade your stack
+description:
+  What a complete backup of a self-hosted Stigmer stack is, how to restore one,
+  and how to move between released versions.
+---
+
+This guide assumes a running stack from
+[Self-host with Docker Compose](/docs/guides/self-hosting/docker-compose).
+
+## What a complete backup is
+
+The complete durable state of the stack is four things:
+
+| What                   | Holds                                                            |
+| ---------------------- | ---------------------------------------------------------------- |
+| `postgres-data` volume | Every resource, execution record, and Temporal's own state       |
+| `artifacts` volume     | Artifact files produced by executions                            |
+| `server-data` volume   | The Skill content store and other server-side file state         |
+| Your `.env` file       | The encryption keys that unlock encrypted values in the database |
+
+<Callout type="error">
+  The `.env` file is part of the backup, not just configuration. Losing
+  `STIGMER_ENCRYPTION_KEY` strands every encrypted value — Environment
+  variables, OAuth tokens — in the database with no recovery path. Store it like
+  a key file.
+</Callout>
+
+The fourth volume, `runner-data`, is lifecycle state, not backup state: it holds
+in-flight Session checkpoints and Agent working directories so paused runs
+survive a container restart. Losing it abandons in-flight runs but loses no
+durable data.
+
+## Back up
+
+Stop the stack first so Postgres isn't writing while you copy, then archive each
+volume:
+
+```bash
+docker compose down
+
+for v in postgres-data artifacts server-data; do
+  docker run --rm \
+    -v "stigmer_${v}:/source:ro" \
+    -v "$PWD/backup:/backup" \
+    alpine tar czf "/backup/${v}.tgz" -C /source .
+done
+
+cp .env backup/
+
+docker compose up -d
+```
+
+Docker Compose prefixes the volume names — `stigmer_` when you run from the
+cloned `stigmer` directory. Check yours with `docker volume ls`.
+
+## Restore
+
+On a fresh machine: clone the repository, put the backed-up `.env` at the root —
+the same keys, not new ones — then seed the volumes before first boot:
+
+```bash
+for v in postgres-data artifacts server-data; do
+  docker volume create "stigmer_${v}"
+  docker run --rm \
+    -v "stigmer_${v}:/target" \
+    -v "$PWD/backup:/backup:ro" \
+    alpine tar xzf "/backup/${v}.tgz" -C /target
+done
+
+docker compose up -d
+```
+
+## Upgrade
+
+The compose file pins a released version and the two Stigmer images always move
+together. To upgrade, set the version in `.env`:
+
+```bash
+# .env
+STIGMER_VERSION=v3.14.0
+```
+
+Then pull and restart:
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+The server migrates its database schema forward automatically on boot. Because
+migrations only run forward, take a [backup](#back-up) before upgrading —
+rolling back to an older version against an already-migrated database isn't
+supported. Restore the pre-upgrade backup instead.
+
+Releases are published on the
+[GitHub releases page](https://github.com/stigmer/stigmer/releases). The default
+pin in `docker-compose.yml` is managed by the release pipeline, so pulling the
+latest repository state also moves you forward.
