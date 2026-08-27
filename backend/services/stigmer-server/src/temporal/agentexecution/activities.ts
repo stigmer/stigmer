@@ -42,6 +42,10 @@ import type { Logger } from "../../boot/logger.js";
 import type { StreamBroker } from "../../domain/agentexecution/stream-broker.js";
 import { updateStatus } from "../../domain/agentexecution/update-status.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
+import type {
+  AgentExecutionResponseDecorator,
+  AgentExecutionStatusObserver,
+} from "../../extensions/status-hooks.js";
 import { trustedLocalIdentity } from "../../pipeline/interceptors/auth.js";
 import {
   DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME,
@@ -61,6 +65,14 @@ export interface AgentExecutionActivityDeps {
   readonly broker: StreamBroker;
   /** The composed Authorizer, required by the status-merge updateStatus pipeline (O2). */
   readonly authorizer: Authorizer;
+  /**
+   * The composed status hooks (O4): the activity reuses updateStatus
+   * wholesale, so the workflow's terminal writes (persistFinalStatus,
+   * failure/cancellation paths) notify observers exactly like the
+   * runner's gRPC path — one implementation, no divergence.
+   */
+  readonly statusObservers: ReadonlyArray<AgentExecutionStatusObserver>;
+  readonly responseDecorators: ReadonlyArray<AgentExecutionResponseDecorator>;
   /** Live Temporal client (reads the manager's CURRENT client). */
   readonly client: () => Client;
 }
@@ -85,7 +97,14 @@ export interface CompleteExternalActivityInput {
 export function createAgentExecutionActivities(
   deps: AgentExecutionActivityDeps,
 ): Record<string, (...args: never[]) => Promise<unknown>> {
-  const { store, logger, broker, authorizer } = deps;
+  const {
+    store,
+    logger,
+    broker,
+    authorizer,
+    statusObservers,
+    responseDecorators,
+  } = deps;
 
   return {
     /**
@@ -104,7 +123,14 @@ export function createAgentExecutionActivities(
       // the one honest principal (O2; audit bytes unchanged: the derived
       // actor equals the pre-O2 process-global operator actor).
       await updateStatus(
-        { store, logger, broker, authorizer },
+        {
+          store,
+          logger,
+          broker,
+          authorizer,
+          statusObservers,
+          responseDecorators,
+        },
         create(AgentExecutionUpdateStatusInputSchema, {
           executionId,
           status,

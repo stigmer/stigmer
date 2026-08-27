@@ -30,6 +30,12 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
+import type { ResolvedGateSteps } from "../../extensions/gate-slots.js";
+import { stepsForSlot } from "../../extensions/gate-slots.js";
+import type {
+  AgentExecutionResponseDecorator,
+  AgentExecutionStatusObserver,
+} from "../../extensions/status-hooks.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import { internalError } from "../../pipeline/errors.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
@@ -162,6 +168,17 @@ export interface AgentExecutionControllerDeps {
   /** The shared EC-builder deps (create's step 16 + recover's recreate). */
   readonly executionContextBuilder: ExecutionContextBuilderDeps;
   /**
+   * The composed slot registrations (O4, blueprint 03 §3a) — this domain
+   * splices the create, recover, and submit-approval slots.
+   */
+  readonly gateSteps: ResolvedGateSteps;
+  /**
+   * The composed status-transition hooks (O4, DD-006 §3) — consumed at
+   * the five phase-transition persist sites (status-observers.ts).
+   */
+  readonly statusObservers: ReadonlyArray<AgentExecutionStatusObserver>;
+  readonly responseDecorators: ReadonlyArray<AgentExecutionResponseDecorator>;
+  /**
    * The sandbox lane (§6d, O6): disabled on the OSS default; the create
    * and recover chains ensure the session sandbox through it after their
    * workflow starts.
@@ -183,6 +200,8 @@ export function registerAgentExecutionServices(
     broker: deps.broker,
     engineState: deps.engineState,
     executionContextBuilder: deps.executionContextBuilder,
+    gateSteps: deps.gateSteps,
+    statusObservers: deps.statusObservers,
     sandboxLane: deps.sandboxLane,
     temporalConfig: deps.temporalConfig,
   };
@@ -237,11 +256,12 @@ export function registerAgentExecutionServices(
  * (proto → visibility → tier #357 → thinking #772) → target resolution
  * (default agent → invariant guard) → the standard build → the engine
  * gate (fail fast BEFORE the first side effect, so a down engine orphans
- * nothing) → the side-effecting steps (default instance, session
- * bootstrap, preference/memory snapshots, initial phase, the
- * ExecutionContext with merged env, attachment validation) → Persist →
- * IndexSearch → StartWorkflow (after persist; a start failure marks the
- * execution FAILED, recoverable via Recover).
+ * nothing) → the pre-side-effect gate slot (O4; empty in OSS) → the
+ * side-effecting steps (default instance, session bootstrap,
+ * preference/memory snapshots, initial phase, the ExecutionContext with
+ * merged env, attachment validation) → Persist → IndexSearch →
+ * StartWorkflow (after persist; a start failure marks the execution
+ * FAILED, recoverable via Recover).
  */
 async function createExecution(
   deps: AgentExecutionControllerDeps,
@@ -254,7 +274,7 @@ async function createExecution(
     callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<typeof AgentExecutionSchema>(
+  const builder = newPipeline<typeof AgentExecutionSchema>(
     "agent-execution-create",
     deps.logger,
   )
@@ -273,7 +293,17 @@ async function createExecution(
     .addStep(newResolveSlugStep())
     .addStep(newBuildNewStateStep())
     .addStep(newNormalizeReferencesStep())
-    .addStep(newEnsureEngineAvailableStep(deps.engineState))
+    .addStep(newEnsureEngineAvailableStep(deps.engineState));
+  // The ratified pre-side-effect gate slot (blueprint 03 §3a; O4): after
+  // every pure validation/resolution step, before the first side-effecting
+  // step — a refusal orphans nothing. Empty in OSS.
+  for (const step of stepsForSlot<typeof AgentExecutionSchema>(
+    deps.gateSteps,
+    "agent-execution-create:pre-side-effect-gate",
+  )) {
+    builder.addStep(step);
+  }
+  await builder
     .addStep(
       newCreateDefaultInstanceIfNeededStep({
         store: deps.store,
@@ -306,6 +336,7 @@ async function createExecution(
         store: deps.store,
         logger: deps.logger,
         engineState: deps.engineState,
+        statusObservers: deps.statusObservers,
       }),
     )
     // The session-lane sandbox ensure (§6d, O6): after StartWorkflow,

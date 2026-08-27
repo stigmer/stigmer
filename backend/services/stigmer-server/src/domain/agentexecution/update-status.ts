@@ -3,13 +3,20 @@
  * progressive status-update RPC and the domain's single merge chokepoint.
  *
  * Chain per Go: ValidateUpdateStatusInput → MergeAndPersistExecution →
- * BroadcastToStreams. The merge+persist is ONE atomic read-modify-write
- * under the store's per-resource write lock (store.updateResource) — the
- * same discipline SubmitApproval uses, load-bearing now that the
- * append-only approval_event_stream is the source of truth for
- * pending_approvals: a non-atomic load-then-save could drop an approval
- * event a concurrent SubmitApproval appended in the window between the
- * load and the save.
+ * NotifyStatusObservers → BroadcastToStreams. The merge+persist is ONE
+ * atomic read-modify-write under the store's per-resource write lock
+ * (store.updateResource) — the same discipline SubmitApproval uses,
+ * load-bearing now that the append-only approval_event_stream is the
+ * source of truth for pending_approvals: a non-atomic load-then-save
+ * could drop an approval event a concurrent SubmitApproval appended in
+ * the window between the load and the save.
+ *
+ * O4 (20260827.07) consumes the status-transition hooks here — one of
+ * the five notifying sites (the exhaustive list: status-observers.ts):
+ * observers fire post-persist and before broadcast; the response
+ * decorators run on the reply (the §7 querySignal seam — the cloud
+ * piggybacks its control signal on this response; OSS answers
+ * UNSPECIFIED).
  *
  * applyUpdateStatusMerge is the merge body run inside the updateResource
  * closure (and exercised directly by the guard tests), mirroring the Java
@@ -44,6 +51,10 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
+import type {
+  AgentExecutionResponseDecorator,
+  AgentExecutionStatusObserver,
+} from "../../extensions/status-hooks.js";
 import {
   internalError,
   invalidArgumentError,
@@ -67,6 +78,10 @@ import {
   isTerminalExecutionPhase,
   isTranscriptTerminalPhase,
 } from "./phases.js";
+import {
+  applyResponseDecorators,
+  notifyStatusObservers,
+} from "./status-observers.js";
 import { settleInterruptedToolCalls } from "./tool-call-settle.js";
 import type { StreamBroker } from "./stream-broker.js";
 
@@ -76,12 +91,19 @@ export interface UpdateStatusDeps {
   /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
   readonly authorizer: Authorizer;
   readonly broker: StreamBroker;
+  /** The composed status-transition observers (O4, DD-006 §3). */
+  readonly statusObservers: ReadonlyArray<AgentExecutionStatusObserver>;
+  /** The composed reply decorators — the §7 querySignal seam (O4). */
+  readonly responseDecorators: ReadonlyArray<AgentExecutionResponseDecorator>;
 }
 
 type UpdateStatusDesc =
   typeof AgentExecutionCommandController.method.updateStatus.input;
 
 const EXECUTION_KEY = "execution";
+// O4-internal handoff (not a ported Go key): the phase read inside the
+// updateResource closure BEFORE the merge mutates, for the observer step.
+const OLD_PHASE_KEY = "o4OldPhase";
 
 export async function updateStatus(
   deps: UpdateStatusDeps,
@@ -119,12 +141,16 @@ export async function updateStatus(
       name: "MergeAndPersistExecution",
       async execute(ctx) {
         let updated: AgentExecution;
+        let oldPhase = ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
         try {
           updated = await deps.store.updateResource(
             ApiResourceKind.agent_execution,
             ctx.input.executionId,
             AgentExecutionSchema,
             (execution) => {
+              oldPhase =
+                execution.status?.phase ??
+                ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
               applyUpdateStatusMerge(execution, ctx.input, deps.logger);
             },
           );
@@ -134,8 +160,24 @@ export async function updateStatus(
           }
           throw internalError(error, "failed to update execution status");
         }
-        // Hand the merged result to the broadcast step.
+        // Hand the merged result to the observer + broadcast steps.
         ctx.set(EXECUTION_KEY, updated);
+        ctx.set(OLD_PHASE_KEY, oldPhase);
+      },
+    })
+    .addStep({
+      name: "NotifyStatusObservers",
+      async execute(ctx) {
+        const execution = ctx.get(EXECUTION_KEY) as AgentExecution | undefined;
+        if (execution === undefined) {
+          return; // BroadcastToStreams answers the missing-key fault below.
+        }
+        await notifyStatusObservers(
+          deps,
+          execution,
+          ctx.get(OLD_PHASE_KEY) as ExecutionPhase,
+          execution.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED,
+        );
       },
     })
     .addStep({
@@ -157,9 +199,17 @@ export async function updateStatus(
     .build()
     .execute(reqCtx);
 
-  return create(UpdateStatusResponseSchema, {
-    signal: ExecutionControlSignal.UNSPECIFIED,
-  });
+  // The §7 decorator seam: the cloud contributes its control signal to
+  // fields the shared reply schema already carries; the OSS baseline
+  // (UNSPECIFIED) is byte-identical when no decorator is composed.
+  return applyResponseDecorators(
+    deps.responseDecorators,
+    deps.logger,
+    reqCtx.get(EXECUTION_KEY) as AgentExecution,
+    create(UpdateStatusResponseSchema, {
+      signal: ExecutionControlSignal.UNSPECIFIED,
+    }),
+  );
 }
 
 /**

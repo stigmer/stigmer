@@ -26,6 +26,10 @@ import type { AgentExecutionTemporalConfig } from "../../domain/agentexecution/t
 import type { StreamBroker } from "../../domain/agentexecution/stream-broker.js";
 import type { Store } from "../../store/interface.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
+import type {
+  AgentExecutionResponseDecorator,
+  AgentExecutionStatusObserver,
+} from "../../extensions/status-hooks.js";
 import type { WorkerFactory } from "../manager.js";
 import { resolveWorkflowSource } from "../workflow-source.js";
 import { createAgentExecutionActivities } from "./activities.js";
@@ -36,6 +40,9 @@ export interface AgentExecutionWorkerDeps {
   readonly broker: StreamBroker;
   /** The composed Authorizer — the status-merge activity's updateStatus pipeline carries the Authorize step like every chain (O2). */
   readonly authorizer: Authorizer;
+  /** The composed status hooks — the activity's updateStatus reuse (O4). */
+  readonly statusObservers: ReadonlyArray<AgentExecutionStatusObserver>;
+  readonly responseDecorators: ReadonlyArray<AgentExecutionResponseDecorator>;
   readonly temporalConfig: AgentExecutionTemporalConfig;
 }
 
@@ -48,6 +55,8 @@ export function newAgentExecutionWorkerFactory(
       logger: deps.logger,
       broker: deps.broker,
       authorizer: deps.authorizer,
+      statusObservers: deps.statusObservers,
+      responseDecorators: deps.responseDecorators,
       client,
     });
 

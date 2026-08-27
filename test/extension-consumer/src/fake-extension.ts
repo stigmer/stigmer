@@ -11,12 +11,13 @@
  *
  * It exercises every extension point a consumer can touch today: the
  * seven-point unit shape (services, workers, edition, authorizer,
- * verifiers, status hooks, the O5 driver kinds; gate slots are
- * compile-closed until O4 declares the ratified names), a gate-step body
- * built from the pipeline primitives, the store-fault idiom, and the
- * compose entry itself. It is never executed — the runtime behavior is
- * pinned by the server's own extension suite; execution here would need
- * real infrastructure for no additional proof.
+ * verifiers, status hooks, the O5 driver kinds, and gate-step
+ * registrations into the O4-declared slot names — a misspelled slot fails
+ * THIS compile via the GateSlotName union), a gate-step body built from
+ * the pipeline primitives, the store-fault idiom, and the compose entry
+ * itself. It is never executed — the runtime behavior is pinned by the
+ * server's own extension suite; execution here would need real
+ * infrastructure for no additional proof.
  */
 import { create } from "@bufbuild/protobuf";
 import type { DescMessage } from "@bufbuild/protobuf";
@@ -47,6 +48,7 @@ import type {
   Authorizer,
   CallerIdentity,
   ComposedServer,
+  GateSlotName,
   IdentityVerifier,
   MintedToken,
   ModelCatalogProvider,
@@ -134,9 +136,10 @@ const workerFactory: WorkerFactory = () =>
  * so the semantics stay OSS-owned. The interface remains implementable by
  * hand (ConsumerDriverBundle below keeps the type position covered).
  */
-const catalogProvider: ModelCatalogProvider = newModelCatalogProviderFromDocument(
-  `{"models":[{"id":"consumer-model","harness":"native"}]}`,
-);
+const catalogProvider: ModelCatalogProvider =
+  newModelCatalogProviderFromDocument(
+    `{"models":[{"id":"consumer-model","harness":"native"}]}`,
+  );
 
 /**
  * A consumer-shaped runner-credential provider (the O5 §6c shape). The
@@ -235,6 +238,12 @@ export const fakeExtension: ServerExtension = {
   edition: ServerEdition.cloud,
   authorizer,
   identityVerifiers: [verifier],
+  // The O4 slot vocabulary is typed: registering into a slot name outside
+  // GateSlotName fails this compile (the §2b contract's compile-time layer).
+  gateSteps: new Map<GateSlotName, ReadonlyArray<PipelineStep<DescMessage>>>([
+    ["agent-execution-create:pre-side-effect-gate", [consumerGateStep()]],
+    ["org-create:post-persist", [consumerGateStep()]],
+  ]),
   statusTransitionHooks: {
     observers: [statusObserver],
     responseDecorators: [responseDecorator],
