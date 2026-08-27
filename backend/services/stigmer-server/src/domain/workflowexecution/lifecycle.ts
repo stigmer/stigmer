@@ -72,6 +72,10 @@ import {
   childWorkflowId,
   orchestratorWorkflowId,
 } from "./constants.js";
+import type { SandboxLane } from "../../sandbox/lane.js";
+import type { WorkflowSandboxTerminalObserver } from "../../sandbox/steps.js";
+import { ensureWorkflowSandboxForExecution } from "../../sandbox/steps.js";
+import type { WorkflowExecutionTemporalConfig } from "./temporal/config.js";
 import type { WorkflowExecutionContextBuilderDeps } from "./create-execution-context-step.js";
 import { EngineWorkflowNotFoundError } from "./engine.js";
 import type { WorkflowExecutionEngineStateProvider } from "./engine.js";
@@ -91,6 +95,12 @@ export interface LifecycleDeps {
   readonly engineState: WorkflowExecutionEngineStateProvider;
   /** Recover's RecreateExecutionContext consumes the same builder deps. */
   readonly executionContextBuilder: WorkflowExecutionContextBuilderDeps;
+  /** The sandbox lane (§6d, O6) — recover re-ensures the workflow sandbox. */
+  readonly sandboxLane: SandboxLane;
+  /** Dispatch config for the sandbox ensure's target/queue resolution. */
+  readonly temporalConfig: WorkflowExecutionTemporalConfig;
+  /** Fires the workflow-sandbox teardown on terminal transitions (§6d, O6). */
+  readonly sandboxTerminalObserver: WorkflowSandboxTerminalObserver;
 }
 
 // ---------------------------------------------------------------------------
@@ -277,12 +287,18 @@ function newUpdateExecutionPhaseAndPersistStep<Desc extends DescMessage>(
       const reason = typeof reasonValue === "string" ? reasonValue : "";
 
       let updated: WorkflowExecution;
+      // The phase BEFORE this transition, read under the write lock —
+      // the sandbox observer below keys on the transition (§6d, O6).
+      let previousPhase = ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
       try {
         updated = await deps.store.updateResource(
           ApiResourceKind.workflow_execution,
           executionId,
           WorkflowExecutionSchema,
           (loaded) => {
+            previousPhase =
+              loaded.status?.phase ??
+              ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
             applyLifecyclePhaseTransition(
               loaded,
               targetPhase,
@@ -299,6 +315,13 @@ function newUpdateExecutionPhaseAndPersistStep<Desc extends DescMessage>(
         throw internalError(error, "failed to persist execution");
       }
       ctx.set(LOADED_EXECUTION_KEY, updated);
+      // AFTER the persist commits: cancel/terminate are terminal —
+      // the per-execution sandbox tears down, fire-and-forget.
+      deps.sandboxTerminalObserver(
+        executionId,
+        previousPhase,
+        updated.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED,
+      );
     },
   };
 }
@@ -873,6 +896,27 @@ export async function recoverExecution(
       ),
       newTerminateExistingWorkflowStep(deps),
       newRecreateExecutionContextStep(deps),
+      // The workflow-lane sandbox re-ensure (§6d, O6): the terminal
+      // FAILED deprovisioned the previous sandbox, so a recovered
+      // execution needs a fresh one BEFORE its fresh workflow starts —
+      // the same critical posture as the create chain (a provisioning
+      // refusal leaves the execution FAILED, recover retryable).
+      {
+        name: "EnsureWorkflowSandbox",
+        async execute(ctx) {
+          if (ctx.get(ALREADY_IN_TARGET_STATE_KEY) === true) {
+            return;
+          }
+          await ensureWorkflowSandboxForExecution(
+            {
+              logger: deps.logger,
+              lane: deps.sandboxLane,
+              temporalConfig: deps.temporalConfig,
+            },
+            loadedExecution(ctx),
+          );
+        },
+      },
       newStartFreshWorkflowStep(deps),
       newUpdateExecutionPhaseAndPersistStep(
         deps,

@@ -11,12 +11,13 @@
  *
  * It exercises every extension point a consumer can touch today: the
  * seven-point unit shape (services, workers, edition, authorizer,
- * verifiers, status hooks, the O5 driver kinds; gate slots are
- * compile-closed until O4 declares the ratified names), a gate-step body
- * built from the pipeline primitives, the store-fault idiom, and the
- * compose entry itself. It is never executed — the runtime behavior is
- * pinned by the server's own extension suite; execution here would need
- * real infrastructure for no additional proof.
+ * verifiers, status hooks, the O5 driver kinds, and gate-step
+ * registrations into the O4-declared slot names — a misspelled slot fails
+ * THIS compile via the GateSlotName union), a gate-step body built from
+ * the pipeline primitives, the store-fault idiom, and the compose entry
+ * itself. It is never executed — the runtime behavior is pinned by the
+ * server's own extension suite; execution here would need real
+ * infrastructure for no additional proof.
  */
 import { create } from "@bufbuild/protobuf";
 import type { DescMessage } from "@bufbuild/protobuf";
@@ -33,6 +34,8 @@ import {
   InvalidTokenError,
   loadConfig,
   MintingDisabledError,
+  newModelCatalogProviderFromDocument,
+  newR2ArtifactStorage,
   notFoundError,
   ResourceNotFoundError,
   TOKEN_TYPE_EXECUTION_SCOPED,
@@ -45,12 +48,15 @@ import type {
   Authorizer,
   CallerIdentity,
   ComposedServer,
+  GateSlotName,
   IdentityVerifier,
   MintedToken,
   ModelCatalogProvider,
   PipelineStep,
   PresignedUpload,
   RunnerCredentialProvider,
+  SandboxProvisioner,
+  SandboxProvisionerFactory,
   ServerExtension,
   Store,
   WorkerFactory,
@@ -124,24 +130,16 @@ const workerFactory: WorkerFactory = () =>
   Promise.reject(new Error("compile-proof worker — never started"));
 
 /**
- * A consumer-shaped model-catalog provider (the O5 §6a shape — the cloud's
- * DB-resident baseline implements exactly this surface, read per call).
+ * A consumer-shaped model-catalog provider built the way the cloud's
+ * DB-resident baseline builds one (the C1 seam, 20260827.04): a document
+ * from the consumer's own source, interpreted by the exported constructor
+ * so the semantics stay OSS-owned. The interface remains implementable by
+ * hand (ConsumerDriverBundle below keeps the type position covered).
  */
-const catalogProvider: ModelCatalogProvider = {
-  document: () => `{"models":[]}`,
-  isValidModel: () => false,
-  hasHarness: () => false,
-  hasAnyModels: () => false,
-  isValidModelOnAnyHarness: () => false,
-  canonicalModelsAcrossHarnesses: () => [],
-  canonicalModels: () => [],
-  hasPricingVariant: () => false,
-  hasPricingVariantForHarness: () => false,
-  canonicalModelsWithVariant: () => [],
-  canonicalModelsWithVariantForHarness: () => [],
-  hasCapabilityForHarness: () => false,
-  canonicalModelsWithCapabilityForHarness: () => [],
-};
+const catalogProvider: ModelCatalogProvider =
+  newModelCatalogProviderFromDocument(
+    `{"models":[{"id":"consumer-model","harness":"native"}]}`,
+  );
 
 /**
  * A consumer-shaped runner-credential provider (the O5 §6c shape). The
@@ -164,6 +162,20 @@ const credentialProvider: RunnerCredentialProvider = {
 };
 
 /**
+ * A consumer-registered R2 driver built through the exported constructor
+ * (the C1 seam, 20260827.04) — the cloud's per-domain-bucket registration
+ * shape: the composition owns the config, OSS owns the S3 plumbing.
+ */
+const consumerR2Driver: ArtifactStorageDriverFactory = () =>
+  newR2ArtifactStorage({
+    bucket: "consumer-domain-bucket",
+    endpoint: "https://r2.invalid",
+    accessKeyId: "consumer-key",
+    secretAccessKey: "consumer-secret",
+    region: "auto",
+  });
+
+/**
  * A consumer-registered blob driver (the O5 §6b registration shape) —
  * lazy factory, typed not-found, the widened size/presignPut surface.
  */
@@ -184,6 +196,35 @@ const consumerBlobDriver: ArtifactStorageDriverFactory =
     health: () => Promise.resolve(),
   });
 
+/**
+ * A consumer-registered sandbox driver (the O6 §6d registration shape) —
+ * the full scoped contract: ensure-as-state-machine per scope, idempotent
+ * teardown, the Q5 live-state probe. Selected at runtime through
+ * SANDBOX_PROVISIONER_TYPE naming the registered key.
+ */
+const consumerSandboxDriver: SandboxProvisionerFactory = ({
+  config,
+  logger,
+}): SandboxProvisioner => {
+  void config.backendEndpoint;
+  void logger;
+  return {
+    ensureSessionSandbox: (sessionId, env) => {
+      void sessionId;
+      void env.taskQueue;
+      void env.stigmerToken;
+      return Promise.resolve();
+    },
+    deprovisionSessionSandbox: () => Promise.resolve(),
+    ensureWorkflowSandbox: () => Promise.resolve(),
+    deprovisionWorkflowSandbox: () => Promise.resolve(),
+    createConnectSandbox: (connectRequestId) =>
+      Promise.resolve(connectRequestId),
+    deprovisionConnectSandbox: () => Promise.resolve(),
+    probe: () => Promise.resolve("absent" as const),
+  };
+};
+
 const registerBillingService = (router: ConnectRouter): void => {
   router.service(BillingQueryController, {
     getBillingAccount: (input) =>
@@ -197,6 +238,12 @@ export const fakeExtension: ServerExtension = {
   edition: ServerEdition.cloud,
   authorizer,
   identityVerifiers: [verifier],
+  // The O4 slot vocabulary is typed: registering into a slot name outside
+  // GateSlotName fails this compile (the §2b contract's compile-time layer).
+  gateSteps: new Map<GateSlotName, ReadonlyArray<PipelineStep<DescMessage>>>([
+    ["agent-execution-create:pre-side-effect-gate", [consumerGateStep()]],
+    ["org-create:post-persist", [consumerGateStep()]],
+  ]),
   statusTransitionHooks: {
     observers: [statusObserver],
     responseDecorators: [responseDecorator],
@@ -204,7 +251,13 @@ export const fakeExtension: ServerExtension = {
   drivers: {
     modelCatalogProvider: catalogProvider,
     runnerCredentialProvider: credentialProvider,
-    artifactStorageDrivers: new Map([["consumer-blob", consumerBlobDriver]]),
+    artifactStorageDrivers: new Map([
+      ["consumer-blob", consumerBlobDriver],
+      ["consumer-r2", consumerR2Driver],
+    ]),
+    sandboxProvisionerDrivers: new Map([
+      ["consumer-sandbox", consumerSandboxDriver],
+    ]),
   },
   services: [registerBillingService],
   workers: [workerFactory],

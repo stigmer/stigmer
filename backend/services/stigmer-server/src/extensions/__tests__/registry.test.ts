@@ -19,8 +19,10 @@ import type { ArtifactStorage } from "../../artifactstorage/artifact-storage.js"
 import type { ModelCatalogProvider } from "../../domain/workflow/registry/model-catalog-provider.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RunnerCredentialProvider } from "../../runnerauth/runner-credential-provider.js";
+import type { SandboxProvisionerFactory } from "../../sandbox/provisioner.js";
 import type { WorkerFactory } from "../../temporal/manager.js";
 import type { Authorizer } from "../authorizer.js";
+import { DECLARED_GATE_SLOTS, GATE_SLOT_NAMES } from "../gate-slots.js";
 import type { GateSlotName } from "../gate-slots.js";
 import type { IdentityVerifier } from "../identity.js";
 import { resolveExtensions } from "../registry.js";
@@ -77,6 +79,10 @@ const fakeStorageDriver = (): ArtifactStorage => {
   throw new Error("unit-test storage driver factory — never constructed");
 };
 
+const fakeSandboxDriver: SandboxProvisionerFactory = () => {
+  throw new Error("unit-test sandbox driver factory — never constructed");
+};
+
 describe("resolveExtensions — defaults", () => {
   it("resolves the omitted set to explicit empty defaults, edition oss", () => {
     const resolved = resolveExtensions();
@@ -90,6 +96,7 @@ describe("resolveExtensions — defaults", () => {
     expect(resolved.drivers.modelCatalogProvider).toBeUndefined();
     expect(resolved.drivers.runnerCredentialProvider).toBeUndefined();
     expect(resolved.drivers.artifactStorageDrivers.size).toBe(0);
+    expect(resolved.drivers.sandboxProvisionerDrivers.size).toBe(0);
     expect(resolved.services).toEqual([]);
     expect(resolved.workers).toEqual([]);
   });
@@ -151,7 +158,9 @@ describe("resolveExtensions — merge semantics", () => {
         name: "credential-unit",
         drivers: {
           runnerCredentialProvider: credentials,
-          artifactStorageDrivers: new Map([["r2-artifacts", fakeStorageDriver]]),
+          artifactStorageDrivers: new Map([
+            ["r2-artifacts", fakeStorageDriver],
+          ]),
         },
       },
     ]);
@@ -165,13 +174,38 @@ describe("resolveExtensions — merge semantics", () => {
       fakeStorageDriver,
     );
   });
+
+  it("merges the O6 sandbox-provisioner drivers as a name-keyed map across units", () => {
+    const resolved = resolveExtensions([
+      {
+        name: "fly-unit",
+        drivers: {
+          sandboxProvisionerDrivers: new Map([
+            ["fly-machines", fakeSandboxDriver],
+          ]),
+        },
+      },
+      {
+        name: "firecracker-unit",
+        drivers: {
+          sandboxProvisionerDrivers: new Map([
+            ["firecracker", fakeSandboxDriver],
+          ]),
+        },
+      },
+    ]);
+    expect(
+      [...resolved.drivers.sandboxProvisionerDrivers.keys()].sort(),
+    ).toEqual(["firecracker", "fly-machines"]);
+    expect(resolved.drivers.sandboxProvisionerDrivers.get("fly-machines")).toBe(
+      fakeSandboxDriver,
+    );
+  });
 });
 
 describe("resolveExtensions — loud-fail throws (DD-006 §2b)", () => {
   it("throws on an empty unit name", () => {
-    expect(() => resolveExtensions([{ name: "" }])).toThrowError(
-      /empty name/,
-    );
+    expect(() => resolveExtensions([{ name: "" }])).toThrowError(/empty name/);
   });
 
   it("throws on a duplicate unit name, naming it", () => {
@@ -210,33 +244,96 @@ describe("resolveExtensions — loud-fail throws (DD-006 §2b)", () => {
     ).toThrowError(/edition 'server_edition_unspecified'/);
   });
 
-  it("throws on a registration into an unknown gate slot, naming the slot", () => {
+  it("throws on a registration into an unknown gate slot, listing the declared slots", () => {
     const step: PipelineStep<DescMessage> = {
       name: "UnitTestGate",
       execute: () => {},
     };
-    // GateSlotName is the empty union until O4 declares the ratified
-    // slots, so no registration typechecks — the cast exercises the
-    // runtime arm of the two-layer contract (a JS consumer, or a
-    // composition built against a pin where a slot has moved, must throw
-    // at boot, never no-op).
+    // A misspelled slot cannot typecheck against GateSlotName — the cast
+    // exercises the runtime arm of the two-layer contract (a JS consumer,
+    // or a composition built against a pin where a slot has moved, must
+    // throw at boot, never no-op).
     const gateSteps = new Map([
-      ["agent-execution-create:pre-side-effect-gate", [step]],
+      ["agent-execution-create:pre-side-effect", [step]],
     ]) as unknown as ReadonlyMap<
       GateSlotName,
       ReadonlyArray<PipelineStep<DescMessage>>
     >;
-    const unit: ServerExtension = { name: "early-gate", gateSteps };
+    const unit: ServerExtension = { name: "typo-gate", gateSteps };
     expect(() => resolveExtensions([unit])).toThrowError(
-      /extension 'early-gate' registered gate steps into unknown slot 'agent-execution-create:pre-side-effect-gate'.*none in this build/,
+      /extension 'typo-gate' registered gate steps into unknown slot 'agent-execution-create:pre-side-effect' — declared slots: 'agent-execution-create:pre-side-effect-gate'/,
     );
+  });
+
+  it("accepts registrations into declared slots, concatenating in unit order", () => {
+    const stepNamed = (name: string): PipelineStep<DescMessage> => ({
+      name,
+      execute: () => {},
+    });
+    const resolved = resolveExtensions([
+      {
+        name: "billing",
+        gateSteps: new Map<
+          GateSlotName,
+          ReadonlyArray<PipelineStep<DescMessage>>
+        >([
+          [
+            "agent-execution-create:pre-side-effect-gate",
+            [stepNamed("BillingPreflight")],
+          ],
+          ["org-create:post-persist", [stepNamed("SeedTuples")]],
+        ]),
+      },
+      {
+        name: "capacity",
+        gateSteps: new Map<
+          GateSlotName,
+          ReadonlyArray<PipelineStep<DescMessage>>
+        >([
+          [
+            "agent-execution-create:pre-side-effect-gate",
+            [stepNamed("CapacityGate")],
+          ],
+        ]),
+      },
+    ]);
+    expect(
+      resolved.gateSteps
+        .get("agent-execution-create:pre-side-effect-gate")
+        ?.map((s) => s.name),
+    ).toEqual(["BillingPreflight", "CapacityGate"]);
+    expect(
+      resolved.gateSteps.get("org-create:post-persist")?.map((s) => s.name),
+    ).toEqual(["SeedTuples"]);
+  });
+
+  it("keeps DECLARED_GATE_SLOTS in lockstep with the ratified slot names", () => {
+    // The boot-time set derives from the one literal tuple; this pin
+    // catches an accidental edit to either the tuple or the derivation
+    // (the names are protected vocabulary — blueprint 03 §3a).
+    expect([...DECLARED_GATE_SLOTS].sort()).toEqual(
+      [...GATE_SLOT_NAMES].sort(),
+    );
+    expect([...GATE_SLOT_NAMES].sort()).toEqual([
+      "agent-execution-create:pre-side-effect-gate",
+      "agent-execution-recover:pre-side-effect-gate",
+      "agent-execution-submit-approval:gate",
+      "org-create:post-persist",
+      "session-create:pre-side-effect-gate",
+    ]);
   });
 
   it("throws on a second ModelCatalogProvider, naming both units", () => {
     expect(() =>
       resolveExtensions([
-        { name: "first-catalog", drivers: { modelCatalogProvider: fakeCatalog() } },
-        { name: "second-catalog", drivers: { modelCatalogProvider: fakeCatalog() } },
+        {
+          name: "first-catalog",
+          drivers: { modelCatalogProvider: fakeCatalog() },
+        },
+        {
+          name: "second-catalog",
+          drivers: { modelCatalogProvider: fakeCatalog() },
+        },
       ]),
     ).toThrowError(
       /extension 'second-catalog' registers a ModelCatalogProvider, but 'first-catalog' already did/,
@@ -265,11 +362,15 @@ describe("resolveExtensions — loud-fail throws (DD-006 §2b)", () => {
       resolveExtensions([
         {
           name: "first-blob",
-          drivers: { artifactStorageDrivers: new Map([["gcs", fakeStorageDriver]]) },
+          drivers: {
+            artifactStorageDrivers: new Map([["gcs", fakeStorageDriver]]),
+          },
         },
         {
           name: "second-blob",
-          drivers: { artifactStorageDrivers: new Map([["gcs", fakeStorageDriver]]) },
+          drivers: {
+            artifactStorageDrivers: new Map([["gcs", fakeStorageDriver]]),
+          },
         },
       ]),
     ).toThrowError(
@@ -283,12 +384,54 @@ describe("resolveExtensions — loud-fail throws (DD-006 §2b)", () => {
         resolveExtensions([
           {
             name: "shadowing",
-            drivers: { artifactStorageDrivers: new Map([[name, fakeStorageDriver]]) },
+            drivers: {
+              artifactStorageDrivers: new Map([[name, fakeStorageDriver]]),
+            },
           },
         ]),
       ).toThrowError(
         new RegExp(
           `extension 'shadowing' registers artifact-storage driver '${name}', which shadows a built-in backend`,
+        ),
+      );
+    }
+  });
+
+  it("throws on a duplicated sandbox-provisioner name across units, naming both", () => {
+    expect(() =>
+      resolveExtensions([
+        {
+          name: "first-sbx",
+          drivers: {
+            sandboxProvisionerDrivers: new Map([["fly", fakeSandboxDriver]]),
+          },
+        },
+        {
+          name: "second-sbx",
+          drivers: {
+            sandboxProvisionerDrivers: new Map([["fly", fakeSandboxDriver]]),
+          },
+        },
+      ]),
+    ).toThrowError(
+      /extension 'second-sbx' registers sandbox provisioner 'fly', but 'first-sbx' already did/,
+    );
+  });
+
+  it("throws on a sandbox-provisioner name shadowing a built-in driver", () => {
+    for (const name of ["local-process", "docker", "kubernetes"]) {
+      expect(() =>
+        resolveExtensions([
+          {
+            name: "shadowing",
+            drivers: {
+              sandboxProvisionerDrivers: new Map([[name, fakeSandboxDriver]]),
+            },
+          },
+        ]),
+      ).toThrowError(
+        new RegExp(
+          `extension 'shadowing' registers sandbox provisioner '${name}', which shadows a built-in driver`,
         ),
       );
     }

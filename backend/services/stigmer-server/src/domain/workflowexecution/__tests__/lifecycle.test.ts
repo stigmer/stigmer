@@ -40,6 +40,7 @@ import {
   TEMPORAL_UNAVAILABLE_MESSAGE,
 } from "../constants.js";
 import type { WorkflowExecutionContextBuilderDeps } from "../create-execution-context-step.js";
+import { newWorkflowExecutionConfigFromEnv } from "../temporal/config.js";
 import { ENGINE_DISCONNECTED, EngineWorkflowNotFoundError } from "../engine.js";
 import type { LifecycleDeps } from "../lifecycle.js";
 import {
@@ -120,6 +121,11 @@ function deps(engineStub?: EngineStub): LifecycleDeps {
     broker,
     engineState: () => engineStub?.state ?? ENGINE_DISCONNECTED,
     executionContextBuilder: builderDeps(),
+    // The OSS default sandbox posture (§6d, O6): lane disabled — the
+    // recover ensure short-circuits and the terminal observer no-ops.
+    sandboxLane: { enabled: false },
+    temporalConfig: newWorkflowExecutionConfigFromEnv(),
+    sandboxTerminalObserver: () => {},
   };
 }
 

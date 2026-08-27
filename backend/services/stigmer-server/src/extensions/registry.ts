@@ -23,10 +23,12 @@
  *
  * Consumption map (each point's consumer entry): services + workers +
  * edition are consumed here in O1; identity verifiers + authorizer land
- * with O2; gate steps + status hooks with O4; the O5 driver kinds
+ * with O2; gate steps are consumed at the chain splice sites (the
+ * gate-slots.ts slot table) and status hooks at the agentexecution
+ * transition sites (status-observers.ts), both O4; the O5 driver kinds
  * (catalog provider, artifact-storage registration, runner-credential
- * provider) are consumed at their compose.ts construction sites; sandbox
- * provisioners land with O6.
+ * provider) and O6's sandbox provisioners are consumed at their
+ * compose.ts construction sites.
  */
 import type { DescMessage } from "@bufbuild/protobuf";
 import type { ConnectRouter } from "@connectrpc/connect";
@@ -38,11 +40,13 @@ import { BUILT_IN_STORAGE_TYPES } from "../artifactstorage/artifact-storage.js";
 import type { ModelCatalogProvider } from "../domain/workflow/registry/model-catalog-provider.js";
 import type { PipelineStep } from "../pipeline/pipeline.js";
 import type { RunnerCredentialProvider } from "../runnerauth/runner-credential-provider.js";
+import type { SandboxProvisionerFactory } from "../sandbox/provisioner.js";
+import { BUILT_IN_SANDBOX_PROVISIONER_TYPES } from "../sandbox/provisioner.js";
 import type { WorkerFactory } from "../temporal/manager.js";
 import type { Authorizer } from "./authorizer.js";
 import type { ExtensionDrivers } from "./drivers.js";
 import { DECLARED_GATE_SLOTS } from "./gate-slots.js";
-import type { GateSlotName } from "./gate-slots.js";
+import type { GateSlotName, ResolvedGateSteps } from "./gate-slots.js";
 import type { IdentityVerifier } from "./identity.js";
 import type {
   AgentExecutionResponseDecorator,
@@ -119,10 +123,7 @@ export interface ResolvedExtensions {
   readonly authorizer: Authorizer | undefined;
   readonly identityVerifiers: ReadonlyArray<IdentityVerifier>;
   /** Slot name → steps, validated against DECLARED_GATE_SLOTS. */
-  readonly gateSteps: ReadonlyMap<
-    string,
-    ReadonlyArray<PipelineStep<DescMessage>>
-  >;
+  readonly gateSteps: ResolvedGateSteps;
   readonly statusObservers: ReadonlyArray<AgentExecutionStatusObserver>;
   readonly responseDecorators: ReadonlyArray<AgentExecutionResponseDecorator>;
   readonly drivers: ResolvedExtensionDrivers;
@@ -143,6 +144,11 @@ export interface ResolvedExtensionDrivers {
   readonly artifactStorageDrivers: ReadonlyMap<
     string,
     ArtifactStorageDriverFactory
+  >;
+  /** Registered name → factory, validated against the built-in names (§6d). */
+  readonly sandboxProvisionerDrivers: ReadonlyMap<
+    string,
+    SandboxProvisionerFactory
   >;
 }
 
@@ -176,6 +182,11 @@ export function resolveExtensions(
     ArtifactStorageDriverFactory
   >();
   const storageDriverDeclaredBy = new Map<string, string>();
+  const sandboxProvisionerDrivers = new Map<
+    string,
+    SandboxProvisionerFactory
+  >();
+  const sandboxDriverDeclaredBy = new Map<string, string>();
 
   for (const unit of units) {
     if (unit.name === "") {
@@ -253,6 +264,28 @@ export function resolveExtensions(
       }
     }
 
+    if (unit.drivers?.sandboxProvisionerDrivers !== undefined) {
+      for (const [name, factory] of unit.drivers.sandboxProvisionerDrivers) {
+        if (
+          (BUILT_IN_SANDBOX_PROVISIONER_TYPES as ReadonlyArray<string>).includes(
+            name,
+          )
+        ) {
+          throw new Error(
+            `extension '${unit.name}' registers sandbox provisioner '${name}', which shadows a built-in driver — built-in names are reserved`,
+          );
+        }
+        const declaredBy = sandboxDriverDeclaredBy.get(name);
+        if (declaredBy !== undefined) {
+          throw new Error(
+            `extension '${unit.name}' registers sandbox provisioner '${name}', but '${declaredBy}' already did — driver names must be unique across the composed set`,
+          );
+        }
+        sandboxProvisionerDrivers.set(name, factory);
+        sandboxDriverDeclaredBy.set(name, unit.name);
+      }
+    }
+
     if (unit.gateSteps !== undefined) {
       for (const [slot, steps] of unit.gateSteps) {
         if (!DECLARED_GATE_SLOTS.has(slot)) {
@@ -292,6 +325,7 @@ export function resolveExtensions(
       modelCatalogProvider,
       runnerCredentialProvider,
       artifactStorageDrivers,
+      sandboxProvisionerDrivers,
     },
     services,
     workers,

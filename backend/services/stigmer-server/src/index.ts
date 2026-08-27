@@ -20,7 +20,8 @@
  *     not-found errors the ratified store-fault mapping keys on)
  *   - the driver interfaces (Store, ArtifactStorage; O5 added §6a/§6b/§6c —
  *     ModelCatalogProvider, the widened storage surface, and
- *     RunnerCredentialProvider; §6d's sandbox provisioner joins with O6)
+ *     RunnerCredentialProvider; O6 added §6d — SandboxProvisioner and its
+ *     factory/registration types)
  *   - the worker factory types extension workers implement (§8)
  *
  * The package stays private and unpublished: this is the library contract
@@ -33,7 +34,12 @@ export type { ComposeOptions, ComposedServer } from "./boot/compose.js";
 export { loadConfig } from "./boot/config.js";
 export type { ServerConfig } from "./boot/config.js";
 export { createLogger } from "./boot/logger.js";
-export type { LogFields, Logger, LoggerOptions, LogLevel } from "./boot/logger.js";
+export type {
+  LogFields,
+  Logger,
+  LoggerOptions,
+  LogLevel,
+} from "./boot/logger.js";
 
 // The extension-point types (DD-006 — the seven-point registry).
 export type {
@@ -78,7 +84,10 @@ export {
 // keys on (typed not-found → NotFound; anything else rethrows as an
 // infrastructure fault — the guidelines' instanceof idiom).
 export type { Store } from "./store/interface.js";
-export { AuditNotFoundError, ResourceNotFoundError } from "./store/interface.js";
+export {
+  AuditNotFoundError,
+  ResourceNotFoundError,
+} from "./store/interface.js";
 export type {
   ArtifactStorage,
   ArtifactStorageDriverFactory,
@@ -86,12 +95,22 @@ export type {
   StagedUploadLane,
 } from "./artifactstorage/artifact-storage.js";
 export { ArtifactStorageNotFoundError } from "./artifactstorage/artifact-storage.js";
+// The R2 driver constructor (C1 seam, 20260827.04): compositions register
+// per-domain R2 drivers with their own bucket/credential config while the
+// S3 plumbing lives exactly once in OSS (the §6b registration shape).
+export { newR2ArtifactStorage } from "./artifactstorage/r2-storage.js";
+export type { R2StorageConfig } from "./artifactstorage/r2-storage.js";
 
 // The O5 driver seams (§6a/§6c): the model-catalog read surface with the
 // DD-008 disciplines in its contract, and the per-lane runner-credential
 // seam with its OSS lane constant (an extension's verify callers name the
 // lane they accept).
 export type { ModelCatalogProvider } from "./domain/workflow/registry/model-catalog-provider.js";
+// The document-driven provider constructor (C1 seam, 20260827.04): a
+// composition whose catalog source is its own (the cloud's DB-resident
+// baseline) builds providers from documents with the SAME interpretation
+// ModelRegistryStore uses — the semantics live exactly once in OSS.
+export { newModelCatalogProviderFromDocument } from "./domain/workflow/registry/document-catalog.js";
 export type { RunnerCredentialProvider } from "./runnerauth/runner-credential-provider.js";
 export type { MintedToken } from "./runnerauth/runnerauth.js";
 export {
@@ -99,6 +118,20 @@ export {
   MintingDisabledError,
   TOKEN_TYPE_EXECUTION_SCOPED,
 } from "./runnerauth/runnerauth.js";
+
+// The O6 driver seam (§6d): the sandbox-provisioner contract an extension
+// implements to register its own isolation driver (selected through the
+// SANDBOX_PROVISIONER_TYPE knob), plus the reserved built-in names its
+// registrations may never shadow.
+export type {
+  SandboxDriverConfig,
+  SandboxEnvironment,
+  SandboxProbeState,
+  SandboxProvisioner,
+  SandboxProvisionerFactory,
+  SandboxScope,
+} from "./sandbox/provisioner.js";
+export { BUILT_IN_SANDBOX_PROVISIONER_TYPES } from "./sandbox/provisioner.js";
 
 // The worker factory types extension workers implement (§8).
 export type { WorkerFactory, WorkerFactoryDeps } from "./temporal/manager.js";

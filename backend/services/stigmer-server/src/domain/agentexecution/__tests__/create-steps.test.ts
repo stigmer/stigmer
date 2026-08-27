@@ -21,7 +21,11 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import {
+  AgentExecutionSchema,
+  AgentExecutionStatusSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import {
   DeclaredPreferencesSchema,
   RecalledMemoriesSchema,
@@ -57,7 +61,11 @@ import {
   newCreateSessionIfNeededStep,
   newEnsureSessionOrAgentResolvedStep,
   newResolveDefaultAgentStep,
+  newStartWorkflowStep,
 } from "../create-steps.js";
+import type { AgentExecutionStatusTransition } from "../../../extensions/status-hooks.js";
+import type { ExecutionEngineState } from "../engine.js";
+import { stubConnectedEngine } from "./engine-stub.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -921,5 +929,56 @@ describe("agentCallTaskEnvironmentRefs", () => {
     expect(
       agentCallTaskEnvironmentRefs(silentLogger, workflow, "review"),
     ).toHaveLength(0);
+  });
+});
+
+// O4 (20260827.07, ruling Q3): the StartWorkflow failure arm's
+// PENDING→FAILED stamp is notify site 3 of 5 — an execution that consumed
+// its create-gate side effects and then never started still reaches the
+// composed observers (the cloud settles its reservation on exactly this).
+describe("newStartWorkflowStep — start-failure FAILED stamp", () => {
+  it("persists FAILED and notifies the observers before surfacing Internal", async () => {
+    const observed: AgentExecutionStatusTransition[] = [];
+    const step = newStartWorkflowStep({
+      store,
+      logger: silentLogger,
+      engineState: () =>
+        ({
+          connected: true,
+          engine: stubConnectedEngine({
+            startInvokeWorkflow: async () => {
+              throw new Error("temporal exploded");
+            },
+          }),
+        }) as ExecutionEngineState,
+      statusObservers: [
+        (t: AgentExecutionStatusTransition): void => void observed.push(t),
+      ],
+    });
+
+    const execution = newExecution("ses_sw", "agt_sw");
+    execution.metadata!.id = "aexec_sw_fail";
+    // The chain stamps PENDING at SetInitialPhase before this step runs.
+    execution.status = create(AgentExecutionStatusSchema, {
+      phase: ExecutionPhase.EXECUTION_PENDING,
+    });
+
+    const err = await expectCode(
+      () => step.execute(newContext(execution)),
+      Code.Internal,
+    );
+    expect(err.rawMessage).toBe("failed to start workflow");
+
+    expect(observed).toHaveLength(1);
+    expect(observed[0]?.oldPhase).toBe(ExecutionPhase.EXECUTION_PENDING);
+    expect(observed[0]?.newPhase).toBe(ExecutionPhase.EXECUTION_FAILED);
+
+    const persisted = await store.getResource(
+      ApiResourceKind.agent_execution,
+      "aexec_sw_fail",
+      AgentExecutionSchema,
+    );
+    expect(persisted.status?.phase).toBe(ExecutionPhase.EXECUTION_FAILED);
+    expect(persisted.status?.error).toContain("temporal exploded");
   });
 });

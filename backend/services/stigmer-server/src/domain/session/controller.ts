@@ -37,6 +37,8 @@ import { create } from "@bufbuild/protobuf";
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
+import type { ResolvedGateSteps } from "../../extensions/gate-slots.js";
+import { stepsForSlot } from "../../extensions/gate-slots.js";
 import type { AgentExecutionTemporalConfig } from "../agentexecution/temporal/config.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import {
@@ -83,6 +85,8 @@ import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import { newValidateVisibilityStep } from "../../pipeline/steps/validate-visibility.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
+import type { SandboxLane } from "../../sandbox/lane.js";
+import { deprovisionSessionSandboxBestEffort } from "../../sandbox/steps.js";
 import { sessionSearchExtractor } from "./search-extractor.js";
 import {
   LIST_RESULT_KEY,
@@ -115,6 +119,13 @@ export interface SessionControllerDeps {
    * DI story, DD-002).
    */
   readonly agentInstanceCreator: AgentInstanceCreatorProvider;
+  /** The composed slot registrations — this domain's create slot (O4). */
+  readonly gateSteps: ResolvedGateSteps;
+  /**
+   * The sandbox lane (§6d, O6): session delete tears the session's
+   * sandbox down best-effort (the Java SessionDeleteHandler posture).
+   */
+  readonly sandboxLane: SandboxLane;
 }
 
 /** Registers both session services on the router (routes stage). */
@@ -146,6 +157,13 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
  * Create — chain per Go buildCreatePipeline. ResolveDefaultAgentInstance
  * runs BEFORE ValidateProto: when agent_instance_id is omitted, the
  * resolution fills it in before validation sees the spec.
+ *
+ * The pre-side-effect gate slot splices before Persist, after the last
+ * pure step (O4 plan-gate ruling Q2, mirroring the Java baseline's
+ * post-resolution gate position). The default-instance resolution above
+ * it side-effects PRE-gate in BOTH editions — a gate refusal can leave a
+ * created default instance behind; inherited Java semantics, not a new
+ * compromise.
  */
 async function createSession(
   deps: SessionControllerDeps,
@@ -158,7 +176,10 @@ async function createSession(
     callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<typeof SessionSchema>("session-create", deps.logger)
+  const builder = newPipeline<typeof SessionSchema>(
+    "session-create",
+    deps.logger,
+  )
     .addStep(
       newAuthorizeStep(SessionCommandController.method.create, deps.authorizer),
     )
@@ -174,7 +195,16 @@ async function createSession(
     .addStep(newResolveSlugStep())
     .addStep(newCheckDuplicateStep(deps.store))
     .addStep(newBuildNewStateStep())
-    .addStep(newNormalizeReferencesStep())
+    .addStep(newNormalizeReferencesStep());
+  // The ratified pre-side-effect gate slot (blueprint 03 §3a; O4; Q2
+  // ruling — see the create doc comment). Empty in OSS.
+  for (const step of stepsForSlot<typeof SessionSchema>(
+    deps.gateSteps,
+    "session-create:pre-side-effect-gate",
+  )) {
+    builder.addStep(step);
+  }
+  await builder
     .addStep(newPersistStep(deps.store))
     .addStep(
       newIndexSearchStep(deps.store, sessionSearchExtractor, deps.logger),
@@ -299,6 +329,14 @@ async function deleteSession(
       "deleted session not found in context",
     );
   }
+  // The session's sandbox tears down AFTER the row is gone (§6d, O6) —
+  // best-effort, never failing the delete (the Java SessionDeleteHandler
+  // posture; the helper carries the leak-logging rationale).
+  await deprovisionSessionSandboxBestEffort(
+    deps.sandboxLane,
+    deps.logger,
+    (deleted as Session).metadata?.id ?? "",
+  );
   return deleted as Session;
 }
 

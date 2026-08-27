@@ -60,6 +60,7 @@ import type {
   Store,
   WorkflowExecutionEventRecord,
 } from "../../store/interface.js";
+import type { WorkflowSandboxTerminalObserver } from "../../sandbox/steps.js";
 
 import type { StreamBroker } from "./stream-broker.js";
 
@@ -69,6 +70,8 @@ export interface UpdateStatusDeps {
   /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
   readonly authorizer: Authorizer;
   readonly broker: StreamBroker;
+  /** Fires the workflow-sandbox teardown on terminal transitions (§6d, O6). */
+  readonly sandboxTerminalObserver: WorkflowSandboxTerminalObserver;
 }
 
 type UpdateStatusDesc =
@@ -112,12 +115,19 @@ export async function updateStatus(
       name: "MergeAndPersistExecution",
       async execute(ctx) {
         let updated: WorkflowExecution;
+        // Captured inside the modify closure — the phase BEFORE this
+        // merge, read under the same write lock that persists it (the
+        // sandbox observer below keys on the transition, §6d/O6).
+        let previousPhase = ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
         try {
           updated = await deps.store.updateResource(
             ApiResourceKind.workflow_execution,
             ctx.input.executionId,
             WorkflowExecutionSchema,
             (execution) => {
+              previousPhase =
+                execution.status?.phase ??
+                ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
               applyUpdateStatusMerge(execution, ctx.input);
             },
           );
@@ -129,6 +139,13 @@ export async function updateStatus(
           throw internalError(error, "failed to update execution status");
         }
         ctx.set(EXECUTION_KEY, updated);
+        // AFTER the persist commits: a terminal transition tears the
+        // per-execution sandbox down, fire-and-forget.
+        deps.sandboxTerminalObserver(
+          ctx.input.executionId,
+          previousPhase,
+          updated.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED,
+        );
         deps.logger.info("Successfully updated execution status", {
           executionId: ctx.input.executionId,
           phase:

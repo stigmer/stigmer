@@ -59,6 +59,38 @@ eventually violate creatively.
   introduce a synonym; the domain inventory and the ported chains read
   straight onto the code. Domain-specific steps stay domain-local; promote
   to shared only when a second domain needs the identical step.
+- **Gate-slot names are PROTECTED VOCABULARY** (convergence blueprint
+  20260826.02/03 §3a; declared in `src/extensions/gate-slots.ts`, spliced
+  where the table says, empty when no extension is composed). Never rename
+  a slot; adding one is an owner-visible act (the deferred
+  `sandbox-acquisition:gate` arrives with the entry that builds the gated
+  provisioning splice — O4 ruling Q1). The ratified table — the code must
+  match it exactly:
+
+  | Slot | Position |
+  |---|---|
+  | `agent-execution-create:pre-side-effect-gate` | after `EnsureEngineAvailable`, before `CreateDefaultInstanceIfNeeded` |
+  | `agent-execution-recover:pre-side-effect-gate` | after `TerminateExistingWorkflow`, before `RecreateExecutionContext` |
+  | `agent-execution-submit-approval:gate` | after `ValidateApproval`, before `RecordApprovalDecision` |
+  | `session-create:pre-side-effect-gate` | after `NormalizeReferences`, before `Persist` (Q2 ruling: mirrors Java's post-resolution position; the pre-validation default-instance resolution side-effects pre-gate in BOTH editions) |
+  | `org-create:post-persist` | after `Persist`, before `IndexSearch` (non-transactional in BOTH editions: a slot failure fails the request, the row survives, idempotent retry heals) |
+
+  Facts gate AUTHORS inherit (recorded, not mechanisms): slots run
+  wherever their chain runs, INCLUDING in-process invocations (the Java
+  baseline) — but in-process callers carry `callerClass: "internal"`
+  where Java propagated the original caller; slots do not honor
+  chain-internal skip shortcuts (idempotent-replay flags) — a gate owns
+  its own idempotency; a gate refuses by throwing a `ConnectError` with
+  the correct code and byte-pinned copy, exactly as OSS steps do.
+- **Status-transition hooks fire from EVERY phase-transition persist
+  site**, not one chokepoint (O4 ruling Q3) — the five sites are
+  enumerated in `src/domain/agentexecution/status-observers.ts`, and a
+  NEW phase write MUST call `notifyStatusObservers` and extend that list.
+  Observers fire only on actual phase changes (ruling Q4), post-persist,
+  before any broadcast; observer failure is logged, never a failed
+  transition; decorators contribute only fields the shared reply schema
+  carries, clone-committed per decorator. Workflowexecution deliberately
+  has NO hooks (unmetered in cloud; nothing built ahead of need).
 - **The composition root is staged plain functions** (config → storage →
   temporal → controllers → routes → listen). No DI framework. A missing
   dependency is a compile error or a loud boot throw, never a silent no-op.

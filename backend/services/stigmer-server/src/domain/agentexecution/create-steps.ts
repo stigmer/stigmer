@@ -52,11 +52,12 @@ import {
 } from "../agent/defaultagent.js";
 import { buildDefaultInstanceRequest } from "../agentinstance/defaultinstance.js";
 
-import type {
-  ExecutionEngineStateProvider,
-} from "./engine.js";
+import type { AgentExecutionStatusObserver } from "../../extensions/status-hooks.js";
+
+import type { ExecutionEngineStateProvider } from "./engine.js";
 import { EngineDispatchError } from "./engine.js";
 import { ENGINE_UNAVAILABLE_MESSAGE } from "./constants.js";
+import { notifyStatusObservers } from "./status-observers.js";
 import { unavailableError } from "../../pipeline/errors.js";
 
 type CreateDesc = typeof AgentExecutionSchema;
@@ -227,14 +228,12 @@ export type ExecutionAgentInstanceCreatorProvider =
  * (matching Go/Java: repo save, not the Update pipeline), and stores the
  * instance id in the context for the next step.
  */
-export function newCreateDefaultInstanceIfNeededStep(
-  deps: {
-    store: Store;
-    logger: Logger;
-    agentLoader: AgentLoaderProvider;
-    agentInstanceCreator: ExecutionAgentInstanceCreatorProvider;
-  },
-): PipelineStep<CreateDesc> {
+export function newCreateDefaultInstanceIfNeededStep(deps: {
+  store: Store;
+  logger: Logger;
+  agentLoader: AgentLoaderProvider;
+  agentInstanceCreator: ExecutionAgentInstanceCreatorProvider;
+}): PipelineStep<CreateDesc> {
   return {
     name: "CreateDefaultInstanceIfNeeded",
     async execute(ctx) {
@@ -313,7 +312,10 @@ export function newCreateDefaultInstanceIfNeededStep(
         createdId = created.metadata?.id ?? "";
       } catch (error) {
         if (error instanceof ConnectError) {
-          throw goWrappedStatusError("failed to create default instance", error);
+          throw goWrappedStatusError(
+            "failed to create default instance",
+            error,
+          );
         }
         throw new Error(
           `failed to create default instance: ${error instanceof Error ? error.message : String(error)}`,
@@ -388,12 +390,10 @@ export function buildAutoCreateSessionSpec(
  * resource is the single source of truth; the persisted execution never
  * carries a second copy that could drift).
  */
-export function newCreateSessionIfNeededStep(
-  deps: {
-    logger: Logger;
-    sessionCreator: SessionCreatorProvider;
-  },
-): PipelineStep<CreateDesc> {
+export function newCreateSessionIfNeededStep(deps: {
+  logger: Logger;
+  sessionCreator: SessionCreatorProvider;
+}): PipelineStep<CreateDesc> {
   return {
     name: "CreateSessionIfNeeded",
     async execute(ctx) {
@@ -402,9 +402,12 @@ export function newCreateSessionIfNeededStep(
       const agentId = execution.spec?.agentId ?? "";
 
       if (sessionId !== "") {
-        deps.logger.debug("Session ID already provided, skipping auto-creation", {
-          sessionId,
-        });
+        deps.logger.debug(
+          "Session ID already provided, skipping auto-creation",
+          {
+            sessionId,
+          },
+        );
         return;
       }
 
@@ -783,13 +786,13 @@ export function newProcessAttachmentsStep(
  * existed, so there is no event stream to preserve and no concurrent
  * appender to lose a write to), then answers Internal.
  */
-export function newStartWorkflowStep(
-  deps: {
-    store: Store;
-    logger: Logger;
-    engineState: ExecutionEngineStateProvider;
-  },
-): PipelineStep<CreateDesc> {
+export function newStartWorkflowStep(deps: {
+  store: Store;
+  logger: Logger;
+  engineState: ExecutionEngineStateProvider;
+  /** O4: the failure arm's PENDING→FAILED stamp is a notified transition. */
+  statusObservers: ReadonlyArray<AgentExecutionStatusObserver>;
+}): PipelineStep<CreateDesc> {
   return {
     name: "StartWorkflow",
     async execute(ctx) {
@@ -849,6 +852,7 @@ export function newStartWorkflowStep(
           },
         );
         execution.status ??= create(AgentExecutionStatusSchema);
+        const oldPhase = execution.status.phase;
         execution.status.phase = ExecutionPhase.EXECUTION_FAILED;
         execution.status.error = `Failed to start Temporal workflow: ${error instanceof Error ? error.message : String(error)}`;
 
@@ -865,6 +869,15 @@ export function newStartWorkflowStep(
             "failed to start workflow and failed to update status",
           );
         }
+        // O4 site 3 of 5 (status-observers.ts): the PENDING→FAILED stamp
+        // is a persisted terminal transition — notified before the
+        // refusal surfaces.
+        await notifyStatusObservers(
+          deps,
+          execution as AgentExecution,
+          oldPhase,
+          ExecutionPhase.EXECUTION_FAILED,
+        );
         throw internalError(error, "failed to start workflow");
       }
 

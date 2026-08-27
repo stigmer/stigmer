@@ -46,6 +46,7 @@ import { enumToJson } from "@bufbuild/protobuf";
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
+import type { AgentExecutionStatusObserver } from "../../extensions/status-hooks.js";
 import {
   failedPreconditionError,
   internalError,
@@ -74,6 +75,7 @@ import {
 } from "./filereview/author.js";
 import { countAwaitingReview, gateResolved } from "./filereview/gate.js";
 import { projectFileChangeSets } from "./filereview/project.js";
+import { notifyStatusObservers } from "./status-observers.js";
 import { settleInterruptedToolCalls } from "./tool-call-settle.js";
 import type { StreamBroker } from "./stream-broker.js";
 
@@ -84,6 +86,8 @@ export interface SubmitFileDecisionDeps {
   readonly authorizer: Authorizer;
   readonly broker: StreamBroker;
   readonly engineState: ExecutionEngineStateProvider;
+  /** O4: the stale-workflow reconcile's →FAILED stamp is a notified transition. */
+  readonly statusObservers: ReadonlyArray<AgentExecutionStatusObserver>;
 }
 
 type SubmitFileDecisionDesc =
@@ -460,5 +464,14 @@ async function reconcileStaleFileReviewExecution(
   deps.logger.info(
     "RECONCILIATION: Updated stale file-review execution status to FAILED",
     { executionId },
+  );
+
+  // O4 site 5 of 5 (status-observers.ts): the reconcile's →FAILED stamp
+  // is a persisted terminal transition.
+  await notifyStatusObservers(
+    deps,
+    reconciled,
+    execution.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED,
+    ExecutionPhase.EXECUTION_FAILED,
   );
 }

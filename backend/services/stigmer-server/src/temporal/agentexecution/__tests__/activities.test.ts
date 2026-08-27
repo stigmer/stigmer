@@ -94,6 +94,8 @@ function newFixture() {
     logger: silentLogger,
     broker,
     authorizer: newPermissiveSingleTeamAuthorizer(),
+    statusObservers: [],
+    responseDecorators: [],
     client: () => stubClient,
   });
   return { store, broker, activities, completions };

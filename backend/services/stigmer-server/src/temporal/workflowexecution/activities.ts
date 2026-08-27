@@ -51,6 +51,7 @@ import {
   DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME,
   deleteExecutionContextForExecution,
 } from "../../domain/executioncontext/temporal/delete-execution-context.js";
+import type { WorkflowSandboxTerminalObserver } from "../../sandbox/steps.js";
 import type { Store } from "../../store/interface.js";
 import { UPDATE_WORKFLOW_EXECUTION_STATUS_ACTIVITY_NAME } from "./names.js";
 
@@ -58,6 +59,13 @@ export interface WorkflowExecutionActivityDeps {
   readonly store: Store;
   readonly logger: Logger;
   readonly broker: StreamBroker;
+  /**
+   * Fires the workflow-sandbox teardown on terminal transitions (§6d,
+   * O6) — this activity is the orchestrator's failure/cancellation
+   * persist site, one of the three status write sites the Q3b ruling
+   * wires.
+   */
+  readonly sandboxTerminalObserver: WorkflowSandboxTerminalObserver;
 }
 
 /**
@@ -69,7 +77,7 @@ export interface WorkflowExecutionActivityDeps {
 export function createWorkflowExecutionActivities(
   deps: WorkflowExecutionActivityDeps,
 ): Record<string, (...args: never[]) => Promise<unknown>> {
-  const { store, logger, broker } = deps;
+  const { store, logger, broker, sandboxTerminalObserver } = deps;
 
   return {
     /**
@@ -86,12 +94,18 @@ export function createWorkflowExecutionActivities(
       const statusUpdates = fromJson(WorkflowExecutionStatusSchema, statusJson);
 
       let updated: WorkflowExecution;
+      // The phase BEFORE this merge, read under the write lock — the
+      // sandbox observer below keys on the transition (§6d, O6).
+      let previousPhase = ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
       try {
         updated = await store.updateResource(
           ApiResourceKind.workflow_execution,
           executionId,
           WorkflowExecutionSchema,
           (execution) => {
+            previousPhase =
+              execution.status?.phase ??
+              ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
             applyActivityStatusMerge(execution, statusUpdates);
           },
         );
@@ -118,6 +132,13 @@ export function createWorkflowExecutionActivities(
       // (ADR 011 write path) — failure recovery updates must be
       // immediately visible to externally-connected subscribe streams.
       broker.broadcast(updated);
+      // A terminal transition (the orchestrator's FAILED/CANCELLED
+      // persists) tears the per-execution sandbox down, fire-and-forget.
+      sandboxTerminalObserver(
+        executionId,
+        previousPhase,
+        updated.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED,
+      );
     },
 
     /** #15's seam, shared with the agent-execution worker exactly as in Go. */

@@ -46,6 +46,9 @@ import { enumToJson } from "@bufbuild/protobuf";
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
+import type { ResolvedGateSteps } from "../../extensions/gate-slots.js";
+import { stepsForSlot } from "../../extensions/gate-slots.js";
+import type { AgentExecutionStatusObserver } from "../../extensions/status-hooks.js";
 import {
   failedPreconditionError,
   internalError,
@@ -60,10 +63,14 @@ import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 
+import type { SandboxLane } from "../../sandbox/lane.js";
+import { ensureSessionSandboxForExecution } from "../../sandbox/steps.js";
 import type { ExecutionContextBuilderDeps } from "./create-execution-context-step.js";
 import { buildAndPersistExecutionContext } from "./create-execution-context-step.js";
+import type { AgentExecutionTemporalConfig } from "./temporal/config.js";
 import type { ExecutionEngineStateProvider } from "./engine.js";
 import { EngineDispatchError, EngineWorkflowNotFoundError } from "./engine.js";
+import { notifyStatusObservers } from "./status-observers.js";
 import { settleInterruptedToolCalls } from "./tool-call-settle.js";
 import type { StreamBroker } from "./stream-broker.js";
 
@@ -84,6 +91,14 @@ export interface LifecycleDeps {
   readonly engineState: ExecutionEngineStateProvider;
   /** The shared EC-builder deps, consumed by recover's recreate step. */
   readonly executionContextBuilder: ExecutionContextBuilderDeps;
+  /** The composed slot registrations — recover's pre-side-effect slot (O4). */
+  readonly gateSteps: ResolvedGateSteps;
+  /** The composed status-transition observers (O4, DD-006 §3). */
+  readonly statusObservers: ReadonlyArray<AgentExecutionStatusObserver>;
+  /** The sandbox lane (§6d, O6) — recover re-ensures the session sandbox. */
+  readonly sandboxLane: SandboxLane;
+  /** Dispatch config for the sandbox ensure's target/queue resolution. */
+  readonly temporalConfig: AgentExecutionTemporalConfig;
 }
 
 /** Inputs that carry an execution id (Go LifecycleInput). */
@@ -330,12 +345,16 @@ function newUpdateExecutionPhaseAndPersistStep<Desc extends DescMessage>(
       const reason = typeof reasonValue === "string" ? reasonValue : "";
 
       let updated: AgentExecution;
+      let oldPhase = ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
       try {
         updated = await deps.store.updateResource(
           ApiResourceKind.agent_execution,
           executionId,
           AgentExecutionSchema,
           (loaded) => {
+            oldPhase =
+              loaded.status?.phase ??
+              ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
             applyLifecyclePhaseTransition(
               loaded,
               targetPhase,
@@ -351,6 +370,9 @@ function newUpdateExecutionPhaseAndPersistStep<Desc extends DescMessage>(
         }
         throw internalError(error, "failed to persist execution");
       }
+      // O4 site 2 of 5 (status-observers.ts): observers see the persisted
+      // transition before LifecycleBroadcast runs — broadcast stays last.
+      await notifyStatusObservers(deps, updated, oldPhase, targetPhase);
       // Hand the persisted result to the broadcast step and the handler's
       // return value (both read the same key).
       ctx.set(LOADED_EXECUTION_KEY, updated);
@@ -666,8 +688,37 @@ export async function recoverExecution(
           ),
         failureMessage: "failed to terminate previous workflow during recovery",
       }),
+      // The ratified pre-side-effect gate slot (blueprint 03 §3a; O4):
+      // after workflow termination, before re-launch side effects — the
+      // verified RearmBillingStep ordering (a terminated workflow issues
+      // no new settles). Empty in OSS.
+      ...stepsForSlot<Desc>(
+        deps.gateSteps,
+        "agent-execution-recover:pre-side-effect-gate",
+      ),
       newRecreateExecutionContextStep(deps),
       newStartFreshWorkflowStep(deps),
+      // The session-lane sandbox ensure (§6d, O6) — same position and
+      // non-critical posture as the create chain's step: after the
+      // workflow start, never failing the recover (the shared body
+      // pre-stamps failures onto status.error instead).
+      {
+        name: "EnsureSessionSandbox",
+        async execute(ctx) {
+          if (ctx.get(ALREADY_IN_TARGET_STATE_KEY) === true) {
+            return;
+          }
+          await ensureSessionSandboxForExecution(
+            {
+              store: deps.store,
+              logger: deps.logger,
+              lane: deps.sandboxLane,
+              temporalConfig: deps.temporalConfig,
+            },
+            loadedExecution(ctx),
+          );
+        },
+      },
       newUpdateExecutionPhaseAndPersistStep(
         deps,
         ExecutionPhase.EXECUTION_IN_PROGRESS,
