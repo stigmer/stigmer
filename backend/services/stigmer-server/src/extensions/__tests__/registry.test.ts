@@ -19,6 +19,7 @@ import type { ArtifactStorage } from "../../artifactstorage/artifact-storage.js"
 import type { ModelCatalogProvider } from "../../domain/workflow/registry/model-catalog-provider.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RunnerCredentialProvider } from "../../runnerauth/runner-credential-provider.js";
+import type { SandboxProvisionerFactory } from "../../sandbox/provisioner.js";
 import type { WorkerFactory } from "../../temporal/manager.js";
 import type { Authorizer } from "../authorizer.js";
 import type { GateSlotName } from "../gate-slots.js";
@@ -77,6 +78,10 @@ const fakeStorageDriver = (): ArtifactStorage => {
   throw new Error("unit-test storage driver factory — never constructed");
 };
 
+const fakeSandboxDriver: SandboxProvisionerFactory = () => {
+  throw new Error("unit-test sandbox driver factory — never constructed");
+};
+
 describe("resolveExtensions — defaults", () => {
   it("resolves the omitted set to explicit empty defaults, edition oss", () => {
     const resolved = resolveExtensions();
@@ -90,6 +95,7 @@ describe("resolveExtensions — defaults", () => {
     expect(resolved.drivers.modelCatalogProvider).toBeUndefined();
     expect(resolved.drivers.runnerCredentialProvider).toBeUndefined();
     expect(resolved.drivers.artifactStorageDrivers.size).toBe(0);
+    expect(resolved.drivers.sandboxProvisionerDrivers.size).toBe(0);
     expect(resolved.services).toEqual([]);
     expect(resolved.workers).toEqual([]);
   });
@@ -163,6 +169,33 @@ describe("resolveExtensions — merge semantics", () => {
     ]);
     expect(resolved.drivers.artifactStorageDrivers.get("r2-skill")).toBe(
       fakeStorageDriver,
+    );
+  });
+
+  it("merges the O6 sandbox-provisioner drivers as a name-keyed map across units", () => {
+    const resolved = resolveExtensions([
+      {
+        name: "fly-unit",
+        drivers: {
+          sandboxProvisionerDrivers: new Map([
+            ["fly-machines", fakeSandboxDriver],
+          ]),
+        },
+      },
+      {
+        name: "firecracker-unit",
+        drivers: {
+          sandboxProvisionerDrivers: new Map([
+            ["firecracker", fakeSandboxDriver],
+          ]),
+        },
+      },
+    ]);
+    expect(
+      [...resolved.drivers.sandboxProvisionerDrivers.keys()].sort(),
+    ).toEqual(["firecracker", "fly-machines"]);
+    expect(resolved.drivers.sandboxProvisionerDrivers.get("fly-machines")).toBe(
+      fakeSandboxDriver,
     );
   });
 });
@@ -289,6 +322,46 @@ describe("resolveExtensions — loud-fail throws (DD-006 §2b)", () => {
       ).toThrowError(
         new RegExp(
           `extension 'shadowing' registers artifact-storage driver '${name}', which shadows a built-in backend`,
+        ),
+      );
+    }
+  });
+
+  it("throws on a duplicated sandbox-provisioner name across units, naming both", () => {
+    expect(() =>
+      resolveExtensions([
+        {
+          name: "first-sbx",
+          drivers: {
+            sandboxProvisionerDrivers: new Map([["fly", fakeSandboxDriver]]),
+          },
+        },
+        {
+          name: "second-sbx",
+          drivers: {
+            sandboxProvisionerDrivers: new Map([["fly", fakeSandboxDriver]]),
+          },
+        },
+      ]),
+    ).toThrowError(
+      /extension 'second-sbx' registers sandbox provisioner 'fly', but 'first-sbx' already did/,
+    );
+  });
+
+  it("throws on a sandbox-provisioner name shadowing a built-in driver", () => {
+    for (const name of ["local-process", "docker", "kubernetes"]) {
+      expect(() =>
+        resolveExtensions([
+          {
+            name: "shadowing",
+            drivers: {
+              sandboxProvisionerDrivers: new Map([[name, fakeSandboxDriver]]),
+            },
+          },
+        ]),
+      ).toThrowError(
+        new RegExp(
+          `extension 'shadowing' registers sandbox provisioner '${name}', which shadows a built-in driver`,
         ),
       );
     }

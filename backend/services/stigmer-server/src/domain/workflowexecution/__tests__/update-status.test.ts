@@ -437,6 +437,7 @@ describe("updateStatus persistence mechanism (DD-001)", () => {
           logger: silentLogger,
           broker,
           authorizer: newPermissiveSingleTeamAuthorizer(),
+          sandboxTerminalObserver: () => {},
         },
         create(WorkflowExecutionUpdateStatusInputSchema, {
           executionId: "wfx_missing",
@@ -473,6 +474,7 @@ describe("updateStatus persistence mechanism (DD-001)", () => {
         logger: silentLogger,
         broker,
         authorizer: newPermissiveSingleTeamAuthorizer(),
+        sandboxTerminalObserver: () => {},
       },
       create(WorkflowExecutionUpdateStatusInputSchema, {
         executionId: "wfx_mechanism",
@@ -505,6 +507,7 @@ describe("updateStatus persistence mechanism (DD-001)", () => {
             logger: silentLogger,
             broker,
             authorizer: newPermissiveSingleTeamAuthorizer(),
+            sandboxTerminalObserver: () => {},
           },
           create(WorkflowExecutionUpdateStatusInputSchema, {
             executionId: id,
@@ -547,6 +550,7 @@ describe("updateStatus persistence mechanism (DD-001)", () => {
           logger: silentLogger,
           broker,
           authorizer: newPermissiveSingleTeamAuthorizer(),
+          sandboxTerminalObserver: () => {},
         },
         create(WorkflowExecutionUpdateStatusInputSchema, {
           executionId: id,

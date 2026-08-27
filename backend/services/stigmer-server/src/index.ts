@@ -20,7 +20,8 @@
  *     not-found errors the ratified store-fault mapping keys on)
  *   - the driver interfaces (Store, ArtifactStorage; O5 added §6a/§6b/§6c —
  *     ModelCatalogProvider, the widened storage surface, and
- *     RunnerCredentialProvider; §6d's sandbox provisioner joins with O6)
+ *     RunnerCredentialProvider; O6 added §6d — SandboxProvisioner and its
+ *     factory/registration types)
  *   - the worker factory types extension workers implement (§8)
  *
  * The package stays private and unpublished: this is the library contract
@@ -33,7 +34,12 @@ export type { ComposeOptions, ComposedServer } from "./boot/compose.js";
 export { loadConfig } from "./boot/config.js";
 export type { ServerConfig } from "./boot/config.js";
 export { createLogger } from "./boot/logger.js";
-export type { LogFields, Logger, LoggerOptions, LogLevel } from "./boot/logger.js";
+export type {
+  LogFields,
+  Logger,
+  LoggerOptions,
+  LogLevel,
+} from "./boot/logger.js";
 
 // The extension-point types (DD-006 — the seven-point registry).
 export type {
@@ -78,7 +84,10 @@ export {
 // keys on (typed not-found → NotFound; anything else rethrows as an
 // infrastructure fault — the guidelines' instanceof idiom).
 export type { Store } from "./store/interface.js";
-export { AuditNotFoundError, ResourceNotFoundError } from "./store/interface.js";
+export {
+  AuditNotFoundError,
+  ResourceNotFoundError,
+} from "./store/interface.js";
 export type {
   ArtifactStorage,
   ArtifactStorageDriverFactory,
@@ -99,6 +108,20 @@ export {
   MintingDisabledError,
   TOKEN_TYPE_EXECUTION_SCOPED,
 } from "./runnerauth/runnerauth.js";
+
+// The O6 driver seam (§6d): the sandbox-provisioner contract an extension
+// implements to register its own isolation driver (selected through the
+// SANDBOX_PROVISIONER_TYPE knob), plus the reserved built-in names its
+// registrations may never shadow.
+export type {
+  SandboxDriverConfig,
+  SandboxEnvironment,
+  SandboxProbeState,
+  SandboxProvisioner,
+  SandboxProvisionerFactory,
+  SandboxScope,
+} from "./sandbox/provisioner.js";
+export { BUILT_IN_SANDBOX_PROVISIONER_TYPES } from "./sandbox/provisioner.js";
 
 // The worker factory types extension workers implement (§8).
 export type { WorkerFactory, WorkerFactoryDeps } from "./temporal/manager.js";
