@@ -129,6 +129,19 @@ export {
   TOKEN_TYPE_EXECUTION_SCOPED,
 } from "./runnerauth/runnerauth.js";
 
+// The cross-edition secret envelope (enc:v1 — AES-256-GCM, the format the
+// Java SecretEncryptionService shares): compositions building extension
+// domains with secret-bearing columns seal under the SAME envelope the
+// OSS store uses (C4 gate ruling Q4's interim posture; C2/C3 inherit the
+// seam). The service, not the primitives — the format stays defined
+// exactly once.
+export {
+  DecryptionFailedError,
+  EncryptionDisabledError,
+  InvalidCiphertextError,
+  SecretService,
+} from "./encryption/encryption.js";
+
 // The O6 driver seam (§6d): the sandbox-provisioner contract an extension
 // implements to register its own isolation driver (selected through the
 // SANDBOX_PROVISIONER_TYPE knob), plus the reserved built-in names its
