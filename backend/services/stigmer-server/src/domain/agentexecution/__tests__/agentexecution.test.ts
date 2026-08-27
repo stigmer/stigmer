@@ -52,7 +52,10 @@ import {
   ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { CapturedFileChangeSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
-import { SubmitApprovalInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
+import {
+  SubmitApprovalInputSchema,
+  SubmitFileDecisionInputSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
 import { AgentExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/query_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -62,6 +65,7 @@ import { composeServer } from "../../../boot/compose.js";
 import type { ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
 import { executionUsageReportNotFoundMessage } from "../constants.js";
+import type { AgentExecutionStatusTransition } from "../../../extensions/status-hooks.js";
 import type {
   ConnectedExecutionEngine,
   ExecutionEngineState,
@@ -69,6 +73,7 @@ import type {
 import { EngineWorkflowNotFoundError } from "../engine.js";
 import { aggregateDigest, fileDigest } from "../filereview/digest.js";
 import { submitApproval } from "../submit-approval.js";
+import { submitFileDecision } from "../submit-file-decision.js";
 import { stubConnectedEngine } from "./engine-stub.js";
 
 const silentLogger = createLogger({
@@ -1109,6 +1114,8 @@ describe("the engine-connected signal arms (stubbed engine, direct calls)", () =
       authorizer: newPermissiveSingleTeamAuthorizer(),
       broker: server.agentExecutionStreamBroker,
       engineState: () => ({ connected: true, engine }) as ExecutionEngineState,
+      gateSteps: new Map(),
+      statusObservers: [],
     };
   }
 
@@ -1203,6 +1210,48 @@ describe("the engine-connected signal arms (stubbed engine, direct calls)", () =
       (final.status?.approvalEventStream?.events ?? []).length,
     ).toBeGreaterThan(0);
     expect(final.status?.pendingApprovals).toHaveLength(0);
+  });
+
+  // O4 (20260827.07, ruling Q3): the reconcile's →FAILED stamp is notify
+  // site 4 of 5 — a terminal transition the update-status chokepoint
+  // never sees.
+  it("the stale-workflow reconcile notifies the composed status observers", async () => {
+    const id = await seed(
+      gatedSeed({ toolCalls: [{ id: "tc-obs", name: "Write" }] }),
+    );
+    const observed: AgentExecutionStatusTransition[] = [];
+    const deps = {
+      ...stubDeps(
+        stubConnectedEngine({
+          signalApprovalGateResolved: async (executionId) => {
+            throw new EngineWorkflowNotFoundError(executionId);
+          },
+        }),
+      ),
+      statusObservers: [
+        (t: AgentExecutionStatusTransition): void => void observed.push(t),
+      ],
+    };
+
+    await expectCode(
+      () =>
+        submitApproval(
+          deps,
+          create(SubmitApprovalInputSchema, {
+            agentExecutionId: id,
+            toolCallId: "tc-obs",
+            action: ApprovalAction.APPROVE,
+          }),
+          testCallerIdentity(),
+        ),
+      Code.FailedPrecondition,
+    );
+    expect(observed).toHaveLength(1);
+    expect(observed[0]?.oldPhase).toBe(
+      ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+    );
+    expect(observed[0]?.newPhase).toBe(ExecutionPhase.EXECUTION_FAILED);
+    expect(observed[0]?.execution.metadata?.id).toBe(id);
   });
 });
 
@@ -1309,6 +1358,55 @@ describe("submitFileDecision over the wire", () => {
       (c) => c.id === changeSetId,
     );
     expect(csRepeat?.decisions).toHaveLength(1);
+  });
+
+  // O4 (20260827.07, ruling Q3): the file-review reconcile twin is notify
+  // site 5 of 5.
+  it("the workflow-gone reconcile notifies the composed status observers", async () => {
+    const { init, changeSetId, aggregate } = ledgerSeed();
+    const id = await seed(init);
+    const observed: AgentExecutionStatusTransition[] = [];
+    const deps = {
+      store: server.store,
+      logger: silentLogger,
+      authorizer: newPermissiveSingleTeamAuthorizer(),
+      broker: server.agentExecutionStreamBroker,
+      engineState: () =>
+        ({
+          connected: true,
+          engine: stubConnectedEngine({
+            signalApprovalGateResolved: async (executionId: string) => {
+              throw new EngineWorkflowNotFoundError(executionId);
+            },
+          }),
+        }) as ExecutionEngineState,
+      statusObservers: [
+        (t: AgentExecutionStatusTransition): void => void observed.push(t),
+      ],
+    };
+
+    // A CHANGE_SET decision resolves the whole gate, so the signal fires
+    // and the vanished workflow triggers the reconcile.
+    await expectCode(
+      () =>
+        submitFileDecision(
+          deps,
+          create(SubmitFileDecisionInputSchema, {
+            agentExecutionId: id,
+            changeSetId,
+            scope: FileDecisionScope.CHANGE_SET,
+            action: FileDecisionAction.APPROVE,
+            expectedDigest: aggregate,
+          }),
+          testCallerIdentity(),
+        ),
+      Code.FailedPrecondition,
+    );
+    expect(observed).toHaveLength(1);
+    expect(observed[0]?.oldPhase).toBe(
+      ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+    );
+    expect(observed[0]?.newPhase).toBe(ExecutionPhase.EXECUTION_FAILED);
   });
 
   it("refuses a stale digest, an unknown change set, and FILE scope without an id", async () => {

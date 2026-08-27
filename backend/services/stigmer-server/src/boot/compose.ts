@@ -377,6 +377,10 @@ export async function composeServer(
         logger,
         broker: agentExecutionStreamBroker,
         authorizer,
+        // O4: the worker's status-merge activity reuses updateStatus, so
+        // the workflow's terminal writes notify the same composed hooks.
+        statusObservers: extensions.statusObservers,
+        responseDecorators: extensions.responseDecorators,
         temporalConfig,
       }),
       newWorkflowExecutionWorkerFactory({
@@ -611,7 +615,16 @@ export async function composeServer(
   }
   const routes = (router: ConnectRouter): void => {
     registerHealthService(router, healthState);
-    registerOrganizationServices(router, { store, logger, authorizer });
+    // The O4 extension points ride the same explicit-deps pattern the
+    // authorizer established: the three slot-hosting domains receive the
+    // merged gateSteps; agentexecution additionally receives the
+    // status-transition hooks (both empty in the no-extension composition).
+    registerOrganizationServices(router, {
+      store,
+      logger,
+      authorizer,
+      gateSteps: extensions.gateSteps,
+    });
     registerEnvironmentServices(router, {
       store,
       logger,
@@ -651,6 +664,7 @@ export async function composeServer(
       authorizer,
       temporalConfig,
       agentInstanceCreator: () => requireInProcess().agentInstanceCreator,
+      gateSteps: extensions.gateSteps,
     });
     // The sharing/channel family registers after the agent family, as in
     // Go server.go (agent 378 → agentshare 384 → agentchannel 391 →
@@ -697,6 +711,9 @@ export async function composeServer(
       engineState: executionEngineState,
       modelRegistry: modelCatalog,
       artifactStorage,
+      gateSteps: extensions.gateSteps,
+      statusObservers: extensions.statusObservers,
+      responseDecorators: extensions.responseDecorators,
       agentLoader: () => requireInProcess().executionAgentLoader,
       agentInstanceCreator: () =>
         requireInProcess().executionAgentInstanceCreator,

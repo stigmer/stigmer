@@ -40,6 +40,8 @@ import type {
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
+import type { ResolvedGateSteps } from "../../extensions/gate-slots.js";
+import { stepsForSlot } from "../../extensions/gate-slots.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import { internalError } from "../../pipeline/errors.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
@@ -83,6 +85,8 @@ export interface OrganizationControllerDeps {
   readonly logger: Logger;
   /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
   readonly authorizer: Authorizer;
+  /** The composed slot registrations — this domain's post-persist slot (O4). */
+  readonly gateSteps: ResolvedGateSteps;
 }
 
 /** Registers both organization services on the router (routes stage). */
@@ -113,6 +117,13 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
  * Create — chain per Go buildCreatePipeline: ResolveSlug runs before
  * ValidateProto so clients can omit the slug and have it derived before
  * field constraints (slug pattern, 2–15 chars) are checked.
+ *
+ * The post-persist gate slot splices after Persist, before IndexSearch —
+ * the verified Java OrganizationCreateHandler ordering (FGA tuple
+ * seeding, billing account getOrCreate: synchronous, a failure fails the
+ * request). Java runs these with NO transactional envelope: a slot-step
+ * failure leaves the org row persisted while the request fails, healed by
+ * idempotent retry — inherited semantics (O4 verification V1).
  */
 async function createOrganization(
   deps: OrganizationControllerDeps,
@@ -125,7 +136,7 @@ async function createOrganization(
     callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<typeof OrganizationSchema>(
+  const builder = newPipeline<typeof OrganizationSchema>(
     "organization-create",
     deps.logger,
   )
@@ -141,7 +152,16 @@ async function createOrganization(
     .addStep(newCheckOrgDuplicateStep(deps.store))
     .addStep(newBuildNewStateStep())
     .addStep(newCopySlugToIdStep())
-    .addStep(newPersistStep(deps.store))
+    .addStep(newPersistStep(deps.store));
+  // The ratified post-persist gate slot (blueprint 03 §3a; O4 — see the
+  // doc comment above for the inherited failure semantics). Empty in OSS.
+  for (const step of stepsForSlot<typeof OrganizationSchema>(
+    deps.gateSteps,
+    "org-create:post-persist",
+  )) {
+    builder.addStep(step);
+  }
+  await builder
     .addStep(
       newIndexSearchStep(deps.store, organizationSearchExtractor, deps.logger),
     )

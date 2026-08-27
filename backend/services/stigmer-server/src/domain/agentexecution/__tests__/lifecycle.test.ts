@@ -57,6 +57,7 @@ import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { createLogger } from "../../../boot/logger.js";
+import type { AgentExecutionStatusTransition } from "../../../extensions/status-hooks.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
 import type { Store } from "../../../store/interface.js";
 import type { ManagedEnvironmentService } from "../../mcpserver/oauth/managed-env.js";
@@ -443,6 +444,8 @@ function lifecycleDeps(engineState: ExecutionEngineState): LifecycleDeps {
     broker: new StreamBroker(silentLogger),
     engineState: () => engineState,
     executionContextBuilder: stubBuilderDeps(),
+    gateSteps: new Map(),
+    statusObservers: [],
   };
 }
 
@@ -647,6 +650,118 @@ describe("lifecycle pipelines", () => {
     expect(result.status?.error).toBe("Terminated: disk full");
   });
 
+  // O4 (20260827.07, ruling Q3): the lifecycle persist step is notify
+  // site 2 of 5 — the user-initiated terminal transitions the update-status
+  // chokepoint never sees MUST reach the composed observers (the cloud's
+  // billing finalize settles on exactly these).
+  it("cancel notifies the composed status observers with the persisted transition", async () => {
+    const observed: AgentExecutionStatusTransition[] = [];
+    const deps: LifecycleDeps = {
+      ...lifecycleDeps(connected(stubConnectedEngine())),
+      statusObservers: [(t) => void observed.push(t)],
+    };
+    const id = await seedExecution({
+      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+    });
+    await cancelExecution(deps, cancelInput(id), testCallerIdentity());
+    expect(observed).toHaveLength(1);
+    expect(observed[0]?.oldPhase).toBe(ExecutionPhase.EXECUTION_IN_PROGRESS);
+    expect(observed[0]?.newPhase).toBe(ExecutionPhase.EXECUTION_CANCELLED);
+    expect(observed[0]?.execution.metadata?.id).toBe(id);
+    // The observer sees the PERSISTED snapshot (post-merge contract).
+    expect(observed[0]?.execution.status?.completedAt).not.toBe("");
+  });
+
+  it("terminate notifies the composed status observers", async () => {
+    const observed: AgentExecutionStatusTransition[] = [];
+    const deps: LifecycleDeps = {
+      ...lifecycleDeps(connected(stubConnectedEngine())),
+      statusObservers: [(t) => void observed.push(t)],
+    };
+    const id = await seedExecution({
+      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+    });
+    await terminateExecution(
+      deps,
+      terminateInput(id, "disk full"),
+      testCallerIdentity(),
+    );
+    expect(observed).toHaveLength(1);
+    expect(observed[0]?.newPhase).toBe(ExecutionPhase.EXECUTION_TERMINATED);
+  });
+
+  it("an idempotent already-in-target cancel notifies nothing (no write, no transition)", async () => {
+    const observed: AgentExecutionStatusTransition[] = [];
+    const deps: LifecycleDeps = {
+      ...lifecycleDeps(connected(stubConnectedEngine())),
+      statusObservers: [(t) => void observed.push(t)],
+    };
+    const id = await seedExecution({
+      phase: ExecutionPhase.EXECUTION_CANCELLED,
+    });
+    await cancelExecution(deps, cancelInput(id), testCallerIdentity());
+    expect(observed).toHaveLength(0);
+  });
+
+  // O4: the recover chain's ratified slot position — after workflow
+  // termination, before re-launch side effects (the RearmBillingStep
+  // ordering, blueprint 03 §3a).
+  it("a recover slot gate refuses after termination and before any re-launch side effect", async () => {
+    const terminations: string[] = [];
+    const starts: string[] = [];
+    const deps: LifecycleDeps = {
+      ...lifecycleDeps(
+        connected(
+          stubConnectedEngine({
+            terminateWorkflow: async (executionId) => {
+              terminations.push(executionId);
+            },
+            startInvokeWorkflow: async (params) => {
+              starts.push(params.executionId);
+            },
+          }),
+        ),
+      ),
+      gateSteps: new Map([
+        [
+          "agent-execution-recover:pre-side-effect-gate",
+          [
+            {
+              name: "FakeRearmGate",
+              execute: (): void => {
+                throw new ConnectError(
+                  "fake rearm refused",
+                  Code.FailedPrecondition,
+                );
+              },
+            },
+          ],
+        ],
+      ]),
+    };
+    const id = await seedExecution({
+      phase: ExecutionPhase.EXECUTION_FAILED,
+      sessionId: "ses_lc",
+      error: "runner exploded",
+    });
+
+    const err = await expectCode(
+      () => recoverExecution(deps, recoverInput(id), testCallerIdentity()),
+      Code.FailedPrecondition,
+    );
+    expect(err.rawMessage).toBe("fake rearm refused");
+    // Position proof: the terminated-workflow side of the boundary ran,
+    // the re-launch side did not, and the phase write never happened.
+    expect(terminations).toEqual([id]);
+    expect(starts).toEqual([]);
+    const persisted = await store.getResource(
+      ApiResourceKind.agent_execution,
+      id,
+      AgentExecutionSchema,
+    );
+    expect(persisted.status?.phase).toBe(ExecutionPhase.EXECUTION_FAILED);
+  });
+
   it("resume from PAUSED clears completed_at and returns IN_PROGRESS", async () => {
     const resumed: string[] = [];
     const deps = lifecycleDeps(
@@ -678,6 +793,8 @@ describe("lifecycle pipelines", () => {
       logger: silentLogger,
       authorizer: newPermissiveSingleTeamAuthorizer(),
       broker: new StreamBroker(silentLogger),
+      gateSteps: new Map(),
+      statusObservers: [],
       engineState: () =>
         connected(
           stubConnectedEngine({
@@ -731,6 +848,8 @@ describe("lifecycle pipelines", () => {
       logger: silentLogger,
       authorizer: newPermissiveSingleTeamAuthorizer(),
       broker: new StreamBroker(silentLogger),
+      gateSteps: new Map(),
+      statusObservers: [],
       engineState: () =>
         connected(
           stubConnectedEngine({
@@ -772,6 +891,8 @@ describe("lifecycle pipelines", () => {
       logger: silentLogger,
       authorizer: newPermissiveSingleTeamAuthorizer(),
       broker: new StreamBroker(silentLogger),
+      gateSteps: new Map(),
+      statusObservers: [],
       engineState: () =>
         connected(
           stubConnectedEngine({
@@ -820,6 +941,8 @@ describe("lifecycle pipelines", () => {
       logger: silentLogger,
       authorizer: newPermissiveSingleTeamAuthorizer(),
       broker: new StreamBroker(silentLogger),
+      gateSteps: new Map(),
+      statusObservers: [],
       engineState: () =>
         connected(
           stubConnectedEngine({
@@ -861,6 +984,8 @@ describe("lifecycle pipelines", () => {
       logger: silentLogger,
       authorizer: newPermissiveSingleTeamAuthorizer(),
       broker: new StreamBroker(silentLogger),
+      gateSteps: new Map(),
+      statusObservers: [],
       engineState: () => connected(stubConnectedEngine()),
       executionContextBuilder: {
         ...builderDeps,
@@ -974,6 +1099,8 @@ describe("lifecycle persist uses the atomic updateResource", () => {
         broker: new StreamBroker(silentLogger),
         engineState: () => connected(stubConnectedEngine()),
         executionContextBuilder: stubBuilderDeps(),
+        gateSteps: new Map(),
+        statusObservers: [],
       };
 
       // Seed through the RAW store so the seed write is not counted.

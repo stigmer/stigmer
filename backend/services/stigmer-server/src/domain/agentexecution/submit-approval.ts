@@ -47,6 +47,9 @@ import { enumToJson } from "@bufbuild/protobuf";
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
+import type { ResolvedGateSteps } from "../../extensions/gate-slots.js";
+import { stepsForSlot } from "../../extensions/gate-slots.js";
+import type { AgentExecutionStatusObserver } from "../../extensions/status-hooks.js";
 import {
   failedPreconditionError,
   internalError,
@@ -71,6 +74,7 @@ import { projectPendingApprovals } from "./approval/project.js";
 import type { ExecutionEngineStateProvider } from "./engine.js";
 import { EngineWorkflowNotFoundError } from "./engine.js";
 import { countAwaitingReview } from "./filereview/gate.js";
+import { notifyStatusObservers } from "./status-observers.js";
 import { settleInterruptedToolCalls } from "./tool-call-settle.js";
 import type { StreamBroker } from "./stream-broker.js";
 
@@ -81,6 +85,10 @@ export interface SubmitApprovalDeps {
   readonly authorizer: Authorizer;
   readonly broker: StreamBroker;
   readonly engineState: ExecutionEngineStateProvider;
+  /** The composed slot registrations — this chain's approval gate slot (O4). */
+  readonly gateSteps: ResolvedGateSteps;
+  /** O4: the stale-workflow reconcile's →FAILED stamp is a notified transition. */
+  readonly statusObservers: ReadonlyArray<AgentExecutionStatusObserver>;
 }
 
 type SubmitApprovalDesc =
@@ -101,7 +109,7 @@ export async function submitApproval(
     identity,
     ApiResourceKind.agent_execution,
   );
-  await newPipeline<SubmitApprovalDesc>(
+  const builder = newPipeline<SubmitApprovalDesc>(
     "agent-execution-submit-approval",
     deps.logger,
   )
@@ -190,7 +198,17 @@ export async function submitApproval(
           );
         }
       },
-    })
+    });
+  // The ratified approval gate slot (blueprint 03 §3a; O4): after
+  // ValidateApproval, before the approval side effects (the record is the
+  // atomic read-modify-write). Empty in OSS.
+  for (const step of stepsForSlot<SubmitApprovalDesc>(
+    deps.gateSteps,
+    "agent-execution-submit-approval:gate",
+  )) {
+    builder.addStep(step);
+  }
+  await builder
     .addStep({
       name: "RecordApprovalDecision",
       async execute(ctx) {
@@ -455,6 +473,15 @@ async function reconcileStaleExecution(
   deps.logger.info("RECONCILIATION: Updated stale execution status to FAILED", {
     executionId,
   });
+
+  // O4 site 4 of 5 (status-observers.ts): the reconcile's →FAILED stamp
+  // is a persisted terminal transition.
+  await notifyStatusObservers(
+    deps,
+    reconciled,
+    execution.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED,
+    ExecutionPhase.EXECUTION_FAILED,
+  );
 }
 
 /**

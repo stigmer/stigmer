@@ -16,23 +16,40 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { create } from "@bufbuild/protobuf";
-import { createClient } from "@connectrpc/connect";
+import type { DescMessage } from "@bufbuild/protobuf";
+import { Code, ConnectError, createClient } from "@connectrpc/connect";
 import type { Transport } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { AgentExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/command_pb";
+import {
+  ExecutionControlSignal,
+  ExecutionPhase,
+} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
+import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
 import { BillingQueryController } from "@stigmer/protos/ai/stigmer/billing/v1/query_pb";
 import { BillingAccountSchema } from "@stigmer/protos/ai/stigmer/billing/v1/billing_account_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import {
   PlatformQueryController,
   ServerEdition,
 } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
+import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
+import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
 
 import type { ArtifactStorage } from "../../artifactstorage/artifact-storage.js";
 import { loadConfig } from "../../boot/config.js";
 import { composeServer } from "../../boot/compose.js";
 import type { ComposedServer } from "../../boot/compose.js";
 import { createLogger } from "../../boot/logger.js";
+import type { PipelineStep } from "../../pipeline/pipeline.js";
+import type { GateSlotName } from "../gate-slots.js";
+import type { AgentExecutionStatusTransition } from "../status-hooks.js";
 import type { ServerExtension } from "../registry.js";
 
 const BILLING_PROCEDURE =
@@ -79,7 +96,9 @@ describe("extension composition (composed server)", () => {
       host: "127.0.0.1",
     });
     const port = await server.start();
-    portTransport = createGrpcTransport({ baseUrl: `http://127.0.0.1:${port}` });
+    portTransport = createGrpcTransport({
+      baseUrl: `http://127.0.0.1:${port}`,
+    });
   });
 
   afterAll(async () => {
@@ -192,8 +211,7 @@ describe("extension composition (O5 driver substitution)", () => {
               download: (key) =>
                 Promise.resolve(blobs.get(key) ?? new Uint8Array()),
               size: (key) => Promise.resolve(blobs.get(key)?.length ?? 0),
-              presignPut: () =>
-                Promise.reject(new Error("not exercised here")),
+              presignPut: () => Promise.reject(new Error("not exercised here")),
               getSignedUrl: () => Promise.resolve("https://blob.invalid"),
               delete: () => Promise.resolve(),
               exists: (key) => Promise.resolve(blobs.has(key)),
@@ -239,7 +257,10 @@ describe("extension composition (O5 driver substitution)", () => {
   });
 
   it("the platform exchange mints through the substituted credential provider", async () => {
-    const client = createClient(PlatformQueryController, server.inProcessTransport);
+    const client = createClient(
+      PlatformQueryController,
+      server.inProcessTransport,
+    );
     const out = await client.getRunnerScopedToken({
       scope: { case: "agentExecutionId", value: "aex_substituted" },
     });
@@ -249,5 +270,213 @@ describe("extension composition (O5 driver substitution)", () => {
 
   it("the artifact factory constructed the registered blob driver exactly once", () => {
     expect(blobDriverConstructed).toBe(1);
+  });
+});
+
+/**
+ * The O4 gate-slot + status-hook arms: an extension gate spliced into a
+ * declared slot refuses with its own ConnectError code and copy — before
+ * the side effect on the pre-side-effect slot (nothing persisted), after
+ * it on the post-persist slot (the row survives the failed request, the
+ * inherited Java semantics — O4 verification V1); the status observers
+ * see the terminal updateStatus transition exactly once (the Q4
+ * phase-change rule) and the response decorator contributes the control
+ * signal on the shared reply schema.
+ */
+describe("extension composition (O4 gate slots + status hooks)", () => {
+  const REFUSED_SESSION = "o4-refused-session";
+  const REFUSED_ORG_SLUG = "o4refusedorg";
+  let server: ComposedServer;
+  let dir: string;
+  let portTransport: Transport;
+  const observed: AgentExecutionStatusTransition[] = [];
+
+  const sessionGate: PipelineStep<DescMessage> = {
+    name: "FakeSessionGate",
+    execute: (ctx) => {
+      const session = ctx.newState as { metadata?: { name?: string } };
+      if (session.metadata?.name === REFUSED_SESSION) {
+        throw new ConnectError(
+          "fake session gate refuses this session",
+          Code.PermissionDenied,
+        );
+      }
+    },
+  };
+
+  const orgPostPersistGate: PipelineStep<DescMessage> = {
+    name: "FakeOrgPostPersistGate",
+    execute: (ctx) => {
+      const org = ctx.newState as { metadata?: { slug?: string } };
+      if (org.metadata?.slug === REFUSED_ORG_SLUG) {
+        throw new ConnectError(
+          "fake tuple seeding failed",
+          Code.FailedPrecondition,
+        );
+      }
+    },
+  };
+
+  const gateExtension: ServerExtension = {
+    name: "fake-gates-and-hooks",
+    gateSteps: new Map<GateSlotName, ReadonlyArray<PipelineStep<DescMessage>>>([
+      ["session-create:pre-side-effect-gate", [sessionGate]],
+      ["org-create:post-persist", [orgPostPersistGate]],
+    ]),
+    statusTransitionHooks: {
+      observers: [
+        (transition): void => {
+          observed.push(transition);
+        },
+      ],
+      responseDecorators: [
+        (_execution, response): void => {
+          response.signal = ExecutionControlSignal.STOP;
+        },
+      ],
+    },
+  };
+
+  beforeAll(async () => {
+    dir = mkdtempSync(path.join(tmpdir(), "gate-slot-hook-test-"));
+    server = await composeServer({
+      config: loadConfig({
+        STIGMER_MODEL_REGISTRY_REFRESH: "off",
+        DB_PATH: path.join(dir, "stigmer.db"),
+        STORAGE_PATH: path.join(dir, "storage"),
+        ARTIFACT_LOCAL_BASE_PATH: path.join(dir, "artifacts"),
+      }),
+      logger: createLogger({ level: "error", pretty: false, write: () => {} }),
+      extensions: [gateExtension],
+      portOverride: 0,
+      host: "127.0.0.1",
+    });
+    const port = await server.start();
+    portTransport = createGrpcTransport({
+      baseUrl: `http://127.0.0.1:${port}`,
+    });
+  });
+
+  afterAll(async () => {
+    await server.shutdown();
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("a pre-side-effect gate refusal aborts session create with nothing persisted", async () => {
+    const command = createClient(SessionCommandController, portTransport);
+    const query = createClient(SessionQueryController, portTransport);
+
+    let refused: ConnectError | undefined;
+    try {
+      await command.create(
+        create(SessionSchema, {
+          apiVersion: "agentic.stigmer.ai/v1",
+          kind: "Session",
+          metadata: { name: REFUSED_SESSION, org: "acme" },
+          spec: { agentInstanceId: "agi_gate_test" },
+        }),
+      );
+    } catch (error) {
+      refused = ConnectError.from(error);
+    }
+    // The gate's own code and copy reach the wire (the §3b refusal
+    // contract: a gate refuses exactly as OSS steps do).
+    expect(refused?.code).toBe(Code.PermissionDenied);
+    expect(refused?.rawMessage).toBe("fake session gate refuses this session");
+
+    // Pre-side-effect means pre-persist: no session row exists.
+    let getError: ConnectError | undefined;
+    try {
+      await query.get({ value: `ses_${REFUSED_SESSION}` });
+    } catch (error) {
+      getError = ConnectError.from(error);
+    }
+    expect(getError?.code).toBe(Code.NotFound);
+  });
+
+  it("a passing gate is invisible: session create succeeds through the slot", async () => {
+    const command = createClient(SessionCommandController, portTransport);
+    const session = await command.create(
+      create(SessionSchema, {
+        apiVersion: "agentic.stigmer.ai/v1",
+        kind: "Session",
+        metadata: { name: "o4-allowed-session", org: "acme" },
+        spec: { agentInstanceId: "agi_gate_test" },
+      }),
+    );
+    expect(session.metadata?.id).not.toBe("");
+  });
+
+  it("a post-persist gate failure fails the request but the org row survives (inherited Java semantics)", async () => {
+    const command = createClient(OrganizationCommandController, portTransport);
+    const query = createClient(OrganizationQueryController, portTransport);
+
+    let refused: ConnectError | undefined;
+    try {
+      await command.create(
+        create(OrganizationSchema, {
+          apiVersion: "tenancy.stigmer.ai/v1",
+          kind: "Organization",
+          metadata: { name: "O4 Refused Org", slug: REFUSED_ORG_SLUG },
+        }),
+      );
+    } catch (error) {
+      refused = ConnectError.from(error);
+    }
+    expect(refused?.code).toBe(Code.FailedPrecondition);
+    expect(refused?.rawMessage).toBe("fake tuple seeding failed");
+
+    // The slot sits AFTER Persist: the row was committed before the gate
+    // refused — healed by idempotent retry, never rolled back (V1).
+    const org = await query.get({ value: REFUSED_ORG_SLUG });
+    expect(org.metadata?.slug).toBe(REFUSED_ORG_SLUG);
+  });
+
+  it("observers see the terminal updateStatus transition once and the decorator contributes the signal", async () => {
+    const executionId = "aexec_o4_hooks";
+    await server.store.saveResource(
+      ApiResourceKind.agent_execution,
+      executionId,
+      AgentExecutionSchema,
+      create(AgentExecutionSchema, {
+        metadata: { id: executionId, name: executionId, org: "acme" },
+        spec: { message: "hook test" },
+        status: { phase: ExecutionPhase.EXECUTION_IN_PROGRESS },
+      }),
+    );
+    const command = createClient(
+      AgentExecutionCommandController,
+      portTransport,
+    );
+
+    observed.length = 0;
+    const reply = await command.updateStatus({
+      executionId,
+      status: {
+        phase: ExecutionPhase.EXECUTION_COMPLETED,
+        completedAt: "2026-08-27T10:00:00Z",
+        messages: [{ content: "done" }],
+      },
+    });
+    // The decorator's contribution rides the field the shared reply
+    // schema already carries (§7 — the cloud's control-signal seam).
+    expect(reply.signal).toBe(ExecutionControlSignal.STOP);
+    expect(observed).toHaveLength(1);
+    expect(observed[0]?.oldPhase).toBe(ExecutionPhase.EXECUTION_IN_PROGRESS);
+    expect(observed[0]?.newPhase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(observed[0]?.execution.metadata?.id).toBe(executionId);
+
+    // A repeat report with the phase unchanged decorates the reply but
+    // does NOT re-notify (the Q4 phase-change rule).
+    const repeat = await command.updateStatus({
+      executionId,
+      status: {
+        phase: ExecutionPhase.EXECUTION_COMPLETED,
+        completedAt: "2026-08-27T10:00:00Z",
+        messages: [{ content: "done" }],
+      },
+    });
+    expect(repeat.signal).toBe(ExecutionControlSignal.STOP);
+    expect(observed).toHaveLength(1);
   });
 });

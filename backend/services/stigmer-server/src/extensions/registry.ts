@@ -23,7 +23,9 @@
  *
  * Consumption map (each point's consumer entry): services + workers +
  * edition are consumed here in O1; identity verifiers + authorizer land
- * with O2; gate steps + status hooks with O4; the O5 driver kinds
+ * with O2; gate steps are consumed at the chain splice sites (the
+ * gate-slots.ts slot table) and status hooks at the agentexecution
+ * transition sites (status-observers.ts), both O4; the O5 driver kinds
  * (catalog provider, artifact-storage registration, runner-credential
  * provider) are consumed at their compose.ts construction sites; sandbox
  * provisioners land with O6.
@@ -42,7 +44,7 @@ import type { WorkerFactory } from "../temporal/manager.js";
 import type { Authorizer } from "./authorizer.js";
 import type { ExtensionDrivers } from "./drivers.js";
 import { DECLARED_GATE_SLOTS } from "./gate-slots.js";
-import type { GateSlotName } from "./gate-slots.js";
+import type { GateSlotName, ResolvedGateSteps } from "./gate-slots.js";
 import type { IdentityVerifier } from "./identity.js";
 import type {
   AgentExecutionResponseDecorator,
@@ -119,10 +121,7 @@ export interface ResolvedExtensions {
   readonly authorizer: Authorizer | undefined;
   readonly identityVerifiers: ReadonlyArray<IdentityVerifier>;
   /** Slot name → steps, validated against DECLARED_GATE_SLOTS. */
-  readonly gateSteps: ReadonlyMap<
-    string,
-    ReadonlyArray<PipelineStep<DescMessage>>
-  >;
+  readonly gateSteps: ResolvedGateSteps;
   readonly statusObservers: ReadonlyArray<AgentExecutionStatusObserver>;
   readonly responseDecorators: ReadonlyArray<AgentExecutionResponseDecorator>;
   readonly drivers: ResolvedExtensionDrivers;
