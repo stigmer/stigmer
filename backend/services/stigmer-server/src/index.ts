@@ -55,10 +55,9 @@ export type {
 // The caller-identity read idiom for extension-registered services (C2
 // Stage 3, 20260827.10): extension RPC handlers traverse the same
 // interceptor chain as OSS controllers, so the identity stamped at chain
-// position 1 is already on the HandlerContext — this accessor is the ONE
-// sanctioned way to read it (loud-fails on a transport built without an
-// identity source, never a silent placeholder principal).
-export { callerIdentityOf } from "./pipeline/interceptors/auth.js";
+// position 1 is already on the HandlerContext — the exported accessor
+// below (with the R5 propagation surface) is the ONE sanctioned way to
+// read it.
 export type {
   Authorizer,
   AuthzCheck,
@@ -104,6 +103,19 @@ export {
   notFoundError,
   unavailableError,
 } from "./pipeline/errors.js";
+// The shared slug derivation (C2 Stage 3): extension-registered resource
+// kinds derive slugs with the SAME generator both editions pin
+// (ApiRequestResourceSlugGenerator parity) — the semantics live exactly
+// once.
+export { generateSlug } from "./pipeline/steps/slug.js";
+// The in-process caller-propagation surface (ruling R5): extension code
+// composing requests through the in-process transport AS a caller rides
+// the same header the OSS asCaller adapters use.
+export {
+  callerIdentityOf,
+  encodeInProcessCaller,
+  IN_PROCESS_CALLER_HEADER,
+} from "./pipeline/interceptors/auth.js";
 
 // The driver interfaces and the store-fault classes the ratified mapping
 // keys on (typed not-found → NotFound; anything else rethrows as an
