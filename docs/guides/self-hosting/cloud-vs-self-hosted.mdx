@@ -1,0 +1,125 @@
+---
+title: Cloud vs self-hosted
+description:
+  Stigmer is one platform you can run two ways. Compare what self-hosting
+  includes with what Stigmer Cloud adds, and decide which fits your team.
+---
+
+Stigmer is fully open source under Apache 2.0, and the same platform runs two
+ways. **Self-hosting** gives your team everything it needs to run Stigmer for
+itself, on infrastructure you control. **Stigmer Cloud** is the managed service:
+it runs the same platform for many teams at once and adds the capabilities that
+only make sense when someone operates Stigmer as a service — tenancy, SSO,
+billing, and the operations behind them.
+
+The contracts are identical either way. Your Agents, Workflows, Skills, and the
+CLI and SDKs that drive them work against both — moving between them is a
+configuration change, not a rewrite.
+
+## The short answer
+
+**Choose self-hosted if:**
+
+- Your data or compliance posture requires everything on your infrastructure.
+- You already operate Postgres and Docker (or Kubernetes) and want full control.
+- One team uses the server, and your own OIDC provider handles sign-in.
+- You want to pay LLM providers directly with your own API keys.
+
+**Choose Stigmer Cloud if:**
+
+- You want to build with Agents today, not operate a platform.
+- You need multiple Organizations, SSO/SAML, or per-resource permissions.
+- You want Agents reachable in Slack and WhatsApp.
+- You prefer one metered bill over managing provider keys and infrastructure.
+
+## Side by side
+
+| Capability                                       | Self-hosted                                                           | Stigmer Cloud                                               |
+| ------------------------------------------------ | --------------------------------------------------------------------- | ----------------------------------------------------------- |
+| Agents, Workflows, Skills, Sessions, MCP servers | Full — the same contracts                                             | Full — the same contracts                                   |
+| Storage                                          | Your Postgres                                                         | Managed                                                     |
+| Authentication                                   | Your OIDC provider + API keys                                         | Hosted login, SSO/SAML, identity federation, PlatformClient |
+| Organizations                                    | One                                                                   | As many as you need                                         |
+| Permissions                                      | One team — every authenticated member has full access                 | Fine-grained, per-resource roles and sharing                |
+| Sandbox isolation                                | Pluggable drivers: local process, Docker, Kubernetes (off by default) | Managed Kubernetes isolation                                |
+| Channels (Slack, WhatsApp)                       | Not available                                                         | Included                                                    |
+| LLM costs                                        | Your provider keys, billed by providers directly                      | Metered prepaid credits, one bill                           |
+| Model catalog                                    | Bundled, refreshes automatically                                      | Always current                                              |
+| Operations, backups, upgrades                    | Yours                                                                 | Managed                                                     |
+
+## What self-hosting includes
+
+Self-hosting is not a trial edition. The
+[Docker Compose stack](/docs/guides/self-hosting/docker-compose) runs the
+complete platform — the server, a real Temporal server, Postgres, and the runner
+that executes your Agents and Workflows — with durable state in volumes you own
+and back up.
+
+- **The full platform contract.** Every Agent, Workflow, Skill, Session, and MCP
+  server capability works exactly as it does on Stigmer Cloud, through the same
+  API, CLI, and SDKs.
+- **Authentication on your terms.** Point the server at any OIDC provider you
+  control — Keycloak, Okta, Auth0, Dex — and mint API keys for machines. See
+  [Enable authentication](/docs/guides/self-hosting/authentication).
+- **Your LLM relationships.** You bring your own provider API keys and pay
+  providers directly. There is no Stigmer billing when you self-host — see
+  [Billing](/docs/concepts/billing#self-hosting).
+- **Sandbox isolation as configuration.** The server can start execution
+  sandboxes through pluggable isolation drivers — local process, Docker, or
+  Kubernetes. Isolation is off by default: the stock Docker Compose stack runs
+  the runner as a single trust domain, as its setup guide states up front.
+- **One Organization, one team.** Everyone who can authenticate can use
+  everything on the server. There are no per-resource permissions.
+
+## What Stigmer Cloud adds
+
+Stigmer Cloud runs the same platform and layers on what a managed, multi-tenant
+service requires:
+
+- **Tenancy and governance.** Multiple Organizations, invitations, SSO/SAML, and
+  fine-grained per-resource permissions and sharing.
+- **Identity for your product.** Bring your users with
+  [identity federation or PlatformClient](/docs/guides/authentication/overview)
+  — trust relationships and token minting that let your platform's users reach
+  Stigmer without managing credentials themselves.
+- **Channels.** Agents that talk to your users
+  [in Slack and WhatsApp](/docs/guides/channels) — webhook delivery, provider
+  apps, and outbound messaging are cloud infrastructure.
+- **Metered LLM billing.** LLM calls route through the managed proxy with
+  per-call metering, budget reservations, and cost caps — prepaid credits
+  instead of juggling provider keys. See [Billing](/docs/concepts/billing).
+- **Someone else on call.** Upgrades, backups, scaling, and sandbox isolation
+  are operated for you.
+
+The boundary is deliberate: capabilities land in open source when a team
+self-hosting Stigmer for itself needs them, and in Stigmer Cloud when they only
+exist because Stigmer runs the platform as a service for many teams.
+
+## Know the limitations
+
+Two honest caveats before you commit to self-hosting today:
+
+- **The web console cannot sign in to an authenticated server yet.** With
+  authentication on, use the CLI and SDKs; keep the console for unauthenticated
+  local use. Console login is on the roadmap — see the
+  [authentication guide's limitation note](/docs/guides/self-hosting/authentication#known-limitation-the-web-console).
+- **Docker Compose is the supported packaging.** There is no Helm chart or
+  Kubernetes operator for the stack itself; you adapt the compose file to your
+  own infrastructure.
+
+## Next step
+
+Self-hosting starts with one compose file and a `.env`.
+
+<Cards>
+  <Card
+    title="Self-host with Docker Compose"
+    href="/docs/guides/self-hosting/docker-compose"
+  >
+    Run the complete stack — server, Postgres, Temporal, and runner — on a
+    machine you control, and run your first Agent on it.
+  </Card>
+  <Card title="Start on Stigmer Cloud" href="https://app.stigmer.ai">
+    Skip the infrastructure. Sign in and run your first Agent in minutes.
+  </Card>
+</Cards>

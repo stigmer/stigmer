@@ -60,7 +60,14 @@ const HOW_IT_WORKS_STEPS = [
   },
 ] as const;
 
-const FAQ_ITEMS = [
+type FaqItem = {
+  q: string;
+  a: string;
+  /** Optional deep link rendered after the answer. */
+  link?: { href: string; label: string };
+};
+
+const FAQ_ITEMS: readonly FaqItem[] = [
   {
     q: "What are credits?",
     a: "Credits are dollar-denominated units used for Stigmer Cloud billing. 1 credit = $0.01 USD. When your AI agents make LLM calls, tokens are metered and the cost is debited from your credit balance.",
@@ -80,6 +87,10 @@ const FAQ_ITEMS = [
   {
     q: "Can I self-host for free?",
     a: "Yes. Stigmer is fully open source under Apache 2.0. Self-host it anywhere — there is no vendor lock-in. Cloud billing only applies when you use Stigmer Cloud (app.stigmer.ai).",
+    link: {
+      href: "/docs/guides/self-hosting/cloud-vs-self-hosted",
+      label: "Compare cloud and self-hosted",
+    },
   },
   {
     q: "How is pricing calculated?",
@@ -258,6 +269,18 @@ function PricingPage() {
                     </h3>
                     <p className="text-sm text-muted-foreground leading-relaxed">
                       {item.a}
+                      {item.link && (
+                        <>
+                          {" "}
+                          <Link
+                            href={item.link.href}
+                            className="text-foreground underline underline-offset-4 hover:text-foreground/80"
+                          >
+                            {item.link.label}
+                          </Link>
+                          .
+                        </>
+                      )}
                     </p>
                   </div>
                 </FadeInUp>
