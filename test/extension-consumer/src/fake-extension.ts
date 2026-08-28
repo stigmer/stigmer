@@ -202,6 +202,10 @@ const credentialProvider: RunnerCredentialProvider = {
   mintSandboxCredential: (request: SandboxCredentialRequest): string =>
     `fake-${request.scope}-token`,
   authorizeExecutionContextRead: async (): Promise<boolean> => false,
+  // The fifth capability (C4 Stage 2): decrypt-key resolution for the
+  // server-managed rpk_ payload keys the bootstrap arm above hands out.
+  resolvePayloadKey: async (keyId: string): Promise<Buffer | undefined> =>
+    keyId === "rpk_fake" ? Buffer.from("a2V5", "base64") : undefined,
 };
 
 /**

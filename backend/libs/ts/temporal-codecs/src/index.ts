@@ -25,6 +25,7 @@ export type {
   BootstrapKeyMaterial,
   EncryptionKey,
   PayloadEncryptionConfig,
+  PayloadKeyResolver,
   SecretReader,
 } from "./encryption/config.js";
 

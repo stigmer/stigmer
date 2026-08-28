@@ -436,7 +436,12 @@ export async function composeServer(
     hostPort: config.temporalHostPort,
     namespace: config.temporalNamespace,
     logger,
-    payloadCodecs: loadServerPayloadCodecs(),
+    // The composed provider's optional resolvePayloadKey capability rides
+    // the decode codec (C4 Stage 2): database-resident rpk_ keys for
+    // desktop-runner histories. Absent → env keys only, today's behavior.
+    payloadCodecs: loadServerPayloadCodecs(
+      runnerCredentials.resolvePayloadKey?.bind(runnerCredentials),
+    ),
     workerFactories: [
       newAgentExecutionWorkerFactory({
         store,

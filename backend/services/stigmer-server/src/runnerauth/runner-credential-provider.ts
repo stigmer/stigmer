@@ -204,6 +204,19 @@ export interface RunnerCredentialProvider {
     rawToken: string,
     executionId: string,
   ): Promise<boolean>;
+
+  /**
+   * Decrypt-key material for a Temporal payload-encryption key id the
+   * server's env-configured codec does not hold (C4 Stage 2: the
+   * server-managed per-identity `rpk_` keys bootstrapCredentials hands
+   * out — resolution belongs on the same object that distributes them).
+   * Threaded into the server's decode-only payload codec at compose;
+   * consulted only when that codec is installed at all (env-keyed — the
+   * cloud composition always configures the platform key). Undefined
+   * means unknown: the codec keeps its pinned fail-closed throw. Absent
+   * method → today's exact behavior (static env keys only).
+   */
+  resolvePayloadKey?(keyId: string): Promise<Buffer | undefined>;
 }
 
 /**
