@@ -58,6 +58,7 @@ import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
+import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
 import {
   newBuildNewStateStep,
   setAuditFieldsForUpdate,
@@ -174,6 +175,7 @@ async function createShare(
     .addStep(newResolveSlugStep())
     .addStep(newCheckDuplicateStep(deps.store))
     .addStep(newBuildNewStateStep())
+    .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newStampAgentPinStep())
     .addStep(newNormalizeReferencesStep())
     .addStep(newPersistStep(deps.store))
@@ -218,6 +220,7 @@ async function update(
     .addStep(newLoadExistingStep(deps.store))
     .addStep(newValidateShareUpdateStep())
     .addStep(newBuildUpdateStateStep())
+    .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
     .addStep(newPersistStep(deps.store))
     .build()

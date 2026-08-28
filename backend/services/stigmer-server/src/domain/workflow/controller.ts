@@ -68,6 +68,11 @@ import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
+import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
+import {
+  newAuthorizeVisibilityTransitionStep,
+  newGuardPublicVisibilityStep,
+} from "../../pipeline/steps/visibility-gates.js";
 import { newBuildUpdateStateStep } from "../../pipeline/steps/build-update-state.js";
 import {
   setAuditFieldsForUpdate,
@@ -219,6 +224,8 @@ async function createWorkflow(
     .addStep(newResolveSlugStep())
     .addStep(newCheckDuplicateStep(deps.store))
     .addStep(newBuildNewStateStep())
+    .addStep(newGuardPublicVisibilityStep(deps.authorizer))
+    .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
     .addStep(newPopulateServerlessValidationStep(deps.logger))
     .addStep(newComputeVersionHashStep(deps.logger))
@@ -274,6 +281,7 @@ async function update(
     .addStep(newResolveSlugStep())
     .addStep(newLoadExistingStep(deps.store))
     .addStep(newBuildUpdateStateStep())
+    .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
     .addStep(newPopulateServerlessValidationStepForUpdate(deps.logger))
     .addStep(newComputeVersionHashStep(deps.logger))
@@ -416,6 +424,12 @@ async function updateVisibility(
       newRecordVisibilityBeforeUpdateStep(UPDATE_VISIBILITY_WORKFLOW_KEY),
     )
     .addStep(newValidateVisibilityUpdateStep())
+    .addStep(
+      newAuthorizeVisibilityTransitionStep(
+        UPDATE_VISIBILITY_WORKFLOW_KEY,
+        deps.authorizer,
+      ),
+    )
     .addStep(newSetWorkflowVisibilityStep())
     .addStep(newPersistWorkflowForVisibilityUpdateStep(deps.store))
     .addStep(

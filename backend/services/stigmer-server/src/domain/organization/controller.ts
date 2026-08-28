@@ -62,6 +62,7 @@ import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
+import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
 import { newBuildNewStateStep } from "../../pipeline/steps/defaults.js";
 import { newBuildUpdateStateStep } from "../../pipeline/steps/build-update-state.js";
 import {
@@ -188,6 +189,7 @@ async function createOrganization(
     .addStep(newValidateVisibilityStep())
     .addStep(newCheckOrgDuplicateStep(deps.store))
     .addStep(newBuildNewStateStep())
+    .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newCopySlugToIdStep())
     .addStep(newPersistStep(deps.store))
     // The C2 tuple step runs BEFORE the slot — the verified Java order
@@ -242,6 +244,7 @@ async function update(
     .addStep(newResolveSlugStep())
     .addStep(newLoadExistingStep(deps.store))
     .addStep(newBuildUpdateStateStep())
+    .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newPersistStep(deps.store))
     .addStep(
       newIndexSearchStep(deps.store, organizationSearchExtractor, deps.logger),

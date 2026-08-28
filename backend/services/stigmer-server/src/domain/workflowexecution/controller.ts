@@ -46,6 +46,7 @@ import { newPipeline } from "../../pipeline/pipeline.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
+import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
 import { newBuildUpdateStateStep } from "../../pipeline/steps/build-update-state.js";
 import { newBuildNewStateStep } from "../../pipeline/steps/defaults.js";
 import { newCheckDuplicateStep } from "../../pipeline/steps/duplicate.js";
@@ -278,6 +279,7 @@ async function createExecution(
     )
     .addStep(newCheckDuplicateStep(deps.store))
     .addStep(newBuildNewStateStep())
+    .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep());
   // The ratified sandbox-acquisition gate slot (blueprint 03 §3a; C4):
   // the Java-verified capacity-gate position — after Authorize and every
@@ -366,6 +368,7 @@ async function update(
     .addStep(newResolveSlugStep())
     .addStep(newLoadExistingStep(deps.store))
     .addStep(newBuildUpdateStateStep())
+    .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
     .addStep(newPersistStep(deps.store))
     .addStep(
