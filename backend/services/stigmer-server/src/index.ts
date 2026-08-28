@@ -112,7 +112,14 @@ export {
 // the sanitized-Internal error contract). Blessing these keeps
 // authorization and validation semantics single-definition: an extension
 // hand-rolling either would re-derive ratified wire behavior.
-export { callerIdentityOf } from "./pipeline/interceptors/auth.js";
+// callerIdentityKey is the stamp side of the same contract — production
+// stamping stays the interceptors' job, but an extension's OWN service
+// tests must stamp what the serving chain stamps (the auth.test.ts
+// idiom) to exercise their chains over a router transport.
+export {
+  callerIdentityKey,
+  callerIdentityOf,
+} from "./pipeline/interceptors/auth.js";
 export { newPipeline } from "./pipeline/pipeline.js";
 export { newAuthorizeStep } from "./pipeline/steps/authorize.js";
 export { newValidateProtoStep } from "./pipeline/steps/validation.js";

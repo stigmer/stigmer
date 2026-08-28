@@ -42,6 +42,7 @@ import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_inf
 
 import {
   ArtifactStorageNotFoundError,
+  callerIdentityKey,
   callerIdentityOf,
   composeServer,
   createLogger,
@@ -378,6 +379,11 @@ const registerBillingService = (router: ConnectRouter): void => {
   const method = BillingQueryController.method.getBillingAccount;
   router.service(BillingQueryController, {
     getBillingAccount: async (input, ctx) => {
+      // The stamp side of the identity contract compiles for consumers
+      // too — extension service TESTS set this key on their router
+      // transport's contextValues (production stamping stays the
+      // interceptors' job).
+      void ctx.values.get(callerIdentityKey);
       const reqCtx = new RequestContext(
         method.input,
         input,
