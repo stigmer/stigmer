@@ -40,6 +40,11 @@ import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
+import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
+import {
+  newAuthorizeVisibilityTransitionStep,
+  newGuardPublicVisibilityStep,
+} from "../../pipeline/steps/visibility-gates.js";
 import {
   newBuildNewStateStep,
   setAuditFieldsForUpdate,
@@ -163,6 +168,8 @@ async function createAgent(
     .addStep(newResolveSlugStep())
     .addStep(newCheckDuplicateStep(deps.store))
     .addStep(newBuildNewStateStep())
+    .addStep(newGuardPublicVisibilityStep(deps.authorizer))
+    .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store))
     .addStep(newValidateEnabledToolsStep(deps.store))
@@ -178,7 +185,11 @@ async function createAgent(
       newCreateDefaultInstanceStep(deps.agentInstanceApplier, deps.logger),
     )
     .addStep(
-      newUpdateAgentStatusWithDefaultInstanceStep(deps.store, deps.logger),
+      newUpdateAgentStatusWithDefaultInstanceStep(
+        deps.store,
+        deps.logger,
+        deps.authorizationLifecycle,
+      ),
     )
     .addStep(newIndexSearchStep(deps.store, agentSearchExtractor, deps.logger))
     .build()
@@ -206,6 +217,7 @@ async function update(
     .addStep(newResolveSlugStep())
     .addStep(newLoadExistingStep(deps.store))
     .addStep(newBuildUpdateStateStep())
+    .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store))
     .addStep(newValidateEnabledToolsStep(deps.store))
@@ -339,6 +351,12 @@ async function updateVisibility(
     .addStep(newLoadAgentForVisibilityUpdateStep(deps.store))
     .addStep(newRecordVisibilityBeforeUpdateStep(UPDATE_VISIBILITY_AGENT_KEY))
     .addStep(newValidateVisibilityUpdateStep())
+    .addStep(
+      newAuthorizeVisibilityTransitionStep(
+        UPDATE_VISIBILITY_AGENT_KEY,
+        deps.authorizer,
+      ),
+    )
     .addStep(newSetAgentVisibilityStep())
     .addStep(newPersistAgentForVisibilityUpdateStep(deps.store))
     .addStep(

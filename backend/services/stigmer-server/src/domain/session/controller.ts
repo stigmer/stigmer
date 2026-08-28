@@ -52,6 +52,7 @@ import type { CallerIdentity } from "../../extensions/identity.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
+import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
 import {
   newBuildNewStateStep,
   setAuditFieldsForUpdate,
@@ -196,6 +197,7 @@ async function createSession(
         deps.store,
         deps.agentInstanceCreator,
         deps.logger,
+        deps.authorizationLifecycle,
       ),
     )
     .addStep(newValidateProtoStep())
@@ -203,6 +205,7 @@ async function createSession(
     .addStep(newResolveSlugStep())
     .addStep(newCheckDuplicateStep(deps.store))
     .addStep(newBuildNewStateStep())
+    .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep());
   // The ratified pre-side-effect gate slot (blueprint 03 §3a; O4; Q2
   // ruling — see the create doc comment). Empty in OSS.
@@ -254,6 +257,7 @@ async function update(
     .addStep(newValidateHarnessImmutabilityStep())
     .addStep(newValidateExecutionTargetImmutabilityStep(deps.temporalConfig))
     .addStep(newBuildUpdateStateStep())
+    .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newRecordHarnessStateHistoryStep())
     .addStep(newPersistStep(deps.store))
     .addStep(

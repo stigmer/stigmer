@@ -43,6 +43,7 @@ import { newPipeline } from "../../pipeline/pipeline.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
+import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
 import { newBuildUpdateStateStep } from "../../pipeline/steps/build-update-state.js";
 import {
   newDeleteResourceStep,
@@ -299,6 +300,7 @@ async function createExecution(
     .addStep(newEnsureSessionOrAgentResolvedStep(deps.logger))
     .addStep(newResolveSlugStep())
     .addStep(newBuildNewStateStep())
+    .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
     .addStep(newEnsureEngineAvailableStep(deps.engineState));
   // The ratified pre-side-effect gate slot (blueprint 03 §3a; O4): after
@@ -317,6 +319,7 @@ async function createExecution(
         logger: deps.logger,
         agentLoader: deps.agentLoader,
         agentInstanceCreator: deps.agentInstanceCreator,
+        authorizationLifecycle: deps.authorizationLifecycle,
       }),
     )
     .addStep(

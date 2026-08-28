@@ -36,6 +36,20 @@ export type CallerClass =
   | (string & {});
 
 /**
+ * How the request reached the chain — the transport-trust discriminant
+ * the reserved-label guard keys on (C2 Stage 3, ruling R5; the TS
+ * rendering of the Java isInProcessCall arm, cloud#386). `in-process` is
+ * stamped ONLY by the in-process chain's identity interceptor — only
+ * server code can reach that transport, so the marker is unspoofable —
+ * and it survives caller PROPAGATION: a request-origin in-process call
+ * carries the ORIGINAL caller's identity with this origin, letting the
+ * server compose requests as the user (default-instance factories,
+ * managed environments) without those requests being mistaken for
+ * client-boundary writes. Absent means the wire.
+ */
+export type CallOrigin = "wire" | "in-process";
+
+/**
  * The authenticated caller, produced by the verifier chain and read by the
  * Authorizer and the audit-actor seam. Org membership is DELIBERATELY not
  * carried (blueprint §4b): it is authorization data, resolved by the
@@ -58,6 +72,13 @@ export interface CallerIdentity {
    */
   readonly email?: string;
   readonly displayName?: string;
+  /**
+   * The transport the request entered through (C2 Stage 3, ruling R5).
+   * Absent = the wire; the in-process interceptor stamps `in-process` on
+   * every identity it forwards — minted internal AND propagated caller
+   * alike.
+   */
+  readonly origin?: CallOrigin;
 }
 
 /**

@@ -47,11 +47,31 @@ import type {
 import type { Logger } from "../../boot/logger.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import type {
+  DefaultInstanceLinkedEvent,
   ResolvedParentLink,
   ResourceAuthorizationLifecycle,
   ResourceCreatedEvent,
   VisibilityTupleShape,
 } from "../../extensions/resource-authorization.js";
+
+/**
+ * Fires the driver's default-instance link event (C2 Stage 3 — the
+ * default_of invariant). Called by the pointer-persist sites — every
+ * flow that writes a blueprint's `status.defaultInstanceId` — AFTER the
+ * pointer lands, so the tuple exists iff the pointer names the instance.
+ * No driver (or a driver without the optional method) = no-op — OSS
+ * behavior byte-identical. Synchronous: a throw fails the request; the
+ * persisted pointer survives and a retry converges (idempotent write).
+ */
+export async function notifyDefaultInstanceLinked(
+  lifecycle: ResourceAuthorizationLifecycle | undefined,
+  event: DefaultInstanceLinkedEvent,
+): Promise<void> {
+  if (lifecycle?.onDefaultInstanceLinked === undefined) {
+    return;
+  }
+  await lifecycle.onDefaultInstanceLinked(event);
+}
 import { getKindEnum, getKindMeta, getKindName } from "../apiresource-meta.js";
 import { internalError } from "../errors.js";
 import type { PipelineStep } from "../pipeline.js";

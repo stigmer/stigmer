@@ -25,6 +25,9 @@ import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecu
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
+import type { CallerIdentity } from "../../extensions/identity.js";
+import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
+import { notifyDefaultInstanceLinked } from "../../pipeline/steps/authorization-tuples.js";
 import {
   goWrappedStatusError,
   internalError,
@@ -43,14 +46,15 @@ import type { WorkflowExecutionEngineStateProvider } from "./engine.js";
 type ExecutionDesc = typeof WorkflowExecutionSchema;
 
 /**
- * The narrow workflowinstance CREATE edge (Go
- * workflowInstanceClient.CreateAsSystem) — consumer-defined so the
- * dependency reads at the domain boundary; satisfied by the in-process
- * workflowinstance command client under the process-global operator
- * identity.
+ * The narrow workflowinstance CREATE edge — as the ORIGINAL caller since
+ * C2 Stage 3 (ruling R5, the Java createAsCaller posture): real owner
+ * attribution for the created instance under an enforcing Authorizer.
  */
 export interface ExecutionWorkflowInstanceCreator {
-  createAsSystem(instance: WorkflowInstance): Promise<WorkflowInstance>;
+  createAsCaller(
+    instance: WorkflowInstance,
+    caller: CallerIdentity,
+  ): Promise<WorkflowInstance>;
 }
 export type ExecutionWorkflowInstanceCreatorProvider =
   () => ExecutionWorkflowInstanceCreator;
@@ -83,6 +87,7 @@ export interface CreateDefaultInstanceDeps {
   readonly store: Store;
   readonly logger: Logger;
   readonly workflowInstanceCreator: ExecutionWorkflowInstanceCreatorProvider;
+  readonly authorizationLifecycle?: ResourceAuthorizationLifecycle;
 }
 
 /**
@@ -171,7 +176,7 @@ export function newCreateDefaultInstanceIfNeededStep(
       try {
         createdInstance = await deps
           .workflowInstanceCreator()
-          .createAsSystem(instanceRequest);
+          .createAsCaller(instanceRequest, ctx.callerIdentity);
       } catch (error) {
         if (error instanceof ConnectError) {
           // Go wraps the client error with %w — the inner gRPC code
@@ -230,6 +235,13 @@ async function backfillDefaultInstanceId(
   } catch (error) {
     throw internalError(error, failureMessage);
   }
+  // The default_of invariant rides the pointer persist (C2 Stage 3).
+  await notifyDefaultInstanceLinked(deps.authorizationLifecycle, {
+    instanceKind: ApiResourceKind.workflow_instance,
+    instanceId,
+    blueprintKind: ApiResourceKind.workflow,
+    blueprintId: workflowId,
+  });
 }
 
 /**

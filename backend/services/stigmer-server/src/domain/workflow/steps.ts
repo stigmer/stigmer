@@ -31,6 +31,9 @@ import {
   invalidArgumentError,
 } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
+import type { CallerIdentity } from "../../extensions/identity.js";
+import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
+import { notifyDefaultInstanceLinked } from "../../pipeline/steps/authorization-tuples.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import { AuditNotFoundError } from "../../store/interface.js";
@@ -55,7 +58,15 @@ export const DEFAULT_INSTANCE_ID_KEY = "default_instance_id";
 // ---------------------------------------------------------------------------
 
 export interface WorkflowInstanceCreator {
-  createAsSystem(instance: WorkflowInstance): Promise<WorkflowInstance>;
+  /**
+   * Creates AS THE ORIGINAL CALLER (C2 Stage 3, ruling R5 — the Java
+   * createAsCaller posture): the propagated identity gives the default
+   * instance real owner attribution under an enforcing Authorizer.
+   */
+  createAsCaller(
+    instance: WorkflowInstance,
+    caller: CallerIdentity,
+  ): Promise<WorkflowInstance>;
 }
 
 /**
@@ -522,7 +533,10 @@ export function newCreateDefaultInstanceStep(
       // path.
       let created: WorkflowInstance;
       try {
-        created = await creatorProvider().createAsSystem(instanceRequest);
+        created = await creatorProvider().createAsCaller(
+          instanceRequest,
+          ctx.callerIdentity,
+        );
       } catch (error) {
         if (error instanceof ConnectError) {
           throw goWrappedStatusError("failed to create default instance", error);
@@ -545,6 +559,7 @@ export function newCreateDefaultInstanceStep(
 export function newUpdateWorkflowStatusWithDefaultInstanceStep(
   store: Store,
   logger: Logger,
+  authorizationLifecycle?: ResourceAuthorizationLifecycle,
 ): PipelineStep<WorkflowDesc> {
   return {
     name: "UpdateWorkflowStatusWithDefaultInstance",
@@ -579,6 +594,14 @@ export function newUpdateWorkflowStatusWithDefaultInstanceStep(
           `failed to persist workflow with default instance: ${error instanceof Error ? error.message : String(error)}`,
         );
       }
+
+      // The default_of invariant rides the pointer persist (C2 Stage 3).
+      await notifyDefaultInstanceLinked(authorizationLifecycle, {
+        instanceKind: ApiResourceKind.workflow_instance,
+        instanceId: defaultInstanceId,
+        blueprintKind: ApiResourceKind.workflow,
+        blueprintId: workflowId,
+      });
 
       ctx.setNewState(workflow);
 

@@ -42,6 +42,9 @@ import {
   invalidArgumentError,
 } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
+import type { CallerIdentity } from "../../extensions/identity.js";
+import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
+import { notifyDefaultInstanceLinked } from "../../pipeline/steps/authorization-tuples.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import { RESOURCE_ID_KEY } from "../../pipeline/steps/delete.js";
 import { compareCreatedAtDesc } from "../../pipeline/steps/helpers.js";
@@ -77,7 +80,15 @@ const CHANNEL_ID_LABEL_KEY = "stigmer.ai/channel-id";
  * interceptor chain (DD-002).
  */
 export interface AgentInstanceCreator {
-  createAsSystem(instance: AgentInstance): Promise<AgentInstance>;
+  /**
+   * Creates AS THE ORIGINAL CALLER (C2 Stage 3, ruling R5 — the Java
+   * createAsCaller posture): the propagated identity gives the created
+   * instance real owner attribution under an enforcing Authorizer.
+   */
+  createAsCaller(
+    instance: AgentInstance,
+    caller: CallerIdentity,
+  ): Promise<AgentInstance>;
 }
 
 /**
@@ -109,6 +120,7 @@ export function newResolveDefaultAgentInstanceStep(
   store: Store,
   creator: AgentInstanceCreatorProvider,
   logger: Logger,
+  authorizationLifecycle?: ResourceAuthorizationLifecycle,
 ): PipelineStep<SessionDesc> {
   return {
     name: "ResolveDefaultAgentInstance",
@@ -193,7 +205,10 @@ export function newResolveDefaultAgentInstanceStep(
         // exactly Go's plain-error path.
         let createdInstance: AgentInstance;
         try {
-          createdInstance = await creator().createAsSystem(instanceRequest);
+          createdInstance = await creator().createAsCaller(
+            instanceRequest,
+            ctx.callerIdentity,
+          );
         } catch (error) {
           logger.error("Failed to create default instance", {
             agentId,
@@ -236,6 +251,14 @@ export function newResolveDefaultAgentInstanceStep(
             `failed to persist agent with default instance: ${error instanceof Error ? error.message : String(error)}`,
           );
         }
+
+        // The default_of invariant rides the pointer persist (C2 Stage 3).
+        await notifyDefaultInstanceLinked(authorizationLifecycle, {
+          instanceKind: ApiResourceKind.agent_instance,
+          instanceId: defaultInstanceId,
+          blueprintKind: ApiResourceKind.agent,
+          blueprintId: agentId,
+        });
 
         logger.info("Created default instance for default agent", {
           instanceId: defaultInstanceId,

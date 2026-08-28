@@ -74,8 +74,14 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import type { OrphanDeleter } from "../domain/project/reconcile.js";
 import type { ScheduleExecutionCreator } from "../temporal/schedule/run-starter.js";
 import { buildInterceptorChain } from "../pipeline/chain.js";
-import { createInProcessCallerInterceptor } from "../pipeline/interceptors/auth.js";
+import {
+  createInProcessCallerInterceptor,
+  encodeInProcessCaller,
+  IN_PROCESS_CALLER_HEADER,
+} from "../pipeline/interceptors/auth.js";
+import type { CallerIdentity } from "../extensions/identity.js";
 import type { Logger } from "./logger.js";
+import type { CallOptions } from "@connectrpc/connect";
 
 /** The narrow in-process surfaces the domains consume (DD-002). */
 export interface InProcessClients {
@@ -210,32 +216,43 @@ export function createInProcessClients(
   const mcpServerCommand = createClient(McpServerCommandController, transport);
   const skillCommand = createClient(SkillCommandController, transport);
 
+  // The caller-propagation call options (C2 Stage 3, ruling R5 — the
+  // Java posture restored): the ORIGINAL caller's identity rides the
+  // propagation header (the one client→router channel; contextValues are
+  // server-side); the in-process position-1 interceptor decodes it and
+  // stamps `origin: "in-process"` instead of minting internal. Explicit
+  // per call, never ambient (DD-007's threading doctrine); the serving
+  // chassis strips the header, so the wire cannot forge it.
+  const asCaller = (caller: CallerIdentity): CallOptions => ({
+    headers: { [IN_PROCESS_CALLER_HEADER]: encodeInProcessCaller(caller) },
+  });
+
   const clients: InProcessClients = {
-    // Go's ApplyAsSystem is the Apply RPC through this transport: the
-    // position-1 interceptor stamps the internal caller identity (O2),
-    // whose audit derivation equals the #400 operator actor — so a plain
-    // apply IS the system-actor apply in this edition.
+    // The Apply RPC AS THE ORIGINAL CALLER (ruling R5; Java
+    // applyAsCaller): the default instance's owner attribution lands on
+    // the requesting user, so it stays manageable under an enforcing
+    // Authorizer. Pre-R5 this lane minted the internal class (Go's
+    // ApplyAsSystem shape) — the recorded attribution gap.
     agentInstanceApplier: {
-      applyAsSystem: (instance) => agentInstanceCommand.apply(instance),
+      applyAsCaller: (instance, caller) =>
+        agentInstanceCommand.apply(instance, asCaller(caller)),
     },
-    // Go's CreateAsSystem is the Create RPC under the same process-global
-    // operator identity; session create's resolve step uses CREATE (not
-    // apply) so a duplicate default-instance slug surfaces as
-    // AlreadyExists instead of silently updating.
+    // CREATE (not apply) so a duplicate default-instance slug surfaces
+    // as AlreadyExists instead of silently updating — as the original
+    // caller (ruling R5).
     agentInstanceCreator: {
-      createAsSystem: (instance) => agentInstanceCommand.create(instance),
+      createAsCaller: (instance, caller) =>
+        agentInstanceCommand.create(instance, asCaller(caller)),
     },
     parentAgentLoader: {
       get: (agentId) =>
         agentQuery.get(create(AgentIdSchema, { value: agentId })),
     },
-    // Go's workflowinstance.Client.CreateAsSystem is the Create RPC under
-    // the process-global operator identity; workflow create's
-    // default-instance step uses CREATE (not apply) so a duplicate
-    // default-instance slug surfaces as AlreadyExists instead of silently
-    // updating — same posture as the agent edge above.
+    // CREATE (not apply) for the same AlreadyExists posture — as the
+    // original caller (ruling R5), matching the agent edge above.
     workflowInstanceCreator: {
-      createAsSystem: (instance) => workflowInstanceCommand.create(instance),
+      createAsCaller: (instance, caller) =>
+        workflowInstanceCommand.create(instance, asCaller(caller)),
     },
     // Go's workflow.Client.Get for workflowinstance create's parent load
     // (server.go 657: the other direction of the mutual edge).
@@ -243,8 +260,10 @@ export function createInProcessClients(
       get: (workflowId) =>
         workflowQuery.get(create(WorkflowIdSchema, { value: workflowId })),
     },
-    // The agentexecution edges. CreateAsSystem semantics per the agent
-    // edge above: create under the process-global operator identity.
+    // The agentexecution edges: reads stay under the internal class (the
+    // daemon-safe default); the CREATES propagate the original caller
+    // (ruling R5) so instances and sessions born during execution create
+    // carry their real owner.
     executionAgentLoader: {
       get: (agentId) =>
         agentQuery.get(create(AgentIdSchema, { value: agentId })),
@@ -256,14 +275,16 @@ export function createInProcessClients(
         ),
     },
     executionAgentInstanceCreator: {
-      createAsSystem: (instance) => agentInstanceCommand.create(instance),
+      createAsCaller: (instance, caller) =>
+        agentInstanceCommand.create(instance, asCaller(caller)),
     },
     executionSessionLoader: {
       get: (sessionId) =>
         sessionQuery.get(create(SessionIdSchema, { value: sessionId })),
     },
     executionSessionCreator: {
-      create: (session) => sessionCommand.create(session),
+      createAsCaller: (session, caller) =>
+        sessionCommand.create(session, asCaller(caller)),
     },
     executionEnvironmentReader: {
       list: (request) => environmentQuery.list(request),
@@ -279,12 +300,12 @@ export function createInProcessClients(
       create: (ec) => executionContextCommand.create(ec),
       delete: (input) => executionContextCommand.delete(input),
     },
-    // The workflowexecution edges. CreateAsSystem semantics per the
-    // workflow edge above: create under the process-global operator
-    // identity (default-instance self-heal must surface duplicate slugs
-    // as AlreadyExists).
+    // The workflowexecution edges: the default-instance self-heal creates
+    // as the original caller (ruling R5), surfacing duplicate slugs as
+    // AlreadyExists exactly as before.
     workflowExecutionInstanceCreator: {
-      createAsSystem: (instance) => workflowInstanceCommand.create(instance),
+      createAsCaller: (instance, caller) =>
+        workflowInstanceCommand.create(instance, asCaller(caller)),
     },
     workflowExecutionInstanceLoader: {
       get: (instanceId) =>

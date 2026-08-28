@@ -149,6 +149,10 @@ export function createVerifierChainInterceptor(
   requireAuthentication = false,
 ): Interceptor {
   return (next) => async (request) => {
+    // The in-process propagation header is meaningless — and forgeable —
+    // on the wire: stripped unconditionally before anything downstream
+    // could read it (ruling R5's unspoofability-by-construction arm).
+    request.header.delete(IN_PROCESS_CALLER_HEADER);
     const token = parseBearerToken(request.header.get("authorization") ?? "");
     let identity: CallerIdentity | undefined;
     if (token !== "") {
@@ -183,18 +187,70 @@ export function createVerifierChainInterceptor(
 }
 
 /**
- * The in-process transport's position-1 identity source: stamps the
- * internal caller class carrying the operator's identity fields, so
- * audit stamps on in-process writes stay byte-identical to the wire
- * lane's (both derive from the same #400 seam). The Authorize step treats
- * the internal class as the in-process authorization skip (ruling Q4).
+ * The caller-propagation header of the in-process lane (C2 Stage 3,
+ * ruling R5). Client CallOptions carry no contextValues across the
+ * router transport, so the asCaller adapters (boot/inprocess.ts) ride
+ * the one channel that does cross it: a request header, base64url JSON.
+ * Unspoofable from the wire BY CONSTRUCTION: the serving chassis strips
+ * it before anything can read it, and only the in-process interceptor —
+ * reachable only by server code — honors it.
+ */
+export const IN_PROCESS_CALLER_HEADER = "x-stigmer-inprocess-caller";
+
+/** Encodes a CallerIdentity for the propagation header. */
+export function encodeInProcessCaller(caller: CallerIdentity): string {
+  return Buffer.from(JSON.stringify(caller)).toString("base64url");
+}
+
+/**
+ * The in-process transport's position-1 identity source. Two arms since
+ * C2 Stage 3 (ruling R5 — the caller-propagation amendment restoring the
+ * Java posture, where in-process calls carried the ORIGINAL caller):
+ *
+ *   - PROPAGATED: a request-origin adapter passed the original caller's
+ *     identity through {@link IN_PROCESS_CALLER_HEADER} (the asCaller
+ *     edges) — it forwards with `origin: "in-process"` stamped, so
+ *     attribution (owner/creator tuples, audit) lands on the real user
+ *     while transport-trust arms (the reserved-label guard) still see
+ *     the server-composed origin.
+ *   - MINTED: no propagated identity — the daemon-origin default (the
+ *     schedule clock, the project reconciler): the internal caller class
+ *     carrying the operator's identity fields, so audit stamps on
+ *     daemon writes stay byte-identical to the pre-R5 posture. The
+ *     Authorize step treats the internal class as the in-process
+ *     authorization skip (ruling Q4).
+ *
+ * A malformed propagation header is a WIRING BUG (only server code can
+ * write it) — loud INTERNAL, never a silent fall-through to a wrong
+ * identity.
  */
 export function createInProcessCallerInterceptor(): Interceptor {
   return (next) => (request) => {
-    request.contextValues.set(callerIdentityKey, {
-      ...trustedLocalIdentity(),
-      callerClass: "internal",
-    });
+    const encoded = request.header.get(IN_PROCESS_CALLER_HEADER);
+    let identity: CallerIdentity;
+    if (encoded !== null) {
+      request.header.delete(IN_PROCESS_CALLER_HEADER);
+      try {
+        identity = {
+          ...(JSON.parse(
+            Buffer.from(encoded, "base64url").toString("utf8"),
+          ) as CallerIdentity),
+          origin: "in-process",
+        };
+      } catch (error) {
+        throw internalError(
+          error instanceof Error ? error : new Error(String(error)),
+          "internal server error",
+        );
+      }
+    } else {
+      identity = {
+        ...trustedLocalIdentity(),
+        callerClass: "internal",
+        origin: "in-process",
+      };
+    }
+    request.contextValues.set(callerIdentityKey, identity);
     return next(request);
   };
 }

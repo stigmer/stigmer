@@ -70,6 +70,7 @@ import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
+import { newAuthorizeVisibilityTransitionStep } from "../../pipeline/steps/visibility-gates.js";
 import {
   newCleanupIamPoliciesStep,
   newRecordVisibilityBeforeUpdateStep,
@@ -413,6 +414,12 @@ async function updateVisibility(
     .addStep(newLoadSkillForVisibilityUpdateStep(deps.store))
     .addStep(newRecordVisibilityBeforeUpdateStep(UPDATE_VISIBILITY_SKILL_KEY))
     .addStep(newValidateVisibilityUpdateStep())
+    .addStep(
+      newAuthorizeVisibilityTransitionStep(
+        UPDATE_VISIBILITY_SKILL_KEY,
+        deps.authorizer,
+      ),
+    )
     .addStep(newSetVisibilityStep())
     .addStep(newPersistSkillForVisibilityUpdateStep(deps.store))
     .addStep(

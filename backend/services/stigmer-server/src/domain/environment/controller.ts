@@ -56,6 +56,8 @@ import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
+import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
+import { newAuthorizeVisibilityTransitionStep } from "../../pipeline/steps/visibility-gates.js";
 import {
   newBuildNewStateStep,
   setAuditFieldsForUpdate,
@@ -185,6 +187,7 @@ async function createEnvironment(
     .addStep(newCheckDuplicateStep(deps.store))
     .addStep(newEnforcePersonalUniquenessStep(deps.store))
     .addStep(newBuildNewStateStep())
+    .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newPreserveRedactedSecretsStep())
     .addStep(newEncryptSecretValuesStep(deps.secretService, deps.logger))
     .addStep(newPersistStep(deps.store))
@@ -226,6 +229,7 @@ async function update(
     .addStep(newResolveSlugStep())
     .addStep(newLoadExistingStep(deps.store))
     .addStep(newBuildUpdateStateStep())
+    .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newPreserveRedactedSecretsStep())
     .addStep(newEncryptSecretValuesStep(deps.secretService, deps.logger))
     .addStep(newNormalizeReferencesStep())
@@ -374,6 +378,12 @@ async function updateVisibility(
     // After load, per the cross-edition error precedence: unknown id +
     // bad level = NOT_FOUND on both editions.
     .addStep(newValidateVisibilityUpdateStep())
+    .addStep(
+      newAuthorizeVisibilityTransitionStep(
+        UPDATE_VISIBILITY_ENVIRONMENT_KEY,
+        deps.authorizer,
+      ),
+    )
     .addStep(newValidateEnvironmentShareRestrictionStep())
     .addStep(newSetEnvironmentVisibilityStep())
     .addStep(newPersistEnvironmentForVisibilityUpdateStep(deps.store))

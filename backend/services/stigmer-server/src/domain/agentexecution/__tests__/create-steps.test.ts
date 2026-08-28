@@ -308,7 +308,7 @@ it("createSessionIfNeeded surfaces the inner status code of a failed session cre
   const step = newCreateSessionIfNeededStep({
     logger: silentLogger,
     sessionCreator: () => ({
-      create: async () => {
+      createAsCaller: async () => {
         throw new ConnectError(
           "session subject too long",
           Code.InvalidArgument,
