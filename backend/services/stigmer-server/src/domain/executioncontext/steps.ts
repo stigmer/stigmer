@@ -25,9 +25,14 @@ import type { ExecutionContextExecutionIdInput } from "@stigmer/protos/ai/stigme
 import type { ExecutionValue } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
 import type { ExecutionContextQueryController } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/query_pb";
 
+import { Code, ConnectError } from "@connectrpc/connect";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+
 import type { Logger } from "../../boot/logger.js";
 import { isCiphertextShaped } from "../../encryption/encryption.js";
 import type { SecretService } from "../../encryption/encryption.js";
+import type { Authorizer, AuthzDecision } from "../../extensions/authorizer.js";
 import {
   internalError,
   invalidArgumentError,
@@ -175,6 +180,72 @@ export function newLoadByExecutionIdStep(
       }
 
       ctx.set(TARGET_RESOURCE_KEY, executionContext);
+    },
+  };
+}
+
+/**
+ * AuthorizeCreate — the Java ExecutionContextCreateHandler.AuthorizeCreate
+ * port (stigmer-cloud#297; C2 Stage 3D): the create RPC skips the
+ * declarative position-1 check (in-process creators — the agent/workflow
+ * execution machinery — already authorized the run against its
+ * session-or-org and act as the machine account), so EXTERNAL callers are
+ * gated here instead: they must hold can_create_execution_in on
+ * metadata.org — the same permission that gates creating an execution in
+ * the org, so members and org guests pass and an outsider refuses.
+ * Ordered before the duplicate check so an unauthorized caller learns
+ * nothing about which execution ids exist.
+ *
+ * OSS byte-identity: the permissive authorizer allows every check, so the
+ * single-user posture is unchanged (the rosters prove it).
+ */
+export function newAuthorizeExecutionContextCreateStep(
+  authorizer: Authorizer,
+): PipelineStep<typeof ExecutionContextSchema> {
+  return {
+    name: "AuthorizeCreate",
+    async execute(
+      ctx: RequestContext<typeof ExecutionContextSchema>,
+    ): Promise<void> {
+      const caller = ctx.callerIdentity;
+      if (caller.callerClass === "internal" || caller.origin === "in-process") {
+        return; // authorized upstream — the Java in-process trust arm
+      }
+      let decision: AuthzDecision;
+      try {
+        decision = await authorizer.authorize(caller, {
+          permission: IamPermission.can_create_execution_in,
+          resourceKind: ApiResourceKind.organization,
+          resourceId: ctx.newState.metadata?.org ?? "",
+        });
+      } catch (error) {
+        throw internalError(
+          error instanceof Error ? error : new Error(String(error)),
+          "execution-context create authorization could not be completed",
+        );
+      }
+      switch (decision.kind) {
+        case "allow":
+          return;
+        case "deny":
+        case "not-found":
+          throw new ConnectError(
+            "unauthorized to create execution context in this organization",
+            Code.PermissionDenied,
+          );
+        case "unavailable":
+          throw internalError(
+            decision.cause,
+            "execution-context create authorization could not be completed",
+          );
+        default: {
+          const exhaustive: never = decision;
+          throw internalError(
+            new Error(`unknown decision ${JSON.stringify(exhaustive)}`),
+            "execution-context create authorization could not be completed",
+          );
+        }
+      }
     },
   };
 }

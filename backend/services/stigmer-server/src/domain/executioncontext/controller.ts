@@ -94,6 +94,7 @@ import { resolveValuesForCaller } from "./resolve-values-for-caller.js";
 import { executionContextSearchExtractor } from "./search-extractor.js";
 import {
   newEncryptSecretValuesStep,
+  newAuthorizeExecutionContextCreateStep,
   newLoadByExecutionIdStep,
   newRejectCiphertextShapedStep,
 } from "./steps.js";
@@ -171,6 +172,9 @@ async function createExecutionContext(
       ),
     )
     .addStep(newValidateProtoStep())
+    // The Java AuthorizeCreate order (#297): before the duplicate check,
+    // so an unauthorized caller learns nothing about existing ids.
+    .addStep(newAuthorizeExecutionContextCreateStep(deps.authorizer))
     .addStep(newValidateVisibilityStep())
     .addStep(newRejectCiphertextShapedStep())
     .addStep(newResolveSlugStep())
