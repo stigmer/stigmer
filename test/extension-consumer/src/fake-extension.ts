@@ -42,6 +42,7 @@ import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_inf
 
 import {
   ArtifactStorageNotFoundError,
+  callerIdentityOf,
   composeServer,
   createLogger,
   InvalidTokenError,
@@ -49,10 +50,14 @@ import {
   LOADED_EXECUTION_KEY,
   MintingDisabledError,
   newAgentExecutionTemporalConfigFromEnv,
+  newAuthorizeStep,
   newModelCatalogProviderFromDocument,
+  newPipeline,
   newR2ArtifactStorage,
+  newValidateProtoStep,
   newWorkflowExecutionConfigFromEnv,
   notFoundError,
+  RequestContext,
   ResourceNotFoundError,
   ROUTING_SESSION,
   TOKEN_TYPE_EXECUTION_SCOPED,
@@ -359,10 +364,35 @@ const channelRuntime: ChannelRuntime = {
   },
 };
 
+/**
+ * An extension-registered service handler built the OSS controller idiom
+ * (C4 Stage 4): the verified caller read once via callerIdentityOf, then
+ * a chain fronted by the exported Authorize (descriptor-driven from the
+ * method's proto options — the ratified three-arm decision mapping and
+ * the internal-caller skip consumed, never re-derived) and ValidateProto
+ * steps, executed by the exported pipeline (which owns the
+ * sanitized-Internal error contract). This is the shape every cloud
+ * fleet-domain service takes.
+ */
 const registerBillingService = (router: ConnectRouter): void => {
+  const method = BillingQueryController.method.getBillingAccount;
   router.service(BillingQueryController, {
-    getBillingAccount: (input) =>
-      create(BillingAccountSchema, { orgId: input.orgId }),
+    getBillingAccount: async (input, ctx) => {
+      const reqCtx = new RequestContext(
+        method.input,
+        input,
+        callerIdentityOf(ctx),
+      );
+      await newPipeline<typeof method.input>(
+        "consumer-billing-get",
+        createLogger({ level: "error", pretty: false }),
+      )
+        .addStep(newAuthorizeStep(method, authorizer))
+        .addStep(newValidateProtoStep())
+        .build()
+        .execute(reqCtx);
+      return create(BillingAccountSchema, { orgId: reqCtx.newState.orgId });
+    },
   });
 };
 
