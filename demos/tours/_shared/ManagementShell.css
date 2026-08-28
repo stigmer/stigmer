@@ -1,6 +1,6 @@
 /*
  * ManagementShell frame — only what the console's app shell (not its
- * sidebar) owns: the 280px sidebar column (`w-70` + right border), the
+ * sidebar) owns: the 240px sidebar column (`w-60` + right border), the
  * content pane, and the Scenar seams (engine-driven hover). The sidebar's
  * own chrome is the real `SettingsSidebar` from `@stigmer/react`, styled
  * by the compiled SDK stylesheet — there is no replica CSS left to drift
@@ -18,10 +18,10 @@
   font-family: var(--stgm-font-sans);
 }
 
-/* The sidebar column the console's AppShell owns: 280px (`w-70`), right
+/* The sidebar column the console's AppShell owns: 240px (`w-60`), right
    border, no shrink. The real sidebar fills it. */
 .sx-mgmt__nav {
-  width: 280px;
+  width: 240px;
   flex-shrink: 0;
   overflow: hidden;
   border-right: 1px solid var(--stgm-sidebar-border);

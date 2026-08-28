@@ -110,7 +110,7 @@ export const CONTRAST_PAIRS: readonly ContrastPair[] = [
 
   // ── Sidebar context ─────────────────────────────────────────────────
   pair("--stgm-sidebar-foreground", "--stgm-sidebar", "text", "sidebar navigation labels"),
-  pair("--stgm-sidebar-muted-foreground", "--stgm-sidebar", "text", "sidebar section headers, secondary labels"),
+  pair("--stgm-sidebar-muted-foreground", "--stgm-sidebar", "text", "sidebar resting nav labels, section headers, secondary labels"),
   pair("--stgm-sidebar-primary-foreground", "--stgm-sidebar-primary", "text", "sidebar primary actions"),
   pair("--stgm-sidebar-accent-foreground", "--stgm-sidebar-accent", "text", "sidebar active/hovered items"),
 

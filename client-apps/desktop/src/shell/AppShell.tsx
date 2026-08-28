@@ -52,10 +52,10 @@ export function AppShell() {
             "shrink-0 overflow-hidden",
             "border-r border-sidebar-border",
             "transition-[width] duration-200 ease-in-out motion-reduce:transition-none",
-            sidebar.isOpen ? "w-[280px]" : "w-0",
+            sidebar.isOpen ? "w-60" : "w-0",
           )}
         >
-          <div className="h-full w-[280px]">
+          <div className="h-full w-60">
             <div
               key={isManagementZone ? "management" : "session"}
               className="h-full animate-in fade-in duration-150"

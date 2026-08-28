@@ -105,13 +105,13 @@ rmSync(bundlesDir, { recursive: true, force: true });
  * 1440x900: a real 16:10 desktop browser-window size, chosen so the depicted
  * console lays out at the density a real user sees. The `--stage` framing
  * insets 48px per side, leaving the depicted window 1344px wide —
- * comfortably above the console's layout minimum (280px sidebar + 48px main
- * padding + 896px `max-w-4xl` content cap = 1224px, the narrowest window at
+ * comfortably above the console's layout minimum (240px sidebar + 48px main
+ * padding + 896px `max-w-4xl` content cap = 1184px, the narrowest window at
  * which the content column renders at full design width) and in the range
  * of a typical laptop browser window. The previous 1280x800 left the app
- * only 1184px after stage insets — below that minimum — so every component
- * occupied an oversized share of the frame and tours read less compact than
- * the product. Tours author at the console's real metrics and this single
+ * only 1184px after stage insets — below the 1224px minimum of the
+ * then-280px sidebar — so every component occupied an oversized share of
+ * the frame and tours read less compact than the product. Tours author at the console's real metrics and this single
  * scale factor at the viewport boundary does all the fitting (DD-008).
  *
  * The docs embed pins this ratio pre-handshake (site scenar-embed.tsx); the

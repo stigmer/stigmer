@@ -9,8 +9,9 @@ import { OrgSwitcher } from "../organization/OrgSwitcher.js";
 // ---------------------------------------------------------------------------
 // Shared sidebar chrome — the pieces WorkspaceSidebar and SettingsSidebar
 // have in common: the nav container, the top row (collapse toggle + org
-// switcher), the hairline separator, the footer band, and the one nav-row
-// class recipe. Internal to the sidebar domain; not exported from the SDK.
+// switcher), the hairline separator, the footer band, and the shared class
+// recipes (nav rows, section labels). Internal to the sidebar domain; not
+// exported from the SDK.
 //
 // Every class here is transcribed from the console's sidebars — this file
 // IS the console's chrome now, so a change here changes the console, the
@@ -107,23 +108,36 @@ export function SidebarSeparator() {
 }
 
 /**
- * The one nav-row class recipe both sidebars share: 14px medium labels,
- * 16px icons (sized by callers), 8px/6px padding, rounded row highlight.
+ * The one nav-row class recipe both sidebars share: 13px/16px regular
+ * labels, 16px icons (sized by callers), 8px/4px padding — 24px rows.
+ * The explicit `leading-4` is load-bearing: without it the inherited
+ * line-height (~1.5) pads every row to ~28px, and across a full column
+ * of rows that difference alone decides whether the sidebar breathes.
+ * 24px also stays exactly at the WCAG 2.5.8 minimum pointer-target size.
  *
- * `muted` renders the resting label in the muted sidebar tone — used by
- * "Back to Sessions", which is an exit, not a destination.
+ * Resting rows are muted so the navigation recedes and the content leads;
+ * the active row carries the accent fill, hover brightens to the accent
+ * foreground. Font weight is constant across states — state is expressed
+ * through color and fill only, so activating a row never shifts its text
+ * width. The muted-on-sidebar pairing is held to WCAG AA by the theme's
+ * contrast contract (sdk/theme/src/contract/pairs.ts) in every preset.
  */
-export function navRowClassName(
-  active: boolean,
-  { muted = false }: { muted?: boolean } = {},
-): string {
+export function navRowClassName(active: boolean): string {
   return cn(
-    "stg:flex stg:items-center stg:gap-2 stg:rounded-lg stg:px-2 stg:py-1.5 stg:text-sm stg:font-medium stg:transition-colors",
+    "stg:flex stg:items-center stg:gap-2 stg:rounded-md stg:px-2 stg:py-1 stg:text-[13px] stg:leading-4 stg:transition-colors",
     active
       ? "stg:bg-sidebar-accent stg:text-sidebar-accent-foreground"
-      : cn(
-          muted ? "stg:text-sidebar-muted-foreground" : "stg:text-sidebar-foreground",
-          "stg:hover:bg-sidebar-accent stg:hover:text-sidebar-accent-foreground",
-        ),
+      : "stg:text-sidebar-muted-foreground stg:hover:bg-sidebar-accent stg:hover:text-sidebar-accent-foreground",
   );
+}
+
+/**
+ * The section-label recipe both sidebars share (settings group labels,
+ * the Recents heading): 11px/16px medium uppercase in the muted sidebar
+ * tone. Spacing around a label stays with the caller — it is a layout
+ * concern; this recipe owns only the typography, so the two sidebars
+ * cannot drift.
+ */
+export function sectionLabelClassName(): string {
+  return "stg:text-sidebar-muted-foreground stg:px-2 stg:text-[11px] stg:leading-4 stg:font-medium stg:tracking-wide stg:uppercase";
 }

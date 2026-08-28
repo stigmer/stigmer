@@ -4,7 +4,7 @@ import { test, expect } from "@playwright/test";
  * Responsive layout tests.
  *
  * Verifies sidebar behavior at mobile (< 1024px) and desktop (>= 1024px)
- * viewports. The sidebar uses width-based collapse (w-70 / w-0 with
+ * viewports. The sidebar uses width-based collapse (w-60 / w-0 with
  * overflow-hidden), not translate-x or hidden. At mobile viewports it
  * becomes a fixed overlay with a backdrop.
  *

@@ -85,15 +85,19 @@ describe("SettingsSidebar", () => {
     expect(inactive.getAttribute("aria-current")).toBeNull();
   });
 
-  it("renders Back to Sessions as a muted exit row targeting backHref", () => {
+  it("renders Back to Sessions as a resting (never-active) row targeting backHref", () => {
     const { container } = renderSidebar(
       <SettingsSidebar {...baseProps()} backHref="/sessions/ses_123" />,
     );
 
     const back = container.querySelector('[data-row-id="back-to-sessions"]')!;
     expect(back.getAttribute("href")).toBe("/sessions/ses_123");
-    expect(back.className).toContain("stg:text-sidebar-muted-foreground");
     expect(back.textContent).toContain("Back to Sessions");
+    // An exit, not a destination: always the resting-row treatment, never
+    // the active accent — even though it is the row you "came from".
+    expect(back.getAttribute("aria-current")).toBeNull();
+    expect(back.className.split(" ")).toContain("stg:text-sidebar-muted-foreground");
+    expect(back.className.split(" ")).not.toContain("stg:bg-sidebar-accent");
   });
 
   it("renders the footer slot", () => {

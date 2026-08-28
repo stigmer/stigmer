@@ -51,7 +51,7 @@ interface ManagementShellProps {
  * sidebar consumes, so the depicted chrome cannot drift from the shipped
  * one (stigmer/stigmer#317).
  *
- * Demo-owned seams only: the 280px column, `data-cursor-target` markers on
+ * Demo-owned seams only: the 240px column, `data-cursor-target` markers on
  * every row (ids are the route basenames plus `back-to-sessions`), fixture
  * identity, and the content transition. The sidebar subtree is `inert` so
  * a paused embed's real menus never open under a reader's stray click.

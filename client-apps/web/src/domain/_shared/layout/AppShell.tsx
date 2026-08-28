@@ -94,11 +94,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             "shrink-0 overflow-hidden",
             "border-sidebar-border border-r",
             "transition-[width] duration-200 ease-in-out motion-reduce:transition-none",
-            sidebar.isOpen ? "w-70" : "w-0",
+            sidebar.isOpen ? "w-60" : "w-0",
             "max-lg:fixed max-lg:inset-y-0 max-lg:left-0 max-lg:z-50 max-lg:shadow-lg",
           )}
         >
-          <div className="h-full w-70">
+          <div className="h-full w-60">
             <div
               key={isManagementZone ? "management" : "session"}
               className="h-full animate-in fade-in duration-150"

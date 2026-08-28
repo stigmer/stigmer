@@ -4,7 +4,12 @@ import type { ReactNode } from "react";
 import { ArrowLeft } from "lucide-react";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import type { SettingsNavGroup } from "../settings/settings-nav.js";
-import { SidebarChrome, SidebarSeparator, navRowClassName } from "./chrome.js";
+import {
+  SidebarChrome,
+  SidebarSeparator,
+  navRowClassName,
+  sectionLabelClassName,
+} from "./chrome.js";
 import type { RenderSidebarLink } from "./types.js";
 
 // ---------------------------------------------------------------------------
@@ -86,13 +91,14 @@ export function SettingsSidebar({
       onOrgChanged={onOrgChanged}
       footer={footer}
     >
-      {/* Back to Sessions */}
+      {/* Back to Sessions — an exit, not a destination; the resting-row
+          treatment (muted, brightening on hover) already reads as such. */}
       <div className="stg:flex-none stg:px-3 stg:py-1">
         {renderLink({
           id: "back-to-sessions",
           href: backHref,
           active: false,
-          className: navRowClassName(false, { muted: true }),
+          className: navRowClassName(false),
           "aria-current": undefined,
           children: (
             <>
@@ -106,10 +112,10 @@ export function SettingsSidebar({
       <SidebarSeparator />
 
       {/* Settings nav links — grouped, permission-aware via `groups` */}
-      <div className="stg:flex stg:flex-col stg:gap-4 stg:px-3 stg:py-1">
+      <div className="stg:flex stg:flex-col stg:gap-5 stg:px-3 stg:py-1">
         {groups.map((group) => (
           <div key={group.label} className="stg:flex stg:flex-col stg:gap-0.5">
-            <span className="stg:text-sidebar-muted-foreground stg:px-2 stg:pb-1 stg:text-[11px] stg:font-medium stg:tracking-wider stg:uppercase">
+            <span className={`${sectionLabelClassName()} stg:pb-1`}>
               {group.label}
             </span>
             {group.items.map((item) => {
