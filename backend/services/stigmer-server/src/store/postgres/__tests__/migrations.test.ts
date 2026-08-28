@@ -1,7 +1,8 @@
 /**
  * Pins the Postgres migration chain (DD-010 §3, independent v1): fresh
  * replay creates the full schema and records the version, reopen is
- * idempotent, and concurrent first boots serialize on the advisory lock
+ * idempotent, a mid-chain database resumes (v1 → v2 picks up the sweep
+ * index), and concurrent first boots serialize on the advisory lock
  * instead of racing the chain — the multi-instance failure class sqlite's
  * single-file lock never had.
  *
@@ -67,6 +68,47 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           "signal_dedupe",
           "workflow_execution_events",
         ]);
+
+        // v2's index: the retention sweep's scan (see migrateToV2).
+        const sweepIndex = await client.query(
+          `SELECT indexname FROM pg_indexes
+           WHERE tablename = 'workflow_execution_events'
+             AND indexname = 'idx_wfee_created_at'`,
+        );
+        expect(sweepIndex.rowCount, "the v2 sweep index exists").toBe(1);
+      } finally {
+        await client.end();
+      }
+    });
+
+    it("a v1 database resumes the chain on reopen: v2's sweep index arrives", async () => {
+      const store = await PostgresStore.open(db.databaseUrl);
+      await store.close();
+
+      // Rewind to a v1 database: drop exactly what v2 created and its
+      // version row — the state any pre-v2 deployment is actually in.
+      const client = new pg.Client({ connectionString: db.databaseUrl });
+      await client.connect();
+      try {
+        await client.query(`DROP INDEX idx_wfee_created_at`);
+        await client.query(`DELETE FROM schema_version WHERE version = 2`);
+
+        const reopened = await PostgresStore.open(db.databaseUrl);
+        await reopened.close();
+
+        const sweepIndex = await client.query(
+          `SELECT indexname FROM pg_indexes
+           WHERE tablename = 'workflow_execution_events'
+             AND indexname = 'idx_wfee_created_at'`,
+        );
+        expect(sweepIndex.rowCount, "reopen applied v2 mid-chain").toBe(1);
+
+        const version = await client.query(
+          `SELECT COALESCE(MAX(version), 0) AS version FROM schema_version`,
+        );
+        expect(Number((version.rows[0] as { version: string }).version)).toBe(
+          CURRENT_SCHEMA_VERSION,
+        );
       } finally {
         await client.end();
       }
