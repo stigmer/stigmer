@@ -44,8 +44,9 @@ type Flow =
  *   categories (on team with key / on team without key / key held but
  *   not on team), each row carrying Cursor's pool-usage percentages
  *   (first-party / API) and cycle spend dollars (included / on-demand).
- *   Off-team rows offer one-click copy of the account's Cursor team
- *   invite link when the operator has configured one.
+ *   The off-team group header offers one-click copy of the account's
+ *   Cursor team invite link when the operator has configured one (one
+ *   button for the group — the link is account-level).
  *
  * Requires `can_manage_cursor_accounts` on `platform:stigmer` —
  * non-operators see the designed access notice. Key material never

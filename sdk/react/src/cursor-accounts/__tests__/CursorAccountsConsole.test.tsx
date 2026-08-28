@@ -21,6 +21,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/platform/cursoraccount/v1/io_pb";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
+import { openMenu } from "../../__tests__/helpers/open-menu";
 import { CursorAccountsConsole } from "../CursorAccountsConsole";
 
 interface MockCursorAccounts {
@@ -257,13 +258,17 @@ describe("CursorAccountsConsole", () => {
     await waitFor(() =>
       expect(screen.getByRole("table", { name: "Team coverage" })).toBeTruthy(),
     );
-    // Category 1: on the team, key held — email, key name, spend, status.
+    // Category 1: on the team, key held — the key name/label folds into
+    // the identity cell (no separate key column: stigmer#929 traded it
+    // for member-column width).
     expect(screen.getByText(/On the team — key held/)).toBeTruthy();
     expect(screen.getByText("zane@scenar.ai")).toBeTruthy();
     expect(screen.getByText("stigmer-prod")).toBeTruthy();
-    // The email is the row's identity: the cell wraps rather than
-    // truncates, so the full value is always visible text on both row
-    // kinds — and never a native title (banned, stigmer-cloud#268).
+    // The email is the row's identity: it truncates with the
+    // overflow-gated house tooltip (never break-words, which #929 showed
+    // degenerating to one character per line under column pressure) and
+    // never a native title (banned, stigmer-cloud#268) — the full value
+    // stays in the DOM as selectable text on both row kinds.
     expect(document.querySelector("[title]")).toBeNull();
     expect(screen.getByText("$0.17")).toBeTruthy(); // included, 169342 micro-USD
     expect(screen.getByText("Active")).toBeTruthy();
@@ -282,6 +287,12 @@ describe("CursorAccountsConsole", () => {
     // Header sync line: active members from server facts, removed seats
     // by list arithmetic (roster entries minus active members).
     expect(screen.getByText(/2 members · 1 removed seat/)).toBeTruthy();
+    // Only key-backed rows carry an actions kebab; gap rows have none.
+    expect(screen.getAllByRole("button", { name: /^Actions for/ })).toHaveLength(1);
+    // The heading subtitle answers roster health without scrolling to
+    // the gap group.
+    expect(screen.getByText(/1 covered/)).toBeTruthy();
+    expect(screen.getByText("1 without keys")).toBeTruthy();
   });
 
   it("affirms full coverage instead of hiding the gap group when every active member holds a key", async () => {
@@ -377,14 +388,16 @@ describe("CursorAccountsConsole", () => {
     expect(screen.getByText("Not on team")).toBeTruthy();
     expect(screen.getByText("Left team")).toBeTruthy();
 
-    // One "Copy invite" per off-team row — a copy, never a navigation.
-    const copyButtons = screen.getAllByRole("button", { name: "Copy invite" });
-    expect(copyButtons).toHaveLength(2);
-    await userEvent.click(copyButtons[0]);
+    // ONE "Copy invite" in the group header — the link is account-level
+    // and identical for every off-team owner, so per-row buttons were
+    // redundant (stigmer#929). Always a copy, never a navigation.
+    await userEvent.click(screen.getByRole("button", { name: "Copy invite" }));
     await waitFor(() =>
       expect(writeText).toHaveBeenCalledWith("https://cursor.com/team-invite/abc"),
     );
     expect(screen.getByRole("button", { name: "Copied" })).toBeTruthy();
+    // The heading subtitle counts the off-team keys.
+    expect(screen.getByText(/2 off-team/)).toBeTruthy();
   });
 
   it("points at the Cursor dashboard when no invite link is configured", async () => {
@@ -446,6 +459,49 @@ describe("CursorAccountsConsole", () => {
     );
     expect(screen.getByText("Awaiting sync")).toBeTruthy();
     expect(screen.queryByText(/Key held — not on the team/)).toBeNull();
+  });
+
+  it("drives Enable/Disable and Remove through the row's kebab menu", async () => {
+    const setMemberKeyEnabled = vi.fn().mockResolvedValue(scenarAccount());
+    const removeMemberKey = vi.fn().mockResolvedValue(scenarAccount());
+    const client = createMockStigmer({
+      listAccounts: vi.fn().mockResolvedValue({ accounts: [scenarSummary()] }),
+      getAccountView: vi.fn().mockResolvedValue(scenarView()),
+      setMemberKeyEnabled,
+      removeMemberKey,
+    });
+    render(<CursorAccountsConsole />, { wrapper: wrapper(client) });
+
+    await waitFor(() => expect(screen.getByText("scenar team")).toBeTruthy());
+    await userEvent.click(screen.getByRole("button", { name: /scenar team/ }));
+    await waitFor(() =>
+      expect(screen.getByRole("table", { name: "Team coverage" })).toBeTruthy(),
+    );
+
+    // The enabled key offers Disable; the menu closes on select.
+    await openMenu(
+      screen.getByRole("button", { name: "Actions for zane@scenar.ai" }),
+    );
+    await userEvent.click(screen.getByRole("menuitem", { name: "Disable" }));
+    await waitFor(() =>
+      expect(setMemberKeyEnabled).toHaveBeenCalledWith({
+        accountId: "acc-1",
+        keyId: "k-1",
+        enabled: false,
+      }),
+    );
+
+    // Remove is the kebab's destructive item (live-pin-guarded server-side).
+    await openMenu(
+      screen.getByRole("button", { name: "Actions for zane@scenar.ai" }),
+    );
+    await userEvent.click(screen.getByRole("menuitem", { name: "Remove" }));
+    await waitFor(() =>
+      expect(removeMemberKey).toHaveBeenCalledWith({
+        accountId: "acc-1",
+        keyId: "k-1",
+      }),
+    );
   });
 
   it("adds a member key and refreshes both views", async () => {
