@@ -75,6 +75,7 @@ import { newPipeline } from "../../pipeline/pipeline.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
+import { newGuardMemoryCaptureStep } from "../../pipeline/steps/guard-memory-capture.js";
 import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
 import { newBuildNewStateStep } from "../../pipeline/steps/defaults.js";
 import { newBuildUpdateStateStep } from "../../pipeline/steps/build-update-state.js";
@@ -179,6 +180,7 @@ async function createMemory(
       newAuthorizeStep(MemoryCommandController.method.create, deps.authorizer),
     )
     .addStep(newValidateProtoStep())
+    .addStep(newGuardMemoryCaptureStep())
     .addStep(newValidateVisibilityStep())
     .addStep(newResolveMemoryDefaultsStep())
     .addStep(newCheckMemoryEnablementStep(deps.store))
