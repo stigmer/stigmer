@@ -52,6 +52,13 @@ export type {
   CallerIdentity,
   IdentityVerifier,
 } from "./extensions/identity.js";
+// The caller-identity read idiom for extension-registered services (C2
+// Stage 3, 20260827.10): extension RPC handlers traverse the same
+// interceptor chain as OSS controllers, so the identity stamped at chain
+// position 1 is already on the HandlerContext — this accessor is the ONE
+// sanctioned way to read it (loud-fails on a transport built without an
+// identity source, never a silent placeholder principal).
+export { callerIdentityOf } from "./pipeline/interceptors/auth.js";
 export type {
   Authorizer,
   AuthzCheck,

@@ -42,6 +42,7 @@ import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_inf
 
 import {
   ArtifactStorageNotFoundError,
+  callerIdentityOf,
   composeServer,
   createLogger,
   InvalidTokenError,
@@ -323,8 +324,13 @@ const channelRuntime: ChannelRuntime = {
 
 const registerBillingService = (router: ConnectRouter): void => {
   router.service(BillingQueryController, {
-    getBillingAccount: (input) =>
-      create(BillingAccountSchema, { orgId: input.orgId }),
+    // The caller-identity read idiom for extension services (C2 Stage 3):
+    // the identity stamped at chain position 1 is readable from the
+    // HandlerContext through the ONE exported accessor.
+    getBillingAccount: (input, ctx) => {
+      void callerIdentityOf(ctx).callerClass;
+      return create(BillingAccountSchema, { orgId: input.orgId });
+    },
   });
 };
 
