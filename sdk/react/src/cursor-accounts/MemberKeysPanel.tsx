@@ -143,7 +143,31 @@ export function MemberKeysPanel({
 
   return (
     <section className="stg:space-y-2">
-      <h4 className="stg:text-xs stg:font-semibold stg:text-foreground">Team coverage</h4>
+      <div>
+        <h4 className="stg:text-xs stg:font-semibold stg:text-foreground">Team coverage</h4>
+        {/* One-line health subtitle so the coverage answer is readable
+            even when the gap group sits below the fold. The counts are
+            the table's own groups (no re-derivation); the gap count is
+            the attention point, tinted only when it is non-zero. Before
+            the first sync there is nothing to classify, so no subtitle. */}
+        {coverage.hasRoster && (
+          <p className="stg:text-[11px] stg:text-muted-foreground">
+            {coverage.onTeamWithKey.length} covered
+            {" · "}
+            <span
+              className={cn(
+                coverage.onTeamWithoutKey.length > 0 &&
+                  "stg:font-medium stg:text-destructive",
+              )}
+            >
+              {coverage.onTeamWithoutKey.length} without keys
+            </span>
+            {coverage.offTeamWithKey.length > 0
+              ? ` · ${coverage.offTeamWithKey.length} off-team`
+              : ""}
+          </p>
+        )}
+      </div>
 
       {keyViews.length === 0 && (
         <p className="stg:text-xs stg:text-muted-foreground" role="status">
