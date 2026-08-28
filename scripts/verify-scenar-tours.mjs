@@ -63,7 +63,7 @@
  *    recordings — a single live frame composited four of them.
  *
  * 7. REPLICA METRICS. Each REPLICA_METRIC_PAIRS entry pins one geometry
- *    fact the demos re-state (the shells' 280px column, SessionView's
+ *    fact the demos re-state (the shells' 240px column, SessionView's
  *    frame) on both sides so drift in either direction fails here instead
  *    of shipping (the drift class that produced the 112px/10px sidebar
  *    whose "New Session" wrapped onto two lines). The sidebar chrome
@@ -449,23 +449,23 @@ export function findCssScaleFactors(cssText) {
  * (stigmer/stigmer#317), the console, desktop app, and tours share one
  * markup source and that whole drift class is structural, not policed.
  * What remains pinned is the one sidebar fact the demo re-states (the
- * 280px `w-70` column the console's AppShell owns) and the SessionView
+ * 240px `w-60` column the console's AppShell owns) and the SessionView
  * geometry the demo owns around the real `SessionViewerLayout`.
  */
 export const REPLICA_METRIC_PAIRS = [
   {
-    fact: "sidebar column width (console `w-70` = 280px)",
+    fact: "sidebar column width (console `w-60` = 240px)",
     replica: "demos/tours/_shared/AppShell.css",
-    replicaNeedle: "width: 280px",
+    replicaNeedle: "width: 240px",
     real: "client-apps/web/src/domain/_shared/layout/AppShell.tsx",
-    realNeedle: '"w-70"',
+    realNeedle: '"w-60"',
   },
   {
-    fact: "management sidebar column width (console `w-70` = 280px)",
+    fact: "management sidebar column width (console `w-60` = 240px)",
     replica: "demos/tours/_shared/ManagementShell.css",
-    replicaNeedle: "width: 280px",
+    replicaNeedle: "width: 240px",
     real: "client-apps/web/src/domain/_shared/layout/AppShell.tsx",
-    realNeedle: '"w-70"',
+    realNeedle: '"w-60"',
   },
   // SessionView renders the SDK's own SessionViewerLayout (scenar-cloud
   // DD-010), so the split and chip geometry need no pairs — there is no

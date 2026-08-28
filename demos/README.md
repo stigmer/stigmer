@@ -42,7 +42,7 @@ and "own" is literal, not aspirational: the two shells render the SDK's
 `WorkspaceSidebar` and `SettingsSidebar` — the same components the web
 console and desktop app ship (sdk-console DD-020; stigmer/stigmer#317) —
 so the depicted sidebar cannot drift from the product. What a shell adds
-is only the Scenar seams: the 280px column the console's app shell owns,
+is only the Scenar seams: the 240px column the console's app shell owns,
 `data-cursor-target` markers and `PulseHighlight` attached through the
 sidebar's `renderLink`, fixture recents/user/org on the frozen clock, and
 the content transition; the sidebar subtree is `inert`. `SessionView` and
@@ -169,12 +169,12 @@ the viewport boundary owns it.
 - **Canonical viewport is 1440×900** (16:10), set explicitly by
   `scripts/pack-all.mjs` — never the CLI default. It is derived, not chosen:
   the `--stage` framing insets 48px per side, so the depicted browser
-  window is 1344px — comfortably above the console's layout minimum (280px
-  sidebar + 48px main padding + 896px `max-w-4xl` content cap = 1224px)
+  window is 1344px — comfortably above the console's layout minimum (240px
+  sidebar + 48px main padding + 896px `max-w-4xl` content cap = 1184px)
   and in the range of a typical laptop window, so the depicted density
   matches what a real user sees. (The original 1280×800 left the app only
-  1184px after stage insets — below that minimum — which made every
-  component read oversized.) The docs embed re-states this viewport as its
+  1184px after stage insets — below the 1224px minimum of the then-280px
+  sidebar — which made every component read oversized.) The docs embed re-states this viewport as its
   pre-handshake aspect pin (`site/src/components/docs/scenar-embed.tsx`);
   gate invariant 9 holds the two in lockstep.
 - **The iframe is the canonical viewport** (M2, iframe-as-screen — landed
@@ -191,8 +191,8 @@ the viewport boundary owns it.
 - **Author at the console's real metrics.** The sidebar needs no
   transcription — the shells render the SDK's own sidebar components
   (DD-020), so its metrics are the console's by construction. What the
-  demos still re-state is pinned by gate invariant 7: the 280px sidebar
-  column (`w-70`, owned by the console's app shell, not its sidebar) and
+  demos still re-state is pinned by gate invariant 7: the 240px sidebar
+  column (`w-60`, owned by the console's app shell, not its sidebar) and
   `SessionView`'s frame. Page content uses the real zone geometry (library
   `mx-auto max-w-4xl px-6 py-8`, settings `max-w-3xl`).
 - **Never author `zoom` or `transform: scale()` in a tour** — not as a

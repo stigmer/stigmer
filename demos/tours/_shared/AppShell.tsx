@@ -49,8 +49,8 @@ interface AppShellProps {
  * `WorkspaceSidebar`, so the depicted chrome cannot drift from the product
  * (stigmer/stigmer#317; the `SessionView` precedent applied to the shell).
  *
- * What stays demo-owned is exactly the Scenar seams: the 280px column the
- * console's app shell owns (`w-70`), the `data-cursor-target` markers and
+ * What stays demo-owned is exactly the Scenar seams: the 240px column the
+ * console's app shell owns (`w-60`), the `data-cursor-target` markers and
  * `PulseHighlight` attached through the sidebar's `renderLink`, the frozen
  * `DEMO_NOW` clock, fixture recents/user, and the content transition. The
  * sidebar subtree is `inert` so a paused embed's real menus never open

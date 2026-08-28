@@ -23,7 +23,12 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from "../internal/tooltip.js";
-import { SidebarChrome, SidebarSeparator, navRowClassName } from "./chrome.js";
+import {
+  SidebarChrome,
+  SidebarSeparator,
+  navRowClassName,
+  sectionLabelClassName,
+} from "./chrome.js";
 import type { RenderSidebarLink } from "./types.js";
 
 // ---------------------------------------------------------------------------
@@ -110,7 +115,7 @@ export interface WorkspaceSidebarProps {
  * from the product because it *is* the product (stigmer/stigmer#317).
  *
  * Layout note: the sidebar fills its container's height and defines no
- * width — the console's app shell owns the `w-70` (280px) column.
+ * width — the console's app shell owns the `w-60` (240px) column.
  *
  * @example
  * ```tsx
@@ -153,55 +158,57 @@ export function WorkspaceSidebar({
       onOrgChanged={onOrgChanged}
       footer={footer}
     >
-      <PrimaryNavRow
-        id="new-session"
-        href="/"
-        label="New Session"
-        icon={Plus}
-        active={activeNav === "new-session"}
-        renderLink={renderLink}
-      />
-      <PrimaryNavRow
-        id="dashboard"
-        href="/dashboard"
-        label="Dashboard"
-        icon={LayoutDashboard}
-        active={activeNav === "dashboard"}
-        renderLink={renderLink}
-      />
-      {/* MessagesSquare, deliberately not MessageSquare — the singular
-          mark is the session glyph in Recents, and the two areas must
-          not read as one. */}
-      <PrimaryNavRow
-        id="conversations"
-        href="/conversations"
-        label="Conversations"
-        icon={MessagesSquare}
-        active={activeNav === "conversations"}
-        renderLink={renderLink}
-        accessory={
-          conversationsBadgeCount !== undefined && conversationsBadgeCount > 0 ? (
-            <WantsHumanBadge count={conversationsBadgeCount} />
-          ) : null
-        }
-      />
-      <PrimaryNavRow
-        id="library"
-        href="/library"
-        label="Library"
-        icon={Library}
-        active={activeNav === "library"}
-        renderLink={renderLink}
-      />
+      {/* Primary nav — one group container with the same row rhythm as
+          the settings groups (gap-0.5), so the two zones share one beat. */}
+      <div className="stg:flex stg:flex-none stg:flex-col stg:gap-0.5 stg:px-3 stg:py-1">
+        <PrimaryNavRow
+          id="new-session"
+          href="/"
+          label="New Session"
+          icon={Plus}
+          active={activeNav === "new-session"}
+          renderLink={renderLink}
+        />
+        <PrimaryNavRow
+          id="dashboard"
+          href="/dashboard"
+          label="Dashboard"
+          icon={LayoutDashboard}
+          active={activeNav === "dashboard"}
+          renderLink={renderLink}
+        />
+        {/* MessagesSquare, deliberately not MessageSquare — the singular
+            mark is the session glyph in Recents, and the two areas must
+            not read as one. */}
+        <PrimaryNavRow
+          id="conversations"
+          href="/conversations"
+          label="Conversations"
+          icon={MessagesSquare}
+          active={activeNav === "conversations"}
+          renderLink={renderLink}
+          accessory={
+            conversationsBadgeCount !== undefined && conversationsBadgeCount > 0 ? (
+              <WantsHumanBadge count={conversationsBadgeCount} />
+            ) : null
+          }
+        />
+        <PrimaryNavRow
+          id="library"
+          href="/library"
+          label="Library"
+          icon={Library}
+          active={activeNav === "library"}
+          renderLink={renderLink}
+        />
+      </div>
 
       <SidebarSeparator />
 
       {/* Scrollable recents */}
       <ScrollArea className="stg:flex-1">
         <div className="stg:p-3">
-          <p className="stg:text-sidebar-muted-foreground stg:mb-2 stg:px-1 stg:text-[11px] stg:font-semibold stg:tracking-wider stg:uppercase">
-            Recents
-          </p>
+          <p className={`${sectionLabelClassName()} stg:mb-2`}>Recents</p>
           {isLoading ? (
             <RecentsSkeletons />
           ) : error ? (
@@ -246,24 +253,20 @@ function PrimaryNavRow({
   /** Trailing row content (e.g. the Conversations count pill). */
   readonly accessory?: ReactNode;
 }) {
-  return (
-    <div className="stg:flex-none stg:px-3 stg:py-1">
-      {renderLink({
-        id,
-        href,
-        active,
-        className: navRowClassName(active),
-        "aria-current": active ? "page" : undefined,
-        children: (
-          <>
-            <Icon className="stg:size-4 stg:shrink-0" />
-            {label}
-            {accessory}
-          </>
-        ),
-      })}
-    </div>
-  );
+  return renderLink({
+    id,
+    href,
+    active,
+    className: navRowClassName(active),
+    "aria-current": active ? "page" : undefined,
+    children: (
+      <>
+        <Icon className="stg:size-4 stg:shrink-0" />
+        {label}
+        {accessory}
+      </>
+    ),
+  });
 }
 
 /**
@@ -311,7 +314,8 @@ function ActivityGroupList({
       <div className="stg:space-y-4">
         {groups.map((group) => (
           <div key={group.label}>
-            <p className="stg:text-sidebar-muted-foreground stg:mb-1 stg:px-2 stg:text-[10px] stg:font-medium stg:tracking-wider stg:uppercase">
+            {/* One step below the section label: same voice, 10px. */}
+            <p className="stg:text-sidebar-muted-foreground stg:mb-1 stg:px-2 stg:text-[10px] stg:font-medium stg:tracking-wide stg:uppercase">
               {group.label}
             </p>
             <ul className={`${UNSTYLED_LIST} stg:space-y-0.5`} role="list">
@@ -404,11 +408,15 @@ const ActivityEntry = memo(function ActivityEntry({
   );
 });
 
-/** Recents rows are denser than primary nav: 12px text, top-aligned icon. */
+/**
+ * Recents rows are denser than primary nav: 12px text, top-aligned icon.
+ * Same state grammar as `navRowClassName` — muted at rest, accent fill
+ * when active, constant weight so activation never shifts text width.
+ */
 function cnActivityRow(active: boolean): string {
   return active
-    ? "stg:flex stg:items-start stg:gap-2 stg:rounded-lg stg:px-2 stg:py-1.5 stg:text-xs stg:transition-colors stg:bg-sidebar-accent stg:text-sidebar-accent-foreground stg:font-medium"
-    : "stg:flex stg:items-start stg:gap-2 stg:rounded-lg stg:px-2 stg:py-1.5 stg:text-xs stg:transition-colors stg:text-sidebar-foreground stg:hover:bg-sidebar-accent stg:hover:text-sidebar-accent-foreground";
+    ? "stg:flex stg:items-start stg:gap-2 stg:rounded-md stg:px-2 stg:py-1 stg:text-xs stg:transition-colors stg:bg-sidebar-accent stg:text-sidebar-accent-foreground"
+    : "stg:flex stg:items-start stg:gap-2 stg:rounded-md stg:px-2 stg:py-1 stg:text-xs stg:transition-colors stg:text-sidebar-muted-foreground stg:hover:bg-sidebar-accent stg:hover:text-sidebar-accent-foreground";
 }
 
 function RecentsSkeletons() {
