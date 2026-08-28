@@ -197,6 +197,7 @@ async function createSession(
         deps.store,
         deps.agentInstanceCreator,
         deps.logger,
+        deps.authorizationLifecycle,
       ),
     )
     .addStep(newValidateProtoStep())

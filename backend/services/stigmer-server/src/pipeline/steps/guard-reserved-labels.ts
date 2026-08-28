@@ -90,7 +90,15 @@ export function newGuardReservedLabelsStep<Desc extends DescMessage>(
   return {
     name: "GuardReservedLabels",
     async execute(ctx: RequestContext<Desc>): Promise<void> {
-      if (ctx.callerIdentity.callerClass === "internal") {
+      if (
+        ctx.callerIdentity.callerClass === "internal" ||
+        ctx.callerIdentity.origin === "in-process"
+      ) {
+        // Server-composed request (the Java isInProcessCall arm,
+        // cloud#386): the trust decision was made by the service code
+        // that built it — default-instance factories stamp reserved
+        // labels by design, even when the call propagates the user's
+        // identity for attribution (ruling R5).
         return;
       }
       const requested = metadataOf(ctx.newState)?.labels ?? {};

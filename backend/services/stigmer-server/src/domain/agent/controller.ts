@@ -185,7 +185,11 @@ async function createAgent(
       newCreateDefaultInstanceStep(deps.agentInstanceApplier, deps.logger),
     )
     .addStep(
-      newUpdateAgentStatusWithDefaultInstanceStep(deps.store, deps.logger),
+      newUpdateAgentStatusWithDefaultInstanceStep(
+        deps.store,
+        deps.logger,
+        deps.authorizationLifecycle,
+      ),
     )
     .addStep(newIndexSearchStep(deps.store, agentSearchExtractor, deps.logger))
     .build()

@@ -106,3 +106,67 @@ describe("SP-B: interceptors traverse createRouterTransport in-process calls", (
     );
   });
 });
+
+// ---------------------------------------------------------------------------
+// C2 Stage 3 (ruling R5): the caller-propagation header traverses the
+// router transport — the mechanism boot/inprocess.ts rides. (Per-call
+// contextValues deliberately NOT used: they are a server-side construct
+// and do not cross the client boundary — verified here first.)
+// ---------------------------------------------------------------------------
+import type { CallerIdentity } from "../../extensions/identity.js";
+import {
+  callerIdentityKey,
+  createInProcessCallerInterceptor,
+  encodeInProcessCaller,
+  IN_PROCESS_CALLER_HEADER,
+} from "../interceptors/auth.js";
+
+describe("R5: caller propagation through the in-process transport", () => {
+  function transportSeeing(seen: CallerIdentity[]) {
+    return createRouterTransport(
+      (router) => {
+        router.service(Health, {
+          check: (_req, ctx) => {
+            const identity = ctx.values.get(callerIdentityKey);
+            if (identity !== undefined) {
+              seen.push(identity);
+            }
+            return { status: HealthCheckResponse_ServingStatus.SERVING };
+          },
+          list: () => ({ statuses: {} }),
+          watch: async function* () {},
+        });
+      },
+      { router: { interceptors: [createInProcessCallerInterceptor()] } },
+    );
+  }
+
+  it("forwards a propagated caller with origin in-process stamped", async () => {
+    const seen: CallerIdentity[] = [];
+    const caller: CallerIdentity = {
+      identityId: "ida_alice",
+      callerClass: "user",
+      issuer: "stigmer",
+      rawToken: "tok",
+    };
+    await createClient(Health, transportSeeing(seen)).check(
+      {},
+      {
+        headers: {
+          [IN_PROCESS_CALLER_HEADER]: encodeInProcessCaller(caller),
+        },
+      },
+    );
+    expect(seen).toEqual([
+      { ...caller, origin: "in-process" },
+    ]);
+  });
+
+  it("mints the internal class when nothing was propagated (the daemon default)", async () => {
+    const seen: CallerIdentity[] = [];
+    await createClient(Health, transportSeeing(seen)).check({});
+    expect(seen).toHaveLength(1);
+    expect(seen[0].callerClass).toBe("internal");
+    expect(seen[0].origin).toBe("in-process");
+  });
+});

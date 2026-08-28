@@ -33,6 +33,9 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { clone } from "@bufbuild/protobuf";
 
 import type { Logger } from "../../boot/logger.js";
+import type { CallerIdentity } from "../../extensions/identity.js";
+import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
+import { notifyDefaultInstanceLinked } from "../../pipeline/steps/authorization-tuples.js";
 import {
   failedPreconditionError,
   goWrappedStatusError,
@@ -86,7 +89,8 @@ export interface AgentLoader {
 export type AgentLoaderProvider = () => AgentLoader;
 
 export interface SessionCreator {
-  create(session: Session): Promise<Session>;
+  /** As the ORIGINAL caller (ruling R5): the session's owner is its user. */
+  createAsCaller(session: Session, caller: CallerIdentity): Promise<Session>;
 }
 export type SessionCreatorProvider = () => SessionCreator;
 
@@ -213,9 +217,16 @@ export function newEnsureSessionOrAgentResolvedStep(
 // CreateDefaultInstanceIfNeeded — create.go createDefaultInstanceIfNeededStep.
 // ---------------------------------------------------------------------------
 
-/** The narrow agentinstance CREATE edge (Go agentInstanceClient.CreateAsSystem). */
+/**
+ * The narrow agentinstance CREATE edge — as the ORIGINAL caller since C2
+ * Stage 3 (ruling R5, the Java createAsCaller posture): real owner
+ * attribution for the created instance under an enforcing Authorizer.
+ */
 export interface ExecutionAgentInstanceCreator {
-  createAsSystem(instance: AgentInstance): Promise<AgentInstance>;
+  createAsCaller(
+    instance: AgentInstance,
+    caller: CallerIdentity,
+  ): Promise<AgentInstance>;
 }
 export type ExecutionAgentInstanceCreatorProvider =
   () => ExecutionAgentInstanceCreator;
@@ -233,6 +244,7 @@ export function newCreateDefaultInstanceIfNeededStep(deps: {
   logger: Logger;
   agentLoader: AgentLoaderProvider;
   agentInstanceCreator: ExecutionAgentInstanceCreatorProvider;
+  authorizationLifecycle?: ResourceAuthorizationLifecycle;
 }): PipelineStep<CreateDesc> {
   return {
     name: "CreateDefaultInstanceIfNeeded",
@@ -308,7 +320,10 @@ export function newCreateDefaultInstanceIfNeededStep(deps: {
       try {
         const created = await deps
           .agentInstanceCreator()
-          .createAsSystem(buildDefaultInstanceRequest(metadata));
+          .createAsCaller(
+            buildDefaultInstanceRequest(metadata),
+            ctx.callerIdentity,
+          );
         createdId = created.metadata?.id ?? "";
       } catch (error) {
         if (error instanceof ConnectError) {
@@ -342,6 +357,14 @@ export function newCreateDefaultInstanceIfNeededStep(deps: {
           `failed to update agent with default instance: ${error instanceof Error ? error.message : String(error)}`,
         );
       }
+
+      // The default_of invariant rides the pointer persist (C2 Stage 3).
+      await notifyDefaultInstanceLinked(deps.authorizationLifecycle, {
+        instanceKind: ApiResourceKind.agent_instance,
+        instanceId: createdId,
+        blueprintKind: ApiResourceKind.agent,
+        blueprintId: agentId,
+      });
 
       ctx.set(DEFAULT_INSTANCE_ID_KEY, createdId);
       deps.logger.info("Successfully ensured default instance exists", {
@@ -459,7 +482,9 @@ export function newCreateSessionIfNeededStep(deps: {
       // Internal); goWrappedStatusError mirrors the #852 wire shape.
       let createdSession: Session;
       try {
-        createdSession = await deps.sessionCreator().create(sessionRequest);
+        createdSession = await deps
+          .sessionCreator()
+          .createAsCaller(sessionRequest, ctx.callerIdentity);
       } catch (error) {
         if (error instanceof ConnectError) {
           throw goWrappedStatusError("failed to create session", error);

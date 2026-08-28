@@ -241,7 +241,11 @@ async function createWorkflow(
       newCreateDefaultInstanceStep(deps.workflowInstanceCreator, deps.logger),
     )
     .addStep(
-      newUpdateWorkflowStatusWithDefaultInstanceStep(deps.store, deps.logger),
+      newUpdateWorkflowStatusWithDefaultInstanceStep(
+        deps.store,
+        deps.logger,
+        deps.authorizationLifecycle,
+      ),
     )
     .addStep(newSaveVersionAuditStep(deps.store, deps.logger, true, true))
     .addStep(

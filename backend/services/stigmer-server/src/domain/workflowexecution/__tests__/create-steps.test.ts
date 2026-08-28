@@ -142,7 +142,7 @@ describe("CreateDefaultInstanceIfNeeded (create.go resolution paths)", () => {
         store,
         logger: silentLogger,
         workflowInstanceCreator: () => ({
-          createAsSystem: async (instance: WorkflowInstance) => {
+          createAsCaller: async (instance: WorkflowInstance) => {
             calls.push(instance);
             return (
               created ??
@@ -228,7 +228,7 @@ describe("CreateDefaultInstanceIfNeeded (create.go resolution paths)", () => {
       store,
       logger: silentLogger,
       workflowInstanceCreator: () => ({
-        createAsSystem: () =>
+        createAsCaller: () =>
           Promise.reject(
             new ConnectError("slug already exists", Code.AlreadyExists),
           ),

@@ -107,6 +107,25 @@ export interface VisibilityChangedEvent {
 }
 
 /**
+ * Fired synchronously after a blueprint's `status.defaultInstanceId`
+ * pointer is persisted (C2 Stage 3 — the default_of structural-
+ * inheritance arm of the Java model). The invariant the driver upholds:
+ * the `<instanceKind>:<instanceId>#default_of@<blueprintKind>:<blueprintId>`
+ * tuple exists iff the pointer names the instance — written by the SAME
+ * flows that persist the pointer, never derived from the client-
+ * suppliable default-instance label. The tuple makes the default
+ * instance exactly as reachable as its blueprint (viewer from
+ * default_of); it never transitions and dies with the instance's normal
+ * deletion cleanup.
+ */
+export interface DefaultInstanceLinkedEvent {
+  readonly instanceKind: ApiResourceKind;
+  readonly instanceId: string;
+  readonly blueprintKind: ApiResourceKind;
+  readonly blueprintId: string;
+}
+
+/**
  * The driver interface (single-instance point, registered via
  * ExtensionDrivers.resourceAuthorizationLifecycle). Implementations must
  * be idempotent per event — the surrounding chains retry whole requests,
@@ -116,4 +135,11 @@ export interface ResourceAuthorizationLifecycle {
   onResourceCreated(event: ResourceCreatedEvent): Promise<void>;
   onResourceDeleted(event: ResourceDeletedEvent): Promise<void>;
   onVisibilityChanged(event: VisibilityChangedEvent): Promise<void>;
+  /**
+   * OPTIONAL (added C2 Stage 3): synchronous, post-pointer-persist; a
+   * throw fails the request (the pointer survives — retry converges, the
+   * write is idempotent). Absent method = no structural link is written
+   * (the OSS posture: local access control needs none).
+   */
+  onDefaultInstanceLinked?(event: DefaultInstanceLinkedEvent): Promise<void>;
 }

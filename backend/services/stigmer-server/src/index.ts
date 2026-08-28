@@ -77,6 +77,7 @@ export type { ResolvedExtensionDrivers } from "./extensions/registry.js";
 // organization query directory, plus the shape-policy helpers a driver's
 // tests pin against.
 export type {
+  DefaultInstanceLinkedEvent,
   ResourceAuthorizationLifecycle,
   ResourceCreatedEvent,
   ResourceDeletedEvent,

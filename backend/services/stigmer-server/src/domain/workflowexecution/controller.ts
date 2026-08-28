@@ -275,6 +275,7 @@ async function createExecution(
         store: deps.store,
         logger: deps.logger,
         workflowInstanceCreator: deps.workflowInstanceCreator,
+        authorizationLifecycle: deps.authorizationLifecycle,
       }),
     )
     .addStep(newCheckDuplicateStep(deps.store))

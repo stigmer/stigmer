@@ -319,6 +319,7 @@ async function createExecution(
         logger: deps.logger,
         agentLoader: deps.agentLoader,
         agentInstanceCreator: deps.agentInstanceCreator,
+        authorizationLifecycle: deps.authorizationLifecycle,
       }),
     )
     .addStep(

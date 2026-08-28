@@ -37,6 +37,9 @@ import {
   internalError,
   invalidArgumentError,
 } from "../../pipeline/errors.js";
+import type { CallerIdentity } from "../../extensions/identity.js";
+import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
+import { notifyDefaultInstanceLinked } from "../../pipeline/steps/authorization-tuples.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
@@ -62,7 +65,17 @@ type AgentDesc = typeof AgentSchema;
  * router transport, traversing the full interceptor chain (DD-002).
  */
 export interface AgentInstanceApplier {
-  applyAsSystem(instance: AgentInstance): Promise<AgentInstance>;
+  /**
+   * Applies AS THE ORIGINAL CALLER (C2 Stage 3, ruling R5 — the Java
+   * applyAsCaller posture): the propagated identity gives the default
+   * instance real owner attribution, so its creator can manage it under
+   * an enforcing Authorizer. Pre-R5 this ran as the internal class,
+   * which the cloud's tuple driver deliberately never attributes.
+   */
+  applyAsCaller(
+    instance: AgentInstance,
+    caller: CallerIdentity,
+  ): Promise<AgentInstance>;
 }
 
 /**
@@ -347,7 +360,10 @@ export function newCreateDefaultInstanceStep(
       // pipeline's Internal fallback, exactly Go's plain-error path.
       let applied: AgentInstance;
       try {
-        applied = await applierProvider().applyAsSystem(instanceRequest);
+        applied = await applierProvider().applyAsCaller(
+          instanceRequest,
+          ctx.callerIdentity,
+        );
       } catch (error) {
         if (error instanceof ConnectError) {
           throw goWrappedStatusError("failed to apply default instance", error);
@@ -370,10 +386,13 @@ export function newCreateDefaultInstanceStep(
 /**
  * Writes status.default_instance_id onto the just-persisted agent and
  * re-persists. Reads the id from context (set by CreateDefaultInstance).
+ * Fires the driver's default-instance link event AFTER the pointer
+ * persists (C2 Stage 3 — the default_of invariant rides the pointer).
  */
 export function newUpdateAgentStatusWithDefaultInstanceStep(
   store: Store,
   logger: Logger,
+  authorizationLifecycle?: ResourceAuthorizationLifecycle,
 ): PipelineStep<AgentDesc> {
   return {
     name: "UpdateAgentStatusWithDefaultInstance",
@@ -414,6 +433,13 @@ export function newUpdateAgentStatusWithDefaultInstanceStep(
           `failed to persist agent with default instance: ${error instanceof Error ? error.message : String(error)}`,
         );
       }
+
+      await notifyDefaultInstanceLinked(authorizationLifecycle, {
+        instanceKind: ApiResourceKind.agent_instance,
+        instanceId: defaultInstanceId,
+        blueprintKind: ApiResourceKind.agent,
+        blueprintId: agentId,
+      });
 
       ctx.setNewState(agent);
 
