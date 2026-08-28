@@ -58,7 +58,10 @@ import {
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
-import { RequestContext } from "../../pipeline/request-context.js";
+import {
+  LOADED_EXECUTION_KEY,
+  RequestContext,
+} from "../../pipeline/request-context.js";
 import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
@@ -74,8 +77,9 @@ import { notifyStatusObservers } from "./status-observers.js";
 import { settleInterruptedToolCalls } from "./tool-call-settle.js";
 import type { StreamBroker } from "./stream-broker.js";
 
-// Context keys — Go's key strings, verbatim.
-const LOADED_EXECUTION_KEY = "loadedExecution";
+// Context keys — Go's key strings, verbatim. The loaded-execution key is
+// the shared pipeline constant (request-context.ts): extension gate steps
+// in the recover slot read the loaded execution through it.
 const REASON_KEY = "reason";
 const ALREADY_IN_TARGET_STATE_KEY = "alreadyInTargetState";
 

@@ -62,7 +62,10 @@ import {
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
-import { RequestContext } from "../../pipeline/request-context.js";
+import {
+  LOADED_EXECUTION_KEY,
+  RequestContext,
+} from "../../pipeline/request-context.js";
 import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 
@@ -83,8 +86,10 @@ import { EngineWorkflowNotFoundError } from "./engine.js";
 import type { WorkflowExecutionEngineStateProvider } from "./engine.js";
 import type { StreamBroker } from "./stream-broker.js";
 
-// Context keys (Go lifecycle_steps.go constants).
-const LOADED_EXECUTION_KEY = "loadedExecution";
+// Context keys (Go lifecycle_steps.go constants). The loaded-execution
+// key is the shared pipeline constant (request-context.ts): extension
+// gate steps in the sandbox-acquisition slot read the loaded execution
+// through it.
 const REASON_KEY = "reason";
 const ALREADY_IN_TARGET_STATE_KEY = "alreadyInTargetState";
 

@@ -17,7 +17,9 @@
  *   - the extension-point types (§2 — the whole src/extensions contract)
  *   - the pipeline primitives extensions build gates from (PipelineStep,
  *     RequestContext, the semantic error helpers, and the typed store
- *     not-found errors the ratified store-fault mapping keys on)
+ *     not-found errors the ratified store-fault mapping keys on; C4
+ *     Stage 3 added the dispatch-policy configs and the loaded-execution
+ *     context key its capacity gates consume)
  *   - the driver interfaces (Store, ArtifactStorage; O5 added §6a/§6b/§6c —
  *     ModelCatalogProvider, the widened storage surface, and
  *     RunnerCredentialProvider; O6 added §6d — SandboxProvisioner and its
@@ -172,6 +174,25 @@ export type {
   SandboxScope,
 } from "./sandbox/provisioner.js";
 export { BUILT_IN_SANDBOX_PROVISIONER_TYPES } from "./sandbox/provisioner.js";
+
+// The C4 Stage 3 gate seams: the dispatch-policy configs a capacity gate
+// reads — the UNSPECIFIED-resolution rules and routing modes are single
+// definitions by doctrine (oss#397), and their own headers name "a future
+// policy consumer" as the reason they must be consumed, never re-derived.
+// Plus the lifecycle chains' loaded-execution context key: recover-chain
+// gate steps read the loaded resource through it (ctx.newState on those
+// chains is the input message, not the resource).
+export {
+  AgentExecutionTemporalConfig,
+  ROUTING_SESSION,
+  newConfigFromEnv as newAgentExecutionTemporalConfigFromEnv,
+} from "./domain/agentexecution/temporal/config.js";
+export {
+  WORKFLOW_ROUTING_EXECUTION,
+  WorkflowExecutionTemporalConfig,
+  newWorkflowExecutionConfigFromEnv,
+} from "./domain/workflowexecution/temporal/config.js";
+export { LOADED_EXECUTION_KEY } from "./pipeline/request-context.js";
 
 // The C3 driver seam (DD-004's serving half, ruling Q1): the channel
 // delivery runtime a composition registers to SERVE the install,
