@@ -39,9 +39,10 @@
 import type { PoolClient } from "pg";
 
 export const SCHEMA_VERSION_1 = 1;
+export const SCHEMA_VERSION_2 = 2;
 
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_1;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_2;
 
 /**
  * Advisory lock key for the migration chain. Arbitrary but stable 64-bit
@@ -70,7 +71,10 @@ export async function runMigrations(client: PoolClient): Promise<void> {
 
     const chain: ReadonlyArray<
       readonly [number, (client: PoolClient) => Promise<void>]
-    > = [[SCHEMA_VERSION_1, migrateToV1]];
+    > = [
+      [SCHEMA_VERSION_1, migrateToV1],
+      [SCHEMA_VERSION_2, migrateToV2],
+    ];
 
     for (const [version, migrate] of chain) {
       if (currentVersion < version) {
@@ -249,5 +253,26 @@ async function migrateToV1(client: PoolClient): Promise<void> {
     );
 
     CREATE INDEX idx_pending_oauth_state_created ON pending_oauth_state (created_at);
+  `);
+}
+
+/**
+ * v2: the retention sweep's scan on workflow_execution_events.
+ *
+ * The cloud composition's retention sweep (the C4 port of the Java
+ * platform.retention engine) deletes events older than the policy window
+ * with `created_at < cutoff` range scans; without this index every hourly
+ * pass would seq-scan the largest table in the schema. The Java edition
+ * built the identical index for the identical reason (V7's
+ * idx_wfee_occurred_at — "The retention sweep's scan"), and schedule_runs
+ * shipped v1 with idx_schedule_runs_prune under the same doctrine: a table
+ * whose rows expire carries the index its reaper needs (DD-003 "every
+ * query pattern has an index" — the pattern's owner being a cloud
+ * extension does not exempt it). The OSS server itself runs no sweep;
+ * the index is inert weight locally and load-bearing for the composition.
+ */
+async function migrateToV2(client: PoolClient): Promise<void> {
+  await client.query(`
+    CREATE INDEX idx_wfee_created_at ON workflow_execution_events (created_at);
   `);
 }
