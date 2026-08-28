@@ -61,6 +61,13 @@ function OpenSource({ className, ...props }: OpenSourceProps) {
               Run locally
               <Icon name="arrow-right" size="xs" />
             </Link>
+            <Link
+              href="/docs/guides/self-hosting/cloud-vs-self-hosted"
+              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Cloud vs self-hosted
+              <Icon name="arrow-right" size="xs" />
+            </Link>
           </div>
         </FadeInUp>
       </div>

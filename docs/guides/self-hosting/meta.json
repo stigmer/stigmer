@@ -1,4 +1,4 @@
 {
   "title": "Self-hosting",
-  "pages": ["docker-compose", "authentication", "operations"]
+  "pages": ["cloud-vs-self-hosted", "docker-compose", "authentication", "operations"]
 }
