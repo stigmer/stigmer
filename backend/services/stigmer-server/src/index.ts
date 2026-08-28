@@ -115,9 +115,9 @@ export {
 export { generateSlug } from "./pipeline/steps/slug.js";
 // The in-process caller-propagation surface (ruling R5): extension code
 // composing requests through the in-process transport AS a caller rides
-// the same header the OSS asCaller adapters use.
+// the same header the OSS asCaller adapters use. (callerIdentityOf and
+// callerIdentityKey ride the request-idiom export block below.)
 export {
-  callerIdentityOf,
   encodeInProcessCaller,
   IN_PROCESS_CALLER_HEADER,
 } from "./pipeline/interceptors/auth.js";
