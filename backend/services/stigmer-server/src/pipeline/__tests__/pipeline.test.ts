@@ -15,7 +15,7 @@ import { create } from "@bufbuild/protobuf";
 import type { Logger } from "../../boot/logger.js";
 import { INTERNAL_FALLBACK_MESSAGE, newPipeline } from "../pipeline.js";
 import type { PipelineStep } from "../pipeline.js";
-import { RequestContext } from "../request-context.js";
+import { LOADED_EXECUTION_KEY, RequestContext } from "../request-context.js";
 
 const silentLogger: Logger = {
   debug() {},
@@ -133,5 +133,9 @@ describe("RequestContext", () => {
     expect(ctx.get("missing")).toBeUndefined();
     ctx.set("shouldCreate", true);
     expect(ctx.get("shouldCreate")).toBe(true);
+  });
+
+  it("pins the loaded-execution context key (C4 Stage 3): both lifecycle chains stamp it and extension gate steps read it", () => {
+    expect(LOADED_EXECUTION_KEY).toBe("loadedExecution");
   });
 });

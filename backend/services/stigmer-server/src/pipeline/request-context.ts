@@ -29,6 +29,17 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 
 import type { CallerIdentity } from "../extensions/identity.js";
 
+/**
+ * The lifecycle chains' loaded-resource context key (Go's key string,
+ * verbatim). On lifecycle pipelines the request `Desc` is the INPUT
+ * message, so `ctx.newState` is the input — the loaded resource rides the
+ * metadata map under this key, stamped by each chain's LoadExecutionById
+ * step. Hoisted here (C4 Stage 3) so the two lifecycle modules and
+ * extension gate steps registered into recover-chain slots share ONE
+ * definition of the string instead of three copies of a silent contract.
+ */
+export const LOADED_EXECUTION_KEY = "loadedExecution";
+
 export class RequestContext<Desc extends DescMessage> {
   /** The original, immutable request message. */
   readonly input: MessageShape<Desc>;
