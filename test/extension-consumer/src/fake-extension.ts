@@ -42,20 +42,31 @@ import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_inf
 
 import {
   ArtifactStorageNotFoundError,
+  callerIdentityKey,
   callerIdentityOf,
   composeServer,
   createLogger,
   InvalidTokenError,
   loadConfig,
+  LOADED_EXECUTION_KEY,
   MintingDisabledError,
+  newAgentExecutionTemporalConfigFromEnv,
+  newAuthorizeStep,
   newModelCatalogProviderFromDocument,
+  newPipeline,
   newR2ArtifactStorage,
+  newValidateProtoStep,
+  newWorkflowExecutionConfigFromEnv,
   notFoundError,
+  RequestContext,
   ResourceNotFoundError,
+  ROUTING_SESSION,
   TOKEN_TYPE_EXECUTION_SCOPED,
+  WORKFLOW_ROUTING_EXECUTION,
 } from "@stigmer/server";
 import type {
   AgentExecutionResponseDecorator,
+  AgentExecutionTemporalConfig,
   AgentExecutionStatusObserver,
   ArtifactStorage,
   ArtifactStorageDriverFactory,
@@ -84,6 +95,7 @@ import type {
   Store,
   VisibilityChangedEvent,
   WorkerFactory,
+  WorkflowExecutionTemporalConfig,
 } from "@stigmer/server";
 
 /** A permissive Authorizer in the consumer's own code (the O2 shape). */
@@ -133,6 +145,33 @@ export function consumerGateStep(): PipelineStep<DescMessage> {
 /** The typed store not-found classes are importable for the instanceof idiom. */
 export function isStoreNotFound(error: unknown): boolean {
   return error instanceof ResourceNotFoundError;
+}
+
+/**
+ * A capacity-gate-shaped consumer of the C4 Stage 3 seams: the
+ * dispatch-policy configs read through their exported constructors (the
+ * oss#397 one-definition rule consumed, never re-derived from env), and
+ * the loaded execution read through the exported lifecycle context key —
+ * on recover chains ctx.newState is the input message, so the resource
+ * rides the metadata map under that key.
+ */
+const agentExecutionDispatchPolicy: AgentExecutionTemporalConfig =
+  newAgentExecutionTemporalConfigFromEnv();
+const workflowExecutionDispatchPolicy: WorkflowExecutionTemporalConfig =
+  newWorkflowExecutionConfigFromEnv();
+
+export function consumerCapacityGateStep(): PipelineStep<DescMessage> {
+  return {
+    name: "ConsumerCapacityGate",
+    execute: (ctx) => {
+      void (agentExecutionDispatchPolicy.activityRouting === ROUTING_SESSION);
+      void (
+        workflowExecutionDispatchPolicy.workflowActivityRouting ===
+        WORKFLOW_ROUTING_EXECUTION
+      );
+      void ctx.get(LOADED_EXECUTION_KEY);
+    },
+  };
 }
 
 const statusObserver: AgentExecutionStatusObserver = (transition) => {
@@ -203,6 +242,10 @@ const credentialProvider: RunnerCredentialProvider = {
   mintSandboxCredential: (request: SandboxCredentialRequest): string =>
     `fake-${request.scope}-token`,
   authorizeExecutionContextRead: async (): Promise<boolean> => false,
+  // The fifth capability (C4 Stage 2): decrypt-key resolution for the
+  // server-managed rpk_ payload keys the bootstrap arm above hands out.
+  resolvePayloadKey: async (keyId: string): Promise<Buffer | undefined> =>
+    keyId === "rpk_fake" ? Buffer.from("a2V5", "base64") : undefined,
 };
 
 /**
@@ -322,14 +365,39 @@ const channelRuntime: ChannelRuntime = {
   },
 };
 
+/**
+ * An extension-registered service handler built the OSS controller idiom
+ * (C4 Stage 4): the verified caller read once via callerIdentityOf, then
+ * a chain fronted by the exported Authorize (descriptor-driven from the
+ * method's proto options — the ratified three-arm decision mapping and
+ * the internal-caller skip consumed, never re-derived) and ValidateProto
+ * steps, executed by the exported pipeline (which owns the
+ * sanitized-Internal error contract). This is the shape every cloud
+ * fleet-domain service takes.
+ */
 const registerBillingService = (router: ConnectRouter): void => {
+  const method = BillingQueryController.method.getBillingAccount;
   router.service(BillingQueryController, {
-    // The caller-identity read idiom for extension services (C2 Stage 3):
-    // the identity stamped at chain position 1 is readable from the
-    // HandlerContext through the ONE exported accessor.
-    getBillingAccount: (input, ctx) => {
-      void callerIdentityOf(ctx).callerClass;
-      return create(BillingAccountSchema, { orgId: input.orgId });
+    getBillingAccount: async (input, ctx) => {
+      // The stamp side of the identity contract compiles for consumers
+      // too — extension service TESTS set this key on their router
+      // transport's contextValues (production stamping stays the
+      // interceptors' job).
+      void ctx.values.get(callerIdentityKey);
+      const reqCtx = new RequestContext(
+        method.input,
+        input,
+        callerIdentityOf(ctx),
+      );
+      await newPipeline<typeof method.input>(
+        "consumer-billing-get",
+        createLogger({ level: "error", pretty: false }),
+      )
+        .addStep(newAuthorizeStep(method, authorizer))
+        .addStep(newValidateProtoStep())
+        .build()
+        .execute(reqCtx);
+      return create(BillingAccountSchema, { orgId: reqCtx.newState.orgId });
     },
   });
 };
@@ -379,10 +447,17 @@ export const fakeExtension: ServerExtension = {
   // GateSlotName fails this compile (the §2b contract's compile-time layer).
   gateSteps: new Map<GateSlotName, ReadonlyArray<PipelineStep<DescMessage>>>([
     ["agent-execution-create:pre-side-effect-gate", [consumerGateStep()]],
+    // The recover slot consumes the exported loaded-execution key (C4
+    // Stage 3) — the capacity-gate shape reads the resource off the
+    // metadata map there.
+    [
+      "agent-execution-recover:pre-side-effect-gate",
+      [consumerCapacityGateStep()],
+    ],
     ["org-create:post-persist", [consumerGateStep()]],
     // The sixth ratified slot (C4): the workflow-execution chains'
     // capacity-gate position.
-    ["sandbox-acquisition:gate", [consumerGateStep()]],
+    ["sandbox-acquisition:gate", [consumerCapacityGateStep()]],
   ]),
   statusTransitionHooks: {
     observers: [statusObserver],

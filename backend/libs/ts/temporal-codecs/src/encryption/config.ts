@@ -42,11 +42,30 @@ export interface EncryptionKey {
   readonly key: Buffer;
 }
 
+/**
+ * Resolves decrypt-key material for a key id absent from the static
+ * config (C4, stigmer-cloud 20260827.09: the cloud server decodes
+ * desktop-runner histories written under server-managed per-identity
+ * `rpk_` keys, whose material lives in a database, not the environment).
+ * Returns undefined when the id is unknown — the codec then fails closed
+ * with its pinned unknown-key-id error. Implementations own their lookup
+ * and unsealing; the codec caches every RESOLVED key for the process
+ * lifetime (key material per id is immutable — rotation mints a new id),
+ * and never caches misses (the key may be minted moments later).
+ */
+export type PayloadKeyResolver = (keyId: string) => Promise<Buffer | undefined>;
+
 export interface PayloadEncryptionConfig {
   /** Key used to encrypt outgoing payloads (and decrypt its own). */
   readonly primary: EncryptionKey;
   /** Decrypt-only key accepted during rotation windows. */
   readonly secondary?: EncryptionKey;
+  /**
+   * Decrypt-only fallback consulted when a payload names a key id the
+   * static pair does not cover ({@link PayloadKeyResolver}). Encode never
+   * consults it — outgoing payloads are always written under `primary`.
+   */
+  readonly resolveKey?: PayloadKeyResolver;
 }
 
 /**
@@ -114,7 +133,10 @@ export function loadPayloadEncryptionConfig(
 
   if (bootstrap?.key) {
     const primary: EncryptionKey = {
-      keyId: requireBootstrapKeyId(bootstrap.keyId, "payload_encryption_key_id"),
+      keyId: requireBootstrapKeyId(
+        bootstrap.keyId,
+        "payload_encryption_key_id",
+      ),
       key: parseKey(bootstrap.key, "bootstrap payload_encryption_key"),
     };
 
@@ -124,7 +146,10 @@ export function loadPayloadEncryptionConfig(
             bootstrap.secondaryKeyId,
             "payload_encryption_secondary_key_id",
           ),
-          key: parseKey(bootstrap.secondaryKey, "bootstrap payload_encryption_secondary_key"),
+          key: parseKey(
+            bootstrap.secondaryKey,
+            "bootstrap payload_encryption_secondary_key",
+          ),
         }
       : undefined;
 
@@ -147,7 +172,10 @@ function requireKeyId(envName: string): string {
   return keyId;
 }
 
-function requireBootstrapKeyId(keyId: string | undefined, fieldName: string): string {
+function requireBootstrapKeyId(
+  keyId: string | undefined,
+  fieldName: string,
+): string {
   if (!keyId) {
     throw new Error(
       `Runner bootstrap returned a payload encryption key without its ${fieldName} — ` +
@@ -162,7 +190,9 @@ function parseKey(rawBase64: string, envName: string): Buffer {
   try {
     key = Buffer.from(rawBase64, "base64");
   } catch {
-    throw new Error(`Payload encryption misconfigured: ${envName} is not valid base64`);
+    throw new Error(
+      `Payload encryption misconfigured: ${envName} is not valid base64`,
+    );
   }
   if (key.length !== AES_256_KEY_BYTES) {
     throw new Error(

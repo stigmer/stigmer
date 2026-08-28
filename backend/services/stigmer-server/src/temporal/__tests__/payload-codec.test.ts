@@ -82,7 +82,9 @@ describe("ServerDecryptionPayloadCodec", () => {
     const [encrypted] = await runnerSide.encode([textPayload("secret")]);
     const tampered: Payload = {
       metadata: encrypted!.metadata,
-      data: Buffer.from(encrypted!.data!.map((b, i) => (i === 20 ? b ^ 0xff : b))),
+      data: Buffer.from(
+        encrypted!.data!.map((b, i) => (i === 20 ? b ^ 0xff : b)),
+      ),
     };
 
     await expect(serverSide.decode([tampered])).rejects.toThrow();
@@ -129,5 +131,48 @@ describe("loadServerPayloadCodecs", () => {
     process.env["STIGMER_PAYLOAD_ENCRYPTION_KEY_ID"] = KEY_ID;
 
     expect(() => loadServerPayloadCodecs()).toThrow(/32 bytes/);
+  });
+
+  // The resolvePayloadKey threading (C4 Stage 2): the composed provider's
+  // capability rides the decode codec as its resolveKey fallback —
+  // consulted for key ids outside the env pair, never installed without
+  // the env-keyed codec (the named coupling in the module header).
+  it("threads the resolver into the decode codec for rpk_ key ids", async () => {
+    process.env["STIGMER_PAYLOAD_ENCRYPTION_KEY"] = KEY.toString("base64");
+    process.env["STIGMER_PAYLOAD_ENCRYPTION_KEY_ID"] = KEY_ID;
+
+    const runnerKey = { keyId: "rpk_identity1", key: randomBytes(32) };
+    const desktopRunner = new EncryptionPayloadCodec({ primary: runnerKey });
+    const [encrypted] = await desktopRunner.encode([
+      textPayload("desktop runner activity result"),
+    ]);
+
+    const [codec] = loadServerPayloadCodecs(async (keyId) =>
+      keyId === runnerKey.keyId ? runnerKey.key : undefined,
+    );
+    const [decoded] = await codec!.decode([encrypted!]);
+
+    expect(Buffer.from(decoded!.data!).toString()).toBe(
+      JSON.stringify("desktop runner activity result"),
+    );
+  });
+
+  it("keeps the fail-closed throw when the resolver does not know the id", async () => {
+    process.env["STIGMER_PAYLOAD_ENCRYPTION_KEY"] = KEY.toString("base64");
+    process.env["STIGMER_PAYLOAD_ENCRYPTION_KEY_ID"] = KEY_ID;
+
+    const desktopRunner = new EncryptionPayloadCodec({
+      primary: { keyId: "rpk_unknown", key: randomBytes(32) },
+    });
+    const [encrypted] = await desktopRunner.encode([textPayload("secret")]);
+
+    const [codec] = loadServerPayloadCodecs(async () => undefined);
+    await expect(codec!.decode([encrypted!])).rejects.toThrow(
+      /unknown key id 'rpk_unknown'/,
+    );
+  });
+
+  it("returns no codecs even with a resolver when encryption is not configured", () => {
+    expect(loadServerPayloadCodecs(async () => undefined)).toEqual([]);
   });
 });

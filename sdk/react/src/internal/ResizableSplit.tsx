@@ -66,7 +66,7 @@ export interface ResizableSplitProps {
    * query. 48rem clears the session layout's content minimums (320px min
    * chat + drag handle + a usable workspace panel) and approximately
    * preserves the console's previous viewport-`lg` trigger point, where the
-   * viewer's box is the ~1024px window minus the ~280px sidebar. It is
+   * viewer's box is the ~1024px window minus the ~240px sidebar. It is
    * deliberately not a prop: container-query conditions cannot read CSS
    * custom properties, so a runtime threshold would need an inline-`<style>`
    * or ResizeObserver mechanism — heavier than the static utility this is,

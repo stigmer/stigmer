@@ -675,6 +675,17 @@ pages:
       pricing and spend-reduction mechanics that belong nearer the billing
       guides; the concept survives, the operational halves move out.
 
+  guides/self-hosting/cloud-vs-self-hosted:
+    fate: keep
+    diataxis: explanation
+    teaches:
+      Which way to run Stigmer fits the reader's team — what self-hosting
+      includes (the full contract, Postgres, OIDC + API keys, isolation
+      drivers), what Stigmer Cloud adds (tenancy, SSO, fine-grained
+      permissions, channels, metered billing, managed ops), and the honest
+      limitations of self-hosting today.
+    medium: none
+
   guides/self-hosting/docker-compose:
     fate: keep
     diataxis: how-to

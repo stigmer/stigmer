@@ -15,9 +15,14 @@
  *   - the compose entry and config loading (composeServer + its options'
  *     required types: ServerConfig via loadConfig, Logger via createLogger)
  *   - the extension-point types (§2 — the whole src/extensions contract)
- *   - the pipeline primitives extensions build gates from (PipelineStep,
- *     RequestContext, the semantic error helpers, and the typed store
- *     not-found errors the ratified store-fault mapping keys on)
+ *   - the pipeline primitives extensions build gates AND extension-
+ *     registered services from (PipelineStep, RequestContext, the semantic
+ *     error helpers, and the typed store not-found errors the ratified
+ *     store-fault mapping keys on; C4 Stage 3 added the dispatch-policy
+ *     configs and the loaded-execution context key its capacity gates
+ *     consume; C4 Stage 4 added the executor, the identity read idiom,
+ *     and the two chain-front steps so extension services run the SAME
+ *     request idiom OSS controllers run)
  *   - the driver interfaces (Store, ArtifactStorage; O5 added §6a/§6b/§6c —
  *     ModelCatalogProvider, the widened storage surface, and
  *     RunnerCredentialProvider; O6 added §6d — SandboxProvisioner and its
@@ -117,6 +122,28 @@ export {
   IN_PROCESS_CALLER_HEADER,
 } from "./pipeline/interceptors/auth.js";
 
+// The request idiom for extension-REGISTERED services (C4 Stage 4): a
+// service contributed through ServerExtension.services runs the same
+// chain shape every OSS controller runs — identity read once
+// (callerIdentityOf), then Authorize (descriptor-driven from the
+// `(ai.stigmer.commons.rpc.config)` method options, owning the ratified
+// three-arm decision mapping and the `internal`-caller skip) and
+// ValidateProto at the chain front, executed by the pipeline (which owns
+// the sanitized-Internal error contract). Blessing these keeps
+// authorization and validation semantics single-definition: an extension
+// hand-rolling either would re-derive ratified wire behavior.
+// callerIdentityKey is the stamp side of the same contract — production
+// stamping stays the interceptors' job, but an extension's OWN service
+// tests must stamp what the serving chain stamps (the auth.test.ts
+// idiom) to exercise their chains over a router transport.
+export {
+  callerIdentityKey,
+  callerIdentityOf,
+} from "./pipeline/interceptors/auth.js";
+export { newPipeline } from "./pipeline/pipeline.js";
+export { newAuthorizeStep } from "./pipeline/steps/authorize.js";
+export { newValidateProtoStep } from "./pipeline/steps/validation.js";
+
 // The driver interfaces and the store-fault classes the ratified mapping
 // keys on (typed not-found → NotFound; anything else rethrows as an
 // infrastructure fault — the guidelines' instanceof idiom).
@@ -192,6 +219,25 @@ export type {
   SandboxScope,
 } from "./sandbox/provisioner.js";
 export { BUILT_IN_SANDBOX_PROVISIONER_TYPES } from "./sandbox/provisioner.js";
+
+// The C4 Stage 3 gate seams: the dispatch-policy configs a capacity gate
+// reads — the UNSPECIFIED-resolution rules and routing modes are single
+// definitions by doctrine (oss#397), and their own headers name "a future
+// policy consumer" as the reason they must be consumed, never re-derived.
+// Plus the lifecycle chains' loaded-execution context key: recover-chain
+// gate steps read the loaded resource through it (ctx.newState on those
+// chains is the input message, not the resource).
+export {
+  AgentExecutionTemporalConfig,
+  ROUTING_SESSION,
+  newConfigFromEnv as newAgentExecutionTemporalConfigFromEnv,
+} from "./domain/agentexecution/temporal/config.js";
+export {
+  WORKFLOW_ROUTING_EXECUTION,
+  WorkflowExecutionTemporalConfig,
+  newWorkflowExecutionConfigFromEnv,
+} from "./domain/workflowexecution/temporal/config.js";
+export { LOADED_EXECUTION_KEY } from "./pipeline/request-context.js";
 
 // The C3 driver seam (DD-004's serving half, ruling Q1): the channel
 // delivery runtime a composition registers to SERVE the install,
