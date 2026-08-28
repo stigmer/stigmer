@@ -23,7 +23,9 @@ import { makeInMemoryClaimcheckStorage } from "../__test-utils__/fake-claimcheck
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-function makeKeyConfig(overrides: Partial<PayloadEncryptionConfig> = {}): PayloadEncryptionConfig {
+function makeKeyConfig(
+  overrides: Partial<PayloadEncryptionConfig> = {},
+): PayloadEncryptionConfig {
   return {
     primary: { keyId: "test-key-1", key: randomBytes(32) },
     ...overrides,
@@ -121,7 +123,92 @@ describe("EncryptionPayloadCodec", () => {
       secondary: oldKey,
     });
     const [decoded] = await rotatedReader.decode([encoded]);
-    expect(JSON.parse(Buffer.from(decoded.data!).toString())).toEqual({ rotated: true });
+    expect(JSON.parse(Buffer.from(decoded.data!).toString())).toEqual({
+      rotated: true,
+    });
+  });
+
+  // The resolveKey seam (C4 Stage 2): decrypt-only fallback for key ids
+  // outside the static pair — the cloud server's database-resident rpk_
+  // keys. Pinned properties: resolved keys decode, resolved material is
+  // cached (one lookup per id per process), misses are NOT cached, an
+  // unresolvable id keeps the fail-closed unknown-key-id throw, and
+  // encode never consults the resolver.
+  describe("resolveKey fallback", () => {
+    it("decodes a payload under a resolver-supplied key and caches the material", async () => {
+      const runnerKey = { keyId: "rpk_abc123", key: randomBytes(32) };
+      const writer = new EncryptionPayloadCodec({ primary: runnerKey });
+      const [encoded] = await writer.encode([
+        makeJsonPayload({ desktop: true }),
+      ]);
+
+      const lookups: string[] = [];
+      const reader = new EncryptionPayloadCodec({
+        ...makeKeyConfig(),
+        resolveKey: async (keyId) => {
+          lookups.push(keyId);
+          return keyId === runnerKey.keyId ? runnerKey.key : undefined;
+        },
+      });
+
+      const [first] = await reader.decode([encoded]);
+      expect(JSON.parse(Buffer.from(first.data!).toString())).toEqual({
+        desktop: true,
+      });
+
+      const [second] = await reader.decode([encoded]);
+      expect(JSON.parse(Buffer.from(second.data!).toString())).toEqual({
+        desktop: true,
+      });
+      expect(lookups).toEqual(["rpk_abc123"]);
+    });
+
+    it("fails closed when the resolver does not know the key id, and retries on the next decode", async () => {
+      const runnerKey = { keyId: "rpk_late", key: randomBytes(32) };
+      const writer = new EncryptionPayloadCodec({ primary: runnerKey });
+      const [encoded] = await writer.encode([makeJsonPayload({ a: 1 })]);
+
+      let known = false;
+      const lookups: string[] = [];
+      const reader = new EncryptionPayloadCodec({
+        ...makeKeyConfig(),
+        resolveKey: async (keyId) => {
+          lookups.push(keyId);
+          return known && keyId === runnerKey.keyId ? runnerKey.key : undefined;
+        },
+      });
+
+      await expect(reader.decode([encoded])).rejects.toThrow(
+        /unknown key id 'rpk_late'/,
+      );
+
+      // The miss was not cached: once the key exists (minted after this
+      // process booted), the next decode finds it.
+      known = true;
+      const [decoded] = await reader.decode([encoded]);
+      expect(JSON.parse(Buffer.from(decoded.data!).toString())).toEqual({
+        a: 1,
+      });
+      expect(lookups).toEqual(["rpk_late", "rpk_late"]);
+    });
+
+    it("never consults the resolver for the static keys or on encode", async () => {
+      const lookups: string[] = [];
+      const codec = new EncryptionPayloadCodec({
+        ...makeKeyConfig(),
+        resolveKey: async (keyId) => {
+          lookups.push(keyId);
+          return undefined;
+        },
+      });
+
+      const [encoded] = await codec.encode([makeJsonPayload({ b: 2 })]);
+      const [decoded] = await codec.decode([encoded]);
+      expect(JSON.parse(Buffer.from(decoded.data!).toString())).toEqual({
+        b: 2,
+      });
+      expect(lookups).toEqual([]);
+    });
   });
 });
 
@@ -177,9 +264,11 @@ describe("loadPayloadEncryptionConfig", () => {
   });
 
   it("loads primary and secondary keys", () => {
-    process.env.STIGMER_PAYLOAD_ENCRYPTION_KEY = randomBytes(32).toString("base64");
+    process.env.STIGMER_PAYLOAD_ENCRYPTION_KEY =
+      randomBytes(32).toString("base64");
     process.env.STIGMER_PAYLOAD_ENCRYPTION_KEY_ID = "k2";
-    process.env.STIGMER_PAYLOAD_ENCRYPTION_SECONDARY_KEY = randomBytes(32).toString("base64");
+    process.env.STIGMER_PAYLOAD_ENCRYPTION_SECONDARY_KEY =
+      randomBytes(32).toString("base64");
     process.env.STIGMER_PAYLOAD_ENCRYPTION_SECONDARY_KEY_ID = "k1";
 
     const config = loadPayloadEncryptionConfig(readEnv);
@@ -189,16 +278,20 @@ describe("loadPayloadEncryptionConfig", () => {
   });
 
   it("fails the boot when a key is set without an id", () => {
-    process.env.STIGMER_PAYLOAD_ENCRYPTION_KEY = randomBytes(32).toString("base64");
+    process.env.STIGMER_PAYLOAD_ENCRYPTION_KEY =
+      randomBytes(32).toString("base64");
     expect(() => loadPayloadEncryptionConfig(readEnv)).toThrow(
       /STIGMER_PAYLOAD_ENCRYPTION_KEY_ID is required/,
     );
   });
 
   it("fails the boot on a key of the wrong length", () => {
-    process.env.STIGMER_PAYLOAD_ENCRYPTION_KEY = randomBytes(16).toString("base64");
+    process.env.STIGMER_PAYLOAD_ENCRYPTION_KEY =
+      randomBytes(16).toString("base64");
     process.env.STIGMER_PAYLOAD_ENCRYPTION_KEY_ID = "k1";
-    expect(() => loadPayloadEncryptionConfig(readEnv)).toThrow(/must decode to 32 bytes/);
+    expect(() => loadPayloadEncryptionConfig(readEnv)).toThrow(
+      /must decode to 32 bytes/,
+    );
   });
 
   // Server-managed key material from getRunnerBootstrapConfig (stigmer#398):
@@ -220,7 +313,8 @@ describe("loadPayloadEncryptionConfig", () => {
     });
 
     it("env-configured key wins over bootstrap material", () => {
-      process.env.STIGMER_PAYLOAD_ENCRYPTION_KEY = randomBytes(32).toString("base64");
+      process.env.STIGMER_PAYLOAD_ENCRYPTION_KEY =
+        randomBytes(32).toString("base64");
       process.env.STIGMER_PAYLOAD_ENCRYPTION_KEY_ID = "env-key";
 
       const config = loadPayloadEncryptionConfig(readEnv, bootstrapKeys());
@@ -230,7 +324,9 @@ describe("loadPayloadEncryptionConfig", () => {
 
     it("fails the boot on a bootstrap key without its id (server contract violation)", () => {
       expect(() =>
-        loadPayloadEncryptionConfig(readEnv, { key: randomBytes(32).toString("base64") }),
+        loadPayloadEncryptionConfig(readEnv, {
+          key: randomBytes(32).toString("base64"),
+        }),
       ).toThrow(/payload_encryption_key_id/);
     });
 
@@ -264,7 +360,10 @@ describe("cross-language conformance fixture", () => {
   // lockstep.
   it("decrypts the committed fixture to the expected payload", async () => {
     const fixture = JSON.parse(
-      readFileSync(join(__dirname, "fixtures", "encrypted-payload-fixture.json"), "utf-8"),
+      readFileSync(
+        join(__dirname, "fixtures", "encrypted-payload-fixture.json"),
+        "utf-8",
+      ),
     );
 
     const codec = new EncryptionPayloadCodec({
@@ -276,9 +375,9 @@ describe("cross-language conformance fixture", () => {
 
     const encrypted: Payload = {
       metadata: Object.fromEntries(
-        Object.entries(fixture.encrypted.metadataBase64 as Record<string, string>).map(
-          ([k, v]) => [k, Buffer.from(v, "base64")],
-        ),
+        Object.entries(
+          fixture.encrypted.metadataBase64 as Record<string, string>,
+        ).map(([k, v]) => [k, Buffer.from(v, "base64")]),
       ),
       data: Buffer.from(fixture.encrypted.dataBase64, "base64"),
     };

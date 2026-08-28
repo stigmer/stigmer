@@ -29,6 +29,7 @@ import {
   EncryptionPayloadCodec,
   loadPayloadEncryptionConfig,
 } from "@stigmer/temporal-codecs";
+import type { PayloadKeyResolver } from "@stigmer/temporal-codecs";
 
 export class ServerDecryptionPayloadCodec implements PayloadCodec {
   constructor(private readonly inner: EncryptionPayloadCodec) {}
@@ -64,13 +65,28 @@ export class ServerDecryptionPayloadCodec implements PayloadCodec {
  * trap. The server runs no agent shells; plain env reads are its custody
  * policy, the same source Go's LoadConfigFromEnv reads.
  *
+ * The optional resolver is the composed credential provider's
+ * resolvePayloadKey capability (C4 Stage 2): decrypt-only fallback for
+ * key ids outside the env pair — the server-managed per-identity `rpk_`
+ * keys desktop runners encrypt under. Deliberate coupling, named: the
+ * resolver rides the env-keyed codec, so it is consulted only when
+ * payload encryption is configured at all (the cloud composition always
+ * configures the platform key; an env-less deployment has no encrypted
+ * histories of its own to decode).
+ *
  * @throws when a key is present but malformed or missing its id (boot
  *   error, never a silent plaintext downgrade).
  */
-export function loadServerPayloadCodecs(): PayloadCodec[] {
+export function loadServerPayloadCodecs(
+  resolveKey?: PayloadKeyResolver,
+): PayloadCodec[] {
   const config = loadPayloadEncryptionConfig((name) => process.env[name]);
   if (config === undefined) {
     return [];
   }
-  return [new ServerDecryptionPayloadCodec(new EncryptionPayloadCodec(config))];
+  return [
+    new ServerDecryptionPayloadCodec(
+      new EncryptionPayloadCodec({ ...config, resolveKey }),
+    ),
+  ];
 }

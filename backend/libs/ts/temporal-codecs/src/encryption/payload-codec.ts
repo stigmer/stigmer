@@ -28,6 +28,14 @@
  * fails closed: unknown key id, missing key id, and ciphertext tampering
  * all throw rather than surfacing bogus payloads.
  *
+ * Key ids outside the static primary/secondary pair may be resolved
+ * through the config's optional resolveKey seam (C4: the cloud server
+ * decodes desktop-runner histories under database-resident `rpk_` keys).
+ * Resolution is decode-only, resolved keys are cached for the process
+ * lifetime (an id's material is immutable — rotation mints a new id),
+ * misses are never cached, and an unresolvable id keeps the pinned
+ * fail-closed throw.
+ *
  * Moved from backend/services/runner/src/encryption/payload-codec.ts when
  * the codecs became @stigmer/temporal-codecs (one home for the
  * cross-language envelope contract; the TS server is the second consumer).
@@ -58,7 +66,9 @@ export class EncryptionPayloadCodec implements PayloadCodec {
   private readonly decryptKeysById: Map<string, Buffer>;
 
   constructor(private readonly config: PayloadEncryptionConfig) {
-    this.decryptKeysById = new Map([[config.primary.keyId, config.primary.key]]);
+    this.decryptKeysById = new Map([
+      [config.primary.keyId, config.primary.key],
+    ]);
     if (config.secondary) {
       this.decryptKeysById.set(config.secondary.keyId, config.secondary.key);
     }
@@ -69,7 +79,7 @@ export class EncryptionPayloadCodec implements PayloadCodec {
   }
 
   async decode(payloads: Payload[]): Promise<Payload[]> {
-    return payloads.map((p) => this.decodePayload(p));
+    return Promise.all(payloads.map((p) => this.decodePayload(p)));
   }
 
   private encodePayload(payload: Payload): Payload {
@@ -90,7 +100,7 @@ export class EncryptionPayloadCodec implements PayloadCodec {
     };
   }
 
-  private decodePayload(payload: Payload): Payload {
+  private async decodePayload(payload: Payload): Promise<Payload> {
     if (!isEncryptedPayload(payload)) {
       return payload;
     }
@@ -102,7 +112,7 @@ export class EncryptionPayloadCodec implements PayloadCodec {
       );
     }
     const keyId = Buffer.from(keyIdBytes).toString("utf-8");
-    const key = this.decryptKeysById.get(keyId);
+    const key = await this.decryptKeyFor(keyId);
     if (!key) {
       throw new Error(
         `Encrypted payload uses unknown key id '${keyId}' — configure it as the ` +
@@ -112,6 +122,26 @@ export class EncryptionPayloadCodec implements PayloadCodec {
 
     const plaintext = decrypt(payload.data!, key, keyId);
     return temporal.api.common.v1.Payload.decode(plaintext);
+  }
+
+  /**
+   * The static map first; on a miss, the config's resolver (when present),
+   * caching the RESOLVED key only — a miss stays unresolved so a key
+   * minted after this process booted is found on the next decode.
+   */
+  private async decryptKeyFor(keyId: string): Promise<Buffer | undefined> {
+    const known = this.decryptKeysById.get(keyId);
+    if (known !== undefined) {
+      return known;
+    }
+    if (this.config.resolveKey === undefined) {
+      return undefined;
+    }
+    const resolved = await this.config.resolveKey(keyId);
+    if (resolved !== undefined) {
+      this.decryptKeysById.set(keyId, resolved);
+    }
+    return resolved;
   }
 }
 
