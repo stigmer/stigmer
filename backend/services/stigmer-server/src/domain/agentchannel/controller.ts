@@ -60,7 +60,10 @@ import { newPipeline } from "../../pipeline/pipeline.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
-import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
+import {
+  authorizeDirect,
+  newAuthorizeStep,
+} from "../../pipeline/steps/authorize.js";
 import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
 import { newBuildNewStateStep } from "../../pipeline/steps/defaults.js";
 import { newBuildUpdateStateStep } from "../../pipeline/steps/build-update-state.js";
@@ -318,6 +321,18 @@ async function initiateInstall(
   ctx: HandlerContext,
 ): Promise<InitiateChannelInstallOutput> {
   const channel = await loadChannelForInstall(deps, ctx, input.resourceId);
+  // can_edit AFTER the load (the Java LoadChannel-then-authorize order,
+  // #224 discipline): a missing id answers NOT_FOUND for everyone; only
+  // an existing channel can produce the annotation's denial. Enforced at
+  // the OSS lane so every composed runtime receives a pre-authorized
+  // caller (C2 close-out — the interim stub the coverage doc recorded as
+  // owing this arm shipped without it on both sides).
+  await authorizeDirect(
+    AgentChannelCommandController.method.initiateInstall,
+    deps.authorizer,
+    callerIdentityOf(ctx),
+    input,
+  );
   if (deps.channelRuntime === undefined) {
     throw failedPreconditionError(INSTALL_UNAVAILABLE_MESSAGE);
   }
@@ -339,6 +354,14 @@ async function completeInstall(
   ctx: HandlerContext,
 ): Promise<AgentChannel> {
   const channel = await loadChannelForInstall(deps, ctx, input.resourceId);
+  // Same load-then-authorize order as initiateInstall — the two halves
+  // of one flow carry the identical can_edit annotation.
+  await authorizeDirect(
+    AgentChannelCommandController.method.completeInstall,
+    deps.authorizer,
+    callerIdentityOf(ctx),
+    input,
+  );
   if (deps.channelRuntime === undefined) {
     throw failedPreconditionError(INSTALL_UNAVAILABLE_MESSAGE);
   }

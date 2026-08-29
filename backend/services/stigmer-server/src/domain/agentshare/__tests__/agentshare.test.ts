@@ -635,6 +635,34 @@ describe("audience and the member resolution lane", () => {
     const profile = await query.getSharedProfileForMember(ref);
     expect(profile.slug).toBe(agent.metadata!.slug);
   });
+
+  it("the ANONYMOUS path collapses an org-audience share to the uniform NotFound (C2 close-out — the proto's audience contract)", async () => {
+    const agent = await createTestAgent(uniqueName("Org Audience Anon Agent"), ORG);
+    await shares.create({
+      ...shareFor(agent, true),
+      spec: { ...shareFor(agent, true).spec, audience: AgentShareAudience.org },
+    });
+
+    // Byte-identical with the missing/disabled/rotated refusals — a
+    // members-only share URL must teach an anonymous visitor nothing.
+    const err = await grpcError(() =>
+      query.getSharedProfile({ org: ORG, slug: agent.metadata!.slug }),
+    );
+    expect(err.code).toBe(Code.NotFound);
+    expect(err.rawMessage).toBe(`Agent not found: ${agent.metadata!.slug}`);
+
+    // Flipping back to public restores anonymous resolution — the same
+    // immediate-revocation latency as disabling the share.
+    const stored = await query.getByAgent({ agentId: agent.metadata!.id });
+    const share = stored.items[0];
+    share.spec!.audience = AgentShareAudience.public;
+    await shares.update(share);
+    const profile = await query.getSharedProfile({
+      org: ORG,
+      slug: agent.metadata!.slug,
+    });
+    expect(profile.slug).toBe(agent.metadata!.slug);
+  });
 });
 
 // ---------------------------------------------------------------------------
