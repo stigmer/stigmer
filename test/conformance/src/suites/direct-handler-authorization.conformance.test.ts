@@ -30,6 +30,7 @@ import { FixtureTracker } from "../harness/fixtures";
 import { expectGrpcCode } from "../contract/errors";
 import { collectStream } from "../support/collect-stream";
 import { makeAgent } from "../support/agents";
+import { makeSlackAgentChannel } from "../support/agentchannels";
 import { makeMcpServer } from "../support/mcpservers";
 import { makeSession } from "../support/sessions";
 import { makeWorkflow } from "../support/workflows";
@@ -185,6 +186,50 @@ describe("direct-handler authorization — outsider denials (multi-tenant only)"
       );
       expect(denied.rawMessage, `${lane} annotation copy`).toBe(copy);
     }
+  });
+
+  it("the channel install pair refuses an outsider with its annotation copy (C2 close-out — the arm both editions declare)", async (ctx) => {
+    if (!multiTenantOnly()) return ctx.skip();
+    const { org } = await target.provisionTenancy();
+    const outsider = await outsiderClients();
+
+    const agent = await clients.agentCommand.create(
+      makeAgent({ org, name: uniqueName("authz-channel-agent") }),
+    );
+    fixtures.defer(() =>
+      clients.agentCommand.delete({ value: agent.metadata!.id }),
+    );
+    const channel = await clients.agentChannelCommand.create(
+      makeSlackAgentChannel(org, uniqueName("authz-channel"), agent.metadata!.slug),
+    );
+    fixtures.defer(() =>
+      clients.agentChannelCommand.delete({ value: channel.metadata!.id }),
+    );
+
+    const initiateDenied = await expectGrpcCode(
+      () =>
+        outsider.agentChannelCommand.initiateInstall({
+          resourceId: channel.metadata!.id,
+        }),
+      Code.PermissionDenied,
+      "outsider initiateInstall on a foreign channel",
+    );
+    expect(initiateDenied.rawMessage).toBe(
+      "unauthorized to install agent channel",
+    );
+    const completeDenied = await expectGrpcCode(
+      () =>
+        outsider.agentChannelCommand.completeInstall({
+          resourceId: channel.metadata!.id,
+          state: "outsider-state",
+          code: "outsider-code",
+        }),
+      Code.PermissionDenied,
+      "outsider completeInstall on a foreign channel",
+    );
+    expect(completeDenied.rawMessage).toBe(
+      "unauthorized to install agent channel",
+    );
   });
 
   it("the authorize-first read lanes answer NOT_FOUND for unknown ids — the ruled uniform Q1 posture", async (ctx) => {

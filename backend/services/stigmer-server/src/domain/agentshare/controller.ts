@@ -823,10 +823,14 @@ function newLoadShareForMemberProfileStep(
 }
 
 /**
- * Gates on spec.enabled plus the live link token, then projects the
- * trimmed public profile. A disabled share and a locked link with a wrong
- * or absent token are both indistinguishable from a nonexistent share —
- * a rotated (killed) link must look exactly like one that never existed.
+ * Gates on spec.enabled, the audience, and the live link token, then
+ * projects the trimmed public profile. A disabled share, an org-audience
+ * share, and a locked link with a wrong or absent token are ALL
+ * indistinguishable from a nonexistent share — a rotated (killed) link
+ * must look exactly like one that never existed, and a members-only
+ * share URL must leak nothing to non-members (they resolve via
+ * getSharedProfileForMember instead). Check order mirrors the cloud
+ * AgentShareGetSharedProfileHandler: exists → enabled → audience → token.
  */
 function newProjectSharedProfileStep(store: Store): PipelineStep<ProfileDesc> {
   return {
@@ -836,6 +840,15 @@ function newProjectSharedProfileStep(store: Store): PipelineStep<ProfileDesc> {
       const req = ctx.input;
 
       if (share.spec?.enabled !== true) {
+        throw sharedNotFound(req.slug);
+      }
+      // The audience arm (SharingAudiencePolicy.admitsGuests): only an
+      // EXPLICIT org audience refuses — unspecified means public by
+      // contract (shares created before the audience field existed are
+      // anyone-with-link shares). Closes the recorded C2 close-out gap:
+      // this anonymous lane resolved org-audience shares the proto
+      // contract says must collapse.
+      if (share.spec.audience === AgentShareAudience.org) {
         throw sharedNotFound(req.slug);
       }
       if (

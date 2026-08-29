@@ -1,7 +1,8 @@
 /**
  * Pins the C2 Stage-4 enforcement END TO END for the direct handlers whose
  * domain suites run through full composed servers (session updateSubject,
- * workflow getVersion, artifact delete/getDownloadUrl/getContent): one
+ * workflow getVersion, artifact delete/getDownloadUrl/getContent, and the
+ * channel install pair added at the C2 close-out): one
  * composed server with a DENYING extension Authorizer, probed over the
  * wire. This proves the whole path — transport → registered handler →
  * authorizeDirect → the composed Authorizer — not just the handler
@@ -24,6 +25,8 @@ import type { Transport } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
+import { AgentChannelCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/command_pb";
 import { ArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/api_pb";
 import { ArtifactCommandController } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/command_pb";
 import { ArtifactStorageState } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/enum_pb";
@@ -100,6 +103,16 @@ describe("direct-handler authorization (composed server, denying authorizer)", (
           contentHash: "0".repeat(64),
           storageState: ArtifactStorageState.storage_state_stored,
         },
+      }),
+    );
+    await server.store.saveResource(
+      ApiResourceKind.agent_channel,
+      "ach_01authztarget",
+      AgentChannelSchema,
+      create(AgentChannelSchema, {
+        apiVersion: "agentic.stigmer.ai/v1",
+        kind: "AgentChannel",
+        metadata: { id: "ach_01authztarget", name: "target", org: "acme" },
       }),
     );
   });
@@ -179,6 +192,36 @@ describe("direct-handler authorization (composed server, denying authorizer)", (
     await expectDenied(
       () => query.getContent({ artifactId: "art_01authztarget" }),
       "unauthorized to read artifact content",
+    );
+  });
+
+  it("channel initiateInstall and completeInstall deny with their annotation copy (C2 close-out — the arm both sides deferred)", async () => {
+    const command = createClient(AgentChannelCommandController, transport);
+    // PermissionDenied — NOT the storing edition's FailedPrecondition —
+    // proves the authorization runs before the refuse-or-delegate split.
+    await expectDenied(
+      () => command.initiateInstall({ resourceId: "ach_01authztarget" }),
+      "unauthorized to install agent channel",
+    );
+    await expectDenied(
+      () =>
+        command.completeInstall({
+          resourceId: "ach_01authztarget",
+          state: "some-state",
+          code: "some-code",
+        }),
+      "unauthorized to install agent channel",
+    );
+  });
+
+  it("channel install on a MISSING id answers NotFound even under denial (load-first)", async () => {
+    const command = createClient(AgentChannelCommandController, transport);
+    const error = await command
+      .initiateInstall({ resourceId: "ach_doesnotexist" })
+      .catch((e: unknown) => e);
+    expect((error as ConnectError).code).toBe(Code.NotFound);
+    expect((error as ConnectError).rawMessage).toBe(
+      "AgentChannel not found: ach_doesnotexist",
     );
   });
 });

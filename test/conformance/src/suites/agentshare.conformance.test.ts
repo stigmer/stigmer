@@ -290,6 +290,31 @@ describe("AgentShare conformance — the anonymous resolution lane", () => {
     expect(afterDelete.rawMessage).toBe(sharedNotFoundMessage(dangling.metadata!.slug));
   });
 
+  it("collapses an org-audience share to the SAME NotFound — members-only URLs teach anonymous visitors nothing", async () => {
+    const { org } = await target.provisionTenancy();
+    const agent = await createAgentFixture(org);
+    await createShareFixture(org, agent.metadata!.slug, {
+      audience: AgentShareAudience.org,
+    });
+
+    // The proto's audience contract: org-audience shares resolve only via
+    // getSharedProfileForMember; the anonymous lane answers the uniform
+    // refusal, byte-identical with a share that never existed.
+    const refused = await expectGrpcCode(
+      () => clients.agentShareQuery.getSharedProfile({ org, slug: agent.metadata!.slug }),
+      Code.NotFound,
+      "getSharedProfile on an org-audience share",
+    );
+    expect(refused.rawMessage).toBe(sharedNotFoundMessage(agent.metadata!.slug));
+
+    // The member lane still resolves it — the refusal is audience, not state.
+    const profile = await clients.agentShareQuery.getSharedProfileForMember({
+      org,
+      slug: agent.metadata!.slug,
+    });
+    expect(profile.slug).toBe(agent.metadata?.slug);
+  });
+
   it("a stale token on an UNLOCKED link stays harmless", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgentFixture(org);

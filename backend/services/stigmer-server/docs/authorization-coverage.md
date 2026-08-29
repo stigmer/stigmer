@@ -161,8 +161,8 @@ All six RPCs are chains, and the proto deliberately marks every one `is_skip_aut
 | AgentChannelCommandController.apply | none | chain-with-Authorize |
 | AgentChannelCommandController.create | is_skip_authorization | chain-with-Authorize |
 | AgentChannelCommandController.update | config: can_edit on agent_channel (field metadata.id), error_msg yes | chain-with-Authorize |
-| AgentChannelCommandController.initiateInstall | config: can_edit on agent_channel (field resource_id), error_msg yes | direct: OSS stub — loads the channel (NOT_FOUND contract matches cloud), then refuses FAILED_PRECONDITION (install unavailable on this edition) |
-| AgentChannelCommandController.completeInstall | config: can_edit on agent_channel (field resource_id), error_msg yes | direct: OSS stub — same load-then-refuse FAILED_PRECONDITION |
+| AgentChannelCommandController.initiateInstall | config: can_edit on agent_channel (field resource_id), error_msg yes | direct: `authorizeDirect` AFTER the load (the Java LoadChannel-then-authorize order — missing ids answer NOT_FOUND for everyone), then refuse FAILED_PRECONDITION on the storing edition or delegate to `drivers.channelRuntime` (C2 close-out, 20260827.10 — the interim stub's owed can_edit arm) |
+| AgentChannelCommandController.completeInstall | config: can_edit on agent_channel (field resource_id), error_msg yes | direct: same load → `authorizeDirect` → refuse-or-delegate |
 | AgentChannelCommandController.delete | config: can_delete on agent_channel (field value), error_msg yes | chain-with-Authorize |
 | AgentChannelQueryController.get | config: can_view on agent_channel (field value), error_msg yes | chain-with-Authorize |
 | AgentChannelQueryController.getByReference | is_skip_authorization | chain-with-Authorize |
@@ -408,18 +408,18 @@ The conversation surface is a cloud capability; OSS serves edition stubs, all di
 
 These 30 methods declare a `(ai.stigmer.commons.rpc.config)` annotation and run no pipeline. All 30 were dispositioned at the C2 Stage-4 gate (20260827.10); the enforcement state per bucket:
 
-**Evaluated via `authorizeDirect` (17)** — the exported Authorize evaluation, called by the handler itself at the Java baseline's position (each table row notes load-first `#224` order where it applies):
+**Evaluated via `authorizeDirect` (19)** — the exported Authorize evaluation, called by the handler itself at the Java baseline's position (each table row notes load-first `#224` order where it applies):
 
 - Session: updateSubject
+- AgentChannel: initiateInstall, completeInstall (moved here at the C2 close-out — the Stage-4 "rides the C3 installer stage" deferral shipped without the arm on either side; the OSS lane now enforces after its load, so every composed runtime receives a pre-authorized caller)
 - AgentExecution: subscribe, getArtifactDownloadUrl, getArtifactContent
 - Workflow: getVersion (a ruled DELIBERATE divergence — the Java edition never evaluates this annotation; see the table row)
 - WorkflowExecution: subscribe, getEventLog, subscribeEvents
 - McpServer: connect, startConnect, initiateOAuthConnect, completeOAuthConnect, disconnectOAuth, getOAuthGrantStatus
 - Artifact: delete, getDownloadUrl, getContent
 
-**Enforced by the composed channel runtime (9)** — this server's handlers delegate whole-method to `drivers.channelRuntime` (DD-004); the OSS default serves the byte-pinned refusal/stub postures with nothing to protect, and the cloud runtime's served arms gate on the composed Authorizer as their first act (its own suite pins the deny paths). The install pair is an interim stub on both sides until the C3 installer stage, which owes the can_edit arm when it lands:
+**Enforced by the composed channel runtime (7)** — this server's handlers delegate whole-method to `drivers.channelRuntime` (DD-004); the OSS default serves the byte-pinned refusal/stub postures with nothing to protect, and the cloud runtime's served arms gate on the composed Authorizer as their first act (its own suite pins the deny paths):
 
-- AgentChannel: initiateInstall, completeInstall
 - ChannelConversation: getConversation, getTimeline, getMediaDownloadUrl, reply, takeOver, handBack, clearAttention
 
 **Deliberately not evaluated (1)** — Workflow.validateSpec: matches the Java handler's documented "no persist, no authorize" posture (nothing loaded or persisted); the annotation mismatch is a recorded ruling, not an omission.
