@@ -95,19 +95,32 @@ export function describeStoreContract(
       const org = makeOrganization({ id: "acme" });
       await fx.store.saveResource(KIND, "acme", OrganizationSchema, org);
 
-      const loaded = await fx.store.getResource(KIND, "acme", OrganizationSchema);
+      const loaded = await fx.store.getResource(
+        KIND,
+        "acme",
+        OrganizationSchema,
+      );
       expect(loaded.metadata?.name).toBe("Acme");
     });
 
     it("saveResource upserts on kind+id", async () => {
-      await fx.store.saveResource(KIND, "acme", OrganizationSchema, makeOrganization());
+      await fx.store.saveResource(
+        KIND,
+        "acme",
+        OrganizationSchema,
+        makeOrganization(),
+      );
       await fx.store.saveResource(
         KIND,
         "acme",
         OrganizationSchema,
         makeOrganization({ description: "second write" }),
       );
-      const loaded = await fx.store.getResource(KIND, "acme", OrganizationSchema);
+      const loaded = await fx.store.getResource(
+        KIND,
+        "acme",
+        OrganizationSchema,
+      );
       expect(loaded.spec?.description).toBe("second write");
       expect(await fx.store.listResources(KIND)).toHaveLength(1);
     });
@@ -122,7 +135,9 @@ export function describeStoreContract(
     });
 
     it("deleteResource is a silent no-op for a missing resource", async () => {
-      await expect(fx.store.deleteResource(KIND, "ghost")).resolves.toBeUndefined();
+      await expect(
+        fx.store.deleteResource(KIND, "ghost"),
+      ).resolves.toBeUndefined();
     });
 
     it("listResources returns an empty array (never undefined) for an empty kind", async () => {
@@ -130,17 +145,42 @@ export function describeStoreContract(
     });
 
     it("deleteResourcesByKind and ByIdPrefix return the deleted counts", async () => {
-      await fx.store.saveResource(KIND, "acme", OrganizationSchema, makeOrganization({ id: "acme" }));
-      await fx.store.saveResource(KIND, "beta", OrganizationSchema, makeOrganization({ id: "beta" }));
-      await fx.store.saveResource(KIND, "acme-2", OrganizationSchema, makeOrganization({ id: "acme-2" }));
+      await fx.store.saveResource(
+        KIND,
+        "acme",
+        OrganizationSchema,
+        makeOrganization({ id: "acme" }),
+      );
+      await fx.store.saveResource(
+        KIND,
+        "beta",
+        OrganizationSchema,
+        makeOrganization({ id: "beta" }),
+      );
+      await fx.store.saveResource(
+        KIND,
+        "acme-2",
+        OrganizationSchema,
+        makeOrganization({ id: "acme-2" }),
+      );
 
       expect(await fx.store.deleteResourcesByIdPrefix(KIND, "acme")).toBe(2);
       expect(await fx.store.deleteResourcesByKind(KIND)).toBe(1);
     });
 
     it("deleteResourcesByIdPrefix treats LIKE metacharacters in the prefix literally", async () => {
-      await fx.store.saveResource(KIND, "a_c", OrganizationSchema, makeOrganization({ id: "a_c" }));
-      await fx.store.saveResource(KIND, "abc", OrganizationSchema, makeOrganization({ id: "abc" }));
+      await fx.store.saveResource(
+        KIND,
+        "a_c",
+        OrganizationSchema,
+        makeOrganization({ id: "a_c" }),
+      );
+      await fx.store.saveResource(
+        KIND,
+        "abc",
+        OrganizationSchema,
+        makeOrganization({ id: "abc" }),
+      );
 
       // "a_c" must match only the literal id — an unescaped LIKE '_' would
       // also delete "abc".
@@ -151,7 +191,12 @@ export function describeStoreContract(
 
   describe("updateResource (atomic RMW)", () => {
     it("applies the mutation and returns the persisted message", async () => {
-      await fx.store.saveResource(KIND, "acme", OrganizationSchema, makeOrganization());
+      await fx.store.saveResource(
+        KIND,
+        "acme",
+        OrganizationSchema,
+        makeOrganization(),
+      );
 
       const updated = await fx.store.updateResource(
         KIND,
@@ -163,7 +208,11 @@ export function describeStoreContract(
       );
       expect(updated.spec?.description).toBe("mutated");
 
-      const reloaded = await fx.store.getResource(KIND, "acme", OrganizationSchema);
+      const reloaded = await fx.store.getResource(
+        KIND,
+        "acme",
+        OrganizationSchema,
+      );
       expect(reloaded.spec?.description).toBe("mutated");
     });
 
@@ -181,7 +230,11 @@ export function describeStoreContract(
         }),
       ).rejects.toThrow("modify failed");
 
-      const reloaded = await fx.store.getResource(KIND, "acme", OrganizationSchema);
+      const reloaded = await fx.store.getResource(
+        KIND,
+        "acme",
+        OrganizationSchema,
+      );
       expect(reloaded.spec?.description).toBe("original");
       // The rolled-back transaction must not leave the connection wedged.
       await expect(
@@ -212,7 +265,11 @@ export function describeStoreContract(
           org.spec!.description += "|second";
         }),
       ]);
-      const reloaded = await fx.store.getResource(KIND, "acme", OrganizationSchema);
+      const reloaded = await fx.store.getResource(
+        KIND,
+        "acme",
+        OrganizationSchema,
+      );
       // Order is driver-relative (sqlite serializes globally, Postgres
       // per-row); the CONTRACT is that neither write is lost.
       expect(["|first|second", "|second|first"]).toContain(
@@ -221,8 +278,18 @@ export function describeStoreContract(
     });
 
     it("parallel updates to DIFFERENT resources both land", async () => {
-      await fx.store.saveResource(KIND, "acme", OrganizationSchema, makeOrganization({ id: "acme" }));
-      await fx.store.saveResource(KIND, "beta", OrganizationSchema, makeOrganization({ id: "beta" }));
+      await fx.store.saveResource(
+        KIND,
+        "acme",
+        OrganizationSchema,
+        makeOrganization({ id: "acme" }),
+      );
+      await fx.store.saveResource(
+        KIND,
+        "beta",
+        OrganizationSchema,
+        makeOrganization({ id: "beta" }),
+      );
 
       await Promise.all([
         fx.store.updateResource(KIND, "acme", OrganizationSchema, (org) => {
@@ -242,7 +309,12 @@ export function describeStoreContract(
 
   describe("field and label queries", () => {
     it("findByField matches camelCase paths with snake_case fallback (Go's two-probe lookup)", async () => {
-      await fx.store.saveResource(KIND, "acme", OrganizationSchema, makeOrganization({ id: "acme" }));
+      await fx.store.saveResource(
+        KIND,
+        "acme",
+        OrganizationSchema,
+        makeOrganization({ id: "acme" }),
+      );
       await fx.store.saveResource(
         KIND,
         "beta",
@@ -270,12 +342,24 @@ export function describeStoreContract(
 
     it("findByField throws ResourceNotFoundError naming the predicate", async () => {
       await expect(
-        fx.store.findByField(KIND, "spec.description", "none", OrganizationSchema),
-      ).rejects.toThrow("resource not found: organization where spec.description=none");
+        fx.store.findByField(
+          KIND,
+          "spec.description",
+          "none",
+          OrganizationSchema,
+        ),
+      ).rejects.toThrow(
+        "resource not found: organization where spec.description=none",
+      );
     });
 
     it("findAllByField preserves the Go quirk: ALL rows of the kind, unfiltered (DD-001)", async () => {
-      await fx.store.saveResource(KIND, "acme", OrganizationSchema, makeOrganization({ id: "acme" }));
+      await fx.store.saveResource(
+        KIND,
+        "acme",
+        OrganizationSchema,
+        makeOrganization({ id: "acme" }),
+      );
       await fx.store.saveResource(
         KIND,
         "beta",
@@ -283,7 +367,11 @@ export function describeStoreContract(
         makeOrganization({ id: "beta", description: "only-this-one" }),
       );
 
-      const rows = await fx.store.findAllByField(KIND, "spec.description", "only-this-one");
+      const rows = await fx.store.findAllByField(
+        KIND,
+        "spec.description",
+        "only-this-one",
+      );
       // Two rows despite the predicate matching one — the caller filters,
       // exactly as every Go call site did.
       expect(rows).toHaveLength(2);
@@ -294,13 +382,19 @@ export function describeStoreContract(
         KIND,
         "acme",
         OrganizationSchema,
-        makeOrganization({ id: "acme", labels: { "stigmer.ai/system": "true" } }),
+        makeOrganization({
+          id: "acme",
+          labels: { "stigmer.ai/system": "true" },
+        }),
       );
       await fx.store.saveResource(
         KIND,
         "beta",
         OrganizationSchema,
-        makeOrganization({ id: "beta", labels: { "stigmer.ai/system": "false" } }),
+        makeOrganization({
+          id: "beta",
+          labels: { "stigmer.ai/system": "false" },
+        }),
       );
 
       const matches = await fx.store.findAllByLabel(
@@ -316,11 +410,28 @@ export function describeStoreContract(
   describe("audit operations", () => {
     it("archives snapshots and lists them newest first with authoritative tags", async () => {
       const org = makeOrganization();
-      await fx.store.saveAudit(KIND, "acme", OrganizationSchema, org, "hash-1", "");
-      await fx.store.saveAudit(KIND, "acme", OrganizationSchema, org, "hash-2", "latest");
+      await fx.store.saveAudit(
+        KIND,
+        "acme",
+        OrganizationSchema,
+        org,
+        "hash-1",
+        "",
+      );
+      await fx.store.saveAudit(
+        KIND,
+        "acme",
+        OrganizationSchema,
+        org,
+        "hash-2",
+        "latest",
+      );
 
       const records = await fx.store.listAuditRecords(KIND, "acme");
-      expect(records.map((record) => record.versionHash)).toEqual(["hash-2", "hash-1"]);
+      expect(records.map((record) => record.versionHash)).toEqual([
+        "hash-2",
+        "hash-1",
+      ]);
       expect(records[0]!.tag).toBe("latest");
 
       expect(await fx.store.countAuditEntries(KIND, "acme")).toBe(2);
@@ -330,12 +441,29 @@ export function describeStoreContract(
 
     it("getAuditByHash / getAuditByTag round-trip the snapshot", async () => {
       const org = makeOrganization({ description: "snapshotted" });
-      await fx.store.saveAudit(KIND, "acme", OrganizationSchema, org, "hash-1", "stable");
+      await fx.store.saveAudit(
+        KIND,
+        "acme",
+        OrganizationSchema,
+        org,
+        "hash-1",
+        "stable",
+      );
 
-      const byHash = await fx.store.getAuditByHash(KIND, "acme", "hash-1", OrganizationSchema);
+      const byHash = await fx.store.getAuditByHash(
+        KIND,
+        "acme",
+        "hash-1",
+        OrganizationSchema,
+      );
       expect(byHash.spec?.description).toBe("snapshotted");
 
-      const byTag = await fx.store.getAuditByTag(KIND, "acme", "stable", OrganizationSchema);
+      const byTag = await fx.store.getAuditByTag(
+        KIND,
+        "acme",
+        "stable",
+        OrganizationSchema,
+      );
       expect(byTag.spec?.description).toBe("snapshotted");
     });
 
@@ -355,45 +483,99 @@ export function describeStoreContract(
 
     it("setAuditTag moves the tag atomically — single holder (#341)", async () => {
       const org = makeOrganization();
-      await fx.store.saveAudit(KIND, "acme", OrganizationSchema, org, "hash-1", "stable");
-      await fx.store.saveAudit(KIND, "acme", OrganizationSchema, org, "hash-2", "");
+      await fx.store.saveAudit(
+        KIND,
+        "acme",
+        OrganizationSchema,
+        org,
+        "hash-1",
+        "stable",
+      );
+      await fx.store.saveAudit(
+        KIND,
+        "acme",
+        OrganizationSchema,
+        org,
+        "hash-2",
+        "",
+      );
 
       await fx.store.setAuditTag(KIND, "acme", "hash-2", "stable");
 
       const records = await fx.store.listAuditRecords(KIND, "acme");
-      const byHash = new Map(records.map((record) => [record.versionHash, record.tag]));
+      const byHash = new Map(
+        records.map((record) => [record.versionHash, record.tag]),
+      );
       expect(byHash.get("hash-2")).toBe("stable");
       expect(byHash.get("hash-1"), "the prior holder is cleared").toBe("");
     });
 
     it("setAuditTag with a missing target rolls back — the prior holder keeps the tag", async () => {
       const org = makeOrganization();
-      await fx.store.saveAudit(KIND, "acme", OrganizationSchema, org, "hash-1", "stable");
+      await fx.store.saveAudit(
+        KIND,
+        "acme",
+        OrganizationSchema,
+        org,
+        "hash-1",
+        "stable",
+      );
 
       await expect(
         fx.store.setAuditTag(KIND, "acme", "missing-hash", "stable"),
       ).rejects.toThrow(AuditNotFoundError);
 
       const record = await fx.store.getAuditRecordByTag(KIND, "acme", "stable");
-      expect(record.versionHash, "a missing target never orphans the tag").toBe("hash-1");
+      expect(record.versionHash, "a missing target never orphans the tag").toBe(
+        "hash-1",
+      );
     });
 
     it("duplicate rows for one hash are legal — newest wins (stigmer-cloud#191)", async () => {
       await fx.store.saveAudit(
-        KIND, "acme", OrganizationSchema, makeOrganization({ description: "older" }), "hash-x", "",
+        KIND,
+        "acme",
+        OrganizationSchema,
+        makeOrganization({ description: "older" }),
+        "hash-x",
+        "",
       );
       await fx.store.saveAudit(
-        KIND, "acme", OrganizationSchema, makeOrganization({ description: "newer" }), "hash-x", "",
+        KIND,
+        "acme",
+        OrganizationSchema,
+        makeOrganization({ description: "newer" }),
+        "hash-x",
+        "",
       );
 
-      const record = await fx.store.getAuditByHash(KIND, "acme", "hash-x", OrganizationSchema);
+      const record = await fx.store.getAuditByHash(
+        KIND,
+        "acme",
+        "hash-x",
+        OrganizationSchema,
+      );
       expect(record.spec?.description).toBe("newer");
     });
 
     it("deleteAuditByResourceId removes the resource's records and reports the count", async () => {
       const org = makeOrganization();
-      await fx.store.saveAudit(KIND, "acme", OrganizationSchema, org, "hash-1", "");
-      await fx.store.saveAudit(KIND, "acme", OrganizationSchema, org, "hash-2", "");
+      await fx.store.saveAudit(
+        KIND,
+        "acme",
+        OrganizationSchema,
+        org,
+        "hash-1",
+        "",
+      );
+      await fx.store.saveAudit(
+        KIND,
+        "acme",
+        OrganizationSchema,
+        org,
+        "hash-2",
+        "",
+      );
       expect(await fx.store.deleteAuditByResourceId(KIND, "acme")).toBe(2);
       expect(await fx.store.countAuditEntries(KIND, "acme")).toBe(0);
     });
@@ -402,12 +584,18 @@ export function describeStoreContract(
   describe("workflow execution events", () => {
     it("append is insert-or-skip, first-writer-wins (oss#308 contract)", async () => {
       expect(
-        await fx.store.appendWorkflowExecutionEvents("wfe_1", [event(1), event(2)]),
+        await fx.store.appendWorkflowExecutionEvents("wfe_1", [
+          event(1),
+          event(2),
+        ]),
       ).toBe(2);
       // A retried batch re-sends the same sequence numbers: idempotent
       // no-op for the duplicates, the new event still lands.
       expect(
-        await fx.store.appendWorkflowExecutionEvents("wfe_1", [event(1), event(3)]),
+        await fx.store.appendWorkflowExecutionEvents("wfe_1", [
+          event(1),
+          event(3),
+        ]),
       ).toBe(1);
       expect(await fx.store.getMaxEventSequence("wfe_1")).toBe(3);
     });
@@ -419,22 +607,52 @@ export function describeStoreContract(
         event(3, "task_started", "step-b"),
       ]);
 
-      const afterFirst = await fx.store.getWorkflowExecutionEvents("wfe_1", 1, "", "", 0);
+      const afterFirst = await fx.store.getWorkflowExecutionEvents(
+        "wfe_1",
+        1,
+        "",
+        "",
+        0,
+      );
       expect(afterFirst.map((row) => row.sequenceNumber)).toEqual([2, 3]);
 
-      const started = await fx.store.getWorkflowExecutionEvents("wfe_1", 0, "task_started", "", 0);
+      const started = await fx.store.getWorkflowExecutionEvents(
+        "wfe_1",
+        0,
+        "task_started",
+        "",
+        0,
+      );
       expect(started.map((row) => row.sequenceNumber)).toEqual([1, 3]);
 
-      const stepA = await fx.store.getWorkflowExecutionEvents("wfe_1", 0, "", "step-a", 0);
+      const stepA = await fx.store.getWorkflowExecutionEvents(
+        "wfe_1",
+        0,
+        "",
+        "step-a",
+        0,
+      );
       expect(stepA.map((row) => row.sequenceNumber)).toEqual([1, 2]);
 
-      const limited = await fx.store.getWorkflowExecutionEvents("wfe_1", 0, "", "", 2);
+      const limited = await fx.store.getWorkflowExecutionEvents(
+        "wfe_1",
+        0,
+        "",
+        "",
+        2,
+      );
       expect(limited).toHaveLength(2);
     });
 
     it("round-trips event payload bytes and stamps createdAt", async () => {
       await fx.store.appendWorkflowExecutionEvents("wfe_1", [event(7)]);
-      const rows = await fx.store.getWorkflowExecutionEvents("wfe_1", 0, "", "", 0);
+      const rows = await fx.store.getWorkflowExecutionEvents(
+        "wfe_1",
+        0,
+        "",
+        "",
+        0,
+      );
       expect(rows).toHaveLength(1);
       expect(Array.from(rows[0]!.data)).toEqual([7]);
       expect(rows[0]!.createdAt).not.toBe("");
@@ -443,7 +661,9 @@ export function describeStoreContract(
     it("empty batches and unknown executions are calm no-ops", async () => {
       expect(await fx.store.appendWorkflowExecutionEvents("wfe_1", [])).toBe(0);
       expect(await fx.store.getMaxEventSequence("ghost")).toBe(0);
-      expect(await fx.store.getWorkflowExecutionEvents("ghost", 0, "", "", 0)).toEqual([]);
+      expect(
+        await fx.store.getWorkflowExecutionEvents("ghost", 0, "", "", 0),
+      ).toEqual([]);
     });
   });
 
@@ -462,7 +682,11 @@ export function describeStoreContract(
 
     it("upsert converges retried writes onto the fire-identity row", async () => {
       await fx.store.upsertScheduleRun(baseRun);
-      await fx.store.upsertScheduleRun({ ...baseRun, outcome: "completed", completedAt: "2026-08-20T00:00:05Z" });
+      await fx.store.upsertScheduleRun({
+        ...baseRun,
+        outcome: "completed",
+        completedAt: "2026-08-20T00:00:05Z",
+      });
 
       const { runs, total } = await fx.store.listScheduleRuns("sch_1", 0, 0);
       expect(total).toBe(1);
@@ -470,11 +694,17 @@ export function describeStoreContract(
     });
 
     it("terminal rows are never downgraded by a replayed 'started' write", async () => {
-      await fx.store.upsertScheduleRun({ ...baseRun, outcome: "completed", completedAt: "2026-08-20T00:00:05Z" });
+      await fx.store.upsertScheduleRun({
+        ...baseRun,
+        outcome: "completed",
+        completedAt: "2026-08-20T00:00:05Z",
+      });
       await fx.store.upsertScheduleRun(baseRun); // the replay
 
       const { runs } = await fx.store.listScheduleRuns("sch_1", 0, 0);
-      expect(runs[0]!.outcome, "the verdict survives the replay").toBe("completed");
+      expect(runs[0]!.outcome, "the verdict survives the replay").toBe(
+        "completed",
+      );
       expect(runs[0]!.completedAt).toBe("2026-08-20T00:00:05Z");
     });
 
@@ -489,7 +719,11 @@ export function describeStoreContract(
       });
 
       await fx.store.markLatestScheduleRunTerminal(
-        "sch_1", "cron", "failed", "boom", "2026-08-20T00:01:00Z",
+        "sch_1",
+        "cron",
+        "failed",
+        "boom",
+        "2026-08-20T00:01:00Z",
       );
 
       const { runs } = await fx.store.listScheduleRuns("sch_1", 0, 0);
@@ -502,7 +736,13 @@ export function describeStoreContract(
 
     it("marking with no non-terminal row is a silent no-op", async () => {
       await expect(
-        fx.store.markLatestScheduleRunTerminal("sch_ghost", "cron", "failed", "", "t"),
+        fx.store.markLatestScheduleRunTerminal(
+          "sch_ghost",
+          "cron",
+          "failed",
+          "",
+          "t",
+        ),
       ).resolves.toBeUndefined();
     });
 
@@ -648,7 +888,11 @@ export function describeStoreContract(
       await fx.store.upsertSearchIndex(
         ApiResourceKind.agent,
         "agt-public",
-        entry({ name: "searchable beta", org: "globex", visibility: "visibility_public" }),
+        entry({
+          name: "searchable beta",
+          org: "globex",
+          visibility: "visibility_public",
+        }),
       );
       await fx.store.upsertSearchIndex(
         ApiResourceKind.agent,
@@ -726,8 +970,16 @@ export function describeStoreContract(
     });
 
     it("upsert replaces the indexed document; deleteSearchIndex and clearSearchIndex remove", async () => {
-      await fx.store.upsertSearchIndex(KIND, "acme", entry({ name: "original name" }));
-      await fx.store.upsertSearchIndex(KIND, "acme", entry({ name: "renamed thing" }));
+      await fx.store.upsertSearchIndex(
+        KIND,
+        "acme",
+        entry({ name: "original name" }),
+      );
+      await fx.store.upsertSearchIndex(
+        KIND,
+        "acme",
+        entry({ name: "renamed thing" }),
+      );
 
       const stale = await fx.store.querySearchIndex({
         kinds: ["organization"],
@@ -763,7 +1015,11 @@ export function describeStoreContract(
       });
       expect(afterDelete.totalCount).toBe(0);
 
-      await fx.store.upsertSearchIndex(KIND, "acme", entry({ name: "back again" }));
+      await fx.store.upsertSearchIndex(
+        KIND,
+        "acme",
+        entry({ name: "back again" }),
+      );
       await fx.store.clearSearchIndex();
       const afterClear = await fx.store.querySearchIndex({
         kinds: ["organization"],
@@ -786,7 +1042,9 @@ export function describeStoreContract(
       await fx.store.bootstrapState.set("seedpack_version", "1.1.0");
       await fx.store.bootstrapState.set("bootstrap_status", "completed");
 
-      expect(await fx.store.bootstrapState.get("seedpack_version")).toBe("1.1.0");
+      expect(await fx.store.bootstrapState.get("seedpack_version")).toBe(
+        "1.1.0",
+      );
       expect(await fx.store.bootstrapState.getAll()).toEqual(
         new Map([
           ["seedpack_version", "1.1.0"],
@@ -806,13 +1064,21 @@ export function describeStoreContract(
   describe("signal dedupe (two-phase hold)", () => {
     it("claims a fresh key, reports the holder on a duplicate claim", async () => {
       const first = await fx.store.signalDedupe.claim(
-        "acme", "key-1", "wfe_1", "resume", IN_FLIGHT_CLAIM_TTL_MS,
+        "acme",
+        "key-1",
+        "wfe_1",
+        "resume",
+        IN_FLIGHT_CLAIM_TTL_MS,
       );
       expect(first.status).toBe("SUCCESS");
       expect(first.record).toBeUndefined();
 
       const second = await fx.store.signalDedupe.claim(
-        "acme", "key-1", "wfe_2", "resume", IN_FLIGHT_CLAIM_TTL_MS,
+        "acme",
+        "key-1",
+        "wfe_2",
+        "resume",
+        IN_FLIGHT_CLAIM_TTL_MS,
       );
       expect(second.status).toBe("DUPLICATE");
       // The caller branches on the HOLDER's state: CLAIMED = in-flight
@@ -822,19 +1088,39 @@ export function describeStoreContract(
     });
 
     it("keys are org-scoped: the same idempotency key in another org claims freely", async () => {
-      await fx.store.signalDedupe.claim("acme", "key-1", "wfe_1", "resume", IN_FLIGHT_CLAIM_TTL_MS);
+      await fx.store.signalDedupe.claim(
+        "acme",
+        "key-1",
+        "wfe_1",
+        "resume",
+        IN_FLIGHT_CLAIM_TTL_MS,
+      );
       const other = await fx.store.signalDedupe.claim(
-        "globex", "key-1", "wfe_9", "resume", IN_FLIGHT_CLAIM_TTL_MS,
+        "globex",
+        "key-1",
+        "wfe_9",
+        "resume",
+        IN_FLIGHT_CLAIM_TTL_MS,
       );
       expect(other.status).toBe("SUCCESS");
     });
 
     it("markDelivered flips the status and extends the hold to the 24h window", async () => {
-      await fx.store.signalDedupe.claim("acme", "key-1", "wfe_1", "resume", IN_FLIGHT_CLAIM_TTL_MS);
+      await fx.store.signalDedupe.claim(
+        "acme",
+        "key-1",
+        "wfe_1",
+        "resume",
+        IN_FLIGHT_CLAIM_TTL_MS,
+      );
       await fx.store.signalDedupe.markDelivered("acme", "key-1");
 
       const dup = await fx.store.signalDedupe.claim(
-        "acme", "key-1", "wfe_2", "resume", IN_FLIGHT_CLAIM_TTL_MS,
+        "acme",
+        "key-1",
+        "wfe_2",
+        "resume",
+        IN_FLIGHT_CLAIM_TTL_MS,
       );
       expect(dup.status).toBe("DUPLICATE");
       expect(dup.record?.status).toBe("DELIVERED");
@@ -845,39 +1131,78 @@ export function describeStoreContract(
     });
 
     it("markDelivered on a missing or already-delivered key is a tolerant no-op", async () => {
-      await expect(fx.store.signalDedupe.markDelivered("acme", "ghost")).resolves.toBeUndefined();
-      await fx.store.signalDedupe.claim("acme", "key-1", "wfe_1", "resume", IN_FLIGHT_CLAIM_TTL_MS);
+      await expect(
+        fx.store.signalDedupe.markDelivered("acme", "ghost"),
+      ).resolves.toBeUndefined();
+      await fx.store.signalDedupe.claim(
+        "acme",
+        "key-1",
+        "wfe_1",
+        "resume",
+        IN_FLIGHT_CLAIM_TTL_MS,
+      );
       await fx.store.signalDedupe.markDelivered("acme", "key-1");
-      await expect(fx.store.signalDedupe.markDelivered("acme", "key-1")).resolves.toBeUndefined();
+      await expect(
+        fx.store.signalDedupe.markDelivered("acme", "key-1"),
+      ).resolves.toBeUndefined();
     });
 
     it("release frees a CLAIMED key immediately but never a DELIVERED one", async () => {
-      await fx.store.signalDedupe.claim("acme", "key-1", "wfe_1", "resume", IN_FLIGHT_CLAIM_TTL_MS);
+      await fx.store.signalDedupe.claim(
+        "acme",
+        "key-1",
+        "wfe_1",
+        "resume",
+        IN_FLIGHT_CLAIM_TTL_MS,
+      );
       await fx.store.signalDedupe.release("acme", "key-1");
       const reclaimed = await fx.store.signalDedupe.claim(
-        "acme", "key-1", "wfe_2", "resume", IN_FLIGHT_CLAIM_TTL_MS,
+        "acme",
+        "key-1",
+        "wfe_2",
+        "resume",
+        IN_FLIGHT_CLAIM_TTL_MS,
       );
-      expect(reclaimed.status, "a released key is claimable at once").toBe("SUCCESS");
+      expect(reclaimed.status, "a released key is claimable at once").toBe(
+        "SUCCESS",
+      );
 
       await fx.store.signalDedupe.markDelivered("acme", "key-1");
       await fx.store.signalDedupe.release("acme", "key-1"); // guarded no-op
       const stillBlocked = await fx.store.signalDedupe.claim(
-        "acme", "key-1", "wfe_3", "resume", IN_FLIGHT_CLAIM_TTL_MS,
+        "acme",
+        "key-1",
+        "wfe_3",
+        "resume",
+        IN_FLIGHT_CLAIM_TTL_MS,
       );
-      expect(stillBlocked.status, "a delivered key survives a misplaced release").toBe("DUPLICATE");
+      expect(
+        stillBlocked.status,
+        "a delivered key survives a misplaced release",
+      ).toBe("DUPLICATE");
     });
 
     it("an expired hold self-heals: the next claim cleans it up and wins", async () => {
       // Crash recovery path: a claim whose delivery died holds only the
       // short TTL. Simulate the lapse by aging the row directly.
-      await fx.store.signalDedupe.claim("acme", "key-1", "wfe_1", "resume", IN_FLIGHT_CLAIM_TTL_MS);
+      await fx.store.signalDedupe.claim(
+        "acme",
+        "key-1",
+        "wfe_1",
+        "resume",
+        IN_FLIGHT_CLAIM_TTL_MS,
+      );
       await fx.forceDedupeExpiry(
         "acme:key-1",
         new Date(Date.now() - 1000).toISOString(),
       );
 
       const reclaimed = await fx.store.signalDedupe.claim(
-        "acme", "key-1", "wfe_2", "resume", IN_FLIGHT_CLAIM_TTL_MS,
+        "acme",
+        "key-1",
+        "wfe_2",
+        "resume",
+        IN_FLIGHT_CLAIM_TTL_MS,
       );
       expect(reclaimed.status).toBe("SUCCESS");
     });
@@ -909,15 +1234,55 @@ export function describeStoreContract(
       await fx.store.oauthGrants.upsert({ ...grant, clientId: "client-2" });
       const second = await fx.store.oauthGrants.find("ida_1", "mcp_1", "acme");
       expect(second!.clientId).toBe("client-2");
-      expect(second!.createdAt, "createdAt survives the upsert").toBe(first!.createdAt);
+      expect(second!.createdAt, "createdAt survives the upsert").toBe(
+        first!.createdAt,
+      );
     });
 
     it("find returns undefined (not an error) when absent; delete removes by composite key", async () => {
-      expect(await fx.store.oauthGrants.find("ida_x", "mcp_x", "acme")).toBeUndefined();
+      expect(
+        await fx.store.oauthGrants.find("ida_x", "mcp_x", "acme"),
+      ).toBeUndefined();
 
       await fx.store.oauthGrants.upsert(grant);
       await fx.store.oauthGrants.delete("ida_1", "mcp_1", "acme");
-      expect(await fx.store.oauthGrants.find("ida_1", "mcp_1", "acme")).toBeUndefined();
+      expect(
+        await fx.store.oauthGrants.find("ida_1", "mcp_1", "acme"),
+      ).toBeUndefined();
+    });
+
+    it("deleteByResourceId sweeps every identity's grants for the resource and no others", async () => {
+      // Two identities granted the same resource (re-install by a second
+      // caller leaves one row per identity — the sweep must take both),
+      // plus one grant on a different resource that must survive.
+      await fx.store.oauthGrants.upsert(grant);
+      await fx.store.oauthGrants.upsert({
+        ...grant,
+        identityAccountId: "ida_2",
+      });
+      await fx.store.oauthGrants.upsert({ ...grant, resourceId: "mcp_other" });
+
+      const swept = await fx.store.oauthGrants.deleteByResourceId(
+        "mcp_1",
+        "acme",
+      );
+      expect(swept, "both identities' grants counted").toBe(2);
+      expect(
+        await fx.store.oauthGrants.find("ida_1", "mcp_1", "acme"),
+      ).toBeUndefined();
+      expect(
+        await fx.store.oauthGrants.find("ida_2", "mcp_1", "acme"),
+      ).toBeUndefined();
+      expect(
+        await fx.store.oauthGrants.find("ida_1", "mcp_other", "acme"),
+        "other resources' grants survive",
+      ).toBeDefined();
+
+      const rerun = await fx.store.oauthGrants.deleteByResourceId(
+        "mcp_1",
+        "acme",
+      );
+      expect(rerun, "idempotent re-sweep answers zero, not an error").toBe(0);
     });
   });
 
@@ -941,7 +1306,8 @@ export function describeStoreContract(
     it("getAndDelete redeems a state exactly once", async () => {
       await fx.store.pendingOAuthStates.save(state);
 
-      const redeemed = await fx.store.pendingOAuthStates.getAndDelete("state-1");
+      const redeemed =
+        await fx.store.pendingOAuthStates.getAndDelete("state-1");
       expect(redeemed?.codeVerifier).toBe("enc:v1:sealed-verifier");
       expect(redeemed?.org).toBe("acme");
 
@@ -956,12 +1322,19 @@ export function describeStoreContract(
         createdAt: Math.floor(Date.now() / 1000) - 11 * 60,
       });
 
-      expect(await fx.store.pendingOAuthStates.getAndDelete("state-1")).toBeUndefined();
-      expect(await fx.countPendingOAuthStates(), "the expired row is gone").toBe(0);
+      expect(
+        await fx.store.pendingOAuthStates.getAndDelete("state-1"),
+      ).toBeUndefined();
+      expect(
+        await fx.countPendingOAuthStates(),
+        "the expired row is gone",
+      ).toBe(0);
     });
 
     it("unknown states return undefined; cleanupExpired reports the count removed", async () => {
-      expect(await fx.store.pendingOAuthStates.getAndDelete("ghost")).toBeUndefined();
+      expect(
+        await fx.store.pendingOAuthStates.getAndDelete("ghost"),
+      ).toBeUndefined();
 
       await fx.store.pendingOAuthStates.save(state); // fresh
       await fx.store.pendingOAuthStates.save({
@@ -971,7 +1344,9 @@ export function describeStoreContract(
       });
 
       expect(await fx.store.pendingOAuthStates.cleanupExpired()).toBe(1);
-      expect(await fx.store.pendingOAuthStates.getAndDelete("state-1")).toBeDefined();
+      expect(
+        await fx.store.pendingOAuthStates.getAndDelete("state-1"),
+      ).toBeDefined();
     });
   });
 
@@ -980,9 +1355,15 @@ export function describeStoreContract(
       await fx.store.close();
       await fx.store.close(); // second close is a no-op, as in Go
 
-      await expect(fx.store.listResources(KIND)).rejects.toThrow("store is closed");
-      await expect(fx.store.bootstrapState.get("k")).rejects.toThrow("store is closed");
-      await expect(fx.store.signalDedupe.release("o", "k")).rejects.toThrow("store is closed");
+      await expect(fx.store.listResources(KIND)).rejects.toThrow(
+        "store is closed",
+      );
+      await expect(fx.store.bootstrapState.get("k")).rejects.toThrow(
+        "store is closed",
+      );
+      await expect(fx.store.signalDedupe.release("o", "k")).rejects.toThrow(
+        "store is closed",
+      );
     });
   });
 }

@@ -235,7 +235,9 @@ export class PostgresStore implements Store {
     const rows = await this.listResources(kind);
     const match = scanForFieldMatch(rows, schema, fieldPath, value);
     if (match === undefined) {
-      throw new ResourceNotFoundError(`${kindName} where ${fieldPath}=${value}`);
+      throw new ResourceNotFoundError(
+        `${kindName} where ${fieldPath}=${value}`,
+      );
     }
     return match;
   }
@@ -300,7 +302,13 @@ export class PostgresStore implements Store {
     await this.open().query(
       `INSERT INTO resource_audit (kind, resource_id, data, version_hash, tag, archived_at)
        VALUES ($1, $2, $3, $4, $5, now())`,
-      [apiResourceKindName(kind), resourceId, Buffer.from(data), versionHash, tag],
+      [
+        apiResourceKindName(kind),
+        resourceId,
+        Buffer.from(data),
+        versionHash,
+        tag,
+      ],
     );
   }
 
@@ -310,7 +318,11 @@ export class PostgresStore implements Store {
     versionHash: string,
     schema: Desc,
   ): Promise<MessageShape<Desc>> {
-    const record = await this.getAuditRecordByHash(kind, resourceId, versionHash);
+    const record = await this.getAuditRecordByHash(
+      kind,
+      resourceId,
+      versionHash,
+    );
     return fromBinary(schema, record.data);
   }
 
@@ -646,9 +658,7 @@ export class PostgresStore implements Store {
     );
 
     return {
-      total: Number(
-        (totalResult.rows[0] as { total: string | number }).total,
-      ),
+      total: Number((totalResult.rows[0] as { total: string | number }).total),
       runs: (
         result.rows as Array<{
           schedule_id: string;
@@ -1201,6 +1211,15 @@ class PostgresOAuthGrantStore implements OAuthGrantStore {
       [identityAccountId, resourceId, orgId],
     );
   }
+
+  async deleteByResourceId(resourceId: string, orgId: string): Promise<number> {
+    const result = await this.open().query(
+      `DELETE FROM oauth_grant
+       WHERE resource_id = $1 AND org_id = $2`,
+      [resourceId, orgId],
+    );
+    return result.rowCount ?? 0;
+  }
 }
 
 // =============================================================================
@@ -1308,5 +1327,8 @@ class PostgresPendingOAuthStateStore implements PendingOAuthStateStore {
 
 /** Escapes LIKE metacharacters so a prefix matches literally. */
 function escapeLikePattern(value: string): string {
-  return value.replaceAll("\\", "\\\\").replaceAll("%", "\\%").replaceAll("_", "\\_");
+  return value
+    .replaceAll("\\", "\\\\")
+    .replaceAll("%", "\\%")
+    .replaceAll("_", "\\_");
 }

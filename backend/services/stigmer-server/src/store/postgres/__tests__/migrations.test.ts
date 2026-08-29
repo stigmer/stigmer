@@ -76,22 +76,35 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
              AND indexname = 'idx_wfee_created_at'`,
         );
         expect(sweepIndex.rowCount, "the v2 sweep index exists").toBe(1);
+
+        // v3's index: the by-resource grant teardown (see migrateToV3).
+        const grantIndex = await client.query(
+          `SELECT indexname FROM pg_indexes
+           WHERE tablename = 'oauth_grant'
+             AND indexname = 'idx_oauth_grant_resource'`,
+        );
+        expect(grantIndex.rowCount, "the v3 grant-teardown index exists").toBe(
+          1,
+        );
       } finally {
         await client.end();
       }
     });
 
-    it("a v1 database resumes the chain on reopen: v2's sweep index arrives", async () => {
+    it("a v1 database resumes the chain on reopen: the v2/v3 indexes arrive", async () => {
       const store = await PostgresStore.open(db.databaseUrl);
       await store.close();
 
-      // Rewind to a v1 database: drop exactly what v2 created and its
-      // version row — the state any pre-v2 deployment is actually in.
+      // Rewind to a v1 database: drop exactly what v2+v3 created and their
+      // version rows — the state any pre-v2 deployment is actually in.
       const client = new pg.Client({ connectionString: db.databaseUrl });
       await client.connect();
       try {
         await client.query(`DROP INDEX idx_wfee_created_at`);
-        await client.query(`DELETE FROM schema_version WHERE version = 2`);
+        await client.query(`DROP INDEX idx_oauth_grant_resource`);
+        await client.query(
+          `DELETE FROM schema_version WHERE version IN (2, 3)`,
+        );
 
         const reopened = await PostgresStore.open(db.databaseUrl);
         await reopened.close();
@@ -102,6 +115,13 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
              AND indexname = 'idx_wfee_created_at'`,
         );
         expect(sweepIndex.rowCount, "reopen applied v2 mid-chain").toBe(1);
+
+        const grantIndex = await client.query(
+          `SELECT indexname FROM pg_indexes
+           WHERE tablename = 'oauth_grant'
+             AND indexname = 'idx_oauth_grant_resource'`,
+        );
+        expect(grantIndex.rowCount, "reopen applied v3 mid-chain").toBe(1);
 
         const version = await client.query(
           `SELECT COALESCE(MAX(version), 0) AS version FROM schema_version`,
