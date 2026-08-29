@@ -158,7 +158,10 @@ describe("direct-handler authorization — outsider denials (multi-tenant only)"
       [
         "initiateOAuthConnect",
         () =>
-          outsider.mcpServerCommand.initiateOAuthConnect({ mcpServerId: id }),
+          outsider.mcpServerCommand.initiateOAuthConnect({
+            mcpServerId: id,
+            org,
+          }),
         "unauthorized to initiate oauth connect for mcp server",
       ],
       [
