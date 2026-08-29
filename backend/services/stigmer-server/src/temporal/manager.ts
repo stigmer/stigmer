@@ -33,13 +33,18 @@
  * health monitor swaps in a fresh client when the server returns.
  *
  * One choke point for payload decryption: the codecs are installed on the
- * client at dial AND handed to every worker factory (the TS SDK's
- * Worker.create takes its own dataConverter; Go workers inherit the
- * client's — same coverage, two installation sites, one source array).
+ * client at dial AND wired into every worker by the deps' createWorker
+ * capability (the TS SDK's Worker.create takes its own dataConverter; Go
+ * workers inherit the client's — same coverage, two installation sites,
+ * one source array, one construction path).
  */
 import { Client, Connection } from "@temporalio/client";
 import type { PayloadCodec } from "@temporalio/common";
-import { NativeConnection, type Worker } from "@temporalio/worker";
+import {
+  NativeConnection,
+  Worker,
+  type WorkerOptions,
+} from "@temporalio/worker";
 
 import type { Logger } from "../boot/logger.js";
 
@@ -83,18 +88,51 @@ const RECONNECT_BACKOFF_CAP_MS = 30_000;
 const TEMPORAL_HEALTH_SERVICE =
   "temporal.api.workflowservice.v1.WorkflowService";
 
+/**
+ * The workflow code a worker serves — exactly one source, structurally.
+ * `workflowsPath` bundles on boot inside Worker.create (the SDK's webpack
+ * path); `workflowBundle` carries a prebuilt bundle, in-memory (`code`,
+ * a factory's own bundleWorkflowCode output) or on disk (`codePath`, the
+ * slim-artifact sibling from workflow-source.ts).
+ */
+export type WorkerWorkflowSource =
+  | { readonly workflowsPath: string }
+  | {
+      readonly workflowBundle:
+        { readonly code: string } | { readonly codePath: string };
+    };
+
+/**
+ * What a factory decides about its worker — the queue, the activity
+ * registrations, and the workflow source; nothing more (derived from what
+ * every real factory passes, OSS and extension alike). Connection,
+ * namespace, and the codec chain are deliberately NOT options: createWorker
+ * owns them (see WorkerFactoryDeps.createWorker).
+ */
+export interface CreateWorkerOptions {
+  readonly taskQueue: string;
+  /** Activity registrations keyed by activity name (the SDK's own shape). */
+  readonly activities: object;
+  readonly workflows: WorkerWorkflowSource;
+}
+
 export interface WorkerFactoryDeps {
-  readonly nativeConnection: NativeConnection;
-  readonly namespace: string;
   /**
-   * The decode-only codec chain — Worker.create must receive it as its
-   * dataConverter so workflow tasks can decode runner-encrypted activity
-   * results in history (see the module header's choke-point note).
+   * The ONLY way a factory constructs its Worker. The capability closes
+   * over the manager's NativeConnection, namespace, and decode-only codec
+   * chain, so every worker — OSS and extension alike — is built by THIS
+   * package's @temporalio/worker instance. Handing factories the raw
+   * NativeConnection instead was the finding-16 trap (stigmer-cloud C4
+   * session 6): a composition's own @temporalio/worker copy pairs the
+   * foreign connection with its own Tokio bridge, every extension poller
+   * dies at boot with "there is no reactor running", and the worker still
+   * reports RUNNING.
    */
-  readonly payloadCodecs: PayloadCodec[];
+  readonly createWorker: (options: CreateWorkerOptions) => Promise<Worker>;
   /**
    * Live client provider for activities that call the Temporal API
-   * (CompleteExternalActivity). Reads the manager's CURRENT client, so a
+   * (CompleteExternalActivity) and for factories' boot-time side work
+   * (extension schedule upserts). Reads the manager's CURRENT client, so a
    * reconnect needs no re-registration. Throws if no client ever
    * connected — unreachable from a running activity, because a polling
    * worker implies a connect succeeded.
@@ -104,7 +142,8 @@ export interface WorkerFactoryDeps {
 
 /**
  * Creates one domain worker (agent-execution here; workflow-execution and
- * the schedule clock append theirs in #21/#22 — Go createWorkers' list).
+ * the schedule clock append theirs in #21/#22 — Go createWorkers' list;
+ * extension workers append after the OSS set via the registry).
  */
 export type WorkerFactory = (deps: WorkerFactoryDeps) => Promise<Worker>;
 
@@ -242,9 +281,12 @@ export class TemporalManager {
         worker_count: this.workers.length,
       });
     } catch (error) {
-      this.logger.warn("Failed to start Temporal workers - health monitor will retry", {
-        error: errorMessage(error),
-      });
+      this.logger.warn(
+        "Failed to start Temporal workers - health monitor will retry",
+        {
+          error: errorMessage(error),
+        },
+      );
     }
   }
 
@@ -313,7 +355,9 @@ export class TemporalManager {
         }
         return;
       }
-      this.logger.warn("Temporal connection unhealthy, initiating reconnection");
+      this.logger.warn(
+        "Temporal connection unhealthy, initiating reconnection",
+      );
     }
     await this.attemptReconnection();
   }
@@ -322,7 +366,8 @@ export class TemporalManager {
     try {
       const response = await connection.withDeadline(
         Date.now() + HEALTH_CHECK_TIMEOUT_MS,
-        () => connection.healthService.check({ service: TEMPORAL_HEALTH_SERVICE }),
+        () =>
+          connection.healthService.check({ service: TEMPORAL_HEALTH_SERVICE }),
       );
       // 1 = SERVING in grpc.health.v1; anything else is unhealthy.
       return response.status === 1;
@@ -453,9 +498,29 @@ export class TemporalManager {
     this.nativeConnection = nativeConnection;
 
     const deps: WorkerFactoryDeps = {
-      nativeConnection,
-      namespace: this.namespace,
-      payloadCodecs: this.payloadCodecs,
+      createWorker: (options) => {
+        // Widening the exactly-one union to the SDK's optional pair keeps
+        // the spread below assignable without a per-variant Worker.create
+        // call.
+        const workflows: Pick<
+          WorkerOptions,
+          "workflowsPath" | "workflowBundle"
+        > = options.workflows;
+        return Worker.create({
+          connection: nativeConnection,
+          namespace: this.namespace,
+          taskQueue: options.taskQueue,
+          activities: options.activities,
+          ...workflows,
+          // The decode-only codec chain, wired here for EVERY worker (the
+          // module header's choke-point note): workflow tasks replay
+          // history containing runner-encrypted activity results, so each
+          // worker's converter must match the client's.
+          ...(this.payloadCodecs.length > 0
+            ? { dataConverter: { payloadCodecs: this.payloadCodecs } }
+            : {}),
+        });
+      },
       client: () => {
         if (this.client === undefined) {
           throw new Error(
@@ -473,11 +538,17 @@ export class TemporalManager {
     this.workers = [];
     for (const factory of this.workerFactories) {
       const worker = await factory(deps);
+      const taskQueue = worker.options.taskQueue;
+      this.logger.info("Temporal worker started", { task_queue: taskQueue });
       // run() resolves on graceful shutdown and rejects on fatal worker
       // errors; a rejection is logged and left to the health monitor —
-      // exactly Go's "worker died, reconnect recreates it" model.
+      // Go's "worker died, reconnect recreates it" model. ERROR level with
+      // the queue identity, deliberately: a PERMANENT death (finding 16's
+      // dual-module-instance class) re-dies on every recreate while the
+      // worker still reports RUNNING — this line is the only signal.
       const runPromise = worker.run().catch((error: unknown) => {
-        this.logger.warn("Temporal worker stopped with error", {
+        this.logger.error("Temporal worker stopped with error", {
+          task_queue: taskQueue,
           error: errorMessage(error),
         });
       });

@@ -19,8 +19,6 @@
  * brief #7 — the operative mode until #24 ships prebuilt bundles; the
  * prebuilt sibling is the hook it fills).
  */
-import { Worker } from "@temporalio/worker";
-
 import type { Logger } from "../../boot/logger.js";
 import type { AgentExecutionTemporalConfig } from "../../domain/agentexecution/temporal/config.js";
 import type { StreamBroker } from "../../domain/agentexecution/stream-broker.js";
@@ -49,7 +47,7 @@ export interface AgentExecutionWorkerDeps {
 export function newAgentExecutionWorkerFactory(
   deps: AgentExecutionWorkerDeps,
 ): WorkerFactory {
-  return async ({ nativeConnection, namespace, payloadCodecs, client }) => {
+  return async ({ createWorker, client }) => {
     const activities = createAgentExecutionActivities({
       store: deps.store,
       logger: deps.logger,
@@ -79,18 +77,16 @@ export function newAgentExecutionWorkerFactory(
       workflow_source: workflowSource.kind,
     });
 
-    return Worker.create({
-      connection: nativeConnection,
-      namespace,
+    // Connection, namespace, and the decode-only codec chain are the
+    // capability's concern (manager.ts's choke-point note) — the factory
+    // decides only queue, activities, and workflow source.
+    return createWorker({
       taskQueue: deps.temporalConfig.stigmerQueue,
       activities,
-      ...(workflowSource.kind === "prebuilt"
-        ? { workflowBundle: { codePath: workflowSource.codePath } }
-        : { workflowsPath: workflowSource.workflowsPath }),
-      // The decode-only codec chain: workflow tasks replay history
-      // containing runner-encrypted activity results (manager.ts's
-      // choke-point note).
-      ...(payloadCodecs.length > 0 ? { dataConverter: { payloadCodecs } } : {}),
+      workflows:
+        workflowSource.kind === "prebuilt"
+          ? { workflowBundle: { codePath: workflowSource.codePath } }
+          : { workflowsPath: workflowSource.workflowsPath },
     });
   };
 }

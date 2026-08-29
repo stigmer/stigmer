@@ -252,5 +252,18 @@ export type {
   ChannelRuntimeMessaging,
 } from "./domain/agentchannel/channel-runtime.js";
 
-// The worker factory types extension workers implement (§8).
-export type { WorkerFactory, WorkerFactoryDeps } from "./temporal/manager.js";
+// The worker factory seam extension workers implement (§8). Factories
+// construct workers ONLY through deps.createWorker — this package's
+// @temporalio/worker instance — so a composition never loads a second
+// native bridge for its extension workers (the finding-16 fix; see
+// WorkerFactoryDeps.createWorker in temporal/manager.ts).
+export type {
+  CreateWorkerOptions,
+  WorkerFactory,
+  WorkerFactoryDeps,
+  WorkerWorkflowSource,
+} from "./temporal/manager.js";
+// The SDK's pure-JS workflow bundler, re-exported so factories that
+// prebuild a shared bundle (the channel sweeps' pattern) need no runtime
+// dependency on @temporalio/worker of their own.
+export { bundleWorkflowCode } from "@temporalio/worker";
