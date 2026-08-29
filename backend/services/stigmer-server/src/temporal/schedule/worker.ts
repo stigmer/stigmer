@@ -19,8 +19,6 @@
  * activities register under their slash names as the activities object's
  * keys.
  */
-import { Worker } from "@temporalio/worker";
-
 import type { Logger } from "../../boot/logger.js";
 import type { Store } from "../../store/interface.js";
 import type { WorkerFactory } from "../manager.js";
@@ -38,8 +36,10 @@ export interface ScheduleWorkerDeps {
   readonly logger: Logger;
 }
 
-export function newScheduleWorkerFactory(deps: ScheduleWorkerDeps): WorkerFactory {
-  return async ({ nativeConnection, namespace, payloadCodecs }) => {
+export function newScheduleWorkerFactory(
+  deps: ScheduleWorkerDeps,
+): WorkerFactory {
+  return async ({ createWorker }) => {
     const activities = createScheduleTickActivities({
       store: deps.store,
       config: deps.config,
@@ -55,7 +55,10 @@ export function newScheduleWorkerFactory(deps: ScheduleWorkerDeps): WorkerFactor
         // The tsx dev loop runs from src/ — the SDK bundler compiles TS.
         new URL("./workflows/index.ts", import.meta.url),
       ],
-      prebuiltSibling: new URL("./workflow-bundle-schedule.js", import.meta.url),
+      prebuiltSibling: new URL(
+        "./workflow-bundle-schedule.js",
+        import.meta.url,
+      ),
     });
 
     deps.logger.info("Creating schedule-clock Temporal worker", {
@@ -63,19 +66,16 @@ export function newScheduleWorkerFactory(deps: ScheduleWorkerDeps): WorkerFactor
       workflow_source: workflowSource.kind,
     });
 
-    return Worker.create({
-      connection: nativeConnection,
-      namespace,
+    // Connection, namespace, and the decode-only codec chain are the
+    // capability's concern (manager.ts's choke-point note) — the factory
+    // decides only queue, activities, and workflow source.
+    return createWorker({
       taskQueue: deps.config.stigmerQueue,
       activities,
-      ...(workflowSource.kind === "prebuilt"
-        ? { workflowBundle: { codePath: workflowSource.codePath } }
-        : { workflowsPath: workflowSource.workflowsPath }),
-      // The decode-only codec chain (manager.ts's choke-point note) — the
-      // tick's payloads are plain JSON today, but the worker's converter
-      // must match the client's so a future encrypted payload in history
-      // replays instead of wedging.
-      ...(payloadCodecs.length > 0 ? { dataConverter: { payloadCodecs } } : {}),
+      workflows:
+        workflowSource.kind === "prebuilt"
+          ? { workflowBundle: { codePath: workflowSource.codePath } }
+          : { workflowsPath: workflowSource.workflowsPath },
     });
   };
 }

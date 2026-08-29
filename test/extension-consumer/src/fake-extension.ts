@@ -189,8 +189,18 @@ const responseDecorator: AgentExecutionResponseDecorator = (
   void response.signal;
 };
 
-const workerFactory: WorkerFactory = () =>
-  Promise.reject(new Error("compile-proof worker — never started"));
+// The factory constructs through deps.createWorker — the ONLY worker
+// construction path the seam offers a consumer (finding 16: a consumer
+// importing @temporalio/worker itself pairs the server's connection with
+// a second native bridge and its pollers die at boot). This proof never
+// runs; it pins that the capability's option surface stays sufficient
+// for a consumer-shaped worker.
+const workerFactory: WorkerFactory = (deps) =>
+  deps.createWorker({
+    taskQueue: "consumer-extension-queue",
+    activities: { consumerActivity: async (): Promise<void> => {} },
+    workflows: { workflowsPath: "compile-proof-workflows-never-resolved" },
+  });
 
 /**
  * A consumer-shaped model-catalog provider built the way the cloud's
