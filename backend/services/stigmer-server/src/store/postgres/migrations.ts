@@ -40,9 +40,10 @@ import type { PoolClient } from "pg";
 
 export const SCHEMA_VERSION_1 = 1;
 export const SCHEMA_VERSION_2 = 2;
+export const SCHEMA_VERSION_3 = 3;
 
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_2;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_3;
 
 /**
  * Advisory lock key for the migration chain. Arbitrary but stable 64-bit
@@ -74,6 +75,7 @@ export async function runMigrations(client: PoolClient): Promise<void> {
     > = [
       [SCHEMA_VERSION_1, migrateToV1],
       [SCHEMA_VERSION_2, migrateToV2],
+      [SCHEMA_VERSION_3, migrateToV3],
     ];
 
     for (const [version, migrate] of chain) {
@@ -274,5 +276,23 @@ async function migrateToV1(client: PoolClient): Promise<void> {
 async function migrateToV2(client: PoolClient): Promise<void> {
   await client.query(`
     CREATE INDEX idx_wfee_created_at ON workflow_execution_events (created_at);
+  `);
+}
+
+/**
+ * v3: the by-resource grant sweep's index.
+ *
+ * OAuthGrantStore.deleteByResourceId (the cloud channel teardown's arm)
+ * deletes every oauth_grant row for a resource regardless of granting
+ * identity; the primary key leads with identity_account_id, so the sweep
+ * would otherwise seq-scan a table M1 later fills with the Java edition's
+ * accumulated grants. The Java edition carries the identical index
+ * (idx_oauth_grant_resource) for the identical delete cascade — the same
+ * v2 doctrine: a query pattern owned by a cloud extension does not exempt
+ * the index.
+ */
+async function migrateToV3(client: PoolClient): Promise<void> {
+  await client.query(`
+    CREATE INDEX idx_oauth_grant_resource ON oauth_grant (resource_id, org_id);
   `);
 }

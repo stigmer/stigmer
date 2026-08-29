@@ -81,7 +81,7 @@ describe("fresh database", () => {
     const rows = db
       .prepare(`SELECT version FROM schema_version ORDER BY version`)
       .all() as Array<{ version: number }>;
-    expect(rows.map((row) => row.version)).toEqual([1, 2, 3, 4, 5, 6, 7]);
+    expect(rows.map((row) => row.version)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
   });
 
   it("re-opening an already-migrated database is a no-op", async () => {
@@ -101,7 +101,7 @@ describe("fresh database", () => {
 });
 
 describe("Go-created v6 database adoption (DD-002 fixture)", () => {
-  it("migrates 6 → 7 preserving every row, including the out-of-chain tables", async () => {
+  it("migrates 6 → current preserving every row, including the out-of-chain tables", async () => {
     const fixture = materializeGoFixture();
     cleanups.push(() => fixture.cleanup());
 
@@ -116,7 +116,7 @@ describe("Go-created v6 database adoption (DD-002 fixture)", () => {
     const db = new DatabaseSync(fixture.dbPath);
     cleanups.push(() => db.close());
 
-    expect(getSchemaVersion(db)).toBe(7);
+    expect(getSchemaVersion(db)).toBe(CURRENT_SCHEMA_VERSION);
 
     // Every Go-written row survives adoption untouched.
     const org = db
@@ -130,7 +130,9 @@ describe("Go-created v6 database adoption (DD-002 fixture)", () => {
     expect(audit).toEqual({ version_hash: "hash-v1", tag: "stable" });
 
     const bootstrap = db
-      .prepare(`SELECT value FROM bootstrap_state WHERE key = 'seedpack_version'`)
+      .prepare(
+        `SELECT value FROM bootstrap_state WHERE key = 'seedpack_version'`,
+      )
       .get() as { value: string };
     expect(bootstrap.value).toBe("1.1.0");
 
@@ -154,12 +156,16 @@ describe("Go-created v6 database adoption (DD-002 fixture)", () => {
     expect(dedupe.status).toBe("DELIVERED");
 
     const grant = db
-      .prepare(`SELECT client_id FROM oauth_grant WHERE identity_account_id = 'ida_fixture'`)
+      .prepare(
+        `SELECT client_id FROM oauth_grant WHERE identity_account_id = 'ida_fixture'`,
+      )
       .get() as { client_id: string };
     expect(grant.client_id).toBe("client-1");
 
     const pending = db
-      .prepare(`SELECT code_verifier, org FROM pending_oauth_state WHERE state = 'state-fixture'`)
+      .prepare(
+        `SELECT code_verifier, org FROM pending_oauth_state WHERE state = 'state-fixture'`,
+      )
       .get() as { code_verifier: string; org: string };
     expect(pending.code_verifier).toBe("enc:v1:sealed");
     expect(pending.org).toBe("acme");
@@ -181,12 +187,10 @@ describe("Go-created v6 database adoption (DD-002 fixture)", () => {
     const store = SqliteStore.open(fixture.dbPath);
     cleanups.push(() => store.close());
 
-    const { OrganizationSchema } = await import(
-      "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb"
-    );
-    const { ApiResourceKind } = await import(
-      "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb"
-    );
+    const { OrganizationSchema } =
+      await import("@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb");
+    const { ApiResourceKind } =
+      await import("@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb");
     const org = await store.getResource(
       ApiResourceKind.organization,
       "acme",
@@ -240,7 +244,7 @@ describe("v7 column reconciliation", () => {
       )
       .get() as { state: string; org: string; token_auth_method: string };
     expect(row).toEqual({ state: "old-state", org: "", token_auth_method: "" });
-    expect(getSchemaVersion(db)).toBe(7);
+    expect(getSchemaVersion(db)).toBe(CURRENT_SCHEMA_VERSION);
   });
 });
 
@@ -281,7 +285,7 @@ describe("legacy pre-v2 database", () => {
     // Hash/tag stay empty for migrated rows (unknowable without the type).
     expect(audit.version_hash).toBe("");
     expect(audit.tag).toBe("");
-    expect(getSchemaVersion(db)).toBe(7);
+    expect(getSchemaVersion(db)).toBe(CURRENT_SCHEMA_VERSION);
   });
 });
 

@@ -245,7 +245,9 @@ export class SqliteStore implements Store {
       value,
     );
     if (match === undefined) {
-      throw new ResourceNotFoundError(`${kindName} where ${fieldPath}=${value}`);
+      throw new ResourceNotFoundError(
+        `${kindName} where ${fieldPath}=${value}`,
+      );
     }
     return match;
   }
@@ -328,7 +330,11 @@ export class SqliteStore implements Store {
     versionHash: string,
     schema: Desc,
   ): Promise<MessageShape<Desc>> {
-    const record = await this.getAuditRecordByHash(kind, resourceId, versionHash);
+    const record = await this.getAuditRecordByHash(
+      kind,
+      resourceId,
+      versionHash,
+    );
     return fromBinary(schema, record.data);
   }
 
@@ -661,7 +667,9 @@ export class SqliteStore implements Store {
     const effectiveOffset = offset < 0 ? 0 : offset;
 
     const totalRow = db
-      .prepare(`SELECT COUNT(*) AS total FROM schedule_runs WHERE schedule_id = ?`)
+      .prepare(
+        `SELECT COUNT(*) AS total FROM schedule_runs WHERE schedule_id = ?`,
+      )
       .get(scheduleId) as { total: number };
 
     const rows = db
@@ -970,7 +978,15 @@ class SqliteSignalDedupeStore implements SignalDedupeStore {
       db.prepare(
         `INSERT INTO signal_dedupe (id, org, idempotency_key, execution_id, signal_name, status, created_at, expires_at)
          VALUES (?, ?, ?, ?, ?, 'CLAIMED', ?, ?)`,
-      ).run(id, org, idempotencyKey, executionId, signalName, createdAt, expiresAt);
+      ).run(
+        id,
+        org,
+        idempotencyKey,
+        executionId,
+        signalName,
+        createdAt,
+        expiresAt,
+      );
     } catch (error) {
       if (!isUniqueConstraintError(error)) {
         throw error;
@@ -1191,6 +1207,16 @@ class SqliteOAuthGrantStore implements OAuthGrantStore {
          WHERE identity_account_id = ? AND resource_id = ? AND org_id = ?`,
       )
       .run(identityAccountId, resourceId, orgId);
+  }
+
+  async deleteByResourceId(resourceId: string, orgId: string): Promise<number> {
+    const result = this.open()
+      .prepare(
+        `DELETE FROM oauth_grant
+         WHERE resource_id = ? AND org_id = ?`,
+      )
+      .run(resourceId, orgId);
+    return Number(result.changes);
   }
 }
 

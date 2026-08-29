@@ -1,7 +1,8 @@
 /**
  * Versioned schema migrations — ports the inline chain in
- * backend/libs/go/store/sqlite/store.go (v1–v6, DDL character-faithful) and
- * adds v7, the OD-3 consolidation (D2 §3).
+ * backend/libs/go/store/sqlite/store.go (v1–v6, DDL character-faithful),
+ * adds v7, the OD-3 consolidation (D2 §3), and v8, the by-resource
+ * oauth_grant index (the channel teardown's query pattern, C3 Stage 6).
  *
  * Schema continuity across cutover is the design point: a database the Go
  * server created at any version migrates forward through the SAME steps Go
@@ -39,9 +40,11 @@ export const SCHEMA_VERSION_5 = 5;
 export const SCHEMA_VERSION_6 = 6;
 /** v7: OD-3 consolidation of the out-of-chain tables (this port's addition). */
 export const SCHEMA_VERSION_7 = 7;
+/** v8: the by-resource grant-teardown index (the C3 channel installer). */
+export const SCHEMA_VERSION_8 = 8;
 
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_7;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_8;
 
 /** Applies all pending migrations in order. */
 export function runMigrations(db: DatabaseSync): void {
@@ -62,6 +65,7 @@ export function runMigrations(db: DatabaseSync): void {
     [SCHEMA_VERSION_5, migrateToV5],
     [SCHEMA_VERSION_6, migrateToV6],
     [SCHEMA_VERSION_7, migrateToV7],
+    [SCHEMA_VERSION_8, migrateToV8],
   ];
 
   for (const [version, migrate] of chain) {
@@ -265,7 +269,7 @@ function migrateToV6(db: DatabaseSync): void {
 
 /**
  * v7: OD-3 consolidation. DDL copied verbatim from the Go consumer stores
- * (signal_dedupe_store.go createTable; grant_store.go / 
+ * (signal_dedupe_store.go createTable; grant_store.go /
  * pending_state_store.go ensureTable) — IF NOT EXISTS adopts a live
  * database's existing tables and data untouched.
  */
@@ -335,4 +339,21 @@ function migrateToV7(db: DatabaseSync): void {
       // Column already exists — the CREATE above or a prior Go boot added it.
     }
   }
+}
+
+/**
+ * v8: the by-resource grant sweep's index.
+ *
+ * OAuthGrantStore.deleteByResourceId (the cloud channel teardown's arm)
+ * deletes every grant for a resource regardless of granting identity; the
+ * primary key leads with identity_account_id, so without this index the
+ * sweep scans. The Java edition carries the identical index
+ * (idx_oauth_grant_resource) for the identical delete cascade, and the
+ * postgres chain's v2 ratified the doctrine: a query pattern owned by a
+ * cloud extension does not exempt the index.
+ */
+function migrateToV8(db: DatabaseSync): void {
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_oauth_grant_resource ON oauth_grant(resource_id, org_id);
+  `);
 }

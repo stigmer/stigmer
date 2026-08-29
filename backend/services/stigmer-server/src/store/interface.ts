@@ -320,7 +320,7 @@ export interface SignalDedupeStore {
 export interface OAuthGrant {
   readonly identityAccountId: string;
   readonly resourceId: string;
-  /** e.g. "mcp_server", "workflow". */
+  /** e.g. "mcp_server", "workflow", "agent_channel". */
   readonly resourceKind: string;
   readonly orgId: string;
   /** Unix seconds. */
@@ -351,6 +351,15 @@ export interface OAuthGrantStore {
     resourceId: string,
     orgId: string,
   ): Promise<void>;
+  /**
+   * Deletes every grant for a resource regardless of the granting
+   * identity (the Java delete-cascade's OAuthGrantRepo.deleteByResourceId,
+   * consumed by the cloud channel teardown): re-installs by different
+   * callers leave one row per identity and a resource teardown must sweep
+   * them all. Returns the deleted count (the cascade logs it); zero is a
+   * normal state, not an error — teardown is idempotent.
+   */
+  deleteByResourceId(resourceId: string, orgId: string): Promise<number>;
 }
 
 /**
@@ -559,10 +568,7 @@ export interface Store {
   ): Promise<number>;
 
   /** Count of audit records; 0 (not an error) when none exist. */
-  countAuditEntries(
-    kind: ApiResourceKind,
-    resourceId: string,
-  ): Promise<number>;
+  countAuditEntries(kind: ApiResourceKind, resourceId: string): Promise<number>;
 
   /**
    * Version hash of the most recent audit record (archived_at DESC, id
