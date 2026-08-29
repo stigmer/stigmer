@@ -39,6 +39,7 @@ import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
 import type { ResolvedGateSteps } from "../../extensions/gate-slots.js";
 import { stepsForSlot } from "../../extensions/gate-slots.js";
+import type { ExecutionReadScope } from "../../extensions/execution-read-scope.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import { internalError, invalidArgumentError } from "../../pipeline/errors.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
@@ -130,6 +131,8 @@ export interface WorkflowExecutionControllerDeps {
   readonly authorizer: Authorizer;
   /** The composed tuple-lifecycle driver — undefined = the shared steps no-op (C2). */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
+  /** The composed summary read scope — undefined = the OSS full scan (C2 Stage 4). */
+  readonly executionReadScope: ExecutionReadScope | undefined;
   /**
    * The merged slot registrations (O1/O4; DD-006 §2). This domain
    * carries `sandbox-acquisition:gate` on the create and recover chains
@@ -225,9 +228,10 @@ export function registerWorkflowExecutionServices(
     list: (req) => list(deps, req),
     listByWorkflow: (req) => listByWorkflow(deps, req),
     subscribe: (req, ctx) => subscribeExecution(deps, req, ctx),
-    getEventLog: (req) => getEventLog(deps, req),
+    getEventLog: (req, ctx) => getEventLog(deps, req, callerIdentityOf(ctx)),
     subscribeEvents: (req, ctx) => subscribeEvents(deps, req, ctx),
-    getExecutionSummary: (req) => getExecutionSummary(deps, req),
+    getExecutionSummary: (req, ctx) =>
+      getExecutionSummary(deps, req, callerIdentityOf(ctx)),
     listPendingApprovals: (req) => listPendingApprovals(deps, req),
   });
 }

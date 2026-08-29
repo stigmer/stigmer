@@ -819,6 +819,7 @@ export async function composeServer(
       logger,
       authorizer,
       authorizationLifecycle,
+      executionReadScope: extensions.drivers.executionReadScope,
       broker: agentExecutionStreamBroker,
       engineState: executionEngineState,
       modelRegistry: modelCatalog,
@@ -866,6 +867,7 @@ export async function composeServer(
       logger,
       authorizer,
       authorizationLifecycle,
+      executionReadScope: extensions.drivers.executionReadScope,
       gateSteps: extensions.gateSteps,
       engineState: workflowExecutionEngineState,
       broker: workflowExecutionStreamBroker,
@@ -901,6 +903,7 @@ export async function composeServer(
       connect: {
         store,
         logger,
+        authorizer,
         engineState: mcpServerEngineState,
         environmentReader: {
           list: (request) =>

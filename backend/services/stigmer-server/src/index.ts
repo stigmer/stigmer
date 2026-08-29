@@ -91,6 +91,7 @@ export type {
 } from "./extensions/resource-authorization.js";
 export type { OrganizationDirectory } from "./extensions/organization-directory.js";
 export { ALL_ORGANIZATIONS } from "./extensions/organization-directory.js";
+export type { ExecutionReadScope } from "./extensions/execution-read-scope.js";
 export {
   diffVisibilityShapes,
   visibilityShapesFor,

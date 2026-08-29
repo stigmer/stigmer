@@ -16,6 +16,7 @@ import { randomBytes } from "node:crypto";
 
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
+import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
 import type {
   InitiateOAuthConnectInput,
   InitiateOAuthConnectOutput,
@@ -29,12 +30,14 @@ import {
 
 import type { Logger } from "../../boot/logger.js";
 import type { SecretService } from "../../encryption/encryption.js";
+import type { CallerIdentity } from "../../extensions/identity.js";
 import {
   failedPreconditionError,
   internalError,
   invalidArgumentError,
   notFoundError,
 } from "../../pipeline/errors.js";
+import { authorizeDirect } from "../../pipeline/steps/authorize.js";
 import type { PendingOAuthState } from "../../store/interface.js";
 import { resolveOAuthAppRef } from "../oauthapp/refresolution.js";
 import { tokenAuthMethodFromSpec } from "./connect.js";
@@ -49,6 +52,7 @@ import type { AuthorizeRejection } from "./oauth/preflight.js";
 export async function initiateOAuthConnect(
   deps: McpServerConnectDeps,
   input: InitiateOAuthConnectInput,
+  identity: CallerIdentity,
 ): Promise<InitiateOAuthConnectOutput> {
   if (deps.oauthRedirectUri === "") {
     throw failedPreconditionError(
@@ -71,6 +75,16 @@ export async function initiateOAuthConnect(
   } catch {
     throw notFoundError("mcp_server", mcpServerId);
   }
+
+  // The annotation's can_connect check AFTER the load — the Java
+  // McpServerInitiateOAuthConnectHandler order (load-before-authorize,
+  // stigmer#224). C2 Stage 4.
+  await authorizeDirect(
+    McpServerCommandController.method.initiateOAuthConnect,
+    deps.authorizer,
+    identity,
+    input,
+  );
 
   const auth = mcpServer.spec?.auth;
   if (auth === undefined) {

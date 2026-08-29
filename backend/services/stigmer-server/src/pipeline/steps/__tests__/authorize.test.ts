@@ -30,6 +30,7 @@ import { testCallerIdentity } from "../../__tests__/support.js";
 import { RequestContext } from "../../request-context.js";
 import {
   AUTHORIZATION_UNAVAILABLE_MESSAGE,
+  authorizeDirect,
   newAuthorizeStep,
   newPermissiveSingleTeamAuthorizer,
 } from "../authorize.js";
@@ -275,6 +276,77 @@ describe("check-target resolution (never a throw — byte-identity)", () => {
         resourceId: "stigmer",
       },
     ]);
+  });
+});
+
+describe("authorizeDirect (the direct-handler arm, C2 Stage 4)", () => {
+  // The step delegates to authorizeDirect, so the arms above already pin
+  // the shared evaluation; these pin what is SPECIFIC to the direct
+  // entry: no RequestContext, and the target override.
+
+  it("denies with the annotation copy from a bare identity + input (no pipeline)", async () => {
+    const { authorizer } = fakeAuthorizer({ kind: "deny", reason: "" });
+    const error = await authorizeDirect(
+      AgentCommandController.method.create,
+      authorizer,
+      testCallerIdentity(),
+      create(AgentSchema, { metadata: { name: "a", org: "acme" } }),
+    ).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(ConnectError);
+    expect((error as ConnectError).code).toBe(Code.PermissionDenied);
+    expect((error as ConnectError).rawMessage).toBe(
+      "unauthorized to create agent in this organization",
+    );
+  });
+
+  it("skips for the internal caller class without consulting the authorizer", async () => {
+    const { authorizer, checks } = fakeAuthorizer({
+      kind: "deny",
+      reason: "must not be called",
+    });
+    await expect(
+      authorizeDirect(
+        AgentCommandController.method.create,
+        authorizer,
+        testCallerIdentity({ callerClass: "internal" }),
+        create(AgentSchema, { metadata: { name: "a", org: "acme" } }),
+      ),
+    ).resolves.toBeUndefined();
+    expect(checks).toHaveLength(0);
+  });
+
+  it("the target override replaces field_path resolution — the completeOAuthConnect lane", async () => {
+    const { authorizer, checks } = fakeAuthorizer({ kind: "allow" });
+    await authorizeDirect(
+      AgentCommandController.method.create,
+      authorizer,
+      testCallerIdentity(),
+      // The request names one org; the override (server-side state in the
+      // real lane) names another. The CHECK must carry the override.
+      create(AgentSchema, { metadata: { name: "a", org: "caller-supplied" } }),
+      { resourceId: "server-side-truth" },
+    );
+    expect(checks).toEqual([
+      {
+        permission: IamPermission.can_create_agent,
+        resourceKind: ApiResourceKind.organization,
+        resourceId: "server-side-truth",
+      },
+    ]);
+  });
+
+  it("the ruling-Q1 not-found arm maps identically from the direct entry", async () => {
+    const { authorizer } = fakeAuthorizer({ kind: "not-found" });
+    const error = await authorizeDirect(
+      AgentCommandController.method.create,
+      authorizer,
+      testCallerIdentity(),
+      create(AgentSchema, { metadata: { name: "a", org: "acme" } }),
+    ).catch((e: unknown) => e);
+    expect((error as ConnectError).code).toBe(Code.NotFound);
+    expect((error as ConnectError).rawMessage).toBe(
+      "Organization not found: acme",
+    );
   });
 });
 

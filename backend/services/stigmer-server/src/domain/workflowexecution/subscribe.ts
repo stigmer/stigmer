@@ -35,8 +35,13 @@ import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecu
 import type { SubscribeWorkflowExecutionRequest } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
+import { WorkflowExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/query_pb";
+
 import type { Logger } from "../../boot/logger.js";
+import type { Authorizer } from "../../extensions/authorizer.js";
+import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { invalidArgumentError, notFoundError } from "../../pipeline/errors.js";
+import { authorizeDirect } from "../../pipeline/steps/authorize.js";
 import type { Store } from "../../store/interface.js";
 
 import type { StreamBroker } from "./stream-broker.js";
@@ -45,6 +50,8 @@ export interface SubscribeDeps {
   readonly store: Store;
   readonly logger: Logger;
   readonly broker: StreamBroker;
+  /** The composed authorization seam — the pre-stream check below (C2 Stage 4). */
+  readonly authorizer: Authorizer;
 }
 
 /**
@@ -70,6 +77,16 @@ export async function* subscribeExecution(
   if (request.executionId === "") {
     throw invalidArgumentError("execution_id is required");
   }
+  // The annotation's can_view check, once at subscription start — the
+  // stream cannot run inside the pipeline executor, so the Authorize
+  // evaluation runs here directly (the Java subscribe handlers' validate →
+  // authorize order; C2 Stage 4).
+  await authorizeDirect(
+    WorkflowExecutionQueryController.method.subscribe,
+    deps.authorizer,
+    callerIdentityOf(context),
+    request,
+  );
   const id = request.executionId;
   deps.logger.info("Starting workflow execution subscription", {
     executionId: id,

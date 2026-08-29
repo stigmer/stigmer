@@ -23,6 +23,7 @@ import type { EnvironmentValue as EnvironmentSpecValue } from "@stigmer/protos/a
 import { EnvironmentValueSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
+import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
 import type {
   CompleteOAuthConnectInput,
   CompleteOAuthConnectOutput,
@@ -31,6 +32,7 @@ import { CompleteOAuthConnectOutputSchema } from "@stigmer/protos/ai/stigmer/age
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { SecretService } from "../../encryption/encryption.js";
+import type { CallerIdentity } from "../../extensions/identity.js";
 import {
   failedPreconditionError,
   internalError,
@@ -38,6 +40,7 @@ import {
   notFoundError,
   unavailableError,
 } from "../../pipeline/errors.js";
+import { authorizeDirect } from "../../pipeline/steps/authorize.js";
 import type { PendingOAuthState } from "../../store/interface.js";
 import type { McpServerConnectDeps } from "./connect.js";
 import { exchangeCode } from "./oauth/token.js";
@@ -45,6 +48,7 @@ import { exchangeCode } from "./oauth/token.js";
 export async function completeOAuthConnect(
   deps: McpServerConnectDeps,
   input: CompleteOAuthConnectInput,
+  identity: CallerIdentity,
 ): Promise<CompleteOAuthConnectOutput> {
   const mcpServerId = input.mcpServerId;
   if (mcpServerId === "") {
@@ -79,6 +83,20 @@ export async function completeOAuthConnect(
       "state parameter does not match the requested mcp_server_id",
     );
   }
+
+  // The annotation's can_connect check against the PENDING RECORD's
+  // server id — the Java McpServerCompleteOAuthConnectHandler discipline
+  // (the server-side state is the truth; a caller-supplied id would be a
+  // confused-deputy target). As in Java, the single-use state is already
+  // burned when a denial lands — the denied caller costs the user one
+  // re-initiate. C2 Stage 4.
+  await authorizeDirect(
+    McpServerCommandController.method.completeOAuthConnect,
+    deps.authorizer,
+    identity,
+    input,
+    { resourceId: pendingState.mcpServerId },
+  );
 
   // Unseal the handshake secrets that initiateOAuthConnect sealed at rest
   // (oss#394), at the last moment before their only use. The row was

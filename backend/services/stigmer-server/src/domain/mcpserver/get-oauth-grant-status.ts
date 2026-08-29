@@ -23,7 +23,11 @@ import {
   OAuthConnectionHealth,
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 
+import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
+
+import type { CallerIdentity } from "../../extensions/identity.js";
 import { internalError, invalidArgumentError } from "../../pipeline/errors.js";
+import { authorizeDirect } from "../../pipeline/steps/authorize.js";
 import type { OAuthGrant } from "../../store/interface.js";
 import type { McpServerConnectDeps } from "./connect.js";
 import { REFRESH_EXPIRY_BUFFER_SECONDS } from "./oauth/refresh.js";
@@ -31,6 +35,7 @@ import { REFRESH_EXPIRY_BUFFER_SECONDS } from "./oauth/refresh.js";
 export async function getOAuthGrantStatus(
   deps: McpServerConnectDeps,
   input: GetOAuthGrantStatusInput,
+  identity: CallerIdentity,
 ): Promise<GetOAuthGrantStatusOutput> {
   if (input.resourceId === "") {
     throw invalidArgumentError("resource_id is required");
@@ -38,6 +43,14 @@ export async function getOAuthGrantStatus(
   if (input.org === "") {
     throw invalidArgumentError("org is required");
   }
+  // The annotation's can_view check (validate → authorize, the Java
+  // McpServerGetOAuthGrantStatusHandler order — no load step). C2 Stage 4.
+  await authorizeDirect(
+    McpServerQueryController.method.getOAuthGrantStatus,
+    deps.authorizer,
+    identity,
+    input,
+  );
 
   let grant: OAuthGrant | undefined;
   try {

@@ -27,12 +27,17 @@ import type {
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { DisconnectOAuthOutputSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 
+import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
+
+import type { CallerIdentity } from "../../extensions/identity.js";
 import { internalError, invalidArgumentError } from "../../pipeline/errors.js";
+import { authorizeDirect } from "../../pipeline/steps/authorize.js";
 import type { McpServerConnectDeps } from "./connect.js";
 
 export async function disconnectOAuth(
   deps: McpServerConnectDeps,
   input: DisconnectOAuthInput,
+  identity: CallerIdentity,
 ): Promise<DisconnectOAuthOutput> {
   const resourceId = input.resourceId;
   if (resourceId === "") {
@@ -42,6 +47,16 @@ export async function disconnectOAuth(
   if (org === "") {
     throw invalidArgumentError("org is required");
   }
+  // The annotation's can_connect check (validate → authorize, the Java
+  // McpServerDisconnectOAuthHandler order — no load step; on the
+  // multi-tenant edition an unresolvable id answers through the
+  // authorizer's ruled uniform posture). C2 Stage 4.
+  await authorizeDirect(
+    McpServerCommandController.method.disconnectOAuth,
+    deps.authorizer,
+    identity,
+    input,
+  );
 
   // OSS mode: single user, empty identity_account_id.
   let grant;

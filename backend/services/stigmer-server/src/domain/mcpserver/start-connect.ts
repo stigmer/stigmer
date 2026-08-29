@@ -26,16 +26,19 @@
  */
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
+import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
 import type { ConnectInput } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { ConnectPhase } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
+import type { CallerIdentity } from "../../extensions/identity.js";
 import {
   failedPreconditionError,
   internalError,
   invalidArgumentError,
   notFoundError,
 } from "../../pipeline/errors.js";
+import { authorizeDirect } from "../../pipeline/steps/authorize.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import {
   persistConnectFailure,
@@ -64,6 +67,7 @@ export const RUNNER_QUEUE_WARNING =
 export async function startConnect(
   deps: McpServerConnectDeps,
   input: ConnectInput,
+  identity: CallerIdentity,
 ): Promise<McpServer> {
   const engineState = deps.engineState();
   if (!engineState.connected) {
@@ -90,6 +94,16 @@ export async function startConnect(
   } catch {
     throw notFoundError("mcp_server", mcpServerId);
   }
+
+  // The annotation's can_connect check AFTER the load — the Java
+  // McpServerStartConnectHandler order (the connect handler's shared
+  // load/authorize steps, stigmer#224). C2 Stage 4.
+  await authorizeDirect(
+    McpServerCommandController.method.startConnect,
+    deps.authorizer,
+    identity,
+    input,
+  );
 
   const connectStatus = mcpServer.status?.connectStatus;
   if (connectStatus?.phase === ConnectPhase.connecting) {

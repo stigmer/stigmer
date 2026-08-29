@@ -35,12 +35,16 @@ import type { ExecutionValue } from "@stigmer/protos/ai/stigmer/agentic/executio
 import { ExecutionValueSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
+import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
 import type { ConnectInput } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import type { ApiResourceDeleteInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { TokenEndpointAuthMethod } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
 
 import type { Logger } from "../../boot/logger.js";
+import type { Authorizer } from "../../extensions/authorizer.js";
+import type { CallerIdentity } from "../../extensions/identity.js";
+import { authorizeDirect } from "../../pipeline/steps/authorize.js";
 import type { SecretService } from "../../encryption/encryption.js";
 import {
   failedPreconditionError,
@@ -188,6 +192,12 @@ export interface ConnectExecutionContextClient {
 export interface McpServerConnectDeps {
   readonly store: Store;
   readonly logger: Logger;
+  /**
+   * The composed authorization seam — every connect-family lane evaluates
+   * its can_connect/can_view annotation (the Java handlers' bespoke
+   * authorize steps carry the same config; C2 Stage 4).
+   */
+  readonly authorizer: Authorizer;
   readonly engineState: McpServerEngineStateProvider;
   readonly environmentReader: ConnectEnvironmentReader;
   readonly executionContext: ConnectExecutionContextClient;
@@ -224,6 +234,7 @@ interface PreparedConnect {
 export async function connect(
   deps: McpServerConnectDeps,
   input: ConnectInput,
+  identity: CallerIdentity,
 ): Promise<McpServer> {
   const engineState = deps.engineState();
   if (!engineState.connected) {
@@ -250,6 +261,16 @@ export async function connect(
   } catch {
     throw notFoundError("mcp_server", mcpServerId);
   }
+
+  // The annotation's can_connect check AFTER the load — the Java
+  // McpServerConnectHandler order (load-before-authorize, stigmer#224).
+  // C2 Stage 4.
+  await authorizeDirect(
+    McpServerCommandController.method.connect,
+    deps.authorizer,
+    identity,
+    input,
+  );
 
   const prepared = await prepareConnect(deps, mcpServer, input);
 

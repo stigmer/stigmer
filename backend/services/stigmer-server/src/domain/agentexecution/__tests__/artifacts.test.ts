@@ -24,17 +24,33 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 
 import { LocalArtifactStorage } from "../../../artifactstorage/artifact-storage.js";
 import { createLogger } from "../../../boot/logger.js";
+import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/authorize.js";
+import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
 import type { Store } from "../../../store/interface.js";
 
 import type { ArtifactRpcDeps } from "../artifacts.js";
 import {
   detectContentType,
-  getArtifactContent,
-  getArtifactDownloadUrl,
+  getArtifactContent as getArtifactContentRpc,
+  getArtifactDownloadUrl as getArtifactDownloadUrlRpc,
   osMimeTypeByExtension,
   uploadAttachment,
 } from "../artifacts.js";
+
+// The two read RPCs now evaluate their can_view annotations (C2 Stage 4);
+// these direct-call tests exercise them under the OSS permissive
+// authorizer with one fixed caller — the authorize.test.ts suite owns the
+// deny/not-found arms.
+const testCaller = testCallerIdentity();
+const getArtifactContent = (
+  deps: ArtifactRpcDeps,
+  req: Parameters<typeof getArtifactContentRpc>[1],
+) => getArtifactContentRpc(deps, req, testCaller);
+const getArtifactDownloadUrl = (
+  deps: ArtifactRpcDeps,
+  req: Parameters<typeof getArtifactDownloadUrlRpc>[1],
+) => getArtifactDownloadUrlRpc(deps, req, testCaller);
 
 const silentLogger = createLogger({
   level: "error",
@@ -56,6 +72,7 @@ beforeAll(() => {
       path.join(dir, "artifacts"),
       "http://localhost:7235",
     ),
+    authorizer: newPermissiveSingleTeamAuthorizer(),
   };
 });
 

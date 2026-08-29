@@ -9,6 +9,7 @@
  */
 import { clone, create } from "@bufbuild/protobuf";
 import type { HandlerContext } from "@connectrpc/connect";
+import { createContextValues } from "@connectrpc/connect";
 import { describe, expect, it } from "vitest";
 
 import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
@@ -17,6 +18,9 @@ import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecu
 import { SubscribeWorkflowExecutionRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
 
 import { createLogger } from "../../../boot/logger.js";
+import { callerIdentityKey } from "../../../pipeline/interceptors/auth.js";
+import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/authorize.js";
+import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import type { Store } from "../../../store/interface.js";
 
 import { StreamBroker } from "../stream-broker.js";
@@ -60,7 +64,9 @@ function hookedSnapshotStore(
 }
 
 function handlerContext(signal: AbortSignal): HandlerContext {
-  return { signal } as HandlerContext;
+  const values = createContextValues();
+  values.set(callerIdentityKey, testCallerIdentity());
+  return { signal, values } as HandlerContext;
 }
 
 /**
@@ -104,7 +110,12 @@ describe("subscribe (subscribe_test.go case-for-case)", () => {
 
     const frames = await collectFrames(
       subscribeExecution(
-        { store, logger: silentLogger, broker },
+        {
+          store,
+          logger: silentLogger,
+          broker,
+          authorizer: newPermissiveSingleTeamAuthorizer(),
+        },
         create(SubscribeWorkflowExecutionRequestSchema, { executionId: id }),
         handlerContext(abortController.signal),
       ),
@@ -135,7 +146,12 @@ describe("subscribe (subscribe_test.go case-for-case)", () => {
 
     const frames = await collectFrames(
       subscribeExecution(
-        { store, logger: silentLogger, broker },
+        {
+          store,
+          logger: silentLogger,
+          broker,
+          authorizer: newPermissiveSingleTeamAuthorizer(),
+        },
         create(SubscribeWorkflowExecutionRequestSchema, { executionId: id }),
         handlerContext(abortController.signal),
       ),
@@ -159,7 +175,12 @@ describe("subscribe (subscribe_test.go case-for-case)", () => {
     const abortController = new AbortController();
     await collectFrames(
       subscribeExecution(
-        { store, logger: silentLogger, broker },
+        {
+          store,
+          logger: silentLogger,
+          broker,
+          authorizer: newPermissiveSingleTeamAuthorizer(),
+        },
         create(SubscribeWorkflowExecutionRequestSchema, { executionId: id }),
         handlerContext(abortController.signal),
       ),

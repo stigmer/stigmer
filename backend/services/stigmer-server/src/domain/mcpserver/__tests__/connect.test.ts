@@ -31,16 +31,21 @@ import { SecretService } from "../../../encryption/encryption.js";
 import { newExecutionScopedRunnerCredentialProvider } from "../../../runnerauth/runner-credential-provider.js";
 import { RunnerAuthService } from "../../../runnerauth/runnerauth.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
+import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/authorize.js";
+import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import {
   ASYNC_CONNECT_TIMEOUT,
   CONNECT_TIMEOUT,
   buildConnectFailureMessage,
-  connect,
+  connect as connectRpc,
   startBestEffortConnect,
 } from "../connect.js";
 import type { McpServerConnectDeps } from "../connect.js";
 import { ManagedEnvironmentService } from "../oauth/managed-env.js";
-import { RUNNER_QUEUE_WARNING, startConnect } from "../start-connect.js";
+import {
+  RUNNER_QUEUE_WARNING,
+  startConnect as startConnectRpc,
+} from "../start-connect.js";
 import type {
   ConnectRunOutcome,
   ConnectWorkflowInput,
@@ -126,6 +131,20 @@ afterEach(() => {
   rmSync(dir, { recursive: true, force: true });
 });
 
+// The connect lanes now evaluate their can_connect/can_view annotations
+// (C2 Stage 4); these direct-call tests exercise them under the OSS
+// permissive authorizer with one fixed caller — authorize.test.ts owns
+// the deny/not-found arms.
+const testCaller = testCallerIdentity();
+const connect = (
+  deps: McpServerConnectDeps,
+  input: Parameters<typeof connectRpc>[1],
+) => connectRpc(deps, input, testCaller);
+const startConnect = (
+  deps: McpServerConnectDeps,
+  input: Parameters<typeof startConnectRpc>[1],
+) => startConnectRpc(deps, input, testCaller);
+
 function makeHarness(options: FakeEngineOptions = {}): Harness {
   const engine = fakeEngine(options);
   const harness: Harness = {
@@ -135,6 +154,7 @@ function makeHarness(options: FakeEngineOptions = {}): Harness {
     deps: {
       store,
       logger: silentLogger,
+      authorizer: newPermissiveSingleTeamAuthorizer(),
       engineState: () => ({ connected: true, engine }),
       environmentReader: {
         list: async () => {

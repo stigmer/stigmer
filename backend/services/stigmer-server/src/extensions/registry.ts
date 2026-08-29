@@ -38,6 +38,7 @@ import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_inf
 import type { ArtifactStorageDriverFactory } from "../artifactstorage/artifact-storage.js";
 import { BUILT_IN_STORAGE_TYPES } from "../artifactstorage/artifact-storage.js";
 import type { ChannelRuntime } from "../domain/agentchannel/channel-runtime.js";
+import type { ExecutionReadScope } from "./execution-read-scope.js";
 import type { ModelCatalogProvider } from "../domain/workflow/registry/model-catalog-provider.js";
 import type { PipelineStep } from "../pipeline/pipeline.js";
 import type { RunnerCredentialProvider } from "../runnerauth/runner-credential-provider.js";
@@ -166,6 +167,8 @@ export interface ResolvedExtensionDrivers {
    * that defines its semantics, not with this data holder).
    */
   readonly channelRuntime: ChannelRuntime | undefined;
+  /** The C2 Stage-4 summary read scope — undefined = the OSS full scan. */
+  readonly executionReadScope: ExecutionReadScope | undefined;
 }
 
 /**
@@ -201,6 +204,8 @@ export function resolveExtensions(
   let organizationDirectoryDeclaredBy: string | undefined;
   let channelRuntime: ChannelRuntime | undefined;
   let channelRuntimeDeclaredBy: string | undefined;
+  let executionReadScope: ExecutionReadScope | undefined;
+  let executionReadScopeDeclaredBy: string | undefined;
   const artifactStorageDrivers = new Map<
     string,
     ArtifactStorageDriverFactory
@@ -301,6 +306,16 @@ export function resolveExtensions(
       channelRuntimeDeclaredBy = unit.name;
     }
 
+    if (unit.drivers?.executionReadScope !== undefined) {
+      if (executionReadScopeDeclaredBy !== undefined) {
+        throw new Error(
+          `extension '${unit.name}' registers an ExecutionReadScope, but '${executionReadScopeDeclaredBy}' already did — exactly one may be composed`,
+        );
+      }
+      executionReadScope = unit.drivers.executionReadScope;
+      executionReadScopeDeclaredBy = unit.name;
+    }
+
     if (unit.drivers?.artifactStorageDrivers !== undefined) {
       for (const [name, factory] of unit.drivers.artifactStorageDrivers) {
         if ((BUILT_IN_STORAGE_TYPES as ReadonlyArray<string>).includes(name)) {
@@ -384,6 +399,7 @@ export function resolveExtensions(
       artifactStorageDrivers,
       sandboxProvisionerDrivers,
       channelRuntime,
+      executionReadScope,
     },
     services,
     workers,

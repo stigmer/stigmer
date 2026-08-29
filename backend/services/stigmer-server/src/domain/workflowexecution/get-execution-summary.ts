@@ -10,6 +10,16 @@
  * deliberately absent when nothing completed (an average over nothing is
  * not 0).
  *
+ * With a composed ExecutionReadScope (C2 Stage 4 — the multi-tenant
+ * edition), the scan narrows to the caller's authorized ids intersected
+ * with the requested org (the Java GetExecutionSummary baseline: without
+ * the org filter a member of several organizations sees every org's
+ * numbers on every dashboard), and an EMPTY authorized set answers the
+ * proto default instance — the conformance-pinned multi-tenant zero shape
+ * (success_rate 0, NO cost summary) falls out of the scoping, never a
+ * special case. No scope composed = the full scan above, byte-identical
+ * (the request's org deliberately not consulted — single-user semantics).
+ *
  * Tie order in the two ranked lists is not wire-stable in Go (map
  * iteration feeds a stable sort), so ties here — deterministic first-seen
  * order — are not a wire divergence (the #6 sort-stability precedent).
@@ -35,7 +45,11 @@ import type {
   WorkflowFailureRank,
 } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
 
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+
 import type { Logger } from "../../boot/logger.js";
+import type { ExecutionReadScope } from "../../extensions/execution-read-scope.js";
+import type { CallerIdentity } from "../../extensions/identity.js";
 import type { Store } from "../../store/interface.js";
 
 import { parseRfc3339Ms } from "./execution-filter.js";
@@ -46,17 +60,37 @@ const RANK_LIMIT = 10;
 export interface SummaryDeps {
   readonly store: Store;
   readonly logger: Logger;
+  /** The composed summary read scope — undefined = the OSS full scan (C2 Stage 4). */
+  readonly executionReadScope: ExecutionReadScope | undefined;
 }
 
 export async function getExecutionSummary(
   deps: SummaryDeps,
   req: GetExecutionSummaryRequest,
+  identity: CallerIdentity,
 ): Promise<ExecutionSummary> {
-  const executions = await loadAllWorkflowExecutions(
+  let executions = await loadAllWorkflowExecutions(
     deps.store,
     deps.logger,
     "failed to list workflow executions for summary",
   );
+
+  if (deps.executionReadScope !== undefined) {
+    const authorizedIds = await deps.executionReadScope.authorizedExecutionIds(
+      identity,
+      ApiResourceKind.workflow_execution,
+    );
+    if (authorizedIds.size === 0) {
+      // The Java baseline's empty arm: the default instance, before any
+      // aggregation — success_rate 0 and NO cost summary by construction.
+      return create(ExecutionSummarySchema);
+    }
+    executions = executions.filter(
+      (execution) =>
+        authorizedIds.has(execution.metadata?.id ?? "") &&
+        execution.metadata?.org === req.org,
+    );
+  }
 
   const cutoffMs = resolveTimeCutoffMs(req.timeWindow);
   const workflowFilter = req.workflowId;

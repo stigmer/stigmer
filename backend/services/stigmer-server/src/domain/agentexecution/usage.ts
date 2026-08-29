@@ -66,6 +66,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
+import type { ExecutionReadScope } from "../../extensions/execution-read-scope.js";
 import { internalError, invalidArgumentError } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
@@ -82,6 +83,8 @@ export interface UsageReportDeps {
   readonly logger: Logger;
   /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
   readonly authorizer: Authorizer;
+  /** The composed summary read scope — undefined = the OSS full scan (C2 Stage 4). */
+  readonly executionReadScope: ExecutionReadScope | undefined;
 }
 
 // Context keys for inter-step communication — Go's key strings, verbatim.
@@ -777,13 +780,36 @@ function requireReport<T>(value: unknown, message: string): T {
 // a direct handler in Go as well — no pipeline). Cost is deliberately
 // absent from this shape (AD-DASH-005: the dashboard sources cost from
 // getOrgUsageReport to prevent double-counting).
+//
+// With a composed ExecutionReadScope (C2 Stage 4), the scan narrows to
+// the caller's authorized ids ∩ the requested org and an empty set
+// answers the default instance — the Java
+// AgentExecutionGetExecutionSummaryHandler baseline; see the twin's
+// header (workflowexecution/get-execution-summary.ts) for the full
+// rationale. No scope composed = this full scan, byte-identical.
 // ---------------------------------------------------------------------------
 
 export async function getExecutionSummary(
   deps: UsageReportDeps,
   req: GetAgentExecutionSummaryRequest,
+  identity: CallerIdentity,
 ): Promise<AgentExecutionSummary> {
-  const executions = await loadAllAgentExecutions(deps.store, deps.logger);
+  let executions = await loadAllAgentExecutions(deps.store, deps.logger);
+
+  if (deps.executionReadScope !== undefined) {
+    const authorizedIds = await deps.executionReadScope.authorizedExecutionIds(
+      identity,
+      ApiResourceKind.agent_execution,
+    );
+    if (authorizedIds.size === 0) {
+      return create(AgentExecutionSummarySchema);
+    }
+    executions = executions.filter(
+      (execution) =>
+        authorizedIds.has(execution.metadata?.id ?? "") &&
+        execution.metadata?.org === req.org,
+    );
+  }
 
   const cutoffMs = resolveAgentTimeCutoffMs(req.timeWindow);
 

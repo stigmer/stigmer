@@ -34,6 +34,19 @@
  * A thrown resolution would be a NEW wire behavior on requests that are
  * legal today (byte-identity forbids it); an implementation that wants to
  * refuse empty ids does so as a deny, visibly.
+ *
+ * `authorizeDirect` is the SAME evaluation exported for the direct
+ * handlers — the config-annotated methods that deliberately run no
+ * pipeline (streams cannot run in the pipeline executor; the rest are
+ * ported direct forms, docs/authorization-coverage.md). One evaluation,
+ * two entry shapes; a direct handler calls it after its own input
+ * validation and before any load or side effect, mirroring the Java
+ * edition's validate → authorize handler order (C2 Stage 4 ruling,
+ * 20260827.10). The optional target override serves the one lane whose
+ * true target is server-side state rather than caller input
+ * (completeOAuthConnect authorizes the PENDING RECORD's server id — a
+ * caller-supplied id would be a confused-deputy hole, the Java
+ * McpServerCompleteOAuthConnectHandler discipline).
  */
 import { Code, ConnectError } from "@connectrpc/connect";
 import type { DescMethod, DescMessage, Message } from "@bufbuild/protobuf";
@@ -52,6 +65,7 @@ import type {
   AuthzCheck,
   AuthzDecision,
 } from "../../extensions/authorizer.js";
+import type { CallerIdentity } from "../../extensions/identity.js";
 import { getKindName } from "../apiresource-meta.js";
 import { internalError, notFoundError } from "../errors.js";
 import type { PipelineStep } from "../pipeline.js";
@@ -94,74 +108,94 @@ export function newAuthorizeStep<Desc extends DescMessage>(
 ): PipelineStep<Desc> {
   return {
     name: "Authorize",
-    async execute(ctx: RequestContext<Desc>): Promise<void> {
-      if (ctx.callerIdentity.callerClass === "internal") {
-        return;
-      }
-      if (
-        getOption(method, is_public) ||
-        getOption(method, is_skip_authorization)
-      ) {
-        return;
-      }
-      if (!hasOption(method, rpcAuthorizationConfig)) {
-        return;
-      }
-      const config = getOption(method, rpcAuthorizationConfig);
-
-      const check: AuthzCheck = {
-        permission: config.permission,
-        resourceKind: resolveResourceKind(ctx.input, config),
-        resourceId: resolveResourceId(ctx.input, config),
-      };
-      const decision = await runAuthorizer(authorizer, ctx, check);
-      switch (decision.kind) {
-        case "allow":
-          return;
-        case "deny":
-          throw new ConnectError(
-            config.errorMsg !== ""
-              ? config.errorMsg
-              : decision.reason !== ""
-                ? decision.reason
-                : AUTHORIZATION_DENIED_FALLBACK_MESSAGE,
-            Code.PermissionDenied,
-          );
-        case "not-found": {
-          // The ruling-Q1 arm: the exact copy the load-first chain would
-          // answer for the missing id (LoadTarget's notFoundError), so
-          // the wire cannot distinguish which step spoke.
-          if (
-            check.resourceId === "" ||
-            check.resourceKind === ApiResourceKind.api_resource_kind_unknown
-          ) {
-            throw internalError(
-              new Error(
-                "authorizer answered not-found for a non-resource-scoped check",
-              ),
-              AUTHORIZATION_UNAVAILABLE_MESSAGE,
-            );
-          }
-          throw notFoundError(
-            getKindName(check.resourceKind),
-            check.resourceId,
-          );
-        }
-        case "unavailable":
-          throw internalError(
-            decision.cause,
-            AUTHORIZATION_UNAVAILABLE_MESSAGE,
-          );
-        default: {
-          const exhaustive: never = decision;
-          throw internalError(
-            new Error(`unknown decision ${JSON.stringify(exhaustive)}`),
-            AUTHORIZATION_UNAVAILABLE_MESSAGE,
-          );
-        }
-      }
+    execute(ctx: RequestContext<Desc>): Promise<void> {
+      return authorizeDirect(method, authorizer, ctx.callerIdentity, ctx.input);
     },
   };
+}
+
+/**
+ * The one lane whose authorization target is server-side state rather
+ * than a request field (see the module header). `resourceId` replaces the
+ * annotation's `field_path`/`resource_id` resolution; everything else —
+ * skip arms, kind, permission, copy — still comes from the annotation.
+ */
+export interface AuthorizeTargetOverride {
+  readonly resourceId: string;
+}
+
+/**
+ * The Authorize evaluation for direct handlers: identical skip arms,
+ * target resolution, and decision-to-wire mapping as the pipeline step
+ * (which delegates here). Throws the mapped ConnectError on any
+ * non-allow arm; resolves on allow and on every skip arm.
+ */
+export async function authorizeDirect(
+  method: DescMethod,
+  authorizer: Authorizer,
+  identity: CallerIdentity,
+  input: Message,
+  override?: AuthorizeTargetOverride,
+): Promise<void> {
+  if (identity.callerClass === "internal") {
+    return;
+  }
+  if (
+    getOption(method, is_public) ||
+    getOption(method, is_skip_authorization)
+  ) {
+    return;
+  }
+  if (!hasOption(method, rpcAuthorizationConfig)) {
+    return;
+  }
+  const config = getOption(method, rpcAuthorizationConfig);
+
+  const check: AuthzCheck = {
+    permission: config.permission,
+    resourceKind: resolveResourceKind(input, config),
+    resourceId: override?.resourceId ?? resolveResourceId(input, config),
+  };
+  const decision = await runAuthorizer(authorizer, identity, check);
+  switch (decision.kind) {
+    case "allow":
+      return;
+    case "deny":
+      throw new ConnectError(
+        config.errorMsg !== ""
+          ? config.errorMsg
+          : decision.reason !== ""
+            ? decision.reason
+            : AUTHORIZATION_DENIED_FALLBACK_MESSAGE,
+        Code.PermissionDenied,
+      );
+    case "not-found": {
+      // The ruling-Q1 arm: the exact copy the load-first chain would
+      // answer for the missing id (LoadTarget's notFoundError), so
+      // the wire cannot distinguish which step spoke.
+      if (
+        check.resourceId === "" ||
+        check.resourceKind === ApiResourceKind.api_resource_kind_unknown
+      ) {
+        throw internalError(
+          new Error(
+            "authorizer answered not-found for a non-resource-scoped check",
+          ),
+          AUTHORIZATION_UNAVAILABLE_MESSAGE,
+        );
+      }
+      throw notFoundError(getKindName(check.resourceKind), check.resourceId);
+    }
+    case "unavailable":
+      throw internalError(decision.cause, AUTHORIZATION_UNAVAILABLE_MESSAGE);
+    default: {
+      const exhaustive: never = decision;
+      throw internalError(
+        new Error(`unknown decision ${JSON.stringify(exhaustive)}`),
+        AUTHORIZATION_UNAVAILABLE_MESSAGE,
+      );
+    }
+  }
 }
 
 /**
@@ -169,13 +203,13 @@ export function newAuthorizeStep<Desc extends DescMessage>(
  * normalized into the unavailable arm so a buggy implementation can never
  * soften an outage into a denial by accident.
  */
-async function runAuthorizer<Desc extends DescMessage>(
+async function runAuthorizer(
   authorizer: Authorizer,
-  ctx: RequestContext<Desc>,
+  identity: CallerIdentity,
   check: AuthzCheck,
 ): Promise<AuthzDecision> {
   try {
-    return await authorizer.authorize(ctx.callerIdentity, check);
+    return await authorizer.authorize(identity, check);
   } catch (error) {
     return {
       kind: "unavailable",

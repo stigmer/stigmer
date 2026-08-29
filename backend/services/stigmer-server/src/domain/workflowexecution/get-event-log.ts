@@ -21,8 +21,13 @@ import type {
   GetEventLogResponse,
 } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
 
+import { WorkflowExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/query_pb";
+
 import type { Logger } from "../../boot/logger.js";
+import type { Authorizer } from "../../extensions/authorizer.js";
+import type { CallerIdentity } from "../../extensions/identity.js";
 import { internalError, invalidArgumentError } from "../../pipeline/errors.js";
+import { authorizeDirect } from "../../pipeline/steps/authorize.js";
 import type { Store, WorkflowExecutionEventRecord } from "../../store/interface.js";
 
 import { DEFAULT_EVENT_PAGE_SIZE, MAX_EVENT_PAGE_SIZE } from "./constants.js";
@@ -30,6 +35,8 @@ import { DEFAULT_EVENT_PAGE_SIZE, MAX_EVENT_PAGE_SIZE } from "./constants.js";
 export interface EventLogDeps {
   readonly store: Store;
   readonly logger: Logger;
+  /** The composed authorization seam — the annotation check below (C2 Stage 4). */
+  readonly authorizer: Authorizer;
 }
 
 /** The proto enum's value NAME — exactly Go's WorkflowEventType.String(). */
@@ -40,10 +47,21 @@ export function eventTypeName(eventType: WorkflowEventType): string {
 export async function getEventLog(
   deps: EventLogDeps,
   req: GetEventLogRequest,
+  identity: CallerIdentity,
 ): Promise<GetEventLogResponse> {
   if (req.executionId === "") {
     throw invalidArgumentError("execution_id is required");
   }
+  // The annotation's can_view check (validate → authorize, the Java
+  // WorkflowExecutionGetEventLogHandler order; C2 Stage 4). The
+  // no-existence-check empty-page contract below is unchanged for
+  // authorized callers.
+  await authorizeDirect(
+    WorkflowExecutionQueryController.method.getEventLog,
+    deps.authorizer,
+    identity,
+    req,
+  );
 
   let pageSize = req.pageSize;
   if (pageSize <= 0) {

@@ -308,8 +308,10 @@ describe("AgentExecution conformance — zero-record read surfaces (CW-7)", () =
       Code.InvalidArgument,
       "subscribe with an empty id",
     );
-    // Single-user arm: the multi-tenant edition answers PermissionDenied
-    // for an unresolvable id (authorization fail-closed, no existence leak).
+    // Single-user arm here; on the multi-tenant edition an unresolvable id
+    // answers the SAME NotFound through the authorizer's deny-path
+    // existence probe (the ruled uniform Q1 posture, C2 Stage 4) — pinned
+    // with an outsider caller in the direct-handler-authorization suite.
     if (target.capabilities.multiTenant) return;
     await expectGrpcCode(
       () =>

@@ -140,9 +140,11 @@ describe("WorkflowExecution conformance — zero-record read surfaces (Class A)"
       "getEventLog without an execution id",
     );
 
-    // The unknown-id arm is single-user-posture only: the multi-tenant
-    // edition's authorization fails closed on an unresolvable id
-    // (PermissionDenied — no existence leak), never reaching the handler's
+    // The unknown-id arm is single-user-posture only: on the multi-tenant
+    // edition the annotation check runs first and an unresolvable id
+    // answers NOT_FOUND through the authorizer's deny-path existence probe
+    // (the ruled uniform Q1 posture, C2 Stage 4 — pinned in the
+    // direct-handler-authorization suite), never reaching the handler's
     // no-existence-check behavior.
     if (!target.capabilities.multiTenant) {
       const page = await clients.workflowExecutionQuery.getEventLog({
@@ -175,10 +177,11 @@ describe("WorkflowExecution conformance — zero-record read surfaces (Class A)"
       "subscribeEvents with an empty id",
     );
 
-    // The unknown-id NotFound arms hold where the caller can see everything
-    // (single-user); the multi-tenant edition answers PermissionDenied for
-    // an unresolvable id instead (authorization fail-closed, no existence
-    // leak) — the same split as getEventLog above.
+    // The unknown-id NotFound arms hold on BOTH postures since C2 Stage 4
+    // (multi-tenant: the deny-path existence probe answers the same
+    // NOT_FOUND — the ruled uniform Q1 posture), but the multi-tenant arm
+    // is pinned with an OUTSIDER caller in the direct-handler-authorization
+    // suite; here the single-user arm keeps its original pin.
     if (target.capabilities.multiTenant) return;
     await expectGrpcCode(
       () =>
