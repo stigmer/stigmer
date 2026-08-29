@@ -33,12 +33,17 @@ import type { WorkflowExecutionEvent } from "@stigmer/protos/ai/stigmer/agentic/
 import type { SubscribeEventsRequest } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
+import { WorkflowExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/query_pb";
+
 import type { Logger } from "../../boot/logger.js";
+import type { Authorizer } from "../../extensions/authorizer.js";
+import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import {
   internalError,
   invalidArgumentError,
   notFoundError,
 } from "../../pipeline/errors.js";
+import { authorizeDirect } from "../../pipeline/steps/authorize.js";
 import type {
   Store,
   WorkflowExecutionEventRecord,
@@ -54,6 +59,8 @@ import { isWorkflowTerminalPhase } from "./subscribe.js";
 export interface SubscribeEventsDeps {
   readonly store: Store;
   readonly logger: Logger;
+  /** The composed authorization seam — the pre-stream check below (C2 Stage 4). */
+  readonly authorizer: Authorizer;
 }
 
 export async function* subscribeEvents(
@@ -64,6 +71,14 @@ export async function* subscribeEvents(
   if (request.executionId === "") {
     throw invalidArgumentError("execution_id is required");
   }
+  // The annotation's can_view check, once at subscription start (the
+  // pre-stream Authorize evaluation — see subscribe.ts; C2 Stage 4).
+  await authorizeDirect(
+    WorkflowExecutionQueryController.method.subscribeEvents,
+    deps.authorizer,
+    callerIdentityOf(context),
+    request,
+  );
   const executionId = request.executionId;
 
   // Verify the execution exists (the opposite of getEventLog's contract).

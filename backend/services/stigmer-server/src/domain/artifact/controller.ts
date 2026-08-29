@@ -63,7 +63,10 @@ import { newPipeline } from "../../pipeline/pipeline.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
-import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
+import {
+  authorizeDirect,
+  newAuthorizeStep,
+} from "../../pipeline/steps/authorize.js";
 import {
   generateId,
   setAuditFieldsForCreate,
@@ -106,8 +109,9 @@ export function registerArtifactServices(
   router.service(ArtifactQueryController, {
     get: (id, ctx) => get(deps, id, ctx),
     listByExecution: (req, ctx) => listByExecution(deps, req, ctx),
-    getDownloadUrl: (id) => getDownloadUrl(deps, id),
-    getContent: (req) => getContent(deps, req),
+    getDownloadUrl: (id, ctx) =>
+      getDownloadUrl(deps, id, callerIdentityOf(ctx)),
+    getContent: (req, ctx) => getContent(deps, req, callerIdentityOf(ctx)),
   });
 }
 
@@ -301,6 +305,16 @@ async function deleteArtifact(
 
   const artifact = await loadArtifactOrNotFound(deps, resourceId);
 
+  // The annotation's can_edit check AFTER the load — the Java
+  // ArtifactDeleteHandler order (load-before-authorize, stigmer#224).
+  // C2 Stage 4.
+  await authorizeDirect(
+    ArtifactCommandController.method.delete,
+    deps.authorizer,
+    identity,
+    id,
+  );
+
   deps.logger.info("soft-deleting artifact", {
     artifactId: resourceId,
     previousState: ArtifactStorageState[artifact.status?.storageState ?? 0],
@@ -476,6 +490,7 @@ async function listByExecution(
 async function getDownloadUrl(
   deps: ArtifactControllerDeps,
   id: ArtifactId,
+  identity: CallerIdentity,
 ): Promise<ArtifactDownloadUrl> {
   const resourceId = id.value;
   if (resourceId === "") {
@@ -483,6 +498,17 @@ async function getDownloadUrl(
   }
 
   const artifact = await loadArtifactOrNotFound(deps, resourceId);
+
+  // The annotation's can_view check AFTER the load — the Java
+  // ArtifactGetDownloadUrlHandler order (load-before-authorize,
+  // stigmer#224). C2 Stage 4.
+  await authorizeDirect(
+    ArtifactQueryController.method.getDownloadUrl,
+    deps.authorizer,
+    identity,
+    id,
+  );
+
   const contentHash = requireLiveBlob(artifact, resourceId);
 
   deps.logger.info("generating download URL for artifact", {
@@ -524,6 +550,7 @@ async function getDownloadUrl(
 async function getContent(
   deps: ArtifactControllerDeps,
   req: GetArtifactContentRequest,
+  identity: CallerIdentity,
 ): Promise<GetArtifactContentResponse> {
   const artifactId = req.artifactId;
   if (artifactId === "") {
@@ -531,6 +558,17 @@ async function getContent(
   }
 
   const artifact = await loadArtifactOrNotFound(deps, artifactId);
+
+  // The annotation's can_view check AFTER the load — the Java
+  // ArtifactGetContentHandler order (load-before-authorize, stigmer#224).
+  // C2 Stage 4.
+  await authorizeDirect(
+    ArtifactQueryController.method.getContent,
+    deps.authorizer,
+    identity,
+    req,
+  );
+
   const contentHash = requireLiveBlob(artifact, artifactId);
 
   let maxBytes = req.maxBytes;

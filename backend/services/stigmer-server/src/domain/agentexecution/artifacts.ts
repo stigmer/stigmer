@@ -46,12 +46,17 @@ import {
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { create } from "@bufbuild/protobuf";
 
+import { AgentExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/query_pb";
+
 import type { Logger } from "../../boot/logger.js";
 import type { ArtifactStorage } from "../../artifactstorage/artifact-storage.js";
+import type { Authorizer } from "../../extensions/authorizer.js";
+import type { CallerIdentity } from "../../extensions/identity.js";
 import {
   internalError,
   invalidArgumentError,
 } from "../../pipeline/errors.js";
+import { authorizeDirect } from "../../pipeline/steps/authorize.js";
 import type { Store } from "../../store/interface.js";
 import { casBlobContentMismatch } from "./filereview/cas-blob.js";
 
@@ -59,6 +64,13 @@ export interface ArtifactRpcDeps {
   readonly store: Store;
   readonly logger: Logger;
   readonly artifactStorage: ArtifactStorage;
+  /**
+   * The composed authorization seam — the two artifact READ surfaces
+   * evaluate their can_view annotations before the ownership checks (the
+   * Java handler order; C2 Stage 4). uploadAttachment stays checkless by
+   * annotation (is_skip_authorization — the storage_key is the capability).
+   */
+  readonly authorizer: Authorizer;
 }
 
 /**
@@ -206,6 +218,7 @@ export function validateAttachmentFilename(name: string): void {
 export async function getArtifactContent(
   deps: ArtifactRpcDeps,
   req: GetArtifactContentRequest,
+  identity: CallerIdentity,
 ): Promise<GetArtifactContentResponse> {
   if (req.executionId === "") {
     throw invalidArgumentError("execution_id is required");
@@ -213,6 +226,14 @@ export async function getArtifactContent(
   if (req.storageKey === "") {
     throw invalidArgumentError("storage_key is required");
   }
+  // The annotation's can_view check (validate → authorize → ownership,
+  // the Java AgentExecutionGetArtifactContentHandler order; C2 Stage 4).
+  await authorizeDirect(
+    AgentExecutionQueryController.method.getArtifactContent,
+    deps.authorizer,
+    identity,
+    req,
+  );
 
   // Ownership is checked on the NORMALIZED key and the normalized key is
   // what gets served: the storage layer path-cleans `.`/`..` segments, so
@@ -385,6 +406,7 @@ function fileExtension(name: string): string {
 export async function getArtifactDownloadUrl(
   deps: ArtifactRpcDeps,
   req: GetArtifactDownloadUrlRequest,
+  identity: CallerIdentity,
 ): Promise<GetArtifactDownloadUrlResponse> {
   if (req.executionId === "") {
     throw invalidArgumentError("execution_id is required");
@@ -392,6 +414,14 @@ export async function getArtifactDownloadUrl(
   if (req.storageKey === "") {
     throw invalidArgumentError("storage_key is required");
   }
+  // The annotation's can_view check (validate → authorize → ownership,
+  // the Java AgentExecutionGetArtifactDownloadUrlHandler order; C2 Stage 4).
+  await authorizeDirect(
+    AgentExecutionQueryController.method.getArtifactDownloadUrl,
+    deps.authorizer,
+    identity,
+    req,
+  );
 
   // Load BEFORE the key check: the attachment arm needs spec.attachments,
   // and this doubles as the existence check.

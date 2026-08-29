@@ -238,6 +238,18 @@ describe("resolveExtensions — merge semantics", () => {
     ]);
     expect(resolved.drivers.channelRuntime).toBe(runtime);
   });
+
+  it("keeps the declared ExecutionReadScope as the resolved singleton (C2 Stage 4)", () => {
+    const scope = {
+      authorizedExecutionIds: () => Promise.resolve(new Set<string>()),
+    };
+    const resolved = resolveExtensions([
+      { name: "iam", drivers: { executionReadScope: scope } },
+    ]);
+    expect(resolved.drivers.executionReadScope).toBe(scope);
+    // The empty state resolves explicitly, never a missing key.
+    expect(resolveExtensions([]).drivers.executionReadScope).toBeUndefined();
+  });
 });
 
 describe("resolveExtensions — loud-fail throws (DD-006 §2b)", () => {
@@ -259,6 +271,20 @@ describe("resolveExtensions — loud-fail throws (DD-006 §2b)", () => {
       ]),
     ).toThrowError(
       /extension 'second-authz' registers an Authorizer, but 'first-authz' already did/,
+    );
+  });
+
+  it("throws on a second ExecutionReadScope, naming both units", () => {
+    const scope = {
+      authorizedExecutionIds: () => Promise.resolve(new Set<string>()),
+    };
+    expect(() =>
+      resolveExtensions([
+        { name: "scope-a", drivers: { executionReadScope: scope } },
+        { name: "scope-b", drivers: { executionReadScope: scope } },
+      ]),
+    ).toThrowError(
+      /extension 'scope-b' registers an ExecutionReadScope, but 'scope-a' already did/,
     );
   });
 

@@ -51,7 +51,10 @@ import { newPipeline } from "../../pipeline/pipeline.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
-import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
+import {
+  authorizeDirect,
+  newAuthorizeStep,
+} from "../../pipeline/steps/authorize.js";
 import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
 import {
   newBuildNewStateStep,
@@ -370,6 +373,10 @@ async function deleteSession(
  * index best-effort. Because the read-modify-write happens entirely on
  * the server, concurrent callers (e.g., GenerateSessionSubject and
  * sandbox_manager) cannot overwrite each other's unrelated fields.
+ *
+ * The annotation's can_edit check runs AFTER the load — the Java
+ * SessionUpdateSubjectHandler order (load-before-authorize, stigmer#224:
+ * a missing id answers NOT_FOUND, never PERMISSION_DENIED). C2 Stage 4.
  */
 async function updateSubject(
   deps: SessionControllerDeps,
@@ -394,6 +401,13 @@ async function updateSubject(
     }
     throw internalError(error, "failed to load session");
   }
+
+  await authorizeDirect(
+    SessionCommandController.method.updateSubject,
+    deps.authorizer,
+    identity,
+    req,
+  );
 
   if (session.spec === undefined) {
     session.spec = create(SessionSpecSchema, {});

@@ -137,11 +137,16 @@ export function registerMcpServerServices(
     update: (server, ctx) => update(deps, server, ctx),
     updateVisibility: (input, ctx) => updateVisibility(deps, input, ctx),
     delete: (input, ctx) => deleteMcpServer(deps, input, ctx),
-    connect: (input) => connect(deps.connect, input),
-    startConnect: (input) => startConnect(deps.connect, input),
-    initiateOAuthConnect: (input) => initiateOAuthConnect(deps.connect, input),
-    completeOAuthConnect: (input) => completeOAuthConnect(deps.connect, input),
-    disconnectOAuth: (input) => disconnectOAuth(deps.connect, input),
+    connect: (input, ctx) =>
+      connect(deps.connect, input, callerIdentityOf(ctx)),
+    startConnect: (input, ctx) =>
+      startConnect(deps.connect, input, callerIdentityOf(ctx)),
+    initiateOAuthConnect: (input, ctx) =>
+      initiateOAuthConnect(deps.connect, input, callerIdentityOf(ctx)),
+    completeOAuthConnect: (input, ctx) =>
+      completeOAuthConnect(deps.connect, input, callerIdentityOf(ctx)),
+    disconnectOAuth: (input, ctx) =>
+      disconnectOAuth(deps.connect, input, callerIdentityOf(ctx)),
     setOrgOAuthApp: () => {
       throw orgOAuthAppUnimplemented("SetOrgOAuthApp");
     },
@@ -152,7 +157,8 @@ export function registerMcpServerServices(
   router.service(McpServerQueryController, {
     get: (id, ctx) => get(deps, id, ctx),
     getByReference: (ref, ctx) => getByReference(deps, ref, ctx),
-    getOAuthGrantStatus: (input) => getOAuthGrantStatus(deps.connect, input),
+    getOAuthGrantStatus: (input, ctx) =>
+      getOAuthGrantStatus(deps.connect, input, callerIdentityOf(ctx)),
     getOrgOAuthApp: () => {
       throw orgOAuthAppUnimplemented("GetOrgOAuthApp");
     },

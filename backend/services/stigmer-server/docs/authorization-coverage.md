@@ -5,8 +5,8 @@ This document is the ratified coverage inventory for the stigmer-server authoriz
 How to read the tables:
 
 - **Annotation** is what the method's proto declares: a `config` summary (`permission` on `resource_kind`, the `field_path` or literal `resource_id` the target is resolved from, and whether `error_msg` is set), `is_public` (50057), `is_skip_authorization` (50058), or `none` (no option at all — the apply RPCs and the gRPC health service).
-- **Handler** is what the server actually runs: `chain-with-Authorize` means the handler builds a `newPipeline(...)` whose FIRST `.addStep` is `newAuthorizeStep(<its own method descriptor>, authorizer)`; `direct: <posture>` means no pipeline is built and the Authorize step never runs for that method.
-- The two columns are independent facts. A method can carry a `config` annotation and still be a direct handler — for such methods the annotation is declared but not evaluated by the Authorize step today. Every such method is called out in the "annotated but direct" list before the notes section.
+- **Handler** is what the server actually runs: `chain-with-Authorize` means the handler builds a `newPipeline(...)` whose FIRST `.addStep` is `newAuthorizeStep(<its own method descriptor>, authorizer)`; `direct: <posture>` means no pipeline is built. A direct handler marked `authorizeDirect` evaluates its annotation through the SAME exported evaluation the step runs (`authorizeDirect` in `src/pipeline/steps/authorize.ts` — identical skip arms, target resolution, and decision mapping; C2 Stage 4, 20260827.10), placed per the Java baseline's handler order (noted per row where it differs from authorize-first).
+- The two columns are independent facts. A method can carry a `config` annotation and be a direct handler — since C2 Stage 4 nearly all such methods evaluate the annotation via `authorizeDirect`; the dispositions of the full set are recorded in the "Config-annotated methods served by direct handlers" section before the notes.
 - Authorize step semantics (verified in `src/pipeline/steps/authorize.ts`): the step returns immediately for the `internal` caller class, then for `is_public`, then for `is_skip_authorization`, then for methods with no `config` option; only a present `config` reaches the composed Authorizer. So even on chain methods, a skip/public annotation means the Authorizer is never consulted — the step's presence still gives C1/C2 the uniform interception point.
 
 Verification notes: every registration map in `src/boot/compose.ts`'s routes closure was cross-checked against its controller file and its proto service definition; every `newAuthorizeStep` call site was checked for descriptor/RPC agreement (all ten lifecycle RPCs pass their own descriptor through the shared `runLifecyclePipeline` builder; memory `confirm`/`reject` pass their own descriptors through the shared `runTransition` helper); a mechanical scan confirmed `newAuthorizeStep` is the first `.addStep` of every `newPipeline` in the server (zero exceptions).
@@ -15,9 +15,9 @@ Verification notes: every registration map in `src/boot/compose.ts`'s routes clo
 
 - Registered services: 29 (28 Stigmer services + the standard gRPC health service; ApiKey command + query added by O3, 20260827.06).
 - Registered RPC methods: 233.
-- Handler classes: 179 `chain-with-Authorize`, 54 `direct`.
+- Handler classes: 179 `chain-with-Authorize`, 54 `direct` (17 of which evaluate their annotation via `authorizeDirect` — C2 Stage 4).
 - Annotation classes: 139 `config`, 74 `is_skip_authorization`, 2 `is_public`, 18 `none` (15 apply RPCs + 3 health methods).
-- Config-annotated methods served by direct handlers (annotation declared, Authorize step not running): 30 — enumerated before the notes section.
+- Config-annotated methods served by direct handlers: 30, dispositioned at the C2 Stage-4 gate (17 `authorizeDirect`, 9 on the composed channel runtime, 1 deliberate skip, 3 recorded-gap stubs) — the full table before the notes section.
 
 ## 1. Health (`grpc.health.v1.Health`, `src/transport/health.ts`)
 
@@ -131,7 +131,7 @@ All six RPCs are chains, and the proto deliberately marks every one `is_skip_aut
 | SessionCommandController.apply | none | chain-with-Authorize |
 | SessionCommandController.create | config: can_create_session on organization (field metadata.org), error_msg yes | chain-with-Authorize |
 | SessionCommandController.update | config: can_edit on session (field metadata.id), error_msg yes | chain-with-Authorize |
-| SessionCommandController.updateSubject | config: can_edit on session (field id), error_msg yes | direct: field-level read-modify-write on the server (no pipeline by design — ports Go update_subject.go); annotated but Authorize does not run |
+| SessionCommandController.updateSubject | config: can_edit on session (field id), error_msg yes | direct: field-level read-modify-write (ports Go update_subject.go); authorizeDirect AFTER the load — the Java load-before-authorize order (#224) |
 | SessionCommandController.delete | config: can_delete on session (field value), error_msg yes | chain-with-Authorize |
 | SessionQueryController.get | config: can_view on session (field value), error_msg yes | chain-with-Authorize |
 | SessionQueryController.list | is_skip_authorization | chain-with-Authorize |
@@ -254,14 +254,14 @@ The conversation surface is a cloud capability; OSS serves edition stubs, all di
 | AgentExecutionQueryController.get | config: can_view on agent_execution (field value), error_msg yes | chain-with-Authorize |
 | AgentExecutionQueryController.list | is_skip_authorization | chain-with-Authorize |
 | AgentExecutionQueryController.listBySession | is_skip_authorization | chain-with-Authorize |
-| AgentExecutionQueryController.subscribe | config: can_view on agent_execution (field value), error_msg yes | direct: stream subscribe over broker (register-before-snapshot; server-stream generator cannot run inside the pipeline executor) |
-| AgentExecutionQueryController.getArtifactDownloadUrl | config: can_view on agent_execution (field execution_id), error_msg yes | direct: key-prefix / attachment-membership ownership check, then time-limited URL mint |
-| AgentExecutionQueryController.getArtifactContent | config: can_view on agent_execution (field execution_id), error_msg yes | direct: key-prefix ownership check, CAS-blob integrity check, truncated bytes in response |
+| AgentExecutionQueryController.subscribe | config: can_view on agent_execution (field value), error_msg yes | direct: stream subscribe over broker (register-before-snapshot; server-stream generator cannot run inside the pipeline executor); authorizeDirect once at subscription start |
+| AgentExecutionQueryController.getArtifactDownloadUrl | config: can_view on agent_execution (field execution_id), error_msg yes | direct: authorizeDirect, then key-prefix / attachment-membership ownership check, then time-limited URL mint |
+| AgentExecutionQueryController.getArtifactContent | config: can_view on agent_execution (field execution_id), error_msg yes | direct: authorizeDirect, then key-prefix ownership check, CAS-blob integrity check, truncated bytes in response |
 | AgentExecutionQueryController.getExecutionUsageReport | config: can_view on agent_execution (field execution_id), error_msg yes | chain-with-Authorize (usage.ts) |
 | AgentExecutionQueryController.getSessionUsageReport | config: can_view on session (field session_id), error_msg yes | chain-with-Authorize (usage.ts) |
 | AgentExecutionQueryController.getAgentUsageReport | config: can_view on organization (field org_id), error_msg yes | chain-with-Authorize (usage.ts) |
 | AgentExecutionQueryController.getOrgUsageReport | config: can_view on organization (field org_id), error_msg yes | chain-with-Authorize (usage.ts) |
-| AgentExecutionQueryController.getExecutionSummary | is_skip_authorization | direct: full-scan store aggregate for the dashboard (a direct handler in Go as well) |
+| AgentExecutionQueryController.getExecutionSummary | is_skip_authorization | direct: full-scan store aggregate for the dashboard (a direct handler in Go as well); a composed ExecutionReadScope narrows it to authorized ids ∩ requested org (C2 Stage 4) |
 
 ## 17. Workflow (`src/domain/workflow/controller.ts`)
 
@@ -272,12 +272,12 @@ The conversation surface is a cloud capability; OSS serves edition stubs, all di
 | WorkflowCommandController.update | config: can_edit on workflow (field metadata.id), error_msg yes | chain-with-Authorize |
 | WorkflowCommandController.updateVisibility | config: can_edit on workflow (field resource_id), error_msg yes | chain-with-Authorize |
 | WorkflowCommandController.delete | config: can_delete on workflow (field value), error_msg yes | chain-with-Authorize |
-| WorkflowCommandController.validateSpec | config: can_create_workflow on organization (field metadata.org), error_msg yes | direct: validation-only, nothing persisted (Layer-2 validator over the domain-owned registry store) |
+| WorkflowCommandController.validateSpec | config: can_create_workflow on organization (field metadata.org), error_msg yes | direct: validation-only, nothing persisted (Layer-2 validator over the domain-owned registry store); annotation DELIBERATELY not evaluated — matches the Java handler's documented "no persist, no authorize" posture (C2 Stage-4 gate ruling; the annotation mismatch is recorded, not an omission) |
 | WorkflowCommandController.tagVersion | config: can_edit on workflow (field workflow_id), error_msg yes | chain-with-Authorize |
 | WorkflowQueryController.get | config: can_view on workflow (field value), error_msg yes | chain-with-Authorize |
 | WorkflowQueryController.getByReference | is_skip_authorization | direct: branching slug/org read (Go's own direct-handler note) |
 | WorkflowQueryController.listVersions | is_skip_authorization | chain-with-Authorize |
-| WorkflowQueryController.getVersion | config: can_view on workflow (field workflow_id), error_msg yes | direct: live-then-audit version read |
+| WorkflowQueryController.getVersion | config: can_view on workflow (field workflow_id), error_msg yes | direct: authorizeDirect, then live-then-audit version read. DELIBERATE divergence from the Java edition (C2 Stage-4 gate ruling): Java declares the annotation but never evaluates it (a cross-org version-read gap; its javadoc claims framework enforcement that does not exist) — the annotation is the contract and this server enforces it |
 
 ## 18. WorkflowInstance (`src/domain/workflowinstance/controller.ts`)
 
@@ -313,10 +313,10 @@ The conversation surface is a cloud capability; OSS serves edition stubs, all di
 | WorkflowExecutionQueryController.get | config: can_view on workflow_execution (field value), error_msg yes | chain-with-Authorize |
 | WorkflowExecutionQueryController.list | is_skip_authorization | direct: full-scan store read (malformed rows skipped) |
 | WorkflowExecutionQueryController.listByWorkflow | is_skip_authorization | direct: full-scan store read filtered by workflow |
-| WorkflowExecutionQueryController.subscribe | config: can_view on workflow_execution (field execution_id), error_msg yes | direct: stream subscribe over broker |
-| WorkflowExecutionQueryController.getEventLog | config: can_view on workflow_execution (field execution_id), error_msg yes | direct: cursor-paginated read over the event side table (no existence check by contract) |
-| WorkflowExecutionQueryController.subscribeEvents | config: can_view on workflow_execution (field execution_id), error_msg yes | direct: event-log replay + poll stream (existence-checked NotFound before streaming) |
-| WorkflowExecutionQueryController.getExecutionSummary | is_skip_authorization | direct: full-scan store aggregate for the dashboard |
+| WorkflowExecutionQueryController.subscribe | config: can_view on workflow_execution (field execution_id), error_msg yes | direct: stream subscribe over broker; authorizeDirect once at subscription start |
+| WorkflowExecutionQueryController.getEventLog | config: can_view on workflow_execution (field execution_id), error_msg yes | direct: authorizeDirect, then cursor-paginated read over the event side table (no existence check by contract) |
+| WorkflowExecutionQueryController.subscribeEvents | config: can_view on workflow_execution (field execution_id), error_msg yes | direct: authorizeDirect at subscription start, then event-log replay + poll stream (existence-checked NotFound before streaming) |
+| WorkflowExecutionQueryController.getExecutionSummary | is_skip_authorization | direct: full-scan store aggregate for the dashboard; a composed ExecutionReadScope narrows it to authorized ids ∩ requested org, empty set = the default instance (C2 Stage 4) |
 | WorkflowExecutionQueryController.listPendingApprovals | is_skip_authorization | direct: scan of IN_PROGRESS executions for waiting-approval tasks |
 
 ## 20. McpServer (`src/domain/mcpserver/controller.ts` + connect.ts, start-connect.ts, initiate-oauth-connect.ts, complete-oauth-connect.ts, disconnect-oauth.ts, get-oauth-grant-status.ts)
@@ -328,16 +328,16 @@ The conversation surface is a cloud capability; OSS serves edition stubs, all di
 | McpServerCommandController.update | config: can_edit on mcp_server (field metadata.id), error_msg yes | chain-with-Authorize |
 | McpServerCommandController.updateVisibility | config: can_edit on mcp_server (field resource_id), error_msg yes | chain-with-Authorize |
 | McpServerCommandController.delete | config: can_delete on mcp_server (field resource_id), error_msg yes | chain-with-Authorize |
-| McpServerCommandController.connect | config: can_connect on mcp_server (field mcp_server_id), error_msg yes | direct: blocking connect flow over the engine seam (ephemeral ExecutionContext, decrypt-lane token mint, runner workflow start) |
-| McpServerCommandController.startConnect | config: can_connect on mcp_server (field mcp_server_id), error_msg yes | direct: async connect lane over the engine seam |
-| McpServerCommandController.initiateOAuthConnect | config: can_connect on mcp_server (field mcp_server_id), error_msg yes | direct: OAuth authorize-URL mint (refuses FAILED_PRECONDITION without a configured redirect URI) |
-| McpServerCommandController.completeOAuthConnect | config: can_connect on mcp_server (field mcp_server_id), error_msg yes | direct: OAuth code exchange + grant persistence |
-| McpServerCommandController.disconnectOAuth | config: can_connect on mcp_server (field resource_id), error_msg yes | direct: grant teardown |
+| McpServerCommandController.connect | config: can_connect on mcp_server (field mcp_server_id), error_msg yes | direct: blocking connect flow over the engine seam (ephemeral ExecutionContext, decrypt-lane token mint, runner workflow start); authorizeDirect AFTER the load (#224) |
+| McpServerCommandController.startConnect | config: can_connect on mcp_server (field mcp_server_id), error_msg yes | direct: async connect lane over the engine seam; authorizeDirect AFTER the load (#224) |
+| McpServerCommandController.initiateOAuthConnect | config: can_connect on mcp_server (field mcp_server_id), error_msg yes | direct: OAuth authorize-URL mint (refuses FAILED_PRECONDITION without a configured redirect URI); authorizeDirect AFTER the load (#224) |
+| McpServerCommandController.completeOAuthConnect | config: can_connect on mcp_server (field mcp_server_id), error_msg yes | direct: OAuth code exchange + grant persistence; authorizeDirect against the PENDING RECORD's server id (target override — the Java confused-deputy discipline; the single-use state is burned before a denial lands) |
+| McpServerCommandController.disconnectOAuth | config: can_connect on mcp_server (field resource_id), error_msg yes | direct: grant teardown; authorizeDirect after input validation (no load step — the Java order) |
 | McpServerCommandController.setOrgOAuthApp | config: can_create_oauth_app on organization (field org), error_msg yes | direct: OSS stub — throws Unimplemented (org OAuth-app overrides are cloud-only) |
 | McpServerCommandController.deleteOrgOAuthApp | config: can_create_oauth_app on organization (field org), error_msg yes | direct: OSS stub — throws Unimplemented |
 | McpServerQueryController.get | config: can_view on mcp_server (field value), error_msg yes | chain-with-Authorize |
 | McpServerQueryController.getByReference | is_skip_authorization | chain-with-Authorize |
-| McpServerQueryController.getOAuthGrantStatus | config: can_view on mcp_server (field resource_id), error_msg yes | direct: grant-store read |
+| McpServerQueryController.getOAuthGrantStatus | config: can_view on mcp_server (field resource_id), error_msg yes | direct: authorizeDirect after input validation, then grant-store read |
 | McpServerQueryController.getOrgOAuthApp | config: can_view on mcp_server (field resource_id), error_msg yes | direct: OSS stub — throws Unimplemented |
 
 ## 21. Skill (`src/domain/skill/controller.ts` + push.ts)
@@ -360,11 +360,11 @@ The conversation surface is a cloud capability; OSS serves edition stubs, all di
 | Method | Annotation | Handler |
 |---|---|---|
 | ArtifactCommandController.create | is_skip_authorization | direct: content-addressed blob write + metadata row persist |
-| ArtifactCommandController.delete | config: can_edit on artifact (field value), error_msg yes | direct: soft delete — storage_state transition, never a row removal |
+| ArtifactCommandController.delete | config: can_edit on artifact (field value), error_msg yes | direct: soft delete — storage_state transition, never a row removal; authorizeDirect AFTER the load (#224) |
 | ArtifactQueryController.get | config: can_view on artifact (field value), error_msg yes | chain-with-Authorize |
 | ArtifactQueryController.listByExecution | is_skip_authorization | chain-with-Authorize |
-| ArtifactQueryController.getDownloadUrl | config: can_view on artifact (field value), error_msg yes | direct: time-limited URL mint against the blob store |
-| ArtifactQueryController.getContent | config: can_view on artifact (field artifact_id), error_msg yes | direct: truncated bytes in the response (512KB default cap) |
+| ArtifactQueryController.getDownloadUrl | config: can_view on artifact (field value), error_msg yes | direct: time-limited URL mint against the blob store; authorizeDirect AFTER the load (#224) |
+| ArtifactQueryController.getContent | config: can_view on artifact (field artifact_id), error_msg yes | direct: truncated bytes in the response (512KB default cap); authorizeDirect AFTER the load (#224) |
 
 ## 23. Project (`src/domain/project/controller.ts`)
 
@@ -406,16 +406,27 @@ The conversation surface is a cloud capability; OSS serves edition stubs, all di
 
 ## Config-annotated methods served by direct handlers
 
-These 30 methods declare a `(ai.stigmer.commons.rpc.config)` annotation but run no pipeline, so the Authorize step never evaluates them on this server. C1/C2 must decide per method whether the cloud edition enforces the annotation in its own handler (several already do — the cloud conversation/install handlers are real) or whether the method needs to move onto a chain.
+These 30 methods declare a `(ai.stigmer.commons.rpc.config)` annotation and run no pipeline. All 30 were dispositioned at the C2 Stage-4 gate (20260827.10); the enforcement state per bucket:
+
+**Evaluated via `authorizeDirect` (17)** — the exported Authorize evaluation, called by the handler itself at the Java baseline's position (each table row notes load-first `#224` order where it applies):
 
 - Session: updateSubject
+- AgentExecution: subscribe, getArtifactDownloadUrl, getArtifactContent
+- Workflow: getVersion (a ruled DELIBERATE divergence — the Java edition never evaluates this annotation; see the table row)
+- WorkflowExecution: subscribe, getEventLog, subscribeEvents
+- McpServer: connect, startConnect, initiateOAuthConnect, completeOAuthConnect, disconnectOAuth, getOAuthGrantStatus
+- Artifact: delete, getDownloadUrl, getContent
+
+**Enforced by the composed channel runtime (9)** — this server's handlers delegate whole-method to `drivers.channelRuntime` (DD-004); the OSS default serves the byte-pinned refusal/stub postures with nothing to protect, and the cloud runtime's served arms gate on the composed Authorizer as their first act (its own suite pins the deny paths). The install pair is an interim stub on both sides until the C3 installer stage, which owes the can_edit arm when it lands:
+
 - AgentChannel: initiateInstall, completeInstall
 - ChannelConversation: getConversation, getTimeline, getMediaDownloadUrl, reply, takeOver, handBack, clearAttention
-- AgentExecution: subscribe, getArtifactDownloadUrl, getArtifactContent
-- Workflow: validateSpec, getVersion
-- WorkflowExecution: subscribe, getEventLog, subscribeEvents
-- McpServer: connect, startConnect, initiateOAuthConnect, completeOAuthConnect, disconnectOAuth, setOrgOAuthApp, deleteOrgOAuthApp, getOAuthGrantStatus, getOrgOAuthApp
-- Artifact: delete, getDownloadUrl, getContent
+
+**Deliberately not evaluated (1)** — Workflow.validateSpec: matches the Java handler's documented "no persist, no authorize" posture (nothing loaded or persisted); the annotation mismatch is a recorded ruling, not an omission.
+
+**Recorded-gap stubs (3)** — the org-OAuth-app (BYOA) surface answers UNIMPLEMENTED on this server (stigmer/stigmer#558) and is cloud-real in Java with dual authorization; the feature port is an unowned convergence gap recorded in the program's parent project, and enforcing an annotation on an Unimplemented stub protects nothing:
+
+- McpServer: setOrgOAuthApp, deleteOrgOAuthApp, getOrgOAuthApp
 
 ## Descriptor mismatches found
 

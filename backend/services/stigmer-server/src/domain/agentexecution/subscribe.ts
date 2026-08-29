@@ -40,11 +40,16 @@ import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecutio
 import type { AgentExecutionId } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
+import { AgentExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/query_pb";
+
 import type { Logger } from "../../boot/logger.js";
+import type { Authorizer } from "../../extensions/authorizer.js";
+import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import {
   invalidArgumentError,
   notFoundError,
 } from "../../pipeline/errors.js";
+import { authorizeDirect } from "../../pipeline/steps/authorize.js";
 import type { Store } from "../../store/interface.js";
 
 import { isTranscriptTerminalPhase } from "./phases.js";
@@ -54,6 +59,8 @@ export interface SubscribeDeps {
   readonly store: Store;
   readonly logger: Logger;
   readonly broker: StreamBroker;
+  /** The composed authorization seam — the pre-stream check below (C2 Stage 4). */
+  readonly authorizer: Authorizer;
 }
 
 export async function* subscribeExecution(
@@ -65,6 +72,17 @@ export async function* subscribeExecution(
   if (executionId.value === "") {
     throw invalidArgumentError("execution id is required");
   }
+  // The annotation's can_view check, once at subscription start — the
+  // Java AgentExecutionSubscribeHandler order (validate → authorize).
+  // The composed authorizer's guest-isolation arm rides this same check
+  // (the G2 per-visitor cookie match), matching Java's GuestVisitorScope
+  // filter on this stream. C2 Stage 4.
+  await authorizeDirect(
+    AgentExecutionQueryController.method.subscribe,
+    deps.authorizer,
+    callerIdentityOf(context),
+    executionId,
+  );
   const id = executionId.value;
   deps.logger.info("Starting execution subscription", { executionId: id });
 

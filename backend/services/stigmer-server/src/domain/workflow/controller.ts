@@ -65,9 +65,13 @@ import {
 } from "../../pipeline/errors.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
+import type { CallerIdentity } from "../../extensions/identity.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
-import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
+import {
+  authorizeDirect,
+  newAuthorizeStep,
+} from "../../pipeline/steps/authorize.js";
 import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
 import {
   newAuthorizeVisibilityTransitionStep,
@@ -174,6 +178,12 @@ export function registerWorkflowServices(
     update: (workflow, ctx) => update(deps, workflow, ctx),
     updateVisibility: (input, ctx) => updateVisibility(deps, input, ctx),
     delete: (id, ctx) => deleteWorkflow(deps, id, ctx),
+    // validateSpec deliberately evaluates NO authorization despite its
+    // can_create_workflow annotation — the Java handler's documented
+    // "no persist, no authorize" posture, ruled matched at the C2 Stage 4
+    // gate (nothing is loaded or persisted; the caller only gets a
+    // verdict on their own submitted spec). The annotation mismatch is
+    // recorded in docs/authorization-coverage.md.
     validateSpec: (workflow) => validateSpec(deps, workflow),
     tagVersion: (input, ctx) => tagVersion(deps, input, ctx),
   });
@@ -181,7 +191,7 @@ export function registerWorkflowServices(
     get: (id, ctx) => get(deps, id, ctx),
     getByReference: (ref) => getByReference(deps, ref),
     listVersions: (input, ctx) => listVersions(deps, input, ctx),
-    getVersion: (input) => getVersion(deps, input),
+    getVersion: (input, ctx) => getVersion(deps, input, callerIdentityOf(ctx)),
   });
 }
 
@@ -1105,6 +1115,7 @@ function decodePageToken(token: string): number {
 async function getVersion(
   deps: WorkflowControllerDeps,
   req: GetWorkflowVersionInput,
+  identity: CallerIdentity,
 ): Promise<WorkflowVersionEntry> {
   if (req.workflowId === "") {
     throw invalidArgumentError("workflow_id is required");
@@ -1112,6 +1123,17 @@ async function getVersion(
   if (req.versionHash === "") {
     throw invalidArgumentError("version_hash is required");
   }
+  // The annotation's can_view check. DELIBERATE divergence from the Java
+  // edition, ruled at the C2 Stage 4 gate: the Java handler declares the
+  // annotation but never evaluates it (its javadoc claims framework
+  // enforcement that does not exist) — a cross-org version-read gap. The
+  // annotation is the contract; the composition enforces it.
+  await authorizeDirect(
+    WorkflowQueryController.method.getVersion,
+    deps.authorizer,
+    identity,
+    req,
+  );
 
   // First check the current (live) workflow — avoids an audit lookup for
   // the common case of recent executions.
