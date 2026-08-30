@@ -25,6 +25,7 @@ const (
 	BillingCommandController_AuthorizeExecution_FullMethodName          = "/ai.stigmer.billing.v1.BillingCommandController/authorizeExecution"
 	BillingCommandController_RecordLlmCallUsage_FullMethodName          = "/ai.stigmer.billing.v1.BillingCommandController/recordLlmCallUsage"
 	BillingCommandController_FinalizeExecution_FullMethodName           = "/ai.stigmer.billing.v1.BillingCommandController/finalizeExecution"
+	BillingCommandController_RearmForRecovery_FullMethodName            = "/ai.stigmer.billing.v1.BillingCommandController/rearmForRecovery"
 	BillingCommandController_CreateCreditCheckoutSession_FullMethodName = "/ai.stigmer.billing.v1.BillingCommandController/createCreditCheckoutSession"
 	BillingCommandController_CreateBillingPortalSession_FullMethodName  = "/ai.stigmer.billing.v1.BillingCommandController/createBillingPortalSession"
 	BillingCommandController_SetAutoRechargeConfig_FullMethodName       = "/ai.stigmer.billing.v1.BillingCommandController/setAutoRechargeConfig"
@@ -67,6 +68,13 @@ type BillingCommandControllerClient interface {
 	// Settle billing for a completed execution.
 	// Releases unused reservation credits and produces the final billing record.
 	FinalizeExecution(ctx context.Context, in *FinalizeExecutionInput, opts ...grpc.CallOption) (*FinalizeExecutionResponse, error)
+	// Re-arm a settled reservation so a failed execution can be recovered.
+	// The one sanctioned path past the settled-reservation latch: re-runs
+	// the affordability check, transfers a fresh hold, and rotates the
+	// reservation id as the fence against settles still in flight from the
+	// terminated run. Returns the same shape as authorizeExecution, with
+	// the rotated reservation id.
+	RearmForRecovery(ctx context.Context, in *RearmForRecoveryInput, opts ...grpc.CallOption) (*AuthorizeExecutionResponse, error)
 	// Create a Stripe Checkout Session to purchase a credit pack.
 	// Returns a checkout URL for the client to redirect the user.
 	//
@@ -171,6 +179,16 @@ func (c *billingCommandControllerClient) FinalizeExecution(ctx context.Context, 
 	return out, nil
 }
 
+func (c *billingCommandControllerClient) RearmForRecovery(ctx context.Context, in *RearmForRecoveryInput, opts ...grpc.CallOption) (*AuthorizeExecutionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AuthorizeExecutionResponse)
+	err := c.cc.Invoke(ctx, BillingCommandController_RearmForRecovery_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *billingCommandControllerClient) CreateCreditCheckoutSession(ctx context.Context, in *CreateCreditCheckoutSessionInput, opts ...grpc.CallOption) (*CreateCreditCheckoutSessionResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CreateCreditCheckoutSessionResponse)
@@ -265,6 +283,13 @@ type BillingCommandControllerServer interface {
 	// Settle billing for a completed execution.
 	// Releases unused reservation credits and produces the final billing record.
 	FinalizeExecution(context.Context, *FinalizeExecutionInput) (*FinalizeExecutionResponse, error)
+	// Re-arm a settled reservation so a failed execution can be recovered.
+	// The one sanctioned path past the settled-reservation latch: re-runs
+	// the affordability check, transfers a fresh hold, and rotates the
+	// reservation id as the fence against settles still in flight from the
+	// terminated run. Returns the same shape as authorizeExecution, with
+	// the rotated reservation id.
+	RearmForRecovery(context.Context, *RearmForRecoveryInput) (*AuthorizeExecutionResponse, error)
 	// Create a Stripe Checkout Session to purchase a credit pack.
 	// Returns a checkout URL for the client to redirect the user.
 	//
@@ -325,6 +350,9 @@ func (UnimplementedBillingCommandControllerServer) RecordLlmCallUsage(context.Co
 }
 func (UnimplementedBillingCommandControllerServer) FinalizeExecution(context.Context, *FinalizeExecutionInput) (*FinalizeExecutionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method FinalizeExecution not implemented")
+}
+func (UnimplementedBillingCommandControllerServer) RearmForRecovery(context.Context, *RearmForRecoveryInput) (*AuthorizeExecutionResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RearmForRecovery not implemented")
 }
 func (UnimplementedBillingCommandControllerServer) CreateCreditCheckoutSession(context.Context, *CreateCreditCheckoutSessionInput) (*CreateCreditCheckoutSessionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateCreditCheckoutSession not implemented")
@@ -472,6 +500,24 @@ func _BillingCommandController_FinalizeExecution_Handler(srv interface{}, ctx co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _BillingCommandController_RearmForRecovery_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RearmForRecoveryInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BillingCommandControllerServer).RearmForRecovery(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BillingCommandController_RearmForRecovery_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BillingCommandControllerServer).RearmForRecovery(ctx, req.(*RearmForRecoveryInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _BillingCommandController_CreateCreditCheckoutSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CreateCreditCheckoutSessionInput)
 	if err := dec(in); err != nil {
@@ -610,6 +656,10 @@ var BillingCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "finalizeExecution",
 			Handler:    _BillingCommandController_FinalizeExecution_Handler,
+		},
+		{
+			MethodName: "rearmForRecovery",
+			Handler:    _BillingCommandController_RearmForRecovery_Handler,
 		},
 		{
 			MethodName: "createCreditCheckoutSession",

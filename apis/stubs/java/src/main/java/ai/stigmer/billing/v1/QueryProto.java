@@ -39,7 +39,7 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "stigmer.billing.v1\032+ai/stigmer/billing/v" +
       "1/billing_account.proto\032\036ai/stigmer/bill" +
       "ing/v1/io.proto\032+ai/stigmer/commons/rpc/" +
-      "method_options.proto2\357\n\n\026BillingQueryCon" +
+      "method_options.proto2\224\016\n\026BillingQueryCon" +
       "troller\022\257\001\n\021getBillingAccount\022-.ai.stigm" +
       "er.billing.v1.GetBillingAccountInput\032%.a" +
       "i.stigmer.billing.v1.BillingAccount\"D\302\270\030" +
@@ -74,10 +74,21 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "4.ai.stigmer.billing.v1.ModelPricingBase" +
       "linesResponse\"O\302\270\030K\010 \020\037*<only platform o" +
       "perators can view the model registry bas" +
-      "eline2\007stigmerB\203\001B\nQueryProtoP\001\242\002\003ASB\252\002\025" +
-      "Ai.Stigmer.Billing.V1\312\002\025Ai\\Stigmer\\Billi" +
-      "ng\\V1\342\002!Ai\\Stigmer\\Billing\\V1\\GPBMetadat" +
-      "a\352\002\030Ai::Stigmer::Billing::V1b\006proto3"
+      "eline2\007stigmer\022\310\001\n\024previewAuthorization\022" +
+      "0.ai.stigmer.billing.v1.PreviewAuthoriza" +
+      "tionInput\0323.ai.stigmer.billing.v1.Previe" +
+      "wAuthorizationResponse\"I\302\270\030E\010\035\020\037*6only p" +
+      "latform operators can execute billing op" +
+      "erations2\007stigmer\022\327\001\n\031getExecutionBillin" +
+      "gSignal\0225.ai.stigmer.billing.v1.GetExecu" +
+      "tionBillingSignalInput\0328.ai.stigmer.bill" +
+      "ing.v1.GetExecutionBillingSignalResponse" +
+      "\"I\302\270\030E\010\035\020\037*6only platform operators can " +
+      "execute billing operations2\007stigmerB\203\001B\n" +
+      "QueryProtoP\001\242\002\003ASB\252\002\025Ai.Stigmer.Billing." +
+      "V1\312\002\025Ai\\Stigmer\\Billing\\V1\342\002!Ai\\Stigmer\\" +
+      "Billing\\V1\\GPBMetadata\352\002\030Ai::Stigmer::Bi" +
+      "lling::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

@@ -53,6 +53,11 @@ class BillingCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.FinalizeExecutionInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.FinalizeExecutionResponse.FromString,
                 _registered_method=True)
+        self.rearmForRecovery = channel.unary_unary(
+                '/ai.stigmer.billing.v1.BillingCommandController/rearmForRecovery',
+                request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.RearmForRecoveryInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.AuthorizeExecutionResponse.FromString,
+                _registered_method=True)
         self.createCreditCheckoutSession = channel.unary_unary(
                 '/ai.stigmer.billing.v1.BillingCommandController/createCreditCheckoutSession',
                 request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.CreateCreditCheckoutSessionInput.SerializeToString,
@@ -143,6 +148,18 @@ class BillingCommandControllerServicer(object):
     def finalizeExecution(self, request, context):
         """Settle billing for a completed execution.
         Releases unused reservation credits and produces the final billing record.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def rearmForRecovery(self, request, context):
+        """Re-arm a settled reservation so a failed execution can be recovered.
+        The one sanctioned path past the settled-reservation latch: re-runs
+        the affordability check, transfers a fresh hold, and rotates the
+        reservation id as the fence against settles still in flight from the
+        terminated run. Returns the same shape as authorizeExecution, with
+        the rotated reservation id.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -244,6 +261,11 @@ def add_BillingCommandControllerServicer_to_server(servicer, server):
                     servicer.finalizeExecution,
                     request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.FinalizeExecutionInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.FinalizeExecutionResponse.SerializeToString,
+            ),
+            'rearmForRecovery': grpc.unary_unary_rpc_method_handler(
+                    servicer.rearmForRecovery,
+                    request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.RearmForRecoveryInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.AuthorizeExecutionResponse.SerializeToString,
             ),
             'createCreditCheckoutSession': grpc.unary_unary_rpc_method_handler(
                     servicer.createCreditCheckoutSession,
@@ -443,6 +465,33 @@ class BillingCommandController(object):
             '/ai.stigmer.billing.v1.BillingCommandController/finalizeExecution',
             ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.FinalizeExecutionInput.SerializeToString,
             ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.FinalizeExecutionResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def rearmForRecovery(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.billing.v1.BillingCommandController/rearmForRecovery',
+            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.RearmForRecoveryInput.SerializeToString,
+            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.AuthorizeExecutionResponse.FromString,
             options,
             channel_credentials,
             insecure,

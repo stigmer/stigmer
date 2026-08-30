@@ -25,8 +25,7 @@ var File_ai_stigmer_billing_v1_query_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_billing_v1_query_proto_rawDesc = "" +
 	"\n" +
-	"!ai/stigmer/billing/v1/query.proto\x12\x15ai.stigmer.billing.v1\x1a+ai/stigmer/billing/v1/billing_account.proto\x1a\x1eai/stigmer/billing/v1/io.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xef\n" +
-	"\n" +
+	"!ai/stigmer/billing/v1/query.proto\x12\x15ai.stigmer.billing.v1\x1a+ai/stigmer/billing/v1/billing_account.proto\x1a\x1eai/stigmer/billing/v1/io.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\x94\x0e\n" +
 	"\x16BillingQueryController\x12\xaf\x01\n" +
 	"\x11getBillingAccount\x12-.ai.stigmer.billing.v1.GetBillingAccountInput\x1a%.ai.stigmer.billing.v1.BillingAccount\"D¸\x18@\b\x1b\x10\x1e\"\x06org_id*2unauthorized to view billing for this organization\x12\xac\x01\n" +
 	"\x10getCreditBalance\x12,.ai.stigmer.billing.v1.GetCreditBalanceInput\x1a$.ai.stigmer.billing.v1.CreditBalance\"D¸\x18@\b\x1b\x10\x1e\"\x06org_id*2unauthorized to view billing for this organization\x12\xb1\x01\n" +
@@ -34,25 +33,31 @@ const file_ai_stigmer_billing_v1_query_proto_rawDesc = "" +
 	"\x15getBillingUsageReport\x121.ai.stigmer.billing.v1.GetBillingUsageReportInput\x1a1.ai.stigmer.billing.v1.BillingUsageReportResponse\"D¸\x18@\b\x1b\x10\x1e\"\x06org_id*2unauthorized to view billing for this organization\x12\xc9\x01\n" +
 	"\x17getCustomerModelPricing\x123.ai.stigmer.billing.v1.GetCustomerModelPricingInput\x1a3.ai.stigmer.billing.v1.CustomerModelPricingResponse\"D¸\x18@\b\x1b\x10\x1e\"\x06org_id*2unauthorized to view billing for this organization\x12\xd1\x01\n" +
 	"\x19getModelPricingGovernance\x125.ai.stigmer.billing.v1.GetModelPricingGovernanceInput\x1a5.ai.stigmer.billing.v1.ModelPricingGovernanceResponse\"F¸\x18B\b \x10\x1f*3only platform operators can view pricing governance2\astigmer\x12\xd9\x01\n" +
-	"\x19listModelPricingBaselines\x125.ai.stigmer.billing.v1.ListModelPricingBaselinesInput\x1a4.ai.stigmer.billing.v1.ModelPricingBaselinesResponse\"O¸\x18K\b \x10\x1f*<only platform operators can view the model registry baseline2\astigmerB\xe8\x01\n" +
+	"\x19listModelPricingBaselines\x125.ai.stigmer.billing.v1.ListModelPricingBaselinesInput\x1a4.ai.stigmer.billing.v1.ModelPricingBaselinesResponse\"O¸\x18K\b \x10\x1f*<only platform operators can view the model registry baseline2\astigmer\x12\xc8\x01\n" +
+	"\x14previewAuthorization\x120.ai.stigmer.billing.v1.PreviewAuthorizationInput\x1a3.ai.stigmer.billing.v1.PreviewAuthorizationResponse\"I¸\x18E\b\x1d\x10\x1f*6only platform operators can execute billing operations2\astigmer\x12\xd7\x01\n" +
+	"\x19getExecutionBillingSignal\x125.ai.stigmer.billing.v1.GetExecutionBillingSignalInput\x1a8.ai.stigmer.billing.v1.GetExecutionBillingSignalResponse\"I¸\x18E\b\x1d\x10\x1f*6only platform operators can execute billing operations2\astigmerB\xe8\x01\n" +
 	"\x19com.ai.stigmer.billing.v1B\n" +
 	"QueryProtoP\x01ZHgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/billing/v1;billingv1\xa2\x02\x03ASB\xaa\x02\x15Ai.Stigmer.Billing.V1\xca\x02\x15Ai\\Stigmer\\Billing\\V1\xe2\x02!Ai\\Stigmer\\Billing\\V1\\GPBMetadata\xea\x02\x18Ai::Stigmer::Billing::V1b\x06proto3"
 
 var file_ai_stigmer_billing_v1_query_proto_goTypes = []any{
-	(*GetBillingAccountInput)(nil),         // 0: ai.stigmer.billing.v1.GetBillingAccountInput
-	(*GetCreditBalanceInput)(nil),          // 1: ai.stigmer.billing.v1.GetCreditBalanceInput
-	(*GetCreditLedgerInput)(nil),           // 2: ai.stigmer.billing.v1.GetCreditLedgerInput
-	(*GetBillingUsageReportInput)(nil),     // 3: ai.stigmer.billing.v1.GetBillingUsageReportInput
-	(*GetCustomerModelPricingInput)(nil),   // 4: ai.stigmer.billing.v1.GetCustomerModelPricingInput
-	(*GetModelPricingGovernanceInput)(nil), // 5: ai.stigmer.billing.v1.GetModelPricingGovernanceInput
-	(*ListModelPricingBaselinesInput)(nil), // 6: ai.stigmer.billing.v1.ListModelPricingBaselinesInput
-	(*BillingAccount)(nil),                 // 7: ai.stigmer.billing.v1.BillingAccount
-	(*CreditBalance)(nil),                  // 8: ai.stigmer.billing.v1.CreditBalance
-	(*CreditLedgerResponse)(nil),           // 9: ai.stigmer.billing.v1.CreditLedgerResponse
-	(*BillingUsageReportResponse)(nil),     // 10: ai.stigmer.billing.v1.BillingUsageReportResponse
-	(*CustomerModelPricingResponse)(nil),   // 11: ai.stigmer.billing.v1.CustomerModelPricingResponse
-	(*ModelPricingGovernanceResponse)(nil), // 12: ai.stigmer.billing.v1.ModelPricingGovernanceResponse
-	(*ModelPricingBaselinesResponse)(nil),  // 13: ai.stigmer.billing.v1.ModelPricingBaselinesResponse
+	(*GetBillingAccountInput)(nil),            // 0: ai.stigmer.billing.v1.GetBillingAccountInput
+	(*GetCreditBalanceInput)(nil),             // 1: ai.stigmer.billing.v1.GetCreditBalanceInput
+	(*GetCreditLedgerInput)(nil),              // 2: ai.stigmer.billing.v1.GetCreditLedgerInput
+	(*GetBillingUsageReportInput)(nil),        // 3: ai.stigmer.billing.v1.GetBillingUsageReportInput
+	(*GetCustomerModelPricingInput)(nil),      // 4: ai.stigmer.billing.v1.GetCustomerModelPricingInput
+	(*GetModelPricingGovernanceInput)(nil),    // 5: ai.stigmer.billing.v1.GetModelPricingGovernanceInput
+	(*ListModelPricingBaselinesInput)(nil),    // 6: ai.stigmer.billing.v1.ListModelPricingBaselinesInput
+	(*PreviewAuthorizationInput)(nil),         // 7: ai.stigmer.billing.v1.PreviewAuthorizationInput
+	(*GetExecutionBillingSignalInput)(nil),    // 8: ai.stigmer.billing.v1.GetExecutionBillingSignalInput
+	(*BillingAccount)(nil),                    // 9: ai.stigmer.billing.v1.BillingAccount
+	(*CreditBalance)(nil),                     // 10: ai.stigmer.billing.v1.CreditBalance
+	(*CreditLedgerResponse)(nil),              // 11: ai.stigmer.billing.v1.CreditLedgerResponse
+	(*BillingUsageReportResponse)(nil),        // 12: ai.stigmer.billing.v1.BillingUsageReportResponse
+	(*CustomerModelPricingResponse)(nil),      // 13: ai.stigmer.billing.v1.CustomerModelPricingResponse
+	(*ModelPricingGovernanceResponse)(nil),    // 14: ai.stigmer.billing.v1.ModelPricingGovernanceResponse
+	(*ModelPricingBaselinesResponse)(nil),     // 15: ai.stigmer.billing.v1.ModelPricingBaselinesResponse
+	(*PreviewAuthorizationResponse)(nil),      // 16: ai.stigmer.billing.v1.PreviewAuthorizationResponse
+	(*GetExecutionBillingSignalResponse)(nil), // 17: ai.stigmer.billing.v1.GetExecutionBillingSignalResponse
 }
 var file_ai_stigmer_billing_v1_query_proto_depIdxs = []int32{
 	0,  // 0: ai.stigmer.billing.v1.BillingQueryController.getBillingAccount:input_type -> ai.stigmer.billing.v1.GetBillingAccountInput
@@ -62,15 +67,19 @@ var file_ai_stigmer_billing_v1_query_proto_depIdxs = []int32{
 	4,  // 4: ai.stigmer.billing.v1.BillingQueryController.getCustomerModelPricing:input_type -> ai.stigmer.billing.v1.GetCustomerModelPricingInput
 	5,  // 5: ai.stigmer.billing.v1.BillingQueryController.getModelPricingGovernance:input_type -> ai.stigmer.billing.v1.GetModelPricingGovernanceInput
 	6,  // 6: ai.stigmer.billing.v1.BillingQueryController.listModelPricingBaselines:input_type -> ai.stigmer.billing.v1.ListModelPricingBaselinesInput
-	7,  // 7: ai.stigmer.billing.v1.BillingQueryController.getBillingAccount:output_type -> ai.stigmer.billing.v1.BillingAccount
-	8,  // 8: ai.stigmer.billing.v1.BillingQueryController.getCreditBalance:output_type -> ai.stigmer.billing.v1.CreditBalance
-	9,  // 9: ai.stigmer.billing.v1.BillingQueryController.getCreditLedger:output_type -> ai.stigmer.billing.v1.CreditLedgerResponse
-	10, // 10: ai.stigmer.billing.v1.BillingQueryController.getBillingUsageReport:output_type -> ai.stigmer.billing.v1.BillingUsageReportResponse
-	11, // 11: ai.stigmer.billing.v1.BillingQueryController.getCustomerModelPricing:output_type -> ai.stigmer.billing.v1.CustomerModelPricingResponse
-	12, // 12: ai.stigmer.billing.v1.BillingQueryController.getModelPricingGovernance:output_type -> ai.stigmer.billing.v1.ModelPricingGovernanceResponse
-	13, // 13: ai.stigmer.billing.v1.BillingQueryController.listModelPricingBaselines:output_type -> ai.stigmer.billing.v1.ModelPricingBaselinesResponse
-	7,  // [7:14] is the sub-list for method output_type
-	0,  // [0:7] is the sub-list for method input_type
+	7,  // 7: ai.stigmer.billing.v1.BillingQueryController.previewAuthorization:input_type -> ai.stigmer.billing.v1.PreviewAuthorizationInput
+	8,  // 8: ai.stigmer.billing.v1.BillingQueryController.getExecutionBillingSignal:input_type -> ai.stigmer.billing.v1.GetExecutionBillingSignalInput
+	9,  // 9: ai.stigmer.billing.v1.BillingQueryController.getBillingAccount:output_type -> ai.stigmer.billing.v1.BillingAccount
+	10, // 10: ai.stigmer.billing.v1.BillingQueryController.getCreditBalance:output_type -> ai.stigmer.billing.v1.CreditBalance
+	11, // 11: ai.stigmer.billing.v1.BillingQueryController.getCreditLedger:output_type -> ai.stigmer.billing.v1.CreditLedgerResponse
+	12, // 12: ai.stigmer.billing.v1.BillingQueryController.getBillingUsageReport:output_type -> ai.stigmer.billing.v1.BillingUsageReportResponse
+	13, // 13: ai.stigmer.billing.v1.BillingQueryController.getCustomerModelPricing:output_type -> ai.stigmer.billing.v1.CustomerModelPricingResponse
+	14, // 14: ai.stigmer.billing.v1.BillingQueryController.getModelPricingGovernance:output_type -> ai.stigmer.billing.v1.ModelPricingGovernanceResponse
+	15, // 15: ai.stigmer.billing.v1.BillingQueryController.listModelPricingBaselines:output_type -> ai.stigmer.billing.v1.ModelPricingBaselinesResponse
+	16, // 16: ai.stigmer.billing.v1.BillingQueryController.previewAuthorization:output_type -> ai.stigmer.billing.v1.PreviewAuthorizationResponse
+	17, // 17: ai.stigmer.billing.v1.BillingQueryController.getExecutionBillingSignal:output_type -> ai.stigmer.billing.v1.GetExecutionBillingSignalResponse
+	9,  // [9:18] is the sub-list for method output_type
+	0,  // [0:9] is the sub-list for method input_type
 	0,  // [0:0] is the sub-list for extension type_name
 	0,  // [0:0] is the sub-list for extension extendee
 	0,  // [0:0] is the sub-list for field type_name

@@ -53,6 +53,16 @@ class BillingQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.ListModelPricingBaselinesInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.ModelPricingBaselinesResponse.FromString,
                 _registered_method=True)
+        self.previewAuthorization = channel.unary_unary(
+                '/ai.stigmer.billing.v1.BillingQueryController/previewAuthorization',
+                request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.PreviewAuthorizationInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.PreviewAuthorizationResponse.FromString,
+                _registered_method=True)
+        self.getExecutionBillingSignal = channel.unary_unary(
+                '/ai.stigmer.billing.v1.BillingQueryController/getExecutionBillingSignal',
+                request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetExecutionBillingSignalInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetExecutionBillingSignalResponse.FromString,
+                _registered_method=True)
 
 
 class BillingQueryControllerServicer(object):
@@ -120,6 +130,27 @@ class BillingQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def previewAuthorization(self, request, context):
+        """Preview whether an organization can fund an execution, without writing
+        a reservation. The read-only twin of BillingCommandController's
+        authorizeExecution: both ride the same server-side affordability
+        predicate (start threshold, negative allowance, default cap), so a
+        synchronous preflight refusal and the authoritative reservation can
+        never drift.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def getExecutionBillingSignal(self, request, context):
+        """Retrieve the current billing control signal for a running execution
+        (continue / low-balance warning / stop), derived from the execution's
+        reservation headroom and the billing account's status.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_BillingQueryControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -157,6 +188,16 @@ def add_BillingQueryControllerServicer_to_server(servicer, server):
                     servicer.listModelPricingBaselines,
                     request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.ListModelPricingBaselinesInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.ModelPricingBaselinesResponse.SerializeToString,
+            ),
+            'previewAuthorization': grpc.unary_unary_rpc_method_handler(
+                    servicer.previewAuthorization,
+                    request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.PreviewAuthorizationInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.PreviewAuthorizationResponse.SerializeToString,
+            ),
+            'getExecutionBillingSignal': grpc.unary_unary_rpc_method_handler(
+                    servicer.getExecutionBillingSignal,
+                    request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetExecutionBillingSignalInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetExecutionBillingSignalResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -351,6 +392,60 @@ class BillingQueryController(object):
             '/ai.stigmer.billing.v1.BillingQueryController/listModelPricingBaselines',
             ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.ListModelPricingBaselinesInput.SerializeToString,
             ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.ModelPricingBaselinesResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def previewAuthorization(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.billing.v1.BillingQueryController/previewAuthorization',
+            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.PreviewAuthorizationInput.SerializeToString,
+            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.PreviewAuthorizationResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def getExecutionBillingSignal(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.billing.v1.BillingQueryController/getExecutionBillingSignal',
+            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetExecutionBillingSignalInput.SerializeToString,
+            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetExecutionBillingSignalResponse.FromString,
             options,
             channel_credentials,
             insecure,

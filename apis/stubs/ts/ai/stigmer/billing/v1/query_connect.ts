@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { BillingUsageReportResponse, CreditLedgerResponse, CustomerModelPricingResponse, GetBillingAccountInput, GetBillingUsageReportInput, GetCreditBalanceInput, GetCreditLedgerInput, GetCustomerModelPricingInput, GetModelPricingGovernanceInput, ListModelPricingBaselinesInput, ModelPricingBaselinesResponse, ModelPricingGovernanceResponse } from "./io_pbjs";
+import { BillingUsageReportResponse, CreditLedgerResponse, CustomerModelPricingResponse, GetBillingAccountInput, GetBillingUsageReportInput, GetCreditBalanceInput, GetCreditLedgerInput, GetCustomerModelPricingInput, GetExecutionBillingSignalInput, GetExecutionBillingSignalResponse, GetModelPricingGovernanceInput, ListModelPricingBaselinesInput, ModelPricingBaselinesResponse, ModelPricingGovernanceResponse, PreviewAuthorizationInput, PreviewAuthorizationResponse } from "./io_pbjs";
 import { BillingAccount, CreditBalance } from "./billing_account_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 
@@ -102,6 +102,35 @@ export const BillingQueryController = {
       name: "listModelPricingBaselines",
       I: ListModelPricingBaselinesInput,
       O: ModelPricingBaselinesResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Preview whether an organization can fund an execution, without writing
+     * a reservation. The read-only twin of BillingCommandController's
+     * authorizeExecution: both ride the same server-side affordability
+     * predicate (start threshold, negative allowance, default cap), so a
+     * synchronous preflight refusal and the authoritative reservation can
+     * never drift.
+     *
+     * @generated from rpc ai.stigmer.billing.v1.BillingQueryController.previewAuthorization
+     */
+    previewAuthorization: {
+      name: "previewAuthorization",
+      I: PreviewAuthorizationInput,
+      O: PreviewAuthorizationResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Retrieve the current billing control signal for a running execution
+     * (continue / low-balance warning / stop), derived from the execution's
+     * reservation headroom and the billing account's status.
+     *
+     * @generated from rpc ai.stigmer.billing.v1.BillingQueryController.getExecutionBillingSignal
+     */
+    getExecutionBillingSignal: {
+      name: "getExecutionBillingSignal",
+      I: GetExecutionBillingSignalInput,
+      O: GetExecutionBillingSignalResponse,
       kind: MethodKind.Unary,
     },
   }

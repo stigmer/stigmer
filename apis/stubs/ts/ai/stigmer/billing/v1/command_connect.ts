@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { AdjustCreditsInput, AuthorizeExecutionInput, AuthorizeExecutionResponse, CreateBillingPortalSessionInput, CreateBillingPortalSessionResponse, CreateCreditCheckoutSessionInput, CreateCreditCheckoutSessionResponse, DecideModelPricingOverrideInput, FinalizeExecutionInput, FinalizeExecutionResponse, GetOrCreateBillingAccountInput, GrantCreditsInput, RecordLlmCallUsageInput, RecordLlmCallUsageResponse, RetireModelPricingBaselineInput, SetAutoRechargeConfigInput, UpsertModelPricingBaselineInput } from "./io_pbjs";
+import { AdjustCreditsInput, AuthorizeExecutionInput, AuthorizeExecutionResponse, CreateBillingPortalSessionInput, CreateBillingPortalSessionResponse, CreateCreditCheckoutSessionInput, CreateCreditCheckoutSessionResponse, DecideModelPricingOverrideInput, FinalizeExecutionInput, FinalizeExecutionResponse, GetOrCreateBillingAccountInput, GrantCreditsInput, RearmForRecoveryInput, RecordLlmCallUsageInput, RecordLlmCallUsageResponse, RetireModelPricingBaselineInput, SetAutoRechargeConfigInput, UpsertModelPricingBaselineInput } from "./io_pbjs";
 import { BillingAccount } from "./billing_account_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 import { CreditLedgerEntry } from "./credit_pbjs";
@@ -99,6 +99,22 @@ export const BillingCommandController = {
       name: "finalizeExecution",
       I: FinalizeExecutionInput,
       O: FinalizeExecutionResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Re-arm a settled reservation so a failed execution can be recovered.
+     * The one sanctioned path past the settled-reservation latch: re-runs
+     * the affordability check, transfers a fresh hold, and rotates the
+     * reservation id as the fence against settles still in flight from the
+     * terminated run. Returns the same shape as authorizeExecution, with
+     * the rotated reservation id.
+     *
+     * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.rearmForRecovery
+     */
+    rearmForRecovery: {
+      name: "rearmForRecovery",
+      I: RearmForRecoveryInput,
+      O: AuthorizeExecutionResponse,
       kind: MethodKind.Unary,
     },
     /**
