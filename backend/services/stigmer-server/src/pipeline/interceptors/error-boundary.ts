@@ -204,7 +204,9 @@ async function boundaryError(
     logger.error("visitor error policy eligibility check threw", {
       procedure,
       error:
-        policyFault instanceof Error ? policyFault.message : String(policyFault),
+        policyFault instanceof Error
+          ? policyFault.message
+          : String(policyFault),
     });
     eligible = true;
   }
@@ -219,7 +221,9 @@ async function boundaryError(
     logger.warn("visitor error copy resolution failed, using fallback", {
       procedure,
       error:
-        policyFault instanceof Error ? policyFault.message : String(policyFault),
+        policyFault instanceof Error
+          ? policyFault.message
+          : String(policyFault),
     });
     copy = INTERNAL_FALLBACK_MESSAGE;
   }

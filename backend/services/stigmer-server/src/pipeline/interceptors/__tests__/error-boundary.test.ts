@@ -13,11 +13,7 @@
  * message crosses verbatim (the Java wire suite's pre-fix-red pattern).
  */
 import { describe, expect, it } from "vitest";
-import {
-  Code,
-  ConnectError,
-  createContextValues,
-} from "@connectrpc/connect";
+import { Code, ConnectError, createContextValues } from "@connectrpc/connect";
 import type { Interceptor } from "@connectrpc/connect";
 import type { DescMethod } from "@bufbuild/protobuf";
 
@@ -54,7 +50,9 @@ const MEMBER: CallerIdentity = {
 };
 
 /** A guest-only policy with fixed copy — the cloud shape in miniature. */
-function guestPolicy(copy = "This agent is currently unavailable."): VisitorErrorPolicy {
+function guestPolicy(
+  copy = "This agent is currently unavailable.",
+): VisitorErrorPolicy {
   return {
     eligible: (identity) => identity?.callerClass === "guest",
     replacementCopy: () => Promise.resolve(copy),
@@ -180,7 +178,10 @@ describe("arm 2: the visitor rewrite", () => {
   it("rewrites a leak-prone description for an eligible caller, preserving the code and appending the ref", async () => {
     const error = await runFailing(
       createErrorBoundaryInterceptor(silentLogger, guestPolicy()),
-      new ConnectError("pg: connection refused at 10.0.3.7:5432", Code.Unavailable),
+      new ConnectError(
+        "pg: connection refused at 10.0.3.7:5432",
+        Code.Unavailable,
+      ),
       { identity: GUEST },
     );
     expect(error.code).toBe(Code.Unavailable);
@@ -236,7 +237,10 @@ describe("arm 2: the visitor rewrite", () => {
       MEMBER,
       { ...MEMBER, callerClass: "schedule" } satisfies CallerIdentity,
     ]) {
-      const thrown = new ConnectError("step Persist failed: disk full", Code.Internal);
+      const thrown = new ConnectError(
+        "step Persist failed: disk full",
+        Code.Internal,
+      );
       const error = await runFailing(
         createErrorBoundaryInterceptor(silentLogger, guestPolicy()),
         thrown,
