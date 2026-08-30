@@ -16,6 +16,8 @@
  *   - list read scope (the list-shaped tenant-isolation fork) — landed
  *     with 20260830.01.sp.list-read-scoping, generalizing C2 Stage 4's
  *     ExecutionReadScope (absorbed, gate ruling Q2)
+ *   - visitor error policy (the transport-boundary sanitizer's
+ *     edition semantics) — landed with 20260830.03, gate ruling Q1
  *
  * Merge rules (enforced by resolveExtensions, DD-006 §2b): the two
  * provider kinds are single-instance points — a second declaring unit is
@@ -30,6 +32,7 @@
 import type { ArtifactStorageDriverFactory } from "../artifactstorage/artifact-storage.js";
 import type { ChannelRuntime } from "../domain/agentchannel/channel-runtime.js";
 import type { ModelCatalogProvider } from "../domain/workflow/registry/model-catalog-provider.js";
+import type { VisitorErrorPolicy } from "../pipeline/interceptors/error-boundary.js";
 import type { RunnerCredentialProvider } from "../runnerauth/runner-credential-provider.js";
 import type { SandboxProvisionerFactory } from "../sandbox/provisioner.js";
 import type { ListReadScope } from "./list-read-scope.js";
@@ -103,4 +106,12 @@ export interface ExtensionDrivers {
    * the enumeration verb. When absent, the OSS full scan — byte-identical.
    */
   readonly listReadScope?: ListReadScope;
+  /**
+   * The visitor error policy (20260830.03; single-instance point) — the
+   * edition semantics of the serving chain's error boundary: WHO is on
+   * the anonymous surface and WHAT copy replaces a leak-prone
+   * description. When absent, the boundary runs only its structural
+   * raw-error conversion — OSS wire behavior otherwise byte-identical.
+   */
+  readonly visitorErrorPolicy?: VisitorErrorPolicy;
 }

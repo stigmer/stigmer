@@ -160,6 +160,14 @@ eventually violate creatively.
 - Log the real error; the wire carries the sanitized message. Never log
   secrets — the redaction doctrine (`***REDACTED***`, `enc:v1:`) extends to
   logs and Temporal payloads.
+- **The serving chain's error boundary is a net, not a license**
+  (20260830.03, ruling Q2 — `pipeline/interceptors/error-boundary.ts`): a
+  raw non-ConnectError escaping any handler is structurally converted to
+  the sanitized `"internal server error"` before the wire, and a composed
+  VisitorErrorPolicy rewrites leak-prone descriptions for anonymous
+  callers. Direct handlers STILL self-sanitize with
+  `internalError(cause, "failed to <do thing>")` — authored copy beats the
+  generic net, and the boundary exists for the path someone forgot.
 
 ## Tests ship with the feature
 
