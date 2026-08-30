@@ -203,6 +203,37 @@ public final class BillingCommandControllerGrpc {
     return getFinalizeExecutionMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.billing.v1.RearmForRecoveryInput,
+      ai.stigmer.billing.v1.AuthorizeExecutionResponse> getRearmForRecoveryMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "rearmForRecovery",
+      requestType = ai.stigmer.billing.v1.RearmForRecoveryInput.class,
+      responseType = ai.stigmer.billing.v1.AuthorizeExecutionResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.billing.v1.RearmForRecoveryInput,
+      ai.stigmer.billing.v1.AuthorizeExecutionResponse> getRearmForRecoveryMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.billing.v1.RearmForRecoveryInput, ai.stigmer.billing.v1.AuthorizeExecutionResponse> getRearmForRecoveryMethod;
+    if ((getRearmForRecoveryMethod = BillingCommandControllerGrpc.getRearmForRecoveryMethod) == null) {
+      synchronized (BillingCommandControllerGrpc.class) {
+        if ((getRearmForRecoveryMethod = BillingCommandControllerGrpc.getRearmForRecoveryMethod) == null) {
+          BillingCommandControllerGrpc.getRearmForRecoveryMethod = getRearmForRecoveryMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.billing.v1.RearmForRecoveryInput, ai.stigmer.billing.v1.AuthorizeExecutionResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "rearmForRecovery"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.billing.v1.RearmForRecoveryInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.billing.v1.AuthorizeExecutionResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new BillingCommandControllerMethodDescriptorSupplier("rearmForRecovery"))
+              .build();
+        }
+      }
+    }
+    return getRearmForRecoveryMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.billing.v1.CreateCreditCheckoutSessionInput,
       ai.stigmer.billing.v1.CreateCreditCheckoutSessionResponse> getCreateCreditCheckoutSessionMethod;
 
@@ -542,6 +573,24 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
+     * Re-arm a settled reservation so a failed execution can be recovered.
+     * The one sanctioned path past the settled-reservation latch: re-runs
+     * the affordability check, transfers a fresh hold, and rotates the
+     * reservation id as the fence against settles still in flight from the
+     * terminated run. Returns the same shape as authorizeExecution, with
+     * the rotated reservation id.
+     * &#64;internal
+     * Called by the recover pipeline after workflow termination, before
+     * re-launch side effects.
+     * </pre>
+     */
+    default void rearmForRecovery(ai.stigmer.billing.v1.RearmForRecoveryInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.AuthorizeExecutionResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getRearmForRecoveryMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
      * Create a Stripe Checkout Session to purchase a credit pack.
      * Returns a checkout URL for the client to redirect the user.
      * The caller's email is resolved server-side for Stripe Customer creation.
@@ -748,6 +797,25 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
+     * Re-arm a settled reservation so a failed execution can be recovered.
+     * The one sanctioned path past the settled-reservation latch: re-runs
+     * the affordability check, transfers a fresh hold, and rotates the
+     * reservation id as the fence against settles still in flight from the
+     * terminated run. Returns the same shape as authorizeExecution, with
+     * the rotated reservation id.
+     * &#64;internal
+     * Called by the recover pipeline after workflow termination, before
+     * re-launch side effects.
+     * </pre>
+     */
+    public void rearmForRecovery(ai.stigmer.billing.v1.RearmForRecoveryInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.AuthorizeExecutionResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getRearmForRecoveryMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
      * Create a Stripe Checkout Session to purchase a credit pack.
      * Returns a checkout URL for the client to redirect the user.
      * The caller's email is resolved server-side for Stripe Customer creation.
@@ -938,6 +1006,24 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
+     * Re-arm a settled reservation so a failed execution can be recovered.
+     * The one sanctioned path past the settled-reservation latch: re-runs
+     * the affordability check, transfers a fresh hold, and rotates the
+     * reservation id as the fence against settles still in flight from the
+     * terminated run. Returns the same shape as authorizeExecution, with
+     * the rotated reservation id.
+     * &#64;internal
+     * Called by the recover pipeline after workflow termination, before
+     * re-launch side effects.
+     * </pre>
+     */
+    public ai.stigmer.billing.v1.AuthorizeExecutionResponse rearmForRecovery(ai.stigmer.billing.v1.RearmForRecoveryInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getRearmForRecoveryMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
      * Create a Stripe Checkout Session to purchase a credit pack.
      * Returns a checkout URL for the client to redirect the user.
      * The caller's email is resolved server-side for Stripe Customer creation.
@@ -1118,6 +1204,24 @@ public final class BillingCommandControllerGrpc {
     public ai.stigmer.billing.v1.FinalizeExecutionResponse finalizeExecution(ai.stigmer.billing.v1.FinalizeExecutionInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getFinalizeExecutionMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Re-arm a settled reservation so a failed execution can be recovered.
+     * The one sanctioned path past the settled-reservation latch: re-runs
+     * the affordability check, transfers a fresh hold, and rotates the
+     * reservation id as the fence against settles still in flight from the
+     * terminated run. Returns the same shape as authorizeExecution, with
+     * the rotated reservation id.
+     * &#64;internal
+     * Called by the recover pipeline after workflow termination, before
+     * re-launch side effects.
+     * </pre>
+     */
+    public ai.stigmer.billing.v1.AuthorizeExecutionResponse rearmForRecovery(ai.stigmer.billing.v1.RearmForRecoveryInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getRearmForRecoveryMethod(), getCallOptions(), request);
     }
 
     /**
@@ -1312,6 +1416,25 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
+     * Re-arm a settled reservation so a failed execution can be recovered.
+     * The one sanctioned path past the settled-reservation latch: re-runs
+     * the affordability check, transfers a fresh hold, and rotates the
+     * reservation id as the fence against settles still in flight from the
+     * terminated run. Returns the same shape as authorizeExecution, with
+     * the rotated reservation id.
+     * &#64;internal
+     * Called by the recover pipeline after workflow termination, before
+     * re-launch side effects.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.v1.AuthorizeExecutionResponse> rearmForRecovery(
+        ai.stigmer.billing.v1.RearmForRecoveryInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getRearmForRecoveryMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
      * Create a Stripe Checkout Session to purchase a credit pack.
      * Returns a checkout URL for the client to redirect the user.
      * The caller's email is resolved server-side for Stripe Customer creation.
@@ -1402,12 +1525,13 @@ public final class BillingCommandControllerGrpc {
   private static final int METHODID_AUTHORIZE_EXECUTION = 3;
   private static final int METHODID_RECORD_LLM_CALL_USAGE = 4;
   private static final int METHODID_FINALIZE_EXECUTION = 5;
-  private static final int METHODID_CREATE_CREDIT_CHECKOUT_SESSION = 6;
-  private static final int METHODID_CREATE_BILLING_PORTAL_SESSION = 7;
-  private static final int METHODID_SET_AUTO_RECHARGE_CONFIG = 8;
-  private static final int METHODID_DECIDE_MODEL_PRICING_OVERRIDE = 9;
-  private static final int METHODID_UPSERT_MODEL_PRICING_BASELINE = 10;
-  private static final int METHODID_RETIRE_MODEL_PRICING_BASELINE = 11;
+  private static final int METHODID_REARM_FOR_RECOVERY = 6;
+  private static final int METHODID_CREATE_CREDIT_CHECKOUT_SESSION = 7;
+  private static final int METHODID_CREATE_BILLING_PORTAL_SESSION = 8;
+  private static final int METHODID_SET_AUTO_RECHARGE_CONFIG = 9;
+  private static final int METHODID_DECIDE_MODEL_PRICING_OVERRIDE = 10;
+  private static final int METHODID_UPSERT_MODEL_PRICING_BASELINE = 11;
+  private static final int METHODID_RETIRE_MODEL_PRICING_BASELINE = 12;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -1449,6 +1573,10 @@ public final class BillingCommandControllerGrpc {
         case METHODID_FINALIZE_EXECUTION:
           serviceImpl.finalizeExecution((ai.stigmer.billing.v1.FinalizeExecutionInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.FinalizeExecutionResponse>) responseObserver);
+          break;
+        case METHODID_REARM_FOR_RECOVERY:
+          serviceImpl.rearmForRecovery((ai.stigmer.billing.v1.RearmForRecoveryInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.AuthorizeExecutionResponse>) responseObserver);
           break;
         case METHODID_CREATE_CREDIT_CHECKOUT_SESSION:
           serviceImpl.createCreditCheckoutSession((ai.stigmer.billing.v1.CreateCreditCheckoutSessionInput) request,
@@ -1534,6 +1662,13 @@ public final class BillingCommandControllerGrpc {
               ai.stigmer.billing.v1.FinalizeExecutionInput,
               ai.stigmer.billing.v1.FinalizeExecutionResponse>(
                 service, METHODID_FINALIZE_EXECUTION)))
+        .addMethod(
+          getRearmForRecoveryMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.billing.v1.RearmForRecoveryInput,
+              ai.stigmer.billing.v1.AuthorizeExecutionResponse>(
+                service, METHODID_REARM_FOR_RECOVERY)))
         .addMethod(
           getCreateCreditCheckoutSessionMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -1630,6 +1765,7 @@ public final class BillingCommandControllerGrpc {
               .addMethod(getAuthorizeExecutionMethod())
               .addMethod(getRecordLlmCallUsageMethod())
               .addMethod(getFinalizeExecutionMethod())
+              .addMethod(getRearmForRecoveryMethod())
               .addMethod(getCreateCreditCheckoutSessionMethod())
               .addMethod(getCreateBillingPortalSessionMethod())
               .addMethod(getSetAutoRechargeConfigMethod())

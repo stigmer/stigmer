@@ -146,6 +146,12 @@ class FinalizeExecutionResponse(_message.Message):
     billed_call_count: int
     def __init__(self, total_provider_cost_micros: _Optional[int] = ..., total_billable_amount_micros: _Optional[int] = ..., released_reservation_micros: _Optional[int] = ..., billed_call_count: _Optional[int] = ...) -> None: ...
 
+class RearmForRecoveryInput(_message.Message):
+    __slots__ = ("execution_id",)
+    EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
+    execution_id: str
+    def __init__(self, execution_id: _Optional[str] = ...) -> None: ...
+
 class CreateCreditCheckoutSessionInput(_message.Message):
     __slots__ = ("org_id", "pack_id", "success_url", "cancel_url")
     ORG_ID_FIELD_NUMBER: _ClassVar[int]
@@ -403,3 +409,35 @@ class CustomerModelPricingEntry(_message.Message):
     pricing_policy_id: str
     markup_basis_points: int
     def __init__(self, model_id: _Optional[str] = ..., display_name: _Optional[str] = ..., provider: _Optional[str] = ..., harness: _Optional[str] = ..., cost_tier: _Optional[str] = ..., input_price_micros_per_million: _Optional[int] = ..., output_price_micros_per_million: _Optional[int] = ..., cache_creation_price_micros_per_million: _Optional[int] = ..., cache_read_price_micros_per_million: _Optional[int] = ..., pricing_policy_id: _Optional[str] = ..., markup_basis_points: _Optional[int] = ...) -> None: ...
+
+class PreviewAuthorizationInput(_message.Message):
+    __slots__ = ("org_id", "expected_cost_cap_micros")
+    ORG_ID_FIELD_NUMBER: _ClassVar[int]
+    EXPECTED_COST_CAP_MICROS_FIELD_NUMBER: _ClassVar[int]
+    org_id: str
+    expected_cost_cap_micros: int
+    def __init__(self, org_id: _Optional[str] = ..., expected_cost_cap_micros: _Optional[int] = ...) -> None: ...
+
+class PreviewAuthorizationResponse(_message.Message):
+    __slots__ = ("authorized", "denial_reason", "reserve_amount_micros")
+    AUTHORIZED_FIELD_NUMBER: _ClassVar[int]
+    DENIAL_REASON_FIELD_NUMBER: _ClassVar[int]
+    RESERVE_AMOUNT_MICROS_FIELD_NUMBER: _ClassVar[int]
+    authorized: bool
+    denial_reason: str
+    reserve_amount_micros: int
+    def __init__(self, authorized: bool = ..., denial_reason: _Optional[str] = ..., reserve_amount_micros: _Optional[int] = ...) -> None: ...
+
+class GetExecutionBillingSignalInput(_message.Message):
+    __slots__ = ("execution_id",)
+    EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
+    execution_id: str
+    def __init__(self, execution_id: _Optional[str] = ...) -> None: ...
+
+class GetExecutionBillingSignalResponse(_message.Message):
+    __slots__ = ("signal", "reason")
+    SIGNAL_FIELD_NUMBER: _ClassVar[int]
+    REASON_FIELD_NUMBER: _ClassVar[int]
+    signal: _enum_pb2.ExecutionBillingSignal
+    reason: str
+    def __init__(self, signal: _Optional[_Union[_enum_pb2.ExecutionBillingSignal, str]] = ..., reason: _Optional[str] = ...) -> None: ...

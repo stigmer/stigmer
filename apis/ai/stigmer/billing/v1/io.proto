@@ -210,6 +210,17 @@ message FinalizeExecutionResponse {
   int32 billed_call_count = 4;
 }
 
+// RearmForRecoveryInput re-arms a settled reservation so a failed
+// execution can be recovered.
+//
+// Recovery is the one sanctioned path past the settled-reservation latch.
+// The response is the same shape authorizeExecution returns, carrying the
+// ROTATED reservation id — the fence that keeps settles still in flight
+// from the terminated run away from the re-armed hold.
+message RearmForRecoveryInput {
+  string execution_id = 1 [(buf.validate.field).required = true];
+}
+
 // CreateCreditCheckoutSessionInput initiates a Stripe Checkout purchase
 // for a credit pack.
 //
@@ -533,4 +544,43 @@ message CustomerModelPricingEntry {
 
   // Markup applied, in basis points.
   int32 markup_basis_points = 11;
+}
+
+// PreviewAuthorizationInput asks whether an organization could fund an
+// execution right now, without writing a reservation.
+message PreviewAuthorizationInput {
+  string org_id = 1 [(buf.validate.field).required = true];
+
+  // Expected maximum cost. 0 means use the server-configured default cap,
+  // exactly as authorizeExecution treats it.
+  int64 expected_cost_cap_micros = 2;
+}
+
+// PreviewAuthorizationResponse is the read-only affordability verdict.
+message PreviewAuthorizationResponse {
+  // Whether an authorization attempt would currently succeed.
+  bool authorized = 1;
+
+  // Reason for denial, if authorized is false.
+  string denial_reason = 2;
+
+  // Micro-USD an authorization would reserve right now.
+  int64 reserve_amount_micros = 3;
+}
+
+// GetExecutionBillingSignalInput retrieves the billing control signal for
+// one execution.
+message GetExecutionBillingSignalInput {
+  string execution_id = 1 [(buf.validate.field).required = true];
+}
+
+// GetExecutionBillingSignalResponse carries the current directive for a
+// running execution and the human-readable reason behind it.
+message GetExecutionBillingSignalResponse {
+  // The directive (continue / low-balance warning / stop).
+  ExecutionBillingSignal signal = 1;
+
+  // Human-readable reason (e.g. "Credit balance exhausted"). Empty when
+  // the signal is continue_execution.
+  string reason = 2;
 }

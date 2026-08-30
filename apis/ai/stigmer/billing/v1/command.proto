@@ -91,6 +91,23 @@ service BillingCommandController {
     option (ai.stigmer.commons.rpc.config).error_msg = "only platform operators can execute billing operations";
   }
 
+  // Re-arm a settled reservation so a failed execution can be recovered.
+  // The one sanctioned path past the settled-reservation latch: re-runs
+  // the affordability check, transfers a fresh hold, and rotates the
+  // reservation id as the fence against settles still in flight from the
+  // terminated run. Returns the same shape as authorizeExecution, with
+  // the rotated reservation id.
+  //
+  // @internal
+  // Called by the recover pipeline after workflow termination, before
+  // re-launch side effects.
+  rpc rearmForRecovery(RearmForRecoveryInput) returns (AuthorizeExecutionResponse) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = platform;
+    option (ai.stigmer.commons.rpc.config).permission = can_execute_billing_ops;
+    option (ai.stigmer.commons.rpc.config).resource_id = "stigmer";
+    option (ai.stigmer.commons.rpc.config).error_msg = "only platform operators can execute billing operations";
+  }
+
   // Create a Stripe Checkout Session to purchase a credit pack.
   // Returns a checkout URL for the client to redirect the user.
   //

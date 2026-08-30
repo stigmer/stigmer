@@ -75,4 +75,36 @@ service BillingQueryController {
     option (ai.stigmer.commons.rpc.config).resource_id = "stigmer";
     option (ai.stigmer.commons.rpc.config).error_msg = "only platform operators can view the model registry baseline";
   }
+
+  // Preview whether an organization can fund an execution, without writing
+  // a reservation. The read-only twin of BillingCommandController's
+  // authorizeExecution: both ride the same server-side affordability
+  // predicate (start threshold, negative allowance, default cap), so a
+  // synchronous preflight refusal and the authoritative reservation can
+  // never drift.
+  //
+  // @internal
+  // Called by serving-side visitor billing preflights (guest and channel
+  // lanes) before accepting work the organization cannot fund.
+  rpc previewAuthorization(PreviewAuthorizationInput) returns (PreviewAuthorizationResponse) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = platform;
+    option (ai.stigmer.commons.rpc.config).permission = can_execute_billing_ops;
+    option (ai.stigmer.commons.rpc.config).resource_id = "stigmer";
+    option (ai.stigmer.commons.rpc.config).error_msg = "only platform operators can execute billing operations";
+  }
+
+  // Retrieve the current billing control signal for a running execution
+  // (continue / low-balance warning / stop), derived from the execution's
+  // reservation headroom and the billing account's status.
+  //
+  // @internal
+  // Called by serving-side status and approval lanes to piggyback
+  // STOP/WARNING onto runner-facing responses and to refuse continuing
+  // work once the balance is exhausted.
+  rpc getExecutionBillingSignal(GetExecutionBillingSignalInput) returns (GetExecutionBillingSignalResponse) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = platform;
+    option (ai.stigmer.commons.rpc.config).permission = can_execute_billing_ops;
+    option (ai.stigmer.commons.rpc.config).resource_id = "stigmer";
+    option (ai.stigmer.commons.rpc.config).error_msg = "only platform operators can execute billing operations";
+  }
 }
