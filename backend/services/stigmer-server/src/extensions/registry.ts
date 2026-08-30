@@ -40,6 +40,7 @@ import { BUILT_IN_STORAGE_TYPES } from "../artifactstorage/artifact-storage.js";
 import type { ChannelRuntime } from "../domain/agentchannel/channel-runtime.js";
 import type { ListReadScope } from "./list-read-scope.js";
 import type { ModelCatalogProvider } from "../domain/workflow/registry/model-catalog-provider.js";
+import type { VisitorErrorPolicy } from "../pipeline/interceptors/error-boundary.js";
 import type { PipelineStep } from "../pipeline/pipeline.js";
 import type { RunnerCredentialProvider } from "../runnerauth/runner-credential-provider.js";
 import type { SandboxProvisionerFactory } from "../sandbox/provisioner.js";
@@ -169,6 +170,11 @@ export interface ResolvedExtensionDrivers {
   readonly channelRuntime: ChannelRuntime | undefined;
   /** The 20260830.01 list read scope — undefined = the OSS full scan. */
   readonly listReadScope: ListReadScope | undefined;
+  /**
+   * The 20260830.03 visitor error policy — undefined = the error
+   * boundary runs only its structural raw-error conversion.
+   */
+  readonly visitorErrorPolicy: VisitorErrorPolicy | undefined;
 }
 
 /**
@@ -206,6 +212,8 @@ export function resolveExtensions(
   let channelRuntimeDeclaredBy: string | undefined;
   let listReadScope: ListReadScope | undefined;
   let listReadScopeDeclaredBy: string | undefined;
+  let visitorErrorPolicy: VisitorErrorPolicy | undefined;
+  let visitorErrorPolicyDeclaredBy: string | undefined;
   const artifactStorageDrivers = new Map<
     string,
     ArtifactStorageDriverFactory
@@ -316,6 +324,16 @@ export function resolveExtensions(
       listReadScopeDeclaredBy = unit.name;
     }
 
+    if (unit.drivers?.visitorErrorPolicy !== undefined) {
+      if (visitorErrorPolicyDeclaredBy !== undefined) {
+        throw new Error(
+          `extension '${unit.name}' registers a VisitorErrorPolicy, but '${visitorErrorPolicyDeclaredBy}' already did — exactly one may be composed`,
+        );
+      }
+      visitorErrorPolicy = unit.drivers.visitorErrorPolicy;
+      visitorErrorPolicyDeclaredBy = unit.name;
+    }
+
     if (unit.drivers?.artifactStorageDrivers !== undefined) {
       for (const [name, factory] of unit.drivers.artifactStorageDrivers) {
         if ((BUILT_IN_STORAGE_TYPES as ReadonlyArray<string>).includes(name)) {
@@ -400,6 +418,7 @@ export function resolveExtensions(
       sandboxProvisionerDrivers,
       channelRuntime,
       listReadScope,
+      visitorErrorPolicy,
     },
     services,
     workers,

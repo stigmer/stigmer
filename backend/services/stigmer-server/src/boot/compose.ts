@@ -102,6 +102,7 @@ import { SqliteSearchQueryStore } from "../query/search/query-store.js";
 import { newSearchableResourceRegistry } from "../query/search/registry.js";
 import { buildInterceptorChain } from "../pipeline/chain.js";
 import { createVerifierChainInterceptor } from "../pipeline/interceptors/auth.js";
+import { createErrorBoundaryInterceptor } from "../pipeline/interceptors/error-boundary.js";
 import { newPermissiveSingleTeamAuthorizer } from "../pipeline/steps/authorize.js";
 import { newExecutionScopedRunnerCredentialProvider } from "../runnerauth/runner-credential-provider.js";
 import { RunnerAuthService } from "../runnerauth/runnerauth.js";
@@ -1037,10 +1038,17 @@ export async function composeServer(
     // chassis over the composed verifiers (O2; zero verifiers = the
     // trusted-local posture, byte-identical wire behavior). The in-process
     // transport above carries its own position-1 source — the internal
-    // caller class only it can mint (ruling Q4).
+    // caller class only it can mint (ruling Q4). Position 0 is the error
+    // boundary (20260830.03): the raw-error conversion net plus the
+    // composed visitor sanitizer — SERVING chain only, so in-process
+    // hops keep full diagnostics by construction.
     interceptors: buildInterceptorChain(
       logger,
       createVerifierChainInterceptor(identityVerifiers, logger, authEnabled),
+      createErrorBoundaryInterceptor(
+        logger,
+        extensions.drivers.visitorErrorPolicy,
+      ),
     ),
     taskKindRegistryLane: registryLanes.taskKindRegistryLane,
     modelRegistryLane: registryLanes.modelRegistryLane,

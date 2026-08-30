@@ -95,6 +95,12 @@ export type {
   ListReadScope,
   ListEntryMeta,
 } from "./extensions/list-read-scope.js";
+// The 20260830.03 seam: the visitor-sanitization policy the serving
+// chain's error boundary consumes (drivers.visitorErrorPolicy) — the
+// composition supplies WHO is on the anonymous surface and WHAT copy
+// replaces a leak-prone description; the boundary owns the mechanism
+// (code set, code preservation, ref format, details-drop).
+export type { VisitorErrorPolicy } from "./pipeline/interceptors/error-boundary.js";
 export {
   diffVisibilityShapes,
   visibilityShapesFor,
