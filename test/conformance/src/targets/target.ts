@@ -191,6 +191,23 @@ export interface CapabilityFlags {
   // vendor OAuth app no hermetic target can provision, so it stays covered
   // by cloud's own integration tests — the channelMessaging coverage split.
   orgOAuthAppConfiguration: boolean;
+  // Execution-credit billing gates run here: an agent-execution create is
+  // authorized against the org's per-credit balance before any work happens,
+  // and a zero-balance account denies the run with the engine's one denial
+  // vocabulary ("Insufficient credits to start execution").
+  //
+  // True for cloud — the Java billing engine natively (the reservation
+  // authorized inside InvokeAgentExecutionWorkflow), and the TS composition
+  // through the C5 billing facade (the create-time reserve gate, ruling Q5 of
+  // 20260830.02.sp.billing-facade). WHERE the denial lands differs by ruled
+  // design — see STIGMER_CONFORMANCE_BILLING_DENIAL_CONTRACT in the
+  // billing-denial suite.
+  //
+  // False for the local OSS targets — BY DD-001 BOUNDARY, not a gap: OSS has
+  // no billing engine, no credit accounting, and no billing gates; every
+  // execution runs unmetered. There is no refusal contract to pin, so the
+  // billing-denial suite skips entirely (the scheduleFiring posture).
+  billingGates: boolean;
 }
 
 // Tenancy scope a test operates within. Locally this is just a unique org slug
@@ -231,6 +248,21 @@ export interface TargetProfile {
   // Provision an isolated tenancy scope for a test. cleanupTenancy releases it.
   provisionTenancy(): Promise<TenancyContext>;
   cleanupTenancy(context: TenancyContext): Promise<void>;
+
+  // Tenancy WITHOUT the execution-credit seed: the org exists (and on cloud
+  // its billing account exists at the zero balance an org create provisions),
+  // but no credits are added — the precondition the billing-denial suite pins.
+  // Present only on billingGates targets, where the funded/unfunded
+  // distinction is observable; elsewhere provisionTenancy is already unfunded
+  // by construction and the suite skips. cleanupTenancy releases it.
+  provisionUnfundedTenancy?(): Promise<TenancyContext>;
+
+  // Seed the org's billing account with the target's standard execution
+  // credit allowance (the same seed provisionTenancy applies) — the
+  // billing-denial suite's negative control: funding the SAME org must clear
+  // the denial, proving it was credit-driven. Present only on billingGates
+  // targets.
+  fundTenancy?(org: string): Promise<void>;
 
   // The programmable mock LLM proxy backing agent-execution runs. Present only on
   // execution targets that provision an engine + mock; absent on CRUD/cloud

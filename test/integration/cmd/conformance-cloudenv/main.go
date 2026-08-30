@@ -61,15 +61,24 @@ func run(logger *slog.Logger) error {
 				"sibling stigmer-cloud checkout with " +
 				"`./bazelw build //backend/services/stigmer-service:stigmer_service_fatjar`")
 	}
-	if harness.FindFGAModelDir() == "" {
-		return errors.New(
-			"FGA model directory not found: set STIGMER_FGA_MODEL_DIR or ensure stigmer-cloud " +
-				"is a sibling checkout (cloud conformance requires real OpenFGA authorization)")
+	externalFGA, err := externalOpenFGAFromEnv()
+	if err != nil {
+		return err
 	}
-	if !harness.IsFGACLIAvailable() {
-		return errors.New(
-			"fga CLI not on PATH (install with `brew install openfga/tap/fga`): cloud " +
-				"conformance requires real OpenFGA authorization")
+	if externalFGA == nil {
+		// Standalone mode provisions its own OpenFGA store, so the model
+		// source and the transform CLI must exist up front. Join mode skips
+		// both: the external store already carries a written model.
+		if harness.FindFGAModelDir() == "" {
+			return errors.New(
+				"FGA model directory not found: set STIGMER_FGA_MODEL_DIR or ensure stigmer-cloud " +
+					"is a sibling checkout (cloud conformance requires real OpenFGA authorization)")
+		}
+		if !harness.IsFGACLIAvailable() {
+			return errors.New(
+				"fga CLI not on PATH (install with `brew install openfga/tap/fga`): cloud " +
+					"conformance requires real OpenFGA authorization")
+		}
 	}
 
 	bootCtx, cancelBoot := context.WithTimeout(context.Background(), bootTimeout)
@@ -86,7 +95,21 @@ func run(logger *slog.Logger) error {
 		logger.Info("conformance cloud environment stopped")
 	}()
 
-	if h.OpenFGA == nil {
+	// Join mode (the C5 shared-FGA readout substrate, ruling Q4 of
+	// 20260830.02.sp.billing-facade): the Java service authorizes against an
+	// EXTERNALLY provisioned OpenFGA store — the spike composition's — so both
+	// sides of the billing facade share one set of tuples, the shape
+	// production has after the X1 cutover. The harness's own container may
+	// still have booted above (it keys off the model dir, not this choice);
+	// it simply goes unused, which is a few idle seconds — never a fork of
+	// the battle-tested boot path.
+	fga := h.OpenFGA
+	if externalFGA != nil {
+		fga = externalFGA
+		logger.Info("joining external openfga store",
+			"endpoint", fga.HTTPEndpoint, "store_id", fga.StoreID, "model_id", fga.ModelID)
+	}
+	if fga == nil {
 		return errors.New("openfga container did not start despite model dir and CLI being present")
 	}
 
@@ -100,9 +123,9 @@ func run(logger *slog.Logger) error {
 		RedisHost:       h.Redis.Host,
 		RedisPort:       h.Redis.Port,
 		TemporalAddress: h.Temporal.Address(),
-		OpenFGAAPIURL:   h.OpenFGA.HTTPEndpoint,
-		OpenFGAStoreID:  h.OpenFGA.StoreID,
-		OpenFGAModelID:  h.OpenFGA.ModelID,
+		OpenFGAAPIURL:   fga.HTTPEndpoint,
+		OpenFGAStoreID:  fga.StoreID,
+		OpenFGAModelID:  fga.ModelID,
 		MinIOEndpoint:   h.MinIO.Endpoint,
 		MinIOAccessKey:  h.MinIO.AccessKey,
 		MinIOSecretKey:  h.MinIO.SecretKey,
@@ -116,6 +139,12 @@ func run(logger *slog.Logger) error {
 		// through explicitly (never via ambient environment inheritance) so
 		// the service's OAuth posture is visible right here.
 		OAuthRedirectURI: os.Getenv("STIGMER_OAUTH_REDIRECT_URI"),
+		// Optional verify-only key (join mode): tokens minted by the other
+		// side of a shared substrate — the spike composition's keypair —
+		// verify here through the service's existing key-rotation overlap
+		// lane. Format is the primary key's own: base64 of PKCS#8 DER (the
+		// spike's .env.spike carries base64 of PEM — convert before setting).
+		PreviousJWTSigningKey: os.Getenv("STIGMER_CONFORMANCE_EXTRA_JWT_VERIFY_KEY_BASE64"),
 	}, logger)
 	if err != nil {
 		return fmt.Errorf("start stigmer-service: %w", err)
@@ -124,7 +153,7 @@ func run(logger *slog.Logger) error {
 	// lifecycle alongside the containers.
 	h.Service = svc
 
-	if err := harness.SeedBaseFGATuples(bootCtx, h.OpenFGA); err != nil {
+	if err := harness.SeedBaseFGATuples(bootCtx, fga); err != nil {
 		return fmt.Errorf("seed base FGA tuples: %w", err)
 	}
 
@@ -147,4 +176,38 @@ func run(logger *slog.Logger) error {
 	sig := <-shutdown
 	logger.Info("shutting down", "signal", sig.String())
 	return nil
+}
+
+// Env vars selecting join mode: the launcher points the Java service at an
+// externally provisioned OpenFGA store instead of provisioning its own.
+const (
+	envExternalFGAAPIURL  = "STIGMER_CONFORMANCE_EXTERNAL_OPENFGA_API_URL"
+	envExternalFGAStoreID = "STIGMER_CONFORMANCE_EXTERNAL_OPENFGA_STORE_ID"
+	envExternalFGAModelID = "STIGMER_CONFORMANCE_EXTERNAL_OPENFGA_MODEL_ID"
+)
+
+// externalOpenFGAFromEnv reads the join-mode store coordinates. All three
+// variables or none: a partial set is a misconfiguration answered loudly, not
+// a silent fall-through to standalone mode (which would authorize against a
+// different store than the caller intended — the exact drift a shared
+// substrate exists to prevent). The returned handle carries no container;
+// harness.OpenFGAContainer's write/seed operations use only the coordinates.
+func externalOpenFGAFromEnv() (*harness.OpenFGAContainer, error) {
+	apiURL := os.Getenv(envExternalFGAAPIURL)
+	storeID := os.Getenv(envExternalFGAStoreID)
+	modelID := os.Getenv(envExternalFGAModelID)
+	if apiURL == "" && storeID == "" && modelID == "" {
+		return nil, nil
+	}
+	if apiURL == "" || storeID == "" || modelID == "" {
+		return nil, fmt.Errorf(
+			"external OpenFGA configuration is partial: %s, %s, and %s must all be set together (got %q, %q, %q)",
+			envExternalFGAAPIURL, envExternalFGAStoreID, envExternalFGAModelID,
+			apiURL, storeID, modelID)
+	}
+	return &harness.OpenFGAContainer{
+		HTTPEndpoint: apiURL,
+		StoreID:      storeID,
+		ModelID:      modelID,
+	}, nil
 }

@@ -39,6 +39,8 @@ export class LocalTarget implements TargetProfile {
     // The org BYOA lane is UNIMPLEMENTED on OSS by design (stigmer#558) —
     // the TS port must reproduce the three refusals byte-for-byte.
     orgOAuthAppConfiguration: false,
+    // No billing engine at all — executions run unmetered (DD-001 boundary).
+    billingGates: false,
   };
 
   private server: RunningServer | undefined;
