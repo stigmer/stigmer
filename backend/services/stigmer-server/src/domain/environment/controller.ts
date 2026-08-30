@@ -101,6 +101,7 @@ import {
   newUpdateVisibilityTuplesStep,
 } from "../../pipeline/steps/authorization-tuples.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
+import { newDestroySecretBackingStateStep } from "../../pipeline/steps/secret-cleanup.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import {
@@ -114,6 +115,7 @@ import { environmentSearchExtractor } from "./search-extractor.js";
 import {
   SECRET_VALUE_KEY,
   UPDATED_ENVIRONMENT_KEY,
+  newDestroyDroppedEnvironmentSecretsStep,
   newEncryptSecretValuesStep,
   newEnforcePersonalUniquenessStep,
   newExtractAndDecryptSingleKeyStep,
@@ -121,6 +123,7 @@ import {
   newMergeVariablesAndPersistStep,
   newPreserveRedactedSecretsStep,
   newRemoveVariableKeysAndPersistStep,
+  secretValuesOfEnvironment,
 } from "./steps.js";
 
 export interface EnvironmentControllerDeps {
@@ -239,6 +242,9 @@ async function update(
     .addStep(newNormalizeReferencesStep())
     .addStep(newPersistStep(deps.store))
     .addStep(
+      newDestroyDroppedEnvironmentSecretsStep(deps.secretService, deps.logger),
+    )
+    .addStep(
       newIndexSearchStep(deps.store, environmentSearchExtractor, deps.logger),
     )
     .build()
@@ -323,6 +329,12 @@ async function deleteEnvironment(
     .addStep(newDeleteResourceStep(deps.store))
     .addStep(
       newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
+    )
+    .addStep(
+      newDestroySecretBackingStateStep<
+        typeof EnvironmentCommandController.method.delete.input,
+        typeof EnvironmentSchema
+      >(deps.secretService, deps.logger, secretValuesOfEnvironment),
     )
     .addStep(newDeleteSearchIndexStep(deps.store, deps.logger))
     .build()
@@ -604,7 +616,13 @@ async function removeVariables(
     )
     .addStep(newValidateProtoStep())
     .addStep(newLoadEnvironmentByIdStep(deps.store))
-    .addStep(newRemoveVariableKeysAndPersistStep(deps.store))
+    .addStep(
+      newRemoveVariableKeysAndPersistStep(
+        deps.store,
+        deps.secretService,
+        deps.logger,
+      ),
+    )
     .build()
     .execute(reqCtx);
 

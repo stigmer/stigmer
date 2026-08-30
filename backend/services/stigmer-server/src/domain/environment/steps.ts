@@ -50,6 +50,7 @@ import { setAuditFieldsForUpdate } from "../../pipeline/steps/defaults.js";
 import { findResourceByLabelAndOrg } from "../../pipeline/steps/helpers.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import { TARGET_RESOURCE_KEY } from "../../pipeline/steps/load-target.js";
+import { destroySecretBackingState } from "../../pipeline/steps/secret-cleanup.js";
 import type { Store } from "../../store/interface.js";
 import {
   PERSONAL_LABEL_KEY,
@@ -480,9 +481,18 @@ export function newMergeVariablesAndPersistStep(
  * and persists. Requires LoadEnvironmentByID first; stores the modified
  * environment under UPDATED_ENVIRONMENT_KEY; stamps SpecAudit. No search
  * re-index, as in Go.
+ *
+ * The removed keys' sealed values have their external backing state
+ * destroyed AFTER the persist (the Java RemoveAndPersist site, wired by
+ * convergence 20260830.04 Stage 3): the old values must be captured
+ * BEFORE the deletion mutates the loaded resource, and destruction is
+ * best-effort — a failure never fails the remove (secret-cleanup.ts
+ * carries the full contract). A no-op under the OSS v1-only codec set.
  */
 export function newRemoveVariableKeysAndPersistStep(
   store: Store,
+  secretService: SecretService,
+  logger: Logger,
 ): PipelineStep<typeof RemoveEnvironmentVariablesRequestSchema> {
   return {
     name: "RemoveVariableKeysAndPersist",
@@ -498,8 +508,13 @@ export function newRemoveVariableKeysAndPersistStep(
       }
 
       const keys = ctx.input.keys;
+      const removedSecretValues: string[] = [];
       if (env.spec?.data !== undefined) {
         for (const key of keys) {
+          const removed = env.spec.data[key];
+          if (removed !== undefined && removed.isSecret) {
+            removedSecretValues.push(removed.value);
+          }
           delete env.spec.data[key];
         }
       }
@@ -529,7 +544,78 @@ export function newRemoveVariableKeysAndPersistStep(
         );
       }
 
+      await destroySecretBackingState(
+        secretService,
+        logger,
+        {
+          kind: "environment",
+          resourceId: env.metadata?.id ?? "",
+          operation: "removeVariables",
+        },
+        removedSecretValues,
+      );
+
       ctx.set(UPDATED_ENVIRONMENT_KEY, env);
     },
   };
+}
+
+/**
+ * DestroyDroppedEnvironmentSecrets — the Java
+ * DestroyDroppedEnvironmentSecrets step (wired by convergence
+ * 20260830.04 Stage 3): post-persist in the full-resource update chain,
+ * destroys the external backing state of secret keys the update DROPPED.
+ * Strictly dropped keys only — a key that survives with a rotated value
+ * keeps its KV path (superseded versions age out via the store's
+ * max_versions retention), and marker-preserved keys carry their stored
+ * ciphertext forward unchanged. Best-effort by the secret-cleanup
+ * contract; a no-op under the OSS v1-only codec set.
+ *
+ * Requires LoadExisting (the pre-update state) and runs after Persist —
+ * destroying before the row is written would dangle stored pointers on
+ * a persist failure.
+ */
+export function newDestroyDroppedEnvironmentSecretsStep(
+  secretService: SecretService,
+  logger: Logger,
+): PipelineStep<typeof EnvironmentSchema> {
+  return {
+    name: "DestroyDroppedEnvironmentSecrets",
+    async execute(
+      ctx: RequestContext<typeof EnvironmentSchema>,
+    ): Promise<void> {
+      const existing = ctx.get(EXISTING_RESOURCE_KEY) as
+        | Environment
+        | undefined;
+      const oldData = existing?.spec?.data;
+      if (oldData === undefined) {
+        return;
+      }
+      const newData = ctx.newState.spec?.data ?? {};
+      const droppedSecretValues = Object.entries(oldData)
+        .filter(([key, value]) => value.isSecret && newData[key] === undefined)
+        .map(([, value]) => value.value);
+      await destroySecretBackingState(
+        secretService,
+        logger,
+        {
+          kind: "environment",
+          resourceId: existing?.metadata?.id ?? "",
+          operation: "update",
+        },
+        droppedSecretValues,
+      );
+    },
+  };
+}
+
+/**
+ * The sealed values an environment carries — the delete chain's
+ * extractor for DestroySecretBackingState (every is_secret entry;
+ * blank values are skipped by the destroyer).
+ */
+export function secretValuesOfEnvironment(env: Environment): string[] {
+  return Object.values(env.spec?.data ?? {})
+    .filter((value) => value.isSecret)
+    .map((value) => value.value);
 }

@@ -157,6 +157,17 @@ export interface ComposedServer {
   /** The persistence layer (exposed for tests; domain code gets it injected). */
   store: Store;
   /**
+   * The composed secret-encryption facade — the SAME instance every
+   * domain seals and opens with (one facade per composition, the Go
+   * one-pointer posture). Exposed for compositions whose extensions run
+   * maintenance lanes over stored ciphertext — the secret-convergence
+   * sweep's reencrypt door and the encryption-state census (convergence
+   * 20260830.04 Stage 3, gate ruling G2): a twin facade built from the
+   * same codec map would duplicate KEK caches and silently drift from
+   * the boot-resolved write version.
+   */
+  secrets: SecretService;
+  /**
    * The Temporal lifecycle manager (exposed for composed tests asserting
    * engine-state behavior). Health semantics are unchanged by it: a down
    * engine never flips gRPC health — that is the engine-unavailable
@@ -1099,6 +1110,7 @@ export async function composeServer(
   return {
     healthState,
     store,
+    secrets: secretService,
     temporalManager,
     runnerAuthService,
     agentExecutionStreamBroker,
