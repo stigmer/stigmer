@@ -48,6 +48,7 @@ import type { ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
 import {
   ENCRYPTED_PREFIX,
+  EncryptionScope,
   SecretService,
 } from "../../../encryption/encryption.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
@@ -581,8 +582,9 @@ describe("executioncontext domain (encryption keyless, runner auth enabled)", ()
       }),
     );
     const stored = await storedRow(ts, created.metadata!.id);
-    stored.spec!.data["HELD_SECRET"]!.value = keyed.encrypt(
+    stored.spec!.data["HELD_SECRET"]!.value = await keyed.encrypt(
       "the-real-credential",
+      EncryptionScope.forOrganization("test-org"),
     );
     await ts.server.store.saveResource(
       ApiResourceKind.execution_context,

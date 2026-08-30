@@ -10,9 +10,13 @@
  * Environment-returning boundary — Go steps.RedactedMarker, pinned by the
  * conformance suite and mirrored by the cloud edition. A client sending it
  * BACK on a write means "keep the existing secret" (the round-trip
- * contract; see preserveRedactedSecrets).
+ * contract; see preserveRedactedSecrets). The definition moved to the
+ * encryption facade with the codec seam (20260830.04 Stage 1 — reencrypt
+ * refuses the marker, and domain → encryption is the dependency
+ * direction); re-exported here for the historical importers, byte
+ * unchanged.
  */
-export const REDACTED_MARKER = "***REDACTED***";
+export { REDACTED_MARKER } from "../../encryption/encryption.js";
 
 /** Label marking a user's personal environment — Go personalLabelKey. */
 export const PERSONAL_LABEL_KEY = "stigmer.ai/personal";

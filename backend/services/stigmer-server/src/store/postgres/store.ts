@@ -54,6 +54,7 @@ import type {
   OAuthGrantStore,
   PendingOAuthState,
   PendingOAuthStateStore,
+  RawResourceDocument,
   ScheduleRunRecord,
   SearchIndexEntry,
   SearchIndexHit,
@@ -263,6 +264,44 @@ export class PostgresStore implements Store {
   ): Promise<Uint8Array[]> {
     const rows = await this.listResources(kind);
     return filterRowsByLabel(rows, schema, labelKey, labelValue);
+  }
+
+  async findResourcesRawOrderedAfter(
+    kind: ApiResourceKind,
+    afterIdExclusive: string,
+    limit: number,
+  ): Promise<RawResourceDocument[]> {
+    if (limit <= 0) {
+      throw new Error(`limit must be positive, got ${limit}`);
+    }
+    // Keyset pagination over the (kind, id) primary key — stable under
+    // concurrent writes (the interface's maintenance-surface contract).
+    const result = await this.open().query(
+      `SELECT id, data FROM resources WHERE kind = $1 AND id > $2 ORDER BY id LIMIT $3`,
+      [apiResourceKindName(kind), afterIdExclusive, limit],
+    );
+    return result.rows as Array<{ id: string; data: Uint8Array }>;
+  }
+
+  async replaceResourceDataIfUnchanged(
+    kind: ApiResourceKind,
+    id: string,
+    expectedData: Uint8Array,
+    newData: Uint8Array,
+  ): Promise<boolean> {
+    // BYTEA equality in the WHERE clause makes the compare-and-swap one
+    // atomic statement: zero rows changed means the row moved on (or was
+    // deleted) since the read — a lost swap, never an upsert.
+    const result = await this.open().query(
+      `UPDATE resources SET data = $1, updated_at = now() WHERE kind = $2 AND id = $3 AND data = $4`,
+      [
+        Buffer.from(newData),
+        apiResourceKindName(kind),
+        id,
+        Buffer.from(expectedData),
+      ],
+    );
+    return result.rowCount === 1;
   }
 
   async deleteResourcesByKind(kind: ApiResourceKind): Promise<number> {
@@ -808,7 +847,9 @@ export class PostgresStore implements Store {
         }
       }
       scopeClauses.push(
-        kindClauses.length === 0 ? `AND FALSE` : `AND (${kindClauses.join(" OR ")})`,
+        kindClauses.length === 0
+          ? `AND FALSE`
+          : `AND (${kindClauses.join(" OR ")})`,
       );
     }
     const scopeSql = scopeClauses.join("\n        ");

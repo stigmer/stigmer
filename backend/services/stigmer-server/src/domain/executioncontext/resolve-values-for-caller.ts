@@ -30,14 +30,19 @@
  * must survive every future verifier: a runner token is NEVER an
  * authentication credential.
  *
- * # Decrypt error doctrine (the oss#405 runtime-resolution doctrine)
+ * # Decrypt error doctrine (the oss#405 runtime-resolution doctrine,
+ * # arms per the two-armed taxonomy in encryption/errors.ts)
  *
- *   - Undecryptable ciphertext (tampered/truncated/wrong-key) is scoped
- *     to one value: WARN and drop that key rather than failing the read.
- *   - EncryptionDisabledError fails the request: the stored ciphertext
- *     may be perfectly valid (key file lost), and dropping it would start
- *     the execution silently missing a credential — a confusing
- *     downstream failure instead of a clear one here.
+ *   - The value-scoped arm (InvalidCiphertextError family —
+ *     tampered/truncated/wrong-key) is scoped to one value: WARN and
+ *     drop that key rather than failing the read.
+ *   - The infrastructure arm (EncryptionUnavailableError, incl. its
+ *     keyless EncryptionDisabledError case) fails the request: the
+ *     stored ciphertext may be perfectly valid (key file lost, codec's
+ *     key provider unreachable, version with no codec here), and
+ *     dropping it would start the execution silently missing a
+ *     credential — a confusing downstream failure instead of a clear one
+ *     here.
  *   - Legacy pre-oss#535 plaintext rows pass through undecorated (decrypt
  *     only runs on isEncrypted values), so old stores serve without
  *     migration.
@@ -47,7 +52,7 @@ import type { HandlerContext } from "@connectrpc/connect";
 import type { ExecutionContext } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 
 import type { Logger } from "../../boot/logger.js";
-import { EncryptionDisabledError } from "../../encryption/encryption.js";
+import { EncryptionUnavailableError } from "../../encryption/encryption.js";
 import type { SecretService } from "../../encryption/encryption.js";
 import { internalError } from "../../pipeline/errors.js";
 import { parseBearerToken } from "../../pipeline/interceptors/auth.js";
@@ -79,7 +84,7 @@ export async function resolveValuesForCaller(
   ec: ExecutionContext,
 ): Promise<void> {
   if (await runnerMayDecrypt(deps, ctx, ec)) {
-    decryptSecretValues(deps, ec);
+    await decryptSecretValues(deps, ec);
     return;
   }
   redactExecutionContextSecrets(ec);
@@ -194,21 +199,24 @@ function bearerToken(ctx: HandlerContext): string {
  * is_secret value in place, per the doctrine documented on the module
  * header.
  */
-function decryptSecretValues(
+async function decryptSecretValues(
   deps: ResolveValuesDeps,
   ec: ExecutionContext,
-): void {
+): Promise<void> {
   const executionId = ec.spec?.executionId ?? "";
   const data = ec.spec?.data ?? {};
+  // One value at a time, deliberately NOT the batch verb: decryptAll
+  // fails as a whole, and this lane's contract is per-key skip for
+  // value-scoped failures.
   for (const [key, value] of Object.entries(data)) {
     if (!value.isSecret || !deps.secretService.isEncrypted(value.value)) {
       continue;
     }
 
     try {
-      value.value = deps.secretService.decrypt(value.value);
+      value.value = await deps.secretService.decrypt(value.value);
     } catch (error) {
-      if (error instanceof EncryptionDisabledError) {
+      if (error instanceof EncryptionUnavailableError) {
         throw internalError(
           error,
           encryptionKeyMissingMessage(executionId, key),

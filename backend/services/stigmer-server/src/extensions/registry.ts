@@ -38,6 +38,8 @@ import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_inf
 import type { ArtifactStorageDriverFactory } from "../artifactstorage/artifact-storage.js";
 import { BUILT_IN_STORAGE_TYPES } from "../artifactstorage/artifact-storage.js";
 import type { ChannelRuntime } from "../domain/agentchannel/channel-runtime.js";
+import type { SecretCodec } from "../encryption/codec.js";
+import { V1_VERSION } from "../encryption/v1-codec.js";
 import type { ListReadScope } from "./list-read-scope.js";
 import type { ModelCatalogProvider } from "../domain/workflow/registry/model-catalog-provider.js";
 import type { VisitorErrorPolicy } from "../pipeline/interceptors/error-boundary.js";
@@ -175,6 +177,13 @@ export interface ResolvedExtensionDrivers {
    * boundary runs only its structural raw-error conversion.
    */
   readonly visitorErrorPolicy: VisitorErrorPolicy | undefined;
+  /**
+   * Registered version token → codec (20260830.04 Stage 1), validated
+   * against the built-in v1. Empty = the facade is v1-only, OSS behavior
+   * byte-identical. The compose.ts keys stage merges the built-in v1
+   * codec in and resolves the write version fail-fast.
+   */
+  readonly secretCodecs: ReadonlyMap<string, SecretCodec>;
 }
 
 /**
@@ -224,6 +233,8 @@ export function resolveExtensions(
     SandboxProvisionerFactory
   >();
   const sandboxDriverDeclaredBy = new Map<string, string>();
+  const secretCodecs = new Map<string, SecretCodec>();
+  const secretCodecDeclaredBy = new Map<string, string>();
 
   for (const unit of units) {
     if (unit.name === "") {
@@ -374,6 +385,33 @@ export function resolveExtensions(
       }
     }
 
+    if (unit.drivers?.secretCodecs !== undefined) {
+      for (const [version, codec] of unit.drivers.secretCodecs) {
+        if (version === V1_VERSION) {
+          throw new Error(
+            `extension '${unit.name}' registers secret codec '${version}', which shadows the built-in static-key codec — the v1 token is reserved`,
+          );
+        }
+        if (!/^v\d+$/.test(version) || codec.version !== version) {
+          // A registration read-dispatch could never route to must fail
+          // loudly, not sit dark (the gateSteps rule): tokens are the
+          // enc:v<N>: capture, and the key must equal the codec's own
+          // version.
+          throw new Error(
+            `extension '${unit.name}' registers secret codec '${version}' (codec declares '${codec.version}') — version tokens must match v<digits> and key their own codec`,
+          );
+        }
+        const declaredBy = secretCodecDeclaredBy.get(version);
+        if (declaredBy !== undefined) {
+          throw new Error(
+            `extension '${unit.name}' registers secret codec '${version}', but '${declaredBy}' already did — codec versions must be unique across the composed set`,
+          );
+        }
+        secretCodecs.set(version, codec);
+        secretCodecDeclaredBy.set(version, unit.name);
+      }
+    }
+
     if (unit.gateSteps !== undefined) {
       for (const [slot, steps] of unit.gateSteps) {
         if (!DECLARED_GATE_SLOTS.has(slot)) {
@@ -419,6 +457,7 @@ export function resolveExtensions(
       channelRuntime,
       listReadScope,
       visitorErrorPolicy,
+      secretCodecs,
     },
     services,
     workers,

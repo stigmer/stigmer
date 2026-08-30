@@ -18,6 +18,8 @@
  *     ExecutionReadScope (absorbed, gate ruling Q2)
  *   - visitor error policy (the transport-boundary sanitizer's
  *     edition semantics) — landed with 20260830.03, gate ruling Q1
+ *   - secret codecs (the versioned secret-value wire formats) — landed
+ *     with 20260830.04 Stage 1, gate ruling Q2
  *
  * Merge rules (enforced by resolveExtensions, DD-006 §2b): the two
  * provider kinds are single-instance points — a second declaring unit is
@@ -31,6 +33,7 @@
  */
 import type { ArtifactStorageDriverFactory } from "../artifactstorage/artifact-storage.js";
 import type { ChannelRuntime } from "../domain/agentchannel/channel-runtime.js";
+import type { SecretCodec } from "../encryption/codec.js";
 import type { ModelCatalogProvider } from "../domain/workflow/registry/model-catalog-provider.js";
 import type { VisitorErrorPolicy } from "../pipeline/interceptors/error-boundary.js";
 import type { RunnerCredentialProvider } from "../runnerauth/runner-credential-provider.js";
@@ -114,4 +117,17 @@ export interface ExtensionDrivers {
    * raw-error conversion — OSS wire behavior otherwise byte-identical.
    */
   readonly visitorErrorPolicy?: VisitorErrorPolicy;
+  /**
+   * Secret codecs registrable by wire-format version token (20260830.04
+   * Stage 1, gate ruling Q2) — one entry per enc:v<N>: format the
+   * composition can read and (when selected by
+   * STIGMER_ENCRYPTION_WRITE_VERSION) write. Instances, not factories:
+   * the Java posture is "registration IS the ability to encrypt" — a
+   * codec exists exactly when its key machinery does. The built-in "v1"
+   * token is reserved (the OSS static-key codec installs at the
+   * compose.ts consumption site); registering it, or duplicating a
+   * version across units, is a boot throw. When absent, the facade is
+   * v1-only — OSS behavior byte-identical.
+   */
+  readonly secretCodecs?: ReadonlyMap<string, SecretCodec>;
 }

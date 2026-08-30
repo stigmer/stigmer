@@ -104,7 +104,10 @@ export async function completeOAuthConnect(
   // failure costs the user one re-initiate — the same posture as the
   // expiry refusal; the error message points them there.
   try {
-    pendingState = unsealPendingOAuthState(deps.secretService, pendingState);
+    pendingState = await unsealPendingOAuthState(
+      deps.secretService,
+      pendingState,
+    );
   } catch (error) {
     deps.logger.error("Failed to decrypt pending OAuth state secrets", {
       mcp_server_id: mcpServerId,
@@ -253,13 +256,13 @@ export async function completeOAuthConnect(
  * (loudly, before any token-exchange attempt) rather than sending
  * ciphertext to the vendor's token endpoint.
  */
-export function unsealPendingOAuthState(
+export async function unsealPendingOAuthState(
   secretService: SecretService,
   state: PendingOAuthState,
-): PendingOAuthState {
+): Promise<PendingOAuthState> {
   let verifier: string;
   try {
-    verifier = secretService.decrypt(state.codeVerifier);
+    verifier = await secretService.decrypt(state.codeVerifier);
   } catch (error) {
     throw new Error(
       `failed to decrypt code_verifier: ${error instanceof Error ? error.message : String(error)}`,
@@ -268,7 +271,7 @@ export function unsealPendingOAuthState(
 
   let secret: string;
   try {
-    secret = secretService.decrypt(state.clientSecret);
+    secret = await secretService.decrypt(state.clientSecret);
   } catch (error) {
     throw new Error(
       `failed to decrypt client_secret: ${error instanceof Error ? error.message : String(error)}`,
@@ -308,10 +311,13 @@ async function resolveOrCreateManagedEnvironment(
   }
 
   if (existingGrant !== undefined && existingGrant.environmentId !== "") {
-    deps.logger.info("Reusing existing managed environment for OAuth re-connect", {
-      mcp_server_id: mcpServerId,
-      environment_id: existingGrant.environmentId,
-    });
+    deps.logger.info(
+      "Reusing existing managed environment for OAuth re-connect",
+      {
+        mcp_server_id: mcpServerId,
+        environment_id: existingGrant.environmentId,
+      },
+    );
     return existingGrant.environmentId;
   }
 

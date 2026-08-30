@@ -49,6 +49,7 @@ import type {
   OAuthGrantStore,
   PendingOAuthState,
   PendingOAuthStateStore,
+  RawResourceDocument,
   ScheduleRunRecord,
   SearchIndexEntry,
   SearchIndexHit,
@@ -282,6 +283,45 @@ export class SqliteStore implements Store {
       labelKey,
       labelValue,
     );
+  }
+
+  async findResourcesRawOrderedAfter(
+    kind: ApiResourceKind,
+    afterIdExclusive: string,
+    limit: number,
+  ): Promise<RawResourceDocument[]> {
+    if (limit <= 0) {
+      throw new Error(`limit must be positive, got ${limit}`);
+    }
+    const db = this.open();
+    // Keyset pagination over the (kind, id) primary key — stable under
+    // concurrent writes (the interface's maintenance-surface contract).
+    return db
+      .prepare(
+        `SELECT id, data FROM resources WHERE kind = ? AND id > ? ORDER BY id LIMIT ?`,
+      )
+      .all(apiResourceKindName(kind), afterIdExclusive, limit) as Array<{
+      id: string;
+      data: Uint8Array;
+    }>;
+  }
+
+  async replaceResourceDataIfUnchanged(
+    kind: ApiResourceKind,
+    id: string,
+    expectedData: Uint8Array,
+    newData: Uint8Array,
+  ): Promise<boolean> {
+    const db = this.open();
+    // BLOB equality in the WHERE clause makes the compare-and-swap one
+    // atomic statement: zero rows changed means the row moved on (or was
+    // deleted) since the read — a lost swap, never an upsert.
+    const result = db
+      .prepare(
+        `UPDATE resources SET data = ?, updated_at = datetime('now') WHERE kind = ? AND id = ? AND data = ?`,
+      )
+      .run(newData, apiResourceKindName(kind), id, expectedData);
+    return Number(result.changes) === 1;
   }
 
   async deleteResourcesByKind(kind: ApiResourceKind): Promise<number> {
@@ -813,7 +853,9 @@ export class SqliteStore implements Store {
         }
       }
       scopeClauses.push(
-        kindClauses.length === 0 ? `AND 1 = 0` : `AND (${kindClauses.join(" OR ")})`,
+        kindClauses.length === 0
+          ? `AND 1 = 0`
+          : `AND (${kindClauses.join(" OR ")})`,
       );
     }
     const scopeSql = scopeClauses.join("\n        ");

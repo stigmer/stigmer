@@ -296,7 +296,12 @@ export async function connect(
     // learns the outcome from this RPC's response either way.
     if (!run.attached) {
       try {
-        await persistConnectStarting(deps.store, mcpServerId, run.workflowId, "");
+        await persistConnectStarting(
+          deps.store,
+          mcpServerId,
+          run.workflowId,
+          "",
+        );
       } catch (error) {
         deps.logger.warn(
           "Failed to record CONNECTING on connect_status (non-fatal)",
@@ -324,7 +329,12 @@ export async function connect(
         outcome.failure,
         CONNECT_TIMEOUT,
       );
-      await persistConnectFailure(deps.store, deps.logger, mcpServerId, failure);
+      await persistConnectFailure(
+        deps.store,
+        deps.logger,
+        mcpServerId,
+        failure,
+      );
       throw failure;
     }
 
@@ -885,10 +895,13 @@ export async function refreshOAuthTokenIfNeeded(
   try {
     grant = await deps.oauthGrants.find("", mcpServerId, callerOrg);
   } catch (error) {
-    deps.logger.warn("Failed to load OAuth grant for pre-flight check (non-fatal)", {
-      mcp_server_id: mcpServerId,
-      error: error instanceof Error ? error.message : String(error),
-    });
+    deps.logger.warn(
+      "Failed to load OAuth grant for pre-flight check (non-fatal)",
+      {
+        mcp_server_id: mcpServerId,
+        error: error instanceof Error ? error.message : String(error),
+      },
+    );
     return;
   }
   if (grant === undefined) {
@@ -1040,7 +1053,7 @@ export async function loadOAuthAppClientCredentials(
 
   let secret = app.spec?.clientSecret ?? "";
   if (deps.secretService.isEncrypted(secret)) {
-    secret = deps.secretService.decrypt(secret);
+    secret = await deps.secretService.decrypt(secret);
   }
   return { clientSecret: secret, tokenAuthMethod };
 }
@@ -1105,10 +1118,13 @@ export async function startBestEffortConnect(
       CONNECT_TIMEOUT.ms,
     );
   } catch (error) {
-    deps.logger.warn("Failed to start best-effort connect workflow (non-fatal)", {
-      mcp_server_id: mcpServerId,
-      error: error instanceof Error ? error.message : String(error),
-    });
+    deps.logger.warn(
+      "Failed to start best-effort connect workflow (non-fatal)",
+      {
+        mcp_server_id: mcpServerId,
+        error: error instanceof Error ? error.message : String(error),
+      },
+    );
     return;
   }
 
@@ -1171,10 +1187,13 @@ export async function startBestEffortConnect(
       );
       return;
     }
-    deps.logger.warn("Failed to persist best-effort connect result (non-fatal)", {
-      mcp_server_id: mcpServerId,
-      error: error instanceof Error ? error.message : String(error),
-    });
+    deps.logger.warn(
+      "Failed to persist best-effort connect result (non-fatal)",
+      {
+        mcp_server_id: mcpServerId,
+        error: error instanceof Error ? error.message : String(error),
+      },
+    );
     return;
   }
 

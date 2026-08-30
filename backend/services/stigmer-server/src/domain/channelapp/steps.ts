@@ -28,6 +28,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 
 import type { Logger } from "../../boot/logger.js";
 import type { SecretService } from "../../encryption/encryption.js";
+import { EncryptionScope } from "../../encryption/encryption.js";
 import { isCiphertextShaped } from "../../encryption/encryption.js";
 import {
   failedPreconditionError,
@@ -146,12 +147,12 @@ function newEncryptChannelAppSecretsStep(
    * and returns before the ciphertext-shape rejection, which therefore
    * only ever sees raw client input (oss#395).
    */
-  function resolveSecret(
+  async function resolveSecret(
     ctx: RequestContext<ChannelAppDesc>,
     fieldName: string,
     requestValue: string,
     readExisting: (existing: ChannelApp) => string,
-  ): string {
+  ): Promise<string> {
     if (requestValue === "") {
       return requestValue;
     }
@@ -167,12 +168,20 @@ function newEncryptChannelAppSecretsStep(
     }
 
     if (!secretService.isEnabled()) {
-      logger.warn(`Encryption disabled: ${fieldName} will be stored in plaintext`);
+      logger.warn(
+        `Encryption disabled: ${fieldName} will be stored in plaintext`,
+      );
       return requestValue;
     }
 
     try {
-      return secretService.encrypt(requestValue);
+      // Tenancy-only scope, the pre-v3 write posture: channelapp is an
+      // org-scoped kind, so metadata.org is validated non-empty before
+      // this step.
+      return await secretService.encrypt(
+        requestValue,
+        EncryptionScope.forOrganization(ctx.newState.metadata?.org ?? ""),
+      );
     } catch (error) {
       throw internalError(error, `failed to encrypt ${fieldName}`);
     }
@@ -205,12 +214,12 @@ function newEncryptChannelAppSecretsStep(
 
   return {
     name: "EncryptChannelAppSecrets",
-    execute(ctx: RequestContext<ChannelAppDesc>): void {
+    async execute(ctx: RequestContext<ChannelAppDesc>): Promise<void> {
       const provider = ctx.newState.spec?.providerConfig;
       switch (provider?.case) {
         case "slack": {
           const slack = provider.value;
-          slack.clientSecret = resolveSecret(
+          slack.clientSecret = await resolveSecret(
             ctx,
             "client_secret",
             slack.clientSecret,
@@ -219,7 +228,7 @@ function newEncryptChannelAppSecretsStep(
                 ? existing.spec.providerConfig.value.clientSecret
                 : "",
           );
-          slack.signingSecret = resolveSecret(
+          slack.signingSecret = await resolveSecret(
             ctx,
             "signing_secret",
             slack.signingSecret,
@@ -232,7 +241,7 @@ function newEncryptChannelAppSecretsStep(
         }
         case "whatsapp": {
           const whatsapp = provider.value;
-          whatsapp.appSecret = resolveSecret(
+          whatsapp.appSecret = await resolveSecret(
             ctx,
             "app_secret",
             whatsapp.appSecret,
@@ -241,7 +250,7 @@ function newEncryptChannelAppSecretsStep(
                 ? existing.spec.providerConfig.value.appSecret
                 : "",
           );
-          whatsapp.accessToken = resolveSecret(
+          whatsapp.accessToken = await resolveSecret(
             ctx,
             "access_token",
             whatsapp.accessToken,
@@ -250,7 +259,7 @@ function newEncryptChannelAppSecretsStep(
                 ? existing.spec.providerConfig.value.accessToken
                 : "",
           );
-          whatsapp.verifyToken = resolveSecret(
+          whatsapp.verifyToken = await resolveSecret(
             ctx,
             "verify_token",
             whatsapp.verifyToken,
@@ -360,7 +369,11 @@ export function newCheckNoReferencingChannelsStep(
 
         if (refOrg === org && ref.slug === slug) {
           throw failedPreconditionError(
-            deleteBlockedByChannelMessage(org, slug, channel.metadata?.name ?? ""),
+            deleteBlockedByChannelMessage(
+              org,
+              slug,
+              channel.metadata?.name ?? "",
+            ),
           );
         }
       }

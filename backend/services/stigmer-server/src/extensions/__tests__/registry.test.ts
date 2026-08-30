@@ -17,6 +17,7 @@ import type { DescMessage } from "@bufbuild/protobuf";
 
 import type { ArtifactStorage } from "../../artifactstorage/artifact-storage.js";
 import type { ChannelRuntime } from "../../domain/agentchannel/channel-runtime.js";
+import type { SecretCodec } from "../../encryption/codec.js";
 import type { ModelCatalogProvider } from "../../domain/workflow/registry/model-catalog-provider.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RunnerCredentialProvider } from "../../runnerauth/runner-credential-provider.js";
@@ -84,6 +85,14 @@ const fakeSandboxDriver: SandboxProvisionerFactory = () => {
   throw new Error("unit-test sandbox driver factory — never constructed");
 };
 
+// Never invoked — the merge tests assert identity and the §2b throws.
+function fakeCodec(version: string): SecretCodec {
+  const never = (): never => {
+    throw new Error("unit-test secret codec — never invoked");
+  };
+  return { version, encrypt: never, decrypt: never };
+}
+
 function fakeChannelRuntime(): ChannelRuntime {
   const never = (): never => {
     throw new Error("unit-test channel runtime — never invoked");
@@ -126,6 +135,7 @@ describe("resolveExtensions — defaults", () => {
     expect(resolved.drivers.artifactStorageDrivers.size).toBe(0);
     expect(resolved.drivers.sandboxProvisionerDrivers.size).toBe(0);
     expect(resolved.drivers.channelRuntime).toBeUndefined();
+    expect(resolved.drivers.secretCodecs.size).toBe(0);
     expect(resolved.services).toEqual([]);
     expect(resolved.workers).toEqual([]);
   });
@@ -250,6 +260,24 @@ describe("resolveExtensions — merge semantics", () => {
     expect(resolved.drivers.listReadScope).toBe(scope);
     // The empty state resolves explicitly, never a missing key.
     expect(resolveExtensions([]).drivers.listReadScope).toBeUndefined();
+  });
+
+  it("merges secret codecs as a version-keyed map across units (20260830.04)", () => {
+    const v2 = fakeCodec("v2");
+    const v3 = fakeCodec("v3");
+    const resolved = resolveExtensions([
+      {
+        name: "vault-envelope",
+        drivers: { secretCodecs: new Map([["v2", v2]]) },
+      },
+      { name: "vault-kv", drivers: { secretCodecs: new Map([["v3", v3]]) } },
+    ]);
+    expect([...resolved.drivers.secretCodecs.keys()].sort()).toEqual([
+      "v2",
+      "v3",
+    ]);
+    expect(resolved.drivers.secretCodecs.get("v2")).toBe(v2);
+    expect(resolved.drivers.secretCodecs.get("v3")).toBe(v3);
   });
 });
 
@@ -518,5 +546,58 @@ describe("resolveExtensions — loud-fail throws (DD-006 §2b)", () => {
         ),
       );
     }
+  });
+
+  it("throws on a secret codec registered as v1, shadowing the built-in", () => {
+    expect(() =>
+      resolveExtensions([
+        {
+          name: "shadowing",
+          drivers: { secretCodecs: new Map([["v1", fakeCodec("v1")]]) },
+        },
+      ]),
+    ).toThrow(
+      "extension 'shadowing' registers secret codec 'v1', which shadows the built-in static-key codec — the v1 token is reserved",
+    );
+  });
+
+  it("throws on a duplicated secret-codec version across units, naming both", () => {
+    expect(() =>
+      resolveExtensions([
+        {
+          name: "first-vault",
+          drivers: { secretCodecs: new Map([["v2", fakeCodec("v2")]]) },
+        },
+        {
+          name: "second-vault",
+          drivers: { secretCodecs: new Map([["v2", fakeCodec("v2")]]) },
+        },
+      ]),
+    ).toThrowError(
+      /extension 'second-vault' registers secret codec 'v2', but 'first-vault' already did/,
+    );
+  });
+
+  it("throws on an undispatchable secret-codec token or a key/version mismatch", () => {
+    // A token read dispatch could never route to (not v<digits>).
+    expect(() =>
+      resolveExtensions([
+        {
+          name: "bad-token",
+          drivers: { secretCodecs: new Map([["vault", fakeCodec("vault")]]) },
+        },
+      ]),
+    ).toThrowError(/version tokens must match v<digits>/);
+    // A key that does not equal the codec's own declared version.
+    expect(() =>
+      resolveExtensions([
+        {
+          name: "mismatched",
+          drivers: { secretCodecs: new Map([["v2", fakeCodec("v3")]]) },
+        },
+      ]),
+    ).toThrowError(
+      /extension 'mismatched' registers secret codec 'v2' \(codec declares 'v3'\)/,
+    );
   });
 });

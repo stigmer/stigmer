@@ -166,6 +166,11 @@ export {
   AuditNotFoundError,
   ResourceNotFoundError,
 } from "./store/interface.js";
+// The maintenance-surface row shape (20260830.04 Stage 1, ruling Q3):
+// what findResourcesRawOrderedAfter pages and what
+// replaceResourceDataIfUnchanged guards on — the secret-convergence
+// sweep's storage contract.
+export type { RawResourceDocument } from "./store/interface.js";
 export type {
   ArtifactStorage,
   ArtifactStorageDriverFactory,
@@ -207,18 +212,27 @@ export {
   TOKEN_TYPE_EXECUTION_SCOPED,
 } from "./runnerauth/runnerauth.js";
 
-// The cross-edition secret envelope (enc:v1 — AES-256-GCM, the format the
-// Java SecretEncryptionService shares): compositions building extension
-// domains with secret-bearing columns seal under the SAME envelope the
-// OSS store uses (C4 gate ruling Q4's interim posture; C2/C3 inherit the
-// seam). The service, not the primitives — the format stays defined
-// exactly once.
+// The secret-sealing seam (20260830.04 Stage 1, gate rulings Q2/Q3 —
+// widening the C4-era enc:v1 block): the SecretService facade over the
+// versioned-codec registry (async, scoped, batched, with reencrypt as the
+// sweep's one upgrade door), the SecretCodec contract an extension's
+// vault-backed formats implement (drivers.secretCodecs), the
+// EncryptionScope tenancy/location record every seal site threads, and
+// the TWO-ARMED error taxonomy the skip/propagate policies branch on
+// (value-scoped InvalidCiphertextError family vs infrastructure
+// EncryptionUnavailableError family). The service and its contract types,
+// not the crypto primitives — each wire format stays defined exactly
+// once. The maintenance-surface store verbs this seam blessed ride the
+// Store interface above; RawResourceDocument is their row shape.
 export {
   DecryptionFailedError,
   EncryptionDisabledError,
+  EncryptionScope,
+  EncryptionUnavailableError,
   InvalidCiphertextError,
   SecretService,
 } from "./encryption/encryption.js";
+export type { SecretCodec } from "./encryption/codec.js";
 
 // The O6 driver seam (§6d): the sandbox-provisioner contract an extension
 // implements to register its own isolation driver (selected through the

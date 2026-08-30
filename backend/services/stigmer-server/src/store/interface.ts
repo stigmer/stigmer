@@ -422,6 +422,17 @@ export interface PendingOAuthStateStore {
   cleanupExpired(): Promise<number>;
 }
 
+/**
+ * One live row as stored — the id plus the EXACT marshaled bytes, for the
+ * maintenance surface (the Java RawDocument shape): a sweep reads pages of
+ * these, transforms, and swaps back with replaceResourceDataIfUnchanged
+ * guarding on the same bytes.
+ */
+export interface RawResourceDocument {
+  readonly id: string;
+  readonly data: Uint8Array;
+}
+
 // =============================================================================
 // The store contract
 // =============================================================================
@@ -525,6 +536,51 @@ export interface Store {
     labelValue: string,
     schema: Desc,
   ): Promise<Uint8Array[]>;
+
+  // ---------------------------------------------------------------------------
+  // The maintenance surface (20260830.04 Stage 1, ruling Q3) — the
+  // secret-convergence sweep's storage contract, mirroring the cloud
+  // repository primitives (AbstractPostgresApiResourceRepository.
+  // findRawOrderedAfter / replaceDataIfUnchanged). Blessed exports:
+  // maintenance flows visit every row and persist only when nothing
+  // interleaved — never through the RPC surfaces (update handlers
+  // re-trigger side effects, and the ***REDACTED*** round-trip copies
+  // stored ciphertext back, making upgrades impossible through that
+  // door) and never through extension SQL against this schema.
+  // ---------------------------------------------------------------------------
+
+  /**
+   * One keyset page of a kind as raw documents — id plus the exact stored
+   * bytes, which is what replaceResourceDataIfUnchanged guards on. Keyset
+   * pagination on the id is stable under concurrent writes, where
+   * LIMIT/OFFSET paging is not (the Java findRawOrderedAfter rationale).
+   * Pass "" to start from the first row (ids are non-empty text, so every
+   * id sorts above it), then the last id of each page. Throws on a
+   * non-positive limit.
+   */
+  findResourcesRawOrderedAfter(
+    kind: ApiResourceKind,
+    afterIdExclusive: string,
+    limit: number,
+  ): Promise<RawResourceDocument[]>;
+
+  /**
+   * Whole-document compare-and-swap: replaces the stored bytes ONLY when
+   * they still equal `expectedData` — the exact bytes the row was read
+   * with (the TS analogue of Java's bound-JSON-text replaceDataIfUnchanged;
+   * BYTEA equality is exact by construction, no canonicalization games).
+   *
+   * @returns true when the swap applied; false when the row changed OR
+   *   was deleted since the read (a lost swap, never an upsert) — the
+   *   caller retries from a fresh read or lets the next scheduled pass
+   *   pick the row up. Concurrent request-path writers always win.
+   */
+  replaceResourceDataIfUnchanged(
+    kind: ApiResourceKind,
+    id: string,
+    expectedData: Uint8Array,
+    newData: Uint8Array,
+  ): Promise<boolean>;
 
   /** Removes all resources of a kind; returns the count deleted. */
   deleteResourcesByKind(kind: ApiResourceKind): Promise<number>;
