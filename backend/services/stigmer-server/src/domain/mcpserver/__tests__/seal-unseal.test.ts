@@ -24,7 +24,9 @@ const silentLogger = createLogger({
 const enabled = SecretService.create(Buffer.alloc(32, 7));
 const disabled = SecretService.create(undefined);
 
-function pendingState(overrides?: Partial<PendingOAuthState>): PendingOAuthState {
+function pendingState(
+  overrides?: Partial<PendingOAuthState>,
+): PendingOAuthState {
   return {
     state: "state-1",
     codeVerifier: "verifier-plaintext",
@@ -44,16 +46,20 @@ function pendingState(overrides?: Partial<PendingOAuthState>): PendingOAuthState
 }
 
 describe("sealPendingOAuthState (enabled encryption)", () => {
-  it("encrypts the code_verifier and a non-empty client_secret at rest", () => {
-    const sealed = sealPendingOAuthState(enabled, silentLogger, pendingState());
+  it("encrypts the code_verifier and a non-empty client_secret at rest", async () => {
+    const sealed = await sealPendingOAuthState(
+      enabled,
+      silentLogger,
+      pendingState(),
+    );
     expect(sealed.codeVerifier).toMatch(/^enc:v1:/);
     expect(sealed.clientSecret).toMatch(/^enc:v1:/);
     // Everything else rides unchanged.
     expect(sealed.tokenEndpoint).toBe("https://auth.example.com/token");
   });
 
-  it("keeps the DCR path's empty client_secret EMPTY — never ciphertext-of-empty (oss#394)", () => {
-    const sealed = sealPendingOAuthState(
+  it("keeps the DCR path's empty client_secret EMPTY — never ciphertext-of-empty (oss#394)", async () => {
+    const sealed = await sealPendingOAuthState(
       enabled,
       silentLogger,
       pendingState({ clientSecret: "", authMethod: "mcp_oauth" }),
@@ -62,30 +68,42 @@ describe("sealPendingOAuthState (enabled encryption)", () => {
     expect(sealed.clientSecret).toBe("");
   });
 
-  it("passes plaintext through with disabled encryption (the WARN-degrade posture)", () => {
-    const sealed = sealPendingOAuthState(disabled, silentLogger, pendingState());
+  it("passes plaintext through with disabled encryption (the WARN-degrade posture)", async () => {
+    const sealed = await sealPendingOAuthState(
+      disabled,
+      silentLogger,
+      pendingState(),
+    );
     expect(sealed.codeVerifier).toBe("verifier-plaintext");
     expect(sealed.clientSecret).toBe("vendor-secret");
   });
 });
 
 describe("unsealPendingOAuthState", () => {
-  it("round-trips the sealed secrets back to their exact plaintexts", () => {
-    const sealed = sealPendingOAuthState(enabled, silentLogger, pendingState());
-    const unsealed = unsealPendingOAuthState(enabled, sealed);
+  it("round-trips the sealed secrets back to their exact plaintexts", async () => {
+    const sealed = await sealPendingOAuthState(
+      enabled,
+      silentLogger,
+      pendingState(),
+    );
+    const unsealed = await unsealPendingOAuthState(enabled, sealed);
     expect(unsealed.codeVerifier).toBe("verifier-plaintext");
     expect(unsealed.clientSecret).toBe("vendor-secret");
   });
 
-  it("passes legacy plaintext rows through unchanged (pre-sealing shapes)", () => {
-    const unsealed = unsealPendingOAuthState(enabled, pendingState());
+  it("passes legacy plaintext rows through unchanged (pre-sealing shapes)", async () => {
+    const unsealed = await unsealPendingOAuthState(enabled, pendingState());
     expect(unsealed.codeVerifier).toBe("verifier-plaintext");
     expect(unsealed.clientSecret).toBe("vendor-secret");
   });
 
-  it("fails loudly on a sealed row when the key has vanished (before any token exchange)", () => {
-    const sealed = sealPendingOAuthState(enabled, silentLogger, pendingState());
-    expect(() => unsealPendingOAuthState(disabled, sealed)).toThrow(
+  it("fails loudly on a sealed row when the key has vanished (before any token exchange)", async () => {
+    const sealed = await sealPendingOAuthState(
+      enabled,
+      silentLogger,
+      pendingState(),
+    );
+    await expect(unsealPendingOAuthState(disabled, sealed)).rejects.toThrow(
       /^failed to decrypt code_verifier: /,
     );
   });

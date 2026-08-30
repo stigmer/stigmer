@@ -18,13 +18,21 @@ import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environmen
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { createLogger } from "../../../../boot/logger.js";
-import { SecretService } from "../../../../encryption/encryption.js";
+import {
+  EncryptionScope,
+  SecretService,
+} from "../../../../encryption/encryption.js";
 import { SqliteStore } from "../../../../store/sqlite/store.js";
 import type { Store } from "../../../../store/interface.js";
 import { RuntimeResolutionService } from "../resolution.js";
 
-const silentLogger = createLogger({ level: "error", pretty: false, write: () => {} });
+const silentLogger = createLogger({
+  level: "error",
+  pretty: false,
+  write: () => {},
+});
 const KEY = Buffer.alloc(32, 7);
+const SCOPE = EncryptionScope.forOrganization("acme");
 
 let dir: string;
 let store: Store;
@@ -38,7 +46,10 @@ beforeAll(async () => {
   service = new RuntimeResolutionService(store, secretService, silentLogger);
 
   await seed("resolved", "acme", {
-    API_KEY: { value: secretService.encrypt("real-key"), isSecret: true },
+    API_KEY: {
+      value: await secretService.encrypt("real-key", SCOPE),
+      isSecret: true,
+    },
     LEGACY: { value: "pre-oss405-plaintext", isSecret: true },
     REGION: { value: "us-east-1", isSecret: false },
   });
@@ -68,11 +79,18 @@ async function seed(
       ),
     },
   });
-  await store.saveResource(ApiResourceKind.environment, id, EnvironmentSchema, env);
+  await store.saveResource(
+    ApiResourceKind.environment,
+    id,
+    EnvironmentSchema,
+    env,
+  );
   return id;
 }
 
-async function connectError(run: () => Promise<unknown>): Promise<ConnectError> {
+async function connectError(
+  run: () => Promise<unknown>,
+): Promise<ConnectError> {
   try {
     await run();
     throw new Error("expected the call to fail");
@@ -105,7 +123,9 @@ describe("resolveByReference", () => {
       "env_resolved",
       EnvironmentSchema,
     );
-    expect(stored.spec?.data["API_KEY"]?.value.startsWith("enc:v1:")).toBe(true);
+    expect(stored.spec?.data["API_KEY"]?.value.startsWith("enc:v1:")).toBe(
+      true,
+    );
   });
 
   it("accepts an unspecified kind (unknown = no assertion), rejects a wrong one", async () => {
@@ -115,18 +135,28 @@ describe("resolveByReference", () => {
     expect(viaUnknown.metadata?.id).toBe("env_resolved");
 
     const error = await connectError(() =>
-      service.resolveByReference(ref("resolved", "acme", ApiResourceKind.agent)),
+      service.resolveByReference(
+        ref("resolved", "acme", ApiResourceKind.agent),
+      ),
     );
     expect(error.code).toBe(Code.InvalidArgument);
-    expect(error.rawMessage).toBe("kind mismatch: expected environment, got agent");
+    expect(error.rawMessage).toBe(
+      "kind mismatch: expected environment, got agent",
+    );
   });
 
   it("requires a slug and an org (org-scoped kind — no cross-tenant resolution)", async () => {
-    const noSlug = await connectError(() => service.resolveByReference(ref("", "acme")));
+    const noSlug = await connectError(() =>
+      service.resolveByReference(ref("", "acme")),
+    );
     expect(noSlug.code).toBe(Code.InvalidArgument);
-    expect(noSlug.rawMessage).toBe("environment reference with slug is required");
+    expect(noSlug.rawMessage).toBe(
+      "environment reference with slug is required",
+    );
 
-    const noOrg = await connectError(() => service.resolveByReference(ref("resolved", "")));
+    const noOrg = await connectError(() =>
+      service.resolveByReference(ref("resolved", "")),
+    );
     expect(noOrg.code).toBe(Code.InvalidArgument);
   });
 
@@ -140,17 +170,28 @@ describe("resolveByReference", () => {
 
   it("WARNs and DROPS an undecryptable key, keeping the rest (per-key skip)", async () => {
     await seed("partially-broken", "acme", {
-      GOOD: { value: secretService.encrypt("good-value"), isSecret: true },
-      BROKEN: { value: "enc:v1:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", isSecret: true },
+      GOOD: {
+        value: await secretService.encrypt("good-value", SCOPE),
+        isSecret: true,
+      },
+      BROKEN: {
+        value: "enc:v1:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+        isSecret: true,
+      },
     });
-    const env = await service.resolveByReference(ref("partially-broken", "acme"));
+    const env = await service.resolveByReference(
+      ref("partially-broken", "acme"),
+    );
     expect(env.spec?.data["GOOD"]?.value).toBe("good-value");
     expect(env.spec?.data["BROKEN"]).toBeUndefined();
   });
 
   it("fails LOUD when ciphertext exists but no key is configured (never a credential-less run)", async () => {
     await seed("keyless-victim", "acme", {
-      SEALED: { value: secretService.encrypt("sealed"), isSecret: true },
+      SEALED: {
+        value: await secretService.encrypt("sealed", SCOPE),
+        isSecret: true,
+      },
     });
     const keyless = new RuntimeResolutionService(
       store,

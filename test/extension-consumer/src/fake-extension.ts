@@ -37,6 +37,7 @@ import {
   SendChannelMessageOutputSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
 import { BillingAccountSchema } from "@stigmer/protos/ai/stigmer/billing/v1/billing_account_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { BillingQueryController } from "@stigmer/protos/ai/stigmer/billing/v1/query_pb";
 import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 
@@ -46,6 +47,8 @@ import {
   callerIdentityOf,
   composeServer,
   createLogger,
+  EncryptionScope,
+  EncryptionUnavailableError,
   InvalidTokenError,
   loadConfig,
   LOADED_EXECUTION_KEY,
@@ -81,6 +84,7 @@ import type {
   OrganizationDirectory,
   PipelineStep,
   PresignedUpload,
+  RawResourceDocument,
   ResourceAuthorizationLifecycle,
   ResourceCreatedEvent,
   ResourceDeletedEvent,
@@ -91,6 +95,8 @@ import type {
   SandboxCredentialRequest,
   SandboxProvisioner,
   SandboxProvisionerFactory,
+  SecretCodec,
+  SecretService,
   ServerExtension,
   Store,
   VisibilityChangedEvent,
@@ -376,6 +382,67 @@ const channelRuntime: ChannelRuntime = {
 };
 
 /**
+ * A consumer-shaped vault-backed secret codec (the 20260830.04 Stage 1
+ * seam, ruling Q2) — one enc:v<N>: wire format registered by version
+ * token through drivers.secretCodecs. The scope carries the tenancy a
+ * per-org KEK keys by; the taxonomy split is contract: a bad VALUE is
+ * InvalidCiphertextError (skippable per key), missing MACHINERY is
+ * EncryptionUnavailableError (must abort — this fake's every arm, it has
+ * no real vault). The batch verbs and delete are optional: absent here,
+ * the facade loops the singular verbs and treats delete as a no-op.
+ */
+const consumerVaultCodec: SecretCodec = {
+  version: "v2",
+  encrypt: (plaintext: string, scope: EncryptionScope) => {
+    void plaintext;
+    void scope.kekKeyName();
+    return Promise.reject(
+      new EncryptionUnavailableError("compile-proof codec — never invoked"),
+    );
+  },
+  decrypt: (encrypted: string) => {
+    void encrypted;
+    return Promise.reject(
+      new EncryptionUnavailableError("compile-proof codec — never invoked"),
+    );
+  },
+};
+
+/**
+ * The secret-convergence sweep's exact shape (Stage 3 consumes it): page
+ * raw documents through the blessed maintenance verbs, reseal through the
+ * facade's one upgrade door, and persist only when nothing interleaved —
+ * the bytes-guarded compare-and-swap. Never executed; it pins that the
+ * Store surface and the facade verbs stay sufficient for the sweep.
+ */
+export async function consumerSweepPage(
+  store: Store,
+  secrets: SecretService,
+  afterId: string,
+): Promise<string | undefined> {
+  const scope = EncryptionScope.forOrganizationResource(
+    "consumer-org",
+    "environment",
+    "env-slug",
+  );
+  const page: RawResourceDocument[] = await store.findResourcesRawOrderedAfter(
+    ApiResourceKind.environment,
+    afterId,
+    100,
+  );
+  for (const row of page) {
+    void (await secrets.reencrypt("enc:v1:fake", scope.withKeyName("KEY")));
+    void (await store.replaceResourceDataIfUnchanged(
+      ApiResourceKind.environment,
+      row.id,
+      row.data,
+      row.data,
+    ));
+  }
+  return page.length > 0 ? page[page.length - 1]?.id : undefined;
+}
+
+/**
  * An extension-registered service handler built the OSS controller idiom
  * (C4 Stage 4): the verified caller read once via callerIdentityOf, then
  * a chain fronted by the exported Authorize (descriptor-driven from the
@@ -488,6 +555,9 @@ export const fakeExtension: ServerExtension = {
     // The C3 serving seam: a composed runtime flips the agentchannel
     // install/messaging/conversation arms from refusal to serving.
     channelRuntime,
+    // The 20260830.04 sealing seam: vault-backed wire formats registered
+    // by version token ("v1" is the reserved built-in).
+    secretCodecs: new Map([["v2", consumerVaultCodec]]),
   },
   services: [registerBillingService],
   workers: [workerFactory],

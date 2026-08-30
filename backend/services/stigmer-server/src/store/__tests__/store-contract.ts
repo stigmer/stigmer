@@ -23,6 +23,7 @@
  * Driver-physical behavior (column layouts, FTS5/tsvector internals,
  * migration chains) stays in each driver's own tests.
  */
+import { fromBinary, toBinary } from "@bufbuild/protobuf";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -404,6 +405,143 @@ export function describeStoreContract(
         OrganizationSchema,
       );
       expect(matches).toHaveLength(1);
+    });
+  });
+
+  // The maintenance surface (20260830.04 Stage 1, ruling Q3) — ports the
+  // Java contract shapes (PostgresAgentRepositoryContractTest): keyset
+  // paging from "", stale-expectation loses, deleted-row loses.
+  describe("maintenance surface: raw ordered scan + bytes-level CAS", () => {
+    it('findResourcesRawOrderedAfter pages the whole kind in id order from ""', async () => {
+      for (const id of ["raw-b", "raw-a", "raw-c"]) {
+        await fx.store.saveResource(
+          KIND,
+          id,
+          OrganizationSchema,
+          makeOrganization({ id }),
+        );
+      }
+
+      const firstPage = await fx.store.findResourcesRawOrderedAfter(
+        KIND,
+        "",
+        2,
+      );
+      expect(firstPage.map((row) => row.id)).toEqual(["raw-a", "raw-b"]);
+      // The bytes are the EXACT stored marshaling — they parse back to the
+      // row (the CAS guards on these same bytes).
+      const parsed = fromBinary(OrganizationSchema, firstPage[0]!.data);
+      expect(parsed.metadata?.id).toBe("raw-a");
+
+      const lastId = firstPage[firstPage.length - 1]!.id;
+      const secondPage = await fx.store.findResourcesRawOrderedAfter(
+        KIND,
+        lastId,
+        2,
+      );
+      expect(secondPage.map((row) => row.id)).toEqual(["raw-c"]);
+
+      await expect(
+        fx.store.findResourcesRawOrderedAfter(KIND, "", 0),
+      ).rejects.toThrow("limit must be positive");
+    });
+
+    it("replaceResourceDataIfUnchanged applies against the read bytes and loses to any interleaved write", async () => {
+      await fx.store.saveResource(
+        KIND,
+        "cas",
+        OrganizationSchema,
+        makeOrganization({ id: "cas" }),
+      );
+      const read = (
+        await fx.store.findResourcesRawOrderedAfter(KIND, "", 1)
+      )[0]!;
+      const transformed = makeOrganization({
+        id: "cas",
+        description: "transformed",
+      });
+
+      expect(
+        await fx.store.replaceResourceDataIfUnchanged(
+          KIND,
+          "cas",
+          read.data,
+          toBinary(OrganizationSchema, transformed),
+        ),
+      ).toBe(true);
+      const loaded = await fx.store.getResource(
+        KIND,
+        "cas",
+        OrganizationSchema,
+      );
+      expect(loaded.spec?.description).toBe("transformed");
+
+      // The same expectation is now stale — the document changed under it,
+      // so a second swap against the old bytes must lose, row untouched.
+      const clobber = makeOrganization({
+        id: "cas",
+        description: "would-clobber",
+      });
+      expect(
+        await fx.store.replaceResourceDataIfUnchanged(
+          KIND,
+          "cas",
+          read.data,
+          toBinary(OrganizationSchema, clobber),
+        ),
+      ).toBe(false);
+      const untouched = await fx.store.getResource(
+        KIND,
+        "cas",
+        OrganizationSchema,
+      );
+      expect(untouched.spec?.description).toBe("transformed");
+
+      // A deleted row is a lost swap, never an upsert.
+      await fx.store.deleteResource(KIND, "cas");
+      expect(
+        await fx.store.replaceResourceDataIfUnchanged(
+          KIND,
+          "cas",
+          read.data,
+          toBinary(OrganizationSchema, clobber),
+        ),
+      ).toBe(false);
+      expect(await fx.store.listResources(KIND)).toHaveLength(0);
+    });
+
+    it("concurrent request-path writers win: a save between read and swap defeats the CAS", async () => {
+      await fx.store.saveResource(
+        KIND,
+        "race",
+        OrganizationSchema,
+        makeOrganization({ id: "race" }),
+      );
+      const read = (
+        await fx.store.findResourcesRawOrderedAfter(KIND, "", 1)
+      )[0]!;
+
+      // The interleaved writer (a normal request-path upsert).
+      await fx.store.saveResource(
+        KIND,
+        "race",
+        OrganizationSchema,
+        makeOrganization({ id: "race", description: "writer wins" }),
+      );
+
+      expect(
+        await fx.store.replaceResourceDataIfUnchanged(
+          KIND,
+          "race",
+          read.data,
+          toBinary(
+            OrganizationSchema,
+            makeOrganization({ id: "race", description: "sweep loses" }),
+          ),
+        ),
+      ).toBe(false);
+      const kept = await fx.store.getResource(KIND, "race", OrganizationSchema);
+      expect(kept.spec?.description).toBe("writer wins");
     });
   });
 
@@ -908,9 +1046,10 @@ export function describeStoreContract(
         offset: 0,
       });
       expect(narrowed.countsByKind).toEqual({ agent: 1, workflow: 1 });
-      expect(
-        narrowed.hits.map((hit) => hit.resourceId).sort(),
-      ).toEqual(["agt-mine", "wfl-any"]);
+      expect(narrowed.hits.map((hit) => hit.resourceId).sort()).toEqual([
+        "agt-mine",
+        "wfl-any",
+      ]);
 
       // An EMPTY set for a kind matches nothing for that kind.
       const emptyKind = await fx.store.querySearchIndex({

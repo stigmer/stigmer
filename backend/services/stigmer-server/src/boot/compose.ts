@@ -93,7 +93,17 @@ import {
   uploadUrl as skillUploadUrl,
 } from "../domain/skill/transfer/handler.js";
 import { UploadSlots } from "../domain/skill/transfer/slots.js";
-import { SecretService } from "../encryption/encryption.js";
+import {
+  DEFAULT_WRITE_VERSION,
+  ENCRYPTION_KEY_ENV_VAR,
+  ENCRYPTION_KEY_FILE_NAME,
+  ENCRYPTION_WRITE_VERSION_ENV_VAR,
+  SecretService,
+  StaticKeySecretCodec,
+} from "../encryption/encryption.js";
+import type { SecretCodec } from "../encryption/codec.js";
+import { getOrCreateNamedKey } from "../encryption/key-manager.js";
+import { V1_VERSION } from "../encryption/v1-codec.js";
 import { registerActivityServices } from "../query/activity/controller.js";
 import { ActivityHandler } from "../query/activity/handler.js";
 import { registerSearchServices } from "../query/search/controller.js";
@@ -261,7 +271,7 @@ export async function composeServer(
   // invariants; Go server.go:277-293):
   //
   //   - Encryption key failure → WARN and continue with a keyless
-  //     pass-through service. Plaintext at rest is tolerable (the write
+  //     pass-through v1 codec. Plaintext at rest is tolerable (the write
   //     steps WARN per request, oss#394); refusing to boot over it is not.
   //   - Runner-token key failure → FATAL (throw). The EC read RPCs redact
   //     by default, so a server that cannot mint runner tokens would hand
@@ -270,16 +280,46 @@ export async function composeServer(
   //     (The verify side is live: the executioncontext decrypt lane. The
   //     mint side — the platform exchange RPC — arrives with its
   //     sub-project.)
-  let secretService: SecretService;
+  //
+  // The versioned-codec seam (20260830.04 Stage 1, ruling Q2): the
+  // built-in v1 codec installs HERE, never in the registry (the
+  // default-lives-with-the-consumer doctrine), and merges with the
+  // extension-registered codecs. The write version resolves FAIL-FAST:
+  // naming a version with no codec is a boot throw (deliberately outside
+  // the WARN-degrade catch — only the KEY ladder degrades; a
+  // misconfigured write version must never silently write v1). The env
+  // vars stay off ServerConfig, the key-manager posture: no config entry
+  // exists before the code that reads it.
+  let v1Key: Buffer | undefined;
   try {
-    secretService = SecretService.fromEnv();
+    v1Key = getOrCreateNamedKey(
+      ENCRYPTION_KEY_ENV_VAR,
+      ENCRYPTION_KEY_FILE_NAME,
+    );
   } catch (error) {
     logger.warn(
       "Failed to initialize encryption - secret values will be stored in plaintext",
       { error: error instanceof Error ? error.message : String(error) },
     );
-    secretService = SecretService.create(undefined);
+    v1Key = undefined;
   }
+  const secretCodecs = new Map<string, SecretCodec>([
+    [V1_VERSION, new StaticKeySecretCodec(v1Key)],
+    ...extensions.drivers.secretCodecs,
+  ]);
+  // Blank normalizes to the default — a rollback lever must be robust to
+  // sloppy unsetting (the cloud EncryptionConfig contract).
+  const writeVersionValue = process.env[ENCRYPTION_WRITE_VERSION_ENV_VAR] ?? "";
+  const secretService = SecretService.withCodecs({
+    codecs: secretCodecs,
+    writeVersion:
+      writeVersionValue === "" ? DEFAULT_WRITE_VERSION : writeVersionValue,
+  });
+  logger.info("secret encryption configured", {
+    writeVersion:
+      writeVersionValue === "" ? DEFAULT_WRITE_VERSION : writeVersionValue,
+    registeredCodecs: [...secretCodecs.keys()].sort(),
+  });
   const runnerAuthService = RunnerAuthService.fromEnv();
   // The runner-credential seam (§6c, O5): the composed provider, or the
   // OSS execution-scoped default over the service above. The concrete

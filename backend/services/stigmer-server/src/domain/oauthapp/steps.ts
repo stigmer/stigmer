@@ -16,6 +16,7 @@ import type { OAuthApp } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb
 import type { Logger } from "../../boot/logger.js";
 import { isCiphertextShaped } from "../../encryption/encryption.js";
 import type { SecretService } from "../../encryption/encryption.js";
+import { EncryptionScope } from "../../encryption/encryption.js";
 import {
   failedPreconditionError,
   internalError,
@@ -92,7 +93,7 @@ function newEncryptClientSecretStep(
 ): PipelineStep<typeof OAuthAppSchema> {
   return {
     name: "EncryptClientSecret",
-    execute(ctx: RequestContext<typeof OAuthAppSchema>): void {
+    async execute(ctx: RequestContext<typeof OAuthAppSchema>): Promise<void> {
       const app = ctx.newState;
       if (app.spec === undefined) {
         return;
@@ -119,7 +120,13 @@ function newEncryptClientSecretStep(
       }
 
       try {
-        app.spec.clientSecret = secretService.encrypt(clientSecret);
+        // Tenancy-only scope, the pre-v3 write posture: oauthapp is an
+        // org-scoped kind, so metadata.org is validated non-empty before
+        // this step.
+        app.spec.clientSecret = await secretService.encrypt(
+          clientSecret,
+          EncryptionScope.forOrganization(app.metadata?.org ?? ""),
+        );
       } catch (error) {
         throw internalError(error, "failed to encrypt client_secret");
       }
@@ -173,9 +180,10 @@ function preserveExistingSecret(
  * deleted is read from ExistingResource). Generic over the delete input
  * Desc, like the shared delete steps.
  */
-export function newCheckNoReferencingMcpServersStep<
-  Desc extends DescMessage,
->(store: Store, logger: Logger): PipelineStep<Desc> {
+export function newCheckNoReferencingMcpServersStep<Desc extends DescMessage>(
+  store: Store,
+  logger: Logger,
+): PipelineStep<Desc> {
   return {
     name: "CheckNoReferencingMcpServers",
     async execute(ctx: RequestContext<Desc>): Promise<void> {

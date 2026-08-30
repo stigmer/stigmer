@@ -32,6 +32,7 @@ import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import type { Logger } from "../../boot/logger.js";
 import { isCiphertextShaped } from "../../encryption/encryption.js";
 import type { SecretService } from "../../encryption/encryption.js";
+import { EncryptionScope } from "../../encryption/encryption.js";
 import type { Authorizer, AuthzDecision } from "../../extensions/authorizer.js";
 import {
   internalError,
@@ -43,7 +44,10 @@ import type { RequestContext } from "../../pipeline/request-context.js";
 import { TARGET_RESOURCE_KEY } from "../../pipeline/steps/load-target.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
-import { ciphertextShapedMessage, encryptFailureMessage } from "./constants.js";
+import {
+  ENCRYPT_BATCH_FAILURE_MESSAGE,
+  ciphertextShapedMessage,
+} from "./constants.js";
 
 /**
  * RejectCiphertextShapedValues — Go rejectCiphertextShapedStep: refuses
@@ -93,6 +97,16 @@ export function newRejectCiphertextShapedStep(): PipelineStep<
  * oss#394 convention). Non-secret values are never touched: the read
  * paths gate decryption on is_secret, so encrypting a non-secret value
  * would strand it as unreadable ciphertext.
+ *
+ * Seals as ONE batch through the v2-capped verb — the Java service's
+ * encryptAllV2 lane (vault project DD-005): EC values are ephemeral, on
+ * the runner's latency-budgeted read path, so a vault-backed write codec
+ * must spend one batched KEK round trip here, never one per value, and a
+ * future v3 write flip must not drag these unlocatable rows with it.
+ * Under the v1-only OSS default the batch is behaviorally identical to
+ * the per-value loop it replaced, except that an encrypt failure (never
+ * observed for local AES-GCM) reports without the failing key name —
+ * disclosed with the codec seam (20260830.04 Stage 1).
  */
 export function newEncryptSecretValuesStep(
   secretService: SecretService,
@@ -100,7 +114,9 @@ export function newEncryptSecretValuesStep(
 ): PipelineStep<typeof ExecutionContextSchema> {
   return {
     name: "EncryptSecretValues",
-    execute(ctx: RequestContext<typeof ExecutionContextSchema>): void {
+    async execute(
+      ctx: RequestContext<typeof ExecutionContextSchema>,
+    ): Promise<void> {
       const ec = ctx.newState;
       const data = ec.spec?.data;
       if (data === undefined || Object.keys(data).length === 0) {
@@ -117,14 +133,30 @@ export function newEncryptSecretValuesStep(
         return;
       }
 
+      const toSeal = new Map<string, string>();
       for (const [key, value] of Object.entries(data)) {
         if (!value.isSecret || value.value === "") {
           continue;
         }
-        try {
-          value.value = secretService.encrypt(value.value);
-        } catch (error) {
-          throw internalError(error, encryptFailureMessage(key));
+        toSeal.set(key, value.value);
+      }
+      if (toSeal.size === 0) {
+        return;
+      }
+
+      let sealed: Map<string, string>;
+      try {
+        sealed = await secretService.encryptAllAtMostV2(
+          toSeal,
+          EncryptionScope.forOrganization(ec.metadata?.org ?? ""),
+        );
+      } catch (error) {
+        throw internalError(error, ENCRYPT_BATCH_FAILURE_MESSAGE);
+      }
+      for (const [key, value] of Object.entries(data)) {
+        const sealedValue = sealed.get(key);
+        if (sealedValue !== undefined) {
+          value.value = sealedValue;
         }
       }
     },

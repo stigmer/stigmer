@@ -38,6 +38,7 @@ import type {
 import type { Logger } from "../../boot/logger.js";
 import { isCiphertextShaped } from "../../encryption/encryption.js";
 import type { SecretService } from "../../encryption/encryption.js";
+import { EncryptionScope } from "../../encryption/encryption.js";
 import {
   internalError,
   invalidArgumentError,
@@ -157,7 +158,9 @@ export function newEncryptSecretValuesStep(
 ): PipelineStep<typeof EnvironmentSchema> {
   return {
     name: "EncryptSecretValues",
-    execute(ctx: RequestContext<typeof EnvironmentSchema>): void {
+    async execute(
+      ctx: RequestContext<typeof EnvironmentSchema>,
+    ): Promise<void> {
       const env = ctx.newState;
       const data = env.spec?.data;
       if (data === undefined || Object.keys(data).length === 0) {
@@ -179,7 +182,14 @@ export function newEncryptSecretValuesStep(
           continue;
         }
         try {
-          value.value = secretService.encrypt(value.value);
+          // Tenancy-only scope, the pre-v3 write posture: environment is
+          // an org-scoped kind, so metadata.org is validated non-empty
+          // long before this step. The v1 codec ignores the scope; a
+          // vault-backed write codec keys the per-org KEK by it.
+          value.value = await secretService.encrypt(
+            value.value,
+            EncryptionScope.forOrganization(env.metadata?.org ?? ""),
+          );
         } catch (error) {
           throw internalError(
             error,
@@ -307,9 +317,9 @@ export function newExtractAndDecryptSingleKeyStep(
 ): PipelineStep<typeof EnvironmentSecretValueInputSchema> {
   return {
     name: "ExtractAndDecryptSingleKey",
-    execute(
+    async execute(
       ctx: RequestContext<typeof EnvironmentSecretValueInputSchema>,
-    ): void {
+    ): Promise<void> {
       const key = ctx.input.key;
 
       const env = ctx.get(TARGET_RESOURCE_KEY) as Environment | undefined;
@@ -328,7 +338,7 @@ export function newExtractAndDecryptSingleKeyStep(
       if (envValue.isSecret && envValue.value !== "") {
         let decrypted: string;
         try {
-          decrypted = secretService.decrypt(envValue.value);
+          decrypted = await secretService.decrypt(envValue.value);
         } catch (error) {
           logger.error("Failed to decrypt secret value", {
             key,
@@ -414,7 +424,10 @@ export function newMergeVariablesAndPersistStep(
           } else {
             let encrypted: string;
             try {
-              encrypted = secretService.encrypt(value.value);
+              encrypted = await secretService.encrypt(
+                value.value,
+                EncryptionScope.forOrganization(env.metadata?.org ?? ""),
+              );
             } catch (error) {
               throw internalError(
                 error,

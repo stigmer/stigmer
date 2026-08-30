@@ -37,7 +37,11 @@ import { loadConfig } from "../../../boot/config.js";
 import { composeServer } from "../../../boot/compose.js";
 import type { ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
-import { SecretService, isCiphertextShaped } from "../../../encryption/encryption.js";
+import {
+  EncryptionScope,
+  SecretService,
+  isCiphertextShaped,
+} from "../../../encryption/encryption.js";
 import {
   PROVIDER_IMMUTABLE_MESSAGE,
   REDACTED_MARKER,
@@ -47,7 +51,11 @@ import {
   plaintextRequiredMessage,
 } from "../constants.js";
 
-const silentLogger = createLogger({ level: "error", pretty: false, write: () => {} });
+const silentLogger = createLogger({
+  level: "error",
+  pretty: false,
+  write: () => {},
+});
 
 // A real 32-byte key so encrypt/redact round-trips are exercised for real
 // (the Go harness posture); the same key decrypts stored values below.
@@ -70,7 +78,10 @@ let dir: string;
 beforeAll(async () => {
   dir = mkdtempSync(path.join(tmpdir(), "channelapp-domain-test-"));
   vi.stubEnv("STIGMER_ENCRYPTION_KEY", TEST_KEY_B64);
-  vi.stubEnv("STIGMER_RUNNER_TOKEN_KEY", Buffer.alloc(32, 8).toString("base64"));
+  vi.stubEnv(
+    "STIGMER_RUNNER_TOKEN_KEY",
+    Buffer.alloc(32, 8).toString("base64"),
+  );
   server = await composeServer({
     config: loadConfig({
       STIGMER_MODEL_REGISTRY_REFRESH: "off",
@@ -143,7 +154,11 @@ function newWhatsAppApp(name: string, org: string = ORG) {
 }
 
 async function readStored(id: string): Promise<ChannelApp> {
-  return server.store.getResource(ApiResourceKind.channel_app, id, ChannelAppSchema);
+  return server.store.getResource(
+    ApiResourceKind.channel_app,
+    id,
+    ChannelAppSchema,
+  );
 }
 
 async function grpcError(run: () => Promise<unknown>): Promise<ConnectError> {
@@ -175,7 +190,10 @@ describe("provider-arm redact/encrypt tripwire (#324 regression guard)", () => {
     slack: {
       newApp: (name) => newSlackApp(name),
       secretsOf: (app) => {
-        const slack = app.spec?.providerConfig.case === "slack" ? app.spec.providerConfig.value : undefined;
+        const slack =
+          app.spec?.providerConfig.case === "slack"
+            ? app.spec.providerConfig.value
+            : undefined;
         return {
           client_secret: slack?.clientSecret ?? "",
           signing_secret: slack?.signingSecret ?? "",
@@ -185,7 +203,10 @@ describe("provider-arm redact/encrypt tripwire (#324 regression guard)", () => {
     whatsapp: {
       newApp: (name) => newWhatsAppApp(name),
       secretsOf: (app) => {
-        const wa = app.spec?.providerConfig.case === "whatsapp" ? app.spec.providerConfig.value : undefined;
+        const wa =
+          app.spec?.providerConfig.case === "whatsapp"
+            ? app.spec.providerConfig.value
+            : undefined;
         return {
           app_secret: wa?.appSecret ?? "",
           access_token: wa?.accessToken ?? "",
@@ -199,13 +220,20 @@ describe("provider-arm redact/encrypt tripwire (#324 regression guard)", () => {
     // The tripwire proper: the case table must cover every provider_config
     // arm. Adding a provider arm to the proto fails here until the arm has
     // redaction, encryption, and a case entry (the Go tripwire's posture).
-    const oneof = ChannelAppSpecSchema.oneofs.find((o) => o.name === "provider_config");
+    const oneof = ChannelAppSpecSchema.oneofs.find(
+      (o) => o.name === "provider_config",
+    );
     expect(oneof).toBeDefined();
     const armNames = oneof!.fields.map((f) => f.name);
     for (const arm of armNames) {
-      expect(cases, `provider arm "${arm}" has no redaction/encryption coverage`).toHaveProperty(arm);
+      expect(
+        cases,
+        `provider arm "${arm}" has no redaction/encryption coverage`,
+      ).toHaveProperty(arm);
     }
-    expect(Object.keys(cases).length, "remove stale case entries").toBe(armNames.length);
+    expect(Object.keys(cases).length, "remove stale case entries").toBe(
+      armNames.length,
+    );
   });
 
   for (const [arm, tc] of Object.entries(cases)) {
@@ -217,15 +245,21 @@ describe("provider-arm redact/encrypt tripwire (#324 regression guard)", () => {
 
       const created = await command.create(tc.newApp(name));
       for (const [field, value] of Object.entries(tc.secretsOf(created))) {
-        expect(value, `${field} must be redacted in the create response`).toBe(REDACTED_MARKER);
+        expect(value, `${field} must be redacted in the create response`).toBe(
+          REDACTED_MARKER,
+        );
       }
 
       const stored = await readStored(created.metadata!.id);
       for (const [field, value] of Object.entries(tc.secretsOf(stored))) {
-        expect(isCiphertextShaped(value), `stored ${field} must be encrypted`).toBe(true);
-        expect(secrets.decrypt(value), `stored ${field} must decrypt to the original`).toBe(
-          plaintexts[field],
-        );
+        expect(
+          isCiphertextShaped(value),
+          `stored ${field} must be encrypted`,
+        ).toBe(true);
+        expect(
+          await secrets.decrypt(value),
+          `stored ${field} must decrypt to the original`,
+        ).toBe(plaintexts[field]);
       }
     });
   }
@@ -237,20 +271,29 @@ describe("provider-arm redact/encrypt tripwire (#324 regression guard)", () => {
 
 describe("channelapp create", () => {
   it("encrypts at rest, redacts the response, stamps the chapp id", async () => {
-    const created = await command.create(newSlackApp(uniqueName("Acme Support App")));
+    const created = await command.create(
+      newSlackApp(uniqueName("Acme Support App")),
+    );
 
     expect(created.metadata?.id).toMatch(/^chapp/);
     expect(created.spec?.providerConfig.case).toBe("slack");
-    const slack = created.spec!.providerConfig.case === "slack" ? created.spec!.providerConfig.value : undefined;
+    const slack =
+      created.spec!.providerConfig.case === "slack"
+        ? created.spec!.providerConfig.value
+        : undefined;
     expect(slack?.clientSecret).toBe(REDACTED_MARKER);
     expect(slack?.signingSecret).toBe(REDACTED_MARKER);
 
     const stored = await readStored(created.metadata!.id);
     const storedSlack =
-      stored.spec?.providerConfig.case === "slack" ? stored.spec.providerConfig.value : undefined;
+      stored.spec?.providerConfig.case === "slack"
+        ? stored.spec.providerConfig.value
+        : undefined;
     expect(isCiphertextShaped(storedSlack?.clientSecret ?? "")).toBe(true);
     expect(isCiphertextShaped(storedSlack?.signingSecret ?? "")).toBe(true);
-    expect(secrets.decrypt(storedSlack!.clientSecret)).toBe("shh-client-secret");
+    expect(await secrets.decrypt(storedSlack!.clientSecret)).toBe(
+      "shh-client-secret",
+    );
   });
 
   it("refuses the redaction marker on create", async () => {
@@ -270,7 +313,8 @@ describe("channelapp create", () => {
 describe("ciphertext-shaped secrets are refused (oss#395)", () => {
   it("slack create", async () => {
     const app = newSlackApp(uniqueName("Acme Slack App"));
-    app.spec.providerConfig.value.clientSecret = "enc:v1:Zm9yZ2VkLWNpcGhlcnRleHQ=";
+    app.spec.providerConfig.value.clientSecret =
+      "enc:v1:Zm9yZ2VkLWNpcGhlcnRleHQ=";
 
     const err = await grpcError(() => command.create(app));
     expect(err.code).toBe(Code.InvalidArgument);
@@ -294,7 +338,8 @@ describe("ciphertext-shaped secrets are refused (oss#395)", () => {
     (update.metadata as Record<string, string>).id = created.metadata!.id;
     (update.metadata as Record<string, string>).slug = created.metadata!.slug;
     update.spec.providerConfig.value.clientSecret = REDACTED_MARKER;
-    update.spec.providerConfig.value.signingSecret = "enc:v1:Zm9yZ2VkLWNpcGhlcnRleHQ=";
+    update.spec.providerConfig.value.signingSecret =
+      "enc:v1:Zm9yZ2VkLWNpcGhlcnRleHQ=";
 
     const err = await grpcError(() => command.update(update));
     expect(err.code).toBe(Code.InvalidArgument);
@@ -319,13 +364,18 @@ describe("update marker preserves per field", () => {
     await command.update(update);
 
     const stored = await readStored(created.metadata!.id);
-    const slack = stored.spec?.providerConfig.case === "slack" ? stored.spec.providerConfig.value : undefined;
-    expect(secrets.decrypt(slack!.clientSecret), "marker must preserve the ORIGINAL client_secret").toBe(
-      "shh-client-secret",
-    );
-    expect(secrets.decrypt(slack!.signingSecret), "plaintext must rotate to the new value").toBe(
-      "rotated-signing-secret",
-    );
+    const slack =
+      stored.spec?.providerConfig.case === "slack"
+        ? stored.spec.providerConfig.value
+        : undefined;
+    expect(
+      await secrets.decrypt(slack!.clientSecret),
+      "marker must preserve the ORIGINAL client_secret",
+    ).toBe("shh-client-secret");
+    expect(
+      await secrets.decrypt(slack!.signingSecret),
+      "plaintext must rotate to the new value",
+    ).toBe("rotated-signing-secret");
   });
 
   it("whatsapp: rotates the access token, keeps app_secret and verify_token", async () => {
@@ -341,10 +391,13 @@ describe("update marker preserves per field", () => {
     await command.update(update);
 
     const stored = await readStored(created.metadata!.id);
-    const wa = stored.spec?.providerConfig.case === "whatsapp" ? stored.spec.providerConfig.value : undefined;
-    expect(secrets.decrypt(wa!.appSecret)).toBe("shh-app-secret");
-    expect(secrets.decrypt(wa!.accessToken)).toBe("rotated-access-token");
-    expect(secrets.decrypt(wa!.verifyToken)).toBe("shh-verify-token");
+    const wa =
+      stored.spec?.providerConfig.case === "whatsapp"
+        ? stored.spec.providerConfig.value
+        : undefined;
+    expect(await secrets.decrypt(wa!.appSecret)).toBe("shh-app-secret");
+    expect(await secrets.decrypt(wa!.accessToken)).toBe("rotated-access-token");
+    expect(await secrets.decrypt(wa!.verifyToken)).toBe("shh-verify-token");
   });
 
   it("marker with no stored value is InvalidArgument (adversarial arm)", async () => {
@@ -364,7 +417,14 @@ describe("update marker preserves per field", () => {
       spec: {
         providerConfig: {
           case: "slack",
-          value: { clientId: "1.2", clientSecret: secrets.encrypt("x"), signingSecret: "" },
+          value: {
+            clientId: "1.2",
+            clientSecret: await secrets.encrypt(
+              "x",
+              EncryptionScope.forOrganization(ORG),
+            ),
+            signingSecret: "",
+          },
         },
       },
     });
@@ -393,15 +453,24 @@ describe("update marker preserves per field", () => {
 
 describe("apply round-trips with markers", () => {
   it("get → apply back verbatim preserves both stored secrets", async () => {
-    const created = await command.apply(newSlackApp(uniqueName("Acme Support App")));
+    const created = await command.apply(
+      newSlackApp(uniqueName("Acme Support App")),
+    );
 
     const fetched = await query.get({ value: created.metadata!.id });
     await command.apply(fetched);
 
     const stored = await readStored(created.metadata!.id);
-    const slack = stored.spec?.providerConfig.case === "slack" ? stored.spec.providerConfig.value : undefined;
-    expect(secrets.decrypt(slack!.clientSecret)).toBe("shh-client-secret");
-    expect(secrets.decrypt(slack!.signingSecret)).toBe("shh-signing-secret");
+    const slack =
+      stored.spec?.providerConfig.case === "slack"
+        ? stored.spec.providerConfig.value
+        : undefined;
+    expect(await secrets.decrypt(slack!.clientSecret)).toBe(
+      "shh-client-secret",
+    );
+    expect(await secrets.decrypt(slack!.signingSecret)).toBe(
+      "shh-signing-secret",
+    );
   });
 });
 
@@ -412,11 +481,15 @@ describe("apply round-trips with markers", () => {
 describe("queries redact secrets", () => {
   it("slack: get, getByReference, and listByOrg redact; org filter holds", async () => {
     const org = "acme-slack-queries";
-    const created = await command.create(newSlackApp(uniqueName("Acme Support App"), org));
+    const created = await command.create(
+      newSlackApp(uniqueName("Acme Support App"), org),
+    );
 
     const fetched = await query.get({ value: created.metadata!.id });
     const fetchedSlack =
-      fetched.spec?.providerConfig.case === "slack" ? fetched.spec.providerConfig.value : undefined;
+      fetched.spec?.providerConfig.case === "slack"
+        ? fetched.spec.providerConfig.value
+        : undefined;
     expect(fetchedSlack?.clientSecret).toBe(REDACTED_MARKER);
     expect(fetchedSlack?.signingSecret).toBe(REDACTED_MARKER);
 
@@ -426,7 +499,9 @@ describe("queries redact secrets", () => {
       slug: created.metadata!.slug,
     });
     const byRefSlack =
-      byRef.spec?.providerConfig.case === "slack" ? byRef.spec.providerConfig.value : undefined;
+      byRef.spec?.providerConfig.case === "slack"
+        ? byRef.spec.providerConfig.value
+        : undefined;
     expect(byRefSlack?.clientSecret).toBe(REDACTED_MARKER);
 
     const list = await query.listByOrg({ org });
@@ -443,21 +518,31 @@ describe("queries redact secrets", () => {
 
   it("whatsapp: all three secrets redact; app_id is public and stays", async () => {
     const org = "acme-wa-queries";
-    const created = await command.create(newWhatsAppApp(uniqueName("Clinic Meta App"), org));
+    const created = await command.create(
+      newWhatsAppApp(uniqueName("Clinic Meta App"), org),
+    );
 
     const fetched = await query.get({ value: created.metadata!.id });
-    const wa = fetched.spec?.providerConfig.case === "whatsapp" ? fetched.spec.providerConfig.value : undefined;
+    const wa =
+      fetched.spec?.providerConfig.case === "whatsapp"
+        ? fetched.spec.providerConfig.value
+        : undefined;
     expect(wa?.appSecret).toBe(REDACTED_MARKER);
     expect(wa?.accessToken).toBe(REDACTED_MARKER);
     expect(wa?.verifyToken).toBe(REDACTED_MARKER);
-    expect(wa?.appId, "app_id is public and must NOT be redacted").toBe("108954");
+    expect(wa?.appId, "app_id is public and must NOT be redacted").toBe(
+      "108954",
+    );
 
     const byRef = await query.getByReference({
       org,
       kind: ApiResourceKind.channel_app,
       slug: created.metadata!.slug,
     });
-    const byRefWa = byRef.spec?.providerConfig.case === "whatsapp" ? byRef.spec.providerConfig.value : undefined;
+    const byRefWa =
+      byRef.spec?.providerConfig.case === "whatsapp"
+        ? byRef.spec.providerConfig.value
+        : undefined;
     expect(byRefWa?.appSecret).toBe(REDACTED_MARKER);
 
     const list = await query.listByOrg({ org });
@@ -506,7 +591,9 @@ describe("provider arm is immutable on update", () => {
 
 describe("delete is blocked while referenced", () => {
   it("names a referencing channel; deletion succeeds after unreferencing, redacted", async () => {
-    const created = await command.create(newSlackApp(uniqueName("Acme Support App")));
+    const created = await command.create(
+      newSlackApp(uniqueName("Acme Support App")),
+    );
 
     // Seed a referencing channel directly — the referential check reads
     // stored state, not the channel pipeline (the Go test's posture).
@@ -532,21 +619,36 @@ describe("delete is blocked while referenced", () => {
       channel,
     );
 
-    const err = await grpcError(() => command.delete({ resourceId: created.metadata!.id }));
+    const err = await grpcError(() =>
+      command.delete({ resourceId: created.metadata!.id }),
+    );
     expect(err.code).toBe(Code.FailedPrecondition);
     expect(err.rawMessage).toBe(
-      deleteBlockedByChannelMessage(ORG, created.metadata!.slug, "support-bot-slack"),
+      deleteBlockedByChannelMessage(
+        ORG,
+        created.metadata!.slug,
+        "support-bot-slack",
+      ),
     );
 
-    await server.store.deleteResource(ApiResourceKind.agent_channel, channel.metadata!.id);
+    await server.store.deleteResource(
+      ApiResourceKind.agent_channel,
+      channel.metadata!.id,
+    );
     const deleted = await command.delete({ resourceId: created.metadata!.id });
     const slack =
-      deleted.spec?.providerConfig.case === "slack" ? deleted.spec.providerConfig.value : undefined;
-    expect(slack?.clientSecret, "the delete response must be redacted").toBe(REDACTED_MARKER);
+      deleted.spec?.providerConfig.case === "slack"
+        ? deleted.spec.providerConfig.value
+        : undefined;
+    expect(slack?.clientSecret, "the delete response must be redacted").toBe(
+      REDACTED_MARKER,
+    );
   });
 
   it("a pre-normalization app_ref with no org still guards its app", async () => {
-    const created = await command.create(newSlackApp(uniqueName("Acme Support App")));
+    const created = await command.create(
+      newSlackApp(uniqueName("Acme Support App")),
+    );
 
     const channel = create(AgentChannelSchema, {
       metadata: {
@@ -569,9 +671,14 @@ describe("delete is blocked while referenced", () => {
       channel,
     );
 
-    const err = await grpcError(() => command.delete({ resourceId: created.metadata!.id }));
+    const err = await grpcError(() =>
+      command.delete({ resourceId: created.metadata!.id }),
+    );
     expect(err.code).toBe(Code.FailedPrecondition);
 
-    await server.store.deleteResource(ApiResourceKind.agent_channel, channel.metadata!.id);
+    await server.store.deleteResource(
+      ApiResourceKind.agent_channel,
+      channel.metadata!.id,
+    );
   });
 });

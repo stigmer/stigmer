@@ -30,6 +30,7 @@ import {
 
 import type { Logger } from "../../boot/logger.js";
 import type { SecretService } from "../../encryption/encryption.js";
+import { EncryptionScope } from "../../encryption/encryption.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import {
   failedPreconditionError,
@@ -124,7 +125,11 @@ export async function initiateOAuthConnect(
   // reaches the store.
   let sealed: PendingOAuthState;
   try {
-    sealed = sealPendingOAuthState(deps.secretService, deps.logger, pendingState);
+    sealed = await sealPendingOAuthState(
+      deps.secretService,
+      deps.logger,
+      pendingState,
+    );
   } catch (error) {
     throw internalError(error, "failed to encrypt OAuth handshake secrets");
   }
@@ -238,7 +243,8 @@ async function initiateDcr(
   } catch (probeError) {
     deps.logger.debug("authorize pre-flight probe inconclusive; proceeding", {
       mcp_server_id: mcpServer.metadata?.id ?? "",
-      error: probeError instanceof Error ? probeError.message : String(probeError),
+      error:
+        probeError instanceof Error ? probeError.message : String(probeError),
     });
   }
   if (rejection !== undefined) {
@@ -311,7 +317,7 @@ async function initiateVendorOAuth(
   let clientSecret = oauthApp.spec?.clientSecret ?? "";
   if (deps.secretService.isEncrypted(clientSecret)) {
     try {
-      clientSecret = deps.secretService.decrypt(clientSecret);
+      clientSecret = await deps.secretService.decrypt(clientSecret);
     } catch (error) {
       throw internalError(error, "failed to decrypt OAuthApp client secret");
     }
@@ -439,11 +445,11 @@ function generateState(): string {
  * while enabled throws so the caller fails the request instead of
  * persisting plaintext.
  */
-export function sealPendingOAuthState(
+export async function sealPendingOAuthState(
   secretService: SecretService,
   logger: Logger,
   state: PendingOAuthState,
-): PendingOAuthState {
+): Promise<PendingOAuthState> {
   if (!secretService.isEnabled()) {
     logger.warn(
       "Encryption disabled: pending OAuth state secrets will be stored in plaintext",
@@ -451,9 +457,15 @@ export function sealPendingOAuthState(
     return state;
   }
 
+  // Tenancy-only scope from the row's own org (proto-required min_len 1
+  // on the initiate input, so never empty here) — the handshake ephemera
+  // seal under the caller's org exactly like the durable rows they
+  // snapshot from.
+  const scope = EncryptionScope.forOrganization(state.org);
+
   let sealedVerifier: string;
   try {
-    sealedVerifier = secretService.encrypt(state.codeVerifier);
+    sealedVerifier = await secretService.encrypt(state.codeVerifier, scope);
   } catch (error) {
     throw new Error(
       `failed to encrypt code_verifier: ${error instanceof Error ? error.message : String(error)}`,
@@ -463,7 +475,7 @@ export function sealPendingOAuthState(
   let sealedSecret = state.clientSecret;
   if (state.clientSecret !== "") {
     try {
-      sealedSecret = secretService.encrypt(state.clientSecret);
+      sealedSecret = await secretService.encrypt(state.clientSecret, scope);
     } catch (error) {
       throw new Error(
         `failed to encrypt client_secret: ${error instanceof Error ? error.message : String(error)}`,

@@ -26,7 +26,7 @@ import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/ap
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../../boot/logger.js";
-import { EncryptionDisabledError } from "../../../encryption/encryption.js";
+import { EncryptionUnavailableError } from "../../../encryption/encryption.js";
 import type { SecretService } from "../../../encryption/encryption.js";
 import {
   internalError,
@@ -59,13 +59,16 @@ export class RuntimeResolutionService {
    * org-scoped kind — so a ref that resolves through the RPC surface
    * resolves identically here, and vice versa.
    *
-   * Error doctrine (the cloud service's, in this edition's taxonomy):
-   *   - Undecryptable ciphertext (tampered/truncated/wrong-key) is scoped
-   *     to one value: WARN and drop that key (the cloud's per-key skip).
-   *   - EncryptionDisabledError propagates: the stored ciphertext may be
-   *     perfectly valid (key file lost), and skipping it would start the
-   *     execution silently missing a credential — a confusing downstream
-   *     failure instead of a clear one here.
+   * Error doctrine (the cloud service's two-armed taxonomy, errors.ts):
+   *   - The value-scoped arm (InvalidCiphertextError family —
+   *     tampered/truncated/wrong-key) is scoped to one value: WARN and
+   *     drop that key (the cloud's per-key skip).
+   *   - The infrastructure arm (EncryptionUnavailableError, incl. its
+   *     keyless EncryptionDisabledError case) propagates: the stored
+   *     ciphertext may be perfectly valid (key file lost, codec's key
+   *     provider unreachable, version with no codec here), and skipping
+   *     it would start the execution silently missing a credential — a
+   *     confusing downstream failure instead of a clear one here.
    *   - An unresolvable reference is NotFound, same as the RPC path — the
    *     execution-context builders treat that as an authoring error that
    *     fails the create (never a silent run without credentials).
@@ -105,16 +108,18 @@ export class RuntimeResolutionService {
       throw notFoundError("environment", ref.slug);
     }
 
-    this.decryptSecretValues(env);
+    await this.decryptSecretValues(env);
     return env;
   }
 
   /**
    * Decrypts every encrypted is_secret value in place. Plaintext legacy
    * rows pass through decrypt unchanged, so pre-oss#405 stores resolve
-   * without migration.
+   * without migration. Values decrypt one at a time, deliberately NOT
+   * through the batch verb: decryptAll fails as a whole, and this lane's
+   * contract is per-key skip for value-scoped failures.
    */
-  private decryptSecretValues(env: Environment): void {
+  private async decryptSecretValues(env: Environment): Promise<void> {
     const data = env.spec?.data;
     if (data === undefined || Object.keys(data).length === 0) {
       return;
@@ -127,9 +132,9 @@ export class RuntimeResolutionService {
       }
 
       try {
-        value.value = this.secretService.decrypt(value.value);
+        value.value = await this.secretService.decrypt(value.value);
       } catch (error) {
-        if (error instanceof EncryptionDisabledError) {
+        if (error instanceof EncryptionUnavailableError) {
           throw internalError(
             error,
             `environment ${environmentId} holds encrypted secret '${key}' but no encryption key is configured`,

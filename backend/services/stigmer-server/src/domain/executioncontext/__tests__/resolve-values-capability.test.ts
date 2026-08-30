@@ -15,7 +15,10 @@ import { describe, expect, it } from "vitest";
 import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 
 import { createLogger } from "../../../boot/logger.js";
-import { SecretService } from "../../../encryption/encryption.js";
+import {
+  EncryptionScope,
+  SecretService,
+} from "../../../encryption/encryption.js";
 import { InvalidTokenError } from "../../../runnerauth/runnerauth.js";
 import type { RunnerCredentialProvider } from "../../../runnerauth/runner-credential-provider.js";
 import { resolveValuesForCaller } from "../resolve-values-for-caller.js";
@@ -59,13 +62,16 @@ function providerWith(
   };
 }
 
-function executionContext() {
+async function executionContext() {
   return create(ExecutionContextSchema, {
     spec: {
       executionId: "aexec_cap1",
       data: {
         API_KEY: {
-          value: secretService.encrypt("s3cret"),
+          value: await secretService.encrypt(
+            "s3cret",
+            EncryptionScope.forOrganization("test-org"),
+          ),
           isSecret: true,
         },
       },
@@ -76,7 +82,7 @@ function executionContext() {
 describe("resolveValuesForCaller (capability delegation — C4)", () => {
   it("decrypts when the capability answers true, passing token and execution id", async () => {
     const provider = providerWith(async () => true);
-    const ec = executionContext();
+    const ec = await executionContext();
     await resolveValuesForCaller(
       { logger: silentLogger, secretService, runnerAuthService: provider },
       ctxWithBearer("sandbox-token"),
@@ -88,7 +94,7 @@ describe("resolveValuesForCaller (capability delegation — C4)", () => {
 
   it("redacts when the capability answers false", async () => {
     const provider = providerWith(async () => false);
-    const ec = executionContext();
+    const ec = await executionContext();
     await resolveValuesForCaller(
       { logger: silentLogger, secretService, runnerAuthService: provider },
       ctxWithBearer("someone-elses-token"),
@@ -99,7 +105,7 @@ describe("resolveValuesForCaller (capability delegation — C4)", () => {
 
   it("redacts without consulting the capability when no bearer token is presented", async () => {
     const provider = providerWith(async () => true);
-    const ec = executionContext();
+    const ec = await executionContext();
     await resolveValuesForCaller(
       { logger: silentLogger, secretService, runnerAuthService: provider },
       ctxWithBearer(""),
@@ -113,7 +119,7 @@ describe("resolveValuesForCaller (capability delegation — C4)", () => {
     const provider = providerWith(async () => {
       throw new Error("policy backend unavailable");
     });
-    const ec = executionContext();
+    const ec = await executionContext();
     await resolveValuesForCaller(
       { logger: silentLogger, secretService, runnerAuthService: provider },
       ctxWithBearer("sandbox-token"),
