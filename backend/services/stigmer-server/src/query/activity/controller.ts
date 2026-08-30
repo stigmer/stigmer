@@ -21,6 +21,7 @@ import type { ConnectRouter } from "@connectrpc/connect";
 import { ActivityQueryController } from "@stigmer/protos/ai/stigmer/activity/v1/query_pb";
 
 import type { Logger } from "../../boot/logger.js";
+import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { internalError } from "../../pipeline/errors.js";
 import type { ActivityHandler } from "./handler.js";
 
@@ -35,9 +36,12 @@ export function registerActivityServices(
   deps: ActivityControllerDeps,
 ): void {
   router.service(ActivityQueryController, {
-    listRecentActivity: async (request) => {
+    listRecentActivity: async (request, ctx) => {
       try {
-        return await deps.handler.listRecentActivity(request);
+        return await deps.handler.listRecentActivity(
+          request,
+          callerIdentityOf(ctx),
+        );
       } catch (error) {
         deps.logger.error("ListRecentActivity failed", {
           error: error instanceof Error ? error.message : String(error),

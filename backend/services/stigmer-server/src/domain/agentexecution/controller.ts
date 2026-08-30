@@ -30,7 +30,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
-import type { ExecutionReadScope } from "../../extensions/execution-read-scope.js";
+import type { ListReadScope } from "../../extensions/list-read-scope.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import type { ResolvedGateSteps } from "../../extensions/gate-slots.js";
 import { stepsForSlot } from "../../extensions/gate-slots.js";
@@ -146,7 +146,7 @@ export interface AgentExecutionControllerDeps {
   /** The composed tuple-lifecycle driver — undefined = the shared steps no-op (C2). */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   /** The composed summary read scope — undefined = the OSS full scan (C2 Stage 4). */
-  readonly executionReadScope: ExecutionReadScope | undefined;
+  readonly listReadScope: ListReadScope | undefined;
   /**
    * The shared broadcast fabric for subscribe streams. ONE instance spans
    * both routers (serving + in-process) — see stream-broker.ts; the
@@ -529,7 +529,9 @@ async function list(
       ),
     )
     .addStep(newValidateListRequestStep())
-    .addStep(newQueryAllExecutionsStep(deps.store, deps.logger))
+    .addStep(
+      newQueryAllExecutionsStep(deps.store, deps.logger, deps.listReadScope),
+    )
     .addStep(newApplyPhaseFilterStep(deps.logger))
     .addStep(newBuildExecutionListResponseStep())
     .build()
@@ -559,7 +561,9 @@ async function listBySession(
       ),
     )
     .addStep(newValidateListBySessionRequestStep())
-    .addStep(newQueryExecutionsBySessionStep(deps.store, deps.logger))
+    .addStep(
+      newQueryExecutionsBySessionStep(deps.store, deps.logger, deps.listReadScope),
+    )
     .addStep(newBuildExecutionListResponseStep())
     .build()
     .execute(reqCtx);

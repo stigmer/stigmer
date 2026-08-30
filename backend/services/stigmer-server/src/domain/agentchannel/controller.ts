@@ -49,6 +49,8 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
+import type { ListReadScope } from "../../extensions/list-read-scope.js";
+import { restrictListByReadScope } from "../../extensions/list-read-scope.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import {
@@ -125,6 +127,8 @@ export interface AgentChannelControllerDeps {
    * site states which posture it composes.
    */
   readonly channelRuntime: ChannelRuntime | undefined;
+  /** The composed list read scope — list/getByAgent narrow through it; undefined = the OSS full scan (20260830.01). */
+  readonly listReadScope: ListReadScope | undefined;
 }
 
 /** Registers both agentchannel resource services on the router. */
@@ -533,7 +537,7 @@ async function getByAgent(
       ),
     )
     .addStep(newValidateProtoStep())
-    .addStep(newLoadChannelsByAgentStep(deps.store))
+    .addStep(newLoadChannelsByAgentStep(deps.store, deps.listReadScope))
     .build()
     .execute(reqCtx);
 
@@ -550,6 +554,7 @@ async function getByAgent(
 /** LoadChannelsByAgent — Go loadChannelsByAgentStep. */
 function newLoadChannelsByAgentStep(
   store: Store,
+  listReadScope: ListReadScope | undefined,
 ): PipelineStep<typeof AgentChannelQueryController.method.getByAgent.input> {
   return {
     name: "LoadChannelsByAgent",
@@ -586,14 +591,26 @@ function newLoadChannelsByAgentStep(
         throw internalError(error, "failed to list agent channels");
       }
 
-      const channels: AgentChannel[] = [];
+      const decoded: AgentChannel[] = [];
       for (const bytes of rows) {
-        let channel: AgentChannel;
         try {
-          channel = fromBinary(AgentChannelSchema, bytes);
+          decoded.push(fromBinary(AgentChannelSchema, bytes));
         } catch {
           continue;
         }
+      }
+      // 20260830.01 census lane 19: the scope narrows the decoded scan;
+      // the org/agent filters below are contract parity in both editions.
+      const visible = await restrictListByReadScope(
+        listReadScope,
+        ctx.callerIdentity,
+        ApiResourceKind.agent_channel,
+        decoded,
+        "",
+      );
+
+      const channels: AgentChannel[] = [];
+      for (const channel of visible) {
         const ref = channel.spec?.agentRef;
         if ((ref?.org ?? "") !== agentOrg || (ref?.slug ?? "") !== agentSlug) {
           continue;
@@ -640,7 +657,7 @@ async function list(
       ),
     )
     .addStep(newValidateProtoStep())
-    .addStep(newListByOrgAndLabelsStep(deps.store))
+    .addStep(newListByOrgAndLabelsStep(deps.store, deps.listReadScope))
     .build()
     .execute(reqCtx);
 
@@ -661,6 +678,7 @@ async function list(
  */
 function newListByOrgAndLabelsStep(
   store: Store,
+  listReadScope: ListReadScope | undefined,
 ): PipelineStep<typeof AgentChannelQueryController.method.list.input> {
   return {
     name: "ListByOrgAndLabels",
@@ -676,14 +694,26 @@ function newListByOrgAndLabelsStep(
         throw internalError(error, "failed to list agent channels");
       }
 
-      const channels: AgentChannel[] = [];
+      const decoded: AgentChannel[] = [];
       for (const bytes of rows) {
-        let channel: AgentChannel;
         try {
-          channel = fromBinary(AgentChannelSchema, bytes);
+          decoded.push(fromBinary(AgentChannelSchema, bytes));
         } catch {
           continue;
         }
+      }
+      // 20260830.01 census lane 18: the scope narrows the decoded scan;
+      // the org equality below already serves the Java handler's org arm.
+      const visible = await restrictListByReadScope(
+        listReadScope,
+        ctx.callerIdentity,
+        ApiResourceKind.agent_channel,
+        decoded,
+        "",
+      );
+
+      const channels: AgentChannel[] = [];
+      for (const channel of visible) {
         if ((channel.metadata?.org ?? "") !== org) {
           continue;
         }

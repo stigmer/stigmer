@@ -34,7 +34,16 @@ import type { SearchableResourceRegistry } from "./registry.js";
 
 /** Go SearchQueryStore, the handler's read seam. */
 export interface SearchQueryStore {
-  search(criteria: SearchCriteria): Promise<SearchPagedResult>;
+  /**
+   * `authorizedIdsByKind` (kind NAME → ids) is the 20260830.01 scoping
+   * arm — the Java PostgresSearchQueryStore's authorizedByKind hard
+   * filter, pushed into the engine query so pagination stays correct.
+   * Undefined = the unscoped read, byte-identical to the pre-seam query.
+   */
+  search(
+    criteria: SearchCriteria,
+    authorizedIdsByKind?: ReadonlyMap<string, ReadonlySet<string>>,
+  ): Promise<SearchPagedResult>;
   /**
    * Wipes and repopulates the search index from the resources table.
    * Returns the indexed-row count; throws AFTER indexing what it could
@@ -51,7 +60,10 @@ export class SqliteSearchQueryStore implements SearchQueryStore {
     private readonly logger: Logger,
   ) {}
 
-  async search(criteria: SearchCriteria): Promise<SearchPagedResult> {
+  async search(
+    criteria: SearchCriteria,
+    authorizedIdsByKind?: ReadonlyMap<string, ReadonlySet<string>>,
+  ): Promise<SearchPagedResult> {
     const effectiveKinds = criteria.effectiveKinds();
     // A request naming only non-searchable kinds answers emptiness —
     // never a discover fallback (stigmer/stigmer#440).
@@ -62,6 +74,7 @@ export class SqliteSearchQueryStore implements SearchQueryStore {
     const { countsByKind, totalCount, hits } =
       await this.store.querySearchIndex({
         kinds: effectiveKinds.map((kind) => apiResourceKindName(kind)),
+        authorizedIdsByKind,
         // Engine-neutral tokenization: whitespace terms via the gocompat
         // twin of Go's strings.Fields (JS \s+ disagrees with Go on
         // U+FEFF/U+0085 — the #8 BOM divergence class; criteria.query()

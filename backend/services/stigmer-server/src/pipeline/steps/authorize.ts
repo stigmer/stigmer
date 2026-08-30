@@ -151,19 +151,52 @@ export async function authorizeDirect(
   }
   const config = getOption(method, rpcAuthorizationConfig);
 
-  const check: AuthzCheck = {
-    permission: config.permission,
-    resourceKind: resolveResourceKind(input, config),
-    resourceId: override?.resourceId ?? resolveResourceId(input, config),
-  };
+  return authorizeResolvedResource(
+    authorizer,
+    identity,
+    {
+      permission: config.permission,
+      resourceKind: resolveResourceKind(input, config),
+      resourceId: override?.resourceId ?? resolveResourceId(input, config),
+    },
+    config.errorMsg,
+  );
+}
+
+/**
+ * The SAME evaluation for a check whose target the HANDLER resolved —
+ * the mid-chain resolved-id pattern DD-007 names ("the pattern the two
+ * traced ListVersions handlers port onto", shipped by
+ * 20260830.01.sp.list-read-scoping ruling Q8). It serves the
+ * `is_skip_authorization` lanes whose Java baseline runs a hand-rolled
+ * check the declarative annotation cannot express (a mid-chain resolved
+ * id, a two-field target dispatch): the skip annotation makes the
+ * position-1 step a no-op, and the handler calls THIS at the Java
+ * baseline's exact position instead. Skip arms deliberately reduce to
+ * the `internal` class alone — the annotation skips do not apply because
+ * the caller IS the enforcement the annotation opted out of.
+ *
+ * `errorMsg` is the lane's byte-pinned deny copy (the Java handler's
+ * error_msg); empty falls back to the Authorizer's reason, then the
+ * shared fallback — the authorizeDirect precedence exactly.
+ */
+export async function authorizeResolvedResource(
+  authorizer: Authorizer,
+  identity: CallerIdentity,
+  check: AuthzCheck,
+  errorMsg: string,
+): Promise<void> {
+  if (identity.callerClass === "internal") {
+    return;
+  }
   const decision = await runAuthorizer(authorizer, identity, check);
   switch (decision.kind) {
     case "allow":
       return;
     case "deny":
       throw new ConnectError(
-        config.errorMsg !== ""
-          ? config.errorMsg
+        errorMsg !== ""
+          ? errorMsg
           : decision.reason !== ""
             ? decision.reason
             : AUTHORIZATION_DENIED_FALLBACK_MESSAGE,

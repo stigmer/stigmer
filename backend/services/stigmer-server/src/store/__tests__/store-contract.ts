@@ -879,6 +879,85 @@ export function describeStoreContract(
       expect(result.totalCount).toBe(0);
     });
 
+    it("authorizedIdsByKind narrows per kind; an empty set matches nothing; absent kinds stay unrestricted (20260830.01)", async () => {
+      await fx.store.upsertSearchIndex(
+        ApiResourceKind.agent,
+        "agt-mine",
+        entry({ name: "scoped alpha" }),
+      );
+      await fx.store.upsertSearchIndex(
+        ApiResourceKind.agent,
+        "agt-foreign",
+        entry({ name: "scoped beta" }),
+      );
+      await fx.store.upsertSearchIndex(
+        ApiResourceKind.workflow,
+        "wfl-any",
+        entry({ name: "scoped gamma" }),
+      );
+
+      // agent narrowed to one id; workflow ABSENT from the map = unrestricted.
+      const narrowed = await fx.store.querySearchIndex({
+        kinds: ["agent", "workflow"],
+        terms: ["scoped"],
+        orgFilter: "",
+        crossOrgPublic: false,
+        excludePublic: false,
+        authorizedIdsByKind: new Map([["agent", new Set(["agt-mine"])]]),
+        limit: 20,
+        offset: 0,
+      });
+      expect(narrowed.countsByKind).toEqual({ agent: 1, workflow: 1 });
+      expect(
+        narrowed.hits.map((hit) => hit.resourceId).sort(),
+      ).toEqual(["agt-mine", "wfl-any"]);
+
+      // An EMPTY set for a kind matches nothing for that kind.
+      const emptyKind = await fx.store.querySearchIndex({
+        kinds: ["agent", "workflow"],
+        terms: ["scoped"],
+        orgFilter: "",
+        crossOrgPublic: false,
+        excludePublic: false,
+        authorizedIdsByKind: new Map([
+          ["agent", new Set<string>()],
+          ["workflow", new Set(["wfl-any"])],
+        ]),
+        limit: 20,
+        offset: 0,
+      });
+      expect(emptyKind.countsByKind).toEqual({ workflow: 1 });
+
+      // ALL kinds empty = nothing, and the driver must not emit IN ().
+      const allEmpty = await fx.store.querySearchIndex({
+        kinds: ["agent", "workflow"],
+        terms: ["scoped"],
+        orgFilter: "",
+        crossOrgPublic: false,
+        excludePublic: false,
+        authorizedIdsByKind: new Map([
+          ["agent", new Set<string>()],
+          ["workflow", new Set<string>()],
+        ]),
+        limit: 20,
+        offset: 0,
+      });
+      expect(allEmpty.totalCount).toBe(0);
+      expect(allEmpty.hits).toEqual([]);
+
+      // Undefined = the unscoped read, byte-identical.
+      const unscoped = await fx.store.querySearchIndex({
+        kinds: ["agent", "workflow"],
+        terms: ["scoped"],
+        orgFilter: "",
+        crossOrgPublic: false,
+        excludePublic: false,
+        limit: 20,
+        offset: 0,
+      });
+      expect(unscoped.totalCount).toBe(3);
+    });
+
     it("org scoping: strict filter, cross-org public widening, and the public subtraction", async () => {
       await fx.store.upsertSearchIndex(
         ApiResourceKind.agent,

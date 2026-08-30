@@ -68,6 +68,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
+import type { ListReadScope } from "../../extensions/list-read-scope.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import { internalError } from "../../pipeline/errors.js";
@@ -125,6 +126,8 @@ export interface MemoryControllerDeps {
   readonly authorizer: Authorizer;
   /** The composed tuple-lifecycle driver — undefined = the shared steps no-op (C2). */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
+  /** The composed list read scope — list narrows through it; undefined = the OSS full scan (20260830.01). */
+  readonly listReadScope: ListReadScope | undefined;
 }
 
 /** Registers both memory services on the router (routes stage). */
@@ -469,7 +472,7 @@ async function list(
       newAuthorizeStep(MemoryQueryController.method.list, deps.authorizer),
     )
     .addStep(newValidateProtoStep())
-    .addStep(newListMemoriesByOrgStep(deps.store))
+    .addStep(newListMemoriesByOrgStep(deps.store, deps.listReadScope))
     .build()
     .execute(reqCtx);
 

@@ -31,9 +31,22 @@ import { RequestContext } from "../../request-context.js";
 import {
   AUTHORIZATION_UNAVAILABLE_MESSAGE,
   authorizeDirect,
+  authorizeResolvedResource,
   newAuthorizeStep,
   newPermissiveSingleTeamAuthorizer,
 } from "../authorize.js";
+
+/** Awaits the rejection and returns it as a ConnectError. */
+async function captureError(
+  run: () => Promise<void>,
+): Promise<ConnectError> {
+  try {
+    await run();
+  } catch (error) {
+    return ConnectError.from(error);
+  }
+  throw new Error("expected the evaluation to reject");
+}
 
 /** A fake Authorizer that records every check and answers a fixed arm. */
 function fakeAuthorizer(decision: AuthzDecision): {
@@ -382,5 +395,106 @@ describe("mid-chain resolved-id checks (the ListVersions pattern)", () => {
     const error = await midChainCheck().catch((e: unknown) => e);
     expect(checks[0].resourceId).toBe("skl_01resolved");
     expect((error as ConnectError).code).toBe(Code.PermissionDenied);
+  });
+});
+
+describe("authorizeResolvedResource (the mid-chain resolved-id pattern, 20260830.01 Q8)", () => {
+  const check: AuthzCheck = {
+    permission: IamPermission.can_view,
+    resourceKind: ApiResourceKind.workflow,
+    resourceId: "wf_123",
+  };
+
+  it("allows and passes the handler-resolved check through verbatim", async () => {
+    const { authorizer, checks } = fakeAuthorizer({ kind: "allow" });
+    await authorizeResolvedResource(
+      authorizer,
+      testCallerIdentity(),
+      check,
+      "unauthorized to view workflow version history",
+    );
+    expect(checks).toEqual([check]);
+  });
+
+  it("skips ONLY for the internal caller class — annotation skips do not apply", async () => {
+    const { authorizer, checks } = fakeAuthorizer({ kind: "deny", reason: "" });
+    await authorizeResolvedResource(
+      authorizer,
+      testCallerIdentity({ callerClass: "internal" }),
+      check,
+      "unauthorized to view workflow version history",
+    );
+    expect(checks).toEqual([]);
+  });
+
+  it("deny answers PERMISSION_DENIED with the lane's byte-pinned copy", async () => {
+    const { authorizer } = fakeAuthorizer({ kind: "deny", reason: "nope" });
+    const err = await captureError(() =>
+      authorizeResolvedResource(
+        authorizer,
+        testCallerIdentity(),
+        check,
+        "unauthorized to view workflow version history",
+      ),
+    );
+    expect(err.code).toBe(Code.PermissionDenied);
+    expect(err.rawMessage).toBe("unauthorized to view workflow version history");
+  });
+
+  it("deny without lane copy falls back to the reason, then the shared fallback", async () => {
+    const reasoned = fakeAuthorizer({ kind: "deny", reason: "because" });
+    const err1 = await captureError(() =>
+      authorizeResolvedResource(reasoned.authorizer, testCallerIdentity(), check, ""),
+    );
+    expect(err1.rawMessage).toBe("because");
+    const bare = fakeAuthorizer({ kind: "deny", reason: "" });
+    const err2 = await captureError(() =>
+      authorizeResolvedResource(bare.authorizer, testCallerIdentity(), check, ""),
+    );
+    expect(err2.rawMessage).toBe("permission denied");
+  });
+
+  it("not-found answers the load-first chain's NOT_FOUND copy", async () => {
+    const { authorizer } = fakeAuthorizer({ kind: "not-found" });
+    const err = await captureError(() =>
+      authorizeResolvedResource(authorizer, testCallerIdentity(), check, ""),
+    );
+    expect(err.code).toBe(Code.NotFound);
+    expect(err.rawMessage).toContain("wf_123");
+  });
+
+  it("not-found on a non-resource-scoped check is an authorizer contract bug — INTERNAL", async () => {
+    const { authorizer } = fakeAuthorizer({ kind: "not-found" });
+    const err = await captureError(() =>
+      authorizeResolvedResource(
+        authorizer,
+        testCallerIdentity(),
+        { ...check, resourceId: "" },
+        "",
+      ),
+    );
+    expect(err.code).toBe(Code.Internal);
+    expect(err.rawMessage).toBe(AUTHORIZATION_UNAVAILABLE_MESSAGE);
+  });
+
+  it("unavailable — and a THROWING authorizer — answer INTERNAL, never a softened denial", async () => {
+    const { authorizer } = fakeAuthorizer({
+      kind: "unavailable",
+      cause: new Error("fga down"),
+    });
+    const err1 = await captureError(() =>
+      authorizeResolvedResource(authorizer, testCallerIdentity(), check, ""),
+    );
+    expect(err1.code).toBe(Code.Internal);
+    expect(err1.rawMessage).toBe(AUTHORIZATION_UNAVAILABLE_MESSAGE);
+
+    const throwing: Authorizer = {
+      authorize: () => Promise.reject(new Error("socket hangup")),
+    };
+    const err2 = await captureError(() =>
+      authorizeResolvedResource(throwing, testCallerIdentity(), check, ""),
+    );
+    expect(err2.code).toBe(Code.Internal);
+    expect(err2.rawMessage).toBe(AUTHORIZATION_UNAVAILABLE_MESSAGE);
   });
 });

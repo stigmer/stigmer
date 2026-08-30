@@ -66,7 +66,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
-import type { ExecutionReadScope } from "../../extensions/execution-read-scope.js";
+import type { ListReadScope } from "../../extensions/list-read-scope.js";
 import { internalError, invalidArgumentError } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
@@ -84,7 +84,7 @@ export interface UsageReportDeps {
   /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
   readonly authorizer: Authorizer;
   /** The composed summary read scope — undefined = the OSS full scan (C2 Stage 4). */
-  readonly executionReadScope: ExecutionReadScope | undefined;
+  readonly listReadScope: ListReadScope | undefined;
 }
 
 // Context keys for inter-step communication — Go's key strings, verbatim.
@@ -781,7 +781,8 @@ function requireReport<T>(value: unknown, message: string): T {
 // absent from this shape (AD-DASH-005: the dashboard sources cost from
 // getOrgUsageReport to prevent double-counting).
 //
-// With a composed ExecutionReadScope (C2 Stage 4), the scan narrows to
+// With a composed ListReadScope (C2 Stage 4's ExecutionReadScope,
+// absorbed by 20260830.01), the scan narrows to
 // the caller's authorized ids ∩ the requested org and an empty set
 // answers the default instance — the Java
 // AgentExecutionGetExecutionSummaryHandler baseline; see the twin's
@@ -796,8 +797,8 @@ export async function getExecutionSummary(
 ): Promise<AgentExecutionSummary> {
   let executions = await loadAllAgentExecutions(deps.store, deps.logger);
 
-  if (deps.executionReadScope !== undefined) {
-    const authorizedIds = await deps.executionReadScope.authorizedExecutionIds(
+  if (deps.listReadScope !== undefined) {
+    const authorizedIds = await deps.listReadScope.authorizedResourceIds(
       identity,
       ApiResourceKind.agent_execution,
     );

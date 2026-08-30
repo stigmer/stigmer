@@ -18,6 +18,8 @@ import { AgentExecutionQueryController } from "@stigmer/protos/ai/stigmer/agenti
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
+import type { ListReadScope } from "../../extensions/list-read-scope.js";
+import { restrictListByReadScope } from "../../extensions/list-read-scope.js";
 import { internalError, invalidArgumentError } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { Store } from "../../store/interface.js";
@@ -75,15 +77,29 @@ export function newValidateListRequestStep(): PipelineStep<ListDesc> {
   };
 }
 
-/** QueryAllExecutions — list.go: full scan into the context. */
+/**
+ * QueryAllExecutions — list.go: full scan into the context. With a
+ * composed ListReadScope (20260830.01, census lane 4) the scan narrows
+ * to the caller's authorized executions ∩ the request's org (the Java
+ * AgentExecutionListHandler baseline: org set = one-org view, blank =
+ * permission-bounded across orgs; the guest cookie rule rides the
+ * driver); no scope = the full scan, org a no-op — byte-identical.
+ */
 export function newQueryAllExecutionsStep(
   store: Store,
   logger: Logger,
+  listReadScope: ListReadScope | undefined,
 ): PipelineStep<ListDesc> {
   return {
     name: "QueryAllExecutions",
     async execute(ctx) {
-      const executions = await loadAllAgentExecutions(store, logger);
+      const executions = await restrictListByReadScope(
+        listReadScope,
+        ctx.callerIdentity,
+        ApiResourceKind.agent_execution,
+        await loadAllAgentExecutions(store, logger),
+        ctx.input.org,
+      );
       logger.debug("Successfully queried executions", {
         count: executions.length,
       });
@@ -142,11 +158,20 @@ export function newValidateListBySessionRequestStep(): PipelineStep<ListBySessio
 export function newQueryExecutionsBySessionStep(
   store: Store,
   logger: Logger,
+  listReadScope: ListReadScope | undefined,
 ): PipelineStep<ListBySessionDesc> {
   return {
     name: "QueryExecutionsBySession",
     async execute(ctx) {
-      const all = await loadAllAgentExecutions(store, logger);
+      // Census lane 5: authorized ids ∩ session filter; the Java handler
+      // never consults org on this lane (bounded by the session id).
+      const all = await restrictListByReadScope(
+        listReadScope,
+        ctx.callerIdentity,
+        ApiResourceKind.agent_execution,
+        await loadAllAgentExecutions(store, logger),
+        "",
+      );
       const executions = all.filter(
         (execution) =>
           (execution.spec?.sessionId ?? "") === ctx.input.sessionId,

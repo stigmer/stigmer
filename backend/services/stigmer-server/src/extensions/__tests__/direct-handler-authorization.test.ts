@@ -33,6 +33,10 @@ import { ArtifactStorageState } from "@stigmer/protos/ai/stigmer/agentic/artifac
 import { ArtifactQueryController } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/query_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
+import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
+import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
+import { SkillQueryController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/query_pb";
+import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { WorkflowQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/query_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
@@ -113,6 +117,38 @@ describe("direct-handler authorization (composed server, denying authorizer)", (
         apiVersion: "agentic.stigmer.ai/v1",
         kind: "AgentChannel",
         metadata: { id: "ach_01authztarget", name: "target", org: "acme" },
+      }),
+    );
+    // The Q8 mid-chain-check targets (20260830.01): the two listVersions
+    // lanes resolve by org+slug before their can_view checks.
+    await server.store.saveResource(
+      ApiResourceKind.workflow,
+      "wfl_01authztarget",
+      WorkflowSchema,
+      create(WorkflowSchema, {
+        apiVersion: "agentic.stigmer.ai/v1",
+        kind: "Workflow",
+        metadata: {
+          id: "wfl_01authztarget",
+          name: "target",
+          slug: "authz-target",
+          org: "acme",
+        },
+      }),
+    );
+    await server.store.saveResource(
+      ApiResourceKind.skill,
+      "skl_01authztarget",
+      SkillSchema,
+      create(SkillSchema, {
+        apiVersion: "agentic.stigmer.ai/v1",
+        kind: "Skill",
+        metadata: {
+          id: "skl_01authztarget",
+          name: "target",
+          slug: "authz-target",
+          org: "acme",
+        },
       }),
     );
   });
@@ -211,6 +247,51 @@ describe("direct-handler authorization (composed server, denying authorizer)", (
           code: "some-code",
         }),
       "unauthorized to install agent channel",
+    );
+  });
+
+
+  it("session listByChannel denies at the channel gate with the Java handler's copy (Q8, 20260830.01)", async () => {
+    const query = createClient(SessionQueryController, transport);
+    await expectDenied(
+      () => query.listByChannel({ channelId: "ach_01authztarget" }),
+      "unauthorized to list channel conversations",
+    );
+  });
+
+  it("artifact listByExecution denies on the PARENT execution with the Java handler's copy (Q8)", async () => {
+    const query = createClient(ArtifactQueryController, transport);
+    await expectDenied(
+      () => query.listByExecution({ workflowExecutionId: "wfe_01any" }),
+      "unauthorized to list artifacts for this execution",
+    );
+    await expectDenied(
+      () => query.listByExecution({ agentExecutionId: "aex_01any" }),
+      "unauthorized to list artifacts for this execution",
+    );
+  });
+
+  it("workflow listVersions denies on the RESOLVED workflow with the Java handler's copy (Q8)", async () => {
+    const query = createClient(WorkflowQueryController, transport);
+    await expectDenied(
+      () => query.listVersions({ slug: "authz-target", org: "acme" }),
+      "unauthorized to view workflow version history",
+    );
+  });
+
+  it("workflow listVersions on an UNKNOWN slug answers NotFound even under denial (resolve-first)", async () => {
+    const query = createClient(WorkflowQueryController, transport);
+    const error = await query
+      .listVersions({ slug: "no-such-workflow", org: "acme" })
+      .catch((e: unknown) => e);
+    expect((error as ConnectError).code).toBe(Code.NotFound);
+  });
+
+  it("skill listVersions denies on the RESOLVED skill with the Java handler's copy (Q8)", async () => {
+    const query = createClient(SkillQueryController, transport);
+    await expectDenied(
+      () => query.listVersions({ slug: "authz-target", org: "acme" }),
+      "unauthorized to view skill version history",
     );
   });
 

@@ -52,6 +52,8 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
+import type { ListReadScope } from "../../extensions/list-read-scope.js";
+import { restrictListByReadScope } from "../../extensions/list-read-scope.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import { internalError } from "../../pipeline/errors.js";
@@ -143,6 +145,8 @@ export interface ScheduleControllerDeps {
    * away.
    */
   readonly runner: RunnerProvider;
+  /** The composed list read scope — list/getByAgent narrow through it; undefined = the OSS full scan (20260830.01). */
+  readonly listReadScope: ListReadScope | undefined;
 }
 
 /** Registers both schedule services on the router (routes stage). */
@@ -511,7 +515,7 @@ async function getByAgent(
       ),
     )
     .addStep(newValidateProtoStep())
-    .addStep(newLoadSchedulesByAgentStep(deps.store))
+    .addStep(newLoadSchedulesByAgentStep(deps.store, deps.listReadScope))
     .build()
     .execute(reqCtx);
 
@@ -527,6 +531,7 @@ async function getByAgent(
 
 function newLoadSchedulesByAgentStep(
   store: Store,
+  listReadScope: ListReadScope | undefined,
 ): PipelineStep<typeof ScheduleQueryController.method.getByAgent.input> {
   return {
     name: "LoadSchedulesByAgent",
@@ -562,14 +567,26 @@ function newLoadSchedulesByAgentStep(
         throw internalError(error, "failed to list schedules");
       }
 
-      const schedules: Schedule[] = [];
+      const decoded: Schedule[] = [];
       for (const data of resources) {
-        let schedule: Schedule;
         try {
-          schedule = fromBinary(ScheduleSchema, data);
+          decoded.push(fromBinary(ScheduleSchema, data));
         } catch {
           continue;
         }
+      }
+      // 20260830.01 census lane 13: the scope narrows the decoded scan;
+      // the org/agent filters below are contract parity in both editions.
+      const visible = await restrictListByReadScope(
+        listReadScope,
+        ctx.callerIdentity,
+        ApiResourceKind.schedule,
+        decoded,
+        "",
+      );
+
+      const schedules: Schedule[] = [];
+      for (const schedule of visible) {
         const ref =
           schedule.spec?.target.case === "agent"
             ? schedule.spec.target.value.agentRef
@@ -620,7 +637,7 @@ async function list(
       newAuthorizeStep(ScheduleQueryController.method.list, deps.authorizer),
     )
     .addStep(newValidateProtoStep())
-    .addStep(newListByOrgAndLabelsStep(deps.store))
+    .addStep(newListByOrgAndLabelsStep(deps.store, deps.listReadScope))
     .build()
     .execute(reqCtx);
 
@@ -636,6 +653,7 @@ async function list(
 
 function newListByOrgAndLabelsStep(
   store: Store,
+  listReadScope: ListReadScope | undefined,
 ): PipelineStep<typeof ScheduleQueryController.method.list.input> {
   return {
     name: "ListByOrgAndLabels",
@@ -651,14 +669,26 @@ function newListByOrgAndLabelsStep(
         throw internalError(error, "failed to list schedules");
       }
 
-      const schedules: Schedule[] = [];
+      const decoded: Schedule[] = [];
       for (const data of resources) {
-        let schedule: Schedule;
         try {
-          schedule = fromBinary(ScheduleSchema, data);
+          decoded.push(fromBinary(ScheduleSchema, data));
         } catch {
           continue;
         }
+      }
+      // 20260830.01 census lane 12: the scope narrows the decoded scan;
+      // the org equality below already serves the Java handler's org arm.
+      const visible = await restrictListByReadScope(
+        listReadScope,
+        ctx.callerIdentity,
+        ApiResourceKind.schedule,
+        decoded,
+        "",
+      );
+
+      const schedules: Schedule[] = [];
+      for (const schedule of visible) {
         if ((schedule.metadata?.org ?? "") !== req.org) {
           continue;
         }

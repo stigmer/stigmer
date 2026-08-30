@@ -38,6 +38,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
+import type { ListReadScope } from "../../extensions/list-read-scope.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import { internalError, notFoundError } from "../../pipeline/errors.js";
@@ -122,6 +123,8 @@ export interface AgentInstanceControllerDeps {
    * time, never at construction).
    */
   readonly parentAgentLoader: ParentAgentLoaderProvider;
+  /** The composed list read scope — list/getByAgent narrow through it; undefined = the OSS full scan (20260830.01). */
+  readonly listReadScope: ListReadScope | undefined;
 }
 
 /** Registers both agentinstance services on the router (routes stage). */
@@ -572,7 +575,7 @@ async function getByAgent(
       ),
     )
     .addStep(newValidateProtoStep())
-    .addStep(newLoadByAgentStep(deps.store))
+    .addStep(newLoadByAgentStep(deps.store, deps.listReadScope))
     .build()
     .execute(reqCtx);
 
@@ -609,7 +612,9 @@ async function list(
       ),
     )
     .addStep(newValidateProtoStep())
-    .addStep(newListByOrgAndLabelsStep(deps.store, deps.logger))
+    .addStep(
+      newListByOrgAndLabelsStep(deps.store, deps.logger, deps.listReadScope),
+    )
     .build()
     .execute(reqCtx);
 

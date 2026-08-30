@@ -170,6 +170,19 @@ export interface SearchIndexQuery {
   readonly crossOrgPublic: boolean;
   /** Independent subtraction: drop visibility_public rows from any scope. */
   readonly excludePublic: boolean;
+  /**
+   * Optional per-kind authorized-id allowlist (kind NAME → ids) — the
+   * multi-tenant list-read scoping arm (20260830.01): a listed kind
+   * matches only rows whose resource_id is in its set, and an EMPTY set
+   * matches nothing for that kind (each driver renders it without ever
+   * emitting an `IN ()` accident); kinds absent from the map are
+   * unrestricted. Undefined = no scoping — byte-identical to the
+   * pre-seam query. The filter must apply to BOTH statements (counts and
+   * page), exactly like the org/visibility scope fragments.
+   */
+  readonly authorizedIdsByKind?:
+    | ReadonlyMap<string, ReadonlySet<string>>
+    | undefined;
   readonly limit: number;
   readonly offset: number;
 }

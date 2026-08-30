@@ -43,6 +43,8 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
+import type { ListReadScope } from "../../extensions/list-read-scope.js";
+import { restrictListByReadScope } from "../../extensions/list-read-scope.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import type { SecretService } from "../../encryption/encryption.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
@@ -129,6 +131,8 @@ export interface EnvironmentControllerDeps {
   /** The composed tuple-lifecycle driver — undefined = the shared steps no-op (C2). */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   readonly secretService: SecretService;
+  /** The composed list read scope — list narrows through it; undefined = the OSS full scan (20260830.01). */
+  readonly listReadScope: ListReadScope | undefined;
 }
 
 /** Registers both environment services on the router (routes stage). */
@@ -725,7 +729,7 @@ async function list(
       newAuthorizeStep(EnvironmentQueryController.method.list, deps.authorizer),
     )
     .addStep(newValidateProtoStep())
-    .addStep(newListByOrgAndLabelsStep(deps.store))
+    .addStep(newListByOrgAndLabelsStep(deps.store, deps.listReadScope))
     .build()
     .execute(reqCtx);
 
@@ -743,10 +747,15 @@ async function list(
  * ListByOrgAndLabels — Go list.go's domain step: full scan, malformed
  * rows skipped, org equality + AND-label filtering, per-item redaction,
  * sorted by spec-audit created_at descending (seconds then nanos;
- * timestamped entries before untimestamped ones).
+ * timestamped entries before untimestamped ones). With a composed
+ * ListReadScope (20260830.01, census lane 10) the decoded scan narrows
+ * to the caller's authorized environments first — the existing org
+ * filter here already serves the Java handler's org arm, so the helper's
+ * org argument stays blank.
  */
 function newListByOrgAndLabelsStep(
   store: Store,
+  listReadScope: ListReadScope | undefined,
 ): PipelineStep<typeof EnvironmentQueryController.method.list.input> {
   return {
     name: "ListByOrgAndLabels",
@@ -762,14 +771,24 @@ function newListByOrgAndLabelsStep(
         throw internalError(error, "failed to list environments");
       }
 
-      const environments: Environment[] = [];
+      const decoded: Environment[] = [];
       for (const bytes of rows) {
-        let env: Environment;
         try {
-          env = fromBinary(EnvironmentSchema, bytes);
+          decoded.push(fromBinary(EnvironmentSchema, bytes));
         } catch {
           continue; // skip malformed rows, as Go does
         }
+      }
+      const visible = await restrictListByReadScope(
+        listReadScope,
+        ctx.callerIdentity,
+        ApiResourceKind.environment,
+        decoded,
+        "",
+      );
+
+      const environments: Environment[] = [];
+      for (const env of visible) {
         if ((env.metadata?.org ?? "") !== org) {
           continue;
         }

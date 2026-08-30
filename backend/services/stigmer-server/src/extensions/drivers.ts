@@ -13,8 +13,9 @@
  *     landed with C2 (20260827.10, rulings Q2/Q7)
  *   - channel runtime (DD-004's serving seam) — landed with C3
  *     (20260827.11, plan-gate ruling Q1)
- *   - execution read scope (the summary tenant-isolation fork) — landed
- *     with C2 Stage 4 (20260827.10, gate ruling)
+ *   - list read scope (the list-shaped tenant-isolation fork) — landed
+ *     with 20260830.01.sp.list-read-scoping, generalizing C2 Stage 4's
+ *     ExecutionReadScope (absorbed, gate ruling Q2)
  *
  * Merge rules (enforced by resolveExtensions, DD-006 §2b): the two
  * provider kinds are single-instance points — a second declaring unit is
@@ -31,7 +32,7 @@ import type { ChannelRuntime } from "../domain/agentchannel/channel-runtime.js";
 import type { ModelCatalogProvider } from "../domain/workflow/registry/model-catalog-provider.js";
 import type { RunnerCredentialProvider } from "../runnerauth/runner-credential-provider.js";
 import type { SandboxProvisionerFactory } from "../sandbox/provisioner.js";
-import type { ExecutionReadScope } from "./execution-read-scope.js";
+import type { ListReadScope } from "./list-read-scope.js";
 import type { OrganizationDirectory } from "./organization-directory.js";
 import type { ResourceAuthorizationLifecycle } from "./resource-authorization.js";
 
@@ -94,10 +95,12 @@ export interface ExtensionDrivers {
    */
   readonly channelRuntime?: ChannelRuntime;
   /**
-   * The execution read scope (C2 Stage 4; single-instance point). When
-   * composed, both getExecutionSummary handlers aggregate only the
-   * caller's authorized executions intersected with the requested org;
-   * when absent, the OSS full scan — byte-identical.
+   * The list read scope (20260830.01; single-instance point; absorbs C2
+   * Stage 4's ExecutionReadScope). When composed, every ruled list-shaped
+   * read — the census of docs/authorization-coverage.md — narrows to the
+   * caller's authorized rows: post-scan lanes through
+   * restrictListByReadScope, the search/activity/summary lanes through
+   * the enumeration verb. When absent, the OSS full scan — byte-identical.
    */
-  readonly executionReadScope?: ExecutionReadScope;
+  readonly listReadScope?: ListReadScope;
 }

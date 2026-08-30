@@ -6,13 +6,17 @@
  * This is the OSS twin of the cloud's ListRecentActivityHandler; the
  * merge, ordering, projection, and filtering semantics are deliberately
  * identical (stigmer#461). What differs is only what single-tenancy
- * removes: no FGA id enumeration (the candidate set is every stored row),
- * the request's org is a no-op (single-tenant; a recents filter stricter
- * than the per-kind lists it summarizes would hide locally-owned rows),
- * and load-all-then-sort-in-memory instead of per-kind SQL LIMIT windows
- * (each kind's newest page_size rows are a superset of its contribution
- * to the merged page — the identical final list; the full scan is this
- * store's contract, the same pattern every OSS list handler uses).
+ * removes: with NO ListReadScope composed there is no id enumeration
+ * (the candidate set is every stored row) and the request's org is a
+ * no-op (a recents filter stricter than the per-kind lists it summarizes
+ * would hide locally-owned rows); load-all-then-sort-in-memory replaces
+ * per-kind SQL LIMIT windows (each kind's newest page_size rows are a
+ * superset of its contribution to the merged page — the identical final
+ * list; the full scan is this store's contract, the same pattern every
+ * OSS list handler uses). With a composed ListReadScope (20260830.01,
+ * census lane 22) both loads narrow to the caller's authorized ids ∩
+ * the request's org when non-blank — the Java handler's two
+ * listAuthorizedResourceIds calls and its findRecentByIdsAndOrg org arm.
  *
  * Proven by __tests__/handler.test.ts (Go's handler_test.go arms) and
  * activity.conformance.test.ts on local.
@@ -38,6 +42,8 @@ import type { ApiResourceAudit } from "@stigmer/protos/ai/stigmer/commons/apires
 import type { ApiResourceMetadata } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
 import type { Logger } from "../../boot/logger.js";
+import type { CallerIdentity } from "../../extensions/identity.js";
+import type { ListReadScope } from "../../extensions/list-read-scope.js";
 import type { Store } from "../../store/interface.js";
 
 /**
@@ -81,19 +87,36 @@ export class ActivityHandler {
   constructor(
     private readonly store: Store,
     private readonly logger: Logger,
+    private readonly listReadScope: ListReadScope | undefined,
   ) {}
 
   /**
    * Go ListRecentActivity: load both kinds, project to sidebar entries,
-   * merge-sort newest-first, trim to the page.
+   * merge-sort newest-first, trim to the page. With a composed scope the
+   * per-kind loads narrow to the caller's authorized ids ∩ the request's
+   * org (blank = permission-bounded across orgs, the repo convention).
    */
   async listRecentActivity(
     request: ListRecentActivityRequest,
+    identity: CallerIdentity,
   ): Promise<ListRecentActivityResponse> {
     const pageSize = normalizePageSize(request.pageSize);
 
-    const sessions = await this.loadSessions();
-    const executions = await this.loadExecutions();
+    let sessionScope: ReadonlySet<string> | undefined;
+    let executionScope: ReadonlySet<string> | undefined;
+    if (this.listReadScope !== undefined) {
+      sessionScope = await this.listReadScope.authorizedResourceIds(
+        identity,
+        ApiResourceKind.session,
+      );
+      executionScope = await this.listReadScope.authorizedResourceIds(
+        identity,
+        ApiResourceKind.workflow_execution,
+      );
+    }
+
+    const sessions = await this.loadSessions(sessionScope, request.org);
+    const executions = await this.loadExecutions(executionScope, request.org);
 
     // Sessions before executions, then a stable sort: entries with equal
     // timestamps keep this insertion order — the same tie-break the
@@ -126,7 +149,10 @@ export class ActivityHandler {
    * Go loadSessions: every stored personal session projected to a recents
    * entry; runtime-originated sessions excluded.
    */
-  private async loadSessions(): Promise<RecentActivityEntry[]> {
+  private async loadSessions(
+    authorizedIds: ReadonlySet<string> | undefined,
+    org: string,
+  ): Promise<RecentActivityEntry[]> {
     const rows = await this.store.listResources(ApiResourceKind.session);
     const entries: RecentActivityEntry[] = [];
     for (const row of rows) {
@@ -138,6 +164,12 @@ export class ActivityHandler {
         continue;
       }
       if (hasRuntimeOriginLabel(session.metadata)) {
+        continue;
+      }
+      if (
+        authorizedIds !== undefined &&
+        !isVisibleUnderScope(authorizedIds, org, session.metadata)
+      ) {
         continue;
       }
       entries.push(
@@ -153,7 +185,10 @@ export class ActivityHandler {
   }
 
   /** Go loadExecutions: every stored workflow execution projected. */
-  private async loadExecutions(): Promise<RecentActivityEntry[]> {
+  private async loadExecutions(
+    authorizedIds: ReadonlySet<string> | undefined,
+    org: string,
+  ): Promise<RecentActivityEntry[]> {
     const rows = await this.store.listResources(
       ApiResourceKind.workflow_execution,
     );
@@ -166,6 +201,12 @@ export class ActivityHandler {
         this.logger.warn(
           "Skipping undecodable workflow execution row in recent activity",
         );
+        continue;
+      }
+      if (
+        authorizedIds !== undefined &&
+        !isVisibleUnderScope(authorizedIds, org, execution.metadata)
+      ) {
         continue;
       }
       const name = execution.metadata?.name ?? "";
@@ -183,6 +224,22 @@ export class ActivityHandler {
     }
     return entries;
   }
+}
+
+/**
+ * The scoped-visibility test both loads share when a scope is composed:
+ * the row's id must be authorized and, when the request names an org, the
+ * row must belong to it (the Java findRecentByIdsAndOrg arm).
+ */
+function isVisibleUnderScope(
+  authorizedIds: ReadonlySet<string>,
+  org: string,
+  metadata: ApiResourceMetadata | undefined,
+): boolean {
+  if (!authorizedIds.has(metadata?.id ?? "")) {
+    return false;
+  }
+  return org === "" || (metadata?.org ?? "") === org;
 }
 
 /** Go normalizePageSize: ≤0 → default 30; >100 → cap 100. */

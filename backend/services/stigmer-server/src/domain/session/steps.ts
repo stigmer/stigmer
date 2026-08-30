@@ -32,6 +32,7 @@ import { SessionListSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1
 import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { AgentExecutionTemporalConfig } from "../agentexecution/temporal/config.js";
@@ -43,7 +44,11 @@ import {
 } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
+import type { Authorizer } from "../../extensions/authorizer.js";
+import type { ListReadScope } from "../../extensions/list-read-scope.js";
+import { restrictListByReadScope } from "../../extensions/list-read-scope.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
+import { authorizeResolvedResource } from "../../pipeline/steps/authorize.js";
 import { notifyDefaultInstanceLinked } from "../../pipeline/steps/authorization-tuples.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import { RESOURCE_ID_KEY } from "../../pipeline/steps/delete.js";
@@ -649,7 +654,12 @@ function requireSessionId<Desc extends DescMessage>(
 
 // ---------------------------------------------------------------------------
 // List steps — list.go and the steps/ package. Full scans with client-side
-// filtering, exactly Go (no pagination, no authorization filtering in OSS).
+// filtering, exactly Go (no pagination; no scope composed = no authorization
+// filtering, the OSS single-user posture). With a composed ListReadScope
+// (20260830.01) each lane narrows to the caller's authorized sessions —
+// the Java list handlers' FGA-ids pattern, guest cookie rule included
+// driver-side; the request org is deliberately NOT intersected (the Java
+// session lanes never consult it — census lanes 1–3).
 // ---------------------------------------------------------------------------
 
 /**
@@ -660,16 +670,19 @@ function requireSessionId<Desc extends DescMessage>(
 export function newListAllSessionsStep(
   store: Store,
   logger: Logger,
+  listReadScope: ListReadScope | undefined,
 ): PipelineStep<typeof SessionQueryController.method.list.input> {
   return {
     name: "ListAllSessions",
     async execute(
       ctx: RequestContext<typeof SessionQueryController.method.list.input>,
     ): Promise<void> {
-      const sessions = await loadAllSessions(
-        store,
-        logger,
-        ctx.apiResourceKind,
+      const sessions = await restrictListByReadScope(
+        listReadScope,
+        ctx.callerIdentity,
+        ApiResourceKind.session,
+        await loadAllSessions(store, logger, ctx.apiResourceKind),
+        "",
       );
 
       sessions.sort((a, b) =>
@@ -696,6 +709,7 @@ export function newListAllSessionsStep(
 export function newFilterByAgentInstanceStep(
   store: Store,
   logger: Logger,
+  listReadScope: ListReadScope | undefined,
 ): PipelineStep<
   typeof SessionQueryController.method.listByAgentInstance.input
 > {
@@ -711,10 +725,12 @@ export function newFilterByAgentInstanceStep(
         throw invalidArgumentError("agent_instance_id is required");
       }
 
-      const sessions = await loadAllSessions(
-        store,
-        logger,
-        ctx.apiResourceKind,
+      const sessions = await restrictListByReadScope(
+        listReadScope,
+        ctx.callerIdentity,
+        ApiResourceKind.session,
+        await loadAllSessions(store, logger, ctx.apiResourceKind),
+        "",
       );
       const filtered = sessions.filter(
         (session) => (session.spec?.agentInstanceId ?? "") === agentInstanceId,
@@ -735,6 +751,45 @@ export function newFilterByAgentInstanceStep(
 }
 
 /**
+ * AuthorizeChannelAccess — the Java SessionListByChannelHandler's
+ * two-stage authorization, stage one (census lane 3's extra arm,
+ * 20260830.01 ruling Q8): an explicit can_view check on the TARGET
+ * agent_channel before any session work, so a caller without channel
+ * access learns nothing about the channel's sessions. The mid-chain
+ * resolved-id evaluation (the is_skip_authorization annotation makes the
+ * position-1 step a no-op on this lane); deny copy is the Java handler's
+ * byte-pinned "unauthorized to list channel conversations". The blank-id
+ * refusal stays FilterByChannel's (the step behind this gate) — the gate
+ * checks only a named channel.
+ */
+export function newAuthorizeChannelAccessStep(
+  authorizer: Authorizer,
+): PipelineStep<typeof SessionQueryController.method.listByChannel.input> {
+  return {
+    name: "AuthorizeChannelAccess",
+    async execute(
+      ctx: RequestContext<
+        typeof SessionQueryController.method.listByChannel.input
+      >,
+    ): Promise<void> {
+      if (ctx.input.channelId === "") {
+        return;
+      }
+      await authorizeResolvedResource(
+        authorizer,
+        ctx.callerIdentity,
+        {
+          permission: IamPermission.can_view,
+          resourceKind: ApiResourceKind.agent_channel,
+          resourceId: ctx.input.channelId,
+        },
+        "unauthorized to list channel conversations",
+      );
+    },
+  };
+}
+
+/**
  * FilterByChannel — steps/filter_by_channel.go: sessions whose
  * metadata.labels carry the channel's stigmer.ai/channel-id stamp. No
  * sorting. Channel sessions are created by the cloud channel runtime
@@ -747,6 +802,7 @@ export function newFilterByAgentInstanceStep(
 export function newFilterByChannelStep(
   store: Store,
   logger: Logger,
+  listReadScope: ListReadScope | undefined,
 ): PipelineStep<typeof SessionQueryController.method.listByChannel.input> {
   return {
     name: "FilterByChannel",
@@ -760,10 +816,12 @@ export function newFilterByChannelStep(
         throw invalidArgumentError("channel_id is required");
       }
 
-      const sessions = await loadAllSessions(
-        store,
-        logger,
-        ctx.apiResourceKind,
+      const sessions = await restrictListByReadScope(
+        listReadScope,
+        ctx.callerIdentity,
+        ApiResourceKind.session,
+        await loadAllSessions(store, logger, ctx.apiResourceKind),
+        "",
       );
       const filtered = sessions.filter(
         (session) =>
