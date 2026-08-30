@@ -80,6 +80,7 @@ import {
   newCreateAuthorizationTuplesStep,
 } from "../../pipeline/steps/authorization-tuples.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
+import { newDestroySecretBackingStateStep } from "../../pipeline/steps/secret-cleanup.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import { newValidateVisibilityStep } from "../../pipeline/steps/validate-visibility.js";
@@ -90,6 +91,7 @@ import {
   newEncryptChannelAppSecretsForUpdateStep,
   newValidateProviderImmutableStep,
   redactChannelApp,
+  secretValuesOfChannelApp,
 } from "./steps.js";
 
 export interface ChannelAppControllerDeps {
@@ -294,6 +296,12 @@ async function deleteChannelApp(
     .addStep(newDeleteResourceStep(deps.store))
     .addStep(
       newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
+    )
+    .addStep(
+      newDestroySecretBackingStateStep<
+        typeof ChannelAppCommandController.method.delete.input,
+        typeof ChannelAppSchema
+      >(deps.secretService, deps.logger, secretValuesOfChannelApp),
     )
     .build()
     .execute(reqCtx);

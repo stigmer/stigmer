@@ -573,6 +573,19 @@ export async function composeFakeCloud(): Promise<ComposedServer> {
 }
 
 /**
+ * The Stage-3 sweep's runtime wiring shape (20260830.04 gate ruling G2):
+ * a composition's maintenance lane reaches the LIVE composed facade and
+ * store off the compose return — never a twin facade built from the same
+ * codec map, which would duplicate KEK caches and drift from the
+ * boot-resolved write version.
+ */
+export async function consumerSweepOverComposedServer(
+  server: ComposedServer,
+): Promise<void> {
+  await consumerSweepPage(server.store, server.secrets, "");
+}
+
+/**
  * The exported driver interfaces are consumable in extension signatures —
  * the O5 registrations above populate them; this bundle keeps the plain
  * type positions covered too.

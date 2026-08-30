@@ -81,6 +81,7 @@ import {
   newCreateAuthorizationTuplesStep,
 } from "../../pipeline/steps/authorization-tuples.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
+import { newDestroySecretBackingStateStep } from "../../pipeline/steps/secret-cleanup.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import { newValidateVisibilityStep } from "../../pipeline/steps/validate-visibility.js";
@@ -287,6 +288,14 @@ async function deleteOAuthApp(
     .addStep(newDeleteResourceStep(deps.store))
     .addStep(
       newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
+    )
+    .addStep(
+      newDestroySecretBackingStateStep<
+        typeof OAuthAppCommandController.method.delete.input,
+        typeof OAuthAppSchema
+      >(deps.secretService, deps.logger, (app) =>
+        app.spec === undefined ? [] : [app.spec.clientSecret],
+      ),
     )
     .build()
     .execute(reqCtx);

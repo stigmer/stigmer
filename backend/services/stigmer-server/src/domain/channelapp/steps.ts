@@ -101,6 +101,33 @@ function redactWhatsApp(whatsapp: WhatsAppChannelAppConfig): void {
 }
 
 /**
+ * The sealed values a ChannelApp carries — the delete chain's extractor
+ * for DestroySecretBackingState. The provider arm is immutable, so
+ * exactly one arm holds values; the field lists mirror the redact
+ * functions above (the provider-arm tripwire covers both — an arm added
+ * without coverage here fails the same exhaustiveness check).
+ */
+export function secretValuesOfChannelApp(app: ChannelApp): string[] {
+  const provider = app.spec?.providerConfig;
+  switch (provider?.case) {
+    case "slack":
+      return [provider.value.clientSecret, provider.value.signingSecret];
+    case "whatsapp":
+      return [
+        provider.value.appSecret,
+        provider.value.accessToken,
+        provider.value.verifyToken,
+      ];
+    case undefined:
+      return [];
+    default: {
+      const exhaustive: never = provider;
+      throw new Error(`unhandled provider arm: ${String(exhaustive)}`);
+    }
+  }
+}
+
+/**
  * EncryptChannelAppSecrets — Go encryptChannelAppSecretsStep: the oauthapp
  * encryptClientSecretStep generalized to a provider oneof carrying
  * multiple secrets (Slack: client_secret and signing_secret; WhatsApp:
