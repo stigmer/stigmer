@@ -25,6 +25,8 @@ import {
   invalidArgumentError,
   notFoundError,
 } from "../../pipeline/errors.js";
+import type { ListReadScope } from "../../extensions/list-read-scope.js";
+import { restrictListByReadScope } from "../../extensions/list-read-scope.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import {
@@ -213,7 +215,10 @@ export function newRejectDefaultInstanceVisibilityUpdateStep<
 
 // ---------------------------------------------------------------------------
 // List filters — list.go and get_by_agent.go. Full scans with client-side
-// filtering, exactly Go (no pagination, no authorization filtering in OSS).
+// filtering, exactly Go (no pagination; no scope composed = no authorization
+// filtering). With a composed ListReadScope (20260830.01, census lanes
+// 14–15) both lanes narrow to the caller's authorized instances; the org
+// filters below are contract parity in both editions.
 // ---------------------------------------------------------------------------
 
 /** Context key for the list result (Go listResultKey). */
@@ -230,6 +235,7 @@ export const INSTANCE_LIST_KEY = "instanceList";
 export function newListByOrgAndLabelsStep(
   store: Store,
   logger: Logger,
+  listReadScope: ListReadScope | undefined,
 ): PipelineStep<typeof AgentInstanceQueryController.method.list.input> {
   return {
     name: "ListByOrgAndLabels",
@@ -247,18 +253,27 @@ export function newListByOrgAndLabelsStep(
         throw internalError(error, "failed to list agent instances");
       }
 
-      const instances: AgentInstance[] = [];
+      const decoded: AgentInstance[] = [];
       for (const data of rows) {
-        let instance: AgentInstance;
         try {
-          instance = fromBinary(AgentInstanceSchema, data);
+          decoded.push(fromBinary(AgentInstanceSchema, data));
         } catch (error) {
           logger.warn("Failed to unmarshal agent instance, skipping", {
             error: error instanceof Error ? error.message : String(error),
           });
           continue;
         }
+      }
+      const visible = await restrictListByReadScope(
+        listReadScope,
+        ctx.callerIdentity,
+        ApiResourceKind.agent_instance,
+        decoded,
+        "",
+      );
 
+      const instances: AgentInstance[] = [];
+      for (const instance of visible) {
         if ((instance.metadata?.org ?? "") !== org) {
           continue;
         }
@@ -300,6 +315,7 @@ export function newListByOrgAndLabelsStep(
  */
 export function newLoadByAgentStep(
   store: Store,
+  listReadScope: ListReadScope | undefined,
 ): PipelineStep<typeof AgentInstanceQueryController.method.getByAgent.input> {
   return {
     name: "LoadByAgent",
@@ -322,15 +338,24 @@ export function newLoadByAgentStep(
         throw internalError(error, "failed to list agent instances");
       }
 
-      const instances: AgentInstance[] = [];
+      const decoded: AgentInstance[] = [];
       for (const data of rows) {
-        let instance: AgentInstance;
         try {
-          instance = fromBinary(AgentInstanceSchema, data);
+          decoded.push(fromBinary(AgentInstanceSchema, data));
         } catch {
           continue;
         }
+      }
+      const visible = await restrictListByReadScope(
+        listReadScope,
+        ctx.callerIdentity,
+        ApiResourceKind.agent_instance,
+        decoded,
+        "",
+      );
 
+      const instances: AgentInstance[] = [];
+      for (const instance of visible) {
         if ((instance.spec?.agentId ?? "") !== agentId) {
           continue;
         }

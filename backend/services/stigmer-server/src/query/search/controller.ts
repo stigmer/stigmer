@@ -31,6 +31,8 @@ import type {
 } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 
 import type { Logger } from "../../boot/logger.js";
+import type { CallerIdentity } from "../../extensions/identity.js";
+import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { internalError, invalidArgumentError } from "../../pipeline/errors.js";
 import type { ConnectError } from "@connectrpc/connect";
 import type { SearchHandler } from "./handler.js";
@@ -46,13 +48,14 @@ export function registerSearchServices(
   deps: SearchControllerDeps,
 ): void {
   router.service(SearchService, {
-    search: (request) => search(deps, request),
+    search: (request, ctx) => search(deps, request, callerIdentityOf(ctx)),
   });
 }
 
 async function search(
   deps: SearchControllerDeps,
   request: SearchRequest,
+  identity: CallerIdentity,
 ): Promise<SearchResponse> {
   deps.logger.debug("SearchService.Search called", {
     kinds: request.kinds.map((kind) => ApiResourceKind[kind] ?? String(kind)),
@@ -62,7 +65,7 @@ async function search(
   });
 
   try {
-    return await deps.handler.handle(request);
+    return await deps.handler.handle(request, identity);
   } catch (error) {
     deps.logger.error("Search failed", {
       error: error instanceof Error ? error.message : String(error),

@@ -53,6 +53,7 @@ import type {
   UpdateVisibilityInput,
 } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import type { ArtifactStorage } from "../../artifactstorage/artifact-storage.js";
 import type { Logger } from "../../boot/logger.js";
@@ -69,7 +70,8 @@ import { newPipeline } from "../../pipeline/pipeline.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
-import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
+import { authorizeResolvedResource,
+  newAuthorizeStep } from "../../pipeline/steps/authorize.js";
 import { newAuthorizeVisibilityTransitionStep } from "../../pipeline/steps/visibility-gates.js";
 import {
   newCleanupIamPoliciesStep,
@@ -115,6 +117,7 @@ import { downloadUrl, uploadUrl } from "./transfer/handler.js";
 import type { UploadSlots } from "./transfer/slots.js";
 import {
   LIST_VERSIONS_RESPONSE_KEY,
+  LIST_VERSIONS_SKILL_ID_KEY,
   newLoadAndMapVersionsStep,
   newLoadSkillByReferenceStep,
   newResolveSkillBySlugStep,
@@ -797,6 +800,26 @@ async function listVersions(
     )
     .addStep(newValidateProtoStep())
     .addStep(newResolveSkillBySlugStep(deps.store))
+    .addStep({
+      name: "AuthorizeResolvedSkill",
+      async execute(stepCtx): Promise<void> {
+        // The Java SkillListVersionsHandler's mid-chain can_view on the
+        // RESOLVED skill id (20260830.01 ruling Q8 — the second of the two
+        // traced ListVersions handlers, DD-007's named pattern). Deny copy
+        // is the Java handler's byte-pinned error_msg; unknown slugs were
+        // already answered NOT_FOUND by the resolve step above.
+        await authorizeResolvedResource(
+          deps.authorizer,
+          stepCtx.callerIdentity,
+          {
+            permission: IamPermission.can_view,
+            resourceKind: ApiResourceKind.skill,
+            resourceId: stepCtx.get(LIST_VERSIONS_SKILL_ID_KEY) as string,
+          },
+          "unauthorized to view skill version history",
+        );
+      },
+    })
     .addStep(newLoadAndMapVersionsStep(deps.store))
     .build()
     .execute(reqCtx);

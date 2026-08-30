@@ -39,7 +39,9 @@ import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
 import type { ResolvedGateSteps } from "../../extensions/gate-slots.js";
 import { stepsForSlot } from "../../extensions/gate-slots.js";
-import type { ExecutionReadScope } from "../../extensions/execution-read-scope.js";
+import type { ListReadScope } from "../../extensions/list-read-scope.js";
+import { restrictListByReadScope } from "../../extensions/list-read-scope.js";
+import type { CallerIdentity } from "../../extensions/identity.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import { internalError, invalidArgumentError } from "../../pipeline/errors.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
@@ -132,7 +134,7 @@ export interface WorkflowExecutionControllerDeps {
   /** The composed tuple-lifecycle driver — undefined = the shared steps no-op (C2). */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   /** The composed summary read scope — undefined = the OSS full scan (C2 Stage 4). */
-  readonly executionReadScope: ExecutionReadScope | undefined;
+  readonly listReadScope: ListReadScope | undefined;
   /**
    * The merged slot registrations (O1/O4; DD-006 §2). This domain
    * carries `sandbox-acquisition:gate` on the create and recover chains
@@ -225,14 +227,15 @@ export function registerWorkflowExecutionServices(
   });
   router.service(WorkflowExecutionQueryController, {
     get: (id, ctx) => get(deps, id, ctx),
-    list: (req) => list(deps, req),
-    listByWorkflow: (req) => listByWorkflow(deps, req),
+    list: (req, ctx) => list(deps, req, callerIdentityOf(ctx)),
+    listByWorkflow: (req, ctx) => listByWorkflow(deps, req, callerIdentityOf(ctx)),
     subscribe: (req, ctx) => subscribeExecution(deps, req, ctx),
     getEventLog: (req, ctx) => getEventLog(deps, req, callerIdentityOf(ctx)),
     subscribeEvents: (req, ctx) => subscribeEvents(deps, req, ctx),
     getExecutionSummary: (req, ctx) =>
       getExecutionSummary(deps, req, callerIdentityOf(ctx)),
-    listPendingApprovals: (req) => listPendingApprovals(deps, req),
+    listPendingApprovals: (req, ctx) =>
+      listPendingApprovals(deps, req, callerIdentityOf(ctx)),
   });
 }
 
@@ -468,17 +471,28 @@ async function get(
  * List — list.go: full scan, the legacy top-level phase filter (only when
  * filter.phases is absent), structured filter criteria (T13), and the
  * sort default started_at descending. No pagination (total_pages
- * placeholder 1); the request `org` field is a deliberate no-op on this
- * single-tenant edition.
+ * placeholder 1). With a composed ListReadScope (20260830.01, census
+ * lane 6) the scan narrows to the caller's authorized executions and the
+ * request `org` narrows when non-blank (the Java
+ * WorkflowExecutionListHandler baseline: blank = permission-bounded
+ * across orgs); no scope = the full scan with `org` a deliberate no-op
+ * on this single-tenant edition — byte-identical.
  */
 async function list(
   deps: WorkflowExecutionControllerDeps,
   req: ListWorkflowExecutionsRequest,
+  identity: CallerIdentity,
 ): Promise<WorkflowExecutionList> {
-  let executions = await loadAllWorkflowExecutions(
-    deps.store,
-    deps.logger,
-    "failed to list workflow executions",
+  let executions = await restrictListByReadScope(
+    deps.listReadScope,
+    identity,
+    ApiResourceKind.workflow_execution,
+    await loadAllWorkflowExecutions(
+      deps.store,
+      deps.logger,
+      "failed to list workflow executions",
+    ),
+    req.org,
   );
 
   if (req.filter === undefined || req.filter.phases.length === 0) {
@@ -508,15 +522,24 @@ async function list(
 async function listByWorkflow(
   deps: WorkflowExecutionControllerDeps,
   req: ListWorkflowExecutionsByWorkflowRequest,
+  identity: CallerIdentity,
 ): Promise<WorkflowExecutionList> {
   if (req.workflowId === "") {
     throw invalidArgumentError("workflow_id is required");
   }
 
-  const all = await loadAllWorkflowExecutions(
-    deps.store,
-    deps.logger,
-    "failed to list workflow executions",
+  // Census lane 7: authorized ids ∩ workflow filter; the Java handler
+  // never consults org on this lane (bounded by the workflow id).
+  const all = await restrictListByReadScope(
+    deps.listReadScope,
+    identity,
+    ApiResourceKind.workflow_execution,
+    await loadAllWorkflowExecutions(
+      deps.store,
+      deps.logger,
+      "failed to list workflow executions",
+    ),
+    "",
   );
   let executions = all.filter(
     (execution) =>

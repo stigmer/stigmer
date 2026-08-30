@@ -618,9 +618,17 @@ export async function composeServer(
     searchRegistry,
     logger,
   );
-  const searchHandler = new SearchHandler(searchQueryStore, logger);
+  const searchHandler = new SearchHandler(
+    searchQueryStore,
+    logger,
+    extensions.drivers.listReadScope,
+  );
   // The activity recents feed (#14) — pure reads over listResources.
-  const activityHandler = new ActivityHandler(store, logger);
+  const activityHandler = new ActivityHandler(
+    store,
+    logger,
+    extensions.drivers.listReadScope,
+  );
   // The environment runtime-resolution service (#5) — the decrypt-for-
   // execution path the EC builder uses to resolve environment_refs (the
   // RPC surface redacts secret values, oss#405).
@@ -709,6 +717,7 @@ export async function composeServer(
       logger,
       authorizer,
       authorizationLifecycle,
+      listReadScope: extensions.drivers.listReadScope,
     });
     registerEnvironmentServices(router, {
       store,
@@ -716,6 +725,7 @@ export async function composeServer(
       authorizer,
       secretService,
       authorizationLifecycle,
+      listReadScope: extensions.drivers.listReadScope,
     });
     // OAuthApp reuses the environment's SecretService instance — Go wires
     // ONE encryption service for both (server.go 302–307).
@@ -747,6 +757,7 @@ export async function composeServer(
       authorizer,
       authorizationLifecycle,
       parentAgentLoader: () => requireInProcess().parentAgentLoader,
+      listReadScope: extensions.drivers.listReadScope,
     });
     registerSessionServices(router, {
       store,
@@ -757,6 +768,7 @@ export async function composeServer(
       gateSteps: extensions.gateSteps,
       sandboxLane,
       authorizationLifecycle,
+      listReadScope: extensions.drivers.listReadScope,
     });
     // The sharing/channel family registers after the agent family, as in
     // Go server.go (agent 378 → agentshare 384 → agentchannel 391 →
@@ -768,12 +780,14 @@ export async function composeServer(
       logger,
       authorizer,
       authorizationLifecycle,
+      listReadScope: extensions.drivers.listReadScope,
     });
     registerAgentChannelServices(router, {
       store,
       logger,
       authorizer,
       authorizationLifecycle,
+      listReadScope: extensions.drivers.listReadScope,
       // The SAME domain-owned registry instance the workflow validator
       // and the registry lanes read — the channel model-pin rule
       // (stigmer/stigmer#774) can never drift from the served pickers.
@@ -807,19 +821,21 @@ export async function composeServer(
       clock: () => scheduleSyncer,
       runner: () => scheduleRunStarter,
       authorizationLifecycle,
+      listReadScope: extensions.drivers.listReadScope,
     });
     registerMemoryServices(router, {
       store,
       logger,
       authorizer,
       authorizationLifecycle,
+      listReadScope: extensions.drivers.listReadScope,
     });
     registerAgentExecutionServices(router, {
       store,
       logger,
       authorizer,
       authorizationLifecycle,
-      executionReadScope: extensions.drivers.executionReadScope,
+      listReadScope: extensions.drivers.listReadScope,
       broker: agentExecutionStreamBroker,
       engineState: executionEngineState,
       modelRegistry: modelCatalog,
@@ -861,13 +877,14 @@ export async function composeServer(
       authorizer,
       authorizationLifecycle,
       parentWorkflowLoader: () => requireInProcess().parentWorkflowLoader,
+      listReadScope: extensions.drivers.listReadScope,
     });
     registerWorkflowExecutionServices(router, {
       store,
       logger,
       authorizer,
       authorizationLifecycle,
-      executionReadScope: extensions.drivers.executionReadScope,
+      listReadScope: extensions.drivers.listReadScope,
       gateSteps: extensions.gateSteps,
       engineState: workflowExecutionEngineState,
       broker: workflowExecutionStreamBroker,

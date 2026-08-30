@@ -98,8 +98,10 @@ import type { Store } from "../../store/interface.js";
 import type { SandboxLane } from "../../sandbox/lane.js";
 import { deprovisionSessionSandboxBestEffort } from "../../sandbox/steps.js";
 import { sessionSearchExtractor } from "./search-extractor.js";
+import type { ListReadScope } from "../../extensions/list-read-scope.js";
 import {
   LIST_RESULT_KEY,
+  newAuthorizeChannelAccessStep,
   newCascadeDeleteAgentExecutionsStep,
   newFilterByAgentInstanceStep,
   newFilterByChannelStep,
@@ -138,6 +140,13 @@ export interface SessionControllerDeps {
    * sandbox down best-effort (the Java SessionDeleteHandler posture).
    */
   readonly sandboxLane: SandboxLane;
+  /**
+   * The composed list read scope — the three list lanes narrow to the
+   * caller's authorized sessions through it; undefined = the OSS full
+   * scan (20260830.01, census lanes 1–3: guest rule rides the driver,
+   * org deliberately NOT intersected — the Java session lanes never do).
+   */
+  readonly listReadScope: ListReadScope | undefined;
 }
 
 /** Registers both session services on the router (routes stage). */
@@ -500,7 +509,7 @@ async function list(
       newAuthorizeStep(SessionQueryController.method.list, deps.authorizer),
     )
     .addStep(newValidateProtoStep())
-    .addStep(newListAllSessionsStep(deps.store, deps.logger))
+    .addStep(newListAllSessionsStep(deps.store, deps.logger, deps.listReadScope))
     .build()
     .execute(reqCtx);
   return requireListResult(reqCtx.get(LIST_RESULT_KEY));
@@ -528,7 +537,9 @@ async function listByAgentInstance(
       ),
     )
     .addStep(newValidateProtoStep())
-    .addStep(newFilterByAgentInstanceStep(deps.store, deps.logger))
+    .addStep(
+      newFilterByAgentInstanceStep(deps.store, deps.logger, deps.listReadScope),
+    )
     .build()
     .execute(reqCtx);
   return requireListResult(reqCtx.get(LIST_RESULT_KEY));
@@ -557,7 +568,8 @@ async function listByChannel(
       ),
     )
     .addStep(newValidateProtoStep())
-    .addStep(newFilterByChannelStep(deps.store, deps.logger))
+    .addStep(newAuthorizeChannelAccessStep(deps.authorizer))
+    .addStep(newFilterByChannelStep(deps.store, deps.logger, deps.listReadScope))
     .build()
     .execute(reqCtx);
   return requireListResult(reqCtx.get(LIST_RESULT_KEY));

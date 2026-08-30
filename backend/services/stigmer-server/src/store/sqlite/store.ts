@@ -795,6 +795,27 @@ export class SqliteStore implements Store {
     if (query.excludePublic) {
       scopeClauses.push(`AND visibility != 'visibility_public'`);
     }
+    if (query.authorizedIdsByKind !== undefined) {
+      // The 20260830.01 scoping arm: per-kind resource_id allowlists.
+      // An empty set contributes NO clause — that kind matches nothing —
+      // and all-kinds-empty renders a constant-false predicate (never an
+      // `IN ()` accident, per the interface contract).
+      const kindClauses: string[] = [];
+      for (const kind of query.kinds) {
+        const ids = query.authorizedIdsByKind.get(kind);
+        if (ids === undefined) {
+          kindClauses.push(`kind = ?`);
+          scopeArgs.push(kind);
+        } else if (ids.size > 0) {
+          const idPlaceholders = [...ids].map(() => "?").join(",");
+          kindClauses.push(`(kind = ? AND resource_id IN (${idPlaceholders}))`);
+          scopeArgs.push(kind, ...ids);
+        }
+      }
+      scopeClauses.push(
+        kindClauses.length === 0 ? `AND 1 = 0` : `AND (${kindClauses.join(" OR ")})`,
+      );
+    }
     const scopeSql = scopeClauses.join("\n        ");
 
     // Search mode is "terms present", even when they sanitize to an empty

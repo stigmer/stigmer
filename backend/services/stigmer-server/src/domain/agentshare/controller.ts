@@ -46,6 +46,8 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
+import type { ListReadScope } from "../../extensions/list-read-scope.js";
+import { restrictListByReadScope } from "../../extensions/list-read-scope.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import {
@@ -116,6 +118,8 @@ export interface AgentShareControllerDeps {
   readonly authorizer: Authorizer;
   /** The composed tuple-lifecycle driver — undefined = the shared steps no-op (C2). */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
+  /** The composed list read scope — list/getByAgent narrow through it; undefined = the OSS full scan (20260830.01). */
+  readonly listReadScope: ListReadScope | undefined;
 }
 
 /** Registers both agentshare services on the router (routes stage). */
@@ -525,7 +529,7 @@ async function getByAgent(
       ),
     )
     .addStep(newValidateProtoStep())
-    .addStep(newLoadSharesByAgentStep(deps.store))
+    .addStep(newLoadSharesByAgentStep(deps.store, deps.listReadScope))
     .build()
     .execute(reqCtx);
 
@@ -547,6 +551,7 @@ async function getByAgent(
  */
 function newLoadSharesByAgentStep(
   store: Store,
+  listReadScope: ListReadScope | undefined,
 ): PipelineStep<typeof AgentShareQueryController.method.getByAgent.input> {
   return {
     name: "LoadSharesByAgent",
@@ -583,14 +588,26 @@ function newLoadSharesByAgentStep(
         throw internalError(error, "failed to list agent shares");
       }
 
-      const shares: AgentShare[] = [];
+      const decoded: AgentShare[] = [];
       for (const bytes of rows) {
-        let share: AgentShare;
         try {
-          share = fromBinary(AgentShareSchema, bytes);
+          decoded.push(fromBinary(AgentShareSchema, bytes));
         } catch {
           continue;
         }
+      }
+      // 20260830.01 census lane 17: the scope narrows the decoded scan;
+      // the org/agent filters below are contract parity in both editions.
+      const visible = await restrictListByReadScope(
+        listReadScope,
+        ctx.callerIdentity,
+        ApiResourceKind.agent_share,
+        decoded,
+        "",
+      );
+
+      const shares: AgentShare[] = [];
+      for (const share of visible) {
         const ref = share.spec?.agentRef;
         if ((ref?.org ?? "") !== agentOrg || (ref?.slug ?? "") !== agentSlug) {
           continue;
@@ -638,7 +655,9 @@ async function list(
       newAuthorizeStep(AgentShareQueryController.method.list, deps.authorizer),
     )
     .addStep(newValidateProtoStep())
-    .addStep(newListByOrgAndLabelsStep(deps.store, deps.logger))
+    .addStep(
+      newListByOrgAndLabelsStep(deps.store, deps.logger, deps.listReadScope),
+    )
     .build()
     .execute(reqCtx);
 
@@ -656,6 +675,7 @@ async function list(
 function newListByOrgAndLabelsStep(
   store: Store,
   logger: Logger,
+  listReadScope: ListReadScope | undefined,
 ): PipelineStep<typeof AgentShareQueryController.method.list.input> {
   return {
     name: "ListByOrgAndLabels",
@@ -671,15 +691,27 @@ function newListByOrgAndLabelsStep(
         throw internalError(error, "failed to list agent shares");
       }
 
-      const shares: AgentShare[] = [];
+      const decoded: AgentShare[] = [];
       for (const bytes of rows) {
-        let share: AgentShare;
         try {
-          share = fromBinary(AgentShareSchema, bytes);
+          decoded.push(fromBinary(AgentShareSchema, bytes));
         } catch {
           logger.warn("Failed to unmarshal agent share, skipping");
           continue;
         }
+      }
+      // 20260830.01 census lane 16: the scope narrows the decoded scan;
+      // the org equality below already serves the Java handler's org arm.
+      const visible = await restrictListByReadScope(
+        listReadScope,
+        ctx.callerIdentity,
+        ApiResourceKind.agent_share,
+        decoded,
+        "",
+      );
+
+      const shares: AgentShare[] = [];
+      for (const share of visible) {
         if ((share.metadata?.org ?? "") !== org) {
           continue;
         }

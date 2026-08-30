@@ -1,6 +1,7 @@
 /**
- * Pins the ExecutionReadScope arm of BOTH getExecutionSummary handlers
- * (C2 Stage 4 — the multi-tenant tenant-isolation port):
+ * Pins the ListReadScope arm of BOTH getExecutionSummary handlers (C2
+ * Stage 4's ExecutionReadScope port, absorbed into the generalized seam
+ * by 20260830.01.sp.list-read-scoping):
  *
  *   - a composed scope narrows the aggregation to authorized ids ∩ the
  *     requested org (the Java GetExecutionSummary baseline);
@@ -24,7 +25,7 @@ import { GetExecutionSummaryRequestSchema } from "@stigmer/protos/ai/stigmer/age
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { createLogger } from "../../../boot/logger.js";
-import type { ExecutionReadScope } from "../../../extensions/execution-read-scope.js";
+import type { ListReadScope } from "../../../extensions/list-read-scope.js";
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/authorize.js";
 import type { Store } from "../../../store/interface.js";
@@ -40,9 +41,10 @@ const silentLogger = createLogger({
 
 const caller = testCallerIdentity();
 
-function scopeOf(ids: ReadonlyArray<string>): ExecutionReadScope {
+function scopeOf(ids: ReadonlyArray<string>): ListReadScope {
   return {
-    authorizedExecutionIds: () => Promise.resolve(new Set(ids)),
+    authorizedResourceIds: () => Promise.resolve(new Set(ids)),
+    restrictListEntries: () => Promise.resolve(new Set<string>()),
   };
 }
 
@@ -81,11 +83,11 @@ describe("workflow getExecutionSummary read scope", () => {
     workflowExecRow("wfe_not_mine", "acme", ExecutionPhase.EXECUTION_FAILED),
   ];
 
-  function deps(scope: ExecutionReadScope | undefined) {
+  function deps(scope: ListReadScope | undefined) {
     return {
       store: listOnlyStore(rows),
       logger: silentLogger,
-      executionReadScope: scope,
+      listReadScope: scope,
     };
   }
 
@@ -134,12 +136,12 @@ describe("agent getExecutionSummary read scope", () => {
     agentExecRow("aexec_not_mine", "acme", AgentExecutionPhase.EXECUTION_IN_PROGRESS),
   ];
 
-  function deps(scope: ExecutionReadScope | undefined) {
+  function deps(scope: ListReadScope | undefined) {
     return {
       store: listOnlyStore(rows),
       logger: silentLogger,
       authorizer: newPermissiveSingleTeamAuthorizer(),
-      executionReadScope: scope,
+      listReadScope: scope,
     };
   }
 
@@ -174,11 +176,12 @@ describe("agent getExecutionSummary read scope", () => {
 
   it("the scope receives the kind it is scoping (agent_execution here)", async () => {
     const kinds: ApiResourceKind[] = [];
-    const recordingScope: ExecutionReadScope = {
-      authorizedExecutionIds: (_caller, kind) => {
+    const recordingScope: ListReadScope = {
+      authorizedResourceIds: (_caller, kind) => {
         kinds.push(kind);
         return Promise.resolve(new Set<string>());
       },
+      restrictListEntries: () => Promise.resolve(new Set<string>()),
     };
     await getAgentSummary(
       deps(recordingScope),

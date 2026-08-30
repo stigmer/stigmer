@@ -28,6 +28,9 @@ import type {
 } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 
 import type { Logger } from "../../boot/logger.js";
+import type { CallerIdentity } from "../../extensions/identity.js";
+import type { ListReadScope } from "../../extensions/list-read-scope.js";
+import { apiResourceKindName } from "../../store/proto-fields.js";
 import { SearchCriteria } from "./criteria.js";
 import type { SearchPagedResult } from "./paged-result.js";
 import type { SearchQueryStore } from "./query-store.js";
@@ -38,6 +41,7 @@ export class SearchHandler {
   constructor(
     private readonly store: SearchQueryStore,
     private readonly logger: Logger,
+    private readonly listReadScope: ListReadScope | undefined,
   ) {
     this.validator = createValidator();
   }
@@ -46,8 +50,19 @@ export class SearchHandler {
    * Go Handle: validate → build criteria → execute → build response.
    * Errors carry Go's exact wrap prefixes — the controller's error
    * mapping string-matches them (#478 sanitization contract).
+   *
+   * With a composed ListReadScope (20260830.01, census lane 21) the
+   * store read carries a per-effective-kind authorized-id map — the Java
+   * SearchHandler's QueryAuthorizedIds step, with its crossOrgPublic
+   * bypass preserved verbatim (public-widened discovery is
+   * visibility-filtered by the engine, FGA never consulted). A scope
+   * failure propagates — the controller's default arm answers the
+   * sanitized Internal, never a silently unscoped result.
    */
-  async handle(request: SearchRequest): Promise<SearchResponse> {
+  async handle(
+    request: SearchRequest,
+    identity: CallerIdentity,
+  ): Promise<SearchResponse> {
     const validation = this.validator.validate(SearchRequestSchema, request);
     if (validation.kind !== "valid") {
       throw new Error(`validation failed: ${validation.error.message}`);
@@ -71,9 +86,20 @@ export class SearchHandler {
       );
     }
 
+    let authorizedIdsByKind: Map<string, ReadonlySet<string>> | undefined;
+    if (this.listReadScope !== undefined && !criteria.crossOrgPublic()) {
+      authorizedIdsByKind = new Map<string, ReadonlySet<string>>();
+      for (const kind of criteria.effectiveKinds()) {
+        authorizedIdsByKind.set(
+          apiResourceKindName(kind),
+          await this.listReadScope.authorizedResourceIds(identity, kind),
+        );
+      }
+    }
+
     let result: SearchPagedResult;
     try {
-      result = await this.store.search(criteria);
+      result = await this.store.search(criteria, authorizedIdsByKind);
     } catch (error) {
       throw new Error(
         `search failed: ${error instanceof Error ? error.message : String(error)}`,

@@ -40,6 +40,8 @@ import type {
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
+import type { ListReadScope } from "../../extensions/list-read-scope.js";
+import { restrictListByReadScope } from "../../extensions/list-read-scope.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import { internalError } from "../../pipeline/errors.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
@@ -87,6 +89,8 @@ export interface ApiKeyControllerDeps {
   readonly authorizer: Authorizer;
   /** The composed tuple-lifecycle driver — undefined = the shared steps no-op (C2). */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
+  /** The composed list read scope — findAll narrows through it; undefined = every stored key (20260830.01). */
+  readonly listReadScope: ListReadScope | undefined;
 }
 
 /** Registers both apikey services on the router (routes stage). */
@@ -280,19 +284,23 @@ async function getByKeyHash(
 }
 
 /**
- * FindAll — every stored key (the permissive single-team posture, ruling
- * Q5; the cloud edition filters through FGA can_view). Stored hashes ride
- * the response exactly as the cloud's do — the plaintext exists nowhere.
+ * FindAll — every stored key under the scope-less single-team posture
+ * (ruling Q5); with a composed ListReadScope (20260830.01, census lane
+ * 9) the list narrows to the caller's can_view keys — the Java
+ * ApiKeyFindAllHandler baseline (no guest arm, no org intersection).
+ * Stored hashes ride the response exactly as the cloud's do — the
+ * plaintext exists nowhere.
  */
 async function findAll(
   deps: ApiKeyControllerDeps,
   empty: Empty,
   ctx: HandlerContext,
 ): Promise<ApiKeys> {
+  const identity = callerIdentityOf(ctx);
   const reqCtx = new RequestContext(
     ApiKeyQueryController.method.findAll.input,
     empty,
-    callerIdentityOf(ctx),
+    identity,
     kindOf(ctx),
   );
   await newPipeline<typeof ApiKeyQueryController.method.findAll.input>(
@@ -311,7 +319,12 @@ async function findAll(
   } catch (error) {
     throw internalError(error, "failed to list api keys");
   }
-  return create(ApiKeysSchema, {
-    entries: rows.map((row) => fromBinary(ApiKeySchema, row)),
-  });
+  const entries = await restrictListByReadScope(
+    deps.listReadScope,
+    identity,
+    ApiResourceKind.api_key,
+    rows.map((row) => fromBinary(ApiKeySchema, row)),
+    "",
+  );
+  return create(ApiKeysSchema, { entries });
 }

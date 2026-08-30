@@ -19,7 +19,12 @@ import type {
   PendingApprovalsList,
 } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
 
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+
 import type { Logger } from "../../boot/logger.js";
+import type { CallerIdentity } from "../../extensions/identity.js";
+import type { ListReadScope } from "../../extensions/list-read-scope.js";
+import { restrictListByReadScope } from "../../extensions/list-read-scope.js";
 import type { Store } from "../../store/interface.js";
 
 import {
@@ -32,16 +37,29 @@ import { loadAllWorkflowExecutions } from "./queries.js";
 export interface PendingApprovalsDeps {
   readonly store: Store;
   readonly logger: Logger;
+  /** The composed list read scope — undefined = the OSS full scan. */
+  readonly listReadScope: ListReadScope | undefined;
 }
 
 export async function listPendingApprovals(
   deps: PendingApprovalsDeps,
   req: ListPendingApprovalsRequest,
+  identity: CallerIdentity,
 ): Promise<PendingApprovalsList> {
-  const executions = await loadAllWorkflowExecutions(
-    deps.store,
-    deps.logger,
-    "failed to list workflow executions for pending approvals",
+  // Census lane 8 (20260830.01): the scope narrows the EXECUTION scan —
+  // before the approvals projection and its pagination, the Java
+  // WorkflowExecutionListPendingApprovalsHandler order — and the request
+  // org narrows when non-blank (blank = permission-bounded across orgs).
+  const executions = await restrictListByReadScope(
+    deps.listReadScope,
+    identity,
+    ApiResourceKind.workflow_execution,
+    await loadAllWorkflowExecutions(
+      deps.store,
+      deps.logger,
+      "failed to list workflow executions for pending approvals",
+    ),
+    req.org,
   );
 
   let pageSize = req.pageSize;

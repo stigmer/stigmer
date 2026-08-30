@@ -52,6 +52,7 @@ import type {
 import { ArtifactQueryController } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/query_pb";
 import type { ArtifactSource } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import type { ApiResourceId } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 
 import type { ArtifactStorage } from "../../artifactstorage/artifact-storage.js";
@@ -65,6 +66,7 @@ import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import {
   authorizeDirect,
+  authorizeResolvedResource,
   newAuthorizeStep,
 } from "../../pipeline/steps/authorize.js";
 import {
@@ -422,6 +424,38 @@ async function listByExecution(
             "workflow_execution_id or agent_execution_id is required",
           );
         }
+      },
+    })
+    .addStep({
+      name: "AuthorizeParentExecution",
+      async execute(stepCtx): Promise<void> {
+        // The Java ArtifactListByExecutionHandler's hand-rolled gate
+        // (20260830.01 ruling Q8): can_view on the PARENT execution —
+        // "if you can view an execution, you can list its artifacts."
+        // The two-field dispatch (workflow-execution first, the Java
+        // order) is why the declarative annotation cannot express this
+        // lane and the proto carries is_skip_authorization. Deny copy is
+        // the Java handler's byte-pinned error_msg; a nonexistent id
+        // answers NOT_FOUND through the authorizer's probe — the ruled
+        // uniform unknown-id posture (DD-007 addendum), a recorded
+        // divergence from Java's deny-everyone arm on this lane.
+        const input = stepCtx.input;
+        await authorizeResolvedResource(
+          deps.authorizer,
+          stepCtx.callerIdentity,
+          {
+            permission: IamPermission.can_view,
+            resourceKind:
+              input.workflowExecutionId !== ""
+                ? ApiResourceKind.workflow_execution
+                : ApiResourceKind.agent_execution,
+            resourceId:
+              input.workflowExecutionId !== ""
+                ? input.workflowExecutionId
+                : input.agentExecutionId,
+          },
+          "unauthorized to list artifacts for this execution",
+        );
       },
     })
     .addStep({

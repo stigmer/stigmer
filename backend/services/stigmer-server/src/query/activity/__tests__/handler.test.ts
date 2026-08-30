@@ -18,6 +18,7 @@ import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecu
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { createLogger } from "../../../boot/logger.js";
+import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import {
   tempStore,
   type TempStore,
@@ -47,7 +48,7 @@ let handler: ActivityHandler;
 
 beforeEach(() => {
   temp = tempStore();
-  handler = new ActivityHandler(temp.store, silentLogger);
+  handler = new ActivityHandler(temp.store, silentLogger, undefined);
 });
 
 afterEach(async () => {
@@ -132,7 +133,7 @@ describe("listRecentActivity (Go handler_test.go)", () => {
       statusUpdatedAtSeconds: 300,
     });
 
-    const response = await handler.listRecentActivity(request(100));
+    const response = await handler.listRecentActivity(request(100), testCallerIdentity());
 
     expect(response.entries.map((entry) => entry.id)).toEqual([
       "ses_new",
@@ -152,7 +153,7 @@ describe("listRecentActivity (Go handler_test.go)", () => {
       statusUpdatedAtSeconds: 200,
     });
 
-    const response = await handler.listRecentActivity(request(100));
+    const response = await handler.listRecentActivity(request(100), testCallerIdentity());
 
     const session = response.entries.find((entry) => entry.id === "ses_1");
     expect(session?.type).toBe("session");
@@ -180,7 +181,7 @@ describe("listRecentActivity (Go handler_test.go)", () => {
       statusUpdatedAtSeconds: 300,
     });
 
-    const response = await handler.listRecentActivity(request(100));
+    const response = await handler.listRecentActivity(request(100), testCallerIdentity());
     const byId = new Map(response.entries.map((entry) => [entry.id, entry]));
 
     expect(byId.get("ses_auto")?.subject).toBe("Untitled session");
@@ -207,7 +208,7 @@ describe("listRecentActivity (Go handler_test.go)", () => {
       });
     }
 
-    const response = await handler.listRecentActivity(request(100));
+    const response = await handler.listRecentActivity(request(100), testCallerIdentity());
     const ids = response.entries.map((entry) => entry.id);
 
     expect(ids).toContain("ses_console");
@@ -224,15 +225,15 @@ describe("listRecentActivity (Go handler_test.go)", () => {
       });
     }
 
-    const trimmed = await handler.listRecentActivity(request(1));
+    const trimmed = await handler.listRecentActivity(request(1), testCallerIdentity());
     expect(trimmed.entries.map((entry) => entry.id)).toEqual(["ses_2"]);
 
     for (const pageSize of [0, -5]) {
-      const response = await handler.listRecentActivity(request(pageSize));
+      const response = await handler.listRecentActivity(request(pageSize), testCallerIdentity());
       expect(response.entries).toHaveLength(3);
     }
 
-    const oversize = await handler.listRecentActivity(request(100_000));
+    const oversize = await handler.listRecentActivity(request(100_000), testCallerIdentity());
     expect(oversize.entries).toHaveLength(3);
   });
 
@@ -246,7 +247,7 @@ describe("listRecentActivity (Go handler_test.go)", () => {
       specCreatedAtSeconds: 200,
     });
 
-    const response = await handler.listRecentActivity(request(100));
+    const response = await handler.listRecentActivity(request(100), testCallerIdentity());
 
     expect(response.entries.map((entry) => entry.id)).toEqual([
       "ses_fallback",
@@ -261,7 +262,7 @@ describe("listRecentActivity (Go handler_test.go)", () => {
       statusUpdatedAtSeconds: 100,
     });
 
-    const response = await handler.listRecentActivity(request(100));
+    const response = await handler.listRecentActivity(request(100), testCallerIdentity());
 
     // Sessions load first (Go's append order), and the stable sort keeps
     // insertion order on ties.
@@ -272,7 +273,7 @@ describe("listRecentActivity (Go handler_test.go)", () => {
   });
 
   it("answers an empty store with an empty page", async () => {
-    const response = await handler.listRecentActivity(request(10));
+    const response = await handler.listRecentActivity(request(10), testCallerIdentity());
     expect(response.entries).toEqual([]);
   });
 });

@@ -39,6 +39,8 @@ import {
   notFoundError,
 } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
+import type { ListReadScope } from "../../extensions/list-read-scope.js";
+import { restrictListByReadScope } from "../../extensions/list-read-scope.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import {
   generateId,
@@ -494,6 +496,7 @@ export function newTransitionMemoryLifecycleStep(
  */
 export function newListMemoriesByOrgStep(
   store: Store,
+  listReadScope: ListReadScope | undefined,
 ): PipelineStep<typeof ListMemoriesRequestSchema> {
   return {
     name: "ListMemoriesByOrg",
@@ -509,12 +512,25 @@ export function newListMemoriesByOrgStep(
         throw internalError(error, "failed to list memories");
       }
 
-      const memories: Memory[] = [];
+      const decoded: Memory[] = [];
       for (const bytes of rows) {
         const memory = unmarshalMemory(bytes);
-        if (memory === undefined) {
-          continue;
+        if (memory !== undefined) {
+          decoded.push(memory);
         }
+      }
+      // 20260830.01 census lane 11: the scope narrows the decoded scan;
+      // the org equality below already serves the Java handler's org arm.
+      const visible = await restrictListByReadScope(
+        listReadScope,
+        ctx.callerIdentity,
+        ApiResourceKind.memory,
+        decoded,
+        "",
+      );
+
+      const memories: Memory[] = [];
+      for (const memory of visible) {
         if ((memory.metadata?.org ?? "") !== org) {
           continue;
         }

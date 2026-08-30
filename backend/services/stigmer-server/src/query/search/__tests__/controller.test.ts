@@ -19,6 +19,7 @@ import { SearchRequestSchema } from "@stigmer/protos/ai/stigmer/search/v1/io_pb"
 import { SearchService } from "@stigmer/protos/ai/stigmer/search/v1/query_pb";
 
 import { createLogger } from "../../../boot/logger.js";
+import { createVerifierChainInterceptor } from "../../../pipeline/interceptors/auth.js";
 import {
   tempStore,
   type TempStore,
@@ -37,12 +38,21 @@ const silentLogger = createLogger({
 });
 
 function searchClientOver(store: SearchQueryStore) {
-  const transport = createRouterTransport((router) => {
-    registerSearchServices(router, {
-      handler: new SearchHandler(store, silentLogger),
-      logger: silentLogger,
-    });
-  });
+  // The zero-verifier chain stamps the trusted-local identity — the
+  // controller reads it for the (scope-less here) list-read seam.
+  const transport = createRouterTransport(
+    (router) => {
+      registerSearchServices(router, {
+        handler: new SearchHandler(store, silentLogger, undefined),
+        logger: silentLogger,
+      });
+    },
+    {
+      router: {
+        interceptors: [createVerifierChainInterceptor([], silentLogger)],
+      },
+    },
+  );
   return createClient(SearchService, transport);
 }
 
@@ -82,10 +92,10 @@ describe("search error mapping (Go toGRPCError)", () => {
   });
 
   it("answers the handler's defensive protovalidate arm as InvalidArgument", async () => {
-    // No interceptor chain rides createRouterTransport here, so the
-    // HANDLER's own validate — Go's step 1, wire-unreachable behind the
-    // real chain — answers. The wrapped "validation failed: ..." text
-    // string-matches to InvalidArgument.
+    // Only the identity interceptor rides this transport (no
+    // protovalidate), so the HANDLER's own validate — Go's step 1,
+    // wire-unreachable behind the real chain — answers. The wrapped
+    // "validation failed: ..." text string-matches to InvalidArgument.
     const client = searchClientOver({
       search: () => Promise.resolve(emptyResult()),
       rebuildIndex: () => Promise.resolve(0),
@@ -106,12 +116,19 @@ describe("activity error mapping", () => {
     try {
       await temp.store.close();
 
-      const transport = createRouterTransport((router) => {
-        registerActivityServices(router, {
-          handler: new ActivityHandler(temp.store, silentLogger),
-          logger: silentLogger,
-        });
-      });
+      const transport = createRouterTransport(
+        (router) => {
+          registerActivityServices(router, {
+            handler: new ActivityHandler(temp.store, silentLogger, undefined),
+            logger: silentLogger,
+          });
+        },
+        {
+          router: {
+            interceptors: [createVerifierChainInterceptor([], silentLogger)],
+          },
+        },
+      );
       const client = createClient(ActivityQueryController, transport);
 
       const error = await grpcError(

@@ -239,16 +239,17 @@ describe("resolveExtensions — merge semantics", () => {
     expect(resolved.drivers.channelRuntime).toBe(runtime);
   });
 
-  it("keeps the declared ExecutionReadScope as the resolved singleton (C2 Stage 4)", () => {
+  it("keeps the declared ListReadScope as the resolved singleton (20260830.01)", () => {
     const scope = {
-      authorizedExecutionIds: () => Promise.resolve(new Set<string>()),
+      authorizedResourceIds: () => Promise.resolve(new Set<string>()),
+      restrictListEntries: () => Promise.resolve(new Set<string>()),
     };
     const resolved = resolveExtensions([
-      { name: "iam", drivers: { executionReadScope: scope } },
+      { name: "iam", drivers: { listReadScope: scope } },
     ]);
-    expect(resolved.drivers.executionReadScope).toBe(scope);
+    expect(resolved.drivers.listReadScope).toBe(scope);
     // The empty state resolves explicitly, never a missing key.
-    expect(resolveExtensions([]).drivers.executionReadScope).toBeUndefined();
+    expect(resolveExtensions([]).drivers.listReadScope).toBeUndefined();
   });
 });
 
@@ -274,17 +275,18 @@ describe("resolveExtensions — loud-fail throws (DD-006 §2b)", () => {
     );
   });
 
-  it("throws on a second ExecutionReadScope, naming both units", () => {
+  it("throws on a second ListReadScope, naming both units", () => {
     const scope = {
-      authorizedExecutionIds: () => Promise.resolve(new Set<string>()),
+      authorizedResourceIds: () => Promise.resolve(new Set<string>()),
+      restrictListEntries: () => Promise.resolve(new Set<string>()),
     };
     expect(() =>
       resolveExtensions([
-        { name: "scope-a", drivers: { executionReadScope: scope } },
-        { name: "scope-b", drivers: { executionReadScope: scope } },
+        { name: "scope-a", drivers: { listReadScope: scope } },
+        { name: "scope-b", drivers: { listReadScope: scope } },
       ]),
     ).toThrowError(
-      /extension 'scope-b' registers an ExecutionReadScope, but 'scope-a' already did/,
+      /extension 'scope-b' registers a ListReadScope, but 'scope-a' already did/,
     );
   });
 

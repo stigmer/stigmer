@@ -43,6 +43,8 @@ import type {
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
+import type { ListReadScope } from "../../extensions/list-read-scope.js";
+import { restrictListByReadScope } from "../../extensions/list-read-scope.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import { internalError, notFoundError } from "../../pipeline/errors.js";
@@ -121,6 +123,8 @@ export interface WorkflowInstanceControllerDeps {
    * workflow↔workflowinstance is a true dependency cycle (DD-002).
    */
   readonly parentWorkflowLoader: ParentWorkflowLoaderProvider;
+  /** The composed list read scope — getByWorkflow narrows through it; undefined = the OSS full scan (20260830.01). */
+  readonly listReadScope: ListReadScope | undefined;
 }
 
 /** Registers both workflowinstance services on the router (routes stage). */
@@ -744,7 +748,9 @@ async function getByWorkflow(
       ),
     )
     .addStep(newValidateProtoStep())
-    .addStep(newLoadByWorkflowStep(deps.store, deps.logger))
+    .addStep(
+      newLoadByWorkflowStep(deps.store, deps.logger, deps.listReadScope),
+    )
     .build()
     .execute(reqCtx);
 
@@ -758,6 +764,7 @@ async function getByWorkflow(
 function newLoadByWorkflowStep(
   store: Store,
   logger: Logger,
+  listReadScope: ListReadScope | undefined,
 ): PipelineStep<GetByWorkflowDesc> {
   return {
     name: "LoadByWorkflow",
@@ -776,18 +783,29 @@ function newLoadByWorkflowStep(
         throw internalError(error, "failed to list workflow instances");
       }
 
-      const filtered: WorkflowInstance[] = [];
+      const decoded: WorkflowInstance[] = [];
       for (const data of rows) {
-        let instance: WorkflowInstance;
         try {
-          instance = fromBinary(WorkflowInstanceSchema, data);
+          decoded.push(fromBinary(WorkflowInstanceSchema, data));
         } catch (error) {
           logger.warn("failed to unmarshal workflow instance, skipping", {
             error: error instanceof Error ? error.message : String(error),
           });
           continue;
         }
+      }
+      // 20260830.01 census lane 20: the scope narrows the decoded scan;
+      // the org/workflow filters below are contract parity in both editions.
+      const visible = await restrictListByReadScope(
+        listReadScope,
+        ctx.callerIdentity,
+        ApiResourceKind.workflow_instance,
+        decoded,
+        "",
+      );
 
+      const filtered: WorkflowInstance[] = [];
+      for (const instance of visible) {
         if (instance.spec?.workflowId !== workflowId) {
           continue;
         }

@@ -10,7 +10,8 @@
  * deliberately absent when nothing completed (an average over nothing is
  * not 0).
  *
- * With a composed ExecutionReadScope (C2 Stage 4 — the multi-tenant
+ * With a composed ListReadScope (C2 Stage 4's ExecutionReadScope,
+ * absorbed by 20260830.01 — the multi-tenant
  * edition), the scan narrows to the caller's authorized ids intersected
  * with the requested org (the Java GetExecutionSummary baseline: without
  * the org filter a member of several organizations sees every org's
@@ -48,7 +49,7 @@ import type {
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
-import type { ExecutionReadScope } from "../../extensions/execution-read-scope.js";
+import type { ListReadScope } from "../../extensions/list-read-scope.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import type { Store } from "../../store/interface.js";
 
@@ -61,7 +62,7 @@ export interface SummaryDeps {
   readonly store: Store;
   readonly logger: Logger;
   /** The composed summary read scope — undefined = the OSS full scan (C2 Stage 4). */
-  readonly executionReadScope: ExecutionReadScope | undefined;
+  readonly listReadScope: ListReadScope | undefined;
 }
 
 export async function getExecutionSummary(
@@ -75,8 +76,8 @@ export async function getExecutionSummary(
     "failed to list workflow executions for summary",
   );
 
-  if (deps.executionReadScope !== undefined) {
-    const authorizedIds = await deps.executionReadScope.authorizedExecutionIds(
+  if (deps.listReadScope !== undefined) {
+    const authorizedIds = await deps.listReadScope.authorizedResourceIds(
       identity,
       ApiResourceKind.workflow_execution,
     );
