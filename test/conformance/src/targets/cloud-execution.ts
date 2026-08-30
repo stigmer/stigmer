@@ -141,6 +141,15 @@ export class CloudExecutionTarget implements TargetProfile {
     return context;
   }
 
+  // The billing-denial suite's precondition: a real org whose billing account
+  // exists at the zero balance the org create provisions — the funding step
+  // above deliberately skipped. Everything else (FGA tuples, membership) is
+  // identical to provisionTenancy, so a later fundTenancy on the same org
+  // turns it into the funded shape exactly.
+  provisionUnfundedTenancy(): Promise<TenancyContext> {
+    return this.cloud.provisionTenancy();
+  }
+
   cleanupTenancy(context: TenancyContext): Promise<void> {
     return this.cloud.cleanupTenancy(context);
   }
@@ -165,9 +174,10 @@ export class CloudExecutionTarget implements TargetProfile {
   // Seeds the fresh org's billing account so the workflow-level billing gate
   // authorizes runs (see TENANCY_SEED_CREDITS_MICROS). Billing accounts are
   // keyed by the execution's metadata.org — the slug — which is also what the
-  // integration suite passes. A deliberate zero-credit negative belongs to a
-  // future suite that SKIPS this funding, pinning the denial contract.
-  private async fundTenancy(org: string): Promise<void> {
+  // integration suite passes. Public as the TargetProfile optional verb: the
+  // billing-denial suite funds an unfunded org as its negative control (the
+  // deliberate zero-credit suite this comment used to name as missing).
+  async fundTenancy(org: string): Promise<void> {
     if (this.billingCommand === undefined) {
       throw new Error("CloudExecutionTarget.setup() must be called before provisionTenancy()");
     }

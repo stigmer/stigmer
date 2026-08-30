@@ -66,6 +66,9 @@ export class CloudTarget implements TargetProfile {
     // pins gate off here (full behavior needs a real vendor OAuth app — the
     // channelMessaging coverage split).
     orgOAuthAppConfiguration: true,
+    // The Java billing engine authorizes execution credits natively; the TS
+    // composition serves the same gates through the C5 billing facade.
+    billingGates: true,
   };
 
   private grpcBaseUrl: string | undefined;
