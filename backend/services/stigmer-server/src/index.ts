@@ -204,6 +204,11 @@ export type {
   RunnerScopedTokenExchange,
   RunnerScopedTokenRequest,
   SandboxCredentialRequest,
+  // The parity-entry-20260830.05 capability shape: the memory
+  // capture-eligibility verdict (admit carries the token's proved
+  // subject + session claims for the defaults step's Java-parity
+  // derivation).
+  MemoryCaptureDecision,
 } from "./runnerauth/runner-credential-provider.js";
 export type { MintedToken } from "./runnerauth/runnerauth.js";
 export {

@@ -25,6 +25,7 @@ import {
 } from "../guard-reserved-labels.js";
 import { EXISTING_RESOURCE_KEY } from "../load-existing.js";
 import { newPermissiveSingleTeamAuthorizer } from "../authorize.js";
+import { recordServerStampedReservedLabels } from "../server-stamped-reserved-labels.js";
 
 const USER: CallerIdentity = {
   identityId: "ida_alice",
@@ -153,5 +154,37 @@ describe("GuardReservedLabels", () => {
       { identityId: "internal", callerClass: "internal", issuer: "", rawToken: "" },
     );
     await expect(Promise.resolve(step.execute(ctx))).resolves.toBeUndefined();
+  });
+
+  it("server-stamped keys pass while an unstamped sibling still refuses", async () => {
+    // The parity-entry-20260830.05 arm (Java ServerStampedReservedLabels):
+    // a step's per-request record exempts exactly the recorded keys — a
+    // smuggled sibling in the same request is still rejected.
+    const step = newGuardReservedLabelsStep<typeof AgentSchema>(denying());
+    const vouched = agentCtx({ "stigmer.ai/workflow-execution-id": "wfe_1" });
+    recordServerStampedReservedLabels(
+      vouched,
+      "stigmer.ai/workflow-execution-id",
+    );
+    await expect(Promise.resolve(step.execute(vouched))).resolves.toBeUndefined();
+
+    const smuggled = agentCtx({
+      "stigmer.ai/workflow-execution-id": "wfe_1",
+      "stigmer.ai/default-agent": "true",
+    });
+    recordServerStampedReservedLabels(
+      smuggled,
+      "stigmer.ai/workflow-execution-id",
+    );
+    const error = await step
+      .execute(smuggled)
+      ?.catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(ConnectError);
+    expect((error as ConnectError).rawMessage).toContain(
+      "stigmer.ai/default-agent",
+    );
+    expect((error as ConnectError).rawMessage).not.toContain(
+      "stigmer.ai/workflow-execution-id",
+    );
   });
 });

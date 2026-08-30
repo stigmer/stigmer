@@ -46,6 +46,7 @@ import {
   generateId,
   setAuditFieldsForUpdate,
 } from "../../pipeline/steps/defaults.js";
+import { memoryCaptureCredentialOf } from "../../pipeline/steps/guard-memory-capture.js";
 import { compareCreatedAtDesc } from "../../pipeline/steps/helpers.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
@@ -90,6 +91,15 @@ export const LIST_RESULT_KEY = "listResult";
  *     session/org with the token's own claims. Post-create the field is
  *     immutable either way (ValidateMemoryUpdate): attribution that can
  *     be edited is not attribution.
+ *  5. When GuardMemoryCapture admitted a session-scoped capture
+ *     credential (the composed provider's authorizeMemoryCapture
+ *     capability — parity entry 20260830.05), the token's PROVED claims
+ *     replace both edition defaults: the subject is the credential's
+ *     human ("the sub IS the human subject the session belongs to",
+ *     Java MemoryCreateHandler) and provenance.session_id is overridden
+ *     with the token's own session claim (server-proved beats
+ *     runner-reported). Absent the handoff, the OSS arms above apply
+ *     unchanged.
  */
 export function newResolveMemoryDefaultsStep(): PipelineStep<
   typeof MemorySchema
@@ -125,15 +135,25 @@ export function newResolveMemoryDefaultsStep(): PipelineStep<
         );
       }
 
-      // The subject stays server-owned (DD-005 D2): the OSS sentinel; the
-      // cloud edition derives it from the calling credential.
-      spec.subjectIdentityAccountId = "";
+      // The subject stays server-owned (DD-005 D2): the OSS sentinel, or
+      // the admitted capture credential's proved human (step doc point 5).
+      const captureCredential = memoryCaptureCredentialOf(ctx);
+      spec.subjectIdentityAccountId =
+        captureCredential?.subjectIdentityAccountId ?? "";
 
       // Provenance is capture-path-supplied (see the step doc, point 4);
       // only tool_call_id is force-cleared — unreachable via MCP in v1, so
       // a supplied value could only be an invention.
       if (spec.provenance !== undefined) {
         spec.provenance.toolCallId = "";
+      }
+      // An admitted capture credential's session claim overrides the
+      // threaded value (step doc point 5) — server-proved attribution.
+      if (captureCredential !== undefined) {
+        if (spec.provenance === undefined) {
+          spec.provenance = create(MemoryProvenanceSchema, {});
+        }
+        spec.provenance.sessionId = captureCredential.provedSessionId;
       }
     },
   };

@@ -290,7 +290,15 @@ export function createInProcessClients(
       list: (request) => environmentQuery.list(request),
       getSecretValue: (input) => environmentQuery.getSecretValue(input),
       updateVariables: (request) => environmentCommand.updateVariables(request),
-      create: (environment) => environmentCommand.create(environment),
+      // The managed-env create propagates the connecting user when the
+      // lane has one (ruling R5 — the Java createAsCaller posture; parity
+      // entry 20260830.05): ownership tuples land on the user, not the
+      // unattributable internal class.
+      create: (environment, caller) =>
+        environmentCommand.create(
+          environment,
+          caller === undefined ? undefined : asCaller(caller),
+        ),
       delete: (input) => environmentCommand.delete(input),
     },
     executionContextCreator: {

@@ -21,6 +21,7 @@ import { ApiResourceDeleteInputSchema } from "@stigmer/protos/ai/stigmer/commons
 import type { MessageInitShape } from "@bufbuild/protobuf";
 
 import type { Logger } from "../../../boot/logger.js";
+import type { CallerIdentity } from "../../../extensions/identity.js";
 
 /** The label marking system-managed OAuth-token environments. */
 export const MANAGED_ENV_LABEL = "stigmer.ai/managed";
@@ -37,8 +38,17 @@ export interface ManagedEnvironmentClient {
   updateVariables(
     request: MessageInitShape<typeof UpdateEnvironmentVariablesRequestSchema>,
   ): Promise<Environment>;
+  /**
+   * `caller` propagates the ORIGINAL caller through the in-process hop
+   * (ruling R5; Java createAsCaller — parity entry 20260830.05): the
+   * created environment's owner attribution lands on the connecting
+   * user, so it stays visible and manageable under an enforcing
+   * Authorizer. Absent = the minted internal class (the pre-R5 shape,
+   * kept for hops with no request caller).
+   */
   create(
     environment: MessageInitShape<typeof EnvironmentSchema>,
+    caller?: CallerIdentity,
   ): Promise<Environment>;
   delete(
     input: MessageInitShape<typeof ApiResourceDeleteInputSchema>,
@@ -56,9 +66,18 @@ export class ManagedEnvironmentService {
    * stigmer.ai/managed=true label and returns its resource id (Go
    * CreateManagedEnvironment). The environment goes through the standard
    * create pipeline, which handles id generation, slug resolution,
-   * timestamps, and search indexing.
+   * timestamps, and search indexing. `caller` propagates the connecting
+   * user through the hop (ruling R5, parity entry 20260830.05) so a
+   * composed tuple-lifecycle driver attributes ownership to them — the
+   * Java createAsCaller posture ("org link + owner = caller"); the
+   * reserved-label guard keys its trust arm on the in-process ORIGIN,
+   * so the managed label still passes with a propagated caller.
    */
-  async createManagedEnvironment(name: string, org: string): Promise<string> {
+  async createManagedEnvironment(
+    name: string,
+    org: string,
+    caller?: CallerIdentity,
+  ): Promise<string> {
     let created: Environment;
     try {
       created = await this.client.create(
@@ -71,6 +90,7 @@ export class ManagedEnvironmentService {
             labels: { [MANAGED_ENV_LABEL]: "true" },
           },
         }),
+        caller,
       );
     } catch (error) {
       throw new Error(

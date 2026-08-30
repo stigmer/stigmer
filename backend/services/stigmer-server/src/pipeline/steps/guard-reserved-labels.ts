@@ -29,6 +29,12 @@
  *     Environment, which the console legitimately sends on create — the
  *     one allowlist entry, kept here with the doctrine so widening it is
  *     one reviewable diff.
+ *   - SERVER-STAMPED KEYS pass (server-stamped-reserved-labels.ts, the
+ *     Java ServerStampedReservedLabels arm, cloud#386): a step that made
+ *     the trust decision for specific keys on THIS request records
+ *     exactly those keys, and the guard exempts exactly them (the
+ *     agentexecution create chain's RecordRunnerLineageLabels is the
+ *     first recorder — parity entry 20260830.05).
  *   - LABELS only, deliberately not annotations (annotations carry no
  *     resolution or authorization semantics).
  *
@@ -49,6 +55,7 @@ import { internalError } from "../errors.js";
 import type { PipelineStep } from "../pipeline.js";
 import type { RequestContext } from "../request-context.js";
 import { EXISTING_RESOURCE_KEY } from "./load-existing.js";
+import { serverStampedReservedLabels } from "./server-stamped-reserved-labels.js";
 import { metadataOf } from "./shapes.js";
 
 /** The platform-reserved label key namespace (SystemManagedLabels). */
@@ -110,8 +117,9 @@ export function newGuardReservedLabelsStep<Desc extends DescMessage>(
 
       const allowlist =
         CLIENT_CONTRACT_ALLOWLIST.get(ctx.apiResourceKind) ?? new Set();
+      const stamped = serverStampedReservedLabels(ctx);
       const mutations = reservedLabelMutations(stored, requested).filter(
-        (key) => !allowlist.has(key),
+        (key) => !allowlist.has(key) && !stamped.has(key),
       );
       if (mutations.length === 0) {
         return;

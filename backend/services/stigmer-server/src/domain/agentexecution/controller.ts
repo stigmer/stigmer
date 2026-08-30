@@ -45,6 +45,8 @@ import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
 import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
+import type { RunnerCredentialProvider } from "../../runnerauth/runner-credential-provider.js";
+import { newRecordRunnerLineageLabelsStep } from "./record-runner-lineage-labels.js";
 import { newBuildUpdateStateStep } from "../../pipeline/steps/build-update-state.js";
 import {
   newDeleteResourceStep,
@@ -169,6 +171,13 @@ export interface AgentExecutionControllerDeps {
   readonly modelRegistry: ModelCatalogProvider;
   /** The shared artifact blob store (attachments + artifact reads). */
   readonly artifactStorage: ArtifactStorage;
+  /**
+   * The composed runner-credential provider — RecordRunnerLineageLabels
+   * consults its vouchRunnerLineageLabels capability at create (parity
+   * entry 20260830.05). The OSS default defines no capabilities, so the
+   * step is a no-op with it.
+   */
+  readonly runnerCredentialProvider: RunnerCredentialProvider;
   /**
    * The in-process edges the create pipeline consumes (lazy providers —
    * the routes↔clients cycle resolves at request time, DD-002).
@@ -307,6 +316,10 @@ async function createExecution(
     .addStep(newEnsureSessionOrAgentResolvedStep(deps.logger))
     .addStep(newResolveSlugStep())
     .addStep(newBuildNewStateStep())
+    // Vouches the runner-stamped workflow lineage labels (or refuses a
+    // wrong-binding stamp) BEFORE the guard diffs them — the Java
+    // RecordRunnerLineageLabelsStep position (parity entry 20260830.05).
+    .addStep(newRecordRunnerLineageLabelsStep(deps.runnerCredentialProvider))
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
     .addStep(newEnsureEngineAvailableStep(deps.engineState));
