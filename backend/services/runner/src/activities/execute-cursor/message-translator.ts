@@ -1924,6 +1924,121 @@ export function detectUnattributedHookBlocks(
 }
 
 /**
+ * The honest terminal error stamped on a tool call that never resolved (issue
+ * #965). Deliberately states all three negatives — not executed, not approved,
+ * not denied — because the incident's harm was the model claiming an approval
+ * was pending: this text is what the transcript shows INSTEAD of a spinner or
+ * a silent after-the-fact interruption, and it must leave no room for an
+ * approval-is-coming reading.
+ */
+export const UNRESOLVED_TOOL_CALL_ERROR =
+  "The tool did not return a result before the turn ended. It was never " +
+  "executed, approved, or denied — no approval is pending for it.";
+
+/** One never-resolved tool call the turn boundary settled (issue #965). */
+export interface UnresolvedToolCall {
+  toolCallId: string;
+  toolName: string;
+}
+
+/**
+ * Settle this-turn tool calls that are still NON-TERMINAL when a turn
+ * completes without pausing — the issue #965 invariant, the sibling of
+ * {@link detectUnattributedHookBlocks}' #205 invariant ("a blocked tool must
+ * never silently complete" → "an unresolved tool must never silently
+ * complete").
+ *
+ * THE SHAPE THIS CATCHES. A tool that hangs INSIDE the Cursor agent runtime —
+ * the production case is `generateImage`, which rides the SDK's
+ * interaction-query channel rather than the ordinary tool path — streams a
+ * tool_call start, never streams a result, and is invisible to every Stigmer
+ * seam: the hook never denied it (no ledger entry), so the reconcile never
+ * gated it, and the turn completes with the row still PENDING/RUNNING. Before
+ * this sweep, the server's terminal settle (issue #207) stamped such rows
+ * TOOL_CALL_INTERRUPTED silently AFTER the runner reported completion — the
+ * transcript's last word stayed whatever the model claimed, which in
+ * aex_01m1a6ww3nmp4952ar5v0g4g85 was a promise that an approval was pending
+ * when none existed.
+ *
+ * Settling here instead makes the runner the author of the honest record: the
+ * row gets TOOL_CALL_INTERRUPTED with {@link UNRESOLVED_TOOL_CALL_ERROR}, and
+ * the caller (turn-boundary.ts) appends a system disclosure naming what never
+ * ran.
+ *
+ * WHY INTERRUPTED AND NEVER FAILED. TOOL_CALL_INTERRUPTED is deliberately the
+ * one settled status the monotonic merge guard lets live execution evidence
+ * supersede (see the guard's note in this file, ~line 331): if this FAILED
+ * execution is later RECOVERED, the harness checkpoint may re-execute the call
+ * under its original id, and the replayed events must be able to advance the
+ * row to its true outcome. A boundary-stamped FAILED would freeze it forever.
+ *
+ * WHY IT NEVER FAILS THE RUN (unlike #205). A foreign hook block is provably
+ * adversarial — approval semantics are permanently broken, so completing would
+ * always be a lie. An unresolved row can also be benign stream event-loss
+ * where the tool actually ran; failing the run would convert those into
+ * regressions. Disclosure restores honesty at zero regression risk.
+ *
+ * Scope and exclusions, in order:
+ *  - THIS turn's parent-transcript rows only (from `turnStartMessageIndex`):
+ *    seeded prior-turn rows were adjudicated by their own execution's settle,
+ *    and sub-agent inner rows are the server settle's concern — the parent row
+ *    (e.g. the Task call) is what the user sees. Mirrors #205's scoping.
+ *  - Only PENDING/RUNNING rows: every terminal row was adjudicated, and
+ *    WAITING_APPROVAL rows belong to the pause machinery (the caller only runs
+ *    this sweep on a NON-pausing turn, so none should exist here anyway).
+ *  - Only rows with NO denial-ledger entry of ANY kind (exact token, then the
+ *    normalized-path fallback — the same two identities every sweep in this
+ *    file uses): a ledger-attributed row is the unattended/secret/fail-closed
+ *    machinery's to settle, not ours.
+ *
+ * Returns the settled calls so the boundary can disclose and log them.
+ */
+export function settleUnresolvedToolCalls(
+  messages: readonly AgentMessage[],
+  turnStartMessageIndex: number,
+  ledger: readonly DeniedLedgerEntry[],
+  workspaceRoot?: string,
+): UnresolvedToolCall[] {
+  const ledgerTokens = new Set(ledger.map((e) => e.token));
+  const ledgerNormalizedSalients = new Set<string>();
+  if (workspaceRoot) {
+    for (const entry of ledger) {
+      const decoded = decodeIdentityToken(entry.token);
+      if (!decoded) continue;
+      const normalized = normalizedFileSalient(decoded.key, decoded.salient, workspaceRoot);
+      if (normalized) ledgerNormalizedSalients.add(normalized);
+    }
+  }
+
+  const matchesLedger = (tc: ToolCall): boolean => {
+    if (ledgerTokens.has(toolCallIdentityToken(tc))) return true;
+    if (!workspaceRoot) return false;
+    const id = toolIdentity(tc.name, tc.mcpServerSlug, toolCallArgs(tc));
+    const normalized = normalizedFileSalient(id.key, id.salient, workspaceRoot);
+    return !!normalized && ledgerNormalizedSalients.has(normalized);
+  };
+
+  const settled: UnresolvedToolCall[] = [];
+  for (const msg of messages.slice(Math.max(0, turnStartMessageIndex))) {
+    for (const tc of msg.toolCalls) {
+      if (
+        tc.status !== ToolCallStatus.TOOL_CALL_PENDING &&
+        tc.status !== ToolCallStatus.TOOL_CALL_RUNNING
+      ) {
+        continue;
+      }
+      if (matchesLedger(tc)) continue;
+      tc.status = ToolCallStatus.TOOL_CALL_INTERRUPTED;
+      tc.error = UNRESOLVED_TOOL_CALL_ERROR;
+      tc.isStreaming = false;
+      if (!tc.completedAt) tc.completedAt = utcTimestamp();
+      settled.push({ toolCallId: tc.id, toolName: tc.name });
+    }
+  }
+  return settled;
+}
+
+/**
  * Stamp the tool calls the hook denied under UNATTENDED approval mode
  * (DD-014) as terminal TOOL_CALL_SKIPPED rows with UNATTENDED_SKIP
  * provenance — the Cursor twin of the native harness's

@@ -12,7 +12,12 @@
  *     and redact the model's provisional post-denial narration;
  *  5. detect UNATTRIBUTED hook blocks (issue #205) — a tool blocked by a hook
  *     with no ledger entry of any kind was denied by a FOREIGN hook the merge
- *     preserved, and the caller fails the run rather than completing silently.
+ *     preserved, and the caller fails the run rather than completing silently;
+ *  6. settle UNRESOLVED tool calls (issue #965) — a this-turn row still
+ *     non-terminal on a completing turn with no ledger attribution hung inside
+ *     the harness and can never complete; it is settled to an honest
+ *     TOOL_CALL_INTERRUPTED and disclosed on the transcript instead of being
+ *     silently stamped by the server's terminal settle after the fact.
  *
  * Extracted from the activity entry point (index.ts Phase 12) so it is directly
  * unit-testable AND re-enterable: the poisoned-handle / transport-timeout
@@ -51,9 +56,14 @@ import {
   clearProvisionalPostDenialNarration,
   detectUnattributedHookBlocks,
   reconcileDeniedToolCalls,
+  settleUnresolvedToolCalls,
   stampUnattendedSkippedToolCalls,
+  utcTimestamp,
   type UnattributedHookBlock,
 } from "./message-translator.js";
+import { create } from "@bufbuild/protobuf";
+import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import { MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
 // How long the boundary waits for the first-denial-stop's run.cancel() to
 // settle before reading the final denial ledger and capturing the turn's tree.
@@ -140,6 +150,16 @@ export interface TurnBoundaryResult {
    * undone (a pausing turn is not silent — the caller logs and pauses as usual).
    */
   readonly unattributedHookBlocks: readonly UnattributedHookBlock[];
+  /**
+   * This-turn tool calls settled to TOOL_CALL_INTERRUPTED because they were
+   * still non-terminal on a completing turn with no ledger attribution (issue
+   * #965) — the harness returned no result for them and the platform holds no
+   * approval for them. Informational: the boundary already settled the rows
+   * and appended the transcript disclosure; the run is NOT failed for these
+   * (unlike #205's unattributed blocks, an unresolved row can be benign
+   * stream event-loss, so failing would over-punish).
+   */
+  readonly settledUnresolvedCount: number;
 }
 
 /**
@@ -338,6 +358,49 @@ export async function runTurnBoundary(opts: TurnBoundaryOptions): Promise<TurnBo
     primaryWorkspaceDir,
   );
   const waiting = deniedToolCalls.length > 0 || capturedChangeCount > 0;
+
+  // Issue #965 invariant: an unresolved tool must never silently complete.
+  // On a COMPLETING (non-pausing) turn, any this-turn row still PENDING /
+  // RUNNING with no ledger attribution hung inside the harness (the production
+  // case: `generateImage`, which rides the SDK's interaction-query channel and
+  // is invisible to the hook). Settle it to an honest TOOL_CALL_INTERRUPTED —
+  // never FAILED, so a recovery replay can still supersede it (#207) — and
+  // disclose it on the transcript, so the model's own narration (which may
+  // have promised an approval the platform does not hold) is never the last
+  // word. A PAUSING turn is skipped: its non-terminal rows belong to the
+  // reconcile/collapse machinery above. Runs AFTER the unattended stamp so a
+  // ledger-attributed row is already SKIPPED and cannot double-settle, and
+  // AFTER the #205 detection so a hook-block FAILED row keeps its distinct,
+  // run-failing treatment. Deliberately does NOT fail the run (unlike #205):
+  // an unresolved row can also be benign stream event-loss where the tool
+  // actually ran, and converting those into failures would be a regression.
+  let settledUnresolved: readonly { toolCallId: string; toolName: string }[] = [];
+  if (!waiting) {
+    settledUnresolved = settleUnresolvedToolCalls(
+      status.messages,
+      turnStartMessageIndex,
+      deniedLedger,
+      primaryWorkspaceDir,
+    );
+    if (settledUnresolved.length > 0) {
+      const names = [...new Set(settledUnresolved.map((s) => s.toolName))].join(", ");
+      status.messages.push(create(AgentMessageSchema, {
+        type: MessageType.MESSAGE_SYSTEM,
+        content:
+          `Note: the following tool call(s) never completed and were not executed: ${names}. ` +
+          `No approval is pending for them — if the agent said otherwise, disregard that. ` +
+          `You can ask the agent to try again.`,
+        timestamp: utcTimestamp(),
+      }));
+      console.warn(
+        `ExecuteCursor turn boundary: settled ${settledUnresolved.length} unresolved ` +
+        `tool call(s) to INTERRUPTED with disclosure [${names}] — the harness returned ` +
+        `no result for them and no ledger entry accounts for them (issue #965; ` +
+        `execution=${executionId})`,
+      );
+    }
+  }
+
   if (unattributedHookBlocks.length > 0) {
     const culprits = (foreignGatingHooks?.length ?? 0) > 0
       ? ` — likely foreign workspace hook(s): ${foreignGatingHooks!.join(", ")}`
@@ -366,5 +429,6 @@ export async function runTurnBoundary(opts: TurnBoundaryOptions): Promise<TurnBo
     capturedChangeCount,
     deniedToolCallCount: deniedToolCalls.length,
     unattributedHookBlocks,
+    settledUnresolvedCount: settledUnresolved.length,
   };
 }

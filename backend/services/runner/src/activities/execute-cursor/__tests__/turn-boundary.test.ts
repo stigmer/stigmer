@@ -32,7 +32,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { captureBaselineToLedger } from "../capture-flow.js";
 import { denialLedgerPath } from "../approval-state.js";
-import { toolCallIdentityToken } from "../message-translator.js";
+import { toolCallIdentityToken, UNRESOLVED_TOOL_CALL_ERROR } from "../message-translator.js";
 import { runTurnBoundary, type TurnBoundaryOptions } from "../turn-boundary.js";
 
 const execFileAsync = promisify(execFile);
@@ -403,5 +403,157 @@ describe("runTurnBoundary", () => {
 
     expect(result.deniedToolCallCount).toBe(1);
     expect(shellCall.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
+  });
+});
+
+// The issue #965 invariant: an unresolved tool must never silently complete.
+// The production fixture is aex_01m1a6ww3nmp4952ar5v0g4g85 — Cursor's native
+// `generateImage` (an interaction-channel tool no Stigmer seam touches) hung
+// with no result event and no ledger entry, the turn completed, and the model's
+// last words promised a write approval the platform never held. The boundary
+// must settle such rows to an honest INTERRUPTED and put the platform's own
+// disclosure on the transcript so the model's claim is never the last word.
+describe("runTurnBoundary — unresolved tool calls on a completing turn (issue #965)", () => {
+  /** The incident's exact row shape: a streamed call that never resolved. */
+  function hangingGenerateImage(id: string): AgentMessage {
+    return create(AgentMessageSchema, {
+      type: MessageType.MESSAGE_AI,
+      toolCalls: [
+        create(ToolCallSchema, {
+          id,
+          name: "generateImage",
+          status: ToolCallStatus.TOOL_CALL_RUNNING,
+          args: { description: "a red circle", filePath: "red-circle.png" },
+        }),
+      ],
+    });
+  }
+
+  it("settles the incident shape to INTERRUPTED and discloses it (regression: aex_01m1a6ww)", async () => {
+    const status = newStatus();
+    const baseline = await captureBaselineToLedger({
+      status,
+      gitRoot: repo,
+      executionId: EXEC_ID,
+      changeSetId: CHANGE_SET_ID,
+    });
+    status.messages.push(hangingGenerateImage("tc-genimage-1"));
+
+    const result = await runTurnBoundary(boundaryOpts(status, baseline));
+
+    // The turn completes (no pause) — but not silently.
+    expect(result.waiting).toBe(false);
+    expect(result.settledUnresolvedCount).toBe(1);
+
+    const row = status.messages[0].toolCalls[0];
+    // INTERRUPTED, never FAILED: the one settled status a recovery replay may
+    // supersede (the #207 contract) — a FAILED stamp would freeze the row.
+    expect(row.status).toBe(ToolCallStatus.TOOL_CALL_INTERRUPTED);
+    expect(row.error).toBe(UNRESOLVED_TOOL_CALL_ERROR);
+    expect(row.isStreaming).toBe(false);
+    expect(row.completedAt).not.toBe("");
+
+    // The platform's disclosure is the transcript's last word — it names the
+    // tool and explicitly denies the phantom approval.
+    const last = status.messages[status.messages.length - 1];
+    expect(last.type).toBe(MessageType.MESSAGE_SYSTEM);
+    expect(last.content).toContain("generateImage");
+    expect(last.content).toContain("No approval is pending");
+  });
+
+  it("leaves non-terminal rows to the pause machinery on a PAUSING turn", async () => {
+    const status = newStatus();
+    const baseline = await captureBaselineToLedger({
+      status,
+      gitRoot: repo,
+      executionId: EXEC_ID,
+      changeSetId: CHANGE_SET_ID,
+    });
+    // A captured file change makes the turn pause…
+    await write("notes.md", "original notes\npaused-turn edit\n");
+    status.messages.push(
+      streamedEdit("tc-edit-1", "notes.md", "original notes\npaused-turn edit\n"),
+    );
+    // …while a hanging row rides the same turn.
+    status.messages.push(hangingGenerateImage("tc-genimage-2"));
+
+    const result = await runTurnBoundary(boundaryOpts(status, baseline));
+
+    expect(result.waiting).toBe(true);
+    expect(result.settledUnresolvedCount).toBe(0);
+    // Untouched by THIS sweep (a pausing turn's rows belong to the reconcile /
+    // collapse machinery, which has its own treatment for orphaned attempts).
+    expect(status.messages[1].toolCalls[0].status).toBe(ToolCallStatus.TOOL_CALL_RUNNING);
+  });
+
+  it("never settles a ledger-attributed row — that is the kinded machinery's call", async () => {
+    const status = newStatus();
+    const baseline = await captureBaselineToLedger({
+      status,
+      gitRoot: repo,
+      executionId: EXEC_ID,
+      changeSetId: CHANGE_SET_ID,
+    });
+    const secretWrite = create(ToolCallSchema, {
+      id: "tc-secret-1",
+      name: "edit",
+      status: ToolCallStatus.TOOL_CALL_PENDING,
+      args: { path: ".env", content: "API_KEY=x" },
+    });
+    status.messages.push(
+      create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, toolCalls: [secretWrite] }),
+    );
+    // A secret-kind hard-block entry: attributable (kind non-approval), so the
+    // row is accounted for and must NOT be swept as "unresolved".
+    await writeFile(
+      denialLedgerPath(hitlDir),
+      JSON.stringify({
+        toolName: "Write",
+        token: toolCallIdentityToken(secretWrite),
+        kind: "secret",
+      }) + "\n",
+      "utf-8",
+    );
+
+    const result = await runTurnBoundary(boundaryOpts(status, baseline));
+
+    expect(result.settledUnresolvedCount).toBe(0);
+    expect(secretWrite.status).toBe(ToolCallStatus.TOOL_CALL_PENDING);
+  });
+
+  it("scopes to THIS turn: seeded prior-turn rows and terminal rows are untouched", async () => {
+    const status = newStatus();
+    const baseline = await captureBaselineToLedger({
+      status,
+      gitRoot: repo,
+      executionId: EXEC_ID,
+      changeSetId: CHANGE_SET_ID,
+    });
+    // Message 0 is seeded prior-turn context (already adjudicated elsewhere).
+    status.messages.push(hangingGenerateImage("tc-prior-turn"));
+    // Message 1 opens this turn: one real terminal row.
+    status.messages.push(
+      create(AgentMessageSchema, {
+        type: MessageType.MESSAGE_AI,
+        toolCalls: [
+          create(ToolCallSchema, {
+            id: "tc-done",
+            name: "Read",
+            status: ToolCallStatus.TOOL_CALL_COMPLETED,
+            result: "file contents",
+          }),
+        ],
+      }),
+    );
+
+    const result = await runTurnBoundary(
+      boundaryOpts(status, baseline, { turnStartMessageIndex: 1 }),
+    );
+
+    expect(result.settledUnresolvedCount).toBe(0);
+    expect(status.messages[0].toolCalls[0].status).toBe(ToolCallStatus.TOOL_CALL_RUNNING);
+    expect(status.messages[1].toolCalls[0].status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+    // No disclosure was appended.
+    expect(status.messages.at(-1)?.type).toBe(MessageType.MESSAGE_AI);
   });
 });
