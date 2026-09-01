@@ -83,36 +83,42 @@ describeWithCursorKey("generateImage live ground truth (issue #965)", () => {
 
     // Mirror the runner's arrangement (session-lifecycle.ts createAgent):
     // local cwd + the "project" setting source that loads .cursor/hooks.json.
+    // The model is pinned to the incident's (aex_01m1a6ww billed composer-2.5).
     const agent = await Agent.create({
       apiKey: CURSOR_API_KEY,
+      model: { id: "composer-2.5" },
       local: { cwd: workspaceRoot, settingSources: ["project"] },
       platform: { workspaceRef: `genimage-spike-${Date.now()}`, stateRoot },
     });
 
-    const updates: Array<Record<string, unknown>> = [];
-    const result = await agent.send(
+    // The runner's exact consumption shape (index.ts / turn-stream.ts):
+    // send() registers the run; run.stream() is the event source; run.wait()
+    // is the terminal result.
+    const run = await agent.send(
       "Use your generateImage tool to generate a simple image of a solid red " +
         "circle on a white background and save it to red-circle.png in the " +
         "workspace. Do not ask questions; invoke the tool directly. If the " +
         "tool fails, state the exact error text you received and stop.",
-      {
-        onDelta: ({ update }) => {
-          const u = update as unknown as Record<string, unknown>;
-          if (u && typeof u === "object" && "type" in u) {
-            updates.push(u);
-          }
-        },
-      },
     );
+
+    const events: Array<Record<string, unknown>> = [];
+    for await (const event of run.stream()) {
+      const e = event as unknown as Record<string, unknown>;
+      if (e && typeof e === "object" && "type" in e) events.push(e);
+    }
+    const result = await run.wait();
 
     // ---- Findings dump (the deliverable of this instrument) ----
     console.log(`[genimage-spike] run status: ${result.status} (durationMs=${result.durationMs})`);
 
-    const toolEvents = updates.filter((u) =>
-      u.type === "tool-call-started" || u.type === "tool-call-completed",
-    );
-    for (const ev of toolEvents) {
-      console.log(`[genimage-spike] tool event: ${JSON.stringify(ev).slice(0, 600)}`);
+    for (const ev of events) {
+      if (ev.type === "tool_call" || ev.type === "status") {
+        console.log(`[genimage-spike] event: ${JSON.stringify(ev).slice(0, 800)}`);
+      }
+    }
+    const finalAssistant = events.filter((e) => e.type === "assistant").at(-1);
+    if (finalAssistant) {
+      console.log(`[genimage-spike] final assistant: ${JSON.stringify(finalAssistant).slice(0, 800)}`);
     }
 
     const hookInvocations: Array<Record<string, unknown>> = [];
