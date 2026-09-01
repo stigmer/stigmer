@@ -1,0 +1,24 @@
+# Cloud variant of the traveler-assist share — the S4d embed take only.
+#
+# The committed local share (../resources/traveler-assist-share.yaml) is
+# org-audience because the OSS single-user stack has no guest RPCs. The
+# framed <stigmer-agent> embed always rides the guest path, so the one
+# shot recorded against Stigmer Cloud (S4d) needs a public audience.
+# Same slug on purpose: the on-camera snippet and chat URL stay identical
+# whichever backend serves them.
+apiVersion: agentic.stigmer.ai/v1
+kind: AgentShare
+metadata:
+  name: traveler-assist
+  org: meridian-travel
+spec:
+  agent_ref:
+    kind: agent
+    slug: traveler-assist
+  enabled: true
+  audience: agent_share_audience_public
+  # The embed page is served locally even for the cloud take (serve.mjs
+  # with APP_ORIGIN=https://app.stigmer.ai) — the widget's origin check
+  # sees localhost:4173 either way.
+  allowed_origins:
+    - http://localhost:4173

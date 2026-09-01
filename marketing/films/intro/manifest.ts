@@ -10,8 +10,12 @@ import manifest from "./manifest.json";
 
 export type SceneMode = "presenter" | "vo";
 
-/** How a cut renders: real footage, a styled data panel, or a slate awaiting its asset. */
-export type CutKind = "recording" | "yaml-panel" | "terminal" | "slate";
+/**
+ * How a cut renders: real footage, a styled data panel, a brand motion
+ * graphic (resolved via the graphics registry), or a slate awaiting its
+ * asset.
+ */
+export type CutKind = "recording" | "yaml-panel" | "terminal" | "graphic" | "slate";
 
 /**
  * One editorial cut inside a scene. Cut timing is hand-tuned editorial
@@ -20,13 +24,31 @@ export type CutKind = "recording" | "yaml-panel" | "terminal" | "slate";
  * offsets live here in the manifest, the film's single source of truth.
  */
 export interface Cut {
-  /** Shot id — for recordings, the assets/recordings/<shot>.webm take. */
+  /**
+   * Shot id — for recordings, the assets/recordings/<shot>.webm take;
+   * for graphics, the id looked up in the graphics registry.
+   */
   shot: string;
   kind: CutKind;
   /** Cut point, seconds from scene start; runs until the next cut. */
   atSec: number;
   /** Trim: where in the source take this cut begins (skips nav prefix). */
   srcStartSec?: number;
+}
+
+/**
+ * A timed graphic composited ABOVE a scene's base visual — how a motion
+ * graphic shares the frame with a presenter clip instead of replacing it
+ * (S1b's logo reveal plays over the presenter; S6b's end card takes over
+ * after her close). Same hand-tuned-offset doctrine as cuts.
+ */
+export interface Overlay {
+  /** Graphic id, looked up in the graphics registry. */
+  graphic: string;
+  /** Entry point, seconds from scene start. */
+  atSec: number;
+  /** How long the overlay plays; omitted = until the scene ends. */
+  durationSec?: number;
 }
 
 export interface Scene {
@@ -40,6 +62,14 @@ export interface Scene {
   shots: string;
   /** Editorial cuts; scenes without cuts render the placeholder slate. */
   cuts?: Cut[];
+  /** Timed graphics composited above the scene's base visual. */
+  overlays?: Overlay[];
+  /**
+   * Extra seconds after the narration ends before the next scene — room
+   * for a beat that outlives the voice (the S6b end card holds while the
+   * music resolves).
+   */
+  holdSec?: number;
 }
 
 export const FPS: number = manifest.fps;
