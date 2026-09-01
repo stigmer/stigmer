@@ -10,6 +10,7 @@
     "narrate": "node scripts/narrate.mjs",
     "presenter": "node scripts/presenter.mjs",
     "demo:seed": "node films/intro/demo/seed.mjs",
+    "demo:seed:cloud": "node films/intro/demo/cloud/seed-cloud.mjs",
     "demo:smoke": "node films/intro/demo/mcp/smoke.mjs",
     "demo:embed": "node films/intro/demo/embed/serve.mjs",
     "capture": "node films/intro/capture/capture.mjs",

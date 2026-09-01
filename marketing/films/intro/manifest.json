@@ -44,7 +44,7 @@
         { "shot": "s4-chat", "kind": "recording", "atSec": 0, "srcStartSec": 8 },
         { "shot": "s4-chat", "kind": "recording", "atSec": 8.5, "srcStartSec": 33 },
         { "shot": "s4-chat", "kind": "recording", "atSec": 16, "srcStartSec": 40 },
-        { "shot": "s4d-embed", "kind": "slate", "atSec": 23.5 },
+        { "shot": "s4d-embed", "kind": "recording", "atSec": 23.5, "srcStartSec": 2.5 },
         { "shot": "s4e-share", "kind": "recording", "atSec": 28.6, "srcStartSec": 8 }
       ]
     },

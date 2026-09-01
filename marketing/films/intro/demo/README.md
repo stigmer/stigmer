@@ -15,6 +15,7 @@ Everything the film shows on screen is real product state, authored here and app
 | `resources/disruption-digest-schedule.yaml` | Daily 6:00 schedule (agent target — see note inside) | S5c |
 | `resources/organization.yaml` | The `meridian-travel` org | throughout |
 | `embed/` | The Meridian product page carrying `<stigmer-agent>` + its static server | S4d |
+| `cloud/` | The S4d cloud preconditions: minimal seed + public-audience share (see its README) | S4d |
 | `seed.mjs` | Applies all of the above, idempotently (`npm run demo:seed`) | — |
 
 ## Rebuilding the world
