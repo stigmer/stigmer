@@ -7,10 +7,15 @@
  *
  *   - createVerifierChainInterceptor — the serving chain's source: an
  *     ordered claim-or-pass walk over the composed IdentityVerifiers (the
- *     TS rendering of the Java ProviderManager chain).
+ *     TS rendering of the Java ProviderManager chain), followed by the
+ *     composed CallerGuards over the stamped identity (entry 20260902.02
+ *     ruling Q1 — see extensions/caller-guards.ts for the contract and
+ *     its doctrine).
  *   - createInProcessCallerInterceptor — the in-process router
  *     transport's source: stamps the `internal` caller class (ruling Q4,
- *     the TS rendering of the Java in-process authorization skip).
+ *     the TS rendering of the Java in-process authorization skip). It
+ *     takes NO guards — the in-process exemption is structural
+ *     (caller-guards.ts), not a runtime skip.
  *
  * The internal class is mintable ONLY here, only by the in-process
  * interceptor: the serving chain always overwrites the position-1 value
@@ -60,12 +65,18 @@
  * to the verification side).
  */
 import { Code, ConnectError, createContextKey } from "@connectrpc/connect";
-import type { HandlerContext, Interceptor } from "@connectrpc/connect";
+import type {
+  HandlerContext,
+  Interceptor,
+  StreamRequest,
+  UnaryRequest,
+} from "@connectrpc/connect";
 import { getOption } from "@bufbuild/protobuf";
 
 import { is_public } from "@stigmer/protos/ai/stigmer/commons/rpc/method_options_pb";
 
 import type { Logger } from "../../boot/logger.js";
+import type { CallerGuard } from "../../extensions/caller-guards.js";
 import type {
   CallerIdentity,
   IdentityVerifier,
@@ -139,12 +150,21 @@ export function trustedLocalIdentity(): CallerIdentity {
  * The serving chain's position-1 identity source: walks the composed
  * verifiers in order (OSS entries first, extension entries after, in
  * extension-unit order — registry contract), stamps the claimed identity
- * or the trusted-local fallback per the strictness contract above.
- * Covers unary AND streams — identity is per-request state, not a
- * unary-pipeline concern like the apiresource kind.
+ * or the trusted-local fallback per the strictness contract above, then
+ * runs the composed caller guards over the stamped identity (entry
+ * 20260902.02 ruling Q1). Covers unary AND streams — identity is
+ * per-request state, not a unary-pipeline concern like the apiresource
+ * kind.
+ *
+ * `guards` is REQUIRED, like the identity source on buildInterceptorChain:
+ * a serving transport that forgets its guards must be a compile error,
+ * never a silently unenforced edge — the exact failure class this seam
+ * exists to close (the cloud's platform-client controls went unported
+ * through five green readouts because nothing forced them).
  */
 export function createVerifierChainInterceptor(
   verifiers: ReadonlyArray<IdentityVerifier>,
+  guards: ReadonlyArray<CallerGuard>,
   logger: Logger,
   requireAuthentication = false,
 ): Interceptor {
@@ -178,12 +198,50 @@ export function createVerifierChainInterceptor(
         Code.Unauthenticated,
       );
     }
-    request.contextValues.set(
-      callerIdentityKey,
-      identity ?? trustedLocalIdentity(),
-    );
+    const stamped = identity ?? trustedLocalIdentity();
+    request.contextValues.set(callerIdentityKey, stamped);
+    await runCallerGuards(guards, stamped, request, logger);
     return next(request);
   };
+}
+
+/**
+ * The composed-order guard walk (caller-guards.ts contract): every guard
+ * runs against the FINAL stamped identity; the first throw wins. A
+ * ConnectError is the guard's own wire mapping; any other throw is an
+ * infrastructure fault (INTERNAL — a store outage during a liveness read
+ * must never read as an admission refusal). Both arms are recorded here:
+ * position 1 sits outside the logging interceptor, so this is a guard
+ * outcome's only operator record (the verifier-rejection precedent
+ * above).
+ */
+async function runCallerGuards(
+  guards: ReadonlyArray<CallerGuard>,
+  caller: CallerIdentity,
+  request: UnaryRequest | StreamRequest,
+  logger: Logger,
+): Promise<void> {
+  for (const guard of guards) {
+    try {
+      await guard.guard(caller, request.method, request.header);
+    } catch (error) {
+      const procedure = `/${request.service.typeName}/${request.method.name}`;
+      if (error instanceof ConnectError) {
+        logger.warn("caller guard refused the request", {
+          guard: guard.name,
+          procedure,
+          code: Code[error.code],
+        });
+        throw error;
+      }
+      logger.error("caller guard failed", {
+        guard: guard.name,
+        procedure,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw internalError(error, "internal server error");
+    }
+  }
 }
 
 /**

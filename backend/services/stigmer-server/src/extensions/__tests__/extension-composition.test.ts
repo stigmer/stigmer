@@ -169,6 +169,89 @@ describe("extension composition (composed server)", () => {
 });
 
 /**
+ * The caller-guard arm (entry 20260902.02 ruling Q1): a composed guard
+ * is enforced on the SERVING chain and structurally absent from the
+ * in-process chain. This is the wiring proof the unit arms cannot give —
+ * it pins that compose.ts threads resolved guards into the serving
+ * chassis AND that boot/inprocess.ts has no guard path at all (the TS
+ * rendering of the Java InProcessCallContextHolder exemption, proven by
+ * execution rather than by signature).
+ */
+describe("extension composition (caller guards)", () => {
+  let server: ComposedServer;
+  let dir: string;
+  let portTransport: Transport;
+  const guardedProcedures: string[] = [];
+
+  const GUARD_REFUSAL_MESSAGE = "refused by the composed test guard";
+
+  const guardExtension: ServerExtension = {
+    name: "fake-guard",
+    callerGuards: [
+      {
+        name: "refuse-all",
+        guard: (_caller, method) => {
+          guardedProcedures.push(`${method.parent.typeName}/${method.name}`);
+          return Promise.reject(
+            new ConnectError(GUARD_REFUSAL_MESSAGE, Code.PermissionDenied),
+          );
+        },
+      },
+    ],
+  };
+
+  beforeAll(async () => {
+    dir = mkdtempSync(path.join(tmpdir(), "caller-guard-test-"));
+    server = await composeServer({
+      config: loadConfig({
+        STIGMER_MODEL_REGISTRY_REFRESH: "off",
+        DB_PATH: path.join(dir, "stigmer.db"),
+        ARTIFACT_LOCAL_BASE_PATH: path.join(dir, "artifacts"),
+      }),
+      logger: createLogger({ level: "error", pretty: false, write: () => {} }),
+      extensions: [guardExtension],
+      portOverride: 0,
+      host: "127.0.0.1",
+    });
+    const port = await server.start();
+    portTransport = createGrpcTransport({
+      baseUrl: `http://127.0.0.1:${port}`,
+    });
+  });
+
+  afterAll(async () => {
+    await server.shutdown();
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("enforces the composed guard on the bound port with the guard's own wire mapping", async () => {
+    const client = createClient(PlatformQueryController, portTransport);
+    const failure = await client
+      .getServerInfo({})
+      .then(() => null)
+      .catch((error: unknown) => ConnectError.from(error));
+    expect(failure?.code).toBe(Code.PermissionDenied);
+    expect(failure?.rawMessage).toBe(GUARD_REFUSAL_MESSAGE);
+    expect(guardedProcedures).toContain(
+      "ai.stigmer.platform.v1.PlatformQueryController/getServerInfo",
+    );
+  });
+
+  it("never runs the guard on the in-process transport — the structural skip", async () => {
+    const before = guardedProcedures.length;
+    const client = createClient(
+      PlatformQueryController,
+      server.inProcessTransport,
+    );
+    // The SAME procedure the port lane just saw refused (a guard-only
+    // unit declares no edition, so the answer is the OSS default).
+    const info = await client.getServerInfo({});
+    expect(info.edition).toBe(ServerEdition.oss);
+    expect(guardedProcedures.length).toBe(before);
+  });
+});
+
+/**
  * The O5 driver-substitution arm: every consumption site routes through
  * the composed drivers — the registry lane serves the substituted
  * catalog's document, the platform exchange mints through the substituted

@@ -82,7 +82,7 @@ function testHarness(handlers: {
       router: {
         interceptors: buildInterceptorChain(
           logger,
-          createVerifierChainInterceptor([], logger),
+          createVerifierChainInterceptor([], [], logger),
         ),
       },
     },
