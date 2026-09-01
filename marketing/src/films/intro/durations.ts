@@ -17,9 +17,11 @@ export const sceneDurations = (narration: NarrationManifest | null): Record<stri
   const out: Record<string, number> = {};
   for (const scene of SCENES) {
     const gen = narration?.[scene.id];
-    out[scene.id] = gen
-      ? Math.ceil((gen.durationMs / 1000) * FPS) + TAIL_PADDING_FRAMES
-      : plannedDurationInFrames(scene);
+    const holdFrames = Math.round((scene.holdSec ?? 0) * FPS);
+    out[scene.id] =
+      (gen
+        ? Math.ceil((gen.durationMs / 1000) * FPS) + TAIL_PADDING_FRAMES
+        : plannedDurationInFrames(scene)) + holdFrames;
   }
   return out;
 };

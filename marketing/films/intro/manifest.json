@@ -9,14 +9,25 @@
       "mode": "presenter",
       "narration": "Hi, and welcome to Stigmer. In the next three minutes, I'll show you what Stigmer is, and how it helps you put AI agents to work — for your team, and inside your own product. Stigmer is an open-source platform where you define agents once, and run them anywhere.",
       "plannedDurationSec": 18,
-      "shots": "S1a presenter full-screen; S1b logo reveal beat"
+      "shots": "S1a presenter full-screen; S1b logo reveal beat",
+      "overlays": [
+        { "graphic": "s1b-logo-reveal", "atSec": 1.3, "durationSec": 3.5 }
+      ]
     },
     {
       "id": "s2-two-things",
       "mode": "vo",
       "narration": "As we jump in, you'll notice two things. First — in Stigmer, agents are infrastructure. An agent isn't a prompt buried in somebody's code. It's a declarative resource: defined in YAML, versioned, and portable. The exact same definition runs on your laptop and in the cloud. Second — execution you can trust. Every run is durable. Agents pause and wait for human approval before doing anything consequential. Every action is auditable, and budgets keep costs under control.",
       "plannedDurationSec": 30,
-      "shots": "S2a/S2d numbered title cards; S2b YAML-to-card morph; S2c laptop-to-cloud; S2e approval flash; S2f budget flash"
+      "shots": "S2a/S2d numbered title cards; S2b YAML-to-card morph; S2c laptop-to-cloud; S2e approval flash; S2f budget flash",
+      "cuts": [
+        { "shot": "s2a-title-infra", "kind": "graphic", "atSec": 0 },
+        { "shot": "s2b-yaml-morph", "kind": "graphic", "atSec": 7.5 },
+        { "shot": "s2c-laptop-cloud", "kind": "graphic", "atSec": 13.5 },
+        { "shot": "s2d-title-trust", "kind": "graphic", "atSec": 17.5 },
+        { "shot": "s4-chat", "kind": "recording", "atSec": 21.5, "srcStartSec": 41 },
+        { "shot": "s5b-budget", "kind": "recording", "atSec": 26.5, "srcStartSec": 6 }
+      ]
     },
     {
       "id": "s3-define",
@@ -25,7 +36,7 @@
       "plannedDurationSec": 55,
       "shots": "S3a Meridian establishing; S3b YAML drift with callouts; S3c skill version; S3d MCP approval policy; S3e stigmer apply; S3f library card",
       "cuts": [
-        { "shot": "s3a-establishing", "kind": "slate", "atSec": 0 },
+        { "shot": "s3a-establishing", "kind": "graphic", "atSec": 0 },
         { "shot": "s3b-agent-yaml", "kind": "yaml-panel", "atSec": 7.2 },
         { "shot": "s3c-skill", "kind": "recording", "atSec": 12.1, "srcStartSec": 4 },
         { "shot": "s3d-mcp-config", "kind": "recording", "atSec": 22.8, "srcStartSec": 4 },
@@ -65,7 +76,7 @@
         { "shot": "s5a-workflow", "kind": "recording", "atSec": 0, "srcStartSec": 4 },
         { "shot": "s5b-budget", "kind": "recording", "atSec": 8.5, "srcStartSec": 6 },
         { "shot": "s5c-schedule", "kind": "recording", "atSec": 14, "srcStartSec": 4 },
-        { "shot": "s5d-cloud-morph", "kind": "slate", "atSec": 18.5 }
+        { "shot": "s5d-cloud-morph", "kind": "graphic", "atSec": 18.5 }
       ]
     },
     {
@@ -73,7 +84,11 @@
       "mode": "presenter",
       "narration": "That's Stigmer. Define your agents once. Trust how they run. And put them everywhere your work happens. It's open source — get started at stigmer dot ai. See you there.",
       "plannedDurationSec": 13,
-      "shots": "S6a presenter; S6b end card with logo + stigmer.ai + install command"
+      "shots": "S6a presenter; S6b end card with logo + stigmer.ai + install command",
+      "holdSec": 5,
+      "overlays": [
+        { "graphic": "s6b-end-card", "atSec": 9.8 }
+      ]
     }
   ]
 }

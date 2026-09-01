@@ -2,6 +2,7 @@ import { AbsoluteFill, OffthreadVideo, Sequence, staticFile } from "remotion";
 import type { Cut } from "../../../../films/intro/manifest";
 import { FPS } from "../../../../films/intro/manifest";
 import { theme } from "../../../theme";
+import { GRAPHICS } from "../graphics";
 import type { ApplyTranscript } from "./TerminalScene";
 import { TerminalScene } from "./TerminalScene";
 import { YamlPanel } from "./YamlPanel";
@@ -19,9 +20,9 @@ export interface FilmData {
 /**
  * A scene assembled from the manifest's editorial cuts: real recordings
  * trimmed at their cut points, the two rendered-data panels (YAML,
- * terminal), and slates for shots whose assets are still pending (S3a
- * and S5d motion graphics, S4d awaiting its cloud take). A cut whose
- * asset is missing falls back to a slate, so the film always renders.
+ * terminal), and brand graphics resolved through the graphics registry.
+ * A cut whose asset (or registered graphic) is missing falls back to a
+ * slate, so the film always renders.
  */
 export const RecordedScene = ({
   cuts,
@@ -67,6 +68,11 @@ const CutView = ({ cut, cutFrames, data }: { cut: Cut; cutFrames: number; data: 
     case "terminal":
       if (data.transcript === null) return <SlateCut label={`${cut.shot} — run capture:transcript`} />;
       return <TerminalScene transcript={data.transcript} />;
+    case "graphic": {
+      const Graphic = GRAPHICS[cut.shot];
+      if (Graphic === undefined) return <SlateCut label={`${cut.shot} — graphic not registered`} />;
+      return <Graphic durationInFrames={cutFrames} />;
+    }
     case "slate":
       return <SlateCut label={cut.shot} />;
     default: {
