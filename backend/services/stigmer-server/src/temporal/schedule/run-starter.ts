@@ -5,7 +5,11 @@
  * context, persist, workflow start). Where the cloud starter mints a
  * schedule token and re-enters the pipeline behind FGA gates, OSS has no
  * caller identity by design (DD-015 D-G): the org is stamped from the
- * schedule's own metadata.
+ * schedule's own metadata. A composition restores the Java posture through
+ * the scheduleFireCaller driver point (stigmer-cloud#572): when composed,
+ * every fire mints its caller and the create propagates it via the R5
+ * in-process header; a mint failure propagates like any infrastructure
+ * fault (the tick activity retries, the trigger surfaces it).
  *
  * Idempotency is the CLOCK's job here (DD-015 D-F): the OSS create
  * pipeline deliberately has no duplicate check (it would tax every
@@ -42,6 +46,8 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
 import type { Logger } from "../../boot/logger.js";
+import type { CallerIdentity } from "../../extensions/identity.js";
+import type { ScheduleFireCallerMint } from "../../extensions/schedule-fire-caller.js";
 import { findResourceBySlug } from "../../pipeline/steps/helpers.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
@@ -81,10 +87,16 @@ export type RunOutcomeResult =
 /**
  * The narrow slice of the in-process agent-execution client the run
  * starter needs (Go ExecutionCreator; satisfied through
- * src/boot/inprocess.ts).
+ * src/boot/inprocess.ts). `fireCaller`, when present, is the composed
+ * edition identity the fire acts as — the implementation propagates it
+ * through the R5 in-process header; absent, the create enters as the
+ * `internal` class (the OSS default, byte-identical).
  */
 export interface ScheduleExecutionCreator {
-  create(execution: AgentExecution): Promise<AgentExecution>;
+  create(
+    execution: AgentExecution,
+    fireCaller?: CallerIdentity,
+  ): Promise<AgentExecution>;
 }
 
 /**
@@ -197,6 +209,8 @@ export interface RunStarterDeps {
   readonly store: Store;
   readonly config: ScheduleTemporalConfig;
   readonly executions: ScheduleExecutionCreator;
+  /** The composed fire-caller mint, or undefined (the OSS internal lane). */
+  readonly fireCallerMint?: ScheduleFireCallerMint;
   readonly logger: Logger;
 }
 
@@ -274,10 +288,31 @@ export class RunStarter {
       return { kind: "started", executionId, alreadyExisted: true };
     }
 
+    // The composed fire-caller mint (stigmer-cloud#572): minted per fire,
+    // after the idempotency lookup (a found winner needs no credential)
+    // and before the create it authenticates. Failure is an
+    // infrastructure fault — thrown, so the tick activity retries under
+    // the deterministic name and a manual trigger surfaces it.
+    let fireCaller: CallerIdentity | undefined;
+    if (this.deps.fireCallerMint !== undefined) {
+      try {
+        fireCaller = await this.deps.fireCallerMint.mintFireCaller(
+          org,
+          scheduleId,
+        );
+      } catch (error) {
+        throw new Error(
+          `mint schedule fire caller for ${scheduleId}: ${error instanceof Error ? error.message : String(error)}`,
+          { cause: error },
+        );
+      }
+    }
+
     let created: AgentExecution;
     try {
       created = await this.deps.executions.create(
         this.buildExecutionRequest(schedule, resolved.agent, executionName, nominalFireTime),
+        fireCaller,
       );
     } catch (error) {
       if (!(error instanceof ConnectError)) {

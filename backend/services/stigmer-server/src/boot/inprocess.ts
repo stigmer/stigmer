@@ -337,9 +337,17 @@ export function createInProcessClients(
     // The schedule clock's fire edge — the plain Create RPC (Go's
     // ExecutionCreator). Since O2 every call through this transport
     // carries the internal caller class stamped at position 1; its audit
-    // derivation equals the old process-global operator identity.
+    // derivation equals the old process-global operator identity. A
+    // composed fire caller (the scheduleFireCaller driver point,
+    // stigmer-cloud#572) propagates instead — the RunStarter mints it per
+    // fire, so the created execution and its auto-created session carry
+    // the edition's schedule identity (ruling R5's asCaller lane).
     scheduleExecutionCreator: {
-      create: (execution) => agentExecutionCommand.create(execution),
+      create: (execution, fireCaller) =>
+        agentExecutionCommand.create(
+          execution,
+          fireCaller === undefined ? undefined : asCaller(fireCaller),
+        ),
     },
     // The project reconciler's delete routing — Go's
     // ResourceDeleterAdapter.Delete switch (execution_engine.go:75-92).

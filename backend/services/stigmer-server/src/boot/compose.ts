@@ -464,14 +464,20 @@ export async function composeServer(
   );
   // Every fire enters the FULL execution create pipeline through the
   // in-process agentexecution client (Go server.go 581: the RunStarter's
-  // ExecutionCreator edge).
+  // ExecutionCreator edge). The composed scheduleFireCaller driver
+  // (stigmer-cloud#572), when present, gives each fire its edition
+  // identity — propagated by the creator's asCaller lane.
   const scheduleRunStarter = new RunStarter({
     store,
     config: scheduleTemporalConfig,
     executions: {
-      create: (execution) =>
-        requireInProcess().scheduleExecutionCreator.create(execution),
+      create: (execution, fireCaller) =>
+        requireInProcess().scheduleExecutionCreator.create(
+          execution,
+          fireCaller,
+        ),
     },
+    fireCallerMint: extensions.drivers.scheduleFireCaller,
     logger,
   });
   const scheduleReconciler = new ScheduleReconciler(
