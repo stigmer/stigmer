@@ -1,0 +1,23 @@
+# Hosted-chat share for traveler-assist — scene 4's "same agent,
+# everywhere" beat: the share link (S4e) and the Meridian page embed
+# (S4d) both ride this share. The embed page is served by
+# embed/serve.mjs on localhost:4173.
+apiVersion: agentic.stigmer.ai/v1
+kind: AgentShare
+# The share's slug is the public identity: it names the /chat/... link
+# and the <stigmer-agent agent="..."> attribute. Sharing the agent's own
+# slug keeps both camera-clean (kinds have separate slug namespaces).
+metadata:
+  name: traveler-assist
+  org: meridian-travel
+spec:
+  agent_ref:
+    kind: agent
+    slug: traveler-assist
+  enabled: true
+  # Org audience: on the OSS single-user stack the public-audience guest
+  # path (guest mint / public profile RPCs) is cloud-only, while the
+  # org-audience hosted page rides the trusted-local identity.
+  audience: agent_share_audience_org
+  allowed_origins:
+    - http://localhost:4173

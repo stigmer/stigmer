@@ -1,0 +1,7 @@
+# Generated / captured media is never committed; the film re-derives from
+# films/*/manifest.ts + README capture instructions (media discipline decided
+# in stigmer-cloud project 20260902.01.stigmer-intro-video).
+assets/narration/
+assets/presenter/
+assets/recordings/
+out/

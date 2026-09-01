@@ -1,0 +1,79 @@
+{
+  "fps": 30,
+  "width": 1920,
+  "height": 1080,
+  "voiceId": "EXAVITQu4vr4xnSDxMaL",
+  "scenes": [
+    {
+      "id": "s1-cold-open",
+      "mode": "presenter",
+      "narration": "Hi, and welcome to Stigmer. In the next three minutes, I'll show you what Stigmer is, and how it helps you put AI agents to work — for your team, and inside your own product. Stigmer is an open-source platform where you define agents once, and run them anywhere.",
+      "plannedDurationSec": 18,
+      "shots": "S1a presenter full-screen; S1b logo reveal beat"
+    },
+    {
+      "id": "s2-two-things",
+      "mode": "vo",
+      "narration": "As we jump in, you'll notice two things. First — in Stigmer, agents are infrastructure. An agent isn't a prompt buried in somebody's code. It's a declarative resource: defined in YAML, versioned, and portable. The exact same definition runs on your laptop and in the cloud. Second — execution you can trust. Every run is durable. Agents pause and wait for human approval before doing anything consequential. Every action is auditable, and budgets keep costs under control.",
+      "plannedDurationSec": 30,
+      "shots": "S2a/S2d numbered title cards; S2b YAML-to-card morph; S2c laptop-to-cloud; S2e approval flash; S2f budget flash"
+    },
+    {
+      "id": "s3-define",
+      "mode": "vo",
+      "narration": "Let's define one. Say we run a travel company, and we want an assistant that helps travelers rebook flights. An agent starts with instructions — what it is, and how it should behave. Then we give it knowledge: skills. A skill is a versioned document that teaches the agent your domain — here, our rebooking policy. Agents always use the version you've published. Next, tools. Agents connect to MCP servers — the open standard for giving agents real capabilities. This one can search flights and manage bookings. And notice the approval policy: rebooking requires human sign-off. For bigger jobs, an agent can delegate to sub-agents — specialists with their own instructions and just the tools they need. One command — stigmer apply — and our agent is live.",
+      "plannedDurationSec": 55,
+      "shots": "S3a Meridian establishing; S3b YAML drift with callouts; S3c skill version; S3d MCP approval policy; S3e stigmer apply; S3f library card",
+      "cuts": [
+        { "shot": "s3a-establishing", "kind": "slate", "atSec": 0 },
+        { "shot": "s3b-agent-yaml", "kind": "yaml-panel", "atSec": 7.2 },
+        { "shot": "s3c-skill", "kind": "recording", "atSec": 12.1, "srcStartSec": 4 },
+        { "shot": "s3d-mcp-config", "kind": "recording", "atSec": 22.8, "srcStartSec": 4 },
+        { "shot": "s3b-agent-overview", "kind": "recording", "atSec": 36.4, "srcStartSec": 6 },
+        { "shot": "s3e-apply", "kind": "terminal", "atSec": 44.5 },
+        { "shot": "s3f-agent-card", "kind": "recording", "atSec": 47.5, "srcStartSec": 4 }
+      ]
+    },
+    {
+      "id": "s4-put-to-work",
+      "mode": "vo",
+      "narration": "Now, let's put it to work. Here's our agent in the console. I ask it to move my flight to tomorrow morning. It reads the policy, finds options — and when it's ready to actually rebook, it stops, and asks. I can see exactly what it's about to do. I approve, and it finishes the job. The agent does the work. You keep the authority. And the console is just one surface. The same agent drops into your own product with a single component. Or share it as a hosted link, and it's live for anyone you choose. Same agent. Same skills. Same guardrails. Everywhere.",
+      "plannedDurationSec": 52,
+      "shots": "S4a console chat; S4b approval dialog hero; S4c approve-resume; S4d embed snippet + widget; S4e share link",
+      "cuts": [
+        { "shot": "s4-chat", "kind": "recording", "atSec": 0, "srcStartSec": 8 },
+        { "shot": "s4-chat", "kind": "recording", "atSec": 8.5, "srcStartSec": 33 },
+        { "shot": "s4-chat", "kind": "recording", "atSec": 16, "srcStartSec": 40 },
+        { "shot": "s4d-embed", "kind": "slate", "atSec": 23.5 },
+        { "shot": "s4e-share", "kind": "recording", "atSec": 28.6, "srcStartSec": 8 }
+      ]
+    },
+    {
+      "id": "s4g-presenter-beat",
+      "mode": "presenter",
+      "narration": "Same agent — everywhere.",
+      "plannedDurationSec": 3,
+      "shots": "S4g presenter beat, full-screen"
+    },
+    {
+      "id": "s5-scale",
+      "mode": "vo",
+      "narration": "When one agent isn't enough, you orchestrate. Workflows coordinate agents and systems into repeatable pipelines — with budgets: a hard limit on what a run may spend. Put it on a schedule, and it runs without you. And everything you've seen is open source, running on a single laptop. When your team's ready, the same definitions move to Stigmer Cloud — organizations, access control, and billing built in.",
+      "plannedDurationSec": 24,
+      "shots": "S5a workflow canvas; S5b budget callout; S5c schedule; S5d laptop-to-cloud morph",
+      "cuts": [
+        { "shot": "s5a-workflow", "kind": "recording", "atSec": 0, "srcStartSec": 4 },
+        { "shot": "s5b-budget", "kind": "recording", "atSec": 8.5, "srcStartSec": 6 },
+        { "shot": "s5c-schedule", "kind": "recording", "atSec": 14, "srcStartSec": 4 },
+        { "shot": "s5d-cloud-morph", "kind": "slate", "atSec": 18.5 }
+      ]
+    },
+    {
+      "id": "s6-close",
+      "mode": "presenter",
+      "narration": "That's Stigmer. Define your agents once. Trust how they run. And put them everywhere your work happens. It's open source — get started at stigmer dot ai. See you there.",
+      "plannedDurationSec": 13,
+      "shots": "S6a presenter; S6b end card with logo + stigmer.ai + install command"
+    }
+  ]
+}

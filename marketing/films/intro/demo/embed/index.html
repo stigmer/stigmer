@@ -1,0 +1,91 @@
+<!doctype html>
+<!--
+  Meridian Travel "Manage my trip" page — the film's scene-4 embed shot.
+  One believable product page with the <stigmer-agent> widget dropped in;
+  served by serve.mjs (npm run demo:embed) so the embed-origin check sees
+  a real origin, not file://.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Meridian Travel — Manage my trip</title>
+    <style>
+      :root {
+        --ink: #0b2239;
+        --teal: #0f766e;
+        --sand: #f7f4ee;
+        --line: #e3ded4;
+      }
+      * { box-sizing: border-box; margin: 0; }
+      body {
+        font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif;
+        background: var(--sand);
+        color: var(--ink);
+        min-height: 100vh;
+      }
+      header {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 20px 48px; background: #fff; border-bottom: 1px solid var(--line);
+      }
+      .brand { display: flex; align-items: center; gap: 12px; font-size: 20px; font-weight: 600; letter-spacing: 0.02em; }
+      .brand-mark {
+        width: 34px; height: 34px; border-radius: 50%;
+        background: conic-gradient(from 210deg, var(--teal), #14b8a6 55%, var(--ink));
+      }
+      nav { display: flex; gap: 28px; font-size: 14px; color: #4b5c6b; }
+      main { display: grid; grid-template-columns: 1fr 440px; gap: 48px; padding: 56px 48px; max-width: 1400px; margin: 0 auto; }
+      h1 { font-size: 34px; font-weight: 600; margin-bottom: 12px; }
+      .lede { font-size: 16px; color: #4b5c6b; margin-bottom: 36px; max-width: 52ch; }
+      .trip {
+        background: #fff; border: 1px solid var(--line); border-radius: 14px;
+        padding: 28px 32px; max-width: 560px;
+      }
+      .trip .ref { font-size: 13px; color: #8a94a0; letter-spacing: 0.08em; }
+      .trip .route { display: flex; align-items: baseline; gap: 16px; margin: 14px 0 6px; }
+      .trip .city { font-size: 28px; font-weight: 600; }
+      .trip .arrow { color: var(--teal); font-size: 20px; }
+      .trip .meta { font-size: 14px; color: #4b5c6b; display: flex; gap: 22px; margin-top: 10px; }
+      .trip .badge {
+        display: inline-block; margin-top: 18px; padding: 4px 12px; border-radius: 999px;
+        background: #e6f4f2; color: var(--teal); font-size: 12px; font-weight: 600; letter-spacing: 0.05em;
+      }
+      aside h2 { font-size: 16px; font-weight: 600; margin-bottom: 12px; }
+      aside p { font-size: 14px; color: #4b5c6b; margin-bottom: 18px; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="brand"><div class="brand-mark"></div>Meridian Travel</div>
+      <nav><span>Book</span><span>My trips</span><span>Help</span></nav>
+    </header>
+    <main>
+      <section>
+        <h1>Manage my trip</h1>
+        <p class="lede">Your upcoming itinerary. Need to change something? Ask the assistant — it can search flights and rebook you in minutes.</p>
+        <div class="trip">
+          <div class="ref">BOOKING&nbsp;MT-4821</div>
+          <div class="route">
+            <span class="city">SFO</span><span class="arrow">→</span><span class="city">JFK</span>
+          </div>
+          <div class="meta">
+            <span>Flight MT-214</span><span>Sep 10, 2026 · 6:15 PM</span><span>Priya Shah</span>
+          </div>
+          <span class="badge">FLEX FARE</span>
+        </div>
+      </section>
+      <aside>
+        <h2>Travel assistant</h2>
+        <p>Rebook flights, check options, and get policy answers — right here.</p>
+        <stigmer-agent
+          org="meridian-travel"
+          agent="traveler-assist"
+          app-origin="http://localhost:7234"
+          width="100%"
+          height="620px"
+        ></stigmer-agent>
+      </aside>
+    </main>
+    <script src="http://localhost:7234/embed.js" async></script>
+  </body>
+</html>

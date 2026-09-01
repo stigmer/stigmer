@@ -18,6 +18,7 @@
     "client-apps/desktop",
     "tools/codegen",
     "tools/eslint-plugin-stigmer",
+    "marketing",
     "test/conformance",
     "test/e2e",
     "test/integration/testdata/sdk-smoke-ts"

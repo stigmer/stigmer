@@ -1,0 +1,20 @@
+# Daily 6:00 AM digest run.
+#
+# Note (verified in schedule/v1/spec.proto): schedules currently target
+# AGENTS only — the workflow arm of the target oneof is reserved. This
+# schedule therefore fires traveler-assist with the digest prompt; the
+# disruption-digest workflow itself is run on demand.
+apiVersion: agentic.stigmer.ai/v1
+kind: Schedule
+metadata:
+  name: daily-disruption-digest
+  org: meridian-travel
+spec:
+  cron: "0 6 * * *"
+  time_zone: America/New_York
+  enabled: true
+  agent:
+    agent_ref:
+      kind: agent
+      slug: traveler-assist
+    message: "Compile today's disruption digest: list affected bookings and draft traveler notifications per the rebooking policy's disruption rules."
