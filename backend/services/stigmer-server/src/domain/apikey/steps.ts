@@ -12,15 +12,17 @@
  *     is the ONLY time the plaintext ever leaves the server; the store
  *     and audit rows hold the hash. The INTERNAL copy is byte-pinned to
  *     the Java step's.
- *   - PreserveKeyMaterial (O3 gate ruling Q9 — SECURITY): update keeps
- *     spec.key_hash and spec.fingerprint from the STORED resource, so
- *     only the expiry fields are client-mutable. The Java update handler
- *     documents this contract but runs the full-spec-replacement pipeline
- *     without enforcing it — a caller with edit permission could rewrite
- *     the hash to one whose plaintext they know and mint a credential
- *     that authenticates as the key's owner. Deliberate divergence from
- *     the Java BEHAVIOR, convergence with its documented contract; the
- *     cloud-side fix is dispositioned separately (T01_1_review.md Q9).
+ *   - PreserveKeyMaterial (O3 gate ruling Q9): update keeps spec.key_hash
+ *     and spec.fingerprint from the STORED resource, so only the expiry
+ *     fields are client-mutable. Ruling Q9's original impersonation
+ *     rationale was corrected by stigmer-cloud#544's execution: the Java
+ *     pipeline's computed-field clearing already strips both fields from
+ *     every update request (forgery never persisted) — but nothing
+ *     restored them, so every Java update persisted EMPTY key material
+ *     and bricked the key. Both editions now strip-and-restore: this
+ *     step here, ApiKeyUpdateHandler.PreserveKeyMaterial there. The
+ *     shared contract is pinned by the apikey conformance suite's
+ *     update-immutability arm.
  */
 import { Code, ConnectError } from "@connectrpc/connect";
 

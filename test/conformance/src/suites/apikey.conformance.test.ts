@@ -13,18 +13,19 @@
 //     itself cross-edition);
 //   - the fingerprint is the plaintext's last 6 characters;
 //   - update round-trips the expiry fields; delete returns the resource and
-//     the key stops resolving.
+//     the key stops resolving;
+//   - update NEVER changes key material (ruling Q9, closed by
+//     stigmer-cloud#544): altered spec.key_hash/fingerprint in an update
+//     are ignored and the stored values survive, proven on a post-update
+//     read. Both editions strip-and-restore (TS PreserveKeyMaterial;
+//     Java ApiKeyUpdateHandler.PreserveKeyMaterial) — this arm is red
+//     against a cloud target older than the #544 fix by design.
 //
 // Deliberately OUT of this suite (edition authorization postures, not
 // contract divergences — O3 gate ruling Q5):
 //   - getByKeyHash: the cloud gates it behind a platform-admin FGA check;
 //     OSS's permissive single-team default serves it openly. The lookup
 //     path is pinned by the server's own unit suites on both sides.
-//   - update immutability of key_hash/fingerprint: enforced by the TS
-//     server (ruling Q9 — a SECURITY divergence from the cloud's
-//     unenforced pipeline, converging with its documented contract). It
-//     becomes a conformance assertion when the cloud side's disposition
-//     lands; until then this suite never sends altered key material.
 import { createHash } from "node:crypto";
 
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
@@ -163,6 +164,49 @@ describe("ApiKey conformance", () => {
     );
     expect(updated.spec?.neverExpires).toBe(true);
     expect(updated.status?.audit?.specAudit?.event).toBe("updated");
+  });
+
+  it("update ignores altered key material — the stored hash and fingerprint survive (ruling Q9 / stigmer-cloud#544)", async () => {
+    const { org } = await target.provisionTenancy();
+    const created = await createKey(org);
+    const plaintext = created.spec?.keyHash ?? "";
+    const storedHash = storageHash(plaintext);
+
+    const updated = await clients.apiKeyCommand.update({
+      apiVersion: API_VERSION,
+      kind: KIND,
+      metadata: {
+        id: created.metadata?.id ?? "",
+        name: created.metadata?.name ?? "",
+        org: created.metadata?.org ?? "",
+      },
+      spec: {
+        // Forged key material a caller with edit permission might send —
+        // both editions must ignore it (strip-and-restore), never persist
+        // it, and never wipe the stored values.
+        keyHash: storageHash("stk_attacker-known-plaintext"),
+        fingerprint: "forged",
+        neverExpires: true,
+      },
+    });
+
+    expect(
+      updated.spec?.keyHash,
+      "the update response carries the stored hash, not the forged one",
+    ).toBe(storedHash);
+    expect(updated.spec?.fingerprint).toBe(created.spec?.fingerprint);
+
+    const fetched = await clients.apiKeyQuery.get({
+      value: created.metadata!.id,
+    });
+    expect(
+      fetched.spec?.keyHash,
+      "the stored hash survives the update — neither forged nor wiped",
+    ).toBe(storedHash);
+    expect(fetched.spec?.fingerprint).toBe(created.spec?.fingerprint);
+    expect(fetched.spec?.neverExpires, "the expiry change still lands").toBe(
+      true,
+    );
   });
 
   it("delete returns the resource; the id stops resolving", async () => {
