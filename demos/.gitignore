@@ -4,6 +4,10 @@
 *-bundle/
 .scenar-pack/
 
+# Derived render output (scenar render MP4s + the entry temp dir)
+.renders/
+.scenar-render/
+
 # Editor / OS
 .DS_Store
 *.log

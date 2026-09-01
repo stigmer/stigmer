@@ -14,8 +14,10 @@
   "dependencies": {
     "@bufbuild/protobuf": "^2.12.0",
     "@connectrpc/connect": "^2.1.2",
-    "@scenar/core": "^0.10.0",
-    "@scenar/react": "^0.10.0",
+    "@scenar/cli": "^0.12.1",
+    "@scenar/core": "^0.12.1",
+    "@scenar/react": "^0.12.1",
+    "@scenar/remotion": "^0.12.1",
     "@stigmer/protos": "*",
     "@stigmer/react": "*",
     "@stigmer/sdk": "*",
@@ -26,12 +28,14 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
-    "@scenar/cli": "^0.10.0",
+    "@remotion/bundler": "4.0.448",
+    "@remotion/renderer": "4.0.448",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.0",
     "edge-tts-universal": "^1.4.0",
     "playwright": "^1.62.0",
+    "remotion": "4.0.448",
     "tsx": "^4.22.4",
     "typescript": "^5.7.0",
     "vite": "^6.0.0"
