@@ -208,6 +208,25 @@ export interface CapabilityFlags {
   // execution runs unmetered. There is no refusal contract to pin, so the
   // billing-denial suite skips entirely (the scheduleFiring posture).
   billingGates: boolean;
+  // The platform-client caller-identity lane exists AND its minting-client
+  // contract is enforced at the serving edge: user tokens are minted by
+  // PlatformClients (mintUserToken), deleting the minting client revokes its
+  // outstanding user tokens on the next request (deletion-revocation,
+  // stigmer-cloud#342), and browser requests from origins outside the
+  // client's allowed_origins are refused (stigmer/stigmer#375). Both refusals
+  // carry byte-pinned copy shared by the Java interceptor
+  // (PlatformClientEnforcementInterceptor) and the composition's
+  // platform-client caller guard (entry 20260902.02) — the enforcement suite
+  // asserts the exact bytes on every target where this is true.
+  //
+  // False for the local OSS targets — BY DESIGN, not a gap: OSS routes no
+  // PlatformClient controllers at all (the PC surface is cloud IAM
+  // vocabulary), so there is no minting lane, no enforcement, and no refusal
+  // contract to pin; the enforcement arms skip entirely (the scheduleFiring
+  // posture). Deliberately NOT folded into multiTenant: tenant isolation and
+  // the minting client's contract are different concerns — a future target
+  // could carry one without the other.
+  platformClientTokens: boolean;
 }
 
 // Tenancy scope a test operates within. Locally this is just a unique org slug
