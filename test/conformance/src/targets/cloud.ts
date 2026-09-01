@@ -69,6 +69,11 @@ export class CloudTarget implements TargetProfile {
     // The Java billing engine authorizes execution credits natively; the TS
     // composition serves the same gates through the C5 billing facade.
     billingGates: true,
+    // The whole cloud suite authenticates with PlatformClient-minted user
+    // tokens, and the minting client's contract is enforced on every
+    // serving-edge request: by the Java interceptor natively, and by the
+    // composition's platform-client caller guard (entry 20260902.02).
+    platformClientTokens: true,
   };
 
   private grpcBaseUrl: string | undefined;

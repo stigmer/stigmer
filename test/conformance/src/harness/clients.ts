@@ -122,6 +122,13 @@ export interface TransportOptions {
   // cloud target, whose service authenticates callers; local targets run
   // without auth and omit it.
   bearerToken?: string;
+  // Stamped as the plain lowercase `origin` metadata key on every RPC — the
+  // header browsers attach to cross-origin fetches and page script cannot
+  // forge. Suites set it to simulate a browser context (the platform-client
+  // allowed_origins enforcement arms replay a leaked token from a foreign
+  // site this way); leaving it unset mirrors non-browser callers (curl,
+  // backend services), whose absence of Origin never refuses.
+  origin?: string;
 }
 
 export function createTransport(
@@ -136,6 +143,13 @@ export function createTransport(
     const authorization = `Bearer ${options.bearerToken}`;
     interceptors.push((next) => (req) => {
       req.header.set("authorization", authorization);
+      return next(req);
+    });
+  }
+  if (options.origin !== undefined) {
+    const origin = options.origin;
+    interceptors.push((next) => (req) => {
+      req.header.set("origin", origin);
       return next(req);
     });
   }
