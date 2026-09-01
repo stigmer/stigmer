@@ -96,6 +96,7 @@ import type {
   SandboxCredentialRequest,
   SandboxProvisioner,
   SandboxProvisionerFactory,
+  ScheduleFireCallerMint,
   SecretCodec,
   SecretService,
   ServerExtension,
@@ -430,6 +431,25 @@ const consumerVaultCodec: SecretCodec = {
 };
 
 /**
+ * A consumer-shaped schedule-fire caller mint (the stigmer-cloud#572
+ * seam) — the identity a schedule fire acts as, minted per fire. The
+ * cloud edition's real driver mints a schedule JWT (sub = the org's
+ * system-schedule account, claim = the firing Schedule id); this fake
+ * proves the contract compiles from consumer code.
+ */
+const consumerScheduleFireCaller: ScheduleFireCallerMint = {
+  mintFireCaller: (org: string, scheduleId: string) => {
+    void scheduleId;
+    return Promise.resolve({
+      identityId: `ida_schedule_${org}`,
+      callerClass: "schedule",
+      issuer: "stigmer",
+      rawToken: "compile-proof.jwt",
+    });
+  },
+};
+
+/**
  * The secret-convergence sweep's exact shape (Stage 3 consumes it): page
  * raw documents through the blessed maintenance verbs, reseal through the
  * facade's one upgrade door, and persist only when nothing interleaved —
@@ -579,6 +599,8 @@ export const fakeExtension: ServerExtension = {
     // The 20260830.04 sealing seam: vault-backed wire formats registered
     // by version token ("v1" is the reserved built-in).
     secretCodecs: new Map([["v2", consumerVaultCodec]]),
+    // The stigmer-cloud#572 seam: who a schedule fire acts as.
+    scheduleFireCaller: consumerScheduleFireCaller,
   },
   services: [registerBillingService],
   workers: [workerFactory],

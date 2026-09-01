@@ -20,6 +20,9 @@
  *     edition semantics) — landed with 20260830.03, gate ruling Q1
  *   - secret codecs (the versioned secret-value wire formats) — landed
  *     with 20260830.04 Stage 1, gate ruling Q2
+ *   - schedule-fire caller (who a schedule fire acts as) — landed with
+ *     the stigmer-cloud#572 fix (the Java schedule-token mechanism's
+ *     seam; ruled 2026-09-01)
  *
  * Merge rules (enforced by resolveExtensions, DD-006 §2b): the two
  * provider kinds are single-instance points — a second declaring unit is
@@ -41,6 +44,7 @@ import type { SandboxProvisionerFactory } from "../sandbox/provisioner.js";
 import type { ListReadScope } from "./list-read-scope.js";
 import type { OrganizationDirectory } from "./organization-directory.js";
 import type { ResourceAuthorizationLifecycle } from "./resource-authorization.js";
+import type { ScheduleFireCallerMint } from "./schedule-fire-caller.js";
 
 /** The driver contributions of one extension unit. */
 export interface ExtensionDrivers {
@@ -130,4 +134,13 @@ export interface ExtensionDrivers {
    * v1-only — OSS behavior byte-identical.
    */
   readonly secretCodecs?: ReadonlyMap<string, SecretCodec>;
+  /**
+   * The schedule-fire caller mint (stigmer-cloud#572; single-instance
+   * point) — the identity a schedule fire acts as when it re-enters the
+   * execution create pipeline. When composed, the RunStarter propagates
+   * the minted caller through the R5 in-process header on every fire
+   * (cron tick and manual trigger alike); when absent, fires enter as
+   * the `internal` class — OSS behavior byte-identical.
+   */
+  readonly scheduleFireCaller?: ScheduleFireCallerMint;
 }

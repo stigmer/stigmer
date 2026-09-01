@@ -95,6 +95,10 @@ export type {
   ListReadScope,
   ListEntryMeta,
 } from "./extensions/list-read-scope.js";
+// The stigmer-cloud#572 seam: the identity a schedule fire acts as
+// (drivers.scheduleFireCaller) — the composition mints it per fire; the
+// RunStarter propagates it through the R5 in-process header.
+export type { ScheduleFireCallerMint } from "./extensions/schedule-fire-caller.js";
 // The 20260830.03 seam: the visitor-sanitization policy the serving
 // chain's error boundary consumes (drivers.visitorErrorPolicy) — the
 // composition supplies WHO is on the anonymous surface and WHAT copy

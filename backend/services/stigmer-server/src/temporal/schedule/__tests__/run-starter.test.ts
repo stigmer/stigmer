@@ -251,6 +251,131 @@ describe("RunStarter.startRun — against a real store", () => {
     await store.deleteResource(ApiResourceKind.agent_execution, "aex_01prior");
   });
 
+  // The scheduleFireCaller seam (stigmer-cloud#572): composed → every
+  // create carries the per-fire minted caller; absent → the create
+  // carries none (the internal lane, byte-identical); mint failure → an
+  // infrastructure throw the tick retries; the idempotent path never
+  // mints (a found winner needs no credential).
+  describe("fire-caller mint (stigmer-cloud#572)", () => {
+    const mintedCaller = {
+      identityId: "ida_schedule_acct",
+      callerClass: "schedule",
+      issuer: "stigmer",
+      rawToken: "minted.jwt",
+    };
+
+    it("propagates the minted caller to the create, minting per (org, scheduleId)", async () => {
+      const mintCalls: Array<{ org: string; scheduleId: string }> = [];
+      let seenCaller: unknown = "unset";
+      const runStarter = new RunStarter({
+        store,
+        config,
+        executions: {
+          create: async (_execution, fireCaller) => {
+            seenCaller = fireCaller;
+            return create(AgentExecutionSchema, {
+              metadata: { id: "aex_01minted", org: "acme" },
+            });
+          },
+        },
+        fireCallerMint: {
+          mintFireCaller: async (org, scheduleId) => {
+            mintCalls.push({ org, scheduleId });
+            return mintedCaller;
+          },
+        },
+        logger: silentLogger,
+      });
+
+      const outcome = await runStarter.startRun(scheduleWith(), NOMINAL);
+      expect(outcome).toEqual({
+        kind: "started",
+        executionId: "aex_01minted",
+        alreadyExisted: false,
+      });
+      expect(mintCalls).toEqual([{ org: "acme", scheduleId: "sch_01test" }]);
+      expect(seenCaller).toBe(mintedCaller);
+    });
+
+    it("passes no caller when no mint is composed (the OSS internal lane)", async () => {
+      let seenCaller: unknown = "unset";
+      const runStarter = new RunStarter({
+        store,
+        config,
+        executions: {
+          create: async (_execution, fireCaller) => {
+            seenCaller = fireCaller;
+            return create(AgentExecutionSchema, {
+              metadata: { id: "aex_01plain", org: "acme" },
+            });
+          },
+        },
+        logger: silentLogger,
+      });
+      const outcome = await runStarter.startRun(scheduleWith(), NOMINAL);
+      expect(outcome.kind).toBe("started");
+      expect(seenCaller).toBeUndefined();
+    });
+
+    it("throws (retryable) when the mint fails — never a silent internal fallback", async () => {
+      const runStarter = new RunStarter({
+        store,
+        config,
+        executions: {
+          create: async () => {
+            throw new Error("create must not run when the mint failed");
+          },
+        },
+        fireCallerMint: {
+          mintFireCaller: async () => {
+            throw new Error("account provisioning unavailable");
+          },
+        },
+        logger: silentLogger,
+      });
+      await expect(runStarter.startRun(scheduleWith(), NOMINAL)).rejects.toThrow(
+        /mint schedule fire caller for sch_01test: account provisioning unavailable/,
+      );
+    });
+
+    it("never mints on the idempotent path (the winner needs no credential)", async () => {
+      await store.saveResource(
+        ApiResourceKind.agent_execution,
+        "aex_01winner",
+        AgentExecutionSchema,
+        create(AgentExecutionSchema, {
+          metadata: {
+            id: "aex_01winner",
+            org: "acme",
+            slug: scheduledExecutionName("sch_01test", NOMINAL),
+          },
+        }),
+      );
+      const runStarter = new RunStarter({
+        store,
+        config,
+        executions: {
+          create: async () => {
+            throw new Error("create must not run on the idempotent path");
+          },
+        },
+        fireCallerMint: {
+          mintFireCaller: async () => {
+            throw new Error("mint must not run on the idempotent path");
+          },
+        },
+        logger: silentLogger,
+      });
+      const outcome = await runStarter.startRun(scheduleWith(), NOMINAL);
+      expect(outcome).toEqual({
+        kind: "started",
+        executionId: "aex_01winner",
+        alreadyExisted: true,
+      });
+      await store.deleteResource(ApiResourceKind.agent_execution, "aex_01winner");
+    });
+  });
+
   it("answers targetMissing with the byte-pinned copy when the agent is gone", async () => {
     const runStarter = starter(async () => {
       throw new Error("unreachable");

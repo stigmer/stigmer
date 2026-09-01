@@ -46,6 +46,7 @@ import type { VisitorErrorPolicy } from "../pipeline/interceptors/error-boundary
 import type { PipelineStep } from "../pipeline/pipeline.js";
 import type { RunnerCredentialProvider } from "../runnerauth/runner-credential-provider.js";
 import type { SandboxProvisionerFactory } from "../sandbox/provisioner.js";
+import type { ScheduleFireCallerMint } from "./schedule-fire-caller.js";
 import { BUILT_IN_SANDBOX_PROVISIONER_TYPES } from "../sandbox/provisioner.js";
 import type { WorkerFactory } from "../temporal/manager.js";
 import type { Authorizer } from "./authorizer.js";
@@ -178,6 +179,12 @@ export interface ResolvedExtensionDrivers {
    */
   readonly visitorErrorPolicy: VisitorErrorPolicy | undefined;
   /**
+   * The stigmer-cloud#572 schedule-fire caller mint — undefined =
+   * schedule fires enter the create pipeline as the `internal` class,
+   * OSS behavior byte-identical.
+   */
+  readonly scheduleFireCaller: ScheduleFireCallerMint | undefined;
+  /**
    * Registered version token → codec (20260830.04 Stage 1), validated
    * against the built-in v1. Empty = the facade is v1-only, OSS behavior
    * byte-identical. The compose.ts keys stage merges the built-in v1
@@ -223,6 +230,8 @@ export function resolveExtensions(
   let listReadScopeDeclaredBy: string | undefined;
   let visitorErrorPolicy: VisitorErrorPolicy | undefined;
   let visitorErrorPolicyDeclaredBy: string | undefined;
+  let scheduleFireCaller: ScheduleFireCallerMint | undefined;
+  let scheduleFireCallerDeclaredBy: string | undefined;
   const artifactStorageDrivers = new Map<
     string,
     ArtifactStorageDriverFactory
@@ -345,6 +354,16 @@ export function resolveExtensions(
       visitorErrorPolicyDeclaredBy = unit.name;
     }
 
+    if (unit.drivers?.scheduleFireCaller !== undefined) {
+      if (scheduleFireCallerDeclaredBy !== undefined) {
+        throw new Error(
+          `extension '${unit.name}' registers a ScheduleFireCallerMint, but '${scheduleFireCallerDeclaredBy}' already did — exactly one may be composed`,
+        );
+      }
+      scheduleFireCaller = unit.drivers.scheduleFireCaller;
+      scheduleFireCallerDeclaredBy = unit.name;
+    }
+
     if (unit.drivers?.artifactStorageDrivers !== undefined) {
       for (const [name, factory] of unit.drivers.artifactStorageDrivers) {
         if ((BUILT_IN_STORAGE_TYPES as ReadonlyArray<string>).includes(name)) {
@@ -458,6 +477,7 @@ export function resolveExtensions(
       listReadScope,
       visitorErrorPolicy,
       secretCodecs,
+      scheduleFireCaller,
     },
     services,
     workers,

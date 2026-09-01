@@ -262,6 +262,44 @@ describe("resolveExtensions — merge semantics", () => {
     expect(resolveExtensions([]).drivers.listReadScope).toBeUndefined();
   });
 
+  it("keeps the declared ScheduleFireCallerMint as the resolved singleton (stigmer-cloud#572)", () => {
+    const mint = {
+      mintFireCaller: () =>
+        Promise.resolve({
+          identityId: "ida_sched",
+          callerClass: "schedule",
+          issuer: "stigmer",
+          rawToken: "jwt",
+        }),
+    };
+    const resolved = resolveExtensions([
+      { name: "iam", drivers: { scheduleFireCaller: mint } },
+    ]);
+    expect(resolved.drivers.scheduleFireCaller).toBe(mint);
+    // The empty state resolves explicitly, never a missing key.
+    expect(resolveExtensions([]).drivers.scheduleFireCaller).toBeUndefined();
+  });
+
+  it("throws on a second ScheduleFireCallerMint, naming both units", () => {
+    const mint = {
+      mintFireCaller: () =>
+        Promise.resolve({
+          identityId: "ida_sched",
+          callerClass: "schedule",
+          issuer: "stigmer",
+          rawToken: "jwt",
+        }),
+    };
+    expect(() =>
+      resolveExtensions([
+        { name: "mint-a", drivers: { scheduleFireCaller: mint } },
+        { name: "mint-b", drivers: { scheduleFireCaller: mint } },
+      ]),
+    ).toThrowError(
+      /extension 'mint-b' registers a ScheduleFireCallerMint, but 'mint-a' already did/,
+    );
+  });
+
   it("merges secret codecs as a version-keyed map across units (20260830.04)", () => {
     const v2 = fakeCodec("v2");
     const v3 = fakeCodec("v3");
