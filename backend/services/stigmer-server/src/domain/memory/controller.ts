@@ -68,6 +68,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
+import type { RunnerCredentialProvider } from "../../runnerauth/runner-credential-provider.js";
 import type { ListReadScope } from "../../extensions/list-read-scope.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
@@ -128,6 +129,13 @@ export interface MemoryControllerDeps {
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   /** The composed list read scope — list narrows through it; undefined = the OSS full scan (20260830.01). */
   readonly listReadScope: ListReadScope | undefined;
+  /**
+   * The composed runner-credential provider — GuardMemoryCapture consults
+   * its authorizeMemoryCapture capability for the runner-credential
+   * eligibility arm (parity entry 20260830.05). The OSS default defines
+   * no capabilities, so the gate's behavior is unchanged with it.
+   */
+  readonly runnerCredentialProvider: RunnerCredentialProvider;
 }
 
 /** Registers both memory services on the router (routes stage). */
@@ -183,7 +191,7 @@ async function createMemory(
       newAuthorizeStep(MemoryCommandController.method.create, deps.authorizer),
     )
     .addStep(newValidateProtoStep())
-    .addStep(newGuardMemoryCaptureStep())
+    .addStep(newGuardMemoryCaptureStep(deps.runnerCredentialProvider))
     .addStep(newValidateVisibilityStep())
     .addStep(newResolveMemoryDefaultsStep())
     .addStep(newCheckMemoryEnablementStep(deps.store))

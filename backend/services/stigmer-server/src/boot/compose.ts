@@ -702,8 +702,11 @@ export async function composeServer(
         requireInProcess().executionEnvironmentReader.getSecretValue(input),
       updateVariables: (request) =>
         requireInProcess().executionEnvironmentReader.updateVariables(request),
-      create: (environment) =>
-        requireInProcess().executionEnvironmentReader.create(environment),
+      create: (environment, caller) =>
+        requireInProcess().executionEnvironmentReader.create(
+          environment,
+          caller,
+        ),
       delete: (input) =>
         requireInProcess().executionEnvironmentReader.delete(input),
     },
@@ -881,6 +884,7 @@ export async function composeServer(
       authorizer,
       authorizationLifecycle,
       listReadScope: extensions.drivers.listReadScope,
+      runnerCredentialProvider: runnerCredentials,
     });
     registerAgentExecutionServices(router, {
       store,
@@ -888,6 +892,7 @@ export async function composeServer(
       authorizer,
       authorizationLifecycle,
       listReadScope: extensions.drivers.listReadScope,
+      runnerCredentialProvider: runnerCredentials,
       broker: agentExecutionStreamBroker,
       engineState: executionEngineState,
       modelRegistry: modelCatalog,

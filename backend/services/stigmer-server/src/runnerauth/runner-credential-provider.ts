@@ -129,6 +129,32 @@ export interface SandboxCredentialRequest {
 }
 
 /**
+ * The memory-capture eligibility answer for one caller (the sixth
+ * capability, parity entry 20260830.05 — the Java
+ * MemoryCreateHandler.ResolveMemoryDefaults runner arm):
+ *
+ *   - `no-opinion`: the caller's credential is not one this
+ *     implementation classifies — the gate's own eligibility logic
+ *     applies unchanged.
+ *   - `refuse`: a runner-class credential outside the capture lane —
+ *     the gate answers its byte-pinned PERMISSION_DENIED copy.
+ *   - `admit`: the session-scoped capture lane. The implementation
+ *     hands over the token's own proved claims: the subject the record
+ *     belongs to (Java: "the sub IS the human subject the session
+ *     belongs to") and the session id provenance is overridden with
+ *     (server-proved beats runner-reported). Both are the
+ *     implementation's claim vocabulary — OSS never decodes them.
+ */
+export type MemoryCaptureDecision =
+  | { readonly verdict: "no-opinion" }
+  | { readonly verdict: "refuse" }
+  | {
+      readonly verdict: "admit";
+      readonly subjectIdentityAccountId: string;
+      readonly provedSessionId: string;
+    };
+
+/**
  * Mints and verifies runner credentials per lane. Implementations must be
  * stateless-safe for concurrent use (they gate every ExecutionContext
  * decrypt and every execution dispatch).
@@ -217,6 +243,57 @@ export interface RunnerCredentialProvider {
    * method → today's exact behavior (static env keys only).
    */
   resolvePayloadKey?(keyId: string): Promise<Buffer | undefined>;
+
+  /**
+   * The workflow-lineage vouching decision for an agent-execution create
+   * that carries the runner-stamped lineage labels (parity entry
+   * 20260830.05; the Java RecordRunnerLineageLabelsStep, cloud#386,
+   * consumed by the agentexecution chain's RecordRunnerLineageLabels
+   * step). The implementation owns
+   * BOTH halves of the decision: whether the caller's credential is a
+   * runner credential at all (its own token-type vocabulary — no caller
+   * class expresses this, and OSS must not learn another edition's
+   * lane names), and whether a workflow-bound credential may stamp the
+   * given workflow execution id ("a workflow sandbox cannot stamp
+   * another workflow's lineage" — Java verifies the label against the
+   * token's own binding).
+   *
+   * Returns true to vouch the lineage keys (the guard then exempts
+   * exactly them), false for a non-runner credential (nothing vouched —
+   * the caller stays fully subject to the guard). REFUSES by throwing a
+   * ConnectError with the implementation's byte-pinned copy when the
+   * binding check fails. `stampedWorkflowExecutionId` is empty when the
+   * request stamped only the task label — no binding to check.
+   *
+   * Absent method → nothing is vouched (today's exact OSS behavior: the
+   * permissive default Authorizer is what admits the local runner's
+   * lineage write, and a strict composition without the capability keeps
+   * refusing).
+   */
+  vouchRunnerLineageLabels?(
+    caller: CallerIdentity,
+    stampedWorkflowExecutionId: string,
+  ): boolean;
+
+  /**
+   * The memory capture-eligibility decision for one caller (parity entry
+   * 20260830.05, stigmer-cloud#564; the Java MemoryCreateHandler runner
+   * arm: admit `isSessionSandbox()`, refuse every other runner
+   * credential). Consulted by GuardMemoryCapture
+   * BEFORE its own eligibility logic; `no-opinion` falls through to
+   * that logic unchanged. REFUSES the org-mismatch arm by throwing a
+   * ConnectError with the implementation's byte-pinned copy (Java:
+   * "a mismatch is a forged address, not a routing choice" —
+   * `captureOrg` is the request's metadata.org, checked against the
+   * token's own org claim).
+   *
+   * Absent method → the gate's existing logic exactly (today's OSS
+   * behavior: the trusted-local single-user posture admits, honestly).
+   */
+  authorizeMemoryCapture?(
+    caller: CallerIdentity,
+    captureOrg: string,
+  ): MemoryCaptureDecision;
 }
 
 /**

@@ -88,6 +88,7 @@ import type {
   ResourceAuthorizationLifecycle,
   ResourceCreatedEvent,
   ResourceDeletedEvent,
+  MemoryCaptureDecision,
   RunnerBootstrapCredentials,
   RunnerCredentialProvider,
   RunnerScopedTokenExchange,
@@ -262,6 +263,26 @@ const credentialProvider: RunnerCredentialProvider = {
   // server-managed rpk_ payload keys the bootstrap arm above hands out.
   resolvePayloadKey: async (keyId: string): Promise<Buffer | undefined> =>
     keyId === "rpk_fake" ? Buffer.from("a2V5", "base64") : undefined,
+  // The two parity-entry-20260830.05 capabilities: the workflow-lineage
+  // vouching decision (agentexecution create) and the memory
+  // capture-eligibility decision (GuardMemoryCapture). Both classify the
+  // caller by the implementation's OWN token vocabulary — the shapes
+  // compile against the exports map alone.
+  vouchRunnerLineageLabels: (
+    _caller: CallerIdentity,
+    stampedWorkflowExecutionId: string,
+  ): boolean => stampedWorkflowExecutionId !== "wfe_unbound",
+  authorizeMemoryCapture: (
+    _caller: CallerIdentity,
+    captureOrg: string,
+  ): MemoryCaptureDecision =>
+    captureOrg === ""
+      ? { verdict: "refuse" }
+      : {
+          verdict: "admit",
+          subjectIdentityAccountId: "ida_fake",
+          provedSessionId: "ses_fake",
+        },
 };
 
 /**

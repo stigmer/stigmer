@@ -156,13 +156,17 @@ export async function completeOAuthConnect(
   }
 
   // Resolve the managed environment: reuse from an existing grant or
-  // create new.
+  // create new — the create AS THE COMPLETING CALLER (ruling R5, parity
+  // entry 20260830.05): ownership tuples land on the connecting user
+  // under a composed tuple-lifecycle driver, so the environment stays
+  // visible in their scoped lists (the Java createAsCaller posture).
   const managedEnvId = await resolveOrCreateManagedEnvironment(
     deps,
     pendingState.identityAccountId,
     mcpServerId,
     org,
     mcpServer.metadata?.name ?? "",
+    identity,
   );
 
   // Build token variables (plaintext — the environment pipeline encrypts).
@@ -292,6 +296,7 @@ async function resolveOrCreateManagedEnvironment(
   mcpServerId: string,
   org: string,
   mcpServerName: string,
+  caller: CallerIdentity,
 ): Promise<string> {
   let existingGrant;
   try {
@@ -323,7 +328,7 @@ async function resolveOrCreateManagedEnvironment(
 
   const envName = `OAuth: ${mcpServerName}`;
   try {
-    return await deps.managedEnv.createManagedEnvironment(envName, org);
+    return await deps.managedEnv.createManagedEnvironment(envName, org, caller);
   } catch (error) {
     throw internalError(
       error,
