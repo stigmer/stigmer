@@ -10,7 +10,7 @@ Generated and captured media is **never committed** (see `.gitignore`): the repo
 
 - **Narration** — `npm run narrate` regenerates `assets/narration/` from the manifest via ElevenLabs (millisecond-exact durations, cached by text+voice hash). Key: `planton secret get elevenlabs-api-key --ignore-env -o json`.
 - **Presenter clips** — HeyGen lip-synced avatar clips driven by the narration MP3s; generation is scripted per film (see the project's records for the casting decisions).
-- **Screen recordings** — captured per the film's shot list (the approved shot list is the capture manifest; a copy lives in the stigmer-cloud project's `script/` folder).
+- **Screen recordings** — `npm run capture` drives the live local console with Playwright (`films/intro/capture/`, one drive per shot id) against the demo world seeded by `npm run demo:seed` (`films/intro/demo/`, see its README). `npm run capture:transcript` captures the real `stigmer apply` output for the rendered terminal scene and stages the agent YAML for the code panel.
 
 The composition always renders: scenes without assets show a structured placeholder, so a rough cut of the full film is available at every stage of production.
 

@@ -1,0 +1,73 @@
+# disruption-digest — Meridian Travel's daily operations workflow.
+#
+# Checks for flight disruptions, has the assistant draft traveler
+# notifications, and posts the digest to the ops channel. Scene 5 shows
+# this pipeline on the workflow canvas with its budget.
+apiVersion: agentic.stigmer.ai/v1
+kind: Workflow
+metadata:
+  name: disruption-digest
+  org: meridian-travel
+spec:
+  description: Daily digest of flight disruptions with drafted traveler notifications
+  document:
+    dsl: "1.0.0"
+    namespace: meridian-travel
+    name: disruption-digest
+    version: "1.0.0"
+
+  # A hard ceiling on what one run may spend.
+  budget:
+    max_cost_micros: 2000000 # $2.00 per run
+    max_total_tokens: 500000
+    max_duration_seconds: 900
+    on_exceeded: budget_exceeded_terminate
+
+  tasks:
+    - name: set_digest_window
+      kind: set_vars
+      task_config:
+        variables:
+          window_hours: "24"
+          ops_channel: "traveler-ops"
+      export:
+        as: "${ . }"
+      flow:
+        then: fetch_disruptions
+
+    - name: fetch_disruptions
+      kind: http_call
+      task_config:
+        method: GET
+        endpoint:
+          uri: "https://ops.meridian.example/api/disruptions"
+        headers:
+          Accept: "application/json"
+      export:
+        as: "${ .response }"
+      flow:
+        then: draft_notifications
+
+    - name: draft_notifications
+      kind: agent_call
+      task_config:
+        agent: traveler-assist
+        message: "Draft rebooking notifications for travelers affected by these disruptions, per the rebooking policy's disruption rules: ${ $context.fetch_disruptions.response }"
+      export:
+        as: "${ .drafts }"
+      flow:
+        then: post_digest
+
+    - name: post_digest
+      kind: http_call
+      task_config:
+        method: POST
+        endpoint:
+          uri: "https://ops.meridian.example/api/digest"
+        headers:
+          Content-Type: "application/json"
+        body:
+          channel: "${ $context.set_digest_window.ops_channel }"
+          notifications: "${ $context.draft_notifications.drafts }"
+      flow:
+        then: end

@@ -1,0 +1,8 @@
+apiVersion: tenancy.stigmer.ai/v1
+kind: Organization
+metadata:
+  name: Meridian Travel
+  slug: meridian-travel
+spec:
+  description: "Travel booking and traveler assistance"
+  management_mode: self_managed

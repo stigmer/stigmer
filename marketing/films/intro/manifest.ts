@@ -10,6 +10,25 @@ import manifest from "./manifest.json";
 
 export type SceneMode = "presenter" | "vo";
 
+/** How a cut renders: real footage, a styled data panel, or a slate awaiting its asset. */
+export type CutKind = "recording" | "yaml-panel" | "terminal" | "slate";
+
+/**
+ * One editorial cut inside a scene. Cut timing is hand-tuned editorial
+ * data (the narration pipeline stores no word timestamps — regenerating
+ * audio for alignment would invalidate the cached presenter clips), so
+ * offsets live here in the manifest, the film's single source of truth.
+ */
+export interface Cut {
+  /** Shot id — for recordings, the assets/recordings/<shot>.webm take. */
+  shot: string;
+  kind: CutKind;
+  /** Cut point, seconds from scene start; runs until the next cut. */
+  atSec: number;
+  /** Trim: where in the source take this cut begins (skips nav prefix). */
+  srcStartSec?: number;
+}
+
 export interface Scene {
   id: string;
   mode: SceneMode;
@@ -19,6 +38,8 @@ export interface Scene {
   plannedDurationSec: number;
   /** Shot plan, mirrored from the approved shot list (S-numbers). */
   shots: string;
+  /** Editorial cuts; scenes without cuts render the placeholder slate. */
+  cuts?: Cut[];
 }
 
 export const FPS: number = manifest.fps;

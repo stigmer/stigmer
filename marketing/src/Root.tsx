@@ -3,6 +3,8 @@ import { FPS, HEIGHT, WIDTH } from "../films/intro/manifest";
 import { IntroFilm } from "./films/intro/IntroFilm";
 import type { NarrationManifest } from "./films/intro/durations";
 import { totalDuration } from "./films/intro/durations";
+import type { FilmData } from "./films/intro/scenes/RecordedScene";
+import type { ApplyTranscript } from "./films/intro/scenes/TerminalScene";
 
 /**
  * Narration manifest is a generated file (gitignored), so it is loaded at
@@ -25,6 +27,26 @@ const presenterScenes = (): string[] =>
     .filter((f) => f.name.startsWith("presenter/") && f.name.endsWith(".mp4"))
     .map((f) => f.name.slice("presenter/".length, -".mp4".length));
 
+/**
+ * Captured footage and staged film data (assets/recordings/, gitignored),
+ * loaded with the same degrade-to-placeholder contract as narration: a
+ * missing asset renders a slate, never a broken frame.
+ */
+const loadFilmData = async (): Promise<FilmData> => {
+  const files = getStaticFiles();
+  const has = (name: string) => files.some((f) => f.name === name);
+  const text = async (name: string) => (await fetch(staticFile(name))).text();
+
+  const recordedShots = files
+    .filter((f) => f.name.startsWith("recordings/") && f.name.endsWith(".webm"))
+    .map((f) => f.name.slice("recordings/".length, -".webm".length));
+  const agentYaml = has("recordings/s3b-agent-yaml.txt") ? await text("recordings/s3b-agent-yaml.txt") : null;
+  const transcript = has("recordings/s3e-apply-transcript.json")
+    ? ((await (await fetch(staticFile("recordings/s3e-apply-transcript.json"))).json()) as ApplyTranscript)
+    : null;
+  return { recordedShots, agentYaml, transcript };
+};
+
 export const Root = () => (
   <Composition
     id="IntroToStigmer"
@@ -32,12 +54,16 @@ export const Root = () => (
     width={WIDTH}
     height={HEIGHT}
     fps={FPS}
-    defaultProps={{ narration: null, presenterScenes: [] }}
+    defaultProps={{
+      narration: null,
+      presenterScenes: [],
+      filmData: { recordedShots: [], agentYaml: null, transcript: null },
+    }}
     calculateMetadata={async () => {
       const narration = await loadNarration();
       return {
         durationInFrames: totalDuration(narration),
-        props: { narration, presenterScenes: presenterScenes() },
+        props: { narration, presenterScenes: presenterScenes(), filmData: await loadFilmData() },
       };
     }}
   />
