@@ -1,0 +1,24 @@
+{
+  "name": "@stigmer/marketing",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Remotion workspace for Stigmer marketing films. Motion design + real product screen recordings; see README for the asset pipeline.",
+  "type": "module",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "render": "remotion render src/index.ts IntroToStigmer out/intro-to-stigmer.mp4",
+    "narrate": "node scripts/narrate.mjs",
+    "presenter": "node scripts/presenter.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.448",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "remotion": "4.0.448"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "typescript": "^5.7.0"
+  }
+}
