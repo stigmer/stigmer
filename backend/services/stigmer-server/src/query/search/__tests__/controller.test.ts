@@ -49,7 +49,7 @@ function searchClientOver(store: SearchQueryStore) {
     },
     {
       router: {
-        interceptors: [createVerifierChainInterceptor([], silentLogger)],
+        interceptors: [createVerifierChainInterceptor([], [], silentLogger)],
       },
     },
   );
@@ -125,7 +125,9 @@ describe("activity error mapping", () => {
         },
         {
           router: {
-            interceptors: [createVerifierChainInterceptor([], silentLogger)],
+            interceptors: [
+              createVerifierChainInterceptor([], [], silentLogger),
+            ],
           },
         },
       );

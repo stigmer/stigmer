@@ -244,7 +244,9 @@ describe("artifact domain — create & content addressing", () => {
         },
         {
           router: {
-            interceptors: [createVerifierChainInterceptor([], silentLogger)],
+            interceptors: [
+              createVerifierChainInterceptor([], [], silentLogger),
+            ],
           },
         },
       );

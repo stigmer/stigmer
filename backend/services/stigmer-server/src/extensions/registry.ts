@@ -50,6 +50,7 @@ import type { ScheduleFireCallerMint } from "./schedule-fire-caller.js";
 import { BUILT_IN_SANDBOX_PROVISIONER_TYPES } from "../sandbox/provisioner.js";
 import type { WorkerFactory } from "../temporal/manager.js";
 import type { Authorizer } from "./authorizer.js";
+import type { CallerGuard } from "./caller-guards.js";
 import type { ExtensionDrivers } from "./drivers.js";
 import { DECLARED_GATE_SLOTS } from "./gate-slots.js";
 import type { GateSlotName, ResolvedGateSteps } from "./gate-slots.js";
@@ -94,6 +95,12 @@ export interface ServerExtension {
   /** Ordered verifier-chain entries, appended in unit order (consumed by O2). */
   readonly identityVerifiers?: ReadonlyArray<IdentityVerifier>;
   /**
+   * Post-authentication caller guards, appended in unit order (entry
+   * 20260902.02 ruling Q1) — run by the serving chain's identity source
+   * after the stamp, never by the in-process chain (caller-guards.ts).
+   */
+  readonly callerGuards?: ReadonlyArray<CallerGuard>;
+  /**
    * Gate-step registrations per declared slot (consumed by O4). Every key
    * must name a declared slot — an unknown slot is a boot throw, the §2b
    * contract that keeps a composition and its pinned server honest.
@@ -130,6 +137,7 @@ export interface ResolvedExtensions {
    */
   readonly authorizer: Authorizer | undefined;
   readonly identityVerifiers: ReadonlyArray<IdentityVerifier>;
+  readonly callerGuards: ReadonlyArray<CallerGuard>;
   /** Slot name → steps, validated against DECLARED_GATE_SLOTS. */
   readonly gateSteps: ResolvedGateSteps;
   readonly statusObservers: ReadonlyArray<AgentExecutionStatusObserver>;
@@ -204,6 +212,7 @@ export function resolveExtensions(
 ): ResolvedExtensions {
   const unitNames: string[] = [];
   const identityVerifiers: IdentityVerifier[] = [];
+  const callerGuards: CallerGuard[] = [];
   const gateSteps = new Map<string, ReadonlyArray<PipelineStep<DescMessage>>>();
   const statusObservers: AgentExecutionStatusObserver[] = [];
   const responseDecorators: AgentExecutionResponseDecorator[] = [];
@@ -450,6 +459,7 @@ export function resolveExtensions(
     }
 
     identityVerifiers.push(...(unit.identityVerifiers ?? []));
+    callerGuards.push(...(unit.callerGuards ?? []));
     statusObservers.push(...(unit.statusTransitionHooks?.observers ?? []));
     responseDecorators.push(
       ...(unit.statusTransitionHooks?.responseDecorators ?? []),
@@ -463,6 +473,7 @@ export function resolveExtensions(
     edition: edition ?? ServerEdition.oss,
     authorizer,
     identityVerifiers,
+    callerGuards,
     gateSteps,
     statusObservers,
     responseDecorators,

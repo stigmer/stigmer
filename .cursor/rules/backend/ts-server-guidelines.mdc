@@ -113,6 +113,21 @@ eventually violate creatively.
   transition; decorators contribute only fields the shared reply schema
   carries, clone-committed per decorator. Workflowexecution deliberately
   has NO hooks (unmetered in cloud; nothing built ahead of need).
+- **Caller guards run post-stamp on the serving chain ONLY** (entry
+  20260902.02 ruling Q1; `src/extensions/caller-guards.ts`). A guard
+  enforces the MINTING CLIENT's contract (the platform-client controls:
+  deletion-revocation liveness, Origin vs allowed_origins) — a different
+  concern from token verification, never folded into an IdentityVerifier.
+  Registration is `ServerExtension.callerGuards` (list point, unit
+  order); the serving chassis runs guards over the FINAL stamped
+  identity, first throw wins. The in-process chain takes no guards — the
+  exemption is structural, never a runtime skip a guard re-implements.
+  Fault doctrine is the verifier chain's: a guard's ConnectError is its
+  own wire mapping; any other throw is INTERNAL, never softened into a
+  denial. Skip logic (claim-less tokens, the token_type exemption,
+  health/reflection services) is the composition's business, decoded
+  from `CallerIdentity.rawToken` — OSS runs every guard on every serving
+  request and stays policy-free.
 - **The composition root is staged plain functions** (config → storage →
   temporal → controllers → routes → listen). No DI framework. A missing
   dependency is a compile error or a loud boot throw, never a silent no-op.

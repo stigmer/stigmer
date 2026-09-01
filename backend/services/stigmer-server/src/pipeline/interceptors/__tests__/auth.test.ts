@@ -6,8 +6,11 @@
  * Q1+Q2 — tokenless is UNAUTHENTICATED with the Java byte-pinned copy,
  * except is_public methods), the trusted-local modeled state in both
  * operator postures, the internal caller class's structural minting
- * invariant (ruling Q4 — a wire request can never carry it), and the
- * shared bearer parser's shape.
+ * invariant (ruling Q4 — a wire request can never carry it), the
+ * caller-guard walk (20260902.02 ruling Q1 — guards run over the FINAL
+ * stamped identity, first throw wins, ConnectError is the guard's own
+ * wire mapping, any other throw is INTERNAL), and the shared bearer
+ * parser's shape.
  */
 import { describe, expect, it, afterEach } from "vitest";
 import { Code, ConnectError, createContextValues } from "@connectrpc/connect";
@@ -17,6 +20,7 @@ import type { DescMethod } from "@bufbuild/protobuf";
 import { ApiKeyQueryController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/query_pb";
 import { PlatformQueryController } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 
+import type { CallerGuard } from "../../../extensions/caller-guards.js";
 import type {
   CallerIdentity,
   IdentityVerifier,
@@ -71,6 +75,9 @@ async function runInterceptor(
     header,
     contextValues,
     method,
+    // The parent service descriptor rides every real request; the guard
+    // fault log reads its typeName.
+    service: method.parent,
     stream: false,
   } as never);
   return stamped;
@@ -102,6 +109,7 @@ describe("verifier chain walk", () => {
             return Promise.resolve(null);
           }),
         ],
+        [],
         silentLogger,
       ),
       "Bearer tok",
@@ -124,6 +132,7 @@ describe("verifier chain walk", () => {
             return Promise.resolve(CLAIMED);
           }),
         ],
+        [],
         silentLogger,
       ),
       "Bearer tok",
@@ -138,6 +147,7 @@ describe("verifier chain walk", () => {
       runInterceptor(
         createVerifierChainInterceptor(
           [verifier("oidc", () => Promise.reject(reject))],
+          [],
           silentLogger,
         ),
         "Bearer tok",
@@ -149,6 +159,7 @@ describe("verifier chain walk", () => {
     const error = await runInterceptor(
       createVerifierChainInterceptor(
         [verifier("oidc", () => Promise.reject(new Error("JWKS unreachable")))],
+        [],
         silentLogger,
       ),
       "Bearer tok",
@@ -162,7 +173,7 @@ describe("verifier chain walk", () => {
 describe("conditional strictness (ruling Q6 — both postures)", () => {
   it("zero verifiers: a presented-but-unclaimed token falls through SILENTLY to trusted-local", async () => {
     const identity = await runInterceptor(
-      createVerifierChainInterceptor([], silentLogger),
+      createVerifierChainInterceptor([], [], silentLogger),
       "Bearer garbage-token",
     );
     expect(identity).toEqual(trustedLocalIdentity());
@@ -172,6 +183,7 @@ describe("conditional strictness (ruling Q6 — both postures)", () => {
     const error = await runInterceptor(
       createVerifierChainInterceptor(
         [verifier("oidc", () => Promise.resolve(null))],
+        [],
         silentLogger,
       ),
       "Bearer garbage-token",
@@ -185,12 +197,15 @@ describe("conditional strictness (ruling Q6 — both postures)", () => {
 
   it("an absent token falls to trusted-local in both verifier postures when authentication is not required", async () => {
     expect(
-      await runInterceptor(createVerifierChainInterceptor([], silentLogger)),
+      await runInterceptor(
+        createVerifierChainInterceptor([], [], silentLogger),
+      ),
     ).toEqual(trustedLocalIdentity());
     expect(
       await runInterceptor(
         createVerifierChainInterceptor(
           [verifier("oidc", () => Promise.resolve(null))],
+          [],
           silentLogger,
         ),
       ),
@@ -205,6 +220,7 @@ describe("require-authentication posture (O3 rulings Q1+Q2)", () => {
         Promise.resolve(token === "tok" ? CLAIMED : null),
       ),
     ],
+    [],
     silentLogger,
     true,
   );
@@ -279,10 +295,214 @@ describe("internal caller class (ruling Q4 — structurally unmintable from the 
     // ("user"), never "internal" — the serving chain has no code path
     // that produces the class.
     const identity = await runInterceptor(
-      createVerifierChainInterceptor([], silentLogger),
+      createVerifierChainInterceptor([], [], silentLogger),
       "Bearer forged.internal.token",
     );
     expect(identity?.callerClass).toBe("user");
+  });
+});
+
+describe("caller-guard walk (20260902.02 ruling Q1)", () => {
+  function guard(
+    name: string,
+    body: (caller: CallerIdentity) => Promise<void>,
+  ): CallerGuard {
+    return { name, guard: (caller) => body(caller) };
+  }
+
+  it("guards run over the FINAL stamped identity — the claimed arm", async () => {
+    const seen: CallerIdentity[] = [];
+    await runInterceptor(
+      createVerifierChainInterceptor(
+        [verifier("oidc", () => Promise.resolve(CLAIMED))],
+        [
+          guard("recorder", (caller) => {
+            seen.push(caller);
+            return Promise.resolve();
+          }),
+        ],
+        silentLogger,
+      ),
+      "Bearer tok",
+    );
+    expect(seen).toEqual([CLAIMED]);
+  });
+
+  it("guards run over the FINAL stamped identity — the trusted-local arm", async () => {
+    const seen: CallerIdentity[] = [];
+    await runInterceptor(
+      createVerifierChainInterceptor(
+        [],
+        [
+          guard("recorder", (caller) => {
+            seen.push(caller);
+            return Promise.resolve();
+          }),
+        ],
+        silentLogger,
+      ),
+    );
+    expect(seen).toEqual([trustedLocalIdentity()]);
+  });
+
+  it("a guard receives the request's method descriptor and headers", async () => {
+    let seenMethod: DescMethod | undefined;
+    let seenOrigin: string | null = null;
+    const inspecting: CallerGuard = {
+      name: "inspector",
+      guard: (_caller, method, headers) => {
+        seenMethod = method;
+        seenOrigin = headers.get("origin");
+        return Promise.resolve();
+      },
+    };
+    const header = new Headers();
+    header.set("origin", "https://app.example.test");
+    const contextValues = createContextValues();
+    await createVerifierChainInterceptor(
+      [],
+      [inspecting],
+      silentLogger,
+    )(((request: { contextValues: typeof contextValues }) => {
+      void request;
+      return Promise.resolve({} as never);
+    }) as never)({
+      header,
+      contextValues,
+      method: ApiKeyQueryController.method.get,
+      service: ApiKeyQueryController,
+      stream: false,
+    } as never);
+    expect(seenMethod).toBe(ApiKeyQueryController.method.get);
+    expect(seenOrigin).toBe("https://app.example.test");
+  });
+
+  it("a guard's ConnectError is its own wire mapping (propagated untouched)", async () => {
+    const refusal = new ConnectError(
+      "platform client was deleted",
+      Code.Unauthenticated,
+    );
+    await expect(
+      runInterceptor(
+        createVerifierChainInterceptor(
+          [],
+          [guard("platform-client", () => Promise.reject(refusal))],
+          silentLogger,
+        ),
+      ),
+    ).rejects.toBe(refusal);
+  });
+
+  it("a guard's plain throw is an infrastructure fault → INTERNAL, never a denial", async () => {
+    const error = await runInterceptor(
+      createVerifierChainInterceptor(
+        [],
+        [
+          guard("platform-client", () =>
+            Promise.reject(new Error("postgres unreachable")),
+          ),
+        ],
+        silentLogger,
+      ),
+    ).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(ConnectError);
+    expect((error as ConnectError).code).toBe(Code.Internal);
+    expect((error as ConnectError).rawMessage).toBe("internal server error");
+  });
+
+  it("guards run in composed order; the first throw wins and later guards never run", async () => {
+    const ran: string[] = [];
+    const refusal = new ConnectError("refused", Code.PermissionDenied);
+    const error = await runInterceptor(
+      createVerifierChainInterceptor(
+        [],
+        [
+          guard("first", () => {
+            ran.push("first");
+            return Promise.resolve();
+          }),
+          guard("second", () => {
+            ran.push("second");
+            return Promise.reject(refusal);
+          }),
+          guard("third", () => {
+            ran.push("third");
+            return Promise.resolve();
+          }),
+        ],
+        silentLogger,
+      ),
+    ).catch((e: unknown) => e);
+    expect(error).toBe(refusal);
+    expect(ran).toEqual(["first", "second"]);
+  });
+
+  it("a refused request never reaches the handler", async () => {
+    let handlerRan = false;
+    const interceptor = createVerifierChainInterceptor(
+      [],
+      [
+        guard("refuser", () =>
+          Promise.reject(new ConnectError("no", Code.PermissionDenied)),
+        ),
+      ],
+      silentLogger,
+    );
+    await interceptor((() => {
+      handlerRan = true;
+      return Promise.resolve({} as never);
+    }) as never)({
+      header: new Headers(),
+      contextValues: createContextValues(),
+      method: ApiKeyQueryController.method.get,
+      service: ApiKeyQueryController,
+      stream: false,
+    } as never).catch(() => undefined);
+    expect(handlerRan).toBe(false);
+  });
+
+  it("guards never run when the verifier chain already refused the request", async () => {
+    let guardRan = false;
+    await runInterceptor(
+      createVerifierChainInterceptor(
+        [verifier("oidc", () => Promise.resolve(null))],
+        [
+          guard("recorder", () => {
+            guardRan = true;
+            return Promise.resolve();
+          }),
+        ],
+        silentLogger,
+      ),
+      "Bearer unclaimed-token",
+    ).catch(() => undefined);
+    expect(guardRan).toBe(false);
+  });
+
+  it("the chassis records a refusal with the guard's name (position 1 is outside the logging interceptor)", async () => {
+    const warned: Array<Record<string, unknown>> = [];
+    const capturingLogger = {
+      ...silentLogger,
+      warn: (_message: string, fields?: Record<string, unknown>) => {
+        warned.push(fields ?? {});
+      },
+    };
+    await runInterceptor(
+      createVerifierChainInterceptor(
+        [],
+        [
+          guard("platform-client", () =>
+            Promise.reject(new ConnectError("no", Code.PermissionDenied)),
+          ),
+        ],
+        capturingLogger,
+      ),
+    ).catch(() => undefined);
+    expect(warned).toHaveLength(1);
+    expect(warned[0]).toMatchObject({
+      guard: "platform-client",
+      code: "PermissionDenied",
+    });
   });
 });
 

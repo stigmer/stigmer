@@ -24,6 +24,7 @@ import type { RunnerCredentialProvider } from "../../runnerauth/runner-credentia
 import type { SandboxProvisionerFactory } from "../../sandbox/provisioner.js";
 import type { WorkerFactory } from "../../temporal/manager.js";
 import type { Authorizer } from "../authorizer.js";
+import type { CallerGuard } from "../caller-guards.js";
 import { DECLARED_GATE_SLOTS, GATE_SLOT_NAMES } from "../gate-slots.js";
 import type { GateSlotName } from "../gate-slots.js";
 import type { IdentityVerifier } from "../identity.js";
@@ -40,6 +41,11 @@ const denyAll: Authorizer = {
 
 function verifier(name: string): IdentityVerifier {
   return { name, verify: () => Promise.resolve(null) };
+}
+
+// Never invoked — the guard's identity is what the merge tests assert.
+function callerGuard(name: string): CallerGuard {
+  return { name, guard: () => Promise.resolve() };
 }
 
 // Never invoked — the factory's identity is what the merge tests assert.
@@ -127,6 +133,7 @@ describe("resolveExtensions — defaults", () => {
     expect(resolved.edition).toBe(ServerEdition.oss);
     expect(resolved.authorizer).toBeUndefined();
     expect(resolved.identityVerifiers).toEqual([]);
+    expect(resolved.callerGuards).toEqual([]);
     expect(resolved.gateSteps.size).toBe(0);
     expect(resolved.statusObservers).toEqual([]);
     expect(resolved.responseDecorators).toEqual([]);
@@ -155,6 +162,7 @@ describe("resolveExtensions — merge semantics", () => {
       {
         name: "alpha",
         identityVerifiers: [verifier("a1"), verifier("a2")],
+        callerGuards: [callerGuard("g1")],
         services: [registerA],
         statusTransitionHooks: { observers: [observerA] },
       },
@@ -163,6 +171,7 @@ describe("resolveExtensions — merge semantics", () => {
         edition: ServerEdition.cloud,
         authorizer: allowAll,
         identityVerifiers: [verifier("b1")],
+        callerGuards: [callerGuard("g2"), callerGuard("g3")],
         services: [registerB],
         workers: [workerFactory],
         statusTransitionHooks: { responseDecorators: [decoratorB] },
@@ -175,6 +184,11 @@ describe("resolveExtensions — merge semantics", () => {
       "a1",
       "a2",
       "b1",
+    ]);
+    expect(resolved.callerGuards.map((g) => g.name)).toEqual([
+      "g1",
+      "g2",
+      "g3",
     ]);
     expect(resolved.services).toEqual([registerA, registerB]);
     expect(resolved.workers).toEqual([workerFactory]);

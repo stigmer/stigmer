@@ -1098,15 +1098,23 @@ export async function composeServer(
     routes,
     // The serving chain's position-1 identity source is the verifier
     // chassis over the composed verifiers (O2; zero verifiers = the
-    // trusted-local posture, byte-identical wire behavior). The in-process
-    // transport above carries its own position-1 source — the internal
-    // caller class only it can mint (ruling Q4). Position 0 is the error
-    // boundary (20260830.03): the raw-error conversion net plus the
-    // composed visitor sanitizer — SERVING chain only, so in-process
-    // hops keep full diagnostics by construction.
+    // trusted-local posture, byte-identical wire behavior) followed by
+    // the composed caller guards (20260902.02; zero guards = today's
+    // behavior). The in-process transport above carries its own
+    // position-1 source — the internal caller class only it can mint
+    // (ruling Q4), and NO guards: the in-process exemption is structural
+    // (caller-guards.ts). Position 0 is the error boundary (20260830.03):
+    // the raw-error conversion net plus the composed visitor sanitizer —
+    // SERVING chain only, so in-process hops keep full diagnostics by
+    // construction.
     interceptors: buildInterceptorChain(
       logger,
-      createVerifierChainInterceptor(identityVerifiers, logger, authEnabled),
+      createVerifierChainInterceptor(
+        identityVerifiers,
+        extensions.callerGuards,
+        logger,
+        authEnabled,
+      ),
       createErrorBoundaryInterceptor(
         logger,
         extensions.drivers.visitorErrorPolicy,

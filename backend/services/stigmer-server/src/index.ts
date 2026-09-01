@@ -57,6 +57,15 @@ export type {
   CallerIdentity,
   IdentityVerifier,
 } from "./extensions/identity.js";
+// The 20260902.02 seam: post-authentication caller guards
+// (ServerExtension.callerGuards) — enforcement of the MINTING CLIENT's
+// contract, run by the serving chassis after the position-1 identity
+// stamp and never by the in-process chain (the structural exemption).
+// The composition owns WHO is exempt and WHAT refuses (skip sets,
+// byte-pinned copy, liveness reads); OSS owns the walk, the fault
+// mapping (ConnectError = the guard's wire shape; any other throw =
+// INTERNAL), and the ordering.
+export type { CallerGuard } from "./extensions/caller-guards.js";
 // The caller-identity read idiom for extension-registered services (C2
 // Stage 3, 20260827.10): extension RPC handlers traverse the same
 // interceptor chain as OSS controllers, so the identity stamped at chain
@@ -158,6 +167,12 @@ export {
   callerIdentityKey,
   callerIdentityOf,
 } from "./pipeline/interceptors/auth.js";
+// The serving chassis factory (20260902.02, the error-boundary
+// precedent): a composition's OWN tests must drive its caller guards
+// through the REAL stamp→guard mechanism — the walk order, the fault
+// mapping, the refusal pass-through — never a re-derivation. Production
+// wiring stays compose.ts's job.
+export { createVerifierChainInterceptor } from "./pipeline/interceptors/auth.js";
 export { newPipeline } from "./pipeline/pipeline.js";
 export { newAuthorizeStep } from "./pipeline/steps/authorize.js";
 export { newValidateProtoStep } from "./pipeline/steps/validation.js";

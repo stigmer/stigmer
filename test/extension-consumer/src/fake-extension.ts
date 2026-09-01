@@ -20,7 +20,8 @@
  * infrastructure for no additional proof.
  */
 import { create } from "@bufbuild/protobuf";
-import type { DescMessage } from "@bufbuild/protobuf";
+import type { DescMessage, DescMethod } from "@bufbuild/protobuf";
+import { Code, ConnectError } from "@connectrpc/connect";
 import type { ConnectRouter } from "@connectrpc/connect";
 
 import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
@@ -74,6 +75,7 @@ import type {
   ArtifactStorage,
   ArtifactStorageDriverFactory,
   Authorizer,
+  CallerGuard,
   CallerIdentity,
   ChannelRuntime,
   ComposedServer,
@@ -114,6 +116,26 @@ const authorizer: Authorizer = {
         ? { kind: "allow" as const }
         : { kind: "deny" as const, reason: "machine callers are refused here" },
     ),
+};
+
+/**
+ * A consumer-shaped caller guard (the 20260902.02 seam) — the
+ * platform-client enforcement shape: skip logic lives entirely in the
+ * guard (claim-less tokens, the load-bearing token_type exemption),
+ * refusal is the guard's own ConnectError with byte-pinned copy, and the
+ * Origin header rides the request headers the chassis passes through.
+ */
+const callerGuard: CallerGuard = {
+  name: "consumer-platform-client",
+  guard: (caller: CallerIdentity, method: DescMethod, headers: Headers) => {
+    void method.parent.typeName;
+    if (caller.rawToken === "" || headers.get("origin") === null) {
+      return Promise.resolve();
+    }
+    return Promise.reject(
+      new ConnectError("platform client was deleted", Code.Unauthenticated),
+    );
+  },
 };
 
 /** A claim-or-pass verifier (the O2 chain-entry shape). */
@@ -561,6 +583,9 @@ export const fakeExtension: ServerExtension = {
   edition: ServerEdition.cloud,
   authorizer,
   identityVerifiers: [verifier],
+  // The 20260902.02 seam: post-authentication caller guards, serving
+  // chain only.
+  callerGuards: [callerGuard],
   // The O4 slot vocabulary is typed: registering into a slot name outside
   // GateSlotName fails this compile (the §2b contract's compile-time layer).
   gateSteps: new Map<GateSlotName, ReadonlyArray<PipelineStep<DescMessage>>>([
