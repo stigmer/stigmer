@@ -71,7 +71,7 @@ const CutView = ({ cut, cutFrames, data }: { cut: Cut; cutFrames: number; data: 
     case "graphic": {
       const Graphic = GRAPHICS[cut.shot];
       if (Graphic === undefined) return <SlateCut label={`${cut.shot} — graphic not registered`} />;
-      return <Graphic durationInFrames={cutFrames} />;
+      return <Graphic durationInFrames={cutFrames} data={data} />;
     }
     case "slate":
       return <SlateCut label={cut.shot} />;

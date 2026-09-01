@@ -26,7 +26,7 @@
         { "shot": "s2c-laptop-cloud", "kind": "graphic", "atSec": 13.5 },
         { "shot": "s2d-title-trust", "kind": "graphic", "atSec": 17.5 },
         { "shot": "s4-chat", "kind": "recording", "atSec": 21.5, "srcStartSec": 41 },
-        { "shot": "s5b-budget", "kind": "recording", "atSec": 26.5, "srcStartSec": 6 }
+        { "shot": "s5b-budget", "kind": "recording", "atSec": 26.5, "srcStartSec": 8 }
       ]
     },
     {

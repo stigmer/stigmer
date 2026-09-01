@@ -1,3 +1,4 @@
+import type { SpringConfig } from "remotion";
 import { interpolate, spring } from "remotion";
 
 /**
@@ -32,8 +33,12 @@ export const GRID = 8;
  * Spring-driven entrance progress, 0→1. `delay` staggers siblings —
  * the film staggers list items ~4 frames apart.
  */
-export const enter = (frame: number, fps: number, delay = 0, config = EASE_CONFIDENT): number =>
-  spring({ frame: frame - delay, fps, config });
+export const enter = (
+  frame: number,
+  fps: number,
+  delay = 0,
+  config: Partial<SpringConfig> = EASE_CONFIDENT,
+): number => spring({ frame: frame - delay, fps, config });
 
 /** The standard entrance: fade in while rising `distance` px. */
 export const fadeUp = (progress: number, distance = 4 * GRID) => ({
