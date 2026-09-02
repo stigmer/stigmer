@@ -1,6 +1,7 @@
-import { Composition, getStaticFiles, staticFile } from "remotion";
+import { Composition, Still, getStaticFiles, staticFile } from "remotion";
 import { FPS, HEIGHT, WIDTH } from "../films/intro/manifest";
 import { IntroFilm } from "./films/intro/IntroFilm";
+import { THUMB_HEIGHT, THUMB_WIDTH, Thumbnail } from "./films/intro/Thumbnail";
 import type { NarrationManifest } from "./films/intro/durations";
 import { totalDuration } from "./films/intro/durations";
 import type { FilmData } from "./films/intro/scenes/RecordedScene";
@@ -48,30 +49,47 @@ const loadFilmData = async (): Promise<FilmData> => {
 };
 
 export const Root = () => (
-  <Composition
-    id="IntroToStigmer"
-    component={IntroFilm}
-    width={WIDTH}
-    height={HEIGHT}
-    fps={FPS}
-    defaultProps={{
-      narration: null,
-      presenterScenes: [],
-      filmData: { recordedShots: [], agentYaml: null, transcript: null },
-      hasMusic: false,
-    }}
-    calculateMetadata={async () => {
-      const narration = await loadNarration();
-      return {
-        durationInFrames: totalDuration(narration),
+  <>
+    <Composition
+      id="IntroToStigmer"
+      component={IntroFilm}
+      width={WIDTH}
+      height={HEIGHT}
+      fps={FPS}
+      defaultProps={{
+        narration: null,
+        presenterScenes: [],
+        filmData: { recordedShots: [], agentYaml: null, transcript: null },
+        hasMusic: false,
+      }}
+      calculateMetadata={async () => {
+        const narration = await loadNarration();
+        return {
+          durationInFrames: totalDuration(narration),
+          props: {
+            narration,
+            presenterScenes: presenterScenes(),
+            filmData: await loadFilmData(),
+            // Same degrade contract as every asset: no bed file, no bed.
+            hasMusic: getStaticFiles().some((f) => f.name === "music/bed.mp3"),
+          },
+        };
+      }}
+    />
+    {/* The film's YouTube thumbnail (see Thumbnail.tsx for the doctrine). */}
+    <Still
+      id="Thumbnail"
+      component={Thumbnail}
+      width={THUMB_WIDTH}
+      height={THUMB_HEIGHT}
+      defaultProps={{ hasPresenter: false }}
+      calculateMetadata={async ({ props }) => ({
         props: {
-          narration,
-          presenterScenes: presenterScenes(),
-          filmData: await loadFilmData(),
-          // Same degrade contract as every asset: no bed file, no bed.
-          hasMusic: getStaticFiles().some((f) => f.name === "music/bed.mp3"),
+          ...props,
+          // Same degrade contract as the film: no clip, brand-only layout.
+          hasPresenter: getStaticFiles().some((f) => f.name === "presenter/s6-close.mp4"),
         },
-      };
-    }}
-  />
+      })}
+    />
+  </>
 );
