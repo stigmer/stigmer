@@ -81,7 +81,7 @@ const CutView = ({ cut, cutFrames, data }: { cut: Cut; cutFrames: number; data: 
     case "recording":
       if (!data.recordedShots.includes(cut.shot)) return <SlateCut label={`${cut.shot} — take missing`} />;
       return (
-        <FramedShot camera={cut.camera} spotlights={cut.spotlights}>
+        <FramedShot camera={cut.camera} spotlights={cut.spotlights} durationInFrames={cutFrames}>
           <OffthreadVideo
             src={staticFile(`recordings/${cut.shot}.webm`)}
             startFrom={Math.round((cut.srcStartSec ?? 0) * FPS)}

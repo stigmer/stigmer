@@ -152,30 +152,28 @@ export const SHOTS = {
   },
 
   /**
-   * S4d — the payoff beat, recorded against Stigmer Cloud (the embed's
-   * guest path is cloud-only on OSS) as a before/after story (rough-cut
-   * gate, 2026-09-02): Meridian's page with NO agent, then the widget
-   * appears (the composition cuts the snippet graphic between the two),
-   * then a real guest question is answered on camera.
+   * S4d — the payoff beat: Meridian's own React app with the assistant
+   * integrated through @stigmer/react (owner ruling at the v2 gate:
+   * the React component, not the iframe widget — richer UX and the whole
+   * film stays local). A before/after story: the page with NO assistant,
+   * then the panel appears (the composition cuts the JSX snippet graphic
+   * between the two), then a real traveler question answered on camera
+   * against the live local stack.
    *
-   * Preconditions: cloud org with the shared agent, and the embed page
-   * served with app-origin pointed at app.stigmer.ai. Run with:
-   *   S4D_PAGE_URL=<embed page url> node capture.mjs s4d-embed
+   * Precondition: the Meridian app is serving — `npm run demo:app`
+   * (http://localhost:4173). Run with: node capture.mjs s4d-embed
    */
   "s4d-embed": async (page, human) => {
-    const url = process.env.S4D_PAGE_URL;
-    if (!url) {
-      throw new Error("s4d-embed needs S4D_PAGE_URL (the Meridian page wired to the cloud share) — see the shot note.");
-    }
-    // The "before": hold the widget's slot empty from the first paint so
-    // the take opens on their product as it is without Stigmer. The
-    // widget's iframe still loads behind the curtain, so the reveal is a
-    // finished chat panel, not a spinner.
+    const url = process.env.S4D_PAGE_URL ?? "http://localhost:4173";
+    // The "before": hold the assistant's slot empty from the first paint
+    // so the take opens on their product as it is without Stigmer. The
+    // panel still mounts behind the curtain, so the reveal is a finished
+    // surface, not a loading state.
     await page.addInitScript(() => {
       document.addEventListener("DOMContentLoaded", () => {
         const style = document.createElement("style");
         style.id = "stgm-hold-widget";
-        style.textContent = "stigmer-agent { visibility: hidden !important; }";
+        style.textContent = "aside { visibility: hidden !important; }";
         document.head.appendChild(style);
       });
     });
@@ -190,14 +188,14 @@ export const SHOTS = {
     await page.evaluate(() => document.getElementById("stgm-hold-widget")?.remove());
     await human.beat(3.5);
 
-    // A real traveler question, answered by the real agent (guest path).
-    const widget = page.frameLocator("stigmer-agent iframe");
-    const input = widget.getByRole("textbox").first();
+    // A real traveler question, answered by the real agent on the live
+    // local stack (policy question — streams an answer, no tool calls).
+    const input = page.locator("#assistant-panel").getByRole("textbox").first();
     await input.waitFor({ timeout: 60_000 });
     await human.click(input);
     await human.type("Do I have to pay a fee to change my flight?");
     await human.beat(0.5);
     await page.keyboard.press("Enter");
-    await human.beat(20); // the answer streams (policy question, no tools)
+    await human.beat(22); // the answer streams
   },
 };

@@ -12,11 +12,14 @@ import type { GraphicProps } from "./types";
  * renders nothing (an overlay never blanks its base visual).
  */
 
-/** Where in the s4d take the widget is live on the page (editorial trim). */
-const TEASE_SRC_START_SEC = 2.5;
+/** Where in the s4d take the assistant is live and answering (editorial trim). */
+const TEASE_SRC_START_SEC = 30;
 
-/** Card footprint: big enough to read as "a real product page", not a thumbnail. */
-const CARD_WIDTH = 920;
+/**
+ * Card footprint: big enough to read as "a real product page", not a
+ * thumbnail — but never over the presenter's face (she stands center-left).
+ */
+const CARD_WIDTH = 800;
 const CARD_HEIGHT = Math.round((CARD_WIDTH * 9) / 16);
 
 export const EmbedTease = ({ durationInFrames, data }: GraphicProps) => {
@@ -30,8 +33,8 @@ export const EmbedTease = ({ durationInFrames, data }: GraphicProps) => {
     <div
       style={{
         position: "absolute",
-        right: 10 * GRID,
-        top: "50%",
+        right: 8 * GRID,
+        top: "56%",
         transform: `translateY(-50%) translateY(${(1 - on) * 6 * GRID}px)`,
         opacity,
       }}

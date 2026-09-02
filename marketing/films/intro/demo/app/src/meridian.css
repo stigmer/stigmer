@@ -1,0 +1,136 @@
+/* Meridian Travel brand — the same palette as the static embed page
+   (demo/embed/index.html) and the S3a establishing graphic, so every
+   Meridian surface in the film is one company. */
+:root {
+  --ink: #0b2239;
+  --teal: #0f766e;
+  --sand: #f7f4ee;
+  --line: #e3ded4;
+}
+* {
+  box-sizing: border-box;
+  margin: 0;
+}
+body {
+  font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  background: var(--sand);
+  color: var(--ink);
+  min-height: 100vh;
+}
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 48px;
+  background: #fff;
+  border-bottom: 1px solid var(--line);
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.brand-mark {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: conic-gradient(from 210deg, var(--teal), #14b8a6 55%, var(--ink));
+}
+nav {
+  display: flex;
+  gap: 28px;
+  font-size: 14px;
+  color: #4b5c6b;
+}
+main {
+  display: grid;
+  grid-template-columns: 1fr 520px;
+  gap: 48px;
+  padding: 56px 48px;
+  max-width: 1480px;
+  margin: 0 auto;
+}
+h1 {
+  font-size: 34px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+.lede {
+  font-size: 16px;
+  color: #4b5c6b;
+  margin-bottom: 36px;
+  max-width: 52ch;
+}
+.trip {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 28px 32px;
+  max-width: 560px;
+}
+.trip .ref {
+  font-size: 13px;
+  color: #8a94a0;
+  letter-spacing: 0.08em;
+}
+.trip .route {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  margin: 14px 0 6px;
+}
+.trip .city {
+  font-size: 28px;
+  font-weight: 600;
+}
+.trip .arrow {
+  color: var(--teal);
+  font-size: 20px;
+}
+.trip .meta {
+  font-size: 14px;
+  color: #4b5c6b;
+  display: flex;
+  gap: 22px;
+  margin-top: 10px;
+}
+.trip .badge {
+  display: inline-block;
+  margin-top: 18px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: #e6f4f2;
+  color: var(--teal);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+aside h2 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+aside > p {
+  font-size: 14px;
+  color: #4b5c6b;
+  margin-bottom: 18px;
+}
+/* The assistant panel: Meridian's card chrome around the SDK's surface.
+   The capture drive hides/reveals #assistant-panel for the film's
+   before/after beat — the id is part of the shot contract (shots.mjs). */
+#assistant-panel {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+  height: 680px;
+  display: flex;
+  flex-direction: column;
+}
+#assistant-panel > * {
+  flex: 1;
+  min-height: 0;
+}

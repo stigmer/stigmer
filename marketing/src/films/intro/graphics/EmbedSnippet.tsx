@@ -6,18 +6,21 @@ import { GRID, TYPE, enter, exitFade, fadeUp } from "./motion";
 import type { GraphicProps } from "./types";
 
 /**
- * S4d (first beat) — "add one component": the embed snippet a customer
- * actually pastes, staggering in line by line before the cut to the live
- * Meridian page. Mirrors demo/embed/index.html with the production origin
- * (exactly what the S4d cloud take runs via APP_ORIGIN).
+ * S4d (mid beat) — "add one component": the @stigmer/react integration a
+ * platform builder actually writes, staggering in line by line between
+ * the bare Meridian page and the live assistant. Mirrors the real demo
+ * app (demo/app/src/App.tsx) — the exact code the S4d take runs.
  */
 const LINES: { text: string; indent: number; accent?: boolean }[] = [
-  { text: '<script src="https://app.stigmer.ai/embed.js" async></script>', indent: 0 },
+  { text: 'import { StigmerProvider, NewSessionViewer } from "@stigmer/react";', indent: 0 },
   { text: "", indent: 0 },
-  { text: "<stigmer-agent", indent: 0, accent: true },
-  { text: 'org="meridian-travel"', indent: 1 },
-  { text: 'agent="traveler-assist"', indent: 1 },
-  { text: "></stigmer-agent>", indent: 0, accent: true },
+  { text: "<StigmerProvider client={stigmer}>", indent: 0 },
+  { text: "<NewSessionViewer", indent: 1, accent: true },
+  { text: 'org="meridian-travel"', indent: 2 },
+  { text: 'initialAgentRef={{ org: "meridian-travel", slug: "traveler-assist" }}', indent: 2 },
+  { text: 'audience="endUser"', indent: 2 },
+  { text: "/>", indent: 1, accent: true },
+  { text: "</StigmerProvider>", indent: 0 },
 ];
 
 export const EmbedSnippet = ({ durationInFrames }: GraphicProps) => {
@@ -45,8 +48,8 @@ export const EmbedSnippet = ({ durationInFrames }: GraphicProps) => {
         >
           One component.
         </div>
-        <CodeWindow title="meridian.com — index.html" width={1180} height={430}>
-          <div style={{ padding: "30px 40px", fontFamily: theme.fonts.mono, fontSize: TYPE.body, lineHeight: 1.7 }}>
+        <CodeWindow title="meridian — TripPage.tsx" width={1280} height={520}>
+          <div style={{ padding: "30px 40px", fontFamily: theme.fonts.mono, fontSize: 28, lineHeight: 1.65 }}>
             {LINES.map((line, i) => (
               <div
                 key={i}

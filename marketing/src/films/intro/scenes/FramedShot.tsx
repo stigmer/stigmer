@@ -77,19 +77,29 @@ const cameraAt = (frame: number, fps: number, moves: CameraMove[]): CameraState 
  * brand backdrop behind, camera keyframes and spotlights composited over
  * the media. Children render at the full native frame (WIDTH x HEIGHT);
  * the window scales as one unit so takes stay pixel-faithful.
+ *
+ * A cut with no explicit camera gets the default drift: a barely-there
+ * push across the whole cut, so no product shot ever sits dead still
+ * (the calmness pass — motion discipline, not motion).
  */
 export const FramedShot = ({
   children,
   camera,
   spotlights,
+  durationInFrames,
 }: {
   children: React.ReactNode;
   camera?: CameraMove[];
   spotlights?: Spotlight[];
+  durationInFrames: number;
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const cam = camera && camera.length > 0 ? cameraAt(frame, fps, camera) : REST;
+  const moves: CameraMove[] =
+    camera && camera.length > 0
+      ? camera
+      : [{ atSec: 0, zoom: 1.045, cx: 0.5, cy: 0.45, easeSec: durationInFrames / fps }];
+  const cam = cameraAt(frame, fps, moves);
   // Push-in around the point of interest: P stays fixed while the frame
   // grows around it (translate(P*(1-s)) scale(s) — the matrix form, so
   // keyframes interpolate numerically without transform-origin jumps).
