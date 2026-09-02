@@ -5,7 +5,8 @@
   "voiceId": "EXAVITQu4vr4xnSDxMaL",
   "music": {
     "prompt": "Calm, minimal electronic pulse for a modern software product film. Warm analog synth pads, a gentle repeating four-note motif, unhurried tempo around 88 BPM, understated and confident. A very soft rhythmic pulse enters midway and recedes again. Ends by resolving to a serene sustained chord that fades naturally. No vocals.",
-    "lengthMs": 225000
+    "lengthMs": 225000,
+    "startSec": 8
   },
   "scenes": [
     {

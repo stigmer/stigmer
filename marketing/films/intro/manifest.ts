@@ -125,13 +125,18 @@ export interface Scene {
 }
 
 /**
- * The film's music bed spec, consumed by scripts/music.mjs (ElevenLabs
- * Music, generated-not-licensed per the rough-cut gate). The composition
- * itself only checks whether assets/music/bed.mp3 exists.
+ * The film's music bed spec. `prompt` + `lengthMs` drive generation
+ * (scripts/music.mjs — ElevenLabs Music, generated-not-licensed per the
+ * rough-cut gate); `startSec` is editorial: where in the generated track
+ * the film begins, hand-tuned so the track's strong closing section lands
+ * under the end card instead of its mid-body lull (the generator is not
+ * told the film's shape, so the offset aligns the two).
  */
 export interface MusicSpec {
   prompt: string;
   lengthMs: number;
+  /** Offset into the track at film start; default 0. */
+  startSec?: number;
 }
 
 export const FPS: number = manifest.fps;
