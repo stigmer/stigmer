@@ -4,6 +4,11 @@
  * audience reads as a person: eased cursor glides, settle pauses, and
  * typing with natural rhythm. This is cinematography, not e2e — waits are
  * choreography, so fixed pauses are correct here, not flakiness.
+ *
+ * The Human also drives the on-camera cursor overlay (lib/cursor.mjs):
+ * it is the one owner of pointer position, so the drawn cursor and the
+ * synthetic mouse can never disagree — including inside iframes, where
+ * DOM mouse events never reach the top frame (see cursor.mjs).
  */
 
 const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
@@ -21,6 +26,17 @@ export class Human {
     await this.page.waitForTimeout(seconds * 1000);
   }
 
+  /**
+   * Update the drawn cursor. Failures are swallowed: at a navigation
+   * boundary the overlay is being re-injected and one missed draw is
+   * invisible on film, while an aborted take is not.
+   */
+  async draw(op, args = []) {
+    await this.page
+      .evaluate(([o, a]) => window.__stgmFilmCursor?.[o](...a), [op, args])
+      .catch(() => {});
+  }
+
   /** Glide the cursor to a locator's center (or an {x,y} point). */
   async moveTo(target, { durationMs = 650 } = {}) {
     const to =
@@ -31,7 +47,10 @@ export class Human {
     const frames = Math.max(2, Math.round(durationMs / 16));
     for (let i = 1; i <= frames; i += 1) {
       const t = easeInOut(i / frames);
-      await this.page.mouse.move(from.x + (to.x - from.x) * t, from.y + (to.y - from.y) * t);
+      const x = from.x + (to.x - from.x) * t;
+      const y = from.y + (to.y - from.y) * t;
+      await this.page.mouse.move(x, y);
+      await this.draw("move", [x, y]);
       await this.page.waitForTimeout(16);
     }
     this.x = to.x;
@@ -43,8 +62,10 @@ export class Human {
     await this.moveTo(target, opts);
     await this.beat(0.25);
     await this.page.mouse.down();
+    await this.draw("press");
     await this.page.waitForTimeout(90);
     await this.page.mouse.up();
+    await this.draw("release");
   }
 
   /** Type into the focused element at a natural rhythm. */

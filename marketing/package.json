@@ -9,6 +9,7 @@
     "render": "remotion render src/index.ts IntroToStigmer out/intro-to-stigmer.mp4",
     "narrate": "node scripts/narrate.mjs",
     "presenter": "node scripts/presenter.mjs",
+    "music": "node scripts/music.mjs",
     "demo:seed": "node films/intro/demo/seed.mjs",
     "demo:seed:cloud": "node films/intro/demo/cloud/seed-cloud.mjs",
     "demo:smoke": "node films/intro/demo/mcp/smoke.mjs",

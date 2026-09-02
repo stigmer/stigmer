@@ -128,13 +128,19 @@ export const SHOTS = {
     await human.beat(14);
   },
 
-  /** S5b — the budget: a hard limit on what a run may spend. */
+  /**
+   * S5b — the budget: a hard limit on what a run may spend. The scroll
+   * brings the budget block toward frame center (rough-cut gate note:
+   * the first take left it pinned to the bottom edge).
+   */
   "s5b-budget": async (page, human) => {
     await ensureOrg(page, human);
     await page.goto(lib(`workflows/${ORG}/disruption-digest`), { waitUntil: "networkidle" });
     await human.beat(1.5);
     const budget = page.getByText(/budget/i).first();
     await human.click(budget);
+    await human.beat(1);
+    await human.scroll(380, { durationMs: 2600 });
     await human.beat(9);
   },
 
@@ -146,8 +152,12 @@ export const SHOTS = {
   },
 
   /**
-   * S4d — the Meridian page with the live widget, recorded against
-   * Stigmer Cloud (the embed's guest path is cloud-only on OSS).
+   * S4d — the payoff beat, recorded against Stigmer Cloud (the embed's
+   * guest path is cloud-only on OSS) as a before/after story (rough-cut
+   * gate, 2026-09-02): Meridian's page with NO agent, then the widget
+   * appears (the composition cuts the snippet graphic between the two),
+   * then a real guest question is answered on camera.
+   *
    * Preconditions: cloud org with the shared agent, and the embed page
    * served with app-origin pointed at app.stigmer.ai. Run with:
    *   S4D_PAGE_URL=<embed page url> node capture.mjs s4d-embed
@@ -157,7 +167,37 @@ export const SHOTS = {
     if (!url) {
       throw new Error("s4d-embed needs S4D_PAGE_URL (the Meridian page wired to the cloud share) — see the shot note.");
     }
+    // The "before": hold the widget's slot empty from the first paint so
+    // the take opens on their product as it is without Stigmer. The
+    // widget's iframe still loads behind the curtain, so the reveal is a
+    // finished chat panel, not a spinner.
+    await page.addInitScript(() => {
+      document.addEventListener("DOMContentLoaded", () => {
+        const style = document.createElement("style");
+        style.id = "stgm-hold-widget";
+        style.textContent = "stigmer-agent { visibility: hidden !important; }";
+        document.head.appendChild(style);
+      });
+    });
     await page.goto(url, { waitUntil: "networkidle" });
-    await human.beat(8); // snippet slide-in + widget appearing are composition-side
+
+    // A visitor reading the page: drift over the booking content.
+    await human.beat(1.5);
+    await human.moveTo({ x: 640, y: 520 }, { durationMs: 1400 });
+    await human.beat(3);
+
+    // The "after": the component is in — the assistant is live.
+    await page.evaluate(() => document.getElementById("stgm-hold-widget")?.remove());
+    await human.beat(3.5);
+
+    // A real traveler question, answered by the real agent (guest path).
+    const widget = page.frameLocator("stigmer-agent iframe");
+    const input = widget.getByRole("textbox").first();
+    await input.waitFor({ timeout: 60_000 });
+    await human.click(input);
+    await human.type("Do I have to pay a fee to change my flight?");
+    await human.beat(0.5);
+    await page.keyboard.press("Enter");
+    await human.beat(20); // the answer streams (policy question, no tools)
   },
 };

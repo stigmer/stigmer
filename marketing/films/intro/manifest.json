@@ -3,15 +3,20 @@
   "width": 1920,
   "height": 1080,
   "voiceId": "EXAVITQu4vr4xnSDxMaL",
+  "music": {
+    "prompt": "Calm, minimal electronic pulse for a modern software product film. Warm analog synth pads, a gentle repeating four-note motif, unhurried tempo around 88 BPM, understated and confident. A very soft rhythmic pulse enters midway and recedes again. Ends by resolving to a serene sustained chord that fades naturally. No vocals.",
+    "lengthMs": 225000
+  },
   "scenes": [
     {
       "id": "s1-cold-open",
       "mode": "presenter",
-      "narration": "Hi, and welcome to Stigmer. In the next three minutes, I'll show you what Stigmer is, and how it helps you put AI agents to work — for your team, and inside your own product. Stigmer is an open-source platform where you define agents once, and run them anywhere.",
-      "plannedDurationSec": 18,
-      "shots": "S1a presenter full-screen; S1b logo reveal beat",
+      "narration": "Hi, and welcome to Stigmer. Let me show you what Stigmer is, and how it helps you put AI agents to work — for your team, and inside your own product. Stigmer is an open-source platform where you define agents once, and run them anywhere.",
+      "plannedDurationSec": 17,
+      "shots": "S1a presenter full-screen; S1b logo reveal beat; S1c embed flash-forward on \"inside your own product\"",
       "overlays": [
-        { "graphic": "s1b-logo-reveal", "atSec": 1.3, "durationSec": 3.5 }
+        { "graphic": "s1b-logo-reveal", "atSec": 1.3, "durationSec": 3.5 },
+        { "graphic": "s1c-embed-tease", "atSec": 7.6, "durationSec": 4.2 }
       ]
     },
     {
@@ -48,15 +53,17 @@
     {
       "id": "s4-put-to-work",
       "mode": "vo",
-      "narration": "Now, let's put it to work. Here's our agent in the console. I ask it to move my flight to tomorrow morning. It reads the policy, finds options — and when it's ready to actually rebook, it stops, and asks. I can see exactly what it's about to do. I approve, and it finishes the job. The agent does the work. You keep the authority. And the console is just one surface. The same agent drops into your own product with a single component. Or share it as a hosted link, and it's live for anyone you choose. Same agent. Same skills. Same guardrails. Everywhere.",
-      "plannedDurationSec": 52,
-      "shots": "S4a console chat; S4b approval dialog hero; S4c approve-resume; S4d embed snippet + widget; S4e share link",
+      "narration": "Now, let's put it to work. Here's our agent in the console. I ask it to move my flight to tomorrow morning. It reads the policy, finds options — and when it's ready to actually rebook, it stops, and asks. I can see exactly what it's about to do. I approve, and it finishes the job. The agent does the work. You keep the authority. And the console is just one surface. This is Meridian's own website — the product their travelers already use. Add one component, and the same assistant is live inside their product, talking to their customers. This is what you ship to your users. Or share it as a hosted link, and it's live for anyone you choose. Same agent. Same skills. Same guardrails. Everywhere.",
+      "plannedDurationSec": 62,
+      "shots": "S4a console chat; S4b approval dialog hero; S4c approve-resume; S4d bare Meridian page → snippet → live widget answering (the payoff beat); S4e share link",
       "cuts": [
         { "shot": "s4-chat", "kind": "recording", "atSec": 0, "srcStartSec": 8 },
         { "shot": "s4-chat", "kind": "recording", "atSec": 8.5, "srcStartSec": 33 },
         { "shot": "s4-chat", "kind": "recording", "atSec": 16, "srcStartSec": 40 },
-        { "shot": "s4d-embed", "kind": "recording", "atSec": 23.5, "srcStartSec": 2.5 },
-        { "shot": "s4e-share", "kind": "recording", "atSec": 28.6, "srcStartSec": 8 }
+        { "shot": "s4d-embed", "kind": "recording", "atSec": 23.5, "srcStartSec": 0 },
+        { "shot": "s4d-snippet", "kind": "graphic", "atSec": 27.5 },
+        { "shot": "s4d-embed", "kind": "recording", "atSec": 31.5, "srcStartSec": 6 },
+        { "shot": "s4e-share", "kind": "recording", "atSec": 41, "srcStartSec": 8 }
       ]
     },
     {

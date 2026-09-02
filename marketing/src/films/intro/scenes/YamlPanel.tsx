@@ -1,5 +1,6 @@
 import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from "remotion";
 import { theme } from "../../../theme";
+import { Backdrop } from "./FramedShot";
 
 /**
  * S3b — "defined in YAML": a styled code window drifting slowly down the
@@ -19,55 +20,58 @@ export const YamlPanel = ({ yaml, durationInFrames }: { yaml: string; durationIn
   });
   const lines = yaml.replace(/\t/g, "  ").split("\n");
   return (
-    <AbsoluteFill
-      style={{
-        background: theme.colors.ink,
-        justifyContent: "center",
-        alignItems: "center",
-        fontFamily: theme.fonts.mono,
-      }}
-    >
-      <div
+    <Backdrop>
+      <AbsoluteFill
         style={{
-          width: 1360,
-          height: 860,
-          borderRadius: 16,
-          overflow: "hidden",
-          background: "#101418",
-          boxShadow: "0 24px 80px rgba(0,0,0,0.55)",
-          border: "1px solid rgba(255,255,255,0.08)",
+          justifyContent: "center",
+          alignItems: "center",
+          fontFamily: theme.fonts.mono,
         }}
       >
         <div
           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "14px 20px",
-            background: "#161b21",
-            borderBottom: "1px solid rgba(255,255,255,0.06)",
+            width: 1360,
+            height: 860,
+            borderRadius: 16,
+            overflow: "hidden",
+            background: "#101418",
+            boxShadow: "0 24px 80px rgba(0,0,0,0.55)",
+            border: "1px solid rgba(255,255,255,0.08)",
           }}
         >
-          {["#ff5f57", "#febc2e", "#28c840"].map((c) => (
-            <div key={c} style={{ width: 13, height: 13, borderRadius: "50%", background: c }} />
-          ))}
-          <div style={{ marginLeft: 14, color: "#8b98a5", fontSize: 20 }}>traveler-assist.yaml</div>
-        </div>
-        {/* Own clipping region: the drifting code must never slide over the title bar. */}
-        <div style={{ height: 810, overflow: "hidden" }}>
-          <div style={{ padding: "28px 0", transform: `translateY(${-driftPx}px)` }}>
-            {lines.map((line, i) => (
-              <div key={i} style={{ display: "flex", fontSize: 24, lineHeight: 1.55 }}>
-                <span style={{ width: 72, textAlign: "right", paddingRight: 26, color: "#3d4854", userSelect: "none" }}>
-                  {i + 1}
-                </span>
-                <span style={{ color: yamlColor(line), whiteSpace: "pre" }}>{line}</span>
-              </div>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "14px 20px",
+              background: "#161b21",
+              borderBottom: "1px solid rgba(255,255,255,0.06)",
+            }}
+          >
+            {["#ff5f57", "#febc2e", "#28c840"].map((c) => (
+              <div key={c} style={{ width: 13, height: 13, borderRadius: "50%", background: c }} />
             ))}
+            <div style={{ marginLeft: 14, color: "#8b98a5", fontSize: 20 }}>traveler-assist.yaml</div>
+          </div>
+          {/* Own clipping region: the drifting code must never slide over the title bar. */}
+          <div style={{ height: 810, overflow: "hidden" }}>
+            <div style={{ padding: "28px 0", transform: `translateY(${-driftPx}px)` }}>
+              {lines.map((line, i) => (
+                <div key={i} style={{ display: "flex", fontSize: 24, lineHeight: 1.55 }}>
+                  <span
+                    style={{ width: 72, textAlign: "right", paddingRight: 26, color: "#3d4854", userSelect: "none" }}
+                  >
+                    {i + 1}
+                  </span>
+                  <span style={{ color: yamlColor(line), whiteSpace: "pre" }}>{line}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
-    </AbsoluteFill>
+      </AbsoluteFill>
+    </Backdrop>
   );
 };
 
