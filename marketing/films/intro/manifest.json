@@ -3,60 +3,129 @@
   "width": 1920,
   "height": 1080,
   "voiceId": "EXAVITQu4vr4xnSDxMaL",
+  "music": {
+    "prompt": "Calm, minimal electronic pulse for a modern software product film. Warm analog synth pads, a gentle repeating four-note motif, unhurried tempo around 88 BPM, understated and confident. A very soft rhythmic pulse enters midway and recedes again. Ends by resolving to a serene sustained chord that fades naturally. No vocals.",
+    "lengthMs": 225000,
+    "startSec": 8
+  },
   "scenes": [
     {
       "id": "s1-cold-open",
       "mode": "presenter",
-      "narration": "Hi, and welcome to Stigmer. In the next three minutes, I'll show you what Stigmer is, and how it helps you put AI agents to work — for your team, and inside your own product. Stigmer is an open-source platform where you define agents once, and run them anywhere.",
-      "plannedDurationSec": 18,
-      "shots": "S1a presenter full-screen; S1b logo reveal beat",
+      "narration": "Hi, and welcome to Stigmer. Let me show you what Stigmer is, and how it helps you put AI agents to work — for your team, and inside your own product. Stigmer is an open-source platform where you define agents once, and run them anywhere.",
+      "plannedDurationSec": 15,
+      "shots": "S1a presenter full-screen; S1b logo reveal beat; S1c embed flash-forward on \"inside your own product\"",
       "overlays": [
-        { "graphic": "s1b-logo-reveal", "atSec": 1.3, "durationSec": 3.5 }
+        { "graphic": "s1b-logo-reveal", "atSec": 1.3, "durationSec": 3.5 },
+        { "graphic": "s1c-embed-tease", "atSec": 7.2, "durationSec": 4.4 }
       ]
     },
     {
       "id": "s2-two-things",
       "mode": "vo",
+      "dissolveInSec": 0.6,
       "narration": "As we jump in, you'll notice two things. First — in Stigmer, agents are infrastructure. An agent isn't a prompt buried in somebody's code. It's a declarative resource: defined in YAML, versioned, and portable. The exact same definition runs on your laptop and in the cloud. Second — execution you can trust. Every run is durable. Agents pause and wait for human approval before doing anything consequential. Every action is auditable, and budgets keep costs under control.",
-      "plannedDurationSec": 30,
-      "shots": "S2a/S2d numbered title cards; S2b YAML-to-card morph; S2c laptop-to-cloud; S2e approval flash; S2f budget flash",
+      "plannedDurationSec": 33,
+      "shots": "S2a/S2d numbered title cards; S2b YAML-to-card morph; S2c laptop-to-cloud; S2e approval flash (spotlit); S2f budget flash (spotlit)",
+      "holdSec": 0.4,
       "cuts": [
         { "shot": "s2a-title-infra", "kind": "graphic", "atSec": 0 },
         { "shot": "s2b-yaml-morph", "kind": "graphic", "atSec": 7.5 },
         { "shot": "s2c-laptop-cloud", "kind": "graphic", "atSec": 13.5 },
         { "shot": "s2d-title-trust", "kind": "graphic", "atSec": 17.5 },
-        { "shot": "s4-chat", "kind": "recording", "atSec": 21.5, "srcStartSec": 41 },
-        { "shot": "s5b-budget", "kind": "recording", "atSec": 26.5, "srcStartSec": 8 }
+        {
+          "shot": "s4-chat",
+          "kind": "recording",
+          "atSec": 21.5,
+          "srcStartSec": 37.6,
+          "camera": [{ "atSec": 0.3, "zoom": 1.2, "cx": 0.577, "cy": 0.745, "easeSec": 1.4 }],
+          "spotlights": [
+            { "atSec": 0.8, "durationSec": 3.6, "region": { "x": 0.39, "y": 0.62, "w": 0.375, "h": 0.25 } }
+          ]
+        },
+        {
+          "shot": "s5b-budget",
+          "kind": "recording",
+          "atSec": 26.5,
+          "srcStartSec": 10,
+          "fadeInSec": 0.35,
+          "camera": [{ "atSec": 0.3, "zoom": 1.2, "cx": 0.57, "cy": 0.73, "easeSec": 1.4 }],
+          "spotlights": [
+            { "atSec": 1.0, "durationSec": 3.4, "region": { "x": 0.34, "y": 0.65, "w": 0.47, "h": 0.17 } }
+          ]
+        }
       ]
     },
     {
       "id": "s3-define",
       "mode": "vo",
       "narration": "Let's define one. Say we run a travel company, and we want an assistant that helps travelers rebook flights. An agent starts with instructions — what it is, and how it should behave. Then we give it knowledge: skills. A skill is a versioned document that teaches the agent your domain — here, our rebooking policy. Agents always use the version you've published. Next, tools. Agents connect to MCP servers — the open standard for giving agents real capabilities. This one can search flights and manage bookings. And notice the approval policy: rebooking requires human sign-off. For bigger jobs, an agent can delegate to sub-agents — specialists with their own instructions and just the tools they need. One command — stigmer apply — and our agent is live.",
-      "plannedDurationSec": 55,
-      "shots": "S3a Meridian establishing; S3b YAML drift with callouts; S3c skill version; S3d MCP approval policy; S3e stigmer apply; S3f library card",
+      "plannedDurationSec": 51,
+      "shots": "S3a Meridian establishing; S3b YAML drift; S3c skill + version tag (spotlit); S3d MCP approval policy (spotlit); S3e stigmer apply; S3f library card",
+      "holdSec": 0.5,
       "cuts": [
         { "shot": "s3a-establishing", "kind": "graphic", "atSec": 0 },
         { "shot": "s3b-agent-yaml", "kind": "yaml-panel", "atSec": 7.2 },
-        { "shot": "s3c-skill", "kind": "recording", "atSec": 12.1, "srcStartSec": 4 },
-        { "shot": "s3d-mcp-config", "kind": "recording", "atSec": 22.8, "srcStartSec": 4 },
-        { "shot": "s3b-agent-overview", "kind": "recording", "atSec": 36.4, "srcStartSec": 6 },
+        {
+          "shot": "s3c-skill",
+          "kind": "recording",
+          "atSec": 12.1,
+          "srcStartSec": 4,
+          "fadeInSec": 0.35,
+          "camera": [{ "atSec": 8.0, "zoom": 1.15, "cx": 0.57, "cy": 0.34, "easeSec": 1.6 }],
+          "spotlights": [
+            { "atSec": 8.4, "durationSec": 3.6, "region": { "x": 0.34, "y": 0.295, "w": 0.47, "h": 0.09 } }
+          ]
+        },
+        {
+          "shot": "s3d-mcp-config",
+          "kind": "recording",
+          "atSec": 22.8,
+          "srcStartSec": 4,
+          "fadeInSec": 0.35,
+          "camera": [{ "atSec": 8.4, "zoom": 1.18, "cx": 0.575, "cy": 0.74, "easeSec": 1.6 }],
+          "spotlights": [
+            { "atSec": 8.8, "durationSec": 4.0, "region": { "x": 0.35, "y": 0.7, "w": 0.45, "h": 0.15 } }
+          ]
+        },
+        { "shot": "s3b-agent-overview", "kind": "recording", "atSec": 36.4, "srcStartSec": 6, "fadeInSec": 0.35 },
         { "shot": "s3e-apply", "kind": "terminal", "atSec": 44.5 },
-        { "shot": "s3f-agent-card", "kind": "recording", "atSec": 47.5, "srcStartSec": 4 }
+        { "shot": "s3f-agent-card", "kind": "recording", "atSec": 47.5, "srcStartSec": 4, "fadeInSec": 0.35 }
       ]
     },
     {
       "id": "s4-put-to-work",
       "mode": "vo",
-      "narration": "Now, let's put it to work. Here's our agent in the console. I ask it to move my flight to tomorrow morning. It reads the policy, finds options — and when it's ready to actually rebook, it stops, and asks. I can see exactly what it's about to do. I approve, and it finishes the job. The agent does the work. You keep the authority. And the console is just one surface. The same agent drops into your own product with a single component. Or share it as a hosted link, and it's live for anyone you choose. Same agent. Same skills. Same guardrails. Everywhere.",
-      "plannedDurationSec": 52,
-      "shots": "S4a console chat; S4b approval dialog hero; S4c approve-resume; S4d embed snippet + widget; S4e share link",
+      "narration": "Now, let's put it to work. Here's our agent in the console. I ask it to move my flight to tomorrow morning. It reads the policy, finds options — and when it's ready to actually rebook, it stops, and asks. I can see exactly what it's about to do. I approve, and it finishes the job. The agent does the work. You keep the authority. And the console is just one surface. This is Meridian's own website — the product their travelers already use. Add one component, and the same assistant is live inside their product, talking to their customers. This is what you ship to your users. Or share it as a hosted link, and it's live for anyone you choose. Same agent. Same skills. Same guardrails. Everywhere.",
+      "plannedDurationSec": 47,
+      "shots": "S4a console chat; S4b approval hero (push-in + spotlight, uncut through approve → confirmation); S4d bare Meridian page → JSX snippet → live assistant answering (the payoff beat); S4e share link",
+      "holdSec": 0.6,
       "cuts": [
-        { "shot": "s4-chat", "kind": "recording", "atSec": 0, "srcStartSec": 8 },
-        { "shot": "s4-chat", "kind": "recording", "atSec": 8.5, "srcStartSec": 33 },
-        { "shot": "s4-chat", "kind": "recording", "atSec": 16, "srcStartSec": 40 },
-        { "shot": "s4d-embed", "kind": "recording", "atSec": 23.5, "srcStartSec": 2.5 },
-        { "shot": "s4e-share", "kind": "recording", "atSec": 28.6, "srcStartSec": 8 }
+        { "shot": "s4-chat", "kind": "recording", "atSec": 0, "srcStartSec": 9.5 },
+        { "shot": "s4-chat", "kind": "recording", "atSec": 8.3, "srcStartSec": 21, "fadeInSec": 0.3 },
+        {
+          "shot": "s4-chat",
+          "kind": "recording",
+          "atSec": 13.1,
+          "srcStartSec": 34.5,
+          "fadeInSec": 0.3,
+          "camera": [{ "atSec": 2.4, "zoom": 1.22, "cx": 0.577, "cy": 0.745, "easeSec": 1.8 }],
+          "spotlights": [
+            { "atSec": 3.4, "durationSec": 4.5, "region": { "x": 0.39, "y": 0.62, "w": 0.375, "h": 0.25 } }
+          ]
+        },
+        { "shot": "s4d-embed", "kind": "recording", "atSec": 24.0, "srcStartSec": 1.2, "fadeInSec": 0.4 },
+        { "shot": "s4d-snippet", "kind": "graphic", "atSec": 28.9 },
+        { "shot": "s4d-embed", "kind": "recording", "atSec": 31.9, "srcStartSec": 8.3 },
+        {
+          "shot": "s4d-embed",
+          "kind": "recording",
+          "atSec": 34.9,
+          "srcStartSec": 27.5,
+          "fadeInSec": 0.4,
+          "camera": [{ "atSec": 0.2, "zoom": 1.16, "cx": 0.72, "cy": 0.42, "easeSec": 1.8 }]
+        },
+        { "shot": "s4e-share", "kind": "recording", "atSec": 37.7, "srcStartSec": 18.5, "fadeInSec": 0.3 }
       ]
     },
     {
@@ -69,13 +138,25 @@
     {
       "id": "s5-scale",
       "mode": "vo",
+      "dissolveInSec": 0.6,
       "narration": "When one agent isn't enough, you orchestrate. Workflows coordinate agents and systems into repeatable pipelines — with budgets: a hard limit on what a run may spend. Put it on a schedule, and it runs without you. And everything you've seen is open source, running on a single laptop. When your team's ready, the same definitions move to Stigmer Cloud — organizations, access control, and billing built in.",
-      "plannedDurationSec": 24,
-      "shots": "S5a workflow canvas; S5b budget callout; S5c schedule; S5d laptop-to-cloud morph",
+      "plannedDurationSec": 27,
+      "shots": "S5a workflow canvas; S5b budget (spotlit, scrolled to center); S5c schedule; S5d laptop-to-cloud morph",
+      "holdSec": 0.5,
       "cuts": [
         { "shot": "s5a-workflow", "kind": "recording", "atSec": 0, "srcStartSec": 4 },
-        { "shot": "s5b-budget", "kind": "recording", "atSec": 8.5, "srcStartSec": 6 },
-        { "shot": "s5c-schedule", "kind": "recording", "atSec": 14, "srcStartSec": 4 },
+        {
+          "shot": "s5b-budget",
+          "kind": "recording",
+          "atSec": 8.5,
+          "srcStartSec": 11.2,
+          "fadeInSec": 0.35,
+          "camera": [{ "atSec": 0.4, "zoom": 1.2, "cx": 0.57, "cy": 0.73, "easeSec": 1.5 }],
+          "spotlights": [
+            { "atSec": 1.0, "durationSec": 3.8, "region": { "x": 0.34, "y": 0.65, "w": 0.47, "h": 0.17 } }
+          ]
+        },
+        { "shot": "s5c-schedule", "kind": "recording", "atSec": 14, "srcStartSec": 4, "fadeInSec": 0.3 },
         { "shot": "s5d-cloud-morph", "kind": "graphic", "atSec": 18.5 }
       ]
     },

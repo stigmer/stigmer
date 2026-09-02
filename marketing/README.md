@@ -10,7 +10,8 @@ Generated and captured media is **never committed** (see `.gitignore`): the repo
 
 - **Narration** — `npm run narrate` regenerates `assets/narration/` from the manifest via ElevenLabs (millisecond-exact durations, cached by text+voice hash). Key: `planton secret get elevenlabs-api-key --ignore-env -o json`.
 - **Presenter clips** — HeyGen lip-synced avatar clips driven by the narration MP3s; generation is scripted per film (see the project's records for the casting decisions).
-- **Screen recordings** — `npm run capture` drives the live local console with Playwright (`films/intro/capture/`, one drive per shot id) against the demo world seeded by `npm run demo:seed` (`films/intro/demo/`, see its README). `npm run capture:transcript` captures the real `stigmer apply` output for the rendered terminal scene and stages the agent YAML for the code panel.
+- **Music bed** — `npm run music -- --yes` generates `assets/music/bed.mp3` from the manifest's `music` block via ElevenLabs Music (cached by prompt hash; paid API, so the flag is required). The composition mounts the bed only when the file exists.
+- **Screen recordings** — `npm run capture` drives the live local console with Playwright (`films/intro/capture/`, one drive per shot id) against the demo world seeded by `npm run demo:seed` (`films/intro/demo/`, see its README). The on-camera arrow cursor is drawn by the harness itself (`capture/lib/cursor.mjs` + `human.mjs` — driven positioning, so it survives iframe boundaries like the embed widget). `npm run capture:transcript` captures the real `stigmer apply` output for the rendered terminal scene and stages the agent YAML for the code panel.
 
 The composition always renders: scenes without assets show a structured placeholder, so a rough cut of the full film is available at every stage of production.
 
@@ -19,6 +20,7 @@ The composition always renders: scenes without assets show a structured placehol
 ```bash
 npm run studio      # Remotion studio (interactive preview)
 npm run narrate     # (re)generate narration audio from the manifest
+npm run music       # (re)generate the music bed from the manifest (--yes: paid)
 npm run render      # render films/intro to out/intro-to-stigmer.mp4
 npm run typecheck
 ```

@@ -9,10 +9,12 @@
     "render": "remotion render src/index.ts IntroToStigmer out/intro-to-stigmer.mp4",
     "narrate": "node scripts/narrate.mjs",
     "presenter": "node scripts/presenter.mjs",
+    "music": "node scripts/music.mjs",
     "demo:seed": "node films/intro/demo/seed.mjs",
     "demo:seed:cloud": "node films/intro/demo/cloud/seed-cloud.mjs",
     "demo:smoke": "node films/intro/demo/mcp/smoke.mjs",
     "demo:embed": "node films/intro/demo/embed/serve.mjs",
+    "demo:app": "vite --config films/intro/demo/app/vite.config.ts films/intro/demo/app",
     "capture": "node films/intro/capture/capture.mjs",
     "capture:transcript": "node films/intro/capture/transcript.mjs",
     "typecheck": "tsc --noEmit"
@@ -20,6 +22,8 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
     "@remotion/cli": "4.0.448",
+    "@stigmer/react": "*",
+    "@stigmer/sdk": "*",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "remotion": "4.0.448",
@@ -27,7 +31,10 @@
   },
   "devDependencies": {
     "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4",
     "playwright": "^1.60.0",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "vite": "^6"
   }
 }

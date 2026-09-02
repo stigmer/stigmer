@@ -58,12 +58,19 @@ export const Root = () => (
       narration: null,
       presenterScenes: [],
       filmData: { recordedShots: [], agentYaml: null, transcript: null },
+      hasMusic: false,
     }}
     calculateMetadata={async () => {
       const narration = await loadNarration();
       return {
         durationInFrames: totalDuration(narration),
-        props: { narration, presenterScenes: presenterScenes(), filmData: await loadFilmData() },
+        props: {
+          narration,
+          presenterScenes: presenterScenes(),
+          filmData: await loadFilmData(),
+          // Same degrade contract as every asset: no bed file, no bed.
+          hasMusic: getStaticFiles().some((f) => f.name === "music/bed.mp3"),
+        },
       };
     }}
   />

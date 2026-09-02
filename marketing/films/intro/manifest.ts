@@ -18,6 +18,49 @@ export type SceneMode = "presenter" | "vo";
 export type CutKind = "recording" | "yaml-panel" | "terminal" | "graphic" | "slate";
 
 /**
+ * A normalized region of the source frame (all values 0..1, origin at the
+ * top-left). Camera moves and spotlights target regions, not pixels, so
+ * the same editorial data survives any render size.
+ */
+export interface Region {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+/**
+ * One camera keyframe on a cut: at `atSec` (seconds from CUT start — a
+ * cut's inner choreography must survive the cut point being retimed) the
+ * camera begins easing to `zoom`, pushing in around the point of interest
+ * (`cx`,`cy`, normalized) over `easeSec`. Keyframes chain in order. Zooms
+ * stay modest (≤ ~1.35) — takes are 1080p, so deep zooms go soft; the
+ * spotlight carries precision pointing.
+ */
+export interface CameraMove {
+  atSec: number;
+  zoom: number;
+  cx: number;
+  cy: number;
+  /** Ease duration into this keyframe; default is a calm ~1.4s. */
+  easeSec?: number;
+}
+
+/**
+ * A timed highlight on a cut: everything but `region` dims, an accent
+ * ring lifts the target, an optional label names it. This is the film's
+ * "look here" gesture — the answer to a full product frame where the
+ * viewer would otherwise hunt for the element the narration means.
+ */
+export interface Spotlight {
+  /** Entry, seconds from CUT start (same rebasing rule as CameraMove). */
+  atSec: number;
+  durationSec: number;
+  region: Region;
+  label?: string;
+}
+
+/**
  * One editorial cut inside a scene. Cut timing is hand-tuned editorial
  * data (the narration pipeline stores no word timestamps — regenerating
  * audio for alignment would invalidate the cached presenter clips), so
@@ -34,6 +77,15 @@ export interface Cut {
   atSec: number;
   /** Trim: where in the source take this cut begins (skips nav prefix). */
   srcStartSec?: number;
+  /**
+   * Cross-dissolve length from the previous cut; omitted = hard cut.
+   * The previous cut keeps playing beneath while this one fades in.
+   */
+  fadeInSec?: number;
+  /** Camera keyframes (recording cuts only — panels compose their own motion). */
+  camera?: CameraMove[];
+  /** Timed highlights, composited inside the camera transform so they track it. */
+  spotlights?: Spotlight[];
 }
 
 /**
@@ -70,6 +122,28 @@ export interface Scene {
    * music resolves).
    */
   holdSec?: number;
+  /**
+   * Dissolve length for this scene's ENTRANCE: the previous scene keeps
+   * playing beneath while this one fades in (audio timing untouched).
+   * Used where the film leaves a presenter — her exit dip and the next
+   * scene's bloom overlap into one continuous move instead of a cut.
+   */
+  dissolveInSec?: number;
+}
+
+/**
+ * The film's music bed spec. `prompt` + `lengthMs` drive generation
+ * (scripts/music.mjs — ElevenLabs Music, generated-not-licensed per the
+ * rough-cut gate); `startSec` is editorial: where in the generated track
+ * the film begins, hand-tuned so the track's strong closing section lands
+ * under the end card instead of its mid-body lull (the generator is not
+ * told the film's shape, so the offset aligns the two).
+ */
+export interface MusicSpec {
+  prompt: string;
+  lengthMs: number;
+  /** Offset into the track at film start; default 0. */
+  startSec?: number;
 }
 
 export const FPS: number = manifest.fps;
@@ -78,6 +152,8 @@ export const HEIGHT: number = manifest.height;
 
 /** ElevenLabs premade voice cast at the owner casting gate ("Sarah"). */
 export const VOICE_ID: string = manifest.voiceId;
+
+export const MUSIC: MusicSpec = manifest.music;
 
 export const SCENES: Scene[] = manifest.scenes as Scene[];
 

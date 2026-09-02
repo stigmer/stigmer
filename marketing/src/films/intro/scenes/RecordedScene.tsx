@@ -3,6 +3,8 @@ import type { Cut } from "../../../../films/intro/manifest";
 import { FPS } from "../../../../films/intro/manifest";
 import { theme } from "../../../theme";
 import { GRAPHICS } from "../graphics";
+import { FadeIn } from "./FadeIn";
+import { FramedShot } from "./FramedShot";
 import type { ApplyTranscript } from "./TerminalScene";
 import { TerminalScene } from "./TerminalScene";
 import { YamlPanel } from "./YamlPanel";
@@ -36,12 +38,20 @@ export const RecordedScene = ({
   <AbsoluteFill style={{ background: theme.colors.ink }}>
     {cuts.map((cut, i) => {
       const from = Math.round(cut.atSec * FPS);
-      const until = i + 1 < cuts.length ? Math.round(cuts[i + 1].atSec * FPS) : durationInFrames;
+      const next = i + 1 < cuts.length ? cuts[i + 1] : null;
+      // A cross-dissolving successor overlaps this cut: keep playing
+      // beneath it for the dissolve, then hand over (later siblings
+      // stack above, so the successor's fade-in covers this tail).
+      const until = next
+        ? Math.round((next.atSec + (next.fadeInSec ?? 0)) * FPS)
+        : durationInFrames;
       const cutFrames = until - from;
       if (cutFrames <= 0) return null;
       return (
         <Sequence key={`${cut.shot}-${i}`} from={from} durationInFrames={cutFrames} name={cut.shot}>
-          <CutView cut={cut} cutFrames={cutFrames} data={data} />
+          <FadeIn fadeInFrames={i > 0 ? Math.round((cut.fadeInSec ?? 0) * FPS) : 0}>
+            <CutView cut={cut} cutFrames={cutFrames} data={data} />
+          </FadeIn>
         </Sequence>
       );
     })}
@@ -53,14 +63,14 @@ const CutView = ({ cut, cutFrames, data }: { cut: Cut; cutFrames: number; data: 
     case "recording":
       if (!data.recordedShots.includes(cut.shot)) return <SlateCut label={`${cut.shot} — take missing`} />;
       return (
-        <AbsoluteFill style={{ background: "#fff" }}>
+        <FramedShot camera={cut.camera} spotlights={cut.spotlights} durationInFrames={cutFrames}>
           <OffthreadVideo
             src={staticFile(`recordings/${cut.shot}.webm`)}
             startFrom={Math.round((cut.srcStartSec ?? 0) * FPS)}
             muted
             style={{ width: "100%", height: "100%", objectFit: "cover" }}
           />
-        </AbsoluteFill>
+        </FramedShot>
       );
     case "yaml-panel":
       if (data.agentYaml === null) return <SlateCut label={`${cut.shot} — run capture:transcript`} />;

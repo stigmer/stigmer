@@ -1,5 +1,6 @@
 import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from "remotion";
 import { theme } from "../../../theme";
+import { Backdrop } from "./FramedShot";
 
 export interface ApplyTranscript {
   command: string;
@@ -35,52 +36,53 @@ export const TerminalScene = ({ transcript }: { transcript: ApplyTranscript }) =
   const cursorOn = Math.floor(frame / (fps / 2)) % 2 === 0 && frame < revealStart;
 
   return (
-    <AbsoluteFill
-      style={{
-        background: theme.colors.ink,
-        justifyContent: "center",
-        alignItems: "center",
-        fontFamily: theme.fonts.mono,
-      }}
-    >
-      <div
+    <Backdrop>
+      <AbsoluteFill
         style={{
-          width: 1240,
-          borderRadius: 16,
-          overflow: "hidden",
-          background: "#101418",
-          boxShadow: "0 24px 80px rgba(0,0,0,0.55)",
-          border: "1px solid rgba(255,255,255,0.08)",
+          justifyContent: "center",
+          alignItems: "center",
+          fontFamily: theme.fonts.mono,
         }}
       >
         <div
           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "14px 20px",
-            background: "#161b21",
-            borderBottom: "1px solid rgba(255,255,255,0.06)",
+            width: 1240,
+            borderRadius: 16,
+            overflow: "hidden",
+            background: "#101418",
+            boxShadow: "0 24px 80px rgba(0,0,0,0.55)",
+            border: "1px solid rgba(255,255,255,0.08)",
           }}
         >
-          {["#ff5f57", "#febc2e", "#28c840"].map((c) => (
-            <div key={c} style={{ width: 13, height: 13, borderRadius: "50%", background: c }} />
-          ))}
-          <div style={{ marginLeft: 14, color: "#8b98a5", fontSize: 20 }}>meridian-travel — zsh</div>
-        </div>
-        <div style={{ padding: "30px 36px 38px", fontSize: 26, lineHeight: 1.6 }}>
-          <div>
-            <span style={{ color: theme.colors.accent }}>$ </span>
-            <span style={{ color: "#e8edf2" }}>{transcript.command.slice(0, typedChars)}</span>
-            {cursorOn ? <span style={{ color: "#e8edf2" }}>▊</span> : null}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "14px 20px",
+              background: "#161b21",
+              borderBottom: "1px solid rgba(255,255,255,0.06)",
+            }}
+          >
+            {["#ff5f57", "#febc2e", "#28c840"].map((c) => (
+              <div key={c} style={{ width: 13, height: 13, borderRadius: "50%", background: c }} />
+            ))}
+            <div style={{ marginLeft: 14, color: "#8b98a5", fontSize: 20 }}>meridian-travel — zsh</div>
           </div>
-          {outputLines.slice(0, revealed).map((line, i) => (
-            <div key={i} style={{ color: line.startsWith("✓") ? "#28c840" : "#aeb8c2", whiteSpace: "pre" }}>
-              {line || " "}
+          <div style={{ padding: "30px 36px 38px", fontSize: 26, lineHeight: 1.6 }}>
+            <div>
+              <span style={{ color: theme.colors.accent }}>$ </span>
+              <span style={{ color: "#e8edf2" }}>{transcript.command.slice(0, typedChars)}</span>
+              {cursorOn ? <span style={{ color: "#e8edf2" }}>▊</span> : null}
             </div>
-          ))}
+            {outputLines.slice(0, revealed).map((line, i) => (
+              <div key={i} style={{ color: line.startsWith("✓") ? "#28c840" : "#aeb8c2", whiteSpace: "pre" }}>
+                {line || " "}
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
-    </AbsoluteFill>
+      </AbsoluteFill>
+    </Backdrop>
   );
 };
