@@ -123,7 +123,7 @@
           "fadeInSec": 0.4,
           "camera": [{ "atSec": 0.2, "zoom": 1.16, "cx": 0.72, "cy": 0.42, "easeSec": 1.8 }]
         },
-        { "shot": "s4e-share", "kind": "recording", "atSec": 37.7, "srcStartSec": 8, "fadeInSec": 0.3 }
+        { "shot": "s4e-share", "kind": "recording", "atSec": 37.7, "srcStartSec": 18.5, "fadeInSec": 0.3 }
       ]
     },
     {
