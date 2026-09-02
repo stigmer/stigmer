@@ -7,6 +7,7 @@
   "scripts": {
     "studio": "remotion studio src/index.ts",
     "render": "remotion render src/index.ts IntroToStigmer out/intro-to-stigmer.mp4",
+    "render:thumbnail": "remotion still src/index.ts Thumbnail out/thumbnail.png",
     "narrate": "node scripts/narrate.mjs",
     "presenter": "node scripts/presenter.mjs",
     "music": "node scripts/music.mjs",
