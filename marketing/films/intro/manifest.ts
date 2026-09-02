@@ -122,6 +122,13 @@ export interface Scene {
    * music resolves).
    */
   holdSec?: number;
+  /**
+   * Dissolve length for this scene's ENTRANCE: the previous scene keeps
+   * playing beneath while this one fades in (audio timing untouched).
+   * Used where the film leaves a presenter — her exit dip and the next
+   * scene's bloom overlap into one continuous move instead of a cut.
+   */
+  dissolveInSec?: number;
 }
 
 /**

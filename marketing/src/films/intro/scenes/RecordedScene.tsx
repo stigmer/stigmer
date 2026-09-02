@@ -1,16 +1,9 @@
-import type * as React from "react";
-import {
-  AbsoluteFill,
-  OffthreadVideo,
-  Sequence,
-  interpolate,
-  staticFile,
-  useCurrentFrame,
-} from "remotion";
+import { AbsoluteFill, OffthreadVideo, Sequence, staticFile } from "remotion";
 import type { Cut } from "../../../../films/intro/manifest";
 import { FPS } from "../../../../films/intro/manifest";
 import { theme } from "../../../theme";
 import { GRAPHICS } from "../graphics";
+import { FadeIn } from "./FadeIn";
 import { FramedShot } from "./FramedShot";
 import type { ApplyTranscript } from "./TerminalScene";
 import { TerminalScene } from "./TerminalScene";
@@ -56,25 +49,14 @@ export const RecordedScene = ({
       if (cutFrames <= 0) return null;
       return (
         <Sequence key={`${cut.shot}-${i}`} from={from} durationInFrames={cutFrames} name={cut.shot}>
-          <CutFade fadeInFrames={i > 0 ? Math.round((cut.fadeInSec ?? 0) * FPS) : 0}>
+          <FadeIn fadeInFrames={i > 0 ? Math.round((cut.fadeInSec ?? 0) * FPS) : 0}>
             <CutView cut={cut} cutFrames={cutFrames} data={data} />
-          </CutFade>
+          </FadeIn>
         </Sequence>
       );
     })}
   </AbsoluteFill>
 );
-
-/** Opacity ramp for a cut that cross-dissolves in from its predecessor. */
-const CutFade = ({ fadeInFrames, children }: { fadeInFrames: number; children: React.ReactNode }) => {
-  const frame = useCurrentFrame();
-  if (fadeInFrames <= 0) return <>{children}</>;
-  const opacity = interpolate(frame, [0, fadeInFrames], [0, 1], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
-  return <AbsoluteFill style={{ opacity }}>{children}</AbsoluteFill>;
-};
 
 const CutView = ({ cut, cutFrames, data }: { cut: Cut; cutFrames: number; data: FilmData }) => {
   switch (cut.kind) {

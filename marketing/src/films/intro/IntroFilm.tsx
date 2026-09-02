@@ -4,6 +4,7 @@ import { FPS, MUSIC, SCENES } from "../../../films/intro/manifest";
 import type { NarrationManifest } from "./durations";
 import { sceneDurations, totalDuration } from "./durations";
 import { GRAPHICS } from "./graphics";
+import { FadeIn } from "./scenes/FadeIn";
 import { Placeholder } from "./scenes/Placeholder";
 import { PresenterScene } from "./scenes/PresenterScene";
 import type { FilmData } from "./scenes/RecordedScene";
@@ -36,34 +37,47 @@ export const IntroFilm = ({ narration, presenterScenes, filmData, hasMusic }: In
   let cursor = 0;
   return (
     <AbsoluteFill style={{ background: "#000" }}>
-      {SCENES.map((scene) => {
+      {SCENES.map((scene, i) => {
         const from = cursor;
         const duration = durations[scene.id];
         cursor += duration;
         const hasPresenterClip = presenterScenes.includes(scene.id);
+        // A dissolving successor overlaps this scene: keep its visuals
+        // alive beneath the fade (frozen tails are masked by the incoming
+        // layer; later siblings stack above). Audio is untouched — the
+        // narration has already ended inside the original duration.
+        const nextDissolveFrames = Math.round((SCENES[i + 1]?.dissolveInSec ?? 0) * FPS);
+        const dissolveInFrames = i > 0 ? Math.round((scene.dissolveInSec ?? 0) * FPS) : 0;
         return (
-          <Sequence key={scene.id} from={from} durationInFrames={duration} name={scene.id}>
-            {hasPresenterClip ? (
-              <PresenterScene
-                sceneId={scene.id}
-                clipFrames={
-                  narration?.[scene.id]
-                    ? Math.ceil((narration[scene.id].durationMs / 1000) * FPS)
-                    : undefined
-                }
-              />
-            ) : scene.cuts !== undefined ? (
-              <RecordedScene cuts={scene.cuts} durationInFrames={duration} data={filmData} />
-            ) : (
-              <Placeholder scene={scene} />
-            )}
-            {scene.overlays?.map((overlay) => (
-              <OverlaySlot key={overlay.graphic} overlay={overlay} sceneFrames={duration} data={filmData} />
-            ))}
-            {/* Presenter clips carry their own (lip-synced) narration audio. */}
-            {!hasPresenterClip && narration?.[scene.id] ? (
-              <Audio src={staticFile(`narration/${scene.id}.mp3`)} />
-            ) : null}
+          <Sequence
+            key={scene.id}
+            from={from}
+            durationInFrames={duration + nextDissolveFrames}
+            name={scene.id}
+          >
+            <FadeIn fadeInFrames={dissolveInFrames}>
+              {hasPresenterClip ? (
+                <PresenterScene
+                  sceneId={scene.id}
+                  clipFrames={
+                    narration?.[scene.id]
+                      ? Math.ceil((narration[scene.id].durationMs / 1000) * FPS)
+                      : undefined
+                  }
+                />
+              ) : scene.cuts !== undefined ? (
+                <RecordedScene cuts={scene.cuts} durationInFrames={duration} data={filmData} />
+              ) : (
+                <Placeholder scene={scene} />
+              )}
+              {scene.overlays?.map((overlay) => (
+                <OverlaySlot key={overlay.graphic} overlay={overlay} sceneFrames={duration} data={filmData} />
+              ))}
+              {/* Presenter clips carry their own (lip-synced) narration audio. */}
+              {!hasPresenterClip && narration?.[scene.id] ? (
+                <Audio src={staticFile(`narration/${scene.id}.mp3`)} />
+              ) : null}
+            </FadeIn>
           </Sequence>
         );
       })}
