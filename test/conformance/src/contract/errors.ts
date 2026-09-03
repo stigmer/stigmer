@@ -23,3 +23,16 @@ export async function expectGrpcCode(
   }
   throw new Error(`${context}: expected gRPC ${Code[expected]} but the call succeeded`);
 }
+
+// Runs an RPC that must fail and returns its gRPC code WITHOUT asserting it,
+// so a caller can observe several lanes and assert them together — an
+// expectGrpcCode chain aborts at the first mismatch and hides every lane
+// after it. Fails loudly if the call unexpectedly succeeds.
+export async function grpcCodeOf(op: () => Promise<unknown>, context: string): Promise<Code> {
+  try {
+    await op();
+  } catch (err) {
+    return ConnectError.from(err).code;
+  }
+  throw new Error(`${context}: expected the call to fail but it succeeded`);
+}
