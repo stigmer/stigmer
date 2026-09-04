@@ -12,12 +12,34 @@
 //     a denied write is side-effect free;
 //   - an UNKNOWN id on the authorize-first family answers NOT_FOUND via
 //     the authorizer's deny-path existence probe — the ruled UNIFORM Q1
-//     posture (DD-007 not-found arm; the Java edition answers
-//     PERMISSION_DENIED on these lanes, an artifact of its missing load
-//     steps — divergence ruled and recorded at the Stage-4 gate);
+//     posture (DD-007 not-found arm);
 //   - the load-first family (updateSubject, the artifact trio, the MCP
 //     connect trio) keeps its handler-owned NotFound copy for unknown
 //     ids, outsider or not — the load fires before the check (#224).
+//
+// Both cloud editions serve behind the same `cloud` target type, so the
+// suite cannot tell them apart by target name — and three arms below pin
+// behavior on which the editions DIVERGE by ruling, not by drift (the
+// per-method dispositions in docs/authorization-coverage.md):
+//
+//   - workflow getVersion: this server evaluates the annotation; the Java
+//     edition declares it but never evaluates it (stigmer-cloud#562,
+//     accept-until-cutover) — there is no refusal to assert on Java until
+//     the flip, and pinning the permissive answer would enshrine the gap;
+//   - initiateOAuthConnect: this server authorizes before the lane's
+//     precondition; Java checks the auth-block precondition FIRST and
+//     answers an outsider FAILED_PRECONDITION;
+//   - unknown ids on the authorize-first family: this server's uniform
+//     NOT_FOUND vs the Java edition's PERMISSION_DENIED — an artifact of
+//     its missing load steps, ruled at the Stage-4 gate.
+//
+// The contract under test is declared explicitly via
+// STIGMER_CONFORMANCE_DIRECT_HANDLER_AUTHZ_CONTRACT ("java-baseline" |
+// "annotation-enforced", default "java-baseline" — the nightly hermetic
+// Java lane runs unchanged; composition readouts set "annotation-enforced").
+// The STIGMER_CONFORMANCE_BILLING_DENIAL_CONTRACT precedent: each arm is
+// enforced strictly, so a composition regressing to a Java gap, or Java
+// changing its bytes, turns this suite red.
 //
 // Single-user targets skip: one implicit caller, isolation untestable by
 // construction (the organization suite's outsider precedent).
@@ -27,7 +49,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import { createTarget, type TargetProfile } from "../targets";
 import { FixtureTracker } from "../harness/fixtures";
-import { expectGrpcCode } from "../contract/errors";
+import { expectGrpcCode, grpcCodeOf } from "../contract/errors";
 import { collectStream } from "../support/collect-stream";
 import { makeAgent } from "../support/agents";
 import { makeSlackAgentChannel } from "../support/agentchannels";
@@ -35,6 +57,21 @@ import { makeMcpServer } from "../support/mcpservers";
 import { makeSession } from "../support/sessions";
 import { makeWorkflow } from "../support/workflows";
 import { uniqueName } from "../support/naming";
+
+const AUTHZ_CONTRACT_ENV = "STIGMER_CONFORMANCE_DIRECT_HANDLER_AUTHZ_CONTRACT";
+type AuthzContract = "java-baseline" | "annotation-enforced";
+
+function resolveAuthzContract(): AuthzContract {
+  const raw = process.env[AUTHZ_CONTRACT_ENV] ?? "java-baseline";
+  if (raw !== "java-baseline" && raw !== "annotation-enforced") {
+    throw new Error(
+      `${AUTHZ_CONTRACT_ENV} must be "java-baseline" or "annotation-enforced" when set; got "${raw}"`,
+    );
+  }
+  return raw;
+}
+
+const authzContract = resolveAuthzContract();
 
 let target: TargetProfile;
 let clients: ConformanceClients;
@@ -110,6 +147,12 @@ describe("direct-handler authorization — outsider denials (multi-tenant only)"
 
   it("workflow getVersion refuses an outsider with the annotation copy (the ruled Java-gap divergence)", async (ctx) => {
     if (!multiTenantOnly()) return ctx.skip();
+    // The Java edition never evaluates this annotation (stigmer-cloud#562,
+    // accept-until-cutover): an outsider's read SUCCEEDS there. That is a
+    // recorded gap, not a contract — so under the Java baseline there is
+    // nothing to pin, and asserting the permissive answer would turn the
+    // gap into one. The arm resumes for Java the day #562 closes at the flip.
+    if (authzContract === "java-baseline") return ctx.skip();
     const { org } = await target.provisionTenancy();
     const outsider = await outsiderClients();
 
@@ -157,15 +200,6 @@ describe("direct-handler authorization — outsider denials (multi-tenant only)"
         "unauthorized to connect to mcp server",
       ],
       [
-        "initiateOAuthConnect",
-        () =>
-          outsider.mcpServerCommand.initiateOAuthConnect({
-            mcpServerId: id,
-            org,
-          }),
-        "unauthorized to initiate oauth connect for mcp server",
-      ],
-      [
         "getOAuthGrantStatus",
         () =>
           outsider.mcpServerQuery.getOAuthGrantStatus({ resourceId: id, org }),
@@ -185,6 +219,33 @@ describe("direct-handler authorization — outsider denials (multi-tenant only)"
         `outsider ${lane} on a foreign server`,
       );
       expect(denied.rawMessage, `${lane} annotation copy`).toBe(copy);
+    }
+
+    // initiateOAuthConnect is the one connect lane the editions order
+    // differently. This server authorizes before the lane's precondition
+    // (the annotation copy). Java checks that the server carries an auth
+    // block FIRST, so an outsider on a server without one is refused by the
+    // precondition — its copy pinned so a reorder on either side shows.
+    const initiate = () =>
+      outsider.mcpServerCommand.initiateOAuthConnect({ mcpServerId: id, org });
+    if (authzContract === "annotation-enforced") {
+      const denied = await expectGrpcCode(
+        initiate,
+        Code.PermissionDenied,
+        "outsider initiateOAuthConnect on a foreign server",
+      );
+      expect(denied.rawMessage, "initiateOAuthConnect annotation copy").toBe(
+        "unauthorized to initiate oauth connect for mcp server",
+      );
+    } else {
+      const refused = await expectGrpcCode(
+        initiate,
+        Code.FailedPrecondition,
+        "outsider initiateOAuthConnect on a foreign server (Java precondition-first)",
+      );
+      expect(refused.rawMessage, "initiateOAuthConnect precondition copy").toBe(
+        `MCP server '${id}' does not have an auth block configured`,
+      );
     }
   });
 
@@ -232,68 +293,79 @@ describe("direct-handler authorization — outsider denials (multi-tenant only)"
     );
   });
 
-  it("the authorize-first read lanes answer NOT_FOUND for unknown ids — the ruled uniform Q1 posture", async (ctx) => {
+  it("the authorize-first read lanes' unknown-id answer — the ruled uniform Q1 NOT_FOUND here, PERMISSION_DENIED on the Java baseline", async (ctx) => {
     if (!multiTenantOnly()) return ctx.skip();
     const outsider = await outsiderClients();
+    const missingWorkflowExecution = "wfe_01conformancemissing";
+    const missingAgentExecution = "aexec_01conformancemissing";
+    const missingArtifactKey = `artifacts/${missingAgentExecution}/f.txt`;
 
-    await expectGrpcCode(
-      () =>
-        outsider.workflowExecutionQuery.getEventLog({
-          executionId: "wfe_01conformancemissing",
-        }),
-      Code.NotFound,
-      "outsider getEventLog on an unknown execution",
-    );
-    await expectGrpcCode(
-      () =>
-        collectStream((signal) =>
-          outsider.workflowExecutionQuery.subscribe(
-            { executionId: "wfe_01conformancemissing" },
-            { signal },
+    const lanes: ReadonlyArray<[string, () => Promise<unknown>]> = [
+      [
+        "workflowExecution.getEventLog",
+        () =>
+          outsider.workflowExecutionQuery.getEventLog({
+            executionId: missingWorkflowExecution,
+          }),
+      ],
+      [
+        "workflowExecution.subscribe",
+        () =>
+          collectStream((signal) =>
+            outsider.workflowExecutionQuery.subscribe(
+              { executionId: missingWorkflowExecution },
+              { signal },
+            ),
           ),
-        ),
-      Code.NotFound,
-      "outsider subscribe on an unknown workflow execution",
-    );
-    await expectGrpcCode(
-      () =>
-        collectStream((signal) =>
-          outsider.workflowExecutionQuery.subscribeEvents(
-            { executionId: "wfe_01conformancemissing" },
-            { signal },
+      ],
+      [
+        "workflowExecution.subscribeEvents",
+        () =>
+          collectStream((signal) =>
+            outsider.workflowExecutionQuery.subscribeEvents(
+              { executionId: missingWorkflowExecution },
+              { signal },
+            ),
           ),
-        ),
-      Code.NotFound,
-      "outsider subscribeEvents on an unknown workflow execution",
-    );
-    await expectGrpcCode(
-      () =>
-        collectStream((signal) =>
-          outsider.agentExecutionQuery.subscribe(
-            { value: "aexec_01conformancemissing" },
-            { signal },
+      ],
+      [
+        "agentExecution.subscribe",
+        () =>
+          collectStream((signal) =>
+            outsider.agentExecutionQuery.subscribe(
+              { value: missingAgentExecution },
+              { signal },
+            ),
           ),
-        ),
-      Code.NotFound,
-      "outsider subscribe on an unknown agent execution",
-    );
-    await expectGrpcCode(
-      () =>
-        outsider.agentExecutionQuery.getArtifactDownloadUrl({
-          executionId: "aexec_01conformancemissing",
-          storageKey: "artifacts/aexec_01conformancemissing/f.txt",
-        }),
-      Code.NotFound,
-      "outsider getArtifactDownloadUrl on an unknown execution",
-    );
-    await expectGrpcCode(
-      () =>
-        outsider.agentExecutionQuery.getArtifactContent({
-          executionId: "aexec_01conformancemissing",
-          storageKey: "artifacts/aexec_01conformancemissing/f.txt",
-        }),
-      Code.NotFound,
-      "outsider getArtifactContent on an unknown execution",
+      ],
+      [
+        "agentExecution.getArtifactDownloadUrl",
+        () =>
+          outsider.agentExecutionQuery.getArtifactDownloadUrl({
+            executionId: missingAgentExecution,
+            storageKey: missingArtifactKey,
+          }),
+      ],
+      [
+        "agentExecution.getArtifactContent",
+        () =>
+          outsider.agentExecutionQuery.getArtifactContent({
+            executionId: missingAgentExecution,
+            storageKey: missingArtifactKey,
+          }),
+      ],
+    ];
+
+    // Observe every lane, THEN assert the whole table: a first-mismatch
+    // abort would hide the lanes after it (the shape that left five of
+    // these six unobserved on the Java baseline for a month).
+    const observed: Record<string, string> = {};
+    for (const [lane, op] of lanes) {
+      observed[lane] = Code[await grpcCodeOf(op, `outsider ${lane} on an unknown execution`)];
+    }
+    const expectedCode = authzContract === "annotation-enforced" ? "NotFound" : "PermissionDenied";
+    expect(observed).toEqual(
+      Object.fromEntries(lanes.map(([lane]) => [lane, expectedCode])),
     );
   });
 });
