@@ -4,7 +4,8 @@
  * fall-through for unclaimed tokens; any verifier configured = unclaimed
  * is UNAUTHENTICATED), the O3 require-authentication posture (rulings
  * Q1+Q2 — tokenless is UNAUTHENTICATED with the Java byte-pinned copy,
- * except is_public methods), the trusted-local modeled state in both
+ * except is_public methods and the gRPC health service by name — the
+ * 20260904.02 exemption predicate), the trusted-local modeled state in both
  * operator postures, the internal caller class's structural minting
  * invariant (ruling Q4 — a wire request can never carry it), the
  * caller-guard walk (20260902.02 ruling Q1 — guards run over the FINAL
@@ -19,6 +20,7 @@ import type { DescMethod } from "@bufbuild/protobuf";
 
 import { ApiKeyQueryController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/query_pb";
 import { PlatformQueryController } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
+import { Health } from "@stigmer/protos/grpc/health/v1/health_pb";
 
 import type { CallerGuard } from "../../../extensions/caller-guards.js";
 import type {
@@ -26,10 +28,12 @@ import type {
   IdentityVerifier,
 } from "../../../extensions/identity.js";
 import {
+  AUTHENTICATION_EXEMPT_SERVICES,
   AUTHENTICATION_TOKEN_MISSING_MESSAGE,
   callerIdentityKey,
   createInProcessCallerInterceptor,
   createVerifierChainInterceptor,
+  isAuthenticationExempt,
   parseBearerToken,
   trustedLocalIdentity,
 } from "../auth.js";
@@ -245,6 +249,18 @@ describe("require-authentication posture (O3 rulings Q1+Q2)", () => {
     expect(identity).toEqual(trustedLocalIdentity());
   });
 
+  it("the gRPC health service stays reachable tokenless — the Java by-name skip (stigmer#974)", async () => {
+    // A Kubernetes `grpc:` probe is a tokenless Health/Check; the health
+    // proto is third-party and cannot carry is_public, so the exemption
+    // is by service name. Without it the posture crash-loops the pod.
+    const identity = await runInterceptor(
+      requiringChassis,
+      undefined,
+      Health.method.check,
+    );
+    expect(identity).toEqual(trustedLocalIdentity());
+  });
+
   it("a claimed credential authenticates exactly as in the lenient posture", async () => {
     const identity = await runInterceptor(requiringChassis, "Bearer tok");
     expect(identity).toEqual(CLAIMED);
@@ -258,6 +274,35 @@ describe("require-authentication posture (O3 rulings Q1+Q2)", () => {
     expect((error as ConnectError).rawMessage).toBe(
       "the presented token was not accepted by any configured identity verifier",
     );
+  });
+});
+
+describe("isAuthenticationExempt (the one exemption predicate, 20260904.02)", () => {
+  it("is_public methods are exempt (our protos carry the option)", () => {
+    expect(
+      isAuthenticationExempt(PlatformQueryController.method.getServerInfo),
+    ).toBe(true);
+  });
+
+  it("every method of the gRPC health service is exempt by service name (third-party proto)", () => {
+    for (const method of Object.values(Health.method)) {
+      expect(isAuthenticationExempt(method), method.name).toBe(true);
+    }
+  });
+
+  it("a config-annotated method is not exempt", () => {
+    expect(isAuthenticationExempt(ApiKeyQueryController.method.get)).toBe(
+      false,
+    );
+  });
+
+  it("the by-name set holds exactly the services OSS serves without our option", () => {
+    // Java's list has a second entry (ServerReflection); OSS registers no
+    // reflection service, so its presence here would be dead vocabulary —
+    // a future registration adds it in the same change.
+    expect([...AUTHENTICATION_EXEMPT_SERVICES]).toEqual([
+      "grpc.health.v1.Health",
+    ]);
   });
 });
 

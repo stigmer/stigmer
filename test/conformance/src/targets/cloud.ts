@@ -11,7 +11,12 @@
 // organization created via the production RPC, whose creation grants the
 // primary user ownership (IAM policies) and provisions a zero-balance billing
 // account — sufficient for the Class A (CRUD) domains.
-import { CLOUD_ENV, mintCloudUserToken } from "../harness/cloud-env";
+import {
+  CLOUD_ENV,
+  EDGE_AUTHENTICATION,
+  mintCloudUserToken,
+  resolveEdgeAuthentication,
+} from "../harness/cloud-env";
 import { createTransport, makeClients, type ConformanceClients } from "../harness/clients";
 import { awaitGrpcReady } from "../harness/grpc-ready";
 import { uniqueName, uniqueOrg } from "../support/naming";
@@ -74,6 +79,11 @@ export class CloudTarget implements TargetProfile {
     // serving-edge request: by the Java interceptor natively, and by the
     // composition's platform-client caller guard (entry 20260902.02).
     platformClientTokens: true,
+    // Every non-public RPC needs a credential: the Java interceptor's
+    // require-authentication posture natively, and the TS composition's
+    // through the registry point its cloud-core unit declares (entry
+    // 20260904.02) — the same byte-pinned refusal on both.
+    requiresAuthentication: true,
   };
 
   private grpcBaseUrl: string | undefined;
@@ -140,6 +150,38 @@ export class CloudTarget implements TargetProfile {
       throw new Error("CloudTarget.setup() must be called before clients()");
     }
     return this.conformanceClients;
+  }
+
+  anonymousClients(): ConformanceClients {
+    return makeClients(createTransport(this.requireBaseUrl("anonymousClients")));
+  }
+
+  clientsPresenting(bearerToken: string): ConformanceClients {
+    return makeClients(createTransport(this.requireBaseUrl("clientsPresenting"), { bearerToken }));
+  }
+
+  private requireBaseUrl(caller: string): string {
+    if (this.grpcBaseUrl === undefined) {
+      throw new Error(`CloudTarget.setup() must be called before ${caller}()`);
+    }
+    return this.grpcBaseUrl;
+  }
+
+  // The environment's declared edge posture (CLOUD_ENV.edgeAuthentication;
+  // unset = enforced). Read per call, not cached at setup: the value is
+  // published by the global setup before any worker runs and never changes
+  // within a run, and reading late keeps this target constructible in unit
+  // tests that never call setup().
+  edgeAuthenticationBypass(): string | undefined {
+    if (resolveEdgeAuthentication() === EDGE_AUTHENTICATION.enforced) {
+      return undefined;
+    }
+    return (
+      "the hermetic launcher runs stigmer-service with STIGMER_SECURITY_MODE=test — " +
+      "GrpcSecurityConfigBase is not loaded and a synthetic caller stands in for every request, " +
+      "so the edge's require-authentication posture is unobservable here " +
+      "(production Java's posture is covered by test/integration-security; entry 20260904.02 D-S1)"
+    );
   }
 
   async provisionTenancy(): Promise<TenancyContext> {

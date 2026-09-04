@@ -28,7 +28,9 @@
  * transition sites (status-observers.ts), both O4; the O5 driver kinds
  * (catalog provider, artifact-storage registration, runner-credential
  * provider) and O6's sandbox provisioners are consumed at their
- * compose.ts construction sites.
+ * compose.ts construction sites; the require-authentication posture
+ * (20260904.02) is consumed where compose.ts builds the serving chain's
+ * identity source, OR'd with the OIDC-issuer arm.
  */
 import type { DescMessage } from "@bufbuild/protobuf";
 import type { ConnectRouter } from "@connectrpc/connect";
@@ -90,6 +92,25 @@ export interface ServerExtension {
    * addendum on blueprint §11 item 11.
    */
   readonly edition?: ServerEdition;
+  /**
+   * The require-authentication admission posture (single-declaration
+   * point, the edition's shape; entry 20260904.02). Declaring it turns
+   * the serving chain's tokenless-refusal arm on INDEPENDENTLY of the OSS
+   * OIDC issuer: a request with no credential on a non-`is_public` method
+   * is UNAUTHENTICATED "authentication token missing" (the Java
+   * interceptor's copy), instead of falling to the trusted-local
+   * single-operator identity. A composition whose identity verifiers ARE
+   * its only admission path declares this — the OSS issuer arm cannot be
+   * reused for it, because configuring the issuer also registers the OSS
+   * verifiers ahead of the composition's own (compose.ts).
+   *
+   * Typed as the literal `true`: the field is declared or omitted, never
+   * set to `false` — there is no "declared lenient" state to validate at
+   * boot. Exactly one unit may declare it (a second throws naming both);
+   * the declaring unit is named in the boot log and in the compose.ts
+   * invariant that refuses a posture with zero composed verifiers.
+   */
+  readonly requireAuthentication?: true;
   /** The authorization decision seam (single-instance point; consumed by O2). */
   readonly authorizer?: Authorizer;
   /** Ordered verifier-chain entries, appended in unit order (consumed by O2). */
@@ -129,6 +150,14 @@ export interface ResolvedExtensions {
   readonly unitNames: ReadonlyArray<string>;
   /** Defaults to ServerEdition.oss when no unit declares one. */
   readonly edition: ServerEdition;
+  /**
+   * The unit-declared require-authentication posture, or undefined when
+   * no unit declares it (the OSS trusted-local posture — unless the OIDC
+   * issuer arm turns it on; compose.ts ORs the two). Carries the
+   * declaring unit's name: the boot log and the zero-verifier invariant
+   * both name it.
+   */
+  readonly requireAuthentication: { readonly declaredBy: string } | undefined;
   /**
    * The single composed Authorizer, or undefined when none is registered —
    * O2's consumption site installs the OSS permissive single-team default
@@ -221,6 +250,7 @@ export function resolveExtensions(
 
   let edition: ServerEdition | undefined;
   let editionDeclaredBy: string | undefined;
+  let requireAuthenticationDeclaredBy: string | undefined;
   let authorizer: Authorizer | undefined;
   let authorizerDeclaredBy: string | undefined;
   let modelCatalogProvider: ModelCatalogProvider | undefined;
@@ -280,6 +310,15 @@ export function resolveExtensions(
       }
       edition = unit.edition;
       editionDeclaredBy = unit.name;
+    }
+
+    if (unit.requireAuthentication !== undefined) {
+      if (requireAuthenticationDeclaredBy !== undefined) {
+        throw new Error(
+          `extension '${unit.name}' declares the require-authentication posture, but '${requireAuthenticationDeclaredBy}' already did — exactly one extension may declare it`,
+        );
+      }
+      requireAuthenticationDeclaredBy = unit.name;
     }
 
     if (unit.authorizer !== undefined) {
@@ -471,6 +510,10 @@ export function resolveExtensions(
   return {
     unitNames,
     edition: edition ?? ServerEdition.oss,
+    requireAuthentication:
+      requireAuthenticationDeclaredBy !== undefined
+        ? { declaredBy: requireAuthenticationDeclaredBy }
+        : undefined,
     authorizer,
     identityVerifiers,
     callerGuards,

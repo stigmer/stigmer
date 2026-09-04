@@ -128,6 +128,24 @@ eventually violate creatively.
   health/reflection services) is the composition's business, decoded
   from `CallerIdentity.rawToken` — OSS runs every guard on every serving
   request and stays policy-free.
+- **The require-authentication posture has exactly two sources, OR'd in
+  compose.ts** (entry 20260904.02): the OSS OIDC issuer
+  (`STIGMER_OIDC_ISSUER`, O3) and a composed unit's
+  `ServerExtension.requireAuthentication: true` — a single-declaration
+  registry point in the edition's shape (one unit declares, a second
+  throws; the literal type forbids `false`). A composition whose own
+  verifiers are its only admission path declares it; it never borrows
+  the issuer knob (that registers the OSS verifiers ahead of its own). A
+  declared posture with zero composed verifiers is a boot throw. Under
+  the posture, tokenless requests are refused EXCEPT where
+  `isAuthenticationExempt` says so: `is_public` methods (our protos) and
+  the services in `AUTHENTICATION_EXEMPT_SERVICES` by name (third-party
+  protos — today the gRPC health service, because Kubernetes `grpc:`
+  probes are tokenless; stigmer#974). Registering a new third-party
+  service that must answer probes or anonymous callers adds it to that
+  set in the same change. Never add an env knob for the posture: a
+  self-host with no verifier has no use for it, and a forgotten knob is
+  exactly the failure this point exists to prevent.
 - **The composition root is staged plain functions** (config → storage →
   temporal → controllers → routes → listen). No DI framework. A missing
   dependency is a compile error or a loud boot throw, never a silent no-op.

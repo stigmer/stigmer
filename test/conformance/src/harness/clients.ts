@@ -57,6 +57,7 @@ import { PlatformQueryController } from "@stigmer/protos/ai/stigmer/platform/v1/
 import { SearchService } from "@stigmer/protos/ai/stigmer/search/v1/query_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
 import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
+import { Health } from "@stigmer/protos/grpc/health/v1/health_pb";
 import { ApiKeyCommandController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/command_pb";
 import { ApiKeyQueryController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/query_pb";
 import { ProjectCommandController } from "@stigmer/protos/ai/stigmer/tenancy/project/v1/command_pb";
@@ -112,6 +113,10 @@ export interface ConformanceClients {
   skillCommand: Client<typeof SkillCommandController>;
   skillQuery: Client<typeof SkillQueryController>;
   platformQuery: Client<typeof PlatformQueryController>;
+  // The standard gRPC health service — an external proto both editions serve
+  // on the RPC port. The authentication suite pins its tokenless reachability
+  // (the Kubernetes grpc-probe contract).
+  health: Client<typeof Health>;
   github: Client<typeof GitHubService>;
   oauthAppCommand: Client<typeof OAuthAppCommandController>;
   oauthAppQuery: Client<typeof OAuthAppQueryController>;
@@ -238,6 +243,7 @@ export function makeClients(transport: Transport): ConformanceClients {
     skillCommand: createClient(SkillCommandController, transport),
     skillQuery: createClient(SkillQueryController, transport),
     platformQuery: createClient(PlatformQueryController, transport),
+    health: createClient(Health, transport),
     github: createClient(GitHubService, transport),
     oauthAppCommand: createClient(OAuthAppCommandController, transport),
     oauthAppQuery: createClient(OAuthAppQueryController, transport),

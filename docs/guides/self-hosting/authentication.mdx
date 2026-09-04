@@ -79,6 +79,10 @@ From the next boot, every request needs a credential:
   `authentication token missing`. Requests with a bad credential get a specific
   reason (`token has expired`, `token signature verification failed`, and so
   on).
+- Two things stay reachable without a credential on purpose: the public
+  `getServerInfo` read your console and CLI use before login, and the standard
+  gRPC health service (`grpc.health.v1.Health`), so Kubernetes `grpc:` readiness
+  and liveness probes keep working exactly as before.
 
 Point your CLI at the stack as a named backend with its key:
 
