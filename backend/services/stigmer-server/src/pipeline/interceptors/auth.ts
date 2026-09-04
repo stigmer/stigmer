@@ -39,13 +39,21 @@
  *   - An ABSENT token falls to trusted-local UNLESS the composition asks
  *     for the require-authentication posture (O3 rulings Q1+Q2,
  *     20260827.06): with requireAuthentication on — compose.ts sets it
- *     exactly when STIGMER_OIDC_ISSUER is configured — a tokenless
- *     request is UNAUTHENTICATED "authentication token missing" (the
- *     Java interceptor's byte-pinned copy), EXCEPT on is_public-marked
- *     methods, mirroring the Java isPublic skip. Extension-only verifier
- *     sets (no issuer) keep the fall-to-trusted-local arm: strictness
- *     against PRESENTED tokens is a function of verifier count (Q6);
- *     strictness against ABSENT tokens is the composition's explicit ask.
+ *     when STIGMER_OIDC_ISSUER is configured OR when a composed extension
+ *     unit declares `requireAuthentication` (entry 20260904.02, the
+ *     cloud's ask: its verifiers are its only admission path, and the
+ *     issuer knob cannot stand in because it also registers the OSS
+ *     verifiers ahead of the composition's) — a tokenless request is
+ *     UNAUTHENTICATED "authentication token missing" (the Java
+ *     interceptor's byte-pinned copy), EXCEPT where isAuthenticationExempt
+ *     says so: is_public-marked methods (the Java isPublic skip) and the
+ *     gRPC health service by name (the Java by-name skip — a third-party
+ *     proto cannot carry our option, and a Kubernetes `grpc:` probe is a
+ *     tokenless Health/Check; without this arm the posture crash-loops the
+ *     pod, stigmer#974). Extension-only verifier sets that declare
+ *     nothing keep the fall-to-trusted-local arm: strictness against
+ *     PRESENTED tokens is a function of verifier count (Q6); strictness
+ *     against ABSENT tokens is the composition's explicit ask.
  *
  * # Trusted-local identity (the explicit modeled state)
  *
@@ -72,6 +80,7 @@ import type {
   UnaryRequest,
 } from "@connectrpc/connect";
 import { getOption } from "@bufbuild/protobuf";
+import type { DescMethod } from "@bufbuild/protobuf";
 
 import { is_public } from "@stigmer/protos/ai/stigmer/commons/rpc/method_options_pb";
 
@@ -90,6 +99,36 @@ import { operatorIdentitySnapshot } from "../steps/defaults.js";
  */
 export const AUTHENTICATION_TOKEN_MISSING_MESSAGE =
   "authentication token missing";
+
+/**
+ * Services reachable WITHOUT a credential under the require-authentication
+ * posture, by fully-qualified service name — the Java interceptor's
+ * by-name skip list (GrpcSecurityConfigBase), for services whose protos
+ * are not ours and so cannot carry the `is_public` method option. The
+ * standard gRPC health service is the one entry OSS serves: Kubernetes
+ * `grpc:` probes call Health/Check tokenless, and a refused probe is a
+ * pod that never becomes Ready (stigmer#974). Java's second entry,
+ * `grpc.reflection.v1alpha.ServerReflection`, is deliberately absent —
+ * OSS registers no reflection service; a future registration joins this
+ * set in the same change, or the posture refuses it.
+ */
+export const AUTHENTICATION_EXEMPT_SERVICES: ReadonlySet<string> = new Set([
+  "grpc.health.v1.Health",
+]);
+
+/**
+ * Whether a method stays reachable tokenless under the
+ * require-authentication posture: `is_public` on the method (our protos)
+ * or an exempt service by name (third-party protos). The ONE predicate
+ * the refusal arm consults, so both exemption doctrines read as a single
+ * decision and are pinned together.
+ */
+export function isAuthenticationExempt(method: DescMethod): boolean {
+  return (
+    getOption(method, is_public) ||
+    AUTHENTICATION_EXEMPT_SERVICES.has(method.parent.typeName)
+  );
+}
 
 /**
  * Context key for the request's caller identity. The default is
@@ -188,11 +227,15 @@ export function createVerifierChainInterceptor(
           Code.Unauthenticated,
         );
       }
-    } else if (requireAuthentication && !getOption(request.method, is_public)) {
+    } else if (
+      requireAuthentication &&
+      !isAuthenticationExempt(request.method)
+    ) {
       // Rulings Q1+Q2: the auth-enabled posture requires a credential on
-      // every non-public method — the Java interceptor's exact behavior
-      // and copy. is_public methods stay reachable tokenless (the Java
-      // isPublic skip), so unauthenticated health-style probes survive.
+      // every non-exempt method — the Java interceptor's exact behavior
+      // and copy. is_public methods and the health service stay reachable
+      // tokenless (the Java isPublic and by-name skips), so the console's
+      // anonymous reads and the pod's probes survive.
       throw new ConnectError(
         AUTHENTICATION_TOKEN_MISSING_MESSAGE,
         Code.Unauthenticated,

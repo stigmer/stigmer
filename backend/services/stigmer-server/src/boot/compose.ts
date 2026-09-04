@@ -1078,7 +1078,7 @@ export async function composeServer(
   // prefix claim, the Java ProviderManager's order), then OIDC — ahead of
   // the extension entries ("OSS entries first", the registry contract),
   // and turns on the require-authentication posture. No issuer = zero OSS
-  // verifiers = the trusted-local posture, byte-identical wire behavior.
+  // verifiers; the wire posture is then the composition's to declare.
   // The runner's credential in this posture is an operator-minted API
   // token via STIGMER_TOKEN (ruling Q3) — no runner-specific verifier.
   const authEnabled = config.oidcIssuer !== "";
@@ -1092,15 +1092,48 @@ export async function composeServer(
         ...extensions.identityVerifiers,
       ]
     : extensions.identityVerifiers;
+  // The require-authentication posture has two sources OR'd here — the
+  // issuer arm above, and a composed unit's declaration (registry point,
+  // entry 20260904.02): a composition whose own verifiers are the only
+  // admission path cannot borrow the issuer knob (it would register the
+  // OSS verifiers ahead of its own and re-route who its users resolve
+  // to). Neither source = the OSS trusted-local posture, byte-identical
+  // wire behavior. A declared posture with ZERO composed verifiers is a
+  // boot fault, not a running server: nothing could ever authenticate,
+  // so every non-exempt request would be refused — the same class as a
+  // misconfigured registry (DD-006 §2b), caught before any side effect.
+  const requireAuthentication =
+    authEnabled || extensions.requireAuthentication !== undefined;
+  if (
+    extensions.requireAuthentication !== undefined &&
+    identityVerifiers.length === 0
+  ) {
+    throw new Error(
+      `extension '${extensions.requireAuthentication.declaredBy}' declares the require-authentication posture, but the composition registers no identity verifier — nothing could authenticate, so every non-public request would be refused; register a verifier or omit the declaration`,
+    );
+  }
+  const postureSources = [
+    ...(authEnabled ? ["oidc-issuer"] : []),
+    ...(extensions.requireAuthentication !== undefined
+      ? [`extension '${extensions.requireAuthentication.declaredBy}'`]
+      : []),
+  ];
+  logger.info("authentication posture resolved", {
+    posture: requireAuthentication ? "required" : "trusted-local",
+    source: postureSources.length > 0 ? postureSources.join(" + ") : "none",
+    verifiers: identityVerifiers.map((v) => v.name).join(", "),
+  });
 
   const server = createUnifiedPortServer({
     logger,
     routes,
     // The serving chain's position-1 identity source is the verifier
-    // chassis over the composed verifiers (O2; zero verifiers = the
-    // trusted-local posture, byte-identical wire behavior) followed by
-    // the composed caller guards (20260902.02; zero guards = today's
-    // behavior). The in-process transport above carries its own
+    // chassis over the composed verifiers (O2; zero verifiers and no
+    // declared posture = trusted-local, byte-identical wire behavior)
+    // under the resolved require-authentication posture (issuer OR unit
+    // declaration, above), followed by the composed caller guards
+    // (20260902.02; zero guards = today's behavior). The in-process
+    // transport above carries its own
     // position-1 source — the internal caller class only it can mint
     // (ruling Q4), and NO guards: the in-process exemption is structural
     // (caller-guards.ts). Position 0 is the error boundary (20260830.03):
@@ -1113,7 +1146,7 @@ export async function composeServer(
         identityVerifiers,
         extensions.callerGuards,
         logger,
-        authEnabled,
+        requireAuthentication,
       ),
       createErrorBoundaryInterceptor(
         logger,

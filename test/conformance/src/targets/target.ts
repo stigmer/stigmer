@@ -227,6 +227,27 @@ export interface CapabilityFlags {
   // the minting client's contract are different concerns — a future target
   // could carry one without the other.
   platformClientTokens: boolean;
+  // Every non-public RPC requires a credential: a request with NO bearer is
+  // refused UNAUTHENTICATED "authentication token missing" (the copy both
+  // editions pin — the Java interceptor's, and the OSS chassis's byte-for-
+  // byte). What stays reachable tokenless on EVERY target regardless of
+  // this flag: is_public methods (getServerInfo) and the standard gRPC
+  // health service (Kubernetes grpc probes), which the authentication suite
+  // asserts unconditionally.
+  //
+  // True for cloud — the Java interceptor natively (GrpcSecurityConfigBase),
+  // and the TS composition through the require-authentication registry
+  // point its cloud-core unit declares (entry 20260904.02).
+  //
+  // False for the local OSS targets — BY DESIGN, not a gap: the single-
+  // operator trusted-local posture admits a tokenless request as the
+  // operator, and a presented-but-unclaimed token falls through to the same
+  // identity when no verifier is composed (the O2 ruling-Q6 contract). Where
+  // false, the suite pins that admission — the OSS contract the TS server
+  // must keep. Deliberately NOT folded into platformClientTokens or
+  // multiTenant: a self-host with STIGMER_OIDC_ISSUER set requires
+  // authentication with neither of those.
+  requiresAuthentication: boolean;
 }
 
 // Tenancy scope a test operates within. Locally this is just a unique org slug
@@ -263,6 +284,36 @@ export interface TargetProfile {
   teardown(): Promise<void>;
 
   clients(): ConformanceClients;
+
+  // Clients presenting NO credential at all — the anonymous caller the
+  // authentication suite drives at the serving edge (entry 20260904.02).
+  // Every target can build one (a transport with no bearer interceptor), so
+  // the method is required, not a capability; what the anonymous caller
+  // GETS is the requiresAuthentication flag's business. Suites never build
+  // transports themselves — the target owns how it is reached.
+  anonymousClients(): ConformanceClients;
+
+  // Clients presenting exactly the given bearer credential, claimed by
+  // nothing — the presented-but-unclaimed arm of the position-1 contract
+  // (refused where a verifier is composed; admitted as the operator on the
+  // verifier-less local targets). Required for the same reason as
+  // anonymousClients; the primary credential stays clients()'s.
+  clientsPresenting(bearerToken: string): ConformanceClients;
+
+  // Why THIS environment's serving edge cannot demonstrate the edition's
+  // requiresAuthentication contract, or undefined when it can. A harness
+  // fact, deliberately separate from the capability flag (which states the
+  // edition's contract): the hermetic cloud launcher boots Java in test
+  // security mode, where no edge authentication is loaded at all and a
+  // synthetic caller stands in for every request — the posture is real in
+  // production and unobservable there. The authentication suite skips its
+  // credential arms VISIBLY, with this reason, when one is returned; it
+  // never asserts admission on a bypassed edge (that would pin a harness
+  // artifact as a contract). Present only on the cloud targets, whose
+  // environment is declared through CLOUD_ENV.edgeAuthentication (default
+  // enforced — a readout that forgets the variable fails loudly, never
+  // false-greens); the local targets' posture IS what their flag says.
+  edgeAuthenticationBypass?(): string | undefined;
 
   // Provision an isolated tenancy scope for a test. cleanupTenancy releases it.
   provisionTenancy(): Promise<TenancyContext>;

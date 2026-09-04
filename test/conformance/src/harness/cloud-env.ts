@@ -52,7 +52,46 @@ export const CLOUD_ENV = {
   // credentials to a real deployment is the permanent skip the stigmer#547
   // ruling recorded, so privileged-lane assertions skip there.
   operatorToken: "STIGMER_CONFORMANCE_CLOUD_OPERATOR_TOKEN",
+  // Whether the environment's serving edge authenticates callers at all —
+  // `enforced` (the DEFAULT when unset: production Java's interceptor, the
+  // TS composition's declared posture) or `bypassed-test-mode`. The hermetic
+  // launcher boots the JAR with STIGMER_SECURITY_MODE=test, which does NOT
+  // load GrpcSecurityConfigBase: a synthetic caller stands in for every
+  // request, credential or not — the door bootstrapPrimaryIdentity walks
+  // through below. Only global-setup-cloud.ts, the code that CHOSE that
+  // mode, declares the bypass; a pre-provisioned or deployed endpoint that
+  // forgets the variable gets the production contract and fails loudly if
+  // its edge is open (DD-012: never a false green). The authentication
+  // suite skips its credential arms VISIBLY where the edge is bypassed and
+  // asserts them everywhere else. Java's production-mode posture is
+  // covered by test/integration-security; making the hermetic launcher run
+  // production mode is a recorded follow-up (entry 20260904.02, D-S1).
+  edgeAuthentication: "STIGMER_CONFORMANCE_CLOUD_EDGE_AUTHENTICATION",
 } as const;
+
+// The two declared edge postures — see CLOUD_ENV.edgeAuthentication.
+export const EDGE_AUTHENTICATION = {
+  enforced: "enforced",
+  bypassedTestMode: "bypassed-test-mode",
+} as const;
+export type EdgeAuthentication =
+  (typeof EDGE_AUTHENTICATION)[keyof typeof EDGE_AUTHENTICATION];
+
+// Resolves the declared edge posture: unset = enforced (the production
+// contract). Any other value is a harness misconfiguration, thrown loudly
+// rather than coerced to either posture.
+export function resolveEdgeAuthentication(): EdgeAuthentication {
+  const raw = process.env[CLOUD_ENV.edgeAuthentication];
+  if (raw === undefined || raw === "" || raw === EDGE_AUTHENTICATION.enforced) {
+    return EDGE_AUTHENTICATION.enforced;
+  }
+  if (raw === EDGE_AUTHENTICATION.bypassedTestMode) {
+    return EDGE_AUTHENTICATION.bypassedTestMode;
+  }
+  throw new Error(
+    `${CLOUD_ENV.edgeAuthentication} must be "${EDGE_AUTHENTICATION.enforced}" or "${EDGE_AUTHENTICATION.bypassedTestMode}" when set; got "${raw}"`,
+  );
+}
 
 // The org whose FGA ownership tuples the launcher seeds for the synthetic test
 // identity (must match harness.TestOrg / fga_seeder.go in test/integration).
@@ -137,8 +176,9 @@ export async function spawnCloudEnvironment(): Promise<CloudEnvironment> {
 
 // One-time auth bootstrap, run once per suite invocation:
 // tokenless call (the launcher's test security mode maps it to the synthetic
-// FGA-seeded identity) -> create a PlatformClient in the seeded org -> mint a
-// real Stigmer JWT for a fresh primary user. Everything after this runs as
+// FGA-seeded identity — the edge posture CLOUD_ENV.edgeAuthentication
+// declares as bypassed) -> create a PlatformClient in the seeded org -> mint
+// a real Stigmer JWT for a fresh primary user. Everything after this runs as
 // that user through the production token-verification path.
 export async function bootstrapPrimaryIdentity(grpcBaseUrl: string): Promise<PrimaryIdentity> {
   const tokenlessTransport = createTransport(grpcBaseUrl);

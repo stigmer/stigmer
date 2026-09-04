@@ -45,6 +45,10 @@ export class LocalTarget implements TargetProfile {
     // unrouted and the serving edge composes zero caller guards (the
     // 20260902.02 empty state), so the enforcement arms skip.
     platformClientTokens: false,
+    // Single-operator trusted-local posture: no issuer, no declared
+    // posture, zero verifiers — a tokenless request IS the operator (the
+    // authentication suite pins that admission, entry 20260904.02).
+    requiresAuthentication: false,
   };
 
   private server: RunningServer | undefined;
@@ -76,6 +80,17 @@ export class LocalTarget implements TargetProfile {
       throw new Error("LocalTarget.setup() must be called before clients()");
     }
     return this.conformanceClients;
+  }
+
+  // The ordinary clients already present nothing — this target runs without
+  // auth — but the seam is built the same way on every target so the
+  // authentication suite never reasons about which kind it has.
+  anonymousClients(): ConformanceClients {
+    return makeClients(createTransport(this.httpBaseUrl()));
+  }
+
+  clientsPresenting(bearerToken: string): ConformanceClients {
+    return makeClients(createTransport(this.httpBaseUrl(), { bearerToken }));
   }
 
   // The spawned server's unified port also serves the plain-HTTP lanes (the

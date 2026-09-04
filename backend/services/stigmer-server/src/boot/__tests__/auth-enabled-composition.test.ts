@@ -5,7 +5,9 @@
  *
  * The full credential loop this proves is the multi-user self-host story:
  *   1. tokenless requests are UNAUTHENTICATED "authentication token
- *      missing" (the Java copy) — except is_public methods (getServerInfo);
+ *      missing" (the Java copy) — except is_public methods (getServerInfo)
+ *      and the gRPC health service by name (a Kubernetes grpc probe;
+ *      stigmer#974, entry 20260904.02);
  *   2. an OIDC access token authenticates; the caller's sub becomes the
  *      audit identity on resources it creates;
  *   3. an API key minted over that OIDC session authenticates as its
@@ -31,6 +33,10 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { ApiKeyCommandController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/command_pb";
 import { ApiKeyQueryController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/query_pb";
 import { PlatformQueryController } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
+import {
+  Health,
+  HealthCheckResponse_ServingStatus,
+} from "@stigmer/protos/grpc/health/v1/health_pb";
 
 import { loadConfig } from "../config.js";
 import { composeServer } from "../compose.js";
@@ -141,6 +147,12 @@ describe("the require-authentication posture on the wire", () => {
     const platform = createClient(PlatformQueryController, transportWith());
     const info = await platform.getServerInfo({});
     expect(info.edition).not.toBe("");
+  });
+
+  it("the gRPC health service stays reachable tokenless — a Kubernetes grpc probe survives the posture (stigmer#974)", async () => {
+    const health = createClient(Health, transportWith());
+    const response = await health.check({ service: "" });
+    expect(response.status).toBe(HealthCheckResponse_ServingStatus.SERVING);
   });
 
   it("a garbage bearer keeps the Q6 unclaimed-token rejection", async () => {

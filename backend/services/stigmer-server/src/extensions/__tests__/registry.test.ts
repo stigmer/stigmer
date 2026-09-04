@@ -131,6 +131,7 @@ describe("resolveExtensions — defaults", () => {
     const resolved = resolveExtensions();
     expect(resolved.unitNames).toEqual([]);
     expect(resolved.edition).toBe(ServerEdition.oss);
+    expect(resolved.requireAuthentication).toBeUndefined();
     expect(resolved.authorizer).toBeUndefined();
     expect(resolved.identityVerifiers).toEqual([]);
     expect(resolved.callerGuards).toEqual([]);
@@ -169,6 +170,7 @@ describe("resolveExtensions — merge semantics", () => {
       {
         name: "beta",
         edition: ServerEdition.cloud,
+        requireAuthentication: true,
         authorizer: allowAll,
         identityVerifiers: [verifier("b1")],
         callerGuards: [callerGuard("g2"), callerGuard("g3")],
@@ -179,6 +181,7 @@ describe("resolveExtensions — merge semantics", () => {
     ]);
     expect(resolved.unitNames).toEqual(["alpha", "beta"]);
     expect(resolved.edition).toBe(ServerEdition.cloud);
+    expect(resolved.requireAuthentication).toEqual({ declaredBy: "beta" });
     expect(resolved.authorizer).toBe(allowAll);
     expect(resolved.identityVerifiers.map((v) => v.name)).toEqual([
       "a1",
@@ -378,6 +381,17 @@ describe("resolveExtensions — loud-fail throws (DD-006 §2b)", () => {
       ]),
     ).toThrowError(
       /extension 'second-edition' declares the server edition, but 'first-edition' already did/,
+    );
+  });
+
+  it("throws on a second require-authentication declaration, naming both units (20260904.02)", () => {
+    expect(() =>
+      resolveExtensions([
+        { name: "first-posture", requireAuthentication: true },
+        { name: "second-posture", requireAuthentication: true },
+      ]),
+    ).toThrowError(
+      /extension 'second-posture' declares the require-authentication posture, but 'first-posture' already did/,
     );
   });
 

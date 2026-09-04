@@ -6,6 +6,9 @@
  * port and the in-process transport — with the full interceptor chain
  * running on each lane (the SP-B parity doctrine extended to extension
  * services), and the registry-declared edition answers on getServerInfo.
+ * Later entries add their own composed arms below: caller guards
+ * (20260902.02), the require-authentication posture (20260904.02), the
+ * O5 drivers, the O4 slots and hooks, the C2 tuple lifecycle.
  *
  * The empty-set arm — no extensions composed, wire behavior byte-identical
  * to before the parameter existed — is pinned where it belongs: the
@@ -45,12 +48,17 @@ import {
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
 import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
+import {
+  Health,
+  HealthCheckResponse_ServingStatus,
+} from "@stigmer/protos/grpc/health/v1/health_pb";
 
 import type { ArtifactStorage } from "../../artifactstorage/artifact-storage.js";
 import { loadConfig } from "../../boot/config.js";
 import { composeServer } from "../../boot/compose.js";
 import type { ComposedServer } from "../../boot/compose.js";
 import { createLogger } from "../../boot/logger.js";
+import { AUTHENTICATION_TOKEN_MISSING_MESSAGE } from "../../pipeline/interceptors/auth.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { GateSlotName } from "../gate-slots.js";
 import type { OrganizationDirectory } from "../organization-directory.js";
@@ -248,6 +256,170 @@ describe("extension composition (caller guards)", () => {
     const info = await client.getServerInfo({});
     expect(info.edition).toBe(ServerEdition.oss);
     expect(guardedProcedures.length).toBe(before);
+  });
+});
+
+/**
+ * The require-authentication registry point (entry 20260904.02): a unit
+ * whose own verifiers are the only admission path declares the posture
+ * WITHOUT an OSS OIDC issuer, and the serving chain refuses tokenless
+ * non-exempt requests exactly as the issuer arm does — the Java copy,
+ * is_public and the health service still reachable, a claimed credential
+ * admitted. The in-process transport is untouched by construction (it
+ * carries no require-auth arm). The zero-verifier invariant is the boot
+ * throw arm: a declared posture nothing could ever satisfy is a
+ * composition fault, never a running server that refuses everything.
+ */
+describe("extension composition (require-authentication posture)", () => {
+  let server: ComposedServer;
+  let dir: string;
+  let port: number;
+  const logLines: string[] = [];
+
+  const CLAIMED_TOKEN = "unit-test-credential";
+  const requiringExtension: ServerExtension = {
+    name: "fake-identity",
+    requireAuthentication: true,
+    identityVerifiers: [
+      {
+        name: "fake-verifier",
+        verify: (token) =>
+          Promise.resolve(
+            token === CLAIMED_TOKEN
+              ? {
+                  identityId: "ida_fake",
+                  callerClass: "user",
+                  issuer: "fake",
+                  rawToken: token,
+                }
+              : null,
+          ),
+      },
+    ],
+  };
+
+  function transportWith(token?: string): Transport {
+    return createGrpcTransport({
+      baseUrl: `http://127.0.0.1:${port}`,
+      interceptors:
+        token === undefined
+          ? []
+          : [
+              (next) => (request) => {
+                request.header.set("authorization", `Bearer ${token}`);
+                return next(request);
+              },
+            ],
+    });
+  }
+
+  beforeAll(async () => {
+    dir = mkdtempSync(path.join(tmpdir(), "require-auth-test-"));
+    server = await composeServer({
+      config: loadConfig({
+        STIGMER_MODEL_REGISTRY_REFRESH: "off",
+        DB_PATH: path.join(dir, "stigmer.db"),
+        ARTIFACT_LOCAL_BASE_PATH: path.join(dir, "artifacts"),
+      }),
+      logger: createLogger({
+        level: "info",
+        pretty: false,
+        write: (line) => {
+          logLines.push(line);
+        },
+      }),
+      extensions: [requiringExtension],
+      portOverride: 0,
+      host: "127.0.0.1",
+    });
+    port = await server.start();
+  });
+
+  afterAll(async () => {
+    await server.shutdown();
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("a tokenless non-public RPC is UNAUTHENTICATED with the Java byte-pinned copy — no issuer configured", async () => {
+    const client = createClient(OrganizationQueryController, transportWith());
+    const failure = await client
+      .findMyOrganizations({})
+      .then(() => null)
+      .catch((error: unknown) => ConnectError.from(error));
+    expect(failure?.code).toBe(Code.Unauthenticated);
+    expect(failure?.rawMessage).toBe(AUTHENTICATION_TOKEN_MISSING_MESSAGE);
+  });
+
+  it("is_public methods stay reachable tokenless (getServerInfo)", async () => {
+    const client = createClient(PlatformQueryController, transportWith());
+    const info = await client.getServerInfo({});
+    expect(info.edition).toBe(ServerEdition.oss);
+  });
+
+  it("the gRPC health service stays reachable tokenless (the probe contract, stigmer#974)", async () => {
+    const health = createClient(Health, transportWith());
+    const response = await health.check({ service: "" });
+    expect(response.status).toBe(HealthCheckResponse_ServingStatus.SERVING);
+  });
+
+  it("a credential the composed verifier claims is admitted", async () => {
+    const client = createClient(
+      OrganizationQueryController,
+      transportWith(CLAIMED_TOKEN),
+    );
+    const orgs = await client.findMyOrganizations({});
+    expect(orgs.entries).toEqual([]);
+  });
+
+  it("the in-process transport carries no require-auth arm — server-internal hops are unaffected", async () => {
+    const client = createClient(
+      OrganizationQueryController,
+      server.inProcessTransport,
+    );
+    const orgs = await client.findMyOrganizations({});
+    expect(orgs.entries).toEqual([]);
+  });
+
+  it("boot logs the resolved posture and names the declaring unit", () => {
+    const line = logLines.find((entry) =>
+      entry.includes("authentication posture resolved"),
+    );
+    expect(line).toBeDefined();
+    const parsed = JSON.parse(line ?? "{}") as {
+      posture?: string;
+      source?: string;
+      verifiers?: string;
+    };
+    expect(parsed.posture).toBe("required");
+    expect(parsed.source).toBe("extension 'fake-identity'");
+    expect(parsed.verifiers).toBe("fake-verifier");
+  });
+
+  it("a declared posture with zero composed verifiers is a boot throw naming the unit", async () => {
+    const orphanDir = mkdtempSync(path.join(tmpdir(), "require-auth-orphan-"));
+    try {
+      await expect(
+        composeServer({
+          config: loadConfig({
+            STIGMER_MODEL_REGISTRY_REFRESH: "off",
+            DB_PATH: path.join(orphanDir, "stigmer.db"),
+            ARTIFACT_LOCAL_BASE_PATH: path.join(orphanDir, "artifacts"),
+          }),
+          logger: createLogger({
+            level: "error",
+            pretty: false,
+            write: () => {},
+          }),
+          extensions: [{ name: "verifierless", requireAuthentication: true }],
+          portOverride: 0,
+          host: "127.0.0.1",
+        }),
+      ).rejects.toThrowError(
+        /extension 'verifierless' declares the require-authentication posture, but the composition registers no identity verifier/,
+      );
+    } finally {
+      rmSync(orphanDir, { recursive: true, force: true });
+    }
   });
 });
 

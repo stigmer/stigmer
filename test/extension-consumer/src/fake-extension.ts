@@ -581,6 +581,10 @@ const organizationDirectory: OrganizationDirectory = {
 export const fakeExtension: ServerExtension = {
   name: "consumer-fake",
   edition: ServerEdition.cloud,
+  // The 20260904.02 point: the unit's verifiers are its only admission
+  // path, so tokenless non-public requests are refused. Typed as the
+  // literal `true` — `false` does not compile; omit the field instead.
+  requireAuthentication: true,
   authorizer,
   identityVerifiers: [verifier],
   // The 20260902.02 seam: post-authentication caller guards, serving

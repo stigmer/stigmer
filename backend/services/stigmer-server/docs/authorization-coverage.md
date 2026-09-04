@@ -21,7 +21,7 @@ Verification notes: every registration map in `src/boot/compose.ts`'s routes clo
 
 ## 1. Health (`grpc.health.v1.Health`, `src/transport/health.ts`)
 
-The standard gRPC health protocol — an external proto with no Stigmer annotations.
+The standard gRPC health protocol — an external proto with no Stigmer annotations. Because it cannot carry `is_public`, the require-authentication posture exempts it BY SERVICE NAME (`AUTHENTICATION_EXEMPT_SERVICES` in `src/pipeline/interceptors/auth.ts`, the Java interceptor's by-name skip; entry 20260904.02, stigmer#974): a Kubernetes `grpc:` probe is a tokenless `check`, and a refused probe is a pod that never becomes Ready. The three methods stay authorization-`none` — the exemption is an authentication fact, not an authorization one.
 
 | Method | Annotation | Handler |
 |---|---|---|

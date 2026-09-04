@@ -13,6 +13,7 @@
 import {
   bootstrapPrimaryIdentity,
   CLOUD_ENV,
+  EDGE_AUTHENTICATION,
   spawnCloudEnvironment,
   type CloudEnvironment,
 } from "./cloud-env";
@@ -36,6 +37,11 @@ export default async function setup(): Promise<() => Promise<void>> {
     process.env[CLOUD_ENV.platformClientId] = identity.platformClient.clientId;
     process.env[CLOUD_ENV.platformClientSecret] = identity.platformClient.clientSecret;
     process.env[CLOUD_ENV.operatorToken] = identity.operatorToken;
+    // This setup chose STIGMER_SECURITY_MODE=test for the JAR (the launcher's
+    // default — the tokenless bootstrap above depends on it), so it is the
+    // one place that may declare the edge bypassed. Pre-provisioned
+    // endpoints never reach this line and keep the enforced default.
+    process.env[CLOUD_ENV.edgeAuthentication] = EDGE_AUTHENTICATION.bypassedTestMode;
   } catch (err) {
     await environment.stop();
     throw err;

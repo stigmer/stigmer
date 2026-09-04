@@ -135,6 +135,18 @@ export class CloudExecutionTarget implements TargetProfile {
     return this.cloud.clients();
   }
 
+  anonymousClients(): ConformanceClients {
+    return this.cloud.anonymousClients();
+  }
+
+  clientsPresenting(bearerToken: string): ConformanceClients {
+    return this.cloud.clientsPresenting(bearerToken);
+  }
+
+  edgeAuthenticationBypass(): string | undefined {
+    return this.cloud.edgeAuthenticationBypass();
+  }
+
   async provisionTenancy(): Promise<TenancyContext> {
     const context = await this.cloud.provisionTenancy();
     await this.fundTenancy(context.org);

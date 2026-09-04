@@ -58,6 +58,9 @@ export class LocalExecutionTarget implements TargetProfile {
     // unrouted and the serving edge composes zero caller guards (the
     // 20260902.02 empty state), so the enforcement arms skip.
     platformClientTokens: false,
+    // Single-operator trusted-local posture, as on `local` — the runner's
+    // STIGMER_TOKEN is a proxy bearer the server never verifies.
+    requiresAuthentication: false,
   };
 
   private temporal: RunningTemporal | undefined;
@@ -143,6 +146,21 @@ export class LocalExecutionTarget implements TargetProfile {
       throw new Error("LocalExecutionTarget.setup() must be called before clients()");
     }
     return this.conformanceClients;
+  }
+
+  anonymousClients(): ConformanceClients {
+    return makeClients(createTransport(this.serverBaseUrl()));
+  }
+
+  clientsPresenting(bearerToken: string): ConformanceClients {
+    return makeClients(createTransport(this.serverBaseUrl(), { bearerToken }));
+  }
+
+  private serverBaseUrl(): string {
+    if (this.server === undefined) {
+      throw new Error("LocalExecutionTarget.setup() must be called before building clients");
+    }
+    return this.server.baseUrl;
   }
 
   async provisionTenancy(): Promise<TenancyContext> {
