@@ -1076,43 +1076,53 @@ export async function composeServer(
   const inProcessWiring = createInProcessClients(routes, logger);
   inProcess = inProcessWiring.clients;
 
-  // The auth-enabled modeled state (O3 rulings Q1+Q2): a configured OIDC
-  // issuer registers the two OSS verifiers — API tokens first (cheap
-  // prefix claim, the Java ProviderManager's order), then OIDC — ahead of
-  // the extension entries ("OSS entries first", the registry contract),
-  // and turns on the require-authentication posture. No issuer = zero OSS
-  // verifiers; the wire posture is then the composition's to declare.
-  // The runner's credential in this posture is an operator-minted API
-  // token via STIGMER_TOKEN (ruling Q3) — no runner-specific verifier.
+  // The require-authentication posture has two sources OR'd here: the
+  // OSS OIDC issuer (O3 rulings Q1+Q2) and a composed unit's declaration
+  // (registry point, entry 20260904.02). Neither source = the OSS
+  // trusted-local posture, byte-identical wire behavior.
   const authEnabled = config.oidcIssuer !== "";
-  const identityVerifiers = authEnabled
-    ? [
-        newApiKeyIdentityVerifier(store),
-        newOidcIdentityVerifier({
-          issuer: config.oidcIssuer,
-          audience: config.oidcAudience,
-        }),
-        ...extensions.identityVerifiers,
-      ]
-    : extensions.identityVerifiers;
-  // The require-authentication posture has two sources OR'd here — the
-  // issuer arm above, and a composed unit's declaration (registry point,
-  // entry 20260904.02): a composition whose own verifiers are the only
-  // admission path cannot borrow the issuer knob (it would register the
-  // OSS verifiers ahead of its own and re-route who its users resolve
-  // to). Neither source = the OSS trusted-local posture, byte-identical
-  // wire behavior. A declared posture with ZERO composed verifiers is a
-  // boot fault, not a running server: nothing could ever authenticate,
-  // so every non-exempt request would be refused — the same class as a
-  // misconfigured registry (DD-006 §2b), caught before any side effect.
   const requireAuthentication =
     authEnabled || extensions.requireAuthentication !== undefined;
+  // What the posture registers, in Java's ProviderManager order (opaque
+  // keys first — the cheapest claim — then the JWT lanes), ahead of the
+  // extension entries ("OSS entries first", the registry contract):
+  //   - the API-key verifier rides the POSTURE, not the issuer
+  //     (stigmer#984): the apikey domain is open-source tier and mints
+  //     `stk_` keys in every composition, so any composition with an
+  //     authentication posture must honor the keys it issues. Gating it on
+  //     the issuer left a posture-declaring composition minting keys
+  //     nothing verified.
+  //   - the OIDC verifier rides the ISSUER alone: it resolves callers to
+  //     the token's `sub`, which is the wrong principal for a composition
+  //     whose own lanes resolve users to their account ids — that is why a
+  //     declared posture never borrows the issuer knob.
+  // The runner's credential in either posture is an operator-minted API
+  // token via STIGMER_TOKEN (O3 ruling Q3) — no runner-specific verifier.
+  const identityVerifiers = [
+    ...(requireAuthentication ? [newApiKeyIdentityVerifier(store)] : []),
+    ...(authEnabled
+      ? [
+          newOidcIdentityVerifier({
+            issuer: config.oidcIssuer,
+            audience: config.oidcAudience,
+          }),
+        ]
+      : []),
+    ...extensions.identityVerifiers,
+  ];
+  // A declared posture whose unit registers no verifier OF ITS OWN is a
+  // boot fault, not a running server. The API-key lane alone cannot admit
+  // the first caller — minting a key requires an authenticated caller, so
+  // an apikey-only chain locks everyone out forever (O3 ruling Q1's
+  // first-key bootstrap problem, which is why apikey-only mode was
+  // deferred). The same class as a misconfigured registry (DD-006 §2b),
+  // caught before any side effect.
   if (
     extensions.requireAuthentication !== undefined &&
-    identityVerifiers.length === 0
+    extensions.identityVerifiers.length === 0
   ) {
     throw new Error(
-      `extension '${extensions.requireAuthentication.declaredBy}' declares the require-authentication posture, but the composition registers no identity verifier — nothing could authenticate, so every non-public request would be refused; register a verifier or omit the declaration`,
+      `extension '${extensions.requireAuthentication.declaredBy}' declares the require-authentication posture, but registers no identity verifier of its own — the OSS API-key lane alone cannot admit the first caller (nobody could mint a key), so every non-public request would be refused; register a verifier or omit the declaration`,
     );
   }
   const postureSources = [

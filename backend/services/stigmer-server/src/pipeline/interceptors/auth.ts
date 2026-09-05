@@ -41,9 +41,10 @@
  *     20260827.06): with requireAuthentication on — compose.ts sets it
  *     when STIGMER_OIDC_ISSUER is configured OR when a composed extension
  *     unit declares `requireAuthentication` (entry 20260904.02, the
- *     cloud's ask: its verifiers are its only admission path, and the
- *     issuer knob cannot stand in because it also registers the OSS
- *     verifiers ahead of the composition's) — a tokenless request is
+ *     cloud's ask: its own lanes resolve its users, and the issuer knob
+ *     cannot stand in because it also registers the OSS OIDC verifier
+ *     ahead of them; the OSS API-key lane, by contrast, rides EITHER
+ *     posture source — stigmer#984) — a tokenless request is
  *     UNAUTHENTICATED "authentication token missing" (the Java
  *     interceptor's byte-pinned copy), EXCEPT where isAuthenticationExempt
  *     says so: is_public-marked methods (the Java isPublic skip) and the

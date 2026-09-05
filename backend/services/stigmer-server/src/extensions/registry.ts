@@ -99,16 +99,21 @@ export interface ServerExtension {
    * OIDC issuer: a request with no credential on a non-`is_public` method
    * is UNAUTHENTICATED "authentication token missing" (the Java
    * interceptor's copy), instead of falling to the trusted-local
-   * single-operator identity. A composition whose identity verifiers ARE
-   * its only admission path declares this — the OSS issuer arm cannot be
-   * reused for it, because configuring the issuer also registers the OSS
-   * verifiers ahead of the composition's own (compose.ts).
+   * single-operator identity. A composition whose own identity verifiers
+   * resolve its users declares this — the OSS issuer arm cannot be reused
+   * for it, because configuring the issuer also registers the OSS OIDC
+   * verifier ahead of the composition's own (compose.ts). Declaring the
+   * posture DOES compose the OSS API-key verifier, first in the chain
+   * (stigmer#984): the apikey domain mints `stk_` keys in every
+   * composition, and a server with an authentication posture honors the
+   * keys it issues.
    *
    * Typed as the literal `true`: the field is declared or omitted, never
    * set to `false` — there is no "declared lenient" state to validate at
    * boot. Exactly one unit may declare it (a second throws naming both);
    * the declaring unit is named in the boot log and in the compose.ts
-   * invariant that refuses a posture with zero composed verifiers.
+   * invariant that refuses a posture whose unit registers no verifier of
+   * its own (the API-key lane alone cannot mint the first key).
    */
   readonly requireAuthentication?: true;
   /** The authorization decision seam (single-instance point; consumed by O2). */

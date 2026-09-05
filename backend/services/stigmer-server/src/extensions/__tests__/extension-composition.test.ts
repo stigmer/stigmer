@@ -41,6 +41,8 @@ import { BillingQueryController } from "@stigmer/protos/ai/stigmer/billing/v1/qu
 import { BillingAccountSchema } from "@stigmer/protos/ai/stigmer/billing/v1/billing_account_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import { ApiKeyCommandController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/command_pb";
+import { ApiKeyQueryController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/query_pb";
 import {
   PlatformQueryController,
   ServerEdition,
@@ -261,14 +263,23 @@ describe("extension composition (caller guards)", () => {
 
 /**
  * The require-authentication registry point (entry 20260904.02): a unit
- * whose own verifiers are the only admission path declares the posture
+ * whose own verifiers are the admission path declares the posture
  * WITHOUT an OSS OIDC issuer, and the serving chain refuses tokenless
  * non-exempt requests exactly as the issuer arm does — the Java copy,
  * is_public and the health service still reachable, a claimed credential
  * admitted. The in-process transport is untouched by construction (it
- * carries no require-auth arm). The zero-verifier invariant is the boot
- * throw arm: a declared posture nothing could ever satisfy is a
- * composition fault, never a running server that refuses everything.
+ * carries no require-auth arm).
+ *
+ * The API-key lane rides the POSTURE, not the issuer (stigmer#984): a
+ * server that mints `stk_` keys under a declared posture must honor them,
+ * so the OSS apikey verifier is composed FIRST whenever the posture is on
+ * — a key minted over the unit's own credential authenticates as its
+ * owner, and a garbage `stk_` bearer gets the lane's own refusal, never
+ * the chassis's unclaimed-token copy. The zero-verifier invariant stays
+ * the boot throw arm, scoped to the unit's OWN verifiers: the API-key
+ * lane alone cannot admit the first caller (nobody could mint a key), so
+ * a posture with nothing else is a composition fault, never a running
+ * server that refuses everything.
  */
 describe("extension composition (require-authentication posture)", () => {
   let server: ComposedServer;
@@ -380,7 +391,99 @@ describe("extension composition (require-authentication posture)", () => {
     expect(orgs.entries).toEqual([]);
   });
 
-  it("boot logs the resolved posture and names the declaring unit", () => {
+  it("a credential nothing claims keeps the chassis's unclaimed-token refusal", async () => {
+    const client = createClient(
+      OrganizationQueryController,
+      transportWith("not-a-credential"),
+    );
+    const failure = await client
+      .findMyOrganizations({})
+      .then(() => null)
+      .catch((error: unknown) => ConnectError.from(error));
+    expect(failure?.code).toBe(Code.Unauthenticated);
+    expect(failure?.rawMessage).toBe(
+      "the presented token was not accepted by any configured identity verifier",
+    );
+  });
+
+  describe("the API-key lane rides the declared posture (stigmer#984)", () => {
+    let apiKeyPlaintext: string;
+    let apiKeyId: string;
+
+    it("a key minted over the unit's credential is owned by that identity", async () => {
+      const command = createClient(
+        ApiKeyCommandController,
+        transportWith(CLAIMED_TOKEN),
+      );
+      const created = await command.create({
+        apiVersion: "iam.stigmer.ai/v1",
+        kind: "ApiKey",
+        metadata: { name: "posture key", org: "local" },
+        spec: {},
+      });
+      apiKeyPlaintext = created.spec?.keyHash ?? "";
+      apiKeyId = created.metadata?.id ?? "";
+      expect(apiKeyPlaintext.startsWith("stk_")).toBe(true);
+      expect(created.status?.audit?.specAudit?.createdBy?.id).toBe("ida_fake");
+    });
+
+    it("the minted key authenticates as its owning identity — no OIDC issuer anywhere", async () => {
+      const query = createClient(
+        ApiKeyQueryController,
+        transportWith(apiKeyPlaintext),
+      );
+      const fetched = await query.get({ value: apiKeyId });
+      expect(fetched.metadata?.id).toBe(apiKeyId);
+
+      // A write over the key stamps the OWNER on the audit: the key is the
+      // user, not a second principal (the OSS verifier's contract, kept).
+      const command = createClient(
+        ApiKeyCommandController,
+        transportWith(apiKeyPlaintext),
+      );
+      const second = await command.create({
+        apiVersion: "iam.stigmer.ai/v1",
+        kind: "ApiKey",
+        metadata: { name: "minted over the api key", org: "local" },
+        spec: {},
+      });
+      expect(second.status?.audit?.specAudit?.createdBy?.id).toBe("ida_fake");
+    });
+
+    it("a garbage stk_ bearer gets the lane's own refusal, not the chassis's unclaimed copy", async () => {
+      const client = createClient(
+        OrganizationQueryController,
+        transportWith("stk_not-a-real-key"),
+      );
+      const failure = await client
+        .findMyOrganizations({})
+        .then(() => null)
+        .catch((error: unknown) => ConnectError.from(error));
+      expect(failure?.code).toBe(Code.Unauthenticated);
+      expect(failure?.rawMessage).toBe("invalid token");
+    });
+
+    it("deleting the key revokes it on the very next request", async () => {
+      const command = createClient(
+        ApiKeyCommandController,
+        transportWith(CLAIMED_TOKEN),
+      );
+      await command.delete({ value: apiKeyId });
+
+      const query = createClient(
+        ApiKeyQueryController,
+        transportWith(apiKeyPlaintext),
+      );
+      const failure = await query
+        .findAll({})
+        .then(() => null)
+        .catch((error: unknown) => ConnectError.from(error));
+      expect(failure?.code).toBe(Code.Unauthenticated);
+      expect(failure?.rawMessage).toBe("invalid token");
+    });
+  });
+
+  it("boot logs the resolved posture, names the declaring unit, and lists the API-key lane first", () => {
     const line = logLines.find((entry) =>
       entry.includes("authentication posture resolved"),
     );
@@ -392,10 +495,10 @@ describe("extension composition (require-authentication posture)", () => {
     };
     expect(parsed.posture).toBe("required");
     expect(parsed.source).toBe("extension 'fake-identity'");
-    expect(parsed.verifiers).toBe("fake-verifier");
+    expect(parsed.verifiers).toBe("apikey, fake-verifier");
   });
 
-  it("a declared posture with zero composed verifiers is a boot throw naming the unit", async () => {
+  it("a declared posture whose unit registers no verifier of its own is a boot throw naming the unit — the API-key lane alone cannot bootstrap", async () => {
     const orphanDir = mkdtempSync(path.join(tmpdir(), "require-auth-orphan-"));
     try {
       await expect(
@@ -415,7 +518,7 @@ describe("extension composition (require-authentication posture)", () => {
           host: "127.0.0.1",
         }),
       ).rejects.toThrowError(
-        /extension 'verifierless' declares the require-authentication posture, but the composition registers no identity verifier/,
+        /extension 'verifierless' declares the require-authentication posture, but registers no identity verifier of its own/,
       );
     } finally {
       rmSync(orphanDir, { recursive: true, force: true });
