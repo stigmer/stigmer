@@ -11,12 +11,29 @@
  * caller; histories never cross editions per OD-6), so only the activity
  * NAMES are byte-pinned.
  *
- * UpdateExecutionStatus deliberately reuses #17's updateStatus function
- * wholesale — the domain's single atomic merge chokepoint
- * (applyUpdateStatusMerge inside store.updateResource) plus the
- * StreamBroker broadcast — so the activity and the runner's gRPC path can
- * never diverge on merge semantics (Go's activity impl shares the same
- * merge helpers for the same reason).
+ * UpdateExecutionStatus is the worker acting on the server's own behalf:
+ * the invoke workflow's fallback writes (FAILED when a runner fails
+ * without persisting, the IN_PROGRESS re-assertions on recovery and
+ * resume, the CANCELLED fallback, the defense-in-depth PAUSED and
+ * WAITING_FOR_APPROVAL persists). Like every other server-internal call
+ * — the schedule clock's fires, the reconciler's deletes, the HITL
+ * forwarders — it rides the in-process transport (boot/inprocess.ts),
+ * whose position-1 interceptor mints the `internal` caller class the
+ * Authorize step honors (O2 ruling Q4) and whose chain runs the runner's
+ * exact updateStatus handler: the domain's single atomic merge
+ * chokepoint plus the composed status hooks and the StreamBroker
+ * broadcast, so the activity and the runner's gRPC path can never
+ * diverge on merge semantics (Go's activity impl shared the merge helpers
+ * for the same reason). The activity therefore builds NO identity of its
+ * own. Its predecessor called the domain function directly with the
+ * chassis's trusted-local WIRE identity (`user`-class), which an
+ * enforcing Authorizer has no grant for — every runner failure on the
+ * cloud composition left a hung, never-FAILED execution
+ * (stigmer-cloud#610, stigmer#979).
+ *
+ * The reads (LoadAgentExecution, ReadHarnessStateId) and the
+ * ExecutionContext delete stay store-direct: pure reads with Java
+ * `findById` parity and #15's idempotent seam — no chain to bypass.
  *
  * CompleteExternalActivity receives a live client PROVIDER instead of
  * Go's package-global (re-set on every reconnect); the input carries the
@@ -34,19 +51,15 @@ import {
   AgentExecutionSchema,
   AgentExecutionStatusSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type {
+  AgentExecutionUpdateStatusInput,
+  UpdateStatusResponse,
+} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
 import { AgentExecutionUpdateStatusInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
-import type { StreamBroker } from "../../domain/agentexecution/stream-broker.js";
-import { updateStatus } from "../../domain/agentexecution/update-status.js";
-import type { Authorizer } from "../../extensions/authorizer.js";
-import type {
-  AgentExecutionResponseDecorator,
-  AgentExecutionStatusObserver,
-} from "../../extensions/status-hooks.js";
-import { trustedLocalIdentity } from "../../pipeline/interceptors/auth.js";
 import {
   DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME,
   deleteExecutionContextForExecution,
@@ -59,20 +72,29 @@ import {
   UPDATE_EXECUTION_STATUS_ACTIVITY_NAME,
 } from "./names.js";
 
+/**
+ * The worker's own-behalf status edge — the agentexecution UpdateStatus
+ * RPC reached over the in-process transport (the `InProcessClients`
+ * surface in boot/inprocess.ts satisfies it). Method-segregated like the
+ * other in-process edges (Go's narrow client interfaces): the worker
+ * needs exactly this one RPC.
+ */
+export interface ExecutionStatusWriter {
+  updateStatus(
+    input: AgentExecutionUpdateStatusInput,
+  ): Promise<UpdateStatusResponse>;
+}
+
 export interface AgentExecutionActivityDeps {
   readonly store: Store;
   readonly logger: Logger;
-  readonly broker: StreamBroker;
-  /** The composed Authorizer, required by the status-merge updateStatus pipeline (O2). */
-  readonly authorizer: Authorizer;
   /**
-   * The composed status hooks (O4): the activity reuses updateStatus
-   * wholesale, so the workflow's terminal writes (persistFinalStatus,
-   * failure/cancellation paths) notify observers exactly like the
-   * runner's gRPC path — one implementation, no divergence.
+   * The in-process status edge, read per call: the worker factories are
+   * built before the in-process wiring exists and run after it (the
+   * composition root's requireInProcess idiom — a true cycle, resolved
+   * lazily like the RunStarter's create edge).
    */
-  readonly statusObservers: ReadonlyArray<AgentExecutionStatusObserver>;
-  readonly responseDecorators: ReadonlyArray<AgentExecutionResponseDecorator>;
+  readonly statusWriter: () => ExecutionStatusWriter;
   /** Live Temporal client (reads the manager's CURRENT client). */
   readonly client: () => Client;
 }
@@ -97,45 +119,30 @@ export interface CompleteExternalActivityInput {
 export function createAgentExecutionActivities(
   deps: AgentExecutionActivityDeps,
 ): Record<string, (...args: never[]) => Promise<unknown>> {
-  const {
-    store,
-    logger,
-    broker,
-    authorizer,
-    statusObservers,
-    responseDecorators,
-  } = deps;
+  const { store, logger } = deps;
 
   return {
     /**
      * The atomic status merge, invoked as a regular activity (failure/
      * cancellation paths) AND a local activity (persistFinalStatus) —
      * one implementation serves both modes, exactly Go's single named
-     * registration.
+     * registration. The activity owns only the payload boundary (proto-
+     * JSON in, a typed UpdateStatus input out); identity, authorization,
+     * merge, hooks, and broadcast are the in-process lane's (module
+     * header). A ConnectError from the lane — NotFound for a deleted
+     * execution — IS the activity's failure, exactly what the direct
+     * domain call answered before.
      */
     [UPDATE_EXECUTION_STATUS_ACTIVITY_NAME]: async (
       executionId: string,
       statusJson: JsonValue,
     ): Promise<void> => {
       const status = fromJson(AgentExecutionStatusSchema, statusJson);
-      // The worker is the server process acting as itself — no wire
-      // request exists here, so the trusted-local operator identity is
-      // the one honest principal (O2; audit bytes unchanged: the derived
-      // actor equals the pre-O2 process-global operator actor).
-      await updateStatus(
-        {
-          store,
-          logger,
-          broker,
-          authorizer,
-          statusObservers,
-          responseDecorators,
-        },
+      await deps.statusWriter().updateStatus(
         create(AgentExecutionUpdateStatusInputSchema, {
           executionId,
           status,
         }),
-        trustedLocalIdentity(),
       );
     },
 

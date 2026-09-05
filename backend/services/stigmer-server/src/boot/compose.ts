@@ -504,12 +504,15 @@ export async function composeServer(
       newAgentExecutionWorkerFactory({
         store,
         logger,
-        broker: agentExecutionStreamBroker,
-        authorizer,
-        // O4: the worker's status-merge activity reuses updateStatus, so
-        // the workflow's terminal writes notify the same composed hooks.
-        statusObservers: extensions.statusObservers,
-        responseDecorators: extensions.responseDecorators,
+        // The worker's own-behalf status writes ride the in-process
+        // transport (stigmer#979) — the same lane as the RunStarter's
+        // create edge above, resolved lazily for the same boot-ordering
+        // reason. The lane's position 1 mints the internal caller class
+        // the Authorize step honors, and its handler IS the runner's
+        // updateStatus path, so the composed Authorizer, the O4 status
+        // hooks, and the broadcast reach the workflow's terminal writes
+        // by construction — the worker composes none of them itself.
+        statusWriter: () => requireInProcess().executionStatusWriter,
         temporalConfig,
       }),
       newWorkflowExecutionWorkerFactory({
