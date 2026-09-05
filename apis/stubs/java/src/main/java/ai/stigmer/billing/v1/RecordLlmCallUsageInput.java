@@ -780,6 +780,74 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int METERED_EXECUTION_FIELD_NUMBER = 19;
+  private ai.stigmer.billing.v1.MeteredExecution meteredExecution_;
+  /**
+   * <pre>
+   * The agent execution this call is metered under, as the proxy resolved
+   * it from the execution's system of record — on the caller's own
+   * credential, before reporting. The billing handler stamps these facts
+   * onto the usage record and reconciles the requested tier and thinking
+   * mode against what the wire served; it performs NO execution lookup of
+   * its own (the same rule as cursor_account_id above: the proxy holds the
+   * fact, reports it, the handler stamps it verbatim). Absent when the
+   * proxy could not resolve the execution — a workflow-execution scope,
+   * or an execution found in neither store — in which case the record
+   * carries an empty session and the requested-vs-billed reconciliation
+   * is skipped.
+   * </pre>
+   *
+   * <code>.ai.stigmer.billing.v1.MeteredExecution metered_execution = 19 [json_name = "meteredExecution"];</code>
+   * @return Whether the meteredExecution field is set.
+   */
+  @java.lang.Override
+  public boolean hasMeteredExecution() {
+    return ((bitField0_ & 0x00000004) != 0);
+  }
+  /**
+   * <pre>
+   * The agent execution this call is metered under, as the proxy resolved
+   * it from the execution's system of record — on the caller's own
+   * credential, before reporting. The billing handler stamps these facts
+   * onto the usage record and reconciles the requested tier and thinking
+   * mode against what the wire served; it performs NO execution lookup of
+   * its own (the same rule as cursor_account_id above: the proxy holds the
+   * fact, reports it, the handler stamps it verbatim). Absent when the
+   * proxy could not resolve the execution — a workflow-execution scope,
+   * or an execution found in neither store — in which case the record
+   * carries an empty session and the requested-vs-billed reconciliation
+   * is skipped.
+   * </pre>
+   *
+   * <code>.ai.stigmer.billing.v1.MeteredExecution metered_execution = 19 [json_name = "meteredExecution"];</code>
+   * @return The meteredExecution.
+   */
+  @java.lang.Override
+  public ai.stigmer.billing.v1.MeteredExecution getMeteredExecution() {
+    return meteredExecution_ == null ? ai.stigmer.billing.v1.MeteredExecution.getDefaultInstance() : meteredExecution_;
+  }
+  /**
+   * <pre>
+   * The agent execution this call is metered under, as the proxy resolved
+   * it from the execution's system of record — on the caller's own
+   * credential, before reporting. The billing handler stamps these facts
+   * onto the usage record and reconciles the requested tier and thinking
+   * mode against what the wire served; it performs NO execution lookup of
+   * its own (the same rule as cursor_account_id above: the proxy holds the
+   * fact, reports it, the handler stamps it verbatim). Absent when the
+   * proxy could not resolve the execution — a workflow-execution scope,
+   * or an execution found in neither store — in which case the record
+   * carries an empty session and the requested-vs-billed reconciliation
+   * is skipped.
+   * </pre>
+   *
+   * <code>.ai.stigmer.billing.v1.MeteredExecution metered_execution = 19 [json_name = "meteredExecution"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.billing.v1.MeteredExecutionOrBuilder getMeteredExecutionOrBuilder() {
+    return meteredExecution_ == null ? ai.stigmer.billing.v1.MeteredExecution.getDefaultInstance() : meteredExecution_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -847,6 +915,9 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(servedServiceTier_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 18, servedServiceTier_);
+    }
+    if (((bitField0_ & 0x00000004) != 0)) {
+      output.writeMessage(19, getMeteredExecution());
     }
     getUnknownFields().writeTo(output);
   }
@@ -918,6 +989,10 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(servedServiceTier_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(18, servedServiceTier_);
     }
+    if (((bitField0_ & 0x00000004) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(19, getMeteredExecution());
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -973,6 +1048,11 @@ private static final long serialVersionUID = 0L;
     if (cursorKeySource_ != other.cursorKeySource_) return false;
     if (!getServedServiceTier()
         .equals(other.getServedServiceTier())) return false;
+    if (hasMeteredExecution() != other.hasMeteredExecution()) return false;
+    if (hasMeteredExecution()) {
+      if (!getMeteredExecution()
+          .equals(other.getMeteredExecution())) return false;
+    }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -1025,6 +1105,10 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + cursorKeySource_;
     hash = (37 * hash) + SERVED_SERVICE_TIER_FIELD_NUMBER;
     hash = (53 * hash) + getServedServiceTier().hashCode();
+    if (hasMeteredExecution()) {
+      hash = (37 * hash) + METERED_EXECUTION_FIELD_NUMBER;
+      hash = (53 * hash) + getMeteredExecution().hashCode();
+    }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -1165,6 +1249,7 @@ private static final long serialVersionUID = 0L;
               .alwaysUseFieldBuilders) {
         internalGetTokensFieldBuilder();
         internalGetProxyTimingFieldBuilder();
+        internalGetMeteredExecutionFieldBuilder();
       }
     }
     @java.lang.Override
@@ -1197,6 +1282,11 @@ private static final long serialVersionUID = 0L;
       cursorKeyId_ = "";
       cursorKeySource_ = 0;
       servedServiceTier_ = "";
+      meteredExecution_ = null;
+      if (meteredExecutionBuilder_ != null) {
+        meteredExecutionBuilder_.dispose();
+        meteredExecutionBuilder_ = null;
+      }
       return this;
     }
 
@@ -1291,6 +1381,12 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00020000) != 0)) {
         result.servedServiceTier_ = servedServiceTier_;
       }
+      if (((from_bitField0_ & 0x00040000) != 0)) {
+        result.meteredExecution_ = meteredExecutionBuilder_ == null
+            ? meteredExecution_
+            : meteredExecutionBuilder_.build();
+        to_bitField0_ |= 0x00000004;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -1381,6 +1477,9 @@ private static final long serialVersionUID = 0L;
         servedServiceTier_ = other.servedServiceTier_;
         bitField0_ |= 0x00020000;
         onChanged();
+      }
+      if (other.hasMeteredExecution()) {
+        mergeMeteredExecution(other.getMeteredExecution());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -1502,6 +1601,13 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00020000;
               break;
             } // case 146
+            case 154: {
+              input.readMessage(
+                  internalGetMeteredExecutionFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00040000;
+              break;
+            } // case 154
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -3169,6 +3275,253 @@ private static final long serialVersionUID = 0L;
       bitField0_ |= 0x00020000;
       onChanged();
       return this;
+    }
+
+    private ai.stigmer.billing.v1.MeteredExecution meteredExecution_;
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.billing.v1.MeteredExecution, ai.stigmer.billing.v1.MeteredExecution.Builder, ai.stigmer.billing.v1.MeteredExecutionOrBuilder> meteredExecutionBuilder_;
+    /**
+     * <pre>
+     * The agent execution this call is metered under, as the proxy resolved
+     * it from the execution's system of record — on the caller's own
+     * credential, before reporting. The billing handler stamps these facts
+     * onto the usage record and reconciles the requested tier and thinking
+     * mode against what the wire served; it performs NO execution lookup of
+     * its own (the same rule as cursor_account_id above: the proxy holds the
+     * fact, reports it, the handler stamps it verbatim). Absent when the
+     * proxy could not resolve the execution — a workflow-execution scope,
+     * or an execution found in neither store — in which case the record
+     * carries an empty session and the requested-vs-billed reconciliation
+     * is skipped.
+     * </pre>
+     *
+     * <code>.ai.stigmer.billing.v1.MeteredExecution metered_execution = 19 [json_name = "meteredExecution"];</code>
+     * @return Whether the meteredExecution field is set.
+     */
+    public boolean hasMeteredExecution() {
+      return ((bitField0_ & 0x00040000) != 0);
+    }
+    /**
+     * <pre>
+     * The agent execution this call is metered under, as the proxy resolved
+     * it from the execution's system of record — on the caller's own
+     * credential, before reporting. The billing handler stamps these facts
+     * onto the usage record and reconciles the requested tier and thinking
+     * mode against what the wire served; it performs NO execution lookup of
+     * its own (the same rule as cursor_account_id above: the proxy holds the
+     * fact, reports it, the handler stamps it verbatim). Absent when the
+     * proxy could not resolve the execution — a workflow-execution scope,
+     * or an execution found in neither store — in which case the record
+     * carries an empty session and the requested-vs-billed reconciliation
+     * is skipped.
+     * </pre>
+     *
+     * <code>.ai.stigmer.billing.v1.MeteredExecution metered_execution = 19 [json_name = "meteredExecution"];</code>
+     * @return The meteredExecution.
+     */
+    public ai.stigmer.billing.v1.MeteredExecution getMeteredExecution() {
+      if (meteredExecutionBuilder_ == null) {
+        return meteredExecution_ == null ? ai.stigmer.billing.v1.MeteredExecution.getDefaultInstance() : meteredExecution_;
+      } else {
+        return meteredExecutionBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * The agent execution this call is metered under, as the proxy resolved
+     * it from the execution's system of record — on the caller's own
+     * credential, before reporting. The billing handler stamps these facts
+     * onto the usage record and reconciles the requested tier and thinking
+     * mode against what the wire served; it performs NO execution lookup of
+     * its own (the same rule as cursor_account_id above: the proxy holds the
+     * fact, reports it, the handler stamps it verbatim). Absent when the
+     * proxy could not resolve the execution — a workflow-execution scope,
+     * or an execution found in neither store — in which case the record
+     * carries an empty session and the requested-vs-billed reconciliation
+     * is skipped.
+     * </pre>
+     *
+     * <code>.ai.stigmer.billing.v1.MeteredExecution metered_execution = 19 [json_name = "meteredExecution"];</code>
+     */
+    public Builder setMeteredExecution(ai.stigmer.billing.v1.MeteredExecution value) {
+      if (meteredExecutionBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        meteredExecution_ = value;
+      } else {
+        meteredExecutionBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00040000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The agent execution this call is metered under, as the proxy resolved
+     * it from the execution's system of record — on the caller's own
+     * credential, before reporting. The billing handler stamps these facts
+     * onto the usage record and reconciles the requested tier and thinking
+     * mode against what the wire served; it performs NO execution lookup of
+     * its own (the same rule as cursor_account_id above: the proxy holds the
+     * fact, reports it, the handler stamps it verbatim). Absent when the
+     * proxy could not resolve the execution — a workflow-execution scope,
+     * or an execution found in neither store — in which case the record
+     * carries an empty session and the requested-vs-billed reconciliation
+     * is skipped.
+     * </pre>
+     *
+     * <code>.ai.stigmer.billing.v1.MeteredExecution metered_execution = 19 [json_name = "meteredExecution"];</code>
+     */
+    public Builder setMeteredExecution(
+        ai.stigmer.billing.v1.MeteredExecution.Builder builderForValue) {
+      if (meteredExecutionBuilder_ == null) {
+        meteredExecution_ = builderForValue.build();
+      } else {
+        meteredExecutionBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00040000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The agent execution this call is metered under, as the proxy resolved
+     * it from the execution's system of record — on the caller's own
+     * credential, before reporting. The billing handler stamps these facts
+     * onto the usage record and reconciles the requested tier and thinking
+     * mode against what the wire served; it performs NO execution lookup of
+     * its own (the same rule as cursor_account_id above: the proxy holds the
+     * fact, reports it, the handler stamps it verbatim). Absent when the
+     * proxy could not resolve the execution — a workflow-execution scope,
+     * or an execution found in neither store — in which case the record
+     * carries an empty session and the requested-vs-billed reconciliation
+     * is skipped.
+     * </pre>
+     *
+     * <code>.ai.stigmer.billing.v1.MeteredExecution metered_execution = 19 [json_name = "meteredExecution"];</code>
+     */
+    public Builder mergeMeteredExecution(ai.stigmer.billing.v1.MeteredExecution value) {
+      if (meteredExecutionBuilder_ == null) {
+        if (((bitField0_ & 0x00040000) != 0) &&
+          meteredExecution_ != null &&
+          meteredExecution_ != ai.stigmer.billing.v1.MeteredExecution.getDefaultInstance()) {
+          getMeteredExecutionBuilder().mergeFrom(value);
+        } else {
+          meteredExecution_ = value;
+        }
+      } else {
+        meteredExecutionBuilder_.mergeFrom(value);
+      }
+      if (meteredExecution_ != null) {
+        bitField0_ |= 0x00040000;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The agent execution this call is metered under, as the proxy resolved
+     * it from the execution's system of record — on the caller's own
+     * credential, before reporting. The billing handler stamps these facts
+     * onto the usage record and reconciles the requested tier and thinking
+     * mode against what the wire served; it performs NO execution lookup of
+     * its own (the same rule as cursor_account_id above: the proxy holds the
+     * fact, reports it, the handler stamps it verbatim). Absent when the
+     * proxy could not resolve the execution — a workflow-execution scope,
+     * or an execution found in neither store — in which case the record
+     * carries an empty session and the requested-vs-billed reconciliation
+     * is skipped.
+     * </pre>
+     *
+     * <code>.ai.stigmer.billing.v1.MeteredExecution metered_execution = 19 [json_name = "meteredExecution"];</code>
+     */
+    public Builder clearMeteredExecution() {
+      bitField0_ = (bitField0_ & ~0x00040000);
+      meteredExecution_ = null;
+      if (meteredExecutionBuilder_ != null) {
+        meteredExecutionBuilder_.dispose();
+        meteredExecutionBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The agent execution this call is metered under, as the proxy resolved
+     * it from the execution's system of record — on the caller's own
+     * credential, before reporting. The billing handler stamps these facts
+     * onto the usage record and reconciles the requested tier and thinking
+     * mode against what the wire served; it performs NO execution lookup of
+     * its own (the same rule as cursor_account_id above: the proxy holds the
+     * fact, reports it, the handler stamps it verbatim). Absent when the
+     * proxy could not resolve the execution — a workflow-execution scope,
+     * or an execution found in neither store — in which case the record
+     * carries an empty session and the requested-vs-billed reconciliation
+     * is skipped.
+     * </pre>
+     *
+     * <code>.ai.stigmer.billing.v1.MeteredExecution metered_execution = 19 [json_name = "meteredExecution"];</code>
+     */
+    public ai.stigmer.billing.v1.MeteredExecution.Builder getMeteredExecutionBuilder() {
+      bitField0_ |= 0x00040000;
+      onChanged();
+      return internalGetMeteredExecutionFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * The agent execution this call is metered under, as the proxy resolved
+     * it from the execution's system of record — on the caller's own
+     * credential, before reporting. The billing handler stamps these facts
+     * onto the usage record and reconciles the requested tier and thinking
+     * mode against what the wire served; it performs NO execution lookup of
+     * its own (the same rule as cursor_account_id above: the proxy holds the
+     * fact, reports it, the handler stamps it verbatim). Absent when the
+     * proxy could not resolve the execution — a workflow-execution scope,
+     * or an execution found in neither store — in which case the record
+     * carries an empty session and the requested-vs-billed reconciliation
+     * is skipped.
+     * </pre>
+     *
+     * <code>.ai.stigmer.billing.v1.MeteredExecution metered_execution = 19 [json_name = "meteredExecution"];</code>
+     */
+    public ai.stigmer.billing.v1.MeteredExecutionOrBuilder getMeteredExecutionOrBuilder() {
+      if (meteredExecutionBuilder_ != null) {
+        return meteredExecutionBuilder_.getMessageOrBuilder();
+      } else {
+        return meteredExecution_ == null ?
+            ai.stigmer.billing.v1.MeteredExecution.getDefaultInstance() : meteredExecution_;
+      }
+    }
+    /**
+     * <pre>
+     * The agent execution this call is metered under, as the proxy resolved
+     * it from the execution's system of record — on the caller's own
+     * credential, before reporting. The billing handler stamps these facts
+     * onto the usage record and reconciles the requested tier and thinking
+     * mode against what the wire served; it performs NO execution lookup of
+     * its own (the same rule as cursor_account_id above: the proxy holds the
+     * fact, reports it, the handler stamps it verbatim). Absent when the
+     * proxy could not resolve the execution — a workflow-execution scope,
+     * or an execution found in neither store — in which case the record
+     * carries an empty session and the requested-vs-billed reconciliation
+     * is skipped.
+     * </pre>
+     *
+     * <code>.ai.stigmer.billing.v1.MeteredExecution metered_execution = 19 [json_name = "meteredExecution"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.billing.v1.MeteredExecution, ai.stigmer.billing.v1.MeteredExecution.Builder, ai.stigmer.billing.v1.MeteredExecutionOrBuilder> 
+        internalGetMeteredExecutionFieldBuilder() {
+      if (meteredExecutionBuilder_ == null) {
+        meteredExecutionBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.billing.v1.MeteredExecution, ai.stigmer.billing.v1.MeteredExecution.Builder, ai.stigmer.billing.v1.MeteredExecutionOrBuilder>(
+                getMeteredExecution(),
+                getParentForChildren(),
+                isClean());
+        meteredExecution_ = null;
+      }
+      return meteredExecutionBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.billing.v1.RecordLlmCallUsageInput)

@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package ai.stigmer.billing.v1;
 
+import "ai/stigmer/agentic/agentexecution/v1/enum.proto";
 import "ai/stigmer/agentic/agentexecution/v1/usage.proto";
 import "ai/stigmer/billing/v1/credit.proto";
 import "ai/stigmer/billing/v1/enum.proto";
@@ -168,6 +169,44 @@ message RecordLlmCallUsageInput {
   // none, and for cursor-harness calls, whose billed variant arrives
   // through the cursor path's pricing-variant resolution instead.
   string served_service_tier = 18;
+
+  // The agent execution this call is metered under, as the proxy resolved
+  // it from the execution's system of record — on the caller's own
+  // credential, before reporting. The billing handler stamps these facts
+  // onto the usage record and reconciles the requested tier and thinking
+  // mode against what the wire served; it performs NO execution lookup of
+  // its own (the same rule as cursor_account_id above: the proxy holds the
+  // fact, reports it, the handler stamps it verbatim). Absent when the
+  // proxy could not resolve the execution — a workflow-execution scope,
+  // or an execution found in neither store — in which case the record
+  // carries an empty session and the requested-vs-billed reconciliation
+  // is skipped.
+  MeteredExecution metered_execution = 19;
+}
+
+// The execution-side facts LLM metering denormalizes onto every usage
+// record, carried from the proxy that authorized the call to the billing
+// handler that records it. Deliberately narrower than the execution's
+// ExecutionConfig: only what metering reconciles or prices against.
+message MeteredExecution {
+  // The session the execution belongs to. The provider reconciler matches
+  // Cursor conversations to sessions through the usage record's session.
+  string session_id = 1;
+
+  // The execution's configured model (spec.execution_config.model_name) —
+  // the authoritative statement of what was asked for, and the pricing
+  // fallback when the wire's requested_model came up empty.
+  string pinned_model = 2;
+
+  // The service tier the execution requested (spec.execution_config.
+  // service_tier); UNSPECIFIED resolves to standard. Reconciled against
+  // served_service_tier by the service_tier.mismatch counter.
+  ai.stigmer.agentic.agentexecution.v1.ServiceTier requested_service_tier = 3;
+
+  // The thinking mode the execution requested (spec.execution_config.
+  // thinking_mode). Reconciled against the served variant by the
+  // thinking.mismatch counter.
+  ai.stigmer.agentic.agentexecution.v1.ThinkingMode requested_thinking_mode = 4;
 }
 
 // RecordLlmCallUsageResponse returns the cost result so callers can
