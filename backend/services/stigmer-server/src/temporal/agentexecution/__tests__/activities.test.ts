@@ -1,9 +1,12 @@
 /**
  * Server-side activity tests — pins the contracts of activities.ts:
  *
- *   - UpdateExecutionStatus reuses #17's merge chokepoint (atomic persist
- *     + StreamBroker broadcast) — one implementation for the RPC, the
- *     regular-activity mode, and the local-activity mode;
+ *   - UpdateExecutionStatus owns only the payload boundary: it decodes
+ *     the proto-JSON status into a typed UpdateStatus input and hands it
+ *     to the in-process status edge (stigmer#979) — the lane's answer,
+ *     success or ConnectError, IS the activity's outcome. The lane itself
+ *     (transport, interceptors, handler, merge, hooks, broadcast) is
+ *     pinned end to end in own-behalf-status-writes.test.ts;
  *   - LoadAgentExecution returns proto-JSON that survives the payload
  *     boundary INCLUDING int64 fields (the bigint rule: a Message
  *     instance would crash the default converter);
@@ -14,30 +17,31 @@
  *     error-over-result precedence — the DD-001 lane Go cannot deliver
  *     (oss#861), so the ERROR path is the load-bearing assertion.
  */
-import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/authorize.js";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { create, fromJson, toJson } from "@bufbuild/protobuf";
 import type { JsonValue } from "@bufbuild/protobuf";
+import { Code, ConnectError } from "@connectrpc/connect";
 import type { Client } from "@temporalio/client";
 import { afterEach, describe, expect, it } from "vitest";
 
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import {
   AgentExecutionSchema,
   AgentExecutionStatusSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { AgentExecutionUpdateStatusInput } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
+import { UpdateStatusResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
 import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { createLogger } from "../../../boot/logger.js";
-import { StreamBroker } from "../../../domain/agentexecution/stream-broker.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
 import type { Store } from "../../../store/interface.js";
 import { createAgentExecutionActivities } from "../activities.js";
+import type { ExecutionStatusWriter } from "../activities.js";
 import {
   COMPLETE_EXTERNAL_ACTIVITY_NAME,
   LOAD_AGENT_EXECUTION_ACTIVITY_NAME,
@@ -76,7 +80,6 @@ function newFixture() {
     rmSync(dir, { recursive: true, force: true });
   });
 
-  const broker = new StreamBroker(silentLogger);
   const completions: CompletionCall[] = [];
   const stubClient = {
     activity: {
@@ -89,16 +92,36 @@ function newFixture() {
     },
   } as unknown as Client;
 
+  // The in-process status edge as a recording fake: these are UNIT pins
+  // of the activity's payload boundary, so the lane is a seam here (the
+  // real lane is exercised in own-behalf-status-writes.test.ts).
+  const writes: AgentExecutionUpdateStatusInput[] = [];
+  let writerFault: ConnectError | undefined;
+  const statusWriter: ExecutionStatusWriter = {
+    updateStatus: (input) => {
+      if (writerFault !== undefined) {
+        return Promise.reject(writerFault);
+      }
+      writes.push(input);
+      return Promise.resolve(create(UpdateStatusResponseSchema));
+    },
+  };
+
   const activities = createAgentExecutionActivities({
     store,
     logger: silentLogger,
-    broker,
-    authorizer: newPermissiveSingleTeamAuthorizer(),
-    statusObservers: [],
-    responseDecorators: [],
+    statusWriter: () => statusWriter,
     client: () => stubClient,
   });
-  return { store, broker, activities, completions };
+  return {
+    store,
+    activities,
+    completions,
+    writes,
+    failWriterWith(error: ConnectError): void {
+      writerFault = error;
+    },
+  };
 }
 
 async function saveExecution(
@@ -124,20 +147,16 @@ async function saveExecution(
 }
 
 describe("UpdateExecutionStatus activity", () => {
-  it("merges the proto-JSON status through the #17 chokepoint and broadcasts", async () => {
-    const { store, broker, activities } = newFixture();
-    await saveExecution(store, "aex_upd_1");
-    const broadcasts: AgentExecution[] = [];
-    const originalBroadcast = broker.broadcast.bind(broker);
-    broker.broadcast = (execution) => {
-      broadcasts.push(execution);
-      originalBroadcast(execution);
-    };
-
+  it("decodes the proto-JSON status into a typed UpdateStatus input for the in-process edge", async () => {
+    const { activities, writes } = newFixture();
     const update = create(AgentExecutionStatusSchema, {
       phase: ExecutionPhase.EXECUTION_FAILED,
       error: "boom",
+      // An int64 field crossing the payload boundary as JSON and coming
+      // back typed — the bigint rule the module header states.
+      streamingUsage: { totalTokens: 1234n },
     });
+
     await (
       activities[UPDATE_EXECUTION_STATUS_ACTIVITY_NAME] as (
         id: string,
@@ -145,19 +164,15 @@ describe("UpdateExecutionStatus activity", () => {
       ) => Promise<void>
     )("aex_upd_1", toJson(AgentExecutionStatusSchema, update));
 
-    const persisted = await store.getResource(
-      ApiResourceKind.agent_execution,
-      "aex_upd_1",
-      AgentExecutionSchema,
-    );
-    expect(persisted.status?.phase).toBe(ExecutionPhase.EXECUTION_FAILED);
-    expect(persisted.status?.error).toBe("boom");
-    expect(broadcasts).toHaveLength(1);
+    expect(writes).toHaveLength(1);
+    expect(writes[0]?.executionId).toBe("aex_upd_1");
+    expect(writes[0]?.status?.phase).toBe(ExecutionPhase.EXECUTION_FAILED);
+    expect(writes[0]?.status?.error).toBe("boom");
+    expect(writes[0]?.status?.streamingUsage?.totalTokens).toBe(1234n);
   });
 
-  it("fails as an ordinary activity error on malformed status JSON", async () => {
-    const { store, activities } = newFixture();
-    await saveExecution(store, "aex_upd_bad");
+  it("fails as an ordinary activity error on malformed status JSON, before the edge is reached", async () => {
+    const { activities, writes } = newFixture();
     await expect(
       (
         activities[UPDATE_EXECUTION_STATUS_ACTIVITY_NAME] as (
@@ -166,10 +181,14 @@ describe("UpdateExecutionStatus activity", () => {
         ) => Promise<void>
       )("aex_upd_bad", { phase: { not: "a phase" } }),
     ).rejects.toThrow();
+    expect(writes).toHaveLength(0);
   });
 
-  it("fails on an unknown execution (Go store.UpdateResource NotFound parity)", async () => {
-    const { activities } = newFixture();
+  it("surfaces the edge's ConnectError as the activity's failure (the lane's NotFound for a deleted execution)", async () => {
+    const { activities, failWriterWith } = newFixture();
+    failWriterWith(
+      new ConnectError("AgentExecution not found: aex_missing", Code.NotFound),
+    );
     await expect(
       (
         activities[UPDATE_EXECUTION_STATUS_ACTIVITY_NAME] as (

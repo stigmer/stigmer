@@ -72,6 +72,7 @@ import type { AgentExecutionFileDecisionForwarder } from "../domain/workflowexec
 import type { ParentWorkflowLoader } from "../domain/workflowinstance/steps.js";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { OrphanDeleter } from "../domain/project/reconcile.js";
+import type { ExecutionStatusWriter } from "../temporal/agentexecution/activities.js";
 import type { ScheduleExecutionCreator } from "../temporal/schedule/run-starter.js";
 import { buildInterceptorChain } from "../pipeline/chain.js";
 import {
@@ -139,6 +140,19 @@ export interface InProcessClients {
    * run exactly as for an external create.
    */
   readonly scheduleExecutionCreator: ScheduleExecutionCreator;
+  /**
+   * The agent-execution worker's own-behalf status edge (stigmer#979): the
+   * invoke workflow's fallback writes — FAILED when a runner fails without
+   * persisting, the IN_PROGRESS re-assertions on recovery and resume, the
+   * CANCELLED fallback, the PAUSED / WAITING_FOR_APPROVAL defense-in-depth
+   * persists — enter the SAME updateStatus chain the runner's gRPC path
+   * runs (Authorize, the merge chokepoint, the status hooks, the
+   * broadcast) and carry the internal caller class this transport's
+   * position 1 stamps. The worker builds no identity of its own: server
+   * code acting on its own behalf rides this lane, where the class is
+   * minted — exactly like the schedule clock and the reconciler above.
+   */
+  readonly executionStatusWriter: ExecutionStatusWriter;
 }
 
 /**
@@ -348,6 +362,14 @@ export function createInProcessClients(
           execution,
           fireCaller === undefined ? undefined : asCaller(fireCaller),
         ),
+    },
+    // The worker's own-behalf status writes — the plain UpdateStatus RPC
+    // under the internal class (never asCaller: the fallback is the
+    // server's own reconciliation of a runner outcome, a daemon-origin
+    // write with no original caller to propagate, exactly the schedule
+    // clock's posture when no fire caller is composed).
+    executionStatusWriter: {
+      updateStatus: (input) => agentExecutionCommand.updateStatus(input),
     },
     // The project reconciler's delete routing — Go's
     // ResourceDeleterAdapter.Delete switch (execution_engine.go:75-92).

@@ -128,6 +128,23 @@ eventually violate creatively.
   health/reflection services) is the composition's business, decoded
   from `CallerIdentity.rawToken` — OSS runs every guard on every serving
   request and stays policy-free.
+- **Server code acting on its own behalf rides the in-process transport**
+  (`src/boot/inprocess.ts`; stigmer#979). The schedule clock's fires, the
+  reconciler's deletes, the HITL forwarders, and the agent-execution
+  worker's own status writes all reach their RPCs through that lane,
+  whose position 1 mints the `internal` caller class the Authorize step
+  honors as the server acting as itself (O2 ruling Q4) and whose chain
+  validates, logs, and kind-tags the call like an external one (DD-002).
+  Never call a domain function directly with a hand-built
+  `CallerIdentity`: no server code constructs one outside
+  `pipeline/interceptors/auth.ts`, and `trustedLocalIdentity()` is the
+  chassis's WIRE fallback (the unclaimed-request principal), never a
+  worker's identity — handing it to a worker write is exactly how an
+  enforcing Authorizer came to refuse the composition's own FAILED stamp.
+  A new server-internal caller adds a narrow, method-segregated edge to
+  `InProcessClients` (the `scheduleExecutionCreator` /
+  `executionStatusWriter` shape) and resolves it lazily through
+  `requireInProcess` when it is built before the routes exist.
 - **The require-authentication posture has exactly two sources, OR'd in
   compose.ts** (entry 20260904.02): the OSS OIDC issuer
   (`STIGMER_OIDC_ISSUER`, O3) and a composed unit's

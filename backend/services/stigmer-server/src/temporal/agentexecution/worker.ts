@@ -21,26 +21,22 @@
  */
 import type { Logger } from "../../boot/logger.js";
 import type { AgentExecutionTemporalConfig } from "../../domain/agentexecution/temporal/config.js";
-import type { StreamBroker } from "../../domain/agentexecution/stream-broker.js";
 import type { Store } from "../../store/interface.js";
-import type { Authorizer } from "../../extensions/authorizer.js";
-import type {
-  AgentExecutionResponseDecorator,
-  AgentExecutionStatusObserver,
-} from "../../extensions/status-hooks.js";
 import type { WorkerFactory } from "../manager.js";
 import { resolveWorkflowSource } from "../workflow-source.js";
+import type { ExecutionStatusWriter } from "./activities.js";
 import { createAgentExecutionActivities } from "./activities.js";
 
 export interface AgentExecutionWorkerDeps {
   readonly store: Store;
   readonly logger: Logger;
-  readonly broker: StreamBroker;
-  /** The composed Authorizer — the status-merge activity's updateStatus pipeline carries the Authorize step like every chain (O2). */
-  readonly authorizer: Authorizer;
-  /** The composed status hooks — the activity's updateStatus reuse (O4). */
-  readonly statusObservers: ReadonlyArray<AgentExecutionStatusObserver>;
-  readonly responseDecorators: ReadonlyArray<AgentExecutionResponseDecorator>;
+  /**
+   * The in-process status edge for the worker's own-behalf writes
+   * (activities.ts header): the Authorizer, the status hooks, and the
+   * broadcast all live in the handler this edge reaches — the worker
+   * composes none of them itself.
+   */
+  readonly statusWriter: () => ExecutionStatusWriter;
   readonly temporalConfig: AgentExecutionTemporalConfig;
 }
 
@@ -51,10 +47,7 @@ export function newAgentExecutionWorkerFactory(
     const activities = createAgentExecutionActivities({
       store: deps.store,
       logger: deps.logger,
-      broker: deps.broker,
-      authorizer: deps.authorizer,
-      statusObservers: deps.statusObservers,
-      responseDecorators: deps.responseDecorators,
+      statusWriter: deps.statusWriter,
       client,
     });
 
