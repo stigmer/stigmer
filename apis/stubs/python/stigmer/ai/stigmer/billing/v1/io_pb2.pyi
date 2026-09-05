@@ -1,8 +1,9 @@
 import datetime
 
+from ai.stigmer.agentic.agentexecution.v1 import enum_pb2 as _enum_pb2
 from ai.stigmer.agentic.agentexecution.v1 import usage_pb2 as _usage_pb2
 from ai.stigmer.billing.v1 import credit_pb2 as _credit_pb2
-from ai.stigmer.billing.v1 import enum_pb2 as _enum_pb2
+from ai.stigmer.billing.v1 import enum_pb2 as _enum_pb2_1
 from ai.stigmer.billing.v1 import model_pricing_baseline_pb2 as _model_pricing_baseline_pb2
 from ai.stigmer.billing.v1 import pricing_override_pb2 as _pricing_override_pb2
 from ai.stigmer.commons.rpc import pagination_pb2 as _pagination_pb2
@@ -75,7 +76,7 @@ class AuthorizeExecutionResponse(_message.Message):
     def __init__(self, authorized: bool = ..., reservation_id: _Optional[str] = ..., reserved_micros: _Optional[int] = ..., available_balance_micros: _Optional[int] = ..., denial_reason: _Optional[str] = ...) -> None: ...
 
 class RecordLlmCallUsageInput(_message.Message):
-    __slots__ = ("execution_id", "sequence", "provider", "resolved_model", "requested_model", "tokens", "usage_status", "provider_request_id", "http_status_code", "streaming", "finish_reason", "proxy_timing", "provider_usage_json", "harness", "cursor_account_id", "cursor_key_id", "cursor_key_source", "served_service_tier")
+    __slots__ = ("execution_id", "sequence", "provider", "resolved_model", "requested_model", "tokens", "usage_status", "provider_request_id", "http_status_code", "streaming", "finish_reason", "proxy_timing", "provider_usage_json", "harness", "cursor_account_id", "cursor_key_id", "cursor_key_source", "served_service_tier", "metered_execution")
     EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
     SEQUENCE_FIELD_NUMBER: _ClassVar[int]
     PROVIDER_FIELD_NUMBER: _ClassVar[int]
@@ -94,6 +95,7 @@ class RecordLlmCallUsageInput(_message.Message):
     CURSOR_KEY_ID_FIELD_NUMBER: _ClassVar[int]
     CURSOR_KEY_SOURCE_FIELD_NUMBER: _ClassVar[int]
     SERVED_SERVICE_TIER_FIELD_NUMBER: _ClassVar[int]
+    METERED_EXECUTION_FIELD_NUMBER: _ClassVar[int]
     execution_id: str
     sequence: int
     provider: str
@@ -112,7 +114,20 @@ class RecordLlmCallUsageInput(_message.Message):
     cursor_key_id: str
     cursor_key_source: _usage_pb2.CursorKeySource
     served_service_tier: str
-    def __init__(self, execution_id: _Optional[str] = ..., sequence: _Optional[int] = ..., provider: _Optional[str] = ..., resolved_model: _Optional[str] = ..., requested_model: _Optional[str] = ..., tokens: _Optional[_Union[_usage_pb2.TokenUsage, _Mapping]] = ..., usage_status: _Optional[_Union[_usage_pb2.UsageCompletionStatus, str]] = ..., provider_request_id: _Optional[str] = ..., http_status_code: _Optional[int] = ..., streaming: bool = ..., finish_reason: _Optional[str] = ..., proxy_timing: _Optional[_Union[_usage_pb2.ProxyTiming, _Mapping]] = ..., provider_usage_json: _Optional[str] = ..., harness: _Optional[str] = ..., cursor_account_id: _Optional[str] = ..., cursor_key_id: _Optional[str] = ..., cursor_key_source: _Optional[_Union[_usage_pb2.CursorKeySource, str]] = ..., served_service_tier: _Optional[str] = ...) -> None: ...
+    metered_execution: MeteredExecution
+    def __init__(self, execution_id: _Optional[str] = ..., sequence: _Optional[int] = ..., provider: _Optional[str] = ..., resolved_model: _Optional[str] = ..., requested_model: _Optional[str] = ..., tokens: _Optional[_Union[_usage_pb2.TokenUsage, _Mapping]] = ..., usage_status: _Optional[_Union[_usage_pb2.UsageCompletionStatus, str]] = ..., provider_request_id: _Optional[str] = ..., http_status_code: _Optional[int] = ..., streaming: bool = ..., finish_reason: _Optional[str] = ..., proxy_timing: _Optional[_Union[_usage_pb2.ProxyTiming, _Mapping]] = ..., provider_usage_json: _Optional[str] = ..., harness: _Optional[str] = ..., cursor_account_id: _Optional[str] = ..., cursor_key_id: _Optional[str] = ..., cursor_key_source: _Optional[_Union[_usage_pb2.CursorKeySource, str]] = ..., served_service_tier: _Optional[str] = ..., metered_execution: _Optional[_Union[MeteredExecution, _Mapping]] = ...) -> None: ...
+
+class MeteredExecution(_message.Message):
+    __slots__ = ("session_id", "pinned_model", "requested_service_tier", "requested_thinking_mode")
+    SESSION_ID_FIELD_NUMBER: _ClassVar[int]
+    PINNED_MODEL_FIELD_NUMBER: _ClassVar[int]
+    REQUESTED_SERVICE_TIER_FIELD_NUMBER: _ClassVar[int]
+    REQUESTED_THINKING_MODE_FIELD_NUMBER: _ClassVar[int]
+    session_id: str
+    pinned_model: str
+    requested_service_tier: _enum_pb2.ServiceTier
+    requested_thinking_mode: _enum_pb2.ThinkingMode
+    def __init__(self, session_id: _Optional[str] = ..., pinned_model: _Optional[str] = ..., requested_service_tier: _Optional[_Union[_enum_pb2.ServiceTier, str]] = ..., requested_thinking_mode: _Optional[_Union[_enum_pb2.ThinkingMode, str]] = ...) -> None: ...
 
 class RecordLlmCallUsageResponse(_message.Message):
     __slots__ = ("usage_record_id", "provider_cost_micros", "customer_billable_amount_micros", "is_billable", "is_duplicate")
@@ -224,11 +239,11 @@ class GetCreditLedgerInput(_message.Message):
     VIEW_FIELD_NUMBER: _ClassVar[int]
     org_id: str
     page: _pagination_pb2.PageInfo
-    type_filter: _containers.RepeatedScalarFieldContainer[_enum_pb2.LedgerEntryType]
+    type_filter: _containers.RepeatedScalarFieldContainer[_enum_pb2_1.LedgerEntryType]
     start_time: _timestamp_pb2.Timestamp
     end_time: _timestamp_pb2.Timestamp
-    view: _enum_pb2.LedgerView
-    def __init__(self, org_id: _Optional[str] = ..., page: _Optional[_Union[_pagination_pb2.PageInfo, _Mapping]] = ..., type_filter: _Optional[_Iterable[_Union[_enum_pb2.LedgerEntryType, str]]] = ..., start_time: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., end_time: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., view: _Optional[_Union[_enum_pb2.LedgerView, str]] = ...) -> None: ...
+    view: _enum_pb2_1.LedgerView
+    def __init__(self, org_id: _Optional[str] = ..., page: _Optional[_Union[_pagination_pb2.PageInfo, _Mapping]] = ..., type_filter: _Optional[_Iterable[_Union[_enum_pb2_1.LedgerEntryType, str]]] = ..., start_time: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., end_time: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., view: _Optional[_Union[_enum_pb2_1.LedgerView, str]] = ...) -> None: ...
 
 class CreditLedgerResponse(_message.Message):
     __slots__ = ("entries", "total_pages")
@@ -438,6 +453,6 @@ class GetExecutionBillingSignalResponse(_message.Message):
     __slots__ = ("signal", "reason")
     SIGNAL_FIELD_NUMBER: _ClassVar[int]
     REASON_FIELD_NUMBER: _ClassVar[int]
-    signal: _enum_pb2.ExecutionBillingSignal
+    signal: _enum_pb2_1.ExecutionBillingSignal
     reason: str
-    def __init__(self, signal: _Optional[_Union[_enum_pb2.ExecutionBillingSignal, str]] = ..., reason: _Optional[str] = ...) -> None: ...
+    def __init__(self, signal: _Optional[_Union[_enum_pb2_1.ExecutionBillingSignal, str]] = ..., reason: _Optional[str] = ...) -> None: ...
