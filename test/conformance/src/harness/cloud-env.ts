@@ -67,6 +67,24 @@ export const CLOUD_ENV = {
   // covered by test/integration-security; making the hermetic launcher run
   // production mode is a recorded follow-up (entry 20260904.02, D-S1).
   edgeAuthentication: "STIGMER_CONFORMANCE_CLOUD_EDGE_AUTHENTICATION",
+  // The platform identity tenant the server under test was booted against
+  // (its STIGMER_IDP_URL / Java idp-url), as the readout substrate's mock
+  // tenant declares it — so the direct-login suite can MINT the tokens a
+  // console, desktop, CLI or MCP client presents and drive the server's
+  // direct-login lane (stigmer-cloud#604, the S1 lane). The signing key is
+  // the private half of the key the tenant's JWKS publishes (base64 of a
+  // PKCS#8 PEM, the composition's `*_BASE64` custody pattern); the kid names
+  // it in that document. Deliberately UNSET wherever the suite cannot own
+  // the tenant's key — the hermetic launcher (test security mode, no edge)
+  // and any deployed endpoint (a real tenant's key is never handed to
+  // conformance) — so CloudTarget exposes no directLoginTenant and the
+  // suite skips VISIBLY. The API audience is required with the issuer; the
+  // MCP audience is optional (blank = the tenant mints for the API alone).
+  directLoginIssuer: "STIGMER_CONFORMANCE_CLOUD_DIRECT_LOGIN_ISSUER",
+  directLoginSigningKeyBase64: "STIGMER_CONFORMANCE_CLOUD_DIRECT_LOGIN_SIGNING_KEY_BASE64",
+  directLoginKid: "STIGMER_CONFORMANCE_CLOUD_DIRECT_LOGIN_KID",
+  directLoginApiAudience: "STIGMER_CONFORMANCE_CLOUD_DIRECT_LOGIN_API_AUDIENCE",
+  directLoginMcpAudience: "STIGMER_CONFORMANCE_CLOUD_DIRECT_LOGIN_MCP_AUDIENCE",
 } as const;
 
 // The two declared edge postures — see CLOUD_ENV.edgeAuthentication.

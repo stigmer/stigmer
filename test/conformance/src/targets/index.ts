@@ -34,4 +34,4 @@ export function createTarget(): TargetProfile {
 }
 
 export type { TargetProfile } from "./target";
-export type { CapabilityFlags, TenancyContext } from "./target";
+export type { CapabilityFlags, DirectLoginTenant, TenancyContext } from "./target";

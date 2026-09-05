@@ -169,6 +169,20 @@ CI: `.github/workflows/ci.conformance-cloud.yaml` builds the JAR from
 cloud-side drift, since path triggers in this repo cannot see stigmer-cloud
 merges.
 
+**The direct-login arms** (`direct-login.conformance.test.ts`, stigmer-cloud#604)
+drive the lane a console, desktop, CLI or MCP client actually rides: the raw
+access token the PLATFORM'S OWN identity tenant mints, verified and resolved
+to the caller's account at position 1. The suite forges nothing about the
+tenant — it mints through `CloudTarget.directLoginTenant()`, which exists only
+where the environment hands the harness the tenant's signing key
+(`STIGMER_CONFORMANCE_CLOUD_DIRECT_LOGIN_ISSUER` / `_SIGNING_KEY_BASE64` /
+`_KID` / `_API_AUDIENCE` / optional `_MCP_AUDIENCE`): the composition readout
+substrate's mock tenant (`stigmer-cloud` `backend/services/stigmer-server/spike/identity-tenant.ts`
+writes that group beside the composition's own `STIGMER_IDP_*` boot trio). The
+hermetic Java launcher (test security mode, no edge) and every deployed
+endpoint (a real tenant's key is never conformance's) leave the group unset,
+and the arms skip VISIBLY with the target's reason.
+
 ## Design
 
 ### Raw stubs, not the SDK

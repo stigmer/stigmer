@@ -61,6 +61,9 @@ export class LocalExecutionTarget implements TargetProfile {
     // Single-operator trusted-local posture, as on `local` — the runner's
     // STIGMER_TOKEN is a proxy bearer the server never verifies.
     requiresAuthentication: false,
+    // No platform identity tenant on the single-operator posture; the OSS
+    // OIDC lane is a different contract (target.ts).
+    directLogin: false,
   };
 
   private temporal: RunningTemporal | undefined;
