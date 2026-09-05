@@ -151,9 +151,17 @@ eventually violate creatively.
   `ServerExtension.requireAuthentication: true` — a single-declaration
   registry point in the edition's shape (one unit declares, a second
   throws; the literal type forbids `false`). A composition whose own
-  verifiers are its only admission path declares it; it never borrows
-  the issuer knob (that registers the OSS verifiers ahead of its own). A
-  declared posture with zero composed verifiers is a boot throw. Under
+  verifiers resolve its users declares it; it never borrows the issuer
+  knob (that registers the OSS OIDC verifier ahead of its own and
+  resolves callers to the token's `sub`). **The OSS API-key verifier
+  rides the POSTURE, not the issuer** (stigmer#984): whenever either
+  source is on, `apikey` is composed FIRST (Java's provider order — the
+  apikey domain is open-source tier and mints `stk_` keys in every
+  composition, so a server with an authentication posture honors the
+  keys it issues); the OIDC verifier is the issuer arm's alone. A
+  declared posture whose unit registers no verifier of its own is a boot
+  throw — the API-key lane alone cannot admit the first caller (O3
+  ruling Q1's bootstrap problem). Under
   the posture, tokenless requests are refused EXCEPT where
   `isAuthenticationExempt` says so: `is_public` methods (our protos) and
   the services in `AUTHENTICATION_EXEMPT_SERVICES` by name (third-party
