@@ -49,6 +49,9 @@ export class LocalTarget implements TargetProfile {
     // posture, zero verifiers — a tokenless request IS the operator (the
     // authentication suite pins that admission, entry 20260904.02).
     requiresAuthentication: false,
+    // No platform identity tenant on the single-operator posture; the OSS
+    // OIDC lane is a different contract (target.ts).
+    directLogin: false,
   };
 
   private server: RunningServer | undefined;

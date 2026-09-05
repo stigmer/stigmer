@@ -248,6 +248,35 @@ export interface CapabilityFlags {
   // multiTenant: a self-host with STIGMER_OIDC_ISSUER set requires
   // authentication with neither of those.
   requiresAuthentication: boolean;
+  // The edition has a lane for the PLATFORM'S OWN identity tenant: the raw
+  // access token a console, desktop, CLI or MCP client obtains from that
+  // tenant is verified at position 1 and its subject RESOLVED to the
+  // caller's identity-account id before authorization runs (Java's
+  // RequestCallerIdentityMapper; the TS composition's direct-idp verifier,
+  // stigmer-cloud#604). An unknown subject is admitted "idp-shaped" so
+  // whoAmI answers NOT_FOUND and provisionMyAccount can create the account
+  // — the console's first-login flow. True for cloud. False for the local
+  // OSS targets BY DESIGN: the OSS OIDC lane (STIGMER_OIDC_ISSUER) stamps
+  // the raw subject as the identity — a self-host contract, not this one —
+  // and the trusted-local posture has no tenant at all.
+  directLogin: boolean;
+}
+
+// A platform identity tenant the target can mint for — see
+// TargetProfile.directLoginTenant.
+export interface DirectLoginTenant {
+  // The issuer exactly as the tenant publishes it (Auth0: trailing slash).
+  readonly issuer: string;
+  // The audience every first-party client requests.
+  readonly apiAudience: string;
+  // The hosted MCP server's audience, when the tenant mints for one.
+  readonly mcpAudience: string | undefined;
+  // A token the tenant would issue: RS256 under the tenant's kid, `iss` as
+  // published, `aud` as given (default: the API audience, in the array
+  // form Auth0 mints beside its userinfo entry), no profile claims — an
+  // ACCESS token, not an id token. `ttlSeconds` may be negative to mint an
+  // already-expired token.
+  mint(input: { subject: string; audience?: string; ttlSeconds?: number }): string;
 }
 
 // Tenancy scope a test operates within. Locally this is just a unique org slug
@@ -314,6 +343,20 @@ export interface TargetProfile {
   // enforced — a readout that forgets the variable fails loudly, never
   // false-greens); the local targets' posture IS what their flag says.
   edgeAuthenticationBypass?(): string | undefined;
+
+  // The platform identity tenant the server under test trusts, as a MINT:
+  // the suite forges nothing — it asks the target for tokens shaped exactly
+  // like the ones the tenant issues (its published issuer, an audience it
+  // mints for, RS256 under a kid its JWKS carries) and drives the server's
+  // direct-login lane with them. Present only where the harness OWNS the
+  // tenant's signing key — the readout substrate's mock tenant, declared
+  // through CLOUD_ENV.directLogin* — never on a deployed endpoint (a real
+  // tenant's key is not conformance's to hold) and never on the hermetic
+  // launcher (test security mode has no edge). Where absent, the
+  // direct-login suite skips VISIBLY with the target's reason
+  // (directLoginUnavailable). Valid only after setup().
+  directLoginTenant?(): DirectLoginTenant;
+  directLoginUnavailable?(): string;
 
   // Provision an isolated tenancy scope for a test. cleanupTenancy releases it.
   provisionTenancy(): Promise<TenancyContext>;

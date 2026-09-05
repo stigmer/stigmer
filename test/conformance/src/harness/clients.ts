@@ -59,6 +59,8 @@ import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenanc
 import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
 import { Health } from "@stigmer/protos/grpc/health/v1/health_pb";
 import { ApiKeyCommandController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/command_pb";
+import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/command_pb";
+import { IdentityAccountQueryController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/query_pb";
 import { ApiKeyQueryController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/query_pb";
 import { ProjectCommandController } from "@stigmer/protos/ai/stigmer/tenancy/project/v1/command_pb";
 import { ProjectQueryController } from "@stigmer/protos/ai/stigmer/tenancy/project/v1/query_pb";
@@ -84,6 +86,8 @@ export interface ConformanceClients {
   search: Client<typeof SearchService>;
   projectCommand: Client<typeof ProjectCommandController>;
   projectQuery: Client<typeof ProjectQueryController>;
+  identityAccountCommand: Client<typeof IdentityAccountCommandController>;
+  identityAccountQuery: Client<typeof IdentityAccountQueryController>;
   organizationCommand: Client<typeof OrganizationCommandController>;
   organizationQuery: Client<typeof OrganizationQueryController>;
   workflowCommand: Client<typeof WorkflowCommandController>;
@@ -190,6 +194,14 @@ export function makeClients(transport: Transport): ConformanceClients {
     apiKeyQuery: createClient(ApiKeyQueryController, transport),
     projectCommand: createClient(ProjectCommandController, transport),
     projectQuery: createClient(ProjectQueryController, transport),
+    identityAccountCommand: createClient(
+      IdentityAccountCommandController,
+      transport,
+    ),
+    identityAccountQuery: createClient(
+      IdentityAccountQueryController,
+      transport,
+    ),
     organizationCommand: createClient(OrganizationCommandController, transport),
     organizationQuery: createClient(OrganizationQueryController, transport),
     workflowCommand: createClient(WorkflowCommandController, transport),

@@ -18,9 +18,19 @@ import {
   resolveEdgeAuthentication,
 } from "../harness/cloud-env";
 import { createTransport, makeClients, type ConformanceClients } from "../harness/clients";
+import {
+  newDirectLoginTenant,
+  readDirectLoginTenantMaterial,
+} from "../harness/direct-login-tenant";
 import { awaitGrpcReady } from "../harness/grpc-ready";
 import { uniqueName, uniqueOrg } from "../support/naming";
-import type { CapabilityFlags, PrivilegedScope, TargetProfile, TenancyContext } from "./target";
+import type {
+  CapabilityFlags,
+  DirectLoginTenant,
+  PrivilegedScope,
+  TargetProfile,
+  TenancyContext,
+} from "./target";
 
 const ORG_API_VERSION = "tenancy.stigmer.ai/v1";
 const ORG_KIND = "Organization";
@@ -84,6 +94,10 @@ export class CloudTarget implements TargetProfile {
     // through the registry point its cloud-core unit declares (entry
     // 20260904.02) — the same byte-pinned refusal on both.
     requiresAuthentication: true,
+    // The platform tenant's tokens are verified and their subject resolved to
+    // the ida_ at position 1: Java's Auth0 decoder + RequestCallerIdentityMapper
+    // natively, the composition's direct-idp verifier (stigmer-cloud#604).
+    directLogin: true,
   };
 
   private grpcBaseUrl: string | undefined;
@@ -99,6 +113,13 @@ export class CloudTarget implements TargetProfile {
   // deliberately never do (the stigmer#547 permanent-skip ruling), so the
   // method itself is absent there and privileged-lane assertions skip.
   provisionPrivilegedScope?: () => Promise<PrivilegedScope>;
+
+  // Present only when the environment hands over the platform tenant's
+  // signing key (CLOUD_ENV.directLogin*) — the readout substrate's mock
+  // tenant does; the hermetic launcher and every deployed endpoint never do
+  // (a real tenant's key is not conformance's to hold), so the method is
+  // absent there and the direct-login suite skips with the reason below.
+  directLoginTenant?: () => DirectLoginTenant;
 
   async setup(): Promise<void> {
     this.grpcBaseUrl = requireEnv(CLOUD_ENV.address);
@@ -116,6 +137,20 @@ export class CloudTarget implements TargetProfile {
       );
       this.provisionPrivilegedScope = () => this.createPrivilegedScope();
     }
+
+    const tenantMaterial = readDirectLoginTenantMaterial();
+    if (tenantMaterial !== undefined) {
+      const tenant = newDirectLoginTenant(tenantMaterial);
+      this.directLoginTenant = () => tenant;
+    }
+  }
+
+  directLoginUnavailable(): string {
+    return (
+      `${CLOUD_ENV.directLoginIssuer} is unset — this environment does not hand conformance the platform ` +
+      "tenant's signing key (the hermetic launcher runs in test security mode with no edge; a deployed " +
+      "endpoint's real tenant key is never conformance's to hold), so the direct-login lane cannot be driven here"
+    );
   }
 
   // Platform-operator power grants nothing at org level (the FGA model checks
