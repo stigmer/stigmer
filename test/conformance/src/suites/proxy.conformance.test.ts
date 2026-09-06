@@ -12,8 +12,9 @@
 //   cursor       — the three arms that need no upstream: host allow-list 403,
 //                  scope 403, pool-exhausted 503 (relay rows are `smoke`)
 //   cursor-bidi  — the handshake refusals over raw h2c (relay is `smoke`)
-//   claimcheck / artifact / checkpointer — presign and storage lanes: scope,
-//                  key rules, round-trips, 413
+//   artifact / checkpointer — presign and storage lanes: scope, key rules,
+//                  round-trips, 413 (claimcheck: ruled debris at C6's gate —
+//                  no caller, stigmer#992; rows kept in the inventory as `debris`)
 //   model-registry, health
 //
 // The upstream is the run's fake LLM provider (harness/fake-llm-upstream.ts):
@@ -446,47 +447,6 @@ describe.skipIf(!proxyServed)("Side-channel proxy conformance (sideChannelProxy 
   });
 
   describe("storage lanes", () => {
-    it("[proxy.claimcheck.presign-requires-workflow-scope-can-edit] claimcheck presigns for a workflow execution the caller can edit and refuses without or with a foreign scope", async () => {
-      const { org } = await fundedOrg();
-      const workflowExecutionId = await ownedWorkflowExecution(org);
-      const key = `claimcheck/${crypto.randomUUID()}`;
-      for (const verb of ["presigned-upload-url", "presigned-download-url"]) {
-        const ok = await proxyFetch(`/v1/proxy/claimcheck/${verb}`, {
-          method: "POST",
-          scope: { [WORKFLOW_EXECUTION_HEADER]: workflowExecutionId },
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ key }),
-        });
-        expect(ok.status, verb).toBe(200);
-        expect(((await ok.json()) as { url: string }).url).toMatch(/^https?:\/\//);
-        const noScope = await proxyFetch(`/v1/proxy/claimcheck/${verb}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ key }) });
-        expect(noScope.status, `${verb} without scope`).toBe(403);
-      }
-      const token = await mintOutsiderToken();
-      const foreign = await proxyFetch("/v1/proxy/claimcheck/presigned-upload-url", {
-        method: "POST",
-        token,
-        scope: { [WORKFLOW_EXECUTION_HEADER]: workflowExecutionId },
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ key }),
-      });
-      expect(foreign.status).toBe(403);
-    });
-
-    it("[proxy.claimcheck.key-rules] claimcheck keys must be claimcheck/<uuid>, non-blank and at most 512 characters", async () => {
-      const { org } = await fundedOrg();
-      const workflowExecutionId = await ownedWorkflowExecution(org);
-      for (const key of ["", "claimcheck/not-a-uuid", `claimcheck/${"a".repeat(600)}`, "artifacts/x"]) {
-        const response = await proxyFetch("/v1/proxy/claimcheck/presigned-upload-url", {
-          method: "POST",
-          scope: { [WORKFLOW_EXECUTION_HEADER]: workflowExecutionId },
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ key }),
-        });
-        expect(response.status, JSON.stringify(key).slice(0, 40)).toBe(400);
-      }
-    });
-
     it("[proxy.artifact.presign-by-key-shape-and-permission] artifact presigns are authorized by the execution id inside the key; attachments need only authentication", async () => {
       const { org } = await fundedOrg();
       const executionId = await ownedExecution(org);

@@ -24,7 +24,10 @@ async function main(): Promise<void> {
   for (const problem of problems) {
     console.error(`[inventory:${problem.kind}] ${problem.message}`);
   }
-  console.log(formatSummary({ ...coverage, problems }, inventory.rows.length));
+  const metricParts = ["ported", "dropped"]
+    .map((d) => `${d} ${inventory.metrics.filter((m) => m.disposition === d).length}`)
+    .join(", ");
+  console.log(`${formatSummary({ ...coverage, problems }, inventory.rows.length)}; metrics: ${inventory.metrics.length} (${metricParts})`);
   if (problems.length > 0) process.exit(1);
 }
 

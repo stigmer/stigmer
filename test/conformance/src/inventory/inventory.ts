@@ -100,18 +100,39 @@ const rowSchema = z
 
 export type InventoryRow = z.infer<typeof rowSchema>;
 
-// The file is a map with one `rows` list plus a documented, initially empty
-// `metrics` section offered to C5/C6 for the metric inventory DD-012 asks of
-// them — one inventory mechanism for the program, not two.
+// The metric inventory DD-012 asks of C5 and C6 at their plan gates (checklist
+// line 80): every Java `stigmer.*` metric in their domain is a row here,
+// `ported` (the composition emits the byte-exact name) or `dropped` (its
+// mechanism retires with Java — the note says which). `alerts` names the
+// SigNoz alert files that read the series, so "re-pointed before X1" is a
+// list, not a sentence. One inventory mechanism for the program, not two.
+const metricRowSchema = z
+  .object({
+    name: z.string().regex(/^stigmer\.[a-z0-9_.]+$/, "a Java stigmer.* metric name, byte-exact"),
+    surface: z.enum(["billing", "proxy"]),
+    java_source: z.string().min(1),
+    disposition: z.enum(["ported", "dropped"]),
+    alerts: z.array(z.string().min(1)).optional(),
+    note: z.string().optional(),
+  })
+  .strict()
+  .refine((row) => row.disposition !== "dropped" || (row.note ?? "") !== "", {
+    message: "a dropped metric must say why its mechanism retires",
+    path: ["note"],
+  });
+
+export type MetricRow = z.infer<typeof metricRowSchema>;
+
 const inventorySchema = z
   .object({
     rows: z.array(rowSchema),
-    metrics: z.array(z.unknown()).default([]),
+    metrics: z.array(metricRowSchema).default([]),
   })
   .strict();
 
 export interface Inventory {
   readonly rows: readonly InventoryRow[];
+  readonly metrics: readonly MetricRow[];
 }
 
 export interface InventoryProblem {
@@ -128,7 +149,7 @@ export function parseInventory(yamlText: string): { inventory: Inventory; proble
   const parsed = inventorySchema.safeParse(load(yamlText));
   if (!parsed.success) {
     return {
-      inventory: { rows: [] },
+      inventory: { rows: [], metrics: [] },
       problems: parsed.error.issues.map((issue) => ({
         kind: "schema",
         message: `${issue.path.join(".")}: ${issue.message}`,
@@ -143,7 +164,14 @@ export function parseInventory(yamlText: string): { inventory: Inventory; proble
     }
     seen.add(row.id);
   }
-  return { inventory: { rows: parsed.data.rows }, problems };
+  const seenMetrics = new Set<string>();
+  for (const metric of parsed.data.metrics) {
+    if (seenMetrics.has(metric.name)) {
+      problems.push({ kind: "duplicate-id", message: `metric declared twice: ${metric.name}` });
+    }
+    seenMetrics.add(metric.name);
+  }
+  return { inventory: { rows: parsed.data.rows, metrics: parsed.data.metrics }, problems };
 }
 
 // A tag is the row id in square brackets anywhere in a suite source — by

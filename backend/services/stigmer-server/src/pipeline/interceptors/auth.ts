@@ -17,6 +17,11 @@
  *     takes NO guards — the in-process exemption is structural
  *     (caller-guards.ts), not a runtime skip.
  *
+ * The serving source's inner walk, authenticateBearerToken, is ALSO
+ * exported on its own (stigmer#991): a composition's extension-owned HTTP
+ * lanes are not Connect requests, so they cannot ride the interceptor, but
+ * they must authenticate with the same chain — one walk, two edges.
+ *
  * The internal class is mintable ONLY here, only by the in-process
  * interceptor: the serving chain always overwrites the position-1 value
  * from the wire, contextValues never cross a transport, and no
@@ -216,7 +221,7 @@ export function createVerifierChainInterceptor(
     const token = parseBearerToken(request.header.get("authorization") ?? "");
     let identity: CallerIdentity | undefined;
     if (token !== "") {
-      identity = await runVerifierChain(verifiers, token, logger);
+      identity = await authenticateBearerToken(verifiers, token, logger);
       if (identity === undefined && verifiers.length > 0) {
         // Position 1 is outside the logging interceptor, so the rejection
         // is recorded here (the wire carries only the sanitized copy).
@@ -361,9 +366,22 @@ export function createInProcessCallerInterceptor(): Interceptor {
  * The claim-or-pass walk (identity.ts contract): a claim wins, null moves
  * to the next verifier, a ConnectError throw is the verifier's own wire
  * mapping, any other throw is an infrastructure fault (INTERNAL — a JWKS
- * outage must never read as a credential rejection).
+ * outage must never read as a credential rejection). `undefined` means no
+ * verifier claimed the token — the CALLER decides what that means
+ * (the serving interceptor applies the Q6 strictness contract above).
+ *
+ * Exported (stigmer#991) so a composition's extension-owned HTTP lanes —
+ * edges that are not Connect requests and so never pass through
+ * createVerifierChainInterceptor — authenticate a presented bearer with
+ * the SAME composed chain, in the same order, under the same fault
+ * doctrine. The alternative, a composition re-instantiating its verifier
+ * list at the HTTP edge, is a second copy of chain order and fault
+ * mapping — exactly the drift DD-007's "one chain" rules out. This is the
+ * identity walk ONLY: caller guards (caller-guards.ts) are RPC-shaped by
+ * contract and stay the serving interceptor's; an HTTP edge that wants
+ * them is a contract widening, not a call site.
  */
-async function runVerifierChain(
+export async function authenticateBearerToken(
   verifiers: ReadonlyArray<IdentityVerifier>,
   token: string,
   logger: Logger,

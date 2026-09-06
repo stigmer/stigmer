@@ -56,6 +56,44 @@ describe("parseInventory", () => {
   });
 });
 
+// The metric inventory (C5/C6 gates, checklist line 80): a Java metric name is
+// either ported byte-exact or dropped with a reason; the section is typed so a
+// misspelt name or a silent drop is a schema problem, not a table nobody reads.
+const METRICS = `
+metrics:
+  - name: stigmer.proxy.llm.platform_provider_errors
+    surface: proxy
+    java_source: proxy/llm/PlatformProviderErrorMetrics.java
+    disposition: ported
+    alerts: [platform-provider-errors-log]
+  - name: stigmer.proxy.cursor.execution_authority_lookups
+    surface: proxy
+    java_source: proxy/cursor/keyselection/CompositionAuthorityExecutionContextSource.java
+    disposition: dropped
+    note: the D3 seam retires with Java
+`;
+
+describe("parseInventory — metrics", () => {
+  it("accepts ported and dropped metric rows and exposes them", () => {
+    const { inventory, problems } = parseInventory(`${ROW}${METRICS}`);
+    expect(problems).toEqual([]);
+    expect(inventory.metrics.map((m) => m.disposition)).toEqual(["ported", "dropped"]);
+  });
+
+  it("requires a note on a dropped metric", () => {
+    const silentDrop = `${ROW}${METRICS.replace("    note: the D3 seam retires with Java\n", "")}`;
+    const { problems } = parseInventory(silentDrop);
+    expect(problems.some((p) => p.kind === "schema" && p.message.includes("dropped metric must say why"))).toBe(true);
+  });
+
+  it("rejects a name outside the stigmer.* namespace and a duplicated name", () => {
+    const foreign = `${ROW}${METRICS.replace("stigmer.proxy.llm.platform_provider_errors", "http.server.duration")}`;
+    expect(parseInventory(foreign).problems.some((p) => p.kind === "schema")).toBe(true);
+    const dup = `${ROW}${METRICS.replace("stigmer.proxy.cursor.execution_authority_lookups", "stigmer.proxy.llm.platform_provider_errors")}`;
+    expect(parseInventory(dup).problems.filter((p) => p.kind === "duplicate-id")).toHaveLength(1);
+  });
+});
+
 describe("extractTags", () => {
   it("finds every bracketed row id in a suite source, ignoring other brackets", () => {
     const source = `it("[billing.rpc.adjust-credits.owner-can-adjust] adjusts", ...); const x = arr[0]; // [proxy.llm.unknown-provider.400]`;
