@@ -10,6 +10,8 @@
     "test:cloud": "vitest run -c vitest.cloud.config.ts",
     "test:cloud-execution": "vitest run -c vitest.cloud-execution.config.ts",
     "test:execution": "vitest run -c vitest.execution.config.ts",
+    "test:inventory": "vitest run -c vitest.inventory.config.ts",
+    "inventory:check": "tsx scripts/check-inventory.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -20,10 +22,12 @@
     "@stigmer/mcp-server": "*",
     "@stigmer/protos": "*",
     "fflate": "^0.8.3",
+    "js-yaml": "^4.3.1",
     "pg": "8.23.0",
     "zod": "^3.25.0"
   },
   "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.0.0",
     "@types/pg": "8.23.1",
     "typescript": "^5.8.0",

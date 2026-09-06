@@ -1,0 +1,50 @@
+# The cloud-capability behavior inventory (DD-012 §5: "a behavior inventory,
+# not a test count").
+#
+# Every behavior of the three surfaces the Java stigmer-service still owns
+# alone — the billing engine, the side-channel proxy, the public REST lane —
+# enumerated FROM JAVA'S CODE, cross-checked against Java's unit tests, and
+# given a disposition that says where it is proven. `npm run inventory:check`
+# (scripts/check-inventory.ts, logic in src/inventory/inventory.ts) fails the
+# CI lanes when a `conformance` or `deviation` row has no test tag, when a tag
+# names no row, or when a tag sits on a row whose proof lives elsewhere.
+#
+# Row fields (schema enforced by src/inventory/inventory.ts):
+#   id           <surface>.<lane>.<behavior> — stable dotted name, never a number;
+#                tests carry it as `[id]` in their titles.
+#   surface      billing | proxy | public
+#   lane         rpc.<name> | gate.<name> | hook.<name> | stripe.<event> | worker
+#                | llm | cursor | cursor-bidi | claimcheck | artifact | checkpointer
+#                | model-registry | health | public.<endpoint> | site
+#   behavior     one sentence: inputs -> status / typed field / side effect /
+#                exact copy where the copy is contract
+#   java_source  path under backend/services/stigmer-service/src/main/java/ai/stigmer (:line)
+#   java_test    path under .../src/test/java/ai/stigmer, or `none`
+#   class        behavior | carve-out (a DD-012 byte-identical carve-out) | adversarial
+#   disposition  conformance | deviation | unit | smoke | debris-candidate | debris
+#   observability launcher | launcher-authz-only | composition-only | none
+#                (`launcher-authz-only`: needs production security mode — the
+#                hermetic launcher runs STIGMER_SECURITY_MODE=test, which does
+#                not load HttpSecurityConfig; those tests skip through
+#                TargetProfile.edgeAuthenticationBypass() until the launcher
+#                entry lands)
+#   caller       primary | operator | outsider | anonymous | runner-token | none
+#   needs        fixtures/affordances the test requires
+#   note         optional context
+#   disputed     optional: why Java looks wrong (drives a `deviation` ruling)
+#
+# Owner rulings on rows (debris cuts, deviation calls) are dated lines in the
+# entry's tasks/T01_1_review.md; the row's `disposition` is the ruling's
+# durable form.
+#
+# The record's counts, reconciled here from code: 22 billing RPCs (13 command
+# + 9 query), 5 gate steps + 2 status hooks, 7 Stripe handlers over 8 event
+# strings, 6 billing schedule ids from 5 starters.
+
+rows: []
+
+# Offered to C5 and C6 for the metric inventory DD-012 asks of them at their
+# plan gates (each Java `stigmer.*` metric in their domain ported under the
+# same name or explicitly dropped). Same discipline, same file — one inventory
+# mechanism for the program. Empty until those entries fill it.
+metrics: []

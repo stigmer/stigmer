@@ -10,5 +10,5 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": ["src", "vitest.config.ts", "vitest.execution.config.ts"]
+  "include": ["src", "scripts", "vitest.config.ts", "vitest.execution.config.ts", "vitest.inventory.config.ts"]
 }
