@@ -10,8 +10,9 @@
     "test:cloud": "vitest run -c vitest.cloud.config.ts",
     "test:cloud-execution": "vitest run -c vitest.cloud-execution.config.ts",
     "test:execution": "vitest run -c vitest.execution.config.ts",
-    "test:inventory": "vitest run -c vitest.inventory.config.ts",
+    "test:unit": "vitest run -c vitest.unit.config.ts",
     "inventory:check": "tsx scripts/check-inventory.ts",
+    "fixtures:serve": "tsx scripts/cloud-fixtures-serve.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

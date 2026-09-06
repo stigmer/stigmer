@@ -28,6 +28,8 @@ import { AgentShareCommandController } from "@stigmer/protos/ai/stigmer/agentic/
 import { AgentShareQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/query_pb";
 import { ArtifactCommandController } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/command_pb";
 import { ArtifactQueryController } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/query_pb";
+import { BillingCommandController } from "@stigmer/protos/ai/stigmer/billing/v1/command_pb";
+import { BillingQueryController } from "@stigmer/protos/ai/stigmer/billing/v1/query_pb";
 import { ChannelAppCommandController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/command_pb";
 import { ChannelAppQueryController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/query_pb";
 import { EnvironmentCommandController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/command_pb";
@@ -68,6 +70,11 @@ import { ProjectQueryController } from "@stigmer/protos/ai/stigmer/tenancy/proje
 export interface ConformanceClients {
   activityQuery: Client<typeof ActivityQueryController>;
   apiKeyCommand: Client<typeof ApiKeyCommandController>;
+  // The billing engine's two controllers. Cloud-only by DD-001: the local OSS
+  // targets route neither, so every call answers Unimplemented there — the
+  // boundary the billing suite pins where `billingLedger` is false.
+  billingCommand: Client<typeof BillingCommandController>;
+  billingQuery: Client<typeof BillingQueryController>;
   apiKeyQuery: Client<typeof ApiKeyQueryController>;
   agentChannelCommand: Client<typeof AgentChannelCommandController>;
   agentChannelQuery: Client<typeof AgentChannelQueryController>;
@@ -191,6 +198,8 @@ export function makeClients(transport: Transport): ConformanceClients {
     channelMessageQuery: createClient(ChannelMessageQueryController, transport),
     search: createClient(SearchService, transport),
     apiKeyCommand: createClient(ApiKeyCommandController, transport),
+    billingCommand: createClient(BillingCommandController, transport),
+    billingQuery: createClient(BillingQueryController, transport),
     apiKeyQuery: createClient(ApiKeyQueryController, transport),
     projectCommand: createClient(ProjectCommandController, transport),
     projectQuery: createClient(ProjectQueryController, transport),

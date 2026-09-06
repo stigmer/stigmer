@@ -28,12 +28,21 @@ import type {
   CapabilityFlags,
   DirectLoginTenant,
   PrivilegedScope,
+  StripeWebhookLane,
   TargetProfile,
   TenancyContext,
 } from "./target";
 
 const ORG_API_VERSION = "tenancy.stigmer.ai/v1";
 const ORG_KIND = "Organization";
+
+// The credit seed for a funded org, mirroring the integration harness's
+// ProvisionTestBillingAccount ($100 in micro-USD): cloud authorizes billing
+// INSIDE the agent-execution workflow (InvokeAgentExecutionWorkflow →
+// ExecutionBillingService) before any work is dispatched, so the zero-balance
+// account an org create provisions — sufficient for Class A CRUD — denies
+// every Class B run with "Insufficient credits to start execution".
+const TENANCY_SEED_CREDITS_MICROS = 100_000_000n;
 
 function requireEnv(name: string): string {
   const value = process.env[name];
@@ -98,6 +107,14 @@ export class CloudTarget implements TargetProfile {
     // the ida_ at position 1: Java's Auth0 decoder + RequestCallerIdentityMapper
     // natively, the composition's direct-idp verifier (stigmer-cloud#604).
     directLogin: true,
+    // The three cloud-capability surfaces (E1, entry 20260906.04): Java
+    // serves all three natively; the composition serves the ledger through
+    // the C5 facade today and the proxy/public lanes only once C6/P1 land —
+    // their arms are RED against the composition until then, by design (the
+    // flag is the edition's contract; the lane address is CLOUD_ENV's).
+    billingLedger: true,
+    sideChannelProxy: true,
+    publicLane: true,
   };
 
   private grpcBaseUrl: string | undefined;
@@ -219,6 +236,30 @@ export class CloudTarget implements TargetProfile {
     );
   }
 
+  // The cloud-capability HTTP lanes, read per call from the CLOUD_ENV contract
+  // (published before any worker runs; reading late keeps the target
+  // constructible in unit tests that never call setup()). Each is required:
+  // the flags above promise the lane, so a missing address is an environment
+  // bug that must fail the arm, never skip it.
+  proxyBaseUrl(): string {
+    return requireEnv(CLOUD_ENV.proxyAddress);
+  }
+
+  cursorBidiBaseUrl(): string {
+    return requireEnv(CLOUD_ENV.cursorBidiAddress);
+  }
+
+  publicBaseUrl(): string {
+    return requireEnv(CLOUD_ENV.publicAddress);
+  }
+
+  stripeWebhook(): StripeWebhookLane {
+    return {
+      baseUrl: requireEnv(CLOUD_ENV.stripeWebhookAddress),
+      signingSecret: requireEnv(CLOUD_ENV.stripeWebhookSecret),
+    };
+  }
+
   async provisionTenancy(): Promise<TenancyContext> {
     const created = await this.clients().organizationCommand.create({
       apiVersion: ORG_API_VERSION,
@@ -239,6 +280,35 @@ export class CloudTarget implements TargetProfile {
     if (id === undefined) return;
     this.provisionedOrgIds.delete(context.org);
     await this.clients().organizationCommand.delete({ value: id });
+  }
+
+  // On this Class A target provisionTenancy already yields the unfunded shape
+  // (an org create provisions a zero-balance billing account and nothing
+  // adds credits), so the two verbs coincide here; the execution target funds
+  // in provisionTenancy and delegates this one. Named separately so a suite
+  // can state its precondition — "this org has NO credits" — instead of
+  // relying on which target it happens to run under.
+  provisionUnfundedTenancy(): Promise<TenancyContext> {
+    return this.provisionTenancy();
+  }
+
+  // Seeds the org's billing account with the standard execution-credit
+  // allowance (TENANCY_SEED_CREDITS_MICROS) as the primary user — the owner of
+  // every org this target provisions, which is who the integration harness's
+  // org_helpers fund standalone orgs as. Billing accounts are keyed by the
+  // execution's metadata.org — the slug. Lives on the Class A target (moved
+  // up from cloud-execution in E1) so ledger arms that need a funded account
+  // — usage reports, settle, the STOP/WARNING thresholds — can run without a
+  // runner; the execution target delegates here.
+  async fundTenancy(org: string): Promise<void> {
+    const billingCommand = this.clients().billingCommand;
+    await billingCommand.getOrCreateBillingAccount({ orgId: org });
+    await billingCommand.adjustCredits({
+      orgId: org,
+      amountMicros: TENANCY_SEED_CREDITS_MICROS,
+      reason: "conformance execution tenancy seed",
+      idempotencyKey: `conformance-seed-${org}`,
+    });
   }
 
   // Mints a brand-new user through the bootstrap PlatformClient. The fresh

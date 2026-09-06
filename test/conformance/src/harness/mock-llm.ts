@@ -42,25 +42,22 @@
 // (cancel/terminate close the socket mid-delay), so the handler no-ops cleanly
 // once the connection is gone rather than throwing.
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
+import { anthropicText, writeAnthropicSse, writeJson, type AnthropicMessageBody } from "./llm-wire";
 import { setTimeout as delay } from "node:timers/promises";
 import type { AddressInfo } from "node:net";
 
-// An Anthropic message body, in the shape the provider's `messages` endpoint
-// returns. The SSE encoder expands this into the streaming event sequence.
-export interface AnthropicMessageBody {
-  id: string;
-  type: "message";
-  role: "assistant";
-  model: string;
-  content: AnthropicContentBlock[];
-  stop_reason: string;
-  usage: { input_tokens: number; output_tokens: number };
-}
-
-export type AnthropicContentBlock =
-  | { type: "text"; text: string }
-  | { type: "thinking"; thinking: string }
-  | { type: "tool_use"; id: string; name: string; input: Record<string, unknown> };
+// The provider wire shapes (bodies, builders, the SSE encoder) live in
+// llm-wire.ts, shared with FakeLlmUpstream — the proxy is transparent, so the
+// two fakes must emit the same bytes. Re-exported here so the execution suites
+// keep importing them from the mock they script.
+export {
+  anthropicText,
+  anthropicToolUse,
+  anthropicToolUses,
+  type AnthropicContentBlock,
+  type AnthropicMessageBody,
+  type ToolUseBlock,
+} from "./llm-wire";
 
 // One queued turn: either a success body to stream, or an HTTP error status to
 // fail the call with, plus an optional hold before responding. `errorStatus` and
@@ -77,71 +74,6 @@ export interface EnqueueOptions {
   delayMs?: number;
 }
 
-// A canned Anthropic text turn that ends the agent loop (stop_reason end_turn).
-// The model name maps to the Anthropic provider path; token counts are cosmetic.
-export function anthropicText(
-  text: string,
-  usage: { inputTokens?: number; outputTokens?: number } = {},
-): AnthropicMessageBody {
-  return {
-    id: `msg_mock_${usage.inputTokens ?? 10}`,
-    type: "message",
-    role: "assistant",
-    model: "claude-sonnet-4-6",
-    content: [{ type: "text", text }],
-    stop_reason: "end_turn",
-    usage: { input_tokens: usage.inputTokens ?? 10, output_tokens: usage.outputTokens ?? 5 },
-  };
-}
-
-// A canned Anthropic tool_use turn (stop_reason tool_use). The agent will dispatch
-// the named tool; queue a following text turn for the post-tool response. Lands
-// now to keep the deferred HITL/tool slices cheap to add later.
-export function anthropicToolUse(
-  toolCallId: string,
-  toolName: string,
-  toolInput: Record<string, unknown>,
-  usage: { inputTokens?: number; outputTokens?: number } = {},
-): AnthropicMessageBody {
-  return anthropicToolUses([{ toolCallId, toolName, toolInput }], usage);
-}
-
-// One tool_use block in a multi-call turn.
-export interface ToolUseBlock {
-  toolCallId: string;
-  toolName: string;
-  toolInput: Record<string, unknown>;
-}
-
-// A canned Anthropic turn with one or more tool_use blocks (stop_reason
-// tool_use). Multiple blocks model parallel tool calls in a single assistant
-// turn, so they are dispatched together and — when each is approval-gated —
-// become co-pending approvals at once. That is the lever for the APPROVE_ALL
-// contract (resolve every co-pending gate with a single decision).
-export function anthropicToolUses(
-  blocks: ToolUseBlock[],
-  usage: { inputTokens?: number; outputTokens?: number } = {},
-): AnthropicMessageBody {
-  return {
-    id: `msg_mock_${usage.inputTokens ?? 10}`,
-    type: "message",
-    role: "assistant",
-    model: "claude-sonnet-4-6",
-    content: blocks.map((b) => ({
-      type: "tool_use" as const,
-      id: b.toolCallId,
-      name: b.toolName,
-      input: b.toolInput,
-    })),
-    stop_reason: "tool_use",
-    usage: { input_tokens: usage.inputTokens ?? 10, output_tokens: usage.outputTokens ?? 5 },
-  };
-}
-
-// One LLM call as the provider would have received it: the request path and
-// the parsed JSON body (the Anthropic `messages` payload). Captured so a test
-// can assert on what the runner actually SENT — e.g. that an image attachment
-// arrived as a base64 image block — not just on what came back.
 export interface CapturedLlmRequest {
   path: string;
   body: unknown;
@@ -445,70 +377,4 @@ async function readBody(req: IncomingMessage): Promise<string> {
     chunks.push(chunk as Buffer);
   }
   return Buffer.concat(chunks).toString("utf8");
-}
-
-function writeJson(res: ServerResponse, status: number, body: unknown): void {
-  res.writeHead(status, { "content-type": "application/json" });
-  res.end(JSON.stringify(body));
-}
-
-// Expands an Anthropic message body into the SSE event sequence the
-// @langchain/anthropic streaming parser expects, flushing each event. Mirrors
-// the Go reference encoder in test/integration/harness/mock_llm_proxy.go.
-function writeAnthropicSse(res: ServerResponse, body: AnthropicMessageBody): void {
-  res.writeHead(200, { "content-type": "text/event-stream", "cache-control": "no-cache" });
-
-  const event = (name: string, data: unknown): void => {
-    res.write(`event: ${name}\ndata: ${JSON.stringify(data)}\n\n`);
-  };
-
-  event("message_start", {
-    type: "message_start",
-    message: {
-      id: body.id,
-      type: "message",
-      role: "assistant",
-      content: [],
-      model: body.model,
-      stop_reason: null,
-      stop_sequence: null,
-      usage: { input_tokens: body.usage.input_tokens, output_tokens: 0 },
-    },
-  });
-
-  body.content.forEach((block, index) => {
-    switch (block.type) {
-      case "text":
-        event("content_block_start", { type: "content_block_start", index, content_block: { type: "text", text: "" } });
-        event("content_block_delta", { type: "content_block_delta", index, delta: { type: "text_delta", text: block.text } });
-        event("content_block_stop", { type: "content_block_stop", index });
-        break;
-      case "thinking":
-        event("content_block_start", { type: "content_block_start", index, content_block: { type: "thinking", thinking: "" } });
-        event("content_block_delta", { type: "content_block_delta", index, delta: { type: "thinking_delta", thinking: block.thinking } });
-        event("content_block_stop", { type: "content_block_stop", index });
-        break;
-      case "tool_use":
-        event("content_block_start", {
-          type: "content_block_start",
-          index,
-          content_block: { type: "tool_use", id: block.id, name: block.name, input: {} },
-        });
-        event("content_block_delta", {
-          type: "content_block_delta",
-          index,
-          delta: { type: "input_json_delta", partial_json: JSON.stringify(block.input) },
-        });
-        event("content_block_stop", { type: "content_block_stop", index });
-        break;
-    }
-  });
-
-  event("message_delta", {
-    type: "message_delta",
-    delta: { stop_reason: body.stop_reason, stop_sequence: null },
-    usage: { output_tokens: body.usage.output_tokens },
-  });
-  event("message_stop", { type: "message_stop" });
-  res.end();
 }

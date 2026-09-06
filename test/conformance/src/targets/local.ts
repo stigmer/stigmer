@@ -41,6 +41,13 @@ export class LocalTarget implements TargetProfile {
     orgOAuthAppConfiguration: false,
     // No billing engine at all — executions run unmetered (DD-001 boundary).
     billingGates: false,
+    // The three cloud-capability surfaces (E1) are absent by the same
+    // boundary: no billing controllers are routed (the suite pins the
+    // Unimplemented answer, ruling Q10), no side-channel proxy (runners dial
+    // providers directly), no marketing-site lane.
+    billingLedger: false,
+    sideChannelProxy: false,
+    publicLane: false,
     // No PlatformClient surface in this edition — the controllers are
     // unrouted and the serving edge composes zero caller guards (the
     // 20260902.02 empty state), so the enforcement arms skip.

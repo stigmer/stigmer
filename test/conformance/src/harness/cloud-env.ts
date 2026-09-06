@@ -85,6 +85,29 @@ export const CLOUD_ENV = {
   directLoginKid: "STIGMER_CONFORMANCE_CLOUD_DIRECT_LOGIN_KID",
   directLoginApiAudience: "STIGMER_CONFORMANCE_CLOUD_DIRECT_LOGIN_API_AUDIENCE",
   directLoginMcpAudience: "STIGMER_CONFORMANCE_CLOUD_DIRECT_LOGIN_MCP_AUDIENCE",
+  // The cloud-capability HTTP lanes (E1, entry 20260906.04), one address per
+  // lane — see TargetProfile.proxyBaseUrl and siblings for why they are not
+  // one httpAddress. On the hermetic launcher every lane but bidi is the
+  // Spring HTTP address; the composition publishes whatever listener C6/P1
+  // bind. Each is REQUIRED on a cloud target (the flags are true there): an
+  // environment that forgets one fails its arms loudly, never false-greens.
+  proxyAddress: "STIGMER_CONFORMANCE_CLOUD_PROXY_ADDRESS",
+  cursorBidiAddress: "STIGMER_CONFORMANCE_CLOUD_CURSOR_BIDI_ADDRESS",
+  publicAddress: "STIGMER_CONFORMANCE_CLOUD_PUBLIC_ADDRESS",
+  stripeWebhookAddress: "STIGMER_CONFORMANCE_CLOUD_STRIPE_WEBHOOK_ADDRESS",
+  // The webhook signing secret the server under test was booted with; the
+  // suite signs its synthetic Stripe events with it (Stripe-Signature v1
+  // HMAC-SHA256 over `<timestamp>.<payload>`), so the signature contract is
+  // asserted without a network. Never a production secret: the hermetic
+  // launcher mints a run-local one, and a deployed endpoint is never given
+  // one (the arms fail loudly there, as they should).
+  stripeWebhookSecret: "STIGMER_CONFORMANCE_CLOUD_STRIPE_WEBHOOK_SECRET",
+  // Control URL of the run's cloud fixtures (the fake LLM upstream, the fake
+  // Stripe API, the fake Discord webhook receiver): booted once in the global
+  // setup, scripted by every worker over this URL. Published by the global
+  // setup or by the fixtures' standalone entrypoint for the composition
+  // readout.
+  fixturesControlUrl: "STIGMER_CONFORMANCE_CLOUD_FIXTURES_CONTROL_URL",
 } as const;
 
 // The two declared edge postures — see CLOUD_ENV.edgeAuthentication.
@@ -142,6 +165,9 @@ const SHUTDOWN_GRACE_MS = 60_000;
 export interface CloudEnvironment {
   readonly grpcBaseUrl: string;
   readonly httpBaseUrl: string;
+  // The Cursor BiDi proxy's own h2c listener (Netty; Tomcat cannot serve
+  // Connect bidi streams), published by the launcher's ready line since E1.
+  readonly cursorBidiBaseUrl: string;
   stop(): Promise<void>;
 }
 
@@ -160,7 +186,13 @@ export interface PrimaryIdentity {
 // Builds and spawns the Go launcher, waiting for its single JSON ready-line on
 // stdout. The launcher's human-readable progress (stderr) is passed through so
 // long container pulls and the JVM boot stay observable in CI logs.
-export async function spawnCloudEnvironment(): Promise<CloudEnvironment> {
+//
+// `launcherEnv` carries the cloud-capability fixtures' hand-over (E1): the
+// fake upstream / Stripe / Discord addresses and the run-local webhook secret
+// the launcher threads into explicit ServiceConfig fields, so the JVM's
+// outbound posture is declared once on each side of the process boundary and
+// never inherited ambiently.
+export async function spawnCloudEnvironment(launcherEnv: Record<string, string> = {}): Promise<CloudEnvironment> {
   await mkdir(LAUNCHER_OUTPUT_DIR, { recursive: true });
   await execFileAsync("go", ["build", "-o", LAUNCHER_BINARY, LAUNCHER_PACKAGE], {
     cwd: LAUNCHER_MODULE_DIR,
@@ -181,6 +213,7 @@ export async function spawnCloudEnvironment(): Promise<CloudEnvironment> {
       // assert this exact value inside DCR requests and authorize URLs, so
       // a second definition anywhere would drift.
       STIGMER_OAUTH_REDIRECT_URI: CONFORMANCE_OAUTH_REDIRECT_URI,
+      ...launcherEnv,
     },
   });
 
@@ -188,6 +221,7 @@ export async function spawnCloudEnvironment(): Promise<CloudEnvironment> {
   return {
     grpcBaseUrl: `http://${readyLine.grpcAddress}`,
     httpBaseUrl: readyLine.httpAddress,
+    cursorBidiBaseUrl: readyLine.cursorBidiAddress,
     stop: () => stopLauncher(child),
   };
 }
@@ -294,6 +328,7 @@ export async function mintCloudUserToken(
 interface ReadyLine {
   readonly grpcAddress: string;
   readonly httpAddress: string;
+  readonly cursorBidiAddress: string;
 }
 
 async function waitForReadyLine(child: ChildProcess): Promise<ReadyLine> {
@@ -305,12 +340,21 @@ async function waitForReadyLine(child: ChildProcess): Promise<ReadyLine> {
   const ready = new Promise<ReadyLine>((resolveReady, rejectReady) => {
     lines.on("line", (line) => {
       try {
-        const parsed = JSON.parse(line) as { grpcAddress?: unknown; httpAddress?: unknown };
+        const parsed = JSON.parse(line) as {
+          grpcAddress?: unknown;
+          httpAddress?: unknown;
+          cursorBidiAddress?: unknown;
+        };
         if (
           typeof parsed.grpcAddress === "string" && parsed.grpcAddress !== "" &&
-          typeof parsed.httpAddress === "string" && parsed.httpAddress !== ""
+          typeof parsed.httpAddress === "string" && parsed.httpAddress !== "" &&
+          typeof parsed.cursorBidiAddress === "string" && parsed.cursorBidiAddress !== ""
         ) {
-          resolveReady({ grpcAddress: parsed.grpcAddress, httpAddress: parsed.httpAddress });
+          resolveReady({
+            grpcAddress: parsed.grpcAddress,
+            httpAddress: parsed.httpAddress,
+            cursorBidiAddress: parsed.cursorBidiAddress,
+          });
         }
       } catch {
         // Not the ready-line; the launcher keeps stdout otherwise silent.
