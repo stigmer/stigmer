@@ -282,8 +282,9 @@ export interface CapabilityFlags {
   // The side-channel proxy is served here: the HTTP lanes runners use so they
   // carry zero provider secrets — llm (/v1/proxy/llm/{provider}/**), cursor
   // (/v1/proxy/cursor/{host}/**), cursor-bidi (Connect streams on its own
-  // port), claimcheck, artifact and checkpointer presign/storage lanes, the
-  // authenticated /v1/proxy/model-registry, and the /health probe — with
+  // port), artifact and checkpointer presign/storage lanes (claimcheck is
+  // ruled debris — no caller, stigmer#992), the authenticated
+  // /v1/proxy/model-registry, and the /health probe — with
   // scope-header authorization against FGA and usage extracted from the wire
   // into the billing ledger.
   //

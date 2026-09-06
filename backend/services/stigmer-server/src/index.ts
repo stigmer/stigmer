@@ -173,6 +173,16 @@ export {
 // mapping, the refusal pass-through — never a re-derivation. Production
 // wiring stays compose.ts's job.
 export { createVerifierChainInterceptor } from "./pipeline/interceptors/auth.js";
+// The interceptor's inner identity walk on its own (stigmer#991): a
+// composition's extension-owned HTTP lanes are not Connect requests and
+// cannot ride the interceptor, but they must authenticate a presented
+// bearer with the SAME composed chain — one walk, two edges, never a
+// re-instantiated verifier list. Identity only; caller guards stay the
+// serving interceptor's (RPC-shaped by contract).
+export {
+  authenticateBearerToken,
+  parseBearerToken,
+} from "./pipeline/interceptors/auth.js";
 export { newPipeline } from "./pipeline/pipeline.js";
 export { newAuthorizeStep } from "./pipeline/steps/authorize.js";
 export { newValidateProtoStep } from "./pipeline/steps/validation.js";
