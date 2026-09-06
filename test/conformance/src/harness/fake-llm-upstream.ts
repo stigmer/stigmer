@@ -37,8 +37,10 @@ import {
 // answers whatever provider path the next request arrives on, so a script
 // enqueues in the order the suite will call.
 export type UpstreamScript =
-  | { kind: "anthropic"; body: AnthropicMessageBody; delayMs?: number }
-  | { kind: "openai"; body: OpenAiChatCompletionBody; includeUsage?: boolean; delayMs?: number }
+  // `headers` ride the 200 so a suite can see which upstream headers the
+  // proxy relays (provider x-* headers) and which it strips (hop-by-hop).
+  | { kind: "anthropic"; body: AnthropicMessageBody; delayMs?: number; headers?: Record<string, string> }
+  | { kind: "openai"; body: OpenAiChatCompletionBody; includeUsage?: boolean; delayMs?: number; headers?: Record<string, string> }
   // A provider error: status, JSON body and headers relayed by the proxy or
   // classified by it (Anthropic 400 billing text, OpenAI 429
   // insufficient_quota, 401/403 → the proxy's 503 rewrite).
@@ -130,11 +132,11 @@ export class FakeLlmUpstream {
         if (next.delayMs !== undefined) await delay(next.delayMs);
         if (res.destroyed) return;
         if (wantsStream) {
-          res.writeHead(200, { "content-type": "text/event-stream", "cache-control": "no-cache" });
+          res.writeHead(200, { "content-type": "text/event-stream", "cache-control": "no-cache", ...(next.headers ?? {}) });
           writeAnthropicSseEvents(res, next.body);
           res.end();
         } else {
-          writeJson(res, 200, next.body);
+          writeJson(res, 200, next.body, next.headers ?? {});
         }
         return;
       }

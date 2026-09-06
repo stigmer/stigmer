@@ -76,18 +76,39 @@ describe.skipIf(!gatesEnabled)("Billing gates — settle, the approval STOP gate
     return clients.billingQuery.getCreditBalance({ orgId: org });
   }
 
-  // Drains the org to zero available credits as its owner — the lever that
-  // flips a gate between two observations.
-  async function drain(org: string): Promise<void> {
-    const current = await balance(org);
-    if (current.availableMicros > 0n) {
-      await clients.billingCommand.adjustCredits({
-        orgId: org,
-        amountMicros: -current.availableMicros,
-        reason: "conformance drain",
-        idempotencyKey: uniqueName("drain"),
-      });
-    }
+  // Drives the org's available balance BELOW the point where the gates flip,
+  // as its owner — the lever between two observations. Zero is not enough:
+  // the engine grants an org `allowed_negative_balance_micros` of overdraft,
+  // and the approval signal counts the run's live reservation as headroom
+  // (ExecutionBillingService.querySignal: STOP when
+  // available + headroom <= -allowedNegative). The re-arm denies when
+  // min(default cap, available + allowedNegative) < the start threshold.
+  // `beyondMicros` is what to drain past -allowedNegative: the held
+  // reservation plus one for the STOP arm, one for the re-arm arm.
+  async function drainPast(org: string, beyondMicros: bigint): Promise<void> {
+    const account = await clients.billingQuery.getBillingAccount({ orgId: org });
+    const available = account.balance?.availableMicros ?? 0n;
+    const allowedNegative = account.allowedNegativeBalanceMicros;
+    const amount = -(available + allowedNegative + beyondMicros);
+    await clients.billingCommand.adjustCredits({
+      orgId: org,
+      amountMicros: amount,
+      reason: "conformance drain past the gate threshold",
+      idempotencyKey: uniqueName("drain"),
+    });
+  }
+
+  // Refunds past every threshold with a FRESH idempotency key: the target's
+  // fundTenancy seeds under `conformance-seed-<org>`, which the initial seed
+  // already consumed — replaying it adds nothing (billing.rpc.adjust-credits
+  // .idempotency-key-replays-once), so a refund must be its own adjustment.
+  async function refund(org: string): Promise<void> {
+    await clients.billingCommand.adjustCredits({
+      orgId: org,
+      amountMicros: 200_000_000n,
+      reason: "conformance refund after drain",
+      idempotencyKey: uniqueName("refund"),
+    });
   }
 
   async function provisionAgent(org: string): Promise<string> {
@@ -146,7 +167,8 @@ describe.skipIf(!gatesEnabled)("Billing gates — settle, the approval STOP gate
     const gated = await awaitPhase(clients, executionId, ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL, { label: "WAITING_FOR_APPROVAL" });
     const toolCallId = gated.status!.pendingApprovals[0]!.toolCallId;
 
-    await drain(org);
+    const held = (await balance(org)).reservedMicros;
+    await drainPast(org, held + 1n);
     const refused = await expectGrpcCode(
       () => clients.agentExecutionCommand.submitApproval({ agentExecutionId: executionId, toolCallId, action: ApprovalAction.APPROVE }),
       Code.FailedPrecondition,
@@ -154,8 +176,7 @@ describe.skipIf(!gatesEnabled)("Billing gates — settle, the approval STOP gate
     );
     expect(refused.rawMessage).toBe(APPROVAL_STOP_COPY);
 
-    if (target.fundTenancy === undefined) throw new Error("fundTenancy missing");
-    await target.fundTenancy(org);
+    await refund(org);
     const approved = await clients.agentExecutionCommand.submitApproval({ agentExecutionId: executionId, toolCallId, action: ApprovalAction.APPROVE });
     expect(approved.status?.pendingApprovals.length).toBe(0);
     const final = await awaitTerminal(clients, executionId);
@@ -173,7 +194,7 @@ describe.skipIf(!gatesEnabled)("Billing gates — settle, the approval STOP gate
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
     await awaitPhase(clients, executionId, ExecutionPhase.EXECUTION_FAILED);
 
-    await drain(org);
+    await drainPast(org, 1n);
     const refused = await expectGrpcCode(
       () => clients.agentExecutionCommand.recover({ id: executionId }),
       Code.FailedPrecondition,
@@ -181,8 +202,7 @@ describe.skipIf(!gatesEnabled)("Billing gates — settle, the approval STOP gate
     );
     expect(refused.rawMessage).toBe(RECOVER_DENIED_COPY);
 
-    if (target.fundTenancy === undefined) throw new Error("fundTenancy missing");
-    await target.fundTenancy(org);
+    await refund(org);
     const recovered = await clients.agentExecutionCommand.recover({ id: executionId });
     expect(recovered.status?.phase).not.toBe(ExecutionPhase.EXECUTION_FAILED);
     const final = await awaitTerminal(clients, executionId);

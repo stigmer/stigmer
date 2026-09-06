@@ -56,8 +56,9 @@ function siteSubmission(overrides: Record<string, unknown> = {}): Record<string,
     company: "Analytical Engines Ltd",
     message: "We would like to talk about a pilot.",
     website: "",
-    // The site stamps the form-open time; a submission is "too fast" under 2 s.
-    _t: Date.now() - 10_000,
+    // `_t` is the ELAPSED milliseconds since the form opened (the request
+    // record's elapsedMillis); Java screens 0 < _t < 2000 as a bot.
+    _t: 10_000,
     ...overrides,
   };
 }
@@ -153,7 +154,7 @@ describe.skipIf(!publicServed)("Public lane conformance — the marketing site's
     const honeypot = await submit(siteSubmission({ website: "https://spam.example" }));
     expect(honeypot.status).toBe(201);
     expect(honeypot.json.success).toBe(true);
-    const tooFast = await submit(siteSubmission({ _t: Date.now() - 500 }));
+    const tooFast = await submit(siteSubmission({ _t: 500 }));
     expect(tooFast.status).toBe(201);
     expect(tooFast.json.success).toBe(true);
     expect(await control.discord.posts()).toEqual([]);
@@ -178,7 +179,9 @@ describe.skipIf(!publicServed)("Public lane conformance — the marketing site's
     const long = await submit(siteSubmission({ message: "m".repeat(6000) }));
     expect(long.status).toBe(201);
     const embed = ((await control.discord.posts())[0]?.body as { embeds: Array<{ description: string }> }).embeds[0];
-    expect(embed?.description.length).toBeLessThanOrEqual(4000);
+    // The message is capped at 5000 on intake and the embed description at
+    // 4000 characters plus a single ellipsis.
+    expect(embed?.description).toBe(`${"m".repeat(4000)}…`);
   });
 
   it("[public.leads.fields-trimmed] surrounding whitespace is trimmed before validation and before the embed", async () => {

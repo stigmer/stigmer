@@ -8,8 +8,11 @@
 // the webhook handlers make — lands here instead of api.stripe.com. Every
 // request is captured with its form-encoded params and its Idempotency-Key
 // header (a DD-012 carve-out: idempotency keys must be identical between the
-// editions), and ids are minted deterministically per fixture reset so a test
-// can predict the session id Java links to its CreditPurchase row.
+// editions). Ids are unique for the whole run — a run nonce plus a counter
+// that `reset()` deliberately does NOT rewind: Java pins stripe_customer_id
+// unique across billing accounts, so a fixture that re-minted `cus_..._0001`
+// after every test would make the second org's checkout fail on that
+// constraint (the first hermetic run found exactly this).
 //
 // Inbound: `signedEvent` builds a Stripe event envelope and its
 // Stripe-Signature header exactly as Stripe would — `t=<unix>,v1=<hmac>` over
@@ -27,7 +30,7 @@
 // every handler then logs "Failed to deserialize event data" and does
 // nothing, with no pointer at the cause. Events built here carry the pin. The
 // composition (stripe-node) parses regardless; C5 must not copy the strictness.
-import { createHmac } from "node:crypto";
+import { createHmac, randomBytes } from "node:crypto";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 import { readBody } from "./fake-llm-upstream";
@@ -63,6 +66,7 @@ export class FakeStripeApi {
   private captured: CapturedStripeRequest[] = [];
   private failures: StripeFailure[] = [];
   private counter = 0;
+  private readonly runNonce = randomBytes(3).toString("hex");
   // Customers this fixture created, so a retrieve/update answers the shape
   // Java expects; payment methods are minted on first retrieve.
   private readonly customers = new Map<string, Record<string, unknown>>();
@@ -96,16 +100,17 @@ export class FakeStripeApi {
     this.failures.push(failure);
   }
 
+  // Clears captures, scripted failures and customers; NOT the id counter (see
+  // the module doc — ids must stay unique across the whole run).
   reset(): void {
     this.captured = [];
     this.failures = [];
-    this.counter = 0;
     this.customers.clear();
   }
 
   private nextId(prefix: string): string {
     this.counter += 1;
-    return `${prefix}_conf_${String(this.counter).padStart(4, "0")}`;
+    return `${prefix}_conf_${this.runNonce}_${String(this.counter).padStart(4, "0")}`;
   }
 
   private async handle(req: IncomingMessage, res: ServerResponse): Promise<void> {

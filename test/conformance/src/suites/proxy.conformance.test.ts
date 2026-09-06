@@ -183,12 +183,22 @@ describe.skipIf(!proxyServed)("Side-channel proxy conformance (sideChannelProxy 
     it("[proxy.llm.anthropic.relays-sse-and-injects-provider-key] [proxy.llm.headers.hop-by-hop-stripped] an Anthropic stream is relayed byte for byte with the platform key injected upstream", async () => {
       const { org } = await fundedOrg();
       const executionId = await ownedExecution(org);
-      await control.llm.enqueue({ kind: "anthropic", body: anthropicText("relayed", { inputTokens: 11, outputTokens: 3 }) });
+      await control.llm.enqueue({
+        kind: "anthropic",
+        body: anthropicText("relayed", { inputTokens: 11, outputTokens: 3 }),
+        headers: { "request-id": "req_conf_1", "x-fake-upstream-request-id": "infra_1", "keep-alive": "timeout=5" },
+      });
 
       const response = await anthropicCall(executionId);
       expect(response.status).toBe(200);
       expect(response.headers.get("content-type")).toMatch(/^text\/event-stream/);
-      expect(response.headers.get("transfer-encoding")).toBeNull();
+      // Ordinary upstream headers (Anthropic's request-id) relay; the
+      // upstream's x-* infrastructure headers and hop-by-hop headers do not
+      // (ProxyHeaders.isForwardableResponseHeader) — the proxy's own framing
+      // is its own business.
+      expect(response.headers.get("request-id")).toBe("req_conf_1");
+      expect(response.headers.get("x-fake-upstream-request-id")).toBeNull();
+      expect(response.headers.get("keep-alive")).not.toBe("timeout=5");
       const body = await response.text();
       expect(body).toContain("event: message_start");
       expect(body).toContain('"text":"relayed"');
@@ -355,16 +365,23 @@ describe.skipIf(!proxyServed)("Side-channel proxy conformance (sideChannelProxy 
       expect(plain429.status, "a plain 429 is transient and passes through").toBe(429);
     });
 
-    it("[proxy.llm.upstream.aborted-mid-stream-truncates-and-records-nothing] an upstream cut mid-stream ends the relayed stream early and lands no usage", async () => {
+    it("[proxy.llm.upstream.aborted-mid-stream-truncates-and-records-partial-usage] an upstream cut mid-stream ends the relayed stream early and records the usage seen so far", async () => {
       const { org } = await fundedOrg();
       const executionId = await ownedExecution(org);
       const before = await usageReport(org);
+      // message_start (input tokens) and one content_block_start arrive; the
+      // socket dies before message_delta carries output tokens.
       await control.llm.enqueue({ kind: "abort-mid-stream", body: anthropicText("cut", { inputTokens: 40, outputTokens: 40 }), afterEvents: 2 });
       const response = await anthropicCall(executionId);
       const text = await response.text().catch(() => "");
       expect(text).not.toContain("event: message_stop");
-      await new Promise((r) => setTimeout(r, 1500));
-      expect((await usageReport(org)).llmCallCount).toBe(before.llmCallCount);
+      const deadline = Date.now() + 10_000;
+      let after = await usageReport(org);
+      while (after.llmCallCount < before.llmCallCount + 1 && Date.now() < deadline) {
+        await new Promise((r) => setTimeout(r, 500));
+        after = await usageReport(org);
+      }
+      expect(after.llmCallCount, "Java records the partial call — the input tokens it saw — rather than dropping it").toBe(before.llmCallCount + 1);
     });
   });
 
@@ -476,7 +493,7 @@ describe.skipIf(!proxyServed)("Side-channel proxy conformance (sideChannelProxy 
       const upload = await proxyFetch("/v1/proxy/artifacts/presigned-upload-url", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ key: `artifacts/${executionId}/out.txt`, contentType: "text/plain" }),
+        body: JSON.stringify({ key: `artifacts/${executionId}/out.txt`, content_type: "text/plain" }),
       });
       expect(upload.status).toBe(200);
       const download = await proxyFetch("/v1/proxy/artifacts/presigned-download-url", {
@@ -488,7 +505,7 @@ describe.skipIf(!proxyServed)("Side-channel proxy conformance (sideChannelProxy 
       const attachment = await proxyFetch("/v1/proxy/artifacts/presigned-upload-url", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ key: `attachments/${uniqueName("att")}/in.txt`, contentType: "text/plain" }),
+        body: JSON.stringify({ key: `attachments/${uniqueName("att")}/in.txt`, content_type: "text/plain" }),
       });
       expect(attachment.status).toBe(200);
       const token = await mintOutsiderToken();
@@ -496,7 +513,7 @@ describe.skipIf(!proxyServed)("Side-channel proxy conformance (sideChannelProxy 
         method: "POST",
         token,
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ key: `artifacts/${executionId}/out.txt`, contentType: "text/plain" }),
+        body: JSON.stringify({ key: `artifacts/${executionId}/out.txt`, content_type: "text/plain" }),
       });
       expect(foreign.status).toBe(403);
     });
@@ -509,14 +526,14 @@ describe.skipIf(!proxyServed)("Side-channel proxy conformance (sideChannelProxy 
         const response = await proxyFetch("/v1/proxy/artifacts/presigned-upload-url", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ key, contentType: "text/plain" }),
+          body: JSON.stringify({ key, content_type: "text/plain" }),
         });
         expect(response.status, JSON.stringify(key).slice(0, 50)).toBe(400);
       }
       const badMime = await proxyFetch("/v1/proxy/artifacts/presigned-upload-url", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ key: `artifacts/${executionId}/x.bin`, contentType: "not a mime" }),
+        body: JSON.stringify({ key: `artifacts/${executionId}/x.bin`, content_type: "not a mime" }),
       });
       expect(badMime.status).toBe(400);
     });
@@ -529,7 +546,10 @@ describe.skipIf(!proxyServed)("Side-channel proxy conformance (sideChannelProxy 
       const document = { thread_id: threadId, checkpoint_ns: "", checkpoint_id: checkpointId, checkpoint: { v: 1, ts: "now" }, metadata: { step: 1 } };
 
       const put = await proxyFetch("/v1/proxy/checkpoints/checkpoint", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(document) });
-      expect(put.status).toBe(200);
+      // A bodiless ok(): Java answered 204 on one hermetic run and 200 on the
+      // next for the identical request, so the contract pinned is "2xx, no
+      // body" — recorded on the inventory row; C6 answers 200.
+      expect([200, 204]).toContain(put.status);
       const get = await proxyFetch(`/v1/proxy/checkpoints/checkpoint?thread_id=${threadId}&checkpoint_id=${checkpointId}`);
       expect(get.status).toBe(200);
       expect(((await get.json()) as { checkpoint_id: string }).checkpoint_id).toBe(checkpointId);
@@ -538,7 +558,7 @@ describe.skipIf(!proxyServed)("Side-channel proxy conformance (sideChannelProxy 
       expect(JSON.stringify(await list.json())).toContain(checkpointId);
 
       const writes = { writes: [{ thread_id: threadId, checkpoint_ns: "", checkpoint_id: checkpointId, task_id: "t1", idx: 0, channel: "c", value: { x: 1 } }] };
-      expect((await proxyFetch("/v1/proxy/checkpoints/writes", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(writes) })).status).toBe(200);
+      expect([200, 204]).toContain((await proxyFetch("/v1/proxy/checkpoints/writes", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(writes) })).status);
       const gotWrites = await proxyFetch(`/v1/proxy/checkpoints/writes?thread_id=${threadId}&checkpoint_id=${checkpointId}`);
       expect(gotWrites.status).toBe(200);
 
@@ -549,7 +569,7 @@ describe.skipIf(!proxyServed)("Side-channel proxy conformance (sideChannelProxy 
       const huge = JSON.stringify({ ...document, checkpoint: { blob: "z".repeat(4 * 1024 * 1024 + 1) } });
       expect((await proxyFetch("/v1/proxy/checkpoints/checkpoint", { method: "PUT", headers: { "content-type": "application/json" }, body: huge })).status).toBe(413);
 
-      expect((await proxyFetch(`/v1/proxy/checkpoints/thread?thread_id=${threadId}`, { method: "DELETE" })).status).toBe(200);
+      expect((await proxyFetch(`/v1/proxy/checkpoints/thread?thread_id=${threadId}`, { method: "DELETE" })).status).toBe(204);
       const afterDelete = await proxyFetch(`/v1/proxy/checkpoints/checkpoints?thread_id=${threadId}`);
       expect(JSON.stringify(await afterDelete.json())).not.toContain(checkpointId);
     });

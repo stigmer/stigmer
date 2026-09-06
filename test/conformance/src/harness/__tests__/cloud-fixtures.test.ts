@@ -123,7 +123,7 @@ describe("fake LLM upstream", () => {
 });
 
 describe("fake Stripe API", () => {
-  it("mints deterministic ids, echoes metadata, and captures params plus the Idempotency-Key header", async () => {
+  it("mints run-unique ids, echoes metadata, and captures params plus the Idempotency-Key header", async () => {
     const form = new URLSearchParams({
       mode: "payment",
       customer: "cus_x",
@@ -137,7 +137,7 @@ describe("fake Stripe API", () => {
     });
     expect(response.status).toBe(200);
     const session = (await response.json()) as { id: string; object: string; metadata: Record<string, string>; url: string };
-    expect(session.id).toBe("cs_test_conf_0001");
+    expect(session.id).toMatch(/^cs_test_conf_[0-9a-f]{6}_\d{4}$/);
     expect(session.object).toBe("checkout.session");
     expect(session.metadata["stigmer_purchase_id"]).toBe("p-1");
 
@@ -145,7 +145,7 @@ describe("fake Stripe API", () => {
     expect(requests).toHaveLength(1);
     expect(requests[0]?.idempotencyKey).toBe("idem-1");
     expect(requests[0]?.params["line_items[0][price_data][unit_amount]"]).toBe("2000");
-    expect(requests[0]?.response.id).toBe("cs_test_conf_0001");
+    expect(requests[0]?.response.id).toBe(session.id);
     await control.stripe.reset();
   });
 

@@ -115,6 +115,13 @@ async function operator(): Promise<PrivilegedScope> {
   return scope;
 }
 
+// Funds an org AS the given caller — the operator's scope org is owned by the
+// operator, not by the primary user the target's fundTenancy acts as.
+async function fundAs(as: ConformanceClients, org: string): Promise<void> {
+  await as.billingCommand.getOrCreateBillingAccount({ orgId: org });
+  await as.billingCommand.adjustCredits({ orgId: org, amountMicros: 100_000_000n, reason: "conformance operator seed", idempotencyKey: uniqueName("op-seed") });
+}
+
 async function balanceOf(org: string): Promise<bigint> {
   const balance = await clients.billingQuery.getCreditBalance({ orgId: org });
   return balance.availableMicros;
@@ -227,7 +234,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — accounts, balance
     );
     expect(adjust.rawMessage).toBe(COPY.adjustCredits);
     const grant = await expectGrpcCode(
-      () => other.billingCommand.grantCredits({ orgId: org, amountMicros: 1n }),
+      () => other.billingCommand.grantCredits({ orgId: org, amountMicros: 1n, reason: "x", idempotencyKey: uniqueName("og") }),
       Code.PermissionDenied,
       "outsider grantCredits",
     );
@@ -241,6 +248,8 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — accounts, balance
       orgId: org,
       amountMicros: 4_000_000n,
       expiresAt: timestampFromDate(expiresAt),
+      reason: "conformance grant",
+      idempotencyKey: uniqueName("grant"),
     });
     expect(grant.amountMicros).toBe(4_000_000n);
     expect(await balanceOf(org)).toBe(4_000_000n);
@@ -251,16 +260,13 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — accounts, balance
     // The proto validates gt 0 and the handler re-checks; either way the
     // code is INVALID_ARGUMENT — the copy differs by which fired, so only
     // the code is pinned here.
-    await expectGrpcCode(
-      () => clients.billingCommand.grantCredits({ orgId: org, amountMicros: 0n }),
-      Code.InvalidArgument,
-      "grantCredits amount 0",
-    );
-    await expectGrpcCode(
-      () => clients.billingCommand.grantCredits({ orgId: org, amountMicros: -1n }),
-      Code.InvalidArgument,
-      "grantCredits negative",
-    );
+    for (const amountMicros of [0n, -1n]) {
+      await expectGrpcCode(
+        () => clients.billingCommand.grantCredits({ orgId: org, amountMicros, reason: "bad", idempotencyKey: uniqueName("bad") }),
+        Code.InvalidArgument,
+        `grantCredits amount ${amountMicros}`,
+      );
+    }
   });
 
   it("[billing.rpc.get-billing-usage-report.shape-and-empty-org] an org with no usage reports zero everything", async () => {
@@ -505,10 +511,27 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the engine and pr
   });
 
   it("[billing.rpc.pricing-admin-lanes.ordinary-caller-permission-denied] an org owner is refused on every pricing-admin RPC with its own copy", async () => {
+    // Input validation runs before authorization on these handlers, so each
+    // call is structurally valid — the refusal must be the authorization's.
     const cases: Array<[string, () => Promise<unknown>, string]> = [
-      ["upsertModelPricingBaseline", () => clients.billingCommand.upsertModelPricingBaseline({}), COPY.pricingEdit],
-      ["retireModelPricingBaseline", () => clients.billingCommand.retireModelPricingBaseline({}), COPY.pricingEdit],
-      ["decideModelPricingOverride", () => clients.billingCommand.decideModelPricingOverride({}), COPY.pricingDecide],
+      [
+        "upsertModelPricingBaseline",
+        () =>
+          clients.billingCommand.upsertModelPricingBaseline({
+            baseline: {
+              modelId: "conf-model",
+              provider: "anthropic",
+              harness: "native",
+              displayName: "Conformance",
+              speedTier: "balanced",
+              costTier: "standard",
+              pricing: { inputPriceMicrosPerMillion: 1n, outputPriceMicrosPerMillion: 1n },
+            },
+          }),
+        COPY.pricingEdit,
+      ],
+      ["retireModelPricingBaseline", () => clients.billingCommand.retireModelPricingBaseline({ modelId: "conf-model", provider: "anthropic", harness: "native" }), COPY.pricingEdit],
+      ["decideModelPricingOverride", () => clients.billingCommand.decideModelPricingOverride({ overrideId: "ovr_conformance" }), COPY.pricingDecide],
       ["getModelPricingGovernance", () => clients.billingQuery.getModelPricingGovernance({}), COPY.pricingGovernance],
       ["listModelPricingBaselines", () => clients.billingQuery.listModelPricingBaselines({}), COPY.pricingBaselineView],
     ];
@@ -520,7 +543,6 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the engine and pr
 
   it("[billing.rpc.preview-authorization.reasons-for-unfunded-and-funded] [billing.rpc.authorize-execution.denied-when-unfunded] the operator's preview and authorize deny an unfunded org with the engine's one denial vocabulary and admit a funded one", async (ctx) => {
     const op = await operator();
-    if (target.fundTenancy === undefined) throw new Error("fundTenancy missing on a billingLedger target");
     const unfunded = op.context.org;
     const preview = await op.clients.billingQuery.previewAuthorization({ orgId: unfunded });
     expect(preview.authorized).toBe(false);
@@ -530,16 +552,15 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the engine and pr
     expect(denied.denialReason).toBe(COPY.insufficientCredits);
     expect(denied.reservationId).toBe("");
 
-    await target.fundTenancy(unfunded);
+    await fundAs(op.clients, unfunded);
     const admitted = await op.clients.billingQuery.previewAuthorization({ orgId: unfunded });
     expect(admitted.authorized, ctx.task.name).toBe(true);
   });
 
   it("[billing.rpc.authorize-execution.reserves-and-latches] [billing.rpc.authorize-execution.concurrent-reserves-one-hold] [billing.rpc.finalize-execution.settles-and-is-idempotent] [billing.rpc.get-execution-billing-signal.unspecified-when-no-reservation] a funded execution reserves once under concurrency, settles once, and signals only while reserved", async () => {
     const op = await operator();
-    if (target.fundTenancy === undefined) throw new Error("fundTenancy missing on a billingLedger target");
     const org = op.context.org;
-    await target.fundTenancy(org);
+    await fundAs(op.clients, org);
     const before = (await op.clients.billingQuery.getCreditBalance({ orgId: org })).availableMicros;
     const executionId = uniqueName("exec");
 
@@ -580,9 +601,8 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the engine and pr
 
   it("[billing.rpc.rearm-for-recovery.rotates-reservation-past-settled-latch] re-arming a settled execution mints a new reservation on a funded org", async () => {
     const op = await operator();
-    if (target.fundTenancy === undefined) throw new Error("fundTenancy missing on a billingLedger target");
     const org = op.context.org;
-    await target.fundTenancy(org);
+    await fundAs(op.clients, org);
     const executionId = uniqueName("exec");
     const first = await op.clients.billingCommand.authorizeExecution({ orgId: org, executionId, harness: "native" });
     await op.clients.billingCommand.finalizeExecution({ executionId });
@@ -594,9 +614,8 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the engine and pr
 
   it("[billing.rpc.record-llm-call-usage.records-cost-and-marks-price-not-found] recorded usage lands on the org's usage report; an unpriced model records with PRICE_NOT_FOUND rather than failing", async () => {
     const op = await operator();
-    if (target.fundTenancy === undefined) throw new Error("fundTenancy missing on a billingLedger target");
     const org = op.context.org;
-    await target.fundTenancy(org);
+    await fundAs(op.clients, org);
     const executionId = uniqueName("exec");
     await op.clients.billingCommand.authorizeExecution({ orgId: org, executionId, harness: "native" });
     await op.clients.billingCommand.recordLlmCallUsage({ executionId, sequence: 1, provider: "anthropic", resolvedModel: "claude-sonnet-4-6", requestedModel: "claude-sonnet-4-6" });
@@ -618,7 +637,7 @@ describe.skipIf(ledgerServed)("Billing ledger conformance — the OSS boundary (
     const lanes: Array<[string, () => Promise<unknown>]> = [
       ["getOrCreateBillingAccount", () => clients.billingCommand.getOrCreateBillingAccount({ orgId: org })],
       ["adjustCredits", () => clients.billingCommand.adjustCredits({ orgId: org, amountMicros: 1n, reason: "x", idempotencyKey: "k" })],
-      ["grantCredits", () => clients.billingCommand.grantCredits({ orgId: org, amountMicros: 1n })],
+      ["grantCredits", () => clients.billingCommand.grantCredits({ orgId: org, amountMicros: 1n, reason: "x", idempotencyKey: "k" })],
       ["authorizeExecution", () => clients.billingCommand.authorizeExecution({ orgId: org, executionId, harness: "native" })],
       ["recordLlmCallUsage", () => clients.billingCommand.recordLlmCallUsage({ executionId, sequence: 1, provider: "anthropic", resolvedModel: "m" })],
       ["finalizeExecution", () => clients.billingCommand.finalizeExecution({ executionId })],
@@ -626,9 +645,9 @@ describe.skipIf(ledgerServed)("Billing ledger conformance — the OSS boundary (
       ["createCreditCheckoutSession", () => clients.billingCommand.createCreditCheckoutSession({ orgId: org, packId: "starter", successUrl: "https://x/ok", cancelUrl: "https://x/c" })],
       ["createBillingPortalSession", () => clients.billingCommand.createBillingPortalSession({ orgId: org, returnUrl: "https://x/back" })],
       ["setAutoRechargeConfig", () => clients.billingCommand.setAutoRechargeConfig({ orgId: org })],
-      ["decideModelPricingOverride", () => clients.billingCommand.decideModelPricingOverride({})],
-      ["upsertModelPricingBaseline", () => clients.billingCommand.upsertModelPricingBaseline({})],
-      ["retireModelPricingBaseline", () => clients.billingCommand.retireModelPricingBaseline({})],
+      ["decideModelPricingOverride", () => clients.billingCommand.decideModelPricingOverride({ overrideId: "ovr_x" })],
+      ["upsertModelPricingBaseline", () => clients.billingCommand.upsertModelPricingBaseline({ baseline: { modelId: "m", provider: "p", harness: "native", displayName: "M", speedTier: "balanced", costTier: "standard", pricing: {} } })],
+      ["retireModelPricingBaseline", () => clients.billingCommand.retireModelPricingBaseline({ modelId: "m", provider: "p", harness: "native" })],
       ["getBillingAccount", () => clients.billingQuery.getBillingAccount({ orgId: org })],
       ["getCreditBalance", () => clients.billingQuery.getCreditBalance({ orgId: org })],
       ["getCreditLedger", () => clients.billingQuery.getCreditLedger({ orgId: org })],

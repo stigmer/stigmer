@@ -1644,12 +1644,12 @@ rows:
     observability: launcher
     caller: primary
     needs: [fake-llm-upstream, agent-execution]
-  - id: proxy.llm.upstream.aborted-mid-stream-truncates-and-records-nothing
+  - id: proxy.llm.upstream.aborted-mid-stream-truncates-and-records-partial-usage
     surface: proxy
     lane: >-
       llm
     behavior: >-
-      When the upstream cuts an SSE stream after a few events, the caller's stream ends early (a 200 already sent) and no usage row lands for the call.
+      When the upstream cuts an SSE stream after a few events, the caller's stream ends early (a 200 already sent) and Java records the partial call with the usage seen so far — the input tokens from message_start — rather than dropping it (read on the first hermetic run, 2026-09-06).
     java_source: >-
       proxy/llm/LlmProxyController.java:208-263; proxy/usage/ProxyUsageReporter.java
     java_test: >-
@@ -1660,13 +1660,13 @@ rows:
     caller: primary
     needs: [fake-llm-upstream, funded-org, agent-execution]
     note: >-
-      Whether Java records a partial row or none is read in S4 and the row's behavior corrected to the code before it is asserted.
+      Corrected on the first hermetic run: Java records the partial row (llm_call_count +1); the assumption "records nothing" was wrong.
   - id: proxy.llm.headers.hop-by-hop-stripped
     surface: proxy
     lane: >-
       llm
     behavior: >-
-      transfer-encoding, connection, keep-alive and upgrade are never relayed from the upstream response, while provider x-* headers are.
+      Ordinary upstream response headers (e.g. Anthropic's request-id) are relayed to the caller; the upstream's x-* infrastructure headers and its hop-by-hop headers (keep-alive, connection, upgrade, transfer-encoding) are stripped (ProxyHeaders.isForwardableResponseHeader) — corrected on the first hermetic run: the assumption "x-* relays" was the inverse of the code.
     java_source: >-
       proxy/ProxyHeaders.java:27-49
     java_test: >-
@@ -1907,7 +1907,7 @@ rows:
     lane: >-
       checkpointer
     behavior: >-
-      PUT then GET /v1/proxy/checkpoints/checkpoint for thread_id thread-<session_id> on a session the caller can_edit returns the same document; GET /checkpoints lists it; PUT/GET /writes round-trip; DELETE /thread clears them.
+      PUT /v1/proxy/checkpoints/checkpoint (a bodiless 2xx) then GET for thread_id thread-<session_id> on a session the caller can_edit returns the same document; GET /checkpoints lists it; PUT / GET /writes round-trip; DELETE /thread (204) clears them.
     java_source: >-
       proxy/checkpointer/CheckpointerProxyController.java; proxy/checkpointer/PostgresCheckpointStore.java
     java_test: >-
@@ -1917,6 +1917,9 @@ rows:
     observability: launcher
     caller: primary
     needs: [session]
+    disputed: >-
+      Java answered the bodiless ok() PUTs with 204 on one hermetic run and 200 on the next for identical requests (2026-09-06); the suite pins "2xx, no body". C6 should answer 200 consistently — a deviation call for the owner.
+
   - id: proxy.checkpointer.foreign-session-403
     surface: proxy
     lane: >-
@@ -2264,7 +2267,7 @@ rows:
     lane: >-
       public.leads
     behavior: >-
-      A submission whose elapsed time (_t) is between 0 and 2000 ms answers 201 success and posts nothing.
+      A submission whose _t (the elapsed milliseconds since the form opened) is between 0 and 2000 answers 201 success and posts nothing.
     java_source: >-
       platform/leads/LeadsController.java
     java_test: >-
@@ -2324,7 +2327,7 @@ rows:
     lane: >-
       public.leads
     behavior: >-
-      A blank message answers 400 "Message is required"; a message over 5000 characters is accepted and truncated to 5000 in the Discord description (which is itself capped at 4000).
+      A blank message answers 400 "Message is required"; a long message is accepted, capped at 5000 on intake, and the Discord embed description is the first 4000 characters plus one ellipsis.
     java_source: >-
       platform/leads/ContactSalesLead.java:61; platform/leads/DiscordLeadNotifier.java:73
     java_test: >-
