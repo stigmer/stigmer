@@ -641,7 +641,7 @@ tidy: ## Run go mod tidy on all Go modules
 .PHONY: fix lint lint-web typecheck-web verify-web run-web build-web clean-web clean-build-web \
        lint-desktop typecheck-desktop verify-desktop kill-desktop launch-desktop build-desktop clean-build-desktop release-desktop-local \
        lint-docs lint-docs-audit format-docs format-docs-check check-links libs-build web-build validate-demos tsdoc-check test-demos \
-       check-docs-inventory \
+       check-docs-inventory check-conformance-inventory \
        test-web test-desktop test-runner-host test-e2e test-e2e-approval test-a11y check check-all \
        check-prep check-go check-node check-site check-rust check-java check-bazel
 fix: ## Auto-fix linting and formatting issues
@@ -886,6 +886,9 @@ check-bazel: ## check bucket: bazel graph integrity — full-graph build + BUILD
 
 check-node: ## check bucket: npm typecheck/lint/build/test (web, react, sdk, desktop, runner, demos, e2e)
 	npm run typecheck -w @stigmer/sdk
+	# The cloud-capability behavior inventory (DD-012 §5): every conformance
+	# row has a test, every test tag names a row. Static — no target boots.
+	$(MAKE) check-conformance-inventory
 	npm run lint -w @stigmer/react
 	npm run typecheck -w @stigmer/react
 	npm run typecheck -w @stigmer/demos
@@ -984,6 +987,10 @@ report-docs-yaml-rules: ## Full-depth protovalidate rule report over docs YAML (
 
 check-docs-inventory: ## Verify every docs page is classified in docs/_inventory/classification.yaml (CI)
 	$(MAKE) -C site check-docs-inventory
+
+check-conformance-inventory: ## Verify every conformance row of test/conformance/inventory/cloud-capabilities.yaml has a test and every tag names a row (CI)
+	npm run inventory:check -w @stigmer/conformance
+	npm run test:unit -w @stigmer/conformance
 
 check-links: ## Check for broken links in documentation
 	@command -v lychee >/dev/null 2>&1 || { \

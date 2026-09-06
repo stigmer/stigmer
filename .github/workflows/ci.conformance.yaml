@@ -58,6 +58,11 @@ jobs:
       - name: Build proto stubs
         run: npm run build -w @stigmer/protos
 
+      # The behavior inventory gate (E1): fails in seconds, before any boot,
+      # when a conformance row lacks a test or a tag names no row.
+      - name: Check the cloud-capability inventory
+        run: npm run inventory:check -w @stigmer/conformance
+
       # The server is standalone (own lockfile, file-linked protos); its
       # global-setup compiles it, but the install must happen here where
       # network access is expected.
