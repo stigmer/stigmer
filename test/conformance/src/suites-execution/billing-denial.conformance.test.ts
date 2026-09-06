@@ -119,7 +119,7 @@ describe.skipIf(!billingEnabled)(
       return agent.metadata!.id;
     }
 
-    it("a zero-credit org's execution lands the ruled denial for this edition", async () => {
+    it("[billing.gate.reserve.unfunded-execution-denied-with-ruled-contract] a zero-credit org's execution lands the ruled denial for this edition", async () => {
       const { org } = await provisionUnfunded();
       const agentId = await provisionAgent(org);
       const contract = resolveDenialContract();
@@ -164,7 +164,7 @@ describe.skipIf(!billingEnabled)(
       }
     });
 
-    it("funding the same org clears the denial — the negative control", async () => {
+    it("[billing.gate.reserve.funding-clears-denial] funding the same org clears the denial — the negative control", async () => {
       const { org } = await provisionUnfunded();
       const agentId = await provisionAgent(org);
       if (target.fundTenancy === undefined) {

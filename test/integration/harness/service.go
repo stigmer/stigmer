@@ -634,7 +634,16 @@ func buildServiceEnv(cfg ServiceConfig) []string {
 		env = append(env,
 			fmt.Sprintf("STIGMER_PROXY_LLM_OPENAI_BASEURL=%s", cfg.LLMUpstreamBaseURL),
 			fmt.Sprintf("STIGMER_PROXY_LLM_ANTHROPIC_BASEURL=%s", cfg.LLMUpstreamBaseURL),
+			// The proxy refuses a provider with no platform key (502) before
+			// it dials anything, so a fake upstream needs a key to inject —
+			// any non-blank value; the fake captures it so the suites can
+			// assert the injection. The real Anthropic key, when a caller
+			// passes one, still wins below.
+			"STIGMER_PROXY_OPENAI_API_KEY=sk-conformance-openai-platform-key",
 		)
+		if cfg.AnthropicAPIKey == "" {
+			env = append(env, "STIGMER_PROXY_ANTHROPIC_API_KEY=sk-ant-conformance-platform-key")
+		}
 	}
 
 	if cfg.LeadsDiscordWebhookURL != "" {

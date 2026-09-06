@@ -76,12 +76,12 @@ rows:
     java_test: >-
       none
     class: behavior
-    disposition: conformance
-    observability: launcher
+    disposition: unit
+    observability: none
     caller: operator
     needs: [none]
     note: >-
-      The org must exist for authorization to pass but carry no account row; on Java every org create provisions one, so the arm targets an org id the operator is authorized on that never had an account — feasibility confirmed in S3, else re-dispositioned.
+      Re-dispositioned at S3: every org create provisions an account and authorization runs before the handler, so the NOT_FOUND branch is unreachable from outside on Java; the composition carries it as a unit arm. The org must exist for authorization to pass but carry no account row; on Java every org create provisions one, so the arm targets an org id the operator is authorized on that never had an account — feasibility confirmed in S3, else re-dispositioned.
   - id: billing.rpc.get-billing-account.outsider-permission-denied
     surface: billing
     lane: >-
@@ -779,12 +779,12 @@ rows:
     java_test: >-
       domain/billing/service/BillingSignalMapperTest.java; domain/billing/service/ExecutionBillingServiceQuerySignalTest.java
     class: carve-out
-    disposition: conformance
-    observability: launcher
+    disposition: unit
+    observability: none
     caller: runner-token
     needs: [funded-org, agent-execution]
     note: >-
-      The thresholds are driven by adjustCredits (negative) between status updates; the runner-class credential is the execution target's embedded runner or an operator-minted runner token — settled in S3.
+      Re-dispositioned at S3: the runner's updateStatus reply is not observable by the suite (the embedded runner owns that call); the signal semantics are pinned through getExecutionBillingSignal and the decorator field by the composition's hooks.ts unit arm + Java's BuildUpdateStatusResponseStep. The thresholds are driven by adjustCredits (negative) between status updates; the runner-class credential is the execution target's embedded runner or an operator-minted runner token — settled in S3.
   - id: billing.gate.approval-signal.stop-refuses-approval
     surface: billing
     lane: >-
@@ -940,7 +940,7 @@ rows:
       none
     class: behavior
     disposition: conformance
-    observability: launcher-authz-only
+    observability: launcher
     caller: anonymous
     needs: [fake-stripe]
   - id: billing.stripe.checkout-completed.grants-credits-and-completes-purchase
@@ -1484,12 +1484,12 @@ rows:
     java_test: >-
       proxy/llm/LlmProxyControllerTest.java
     class: adversarial
-    disposition: conformance
-    observability: launcher
+    disposition: unit
+    observability: none
     caller: primary
     needs: [fake-llm-upstream]
     note: >-
-      Feasible only if the launcher boots one provider keyless (openai) — the hermetic env sets only the Anthropic key when given; settled in S4, else `unit`.
+      Re-dispositioned at S4: the hermetic launcher configures both provider keys whenever the fake upstream is set (the proxy refuses keyless providers before dialing), so the arm is unobservable there; C6 carries it as a unit arm. Feasible only if the launcher boots one provider keyless (openai) — the hermetic env sets only the Anthropic key when given; settled in S4, else `unit`.
   - id: proxy.llm.scope.foreign-execution-403
     surface: proxy
     lane: >-
