@@ -65,6 +65,7 @@ import { registerChannelMessageServices } from "../domain/agentchannel/message.j
 import { registerAgentShareServices } from "../domain/agentshare/controller.js";
 import { registerApiKeyServices } from "../domain/apikey/controller.js";
 import { newApiKeyIdentityVerifier } from "../domain/apikey/verifier.js";
+import type { IdentityVerifier } from "../extensions/identity.js";
 import { registerArtifactServices } from "../domain/artifact/controller.js";
 import { newOidcIdentityVerifier } from "../identity/oidc-verifier.js";
 import {
@@ -205,6 +206,16 @@ export interface ComposedServer {
    * the O1 extension suite proves both-router visibility through it.
    */
   inProcessTransport: Transport;
+  /**
+   * The composed identity-verifier chain in serving order — the OSS
+   * lanes the posture composed (apikey, oidc) then every extension's, in
+   * unit order — for a composition's extension-owned HTTP edges to run
+   * through `authenticateBearerToken` (stigmer#991). Exposed rather than
+   * rebuilt at the edge because the OSS entries are constructed HERE from
+   * the store and the config; an edge that rebuilt the list would drop
+   * them or reorder them, and both are the drift DD-007 rules out.
+   */
+  identityVerifiers: ReadonlyArray<IdentityVerifier>;
   /** Completes wiring, flips SERVING, binds the port; returns the bound port. */
   start(): Promise<number>;
   /** NOT_SERVING first, stop background work, drain connections. */
@@ -1181,6 +1192,7 @@ export async function composeServer(
     agentExecutionStreamBroker,
     workflowExecutionStreamBroker,
     inProcessTransport: inProcessWiring.transport,
+    identityVerifiers,
 
     async start(): Promise<number> {
       // Temporal boot is NON-fatal end to end (Go server.go): a failed
