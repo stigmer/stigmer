@@ -140,6 +140,40 @@ type ServiceConfig struct {
 	// (the production default).
 	OAuthRedirectURI string
 
+	// StripeWebhookSecret is the signing secret the service verifies
+	// Stripe-Signature headers with (STIGMER_STRIPE_WEBHOOK_SECRET). The
+	// conformance launcher mints a run-local secret so the cloud-capability
+	// suites can sign synthetic events exactly as Stripe would and drive
+	// POST /webhook/stripe hermetically (E1, entry 20260906.04). When empty,
+	// the inert dummy the Go suites have always run with applies — they
+	// never call the webhook.
+	StripeWebhookSecret string
+
+	// StripeAPIBase points the service's outbound Stripe client at a fake
+	// (STIGMER_STRIPE_API_BASE → stigmer.stripe.api-base). When set, the
+	// checkout-session, portal and customer calls the purchase money path
+	// makes land on the conformance fake instead of api.stripe.com. When
+	// empty, the production default (Stripe's real API base) applies and
+	// any Stripe-touching test would need the network.
+	StripeAPIBase string
+
+	// LLMUpstreamBaseURL points BOTH LLM proxy providers (openai, anthropic)
+	// at one fake upstream (STIGMER_PROXY_LLM_OPENAI_BASEURL and
+	// STIGMER_PROXY_LLM_ANTHROPIC_BASEURL, bound by Spring's relaxed binding
+	// onto stigmer.proxy.llm.<provider>.base-url). The fake distinguishes
+	// providers by path (/v1/messages vs /v1/chat/completions). When empty,
+	// the production defaults apply and proxied calls need the network and
+	// a real key.
+	LLMUpstreamBaseURL string
+
+	// LeadsDiscordWebhookURL points the marketing-site lead notifier at a
+	// fake Discord webhook receiver (STIGMER_LEADS_DISCORD_WEBHOOK_URL).
+	// When set, POST /api/v1/public/leads/contact-sales posts there and
+	// answers 201; when empty, the lane answers 503 "Lead intake is not
+	// configured" — the production posture for an unconfigured deploy,
+	// itself a contract the public suite pins.
+	LeadsDiscordWebhookURL string
+
 	// LogDir is the directory for the service log file.
 	// If empty, a temporary directory is used.
 	LogDir string
@@ -435,9 +469,11 @@ func buildServiceEnv(cfg ServiceConfig) []string {
 		fmt.Sprintf("CLAIMCHECK_R2_ACCESS_KEY_ID=%s", r2AccessKey(cfg)),
 		fmt.Sprintf("CLAIMCHECK_R2_SECRET_ACCESS_KEY=%s", r2SecretKey(cfg)),
 
-		// Stripe (dummy key to satisfy ConditionalOnProperty — never called)
+		// Stripe: a dummy secret key satisfies ConditionalOnProperty (the
+		// Go suites never call Stripe); the webhook secret is run-local when
+		// the conformance launcher mints one, the inert dummy otherwise.
 		"STIGMER_STRIPE_SECRET_KEY=sk_test_integration_dummy",
-		"STIGMER_STRIPE_WEBHOOK_SECRET=whsec_test_dummy",
+		fmt.Sprintf("STIGMER_STRIPE_WEBHOOK_SECRET=%s", stripeWebhookSecret(cfg)),
 
 		// OpenBAO (secret encryption) — token auth against the harness's
 		// dev-mode container. Production uses Kubernetes auth; the
@@ -588,6 +624,34 @@ func buildServiceEnv(cfg ServiceConfig) []string {
 		)
 	}
 
+	if cfg.StripeAPIBase != "" {
+		env = append(env,
+			fmt.Sprintf("STIGMER_STRIPE_API_BASE=%s", cfg.StripeAPIBase),
+		)
+	}
+
+	if cfg.LLMUpstreamBaseURL != "" {
+		env = append(env,
+			fmt.Sprintf("STIGMER_PROXY_LLM_OPENAI_BASEURL=%s", cfg.LLMUpstreamBaseURL),
+			fmt.Sprintf("STIGMER_PROXY_LLM_ANTHROPIC_BASEURL=%s", cfg.LLMUpstreamBaseURL),
+			// The proxy refuses a provider with no platform key (502) before
+			// it dials anything, so a fake upstream needs a key to inject —
+			// any non-blank value; the fake captures it so the suites can
+			// assert the injection. The real Anthropic key, when a caller
+			// passes one, still wins below.
+			"STIGMER_PROXY_OPENAI_API_KEY=sk-conformance-openai-platform-key",
+		)
+		if cfg.AnthropicAPIKey == "" {
+			env = append(env, "STIGMER_PROXY_ANTHROPIC_API_KEY=sk-ant-conformance-platform-key")
+		}
+	}
+
+	if cfg.LeadsDiscordWebhookURL != "" {
+		env = append(env,
+			fmt.Sprintf("STIGMER_LEADS_DISCORD_WEBHOOK_URL=%s", cfg.LeadsDiscordWebhookURL),
+		)
+	}
+
 	if cfg.AnthropicAPIKey != "" {
 		env = append(env,
 			fmt.Sprintf("STIGMER_PROXY_ANTHROPIC_API_KEY=%s", cfg.AnthropicAPIKey),
@@ -602,6 +666,17 @@ func buildServiceEnv(cfg ServiceConfig) []string {
 	}
 
 	return env
+}
+
+// The inert dummy every Go suite has always booted with; only the conformance
+// launcher overrides it (see ServiceConfig.StripeWebhookSecret).
+const defaultStripeWebhookSecret = "whsec_test_dummy"
+
+func stripeWebhookSecret(cfg ServiceConfig) string {
+	if cfg.StripeWebhookSecret != "" {
+		return cfg.StripeWebhookSecret
+	}
+	return defaultStripeWebhookSecret
 }
 
 func r2Endpoint(cfg ServiceConfig) string {

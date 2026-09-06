@@ -27,24 +27,14 @@
 // (the hermetic launcher or a pre-provisioned endpoint owns its lifecycle).
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { createClient, type Client } from "@connectrpc/connect";
-import { BillingCommandController } from "@stigmer/protos/ai/stigmer/billing/v1/command_pb";
 import { CLOUD_ENV } from "../harness/cloud-env";
-import { createTransport, type ConformanceClients } from "../harness/clients";
+import type { ConformanceClients } from "../harness/clients";
 import { McpToolFixture } from "../harness/mcp-server";
 import { MockLlmProxy } from "../harness/mock-llm";
 import { ensureRunnerBuilt } from "../harness/runner-build";
 import { spawnRunner, type RunningRunner } from "../harness/runner-process";
 import { CloudTarget } from "./cloud";
-import type { CapabilityFlags, TargetProfile, TenancyContext } from "./target";
-
-// The credit seed for a provisioned execution org, mirroring the integration
-// harness's ProvisionTestBillingAccount ($100 in micro-USD): cloud authorizes
-// billing INSIDE the agent-execution workflow (InvokeAgentExecutionWorkflow →
-// ExecutionBillingService) before any work is dispatched, so the zero-balance
-// account an org create provisions — sufficient for Class A CRUD — denies
-// every Class B run with "Insufficient credits to start execution".
-const TENANCY_SEED_CREDITS_MICROS = 100_000_000n;
+import type { CapabilityFlags, StripeWebhookLane, TargetProfile, TenancyContext } from "./target";
 
 // The integration module's log dir — where the hermetic launcher already
 // writes stigmer-service.log, and what the CI lane uploads on failure. Each
@@ -71,7 +61,6 @@ export class CloudExecutionTarget implements TargetProfile {
   private runner: RunningRunner | undefined;
   private mockLlm: MockLlmProxy | undefined;
   private mcpTools: McpToolFixture | undefined;
-  private billingCommand: Client<typeof BillingCommandController> | undefined;
 
   get capabilities(): CapabilityFlags {
     return this.cloud.capabilities;
@@ -95,13 +84,6 @@ export class CloudExecutionTarget implements TargetProfile {
     //    JWT wins for STIGMER_TOKEN, and the mock proxy ignores bearers.
     const backendEndpoint = requireCloudEnv(CLOUD_ENV.address);
     const primaryToken = requireCloudEnv(CLOUD_ENV.token);
-    // Billing writes authenticate as the primary user — the owner of every
-    // org this target provisions, which is who the integration harness's
-    // org_helpers fund standalone orgs as (ownerConn).
-    this.billingCommand = createClient(
-      BillingCommandController,
-      createTransport(backendEndpoint, { bearerToken: primaryToken }),
-    );
     this.runner = await spawnRunner({
       entryPath: runnerEntry,
       backendEndpoint,
@@ -147,6 +129,25 @@ export class CloudExecutionTarget implements TargetProfile {
     return this.cloud.edgeAuthenticationBypass();
   }
 
+  // The cloud-capability lanes are the same environment's; delegated so the
+  // Class B billing arms (settle, the STOP/WARNING thresholds, usage landing
+  // from the proxy) reach them exactly as the Class A arms do.
+  proxyBaseUrl(): string {
+    return this.cloud.proxyBaseUrl();
+  }
+
+  cursorBidiBaseUrl(): string {
+    return this.cloud.cursorBidiBaseUrl();
+  }
+
+  publicBaseUrl(): string {
+    return this.cloud.publicBaseUrl();
+  }
+
+  stripeWebhook(): StripeWebhookLane {
+    return this.cloud.stripeWebhook();
+  }
+
   async provisionTenancy(): Promise<TenancyContext> {
     const context = await this.cloud.provisionTenancy();
     await this.fundTenancy(context.org);
@@ -159,7 +160,14 @@ export class CloudExecutionTarget implements TargetProfile {
   // identical to provisionTenancy, so a later fundTenancy on the same org
   // turns it into the funded shape exactly.
   provisionUnfundedTenancy(): Promise<TenancyContext> {
-    return this.cloud.provisionTenancy();
+    return this.cloud.provisionUnfundedTenancy();
+  }
+
+  // The seed itself lives on the Class A target (E1 moved it up so ledger arms
+  // can fund without a runner); this target's provisionTenancy is the one
+  // place that applies it by default.
+  fundTenancy(org: string): Promise<void> {
+    return this.cloud.fundTenancy(org);
   }
 
   cleanupTenancy(context: TenancyContext): Promise<void> {
@@ -180,27 +188,8 @@ export class CloudExecutionTarget implements TargetProfile {
     this.runner = undefined;
     this.mockLlm = undefined;
     this.mcpTools = undefined;
-    this.billingCommand = undefined;
   }
 
-  // Seeds the fresh org's billing account so the workflow-level billing gate
-  // authorizes runs (see TENANCY_SEED_CREDITS_MICROS). Billing accounts are
-  // keyed by the execution's metadata.org — the slug — which is also what the
-  // integration suite passes. Public as the TargetProfile optional verb: the
-  // billing-denial suite funds an unfunded org as its negative control (the
-  // deliberate zero-credit suite this comment used to name as missing).
-  async fundTenancy(org: string): Promise<void> {
-    if (this.billingCommand === undefined) {
-      throw new Error("CloudExecutionTarget.setup() must be called before provisionTenancy()");
-    }
-    await this.billingCommand.getOrCreateBillingAccount({ orgId: org });
-    await this.billingCommand.adjustCredits({
-      orgId: org,
-      amountMicros: TENANCY_SEED_CREDITS_MICROS,
-      reason: "conformance execution tenancy seed",
-      idempotencyKey: `conformance-seed-${org}`,
-    });
-  }
 }
 
 // One log per runner spawn. Files run serially (fileParallelism: false) and

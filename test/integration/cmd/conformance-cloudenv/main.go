@@ -37,12 +37,16 @@ const bootTimeout = 10 * time.Minute
 
 // readySignal is the single JSON line printed to stdout once the environment
 // accepts gRPC traffic. The TS global setup parses it to locate the service.
-// The HTTP address carries the Spring routes the gRPC port does not — notably
-// the artifact presign endpoints (/v1/proxy/artifacts/...) the conformance
-// runner's proxy artifact store targets (stigmer#803).
+// The HTTP address carries the Spring routes the gRPC port does not — the
+// artifact presign endpoints (/v1/proxy/artifacts/...) the conformance
+// runner's proxy artifact store targets (stigmer#803), and since E1 the whole
+// side-channel proxy, the Stripe webhook and the public lane. The bidi
+// address is the Cursor BiDi proxy's own Netty listener (h2c), which Tomcat
+// cannot serve; the TS side publishes both to the suites through CLOUD_ENV.
 type readySignal struct {
-	GrpcAddress string `json:"grpcAddress"`
-	HTTPAddress string `json:"httpAddress"`
+	GrpcAddress       string `json:"grpcAddress"`
+	HTTPAddress       string `json:"httpAddress"`
+	CursorBidiAddress string `json:"cursorBidiAddress"`
 }
 
 func main() {
@@ -145,6 +149,18 @@ func run(logger *slog.Logger) error {
 		// lane. Format is the primary key's own: base64 of PKCS#8 DER (the
 		// spike's .env.spike carries base64 of PEM — convert before setting).
 		PreviousJWTSigningKey: os.Getenv("STIGMER_CONFORMANCE_EXTRA_JWT_VERIFY_KEY_BASE64"),
+		// The cloud-capability fixtures (E1, entry 20260906.04): the TS
+		// global setup boots the fake LLM upstream, the fake Stripe API and
+		// the fake Discord receiver BEFORE spawning this launcher and hands
+		// their addresses (and a run-local webhook signing secret) over on
+		// the environment; each is threaded through an explicit
+		// ServiceConfig field so the service's outbound posture is visible
+		// here, never inherited ambiently. Empty when the launcher runs
+		// without the fixtures (the production defaults apply).
+		StripeWebhookSecret:    os.Getenv(envStripeWebhookSecret),
+		StripeAPIBase:          os.Getenv(envStripeAPIBase),
+		LLMUpstreamBaseURL:     os.Getenv(envLLMUpstreamBaseURL),
+		LeadsDiscordWebhookURL: os.Getenv(envLeadsDiscordWebhookURL),
 	}, logger)
 	if err != nil {
 		return fmt.Errorf("start stigmer-service: %w", err)
@@ -158,8 +174,9 @@ func run(logger *slog.Logger) error {
 	}
 
 	ready, err := json.Marshal(readySignal{
-		GrpcAddress: svc.GRPCAddress(),
-		HTTPAddress: svc.HTTPAddress(),
+		GrpcAddress:       svc.GRPCAddress(),
+		HTTPAddress:       svc.HTTPAddress(),
+		CursorBidiAddress: svc.BiDiProxyAddress(),
 	})
 	if err != nil {
 		return fmt.Errorf("marshal ready signal: %w", err)
@@ -168,6 +185,7 @@ func run(logger *slog.Logger) error {
 	logger.Info("conformance cloud environment ready",
 		"grpc_address", svc.GRPCAddress(),
 		"http_address", svc.HTTPAddress(),
+		"cursor_bidi_address", svc.BiDiProxyAddress(),
 		"service_log", svc.LogPath(),
 	)
 
@@ -184,6 +202,15 @@ const (
 	envExternalFGAAPIURL  = "STIGMER_CONFORMANCE_EXTERNAL_OPENFGA_API_URL"
 	envExternalFGAStoreID = "STIGMER_CONFORMANCE_EXTERNAL_OPENFGA_STORE_ID"
 	envExternalFGAModelID = "STIGMER_CONFORMANCE_EXTERNAL_OPENFGA_MODEL_ID"
+)
+
+// The fixture hand-over contract between cloud-env.ts (writer) and this
+// launcher (reader) — see the ServiceConfig fields they feed.
+const (
+	envStripeWebhookSecret    = "STIGMER_CONFORMANCE_STRIPE_WEBHOOK_SECRET"
+	envStripeAPIBase          = "STIGMER_CONFORMANCE_STRIPE_API_BASE"
+	envLLMUpstreamBaseURL     = "STIGMER_CONFORMANCE_LLM_UPSTREAM_BASE_URL"
+	envLeadsDiscordWebhookURL = "STIGMER_CONFORMANCE_LEADS_DISCORD_WEBHOOK_URL"
 )
 
 // externalOpenFGAFromEnv reads the join-mode store coordinates. All three

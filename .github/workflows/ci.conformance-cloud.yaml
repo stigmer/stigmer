@@ -168,6 +168,11 @@ jobs:
       - name: Build proto stubs
         run: npm run build -w @stigmer/protos
 
+      # The behavior inventory gate (E1): fails in seconds, before the
+      # hermetic boot, when a conformance row lacks a test or a tag names no row.
+      - name: Check the cloud-capability inventory
+        run: npm run inventory:check -w @stigmer/conformance
+
       - name: Install Temporal CLI
         uses: temporalio/setup-temporal@v0
 
@@ -254,6 +259,11 @@ jobs:
       # build-runner), keeping one build path for CI and local runs.
       - name: Build proto stubs
         run: npm run build -w @stigmer/protos
+
+      # The behavior inventory gate (E1): fails in seconds, before the
+      # hermetic boot, when a conformance row lacks a test or a tag names no row.
+      - name: Check the cloud-capability inventory
+        run: npm run inventory:check -w @stigmer/conformance
 
       - name: Install Temporal CLI
         uses: temporalio/setup-temporal@v0

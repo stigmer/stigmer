@@ -183,6 +183,45 @@ hermetic Java launcher (test security mode, no edge) and every deployed
 endpoint (a real tenant's key is never conformance's) leave the group unset,
 and the arms skip VISIBLY with the target's reason.
 
+**The cloud-capability suites** (E1 of the convergence program's DD-012 reset,
+stigmer-cloud entry `20260906.04`) cover the three surfaces the Java service
+owned alone until the composition takes them: the billing ledger
+(`billing.conformance.test.ts` + `suites-execution/billing-gates`), the
+side-channel proxy (`proxy.conformance.test.ts`) and the public REST lane
+(`public-lane.conformance.test.ts`). Three things make them different from the
+CRUD suites:
+
+- **They are enumerated from an inventory, not written from taste.**
+  `inventory/cloud-capabilities.yaml` lists every behavior of those surfaces
+  read out of the Java code, each with a disposition saying where it is
+  proven (`conformance` here; `unit` in an edition's own tables; `smoke` on a
+  live lane; `debris` cut by the owner; `deviation` where Java is wrong and
+  the suite asserts the contract). Every `it` carries its row id as a
+  `[billing.rpc.foo.bar]` tag, and `npm run inventory:check` fails the CI
+  lanes when a `conformance` row has no test or a tag names no row — "every
+  behavior is covered" is computed, never claimed.
+- **The server under test dials fakes the run owns.** The global setup boots a
+  fake LLM provider (Anthropic + OpenAI wire shapes), a fake Stripe API with
+  request capture and a Stripe-Signature signer, and a fake Discord webhook
+  receiver (`harness/cloud-fixtures.ts`) BEFORE the launcher, hands their
+  addresses to the JVM through explicit launcher fields, and publishes a
+  control URL the workers script them through (`support/cloud-fixtures-client.ts`).
+  Suites reset the fakes in `afterEach` — they are shared across every file.
+  For a pre-provisioned environment (the composition readout), `npm run
+  fixtures:serve` starts them standalone and prints the lines to export.
+- **Lanes have their own addresses.** `STIGMER_CONFORMANCE_CLOUD_{PROXY,CURSOR_BIDI,PUBLIC,STRIPE_WEBHOOK}_ADDRESS`
+  (+ `_STRIPE_WEBHOOK_SECRET`, `_FIXTURES_CONTROL_URL`), because the
+  composition serves extension-owned lanes on separate listeners. The flags
+  (`billingLedger`, `sideChannelProxy`, `publicLane`) state the EDITION's
+  contract; the addresses state where the environment serves it — a cloud
+  target whose flag is true and whose lane is missing FAILS, never skips.
+  That red is the implementing entry's acceptance.
+
+Authentication-class arms (401 without a bearer, foreign tokens, CORS,
+`denyAll`, the require-scope header) are unobservable in the launcher's test
+security mode and skip through `edgeAuthenticationBypass()` until the launcher
+runs production security (its own entry).
+
 ## Design
 
 ### Raw stubs, not the SDK
@@ -401,3 +440,21 @@ src/
    by the `local-execution` target.
 3. Assert the intended contract; register any genuine implementation bug as a
    known deviation rather than asserting the wrong behavior.
+
+## Adding a cloud capability
+
+For a surface only the cloud edition serves (the E1 pattern):
+
+1. Add a `CapabilityFlags` entry in `targets/target.ts` with the rationale
+   block the others carry — true on `cloud`, false on the local targets with
+   the DD-001 reason — and, if it is an HTTP lane, an optional address
+   accessor beside `proxyBaseUrl()`, fed from a new `CLOUD_ENV` entry that
+   both `global-setup-cloud.ts` and the composition readout publish.
+2. Enumerate its behaviors as rows in `inventory/cloud-capabilities.yaml`
+   (stable dotted ids; one disposition each; cite the Java source and test).
+3. Write the suite gated at collection time (`describe.skipIf(!flag)`), every
+   `it` tagged with its row ids; script any upstream the server dials through
+   `harness/cloud-fixtures.ts` and its control client, never by importing a
+   fake into the worker.
+4. Run `npm run inventory:check` (zero problems) and the hermetic cloud run
+   green before the composition run — Java's behavior is the spec.

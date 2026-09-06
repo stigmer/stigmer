@@ -260,6 +260,63 @@ export interface CapabilityFlags {
   // the raw subject as the identity — a self-host contract, not this one —
   // and the trusted-local posture has no tenant at all.
   directLogin: boolean;
+  // The billing LEDGER is served here: the 22 RPCs of BillingCommandController
+  // and BillingQueryController (accounts, balances, ledger, usage reports,
+  // pricing, the engine lanes), the Stripe webhook at POST /webhook/stripe,
+  // and the workers' observable effects. Distinct from `billingGates` (the
+  // execution-time credit gates), which a target could in principle serve
+  // through a remote engine without owning the ledger — the C5 Stage 1 facade
+  // did exactly that.
+  //
+  // True for cloud: the Java billing engine natively, and the TS composition
+  // through the facade (every unary RPC forwarded) until C5 lands the engine
+  // natively — the same suite must stay green across that replacement, which
+  // is C5's acceptance (entry 20260906.04, E1).
+  //
+  // False for the local OSS targets — BY DD-001 BOUNDARY, not a gap: OSS
+  // routes neither controller, so every billing RPC answers Unimplemented.
+  // Where false, the suite PINS that answer (the versionTagging /
+  // orgOAuthAppConfiguration posture — ruling Q10 of E1): the boundary is an
+  // observable contract the SDK relies on, not an absence to skip past.
+  billingLedger: boolean;
+  // The side-channel proxy is served here: the HTTP lanes runners use so they
+  // carry zero provider secrets — llm (/v1/proxy/llm/{provider}/**), cursor
+  // (/v1/proxy/cursor/{host}/**), cursor-bidi (Connect streams on its own
+  // port), claimcheck, artifact and checkpointer presign/storage lanes, the
+  // authenticated /v1/proxy/model-registry, and the /health probe — with
+  // scope-header authorization against FGA and usage extracted from the wire
+  // into the billing ledger.
+  //
+  // True for cloud: Java's Tomcat + Netty lanes natively; the composition
+  // once C6 lands them in-process. Until then a `cloud` run against the
+  // composition FAILS these arms — by design, that red IS C6's acceptance
+  // baseline (never a skip: the flag states the edition's contract, and the
+  // lane's address comes from CLOUD_ENV — see proxyBaseUrl).
+  //
+  // False for the local OSS targets — BY DD-001 BOUNDARY: OSS has no proxy
+  // (runners dial providers directly); nothing to pin beyond the router 404
+  // the registry-proxy suite already asserts, so the proxy suites skip there.
+  sideChannelProxy: boolean;
+  // The public REST lane the marketing site calls without credentials:
+  // GET /api/v1/public/model-registry, GET /api/v1/public/model-pricing,
+  // POST /api/v1/public/leads/contact-sales — with the contact-sales
+  // validation copy and limits as a site-facing contract (a DD-012 carve-out)
+  // and the Discord lead notifier's fail-loud posture.
+  //
+  // True for cloud (Java natively; the composition once P1 lands the lane —
+  // red until then, P1's acceptance). False for the local OSS targets — BY
+  // DD-001 BOUNDARY: no marketing site fronts a self-host; the suites skip.
+  publicLane: boolean;
+}
+
+// The Stripe webhook lane as the suite drives it: where Java (or the
+// composition) receives events, and the signing secret the environment booted
+// the server with — the suite signs its own synthetic events with it, exactly
+// as Stripe would, so the signature contract (a DD-012 carve-out) is asserted
+// end to end without a network.
+export interface StripeWebhookLane {
+  readonly baseUrl: string;
+  readonly signingSecret: string;
 }
 
 // A platform identity tenant the target can mint for — see
@@ -413,6 +470,24 @@ export interface TargetProfile {
   // file-server block then reports SKIPPED at collection time, the
   // registry-proxy posture. Valid only after setup().
   artifactHttpBaseUrl?(): string;
+
+  // The cloud-capability HTTP lanes (E1, entry 20260906.04), one accessor
+  // per lane because the composition serves its extension-owned lanes on
+  // separate listeners (main.ts starts the codec and webhook lanes that way;
+  // C6 and P1 keep their own port decisions) while Java serves them all from
+  // Tomcat :8081 except bidi (Netty, its own port). Present on the cloud
+  // targets, read from CLOUD_ENV; absent on the local targets, where the
+  // corresponding flag is false and the suites skip at collection time.
+  //
+  // The contract between flag and accessor is deliberate: the FLAG states the
+  // edition's promise; the ACCESSOR states where the environment serves it. A
+  // cloud target whose flag is true but whose lane is unreachable FAILS its
+  // arms — that red is the implementing entry's acceptance, never a skip.
+  // Valid only after setup().
+  proxyBaseUrl?(): string;
+  cursorBidiBaseUrl?(): string;
+  publicBaseUrl?(): string;
+  stripeWebhook?(): StripeWebhookLane;
 
   // A platform-operator caller with a tenancy of its own (stigmer#547) — see
   // PrivilegedScope. Absent where no operator credential exists: hermetic
