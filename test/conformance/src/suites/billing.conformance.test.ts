@@ -25,14 +25,28 @@
 // orgOAuthAppConfiguration posture). Pinned once per RPC below.
 //
 // The fixtures are shared across every file in a cloud run
-// (fileParallelism: false), so this suite resets them in afterEach.
+// (fileParallelism: false), so each block that drives the fake Stripe resets
+// it in its own afterEach — the blocks that never touch Stripe do not pay for
+// a reset they do not need.
+//
+// The auto-recharge rows (entry 20260906.04, T02 — ruled PORTED at C5's gate
+// after the read-only census found the feature is a live product surface)
+// need Java's whole money path in one test: a Stripe customer, a saved
+// payment method, a debit that trips the low-balance signal, the PaymentIntent
+// Java creates on its background executor, and the webhook the suite posts
+// back as Stripe. `armRecharge()` below is that journey; the arithmetic that
+// makes the debit trip the signal is written down there once.
 import { Code } from "@connectrpc/connect";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { LedgerEntryType } from "@stigmer/protos/ai/stigmer/billing/v1/enum_pb";
+import { ModelPricingBaselineStatus } from "@stigmer/protos/ai/stigmer/billing/v1/model_pricing_baseline_pb";
+import { UsageCompletionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
 import { FixtureTracker } from "../harness/fixtures";
-import { postStripeWebhook, signStripePayload, signedEvent, stripeEvent } from "../harness/fake-stripe";
+import { FAKE_CARD, postStripeWebhook, signStripePayload, signedEvent, stripeEvent, type CapturedStripeRequest } from "../harness/fake-stripe";
 import { expectGrpcCode } from "../contract/errors";
 import { requireCloudFixtures, type CloudFixturesClient } from "../support/cloud-fixtures-client";
+import { pollUntil } from "../support/execution-poll";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
 import type { ConformanceClients } from "../harness/clients";
@@ -43,12 +57,17 @@ const ledgerServed = createTarget().capabilities.billingLedger;
 
 let target: TargetProfile;
 let clients: ConformanceClients;
+// The run's fixture control client — the fake Stripe's captures and scripted
+// failures. Resolved once the target confirms it serves the ledger (the local
+// OSS targets publish no fixtures and never reach the Stripe blocks).
+let control: CloudFixturesClient;
 const fixtures = new FixtureTracker();
 
 beforeAll(async () => {
   target = createTarget();
   await target.setup();
   clients = target.clients();
+  if (ledgerServed) control = requireCloudFixtures();
 });
 
 afterEach(async () => {
@@ -73,8 +92,33 @@ const COPY = {
   pricingEdit: "only platform operators can edit the model registry baseline",
   pricingGovernance: "only platform operators can view pricing governance",
   pricingBaselineView: "only platform operators can view the model registry baseline",
+  manageAutoRecharge: "unauthorized to manage auto-recharge for this organization",
   insufficientCredits: "Insufficient credits to start execution",
   noAccount: "No billing account for this organization",
+} as const;
+
+// The engine's OWN validation copy — service code, not a proto option, so a
+// different provenance from COPY above and pinned in its own table: C5 ports
+// the domain exactly, and the console / SDKs surface these strings to the
+// user, which makes the bytes the contract. Sources are the Java
+// `domain/billing` service classes named on each line.
+const DOMAIN_COPY = {
+  // BillingAccountService.setAutoRechargeConfig (validation runs in this order when enabling)
+  autoRechargeNeedsPaymentMethod: "A saved payment method is required to enable auto-recharge. Purchase a credit pack first.",
+  autoRechargeThresholdPositive: "threshold_micros must be positive when enabling auto-recharge",
+  autoRechargeAmountPositive: "recharge_amount_micros must be positive when enabling auto-recharge",
+  autoRechargeCapAtLeastAmount: "monthly_cap_micros must be at least recharge_amount_micros",
+  autoRechargeThresholdNotNegative: "threshold_micros must not be negative",
+  // SetAutoRechargeConfigHandler / GetBillingAccountHandler: the account lookup precedes every other check
+  noAccountFor: (org: string) => `No billing account for ${org}`,
+  // UpsertModelPricingBaselineHandler: variants inherit the base entry's Cursor rate
+  variantDeclaresCursorRate: (variant: string) =>
+    `Variant '${variant}' declares a Cursor Token Rate — variants inherit the base entry's rate; set it on the base pricing block instead.`,
+  // RetireModelPricingBaselineHandler
+  noActiveBaseline: (modelId: string, provider: string, harness: string) =>
+    `No ACTIVE baseline found for ${modelId}/${provider}/${harness} — it may already be retired, or the key is misspelled.`,
+  // DecideModelPricingOverrideHandler
+  noOverride: (overrideId: string) => `No pricing override found with id ${overrideId}`,
 } as const;
 
 // A Class A billing test needs an org (funded or not), an outsider, and — for
@@ -116,15 +160,181 @@ async function operator(): Promise<PrivilegedScope> {
 }
 
 // Funds an org AS the given caller — the operator's scope org is owned by the
-// operator, not by the primary user the target's fundTenancy acts as.
-async function fundAs(as: ConformanceClients, org: string): Promise<void> {
+// operator, not by the primary user the target's fundTenancy acts as. The
+// amount is a parameter because the auto-recharge journey needs a balance
+// SMALL enough for one debit to trip the low-balance signal.
+async function fundAs(as: ConformanceClients, org: string, amountMicros = 100_000_000n): Promise<void> {
   await as.billingCommand.getOrCreateBillingAccount({ orgId: org });
-  await as.billingCommand.adjustCredits({ orgId: org, amountMicros: 100_000_000n, reason: "conformance operator seed", idempotencyKey: uniqueName("op-seed") });
+  await as.billingCommand.adjustCredits({ orgId: org, amountMicros, reason: "conformance operator seed", idempotencyKey: uniqueName("op-seed") });
 }
 
 async function balanceOf(org: string): Promise<bigint> {
   const balance = await clients.billingQuery.getCreditBalance({ orgId: org });
   return balance.availableMicros;
+}
+
+// ---------------------------------------------------------------------------
+// The Stripe half. Outbound, Java dials the run's fake (harness/fake-stripe.ts)
+// and the suite reads what landed there; inbound, the suite IS Stripe — it
+// authors the event payloads below and signs them with the secret the server
+// was booted with. The fake owns Stripe's response shapes; the suite owns the
+// events it posts, so the builders live here beside the arms that use them.
+
+async function post(event: ReturnType<typeof stripeEvent>, options: { secret?: string; timestamp?: number } = {}) {
+  const lane = target.stripeWebhook!();
+  return postStripeWebhook(lane.baseUrl, signedEvent(event, options.secret ?? lane.signingSecret, options.timestamp));
+}
+
+function checkoutCompleted(sessionId: string, type = "checkout.session.completed", id?: string) {
+  return stripeEvent(type, { id: sessionId, object: "checkout.session", payment_intent: `pi_conf_${sessionId}`, customer: null, payment_status: "paid", status: "complete" }, id === undefined ? {} : { id });
+}
+
+// `customer.updated` carries the customer with its invoice settings; Java
+// reads `invoice_settings.default_payment_method` and, when set, retrieves
+// the payment method from the (fake) API before writing it onto the account.
+function customerUpdated(customerId: string, defaultPaymentMethodId: string | null) {
+  return stripeEvent("customer.updated", { id: customerId, object: "customer", invoice_settings: { default_payment_method: defaultPaymentMethodId } });
+}
+
+// `payment_method.attached` carries the payment method itself — Java reads
+// the card from the event, never from the API. `card` defaults to the fake's
+// one card; pass `type: "us_bank_account"` (no card) for the non-card arm.
+function paymentMethodAttached(paymentMethodId: string, customerId: string, options: { type?: string; card?: typeof FAKE_CARD | null } = {}) {
+  const type = options.type ?? "card";
+  const card = options.card === undefined ? (type === "card" ? FAKE_CARD : null) : options.card;
+  return stripeEvent("payment_method.attached", { id: paymentMethodId, object: "payment_method", type, customer: customerId, ...(card === null ? {} : { card }) });
+}
+
+// The two PaymentIntent events Java handles for auto-recharge. Java keys on
+// `metadata.stigmer_recharge_event_id`; without it the event is a checkout's
+// PaymentIntent and is deliberately ignored (the purchase path is settled by
+// checkout.session.completed, not by the intent).
+function paymentIntentSucceeded(paymentIntentId: string, rechargeEventId?: string, id?: string) {
+  return stripeEvent("payment_intent.succeeded", { id: paymentIntentId, object: "payment_intent", status: "succeeded", metadata: rechargeMetadata(rechargeEventId) }, id === undefined ? {} : { id });
+}
+
+function paymentIntentPaymentFailed(paymentIntentId: string, rechargeEventId?: string, message = "Your card was declined.") {
+  return stripeEvent("payment_intent.payment_failed", {
+    id: paymentIntentId,
+    object: "payment_intent",
+    status: "requires_payment_method",
+    metadata: rechargeMetadata(rechargeEventId),
+    last_payment_error: { code: "card_declined", message },
+  });
+}
+
+function rechargeMetadata(rechargeEventId: string | undefined): Record<string, string> {
+  return rechargeEventId === undefined ? {} : { stigmer_recharge_event_id: rechargeEventId };
+}
+
+// Java mints the org's Stripe customer on its first checkout; the fake's
+// captured `POST /v1/customers` answer is the id. Customer creation and use
+// must share one test — the fake forgets its customers on reset().
+async function seedStripeCustomer(as: ConformanceClients, org: string): Promise<string> {
+  await as.billingCommand.createCreditCheckoutSession({ orgId: org, packId: "starter", successUrl: "https://x.test/ok", cancelUrl: "https://x.test/c" });
+  const created = (await control.stripe.requests()).filter((r) => r.method === "POST" && r.path === "/v1/customers").at(-1);
+  const customerId = created?.response.id;
+  if (customerId === undefined) throw new Error(`seedStripeCustomer(${org}): the checkout created no Stripe customer on the fake`);
+  return customerId;
+}
+
+// The only way an account gets a saved payment method from outside Java is
+// the webhook: Stripe tells Java a method was attached. Returns the id the
+// account now shows; the row's own arm asserts the finer contract.
+async function seedDefaultPaymentMethod(as: ConformanceClients, org: string, customerId: string): Promise<string> {
+  const paymentMethodId = uniqueName("pm_conf");
+  const response = await post(paymentMethodAttached(paymentMethodId, customerId));
+  expect(response.status, `payment_method.attached for ${org}: ${response.body}`).toBe(200);
+  const account = await as.billingQuery.getBillingAccount({ orgId: org });
+  expect(account.defaultPaymentMethod?.paymentMethodId, "the attached card is the account's default").toBe(paymentMethodId);
+  return paymentMethodId;
+}
+
+// Java creates the auto-recharge PaymentIntent on a background executor after
+// the debit returns, so the suite polls the fake for the capture rather than
+// reading it once. The timeout message lists what DID land, so a miss says
+// which call Java made instead.
+async function awaitStripeRequest(predicate: (request: CapturedStripeRequest) => boolean, label: string): Promise<CapturedStripeRequest> {
+  const requests = await pollUntil(
+    () => control.stripe.requests(),
+    (captured) => captured.some(predicate),
+    (last, timeoutMs) => `${label}: no matching Stripe request within ${timeoutMs}ms; captured: ${(last ?? []).map((r) => `${r.method} ${r.path}`).join(", ") || "(none)"}`,
+    { timeoutMs: 10_000, pollMs: 100 },
+  );
+  const match = requests.find(predicate);
+  if (match === undefined) throw new Error(`${label}: matched then vanished`);
+  return match;
+}
+
+// The auto-recharge journey, up to the PaymentIntent Java creates.
+//
+// Why these numbers (Java: CreditLedgerService.determineSignal,
+// ExecutionBillingService.reportLlmCallUsage, AutoRechargeService.evaluateAndTrigger):
+//   fund $3 → authorizeExecution takes the $1 default hold → available $2.
+//   One priced call (claude-sonnet-4-6/native is seeded at $3/$15 per
+//   million; 100k in + 10k out ≈ $0.45 before policy markup) debits the hold,
+//   leaving ~$0.55 of headroom. The post-debit signal is
+//   available + headroom ≈ $2.55 ≤ the $5 low-balance default → warning, which
+//   is what makes Java evaluate auto-recharge at all. evaluateAndTrigger then
+//   compares available ($2) — NOT the headroom figure — with the threshold
+//   ($5): below, so it claims a slot on the monthly cap ($20 of $40) and hands
+//   the PaymentIntent create to its executor. `usageStatus: COMPLETE` is what
+//   makes the call billable; without it Java records the call and debits
+//   nothing.
+const RECHARGE = {
+  fundMicros: 3_000_000n,
+  thresholdMicros: 5_000_000n,
+  amountMicros: 20_000_000n,
+  capMicros: 40_000_000n,
+  usage: { inputTokens: 100_000n, outputTokens: 10_000n },
+} as const;
+
+interface ArmedRecharge {
+  readonly org: string;
+  readonly customerId: string;
+  readonly paymentMethodId: string;
+  readonly executionId: string;
+  // What Java sent the fake for the recharge.
+  readonly paymentIntent: CapturedStripeRequest;
+  // The id the webhook must carry back for Java to settle this recharge.
+  readonly rechargeEventId: string;
+}
+
+async function armRecharge(op: PrivilegedScope): Promise<ArmedRecharge> {
+  const org = op.context.org;
+  await fundAs(op.clients, org, RECHARGE.fundMicros);
+  const customerId = await seedStripeCustomer(op.clients, org);
+  const paymentMethodId = await seedDefaultPaymentMethod(op.clients, org, customerId);
+  await op.clients.billingCommand.setAutoRechargeConfig({
+    orgId: org,
+    enabled: true,
+    thresholdMicros: RECHARGE.thresholdMicros,
+    rechargeAmountMicros: RECHARGE.amountMicros,
+    monthlyCapMicros: RECHARGE.capMicros,
+  });
+  const executionId = uniqueName("exec-recharge");
+  const authorized = await op.clients.billingCommand.authorizeExecution({ orgId: org, executionId, harness: "native" });
+  expect(authorized.authorized, "the $3 org is admitted").toBe(true);
+  await debitOnce(op, executionId, 1);
+  const paymentIntent = await awaitStripeRequest((r) => r.method === "POST" && r.path === "/v1/payment_intents", `auto-recharge PaymentIntent for ${org}`);
+  const rechargeEventId = paymentIntent.params["metadata[stigmer_recharge_event_id]"];
+  if (rechargeEventId === undefined) throw new Error(`the recharge PaymentIntent carries no stigmer_recharge_event_id: ${JSON.stringify(paymentIntent.params)}`);
+  return { org, customerId, paymentMethodId, executionId, paymentIntent, rechargeEventId };
+}
+
+// One billable LLM call on an authorized execution — the debit that trips
+// the signal. `sequence` must be unique per execution.
+async function debitOnce(op: PrivilegedScope, executionId: string, sequence: number): Promise<void> {
+  await op.clients.billingCommand.recordLlmCallUsage({
+    executionId,
+    sequence,
+    provider: "anthropic",
+    resolvedModel: "claude-sonnet-4-6",
+    requestedModel: "claude-sonnet-4-6",
+    harness: "native",
+    tokens: RECHARGE.usage,
+    usageStatus: UsageCompletionStatus.COMPLETE,
+  });
 }
 
 describe.skipIf(!ledgerServed)("Billing ledger conformance — accounts, balances and the ledger (billingLedger targets)", () => {
@@ -295,12 +505,6 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — accounts, balance
 });
 
 describe.skipIf(!ledgerServed)("Billing ledger conformance — the purchase money path against the fake Stripe", () => {
-  let control: CloudFixturesClient;
-
-  beforeAll(() => {
-    control = requireCloudFixtures();
-  });
-
   afterEach(async () => {
     await control.stripe.reset();
   });
@@ -391,17 +595,8 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the purchase mone
     expect(request?.params["return_url"]).toBe("https://x.test/back");
   });
 
-  // The webhook half: the suite is Stripe here, signing events with the
-  // secret the server was booted with and posting them to the lane.
-  async function post(event: ReturnType<typeof stripeEvent>, options: { secret?: string; timestamp?: number } = {}) {
-    const lane = target.stripeWebhook!();
-    return postStripeWebhook(lane.baseUrl, signedEvent(event, options.secret ?? lane.signingSecret, options.timestamp));
-  }
-
-  function checkoutCompleted(sessionId: string, type = "checkout.session.completed", id?: string) {
-    return stripeEvent(type, { id: sessionId, object: "checkout.session", payment_intent: `pi_conf_${sessionId}`, customer: null, payment_status: "paid", status: "complete" }, id === undefined ? {} : { id });
-  }
-
+  // The webhook half: the suite is Stripe here (the builders at module scope),
+  // posting the events a purchase produces back to the lane.
   async function purchase(org: string): Promise<{ sessionId: string; creditsMicros: bigint }> {
     const created = await clients.billingCommand.createCreditCheckoutSession({ orgId: org, packId: "starter", successUrl: "https://x.test/ok", cancelUrl: "https://x.test/c" });
     const session = (await control.stripe.requests()).find((r) => r.path === "/v1/checkout/sessions");
