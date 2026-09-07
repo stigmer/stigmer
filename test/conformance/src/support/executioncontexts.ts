@@ -14,7 +14,7 @@
 // As with support/environments.ts, the canonical builder is SECRET-FREE so the
 // create-vs-get parity check stays edition-stable; secret entries are opt-in via
 // `data` for the dedicated secret tests. Negatives are composed inline.
-import type { MessageInitShape } from "@bufbuild/protobuf";
+import type { InitShape } from "./init-shape";
 import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import { ExecutionContextSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
 
@@ -53,7 +53,7 @@ export interface ExecutionContextSpecOptions {
 // `data` to compose plain and/or secret entries for the secret-handling tests.
 export function makeExecutionContextSpec(
   opts: ExecutionContextSpecOptions = {},
-): MessageInitShape<typeof ExecutionContextSpecSchema> {
+): InitShape<typeof ExecutionContextSpecSchema> {
   const data = opts.data ?? { PLAIN_KEY: { value: "plain-value" } };
   return {
     executionId: opts.executionId ?? "aex_conformance_fixture",
@@ -67,7 +67,7 @@ export interface ExecutionContextOptions extends ExecutionContextSpecOptions {
 }
 
 // A complete, valid ExecutionContext resource ready to hand to create/apply.
-export function makeExecutionContext(opts: ExecutionContextOptions): MessageInitShape<typeof ExecutionContextSchema> {
+export function makeExecutionContext(opts: ExecutionContextOptions): InitShape<typeof ExecutionContextSchema> {
   const { org, name, executionId, data } = opts;
   return {
     apiVersion: EXECUTION_CONTEXT_API_VERSION,

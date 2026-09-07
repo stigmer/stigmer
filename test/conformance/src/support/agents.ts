@@ -11,7 +11,7 @@
 // Negative cases (too-short instructions, missing name) are written inline in
 // the suite, not here: this module represents validity by construction, matching
 // the convention established by support/workflows.ts.
-import type { MessageInitShape } from "@bufbuild/protobuf";
+import type { InitShape } from "./init-shape";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -58,7 +58,7 @@ export interface AgentSpecOptions {
 // A valid AgentSpec: instructions satisfy the min_len=10 constraint, and any
 // requested McpServer references are projected into mcp_server_usages. Bare
 // `mcpServerRefs` and richer `mcpServerUsages` are both supported and merged.
-export function makeAgentSpec(opts: AgentSpecOptions = {}): MessageInitShape<typeof AgentSpecSchema> {
+export function makeAgentSpec(opts: AgentSpecOptions = {}): InitShape<typeof AgentSpecSchema> {
   const refUsages = (opts.mcpServerRefs ?? []).map((slug) => ({
     mcpServerRef: { slug, kind: ApiResourceKind.mcp_server },
   }));
@@ -88,7 +88,7 @@ export interface AgentOptions extends AgentSpecOptions {
 }
 
 // A complete, valid Agent resource ready to hand to create/apply/update.
-export function makeAgent(opts: AgentOptions): MessageInitShape<typeof AgentSchema> {
+export function makeAgent(opts: AgentOptions): InitShape<typeof AgentSchema> {
   const { org, name, labels, description, instructions, mcpServerRefs, mcpServerUsages, env } = opts;
   return {
     apiVersion: AGENT_API_VERSION,

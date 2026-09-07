@@ -10,7 +10,7 @@
 // Negative cases (missing client_id/client_secret, malformed endpoint URLs,
 // ciphertext-shaped secrets) are written inline in the suite, matching the
 // support/agents.ts convention: this module is validity by construction.
-import type { MessageInitShape } from "@bufbuild/protobuf";
+import type { InitShape } from "./init-shape";
 import { OAuthAppSchema } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
 import type {
   TokenEndpointAuthMethod,
@@ -52,7 +52,7 @@ export function makeOAuthApp(
   org: string,
   name: string,
   options: OAuthAppOptions = {},
-): MessageInitShape<typeof OAuthAppSchema> {
+): InitShape<typeof OAuthAppSchema> {
   return {
     apiVersion: OAUTHAPP_API_VERSION,
     kind: OAUTHAPP_KIND,

@@ -898,7 +898,7 @@ describe("AgentExecution conformance — attachments (#285)", () => {
       "the LLM request should carry a block-content user message",
     ).toBeGreaterThan(0);
 
-    const blocks = userBlockMessages[0].content as AnthropicWireBlock[];
+    const blocks = userBlockMessages[0]!.content as AnthropicWireBlock[];
     // The ordinal filename label precedes the image (pixel-to-filename
     // association), and the image arrives as Anthropic's native base64 block
     // carrying the EXACT uploaded bytes with the sniffed media type.

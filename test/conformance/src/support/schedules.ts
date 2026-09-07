@@ -12,7 +12,7 @@
 // handlers (stigmer-cloud) and the Go controller (stigmer) each pin them in
 // their own unit tests, and this suite asserts them over the wire on both.
 // A change to any of them is a contract change, not a copy edit.
-import type { MessageInitShape } from "@bufbuild/protobuf";
+import type { InitShape } from "./init-shape";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
@@ -65,7 +65,7 @@ export function makeSchedule(
   name: string,
   agentSlug: string,
   options: ScheduleOptions = {},
-): MessageInitShape<typeof ScheduleSchema> {
+): InitShape<typeof ScheduleSchema> {
   return {
     apiVersion: SCHEDULE_API_VERSION,
     kind: SCHEDULE_KIND,

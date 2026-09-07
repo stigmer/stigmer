@@ -15,7 +15,7 @@
 // after the first execution and gates the harness / execution_target immutability
 // validators; the Class B immutability suite sets it directly (it is a plain
 // client-settable spec field) to exercise those validators hermetically.
-import type { MessageInitShape } from "@bufbuild/protobuf";
+import type { InitShape } from "./init-shape";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { Harness, ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
@@ -51,7 +51,7 @@ export interface SessionSpecOptions {
 // A valid SessionSpec referencing the given agent instance. Optional harness /
 // execution_target / references are only set when explicitly provided, keeping the
 // canonical session minimal and parity-stable.
-export function makeSessionSpec(opts: SessionSpecOptions): MessageInitShape<typeof SessionSpecSchema> {
+export function makeSessionSpec(opts: SessionSpecOptions): InitShape<typeof SessionSpecSchema> {
   return {
     agentInstanceId: opts.agentInstanceId,
     subject: opts.subject ?? "conformance fixture session",
@@ -75,7 +75,7 @@ export interface SessionOptions extends SessionSpecOptions {
 }
 
 // A complete, valid Session resource ready to hand to create/apply/update.
-export function makeSession(opts: SessionOptions): MessageInitShape<typeof SessionSchema> {
+export function makeSession(opts: SessionOptions): InitShape<typeof SessionSchema> {
   const { org, name, labels, ...specOpts } = opts;
   return {
     apiVersion: SESSION_API_VERSION,

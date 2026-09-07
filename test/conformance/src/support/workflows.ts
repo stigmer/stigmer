@@ -10,7 +10,8 @@
 //
 // Negative cases (missing spec, missing name, malformed input) are written
 // inline in the suite, not here: this module represents validity by construction.
-import type { JsonObject, MessageInitShape } from "@bufbuild/protobuf";
+import type { JsonObject } from "@bufbuild/protobuf";
+import type { InitShape } from "./init-shape";
 import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { WorkflowSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/spec_pb";
@@ -46,7 +47,7 @@ export interface WorkflowSpecOptions {
 // A valid single-task WorkflowSpec: one `set_vars` task whose config is a
 // google.protobuf.Struct (protobuf-es accepts a plain JSON object for Struct
 // fields in the init shape).
-export function makeWorkflowSpec(opts: WorkflowSpecOptions = {}): MessageInitShape<typeof WorkflowSpecSchema> {
+export function makeWorkflowSpec(opts: WorkflowSpecOptions = {}): InitShape<typeof WorkflowSpecSchema> {
   return {
     description: "conformance fixture",
     document: {
@@ -77,7 +78,7 @@ export interface WorkflowOptions extends WorkflowSpecOptions {
 }
 
 // A complete, valid Workflow resource ready to hand to create/apply/update.
-export function makeWorkflow(opts: WorkflowOptions): MessageInitShape<typeof WorkflowSchema> {
+export function makeWorkflow(opts: WorkflowOptions): InitShape<typeof WorkflowSchema> {
   const { org, name, tag, namespace, documentName, taskVar, variables, env } = opts;
   return {
     apiVersion: WORKFLOW_API_VERSION,
@@ -112,7 +113,7 @@ export interface WaitWorkflowOptions {
 // the lever the lifecycle tests pull to act on a genuinely running execution
 // (vs. set_vars, which completes sub-second and would make those tests racy).
 // The taskConfig shape mirrors WaitTaskConfig: { duration: { seconds } }.
-export function makeWaitWorkflow(opts: WaitWorkflowOptions): MessageInitShape<typeof WorkflowSchema> {
+export function makeWaitWorkflow(opts: WaitWorkflowOptions): InitShape<typeof WorkflowSchema> {
   const { org, name, waitSeconds = 30 } = opts;
   return {
     apiVersion: WORKFLOW_API_VERSION,
@@ -148,7 +149,7 @@ export interface EnvMergeWorkflowOptions {
 // ExecutionContext (created synchronously at create-time, deleted on completion)
 // is observable via getByExecutionId. Kept separate from makeWaitWorkflow, which
 // the lifecycle suite uses untouched and without env declarations.
-export function makeEnvMergeWorkflow(opts: EnvMergeWorkflowOptions): MessageInitShape<typeof WorkflowSchema> {
+export function makeEnvMergeWorkflow(opts: EnvMergeWorkflowOptions): InitShape<typeof WorkflowSchema> {
   const { org, name, env, waitSeconds = 30 } = opts;
   return {
     apiVersion: WORKFLOW_API_VERSION,
@@ -216,7 +217,7 @@ export interface HumanInputWorkflowOptions {
 // Temporal + the runner, exactly like makeWaitWorkflow.
 export function makeHumanInputWorkflow(
   opts: HumanInputWorkflowOptions,
-): MessageInitShape<typeof WorkflowSchema> {
+): InitShape<typeof WorkflowSchema> {
   const { org, name, timeout, onTimeout, routedTasks = [] } = opts;
   const outcomes = opts.outcomes ?? [{ name: "approve" }, { name: "deny" }];
 
@@ -284,7 +285,7 @@ export interface RaiseErrorWorkflowOptions {
 // ({error, message}); the server converts it to CNCF `raise: { error: {...} }`.
 export function makeRaiseErrorWorkflow(
   opts: RaiseErrorWorkflowOptions,
-): MessageInitShape<typeof WorkflowSchema> {
+): InitShape<typeof WorkflowSchema> {
   const { org, name, errorType = "ConformanceError", errorMessage = "deliberate failure for recover testing" } = opts;
   return {
     apiVersion: WORKFLOW_API_VERSION,
@@ -325,7 +326,7 @@ export interface ListenWorkflowOptions {
 // runner, exactly like makeWaitWorkflow. The listen taskConfig is the typed
 // ListenTaskConfig ({to:{mode,signals:[{id,type}]}}), which the server converts to
 // CNCF `listen: { to: { one: { with: {...} } } }`.
-export function makeListenWorkflow(opts: ListenWorkflowOptions): MessageInitShape<typeof WorkflowSchema> {
+export function makeListenWorkflow(opts: ListenWorkflowOptions): InitShape<typeof WorkflowSchema> {
   const { org, name, signalName } = opts;
   return {
     apiVersion: WORKFLOW_API_VERSION,
@@ -383,7 +384,7 @@ export interface AgentCallWorkflowOptions {
 // only exercised on the workflowChildApprovalForwarding capability (DD-012).
 export function makeAgentCallWorkflow(
   opts: AgentCallWorkflowOptions,
-): MessageInitShape<typeof WorkflowSchema> {
+): InitShape<typeof WorkflowSchema> {
   const { org, name, agentSlug, message = "Use the echo tool to echo the word hello." } = opts;
   return {
     apiVersion: WORKFLOW_API_VERSION,

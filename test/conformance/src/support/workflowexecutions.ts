@@ -6,7 +6,7 @@
 // flat CRUD resources, an execution is a *running thing* — so this module also
 // owns the poll-don't-sleep helpers the execution suites use to await a phase,
 // shared so the smoke test and the domain suite gate on one definition.
-import type { MessageInitShape } from "@bufbuild/protobuf";
+import type { InitShape } from "./init-shape";
 import type { WorkflowExecution, WorkflowTask } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import {
@@ -41,7 +41,7 @@ export interface WorkflowExecutionOptions {
 // unset (-> LOCAL -> the stigmer_runner queue).
 export function makeWorkflowExecution(
   opts: WorkflowExecutionOptions,
-): MessageInitShape<typeof WorkflowExecutionSchema> {
+): InitShape<typeof WorkflowExecutionSchema> {
   return {
     apiVersion: WORKFLOW_EXECUTION_API_VERSION,
     kind: WORKFLOW_EXECUTION_KIND,

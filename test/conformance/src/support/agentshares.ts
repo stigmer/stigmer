@@ -7,7 +7,7 @@
 // agent's own slug — created by omitting BOTH metadata.name and slug, which
 // the defaults resolver fills from the referenced agent — so the builder
 // makes the name optional on purpose.
-import type { MessageInitShape } from "@bufbuild/protobuf";
+import type { InitShape } from "./init-shape";
 import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import { AgentShareAudience } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -32,7 +32,7 @@ export function makeAgentShare(
   org: string,
   agentSlug: string,
   options: AgentShareOptions = {},
-): MessageInitShape<typeof AgentShareSchema> {
+): InitShape<typeof AgentShareSchema> {
   return {
     apiVersion: AGENTSHARE_API_VERSION,
     kind: AGENTSHARE_KIND,

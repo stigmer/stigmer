@@ -10,7 +10,7 @@
 //
 // Negatives are composed inline in the suite, matching the convention in the
 // other support modules: this module represents validity by construction.
-import type { MessageInitShape } from "@bufbuild/protobuf";
+import type { InitShape } from "./init-shape";
 import { AgentInstanceSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
 import { AgentInstanceSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/spec_pb";
 import { type EnvironmentRefInit, makeEnvironmentRefs } from "./environments";
@@ -28,7 +28,7 @@ export interface AgentInstanceSpecOptions {
 
 export function makeAgentInstanceSpec(
   opts: AgentInstanceSpecOptions,
-): MessageInitShape<typeof AgentInstanceSpecSchema> {
+): InitShape<typeof AgentInstanceSpecSchema> {
   return {
     agentId: opts.agentId,
     description: opts.description ?? "conformance fixture",
@@ -42,7 +42,7 @@ export interface AgentInstanceOptions extends AgentInstanceSpecOptions {
 }
 
 // A complete, valid AgentInstance resource ready to hand to create/apply.
-export function makeAgentInstance(opts: AgentInstanceOptions): MessageInitShape<typeof AgentInstanceSchema> {
+export function makeAgentInstance(opts: AgentInstanceOptions): InitShape<typeof AgentInstanceSchema> {
   const { org, name, ...specOpts } = opts;
   return {
     apiVersion: AGENT_INSTANCE_API_VERSION,

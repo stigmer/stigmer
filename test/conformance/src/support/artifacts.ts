@@ -7,7 +7,7 @@
 // execution (falling back to empty when the execution id is unknown, the
 // OSS single-user posture) — so the builder shapes CreateArtifactInput
 // rather than a resource message.
-import type { MessageInitShape } from "@bufbuild/protobuf";
+import type { InitShape } from "./init-shape";
 import { CreateArtifactInputSchema } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/io_pb";
 
 export interface ArtifactInputOptions {
@@ -31,7 +31,7 @@ export const ARTIFACT_DEFAULT_CONTENT = new TextEncoder().encode(
 // and never validates the execution's existence.
 export function makeArtifactInput(
   options: ArtifactInputOptions = {},
-): MessageInitShape<typeof CreateArtifactInputSchema> {
+): InitShape<typeof CreateArtifactInputSchema> {
   const source =
     options.workflowExecutionId !== undefined
       ? { workflowExecutionId: options.workflowExecutionId }
