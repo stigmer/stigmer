@@ -317,8 +317,10 @@ message BillingLink {
 // 4. billing_link.debit_status transitions to DEBITED
 //
 // ## Idempotency
-// Unique on (execution_id, sequence, metering_source). Insert-only; never mutated
-// except for billing_link status transitions.
+// Unique on idempotency_key: execution_id + the call's identity + metering_source,
+// where the identity is call_id when the reporter supplied one, else sequence.
+// Insert-only; never mutated except for billing_link status transitions and
+// repricing.
 message LlmCallUsageRecord {
   // ─── Identity ───────────────────────────────────────────────────────────────
   // Stable unique ID for this record (ULID).
@@ -330,14 +332,24 @@ message LlmCallUsageRecord {
   // For sub-agent rollups: root execution of the tree.
   string root_execution_id = 3;
 
-  // 1-based call ordering within the execution.
+  // 1-based call ordering within the execution, as the reporting proxy
+  // counted it. An ordering hint, not an identity: a proxy that restarts
+  // mid-execution counts from 1 again, so two records of one execution may
+  // share a sequence. Order by observed_at, then sequence.
   int32 sequence = 4;
 
-  // Deduplication key: execution_id + sequence + metering_source.
+  // Deduplication key: execution_id + (call_id, else sequence) + metering_source.
   string idempotency_key = 5;
 
   // Hash of normalized payload for conflict detection on retries.
   string canonical_payload_hash = 6;
+
+  // The call's identity as the reporting proxy minted it (RecordLlmCallUsageInput.call_id),
+  // stamped verbatim. The durable link from a ledger usage_debit
+  // (CreditLedgerSource.llm_call_id) back to this record, and what every later
+  // debit of this record — the live one and the repricing sweep's — keys on.
+  // Empty for records whose reporter sent no call id; those key on sequence.
+  string call_id = 9;
 
   // ─── Timestamps ─────────────────────────────────────────────────────────────
   // When the proxy observed stream completion.

@@ -995,8 +995,10 @@ func (x *BillingLink) GetLastBillingError() string {
 // 4. billing_link.debit_status transitions to DEBITED
 //
 // ## Idempotency
-// Unique on (execution_id, sequence, metering_source). Insert-only; never mutated
-// except for billing_link status transitions.
+// Unique on idempotency_key: execution_id + the call's identity + metering_source,
+// where the identity is call_id when the reporter supplied one, else sequence.
+// Insert-only; never mutated except for billing_link status transitions and
+// repricing.
 type LlmCallUsageRecord struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// ─── Identity ───────────────────────────────────────────────────────────────
@@ -1006,12 +1008,21 @@ type LlmCallUsageRecord struct {
 	ExecutionId string `protobuf:"bytes,2,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
 	// For sub-agent rollups: root execution of the tree.
 	RootExecutionId string `protobuf:"bytes,3,opt,name=root_execution_id,json=rootExecutionId,proto3" json:"root_execution_id,omitempty"`
-	// 1-based call ordering within the execution.
+	// 1-based call ordering within the execution, as the reporting proxy
+	// counted it. An ordering hint, not an identity: a proxy that restarts
+	// mid-execution counts from 1 again, so two records of one execution may
+	// share a sequence. Order by observed_at, then sequence.
 	Sequence int32 `protobuf:"varint,4,opt,name=sequence,proto3" json:"sequence,omitempty"`
-	// Deduplication key: execution_id + sequence + metering_source.
+	// Deduplication key: execution_id + (call_id, else sequence) + metering_source.
 	IdempotencyKey string `protobuf:"bytes,5,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
 	// Hash of normalized payload for conflict detection on retries.
 	CanonicalPayloadHash string `protobuf:"bytes,6,opt,name=canonical_payload_hash,json=canonicalPayloadHash,proto3" json:"canonical_payload_hash,omitempty"`
+	// The call's identity as the reporting proxy minted it (RecordLlmCallUsageInput.call_id),
+	// stamped verbatim. The durable link from a ledger usage_debit
+	// (CreditLedgerSource.llm_call_id) back to this record, and what every later
+	// debit of this record — the live one and the repricing sweep's — keys on.
+	// Empty for records whose reporter sent no call id; those key on sequence.
+	CallId string `protobuf:"bytes,9,opt,name=call_id,json=callId,proto3" json:"call_id,omitempty"`
 	// ─── Timestamps ─────────────────────────────────────────────────────────────
 	// When the proxy observed stream completion.
 	ObservedAt *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=observed_at,json=observedAt,proto3" json:"observed_at,omitempty"`
@@ -1150,6 +1161,13 @@ func (x *LlmCallUsageRecord) GetIdempotencyKey() string {
 func (x *LlmCallUsageRecord) GetCanonicalPayloadHash() string {
 	if x != nil {
 		return x.CanonicalPayloadHash
+	}
+	return ""
+}
+
+func (x *LlmCallUsageRecord) GetCallId() string {
+	if x != nil {
+		return x.CallId
 	}
 	return ""
 }
@@ -1834,14 +1852,15 @@ const file_ai_stigmer_agentic_agentexecution_v1_usage_proto_rawDesc = "" +
 	"\n" +
 	"debited_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\tdebitedAt\x122\n" +
 	"\x15billing_attempt_count\x18\x05 \x01(\x05R\x13billingAttemptCount\x12,\n" +
-	"\x12last_billing_error\x18\x06 \x01(\tR\x10lastBillingError\"\xbc\x0e\n" +
+	"\x12last_billing_error\x18\x06 \x01(\tR\x10lastBillingError\"\xd5\x0e\n" +
 	"\x12LlmCallUsageRecord\x12&\n" +
 	"\x0fusage_record_id\x18\x01 \x01(\tR\rusageRecordId\x12!\n" +
 	"\fexecution_id\x18\x02 \x01(\tR\vexecutionId\x12*\n" +
 	"\x11root_execution_id\x18\x03 \x01(\tR\x0frootExecutionId\x12\x1a\n" +
 	"\bsequence\x18\x04 \x01(\x05R\bsequence\x12'\n" +
 	"\x0fidempotency_key\x18\x05 \x01(\tR\x0eidempotencyKey\x124\n" +
-	"\x16canonical_payload_hash\x18\x06 \x01(\tR\x14canonicalPayloadHash\x12;\n" +
+	"\x16canonical_payload_hash\x18\x06 \x01(\tR\x14canonicalPayloadHash\x12\x17\n" +
+	"\acall_id\x18\t \x01(\tR\x06callId\x12;\n" +
 	"\vobserved_at\x18\n" +
 	" \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"observedAt\x129\n" +

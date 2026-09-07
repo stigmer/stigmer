@@ -24,13 +24,44 @@ public interface RecordLlmCallUsageInputOrBuilder extends
 
   /**
    * <pre>
-   * 1-based call ordering within the execution.
+   * 1-based call ordering within the execution, as the reporting proxy
+   * counted it. An ordering hint: a proxy counts in process memory, so the
+   * numbering restarts when the proxy does. Dedup identity only for callers
+   * that send no call_id.
    * </pre>
    *
    * <code>int32 sequence = 2 [json_name = "sequence", (.buf.validate.field) = { ... }</code>
    * @return The sequence.
    */
   int getSequence();
+
+  /**
+   * <pre>
+   * The identity of this call, minted by the proxy once before its first
+   * report attempt and reused on every retry of the same report. Opaque
+   * to billing; a UUID in practice. Recommended for every caller — a dedup
+   * guard keyed on `sequence` alone survives neither a proxy restart nor a
+   * second proxy replica. Stamped verbatim onto the usage record's `call_id`.
+   * </pre>
+   *
+   * <code>string call_id = 20 [json_name = "callId", (.buf.validate.field) = { ... }</code>
+   * @return The callId.
+   */
+  java.lang.String getCallId();
+  /**
+   * <pre>
+   * The identity of this call, minted by the proxy once before its first
+   * report attempt and reused on every retry of the same report. Opaque
+   * to billing; a UUID in practice. Recommended for every caller — a dedup
+   * guard keyed on `sequence` alone survives neither a proxy restart nor a
+   * second proxy replica. Stamped verbatim onto the usage record's `call_id`.
+   * </pre>
+   *
+   * <code>string call_id = 20 [json_name = "callId", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for callId.
+   */
+  com.google.protobuf.ByteString
+      getCallIdBytes();
 
   /**
    * <pre>

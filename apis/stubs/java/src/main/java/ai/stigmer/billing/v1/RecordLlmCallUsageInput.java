@@ -11,7 +11,11 @@ package ai.stigmer.billing.v1;
  * The billing service computes cost server-side from the model registry —
  * the caller never provides cost figures.
  *
- * Deduplicated by (execution_id, sequence, metering_source).
+ * Deduplication identity: `call_id` when the caller supplies one, else
+ * `sequence`. A report that is redelivered under the same identity records
+ * nothing new; two reports for the same execution with distinct call ids
+ * are two calls even when they share a sequence number (a proxy that
+ * restarted mid-execution numbers from 1 again — stigmer-cloud#659).
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.billing.v1.RecordLlmCallUsageInput}
@@ -37,6 +41,7 @@ private static final long serialVersionUID = 0L;
   }
   private RecordLlmCallUsageInput() {
     executionId_ = "";
+    callId_ = "";
     provider_ = "";
     resolvedModel_ = "";
     requestedModel_ = "";
@@ -113,7 +118,10 @@ private static final long serialVersionUID = 0L;
   private int sequence_ = 0;
   /**
    * <pre>
-   * 1-based call ordering within the execution.
+   * 1-based call ordering within the execution, as the reporting proxy
+   * counted it. An ordering hint: a proxy counts in process memory, so the
+   * numbering restarts when the proxy does. Dedup identity only for callers
+   * that send no call_id.
    * </pre>
    *
    * <code>int32 sequence = 2 [json_name = "sequence", (.buf.validate.field) = { ... }</code>
@@ -122,6 +130,61 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public int getSequence() {
     return sequence_;
+  }
+
+  public static final int CALL_ID_FIELD_NUMBER = 20;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object callId_ = "";
+  /**
+   * <pre>
+   * The identity of this call, minted by the proxy once before its first
+   * report attempt and reused on every retry of the same report. Opaque
+   * to billing; a UUID in practice. Recommended for every caller — a dedup
+   * guard keyed on `sequence` alone survives neither a proxy restart nor a
+   * second proxy replica. Stamped verbatim onto the usage record's `call_id`.
+   * </pre>
+   *
+   * <code>string call_id = 20 [json_name = "callId", (.buf.validate.field) = { ... }</code>
+   * @return The callId.
+   */
+  @java.lang.Override
+  public java.lang.String getCallId() {
+    java.lang.Object ref = callId_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      callId_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * The identity of this call, minted by the proxy once before its first
+   * report attempt and reused on every retry of the same report. Opaque
+   * to billing; a UUID in practice. Recommended for every caller — a dedup
+   * guard keyed on `sequence` alone survives neither a proxy restart nor a
+   * second proxy replica. Stamped verbatim onto the usage record's `call_id`.
+   * </pre>
+   *
+   * <code>string call_id = 20 [json_name = "callId", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for callId.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getCallIdBytes() {
+    java.lang.Object ref = callId_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      callId_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
   }
 
   public static final int PROVIDER_FIELD_NUMBER = 3;
@@ -919,6 +982,9 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000004) != 0)) {
       output.writeMessage(19, getMeteredExecution());
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(callId_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 20, callId_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -993,6 +1059,9 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(19, getMeteredExecution());
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(callId_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(20, callId_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -1012,6 +1081,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getExecutionId())) return false;
     if (getSequence()
         != other.getSequence()) return false;
+    if (!getCallId()
+        .equals(other.getCallId())) return false;
     if (!getProvider()
         .equals(other.getProvider())) return false;
     if (!getResolvedModel()
@@ -1068,6 +1139,8 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getExecutionId().hashCode();
     hash = (37 * hash) + SEQUENCE_FIELD_NUMBER;
     hash = (53 * hash) + getSequence();
+    hash = (37 * hash) + CALL_ID_FIELD_NUMBER;
+    hash = (53 * hash) + getCallId().hashCode();
     hash = (37 * hash) + PROVIDER_FIELD_NUMBER;
     hash = (53 * hash) + getProvider().hashCode();
     hash = (37 * hash) + RESOLVED_MODEL_FIELD_NUMBER;
@@ -1212,7 +1285,11 @@ private static final long serialVersionUID = 0L;
    * The billing service computes cost server-side from the model registry —
    * the caller never provides cost figures.
    *
-   * Deduplicated by (execution_id, sequence, metering_source).
+   * Deduplication identity: `call_id` when the caller supplies one, else
+   * `sequence`. A report that is redelivered under the same identity records
+   * nothing new; two reports for the same execution with distinct call ids
+   * are two calls even when they share a sequence number (a proxy that
+   * restarted mid-execution numbers from 1 again — stigmer-cloud#659).
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.billing.v1.RecordLlmCallUsageInput}
@@ -1258,6 +1335,7 @@ private static final long serialVersionUID = 0L;
       bitField0_ = 0;
       executionId_ = "";
       sequence_ = 0;
+      callId_ = "";
       provider_ = "";
       resolvedModel_ = "";
       requestedModel_ = "";
@@ -1327,61 +1405,64 @@ private static final long serialVersionUID = 0L;
         result.sequence_ = sequence_;
       }
       if (((from_bitField0_ & 0x00000004) != 0)) {
-        result.provider_ = provider_;
+        result.callId_ = callId_;
       }
       if (((from_bitField0_ & 0x00000008) != 0)) {
-        result.resolvedModel_ = resolvedModel_;
+        result.provider_ = provider_;
       }
       if (((from_bitField0_ & 0x00000010) != 0)) {
+        result.resolvedModel_ = resolvedModel_;
+      }
+      if (((from_bitField0_ & 0x00000020) != 0)) {
         result.requestedModel_ = requestedModel_;
       }
       int to_bitField0_ = 0;
-      if (((from_bitField0_ & 0x00000020) != 0)) {
+      if (((from_bitField0_ & 0x00000040) != 0)) {
         result.tokens_ = tokensBuilder_ == null
             ? tokens_
             : tokensBuilder_.build();
         to_bitField0_ |= 0x00000001;
       }
-      if (((from_bitField0_ & 0x00000040) != 0)) {
+      if (((from_bitField0_ & 0x00000080) != 0)) {
         result.usageStatus_ = usageStatus_;
       }
-      if (((from_bitField0_ & 0x00000080) != 0)) {
+      if (((from_bitField0_ & 0x00000100) != 0)) {
         result.providerRequestId_ = providerRequestId_;
       }
-      if (((from_bitField0_ & 0x00000100) != 0)) {
+      if (((from_bitField0_ & 0x00000200) != 0)) {
         result.httpStatusCode_ = httpStatusCode_;
       }
-      if (((from_bitField0_ & 0x00000200) != 0)) {
+      if (((from_bitField0_ & 0x00000400) != 0)) {
         result.streaming_ = streaming_;
       }
-      if (((from_bitField0_ & 0x00000400) != 0)) {
+      if (((from_bitField0_ & 0x00000800) != 0)) {
         result.finishReason_ = finishReason_;
       }
-      if (((from_bitField0_ & 0x00000800) != 0)) {
+      if (((from_bitField0_ & 0x00001000) != 0)) {
         result.proxyTiming_ = proxyTimingBuilder_ == null
             ? proxyTiming_
             : proxyTimingBuilder_.build();
         to_bitField0_ |= 0x00000002;
       }
-      if (((from_bitField0_ & 0x00001000) != 0)) {
+      if (((from_bitField0_ & 0x00002000) != 0)) {
         result.providerUsageJson_ = providerUsageJson_;
       }
-      if (((from_bitField0_ & 0x00002000) != 0)) {
+      if (((from_bitField0_ & 0x00004000) != 0)) {
         result.harness_ = harness_;
       }
-      if (((from_bitField0_ & 0x00004000) != 0)) {
+      if (((from_bitField0_ & 0x00008000) != 0)) {
         result.cursorAccountId_ = cursorAccountId_;
       }
-      if (((from_bitField0_ & 0x00008000) != 0)) {
+      if (((from_bitField0_ & 0x00010000) != 0)) {
         result.cursorKeyId_ = cursorKeyId_;
       }
-      if (((from_bitField0_ & 0x00010000) != 0)) {
+      if (((from_bitField0_ & 0x00020000) != 0)) {
         result.cursorKeySource_ = cursorKeySource_;
       }
-      if (((from_bitField0_ & 0x00020000) != 0)) {
+      if (((from_bitField0_ & 0x00040000) != 0)) {
         result.servedServiceTier_ = servedServiceTier_;
       }
-      if (((from_bitField0_ & 0x00040000) != 0)) {
+      if (((from_bitField0_ & 0x00080000) != 0)) {
         result.meteredExecution_ = meteredExecutionBuilder_ == null
             ? meteredExecution_
             : meteredExecutionBuilder_.build();
@@ -1410,19 +1491,24 @@ private static final long serialVersionUID = 0L;
       if (other.getSequence() != 0) {
         setSequence(other.getSequence());
       }
+      if (!other.getCallId().isEmpty()) {
+        callId_ = other.callId_;
+        bitField0_ |= 0x00000004;
+        onChanged();
+      }
       if (!other.getProvider().isEmpty()) {
         provider_ = other.provider_;
-        bitField0_ |= 0x00000004;
+        bitField0_ |= 0x00000008;
         onChanged();
       }
       if (!other.getResolvedModel().isEmpty()) {
         resolvedModel_ = other.resolvedModel_;
-        bitField0_ |= 0x00000008;
+        bitField0_ |= 0x00000010;
         onChanged();
       }
       if (!other.getRequestedModel().isEmpty()) {
         requestedModel_ = other.requestedModel_;
-        bitField0_ |= 0x00000010;
+        bitField0_ |= 0x00000020;
         onChanged();
       }
       if (other.hasTokens()) {
@@ -1433,7 +1519,7 @@ private static final long serialVersionUID = 0L;
       }
       if (!other.getProviderRequestId().isEmpty()) {
         providerRequestId_ = other.providerRequestId_;
-        bitField0_ |= 0x00000080;
+        bitField0_ |= 0x00000100;
         onChanged();
       }
       if (other.getHttpStatusCode() != 0) {
@@ -1444,7 +1530,7 @@ private static final long serialVersionUID = 0L;
       }
       if (!other.getFinishReason().isEmpty()) {
         finishReason_ = other.finishReason_;
-        bitField0_ |= 0x00000400;
+        bitField0_ |= 0x00000800;
         onChanged();
       }
       if (other.hasProxyTiming()) {
@@ -1452,22 +1538,22 @@ private static final long serialVersionUID = 0L;
       }
       if (!other.getProviderUsageJson().isEmpty()) {
         providerUsageJson_ = other.providerUsageJson_;
-        bitField0_ |= 0x00001000;
+        bitField0_ |= 0x00002000;
         onChanged();
       }
       if (!other.getHarness().isEmpty()) {
         harness_ = other.harness_;
-        bitField0_ |= 0x00002000;
+        bitField0_ |= 0x00004000;
         onChanged();
       }
       if (!other.getCursorAccountId().isEmpty()) {
         cursorAccountId_ = other.cursorAccountId_;
-        bitField0_ |= 0x00004000;
+        bitField0_ |= 0x00008000;
         onChanged();
       }
       if (!other.getCursorKeyId().isEmpty()) {
         cursorKeyId_ = other.cursorKeyId_;
-        bitField0_ |= 0x00008000;
+        bitField0_ |= 0x00010000;
         onChanged();
       }
       if (other.cursorKeySource_ != 0) {
@@ -1475,7 +1561,7 @@ private static final long serialVersionUID = 0L;
       }
       if (!other.getServedServiceTier().isEmpty()) {
         servedServiceTier_ = other.servedServiceTier_;
-        bitField0_ |= 0x00020000;
+        bitField0_ |= 0x00040000;
         onChanged();
       }
       if (other.hasMeteredExecution()) {
@@ -1519,95 +1605,100 @@ private static final long serialVersionUID = 0L;
             } // case 16
             case 26: {
               provider_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000004;
+              bitField0_ |= 0x00000008;
               break;
             } // case 26
             case 34: {
               resolvedModel_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000008;
+              bitField0_ |= 0x00000010;
               break;
             } // case 34
             case 42: {
               requestedModel_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000010;
+              bitField0_ |= 0x00000020;
               break;
             } // case 42
             case 50: {
               input.readMessage(
                   internalGetTokensFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00000020;
+              bitField0_ |= 0x00000040;
               break;
             } // case 50
             case 56: {
               usageStatus_ = input.readEnum();
-              bitField0_ |= 0x00000040;
+              bitField0_ |= 0x00000080;
               break;
             } // case 56
             case 66: {
               providerRequestId_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000080;
+              bitField0_ |= 0x00000100;
               break;
             } // case 66
             case 72: {
               httpStatusCode_ = input.readInt32();
-              bitField0_ |= 0x00000100;
+              bitField0_ |= 0x00000200;
               break;
             } // case 72
             case 80: {
               streaming_ = input.readBool();
-              bitField0_ |= 0x00000200;
+              bitField0_ |= 0x00000400;
               break;
             } // case 80
             case 90: {
               finishReason_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000400;
+              bitField0_ |= 0x00000800;
               break;
             } // case 90
             case 98: {
               input.readMessage(
                   internalGetProxyTimingFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00000800;
+              bitField0_ |= 0x00001000;
               break;
             } // case 98
             case 106: {
               providerUsageJson_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00001000;
+              bitField0_ |= 0x00002000;
               break;
             } // case 106
             case 114: {
               harness_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00002000;
+              bitField0_ |= 0x00004000;
               break;
             } // case 114
             case 122: {
               cursorAccountId_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00004000;
+              bitField0_ |= 0x00008000;
               break;
             } // case 122
             case 130: {
               cursorKeyId_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00008000;
+              bitField0_ |= 0x00010000;
               break;
             } // case 130
             case 136: {
               cursorKeySource_ = input.readEnum();
-              bitField0_ |= 0x00010000;
+              bitField0_ |= 0x00020000;
               break;
             } // case 136
             case 146: {
               servedServiceTier_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00020000;
+              bitField0_ |= 0x00040000;
               break;
             } // case 146
             case 154: {
               input.readMessage(
                   internalGetMeteredExecutionFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00040000;
+              bitField0_ |= 0x00080000;
               break;
             } // case 154
+            case 162: {
+              callId_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000004;
+              break;
+            } // case 162
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1700,7 +1791,10 @@ private static final long serialVersionUID = 0L;
     private int sequence_ ;
     /**
      * <pre>
-     * 1-based call ordering within the execution.
+     * 1-based call ordering within the execution, as the reporting proxy
+     * counted it. An ordering hint: a proxy counts in process memory, so the
+     * numbering restarts when the proxy does. Dedup identity only for callers
+     * that send no call_id.
      * </pre>
      *
      * <code>int32 sequence = 2 [json_name = "sequence", (.buf.validate.field) = { ... }</code>
@@ -1712,7 +1806,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * 1-based call ordering within the execution.
+     * 1-based call ordering within the execution, as the reporting proxy
+     * counted it. An ordering hint: a proxy counts in process memory, so the
+     * numbering restarts when the proxy does. Dedup identity only for callers
+     * that send no call_id.
      * </pre>
      *
      * <code>int32 sequence = 2 [json_name = "sequence", (.buf.validate.field) = { ... }</code>
@@ -1728,7 +1825,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * 1-based call ordering within the execution.
+     * 1-based call ordering within the execution, as the reporting proxy
+     * counted it. An ordering hint: a proxy counts in process memory, so the
+     * numbering restarts when the proxy does. Dedup identity only for callers
+     * that send no call_id.
      * </pre>
      *
      * <code>int32 sequence = 2 [json_name = "sequence", (.buf.validate.field) = { ... }</code>
@@ -1737,6 +1837,118 @@ private static final long serialVersionUID = 0L;
     public Builder clearSequence() {
       bitField0_ = (bitField0_ & ~0x00000002);
       sequence_ = 0;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object callId_ = "";
+    /**
+     * <pre>
+     * The identity of this call, minted by the proxy once before its first
+     * report attempt and reused on every retry of the same report. Opaque
+     * to billing; a UUID in practice. Recommended for every caller — a dedup
+     * guard keyed on `sequence` alone survives neither a proxy restart nor a
+     * second proxy replica. Stamped verbatim onto the usage record's `call_id`.
+     * </pre>
+     *
+     * <code>string call_id = 20 [json_name = "callId", (.buf.validate.field) = { ... }</code>
+     * @return The callId.
+     */
+    public java.lang.String getCallId() {
+      java.lang.Object ref = callId_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        callId_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The identity of this call, minted by the proxy once before its first
+     * report attempt and reused on every retry of the same report. Opaque
+     * to billing; a UUID in practice. Recommended for every caller — a dedup
+     * guard keyed on `sequence` alone survives neither a proxy restart nor a
+     * second proxy replica. Stamped verbatim onto the usage record's `call_id`.
+     * </pre>
+     *
+     * <code>string call_id = 20 [json_name = "callId", (.buf.validate.field) = { ... }</code>
+     * @return The bytes for callId.
+     */
+    public com.google.protobuf.ByteString
+        getCallIdBytes() {
+      java.lang.Object ref = callId_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        callId_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The identity of this call, minted by the proxy once before its first
+     * report attempt and reused on every retry of the same report. Opaque
+     * to billing; a UUID in practice. Recommended for every caller — a dedup
+     * guard keyed on `sequence` alone survives neither a proxy restart nor a
+     * second proxy replica. Stamped verbatim onto the usage record's `call_id`.
+     * </pre>
+     *
+     * <code>string call_id = 20 [json_name = "callId", (.buf.validate.field) = { ... }</code>
+     * @param value The callId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setCallId(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      callId_ = value;
+      bitField0_ |= 0x00000004;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The identity of this call, minted by the proxy once before its first
+     * report attempt and reused on every retry of the same report. Opaque
+     * to billing; a UUID in practice. Recommended for every caller — a dedup
+     * guard keyed on `sequence` alone survives neither a proxy restart nor a
+     * second proxy replica. Stamped verbatim onto the usage record's `call_id`.
+     * </pre>
+     *
+     * <code>string call_id = 20 [json_name = "callId", (.buf.validate.field) = { ... }</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearCallId() {
+      callId_ = getDefaultInstance().getCallId();
+      bitField0_ = (bitField0_ & ~0x00000004);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The identity of this call, minted by the proxy once before its first
+     * report attempt and reused on every retry of the same report. Opaque
+     * to billing; a UUID in practice. Recommended for every caller — a dedup
+     * guard keyed on `sequence` alone survives neither a proxy restart nor a
+     * second proxy replica. Stamped verbatim onto the usage record's `call_id`.
+     * </pre>
+     *
+     * <code>string call_id = 20 [json_name = "callId", (.buf.validate.field) = { ... }</code>
+     * @param value The bytes for callId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setCallIdBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      callId_ = value;
+      bitField0_ |= 0x00000004;
       onChanged();
       return this;
     }
@@ -1796,7 +2008,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       provider_ = value;
-      bitField0_ |= 0x00000004;
+      bitField0_ |= 0x00000008;
       onChanged();
       return this;
     }
@@ -1810,7 +2022,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearProvider() {
       provider_ = getDefaultInstance().getProvider();
-      bitField0_ = (bitField0_ & ~0x00000004);
+      bitField0_ = (bitField0_ & ~0x00000008);
       onChanged();
       return this;
     }
@@ -1828,7 +2040,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       provider_ = value;
-      bitField0_ |= 0x00000004;
+      bitField0_ |= 0x00000008;
       onChanged();
       return this;
     }
@@ -1888,7 +2100,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       resolvedModel_ = value;
-      bitField0_ |= 0x00000008;
+      bitField0_ |= 0x00000010;
       onChanged();
       return this;
     }
@@ -1902,7 +2114,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearResolvedModel() {
       resolvedModel_ = getDefaultInstance().getResolvedModel();
-      bitField0_ = (bitField0_ & ~0x00000008);
+      bitField0_ = (bitField0_ & ~0x00000010);
       onChanged();
       return this;
     }
@@ -1920,7 +2132,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       resolvedModel_ = value;
-      bitField0_ |= 0x00000008;
+      bitField0_ |= 0x00000010;
       onChanged();
       return this;
     }
@@ -1980,7 +2192,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       requestedModel_ = value;
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }
@@ -1994,7 +2206,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearRequestedModel() {
       requestedModel_ = getDefaultInstance().getRequestedModel();
-      bitField0_ = (bitField0_ & ~0x00000010);
+      bitField0_ = (bitField0_ & ~0x00000020);
       onChanged();
       return this;
     }
@@ -2012,7 +2224,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       requestedModel_ = value;
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }
@@ -2029,7 +2241,7 @@ private static final long serialVersionUID = 0L;
      * @return Whether the tokens field is set.
      */
     public boolean hasTokens() {
-      return ((bitField0_ & 0x00000020) != 0);
+      return ((bitField0_ & 0x00000040) != 0);
     }
     /**
      * <pre>
@@ -2062,7 +2274,7 @@ private static final long serialVersionUID = 0L;
       } else {
         tokensBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00000020;
+      bitField0_ |= 0x00000040;
       onChanged();
       return this;
     }
@@ -2080,7 +2292,7 @@ private static final long serialVersionUID = 0L;
       } else {
         tokensBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00000020;
+      bitField0_ |= 0x00000040;
       onChanged();
       return this;
     }
@@ -2093,7 +2305,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder mergeTokens(ai.stigmer.agentic.agentexecution.v1.TokenUsage value) {
       if (tokensBuilder_ == null) {
-        if (((bitField0_ & 0x00000020) != 0) &&
+        if (((bitField0_ & 0x00000040) != 0) &&
           tokens_ != null &&
           tokens_ != ai.stigmer.agentic.agentexecution.v1.TokenUsage.getDefaultInstance()) {
           getTokensBuilder().mergeFrom(value);
@@ -2104,7 +2316,7 @@ private static final long serialVersionUID = 0L;
         tokensBuilder_.mergeFrom(value);
       }
       if (tokens_ != null) {
-        bitField0_ |= 0x00000020;
+        bitField0_ |= 0x00000040;
         onChanged();
       }
       return this;
@@ -2117,7 +2329,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.agentic.agentexecution.v1.TokenUsage tokens = 6 [json_name = "tokens"];</code>
      */
     public Builder clearTokens() {
-      bitField0_ = (bitField0_ & ~0x00000020);
+      bitField0_ = (bitField0_ & ~0x00000040);
       tokens_ = null;
       if (tokensBuilder_ != null) {
         tokensBuilder_.dispose();
@@ -2134,7 +2346,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.agentic.agentexecution.v1.TokenUsage tokens = 6 [json_name = "tokens"];</code>
      */
     public ai.stigmer.agentic.agentexecution.v1.TokenUsage.Builder getTokensBuilder() {
-      bitField0_ |= 0x00000020;
+      bitField0_ |= 0x00000040;
       onChanged();
       return internalGetTokensFieldBuilder().getBuilder();
     }
@@ -2198,7 +2410,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder setUsageStatusValue(int value) {
       usageStatus_ = value;
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000080;
       onChanged();
       return this;
     }
@@ -2226,7 +2438,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder setUsageStatus(ai.stigmer.agentic.agentexecution.v1.UsageCompletionStatus value) {
       if (value == null) { throw new NullPointerException(); }
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000080;
       usageStatus_ = value.getNumber();
       onChanged();
       return this;
@@ -2240,7 +2452,7 @@ private static final long serialVersionUID = 0L;
      * @return This builder for chaining.
      */
     public Builder clearUsageStatus() {
-      bitField0_ = (bitField0_ & ~0x00000040);
+      bitField0_ = (bitField0_ & ~0x00000080);
       usageStatus_ = 0;
       onChanged();
       return this;
@@ -2301,7 +2513,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       providerRequestId_ = value;
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000100;
       onChanged();
       return this;
     }
@@ -2315,7 +2527,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearProviderRequestId() {
       providerRequestId_ = getDefaultInstance().getProviderRequestId();
-      bitField0_ = (bitField0_ & ~0x00000080);
+      bitField0_ = (bitField0_ & ~0x00000100);
       onChanged();
       return this;
     }
@@ -2333,7 +2545,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       providerRequestId_ = value;
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000100;
       onChanged();
       return this;
     }
@@ -2363,7 +2575,7 @@ private static final long serialVersionUID = 0L;
     public Builder setHttpStatusCode(int value) {
 
       httpStatusCode_ = value;
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000200;
       onChanged();
       return this;
     }
@@ -2376,7 +2588,7 @@ private static final long serialVersionUID = 0L;
      * @return This builder for chaining.
      */
     public Builder clearHttpStatusCode() {
-      bitField0_ = (bitField0_ & ~0x00000100);
+      bitField0_ = (bitField0_ & ~0x00000200);
       httpStatusCode_ = 0;
       onChanged();
       return this;
@@ -2407,7 +2619,7 @@ private static final long serialVersionUID = 0L;
     public Builder setStreaming(boolean value) {
 
       streaming_ = value;
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00000400;
       onChanged();
       return this;
     }
@@ -2420,7 +2632,7 @@ private static final long serialVersionUID = 0L;
      * @return This builder for chaining.
      */
     public Builder clearStreaming() {
-      bitField0_ = (bitField0_ & ~0x00000200);
+      bitField0_ = (bitField0_ & ~0x00000400);
       streaming_ = false;
       onChanged();
       return this;
@@ -2481,7 +2693,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       finishReason_ = value;
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00000800;
       onChanged();
       return this;
     }
@@ -2495,7 +2707,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearFinishReason() {
       finishReason_ = getDefaultInstance().getFinishReason();
-      bitField0_ = (bitField0_ & ~0x00000400);
+      bitField0_ = (bitField0_ & ~0x00000800);
       onChanged();
       return this;
     }
@@ -2513,7 +2725,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       finishReason_ = value;
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00000800;
       onChanged();
       return this;
     }
@@ -2530,7 +2742,7 @@ private static final long serialVersionUID = 0L;
      * @return Whether the proxyTiming field is set.
      */
     public boolean hasProxyTiming() {
-      return ((bitField0_ & 0x00000800) != 0);
+      return ((bitField0_ & 0x00001000) != 0);
     }
     /**
      * <pre>
@@ -2563,7 +2775,7 @@ private static final long serialVersionUID = 0L;
       } else {
         proxyTimingBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00000800;
+      bitField0_ |= 0x00001000;
       onChanged();
       return this;
     }
@@ -2581,7 +2793,7 @@ private static final long serialVersionUID = 0L;
       } else {
         proxyTimingBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00000800;
+      bitField0_ |= 0x00001000;
       onChanged();
       return this;
     }
@@ -2594,7 +2806,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder mergeProxyTiming(ai.stigmer.agentic.agentexecution.v1.ProxyTiming value) {
       if (proxyTimingBuilder_ == null) {
-        if (((bitField0_ & 0x00000800) != 0) &&
+        if (((bitField0_ & 0x00001000) != 0) &&
           proxyTiming_ != null &&
           proxyTiming_ != ai.stigmer.agentic.agentexecution.v1.ProxyTiming.getDefaultInstance()) {
           getProxyTimingBuilder().mergeFrom(value);
@@ -2605,7 +2817,7 @@ private static final long serialVersionUID = 0L;
         proxyTimingBuilder_.mergeFrom(value);
       }
       if (proxyTiming_ != null) {
-        bitField0_ |= 0x00000800;
+        bitField0_ |= 0x00001000;
         onChanged();
       }
       return this;
@@ -2618,7 +2830,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.agentic.agentexecution.v1.ProxyTiming proxy_timing = 12 [json_name = "proxyTiming"];</code>
      */
     public Builder clearProxyTiming() {
-      bitField0_ = (bitField0_ & ~0x00000800);
+      bitField0_ = (bitField0_ & ~0x00001000);
       proxyTiming_ = null;
       if (proxyTimingBuilder_ != null) {
         proxyTimingBuilder_.dispose();
@@ -2635,7 +2847,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.agentic.agentexecution.v1.ProxyTiming proxy_timing = 12 [json_name = "proxyTiming"];</code>
      */
     public ai.stigmer.agentic.agentexecution.v1.ProxyTiming.Builder getProxyTimingBuilder() {
-      bitField0_ |= 0x00000800;
+      bitField0_ |= 0x00001000;
       onChanged();
       return internalGetProxyTimingFieldBuilder().getBuilder();
     }
@@ -2730,7 +2942,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       providerUsageJson_ = value;
-      bitField0_ |= 0x00001000;
+      bitField0_ |= 0x00002000;
       onChanged();
       return this;
     }
@@ -2744,7 +2956,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearProviderUsageJson() {
       providerUsageJson_ = getDefaultInstance().getProviderUsageJson();
-      bitField0_ = (bitField0_ & ~0x00001000);
+      bitField0_ = (bitField0_ & ~0x00002000);
       onChanged();
       return this;
     }
@@ -2762,7 +2974,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       providerUsageJson_ = value;
-      bitField0_ |= 0x00001000;
+      bitField0_ |= 0x00002000;
       onChanged();
       return this;
     }
@@ -2828,7 +3040,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       harness_ = value;
-      bitField0_ |= 0x00002000;
+      bitField0_ |= 0x00004000;
       onChanged();
       return this;
     }
@@ -2844,7 +3056,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearHarness() {
       harness_ = getDefaultInstance().getHarness();
-      bitField0_ = (bitField0_ & ~0x00002000);
+      bitField0_ = (bitField0_ & ~0x00004000);
       onChanged();
       return this;
     }
@@ -2864,7 +3076,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       harness_ = value;
-      bitField0_ |= 0x00002000;
+      bitField0_ |= 0x00004000;
       onChanged();
       return this;
     }
@@ -2939,7 +3151,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       cursorAccountId_ = value;
-      bitField0_ |= 0x00004000;
+      bitField0_ |= 0x00008000;
       onChanged();
       return this;
     }
@@ -2958,7 +3170,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearCursorAccountId() {
       cursorAccountId_ = getDefaultInstance().getCursorAccountId();
-      bitField0_ = (bitField0_ & ~0x00004000);
+      bitField0_ = (bitField0_ & ~0x00008000);
       onChanged();
       return this;
     }
@@ -2981,7 +3193,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       cursorAccountId_ = value;
-      bitField0_ |= 0x00004000;
+      bitField0_ |= 0x00008000;
       onChanged();
       return this;
     }
@@ -3029,7 +3241,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       cursorKeyId_ = value;
-      bitField0_ |= 0x00008000;
+      bitField0_ |= 0x00010000;
       onChanged();
       return this;
     }
@@ -3039,7 +3251,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearCursorKeyId() {
       cursorKeyId_ = getDefaultInstance().getCursorKeyId();
-      bitField0_ = (bitField0_ & ~0x00008000);
+      bitField0_ = (bitField0_ & ~0x00010000);
       onChanged();
       return this;
     }
@@ -3053,7 +3265,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       cursorKeyId_ = value;
-      bitField0_ |= 0x00008000;
+      bitField0_ |= 0x00010000;
       onChanged();
       return this;
     }
@@ -3088,7 +3300,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder setCursorKeySourceValue(int value) {
       cursorKeySource_ = value;
-      bitField0_ |= 0x00010000;
+      bitField0_ |= 0x00020000;
       onChanged();
       return this;
     }
@@ -3122,7 +3334,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder setCursorKeySource(ai.stigmer.agentic.agentexecution.v1.CursorKeySource value) {
       if (value == null) { throw new NullPointerException(); }
-      bitField0_ |= 0x00010000;
+      bitField0_ |= 0x00020000;
       cursorKeySource_ = value.getNumber();
       onChanged();
       return this;
@@ -3139,7 +3351,7 @@ private static final long serialVersionUID = 0L;
      * @return This builder for chaining.
      */
     public Builder clearCursorKeySource() {
-      bitField0_ = (bitField0_ & ~0x00010000);
+      bitField0_ = (bitField0_ & ~0x00020000);
       cursorKeySource_ = 0;
       onChanged();
       return this;
@@ -3224,7 +3436,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       servedServiceTier_ = value;
-      bitField0_ |= 0x00020000;
+      bitField0_ |= 0x00040000;
       onChanged();
       return this;
     }
@@ -3246,7 +3458,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearServedServiceTier() {
       servedServiceTier_ = getDefaultInstance().getServedServiceTier();
-      bitField0_ = (bitField0_ & ~0x00020000);
+      bitField0_ = (bitField0_ & ~0x00040000);
       onChanged();
       return this;
     }
@@ -3272,7 +3484,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       servedServiceTier_ = value;
-      bitField0_ |= 0x00020000;
+      bitField0_ |= 0x00040000;
       onChanged();
       return this;
     }
@@ -3299,7 +3511,7 @@ private static final long serialVersionUID = 0L;
      * @return Whether the meteredExecution field is set.
      */
     public boolean hasMeteredExecution() {
-      return ((bitField0_ & 0x00040000) != 0);
+      return ((bitField0_ & 0x00080000) != 0);
     }
     /**
      * <pre>
@@ -3352,7 +3564,7 @@ private static final long serialVersionUID = 0L;
       } else {
         meteredExecutionBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00040000;
+      bitField0_ |= 0x00080000;
       onChanged();
       return this;
     }
@@ -3380,7 +3592,7 @@ private static final long serialVersionUID = 0L;
       } else {
         meteredExecutionBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00040000;
+      bitField0_ |= 0x00080000;
       onChanged();
       return this;
     }
@@ -3403,7 +3615,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder mergeMeteredExecution(ai.stigmer.billing.v1.MeteredExecution value) {
       if (meteredExecutionBuilder_ == null) {
-        if (((bitField0_ & 0x00040000) != 0) &&
+        if (((bitField0_ & 0x00080000) != 0) &&
           meteredExecution_ != null &&
           meteredExecution_ != ai.stigmer.billing.v1.MeteredExecution.getDefaultInstance()) {
           getMeteredExecutionBuilder().mergeFrom(value);
@@ -3414,7 +3626,7 @@ private static final long serialVersionUID = 0L;
         meteredExecutionBuilder_.mergeFrom(value);
       }
       if (meteredExecution_ != null) {
-        bitField0_ |= 0x00040000;
+        bitField0_ |= 0x00080000;
         onChanged();
       }
       return this;
@@ -3437,7 +3649,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.billing.v1.MeteredExecution metered_execution = 19 [json_name = "meteredExecution"];</code>
      */
     public Builder clearMeteredExecution() {
-      bitField0_ = (bitField0_ & ~0x00040000);
+      bitField0_ = (bitField0_ & ~0x00080000);
       meteredExecution_ = null;
       if (meteredExecutionBuilder_ != null) {
         meteredExecutionBuilder_.dispose();
@@ -3464,7 +3676,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.billing.v1.MeteredExecution metered_execution = 19 [json_name = "meteredExecution"];</code>
      */
     public ai.stigmer.billing.v1.MeteredExecution.Builder getMeteredExecutionBuilder() {
-      bitField0_ |= 0x00040000;
+      bitField0_ |= 0x00080000;
       onChanged();
       return internalGetMeteredExecutionFieldBuilder().getBuilder();
     }

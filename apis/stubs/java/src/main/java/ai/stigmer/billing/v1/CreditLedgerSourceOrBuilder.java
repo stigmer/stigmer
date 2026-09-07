@@ -72,13 +72,42 @@ public interface CreditLedgerSourceOrBuilder extends
 
   /**
    * <pre>
-   * Sequence number of the LLM call within the execution (1-based).
+   * Sequence number of the LLM call within the execution (1-based), as the
+   * reporting proxy counted it. Display and ordering; the locator of the
+   * debited usage record is llm_call_id, because a proxy restart makes two
+   * calls of one execution share a sequence.
    * </pre>
    *
    * <code>int32 llm_call_sequence = 4 [json_name = "llmCallSequence"];</code>
    * @return The llmCallSequence.
    */
   int getLlmCallSequence();
+
+  /**
+   * <pre>
+   * The debited usage record's call_id (LlmCallUsageRecord.call_id) — the
+   * drill-down from this debit to the exact record it paid for. Empty for
+   * debits of records whose reporter sent no call id (they are located by
+   * execution_id + llm_call_sequence, as before).
+   * </pre>
+   *
+   * <code>string llm_call_id = 10 [json_name = "llmCallId"];</code>
+   * @return The llmCallId.
+   */
+  java.lang.String getLlmCallId();
+  /**
+   * <pre>
+   * The debited usage record's call_id (LlmCallUsageRecord.call_id) — the
+   * drill-down from this debit to the exact record it paid for. Empty for
+   * debits of records whose reporter sent no call id (they are located by
+   * execution_id + llm_call_sequence, as before).
+   * </pre>
+   *
+   * <code>string llm_call_id = 10 [json_name = "llmCallId"];</code>
+   * @return The bytes for llmCallId.
+   */
+  com.google.protobuf.ByteString
+      getLlmCallIdBytes();
 
   /**
    * <pre>

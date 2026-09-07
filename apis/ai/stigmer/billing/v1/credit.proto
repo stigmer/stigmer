@@ -45,7 +45,7 @@ message CreditLedgerEntry {
 // and drill-down purposes.
 //
 // Fields are populated based on the entry type:
-// - usage_debit: execution_id, session_id, agent_id, llm_call_sequence
+// - usage_debit: execution_id, session_id, agent_id, llm_call_sequence, llm_call_id
 // - purchase_credit / auto_recharge_credit: purchase_id
 // - adjustment_credit / adjustment_debit: adjusted_by, description
 // - reservation_hold / reservation_release: execution_id, reservation_id
@@ -59,8 +59,17 @@ message CreditLedgerSource {
   // Agent that was executing.
   string agent_id = 3;
 
-  // Sequence number of the LLM call within the execution (1-based).
+  // Sequence number of the LLM call within the execution (1-based), as the
+  // reporting proxy counted it. Display and ordering; the locator of the
+  // debited usage record is llm_call_id, because a proxy restart makes two
+  // calls of one execution share a sequence.
   int32 llm_call_sequence = 4;
+
+  // The debited usage record's call_id (LlmCallUsageRecord.call_id) — the
+  // drill-down from this debit to the exact record it paid for. Empty for
+  // debits of records whose reporter sent no call id (they are located by
+  // execution_id + llm_call_sequence, as before).
+  string llm_call_id = 10;
 
   // Credit purchase that funded this credit.
   string purchase_id = 5;
