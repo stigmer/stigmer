@@ -423,18 +423,18 @@ rows:
     lane: >-
       rpc.setAutoRechargeConfig
     behavior: >-
-      setAutoRechargeConfig persists the threshold and top-up amounts onto the account (visible on getBillingAccount) and answers INVALID_ARGUMENT for an invalid configuration.
+      setAutoRechargeConfig persists the threshold, top-up and monthly-cap amounts onto the account (visible on getBillingAccount) whether enabling or disabling; disabling still refuses a negative amount INVALID_ARGUMENT; enabling requires a saved payment method FIRST (FAILED_PRECONDITION "A saved payment method is required to enable auto-recharge. Purchase a credit pack first.") and then validates the amounts in order — threshold positive, amount positive, cap at least the amount — each INVALID_ARGUMENT with the engine's copy; a refused enable changes nothing.
     java_source: >-
-      domain/billing/request/handler/SetAutoRechargeConfigHandler.java:89-95; domain/billing/service/AutoRechargeService.java
+      domain/billing/request/handler/SetAutoRechargeConfigHandler.java:74-102; domain/billing/service/BillingAccountService.java:87-151
     java_test: >-
-      domain/billing/service/AutoRechargeServiceTest.java
+      domain/billing/service/BillingAccountServiceTest.java
     class: behavior
-    disposition: debris-candidate
+    disposition: conformance
     observability: launcher
     caller: primary
-    needs: [unfunded-org]
+    needs: [unfunded-org, fake-stripe]
     note: >-
-      Auto-recharge (this RPC plus the two payment_intent.* webhook handlers) is a feature with no known production user; presented for the owner's Q6 ruling.
+      RULED PORTED 2026-09-06 (C5 gate, Q1, re-ruled in session): the read-only census found zero usage, but auto-recharge is a LIVE PRODUCT SURFACE — the console renders AutoRechargeCard and the Python, Java and Go SDKs expose setAutoRechargeConfig — so a cut would have been a product decision. The arm needs the fake Stripe because the only way an account gets a saved card from outside Java is the payment_method.attached webhook. The NOT_FOUND branch for an org without an account is unreachable black-box (E5 provisions every org an account; a foreign org is PERMISSION_DENIED first).
   - id: billing.rpc.set-auto-recharge-config.outsider-permission-denied
     surface: billing
     lane: >-
@@ -446,10 +446,12 @@ rows:
     java_test: >-
       none
     class: carve-out
-    disposition: debris-candidate
+    disposition: conformance
     observability: launcher
     caller: outsider
     needs: [unfunded-org]
+    note: >-
+      RULED PORTED 2026-09-06 (C5 gate, Q1) with its lane.
 
   # --- engine lanes (platform can_execute_billing_ops) -----------------------
   - id: billing.rpc.engine-lanes.ordinary-caller-permission-denied
@@ -624,63 +626,86 @@ rows:
     lane: >-
       rpc.upsertModelPricingBaseline
     behavior: >-
-      An operator's upsertModelPricingBaseline for a new model id is listed by listModelPricingBaselines with the given prices; an invalid entry answers INVALID_ARGUMENT.
+      An operator's upsertModelPricingBaseline for a new model key is listed ACTIVE by listModelPricingBaselines with the given prices and the server's stamps (baseline_id, decided_by, effective_at; supersedes_baseline_id empty); a second upsert of the same key supersedes the first — one ACTIVE per key, the prior revision SUPERSEDED and chained through supersedes_baseline_id, both visible with include_history (ACTIVE first); a variant declaring a Cursor token rate answers INVALID_ARGUMENT "Variant '<key>' declares a Cursor Token Rate — variants inherit the base entry's rate; set it on the base pricing block instead.".
     java_source: >-
-      domain/billing/request/handler/UpsertModelPricingBaselineHandler.java:102; domain/billing/service/ModelPricingBaselineService.java
+      domain/billing/request/handler/UpsertModelPricingBaselineHandler.java:99-173; domain/billing/request/handler/ListModelPricingBaselinesHandler.java:76-84
     java_test: >-
       domain/billing/request/handler/UpsertModelPricingBaselineHandlerTest.java; domain/billing/request/handler/ListModelPricingBaselinesHandlerTest.java
     class: behavior
-    disposition: debris-candidate
+    disposition: conformance
     observability: launcher
     caller: operator
     needs: [none]
     note: >-
-      The pricing-governance operator lanes (upsert/retire/decide/list/governance) are operator tooling with a console; presented for the Q6 ruling as one group.
+      RULED PORTED 2026-09-06 (C5 gate, Q1): the pricing-governance operator lanes (upsert/retire/decide/list/governance) are operator tooling with a console and travel with the provider-reconciliation subsystem (F7). Baselines are PLATFORM-GLOBAL state, not org state — the arm keys on a run-unique model id and retires it on cleanup so nothing outlives the test.
   - id: billing.rpc.retire-model-pricing-baseline.unknown-not-found
     surface: billing
     lane: >-
       rpc.retireModelPricingBaseline
     behavior: >-
-      retireModelPricingBaseline for an unknown model id answers NOT_FOUND; for a known one the entry stops appearing as active in listModelPricingBaselines.
+      retireModelPricingBaseline with no ACTIVE baseline for the key answers NOT_FOUND "No ACTIVE baseline found for <model>/<provider>/<harness> — it may already be retired, or the key is misspelled."; for a known key the document turns RETIRED (visible with include_history) and stops appearing in the ACTIVE list; retiring it again is the same NOT_FOUND.
     java_source: >-
-      domain/billing/request/handler/RetireModelPricingBaselineHandler.java:88
+      domain/billing/request/handler/RetireModelPricingBaselineHandler.java:88-89
     java_test: >-
       domain/billing/request/handler/RetireModelPricingBaselineHandlerTest.java
     class: behavior
-    disposition: debris-candidate
+    disposition: conformance
     observability: launcher
     caller: operator
     needs: [none]
-  - id: billing.rpc.decide-model-pricing-override.unknown-and-already-decided
+    note: >-
+      RULED PORTED 2026-09-06 (C5 gate, Q1) with its lane.
+  - id: billing.rpc.decide-model-pricing-override.unknown-not-found
     surface: billing
     lane: >-
       rpc.decideModelPricingOverride
     behavior: >-
-      decideModelPricingOverride for an unknown override answers NOT_FOUND and for an already-decided one FAILED_PRECONDITION.
+      decideModelPricingOverride for an override nobody proposed answers NOT_FOUND "No pricing override found with id <override_id>", approving or rejecting alike.
     java_source: >-
-      domain/billing/request/handler/DecideModelPricingOverrideHandler.java:88-93; domain/billing/service/ModelPricingOverrideService.java
+      domain/billing/request/handler/DecideModelPricingOverrideHandler.java:88-89
     java_test: >-
       none
     class: behavior
-    disposition: debris-candidate
+    disposition: conformance
     observability: launcher
     caller: operator
     needs: [none]
+    note: >-
+      RULED PORTED 2026-09-06 (C5 gate, Q1). Split 2026-09-07 (E1 T02) from the former `unknown-and-already-decided` row: the already-decided half is not drivable from outside — no RPC creates a pending override, only the Temporal provider-reconciliation corrector does — so it is the `unit` row below.
+  - id: billing.rpc.decide-model-pricing-override.already-decided-failed-precondition
+    surface: billing
+    lane: >-
+      rpc.decideModelPricingOverride
+    behavior: >-
+      decideModelPricingOverride on an override whose status is not PENDING_SIGNOFF answers FAILED_PRECONDITION "Pricing override <id> is <status>, not PENDING_SIGNOFF — only pending proposals can be decided."; a concurrent decision loses the CAS with ABORTED.
+    java_source: >-
+      domain/billing/request/handler/DecideModelPricingOverrideHandler.java:90-93; domain/billing/service/ModelPricingOverrideService.java
+    java_test: >-
+      none
+    class: behavior
+    disposition: unit
+    observability: none
+    caller: operator
+    needs: [none]
+    note: >-
+      Split 2026-09-07 (E1 T02): a pending override exists only after the provider-reconciliation corrector (default off; fed by the Anthropic / Cursor admin APIs) proposes one, so the launcher cannot observe this branch. NEITHER edition has a test today — Java carries no DecideModelPricingOverrideHandler test — so C5's vitest table is the first proof anywhere.
   - id: billing.rpc.get-model-pricing-governance.returns-queue
     surface: billing
     lane: >-
       rpc.getModelPricingGovernance
     behavior: >-
-      getModelPricingGovernance returns the pending override queue and reconciliation status shapes the proto declares (empty on a fresh environment).
+      getModelPricingGovernance returns one entry per model in the effective registry (the base variant only; sorted by harness, provider, model; baseline_* and effective_* rates equal while the entry has no active override; active_overrides listed) and the pending_overrides proposal queue — empty on a fresh environment, since only the provider-reconciliation corrector proposes.
     java_source: >-
       domain/billing/request/handler/GetModelPricingGovernanceHandler.java
     java_test: >-
       none
     class: behavior
-    disposition: debris-candidate
+    disposition: conformance
     observability: launcher
     caller: operator
     needs: [none]
+    note: >-
+      RULED PORTED 2026-09-06 (C5 gate, Q1) with its lane. Behavior corrected 2026-09-07 (E1 T02): the row said the response is "empty on a fresh environment" — it is not; `entries` carries every seeded registry model (ModelPricingBaselineSeeder runs on every boot), only `pending_overrides` is empty.
 
   # --- local OSS posture (ruling Q10) ----------------------------------------
   - id: billing.rpc.oss-boundary.every-billing-rpc-unimplemented
@@ -1072,93 +1097,101 @@ rows:
     behavior: >-
       An otherwise valid checkout.session.completed whose api_version is not stripe-java 32.1.0's pin answers 200 and grants nothing — getObject() deserializes nothing (finding F12).
     java_source: >-
-      domain/billing/stripe/StripeWebhookService.java:580-582
+      domain/billing/stripe/StripeWebhookService.java:578-592
     java_test: >-
       none
     class: behavior
-    disposition: debris-candidate
+    disposition: debris
     observability: launcher
     caller: anonymous
     needs: [unfunded-org, fake-stripe]
-    disputed: >-
-      A silent 200 that grants nothing is arguably a bug (Stripe retries nothing on 200); recommended disposition is `debris` — C5 (stripe-node) must NOT replicate the strictness, and the fake always stamps the pin.
+    note: >-
+      RULED debris 2026-09-06 (C5 gate, Q1d): a silent 200 that grants nothing is stripe-java's release-train strictness (getObject() answers empty unless the event's api_version shares the SDK's train), not a behavior of the product — C5 (stripe-node) parses regardless and must NOT replicate it. The fake stamps the pin on every event so no other row trips on this.
   - id: billing.stripe.customer-updated.syncs-default-payment-method
     surface: billing
     lane: >-
       stripe.customer-updated
     behavior: >-
-      customer.updated carrying invoice_settings.default_payment_method sets (or clears) the account's default payment method, visible on getBillingAccount.
+      customer.updated carrying invoice_settings.default_payment_method makes Java retrieve that payment method (GET /v1/payment_methods/{id}) and record it as the account's default (id, brand, last4, exp_month, exp_year — visible on getBillingAccount); carrying none clears the account's default; a customer Java never minted is a silent 200 with no retrieve.
     java_source: >-
-      domain/billing/stripe/StripeWebhookService.java:88
+      domain/billing/stripe/StripeWebhookService.java:258-297,512-542
     java_test: >-
-      domain/billing/stripe/StripeWebhookServiceTest.java
+      none
     class: behavior
-    disposition: debris-candidate
+    disposition: conformance
     observability: launcher
     caller: anonymous
     needs: [unfunded-org, fake-stripe]
     note: >-
-      Default-payment-method bookkeeping serves auto-recharge only; presented with it for Q6.
+      RULED PORTED 2026-09-06 (C5 gate, Q1) with auto-recharge, which it serves. Java carries NO unit test for this handler (StripeWebhookServiceTest covers the checkout events only) — this arm is the only proof on either side. Java reads the card's exp_month/exp_year unguarded; the fake's card carries them (FAKE_CARD).
   - id: billing.stripe.payment-method-attached.sets-default-when-none
     surface: billing
     lane: >-
       stripe.payment-method-attached
     behavior: >-
-      payment_method.attached for a card sets it as the account's default when none is set and updates the Stripe customer's default (POST /v1/customers/{id} on the fake).
+      payment_method.attached for a card sets it as the account's default ONLY when none is set (a second card does not displace the first) and makes it the customer's default on Stripe (POST /v1/customers/{id} invoice_settings[default_payment_method], once); a method without a card (us_bank_account) and a customer Java never minted are silent 200s with no write.
     java_source: >-
-      domain/billing/stripe/StripeWebhookService.java:90,520,557
+      domain/billing/stripe/StripeWebhookService.java:306-362,548-562
     java_test: >-
-      domain/billing/stripe/StripeWebhookServiceTest.java
+      none
     class: behavior
-    disposition: debris-candidate
+    disposition: conformance
     observability: launcher
     caller: anonymous
     needs: [unfunded-org, fake-stripe]
+    note: >-
+      RULED PORTED 2026-09-06 (C5 gate, Q1) with auto-recharge, which it serves. Java carries NO unit test for this handler — this arm is the only proof on either side. It is also how every auto-recharge arm gives its org a saved card.
   - id: billing.stripe.payment-intent-succeeded.recharge-provisions-credits
     surface: billing
     lane: >-
       stripe.payment-intent-succeeded
     behavior: >-
-      payment_intent.succeeded carrying metadata stigmer_recharge_event_id provisions the recharge's credits; without the metadata the event is ignored.
+      payment_intent.succeeded carrying metadata stigmer_recharge_event_id provisions the recharge's credits exactly once — an auto_recharge_credit ledger entry under idempotency key auto_recharge_<event_id>, the balance up by the recharge amount; the same event replayed or a fresh event for the same recharge grants nothing more; without the metadata (a checkout's intent) or naming a recharge Java never created the event is a silent 200.
     java_source: >-
-      domain/billing/stripe/StripeWebhookService.java:92,383
+      domain/billing/stripe/StripeWebhookService.java:371-406; domain/billing/service/AutoRechargeService.java:263-319
     java_test: >-
-      domain/billing/stripe/StripeWebhookServiceTest.java; domain/billing/service/AutoRechargeServiceTest.java
+      domain/billing/service/AutoRechargeServiceTest.java
     class: behavior
-    disposition: debris-candidate
+    disposition: conformance
     observability: launcher
     caller: anonymous
     needs: [unfunded-org, fake-stripe]
+    note: >-
+      RULED PORTED 2026-09-06 (C5 gate, Q1): auto-recharge is a live product surface. The arm drives the whole journey as the platform operator — the trigger is synchronous inside recordLlmCallUsage when the post-debit signal is low_balance_warning, so the operator's engine RPCs are the only black-box way to reach it; the PaymentIntent lands on the fake from Java's background executor and the arm polls for it. Java's webhook handler has no unit test of its own; AutoRechargeServiceTest covers provisionRechargeCredits.
   - id: billing.stripe.payment-intent-failed.recharge-compensated
     surface: billing
     lane: >-
       stripe.payment-intent-failed
     behavior: >-
-      payment_intent.payment_failed carrying stigmer_recharge_event_id releases the recharge's monthly-cap slot with the payment error message (or "Payment failed").
+      payment_intent.payment_failed carrying stigmer_recharge_event_id marks the recharge FAILED and releases its monthly-cap slot (current_month_charged_micros back down by the amount) with no grant; with the recharge no longer pending, the next debit past the threshold triggers a fresh recharge under a new event id.
     java_source: >-
-      domain/billing/stripe/StripeWebhookService.java:94,426
+      domain/billing/stripe/StripeWebhookService.java:414-454; domain/billing/service/AutoRechargeService.java (compensateFailedRecharge)
     java_test: >-
       domain/billing/service/AutoRechargeServiceTest.java
     class: behavior
-    disposition: debris-candidate
+    disposition: conformance
     observability: launcher
     caller: anonymous
     needs: [unfunded-org, fake-stripe]
+    note: >-
+      RULED PORTED 2026-09-06 (C5 gate, Q1) with its lane. The arm proves the release is real by re-triggering, not by reading the counter alone. The month-rollover guard on the release depends on wall-clock time and is a `unit` concern.
   - id: billing.stripe.outbound.idempotency-key-on-recharge-payment-intent
     surface: billing
     lane: >-
       stripe.outbound
     behavior: >-
-      The auto-recharge PaymentIntent create carries the event's idempotency key as the Stripe Idempotency-Key header.
+      The auto-recharge PaymentIntent create carries Idempotency-Key auto_recharge_<event_id> (the event's own key) and the shape Java sends — amount in cents (micros / 10_000), currency usd, the saved payment method, the org's customer, off_session=true, confirm=true, metadata stigmer_org_id / stigmer_recharge_event_id / stigmer_credits_micros — and the month's slot is claimed (current_month_charged_micros) before any money moves.
     java_source: >-
-      domain/billing/service/AutoRechargeService.java:222-227
+      domain/billing/service/AutoRechargeService.java:214-238,387-409
     java_test: >-
       domain/billing/service/AutoRechargeServiceTest.java
     class: carve-out
-    disposition: debris-candidate
+    disposition: conformance
     observability: launcher
     caller: none
     needs: [fake-stripe]
+    note: >-
+      RULED PORTED 2026-09-06 (C5 gate, Q1). A DD-012 carve-out: the key must be byte-identical across editions so a retry can never charge twice.
 
   # ===========================================================================
   # BILLING — workers, schedules, notifier (Temporal vocabulary is a carve-out)
