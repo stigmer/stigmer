@@ -502,6 +502,18 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — accounts, balance
       expect(entry.outputPriceMicrosPerMillion).toBeGreaterThanOrEqual(0n);
     }
   });
+
+  it("[billing.rpc.set-auto-recharge-config.outsider-permission-denied] an outsider's setAutoRechargeConfig is refused with the proto's copy", async () => {
+    const { org } = await unfundedOrg();
+    const other = await outsider();
+    // Structurally valid and disabled — the refusal must be the authorization's.
+    const denied = await expectGrpcCode(
+      () => other.billingCommand.setAutoRechargeConfig({ orgId: org, enabled: false, thresholdMicros: 0n, rechargeAmountMicros: 0n, monthlyCapMicros: 0n }),
+      Code.PermissionDenied,
+      "outsider setAutoRechargeConfig",
+    );
+    expect(denied.rawMessage).toBe(COPY.manageAutoRecharge);
+  });
 });
 
 describe.skipIf(!ledgerServed)("Billing ledger conformance — the purchase money path against the fake Stripe", () => {
@@ -593,6 +605,60 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the purchase mone
     expect(portal.portalUrl).toMatch(/^https:\/\/billing\.stripe\.test\//);
     const request = (await control.stripe.requests()).find((r) => r.path === "/v1/billing_portal/sessions");
     expect(request?.params["return_url"]).toBe("https://x.test/back");
+  });
+
+  it("[billing.rpc.set-auto-recharge-config.persists-and-validates] auto-recharge persists disabled at once, refuses to enable without a saved card, then validates the amounts in the engine's order and persists an enabled configuration", async () => {
+    const { org } = await unfundedOrg();
+    const config = (enabled: boolean, thresholdMicros: bigint, rechargeAmountMicros: bigint, monthlyCapMicros: bigint) => ({ orgId: org, enabled, thresholdMicros, rechargeAmountMicros, monthlyCapMicros });
+
+    // Disabled writes the amounts as given and reads back at once.
+    const disabled = await clients.billingCommand.setAutoRechargeConfig(config(false, 7_000_000n, 25_000_000n, 50_000_000n));
+    expect(disabled.autoRecharge?.enabled ?? false).toBe(false);
+    expect(disabled.autoRecharge?.thresholdMicros).toBe(7_000_000n);
+    expect(disabled.autoRecharge?.rechargeAmountMicros).toBe(25_000_000n);
+    expect(disabled.autoRecharge?.monthlyCapMicros).toBe(50_000_000n);
+    const readBack = await clients.billingQuery.getBillingAccount({ orgId: org });
+    expect(readBack.autoRecharge?.thresholdMicros).toBe(7_000_000n);
+
+    // Disabled still rejects a negative amount.
+    const negative = await expectGrpcCode(() => clients.billingCommand.setAutoRechargeConfig(config(false, -1n, 0n, 0n)), Code.InvalidArgument, "disable with a negative threshold");
+    expect(negative.rawMessage).toBe(DOMAIN_COPY.autoRechargeThresholdNotNegative);
+
+    // Enabling needs a saved card BEFORE the amounts are looked at: a bad
+    // amount without a card is refused for the card, not the amount.
+    const noCard = await expectGrpcCode(() => clients.billingCommand.setAutoRechargeConfig(config(true, 0n, 20_000_000n, 40_000_000n)), Code.FailedPrecondition, "enable without a saved card");
+    expect(noCard.rawMessage).toBe(DOMAIN_COPY.autoRechargeNeedsPaymentMethod);
+
+    // With a card, the amount ladder in the engine's order.
+    const customerId = await seedStripeCustomer(clients, org);
+    await seedDefaultPaymentMethod(clients, org, customerId);
+    const ladder: Array<[string, Parameters<typeof clients.billingCommand.setAutoRechargeConfig>[0], string]> = [
+      ["threshold 0", config(true, 0n, 20_000_000n, 40_000_000n), DOMAIN_COPY.autoRechargeThresholdPositive],
+      ["amount 0", config(true, 5_000_000n, 0n, 40_000_000n), DOMAIN_COPY.autoRechargeAmountPositive],
+      ["cap below amount", config(true, 5_000_000n, 20_000_000n, 19_999_999n), DOMAIN_COPY.autoRechargeCapAtLeastAmount],
+    ];
+    for (const [label, input, copy] of ladder) {
+      const refused = await expectGrpcCode(() => clients.billingCommand.setAutoRechargeConfig(input), Code.InvalidArgument, `enable with ${label}`);
+      expect(refused.rawMessage, label).toBe(copy);
+    }
+    const stillDisabled = await clients.billingQuery.getBillingAccount({ orgId: org });
+    expect(stillDisabled.autoRecharge?.enabled ?? false, "a refused enable changes nothing").toBe(false);
+
+    // A cap equal to the amount is the boundary the copy names ("at least").
+    const enabled = await clients.billingCommand.setAutoRechargeConfig(config(true, 5_000_000n, 20_000_000n, 20_000_000n));
+    expect(enabled.autoRecharge?.enabled).toBe(true);
+    expect(enabled.autoRecharge?.thresholdMicros).toBe(5_000_000n);
+    expect(enabled.autoRecharge?.rechargeAmountMicros).toBe(20_000_000n);
+    expect(enabled.autoRecharge?.monthlyCapMicros).toBe(20_000_000n);
+    expect(enabled.autoRecharge?.currentMonthChargedMicros ?? 0n, "enabling claims nothing on the month").toBe(0n);
+    const persisted = await clients.billingQuery.getBillingAccount({ orgId: org });
+    expect(persisted.autoRecharge?.enabled).toBe(true);
+    expect(persisted.autoRecharge?.rechargeAmountMicros).toBe(20_000_000n);
+
+    // Disabling again keeps the amounts it is given (the console's "pause" — the proto's "disabling preserves config").
+    const paused = await clients.billingCommand.setAutoRechargeConfig(config(false, 5_000_000n, 20_000_000n, 20_000_000n));
+    expect(paused.autoRecharge?.enabled ?? false).toBe(false);
+    expect(paused.autoRecharge?.rechargeAmountMicros).toBe(20_000_000n);
   });
 
   // The webhook half: the suite is Stripe here (the builders at module scope),
@@ -822,6 +888,148 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the engine and pr
     });
     expect(report.llmCallCount).toBe(2);
     expect(report.executionCount).toBe(1);
+  });
+
+  // --- the pricing-governance lanes (ruled PORTED at C5's gate: operator
+  // tooling with a console). Baselines are PLATFORM-GLOBAL state, not org
+  // state: every arm keys its baseline on a run-unique model id and retires it
+  // on cleanup, so nothing it creates outlives the test or reaches another
+  // file's registry assertions.
+
+  // A structurally valid baseline for a run-unique model. The registry's
+  // composed catalog picks it up on upsert; retire removes it again.
+  function conformanceBaseline(modelId: string, inputMicros = 1_000_000n, outputMicros = 5_000_000n) {
+    return {
+      modelId,
+      provider: "anthropic",
+      harness: "native",
+      displayName: `Conformance ${modelId}`,
+      speedTier: "balanced",
+      costTier: "standard",
+      pricing: { inputPriceMicrosPerMillion: inputMicros, outputPriceMicrosPerMillion: outputMicros },
+    };
+  }
+
+  async function upsertBaseline(op: PrivilegedScope, modelId: string, inputMicros?: bigint, outputMicros?: bigint) {
+    const revision = await op.clients.billingCommand.upsertModelPricingBaseline({ baseline: conformanceBaseline(modelId, inputMicros, outputMicros), revisionNote: "conformance" });
+    fixtures.defer(() => op.clients.billingCommand.retireModelPricingBaseline({ modelId, provider: "anthropic", harness: "native" }).then(() => undefined, () => undefined));
+    return revision;
+  }
+
+  it("[billing.rpc.upsert-model-pricing-baseline.round-trips-through-list] an operator's upsert is listed ACTIVE with the server's stamps, a second upsert of the same key supersedes the first, and a variant carrying a Cursor rate is refused", async () => {
+    const op = await operator();
+    const modelId = uniqueName("conf-model");
+
+    const first = await upsertBaseline(op, modelId, 1_000_000n, 5_000_000n);
+    expect(first.baselineId, "the server mints the baseline id").not.toBe("");
+    expect(first.status).toBe(ModelPricingBaselineStatus.pricing_baseline_active);
+    expect(first.supersedesBaselineId, "a fresh key supersedes nothing").toBe("");
+    expect(first.decidedBy, "the deciding operator is stamped").not.toBe("");
+    expect(first.pricing?.effectiveAt, "effective_at is stamped by the server").toBeDefined();
+    expect(first.pricing?.inputPriceMicrosPerMillion).toBe(1_000_000n);
+
+    const active = await op.clients.billingQuery.listModelPricingBaselines({});
+    const listed = active.baselines.find((b) => b.modelId === modelId);
+    expect(listed?.baselineId).toBe(first.baselineId);
+    expect(listed?.pricing?.outputPriceMicrosPerMillion).toBe(5_000_000n);
+    for (const baseline of active.baselines) expect(baseline.status, `${baseline.modelId} in the ACTIVE list`).toBe(ModelPricingBaselineStatus.pricing_baseline_active);
+
+    // The same key again is a revision: the prior document is superseded and chained, not duplicated.
+    const second = await op.clients.billingCommand.upsertModelPricingBaseline({ baseline: conformanceBaseline(modelId, 2_000_000n, 5_000_000n), revisionNote: "conformance revision" });
+    expect(second.baselineId).not.toBe(first.baselineId);
+    expect(second.supersedesBaselineId).toBe(first.baselineId);
+    const activeNow = (await op.clients.billingQuery.listModelPricingBaselines({})).baselines.filter((b) => b.modelId === modelId);
+    expect(activeNow.map((b) => b.baselineId), "exactly one ACTIVE document per key").toEqual([second.baselineId]);
+    const history = (await op.clients.billingQuery.listModelPricingBaselines({ includeHistory: true })).baselines.filter((b) => b.modelId === modelId);
+    expect(history.map((b) => [b.baselineId, b.status]), "history lists the ACTIVE revision first, then the superseded one").toEqual([
+      [second.baselineId, ModelPricingBaselineStatus.pricing_baseline_active],
+      [first.baselineId, ModelPricingBaselineStatus.pricing_baseline_superseded],
+    ]);
+
+    // Variants inherit the base entry's Cursor rate; declaring one on a variant is the handler's own INVALID_ARGUMENT.
+    const refused = await expectGrpcCode(
+      () =>
+        op.clients.billingCommand.upsertModelPricingBaseline({
+          baseline: {
+            ...conformanceBaseline(modelId),
+            pricingVariants: { thinking: { pricing: { inputPriceMicrosPerMillion: 1n, outputPriceMicrosPerMillion: 1n, cursorTokenRateMicrosPerMillion: 7n } } },
+          },
+        }),
+      Code.InvalidArgument,
+      "variant with a Cursor token rate",
+    );
+    expect(refused.rawMessage).toBe(DOMAIN_COPY.variantDeclaresCursorRate("thinking"));
+  });
+
+  it("[billing.rpc.retire-model-pricing-baseline.unknown-not-found] retiring an unknown key is NOT_FOUND with the handler's copy; retiring a known one removes it from the ACTIVE list, and retiring it again is NOT_FOUND", async () => {
+    const op = await operator();
+    const unknown = uniqueName("conf-never-upserted");
+    const missing = await expectGrpcCode(
+      () => op.clients.billingCommand.retireModelPricingBaseline({ modelId: unknown, provider: "anthropic", harness: "native" }),
+      Code.NotFound,
+      "retire an unknown key",
+    );
+    expect(missing.rawMessage).toBe(DOMAIN_COPY.noActiveBaseline(unknown, "anthropic", "native"));
+
+    const modelId = uniqueName("conf-model");
+    const upserted = await upsertBaseline(op, modelId);
+    const retired = await op.clients.billingCommand.retireModelPricingBaseline({ modelId, provider: "anthropic", harness: "native", revisionNote: "conformance retire" });
+    expect(retired.baselineId).toBe(upserted.baselineId);
+    expect(retired.status).toBe(ModelPricingBaselineStatus.pricing_baseline_retired);
+    const active = await op.clients.billingQuery.listModelPricingBaselines({});
+    expect(active.baselines.some((b) => b.modelId === modelId), "a retired key is not ACTIVE").toBe(false);
+    const history = await op.clients.billingQuery.listModelPricingBaselines({ includeHistory: true });
+    expect(history.baselines.find((b) => b.baselineId === upserted.baselineId)?.status).toBe(ModelPricingBaselineStatus.pricing_baseline_retired);
+
+    const again = await expectGrpcCode(
+      () => op.clients.billingCommand.retireModelPricingBaseline({ modelId, provider: "anthropic", harness: "native" }),
+      Code.NotFound,
+      "retire an already-retired key",
+    );
+    expect(again.rawMessage).toBe(DOMAIN_COPY.noActiveBaseline(modelId, "anthropic", "native"));
+  });
+
+  it("[billing.rpc.decide-model-pricing-override.unknown-not-found] deciding an override nobody proposed is NOT_FOUND with the handler's copy", async () => {
+    // Only the provider-reconciliation corrector proposes overrides, so the
+    // already-decided FAILED_PRECONDITION half of this lane is a `unit` row
+    // (billing.rpc.decide-model-pricing-override.already-decided-failed-precondition).
+    const op = await operator();
+    const overrideId = uniqueName("ovr-conf");
+    for (const approve of [true, false]) {
+      const missing = await expectGrpcCode(
+        () => op.clients.billingCommand.decideModelPricingOverride({ overrideId, approve, decisionNote: "conformance" }),
+        Code.NotFound,
+        `decide unknown override (approve=${approve})`,
+      );
+      expect(missing.rawMessage).toBe(DOMAIN_COPY.noOverride(overrideId));
+    }
+  });
+
+  it("[billing.rpc.get-model-pricing-governance.returns-queue] the governance view lists one entry per effective-registry model, sorted, with baseline and effective rates equal while no override is active, and an empty proposal queue on a fresh environment", async () => {
+    const op = await operator();
+    const modelId = uniqueName("conf-model");
+    await upsertBaseline(op, modelId, 3_000_000n, 9_000_000n);
+
+    const governance = await op.clients.billingQuery.getModelPricingGovernance({});
+    expect(governance.entries.length, "the seeded registry is never empty").toBeGreaterThan(0);
+    expect(governance.pendingOverrides, "nothing proposes overrides on a fresh environment but the reconciliation corrector").toEqual([]);
+
+    const keys = governance.entries.map((e) => `${e.harness}\u0000${e.provider}\u0000${e.modelId}`);
+    expect(keys, "sorted by harness, provider, model").toEqual([...keys].sort());
+    for (const entry of governance.entries) {
+      expect(entry.modelId).not.toBe("");
+      expect(entry.variant, "the view is the base variant only").toBe("");
+      if (entry.activeOverrides.length === 0) {
+        expect(entry.effectiveInputMicrosPerMillion, `${entry.modelId} input`).toBe(entry.baselineInputMicrosPerMillion);
+        expect(entry.effectiveOutputMicrosPerMillion, `${entry.modelId} output`).toBe(entry.baselineOutputMicrosPerMillion);
+      }
+    }
+
+    const mine = governance.entries.find((e) => e.modelId === modelId && e.harness === "native");
+    expect(mine, "the upserted baseline is an entry").toBeDefined();
+    expect(mine?.baselineInputMicrosPerMillion).toBe(3_000_000n);
+    expect(mine?.effectiveOutputMicrosPerMillion).toBe(9_000_000n);
+    expect(mine?.activeOverrides).toEqual([]);
   });
 });
 
