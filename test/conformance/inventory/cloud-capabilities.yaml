@@ -947,10 +947,12 @@ rows:
     java_test: >-
       domain/billing/stripe/StripeWebhookControllerTest.java
     class: adversarial
-    disposition: conformance
+    disposition: deviation
     observability: launcher
     caller: anonymous
     needs: [fake-stripe]
+    note: >-
+      MEASURED 2026-09-07 on the production-mode launcher (entry 20260907.02): Java answers 401, not 400 — the framework's MissingRequestHeaderException 400 re-dispatches to /error, which HttpSecurityConfig's anyRequest().denyAll() turns into 401 for the anonymous caller (invisible under test security mode). The suite asserts 400 (the composition's answer) and carries Java in contract/deviations.ts as java.stripe-webhook.missing-signature-header-401; the entry retires with Java.
   - id: billing.stripe.webhook.anonymous-reachable
     surface: billing
     lane: >-
