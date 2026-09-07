@@ -81,9 +81,9 @@ export function domainError(ce: ConnectError): ChannelToolError {
   // The messaging RPCs attach google.rpc.ErrorInfo to operator-actionable
   // preconditions (DD-005 D8); absence means the message alone carries
   // the contract.
-  const details = ce.findDetails(ErrorInfoSchema);
-  if (details.length > 0 && details[0].reason !== "") {
-    payload.reason = details[0].reason;
+  const info = ce.findDetails(ErrorInfoSchema)[0];
+  if (info && info.reason !== "") {
+    payload.reason = info.reason;
   }
   return payload;
 }
