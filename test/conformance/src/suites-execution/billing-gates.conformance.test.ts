@@ -28,7 +28,7 @@ import { FixtureTracker } from "../harness/fixtures";
 import { ECHO_TOOL_NAME, type McpToolFixture } from "../harness/mcp-server";
 import { anthropicText, anthropicToolUses, type MockLlmProxy } from "../harness/mock-llm";
 import { makeAgent } from "../support/agents";
-import { awaitPhase, awaitTerminal, makeAgentExecution, requireLlmProxy, requireMcpFixture } from "../support/agentexecutions";
+import { awaitPhase, awaitTerminal, makeAgentExecution, requireLlmProxy, requireMcpFixture, submitApprovalPerContract } from "../support/agentexecutions";
 import { makeHttpMcpServer } from "../support/mcpservers";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
@@ -186,8 +186,12 @@ describe.skipIf(!gatesEnabled)("Billing gates — settle, the approval STOP gate
     expect(refused.rawMessage).toBe(APPROVAL_STOP_COPY);
 
     await refund(org);
-    const approved = await clients.agentExecutionCommand.submitApproval({ agentExecutionId: executionId, toolCallId, action: ApprovalAction.APPROVE });
-    expect(approved.status?.pendingApprovals.length).toBe(0);
+    await submitApprovalPerContract(target, clients, {
+      executionId,
+      expectedRemaining: 0,
+      label: "the approve clears the gate once funded",
+      submit: () => clients.agentExecutionCommand.submitApproval({ agentExecutionId: executionId, toolCallId, action: ApprovalAction.APPROVE }),
+    });
     const final = await awaitTerminal(clients, executionId);
     expect(final.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
   });

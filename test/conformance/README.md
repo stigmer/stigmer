@@ -304,16 +304,34 @@ codebase writes anyway.
 Tests assert the **intended** contract, not whatever an implementation happens
 to do today. When a target legitimately deviates because of a known bug, it gets
 a tracked entry in the **known-deviation registry** (`deviations.ts`) instead of
-the test quietly asserting the wrong behavior. `expectCodeOrDeviation(...)`:
+the test quietly asserting the wrong behavior. An entry records both readings as
+prose — `contract` and `observed` — and the arm supplies the two assertions.
+There are two kinds, because there are two kinds of bug:
 
-- asserts the contract code for targets without a registered deviation;
-- asserts the recorded (wrong) code for targets that have one, and reports it;
-- **fails** if a deviating target starts returning the contract code — that
-  signals the bug is fixed and the entry should be deleted.
+- **Deterministic** (`assertContractOrDeviation`): the target ALWAYS answers the
+  observed reading. The arm runs only the `observed` assertion there, so the day
+  the target is fixed that assertion fails and the entry must be deleted. Three
+  entries today, all Java's, from the launcher entry that first ran Java in
+  production security mode (stigmer-cloud `20260907.02`).
+- **Race** (`assertContractOrKnownRace`): the target SOMETIMES answers the
+  observed reading, on a timing it does not control. The arm asserts the
+  contract first, on every target; only an assertion failure on a registered
+  target opens the race path, where `observed` must PROVE the specific race (a
+  failure there is an unknown symptom and stays red), the firing is reported on
+  one grep-able `[conformance] tracked race …` line, and — where the entry names
+  a remedy — the arm applies it and asserts the contract exactly once more. A
+  race entry cannot self-expire, so it states when it is deleted. Two entries
+  today, both Java's execution target, from the Class B lane-integrity entry
+  (stigmer-cloud `20260908.01`): the approval write lost to the workflow's
+  WAITING heartbeat, applied at the submit seam
+  (`support/agentexecutions.ts` → `submitApprovalPerContract`), and the trailing
+  terminal write that closes a subscription the pinned S4 quirk says stays open.
 
-So the registry can never hide a regression or bless a bug permanently. There
-are currently no tracked deviations: every target returns the contract code.
-The previous local-target entries — duplicate-create / missing-name / missing-spec
+Neither kind is a retry budget, a sleep or a skip: the contract assertion runs
+on every target every time, and nothing in the registry is reached unless the
+target is registered AND (for a race) the contract just failed. The registry
+can never hide a regression or bless a bug permanently. The local targets carry
+no entries: the previous ones — duplicate-create / missing-name / missing-spec
 returning `Unknown`, and `getVersion` with a malformed hash returning `NotFound`
 — were resolved (stigmer/stigmer#192) by enforcing protovalidate at the gRPC
 transport boundary and by making the affected pipeline steps return typed gRPC
@@ -485,7 +503,7 @@ on `local-execution`. See the project's
 
 ```
 src/
-  harness/          ts-build, ports, server-process, grpc-ready, clients, fixtures, global-setup
+  harness/          ts-build, ports, child-process (the one stop + tee discipline), server-process, grpc-ready, clients, fixtures, global-setup
                     + execution: temporal, runner-build, runner-process, mock-llm, mcp-server, global-setup-execution
                     + cloud: cloud-env, global-setup-cloud
   targets/          target (interface + capabilities), local, local-execution, cloud, cloud-execution, index
@@ -506,7 +524,12 @@ src/
    execution domain, `src/suites-execution/<domain>.conformance.test.ts` driven
    by the `local-execution` target.
 3. Assert the intended contract; register any genuine implementation bug as a
-   known deviation rather than asserting the wrong behavior.
+   known deviation rather than asserting the wrong behavior — deterministic if
+   the target always answers wrong, race if it sometimes does (and then the
+   `observed` assertion must prove that specific race, never merely "not the
+   contract").
+4. An approval submit goes through `submitApprovalPerContract`, never a bare
+   `submitApproval` followed by an `expect` on `pending_approvals`.
 
 ## Adding a cloud capability
 
