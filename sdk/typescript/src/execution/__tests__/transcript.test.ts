@@ -28,6 +28,7 @@ import {
   AgentExecutionListSchema,
   GetArtifactContentResponseSchema,
   type GetArtifactContentRequest,
+  type GetArtifactContentResponse,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import {
@@ -410,6 +411,75 @@ describe("resolveOffloadedOutputs", () => {
       truncated: true,
       totalSizeBytes: 1048576,
     });
+  });
+
+  it("holds at most `concurrency` fetches in flight and still resolves every ref", async () => {
+    // Six text refs on one execution, a pool of two. The fake parks every
+    // fetch on a deferred so the in-flight count is observable, then releases
+    // them one at a time; the pool must never exceed two and must drain all six.
+    const keys = Array.from({ length: 6 }, (_, i) => `artifacts/aex_pool/toolcalls/tc_${i}.txt`);
+    const execution = create(AgentExecutionSchema, {
+      metadata: { id: "aex_pool" },
+      status: {
+        messages: [
+          {
+            type: MessageType.MESSAGE_AI,
+            toolCalls: keys.map((storageKey, i) => ({
+              id: `tc_${i}`,
+              name: "read_file",
+              status: ToolCallStatus.TOOL_CALL_COMPLETED,
+              outputRef: { storageKey, mimeType: "text/plain" },
+            })),
+          },
+        ],
+      },
+    });
+
+    const releases: Array<() => void> = [];
+    let inFlight = 0;
+    let maxInFlight = 0;
+    const client = {
+      agentExecution: {
+        listBySession: () => Promise.reject(new Error("not under test")),
+        getArtifactContent: (input: GetArtifactContentRequest) => {
+          inFlight++;
+          maxInFlight = Math.max(maxInFlight, inFlight);
+          return new Promise<GetArtifactContentResponse>((resolveFetch) => {
+            releases.push(() => {
+              inFlight--;
+              resolveFetch(
+                create(GetArtifactContentResponseSchema, {
+                  content: new TextEncoder().encode(input.storageKey),
+                }),
+              );
+            });
+          });
+        },
+      },
+    };
+
+    const resolving = resolveOffloadedOutputs(client, [execution], { concurrency: 2 });
+    // Release the six fetches one at a time. A macrotask boundary between
+    // releases lets the pool's microtask chain run to its next fetch, so the
+    // observation is deterministic: no timers, no races.
+    let released = 0;
+    while (released < keys.length) {
+      const release = releases.shift();
+      if (release) {
+        release();
+        released++;
+      } else {
+        await new Promise((tick) => setTimeout(tick, 0));
+      }
+    }
+    const resolved = await resolving;
+
+    // Exactly two: never more (the bound holds) and never fewer (the pool is
+    // genuinely parallel, not a serial loop wearing a `concurrency` option).
+    expect(maxInFlight).toBe(2);
+    for (const key of keys) {
+      expect(resolved[key].content).toBe(key);
+    }
   });
 });
 

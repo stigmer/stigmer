@@ -367,18 +367,25 @@ function* allToolCalls(
   }
 }
 
-/** Runs `fn` over `items` with at most `limit` in flight. */
+/**
+ * Runs `fn` over `items` with at most `limit` in flight.
+ *
+ * The pool is one iterator shared by every worker: each worker pulls the next
+ * item the moment it is free, so the work distributes itself without index
+ * bookkeeping. A rejecting `fn` fails its own worker (and so the whole call)
+ * while the other workers keep draining — array iterators carry no `return`,
+ * so one loop's exit never closes the shared source.
+ */
 async function mapWithConcurrency<T>(
   items: readonly T[],
   limit: number,
   fn: (item: T) => Promise<void>,
 ): Promise<void> {
-  let next = 0;
+  const pending = items.values();
   const workers = Array.from(
     { length: Math.max(1, Math.min(limit, items.length)) },
     async () => {
-      while (next < items.length) {
-        const item = items[next++];
+      for (const item of pending) {
         await fn(item);
       }
     },
@@ -429,8 +436,7 @@ export function transcriptToMarkdown(
   }
   if (options?.generatedAt) out.push(`- Exported: ${options.generatedAt}`);
 
-  for (let i = 0; i < turns.length; i++) {
-    const turn = turns[i];
+  for (const [i, turn] of turns.entries()) {
     out.push("", "---", "");
     out.push(`## Turn ${i + 1}${turnHeaderSuffix(turn)}`);
 
