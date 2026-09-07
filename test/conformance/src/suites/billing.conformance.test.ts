@@ -25,14 +25,28 @@
 // orgOAuthAppConfiguration posture). Pinned once per RPC below.
 //
 // The fixtures are shared across every file in a cloud run
-// (fileParallelism: false), so this suite resets them in afterEach.
+// (fileParallelism: false), so each block that drives the fake Stripe resets
+// it in its own afterEach — the blocks that never touch Stripe do not pay for
+// a reset they do not need.
+//
+// The auto-recharge rows (entry 20260906.04, T02 — ruled PORTED at C5's gate
+// after the read-only census found the feature is a live product surface)
+// need Java's whole money path in one test: a Stripe customer, a saved
+// payment method, a debit that trips the low-balance signal, the PaymentIntent
+// Java creates on its background executor, and the webhook the suite posts
+// back as Stripe. `armRecharge()` below is that journey; the arithmetic that
+// makes the debit trip the signal is written down there once.
 import { Code } from "@connectrpc/connect";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { LedgerEntryType } from "@stigmer/protos/ai/stigmer/billing/v1/enum_pb";
+import { ModelPricingBaselineStatus } from "@stigmer/protos/ai/stigmer/billing/v1/model_pricing_baseline_pb";
+import { UsageCompletionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
 import { FixtureTracker } from "../harness/fixtures";
-import { postStripeWebhook, signStripePayload, signedEvent, stripeEvent } from "../harness/fake-stripe";
+import { FAKE_CARD, postStripeWebhook, signStripePayload, signedEvent, stripeEvent, type CapturedStripeRequest } from "../harness/fake-stripe";
 import { expectGrpcCode } from "../contract/errors";
 import { requireCloudFixtures, type CloudFixturesClient } from "../support/cloud-fixtures-client";
+import { pollUntil } from "../support/execution-poll";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
 import type { ConformanceClients } from "../harness/clients";
@@ -43,12 +57,17 @@ const ledgerServed = createTarget().capabilities.billingLedger;
 
 let target: TargetProfile;
 let clients: ConformanceClients;
+// The run's fixture control client — the fake Stripe's captures and scripted
+// failures. Resolved once the target confirms it serves the ledger (the local
+// OSS targets publish no fixtures and never reach the Stripe blocks).
+let control: CloudFixturesClient;
 const fixtures = new FixtureTracker();
 
 beforeAll(async () => {
   target = createTarget();
   await target.setup();
   clients = target.clients();
+  if (ledgerServed) control = requireCloudFixtures();
 });
 
 afterEach(async () => {
@@ -73,8 +92,33 @@ const COPY = {
   pricingEdit: "only platform operators can edit the model registry baseline",
   pricingGovernance: "only platform operators can view pricing governance",
   pricingBaselineView: "only platform operators can view the model registry baseline",
+  manageAutoRecharge: "unauthorized to manage auto-recharge for this organization",
   insufficientCredits: "Insufficient credits to start execution",
   noAccount: "No billing account for this organization",
+} as const;
+
+// The engine's OWN validation copy — service code, not a proto option, so a
+// different provenance from COPY above and pinned in its own table: C5 ports
+// the domain exactly, and the console / SDKs surface these strings to the
+// user, which makes the bytes the contract. Sources are the Java
+// `domain/billing` service classes named on each line.
+const DOMAIN_COPY = {
+  // BillingAccountService.setAutoRechargeConfig (validation runs in this order when enabling)
+  autoRechargeNeedsPaymentMethod: "A saved payment method is required to enable auto-recharge. Purchase a credit pack first.",
+  autoRechargeThresholdPositive: "threshold_micros must be positive when enabling auto-recharge",
+  autoRechargeAmountPositive: "recharge_amount_micros must be positive when enabling auto-recharge",
+  autoRechargeCapAtLeastAmount: "monthly_cap_micros must be at least recharge_amount_micros",
+  autoRechargeThresholdNotNegative: "threshold_micros must not be negative",
+  // SetAutoRechargeConfigHandler / GetBillingAccountHandler: the account lookup precedes every other check
+  noAccountFor: (org: string) => `No billing account for ${org}`,
+  // UpsertModelPricingBaselineHandler: variants inherit the base entry's Cursor rate
+  variantDeclaresCursorRate: (variant: string) =>
+    `Variant '${variant}' declares a Cursor Token Rate — variants inherit the base entry's rate; set it on the base pricing block instead.`,
+  // RetireModelPricingBaselineHandler
+  noActiveBaseline: (modelId: string, provider: string, harness: string) =>
+    `No ACTIVE baseline found for ${modelId}/${provider}/${harness} — it may already be retired, or the key is misspelled.`,
+  // DecideModelPricingOverrideHandler
+  noOverride: (overrideId: string) => `No pricing override found with id ${overrideId}`,
 } as const;
 
 // A Class A billing test needs an org (funded or not), an outsider, and — for
@@ -116,15 +160,181 @@ async function operator(): Promise<PrivilegedScope> {
 }
 
 // Funds an org AS the given caller — the operator's scope org is owned by the
-// operator, not by the primary user the target's fundTenancy acts as.
-async function fundAs(as: ConformanceClients, org: string): Promise<void> {
+// operator, not by the primary user the target's fundTenancy acts as. The
+// amount is a parameter because the auto-recharge journey needs a balance
+// SMALL enough for one debit to trip the low-balance signal.
+async function fundAs(as: ConformanceClients, org: string, amountMicros = 100_000_000n): Promise<void> {
   await as.billingCommand.getOrCreateBillingAccount({ orgId: org });
-  await as.billingCommand.adjustCredits({ orgId: org, amountMicros: 100_000_000n, reason: "conformance operator seed", idempotencyKey: uniqueName("op-seed") });
+  await as.billingCommand.adjustCredits({ orgId: org, amountMicros, reason: "conformance operator seed", idempotencyKey: uniqueName("op-seed") });
 }
 
 async function balanceOf(org: string): Promise<bigint> {
   const balance = await clients.billingQuery.getCreditBalance({ orgId: org });
   return balance.availableMicros;
+}
+
+// ---------------------------------------------------------------------------
+// The Stripe half. Outbound, Java dials the run's fake (harness/fake-stripe.ts)
+// and the suite reads what landed there; inbound, the suite IS Stripe — it
+// authors the event payloads below and signs them with the secret the server
+// was booted with. The fake owns Stripe's response shapes; the suite owns the
+// events it posts, so the builders live here beside the arms that use them.
+
+async function post(event: ReturnType<typeof stripeEvent>, options: { secret?: string; timestamp?: number } = {}) {
+  const lane = target.stripeWebhook!();
+  return postStripeWebhook(lane.baseUrl, signedEvent(event, options.secret ?? lane.signingSecret, options.timestamp));
+}
+
+function checkoutCompleted(sessionId: string, type = "checkout.session.completed", id?: string) {
+  return stripeEvent(type, { id: sessionId, object: "checkout.session", payment_intent: `pi_conf_${sessionId}`, customer: null, payment_status: "paid", status: "complete" }, id === undefined ? {} : { id });
+}
+
+// `customer.updated` carries the customer with its invoice settings; Java
+// reads `invoice_settings.default_payment_method` and, when set, retrieves
+// the payment method from the (fake) API before writing it onto the account.
+function customerUpdated(customerId: string, defaultPaymentMethodId: string | null) {
+  return stripeEvent("customer.updated", { id: customerId, object: "customer", invoice_settings: { default_payment_method: defaultPaymentMethodId } });
+}
+
+// `payment_method.attached` carries the payment method itself — Java reads
+// the card from the event, never from the API. `card` defaults to the fake's
+// one card; pass `type: "us_bank_account"` (no card) for the non-card arm.
+function paymentMethodAttached(paymentMethodId: string, customerId: string, options: { type?: string; card?: typeof FAKE_CARD | null } = {}) {
+  const type = options.type ?? "card";
+  const card = options.card === undefined ? (type === "card" ? FAKE_CARD : null) : options.card;
+  return stripeEvent("payment_method.attached", { id: paymentMethodId, object: "payment_method", type, customer: customerId, ...(card === null ? {} : { card }) });
+}
+
+// The two PaymentIntent events Java handles for auto-recharge. Java keys on
+// `metadata.stigmer_recharge_event_id`; without it the event is a checkout's
+// PaymentIntent and is deliberately ignored (the purchase path is settled by
+// checkout.session.completed, not by the intent).
+function paymentIntentSucceeded(paymentIntentId: string, rechargeEventId?: string, id?: string) {
+  return stripeEvent("payment_intent.succeeded", { id: paymentIntentId, object: "payment_intent", status: "succeeded", metadata: rechargeMetadata(rechargeEventId) }, id === undefined ? {} : { id });
+}
+
+function paymentIntentPaymentFailed(paymentIntentId: string, rechargeEventId?: string, message = "Your card was declined.") {
+  return stripeEvent("payment_intent.payment_failed", {
+    id: paymentIntentId,
+    object: "payment_intent",
+    status: "requires_payment_method",
+    metadata: rechargeMetadata(rechargeEventId),
+    last_payment_error: { code: "card_declined", message },
+  });
+}
+
+function rechargeMetadata(rechargeEventId: string | undefined): Record<string, string> {
+  return rechargeEventId === undefined ? {} : { stigmer_recharge_event_id: rechargeEventId };
+}
+
+// Java mints the org's Stripe customer on its first checkout; the fake's
+// captured `POST /v1/customers` answer is the id. Customer creation and use
+// must share one test — the fake forgets its customers on reset().
+async function seedStripeCustomer(as: ConformanceClients, org: string): Promise<string> {
+  await as.billingCommand.createCreditCheckoutSession({ orgId: org, packId: "starter", successUrl: "https://x.test/ok", cancelUrl: "https://x.test/c" });
+  const created = (await control.stripe.requests()).filter((r) => r.method === "POST" && r.path === "/v1/customers").at(-1);
+  const customerId = created?.response.id;
+  if (customerId === undefined) throw new Error(`seedStripeCustomer(${org}): the checkout created no Stripe customer on the fake`);
+  return customerId;
+}
+
+// The only way an account gets a saved payment method from outside Java is
+// the webhook: Stripe tells Java a method was attached. Returns the id the
+// account now shows; the row's own arm asserts the finer contract.
+async function seedDefaultPaymentMethod(as: ConformanceClients, org: string, customerId: string): Promise<string> {
+  const paymentMethodId = uniqueName("pm_conf");
+  const response = await post(paymentMethodAttached(paymentMethodId, customerId));
+  expect(response.status, `payment_method.attached for ${org}: ${response.body}`).toBe(200);
+  const account = await as.billingQuery.getBillingAccount({ orgId: org });
+  expect(account.defaultPaymentMethod?.paymentMethodId, "the attached card is the account's default").toBe(paymentMethodId);
+  return paymentMethodId;
+}
+
+// Java creates the auto-recharge PaymentIntent on a background executor after
+// the debit returns, so the suite polls the fake for the capture rather than
+// reading it once. The timeout message lists what DID land, so a miss says
+// which call Java made instead.
+async function awaitStripeRequest(predicate: (request: CapturedStripeRequest) => boolean, label: string): Promise<CapturedStripeRequest> {
+  const requests = await pollUntil(
+    () => control.stripe.requests(),
+    (captured) => captured.some(predicate),
+    (last, timeoutMs) => `${label}: no matching Stripe request within ${timeoutMs}ms; captured: ${(last ?? []).map((r) => `${r.method} ${r.path}`).join(", ") || "(none)"}`,
+    { timeoutMs: 10_000, pollMs: 100 },
+  );
+  const match = requests.find(predicate);
+  if (match === undefined) throw new Error(`${label}: matched then vanished`);
+  return match;
+}
+
+// The auto-recharge journey, up to the PaymentIntent Java creates.
+//
+// Why these numbers (Java: CreditLedgerService.determineSignal,
+// ExecutionBillingService.reportLlmCallUsage, AutoRechargeService.evaluateAndTrigger):
+//   fund $3 → authorizeExecution takes the $1 default hold → available $2.
+//   One priced call (claude-sonnet-4-6/native is seeded at $3/$15 per
+//   million; 100k in + 10k out ≈ $0.45 before policy markup) debits the hold,
+//   leaving ~$0.55 of headroom. The post-debit signal is
+//   available + headroom ≈ $2.55 ≤ the $5 low-balance default → warning, which
+//   is what makes Java evaluate auto-recharge at all. evaluateAndTrigger then
+//   compares available ($2) — NOT the headroom figure — with the threshold
+//   ($5): below, so it claims a slot on the monthly cap ($20 of $40) and hands
+//   the PaymentIntent create to its executor. `usageStatus: COMPLETE` is what
+//   makes the call billable; without it Java records the call and debits
+//   nothing.
+const RECHARGE = {
+  fundMicros: 3_000_000n,
+  thresholdMicros: 5_000_000n,
+  amountMicros: 20_000_000n,
+  capMicros: 40_000_000n,
+  usage: { inputTokens: 100_000n, outputTokens: 10_000n },
+} as const;
+
+interface ArmedRecharge {
+  readonly org: string;
+  readonly customerId: string;
+  readonly paymentMethodId: string;
+  readonly executionId: string;
+  // What Java sent the fake for the recharge.
+  readonly paymentIntent: CapturedStripeRequest;
+  // The id the webhook must carry back for Java to settle this recharge.
+  readonly rechargeEventId: string;
+}
+
+async function armRecharge(op: PrivilegedScope): Promise<ArmedRecharge> {
+  const org = op.context.org;
+  await fundAs(op.clients, org, RECHARGE.fundMicros);
+  const customerId = await seedStripeCustomer(op.clients, org);
+  const paymentMethodId = await seedDefaultPaymentMethod(op.clients, org, customerId);
+  await op.clients.billingCommand.setAutoRechargeConfig({
+    orgId: org,
+    enabled: true,
+    thresholdMicros: RECHARGE.thresholdMicros,
+    rechargeAmountMicros: RECHARGE.amountMicros,
+    monthlyCapMicros: RECHARGE.capMicros,
+  });
+  const executionId = uniqueName("exec-recharge");
+  const authorized = await op.clients.billingCommand.authorizeExecution({ orgId: org, executionId, harness: "native" });
+  expect(authorized.authorized, "the $3 org is admitted").toBe(true);
+  await debitOnce(op, executionId, 1);
+  const paymentIntent = await awaitStripeRequest((r) => r.method === "POST" && r.path === "/v1/payment_intents", `auto-recharge PaymentIntent for ${org}`);
+  const rechargeEventId = paymentIntent.params["metadata[stigmer_recharge_event_id]"];
+  if (rechargeEventId === undefined) throw new Error(`the recharge PaymentIntent carries no stigmer_recharge_event_id: ${JSON.stringify(paymentIntent.params)}`);
+  return { org, customerId, paymentMethodId, executionId, paymentIntent, rechargeEventId };
+}
+
+// One billable LLM call on an authorized execution — the debit that trips
+// the signal. `sequence` must be unique per execution.
+async function debitOnce(op: PrivilegedScope, executionId: string, sequence: number): Promise<void> {
+  await op.clients.billingCommand.recordLlmCallUsage({
+    executionId,
+    sequence,
+    provider: "anthropic",
+    resolvedModel: "claude-sonnet-4-6",
+    requestedModel: "claude-sonnet-4-6",
+    harness: "native",
+    tokens: RECHARGE.usage,
+    usageStatus: UsageCompletionStatus.COMPLETE,
+  });
 }
 
 describe.skipIf(!ledgerServed)("Billing ledger conformance — accounts, balances and the ledger (billingLedger targets)", () => {
@@ -292,15 +502,21 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — accounts, balance
       expect(entry.outputPriceMicrosPerMillion).toBeGreaterThanOrEqual(0n);
     }
   });
+
+  it("[billing.rpc.set-auto-recharge-config.outsider-permission-denied] an outsider's setAutoRechargeConfig is refused with the proto's copy", async () => {
+    const { org } = await unfundedOrg();
+    const other = await outsider();
+    // Structurally valid and disabled — the refusal must be the authorization's.
+    const denied = await expectGrpcCode(
+      () => other.billingCommand.setAutoRechargeConfig({ orgId: org, enabled: false, thresholdMicros: 0n, rechargeAmountMicros: 0n, monthlyCapMicros: 0n }),
+      Code.PermissionDenied,
+      "outsider setAutoRechargeConfig",
+    );
+    expect(denied.rawMessage).toBe(COPY.manageAutoRecharge);
+  });
 });
 
 describe.skipIf(!ledgerServed)("Billing ledger conformance — the purchase money path against the fake Stripe", () => {
-  let control: CloudFixturesClient;
-
-  beforeAll(() => {
-    control = requireCloudFixtures();
-  });
-
   afterEach(async () => {
     await control.stripe.reset();
   });
@@ -391,17 +607,62 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the purchase mone
     expect(request?.params["return_url"]).toBe("https://x.test/back");
   });
 
-  // The webhook half: the suite is Stripe here, signing events with the
-  // secret the server was booted with and posting them to the lane.
-  async function post(event: ReturnType<typeof stripeEvent>, options: { secret?: string; timestamp?: number } = {}) {
-    const lane = target.stripeWebhook!();
-    return postStripeWebhook(lane.baseUrl, signedEvent(event, options.secret ?? lane.signingSecret, options.timestamp));
-  }
+  it("[billing.rpc.set-auto-recharge-config.persists-and-validates] auto-recharge persists disabled at once, refuses to enable without a saved card, then validates the amounts in the engine's order and persists an enabled configuration", async () => {
+    const { org } = await unfundedOrg();
+    const config = (enabled: boolean, thresholdMicros: bigint, rechargeAmountMicros: bigint, monthlyCapMicros: bigint) => ({ orgId: org, enabled, thresholdMicros, rechargeAmountMicros, monthlyCapMicros });
 
-  function checkoutCompleted(sessionId: string, type = "checkout.session.completed", id?: string) {
-    return stripeEvent(type, { id: sessionId, object: "checkout.session", payment_intent: `pi_conf_${sessionId}`, customer: null, payment_status: "paid", status: "complete" }, id === undefined ? {} : { id });
-  }
+    // Disabled writes the amounts as given and reads back at once.
+    const disabled = await clients.billingCommand.setAutoRechargeConfig(config(false, 7_000_000n, 25_000_000n, 50_000_000n));
+    expect(disabled.autoRecharge?.enabled ?? false).toBe(false);
+    expect(disabled.autoRecharge?.thresholdMicros).toBe(7_000_000n);
+    expect(disabled.autoRecharge?.rechargeAmountMicros).toBe(25_000_000n);
+    expect(disabled.autoRecharge?.monthlyCapMicros).toBe(50_000_000n);
+    const readBack = await clients.billingQuery.getBillingAccount({ orgId: org });
+    expect(readBack.autoRecharge?.thresholdMicros).toBe(7_000_000n);
 
+    // Disabled still rejects a negative amount.
+    const negative = await expectGrpcCode(() => clients.billingCommand.setAutoRechargeConfig(config(false, -1n, 0n, 0n)), Code.InvalidArgument, "disable with a negative threshold");
+    expect(negative.rawMessage).toBe(DOMAIN_COPY.autoRechargeThresholdNotNegative);
+
+    // Enabling needs a saved card BEFORE the amounts are looked at: a bad
+    // amount without a card is refused for the card, not the amount.
+    const noCard = await expectGrpcCode(() => clients.billingCommand.setAutoRechargeConfig(config(true, 0n, 20_000_000n, 40_000_000n)), Code.FailedPrecondition, "enable without a saved card");
+    expect(noCard.rawMessage).toBe(DOMAIN_COPY.autoRechargeNeedsPaymentMethod);
+
+    // With a card, the amount ladder in the engine's order.
+    const customerId = await seedStripeCustomer(clients, org);
+    await seedDefaultPaymentMethod(clients, org, customerId);
+    const ladder: Array<[string, Parameters<typeof clients.billingCommand.setAutoRechargeConfig>[0], string]> = [
+      ["threshold 0", config(true, 0n, 20_000_000n, 40_000_000n), DOMAIN_COPY.autoRechargeThresholdPositive],
+      ["amount 0", config(true, 5_000_000n, 0n, 40_000_000n), DOMAIN_COPY.autoRechargeAmountPositive],
+      ["cap below amount", config(true, 5_000_000n, 20_000_000n, 19_999_999n), DOMAIN_COPY.autoRechargeCapAtLeastAmount],
+    ];
+    for (const [label, input, copy] of ladder) {
+      const refused = await expectGrpcCode(() => clients.billingCommand.setAutoRechargeConfig(input), Code.InvalidArgument, `enable with ${label}`);
+      expect(refused.rawMessage, label).toBe(copy);
+    }
+    const stillDisabled = await clients.billingQuery.getBillingAccount({ orgId: org });
+    expect(stillDisabled.autoRecharge?.enabled ?? false, "a refused enable changes nothing").toBe(false);
+
+    // A cap equal to the amount is the boundary the copy names ("at least").
+    const enabled = await clients.billingCommand.setAutoRechargeConfig(config(true, 5_000_000n, 20_000_000n, 20_000_000n));
+    expect(enabled.autoRecharge?.enabled).toBe(true);
+    expect(enabled.autoRecharge?.thresholdMicros).toBe(5_000_000n);
+    expect(enabled.autoRecharge?.rechargeAmountMicros).toBe(20_000_000n);
+    expect(enabled.autoRecharge?.monthlyCapMicros).toBe(20_000_000n);
+    expect(enabled.autoRecharge?.currentMonthChargedMicros ?? 0n, "enabling claims nothing on the month").toBe(0n);
+    const persisted = await clients.billingQuery.getBillingAccount({ orgId: org });
+    expect(persisted.autoRecharge?.enabled).toBe(true);
+    expect(persisted.autoRecharge?.rechargeAmountMicros).toBe(20_000_000n);
+
+    // Disabling again keeps the amounts it is given (the console's "pause" — the proto's "disabling preserves config").
+    const paused = await clients.billingCommand.setAutoRechargeConfig(config(false, 5_000_000n, 20_000_000n, 20_000_000n));
+    expect(paused.autoRecharge?.enabled ?? false).toBe(false);
+    expect(paused.autoRecharge?.rechargeAmountMicros).toBe(20_000_000n);
+  });
+
+  // The webhook half: the suite is Stripe here (the builders at module scope),
+  // posting the events a purchase produces back to the lane.
   async function purchase(org: string): Promise<{ sessionId: string; creditsMicros: bigint }> {
     const created = await clients.billingCommand.createCreditCheckoutSession({ orgId: org, packId: "starter", successUrl: "https://x.test/ok", cancelUrl: "https://x.test/c" });
     const session = (await control.stripe.requests()).find((r) => r.path === "/v1/checkout/sessions");
@@ -466,6 +727,70 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the purchase mone
     const { org } = await unfundedOrg();
     expect((await post(stripeEvent("invoice.paid", { id: "in_conf_1", object: "invoice" }))).status).toBe(200);
     expect(await balanceOf(org)).toBe(0n);
+  });
+
+  // --- the default-payment-method bookkeeping (ruled PORTED at C5's gate).
+  // Java has no unit test for either handler; these arms are the only proof
+  // on either side.
+
+  it("[billing.stripe.payment-method-attached.sets-default-when-none] payment_method.attached becomes the account's default card only when none is set, tells Stripe so, ignores a second card and a non-card, and does nothing for a customer Java does not know", async () => {
+    const { org } = await unfundedOrg();
+    const customerId = await seedStripeCustomer(clients, org);
+    expect((await clients.billingQuery.getBillingAccount({ orgId: org })).defaultPaymentMethod, "no default before any card").toBeUndefined();
+
+    const first = uniqueName("pm_conf_first");
+    expect((await post(paymentMethodAttached(first, customerId))).status).toBe(200);
+    const account = await clients.billingQuery.getBillingAccount({ orgId: org });
+    expect(account.defaultPaymentMethod?.paymentMethodId).toBe(first);
+    expect(account.defaultPaymentMethod?.brand).toBe(FAKE_CARD.brand);
+    expect(account.defaultPaymentMethod?.last4).toBe(FAKE_CARD.last4);
+    expect(account.defaultPaymentMethod?.expMonth).toBe(FAKE_CARD.exp_month);
+    expect(account.defaultPaymentMethod?.expYear).toBe(FAKE_CARD.exp_year);
+    // Java also makes the card the customer's default ON STRIPE.
+    const customerUpdates = (await control.stripe.requests()).filter((r) => r.method === "POST" && r.path === `/v1/customers/${customerId}`);
+    expect(customerUpdates.map((r) => r.params["invoice_settings[default_payment_method]"])).toEqual([first]);
+
+    // A second card does not displace the first — and Stripe is not told again.
+    const second = uniqueName("pm_conf_second");
+    expect((await post(paymentMethodAttached(second, customerId))).status).toBe(200);
+    expect((await clients.billingQuery.getBillingAccount({ orgId: org })).defaultPaymentMethod?.paymentMethodId).toBe(first);
+    expect((await control.stripe.requests()).filter((r) => r.method === "POST" && r.path === `/v1/customers/${customerId}`)).toHaveLength(1);
+
+    // A non-card method carries no card and is ignored; an unknown customer is a silent 200.
+    const other = await unfundedOrg();
+    const otherCustomer = await seedStripeCustomer(clients, other.org);
+    expect((await post(paymentMethodAttached(uniqueName("pm_conf_bank"), otherCustomer, { type: "us_bank_account" }))).status).toBe(200);
+    expect((await clients.billingQuery.getBillingAccount({ orgId: other.org })).defaultPaymentMethod).toBeUndefined();
+    const unknown = await post(paymentMethodAttached(uniqueName("pm_conf_stray"), "cus_conf_nobody"));
+    expect(unknown.status).toBe(200);
+    expect(unknown.body).toBe("ok");
+  });
+
+  it("[billing.stripe.customer-updated.syncs-default-payment-method] customer.updated with a default payment method makes Java retrieve the card and record it; with none it clears the account's default; an unknown customer is a silent 200", async () => {
+    const { org } = await unfundedOrg();
+    const customerId = await seedStripeCustomer(clients, org);
+
+    const paymentMethodId = uniqueName("pm_conf_sync");
+    expect((await post(customerUpdated(customerId, paymentMethodId))).status).toBe(200);
+    const retrieved = (await control.stripe.requests()).find((r) => r.method === "GET" && r.path === `/v1/payment_methods/${paymentMethodId}`);
+    expect(retrieved, "Java retrieves the method Stripe named — the card details are not on the event").toBeDefined();
+    const synced = await clients.billingQuery.getBillingAccount({ orgId: org });
+    expect(synced.defaultPaymentMethod?.paymentMethodId).toBe(paymentMethodId);
+    expect(synced.defaultPaymentMethod?.brand).toBe(FAKE_CARD.brand);
+    expect(synced.defaultPaymentMethod?.last4).toBe(FAKE_CARD.last4);
+    expect(synced.defaultPaymentMethod?.expMonth).toBe(FAKE_CARD.exp_month);
+    expect(synced.defaultPaymentMethod?.expYear).toBe(FAKE_CARD.exp_year);
+
+    // Stripe reports the default removed → the account's default is cleared.
+    expect((await post(customerUpdated(customerId, null))).status).toBe(200);
+    expect((await clients.billingQuery.getBillingAccount({ orgId: org })).defaultPaymentMethod, "a cleared default is gone, not zeroed").toBeUndefined();
+
+    // A customer Java never minted: 200, nothing looked up.
+    const before = (await control.stripe.requests()).length;
+    const unknown = await post(customerUpdated("cus_conf_nobody", uniqueName("pm_conf_stray")));
+    expect(unknown.status).toBe(200);
+    expect(unknown.body).toBe("ok");
+    expect((await control.stripe.requests()).length, "no payment-method retrieve for an unknown customer").toBe(before);
   });
 
   it("[billing.stripe.signature.wrong-secret-400-invalid-signature] [billing.stripe.signature.tampered-payload-400] [billing.stripe.signature.stale-timestamp-400] [billing.stripe.signature.missing-header-400] bad signatures are refused 400 and grant nothing", async () => {
@@ -627,6 +952,234 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the engine and pr
     });
     expect(report.llmCallCount).toBe(2);
     expect(report.executionCount).toBe(1);
+  });
+
+  // --- the pricing-governance lanes (ruled PORTED at C5's gate: operator
+  // tooling with a console). Baselines are PLATFORM-GLOBAL state, not org
+  // state: every arm keys its baseline on a run-unique model id and retires it
+  // on cleanup, so nothing it creates outlives the test or reaches another
+  // file's registry assertions.
+
+  // A structurally valid baseline for a run-unique model. The registry's
+  // composed catalog picks it up on upsert; retire removes it again.
+  function conformanceBaseline(modelId: string, inputMicros = 1_000_000n, outputMicros = 5_000_000n) {
+    return {
+      modelId,
+      provider: "anthropic",
+      harness: "native",
+      displayName: `Conformance ${modelId}`,
+      speedTier: "balanced",
+      costTier: "standard",
+      pricing: { inputPriceMicrosPerMillion: inputMicros, outputPriceMicrosPerMillion: outputMicros },
+    };
+  }
+
+  async function upsertBaseline(op: PrivilegedScope, modelId: string, inputMicros?: bigint, outputMicros?: bigint) {
+    const revision = await op.clients.billingCommand.upsertModelPricingBaseline({ baseline: conformanceBaseline(modelId, inputMicros, outputMicros), revisionNote: "conformance" });
+    fixtures.defer(() => op.clients.billingCommand.retireModelPricingBaseline({ modelId, provider: "anthropic", harness: "native" }).then(() => undefined, () => undefined));
+    return revision;
+  }
+
+  it("[billing.rpc.upsert-model-pricing-baseline.round-trips-through-list] an operator's upsert is listed ACTIVE with the server's stamps, a second upsert of the same key supersedes the first, and a variant carrying a Cursor rate is refused", async () => {
+    const op = await operator();
+    const modelId = uniqueName("conf-model");
+
+    const first = await upsertBaseline(op, modelId, 1_000_000n, 5_000_000n);
+    expect(first.baselineId, "the server mints the baseline id").not.toBe("");
+    expect(first.status).toBe(ModelPricingBaselineStatus.pricing_baseline_active);
+    expect(first.supersedesBaselineId, "a fresh key supersedes nothing").toBe("");
+    expect(first.decidedBy, "the deciding operator is stamped").not.toBe("");
+    expect(first.pricing?.effectiveAt, "effective_at is stamped by the server").toBeDefined();
+    expect(first.pricing?.inputPriceMicrosPerMillion).toBe(1_000_000n);
+
+    const active = await op.clients.billingQuery.listModelPricingBaselines({});
+    const listed = active.baselines.find((b) => b.modelId === modelId);
+    expect(listed?.baselineId).toBe(first.baselineId);
+    expect(listed?.pricing?.outputPriceMicrosPerMillion).toBe(5_000_000n);
+    for (const baseline of active.baselines) expect(baseline.status, `${baseline.modelId} in the ACTIVE list`).toBe(ModelPricingBaselineStatus.pricing_baseline_active);
+
+    // The same key again is a revision: the prior document is superseded and chained, not duplicated.
+    const second = await op.clients.billingCommand.upsertModelPricingBaseline({ baseline: conformanceBaseline(modelId, 2_000_000n, 5_000_000n), revisionNote: "conformance revision" });
+    expect(second.baselineId).not.toBe(first.baselineId);
+    expect(second.supersedesBaselineId).toBe(first.baselineId);
+    const activeNow = (await op.clients.billingQuery.listModelPricingBaselines({})).baselines.filter((b) => b.modelId === modelId);
+    expect(activeNow.map((b) => b.baselineId), "exactly one ACTIVE document per key").toEqual([second.baselineId]);
+    const history = (await op.clients.billingQuery.listModelPricingBaselines({ includeHistory: true })).baselines.filter((b) => b.modelId === modelId);
+    expect(history.map((b) => [b.baselineId, b.status]), "history lists the ACTIVE revision first, then the superseded one").toEqual([
+      [second.baselineId, ModelPricingBaselineStatus.pricing_baseline_active],
+      [first.baselineId, ModelPricingBaselineStatus.pricing_baseline_superseded],
+    ]);
+
+    // Variants inherit the base entry's Cursor rate; declaring one on a variant is the handler's own INVALID_ARGUMENT.
+    const refused = await expectGrpcCode(
+      () =>
+        op.clients.billingCommand.upsertModelPricingBaseline({
+          baseline: {
+            ...conformanceBaseline(modelId),
+            pricingVariants: { thinking: { pricing: { inputPriceMicrosPerMillion: 1n, outputPriceMicrosPerMillion: 1n, cursorTokenRateMicrosPerMillion: 7n } } },
+          },
+        }),
+      Code.InvalidArgument,
+      "variant with a Cursor token rate",
+    );
+    expect(refused.rawMessage).toBe(DOMAIN_COPY.variantDeclaresCursorRate("thinking"));
+  });
+
+  it("[billing.rpc.retire-model-pricing-baseline.unknown-not-found] retiring an unknown key is NOT_FOUND with the handler's copy; retiring a known one removes it from the ACTIVE list, and retiring it again is NOT_FOUND", async () => {
+    const op = await operator();
+    const unknown = uniqueName("conf-never-upserted");
+    const missing = await expectGrpcCode(
+      () => op.clients.billingCommand.retireModelPricingBaseline({ modelId: unknown, provider: "anthropic", harness: "native" }),
+      Code.NotFound,
+      "retire an unknown key",
+    );
+    expect(missing.rawMessage).toBe(DOMAIN_COPY.noActiveBaseline(unknown, "anthropic", "native"));
+
+    const modelId = uniqueName("conf-model");
+    const upserted = await upsertBaseline(op, modelId);
+    const retired = await op.clients.billingCommand.retireModelPricingBaseline({ modelId, provider: "anthropic", harness: "native", revisionNote: "conformance retire" });
+    expect(retired.baselineId).toBe(upserted.baselineId);
+    expect(retired.status).toBe(ModelPricingBaselineStatus.pricing_baseline_retired);
+    const active = await op.clients.billingQuery.listModelPricingBaselines({});
+    expect(active.baselines.some((b) => b.modelId === modelId), "a retired key is not ACTIVE").toBe(false);
+    const history = await op.clients.billingQuery.listModelPricingBaselines({ includeHistory: true });
+    expect(history.baselines.find((b) => b.baselineId === upserted.baselineId)?.status).toBe(ModelPricingBaselineStatus.pricing_baseline_retired);
+
+    const again = await expectGrpcCode(
+      () => op.clients.billingCommand.retireModelPricingBaseline({ modelId, provider: "anthropic", harness: "native" }),
+      Code.NotFound,
+      "retire an already-retired key",
+    );
+    expect(again.rawMessage).toBe(DOMAIN_COPY.noActiveBaseline(modelId, "anthropic", "native"));
+  });
+
+  it("[billing.rpc.decide-model-pricing-override.unknown-not-found] deciding an override nobody proposed is NOT_FOUND with the handler's copy", async () => {
+    // Only the provider-reconciliation corrector proposes overrides, so the
+    // already-decided FAILED_PRECONDITION half of this lane is a `unit` row
+    // (billing.rpc.decide-model-pricing-override.already-decided-failed-precondition).
+    const op = await operator();
+    const overrideId = uniqueName("ovr-conf");
+    for (const approve of [true, false]) {
+      const missing = await expectGrpcCode(
+        () => op.clients.billingCommand.decideModelPricingOverride({ overrideId, approve, decisionNote: "conformance" }),
+        Code.NotFound,
+        `decide unknown override (approve=${approve})`,
+      );
+      expect(missing.rawMessage).toBe(DOMAIN_COPY.noOverride(overrideId));
+    }
+  });
+
+  it("[billing.rpc.get-model-pricing-governance.returns-queue] the governance view lists one entry per effective-registry model, sorted, with baseline and effective rates equal while no override is active, and an empty proposal queue on a fresh environment", async () => {
+    const op = await operator();
+    const modelId = uniqueName("conf-model");
+    await upsertBaseline(op, modelId, 3_000_000n, 9_000_000n);
+
+    const governance = await op.clients.billingQuery.getModelPricingGovernance({});
+    expect(governance.entries.length, "the seeded registry is never empty").toBeGreaterThan(0);
+    expect(governance.pendingOverrides, "nothing proposes overrides on a fresh environment but the reconciliation corrector").toEqual([]);
+
+    const keys = governance.entries.map((e) => `${e.harness}\u0000${e.provider}\u0000${e.modelId}`);
+    expect(keys, "sorted by harness, provider, model").toEqual([...keys].sort());
+    for (const entry of governance.entries) {
+      expect(entry.modelId).not.toBe("");
+      expect(entry.variant, "the view is the base variant only").toBe("");
+      if (entry.activeOverrides.length === 0) {
+        expect(entry.effectiveInputMicrosPerMillion, `${entry.modelId} input`).toBe(entry.baselineInputMicrosPerMillion);
+        expect(entry.effectiveOutputMicrosPerMillion, `${entry.modelId} output`).toBe(entry.baselineOutputMicrosPerMillion);
+      }
+    }
+
+    const mine = governance.entries.find((e) => e.modelId === modelId && e.harness === "native");
+    expect(mine, "the upserted baseline is an entry").toBeDefined();
+    expect(mine?.baselineInputMicrosPerMillion).toBe(3_000_000n);
+    expect(mine?.effectiveOutputMicrosPerMillion).toBe(9_000_000n);
+    expect(mine?.activeOverrides).toEqual([]);
+  });
+});
+
+describe.skipIf(!ledgerServed)("Billing ledger conformance — auto-recharge, the operator-driven money path against the fake Stripe", () => {
+  afterEach(async () => {
+    await control.stripe.reset();
+  });
+
+  it("[billing.stripe.outbound.idempotency-key-on-recharge-payment-intent] [billing.stripe.payment-intent-succeeded.recharge-provisions-credits] a debit past the threshold makes Java create the recharge PaymentIntent under its event's idempotency key and claim the month; payment_intent.succeeded then grants the credits exactly once, and a succeeded intent without the recharge metadata grants nothing", async () => {
+    const op = await operator();
+    const { org, customerId, paymentMethodId, paymentIntent, rechargeEventId } = await armRecharge(op);
+    const paymentIntentId = paymentIntent.response.id ?? "";
+    expect(paymentIntentId).toMatch(/^pi_conf_/);
+
+    // What Java sent Stripe: an off-session confirmed charge on the saved
+    // card, keyed so a retry can never charge twice (a DD-012 carve-out —
+    // the key must be byte-identical across editions).
+    expect(paymentIntent.idempotencyKey).toBe(`auto_recharge_${rechargeEventId}`);
+    expect(paymentIntent.params["amount"], "Stripe wants cents; the engine keeps micros").toBe(String(RECHARGE.amountMicros / 10_000n));
+    expect(paymentIntent.params["currency"]).toBe("usd");
+    expect(paymentIntent.params["customer"]).toBe(customerId);
+    expect(paymentIntent.params["payment_method"]).toBe(paymentMethodId);
+    expect(paymentIntent.params["off_session"]).toBe("true");
+    expect(paymentIntent.params["confirm"]).toBe("true");
+    expect(paymentIntent.params["metadata[stigmer_org_id]"]).toBe(org);
+    expect(paymentIntent.params["metadata[stigmer_credits_micros]"]).toBe(String(RECHARGE.amountMicros));
+
+    // The month's slot is claimed at trigger time, before any money moves.
+    const claimed = await op.clients.billingQuery.getBillingAccount({ orgId: org });
+    expect(claimed.autoRecharge?.currentMonthChargedMicros).toBe(RECHARGE.amountMicros);
+    const before = (await op.clients.billingQuery.getCreditBalance({ orgId: org })).availableMicros;
+
+    // A succeeded intent that is not a recharge (a checkout's, say) is ignored;
+    // one naming a recharge Java never created is a silent 200 too.
+    expect((await post(paymentIntentSucceeded(paymentIntentId))).status).toBe(200);
+    expect((await post(paymentIntentSucceeded(paymentIntentId, uniqueName("evt-nobody-created")))).status).toBe(200);
+    expect((await op.clients.billingQuery.getCreditBalance({ orgId: org })).availableMicros, "nothing granted without the recharge's own id").toBe(before);
+
+    // The real one: credits land on the ledger under the recharge's key.
+    const settled = paymentIntentSucceeded(paymentIntentId, rechargeEventId);
+    const response = await post(settled);
+    expect(response.status).toBe(200);
+    expect(response.body).toBe("ok");
+    const after = await op.clients.billingQuery.getCreditBalance({ orgId: org });
+    expect(after.availableMicros - before).toBe(RECHARGE.amountMicros);
+    const ledger = await op.clients.billingQuery.getCreditLedger({ orgId: org });
+    const grant = ledger.entries.find((entry) => entry.idempotencyKey === `auto_recharge_${rechargeEventId}`);
+    expect(grant, "the grant carries the recharge event's idempotency key").toBeDefined();
+    expect(grant?.type).toBe(LedgerEntryType.auto_recharge_credit);
+    expect(grant?.amountMicros).toBe(RECHARGE.amountMicros);
+
+    // Once: the same event replayed, and a fresh event for the same recharge, grant nothing more.
+    expect((await post(settled)).status).toBe(200);
+    expect((await post(paymentIntentSucceeded(paymentIntentId, rechargeEventId))).status).toBe(200);
+    expect((await op.clients.billingQuery.getCreditBalance({ orgId: org })).availableMicros).toBe(after.availableMicros);
+    expect((await op.clients.billingQuery.getCreditLedger({ orgId: org })).entries.filter((e) => e.type === LedgerEntryType.auto_recharge_credit)).toHaveLength(1);
+  });
+
+  it("[billing.stripe.payment-intent-failed.recharge-compensated] payment_intent.payment_failed releases the month's slot and grants nothing, and the next debit past the threshold is free to trigger a fresh recharge", async () => {
+    const op = await operator();
+    const { org, executionId, paymentIntent, rechargeEventId } = await armRecharge(op);
+    const paymentIntentId = paymentIntent.response.id ?? "";
+    expect((await op.clients.billingQuery.getBillingAccount({ orgId: org })).autoRecharge?.currentMonthChargedMicros).toBe(RECHARGE.amountMicros);
+    const before = (await op.clients.billingQuery.getCreditBalance({ orgId: org })).availableMicros;
+
+    const response = await post(paymentIntentPaymentFailed(paymentIntentId, rechargeEventId, "Your card was declined."));
+    expect(response.status).toBe(200);
+    expect(response.body).toBe("ok");
+    const compensated = await op.clients.billingQuery.getBillingAccount({ orgId: org });
+    expect(compensated.autoRecharge?.currentMonthChargedMicros ?? 0n, "the failed charge gives its slot back").toBe(0n);
+    expect((await op.clients.billingQuery.getCreditBalance({ orgId: org })).availableMicros).toBe(before);
+    expect((await op.clients.billingQuery.getCreditLedger({ orgId: org })).entries.some((e) => e.type === LedgerEntryType.auto_recharge_credit), "no grant for a failed charge").toBe(false);
+
+    // The release is real, not cosmetic: with the failed event no longer
+    // pending, the next low-balance debit triggers a NEW recharge under a new
+    // event id and claims the month again.
+    await debitOnce(op, executionId, 2);
+    const second = await awaitStripeRequest(
+      (r) => r.method === "POST" && r.path === "/v1/payment_intents" && r.idempotencyKey !== paymentIntent.idempotencyKey,
+      `second auto-recharge PaymentIntent for ${org}`,
+    );
+    const secondEventId = second.params["metadata[stigmer_recharge_event_id]"];
+    expect(secondEventId).toBeDefined();
+    expect(secondEventId).not.toBe(rechargeEventId);
+    expect(second.idempotencyKey).toBe(`auto_recharge_${secondEventId}`);
+    expect((await op.clients.billingQuery.getBillingAccount({ orgId: org })).autoRecharge?.currentMonthChargedMicros).toBe(RECHARGE.amountMicros);
   });
 });
 
