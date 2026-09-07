@@ -1124,6 +1124,7 @@ rows:
     needs: [unfunded-org, fake-stripe]
     note: >-
       RULED PORTED 2026-09-06 (C5 gate, Q1) with auto-recharge, which it serves. Java carries NO unit test for this handler (StripeWebhookServiceTest covers the checkout events only) — this arm is the only proof on either side. Java reads the card's exp_month/exp_year unguarded; the fake's card carries them (FAKE_CARD).
+      FILED 2026-09-07 stigmer-cloud#666: Java claims the dedup row BEFORE this handler runs, so a handler failure (the unguarded expiry read is the realistic one) answers 500 and every Stripe redelivery is skipped as a duplicate — this lane has no reconciliation sweep, so the loss is permanent; C5's S2 gate rules record-then-process vs a retryable dedup. The arm's assertions hold under either design.
   - id: billing.stripe.payment-method-attached.sets-default-when-none
     surface: billing
     lane: >-
@@ -1141,6 +1142,7 @@ rows:
     needs: [unfunded-org, fake-stripe]
     note: >-
       RULED PORTED 2026-09-06 (C5 gate, Q1) with auto-recharge, which it serves. Java carries NO unit test for this handler — this arm is the only proof on either side. It is also how every auto-recharge arm gives its org a saved card.
+      FILED 2026-09-07 stigmer-cloud#666: the same dedup-before-handler exposure as customer.updated (the expiry read at StripeWebhookService.java:354 is unguarded here too), the same missing sweep; C5's S2 gate rules on both lanes together. The arm's assertions hold under either design.
   - id: billing.stripe.payment-intent-succeeded.recharge-provisions-credits
     surface: billing
     lane: >-
@@ -1158,6 +1160,7 @@ rows:
     needs: [unfunded-org, fake-stripe]
     note: >-
       RULED PORTED 2026-09-06 (C5 gate, Q1): auto-recharge is a live product surface. The arm drives the whole journey as the platform operator — the trigger is synchronous inside recordLlmCallUsage when the post-debit signal is low_balance_warning, so the operator's engine RPCs are the only black-box way to reach it; the PaymentIntent lands on the fake from Java's background executor and the arm polls for it. Java's webhook handler has no unit test of its own; AutoRechargeServiceTest covers provisionRechargeCredits.
+      FILED 2026-09-07 stigmer-cloud#667: because the trigger runs only behind that low_balance_warning gate — whose threshold is the fixed $5 low_balance_threshold_micros no RPC sets — a user threshold above $5 is silently capped at $5, contrary to threshold_micros's proto contract ("when available balance drops below this amount"). This arm uses T = $5 and stays green under either behavior. The composition's S1 engine already carries the same gate (execution-billing-engine.ts:655-661), latent until S2 implements the trigger; C5's S2 gate rules parity vs contract.
   - id: billing.stripe.payment-intent-failed.recharge-compensated
     surface: billing
     lane: >-
