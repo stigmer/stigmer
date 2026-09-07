@@ -729,6 +729,70 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the purchase mone
     expect(await balanceOf(org)).toBe(0n);
   });
 
+  // --- the default-payment-method bookkeeping (ruled PORTED at C5's gate).
+  // Java has no unit test for either handler; these arms are the only proof
+  // on either side.
+
+  it("[billing.stripe.payment-method-attached.sets-default-when-none] payment_method.attached becomes the account's default card only when none is set, tells Stripe so, ignores a second card and a non-card, and does nothing for a customer Java does not know", async () => {
+    const { org } = await unfundedOrg();
+    const customerId = await seedStripeCustomer(clients, org);
+    expect((await clients.billingQuery.getBillingAccount({ orgId: org })).defaultPaymentMethod, "no default before any card").toBeUndefined();
+
+    const first = uniqueName("pm_conf_first");
+    expect((await post(paymentMethodAttached(first, customerId))).status).toBe(200);
+    const account = await clients.billingQuery.getBillingAccount({ orgId: org });
+    expect(account.defaultPaymentMethod?.paymentMethodId).toBe(first);
+    expect(account.defaultPaymentMethod?.brand).toBe(FAKE_CARD.brand);
+    expect(account.defaultPaymentMethod?.last4).toBe(FAKE_CARD.last4);
+    expect(account.defaultPaymentMethod?.expMonth).toBe(FAKE_CARD.exp_month);
+    expect(account.defaultPaymentMethod?.expYear).toBe(FAKE_CARD.exp_year);
+    // Java also makes the card the customer's default ON STRIPE.
+    const customerUpdates = (await control.stripe.requests()).filter((r) => r.method === "POST" && r.path === `/v1/customers/${customerId}`);
+    expect(customerUpdates.map((r) => r.params["invoice_settings[default_payment_method]"])).toEqual([first]);
+
+    // A second card does not displace the first — and Stripe is not told again.
+    const second = uniqueName("pm_conf_second");
+    expect((await post(paymentMethodAttached(second, customerId))).status).toBe(200);
+    expect((await clients.billingQuery.getBillingAccount({ orgId: org })).defaultPaymentMethod?.paymentMethodId).toBe(first);
+    expect((await control.stripe.requests()).filter((r) => r.method === "POST" && r.path === `/v1/customers/${customerId}`)).toHaveLength(1);
+
+    // A non-card method carries no card and is ignored; an unknown customer is a silent 200.
+    const other = await unfundedOrg();
+    const otherCustomer = await seedStripeCustomer(clients, other.org);
+    expect((await post(paymentMethodAttached(uniqueName("pm_conf_bank"), otherCustomer, { type: "us_bank_account" }))).status).toBe(200);
+    expect((await clients.billingQuery.getBillingAccount({ orgId: other.org })).defaultPaymentMethod).toBeUndefined();
+    const unknown = await post(paymentMethodAttached(uniqueName("pm_conf_stray"), "cus_conf_nobody"));
+    expect(unknown.status).toBe(200);
+    expect(unknown.body).toBe("ok");
+  });
+
+  it("[billing.stripe.customer-updated.syncs-default-payment-method] customer.updated with a default payment method makes Java retrieve the card and record it; with none it clears the account's default; an unknown customer is a silent 200", async () => {
+    const { org } = await unfundedOrg();
+    const customerId = await seedStripeCustomer(clients, org);
+
+    const paymentMethodId = uniqueName("pm_conf_sync");
+    expect((await post(customerUpdated(customerId, paymentMethodId))).status).toBe(200);
+    const retrieved = (await control.stripe.requests()).find((r) => r.method === "GET" && r.path === `/v1/payment_methods/${paymentMethodId}`);
+    expect(retrieved, "Java retrieves the method Stripe named — the card details are not on the event").toBeDefined();
+    const synced = await clients.billingQuery.getBillingAccount({ orgId: org });
+    expect(synced.defaultPaymentMethod?.paymentMethodId).toBe(paymentMethodId);
+    expect(synced.defaultPaymentMethod?.brand).toBe(FAKE_CARD.brand);
+    expect(synced.defaultPaymentMethod?.last4).toBe(FAKE_CARD.last4);
+    expect(synced.defaultPaymentMethod?.expMonth).toBe(FAKE_CARD.exp_month);
+    expect(synced.defaultPaymentMethod?.expYear).toBe(FAKE_CARD.exp_year);
+
+    // Stripe reports the default removed → the account's default is cleared.
+    expect((await post(customerUpdated(customerId, null))).status).toBe(200);
+    expect((await clients.billingQuery.getBillingAccount({ orgId: org })).defaultPaymentMethod, "a cleared default is gone, not zeroed").toBeUndefined();
+
+    // A customer Java never minted: 200, nothing looked up.
+    const before = (await control.stripe.requests()).length;
+    const unknown = await post(customerUpdated("cus_conf_nobody", uniqueName("pm_conf_stray")));
+    expect(unknown.status).toBe(200);
+    expect(unknown.body).toBe("ok");
+    expect((await control.stripe.requests()).length, "no payment-method retrieve for an unknown customer").toBe(before);
+  });
+
   it("[billing.stripe.signature.wrong-secret-400-invalid-signature] [billing.stripe.signature.tampered-payload-400] [billing.stripe.signature.stale-timestamp-400] [billing.stripe.signature.missing-header-400] bad signatures are refused 400 and grant nothing", async () => {
     const { org } = await unfundedOrg();
     const { sessionId } = await purchase(org);
@@ -1030,6 +1094,92 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the engine and pr
     expect(mine?.baselineInputMicrosPerMillion).toBe(3_000_000n);
     expect(mine?.effectiveOutputMicrosPerMillion).toBe(9_000_000n);
     expect(mine?.activeOverrides).toEqual([]);
+  });
+});
+
+describe.skipIf(!ledgerServed)("Billing ledger conformance — auto-recharge, the operator-driven money path against the fake Stripe", () => {
+  afterEach(async () => {
+    await control.stripe.reset();
+  });
+
+  it("[billing.stripe.outbound.idempotency-key-on-recharge-payment-intent] [billing.stripe.payment-intent-succeeded.recharge-provisions-credits] a debit past the threshold makes Java create the recharge PaymentIntent under its event's idempotency key and claim the month; payment_intent.succeeded then grants the credits exactly once, and a succeeded intent without the recharge metadata grants nothing", async () => {
+    const op = await operator();
+    const { org, customerId, paymentMethodId, paymentIntent, rechargeEventId } = await armRecharge(op);
+    const paymentIntentId = paymentIntent.response.id ?? "";
+    expect(paymentIntentId).toMatch(/^pi_conf_/);
+
+    // What Java sent Stripe: an off-session confirmed charge on the saved
+    // card, keyed so a retry can never charge twice (a DD-012 carve-out —
+    // the key must be byte-identical across editions).
+    expect(paymentIntent.idempotencyKey).toBe(`auto_recharge_${rechargeEventId}`);
+    expect(paymentIntent.params["amount"], "Stripe wants cents; the engine keeps micros").toBe(String(RECHARGE.amountMicros / 10_000n));
+    expect(paymentIntent.params["currency"]).toBe("usd");
+    expect(paymentIntent.params["customer"]).toBe(customerId);
+    expect(paymentIntent.params["payment_method"]).toBe(paymentMethodId);
+    expect(paymentIntent.params["off_session"]).toBe("true");
+    expect(paymentIntent.params["confirm"]).toBe("true");
+    expect(paymentIntent.params["metadata[stigmer_org_id]"]).toBe(org);
+    expect(paymentIntent.params["metadata[stigmer_credits_micros]"]).toBe(String(RECHARGE.amountMicros));
+
+    // The month's slot is claimed at trigger time, before any money moves.
+    const claimed = await op.clients.billingQuery.getBillingAccount({ orgId: org });
+    expect(claimed.autoRecharge?.currentMonthChargedMicros).toBe(RECHARGE.amountMicros);
+    const before = (await op.clients.billingQuery.getCreditBalance({ orgId: org })).availableMicros;
+
+    // A succeeded intent that is not a recharge (a checkout's, say) is ignored;
+    // one naming a recharge Java never created is a silent 200 too.
+    expect((await post(paymentIntentSucceeded(paymentIntentId))).status).toBe(200);
+    expect((await post(paymentIntentSucceeded(paymentIntentId, uniqueName("evt-nobody-created")))).status).toBe(200);
+    expect((await op.clients.billingQuery.getCreditBalance({ orgId: org })).availableMicros, "nothing granted without the recharge's own id").toBe(before);
+
+    // The real one: credits land on the ledger under the recharge's key.
+    const settled = paymentIntentSucceeded(paymentIntentId, rechargeEventId);
+    const response = await post(settled);
+    expect(response.status).toBe(200);
+    expect(response.body).toBe("ok");
+    const after = await op.clients.billingQuery.getCreditBalance({ orgId: org });
+    expect(after.availableMicros - before).toBe(RECHARGE.amountMicros);
+    const ledger = await op.clients.billingQuery.getCreditLedger({ orgId: org });
+    const grant = ledger.entries.find((entry) => entry.idempotencyKey === `auto_recharge_${rechargeEventId}`);
+    expect(grant, "the grant carries the recharge event's idempotency key").toBeDefined();
+    expect(grant?.type).toBe(LedgerEntryType.auto_recharge_credit);
+    expect(grant?.amountMicros).toBe(RECHARGE.amountMicros);
+
+    // Once: the same event replayed, and a fresh event for the same recharge, grant nothing more.
+    expect((await post(settled)).status).toBe(200);
+    expect((await post(paymentIntentSucceeded(paymentIntentId, rechargeEventId))).status).toBe(200);
+    expect((await op.clients.billingQuery.getCreditBalance({ orgId: org })).availableMicros).toBe(after.availableMicros);
+    expect((await op.clients.billingQuery.getCreditLedger({ orgId: org })).entries.filter((e) => e.type === LedgerEntryType.auto_recharge_credit)).toHaveLength(1);
+  });
+
+  it("[billing.stripe.payment-intent-failed.recharge-compensated] payment_intent.payment_failed releases the month's slot and grants nothing, and the next debit past the threshold is free to trigger a fresh recharge", async () => {
+    const op = await operator();
+    const { org, executionId, paymentIntent, rechargeEventId } = await armRecharge(op);
+    const paymentIntentId = paymentIntent.response.id ?? "";
+    expect((await op.clients.billingQuery.getBillingAccount({ orgId: org })).autoRecharge?.currentMonthChargedMicros).toBe(RECHARGE.amountMicros);
+    const before = (await op.clients.billingQuery.getCreditBalance({ orgId: org })).availableMicros;
+
+    const response = await post(paymentIntentPaymentFailed(paymentIntentId, rechargeEventId, "Your card was declined."));
+    expect(response.status).toBe(200);
+    expect(response.body).toBe("ok");
+    const compensated = await op.clients.billingQuery.getBillingAccount({ orgId: org });
+    expect(compensated.autoRecharge?.currentMonthChargedMicros ?? 0n, "the failed charge gives its slot back").toBe(0n);
+    expect((await op.clients.billingQuery.getCreditBalance({ orgId: org })).availableMicros).toBe(before);
+    expect((await op.clients.billingQuery.getCreditLedger({ orgId: org })).entries.some((e) => e.type === LedgerEntryType.auto_recharge_credit), "no grant for a failed charge").toBe(false);
+
+    // The release is real, not cosmetic: with the failed event no longer
+    // pending, the next low-balance debit triggers a NEW recharge under a new
+    // event id and claims the month again.
+    await debitOnce(op, executionId, 2);
+    const second = await awaitStripeRequest(
+      (r) => r.method === "POST" && r.path === "/v1/payment_intents" && r.idempotencyKey !== paymentIntent.idempotencyKey,
+      `second auto-recharge PaymentIntent for ${org}`,
+    );
+    const secondEventId = second.params["metadata[stigmer_recharge_event_id]"];
+    expect(secondEventId).toBeDefined();
+    expect(secondEventId).not.toBe(rechargeEventId);
+    expect(second.idempotencyKey).toBe(`auto_recharge_${secondEventId}`);
+    expect((await op.clients.billingQuery.getBillingAccount({ orgId: org })).autoRecharge?.currentMonthChargedMicros).toBe(RECHARGE.amountMicros);
   });
 });
 
