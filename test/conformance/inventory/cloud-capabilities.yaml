@@ -1206,7 +1206,7 @@ rows:
     lane: >-
       worker
     behavior: >-
-      The billing workers own exactly these Temporal schedule ids — reservation-expiry, grant-expiry, billing-usage-repricing, billing-reconciliation, billing-provider-reconciliation-anthropic, billing-provider-reconciliation-cursor — on queues reservation_expiry, grant_expiry, usage_repricing, billing_reconciliation, provider_reconciliation.
+      The billing workers own exactly these Temporal schedule ids — reservation-expiry, grant-expiry, billing-usage-repricing, billing-reconciliation, billing-provider-reconciliation-anthropic, billing-provider-reconciliation-cursor — and the byte-pinned workflow types billing/grant-expiry, billing/reservation-expiry, billing/reconciliation, billing/usage-repricing, billing/provider-reconciliation. Java ran them on five queues (reservation_expiry, grant_expiry, usage_repricing, billing_reconciliation, provider_reconciliation); the composition runs them on ONE composition-own queue, cloud-billing (C5 ruling S3-Q1, 2026-09-08) — the queue is server vocabulary, never a wire artifact.
     java_source: >-
       domain/billing/temporal/*/‹Starter›.java; resources application-temporal.yaml:64-67
     java_test: >-
@@ -1217,7 +1217,7 @@ rows:
     caller: none
     needs: [none]
     note: >-
-      C5 adopts the ids by name (DD-012); the composition's schedule reconciliation unit arms pin them. The conformance harness disables reconciliation and reservation-expiry on the hermetic launcher.
+      C5 adopts the ids (and types) by name (DD-012; landed 2026-09-08 in stigmer-cloud#680 and its stacked PR-B — `billing/workers/model.ts` is the list of record, pinned by the bundle proof). The Java integration harness disables reconciliation and reservation-expiry on the hermetic launcher.
   - id: billing.worker.reservation-expiry.releases-stale-holds
     surface: billing
     lane: >-
@@ -1268,7 +1268,7 @@ rows:
     lane: >-
       worker
     behavior: >-
-      The billing reconciliation sweep compares ledger sums to account balances and reports drift.
+      The billing reconciliation sweep is the money-IN backstop: a PENDING credit purchase older than the stale threshold is settled from its Stripe Checkout Session (complete+paid grants under the webhook's own key, expired marks expired, open is left; one with no session is marked failed past the orphan threshold), and a PENDING auto-recharge event is settled from its PaymentIntent or re-driven under its original idempotency key (compensated past the 20 h ceiling or without a saved card). Corrected 2026-09-08 (C5 S3): the earlier text described a ledger-vs-balance drift check Java never had — that instrument is C5 S4's balance reconciliation in the M1 tool.
     java_source: >-
       domain/billing/temporal/reconciliation/*.java
     java_test: >-
@@ -2567,3 +2567,97 @@ metrics:
     disposition: dropped
     note: >-
       Counts refusals of Java's second-client writes to the composition's cloud.cursor_* tables (the C4 Q7 gate, 20260905.02). The composition is the only writer post-X1; the gate retires with Java.
+  # ---- billing (C5 gate, S3-Q7 — 2026-09-08) --------------------------------
+  # Java emits 18 distinct stigmer.billing.* names across the six
+  # domain/billing/observability/*Metrics classes; the S0 plan's "19" was a
+  # miscount. Seventeen are billing-emitted and ported under the same names
+  # onto the composition's lazy-instrument idiom (billing/metrics.ts for the
+  # counters, billing/governance/governance-gauges.ts for the three polled
+  # gauges); every counter whose SigNoz alert needs a series before its first
+  # increment is pre-registered at zero on unit boot as Java's constructors
+  # did. The eighteenth is not billing's — see its note.
+  - name: stigmer.billing.pricing.baseline_fallback
+    surface: billing
+    java_source: domain/billing/observability/PricingGovernanceMetrics.java
+    disposition: ported
+    alerts: [pricing-baseline-fallback]
+  - name: stigmer.billing.pricing.price_not_found
+    surface: billing
+    java_source: domain/billing/observability/UsagePricingMetrics.java
+    disposition: ported
+    alerts: [billing-price-not-found]
+  - name: stigmer.billing.service_tier.mismatch
+    surface: billing
+    java_source: domain/billing/observability/UsagePricingMetrics.java
+    disposition: ported
+    alerts: [billing-service-tier-mismatch]
+  - name: stigmer.billing.thinking.mismatch
+    surface: billing
+    java_source: domain/billing/observability/UsagePricingMetrics.java
+    disposition: ported
+    alerts: [billing-thinking-mismatch]
+  - name: stigmer.billing.usage.metered_execution
+    surface: billing
+    java_source: domain/billing/observability/UsagePricingMetrics.java
+    disposition: ported
+  - name: stigmer.billing.repricing.still_unpriced
+    surface: billing
+    java_source: domain/billing/observability/UsagePricingMetrics.java
+    disposition: ported
+    alerts: [billing-repricing-still-unpriced]
+  - name: stigmer.billing.auto_recharge.rejected
+    surface: billing
+    java_source: domain/billing/observability/AutoRechargeMetrics.java
+    disposition: ported
+    alerts: [billing-auto-recharge-rejected]
+  - name: stigmer.billing.auto_recharge.late_success_repair
+    surface: billing
+    java_source: domain/billing/observability/AutoRechargeMetrics.java
+    disposition: ported
+    alerts: [billing-auto-recharge-late-success-repair]
+  - name: stigmer.billing.auto_recharge.gate_skipped
+    surface: billing
+    java_source: domain/billing/observability/AutoRechargeMetrics.java
+    disposition: ported
+  - name: stigmer.billing.auto_recharge.reconciled
+    surface: billing
+    java_source: domain/billing/observability/AutoRechargeMetrics.java
+    disposition: ported
+  - name: stigmer.billing.pricing.reconciliation.runs
+    surface: billing
+    java_source: domain/billing/observability/PricingGovernanceMetrics.java
+    disposition: ported
+    alerts: [pricing-reconciliation-silence-anthropic, pricing-reconciliation-silence-cursor]
+  - name: stigmer.billing.pricing.rate_corrected
+    surface: billing
+    java_source: domain/billing/observability/PricingGovernanceMetrics.java
+    disposition: ported
+  - name: stigmer.billing.pricing.rate_proposal_pending
+    surface: billing
+    java_source: domain/billing/observability/PricingGovernanceMetrics.java
+    disposition: ported
+  - name: stigmer.billing.pricing.governance_notification_failed
+    surface: billing
+    java_source: domain/billing/observability/PricingGovernanceMetrics.java
+    disposition: ported
+    alerts: [pricing-governance-notification-failed]
+  - name: stigmer.billing.pricing.reconciliation.last_run_unreconciled
+    surface: billing
+    java_source: domain/billing/observability/PricingReconciliationStatusMetrics.java
+    disposition: ported
+    alerts: [pricing-books-disagree-anthropic, pricing-books-disagree-cursor]
+  - name: stigmer.billing.pricing.signoff.pending
+    surface: billing
+    java_source: domain/billing/observability/PricingSignoffQueueMetrics.java
+    disposition: ported
+  - name: stigmer.billing.pricing.signoff.oldest_age_hours
+    surface: billing
+    java_source: domain/billing/observability/PricingSignoffQueueMetrics.java
+    disposition: ported
+    alerts: [pricing-signoff-waiting-too-long]
+  - name: stigmer.billing.model_pin.unknown
+    surface: billing
+    java_source: domain/agentic/agentexecution/PlatformModelPinStartupCheck.java
+    disposition: dropped
+    note: >-
+      Emitted by Java's agentic-domain BOOT CHECK (a channel, schedule or guest model pin the registry no longer knows), never by billing code — it carries the billing prefix only because the registry is billing's. The composition validates model pins at write time in the surfaces that own them (channels/model-pinning.ts; the OSS schedule and agentchannel steps) and has no boot-time sweep to attach the counter to; no alert reads it. Ruled dropped at C5's S3 gate (S3-Q7, 2026-09-08) with the door open: if the owner wants a boot check, it is a new item on the pin-owning surfaces, not a billing metric.
