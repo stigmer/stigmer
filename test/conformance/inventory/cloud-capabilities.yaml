@@ -1830,12 +1830,12 @@ rows:
     java_test: >-
       none
     class: behavior
-    disposition: debris-candidate
+    disposition: debris
     observability: none
     caller: none
     needs: [none]
     note: >-
-      Transport plumbing with no client-visible contract; presented for Q6.
+      RULED debris 2026-09-06 (C6 gate, Q8) AS A ROW: transport plumbing with no client-visible contract. C6 still implements h2 PING keepalive on both the inbound and the upstream session as an implementation detail (pinned by its own unit tests), not as a behavior the suite observes.
 
   # ===========================================================================
   # PROXY — claimcheck, artifact, checkpointer, model-registry, health
@@ -1851,10 +1851,12 @@ rows:
     java_test: >-
       none
     class: behavior
-    disposition: conformance
+    disposition: debris
     observability: launcher
     caller: primary
     needs: [workflow-execution]
+    note: >-
+      RULED debris 2026-09-06 (C6 gate, Q5): the lane has no caller. CLAIMCHECK_ENABLED is set in no sandbox manifest (composition or Java), and the runner's claimcheck codec presigns through the ARTIFACTS lane with a claimcheck/ key prefix that lane rejects (stigmer#992). Not ported by C6; the controller retires with Java at R1.
   - id: proxy.claimcheck.key-rules
     surface: proxy
     lane: >-
@@ -1866,12 +1868,12 @@ rows:
     java_test: >-
       none
     class: adversarial
-    disposition: conformance
+    disposition: debris
     observability: launcher
     caller: primary
     needs: [workflow-execution]
     note: >-
-      The response status for a key refusal is read in S4 (badRequest expected) and pinned; copy quoted from the validator.
+      RULED debris 2026-09-06 (C6 gate, Q5) with its sibling row — no caller. Copy quoted from the validator for the record.
   - id: proxy.artifact.presign-by-key-shape-and-permission
     surface: proxy
     lane: >-
@@ -1917,8 +1919,8 @@ rows:
     observability: launcher
     caller: primary
     needs: [session]
-    disputed: >-
-      Java answered the bodiless ok() PUTs with 204 on one hermetic run and 200 on the next for identical requests (2026-09-06); the suite pins "2xx, no body". C6 should answer 200 consistently — a deviation call for the owner.
+    note: >-
+      RULED 2026-09-06 (C6 gate, Q8): Java answered the bodiless ok() PUTs with 204 on one hermetic run and 200 on the next for identical requests; the suite keeps pinning "2xx, no body" so it stays green on Java, and the composition answers 200 consistently. No deviation entry is needed — 200 satisfies the pinned contract; the runner's http-saver accepts any 2xx.
 
   - id: proxy.checkpointer.foreign-session-403
     surface: proxy
@@ -2021,12 +2023,12 @@ rows:
     java_test: >-
       proxy/authorization/ProxyScopeAuthorizationTest.java
     class: behavior
-    disposition: debris-candidate
+    disposition: debris
     observability: launcher
     caller: primary
     needs: [agent-execution]
     note: >-
-      A latency-only divergence class (the list-read-scoping Q6 precedent: the composition dropped the 30 s ListObjects cache). Presented for Q6; if kept, C6 may or may not cache — a deviation either way is acceptable.
+      RULED debris 2026-09-06 (C6 gate, Q8) AS A ROW — a latency-only divergence class (the list-read-scoping Q6 precedent). C6 keeps a short ALLOW-only decision cache as implementation; DENY caching is not ported, so a fresh grant takes effect on the next call rather than up to five minutes later.
 
   # --- pure-logic tables C6 must carry (Java's fixture files reused) ---------
   - id: proxy.unit.sse-frame-decoder
@@ -2417,8 +2419,113 @@ rows:
     caller: anonymous
     needs: [none]
 
-# Offered to C5 and C6 for the metric inventory DD-012 asks of them at their
-# plan gates (each Java `stigmer.*` metric in their domain ported under the
-# same name or explicitly dropped). Same discipline, same file — one inventory
-# mechanism for the program. Empty until those entries fill it.
-metrics: []
+# The metric inventory DD-012 asks of C5 and C6 at their plan gates (each Java
+# `stigmer.*` metric in their domain ported under the same name or explicitly
+# dropped; checklist line 80 — X1-blocking for the money paths). Same
+# discipline, same file — one inventory mechanism for the program.
+#
+#   name         the Java metric name, byte-exact (the composition emits the
+#                same name when `disposition: ported`)
+#   surface      billing | proxy
+#   java_source  where Java emits it
+#   disposition  ported | dropped
+#   alerts       SigNoz alert files under tools/ops/signoz/alerts/ that read
+#                the series (re-pointed at stigmer-server before X1)
+#   note         required when `dropped`: why the mechanism retires
+#
+# Billing-side series that proxy reports FEED (stigmer.billing.usage.
+# metered_execution, .service_tier.mismatch, .thinking.mismatch,
+# .pricing.price_not_found, .repricing.still_unpriced) are C5's rows.
+metrics:
+  # ---- proxy (C6 gate, Q9 — 2026-09-06) ------------------------------------
+  - name: stigmer.proxy.cursor.connect.streams_metered
+    surface: proxy
+    java_source: proxy/cursor/CursorProxyController.java
+    disposition: ported
+  - name: stigmer.proxy.cursor.connect.turns_extracted
+    surface: proxy
+    java_source: proxy/cursor/CursorProxyController.java
+    disposition: ported
+  - name: stigmer.proxy.cursor.connect.zero_usage_streams
+    surface: proxy
+    java_source: proxy/cursor/CursorProxyController.java
+    disposition: ported
+  - name: stigmer.proxy.cursor.bidi.streams_total
+    surface: proxy
+    java_source: proxy/cursor/bidi/CursorBidiStreamHandler.java
+    disposition: ported
+  - name: stigmer.proxy.cursor.bidi.upstream_stream_aborts_total
+    surface: proxy
+    java_source: proxy/cursor/bidi/CursorBidiStreamHandler.java
+    disposition: ported
+    alerts: [cursor-bidi-upstream-stream-aborts]
+  - name: stigmer.proxy.cursor.bidi.upstream_connects_total
+    surface: proxy
+    java_source: proxy/cursor/bidi/CursorBidiUpstreamClient.java
+    disposition: ported
+  - name: stigmer.proxy.cursor.bidi.upstream_ping_timeouts_total
+    surface: proxy
+    java_source: proxy/cursor/bidi/Http2PingKeepaliveHandler.java
+    disposition: ported
+  - name: stigmer.proxy.cursor.bidi.inbound_ping_timeouts_total
+    surface: proxy
+    java_source: proxy/cursor/bidi/Http2PingKeepaliveHandler.java
+    disposition: ported
+  - name: stigmer.proxy.cursor.platform_provider_errors
+    surface: proxy
+    java_source: proxy/cursor/bidi/CursorPlatformErrorMetrics.java
+    disposition: ported
+    alerts: [cursor-platform-provider-errors]
+  - name: stigmer.proxy.cursor.key_selection_rejected
+    surface: proxy
+    java_source: proxy/cursor/keyselection/CursorKeySelectionService.java
+    disposition: ported
+    alerts: [cursor-key-selection-rejected]
+  - name: stigmer.proxy.cursor.key_selection_soft_drained
+    surface: proxy
+    java_source: proxy/cursor/keyselection/CursorKeySelectionService.java
+    disposition: ported
+    alerts: [cursor-pool-soft-drained]
+  - name: stigmer.proxy.cursor.key_selection_served_guard_tripped
+    surface: proxy
+    java_source: proxy/cursor/keyselection/CursorKeySelectionService.java
+    disposition: ported
+    alerts: [cursor-guard-tripped-serving]
+  - name: stigmer.proxy.cursor.session_repinned
+    surface: proxy
+    java_source: proxy/cursor/keyselection/CursorKeySelectionService.java
+    disposition: ported
+  - name: stigmer.proxy.cursor.key_health_reactive_syncs
+    surface: proxy
+    java_source: proxy/cursor/keyselection/CursorKeyHealthMonitor.java
+    disposition: ported
+    alerts: [cursor-key-health-reactive-syncs]
+  - name: stigmer.proxy.llm.platform_provider_errors
+    surface: proxy
+    java_source: proxy/llm/PlatformProviderErrorMetrics.java
+    disposition: ported
+    alerts: [platform-provider-errors-log]
+    note: >-
+      The alert is log-based on the phrase "platform provider key rejected upstream"; the composition logs the same phrase at ERROR on the same event.
+  - name: stigmer.http.request.duration
+    surface: proxy
+    java_source: config/observability/HttpRequestMetricsFilter.java
+    disposition: ported
+    note: >-
+      Recorded once by the composition's cloud ingress listener for every route it serves (proxy, webhooks), with the same labels: http.request.method, http.route (first two path segments), http.response.status_code.
+  - name: stigmer.http.request.count
+    surface: proxy
+    java_source: config/observability/HttpRequestMetricsFilter.java
+    disposition: ported
+  - name: stigmer.proxy.cursor.execution_authority_lookups
+    surface: proxy
+    java_source: proxy/cursor/keyselection/CompositionAuthorityExecutionContextSource.java
+    disposition: dropped
+    note: >-
+      Counts the Java proxy's calls to the composition for an execution it does not own (the D3 seam, 20260904.05). In-process the proxy reads its own store; there is no lookup to count. The seam retires with Java.
+  - name: stigmer.cursor_account.store_write_refused
+    surface: proxy
+    java_source: platform/cursoraccount/store/CursorAccountStoreConfig.java
+    disposition: dropped
+    note: >-
+      Counts refusals of Java's second-client writes to the composition's cloud.cursor_* tables (the C4 Q7 gate, 20260905.02). The composition is the only writer post-X1; the gate retires with Java.

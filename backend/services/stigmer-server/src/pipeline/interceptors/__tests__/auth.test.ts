@@ -30,6 +30,7 @@ import type {
 import {
   AUTHENTICATION_EXEMPT_SERVICES,
   AUTHENTICATION_TOKEN_MISSING_MESSAGE,
+  authenticateBearerToken,
   callerIdentityKey,
   createInProcessCallerInterceptor,
   createVerifierChainInterceptor,
@@ -167,6 +168,88 @@ describe("verifier chain walk", () => {
         silentLogger,
       ),
       "Bearer tok",
+    ).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(ConnectError);
+    expect((error as ConnectError).code).toBe(Code.Internal);
+    expect((error as ConnectError).rawMessage).toBe("internal server error");
+  });
+});
+
+/**
+ * The exported walk (stigmer#991) — the SAME function the interceptor
+ * calls, reachable by a composition's non-Connect HTTP edges. Pinned
+ * separately so an edge that consumes it can rely on the contract without
+ * a Connect request in hand: first claim wins, pass moves on, ConnectError
+ * propagates, plain throw is INTERNAL, and no claim is `undefined` — the
+ * strictness decision (Q6) is the caller's, never the walk's.
+ */
+describe("authenticateBearerToken (the exported walk)", () => {
+  it("first claim wins; later verifiers never run", async () => {
+    let secondRan = false;
+    const identity = await authenticateBearerToken(
+      [
+        verifier("first", () => Promise.resolve(CLAIMED)),
+        verifier("second", () => {
+          secondRan = true;
+          return Promise.resolve(null);
+        }),
+      ],
+      "tok",
+      silentLogger,
+    );
+    expect(identity).toEqual(CLAIMED);
+    expect(secondRan).toBe(false);
+  });
+
+  it("a pass (null) moves to the next verifier; the claimed identity carries the token it verified", async () => {
+    const seen: string[] = [];
+    const identity = await authenticateBearerToken(
+      [
+        verifier("first", (token) => {
+          seen.push(`first:${token}`);
+          return Promise.resolve(null);
+        }),
+        verifier("second", (token) => {
+          seen.push(`second:${token}`);
+          return Promise.resolve({ ...CLAIMED, rawToken: token });
+        }),
+      ],
+      "tok",
+      silentLogger,
+    );
+    expect(seen).toEqual(["first:tok", "second:tok"]);
+    expect(identity?.rawToken).toBe("tok");
+  });
+
+  it("no verifier claims → undefined; the walk never applies strictness itself", async () => {
+    await expect(
+      authenticateBearerToken(
+        [verifier("first", () => Promise.resolve(null))],
+        "tok",
+        silentLogger,
+      ),
+    ).resolves.toBeUndefined();
+    await expect(
+      authenticateBearerToken([], "tok", silentLogger),
+    ).resolves.toBeUndefined();
+  });
+
+  it("a verifier's ConnectError is its own wire mapping (propagated)", async () => {
+    const reject = new ConnectError("token expired", Code.Unauthenticated);
+    await expect(
+      authenticateBearerToken(
+        [verifier("oidc", () => Promise.reject(reject))],
+        "tok",
+        silentLogger,
+      ),
+    ).rejects.toBe(reject);
+  });
+
+  it("a verifier's plain throw is an infrastructure fault → INTERNAL, never a denial", async () => {
+    const error = await authenticateBearerToken(
+      [verifier("oidc", () => Promise.reject(new Error("JWKS unreachable")))],
+      "tok",
+      silentLogger,
     ).catch((e: unknown) => e);
     expect(error).toBeInstanceOf(ConnectError);
     expect((error as ConnectError).code).toBe(Code.Internal);
