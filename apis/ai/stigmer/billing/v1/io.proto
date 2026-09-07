@@ -99,12 +99,26 @@ message AuthorizeExecutionResponse {
 // The billing service computes cost server-side from the model registry —
 // the caller never provides cost figures.
 //
-// Deduplicated by (execution_id, sequence, metering_source).
+// Deduplication identity: `call_id` when the caller supplies one, else
+// `sequence`. A report that is redelivered under the same identity records
+// nothing new; two reports for the same execution with distinct call ids
+// are two calls even when they share a sequence number (a proxy that
+// restarted mid-execution numbers from 1 again — stigmer-cloud#659).
 message RecordLlmCallUsageInput {
   string execution_id = 1 [(buf.validate.field).required = true];
 
-  // 1-based call ordering within the execution.
+  // 1-based call ordering within the execution, as the reporting proxy
+  // counted it. An ordering hint: a proxy counts in process memory, so the
+  // numbering restarts when the proxy does. Dedup identity only for callers
+  // that send no call_id.
   int32 sequence = 2 [(buf.validate.field).int32.gt = 0];
+
+  // The identity of this call, minted by the proxy once before its first
+  // report attempt and reused on every retry of the same report. Opaque
+  // to billing; a UUID in practice. Recommended for every caller — a dedup
+  // guard keyed on `sequence` alone survives neither a proxy restart nor a
+  // second proxy replica. Stamped verbatim onto the usage record's `call_id`.
+  string call_id = 20 [(buf.validate.field).string.max_len = 128];
 
   // Provider identifier (e.g., "openai", "anthropic", "cursor").
   string provider = 3 [(buf.validate.field).required = true];

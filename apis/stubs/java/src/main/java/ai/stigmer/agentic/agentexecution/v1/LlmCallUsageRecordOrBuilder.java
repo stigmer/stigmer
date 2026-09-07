@@ -74,7 +74,10 @@ public interface LlmCallUsageRecordOrBuilder extends
 
   /**
    * <pre>
-   * 1-based call ordering within the execution.
+   * 1-based call ordering within the execution, as the reporting proxy
+   * counted it. An ordering hint, not an identity: a proxy that restarts
+   * mid-execution counts from 1 again, so two records of one execution may
+   * share a sequence. Order by observed_at, then sequence.
    * </pre>
    *
    * <code>int32 sequence = 4 [json_name = "sequence"];</code>
@@ -84,7 +87,7 @@ public interface LlmCallUsageRecordOrBuilder extends
 
   /**
    * <pre>
-   * Deduplication key: execution_id + sequence + metering_source.
+   * Deduplication key: execution_id + (call_id, else sequence) + metering_source.
    * </pre>
    *
    * <code>string idempotency_key = 5 [json_name = "idempotencyKey"];</code>
@@ -93,7 +96,7 @@ public interface LlmCallUsageRecordOrBuilder extends
   java.lang.String getIdempotencyKey();
   /**
    * <pre>
-   * Deduplication key: execution_id + sequence + metering_source.
+   * Deduplication key: execution_id + (call_id, else sequence) + metering_source.
    * </pre>
    *
    * <code>string idempotency_key = 5 [json_name = "idempotencyKey"];</code>
@@ -121,6 +124,34 @@ public interface LlmCallUsageRecordOrBuilder extends
    */
   com.google.protobuf.ByteString
       getCanonicalPayloadHashBytes();
+
+  /**
+   * <pre>
+   * The call's identity as the reporting proxy minted it (RecordLlmCallUsageInput.call_id),
+   * stamped verbatim. The durable link from a ledger usage_debit
+   * (CreditLedgerSource.llm_call_id) back to this record, and what every later
+   * debit of this record — the live one and the repricing sweep's — keys on.
+   * Empty for records whose reporter sent no call id; those key on sequence.
+   * </pre>
+   *
+   * <code>string call_id = 9 [json_name = "callId"];</code>
+   * @return The callId.
+   */
+  java.lang.String getCallId();
+  /**
+   * <pre>
+   * The call's identity as the reporting proxy minted it (RecordLlmCallUsageInput.call_id),
+   * stamped verbatim. The durable link from a ledger usage_debit
+   * (CreditLedgerSource.llm_call_id) back to this record, and what every later
+   * debit of this record — the live one and the repricing sweep's — keys on.
+   * Empty for records whose reporter sent no call id; those key on sequence.
+   * </pre>
+   *
+   * <code>string call_id = 9 [json_name = "callId"];</code>
+   * @return The bytes for callId.
+   */
+  com.google.protobuf.ByteString
+      getCallIdBytes();
 
   /**
    * <pre>

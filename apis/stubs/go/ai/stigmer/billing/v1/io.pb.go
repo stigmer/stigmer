@@ -393,12 +393,25 @@ func (x *AuthorizeExecutionResponse) GetDenialReason() string {
 // The billing service computes cost server-side from the model registry —
 // the caller never provides cost figures.
 //
-// Deduplicated by (execution_id, sequence, metering_source).
+// Deduplication identity: `call_id` when the caller supplies one, else
+// `sequence`. A report that is redelivered under the same identity records
+// nothing new; two reports for the same execution with distinct call ids
+// are two calls even when they share a sequence number (a proxy that
+// restarted mid-execution numbers from 1 again — stigmer-cloud#659).
 type RecordLlmCallUsageInput struct {
 	state       protoimpl.MessageState `protogen:"open.v1"`
 	ExecutionId string                 `protobuf:"bytes,1,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
-	// 1-based call ordering within the execution.
+	// 1-based call ordering within the execution, as the reporting proxy
+	// counted it. An ordering hint: a proxy counts in process memory, so the
+	// numbering restarts when the proxy does. Dedup identity only for callers
+	// that send no call_id.
 	Sequence int32 `protobuf:"varint,2,opt,name=sequence,proto3" json:"sequence,omitempty"`
+	// The identity of this call, minted by the proxy once before its first
+	// report attempt and reused on every retry of the same report. Opaque
+	// to billing; a UUID in practice. Recommended for every caller — a dedup
+	// guard keyed on `sequence` alone survives neither a proxy restart nor a
+	// second proxy replica. Stamped verbatim onto the usage record's `call_id`.
+	CallId string `protobuf:"bytes,20,opt,name=call_id,json=callId,proto3" json:"call_id,omitempty"`
 	// Provider identifier (e.g., "openai", "anthropic", "cursor").
 	Provider string `protobuf:"bytes,3,opt,name=provider,proto3" json:"provider,omitempty"`
 	// Model as reported by the provider in the response.
@@ -506,6 +519,13 @@ func (x *RecordLlmCallUsageInput) GetSequence() int32 {
 		return x.Sequence
 	}
 	return 0
+}
+
+func (x *RecordLlmCallUsageInput) GetCallId() string {
+	if x != nil {
+		return x.CallId
+	}
+	return ""
 }
 
 func (x *RecordLlmCallUsageInput) GetProvider() string {
@@ -2838,10 +2858,11 @@ const file_ai_stigmer_billing_v1_io_proto_rawDesc = "" +
 	"\x0ereservation_id\x18\x02 \x01(\tR\rreservationId\x12'\n" +
 	"\x0freserved_micros\x18\x03 \x01(\x03R\x0ereservedMicros\x128\n" +
 	"\x18available_balance_micros\x18\x04 \x01(\x03R\x16availableBalanceMicros\x12#\n" +
-	"\rdenial_reason\x18\x05 \x01(\tR\fdenialReason\"\x85\b\n" +
+	"\rdenial_reason\x18\x05 \x01(\tR\fdenialReason\"\xa8\b\n" +
 	"\x17RecordLlmCallUsageInput\x12)\n" +
 	"\fexecution_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\vexecutionId\x12#\n" +
-	"\bsequence\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02 \x00R\bsequence\x12\"\n" +
+	"\bsequence\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02 \x00R\bsequence\x12!\n" +
+	"\acall_id\x18\x14 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x01R\x06callId\x12\"\n" +
 	"\bprovider\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\bprovider\x12-\n" +
 	"\x0eresolved_model\x18\x04 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\rresolvedModel\x12'\n" +
 	"\x0frequested_model\x18\x05 \x01(\tR\x0erequestedModel\x12H\n" +

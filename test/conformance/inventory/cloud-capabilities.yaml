@@ -602,6 +602,8 @@ rows:
     observability: launcher
     caller: operator
     needs: [funded-org]
+    note: >-
+      DELIBERATE DIVERGENCE 2026-09-08 (stigmer-cloud#659, C6 gate Q12): the composition deduplicates a report on RecordLlmCallUsageInput.call_id when the caller sends one, falling back to sequence when it does not; Java keys on (execution_id, sequence, metering_source) only and drops a restarted proxy's legitimate calls as duplicates. No cross-edition arm pins the call_id path — it would be red on Java by design — and this row's arm sends no call_id, so it stays byte-identical on both editions. Coverage of the call_id path lives in the composition's own postgres-composed suite.
 
   # --- pricing governance (platform can_manage_model_pricing) ----------------
   - id: billing.rpc.pricing-admin-lanes.ordinary-caller-permission-denied

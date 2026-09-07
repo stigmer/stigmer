@@ -33,11 +33,12 @@ class CreditLedgerEntry(_message.Message):
     def __init__(self, entry_id: _Optional[str] = ..., org_id: _Optional[str] = ..., type: _Optional[_Union[_enum_pb2.LedgerEntryType, str]] = ..., amount_micros: _Optional[int] = ..., balance_after_micros: _Optional[int] = ..., idempotency_key: _Optional[str] = ..., rating: _Optional[_Union[_policy_pb2.BillingUsageRating, _Mapping]] = ..., source: _Optional[_Union[CreditLedgerSource, _Mapping]] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
 
 class CreditLedgerSource(_message.Message):
-    __slots__ = ("execution_id", "session_id", "agent_id", "llm_call_sequence", "purchase_id", "grant_id", "reservation_id", "adjusted_by", "description")
+    __slots__ = ("execution_id", "session_id", "agent_id", "llm_call_sequence", "llm_call_id", "purchase_id", "grant_id", "reservation_id", "adjusted_by", "description")
     EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
     SESSION_ID_FIELD_NUMBER: _ClassVar[int]
     AGENT_ID_FIELD_NUMBER: _ClassVar[int]
     LLM_CALL_SEQUENCE_FIELD_NUMBER: _ClassVar[int]
+    LLM_CALL_ID_FIELD_NUMBER: _ClassVar[int]
     PURCHASE_ID_FIELD_NUMBER: _ClassVar[int]
     GRANT_ID_FIELD_NUMBER: _ClassVar[int]
     RESERVATION_ID_FIELD_NUMBER: _ClassVar[int]
@@ -47,12 +48,13 @@ class CreditLedgerSource(_message.Message):
     session_id: str
     agent_id: str
     llm_call_sequence: int
+    llm_call_id: str
     purchase_id: str
     grant_id: str
     reservation_id: str
     adjusted_by: str
     description: str
-    def __init__(self, execution_id: _Optional[str] = ..., session_id: _Optional[str] = ..., agent_id: _Optional[str] = ..., llm_call_sequence: _Optional[int] = ..., purchase_id: _Optional[str] = ..., grant_id: _Optional[str] = ..., reservation_id: _Optional[str] = ..., adjusted_by: _Optional[str] = ..., description: _Optional[str] = ...) -> None: ...
+    def __init__(self, execution_id: _Optional[str] = ..., session_id: _Optional[str] = ..., agent_id: _Optional[str] = ..., llm_call_sequence: _Optional[int] = ..., llm_call_id: _Optional[str] = ..., purchase_id: _Optional[str] = ..., grant_id: _Optional[str] = ..., reservation_id: _Optional[str] = ..., adjusted_by: _Optional[str] = ..., description: _Optional[str] = ...) -> None: ...
 
 class CreditGrant(_message.Message):
     __slots__ = ("grant_id", "org_id", "kind", "original_amount_micros", "remaining_amount_micros", "expires_at", "priority", "created_at")

@@ -11,7 +11,7 @@ package ai.stigmer.billing.v1;
  * and drill-down purposes.
  *
  * Fields are populated based on the entry type:
- * - usage_debit: execution_id, session_id, agent_id, llm_call_sequence
+ * - usage_debit: execution_id, session_id, agent_id, llm_call_sequence, llm_call_id
  * - purchase_credit / auto_recharge_credit: purchase_id
  * - adjustment_credit / adjustment_debit: adjusted_by, description
  * - reservation_hold / reservation_release: execution_id, reservation_id
@@ -42,6 +42,7 @@ private static final long serialVersionUID = 0L;
     executionId_ = "";
     sessionId_ = "";
     agentId_ = "";
+    llmCallId_ = "";
     purchaseId_ = "";
     grantId_ = "";
     reservationId_ = "";
@@ -212,7 +213,10 @@ private static final long serialVersionUID = 0L;
   private int llmCallSequence_ = 0;
   /**
    * <pre>
-   * Sequence number of the LLM call within the execution (1-based).
+   * Sequence number of the LLM call within the execution (1-based), as the
+   * reporting proxy counted it. Display and ordering; the locator of the
+   * debited usage record is llm_call_id, because a proxy restart makes two
+   * calls of one execution share a sequence.
    * </pre>
    *
    * <code>int32 llm_call_sequence = 4 [json_name = "llmCallSequence"];</code>
@@ -221,6 +225,59 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public int getLlmCallSequence() {
     return llmCallSequence_;
+  }
+
+  public static final int LLM_CALL_ID_FIELD_NUMBER = 10;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object llmCallId_ = "";
+  /**
+   * <pre>
+   * The debited usage record's call_id (LlmCallUsageRecord.call_id) — the
+   * drill-down from this debit to the exact record it paid for. Empty for
+   * debits of records whose reporter sent no call id (they are located by
+   * execution_id + llm_call_sequence, as before).
+   * </pre>
+   *
+   * <code>string llm_call_id = 10 [json_name = "llmCallId"];</code>
+   * @return The llmCallId.
+   */
+  @java.lang.Override
+  public java.lang.String getLlmCallId() {
+    java.lang.Object ref = llmCallId_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      llmCallId_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * The debited usage record's call_id (LlmCallUsageRecord.call_id) — the
+   * drill-down from this debit to the exact record it paid for. Empty for
+   * debits of records whose reporter sent no call id (they are located by
+   * execution_id + llm_call_sequence, as before).
+   * </pre>
+   *
+   * <code>string llm_call_id = 10 [json_name = "llmCallId"];</code>
+   * @return The bytes for llmCallId.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getLlmCallIdBytes() {
+    java.lang.Object ref = llmCallId_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      llmCallId_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
   }
 
   public static final int PURCHASE_ID_FIELD_NUMBER = 5;
@@ -499,6 +556,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(description_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 9, description_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(llmCallId_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 10, llmCallId_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -536,6 +596,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(description_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(9, description_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(llmCallId_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(10, llmCallId_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -559,6 +622,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getAgentId())) return false;
     if (getLlmCallSequence()
         != other.getLlmCallSequence()) return false;
+    if (!getLlmCallId()
+        .equals(other.getLlmCallId())) return false;
     if (!getPurchaseId()
         .equals(other.getPurchaseId())) return false;
     if (!getGrantId()
@@ -588,6 +653,8 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getAgentId().hashCode();
     hash = (37 * hash) + LLM_CALL_SEQUENCE_FIELD_NUMBER;
     hash = (53 * hash) + getLlmCallSequence();
+    hash = (37 * hash) + LLM_CALL_ID_FIELD_NUMBER;
+    hash = (53 * hash) + getLlmCallId().hashCode();
     hash = (37 * hash) + PURCHASE_ID_FIELD_NUMBER;
     hash = (53 * hash) + getPurchaseId().hashCode();
     hash = (37 * hash) + GRANT_ID_FIELD_NUMBER;
@@ -701,7 +768,7 @@ private static final long serialVersionUID = 0L;
    * and drill-down purposes.
    *
    * Fields are populated based on the entry type:
-   * - usage_debit: execution_id, session_id, agent_id, llm_call_sequence
+   * - usage_debit: execution_id, session_id, agent_id, llm_call_sequence, llm_call_id
    * - purchase_credit / auto_recharge_credit: purchase_id
    * - adjustment_credit / adjustment_debit: adjusted_by, description
    * - reservation_hold / reservation_release: execution_id, reservation_id
@@ -744,6 +811,7 @@ private static final long serialVersionUID = 0L;
       sessionId_ = "";
       agentId_ = "";
       llmCallSequence_ = 0;
+      llmCallId_ = "";
       purchaseId_ = "";
       grantId_ = "";
       reservationId_ = "";
@@ -795,18 +863,21 @@ private static final long serialVersionUID = 0L;
         result.llmCallSequence_ = llmCallSequence_;
       }
       if (((from_bitField0_ & 0x00000010) != 0)) {
-        result.purchaseId_ = purchaseId_;
+        result.llmCallId_ = llmCallId_;
       }
       if (((from_bitField0_ & 0x00000020) != 0)) {
-        result.grantId_ = grantId_;
+        result.purchaseId_ = purchaseId_;
       }
       if (((from_bitField0_ & 0x00000040) != 0)) {
-        result.reservationId_ = reservationId_;
+        result.grantId_ = grantId_;
       }
       if (((from_bitField0_ & 0x00000080) != 0)) {
-        result.adjustedBy_ = adjustedBy_;
+        result.reservationId_ = reservationId_;
       }
       if (((from_bitField0_ & 0x00000100) != 0)) {
+        result.adjustedBy_ = adjustedBy_;
+      }
+      if (((from_bitField0_ & 0x00000200) != 0)) {
         result.description_ = description_;
       }
     }
@@ -841,29 +912,34 @@ private static final long serialVersionUID = 0L;
       if (other.getLlmCallSequence() != 0) {
         setLlmCallSequence(other.getLlmCallSequence());
       }
+      if (!other.getLlmCallId().isEmpty()) {
+        llmCallId_ = other.llmCallId_;
+        bitField0_ |= 0x00000010;
+        onChanged();
+      }
       if (!other.getPurchaseId().isEmpty()) {
         purchaseId_ = other.purchaseId_;
-        bitField0_ |= 0x00000010;
+        bitField0_ |= 0x00000020;
         onChanged();
       }
       if (!other.getGrantId().isEmpty()) {
         grantId_ = other.grantId_;
-        bitField0_ |= 0x00000020;
+        bitField0_ |= 0x00000040;
         onChanged();
       }
       if (!other.getReservationId().isEmpty()) {
         reservationId_ = other.reservationId_;
-        bitField0_ |= 0x00000040;
+        bitField0_ |= 0x00000080;
         onChanged();
       }
       if (!other.getAdjustedBy().isEmpty()) {
         adjustedBy_ = other.adjustedBy_;
-        bitField0_ |= 0x00000080;
+        bitField0_ |= 0x00000100;
         onChanged();
       }
       if (!other.getDescription().isEmpty()) {
         description_ = other.description_;
-        bitField0_ |= 0x00000100;
+        bitField0_ |= 0x00000200;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -914,29 +990,34 @@ private static final long serialVersionUID = 0L;
             } // case 32
             case 42: {
               purchaseId_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000010;
+              bitField0_ |= 0x00000020;
               break;
             } // case 42
             case 50: {
               grantId_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000020;
+              bitField0_ |= 0x00000040;
               break;
             } // case 50
             case 58: {
               reservationId_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000040;
+              bitField0_ |= 0x00000080;
               break;
             } // case 58
             case 66: {
               adjustedBy_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000080;
+              bitField0_ |= 0x00000100;
               break;
             } // case 66
             case 74: {
               description_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000100;
+              bitField0_ |= 0x00000200;
               break;
             } // case 74
+            case 82: {
+              llmCallId_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000010;
+              break;
+            } // case 82
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1233,7 +1314,10 @@ private static final long serialVersionUID = 0L;
     private int llmCallSequence_ ;
     /**
      * <pre>
-     * Sequence number of the LLM call within the execution (1-based).
+     * Sequence number of the LLM call within the execution (1-based), as the
+     * reporting proxy counted it. Display and ordering; the locator of the
+     * debited usage record is llm_call_id, because a proxy restart makes two
+     * calls of one execution share a sequence.
      * </pre>
      *
      * <code>int32 llm_call_sequence = 4 [json_name = "llmCallSequence"];</code>
@@ -1245,7 +1329,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Sequence number of the LLM call within the execution (1-based).
+     * Sequence number of the LLM call within the execution (1-based), as the
+     * reporting proxy counted it. Display and ordering; the locator of the
+     * debited usage record is llm_call_id, because a proxy restart makes two
+     * calls of one execution share a sequence.
      * </pre>
      *
      * <code>int32 llm_call_sequence = 4 [json_name = "llmCallSequence"];</code>
@@ -1261,7 +1348,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Sequence number of the LLM call within the execution (1-based).
+     * Sequence number of the LLM call within the execution (1-based), as the
+     * reporting proxy counted it. Display and ordering; the locator of the
+     * debited usage record is llm_call_id, because a proxy restart makes two
+     * calls of one execution share a sequence.
      * </pre>
      *
      * <code>int32 llm_call_sequence = 4 [json_name = "llmCallSequence"];</code>
@@ -1270,6 +1360,113 @@ private static final long serialVersionUID = 0L;
     public Builder clearLlmCallSequence() {
       bitField0_ = (bitField0_ & ~0x00000008);
       llmCallSequence_ = 0;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object llmCallId_ = "";
+    /**
+     * <pre>
+     * The debited usage record's call_id (LlmCallUsageRecord.call_id) — the
+     * drill-down from this debit to the exact record it paid for. Empty for
+     * debits of records whose reporter sent no call id (they are located by
+     * execution_id + llm_call_sequence, as before).
+     * </pre>
+     *
+     * <code>string llm_call_id = 10 [json_name = "llmCallId"];</code>
+     * @return The llmCallId.
+     */
+    public java.lang.String getLlmCallId() {
+      java.lang.Object ref = llmCallId_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        llmCallId_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The debited usage record's call_id (LlmCallUsageRecord.call_id) — the
+     * drill-down from this debit to the exact record it paid for. Empty for
+     * debits of records whose reporter sent no call id (they are located by
+     * execution_id + llm_call_sequence, as before).
+     * </pre>
+     *
+     * <code>string llm_call_id = 10 [json_name = "llmCallId"];</code>
+     * @return The bytes for llmCallId.
+     */
+    public com.google.protobuf.ByteString
+        getLlmCallIdBytes() {
+      java.lang.Object ref = llmCallId_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        llmCallId_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The debited usage record's call_id (LlmCallUsageRecord.call_id) — the
+     * drill-down from this debit to the exact record it paid for. Empty for
+     * debits of records whose reporter sent no call id (they are located by
+     * execution_id + llm_call_sequence, as before).
+     * </pre>
+     *
+     * <code>string llm_call_id = 10 [json_name = "llmCallId"];</code>
+     * @param value The llmCallId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setLlmCallId(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      llmCallId_ = value;
+      bitField0_ |= 0x00000010;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The debited usage record's call_id (LlmCallUsageRecord.call_id) — the
+     * drill-down from this debit to the exact record it paid for. Empty for
+     * debits of records whose reporter sent no call id (they are located by
+     * execution_id + llm_call_sequence, as before).
+     * </pre>
+     *
+     * <code>string llm_call_id = 10 [json_name = "llmCallId"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearLlmCallId() {
+      llmCallId_ = getDefaultInstance().getLlmCallId();
+      bitField0_ = (bitField0_ & ~0x00000010);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The debited usage record's call_id (LlmCallUsageRecord.call_id) — the
+     * drill-down from this debit to the exact record it paid for. Empty for
+     * debits of records whose reporter sent no call id (they are located by
+     * execution_id + llm_call_sequence, as before).
+     * </pre>
+     *
+     * <code>string llm_call_id = 10 [json_name = "llmCallId"];</code>
+     * @param value The bytes for llmCallId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setLlmCallIdBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      llmCallId_ = value;
+      bitField0_ |= 0x00000010;
       onChanged();
       return this;
     }
@@ -1329,7 +1526,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       purchaseId_ = value;
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }
@@ -1343,7 +1540,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearPurchaseId() {
       purchaseId_ = getDefaultInstance().getPurchaseId();
-      bitField0_ = (bitField0_ & ~0x00000010);
+      bitField0_ = (bitField0_ & ~0x00000020);
       onChanged();
       return this;
     }
@@ -1361,7 +1558,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       purchaseId_ = value;
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }
@@ -1421,7 +1618,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       grantId_ = value;
-      bitField0_ |= 0x00000020;
+      bitField0_ |= 0x00000040;
       onChanged();
       return this;
     }
@@ -1435,7 +1632,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearGrantId() {
       grantId_ = getDefaultInstance().getGrantId();
-      bitField0_ = (bitField0_ & ~0x00000020);
+      bitField0_ = (bitField0_ & ~0x00000040);
       onChanged();
       return this;
     }
@@ -1453,7 +1650,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       grantId_ = value;
-      bitField0_ |= 0x00000020;
+      bitField0_ |= 0x00000040;
       onChanged();
       return this;
     }
@@ -1513,7 +1710,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       reservationId_ = value;
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000080;
       onChanged();
       return this;
     }
@@ -1527,7 +1724,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearReservationId() {
       reservationId_ = getDefaultInstance().getReservationId();
-      bitField0_ = (bitField0_ & ~0x00000040);
+      bitField0_ = (bitField0_ & ~0x00000080);
       onChanged();
       return this;
     }
@@ -1545,7 +1742,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       reservationId_ = value;
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000080;
       onChanged();
       return this;
     }
@@ -1605,7 +1802,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       adjustedBy_ = value;
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000100;
       onChanged();
       return this;
     }
@@ -1619,7 +1816,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearAdjustedBy() {
       adjustedBy_ = getDefaultInstance().getAdjustedBy();
-      bitField0_ = (bitField0_ & ~0x00000080);
+      bitField0_ = (bitField0_ & ~0x00000100);
       onChanged();
       return this;
     }
@@ -1637,7 +1834,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       adjustedBy_ = value;
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000100;
       onChanged();
       return this;
     }
@@ -1697,7 +1894,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       description_ = value;
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000200;
       onChanged();
       return this;
     }
@@ -1711,7 +1908,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearDescription() {
       description_ = getDefaultInstance().getDescription();
-      bitField0_ = (bitField0_ & ~0x00000100);
+      bitField0_ = (bitField0_ & ~0x00000200);
       onChanged();
       return this;
     }
@@ -1729,7 +1926,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       description_ = value;
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000200;
       onChanged();
       return this;
     }

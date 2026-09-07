@@ -149,7 +149,7 @@ func (x *CreditLedgerEntry) GetCreatedAt() *timestamppb.Timestamp {
 // and drill-down purposes.
 //
 // Fields are populated based on the entry type:
-// - usage_debit: execution_id, session_id, agent_id, llm_call_sequence
+// - usage_debit: execution_id, session_id, agent_id, llm_call_sequence, llm_call_id
 // - purchase_credit / auto_recharge_credit: purchase_id
 // - adjustment_credit / adjustment_debit: adjusted_by, description
 // - reservation_hold / reservation_release: execution_id, reservation_id
@@ -161,8 +161,16 @@ type CreditLedgerSource struct {
 	SessionId string `protobuf:"bytes,2,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	// Agent that was executing.
 	AgentId string `protobuf:"bytes,3,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
-	// Sequence number of the LLM call within the execution (1-based).
+	// Sequence number of the LLM call within the execution (1-based), as the
+	// reporting proxy counted it. Display and ordering; the locator of the
+	// debited usage record is llm_call_id, because a proxy restart makes two
+	// calls of one execution share a sequence.
 	LlmCallSequence int32 `protobuf:"varint,4,opt,name=llm_call_sequence,json=llmCallSequence,proto3" json:"llm_call_sequence,omitempty"`
+	// The debited usage record's call_id (LlmCallUsageRecord.call_id) — the
+	// drill-down from this debit to the exact record it paid for. Empty for
+	// debits of records whose reporter sent no call id (they are located by
+	// execution_id + llm_call_sequence, as before).
+	LlmCallId string `protobuf:"bytes,10,opt,name=llm_call_id,json=llmCallId,proto3" json:"llm_call_id,omitempty"`
 	// Credit purchase that funded this credit.
 	PurchaseId string `protobuf:"bytes,5,opt,name=purchase_id,json=purchaseId,proto3" json:"purchase_id,omitempty"`
 	// Credit grant being consumed or created.
@@ -233,6 +241,13 @@ func (x *CreditLedgerSource) GetLlmCallSequence() int32 {
 		return x.LlmCallSequence
 	}
 	return 0
+}
+
+func (x *CreditLedgerSource) GetLlmCallId() string {
+	if x != nil {
+		return x.LlmCallId
+	}
+	return ""
 }
 
 func (x *CreditLedgerSource) GetPurchaseId() string {
@@ -885,13 +900,15 @@ const file_ai_stigmer_billing_v1_credit_proto_rawDesc = "" +
 	"\x06rating\x18\a \x01(\v2).ai.stigmer.billing.v1.BillingUsageRatingR\x06rating\x12A\n" +
 	"\x06source\x18\b \x01(\v2).ai.stigmer.billing.v1.CreditLedgerSourceR\x06source\x129\n" +
 	"\n" +
-	"created_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"\xc3\x02\n" +
+	"created_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"\xe3\x02\n" +
 	"\x12CreditLedgerSource\x12!\n" +
 	"\fexecution_id\x18\x01 \x01(\tR\vexecutionId\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x02 \x01(\tR\tsessionId\x12\x19\n" +
 	"\bagent_id\x18\x03 \x01(\tR\aagentId\x12*\n" +
-	"\x11llm_call_sequence\x18\x04 \x01(\x05R\x0fllmCallSequence\x12\x1f\n" +
+	"\x11llm_call_sequence\x18\x04 \x01(\x05R\x0fllmCallSequence\x12\x1e\n" +
+	"\vllm_call_id\x18\n" +
+	" \x01(\tR\tllmCallId\x12\x1f\n" +
 	"\vpurchase_id\x18\x05 \x01(\tR\n" +
 	"purchaseId\x12\x19\n" +
 	"\bgrant_id\x18\x06 \x01(\tR\agrantId\x12%\n" +
