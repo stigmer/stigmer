@@ -24,10 +24,10 @@
 // on the frontend port. Gating on `operator cluster health` == SERVING means
 // spawnTemporal only returns once every port is held, closing that steal race.
 import { execFile, spawn } from "node:child_process";
-import { once } from "node:events";
 import { connect } from "node:net";
 import { setTimeout as delay } from "node:timers/promises";
 import { promisify } from "node:util";
+import { stopChild, teeChildOutput } from "./child-process";
 import { getFreePort } from "./ports";
 
 const execFileAsync = promisify(execFile);
@@ -75,12 +75,8 @@ export async function spawnTemporal(): Promise<RunningTemporal> {
     { stdio: ["ignore", "pipe", "pipe"] },
   );
 
-  let logTail = "";
-  const appendLog = (chunk: Buffer): void => {
-    logTail = (logTail + chunk.toString("utf8")).slice(-LOG_TAIL_BYTES);
-  };
-  child.stdout.on("data", appendLog);
-  child.stderr.on("data", appendLog);
+  const output = teeChildOutput(child, { tailBytes: LOG_TAIL_BYTES });
+  const logTail = (): string => output.tail();
 
   let exit: { code: number | null; signal: NodeJS.Signals | null } | null = null;
   child.on("exit", (code, signal) => {
@@ -91,16 +87,14 @@ export async function spawnTemporal(): Promise<RunningTemporal> {
     // Await the actual exit (not just fire-and-forget SIGKILL) so the dev
     // server's ports are released before the next serial suite file boots its
     // own Temporal; a lingering, still-dying process can otherwise hold a port
-    // the next stack tries to allocate.
-    if (exit === null) {
-      child.kill("SIGKILL");
-      await once(child, "exit").catch(() => {});
-    }
+    // the next stack tries to allocate. An `error` event on the dying child is
+    // not a teardown failure.
+    await stopChild(child, { signal: "SIGKILL", graceMs: 0 }).catch(() => {});
   };
 
   try {
-    await waitForTcp(port, () => exit, () => logTail);
-    await waitForServing(hostPort, () => exit, () => logTail);
+    await waitForTcp(port, () => exit, logTail);
+    await waitForServing(hostPort, () => exit, logTail);
   } catch (err) {
     await stop();
     throw err;
@@ -109,7 +103,7 @@ export async function spawnTemporal(): Promise<RunningTemporal> {
   return {
     hostPort,
     namespace: NAMESPACE,
-    logTail: () => logTail,
+    logTail,
     stop,
   };
 }

@@ -6,12 +6,12 @@
 // files can boot servers concurrently without colliding. TCP-readiness only
 // proves the listener is up; the gRPC-level readiness gate lives in the target.
 import { spawn } from "node:child_process";
-import { createWriteStream } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { connect } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
+import { stopChild, teeChildOutput } from "./child-process";
 import { getFreePort } from "./ports";
 
 const TCP_READY_TIMEOUT_MS = 20_000;
@@ -105,26 +105,16 @@ export async function spawnServer(
     },
   });
 
-  let logTail = "";
   // Debug lever: STIGMER_CONFORMANCE_LOG_DIR tees the child's full output
-  // to a per-process file that SURVIVES teardown — the in-memory logTail
+  // to a per-process file that SURVIVES teardown — the in-memory tail
   // only surfaces on spawn failure, which makes intermittent mid-suite
   // races (writer-ordering flakes) undiagnosable without it.
-  const teeStream = process.env.STIGMER_CONFORMANCE_LOG_DIR
-    ? createWriteStream(
-        join(
-          process.env.STIGMER_CONFORMANCE_LOG_DIR,
-          `server-${port}-${Date.now()}.log`,
-        ),
-        { flags: "a" },
-      )
-    : undefined;
-  const appendLog = (chunk: Buffer): void => {
-    logTail = (logTail + chunk.toString("utf8")).slice(-LOG_TAIL_BYTES);
-    teeStream?.write(chunk);
-  };
-  child.stdout.on("data", appendLog);
-  child.stderr.on("data", appendLog);
+  const output = teeChildOutput(child, {
+    tailBytes: LOG_TAIL_BYTES,
+    file: process.env.STIGMER_CONFORMANCE_LOG_DIR
+      ? join(process.env.STIGMER_CONFORMANCE_LOG_DIR, `server-${port}-${Date.now()}.log`)
+      : undefined,
+  });
 
   let exit: { code: number | null; signal: NodeJS.Signals | null } | null = null;
   child.on("exit", (code, signal) => {
@@ -132,14 +122,17 @@ export async function spawnServer(
   });
 
   const stop = async (): Promise<void> => {
-    if (exit === null) {
-      child.kill("SIGKILL");
-    }
+    // SIGKILL, not SIGTERM: the server holds only throwaway state and has
+    // nothing worth draining. The order is the discipline child-process.ts
+    // documents — exit, then the tee, then the state dir the process was
+    // still using.
+    await stopChild(child, { signal: "SIGKILL", graceMs: 0 });
+    await output.close();
     await rm(stateDir, { recursive: true, force: true });
   };
 
   try {
-    await waitForTcp(port, () => exit, () => logTail);
+    await waitForTcp(port, () => exit, () => output.tail());
   } catch (err) {
     await stop();
     throw err;
@@ -150,7 +143,7 @@ export async function spawnServer(
     port,
     artifactBaseDir,
     artifactServeUrl,
-    logTail: () => logTail,
+    logTail: () => output.tail(),
     stop,
   };
 }

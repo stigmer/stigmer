@@ -15,7 +15,6 @@
 // environment sets the same variables directly and skips the launcher — the
 // CloudTarget never knows how the environment came to exist.
 import { execFile, spawn, type ChildProcess } from "node:child_process";
-import { once } from "node:events";
 import { mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { createInterface } from "node:readline";
@@ -26,6 +25,7 @@ import { createClient } from "@connectrpc/connect";
 import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
 import { PlatformClientCommandController } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/command_pb";
 import { PlatformClientTokenController } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/token_pb";
+import { stopChild } from "./child-process";
 import { createTransport, makeClients } from "./clients";
 import { newDirectLoginTenant } from "./direct-login-tenant";
 import { awaitGrpcReady } from "./grpc-ready";
@@ -452,24 +452,17 @@ async function waitForReadyLine(child: ChildProcess): Promise<ReadyLine> {
 // at the cost of leaking whatever was not yet stopped — containers (visible,
 // reapable with `docker ps`) AND the naked service JVM, which nothing lists
 // (stigmer/stigmer#801) — so the fallback firing is always worth a loud line.
-async function stopLauncher(child: ChildProcess): Promise<void> {
-  if (child.exitCode !== null || child.signalCode !== null) return;
-
-  const exited = once(child, "exit");
-  child.kill("SIGTERM");
-
-  const timer = setTimeout(() => {
-    console.error(
-      `[cloud-env] launcher did not exit within ${SHUTDOWN_GRACE_MS}ms of SIGTERM — ` +
-        "SIGKILL fallback; containers and the service JVM may have leaked " +
-        "(check `docker ps` and `pgrep -f stigmer_service_fatjar`; stigmer/stigmer#801)",
-    );
-    child.kill("SIGKILL");
-  }, SHUTDOWN_GRACE_MS);
-  timer.unref();
-  try {
-    await exited;
-  } finally {
-    clearTimeout(timer);
-  }
+// The shape is the harness's one stop discipline (child-process.ts); this was
+// its origin.
+function stopLauncher(child: ChildProcess): Promise<void> {
+  return stopChild(child, {
+    signal: "SIGTERM",
+    graceMs: SHUTDOWN_GRACE_MS,
+    onForceKill: () =>
+      console.error(
+        `[cloud-env] launcher did not exit within ${SHUTDOWN_GRACE_MS}ms of SIGTERM — ` +
+          "SIGKILL fallback; containers and the service JVM may have leaked " +
+          "(check `docker ps` and `pgrep -f stigmer_service_fatjar`; stigmer/stigmer#801)",
+      ),
+  });
 }
