@@ -1,20 +1,39 @@
 // Command conformance-cloudenv boots the hermetic cloud environment for the
 // conformance suite's cloud target: Testcontainers infrastructure (Postgres,
-// Redis, MinIO, OpenFGA), a Temporal dev server, and the stigmer-service fat
-// JAR in test security mode with real OpenFGA authorization.
+// Redis, MinIO, OpenFGA), a Temporal dev server, a mock platform identity
+// tenant, and the stigmer-service fat JAR in PRODUCTION security mode with
+// real OpenFGA authorization.
 //
 // It is spawned by the conformance suite's cloud global setup
 // (test/conformance/src/harness/global-setup-cloud.ts), which waits for a
 // single JSON ready-line on stdout and later terminates the process with
 // SIGTERM. Human-readable progress goes to stderr so stdout stays a clean
-// machine channel.
+// machine channel — and, since the ready line carries the tenant's signing
+// key, stdout is the ONLY place that key may appear. Nothing here logs it.
 //
 // Reuses the integration-test harness wholesale — one battle-tested boot
 // implementation, two consumers (Go integration tests and the TS conformance
-// suite) — with one deliberate divergence: OpenFGA is mandatory here. The
-// integration harness degrades to permit-all authorization when FGA is
-// unavailable, but a permit-all cloud target would silently invalidate every
-// multi-tenant conformance assertion, so this launcher fails loudly instead.
+// suite) — with two deliberate divergences from the Go suites' defaults:
+//
+//   - OpenFGA is mandatory. The integration harness degrades to permit-all
+//     authorization when FGA is unavailable, but a permit-all cloud target
+//     would silently invalidate every multi-tenant conformance assertion, so
+//     this launcher fails loudly instead.
+//   - The JAR runs the production security chain (GrpcSecurityConfigBase,
+//     HttpSecurityConfig, the Auth0 MachineAccountJwtProvider), trusting a
+//     mock identity tenant this process serves, exactly the way
+//     test/integration-security boots it. The Go suites keep test security
+//     mode; the conformance suite's job is to observe the edge (entry
+//     20260907.02 — D-S1 option (ii) of 20260904.02), so a synthetic
+//     tokenless caller would be the one thing it must not have.
+//
+// Production mode has a chicken-and-egg the harness resolves the way the
+// security suite does: before any credential can be accepted, one human
+// platform operator must already exist. SeedBootstrapOperator writes that
+// account and its FGA grants after the JAR boots; the ready line names its
+// subject and hands over the tenant material, and the TS side mints the
+// operator's first token itself and bootstraps everything else through
+// production RPCs.
 package main
 
 import (
@@ -35,6 +54,25 @@ import (
 // cache plus the JVM start. Generous because CI caches may be empty.
 const bootTimeout = 10 * time.Minute
 
+// The mock platform identity tenant's audiences — what the JAR is configured
+// to accept on inbound tenant tokens (AUTH0_API_AUDIENCE / AUTH0_MCP_AUDIENCE)
+// and what the TS side stamps on the tokens it mints. Reserved test names so
+// a token from this run can never be mistaken for a production one.
+const (
+	tenantAPIAudience = "https://api.conformance.stigmer.test"
+	tenantMCPAudience = "https://mcp.conformance.stigmer.test"
+)
+
+// The pre-auth bootstrap operator. Its IdpID is the `sub` the TS side mints
+// for it; the account id is what every FGA grant names. Both are constants:
+// the run's isolation comes from the fresh Postgres and FGA store, not from
+// unique names.
+const (
+	bootstrapOperatorAccountID = "conformance-bootstrap-operator"
+	bootstrapOperatorSubject   = "conformance-bootstrap-operator|tenant"
+	bootstrapOperatorEmail     = "bootstrap-operator@conformance.stigmer.test"
+)
+
 // readySignal is the single JSON line printed to stdout once the environment
 // accepts gRPC traffic. The TS global setup parses it to locate the service.
 // The HTTP address carries the Spring routes the gRPC port does not — the
@@ -43,10 +81,27 @@ const bootTimeout = 10 * time.Minute
 // side-channel proxy, the Stripe webhook and the public lane. The bidi
 // address is the Cursor BiDi proxy's own Netty listener (h2c), which Tomcat
 // cannot serve; the TS side publishes both to the suites through CLOUD_ENV.
+// The identity tenant group is what lets the TS side mint tokens the JAR
+// trusts: the bootstrap operator's first token, and the direct-login suite's
+// first-party tokens (CLOUD_ENV.directLogin*).
 type readySignal struct {
-	GrpcAddress       string `json:"grpcAddress"`
-	HTTPAddress       string `json:"httpAddress"`
-	CursorBidiAddress string `json:"cursorBidiAddress"`
+	GrpcAddress       string              `json:"grpcAddress"`
+	HTTPAddress       string              `json:"httpAddress"`
+	CursorBidiAddress string              `json:"cursorBidiAddress"`
+	IdentityTenant    identityTenantReady `json:"identityTenant"`
+}
+
+// identityTenantReady is the ready line's tenant group — the private half of
+// the tenant the JAR discovered at boot, plus the operator subject the seeding
+// above made resolvable. PrivateKeyPEM is a PKCS#8 PEM, the format the TS
+// direct-login mint consumes.
+type identityTenantReady struct {
+	Issuer           string `json:"issuer"`
+	KeyID            string `json:"kid"`
+	PrivateKeyPEM    string `json:"privateKeyPem"`
+	APIAudience      string `json:"apiAudience"`
+	MCPAudience      string `json:"mcpAudience"`
+	BootstrapSubject string `json:"bootstrapSubject"`
 }
 
 func main() {
@@ -117,6 +172,17 @@ func run(logger *slog.Logger) error {
 		return errors.New("openfga container did not start despite model dir and CLI being present")
 	}
 
+	// The mock identity tenant must be serving before the JAR starts:
+	// GrpcSecurityConfigBase runs OIDC discovery while its beans initialize,
+	// and a failed discovery fails the boot. An empty issuer makes the
+	// server's own URL the issuer (trailing slash, Auth0's shape).
+	tenant, err := harness.NewMockOIDCServer("", tenantAPIAudience)
+	if err != nil {
+		return fmt.Errorf("start mock identity tenant: %w", err)
+	}
+	defer tenant.Close()
+	logger.Info("mock identity tenant serving", "issuer", tenant.Issuer)
+
 	svc, err := harness.StartJavaService(bootCtx, harness.ServiceConfig{
 		JarPath:         jarPath,
 		AppPGHost:       h.AppPostgres.Host,
@@ -136,7 +202,24 @@ func run(logger *slog.Logger) error {
 		VaultAddr:       h.OpenBao.Addr,
 		VaultToken:      h.OpenBao.RootToken,
 		LogDir:          h.LogDir(),
-		Security:        harness.SecurityModeTest,
+		// Production security, trusting the tenant above. The token URL is
+		// where the JAR's MachineAccountJwtProvider fetches the machine
+		// account's client_credentials JWT (sub = AUTH0_CLIENT_ID@clients,
+		// the row BootstrapIdentitySeeder writes at boot).
+		Security:         harness.SecurityModeProduction,
+		Auth0IssuerURL:   tenant.Issuer,
+		Auth0Audience:    tenantAPIAudience,
+		Auth0McpAudience: tenantMCPAudience,
+		Auth0TokenURL:    tenant.URL + "/oauth/token",
+		// Production's token-shape posture for Stigmer-minted tokens: stamped
+		// with an environment audience, verified leniently (a token without
+		// an aud still verifies) — the prod overlay's posture; the value is
+		// per-environment by design, so it is the harness's own, shared with
+		// the security suite.
+		JWTAudience:     harness.StigmerJWTAudience,
+		RequireAudience: false,
+		// Production's proxy edge: a call with no scope header is refused.
+		ProxyRequireScopeHeader: true,
 		// The conformance global setup (cloud-env.ts) sets this on the
 		// launcher's environment from the suite's own redirect-URI constant —
 		// the single source of truth the OAuth suites assert against. Passed
@@ -169,14 +252,37 @@ func run(logger *slog.Logger) error {
 	// lifecycle alongside the containers.
 	h.Service = svc
 
-	if err := harness.SeedBaseFGATuples(bootCtx, fga); err != nil {
-		return fmt.Errorf("seed base FGA tuples: %w", err)
+	// After boot (Flyway has created s_iam.identity_account), before the
+	// first authenticated call (subjects resolve per request): the one
+	// pre-auth account production mode cannot create for itself.
+	if err := harness.SeedBootstrapOperator(bootCtx, h.AppPostgres, fga, harness.BootstrapOperatorInput{
+		IdentityAccountID: bootstrapOperatorAccountID,
+		IdpID:             bootstrapOperatorSubject,
+		Email:             bootstrapOperatorEmail,
+		Name:              "Conformance Bootstrap Operator",
+		FirstName:         "Conformance",
+		LastName:          "Bootstrap",
+		Org:               harness.TestOrg,
+	}); err != nil {
+		return fmt.Errorf("seed bootstrap operator: %w", err)
 	}
 
+	material, err := tenant.Material()
+	if err != nil {
+		return fmt.Errorf("export identity tenant material: %w", err)
+	}
 	ready, err := json.Marshal(readySignal{
 		GrpcAddress:       svc.GRPCAddress(),
 		HTTPAddress:       svc.HTTPAddress(),
 		CursorBidiAddress: svc.BiDiProxyAddress(),
+		IdentityTenant: identityTenantReady{
+			Issuer:           material.Issuer,
+			KeyID:            material.KeyID,
+			PrivateKeyPEM:    material.PrivateKeyPEM,
+			APIAudience:      tenantAPIAudience,
+			MCPAudience:      tenantMCPAudience,
+			BootstrapSubject: bootstrapOperatorSubject,
+		},
 	})
 	if err != nil {
 		return fmt.Errorf("marshal ready signal: %w", err)
@@ -186,6 +292,8 @@ func run(logger *slog.Logger) error {
 		"grpc_address", svc.GRPCAddress(),
 		"http_address", svc.HTTPAddress(),
 		"cursor_bidi_address", svc.BiDiProxyAddress(),
+		"identity_tenant", material.Issuer,
+		"security_mode", "production",
 		"service_log", svc.LogPath(),
 	)
 

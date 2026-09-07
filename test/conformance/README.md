@@ -147,12 +147,13 @@ npm run test:cloud -w @stigmer/conformance   # or: make test-conformance-cloud
 Its `globalSetup` (`global-setup-cloud.ts`) boots the environment **once per
 run** — a Go launcher (`test/integration/cmd/conformance-cloudenv`, reusing the
 integration harness) starts Testcontainers Postgres/Redis/MinIO/OpenFGA, a
-Temporal dev server, and the service fat JAR in test security mode with **real
-OpenFGA authorization** — then bootstraps a real identity (PlatformClient ->
-`mintUserToken`) and publishes endpoint + token to workers via env vars
-(`STIGMER_CONFORMANCE_CLOUD_*`). The `CloudTarget` itself is **connect-only**:
-point those env vars at any pre-provisioned endpoint and the globalSetup boot
-is skipped entirely.
+Temporal dev server, a mock platform identity tenant, and the service fat JAR
+in **production security mode** with **real OpenFGA authorization** — then
+bootstraps a real identity as the launcher's pre-seeded operator (a
+tenant-minted token -> PlatformClient -> `mintUserToken`) and publishes
+endpoint + token to workers via env vars (`STIGMER_CONFORMANCE_CLOUD_*`). The
+`CloudTarget` itself is **connect-only**: point those env vars at any
+pre-provisioned endpoint and the globalSetup boot is skipped entirely.
 
 Requirements: Docker, `go`, the `fga` CLI (`brew install openfga/tap/fga`), the
 `temporal` CLI, and the service JAR — `STIGMER_SERVICE_JAR`, or built in the
@@ -176,11 +177,13 @@ to the caller's account at position 1. The suite forges nothing about the
 tenant — it mints through `CloudTarget.directLoginTenant()`, which exists only
 where the environment hands the harness the tenant's signing key
 (`STIGMER_CONFORMANCE_CLOUD_DIRECT_LOGIN_ISSUER` / `_SIGNING_KEY_BASE64` /
-`_KID` / `_API_AUDIENCE` / optional `_MCP_AUDIENCE`): the composition readout
-substrate's mock tenant (`stigmer-cloud` `backend/services/stigmer-server/spike/identity-tenant.ts`
-writes that group beside the composition's own `STIGMER_IDP_*` boot trio). The
-hermetic Java launcher (test security mode, no edge) and every deployed
-endpoint (a real tenant's key is never conformance's) leave the group unset,
+`_KID` / `_API_AUDIENCE` / optional `_MCP_AUDIENCE`): the hermetic launcher's
+own tenant (published by the global setup from the launcher's ready line — the
+same key that minted the bootstrap operator's first token) and the composition
+readout substrate's mock tenant (`stigmer-cloud`
+`backend/services/stigmer-server/spike/identity-tenant.ts` writes that group
+beside the composition's own `STIGMER_IDP_*` boot trio). Every deployed
+endpoint (a real tenant's key is never conformance's) leaves the group unset,
 and the arms skip VISIBLY with the target's reason.
 
 **The cloud-capability suites** (E1 of the convergence program's DD-012 reset,
@@ -217,10 +220,38 @@ CRUD suites:
   target whose flag is true and whose lane is missing FAILS, never skips.
   That red is the implementing entry's acceptance.
 
-Authentication-class arms (401 without a bearer, foreign tokens, CORS,
-`denyAll`, the require-scope header) are unobservable in the launcher's test
-security mode and skip through `edgeAuthenticationBypass()` until the launcher
-runs production security (its own entry).
+**Launcher posture vs production.** The launcher boots Java the way production
+runs it wherever the harness can (stigmer-cloud entry `20260907.02`, closing
+D-S1 option (ii) of `20260904.02`): `STIGMER_SECURITY_MODE=production` — the
+real `GrpcSecurityConfigBase`, `HttpSecurityConfig` and Auth0
+`MachineAccountJwtProvider` load, trusting the launcher's in-process mock tenant
+(OIDC discovery, JWKS, `/oauth/token`, `/userinfo`) exactly as
+`test/integration-security` boots it; `STIGMER_PROXY_REQUIRE_SCOPE_HEADER=true`
+(production's default); a Stigmer-token audience stamped and verified leniently
+(production's pair). So the authentication-class arms — 401 without a bearer,
+foreign and expired tokens, the API-key lane, CORS, `denyAll`, the
+require-scope header, the direct-login tenant's six `classifyAuthError` arms —
+run against Java's real edge; there is no "bypassed edge" posture in the
+harness to skip on, by design (a target whose edge admits anonymous callers
+FAILS those arms). What still differs from production is written beside each
+override in `test/integration/harness/service.go` (`buildServiceEnv`) under one
+of three dispositions:
+
+- `production` — matches production: the security mode, the require-scope
+  header, the token audience.
+- `harness-constraint` — cannot match inside Testcontainers, reason stated:
+  `STIGMER_IDP_JWKS_VALIDATION_DISABLED` (the mock JWKS is plain HTTP), R2
+  path-style addressing (MinIO), `STIGMER_SANDBOX_TYPE=noop` and
+  `STIGMER_RUNNER_LAUNCHER_TYPE=noop` (no cluster).
+- `test-tuning` — a knob the Go suites turn to make a behavior reachable in
+  one test, with the arms that would notice named: the two billing sweeps off
+  (they would race the billing arms), `STIGMER_SHARING_MAX_TURNS_PER_SESSION=5`,
+  `STIGMER_SCHEDULES_MAX_CONSECUTIVE_FAILURES=2`,
+  `STIGMER_SCHEDULES_SESSION_DEFAULTS_HARNESS=native`.
+
+An override with no disposition is a defect in that file. The Go integration
+suites keep test security mode through their own `ServiceConfig`; only the
+conformance launcher's job is to observe the edge.
 
 ## Design
 

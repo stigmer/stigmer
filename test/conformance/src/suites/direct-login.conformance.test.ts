@@ -27,10 +27,11 @@
 // under the same claim shape, so it fails for the signature alone.
 //
 // Where the target has no tenant to mint for — the local OSS targets by
-// design (capability false), the hermetic cloud launcher (test security
-// mode, no edge) and every deployed endpoint (a real tenant's key is never
-// conformance's) — the arms skip VISIBLY with the target's reason, never
-// asserting admission on an unobservable edge.
+// design (capability false) and every deployed endpoint (a real tenant's key
+// is never conformance's) — the arms skip VISIBLY with the target's reason,
+// never asserting admission on an unobservable edge. The hermetic cloud
+// launcher DOES hand over its tenant (the one its production-mode Java
+// discovered at boot; entry 20260907.02), so the arms measure Java there.
 import { generateKeyPairSync } from "node:crypto";
 
 import { Code } from "@connectrpc/connect";
@@ -73,10 +74,6 @@ afterAll(async () => {
 function tenantOrSkip(ctx: {
   skip: (note?: string) => never;
 }): DirectLoginTenant {
-  const bypass = target.edgeAuthenticationBypass?.();
-  if (bypass !== undefined) {
-    ctx.skip(bypass);
-  }
   const tenant = target.directLoginTenant?.();
   if (tenant === undefined) {
     ctx.skip(

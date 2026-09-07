@@ -16,10 +16,17 @@
 // dials. They boot FIRST (the service's base URLs are fixed at its boot), are
 // handed to the launcher on its environment, and are scripted by the workers
 // over the control URL this setup publishes.
+//
+// The identity tenant runs the other way (entry 20260907.02): the launcher
+// owns it — it is what the JAR TRUSTS at boot, not a service it dials — and
+// hands its material back on the ready line. This setup mints the pre-seeded
+// bootstrap operator's first token from it and publishes it as the
+// direct-login tenant, so the same key that bootstrapped the run is what the
+// direct-login suite mints with.
 import {
   bootstrapPrimaryIdentity,
   CLOUD_ENV,
-  EDGE_AUTHENTICATION,
+  mintBootstrapOperatorToken,
   spawnCloudEnvironment,
   type CloudEnvironment,
 } from "./cloud-env";
@@ -46,7 +53,11 @@ export default async function setup(): Promise<() => Promise<void>> {
   }
 
   try {
-    const identity = await bootstrapPrimaryIdentity(environment.grpcBaseUrl);
+    const tenant = environment.identityTenant;
+    const identity = await bootstrapPrimaryIdentity(
+      environment.grpcBaseUrl,
+      mintBootstrapOperatorToken(tenant),
+    );
     process.env[CLOUD_ENV.address] = environment.grpcBaseUrl;
     process.env[CLOUD_ENV.httpAddress] = environment.httpBaseUrl;
     // The cloud-capability lanes: on Java every HTTP lane but bidi is the
@@ -62,11 +73,14 @@ export default async function setup(): Promise<() => Promise<void>> {
     process.env[CLOUD_ENV.platformClientId] = identity.platformClient.clientId;
     process.env[CLOUD_ENV.platformClientSecret] = identity.platformClient.clientSecret;
     process.env[CLOUD_ENV.operatorToken] = identity.operatorToken;
-    // This setup chose STIGMER_SECURITY_MODE=test for the JAR (the launcher's
-    // default — the tokenless bootstrap above depends on it), so it is the
-    // one place that may declare the edge bypassed. Pre-provisioned
-    // endpoints never reach this line and keep the enforced default.
-    process.env[CLOUD_ENV.edgeAuthentication] = EDGE_AUTHENTICATION.bypassedTestMode;
+    // The launcher's tenant, published as the direct-login tenant (the
+    // composition readout's spike tenant writes the same five variables to
+    // an env file). Base64 of the PEM: the `*_BASE64` custody pattern.
+    process.env[CLOUD_ENV.directLoginIssuer] = tenant.issuer;
+    process.env[CLOUD_ENV.directLoginSigningKeyBase64] = Buffer.from(tenant.privateKeyPem, "utf8").toString("base64");
+    process.env[CLOUD_ENV.directLoginKid] = tenant.kid;
+    process.env[CLOUD_ENV.directLoginApiAudience] = tenant.apiAudience;
+    process.env[CLOUD_ENV.directLoginMcpAudience] = tenant.mcpAudience;
   } catch (err) {
     await environment.stop();
     await fixtures.stop();

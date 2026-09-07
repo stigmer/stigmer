@@ -11,12 +11,7 @@
 // organization created via the production RPC, whose creation grants the
 // primary user ownership (IAM policies) and provisions a zero-balance billing
 // account — sufficient for the Class A (CRUD) domains.
-import {
-  CLOUD_ENV,
-  EDGE_AUTHENTICATION,
-  mintCloudUserToken,
-  resolveEdgeAuthentication,
-} from "../harness/cloud-env";
+import { CLOUD_ENV, mintCloudUserToken } from "../harness/cloud-env";
 import { createTransport, makeClients, type ConformanceClients } from "../harness/clients";
 import {
   newDirectLoginTenant,
@@ -132,10 +127,11 @@ export class CloudTarget implements TargetProfile {
   provisionPrivilegedScope?: () => Promise<PrivilegedScope>;
 
   // Present only when the environment hands over the platform tenant's
-  // signing key (CLOUD_ENV.directLogin*) — the readout substrate's mock
-  // tenant does; the hermetic launcher and every deployed endpoint never do
-  // (a real tenant's key is not conformance's to hold), so the method is
-  // absent there and the direct-login suite skips with the reason below.
+  // signing key (CLOUD_ENV.directLogin*) — the hermetic launcher's own
+  // tenant and the composition readout's mock tenant both do; a deployed
+  // endpoint never does (a real tenant's key is not conformance's to hold),
+  // so the method is absent there and the direct-login suite skips with the
+  // reason below.
   directLoginTenant?: () => DirectLoginTenant;
 
   async setup(): Promise<void> {
@@ -165,8 +161,8 @@ export class CloudTarget implements TargetProfile {
   directLoginUnavailable(): string {
     return (
       `${CLOUD_ENV.directLoginIssuer} is unset — this environment does not hand conformance the platform ` +
-      "tenant's signing key (the hermetic launcher runs in test security mode with no edge; a deployed " +
-      "endpoint's real tenant key is never conformance's to hold), so the direct-login lane cannot be driven here"
+      "tenant's signing key (a deployed endpoint's real tenant key is never conformance's to hold), " +
+      "so the direct-login lane cannot be driven here"
     );
   }
 
@@ -217,23 +213,6 @@ export class CloudTarget implements TargetProfile {
       throw new Error(`CloudTarget.setup() must be called before ${caller}()`);
     }
     return this.grpcBaseUrl;
-  }
-
-  // The environment's declared edge posture (CLOUD_ENV.edgeAuthentication;
-  // unset = enforced). Read per call, not cached at setup: the value is
-  // published by the global setup before any worker runs and never changes
-  // within a run, and reading late keeps this target constructible in unit
-  // tests that never call setup().
-  edgeAuthenticationBypass(): string | undefined {
-    if (resolveEdgeAuthentication() === EDGE_AUTHENTICATION.enforced) {
-      return undefined;
-    }
-    return (
-      "the hermetic launcher runs stigmer-service with STIGMER_SECURITY_MODE=test — " +
-      "GrpcSecurityConfigBase is not loaded and a synthetic caller stands in for every request, " +
-      "so the edge's require-authentication posture is unobservable here " +
-      "(production Java's posture is covered by test/integration-security; entry 20260904.02 D-S1)"
-    );
   }
 
   // The cloud-capability HTTP lanes, read per call from the CLOUD_ENV contract

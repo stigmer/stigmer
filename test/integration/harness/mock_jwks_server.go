@@ -3,12 +3,15 @@ package harness
 import (
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"math/big"
 	"net"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -17,9 +20,12 @@ import (
 
 // MockJWKSServer serves a JWKS endpoint and signs JWTs for testing
 // IdentityProvider federation without an external IdP. When started via
-// StartMockOIDCServer it also serves OpenID Connect discovery, enabling
-// Spring Security's JwtDecoders.fromOidcIssuerLocation() to bootstrap
-// against a local HTTP server instead of a real Auth0 tenant.
+// StartMockOIDCServer / NewMockOIDCServer it also plays the platform identity
+// tenant: OpenID Connect discovery (so Spring Security's
+// JwtDecoders.fromOidcIssuerLocation() bootstraps against a local HTTP server
+// instead of a real Auth0 tenant), the client_credentials token endpoint the
+// service's MachineAccountJwtProvider calls, and the bearer-checked /userinfo
+// the service's provisionMyAccount reads a first-login profile from.
 type MockJWKSServer struct {
 	URL      string
 	JWKSURL  string
@@ -113,12 +119,7 @@ func StartMockOIDCServer(t testing.TB, issuer, audience string) *MockJWKSServer 
 		m.Issuer = baseURL + "/"
 	}
 
-	mux := http.NewServeMux()
-	mux.HandleFunc("/jwks", m.handleJWKS)
-	mux.HandleFunc("/.well-known/openid-configuration", m.handleOIDCDiscovery)
-	mux.HandleFunc("/oauth/token", m.handleOAuthToken)
-
-	m.server = &http.Server{Handler: mux}
+	m.server = &http.Server{Handler: m.oidcMux()}
 
 	go m.server.Serve(listener)
 
@@ -129,6 +130,44 @@ func StartMockOIDCServer(t testing.TB, issuer, audience string) *MockJWKSServer 
 	t.Logf("mock OIDC server started: discovery=%s/.well-known/openid-configuration, jwks=%s, issuer=%s",
 		m.URL, m.JWKSURL, m.Issuer)
 	return m
+}
+
+// oidcMux is the platform-tenant route table, shared by both OIDC
+// constructors so the two boot paths (testing.TB and TestMain) cannot drift.
+func (m *MockJWKSServer) oidcMux() *http.ServeMux {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/jwks", m.handleJWKS)
+	mux.HandleFunc("/.well-known/openid-configuration", m.handleOIDCDiscovery)
+	mux.HandleFunc("/oauth/token", m.handleOAuthToken)
+	mux.HandleFunc("/userinfo", m.handleUserInfo)
+	return mux
+}
+
+// IdentityTenantMaterial is the private half of the tenant: what a test
+// process needs to mint tokens this server's JWKS verifies, exactly as the
+// tenant itself would. Hand it only to the process that owns the run.
+type IdentityTenantMaterial struct {
+	// Issuer is the `iss` claim and the discovery document's issuer.
+	Issuer string
+	// KeyID is the `kid` the JWKS publishes for the signing key.
+	KeyID string
+	// PrivateKeyPEM is the RSA signing key as a PKCS#8 PEM — the format the
+	// conformance suite's direct-login mint consumes (node:crypto createSign).
+	PrivateKeyPEM string
+}
+
+// Material exports the tenant's signing material. Test-only by construction:
+// the key is generated per server and dies with the process.
+func (m *MockJWKSServer) Material() (IdentityTenantMaterial, error) {
+	der, err := x509.MarshalPKCS8PrivateKey(m.privateKey)
+	if err != nil {
+		return IdentityTenantMaterial{}, fmt.Errorf("marshal tenant signing key: %w", err)
+	}
+	return IdentityTenantMaterial{
+		Issuer:        m.Issuer,
+		KeyID:         m.keyID,
+		PrivateKeyPEM: string(pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: der})),
+	}, nil
 }
 
 func (m *MockJWKSServer) handleJWKS(w http.ResponseWriter, _ *http.Request) {
@@ -211,6 +250,82 @@ func (m *MockJWKSServer) handleOAuthToken(w http.ResponseWriter, r *http.Request
 	json.NewEncoder(w).Encode(resp)
 }
 
+// handleUserInfo is the OIDC UserInfo endpoint the Java service's
+// provisionMyAccount reads a first-login profile from (its URL is derived from
+// security.authentication.idp-url, i.e. this server). The bearer must be a
+// token THIS tenant signed — a stranger's token or none answers 401, the way
+// Auth0 does — and the profile is a deterministic function of `sub`, so a
+// test that mints a subject knows the email the account will carry. The field
+// set is exactly what the service's UserInfoClient parses.
+func (m *MockJWKSServer) handleUserInfo(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	authz := r.Header.Get("Authorization")
+	if !strings.HasPrefix(authz, "Bearer ") {
+		w.Header().Set("WWW-Authenticate", `Bearer error="invalid_request"`)
+		http.Error(w, "missing bearer", http.StatusUnauthorized)
+		return
+	}
+	sub, err := m.subjectOfOwnToken(strings.TrimPrefix(authz, "Bearer "))
+	if err != nil {
+		w.Header().Set("WWW-Authenticate", `Bearer error="invalid_token"`)
+		http.Error(w, "invalid token: "+err.Error(), http.StatusUnauthorized)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(userInfoProfile(sub))
+}
+
+// subjectOfOwnToken verifies a compact JWS against this server's key and
+// issuer and returns its subject. Audience is deliberately not checked:
+// /userinfo is called with the same access token the API received, whose
+// audience is the API's, not this endpoint's.
+func (m *MockJWKSServer) subjectOfOwnToken(token string) (string, error) {
+	parsed, err := jwt.Parse(token, func(t *jwt.Token) (any, error) {
+		if t.Method.Alg() != jwt.SigningMethodRS256.Alg() {
+			return nil, fmt.Errorf("unexpected alg %q", t.Method.Alg())
+		}
+		return &m.privateKey.PublicKey, nil
+	}, jwt.WithIssuer(m.Issuer))
+	if err != nil {
+		return "", err
+	}
+	sub, err := parsed.Claims.GetSubject()
+	if err != nil || sub == "" {
+		return "", fmt.Errorf("token carries no subject")
+	}
+	return sub, nil
+}
+
+// userInfoProfile derives the profile for a subject. The email's local part is
+// the subject with every non-mailbox character folded to '-', so
+// "auth0|abc" becomes "auth0-abc@<domain>" — legible in a failing test and
+// unique per subject.
+func userInfoProfile(sub string) map[string]string {
+	local := strings.Map(func(r rune) rune {
+		switch {
+		case r >= 'a' && r <= 'z', r >= 'A' && r <= 'Z', r >= '0' && r <= '9', r == '.', r == '_', r == '-':
+			return r
+		default:
+			return '-'
+		}
+	}, sub)
+	return map[string]string{
+		"sub":         sub,
+		"email":       local + "@" + mockTenantEmailDomain,
+		"name":        "Tenant " + sub,
+		"given_name":  "Tenant",
+		"family_name": sub,
+		"picture":     "",
+	}
+}
+
+// mockTenantEmailDomain is the mailbox domain /userinfo profiles carry; a
+// reserved test TLD so no seeded account can ever collide with a real one.
+const mockTenantEmailDomain = "tenant.stigmer.test"
+
 // NewMockJWKSServer creates a MockJWKSServer without a testing.TB dependency.
 // The caller must call Close() when done. Use this from TestMain where
 // *testing.T is not available.
@@ -273,12 +388,7 @@ func NewMockOIDCServer(issuer, audience string) (*MockJWKSServer, error) {
 		m.Issuer = baseURL + "/"
 	}
 
-	mux := http.NewServeMux()
-	mux.HandleFunc("/jwks", m.handleJWKS)
-	mux.HandleFunc("/.well-known/openid-configuration", m.handleOIDCDiscovery)
-	mux.HandleFunc("/oauth/token", m.handleOAuthToken)
-
-	m.server = &http.Server{Handler: mux}
+	m.server = &http.Server{Handler: m.oidcMux()}
 	go m.server.Serve(listener)
 	return m, nil
 }

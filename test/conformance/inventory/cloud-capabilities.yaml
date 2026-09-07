@@ -22,12 +22,10 @@
 #   java_test    path under .../src/test/java/ai/stigmer, or `none`
 #   class        behavior | carve-out (a DD-012 byte-identical carve-out) | adversarial
 #   disposition  conformance | deviation | unit | smoke | debris-candidate | debris
-#   observability launcher | launcher-authz-only | composition-only | none
-#                (`launcher-authz-only`: needs production security mode — the
-#                hermetic launcher runs STIGMER_SECURITY_MODE=test, which does
-#                not load HttpSecurityConfig; those tests skip through
-#                TargetProfile.edgeAuthenticationBypass() until the launcher
-#                entry lands)
+#   observability launcher | composition-only | none
+#                (the hermetic launcher runs Java in PRODUCTION security mode
+#                since entry 20260907.02, so authentication-class rows are
+#                `launcher` like every other observable row)
 #   caller       primary | operator | outsider | anonymous | runner-token | none
 #   needs        fixtures/affordances the test requires
 #   note         optional context
@@ -1568,11 +1566,11 @@ rows:
       proxy/authorization/ProxyScopeAuthorizationTest.java
     class: adversarial
     disposition: conformance
-    observability: launcher-authz-only
+    observability: launcher
     caller: primary
     needs: [fake-llm-upstream]
     note: >-
-      The harness boots Java with STIGMER_PROXY_REQUIRE_SCOPE_HEADER=false (F6); the row skips with a stated reason until the launcher entry restores production posture.
+      The conformance launcher boots Java with STIGMER_PROXY_REQUIRE_SCOPE_HEADER=true, production's default (entry 20260907.02 restored the posture E1's F6 found relaxed); the Go integration suites keep false through ServiceConfig's zero value.
   - id: proxy.llm.authn.no-bearer-401
     surface: proxy
     lane: >-
@@ -1585,7 +1583,7 @@ rows:
       none
     class: adversarial
     disposition: conformance
-    observability: launcher-authz-only
+    observability: launcher
     caller: anonymous
     needs: [fake-llm-upstream]
   - id: proxy.llm.authn.foreign-or-expired-token-401
@@ -1600,7 +1598,7 @@ rows:
       none
     class: adversarial
     disposition: conformance
-    observability: launcher-authz-only
+    observability: launcher
     caller: anonymous
     needs: [fake-llm-upstream]
   - id: proxy.llm.authn.x-api-key-header-accepted
@@ -1615,7 +1613,7 @@ rows:
       none
     class: behavior
     disposition: conformance
-    observability: launcher-authz-only
+    observability: launcher
     caller: primary
     needs: [fake-llm-upstream, agent-execution]
   - id: proxy.llm.upstream.connection-refused-502
@@ -2015,7 +2013,7 @@ rows:
       none
     class: adversarial
     disposition: conformance
-    observability: launcher-authz-only
+    observability: launcher
     caller: anonymous
     needs: [none]
   - id: proxy.health.anonymous-up
@@ -2045,7 +2043,7 @@ rows:
       none
     class: adversarial
     disposition: conformance
-    observability: launcher-authz-only
+    observability: launcher
     caller: anonymous
     needs: [none]
   - id: proxy.authorization.decision-cache-five-minutes
@@ -2434,11 +2432,11 @@ rows:
       none
     class: carve-out
     disposition: conformance
-    observability: launcher-authz-only
+    observability: launcher
     caller: anonymous
     needs: [none]
     note: >-
-      HttpSecurityConfig is not loaded in test security mode; the row skips with the stated reason until the launcher entry lands. P1's handoff carries this — P1 verifies the allow-list in its own smoke (ruling Q8).
+      Measured on the hermetic launcher since entry 20260907.02 (production security mode loads HttpSecurityConfig). P1's smoke verifies the same allow-list against the deployed lane (ruling Q8).
   - id: public.edge.public-paths-anonymous
     surface: public
     lane: >-
@@ -2451,7 +2449,7 @@ rows:
       none
     class: behavior
     disposition: conformance
-    observability: launcher-authz-only
+    observability: launcher
     caller: anonymous
     needs: [none]
 
