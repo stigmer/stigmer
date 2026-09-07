@@ -187,7 +187,11 @@ describe.skipIf(!proxyServed)("Side-channel proxy conformance (sideChannelProxy 
       await control.llm.enqueue({
         kind: "anthropic",
         body: anthropicText("relayed", { inputTokens: 11, outputTokens: 3 }),
-        headers: { "request-id": "req_conf_1", "x-fake-upstream-request-id": "infra_1", "keep-alive": "timeout=5" },
+        // A keep-alive value NO server framing would produce on its own: Node's
+        // http server advertises `timeout=5` by default on every keep-alive
+        // response, so asserting on that value would read the proxy's own
+        // framing as a relayed upstream header (the C6 composition tripped it).
+        headers: { "request-id": "req_conf_1", "x-fake-upstream-request-id": "infra_1", "keep-alive": "timeout=42, max=7" },
       });
 
       const response = await anthropicCall(executionId);
@@ -199,7 +203,7 @@ describe.skipIf(!proxyServed)("Side-channel proxy conformance (sideChannelProxy 
       // is its own business.
       expect(response.headers.get("request-id")).toBe("req_conf_1");
       expect(response.headers.get("x-fake-upstream-request-id")).toBeNull();
-      expect(response.headers.get("keep-alive")).not.toBe("timeout=5");
+      expect(response.headers.get("keep-alive")).not.toBe("timeout=42, max=7");
       const body = await response.text();
       expect(body).toContain("event: message_start");
       expect(body).toContain('"text":"relayed"');
