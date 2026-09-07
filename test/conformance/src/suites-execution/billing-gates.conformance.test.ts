@@ -111,6 +111,23 @@ describe.skipIf(!gatesEnabled)("Billing gates — settle, the approval STOP gate
     });
   }
 
+  // Settle runs in the workflow's finally block AFTER the terminal status is
+  // written, so a phase observer returns while the hold is still reserved.
+  // Any arm that reasons about the balance of a finished run must wait for
+  // the hold to be gone first — draining against a stale `available` and then
+  // having the release land admits what the arm expected to be refused (the
+  // rearm arm did exactly that once on CI, stigmer run 34028008217).
+  async function awaitSettled(org: string): Promise<Awaited<ReturnType<typeof balance>>> {
+    const deadline = Date.now() + 15_000;
+    let after = await balance(org);
+    while (after.reservedMicros !== 0n && Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, 500));
+      after = await balance(org);
+    }
+    expect(after.reservedMicros, "no reservation remains held after settle").toBe(0n);
+    return after;
+  }
+
   async function provisionAgent(org: string): Promise<string> {
     const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("agent") }));
     fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
@@ -143,15 +160,7 @@ describe.skipIf(!gatesEnabled)("Billing gates — settle, the approval STOP gate
     const final = await awaitTerminal(clients, created.metadata!.id);
     expect(final.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
 
-    // Settle runs in the workflow's finally block after the terminal status;
-    // give the observer a moment, then require the hold to be gone.
-    const deadline = Date.now() + 15_000;
-    let after = await balance(org);
-    while (after.reservedMicros !== 0n && Date.now() < deadline) {
-      await new Promise((r) => setTimeout(r, 500));
-      after = await balance(org);
-    }
-    expect(after.reservedMicros, "no reservation remains held after settle").toBe(0n);
+    const after = await awaitSettled(org);
     expect(after.availableMicros, "the run cost at most what it used; the hold itself is not spent").toBeLessThanOrEqual(before.availableMicros);
   });
 
@@ -193,6 +202,10 @@ describe.skipIf(!gatesEnabled)("Billing gates — settle, the approval STOP gate
     const executionId = created.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
     await awaitPhase(clients, executionId, ExecutionPhase.EXECUTION_FAILED);
+    // The row is about a SETTLED failed run: wait for the hold to return
+    // before draining, or the release lands after the drain and re-funds the
+    // org under the arm's feet.
+    await awaitSettled(org);
 
     await drainPast(org, 1n);
     const refused = await expectGrpcCode(
