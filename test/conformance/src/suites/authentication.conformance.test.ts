@@ -31,13 +31,12 @@
 // garbage-credential clients through the TARGET's own seams
 // (anonymousClients / clientsPresenting), never a hand-built transport.
 //
-// One environment cannot show the contract: the hermetic cloud launcher
-// boots Java in test security mode, where no edge authentication is loaded
-// and a synthetic caller stands in for every request. The two credential
-// arms skip VISIBLY there, carrying the target's stated reason
-// (edgeAuthenticationBypass) — never asserting admission, which would pin
-// a harness artifact as a contract (D-S1, entry 20260904.02). The
-// is_public and health arms hold on every environment regardless.
+// Every environment shows the contract. The hermetic cloud launcher boots
+// Java in PRODUCTION security mode against its own mock identity tenant
+// (entry 20260907.02, closing D-S1 option (ii) of 20260904.02), so the
+// credential arms measure Java's real interceptor there — the harness no
+// longer has a "bypassed edge" posture to skip on, by design: a target whose
+// edge admits anonymous callers FAILS these arms, never skips them.
 import { Code } from "@connectrpc/connect";
 import { HealthCheckResponse_ServingStatus } from "@stigmer/protos/grpc/health/v1/health_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
@@ -68,19 +67,8 @@ afterAll(async () => {
   await target?.teardown();
 });
 
-// Skips the credential arm, with the target's own reason, where the
-// environment's edge is declared bypassed — a visible skip in the roster,
-// never a silent pass.
-function skipIfEdgeBypassed(ctx: { skip: (note?: string) => never }): void {
-  const reason = target.edgeAuthenticationBypass?.();
-  if (reason !== undefined) {
-    ctx.skip(reason);
-  }
-}
-
 describe("authentication posture: a request with no credential", () => {
-  it("is refused on a non-public method with the byte-pinned copy where authentication is required, admitted as the operator where it is not", async (ctx) => {
-    skipIfEdgeBypassed(ctx);
+  it("is refused on a non-public method with the byte-pinned copy where authentication is required, admitted as the operator where it is not", async () => {
     const anonymous = target.anonymousClients();
     // findMyOrganizations takes Empty and runs no validation — a pure
     // position-1 probe (the same reason the readiness gate uses it).
@@ -120,8 +108,7 @@ describe("authentication posture: a request with no credential", () => {
 });
 
 describe("authentication posture: a request with a credential nothing claims", () => {
-  it("is refused UNAUTHENTICATED where a verifier is composed, admitted as the operator on verifier-less targets", async (ctx) => {
-    skipIfEdgeBypassed(ctx);
+  it("is refused UNAUTHENTICATED where a verifier is composed, admitted as the operator on verifier-less targets", async () => {
     const presenting = target.clientsPresenting(UNCLAIMABLE_CREDENTIAL);
     if (target.capabilities.requiresAuthentication) {
       // Code only: the two editions word this refusal differently by
@@ -188,8 +175,7 @@ describe("authentication posture: a request with an API-key credential", () => {
     };
   }
 
-  it("a minted key authenticates as its owning account — a write through the key carries the owner's id", async (ctx) => {
-    skipIfEdgeBypassed(ctx);
+  it("a minted key authenticates as its owning account — a write through the key carries the owner's id", async () => {
     const key = await mintKey();
     expect(key.plaintext, "create returns the plaintext exactly once").toMatch(
       /^stk_/,
@@ -217,8 +203,7 @@ describe("authentication posture: a request with an API-key credential", () => {
     ).toBe(key.ownerId);
   });
 
-  it("a garbage stk_ credential is refused with the shared copy where authentication is required, admitted as the operator where it is not", async (ctx) => {
-    skipIfEdgeBypassed(ctx);
+  it("a garbage stk_ credential is refused with the shared copy where authentication is required, admitted as the operator where it is not", async () => {
     const presenting = target.clientsPresenting(
       "stk_conformance-not-a-real-key",
     );
@@ -242,7 +227,6 @@ describe("authentication posture: a request with an API-key credential", () => {
   });
 
   it("a deleted key is refused on the very next request where authentication is required", async (ctx) => {
-    skipIfEdgeBypassed(ctx);
     if (!target.capabilities.requiresAuthentication) {
       ctx.skip(
         "verifier-less target: revocation has no lane to act on (the credential falls through to the operator)",

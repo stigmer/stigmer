@@ -14,7 +14,9 @@ import (
 // subjects to internal identity accounts via the persistence layer — so the
 // bootstrap identity must exist before any authenticated call can succeed.
 // That chicken-and-egg is the ONLY legitimate reason to seed a Tier-1 kind
-// behind the service's back, and only the integration-security suite has it.
+// behind the service's back; the integration-security suite and the
+// conformance launcher (both production-mode boots) have it, through
+// SeedBootstrapOperator.
 //
 // Everything else must seed through the front door instead
 // (CreateIdentityAccount / GrantOrgRole): direct writes are storage-coupled

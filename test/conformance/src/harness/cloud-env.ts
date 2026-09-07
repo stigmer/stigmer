@@ -1,12 +1,15 @@
 // Hermetic cloud environment: launcher process + identity bootstrap.
 // Domain: conformance harness (cloud target lifecycle).
 //
-// The heavy boot (Testcontainers infra + the Java stigmer-service fat JAR)
-// lives in a Go launcher that reuses the battle-tested integration harness
+// The heavy boot (Testcontainers infra + a mock platform identity tenant +
+// the Java stigmer-service fat JAR in PRODUCTION security mode) lives in a Go
+// launcher that reuses the battle-tested integration harness
 // (test/integration/cmd/conformance-cloudenv). This module owns the TS side:
-// spawning that launcher, performing the one-time auth bootstrap over gRPC,
-// and defining the env-var contract through which the cloud global setup
-// publishes the environment to test workers.
+// spawning that launcher, minting the pre-seeded bootstrap operator's first
+// token from the tenant material the launcher hands over, performing the
+// one-time auth bootstrap over gRPC as that operator, and defining the
+// env-var contract through which the cloud global setup publishes the
+// environment to test workers.
 //
 // Env vars are the interface deliberately: a future run against a deployed
 // environment sets the same variables directly and skips the launcher — the
@@ -24,6 +27,7 @@ import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampo
 import { PlatformClientCommandController } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/command_pb";
 import { PlatformClientTokenController } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/token_pb";
 import { createTransport, makeClients } from "./clients";
+import { newDirectLoginTenant } from "./direct-login-tenant";
 import { awaitGrpcReady } from "./grpc-ready";
 import { CONFORMANCE_OAUTH_REDIRECT_URI } from "./server-process";
 import { uniqueName } from "../support/naming";
@@ -52,34 +56,21 @@ export const CLOUD_ENV = {
   // credentials to a real deployment is the permanent skip the stigmer#547
   // ruling recorded, so privileged-lane assertions skip there.
   operatorToken: "STIGMER_CONFORMANCE_CLOUD_OPERATOR_TOKEN",
-  // Whether the environment's serving edge authenticates callers at all —
-  // `enforced` (the DEFAULT when unset: production Java's interceptor, the
-  // TS composition's declared posture) or `bypassed-test-mode`. The hermetic
-  // launcher boots the JAR with STIGMER_SECURITY_MODE=test, which does NOT
-  // load GrpcSecurityConfigBase: a synthetic caller stands in for every
-  // request, credential or not — the door bootstrapPrimaryIdentity walks
-  // through below. Only global-setup-cloud.ts, the code that CHOSE that
-  // mode, declares the bypass; a pre-provisioned or deployed endpoint that
-  // forgets the variable gets the production contract and fails loudly if
-  // its edge is open (DD-012: never a false green). The authentication
-  // suite skips its credential arms VISIBLY where the edge is bypassed and
-  // asserts them everywhere else. Java's production-mode posture is
-  // covered by test/integration-security; making the hermetic launcher run
-  // production mode is a recorded follow-up (entry 20260904.02, D-S1).
-  edgeAuthentication: "STIGMER_CONFORMANCE_CLOUD_EDGE_AUTHENTICATION",
   // The platform identity tenant the server under test was booted against
-  // (its STIGMER_IDP_URL / Java idp-url), as the readout substrate's mock
-  // tenant declares it — so the direct-login suite can MINT the tokens a
-  // console, desktop, CLI or MCP client presents and drive the server's
-  // direct-login lane (stigmer-cloud#604, the S1 lane). The signing key is
-  // the private half of the key the tenant's JWKS publishes (base64 of a
-  // PKCS#8 PEM, the composition's `*_BASE64` custody pattern); the kid names
-  // it in that document. Deliberately UNSET wherever the suite cannot own
-  // the tenant's key — the hermetic launcher (test security mode, no edge)
-  // and any deployed endpoint (a real tenant's key is never handed to
-  // conformance) — so CloudTarget exposes no directLoginTenant and the
-  // suite skips VISIBLY. The API audience is required with the issuer; the
-  // MCP audience is optional (blank = the tenant mints for the API alone).
+  // (its STIGMER_IDP_URL / Java idp-url), as the environment's mock tenant
+  // declares it — so the direct-login suite can MINT the tokens a console,
+  // desktop, CLI or MCP client presents and drive the server's direct-login
+  // lane (stigmer-cloud#604, the S1 lane). The signing key is the private
+  // half of the key the tenant's JWKS publishes (base64 of a PKCS#8 PEM, the
+  // composition's `*_BASE64` custody pattern); the kid names it in that
+  // document. Set by whoever owns the tenant: the hermetic launcher hands
+  // its in-process tenant's material over on the ready line (the same
+  // material minted the bootstrap operator's first token); the composition
+  // readout's spike tenant writes an env file. Deliberately UNSET on any
+  // deployed endpoint — a real tenant's key is never handed to conformance —
+  // so CloudTarget exposes no directLoginTenant and the suite skips VISIBLY.
+  // The API audience is required with the issuer; the MCP audience is
+  // optional (blank = the tenant mints for the API alone).
   directLoginIssuer: "STIGMER_CONFORMANCE_CLOUD_DIRECT_LOGIN_ISSUER",
   directLoginSigningKeyBase64: "STIGMER_CONFORMANCE_CLOUD_DIRECT_LOGIN_SIGNING_KEY_BASE64",
   directLoginKid: "STIGMER_CONFORMANCE_CLOUD_DIRECT_LOGIN_KID",
@@ -110,34 +101,10 @@ export const CLOUD_ENV = {
   fixturesControlUrl: "STIGMER_CONFORMANCE_CLOUD_FIXTURES_CONTROL_URL",
 } as const;
 
-// The two declared edge postures — see CLOUD_ENV.edgeAuthentication.
-export const EDGE_AUTHENTICATION = {
-  enforced: "enforced",
-  bypassedTestMode: "bypassed-test-mode",
-} as const;
-export type EdgeAuthentication =
-  (typeof EDGE_AUTHENTICATION)[keyof typeof EDGE_AUTHENTICATION];
-
-// Resolves the declared edge posture: unset = enforced (the production
-// contract). Any other value is a harness misconfiguration, thrown loudly
-// rather than coerced to either posture.
-export function resolveEdgeAuthentication(): EdgeAuthentication {
-  const raw = process.env[CLOUD_ENV.edgeAuthentication];
-  if (raw === undefined || raw === "" || raw === EDGE_AUTHENTICATION.enforced) {
-    return EDGE_AUTHENTICATION.enforced;
-  }
-  if (raw === EDGE_AUTHENTICATION.bypassedTestMode) {
-    return EDGE_AUTHENTICATION.bypassedTestMode;
-  }
-  throw new Error(
-    `${CLOUD_ENV.edgeAuthentication} must be "${EDGE_AUTHENTICATION.enforced}" or "${EDGE_AUTHENTICATION.bypassedTestMode}" when set; got "${raw}"`,
-  );
-}
-
-// The org whose FGA ownership tuples the launcher seeds for the synthetic test
-// identity (must match harness.TestOrg / fga_seeder.go in test/integration).
-// The bootstrap creates its PlatformClient here because it is the only org the
-// tokenless caller is guaranteed to own.
+// The org whose FGA ownership tuple the launcher seeds for the bootstrap
+// operator (must match harness.TestOrg / SeedBootstrapOperator in
+// test/integration). The bootstrap creates its PlatformClient here because it
+// is the only org that operator is guaranteed to own.
 const FGA_SEEDED_ORG = "test-org";
 
 const execFileAsync = promisify(execFile);
@@ -168,7 +135,23 @@ export interface CloudEnvironment {
   // The Cursor BiDi proxy's own h2c listener (Netty; Tomcat cannot serve
   // Connect bidi streams), published by the launcher's ready line since E1.
   readonly cursorBidiBaseUrl: string;
+  // The mock platform identity tenant the JAR discovered at boot — its
+  // private half, so this process can mint what the tenant would (entry
+  // 20260907.02). Test-only material that lives for the run.
+  readonly identityTenant: IdentityTenant;
   stop(): Promise<void>;
+}
+
+// The ready line's tenant group. `bootstrapSubject` is the `sub` of the one
+// pre-seeded platform operator (SeedBootstrapOperator in the launcher) —
+// the only identity that can act before any PlatformClient exists.
+export interface IdentityTenant {
+  readonly issuer: string;
+  readonly kid: string;
+  readonly privateKeyPem: string;
+  readonly apiAudience: string;
+  readonly mcpAudience: string;
+  readonly bootstrapSubject: string;
 }
 
 export interface PlatformClientCredentials {
@@ -222,24 +205,45 @@ export async function spawnCloudEnvironment(launcherEnv: Record<string, string> 
     grpcBaseUrl: `http://${readyLine.grpcAddress}`,
     httpBaseUrl: readyLine.httpAddress,
     cursorBidiBaseUrl: readyLine.cursorBidiAddress,
+    identityTenant: readyLine.identityTenant,
     stop: () => stopLauncher(child),
   };
 }
 
-// One-time auth bootstrap, run once per suite invocation:
-// tokenless call (the launcher's test security mode maps it to the synthetic
-// FGA-seeded identity — the edge posture CLOUD_ENV.edgeAuthentication
-// declares as bypassed) -> create a PlatformClient in the seeded org -> mint
-// a real Stigmer JWT for a fresh primary user. Everything after this runs as
-// that user through the production token-verification path.
-export async function bootstrapPrimaryIdentity(grpcBaseUrl: string): Promise<PrimaryIdentity> {
-  const tokenlessTransport = createTransport(grpcBaseUrl);
+// Mints the bootstrap operator's first credential: a first-party token from
+// the environment's tenant for the pre-seeded operator subject — the same
+// mint the direct-login suite uses, so the bootstrap presents exactly what a
+// console would after login. Production Java resolves the subject to the
+// seeded account, and the operator's FGA grants do the rest.
+export function mintBootstrapOperatorToken(tenant: IdentityTenant): string {
+  return newDirectLoginTenant({
+    issuer: tenant.issuer,
+    signingKeyPem: tenant.privateKeyPem,
+    kid: tenant.kid,
+    apiAudience: tenant.apiAudience,
+    mcpAudience: tenant.mcpAudience === "" ? undefined : tenant.mcpAudience,
+  }).mint({ subject: tenant.bootstrapSubject });
+}
+
+// One-time auth bootstrap, run once per suite invocation, AS the pre-seeded
+// bootstrap operator: readiness probe -> create a PlatformClient in the org
+// the operator owns -> mint a real Stigmer JWT for a fresh primary user ->
+// grant a second fresh user the operator role. Every call carries the
+// operator's Bearer — the edge is production Java's interceptor, and a
+// tokenless call would be refused UNAUTHENTICATED (the readiness probe
+// included: findMyOrganizations is not is_public). Everything after this
+// runs as the minted users through the production token-verification path.
+export async function bootstrapPrimaryIdentity(
+  grpcBaseUrl: string,
+  bootstrapOperatorToken: string,
+): Promise<PrimaryIdentity> {
+  const operatorTransport = createTransport(grpcBaseUrl, { bearerToken: bootstrapOperatorToken });
   await awaitGrpcReady(
-    makeClients(tokenlessTransport),
+    makeClients(operatorTransport),
     () => "(cloud environment: see the launcher's stderr and stigmer-service-*.log)",
   );
 
-  const platformClientCommand = createClient(PlatformClientCommandController, tokenlessTransport);
+  const platformClientCommand = createClient(PlatformClientCommandController, operatorTransport);
   const created = await platformClientCommand.create({
     apiVersion: "iam.stigmer.ai/v1",
     kind: "PlatformClient",
@@ -256,7 +260,7 @@ export async function bootstrapPrimaryIdentity(grpcBaseUrl: string): Promise<Pri
   const platformClient: PlatformClientCredentials = { clientId, clientSecret: created.clientSecret };
 
   const token = await mintCloudUserToken(grpcBaseUrl, platformClient, uniqueName("conf-user"));
-  const operatorToken = await bootstrapOperatorIdentity(grpcBaseUrl, tokenlessTransport, platformClient);
+  const operatorToken = await bootstrapOperatorIdentity(grpcBaseUrl, operatorTransport, platformClient);
   return { token, platformClient, operatorToken };
 }
 
@@ -264,20 +268,20 @@ export async function bootstrapPrimaryIdentity(grpcBaseUrl: string): Promise<Pri
 // (stigmer#547): mint a fresh user via the bootstrap PlatformClient, then
 // grant it `operator` on platform:stigmer with bootstrapPolicy — the exact
 // row + FGA-tuple shape the production BootstrapIdentitySeeder writes for the
-// machine account. The tokenless caller qualifies because the launcher's FGA
-// seeding makes the synthetic test identity a platform operator, which
-// derives can_bootstrap_iam. (The ordinary IamPolicy `create` RPC cannot
-// express this grant: the platform kind declares no grantable_roles and
-// `operator` is not an IamRole — bootstrapPolicy is the sanctioned lane.)
+// machine account. The bootstrap operator qualifies because the launcher
+// seeded it as a platform operator, which derives can_bootstrap_iam. (The
+// ordinary IamPolicy `create` RPC cannot express this grant: the platform
+// kind declares no grantable_roles and `operator` is not an IamRole —
+// bootstrapPolicy is the sanctioned lane.)
 async function bootstrapOperatorIdentity(
   grpcBaseUrl: string,
-  tokenlessTransport: ReturnType<typeof createTransport>,
+  operatorTransport: ReturnType<typeof createTransport>,
   platformClient: PlatformClientCredentials,
 ): Promise<string> {
   const operatorToken = await mintCloudUserToken(grpcBaseUrl, platformClient, uniqueName("conf-operator"));
   const operatorAccountId = jwtSubject(operatorToken);
 
-  const iamPolicyCommand = createClient(IamPolicyCommandController, tokenlessTransport);
+  const iamPolicyCommand = createClient(IamPolicyCommandController, operatorTransport);
   await iamPolicyCommand.bootstrapPolicy({
     principal: { kind: "identity_account", id: operatorAccountId },
     resource: { kind: "platform", id: "stigmer" },
@@ -329,6 +333,61 @@ interface ReadyLine {
   readonly grpcAddress: string;
   readonly httpAddress: string;
   readonly cursorBidiAddress: string;
+  readonly identityTenant: IdentityTenant;
+}
+
+// The launcher's readySignal, field for field (cmd/conformance-cloudenv).
+// Parsed strictly: the addresses and the whole tenant group are required, so
+// a launcher that forgot a field fails here with the field named rather than
+// failing later at the first mint or the first proxy call.
+function parseReadyLine(line: string): ReadyLine | undefined {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(line);
+  } catch {
+    // Not the ready-line; the launcher keeps stdout otherwise silent.
+    return undefined;
+  }
+  if (typeof parsed !== "object" || parsed === null) {
+    return undefined;
+  }
+  const record = parsed as Record<string, unknown>;
+  const requiredString = (source: Record<string, unknown>, key: string, where: string): string => {
+    const value = source[key];
+    if (typeof value !== "string" || value === "") {
+      throw new Error(`launcher ready line is missing ${where}${key}`);
+    }
+    return value;
+  };
+  // Only a line that looks like the ready signal is validated; anything
+  // else on stdout is ignored, as before.
+  if (typeof record["grpcAddress"] !== "string") {
+    return undefined;
+  }
+  const tenantRaw = record["identityTenant"];
+  if (typeof tenantRaw !== "object" || tenantRaw === null) {
+    throw new Error("launcher ready line is missing identityTenant");
+  }
+  const tenant = tenantRaw as Record<string, unknown>;
+  const optionalString = (key: string): string => {
+    const value = tenant[key];
+    return typeof value === "string" ? value : "";
+  };
+  return {
+    grpcAddress: requiredString(record, "grpcAddress", ""),
+    httpAddress: requiredString(record, "httpAddress", ""),
+    cursorBidiAddress: requiredString(record, "cursorBidiAddress", ""),
+    identityTenant: {
+      issuer: requiredString(tenant, "issuer", "identityTenant."),
+      kid: requiredString(tenant, "kid", "identityTenant."),
+      privateKeyPem: requiredString(tenant, "privateKeyPem", "identityTenant."),
+      apiAudience: requiredString(tenant, "apiAudience", "identityTenant."),
+      // The MCP audience is the one optional field (a tenant may mint for
+      // the API alone).
+      mcpAudience: optionalString("mcpAudience"),
+      bootstrapSubject: requiredString(tenant, "bootstrapSubject", "identityTenant."),
+    },
+  };
 }
 
 async function waitForReadyLine(child: ChildProcess): Promise<ReadyLine> {
@@ -340,24 +399,12 @@ async function waitForReadyLine(child: ChildProcess): Promise<ReadyLine> {
   const ready = new Promise<ReadyLine>((resolveReady, rejectReady) => {
     lines.on("line", (line) => {
       try {
-        const parsed = JSON.parse(line) as {
-          grpcAddress?: unknown;
-          httpAddress?: unknown;
-          cursorBidiAddress?: unknown;
-        };
-        if (
-          typeof parsed.grpcAddress === "string" && parsed.grpcAddress !== "" &&
-          typeof parsed.httpAddress === "string" && parsed.httpAddress !== "" &&
-          typeof parsed.cursorBidiAddress === "string" && parsed.cursorBidiAddress !== ""
-        ) {
-          resolveReady({
-            grpcAddress: parsed.grpcAddress,
-            httpAddress: parsed.httpAddress,
-            cursorBidiAddress: parsed.cursorBidiAddress,
-          });
+        const parsed = parseReadyLine(line);
+        if (parsed !== undefined) {
+          resolveReady(parsed);
         }
-      } catch {
-        // Not the ready-line; the launcher keeps stdout otherwise silent.
+      } catch (err) {
+        rejectReady(err);
       }
     });
     child.once("exit", (code, signal) => {

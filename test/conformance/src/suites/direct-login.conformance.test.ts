@@ -27,16 +27,18 @@
 // under the same claim shape, so it fails for the signature alone.
 //
 // Where the target has no tenant to mint for — the local OSS targets by
-// design (capability false), the hermetic cloud launcher (test security
-// mode, no edge) and every deployed endpoint (a real tenant's key is never
-// conformance's) — the arms skip VISIBLY with the target's reason, never
-// asserting admission on an unobservable edge.
+// design (capability false) and every deployed endpoint (a real tenant's key
+// is never conformance's) — the arms skip VISIBLY with the target's reason,
+// never asserting admission on an unobservable edge. The hermetic cloud
+// launcher DOES hand over its tenant (the one its production-mode Java
+// discovered at boot; entry 20260907.02), so the arms measure Java there.
 import { generateKeyPairSync } from "node:crypto";
 
 import { Code } from "@connectrpc/connect";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import { assertContractOrDeviation } from "../contract/deviations";
 import { expectGrpcCode } from "../contract/errors";
 import {
   directLoginClaims,
@@ -53,6 +55,9 @@ const TOKEN_EXPIRED_MESSAGE = "token has expired";
 const TOKEN_AUDIENCE_MESSAGE =
   "token audience does not match the expected audience";
 const TOKEN_SIGNATURE_MESSAGE = "token signature verification failed";
+// Java classifyAuthError's fallback — what its runtime answers for the
+// stranger-signed arm (tracked deviation; see contract/deviations.ts).
+const INVALID_TOKEN_FALLBACK_MESSAGE = "invalid token";
 // iam/account/handlers.ts whoAmI — the Java IdentityAccountWhoAmIHandler copy.
 const ACCOUNT_NOT_FOUND_MESSAGE =
   "Identity account not found for the authenticated user";
@@ -73,10 +78,6 @@ afterAll(async () => {
 function tenantOrSkip(ctx: {
   skip: (note?: string) => never;
 }): DirectLoginTenant {
-  const bypass = target.edgeAuthenticationBypass?.();
-  if (bypass !== undefined) {
-    ctx.skip(bypass);
-  }
   const tenant = target.directLoginTenant?.();
   if (tenant === undefined) {
     ctx.skip(
@@ -146,10 +147,25 @@ describe.skipIf(!directLoginEnabled)(
         ).toBe(accountId);
 
         const mine = await asUser.organizationQuery.findMyOrganizations({});
-        expect(
-          mine.entries.some((org) => org.spec?.isPersonal === true),
-          "the personal org is visible to the account — its owner tuple names the ida_, not the raw subject",
-        ).toBe(true);
+        const personalVisible = mine.entries.some((org) => org.spec?.isPersonal === true);
+        await assertContractOrDeviation(
+          target.name,
+          "java.direct-login.personal-org-owner-is-raw-subject",
+          {
+            contract: () => {
+              expect(
+                personalVisible,
+                "the personal org is visible to the account — its owner tuple names the ida_, not the raw subject",
+              ).toBe(true);
+            },
+            observed: () => {
+              expect(
+                personalVisible,
+                "Java: the personal org's owner tuple names the raw subject, so the account cannot see it",
+              ).toBe(false);
+            },
+          },
+        );
       } finally {
         // Leave nothing behind: the personal org (owned by the account) and the
         // account (self-owned). Best-effort — a failed cleanup must not mask
@@ -243,7 +259,18 @@ describe.skipIf(!directLoginEnabled)(
         Code.Unauthenticated,
         "a token claiming the tenant's issuer but signed by a key its JWKS does not carry",
       );
-      expect(error.rawMessage).toBe(TOKEN_SIGNATURE_MESSAGE);
+      await assertContractOrDeviation(
+        target.name,
+        "java.direct-login.stranger-signature-copy",
+        {
+          contract: () => {
+            expect(error.rawMessage).toBe(TOKEN_SIGNATURE_MESSAGE);
+          },
+          observed: () => {
+            expect(error.rawMessage).toBe(INVALID_TOKEN_FALLBACK_MESSAGE);
+          },
+        },
+      );
     });
   },
 );

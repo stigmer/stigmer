@@ -125,10 +125,6 @@ export class CloudExecutionTarget implements TargetProfile {
     return this.cloud.clientsPresenting(bearerToken);
   }
 
-  edgeAuthenticationBypass(): string | undefined {
-    return this.cloud.edgeAuthenticationBypass();
-  }
-
   // The cloud-capability lanes are the same environment's; delegated so the
   // Class B billing arms (settle, the STOP/WARNING thresholds, usage landing
   // from the proxy) reach them exactly as the Class A arms do.

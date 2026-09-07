@@ -387,32 +387,18 @@ export interface TargetProfile {
   // anonymousClients; the primary credential stays clients()'s.
   clientsPresenting(bearerToken: string): ConformanceClients;
 
-  // Why THIS environment's serving edge cannot demonstrate the edition's
-  // requiresAuthentication contract, or undefined when it can. A harness
-  // fact, deliberately separate from the capability flag (which states the
-  // edition's contract): the hermetic cloud launcher boots Java in test
-  // security mode, where no edge authentication is loaded at all and a
-  // synthetic caller stands in for every request — the posture is real in
-  // production and unobservable there. The authentication suite skips its
-  // credential arms VISIBLY, with this reason, when one is returned; it
-  // never asserts admission on a bypassed edge (that would pin a harness
-  // artifact as a contract). Present only on the cloud targets, whose
-  // environment is declared through CLOUD_ENV.edgeAuthentication (default
-  // enforced — a readout that forgets the variable fails loudly, never
-  // false-greens); the local targets' posture IS what their flag says.
-  edgeAuthenticationBypass?(): string | undefined;
-
   // The platform identity tenant the server under test trusts, as a MINT:
   // the suite forges nothing — it asks the target for tokens shaped exactly
   // like the ones the tenant issues (its published issuer, an audience it
   // mints for, RS256 under a kid its JWKS carries) and drives the server's
   // direct-login lane with them. Present only where the harness OWNS the
-  // tenant's signing key — the readout substrate's mock tenant, declared
-  // through CLOUD_ENV.directLogin* — never on a deployed endpoint (a real
-  // tenant's key is not conformance's to hold) and never on the hermetic
-  // launcher (test security mode has no edge). Where absent, the
-  // direct-login suite skips VISIBLY with the target's reason
-  // (directLoginUnavailable). Valid only after setup().
+  // tenant's signing key, declared through CLOUD_ENV.directLogin* — the
+  // hermetic launcher's in-process tenant (the same key that minted the
+  // bootstrap operator's first token) and the composition readout's mock
+  // tenant — never on a deployed endpoint (a real tenant's key is not
+  // conformance's to hold). Where absent, the direct-login suite skips
+  // VISIBLY with the target's reason (directLoginUnavailable). Valid only
+  // after setup().
   directLoginTenant?(): DirectLoginTenant;
   directLoginUnavailable?(): string;
 

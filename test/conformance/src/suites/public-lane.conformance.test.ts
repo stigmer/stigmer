@@ -15,11 +15,11 @@
 // scripted. Gated on `publicLane` (true on cloud, false on the local OSS
 // targets by DD-001 — no marketing site fronts a self-host).
 //
-// CORS and the permitAll edge are authentication-class arms: the hermetic
-// launcher's test security mode does not load HttpSecurityConfig, so they
-// skip visibly through edgeAuthenticationBypass() until the launcher entry
-// runs production security (ruling Q1 of E1; P1 verifies the allow-list in
-// its own smoke).
+// CORS and the permitAll edge are authentication-class arms; they run on
+// every cloud environment since the hermetic launcher boots Java in
+// production security mode (HttpSecurityConfig loaded — entry 20260907.02,
+// E1's ruling Q1). P1's smoke verifies the same allow-list against the
+// deployed lane.
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { requireCloudFixtures, type CloudFixturesClient } from "../support/cloud-fixtures-client";
 import { createTarget, type TargetProfile } from "../targets";
@@ -70,11 +70,6 @@ async function submit(body: Record<string, unknown>): Promise<{ status: number; 
     body: JSON.stringify(body),
   });
   return { status: response.status, json: (await response.json()) as LeadResponse };
-}
-
-function skipIfEdgeBypassed(ctx: { skip: (note?: string) => never }): void {
-  const reason = target.edgeAuthenticationBypass?.();
-  if (reason !== undefined) ctx.skip(reason);
 }
 
 describe.skipIf(!publicServed)("Public lane conformance — the marketing site's endpoints (publicLane targets)", () => {
@@ -202,8 +197,7 @@ describe.skipIf(!publicServed)("Public lane conformance — the marketing site's
     expect(await control.discord.posts(), "exactly one attempt, no retry").toHaveLength(1);
   });
 
-  it("[public.cors.allow-list-and-methods] [public.edge.public-paths-anonymous] the allow-listed origins get CORS headers and the lane is anonymous while the proxy lane on the same listener is not", async (ctx) => {
-    skipIfEdgeBypassed(ctx);
+  it("[public.cors.allow-list-and-methods] [public.edge.public-paths-anonymous] the allow-listed origins get CORS headers and the lane is anonymous while the proxy lane on the same listener is not", async () => {
     for (const origin of ["https://stigmer.ai", "https://www.stigmer.ai", "http://localhost:3000"]) {
       const response = await fetch(`${baseUrl}/api/v1/public/model-pricing`, { headers: { origin } });
       expect(response.status).toBe(200);

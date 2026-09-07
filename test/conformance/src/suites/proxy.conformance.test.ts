@@ -23,11 +23,11 @@
 // IS what the proxy relays or classifies.
 //
 // Authentication-class arms (401 without a bearer, foreign tokens,
-// x-api-key resolution, denyAll, require-scope-header) are unobservable in the
-// hermetic launcher's test security mode (HttpSecurityConfig is not loaded)
-// and skip through edgeAuthenticationBypass() until the launcher entry runs
-// production security (ruling Q1). Authorization arms (FGA 403) ARE observable
-// there and run.
+// x-api-key resolution, denyAll, require-scope-header) run on every cloud
+// environment: the hermetic launcher boots Java in production security mode
+// (HttpSecurityConfig loaded, require-scope-header at production's `true`)
+// since entry 20260907.02, so they measure Java's real edge alongside the
+// authorization arms (FGA 403).
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { CLOUD_ENV, mintCloudUserToken } from "../harness/cloud-env";
@@ -58,11 +58,6 @@ const EXECUTION_HEADER = "x-stigmer-execution-id";
 const WORKFLOW_EXECUTION_HEADER = "x-stigmer-workflow-execution-id";
 const MCP_SERVER_HEADER = "x-stigmer-mcp-server-id";
 const PLATFORM_CAPACITY_SENTINEL = "STIGMER_PLATFORM_MODEL_CAPACITY";
-
-function skipIfEdgeBypassed(ctx: { skip: (note?: string) => never }): void {
-  const reason = target.edgeAuthenticationBypass?.();
-  if (reason !== undefined) ctx.skip(reason);
-}
 
 async function fundedOrg(): Promise<TenancyContext> {
   if (target.provisionUnfundedTenancy === undefined || target.fundTenancy === undefined) {
@@ -172,8 +167,7 @@ describe.skipIf(!proxyServed)("Side-channel proxy conformance (sideChannelProxy 
       }
     });
 
-    it("[proxy.model-registry.anonymous-401] [proxy.edge.unknown-path-denied] the registry needs a bearer and unknown paths are denied at the edge", async (ctx) => {
-      skipIfEdgeBypassed(ctx);
+    it("[proxy.model-registry.anonymous-401] [proxy.edge.unknown-path-denied] the registry needs a bearer and unknown paths are denied at the edge", async () => {
       expect((await proxyFetch("/v1/proxy/model-registry", { token: null as unknown as undefined })).status).toBe(401);
       const denied = await proxyFetch("/actuator/env", { token: null as unknown as undefined });
       expect([401, 403]).toContain(denied.status);
@@ -320,8 +314,7 @@ describe.skipIf(!proxyServed)("Side-channel proxy conformance (sideChannelProxy 
       expect(await control.llm.requests()).toEqual([]);
     });
 
-    it("[proxy.llm.scope.missing-scope-header-403-when-required] [proxy.llm.authn.no-bearer-401] [proxy.llm.authn.foreign-or-expired-token-401] [proxy.llm.authn.x-api-key-header-accepted] the edge's authentication and require-scope arms", async (ctx) => {
-      skipIfEdgeBypassed(ctx);
+    it("[proxy.llm.scope.missing-scope-header-403-when-required] [proxy.llm.authn.no-bearer-401] [proxy.llm.authn.foreign-or-expired-token-401] [proxy.llm.authn.x-api-key-header-accepted] the edge's authentication and require-scope arms", async () => {
       const { org } = await fundedOrg();
       const executionId = await ownedExecution(org);
       expect((await proxyFetch("/v1/proxy/llm/anthropic/v1/messages", { method: "POST", body: "{}", token: null as unknown as undefined })).status).toBe(401);

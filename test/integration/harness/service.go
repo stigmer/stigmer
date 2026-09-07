@@ -247,6 +247,16 @@ type ServiceConfig struct {
 	// token with a missing or non-matching aud is rejected (strict). When false
 	// (default), verification is lenient: tokens with no aud are still accepted.
 	RequireAudience bool
+
+	// ProxyRequireScopeHeader sets STIGMER_PROXY_REQUIRE_SCOPE_HEADER. When
+	// true — production's default (application.yaml) — a proxy call carrying
+	// none of the X-Stigmer-*-Id scope headers is refused 403 rather than
+	// admitted unscoped and unmetered. The Go suites keep the zero value
+	// (false): their proxy tests were written before the header existed and
+	// exercise the lanes unscoped. The conformance launcher sets true so the
+	// edge answers the production contract the `proxy.llm.scope.*` arms pin
+	// (entry 20260907.02, E1's F6).
+	ProxyRequireScopeHeader bool
 }
 
 // StartJavaService launches the stigmer-service fat JAR as a child process
@@ -398,6 +408,22 @@ func (s *JavaService) Stop() error {
 	return err
 }
 
+// buildServiceEnv is the ONE place the harness overrides Java's environment,
+// so it is also where each override answers "how does this differ from
+// production, and why is that acceptable?" (entry 20260907.02; the production
+// overlay is stigmer-cloud backend/services/stigmer-service/_kustomize/overlays/
+// prod/service.yaml, read through _ops/x1-cutover/env-parity.md). Every
+// deviation below carries one of three dispositions:
+//
+//   - production: matches production's posture (the conformance launcher's
+//     Security, ProxyRequireScopeHeader and JWTAudience choices land here);
+//   - harness-constraint: cannot match production inside Testcontainers, and
+//     the reason is stated (a plain-HTTP mock JWKS, MinIO's addressing, no
+//     cluster, no third-party admin API);
+//   - test-tuning: a knob the Go suites deliberately turn to make a behavior
+//     reachable in one test, with the arms that would notice named.
+//
+// An override with no disposition is a defect in this file, not a convention.
 func buildServiceEnv(cfg ServiceConfig) []string {
 	fgaEnabled := cfg.OpenFGAAPIURL != "" && cfg.OpenFGAStoreID != "" && cfg.OpenFGAModelID != ""
 	productionSecurity := cfg.Security == SecurityModeProduction
@@ -456,9 +482,10 @@ func buildServiceEnv(cfg ServiceConfig) []string {
 		fmt.Sprintf("AGENT_EXECUTION_ARTIFACT_R2_ENDPOINT=%s", r2Endpoint(cfg)),
 		fmt.Sprintf("AGENT_EXECUTION_ARTIFACT_R2_ACCESS_KEY_ID=%s", r2AccessKey(cfg)),
 		fmt.Sprintf("AGENT_EXECUTION_ARTIFACT_R2_SECRET_ACCESS_KEY=%s", r2SecretKey(cfg)),
-		// MinIO can't resolve a bucket subdomain, so the presigners must use
-		// path-style addressing or presigned uploads fail with SignatureDoesNotMatch.
-		// Production R2 keeps the virtual-host default (flags are false there).
+		// harness-constraint: MinIO can't resolve a bucket subdomain, so the
+		// presigners must use path-style addressing or presigned uploads fail
+		// with SignatureDoesNotMatch. Production R2 keeps the virtual-host
+		// default (flags are false there).
 		"AGENT_EXECUTION_ARTIFACT_R2_PATH_STYLE_ACCESS_ENABLED=true",
 		// Same for the skill artifact presigner (the transfer lane, stigmer-cloud#438).
 		"SKILL_ARTIFACT_R2_PATH_STYLE_ACCESS_ENABLED=true",
@@ -484,42 +511,60 @@ func buildServiceEnv(cfg ServiceConfig) []string {
 		"VAULT_AUTH_METHOD=token",
 		fmt.Sprintf("VAULT_TOKEN=%s", cfg.VaultToken),
 
-		// Disable optional features
+		// Observability follows the OTLP endpoint (production: on).
 		fmt.Sprintf("OBSERVABILITY_ENABLED=%t", cfg.OTLPEndpoint != ""),
+		// test-tuning: the two billing Temporal schedules stay off. The
+		// reconciliation sweep queries Stripe for PENDING purchases whose
+		// webhook was missed (every 5 min) and the expiry sweep releases
+		// ACTIVE reservations past expires_at (every 10 min); production runs
+		// both. Here they would race the billing arms — a sweep releasing a
+		// hold an arm is asserting on, or reconciling a purchase the fake
+		// Stripe is mid-scripting — so the conformance suite drives the same
+		// sweeps deterministically through their operator RPCs.
 		"STIGMER_BILLING_RECONCILIATION_ENABLED=false",
 		"STIGMER_BILLING_RESERVATION_EXPIRY_ENABLED=false",
 
-		// Shared-agent launch gate: lower the per-session turn limit so the
-		// integration test can trip it without 30 real execution creates.
-		// Other limits keep production defaults (tests use fresh cookies, so
-		// per-guest buckets never collide across tests).
+		// test-tuning: shared-agent launch gate — lower the per-session turn
+		// limit so the integration test can trip it without 30 real execution
+		// creates. Other limits keep production defaults (tests use fresh
+		// cookies, so per-guest buckets never collide across tests). Only the
+		// sharing-cap arm observes the number.
 		"STIGMER_SHARING_MAX_TURNS_PER_SESSION=5",
+		// harness-constraint: no Kubernetes here; production launches runners
+		// through the sandbox provisioner. The suites run their own runner
+		// process against the service instead.
 		"STIGMER_RUNNER_LAUNCHER_TYPE=noop",
 
-		// Scheduled runs ride the harness this suite actually operates:
-		// production defaults schedule sessions to cursor (DD-012 D-F),
-		// but the suite's runnable path is the native unified runner —
+		// test-tuning: scheduled runs ride the harness this suite actually
+		// operates — production defaults schedule sessions to cursor (DD-012
+		// D-F), but the suite's runnable path is the native unified runner;
 		// without this override a triggered fire would dispatch a cursor
-		// execution no local runner can complete.
+		// execution no local runner can complete. The schedule-firing arms
+		// observe the harness, never the default.
 		"STIGMER_SCHEDULES_SESSION_DEFAULTS_HARNESS=native",
 
-		// Failure-streak auto-pause (DD-013): two failed fires instead of
-		// the production five, so the tracking wire test proves the
-		// pause without five trigger round-trips. Only the tracking test
-		// accumulates failures — every other schedule test fires
-		// successfully or never fires.
+		// test-tuning: failure-streak auto-pause (DD-013) — two failed fires
+		// instead of the production five, so the tracking wire test proves
+		// the pause without five trigger round-trips. Only the tracking test
+		// accumulates failures — every other schedule test fires successfully
+		// or never fires.
 		"STIGMER_SCHEDULES_MAX_CONSECUTIVE_FAILURES=2",
 
 		fmt.Sprintf("STIGMER_ACTIVITY_ROUTING=%s", activityRouting(cfg)),
 		fmt.Sprintf("STIGMER_WORKFLOW_ACTIVITY_ROUTING=%s", workflowActivityRouting(cfg)),
 		fmt.Sprintf("STIGMER_DEFAULT_EXECUTION_TARGET=%s", defaultExecutionTarget(cfg)),
+		// harness-constraint when noop (the default here): no cluster to
+		// provision sandboxes in; production is `kubernetes`.
 		fmt.Sprintf("STIGMER_SANDBOX_TYPE=%s", sandboxType(cfg)),
 
-		"STIGMER_PROXY_REQUIRE_SCOPE_HEADER=false",
+		// production when true (the conformance launcher); the Go suites'
+		// false is test-tuning — see ServiceConfig.ProxyRequireScopeHeader.
+		fmt.Sprintf("STIGMER_PROXY_REQUIRE_SCOPE_HEADER=%t", cfg.ProxyRequireScopeHeader),
 
-		// Skip JWKS URI reachability check for IdentityProvider create/update.
-		// Test JWKS servers run on plain HTTP localhost which fails the HTTPS
-		// requirement in ValidateJwksReachability.
+		// harness-constraint: skip the JWKS URI reachability check for
+		// IdentityProvider create/update. Test JWKS servers (the mock tenant,
+		// the federated mock IdP) run on plain HTTP localhost, which fails the
+		// HTTPS requirement in ValidateJwksReachability.
 		"STIGMER_IDP_JWKS_VALIDATION_DISABLED=true",
 
 		// RSA-2048 PKCS#8 DER signing key for PlatformClient token minting (test-only).
@@ -562,9 +607,10 @@ func buildServiceEnv(cfg ServiceConfig) []string {
 	}
 
 	if productionSecurity {
-		// Production security mode: load the real GrpcSecurityConfigBase,
-		// FederatedJwtAuthenticationProvider, and Auth0 JwtDecoder.
-		// Auth0 config points at the mock OIDC server.
+		// production: the real GrpcSecurityConfigBase, HttpSecurityConfig,
+		// FederatedJwtAuthenticationProvider and Auth0 JwtDecoder load; the
+		// only deviation is WHICH tenant they trust — the mock OIDC server
+		// the caller started before the JAR (discovery runs at bean init).
 		env = append(env, "STIGMER_SECURITY_MODE=production")
 
 		auth0Domain := "test.auth0.com"
@@ -590,10 +636,12 @@ func buildServiceEnv(cfg ServiceConfig) []string {
 			env = append(env, fmt.Sprintf("AUTH0_TOKEN_URL=%s", cfg.Auth0TokenURL))
 		}
 	} else {
-		// Test security mode: bypass Auth0 JWT validation with a synthetic
-		// caller. GrpcSecurityConfigBase and MachineAccountJwtProvider are
-		// not loaded. The permit-all TestIamPolicyGrpcRepo is used unless
-		// real FGA is enabled.
+		// test-tuning (the Go suites): bypass Auth0 JWT validation with a
+		// synthetic caller. GrpcSecurityConfigBase, HttpSecurityConfig and
+		// MachineAccountJwtProvider are not loaded; the edge posture is
+		// unobservable — which is why the conformance launcher no longer
+		// boots this way (entry 20260907.02). The permit-all
+		// TestIamPolicyGrpcRepo is used unless real FGA is enabled.
 		env = append(env, "STIGMER_SECURITY_MODE=test")
 		env = append(env,
 			"AUTH0_DOMAIN=test.auth0.com",

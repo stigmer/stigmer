@@ -63,16 +63,13 @@ export const TESTED_DISPOSITIONS: ReadonlySet<Disposition> = new Set(["conforman
 // and behavior elsewhere.
 export const ROW_CLASSES = ["behavior", "carve-out", "adversarial"] as const;
 
-// Whether the hermetic Java launcher (STIGMER_SECURITY_MODE=test) can show
-// the behavior. `launcher-authz-only` rows need production security mode —
-// HttpSecurityConfig is not loaded in test mode — so their tests skip through
-// TargetProfile.edgeAuthenticationBypass() until the launcher entry lands.
-export const OBSERVABILITY = [
-  "launcher",
-  "launcher-authz-only",
-  "composition-only",
-  "none",
-] as const;
+// Whether the hermetic Java launcher can show the behavior. The launcher
+// boots Java in production security mode (entry 20260907.02), so every
+// edge-authentication row is `launcher` like any other observable row; there
+// is deliberately no value for "the launcher cannot observe this edge" — a
+// row that needed one would be a launcher defect to fix, not a state to
+// record.
+export const OBSERVABILITY = ["launcher", "composition-only", "none"] as const;
 
 export const CALLERS = ["primary", "operator", "outsider", "anonymous", "runner-token", "none"] as const;
 

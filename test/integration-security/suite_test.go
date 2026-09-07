@@ -169,7 +169,7 @@ func TestMain(m *testing.M) {
 		"auth0_issuer", mockAuth0.Issuer,
 	)
 
-	// --- Seed the bootstrap identity in the app-postgres store ---
+	// --- Seed the bootstrap operator (identity row + FGA grants) ---
 	// This must run after service boot (Flyway creates the table during
 	// startup) and before the first authenticated call (the interceptor
 	// chain resolves JWT subjects per-request). The machine account identity
@@ -178,51 +178,28 @@ func TestMain(m *testing.M) {
 	// BootstrapIdentitySeeder creates it at startup with the well-known id
 	// "machine" (T06 — the same code path production and fresh installs
 	// run). Only the human bootstrap account remains a genuine pre-auth
-	// chicken-and-egg.
+	// chicken-and-egg — the same one the conformance launcher seeds through
+	// the same helper for its production-mode boot.
 	identitySeeder = harness.NewIdentitySeeder(testHarness.AppPostgres)
-	err = identitySeeder.SeedIdentityAccount(ctx, harness.SeedIdentityAccountInput{
-		ID:        bootstrapIdentityAccountID,
-		IdpID:     bootstrapIdpID,
-		Email:     bootstrapEmail,
-		Name:      "Security Test Bootstrap",
-		FirstName: "Security",
-		LastName:  "Bootstrap",
+	err = harness.SeedBootstrapOperator(ctx, testHarness.AppPostgres, testHarness.OpenFGA, harness.BootstrapOperatorInput{
+		IdentityAccountID: bootstrapIdentityAccountID,
+		IdpID:             bootstrapIdpID,
+		Email:             bootstrapEmail,
+		Name:              "Security Test Bootstrap",
+		FirstName:         "Security",
+		LastName:          "Bootstrap",
+		Org:               testOrg,
 	})
 	if err != nil {
-		suiteLogger.Error("failed to seed bootstrap identity", "error", err)
+		suiteLogger.Error("failed to seed bootstrap operator", "error", err)
 		testHarness.Stop(ctx)
 		os.Exit(1)
 	}
-	suiteLogger.Info("seeded bootstrap identity account",
+	suiteLogger.Info("seeded bootstrap operator",
 		"id", bootstrapIdentityAccountID,
 		"idp_id", bootstrapIdpID,
+		"fga", testHarness.OpenFGA != nil,
 	)
-
-	// --- Seed FGA tuples for the bootstrap user ---
-	// The machine account's operator grant is NOT seeded here:
-	// BootstrapIdentitySeeder writes it at startup, and OpenFGA's raw Write API
-	// rejects duplicate tuples with a 400. The human bootstrap user still needs
-	// operator permissions to create IdentityProviders and PlatformClients.
-	if testHarness.OpenFGA != nil {
-		tuples := []harness.RelationshipTuple{
-			{
-				User:     "identity_account:" + bootstrapIdentityAccountID,
-				Relation: "operator",
-				Object:   "platform:stigmer",
-			},
-			{
-				User:     "identity_account:" + bootstrapIdentityAccountID,
-				Relation: "owner",
-				Object:   "organization:" + testOrg,
-			},
-		}
-		if fgaErr := testHarness.OpenFGA.WriteTuples(ctx, tuples); fgaErr != nil {
-			suiteLogger.Error("failed to seed FGA tuples", "error", fgaErr)
-			testHarness.Stop(ctx)
-			os.Exit(1)
-		}
-		suiteLogger.Info("seeded FGA tuples for bootstrap user")
-	}
 
 	// --- Create bootstrap authenticated connection ---
 	bootstrapToken, err := mockAuth0.SignJWT(bootstrapIdpID, testAudience, nil)
