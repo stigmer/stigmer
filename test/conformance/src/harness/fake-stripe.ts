@@ -41,6 +41,14 @@ import { writeJson } from "./llm-wire";
 // constant pool on 2026-09-06. Bump with the Java dependency.
 export const STRIPE_JAVA_API_VERSION = "2026-04-22.dahlia";
 
+// The one card this fixture knows. Every payment method it answers carries
+// it, so the suite asserts the default-payment-method bookkeeping against the
+// same constant. The expiry fields are load-bearing: Stripe always returns
+// them for a card, and the Java `customer.updated` handler reads them
+// unguarded (`getExpMonth().intValue()`) — a fixture card without them turns
+// that webhook into a 500.
+export const FAKE_CARD = { brand: "visa", last4: "4242", exp_month: 12, exp_year: 2030 } as const;
+
 export interface CapturedStripeRequest {
   readonly method: string;
   readonly path: string;
@@ -233,7 +241,7 @@ export class FakeStripeApi {
       return {
         status: 200,
         id,
-        body: { id, object: "payment_method", type: "card", customer: null, card: { brand: "visa", last4: "4242" } },
+        body: { id, object: "payment_method", type: "card", customer: null, card: FAKE_CARD },
       };
     }
     return stripeNotFound(`FakeStripeApi: unhandled ${method} ${path}`);

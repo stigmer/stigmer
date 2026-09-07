@@ -5,7 +5,7 @@
 import { createHmac } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { startCloudFixtures, type CloudFixtures } from "../cloud-fixtures";
-import { signStripePayload, stripeEvent, STRIPE_JAVA_API_VERSION } from "../fake-stripe";
+import { FAKE_CARD, signStripePayload, stripeEvent, STRIPE_JAVA_API_VERSION } from "../fake-stripe";
 import { anthropicText, openAiText } from "../llm-wire";
 import { CloudFixturesClient } from "../../support/cloud-fixtures-client";
 
@@ -163,6 +163,19 @@ describe("fake Stripe API", () => {
     const missing = await fetch(`${fixtures.addresses.stripeApiUrl}/v1/customers/cus_nope`);
     expect(missing.status).toBe(404);
     expect(((await missing.json()) as { error: { code: string } }).error.code).toBe("resource_missing");
+    await control.stripe.reset();
+  });
+
+  it("answers a payment-method retrieve with the one card it knows, expiry included (the Java customer.updated handler reads exp_month/exp_year unguarded)", async () => {
+    const response = await fetch(`${fixtures.addresses.stripeApiUrl}/v1/payment_methods/pm_any`);
+    expect(response.status).toBe(200);
+    const method = (await response.json()) as { id: string; object: string; type: string; card: typeof FAKE_CARD };
+    expect(method.id).toBe("pm_any");
+    expect(method.object).toBe("payment_method");
+    expect(method.type).toBe("card");
+    expect(method.card).toEqual(FAKE_CARD);
+    expect(method.card.exp_month).toBeGreaterThan(0);
+    expect(method.card.exp_year).toBeGreaterThan(new Date().getFullYear());
     await control.stripe.reset();
   });
 
