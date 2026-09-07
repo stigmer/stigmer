@@ -97,22 +97,34 @@ export function newDirectLoginTenant(
   };
 }
 
+// How long before its exp an already-expired token is dated as issued. A real
+// expired token was issued BEFORE it expired; a token whose exp precedes its
+// iat is not "expired", it is malformed — Spring's Jwt constructor refuses it
+// as "expiresAt must be after issuedAt", which classifies as `invalid token`,
+// not the expiry copy the suite pins. Found when the hermetic Java launcher
+// first ran production security mode (entry 20260907.02).
+const EXPIRED_TOKEN_LIFETIME_SECONDS = 60;
+
 // The claim set Auth0 mints for a first-party client — exported so the suite's
 // stranger-signed arm carries the same shape and fails for the signature alone.
+// A negative ttl mints an expired token with a plausible history (issued
+// EXPIRED_TOKEN_LIFETIME_SECONDS before it expired), never an exp-before-iat one.
 export function directLoginClaims(input: {
   issuer: string;
   subject: string;
   audience: string | ReadonlyArray<string>;
   ttlSeconds: number;
 }): Record<string, unknown> {
-  const iat = Math.floor(Date.now() / 1000);
+  const now = Math.floor(Date.now() / 1000);
+  const exp = now + input.ttlSeconds;
+  const iat = input.ttlSeconds > 0 ? now : exp - EXPIRED_TOKEN_LIFETIME_SECONDS;
   return {
     iss: input.issuer,
     sub: input.subject,
     aud:
       typeof input.audience === "string" ? input.audience : [...input.audience],
     iat,
-    exp: iat + input.ttlSeconds,
+    exp,
     scope: "openid profile email offline_access",
     azp: "conformance-first-party-client",
     jti: randomUUID(),
