@@ -886,6 +886,10 @@ check-bazel: ## check bucket: bazel graph integrity — full-graph build + BUILD
 
 check-node: ## check bucket: npm typecheck/lint/build/test (web, react, sdk, desktop, runner, demos, e2e)
 	npm run typecheck -w @stigmer/sdk
+	# The conformance package's typecheck (the same step ci.ts-sdk runs): it
+	# compiles mcp-server and sdk source under its own stricter options, so
+	# it can be red while both packages' own typechecks are green (#999).
+	npm run typecheck -w @stigmer/conformance
 	# The cloud-capability behavior inventory (DD-012 §5): every conformance
 	# row has a test, every test tag names a row. Static — no target boots.
 	$(MAKE) check-conformance-inventory

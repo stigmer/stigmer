@@ -10,6 +10,7 @@
 // exposes phase-await helpers, delegating the timing loop to the shared poll core
 // so both execution domains share one definition.
 import type { MessageInitShape } from "@bufbuild/protobuf";
+import type { InitShape } from "./init-shape";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
@@ -55,7 +56,7 @@ export interface AgentExecutionOptions {
 // A complete, valid AgentExecution create request. execution_config is left unset
 // unless provided, so the only variable inputs are the reference, the message,
 // and the optional overrides.
-export function makeAgentExecution(opts: AgentExecutionOptions): MessageInitShape<typeof AgentExecutionSchema> {
+export function makeAgentExecution(opts: AgentExecutionOptions): InitShape<typeof AgentExecutionSchema> {
   return {
     apiVersion: AGENT_EXECUTION_API_VERSION,
     kind: AGENT_EXECUTION_KIND,

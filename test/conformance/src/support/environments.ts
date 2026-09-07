@@ -16,7 +16,7 @@
 // Negative cases (duplicate, missing name, wrong const fields) are written
 // inline in the suite, matching the convention in support/agents.ts and
 // support/skills.ts.
-import type { MessageInitShape } from "@bufbuild/protobuf";
+import type { InitShape } from "./init-shape";
 import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import type { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { EnvironmentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
@@ -43,7 +43,7 @@ export interface EnvVarDeclarationInit {
 // composed identically by the Workflow and Agent builders.
 export function makeEnvDeclarations(
   env: Record<string, EnvVarDeclarationInit>,
-): Record<string, MessageInitShape<typeof EnvVarDeclarationSchema>> {
+): Record<string, InitShape<typeof EnvVarDeclarationSchema>> {
   return Object.fromEntries(
     Object.entries(env).map(([key, decl]) => [
       key,
@@ -66,7 +66,7 @@ export interface EnvironmentRefInit {
 // AgentInstanceSpec environment_refs). Shared by both instance builders.
 export function makeEnvironmentRefs(
   refs: EnvironmentRefInit[],
-): MessageInitShape<typeof ApiResourceReferenceSchema>[] {
+): InitShape<typeof ApiResourceReferenceSchema>[] {
   return refs.map((ref) => ({ org: ref.org, slug: ref.slug, kind: ApiResourceKind.environment }));
 }
 
@@ -88,7 +88,7 @@ export interface EnvironmentSpecOptions {
 
 // A valid EnvironmentSpec. By default it carries one plain variable; pass `data`
 // to compose plain and/or secret entries for the secret-handling tests.
-export function makeEnvironmentSpec(opts: EnvironmentSpecOptions = {}): MessageInitShape<typeof EnvironmentSpecSchema> {
+export function makeEnvironmentSpec(opts: EnvironmentSpecOptions = {}): InitShape<typeof EnvironmentSpecSchema> {
   const data = opts.data ?? { PLAIN_KEY: { value: "plain-value" } };
   return {
     description: opts.description ?? "conformance fixture",
@@ -107,7 +107,7 @@ export interface EnvironmentOptions extends EnvironmentSpecOptions {
 }
 
 // A complete, valid Environment resource ready to hand to create/apply/update.
-export function makeEnvironment(opts: EnvironmentOptions): MessageInitShape<typeof EnvironmentSchema> {
+export function makeEnvironment(opts: EnvironmentOptions): InitShape<typeof EnvironmentSchema> {
   const { org, name, description, data } = opts;
   return {
     apiVersion: ENVIRONMENT_API_VERSION,

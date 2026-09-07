@@ -1,6 +1,6 @@
 # =============================================================================
 # TypeScript SDK typecheck gate: sdk/typescript + mcp-server + sdk/react +
-# sdk/ink + client-apps/cli (issue #632)
+# sdk/ink + client-apps/cli (issue #632), plus test/conformance (issue #999)
 # =============================================================================
 # The TS counterpart of ci.go-sdk (issue #264 / PR #613), created after the
 # #607/#628 incident: a fresh checkout showed 477 tsc errors in sdk/typescript
@@ -52,6 +52,11 @@ on:
       # break react's typecheck without touching sdk/react/**.
       - "sdk/theme/**"
       - "client-apps/cli/**"
+      # test/conformance typechecks mcp-server (and, through it, sdk/typescript)
+      # SOURCE under its own stricter compiler options, so the coupling cuts
+      # both ways: a conformance change or an sdk/mcp-server change can redden
+      # it. Both sides already trigger this lane (issue #999).
+      - "test/conformance/**"
       - "package.json"
       - "package-lock.json"
       # The clean-room job's install semantics live here (nodeLinker,
@@ -68,6 +73,7 @@ on:
       - "sdk/ink/**"
       - "sdk/theme/**"
       - "client-apps/cli/**"
+      - "test/conformance/**"
       - "package.json"
       - "package-lock.json"
       - ".yarnrc.yml"
@@ -138,6 +144,16 @@ jobs:
         run: |
           npx tsc -p client-apps/cli/tsconfig.build.json --noEmit
           npm run typecheck -w @stigmer/cli
+
+      # The conformance suite is a consumer too: it compiles @stigmer/mcp-server
+      # source (and, through it, @stigmer/sdk source) under its own
+      # `noUncheckedIndexedAccess`, so a guard-free indexed read in either
+      # package fails HERE even when both packages' own typechecks pass. Before
+      # issue #999 no lane ran this and 19 errors accumulated on main unseen.
+      # One config: the package has no build output (nothing ships), so
+      # tsconfig.json is the whole program.
+      - name: Typecheck test/conformance
+        run: npm run typecheck -w @stigmer/conformance
 
   typecheck-clean-room:
     name: typecheck (clean-room resolution)

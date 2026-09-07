@@ -9,7 +9,7 @@
 // Negative cases (missing server_type, empty command, malformed URL) are written
 // inline in the suite, not here: this module represents validity by construction,
 // matching the convention established by support/workflows.ts.
-import type { MessageInitShape } from "@bufbuild/protobuf";
+import type { InitShape } from "./init-shape";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { McpServerSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -30,7 +30,7 @@ export interface McpServerSpecOptions {
 // `server_type` oneof (required) and `stdio.command` (required, min_len=1).
 export function makeMcpServerSpec(
   opts: McpServerSpecOptions = {},
-): MessageInitShape<typeof McpServerSpecSchema> {
+): InitShape<typeof McpServerSpecSchema> {
   return {
     description: opts.description ?? "conformance fixture",
     serverType: {
@@ -49,7 +49,7 @@ export interface McpServerOptions extends McpServerSpecOptions {
 }
 
 // A complete, valid McpServer resource ready to hand to create/apply/update.
-export function makeMcpServer(opts: McpServerOptions): MessageInitShape<typeof McpServerSchema> {
+export function makeMcpServer(opts: McpServerOptions): InitShape<typeof McpServerSchema> {
   const { org, name, description, command, args } = opts;
   return {
     apiVersion: MCPSERVER_API_VERSION,
@@ -103,7 +103,7 @@ export interface OAuthMcpServerOptions {
 // server process itself, so a no-op command isolates them completely. Pass
 // `url` for the connect-time tests that need the runner to reach a real
 // (fixture) MCP endpoint after the handshake.
-export function makeOAuthMcpServer(opts: OAuthMcpServerOptions): MessageInitShape<typeof McpServerSchema> {
+export function makeOAuthMcpServer(opts: OAuthMcpServerOptions): InitShape<typeof McpServerSchema> {
   return {
     apiVersion: MCPSERVER_API_VERSION,
     kind: MCPSERVER_KIND,
@@ -131,7 +131,7 @@ export function makeOAuthMcpServer(opts: OAuthMcpServerOptions): MessageInitShap
 // register the in-process MCP tool fixture so a tool-using agent run can dispatch
 // a real tool. The resource only needs to be *created*: the runner connects to
 // the URL live at execution time (no `connect`/discovery step required).
-export function makeHttpMcpServer(opts: HttpMcpServerOptions): MessageInitShape<typeof McpServerSchema> {
+export function makeHttpMcpServer(opts: HttpMcpServerOptions): InitShape<typeof McpServerSchema> {
   return {
     apiVersion: MCPSERVER_API_VERSION,
     kind: MCPSERVER_KIND,

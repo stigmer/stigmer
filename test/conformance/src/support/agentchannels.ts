@@ -12,7 +12,7 @@
 // org is the billing and credentials org). Builders leave ref orgs empty by
 // default so the server's relative-reference normalization is exercised;
 // negatives set them explicitly.
-import type { MessageInitShape } from "@bufbuild/protobuf";
+import type { InitShape } from "./init-shape";
 import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
@@ -50,7 +50,7 @@ export function makeSlackAgentChannel(
   name: string,
   agentSlug: string,
   options: SlackAgentChannelOptions = {},
-): MessageInitShape<typeof AgentChannelSchema> {
+): InitShape<typeof AgentChannelSchema> {
   return {
     apiVersion: AGENTCHANNEL_API_VERSION,
     kind: AGENTCHANNEL_KIND,
@@ -86,7 +86,7 @@ export function makeWhatsAppAgentChannel(
   name: string,
   agentSlug: string,
   options: { appRefSlug?: string } = {},
-): MessageInitShape<typeof AgentChannelSchema> {
+): InitShape<typeof AgentChannelSchema> {
   return {
     apiVersion: AGENTCHANNEL_API_VERSION,
     kind: AGENTCHANNEL_KIND,

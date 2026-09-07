@@ -88,8 +88,9 @@ export function parseManifest(
   for (const [index, doc] of parsed.entries()) {
     const where = parsed.length === 1 ? "the manifest" : `document ${index + 1}`;
 
-    if (doc.errors.length > 0) {
-      throw new Error(`Invalid YAML in ${where}: ${doc.errors[0].message}`);
+    const [firstError] = doc.errors;
+    if (firstError) {
+      throw new Error(`Invalid YAML in ${where}: ${firstError.message}`);
     }
 
     const value = doc.toJS() as unknown;

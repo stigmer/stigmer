@@ -10,7 +10,7 @@
 //
 // Negative cases (missing secrets, ciphertext-shaped values, provider flips)
 // are written inline in the suite: this module is validity by construction.
-import type { MessageInitShape } from "@bufbuild/protobuf";
+import type { InitShape } from "./init-shape";
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 
 export const CHANNELAPP_API_VERSION = "agentic.stigmer.ai/v1";
@@ -33,7 +33,7 @@ export function makeSlackChannelApp(
   org: string,
   name: string,
   options: SlackChannelAppOptions = {},
-): MessageInitShape<typeof ChannelAppSchema> {
+): InitShape<typeof ChannelAppSchema> {
   return {
     apiVersion: CHANNELAPP_API_VERSION,
     kind: CHANNELAPP_KIND,
@@ -56,7 +56,7 @@ export function makeSlackChannelApp(
 export function makeWhatsAppChannelApp(
   org: string,
   name: string,
-): MessageInitShape<typeof ChannelAppSchema> {
+): InitShape<typeof ChannelAppSchema> {
   return {
     apiVersion: CHANNELAPP_API_VERSION,
     kind: CHANNELAPP_KIND,

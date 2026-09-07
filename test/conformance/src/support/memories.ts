@@ -12,7 +12,7 @@
 // controller (stigmer) and the Java handlers (stigmer-cloud) each pin
 // them in their own unit tests, and this suite asserts them over the
 // wire. A change to any of them is a contract change, not a copy edit.
-import type { MessageInitShape } from "@bufbuild/protobuf";
+import type { InitShape } from "./init-shape";
 import { MemorySchema } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/api_pb";
 
 export const MEMORY_API_VERSION = "agentic.stigmer.ai/v1";
@@ -66,7 +66,7 @@ export interface MemoryOptions {
 export function makeMemory(
   org: string,
   options: MemoryOptions = {},
-): MessageInitShape<typeof MemorySchema> {
+): InitShape<typeof MemorySchema> {
   return {
     apiVersion: MEMORY_API_VERSION,
     kind: MEMORY_KIND,

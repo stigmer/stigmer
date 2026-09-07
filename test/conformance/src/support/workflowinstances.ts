@@ -9,7 +9,7 @@
 //
 // Negatives are composed inline in the suite, matching the convention in the
 // other support modules: this module represents validity by construction.
-import type { MessageInitShape } from "@bufbuild/protobuf";
+import type { InitShape } from "./init-shape";
 import { WorkflowInstanceSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
 import { WorkflowInstanceSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/spec_pb";
 import { type EnvironmentRefInit, makeEnvironmentRefs } from "./environments";
@@ -27,7 +27,7 @@ export interface WorkflowInstanceSpecOptions {
 
 export function makeWorkflowInstanceSpec(
   opts: WorkflowInstanceSpecOptions,
-): MessageInitShape<typeof WorkflowInstanceSpecSchema> {
+): InitShape<typeof WorkflowInstanceSpecSchema> {
   return {
     workflowId: opts.workflowId,
     description: opts.description ?? "conformance fixture",
@@ -43,7 +43,7 @@ export interface WorkflowInstanceOptions extends WorkflowInstanceSpecOptions {
 // A complete, valid WorkflowInstance resource ready to hand to create/apply.
 export function makeWorkflowInstance(
   opts: WorkflowInstanceOptions,
-): MessageInitShape<typeof WorkflowInstanceSchema> {
+): InitShape<typeof WorkflowInstanceSchema> {
   const { org, name, ...specOpts } = opts;
   return {
     apiVersion: WORKFLOW_INSTANCE_API_VERSION,

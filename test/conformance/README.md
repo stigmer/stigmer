@@ -263,6 +263,42 @@ use `@stigmer/sdk`: the SDK is itself an implementation with conveniences that
 can drift from the proto API. Testing the raw contract keeps the suite a true
 black box.
 
+### Typecheck
+
+`npm run typecheck -w @stigmer/conformance` is the package's own gate. It runs in
+`ci.ts-sdk` (the workspace's TypeScript typecheck lane), in `make check-node`,
+and in the `test/conformance/**` row of `@verify-stigmer-oss-changes`. It must
+be clean; `vitest` does not typecheck, so a suite can run green over a type
+error that this step is the only thing catching (stigmer/stigmer#999).
+
+Two things about it are deliberate:
+
+- **This is the only package in the repo with `noUncheckedIndexedAccess`.**
+  Every `array[i]` and `record[key]` read is `T | undefined` until guarded. The
+  suites assert against wire data of unknown shape, so the stricter view is
+  right here even though the server, runner and SDKs do not carry it.
+- **It compiles other packages' source.** Workspace packages export `./src` in
+  development (only `@stigmer/protos` exports a built `dist`), so anything a
+  suite imports from another package is compiled under THIS package's options.
+  The one such import is `mcp.conformance.test.ts` → `@stigmer/mcp-server`,
+  whose `domains/client.ts` pulls in `@stigmer/sdk`. That is a type-level
+  coupling only — no suite calls the SDK, and the "Raw stubs, not the SDK"
+  principle above is intact — but it means a guard-free indexed read in either
+  package fails this typecheck while both packages' own typechecks stay green.
+  That is why the gate lives in `ci.ts-sdk`, whose path filter already covers
+  `sdk/typescript/**` and `mcp-server/**`: drift on either side of the coupling
+  fails a check.
+
+Two alternatives were considered for that coupling and rejected (2026-09-08):
+importing the built packages instead of source goes against the repo-wide
+src-export convention and would hide their errors behind `skipLibCheck`; and
+adopting `noUncheckedIndexedAccess` in `sdk/typescript` and `mcp-server`
+themselves is a hardening decision for those packages (measured at 86 and 21
+errors, mostly in test files), tracked as stigmer/stigmer#1004 rather than
+folded into this suite's gate. The fix for #999 hardened the handful of indexed reads in
+those packages with explicit guards, which is what a `noUncheckedIndexedAccess`
+codebase writes anyway.
+
 ### Spec-first contract (`src/contract/`)
 
 Tests assert the **intended** contract, not whatever an implementation happens
