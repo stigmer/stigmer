@@ -34,14 +34,24 @@ export interface SkillArtifactOptions {
   description?: string;
 }
 
+// A fixed entry timestamp so two ZIPs of the same content are the SAME BYTES.
+// fflate stamps the CURRENT clock (DOS time, 2-second resolution) into every
+// entry header by default, so an artifact built seconds after another one
+// carries different bytes and a different content hash — the "re-push A" arm
+// of the content-addressed versioning suite failed exactly that way on the
+// 2026-09-08 C5 S3 composition readout. The content hash is the contract;
+// the clock is not part of the content.
+const FIXED_ZIP_MTIME = new Date("2026-01-01T00:00:00Z");
+
 // Builds a ZIP from an explicit file map. A neutral primitive (not "a valid
 // skill"), so the suite can compose malformed artifacts — e.g. a ZIP without a
 // SKILL.md, or with bad frontmatter — without re-importing fflate and without
-// blurring the valid/invalid boundary this module guards.
+// blurring the valid/invalid boundary this module guards. Deterministic: the
+// same map always yields the same bytes (see FIXED_ZIP_MTIME).
 export function zipFiles(files: Record<string, Uint8Array | string>): Uint8Array {
-  const entries: Record<string, Uint8Array> = {};
+  const entries: Record<string, [Uint8Array, { mtime: Date }]> = {};
   for (const [name, content] of Object.entries(files)) {
-    entries[name] = typeof content === "string" ? strToU8(content) : content;
+    entries[name] = [typeof content === "string" ? strToU8(content) : content, { mtime: FIXED_ZIP_MTIME }];
   }
   return zipSync(entries);
 }

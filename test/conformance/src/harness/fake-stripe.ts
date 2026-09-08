@@ -78,6 +78,13 @@ export class FakeStripeApi {
   // Customers this fixture created, so a retrieve/update answers the shape
   // Java expects; payment methods are minted on first retrieve.
   private readonly customers = new Map<string, Record<string, unknown>>();
+  // Checkout Sessions and PaymentIntents this fixture created, so the
+  // reconciliation sweep's reads (C5 S3: GET /v1/checkout/sessions/{id},
+  // GET /v1/payment_intents/{id}) answer the object as last minted — status
+  // `open` / `processing` — instead of the unhandled 404 that turned every
+  // sweep run red on the S3 readout substrate.
+  private readonly checkoutSessions = new Map<string, Record<string, unknown>>();
+  private readonly paymentIntents = new Map<string, Record<string, unknown>>();
 
   async start(): Promise<void> {
     this.server = createServer((req, res) => {
@@ -114,6 +121,8 @@ export class FakeStripeApi {
     this.captured = [];
     this.failures = [];
     this.customers.clear();
+    this.checkoutSessions.clear();
+    this.paymentIntents.clear();
   }
 
   private nextId(prefix: string): string {
@@ -180,25 +189,39 @@ export class FakeStripeApi {
     }
     if (method === "POST" && path === "/v1/checkout/sessions") {
       const id = this.nextId("cs_test");
-      return {
-        status: 200,
+      const session = {
         id,
-        body: {
-          id,
-          object: "checkout.session",
-          created: now,
-          livemode: false,
-          mode: params["mode"] ?? "payment",
-          customer: params["customer"] ?? null,
-          payment_intent: null,
-          payment_status: "unpaid",
-          status: "open",
-          success_url: params["success_url"] ?? null,
-          cancel_url: params["cancel_url"] ?? null,
-          url: `https://checkout.stripe.test/c/pay/${id}`,
-          metadata: metadataOf(params),
-        },
+        object: "checkout.session",
+        created: now,
+        livemode: false,
+        mode: params["mode"] ?? "payment",
+        customer: params["customer"] ?? null,
+        payment_intent: null,
+        payment_status: "unpaid",
+        status: "open",
+        success_url: params["success_url"] ?? null,
+        cancel_url: params["cancel_url"] ?? null,
+        url: `https://checkout.stripe.test/c/pay/${id}`,
+        metadata: metadataOf(params),
       };
+      this.checkoutSessions.set(id, session);
+      return { status: 200, id, body: session };
+    }
+    // The reconciliation sweep's reads (C5 S3): a session or intent this
+    // fixture minted answers as it was minted (still `open` / `processing`,
+    // so the sweep leaves the row alone — Java's SKIPPED arm); an id the
+    // fixture never issued is Stripe's resource_missing.
+    const sessionMatch = /^\/v1\/checkout\/sessions\/([^/]+)$/.exec(path);
+    if (method === "GET" && sessionMatch !== null) {
+      const id = sessionMatch[1] ?? "";
+      const session = this.checkoutSessions.get(id);
+      return session === undefined ? stripeNotFound(`No such checkout.session: '${id}'`) : { status: 200, id, body: session };
+    }
+    const intentMatch = /^\/v1\/payment_intents\/([^/]+)$/.exec(path);
+    if (method === "GET" && intentMatch !== null) {
+      const id = intentMatch[1] ?? "";
+      const intent = this.paymentIntents.get(id);
+      return intent === undefined ? stripeNotFound(`No such payment_intent: '${id}'`) : { status: 200, id, body: intent };
     }
     if (method === "POST" && path === "/v1/billing_portal/sessions") {
       const id = this.nextId("bps");
@@ -218,22 +241,20 @@ export class FakeStripeApi {
     }
     if (method === "POST" && path === "/v1/payment_intents") {
       const id = this.nextId("pi");
-      return {
-        status: 200,
+      const intent = {
         id,
-        body: {
-          id,
-          object: "payment_intent",
-          created: now,
-          livemode: false,
-          amount: Number(params["amount"] ?? "0"),
-          currency: params["currency"] ?? "usd",
-          customer: params["customer"] ?? null,
-          payment_method: params["payment_method"] ?? null,
-          status: "processing",
-          metadata: metadataOf(params),
-        },
+        object: "payment_intent",
+        created: now,
+        livemode: false,
+        amount: Number(params["amount"] ?? "0"),
+        currency: params["currency"] ?? "usd",
+        customer: params["customer"] ?? null,
+        payment_method: params["payment_method"] ?? null,
+        status: "processing",
+        metadata: metadataOf(params),
       };
+      this.paymentIntents.set(id, intent);
+      return { status: 200, id, body: intent };
     }
     const pmMatch = /^\/v1\/payment_methods\/([^/]+)$/.exec(path);
     if (method === "GET" && pmMatch !== null) {
