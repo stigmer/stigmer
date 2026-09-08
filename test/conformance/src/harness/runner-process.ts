@@ -25,11 +25,11 @@
 // cloud-execution target points artifacts at the hermetic Java service's HTTP
 // port (MinIO-backed) while LLM traffic stays on the mock.
 import { spawn } from "node:child_process";
-import { createWriteStream, mkdirSync, type WriteStream } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
+import { stopChild, teeChildOutput } from "./child-process";
 import { runnerDir } from "./runner-build";
 
 // The runner bundles its Temporal workflows on boot, so first-poll readiness is
@@ -37,6 +37,11 @@ import { runnerDir } from "./runner-build";
 const READY_TIMEOUT_MS = 60_000;
 const READY_POLL_MS = 100;
 const LOG_TAIL_BYTES = 8_000;
+// SIGTERM starts the runner's graceful shutdown (main.ts: `manager.shutdown()`
+// drains the Temporal worker). Every suite awaits its executions' terminal
+// phase before teardown, so the drain has nothing in flight and exit is
+// prompt; the bound only exists so a wedged drain cannot hang the vitest run.
+const SHUTDOWN_GRACE_MS = 30_000;
 
 // Printed by the runner immediately before it begins polling (runner/src/runner.ts).
 const READY_MARKER = "Worker ready, polling for tasks";
@@ -183,7 +188,6 @@ export async function spawnRunner(opts: RunnerOptions): Promise<RunningRunner> {
     },
   });
 
-  let logSink: WriteStream | undefined;
   // STIGMER_CONFORMANCE_LOG_DIR: the same teardown-surviving tee the
   // server harness offers, for diagnosing writer-ordering races that need
   // the runner's cancellation/persist lines (see server-process.ts).
@@ -195,21 +199,14 @@ export async function spawnRunner(opts: RunnerOptions): Promise<RunningRunner> {
           `runner-${Date.now()}.log`,
         )
       : undefined);
-  if (teeFile !== undefined) {
-    mkdirSync(dirname(teeFile), { recursive: true });
-    logSink = createWriteStream(teeFile, { flags: "a" });
-  }
-
-  let logTail = "";
   let ready = false;
-  const appendLog = (chunk: Buffer): void => {
-    const text = chunk.toString("utf8");
-    logTail = (logTail + text).slice(-LOG_TAIL_BYTES);
-    logSink?.write(chunk);
-    if (text.includes(READY_MARKER)) ready = true;
-  };
-  child.stdout.on("data", appendLog);
-  child.stderr.on("data", appendLog);
+  const output = teeChildOutput(child, {
+    tailBytes: LOG_TAIL_BYTES,
+    file: teeFile,
+    onChunk: (text) => {
+      if (text.includes(READY_MARKER)) ready = true;
+    },
+  });
 
   let exit: { code: number | null; signal: NodeJS.Signals | null } | null = null;
   child.on("exit", (code, signal) => {
@@ -218,10 +215,20 @@ export async function spawnRunner(opts: RunnerOptions): Promise<RunningRunner> {
 
   const stop = async (): Promise<void> => {
     // SIGTERM triggers the runner's graceful shutdown (drains the worker).
-    if (exit === null) {
-      child.kill("SIGTERM");
-    }
-    logSink?.end();
+    // The order is the discipline child-process.ts documents: exit first,
+    // then the tee (its sink ends only once stdio has closed — the runner's
+    // shutdown lines land in the file instead of throwing write-after-end),
+    // then the directories the runner was still using.
+    await stopChild(child, {
+      signal: "SIGTERM",
+      graceMs: SHUTDOWN_GRACE_MS,
+      onForceKill: () =>
+        console.error(
+          `[runner] did not exit within ${SHUTDOWN_GRACE_MS}ms of SIGTERM — SIGKILL fallback; ` +
+            "its Temporal worker may have left an in-flight activity to time out",
+        ),
+    });
+    await output.close();
     await rm(workspaceDir, { recursive: true, force: true });
     // Only remove a store we minted; a server-shared dir is the server's to clean.
     if (ownedArtifactDir !== undefined) {
@@ -233,7 +240,7 @@ export async function spawnRunner(opts: RunnerOptions): Promise<RunningRunner> {
     await waitForReady(
       () => ready,
       () => exit,
-      () => logTail,
+      () => output.tail(),
     );
   } catch (err) {
     await stop();
@@ -241,7 +248,7 @@ export async function spawnRunner(opts: RunnerOptions): Promise<RunningRunner> {
   }
 
   return {
-    logTail: () => logTail,
+    logTail: () => output.tail(),
     stop,
   };
 }

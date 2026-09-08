@@ -45,6 +45,16 @@
 //   validation); unknown tool_call_id on a gated execution -> InvalidArgument;
 //   missing execution -> NotFound; submit on a terminal execution ->
 //   FailedPrecondition.
+//
+// Every gate-resolving submit goes through submitApprovalPerContract (the seam
+// in support/agentexecutions.ts) since entry 20260908.01: the synchronous
+// contract above is asserted there once, and the one known Java race against
+// it — SubmitApproval's targeted write lost to the workflow's second WAITING
+// persist, the decision surviving only in the approval-event stream — is
+// proven, reported and remedied there (contract/deviations.ts,
+// SUBMIT_APPROVAL_LOST_UPDATE_RACE). The REJECT arm's audit assertions are the
+// same race's other face and route through the same entry. TS targets never
+// enter that path.
 import { Code } from "@connectrpc/connect";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import {
@@ -53,6 +63,7 @@ import {
   ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { assertContractOrKnownRace, SUBMIT_APPROVAL_LOST_UPDATE_RACE } from "../contract/deviations";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
@@ -62,11 +73,14 @@ import type { MockLlmProxy, ToolUseBlock } from "../harness/mock-llm";
 import { anthropicText, anthropicToolUses } from "../harness/mock-llm";
 import { makeAgent } from "../support/agents";
 import {
+  allToolCalls,
   awaitPhase,
   awaitTerminal,
+  expectDecisionLostFromTranscript,
   makeAgentExecution,
   requireLlmProxy,
   requireMcpFixture,
+  submitApprovalPerContract,
 } from "../support/agentexecutions";
 import { makeHttpMcpServer } from "../support/mcpservers";
 import { uniqueName } from "../support/naming";
@@ -159,13 +173,18 @@ describe("AgentExecution submitApproval — gate resolution", () => {
     const { executionId, gated } = await runToGate(org, agentId, [echoBlock("call_echo_approve", "hello")]);
 
     const toolCallId = gated.status!.pendingApprovals[0]!.toolCallId;
-    const resp = await clients.agentExecutionCommand.submitApproval({
-      agentExecutionId: executionId,
-      toolCallId,
-      action: ApprovalAction.APPROVE,
-    });
     // The single gate is fully resolved synchronously: the approved entry is gone.
-    expect(resp.status?.pendingApprovals.length, "approve clears the pending gate").toBe(0);
+    await submitApprovalPerContract(target, clients, {
+      executionId,
+      expectedRemaining: 0,
+      label: "approve clears the pending gate",
+      submit: () =>
+        clients.agentExecutionCommand.submitApproval({
+          agentExecutionId: executionId,
+          toolCallId,
+          action: ApprovalAction.APPROVE,
+        }),
+    });
 
     const final = await awaitTerminal(clients, executionId);
     expect(
@@ -180,12 +199,17 @@ describe("AgentExecution submitApproval — gate resolution", () => {
     const { executionId, gated } = await runToGate(org, agentId, [echoBlock("call_echo_skip", "hello")]);
 
     const toolCallId = gated.status!.pendingApprovals[0]!.toolCallId;
-    const resp = await clients.agentExecutionCommand.submitApproval({
-      agentExecutionId: executionId,
-      toolCallId,
-      action: ApprovalAction.SKIP,
+    await submitApprovalPerContract(target, clients, {
+      executionId,
+      expectedRemaining: 0,
+      label: "skip clears the pending gate",
+      submit: () =>
+        clients.agentExecutionCommand.submitApproval({
+          agentExecutionId: executionId,
+          toolCallId,
+          action: ApprovalAction.SKIP,
+        }),
     });
-    expect(resp.status?.pendingApprovals.length, "skip clears the pending gate").toBe(0);
 
     const final = await awaitTerminal(clients, executionId);
     expect(final.status?.phase, "skipped execution should COMPLETE").toBe(ExecutionPhase.EXECUTION_COMPLETED);
@@ -197,13 +221,18 @@ describe("AgentExecution submitApproval — gate resolution", () => {
     const { executionId, gated } = await runToGate(org, agentId, [echoBlock("call_echo_reject", "hello")]);
 
     const toolCallId = gated.status!.pendingApprovals[0]!.toolCallId;
-    const resp = await clients.agentExecutionCommand.submitApproval({
-      agentExecutionId: executionId,
-      toolCallId,
-      action: ApprovalAction.REJECT,
-      comment: "not this time",
+    await submitApprovalPerContract(target, clients, {
+      executionId,
+      expectedRemaining: 0,
+      label: "reject clears the pending gate",
+      submit: () =>
+        clients.agentExecutionCommand.submitApproval({
+          agentExecutionId: executionId,
+          toolCallId,
+          action: ApprovalAction.REJECT,
+          comment: "not this time",
+        }),
     });
-    expect(resp.status?.pendingApprovals.length, "reject clears the pending gate").toBe(0);
 
     // REJECT denies the tool and continues: the objection is fed back to the LLM,
     // which adapts, and the execution COMPLETES (issue #197 — the proto enum, the
@@ -214,17 +243,23 @@ describe("AgentExecution submitApproval — gate resolution", () => {
     // The rejected tool call is terminalized deterministically — never left stuck
     // at WAITING_APPROVAL — carrying the REJECT decision for audit. This is stable
     // across resume because it is derived from the recorded approval_action, not
-    // from the resumed stream's (unstable) run_id.
-    const rejectedTc = final.status?.messages
-      .flatMap((m) => m.toolCalls)
-      .find((tc) => tc.id === toolCallId);
+    // from the resumed stream's (unstable) run_id. On the Java target this is the
+    // AUDIT face of the submit-approval race (contract/deviations.ts): the
+    // response passed, the run completed, and the decision survives only in the
+    // approval-event stream — there is no remedy, the observed reading is final.
+    const rejectedTc = allToolCalls(final).find((tc) => tc.id === toolCallId);
     expect(rejectedTc, "the rejected echo tool call is present in the transcript").toBeDefined();
-    expect(rejectedTc!.status, "rejected tool call resolves to SKIPPED, not WAITING").toBe(
-      ToolCallStatus.TOOL_CALL_SKIPPED,
-    );
-    expect(rejectedTc!.approvalAction, "the REJECT decision is preserved for audit").toBe(
-      ApprovalAction.REJECT,
-    );
+    await assertContractOrKnownRace(target.name, SUBMIT_APPROVAL_LOST_UPDATE_RACE, {
+      contract: () => {
+        expect(rejectedTc!.status, "rejected tool call resolves to SKIPPED, not WAITING").toBe(
+          ToolCallStatus.TOOL_CALL_SKIPPED,
+        );
+        expect(rejectedTc!.approvalAction, "the REJECT decision is preserved for audit").toBe(
+          ApprovalAction.REJECT,
+        );
+      },
+      observed: () => expectDecisionLostFromTranscript(final),
+    });
   });
 
   it("APPROVE_ALL resolves every co-pending gate in a single decision", async () => {
@@ -239,13 +274,18 @@ describe("AgentExecution submitApproval — gate resolution", () => {
     expect(gated.status?.pendingApprovals.length, "both echo calls are co-pending").toBe(2);
 
     // One APPROVE_ALL on the first resolves the whole gate — no second submit.
-    const resp = await clients.agentExecutionCommand.submitApproval({
-      agentExecutionId: executionId,
-      toolCallId: gated.status!.pendingApprovals[0]!.toolCallId,
-      action: ApprovalAction.APPROVE_ALL,
-    });
     // One decision empties the read model: the co-pending entry was resolved too.
-    expect(resp.status?.pendingApprovals.length, "APPROVE_ALL resolves both gates at once").toBe(0);
+    await submitApprovalPerContract(target, clients, {
+      executionId,
+      expectedRemaining: 0,
+      label: "APPROVE_ALL resolves both gates at once",
+      submit: () =>
+        clients.agentExecutionCommand.submitApproval({
+          agentExecutionId: executionId,
+          toolCallId: gated.status!.pendingApprovals[0]!.toolCallId,
+          action: ApprovalAction.APPROVE_ALL,
+        }),
+    });
 
     // Reaching COMPLETED proves the second tool call was auto-approved (a plain
     // APPROVE would have re-gated and this would never settle).
@@ -288,11 +328,20 @@ describe("AgentExecution submitApproval — spec bypass and read model", () => {
     expect(pending.toolName, "pending approval names the tool").toBe(ECHO_TOOL_NAME);
     expect(pending.mcpServerSlug, "pending approval carries the server slug").toBe(mcpSlug);
 
-    // Settle so the run terminates cleanly.
-    await clients.agentExecutionCommand.submitApproval({
-      agentExecutionId: executionId,
-      toolCallId: pending.toolCallId,
-      action: ApprovalAction.APPROVE,
+    // Settle so the run terminates cleanly. Through the seam even though this
+    // arm asserts nothing about the response: a decision the Java race drops
+    // would otherwise surface as awaitTerminal timing out, a red with a
+    // misleading face.
+    await submitApprovalPerContract(target, clients, {
+      executionId,
+      expectedRemaining: 0,
+      label: "the settling approve clears the gate",
+      submit: () =>
+        clients.agentExecutionCommand.submitApproval({
+          agentExecutionId: executionId,
+          toolCallId: pending.toolCallId,
+          action: ApprovalAction.APPROVE,
+        }),
     });
     await awaitTerminal(clients, executionId);
   });
@@ -315,9 +364,13 @@ describe("AgentExecution submitApproval — spec bypass and read model", () => {
         toolCallId: firstId,
         action: ApprovalAction.APPROVE,
       });
-    const firstResp = await approveFirst();
     // One of two co-pending gates resolved: the other is still pending.
-    expect(firstResp.status?.pendingApprovals.length, "one gate remains after first approve").toBe(1);
+    await submitApprovalPerContract(target, clients, {
+      executionId,
+      expectedRemaining: 1,
+      label: "one gate remains after first approve",
+      submit: approveFirst,
+    });
 
     // Same {tool_call_id, action} again while the gate is still open: a no-op
     // that returns the current state (still one pending), not an error.
@@ -326,10 +379,16 @@ describe("AgentExecution submitApproval — spec bypass and read model", () => {
     expect(secondResp.status?.pendingApprovals[0]?.toolCallId, "the remaining gate is unchanged").toBe(secondId);
 
     // Resolve the rest of the gate and confirm the run still completes.
-    await clients.agentExecutionCommand.submitApproval({
-      agentExecutionId: executionId,
-      toolCallId: secondId,
-      action: ApprovalAction.APPROVE,
+    await submitApprovalPerContract(target, clients, {
+      executionId,
+      expectedRemaining: 0,
+      label: "the second approve clears the gate",
+      submit: () =>
+        clients.agentExecutionCommand.submitApproval({
+          agentExecutionId: executionId,
+          toolCallId: secondId,
+          action: ApprovalAction.APPROVE,
+        }),
     });
     const final = await awaitTerminal(clients, executionId);
     expect(final.status?.phase, "execution completes after idempotent + final approval").toBe(
@@ -407,11 +466,18 @@ describe("AgentExecution submitApproval — negatives", () => {
       "unknown tool_call_id",
     );
 
-    // Settle the real gate so the run terminates cleanly.
-    await clients.agentExecutionCommand.submitApproval({
-      agentExecutionId: executionId,
-      toolCallId: gated.status!.pendingApprovals[0]!.toolCallId,
-      action: ApprovalAction.APPROVE,
+    // Settle the real gate so the run terminates cleanly (through the seam, so
+    // a Java-dropped decision does not surface as a timeout here).
+    await submitApprovalPerContract(target, clients, {
+      executionId,
+      expectedRemaining: 0,
+      label: "the settling approve clears the gate",
+      submit: () =>
+        clients.agentExecutionCommand.submitApproval({
+          agentExecutionId: executionId,
+          toolCallId: gated.status!.pendingApprovals[0]!.toolCallId,
+          action: ApprovalAction.APPROVE,
+        }),
     });
     await awaitTerminal(clients, executionId);
   });

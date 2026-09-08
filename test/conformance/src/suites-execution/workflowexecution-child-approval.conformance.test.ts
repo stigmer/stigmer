@@ -69,7 +69,7 @@ import { ECHO_TOOL_NAME } from "../harness/mcp-server";
 import type { MockLlmProxy } from "../harness/mock-llm";
 import { anthropicText, anthropicToolUses } from "../harness/mock-llm";
 import { makeAgent } from "../support/agents";
-import { requireLlmProxy, requireMcpFixture } from "../support/agentexecutions";
+import { requireLlmProxy, requireMcpFixture, submitApprovalPerContract } from "../support/agentexecutions";
 import { makeHttpMcpServer } from "../support/mcpservers";
 import { uniqueName } from "../support/naming";
 import {
@@ -302,10 +302,23 @@ describe.skipIf(!forwarderEnabled)(
       expect(pending.approval?.toolName, "the parent gate names the gated tool").toBe(ECHO_TOOL_NAME);
 
       // Forward the decision through the parent; the handler routes it to the child.
-      await clients.workflowExecutionCommand.submitApproval({
-        executionId,
-        toolCallId: pending.approval!.toolCallId,
-        action: ApprovalAction.APPROVE,
+      // Through the seam: the forwarder's own response is the PARENT, loaded before
+      // the forward, so the contract is read off the child — whose gate the same
+      // agent-execution handler resolves synchronously — and a decision the Java
+      // race drops does not surface as the workflow never completing.
+      const childExecutionId = pending.childAgentExecutionId;
+      await submitApprovalPerContract(target, clients, {
+        executionId: childExecutionId,
+        expectedRemaining: 0,
+        label: "the forwarded approve clears the child's gate",
+        submit: async () => {
+          await clients.workflowExecutionCommand.submitApproval({
+            executionId,
+            toolCallId: pending.approval!.toolCallId,
+            action: ApprovalAction.APPROVE,
+          });
+          return clients.agentExecutionQuery.get({ value: childExecutionId });
+        },
       });
 
       // The child resumes and the workflow continues — the downstream task running

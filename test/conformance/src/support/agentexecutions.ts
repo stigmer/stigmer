@@ -8,14 +8,23 @@
 // agent, which the OSS single-tenant target does not seed, so suites always pass a
 // reference. Like WorkflowExecution this is a *running thing*, so this module also
 // exposes phase-await helpers, delegating the timing loop to the shared poll core
-// so both execution domains share one definition.
+// so both execution domains share one definition — and, since entry 20260908.01,
+// the submit-approval seam: the one place the approval contract is asserted and
+// the one Java race against it is handled (see the seam's own header below).
 import type { MessageInitShape } from "@bufbuild/protobuf";
 import type { InitShape } from "./init-shape";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import {
+  ApprovalAction,
+  ApprovalEventType,
+  ExecutionPhase,
+} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { AttachmentSchema, ExecutionConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import type { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
+import { expect } from "vitest";
+import { assertContractOrKnownRace, SUBMIT_APPROVAL_LOST_UPDATE_RACE } from "../contract/deviations";
 import type { ConformanceClients } from "../harness/clients";
 import type { McpToolFixture } from "../harness/mcp-server";
 import type { MockLlmProxy } from "../harness/mock-llm";
@@ -155,6 +164,115 @@ export function awaitTerminal(
     ...opts,
   });
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The submit-approval seam.
+//
+// Every approval submit in the execution suites is one gesture: submit the
+// decision right after the gate appears, assert the response's pending_approvals
+// reflects it (the contract the approval suite's header states — recomputed
+// SYNCHRONOUSLY), continue. Eight sites wrote that gesture by hand until entry
+// 20260908.01 found them all exposed to one Java race the OSS server is immune
+// to (contract/deviations.ts, SUBMIT_APPROVAL_LOST_UPDATE_RACE). The seam owns
+// the gesture once: on TS targets it is submit-and-assert; on the registered
+// Java target a failed assertion opens the race path — prove it is that race,
+// report it, re-submit once, assert again.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// The one read the seam needs from the clients — a structural slice so the
+// unit arms can hand in a stub instead of a Connect client.
+export interface AgentExecutionReader {
+  agentExecutionQuery: { get(request: { value: string }): Promise<AgentExecution> };
+}
+
+export interface SubmitApprovalPerContractOptions {
+  // The AgentExecution that owns the gated tool call.
+  executionId: string;
+  // Issues the decision. Resolves to the AgentExecution whose read model the
+  // contract is asserted on: the submit response for a direct submit; for the
+  // workflow forwarder — whose own response is the PARENT, loaded before the
+  // forward — a fresh get of the child.
+  submit: () => Promise<AgentExecution>;
+  // pending_approvals the response must carry after this decision: 0 for a
+  // single gate, 1 for the first approve of two co-pending calls.
+  expectedRemaining: number;
+  // Names the decision in the contract assertion's failure message.
+  label: string;
+}
+
+// Submits per the contract and returns the response the contract held on (the
+// second response when the registered race fired and the remedy re-submitted).
+export async function submitApprovalPerContract(
+  target: Pick<TargetProfile, "name">,
+  clients: AgentExecutionReader,
+  opts: SubmitApprovalPerContractOptions,
+): Promise<AgentExecution> {
+  let response = await opts.submit();
+  await assertContractOrKnownRace(target.name, SUBMIT_APPROVAL_LOST_UPDATE_RACE, {
+    contract: () =>
+      expect(response.status?.pendingApprovals.length, opts.label).toBe(opts.expectedRemaining),
+    observed: async () =>
+      expectDecisionLostFromTranscript(await clients.agentExecutionQuery.get({ value: opts.executionId })),
+    remedy: async () => {
+      response = await opts.submit();
+    },
+  });
+  return response;
+}
+
+// The race's proof, shared by the seam (the response face) and the REJECT arm's
+// audit assertions (the audit face): at least one tool call has a decision event
+// in the approval-event stream and no approval_action in the transcript — the
+// exact divergence Java's PendingApprovalProjector logs as
+// `only-in-scan:<tool_call_id>`. Anything else failing an approval assertion is
+// an unknown symptom, and this throws so the arm stays red.
+export function expectDecisionLostFromTranscript(execution: AgentExecution): void {
+  const lost = decisionsLostFromTranscript(execution);
+  expect(
+    lost,
+    "the known race: the approval-event stream carries a decision the transcript does not " +
+      `(execution ${execution.metadata?.id ?? "?"}; decided in stream: ` +
+      `${JSON.stringify(decidedToolCallIds(execution))}, undecided in transcript: ` +
+      `${JSON.stringify(undecidedToolCallIds(execution))})`,
+  ).not.toHaveLength(0);
+}
+
+// Tool call ids decided in the approval-event stream but undecided in the
+// transcript. Pure; the unit arms pin it.
+export function decisionsLostFromTranscript(execution: AgentExecution): string[] {
+  const undecided = new Set(undecidedToolCallIds(execution));
+  return decidedToolCallIds(execution).filter((id) => undecided.has(id));
+}
+
+// approval_request_id equals tool_call_id by the proto's documented decision
+// (approval.proto), so the stream is keyed by the same id the transcript uses.
+function decidedToolCallIds(execution: AgentExecution): string[] {
+  return (execution.status?.approvalEventStream?.events ?? [])
+    .filter((event) => DECISION_EVENT_TYPES.has(event.eventType))
+    .map((event) => event.approvalRequestId);
+}
+
+function undecidedToolCallIds(execution: AgentExecution): string[] {
+  return allToolCalls(execution)
+    .filter((toolCall) => toolCall.approvalAction === ApprovalAction.UNSPECIFIED)
+    .map((toolCall) => toolCall.id);
+}
+
+// Root and sub-agent transcripts, the same scan the projections run.
+export function allToolCalls(execution: AgentExecution): ToolCall[] {
+  const root = execution.status?.messages.flatMap((message) => message.toolCalls) ?? [];
+  const nested =
+    execution.status?.subAgentExecutions.flatMap((subAgent) =>
+      subAgent.messages.flatMap((message) => message.toolCalls),
+    ) ?? [];
+  return [...root, ...nested];
+}
+
+const DECISION_EVENT_TYPES: ReadonlySet<ApprovalEventType> = new Set([
+  ApprovalEventType.APPROVED,
+  ApprovalEventType.REJECTED,
+  ApprovalEventType.SKIPPED,
+]);
 
 // Obtain the mock LLM proxy from an execution target, failing loudly if the
 // active target does not provide one (e.g. a CRUD-only target). Agent
