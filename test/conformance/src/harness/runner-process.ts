@@ -43,8 +43,21 @@ const LOG_TAIL_BYTES = 8_000;
 // prompt; the bound only exists so a wedged drain cannot hang the vitest run.
 const SHUTDOWN_GRACE_MS = 30_000;
 
-// Printed by the runner immediately before it begins polling (runner/src/runner.ts).
+// Two lines the runner prints that this harness reads back (runner/src/runner.ts,
+// `start()`): the first immediately before the worker begins polling, the
+// second once `worker.run()` has returned — the Temporal worker has drained and
+// stopped, and whatever the process does next is no longer the worker's.
 const READY_MARKER = "Worker ready, polling for tasks";
+const WORKER_STOPPED_MARKER = "Worker stopped";
+
+// How much of the runner's output the SIGKILL-fallback line quotes. Enough to
+// show the whole shutdown sequence as the runner actually prints it: the
+// Temporal SDK logs each `Worker state changed` as a five-line object, so
+// `Received SIGTERM`, the four state changes and the marker are ~22 lines —
+// short ones, so the excerpt stays around a kilobyte. The per-line clip is for
+// the odd long line (an activity's completion summary, say), not the norm.
+const FORCE_KILL_EXCERPT_LINES = 24;
+const FORCE_KILL_EXCERPT_LINE_CHARS = 240;
 
 // Hermetic LLM wiring for agent executions. Omit it entirely for the data-only
 // WorkflowExecution path, which must stay LLM-free.
@@ -222,11 +235,7 @@ export async function spawnRunner(opts: RunnerOptions): Promise<RunningRunner> {
     await stopChild(child, {
       signal: "SIGTERM",
       graceMs: SHUTDOWN_GRACE_MS,
-      onForceKill: () =>
-        console.error(
-          `[runner] did not exit within ${SHUTDOWN_GRACE_MS}ms of SIGTERM — SIGKILL fallback; ` +
-            "its Temporal worker may have left an in-flight activity to time out",
-        ),
+      onForceKill: () => console.error(describeRunnerForceKill(output.tail())),
     });
     await output.close();
     await rm(workspaceDir, { recursive: true, force: true });
@@ -251,6 +260,48 @@ export async function spawnRunner(opts: RunnerOptions): Promise<RunningRunner> {
     logTail: () => output.tail(),
     stop,
   };
+}
+
+// The line stop() prints when the runner outlives its grace and is SIGKILLed.
+// It has to carry its own evidence: on a green CI run the runner's log file is
+// not retained (the workflow uploads logs on failure only), so the job log is
+// the only surface a reader has, and "the harness had to kill a runner" alone
+// cannot say whether that is stigmer#1008 — the worker drained and stopped,
+// then the process idled instead of exiting — or a hang of a new shape where
+// the drain itself never finished (stigmer#1010).
+//
+// The verdict is decided on the one axis #1008 is defined by: did the runner
+// print WORKER_STOPPED_MARKER? A line-exact match anywhere in the tail — not
+// "the last line", because the runner may legitimately print after the worker
+// stops (a parked Cursor agent being closed, say), and such a line must not
+// turn a #1008 hang into a false alarm. Whatever followed the marker is in the
+// quoted excerpt, where a reader can see it, not folded into the verdict.
+// Pure, so the unit arms drive it directly; it never throws, because it runs
+// inside stopChild's grace timer during teardown.
+export function describeRunnerForceKill(tail: string): string {
+  const lines = tail.split(/\r?\n/);
+  const workerStopped = lines.some((line) => line.trim() === WORKER_STOPPED_MARKER);
+  const verdict = workerStopped
+    ? 'worker="stopped" — the process idled after its worker drained (stigmer#1008)'
+    : 'worker="not stopped" — the drain itself did not finish; NOT the #1008 shape, read the runner log';
+  return (
+    `[runner] did not exit within ${SHUTDOWN_GRACE_MS}ms of SIGTERM — SIGKILL fallback; ${verdict}\n` +
+    `[runner] last output:\n${quoteLastLines(lines)}`
+  );
+}
+
+// The tail's last non-blank lines as an indented quotation, each clipped so one
+// long line (an activity's completion summary, say) cannot swallow the log.
+function quoteLastLines(lines: string[]): string {
+  const kept = lines.filter((line) => line.trim() !== "").slice(-FORCE_KILL_EXCERPT_LINES);
+  if (kept.length === 0) return "    | (no runner output captured)";
+  return kept
+    .map((line) =>
+      line.length > FORCE_KILL_EXCERPT_LINE_CHARS
+        ? `    | ${line.slice(0, FORCE_KILL_EXCERPT_LINE_CHARS)}…`
+        : `    | ${line}`,
+    )
+    .join("\n");
 }
 
 async function waitForReady(
