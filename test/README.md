@@ -33,4 +33,4 @@ The test surfaces of the Stigmer platform that live outside a package's own unit
 
 ## Test output
 
-Each suite writes under its own `.test-output*/` directory (gitignored). The conformance suite prints per-target report lines readouts grep for (`tracked deviation …`, `tracked race …`).
+Each suite writes under its own `.test-output*/` directory (gitignored).

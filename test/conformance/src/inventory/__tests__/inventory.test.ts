@@ -140,8 +140,12 @@ describe("computeCoverage", () => {
     }
   });
 
-  it("requires a tag on deviation rows — the suite asserts the contract there", () => {
-    const { inventory } = parseInventory(ROW.replace("disposition: conformance", "disposition: deviation"));
-    expect(computeCoverage(inventory, []).problems.map((p) => p.kind)).toEqual(["uncovered-row"]);
+  it("refuses the retired `deviation` disposition and `disputed` field — the vocabulary is closed (stigmer#1023)", () => {
+    // Both named the known-deviation registry the Java retirement deleted; a
+    // row reaching for them today is a schema problem, not a coverage one.
+    const deviation = parseInventory(ROW.replace("disposition: conformance", "disposition: deviation"));
+    expect(deviation.problems.map((p) => p.kind)).toEqual(["schema"]);
+    const disputed = parseInventory(ROW.replace("needs: [funded-org]", "needs: [funded-org]\n    disputed: Java answers 401"));
+    expect(disputed.problems.map((p) => p.kind)).toEqual(["schema"]);
   });
 });

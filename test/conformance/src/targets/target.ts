@@ -196,12 +196,10 @@ export interface CapabilityFlags {
   // and a zero-balance account denies the run with the engine's one denial
   // vocabulary ("Insufficient credits to start execution").
   //
-  // True for cloud — the Java billing engine natively (the reservation
-  // authorized inside InvokeAgentExecutionWorkflow), and the TS composition
-  // through the C5 billing facade (the create-time reserve gate, ruling Q5 of
-  // 20260830.02.sp.billing-facade). WHERE the denial lands differs by ruled
-  // design per implementation — see denialContractOf in the billing-denial
-  // suite, keyed on TargetProfile.implementation.
+  // True for cloud: the composition's create-time reserve gate refuses the
+  // create RPC itself with FAILED_PRECONDITION (ruling Q5 of
+  // 20260830.02.sp.billing-facade — "strictly earlier than the Java refusal",
+  // which failed the execution asynchronously; that arm retired with Java).
   //
   // False for the local OSS targets — BY DD-001 BOUNDARY, not a gap: OSS has
   // no billing engine, no credit accounting, and no billing gates; every
@@ -361,37 +359,18 @@ export interface PrivilegedScope {
   cleanup(): Promise<void>;
 }
 
-// The server binary answering a target — a different axis from the target's
-// NAME. A name describes a deployment shape (spawned locally, an external
-// cloud endpoint, with or without an engine); the implementation says whose
-// code is on the other end. The two are not one-to-one: every local target is
-// the TypeScript server, but the `cloud` targets are connect-only and serve
-// whichever implementation the environment's provisioner booted — today the
-// TypeScript stigmer-server under the composition readout; until 2026-09-10
-// also the Java stigmer-service under a hermetic launcher. A known bug belongs
-// to an implementation, so the deviation registry (contract/deviations.ts)
-// keys on this and never on the name. The Java service is retired
-// (stigmer-cloud DD-013); "stigmer-service" and every registry entry naming
-// it are dead members deleted together in stigmer#1023.
-export type ServerImplementation = "stigmer-server" | "stigmer-service";
-
-export const SERVER_IMPLEMENTATIONS: readonly ServerImplementation[] = ["stigmer-server", "stigmer-service"];
-
-export function isServerImplementation(value: string): value is ServerImplementation {
-  return (SERVER_IMPLEMENTATIONS as readonly string[]).includes(value);
-}
-
-// What a helper needs to classify a target: its name (for the human-readable
-// report line) and its implementation (for the decision). Narrow on purpose so
-// pure unit arms can hand over a two-field literal instead of a live target.
-export type TargetIdentity = Pick<TargetProfile, "name" | "implementation">;
-
+// A target's NAME is the only axis the suite branches on: it describes a
+// deployment shape (spawned locally, an external cloud endpoint, with or
+// without an engine), and every shape is served by the one TypeScript server —
+// `@stigmer/server` alone on the local targets, the stigmer-cloud composition
+// that imports it on the cloud targets. There is deliberately no second axis
+// for "whose code answers": one existed (TargetProfile.implementation,
+// stigmer#1013) while the Java stigmer-service still served the cloud edition
+// and carried known bugs the suite had to tell apart from the composition's
+// behavior; it retired with that service (stigmer-cloud DD-013, stigmer#1023).
+// A new implementation, should one ever exist, enters as a new TARGET.
 export interface TargetProfile {
   readonly name: string;
-  // Whose code answers this target — see ServerImplementation. Fixed on the
-  // local targets; on the cloud targets declared by the environment
-  // (CLOUD_ENV.implementation, REQUIRED) and valid only after setup().
-  readonly implementation: ServerImplementation;
   readonly capabilities: CapabilityFlags;
 
   // Bring the target to a state where clients() can be used. For managed

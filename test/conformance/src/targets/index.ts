@@ -4,9 +4,8 @@
 // CONFORMANCE_TARGET selects the TARGET the suite runs against — a deployment
 // shape (spawned locally, with or without an engine; an external cloud
 // endpoint) — defaulting to the local OSS server. The same suite runs
-// unchanged against any registered target. Which server IMPLEMENTATION
-// answers a target is a separate axis (TargetProfile.implementation): fixed
-// for the local targets, declared by the environment for the cloud ones.
+// unchanged against any registered target; the target is the only axis the
+// suite branches on (see target.ts).
 import { CloudTarget } from "./cloud";
 import { CloudExecutionTarget } from "./cloud-execution";
 import { LocalTarget } from "./local";

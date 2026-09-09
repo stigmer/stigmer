@@ -1,4 +1,4 @@
-// Cloud execution target: the Java stigmer-service with its execution engine
+// Cloud execution target: the cloud composition with its execution engine
 // reachable — the Class B twin of `cloud`, and the cloud twin of
 // `local-execution`.
 // Domain: conformance targets (execution engine).
@@ -36,17 +36,15 @@ import { spawnRunner, type RunningRunner } from "../harness/runner-process";
 import { CloudTarget } from "./cloud";
 import type {
   CapabilityFlags,
-  ServerImplementation,
   StripeWebhookLane,
   TargetProfile,
   TenancyContext,
 } from "./target";
 
-// The integration module's log dir — where the hermetic launcher already
-// writes stigmer-service.log, and what the CI lane uploads on failure. Each
-// suite file's runner logs beside it, named for the file so a red run's
-// artifact tells the whole story (repo root is four levels up from
-// test/conformance/src/targets/).
+// The integration module's log dir — the shared test-output location a
+// readout collects. Each suite file's runner logs there, named for the file
+// so a red run's artifact tells the whole story (repo root is four levels up
+// from test/conformance/src/targets/).
 const RUNNER_LOG_DIR = resolve(
   dirname(fileURLToPath(import.meta.url)),
   "../../../..",
@@ -63,12 +61,6 @@ export class CloudExecutionTarget implements TargetProfile {
   // (DD-012); since D4 #23 the TS server's HITL loop emits the same signal,
   // so local-execution runs the identical forwarding round-trip.
   private readonly cloud = new CloudTarget();
-
-  // Whose code answers: the same declaration the inner target read from the
-  // environment (valid after setup(), like everything else it delegates).
-  get implementation(): ServerImplementation {
-    return this.cloud.implementation;
-  }
 
   private runner: RunningRunner | undefined;
   private mockLlm: MockLlmProxy | undefined;

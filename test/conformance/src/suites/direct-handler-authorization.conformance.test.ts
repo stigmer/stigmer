@@ -17,30 +17,21 @@
 //     connect trio) keeps its handler-owned NotFound copy for unknown
 //     ids, outsider or not — the load fires before the check (#224).
 //
-// Three arms below pin behavior on which the two cloud implementations
-// DIVERGE by ruling, not by drift (the per-method dispositions in
-// docs/authorization-coverage.md):
+// Three arms below sit where the retired Java edition once diverged by
+// ruling (the per-method dispositions in docs/authorization-coverage.md);
+// each is plain contract now, enforced strictly so a regression to the old
+// gap turns the suite red:
 //
-//   - workflow getVersion: this server evaluates the annotation; the Java
-//     edition declares it but never evaluates it (stigmer-cloud#562,
-//     accept-until-cutover) — there is no refusal to assert on Java until
-//     the flip, and pinning the permissive answer would enshrine the gap;
-//   - initiateOAuthConnect: this server authorizes before the lane's
-//     precondition; Java checks the auth-block precondition FIRST and
-//     answers an outsider FAILED_PRECONDITION;
-//   - unknown ids on the authorize-first family: this server's uniform
-//     NOT_FOUND vs the Java edition's PERMISSION_DENIED — an artifact of
-//     its missing load steps, ruled at the Stage-4 gate.
+//   - workflow getVersion evaluates its annotation and refuses an outsider
+//     (Java declared the annotation but never evaluated it, stigmer-cloud#562);
+//   - initiateOAuthConnect authorizes BEFORE the lane's auth-block
+//     precondition (Java checked the precondition first);
+//   - unknown ids on the authorize-first family answer the uniform NOT_FOUND
+//     (Java answered PERMISSION_DENIED, an artifact of its missing load steps).
 //
-// The contract under test is a fact about the IMPLEMENTATION behind the
-// target (TargetProfile.implementation: the Java stigmer-service is the
-// java-baseline, the TypeScript stigmer-server is annotation-enforced), so the
-// suite derives it from the target the environment declared rather than from
-// a knob of its own (stigmer#1012; the knob this replaced,
-// STIGMER_CONFORMANCE_DIRECT_HANDLER_AUTHZ_CONTRACT, was another copy of
-// "which server is behind `cloud`"). Each arm is enforced strictly, so a
-// composition regressing to a Java gap, or Java changing its bytes, turns
-// this suite red.
+// Until stigmer#1023 the suite selected a contract per implementation behind
+// the target (an env knob, stigmer#972, then TargetProfile.implementation,
+// stigmer#1014); with one implementation left there is nothing to select.
 //
 // Single-user targets skip: one implicit caller, isolation untestable by
 // construction (the organization suite's outsider precedent).
@@ -58,28 +49,6 @@ import { makeMcpServer } from "../support/mcpservers";
 import { makeSession } from "../support/sessions";
 import { makeWorkflow } from "../support/workflows";
 import { uniqueName } from "../support/naming";
-import type { ServerImplementation } from "../targets/target";
-
-type AuthzContract = "java-baseline" | "annotation-enforced";
-
-// The ruled authorization posture per implementation — see the header.
-function authzContractOf(implementation: ServerImplementation): AuthzContract {
-  switch (implementation) {
-    case "stigmer-service":
-      return "java-baseline";
-    case "stigmer-server":
-      return "annotation-enforced";
-    default: {
-      const exhaustive: never = implementation;
-      throw new Error(`unhandled server implementation ${String(exhaustive)}`);
-    }
-  }
-}
-
-// Valid inside an arm: the target is set up in beforeAll.
-function authzContract(): AuthzContract {
-  return authzContractOf(target.implementation);
-}
 
 let target: TargetProfile;
 let clients: ConformanceClients;
@@ -153,14 +122,8 @@ describe("direct-handler authorization — outsider denials (multi-tenant only)"
     expect(after.spec?.subject).toBe("owner's subject");
   });
 
-  it("workflow getVersion refuses an outsider with the annotation copy (the ruled Java-gap divergence)", async (ctx) => {
+  it("workflow getVersion refuses an outsider with the annotation copy", async (ctx) => {
     if (!multiTenantOnly()) return ctx.skip();
-    // The Java edition never evaluates this annotation (stigmer-cloud#562,
-    // accept-until-cutover): an outsider's read SUCCEEDS there. That is a
-    // recorded gap, not a contract — so under the Java baseline there is
-    // nothing to pin, and asserting the permissive answer would turn the
-    // gap into one. The arm resumes for Java the day #562 closes at the flip.
-    if (authzContract() === "java-baseline") return ctx.skip();
     const { org } = await target.provisionTenancy();
     const outsider = await outsiderClients();
 
@@ -229,32 +192,19 @@ describe("direct-handler authorization — outsider denials (multi-tenant only)"
       expect(denied.rawMessage, `${lane} annotation copy`).toBe(copy);
     }
 
-    // initiateOAuthConnect is the one connect lane the editions order
-    // differently. This server authorizes before the lane's precondition
-    // (the annotation copy). Java checks that the server carries an auth
-    // block FIRST, so an outsider on a server without one is refused by the
-    // precondition — its copy pinned so a reorder on either side shows.
-    const initiate = () =>
-      outsider.mcpServerCommand.initiateOAuthConnect({ mcpServerId: id, org });
-    if (authzContract() === "annotation-enforced") {
-      const denied = await expectGrpcCode(
-        initiate,
-        Code.PermissionDenied,
-        "outsider initiateOAuthConnect on a foreign server",
-      );
-      expect(denied.rawMessage, "initiateOAuthConnect annotation copy").toBe(
-        "unauthorized to initiate oauth connect for mcp server",
-      );
-    } else {
-      const refused = await expectGrpcCode(
-        initiate,
-        Code.FailedPrecondition,
-        "outsider initiateOAuthConnect on a foreign server (Java precondition-first)",
-      );
-      expect(refused.rawMessage, "initiateOAuthConnect precondition copy").toBe(
-        `MCP server '${id}' does not have an auth block configured`,
-      );
-    }
+    // initiateOAuthConnect authorizes BEFORE the lane's auth-block
+    // precondition: an outsider on a server without an auth block is refused
+    // by the annotation, not by the precondition. Pinned by code AND copy so a
+    // reorder of the two steps shows here (the retired Java edition checked
+    // the precondition first and answered FAILED_PRECONDITION).
+    const denied = await expectGrpcCode(
+      () => outsider.mcpServerCommand.initiateOAuthConnect({ mcpServerId: id, org }),
+      Code.PermissionDenied,
+      "outsider initiateOAuthConnect on a foreign server",
+    );
+    expect(denied.rawMessage, "initiateOAuthConnect annotation copy").toBe(
+      "unauthorized to initiate oauth connect for mcp server",
+    );
   });
 
   it("the channel install pair refuses an outsider with its annotation copy (C2 close-out — the arm both editions declare)", async (ctx) => {
@@ -301,7 +251,7 @@ describe("direct-handler authorization — outsider denials (multi-tenant only)"
     );
   });
 
-  it("the authorize-first read lanes' unknown-id answer — the ruled uniform Q1 NOT_FOUND here, PERMISSION_DENIED on the Java baseline", async (ctx) => {
+  it("the authorize-first read lanes answer an outsider's unknown id with the ruled uniform Q1 NOT_FOUND", async (ctx) => {
     if (!multiTenantOnly()) return ctx.skip();
     const outsider = await outsiderClients();
     const missingWorkflowExecution = "wfe_01conformancemissing";
@@ -365,15 +315,14 @@ describe("direct-handler authorization — outsider denials (multi-tenant only)"
     ];
 
     // Observe every lane, THEN assert the whole table: a first-mismatch
-    // abort would hide the lanes after it (the shape that left five of
-    // these six unobserved on the Java baseline for a month).
+    // abort would hide the lanes after it (the shape that once left five of
+    // these six unobserved for a month).
     const observed: Record<string, string> = {};
     for (const [lane, op] of lanes) {
       observed[lane] = Code[await grpcCodeOf(op, `outsider ${lane} on an unknown execution`)];
     }
-    const expectedCode = authzContract() === "annotation-enforced" ? "NotFound" : "PermissionDenied";
     expect(observed).toEqual(
-      Object.fromEntries(lanes.map(([lane]) => [lane, expectedCode])),
+      Object.fromEntries(lanes.map(([lane]) => [lane, "NotFound"])),
     );
   });
 });
