@@ -1,8 +1,8 @@
-// Vitest configuration for the cloud execution run (Class B vs the Java
-// stigmer-service) — the cloud twin of vitest.execution.config.ts.
+// Vitest configuration for the cloud execution run (Class B vs the cloud
+// composition, pre-provisioned) — the cloud twin of vitest.execution.config.ts.
 //
-// globalSetup boots the hermetic environment once per run (the Class A cloud
-// story, delegated wholesale) and pays the runner's cold build; each suite
+// globalSetup checks the pre-provisioned environment's contract (the Class A
+// cloud story, delegated wholesale) and pays the runner's cold build; each suite
 // file's CloudExecutionTarget then connects and provisions its own engine trio
 // (runner + mock LLM + MCP fixture), mirroring the per-file boot the local
 // execution config documents.
@@ -15,10 +15,9 @@
 // - open-computer-use is EXCLUDED: a local-only developer gate (macOS
 //   accessibility + STIGMER_DESKTOP_TESTS opt-in) that can never run in the
 //   headless CI this config exists for.
-// - mcpserver-connect runs here like every other Class B suite: the cloud
-//   global setup passes STIGMER_OAUTH_REDIRECT_URI through the hermetic
-//   launcher to the JAR (the 20260824.05 owner-gated follow-up, closed by
-//   sub-project 20260826.08).
+// - mcpserver-connect runs here like every other Class B suite: the
+//   provisioner boots the composition with STIGMER_OAUTH_REDIRECT_URI set to
+//   the suite's pinned constant.
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({

@@ -1,2 +1,0 @@
-# Empty BUILD file to satisfy Bazel module resolution for the
-# test/integration-security go.mod. This module is not built through Bazel.

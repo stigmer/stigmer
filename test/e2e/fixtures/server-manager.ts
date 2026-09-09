@@ -169,7 +169,7 @@ function resolveRunnerEntrypoint(runnerDir: string): string {
   throw new Error(
     `Unified runner not built: ${distEntry} not found.\n` +
     `  Run: npm run build -w @stigmer/protos && npm run build -w @stigmer/runner\n` +
-    `  Or:  make ensure-runner-built (from test/integration-session-routing/)`,
+    `  Or:  make build-runner (repo root)`,
   );
 }
 

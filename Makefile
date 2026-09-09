@@ -385,74 +385,18 @@ test-extension-consumer: build-server ## Compile-proof the @stigmer/server libra
 	@cd test/extension-consumer && npm ci --no-audit --no-fund && npm run typecheck
 
 # ─── Integration Test ─────────────────────────
-# Integration test logic lives in each suite's Makefile under test/.
-# These are thin delegates that pass through env vars.
-# Use `make test-integration-all` to run all suites (PROVIDERS=true for provider-backed);
-# it also runs the gRPC conformance suite (see the Conformance Test section below).
-
-.PHONY: test-integration
-test-integration: ## Run integration tests (offline, no API keys needed)
-	$(MAKE) -C test/integration test
-
-.PHONY: test-integration-providers
-test-integration-providers: ## Run provider-backed integration tests (auto-fetches API keys from Planton)
-	$(MAKE) -C test/integration test-providers
-
-.PHONY: test-integration-agent
-test-integration-agent: ## Run agent execution integration tests (auto-fetches API keys from Planton)
-	$(MAKE) -C test/integration test-agent
-
-.PHONY: test-integration-stress
-test-integration-stress: ## Run integration tests 3x to detect flakes (no quarantine skip)
-	$(MAKE) -C test/integration test-stress
-
-.PHONY: test-integration-security
-test-integration-security: ## Run security integration tests (JWT validation, production auth chain)
-	$(MAKE) -C test/integration-security test
-
-.PHONY: test-integration-session-routing
-test-integration-session-routing: ## Run offline session routing integration tests (no API keys needed)
-	$(MAKE) -C test/integration-session-routing test
-
-.PHONY: test-integration-session-routing-providers
-test-integration-session-routing-providers: ## Run provider-backed session routing E2E tests (auto-fetches CURSOR_API_KEY)
-	$(MAKE) -C test/integration-session-routing test-providers
-
-.PHONY: test-integration-wfexec-routing
-test-integration-wfexec-routing: ## Run offline workflow execution routing tests (no API keys needed)
-	$(MAKE) -C test/integration-wfexec-routing test
+# One Go suite remains: test/integration-offline — the runner driven by
+# recorded LLM turns, 74 arms. It booted the Java stigmer-service through the
+# shared harness (test/integration/harness) until that service retired on
+# 2026-09-10 (stigmer-cloud DD-013); it runs again once the harness boots the
+# OSS TypeScript server instead (the re-point E1's coverage diff ruled — the
+# issue is linked from test/README.md). The four Java-only suites (core,
+# security, session-routing, wfexec-routing) were deleted with the service;
+# the conformance suite below is the cross-edition instrument.
 
 .PHONY: test-integration-offline
-test-integration-offline: ## Run deterministic offline integration tests (recorded LLM responses, no API keys)
+test-integration-offline: ## Run the deterministic offline runner suite (recorded LLM responses; needs the OSS-server re-point to run)
 	$(MAKE) -C test/integration-offline test
-
-.PHONY: test-integration-canary
-test-integration-canary: ## Run canary tests (live provider health checks, needs API keys)
-	$(MAKE) -C test/integration test-canary
-
-.PHONY: test-integration-all
-test-integration-all: ## Run all integration suites. PROVIDERS=true includes provider-backed tests.
-	@echo "=== Offline: integration ==="
-	$(MAKE) test-integration
-	@echo "=== Offline: security ==="
-	$(MAKE) test-integration-security
-	@echo "=== Offline: session-routing ==="
-	$(MAKE) test-integration-session-routing
-	@echo "=== Offline: wfexec-routing ==="
-	$(MAKE) test-integration-wfexec-routing
-	@echo "=== Offline: deterministic (recorded LLM) ==="
-	$(MAKE) test-integration-offline
-	@echo "=== Conformance: CRUD contract (local) ==="
-	$(MAKE) test-conformance
-	@echo "=== Conformance: execution engine (local-execution) ==="
-	$(MAKE) test-conformance-execution
-ifeq ($(PROVIDERS),true)
-	@echo "=== Provider: integration (LLM) ==="
-	$(MAKE) test-integration-providers
-	@echo "=== Provider: session-routing (Cursor) ==="
-	$(MAKE) test-integration-session-routing-providers
-endif
-	@echo "All integration suites complete."
 
 # ─── Conformance Test (gRPC API contract) ─────
 # The conformance suite (test/conformance, @stigmer/conformance) is an
@@ -555,22 +499,15 @@ smoke-compose: build-server build-web ## Build the compose stack from source and
 	@cd $(SERVER_DIR) && node scripts/bundle-slim.mjs --platform=linux-$$(node -e "process.stdout.write(process.arch==='x64'?'x64':'arm64')")
 	node scripts/smoke-compose.mjs --build
 
+# The `cloud` conformance targets have no target this repository can boot:
+# the cloud edition is the TypeScript composition in the private stigmer-cloud
+# repository (the Java stigmer-service the hermetic launcher booted retired on
+# 2026-09-10). The cloud readout runs FROM stigmer-cloud — its spike boots the
+# composition and sets the STIGMER_CONFORMANCE_CLOUD_* contract before running
+# `npm run test:cloud -w @stigmer/conformance` here (test/conformance/README.md).
 .PHONY: test-conformance-cloud
-test-conformance-cloud: build-ts-stubs ## Run gRPC conformance CRUD suite against the Java cloud service (hermetic; needs Docker, `fga`, `temporal`, and the fat JAR)
-	@command -v go >/dev/null 2>&1 || { echo "error: go not found — the harness builds the cloud environment launcher"; exit 1; }
-	@command -v fga >/dev/null 2>&1 || { \
-		echo "error: fga CLI not found — required to load the OpenFGA authorization model"; \
-		echo "  install: brew install openfga/tap/fga"; \
-		exit 1; \
-	}
-	@command -v temporal >/dev/null 2>&1 || { \
-		echo "error: temporal CLI not found — the dev server backs the Java service"; \
-		echo "  install: curl -sSf https://temporal.download/cli.sh | sh"; \
-		exit 1; \
-	}
-	@echo "=== conformance: CRUD contract (cloud / Java stigmer-service) ==="
-	@echo "    (JAR from STIGMER_SERVICE_JAR or the sibling stigmer-cloud bazel-bin;"
-	@echo "     build it with: cd ../stigmer-cloud && ./bazelw build //backend/services/stigmer-service:stigmer_service_fatjar)"
+test-conformance-cloud: build-ts-stubs ## Run the Class A cloud suite against a PRE-PROVISIONED composition (STIGMER_CONFORMANCE_CLOUD_* set by the stigmer-cloud readout recipe)
+	@test -n "$$STIGMER_CONFORMANCE_CLOUD_ADDRESS" || { echo "error: STIGMER_CONFORMANCE_CLOUD_ADDRESS unset — the cloud target is provisioned by stigmer-cloud's readout recipe (backend/services/stigmer-server/spike/README.md), not booted here"; exit 1; }
 	npm run test:cloud -w @stigmer/conformance
 
 .PHONY: test-conformance-all

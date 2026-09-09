@@ -366,12 +366,13 @@ export interface PrivilegedScope {
 // cloud endpoint, with or without an engine); the implementation says whose
 // code is on the other end. The two are not one-to-one: every local target is
 // the TypeScript server, but the `cloud` targets are connect-only and serve
-// whichever implementation the environment's provisioner booted — the Java
-// stigmer-service under the hermetic launcher, the TypeScript stigmer-server
-// under the composition readout. A known bug belongs to an implementation, so
-// the deviation registry (contract/deviations.ts) keys on this and never on
-// the name. "stigmer-service" retires with the Java service at R1, together
-// with every registry entry naming it.
+// whichever implementation the environment's provisioner booted — today the
+// TypeScript stigmer-server under the composition readout; until 2026-09-10
+// also the Java stigmer-service under a hermetic launcher. A known bug belongs
+// to an implementation, so the deviation registry (contract/deviations.ts)
+// keys on this and never on the name. The Java service is retired
+// (stigmer-cloud DD-013); "stigmer-service" and every registry entry naming
+// it are dead members deleted together in stigmer#1023.
 export type ServerImplementation = "stigmer-server" | "stigmer-service";
 
 export const SERVER_IMPLEMENTATIONS: readonly ServerImplementation[] = ["stigmer-server", "stigmer-service"];
