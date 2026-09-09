@@ -18,10 +18,18 @@ import { spawnServer, type RunningServer } from "../harness/server-process";
 import { spawnTemporal, type RunningTemporal } from "../harness/temporal";
 import { ensureTsServerEntry } from "../harness/ts-build";
 import { uniqueOrg } from "../support/naming";
-import type { CapabilityFlags, PrivilegedScope, TargetProfile, TenancyContext } from "./target";
+import type {
+  CapabilityFlags,
+  PrivilegedScope,
+  ServerImplementation,
+  TargetProfile,
+  TenancyContext,
+} from "./target";
 
 export class LocalExecutionTarget implements TargetProfile {
   readonly name: string = "local-execution";
+  // The spawned TypeScript server (see LocalTarget).
+  readonly implementation: ServerImplementation = "stigmer-server";
   // The retired local-go-execution matrix plus exactly ONE deliberate
   // difference: workflowChildApprovalForwarding is true here (the D4
   // ratified parity-plus delta, #23) where the Go server never sent it.

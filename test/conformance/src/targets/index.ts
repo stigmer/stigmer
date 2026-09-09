@@ -1,9 +1,12 @@
 // Target selection from the environment.
 // Domain: conformance targets.
 //
-// CONFORMANCE_TARGET selects which implementation the suite runs against,
-// defaulting to the local OSS server. The same suite runs unchanged against
-// any registered target.
+// CONFORMANCE_TARGET selects the TARGET the suite runs against — a deployment
+// shape (spawned locally, with or without an engine; an external cloud
+// endpoint) — defaulting to the local OSS server. The same suite runs
+// unchanged against any registered target. Which server IMPLEMENTATION
+// answers a target is a separate axis (TargetProfile.implementation): fixed
+// for the local targets, declared by the environment for the cloud ones.
 import { CloudTarget } from "./cloud";
 import { CloudExecutionTarget } from "./cloud-execution";
 import { LocalTarget } from "./local";

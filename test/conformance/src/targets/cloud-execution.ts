@@ -34,7 +34,13 @@ import { MockLlmProxy } from "../harness/mock-llm";
 import { ensureRunnerBuilt } from "../harness/runner-build";
 import { spawnRunner, type RunningRunner } from "../harness/runner-process";
 import { CloudTarget } from "./cloud";
-import type { CapabilityFlags, StripeWebhookLane, TargetProfile, TenancyContext } from "./target";
+import type {
+  CapabilityFlags,
+  ServerImplementation,
+  StripeWebhookLane,
+  TargetProfile,
+  TenancyContext,
+} from "./target";
 
 // The integration module's log dir — where the hermetic launcher already
 // writes stigmer-service.log, and what the CI lane uploads on failure. Each
@@ -57,6 +63,12 @@ export class CloudExecutionTarget implements TargetProfile {
   // (DD-012); since D4 #23 the TS server's HITL loop emits the same signal,
   // so local-execution runs the identical forwarding round-trip.
   private readonly cloud = new CloudTarget();
+
+  // Whose code answers: the same declaration the inner target read from the
+  // environment (valid after setup(), like everything else it delegates).
+  get implementation(): ServerImplementation {
+    return this.cloud.implementation;
+  }
 
   private runner: RunningRunner | undefined;
   private mockLlm: MockLlmProxy | undefined;

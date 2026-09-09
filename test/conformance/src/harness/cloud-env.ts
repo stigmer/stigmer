@@ -34,7 +34,18 @@ import { uniqueName } from "../support/naming";
 
 // Contract between global-setup-cloud.ts (writer) and CloudTarget (reader).
 export const CLOUD_ENV = {
-  // gRPC base URL of the stigmer-service under test, e.g. http://127.0.0.1:52341.
+  // Which server binary the environment booted behind the cloud targets —
+  // "stigmer-service" (the Java service the hermetic launcher runs) or
+  // "stigmer-server" (the TypeScript composition the readout recipe boots).
+  // REQUIRED: the cloud targets are connect-only and cannot tell from the
+  // wire (getServerInfo answers `cloud` for both, correctly — the product
+  // edition is the same), yet the known-deviation registry keys Java's bugs
+  // on exactly this fact. Declared by the provisioner that knows what it
+  // built (global-setup-cloud.ts; the composition's readout-bootstrap), never
+  // defaulted — an environment that forgets it fails setup by name rather
+  // than inheriting the other implementation's quirks (stigmer#1012).
+  implementation: "STIGMER_CONFORMANCE_CLOUD_IMPLEMENTATION",
+  // gRPC base URL of the service under test, e.g. http://127.0.0.1:52341.
   address: "STIGMER_CONFORMANCE_CLOUD_ADDRESS",
   // HTTP (Spring) base URL of the same service — the routes the gRPC port
   // does not serve, notably the artifact presign endpoints

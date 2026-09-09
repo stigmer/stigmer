@@ -1,8 +1,11 @@
 // Unit arms for the known-deviation registry's two helpers: the deterministic
 // one runs exactly one reading; the race one runs the contract everywhere and
-// opens its path only for a registered target, only on an assertion failure,
-// only when the observed reading PROVES the race — and re-tries the contract
-// exactly once when the arm brings a remedy. Pure: no target.
+// opens its path only for a registered IMPLEMENTATION, only on an assertion
+// failure, only when the observed reading PROVES the race — and re-tries the
+// contract exactly once when the arm brings a remedy. The registry keys on the
+// implementation behind a target, never its name (stigmer#1012): the arms
+// below drive the same "cloud" / "cloud-execution" names served by both.
+// Pure: no live target — a two-field identity literal is the whole input.
 // Domain: conformance contract.
 import { ConnectError, Code } from "@connectrpc/connect";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -12,11 +15,18 @@ import {
   KNOWN_DEVIATIONS,
   SUBMIT_APPROVAL_LOST_UPDATE_RACE,
 } from "../deviations";
+import { SERVER_IMPLEMENTATIONS, type TargetIdentity } from "../../targets/target";
 
 const DETERMINISTIC_ID = "java.direct-login.stranger-signature-copy";
 const RACE_ID = SUBMIT_APPROVAL_LOST_UPDATE_RACE;
-const RACE_TARGET = "cloud-execution";
-const TS_TARGET = "local-execution";
+// The Java service behind the cloud targets — the hermetic launcher's shape.
+const JAVA_CLOUD: TargetIdentity = { name: "cloud", implementation: "stigmer-service" };
+const JAVA_CLOUD_EXECUTION: TargetIdentity = { name: "cloud-execution", implementation: "stigmer-service" };
+// The TypeScript composition behind the SAME target names — the readout's shape.
+const COMPOSITION_CLOUD: TargetIdentity = { name: "cloud", implementation: "stigmer-server" };
+const COMPOSITION_CLOUD_EXECUTION: TargetIdentity = { name: "cloud-execution", implementation: "stigmer-server" };
+// The spawned TypeScript server on a local target.
+const LOCAL_EXECUTION: TargetIdentity = { name: "local-execution", implementation: "stigmer-server" };
 
 // A failure the way vitest's expect produces one — the only kind that opens
 // the race path.
@@ -34,15 +44,35 @@ describe("the registry", () => {
     }
   });
 
+  it("keys every entry on at least one known implementation and never on a target name", () => {
+    for (const entry of KNOWN_DEVIATIONS) {
+      expect(entry.implementations.length, `${entry.id} names an implementation`).toBeGreaterThan(0);
+      for (const implementation of entry.implementations) {
+        expect(SERVER_IMPLEMENTATIONS, `${entry.id}: "${implementation}" is a server implementation`).toContain(
+          implementation,
+        );
+      }
+    }
+  });
+
+  it("holds only the Java service's bugs today — an entry naming the TypeScript server would be a contract question, not a deviation", () => {
+    // The TS server is the reference implementation the contract is written
+    // against; if it ever deviates, the fix is the server's or the contract's,
+    // and this arm is where that decision surfaces first.
+    for (const entry of KNOWN_DEVIATIONS) {
+      expect(entry.implementations, entry.id).toEqual(["stigmer-service"]);
+    }
+  });
+
   it("refuses an unknown id and refuses an entry handed to the wrong helper", async () => {
     await expect(
-      assertContractOrDeviation(TS_TARGET, "no.such.id", { contract: () => {}, observed: () => {} }),
+      assertContractOrDeviation(LOCAL_EXECUTION, "no.such.id", { contract: () => {}, observed: () => {} }),
     ).rejects.toThrow("unknown deviation id: no.such.id");
     await expect(
-      assertContractOrDeviation(TS_TARGET, RACE_ID, { contract: () => {}, observed: () => {} }),
+      assertContractOrDeviation(LOCAL_EXECUTION, RACE_ID, { contract: () => {}, observed: () => {} }),
     ).rejects.toThrow(`deviation ${RACE_ID} is race, not deterministic; use assertContractOrKnownRace`);
     await expect(
-      assertContractOrKnownRace(TS_TARGET, DETERMINISTIC_ID, { contract: () => {}, observed: () => {} }),
+      assertContractOrKnownRace(LOCAL_EXECUTION, DETERMINISTIC_ID, { contract: () => {}, observed: () => {} }),
     ).rejects.toThrow(`deviation ${DETERMINISTIC_ID} is deterministic, not race; use assertContractOrDeviation`);
   });
 });
@@ -52,22 +82,45 @@ describe("assertContractOrDeviation", () => {
     vi.restoreAllMocks();
   });
 
-  it("runs only the contract on an unregistered target", async () => {
+  it("runs only the contract on a local TypeScript target", async () => {
     const contract = vi.fn();
     const observed = vi.fn();
-    await assertContractOrDeviation(TS_TARGET, DETERMINISTIC_ID, { contract, observed });
+    await assertContractOrDeviation(LOCAL_EXECUTION, DETERMINISTIC_ID, { contract, observed });
     expect(contract).toHaveBeenCalledTimes(1);
     expect(observed).not.toHaveBeenCalled();
   });
 
-  it("runs only the observed reading on a registered target and reports it", async () => {
+  it("runs only the contract on the composition behind the `cloud` NAME — the name registers nothing", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const contract = vi.fn();
     const observed = vi.fn();
-    await assertContractOrDeviation("cloud", DETERMINISTIC_ID, { contract, observed });
+    await assertContractOrDeviation(COMPOSITION_CLOUD, DETERMINISTIC_ID, { contract, observed });
+    expect(contract).toHaveBeenCalledTimes(1);
+    expect(observed).not.toHaveBeenCalled();
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("runs only the observed reading on the Java service and reports the target with its implementation", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const contract = vi.fn();
+    const observed = vi.fn();
+    await assertContractOrDeviation(JAVA_CLOUD, DETERMINISTIC_ID, { contract, observed });
     expect(contract).not.toHaveBeenCalled();
     expect(observed).toHaveBeenCalledTimes(1);
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining(`tracked deviation ${DETERMINISTIC_ID} on cloud`));
+    // The grep-able prefix readouts key on, then the implementation.
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining(`tracked deviation ${DETERMINISTIC_ID} on cloud (stigmer-service)`),
+    );
+  });
+
+  it("a Java service that starts meeting the contract fails the observed reading — the entry cannot outlive the bug", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    await expect(
+      assertContractOrDeviation(JAVA_CLOUD, DETERMINISTIC_ID, {
+        contract: () => {},
+        observed: () => failAssertion("Java now answers the contract; delete the entry"),
+      }),
+    ).rejects.toThrow("delete the entry");
   });
 });
 
@@ -76,10 +129,10 @@ describe("assertContractOrKnownRace", () => {
     vi.restoreAllMocks();
   });
 
-  it("is the contract alone on an unregistered target — a failure there is red, never a race", async () => {
+  it("is the contract alone on a local TypeScript target — a failure there is red, never a race", async () => {
     const observed = vi.fn();
     await expect(
-      assertContractOrKnownRace(TS_TARGET, RACE_ID, {
+      assertContractOrKnownRace(LOCAL_EXECUTION, RACE_ID, {
         contract: () => failAssertion("the TS server met the contract"),
         observed,
       }),
@@ -87,10 +140,26 @@ describe("assertContractOrKnownRace", () => {
     expect(observed).not.toHaveBeenCalled();
   });
 
+  it("is the contract alone on the composition behind the `cloud-execution` NAME — the race is Java's, not the name's", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const observed = vi.fn();
+    const remedy = vi.fn();
+    await expect(
+      assertContractOrKnownRace(COMPOSITION_CLOUD_EXECUTION, RACE_ID, {
+        contract: () => failAssertion("pending still 1"),
+        observed,
+        remedy,
+      }),
+    ).rejects.toThrow("pending still 1");
+    expect(observed).not.toHaveBeenCalled();
+    expect(remedy).not.toHaveBeenCalled();
+    expect(warn).not.toHaveBeenCalled();
+  });
+
   it("is silent on a registered target whose contract holds", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const observed = vi.fn();
-    await assertContractOrKnownRace(RACE_TARGET, RACE_ID, { contract: () => {}, observed });
+    await assertContractOrKnownRace(JAVA_CLOUD_EXECUTION, RACE_ID, { contract: () => {}, observed });
     expect(observed).not.toHaveBeenCalled();
     expect(warn).not.toHaveBeenCalled();
   });
@@ -100,7 +169,7 @@ describe("assertContractOrKnownRace", () => {
     let attempts = 0;
     const observed = vi.fn();
     const remedy = vi.fn();
-    await assertContractOrKnownRace(RACE_TARGET, RACE_ID, {
+    await assertContractOrKnownRace(JAVA_CLOUD_EXECUTION, RACE_ID, {
       contract: () => {
         attempts++;
         if (attempts === 1) failAssertion("pending still 1");
@@ -112,7 +181,7 @@ describe("assertContractOrKnownRace", () => {
     expect(observed).toHaveBeenCalledTimes(1);
     expect(remedy).toHaveBeenCalledTimes(1);
     expect(warn).toHaveBeenCalledTimes(1);
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining(`tracked race ${RACE_ID} on ${RACE_TARGET}`));
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining(`tracked race ${RACE_ID} on cloud-execution (stigmer-service)`));
     expect(warn).toHaveBeenCalledWith(expect.stringContaining("remedy="));
   });
 
@@ -120,7 +189,7 @@ describe("assertContractOrKnownRace", () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     let attempts = 0;
     await expect(
-      assertContractOrKnownRace(RACE_TARGET, RACE_ID, {
+      assertContractOrKnownRace(JAVA_CLOUD_EXECUTION, RACE_ID, {
         contract: () => {
           attempts++;
           failAssertion(`attempt ${attempts} failed`);
@@ -135,7 +204,7 @@ describe("assertContractOrKnownRace", () => {
   it("without a remedy, the observed reading is the whole story", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     let attempts = 0;
-    await assertContractOrKnownRace(RACE_TARGET, RACE_ID, {
+    await assertContractOrKnownRace(JAVA_CLOUD_EXECUTION, RACE_ID, {
       contract: () => {
         attempts++;
         failAssertion("closed, not timeout");
@@ -150,7 +219,7 @@ describe("assertContractOrKnownRace", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const remedy = vi.fn();
     await expect(
-      assertContractOrKnownRace(RACE_TARGET, RACE_ID, {
+      assertContractOrKnownRace(JAVA_CLOUD_EXECUTION, RACE_ID, {
         contract: () => failAssertion("pending still 1"),
         observed: () => failAssertion("no decision in the stream either"),
         remedy,
@@ -163,7 +232,7 @@ describe("assertContractOrKnownRace", () => {
   it("lets a non-assertion error through untouched — a ConnectError is not a race", async () => {
     const observed = vi.fn();
     await expect(
-      assertContractOrKnownRace(RACE_TARGET, RACE_ID, {
+      assertContractOrKnownRace(JAVA_CLOUD_EXECUTION, RACE_ID, {
         contract: () => {
           throw new ConnectError("unauthorized", Code.PermissionDenied);
         },

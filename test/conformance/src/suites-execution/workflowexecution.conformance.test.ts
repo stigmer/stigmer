@@ -550,7 +550,7 @@ describe("WorkflowExecution conformance — event log pagination & streaming (CW
     // On the Java target a trailing duplicate terminal write can arrive as a
     // broker update after the snapshot and trip the check — the tracked race
     // (contract/deviations.ts); the observed reading is final, no remedy.
-    await assertContractOrKnownRace(target.name, SUBSCRIBE_TRAILING_TERMINAL_WRITE_RACE, {
+    await assertContractOrKnownRace(target, SUBSCRIBE_TRAILING_TERMINAL_WRITE_RACE, {
       contract: () => {
         expect(stream.outcome, "no server close — the bounded reader had to abort").toBe("timeout");
         expect(stream.messages).toHaveLength(1);

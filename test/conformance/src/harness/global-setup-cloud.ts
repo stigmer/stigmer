@@ -31,6 +31,11 @@ import {
   type CloudEnvironment,
 } from "./cloud-env";
 import { launcherEnvFor, startCloudFixtures, type CloudFixtures } from "./cloud-fixtures";
+import type { ServerImplementation } from "../targets/target";
+
+// What this setup boots. Typed so the published value can only ever be one of
+// the two the cloud target accepts.
+const BOOTED_IMPLEMENTATION: ServerImplementation = "stigmer-service";
 
 export default async function setup(): Promise<() => Promise<void>> {
   if (process.env[CLOUD_ENV.address] !== undefined && process.env[CLOUD_ENV.token] !== undefined) {
@@ -58,6 +63,9 @@ export default async function setup(): Promise<() => Promise<void>> {
       environment.grpcBaseUrl,
       mintBootstrapOperatorToken(tenant),
     );
+    // This setup booted the Java fat JAR: say so, because the cloud targets
+    // cannot tell from the wire and the deviation registry keys on it.
+    process.env[CLOUD_ENV.implementation] = BOOTED_IMPLEMENTATION;
     process.env[CLOUD_ENV.address] = environment.grpcBaseUrl;
     process.env[CLOUD_ENV.httpAddress] = environment.httpBaseUrl;
     // The cloud-capability lanes: on Java every HTTP lane but bidi is the

@@ -812,7 +812,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the purchase mone
     expect(stale.status).toBe(400);
 
     const missing = await fetch(`${lane.baseUrl}/webhook/stripe`, { method: "POST", headers: { "content-type": "application/json" }, body: signStripePayload(JSON.stringify(event), lane.signingSecret).payload });
-    await assertContractOrDeviation(target.name, "java.stripe-webhook.missing-signature-header-401", {
+    await assertContractOrDeviation(target, "java.stripe-webhook.missing-signature-header-401", {
       contract: () => expect(missing.status, "no Stripe-Signature header is a bad request").toBe(400),
       observed: () => expect(missing.status, "Java: the framework 400 re-dispatches to /error, which denyAll turns into 401").toBe(401),
     });

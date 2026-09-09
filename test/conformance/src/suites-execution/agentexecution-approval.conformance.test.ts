@@ -249,7 +249,7 @@ describe("AgentExecution submitApproval — gate resolution", () => {
     // approval-event stream — there is no remedy, the observed reading is final.
     const rejectedTc = allToolCalls(final).find((tc) => tc.id === toolCallId);
     expect(rejectedTc, "the rejected echo tool call is present in the transcript").toBeDefined();
-    await assertContractOrKnownRace(target.name, SUBMIT_APPROVAL_LOST_UPDATE_RACE, {
+    await assertContractOrKnownRace(target, SUBMIT_APPROVAL_LOST_UPDATE_RACE, {
       contract: () => {
         expect(rejectedTc!.status, "rejected tool call resolves to SKIPPED, not WAITING").toBe(
           ToolCallStatus.TOOL_CALL_SKIPPED,
