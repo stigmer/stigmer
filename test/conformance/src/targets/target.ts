@@ -200,8 +200,8 @@ export interface CapabilityFlags {
   // authorized inside InvokeAgentExecutionWorkflow), and the TS composition
   // through the C5 billing facade (the create-time reserve gate, ruling Q5 of
   // 20260830.02.sp.billing-facade). WHERE the denial lands differs by ruled
-  // design — see STIGMER_CONFORMANCE_BILLING_DENIAL_CONTRACT in the
-  // billing-denial suite.
+  // design per implementation — see denialContractOf in the billing-denial
+  // suite, keyed on TargetProfile.implementation.
   //
   // False for the local OSS targets — BY DD-001 BOUNDARY, not a gap: OSS has
   // no billing engine, no credit accounting, and no billing gates; every

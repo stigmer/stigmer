@@ -17,10 +17,9 @@
 //     connect trio) keeps its handler-owned NotFound copy for unknown
 //     ids, outsider or not — the load fires before the check (#224).
 //
-// Both cloud editions serve behind the same `cloud` target type, so the
-// suite cannot tell them apart by target name — and three arms below pin
-// behavior on which the editions DIVERGE by ruling, not by drift (the
-// per-method dispositions in docs/authorization-coverage.md):
+// Three arms below pin behavior on which the two cloud implementations
+// DIVERGE by ruling, not by drift (the per-method dispositions in
+// docs/authorization-coverage.md):
 //
 //   - workflow getVersion: this server evaluates the annotation; the Java
 //     edition declares it but never evaluates it (stigmer-cloud#562,
@@ -33,13 +32,15 @@
 //     NOT_FOUND vs the Java edition's PERMISSION_DENIED — an artifact of
 //     its missing load steps, ruled at the Stage-4 gate.
 //
-// The contract under test is declared explicitly via
-// STIGMER_CONFORMANCE_DIRECT_HANDLER_AUTHZ_CONTRACT ("java-baseline" |
-// "annotation-enforced", default "java-baseline" — the nightly hermetic
-// Java lane runs unchanged; composition readouts set "annotation-enforced").
-// The STIGMER_CONFORMANCE_BILLING_DENIAL_CONTRACT precedent: each arm is
-// enforced strictly, so a composition regressing to a Java gap, or Java
-// changing its bytes, turns this suite red.
+// The contract under test is a fact about the IMPLEMENTATION behind the
+// target (TargetProfile.implementation: the Java stigmer-service is the
+// java-baseline, the TypeScript stigmer-server is annotation-enforced), so the
+// suite derives it from the target the environment declared rather than from
+// a knob of its own (stigmer#1012; the knob this replaced,
+// STIGMER_CONFORMANCE_DIRECT_HANDLER_AUTHZ_CONTRACT, was another copy of
+// "which server is behind `cloud`"). Each arm is enforced strictly, so a
+// composition regressing to a Java gap, or Java changing its bytes, turns
+// this suite red.
 //
 // Single-user targets skip: one implicit caller, isolation untestable by
 // construction (the organization suite's outsider precedent).
@@ -57,21 +58,28 @@ import { makeMcpServer } from "../support/mcpservers";
 import { makeSession } from "../support/sessions";
 import { makeWorkflow } from "../support/workflows";
 import { uniqueName } from "../support/naming";
+import type { ServerImplementation } from "../targets/target";
 
-const AUTHZ_CONTRACT_ENV = "STIGMER_CONFORMANCE_DIRECT_HANDLER_AUTHZ_CONTRACT";
 type AuthzContract = "java-baseline" | "annotation-enforced";
 
-function resolveAuthzContract(): AuthzContract {
-  const raw = process.env[AUTHZ_CONTRACT_ENV] ?? "java-baseline";
-  if (raw !== "java-baseline" && raw !== "annotation-enforced") {
-    throw new Error(
-      `${AUTHZ_CONTRACT_ENV} must be "java-baseline" or "annotation-enforced" when set; got "${raw}"`,
-    );
+// The ruled authorization posture per implementation — see the header.
+function authzContractOf(implementation: ServerImplementation): AuthzContract {
+  switch (implementation) {
+    case "stigmer-service":
+      return "java-baseline";
+    case "stigmer-server":
+      return "annotation-enforced";
+    default: {
+      const exhaustive: never = implementation;
+      throw new Error(`unhandled server implementation ${String(exhaustive)}`);
+    }
   }
-  return raw;
 }
 
-const authzContract = resolveAuthzContract();
+// Valid inside an arm: the target is set up in beforeAll.
+function authzContract(): AuthzContract {
+  return authzContractOf(target.implementation);
+}
 
 let target: TargetProfile;
 let clients: ConformanceClients;
@@ -152,7 +160,7 @@ describe("direct-handler authorization — outsider denials (multi-tenant only)"
     // recorded gap, not a contract — so under the Java baseline there is
     // nothing to pin, and asserting the permissive answer would turn the
     // gap into one. The arm resumes for Java the day #562 closes at the flip.
-    if (authzContract === "java-baseline") return ctx.skip();
+    if (authzContract() === "java-baseline") return ctx.skip();
     const { org } = await target.provisionTenancy();
     const outsider = await outsiderClients();
 
@@ -228,7 +236,7 @@ describe("direct-handler authorization — outsider denials (multi-tenant only)"
     // precondition — its copy pinned so a reorder on either side shows.
     const initiate = () =>
       outsider.mcpServerCommand.initiateOAuthConnect({ mcpServerId: id, org });
-    if (authzContract === "annotation-enforced") {
+    if (authzContract() === "annotation-enforced") {
       const denied = await expectGrpcCode(
         initiate,
         Code.PermissionDenied,
@@ -363,7 +371,7 @@ describe("direct-handler authorization — outsider denials (multi-tenant only)"
     for (const [lane, op] of lanes) {
       observed[lane] = Code[await grpcCodeOf(op, `outsider ${lane} on an unknown execution`)];
     }
-    const expectedCode = authzContract === "annotation-enforced" ? "NotFound" : "PermissionDenied";
+    const expectedCode = authzContract() === "annotation-enforced" ? "NotFound" : "PermissionDenied";
     expect(observed).toEqual(
       Object.fromEntries(lanes.map(([lane]) => [lane, expectedCode])),
     );
