@@ -44,7 +44,6 @@ import { ModelPricingBaselineStatus } from "@stigmer/protos/ai/stigmer/billing/v
 import { UsageCompletionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
 import { FixtureTracker } from "../harness/fixtures";
 import { FAKE_CARD, postStripeWebhook, signStripePayload, signedEvent, stripeEvent, type CapturedStripeRequest } from "../harness/fake-stripe";
-import { assertContractOrDeviation } from "../contract/deviations";
 import { expectGrpcCode } from "../contract/errors";
 import { requireCloudFixtures, type CloudFixturesClient } from "../support/cloud-fixtures-client";
 import { pollUntil } from "../support/execution-poll";
@@ -812,10 +811,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the purchase mone
     expect(stale.status).toBe(400);
 
     const missing = await fetch(`${lane.baseUrl}/webhook/stripe`, { method: "POST", headers: { "content-type": "application/json" }, body: signStripePayload(JSON.stringify(event), lane.signingSecret).payload });
-    await assertContractOrDeviation(target, "java.stripe-webhook.missing-signature-header-401", {
-      contract: () => expect(missing.status, "no Stripe-Signature header is a bad request").toBe(400),
-      observed: () => expect(missing.status, "Java: the framework 400 re-dispatches to /error, which denyAll turns into 401").toBe(401),
-    });
+    expect(missing.status, "no Stripe-Signature header is a bad request").toBe(400);
 
     expect(await balanceOf(org)).toBe(0n);
   });

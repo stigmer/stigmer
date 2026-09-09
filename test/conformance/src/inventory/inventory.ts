@@ -5,8 +5,8 @@
 // code, every behavior of the surfaces the TS composition must reproduce
 // before the X1 cutover — the billing engine, the side-channel proxy and the
 // public REST lane. Each row carries a DISPOSITION saying where that behavior
-// is proven; only `conformance` and `deviation` rows are proven HERE, by a
-// test whose name carries the row id as a `[billing.rpc.foo.bar]` tag. This
+// is proven; only `conformance` rows are proven HERE, by a test whose name
+// carries the row id as a `[billing.rpc.foo.bar]` tag. This
 // module turns "every row is covered" from a sentence into a computed fact:
 // parse the YAML against a strict schema, scan the suite sources for tags,
 // and report every row that lacks a test and every tag that names no row.
@@ -30,15 +30,14 @@ export const ROW_ID_PATTERN = /^(billing|proxy|public)\.[a-z0-9-]+(\.[a-z0-9-]+)
 export const SURFACES = ["billing", "proxy", "public"] as const;
 export type Surface = (typeof SURFACES)[number];
 
-// Where a row's behavior is proven. Only the first two are proven by this
-// suite; the rest name another home so the row is never silently dropped.
+// Where a row's behavior is proven. Only the first is proven by this suite;
+// the rest name another home so the row is never silently dropped. (A
+// `deviation` disposition — the contract asserted here while Java carried a
+// tracked entry for its wrong answer — retired with the Java service and the
+// registry that held the entries, stigmer#1023; its one row is `conformance`.)
 export const DISPOSITIONS = [
-  // A test in this suite observes it against BOTH the hermetic Java launcher
-  // and the composition.
+  // A test in this suite observes it against the composition.
   "conformance",
-  // Java is wrong against the intended contract: the suite asserts the
-  // contract and Java carries an entry in contract/deviations.ts.
-  "deviation",
   // Pure logic (parsing, rating, arithmetic) whose home is an edition-internal
   // unit table the composition must carry; `java_test` names the Java table.
   "unit",
@@ -54,7 +53,8 @@ export type Disposition = (typeof DISPOSITIONS)[number];
 
 // Dispositions whose rows MUST carry a test tag; every other disposition's
 // rows must NOT (a tag on a `smoke` row would claim a proof that isn't here).
-export const TESTED_DISPOSITIONS: ReadonlySet<Disposition> = new Set(["conformance", "deviation"]);
+// A set, not a comparison, so a second proven-here disposition is one entry.
+export const TESTED_DISPOSITIONS: ReadonlySet<Disposition> = new Set(["conformance"]);
 
 // What kind of contract the row states. `carve-out` marks a DD-012
 // byte-identical carve-out (status codes, console-rendered typed fields, the
@@ -87,7 +87,6 @@ const rowSchema = z
     caller: z.enum(CALLERS),
     needs: z.array(z.string().min(1)),
     note: z.string().optional(),
-    disputed: z.string().optional(),
   })
   .strict()
   .refine((row) => row.id.startsWith(`${row.surface}.`), {

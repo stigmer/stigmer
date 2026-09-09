@@ -1,11 +1,12 @@
-// Cloud target: the Java stigmer-service as an external endpoint.
+// Cloud target: the cloud edition — the TypeScript composition in
+// stigmer-cloud — as an external endpoint.
 // Domain: conformance targets.
 //
 // Connect-only by design: the target never boots anything. It reads the
-// environment published through the CLOUD_ENV contract — by the hermetic
-// global setup (global-setup-cloud.ts, the `npm run test:cloud` path) or by
-// whoever pre-provisioned a deployed endpoint — and drives it as the primary
-// conformance user over an authenticated gRPC transport.
+// environment published through the CLOUD_ENV contract by whoever provisioned
+// it (stigmer-cloud's readout recipe, or a deployed endpoint's operator) and
+// drives it as the primary conformance user over an authenticated gRPC
+// transport.
 //
 // Tenancy is real here, unlike the local targets: each provisioned scope is an
 // organization created via the production RPC, whose creation grants the
@@ -19,16 +20,13 @@ import {
 } from "../harness/direct-login-tenant";
 import { awaitGrpcReady } from "../harness/grpc-ready";
 import { uniqueName, uniqueOrg } from "../support/naming";
-import {
-  isServerImplementation,
-  SERVER_IMPLEMENTATIONS,
-  type CapabilityFlags,
-  type DirectLoginTenant,
-  type PrivilegedScope,
-  type ServerImplementation,
-  type StripeWebhookLane,
-  type TargetProfile,
-  type TenancyContext,
+import type {
+  CapabilityFlags,
+  DirectLoginTenant,
+  PrivilegedScope,
+  StripeWebhookLane,
+  TargetProfile,
+  TenancyContext,
 } from "./target";
 
 const ORG_API_VERSION = "tenancy.stigmer.ai/v1";
@@ -47,48 +45,17 @@ function requireEnv(name: string): string {
   if (value === undefined || value === "") {
     throw new Error(
       `${name} is not set: the cloud target is connect-only and expects a provisioned ` +
-        "environment. Run the suite via `npm run test:cloud` (hermetic boot), or set the " +
-        "CLOUD_ENV variables to point at an existing endpoint.",
+        "environment. Export the STIGMER_CONFORMANCE_CLOUD_* contract the provisioner prints " +
+        "(stigmer-cloud's readout recipe: backend/services/stigmer-server/spike/README.md) " +
+        "before running `npm run test:cloud`.",
     );
   }
   return value;
 }
 
-// The implementation the environment declares behind this target. Required
-// and closed: an unset variable is the same failure as a missing address (a
-// provisioner that forgot to say what it built), and a value outside the
-// union names itself in the refusal so a typo cannot pass as either side.
-export function readCloudImplementation(env: NodeJS.ProcessEnv = process.env): ServerImplementation {
-  const raw = env[CLOUD_ENV.implementation];
-  if (raw === undefined || raw === "") {
-    throw new Error(
-      `${CLOUD_ENV.implementation} is not set: the cloud target is connect-only and cannot tell ` +
-        "which server answers it. The provisioner declares it — " +
-        `${SERVER_IMPLEMENTATIONS.map((value) => `"${value}"`).join(" or ")} (stigmer#1012).`,
-    );
-  }
-  if (!isServerImplementation(raw)) {
-    throw new Error(
-      `${CLOUD_ENV.implementation} must be ${SERVER_IMPLEMENTATIONS.map((value) => `"${value}"`).join(" or ")}; got "${raw}"`,
-    );
-  }
-  return raw;
-}
-
 export class CloudTarget implements TargetProfile {
   readonly name = "cloud";
 
-  // Declared by the environment, read at setup() with the address and token —
-  // the same moment the other connect-only facts arrive. Before setup() the
-  // target has no implementation to report, and says so.
-  private declaredImplementation: ServerImplementation | undefined;
-
-  get implementation(): ServerImplementation {
-    if (this.declaredImplementation === undefined) {
-      throw new Error("CloudTarget.setup() must run before implementation is read");
-    }
-    return this.declaredImplementation;
-  }
   readonly capabilities: CapabilityFlags = {
     multiTenant: true,
     externalOrgLookup: true,
@@ -171,13 +138,14 @@ export class CloudTarget implements TargetProfile {
   directLoginTenant?: () => DirectLoginTenant;
 
   async setup(): Promise<void> {
-    this.declaredImplementation = readCloudImplementation();
     this.grpcBaseUrl = requireEnv(CLOUD_ENV.address);
     const token = requireEnv(CLOUD_ENV.token);
     this.conformanceClients = makeClients(createTransport(this.grpcBaseUrl, { bearerToken: token }));
     await awaitGrpcReady(
       this.conformanceClients,
-      () => "(cloud environment: see the launcher's stderr and stigmer-service-*.log)",
+      () =>
+        "(cloud environment: the composition is provisioned outside this repository — " +
+        "see the provisioner's logs, e.g. stigmer-cloud's readout recipe)",
     );
 
     const operatorToken = process.env[CLOUD_ENV.operatorToken];

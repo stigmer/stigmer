@@ -304,11 +304,10 @@ describe.skipIf(!forwarderEnabled)(
       // Forward the decision through the parent; the handler routes it to the child.
       // Through the seam: the forwarder's own response is the PARENT, loaded before
       // the forward, so the contract is read off the child — whose gate the same
-      // agent-execution handler resolves synchronously — and a decision the Java
-      // race drops does not surface as the workflow never completing.
+      // agent-execution handler resolves synchronously — and a decision that did
+      // not reach the child is red here, not "the workflow never completed".
       const childExecutionId = pending.childAgentExecutionId;
-      await submitApprovalPerContract(target, clients, {
-        executionId: childExecutionId,
+      await submitApprovalPerContract({
         expectedRemaining: 0,
         label: "the forwarded approve clears the child's gate",
         submit: async () => {

@@ -186,8 +186,7 @@ describe.skipIf(!gatesEnabled)("Billing gates — settle, the approval STOP gate
     expect(refused.rawMessage).toBe(APPROVAL_STOP_COPY);
 
     await refund(org);
-    await submitApprovalPerContract(target, clients, {
-      executionId,
+    await submitApprovalPerContract({
       expectedRemaining: 0,
       label: "the approve clears the gate once funded",
       submit: () => clients.agentExecutionCommand.submitApproval({ agentExecutionId: executionId, toolCallId, action: ApprovalAction.APPROVE }),

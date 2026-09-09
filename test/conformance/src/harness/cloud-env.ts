@@ -20,19 +20,9 @@ import { newDirectLoginTenant } from "./direct-login-tenant";
 import { awaitGrpcReady } from "./grpc-ready";
 import { uniqueName } from "../support/naming";
 
-// Contract between global-setup-cloud.ts (writer) and CloudTarget (reader).
+// Contract between the provisioner (writer) and the cloud targets (readers);
+// global-setup-cloud.ts refuses a run whose required entries are undeclared.
 export const CLOUD_ENV = {
-  // Which server binary the environment booted behind the cloud targets —
-  // "stigmer-service" (the Java service the hermetic launcher runs) or
-  // "stigmer-server" (the TypeScript composition the readout recipe boots).
-  // REQUIRED: the cloud targets are connect-only and cannot tell from the
-  // wire (getServerInfo answers `cloud` for both, correctly — the product
-  // edition is the same), yet the known-deviation registry keys Java's bugs
-  // on exactly this fact. Declared by the provisioner that knows what it
-  // built (global-setup-cloud.ts; the composition's readout-bootstrap), never
-  // defaulted — an environment that forgets it fails setup by name rather
-  // than inheriting the other implementation's quirks (stigmer#1012).
-  implementation: "STIGMER_CONFORMANCE_CLOUD_IMPLEMENTATION",
   // gRPC base URL of the service under test, e.g. http://127.0.0.1:52341.
   address: "STIGMER_CONFORMANCE_CLOUD_ADDRESS",
   // HTTP (Spring) base URL of the same service — the routes the gRPC port
@@ -163,7 +153,7 @@ export async function bootstrapPrimaryIdentity(
   const operatorTransport = createTransport(grpcBaseUrl, { bearerToken: bootstrapOperatorToken });
   await awaitGrpcReady(
     makeClients(operatorTransport),
-    () => "(cloud environment: see the launcher's stderr and stigmer-service-*.log)",
+    () => "(cloud environment: the composition is provisioned outside this repository — see the provisioner's logs)",
   );
 
   const platformClientCommand = createClient(PlatformClientCommandController, operatorTransport);
