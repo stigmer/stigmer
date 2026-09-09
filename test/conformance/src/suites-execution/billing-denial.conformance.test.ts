@@ -17,13 +17,14 @@
 //   engine's denial_reason verbatim (blueprint §7 "strictly earlier than the
 //   Java refusal"; the C1 NOT_FOUND-arm disposition precedent).
 //
-// Because both editions serve behind the same `cloud` target type, the suite
-// cannot tell them apart by target name. The arm is declared explicitly via
-// STIGMER_CONFORMANCE_BILLING_DENIAL_CONTRACT ("async" | "sync", default
-// "async" — the Java baseline, so the nightly hermetic lane runs unchanged;
-// composition readouts set "sync"). Each arm is enforced strictly: a
-// composition regressing to the async shape, or Java changing its failure
-// bytes, turns this suite red.
+// Which arm applies is a fact about the IMPLEMENTATION behind the target
+// (TargetProfile.implementation — the Java stigmer-service answers async, the
+// TypeScript stigmer-server sync), so the suite derives it from the target
+// the environment declared rather than from a knob of its own (stigmer#1012;
+// the knob this replaced, STIGMER_CONFORMANCE_BILLING_DENIAL_CONTRACT, was
+// the second copy of "which server is behind `cloud`"). Each arm is enforced
+// strictly: a composition regressing to the async shape, or Java changing its
+// failure bytes, turns this suite red.
 //
 // Precondition: an org whose billing account exists AT THE ZERO BALANCE an
 // org create provisions (GetOrCreateBillingAccountHandler creates accounts
@@ -51,6 +52,7 @@ import {
 } from "../support/agentexecutions";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile, type TenancyContext } from "../targets";
+import type { ServerImplementation } from "../targets/target";
 
 // Collection-time capability read (the schedule-firing/forwarder pattern).
 const billingEnabled = createTarget().capabilities.billingGates;
@@ -61,17 +63,20 @@ const ENGINE_DENIAL_REASON = "Insufficient credits to start execution";
 const ASYNC_FAILURE_ERROR = `Insufficient credits: ${ENGINE_DENIAL_REASON}`;
 const ASYNC_FAILURE_MESSAGE = `Execution could not start: ${ENGINE_DENIAL_REASON}`;
 
-const DENIAL_CONTRACT_ENV = "STIGMER_CONFORMANCE_BILLING_DENIAL_CONTRACT";
 type DenialContract = "async" | "sync";
 
-function resolveDenialContract(): DenialContract {
-  const raw = process.env[DENIAL_CONTRACT_ENV] ?? "async";
-  if (raw !== "async" && raw !== "sync") {
-    throw new Error(
-      `${DENIAL_CONTRACT_ENV} must be "async" or "sync" when set; got "${raw}"`,
-    );
+// The ruled denial shape per implementation — see the header.
+function denialContractOf(implementation: ServerImplementation): DenialContract {
+  switch (implementation) {
+    case "stigmer-service":
+      return "async";
+    case "stigmer-server":
+      return "sync";
+    default: {
+      const exhaustive: never = implementation;
+      throw new Error(`unhandled server implementation ${String(exhaustive)}`);
+    }
   }
-  return raw;
 }
 
 let target: TargetProfile;
@@ -122,7 +127,7 @@ describe.skipIf(!billingEnabled)(
     it("[billing.gate.reserve.unfunded-execution-denied-with-ruled-contract] a zero-credit org's execution lands the ruled denial for this edition", async () => {
       const { org } = await provisionUnfunded();
       const agentId = await provisionAgent(org);
-      const contract = resolveDenialContract();
+      const contract = denialContractOf(target.implementation);
 
       if (contract === "sync") {
         // The composition's create-time reserve gate: the RPC itself refuses,
