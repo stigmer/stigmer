@@ -2583,6 +2583,34 @@ metrics:
     alerts: [grpc-latency-regression-p95]
     note: >-
       The count's sibling, same labels, fractional milliseconds from interception to the RPC's end — for a server stream, the end of the stream (Java measured to ServerCall.close). Never pre-registered: a record(0) would be a real sample in the p95. SDK default histogram buckets in both editions.
+  - name: stigmer.db.postgres.connections.used
+    surface: platform
+    java_source: config/observability/PostgresCapacityMetrics.java
+    disposition: ported
+    alerts: [postgres-connections-above-80-of-max]
+    note: >-
+      Backends connected to the composition's database (pg_stat_activity, datname = current_database()), polled every 60 s by the composition's observability/postgres-capacity.ts (convergence entry 20260909.03) and observed as a gauge with db.cluster = app-postgres only: Java's second cluster label, checkpointer-postgres, probed the separate stigmer_checkpoints database, whose tables C6 moved into the one database — that series retires with Java. The connections rule divides this by connections.max, so both rows name it. Nothing is observed before the first successful poll; a failed poll keeps the last values (Java's atomics).
+  - name: stigmer.db.postgres.connections.max
+    surface: platform
+    java_source: config/observability/PostgresCapacityMetrics.java
+    disposition: ported
+    alerts: [postgres-connections-above-80-of-max]
+    note: >-
+      The server's max_connections setting (current_setting), the denominator of the connections rule; same poll, same label as connections.used.
+  - name: stigmer.db.postgres.database.size
+    surface: platform
+    java_source: config/observability/PostgresCapacityMetrics.java
+    disposition: ported
+    alerts: [postgres-database-above-70-of-disk]
+    note: >-
+      pg_database_size(current_database()) in bytes; the disk rule's threshold is 70 % of the 30 G volume, a production fact the rule carries, not a metric.
+  - name: stigmer.db.postgres.wal.size
+    surface: platform
+    java_source: config/observability/PostgresCapacityMetrics.java
+    disposition: ported
+    alerts: [postgres-wal-above-80-of-max-wal-size]
+    note: >-
+      The WAL directory's size in bytes (sum over pg_ls_waldir()), which needs the pg_monitor role — granted to stigmer_app by hand on 2026-07-29 and carried by the composition's connections as the same role. Probed inside the same poll but on its own terms, as Java does: a failure sits out the next 15 polls and warns once with the GRANT to run, the last good value stays observed through the window, and only a probe that has never succeeded is absent. The rule's threshold is 80 % of max_wal_size (1024 MB), a production fact the rule carries.
   - name: stigmer.proxy.cursor.execution_authority_lookups
     surface: proxy
     java_source: proxy/cursor/keyselection/CompositionAuthorityExecutionContextSource.java
