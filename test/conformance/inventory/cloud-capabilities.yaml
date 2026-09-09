@@ -2463,9 +2463,13 @@ rows:
 # discipline, same file — one inventory mechanism for the program.
 #
 #   name         the Java metric name, byte-exact (the composition emits the
-#                same name when `disposition: ported`)
-#   surface      billing | proxy
-#   java_source  where Java emits it
+#                same name when `disposition: ported` — from its own code or
+#                from the OSS server it pins, the row's note says which)
+#   surface      billing | proxy | platform (a metric no lane owns: the HTTP
+#                edge, the gRPC edge, the secret cleanup — 20260909.01)
+#   java_source  where Java emits it: a path under
+#                backend/services/stigmer-service/src/main/java/ai/stigmer, or
+#                `libs/<lib>/…` for backend/libs/java
 #   disposition  ported | dropped
 #   alerts       SigNoz alert files under tools/ops/signoz/alerts/ that read
 #                the series (re-pointed at stigmer-server before X1)
@@ -2565,6 +2569,20 @@ metrics:
     alerts: [encryption-cleanup-failures]
     note: >-
       Secret backing-state destructions that failed after the DB write succeeded (orphaned KV entries); pre-registered at zero on boot in both editions so the first orphan after a pod start is visible to the alert.
+  - name: stigmer.grpc.request.count
+    surface: platform
+    java_source: libs/grpc/grpc-request/interceptor/GrpcRequestMetricsInterceptor.java
+    disposition: ported
+    alerts: [telemetry-heartbeat-lost, grpc-error-rate-spike]
+    note: >-
+      Emitted by the OSS server itself (pipeline/interceptors/request-metrics.ts, convergence entry 20260909.02), not by the composition: one record per RPC on the serving chain, labels rpc.service, rpc.method and rpc.grpc.status_code as the gRPC status NAME (OK, NOT_FOUND, CANCELLED). Born attribute-less at zero before the port binds, Java's constructor add(0), so the heartbeat's ten-minute absence window measures the export pipeline rather than a post-restart lull; the error-rate rule is the share of status_code != OK. Recorded inside the identity source — Java's @Order position — so an identity refusal is never a counted error (a paging-effect ruling, 20260909.02 gate Q1). Health is not measured; is_public methods are.
+  - name: stigmer.grpc.request.duration
+    surface: platform
+    java_source: libs/grpc/grpc-request/interceptor/GrpcRequestMetricsInterceptor.java
+    disposition: ported
+    alerts: [grpc-latency-regression-p95]
+    note: >-
+      The count's sibling, same labels, fractional milliseconds from interception to the RPC's end — for a server stream, the end of the stream (Java measured to ServerCall.close). Never pre-registered: a record(0) would be a real sample in the p95. SDK default histogram buckets in both editions.
   - name: stigmer.proxy.cursor.execution_authority_lookups
     surface: proxy
     java_source: proxy/cursor/keyselection/CompositionAuthorityExecutionContextSource.java

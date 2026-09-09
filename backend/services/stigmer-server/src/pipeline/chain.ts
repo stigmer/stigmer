@@ -1,11 +1,17 @@
 /**
  * The server's interceptor chain, in the ratified order (D2 §2; position
- * 0 added by 20260830.03, gate ruling Q1):
+ * 0 added by 20260830.03, gate ruling Q1; the request-metrics position
+ * added by 20260909.02, gate ruling Q1):
  *
- *   0. error boundary   — SERVING chain only, optional parameter
+ *   0. error boundary   — SERVING chain only
  *                         (interceptors/error-boundary.ts: the raw-error
  *                         conversion net + the visitor sanitizer seam)
  *   1. identity source  — REQUIRED parameter (DD-004; O2)
+ *      request metrics  — SERVING chain only, immediately inside the
+ *                         identity source (interceptors/request-metrics.ts:
+ *                         Java's RED emitter at Java's position — an
+ *                         identity refusal is position 1's own record,
+ *                         never a counted error)
  *   2. logging          — level-tiered per outcome
  *   3. protovalidate    — boundary validation before any handler
  *   4. apiresource      — kind context from the service option
@@ -19,10 +25,14 @@
  * own interceptor mints (interceptors/auth.ts owns both sources and the
  * spoofing-impossible invariant). The parameter is required — a chain
  * without an identity source is a compile error, never a silently
- * unauthenticated transport. Position 0 deliberately exists ONLY on the
- * serving chain: in-process hops are exempt from sanitization by
- * construction — the outer handler needs the full inner diagnostic (the
- * Java InProcessCallContextHolder exemption, structurally).
+ * unauthenticated transport.
+ *
+ * The two serving-only interceptors travel as ONE optional parameter so
+ * a chain cannot half-inherit them: in-process hops are exempt from
+ * sanitization by construction — the outer handler needs the full inner
+ * diagnostic (the Java InProcessCallContextHolder exemption,
+ * structurally) — and an in-process hop is not a request, so it is not
+ * counted as one.
  */
 import type { Interceptor } from "@connectrpc/connect";
 
@@ -31,14 +41,21 @@ import { createApiResourceInterceptor } from "./interceptors/apiresource.js";
 import { createLoggingInterceptor } from "./interceptors/logging.js";
 import { createProtovalidateInterceptor } from "./interceptors/protovalidate.js";
 
+/** The interceptors only the serving chain composes; the in-process chain passes none. */
+export interface ServingChainInterceptors {
+  readonly errorBoundary: Interceptor;
+  readonly requestMetrics: Interceptor;
+}
+
 export function buildInterceptorChain(
   logger: Logger,
   identitySource: Interceptor,
-  errorBoundary?: Interceptor,
+  serving?: ServingChainInterceptors,
 ): Interceptor[] {
   return [
-    ...(errorBoundary === undefined ? [] : [errorBoundary]),
+    ...(serving === undefined ? [] : [serving.errorBoundary]),
     identitySource,
+    ...(serving === undefined ? [] : [serving.requestMetrics]),
     createLoggingInterceptor(logger),
     createProtovalidateInterceptor(),
     createApiResourceInterceptor(),

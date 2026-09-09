@@ -111,9 +111,14 @@ import { registerSearchServices } from "../query/search/controller.js";
 import { SearchHandler } from "../query/search/handler.js";
 import { SqliteSearchQueryStore } from "../query/search/query-store.js";
 import { newSearchableResourceRegistry } from "../query/search/registry.js";
+import {
+  initRpcMetrics,
+  metricsExportPosture,
+} from "../observability/rpc-metrics.js";
 import { buildInterceptorChain } from "../pipeline/chain.js";
 import { createVerifierChainInterceptor } from "../pipeline/interceptors/auth.js";
 import { createErrorBoundaryInterceptor } from "../pipeline/interceptors/error-boundary.js";
+import { createRequestMetricsInterceptor } from "../pipeline/interceptors/request-metrics.js";
 import { newPermissiveSingleTeamAuthorizer } from "../pipeline/steps/authorize.js";
 import { newExecutionScopedRunnerCredentialProvider } from "../runnerauth/runner-credential-provider.js";
 import { RunnerAuthService } from "../runnerauth/runnerauth.js";
@@ -1160,10 +1165,12 @@ export async function composeServer(
     // transport above carries its own
     // position-1 source — the internal caller class only it can mint
     // (ruling Q4), and NO guards: the in-process exemption is structural
-    // (caller-guards.ts). Position 0 is the error boundary (20260830.03):
-    // the raw-error conversion net plus the composed visitor sanitizer —
-    // SERVING chain only, so in-process hops keep full diagnostics by
-    // construction.
+    // (caller-guards.ts). The serving-only pair: position 0 is the error
+    // boundary (20260830.03) — the raw-error conversion net plus the
+    // composed visitor sanitizer — and the request-metrics emitter sits
+    // just inside the identity source (20260909.02, Java's position). Both
+    // are SERVING chain only, so in-process hops keep full diagnostics
+    // and are never counted as requests, by construction.
     interceptors: buildInterceptorChain(
       logger,
       createVerifierChainInterceptor(
@@ -1172,10 +1179,13 @@ export async function composeServer(
         logger,
         requireAuthentication,
       ),
-      createErrorBoundaryInterceptor(
-        logger,
-        extensions.drivers.visitorErrorPolicy,
-      ),
+      {
+        errorBoundary: createErrorBoundaryInterceptor(
+          logger,
+          extensions.drivers.visitorErrorPolicy,
+        ),
+        requestMetrics: createRequestMetricsInterceptor(),
+      },
     ),
     taskKindRegistryLane: registryLanes.taskKindRegistryLane,
     modelRegistryLane: registryLanes.modelRegistryLane,
@@ -1227,6 +1237,19 @@ export async function composeServer(
           error: error instanceof Error ? error.message : String(error),
         });
       }
+      // The request counter is born at zero before the port binds (Java's
+      // constructor add(0); the heartbeat's premise), and the boot says
+      // whether anything will export it: the emitter is library
+      // instrumentation on @opentelemetry/api, so "exporting" is the
+      // host's meter provider (the cloud composition's bootstrap) and
+      // "inert" is the OSS default until an export bootstrap exists —
+      // two states an operator must be able to tell apart in the log.
+      await initRpcMetrics();
+      logger.info("request metrics", {
+        posture: await metricsExportPosture(),
+        instruments:
+          "stigmer.grpc.request.count, stigmer.grpc.request.duration",
+      });
       // Wiring complete → SERVING → background refresh → bind. The port
       // must be the LAST observable effect (serverGate contract).
       healthState.setOverall(ServingStatus.SERVING);
