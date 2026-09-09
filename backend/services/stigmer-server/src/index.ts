@@ -40,10 +40,12 @@ export { loadConfig } from "./boot/config.js";
 export type { ServerConfig } from "./boot/config.js";
 export { createLogger } from "./boot/logger.js";
 export type {
+  LogEntry,
   LogFields,
   Logger,
   LoggerOptions,
   LogLevel,
+  LogSink,
 } from "./boot/logger.js";
 
 // The extension-point types (DD-006 — the seven-point registry).
