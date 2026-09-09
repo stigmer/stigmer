@@ -1,73 +1,20 @@
 # =============================================================================
-# Integration Tests (Offline)
+# Integration Tests (Offline) — DORMANT since 2026-09-10
 # =============================================================================
-# Runs ALL offline integration test suites against the Stigmer Cloud Java
-# service. "Offline" means no LLM provider API keys are needed.
-#
-# Suites:
-#   1. integration          — core platform (agents, workflows, auth, FGA, SDK)
-#   2. integration-security — production JWT auth chain, federated IdP
-#   3. integration-session-routing  — per-session Temporal task queue routing
-#   4. integration-wfexec-routing   — per-execution workflow activity routing
-#   5. integration-offline  — deterministic tests with recorded LLM responses
-#
-# Architecture:
-#   Job 1 (build-service-jar) — checks out stigmer-cloud, builds the fat JAR
-#   Job 2 (integration-tests) — a matrix that fans the suites above out into
-#                               one parallel job each, all reusing Job 1's JAR
-#
-# Job 1 is intentionally isolated so it can be replaced with a pre-built
-# artifact download when stigmer-cloud publishes standalone JAR releases.
-#
-# Cross-repo coupling contract: Job 1 builds stigmer-cloud@main at run time,
-# so a breaking change spanning both repos must merge its stigmer-cloud PR
-# FIRST and its OSS PR second (remove-side merges last). Merging OSS first
-# opens a window where every suite fails at service boot — the Datastore
-# removal hit exactly this (oss#553 at 21:38 UTC vs cloud#395 at 21:48 UTC;
-# run 31643768168). The red heals with a full re-run once cloud main lands.
-# Job 2 runs the suites concurrently rather than sequentially: each suite owns
-# its infrastructure, so wall-clock time is the slowest suite, not their sum.
+# The Java stigmer-service this lane built and booted (Job 1 built its fat JAR
+# from stigmer-cloud) retired on 2026-09-10 (stigmer-cloud DD-013). The one
+# suite that outlives it, test/integration-offline — 74 recorded-LLM-turn
+# arms that exercise the RUNNER, not Java — is being re-pointed at the OSS
+# TypeScript stigmer-server (E1's coverage diff, ruled 2026-09-06; the
+# follow-up issue is linked from test/README.md). Until that lands this lane
+# cannot pass, so it runs only when dispatched by hand. The four Java-only
+# suites it also ran were deleted with the service.
 # =============================================================================
 
 name: ci.integration-offline
 
 on:
-  pull_request:
-    paths:
-      - "backend/**"
-      - "test/integration/**"
-      - "test/integration-offline/**"
-      - "test/integration-security/**"
-      - "test/integration-session-routing/**"
-      - "test/integration-wfexec-routing/**"
-      - "apis/**"
-      - "go.work"
-      - "go.work.sum"
-      - "Makefile"
-      - ".github/workflows/ci.integration-offline.yaml"
-  push:
-    branches: [main]
-    paths:
-      - "backend/**"
-      - "test/integration/**"
-      - "test/integration-offline/**"
-      - "test/integration-security/**"
-      - "test/integration-session-routing/**"
-      - "test/integration-wfexec-routing/**"
-      - "apis/**"
-      - "go.work"
-      - "go.work.sum"
-      - "Makefile"
-      - ".github/workflows/ci.integration-offline.yaml"
-  schedule:
-    - cron: "0 3 * * 0"
   workflow_dispatch:
-    inputs:
-      cloud_ref:
-        description: "stigmer-cloud git ref to build the service JAR from"
-        required: false
-        type: string
-        default: "main"
 
 concurrency:
   group: integration-${{ github.head_ref || github.ref }}
@@ -164,30 +111,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - suite: integration
-            label: Core
-            make: test-integration
-            output: test/integration/.test-output
-            artifact: integration-test-results
-            report: Integration Test Report
-          - suite: security
-            label: Security
-            make: test-integration-security
-            output: test/integration-security/.test-output-security
-            artifact: security-test-results
-            report: Security Test Report
-          - suite: session-routing
-            label: Session Routing
-            make: test-integration-session-routing
-            output: test/integration-session-routing/.test-output-session-routing
-            artifact: session-routing-test-results
-            report: Session Routing Test Report
-          - suite: wfexec-routing
-            label: WfExec Routing
-            make: test-integration-wfexec-routing
-            output: test/integration-wfexec-routing/.test-output-wfexec-routing
-            artifact: wfexec-routing-test-results
-            report: WfExec Routing Test Report
           - suite: offline
             label: Deterministic Offline
             make: test-integration-offline

@@ -75,8 +75,10 @@ export interface RaceDeviation extends DeviationRecord {
 
 export type KnownDeviation = DeterministicDeviation | RaceDeviation;
 
-// The Java service. It retires at R1; every entry naming it is deleted with
-// it, together with the "stigmer-service" member of ServerImplementation.
+// The Java service — RETIRED 2026-09-10 (stigmer-cloud DD-013): no
+// implementation exhibits these entries anymore. They and the
+// "stigmer-service" member of ServerImplementation are deleted together in
+// stigmer#1023, which also collapses the approval race seam built for them.
 const JAVA: ServerImplementation[] = ["stigmer-service"];
 
 // Race ids, exported so the one seam that applies each (support/agentexecutions.ts

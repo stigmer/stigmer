@@ -6,7 +6,13 @@ implement the API:
 
 - the OSS TypeScript `stigmer-server` (the `local` / `local-execution`
   targets),
-- the Java cloud `stigmer-service` (the `cloud` / `cloud-execution` targets).
+- the cloud edition — the TypeScript composition in stigmer-cloud that
+  imports `@stigmer/server` and composes the cloud extensions onto it (the
+  `cloud` / `cloud-execution` targets, pre-provisioned by stigmer-cloud's
+  readout recipe). Until 2026-09-10 the cloud edition was the Java
+  `stigmer-service`, which this suite also held to the contract through a
+  hermetic launcher in this repository; the service and the launcher retired
+  together (stigmer-cloud DD-013).
 
 (History: the targets were born as `local-go`/`local-go-execution` against the
 original Go server, then grew `local-ts` twins whose per-sub-project roster
@@ -135,40 +141,34 @@ the [Temporal CLI docs](https://docs.temporal.io/cli)). The execution
 an install hint if the CLI is missing. The default target is
 `local-execution`.
 
-### Cloud target (Class A vs the Java `stigmer-service`)
+### Cloud targets (Class A and the execution class vs the cloud composition)
 
-The `cloud` run drives the same Class A suites against the Stigmer Cloud Java
-service, hermetically:
+The `cloud` and `cloud-execution` runs drive the same suites against the cloud
+edition — the TypeScript composition in stigmer-cloud — which this repository
+cannot boot (it is private and composes cloud-only extensions). The targets are
+therefore **connect-only**: the environment is provisioned by stigmer-cloud's
+readout recipe (`backend/services/stigmer-server/spike/README.md` there), which
+boots the composition on a hermetic substrate (Testcontainers Postgres/OpenFGA,
+a Temporal dev server, a mock identity tenant), starts the cloud-capability
+fixtures from this workspace (`npm run fixtures:serve -w @stigmer/conformance`),
+mints the suite's identities and exports the `STIGMER_CONFORMANCE_CLOUD_*`
+contract (`harness/cloud-env.ts`). Then, from this repository:
 
 ```bash
 npm run test:cloud -w @stigmer/conformance   # or: make test-conformance-cloud
 ```
 
-Its `globalSetup` (`global-setup-cloud.ts`) boots the environment **once per
-run** — a Go launcher (`test/integration/cmd/conformance-cloudenv`, reusing the
-integration harness) starts Testcontainers Postgres/Redis/MinIO/OpenFGA, a
-Temporal dev server, a mock platform identity tenant, and the service fat JAR
-in **production security mode** with **real OpenFGA authorization** — then
-bootstraps a real identity as the launcher's pre-seeded operator (a
-tenant-minted token -> PlatformClient -> `mintUserToken`) and publishes
-endpoint + token to workers via env vars (`STIGMER_CONFORMANCE_CLOUD_*`). The
-`CloudTarget` itself is **connect-only**: point those env vars at any
-pre-provisioned endpoint and the globalSetup boot is skipped entirely.
-
-Requirements: Docker, `go`, the `fga` CLI (`brew install openfga/tap/fga`), the
-`temporal` CLI, and the service JAR — `STIGMER_SERVICE_JAR`, or built in the
-sibling `stigmer-cloud` checkout with
-`./bazelw build //backend/services/stigmer-service:stigmer_service_fatjar`.
-Files run serially (they share one multi-tenant service), and
-`mcp.conformance.test.ts` is excluded (it tests the `@stigmer/mcp-server`
-bridge against the OSS server specifically, not a target). Tenancy is real
-here: `provisionTenancy()` creates an organization through the production RPC
-(the primary user becomes owner; a zero-balance billing account is provisioned
-automatically), unlike the local targets where an org is just a unique slug.
-CI: `.github/workflows/ci.conformance-cloud.yaml` builds the JAR from
-`stigmer-cloud@main` and runs this nightly — the cron is what catches
-cloud-side drift, since path triggers in this repo cannot see stigmer-cloud
-merges.
+The `globalSetup` (`global-setup-cloud.ts`) only checks the contract is
+declared and refuses by name when it is not — a run that boots nothing must not
+pass. `STIGMER_CONFORMANCE_CLOUD_IMPLEMENTATION` names whose code answers
+(`stigmer-server`; the axis had a second member, `stigmer-service`, until the
+Java service retired). Files run serially (they share one multi-tenant
+service). Tenancy is real here: `provisionTenancy()` creates an organization
+through the production RPC (the primary user becomes owner; a zero-balance
+billing account is provisioned automatically), unlike the local targets where
+an org is just a unique slug. There is no CI lane for the cloud targets in this
+repository: the readout is filed by stigmer-cloud (`_projects/…/x1-cutover/
+conformance-readouts/`).
 
 **The direct-login arms** (`direct-login.conformance.test.ts`, stigmer-cloud#604)
 drive the lane a console, desktop, CLI or MCP client actually rides: the raw
@@ -177,10 +177,8 @@ to the caller's account at position 1. The suite forges nothing about the
 tenant — it mints through `CloudTarget.directLoginTenant()`, which exists only
 where the environment hands the harness the tenant's signing key
 (`STIGMER_CONFORMANCE_CLOUD_DIRECT_LOGIN_ISSUER` / `_SIGNING_KEY_BASE64` /
-`_KID` / `_API_AUDIENCE` / optional `_MCP_AUDIENCE`): the hermetic launcher's
-own tenant (published by the global setup from the launcher's ready line — the
-same key that minted the bootstrap operator's first token) and the composition
-readout substrate's mock tenant (`stigmer-cloud`
+`_KID` / `_API_AUDIENCE` / optional `_MCP_AUDIENCE`): the composition readout
+substrate's mock tenant (`stigmer-cloud`
 `backend/services/stigmer-server/spike/identity-tenant.ts` writes that group
 beside the composition's own `STIGMER_IDP_*` boot trio). Every deployed
 endpoint (a real tenant's key is never conformance's) leaves the group unset,
@@ -203,15 +201,14 @@ CRUD suites:
   `[billing.rpc.foo.bar]` tag, and `npm run inventory:check` fails the CI
   lanes when a `conformance` row has no test or a tag names no row — "every
   behavior is covered" is computed, never claimed.
-- **The server under test dials fakes the run owns.** The global setup boots a
-  fake LLM provider (Anthropic + OpenAI wire shapes), a fake Stripe API with
-  request capture and a Stripe-Signature signer, and a fake Discord webhook
-  receiver (`harness/cloud-fixtures.ts`) BEFORE the launcher, hands their
-  addresses to the JVM through explicit launcher fields, and publishes a
-  control URL the workers script them through (`support/cloud-fixtures-client.ts`).
-  Suites reset the fakes in `afterEach` — they are shared across every file.
-  For a pre-provisioned environment (the composition readout), `npm run
-  fixtures:serve` starts them standalone and prints the lines to export.
+- **The server under test dials fakes the run owns.** A fake LLM provider
+  (Anthropic + OpenAI wire shapes), a fake Stripe API with request capture and
+  a Stripe-Signature signer, and a fake Discord webhook receiver
+  (`harness/cloud-fixtures.ts`) run as one long-lived process the composition
+  is booted against (`npm run fixtures:serve` starts them and prints the lines
+  to export); they publish a control URL the workers script them through
+  (`support/cloud-fixtures-client.ts`). Suites reset the fakes in `afterEach`
+  — they are shared across every file.
 - **Lanes have their own addresses.** `STIGMER_CONFORMANCE_CLOUD_{PROXY,CURSOR_BIDI,PUBLIC,STRIPE_WEBHOOK}_ADDRESS`
   (+ `_STRIPE_WEBHOOK_SECRET`, `_FIXTURES_CONTROL_URL`), because the
   composition serves extension-owned lanes on separate listeners. The flags
@@ -220,50 +217,27 @@ CRUD suites:
   target whose flag is true and whose lane is missing FAILS, never skips.
   That red is the implementing entry's acceptance.
 - **The environment declares which server answers.**
-  `STIGMER_CONFORMANCE_CLOUD_IMPLEMENTATION` is `stigmer-service` (the Java
-  service the hermetic launcher boots) or `stigmer-server` (the TypeScript
-  composition the readout recipe boots), REQUIRED on the cloud targets and
-  published by the provisioner — the global setup for the launcher, the
-  composition's `readout-bootstrap` for the readout. The cloud targets are
-  connect-only and cannot tell from the wire (`getServerInfo` rightly answers
-  `cloud` for both), yet the known-deviation registry keys Java's bugs on
-  exactly this fact; an environment that forgets it is refused by name rather
-  than inheriting the other implementation's quirks (stigmer#1012). It is a
+  `STIGMER_CONFORMANCE_CLOUD_IMPLEMENTATION` names whose code answers behind
+  the cloud target — `stigmer-server`, the TypeScript composition — REQUIRED
+  on the cloud targets and published by the provisioner (the composition's
+  `readout-bootstrap`). The cloud targets are connect-only and cannot tell
+  from the wire (`getServerInfo` answers `cloud` for the edition, not the
+  implementation); the known-deviation registry keys an implementation's
+  quirks on exactly this fact, so an environment that forgets it is refused
+  by name (stigmer#1012). The axis had two members while the Java
+  `stigmer-service` still served the cloud edition. It is a
   different axis from the target NAME: a name is a deployment shape, the
   implementation is whose code is behind it (`TargetProfile.implementation`).
 
-**Launcher posture vs production.** The launcher boots Java the way production
-runs it wherever the harness can (stigmer-cloud entry `20260907.02`, closing
-D-S1 option (ii) of `20260904.02`): `STIGMER_SECURITY_MODE=production` — the
-real `GrpcSecurityConfigBase`, `HttpSecurityConfig` and Auth0
-`MachineAccountJwtProvider` load, trusting the launcher's in-process mock tenant
-(OIDC discovery, JWKS, `/oauth/token`, `/userinfo`) exactly as
-`test/integration-security` boots it; `STIGMER_PROXY_REQUIRE_SCOPE_HEADER=true`
-(production's default); a Stigmer-token audience stamped and verified leniently
-(production's pair). So the authentication-class arms — 401 without a bearer,
-foreign and expired tokens, the API-key lane, CORS, `denyAll`, the
-require-scope header, the direct-login tenant's six `classifyAuthError` arms —
-run against Java's real edge; there is no "bypassed edge" posture in the
-harness to skip on, by design (a target whose edge admits anonymous callers
-FAILS those arms). What still differs from production is written beside each
-override in `test/integration/harness/service.go` (`buildServiceEnv`) under one
-of three dispositions:
-
-- `production` — matches production: the security mode, the require-scope
-  header, the token audience.
-- `harness-constraint` — cannot match inside Testcontainers, reason stated:
-  `STIGMER_IDP_JWKS_VALIDATION_DISABLED` (the mock JWKS is plain HTTP), R2
-  path-style addressing (MinIO), `STIGMER_SANDBOX_TYPE=noop` and
-  `STIGMER_RUNNER_LAUNCHER_TYPE=noop` (no cluster).
-- `test-tuning` — a knob the Go suites turn to make a behavior reachable in
-  one test, with the arms that would notice named: the two billing sweeps off
-  (they would race the billing arms), `STIGMER_SHARING_MAX_TURNS_PER_SESSION=5`,
-  `STIGMER_SCHEDULES_MAX_CONSECUTIVE_FAILURES=2`,
-  `STIGMER_SCHEDULES_SESSION_DEFAULTS_HARNESS=native`.
-
-An override with no disposition is a defect in that file. The Go integration
-suites keep test security mode through their own `ServiceConfig`; only the
-conformance launcher's job is to observe the edge.
+**Edge posture.** The authentication-class arms — 401 without a bearer, foreign
+and expired tokens, the API-key lane, CORS, the require-scope header, the
+direct-login tenant's six `classifyAuthError` arms — run against the server's
+real edge; there is no "bypassed edge" posture in the harness to skip on, by
+design (a target whose edge admits anonymous callers FAILS those arms). The
+composition's readout boots it with production's authentication posture
+(`required`, every verifier registered); what the hermetic substrate cannot
+match (a plain-HTTP mock tenant, path-style R2 addressing against MinIO, the
+noop sandbox provisioner) is stated in the spike's README beside each override.
 
 ## Design
 
@@ -351,8 +325,10 @@ Neither kind is a retry budget, a sleep or a skip: the contract assertion runs
 on every target every time, and nothing in the registry is reached unless the
 target's implementation is registered AND (for a race) the contract just
 failed. The registry can never hide a regression or bless a bug permanently.
-At R1 the Java service retires and, with it, every entry naming it and the
-`stigmer-service` member of `ServerImplementation`. The local targets carry
+The Java service retired on 2026-09-10 (stigmer-cloud DD-013); every entry
+naming it and the `stigmer-service` member of `ServerImplementation` are dead
+and delete together in stigmer#1023 (the approval race seam collapses with
+them — a small refactor with its own tests, kept out of the deletion PR). The local targets carry
 no entries: the previous ones — duplicate-create / missing-name / missing-spec
 returning `Unknown`, and `getVersion` with a malformed hash returning `NotFound`
 — were resolved (stigmer/stigmer#192) by enforcing protovalidate at the gRPC

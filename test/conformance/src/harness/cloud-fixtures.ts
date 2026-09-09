@@ -1,12 +1,13 @@
 // The cloud-capability fixtures as one run-scoped unit with a control API.
 // Domain: conformance harness (cloud-capability fixtures, E1).
 //
-// The cloud targets' environment boots ONCE per run in vitest's global setup
-// (global-setup-cloud.ts) while suite files run in forked workers that
-// inherit only process.env. The fakes the server under test dials — the LLM
-// upstream, the Stripe API, the Discord webhook — must therefore live in the
-// global-setup process (the server's base URLs are fixed at boot), and the
-// workers must script them from outside. This module gives the three fakes
+// The cloud targets' environment is provisioned ONCE per run, outside vitest
+// (the composition readout, since 2026-09-10 the only cloud edition), while
+// suite files run in forked workers that inherit only process.env. The fakes
+// the server under test dials — the LLM upstream, the Stripe API, the Discord
+// webhook — must therefore live in one long-running process the server's
+// base URLs were fixed against at its boot, and the workers must script them
+// from outside. This module gives the three fakes
 // one lifecycle and one small HTTP CONTROL API the workers reach through
 // CLOUD_ENV.fixturesControlUrl; support/cloud-fixtures-client.ts is the typed
 // client over it. The control listener is separate from the fakes' own
@@ -14,8 +15,8 @@
 //
 // A new pattern in this harness (every earlier fake was per-file and
 // in-process), named so it is recognized: "run-scoped fixture + control API".
-// The composition readout boots the same fixtures through
-// cloud-fixtures-standalone.ts, which prints the CLOUD_ENV lines to export.
+// The readout boots them through cloud-fixtures-standalone.ts (`npm run
+// fixtures:serve`), which prints the CLOUD_ENV lines to export.
 import { randomBytes } from "node:crypto";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
@@ -37,18 +38,6 @@ export interface CloudFixtureAddresses {
 export interface CloudFixtures {
   readonly addresses: CloudFixtureAddresses;
   stop(): Promise<void>;
-}
-
-// The environment the Go launcher reads (cmd/conformance-cloudenv/main.go)
-// and threads into explicit ServiceConfig fields — never ambient inheritance
-// into the JVM.
-export function launcherEnvFor(addresses: CloudFixtureAddresses): Record<string, string> {
-  return {
-    STIGMER_CONFORMANCE_STRIPE_WEBHOOK_SECRET: addresses.stripeWebhookSecret,
-    STIGMER_CONFORMANCE_STRIPE_API_BASE: addresses.stripeApiUrl,
-    STIGMER_CONFORMANCE_LLM_UPSTREAM_BASE_URL: addresses.llmUpstreamUrl,
-    STIGMER_CONFORMANCE_LEADS_DISCORD_WEBHOOK_URL: addresses.discordWebhookUrl,
-  };
 }
 
 export async function startCloudFixtures(): Promise<CloudFixtures> {

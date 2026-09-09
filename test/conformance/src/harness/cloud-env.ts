@@ -1,35 +1,23 @@
-// Hermetic cloud environment: launcher process + identity bootstrap.
+// The cloud environment's env-var CONTRACT and identity bootstrap.
 // Domain: conformance harness (cloud target lifecycle).
 //
-// The heavy boot (Testcontainers infra + a mock platform identity tenant +
-// the Java stigmer-service fat JAR in PRODUCTION security mode) lives in a Go
-// launcher that reuses the battle-tested integration harness
-// (test/integration/cmd/conformance-cloudenv). This module owns the TS side:
-// spawning that launcher, minting the pre-seeded bootstrap operator's first
-// token from the tenant material the launcher hands over, performing the
-// one-time auth bootstrap over gRPC as that operator, and defining the
-// env-var contract through which the cloud global setup publishes the
-// environment to test workers.
-//
-// Env vars are the interface deliberately: a future run against a deployed
-// environment sets the same variables directly and skips the launcher — the
-// CloudTarget never knows how the environment came to exist.
-import { execFile, spawn, type ChildProcess } from "node:child_process";
-import { mkdir } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { createInterface } from "node:readline";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
-import { promisify } from "node:util";
+// The cloud targets are connect-only: they never boot anything. The
+// environment they test is PROVISIONED ELSEWHERE — since 2026-09-10 (the Java
+// stigmer-service's retirement, stigmer-cloud DD-013) that is the TypeScript
+// composition, booted by stigmer-cloud's readout recipe, which writes the
+// CLOUD_ENV variables below before the suite runs. Until then a Go launcher in
+// this repository (test/integration/cmd/conformance-cloudenv) booted the Java
+// service hermetically and this module spawned it; that half retired with the
+// service. What remains is the contract (CLOUD_ENV), the one-time auth
+// bootstrap a provisioner performs as the pre-seeded operator
+// (bootstrapPrimaryIdentity), and the user-token mint the targets use.
 import { createClient } from "@connectrpc/connect";
 import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
 import { PlatformClientCommandController } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/command_pb";
 import { PlatformClientTokenController } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/token_pb";
-import { stopChild } from "./child-process";
 import { createTransport, makeClients } from "./clients";
 import { newDirectLoginTenant } from "./direct-login-tenant";
 import { awaitGrpcReady } from "./grpc-ready";
-import { CONFORMANCE_OAUTH_REDIRECT_URI } from "./server-process";
 import { uniqueName } from "../support/naming";
 
 // Contract between global-setup-cloud.ts (writer) and CloudTarget (reader).
@@ -112,46 +100,13 @@ export const CLOUD_ENV = {
   fixturesControlUrl: "STIGMER_CONFORMANCE_CLOUD_FIXTURES_CONTROL_URL",
 } as const;
 
-// The org whose FGA ownership tuple the launcher seeds for the bootstrap
-// operator (must match harness.TestOrg / SeedBootstrapOperator in
-// test/integration). The bootstrap creates its PlatformClient here because it
-// is the only org that operator is guaranteed to own.
+// The org whose FGA ownership tuple the environment's provisioner seeds for
+// the bootstrap operator (the readout recipe's bootstrap org; on the retired
+// hermetic launcher, harness.TestOrg). The bootstrap creates its
+// PlatformClient here because it is the only org that operator is guaranteed
+// to own.
 const FGA_SEEDED_ORG = "test-org";
 
-const execFileAsync = promisify(execFile);
-
-// Repo root is four levels up from test/conformance/src/harness/.
-const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
-const LAUNCHER_MODULE_DIR = resolve(REPO_ROOT, "test/integration");
-const LAUNCHER_PACKAGE = "./cmd/conformance-cloudenv";
-
-// Built to a deterministic temp path and spawned directly (never `go run`,
-// which would put the go tool between us and the launcher: a SIGKILL fallback
-// would then orphan the JVM and containers instead of stopping them). Same
-// convention as ts-build.ts for the OSS server build.
-const LAUNCHER_OUTPUT_DIR = join(tmpdir(), "stigmer-conformance");
-const LAUNCHER_BINARY = join(
-  LAUNCHER_OUTPUT_DIR,
-  process.platform === "win32" ? "conformance-cloudenv.exe" : "conformance-cloudenv",
-);
-
-// Container pulls on a cold cache plus the JVM boot; matches the launcher's
-// own bootTimeout so whichever side times out first still reports clearly.
-const ENVIRONMENT_READY_TIMEOUT_MS = 10 * 60 * 1000;
-const SHUTDOWN_GRACE_MS = 60_000;
-
-export interface CloudEnvironment {
-  readonly grpcBaseUrl: string;
-  readonly httpBaseUrl: string;
-  // The Cursor BiDi proxy's own h2c listener (Netty; Tomcat cannot serve
-  // Connect bidi streams), published by the launcher's ready line since E1.
-  readonly cursorBidiBaseUrl: string;
-  // The mock platform identity tenant the JAR discovered at boot — its
-  // private half, so this process can mint what the tenant would (entry
-  // 20260907.02). Test-only material that lives for the run.
-  readonly identityTenant: IdentityTenant;
-  stop(): Promise<void>;
-}
 
 // The ready line's tenant group. `bootstrapSubject` is the `sub` of the one
 // pre-seeded platform operator (SeedBootstrapOperator in the launcher) —
@@ -177,49 +132,6 @@ export interface PrimaryIdentity {
   readonly operatorToken: string;
 }
 
-// Builds and spawns the Go launcher, waiting for its single JSON ready-line on
-// stdout. The launcher's human-readable progress (stderr) is passed through so
-// long container pulls and the JVM boot stay observable in CI logs.
-//
-// `launcherEnv` carries the cloud-capability fixtures' hand-over (E1): the
-// fake upstream / Stripe / Discord addresses and the run-local webhook secret
-// the launcher threads into explicit ServiceConfig fields, so the JVM's
-// outbound posture is declared once on each side of the process boundary and
-// never inherited ambiently.
-export async function spawnCloudEnvironment(launcherEnv: Record<string, string> = {}): Promise<CloudEnvironment> {
-  await mkdir(LAUNCHER_OUTPUT_DIR, { recursive: true });
-  await execFileAsync("go", ["build", "-o", LAUNCHER_BINARY, LAUNCHER_PACKAGE], {
-    cwd: LAUNCHER_MODULE_DIR,
-    maxBuffer: 64 * 1024 * 1024,
-  });
-
-  const child = spawn(LAUNCHER_BINARY, [], {
-    // The harness resolves the sibling stigmer-cloud checkout (service JAR,
-    // FGA model) relative to the integration module dir; logs land in its
-    // .test-output/ like the integration tests' own runs.
-    cwd: LAUNCHER_MODULE_DIR,
-    stdio: ["ignore", "pipe", "inherit"],
-    env: {
-      ...process.env,
-      // The launcher passes this through to the Java service (an explicit
-      // ServiceConfig field, never ambient inheritance). The suite's own
-      // constant is the single source of truth: the mcpserver OAuth suites
-      // assert this exact value inside DCR requests and authorize URLs, so
-      // a second definition anywhere would drift.
-      STIGMER_OAUTH_REDIRECT_URI: CONFORMANCE_OAUTH_REDIRECT_URI,
-      ...launcherEnv,
-    },
-  });
-
-  const readyLine = await waitForReadyLine(child);
-  return {
-    grpcBaseUrl: `http://${readyLine.grpcAddress}`,
-    httpBaseUrl: readyLine.httpAddress,
-    cursorBidiBaseUrl: readyLine.cursorBidiAddress,
-    identityTenant: readyLine.identityTenant,
-    stop: () => stopLauncher(child),
-  };
-}
 
 // Mints the bootstrap operator's first credential: a first-party token from
 // the environment's tenant for the pre-seeded operator subject — the same
@@ -338,142 +250,4 @@ export async function mintCloudUserToken(
     throw new Error(`mintUserToken returned an empty access token for user ${userId}`);
   }
   return response.accessToken;
-}
-
-interface ReadyLine {
-  readonly grpcAddress: string;
-  readonly httpAddress: string;
-  readonly cursorBidiAddress: string;
-  readonly identityTenant: IdentityTenant;
-}
-
-// The launcher's readySignal, field for field (cmd/conformance-cloudenv).
-// Parsed strictly: the addresses and the whole tenant group are required, so
-// a launcher that forgot a field fails here with the field named rather than
-// failing later at the first mint or the first proxy call.
-function parseReadyLine(line: string): ReadyLine | undefined {
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(line);
-  } catch {
-    // Not the ready-line; the launcher keeps stdout otherwise silent.
-    return undefined;
-  }
-  if (typeof parsed !== "object" || parsed === null) {
-    return undefined;
-  }
-  const record = parsed as Record<string, unknown>;
-  const requiredString = (source: Record<string, unknown>, key: string, where: string): string => {
-    const value = source[key];
-    if (typeof value !== "string" || value === "") {
-      throw new Error(`launcher ready line is missing ${where}${key}`);
-    }
-    return value;
-  };
-  // Only a line that looks like the ready signal is validated; anything
-  // else on stdout is ignored, as before.
-  if (typeof record["grpcAddress"] !== "string") {
-    return undefined;
-  }
-  const tenantRaw = record["identityTenant"];
-  if (typeof tenantRaw !== "object" || tenantRaw === null) {
-    throw new Error("launcher ready line is missing identityTenant");
-  }
-  const tenant = tenantRaw as Record<string, unknown>;
-  const optionalString = (key: string): string => {
-    const value = tenant[key];
-    return typeof value === "string" ? value : "";
-  };
-  return {
-    grpcAddress: requiredString(record, "grpcAddress", ""),
-    httpAddress: requiredString(record, "httpAddress", ""),
-    cursorBidiAddress: requiredString(record, "cursorBidiAddress", ""),
-    identityTenant: {
-      issuer: requiredString(tenant, "issuer", "identityTenant."),
-      kid: requiredString(tenant, "kid", "identityTenant."),
-      privateKeyPem: requiredString(tenant, "privateKeyPem", "identityTenant."),
-      apiAudience: requiredString(tenant, "apiAudience", "identityTenant."),
-      // The MCP audience is the one optional field (a tenant may mint for
-      // the API alone).
-      mcpAudience: optionalString("mcpAudience"),
-      bootstrapSubject: requiredString(tenant, "bootstrapSubject", "identityTenant."),
-    },
-  };
-}
-
-async function waitForReadyLine(child: ChildProcess): Promise<ReadyLine> {
-  if (child.stdout === null) {
-    throw new Error("launcher spawned without a stdout pipe");
-  }
-  const lines = createInterface({ input: child.stdout });
-
-  const ready = new Promise<ReadyLine>((resolveReady, rejectReady) => {
-    lines.on("line", (line) => {
-      try {
-        const parsed = parseReadyLine(line);
-        if (parsed !== undefined) {
-          resolveReady(parsed);
-        }
-      } catch (err) {
-        rejectReady(err);
-      }
-    });
-    child.once("exit", (code, signal) => {
-      rejectReady(
-        new Error(
-          `cloud environment launcher exited before ready (code=${code}, signal=${signal}); ` +
-            "its stderr above has the failure detail",
-        ),
-      );
-    });
-    child.once("error", rejectReady);
-  });
-
-  const timeout = new Promise<never>((_, rejectTimeout) => {
-    const timer = setTimeout(() => {
-      // Graceful teardown, NOT a naked SIGKILL (stigmer/stigmer#801): a boot
-      // can hang AFTER the service JVM is already up (FGA seeding, a slow
-      // container), and SIGKILLing the launcher at that point skipped its
-      // deferred teardown entirely — the JVM orphaned silently and the next
-      // attempt's clean logs masked the leak. SIGTERM triggers the deferred
-      // teardown; stopLauncher's own SIGKILL fallback still bounds a wedged
-      // one. The rejection waits for the teardown so vitest cannot exit
-      // underneath it.
-      console.error(
-        `[cloud-env] not ready within ${ENVIRONMENT_READY_TIMEOUT_MS}ms — tearing the launcher down`,
-      );
-      void stopLauncher(child).finally(() => {
-        rejectTimeout(
-          new Error(`cloud environment not ready within ${ENVIRONMENT_READY_TIMEOUT_MS}ms`),
-        );
-      });
-    }, ENVIRONMENT_READY_TIMEOUT_MS);
-    timer.unref();
-  });
-
-  try {
-    return await Promise.race([ready, timeout]);
-  } finally {
-    lines.close();
-  }
-}
-
-// SIGTERM triggers the launcher's deferred teardown (containers, JVM); the
-// SIGKILL fallback prevents a wedged teardown from hanging the vitest run,
-// at the cost of leaking whatever was not yet stopped — containers (visible,
-// reapable with `docker ps`) AND the naked service JVM, which nothing lists
-// (stigmer/stigmer#801) — so the fallback firing is always worth a loud line.
-// The shape is the harness's one stop discipline (child-process.ts); this was
-// its origin.
-function stopLauncher(child: ChildProcess): Promise<void> {
-  return stopChild(child, {
-    signal: "SIGTERM",
-    graceMs: SHUTDOWN_GRACE_MS,
-    onForceKill: () =>
-      console.error(
-        `[cloud-env] launcher did not exit within ${SHUTDOWN_GRACE_MS}ms of SIGTERM — ` +
-          "SIGKILL fallback; containers and the service JVM may have leaked " +
-          "(check `docker ps` and `pgrep -f stigmer_service_fatjar`; stigmer/stigmer#801)",
-      ),
-  });
 }

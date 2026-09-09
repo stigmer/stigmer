@@ -1,10 +1,11 @@
-// Vitest configuration for the cloud conformance run (Class A vs the Java
-// stigmer-service).
+// Vitest configuration for the cloud conformance run (Class A vs the cloud
+// composition, pre-provisioned by stigmer-cloud's readout recipe).
 //
-// globalSetup boots the hermetic environment once per run (Testcontainers
-// infra + the service fat JAR — far too heavy for the per-file boot the local
-// targets use) and publishes it to workers via env vars; each suite file's
-// CloudTarget then just connects.
+// globalSetup only checks the STIGMER_CONFORMANCE_CLOUD_* contract is declared
+// (the environment is booted elsewhere — this repository cannot boot the
+// private composition; until 2026-09-10 it booted the Java stigmer-service
+// hermetically) and refuses by name otherwise; each suite file's CloudTarget
+// then just connects.
 //
 // mcp.conformance.test.ts runs here too: its backend resolver keys off
 // CONFORMANCE_TARGET=cloud and points the @stigmer/mcp-server bridge at this
@@ -21,11 +22,9 @@ export default defineConfig({
     // tick), so it is the first Class B behavior assertable against cloud —
     // the full runner-backed Class B suites live in the cloud-execution run
     // (vitest.cloud-execution.config.ts).
-    // mcpserver-oauth runs here like every other Class A suite: the cloud
-    // global setup passes STIGMER_OAUTH_REDIRECT_URI through the hermetic
-    // launcher to the JAR (the 20260824.05 owner-gated follow-up, closed by
-    // sub-project 20260826.08 — the Java unset-redirect refusal copy was
-    // byte-aligned to the shared message in the same change).
+    // mcpserver-oauth runs here like every other Class A suite: the
+    // provisioner boots the composition with STIGMER_OAUTH_REDIRECT_URI set to
+    // the suite's pinned constant (server-process.ts).
     include: [
       "src/suites/**/*.conformance.test.ts",
       "src/suites-execution/schedule-firing.conformance.test.ts",

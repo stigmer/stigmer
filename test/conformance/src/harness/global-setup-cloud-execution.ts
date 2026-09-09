@@ -1,11 +1,11 @@
-// Vitest global setup for the cloud execution run (Class B vs the Java
-// stigmer-service).
+// Vitest global setup for the cloud execution run (Class B vs the cloud
+// composition, pre-provisioned).
 // Domain: conformance harness (cloud target lifecycle).
 //
-// The environment story is the cloud Class A setup verbatim — one hermetic
-// environment per run, published through the CLOUD_ENV contract (or a
-// pre-provisioned endpoint, skipping the boot) — so it is delegated to
-// global-setup-cloud rather than re-encoded. What Class B adds is the engine's
+// The environment story is the cloud Class A setup verbatim — a
+// pre-provisioned environment declared through the CLOUD_ENV contract, refused
+// by name when absent — so it is delegated to global-setup-cloud rather than
+// re-encoded. What Class B adds is the engine's
 // cold build: each suite file's CloudExecutionTarget spawns the TS runner, and
 // paying `make build-runner` once here (like global-setup-execution does for
 // the local engine) keeps it off the per-file hook budget and satisfies the
