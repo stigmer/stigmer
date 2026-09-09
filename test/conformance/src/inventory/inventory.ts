@@ -103,10 +103,18 @@ export type InventoryRow = z.infer<typeof rowSchema>;
 // mechanism retires with Java — the note says which). `alerts` names the
 // SigNoz alert files that read the series, so "re-pointed before X1" is a
 // list, not a sentence. One inventory mechanism for the program, not two.
+//
+// `platform` (2026-09-09, the alert-roster reconciliation, stigmer-cloud
+// entry 20260909.01) is the surface for Java metrics that belong to no lane
+// — the HTTP edge filter, the secret-cleanup counter — whose alert rules
+// read them all the same. stigmer-cloud's `check-x1-parity-dispositions.sh`
+// reads this list at the submodule pin and refuses an alert re-point that
+// cites a row which is not `ported` or does not name the alert back, so a
+// metric the roster watches needs a row here whatever its lane.
 const metricRowSchema = z
   .object({
     name: z.string().regex(/^stigmer\.[a-z0-9_.]+$/, "a Java stigmer.* metric name, byte-exact"),
-    surface: z.enum(["billing", "proxy"]),
+    surface: z.enum(["billing", "proxy", "platform"]),
     java_source: z.string().min(1),
     disposition: z.enum(["ported", "dropped"]),
     alerts: z.array(z.string().min(1)).optional(),

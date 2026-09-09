@@ -2542,19 +2542,29 @@ metrics:
     surface: proxy
     java_source: proxy/llm/PlatformProviderErrorMetrics.java
     disposition: ported
-    alerts: [platform-provider-errors-log]
+    alerts: [platform-provider-errors, platform-provider-errors-log]
     note: >-
-      The alert is log-based on the phrase "platform provider key rejected upstream"; the composition logs the same phrase at ERROR on the same event.
+      Two rules read this event: the metric rule on the counter and a logs rule on the phrase "platform provider key rejected upstream"; the composition logs the same phrase at ERROR on the same event.
   - name: stigmer.http.request.duration
-    surface: proxy
+    surface: platform
     java_source: config/observability/HttpRequestMetricsFilter.java
     disposition: ported
     note: >-
-      Recorded once by the composition's cloud ingress listener for every route it serves (proxy, webhooks), with the same labels: http.request.method, http.route (first two path segments), http.response.status_code.
+      Java's servlet filter saw every HTTP route. The contract for the composition is the same: the pair recorded once per request by each HTTP lane's dispatcher — the cloud ingress (proxy and webhook mounts) and the public lane — with the same labels: http.request.method, http.route (first two path segments), http.response.status_code. stigmer-cloud entry 20260909.01 lands that; before it only the proxy dispatcher recorded (this row's earlier note claimed the ingress did — the 2026-09-09 census found the /webhook series absent).
   - name: stigmer.http.request.count
-    surface: proxy
+    surface: platform
     java_source: config/observability/HttpRequestMetricsFilter.java
     disposition: ported
+    alerts: [webhook-silence-24h]
+    note: >-
+      The webhook silence rule is a threshold on this counter's rate under http_route contains /webhook, so the /webhook route series must exist from boot (born at zero) or the rule never fires — a money-path watch (Stripe rides /webhook/stripe).
+  - name: stigmer.encryption.cleanup.failures
+    surface: platform
+    java_source: domain/commons/secrets/SecretValueCleanup.java
+    disposition: ported
+    alerts: [encryption-cleanup-failures]
+    note: >-
+      Secret backing-state destructions that failed after the DB write succeeded (orphaned KV entries); pre-registered at zero on boot in both editions so the first orphan after a pod start is visible to the alert.
   - name: stigmer.proxy.cursor.execution_authority_lookups
     surface: proxy
     java_source: proxy/cursor/keyselection/CompositionAuthorityExecutionContextSource.java
