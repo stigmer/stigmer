@@ -2611,6 +2611,20 @@ metrics:
     alerts: [postgres-wal-above-80-of-max-wal-size]
     note: >-
       The WAL directory's size in bytes (sum over pg_ls_waldir()), which needs the pg_monitor role — granted to stigmer_app by hand on 2026-07-29 and carried by the composition's connections as the same role. Probed inside the same poll but on its own terms, as Java does: a failure sits out the next 15 polls and warns once with the GRANT to run, the last good value stays observed through the window, and only a probe that has never succeeded is absent. The rule's threshold is 80 % of max_wal_size (1024 MB), a production fact the rule carries.
+  - name: stigmer.platform.provider_standing.probes
+    surface: platform
+    java_source: platform/providerstanding/ProviderStandingMetrics.java
+    disposition: ported
+    alerts: [platform-provider-standing-degraded, platform-provider-standing-probe-silence]
+    note: >-
+      One count per provider per hourly canary pass, labelled provider and outcome (healthy / platform_billing / platform_auth / unclassified_error / unreachable / not_configured), recorded by the composition's providerstanding/metrics.ts from the probe activity (convergence entry 20260909.04; until then the composition emitted this fact as a structured log event named after the metric, a stopgap from when it had no metrics pipeline). Every provider × outcome series is pre-registered at zero at unit boot as Java's constructor did: the silence rule is a low-rate rule over three hours, which can only evaluate a series that exists, and the degraded rule must see a first non-healthy verdict after a boot as a 0→1 edge rather than a dropped first sample.
+  - name: stigmer.cursor.account_default.drift
+    surface: platform
+    java_source: platform/cursoraccount/observability/CursorAccountDriftMetrics.java
+    disposition: ported
+    alerts: [cursor-account-default-drift]
+    note: >-
+      Per Cursor team account, how many models' dashboard-controlled default variant carries the priced fast parameter (0 = the declared posture holds), observed as a gauge by the composition's cursoraccount/drift-metrics.ts from the sync workflow's drift audit (convergence entry 20260909.04). A gauge, not a counter, as Java chose: the audit is a periodic posture read on the sync cadence, and a counter's rate would blink out between passes. Not pre-registered — a zero for an account never audited would read as "clean"; an account appears after its first audit and holds its last value between passes (a deleted account keeps its last value until the next restart, Java's accepted posture). A disabled drift check or an account with no enabled member key records nothing.
   - name: stigmer.proxy.cursor.execution_authority_lookups
     surface: proxy
     java_source: proxy/cursor/keyselection/CompositionAuthorityExecutionContextSource.java
