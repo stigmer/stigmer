@@ -1,6 +1,7 @@
 // Vitest configuration for the harness's PURE unit arms: the inventory
 // library, the cloud-capability fixtures, the child-process discipline, the
-// deviation registry's helpers and the submit-approval seam.
+// deviation registry's helpers, the submit-approval seam and the targets'
+// implementation declaration.
 //
 // Deliberately separate from the suite configs: those boot a target in
 // globalSetup (the TS server build, or the hermetic cloud environment), and
@@ -17,6 +18,7 @@ export default defineConfig({
       "src/harness/__tests__/**/*.test.ts",
       "src/contract/__tests__/**/*.test.ts",
       "src/support/__tests__/**/*.test.ts",
+      "src/targets/__tests__/**/*.test.ts",
     ],
   },
 });

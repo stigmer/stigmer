@@ -361,8 +361,36 @@ export interface PrivilegedScope {
   cleanup(): Promise<void>;
 }
 
+// The server binary answering a target — a different axis from the target's
+// NAME. A name describes a deployment shape (spawned locally, an external
+// cloud endpoint, with or without an engine); the implementation says whose
+// code is on the other end. The two are not one-to-one: every local target is
+// the TypeScript server, but the `cloud` targets are connect-only and serve
+// whichever implementation the environment's provisioner booted — the Java
+// stigmer-service under the hermetic launcher, the TypeScript stigmer-server
+// under the composition readout. A known bug belongs to an implementation, so
+// the deviation registry (contract/deviations.ts) keys on this and never on
+// the name. "stigmer-service" retires with the Java service at R1, together
+// with every registry entry naming it.
+export type ServerImplementation = "stigmer-server" | "stigmer-service";
+
+export const SERVER_IMPLEMENTATIONS: readonly ServerImplementation[] = ["stigmer-server", "stigmer-service"];
+
+export function isServerImplementation(value: string): value is ServerImplementation {
+  return (SERVER_IMPLEMENTATIONS as readonly string[]).includes(value);
+}
+
+// What a helper needs to classify a target: its name (for the human-readable
+// report line) and its implementation (for the decision). Narrow on purpose so
+// pure unit arms can hand over a two-field literal instead of a live target.
+export type TargetIdentity = Pick<TargetProfile, "name" | "implementation">;
+
 export interface TargetProfile {
   readonly name: string;
+  // Whose code answers this target — see ServerImplementation. Fixed on the
+  // local targets; on the cloud targets declared by the environment
+  // (CLOUD_ENV.implementation, REQUIRED) and valid only after setup().
+  readonly implementation: ServerImplementation;
   readonly capabilities: CapabilityFlags;
 
   // Bring the target to a state where clients() can be used. For managed

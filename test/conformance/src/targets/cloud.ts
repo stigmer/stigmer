@@ -19,13 +19,16 @@ import {
 } from "../harness/direct-login-tenant";
 import { awaitGrpcReady } from "../harness/grpc-ready";
 import { uniqueName, uniqueOrg } from "../support/naming";
-import type {
-  CapabilityFlags,
-  DirectLoginTenant,
-  PrivilegedScope,
-  StripeWebhookLane,
-  TargetProfile,
-  TenancyContext,
+import {
+  isServerImplementation,
+  SERVER_IMPLEMENTATIONS,
+  type CapabilityFlags,
+  type DirectLoginTenant,
+  type PrivilegedScope,
+  type ServerImplementation,
+  type StripeWebhookLane,
+  type TargetProfile,
+  type TenancyContext,
 } from "./target";
 
 const ORG_API_VERSION = "tenancy.stigmer.ai/v1";
@@ -51,8 +54,41 @@ function requireEnv(name: string): string {
   return value;
 }
 
+// The implementation the environment declares behind this target. Required
+// and closed: an unset variable is the same failure as a missing address (a
+// provisioner that forgot to say what it built), and a value outside the
+// union names itself in the refusal so a typo cannot pass as either side.
+export function readCloudImplementation(env: NodeJS.ProcessEnv = process.env): ServerImplementation {
+  const raw = env[CLOUD_ENV.implementation];
+  if (raw === undefined || raw === "") {
+    throw new Error(
+      `${CLOUD_ENV.implementation} is not set: the cloud target is connect-only and cannot tell ` +
+        "which server answers it. The provisioner declares it — " +
+        `${SERVER_IMPLEMENTATIONS.map((value) => `"${value}"`).join(" or ")} (stigmer#1012).`,
+    );
+  }
+  if (!isServerImplementation(raw)) {
+    throw new Error(
+      `${CLOUD_ENV.implementation} must be ${SERVER_IMPLEMENTATIONS.map((value) => `"${value}"`).join(" or ")}; got "${raw}"`,
+    );
+  }
+  return raw;
+}
+
 export class CloudTarget implements TargetProfile {
   readonly name = "cloud";
+
+  // Declared by the environment, read at setup() with the address and token —
+  // the same moment the other connect-only facts arrive. Before setup() the
+  // target has no implementation to report, and says so.
+  private declaredImplementation: ServerImplementation | undefined;
+
+  get implementation(): ServerImplementation {
+    if (this.declaredImplementation === undefined) {
+      throw new Error("CloudTarget.setup() must run before implementation is read");
+    }
+    return this.declaredImplementation;
+  }
   readonly capabilities: CapabilityFlags = {
     multiTenant: true,
     externalOrgLookup: true,
@@ -135,6 +171,7 @@ export class CloudTarget implements TargetProfile {
   directLoginTenant?: () => DirectLoginTenant;
 
   async setup(): Promise<void> {
+    this.declaredImplementation = readCloudImplementation();
     this.grpcBaseUrl = requireEnv(CLOUD_ENV.address);
     const token = requireEnv(CLOUD_ENV.token);
     this.conformanceClients = makeClients(createTransport(this.grpcBaseUrl, { bearerToken: token }));

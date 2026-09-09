@@ -28,7 +28,7 @@ import { assertContractOrKnownRace, SUBMIT_APPROVAL_LOST_UPDATE_RACE } from "../
 import type { ConformanceClients } from "../harness/clients";
 import type { McpToolFixture } from "../harness/mcp-server";
 import type { MockLlmProxy } from "../harness/mock-llm";
-import type { TargetProfile } from "../targets/target";
+import type { TargetIdentity, TargetProfile } from "../targets/target";
 import { type ExecutionValueInit, makeExecutionValues } from "./executioncontexts";
 import { type PollCoreOptions, pollUntil } from "./execution-poll";
 
@@ -203,12 +203,12 @@ export interface SubmitApprovalPerContractOptions {
 // Submits per the contract and returns the response the contract held on (the
 // second response when the registered race fired and the remedy re-submitted).
 export async function submitApprovalPerContract(
-  target: Pick<TargetProfile, "name">,
+  target: TargetIdentity,
   clients: AgentExecutionReader,
   opts: SubmitApprovalPerContractOptions,
 ): Promise<AgentExecution> {
   let response = await opts.submit();
-  await assertContractOrKnownRace(target.name, SUBMIT_APPROVAL_LOST_UPDATE_RACE, {
+  await assertContractOrKnownRace(target, SUBMIT_APPROVAL_LOST_UPDATE_RACE, {
     contract: () =>
       expect(response.status?.pendingApprovals.length, opts.label).toBe(opts.expectedRemaining),
     observed: async () =>

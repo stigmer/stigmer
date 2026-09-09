@@ -63,6 +63,13 @@ jobs:
       - name: Check the cloud-capability inventory
         run: npm run inventory:check -w @stigmer/conformance
 
+      # The harness's PURE unit arms (the deviation registry, the submit seam,
+      # the child-process discipline, the targets' implementation declaration):
+      # `make check-conformance-inventory` runs them locally; this is the same
+      # gate in CI, before any target boots.
+      - name: Run the harness unit arms
+        run: npm run test:unit -w @stigmer/conformance
+
       # The server is standalone (own lockfile, file-linked protos); its
       # global-setup compiles it, but the install must happen here where
       # network access is expected.

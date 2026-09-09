@@ -30,16 +30,28 @@
 //
 // What neither kind is: a retry budget, a sleep, or a skip. The contract
 // assertion runs on every target every time; nothing here is reached unless
-// the target is registered AND (for a race) the contract just failed.
+// the target's implementation is registered AND (for a race) the contract
+// just failed.
+//
+// Entries key on the IMPLEMENTATION that deviates (TargetProfile
+// .implementation), never on a target's name. A bug lives in a server binary;
+// a target name describes a deployment shape, and the connect-only `cloud`
+// targets serve whichever implementation the environment booted — the Java
+// service under the hermetic launcher, the TypeScript composition under the
+// readout recipe. Keyed on names, Java's quirks were asserted against the
+// composition (stigmer#1012). This module imports the identity type from
+// targets/ — the registry classifies targets, so it names what it classifies;
+// the reverse edge would put the harness's fault list upstream of the harness.
+import type { ServerImplementation, TargetIdentity } from "../targets/target";
 
 interface DeviationRecord {
   // Stable identifier used by tests to opt a case into the registry.
   id: string;
-  // Target names that currently exhibit the deviation (TargetProfile.name).
-  targets: string[];
+  // The implementations that currently exhibit the deviation.
+  implementations: ServerImplementation[];
   // What the contract requires, in one sentence.
   contract: string;
-  // What the listed targets do instead, in one sentence.
+  // What the listed implementations do instead, in one sentence.
   observed: string;
   // Why the deviation exists.
   rationale: string;
@@ -63,12 +75,9 @@ export interface RaceDeviation extends DeviationRecord {
 
 export type KnownDeviation = DeterministicDeviation | RaceDeviation;
 
-// The hermetic Java targets. The Java service retires at R1; every entry
-// naming them is deleted with it.
-const JAVA_TARGETS = ["cloud", "cloud-execution"];
-// The Java execution target alone: races between the runner's status writes
-// and a caller's RPC need a runner, so Class A never reaches them.
-const JAVA_EXECUTION_TARGET = ["cloud-execution"];
+// The Java service. It retires at R1; every entry naming it is deleted with
+// it, together with the "stigmer-service" member of ServerImplementation.
+const JAVA: ServerImplementation[] = ["stigmer-service"];
 
 // Race ids, exported so the one seam that applies each (support/agentexecutions.ts
 // for the first; the two subscribe arms for the second) cannot drift from the
@@ -80,7 +89,7 @@ export const KNOWN_DEVIATIONS: KnownDeviation[] = [
   {
     kind: "deterministic",
     id: "java.stripe-webhook.missing-signature-header-401",
-    targets: JAVA_TARGETS,
+    implementations: JAVA,
     contract: "POST /webhook/stripe without a Stripe-Signature header answers 400 and grants nothing.",
     observed: "Java answers 401 (and still grants nothing).",
     rationale:
@@ -96,7 +105,7 @@ export const KNOWN_DEVIATIONS: KnownDeviation[] = [
   {
     kind: "deterministic",
     id: "java.direct-login.personal-org-owner-is-raw-subject",
-    targets: JAVA_TARGETS,
+    implementations: JAVA,
     contract:
       "A first login's provisionMyAccount creates a personal organization OWNED BY the new identity " +
       "account, visible to it on findMyOrganizations.",
@@ -115,7 +124,7 @@ export const KNOWN_DEVIATIONS: KnownDeviation[] = [
   {
     kind: "deterministic",
     id: "java.direct-login.stranger-signature-copy",
-    targets: JAVA_TARGETS,
+    implementations: JAVA,
     contract:
       "A tenant-issuer token signed by a key the tenant's JWKS does not carry is refused " +
       'UNAUTHENTICATED "token signature verification failed".',
@@ -132,7 +141,9 @@ export const KNOWN_DEVIATIONS: KnownDeviation[] = [
   {
     kind: "race",
     id: SUBMIT_APPROVAL_LOST_UPDATE_RACE,
-    targets: JAVA_EXECUTION_TARGET,
+    // Reachable only where a runner drives the gate (the execution suites);
+    // Class A never submits an approval, so the entry is never consulted there.
+    implementations: JAVA,
     contract:
       "submitApproval's response reflects the decision synchronously — pending_approvals recomputed — " +
       "and the decided tool call carries its approval_action in the transcript for the rest of the run.",
@@ -156,12 +167,14 @@ export const KNOWN_DEVIATIONS: KnownDeviation[] = [
     tracking:
       "stigmer-cloud#683 (a Java finding, retires with Java, an X1 input); the evidence table and Java " +
       "timelines in stigmer-cloud entry 20260908.01's tasks/T01_2_execution.md.",
-    retires: "R1 — deleted with the Java targets; the OSS store lock makes the entry unreachable elsewhere.",
+    retires: "R1 — deleted with the Java implementation; the OSS store lock makes the entry unreachable elsewhere.",
   },
   {
     kind: "race",
     id: SUBSCRIBE_TRAILING_TERMINAL_WRITE_RACE,
-    targets: JAVA_EXECUTION_TARGET,
+    // Reachable only where a run reaches a terminal status under a runner
+    // (the execution suites' subscribe arms).
+    implementations: JAVA,
     contract:
       "A subscription opened on an already-terminal run receives the snapshot and is never closed by " +
       "the server (the pinned wave-2 S4 quirk: the terminal-close check fires only on broker updates).",
@@ -177,16 +190,18 @@ export const KNOWN_DEVIATIONS: KnownDeviation[] = [
     tracking:
       "stigmer-cloud entry 20260908.01 — ten of the twenty-eight Class B reds in its evidence table; " +
       "stigmer#919.",
-    retires: "R1 — deleted with the Java targets.",
+    retires: "R1 — deleted with the Java implementation.",
   },
 ];
 
-// Runs the contract assertion, or — for a target registered as deterministically
-// deviating — the observed assertion, reporting the deviation (never silently).
-// If a registered target starts meeting the contract, `observed` fails,
-// signaling the entry is stale and should be deleted.
+// Runs the contract assertion, or — for a target whose implementation is
+// registered as deterministically deviating — the observed assertion,
+// reporting the deviation (never silently). If a registered implementation
+// starts meeting the contract, `observed` fails, signaling the entry is stale
+// and should be deleted. The report line keeps its `tracked deviation <id> on
+// <target>` prefix (readouts grep it) and names the implementation after it.
 export async function assertContractOrDeviation(
-  targetName: string,
+  target: TargetIdentity,
   deviationId: string,
   assertions: {
     contract: () => Promise<void> | void;
@@ -194,24 +209,25 @@ export async function assertContractOrDeviation(
   },
 ): Promise<void> {
   const deviation = lookupDeviation(deviationId, "deterministic");
-  if (!deviation.targets.includes(targetName)) {
+  if (!deviation.implementations.includes(target.implementation)) {
     await assertions.contract();
     return;
   }
   await assertions.observed();
   console.warn(
-    `[conformance] tracked deviation ${deviation.id} on ${targetName}: ` +
+    `[conformance] tracked deviation ${deviation.id} on ${target.name} (${target.implementation}): ` +
       `contract="${deviation.contract}" observed="${deviation.observed}" (${deviation.tracking})`,
   );
 }
 
-// Runs the contract assertion on every target. On a target registered for the
-// named race, an ASSERTION failure (and only that — any other error propagates)
-// opens the race path: `observed` must hold, proving this is the known race and
-// not a new symptom; the firing is reported on one line; if the arm supplies a
-// remedy, it runs and the contract is asserted once more, this time for real.
+// Runs the contract assertion on every target. On a target whose implementation
+// is registered for the named race, an ASSERTION failure (and only that — any
+// other error propagates) opens the race path: `observed` must hold, proving
+// this is the known race and not a new symptom; the firing is reported on one
+// line; if the arm supplies a remedy, it runs and the contract is asserted once
+// more, this time for real.
 export async function assertContractOrKnownRace(
-  targetName: string,
+  target: TargetIdentity,
   deviationId: string,
   assertions: {
     contract: () => Promise<void> | void;
@@ -224,11 +240,11 @@ export async function assertContractOrKnownRace(
     await assertions.contract();
     return;
   } catch (err) {
-    if (!race.targets.includes(targetName) || !isAssertionFailure(err)) throw err;
+    if (!race.implementations.includes(target.implementation) || !isAssertionFailure(err)) throw err;
   }
   await assertions.observed();
   console.warn(
-    `[conformance] tracked race ${race.id} on ${targetName}: ` +
+    `[conformance] tracked race ${race.id} on ${target.name} (${target.implementation}): ` +
       `contract="${race.contract}" observed="${race.observed}"` +
       (race.remedy !== undefined ? ` remedy="${race.remedy}"` : "") +
       ` (${race.tracking})`,

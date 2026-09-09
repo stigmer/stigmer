@@ -18,6 +18,7 @@ import {
   submitApprovalPerContract,
   type AgentExecutionReader,
 } from "../agentexecutions";
+import type { TargetIdentity } from "../../targets/target";
 
 interface ToolCallInit {
   id: string;
@@ -123,6 +124,13 @@ describe("submitApprovalPerContract", () => {
     vi.restoreAllMocks();
   });
 
+  // The two identities the seam distinguishes: the same "cloud-execution"
+  // deployment shape served by either implementation. The race is Java's; the
+  // composition behind the same target name asserts the contract, full stop.
+  const tsTarget: TargetIdentity = { name: "local-execution", implementation: "stigmer-server" };
+  const compositionTarget: TargetIdentity = { name: "cloud-execution", implementation: "stigmer-server" };
+  const javaTarget: TargetIdentity = { name: "cloud-execution", implementation: "stigmer-service" };
+
   const settled = execution({ pending: [], toolCalls: [{ id: "call_a", action: ApprovalAction.APPROVE }] });
   const raced = execution({
     pending: ["call_a"],
@@ -135,7 +143,7 @@ describe("submitApprovalPerContract", () => {
 
   it("on a TS target is submit-and-assert, returning the response", async () => {
     const submit = vi.fn(async () => settled);
-    const response = await submitApprovalPerContract({ name: "local-execution" }, reader(settled), {
+    const response = await submitApprovalPerContract(tsTarget, reader(settled), {
       executionId: "aex_unit",
       expectedRemaining: 0,
       label: "approve clears the gate",
@@ -148,7 +156,20 @@ describe("submitApprovalPerContract", () => {
   it("on a TS target a failed contract is red — the race path is not open there", async () => {
     const read = vi.fn(async () => raced);
     await expect(
-      submitApprovalPerContract({ name: "local-execution" }, { agentExecutionQuery: { get: read } }, {
+      submitApprovalPerContract(tsTarget, { agentExecutionQuery: { get: read } }, {
+        executionId: "aex_unit",
+        expectedRemaining: 0,
+        label: "approve clears the gate",
+        submit: async () => raced,
+      }),
+    ).rejects.toThrow("approve clears the gate");
+    expect(read).not.toHaveBeenCalled();
+  });
+
+  it("on the composition behind the cloud-execution NAME a failed contract is red too — the race is keyed on the implementation, not the name", async () => {
+    const read = vi.fn(async () => raced);
+    await expect(
+      submitApprovalPerContract(compositionTarget, { agentExecutionQuery: { get: read } }, {
         executionId: "aex_unit",
         expectedRemaining: 0,
         label: "approve clears the gate",
@@ -162,7 +183,7 @@ describe("submitApprovalPerContract", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const responses = [raced, settled];
     const submit = vi.fn(async () => responses.shift()!);
-    const response = await submitApprovalPerContract({ name: "cloud-execution" }, reader(raced), {
+    const response = await submitApprovalPerContract(javaTarget, reader(raced), {
       executionId: "aex_unit",
       expectedRemaining: 0,
       label: "approve clears the gate",
@@ -170,7 +191,7 @@ describe("submitApprovalPerContract", () => {
     });
     expect(response).toBe(settled);
     expect(submit).toHaveBeenCalledTimes(2);
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining("tracked race java.agentexecution.submit-approval.lost-update-race on cloud-execution"));
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("tracked race java.agentexecution.submit-approval.lost-update-race on cloud-execution (stigmer-service)"));
   });
 
   it("on the Java target a failure the fresh read cannot explain stays red", async () => {
@@ -178,7 +199,7 @@ describe("submitApprovalPerContract", () => {
     const unexplained = execution({ pending: ["call_a"], toolCalls: [{ id: "call_a", action: ApprovalAction.UNSPECIFIED }] });
     const submit = vi.fn(async () => unexplained);
     await expect(
-      submitApprovalPerContract({ name: "cloud-execution" }, reader(unexplained), {
+      submitApprovalPerContract(javaTarget, reader(unexplained), {
         executionId: "aex_unit",
         expectedRemaining: 0,
         label: "approve clears the gate",

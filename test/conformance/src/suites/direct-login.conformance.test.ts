@@ -149,7 +149,7 @@ describe.skipIf(!directLoginEnabled)(
         const mine = await asUser.organizationQuery.findMyOrganizations({});
         const personalVisible = mine.entries.some((org) => org.spec?.isPersonal === true);
         await assertContractOrDeviation(
-          target.name,
+          target,
           "java.direct-login.personal-org-owner-is-raw-subject",
           {
             contract: () => {
@@ -260,7 +260,7 @@ describe.skipIf(!directLoginEnabled)(
         "a token claiming the tenant's issuer but signed by a key its JWKS does not carry",
       );
       await assertContractOrDeviation(
-        target.name,
+        target,
         "java.direct-login.stranger-signature-copy",
         {
           contract: () => {

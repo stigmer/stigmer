@@ -219,6 +219,18 @@ CRUD suites:
   contract; the addresses state where the environment serves it — a cloud
   target whose flag is true and whose lane is missing FAILS, never skips.
   That red is the implementing entry's acceptance.
+- **The environment declares which server answers.**
+  `STIGMER_CONFORMANCE_CLOUD_IMPLEMENTATION` is `stigmer-service` (the Java
+  service the hermetic launcher boots) or `stigmer-server` (the TypeScript
+  composition the readout recipe boots), REQUIRED on the cloud targets and
+  published by the provisioner — the global setup for the launcher, the
+  composition's `readout-bootstrap` for the readout. The cloud targets are
+  connect-only and cannot tell from the wire (`getServerInfo` rightly answers
+  `cloud` for both), yet the known-deviation registry keys Java's bugs on
+  exactly this fact; an environment that forgets it is refused by name rather
+  than inheriting the other implementation's quirks (stigmer#1012). It is a
+  different axis from the target NAME: a name is a deployment shape, the
+  implementation is whose code is behind it (`TargetProfile.implementation`).
 
 **Launcher posture vs production.** The launcher boots Java the way production
 runs it wherever the harness can (stigmer-cloud entry `20260907.02`, closing
@@ -302,35 +314,45 @@ codebase writes anyway.
 ### Spec-first contract (`src/contract/`)
 
 Tests assert the **intended** contract, not whatever an implementation happens
-to do today. When a target legitimately deviates because of a known bug, it gets
-a tracked entry in the **known-deviation registry** (`deviations.ts`) instead of
-the test quietly asserting the wrong behavior. An entry records both readings as
-prose — `contract` and `observed` — and the arm supplies the two assertions.
-There are two kinds, because there are two kinds of bug:
+to do today. When an implementation legitimately deviates because of a known
+bug, it gets a tracked entry in the **known-deviation registry**
+(`deviations.ts`) instead of the test quietly asserting the wrong behavior. An
+entry records both readings as prose — `contract` and `observed` — and the arm
+supplies the two assertions, handing over the target's identity
+(`TargetIdentity`: its name and its implementation). Entries key on the
+**implementation** that deviates (`stigmer-service`, the Java service; every
+entry today), never on a target's name — the `cloud` targets serve whichever
+implementation the environment declares, and the TypeScript composition behind
+the same name asserts the contract (stigmer#1012). There are two kinds, because
+there are two kinds of bug:
 
-- **Deterministic** (`assertContractOrDeviation`): the target ALWAYS answers the
-  observed reading. The arm runs only the `observed` assertion there, so the day
-  the target is fixed that assertion fails and the entry must be deleted. Three
-  entries today, all Java's, from the launcher entry that first ran Java in
-  production security mode (stigmer-cloud `20260907.02`).
-- **Race** (`assertContractOrKnownRace`): the target SOMETIMES answers the
-  observed reading, on a timing it does not control. The arm asserts the
+- **Deterministic** (`assertContractOrDeviation`): the implementation ALWAYS
+  answers the observed reading. The arm runs only the `observed` assertion
+  there, so the day the implementation is fixed that assertion fails and the
+  entry must be deleted. Three entries today, all Java's, from the launcher
+  entry that first ran Java in production security mode (stigmer-cloud
+  `20260907.02`).
+- **Race** (`assertContractOrKnownRace`): the implementation SOMETIMES answers
+  the observed reading, on a timing it does not control. The arm asserts the
   contract first, on every target; only an assertion failure on a registered
-  target opens the race path, where `observed` must PROVE the specific race (a
-  failure there is an unknown symptom and stays red), the firing is reported on
-  one grep-able `[conformance] tracked race …` line, and — where the entry names
-  a remedy — the arm applies it and asserts the contract exactly once more. A
-  race entry cannot self-expire, so it states when it is deleted. Two entries
-  today, both Java's execution target, from the Class B lane-integrity entry
-  (stigmer-cloud `20260908.01`): the approval write lost to the workflow's
-  WAITING heartbeat, applied at the submit seam
+  implementation opens the race path, where `observed` must PROVE the specific
+  race (a failure there is an unknown symptom and stays red), the firing is
+  reported on one grep-able `[conformance] tracked race … on <target>
+  (<implementation>)` line, and — where the entry names a remedy — the arm
+  applies it and asserts the contract exactly once more. A race entry cannot
+  self-expire, so it states when it is deleted. Two entries today, both Java's
+  and reachable only under a runner (the execution suites), from the Class B
+  lane-integrity entry (stigmer-cloud `20260908.01`): the approval write lost
+  to the workflow's WAITING heartbeat, applied at the submit seam
   (`support/agentexecutions.ts` → `submitApprovalPerContract`), and the trailing
   terminal write that closes a subscription the pinned S4 quirk says stays open.
 
 Neither kind is a retry budget, a sleep or a skip: the contract assertion runs
 on every target every time, and nothing in the registry is reached unless the
-target is registered AND (for a race) the contract just failed. The registry
-can never hide a regression or bless a bug permanently. The local targets carry
+target's implementation is registered AND (for a race) the contract just
+failed. The registry can never hide a regression or bless a bug permanently.
+At R1 the Java service retires and, with it, every entry naming it and the
+`stigmer-service` member of `ServerImplementation`. The local targets carry
 no entries: the previous ones — duplicate-create / missing-name / missing-spec
 returning `Unknown`, and `getVersion` with a malformed hash returning `NotFound`
 — were resolved (stigmer/stigmer#192) by enforcing protovalidate at the gRPC
