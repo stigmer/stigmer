@@ -1,16 +1,36 @@
 {
   "name": "@stigmer/server",
   "version": "0.0.0-dev",
-  "description": "The Stigmer OSS control plane, serving the unified one-port gRPC/gRPC-Web/Connect transport",
+  "description": "The Stigmer OSS control plane as a composable library: composeServer, the extension registry and the driver seams a composition builds on. The self-contained deployable of the same server is @stigmer/server-slim.",
   "license": "Apache-2.0",
   "type": "module",
-  "private": true,
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
     "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "stigmerPublish": {
+    "consumerCheck": {
+      "singleCopy": [
+        "@temporalio/proto",
+        "@bufbuild/protobuf",
+        "@opentelemetry/api"
+      ],
+      "boot": [
+        "scripts/verify-boot.mjs",
+        "--require-workers"
+      ],
+      "typecheckConsumer": "test/extension-consumer"
+    }
   },
   "engines": {
     "node": ">=22.13.0 <23 || >=24"
@@ -21,6 +41,7 @@
     "verify:dist": "node scripts/verify-boot.mjs dist/main.js",
     "verify:slim": "node scripts/verify-boot.mjs dist-slim/main.js",
     "verify:slim-artifact": "node scripts/verify-slim-artifact.mjs",
+    "verify:consumer": "node ../../../scripts/verify-consumer-install.mjs",
     "start": "tsx src/main.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",

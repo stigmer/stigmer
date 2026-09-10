@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Compile-proof consumer of the @stigmer/server library contract: a fake extension that typechecks against the exports map alone (DD-005). Deliberately NOT a root-workspace member — it file:-links the server exactly the way the commit-pin consumer (the cloud composition) will.",
+  "description": "Compile-proof consumer of the @stigmer/server library contract: a fake extension that typechecks against the exports map alone (DD-005). Deliberately NOT a root-workspace member — a standalone package that file:-links the server for the fast PR-time proof, and that scripts/verify-consumer-install.mjs re-typechecks against the packed tarball, the shape the published consumer (the cloud composition, pinning from npm) installs.",
   "scripts": {
     "typecheck": "tsc --noEmit"
   },

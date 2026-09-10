@@ -260,56 +260,22 @@ jobs:
       - name: Build runner
         run: make build-runner
 
-      - name: Stamp version and pin workspace lib dependencies
-        working-directory: backend/services/runner
-        env:
-          VERSION: ${{ needs.determine-version.outputs.npm_version }}
-        run: |
-          node -e "
-            const fs = require('node:fs');
-            const path = 'package.json';
-            const pkg = JSON.parse(fs.readFileSync(path, 'utf8'));
-            pkg.version = process.env.VERSION;
-            pkg.dependencies['@stigmer/protos'] = process.env.VERSION;
-            pkg.dependencies['@stigmer/temporal-codecs'] = process.env.VERSION;
-            fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + '\n');
-            console.log('stamped @stigmer/runner@' + pkg.version + ' (protos: ' + pkg.dependencies['@stigmer/protos'] + ', temporal-codecs: ' + pkg.dependencies['@stigmer/temporal-codecs'] + ')');
-          "
-
-      - name: Wait for workspace libs on npm
-        env:
-          VERSION: ${{ needs.determine-version.outputs.npm_version }}
-        run: |
-          for pkg in @stigmer/protos @stigmer/temporal-codecs; do
-            echo "Confirming $pkg@$VERSION is queryable on npm..."
-            found=""
-            for i in $(seq 1 30); do
-              if npm view "$pkg@$VERSION" version >/dev/null 2>&1; then
-                echo "Found $pkg@$VERSION"
-                found=1
-                break
-              fi
-              echo "Attempt $i/30: not yet visible, waiting 10s..."
-              sleep 10
-            done
-            if [ -z "$found" ]; then
-              echo "ERROR: $pkg@$VERSION not visible on npm after 5 minutes." >&2
-              exit 1
-            fi
-          done
-
-      # Last gate before publish (#786) — mirrors release.npm-libs.yaml:
-      # fresh consumer-style install of the packed tarball + manager boot,
-      # against the real stamped manifest.
-      - name: Consumer-install smoke check
-        working-directory: backend/services/runner
-        run: npm run verify:consumer
-
+      # The standalone publish sequence (scripts/publish-standalone.mjs, shared
+      # with @stigmer/server and with release.npm-libs.yaml): stamp the dev
+      # version, pin EVERY workspace-lib file: link to it (the inline block
+      # this replaced pinned protos and temporal-codecs but not zip-structure,
+      # so a dev runner tarball carried an unresolvable file: link), wait for
+      # the pinned libs on npm, run the consumer-install smoke (#786) over the
+      # real stamped manifest, publish under the `dev` dist-tag. The manifest
+      # stays stamped for the slim steps below.
       - name: Publish runner to npm (dev tag)
-        working-directory: backend/services/runner
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish --access public --tag dev
+        run: |
+          node scripts/publish-standalone.mjs \
+            --package backend/services/runner \
+            --version ${{ needs.determine-version.outputs.npm_version }} \
+            --tag dev
 
       # The slim embedding artifact (stigmer/stigmer#170), mirroring the
       # production publish in release.npm-libs.yaml. Self-contained — its bundle
@@ -345,6 +311,61 @@ jobs:
             (cd "$pkg" && npm publish --access public --tag dev)
           done
           cd dist-slim-pkgs/runner-slim && npm publish --access public --tag dev
+
+  # @stigmer/server as a library (stigmer-cloud project 20260910.04) — the
+  # dev twin of release.npm-libs.yaml's publish-server. This is the lane a
+  # cross-repo seam change rides: dispatch this workflow from the OSS feature
+  # branch, and the cloud composition's PR pins the `X.Y.Z-dev.<stamp>` it
+  # prints while the seam is reviewed (the cloud's pin guard keeps that PR red
+  # until it re-pins the released version). Same publish-standalone.mjs
+  # sequence as production; the consumer-install smoke boots the staged
+  # install against a Temporal dev server and requires every worker to start.
+  publish-npm-server:
+    needs: [determine-version, publish-npm]
+    if: contains(needs.determine-version.outputs.targets, 'npm')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Buf
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: 'npm'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install workspace dependencies
+        run: npm ci
+
+      - name: Build TS server
+        run: make build-server
+
+      - name: Set up Temporal CLI
+        uses: temporalio/setup-temporal@v0
+
+      - name: Publish server to npm (dev tag)
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          temporal server start-dev --headless --log-level error &
+          TEMPORAL_PID=$!
+          trap "kill $TEMPORAL_PID" EXIT
+          for i in $(seq 1 30); do
+            temporal operator cluster health >/dev/null 2>&1 && break
+            sleep 1
+          done
+          node scripts/publish-standalone.mjs \
+            --package backend/services/stigmer-server \
+            --version ${{ needs.determine-version.outputs.npm_version }} \
+            --tag dev
 
   # ---------------------------------------------------------------------------
   # Python: publish dev releases to TestPyPI (keeps prod PyPI clean).
@@ -536,7 +557,7 @@ jobs:
   # copy-paste block the other developer uses to upgrade their references.
   # ---------------------------------------------------------------------------
   summary:
-    needs: [determine-version, publish-maven, publish-npm, publish-npm-runner, publish-python-protos, publish-python-sdk, publish-mcp]
+    needs: [determine-version, publish-maven, publish-npm, publish-npm-runner, publish-npm-server, publish-python-protos, publish-python-sdk, publish-mcp]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -578,6 +599,12 @@ jobs:
               echo "npm install @stigmer/react@dev   # or pin exactly: @stigmer/react@$NPM_VERSION"
               echo '```'
               echo "The \`dev\` dist-tag always resolves to the newest dev build."
+              echo ""
+              echo "## npm (@stigmer/server library — a composition's PR branch)"
+              echo '```json'
+              echo "\"@stigmer/server\": \"$NPM_VERSION\", \"@stigmer/protos\": \"$NPM_VERSION\", \"@stigmer/temporal-codecs\": \"$NPM_VERSION\""
+              echo '```'
+              echo "Exact versions, all three equal (the cloud's pin guard requires it). Re-pin to the release before merging to main."
               echo ""
             fi
 

@@ -2,13 +2,13 @@
  * The @stigmer/server library contract (DD-005, sub-project 20260826.09).
  *
  * This file IS the blessed surface: the package.json exports map resolves
- * the bare package name here and nowhere else, so everything a commit-pin
- * consumer (the cloud composition) may import appears below — and nothing
- * else does. Deep imports into dist/ internals are unsupported; anything a
- * consumer needs that is not exported is a seam request to OSS, never a
- * reach-around. Additions to this file are owner-visible surface changes,
- * extended only through gates (the DD-005 review property: a surface
- * change is a one-file diff).
+ * the bare package name here and nowhere else, so everything a consumer
+ * (the cloud composition, or any composition built on the published
+ * package) may import appears below — and nothing else does. Deep imports
+ * into dist/ internals are unsupported; anything a consumer needs that is
+ * not exported is a seam request to OSS, never a reach-around. Additions
+ * to this file are owner-visible surface changes, extended only through
+ * gates (the DD-005 review property: a surface change is a one-file diff).
  *
  * The surface is exactly what the ratified architecture names (blueprint
  * 20260826.02/03 §1) and the parameter types those entries force:
@@ -28,9 +28,16 @@
  *     RunnerCredentialProvider; O6 added §6d — SandboxProvisioner and its
  *     factory/registration types)
  *   - the worker factory types extension workers implement (§8)
+ *   - the Postgres driver constructor (20260910.04 ruling 4), for a
+ *     composition that shares ONE database with this chain
  *
- * The package stays private and unpublished: this is the library contract
- * for the commit-pinned consumer, not a public package (DD-005).
+ * The package publishes to npm in lockstep with every other @stigmer/*
+ * package (stigmer-cloud project 20260910.04, amending DD-005): this file
+ * is the versioned contract a consumer pins by exact version. Everything
+ * below the barrel is internal and may change between releases without
+ * notice; everything on it changes only through a gate. The same server
+ * also ships as @stigmer/server-slim — the bundled deployable `stigmer up`
+ * launches — which exports nothing and is not a library.
  */
 
 // The compose entry and config loading.
@@ -202,6 +209,17 @@ export {
 // replaceResourceDataIfUnchanged guards on — the secret-convergence
 // sweep's storage contract.
 export type { RawResourceDocument } from "./store/interface.js";
+// The Postgres driver constructor (stigmer-cloud 20260910.04 ruling 4;
+// the newR2ArtifactStorage precedent for blessing a driver constructor).
+// A composition that runs its own schema chain in the SAME database as
+// this chain needs the OSS tables provisioned in its DB-backed tests
+// exactly as production provisions them: PostgresStore.open runs the
+// versioned chain under its advisory lock. The migrations themselves stay
+// internal — a consumer gets the driver, never the DDL — so the chain's
+// shape is not a contract and nothing outside this package can replay it
+// piecemeal. Not for production wiring: compose.ts selects the driver from
+// config (DD-010), and a composition never opens a second store.
+export { PostgresStore } from "./store/postgres/store.js";
 export type {
   ArtifactStorage,
   ArtifactStorageDriverFactory,

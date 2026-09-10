@@ -106,7 +106,9 @@ jobs:
       # installs it into a fresh prefix the way an embedder does, asserts
       # a single @temporalio/proto copy (two copies = the #786 duplicate
       # coresdk registration that killed manager init), and boots the
-      # staged dist. See scripts/verify-consumer-install.mjs.
+      # staged dist. See the repo-root scripts/verify-consumer-install.mjs
+      # (shared with @stigmer/server; the runner's checks are declared in
+      # its package.json under stigmerPublish.consumerCheck).
       - name: Consumer-install smoke check
         working-directory: backend/services/runner
         run: npm run verify:consumer

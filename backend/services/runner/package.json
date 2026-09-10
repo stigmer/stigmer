@@ -28,7 +28,7 @@
     "build:slim": "npm run build && node scripts/bundle-slim.mjs",
     "verify:slim": "node scripts/verify-slim-artifact.mjs",
     "verify:dist": "node scripts/verify-dist-boot.mjs",
-    "verify:consumer": "node scripts/verify-consumer-install.mjs",
+    "verify:consumer": "node ../../../scripts/verify-consumer-install.mjs",
     "gen:ipc-fixtures": "tsx scripts/generate-ipc-fixtures.ts",
     "start": "tsx src/main.ts",
     "typecheck": "tsc --noEmit",
@@ -49,6 +49,16 @@
     "cursor-sdk",
     "deepagents"
   ],
+  "stigmerPublish": {
+    "consumerCheck": {
+      "singleCopy": [
+        "@temporalio/proto"
+      ],
+      "boot": [
+        "scripts/verify-dist-boot.mjs"
+      ]
+    }
+  },
   "publishConfig": {
     "access": "public",
     "main": "./dist/index.js",

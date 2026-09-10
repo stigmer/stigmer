@@ -159,6 +159,8 @@ Tags pushed. CI will handle:
   - CLI binaries + GitHub release  (release.cli.yaml)
   - Desktop app installers (draft) (release.desktop.yaml)
   - @stigmer/* npm packages        (release.npm-libs.yaml)
+    incl. @stigmer/server (the library the cloud composition pins)
+    and @stigmer/server-slim (the deployable `stigmer up` runs)
   - Go SDK (go get)                (sdk/go tag auto-cached by proxy.golang.org)
   - stigmer + stigmer-protos PyPI  (release.python-sdk.yaml)
   - MCP server binaries + Docker   (release.mcp-server.yaml)
