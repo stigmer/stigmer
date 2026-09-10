@@ -374,11 +374,11 @@ worked examples. They differ in how they treat responses:
   writes a command to stdin and tracks state locally rather than correlating
   each response. A background reader logs responses and acts only on a fatal
   `error`.
-- **Integration harness (Go)** —
-  [`test/integration/harness/unified_runner.go`](https://github.com/stigmer/stigmer/blob/main/test/integration/harness/unified_runner.go).
-  Drives the protocol **synchronously**: after each command it blocks until it
-  reads the matching response. This is the strict request/response form of the
-  contract.
+- **Conformance harness (TypeScript)** —
+  [`test/conformance/src/harness/runner-manager-process.ts`](https://github.com/stigmer/stigmer/blob/main/test/conformance/src/harness/runner-manager-process.ts).
+  Drives the protocol **synchronously**: after each command it awaits the
+  matching response. This is the strict request/response form of the contract,
+  and it imports the runner's `Ipc*` types directly rather than mirroring them.
 
 Both styles are valid. Choose synchronous correlation when you need to confirm
 each command took effect; choose fire-and-forget when the host tracks intended
@@ -386,35 +386,34 @@ state itself.
 
 ## Keeping implementations in sync
 
-The protocol is defined in four places that must change together:
+The protocol is defined in three places that must change together:
 
 | Definition                                    | Role                                                               |
 | --------------------------------------------- | ------------------------------------------------------------------ |
 | `backend/services/runner/src/ipc-protocol.ts` | Canonical machine-readable definition (the runner emits from here) |
 | This page                                     | Canonical human-readable contract                                  |
 | `crates/stigmer-runner-host/src/protocol.rs`  | Hand-maintained Rust mirror (host crate; desktop consumes it)      |
-| `test/integration/harness/unified_runner.go`  | Hand-maintained Go mirror (test harness)                           |
 
-Golden fixtures bind the two code mirrors to the canonical TypeScript so drift
-fails a test instead of slipping through:
+TypeScript hosts import the `Ipc*` types instead of mirroring them (the
+conformance harness does). Golden fixtures bind the Rust mirror to the canonical
+TypeScript so drift fails a test instead of slipping through:
 
 - `make gen-ipc-fixtures` serializes one representative instance of every
   message to `backend/services/runner/fixtures/ipc-protocol.generated.json`
   (with a copy vendored into the Rust crate). The samples are type-checked
   against the `ipc-protocol.ts` interfaces, so a renamed or retyped field fails
   to compile.
-- The Rust crate and the Go harness each run a conformance test that asserts
-  their types serialize to, and parse from, those exact fixtures.
+- The Rust crate runs a conformance test that asserts its types serialize to,
+  and parse from, those exact fixtures.
 - `make check` runs `gen-ipc-fixtures-check`, which fails if the committed
-  fixtures are stale, plus the TypeScript and Rust tests. The Go test runs with
-  the integration suite.
+  fixtures are stale, plus the TypeScript and Rust tests.
 
 When you change the protocol:
 
 1. Edit `ipc-protocol.ts` and update the matching sample in
    `ipc-protocol-fixtures.ts`.
 2. Run `make gen-ipc-fixtures` and commit the regenerated fixtures.
-3. Update the Rust and Go mirrors until their conformance tests pass.
+3. Update the Rust mirror until its conformance test passes.
 4. Update this page.
 5. Bump `IPC_PROTOCOL_VERSION` if the change is breaking.
 

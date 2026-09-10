@@ -6,9 +6,8 @@ import { buildFixtures } from "../ipc-protocol-fixtures.js";
 /**
  * The TS side of the golden-fixture conformance suite. Its job is narrow and honest: keep
  * the committed artifact fresh and bind the runtime `ready` builder to it. The cross-
- * language contract assurance comes from the Rust and Go mirrors asserting against the same
- * committed file — see crates/stigmer-runner-host/src/protocol.rs and
- * test/integration/harness/ipc_fixtures_test.go.
+ * language contract assurance comes from the Rust mirror asserting against the same
+ * committed file — see crates/stigmer-runner-host/src/protocol.rs.
  */
 describe("ipc-protocol golden fixtures", () => {
   it("matches the committed artifact (regenerate with `make gen-ipc-fixtures` if this fails)", () => {
@@ -54,7 +53,7 @@ describe("ipc-protocol golden fixtures", () => {
     const { commands } = buildFixtures();
     expect(commands.updateTokenSet.token).toBe("tok_example");
     // `null` is the canonical "clear the token" shape; absence is a host quirk, not the
-    // contract. The Rust and Go mirrors are checked against this exact value.
+    // contract. The Rust mirror is checked against this exact value.
     expect(commands.updateTokenCleared.token).toBeNull();
   });
 

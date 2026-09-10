@@ -1,11 +1,11 @@
 ---
-description: Action rule to add a new workflow to the seedpack. Guides YAML creation, env declaration, integration test authoring, and validation.
+description: Action rule to add a new workflow to the seedpack. Guides YAML creation, env declaration, validation with the CLI and the static tests, and an execution arm in the conformance suite when the workflow is offline-drivable.
 alwaysApply: false
 ---
 
 # Rule: Add Workflow to Seedpack
 
-Purpose: When triggered, guide the complete process of adding a new workflow to `seedpack/workflows/`. This includes creating a structurally valid YAML definition, writing integration tests (parse + execution), and validating with the CLI.
+Purpose: When triggered, guide the complete process of adding a new workflow to `seedpack/workflows/`. This includes creating a structurally valid YAML definition, validating it with the CLI and the seedpack module's static tests, and adding a conformance execution arm when the workflow can be driven offline.
 
 Usage: Invoke explicitly as `@add-workflow-to-seedpack`.
 
@@ -103,109 +103,25 @@ The `env` map values ONLY support these fields:
 - The task graph must be acyclic (no circular `flow.then` chains)
 - `${ ... }` expressions reference exported values from upstream tasks
 
-## Step 2: Add Parse Test
+## Step 2: Validate the YAML
 
-Add a test function to `test/integration/seedpack_workflow_test.go`:
+The Go parse/execution tests that once lived in `test/integration` retired with the Java service and the Go harness (stigmer#1024, #1031). Validation is the CLI and the seedpack module's own static tests:
 
-```go
-func TestSeedpackWorkflow_Parse_{PascalName}(t *testing.T) {
-	workflow, err := harness.LoadSeedpackWorkflow("{name}.yaml")
-	require.NoError(t, err)
+```bash
+# Dry-run apply (the CLI's loader and validator parse the file exactly as a user's apply would)
+stigmer apply -f seedpack/workflows/{name}.yaml --org stigmer --dry-run
 
-	assert.Equal(t, "{name}", workflow.GetMetadata().GetName())
-	require.NotNil(t, workflow.GetSpec())
-	assert.NotNil(t, workflow.GetSpec().GetDocument())
+# Offline validation of the resource YAML (the CLI's own validator, no server needed)
+stigmer validate -f seedpack/workflows/{name}.yaml
 
-	tasks := workflow.GetSpec().GetTasks()
-	require.NotEmpty(t, tasks)
-	assert.Len(t, tasks, {expected_task_count})
-	assert.Equal(t, "{first_task_name}", tasks[0].GetName())
-	assert.Equal(t, workflowv1.WorkflowTaskKind_{first_task_kind}, tasks[0].GetKind())
-
-	taskKinds := collectTaskKinds(tasks)
-	// Assert all expected task kinds are present
-	assert.Contains(t, taskKinds, workflowv1.WorkflowTaskKind_{kind1})
-	assert.Contains(t, taskKinds, workflowv1.WorkflowTaskKind_{kind2})
-}
+# The seedpack module's static tests (every YAML has a kind, MCP manifests are consistent)
+make test-seedpack-static
 ```
 
-Also add the filename to `TestSeedpackWorkflow_StrictParse` and `TestSeedpackWorkflow_LoadAll` lists.
+## Step 3: Add an Execution Arm (when the workflow is offline-drivable)
 
-## Step 3: Add Execution Test
+An execution test for a seedpack workflow is a conformance execution arm: `test/conformance/src/suites-execution/` on the `local-execution` target, which boots Temporal, the OSS server and the runner from source and scripts every model turn on the mock LLM. Load the seedpack YAML in the arm, `workflowCommand.create` it, create a `WorkflowExecution`, and assert per-task status with `awaitTaskStatus` (`support/workflowexecutions.ts`) — see `workflowexecution-llm-call.conformance.test.ts` and `workflowexecution-eval.conformance.test.ts` for the shape. A workflow whose tasks need a live vendor (an `http_call` to a real API with a real credential) has no offline arm; its live check is the seedpack canary's re-point at the composition, E1's open item on stigmer#988.
 
-Add a test function to `test/integration/workflow_seedpack_test.go`:
-
-```go
-func TestSeedpackWorkflow_{PascalName}(t *testing.T) {
-	requireSeedpackPrereqs(t)
-	// Skip if required LLM API key is missing
-	if os.Getenv("{REQUIRED_API_KEY}") == "" {
-		t.Skip("{REQUIRED_API_KEY} not set — {name} uses {model}")
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
-	defer cancel()
-
-	wf, err := harness.LoadSeedpackWorkflow("{name}.yaml")
-	require.NoError(t, err, "loading seedpack workflow YAML should succeed")
-
-	wf.Metadata.Name = "integration-test-seedpack-{short-name}"
-	wf.Metadata.Org = "test-org"
-	wf.Spec.Document.Namespace = "test-org"
-	wf.Spec.Document.Name = "integration-test-seedpack-{short-name}"
-
-	clients := harness.NewClients(grpcConn)
-	deployer := harness.NewFixtureDeployer(clients, "seedpack-{short-name}", suiteLogger)
-	defer deployer.Cleanup(ctx)
-
-	env := plainEnv(
-		"{ENV_KEY_1}", "{test_value_1}",
-		"{ENV_KEY_2}", "{test_value_2}",
-	)
-
-	_, execution, err := deployer.DeployAndExecuteWithEnv(ctx, wf, "seedpack {short-name} test", env)
-	require.NoError(t, err)
-
-	executionID := execution.GetMetadata().GetId()
-	waiter := harness.NewExecutionWaiter(clients.ExecutionQuery, suiteLogger)
-
-	// If workflow has human_input gates:
-	_, err = waiter.WaitForTaskWaitingApproval(ctx, executionID, "{gate_task_name}", 3*time.Minute)
-	require.NoError(t, err)
-
-	_, err = clients.ExecutionCommand.SubmitWorkflowTaskApproval(ctx,
-		&workflowexecutionv1.SubmitWorkflowTaskApprovalInput{
-			ExecutionId: executionID,
-			TaskName:    "{gate_task_name}",
-			Outcome:     "approve",
-			Reviewer:    "integration-test",
-		})
-	require.NoError(t, err)
-
-	result, err := waiter.WaitForPhase(ctx, executionID,
-		workflowexecutionv1.ExecutionPhase_EXECUTION_COMPLETED, 90*time.Second)
-	require.NoError(t, err)
-
-	harness.AssertPhase(t, result, workflowexecutionv1.ExecutionPhase_EXECUTION_COMPLETED)
-	// Assert key tasks completed
-	harness.AssertTaskStatus(t, result, "{task_name}",
-		workflowexecutionv1.WorkflowTaskStatus_WORKFLOW_TASK_COMPLETED)
-
-	// Assert output structure
-	output := result.GetStatus().GetOutput()
-	if assert.NotNil(t, output) {
-		fields := output.GetFields()
-		assert.Contains(t, fields, "{expected_output_key}")
-	}
-}
-```
-
-### Skip Logic for Missing Secrets
-
-- If the workflow requires `ANTHROPIC_API_KEY`: skip with message about claude model
-- If the workflow requires `OPENAI_API_KEY`: skip with message about gpt model
-- If both are needed: check both and skip with combined message
-- For custom API keys (e.g., external service tokens): skip with descriptive message
 
 ## Step 4: Update BUILD.bazel
 
@@ -219,12 +135,13 @@ Run these commands to verify:
 # 1. Dry-run apply (confirms CLI parsing passes)
 stigmer apply -f seedpack/workflows/{name}.yaml --org stigmer --dry-run
 
-# 2. Run strict parse test
-go test -tags integration -run TestSeedpackWorkflow_StrictParse/{name}.yaml ./test/integration/
+# 2. The seedpack module's static tests
+make test-seedpack-static
 
-# 3. Run parse test
-go test -tags integration -run TestSeedpackWorkflow_Parse_{PascalName} ./test/integration/
+# 3. If you added an execution arm
+cd test/conformance && CONFORMANCE_TARGET=local-execution npx vitest run -c vitest.execution.config.ts src/suites-execution/<your-file>.test.ts
 ```
+
 
 ## Quality Checklist
 
@@ -236,20 +153,14 @@ Before considering the addition complete:
 - [ ] `flow.then` targets reference valid task names
 - [ ] No cycles in the task flow graph
 - [ ] `${ ... }` expressions reference exported upstream values
-- [ ] Parse test added to `seedpack_workflow_test.go`
-- [ ] Filename added to `TestSeedpackWorkflow_StrictParse` list
-- [ ] Filename added to `TestSeedpackWorkflow_LoadAll` list
-- [ ] Execution test added to `workflow_seedpack_test.go` with proper skip logic
+- [ ] `stigmer apply -f --dry-run` passes; `make test-seedpack-static` green
+- [ ] An execution arm in `test/conformance/src/suites-execution/` when the workflow is offline-drivable
 - [ ] `BUILD.bazel` embedsrcs updated
-- [ ] `stigmer apply -f --dry-run` passes
 
 ## Reference Files
 
 - Workflow proto: `apis/ai/stigmer/agentic/workflow/v1/spec.proto`
 - EnvVarDeclaration proto: `apis/ai/stigmer/agentic/environment/v1/spec.proto`
 - Existing workflows: `seedpack/workflows/*.yaml`
-- Parse tests: `test/integration/seedpack_workflow_test.go`
-- Execution tests: `test/integration/workflow_seedpack_test.go`
-- Test harness: `test/integration/harness/seedpack_loader.go`
-- CLI workflow loader: `client-apps/cli/internal/cli/workflow/loader.go`
-- CLI workflow validator: `client-apps/cli/internal/cli/workflow/validator.go`
+- Execution arm shape: `test/conformance/src/suites-execution/workflowexecution-llm-call.conformance.test.ts`, `support/workflows.ts`
+- CLI apply/validate: `client-apps/cli/src/commands/apply.ts`, `client-apps/cli/src/commands/validate.ts`

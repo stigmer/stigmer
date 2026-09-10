@@ -14,13 +14,13 @@ The machine-readable definition of the protocol is the code itself:
 and the `Ipc*` interfaces). When you change the protocol, update both the code and
 the documentation page, and bump `IPC_PROTOCOL_VERSION` if the change is breaking.
 The Rust host crate (`crates/stigmer-runner-host/src/protocol.rs`, which the desktop
-app consumes) and the Go harness (`test/integration/harness/unified_runner.go`) are
-hand-maintained mirrors that must change together with it.
+app consumes) is the one hand-maintained mirror and must change together with it; the
+conformance harness's manager-mode spawner imports the TypeScript types directly.
 
 Golden fixtures keep those mirrors honest. `make gen-ipc-fixtures` generates
 [`../fixtures/ipc-protocol.generated.json`](../fixtures/ipc-protocol.generated.json)
-(type-checked against the `Ipc*` interfaces) and the Rust/Go conformance tests
-assert against it, so drift fails a test. After changing the protocol, update the
+(type-checked against the `Ipc*` interfaces) and the Rust conformance test
+asserts against it, so drift fails a test. After changing the protocol, update the
 sample in `src/ipc-protocol-fixtures.ts`, run `make gen-ipc-fixtures`, and commit
 the result. Full rules: the "Keeping implementations in sync" section of the spec
 page above.

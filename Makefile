@@ -384,29 +384,17 @@ test-extension-consumer: build-server ## Compile-proof the @stigmer/server libra
 	@echo "compile-proof  test/extension-consumer (the exports-map contract)"
 	@cd test/extension-consumer && npm ci --no-audit --no-fund && npm run typecheck
 
-# ─── Integration Test ─────────────────────────
-# One Go suite remains: test/integration-offline — the runner driven by
-# recorded LLM turns, 74 arms. It booted the Java stigmer-service through the
-# shared harness (test/integration/harness) until that service retired on
-# 2026-09-10 (stigmer-cloud DD-013); it runs again once the harness boots the
-# OSS TypeScript server instead (the re-point E1's coverage diff ruled — the
-# issue is linked from test/README.md). The four Java-only suites (core,
-# security, session-routing, wfexec-routing) were deleted with the service;
-# the conformance suite below is the cross-edition instrument.
-
-.PHONY: test-integration-offline
-test-integration-offline: ## Run the deterministic offline runner suite (recorded LLM responses; needs the OSS-server re-point to run)
-	$(MAKE) -C test/integration-offline test
-
 # ─── Conformance Test (gRPC API contract) ─────
-# The conformance suite (test/conformance, @stigmer/conformance) is an
-# implementation-agnostic gRPC contract, distinct from the integration suites
-# above: it is a TypeScript/vitest workspace that builds the OSS server from
-# source and drives it through generated Connect clients — the shared
-# contract that turns OSS<->cloud behavioral drift into a failing test. The
-# two slices are deliberately separate (DD-002): the dependency-light CRUD
-# signal stays fast, while execution additionally needs the `temporal` CLI
-# and a runner build. See test/conformance/README.md.
+# The conformance suite (test/conformance, @stigmer/conformance) is the one
+# integration instrument: a TypeScript/vitest workspace that builds the OSS
+# server from source and drives it through generated Connect clients — the
+# shared contract that turns OSS<->cloud behavioral drift into a failing
+# test, and (since stigmer#1022) the home of the runner-behavior arms the Go
+# test/integration* suites used to hold before they retired with the Java
+# service. The two slices are deliberately separate (DD-002): the
+# dependency-light CRUD signal stays fast, while execution additionally needs
+# the `temporal` and `stigmer` CLIs, git, and a runner build. See
+# test/conformance/README.md.
 
 .PHONY: test-conformance
 test-conformance: build-ts-stubs ## Run gRPC conformance CRUD suite (local; builds the server from source, no Temporal)
@@ -520,21 +508,9 @@ test-conformance-all: ## Run both conformance slices (CRUD + execution)
 test-replay: ## Run Temporal workflow replay determinism tests (fast, no infra needed)
 	@echo "test-replay: workflow-runner has been removed (unified into runner)"
 
-.PHONY: capture-replay-histories
-capture-replay-histories: ## Capture Temporal event histories for replay tests (needs full harness)
-	$(MAKE) -C test/integration capture-replay-histories
-
-.PHONY: benchmark-cost
-benchmark-cost: ## Run cost benchmarks comparing Native vs Cursor harness execution costs
-	$(MAKE) -C test/integration benchmark-cost
-
-.PHONY: benchmark-cursor-modes
-benchmark-cursor-modes: ## Compare Cursor local vs cloud runtime latency and token usage
-	$(MAKE) -C test/integration benchmark-cursor-modes
-
 # ─── Seedpack Testing ────────────────────────
 
-.PHONY: test-seedpack-static test-seedpack-transport test-seedpack-canary
+.PHONY: test-seedpack-static test-seedpack-transport
 
 test-seedpack-static: ## Run seedpack static validation tests (fast, no network)
 	cd seedpack && go test -v -count=1 ./...
@@ -542,7 +518,7 @@ test-seedpack-static: ## Run seedpack static validation tests (fast, no network)
 # Runs the seedpack module with the `transport` build tag, which compiles in
 # the live HTTP probes (seedpack/transport_test.go) alongside the static
 # validation tests — no harness, no service JAR (the probes moved out of
-# test/integration's full-stack TestMain, oss#569). The static tests riding
+# the retired Go integration suite's full-stack TestMain, oss#569). The static tests riding
 # along cost sub-second and fail with a clearer message than a probe would
 # when a YAML itself is broken. gotestsum for the junit.xml the nightly
 # ci.seedpack-canary lane's test report consumes.
@@ -561,8 +537,6 @@ test-seedpack-transport: ## Run seedpack transport reachability tests (network r
 		--packages ./... \
 		-- -tags transport -timeout 120s -count=1
 
-test-seedpack-canary: ## Run seedpack canary tests with real credentials (nightly)
-	$(MAKE) -C test/integration test-seedpack-canary
 
 # ─── Tidy ────────────────────────────────────
 

@@ -10,8 +10,8 @@
 // so a change to either fake's understanding of a provider cannot drift from
 // the other's.
 //
-// The Anthropic encoder mirrors the Go reference in
-// test/integration/harness/mock_llm_proxy.go; the OpenAI one mirrors what the
+// The Anthropic encoder was ported from the retired Go harness's
+// mock_llm_proxy.go (git history); the OpenAI one mirrors what the
 // Java proxy's OpenAiUsageExtractor and OpenAiJsonUsageExtractor parse (the
 // usage-bearing final chunk that `stream_options.include_usage` requests).
 import type { ServerResponse } from "node:http";

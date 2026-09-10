@@ -42,15 +42,11 @@ import type {
   TenancyContext,
 } from "./target";
 
-// The integration module's log dir — the shared test-output location a
-// readout collects. Each suite file's runner logs there, named for the file
-// so a red run's artifact tells the whole story (repo root is four levels up
-// from test/conformance/src/targets/).
-const RUNNER_LOG_DIR = resolve(
-  dirname(fileURLToPath(import.meta.url)),
-  "../../../..",
-  "test/integration/.test-output/logs",
-);
+// The conformance package's own test-output dir (gitignored with every
+// `.test-output*/`), the location a readout collects. Each suite file's runner
+// logs there, named for the file so a red run's artifact tells the whole story
+// (the package root is three levels up from test/conformance/src/targets/).
+const RUNNER_LOG_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "../..", ".test-output/logs");
 
 export class CloudExecutionTarget implements TargetProfile {
   readonly name = "cloud-execution";

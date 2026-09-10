@@ -20,8 +20,7 @@
     "tools/eslint-plugin-stigmer",
     "marketing",
     "test/conformance",
-    "test/e2e",
-    "test/integration/testdata/sdk-smoke-ts"
+    "test/e2e"
   ],
   "scripts": {
     "prepare": "husky || true",

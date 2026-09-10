@@ -2,8 +2,9 @@ import { describe, it, expect } from "vitest";
 import { IPC_PROTOCOL_VERSION, buildReadyMessage } from "../ipc-protocol.js";
 
 /**
- * Locks the wire shape of the `ready` handshake. Hosts (runner.rs, unified_runner.go, and
- * external embedders) read `protocolVersion` to decide compatibility, so a silent change to
+ * Locks the wire shape of the `ready` handshake. Hosts (the Rust host crate, the conformance
+ * harness's manager-mode spawner, and external embedders) read `protocolVersion` to decide
+ * compatibility, so a silent change to
  * its value or type is a breaking protocol change — these assertions make that change loud.
  */
 describe("ipc-protocol ready handshake", () => {
