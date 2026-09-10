@@ -41,9 +41,11 @@
  *
  * Target selection: with no argument it boots this package's own dist/
  * (the `verify:dist` gate). An optional argv[2] points it at any other
- * main.js — verify-consumer-install.mjs (stigmer/stigmer#786) reuses it
- * against a fresh consumer-style install of the packed tarball, so there
- * is exactly one boot-check mechanism with two call sites.
+ * main.js — the repo-root scripts/verify-consumer-install.mjs
+ * (stigmer/stigmer#786) reuses it against a fresh consumer-style install
+ * of the packed tarball (this manifest's stigmerPublish.consumerCheck.boot
+ * names it), so there is exactly one boot-check mechanism with two call
+ * sites.
  */
 
 import { spawn } from "node:child_process";

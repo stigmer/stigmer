@@ -20,7 +20,7 @@
  *     propagate (the resolution lanes fail the request on it).
  *
  * The four concrete classes predate the arms (they are blessed exports the
- * commit-pin consumer catches); the arms were introduced by re-parenting
+ * cloud composition catches); the arms were introduced by re-parenting
  * (20260830.04 Stage 1) so every existing `instanceof` keeps its meaning
  * and every `.name` and message byte stays exactly as shipped.
  */

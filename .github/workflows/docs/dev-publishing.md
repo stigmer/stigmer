@@ -214,6 +214,8 @@ npm install @stigmer/react@dev     # dev (latest dev build)
 `@dev` always resolves to the newest dev build. To pin an exact dev build, use the
 full `3.0.1-dev.<stamp>` version from the run summary.
 
+**`@stigmer/server` (the library a composition pins).** This is the lane a cross-repository seam change rides: dispatch this workflow from the OSS feature branch (`targets=npm`), and the composition's PR branch pins the exact dev version the summary prints — `@stigmer/server`, `@stigmer/protos` and `@stigmer/temporal-codecs` all at the same `X.Y.Z-dev.<stamp>`, never by the `dev` tag. A production manifest never carries a dev build: the composition's `main` pins released versions only (its pin guard keeps a PR red until it re-pins after the release).
+
 ### Python (TestPyPI)
 
 dev builds go to TestPyPI. Point pip at TestPyPI **with PyPI as an extra index**

@@ -38,6 +38,43 @@ The console is on `http://localhost:7234`, the API on the same port (gRPC, gRPC-
 
 Tags: one per release (`vX.Y.Z`); `latest` moves only to stable releases, and only after the pushed image has boot-smoked on native runners of both architectures (`release.npm-libs.yaml`). Local build + smoke: `make smoke-docker-image`.
 
+## Two artifacts, one server
+
+Every release publishes this directory twice, for two different readers:
+
+| Package | What it is | Who installs it |
+|---|---|---|
+| `@stigmer/server-slim` | The self-contained deployable: an esbuild bundle of the server with the web console and one platform's Temporal native bridge. Exports nothing. | `stigmer up` (the CLI acquires it on demand) and the Docker image above. |
+| `@stigmer/server` | The composable library: `composeServer`, the extension registry, the pipeline primitives and the driver seams, as compiled TypeScript with declarations. | A composition that runs this server with its own extensions — the Stigmer Cloud control plane is one. |
+
+Same source, same version, same tag. The slim artifact is what you run; the library is what you build on.
+
+## Consuming as a library
+
+```bash
+npm install @stigmer/server@3.14.0 @stigmer/protos@3.14.0 @stigmer/temporal-codecs@3.14.0
+```
+
+Pin all three to the same exact version. The library's own dependencies on `@stigmer/protos` and `@stigmer/temporal-codecs` are pinned to its release version, so matching pins give you one copy of each and one `@bufbuild/protobuf` registry; a mismatch gives you two, and protobuf-es schemas from two registries do not compare equal.
+
+The contract is the barrel, [`src/index.ts`](src/index.ts): the compose entry (`composeServer`, `loadConfig`, `createLogger`), the extension-point types (`ServerExtension` and the seven registry points), the pipeline primitives extension services and gate steps are built from, the driver interfaces (`Store`, `ArtifactStorage`, `ModelCatalogProvider`, `RunnerCredentialProvider`, `SandboxProvisioner`, `ChannelRuntime`), the worker-factory types, and the Postgres driver constructor. Everything below the barrel is internal and may change between releases without notice; everything on it changes only through a review gate. Deep imports (`@stigmer/server/dist/...`) are unsupported. If your composition needs something that is not exported, that is a seam request — open an issue describing the behaviour you need.
+
+A composition is a small program:
+
+```ts
+import { composeServer, loadConfig, createLogger } from "@stigmer/server";
+import type { ServerExtension } from "@stigmer/server";
+
+const config = loadConfig();
+const logger = createLogger({ level: config.logLevel, pretty: config.env === "local" });
+const myExtension: ServerExtension = { /* services, workers, verifiers, drivers, ... */ };
+const server = await composeServer({ config, logger, extensions: [myExtension] });
+```
+
+Versions are lockstep with the platform (`vX.Y.Z` tags on this repository). Pre-release builds for cross-repository work publish under the `dev` dist-tag as `X.Y.Z-dev.<stamp>` (`.github/workflows/docs/dev-publishing.md`); pin them exactly, never by tag, and never in a production manifest.
+
+The contract has a compile-time consumer in this repository, [`test/extension-consumer`](../../../test/extension-consumer): a fake extension that typechecks against the barrel alone on every PR, and again against the packed tarball in the consumer-install smoke (`npm run verify:consumer`).
+
 ## Development
 
 Standalone package (own lockfile, not an npm workspace — the runner's model):

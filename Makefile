@@ -377,8 +377,10 @@ test-server: build-ts-stubs $(SERVER_DIR)/node_modules ## Run the TypeScript ser
 
 # The consumer compiles a fake extension against the @stigmer/server
 # exports map ALONE (DD-005): a missing export is a tsc failure here, not
-# a review miss. Standalone package with a file: link — the exact posture
-# the commit-pin consumer (the cloud composition) occupies.
+# a review miss. Standalone package with a file: link for the fast PR-time
+# proof; `npm run verify:consumer` in the server re-runs the same typecheck
+# against the PACKED tarball, the shape the published consumer (the cloud
+# composition, pinning @stigmer/server from npm) actually installs.
 .PHONY: test-extension-consumer
 test-extension-consumer: build-server ## Compile-proof the @stigmer/server library contract via test/extension-consumer
 	@echo "compile-proof  test/extension-consumer (the exports-map contract)"

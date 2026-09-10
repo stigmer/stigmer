@@ -138,74 +138,22 @@ jobs:
       - name: Build runner
         run: make build-runner
 
-      # Stamp the release version and pin the workspace lib deps from their local
-      # file: links to the exact published versions (the runner's analogue of how
-      # release.maven / release.python-sdk pin protos). The committed package.json
-      # is only mutated in this ephemeral CI checkout.
-      - name: Stamp version and pin workspace lib dependencies
-        working-directory: backend/services/runner
-        env:
-          VERSION: ${{ needs.determine-version.outputs.version }}
-        run: |
-          node -e "
-            const fs = require('node:fs');
-            const path = 'package.json';
-            const pkg = JSON.parse(fs.readFileSync(path, 'utf8'));
-            pkg.version = process.env.VERSION;
-            pkg.dependencies['@stigmer/protos'] = process.env.VERSION;
-            pkg.dependencies['@stigmer/temporal-codecs'] = process.env.VERSION;
-            pkg.dependencies['@stigmer/zip-structure'] = process.env.VERSION;
-            fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + '\n');
-            console.log('stamped @stigmer/runner@' + pkg.version + ' (protos: ' + pkg.dependencies['@stigmer/protos'] + ', temporal-codecs: ' + pkg.dependencies['@stigmer/temporal-codecs'] + ', zip-structure: ' + pkg.dependencies['@stigmer/zip-structure'] + ')');
-          "
-
-      - name: Verify published file list
-        working-directory: backend/services/runner
-        run: npm pack --dry-run
-
-      # Defensive only: `publish` already put both libs at <version> on npm; this
-      # absorbs registry propagation lag before the runner (which pins them) goes out.
-      - name: Wait for workspace libs on npm
-        env:
-          VERSION: ${{ needs.determine-version.outputs.version }}
-        run: |
-          for pkg in @stigmer/protos @stigmer/temporal-codecs @stigmer/zip-structure; do
-            echo "Confirming $pkg@$VERSION is queryable on npm..."
-            found=""
-            for i in $(seq 1 30); do
-              if npm view "$pkg@$VERSION" version >/dev/null 2>&1; then
-                echo "Found $pkg@$VERSION"
-                found=1
-                break
-              fi
-              echo "Attempt $i/30: not yet visible, waiting 10s..."
-              sleep 10
-            done
-            if [ -z "$found" ]; then
-              echo "ERROR: $pkg@$VERSION not visible on npm after 5 minutes."
-              exit 1
-            fi
-          done
-
-      # Last gate before publish (#786): install the packed tarball into a
-      # fresh prefix the way an embedder does and boot it. The manifest at
-      # this point is the REAL published one (version stamped, protos pinned
-      # to the registry version that the wait step just confirmed), so this
-      # verifies the exact resolution consumers will get — the class of
-      # failure the repo's lockfile-resolved gates structurally cannot see.
-      - name: Consumer-install smoke check
-        working-directory: backend/services/runner
-        run: npm run verify:consumer
-
-      - name: Publish to npm
-        working-directory: backend/services/runner
+      # The standalone publish sequence (scripts/publish-standalone.mjs, shared
+      # with @stigmer/server): stamp the version and pin the workspace-lib
+      # file: links to the exact published versions, list the tarball, wait
+      # for the pinned libs on npm (the `publish` job put them there; this
+      # absorbs propagation lag), run the consumer-install smoke over the REAL
+      # published manifest (#786 — the exact resolution embedders will get),
+      # then publish under the version-inferred dist-tag. The committed
+      # package.json is mutated in this ephemeral checkout and left stamped:
+      # the slim steps below read it.
+      - name: Publish to npm (stamp, pin, smoke, publish)
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          # Pre-release versions (e.g. 1.2.0-rc.0) go under the "next" dist-tag.
-          VERSION="${{ needs.determine-version.outputs.version }}"
-          if [[ "$VERSION" == *-* ]]; then NPM_TAG="next"; else NPM_TAG="latest"; fi
-          npm publish --access public --tag "$NPM_TAG"
+          node scripts/publish-standalone.mjs \
+            --package backend/services/runner \
+            --version ${{ needs.determine-version.outputs.version }}
 
       # The slim embedding artifact (stigmer/stigmer#170): a bundled runner plus
       # per-platform native-bridge packages — ~85 MB installed instead of the
@@ -213,8 +161,8 @@ jobs:
       # slim failure never blocks the canonical package. All six packages build
       # from this single Linux host: the JS bundles are platform-independent and
       # core-bridge's npm tarball already carries every platform's prebuilt
-      # release. The version was stamped into package.json above, which the
-      # bundle script propagates into every generated manifest.
+      # release. The version was stamped into package.json by the publish step
+      # above, which the bundle script propagates into every generated manifest.
       - name: Build slim artifact packages
         working-directory: backend/services/runner
         run: node scripts/bundle-slim.mjs --emit-packages
@@ -251,6 +199,69 @@ jobs:
             (cd "$pkg" && npm publish --access public --tag "$NPM_TAG")
           done
           cd dist-slim-pkgs/runner-slim && npm publish --access public --tag "$NPM_TAG"
+
+  # @stigmer/server as a LIBRARY (stigmer-cloud project 20260910.04, amending
+  # the convergence program's DD-005): the composable server — composeServer,
+  # the extension registry, the driver seams — that a composition such as the
+  # cloud control plane pins by exact version. Distinct from @stigmer/server-
+  # slim below, the bundled deployable `stigmer up` launches. Same standalone
+  # shape as the runner (own lockfile, file: links to the workspace libs), so
+  # the same publish-standalone.mjs sequence; its consumer-install smoke adds
+  # the exports-map typecheck over the packed tarball and a worker-start boot
+  # against a real Temporal dev server — the posture a consumer's hoisted
+  # node_modules tree runs, which nothing in this checkout exercises.
+  # Needs `publish`: the tarball pins @stigmer/protos, temporal-codecs and
+  # zip-structure to this release's registry versions.
+  publish-server:
+    needs: [determine-version, publish]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Buf
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: 'npm'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install workspace dependencies
+        run: npm ci
+
+      # Builds the ts stubs + the server-linked lib dists (build-ts-stubs),
+      # installs the server's own deps, and compiles the server to dist/
+      # while the libs are still local file: links (so tsc resolves types
+      # against the in-repo sources).
+      - name: Build TS server
+        run: make build-server
+
+      # The consumer-install smoke boots the staged install and requires
+      # every Temporal worker to start (verify-boot.mjs --require-workers).
+      - name: Set up Temporal CLI
+        uses: temporalio/setup-temporal@v0
+
+      - name: Publish to npm (stamp, pin, smoke, publish)
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          temporal server start-dev --headless --log-level error &
+          TEMPORAL_PID=$!
+          trap "kill $TEMPORAL_PID" EXIT
+          for i in $(seq 1 30); do
+            temporal operator cluster health >/dev/null 2>&1 && break
+            sleep 1
+          done
+          node scripts/publish-standalone.mjs \
+            --package backend/services/stigmer-server \
+            --version ${{ needs.determine-version.outputs.version }}
 
   # The TS server's slim artifact (D4 #24 cli-cutover): @stigmer/server-slim
   # plus per-platform native-bridge packages, the runner-slim pattern exactly.

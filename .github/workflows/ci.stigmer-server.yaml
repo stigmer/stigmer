@@ -165,6 +165,30 @@ jobs:
           done
           node scripts/verify-slim-artifact.mjs
 
+      # The consumer-install smoke for the LIBRARY (#786 doctrine; stigmer-
+      # cloud project 20260910.04): pack @stigmer/server, install the tarball
+      # into a fresh prefix the way the cloud composition does, and prove the
+      # staged tree — one physical copy of @temporalio/proto, @bufbuild/
+      # protobuf and @opentelemetry/api (a second copy splits a registry), the
+      # staged dist/main.js boots and starts every Temporal worker from a
+      # node_modules path with hoisted dependencies (the posture a consumer
+      # runs and this checkout never does), and test/extension-consumer
+      # typechecks against the PUBLISHED files (so a `files` omission or a
+      # missing .d.ts fails here, not at the consumer's pin bump). The
+      # Temporal CLI is the one the deep slim gate set up; each step runs
+      # its own dev server (the previous step's trap stopped its own).
+      - name: Consumer-install smoke check (the published library shape)
+        working-directory: backend/services/stigmer-server
+        run: |
+          temporal server start-dev --headless --log-level error &
+          TEMPORAL_PID=$!
+          trap "kill $TEMPORAL_PID" EXIT
+          for i in $(seq 1 30); do
+            temporal operator cluster health >/dev/null 2>&1 && break
+            sleep 1
+          done
+          npm run verify:consumer
+
       # The Docker image smoke (DD-014, Phase-2 P4): the SAME dist-slim the
       # deep verify just proved, packaged by the service's Dockerfile and
       # proven as a container — HEALTHCHECK reaches healthy, Connect-JSON
