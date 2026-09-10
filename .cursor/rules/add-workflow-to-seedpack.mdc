@@ -5,7 +5,7 @@ alwaysApply: false
 
 # Rule: Add Workflow to Seedpack
 
-Purpose: When triggered, guide the complete process of adding a new workflow to `seedpack/workflows/`. This includes creating a structurally valid YAML definition, validating it with the CLI and the seedpack module's static tests, and adding a conformance execution arm when the workflow can be driven offline.
+Purpose: When triggered, guide the complete process of adding a new workflow to `seedpack/workflows/`. This includes creating a structurally valid YAML definition, validating it with the CLI and the seedpack package's static suite, and adding a conformance execution arm when the workflow can be driven offline.
 
 Usage: Invoke explicitly as `@add-workflow-to-seedpack`.
 
@@ -105,7 +105,7 @@ The `env` map values ONLY support these fields:
 
 ## Step 2: Validate the YAML
 
-The Go parse/execution tests that once lived in `test/integration` retired with the Java service and the Go harness (stigmer#1024, #1031). Validation is the CLI and the seedpack module's own static tests:
+The Go parse/execution tests that once lived in `test/integration` retired with the Java service and the Go harness (stigmer#1024, #1031). Validation is the CLI and the seedpack package's own static suite (`seedpack/src/__tests__`, Vitest):
 
 ```bash
 # Dry-run apply (the CLI's loader and validator parse the file exactly as a user's apply would)
@@ -114,20 +114,16 @@ stigmer apply -f seedpack/workflows/{name}.yaml --org stigmer --dry-run
 # Offline validation of the resource YAML (the CLI's own validator, no server needed)
 stigmer validate -f seedpack/workflows/{name}.yaml
 
-# The seedpack module's static tests (every YAML has a kind, MCP manifests are consistent)
+# The seedpack package's static suite (every YAML has a kind; the MCP catalog policies)
 make test-seedpack-static
 ```
 
 ## Step 3: Add an Execution Arm (when the workflow is offline-drivable)
 
-An execution test for a seedpack workflow is a conformance execution arm: `test/conformance/src/suites-execution/` on the `local-execution` target, which boots Temporal, the OSS server and the runner from source and scripts every model turn on the mock LLM. Load the seedpack YAML in the arm, `workflowCommand.create` it, create a `WorkflowExecution`, and assert per-task status with `awaitTaskStatus` (`support/workflowexecutions.ts`) — see `workflowexecution-llm-call.conformance.test.ts` and `workflowexecution-eval.conformance.test.ts` for the shape. A workflow whose tasks need a live vendor (an `http_call` to a real API with a real credential) has no offline arm; its live check is the seedpack canary's re-point at the composition, E1's open item on stigmer#988.
+An execution test for a seedpack workflow is a conformance execution arm: `test/conformance/src/suites-execution/` on the `local-execution` target, which boots Temporal, the OSS server and the runner from source and scripts every model turn on the mock LLM. Load the seedpack YAML in the arm, `workflowCommand.create` it, create a `WorkflowExecution`, and assert per-task status with `awaitTaskStatus` (`support/workflowexecutions.ts`) — see `workflowexecution-llm-call.conformance.test.ts` and `workflowexecution-eval.conformance.test.ts` for the shape. A workflow whose tasks need a live vendor (an `http_call` to a real API with a real credential) has no offline arm; its live check is the credentialed canary lane on the conformance harness (stigmer#1033).
 
 
-## Step 4: Update BUILD.bazel
-
-Add the new YAML file to `seedpack/BUILD.bazel` in the `embedsrcs` list (alphabetical within the `workflows/` section).
-
-## Step 5: Validate
+## Step 4: Validate
 
 Run these commands to verify:
 
@@ -135,7 +131,7 @@ Run these commands to verify:
 # 1. Dry-run apply (confirms CLI parsing passes)
 stigmer apply -f seedpack/workflows/{name}.yaml --org stigmer --dry-run
 
-# 2. The seedpack module's static tests
+# 2. The seedpack package's static suite
 make test-seedpack-static
 
 # 3. If you added an execution arm
@@ -155,7 +151,6 @@ Before considering the addition complete:
 - [ ] `${ ... }` expressions reference exported upstream values
 - [ ] `stigmer apply -f --dry-run` passes; `make test-seedpack-static` green
 - [ ] An execution arm in `test/conformance/src/suites-execution/` when the workflow is offline-drivable
-- [ ] `BUILD.bazel` embedsrcs updated
 
 ## Reference Files
 

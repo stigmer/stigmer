@@ -2,9 +2,7 @@ bump ?= patch
 
 GO_MODULES := \
 	apis/stubs/go \
-	sdk/go \
-	seedpack \
-	tools
+	sdk/go
 
 RUNNER_DIR := backend/services/runner
 SERVER_DIR := backend/services/stigmer-server
@@ -512,30 +510,26 @@ test-replay: ## Run Temporal workflow replay determinism tests (fast, no infra n
 
 .PHONY: test-seedpack-static test-seedpack-transport
 
+# Both suites live in @stigmer/seedpack (seedpack/src/__tests__) and decode
+# the catalog through the generated McpServer schema, so @stigmer/protos is
+# built first — the same line every other TS test target here uses.
+#
+# static: the package API and the marketplace curation policies over the
+# shipped manifests (vitest.config.ts). Deterministic, network-free; runs on
+# every seedpack/** PR through ci.seedpack-static. Structural validity against
+# the contract is check-docs-yaml's job, not this suite's.
 test-seedpack-static: ## Run seedpack static validation tests (fast, no network)
-	cd seedpack && go test -v -count=1 ./...
+	@npm run build -w @stigmer/protos --silent
+	npm run test -w @stigmer/seedpack
 
-# Runs the seedpack module with the `transport` build tag, which compiles in
-# the live HTTP probes (seedpack/transport_test.go) alongside the static
-# validation tests — no harness, no service JAR (the probes moved out of
-# the retired Go integration suite's full-stack TestMain, oss#569). The static tests riding
-# along cost sub-second and fail with a clearer message than a probe would
-# when a YAML itself is broken. gotestsum for the junit.xml the nightly
-# ci.seedpack-canary lane's test report consumes.
+# transport: live HTTP against every catalog endpoint (vitest.transport.config.ts,
+# the only config that reaches seedpack/src/__tests__/transport/). No harness,
+# no credentials; skips on transient network conditions. The config writes the
+# junit.xml the nightly ci.seedpack-canary lane's test report consumes to
+# seedpack/.test-output-transport/.
 test-seedpack-transport: ## Run seedpack transport reachability tests (network required, nightly)
-	@command -v gotestsum >/dev/null 2>&1 || { \
-		echo "error: gotestsum not found"; \
-		echo "  install: go install gotest.tools/gotestsum@latest"; \
-		exit 1; \
-	}
-	@mkdir -p seedpack/.test-output-transport
-	cd seedpack && gotestsum \
-		--junitfile .test-output-transport/junit.xml \
-		--junitfile-testsuite-name short \
-		--jsonfile .test-output-transport/test-output.json \
-		--format testname \
-		--packages ./... \
-		-- -tags transport -timeout 120s -count=1
+	@npm run build -w @stigmer/protos --silent
+	npm run test:transport -w @stigmer/seedpack
 
 
 # ─── Tidy ────────────────────────────────────

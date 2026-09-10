@@ -17,7 +17,8 @@
     "build": "tsc -p tsconfig.build.json && node scripts/stage-content.mjs",
     "clean": "rm -rf dist tsconfig.build.tsbuildinfo",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:transport": "vitest run -c vitest.transport.config.ts"
   },
   "files": [
     "dist"
@@ -46,7 +47,10 @@
     "directory": "seedpack"
   },
   "devDependencies": {
+    "@bufbuild/protobuf": "^2.0.0",
+    "@stigmer/protos": "*",
     "@types/node": "^22.0.0",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "yaml": "^2.8.2"
   }
 }
