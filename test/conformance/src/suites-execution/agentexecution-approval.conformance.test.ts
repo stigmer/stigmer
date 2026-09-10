@@ -54,7 +54,9 @@ import { Code } from "@connectrpc/connect";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import {
   ApprovalAction,
+  ApprovalEventType,
   ExecutionPhase,
+  MessageType,
   ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
@@ -63,7 +65,7 @@ import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import type { McpToolFixture } from "../harness/mcp-server";
 import { ECHO_TOOL_NAME } from "../harness/mcp-server";
-import type { MockLlmProxy, ToolUseBlock } from "../harness/mock-llm";
+import type { AnthropicMessageBody, MockLlmProxy, ToolUseBlock } from "../harness/mock-llm";
 import { anthropicText, anthropicToolUses } from "../harness/mock-llm";
 import { makeAgent } from "../support/agents";
 import {
@@ -137,9 +139,12 @@ async function runToGate(
   org: string,
   agentId: string,
   blocks: ToolUseBlock[],
-  opts: { autoApproveAll?: boolean } = {},
+  opts: { autoApproveAll?: boolean; turnsBeforeDone?: AnthropicMessageBody[] } = {},
 ): Promise<{ executionId: string; gated: AgentExecution }> {
   mock.enqueue(anthropicToolUses(blocks));
+  // Further assistant turns between the gated one and the terminating text —
+  // the lever for a SECOND tool turn on the same server (the lease arm).
+  for (const turn of opts.turnsBeforeDone ?? []) mock.enqueue(turn);
   mock.enqueue(anthropicText("Done."));
 
   const execution = await clients.agentExecutionCommand.create(
@@ -159,6 +164,15 @@ function echoBlock(toolCallId: string, text: string): ToolUseBlock {
   return { toolCallId, toolName: ECHO_TOOL_NAME, toolInput: { text } };
 }
 
+// Whether the approval-event stream records `type` for a tool call. The
+// stream is keyed by approval_request_id, which the proto pins equal to the
+// tool_call_id (approval.proto), so the transcript's id is the lookup key.
+function approvalStreamHas(exec: AgentExecution, toolCallId: string, type: ApprovalEventType): boolean {
+  return (exec.status?.approvalEventStream?.events ?? []).some(
+    (event) => event.approvalRequestId === toolCallId && event.eventType === type,
+  );
+}
+
 describe("AgentExecution submitApproval — gate resolution", () => {
   it("APPROVE resolves the gate and completes the execution", async () => {
     const { org } = await target.provisionTenancy();
@@ -166,6 +180,14 @@ describe("AgentExecution submitApproval — gate resolution", () => {
     const { executionId, gated } = await runToGate(org, agentId, [echoBlock("call_echo_approve", "hello")]);
 
     const toolCallId = gated.status!.pendingApprovals[0]!.toolCallId;
+    // The gate is on the ledger before it is decided: the approval-event stream
+    // (the source pending_approvals is projected from) carries REQUESTED for
+    // exactly this call while the run is parked.
+    expect(
+      approvalStreamHas(gated, toolCallId, ApprovalEventType.REQUESTED),
+      "a parked gate is a REQUESTED event on the approval-event stream",
+    ).toBe(true);
+
     // The single gate is fully resolved synchronously: the approved entry is gone.
     await submitApprovalPerContract({
       expectedRemaining: 0,
@@ -183,6 +205,11 @@ describe("AgentExecution submitApproval — gate resolution", () => {
       final.status?.phase,
       `approved execution should COMPLETE; reached ${ExecutionPhase[final.status?.phase ?? 0]}`,
     ).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    // And the decision is on the ledger too, keyed by the same id.
+    expect(
+      approvalStreamHas(final, toolCallId, ApprovalEventType.APPROVED),
+      "the APPROVE decision is an APPROVED event for the same tool call",
+    ).toBe(true);
   });
 
   it("SKIP resolves the gate and completes the execution", async () => {
@@ -372,6 +399,85 @@ describe("AgentExecution submitApproval — spec bypass and read model", () => {
     expect(final.status?.phase, "execution completes after idempotent + final approval").toBe(
       ExecutionPhase.EXECUTION_COMPLETED,
     );
+  });
+});
+
+// The three arms below came from the Go offline suite (hitl_offline_test.go;
+// entry 20260910.02, DD-001) and assert what the arms above deliberately left
+// out: the lease APPROVE_ALL grants across TURNS, the ledger's shape on a
+// cancel at the gate, and the resumed transcript under the runner's durable
+// checkpointer.
+describe("AgentExecution submitApproval — lease, cancel at the gate, durable resume", () => {
+  it("APPROVE_ALL leases the MCP server: a later turn's tool on the same server is not re-gated", async () => {
+    const { org } = await target.provisionTenancy();
+    const { agentId } = await provisionGatedAgent(org);
+    // Turn 1 gates on echo; turn 2 is a SECOND echo in its own assistant turn;
+    // turn 3 ends the loop. A plain APPROVE at turn 1 would re-gate turn 2.
+    const { executionId, gated } = await runToGate(org, agentId, [echoBlock("call_lease_first", "first")], {
+      turnsBeforeDone: [anthropicToolUses([echoBlock("call_lease_second", "second")])],
+    });
+    expect(gated.status?.pendingApprovals.map((p) => p.toolName)).toEqual([ECHO_TOOL_NAME]);
+
+    await submitApprovalPerContract({
+      expectedRemaining: 0,
+      label: "APPROVE_ALL resolves the first gate",
+      submit: () =>
+        clients.agentExecutionCommand.submitApproval({
+          agentExecutionId: executionId,
+          toolCallId: gated.status!.pendingApprovals[0]!.toolCallId,
+          action: ApprovalAction.APPROVE_ALL,
+        }),
+    });
+
+    // Reaching COMPLETED with all three turns consumed and nothing pending is the
+    // proof: the second echo ran under the lease instead of parking the run.
+    const final = await awaitTerminal(clients, executionId);
+    expect(final.status?.phase, "the leased second call never re-gated").toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(final.status?.pendingApprovals).toHaveLength(0);
+    expect(mock.remaining(), "all three scripted turns were consumed").toBe(0);
+  });
+
+  // Cancel AT THE GATE (the Go arm TestOffline_HITL_CancelAtGate) is not
+  // ported: this server refuses cancel/terminate/pause outside PENDING and
+  // IN_PROGRESS (lifecycle.ts ValidateCancellable, ported from the Go server),
+  // while the retired Java service cancelled a WAITING_FOR_APPROVAL run to
+  // CANCELLED. Whether a parked gate may be abandoned without a decision is a
+  // cross-edition contract question for the owner, not a test to bend either
+  // way — paused in entry 20260910.02's T01_1 (row 43).
+
+  it("the approved ToolCall survives the resume with TOOL_CALL_COMPLETED and a result — a true resume, not a replay", async () => {
+    // Under the runner's durable checkpointer (its OSS default; DD-002 of entry
+    // 20260910.02) the resumed invocation continues the SAME graph state: the
+    // gated call keeps its id, runs, and records its result; the model then
+    // gets its second turn. A replay would re-emit the tool call under a fresh
+    // id and consume the script out of order.
+    const { org } = await target.provisionTenancy();
+    const { agentId } = await provisionGatedAgent(org);
+    const { executionId, gated } = await runToGate(org, agentId, [echoBlock("call_durable", "durable")]);
+    const toolCallId = gated.status!.pendingApprovals[0]!.toolCallId;
+
+    await submitApprovalPerContract({
+      expectedRemaining: 0,
+      label: "approve clears the gate",
+      submit: () =>
+        clients.agentExecutionCommand.submitApproval({
+          agentExecutionId: executionId,
+          toolCallId,
+          action: ApprovalAction.APPROVE,
+        }),
+    });
+
+    const final = await awaitTerminal(clients, executionId);
+    expect(final.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    const resumed = allToolCalls(final).find((tc) => tc.id === toolCallId);
+    expect(resumed, "the gated call is in the final transcript under its original id").toBeDefined();
+    expect(resumed!.name).toBe(ECHO_TOOL_NAME);
+    expect(resumed!.status, "the approved call ran on resume").toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+    expect(resumed!.result, "and recorded its result").not.toBe("");
+    const finalAi = [...(final.status?.messages ?? [])].reverse().find((m) => m.type === MessageType.MESSAGE_AI);
+    expect(finalAi?.content, "the resumed run appended the model's final message").not.toBe("");
+    expect(mock.remaining(), "both scripted turns were consumed exactly once").toBe(0);
+    expect(mock.consumed()).toBe(2);
   });
 });
 

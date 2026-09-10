@@ -335,6 +335,33 @@ dir, so files run in parallel without colliding. `clients` builds the Connect
 clients; `grpc-ready` is the shared store-probe readiness gate; `fixtures`
 tracks created resources for best-effort reverse-order cleanup.
 
+The execution harness runs the runner in its **production OSS posture**
+(stigmer-cloud entry 20260910.02, DD-002): `runner-process` pins the model
+registry at the control plane that really serves it (`registryOrigin` →
+`STIGMER_CLOUD_API_URL`: the server's unified port locally, the composition's
+authenticated proxy lane on `cloud-execution`) instead of letting the runner's
+fallback ask the mock and degrade to an unresolved registry; leaves the
+checkpointer at the runner's own default (the durable SQLite saver every OSS
+install runs; the `memory` pin is gone); and gives the runner child a
+harness-owned `HOME`, so its `~/.stigmer/sessions/…` tree (checkpoints, the
+platform dir attachments materialize into) never lands in the developer's
+real home. The targets expose what suites need to read back:
+`modelRegistryDocument()` (the document the runner resolved against),
+`runnerHomeDir()`, `artifactStoreDir()`, `engineCoordinates()`.
+`harness/model-registry` reads the document; `harness/git-workspace` seeds a
+hermetic git work tree for capture-mode (file review) runs;
+`harness/runner-manager-process` boots a second runner in manager mode for the
+IPC handshake smoke, typed by the runner's own `ipc-protocol.ts`.
+`MockLlmProxy` stays Anthropic-only with two opt-ins: `serveEmbeddings(true)`
+answers the OpenAI embeddings path by computation for the memory-selection
+arms (the default fence is the no-embedder posture the memory-retrieval suite
+pins), and `enqueueError({ status, headers, body, persistent })` scripts a
+provider fault byte-exact — `persistent` because a real fault answers every
+retry, and LangChain's AsyncCaller retries a 5xx six times. `McpToolFixture`
+names its tool surface in the URL: `url()` is the one-tool `echo` server the
+connect suite pins by exact list; `url(["echo", "fail"])` adds the failing
+tool the messages suite needs.
+
 ### Execution engine (Class B, `src/suites-execution/`)
 
 The execution domains (WorkflowExecution, AgentExecution) are 100% Temporal-
@@ -392,7 +419,8 @@ an agent can only reach `EXECUTION_WAITING_FOR_APPROVAL` when it references an
 McpServer that exposes an approval-gated tool, so the `local-execution` target
 also boots a **TS-pure HTTP (Streamable) MCP fixture** (`harness/mcp-server.ts`):
 a long-lived `node:http` server fronting `@modelcontextprotocol/sdk`'s `McpServer`
-that exposes one deterministic `echo` tool. Crucially, the McpServer resource is
+that exposes one deterministic `echo` tool by default (a second surface adds
+`fail`; see Harness). Crucially, the McpServer resource is
 only **created** (with the fixture's URL) — there is **no `connect`/discovery
 step**, because the runner resolves MCP servers from their spec and connects
 *live* at execution setup, computing the gate from the agent's
@@ -461,22 +489,50 @@ UNSPECIFIED action -> `InvalidArgument`; missing execution -> `NotFound`; a runn
 on `local-execution`. See the project's
 `design-decisions/012-workflowexecution-child-approval-forwarding-contract.md`.
 
+**The runner-behavior facets** (stigmer-cloud entry 20260910.02, DD-001)
+replaced the Go `test/integration-offline` suite, arm for arm, with its
+accounting in that entry's `T01_1_arm-disposition.md`: a runner behavior a
+client reads off execution status is contract, and the execution class is its
+home. `agentexecution-messages` (the transcript: text, thinking, MCP tool
+calls that succeed or fail, the ToolCall field contract, and the model id the
+provider received after registry resolution), `agentexecution-subagent`
+(`task` delegation and `sub_agent_executions`), `agentexecution-provider-error`
+(who a proxy-mode provider fault is attributed to — the stigmer#330 incident
+shapes), `agentexecution-structured-output` (what the final message becomes on
+`structured_output`; the fallback's lack of schema validation is deliberately
+NOT pinned, see the file header), `agentexecution-file-review` and
+`-file-review-progress` (apply-then-review: 15 decide-and-reconcile arms over a
+harness git workspace, the secret and binary rules, and the mid-run progress
+strip under the runner's capture throttle), `agentexecution-memory-selection`
+(the embedder posture of DD-008, beside `-memory-retrieval`'s no-embedder one),
+`agentexecution-workflow-architect` (the seedpack agent on the real
+`stigmer mcp-server` over stdio), `workflowexecution-llm-call` and
+`workflowexecution-eval` (the LLM-backed workflow tasks), plus additions to
+`agentexecution` (idempotent cancel/terminate), `agentexecution-approval` (the
+approval ledger, the APPROVE_ALL lease across turns, durable resume) and
+`mcpserver-connect` (the classifier's economy-tier model on the wire).
+`runner-ipc.harness.smoke` proves the manager-mode `ready` handshake end to
+end.
+
 ## Layout
 
 ```
 src/
   harness/          ts-build, ports, child-process (the one stop + tee discipline), server-process, grpc-ready, clients, fixtures, global-setup
-                    + execution: temporal, runner-build, runner-process, mock-llm, mcp-server, global-setup-execution
-                    + cloud: cloud-env, global-setup-cloud
-  targets/          target (interface + capabilities), local, local-execution, cloud, cloud-execution, index
+                    + execution: temporal, runner-build, runner-process, runner-manager-process, mock-llm, llm-wire, mcp-server,
+                      model-registry, git-workspace, global-setup-execution
+                    + cloud: cloud-env, cloud-fixtures, fake-llm-upstream, fake-stripe, fake-discord-webhook, global-setup-cloud
+  targets/          target (interface + capabilities), local, local-execution, local-postgres, cloud, cloud-execution, index
   contract/         errors, parity
-  support/          naming, workflows (set_vars + wait + human_input + agent_call), execution-poll, workflowexecutions, agentexecutions,
-                    agents, mcpservers, skills, environments, executioncontexts, sessions
+  support/          naming, workflows (set_vars + wait + human_input + agent_call + llm_call + eval), execution-poll, workflowexecutions,
+                    agentexecutions, file-review, workflow-architect, agents, mcpservers, memories, skills, environments,
+                    executioncontexts, sessions, …
   suites/           *.conformance.test.ts            (Class A — CRUD, no Temporal)
-  suites-execution/ harness.smoke.test.ts + agent.harness.smoke.test.ts + mcp.harness.smoke.test.ts
-                    + workflowexecution.conformance.test.ts + workflowexecution-approval.conformance.test.ts
-                    + workflowexecution-child-approval.conformance.test.ts
-                    + agentexecution.conformance.test.ts + agentexecution-approval.conformance.test.ts  (Class B)
+  suites-execution/ *.harness.smoke.test.ts (engine, agent, mcp, runner-ipc)
+                    + workflowexecution*.conformance.test.ts (lifecycle, approval, child-approval, recover, signal, llm-call, eval)
+                    + agentexecution*.conformance.test.ts (lifecycle, approval, recover, messages, subagent, provider-error,
+                      structured-output, file-review, file-review-progress, memory-retrieval, memory-selection, workflow-architect)
+                    + mcpserver-connect, mcp-caller-identity, envmerge-*, session-immutability, schedule-firing, billing-*  (Class B)
 ```
 
 ## Adding a domain

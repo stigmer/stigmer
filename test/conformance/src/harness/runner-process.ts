@@ -2,7 +2,7 @@
 // polling its Temporal task queue.
 // Domain: conformance harness (execution engine).
 //
-// The runner is the execution engine: the Go server dispatches the real work to
+// The runner is the execution engine: the server dispatches the real work to
 // it over Temporal (queue `stigmer_runner`). We run the compiled entry
 // (`node dist/main.js`) rather than tsx so the on-boot Temporal workflow bundle
 // is built from compiled JS, which sidesteps the raw-.ts proto-stub bundler
@@ -10,20 +10,40 @@
 // Temporal connection is up and the worker is about to poll) — the execution
 // analogue of server-process.ts waiting for a TCP listener.
 //
+// The runner runs in its PRODUCTION OSS POSTURE, not a test-only one (entry
+// 20260910.02, DD-002). Two things follow:
+//
+// - The model registry comes from the control plane. The runner resolves a
+//   registry id (`claude-haiku-4.5`) to the provider's api id by fetching
+//   /v1/proxy/model-registry from the origin STIGMER_CLOUD_API_URL names, else
+//   the proxy origin, else the backend (shared/registry-endpoint.ts, #240).
+//   With the LLM proxy pointed at the mock, the fallback chain would ask the
+//   MOCK for the registry, 404, and every execution would run with an
+//   unresolved registry — a posture no OSS install has. `registryOrigin` pins
+//   the origin that really serves it: the server here, the composition's
+//   HTTP address on cloud-execution.
+// - The checkpointer is the runner's own default. In local mode that is the
+//   durable SQLite saver (config.ts, #204) — the one every OSS user runs and
+//   the one HITL/pause/resume actually resume across. It lives under
+//   `$HOME/.stigmer/sessions/<id>/`, so the runner child gets a harness-owned
+//   HOME (the override the runner itself documents for tests), and nothing a
+//   run writes lands in the developer's real home directory. The runner's git
+//   substrate never reads the user's gitconfig — it authors its snapshot
+//   objects with an explicit identity — so a bare HOME is safe for file review.
+//
 // For a data-only set_vars WorkflowExecution this needs no LLM, MCP, API key,
-// proxy, object storage, or checkpointer service: jq runs in-process and the
-// only egress is gRPC back to the server. So the bare env is the default.
+// proxy, or object storage: jq runs in-process and the only egress is gRPC
+// back to the server. So the bare env is the default.
 //
 // An AgentExecution, by contrast, runs an LLM loop. When `proxy` is supplied the
 // runner is pointed at the mock LLM proxy (a base-URL override via
-// STIGMER_PROXY_ENDPOINT). Configuring a proxy flips two runner defaults —
+// STIGMER_PROXY_ENDPOINT). Configuring a proxy flips one runner default —
 // artifact storage would default to `proxy` against the mock (which serves no
-// presign routes -> setup-time throw) and, in cloud mode, the checkpointer to
-// `http` — so the checkpointer is pinned to memory and artifacts default to a
-// local store, UNLESS `artifactProxy` routes them at a real presign-capable
-// endpoint via STIGMER_ARTIFACT_PROXY_ENDPOINT (stigmer#803): the
-// cloud-execution target points artifacts at the hermetic Java service's HTTP
-// port (MinIO-backed) while LLM traffic stays on the mock.
+// presign routes -> setup-time throw) — so artifacts default to a local store,
+// UNLESS `artifactProxy` routes them at a real presign-capable endpoint via
+// STIGMER_ARTIFACT_PROXY_ENDPOINT (stigmer#803): the cloud-execution target
+// points artifacts at the composition's HTTP port while LLM traffic stays on
+// the mock.
 import { spawn } from "node:child_process";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -59,6 +79,16 @@ const WORKER_STOPPED_MARKER = "Worker stopped";
 const FORCE_KILL_EXCERPT_LINES = 24;
 const FORCE_KILL_EXCERPT_LINE_CHARS = 240;
 
+// The env that relocates the runner's `~/.stigmer` under a harness-owned
+// directory. Both names because the runner's home reader
+// (shared/workspace/platform-dir.ts) checks HOME then USERPROFILE, and Node's
+// os.homedir() — which the workspace-root and artifact defaults go through —
+// reads the same two on the platforms the harness runs on. Exported so the
+// unit arm pins the pair, and shared with the manager-mode spawner.
+export function runnerHomeEnv(homeDir: string): Record<string, string> {
+  return { HOME: homeDir, USERPROFILE: homeDir };
+}
+
 // Hermetic LLM wiring for agent executions. Omit it entirely for the data-only
 // WorkflowExecution path, which must stay LLM-free.
 export interface RunnerProxyOptions {
@@ -79,6 +109,12 @@ export interface RunnerOptions {
   temporalHostPort?: string;
   // http(s) base URL of the backend's gRPC endpoint, for status streaming.
   backendEndpoint: string;
+  // http(s) origin that serves /v1/proxy/model-registry — the control plane
+  // the runner resolves model ids against (STIGMER_CLOUD_API_URL). The server's
+  // base URL on the local targets; the composition's HTTP address on cloud.
+  // Required, never defaulted: the runner's own fallback would ask the mock
+  // proxy, and an unresolved registry fails no test on its own (see header).
+  registryOrigin: string;
   // Cloud engine wiring: boot as a production embedded runner. The token is a
   // user credential (the primary conformance user); its presence — with NO
   // explicit Temporal address — triggers the runner's own bootstrap lane
@@ -114,6 +150,11 @@ export interface RunnerOptions {
 export interface RunningRunner {
   // Last ~8KB of combined stdout/stderr, surfaced in failures for diagnosis.
   logTail(): string;
+  // The runner's HOME for this run — where its `~/.stigmer/sessions/<id>/…`
+  // tree lands (session checkpoints, the platform dir attachments materialize
+  // into). A suite that reads what the runner wrote to disk reads under this,
+  // never under the test process's own home.
+  homeDir: string;
   stop(): Promise<void>;
 }
 
@@ -126,6 +167,9 @@ export async function spawnRunner(opts: RunnerOptions): Promise<RunningRunner> {
     );
   }
   const workspaceDir = await mkdtemp(join(tmpdir(), "stigmer-conformance-runner-"));
+  // The runner's home for this run: its `~/.stigmer` (session checkpoints,
+  // platform dirs, workspace locks) lands here and is removed with it.
+  const homeDir = await mkdtemp(join(tmpdir(), "stigmer-conformance-runner-home-"));
   // Share the server's artifact store when given (#285); otherwise mint a
   // throwaway one. Only a dir we minted here is ours to remove on stop — the
   // server owns and cleans its own.
@@ -140,9 +184,11 @@ export async function spawnRunner(opts: RunnerOptions): Promise<RunningRunner> {
     stdio: ["ignore", "pipe", "pipe"],
     env: {
       ...process.env,
+      ...runnerHomeEnv(homeDir),
       // STIGMER_RUNNER_MODE intentionally unset -> static (single-queue) mode.
       MODE: "local",
       STIGMER_TASK_QUEUE: "stigmer_runner",
+      STIGMER_CLOUD_API_URL: opts.registryOrigin,
       // Local engine: pin the Temporal address (skips discovery). Cloud engine:
       // deliberately UNSET, so the token below triggers the runner's own
       // bootstrap discovery against the backend (bootstrap.ts branch 2).
@@ -166,8 +212,10 @@ export async function spawnRunner(opts: RunnerOptions): Promise<RunningRunner> {
       // - artifacts go to a local on-disk store (a configured proxy would
       //   otherwise default artifacts to presign calls against the mock and
       //   throw at setup) — UNLESS artifactProxy routes them at a real
-      //   presign-capable endpoint (stigmer#803);
-      // - STIGMER_CHECKPOINTER_TYPE=memory pins the in-memory checkpointer.
+      //   presign-capable endpoint (stigmer#803).
+      // STIGMER_CHECKPOINTER_TYPE is deliberately NOT set: MODE=local makes the
+      // runner pick its production default, the durable SQLite saver under the
+      // harness-owned HOME above (header; entry 20260910.02 ruling 2).
       ...(opts.proxy !== undefined
         ? {
             STIGMER_PROXY_ENDPOINT: opts.proxy.endpoint,
@@ -195,7 +243,6 @@ export async function spawnRunner(opts: RunnerOptions): Promise<RunningRunner> {
                     ? { LOCAL_ARTIFACT_SERVE_URL: opts.artifactServeUrl }
                     : {}),
                 }),
-            STIGMER_CHECKPOINTER_TYPE: "memory",
           }
         : {}),
     },
@@ -239,6 +286,7 @@ export async function spawnRunner(opts: RunnerOptions): Promise<RunningRunner> {
     });
     await output.close();
     await rm(workspaceDir, { recursive: true, force: true });
+    await rm(homeDir, { recursive: true, force: true });
     // Only remove a store we minted; a server-shared dir is the server's to clean.
     if (ownedArtifactDir !== undefined) {
       await rm(ownedArtifactDir, { recursive: true, force: true });
@@ -258,6 +306,7 @@ export async function spawnRunner(opts: RunnerOptions): Promise<RunningRunner> {
 
   return {
     logTail: () => output.tail(),
+    homeDir,
     stop,
   };
 }

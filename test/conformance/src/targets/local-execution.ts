@@ -12,6 +12,7 @@ import { awaitGrpcReady } from "../harness/grpc-ready";
 import { createTransport, makeClients, type ConformanceClients } from "../harness/clients";
 import { McpToolFixture } from "../harness/mcp-server";
 import { MockLlmProxy } from "../harness/mock-llm";
+import { fetchModelRegistryDocument, type ModelRegistryDocument } from "../harness/model-registry";
 import { ensureRunnerBuilt } from "../harness/runner-build";
 import { spawnRunner, type RunningRunner } from "../harness/runner-process";
 import { spawnServer, type RunningServer } from "../harness/server-process";
@@ -20,6 +21,7 @@ import { ensureTsServerEntry } from "../harness/ts-build";
 import { uniqueOrg } from "../support/naming";
 import type {
   CapabilityFlags,
+  EngineCoordinates,
   PrivilegedScope,
   TargetProfile,
   TenancyContext,
@@ -117,11 +119,13 @@ export class LocalExecutionTarget implements TargetProfile {
     await this.mcpTools.start();
 
     // 4. Runner last: it dials the server's gRPC endpoint to stream status back,
-    //    and the mock proxy for LLM calls.
+    //    the same server's HTTP lane for the model registry (the OSS topology,
+    //    stigmer#240), and the mock proxy for LLM calls.
     this.runner = await spawnRunner({
       entryPath: runnerEntry,
       temporalHostPort: this.temporal.hostPort,
       backendEndpoint: this.server.baseUrl,
+      registryOrigin: this.server.baseUrl,
       proxy: { endpoint: this.mockLlm.url(), token: "conformance-mock-token" },
       // Share the server's local artifact store so a storage-key attachment the
       // server wrote resolves when the runner reads it back (#285).
@@ -151,6 +155,40 @@ export class LocalExecutionTarget implements TargetProfile {
       throw new Error("LocalExecutionTarget.setup() must be called before mcpFixture()");
     }
     return this.mcpTools;
+  }
+
+  // The document the runner was pointed at (registryOrigin above): the OSS
+  // unified port serves it anonymously from the server's bundled snapshot.
+  modelRegistryDocument(): Promise<ModelRegistryDocument> {
+    return fetchModelRegistryDocument(this.serverBaseUrl());
+  }
+
+  runnerHomeDir(): string {
+    if (this.runner === undefined) {
+      throw new Error("LocalExecutionTarget.setup() must be called before runnerHomeDir()");
+    }
+    return this.runner.homeDir;
+  }
+
+  // The unified port's base URL — gRPC and the plain-HTTP lanes alike (the
+  // LocalTarget accessor, here because the architect fixture's stdio
+  // mcp-server dials it and the registry lane lives on it).
+  httpBaseUrl(): string {
+    return this.serverBaseUrl();
+  }
+
+  artifactStoreDir(): string {
+    if (this.server === undefined) {
+      throw new Error("LocalExecutionTarget.setup() must be called before artifactStoreDir()");
+    }
+    return this.server.artifactBaseDir;
+  }
+
+  engineCoordinates(): EngineCoordinates {
+    if (this.temporal === undefined) {
+      throw new Error("LocalExecutionTarget.setup() must be called before engineCoordinates()");
+    }
+    return { temporalHostPort: this.temporal.hostPort, serverBaseUrl: this.serverBaseUrl() };
   }
 
   clients(): ConformanceClients {

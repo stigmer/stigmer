@@ -41,6 +41,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
+import { economyRowFor, wireModelIdOf } from "../harness/model-registry";
 import { ECHO_TOOL_NAME, type McpToolFixture } from "../harness/mcp-server";
 import { anthropicToolUse, type MockLlmProxy } from "../harness/mock-llm";
 import { MockOAuthAuthorizationServer } from "../harness/oauth-authorization-server";
@@ -542,6 +543,20 @@ describe("McpServer connect conformance — blocking connect", () => {
     // ungated arm is pinned in the startConnect test below).
     const approvals = connected.status?.toolApprovals ?? [];
     expect(approvals.map((a) => a.toolName)).toEqual([ECHO_TOOL_NAME]);
+
+    // Classification is a cheap task, so the runner runs it on the registry's
+    // economy tier for the primary model's provider — resolved through the
+    // control plane's registry to the provider's api id (DD-002 of entry
+    // 20260910.02; the Go offline suite's classify arm pinned the same wire
+    // id). Asserted against the row the runner itself picks from the same
+    // document, not a pinned string.
+    if (target.modelRegistryDocument === undefined) {
+      throw new Error(`target ${target.name} exposes no model registry document; execution targets must`);
+    }
+    const economy = economyRowFor(await target.modelRegistryDocument(), "anthropic");
+    expect(mockLlm.requestModels(), "the classifier called the economy-tier model, resolved").toEqual([
+      wireModelIdOf(economy),
+    ]);
   });
 
   it("re-connect keeps capabilities and the gated approval stable", async () => {

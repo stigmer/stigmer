@@ -29,7 +29,7 @@ import {
   makeAgentExecution,
   requireLlmProxy,
 } from "../support/agentexecutions";
-import { makeMemory } from "../support/memories";
+import { provisionOrgWithConfirmedFacts } from "../support/memories";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
 
@@ -60,35 +60,6 @@ afterAll(async () => {
   await target?.teardown();
 });
 
-// An org with the memory switch ON (org flag alone gates OSS recall — the
-// single-user subject sentinel), plus `count` facts run through the REAL
-// consent lifecycle: captured via create, confirmed via the consent RPC.
-async function provisionOrgWithConfirmedFacts(count: number): Promise<string> {
-  const org = await clients.organizationCommand.create({
-    apiVersion: "tenancy.stigmer.ai/v1",
-    kind: "Organization",
-    metadata: { name: uniqueName("retrorg") },
-    spec: { preferences: { memoryEnabled: true } },
-  });
-  fixtures.defer(() => clients.organizationCommand.delete({ value: org.metadata!.id }));
-  const slug = org.metadata!.slug;
-
-  for (let i = 0; i < count; i += 1) {
-    const memory = await clients.memoryCommand.create(
-      makeMemory(slug, { content: `Durable fact number ${i} about this user.` }),
-    );
-    fixtures.defer(async () => {
-      try {
-        await clients.memoryCommand.delete({ value: memory.metadata!.id });
-      } catch {
-        // Removed with the org.
-      }
-    });
-    await clients.memoryCommand.confirm({ value: memory.metadata!.id });
-  }
-  return slug;
-}
-
 // One completed execution in `org`, with a single scripted agent turn.
 async function runExecution(org: string) {
   const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("agent") }));
@@ -109,7 +80,7 @@ describe("AgentExecution memory retrieval (no-embedder posture)", () => {
   it("injects wholesale below the threshold with an honest report and no embeddings attempt", async () => {
     if (!target.capabilities.firstPartyMemoryCapture) return;
 
-    const org = await provisionOrgWithConfirmedFacts(1);
+    const { org } = await provisionOrgWithConfirmedFacts(clients, fixtures, 1);
     const settled = await runExecution(org);
 
     const snapshot = settled.spec?.recalledMemories;
@@ -130,7 +101,7 @@ describe("AgentExecution memory retrieval (no-embedder posture)", () => {
   it("degrades to wholesale above the threshold when no embedder is reachable — never a failed execution", async () => {
     if (!target.capabilities.firstPartyMemoryCapture) return;
 
-    const org = await provisionOrgWithConfirmedFacts(RETRIEVAL_ACTIVATION_THRESHOLD + 1);
+    const { org } = await provisionOrgWithConfirmedFacts(clients, fixtures, RETRIEVAL_ACTIVATION_THRESHOLD + 1);
     const settled = await runExecution(org);
 
     // The candidate set is intact on the spec — selection never rewrites

@@ -41,7 +41,7 @@
 // - usage reports, artifact download/content, subscribe streaming, sub-agents.
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
-import { homedir, tmpdir } from "node:os";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { create } from "@bufbuild/protobuf";
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
@@ -339,6 +339,42 @@ describe("AgentExecution conformance — lifecycle (running execution)", () => {
 
     const terminated = await awaitPhase(clients, id, ExecutionPhase.EXECUTION_TERMINATED);
     expect(terminated.status?.phase).toBe(ExecutionPhase.EXECUTION_TERMINATED);
+  });
+
+  // A repeated stop on an execution the same stop already ended is a benign
+  // no-op, not a FailedPrecondition: a client that retries a cancel (or a UI
+  // whose button was clicked twice) must not see an error for a state it
+  // asked for. Distinct from a cancel on a COMPLETED run, which the negatives
+  // below reject — the precondition is "not terminal by another outcome".
+  // (Entry 20260910.02, from the Go offline suite's lifecycle arms; DD-001.)
+  it("a second cancel on a CANCELLED execution is a benign no-op", async () => {
+    const { org } = await target.provisionTenancy();
+    const agentId = await provisionAgent(org);
+    const created = await createHeldExecution(org, agentId);
+    const id = created.metadata!.id;
+    await awaitPhase(clients, id, ExecutionPhase.EXECUTION_IN_PROGRESS);
+    await clients.agentExecutionCommand.cancel({ id, reason: "conformance" });
+    await awaitPhase(clients, id, ExecutionPhase.EXECUTION_CANCELLED);
+
+    const again = await clients.agentExecutionCommand.cancel({ id, reason: "conformance, again" });
+    expect(again.status?.phase, "the second cancel answers the already-cancelled execution").toBe(
+      ExecutionPhase.EXECUTION_CANCELLED,
+    );
+  });
+
+  it("a second terminate on a TERMINATED execution is a benign no-op", async () => {
+    const { org } = await target.provisionTenancy();
+    const agentId = await provisionAgent(org);
+    const created = await createHeldExecution(org, agentId);
+    const id = created.metadata!.id;
+    await awaitPhase(clients, id, ExecutionPhase.EXECUTION_IN_PROGRESS);
+    await clients.agentExecutionCommand.terminate({ id, reason: "conformance" });
+    await awaitPhase(clients, id, ExecutionPhase.EXECUTION_TERMINATED);
+
+    const again = await clients.agentExecutionCommand.terminate({ id, reason: "conformance, again" });
+    expect(again.status?.phase, "the second terminate answers the already-terminated execution").toBe(
+      ExecutionPhase.EXECUTION_TERMINATED,
+    );
   });
 
   it("pause then resume moves a running execution PAUSED -> IN_PROGRESS", async () => {
@@ -764,13 +800,16 @@ describe("AgentExecution conformance — attachments (#285)", () => {
     ).toBe(ExecutionPhase.EXECUTION_COMPLETED);
 
     // And the materialized bytes match end to end. The runner writes attachments
-    // to the session platform dir under its HOME (which it inherits from this
-    // process) and never deletes the session tree, so we can read it directly.
+    // to the session platform dir under ITS home — the harness-owned directory
+    // the target spawned it with (DD-002 of entry 20260910.02), never this
+    // process's — and it never deletes the session tree, so we read it there.
     const sessionId = final.spec?.sessionId;
     expect(sessionId, "execution should carry a session id").toBeTruthy();
-    const home = process.env.HOME || process.env.USERPROFILE || homedir();
+    if (target.runnerHomeDir === undefined) {
+      throw new Error(`target ${target.name} spawns no runner; the attachment arm needs its home directory`);
+    }
     const materialized = join(
-      home,
+      target.runnerHomeDir(),
       ".stigmer",
       "sessions",
       sessionId!,

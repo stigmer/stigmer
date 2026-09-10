@@ -8,6 +8,15 @@
 import type { ConformanceClients } from "../harness/clients";
 import type { McpToolFixture } from "../harness/mcp-server";
 import type { MockLlmProxy } from "../harness/mock-llm";
+import type { ModelRegistryDocument } from "../harness/model-registry";
+
+// Where a locally booted engine lives — see TargetProfile.engineCoordinates.
+export interface EngineCoordinates {
+  // host:port of the Temporal frontend.
+  temporalHostPort: string;
+  // http base URL of the server's unified port.
+  serverBaseUrl: string;
+}
 
 // Behaviors that legitimately differ across editions, gating assertions rather
 // than forking them. Local OSS is single-tenant and omits cloud-only lookups.
@@ -438,6 +447,38 @@ export interface TargetProfile {
   // only on execution targets; absent on CRUD/cloud targets. Suites obtain it via
   // requireMcpFixture() and register an McpServer pointing at its url().
   mcpFixture?(): McpToolFixture;
+
+  // The model registry document THE RUNNER RESOLVES AGAINST, fetched from the
+  // control-plane origin the target handed it (runner-process.ts
+  // `registryOrigin`; the server's unified port locally, the composition's
+  // authenticated proxy lane on cloud). The model-resolution arms compare the
+  // id the mock saw on the wire with this document's apiModelId — proving the
+  // runner resolved through the real registry, whichever edition served it.
+  // Present only on execution targets. Valid only after setup().
+  modelRegistryDocument?(): Promise<ModelRegistryDocument>;
+
+  // The HOME the target's runner runs under — a harness-owned directory (DD-002
+  // of entry 20260910.02), so the runner's `~/.stigmer/sessions/<id>/…` tree
+  // never lands in the developer's real home. A suite that reads what the
+  // runner materialized on disk (an attachment under the session's platform
+  // dir) reads under this path. Present only on targets that spawn the runner.
+  // Valid only after setup().
+  runnerHomeDir?(): string;
+
+  // The addresses a SECOND runner would need to join this target's engine: the
+  // Temporal frontend and the server's base URL. Present only on targets that
+  // boot their own Temporal (the local execution targets); the cloud runner
+  // discovers Temporal through the control plane, so the method is absent and
+  // the manager-mode IPC smoke reports SKIPPED. Valid only after setup().
+  engineCoordinates?(): EngineCoordinates;
+
+  // The on-disk artifact store the spawned server and runner share (the
+  // server's ARTIFACT_LOCAL_BASE_PATH = the runner's LOCAL_ARTIFACT_PATH, #285).
+  // The observation point for "these bytes never reached durable storage": the
+  // secret-withholding arms walk it. Present only on the local managed targets;
+  // on cloud, artifacts travel through the service's presigned routes and the
+  // arms that need the store report SKIPPED. Valid only after setup().
+  artifactStoreDir?(): string;
 
   // Clients authenticated as a fresh identity with no grants on any tenancy
   // provisioned so far — the "outsider" for cross-tenant isolation assertions

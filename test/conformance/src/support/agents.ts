@@ -37,11 +37,23 @@ export interface McpServerUsageOption {
   toolApprovalOverrides?: ToolApprovalOverrideOption[];
 }
 
+// A sub-agent the root agent may delegate to through the built-in `task` tool
+// (spec.sub_agents). Mirrors the proto SubAgent's three authored fields; the
+// name is what a tool_use turn names as `subagent_type`.
+export interface SubAgentOption {
+  name: string;
+  description?: string;
+  // Sub-agent system prompt; the proto's min_len=10 floor applies.
+  instructions: string;
+}
+
 export interface AgentSpecOptions {
   // Human-readable description; defaults to a stable placeholder.
   description?: string;
   // System prompt; defaults to a value comfortably above the min_len=10 floor.
   instructions?: string;
+  // Sub-agents projected into spec.sub_agents (the delegation arms).
+  subAgents?: SubAgentOption[];
   // McpServer slugs to reference via spec.mcp_server_usages. Each becomes an
   // mcp_server_ref with kind=mcp_server (the CEL constraint the agent spec
   // enforces). Org is left empty so the server normalizes it to the agent's org.
@@ -74,6 +86,15 @@ export function makeAgentSpec(opts: AgentSpecOptions = {}): InitShape<typeof Age
     description: opts.description ?? "conformance fixture",
     instructions: opts.instructions ?? "Review code carefully and suggest improvements.",
     mcpServerUsages: [...refUsages, ...richUsages],
+    ...(opts.subAgents !== undefined
+      ? {
+          subAgents: opts.subAgents.map((sub) => ({
+            name: sub.name,
+            description: sub.description ?? `${sub.name} sub-agent`,
+            instructions: sub.instructions,
+          })),
+        }
+      : {}),
     ...(opts.env !== undefined ? { env: makeEnvDeclarations(opts.env) } : {}),
   };
 }
@@ -89,11 +110,11 @@ export interface AgentOptions extends AgentSpecOptions {
 
 // A complete, valid Agent resource ready to hand to create/apply/update.
 export function makeAgent(opts: AgentOptions): InitShape<typeof AgentSchema> {
-  const { org, name, labels, description, instructions, mcpServerRefs, mcpServerUsages, env } = opts;
+  const { org, name, labels, description, instructions, subAgents, mcpServerRefs, mcpServerUsages, env } = opts;
   return {
     apiVersion: AGENT_API_VERSION,
     kind: AGENT_KIND,
     metadata: { name, org, ...(labels !== undefined ? { labels } : {}) },
-    spec: makeAgentSpec({ description, instructions, mcpServerRefs, mcpServerUsages, env }),
+    spec: makeAgentSpec({ description, instructions, subAgents, mcpServerRefs, mcpServerUsages, env }),
   };
 }
