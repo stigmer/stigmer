@@ -1,5 +1,5 @@
 # =============================================================================
-# Go SDK quality gate: sdk/go
+# Go quality gate: apis/stubs/go and sdk/go — every go.work module
 # =============================================================================
 # The Go-SDK counterpart of ci.java-sdk: the only CI that compiles sdk/go
 # before it ships inside release artifacts (release.cli and release.desktop
@@ -9,7 +9,21 @@
 # workflow built sdk/go, so `make check-go` was red on every developer
 # machine while CI stayed green.
 #
-# Three gates, one job (issue #264 closed the hygiene gaps):
+# Since Bazel's retirement (20260904.04, 2026-09-10) this lane is also the
+# compile gate for the committed Go proto stubs in apis/stubs/go, the same
+# way ci.java-sdk installs apis/stubs/java before building the Java SDK. The
+# stubs need their own step: sdk/go imports none of the stub packages, the
+# stubs carry no tests, and ci.codegen owns their FRESHNESS, not whether they
+# compile — so `bazelw build //...` (ci.bazel's graph arm, oss#616) had been
+# the only lane compiling the 39 packages external Go consumers import by
+# module path. Hygiene (gofmt, tidy -diff) stays sdk/go-only on purpose: the
+# stubs are generated and apis/scripts/gen-stubs.sh owns their shape. The
+# local twin of the build step is `make check-go`.
+#
+# Four gates, one job (issue #264 closed the hygiene gaps):
+#   - stubs compile — `go build ./...` + `go vet ./...` in apis/stubs/go,
+#     first because it needs only the Go toolchain and is the cheapest thing
+#     that can fail.
 #   - freshness — regenerates the SDK client code (Stage 2, schemas are
 #     committed) and fails if the committed copy differs, so stale or
 #     hand-edited generated code fails here rather than silently drifting
@@ -21,10 +35,11 @@
 #     CI lane checks; without them formatting and go.mod drift land silently
 #     and turn up as noise in unrelated PRs.
 #
-# go.work/go.work.sum are trigger paths because sdk/go is a go.work member:
-# the checkout runs these commands in workspace mode, so a workspace change
-# (module set, Go version, the genproto replace) changes this module's build
-# without touching sdk/go/** (the ci.conformance lanes model the same).
+# go.work/go.work.sum are trigger paths because both modules are go.work
+# members: the checkout runs these commands in workspace mode, so a workspace
+# change (module set, Go version, the genproto replace) changes their build
+# without touching either module's files (the ci.conformance lanes model the
+# same). apis/** is a trigger path because it holds the stubs.
 # =============================================================================
 
 name: ci.go-sdk
@@ -72,7 +87,18 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: go.work
-          cache-dependency-path: sdk/go/go.sum
+          cache-dependency-path: |
+            apis/stubs/go/go.sum
+            sdk/go/go.sum
+
+      # The stubs' only compile gate (see the header). Before the Node setup
+      # because it needs nothing but Go; a stub that does not compile fails
+      # here in seconds rather than after an npm ci.
+      - name: Build and vet the Go proto stubs
+        working-directory: apis/stubs/go
+        run: |
+          go build ./...
+          go vet ./...
 
       # The client generator runs from TypeScript source via the repo-pinned
       # tsx (never bare npx — oss#531), so the root npm install must exist
