@@ -15,16 +15,12 @@ import { uniqueOrg } from "../support/naming";
 import type {
   CapabilityFlags,
   PrivilegedScope,
-  ServerImplementation,
   TargetProfile,
   TenancyContext,
 } from "./target";
 
 export class LocalTarget implements TargetProfile {
   readonly name: string = "local";
-  // The spawned TypeScript server — every local target, Postgres or SQLite,
-  // engine or not, is this implementation by construction.
-  readonly implementation: ServerImplementation = "stigmer-server";
   // The retired Go server's exact matrix — the parity promise the TS port
   // was gated on (D4). The one deliberate divergence, workflowChild-
   // ApprovalForwarding, lives on local-execution (#23).

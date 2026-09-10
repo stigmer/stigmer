@@ -18,7 +18,7 @@
 import { CLOUD_ENV } from "./cloud-env";
 
 export default async function setup(): Promise<() => Promise<void>> {
-  const missing = [CLOUD_ENV.implementation, CLOUD_ENV.address, CLOUD_ENV.token].filter(
+  const missing = [CLOUD_ENV.address, CLOUD_ENV.token].filter(
     (name) => process.env[name] === undefined,
   );
   if (missing.length > 0) {
@@ -30,8 +30,7 @@ export default async function setup(): Promise<() => Promise<void>> {
     );
   }
   console.log(
-    `cloud conformance: using pre-provisioned environment at ${process.env[CLOUD_ENV.address]} ` +
-      `(${process.env[CLOUD_ENV.implementation]})`,
+    `cloud conformance: using pre-provisioned environment at ${process.env[CLOUD_ENV.address]}`,
   );
   return async () => {};
 }

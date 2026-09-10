@@ -6,8 +6,8 @@
 # enumerated FROM JAVA'S CODE, cross-checked against Java's unit tests, and
 # given a disposition that says where it is proven. `npm run inventory:check`
 # (scripts/check-inventory.ts, logic in src/inventory/inventory.ts) fails the
-# CI lanes when a `conformance` or `deviation` row has no test tag, when a tag
-# names no row, or when a tag sits on a row whose proof lives elsewhere.
+# CI lanes when a `conformance` row has no test tag, when a tag names no row,
+# or when a tag sits on a row whose proof lives elsewhere.
 #
 # Row fields (schema enforced by src/inventory/inventory.ts):
 #   id           <surface>.<lane>.<behavior> — stable dotted name, never a number;
@@ -21,7 +21,10 @@
 #   java_source  path under backend/services/stigmer-service/src/main/java/ai/stigmer (:line)
 #   java_test    path under .../src/test/java/ai/stigmer, or `none`
 #   class        behavior | carve-out (a DD-012 byte-identical carve-out) | adversarial
-#   disposition  conformance | deviation | unit | smoke | debris-candidate | debris
+#   disposition  conformance | unit | smoke | debris-candidate | debris
+#                (`deviation` — the contract asserted here while Java carried a
+#                tracked entry for its wrong answer — retired with the Java
+#                service and its registry, stigmer#1023)
 #   observability launcher | composition-only | none
 #                (the hermetic launcher runs Java in PRODUCTION security mode
 #                since entry 20260907.02, so authentication-class rows are
@@ -29,9 +32,8 @@
 #   caller       primary | operator | outsider | anonymous | runner-token | none
 #   needs        fixtures/affordances the test requires
 #   note         optional context
-#   disputed     optional: why Java looks wrong (drives a `deviation` ruling)
 #
-# Owner rulings on rows (debris cuts, deviation calls) are dated lines in the
+# Owner rulings on rows (debris cuts) are dated lines in the
 # entry's tasks/T01_1_review.md; the row's `disposition` is the ruling's
 # durable form. `debris-candidate` rows await that ruling.
 #
@@ -744,12 +746,12 @@ rows:
     observability: launcher
     caller: primary
     needs: [unfunded-org]
-  - id: billing.gate.reserve.unfunded-execution-denied-with-ruled-contract
+  - id: billing.gate.reserve.unfunded-execution-denied
     surface: billing
     lane: >-
       gate.reserve
     behavior: >-
-      An agent execution created in a zero-balance org lands the ruled denial — Java async (EXECUTION_FAILED with status.error "Insufficient credits: Insufficient credits to start execution" and the system message "Execution could not start: ...") or the composition's synchronous FAILED_PRECONDITION "Insufficient credits to start execution" — selected by STIGMER_CONFORMANCE_BILLING_DENIAL_CONTRACT.
+      An agent-execution create in a zero-balance org is refused synchronously: FAILED_PRECONDITION with the engine's denial reason verbatim ("Insufficient credits to start execution"), and no execution resource exists afterwards. (Ruled at the C5 facade's plan gate, Q5, "strictly earlier than the Java refusal": Java accepted the create and failed the execution asynchronously with "Insufficient credits: ..." / "Execution could not start: ..."; that arm retired with Java.)
     java_source: >-
       domain/agentic/agentexecution/temporal/workflow/InvokeAgentExecutionWorkflowImpl.java:437-513
     java_test: >-
@@ -760,7 +762,7 @@ rows:
     caller: primary
     needs: [unfunded-org, agent-execution]
     note: >-
-      Already asserted by suites-execution/billing-denial.conformance.test.ts (both arms); that suite adopts this row's tag.
+      Asserted by suites-execution/billing-denial.conformance.test.ts, which carries this row's tag.
   - id: billing.gate.reserve.funding-clears-denial
     surface: billing
     lane: >-
@@ -949,12 +951,12 @@ rows:
     java_test: >-
       domain/billing/stripe/StripeWebhookControllerTest.java
     class: adversarial
-    disposition: deviation
+    disposition: conformance
     observability: launcher
     caller: anonymous
     needs: [fake-stripe]
     note: >-
-      MEASURED 2026-09-07 on the production-mode launcher (entry 20260907.02): Java answers 401, not 400 — the framework's MissingRequestHeaderException 400 re-dispatches to /error, which HttpSecurityConfig's anyRequest().denyAll() turns into 401 for the anonymous caller (invisible under test security mode). The suite asserts 400 (the composition's answer) and carries Java in contract/deviations.ts as java.stripe-webhook.missing-signature-header-401; the entry retires with Java.
+      The composition answers 400. Java answered 401 (MEASURED 2026-09-07 on the production-mode launcher, entry 20260907.02: the framework's MissingRequestHeaderException 400 re-dispatched to /error, which HttpSecurityConfig's anyRequest().denyAll() turned into 401 for the anonymous caller) and was the row's one `deviation` disposition until the Java service and the registry that tracked its entry retired (stigmer#1023).
   - id: billing.stripe.webhook.anonymous-reachable
     surface: billing
     lane: >-

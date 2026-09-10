@@ -102,9 +102,9 @@ distinct from `mcp.conformance.test.ts`, which exercises the `@stigmer/mcp-serve
 **bridge** — its MCP tool surface against a live server — not the McpServer
 resource controllers.
 
-The harness, target-profile abstraction, capability flags, parity comparison,
-and the spec-first deviation registry built here are reused by every later slice
-(more domains, execution lifecycle, the cloud target).
+The harness, target-profile abstraction, capability flags and parity comparison
+built here are reused by every later slice (more domains, execution lifecycle,
+the cloud target).
 
 ## Running it
 
@@ -160,10 +160,7 @@ npm run test:cloud -w @stigmer/conformance   # or: make test-conformance-cloud
 
 The `globalSetup` (`global-setup-cloud.ts`) only checks the contract is
 declared and refuses by name when it is not — a run that boots nothing must not
-pass. `STIGMER_CONFORMANCE_CLOUD_IMPLEMENTATION` names whose code answers
-(`stigmer-server`; the axis had a second member, `stigmer-service`, until the
-Java service retired). Files run serially (they share one multi-tenant
-service). Tenancy is real here: `provisionTenancy()` creates an organization
+pass. Files run serially (they share one multi-tenant service). Tenancy is real here: `provisionTenancy()` creates an organization
 through the production RPC (the primary user becomes owner; a zero-balance
 billing account is provisioned automatically), unlike the local targets where
 an org is just a unique slug. There is no CI lane for the cloud targets in this
@@ -196,8 +193,7 @@ CRUD suites:
   `inventory/cloud-capabilities.yaml` lists every behavior of those surfaces
   read out of the Java code, each with a disposition saying where it is
   proven (`conformance` here; `unit` in an edition's own tables; `smoke` on a
-  live lane; `debris` cut by the owner; `deviation` where Java is wrong and
-  the suite asserts the contract). Every `it` carries its row id as a
+  live lane; `debris` cut by the owner). Every `it` carries its row id as a
   `[billing.rpc.foo.bar]` tag, and `npm run inventory:check` fails the CI
   lanes when a `conformance` row has no test or a tag names no row — "every
   behavior is covered" is computed, never claimed.
@@ -216,18 +212,6 @@ CRUD suites:
   contract; the addresses state where the environment serves it — a cloud
   target whose flag is true and whose lane is missing FAILS, never skips.
   That red is the implementing entry's acceptance.
-- **The environment declares which server answers.**
-  `STIGMER_CONFORMANCE_CLOUD_IMPLEMENTATION` names whose code answers behind
-  the cloud target — `stigmer-server`, the TypeScript composition — REQUIRED
-  on the cloud targets and published by the provisioner (the composition's
-  `readout-bootstrap`). The cloud targets are connect-only and cannot tell
-  from the wire (`getServerInfo` answers `cloud` for the edition, not the
-  implementation); the known-deviation registry keys an implementation's
-  quirks on exactly this fact, so an environment that forgets it is refused
-  by name (stigmer#1012). The axis had two members while the Java
-  `stigmer-service` still served the cloud edition. It is a
-  different axis from the target NAME: a name is a deployment shape, the
-  implementation is whose code is behind it (`TargetProfile.implementation`).
 
 **Edge posture.** The authentication-class arms — 401 without a bearer, foreign
 and expired tokens, the API-key lane, CORS, the require-scope header, the
@@ -287,64 +271,37 @@ codebase writes anyway.
 
 ### Spec-first contract (`src/contract/`)
 
-Tests assert the **intended** contract, not whatever an implementation happens
-to do today. When an implementation legitimately deviates because of a known
-bug, it gets a tracked entry in the **known-deviation registry**
-(`deviations.ts`) instead of the test quietly asserting the wrong behavior. An
-entry records both readings as prose — `contract` and `observed` — and the arm
-supplies the two assertions, handing over the target's identity
-(`TargetIdentity`: its name and its implementation). Entries key on the
-**implementation** that deviates (`stigmer-service`, the Java service; every
-entry today), never on a target's name — the `cloud` targets serve whichever
-implementation the environment declares, and the TypeScript composition behind
-the same name asserts the contract (stigmer#1012). There are two kinds, because
-there are two kinds of bug:
+Tests assert the **intended** contract, not whatever the server happens to do
+today. There is one server codebase behind every target (`@stigmer/server`,
+alone or inside the cloud composition), and it is the reference implementation
+the contract is written against — so when a suite finds it answering something
+else, that is a bug to fix in the server or a contract to amend with a design
+decision, never a thing to work around in the suite. A behavior that
+legitimately differs between editions is a `CapabilityFlag` (below), gating an
+assertion rather than forking it. Nothing in the suite retries, sleeps past, or
+skips a failing assertion.
 
-- **Deterministic** (`assertContractOrDeviation`): the implementation ALWAYS
-  answers the observed reading. The arm runs only the `observed` assertion
-  there, so the day the implementation is fixed that assertion fails and the
-  entry must be deleted. Three entries today, all Java's, from the launcher
-  entry that first ran Java in production security mode (stigmer-cloud
-  `20260907.02`).
-- **Race** (`assertContractOrKnownRace`): the implementation SOMETIMES answers
-  the observed reading, on a timing it does not control. The arm asserts the
-  contract first, on every target; only an assertion failure on a registered
-  implementation opens the race path, where `observed` must PROVE the specific
-  race (a failure there is an unknown symptom and stays red), the firing is
-  reported on one grep-able `[conformance] tracked race … on <target>
-  (<implementation>)` line, and — where the entry names a remedy — the arm
-  applies it and asserts the contract exactly once more. A race entry cannot
-  self-expire, so it states when it is deleted. Two entries today, both Java's
-  and reachable only under a runner (the execution suites), from the Class B
-  lane-integrity entry (stigmer-cloud `20260908.01`): the approval write lost
-  to the workflow's WAITING heartbeat, applied at the submit seam
-  (`support/agentexecutions.ts` → `submitApprovalPerContract`), and the trailing
-  terminal write that closes a subscription the pinned S4 quirk says stays open.
-
-Neither kind is a retry budget, a sleep or a skip: the contract assertion runs
-on every target every time, and nothing in the registry is reached unless the
-target's implementation is registered AND (for a race) the contract just
-failed. The registry can never hide a regression or bless a bug permanently.
-The Java service retired on 2026-09-10 (stigmer-cloud DD-013); every entry
-naming it and the `stigmer-service` member of `ServerImplementation` are dead
-and delete together in stigmer#1023 (the approval race seam collapses with
-them — a small refactor with its own tests, kept out of the deletion PR). The
-local targets carried no entries until entry 20260910.02: the previous ones —
-duplicate-create / missing-name / missing-spec returning `Unknown`, and
-`getVersion` with a malformed hash returning `NotFound` — were resolved
-(stigmer/stigmer#192) by enforcing protovalidate at the gRPC transport boundary
-and by making the affected pipeline steps return typed gRPC status errors, and
-their registry entries were removed. The one entry keyed on `stigmer-server`
-today (`ts.workflow.task-kind-registry-rpc-unrouted`, stigmer#1026: the
-`TaskKindRegistryQueryController` RPC has no handler on the TypeScript server,
-so the Workflow Architect's registry tool 404s) is a contract question the
-owner ruled a server regression; the unit arm in `contract/__tests__` requires
-every such entry to cite its filed issue, so the TypeScript server never
-acquires a deviation nobody decided.
+History: until 2026-09-10 the suite also carried a **known-deviation registry**
+(`deviations.ts`) — tracked entries, keyed on the server implementation behind
+a target, for the Java `stigmer-service`'s known bugs (three deterministic, two
+races), so a Java target could be held to the contract without the suite
+asserting Java's wrong answer as if it were right. The Java service retired
+(stigmer-cloud DD-013) and the registry, the `TargetProfile.implementation`
+axis it keyed on, and the approval race seam built over it were deleted
+together (stigmer#1023); the design is in git history. Earlier still, the local
+targets carried entries for the retired Go server (duplicate-create /
+missing-name / missing-spec returning `Unknown`, `getVersion` with a malformed
+hash returning `NotFound`), resolved by stigmer/stigmer#192.
 
 `parity.ts` compares resources while ignoring server-owned, non-deterministic
 fields (`metadata.id`, `metadata.version`, `status`). `errors.ts` asserts gRPC
 status codes with diagnostic messages.
+
+Approval submits have one gesture: `submitApprovalPerContract`
+(`support/agentexecutions.ts`) submits the decision and asserts the response's
+`pending_approvals` reflects it synchronously — the one definition of that
+contract, and the reason a decision the server failed to record is red at the
+submit that made it rather than a timeout later in the arm.
 
 ### Target profiles and capability flags (`src/targets/`)
 
@@ -566,7 +523,7 @@ src/
                       model-registry, git-workspace, global-setup-execution
                     + cloud: cloud-env, cloud-fixtures, fake-llm-upstream, fake-stripe, fake-discord-webhook, global-setup-cloud
   targets/          target (interface + capabilities), local, local-execution, local-postgres, cloud, cloud-execution, index
-  contract/         errors, deviations, parity
+  contract/         errors, parity
   support/          naming, workflows (set_vars + wait + human_input + agent_call + llm_call + eval), execution-poll, workflowexecutions,
                     agentexecutions, file-review, workflow-architect, agents, mcpservers, memories, skills, environments,
                     executioncontexts, sessions, …
@@ -584,11 +541,9 @@ src/
 2. Add `src/suites/<domain>.conformance.test.ts` (Class A) — or, for an
    execution domain, `src/suites-execution/<domain>.conformance.test.ts` driven
    by the `local-execution` target.
-3. Assert the intended contract; register any genuine implementation bug as a
-   known deviation rather than asserting the wrong behavior — deterministic if
-   the target always answers wrong, race if it sometimes does (and then the
-   `observed` assertion must prove that specific race, never merely "not the
-   contract").
+3. Assert the intended contract. A server answer that does not match it is a
+   server bug or a contract question — never something the suite asserts as
+   right; an edition difference is a `CapabilityFlag`, never a fork.
 4. An approval submit goes through `submitApprovalPerContract`, never a bare
    `submitApproval` followed by an `expect` on `pending_approvals`.
 
@@ -599,13 +554,14 @@ For a surface only the cloud edition serves (the E1 pattern):
 1. Add a `CapabilityFlags` entry in `targets/target.ts` with the rationale
    block the others carry — true on `cloud`, false on the local targets with
    the DD-001 reason — and, if it is an HTTP lane, an optional address
-   accessor beside `proxyBaseUrl()`, fed from a new `CLOUD_ENV` entry that
-   both `global-setup-cloud.ts` and the composition readout publish.
+   accessor beside `proxyBaseUrl()`, fed from a new `CLOUD_ENV` entry the
+   composition readout publishes.
 2. Enumerate its behaviors as rows in `inventory/cloud-capabilities.yaml`
    (stable dotted ids; one disposition each; cite the Java source and test).
 3. Write the suite gated at collection time (`describe.skipIf(!flag)`), every
    `it` tagged with its row ids; script any upstream the server dials through
    `harness/cloud-fixtures.ts` and its control client, never by importing a
    fake into the worker.
-4. Run `npm run inventory:check` (zero problems) and the hermetic cloud run
-   green before the composition run — Java's behavior is the spec.
+4. Run `npm run inventory:check` (zero problems), then the cloud run against
+   the composition readout (stigmer-cloud's recipe) — its red is the
+   implementing entry's acceptance until the lane lands.

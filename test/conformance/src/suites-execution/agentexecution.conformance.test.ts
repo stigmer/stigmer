@@ -55,7 +55,6 @@ import { UploadAttachmentRequestSchema } from "@stigmer/protos/ai/stigmer/agenti
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { Code } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { assertContractOrKnownRace, SUBSCRIBE_TRAILING_TERMINAL_WRITE_RACE } from "../contract/deviations";
 import { expectGrpcCode } from "../contract/errors";
 import { assertResourceParity } from "../contract/parity";
 import type { ConformanceClients } from "../harness/clients";
@@ -994,19 +993,11 @@ describe("AgentExecution conformance — subscribe & populated read surfaces (CW
       (signal) => clients.agentExecutionQuery.subscribe({ value: created.metadata!.id }, { signal }),
       { timeoutMs: 3_000 },
     );
-    // On the Java target a trailing duplicate terminal write can arrive as a
-    // broker update after the snapshot and trip the check — the tracked race
-    // (contract/deviations.ts); the observed reading is final, no remedy.
-    await assertContractOrKnownRace(target, SUBSCRIBE_TRAILING_TERMINAL_WRITE_RACE, {
-      contract: () => {
-        expect(stream.outcome, "no server close — the bounded reader had to abort").toBe("timeout");
-        expect(stream.messages).toHaveLength(1);
-      },
-      observed: () => {
-        expect(stream.outcome, "Java's trailing terminal write closed the stream").toBe("closed");
-        expect(stream.messages.length, "the snapshot, then the trailing update").toBeGreaterThanOrEqual(1);
-      },
-    });
+    // The store serializes the runner's terminal write and the workflow's
+    // fallback persist, so no trailing broker update ever follows the snapshot
+    // to trip the close check — exactly one message, and the reader aborts.
+    expect(stream.outcome, "no server close — the bounded reader had to abort").toBe("timeout");
+    expect(stream.messages).toHaveLength(1);
     expect(stream.messages[0]?.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
   });
 

@@ -48,13 +48,8 @@
 //
 // Every gate-resolving submit goes through submitApprovalPerContract (the seam
 // in support/agentexecutions.ts) since entry 20260908.01: the synchronous
-// contract above is asserted there once, and the one known Java race against
-// it — SubmitApproval's targeted write lost to the workflow's second WAITING
-// persist, the decision surviving only in the approval-event stream — is
-// proven, reported and remedied there (contract/deviations.ts,
-// SUBMIT_APPROVAL_LOST_UPDATE_RACE). The REJECT arm's audit assertions are the
-// same race's other face and route through the same entry. TS targets never
-// enter that path.
+// contract above is asserted there once, so a decision the server failed to
+// record is red at the submit that made it, never a timeout later in the arm.
 import { Code } from "@connectrpc/connect";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import {
@@ -65,7 +60,6 @@ import {
   ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { assertContractOrKnownRace, SUBMIT_APPROVAL_LOST_UPDATE_RACE } from "../contract/deviations";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
@@ -78,7 +72,6 @@ import {
   allToolCalls,
   awaitPhase,
   awaitTerminal,
-  expectDecisionLostFromTranscript,
   makeAgentExecution,
   requireLlmProxy,
   requireMcpFixture,
@@ -196,8 +189,7 @@ describe("AgentExecution submitApproval — gate resolution", () => {
     ).toBe(true);
 
     // The single gate is fully resolved synchronously: the approved entry is gone.
-    await submitApprovalPerContract(target, clients, {
-      executionId,
+    await submitApprovalPerContract({
       expectedRemaining: 0,
       label: "approve clears the pending gate",
       submit: () =>
@@ -226,8 +218,7 @@ describe("AgentExecution submitApproval — gate resolution", () => {
     const { executionId, gated } = await runToGate(org, agentId, [echoBlock("call_echo_skip", "hello")]);
 
     const toolCallId = gated.status!.pendingApprovals[0]!.toolCallId;
-    await submitApprovalPerContract(target, clients, {
-      executionId,
+    await submitApprovalPerContract({
       expectedRemaining: 0,
       label: "skip clears the pending gate",
       submit: () =>
@@ -248,8 +239,7 @@ describe("AgentExecution submitApproval — gate resolution", () => {
     const { executionId, gated } = await runToGate(org, agentId, [echoBlock("call_echo_reject", "hello")]);
 
     const toolCallId = gated.status!.pendingApprovals[0]!.toolCallId;
-    await submitApprovalPerContract(target, clients, {
-      executionId,
+    await submitApprovalPerContract({
       expectedRemaining: 0,
       label: "reject clears the pending gate",
       submit: () =>
@@ -270,23 +260,15 @@ describe("AgentExecution submitApproval — gate resolution", () => {
     // The rejected tool call is terminalized deterministically — never left stuck
     // at WAITING_APPROVAL — carrying the REJECT decision for audit. This is stable
     // across resume because it is derived from the recorded approval_action, not
-    // from the resumed stream's (unstable) run_id. On the Java target this is the
-    // AUDIT face of the submit-approval race (contract/deviations.ts): the
-    // response passed, the run completed, and the decision survives only in the
-    // approval-event stream — there is no remedy, the observed reading is final.
+    // from the resumed stream's (unstable) run_id.
     const rejectedTc = allToolCalls(final).find((tc) => tc.id === toolCallId);
     expect(rejectedTc, "the rejected echo tool call is present in the transcript").toBeDefined();
-    await assertContractOrKnownRace(target, SUBMIT_APPROVAL_LOST_UPDATE_RACE, {
-      contract: () => {
-        expect(rejectedTc!.status, "rejected tool call resolves to SKIPPED, not WAITING").toBe(
-          ToolCallStatus.TOOL_CALL_SKIPPED,
-        );
-        expect(rejectedTc!.approvalAction, "the REJECT decision is preserved for audit").toBe(
-          ApprovalAction.REJECT,
-        );
-      },
-      observed: () => expectDecisionLostFromTranscript(final),
-    });
+    expect(rejectedTc!.status, "rejected tool call resolves to SKIPPED, not WAITING").toBe(
+      ToolCallStatus.TOOL_CALL_SKIPPED,
+    );
+    expect(rejectedTc!.approvalAction, "the REJECT decision is preserved for audit").toBe(
+      ApprovalAction.REJECT,
+    );
   });
 
   it("APPROVE_ALL resolves every co-pending gate in a single decision", async () => {
@@ -302,8 +284,7 @@ describe("AgentExecution submitApproval — gate resolution", () => {
 
     // One APPROVE_ALL on the first resolves the whole gate — no second submit.
     // One decision empties the read model: the co-pending entry was resolved too.
-    await submitApprovalPerContract(target, clients, {
-      executionId,
+    await submitApprovalPerContract({
       expectedRemaining: 0,
       label: "APPROVE_ALL resolves both gates at once",
       submit: () =>
@@ -356,11 +337,10 @@ describe("AgentExecution submitApproval — spec bypass and read model", () => {
     expect(pending.mcpServerSlug, "pending approval carries the server slug").toBe(mcpSlug);
 
     // Settle so the run terminates cleanly. Through the seam even though this
-    // arm asserts nothing about the response: a decision the Java race drops
-    // would otherwise surface as awaitTerminal timing out, a red with a
-    // misleading face.
-    await submitApprovalPerContract(target, clients, {
-      executionId,
+    // arm is about the read model, not the decision: a decision the server
+    // failed to record would otherwise surface as awaitTerminal timing out, a
+    // red with a misleading face.
+    await submitApprovalPerContract({
       expectedRemaining: 0,
       label: "the settling approve clears the gate",
       submit: () =>
@@ -392,8 +372,7 @@ describe("AgentExecution submitApproval — spec bypass and read model", () => {
         action: ApprovalAction.APPROVE,
       });
     // One of two co-pending gates resolved: the other is still pending.
-    await submitApprovalPerContract(target, clients, {
-      executionId,
+    await submitApprovalPerContract({
       expectedRemaining: 1,
       label: "one gate remains after first approve",
       submit: approveFirst,
@@ -406,8 +385,7 @@ describe("AgentExecution submitApproval — spec bypass and read model", () => {
     expect(secondResp.status?.pendingApprovals[0]?.toolCallId, "the remaining gate is unchanged").toBe(secondId);
 
     // Resolve the rest of the gate and confirm the run still completes.
-    await submitApprovalPerContract(target, clients, {
-      executionId,
+    await submitApprovalPerContract({
       expectedRemaining: 0,
       label: "the second approve clears the gate",
       submit: () =>
@@ -440,8 +418,7 @@ describe("AgentExecution submitApproval — lease, cancel at the gate, durable r
     });
     expect(gated.status?.pendingApprovals.map((p) => p.toolName)).toEqual([ECHO_TOOL_NAME]);
 
-    await submitApprovalPerContract(target, clients, {
-      executionId,
+    await submitApprovalPerContract({
       expectedRemaining: 0,
       label: "APPROVE_ALL resolves the first gate",
       submit: () =>
@@ -479,8 +456,7 @@ describe("AgentExecution submitApproval — lease, cancel at the gate, durable r
     const { executionId, gated } = await runToGate(org, agentId, [echoBlock("call_durable", "durable")]);
     const toolCallId = gated.status!.pendingApprovals[0]!.toolCallId;
 
-    await submitApprovalPerContract(target, clients, {
-      executionId,
+    await submitApprovalPerContract({
       expectedRemaining: 0,
       label: "approve clears the gate",
       submit: () =>
@@ -575,9 +551,8 @@ describe("AgentExecution submitApproval — negatives", () => {
     );
 
     // Settle the real gate so the run terminates cleanly (through the seam, so
-    // a Java-dropped decision does not surface as a timeout here).
-    await submitApprovalPerContract(target, clients, {
-      executionId,
+    // an unrecorded decision is red here, not a timeout downstream).
+    await submitApprovalPerContract({
       expectedRemaining: 0,
       label: "the settling approve clears the gate",
       submit: () =>
