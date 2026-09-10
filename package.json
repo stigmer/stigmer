@@ -24,10 +24,10 @@
   ],
   "scripts": {
     "prepare": "husky || true",
-    "build:runner-deps": "npm run build -w @stigmer/protos && npm run build -w @stigmer/temporal-codecs && npm run build -w @stigmer/zip-structure",
-    "build:libs": "npm run build -w @stigmer/protos && npm run build -w @stigmer/temporal-codecs && npm run build -w @stigmer/zip-structure && npm run build -w @stigmer/sdk && npm run build -w @stigmer/theme && npm run build -w @stigmer/react && npm run build -w @stigmer/embed && npm run build -w @stigmer/ink && npm run build -w @stigmer/mcp-server && npm run build -w @stigmer/seedpack && npm run build -w @stigmer/cli",
-    "clean:libs": "npm run clean -w @stigmer/protos && npm run clean -w @stigmer/temporal-codecs && npm run clean -w @stigmer/zip-structure && npm run clean -w @stigmer/sdk && npm run clean -w @stigmer/theme && npm run clean -w @stigmer/react && npm run clean -w @stigmer/embed && npm run clean -w @stigmer/ink && npm run clean -w @stigmer/mcp-server && npm run clean -w @stigmer/seedpack && npm run clean -w @stigmer/cli",
-    "test": "node --test scripts/*.test.mjs && npm run test -w @stigmer/temporal-codecs && npm run test -w @stigmer/zip-structure && npm run test -w @stigmer/sdk && npm run test -w @stigmer/react && npm run test -w @stigmer/theme && npm run test -w @stigmer/embed && npm run test -w @stigmer/ink && npm run test -w @stigmer/mcp-server && npm run test -w @stigmer/seedpack && npm run test -w @stigmer/cli"
+    "build:runner-deps": "node scripts/turbo-set.mjs runner-deps build",
+    "build:libs": "node scripts/turbo-set.mjs libs build",
+    "clean:libs": "node scripts/turbo-set.mjs libs clean",
+    "test": "node --test scripts/*.test.mjs && node scripts/turbo-set.mjs libs test"
   },
   "lint-staged": {
     "docs/**/*.{md,mdx}": [
@@ -39,7 +39,8 @@
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
     "prettier": "^3.8.1",
-    "tsx": "^4.21.0"
+    "tsx": "^4.21.0",
+    "turbo": "2.10.12"
   },
   "overrides": {
     "zod": "^3.25.0",

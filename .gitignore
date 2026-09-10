@@ -6,6 +6,8 @@
 *.dylib
 bin/
 dist/
+# Turborepo's local task cache and per-package task logs (turbo.json).
+.turbo
 dist-slim/
 dist-slim-pkgs/
 # Per-arch trees the Docker image build stages (scripts/smoke-docker-image.mjs).
