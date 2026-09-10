@@ -46,6 +46,17 @@ export interface SessionSpecOptions {
   mcpServerRefs?: string[];
   // Session-level Skill slugs, projected into spec.skill_refs.
   skillRefs?: string[];
+  // Workspaces mounted for the session's turns (spec.workspace_entries), each a
+  // local path on the runner's host. The first entry is the primary workspace:
+  // when it is a git work tree the runner runs its turns in file-review capture
+  // mode (the file-review suites attach a harness GitWorkspace here).
+  localWorkspaces?: LocalWorkspaceOption[];
+}
+
+export interface LocalWorkspaceOption {
+  name: string;
+  // Absolute path on the host the runner runs on.
+  path: string;
 }
 
 // A valid SessionSpec referencing the given agent instance. Optional harness /
@@ -62,6 +73,14 @@ export function makeSessionSpec(opts: SessionSpecOptions): InitShape<typeof Sess
       mcpServerRef: { slug, kind: ApiResourceKind.mcp_server },
     })),
     skillRefs: (opts.skillRefs ?? []).map((slug) => ({ slug, kind: ApiResourceKind.skill })),
+    ...(opts.localWorkspaces !== undefined
+      ? {
+          workspaceEntries: opts.localWorkspaces.map((workspace) => ({
+            name: workspace.name,
+            source: { source: { case: "localPath" as const, value: { path: workspace.path } } },
+          })),
+        }
+      : {}),
   };
 }
 

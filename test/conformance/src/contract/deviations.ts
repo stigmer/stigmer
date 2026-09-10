@@ -87,7 +87,36 @@ const JAVA: ServerImplementation[] = ["stigmer-service"];
 export const SUBMIT_APPROVAL_LOST_UPDATE_RACE = "java.agentexecution.submit-approval.lost-update-race";
 export const SUBSCRIBE_TRAILING_TERMINAL_WRITE_RACE = "java.execution-subscribe.trailing-terminal-write-closes";
 
+// The TypeScript server — the one live implementation. Its first entry
+// (below) is the first the registry has carried for a target that is not
+// Java's: found by the offline runner suite's port (stigmer-cloud entry
+// 20260910.02), a shared-proto RPC the port left unrouted.
+const TS_SERVER: ServerImplementation[] = ["stigmer-server"];
+
+// Deterministic id, exported so the architect suite and this registry cannot
+// drift by a typo.
+export const TASK_KIND_REGISTRY_RPC_UNROUTED = "ts.workflow.task-kind-registry-rpc-unrouted";
+
 export const KNOWN_DEVIATIONS: KnownDeviation[] = [
+  {
+    kind: "deterministic",
+    id: TASK_KIND_REGISTRY_RPC_UNROUTED,
+    implementations: TS_SERVER,
+    contract:
+      "TaskKindRegistryQueryController.getTaskKindRegistry answers the task-kind registry document (the " +
+      "same one the HTTP lane /v1/proxy/task-kind-registry serves), so an MCP tool or SDK client that " +
+      "calls the RPC gets the registry.",
+    observed:
+      "The TypeScript server routes no handler for the controller; the call answers 404, the Workflow " +
+      "Architect's get_task_kind_registry tool records an empty result, and the agent proceeds without " +
+      "the registry.",
+    rationale:
+      "The Java service routed the controller; the TypeScript port serves the document on the plain-HTTP " +
+      "lane only (transport/server.ts lane 1) and never gained the RPC handler. Every gRPC caller of the " +
+      "registry — the stigmer mcp-server's two registry tools, @stigmer/sdk's getTaskKindRegistry — has " +
+      "answered 404 since Java retired on 2026-09-10.",
+    tracking: "stigmer/stigmer#1026 — routed on the OSS server; the entry and this constant delete with the fix.",
+  },
   {
     kind: "deterministic",
     id: "java.stripe-webhook.missing-signature-header-401",

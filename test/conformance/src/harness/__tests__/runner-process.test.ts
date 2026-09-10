@@ -7,7 +7,7 @@
 // Pure: a string in, a string out. No target, no spawn.
 // Domain: conformance harness (execution engine).
 import { describe, expect, it } from "vitest";
-import { describeRunnerForceKill } from "../runner-process";
+import { describeRunnerForceKill, runnerHomeEnv } from "../runner-process";
 
 // The Temporal SDK prints each worker state change as a five-line object.
 function workerStateChanged(state: string): string[] {
@@ -139,5 +139,15 @@ describe("describeRunnerForceKill", () => {
     const message = describeRunnerForceKill("rker stopped\nsomething else\n");
 
     expect(message).toContain('worker="not stopped"');
+  });
+});
+
+// The runner's home relocation (entry 20260910.02, ruling 2): the runner reads
+// HOME then USERPROFILE for its `~/.stigmer` (shared/workspace/platform-dir.ts),
+// and Node's homedir() — behind its workspace-root and artifact defaults —
+// reads the same pair, so both must point at the harness-owned directory.
+describe("runnerHomeEnv", () => {
+  it("relocates both home variables the runner reads to the harness-owned directory", () => {
+    expect(runnerHomeEnv("/tmp/harness-home")).toEqual({ HOME: "/tmp/harness-home", USERPROFILE: "/tmp/harness-home" });
   });
 });

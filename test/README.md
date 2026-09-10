@@ -4,8 +4,8 @@ The test surfaces of the Stigmer platform that live outside a package's own unit
 
 | Suite | Directory | What it tests | Runs |
 |-------|-----------|---------------|------|
-| **Conformance** | `conformance/` | The gRPC API contract, implementation-agnostic: the same suites run against the OSS `stigmer-server` (`local*` targets, booted from source) and against the cloud composition (`cloud*` targets, pre-provisioned by stigmer-cloud's readout recipe). Class A (CRUD) and the execution class (runner-backed). The cross-edition instrument. | `make test-conformance`, `make test-conformance-execution`; the `cloud*` targets from stigmer-cloud |
-| **Deterministic offline (runner)** | `integration-offline/` | 74 arms that drive the runner with recorded LLM turns — HITL, structured output, file review, subagents, memory retrieval, provider-error attribution — through a booted backend. **Dormant since 2026-09-10**: the backend it booted was the Java `stigmer-service`, retired that day; it runs again once the shared harness boots the OSS `stigmer-server` instead (the re-point, stigmer#1022). | `make test-integration-offline` (after the re-point) |
+| **Conformance** | `conformance/` | The gRPC API contract, implementation-agnostic: the same suites run against the OSS `stigmer-server` (`local*` targets, booted from source) and against the cloud composition (`cloud*` targets, pre-provisioned by stigmer-cloud's readout recipe). Class A (CRUD) and the execution class (runner-backed), which since stigmer#1022 also carries the runner-behavior facets the Go offline suite used to hold — HITL and file review, structured output, sub-agents, memory retrieval, provider-error attribution, the LLM-backed workflow tasks — as scripted-turn arms on the same harness. The cross-edition instrument. | `make test-conformance`, `make test-conformance-execution`; the `cloud*` targets from stigmer-cloud |
+| **Deterministic offline (runner)** | `integration-offline/` | The Go predecessor of the execution class's runner-behavior facets. Its 78 arms were ported to TypeScript arm for arm (stigmer#1022; the accounting is stigmer-cloud entry `20260910.02`'s `T01_1_arm-disposition.md`) and the suite is deleted together with the Go harness in the follow-up PR that closes #1022. | none — dormant until deleted |
 | **E2E (Playwright)** | `e2e/` | Browser UI tests — smoke, functional, and interactive tiers | see `e2e/` |
 | **Extension consumer** | `extension-consumer/` | A clean-room consumer of the `@stigmer/server` extension registry (DD-005/DD-006) | `make test-extension-consumer` |
 
@@ -21,6 +21,7 @@ The test surfaces of the Stigmer platform that live outside a package's own unit
 |------------|---------|---------|
 | Node (`.nvmrc`) | The conformance suite, the runner, the fixtures | `nvm use` |
 | `temporal` CLI | The execution class (a dev server backs the runner) | `curl -sSf https://temporal.download/cli.sh \| sh` |
+| `git` | The execution class's file-review suites (a capture-mode workspace is a real work tree) | preinstalled on macOS and `ubuntu-latest` |
 | Go 1.25+ | The offline runner suite's harness | `brew install go` |
 | Docker | The offline suite's Testcontainers infra | Docker Desktop / Colima |
 

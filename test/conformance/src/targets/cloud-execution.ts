@@ -31,6 +31,7 @@ import { CLOUD_ENV } from "../harness/cloud-env";
 import type { ConformanceClients } from "../harness/clients";
 import { McpToolFixture } from "../harness/mcp-server";
 import { MockLlmProxy } from "../harness/mock-llm";
+import { fetchModelRegistryDocument, type ModelRegistryDocument } from "../harness/model-registry";
 import { ensureRunnerBuilt } from "../harness/runner-build";
 import { spawnRunner, type RunningRunner } from "../harness/runner-process";
 import { CloudTarget } from "./cloud";
@@ -100,6 +101,12 @@ export class CloudExecutionTarget implements TargetProfile {
       entryPath: runnerEntry,
       backendEndpoint,
       cloudBootstrap: { token: primaryToken },
+      // The composition serves the authenticated registry document on its
+      // proxy lane (stigmer-cloud `src/proxy/model-registry.ts`, C6 Q6) — the
+      // origin a production cloud runner fetches it from, with the bearer it
+      // bootstraps with. LLM traffic still goes to the mock: only the
+      // registry fetch rides the real lane.
+      registryOrigin: requireCloudEnv(CLOUD_ENV.proxyAddress),
       proxy: { endpoint: this.mockLlm.url(), token: "conformance-cloud-bootstrap" },
       // Artifacts presign against the real service's HTTP port (MinIO-backed)
       // while LLM traffic stays on the mock — the presign-capable artifact
@@ -142,6 +149,22 @@ export class CloudExecutionTarget implements TargetProfile {
   // from the proxy) reach them exactly as the Class A arms do.
   proxyBaseUrl(): string {
     return this.cloud.proxyBaseUrl();
+  }
+
+  // The document the runner was pointed at (registryOrigin in setup): the
+  // composition's authenticated proxy lane, read with the same primary-user
+  // credential the runner bootstraps with.
+  modelRegistryDocument(): Promise<ModelRegistryDocument> {
+    return fetchModelRegistryDocument(this.cloud.proxyBaseUrl(), {
+      authorization: `Bearer ${requireCloudEnv(CLOUD_ENV.token)}`,
+    });
+  }
+
+  runnerHomeDir(): string {
+    if (this.runner === undefined) {
+      throw new Error("CloudExecutionTarget.setup() must be called before runnerHomeDir()");
+    }
+    return this.runner.homeDir;
   }
 
   cursorBidiBaseUrl(): string {

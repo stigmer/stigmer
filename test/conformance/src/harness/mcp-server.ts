@@ -32,26 +32,73 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { z } from "zod";
 
-// The single tool this fixture exposes. Deterministic by construction: it echoes
+// The default tool this fixture exposes. Deterministic by construction: it echoes
 // its `text` argument straight back, so a tool call's result is fully assertable
 // without any external dependency. The name is bare (no server prefix) because
 // the runner binds MCP tools by their bare names — the agent's approval override
 // and the mock LLM's tool_use turn both reference exactly this string.
 export const ECHO_TOOL_NAME = "echo";
 
-// Build a fresh MCP server exposing only `echo`. Called per request (stateless
-// mode), so registration is cheap and self-contained.
-function buildEchoServer(): McpServer {
+// A tool that always fails. The runner must record the failed ToolCall and let
+// the agent continue — a failing tool is a tool result, not a failed run — and
+// that contract needs a tool whose failure is deterministic (entry 20260910.02,
+// the messages suite; the Go test server's `fail`).
+export const FAIL_TOOL_NAME = "fail";
+
+// The tool surfaces the fixture can expose. A registered McpServer names its
+// surface IN ITS URL (see url()), so every existing suite keeps the one-tool
+// `echo` server it pins by exact tool list, and a suite that needs `fail`
+// registers a second McpServer resource pointing at the same fixture process.
+// Per-request construction (stateless mode) is what makes this free: the tool
+// set is read off the path each time, no per-file posture involved.
+export type FixtureTool = typeof ECHO_TOOL_NAME | typeof FAIL_TOOL_NAME;
+const FIXTURE_TOOLS: ReadonlySet<string> = new Set<FixtureTool>([ECHO_TOOL_NAME, FAIL_TOOL_NAME]);
+
+// Build a fresh MCP server exposing exactly `tools`. Called per request
+// (stateless mode), so registration is cheap and self-contained.
+function buildFixtureServer(tools: readonly FixtureTool[]): McpServer {
   const server = new McpServer({ name: "conformance-mcp-fixture", version: "1.0.0" });
-  server.registerTool(
-    ECHO_TOOL_NAME,
-    {
-      description: "Returns the input text unchanged. For deterministic conformance assertions.",
-      inputSchema: { text: z.string().describe("the value to echo back") },
-    },
-    ({ text }) => ({ content: [{ type: "text", text }] }),
-  );
+  for (const tool of tools) {
+    switch (tool) {
+      case ECHO_TOOL_NAME:
+        server.registerTool(
+          ECHO_TOOL_NAME,
+          {
+            description: "Returns the input text unchanged. For deterministic conformance assertions.",
+            inputSchema: { text: z.string().describe("the value to echo back") },
+          },
+          ({ text }) => ({ content: [{ type: "text", text }] }),
+        );
+        break;
+      case FAIL_TOOL_NAME:
+        server.registerTool(
+          FAIL_TOOL_NAME,
+          {
+            description: "Always fails with the given message. For deterministic tool-failure assertions.",
+            inputSchema: { message: z.string().describe("the failure message to report") },
+          },
+          ({ message }) => ({ isError: true, content: [{ type: "text", text: `fail tool: ${message}` }] }),
+        );
+        break;
+      default: {
+        const exhaustive: never = tool;
+        throw new Error(`unknown fixture tool: ${String(exhaustive)}`);
+      }
+    }
+  }
   return server;
+}
+
+// The tool set a request path names: `/mcp` is the default one-tool echo
+// surface; `/mcp/<name>,<name>` an explicit set. Unknown names are undefined
+// so the handler can refuse them by name rather than serve a guessed surface.
+export function toolsForPath(path: string): FixtureTool[] | undefined {
+  const [pathname = ""] = path.split("?");
+  if (pathname === "/mcp") return [ECHO_TOOL_NAME];
+  if (!pathname.startsWith("/mcp/")) return undefined;
+  const names = pathname.slice("/mcp/".length).split(",");
+  if (names.length === 0 || !names.every((name) => FIXTURE_TOOLS.has(name))) return undefined;
+  return names as FixtureTool[];
 }
 
 // One JSON-RPC request as observed by the fixture: the method from the body
@@ -125,12 +172,15 @@ export class McpToolFixture {
   }
 
   // The McpServer http.url to register: the MCP client POSTs JSON-RPC here.
-  url(): string {
+  // Without arguments it is the one-tool `echo` surface every existing suite
+  // pins; with a tool list it is that exact surface, named in the path.
+  url(tools?: readonly FixtureTool[]): string {
     if (this.server === undefined) {
       throw new Error("McpToolFixture.start() must be called before url()");
     }
     const { port } = this.server.address() as AddressInfo;
-    return `http://127.0.0.1:${port}/mcp`;
+    const base = `http://127.0.0.1:${port}/mcp`;
+    return tools === undefined ? base : `${base}/${tools.join(",")}`;
   }
 
   async close(): Promise<void> {
@@ -153,6 +203,21 @@ export class McpToolFixture {
       return;
     }
 
+    // The path names the tool surface (see url()); a name the fixture does not
+    // know is a registration mistake, refused by name.
+    const tools = toolsForPath(req.url ?? "");
+    if (tools === undefined) {
+      res.writeHead(404, { "content-type": "application/json" });
+      res.end(
+        JSON.stringify({
+          jsonrpc: "2.0",
+          id: null,
+          error: { code: -32000, message: `McpToolFixture: unknown tool surface ${req.url ?? ""}` },
+        }),
+      );
+      return;
+    }
+
     // Buffer and parse the body ourselves so each request can be captured with
     // its JSON-RPC method (stigmer#382 asserts headers per wire request). The
     // transport accepts a pre-parsed body for exactly this pattern.
@@ -167,7 +232,7 @@ export class McpToolFixture {
       await this.hold.promise;
     }
 
-    const mcp = buildEchoServer();
+    const mcp = buildFixtureServer(tools);
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
     res.on("close", () => {
       void transport.close();

@@ -14,6 +14,9 @@
 // wire. A change to any of them is a contract change, not a copy edit.
 import type { InitShape } from "./init-shape";
 import { MemorySchema } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/api_pb";
+import type { ConformanceClients } from "../harness/clients";
+import type { FixtureTracker } from "../harness/fixtures";
+import { uniqueName } from "./naming";
 
 export const MEMORY_API_VERSION = "agentic.stigmer.ai/v1";
 export const MEMORY_KIND = "Memory";
@@ -75,4 +78,50 @@ export function makeMemory(
       content: options.content ?? "Prefers terse answers with code examples.",
     },
   };
+}
+
+export interface OrgWithConfirmedFacts {
+  // The org's slug — the scope the agent and its executions run in.
+  org: string;
+  // The confirmed memories' ids in CAPTURE ORDER, which is the snapshot order
+  // the retriever sends candidates in (the order the selection arms compare
+  // injected_memory_ids against).
+  memoryIds: string[];
+}
+
+// An org with the memory switch ON (the org flag alone gates OSS recall — the
+// single-user subject sentinel), plus `count` facts run through the REAL
+// consent lifecycle: captured via create, confirmed via the consent RPC.
+// Shared by the memory-retrieval (no-embedder) and memory-selection
+// (embedder) execution suites, which differ only in the mock's posture.
+export async function provisionOrgWithConfirmedFacts(
+  clients: ConformanceClients,
+  fixtures: FixtureTracker,
+  count: number,
+): Promise<OrgWithConfirmedFacts> {
+  const org = await clients.organizationCommand.create({
+    apiVersion: "tenancy.stigmer.ai/v1",
+    kind: "Organization",
+    metadata: { name: uniqueName("retrorg") },
+    spec: { preferences: { memoryEnabled: true } },
+  });
+  fixtures.defer(() => clients.organizationCommand.delete({ value: org.metadata!.id }));
+  const slug = org.metadata!.slug;
+
+  const memoryIds: string[] = [];
+  for (let i = 0; i < count; i += 1) {
+    const memory = await clients.memoryCommand.create(
+      makeMemory(slug, { content: `Durable fact number ${i} about this user.` }),
+    );
+    fixtures.defer(async () => {
+      try {
+        await clients.memoryCommand.delete({ value: memory.metadata!.id });
+      } catch {
+        // Removed with the org.
+      }
+    });
+    await clients.memoryCommand.confirm({ value: memory.metadata!.id });
+    memoryIds.push(memory.metadata!.id);
+  }
+  return { org: slug, memoryIds };
 }

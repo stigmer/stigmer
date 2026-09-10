@@ -55,12 +55,18 @@ describe("the registry", () => {
     }
   });
 
-  it("holds only the Java service's bugs today — an entry naming the TypeScript server would be a contract question, not a deviation", () => {
+  it("an entry naming the TypeScript server is a contract question the owner has ruled on: it cites the filed stigmer issue", () => {
     // The TS server is the reference implementation the contract is written
-    // against; if it ever deviates, the fix is the server's or the contract's,
-    // and this arm is where that decision surfaces first.
+    // against; when it deviates, the fix is the server's or the contract's,
+    // and that decision must be taken by the owner, not by an entry. This arm
+    // is where it surfaces: the first such entry (entry 20260910.02, the
+    // unrouted task-kind registry RPC) was ruled a server regression and
+    // filed; every entry keyed on stigmer-server must carry its issue the same
+    // way, or it is a deviation nobody decided.
     for (const entry of KNOWN_DEVIATIONS) {
-      expect(entry.implementations, entry.id).toEqual(["stigmer-service"]);
+      if (!entry.implementations.includes("stigmer-server")) continue;
+      expect(entry.kind, `${entry.id}: the TS server's entries are deterministic bugs, never races`).toBe("deterministic");
+      expect(entry.tracking, `${entry.id}: names the filed stigmer issue`).toMatch(/stigmer\/stigmer#\d+/);
     }
   });
 

@@ -351,6 +351,160 @@ export function makeListenWorkflow(opts: ListenWorkflowOptions): InitShape<typeo
   };
 }
 
+// The llm_call fixtures' task names, exported so the llm-call suite reads task
+// status by the same identifiers the fixtures define.
+export const LLM_CALL_TASK_NAME = "callLlm";
+export const LLM_CALL_SET_VARS_TASK_NAME = "setVars";
+
+// The registry model id every LLM-backed task fixture pins. A REGISTRY id (dot
+// form), not a provider api id: the runner resolves it through the control
+// plane's model registry before the call leaves, which is exactly what the
+// model-resolution arms observe on the mock's wire (support/model-registry.ts).
+export const LLM_TASK_MODEL = "claude-sonnet-4.6";
+
+export interface LlmCallWorkflowOptions {
+  org: string;
+  name: string;
+  // The user prompt. A constant is a valid expression.
+  prompt?: string;
+  systemPrompt?: string;
+  // JSON schema the task's response must satisfy (LlmCallTaskConfig.response_schema).
+  // With a schema the task parses the model's text as JSON and validates it;
+  // without one the text is the output.
+  responseSchema?: JsonObject;
+  // Registry model id; defaults to LLM_TASK_MODEL.
+  model?: string;
+  // Prepend a set_vars task (LLM_CALL_SET_VARS_TASK_NAME) with these variables,
+  // so the suite can assert per-task status shapes across two task types in one
+  // run (the task I/O arm).
+  precedingVariables?: Record<string, string>;
+}
+
+// A Workflow whose LLM-backed task is one `llm_call`. The taskConfig is the typed
+// LlmCallTaskConfig (snake_case keys), converted server-side to CNCF
+// `call: llm`. Needs the mock LLM (the runner makes one provider call per task),
+// so it pairs with an execution target's llmProxy(). The bounded retries and
+// timeout keep a mis-scripted mock a fast failure instead of a phase timeout.
+export function makeLlmCallWorkflow(opts: LlmCallWorkflowOptions): InitShape<typeof WorkflowSchema> {
+  const { org, name, prompt = "Say hello.", systemPrompt, responseSchema, model = LLM_TASK_MODEL } = opts;
+  const llmConfig: JsonObject = {
+    model,
+    prompt,
+    ...(systemPrompt !== undefined ? { system_prompt: systemPrompt } : {}),
+    ...(responseSchema !== undefined ? { response_schema: responseSchema, temperature: 0 } : {}),
+    max_tokens: 100,
+    timeout: 60,
+    max_retries: 1,
+  };
+  return {
+    apiVersion: WORKFLOW_API_VERSION,
+    kind: WORKFLOW_KIND,
+    metadata: { name, org },
+    spec: {
+      description: "conformance llm_call fixture",
+      document: { dsl: "1.0.0", namespace: org, name, version: "1.0.0" },
+      tasks: [
+        ...(opts.precedingVariables !== undefined
+          ? [
+              {
+                name: LLM_CALL_SET_VARS_TASK_NAME,
+                kind: WorkflowTaskKind.set_vars,
+                taskConfig: { variables: opts.precedingVariables },
+                export: { as: "${ . }" },
+              },
+            ]
+          : []),
+        {
+          name: LLM_CALL_TASK_NAME,
+          kind: WorkflowTaskKind.llm_call,
+          taskConfig: llmConfig,
+          export: { as: "${ . }" },
+        },
+      ],
+    },
+  };
+}
+
+// The eval fixtures' task names, exported for the same reason as the llm_call
+// ones. The eval reads its subject from the set_vars task's exported context.
+export const EVAL_SUBJECT_TASK_NAME = "setSubject";
+export const EVAL_TASK_NAME = "judge";
+export const EVAL_AFTER_TASK_NAME = "afterEval";
+
+// The scoring modes and failure policies EvalTaskConfig declares, as the full
+// proto enum strings the json-schema and the server converter expect (the
+// human_input fixture's on_timeout convention).
+export type EvalScoringMode = "EVAL_PASS_FAIL" | "EVAL_NUMERIC_SCORE";
+export type EvalFailPolicy = "EVAL_FAIL_RAISE" | "EVAL_FAIL_WARN";
+
+export interface EvalWorkflowOptions {
+  org: string;
+  name: string;
+  // The text under judgment, exported by the preceding set_vars as `subject`.
+  subject: string;
+  rubric: string;
+  scoringMode: EvalScoringMode;
+  // Minimum passing score for EVAL_NUMERIC_SCORE; ignored for pass/fail.
+  threshold?: number;
+  onFail: EvalFailPolicy;
+  // Append a trailing set_vars (EVAL_AFTER_TASK_NAME) so the suite can prove the
+  // run continued past a failing eval under the WARN policy.
+  withAfterTask?: boolean;
+}
+
+// A Workflow of set_vars -> eval (-> set_vars). The judge is the mock LLM: the
+// runner binds a forced `extract` tool for the eval's structured verdict
+// (withStructuredOutput), so the suite scripts one anthropicToolUse turn named
+// `extract` with the verdict fields (EVAL_EXTRACT_TOOL_NAME) — the same shape
+// the classifier arms use. The taskConfig is the typed EvalTaskConfig.
+export function makeEvalWorkflow(opts: EvalWorkflowOptions): InitShape<typeof WorkflowSchema> {
+  const { org, name, subject, rubric, scoringMode, threshold, onFail, withAfterTask = false } = opts;
+  const evalConfig: JsonObject = {
+    model: LLM_TASK_MODEL,
+    subject: `\${ $context.${EVAL_SUBJECT_TASK_NAME}.subject }`,
+    rubric,
+    scoring_mode: scoringMode,
+    ...(threshold !== undefined ? { threshold } : {}),
+    on_fail: onFail,
+  };
+  return {
+    apiVersion: WORKFLOW_API_VERSION,
+    kind: WORKFLOW_KIND,
+    metadata: { name, org },
+    spec: {
+      description: "conformance eval fixture",
+      document: { dsl: "1.0.0", namespace: org, name, version: "1.0.0" },
+      tasks: [
+        {
+          name: EVAL_SUBJECT_TASK_NAME,
+          kind: WorkflowTaskKind.set_vars,
+          taskConfig: { variables: { subject } },
+          export: { as: "${ . }" },
+        },
+        {
+          name: EVAL_TASK_NAME,
+          kind: WorkflowTaskKind.eval,
+          taskConfig: evalConfig,
+          export: { as: "${ . }" },
+        },
+        ...(withAfterTask
+          ? [
+              {
+                name: EVAL_AFTER_TASK_NAME,
+                kind: WorkflowTaskKind.set_vars,
+                taskConfig: { variables: { continuation: "reached" } },
+              },
+            ]
+          : []),
+      ],
+    },
+  };
+}
+
+// The tool name LangChain's withStructuredOutput binds for a forced structured
+// verdict; the judge's turn must be a tool_use of exactly this name.
+export const EVAL_EXTRACT_TOOL_NAME = "extract";
+
 // The agent_call task name and its downstream continue-task name, exported so the
 // child-approval suite refers to the same identifiers the fixture defines (the
 // downstream task completing is how the suite proves the child resumed).
