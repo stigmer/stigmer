@@ -76,7 +76,7 @@ Determine the `<scope-path>` from the changed files. Use the most impacted area 
 
 - Build Configuration
   - `apis/buf.yaml`, `apis/Makefile` → `apis`
-  - Root `Makefile`, `MODULE.bazel` → `build`
+  - Root `Makefile` → `build`
 
 - Documentation
   - `*.md` files → `docs`

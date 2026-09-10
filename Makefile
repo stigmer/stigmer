@@ -1,8 +1,17 @@
 bump ?= patch
 
-GO_MODULES := \
-	apis/stubs/go \
-	sdk/go
+# The Go module set has one home: go.work. Every Go target below loops over
+# this list, so it is derived from go.work at use time rather than kept by
+# hand — the hand-kept list drifted before (four entries while go.work held
+# eight; 20260904.04's survey, fact 4), and a module missing here is a module
+# no gate compiles. `go list -m` in workspace mode prints exactly the `use`
+# modules; the result is made repo-relative so the per-module echo lines read
+# `apis/stubs/go`, not an absolute path. Recursively expanded (`=`) on purpose:
+# it is evaluated only by a target that references it, so `make help` or a
+# web-only target on a machine without Go never runs `go`. When the list comes
+# back empty the guard stops make with a real message instead of letting a
+# `for` loop over nothing pass as green.
+GO_MODULES = $(or $(patsubst $(CURDIR)/%,%,$(shell go list -m -f '{{.Dir}}' 2>/dev/null)),$(error go.work yielded no Go modules — is Go installed? run: go list -m))
 
 RUNNER_DIR := backend/services/runner
 SERVER_DIR := backend/services/stigmer-server
@@ -550,7 +559,7 @@ tidy: ## Run go mod tidy on all Go modules
        lint-docs lint-docs-audit format-docs format-docs-check check-links libs-build web-build validate-demos tsdoc-check test-demos \
        check-docs-inventory check-conformance-inventory \
        test-web test-desktop test-runner-host test-e2e test-e2e-approval test-a11y check check-all \
-       check-prep check-go check-node check-site check-rust check-java check-bazel
+       check-prep check-go check-node check-site check-rust check-java
 fix: ## Auto-fix linting and formatting issues
 	@gofmt -s -w .
 	-npm run lint:fix -w @stigmer/react
@@ -752,7 +761,7 @@ OUTPUT_SYNC := $(shell test "$(MAKE_MAJOR)" -ge 4 2>/dev/null && echo -Otarget)
 
 check: ## Run full CI gate locally (parallelized)
 	$(MAKE) check-prep
-	$(MAKE) -j$(JOBS) $(OUTPUT_SYNC) check-go check-node check-site check-rust check-java check-bazel
+	$(MAKE) -j$(JOBS) $(OUTPUT_SYNC) check-go check-node check-site check-rust check-java
 	@echo ""
 	@echo "✓ check passed"
 
@@ -770,7 +779,17 @@ check-prep: ## Sequential prep for check: tidy, fix, build shared libs/stubs, re
 
 # Stage 2 — parallel buckets. Each bucket is internally sequential; libs + proto
 # stubs are already built by check-prep, so no bucket rebuilds shared artifacts.
-check-go: ## check bucket: Go vet/test/build + buf lint + binaries
+# The Go compile gate. `go build ./...` per module is what `bazelw build //...`
+# used to be before Bazel's retirement (oss#616's graph arm, 20260904.04): it
+# compiles and links every package, so a committed stub that no other module
+# imports (apis/stubs/go has no tests and sdk/go reaches none of it) still
+# fails here and in ci.go-sdk instead of on a consumer's machine. vet then
+# type-checks the test files build does not link.
+check-go: ## check bucket: Go build/vet/test over every go.work module + buf lint
+	@for mod in $(GO_MODULES); do \
+		echo "build    $$mod"; \
+		(cd $$mod && go build ./...) || exit 1; \
+	done
 	@for mod in $(GO_MODULES); do \
 		echo "vet      $$mod"; \
 		(cd $$mod && go vet ./...) || exit 1; \
@@ -780,17 +799,6 @@ check-go: ## check bucket: Go vet/test/build + buf lint + binaries
 		echo "testing  $$mod"; \
 		(cd $$mod && go test -race -timeout 30s ./...) || exit 1; \
 	done
-
-# Local twin of ci.bazel's required graph arm (oss#616). Build compiles and
-# links every target including test binaries (catches the #596/#604 class);
-# gazelle -mode=diff fails on stale BUILD files (the only detector for the
-# cloud#414 class — a target that was never generated cannot fail to build).
-# Tests deliberately NOT run here: check-go already runs them with -race.
-check-bazel: ## check bucket: bazel graph integrity — full-graph build + BUILD-file freshness
-	./bazelw build //...
-	@./bazelw run //:gazelle -- -mode=diff || \
-		(echo ""; echo "BUILD files are stale — fix: ./bazelw run //:gazelle, then commit."; exit 1)
-
 check-node: ## check bucket: npm typecheck/lint/build/test (web, react, sdk, desktop, runner, demos, e2e)
 	npm run typecheck -w @stigmer/sdk
 	# The conformance package's typecheck (the same step ci.ts-sdk runs): it

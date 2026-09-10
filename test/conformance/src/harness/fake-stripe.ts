@@ -36,9 +36,9 @@ import type { AddressInfo } from "node:net";
 import { readBody } from "./fake-llm-upstream";
 import { writeJson } from "./llm-wire";
 
-// The API version stripe-java 32.1.0 (stigmer-cloud MODULE.bazel) pins in
+// The API version the retired Java service's stripe-java 32.1.0 pinned in
 // com.stripe.Stripe.API_VERSION — read from the published jar's class
-// constant pool on 2026-09-06. Bump with the Java dependency.
+// constant pool on 2026-09-06, before the service left (stigmer-cloud#698).
 export const STRIPE_JAVA_API_VERSION = "2026-04-22.dahlia";
 
 // The one card this fixture knows. Every payment method it answers carries

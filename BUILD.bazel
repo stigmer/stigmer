@@ -1,6 +1,0 @@
-load("@gazelle//:def.bzl", "gazelle")
-
-# gazelle:prefix github.com/stigmer/stigmer
-# gazelle:exclude apis/ai
-# gazelle:exclude sdk
-gazelle(name = "gazelle")

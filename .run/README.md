@@ -7,9 +7,8 @@ This directory contains run configurations for IntelliJ IDEA to make development
 ### Build & Generate
 
 - **build-protos** - Generate protobuf stubs using `make protos`
-- **gazelle** - Run Gazelle to generate/update BUILD.bazel files
 
-(The Go server/CLI launch and remote-debug configs retired with the Go server — go-server-retirement, D4 #25. The TypeScript server runs via `make build-server && node dist/main.js`, or through `stigmer up`.)
+(The Go server/CLI launch and remote-debug configs retired with the Go server — go-server-retirement, D4 #25. The `gazelle` config retired with Bazel — 20260904.04 Stage A; Go packages need no BUILD files now, so there is nothing to regenerate after adding Go code. The TypeScript server runs via `make build-server && node dist/main.js`, or through `stigmer up`.)
 
 ## Usage
 
@@ -17,16 +16,9 @@ This directory contains run configurations for IntelliJ IDEA to make development
 2. Select the desired configuration
 3. Click Run (▶️) or Debug (🐛)
 
-### Bazel Plugin Required
-
-The `gazelle` configuration requires the [Bazel plugin](https://plugins.jetbrains.com/plugin/8609-bazel) for IntelliJ.
-
-Install via: **Settings → Plugins → Marketplace → Search "Bazel"**
-
 ## Typical Workflow
 
 1. **After proto changes**: Run `build-protos`
-2. **After adding new Go files** (sdk/go, tools, seedpack): Run `gazelle` to update BUILD files
 
 ## Customization
 
