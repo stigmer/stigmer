@@ -140,7 +140,7 @@ export interface RunnerOptions {
   artifactProxy?: { endpoint: string };
   // When set, the runner's combined stdout/stderr is also streamed to this
   // file (directory created as needed). The cloud-execution target points it
-  // under test/integration/.test-output/logs/ so a red CI run's uploaded
+  // under test/conformance/.test-output/logs/ so a red CI run's uploaded
   // environment-logs artifact carries the runner's side of the story — the
   // in-memory logTail() only surfaces on SPAWN failure, which leaves an
   // execution that failed mid-run undiagnosable after teardown.

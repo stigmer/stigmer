@@ -23,7 +23,7 @@
 // McpServer + transport (sessionIdGenerator: undefined), so independent runner
 // connections over the fixture's lifetime never share session state and nothing
 // leaks between executions — the right default for a stateless `echo` tool, and
-// the behavioral match to the Go reference fixture (mcp_http_server.go). The
+// the behavioral match to the retired Go harness's mcp_http_server.go. The
 // fixture is booted once per file and must OUTLIVE every execution (the runner
 // connects at each execution's setup), so it is closed only in afterAll.
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";

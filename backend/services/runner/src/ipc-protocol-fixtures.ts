@@ -1,8 +1,7 @@
 // Golden wire-shape examples for the manager-mode IPC contract — one representative
-// instance per message. This is the single source the cross-language mirrors assert
-// against (Rust `protocol.rs`, Go `unified_runner.go`): the generator script serializes
-// `buildFixtures()` to `fixtures/ipc-protocol.generated.json`, and each mirror's tests
-// read that artifact. Because every sample is typed against an `Ipc*` interface from
+// instance per message. This is the single source the cross-language mirror asserts
+// against (Rust `protocol.rs`): the generator script serializes `buildFixtures()` to
+// `fixtures/ipc-protocol.generated.json`, and the mirror's tests read that artifact. Because every sample is typed against an `Ipc*` interface from
 // `ipc-protocol.ts`, renaming or retyping a field there fails `tsc` here — that compile
 // error is what binds the fixtures to the contract. Full rules: docs/ipc-protocol.md.
 

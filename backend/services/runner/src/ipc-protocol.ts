@@ -1,9 +1,10 @@
 // Canonical machine-readable definition of the manager-mode IPC contract.
 // The runner emits these messages; the Rust host crate (crates/stigmer-runner-host/src/
-// protocol.rs) and the Go integration harness (unified_runner.go) hand-mirror them. Those
-// mirrors are kept honest by golden fixtures generated from this file via
-// ipc-protocol-fixtures.ts (run `make gen-ipc-fixtures`). Full spec and the rule for keeping
-// all definitions in sync: docs/ipc-protocol.md.
+// protocol.rs) hand-mirrors them, kept honest by golden fixtures generated from this file
+// via ipc-protocol-fixtures.ts (run `make gen-ipc-fixtures`). The conformance harness's
+// manager-mode spawner (test/conformance/src/harness/runner-manager-process.ts) imports
+// these types directly rather than mirroring them. Full spec and the rule for keeping all
+// definitions in sync: docs/ipc-protocol.md.
 
 // Integer protocol version advertised in the `ready` handshake. Bump ONLY on a
 // breaking change (removed/renamed message, changed field type, changed lifecycle
