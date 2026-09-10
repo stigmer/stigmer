@@ -74,6 +74,7 @@
     }
   },
   "devDependencies": {
+    "@stigmer/protos": "*",
     "vitest": "^3.2.4"
   }
 }
