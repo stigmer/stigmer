@@ -70,8 +70,8 @@ npm run lint
 ```
 
 **Requirements**:
-- Node.js 18+
-- npm or yarn
+- Node.js 22 (the version in the repo's `.nvmrc`; `nvm use` picks it up)
+- npm, the version bundled with that Node (named by `packageManager` in the root `package.json`). npm is the workspace's only package manager; yarn is used only inside `site/`, which is a separate project.
 
 ## Style Guide
 
