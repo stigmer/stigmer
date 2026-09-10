@@ -1,28 +1,41 @@
 // @stigmer/seedpack — the embedded system seedpack, delivered as an npm package.
 //
 // The seedpack is a standard Stigmer project (a stigmer.yaml plus vendored
-// agents, skills, MCP servers, and workflows). Historically it was `go:embed`-ed
-// into the Go CLI binary; the TypeScript CLI is a lean npm package that cannot
-// (and per DD-002 should not) carry ~300 content files in every `npx` install,
-// so the content ships here instead and is acquired on demand — the same
-// pattern as @stigmer/runner-slim and the managed Temporal binary.
+// agents, skills, MCP servers, and workflows). The TypeScript CLI is a lean npm
+// package that cannot (and per DD-002 should not) carry ~300 content files in
+// every `npx` install, so the content ships here and is acquired on demand —
+// the same pattern as @stigmer/runner-slim and the managed Temporal binary.
+// (Until 2026-09-10 a Go package beside this one embedded the same set into the
+// retired Go CLI; this module is now the only definition of the content set.)
 //
 // This package intentionally contains no resource parsing, validation, or apply
 // logic: a host (the CLI today, a server bootstrap tomorrow) resolves the
 // content directory and feeds it through the normal declarative-apply path —
-// one code path for system content and user projects alike.
+// one code path for system content and user projects alike. Its tests
+// (src/__tests__) hold the marketplace curation policies for mcp-servers/;
+// structural validity against the proto contract is `make check-docs-yaml`'s.
 
 import { createHash } from "node:crypto";
-import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync } from "node:fs";
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  statSync,
+} from "node:fs";
 import { dirname, join, posix, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 /**
  * The seedpack entries that constitute the bootstrappable project, in apply-safe
- * order. Mirrors the `//go:embed` set in `seedpack/embed.go` exactly — `tools/`
+ * order. This list is THE definition of the content set: `scripts/stage-content.mjs`
+ * (what the published package carries) and the CLI's `SEEDPACK_ENTRIES`
+ * (client-apps/cli/src/local/seedpack/content.ts) mirror it. `tools/`
  * (build-time regeneration scripts), `icons/` (UI assets), and `canary/` (CI
  * canary-credential tracking metadata, not a resource) are deliberately excluded
- * so the content set is identical across the Go and TS delivery paths.
+ * so the content set — and therefore the idempotency hash — is identical across
+ * every delivery path.
  */
 export const SEEDPACK_ENTRIES = [
   "stigmer.yaml",
@@ -47,14 +60,17 @@ export function contentDir(): string {
     if (parent === dir) break;
     dir = parent;
   }
-  throw new Error("@stigmer/seedpack: could not locate seedpack content root (stigmer.yaml not found)");
+  throw new Error(
+    "@stigmer/seedpack: could not locate seedpack content root (stigmer.yaml not found)",
+  );
 }
 
 /**
  * Deterministic SHA-256 over the seedpack content, used to detect when the
  * bootstrap is stale. Files are walked in lexical order and each contributes its
  * forward-slash relative path, a NUL separator, and its bytes — identical to the
- * Go `seedpack.ContentHash` algorithm so the two delivery paths agree.
+ * CLI's `hashSeedpackContent` (which reimplements it over a resolved directory so
+ * the lean install stays decoupled from this package) so every delivery path agrees.
  */
 export function contentHash(root: string = contentDir()): string {
   const hash = createHash("sha256");
@@ -72,7 +88,10 @@ export function contentHash(root: string = contentDir()): string {
  * {@link SEEDPACK_ENTRIES} are copied, so the result never carries build tooling
  * or assets that happen to sit beside the content in a repo checkout.
  */
-export function extractToDir(destDir: string, root: string = contentDir()): void {
+export function extractToDir(
+  destDir: string,
+  root: string = contentDir(),
+): void {
   mkdirSync(destDir, { recursive: true });
   for (const entry of SEEDPACK_ENTRIES) {
     const src = join(root, entry);

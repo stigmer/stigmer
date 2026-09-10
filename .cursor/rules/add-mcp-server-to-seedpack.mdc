@@ -1,5 +1,5 @@
 ---
-description: Action rule to add a new MCP server to the seedpack marketplace. Guides YAML creation, auth classification, credential-manifest update, Planton secret setup, and BUILD.bazel registration.
+description: Action rule to add a new MCP server to the seedpack marketplace. Guides YAML creation, auth classification, credential-manifest update, Planton secret setup, and running the static catalog suite.
 alwaysApply: false
 ---
 
@@ -104,9 +104,15 @@ Add an entry to `seedpack/canary/credential-manifest.yaml`:
     notes: ""                                       # optional context
 ```
 
-## Step 4: Update BUILD.bazel
+## Step 4: Run the static catalog suite
 
-Add the new YAML file to `seedpack/BUILD.bazel` in the `embedsrcs` list (alphabetical order within the `mcp-servers/` section).
+There is no registration step: the content set is the directory (`SEEDPACK_ENTRIES` in `seedpack/src/index.ts`), so a new file under `mcp-servers/` is picked up by every delivery path. Instead, run the policies that gate the catalog:
+
+```bash
+make test-seedpack-static
+```
+
+`seedpack/src/__tests__/mcp-catalog.test.ts` decodes the new manifest through the generated `McpServer` schema (a typo in a field name fails here) and applies the marketplace policies: category in the allowed set, `auth.target_env_var` declared in `spec.env`, `Authorization: "Bearer ${VAR}"` on OAuth-managed HTTP servers, every `${VAR}` placeholder declared, unique `metadata.name`, an entry in `credential-manifest.yaml`, no retired endpoint. Each policy names the offending manifest. `make check-docs-yaml` covers the proto contract itself (protovalidate rules included).
 
 ## Step 5: Create Planton Secret YAML (if credentials needed)
 
@@ -168,7 +174,7 @@ Before considering the addition complete:
 - [ ] All `${VAR}` placeholders reference declared env keys
 - [ ] Category is from the allowed set
 - [ ] `credential-manifest.yaml` has an entry for the new server
-- [ ] `BUILD.bazel` embedsrcs updated
+- [ ] `make test-seedpack-static` green (the catalog policies, one arm per manifest)
 - [ ] No duplicate `metadata.name` with existing servers
 - [ ] If HTTP endpoint matches `mcp.*.com/mcp` pattern, verify auth method is correct (likely needs OAuth, not manual token)
 

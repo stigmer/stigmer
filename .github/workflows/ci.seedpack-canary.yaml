@@ -1,12 +1,16 @@
 # Live-tests marketplace MCP servers: credential-free transport reachability
-# probes from the seedpack module (oss#569).
+# probes from @stigmer/seedpack (seedpack/src/__tests__/transport/, run under
+# vitest.transport.config.ts — the only config that reaches that directory,
+# so the static lane can never hit the network). Moved out of the retired Go
+# integration suite's full-stack TestMain in oss#569; ported from Go to
+# Vitest in 20260910.03 when the seedpack Go package retired.
 #
 # The canary job that once ran here — full-harness calls with real vendor
 # credentials through the Go test/integration suite, booted on the Java
 # stigmer-service JAR — retired with the service and the Go harness
-# (stigmer-cloud DD-013; stigmer#1022 / #1031). Its successor is the canary's
-# re-point at the cloud composition, E1's open item on stigmer#988; until
-# that lands this lane is the transport probe alone.
+# (stigmer-cloud DD-013; stigmer#1022 / #1031). Its successor is a nightly
+# lane on the TypeScript conformance harness (the issue filed from
+# 20260910.03); until that lands this lane is the transport probe alone.
 
 name: ci.seedpack-canary
 
@@ -33,13 +37,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Go
-        uses: actions/setup-go@v5
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
-          go-version-file: go.work
+          node-version-file: ".nvmrc"
+          cache: npm
 
-      - name: Install gotestsum
-        run: go install gotest.tools/gotestsum@v1.13.0
+      - name: Install dependencies (npm ci, tracked lockfile)
+        run: npm ci
 
       - name: Run transport reachability tests
         run: make test-seedpack-transport

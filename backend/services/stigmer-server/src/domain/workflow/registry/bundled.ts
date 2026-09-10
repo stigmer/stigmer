@@ -1,12 +1,14 @@
 /**
- * Bundled registry documents — the TS twin of Go's go:embed in
- * pkg/domain/workflow/registry (registryFS). Both registries are bundled at
- * build time: the JSON imports are pinned into the artifact by tsc/esbuild.
- * The committed data files under ./data/ are copies of the Go server's
- * embeds; a co-located test asserts byte-equality with the Go source so the
- * two editions cannot drift silently. One non-observable delta: the JSON
- * import re-serializes, so served bytes are minified rather than the file's
- * pretty-printed shape — identical content, and every consumer parses.
+ * Bundled registry documents, pinned into the artifact at build time by the
+ * JSON imports (tsc/esbuild). The committed files under ./data/ are generated,
+ * never hand-edited: `make gen-task-registry` writes task-kind-registry.json
+ * from the proto task metadata (`gen-task-registry-check` fails CI on drift);
+ * `make sync-model-registry` refreshes model-registry.json from the public
+ * cloud endpoint on demand. (Until the Go server retired in 2026-08 these were byte copies
+ * of its go:embed set; the TS server is the only edition now.) One
+ * non-observable delta: the JSON import re-serializes, so served bytes are
+ * minified rather than the file's pretty-printed shape — identical content,
+ * and every consumer parses.
  */
 import modelRegistryBundle from "./data/model-registry.json" with { type: "json" };
 import taskKindRegistryBundle from "./data/task-kind-registry.json" with { type: "json" };

@@ -1,7 +1,7 @@
 // Resolution and on-demand acquisition of the seedpack content.
 //
 // The seedpack (system agents, skills, MCP servers, workflows under the
-// "stigmer" org) is the TS equivalent of the Go CLI's `go:embed`-ed bundle.
+// "stigmer" org) is the system content every backend is bootstrapped with.
 // A lean `npx @stigmer/cli` must not carry ~300 content files (DD-002), so the
 // content ships as `@stigmer/seedpack` and is acquired on demand — the same
 // pattern as `@stigmer/runner-slim` and the managed Temporal binary.
@@ -12,14 +12,22 @@
 //      ~/.stigmer/runtimes/<version>/ and read from
 //      node_modules/@stigmer/seedpack.
 //
-// The content-hash and extract logic mirror `@stigmer/seedpack` exactly (which
-// in turn mirrors the Go `seedpack` package); the CLI reimplements them over a
-// resolved directory so it stays decoupled from the package in the lean install
-// (where the package is not a dependency, only an on-demand artifact).
+// The content-hash and extract logic mirror `@stigmer/seedpack` exactly; the CLI
+// reimplements them over a resolved directory so it stays decoupled from the
+// package in the lean install (where the package is not a dependency, only an
+// on-demand artifact). `seedpack/src/index.ts` is the one definition both follow.
 
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, posix, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -33,9 +41,9 @@ const SEEDPACK_PACKAGE = "@stigmer/seedpack";
 
 /**
  * The canonical seedpack entries, in apply-safe order. Kept in sync with
- * `SEEDPACK_ENTRIES` in `@stigmer/seedpack` and the `//go:embed` set in
- * `seedpack/embed.go` — `tools/`, `icons/`, and `canary/` (CI canary metadata,
- * not a resource) are deliberately excluded so the content set (and thus the
+ * `SEEDPACK_ENTRIES` in `@stigmer/seedpack` (`seedpack/src/index.ts`, the one
+ * definition) — `tools/`, `icons/`, and `canary/` (CI canary metadata, not a
+ * resource) are deliberately excluded so the content set (and thus the
  * idempotency hash) is identical across delivery paths.
  */
 export const SEEDPACK_ENTRIES = [
@@ -70,7 +78,9 @@ export interface ResolveSeedpackOptions {
  * on-demand-acquired `@stigmer/seedpack` package. Throws actionable guidance when
  * acquisition is not possible (non-release build, or a failed/incomplete install).
  */
-export function resolveSeedpackContent(opts: ResolveSeedpackOptions = {}): SeedpackContent {
+export function resolveSeedpackContent(
+  opts: ResolveSeedpackOptions = {},
+): SeedpackContent {
   const repo = repoSeedpackDir();
   if (repo !== null) return { dir: repo, source: "repo" };
   return { dir: acquireSeedpack(opts), source: "package" };
@@ -86,10 +96,14 @@ export function acquireSeedpack(opts: ResolveSeedpackOptions = {}): string {
   const home = opts.home ?? homedir();
   const version = opts.version ?? VERSION;
   if (!isAcquirableRelease(version)) {
-    throw new CliExitError(`cannot acquire ${SEEDPACK_PACKAGE} for a non-release build (${version})`, ExitCode.General, [
-      "Run from the repo (the seedpack/ tree is used directly in dev).",
-      "On-demand acquisition is only available for published releases.",
-    ]);
+    throw new CliExitError(
+      `cannot acquire ${SEEDPACK_PACKAGE} for a non-release build (${version})`,
+      ExitCode.General,
+      [
+        "Run from the repo (the seedpack/ tree is used directly in dev).",
+        "On-demand acquisition is only available for published releases.",
+      ],
+    );
   }
 
   const installDir = join(runtimesDir(home), version);
@@ -103,16 +117,21 @@ export function acquireSeedpack(opts: ResolveSeedpackOptions = {}): string {
     // additive and non-pruning, so this prefix is safely shared with the runner.
     const rootPkg = join(installDir, "package.json");
     if (!existsSync(rootPkg)) {
-      writeFileSync(rootPkg, `${JSON.stringify({ name: "stigmer-runtime", private: true, version: "0.0.0" }, null, 2)}\n`);
+      writeFileSync(
+        rootPkg,
+        `${JSON.stringify({ name: "stigmer-runtime", private: true, version: "0.0.0" }, null, 2)}\n`,
+      );
     }
     const install = opts.install ?? installSeedpack;
     install(installDir, `${SEEDPACK_PACKAGE}@${version}`);
   }
 
   if (!existsSync(marker)) {
-    throw new CliExitError(`${SEEDPACK_PACKAGE} install did not produce ${marker}`, ExitCode.General, [
-      `Remove ${installDir} and retry.`,
-    ]);
+    throw new CliExitError(
+      `${SEEDPACK_PACKAGE} install did not produce ${marker}`,
+      ExitCode.General,
+      [`Remove ${installDir} and retry.`],
+    );
   }
   return pkgDir;
 }
@@ -121,9 +140,21 @@ export function acquireSeedpack(opts: ResolveSeedpackOptions = {}): string {
 // the user sees the one-time download progress.
 function installSeedpack(installDir: string, spec: string): void {
   try {
-    execFileSync("npm", ["install", spec, "--prefix", installDir, "--omit=dev", "--no-audit", "--no-fund"], {
-      stdio: "inherit",
-    });
+    execFileSync(
+      "npm",
+      [
+        "install",
+        spec,
+        "--prefix",
+        installDir,
+        "--omit=dev",
+        "--no-audit",
+        "--no-fund",
+      ],
+      {
+        stdio: "inherit",
+      },
+    );
   } catch (err) {
     throw new CliExitError(`failed to install ${spec}`, ExitCode.General, [
       `Command: npm install ${spec} --prefix ${installDir}`,

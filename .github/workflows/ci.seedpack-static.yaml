@@ -1,22 +1,36 @@
+# Seedpack static validation: the @stigmer/seedpack package API and the
+# marketplace curation policies over the shipped manifests
+# (seedpack/src/__tests__, vitest.config.ts). Deterministic and network-free.
+# The suites decode every catalog manifest through the generated McpServer
+# schema, so @stigmer/protos is built first (make test-seedpack-static does
+# that). Structural validity against the contract is check-docs-yaml's job
+# (ci.docs, every PR); this lane owns the policies the contract cannot say.
+
 name: CI / Seedpack Static Validation
 
 on:
   pull_request:
     paths:
       - 'seedpack/**'
+      - 'apis/stubs/ts/**'
+      - '.github/workflows/ci.seedpack-static.yaml'
   push:
     branches: [main]
     paths:
       - 'seedpack/**'
+      - 'apis/stubs/ts/**'
+      - '.github/workflows/ci.seedpack-static.yaml'
 
 jobs:
   seedpack-static:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-node@v4
         with:
-          go-version-file: seedpack/go.mod
-          cache-dependency-path: seedpack/go.sum
+          node-version-file: ".nvmrc"
+          cache: npm
+      - name: Install dependencies (npm ci, tracked lockfile)
+        run: npm ci
       - name: Run seedpack static validation tests
         run: make test-seedpack-static
