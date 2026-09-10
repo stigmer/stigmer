@@ -8,16 +8,35 @@
 import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 
 import { PACKAGES, generateDistPackageJson, resolvePackageTag, rewriteBinPaths } from "./publish-libs.mjs";
 
+test("PACKAGES is exactly the workspace members that are not private", () => {
+  // The publish set and the workspace's `private` flags are two statements of
+  // the same fact. The root build:libs / clean:libs / test scripts derive their
+  // package set from PACKAGES (scripts/turbo-set.mjs), so a package that is
+  // publishable in one place and not the other would either publish unbuilt
+  // or build and never publish. Both directions are checked.
+  const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+  const { workspaces } = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+  const publishable = workspaces.filter(
+    (relDir) => !JSON.parse(readFileSync(join(root, relDir, "package.json"), "utf8")).private,
+  );
+  assert.deepEqual(
+    [...PACKAGES].sort(),
+    publishable.sort(),
+    "PACKAGES and the non-private workspace members must name the same directories",
+  );
+});
+
 test("PACKAGES publishes @stigmer/seedpack before the CLI that acquires it", () => {
   // A published @stigmer/cli acquires @stigmer/seedpack at its exact version on
   // demand, so seedpack must be in the publish set. Order is not load-bearing
-  // (seedpack has no @stigmer/* deps), but keeping it ahead of the CLI mirrors
-  // the build:libs order and the acquire relationship.
+  // (seedpack has no @stigmer/* deps; turbo orders builds by the dependency
+  // graph), but keeping it ahead of the CLI mirrors the acquire relationship.
   assert.ok(PACKAGES.includes("seedpack"), "seedpack must be in PACKAGES");
   assert.ok(
     PACKAGES.indexOf("seedpack") < PACKAGES.indexOf("client-apps/cli"),

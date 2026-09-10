@@ -19,18 +19,36 @@
 #     typechecked by NO lane; only sdk/react and sdk/typescript got this via
 #     make verify-web). Deterministic: catches ordinary type errors including
 #     ones vitest happily executes past.
-#   - typecheck-clean-room (fresh resolution) — corepack yarn install with NO
-#     lockfile (the root yarn.lock is deliberately gitignored), re-resolving
-#     every caret range exactly like an integrator's fresh clone, honoring the
-#     root `resolutions` pins (PR #628's @bufbuild/protobuf; the zod pin this
-#     lane's own dry run forced: @modelcontextprotocol/sdk had drifted
-#     1.27→1.30 and pulled a nested zod v4 whose type inference OOMs tsc on
-#     mcp-server and cli — live on main for every fresh clone until pinned).
-#     This is the only job in the fleet that can catch this class before it
-#     ships. It is inherently non-hermetic — an unrelated upstream publish can
-#     redden a PR. That is the point of the gate; if it proves too flaky in
-#     practice, demote THIS JOB ONLY to a scheduled canary (the
-#     ci.integration-canary precedent) and keep the locked job on PRs.
+#   - typecheck-clean-room (fresh resolution) — `npm install` with the tracked
+#     package-lock.json REMOVED, re-resolving every caret range from the live
+#     registry exactly like a consumer's fresh install, honoring the root
+#     `overrides` pins (PR #628's @bufbuild/protobuf; the zod pin this lane's
+#     own dry run forced: @modelcontextprotocol/sdk had drifted 1.27→1.30 and
+#     pulled a nested zod v4 whose type inference OOMs tsc on mcp-server and
+#     cli — live on main for every fresh clone until pinned). This is the only
+#     job in the fleet that can catch this class before it ships. It is
+#     inherently non-hermetic — an unrelated upstream publish can redden a PR.
+#     That is the point of the gate; if it proves too flaky in practice,
+#     demote THIS JOB ONLY to a scheduled canary (the ci.integration-canary
+#     precedent) and keep the locked job on PRs.
+#
+#     Until 2026-09-10 this job installed with Yarn Berry (issue #687 for the
+#     immutable-install fix it needed). It moved to npm when npm became the
+#     workspace's one declared package manager (root `packageManager`;
+#     stigmer-cloud project 20260904.04, Stage B). Two consequences worth
+#     knowing:
+#       * npm is STRICTER than yarn on peer ranges: a conflicting peer that
+#         yarn only warned about fails `npm install` with ERESOLVE. That is a
+#         real consumer-facing signal, not noise — a consumer's fresh install
+#         hits the same wall.
+#       * npm is MORE LENIENT than yarn on undeclared siblings: it hoists every
+#         workspace's dependencies to the root node_modules, so a package that
+#         imports something only a SIBLING workspace declares still typechecks
+#         here. Yarn did not hoist that way, and its last catch on this job was
+#         exactly that class (issue #1044: @stigmer/react imported
+#         @base-ui/react, declared only by client-apps/web and
+#         client-apps/desktop). This job cannot see that class under npm; it
+#         is each package's own devDependencies discipline.
 #
 # @stigmer/protos is built first in both jobs: it is the one workspace package
 # that exports ./dist (everything else exports src in dev), so nothing
@@ -59,9 +77,6 @@ on:
       - "test/conformance/**"
       - "package.json"
       - "package-lock.json"
-      # The clean-room job's install semantics live here (nodeLinker,
-      # packageExtensions) — editing it must re-run this workflow.
-      - ".yarnrc.yml"
       - ".github/workflows/ci.ts-sdk.yaml"
   push:
     branches: [main]
@@ -76,7 +91,6 @@ on:
       - "test/conformance/**"
       - "package.json"
       - "package-lock.json"
-      - ".yarnrc.yml"
       - ".github/workflows/ci.ts-sdk.yaml"
   workflow_dispatch: {}
 
@@ -162,34 +176,29 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # No `cache: npm` here on purpose: the cache key is package-lock.json,
+      # and this job's whole point is to resolve WITHOUT it.
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version-file: ".nvmrc"
 
-      # Yarn 3.8.7 via the root packageManager field. There is deliberately no
-      # committed root yarn.lock (npm rewrites it with machine paths — see
-      # .gitignore), so this install RE-RESOLVES every caret range from the
-      # live registry: the exact path that exposed the 477-error split. The
-      # root `resolutions` block pins the known-toxic drifts (@bufbuild/
-      # protobuf from PR #628; zod from this lane's dry run); anything else
-      # that drifts into un-unifiable or pathological types fails HERE, before
-      # an integrator's fresh clone finds it.
-      - name: Enable Corepack
-        run: corepack enable
-
-      # Yarn Berry defaults enableImmutableInstalls to true when CI=true,
-      # which aborts any install that would write a lockfile (YN0028). This
-      # job's entire design is a lockfile-free fresh resolve, so the CI
-      # default must be overridden here — without it the lane can never pass
-      # (issue #687: red on every run since it shipped).
-      - name: Install dependencies (yarn, fresh resolution)
-        run: yarn install
-        env:
-          YARN_ENABLE_IMMUTABLE_INSTALLS: "false"
+      # The tracked lockfile is removed before the install, so npm RE-RESOLVES
+      # every caret range from the live registry: the exact path that exposed
+      # the 477-error split. `--no-package-lock` keeps npm from writing a new
+      # one (nothing downstream needs it, and a lockfile left behind would make
+      # the next step's resolution look reproducible when it is not). The root
+      # `overrides` block pins the known-toxic drifts (@bufbuild/protobuf from
+      # PR #628; zod from this lane's dry run); anything else that drifts into
+      # un-unifiable or pathological types fails HERE, before a consumer's
+      # fresh install finds it.
+      - name: Install dependencies (npm, fresh resolution)
+        run: |
+          rm package-lock.json
+          npm install --no-package-lock --no-audit --no-fund
 
       - name: Build @stigmer/protos dist
-        run: yarn workspace @stigmer/protos run build
+        run: npm run build -w @stigmer/protos
 
       # Build configs only: the resolution-split class this job exists for
       # surfaces in the shipping surface. Test-file typechecking is the locked

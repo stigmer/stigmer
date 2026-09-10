@@ -1,0 +1,122 @@
+// The task graph for the npm workspace (stigmer-cloud project 20260904.04,
+// Stage B). Turborepo derives the package graph from each member's
+// dependencies, devDependencies and optionalDependencies (never from
+// peerDependencies, vercel/turborepo#13025; the three packages whose only
+// link to @stigmer/protos was a peer mirror it into devDependencies for that
+// reason). This file adds the task edges and the cache contract on top.
+//
+// Scope (B3, recorded here, not re-decided): the workspace members listed in
+// the root package.json are Turborepo's world. backend/services/runner,
+// backend/services/stigmer-server, site/, test/extension-consumer and the
+// examples/* packages stay standalone with their own lockfiles, per D2 §5 of
+// the OSS TS server blueprint, DD-005 (the exports-map contract
+// extension-consumer compile-proves from exactly that posture) and the
+// stigmer-cloud composition Dockerfile. Their Makefile targets and CI lanes
+// call the root `build:runner-deps` script for the libs they link and see no
+// difference.
+//
+// How the root scripts reach this graph: scripts/turbo-set.mjs resolves a
+// named package set (the publishable libs, the runner-linked libs) and runs
+// one `turbo run <task>` over it. Direct `turbo run <task> --filter=<pkg>`
+// works too and is what the S6 CI lanes will use.
+//
+// Environment: strict mode (the default). A task sees only the variables
+// Turborepo passes through by default (HOME, PATH, CI, TERM, NODE_OPTIONS,
+// GITHUB_*, ...) plus what a task declares in `env`. Vite's VITE_* and
+// Next's NEXT_PUBLIC_* are inferred per package. Anything else a build reads
+// must be declared here, or the cache key will not know about it.
+{
+  "$schema": "https://turborepo.dev/schema.json",
+  // Explicit so each checkout keeps its own cache. Left unset, turbo shares
+  // the cache of every git worktree through the MAIN worktree's .turbo/, which
+  // in this repo is the primary checkout that the worktree rule keeps
+  // permanently clean, and cached outputs are restored byte-for-byte, so an
+  // artifact carrying an absolute path could point at another checkout.
+  "cacheDir": ".turbo/cache",
+  "tasks": {
+    // Every publishable lib compiles with tsc into dist/ (some then add to it:
+    // react's stylesheet, embed's IIFE loader, mcp-server's bundled bin,
+    // seedpack's staged content, theme's CSS copies). Inputs stay at the
+    // default (every non-ignored file in the package) on purpose: Tailwind v4
+    // scans every source file for class names, so a test file can change
+    // react's dist/styles.css, and excluding __tests__/** would make that
+    // cache lie.
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"]
+    },
+    // tsc --noEmit. Needs the dependencies' dist because @stigmer/protos (and
+    // the two backend libs) export compiled .d.ts, not source.
+    "typecheck": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    },
+    // eslint runs with projectService: false (not type-aware) in every
+    // package that lints, so it needs no built dependency.
+    "lint": {
+      "outputs": []
+    },
+    // Vitest. The default suites import @stigmer/protos from dist, hence
+    // ^build. No outputs; a cache hit replays the log. Tests that read files
+    // outside their own package must widen `inputs` (see the two overrides
+    // below); scripts/turbo-inputs.test.mjs fails when a new one appears
+    // without its entry.
+    "test": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    },
+    // rm -rf dist. Never cached: its whole point is a side effect.
+    "clean": {
+      "cache": false
+    },
+
+    // Package-specific contracts. Kept in this file rather than in per-package
+    // turbo.json files so the whole graph reads in one place.
+
+    // The web console: Next static export. `out/` and `.next/` are the build,
+    // `public/embed.js` is copied from @stigmer/embed by its build script.
+    // Not declared as outputs: the favicons `scripts/generate-images.ts`
+    // rewrites in public/ during the build are TRACKED files, so the build
+    // writes into its own inputs. Today sharp reproduces them byte for byte
+    // (measured 2026-09-10: the tree is clean after a build and the second
+    // run is a cache hit); a sharp upgrade that changes the encoding would
+    // show up as a modified tracked file, which is the honest signal.
+    "web#build": {
+      "dependsOn": ["^build"],
+      "outputs": [".next/**", "!.next/cache/**", "out/**", "public/embed.js"]
+    },
+    // The desktop shell: vite build into dist/. Its vite.config reads the
+    // Tauri environment (target, minify, sourcemap), so those are inputs.
+    "desktop#build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"],
+      "env": ["TAURI_ENV_PLATFORM", "TAURI_ENV_DEBUG"]
+    },
+    // Two SDK suites read fixtures that live outside their package.
+    "@stigmer/sdk#test": {
+      "dependsOn": ["^build"],
+      "outputs": [],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/apis/testdata/hitl/file-review/**",
+        "$TURBO_ROOT$/test/fixtures/tool-view/**"
+      ]
+    },
+    "@stigmer/react#test": {
+      "dependsOn": ["^build"],
+      "outputs": [],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/test/fixtures/tool-view/**"]
+    },
+    // The conformance suite boots a server (and, on its execution targets,
+    // Temporal and a runner); the e2e suite drives a browser against a stack.
+    // Their outcome is a property of the infrastructure they ran against, not
+    // of their inputs, so they are never cached. Neither is in a root set;
+    // the Makefile and their CI lanes run them by name.
+    "@stigmer/conformance#test": {
+      "cache": false
+    },
+    "@stigmer/e2e#test": {
+      "cache": false
+    }
+  }
+}

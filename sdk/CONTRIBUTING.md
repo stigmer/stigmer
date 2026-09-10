@@ -62,16 +62,20 @@ poetry run mypy stigmer/
 
 ### TypeScript SDK
 
+The TypeScript SDK is one member of the npm workspace at the repository root, so you work from there:
+
 ```bash
-cd typescript/
-npm install
-npm test
-npm run lint
+npm ci                 # the whole workspace, from the lockfile
+npm run build:libs     # every publishable @stigmer/* package, in dependency order
+npm test               # the root checks, then each package's suite
+npm run typecheck -w @stigmer/sdk
 ```
 
+The root scripts run through [Turborepo](https://turborepo.dev) (`turbo.json` is the task graph). A build whose inputs have not changed is restored from the local cache in `.turbo/` instead of recompiled, and a test run is replayed from its log; pass `--force` to run anyway (`npm run build:libs -- --force`). Delete `.turbo/` to reclaim the space. Turborepo's anonymous telemetry is switched off by the wrapper the root scripts use (`scripts/turbo-set.mjs`).
+
 **Requirements**:
-- Node.js 18+
-- npm or yarn
+- Node.js 22 (the version in the repo's `.nvmrc`; `nvm use` picks it up)
+- npm, the version bundled with that Node (named by `packageManager` in the root `package.json`). npm is the workspace's only package manager; yarn is used only inside `site/`, which is a separate project.
 
 ## Style Guide
 

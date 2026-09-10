@@ -74,6 +74,8 @@
     "react": ">=19.0.0"
   },
   "devDependencies": {
+    "@stigmer/protos": "*",
+    "@stigmer/sdk": "*",
     "ink": "^7.0.0",
     "ink-testing-library": "^4.0.0",
     "react": "^19.0.0",

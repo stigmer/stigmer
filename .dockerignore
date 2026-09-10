@@ -15,3 +15,6 @@
 **/.pytest_cache
 **/build
 **/dist
+# Turborepo's local cache: every build ever cached, as tarballs. No Dockerfile
+# runs turbo; the cache would only inflate the build context.
+**/.turbo
