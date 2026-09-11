@@ -134,7 +134,7 @@ import {
 } from "../../shared/filereview/progress.js";
 import { deriveExecutionFingerprintKey } from "../../shared/approval-fingerprint.js";
 import { getRunnerHitlMasterSecret } from "../../shared/fingerprint-secret.js";
-import { provisionCursorWorkspace } from "../../shared/workspace/session-provision.js";
+import { provisionSessionWorkspace } from "../../shared/workspace/session-provision.js";
 import { WriteBackCoordinator } from "../../shared/workspace/writeback-coordinator.js";
 import { statusProtoWriter } from "../../shared/execution-status-writer.js";
 import { setInterceptorExecutionId, runWithExecutionContext } from "./fetch-interceptor.js";
@@ -350,7 +350,7 @@ async function executeCursorInner(
     // HITL reinvocations.
     heartbeatPhase = "provisioning_workspace";
     await reportSetupProgress(client, executionId, "Provisioning workspace");
-    const workspaceProvision = await provisionCursorWorkspace(
+    const workspaceProvision = await provisionSessionWorkspace(
       config, session, envVars, sessionId ?? "",
     );
     blueprint.workspaceDirs = workspaceProvision.workspaceDirs;

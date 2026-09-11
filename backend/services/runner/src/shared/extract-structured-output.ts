@@ -1,5 +1,8 @@
 /**
- * Tier-2 structured-output extraction for the Cursor harness.
+ * Tier-2 structured-output extraction for a harness turn.
+ *
+ * Harness-agnostic: the Cursor activity is today's only caller and the turn
+ * runtime takes it over in S2 M3 (the native harness has no tier 2 today).
  *
  * When tier-1 text extraction (shared/extract-json.ts) cannot find JSON in
  * the agent's free-text response, this tier asks an economy-tier LLM to

@@ -1,5 +1,7 @@
 /**
- * Unit tests for the Cursor streaming persist decision (issue #179).
+ * Unit tests for the streaming persist decision (issue #179), the shared
+ * cadence rule the Cursor stream loop calls today and the turn runtime
+ * takes over in S2 M3.
  *
  * Validates the converged cadence: discrete force-flush signals persist
  * immediately, while high-frequency token deltas ride the shared

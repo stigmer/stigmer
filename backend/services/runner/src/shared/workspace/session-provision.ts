@@ -1,10 +1,13 @@
 /**
- * Local workspace provisioning for the Cursor harness.
+ * Local workspace provisioning for a harness turn.
  *
- * Cursor agents run LOCAL (cloud is disabled — see cursor-mode.ts), so the
- * runner must clone git-repo workspace entries itself and mount local-path
- * entries before the agent runs, mirroring the native harness. Cloud agents
- * previously cloned git repos server-side; that path is no longer used.
+ * Harness-agnostic: the Cursor activity is today's only caller, the turn
+ * runtime takes it over in S2 M3, and S3 retires the native twin
+ * (execute-deep-agent/setup.ts `provisionWorkspace`). Agents run LOCAL
+ * (cloud is disabled — see execute-cursor/cursor-mode.ts), so the runner
+ * must clone git-repo workspace entries itself and mount local-path entries
+ * before the agent runs. Cloud agents previously cloned git repos
+ * server-side; that path is no longer used.
  */
 
 import type { Config } from "../../config.js";
@@ -15,8 +18,8 @@ import { LocalWorkspaceBackend } from "./local-backend.js";
 import { ensurePlatformDir } from "./platform-dir.js";
 import { resolveSessionWorkspaceRoot } from "./session-root.js";
 
-/** What {@link provisionCursorWorkspace} hands back to the harness. */
-export interface CursorWorkspaceProvision {
+/** What {@link provisionSessionWorkspace} hands back to the harness. */
+export interface SessionWorkspaceProvision {
   /** The directories the agent should operate in (never empty). */
   readonly workspaceDirs: string[];
   /**
@@ -33,7 +36,7 @@ export interface CursorWorkspaceProvision {
 }
 
 /**
- * Provision the session's workspace entries for a LOCAL Cursor agent.
+ * Provision the session's workspace entries for a LOCAL agent.
  *
  * Clones git-repo entries (using the user's GITHUB_TOKEN from the resolved
  * execution environment) and mounts local-path entries, then returns the
@@ -46,12 +49,12 @@ export interface CursorWorkspaceProvision {
  * provisionGit is idempotent (it reuses an existing clone), so this is safe
  * to call on every execution, including multi-turn and HITL reinvocations.
  */
-export async function provisionCursorWorkspace(
+export async function provisionSessionWorkspace(
   config: Config,
   session: Session,
   envVars: Record<string, string>,
   sessionId: string,
-): Promise<CursorWorkspaceProvision> {
+): Promise<SessionWorkspaceProvision> {
   const entries = session.spec?.workspaceEntries ?? [];
   const platformDir = await ensurePlatformDir(sessionId);
 

@@ -1,5 +1,6 @@
 /**
- * Unit tests for the Cursor harness's max_cost_usd guard (cost-guard.ts).
+ * Unit tests for the max_cost_usd hard-stop guard (cost-guard.ts), which the
+ * Cursor activity calls today and the turn runtime takes over in S2 M3.
  *
  * The guard is the cursor-side analog of the native cost-cap middleware
  * (middleware/cost-cap.ts): same proto semantics (0/unset = no cap), same

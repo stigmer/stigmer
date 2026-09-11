@@ -1,5 +1,8 @@
 /**
- * Streaming persist decision for the Cursor harness.
+ * Streaming persist decision for a harness turn.
+ *
+ * Harness-agnostic: the Cursor stream loop is today's only caller, the turn
+ * runtime takes it over in S2 M3, and S3 retires the native twin below.
  *
  * Mirrors the native deep-agent harness (execute-deep-agent/streaming.ts):
  * `shouldPersist = forceFlush || scheduler.shouldSendUpdate(eventCount)`.

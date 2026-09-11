@@ -1006,8 +1006,9 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
  *
  * A session with no entries gets its own empty per-session directory (see
  * shared/workspace/session-root.ts) — never the shared root, which would
- * leak other sessions' files into it. Mirrors the Cursor harness's
- * provisionCursorWorkspace exactly.
+ * leak other sessions' files into it. Mirrors shared/workspace/
+ * session-provision.ts `provisionSessionWorkspace` exactly; S3 of the
+ * harness runtime program retires this twin in favor of that one.
  */
 async function provisionWorkspace(
   config: Config,

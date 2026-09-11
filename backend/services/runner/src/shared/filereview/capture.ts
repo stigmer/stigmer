@@ -95,7 +95,7 @@ import { isSecretLikePath } from "./secret-paths.js";
  * no capture substrate and falls back to the deny-gate: the agent still runs, but
  * file writes gate pre-execution instead of flowing. In the Cursor harness that
  * fallback is also the ONLY branch that arms the resume-time exact-apply guarantee
- * (see execute-cursor/exact-apply.ts); the deep-agent harness re-applies an
+ * (see shared/exact-apply.ts); the deep-agent harness re-applies an
  * approved write via LangGraph checkpoint replay and needs no exact-apply. Keeping
  * this the single, named, truth-table-tested decision pins exactly when the
  * no-storage deny-gate engages in either harness.

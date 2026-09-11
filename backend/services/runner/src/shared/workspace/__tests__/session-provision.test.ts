@@ -1,3 +1,14 @@
+/**
+ * Pins session workspace provisioning: git-repo workspace entries are cloned
+ * locally (never delegated to a cloud agent), local-path entries are
+ * mounted, and a session with no entries gets its own empty per-session root.
+ * Harness-agnostic; the Cursor activity is today's only caller and the turn
+ * runtime takes it over in S2 M3.
+ *
+ * Uses a real, hermetic local git repository (no network, no harness API) so
+ * the clone is deterministic.
+ */
+
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { execFileSync } from "node:child_process";
 import { mkdtempSync, mkdirSync, writeFileSync, existsSync, readFileSync, rmSync } from "node:fs";
@@ -13,17 +24,7 @@ import {
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { Config } from "../../../config.js";
-import { provisionCursorWorkspace } from "../session-provision.js";
-
-/**
- * Verifies that the Cursor harness provisions git-repo workspace entries
- * locally (clones them) instead of relying on Cursor cloud agents. This is
- * the behavior that makes git-backed Cursor sessions work now that cloud is
- * disabled.
- *
- * Uses a real, hermetic local git repository (no network, no Cursor API) so
- * the clone is deterministic.
- */
+import { provisionSessionWorkspace } from "../session-provision.js";
 
 const MARKER_FILE = "MARKER.txt";
 const MARKER_CONTENT = "stigmer-cursor-clone-proof-7e3a1c";
@@ -114,7 +115,7 @@ function emptySession(): Session {
 // these tests use a generous timeout instead of vitest's 5s default.
 const GIT_TEST_TIMEOUT_MS = 30_000;
 
-describe("provisionCursorWorkspace", () => {
+describe("provisionSessionWorkspace", () => {
   beforeEach(() => {
     tmpRoot = mkdtempSync(join(tmpdir(), "cursor-ws-"));
     // Redirect the platform dir (~/.stigmer/...) into the temp tree so the
@@ -139,7 +140,7 @@ describe("provisionCursorWorkspace", () => {
     mkdirSync(workspaceRoot, { recursive: true });
 
     const { workspaceDirs: dirs, provisionResults, workspaceBackend } =
-      await provisionCursorWorkspace(
+      await provisionSessionWorkspace(
         makeConfig(workspaceRoot),
         gitRepoSession(source),
         {},
@@ -168,7 +169,7 @@ describe("provisionCursorWorkspace", () => {
     mkdirSync(join(workspaceRoot, "lost+found"), { recursive: true });
     writeFileSync(join(workspaceRoot, "lost+found", "stray"), "fsck-artifact");
 
-    const { workspaceDirs: dirs } = await provisionCursorWorkspace(
+    const { workspaceDirs: dirs } = await provisionSessionWorkspace(
       makeConfig(workspaceRoot),
       gitRepoSession(source),
       {},
@@ -203,7 +204,7 @@ describe("provisionCursorWorkspace", () => {
     const workspaceRoot = join(tmpRoot, "default-branch-workspace");
     mkdirSync(workspaceRoot, { recursive: true });
 
-    const { workspaceDirs: dirs } = await provisionCursorWorkspace(
+    const { workspaceDirs: dirs } = await provisionSessionWorkspace(
       makeConfig(workspaceRoot),
       gitRepoSessionNoBranch(source),
       {},
@@ -228,7 +229,7 @@ describe("provisionCursorWorkspace", () => {
     // a worktree here, so it must be left untouched.
     mkdirSync(join(workspaceRoot, "lost+found"), { recursive: true });
 
-    const { workspaceDirs: dirs } = await provisionCursorWorkspace(
+    const { workspaceDirs: dirs } = await provisionSessionWorkspace(
       makeConfig(workspaceRoot),
       multiGitRepoSession([
         { name: "frontend", url: frontend },
@@ -266,7 +267,7 @@ describe("provisionCursorWorkspace", () => {
     // Leftovers from other sessions at the shared root must not be visible.
     writeFileSync(join(workspaceRoot, "other-session-leftover.md"), "not yours");
 
-    const { workspaceDirs: dirs, provisionResults } = await provisionCursorWorkspace(
+    const { workspaceDirs: dirs, provisionResults } = await provisionSessionWorkspace(
       makeConfig(workspaceRoot),
       emptySession(),
       {},
@@ -284,9 +285,9 @@ describe("provisionCursorWorkspace", () => {
     mkdirSync(workspaceRoot, { recursive: true });
     const config = makeConfig(workspaceRoot);
 
-    const turn1 = (await provisionCursorWorkspace(config, emptySession(), {}, "stable-session")).workspaceDirs;
+    const turn1 = (await provisionSessionWorkspace(config, emptySession(), {}, "stable-session")).workspaceDirs;
     writeFileSync(join(turn1[0], "notes.md"), "turn 1 output");
-    const turn2 = (await provisionCursorWorkspace(config, emptySession(), {}, "stable-session")).workspaceDirs;
+    const turn2 = (await provisionSessionWorkspace(config, emptySession(), {}, "stable-session")).workspaceDirs;
 
     expect(turn2).toEqual(turn1);
     expect(readFileSync(join(turn2[0], "notes.md"), "utf-8")).toBe("turn 1 output");
@@ -297,8 +298,8 @@ describe("provisionCursorWorkspace", () => {
     mkdirSync(workspaceRoot, { recursive: true });
     const config = makeConfig(workspaceRoot);
 
-    const [dirA] = (await provisionCursorWorkspace(config, emptySession(), {}, "session-a")).workspaceDirs;
-    const [dirB] = (await provisionCursorWorkspace(config, emptySession(), {}, "session-b")).workspaceDirs;
+    const [dirA] = (await provisionSessionWorkspace(config, emptySession(), {}, "session-a")).workspaceDirs;
+    const [dirB] = (await provisionSessionWorkspace(config, emptySession(), {}, "session-b")).workspaceDirs;
 
     expect(dirA).not.toBe(dirB);
     writeFileSync(join(dirA, "a.md"), "session a");
@@ -312,7 +313,7 @@ describe("provisionCursorWorkspace", () => {
     const workspaceRoot = join(tmpRoot, "workspace-local");
     mkdirSync(workspaceRoot, { recursive: true });
 
-    const { workspaceDirs: dirs } = await provisionCursorWorkspace(
+    const { workspaceDirs: dirs } = await provisionSessionWorkspace(
       makeConfig(workspaceRoot),
       localPathSession(projectDir),
       {},

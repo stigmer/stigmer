@@ -1,5 +1,9 @@
 /**
- * ExecutionConfig.max_cost_usd enforcement for the Cursor harness.
+ * ExecutionConfig.max_cost_usd enforcement as a hard stop on a harness turn.
+ *
+ * Harness-agnostic: the Cursor activity is today's only caller and the turn
+ * runtime takes it over in S2 M3. The rationale below is Cursor's, and it is
+ * why the module is shaped as a hard stop rather than a middleware.
  *
  * The native harness enforces the cap in middleware (cost-cap.ts): tools are
  * blocked at the threshold and the model gets one final tool-free round to
