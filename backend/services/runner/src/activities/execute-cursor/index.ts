@@ -91,12 +91,12 @@ import { mergeApprovalPolicies } from "./approval-policy.js";
 import { deriveActiveLeases, isUnattendedApprovalMode } from "../../shared/approval-policy.js";
 import { enabledToolsBySlug } from "../../shared/mcp-enabled-tools.js";
 import { backfillMcpServersIfNeeded } from "../../shared/connect-backfill.js";
-import { resolveExecutionEnv } from "./env-resolver.js";
-import { resolveBlueprint } from "./blueprint-resolver.js";
+import { resolveExecutionEnv } from "../../shared/env-resolver.js";
+import { resolveBlueprint } from "../../shared/blueprint-resolver.js";
 import { buildCursorSubAgentDefinitions } from "./subagent-config.js";
 import { resolveSkills } from "./skill-resolver.js";
 import { removeStigmerSymlink } from "../../shared/workspace/stigmer-link.js";
-import { resolveAttachments } from "./attachment-resolver.js";
+import { resolveAttachments } from "../../shared/attachment-resolver.js";
 import { buildEnhancedPrompt, buildHitlRecoveryPrompt, buildReinvocationPrompt, formatConversationCatchupSection, formatInputFiles, formatInteractionModePrefix, formatImplementPlanSection } from "./prompt-builder.js";
 import { composeTurnRecoveryDigest } from "./turn-recovery.js";
 import { installHitlGate, removeHitlGate } from "./workspace-setup.js";
@@ -109,7 +109,7 @@ import {
 } from "../../shared/workspace/workspace-lock.js";
 import { LocalWorkspaceBackend } from "../../shared/workspace/local-backend.js";
 import { buildApprovalState, buildApprovalGrants, emitCursorGrantReceipts, reconstructAdjudicatedApprovals, watchDenialLedger } from "./approval-state.js";
-import { applyApprovedWholeFileWrites, excludeAppliedFromGrants } from "./exact-apply.js";
+import { applyApprovedWholeFileWrites, excludeAppliedFromGrants } from "../../shared/exact-apply.js";
 import { isGitWorkTree } from "../../shared/filereview/git-substrate.js";
 import {
   captureBaselineToLedger,
@@ -125,7 +125,7 @@ import {
   type CursorTurnStreamDeps,
   type TurnOnDeltaDeps,
 } from "./turn-stream.js";
-import { formatCostLimitError, COST_LIMIT_USER_COPY } from "./cost-guard.js";
+import { formatCostLimitError, COST_LIMIT_USER_COPY } from "../../shared/cost-guard.js";
 import {
   captureFileChangeProgress,
   newProgressCaptureState,
@@ -134,7 +134,7 @@ import {
 } from "../../shared/filereview/progress.js";
 import { deriveExecutionFingerprintKey } from "../../shared/approval-fingerprint.js";
 import { getRunnerHitlMasterSecret } from "../../shared/fingerprint-secret.js";
-import { provisionCursorWorkspace } from "./workspace-provision.js";
+import { provisionCursorWorkspace } from "../../shared/workspace/session-provision.js";
 import { WriteBackCoordinator } from "../../shared/workspace/writeback-coordinator.js";
 import { statusProtoWriter } from "../../shared/execution-status-writer.js";
 import { setInterceptorExecutionId, runWithExecutionContext } from "./fetch-interceptor.js";
@@ -2144,7 +2144,7 @@ async function executeCursorInner(
             `finalTextLength=${finalText.length}`,
           );
           try {
-            const { extractStructuredOutput } = await import("./extract-structured-output.js");
+            const { extractStructuredOutput } = await import("../../shared/extract-structured-output.js");
             structuredOutput = await extractStructuredOutput(
               finalText, structuredOutputSchema, config, requestedModel,
             );

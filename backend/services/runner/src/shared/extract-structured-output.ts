@@ -13,12 +13,12 @@
  * bundle-slim's deferred evaluation preserves.
  */
 
-import type { Config } from "../../config.js";
-import { getEconomyModel } from "../../shared/model-registry.js";
-import { buildChatModel } from "../../shared/model-client.js";
-import { checkDirectCredentials } from "../../shared/llm-backend.js";
-import { tryInferProvider } from "../../shared/llm-proxy.js";
-import { jsonSchemaToZod } from "../../shared/json-schema-to-zod.js";
+import type { Config } from "../config.js";
+import { getEconomyModel } from "./model-registry.js";
+import { buildChatModel } from "./model-client.js";
+import { checkDirectCredentials } from "./llm-backend.js";
+import { tryInferProvider } from "./llm-proxy.js";
+import { jsonSchemaToZod } from "./json-schema-to-zod.js";
 
 /**
  * Extract structured data from an agent's free-text response using an

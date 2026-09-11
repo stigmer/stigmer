@@ -12,21 +12,20 @@
  */
 
 import { resolve } from "node:path";
-import type { StigmerClient } from "../../client/stigmer-client.js";
+import type { StigmerClient } from "../client/stigmer-client.js";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { AgentSpec, McpServerUsage, SubAgent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { SessionSpec } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import type { CloudRepo } from "./session-lifecycle.js";
-import { mergeMcpServerUsages } from "../../shared/mcp-resolver.js";
+import { mergeMcpServerUsages } from "./mcp-resolver.js";
 
 // Both harnesses must merge agent + session usages identically (session wins
 // per slug — the usage whose enabled_tools the enforcement honors), so the
 // merge lives in shared/mcp-resolver.ts. Re-exported here for its historical
 // home alongside mergeSkillRefs.
-export { mergeMcpServerUsages } from "../../shared/mcp-resolver.js";
+export { mergeMcpServerUsages } from "./mcp-resolver.js";
 
 /**
  * Path segments that identify runner-internal directories. Any workspace dir
@@ -36,6 +35,11 @@ const RUNNER_INTERNAL_MARKERS = [
   "/runtimes/cursor-runner/",
   "/runtimes/agent-runner/",
 ] as const;
+
+export interface CloudRepo {
+  url: string;
+  startingRef?: string;
+}
 
 export interface ResolvedBlueprint {
   agent: Agent;

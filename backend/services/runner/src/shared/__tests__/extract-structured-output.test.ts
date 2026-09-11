@@ -1,14 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import type { Config } from "../../../config.js";
+import type { Config } from "../../config.js";
 
-vi.mock("../../../shared/model-registry.js", () => ({
+vi.mock("../model-registry.js", () => ({
   getEconomyModel: vi.fn().mockResolvedValue("gpt-4o-mini"),
 }));
 
 const mockInvoke = vi.fn();
 const mockWithStructuredOutput = vi.fn().mockReturnValue({ invoke: mockInvoke });
 
-vi.mock("../../../shared/model-client.js", () => ({
+vi.mock("../model-client.js", () => ({
   buildChatModel: vi.fn().mockResolvedValue({
     model: { withStructuredOutput: (...args: unknown[]) => mockWithStructuredOutput(...args) },
     provider: "openai",
@@ -46,7 +46,7 @@ describe("extractStructuredOutput", () => {
 
   it("direct mode with a key builds a direct-mode model (no endpoint threaded)", async () => {
     vi.stubEnv("OPENAI_API_KEY", "sk-direct");
-    const { buildChatModel } = await import("../../../shared/model-client.js");
+    const { buildChatModel } = await import("../model-client.js");
     const { extractStructuredOutput } = await import("../extract-structured-output.js");
     mockInvoke.mockResolvedValueOnce({ answer: "42" });
 
@@ -61,7 +61,7 @@ describe("extractStructuredOutput", () => {
   });
 
   it("throws the credential message before any construction when no path exists", async () => {
-    const { buildChatModel } = await import("../../../shared/model-client.js");
+    const { buildChatModel } = await import("../model-client.js");
     const { extractStructuredOutput } = await import("../extract-structured-output.js");
 
     await expect(
@@ -72,7 +72,7 @@ describe("extractStructuredOutput", () => {
   });
 
   it("proxy mode threads the proxy endpoint and token, consulting no keys", async () => {
-    const { buildChatModel } = await import("../../../shared/model-client.js");
+    const { buildChatModel } = await import("../model-client.js");
     const { extractStructuredOutput } = await import("../extract-structured-output.js");
     mockInvoke.mockResolvedValueOnce({ answer: "ok" });
 
@@ -95,9 +95,9 @@ describe("extractStructuredOutput", () => {
     // The registry-empty fallback returns the primary model verbatim; when
     // its provider can't be inferred the pre-check must not guess — the
     // construction path owns the precise message.
-    const { getEconomyModel } = await import("../../../shared/model-registry.js");
+    const { getEconomyModel } = await import("../model-registry.js");
     vi.mocked(getEconomyModel).mockResolvedValueOnce("mystery-model");
-    const { buildChatModel } = await import("../../../shared/model-client.js");
+    const { buildChatModel } = await import("../model-client.js");
     const { extractStructuredOutput } = await import("../extract-structured-output.js");
     mockInvoke.mockResolvedValueOnce({ answer: "ok" });
 

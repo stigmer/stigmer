@@ -32,7 +32,7 @@ import {
   StallTimeoutError,
   type StallWatchdog,
 } from "../../shared/stall-watchdog.js";
-import { shouldPersistStreamingStatus } from "./persist-decision.js";
+import { shouldPersistStreamingStatus } from "../../shared/persist-decision.js";
 import { approvalDenials, readDenialLedger } from "./approval-state.js";
 import {
   captureFileChangeProgress,
@@ -45,7 +45,7 @@ import type { TodoTracker } from "./todo-tracker.js";
 import type { StreamingUpdateScheduler } from "../../shared/streaming-scheduler.js";
 import type { UsageAccumulator } from "./usage-accumulator.js";
 import type { createCursorEventRecorder } from "./cursor-event-recorder.js";
-import { costCapExceeded } from "./cost-guard.js";
+import { costCapExceeded } from "../../shared/cost-guard.js";
 
 /**
  * The subset of the Cursor SDK `Run` the stream phase consumes. Kept structural

@@ -39,18 +39,18 @@
 import { mkdir, copyFile, readFile, stat, writeFile } from "node:fs/promises";
 import { join, basename } from "node:path";
 import type { Attachment } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
-import type { ArtifactStorage } from "../../shared/artifact-storage.js";
-import { mintAttachmentDownloadUrl } from "../../shared/attachment-download-urls.js";
-import { allocateUniqueName } from "../../shared/attachment-naming.js";
+import type { ArtifactStorage } from "./artifact-storage.js";
+import { mintAttachmentDownloadUrl } from "./attachment-download-urls.js";
+import { allocateUniqueName } from "./attachment-naming.js";
 import {
   isVisionCandidate,
   type VisionBudget,
   type VisionDegradedReason,
   type VisionImage,
   type VisionOutcome,
-} from "../../shared/attachment-vision.js";
-import { getPlatformDir } from "../../shared/workspace/platform-dir.js";
-import { ensureStigmerSymlink, STIGMER_LOCAL_STATE_DIR } from "../../shared/workspace/stigmer-link.js";
+} from "./attachment-vision.js";
+import { getPlatformDir } from "./workspace/platform-dir.js";
+import { ensureStigmerSymlink, STIGMER_LOCAL_STATE_DIR } from "./workspace/stigmer-link.js";
 
 const INPUTS_SUBDIR = "inputs";
 

@@ -10,7 +10,7 @@
  * exercise the same implementation and cannot drift.
  */
 
-import type { StreamingUpdateScheduler } from "../../shared/streaming-scheduler.js";
+import type { StreamingUpdateScheduler } from "./streaming-scheduler.js";
 
 /**
  * Force-flush signals — discrete, user-visible state changes that must reach the

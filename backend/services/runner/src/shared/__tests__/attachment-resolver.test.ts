@@ -14,9 +14,9 @@ import { mkdtempSync, writeFileSync, readFileSync, rmSync, lstatSync, readlinkSy
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { resolveAttachments, AttachmentResolutionError } from "../attachment-resolver.js";
-import { getPlatformDir } from "../../../shared/workspace/platform-dir.js";
-import { makeInMemoryArtifactStorage } from "../../../__test-utils__/fake-artifact-storage.js";
-import { CURSOR_VISION_PROFILE, VisionBudget } from "../../../shared/attachment-vision.js";
+import { getPlatformDir } from "../workspace/platform-dir.js";
+import { makeInMemoryArtifactStorage } from "../../__test-utils__/fake-artifact-storage.js";
+import { CURSOR_VISION_PROFILE, VisionBudget } from "../attachment-vision.js";
 
 function makeAttachment(overrides: Partial<{
   filename: string;

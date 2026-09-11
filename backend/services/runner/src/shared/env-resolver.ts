@@ -6,7 +6,7 @@
  * (e.g. API keys for HTTP headers, secrets for stdio subprocesses).
  */
 
-import type { StigmerClient } from "../../client/stigmer-client.js";
+import type { StigmerClient } from "../client/stigmer-client.js";
 
 export interface EnvResult {
   envVars: Record<string, string>;

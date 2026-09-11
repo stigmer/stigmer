@@ -57,11 +57,11 @@ import type {
   ToolCall,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
-import { ELISION_MARKER } from "../../shared/status-offload.js";
-import { extractFilePath, extractWriteContent } from "../../shared/file-tools.js";
-import { resolveWorkspacePath } from "../../shared/file-change.js";
-import type { WorkspaceBackend } from "../../shared/workspace/types.js";
-import { utcTimestamp } from "../../shared/status.js";
+import { ELISION_MARKER } from "./status-offload.js";
+import { extractFilePath, extractWriteContent } from "./file-tools.js";
+import { resolveWorkspacePath } from "./file-change.js";
+import type { WorkspaceBackend } from "./workspace/types.js";
+import { utcTimestamp } from "./status.js";
 
 /** Options for {@link applyApprovedWholeFileWrites}. */
 export interface ExactApplyOptions {

@@ -9,11 +9,11 @@
 
 import type { Config } from "../../config.js";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import { WorkspaceProvisioner } from "../../shared/workspace/provisioner.js";
-import type { ProvisionResult, WorkspaceBackend } from "../../shared/workspace/types.js";
-import { LocalWorkspaceBackend } from "../../shared/workspace/local-backend.js";
-import { ensurePlatformDir } from "../../shared/workspace/platform-dir.js";
-import { resolveSessionWorkspaceRoot } from "../../shared/workspace/session-root.js";
+import { WorkspaceProvisioner } from "./provisioner.js";
+import type { ProvisionResult, WorkspaceBackend } from "./types.js";
+import { LocalWorkspaceBackend } from "./local-backend.js";
+import { ensurePlatformDir } from "./platform-dir.js";
+import { resolveSessionWorkspaceRoot } from "./session-root.js";
 
 /** What {@link provisionCursorWorkspace} hands back to the harness. */
 export interface CursorWorkspaceProvision {

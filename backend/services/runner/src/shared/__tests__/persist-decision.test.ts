@@ -11,7 +11,7 @@ import { describe, it, expect } from "vitest";
 import {
   StreamingUpdateScheduler,
   type StreamingConfig,
-} from "../../../shared/streaming-scheduler.js";
+} from "../streaming-scheduler.js";
 import { shouldPersistStreamingStatus } from "../persist-decision.js";
 
 const CONFIG: StreamingConfig = {

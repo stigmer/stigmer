@@ -13,7 +13,7 @@ import {
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { Config } from "../../../config.js";
-import { provisionCursorWorkspace } from "../workspace-provision.js";
+import { provisionCursorWorkspace } from "../session-provision.js";
 
 /**
  * Verifies that the Cursor harness provisions git-repo workspace entries

@@ -50,7 +50,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { applyApprovedWholeFileWrites, excludeAppliedFromGrants } from "../exact-apply.js";
+import { applyApprovedWholeFileWrites, excludeAppliedFromGrants } from "../../../shared/exact-apply.js";
 import { reconstructAdjudicatedApprovals, buildApprovalGrants } from "../approval-state.js";
 import type { ApprovalGrant } from "../approval-state.js";
 import { LocalWorkspaceBackend } from "../../../shared/workspace/local-backend.js";

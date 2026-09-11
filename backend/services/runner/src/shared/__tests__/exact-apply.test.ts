@@ -45,9 +45,9 @@ import {
   excludeAppliedFromGrants,
   resolveApprovedWholeFileContent,
 } from "../exact-apply.js";
-import { ELISION_MARKER } from "../../../shared/status-offload.js";
-import { mockWorkspaceBackend } from "../../../__test-utils__/mock-workspace.js";
-import type { WorkspaceBackend } from "../../../shared/workspace/types.js";
+import { ELISION_MARKER } from "../status-offload.js";
+import { mockWorkspaceBackend } from "../../__test-utils__/mock-workspace.js";
+import type { WorkspaceBackend } from "../workspace/types.js";
 
 const ROOT = "/root";
 
