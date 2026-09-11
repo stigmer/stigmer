@@ -20,8 +20,11 @@ import {
   libsSet,
   resolveSet,
   runnerLinkedSet,
+  selectPackages,
+  splitOnly,
   turboArgs,
   turboEnv,
+  workspaceSet,
 } from "./turbo-set.mjs";
 
 function scratchRepo(files) {
@@ -110,12 +113,111 @@ test("runner-deps set in this repo names the libs both standalone packages link 
   }
 });
 
+test("workspace set is every root `workspaces` member's name, in the root's order", () => {
+  const dir = scratchRepo({
+    "package.json": { workspaces: ["libs/b", "apps/a"] },
+    "libs/b/package.json": { name: "@scope/b" },
+    "apps/a/package.json": { name: "a" },
+  });
+  try {
+    assert.deepEqual(workspaceSet(dir), ["@scope/b", "a"]);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("workspace set in this repo contains every publishable lib and the two client apps", () => {
+  const names = workspaceSet();
+  assert.equal(new Set(names).size, names.length, "no duplicate names");
+  for (const name of libsSet()) {
+    assert.ok(
+      names.includes(name),
+      `${name} publishes but is not a workspace member`,
+    );
+  }
+  assert.ok(names.includes("web"), "the web console is a member");
+  assert.ok(names.includes("desktop"), "the desktop shell is a member");
+});
+
 test("resolveSet refuses an unknown set and names the known ones", () => {
   assert.throws(
     () => resolveSet("nope"),
-    /unknown set "nope".*Known sets: libs, runner-deps/,
+    /unknown set "nope".*Known sets: libs, runner-deps, workspace/,
   );
-  assert.deepEqual(Object.keys(SETS), ["libs", "runner-deps"]);
+  assert.deepEqual(Object.keys(SETS), ["libs", "runner-deps", "workspace"]);
+});
+
+test("splitOnly: lifts --only out of the flags, merges repeats, leaves the rest in order", () => {
+  assert.deepEqual(splitOnly(["--force", "--only=a,b", "--dry-run"]), {
+    only: ["a", "b"],
+    rest: ["--force", "--dry-run"],
+  });
+  assert.deepEqual(splitOnly(["--only=a", "--only=b, c"]), {
+    only: ["a", "b", "c"],
+    rest: [],
+  });
+  assert.deepEqual(splitOnly(["--force"]), { only: null, rest: ["--force"] });
+  assert.throws(() => splitOnly(["--only"]), /--only needs at least one/);
+  assert.throws(() => splitOnly(["--only="]), /--only needs at least one/);
+});
+
+test("selectPackages: the set's order, narrowed to --only; an unknown name is refused", () => {
+  const dir = scratchRepo({
+    "package.json": { workspaces: ["p", "q", "r"] },
+    "p/package.json": { name: "p" },
+    "q/package.json": { name: "q" },
+    "r/package.json": { name: "r" },
+  });
+  try {
+    assert.deepEqual(selectPackages("workspace", null, dir), ["p", "q", "r"]);
+    assert.deepEqual(
+      selectPackages("workspace", ["r", "p"], dir),
+      ["p", "r"],
+      "the set's order wins over --only's",
+    );
+    assert.throws(
+      () => selectPackages("workspace", ["p", "zzz-not-here"], dir),
+      /--only names "zzz-not-here", which is not a workspace package/,
+      "one bad name fails the whole selection, even beside a good one",
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("selectPackages in this repo: a lib named out of `libs` stays; a client app named out of `libs` is not in the set", () => {
+  assert.deepEqual(selectPackages("libs", ["@stigmer/sdk", "web"]), [
+    "@stigmer/sdk",
+  ]);
+  assert.deepEqual(selectPackages("workspace", ["web"]), ["web"]);
+  assert.deepEqual(
+    selectPackages("libs", ["web"]),
+    [],
+    "web is a member but not a lib: an empty selection, not an error",
+  );
+});
+
+test("turboArgs with --only filters to the selection and returns null for an empty one", () => {
+  assert.deepEqual(
+    turboArgs("libs", "test", [
+      "--only=@stigmer/react,@stigmer/sdk",
+      "--force",
+    ]),
+    [
+      "run",
+      "test",
+      "--filter=@stigmer/sdk",
+      "--filter=@stigmer/react",
+      "--concurrency=1",
+      "--force",
+    ],
+    "publish order, --only consumed, caller flags after the set's own",
+  );
+  assert.equal(turboArgs("libs", "build", ["--only=web"]), null);
+  assert.throws(
+    () => turboArgs("libs", "build", ["--only=@stigmer/nope"]),
+    /not a workspace package/,
+  );
 });
 
 test("turboArgs: task first, one --filter per package, caller flags last", () => {

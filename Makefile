@@ -663,8 +663,12 @@ lint-desktop: ## Lint desktop app (TypeScript)
 typecheck-desktop: ## Typecheck desktop app (TypeScript)
 	npm run typecheck -w desktop
 
-verify-desktop: lint-desktop typecheck-desktop ## Lint + typecheck desktop (TS + Rust)
+# Its own target so the CI lane can run the Rust check alone: lint and
+# typecheck reach it there as turbo tasks over the affected packages.
+check-desktop-rust: ## Type-check the Tauri shell's Rust crate
 	cd client-apps/desktop/src-tauri && cargo check --quiet
+
+verify-desktop: lint-desktop typecheck-desktop check-desktop-rust ## Lint + typecheck desktop (TS + Rust)
 
 test-desktop: ## Run desktop app component tests (Vitest)
 	npm run test -w desktop
