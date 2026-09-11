@@ -32,6 +32,7 @@ import {
 } from "vitest";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
@@ -214,9 +215,9 @@ describe.each([sqliteFixture, postgresFixture])(
           firstName: "Frank",
         });
         await accounts.save(account);
-        const edited = create(IdentityAccountSchema, {
-          ...account,
-          spec: { ...account.spec, firstName: "Francis" },
+        const edited = makeDirectAccount({
+          idpId: "auth0|frank",
+          firstName: "Francis",
         });
         await accounts.update(edited);
         expect(
@@ -253,9 +254,10 @@ describe.each([sqliteFixture, postgresFixture])(
       });
 
       it("refuses to save a direct account whose id is not its derived id", async () => {
-        const stray = create(IdentityAccountSchema, {
-          ...makeDirectAccount({ idpId: "auth0|judy" }),
-          metadata: { id: "ida_01hzzzzzzzzzzzzzzzzzzzzzzz", name: "stray" },
+        const stray = makeDirectAccount({ idpId: "auth0|judy" });
+        stray.metadata = create(ApiResourceMetadataSchema, {
+          id: "ida_01hzzzzzzzzzzzzzzzzzzzzzzz",
+          name: "stray",
         });
         await expect(accounts.save(stray)).rejects.toThrow(
           "direct account id must be derived from its idp_id",
