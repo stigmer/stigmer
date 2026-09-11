@@ -46,7 +46,7 @@
  * `origin/<base branch>`, a push with the event's `before`, anything else
  * (a developer at a terminal) with origin/main unless --base says otherwise.
  *
- * Outputs (GITHUB_OUTPUT when set, else stdout):
+ * Outputs (always on stdout; appended to GITHUB_OUTPUT when set):
  *   packages=<JSON array of names, workspace order>
  *   <set>=true|false          one per set in turbo-set.mjs (libs, ...)
  *   everything=true|false
@@ -347,10 +347,14 @@ function main(argv, env) {
   );
 
   if (decision.warning) console.log(`::warning::${decision.warning}`);
+  // The outputs always go to the log too: the step summary is a page away,
+  // and someone reading a skipped job's cause should find it in the gate's
+  // plain log as well.
   const lines = outputLines(decision, setsByName);
-  if (env.GITHUB_OUTPUT)
+  console.log(lines.join("\n"));
+  if (env.GITHUB_OUTPUT) {
     appendFileSync(env.GITHUB_OUTPUT, lines.join("\n") + "\n");
-  else console.log(lines.join("\n"));
+  }
   const summary = summaryMarkdown(decision, range);
   if (env.GITHUB_STEP_SUMMARY) appendFileSync(env.GITHUB_STEP_SUMMARY, summary);
   else console.log("\n" + summary);
