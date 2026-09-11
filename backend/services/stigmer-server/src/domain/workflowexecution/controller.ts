@@ -49,6 +49,7 @@ import { newPipeline } from "../../pipeline/pipeline.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
+import { newAuthorizeRunTargetStep } from "../../pipeline/steps/authorize-run-target.js";
 import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
 import { newBuildUpdateStateStep } from "../../pipeline/steps/build-update-state.js";
 import { newBuildNewStateStep } from "../../pipeline/steps/defaults.js";
@@ -116,6 +117,7 @@ import { getEventLog } from "./get-event-log.js";
 import { getExecutionSummary } from "./get-execution-summary.js";
 import { listPendingApprovals } from "./list-pending-approvals.js";
 import { loadAllWorkflowExecutions } from "./queries.js";
+import { workflowExecutionRunTarget } from "./run-target.js";
 import { workflowExecutionSearchExtractor } from "./search-extractor.js";
 import type { SandboxLane } from "../../sandbox/lane.js";
 import type { WorkflowSandboxTerminalObserver } from "../../sandbox/steps.js";
@@ -243,6 +245,11 @@ export function registerWorkflowExecutionServices(
  * Create — create.go buildCreatePipeline, step-for-step (the numbered
  * 15-step chain): validation (proto → visibility → slug →
  * workflow-or-instance presence, the #196 InvalidArgument contrast) →
+ * the run gate (AuthorizeRunTarget, P1 sp.run-gate: the first step after
+ * the target reference is guaranteed, asking workflow_instance#can_execute
+ * or workflow#can_execute by request shape — before the engine gate so a
+ * denied caller learns nothing about engine state, and before the workflow
+ * lookup, so a denial reads nothing) →
  * the ENGINE GATE at its pinned position (before every side effect — a
  * down engine orphans nothing; Go's unit test pins that it precedes even
  * the workflow lookup) → default-instance resolution → the standard
@@ -276,6 +283,9 @@ async function createExecution(
     .addStep(newValidateVisibilityStep())
     .addStep(newResolveSlugStep())
     .addStep(newValidateWorkflowOrInstanceStep())
+    .addStep(
+      newAuthorizeRunTargetStep(deps.authorizer, workflowExecutionRunTarget),
+    )
     .addStep(newEnsureEngineAvailableStep(deps.engineState))
     .addStep(
       newCreateDefaultInstanceIfNeededStep({

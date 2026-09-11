@@ -494,6 +494,16 @@ export interface TargetProfile {
   // implicit caller, so isolation is untestable there by construction.
   provisionIdentity?(): Promise<ConformanceClients>;
 
+  // Clients authenticated as a fresh identity holding exactly ONE grant: the
+  // `member` role on the given tenancy — the "colleague" for
+  // within-organization authorization assertions (the run gate: a member may
+  // start runs only on the agents and workflows they can see, P1
+  // sp.run-gate). Distinct from provisionIdentity's outsider, whom the
+  // organization-level checks already refuse before any resource-level rule
+  // is reached. Present only on multi-tenant targets, where roles exist;
+  // local targets have a single implicit caller.
+  provisionMember?(tenancy: TenancyContext): Promise<ConformanceClients>;
+
   // Base URL of the server's unified HTTP port, for the plain-HTTP lanes that
   // route AROUND gRPC (the registry proxies). Present only on targets whose
   // OSS-lane HTTP surface is under test: the local targets own their spawned

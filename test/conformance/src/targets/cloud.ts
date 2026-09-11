@@ -12,8 +12,15 @@
 // organization created via the production RPC, whose creation grants the
 // primary user ownership (IAM policies) and provisions a zero-balance billing
 // account — sufficient for the Class A (CRUD) domains.
+import { createClient } from "@connectrpc/connect";
+import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
 import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
-import { CLOUD_ENV, mintCloudUserToken } from "../harness/cloud-env";
+import {
+  CLOUD_ENV,
+  jwtSubject,
+  mintCloudUserToken,
+  organizationMemberGrant,
+} from "../harness/cloud-env";
 import { createTransport, makeClients, type ConformanceClients } from "../harness/clients";
 import {
   newDirectLoginTenant,
@@ -312,6 +319,37 @@ export class CloudTarget implements TargetProfile {
         clientSecret: requireEnv(CLOUD_ENV.platformClientSecret),
       },
       uniqueName("conf-outsider"),
+    );
+    return makeClients(createTransport(this.grpcBaseUrl, { bearerToken: token }));
+  }
+
+  // Mints a brand-new user and grants it exactly `member` on the tenancy, as
+  // the primary (the org's owner, through the ordinary IamPolicy create). The
+  // colleague for within-organization authorization assertions: past the
+  // organization-level checks, subject to every resource-level rule.
+  async provisionMember(tenancy: TenancyContext): Promise<ConformanceClients> {
+    if (this.grpcBaseUrl === undefined) {
+      throw new Error("CloudTarget.setup() must be called before provisionMember()");
+    }
+    const organizationId = this.provisionedOrgIds.get(tenancy.org);
+    if (organizationId === undefined) {
+      throw new Error(
+        `provisionMember: tenancy "${tenancy.org}" was not provisioned by this target (provisionTenancy() first)`,
+      );
+    }
+    const token = await mintCloudUserToken(
+      this.grpcBaseUrl,
+      {
+        clientId: requireEnv(CLOUD_ENV.platformClientId),
+        clientSecret: requireEnv(CLOUD_ENV.platformClientSecret),
+      },
+      uniqueName("conf-member"),
+    );
+    const primaryTransport = createTransport(this.grpcBaseUrl, {
+      bearerToken: requireEnv(CLOUD_ENV.token),
+    });
+    await createClient(IamPolicyCommandController, primaryTransport).create(
+      organizationMemberGrant(organizationId, jwtSubject(token)),
     );
     return makeClients(createTransport(this.grpcBaseUrl, { bearerToken: token }));
   }

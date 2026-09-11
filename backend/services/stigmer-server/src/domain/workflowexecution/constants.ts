@@ -17,6 +17,23 @@ export const ENGINE_UNAVAILABLE_MESSAGE =
   "The execution engine is temporarily unavailable. Please try again shortly.";
 
 /**
+ * The run gate's deny copy per request shape (P1 sp.run-gate, ruling
+ * Q-RG-4; wire once merged, asserted by the conformance run-gate suite).
+ * NEW copy quotes the handle single-quoted (the ratified 2026-08-26 rule).
+ * The agent-execution domain's `runAgent*` functions are these copies'
+ * twins; each domain owns its own.
+ */
+export function runWorkflowDeniedMessage(workflowId: string): string {
+  return `unauthorized to run workflow '${workflowId}'`;
+}
+
+export function runWorkflowInstanceDeniedMessage(
+  workflowInstanceId: string,
+): string {
+  return `unauthorized to run workflow instance '${workflowInstanceId}'`;
+}
+
+/**
  * The lifecycle steps' engineless refusal (lifecycle_steps.go, five
  * sites: pause/resume/cancel/terminate signal steps and recover's
  * terminate-existing). FailedPrecondition, not Unavailable — the ratified

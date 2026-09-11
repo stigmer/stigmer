@@ -129,7 +129,7 @@ All six RPCs are chains, and the proto deliberately marks every one `is_skip_aut
 | Method | Annotation | Handler |
 |---|---|---|
 | SessionCommandController.apply | none | chain-with-Authorize |
-| SessionCommandController.create | config: can_create_session on organization (field metadata.org), error_msg yes | chain-with-Authorize |
+| SessionCommandController.create | config: can_create_session on organization (field metadata.org), error_msg yes | chain-with-Authorize (plus the AuthorizeRunTarget mid-chain can_execute on the agent_instance the session binds to — the caller's or the resolved default — right after ResolveDefaultAgentInstance; P1 sp.run-gate, stigmer-cloud#709. `apply` routes here on the create arm.) |
 | SessionCommandController.update | config: can_edit on session (field metadata.id), error_msg yes | chain-with-Authorize |
 | SessionCommandController.updateSubject | config: can_edit on session (field id), error_msg yes | direct: field-level read-modify-write (ports Go update_subject.go); authorizeDirect AFTER the load — the Java load-before-authorize order (#224) |
 | SessionCommandController.delete | config: can_delete on session (field value), error_msg yes | chain-with-Authorize |
@@ -239,7 +239,7 @@ The conversation surface is a cloud capability; OSS serves edition stubs, all di
 
 | Method | Annotation | Handler |
 |---|---|---|
-| AgentExecutionCommandController.create | is_skip_authorization | chain-with-Authorize |
+| AgentExecutionCommandController.create | is_skip_authorization | chain-with-Authorize (the AuthorizeRunTarget mid-chain check by request shape, right after EnsureSessionOrAgentResolved: can_create_execution_in on the session (session_id), can_execute on the agent_instance (session_spec.agent_instance_id) or on the agent (agent_id) — the annotation cannot express the three-shape dispatch; P1 sp.run-gate, stigmer-cloud#709) |
 | AgentExecutionCommandController.update | config: can_edit on agent_execution (field metadata.id), error_msg yes | chain-with-Authorize |
 | AgentExecutionCommandController.updateStatus | config: can_edit on agent_execution (field execution_id), error_msg yes | chain-with-Authorize (update-status.ts) |
 | AgentExecutionCommandController.submitApproval | config: can_edit on agent_execution (field agent_execution_id), error_msg yes | chain-with-Authorize (submit-approval.ts) |
@@ -297,7 +297,7 @@ The conversation surface is a cloud capability; OSS serves edition stubs, all di
 
 | Method | Annotation | Handler |
 |---|---|---|
-| WorkflowExecutionCommandController.create | is_skip_authorization | chain-with-Authorize |
+| WorkflowExecutionCommandController.create | is_skip_authorization | chain-with-Authorize (the AuthorizeRunTarget mid-chain check by request shape, right after ValidateWorkflowOrInstance: can_execute on the workflow_instance (workflow_instance_id) or on the workflow (workflow_id); P1 sp.run-gate, stigmer-cloud#709) |
 | WorkflowExecutionCommandController.update | config: can_edit on workflow_execution (field metadata.id), error_msg yes | chain-with-Authorize |
 | WorkflowExecutionCommandController.updateStatus | config: can_edit on workflow_execution (field execution_id), error_msg yes | chain-with-Authorize (update-status.ts) |
 | WorkflowExecutionCommandController.submitApproval | config: can_edit on workflow_execution (field execution_id), error_msg yes | chain-with-Authorize (submit-approval.ts) |
