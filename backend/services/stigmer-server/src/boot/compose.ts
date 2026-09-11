@@ -340,14 +340,21 @@ export async function composeServer(
     identityAccountPath,
     ApiResourceKind.identity_account,
   );
+  // ONE issuer discovery for every lane that reads a well-known document
+  // (A8): provisioning's userinfo client here and the OIDC verifier's
+  // JWKS location below share it, so an issuer is discovered once per
+  // process and validated the same way wherever it is consumed. Built in
+  // this stage, not inside routes() (which runs twice) — the same reason
+  // the searchRegistry lives here.
+  const issuerDiscovery = newIssuerDiscovery();
   // Provisioning reads the caller's profile from the userinfo endpoint of
   // the issuer that vouched for the token, discovered per issuer and
   // cached (A8) — so a composition whose own verifiers name their issuer
-  // on the identity needs no knob here. Built ONCE (routes() runs twice).
+  // on the identity needs no knob here.
   const identityAccountProvisioner = newDirectAccountProvisioner({
     accounts: identityAccounts,
     createAccount: createIdentityAccount,
-    userInfo: newOidcUserInfoClient(newIssuerDiscovery()),
+    userInfo: newOidcUserInfoClient(issuerDiscovery),
   });
   // Under the trusted-local posture the server knows its one principal
   // from the operator seam (the SAME seam the interceptor stamps callers
@@ -1187,19 +1194,31 @@ export async function composeServer(
   //     authentication posture must honor the keys it issues. Gating it on
   //     the issuer left a posture-declaring composition minting keys
   //     nothing verified.
-  //   - the OIDC verifier rides the ISSUER alone: it resolves callers to
-  //     the token's `sub`, which is the wrong principal for a composition
-  //     whose own lanes resolve users to their account ids — that is why a
-  //     declared posture never borrows the issuer knob.
+  //   - the OIDC verifier rides the ISSUER alone: it is open source's
+  //     single-issuer lane, and a composition with verifiers of its own
+  //     names their issuers and audiences itself and declares the posture
+  //     instead — so the knob and the extension entries never both claim
+  //     one JWT.
+  //   - both OSS verifiers resolve their subject through the identity-
+  //     account domain (20260911.11 Q-IA-2, A6): a provisioned user is
+  //     stamped with the account id whichever credential they present,
+  //     an unprovisioned one is admitted idp-shaped. They read the SAME
+  //     port the domain writes through (`identityAccounts`, the storage
+  //     stage), so a row provisioning creates resolves on the very next
+  //     request.
   // The runner's credential in either posture is an operator-minted API
   // token via STIGMER_TOKEN (O3 ruling Q3) — no runner-specific verifier.
   const identityVerifiers = [
-    ...(requireAuthentication ? [newApiKeyIdentityVerifier(store)] : []),
+    ...(requireAuthentication
+      ? [newApiKeyIdentityVerifier({ store, accounts: identityAccounts })]
+      : []),
     ...(authEnabled
       ? [
           newOidcIdentityVerifier({
             issuer: config.oidcIssuer,
             audience: config.oidcAudience,
+            accounts: identityAccounts,
+            discovery: issuerDiscovery,
           }),
         ]
       : []),
