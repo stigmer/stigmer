@@ -7,6 +7,7 @@
 // This is a managed target — it owns the server process lifecycle. The
 // server runs single-tenant with no auth and no Temporal (not needed for
 // the CRUD domains), so tenancy provisioning is just a unique org slug.
+import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 import { ensureTsServerEntry } from "../harness/ts-build";
 import { createTransport, makeClients, type ConformanceClients } from "../harness/clients";
 import { awaitGrpcReady } from "../harness/grpc-ready";
@@ -21,6 +22,9 @@ import type {
 
 export class LocalTarget implements TargetProfile {
   readonly name: string = "local";
+  // The empty composition (`composeServer({ extensions: [] })`) is Stigmer
+  // open source; local-postgres inherits it (same composition, other store).
+  readonly edition: ServerEdition = ServerEdition.oss;
   // The retired Go server's exact matrix — the parity promise the TS port
   // was gated on (D4). The one deliberate divergence, workflowChild-
   // ApprovalForwarding, lives on local-execution (#23).

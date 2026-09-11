@@ -21,11 +21,31 @@ enum ApiResourceVersion {
   v1 = 1;
 }
 
-// Resource tier defines the availability context of a resource
+// The minimum edition that serves a resource kind.
+//
+// Editions are ordered oss < enterprise < cloud because each composes the
+// previous one's units (ai.stigmer.platform.v1.ServerEdition). A kind
+// tiered `open_source` is served everywhere; `enterprise` in Enterprise
+// and Cloud; `cloud_only` in Cloud alone. Clients hide kinds the connected
+// edition does not serve (the SDK's `isResourceAvailable`).
+//
+// A tier states what the edition's server SERVES today, not a plan: a
+// kind's tier changes in the same change that makes the edition serve it,
+// so a client never offers a surface the server answers UNIMPLEMENTED to.
+//
+// Value names are JSON wire and the conformance suite pins them, so
+// `cloud_only` keeps its pre-Enterprise name beside `open_source` and
+// `enterprise`. Value numbers are wire identifiers, not ranks —
+// `enterprise` was added after `cloud_only` and sits at 3; compare tiers
+// to editions through an explicit rank, never through these numbers.
 enum ResourceTier {
   resource_tier_unspecified = 0;
-  open_source = 1; // Available in CLI local mode & Cloud
-  cloud_only = 2; // Hidden in CLI local mode; Available in Cloud
+  // Served by every edition.
+  open_source = 1;
+  // Served by Stigmer Cloud only.
+  cloud_only = 2;
+  // Served by Stigmer Enterprise and Stigmer Cloud.
+  enterprise = 3;
 }
 
 // Platform ID values - defines the singleton platform instance ID
@@ -54,7 +74,7 @@ message ApiResourceKindMeta {
   bool is_versioned = 6;
   // Flag to indicate if the api-resource-kind is not searchable
   bool not_search_indexed = 7;
-  // Defines availability context - whether resource is available in open source or cloud only
+  // The minimum edition that serves this kind (open_source, enterprise or cloud_only).
   ResourceTier tier = 8;
   // FGA authorization configuration - defines how FGA tuples are created for this resource
   AuthorizationConfig authorization = 9;
@@ -76,6 +96,9 @@ enum ApiResourceKind {
     id_prefix: "ver"
     is_versioned: false
     not_search_indexed: true
+    // No edition serves this kind today: it has no service proto and no
+    // domain in either composition; the enum entry is all there is. The
+    // tier stays where it was and moves in the change that adds a service.
     tier: cloud_only
     authorization: {
       scope_type: AUTHORIZATION_SCOPE_TYPE_NONE
@@ -94,7 +117,9 @@ enum ApiResourceKind {
     id_prefix: "iamp"
     is_versioned: false
     not_search_indexed: true
-    tier: cloud_only
+    // Per-resource grants are fine-grained control, a security team's ask,
+    // served by the OpenFGA authorizer the Enterprise units compose.
+    tier: enterprise
     authorization: {
       scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
@@ -110,6 +135,11 @@ enum ApiResourceKind {
     id_prefix: "ida"
     is_versioned: false
     not_search_indexed: false
+    // Becomes open_source when the open-source server serves it: the
+    // single-organization identity-account domain lands in @stigmer/server
+    // (project 20260911.04, entry sp.oss-identity-accounts) and that change
+    // flips this tier. Flipping it earlier would make clients call an RPC
+    // the OSS server answers UNIMPLEMENTED to.
     tier: cloud_only
     authorization: {
       scope_type: AUTHORIZATION_SCOPE_TYPE_OWNER_ONLY
@@ -144,7 +174,9 @@ enum ApiResourceKind {
     id_prefix: "inv"
     is_versioned: false
     not_search_indexed: true
-    tier: cloud_only
+    // Inviting members across organizations. In the open-source edition
+    // members arrive by signing in through the one configured OIDC issuer.
+    tier: enterprise
     authorization: {
       scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
@@ -162,7 +194,10 @@ enum ApiResourceKind {
     id_prefix: "idp"
     is_versioned: false
     not_search_indexed: true
-    tier: cloud_only
+    // Registering IdPs, SSO enforcement and federating many organizations.
+    // The open-source edition has one OIDC issuer by configuration and no
+    // IdP resources.
+    tier: enterprise
     authorization: {
       scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
@@ -184,7 +219,12 @@ enum ApiResourceKind {
     id_prefix: "oapp"
     is_versioned: false
     not_search_indexed: true
-    tier: cloud_only
+    // The open-source server serves this kind (its own domain; the MCP
+    // OAuth connect lane depends on it). It was tiered cloud_only by drift,
+    // which hid in the console a kind the server answered. The hosted-only
+    // org-override surface on top of it degrades by probe (UNIMPLEMENTED),
+    // not by this tier.
+    tier: open_source
     authorization: {
       scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
@@ -206,6 +246,10 @@ enum ApiResourceKind {
     id_prefix: "pcl"
     is_versioned: false
     not_search_indexed: true
+    // Becomes open_source when the open-source server serves it: the
+    // single-organization PlatformClient moves into @stigmer/server
+    // (project 20260911.04, entry sp.platform-client-oss) and that change
+    // flips this tier.
     tier: cloud_only
     authorization: {
       scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
@@ -257,7 +301,12 @@ enum ApiResourceKind {
     id_prefix: "plt"
     is_versioned: false
     not_search_indexed: true
-    tier: cloud_only
+    // The tier names the platform#operator seat, which a company
+    // self-hosting Enterprise owns for its own instance. (getServerInfo on
+    // PlatformQueryController is answered by every edition; it is not this
+    // kind.) Billing-operator permissions on the platform stay gated by the
+    // cloud's billing unit, not by this tier.
+    tier: enterprise
     authorization: {
       scope_type: AUTHORIZATION_SCOPE_TYPE_NONE
       owner_type: OWNER_ATTRIBUTION_TYPE_NONE

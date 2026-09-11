@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/platform/v1/server_info.proto.
  */
 export const file_ai_stigmer_platform_v1_server_info: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL3BsYXRmb3JtL3YxL3NlcnZlcl9pbmZvLnByb3RvEhZhaS5zdGlnbWVyLnBsYXRmb3JtLnYxIhQKEkdldFNlcnZlckluZm9JbnB1dCJeChNHZXRTZXJ2ZXJJbmZvT3V0cHV0EjYKB2VkaXRpb24YASABKA4yJS5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLlNlcnZlckVkaXRpb24SDwoHdmVyc2lvbhgCIAEoCSIfCh1HZXRSdW5uZXJCb290c3RyYXBDb25maWdJbnB1dCLjAgoeR2V0UnVubmVyQm9vdHN0cmFwQ29uZmlnT3V0cHV0EiEKEHRlbXBvcmFsX2FkZHJlc3MYASABKAlCB7pIBHICEAESIwoSdGVtcG9yYWxfbmFtZXNwYWNlGAIgASgJQge6SARyAhABEhsKE3J1bm5lcl9hY2Nlc3NfdG9rZW4YAyABKAkSEgoKdG9rZW5fdHlwZRgEIAEoCRIuCiZydW5uZXJfYWNjZXNzX3Rva2VuX2V4cGlyZXNfaW5fc2Vjb25kcxgFIAEoBRIeChZwYXlsb2FkX2VuY3J5cHRpb25fa2V5GAYgASgJEiEKGXBheWxvYWRfZW5jcnlwdGlvbl9rZXlfaWQYByABKAkSKAogcGF5bG9hZF9lbmNyeXB0aW9uX3NlY29uZGFyeV9rZXkYCCABKAkSKwojcGF5bG9hZF9lbmNyeXB0aW9uX3NlY29uZGFyeV9rZXlfaWQYCSABKAki3AEKGUdldFJ1bm5lclNjb3BlZFRva2VuSW5wdXQSHAoSYWdlbnRfZXhlY3V0aW9uX2lkGAEgASgJSAASHwoVd29ya2Zsb3dfZXhlY3V0aW9uX2lkGAIgASgJSAASNwoKcG9vbF9jbGFpbRgDIAEoCzIhLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuUG9vbENsYWltSAASNwoHcmVuZXdhbBgEIAEoCzIkLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuVG9rZW5SZW5ld2FsSABCDgoFc2NvcGUSBbpIAggBIigKCVBvb2xDbGFpbRIbCgpzZXNzaW9uX2lkGAEgASgJQge6SARyAhABIg4KDFRva2VuUmVuZXdhbCJpChpHZXRSdW5uZXJTY29wZWRUb2tlbk91dHB1dBIbChNydW5uZXJfc2NvcGVkX3Rva2VuGAEgASgJEhIKCnRva2VuX3R5cGUYAiABKAkSGgoSZXhwaXJlc19pbl9zZWNvbmRzGAMgASgFKkMKDVNlcnZlckVkaXRpb24SHgoac2VydmVyX2VkaXRpb25fdW5zcGVjaWZpZWQQABIHCgNvc3MQARIJCgVjbG91ZBACMqEDChdQbGF0Zm9ybVF1ZXJ5Q29udHJvbGxlchJuCg1nZXRTZXJ2ZXJJbmZvEiouYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5HZXRTZXJ2ZXJJbmZvSW5wdXQaKy5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkdldFNlcnZlckluZm9PdXRwdXQiBMi4GAESjwEKGGdldFJ1bm5lckJvb3RzdHJhcENvbmZpZxI1LmFpLnN0aWdtZXIucGxhdGZvcm0udjEuR2V0UnVubmVyQm9vdHN0cmFwQ29uZmlnSW5wdXQaNi5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkdldFJ1bm5lckJvb3RzdHJhcENvbmZpZ091dHB1dCIE0LgYARKDAQoUZ2V0UnVubmVyU2NvcGVkVG9rZW4SMS5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkdldFJ1bm5lclNjb3BlZFRva2VuSW5wdXQaMi5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkdldFJ1bm5lclNjb3BlZFRva2VuT3V0cHV0IgTQuBgBQhFCD1NlcnZlckluZm9Qcm90b2IGcHJvdG8z", [file_ai_stigmer_commons_rpc_method_options, file_buf_validate_validate]);
+  fileDesc("CihhaS9zdGlnbWVyL3BsYXRmb3JtL3YxL3NlcnZlcl9pbmZvLnByb3RvEhZhaS5zdGlnbWVyLnBsYXRmb3JtLnYxIhQKEkdldFNlcnZlckluZm9JbnB1dCJeChNHZXRTZXJ2ZXJJbmZvT3V0cHV0EjYKB2VkaXRpb24YASABKA4yJS5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLlNlcnZlckVkaXRpb24SDwoHdmVyc2lvbhgCIAEoCSIfCh1HZXRSdW5uZXJCb290c3RyYXBDb25maWdJbnB1dCLjAgoeR2V0UnVubmVyQm9vdHN0cmFwQ29uZmlnT3V0cHV0EiEKEHRlbXBvcmFsX2FkZHJlc3MYASABKAlCB7pIBHICEAESIwoSdGVtcG9yYWxfbmFtZXNwYWNlGAIgASgJQge6SARyAhABEhsKE3J1bm5lcl9hY2Nlc3NfdG9rZW4YAyABKAkSEgoKdG9rZW5fdHlwZRgEIAEoCRIuCiZydW5uZXJfYWNjZXNzX3Rva2VuX2V4cGlyZXNfaW5fc2Vjb25kcxgFIAEoBRIeChZwYXlsb2FkX2VuY3J5cHRpb25fa2V5GAYgASgJEiEKGXBheWxvYWRfZW5jcnlwdGlvbl9rZXlfaWQYByABKAkSKAogcGF5bG9hZF9lbmNyeXB0aW9uX3NlY29uZGFyeV9rZXkYCCABKAkSKwojcGF5bG9hZF9lbmNyeXB0aW9uX3NlY29uZGFyeV9rZXlfaWQYCSABKAki3AEKGUdldFJ1bm5lclNjb3BlZFRva2VuSW5wdXQSHAoSYWdlbnRfZXhlY3V0aW9uX2lkGAEgASgJSAASHwoVd29ya2Zsb3dfZXhlY3V0aW9uX2lkGAIgASgJSAASNwoKcG9vbF9jbGFpbRgDIAEoCzIhLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuUG9vbENsYWltSAASNwoHcmVuZXdhbBgEIAEoCzIkLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuVG9rZW5SZW5ld2FsSABCDgoFc2NvcGUSBbpIAggBIigKCVBvb2xDbGFpbRIbCgpzZXNzaW9uX2lkGAEgASgJQge6SARyAhABIg4KDFRva2VuUmVuZXdhbCJpChpHZXRSdW5uZXJTY29wZWRUb2tlbk91dHB1dBIbChNydW5uZXJfc2NvcGVkX3Rva2VuGAEgASgJEhIKCnRva2VuX3R5cGUYAiABKAkSGgoSZXhwaXJlc19pbl9zZWNvbmRzGAMgASgFKlMKDVNlcnZlckVkaXRpb24SHgoac2VydmVyX2VkaXRpb25fdW5zcGVjaWZpZWQQABIHCgNvc3MQARIJCgVjbG91ZBACEg4KCmVudGVycHJpc2UQAzKhAwoXUGxhdGZvcm1RdWVyeUNvbnRyb2xsZXISbgoNZ2V0U2VydmVySW5mbxIqLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuR2V0U2VydmVySW5mb0lucHV0GisuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5HZXRTZXJ2ZXJJbmZvT3V0cHV0IgTIuBgBEo8BChhnZXRSdW5uZXJCb290c3RyYXBDb25maWcSNS5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkdldFJ1bm5lckJvb3RzdHJhcENvbmZpZ0lucHV0GjYuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5HZXRSdW5uZXJCb290c3RyYXBDb25maWdPdXRwdXQiBNC4GAESgwEKFGdldFJ1bm5lclNjb3BlZFRva2VuEjEuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5HZXRSdW5uZXJTY29wZWRUb2tlbklucHV0GjIuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5HZXRSdW5uZXJTY29wZWRUb2tlbk91dHB1dCIE0LgYAUIRQg9TZXJ2ZXJJbmZvUHJvdG9iBnByb3RvMw", [file_ai_stigmer_commons_rpc_method_options, file_buf_validate_validate]);
 
 /**
  * Empty request — no parameters needed.
@@ -36,7 +36,7 @@ export const GetServerInfoInputSchema: GenMessage<GetServerInfoInput> = /*@__PUR
  */
 export type GetServerInfoOutput = Message<"ai.stigmer.platform.v1.GetServerInfoOutput"> & {
   /**
-   * Server edition (oss or cloud).
+   * Server edition (oss, enterprise or cloud).
    *
    * @generated from field: ai.stigmer.platform.v1.ServerEdition edition = 1;
    */
@@ -339,12 +339,24 @@ export const GetRunnerScopedTokenOutputSchema: GenMessage<GetRunnerScopedTokenOu
   messageDesc(file_ai_stigmer_platform_v1_server_info, 7);
 
 /**
- * Edition of the Stigmer server binary.
+ * Edition of the Stigmer server.
  *
- * Indicates whether the server is the open-source Go edition
- * (stigmer-server) or the cloud Java edition (stigmer-service).
- * Clients use this to determine feature availability instead of
- * guessing from the API base URL.
+ * One TypeScript control plane (`@stigmer/server`) serves three editions,
+ * each a composition of extension units over the same core:
+ * `composeServer({ extensions: [] })` is Stigmer (open source),
+ * `[...enterpriseUnits]` is Stigmer Enterprise, and
+ * `[...enterpriseUnits, ...cloudOnlyUnits]` is Stigmer Cloud. Because
+ * each edition composes the previous one's units, the editions are
+ * ordered: oss < enterprise < cloud. A resource kind's ResourceTier names
+ * the least edition that serves it, and every edition above it serves it
+ * too.
+ *
+ * Value numbers are wire identifiers, not ranks: `enterprise` was added
+ * after `cloud` and sits at 3. Compare editions through an explicit rank
+ * (the SDK's `isResourceAvailable`), never through these numbers.
+ *
+ * Clients call getServerInfo once on startup and read this value to
+ * decide feature availability instead of guessing from the API base URL.
  *
  * @generated from enum ai.stigmer.platform.v1.ServerEdition
  */
@@ -355,20 +367,31 @@ export enum ServerEdition {
   server_edition_unspecified = 0,
 
   /**
-   * Open-source Go server (stigmer-server).
-   * Only open_source-tier resources are available.
+   * Stigmer, the open-source edition: the empty composition.
+   * Serves open_source-tier resources.
    *
    * @generated from enum value: oss = 1;
    */
   oss = 1,
 
   /**
-   * Stigmer Cloud Java server (stigmer-service).
-   * All resources (including cloud_only) are available.
+   * Stigmer Cloud, the managed edition: Enterprise plus the cloud-only
+   * units (billing, the metered proxy, operations).
+   * Serves every resource, including cloud_only.
    *
    * @generated from enum value: cloud = 2;
    */
   cloud = 2,
+
+  /**
+   * Stigmer Enterprise, the self-hosted paid edition: the open-source
+   * core plus the Enterprise units (many organizations, SSO, fine-grained
+   * authorization, audit). Serves open_source- and enterprise-tier
+   * resources.
+   *
+   * @generated from enum value: enterprise = 3;
+   */
+  enterprise = 3,
 }
 
 /**

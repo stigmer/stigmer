@@ -114,10 +114,12 @@ export function ResourceVisibilityControl({
 
   const isInstance = INSTANCE_KINDS.has(kind);
   const isEnvironment = kind === "environment";
-  // The IdP lookup only matters for blueprints in cloud mode; passing null
-  // makes the hook a stable no-op everywhere else.
+  // The IdP lookup only matters for blueprints where org/platform
+  // visibility is enforced — every edition but the open-source one, which
+  // has no IdP resources (editions program, DD-001). Passing null makes the
+  // hook a stable no-op everywhere else.
   const idpLookupOrg =
-    !isInstance && !isEnvironment && deploymentMode === "cloud"
+    !isInstance && !isEnvironment && deploymentMode !== "local"
       ? (org ?? null)
       : null;
   const { ssoProvider } = useSsoProvider(idpLookupOrg);

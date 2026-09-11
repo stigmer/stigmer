@@ -7,7 +7,23 @@ package ai.stigmer.commons.apiresource.apiresourcekind;
 
 /**
  * <pre>
- * Resource tier defines the availability context of a resource
+ * The minimum edition that serves a resource kind.
+ *
+ * Editions are ordered oss &lt; enterprise &lt; cloud because each composes the
+ * previous one's units (ai.stigmer.platform.v1.ServerEdition). A kind
+ * tiered `open_source` is served everywhere; `enterprise` in Enterprise
+ * and Cloud; `cloud_only` in Cloud alone. Clients hide kinds the connected
+ * edition does not serve (the SDK's `isResourceAvailable`).
+ *
+ * A tier states what the edition's server SERVES today, not a plan: a
+ * kind's tier changes in the same change that makes the edition serve it,
+ * so a client never offers a surface the server answers UNIMPLEMENTED to.
+ *
+ * Value names are JSON wire and the conformance suite pins them, so
+ * `cloud_only` keeps its pre-Enterprise name beside `open_source` and
+ * `enterprise`. Value numbers are wire identifiers, not ranks —
+ * `enterprise` was added after `cloud_only` and sits at 3; compare tiers
+ * to editions through an explicit rank, never through these numbers.
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.commons.apiresource.apiresourcekind.ResourceTier}
@@ -21,7 +37,7 @@ public enum ResourceTier
   resource_tier_unspecified(0),
   /**
    * <pre>
-   * Available in CLI local mode &amp; Cloud
+   * Served by every edition.
    * </pre>
    *
    * <code>open_source = 1;</code>
@@ -29,12 +45,20 @@ public enum ResourceTier
   open_source(1),
   /**
    * <pre>
-   * Hidden in CLI local mode; Available in Cloud
+   * Served by Stigmer Cloud only.
    * </pre>
    *
    * <code>cloud_only = 2;</code>
    */
   cloud_only(2),
+  /**
+   * <pre>
+   * Served by Stigmer Enterprise and Stigmer Cloud.
+   * </pre>
+   *
+   * <code>enterprise = 3;</code>
+   */
+  enterprise(3),
   UNRECOGNIZED(-1),
   ;
 
@@ -53,7 +77,7 @@ public enum ResourceTier
   public static final int resource_tier_unspecified_VALUE = 0;
   /**
    * <pre>
-   * Available in CLI local mode &amp; Cloud
+   * Served by every edition.
    * </pre>
    *
    * <code>open_source = 1;</code>
@@ -61,12 +85,20 @@ public enum ResourceTier
   public static final int open_source_VALUE = 1;
   /**
    * <pre>
-   * Hidden in CLI local mode; Available in Cloud
+   * Served by Stigmer Cloud only.
    * </pre>
    *
    * <code>cloud_only = 2;</code>
    */
   public static final int cloud_only_VALUE = 2;
+  /**
+   * <pre>
+   * Served by Stigmer Enterprise and Stigmer Cloud.
+   * </pre>
+   *
+   * <code>enterprise = 3;</code>
+   */
+  public static final int enterprise_VALUE = 3;
 
 
   public final int getNumber() {
@@ -96,6 +128,7 @@ public enum ResourceTier
       case 0: return resource_tier_unspecified;
       case 1: return open_source;
       case 2: return cloud_only;
+      case 3: return enterprise;
       default: return null;
     }
   }

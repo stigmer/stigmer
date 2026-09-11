@@ -38,15 +38,18 @@ export interface StigmerProviderProps {
   /** React children rendered inside the provider scope. */
   readonly children: ReactNode;
   /**
-   * Deployment mode of the connected Stigmer backend.
+   * Edition of the connected Stigmer backend.
    *
-   * - `"local"` — local Go CLI server (OSS). Cloud-only resources
-   *   (API keys, IAM, identity management) are unavailable.
-   * - `"cloud"` — Stigmer Cloud. All resources are available.
+   * - `"local"` — Stigmer, the open-source edition. Open-source-tier
+   *   resources are served; Enterprise- and cloud-only kinds (IAM policies,
+   *   identity providers, invitations) are hidden.
+   * - `"enterprise"` — Stigmer Enterprise, self-hosted. Open-source- and
+   *   Enterprise-tier resources are served.
+   * - `"cloud"` — Stigmer Cloud. Every resource is served.
    *
-   * Defaults to `"cloud"` so existing consumers see no change.
-   * The Stigmer Console derives this from the API URL hostname.
-   * Platform builders pass it based on their deployment context.
+   * Defaults to `"cloud"` so existing consumers see no change. Read it from
+   * the server with `client.platform.getServerInfo()` (its `deploymentMode`
+   * field) rather than guessing from a hostname; the Stigmer Console does.
    */
   readonly deploymentMode?: DeploymentMode;
   /**

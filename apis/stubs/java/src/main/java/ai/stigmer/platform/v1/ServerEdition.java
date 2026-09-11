@@ -7,12 +7,24 @@ package ai.stigmer.platform.v1;
 
 /**
  * <pre>
- * Edition of the Stigmer server binary.
+ * Edition of the Stigmer server.
  *
- * Indicates whether the server is the open-source Go edition
- * (stigmer-server) or the cloud Java edition (stigmer-service).
- * Clients use this to determine feature availability instead of
- * guessing from the API base URL.
+ * One TypeScript control plane (`&#64;stigmer/server`) serves three editions,
+ * each a composition of extension units over the same core:
+ * `composeServer({ extensions: [] })` is Stigmer (open source),
+ * `[...enterpriseUnits]` is Stigmer Enterprise, and
+ * `[...enterpriseUnits, ...cloudOnlyUnits]` is Stigmer Cloud. Because
+ * each edition composes the previous one's units, the editions are
+ * ordered: oss &lt; enterprise &lt; cloud. A resource kind's ResourceTier names
+ * the least edition that serves it, and every edition above it serves it
+ * too.
+ *
+ * Value numbers are wire identifiers, not ranks: `enterprise` was added
+ * after `cloud` and sits at 3. Compare editions through an explicit rank
+ * (the SDK's `isResourceAvailable`), never through these numbers.
+ *
+ * Clients call getServerInfo once on startup and read this value to
+ * decide feature availability instead of guessing from the API base URL.
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.platform.v1.ServerEdition}
@@ -26,8 +38,8 @@ public enum ServerEdition
   server_edition_unspecified(0),
   /**
    * <pre>
-   * Open-source Go server (stigmer-server).
-   * Only open_source-tier resources are available.
+   * Stigmer, the open-source edition: the empty composition.
+   * Serves open_source-tier resources.
    * </pre>
    *
    * <code>oss = 1;</code>
@@ -35,13 +47,25 @@ public enum ServerEdition
   oss(1),
   /**
    * <pre>
-   * Stigmer Cloud Java server (stigmer-service).
-   * All resources (including cloud_only) are available.
+   * Stigmer Cloud, the managed edition: Enterprise plus the cloud-only
+   * units (billing, the metered proxy, operations).
+   * Serves every resource, including cloud_only.
    * </pre>
    *
    * <code>cloud = 2;</code>
    */
   cloud(2),
+  /**
+   * <pre>
+   * Stigmer Enterprise, the self-hosted paid edition: the open-source
+   * core plus the Enterprise units (many organizations, SSO, fine-grained
+   * authorization, audit). Serves open_source- and enterprise-tier
+   * resources.
+   * </pre>
+   *
+   * <code>enterprise = 3;</code>
+   */
+  enterprise(3),
   UNRECOGNIZED(-1),
   ;
 
@@ -60,8 +84,8 @@ public enum ServerEdition
   public static final int server_edition_unspecified_VALUE = 0;
   /**
    * <pre>
-   * Open-source Go server (stigmer-server).
-   * Only open_source-tier resources are available.
+   * Stigmer, the open-source edition: the empty composition.
+   * Serves open_source-tier resources.
    * </pre>
    *
    * <code>oss = 1;</code>
@@ -69,13 +93,25 @@ public enum ServerEdition
   public static final int oss_VALUE = 1;
   /**
    * <pre>
-   * Stigmer Cloud Java server (stigmer-service).
-   * All resources (including cloud_only) are available.
+   * Stigmer Cloud, the managed edition: Enterprise plus the cloud-only
+   * units (billing, the metered proxy, operations).
+   * Serves every resource, including cloud_only.
    * </pre>
    *
    * <code>cloud = 2;</code>
    */
   public static final int cloud_VALUE = 2;
+  /**
+   * <pre>
+   * Stigmer Enterprise, the self-hosted paid edition: the open-source
+   * core plus the Enterprise units (many organizations, SSO, fine-grained
+   * authorization, audit). Serves open_source- and enterprise-tier
+   * resources.
+   * </pre>
+   *
+   * <code>enterprise = 3;</code>
+   */
+  public static final int enterprise_VALUE = 3;
 
 
   public final int getNumber() {
@@ -105,6 +141,7 @@ public enum ServerEdition
       case 0: return server_edition_unspecified;
       case 1: return oss;
       case 2: return cloud;
+      case 3: return enterprise;
       default: return null;
     }
   }

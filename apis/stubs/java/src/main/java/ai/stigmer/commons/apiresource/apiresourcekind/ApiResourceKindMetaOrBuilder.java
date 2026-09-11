@@ -130,7 +130,7 @@ public interface ApiResourceKindMetaOrBuilder extends
 
   /**
    * <pre>
-   * Defines availability context - whether resource is available in open source or cloud only
+   * The minimum edition that serves this kind (open_source, enterprise or cloud_only).
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.apiresourcekind.ResourceTier tier = 8 [json_name = "tier"];</code>
@@ -139,7 +139,7 @@ public interface ApiResourceKindMetaOrBuilder extends
   int getTierValue();
   /**
    * <pre>
-   * Defines availability context - whether resource is available in open source or cloud only
+   * The minimum edition that serves this kind (open_source, enterprise or cloud_only).
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.apiresourcekind.ResourceTier tier = 8 [json_name = "tier"];</code>

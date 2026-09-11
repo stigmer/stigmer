@@ -42,14 +42,19 @@ afterAll(async () => {
 });
 
 describe("Platform conformance — getServerInfo", () => {
-  it("names a real edition and a non-empty version", async () => {
+  it("names exactly the edition the target's composition declares, and a non-empty version", async () => {
     const info = await clients.platformQuery.getServerInfo({});
 
     expect(
       info.edition,
       "edition is the deployment-mode signal clients branch on — unspecified is a broken server",
     ).not.toBe(ServerEdition.server_edition_unspecified);
-    expect([ServerEdition.oss, ServerEdition.cloud]).toContain(info.edition);
+    // Equality, not membership: a composition that lost its edition
+    // declaration falls back to oss, which a set check would still admit.
+    expect(
+      info.edition,
+      `the ${target.name} target serves ${ServerEdition[target.edition]}`,
+    ).toBe(target.edition);
     expect(info.version, "version must identify the build").not.toBe("");
   });
 

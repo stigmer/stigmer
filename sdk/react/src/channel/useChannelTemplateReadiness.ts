@@ -55,6 +55,8 @@ export function useChannelTemplateReadiness(
 ): ChannelTemplateReadiness {
   const deploymentMode = useDeploymentMode();
 
+  // Proactive delivery rides the shared platform messaging apps, a
+  // cloud-only facility (editions program, DD-001).
   if (deploymentMode !== "cloud") return { status: "cloud-only" };
   if (
     channel.status?.installState !== AgentChannelInstallState.installed

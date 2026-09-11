@@ -12,6 +12,7 @@
 // organization created via the production RPC, whose creation grants the
 // primary user ownership (IAM policies) and provisions a zero-balance billing
 // account — sufficient for the Class A (CRUD) domains.
+import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 import { CLOUD_ENV, mintCloudUserToken } from "../harness/cloud-env";
 import { createTransport, makeClients, type ConformanceClients } from "../harness/clients";
 import {
@@ -55,6 +56,8 @@ function requireEnv(name: string): string {
 
 export class CloudTarget implements TargetProfile {
   readonly name = "cloud";
+  // stigmer-cloud's composition declares `cloud` in its first-party unit.
+  readonly edition: ServerEdition = ServerEdition.cloud;
 
   readonly capabilities: CapabilityFlags = {
     multiTenant: true,

@@ -7,22 +7,41 @@ import "buf/validate/validate.proto";
 
 option java_outer_classname = "ServerInfoProto";
 
-// Edition of the Stigmer server binary.
+// Edition of the Stigmer server.
 //
-// Indicates whether the server is the open-source Go edition
-// (stigmer-server) or the cloud Java edition (stigmer-service).
-// Clients use this to determine feature availability instead of
-// guessing from the API base URL.
+// One TypeScript control plane (`@stigmer/server`) serves three editions,
+// each a composition of extension units over the same core:
+// `composeServer({ extensions: [] })` is Stigmer (open source),
+// `[...enterpriseUnits]` is Stigmer Enterprise, and
+// `[...enterpriseUnits, ...cloudOnlyUnits]` is Stigmer Cloud. Because
+// each edition composes the previous one's units, the editions are
+// ordered: oss < enterprise < cloud. A resource kind's ResourceTier names
+// the least edition that serves it, and every edition above it serves it
+// too.
+//
+// Value numbers are wire identifiers, not ranks: `enterprise` was added
+// after `cloud` and sits at 3. Compare editions through an explicit rank
+// (the SDK's `isResourceAvailable`), never through these numbers.
+//
+// Clients call getServerInfo once on startup and read this value to
+// decide feature availability instead of guessing from the API base URL.
 enum ServerEdition {
   server_edition_unspecified = 0;
 
-  // Open-source Go server (stigmer-server).
-  // Only open_source-tier resources are available.
+  // Stigmer, the open-source edition: the empty composition.
+  // Serves open_source-tier resources.
   oss = 1;
 
-  // Stigmer Cloud Java server (stigmer-service).
-  // All resources (including cloud_only) are available.
+  // Stigmer Cloud, the managed edition: Enterprise plus the cloud-only
+  // units (billing, the metered proxy, operations).
+  // Serves every resource, including cloud_only.
   cloud = 2;
+
+  // Stigmer Enterprise, the self-hosted paid edition: the open-source
+  // core plus the Enterprise units (many organizations, SSO, fine-grained
+  // authorization, audit). Serves open_source- and enterprise-tier
+  // resources.
+  enterprise = 3;
 }
 
 // Query service for server identity, capabilities, and runner bootstrap.
@@ -119,7 +138,7 @@ message GetServerInfoInput {}
 
 // Server identity and version information.
 message GetServerInfoOutput {
-  // Server edition (oss or cloud).
+  // Server edition (oss, enterprise or cloud).
   ServerEdition edition = 1;
 
   // Semantic version of the server binary (e.g., "0.5.1").

@@ -109,23 +109,24 @@ public final class ServerInfoProto extends com.google.protobuf.GeneratedFile {
       "nerScopedTokenOutput\022.\n\023runner_scoped_to" +
       "ken\030\001 \001(\tR\021runnerScopedToken\022\035\n\ntoken_ty" +
       "pe\030\002 \001(\tR\ttokenType\022,\n\022expires_in_second" +
-      "s\030\003 \001(\005R\020expiresInSeconds*C\n\rServerEditi" +
+      "s\030\003 \001(\005R\020expiresInSeconds*S\n\rServerEditi" +
       "on\022\036\n\032server_edition_unspecified\020\000\022\007\n\003os" +
-      "s\020\001\022\t\n\005cloud\020\0022\241\003\n\027PlatformQueryControll" +
-      "er\022n\n\rgetServerInfo\022*.ai.stigmer.platfor" +
-      "m.v1.GetServerInfoInput\032+.ai.stigmer.pla" +
-      "tform.v1.GetServerInfoOutput\"\004\310\270\030\001\022\217\001\n\030g" +
-      "etRunnerBootstrapConfig\0225.ai.stigmer.pla" +
-      "tform.v1.GetRunnerBootstrapConfigInput\0326" +
-      ".ai.stigmer.platform.v1.GetRunnerBootstr" +
-      "apConfigOutput\"\004\320\270\030\001\022\203\001\n\024getRunnerScoped" +
-      "Token\0221.ai.stigmer.platform.v1.GetRunner" +
-      "ScopedTokenInput\0322.ai.stigmer.platform.v" +
-      "1.GetRunnerScopedTokenOutput\"\004\320\270\030\001B\214\001B\017S" +
-      "erverInfoProtoP\001\242\002\003ASP\252\002\026Ai.Stigmer.Plat" +
-      "form.V1\312\002\026Ai\\Stigmer\\Platform\\V1\342\002\"Ai\\St" +
-      "igmer\\Platform\\V1\\GPBMetadata\352\002\031Ai::Stig" +
-      "mer::Platform::V1b\006proto3"
+      "s\020\001\022\t\n\005cloud\020\002\022\016\n\nenterprise\020\0032\241\003\n\027Platf" +
+      "ormQueryController\022n\n\rgetServerInfo\022*.ai" +
+      ".stigmer.platform.v1.GetServerInfoInput\032" +
+      "+.ai.stigmer.platform.v1.GetServerInfoOu" +
+      "tput\"\004\310\270\030\001\022\217\001\n\030getRunnerBootstrapConfig\022" +
+      "5.ai.stigmer.platform.v1.GetRunnerBootst" +
+      "rapConfigInput\0326.ai.stigmer.platform.v1." +
+      "GetRunnerBootstrapConfigOutput\"\004\320\270\030\001\022\203\001\n" +
+      "\024getRunnerScopedToken\0221.ai.stigmer.platf" +
+      "orm.v1.GetRunnerScopedTokenInput\0322.ai.st" +
+      "igmer.platform.v1.GetRunnerScopedTokenOu" +
+      "tput\"\004\320\270\030\001B\214\001B\017ServerInfoProtoP\001\242\002\003ASP\252\002" +
+      "\026Ai.Stigmer.Platform.V1\312\002\026Ai\\Stigmer\\Pla" +
+      "tform\\V1\342\002\"Ai\\Stigmer\\Platform\\V1\\GPBMet" +
+      "adata\352\002\031Ai::Stigmer::Platform::V1b\006proto" +
+      "3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
