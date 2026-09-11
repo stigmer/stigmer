@@ -7,6 +7,10 @@
  *   - a fresh server answers whoAmI with the operator's account before any
  *     client has called anything (A2: the boot-time ensure), and
  *     provisionMyAccount is then the idempotent early return;
+ *   - create is internal to the platform (the cloud#393 gate, A7): a wire
+ *     user is PERMISSION_DENIED; the platform's own pipelines reach it
+ *     through the in-process transport (the `internal` caller class),
+ *     which is how every create arm below creates;
  *   - create derives the id from the subject and replaces a caller-supplied
  *     one (the organization precedent); the backend-assigned fields
  *     (is_machine_account, provisioning_mode) ignore what the caller sent;
@@ -29,22 +33,32 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
+import { clone, create } from "@bufbuild/protobuf";
 import { Code, ConnectError, createClient } from "@connectrpc/connect";
 import type { Client, Transport } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/command_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
 import { IdentityAccountQueryController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/query_pb";
+import type { IdentityAccountSpec } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/spec_pb";
+import { IdentityAccountPreferencesSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/spec_pb";
 
 import { loadConfig } from "../../../boot/config.js";
 import { composeServer } from "../../../boot/compose.js";
 import type { ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
 import {
+  resetOperatorIdentityForTests,
+  setOperatorIdentity,
+} from "../../../pipeline/steps/defaults.js";
+import {
   ACCOUNT_NOT_FOUND_FOR_CALLER_MESSAGE,
+  CREATE_IS_INTERNAL_MESSAGE,
   FEDERATION_UNIMPLEMENTED_REASON,
   accountIdFor,
   accountNotFoundMessage,
@@ -58,11 +72,17 @@ describe("identityaccount domain (composed server, trusted-local posture)", () =
   let dir: string;
   let server: ComposedServer;
   let transport: Transport;
+  /** The wire: what a client of this server sees (the operator's identity). */
   let command: Client<typeof IdentityAccountCommandController>;
   let query: Client<typeof IdentityAccountQueryController>;
+  /** The platform's own pipeline: the in-process transport's `internal` caller. */
+  let platform: Client<typeof IdentityAccountCommandController>;
 
   beforeAll(async () => {
     dir = mkdtempSync(path.join(tmpdir(), "identityaccount-domain-test-"));
+    // The operator seam main.ts installs once per process (A5): the
+    // interceptor stamps callers from it and the boot-time ensure reads it.
+    setOperatorIdentity(OPERATOR_EMAIL, OPERATOR_NAME);
     server = await composeServer({
       config: loadConfig({
         STIGMER_MODEL_REGISTRY_REFRESH: "off",
@@ -81,10 +101,15 @@ describe("identityaccount domain (composed server, trusted-local posture)", () =
     transport = createGrpcTransport({ baseUrl: `http://127.0.0.1:${port}` });
     command = createClient(IdentityAccountCommandController, transport);
     query = createClient(IdentityAccountQueryController, transport);
+    platform = createClient(
+      IdentityAccountCommandController,
+      server.inProcessTransport,
+    );
   });
 
   afterAll(async () => {
     await server.shutdown();
+    resetOperatorIdentityForTests();
     rmSync(dir, { recursive: true, force: true });
   });
 
@@ -118,6 +143,19 @@ describe("identityaccount domain (composed server, trusted-local posture)", () =
           : {}),
       },
     };
+  }
+
+  /** A copy of `account` with `edit` applied to its spec — the console's full-envelope write. */
+  function withSpec(
+    account: IdentityAccount,
+    edit: (spec: IdentityAccountSpec) => void,
+  ): IdentityAccount {
+    const copy = clone(IdentityAccountSchema, account);
+    if (copy.spec === undefined) {
+      throw new Error("the server answered an account without a spec");
+    }
+    edit(copy.spec);
+    return copy;
   }
 
   async function connectErrorOf(
@@ -160,16 +198,14 @@ describe("identityaccount domain (composed server, trusted-local posture)", () =
 
     it("update round-trips preferences — the console's one write — and whoAmI reflects it", async () => {
       const me = await query.whoAmI({});
-      const updated = await command.update({
-        ...me,
-        spec: {
-          ...me.spec,
-          preferences: {
+      const updated = await command.update(
+        withSpec(me, (spec) => {
+          spec.preferences = create(IdentityAccountPreferencesSchema, {
             defaultHarness: "cursor",
             defaultCursorModel: "gpt-5",
-          },
-        },
-      });
+          });
+        }),
+      );
       expect(updated.spec?.preferences?.defaultHarness).toBe("cursor");
       const again = await query.whoAmI({});
       expect(again.spec?.preferences).toMatchObject({
@@ -182,7 +218,7 @@ describe("identityaccount domain (composed server, trusted-local posture)", () =
 
   describe("create (A1)", () => {
     it("derives the id from the subject and replaces a caller-supplied id", async () => {
-      const created = await command.create(
+      const created = await platform.create(
         accountInput({
           id: "ida_01hzzzzzzzzzzzzzzzzzzzzzzz",
           idpId: "auth0|derive-me",
@@ -195,7 +231,7 @@ describe("identityaccount domain (composed server, trusted-local posture)", () =
     });
 
     it("the backend assigns is_machine_account and provisioning_mode, whatever the caller sent", async () => {
-      const person = await command.create(
+      const person = await platform.create(
         accountInput({
           idpId: "auth0|human",
           isMachineAccount: true,
@@ -207,7 +243,7 @@ describe("identityaccount domain (composed server, trusted-local posture)", () =
         IdentityAccountProvisioningMode.direct,
       );
 
-      const machine = await command.create(
+      const machine = await platform.create(
         accountInput({
           idpId: "svc123@clients",
           email: "",
@@ -221,11 +257,11 @@ describe("identityaccount domain (composed server, trusted-local posture)", () =
     });
 
     it("a second create for a held subject is ALREADY_EXISTS and the first row stands", async () => {
-      const first = await command.create(
+      const first = await platform.create(
         accountInput({ idpId: "auth0|held", email: "first@example.com" }),
       );
       const error = await connectErrorOf(
-        command.create(
+        platform.create(
           accountInput({ idpId: "auth0|held", email: "second@example.com" }),
         ),
       );
@@ -236,10 +272,10 @@ describe("identityaccount domain (composed server, trusted-local posture)", () =
     });
 
     it("two subjects sharing an email both create — uniqueness is the subject, never the slug", async () => {
-      const a = await command.create(
+      const a = await platform.create(
         accountInput({ idpId: "auth0|shared-a", email: "shared@example.com" }),
       );
-      const b = await command.create(
+      const b = await platform.create(
         accountInput({ idpId: "auth0|shared-b", email: "shared@example.com" }),
       );
       expect(a.metadata?.id).not.toBe(b.metadata?.id);
@@ -247,7 +283,7 @@ describe("identityaccount domain (composed server, trusted-local posture)", () =
 
     it("a create without a subject is INVALID_ARGUMENT — the proto's required field", async () => {
       const error = await connectErrorOf(
-        command.create(accountInput({ idpId: "" })),
+        platform.create(accountInput({ idpId: "" })),
       );
       expect(error.code).toBe(Code.InvalidArgument);
     });
@@ -255,14 +291,15 @@ describe("identityaccount domain (composed server, trusted-local posture)", () =
 
   describe("update (A1)", () => {
     it("refuses a changed subject with FAILED_PRECONDITION and the fixed copy", async () => {
-      const created = await command.create(
+      const created = await platform.create(
         accountInput({ idpId: "auth0|immutable" }),
       );
       const error = await connectErrorOf(
-        command.update({
-          ...created,
-          spec: { ...created.spec, idpId: "auth0|someone-else" },
-        }),
+        command.update(
+          withSpec(created, (spec) => {
+            spec.idpId = "auth0|someone-else";
+          }),
+        ),
       );
       expect(error.code).toBe(Code.FailedPrecondition);
       expect(error.rawMessage).toBe(idpIdImmutableMessage("auth0|immutable"));
@@ -271,23 +308,42 @@ describe("identityaccount domain (composed server, trusted-local posture)", () =
     });
 
     it("keeps the backend-assigned fields on update too", async () => {
-      const created = await command.create(
+      const created = await platform.create(
         accountInput({ idpId: "auth0|keep" }),
       );
-      const updated = await command.update({
-        ...created,
-        spec: {
-          ...created.spec,
-          firstName: "Edited",
-          isMachineAccount: true,
-          provisioningMode: IdentityAccountProvisioningMode.platform_client,
-        },
-      });
+      const updated = await command.update(
+        withSpec(created, (spec) => {
+          spec.firstName = "Edited";
+          spec.email = "rewritten@example.com";
+          spec.isMachineAccount = true;
+          spec.provisioningMode =
+            IdentityAccountProvisioningMode.platform_client;
+        }),
+      );
       expect(updated.spec?.firstName).toBe("Edited");
+      // The IdP asserted the email; the client cannot rewrite it (A9).
+      expect(updated.spec?.email).toBe(created.spec?.email);
       expect(updated.spec?.isMachineAccount).toBe(false);
       expect(updated.spec?.provisioningMode).toBe(
         IdentityAccountProvisioningMode.direct,
       );
+    });
+  });
+
+  describe("the create RPC is internal to the platform (A7, the cloud#393 gate)", () => {
+    it("a wire user is PERMISSION_DENIED with the cloud's copy, and nothing is written", async () => {
+      const before = (
+        await server.store.listResources(ApiResourceKind.identity_account)
+      ).length;
+      const error = await connectErrorOf(
+        command.create(accountInput({ idpId: "auth0|over-the-wire" })),
+      );
+      expect(error.code).toBe(Code.PermissionDenied);
+      expect(error.rawMessage).toBe(CREATE_IS_INTERNAL_MESSAGE);
+      expect(
+        (await server.store.listResources(ApiResourceKind.identity_account))
+          .length,
+      ).toBe(before);
     });
   });
 
@@ -317,7 +373,7 @@ describe("identityaccount domain (composed server, trusted-local posture)", () =
     });
 
     it("getByEmail and getByIdpId find what create wrote", async () => {
-      const created = await command.create(
+      const created = await platform.create(
         accountInput({
           idpId: "auth0|findable",
           email: "findable@example.com",
@@ -333,7 +389,7 @@ describe("identityaccount domain (composed server, trusted-local posture)", () =
     });
 
     it("getActorInfo names the account the way audit stamps do", async () => {
-      const created = await command.create(
+      const created = await platform.create(
         accountInput({ idpId: "auth0|actor", email: "actor@example.com" }),
       );
       const actor = await query.getActorInfo({
@@ -352,7 +408,7 @@ describe("identityaccount domain (composed server, trusted-local posture)", () =
 
   describe("delete", () => {
     it("returns the account and frees the subject", async () => {
-      const created = await command.create(
+      const created = await platform.create(
         accountInput({ idpId: "auth0|deletable" }),
       );
       const deleted = await command.delete({
@@ -363,7 +419,7 @@ describe("identityaccount domain (composed server, trusted-local posture)", () =
         query.get({ value: created.metadata?.id ?? "" }),
       );
       expect(error.code).toBe(Code.NotFound);
-      const recreated = await command.create(
+      const recreated = await platform.create(
         accountInput({ idpId: "auth0|deletable" }),
       );
       expect(recreated.metadata?.id).toBe(created.metadata?.id);
@@ -371,14 +427,49 @@ describe("identityaccount domain (composed server, trusted-local posture)", () =
   });
 
   describe("the federation capability, absent (Q-IA-9, §5)", () => {
+    // Inputs that pass the boundary validator (chain position 3, before
+    // any handler) so the refusal under test is the HANDLER's: the
+    // capability is consulted before any lookup or authorization.
+    const ref = { org: "acme", slug: "okta" };
     it.each([
-      ["createFederatedAccount", () => command.createFederatedAccount({})],
-      ["updateFederatedAccount", () => command.updateFederatedAccount({})],
+      [
+        "createFederatedAccount",
+        () =>
+          command.createFederatedAccount({
+            org: "acme",
+            identityProviderRef: ref,
+            externalSub: "okta|1",
+            email: "person@example.com",
+          }),
+      ],
+      [
+        "updateFederatedAccount",
+        () =>
+          command.updateFederatedAccount({
+            org: "acme",
+            identityProviderRef: ref,
+            externalSub: "okta|1",
+            email: "person@example.com",
+          }),
+      ],
       [
         "deprovisionFederatedAccount",
-        () => command.deprovisionFederatedAccount({}),
+        () =>
+          command.deprovisionFederatedAccount({
+            org: "acme",
+            identityProviderRef: ref,
+            externalSub: "okta|1",
+          }),
       ],
-      ["getByExternalSub", () => query.getByExternalSub({})],
+      [
+        "getByExternalSub",
+        () =>
+          query.getByExternalSub({
+            org: "acme",
+            identityProviderRef: ref,
+            externalSub: "okta|1",
+          }),
+      ],
     ] as const)(
       "%s refuses UNIMPLEMENTED with the edition reason, never INTERNAL",
       async (name, call) => {

@@ -111,8 +111,16 @@ beforeAll(async () => {
   };
   issuerServer = createServer((req, res) => {
     if (req.url === "/.well-known/openid-configuration") {
+      // The provisioning lane reads userinfo_endpoint from here (A8) —
+      // never a guessed `<issuer>/userinfo`.
       res.setHeader("content-type", "application/json");
-      res.end(JSON.stringify({ issuer, jwks_uri: `${issuer}/jwks` }));
+      res.end(
+        JSON.stringify({
+          issuer,
+          jwks_uri: `${issuer}/jwks`,
+          userinfo_endpoint: `${issuer}/userinfo`,
+        }),
+      );
       return;
     }
     if (req.url === "/jwks") {

@@ -28,6 +28,7 @@ import path from "node:path";
 
 import type { ConnectRouter, Transport } from "@connectrpc/connect";
 
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { HealthCheckResponse_ServingStatus as ServingStatus } from "@stigmer/protos/grpc/health/v1/health_pb";
 
 import { registerAgentServices } from "../domain/agent/controller.js";
@@ -64,6 +65,15 @@ import { registerChannelConversationServices } from "../domain/agentchannel/conv
 import { registerChannelMessageServices } from "../domain/agentchannel/message.js";
 import { registerAgentShareServices } from "../domain/agentshare/controller.js";
 import { registerApiKeyServices } from "../domain/apikey/controller.js";
+import {
+  newCreateAccountPath,
+  registerIdentityAccountServices,
+} from "../domain/identityaccount/controller.js";
+import { ensureOperatorAccount } from "../domain/identityaccount/operator.js";
+import { newDirectAccountProvisioner } from "../domain/identityaccount/provisioning.js";
+import { newResourceIdentityAccountStore } from "../domain/identityaccount/resource-store.js";
+import { newIssuerDiscovery } from "../identity/oidc-discovery.js";
+import { newOidcUserInfoClient } from "../identity/oidc-userinfo.js";
 import { newApiKeyIdentityVerifier } from "../domain/apikey/verifier.js";
 import type { IdentityVerifier } from "../extensions/identity.js";
 import { registerArtifactServices } from "../domain/artifact/controller.js";
@@ -117,6 +127,7 @@ import {
 } from "../observability/rpc-metrics.js";
 import { buildInterceptorChain } from "../pipeline/chain.js";
 import { createVerifierChainInterceptor } from "../pipeline/interceptors/auth.js";
+import { operatorIdentitySnapshot } from "../pipeline/steps/defaults.js";
 import { createErrorBoundaryInterceptor } from "../pipeline/interceptors/error-boundary.js";
 import { createRequestMetricsInterceptor } from "../pipeline/interceptors/request-metrics.js";
 import { newPermissiveSingleTeamAuthorizer } from "../pipeline/steps/authorize.js";
@@ -221,6 +232,13 @@ export interface ComposedServer {
    * them or reorder them, and both are the drift DD-007 rules out.
    */
   identityVerifiers: ReadonlyArray<IdentityVerifier>;
+  /**
+   * The one routes function both routers are built from (exposed for
+   * tests, the `store` posture — the tier-truthfulness invariant
+   * enumerates the services a composition registers through it; the
+   * server registers no reflection service, deliberately).
+   */
+  routes: (router: ConnectRouter) => void;
   /** Completes wiring, flips SERVING, binds the port; returns the bound port. */
   start(): Promise<number>;
   /** NOT_SERVING first, stop background work, drain connections. */
@@ -291,6 +309,63 @@ export async function composeServer(
     logger.info("storage driver selected", {
       driver: "sqlite",
       dbPath: config.dbPath,
+    });
+  }
+
+  // The require-authentication posture has two sources OR'd here: the
+  // OSS OIDC issuer (O3 rulings Q1+Q2) and a composed unit's declaration
+  // (registry point, entry 20260904.02). Neither source = the OSS
+  // trusted-local posture, byte-identical wire behavior. Resolved in the
+  // storage stage because the posture decides a WRITE below (the operator
+  // account); the verifier chain it also governs is built at the end.
+  const authEnabled = config.oidcIssuer !== "";
+  const requireAuthentication =
+    authEnabled || extensions.requireAuthentication !== undefined;
+
+  // Stage: identity accounts (20260911.11) — the first domain whose
+  // persistence is a PORT rather than the generic Store: open source's
+  // adapter over `store` here; a composition registers its own driver as
+  // `drivers.identityAccountStore` (the registry point lands with the
+  // slot and the federation capability). The domain's one create path is
+  // built once and shared by the create RPC, provisioning and the operator
+  // ensure below.
+  const identityAccounts = newResourceIdentityAccountStore(store);
+  const identityAccountPath = {
+    accounts: identityAccounts,
+    logger,
+    authorizer,
+    authorizationLifecycle,
+  };
+  const createIdentityAccount = newCreateAccountPath(
+    identityAccountPath,
+    ApiResourceKind.identity_account,
+  );
+  // Provisioning reads the caller's profile from the userinfo endpoint of
+  // the issuer that vouched for the token, discovered per issuer and
+  // cached (A8) — so a composition whose own verifiers name their issuer
+  // on the identity needs no knob here. Built ONCE (routes() runs twice).
+  const identityAccountProvisioner = newDirectAccountProvisioner({
+    accounts: identityAccounts,
+    createAccount: createIdentityAccount,
+    userInfo: newOidcUserInfoClient(newIssuerDiscovery()),
+  });
+  // Under the trusted-local posture the server knows its one principal
+  // from the operator seam (the SAME seam the interceptor stamps callers
+  // from — never config directly, so the row and the stamp cannot
+  // disagree; T01_1_review.md A2, A5) and states the fact at boot:
+  // create-if-absent, so preferences set later survive every reboot. A
+  // composition with an authentication posture never creates one — its
+  // users provision themselves on first sign-in. A stage that writes a
+  // resource is new here; it earns its place because it is the truth of
+  // that posture, and a failure is a loud boot throw like the storage
+  // stage's own.
+  if (!requireAuthentication) {
+    const operator = await ensureOperatorAccount(
+      { accounts: identityAccounts, createAccount: createIdentityAccount },
+      operatorIdentitySnapshot(),
+    );
+    logger.info("trusted-local operator account ensured", {
+      accountId: operator.metadata?.id ?? "",
     });
   }
 
@@ -799,6 +874,16 @@ export async function composeServer(
       authorizationLifecycle,
       listReadScope: extensions.drivers.listReadScope,
     });
+    // IdentityAccount (20260911.11): served once by open source in every
+    // edition over the store PORT built in the storage stage. The
+    // federation capability and the provision slot's gate steps arrive
+    // with the registry points.
+    registerIdentityAccountServices(router, {
+      ...identityAccountPath,
+      provisioner: identityAccountProvisioner,
+      federation: undefined,
+      provisionPostPersistSteps: [],
+    });
     registerEnvironmentServices(router, {
       store,
       logger,
@@ -1092,14 +1177,8 @@ export async function composeServer(
   const inProcessWiring = createInProcessClients(routes, logger);
   inProcess = inProcessWiring.clients;
 
-  // The require-authentication posture has two sources OR'd here: the
-  // OSS OIDC issuer (O3 rulings Q1+Q2) and a composed unit's declaration
-  // (registry point, entry 20260904.02). Neither source = the OSS
-  // trusted-local posture, byte-identical wire behavior.
-  const authEnabled = config.oidcIssuer !== "";
-  const requireAuthentication =
-    authEnabled || extensions.requireAuthentication !== undefined;
-  // What the posture registers, in Java's ProviderManager order (opaque
+  // What the posture (resolved in the storage stage) registers, in Java's
+  // ProviderManager order (opaque
   // keys first — the cheapest claim — then the JWT lanes), ahead of the
   // extension entries ("OSS entries first", the registry contract):
   //   - the API-key verifier rides the POSTURE, not the issuer
@@ -1203,6 +1282,7 @@ export async function composeServer(
     workflowExecutionStreamBroker,
     inProcessTransport: inProcessWiring.transport,
     identityVerifiers,
+    routes,
 
     async start(): Promise<number> {
       // Temporal boot is NON-fatal end to end (Go server.go): a failed
