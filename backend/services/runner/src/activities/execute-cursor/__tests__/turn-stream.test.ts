@@ -2,23 +2,26 @@
  * Unit tests for the Cursor harness's shared stream seam (turn-stream.ts).
  *
  * These lock the behaviors the old bare retry loops used to DROP — live persist,
- * DD-32/DD-33 mid-run progress, sub-agent tracking, the first-denial early stop,
- * and correct pause/platform-stop mapping — so that unifying the primary turn and
- * both recovery retries onto this one loop cannot silently regress any of them.
+ * DD-32/DD-33 mid-run progress, sub-agent tracking, the first-denial early stop
+ * — and the loop's side of the adapter contract: progress reported per event
+ * and per delta, usage reported priced, the persist awaited, and the runtime's
+ * stop signal honoured at every event boundary and inside a blocked pull by
+ * cancelling the SDK run. Since S2 M3 the loop no longer decides WHY it
+ * stopped (stall, cost cap, pause, platform stop are the runtime's evidence;
+ * `harness/__tests__/run-turn.test.ts` proves that table); it reports
+ * `completed`, `first-denial` or `interrupted`.
  *
  * The loop is driven with a structural `mockRun` (an async-iterable `.stream()`)
- * and injected `heartbeat`/`isCancelled`, so it runs without the live Cursor SDK
- * or Temporal — mirroring the deep-agent `streaming.test.ts` pattern.
+ * and the kit's `RecordingTurnSink`, so it runs without the live Cursor SDK or
+ * Temporal — mirroring the deep-agent `streaming.test.ts` pattern.
  */
 
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { mkdtemp, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { create } from "@bufbuild/protobuf";
-import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionControlSignal } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { SDKMessage } from "@cursor/sdk";
+import { RecordingTurnSink } from "../../../__test-utils__/harness-contract/recording-sink.js";
 import {
   consumeCursorTurnStream,
   makeCursorTurnOnDelta,
@@ -74,51 +77,32 @@ function stubEnricher() {
   };
 }
 
-/** Prices nothing: hands the counts back as a delta, the accumulator stub swallows them. */
+/** Prices nothing: hands the counts back as a delta with a stated cost, so the sink sees a priced delta. */
 function stubUsagePricer() {
-  return { price: vi.fn((usage: Record<string, number>) => ({ ...usage })) };
-}
-
-function stubUsageAccumulator() {
-  return {
-    addTurn: vi.fn(),
-    // hasTurns:false keeps the loop from building a StreamingUsageSummary (which
-    // would need a real snapshot); usage plumbing is covered by usage-accumulator's
-    // own tests.
-    hasTurns: false,
-    snapshot: vi.fn(() => ({ inputTokens: 0n, outputTokens: 0n })),
-  };
+  return { price: vi.fn((usage: Record<string, number>) => ({ ...usage, estimatedCostUsd: 0.01, model: "m" })) };
 }
 
 interface BuiltDeps {
   deps: CursorTurnStreamDeps;
   state: TurnStreamState;
-  persist: ReturnType<typeof vi.fn>;
+  sink: RecordingTurnSink;
   accumulator: ReturnType<typeof stubAccumulator>;
-  status: ReturnType<typeof create<typeof AgentExecutionStatusSchema>>;
 }
 
 function buildDeps(overrides: Partial<CursorTurnStreamDeps> = {}): BuiltDeps {
   const state = overrides.state ?? newTurnStreamState();
-  const status = overrides.status ?? create(AgentExecutionStatusSchema, {});
-  const accumulator = (overrides.accumulator as unknown as ReturnType<typeof stubAccumulator>) ??
-    stubAccumulator();
-  const persist =
-    (overrides.persist as ReturnType<typeof vi.fn>) ??
-    vi.fn(async () => ExecutionControlSignal.UNSPECIFIED);
+  const sink = (overrides.sink as RecordingTurnSink | undefined) ?? new RecordingTurnSink();
+  const accumulator = (overrides.accumulator as unknown as ReturnType<typeof stubAccumulator>) ?? stubAccumulator();
 
   const deps = {
     // TurnOnDeltaDeps
-    usageAccumulator: stubUsageAccumulator(),
+    sink,
     usagePricer: stubUsagePricer(),
     deltaEnricher: stubEnricher(),
     promptEstimatedTokens: 100,
     executionId: "exec-test",
     state,
-    maxCostUsd: 0,
     // CursorTurnStreamDeps
-    heartbeat: vi.fn(),
-    status,
     accumulator,
     todoTracker: { processEvent: vi.fn(), markPersisted: vi.fn(), isDirty: false },
     eventRecorder: undefined,
@@ -129,43 +113,39 @@ function buildDeps(overrides: Partial<CursorTurnStreamDeps> = {}): BuiltDeps {
     progressState: { lastAtMs: 0 },
     changeSetId: "exec-test:0",
     hitlDir: undefined,
-    stallTimeoutMs: 120_000,
-    persist,
-    isCancelled: () => false,
     ...overrides,
   } as unknown as CursorTurnStreamDeps;
 
-  return { deps, state, persist, accumulator, status };
+  return { deps, state, sink, accumulator };
 }
 
 describe("consumeCursorTurnStream", () => {
-  afterEach(() => {
-    vi.useRealTimers();
-  });
+  it("processes every event, persists live through the sink, and returns 'completed' on a natural end", async () => {
+    const { deps, state, sink, accumulator } = buildDeps();
 
-  it("processes every event, persists live, and returns 'completed' on a natural end", async () => {
-    const { deps, state, persist, accumulator } = buildDeps();
-
-    const reason = await consumeCursorTurnStream(
-      mockRun([ev({ type: "assistant" }), ev({ type: "assistant" })]),
-      deps,
-    );
+    const reason = await consumeCursorTurnStream(mockRun([ev({ type: "assistant" }), ev({ type: "assistant" })]), deps);
 
     expect(reason).toBe("completed");
     expect(accumulator.processEvent).toHaveBeenCalledTimes(2);
     // The #1 retry gap: the bare loop never persisted mid-stream. This proves the
-    // shared loop persists live.
-    expect(persist).toHaveBeenCalled();
+    // shared loop persists live — through the runtime's chokepoint.
+    expect(sink.persistRequests).toBeGreaterThan(0);
     expect(state.eventCount).toBe(2);
+  });
+
+  it("reports progress per event, naming the tool of a tool_call event (the stall copy's `last tool`)", async () => {
+    const { deps, sink } = buildDeps();
+
+    await consumeCursorTurnStream(mockRun([ev({ type: "assistant" }), ev({ type: "tool_call", name: "shell" })]), deps);
+
+    const marks = sink.events.filter((e) => e.kind === "activity");
+    expect(marks.map((m) => (m.kind === "activity" ? m.detail : undefined))).toEqual([undefined, "shell"]);
   });
 
   it("tracks a sub-agent delegation (the 'task' tool call) — dropped by the old bare retry loop", async () => {
     const { deps, accumulator } = buildDeps();
 
-    await consumeCursorTurnStream(
-      mockRun([ev({ type: "tool_call", name: "task" })]),
-      deps,
-    );
+    await consumeCursorTurnStream(mockRun([ev({ type: "tool_call", name: "task" })]), deps);
 
     expect(accumulator.trackSubAgentExecution).toHaveBeenCalledTimes(1);
   });
@@ -173,56 +153,27 @@ describe("consumeCursorTurnStream", () => {
   it("attaches DD-32/DD-33 mid-run progress when a substrate is present", async () => {
     const capture = vi.fn(async () => ({ delta: { entries: [] }, changed: true }));
     const progressSubstrate = { capture } as unknown as ProgressSubstrate;
-    const { deps, status } = buildDeps({ progressSubstrate });
+    const { deps, sink } = buildDeps({ progressSubstrate });
 
     await consumeCursorTurnStream(mockRun([ev({ type: "assistant" })]), deps);
 
     expect(capture).toHaveBeenCalled();
     // changed:true → the transient snapshot is attached to status.
-    expect(status.fileChangeProgress).toBeDefined();
+    expect(sink.status.fileChangeProgress).toBeDefined();
   });
 
   it("does not touch progress when no substrate is configured", async () => {
-    const { deps, status } = buildDeps({ progressSubstrate: undefined });
+    const { deps, sink } = buildDeps({ progressSubstrate: undefined });
 
     await consumeCursorTurnStream(mockRun([ev({ type: "assistant" })]), deps);
 
-    expect(status.fileChangeProgress).toBeUndefined();
-  });
-
-  it("returns 'paused' and sets pauseDetected when the activity is cancelled", async () => {
-    const { deps, state, accumulator } = buildDeps({ isCancelled: () => true });
-
-    const reason = await consumeCursorTurnStream(mockRun([ev({ type: "assistant" })]), deps);
-
-    expect(reason).toBe("paused");
-    expect(state.pauseDetected).toBe(true);
-    // Cancellation is checked before the event is processed.
-    expect(accumulator.processEvent).not.toHaveBeenCalled();
-  });
-
-  it("returns 'platform-stop' when a persist reports the STOP control signal", async () => {
-    const persist = vi.fn(async () => ExecutionControlSignal.STOP);
-    const { deps, state } = buildDeps({ persist });
-
-    const reason = await consumeCursorTurnStream(
-      mockRun([ev({ type: "assistant" }), ev({ type: "assistant" })]),
-      deps,
-    );
-
-    expect(reason).toBe("platform-stop");
-    expect(state.platformStopSignaled).toBe(true);
-    // Broke after the first persist — the second event never persisted.
-    expect(persist).toHaveBeenCalledTimes(1);
+    expect(sink.status.fileChangeProgress).toBeUndefined();
   });
 
   it("captures a stream ERROR status message onto state.streamErrorMessage", async () => {
     const { deps, state } = buildDeps();
 
-    await consumeCursorTurnStream(
-      mockRun([ev({ type: "status", status: "ERROR", message: "boom" })]),
-      deps,
-    );
+    await consumeCursorTurnStream(mockRun([ev({ type: "status", status: "ERROR", message: "boom" })]), deps);
 
     expect(state.streamErrorMessage).toBe("boom");
   });
@@ -232,10 +183,7 @@ describe("consumeCursorTurnStream", () => {
     // crash classifyText downstream (.toLowerCase() on a non-string).
     const { deps, state } = buildDeps();
 
-    await consumeCursorTurnStream(
-      mockRun([ev({ type: "status", status: "ERROR", message: { code: 14 } })]),
-      deps,
-    );
+    await consumeCursorTurnStream(mockRun([ev({ type: "status", status: "ERROR", message: { code: 14 } })]), deps);
 
     expect(state.streamErrorMessage).toBeUndefined();
   });
@@ -249,11 +197,7 @@ describe("consumeCursorTurnStream", () => {
 
     it("stops the turn, cancels the run, and arms denialCancelSettled on a ledger entry", async () => {
       hitlDir = await mkdtemp(join(tmpdir(), "turn-stream-denial-"));
-      await writeFile(
-        join(hitlDir, "denials.jsonl"),
-        JSON.stringify({ toolName: "shell", token: "tok-1" }) + "\n",
-        "utf-8",
-      );
+      await writeFile(join(hitlDir, "denials.jsonl"), JSON.stringify({ toolName: "shell", token: "tok-1" }) + "\n", "utf-8");
       const { deps, state } = buildDeps({ hitlDir });
       const run = mockRun([ev({ type: "tool_call", name: "shell" })]);
 
@@ -270,72 +214,92 @@ describe("consumeCursorTurnStream", () => {
       await writeFile(join(hitlDir, "denials.jsonl"), "", "utf-8");
       const { deps, state } = buildDeps({ hitlDir });
 
-      const reason = await consumeCursorTurnStream(
-        mockRun([ev({ type: "tool_call", name: "shell" })]),
-        deps,
-      );
+      const reason = await consumeCursorTurnStream(mockRun([ev({ type: "tool_call", name: "shell" })]), deps);
 
       expect(reason).toBe("completed");
       expect(state.firstDenialDetected).toBe(false);
     });
   });
 
-  describe("cost-cap stop", () => {
-    it("cancels the run, stops the stream, and returns 'cost-cap' when onDelta flagged the overrun", async () => {
-      const state = newTurnStreamState();
-      state.costCapExceeded = true; // onDelta's write, simulated
-      const { deps, accumulator } = buildDeps({ state });
-      const run = mockRun([ev({ type: "assistant" }), ev({ type: "assistant" })]);
+  describe("the runtime's stop signal", () => {
+    it("a signal aborted before the stream starts: the run is cancelled and nothing is processed", async () => {
+      const sink = new RecordingTurnSink();
+      sink.abort("cost-cap");
+      const { deps, accumulator } = buildDeps({ sink });
+      const run = mockRun([ev({ type: "assistant" })]);
 
       const reason = await consumeCursorTurnStream(run, deps);
 
-      expect(reason).toBe("cost-cap");
-      expect(run.cancel).toHaveBeenCalled();
-      // The break happens before the event is processed — no post-cap content.
+      expect(reason).toBe("interrupted");
+      expect(run.cancel).toHaveBeenCalledTimes(1);
       expect(accumulator.processEvent).not.toHaveBeenCalled();
     });
 
-    it("detects the flag mid-stream when onDelta sets it between events", async () => {
-      const state = newTurnStreamState();
-      const { deps, accumulator } = buildDeps({ state });
-      // Simulate onDelta's write landing between event 1 and event 2 — the
-      // realistic shape: a turn-ended usage delta crosses the cap while the
-      // loop is between stream events.
+    it("an abort between events: the run is cancelled at once and the next event is never processed", async () => {
+      const sink = new RecordingTurnSink();
+      const { deps, accumulator } = buildDeps({ sink });
+      // The realistic shape: the runtime aborts (a turn-ended delta crossed the
+      // cap, a STOP came back from a persist) while the loop is between events.
       async function* gen(): AsyncIterable<SDKMessage> {
         yield ev({ type: "assistant" });
-        state.costCapExceeded = true;
+        sink.abort("platform-stop");
         yield ev({ type: "assistant" });
+      }
+      const run: MockRun = { stream: () => gen(), supports: () => true, cancel: vi.fn(async () => {}) };
+
+      const reason = await consumeCursorTurnStream(run, deps);
+
+      expect(reason).toBe("interrupted");
+      expect(run.cancel).toHaveBeenCalledTimes(1);
+      // Event 1 was processed; event 2 hit the boundary check.
+      expect(accumulator.processEvent).toHaveBeenCalledTimes(1);
+    });
+
+    it("an abort while the pull is blocked (a wedged stream): the cancel is what unblocks it", async () => {
+      const sink = new RecordingTurnSink();
+      const { deps } = buildDeps({ sink });
+      // The generator yields one event, then awaits a promise resolved only by
+      // run.cancel() — the loop is suspended inside the pull when the runtime's
+      // watchdog aborts.
+      let unblock: (() => void) | undefined;
+      async function* gen(): AsyncIterable<SDKMessage> {
+        yield ev({ type: "assistant" });
+        await new Promise<void>((resolve) => {
+          unblock = resolve;
+        });
       }
       const run: MockRun = {
         stream: () => gen(),
         supports: () => true,
-        cancel: vi.fn(async () => {}),
+        cancel: vi.fn(async () => {
+          unblock?.();
+        }),
       };
 
-      const reason = await consumeCursorTurnStream(run, deps);
+      const pending = consumeCursorTurnStream(run, deps);
+      await vi.waitFor(() => expect(unblock).toBeDefined());
+      sink.abort("stall");
+      const reason = await pending;
 
-      expect(reason).toBe("cost-cap");
-      expect(run.cancel).toHaveBeenCalled();
-      // Event 1 was processed; event 2 hit the break before processing.
-      expect(accumulator.processEvent).toHaveBeenCalledTimes(1);
+      expect(reason).toBe("interrupted");
+      expect(run.cancel).toHaveBeenCalledTimes(1);
     });
 
     it("swallows the cancel-induced teardown rejection (expected, not a failure)", async () => {
-      const state = newTurnStreamState();
-      state.costCapExceeded = true;
-      const { deps } = buildDeps({ state });
+      const sink = new RecordingTurnSink();
+      const { deps } = buildDeps({ sink });
       // The break exits the for-await, which invokes the iterator's return();
-      // a cancelled SDK run can reject there. The catch must exempt cost-cap
-      // teardown exactly like stall/first-denial teardown.
+      // a cancelled SDK run can reject there. The catch must exempt a stopped
+      // turn's teardown exactly like the first-denial teardown.
       const events = [ev({ type: "assistant" })];
       let i = 0;
       const run: MockRun = {
         stream: () => ({
           [Symbol.asyncIterator]: () => ({
-            next: async () =>
-              i < events.length
-                ? { value: events[i++], done: false as const }
-                : { value: undefined, done: true as const },
+            next: async () => {
+              if (i === 1) sink.abort("cost-cap");
+              return i < events.length ? { value: events[i++], done: false as const } : { value: undefined, done: true as const };
+            },
             return: async () => {
               throw new Error("run cancelled");
             },
@@ -347,103 +311,45 @@ describe("consumeCursorTurnStream", () => {
 
       const reason = await consumeCursorTurnStream(run, deps);
 
-      expect(reason).toBe("cost-cap");
+      expect(reason).toBe("interrupted");
       expect(run.cancel).toHaveBeenCalled();
     });
-  });
 
-  it("returns 'stalled' and cancels the run when the stall watchdog fires", async () => {
-    vi.useFakeTimers();
-    // The generator yields one event, then awaits a promise resolved only by
-    // run.cancel() — so the loop is suspended when the watchdog fires.
-    let unblock: (() => void) | undefined;
-    async function* gen(): AsyncIterable<SDKMessage> {
-      yield ev({ type: "assistant" });
-      await new Promise<void>((resolve) => {
-        unblock = resolve;
-      });
-    }
-    const run: MockRun = {
-      stream: () => gen(),
-      supports: () => true,
-      cancel: vi.fn(async () => {
-        unblock?.();
-      }),
-    };
-    const { deps, state } = buildDeps({ stallTimeoutMs: 40 });
+    it("rethrows a genuine stream failure when nothing stopped the turn", async () => {
+      const { deps } = buildDeps();
+      async function* gen(): AsyncIterable<SDKMessage> {
+        yield ev({ type: "assistant" });
+        throw new Error("transport reset");
+      }
+      const run: MockRun = { stream: () => gen(), supports: () => true, cancel: vi.fn(async () => {}) };
 
-    const pending = consumeCursorTurnStream(run, deps);
-    // Advance past the stall window (tick = stallMs/4 = 10ms), flushing the
-    // microtasks between ticks so the loop reaches its await first.
-    await vi.advanceTimersByTimeAsync(80);
-    const reason = await pending;
-
-    expect(reason).toBe("stalled");
-    expect(state.stallDetected).toBe(true);
-    expect(run.cancel).toHaveBeenCalled();
+      await expect(consumeCursorTurnStream(run, deps)).rejects.toThrow("transport reset");
+    });
   });
 });
 
 describe("makeCursorTurnOnDelta", () => {
-  it("accumulates turn usage and logs first-turn attribution exactly once", () => {
+  it("reports every delta as progress and every turn-ended usage priced, logging first-turn attribution exactly once", () => {
     const state = newTurnStreamState();
-    const usageAccumulator = stubUsageAccumulator();
+    const sink = new RecordingTurnSink();
+    const usagePricer = stubUsagePricer();
     const onDelta = makeCursorTurnOnDelta({
-      usageAccumulator: usageAccumulator as never,
-      usagePricer: stubUsagePricer() as never,
+      sink,
+      usagePricer: usagePricer as never,
       deltaEnricher: stubEnricher() as never,
       promptEstimatedTokens: 10,
       executionId: "e",
       state,
-      maxCostUsd: 0,
     });
 
+    onDelta({ update: { type: "text" } as never });
     onDelta({ update: { type: "turn-ended", usage: { inputTokens: 100 } } as never });
     onDelta({ update: { type: "turn-ended", usage: { inputTokens: 50 } } as never });
 
-    expect(usageAccumulator.addTurn).toHaveBeenCalledTimes(2);
+    expect(sink.activityMarks).toBe(3);
+    expect(usagePricer.price).toHaveBeenCalledTimes(2);
+    expect(sink.usageDeltas.map((d) => d.inputTokens)).toEqual([100, 50]);
+    expect(sink.usageDeltas.every((d) => d.estimatedCostUsd === 0.01), "the delta reaches the sink priced").toBe(true);
     expect(state.firstTurnAttributionLogged).toBe(true);
-  });
-
-  it("flags costCapExceeded when a turn-ended usage delta pushes the estimate past the cap", () => {
-    const state = newTurnStreamState();
-    const usageAccumulator = {
-      ...stubUsageAccumulator(),
-      snapshot: vi.fn(() => ({ estimatedCostUsd: 0.51 })),
-    };
-    const onDelta = makeCursorTurnOnDelta({
-      usageAccumulator: usageAccumulator as never,
-      usagePricer: stubUsagePricer() as never,
-      deltaEnricher: stubEnricher() as never,
-      promptEstimatedTokens: 10,
-      executionId: "e",
-      state,
-      maxCostUsd: 0.5,
-    });
-
-    onDelta({ update: { type: "turn-ended", usage: { inputTokens: 100 } } as never });
-
-    expect(state.costCapExceeded).toBe(true);
-  });
-
-  it("never flags costCapExceeded when no cap is configured", () => {
-    const state = newTurnStreamState();
-    const usageAccumulator = {
-      ...stubUsageAccumulator(),
-      snapshot: vi.fn(() => ({ estimatedCostUsd: 999 })),
-    };
-    const onDelta = makeCursorTurnOnDelta({
-      usageAccumulator: usageAccumulator as never,
-      usagePricer: stubUsagePricer() as never,
-      deltaEnricher: stubEnricher() as never,
-      promptEstimatedTokens: 10,
-      executionId: "e",
-      state,
-      maxCostUsd: 0,
-    });
-
-    onDelta({ update: { type: "turn-ended", usage: { inputTokens: 100 } } as never });
-
-    expect(state.costCapExceeded).toBe(false);
   });
 });

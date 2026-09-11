@@ -12,8 +12,8 @@ import { create } from "@bufbuild/protobuf";
 import { ApprovalAction, InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 
-import { appendStructuredOutputDirective, buildPrompt, isHitlReinvocation, primarySendCarriesImages, promptCarriesStandingContext } from "../index.js";
-import type { BuildPromptInput } from "../index.js";
+import { appendStructuredOutputDirective, buildPrompt, isHitlReinvocation, primarySendCarriesImages, promptCarriesStandingContext } from "../prompt-builder.js";
+import type { BuildPromptInput } from "../prompt-builder.js";
 import { buildReinvocationPrompt, formatInteractionModePrefix, formatImplementPlanSection, formatToolApprovalProtocol, buildToolApprovalRuleFile } from "../prompt-builder.js";
 import { PLAN_MODE_DIRECTIVE } from "../../../shared/plan-mode-prompt.js";
 import type { AgentResolution, AgentResolutionReason } from "../session-lifecycle.js";

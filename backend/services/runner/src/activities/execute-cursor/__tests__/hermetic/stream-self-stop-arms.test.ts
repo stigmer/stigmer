@@ -10,9 +10,9 @@
  *
  *  | arm           | phase      | run.cancel() | agent handle |
  *  |---------------|------------|--------------|--------------|
- *  | stall         | FAILED     | yes          | dropped      |
+ *  | stall         | FAILED     | yes          | parked       |
  *  | cost cap      | TERMINATED | yes          | parked       |
- *  | platform stop | COMPLETED  | no           | parked       |
+ *  | platform stop | COMPLETED  | yes          | parked       |
  *
  * All three RETURN because a Temporal retry would re-run the identical prompt:
  * a wedged agent would wedge again, an exhausted budget would be burnt again,
@@ -35,11 +35,16 @@
  *    of wall time have passed, while a tool-call transition force-flushes
  *    (`contentDirty`) whatever the clock says.
  *
- * Engine disposition, today: a stall DROPS the handle (neither parked nor
- * closed) while the other two park it. Q-S2-6 of entry 20260911.03 rules that
- * S2's adapter parks on every non-failed exit; the stall stays FAILED and
- * dropped. The assertions below pin today's table and are the lines that
- * change if a later entry moves an arm.
+ * Engine disposition and cancellation since S2 M3 (entry 20260911.03): the
+ * adapter cancels the SDK run on EVERY stop (Q-M3-4; before, a platform stop
+ * broke the loop and left the run executing) and parks the handle on every
+ * non-failed exit (Q-S2-6; before, a stall dropped it — the adapter cannot
+ * tell a stall from a cost cap, and a wedged parked handle is caught by the
+ * poisoned-handle recovery on the next turn). The two assertions that moved
+ * say so on their line. The cost-cap golden was regenerated at M3b with a
+ * timestamp-only diff (every terminal stamp one scripted second earlier):
+ * the run is now cancelled the instant the signal aborts, before the SDK
+ * double pulls — and the clock ticks on — one more step.
  *
  * Regenerate ONLY after a deliberate behavior change:
  *   npx vitest run src/activities/execute-cursor/__tests__/hermetic -u
@@ -176,10 +181,11 @@ describe("ExecuteCursor hermetic — the stream loop's self-stop arms", () => {
     ]);
     expect(final.messages.some((m) => m.content === NEVER_SEEN), "nothing after the stall is processed").toBe(false);
 
-    // ── Assert: engine disposition (today's) ─────────────────────────────────
-    expect(agent.runs[0].cancelCalls, "the watchdog cancelled the run once").toHaveLength(1);
+    // ── Assert: engine disposition ───────────────────────────────────────────
+    expect(agent.runs[0].cancelCalls, "the runtime's stop cancelled the run once").toHaveLength(1);
     expect(agent.closeCalls, "the handle is not closed").toBe(0);
-    expect(_parkedAgentCountForTests(), "and not parked — dropped").toBe(0);
+    // Q-S2-6 (S2 M3): parked on every non-failed exit; before M3 a stall dropped it.
+    expect(_parkedAgentCountForTests(), "parked for the session's next turn").toBe(1);
     expect(record.sessionUpdates).toHaveLength(1);
 
     // ── Assert: hermeticity ──────────────────────────────────────────────────
@@ -238,8 +244,8 @@ describe("ExecuteCursor hermetic — the stream loop's self-stop arms", () => {
     expect(final.streamingUsage?.estimatedCostUsd, "the figure the copy quotes is the usage summary's").toBe(0.6);
     expect(final.messages.some((m) => m.content === NEVER_SEEN), "the event after the overrun is never processed").toBe(false);
 
-    // ── Assert: engine disposition (today's) ─────────────────────────────────
-    expect(agent.runs[0].cancelCalls, "the loop cancelled the run once").toHaveLength(1);
+    // ── Assert: engine disposition ───────────────────────────────────────────
+    expect(agent.runs[0].cancelCalls, "the runtime's stop cancelled the run once").toHaveLength(1);
     expect(agent.closeCalls).toBe(0);
     expect(_parkedAgentCountForTests(), "a clean terminal parks for the next message").toBe(1);
     expect(record.sessionUpdates).toHaveLength(1);
@@ -307,8 +313,11 @@ describe("ExecuteCursor hermetic — the stream loop's self-stop arms", () => {
     ]);
     expect(final.messages.some((m) => m.content === NEVER_SEEN), "the event after the STOP is never processed").toBe(false);
 
-    // ── Assert: engine disposition (today's) ─────────────────────────────────
-    expect(agent.runs[0].cancelCalls, "the loop breaks without cancelling the SDK run").toHaveLength(0);
+    // ── Assert: engine disposition ───────────────────────────────────────────
+    // Q-M3-4 (S2 M3): the SDK run is cancelled on every stop; before M3 a
+    // platform stop broke the loop and left the run executing behind the
+    // parked handle.
+    expect(agent.runs[0].cancelCalls, "the runtime's stop cancelled the run once").toHaveLength(1);
     expect(agent.closeCalls).toBe(0);
     expect(_parkedAgentCountForTests(), "a clean terminal parks for the next message").toBe(1);
     expect(record.sessionUpdates).toHaveLength(1);

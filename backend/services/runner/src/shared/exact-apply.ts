@@ -148,7 +148,7 @@ export async function applyApprovedWholeFileWrites(
       tc.error = "";
       applied.add(tc.id);
       console.log(
-        `ExecuteCursor exact-apply: wrote approved bytes to ${target} ` +
+        `[exact-apply] wrote approved bytes to ${target} ` +
           `(tool=${tc.id}); no resource grant issued, so a further change ` +
           `re-gates. execution=${opts.executionId}`,
       );
@@ -247,7 +247,7 @@ function isWithinWorkspace(
 
 function logSkip(executionId: string, tc: ToolCall, reason: string): void {
   console.log(
-    `ExecuteCursor exact-apply skipped (falling back to grant+reinvocation): ` +
+    `[exact-apply] skipped (falling back to grant+reinvocation): ` +
       `tool=${tc.id} reason="${reason}" execution=${executionId}`,
   );
 }

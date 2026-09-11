@@ -8,13 +8,13 @@
     {
       "type": "MESSAGE_SYSTEM",
       "content": "The agent reached the cost limit for this message. Work completed so far has been saved. Send another message to continue where the agent left off.",
-      "timestamp": "2026-01-01T00:00:04.000Z"
+      "timestamp": "2026-01-01T00:00:03.000Z"
     }
   ],
   "phase": "EXECUTION_TERMINATED",
   "error": "Agent reached the cost limit for this message (~$0.6000 of the $0.50 budget). Send another message to continue.",
   "startedAt": "2026-01-01T00:00:00.000Z",
-  "completedAt": "2026-01-01T00:00:04.000Z",
+  "completedAt": "2026-01-01T00:00:03.000Z",
   "streamingUsage": {
     "inputTokens": "600000",
     "totalTokens": "600000",

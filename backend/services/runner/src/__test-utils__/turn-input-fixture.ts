@@ -85,7 +85,6 @@ export function turnInputFixture(overrides: TurnInputFixtureOverrides = {}): Tur
     subAgents: [],
     mergedMcpServerUsages: [],
     mergedSkillRefs: [],
-    workspaceDirs: [workspaceDir],
     cloudRepos: [],
     ...overrides.blueprint,
   };

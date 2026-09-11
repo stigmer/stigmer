@@ -51,6 +51,7 @@ import { publishPlanArtifact } from "../shared/plan-artifact.js";
 import { StallTimeoutError, startStallWatchdog, type StallWatchdog } from "../shared/stall-watchdog.js";
 import { reportSetupProgress, slimStatus, utcTimestamp } from "../shared/status.js";
 import { cancelInProgressSubAgentProtos } from "../shared/subagent-rows.js";
+import { removeStigmerSymlink } from "../shared/workspace/stigmer-link.js";
 import {
   cancellationReasonOf,
   classifyTurnInterruption,
@@ -152,7 +153,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
   const artifactStorage = await resolveUsableArtifactStorage(loadArtifactStorageConfig(config), { executionId });
   setupTiming.mark("resolve_artifact_storage");
 
-  const frame: TurnFrame = { releaseWorkspaceLock: undefined, writeback: null };
+  const frame: TurnFrame = { primaryDir: undefined, releaseWorkspaceLock: undefined, writeback: null };
   const stop = new StopController();
   let usage: UsageAccumulator | undefined;
   let heartbeatPhase = "setup";
@@ -591,9 +592,13 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
     periodicHeartbeat.stop();
     watchdog?.stop();
     cancellationSignal.removeEventListener("abort", onCancellation);
-    // Release the workspace turn lock LAST — the adapter's own finally has
-    // already restored the tree (the gate's hooks.json), and the next queued
-    // turn must not baseline until every mutation of this one has landed.
+    // Remove the workspace's `.stigmer` link the skill and attachment phases
+    // created, so attaching a real repo leaves it untouched between turns
+    // (issue #173). After the adapter's own teardown (its gate), before the
+    // lock. Idempotent and non-throwing.
+    if (frame.primaryDir) await removeStigmerSymlink(frame.primaryDir);
+    // Release the workspace turn lock LAST — every mutation of this turn has
+    // landed, and the next queued turn must not baseline before that.
     // Idempotent and non-throwing, so it can never mask the turn's outcome.
     await frame.releaseWorkspaceLock?.();
   }

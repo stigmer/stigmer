@@ -733,7 +733,8 @@ export function mapManagerOptionsToConfig(
 
 async function createAllActivities(config: Config): Promise<WorkerActivities> {
   const [
-    { createCursorActivities },
+    { HARNESS_ADAPTERS },
+    { adaptersOf, bootHarnesses, createHarnessActivities },
     { createDeepAgentActivities },
     { createEnsureThreadActivities },
     { createGenerateSessionSubjectActivities },
@@ -752,7 +753,8 @@ async function createAllActivities(config: Config): Promise<WorkerActivities> {
     { createPromoteTaskOutputActivities },
     { createAttachSessionActivities },
   ] = await Promise.all([
-    import("./activities/execute-cursor/index.js"),
+    import("./harness-adapters.js"),
+    import("./harness/registry.js"),
     import("./activities/execute-deep-agent/index.js"),
     import("./activities/ensure-thread.js"),
     import("./activities/generate-session-subject.js"),
@@ -772,8 +774,13 @@ async function createAllActivities(config: Config): Promise<WorkerActivities> {
     import("./activities/attach-session.js"),
   ]);
 
+  // The harness adapters boot here for now (the Cursor adapter's boot keeps
+  // its config slice; the interceptor installs above move into it at S2 M5,
+  // when this call moves ahead of bootstrap resolution, Q-S2-7).
+  await bootHarnesses(adaptersOf(HARNESS_ADAPTERS), config);
+
   return {
-    ...createCursorActivities(config),
+    ...createHarnessActivities(HARNESS_ADAPTERS, config),
     ...createDeepAgentActivities(config),
     ...createEnsureThreadActivities(),
     ...createGenerateSessionSubjectActivities(config),

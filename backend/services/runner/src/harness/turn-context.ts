@@ -389,7 +389,7 @@ export async function resolveAgentBlueprint(
   deps.enterPhase("resolve_blueprint");
   await deps.reportProgress("Resolving agent blueprint");
   const session = await deps.client.getSession(sessionId);
-  const blueprint = await resolveBlueprint(deps.client, session, deps.config.workspaceRootDir);
+  const blueprint = await resolveBlueprint(deps.client, session);
   deps.timing.mark("resolve_blueprint");
   return { session, blueprint };
 }
@@ -685,7 +685,7 @@ export async function resolveMcpServersAndPolicies(
       await client.acquireScopedRunnerToken({ agentExecutionId: executionId });
   } catch (err) {
     console.warn(
-      "[execute-cursor] Scoped-token exchange failed for attachment/discovery " +
+      "[turn-context] Scoped-token exchange failed for attachment/discovery " +
       `reads; degrading to the ambient credential: ${err instanceof Error ? err.message : err}`,
     );
   }
@@ -933,6 +933,8 @@ export function resolveStandingContext(
  * the write-back.
  */
 export interface TurnFrame {
+  /** The primary tree once provisioned: the `.stigmer` link the skill and attachment phases create under it is removed at turn end. */
+  primaryDir: string | undefined;
   /** Exclusive turn lock on the primary tree; released LAST, after the adapter's own teardown. */
   releaseWorkspaceLock: ReleaseWorkspaceLock | undefined;
   /** Finalizes at exactly two seams: the pure file-review resume and terminal completion. `null` when nothing is eligible. */
@@ -967,6 +969,7 @@ export async function resolveTurnContext(
   const { session, blueprint } = await resolveAgentBlueprint(deps, sessionId);
   const environment = await resolveEnvironment(deps);
   const { workspace, writeback } = await provisionWorkspace(deps, { session, sessionId, envVars: environment.envVars });
+  frame.primaryDir = workspace.primaryDir;
   frame.writeback = writeback;
 
   const lock = await acquireWorkspaceTurnLock(deps, workspace.primaryDir);

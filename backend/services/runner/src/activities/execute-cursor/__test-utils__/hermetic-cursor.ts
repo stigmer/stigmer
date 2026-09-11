@@ -312,26 +312,30 @@ export interface CursorTurnOptions {
 }
 
 /**
- * Run ONE `ExecuteCursor` invocation for the scenario. The activities are
- * constructed per invocation (the factory constructs its client, which is the
- * one bound at `beginCursorScenario`).
+ * Run ONE `ExecuteCursor` invocation for the scenario: the real Cursor
+ * adapter under the real turn runtime, as the composition roots wire them.
+ * Built per invocation (the registry constructs its client, which is the one
+ * bound at `beginCursorScenario`; the adapter boots on the scenario's config).
  */
 export async function runCursorTurn(
   scenario: CursorScenario,
   options: CursorTurnOptions = {},
 ): Promise<ActivityInvocation> {
   // Imported lazily so the scenario file's `vi.mock` declarations are in
-  // force before the activity module (and, through it, `@cursor/sdk` and the
+  // force before the adapter module (and, through it, `@cursor/sdk` and the
   // client) is loaded.
-  const { createCursorActivities } = await import("../index.js");
-  const activities = createCursorActivities(scenario.config);
+  const { createCursorAdapter } = await import("../adapter.js");
+  const { createHarnessActivities } = await import("../../../harness/registry.js");
+  const adapter = createCursorAdapter();
+  await adapter.boot(scenario.config);
+  const activities = createHarnessActivities([{ harness: "cursor", adapter }], scenario.config);
   // The typed wire shape the control plane's workflow sends (activity-input.ts).
   const input: ExecuteActivityInput = {
     execution_id: scenario.record.executionId,
     thread_id: options.threadId ?? "",
     turn_seq: options.turnSeq ?? 0,
   };
-  return runActivityHermetically(activities.ExecuteCursor, [input], {
+  return runActivityHermetically(activities.ExecuteCursor!, [input], {
     taskQueue: "hermetic-test-queue",
     onControls: options.onControls,
   });

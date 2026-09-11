@@ -11,7 +11,6 @@
  * containing runner-internal markers are rejected with a warning.
  */
 
-import { resolve } from "node:path";
 import type { StigmerClient } from "../client/stigmer-client.js";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { AgentSpec, McpServerUsage, SubAgent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
@@ -27,15 +26,6 @@ import { mergeMcpServerUsages } from "./mcp-resolver.js";
 // home alongside mergeSkillRefs.
 export { mergeMcpServerUsages } from "./mcp-resolver.js";
 
-/**
- * Path segments that identify runner-internal directories. Any workspace dir
- * whose resolved absolute path contains one of these is rejected.
- */
-const RUNNER_INTERNAL_MARKERS = [
-  "/runtimes/cursor-runner/",
-  "/runtimes/agent-runner/",
-] as const;
-
 export interface CloudRepo {
   url: string;
   startingRef?: string;
@@ -50,7 +40,6 @@ export interface ResolvedBlueprint {
   subAgents: SubAgent[];
   mergedMcpServerUsages: McpServerUsage[];
   mergedSkillRefs: ApiResourceReference[];
-  workspaceDirs: string[];
   cloudRepos: CloudRepo[];
 }
 
@@ -63,7 +52,6 @@ export interface ResolvedBlueprint {
 export async function resolveBlueprint(
   client: StigmerClient,
   session: Session,
-  fallbackWorkspaceDir: string,
 ): Promise<ResolvedBlueprint> {
   const sessionSpec = session.spec!;
 
@@ -82,7 +70,6 @@ export async function resolveBlueprint(
     sessionSpec.skillRefs,
   );
 
-  const workspaceDirs = resolveWorkspaceDirs(sessionSpec, fallbackWorkspaceDir);
   const cloudRepos = resolveCloudRepos(sessionSpec.workspaceEntries);
 
   return {
@@ -94,7 +81,6 @@ export async function resolveBlueprint(
     subAgents: agentSpec.subAgents,
     mergedMcpServerUsages,
     mergedSkillRefs,
-    workspaceDirs,
     cloudRepos,
   };
 }
@@ -154,65 +140,4 @@ export function mergeSkillRefs(
   }
 
   return [...bySlug.values()];
-}
-
-// ---------------------------------------------------------------------------
-// Local workspace resolution
-// ---------------------------------------------------------------------------
-
-/**
- * Resolve workspace directories from session workspace entries.
- *
- * For local path entries: use the local path directly.
- * Falls back to the config's workspaceRootDir when no entries exist.
- *
- * All resolved paths are validated to ensure they do not overlap with
- * the runner's own internal directories. Any path that fails validation
- * is replaced with the fallback directory.
- */
-function resolveWorkspaceDirs(
-  sessionSpec: SessionSpec,
-  fallbackDir: string,
-): string[] {
-  const safeFallback = validateWorkspaceDir(fallbackDir)
-    ? fallbackDir
-    : logAndSkipRunnerDir(fallbackDir, "fallback config");
-
-  if (!sessionSpec.workspaceEntries.length) {
-    return safeFallback ? [safeFallback] : [];
-  }
-
-  const dirs: string[] = [];
-  for (const entry of sessionSpec.workspaceEntries) {
-    if (entry.source?.source.case === "localPath") {
-      const path = entry.source.source.value.path;
-      if (validateWorkspaceDir(path)) {
-        dirs.push(path);
-      } else {
-        logAndSkipRunnerDir(path, "session workspace entry");
-      }
-    }
-  }
-
-  if (dirs.length > 0) {
-    return dirs;
-  }
-
-  return safeFallback ? [safeFallback] : [];
-}
-
-/**
- * Returns true if the directory is safe (not a runner-internal path).
- */
-function validateWorkspaceDir(dir: string): boolean {
-  const absolute = resolve(dir);
-  return !RUNNER_INTERNAL_MARKERS.some((marker) => absolute.includes(marker));
-}
-
-function logAndSkipRunnerDir(dir: string, source: string): undefined {
-  console.warn(
-    `Workspace dir from ${source} ("${dir}") is a runner-internal path — ` +
-    "rejecting to prevent implementation detail leakage.",
-  );
-  return undefined;
 }

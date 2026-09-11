@@ -34,6 +34,12 @@
  * pause and worker-shutdown arms; the outer `CancelledFailure` catch; the
  * `finally` teardown under a thrown exit.
  *
+ * Both goldens were regenerated at S2 M3b (entry 20260911.03) with a
+ * timestamp-only diff — every terminal stamp one scripted second earlier:
+ * the adapter now cancels the SDK run the instant the runtime's stop signal
+ * aborts (Q-M3-4), before the SDK double pulls, and the clock ticks on, one
+ * more step. The transcript is unchanged, the #1054 double included.
+ *
  * Regenerate ONLY after a deliberate behavior change:
  *   npx vitest run src/activities/execute-cursor/__tests__/hermetic -u
  */
