@@ -1,0 +1,68 @@
+{
+  "messages": [
+    {
+      "type": "MESSAGE_AI",
+      "content": "Let me read it.",
+      "timestamp": "2026-01-01T00:00:02.000Z",
+      "toolCalls": [
+        {
+          "id": "call-hermetic-read-0001",
+          "name": "read",
+          "args": {
+            "path": "README.md"
+          },
+          "result": "# Hermetic\n\nA fixture readme.\n",
+          "status": "TOOL_CALL_COMPLETED",
+          "startedAt": "2026-01-01T00:00:03.000Z",
+          "completedAt": "2026-01-01T00:00:04.000Z",
+          "argsPreview": "{\"path\":\"README.md\"}",
+          "toolKind": "TOOL_KIND_FILE_READ"
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "README.md holds a one-line fixture description.",
+      "timestamp": "2026-01-01T00:00:05.000Z"
+    }
+  ],
+  "phase": "EXECUTION_COMPLETED",
+  "startedAt": "2026-01-01T00:00:00.000Z",
+  "completedAt": "2026-01-01T00:00:07.000Z",
+  "streamingUsage": {
+    "inputTokens": "2000",
+    "outputTokens": "90",
+    "totalTokens": "2090",
+    "turnCount": 1,
+    "estimatedCostUsd": 0.00236,
+    "model": "composer-2.5",
+    "observedAt": "2026-01-01T00:00:06.000Z",
+    "requestedServiceTier": "SERVICE_TIER_STANDARD",
+    "requestedModelParams": "[{\"id\":\"fast\",\"value\":\"false\"},{\"id\":\"thinking\",\"value\":\"false\"}]",
+    "requestedThinkingMode": "THINKING_MODE_DISABLED"
+  },
+  "fileReviewEventStream": {
+    "executionId": "aex_hermetic_0001",
+    "events": [
+      {
+        "eventId": "aex_hermetic_0001:0:aex_hermetic_0001:0:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+        "changeSetId": "aex_hermetic_0001:0",
+        "eventType": "FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+        "timestamp": "2026-01-01T00:00:00.000Z",
+        "actor": "runner",
+        "baselineCaptured": {
+          "changeSetId": "aex_hermetic_0001:0",
+          "turnId": "aex_hermetic_0001:0",
+          "harnessId": "cursor",
+          "baselineSnapshot": {
+            "kind": "SNAPSHOT_KIND_CAS_MANIFEST"
+          }
+        }
+      }
+    ]
+  },
+  "fileChangeProgress": {
+    "changeSetId": "aex_hermetic_0001:0",
+    "capturedAt": "2026-01-01T00:00:01.000Z"
+  }
+}
