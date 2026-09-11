@@ -204,9 +204,9 @@ async function bootstrapOperatorIdentity(
 }
 
 // The minted JWT's `sub` is the JIT-provisioned identity-account id — the
-// principal the operator grant must name (the server chooses it; it is not
-// the userId the mint request carried).
-function jwtSubject(token: string): string {
+// principal any grant must name (the server chooses it; it is not the userId
+// the mint request carried). Exported for the targets' member provisioning.
+export function jwtSubject(token: string): string {
   const payloadSegment = token.split(".")[1];
   if (payloadSegment === undefined) {
     throw new Error("minted token is not a JWT (no payload segment)");
@@ -218,6 +218,26 @@ function jwtSubject(token: string): string {
     throw new Error("minted token carries no sub claim; cannot grant the operator role");
   }
   return payload.sub;
+}
+
+// The ordinary IamPolicy grant that makes an identity a `member` of an
+// organization — the Members-page grant, through IamPolicyCommandController.
+// create as the org's owner (never bootstrapPolicy, which is the operator
+// lane for grants the ordinary create cannot express). `member` is in the
+// organization kind's grantable_roles; the resource id is the organization's
+// ID (the FGA object `organization:<id>`), not its slug.
+export function organizationMemberGrant(
+  organizationId: string,
+  identityAccountId: string,
+): { principal: { kind: string; id: string }; resource: { kind: string; id: string }; relation: string } {
+  if (organizationId === "" || identityAccountId === "") {
+    throw new Error("organizationMemberGrant needs a non-empty organization id and identity-account id");
+  }
+  return {
+    principal: { kind: "identity_account", id: identityAccountId },
+    resource: { kind: "organization", id: organizationId },
+    relation: "member",
+  };
 }
 
 // Mints a Stigmer JWT for the given user id. mintUserToken authenticates via

@@ -51,6 +51,7 @@ import {
   EncryptionScope,
   EncryptionUnavailableError,
   InvalidTokenError,
+  isRunGateCheck,
   loadConfig,
   LOADED_EXECUTION_KEY,
   MintingDisabledError,
@@ -108,11 +109,18 @@ import type {
   WorkflowExecutionTemporalConfig,
 } from "@stigmer/server";
 
-/** A permissive Authorizer in the consumer's own code (the O2 shape). */
+/**
+ * A permissive Authorizer in the consumer's own code (the O2 shape), with
+ * the lane-admission arm a composition builds over the run gate (P1
+ * sp.run-gate): a runtime lane this consumer mints is admitted on the
+ * run-gate checks — isRunGateCheck is the OSS-owned definition of that
+ * set — and every other check falls to the consumer's own decision.
+ */
 const authorizer: Authorizer = {
-  authorize: (caller: CallerIdentity) =>
+  authorize: (caller: CallerIdentity, check) =>
     Promise.resolve(
-      caller.callerClass === "user"
+      (caller.callerClass === "fake-lane" && isRunGateCheck(check)) ||
+        caller.callerClass === "user"
         ? { kind: "allow" as const }
         : { kind: "deny" as const, reason: "machine callers are refused here" },
     ),

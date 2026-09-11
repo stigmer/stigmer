@@ -28,3 +28,28 @@ export function executionUsageReportNotFoundMessage(
 ): string {
   return `agent execution '%s' not found not found: ${executionId}`;
 }
+
+/**
+ * The run gate's deny copy per request shape (P1 sp.run-gate, ruling
+ * Q-RG-4; wire once merged, asserted by the conformance run-gate suite).
+ * NEW copy quotes the handle single-quoted (the ratified 2026-08-26 rule).
+ * An AgentExecution is a RUN in the ubiquitous language, hence "run";
+ * a turn added to an existing conversation is "an execution in a session",
+ * the session's own permission.
+ */
+export function runAgentDeniedMessage(agentId: string): string {
+  return `unauthorized to run agent '${agentId}'`;
+}
+
+/**
+ * Identical to the session domain's instance copy on purpose — one fact,
+ * one sentence (the ENGINE_UNAVAILABLE_MESSAGE precedent for cross-domain
+ * twins: each domain owns its constant, the twin is named here).
+ */
+export function runAgentInstanceDeniedMessage(agentInstanceId: string): string {
+  return `unauthorized to run agent instance '${agentInstanceId}'`;
+}
+
+export function addExecutionToSessionDeniedMessage(sessionId: string): string {
+  return `unauthorized to add an execution to session '${sessionId}'`;
+}

@@ -55,6 +55,7 @@ import {
   authorizeDirect,
   newAuthorizeStep,
 } from "../../pipeline/steps/authorize.js";
+import { newAuthorizeRunTargetStep } from "../../pipeline/steps/authorize-run-target.js";
 import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
 import {
   newBuildNewStateStep,
@@ -97,6 +98,7 @@ import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import type { SandboxLane } from "../../sandbox/lane.js";
 import { deprovisionSessionSandboxBestEffort } from "../../sandbox/steps.js";
+import { sessionRunTarget } from "./run-target.js";
 import { sessionSearchExtractor } from "./search-extractor.js";
 import type { ListReadScope } from "../../extensions/list-read-scope.js";
 import {
@@ -179,6 +181,13 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
  * runs BEFORE ValidateProto: when agent_instance_id is omitted, the
  * resolution fills it in before validation sees the spec.
  *
+ * AuthorizeRunTarget (the run gate, P1 sp.run-gate) follows it directly:
+ * the first step after the instance the session binds to is known, so a
+ * caller who may not run that instance is refused before validation reads
+ * anything further and before any step the chain owns side-effects. The
+ * default-instance creation INSIDE the resolution step still precedes it —
+ * the inherited pre-gate side effect recorded below, unchanged here.
+ *
  * The pre-side-effect gate slot splices before Persist, after the last
  * pure step (O4 plan-gate ruling Q2, mirroring the Java baseline's
  * post-resolution gate position). The default-instance resolution above
@@ -212,6 +221,7 @@ async function createSession(
         deps.authorizationLifecycle,
       ),
     )
+    .addStep(newAuthorizeRunTargetStep(deps.authorizer, sessionRunTarget))
     .addStep(newValidateProtoStep())
     .addStep(newValidateVisibilityStep())
     .addStep(newResolveSlugStep())

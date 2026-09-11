@@ -44,6 +44,7 @@ import { newPipeline } from "../../pipeline/pipeline.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
+import { newAuthorizeRunTargetStep } from "../../pipeline/steps/authorize-run-target.js";
 import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
 import type { RunnerCredentialProvider } from "../../runnerauth/runner-credential-provider.js";
 import { newRecordRunnerLineageLabelsStep } from "./record-runner-lineage-labels.js";
@@ -113,6 +114,7 @@ import {
   resumeExecution,
   terminateExecution,
 } from "./lifecycle.js";
+import { agentExecutionRunTarget } from "./run-target.js";
 import { agentExecutionSearchExtractor } from "./search-extractor.js";
 import type { StreamBroker } from "./stream-broker.js";
 import { submitApproval } from "./submit-approval.js";
@@ -278,9 +280,13 @@ export function registerAgentExecutionServices(
 /**
  * Create — create.go buildCreatePipeline, step-for-step: validation
  * (proto → visibility → tier #357 → thinking #772) → target resolution
- * (default agent → invariant guard) → the standard build → the engine
- * gate (fail fast BEFORE the first side effect, so a down engine orphans
- * nothing) → the pre-side-effect gate slot (O4; empty in OSS) → the
+ * (default agent → invariant guard) → the run gate (AuthorizeRunTarget,
+ * P1 sp.run-gate: the first step after the target is guaranteed, asking
+ * the target's own permission by request shape — session, instance or
+ * blueprint — before the engine gate so a denied caller learns nothing
+ * about engine state, and before every side effect) → the standard build
+ * → the engine gate (fail fast BEFORE the first side effect, so a down
+ * engine orphans nothing) → the pre-side-effect gate slot (O4; empty in OSS) → the
  * side-effecting steps (default instance, session bootstrap,
  * preference/memory snapshots, initial phase, the ExecutionContext with
  * merged env, attachment validation) → Persist → IndexSearch →
@@ -314,6 +320,7 @@ async function createExecution(
     .addStep(newValidateThinkingModeStep(deps.modelRegistry))
     .addStep(newResolveDefaultAgentStep(deps.store, deps.logger))
     .addStep(newEnsureSessionOrAgentResolvedStep(deps.logger))
+    .addStep(newAuthorizeRunTargetStep(deps.authorizer, agentExecutionRunTarget))
     .addStep(newResolveSlugStep())
     .addStep(newBuildNewStateStep())
     // Vouches the runner-stamped workflow lineage labels (or refuses a

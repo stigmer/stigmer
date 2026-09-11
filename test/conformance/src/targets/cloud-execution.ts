@@ -202,6 +202,10 @@ export class CloudExecutionTarget implements TargetProfile {
     return this.cloud.provisionIdentity();
   }
 
+  provisionMember(tenancy: TenancyContext): Promise<ConformanceClients> {
+    return this.cloud.provisionMember(tenancy);
+  }
+
   async teardown(): Promise<void> {
     // Reverse boot order: runner, then the fixtures it dials, then the client
     // connection. The environment itself outlives us (global-setup owns it).
