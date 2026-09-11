@@ -201,7 +201,11 @@ export class ExecutionDriver {
   decide(toolCallId: string, action: ApprovalAction): void {
     const row = this.persisted ? findToolCallRow(this.persisted, toolCallId) : undefined;
     if (!row || row.status !== ToolCallStatus.TOOL_CALL_WAITING_APPROVAL) {
-      throw new Error(`${this.subject.name}: kit bug — decide('${toolCallId}') but no WAITING row was persisted`);
+      const rows = (this.persisted?.messages ?? [])
+        .flatMap((m) => m.toolCalls)
+        .map((tc) => `${tc.id}=${ToolCallStatus[tc.status]}`)
+        .join(", ");
+      throw new Error(`${this.subject.name}: kit bug — decide('${toolCallId}') but no WAITING row was persisted (rows: ${rows || "none"})`);
     }
     row.approvalAction = action;
   }
@@ -393,22 +397,23 @@ interface UsageTotals {
   cacheWriteTokens: number;
 }
 
+const TOKEN_COUNT_FIELDS = ["inputTokens", "outputTokens", "cacheReadTokens", "cacheWriteTokens"] as const satisfies readonly (keyof UsageTotals)[];
+
 function sumUsage(deltas: readonly UsageDelta[]): UsageTotals {
   const total: UsageTotals = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 };
   for (const d of deltas) {
-    total.inputTokens += d.inputTokens ?? 0;
-    total.outputTokens += d.outputTokens ?? 0;
-    total.cacheReadTokens += d.cacheReadTokens ?? 0;
-    total.cacheWriteTokens += d.cacheWriteTokens ?? 0;
+    for (const field of TOKEN_COUNT_FIELDS) total[field] += d[field] ?? 0;
   }
   return total;
 }
 
 /**
- * Invariant 5: usage reaches the sink as deltas — non-negative, and summing
- * to what the engine emitted. An adapter that reports cumulative totals
- * instead of deltas would double-count in the runtime's accumulator and trip
- * the cost cap early; one that reports a negative number would credit it.
+ * Invariant 5: usage reaches the sink as deltas — the token counts and the
+ * price non-negative, and the counts summing to what the engine emitted. An
+ * adapter that reports cumulative totals instead of deltas would
+ * double-count in the runtime's accumulator and trip the cost cap early; one
+ * that reports a negative number would credit it. The basis a delta names
+ * (`model`, `requestedModelParams`) is the adapter's own and not judged here.
  */
 export async function assertUsageReachesSinkAsDeltas(subject: HarnessContractSubject): Promise<void> {
   const driver = new ExecutionDriver(subject, "inv5");
@@ -421,7 +426,9 @@ export async function assertUsageReachesSinkAsDeltas(subject: HarnessContractSub
   expect(outcome.kind, `${subject.name}: a usage-reporting turn must complete`).toBe("completed");
 
   for (const delta of sink.usageDeltas) {
-    for (const [field, value] of Object.entries(delta)) {
+    for (const field of [...TOKEN_COUNT_FIELDS, "estimatedCostUsd"] as const) {
+      const value = delta[field];
+      if (value === undefined) continue;
       expect(value, `${subject.name}: usage delta field ${field} must be non-negative`).toBeGreaterThanOrEqual(0);
     }
   }

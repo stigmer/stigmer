@@ -25,6 +25,7 @@ import { generateHookScript } from "../hook-script.js";
 import { buildApprovalState, type ApprovalGrant, type McpToolPolicyEntry } from "../approval-state.js";
 import type { MergedToolPolicy, ApprovalCategory } from "../approval-policy.js";
 import { readCasObservations, type CasObservations } from "../cas-observations.js";
+import type { ProposedAction } from "../../../__test-utils__/approval-contract/types.js";
 
 /**
  * Whether `bash` is available on this machine. Hook tests must be skipped where
@@ -231,3 +232,68 @@ export const hookMcp = (name: string, input: Record<string, unknown> = {}) => ({
   command: "npx -y srv mcp",
   hook_event_name: "beforeMCPExecution",
 });
+
+// ── The contract kits' abstract action, in both of Cursor's taxonomies ──────
+//
+// Both kits (`approval-contract`, `harness-contract`) speak of a side effect as
+// a taxonomy-free `ProposedAction`; Cursor sees the same act twice, as the
+// STREAM tool call the SDK emits (`edit` / `shell` / `delete`, lowercase) and
+// as the HOOK payload the preToolUse script judges (`Write` / `Shell` /
+// `Delete`). One translation here, so every Cursor-side substrate and subject
+// exercises the same category collapse that lets a stream-minted grant match a
+// hook-named call.
+
+/** Build the real preToolUse hook-input payload for an abstract action. */
+export function hookInputFor(action: ProposedAction): object {
+  switch (action.kind) {
+    case "write":
+      return hookWrite(action.resource, action.content ?? "x");
+    case "shell":
+      return hookShell(action.resource);
+    case "delete":
+      return hookDelete(action.resource);
+    case "read":
+      return hookRead(action.resource);
+    case "mcp":
+      return hookMcp(action.mcpToolName ?? "mcp_tool");
+    default: {
+      const exhaustive: never = action.kind;
+      throw new Error(`hookInputFor: unknown action kind ${String(exhaustive)}`);
+    }
+  }
+}
+
+/** The gated built-in categories: the only action kinds a grant is ever minted for. */
+export type GatedActionKind = "write" | "shell" | "delete";
+
+/**
+ * Stream-side (SDK) tool name per gated category — deliberately the OTHER
+ * taxonomy from the hook input, so a grant minted from the stream matches a
+ * hook-named call only via the canonical category, not the raw name.
+ */
+export const STREAM_NAME: Record<GatedActionKind, string> = {
+  write: "edit",
+  shell: "shell",
+  delete: "delete",
+};
+
+/**
+ * The stream-side args of a gated action, mirroring {@link hookInputFor}: a
+ * write carries whole-file content (so its digest is content-exact and matches
+ * the hook's), a delete carries only a path, and a shell carries its command
+ * (the salient is already exact). The shapes the goldens' `edit` events use.
+ */
+export function streamArgsFor(action: ProposedAction & { kind: GatedActionKind }): Record<string, unknown> {
+  switch (action.kind) {
+    case "shell":
+      return { command: action.resource };
+    case "delete":
+      return { path: action.resource };
+    case "write":
+      return { path: action.resource, content: action.content ?? "x" };
+    default: {
+      const exhaustive: never = action.kind;
+      throw new Error(`streamArgsFor: unknown gated kind ${String(exhaustive)}`);
+    }
+  }
+}

@@ -26,13 +26,18 @@
  * scenarios with different agents against the same mocked module.
  *
  * Resolution rules a scenario declares, mirroring what the real SDK does:
- *  - `Agent.create` hands out the NEXT unclaimed agent in `agents` (turn 1 of a
- *    fresh session; the fresh agent of a poisoned-handle recovery) — unless the
- *    scenario declared a `createFailure`, which the FIRST create throws instead
- *    (the SDK refusing to mint an agent: a 401 on the key, a validation error).
+ *  - `Agent.create` hands out the agent declared for the session it is asked
+ *    for (`agentForSession`, when the scenario resolves agents per session —
+ *    the harness contract kit runs several sessions concurrently on one
+ *    adapter, and the order their creates arrive in is real I/O timing), else
+ *    the NEXT unclaimed agent in `agents` (turn 1 of a fresh session; the fresh
+ *    agent of a poisoned-handle recovery) — unless the scenario declared a
+ *    `createFailure`, which the FIRST create throws instead (the SDK refusing
+ *    to mint an agent: a 401 on the key, a validation error).
  *  - `Agent.resume(id)` hands back the agent with that id if the scenario
- *    declared it (in `agents` or `resumableAgents`), else throws — `resolveAgent`
- *    then falls back to `create`, which is the production shape of a lost handle.
+ *    declared it (in `agents` or `resumableAgents`, or handed out for a
+ *    session), else throws — `resolveAgent` then falls back to `create`, which
+ *    is the production shape of a lost handle.
  *  - `Cursor.models.list` answers the scenario's catalog.
  */
 
@@ -42,6 +47,17 @@ import type { ScriptedCursorAgent } from "./scripted-agent.js";
 export interface ScriptedSdkOptions {
   /** Agents handed out by `Agent.create`, in order. Also resumable by id. */
   readonly agents: readonly ScriptedCursorAgent[];
+  /**
+   * The agent `Agent.create` hands out for the session the create names,
+   * consulted before the ordered list. The SDK's create options carry the
+   * session as `platform.workspaceRef` (`session-lifecycle.ts`
+   * `resolvePlatformOptions`: `stigmer-session:<sessionId>`), so the resolver
+   * is keyed by that ref — a scenario computes the ref the same way the
+   * adapter does. `undefined` falls through to the list. Consulted live on
+   * every create, so a scenario may mint the session's agent only when it
+   * learns of the session.
+   */
+  readonly agentForWorkspaceRef?: (workspaceRef: string) => ScriptedCursorAgent | undefined;
   /**
    * Agents `Agent.resume` finds by id but `Agent.create` never hands out — a
    * previous turn's agent the session knows only by `harness_state_id`.
@@ -65,6 +81,19 @@ export interface RecordedResolution {
   readonly options: Partial<AgentOptions> | undefined;
 }
 
+/**
+ * The `platform.workspaceRef` a create names, read defensively: the platform
+ * option's type re-exports from the unshipped `@anysphere/cursor-sdk-local-runtime`
+ * and resolves to `any` under `skipLibCheck` (the same gap `scripted-agent.ts`
+ * records for the delta channel), so the shape is checked here, not assumed.
+ */
+function workspaceRefOf(options: AgentOptions): string | undefined {
+  const platform: unknown = (options as { platform?: unknown }).platform;
+  if (typeof platform !== "object" || platform === null) return undefined;
+  const ref = (platform as { workspaceRef?: unknown }).workspaceRef;
+  return typeof ref === "string" ? ref : undefined;
+}
+
 export class ScriptedCursorSdk {
   readonly resolutions: RecordedResolution[] = [];
   readonly archived: string[] = [];
@@ -84,6 +113,14 @@ export class ScriptedCursorSdk {
       this.createFailurePending = false;
       this.resolutions.push({ kind: "create", agentId: undefined, options });
       throw this.options.createFailure;
+    }
+    const workspaceRef = workspaceRefOf(options);
+    const forSession = workspaceRef !== undefined ? this.options.agentForWorkspaceRef?.(workspaceRef) : undefined;
+    if (forSession) {
+      this.byId.set(forSession.agentId, forSession);
+      forSession.model = options.model;
+      this.resolutions.push({ kind: "create", agentId: forSession.agentId, options });
+      return forSession;
     }
     const agent = this.options.agents[this.nextCreate];
     if (!agent) {
