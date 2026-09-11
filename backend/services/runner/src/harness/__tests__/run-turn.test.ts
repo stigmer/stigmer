@@ -80,9 +80,15 @@ function aiMessages(status: { messages: { type: MessageType; content: string }[]
   return status.messages.filter((m) => m.type === MessageType.MESSAGE_AI).map((m) => m.content);
 }
 
+/** The fake and the turns it plays, in order, one per invocation; each is arranged for the record's session right before its activity runs. */
+interface QueuedFake {
+  readonly adapter: ScriptedHarnessAdapter;
+  readonly turns: TurnScenario[];
+}
+
 interface RuntimeTurnOptions {
   readonly record: ExecutionRecord;
-  readonly adapter: ScriptedHarnessAdapter;
+  readonly fake: QueuedFake;
   readonly config: Config;
   readonly clientOverrides?: Partial<StigmerClient>;
   readonly threadId?: string;
@@ -92,8 +98,11 @@ interface RuntimeTurnOptions {
 
 /** One activity invocation of the fake through the real runtime; the runtime's activity is built per call, as the driver does. */
 async function runRuntimeTurn(options: RuntimeTurnOptions): Promise<ActivityInvocation> {
+  const turn = options.fake.turns.shift();
+  if (!turn) throw new Error("run-turn.test: no turn queued for this invocation (test bug)");
+  options.fake.adapter.arrange(turn, { sessionId: options.record.session.metadata!.id });
   bindHermeticClient(options.record.client(options.clientOverrides));
-  const activities = createHarnessActivities([{ harness: "deep-agent", adapter: options.adapter }], options.config);
+  const activities = createHarnessActivities([{ harness: "deep-agent", adapter: options.fake.adapter }], options.config);
   const input: ExecuteActivityInput = {
     execution_id: options.record.executionId,
     thread_id: options.threadId ?? "",
@@ -105,10 +114,8 @@ async function runRuntimeTurn(options: RuntimeTurnOptions): Promise<ActivityInvo
   });
 }
 
-function fakeAdapter(turns: readonly TurnScenario[]): ScriptedHarnessAdapter {
-  const adapter = new ScriptedHarnessAdapter({ pausePrimitive: "interrupt", stateIdSource: "engine-minted" });
-  for (const turn of turns) adapter.arrange(turn);
-  return adapter;
+function fakeAdapter(turns: readonly TurnScenario[]): QueuedFake {
+  return { adapter: new ScriptedHarnessAdapter({ pausePrimitive: "interrupt", stateIdSource: "engine-minted" }), turns: [...turns] };
 }
 
 function slimOf(invocation: ActivityInvocation): Record<string, unknown> {
@@ -140,10 +147,10 @@ describe("run-turn: the fake adapter through the real runtime", () => {
 
   it("a completed turn: the runtime's labels, one bind, the transcript, the slim return with final_text", async () => {
     clock.reset();
-    const adapter = fakeAdapter([[scenario.say("The repository has three packages."), scenario.usage({ inputTokens: 1_200, outputTokens: 40, estimatedCostUsd: 0.00136, model: "fixture-model", requestedModelParams: "" })]]);
+    const fake = fakeAdapter([[scenario.say("The repository has three packages."), scenario.usage({ inputTokens: 1_200, outputTokens: 40, estimatedCostUsd: 0.00136, model: "fixture-model", requestedModelParams: "" })]]);
     const rec = record();
 
-    const invocation = await runRuntimeTurn({ record: rec, adapter, config });
+    const invocation = await runRuntimeTurn({ record: rec, fake, config });
 
     const slim = slimOf(invocation);
     expect(slim.phase).toBe("EXECUTION_COMPLETED");
@@ -165,26 +172,26 @@ describe("run-turn: the fake adapter through the real runtime", () => {
   it("awaiting_approval then APPROVE: the WAITING row, the reinvocation by the bound id, one execution, COMPLETED", async () => {
     clock.reset();
     const propose = scenario.propose("call-runtime-0001", { kind: "write", resource: "/work/alpha.txt" });
-    const adapter = fakeAdapter([[propose], [propose, scenario.say("Done.")]]);
+    const fake = fakeAdapter([[propose], [propose, scenario.say("Done.")]]);
     const rec = record();
 
-    const first = await runRuntimeTurn({ record: rec, adapter, config });
+    const first = await runRuntimeTurn({ record: rec, fake, config });
     expect(slimOf(first).phase).toBe("EXECUTION_WAITING_FOR_APPROVAL");
     // The fake proposes without streaming first, so the WAITING write is the
     // turn's first full persist (a real engine's streaming persists precede it).
     expect(rec.persistedPhases).toEqual([ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL]);
     expect(rec.waitingToolCalls().map((tc) => tc.id)).toEqual(["call-runtime-0001"]);
-    expect(adapter.executionCount("call-runtime-0001"), "a proposal never executes in its own turn").toBe(0);
+    expect(fake.adapter.executionCount("call-runtime-0001"), "a proposal never executes in its own turn").toBe(0);
     const boundId = rec.sessionUpdates.at(-1)?.spec?.harnessStateId;
     expect(boundId).toBeTruthy();
 
     clock.tick();
     expect(rec.decideWaitingToolCalls(ApprovalAction.APPROVE, new Date().toISOString())).toBe(1);
 
-    const second = await runRuntimeTurn({ record: rec, adapter, config, threadId: boundId, turnSeq: 1 });
+    const second = await runRuntimeTurn({ record: rec, fake, config, threadId: boundId, turnSeq: 1 });
     expect(slimOf(second).phase).toBe("EXECUTION_COMPLETED");
     expect(slimOf(second).final_text).toBe("Done.");
-    expect(adapter.executionCount("call-runtime-0001"), "APPROVE executes exactly once").toBe(1);
+    expect(fake.adapter.executionCount("call-runtime-0001"), "APPROVE executes exactly once").toBe(1);
     expect(rec.persistedPhases).toEqual([
       ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
       ExecutionPhase.EXECUTION_IN_PROGRESS,
@@ -197,16 +204,16 @@ describe("run-turn: the fake adapter through the real runtime", () => {
   it("REJECT of an irreversible action settles the reinvocation FAILED before any engine runs", async () => {
     clock.reset();
     const propose = scenario.propose("call-runtime-0002", { kind: "shell", resource: "rm -rf build" });
-    const adapter = fakeAdapter([[propose], [scenario.say(NEVER_SEEN)]]);
+    const fake = fakeAdapter([[propose], [scenario.say(NEVER_SEEN)]]);
     const rec = record();
 
-    const first = await runRuntimeTurn({ record: rec, adapter, config });
+    const first = await runRuntimeTurn({ record: rec, fake, config });
     const boundId = rec.sessionUpdates.at(-1)?.spec?.harnessStateId;
     expect(slimOf(first).phase).toBe("EXECUTION_WAITING_FOR_APPROVAL");
     clock.tick();
     rec.decideWaitingToolCalls(ApprovalAction.REJECT, new Date().toISOString());
 
-    const second = await runRuntimeTurn({ record: rec, adapter, config, threadId: boundId, turnSeq: 1 });
+    const second = await runRuntimeTurn({ record: rec, fake, config, threadId: boundId, turnSeq: 1 });
     expect(slimOf(second).phase).toBe("EXECUTION_FAILED");
     const final = rec.lastFullStatus!;
     expect(final.error).toBe(TERMINAL_COPY.rejectedByUser.error);
@@ -217,12 +224,12 @@ describe("run-turn: the fake adapter through the real runtime", () => {
 
   it("a user pause persists PAUSED (the #1054 double) and throws the pause CancelledFailure", async () => {
     clock.reset();
-    const adapter = fakeAdapter([[scenario.say("Starting on the parser."), scenario.hang(), scenario.say(NEVER_SEEN)]]);
+    const fake = fakeAdapter([[scenario.say("Starting on the parser."), scenario.hang(), scenario.say(NEVER_SEEN)]]);
     const rec = record();
     let controls: InvocationControls | undefined;
-    void adapter.whenHanging().then(() => controls!.cancel());
+    void fake.adapter.whenHanging().then(() => controls!.cancel());
 
-    const invocation = await runRuntimeTurn({ record: rec, adapter, config, onControls: (c) => (controls = c) });
+    const invocation = await runRuntimeTurn({ record: rec, fake, config, onControls: (c) => (controls = c) });
 
     expect(threwCancelledFailure(invocation.outcome)).toBe(true);
     if (!threwCancelledFailure(invocation.outcome)) throw new Error("unreachable");
@@ -237,17 +244,17 @@ describe("run-turn: the fake adapter through the real runtime", () => {
 
   it("a worker shutdown persists FAILED with the shutdown copy (doubled) and throws the shutdown CancelledFailure", async () => {
     clock.reset();
-    const adapter = fakeAdapter([[scenario.say("Starting on the parser."), scenario.hang(), scenario.say(NEVER_SEEN)]]);
+    const fake = fakeAdapter([[scenario.say("Starting on the parser."), scenario.hang(), scenario.say(NEVER_SEEN)]]);
     const rec = record();
     let controls: InvocationControls | undefined;
-    void adapter.whenHanging().then(() => {
+    void fake.adapter.whenHanging().then(() => {
       // The runner-manager drains: the queue's shutdown signal aborts, then
       // Temporal delivers the cancellation.
       controls!.signalWorkerShutdown();
       controls!.cancel();
     });
 
-    const invocation = await runRuntimeTurn({ record: rec, adapter, config, onControls: (c) => (controls = c) });
+    const invocation = await runRuntimeTurn({ record: rec, fake, config, onControls: (c) => (controls = c) });
 
     expect(threwCancelledFailure(invocation.outcome)).toBe(true);
     if (!threwCancelledFailure(invocation.outcome)) throw new Error("unreachable");
@@ -261,13 +268,13 @@ describe("run-turn: the fake adapter through the real runtime", () => {
 
   it("a stall fails the turn with the watchdog's idle time; the copy names the last activity detail", async () => {
     clock.reset();
-    const adapter = fakeAdapter([[scenario.say("Running the suite."), scenario.hang(), scenario.say(NEVER_SEEN)]]);
+    const fake = fakeAdapter([[scenario.say("Running the suite."), scenario.hang(), scenario.say(NEVER_SEEN)]]);
     const rec = record();
-    void adapter.whenHanging().then(() => clock.tick(STALL_TIMEOUT_MS));
+    void fake.adapter.whenHanging().then(() => clock.tick(STALL_TIMEOUT_MS));
 
     const invocation = await runRuntimeTurn({
       record: rec,
-      adapter,
+      fake,
       config: { ...config, cursorStreamStallTimeoutMs: STALL_TIMEOUT_MS },
     });
 
@@ -285,7 +292,7 @@ describe("run-turn: the fake adapter through the real runtime", () => {
 
   it("a cost cap terminates the turn with the budget copy; the event after the overrun is never processed", async () => {
     clock.reset();
-    const adapter = fakeAdapter([
+    const fake = fakeAdapter([
       [
         scenario.say("Reading the whole repository first."),
         // 600 000 input tokens priced by the adapter at $0.60 > the $0.50 budget.
@@ -295,7 +302,7 @@ describe("run-turn: the fake adapter through the real runtime", () => {
     ]);
     const rec = record({ maxCostUsd: 0.5 });
 
-    const invocation = await runRuntimeTurn({ record: rec, adapter, config });
+    const invocation = await runRuntimeTurn({ record: rec, fake, config });
 
     expect(slimOf(invocation).phase).toBe("EXECUTION_TERMINATED");
     expect(rec.persistedPhases).toEqual([ExecutionPhase.EXECUTION_IN_PROGRESS, ExecutionPhase.EXECUTION_TERMINATED]);
@@ -313,13 +320,13 @@ describe("run-turn: the fake adapter through the real runtime", () => {
 
   it("a platform STOP answered to a persist completes the turn early; the step after the STOP never runs", async () => {
     clock.reset();
-    const adapter = fakeAdapter([[scenario.say("Starting the suite."), scenario.say(NEVER_SEEN)]]);
+    const fake = fakeAdapter([[scenario.say("Starting the suite."), scenario.say(NEVER_SEEN)]]);
     const rec = record({
       controlSignal: (status) =>
         status.messages.some((m) => m.type === MessageType.MESSAGE_AI) ? ExecutionControlSignal.STOP : ExecutionControlSignal.UNSPECIFIED,
     });
 
-    const invocation = await runRuntimeTurn({ record: rec, adapter, config });
+    const invocation = await runRuntimeTurn({ record: rec, fake, config });
 
     expect(slimOf(invocation).phase).toBe("EXECUTION_COMPLETED");
     expect(rec.persistedPhases).toEqual([ExecutionPhase.EXECUTION_IN_PROGRESS, ExecutionPhase.EXECUTION_COMPLETED]);
@@ -331,10 +338,10 @@ describe("run-turn: the fake adapter through the real runtime", () => {
 
   it("an engine-cancelled run ends CANCELLED with no error and no copy", async () => {
     clock.reset();
-    const adapter = fakeAdapter([[scenario.say("Looking at the pull requests."), scenario.cancelled(), scenario.say(NEVER_SEEN)]]);
+    const fake = fakeAdapter([[scenario.say("Looking at the pull requests."), scenario.cancelled(), scenario.say(NEVER_SEEN)]]);
     const rec = record();
 
-    const invocation = await runRuntimeTurn({ record: rec, adapter, config });
+    const invocation = await runRuntimeTurn({ record: rec, fake, config });
 
     expect(slimOf(invocation).phase).toBe("EXECUTION_CANCELLED");
     expect(slimOf(invocation)).not.toHaveProperty("final_text");
@@ -360,10 +367,10 @@ describe("run-turn: the fake adapter through the real runtime", () => {
     ],
   ] as const)("a failed turn on the %s surface writes that surface's copy and returns", async (surface, message, rows) => {
     clock.reset();
-    const adapter = fakeAdapter([[scenario.say("Checking the repository."), scenario.fail(message, surface)]]);
+    const fake = fakeAdapter([[scenario.say("Checking the repository."), scenario.fail(message, surface)]]);
     const rec = record();
 
-    const invocation = await runRuntimeTurn({ record: rec, adapter, config });
+    const invocation = await runRuntimeTurn({ record: rec, fake, config });
 
     expect(slimOf(invocation).phase).toBe("EXECUTION_FAILED");
     expect(rec.persistedPhases).toEqual([ExecutionPhase.EXECUTION_IN_PROGRESS, ExecutionPhase.EXECUTION_FAILED]);
@@ -375,12 +382,12 @@ describe("run-turn: the fake adapter through the real runtime", () => {
 
   it("a rejected bindHarnessState ends the turn failed with nothing executed (Q-S2-11)", async () => {
     clock.reset();
-    const adapter = fakeAdapter([[scenario.say(NEVER_SEEN)]]);
+    const fake = fakeAdapter([[scenario.say(NEVER_SEEN)]]);
     const rec = record();
 
     const invocation = await runRuntimeTurn({
       record: rec,
-      adapter,
+      fake,
       config,
       clientOverrides: {
         updateSession: vi.fn(async () => {
@@ -398,12 +405,12 @@ describe("run-turn: the fake adapter through the real runtime", () => {
 
   it("an error during resolution fails the turn through the internal arm before any engine runs", async () => {
     clock.reset();
-    const adapter = fakeAdapter([[scenario.say(NEVER_SEEN)]]);
+    const fake = fakeAdapter([[scenario.say(NEVER_SEEN)]]);
     const rec = record();
 
     const invocation = await runRuntimeTurn({
       record: rec,
-      adapter,
+      fake,
       config,
       clientOverrides: {
         getAgent: vi.fn(async () => {
@@ -426,7 +433,7 @@ describe("run-turn: the fake adapter through the real runtime", () => {
 
   it("a workspace lock held by another turn settles FAILED with the lock's message and its one row", async () => {
     clock.reset();
-    const adapter = fakeAdapter([[scenario.say(NEVER_SEEN)]]);
+    const fake = fakeAdapter([[scenario.say(NEVER_SEEN)]]);
     const rec = record();
     // The session's own workspace directory, as the provisioner will resolve it.
     const workspaceDir = join(env.workspaceRootDir, "sessions", rec.session.metadata!.id);
@@ -435,7 +442,7 @@ describe("run-turn: the fake adapter through the real runtime", () => {
     try {
       const invocation = await runRuntimeTurn({
         record: rec,
-        adapter,
+        fake,
         config: { ...config, workspaceLockTimeoutMs: 500 },
       });
 

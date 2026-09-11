@@ -20,7 +20,11 @@
 import { create } from "@bufbuild/protobuf";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { AgentExecutionSchema, type AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import {
+  AgentExecutionSchema,
+  type AgentExecution,
+  type AgentExecutionStatus,
+} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentExecutionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { SessionSchema, type Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
@@ -45,6 +49,26 @@ export interface TurnInputFixtureOverrides extends Partial<Omit<TurnInput, "exec
   readonly execution?: AgentExecution;
   readonly session?: Session;
   readonly blueprint?: Partial<ResolvedBlueprint>;
+  /**
+   * The user's message on the default execution's spec (ignored when a whole
+   * `execution` is given). Empty by default: the neutral record asks nothing.
+   */
+  readonly message?: string;
+  /**
+   * The status the default execution carries — what the control plane
+   * persisted at the end of the previous invocation, on a reinvocation. The
+   * runtime seeds the turn's in-progress status from a clone of it
+   * (`seedTranscriptFromExecution`) and an adapter may read the record's own
+   * copy for its facts, so a test standing in for the runtime hands both.
+   */
+  readonly persistedStatus?: AgentExecutionStatus;
+  /**
+   * Where the default workspace lives (ignored when a whole `workspace` is
+   * given). A test that only needs "my workspace is here" — because its
+   * engine writes into it — states the directory and nothing else of the
+   * provision record.
+   */
+  readonly workspaceDir?: string;
 }
 
 /**
@@ -65,7 +89,8 @@ export function turnInputFixture(overrides: TurnInputFixtureOverrides = {}): Tur
     overrides.execution ??
     create(AgentExecutionSchema, {
       metadata: create(ApiResourceMetadataSchema, { id: executionId, org: TURN_INPUT_FIXTURE_IDS.org, name: executionId }),
-      spec: create(AgentExecutionSpecSchema, { sessionId }),
+      spec: create(AgentExecutionSpecSchema, { sessionId, message: overrides.message ?? "" }),
+      status: overrides.persistedStatus,
     });
   const agent = create(AgentSchema, {
     metadata: create(ApiResourceMetadataSchema, {
@@ -75,7 +100,7 @@ export function turnInputFixture(overrides: TurnInputFixtureOverrides = {}): Tur
     }),
     spec: create(AgentSpecSchema, { instructions: "You are the fixture agent." }),
   });
-  const workspaceDir = join(tmpdir(), "stigmer-runner-turn-input-fixture");
+  const workspaceDir = overrides.workspaceDir ?? join(tmpdir(), "stigmer-runner-turn-input-fixture");
   const blueprint: ResolvedBlueprint = {
     agent,
     agentSpec: agent.spec!,
