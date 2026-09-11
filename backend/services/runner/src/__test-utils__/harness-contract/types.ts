@@ -24,7 +24,7 @@
  */
 
 import type { Config } from "../../config.js";
-import type { HarnessAdapter, UsageDelta } from "../../harness/types.js";
+import type { FailureSurface, HarnessAdapter, UsageDelta } from "../../harness/types.js";
 import type { ProposedAction } from "../approval-contract/types.js";
 
 /**
@@ -41,14 +41,18 @@ import type { ProposedAction } from "../approval-contract/types.js";
  *    step that the stop-signal invariants and the runtime's stall watchdog
  *    are built around; it must be parked on the signal, never on a timer.
  *  - `fail`: the engine fails with a message the adapter can name; the turn
- *    ends `failed`.
+ *    ends `failed` on the given surface (`engine` unless the scenario says
+ *    otherwise — the runtime's three failure copies are its own invariant).
+ *  - `cancelled`: the engine ends its own run cancelled with nothing to
+ *    wait for (an SDK-side cancel); the turn ends `cancelled`.
  */
 export type ScenarioStep =
   | { readonly kind: "say"; readonly text: string }
   | { readonly kind: "propose"; readonly toolCallId: string; readonly action: ProposedAction }
   | { readonly kind: "usage"; readonly delta: UsageDelta }
   | { readonly kind: "hang" }
-  | { readonly kind: "fail"; readonly message: string };
+  | { readonly kind: "fail"; readonly message: string; readonly surface: FailureSurface }
+  | { readonly kind: "cancelled" };
 
 /** One turn's worth of engine behaviour. */
 export type TurnScenario = readonly ScenarioStep[];
@@ -67,8 +71,11 @@ export const scenario = {
   hang(): ScenarioStep {
     return { kind: "hang" };
   },
-  fail(message: string): ScenarioStep {
-    return { kind: "fail", message };
+  fail(message: string, surface: FailureSurface = "engine"): ScenarioStep {
+    return { kind: "fail", message, surface };
+  },
+  cancelled(): ScenarioStep {
+    return { kind: "cancelled" };
   },
 } as const;
 

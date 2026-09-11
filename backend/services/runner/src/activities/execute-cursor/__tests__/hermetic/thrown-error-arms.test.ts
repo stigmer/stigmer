@@ -57,8 +57,8 @@ import {
   beginCursorScenario,
   cursorExecutionRecord,
   runCursorTurn,
-  stubRegistryFetch,
 } from "../../__test-utils__/hermetic-cursor.js";
+import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
 
 const USER_MESSAGE = "Draft the release notes.";
 const GENERIC_SYSTEM_MESSAGE = "Internal system error occurred. Please contact support if this issue persists.";

@@ -185,7 +185,10 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
       case "say": {
         sink.status.messages.push(aiMessage(step.text));
         sink.recordActivity();
-        sink.requestPersist();
+        // Awaited, as the Cursor loop awaits its own: a platform STOP the
+        // runtime reads from this write aborts the signal before the next
+        // step boundary sees it (the contract's "MAY await for ordering").
+        await sink.requestPersist();
         return undefined;
       }
       case "propose":
@@ -201,7 +204,9 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
         return { kind: "interrupted" };
       }
       case "fail":
-        return { kind: "failed", surface: "engine", message: step.message };
+        return { kind: "failed", surface: step.surface, message: step.message };
+      case "cancelled":
+        return { kind: "cancelled" };
       default: {
         const exhaustive: never = step;
         throw new Error(`${this.name}: unknown scenario step ${JSON.stringify(exhaustive)}`);

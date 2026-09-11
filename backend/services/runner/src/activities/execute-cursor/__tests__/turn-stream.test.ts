@@ -74,6 +74,11 @@ function stubEnricher() {
   };
 }
 
+/** Prices nothing: hands the counts back as a delta, the accumulator stub swallows them. */
+function stubUsagePricer() {
+  return { price: vi.fn((usage: Record<string, number>) => ({ ...usage })) };
+}
+
 function stubUsageAccumulator() {
   return {
     addTurn: vi.fn(),
@@ -105,6 +110,7 @@ function buildDeps(overrides: Partial<CursorTurnStreamDeps> = {}): BuiltDeps {
   const deps = {
     // TurnOnDeltaDeps
     usageAccumulator: stubUsageAccumulator(),
+    usagePricer: stubUsagePricer(),
     deltaEnricher: stubEnricher(),
     promptEstimatedTokens: 100,
     executionId: "exec-test",
@@ -384,6 +390,7 @@ describe("makeCursorTurnOnDelta", () => {
     const usageAccumulator = stubUsageAccumulator();
     const onDelta = makeCursorTurnOnDelta({
       usageAccumulator: usageAccumulator as never,
+      usagePricer: stubUsagePricer() as never,
       deltaEnricher: stubEnricher() as never,
       promptEstimatedTokens: 10,
       executionId: "e",
@@ -406,6 +413,7 @@ describe("makeCursorTurnOnDelta", () => {
     };
     const onDelta = makeCursorTurnOnDelta({
       usageAccumulator: usageAccumulator as never,
+      usagePricer: stubUsagePricer() as never,
       deltaEnricher: stubEnricher() as never,
       promptEstimatedTokens: 10,
       executionId: "e",
@@ -426,6 +434,7 @@ describe("makeCursorTurnOnDelta", () => {
     };
     const onDelta = makeCursorTurnOnDelta({
       usageAccumulator: usageAccumulator as never,
+      usagePricer: stubUsagePricer() as never,
       deltaEnricher: stubEnricher() as never,
       promptEstimatedTokens: 10,
       executionId: "e",

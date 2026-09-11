@@ -21,12 +21,10 @@
  *   (await import("../../../../__test-utils__/hermetic-activity.js")).hermeticStigmerClientModule());
  * ```
  *
- * Network: the activity's only HTTP fetch is the model registry
- * (`model-pricing-data.ts`, `shared/model-registry.ts`; both fail SOFT to
- * defaults with a 60s failure cache, which would make the goldens depend on
- * DEFAULT_PRICING and log warnings on every run). `fetch` is stubbed to answer
- * one registry document — and to THROW for any other URL, so a new network
- * dependency on the activity path fails the hermetic run instead of leaking.
+ * Network: the registry document and the `fetch` stub that serves it are
+ * the runtime's fixtures (`src/__test-utils__/model-registry-fixture.ts`);
+ * the record's four resources come from `execution-record-fixture.ts` with
+ * this harness's ids and model laid over the defaults.
  *
  * The fixture model is `composer-2.5`, pinned (not Auto) on purpose: Auto short-
  * circuits `resolveServiceTierParams` before the catalog, and a pinned model runs
@@ -48,31 +46,12 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { create } from "@bufbuild/protobuf";
 import type { ModelListItem } from "@cursor/sdk";
-import { vi } from "vitest";
-import {
-  AgentExecutionSchema,
-  type AgentExecution,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import {
-  AgentExecutionSpecSchema,
-  ExecutionConfigSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
-import { SessionSchema, type Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import {
   LocalPathSourceSchema,
   WorkspaceEntrySchema,
   WorkspaceSourceSchema,
   type WorkspaceEntry,
 } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
-import { AgentSchema, type Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import {
-  AgentInstanceSchema,
-  type AgentInstance,
-} from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
-import { AgentInstanceSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/spec_pb";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import type { StigmerClient } from "../../../client/stigmer-client.js";
 import type { Config } from "../../../config.js";
 import type { ExecuteActivityInput } from "../../../shared/activity-input.js";
@@ -82,10 +61,11 @@ import {
   bindHermeticClient,
   runActivityHermetically,
   type ActivityInvocation,
-  type ExecutionRecordInput,
   type HermeticEnvironment,
   type InvocationControls,
 } from "../../../__test-utils__/hermetic-activity.js";
+import { executionRecordFixture, type ExecutionRecordOptions } from "../../../__test-utils__/execution-record-fixture.js";
+import { FIXTURE_MODEL } from "../../../__test-utils__/model-registry-fixture.js";
 import { _resetAgentSessionCacheForTests } from "../agent-session-cache.js";
 import { _resetPricingCache } from "../model-pricing-data.js";
 import { resetCatalogCacheForTests } from "../service-tier.js";
@@ -103,8 +83,8 @@ export const FIXTURE = {
   agentInstanceId: "ain_hermetic_0001",
   agentId: "agt_hermetic_0001",
   agentName: "hermetic-agent",
-  /** The pinned model; in the registry stub AND the SDK catalog below. */
-  model: "composer-2.5",
+  /** The pinned model; in the registry fixture AND the SDK catalog below. */
+  model: FIXTURE_MODEL,
   cursorApiKey: "hermetic-cursor-api-key",
 } as const;
 
@@ -112,120 +92,28 @@ export const FIXTURE = {
 // The record
 // ---------------------------------------------------------------------------
 
-export interface CursorRecordOptions {
-  /** The user's message for this execution. */
-  readonly message: string;
-  /** The agent's instructions (system prompt body). */
-  readonly instructions?: string;
-  /** Session workspace entries (a `local_path` entry turns on capture mode). */
-  readonly workspaceEntries?: WorkspaceEntry[];
-  readonly modelName?: string;
-  readonly autoApproveAll?: boolean;
-  /**
-   * `ExecutionConfig.max_cost_usd`: the per-message cost budget the harness
-   * enforces as a hard stop (cost-guard.ts). Omitted or 0 = no cap, the proto's
-   * default. Priced against {@link REGISTRY_DOCUMENT}'s round numbers, so a
-   * scenario can state its overrun exactly (600 000 input tokens = $0.60).
-   */
-  readonly maxCostUsd?: number;
-  /** The control plane's STOP lever; see `ExecutionRecordInput.controlSignal`. */
-  readonly controlSignal?: ExecutionRecordInput["controlSignal"];
-}
+/** The record's knobs; the ids and the default model are this harness's fixture. */
+export type CursorRecordOptions = Omit<ExecutionRecordOptions, "ids">;
 
-/** The four resources of one execution, wired by id into a chain. */
+/** The four resources of one execution, wired by id into a chain, under the Cursor fixture ids. */
 export function cursorExecutionRecord(options: CursorRecordOptions): ExecutionRecord {
-  const execution: AgentExecution = create(AgentExecutionSchema, {
-    metadata: create(ApiResourceMetadataSchema, {
-      id: FIXTURE.executionId,
+  return executionRecordFixture({
+    ...options,
+    modelName: options.modelName ?? FIXTURE.model,
+    ids: {
       org: FIXTURE.org,
-      name: FIXTURE.executionId,
-    }),
-    spec: create(AgentExecutionSpecSchema, {
+      executionId: FIXTURE.executionId,
       sessionId: FIXTURE.sessionId,
-      message: options.message,
-      autoApproveAll: options.autoApproveAll ?? false,
-      executionConfig: create(ExecutionConfigSchema, {
-        modelName: options.modelName ?? FIXTURE.model,
-        maxCostUsd: options.maxCostUsd ?? 0,
-      }),
-    }),
-  });
-  const session: Session = create(SessionSchema, {
-    metadata: create(ApiResourceMetadataSchema, {
-      id: FIXTURE.sessionId,
-      org: FIXTURE.org,
-      name: FIXTURE.sessionId,
-    }),
-    spec: create(SessionSpecSchema, {
       agentInstanceId: FIXTURE.agentInstanceId,
-      workspaceEntries: options.workspaceEntries ?? [],
-    }),
-  });
-  const agentInstance: AgentInstance = create(AgentInstanceSchema, {
-    metadata: create(ApiResourceMetadataSchema, {
-      id: FIXTURE.agentInstanceId,
-      org: FIXTURE.org,
-      name: FIXTURE.agentInstanceId,
-    }),
-    spec: create(AgentInstanceSpecSchema, { agentId: FIXTURE.agentId }),
-  });
-  const agent: Agent = create(AgentSchema, {
-    metadata: create(ApiResourceMetadataSchema, {
-      id: FIXTURE.agentId,
-      org: FIXTURE.org,
-      name: FIXTURE.agentName,
-    }),
-    spec: create(AgentSpecSchema, {
-      description: "Hermetic fixture agent",
-      instructions: options.instructions ?? "You are the hermetic fixture agent. Answer briefly.",
-    }),
-  });
-  return new ExecutionRecord({
-    execution,
-    session,
-    agentInstance,
-    agent,
-    controlSignal: options.controlSignal,
+      agentId: FIXTURE.agentId,
+      agentName: FIXTURE.agentName,
+    },
   });
 }
 
 // ---------------------------------------------------------------------------
-// The registry document and the SDK catalog
+// The SDK catalog
 // ---------------------------------------------------------------------------
-
-/**
- * The model registry document both readers parse (`parsePricingTable` wants
- * `harness: "cursor"` + `pricing`; `parseRegistry` wants `id` + `provider` and
- * reads `capabilities.vision`). One entry, the fixture model, priced at round
- * numbers so the golden's `estimatedCostUsd` is legible.
- */
-export const REGISTRY_DOCUMENT = {
-  models: [
-    {
-      id: FIXTURE.model,
-      displayName: "Composer 2.5 (hermetic fixture)",
-      provider: "cursor",
-      harness: "cursor",
-      costTier: "standard",
-      featured: true,
-      capabilities: { vision: true },
-      pricing: {
-        inputPricePerMillion: 1.0,
-        outputPricePerMillion: 4.0,
-        cacheWritePricePerMillion: 1.0,
-        cacheReadPricePerMillion: 0.1,
-      },
-      pricingVariants: {
-        fast: {
-          inputPricePerMillion: 3.0,
-          outputPricePerMillion: 12.0,
-          cacheWritePricePerMillion: 3.0,
-          cacheReadPricePerMillion: 0.3,
-        },
-      },
-    },
-  ],
-} as const;
 
 /** The SDK catalog entry for the fixture model: both pinnable params declared. */
 export const SDK_CATALOG: readonly ModelListItem[] = [
@@ -238,26 +126,6 @@ export const SDK_CATALOG: readonly ModelListItem[] = [
     ],
   },
 ];
-
-/**
- * Stub `fetch` to answer the registry document and refuse everything else.
- * Returns the URLs fetched, for the "no other network" assertion.
- */
-export function stubRegistryFetch(): { readonly urls: string[]; restore(): void } {
-  const urls: string[] = [];
-  vi.stubGlobal(
-    "fetch",
-    vi.fn(async (input: string | URL | Request) => {
-      const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
-      urls.push(url);
-      if (!url.includes("/model-registry")) {
-        throw new Error(`hermetic run attempted a non-registry network call: ${url}`);
-      }
-      return { ok: true, status: 200, json: async () => REGISTRY_DOCUMENT } as unknown as Response;
-    }),
-  );
-  return { urls, restore: () => vi.unstubAllGlobals() };
-}
 
 // ---------------------------------------------------------------------------
 // Config

@@ -42,7 +42,8 @@ import type { MessageAccumulator } from "./message-translator.js";
 import type { DeltaEnricher } from "./delta-enricher.js";
 import type { TodoTracker } from "./todo-tracker.js";
 import type { StreamingUpdateScheduler } from "../../shared/streaming-scheduler.js";
-import type { UsageAccumulator } from "./usage-accumulator.js";
+import type { UsageAccumulator } from "../../harness/usage-accumulator.js";
+import type { CursorUsagePricer } from "./usage-pricing.js";
 import type { createCursorEventRecorder } from "./cursor-event-recorder.js";
 import { costCapExceeded } from "../../shared/cost-guard.js";
 
@@ -136,7 +137,10 @@ export function newTurnStreamState(): TurnStreamState {
  * exists — onDelta only touches usage, the enricher, and state.
  */
 export interface TurnOnDeltaDeps {
+  /** The runtime's accounting; every delta reaches it priced by `usagePricer`. */
   readonly usageAccumulator: UsageAccumulator;
+  /** This harness's pricing of a `turn-ended` delta at the requested variant's rates. */
+  readonly usagePricer: CursorUsagePricer;
   readonly deltaEnricher: DeltaEnricher;
   readonly promptEstimatedTokens: number;
   readonly executionId: string;
@@ -182,14 +186,14 @@ export interface CursorTurnStreamDeps extends TurnOnDeltaDeps {
 export function makeCursorTurnOnDelta(
   deps: TurnOnDeltaDeps,
 ): (event: { update: InteractionUpdate }) => void {
-  const { usageAccumulator, deltaEnricher, promptEstimatedTokens, executionId, state, maxCostUsd } = deps;
+  const { usageAccumulator, usagePricer, deltaEnricher, promptEstimatedTokens, executionId, state, maxCostUsd } = deps;
   return ({ update }) => {
     // Reset the stall timer on the delta channel too: a long model generation
     // emits token deltas but few discrete stream events, so resetting only in the
     // stream loop would false-positive a stall.
     state.stallWatchdog?.recordActivity();
     if (update.type === "turn-ended" && update.usage) {
-      usageAccumulator.addTurn(update.usage);
+      usageAccumulator.addTurn(usagePricer.price(update.usage));
 
       // max_cost_usd enforcement (cost-guard.ts): the running estimate only
       // advances here, so this is the single check point. onDelta cannot reach

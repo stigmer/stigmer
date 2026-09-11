@@ -38,34 +38,26 @@ import type { Run, ConversationTurn, SDKUserMessage } from "@cursor/sdk";
 import type { Config } from "../../config.js";
 import { StigmerClient } from "../../client/stigmer-client.js";
 import {
-  acquireWorkspaceTurnLock,
-  applyApprovedWrites,
-  bindTelemetryBaggage,
-  fetchExecution,
-  provisionWorkspace,
-  reconcileReinvocation,
-  resolveAgentBlueprint,
-  resolveEnvironment,
-  resolveMcpServersAndPolicies,
-  resolveModelPreferences,
-  resolveStandingContext,
-  resolveTurnAttachments,
-  structuredOutputSchemaOf,
+  isReinvocation as isReinvocationForState,
+  resolveTurnContext,
   type ResolutionDeps,
+  type TurnFrame,
 } from "../../harness/turn-context.js";
+import { CURSOR_CAPABILITIES } from "./cursor-capabilities.js";
 import { describeExecutionError } from "../../shared/model-error.js";
 import { resolveAgentWithTransportRecovery } from "./session-lifecycle.js";
 import { cacheSessionAgent, computeAgentFingerprint, takeCachedAgent } from "./agent-session-cache.js";
 import type { AgentResolution, AgentResolutionReason, CreateAgentOptions, CreateCloudAgentOptions } from "./session-lifecycle.js";
 import { CursorMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { determineCursorMode, isCloudMode } from "./cursor-mode.js";
-import { MessageAccumulator, cancelInProgressSubAgentProtos, collapseRedundantToolCallTwins, seededSubAgentsOf } from "./message-translator.js";
+import { MessageAccumulator, collapseRedundantToolCallTwins, seededSubAgentsOf } from "./message-translator.js";
+import { cancelInProgressSubAgentProtos } from "../../shared/subagent-rows.js";
 import { utcTimestamp, persistStatus, reportSetupProgress, slimStatus } from "../../shared/status.js";
 import { TimingRecorder, emitTimingLog } from "../../shared/cold-start-timing.js";
 import { withholdSecretContentFromMessages } from "../../shared/tool-row.js";
 import { StallTimeoutError, formatStallFailure } from "../../shared/stall-watchdog.js";
 import { resolveUsableArtifactStorage, loadArtifactStorageConfig, type ArtifactStorage } from "../../shared/artifact-storage.js";
-import { CURSOR_VISION_PROFILE, toCursorImages } from "../../shared/attachment-vision.js";
+import { toCursorImages } from "../../shared/attachment-vision.js";
 import { publishPlanArtifact } from "../../shared/plan-artifact.js";
 import { DeltaEnricher } from "./delta-enricher.js";
 import { TodoTracker } from "./todo-tracker.js";
@@ -111,7 +103,8 @@ import { runWithExecutionContext } from "../../shared/execution-context.js";
 import { closeProxySessions } from "./http2-interceptor.js";
 import { resolveModelId, ensureLoaded as ensurePricingLoaded } from "./model-pricing.js";
 import { resolveServiceTierParams } from "./service-tier.js";
-import { UsageAccumulator } from "./usage-accumulator.js";
+import { UsageAccumulator } from "../../harness/usage-accumulator.js";
+import { CursorUsagePricer } from "./usage-pricing.js";
 import { StreamingUsageSummarySchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
 import { activityStarted, activityFinished } from "../../idle-watchdog.js";
 import { normalizeActivityInput, type ExecuteActivityInput } from "../../shared/activity-input.js";
@@ -309,82 +302,40 @@ async function executeCursorInner(
   };
 
   try {
-    // Phase 1: Hydrate execution from DB
-    const { execution, spec, sessionId } = await fetchExecution(resolutionDeps);
-
-    // Phase 2: Load session and resolve full agent blueprint
-    const { session, blueprint } = await resolveAgentBlueprint(resolutionDeps, sessionId);
-
-    // Phase 2b: Resolve execution environment (MCP server credentials)
-    const environment = await resolveEnvironment(resolutionDeps);
-    const { envVars } = environment;
-
-    // Phase 2c: Provision the workspace (clone git repos / mount local paths)
-    // so the LOCAL Cursor agent operates on the actual repo, wire the git
-    // write-back coordinator, and decide the capture posture — all in the
-    // runtime's phase. The blueprint's `workspaceDirs` is overwritten with the
-    // provisioned list as it always was (two writers of one field; the
-    // runtime's `workspace.dirs` becomes the one in M3).
-    const { workspace, writeback: writebackCoordinator } = await provisionWorkspace(resolutionDeps, {
-      session, sessionId, envVars,
-    });
-    blueprint.workspaceDirs = workspace.provision.workspaceDirs;
-    const { primaryDir: primaryWorkspaceDir, gitWorkspace, captureMode, changeSetId } = workspace;
-    // Pre-turn baseline tree, pinned before the agent runs (capture mode only)
-    // so the turn-end capture diffs against it and the tree restores exactly.
-    let baselineTree: string | undefined;
-    // Per-turn state for mid-run live capture (DD-32): the last progress tree sha
-    // (short-circuit) + last capture time (floor), threaded across persists.
-    const progressState: ProgressCaptureState = newProgressCaptureState();
-
-    // Serialize this turn against every other execution sharing this working
-    // tree (see acquireWorkspaceTurnLock). The release handle is assigned the
-    // instant the lock exists; the finally releases it AFTER hitlCleanup.
-    const lock = await acquireWorkspaceTurnLock(resolutionDeps, primaryWorkspaceDir);
-    if (lock.kind === "settled") {
-      const lockErr = lock.settlement.error;
-      status.phase = ExecutionPhase.EXECUTION_FAILED;
-      status.error = lockErr.message;
-      status.completedAt = utcTimestamp();
-      status.messages.push(create(AgentMessageSchema, {
-        type: MessageType.MESSAGE_SYSTEM,
-        content: `Execution failed: ${lockErr.message}`,
-        timestamp: utcTimestamp(),
-      }));
-      await persist(status);
-      console.warn(`ExecuteCursor workspace lock timeout: execution=${executionId}`);
-      return slimStatus(status);
-    }
-    releaseWorkspaceLock = lock.release;
-
-    await bindTelemetryBaggage(resolutionDeps, { session, sessionId });
-
-    // Cloud Cursor agents are disabled platform-wide (see determineCursorMode),
-    // so every session runs LOCAL. We intentionally ignore any persisted
-    // cursor_mode here so a session can never route to the cloud path while
-    // it is disabled — even one that was created when cloud was enabled.
-    const cursorMode = determineCursorMode(
-      blueprint.sessionSpec.workspaceEntries,
-      config.cloudModeEnabled,
+    // Phases 1 to 9c: the runtime's resolution, composed into the contract's
+    // `TurnInput` by the composer the turn runtime runs (harness/turn-context.ts
+    // `resolveTurnContext`); the settlements it can return are written here
+    // exactly as before. This harness's own steps follow, after the whole
+    // record exists: the cursor mode, the SDK config projection, the skills,
+    // the model validation, the gate, the pricing, the agent.
+    const frame: TurnFrame = { releaseWorkspaceLock: undefined, writeback: null };
+    const resolved = await resolveTurnContext(
+      resolutionDeps,
+      CURSOR_CAPABILITIES,
+      frame,
+      async () => {
+        await persist(status);
+      },
     );
-    const agentMode = isCloudMode(cursorMode) ? "cloud" as const : "local" as const;
-
-    heartbeat();
-
-    // Phase 3: What the previous invocation left, and whether this one runs
-    // the agent at all. The runtime's phase seeds the transcript, reconciles
-    // every DECIDED change set under Cursor's file-review identity, reads the
-    // adjudicated decisions, and decides; the two settlements it can return
-    // are written, persisted and returned HERE, exactly as before.
-    const reinvoked = await reconcileReinvocation(resolutionDeps, {
-      stateIdSource: "engine-minted",
-      execution,
-      workspace,
-      fileReview: CURSOR_FILE_REVIEW_IDENTITY,
-    });
-    if (reinvoked.kind === "settled") {
-      const { settlement } = reinvoked;
+    releaseWorkspaceLock = frame.releaseWorkspaceLock;
+    const writebackCoordinator = frame.writeback;
+    if (resolved.kind === "settled") {
+      const { settlement } = resolved;
       switch (settlement.kind) {
+        case "workspace-lock-timeout": {
+          const lockErr = settlement.error;
+          status.phase = ExecutionPhase.EXECUTION_FAILED;
+          status.error = lockErr.message;
+          status.completedAt = utcTimestamp();
+          status.messages.push(create(AgentMessageSchema, {
+            type: MessageType.MESSAGE_SYSTEM,
+            content: `Execution failed: ${lockErr.message}`,
+            timestamp: utcTimestamp(),
+          }));
+          await persist(status);
+          console.warn(`ExecuteCursor workspace lock timeout: execution=${executionId}`);
+          return slimStatus(status);
+        }
         case "rejected-by-user": {
           // A reject of an irreversible action (shell/MCP) fails the execution.
           status.phase = ExecutionPhase.EXECUTION_FAILED;
@@ -453,7 +404,31 @@ async function executeCursorInner(
         }
       }
     }
-    const { isReinvocation, approvalDecisions } = reinvoked.reinvocation;
+    const turn = resolved.input;
+    const { execution, session, blueprint, environment, workspace, mcp, attachments, appliedToolCallIds, standing } = turn;
+    const spec = execution.spec!;
+    const { sessionId, approvalDecisions } = turn;
+    const { primaryDir: primaryWorkspaceDir, gitWorkspace, captureMode, changeSetId } = workspace;
+    // Pre-turn baseline tree, pinned before the agent runs (capture mode only)
+    // so the turn-end capture diffs against it and the tree restores exactly.
+    let baselineTree: string | undefined;
+    // Per-turn state for mid-run live capture (DD-32): the last progress tree sha
+    // (short-circuit) + last capture time (floor), threaded across persists.
+    const progressState: ProgressCaptureState = newProgressCaptureState();
+
+    // Cloud Cursor agents are disabled platform-wide (see determineCursorMode),
+    // so every session runs LOCAL. We intentionally ignore any persisted
+    // cursor_mode here so a session can never route to the cloud path while
+    // it is disabled — even one that was created when cloud was enabled.
+    const cursorMode = determineCursorMode(
+      blueprint.sessionSpec.workspaceEntries,
+      config.cloudModeEnabled,
+    );
+    const agentMode = isCloudMode(cursorMode) ? "cloud" as const : "local" as const;
+
+    // Create-vs-resume, derived from the state id exactly as the runtime
+    // derives it (the contract carries no flag by design).
+    const isReinvocation = isReinvocationForState(CURSOR_CAPABILITIES.stateIdSource, turn);
     // The sub-agent rows this harness's accumulator re-registers on a resume:
     // the runtime seeds the messages, the harness clones the sub-agents
     // (the accumulator owns that array and overwrites it on every flush).
@@ -471,13 +446,8 @@ async function executeCursorInner(
     const adjudicatedApprovals: PendingApproval[] = adjudicated?.pendingApprovals ?? [];
     const adjudicatedContentDigests: Map<string, string> = adjudicated?.contentDigests ?? new Map();
 
-    // Phase 4 to 4b: the tool surface — resolved servers (backfill and the
-    // three synthesized attachments folded in) and the merged approval
-    // policies — is the runtime's phase. The Cursor SDK config is projected
+    // The tool surface is the runtime's; the Cursor SDK config is projected
     // from the final list exactly once, here, after the last mutation.
-    const mcp = await resolveMcpServersAndPolicies(resolutionDeps, {
-      execution, session, sessionId, blueprint, environment,
-    });
     const resolvedMcpServers = mcp.servers;
     const { channelMessaging, leases, policies: mergedPolicies } = mcp;
     const globalBypass = leases.global;
@@ -497,7 +467,6 @@ async function executeCursorInner(
 
     // Phase 5: Resolve skills (merged from agent + session)
     await reportSetupProgress(client, executionId, "Resolving skills");
-    // (primaryWorkspaceDir / captureMode were resolved right after provisioning.)
     const skillMetadata = await resolveSkills(client, blueprint.mergedSkillRefs, {
       sessionId,
       primaryWorkspaceDir,
@@ -505,13 +474,8 @@ async function executeCursorInner(
     heartbeat();
     setupTiming.mark("resolve_skills");
 
-    // Phase 5b: the turn's attachments, resolved into the workspace with the
-    // vision facts derived once, is the runtime's phase; the vision profile is
-    // this harness's. The prompt-shaped projections stay here: the
+    // The prompt-shaped projections of the runtime's attachments: the
     // `<input_files>` entries and the vision disclosure the prompt renders.
-    const attachments = await resolveTurnAttachments(resolutionDeps, {
-      spec, sessionId, primaryDir: primaryWorkspaceDir, visionProfile: CURSOR_VISION_PROFILE,
-    });
     const { visionImages, visionNotViewable } = attachments;
     const attachmentEntries = attachments.results.map((a) => ({
       path: a.relativePath,
@@ -524,21 +488,6 @@ async function executeCursorInner(
           notViewable: visionNotViewable,
         }
       : undefined;
-
-    // Phase 5b3: exact-apply approved whole-file writes (HITL "what you approve
-    // is what gets applied") is the runtime's phase; the persist that makes
-    // the applied state durable before the continuation runs stays here, the
-    // one place this turn persists.
-    const appliedToolCallIds = await applyApprovedWrites(resolutionDeps, {
-      workspace,
-      reinvocation: reinvoked.reinvocation,
-    });
-    if (appliedToolCallIds.size > 0) {
-      // Persist the applied writes (tool calls now COMPLETED with the approved
-      // diff) before reinvocation, so the applied state is durable even if the
-      // continuation fails, and the UI reflects it immediately.
-      await persist(status);
-    }
 
     // Phase 5c: Install the HITL approval gate BEFORE resolving the agent.
     //
@@ -665,18 +614,14 @@ async function executeCursorInner(
     await ensurePricingLoaded();
     setupTiming.mark("load_pricing");
 
-    // Phase 6: Validate model selection and resolve the variant attributes.
-    // UNSPECIFIED → STANDARD (#357) and UNSPECIFIED → DISABLED (#772)
-    // resolve here and nowhere else: every upstream layer preserves the
-    // caller's raw enum values.
-    // The requested name and the effective tier and thinking mode are the
-    // runtime's (UNSPECIFIED → STANDARD / DISABLED resolve there); validating
-    // the NAME against Cursor's catalog is this harness's.
+    // Phase 6: the requested name and the effective tier and thinking mode
+    // are the runtime's (UNSPECIFIED → STANDARD / DISABLED resolve there);
+    // validating the NAME against Cursor's catalog is this harness's.
     const {
       requested: requestedModel,
       serviceTier: requestedServiceTier,
       thinkingMode: requestedThinkingMode,
-    } = resolveModelPreferences(spec);
+    } = turn.model;
     const validatedModel = resolveModelId(requestedModel);
     if (validatedModel !== requestedModel) {
       console.log(
@@ -684,12 +629,11 @@ async function executeCursorInner(
       );
     }
 
-    // Phases 9b and 9c, resolved by the runtime before the agent exists: the
-    // structured-output schema and the standing context, with the memory
-    // selection prepared once and pulled only where a prompt carries standing
-    // context (see promptCarriesStandingContext).
-    const structuredOutputSchema = structuredOutputSchemaOf(spec);
-    const standing = resolveStandingContext(resolutionDeps, { execution, spec, blueprint });
+    // Phases 9b and 9c are the runtime's: the structured-output schema and
+    // the standing context, with the memory selection prepared once and
+    // pulled only where a prompt carries standing context (see
+    // promptCarriesStandingContext).
+    const { structuredOutputSchema } = turn;
     const selectMemoriesOnce = standing.selectRecalledMemories;
 
     heartbeat();
@@ -751,7 +695,7 @@ async function executeCursorInner(
           apiKey: effectiveApiKey,
           model: validatedModel,
           modelParams,
-          workspaceDirs: blueprint.workspaceDirs,
+          workspaceDirs: [...workspace.dirs],
           sessionId,
           workspaceRootDir: config.workspaceRootDir,
           mcpServers: mcpConfig,
@@ -889,7 +833,7 @@ async function executeCursorInner(
       skills: skillMetadata,
       channelMessaging,
       subAgents: blueprint.subAgents,
-      workspaceDirs: blueprint.workspaceDirs,
+      workspaceDirs: [...workspace.dirs],
       workspaceFileRefs: spec.workspaceFileRefs ?? [],
       attachments: attachmentEntries,
       vision: visionPromptInfo,
@@ -951,14 +895,11 @@ async function executeCursorInner(
       `resolution=${resolution.reason}, mode=${resolution.mode}`,
     );
 
-    // Phase 10b: Initialize usage accumulator for runner-side token tracking
+    // Phase 10b: usage accounting — the runtime's accumulator over deltas
+    // this harness prices at the requested variant's rates.
     await ensurePricingLoaded();
-    const usageAccumulator = new UsageAccumulator(
-      validatedModel,
-      requestedServiceTier,
-      modelParams,
-      requestedThinkingMode,
-    );
+    const usageAccumulator = new UsageAccumulator(requestedServiceTier, requestedThinkingMode);
+    const usagePricer = new CursorUsagePricer(validatedModel, requestedServiceTier, modelParams);
 
     // Phase 10c: Start OTel turn span. Coarse-grained — spans the whole turn
     // (agent.send + stream + any recovery retry + the turn boundary), ended once
@@ -1014,6 +955,7 @@ async function executeCursorInner(
     const maxCostUsd = spec.executionConfig?.maxCostUsd ?? 0;
     const onDeltaDeps: TurnOnDeltaDeps = {
       usageAccumulator,
+      usagePricer,
       deltaEnricher,
       promptEstimatedTokens,
       executionId,
@@ -1587,7 +1529,7 @@ async function executeCursorInner(
             skills: skillMetadata,
             channelMessaging,
             subAgents: blueprint.subAgents,
-            workspaceDirs: blueprint.workspaceDirs,
+            workspaceDirs: [...workspace.dirs],
             workspaceFileRefs: spec.workspaceFileRefs ?? [],
             attachments: attachmentEntries,
             vision: visionPromptInfo,

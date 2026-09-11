@@ -57,8 +57,8 @@ import {
   cursorExecutionRecord,
   runCursorTurn,
   sessionWorkspaceDir,
-  stubRegistryFetch,
 } from "../../__test-utils__/hermetic-cursor.js";
+import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
 
 const USER_MESSAGE = "Rename the config module.";
 /** Below the lock's 1 s poll interval, so the first contended attempt times out. */

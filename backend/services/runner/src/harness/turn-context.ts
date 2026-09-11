@@ -113,10 +113,11 @@ import { readDeclaredPreferences } from "../shared/declared-preferences.js";
 import { readConversationCatchup } from "../shared/conversation-catchup.js";
 import { selectRecalledFacts } from "../shared/memory-retrieval.js";
 import type { RecalledMemoriesContent } from "../shared/recalled-memories.js";
-import type { FileReviewIdentity, StateIdSource } from "./capabilities.js";
+import type { FileReviewIdentity, HarnessCapabilities, StateIdSource } from "./capabilities.js";
 import type {
   TurnAttachments,
   TurnEnvironment,
+  TurnInput,
   TurnMcp,
   TurnModelPreferences,
   TurnStandingContext,
@@ -890,5 +891,109 @@ export function resolveStandingContext(
     declaredPreferences: readDeclaredPreferences(spec.declaredPreferences),
     conversationCatchup: readConversationCatchup(spec.conversationCatchup),
     selectRecalledMemories,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// The composer
+// ---------------------------------------------------------------------------
+
+/**
+ * The resources a turn holds that outlive the phase that produced them and
+ * must be released or finalized by the caller's `finally` and terminal
+ * writes — set on this frame the instant they exist, so no throw between
+ * acquisition and hand-over can leave a held lock the caller never sees.
+ * Not part of `TurnInput`: an adapter never releases the lock or finalizes
+ * the write-back.
+ */
+export interface TurnFrame {
+  /** Exclusive turn lock on the primary tree; released LAST, after the adapter's own teardown. */
+  releaseWorkspaceLock: ReleaseWorkspaceLock | undefined;
+  /** Finalizes at exactly two seams: the pure file-review resume and terminal completion. `null` when nothing is eligible. */
+  writeback: WriteBackCoordinator | null;
+}
+
+/** What the composer answers: the whole record, or a settlement the caller writes and returns. */
+export type TurnResolution =
+  | { readonly kind: "ready"; readonly input: TurnInput }
+  | { readonly kind: "settled"; readonly settlement: TurnSettlement };
+
+/**
+ * Run the twelve phases in order and compose the turn's `TurnInput`, or
+ * stop at the first settlement.
+ *
+ * The order is the orchestrator's, with its harness-specific steps gone
+ * (they run inside `adapter.runTurn`, after this returns). One consequence
+ * is recorded: the attachments (5b) and the exact-apply (5b3) now resolve
+ * BEFORE the harness mounts its skills (5), where the orchestrator
+ * interleaved them; no user-visible label moves, the two have no shared side
+ * effect, and only the failure precedence differs when both fail.
+ *
+ * The one persist a phase requires — the applied writes must be durable
+ * before the continuation runs — goes through the caller's chokepoint
+ * (`persist`), so the rule that phases never persist holds here too.
+ */
+export async function resolveTurnContext(
+  deps: ResolutionDeps,
+  capabilities: HarnessCapabilities,
+  frame: TurnFrame,
+  persist: () => Promise<void>,
+): Promise<TurnResolution> {
+  const { execution, spec, sessionId } = await fetchExecution(deps);
+  const { session, blueprint } = await resolveAgentBlueprint(deps, sessionId);
+  const environment = await resolveEnvironment(deps);
+  const { workspace, writeback } = await provisionWorkspace(deps, { session, sessionId, envVars: environment.envVars });
+  frame.writeback = writeback;
+
+  const lock = await acquireWorkspaceTurnLock(deps, workspace.primaryDir);
+  if (lock.kind === "settled") return { kind: "settled", settlement: lock.settlement };
+  frame.releaseWorkspaceLock = lock.release;
+
+  await bindTelemetryBaggage(deps, { session, sessionId });
+
+  const reinvoked = await reconcileReinvocation(deps, {
+    stateIdSource: capabilities.stateIdSource,
+    execution,
+    workspace,
+    fileReview: capabilities.fileReview,
+  });
+  if (reinvoked.kind === "settled") return { kind: "settled", settlement: reinvoked.settlement };
+
+  const mcp = await resolveMcpServersAndPolicies(deps, { execution, session, sessionId, blueprint, environment });
+  const attachments = await resolveTurnAttachments(deps, {
+    spec,
+    sessionId,
+    primaryDir: workspace.primaryDir,
+    visionProfile: capabilities.visionProfile,
+  });
+  const appliedToolCallIds = await applyApprovedWrites(deps, { workspace, reinvocation: reinvoked.reinvocation });
+  if (appliedToolCallIds.size > 0) {
+    // Persist the applied writes (tool calls now COMPLETED with the approved
+    // diff) before reinvocation, so the applied state is durable even if the
+    // continuation fails, and the UI reflects it immediately.
+    await persist();
+  }
+
+  return {
+    kind: "ready",
+    input: {
+      executionId: deps.input.executionId,
+      threadId: deps.input.threadId,
+      turnSeq: deps.input.turnSeq,
+      sessionId,
+      approvalDecisions: reinvoked.reinvocation.approvalDecisions,
+      execution,
+      session,
+      blueprint,
+      environment,
+      workspace,
+      mcp,
+      attachments,
+      appliedToolCallIds,
+      model: resolveModelPreferences(spec),
+      structuredOutputSchema: structuredOutputSchemaOf(spec),
+      standing: resolveStandingContext(deps, { execution, spec, blueprint }),
+      artifactStorage: deps.artifactStorage,
+    },
   };
 }

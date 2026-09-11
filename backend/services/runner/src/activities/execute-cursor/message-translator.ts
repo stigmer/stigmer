@@ -56,6 +56,7 @@ import {
   type DeniedLedgerEntry,
 } from "./approval-state.js";
 import { utcTimestamp } from "../../shared/status.js";
+import { cancelInProgressSubAgentProtos } from "../../shared/subagent-rows.js";
 import { hideToolCallRow, isToolCallRowHidden } from "../../shared/tool-row.js";
 import { classifyTool, toolApprovalCategory, type ToolApprovalCategory } from "../../shared/tool-kind.js";
 import { resolveWorkspacePath } from "../../shared/file-change.js";
@@ -781,31 +782,6 @@ export function seededSubAgentsOf(execution: AgentExecution): SubAgentExecution[
  * Task (sub-agent) tool calls additionally produce SubAgentExecution
  * protos, accessible via the subAgentExecutions getter.
  */
-/**
- * Transition any non-terminal sub-agent (IN_PROGRESS or PENDING) in the given
- * proto array to CANCELLED with a completion timestamp, in place.
- *
- * Operates directly on the status array (not the accumulator) because the
- * Cursor cancellation exception unwinds out of the streaming loop into the
- * activity's catch block, where the MessageAccumulator is out of scope. Returns
- * true if any sub-agent changed.
- */
-export function cancelInProgressSubAgentProtos(
-  subAgents: SubAgentExecution[],
-): boolean {
-  let changed = false;
-  for (const sub of subAgents) {
-    if (
-      sub.status === SubAgentStatus.SUB_AGENT_IN_PROGRESS ||
-      sub.status === SubAgentStatus.SUB_AGENT_PENDING
-    ) {
-      sub.status = SubAgentStatus.SUB_AGENT_CANCELLED;
-      sub.completedAt = utcTimestamp();
-      changed = true;
-    }
-  }
-  return changed;
-}
 
 export class MessageAccumulator {
   private readonly messages: AgentMessage[];

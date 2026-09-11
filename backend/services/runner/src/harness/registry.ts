@@ -19,11 +19,12 @@
  *    one `AggregateError` at the end naming each failure, so one bad teardown
  *    never leaks the others' resources.
  *
- * What is NOT here yet: `createHarnessActivities` (its body is the turn
- * runtime, which does not exist until the extraction entry) and the table of
- * real adapters (they exist once the Cursor and native harnesses implement
- * the contract). Both land with the runtime; no empty table sits on `main`
- * between the two.
+ * `createHarnessActivities` binds each row to its Temporal activity over the
+ * turn runtime (`run-turn.ts`). The table of real rows is NOT here: it lives
+ * at the source root (`src/harness-adapters.ts`), because a row imports its
+ * adapter from `activities/` and nothing under `src/harness/` may
+ * (`__tests__/import-direction.test.ts`; Q-M3-1). The registry knows rows,
+ * never which adapters exist.
  *
  * `HarnessName` lives here and not in `types.ts` on purpose: the wire
  * vocabulary is the registry's concern. An adapter never declares the
@@ -32,6 +33,10 @@
  */
 
 import type { Config } from "../config.js";
+import { StigmerClient } from "../client/stigmer-client.js";
+import { activityFinished, activityStarted } from "../idle-watchdog.js";
+import { normalizeActivityInput, type ExecuteActivityInput } from "../shared/activity-input.js";
+import { runTurnActivity } from "./run-turn.js";
 import type { HarnessAdapter } from "./types.js";
 
 /** The harnesses the control plane can dispatch to, as the registry knows them. */
@@ -50,6 +55,59 @@ export const HARNESS_ACTIVITY_NAMES = {
 } as const satisfies Record<HarnessName, string>;
 
 export type HarnessActivityName = (typeof HARNESS_ACTIVITY_NAMES)[HarnessName];
+
+/** One harness the worker serves: the wire name it answers to and the adapter that runs its turns. */
+export interface HarnessRow {
+  readonly harness: HarnessName;
+  readonly adapter: HarnessAdapter;
+}
+
+/**
+ * The legacy positional activity signature, kept as the wire shape both
+ * control planes send until they both send the typed object
+ * (`shared/activity-input.ts`). Every harness's activity has it.
+ */
+export type HarnessActivity = (arg0: ExecuteActivityInput | string, arg1?: string) => Promise<unknown>;
+
+/** The adapters of a row list, for the lifecycle functions below. */
+export function adaptersOf(rows: readonly HarnessRow[]): HarnessAdapter[] {
+  return rows.map((row) => row.adapter);
+}
+
+/**
+ * One Temporal activity per row, under the row's byte-pinned name, over ONE
+ * `StigmerClient` for all of them (each harness used to build its own). The
+ * activity normalizes the wire input, brackets the turn with the idle
+ * watchdog, and hands the turn runtime the adapter. The roots spread the
+ * result into the worker's activity map beside the activities the runtime
+ * does not own.
+ */
+export function createHarnessActivities(
+  rows: readonly HarnessRow[],
+  config: Config,
+): Partial<Record<HarnessActivityName, HarnessActivity>> {
+  const client = new StigmerClient({
+    endpoint: config.stigmerBackendEndpoint,
+    token: config.stigmerToken,
+    tokenRef: config.stigmerTokenRef,
+    runnerTokenRef: config.stigmerRunnerTokenRef,
+  });
+  const activities: Partial<Record<HarnessActivityName, HarnessActivity>> = {};
+  for (const row of rows) {
+    const activityName = HARNESS_ACTIVITY_NAMES[row.harness];
+    const deps = { adapter: row.adapter, activityName, client, config };
+    activities[activityName] = async (arg0, arg1) => {
+      const input = normalizeActivityInput(arg0, arg1);
+      activityStarted();
+      try {
+        return await runTurnActivity(deps, input);
+      } finally {
+        activityFinished();
+      }
+    };
+  }
+  return activities;
+}
 
 /**
  * Refuse a table two of whose adapters share a name. Names are the registry's

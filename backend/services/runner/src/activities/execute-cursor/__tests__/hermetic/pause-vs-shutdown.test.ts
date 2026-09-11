@@ -63,8 +63,8 @@ import {
   beginCursorScenario,
   cursorExecutionRecord,
   runCursorTurn,
-  stubRegistryFetch,
 } from "../../__test-utils__/hermetic-cursor.js";
+import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
 
 const USER_MESSAGE = "Refactor the parser module.";
 const NEVER_SEEN = "This text must never reach the transcript.";
