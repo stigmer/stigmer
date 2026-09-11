@@ -116,15 +116,9 @@ jobs:
             --push \
             .
 
-      - name: Ensure GHCR package is public
-        continue-on-error: true
-        run: |
-          gh api \
-            -X PUT \
-            /orgs/${{ github.repository_owner }}/packages/container/runner/visibility \
-            -f visibility=public
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Package visibility is an org-settings fact, not a step (GHCR has no
+      # REST endpoint for it; the PUT this job carried answered 404 on
+      # every run, masked into an error annotation). `runner` is public.
 
       - name: Smoke-test runner image
         # Gate before blessing :prod. Boot a sandbox from the freshly built SHA image:
