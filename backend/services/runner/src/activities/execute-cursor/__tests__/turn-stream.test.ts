@@ -18,7 +18,6 @@ import { join } from "node:path";
 import { create } from "@bufbuild/protobuf";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ExecutionControlSignal } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { CancelledFailure } from "@temporalio/activity";
 import type { SDKMessage } from "@cursor/sdk";
 import {
   consumeCursorTurnStream,
@@ -107,12 +106,12 @@ function buildDeps(overrides: Partial<CursorTurnStreamDeps> = {}): BuiltDeps {
     // TurnOnDeltaDeps
     usageAccumulator: stubUsageAccumulator(),
     deltaEnricher: stubEnricher(),
-    heartbeat: vi.fn(),
     promptEstimatedTokens: 100,
     executionId: "exec-test",
     state,
     maxCostUsd: 0,
     // CursorTurnStreamDeps
+    heartbeat: vi.fn(),
     status,
     accumulator,
     todoTracker: { processEvent: vi.fn(), markPersisted: vi.fn(), isDirty: false },
@@ -380,49 +379,12 @@ describe("consumeCursorTurnStream", () => {
 });
 
 describe("makeCursorTurnOnDelta", () => {
-  it("flags a pause (not a throw) when the heartbeat reports CancelledFailure", () => {
-    const state = newTurnStreamState();
-    const onDelta = makeCursorTurnOnDelta({
-      usageAccumulator: stubUsageAccumulator() as never,
-      deltaEnricher: stubEnricher() as never,
-      heartbeat: () => {
-        throw new CancelledFailure("paused");
-      },
-      promptEstimatedTokens: 10,
-      executionId: "e",
-      state,
-      maxCostUsd: 0,
-    });
-
-    expect(() => onDelta({ update: { type: "text" } as never })).not.toThrow();
-    expect(state.pauseDetected).toBe(true);
-  });
-
-  it("rethrows a non-cancellation heartbeat error", () => {
-    const state = newTurnStreamState();
-    const onDelta = makeCursorTurnOnDelta({
-      usageAccumulator: stubUsageAccumulator() as never,
-      deltaEnricher: stubEnricher() as never,
-      heartbeat: () => {
-        throw new Error("boom");
-      },
-      promptEstimatedTokens: 10,
-      executionId: "e",
-      state,
-      maxCostUsd: 0,
-    });
-
-    expect(() => onDelta({ update: { type: "text" } as never })).toThrow("boom");
-    expect(state.pauseDetected).toBe(false);
-  });
-
   it("accumulates turn usage and logs first-turn attribution exactly once", () => {
     const state = newTurnStreamState();
     const usageAccumulator = stubUsageAccumulator();
     const onDelta = makeCursorTurnOnDelta({
       usageAccumulator: usageAccumulator as never,
       deltaEnricher: stubEnricher() as never,
-      heartbeat: vi.fn(),
       promptEstimatedTokens: 10,
       executionId: "e",
       state,
@@ -445,7 +407,6 @@ describe("makeCursorTurnOnDelta", () => {
     const onDelta = makeCursorTurnOnDelta({
       usageAccumulator: usageAccumulator as never,
       deltaEnricher: stubEnricher() as never,
-      heartbeat: vi.fn(),
       promptEstimatedTokens: 10,
       executionId: "e",
       state,
@@ -466,7 +427,6 @@ describe("makeCursorTurnOnDelta", () => {
     const onDelta = makeCursorTurnOnDelta({
       usageAccumulator: usageAccumulator as never,
       deltaEnricher: stubEnricher() as never,
-      heartbeat: vi.fn(),
       promptEstimatedTokens: 10,
       executionId: "e",
       state,

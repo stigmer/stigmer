@@ -121,7 +121,7 @@ import type { ClassifiedError } from "./error-classifier.js";
 import { createAgent, createCloudAgent } from "./session-lifecycle.js";
 import { setMaxListeners } from "node:events";
 import { startHeartbeat } from "../../shared/heartbeat.js";
-import { classifyTurnInterruption, getShutdownSignalForQueue } from "../../shared/worker-shutdown.js";
+import { cancellationReasonOf, classifyTurnInterruption, getShutdownSignalForQueue } from "../../shared/worker-shutdown.js";
 
 /**
  * Creates the activity functions bound to the runner config.
@@ -285,7 +285,7 @@ async function executeCursorInner(
   periodicHeartbeat = startHeartbeat(30_000, () => ({
     phase: heartbeatPhase,
     execution: executionId,
-  }), { shutdownSignal });
+  }));
 
   // The resolution phases (harness/turn-context.ts) read the turn through
   // this one object. The four function members are this orchestrator's seams
@@ -1015,7 +1015,6 @@ async function executeCursorInner(
     const onDeltaDeps: TurnOnDeltaDeps = {
       usageAccumulator,
       deltaEnricher,
-      heartbeat,
       promptEstimatedTokens,
       executionId,
       state: turnState,
@@ -1102,6 +1101,7 @@ async function executeCursorInner(
     // primary stream here and by both recovery retries below.
     const streamDeps: CursorTurnStreamDeps = {
       ...onDeltaDeps,
+      heartbeat,
       status,
       accumulator,
       todoTracker,
@@ -1125,21 +1125,18 @@ async function executeCursorInner(
     await consumeCursorTurnStream(run, streamDeps);
 
     periodicHeartbeat.stop();
-    // Worker-shutdown vs. user-pause disambiguation. Primary-only: the periodic
-    // heartbeat is stopped here, before any recovery retry runs, so a retry
-    // classifies a shutdown from the shutdown signal directly (in
-    // resolvePreBoundaryTerminal). The heartbeat timer may set `cancelled` before
-    // the AbortSignal microtask propagates; the direct signal check catches that.
-    // The decision table (including #776's grace-window guard: an aborted
-    // shutdown signal with NO interruption evidence stays "none") lives in
-    // classifyTurnInterruption — shared/worker-shutdown.ts.
+    // Worker-shutdown vs. user-pause disambiguation, from the reason Temporal
+    // put on the cancellation signal and the queue's shutdown signal. The
+    // decision table (including #776's grace-window guard: an aborted
+    // shutdown signal with NO delivered cancellation stays "none") lives in
+    // classifyTurnInterruption — shared/worker-shutdown.ts. An infrastructure
+    // reason (a heartbeat timeout) leaves pauseDetected as the loop set it and
+    // reaches the pre-boundary table's "cancellation without pause" arm.
     const interruption = classifyTurnInterruption({
-      heartbeatCancelled: periodicHeartbeat.cancelled,
-      heartbeatWorkerShutdown: periodicHeartbeat.workerShutdown,
-      cancellationSignalAborted: Context.current().cancellationSignal.aborted,
+      cancellationReason: cancellationReasonOf(Context.current().cancellationSignal),
       shutdownSignalAborted: shutdownSignal?.aborted ?? false,
     });
-    if (interruption === "worker-shutdown") {
+    if (interruption === "worker-shutdown" || interruption === "infrastructure") {
       turnState.pauseDetected = false;
     } else if (interruption === "pause") {
       turnState.pauseDetected = true;

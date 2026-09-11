@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { CancelledFailure } from "@temporalio/activity";
 import {
+  cancellationReasonOf,
   classifyTurnInterruption,
   getShutdownSignalForQueue,
   registerWorkerShutdownSignal,
@@ -44,58 +46,61 @@ describe("worker-shutdown signal registry", () => {
 });
 
 describe("classifyTurnInterruption", () => {
-  const none = {
-    heartbeatCancelled: false,
-    heartbeatWorkerShutdown: false,
-    cancellationSignalAborted: false,
-    shutdownSignalAborted: false,
-  };
-
   it("an uninterrupted turn is none", () => {
-    expect(classifyTurnInterruption(none)).toBe("none");
+    expect(classifyTurnInterruption({ cancellationReason: undefined, shutdownSignalAborted: false })).toBe("none");
   });
 
   it("GRACE-WINDOW GUARD (#776): an aborted shutdown signal alone stays none — a run that completed inside the drain grace window must not be failed", () => {
-    expect(
-      classifyTurnInterruption({ ...none, shutdownSignalAborted: true }),
-    ).toBe("none");
+    expect(classifyTurnInterruption({ cancellationReason: undefined, shutdownSignalAborted: true })).toBe("none");
   });
 
-  it("heartbeat cancellation without a shutdown signal is the orchestrator's pause", () => {
-    expect(
-      classifyTurnInterruption({ ...none, heartbeatCancelled: true }),
-    ).toBe("pause");
+  it("a workflow-requested cancellation without a shutdown signal is the orchestrator's pause", () => {
+    expect(classifyTurnInterruption({ cancellationReason: "CANCELLED", shutdownSignalAborted: false })).toBe("pause");
   });
 
-  it("heartbeat cancellation WITH the shutdown signal aborted is a worker shutdown, not a pause (the #776 misclassification)", () => {
-    expect(
-      classifyTurnInterruption({
-        ...none,
-        heartbeatCancelled: true,
-        shutdownSignalAborted: true,
-      }),
-    ).toBe("worker-shutdown");
+  it("a delivered cancellation WITH the shutdown signal aborted is a worker shutdown, not a pause (the #776 misclassification)", () => {
+    expect(classifyTurnInterruption({ cancellationReason: "CANCELLED", shutdownSignalAborted: true })).toBe("worker-shutdown");
   });
 
-  it("the heartbeat's own workerShutdown flag classifies directly", () => {
-    expect(
-      classifyTurnInterruption({ ...none, heartbeatWorkerShutdown: true }),
-    ).toBe("worker-shutdown");
+  it("the SDK's own WORKER_SHUTDOWN reason classifies directly, signal or not", () => {
+    expect(classifyTurnInterruption({ cancellationReason: "WORKER_SHUTDOWN", shutdownSignalAborted: false })).toBe("worker-shutdown");
   });
 
-  it("a delivered cancellation with the shutdown signal aborted is a worker shutdown (signal races the heartbeat tick)", () => {
-    expect(
-      classifyTurnInterruption({
-        ...none,
-        cancellationSignalAborted: true,
-        shutdownSignalAborted: true,
-      }),
-    ).toBe("worker-shutdown");
+  it("a heartbeat timeout (TIMED_OUT) is an infrastructure cancel, neither shutdown nor pause", () => {
+    expect(classifyTurnInterruption({ cancellationReason: "TIMED_OUT", shutdownSignalAborted: false })).toBe("infrastructure");
   });
 
-  it("a delivered cancellation alone (heartbeat timeout / infra cancel) is neither shutdown nor pause", () => {
-    expect(
-      classifyTurnInterruption({ ...none, cancellationSignalAborted: true }),
-    ).toBe("none");
+  it("any other reason (a closed run, a conversion failure) is an infrastructure cancel", () => {
+    expect(classifyTurnInterruption({ cancellationReason: "NOT_FOUND", shutdownSignalAborted: false })).toBe("infrastructure");
+    expect(classifyTurnInterruption({ cancellationReason: "HEARTBEAT_DETAILS_CONVERSION_FAILED", shutdownSignalAborted: false })).toBe("infrastructure");
+  });
+
+  it("the shutdown signal outranks an infrastructure reason: a drain is a drain whatever Temporal says", () => {
+    expect(classifyTurnInterruption({ cancellationReason: "TIMED_OUT", shutdownSignalAborted: true })).toBe("worker-shutdown");
+  });
+});
+
+describe("cancellationReasonOf", () => {
+  it("is undefined for a live signal", () => {
+    expect(cancellationReasonOf(new AbortController().signal)).toBeUndefined();
+  });
+
+  it("reads the CancelledFailure message the Temporal SDK aborts with", () => {
+    const controller = new AbortController();
+    controller.abort(new CancelledFailure("TIMED_OUT"));
+    expect(cancellationReasonOf(controller.signal)).toBe("TIMED_OUT");
+  });
+
+  it("reads a string reason as itself and a reasonless abort as CANCELLED", () => {
+    const withString = new AbortController();
+    withString.abort("WORKER_SHUTDOWN");
+    expect(cancellationReasonOf(withString.signal)).toBe("WORKER_SHUTDOWN");
+    const bare = new AbortController();
+    bare.abort();
+    // A bare abort() carries a DOMException (an Error), whose message is the
+    // platform's "This operation was aborted": not a Temporal reason, but a
+    // delivered cancellation all the same — the classifier files it as
+    // infrastructure, never as nothing.
+    expect(cancellationReasonOf(bare.signal)).toBeTypeOf("string");
   });
 });

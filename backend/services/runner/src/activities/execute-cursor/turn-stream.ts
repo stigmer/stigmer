@@ -22,7 +22,6 @@
  */
 
 import { create } from "@bufbuild/protobuf";
-import { CancelledFailure } from "@temporalio/activity";
 import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ExecutionControlSignal } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { StreamingUsageSummarySchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
@@ -86,7 +85,7 @@ export type TurnStreamReason =
  * documented producer/consumer handshakes.
  */
 export interface TurnStreamState {
-  /** Written by: onDelta (heartbeat cancel) + the loop's cancellation check. Read by: the loop, epilogue, outer catch. */
+  /** Written by: the loop's cancellation check. Read by: the loop, epilogue, outer catch. */
   pauseDetected: boolean;
   /** Written by: the stall-watchdog callback. Read by: the loop + epilogue. */
   stallDetected: boolean;
@@ -134,13 +133,11 @@ export function newTurnStreamState(): TurnStreamState {
 /**
  * The subset of collaborators the shared onDelta needs. Broken out from
  * CursorTurnStreamDeps because the primary send happens BEFORE the accumulator
- * exists — onDelta only touches usage, the enricher, the heartbeat, and state.
+ * exists — onDelta only touches usage, the enricher, and state.
  */
 export interface TurnOnDeltaDeps {
   readonly usageAccumulator: UsageAccumulator;
   readonly deltaEnricher: DeltaEnricher;
-  /** Temporal heartbeat. Injected so the callback is testable without Temporal. */
-  readonly heartbeat: () => void;
   readonly promptEstimatedTokens: number;
   readonly executionId: string;
   readonly state: TurnStreamState;
@@ -155,6 +152,8 @@ export interface TurnOnDeltaDeps {
 
 export interface CursorTurnStreamDeps extends TurnOnDeltaDeps {
   readonly status: AgentExecutionStatus;
+  /** Temporal heartbeat, pulsed after each persist. Injected so the loop is testable without Temporal. */
+  readonly heartbeat: () => void;
   readonly accumulator: MessageAccumulator;
   readonly todoTracker: TodoTracker;
   readonly eventRecorder: CursorTurnEventRecorder | undefined;
@@ -175,15 +174,15 @@ export interface CursorTurnStreamDeps extends TurnOnDeltaDeps {
  * Build the shared onDelta callback. The Cursor SDK's fine-grained delta channel
  * carries token usage, live shell output, and precise tool-call timings; it also
  * fires far more often than discrete stream events, so it is where the stall
- * timer is reset during a long model generation. A heartbeat CancelledFailure
- * here flags the pause so the loop and epilogue treat it as a user pause (the
- * bare retry loops swallowed this — the cause of the mid-retry mislabel).
+ * timer is reset during a long model generation. (Until S2 M3 it also pulsed
+ * the Temporal heartbeat and read a `CancelledFailure` from it as a pause;
+ * `Context.heartbeat()` never throws, so the loop's own cancellation check
+ * was always the pause's detector — `shared/worker-shutdown.ts`.)
  */
 export function makeCursorTurnOnDelta(
   deps: TurnOnDeltaDeps,
 ): (event: { update: InteractionUpdate }) => void {
-  const { usageAccumulator, deltaEnricher, heartbeat, promptEstimatedTokens, executionId, state, maxCostUsd } =
-    deps;
+  const { usageAccumulator, deltaEnricher, promptEstimatedTokens, executionId, state, maxCostUsd } = deps;
   return ({ update }) => {
     // Reset the stall timer on the delta channel too: a long model generation
     // emits token deltas but few discrete stream events, so resetting only in the
@@ -217,15 +216,6 @@ export function makeCursorTurnOnDelta(
       }
     }
     deltaEnricher.processDelta(update);
-    try {
-      heartbeat();
-    } catch (hbErr) {
-      if (hbErr instanceof CancelledFailure) {
-        state.pauseDetected = true;
-        return;
-      }
-      throw hbErr;
-    }
   };
 }
 
