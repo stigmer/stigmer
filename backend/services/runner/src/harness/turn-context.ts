@@ -12,16 +12,20 @@
  * 9c); the native orchestrator carried a second copy in its `performSetup`.
  * This module is the one copy. Each phase is a function that reads its
  * inputs, reports its progress label, heartbeats once on entry, and returns
- * a typed slice of {@link TurnContext}; the caller (the Cursor orchestrator
- * today, `run-turn.ts` from S2 M3) sequences them and interleaves its own
- * harness-specific steps where the original code did.
+ * a typed slice of the contract's `TurnInput`; {@link resolveTurnContext}
+ * sequences them, and the adapter runs its own harness-specific steps after
+ * the whole record exists.
  *
  * Shape, chosen against `execute-deep-agent/setup.ts`: a typed record built
  * from small functions (the `SetupResult` mold), never one 775-line
- * `performSetup`. `TurnContext` EXTENDS the adapter contract's `TurnInput`
- * so the five fields the contract already carries have exactly one shape;
- * the groups below lift onto `TurnInput` in M3 by moving, the members marked
- * runtime-private never do.
+ * `performSetup`. The record is the adapter contract's `TurnInput`
+ * (`types.ts`): every phase returns a named slice of it, and
+ * {@link resolveTurnContext} composes the whole. There is no wider
+ * "runtime-private" record beside it — the lock release and the write-back
+ * coordinator a phase produces are the caller's `TurnFrame` resources, set
+ * the instant they exist so a `finally` sees them on every path (M2 had a
+ * `TurnContext extends TurnInput` for them; once the groups lifted, nothing
+ * read the extension after composition, so M3 deleted it).
  *
  * Three rules every phase obeys:
  *
@@ -32,7 +36,8 @@
  *    the turn's one and only, which is why the rule is structural.
  *  - It imports nothing from `src/activities/` (pinned by
  *    `__tests__/import-direction.test.ts`). A fact only the harness knows
- *    (its file-review identity, its vision profile) arrives as an argument.
+ *    (its file-review identity, its vision profile) arrives through
+ *    `HarnessCapabilities`.
  *  - Its heartbeat pulse and its cold-start timing marks are its own: the
  *    step name it enters under is the mark name it emits, one vocabulary for
  *    "where in setup are we" in Temporal heartbeat details and the
@@ -54,7 +59,8 @@
  *    adapter runs. The runtime prepares the selection once; the adapter
  *    pulls it when its prompt needs it.
  *
- * Every line reference below was read from `2c06bc7ea` on 2026-09-11.
+ * Every `index.ts` line reference below was read from `2c06bc7ea` on
+ * 2026-09-11, before the orchestrator moved onto this module.
  */
 
 import { CancelledFailure } from "@temporalio/activity";
@@ -62,8 +68,6 @@ import { clone } from "@bufbuild/protobuf";
 import type { AgentExecution, AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { AgentExecutionSpec } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
-import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import { ApprovalAction, FileChangeSetStatus, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 
@@ -74,7 +78,7 @@ import type { ArtifactStorage } from "../shared/artifact-storage.js";
 import type { TimingRecorder } from "../shared/cold-start-timing.js";
 import { resolveBlueprint, type ResolvedBlueprint } from "../shared/blueprint-resolver.js";
 import { resolveExecutionEnv } from "../shared/env-resolver.js";
-import { provisionSessionWorkspace, type SessionWorkspaceProvision } from "../shared/workspace/session-provision.js";
+import { provisionSessionWorkspace } from "../shared/workspace/session-provision.js";
 import { WriteBackCoordinator } from "../shared/workspace/writeback-coordinator.js";
 import { statusProtoWriter } from "../shared/execution-status-writer.js";
 import { isGitWorkTree } from "../shared/filereview/git-substrate.js";
@@ -87,34 +91,37 @@ import {
   type ReleaseWorkspaceLock,
 } from "../shared/workspace/workspace-lock.js";
 import { LocalWorkspaceBackend } from "../shared/workspace/local-backend.js";
-import { resolveMcpServers, type ResolvedMcpServer } from "../shared/mcp-resolver.js";
+import { resolveMcpServers } from "../shared/mcp-resolver.js";
 import { resolveMcpTransportPosture } from "../shared/mcp-transport-guard.js";
 import { injectCallerIdentityEnv, resolveCallerIdentity } from "../shared/caller-identity.js";
 import { backfillMcpServersIfNeeded } from "../shared/connect-backfill.js";
-import {
-  discoverChannelMessaging,
-  synthesizeChannelAttachment,
-  type ChannelMessagingInfo,
-} from "../shared/channel-attachment.js";
+import { discoverChannelMessaging, synthesizeChannelAttachment } from "../shared/channel-attachment.js";
 import { readChannelConversationId, synthesizeConversationAttachment } from "../shared/conversation-attachment.js";
 import { synthesizeMemoryAttachment } from "../shared/memory-attachment.js";
 import { injectSynthesizedAttachment } from "../shared/synthesized-attachment.js";
-import { deriveActiveLeases, mergeApprovalPolicies, type ActiveLeases, type MergedToolPolicy } from "../shared/approval-policy.js";
-import { resolveAttachments, type ResolvedAttachment } from "../shared/attachment-resolver.js";
-import { VisionBudget, type NotViewableEntry, type VisionImage, type VisionProfile } from "../shared/attachment-vision.js";
+import { deriveActiveLeases, mergeApprovalPolicies } from "../shared/approval-policy.js";
+import { resolveAttachments } from "../shared/attachment-resolver.js";
+import { VisionBudget, type NotViewableEntry, type VisionProfile } from "../shared/attachment-vision.js";
 import { getModelVisionCapability } from "../shared/model-registry.js";
 import { applyApprovedWholeFileWrites } from "../shared/exact-apply.js";
-import { resolveEffectiveServiceTier, type EffectiveServiceTier } from "../shared/service-tier.js";
-import { resolveEffectiveThinkingMode, type EffectiveThinkingMode } from "../shared/thinking-mode.js";
+import { resolveEffectiveServiceTier } from "../shared/service-tier.js";
+import { resolveEffectiveThinkingMode } from "../shared/thinking-mode.js";
 import { readContextBridge } from "../shared/context-bridge.js";
-import { readSenderIdentity, type SenderIdentity } from "../shared/sender-identity.js";
+import { readSenderIdentity } from "../shared/sender-identity.js";
 import { readSessionContext } from "../shared/session-context.js";
-import { readDeclaredPreferences, type DeclaredPreferencesContent } from "../shared/declared-preferences.js";
+import { readDeclaredPreferences } from "../shared/declared-preferences.js";
 import { readConversationCatchup } from "../shared/conversation-catchup.js";
 import { selectRecalledFacts } from "../shared/memory-retrieval.js";
 import type { RecalledMemoriesContent } from "../shared/recalled-memories.js";
-import type { StateIdSource } from "./capabilities.js";
-import type { TurnInput } from "./types.js";
+import type { FileReviewIdentity, StateIdSource } from "./capabilities.js";
+import type {
+  TurnAttachments,
+  TurnEnvironment,
+  TurnMcp,
+  TurnModelPreferences,
+  TurnStandingContext,
+  TurnWorkspace,
+} from "./types.js";
 
 // ---------------------------------------------------------------------------
 // What the phases take
@@ -161,140 +168,24 @@ export interface ResolutionDeps {
   readonly reportProgress: (label: string) => Promise<void>;
 }
 
+// ---------------------------------------------------------------------------
+// What the reinvocation phase answers
+// ---------------------------------------------------------------------------
+
 /**
- * The two facts the file-review reconcile needs from the harness and the
- * runtime cannot know: the id the projection reads from the BASELINE payload,
- * and the workspace-relative paths the harness writes into the repo that a
- * turn's diff must never show. The Cursor adapter exports its pair
- * (`execute-cursor/capture-flow.ts`). M3 decides where on the contract this
- * lives; in M2 it is an argument.
+ * What the previous invocation left for this one (phase 3). Not part of
+ * `TurnInput`: `isReinvocation` is the adapter's own derivation from
+ * `threadId` (the contract carries no flag by design, `types.ts` header) and
+ * the runtime reads it only inside {@link resolveTurnContext}; the decisions
+ * ARE on the input. The seeded sub-agent rows are the adapter's to clone from
+ * `execution.status` (its accumulator owns `status.subAgentExecutions` and
+ * overwrites it on every flush), so they ride nothing here.
  */
-export interface FileReviewIdentity {
-  readonly harnessId: string;
-  readonly excludePaths: readonly string[];
-}
-
-// ---------------------------------------------------------------------------
-// The record
-// ---------------------------------------------------------------------------
-
-/** The resolved environment (phase 2b): the MCP-bound env map and the keys that are secrets. */
-export interface TurnEnvironment {
-  readonly envVars: Record<string, string>;
-  readonly secretKeys: ReadonlySet<string>;
-}
-
-/** The provisioned workspace (phase 2c) and the capture posture derived from it. */
-export interface TurnWorkspace {
-  /** The directories the agent operates in; never empty. */
-  readonly dirs: readonly string[];
-  /**
-   * `dirs[0]`, the tree the turn's lock, gate, capture and skill mount all
-   * key on. Typed as the orchestrator has always read it (`string[]` index);
-   * the provisioner guarantees a non-empty list.
-   */
-  readonly primaryDir: string;
-  /** True when `primaryDir` is a git work tree: selects the git-diff capture substrate over CAS. */
-  readonly gitWorkspace: boolean;
-  /** Apply-then-review capture (true) or the classic deny-gate (false); see `shared/filereview/capture.ts` `deriveCaptureMode`. */
-  readonly captureMode: boolean;
-  /** `${executionId}:${turnSeq}`: the deterministic id of the change set this turn may produce. */
-  readonly changeSetId: string;
-  readonly provision: SessionWorkspaceProvision;
-}
-
-/** What the previous invocation left for this one (phase 3). */
 export interface TurnReinvocation {
   /** The engine already holds state for this execution (derived per {@link isReinvocation}). */
   readonly isReinvocation: boolean;
   /** The adjudicated WAITING rows, keyed by tool-call id; empty when nothing was decided. */
   readonly approvalDecisions: ReadonlyMap<string, ApprovalAction>;
-  /**
-   * Sub-agent executions cloned from the persisted transcript on a resume,
-   * returned rather than written to `status.subAgentExecutions` because the
-   * Cursor accumulator owns that array and overwrites it on every flush.
-   */
-  readonly seededSubAgents: readonly SubAgentExecution[];
-}
-
-/** The tool surface (phases 4 to 4b): the resolved servers with the attachments folded in, and the merged approval policies. */
-export interface TurnMcp {
-  /** Every resolved server, synthesized attachments included; the harness projects its SDK config from this list. */
-  readonly servers: readonly ResolvedMcpServer[];
-  /** Serving proactive channels and their templates (the DD-006 D2 discovery read). */
-  readonly channelMessaging: readonly ChannelMessagingInfo[];
-  readonly leases: ActiveLeases;
-  readonly policies: ReadonlyMap<string, MergedToolPolicy>;
-}
-
-/** The turn's explicit inputs (phase 5b), resolved into the workspace with the vision facts derived once. */
-export interface TurnAttachments {
-  readonly results: readonly ResolvedAttachment[];
-  /** The images the model sees inline, in attachment order. */
-  readonly visionImages: readonly VisionImage[];
-  /** The image-shaped attachments that degraded to path-only, disclosed in the prompt. */
-  readonly visionNotViewable: readonly NotViewableEntry[];
-}
-
-/** What the execution asked for (phase 6, the harness-agnostic half): the raw model name and the effective tier and thinking mode. */
-export interface TurnModelPreferences {
-  /** `spec.executionConfig.modelName`, or `"default"`; the harness validates it against its own catalog. */
-  readonly requested: string;
-  /** Never UNSPECIFIED: `resolveEffectiveServiceTier` is where the platform default is applied. */
-  readonly serviceTier: EffectiveServiceTier;
-  /** Never UNSPECIFIED: `resolveEffectiveThinkingMode` is where the platform default is applied. */
-  readonly thinkingMode: EffectiveThinkingMode;
-}
-
-/**
- * The standing context a first prompt carries (phase 9c) and the per-turn
- * catchup, read once from the session metadata and the execution spec.
- */
-export interface TurnStandingContext {
-  readonly contextBridge: string | undefined;
-  readonly senderIdentity: SenderIdentity | undefined;
-  readonly sessionContext: string | undefined;
-  readonly declaredPreferences: DeclaredPreferencesContent | undefined;
-  readonly conversationCatchup: string | undefined;
-  /**
-   * The semantic memory selection, memoized to at most one run per
-   * invocation and stamping `status.recalledMemoriesReport` once. A thunk
-   * because only the harness knows whether its prompt carries standing
-   * context (a successfully resumed engine already holds it).
-   */
-  readonly selectRecalledMemories: () => Promise<RecalledMemoriesContent | undefined>;
-}
-
-/**
- * The runtime's resolved record for one turn. `TurnInput` (`types.ts`) is
- * the adapter-facing subset the contract carries today; the groups marked
- * "lifts" move onto it in M3, the members marked "runtime-private" never do.
- */
-export interface TurnContext extends TurnInput {
-  // ── lifts onto TurnInput in M3 (Q-S2-8) ──────────────────────────────────
-  readonly execution: AgentExecution;
-  readonly session: Session;
-  readonly blueprint: ResolvedBlueprint;
-  readonly environment: TurnEnvironment;
-  readonly workspace: TurnWorkspace;
-  readonly mcp: TurnMcp;
-  readonly attachments: TurnAttachments;
-  /** Approved whole-file writes the runtime applied itself this turn (exact-apply); the harness issues no grant for them. */
-  readonly appliedToolCallIds: ReadonlySet<string>;
-  readonly model: TurnModelPreferences;
-  /** `spec.executionConfig.structuredOutputSchema`, when the execution asks for structured output. */
-  readonly structuredOutputSchema: Record<string, unknown> | undefined;
-  readonly standing: TurnStandingContext;
-  readonly artifactStorage: ArtifactStorage | undefined;
-  // ── runtime-private (never on TurnInput) ─────────────────────────────────
-  /** The contract carries no flag by design (`types.ts` header); the harness derives create-vs-resume from `threadId` and its own state. */
-  readonly isReinvocation: boolean;
-  /** Released in the runtime's `finally`, after the harness's own teardown. */
-  readonly releaseWorkspaceLock: ReleaseWorkspaceLock | undefined;
-  /** Finalizes at exactly two seams: the pure file-review resume and terminal completion. `null` when nothing is eligible. */
-  readonly writeback: WriteBackCoordinator | null;
-  /** See {@link TurnReinvocation.seededSubAgents}; an M3 item, derivable by the adapter from `execution.status`. */
-  readonly seededSubAgents: readonly SubAgentExecution[];
 }
 
 // ---------------------------------------------------------------------------
@@ -448,26 +339,24 @@ export function decideReinvocation(
  *
  * The persisted protos are cloned so the input execution stays immutable.
  * Messages are pushed into `status.messages` (which the accumulator wraps by
- * reference) BEFORE the accumulator is constructed; sub-agent executions are
- * RETURNED rather than written to `status.subAgentExecutions`, because the
- * accumulator owns that array and overwrites it on every flush.
+ * reference) BEFORE the accumulator is constructed. Sub-agent executions are
+ * NOT seeded here: the Cursor accumulator owns `status.subAgentExecutions`
+ * and overwrites it on every flush, so the adapter clones them itself from
+ * `input.execution.status` under the same "left a transcript" test.
  *
  * Moved from `execute-cursor/index.ts` `seedCursorTranscriptFromExecution`
- * (L2468-2478), body unchanged; the native twin is
- * `execute-deep-agent/index.ts` `seedStatusFromExecution` (S3 retires it).
- *
- * @returns the cloned sub-agent executions to seed into the accumulator.
+ * (L2468-2478); the native twin is `execute-deep-agent/index.ts`
+ * `seedStatusFromExecution` (S3 retires it).
  */
 export function seedTranscriptFromExecution(
   status: AgentExecutionStatus,
   execution: AgentExecution,
-): SubAgentExecution[] {
+): void {
   const persisted = execution.status;
-  if (!persisted || persisted.messages.length === 0) return [];
+  if (!persisted || persisted.messages.length === 0) return;
   for (const message of persisted.messages) {
     status.messages.push(clone(AgentMessageSchema, message));
   }
-  return persisted.subAgentExecutions.map((sub) => clone(SubAgentExecutionSchema, sub));
 }
 
 // ---------------------------------------------------------------------------
@@ -664,7 +553,6 @@ export async function reconcileReinvocation(
 ): Promise<ReinvocationOutcome> {
   deps.enterPhase("reconcile_reinvocation");
   const reinvoked = isReinvocation(args.stateIdSource, deps.input);
-  let seededSubAgents: SubAgentExecution[] = [];
   let reconciledFileReview = false;
   let fileReviewFailed = false;
   let fileReviewFailureDetail = "";
@@ -672,7 +560,7 @@ export async function reconcileReinvocation(
 
   if (reinvoked) {
     const existingStatus = args.execution.status;
-    seededSubAgents = seedTranscriptFromExecution(deps.status, args.execution);
+    seedTranscriptFromExecution(deps.status, args.execution);
 
     if (args.workspace.captureMode && args.workspace.primaryDir) {
       const decidedSets = (existingStatus?.fileChangeSets ?? []).filter(
@@ -714,7 +602,7 @@ export async function reconcileReinvocation(
     discardedPaths,
   });
   if (settlement) return { kind: "settled", settlement };
-  return { kind: "ready", reinvocation: { isReinvocation: reinvoked, approvalDecisions, seededSubAgents } };
+  return { kind: "ready", reinvocation: { isReinvocation: reinvoked, approvalDecisions } };
 }
 
 /**

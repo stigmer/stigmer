@@ -20,6 +20,7 @@
  * | `subAgents`       | yes (compiled sub-graphs)   | yes (`agents` option)                   | yes (`AgentDefinition`)                       | no                                             |
  * | `toolRestriction` | yes (tool list)             | no (the hook enforces)                  | yes (`disallowedTools`, `tools`)              | per-server config                              |
  * | `visionProfile`   | PNG, JPEG, WebP, GIF        | PNG, JPEG (transport re-sniffs)         | (surveyed later)                              | (surveyed later)                               |
+ * | `fileReview`      | `deep-agent`, no excludes   | `cursor`, `.cursor/hooks.json` excluded | (surveyed later)                              | (surveyed later)                               |
  *
  * Adapter-internal, deliberately NOT flags: how MCP servers are bound, how
  * metering is routed, how the cost cap is applied inside the engine, how a
@@ -61,6 +62,20 @@ export type PausePrimitive = "interrupt" | "deny-and-retry" | "callback" | "none
  */
 export type StateIdSource = "deterministic" | "engine-minted";
 
+/**
+ * The two facts the runtime's file-review reconcile needs from the harness
+ * and cannot know: the id the projection reads from the BASELINE payload
+ * (`shared/filereview/capture.ts` `applyCaptureDecisions`), and the
+ * workspace-relative paths the harness writes into the repo that a turn's
+ * diff must never show (Cursor's transient `.cursor/hooks.json`). Declared
+ * once per adapter, read by `turn-context.ts` (ruled Q-M2-6 as an argument,
+ * homed here at M3).
+ */
+export interface FileReviewIdentity {
+  readonly harnessId: string;
+  readonly excludePaths: readonly string[];
+}
+
 export interface HarnessCapabilities {
   readonly pausePrimitive: PausePrimitive;
   readonly stateIdSource: StateIdSource;
@@ -72,4 +87,6 @@ export interface HarnessCapabilities {
   readonly toolRestriction: boolean;
   /** Which image types the engine can display inline; the runtime degrades the rest before the turn. */
   readonly visionProfile: VisionProfile;
+  /** How the harness's captured file changes are identified and what its own repo writes are excluded from a diff. */
+  readonly fileReview: FileReviewIdentity;
 }

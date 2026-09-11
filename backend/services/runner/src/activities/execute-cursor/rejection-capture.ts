@@ -9,15 +9,16 @@
  * run.wait() strips to a bare { status: "error" }.
  *
  * This module installs a process-level handler that extracts ConnectError
- * fields and stores them in a Map keyed by executionId. The execute-cursor
- * activity reads from this Map after run.wait() resolves to enrich the
+ * fields and stores them in a Map keyed by executionId (read from the
+ * runtime's execution-scoped store, `shared/execution-context.ts`). The
+ * Cursor adapter reads from this Map after run.wait() resolves to enrich the
  * error message.
  *
  * Forum reference:
  * https://forum.cursor.com/t/agent-send-wait-returns-bare-status-error-while-connectrpc-unauthenticated-leaks-as-unhandledrejection/161203
  */
 
-import { AsyncLocalStorage } from "node:async_hooks";
+import { getExecutionContext } from "../../shared/execution-context.js";
 
 export interface CapturedRejection {
   code: string;
@@ -28,14 +29,6 @@ export interface CapturedRejection {
 const capturedRejections = new Map<string, CapturedRejection>();
 
 const REJECTION_TTL_MS = 5 * 60 * 1000;
-
-let executionContextRef: AsyncLocalStorage<{ executionId: string }> | null = null;
-
-export function setExecutionContextRef(
-  ctx: AsyncLocalStorage<{ executionId: string }>,
-): void {
-  executionContextRef = ctx;
-}
 
 export function getCapturedRejection(executionId: string): CapturedRejection | undefined {
   return capturedRejections.get(executionId);
@@ -65,7 +58,7 @@ function extractConnectCode(err: Error & { code?: string }): string {
 export function handleUnhandledRejection(reason: unknown): void {
   if (isConnectError(reason)) {
     const code = extractConnectCode(reason);
-    const executionId = executionContextRef?.getStore()?.executionId;
+    const executionId = getExecutionContext().getStore()?.executionId;
 
     if (executionId) {
       capturedRejections.set(executionId, {

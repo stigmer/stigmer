@@ -260,7 +260,7 @@ export async function createStigmerRunnerManager(
   // proxyEndpoint/stigmerToken (already in baseConfig), not resolved coordinates.
 
   // Install fetch interceptor before any @cursor/sdk imports
-  const { installFetchInterceptor, updateInterceptorToken, getExecutionContext } = await import(
+  const { installFetchInterceptor, updateInterceptorToken } = await import(
     "./activities/execute-cursor/fetch-interceptor.js"
   );
   installFetchInterceptor({
@@ -340,11 +340,6 @@ export async function createStigmerRunnerManager(
         "falling back to the control-plane token for x-stigmer-auth",
     );
   }
-
-  const { setExecutionContextRef } = await import(
-    "./activities/execute-cursor/rejection-capture.js"
-  );
-  setExecutionContextRef(getExecutionContext());
 
   const activities = await createAllActivities(config);
   markBoot("activities_imported");

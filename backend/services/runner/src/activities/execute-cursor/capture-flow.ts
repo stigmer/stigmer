@@ -52,7 +52,7 @@ import { partitionIgnoredPathsBySecret } from "../../shared/filereview/secret-pa
 import { casBlobReader, type CasPathCapture } from "../../shared/filereview/cas-substrate.js";
 import type { GitSubstrateChange as GitCapturedChange } from "../../shared/filereview/git-substrate.js";
 import type { ArtifactStorage } from "../../shared/artifact-storage.js";
-import type { FileReviewIdentity } from "../../harness/turn-context.js";
+import type { FileReviewIdentity } from "../../harness/capabilities.js";
 
 /** The harness id the projection reads from the BASELINE payload (load-bearing). */
 const HARNESS_ID = "cursor";

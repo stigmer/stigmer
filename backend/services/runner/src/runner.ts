@@ -226,7 +226,7 @@ export async function createStigmerRunner(
 
   // The Cursor SDK captures a reference to global.fetch at import time.
   // The fetch interceptor MUST be installed before any @cursor/sdk import.
-  const { installFetchInterceptor, getExecutionContext } = await import(
+  const { installFetchInterceptor } = await import(
     "./activities/execute-cursor/fetch-interceptor.js"
   );
   installFetchInterceptor({
@@ -313,11 +313,6 @@ export async function createStigmerRunner(
   // credentials — see the helper). Started before the worker so the first
   // renewal point is scheduled even if the pod boots with a part-used token.
   const tokenRenewal = await startStaticSandboxTokenRenewal(config, tokenRef);
-
-  const { setExecutionContextRef } = await import(
-    "./activities/execute-cursor/rejection-capture.js"
-  );
-  setExecutionContextRef(getExecutionContext());
 
   const activities = await createAllActivities(config);
   markBoot("activities_imported");

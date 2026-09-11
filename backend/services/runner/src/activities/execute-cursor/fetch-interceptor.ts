@@ -15,9 +15,8 @@
  * When STIGMER_PROXY_ENDPOINT is not set, this module is a no-op.
  */
 
-import { AsyncLocalStorage } from "node:async_hooks";
-
 import { TimingRecorder, emitTimingLog } from "../../shared/cold-start-timing.js";
+import { getExecutionContext } from "../../shared/execution-context.js";
 
 /** One REST path's timing identity: the emitted timeline event and its
  * single segment name. */
@@ -63,15 +62,8 @@ interface ProxyConfig {
 let interceptorConfig: ProxyConfig | null = null;
 const originalFetch = globalThis.fetch;
 
-interface ExecutionContextStore {
-  executionId: string;
-}
-
-const executionContext = new AsyncLocalStorage<ExecutionContextStore>();
-
-export function getExecutionContext(): AsyncLocalStorage<ExecutionContextStore> {
-  return executionContext;
-}
+/** The execution-scoped store the headers below are stamped from (`shared/execution-context.ts`). */
+const executionContext = getExecutionContext();
 
 /**
  * Connect RPC path prefixes used by the Cursor SDK. Most requests with
@@ -419,18 +411,6 @@ export function setInterceptorExecutionId(executionId: string | undefined): void
   }
 }
 
-/**
- * Run an async function with execution-scoped context. The executionId is
- * propagated through the async call chain via AsyncLocalStorage, ensuring
- * concurrent activities on the same runner process don't overwrite each
- * other's proxy headers.
- */
-export function runWithExecutionContext<T>(
-  executionId: string,
-  fn: () => Promise<T>,
-): Promise<T> {
-  return executionContext.run({ executionId }, fn);
-}
 
 /**
  * Remove the interceptor and restore the original fetch. Primarily for

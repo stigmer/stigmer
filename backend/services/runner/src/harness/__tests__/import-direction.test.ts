@@ -12,88 +12,23 @@
  * imports `shared/` freely, so a `shared/` module that imported
  * `activities/` would open the same door one hop away.
  *
- * The rule is read off the TypeScript syntax tree, not a regex, so a path
- * quoted in a header comment (several `shared/` modules cite
- * `activities/...` in prose) cannot trip it, and no import form can slip
- * past it: static, type-only, side-effect, re-export and dynamic `import()`
- * are all module specifiers to the parser. Ruled at the S2 gate (Q-S2-9);
- * the `shared/` half ruled at the M1 gate (Q-M1-5).
+ * The rule is read off the TypeScript syntax tree, not a regex
+ * (`__test-utils__/module-specifiers.ts`, shared with the adapter's
+ * Temporal-free fence), so a path quoted in a header comment (several
+ * `shared/` modules cite `activities/...` in prose) cannot trip it, and no
+ * import form can slip past it: static, type-only, side-effect, re-export
+ * and dynamic `import()` are all module specifiers to the parser. Ruled at
+ * the S2 gate (Q-S2-9); the `shared/` half ruled at the M1 gate (Q-M1-5).
  */
 
 import { describe, it, expect } from "vitest";
-import { readdirSync, readFileSync } from "node:fs";
-import { dirname, join, relative, resolve, sep } from "node:path";
+import { join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
-import ts from "typescript";
+
+import { forbiddenImports, readSource, typeScriptFilesUnder } from "../../__test-utils__/module-specifiers.js";
 
 const SRC_ROOT = fileURLToPath(new URL("../../", import.meta.url));
 const FORBIDDEN_ROOT = join(SRC_ROOT, "activities");
-
-/** Every module specifier a file names, in source order, whatever the form. */
-function moduleSpecifiers(fileName: string, source: string): string[] {
-  const sourceFile = ts.createSourceFile(
-    fileName,
-    source,
-    ts.ScriptTarget.Latest,
-    /* setParentNodes */ false,
-  );
-  const specifiers: string[] = [];
-  const visit = (node: ts.Node): void => {
-    if (
-      (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
-      node.moduleSpecifier !== undefined &&
-      ts.isStringLiteral(node.moduleSpecifier)
-    ) {
-      specifiers.push(node.moduleSpecifier.text);
-    } else if (
-      ts.isCallExpression(node) &&
-      node.expression.kind === ts.SyntaxKind.ImportKeyword
-    ) {
-      const [argument] = node.arguments;
-      if (argument !== undefined && ts.isStringLiteralLike(argument)) {
-        specifiers.push(argument.text);
-      }
-    }
-    ts.forEachChild(node, visit);
-  };
-  visit(sourceFile);
-  return specifiers;
-}
-
-/**
- * The relative specifiers in `source` that resolve to a path inside
- * `forbiddenRoot`. Package specifiers are ignored: no alias maps a package
- * name onto `src/activities/`.
- */
-function forbiddenImports(
-  filePath: string,
-  source: string,
-  forbiddenRoot: string,
-): string[] {
-  return moduleSpecifiers(filePath, source).filter((specifier) => {
-    if (!specifier.startsWith(".")) return false;
-    const target = resolve(dirname(filePath), specifier);
-    return target === forbiddenRoot || target.startsWith(forbiddenRoot + sep);
-  });
-}
-
-function typeScriptFilesUnder(
-  dir: string,
-  skipDirectories: ReadonlySet<string>,
-): string[] {
-  const files: string[] = [];
-  for (const entry of readdirSync(dir, { withFileTypes: true })) {
-    const path = join(dir, entry.name);
-    if (entry.isDirectory()) {
-      if (!skipDirectories.has(entry.name)) {
-        files.push(...typeScriptFilesUnder(path, skipDirectories));
-      }
-    } else if (entry.name.endsWith(".ts")) {
-      files.push(path);
-    }
-  }
-  return files.sort();
-}
 
 interface Offence {
   readonly file: string;
@@ -112,11 +47,7 @@ function sweep(root: string, skipDirectories: ReadonlySet<string>): Sweep {
   for (const file of typeScriptFilesUnder(root, skipDirectories)) {
     const relativeFile = relative(SRC_ROOT, file);
     visited.push(relativeFile);
-    for (const specifier of forbiddenImports(
-      file,
-      readFileSync(file, "utf-8"),
-      FORBIDDEN_ROOT,
-    )) {
+    for (const specifier of forbiddenImports(file, readSource(file), FORBIDDEN_ROOT)) {
       offences.push({ file: relativeFile, specifier });
     }
   }

@@ -59,7 +59,7 @@ import { cacheSessionAgent, computeAgentFingerprint, takeCachedAgent } from "./a
 import type { AgentResolution, AgentResolutionReason, CreateAgentOptions, CreateCloudAgentOptions } from "./session-lifecycle.js";
 import { CursorMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { determineCursorMode, isCloudMode } from "./cursor-mode.js";
-import { MessageAccumulator, cancelInProgressSubAgentProtos, collapseRedundantToolCallTwins } from "./message-translator.js";
+import { MessageAccumulator, cancelInProgressSubAgentProtos, collapseRedundantToolCallTwins, seededSubAgentsOf } from "./message-translator.js";
 import { utcTimestamp, persistStatus, reportSetupProgress, slimStatus } from "../../shared/status.js";
 import { TimingRecorder, emitTimingLog } from "../../shared/cold-start-timing.js";
 import { withholdSecretContentFromMessages } from "../../shared/tool-row.js";
@@ -106,7 +106,8 @@ import {
 } from "../../shared/filereview/progress.js";
 import { deriveExecutionFingerprintKey } from "../../shared/approval-fingerprint.js";
 import { getRunnerHitlMasterSecret } from "../../shared/fingerprint-secret.js";
-import { setInterceptorExecutionId, runWithExecutionContext } from "./fetch-interceptor.js";
+import { setInterceptorExecutionId } from "./fetch-interceptor.js";
+import { runWithExecutionContext } from "../../shared/execution-context.js";
 import { closeProxySessions } from "./http2-interceptor.js";
 import { resolveModelId, ensureLoaded as ensurePricingLoaded } from "./model-pricing.js";
 import { resolveServiceTierParams } from "./service-tier.js";
@@ -452,7 +453,11 @@ async function executeCursorInner(
         }
       }
     }
-    const { isReinvocation, approvalDecisions, seededSubAgents } = reinvoked.reinvocation;
+    const { isReinvocation, approvalDecisions } = reinvoked.reinvocation;
+    // The sub-agent rows this harness's accumulator re-registers on a resume:
+    // the runtime seeds the messages, the harness clones the sub-agents
+    // (the accumulator owns that array and overwrites it on every flush).
+    const seededSubAgents = seededSubAgentsOf(execution);
 
     // The adapter's own read of the same adjudicated rows: the pending-approval
     // protos the grant builder and the reinvocation prompt render, and the

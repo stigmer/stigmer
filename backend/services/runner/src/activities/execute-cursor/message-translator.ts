@@ -30,8 +30,9 @@
  * - approvalMessage: from the policy, with placeholder resolution
  */
 
-import { create } from "@bufbuild/protobuf";
+import { clone, create } from "@bufbuild/protobuf";
 import type { JsonObject } from "@bufbuild/protobuf";
+import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
@@ -729,13 +730,28 @@ export interface MessageAccumulatorOptions {
   workspaceRoot?: string;
   /**
    * Sub-agent executions carried over from the persisted transcript on a
-   * durable resume (see seedCursorTranscriptFromExecution in index.ts). The
-   * accumulator re-registers them so a sub-agent's resumed lifecycle updates
-   * merge onto the seeded row instead of producing a duplicate, and so the row
-   * survives the round-trip rather than being dropped from the rebuilt status.
-   * Empty on a first run.
+   * durable resume ({@link seededSubAgentsOf}). The accumulator re-registers
+   * them so a sub-agent's resumed lifecycle updates merge onto the seeded row
+   * instead of producing a duplicate, and so the row survives the round-trip
+   * rather than being dropped from the rebuilt status. Empty on a first run.
    */
   seededSubAgents?: readonly SubAgentExecution[];
+}
+
+/**
+ * The sub-agent rows a resumed turn re-registers, cloned from the persisted
+ * execution so the input stays immutable. This accumulator OWNS
+ * `status.subAgentExecutions` and overwrites it on every flush, which is why
+ * the runtime's transcript seeding (`harness/turn-context.ts`
+ * `seedTranscriptFromExecution`) leaves the sub-agents to this harness: they
+ * are re-registered here, never pushed onto the status. Same "left a
+ * transcript" test as the seeding, so a resume that seeded messages always
+ * seeds their sub-agents too.
+ */
+export function seededSubAgentsOf(execution: AgentExecution): SubAgentExecution[] {
+  const persisted = execution.status;
+  if (!persisted || persisted.messages.length === 0) return [];
+  return persisted.subAgentExecutions.map((sub) => clone(SubAgentExecutionSchema, sub));
 }
 
 /**

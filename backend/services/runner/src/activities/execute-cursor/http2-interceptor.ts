@@ -42,7 +42,7 @@
 
 import { createRequire } from "node:module";
 import type http2Type from "node:http2";
-import { getExecutionContext } from "./fetch-interceptor.js";
+import { getExecutionContext } from "../../shared/execution-context.js";
 
 // Use require() to get the ACTUAL CJS module singleton. Mutations here
 // are visible to all importers including ESM namespace imports, because

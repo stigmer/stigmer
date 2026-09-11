@@ -19,7 +19,7 @@ describe("fetch-interceptor", () => {
   let calls: CapturedCall[];
   let installFetchInterceptor: typeof import("../fetch-interceptor.js").installFetchInterceptor;
   let uninstallFetchInterceptor: typeof import("../fetch-interceptor.js").uninstallFetchInterceptor;
-  let getExecutionContext: typeof import("../fetch-interceptor.js").getExecutionContext;
+  let getExecutionContext: typeof import("../../../shared/execution-context.js").getExecutionContext;
 
   beforeEach(async () => {
     calls = [];
@@ -40,7 +40,9 @@ describe("fetch-interceptor", () => {
     const mod = await import("../fetch-interceptor.js");
     installFetchInterceptor = mod.installFetchInterceptor;
     uninstallFetchInterceptor = mod.uninstallFetchInterceptor;
-    getExecutionContext = mod.getExecutionContext;
+    // The store lives in shared/ and must be the SAME fresh instance the
+    // interceptor just imported, so it is resolved after the reset too.
+    getExecutionContext = (await import("../../../shared/execution-context.js")).getExecutionContext;
   });
 
   afterEach(() => {

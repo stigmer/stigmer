@@ -77,6 +77,7 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
   private readonly queue: TurnScenario[] = [];
   private readonly mintedStateIds = new Set<string>();
   private readonly executions = new Map<string, number>();
+  private readonly hangWaiters: Array<() => void> = [];
   private mintCounter = 0;
 
   constructor(options: ScriptedHarnessOptions) {
@@ -88,7 +89,17 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
       subAgents: false,
       toolRestriction: true,
       visionProfile: DEEP_AGENT_VISION_PROFILE,
+      fileReview: { harnessId: "scripted", excludePaths: [] },
     };
+  }
+
+  /**
+   * Resolves the next time a turn parks on a `hang` step — for a test that
+   * stands where the runtime's watchdog stands and needs to know the engine
+   * is silent before it advances the clock. Never on a timer.
+   */
+  whenHanging(): Promise<void> {
+    return new Promise((resolve) => this.hangWaiters.push(resolve));
   }
 
   // ── Engine controls (the subject's side of the kit seam) ──────────────────
@@ -153,7 +164,7 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
       } catch (err) {
         return {
           kind: "ended",
-          outcome: { kind: "failed", message: `${this.name}: could not bind engine state`, cause: err },
+          outcome: { kind: "failed", surface: "internal", message: `${this.name}: could not bind engine state`, cause: err },
         };
       }
       return { kind: "ok" };
@@ -162,7 +173,7 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
     if (!this.mintedStateIds.has(input.threadId)) {
       return {
         kind: "ended",
-        outcome: { kind: "failed", message: `${this.name}: no engine state '${input.threadId}' to resume` },
+        outcome: { kind: "failed", surface: "internal", message: `${this.name}: no engine state '${input.threadId}' to resume` },
       };
     }
     return { kind: "ok" };
@@ -185,11 +196,12 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
         return undefined;
       }
       case "hang": {
+        for (const waiter of this.hangWaiters.splice(0)) waiter();
         await whenAborted(sink.stopSignal);
         return { kind: "interrupted" };
       }
       case "fail":
-        return { kind: "failed", message: step.message };
+        return { kind: "failed", surface: "engine", message: step.message };
       default: {
         const exhaustive: never = step;
         throw new Error(`${this.name}: unknown scenario step ${JSON.stringify(exhaustive)}`);

@@ -66,6 +66,7 @@ import { ApprovalAction, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agent
 import type { TurnInput, TurnOutcome, UsageDelta } from "../../harness/types.js";
 import type { ProposedAction } from "../approval-contract/types.js";
 import { emptyStatus, findToolCallRow } from "../proto-helpers.js";
+import { turnInputFixture } from "../turn-input-fixture.js";
 import { RecordingTurnSink } from "./recording-sink.js";
 import { scenario } from "./types.js";
 import type { HarnessContractSubject, TurnScenario } from "./types.js";
@@ -79,7 +80,7 @@ import type { HarnessContractSubject, TurnScenario } from "./types.js";
  */
 export const INTERRUPT_SETTLE_BOUND_MS = 5_000;
 
-const OUTCOME_KINDS = ["completed", "awaiting_approval", "failed", "interrupted"] as const satisfies readonly TurnOutcome["kind"][];
+const OUTCOME_KINDS = ["completed", "cancelled", "awaiting_approval", "failed", "interrupted"] as const satisfies readonly TurnOutcome["kind"][];
 
 /** Representative gated action shared by the invariants. */
 const WRITE_ALPHA: ProposedAction = { kind: "write", resource: "/work/alpha.txt" };
@@ -150,13 +151,15 @@ export class ExecutionDriver {
   begin(turn: TurnScenario, options: TurnOptions = {}): TurnInFlight {
     this.subject.arrange(turn);
     const sink = options.sink ?? new RecordingTurnSink({ status: this.seedStatus() });
-    const input: TurnInput = {
+    // The whole resolved record, neutral everywhere but the five facts the
+    // driver threads (`turn-input-fixture.ts`); the fake reads only those.
+    const input: TurnInput = turnInputFixture({
       executionId: this.executionId,
       threadId: this.threadId,
       turnSeq: this.turnSeq,
       sessionId: this.sessionId,
       approvalDecisions: approvalDecisionsOf(sink.status),
-    };
+    });
     const settled = this.subject.adapter.runTurn(input, sink);
     options.onStarted?.(sink);
     return { input, sink, settled };
@@ -371,8 +374,16 @@ export async function assertStopSignalInterrupts(subject: HarnessContractSubject
 
 // ── Invariant 5 ─────────────────────────────────────────────────────────────
 
-function sumUsage(deltas: readonly UsageDelta[]): Required<UsageDelta> {
-  const total = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 };
+/** The four counts summed; the price and its basis are the adapter's per delta and are not summed here. */
+interface UsageTotals {
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  cacheWriteTokens: number;
+}
+
+function sumUsage(deltas: readonly UsageDelta[]): UsageTotals {
+  const total: UsageTotals = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 };
   for (const d of deltas) {
     total.inputTokens += d.inputTokens ?? 0;
     total.outputTokens += d.outputTokens ?? 0;

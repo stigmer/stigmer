@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { createRequire } from "node:module";
 import type http2Type from "node:http2";
 import { installHttp2Interceptor, uninstallHttp2Interceptor, updateHttp2InterceptorToken, assertHttp2ConnectPatched } from "../http2-interceptor.js";
-import { getExecutionContext } from "../fetch-interceptor.js";
+import { getExecutionContext } from "../../../shared/execution-context.js";
 
 const require = createRequire(import.meta.url);
 const http2: typeof http2Type = require("node:http2");

@@ -44,7 +44,7 @@ import { decidePoolBoot, registerPoolMemberContext } from "./pool-member.js";
 import { buildReadyMessage } from "./ipc-protocol.js";
 import type { IpcCommand, IpcResponse } from "./ipc-protocol.js";
 
-import { handleUnhandledRejection, setExecutionContextRef } from "./activities/execute-cursor/rejection-capture.js";
+import { handleUnhandledRejection } from "./activities/execute-cursor/rejection-capture.js";
 import { installProcessPipeGuards, reportFatal } from "./pipe-safety.js";
 
 // Guard the host pipes before anything writes to them. A dropped stderr/stdout
