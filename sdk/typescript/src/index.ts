@@ -55,9 +55,10 @@ export {
   getRpcMetadata,
 } from "./errors.js";
 
-// Resource availability
+// Edition vocabulary and resource availability
 export {
   type DeploymentMode,
+  deploymentModeOf,
   isResourceAvailable,
 } from "./resource-availability.js";
 

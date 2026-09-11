@@ -2,18 +2,8 @@
 // @generated from file ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto (package ai.stigmer.commons.apiresource.apiresourcekind, syntax proto3)
 /* eslint-disable */
 
-import type {
-  GenEnum,
-  GenExtension,
-  GenFile,
-  GenMessage,
-} from "@bufbuild/protobuf/codegenv1";
-import {
-  enumDesc,
-  extDesc,
-  fileDesc,
-  messageDesc,
-} from "@bufbuild/protobuf/codegenv1";
+import type { GenEnum, GenExtension, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
+import { enumDesc, extDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import type { ApiResourceGroup } from "./api_resource_group_pb.js";
 import { file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_group } from "./api_resource_group_pb.js";
 import type { AuthorizationConfig } from "./authorization_config_pb.js";
@@ -25,98 +15,85 @@ import type { Message } from "@bufbuild/protobuf";
 /**
  * Describes the file ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto.
  */
-export const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind: GenFile =
-  /*@__PURE__*/
-  fileDesc(
-    "CkZhaS9zdGlnbWVyL2NvbW1vbnMvYXBpcmVzb3VyY2UvYXBpcmVzb3VyY2VraW5kL2FwaV9yZXNvdXJjZV9raW5kLnByb3RvEi5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kIswDChNBcGlSZXNvdXJjZUtpbmRNZXRhEk8KBWdyb3VwGAEgASgOMkAuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLmFwaXJlc291cmNla2luZC5BcGlSZXNvdXJjZUdyb3VwElMKB3ZlcnNpb24YAiABKA4yQi5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kLkFwaVJlc291cmNlVmVyc2lvbhIMCgRuYW1lGAMgASgJEhQKDGRpc3BsYXlfbmFtZRgEIAEoCRIRCglpZF9wcmVmaXgYBSABKAkSFAoMaXNfdmVyc2lvbmVkGAYgASgIEhoKEm5vdF9zZWFyY2hfaW5kZXhlZBgHIAEoCBJKCgR0aWVyGAggASgOMjwuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLmFwaXJlc291cmNla2luZC5SZXNvdXJjZVRpZXISWgoNYXV0aG9yaXphdGlvbhgJIAEoCzJDLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5hcGlyZXNvdXJjZWtpbmQuQXV0aG9yaXphdGlvbkNvbmZpZypCChJBcGlSZXNvdXJjZVZlcnNpb24SJAogYXBpX3Jlc291cmNlX3ZlcnNpb25fdW5zcGVjaWZpZWQQABIGCgJ2MRABKk4KDFJlc291cmNlVGllchIdChlyZXNvdXJjZV90aWVyX3Vuc3BlY2lmaWVkEAASDwoLb3Blbl9zb3VyY2UQARIOCgpjbG91ZF9vbmx5EAIqQQoPUGxhdGZvcm1JZFZhbHVlEiEKHXBsYXRmb3JtX2lkX3ZhbHVlX3Vuc3BlY2lmaWVkEAASCwoHc3RpZ21lchABKoESCg9BcGlSZXNvdXJjZUtpbmQSHQoZYXBpX3Jlc291cmNlX2tpbmRfdW5rbm93bhAAElsKFGFwaV9yZXNvdXJjZV92ZXJzaW9uEAEaQar/Kz0IARABGhJBcGlSZXNvdXJjZVZlcnNpb24iFEFQSSBSZXNvdXJjZSBWZXJzaW9uKgN2ZXI4AUACSgQIBRAEEj8KCmlhbV9wb2xpY3kQChovqv8rKwgCEAEaCUlhbVBvbGljeSIKSUFNIFBvbGljeSoEaWFtcDgBQAJKBAgCEAESTgoQaWRlbnRpdHlfYWNjb3VudBALGjiq/ys0CAIQARoPSWRlbnRpdHlBY2NvdW50IhBJZGVudGl0eSBBY2NvdW50KgNpZGFAAkoECAQQAxI1CgdhcGlfa2V5EAwaKKr/KyQIAhABGgZBcGlLZXkiB0FQSSBLZXkqA2tleTgBQAFKBAgEEAESPwoKaW52aXRhdGlvbhAUGi+q/ysrCAIQARoKSW52aXRhdGlvbiIKSW52aXRhdGlvbioDaW52OAFAAkoECAIQARJXChFpZGVudGl0eV9wcm92aWRlchAVGkCq/ys8CAIQARoQSWRlbnRpdHlQcm92aWRlciIRSWRlbnRpdHkgUHJvdmlkZXIqA2lkcDgBQAJKCAgCEAE6AgEEEkAKCW9hdXRoX2FwcBAWGjGq/ystCAIQARoIT0F1dGhBcHAiCU9BdXRoIEFwcCoEb2FwcDgBQAJKCAgCEAE6AgEEElEKD3BsYXRmb3JtX2NsaWVudBAXGjyq/ys4CAIQARoOUGxhdGZvcm1DbGllbnQiD1BsYXRmb3JtIENsaWVudCoDcGNsOAFAAkoICAIQAToCAQQSSQoMb3JnYW5pemF0aW9uEB4aN6r/KzMIAxABGgxPcmdhbml6YXRpb24iDE9yZ2FuaXphdGlvbioDb3JnQAFKCggEEAE6BAECAwQSOQoIcGxhdGZvcm0QHxorqv8rJwgDEAEaCFBsYXRmb3JtIghQbGF0Zm9ybSoDcGx0OAFAAkoECAUQBBI8CgVhZ2VudBAoGjGq/ystCAEQARoFQWdlbnQiBUFnZW50KgNhZ3RAAUoSCAIQASoICAEQARgBIAE6AgEEEmsKD2FnZW50X2V4ZWN1dGlvbhApGlaq/ytSCAEQARoOQWdlbnRFeGVjdXRpb24iD0FnZW50IEV4ZWN1dGlvbioDYWV4QAFKJAgDEAIaHgoHc2Vzc2lvbhIHc2Vzc2lvbhoKc2Vzc2lvbl9pZBI4CgdzZXNzaW9uECoaK6r/KycIARABGgdTZXNzaW9uIgdTZXNzaW9uKgNzZXNAAUoICAIQAToCAQQSPgoFc2tpbGwQKxozqv8rLwgBEAEaBVNraWxsIgVTa2lsbCoDc2tsMAFAAUoSCAIQASoICAEQARgBIAE6AgEEEkoKCm1jcF9zZXJ2ZXIQLBo6qv8rNggBEAEaCU1jcFNlcnZlciIKTUNQIFNlcnZlcioDbWNwQAFKEggCEAEqCAgBEAEYASABOgIBBBJsCg5hZ2VudF9pbnN0YW5jZRAtGliq/ytUCAEQARoNQWdlbnRJbnN0YW5jZSIOQWdlbnQgSW5zdGFuY2UqA2FpbkABSigIAhABIhgKBWFnZW50EgVhZ2VudBoIYWdlbnRfaWQqBAgBGAE6AgEEEkUKC2FnZW50X3NoYXJlEC4aNKr/KzAIARABGgpBZ2VudFNoYXJlIgtBZ2VudCBTaGFyZSoDYXNoOAFAAUoICAIQAToCAQQSTAoNYWdlbnRfY2hhbm5lbBAvGjmq/ys1CAEQARoMQWdlbnRDaGFubmVsIg1BZ2VudCBDaGFubmVsKgNhY2g4AUABSgkIAhABOgMBBAUSRwoLY2hhbm5lbF9hcHAQMBo2qv8rMggBEAEaCkNoYW5uZWxBcHAiC0NoYW5uZWwgQXBwKgVjaGFwcDgBQAFKCAgCEAE6AgEEEkcKCHdvcmtmbG93EDIaOar/KzUIARABGghXb3JrZmxvdyIIV29ya2Zsb3cqA3dmbDABQAFKEggCEAEqCAgBEAEYASABOgIBBBJ+ChF3b3JrZmxvd19pbnN0YW5jZRAzGmeq/ytjCAEQARoQV29ya2Zsb3dJbnN0YW5jZSIRV29ya2Zsb3cgSW5zdGFuY2UqA3dpbkABSjEIAhABIiEKCHdvcmtmbG93Egh3b3JrZmxvdxoLd29ya2Zsb3dfaWQqBAgBGAE6AgEEEpYBChJ3b3JrZmxvd19leGVjdXRpb24QNBp+qv8reggBEAEaEVdvcmtmbG93RXhlY3V0aW9uIhJXb3JrZmxvdyBFeGVjdXRpb24qA3dleEABSkYIAhABIjwKEXdvcmtmbG93X2luc3RhbmNlEhF3b3JrZmxvd19pbnN0YW5jZRoUd29ya2Zsb3dfaW5zdGFuY2VfaWQ6AgEEEkoKC2Vudmlyb25tZW50EDUaOar/KzUIARABGgtFbnZpcm9ubWVudCILRW52aXJvbm1lbnQqA2VudkABSg4IAhABKgIYATABOgIBBBI9CghhcnRpZmFjdBA3Gi+q/ysrCAEQARoIQXJ0aWZhY3QiCEFydGlmYWN0KgNhcnQ4AUABSggIAhABOgIBBBJSChFleGVjdXRpb25fY29udGV4dBA2Gjuq/ys3CAEQARoQRXhlY3V0aW9uQ29udGV4dCIRRXhlY3V0aW9uIENvbnRleHQqBGVjdHhAAUoECAQQARI9CghzY2hlZHVsZRA4Gi+q/ysrCAEQARoIU2NoZWR1bGUiCFNjaGVkdWxlKgNzY2g4AUABSggIAhABOgIBBBJtCgZtZW1vcnkQORphqv8rXQgBEAEaBk1lbW9yeSIGTWVtb3J5KgNtZW04AUABSj4IAhAEIjgKEGlkZW50aXR5X2FjY291bnQSB3N1YmplY3QaG3N1YmplY3RfaWRlbnRpdHlfYWNjb3VudF9pZBI4Cgdwcm9qZWN0EDwaK6r/KycIAxABGgdQcm9qZWN0IgdQcm9qZWN0KgNwcmpAAUoICAIQAToCAQQiBAgxEDEqCWRhdGFzdG9yZTqFAQoJa2luZF9tZXRhEiEuZ29vZ2xlLnByb3RvYnVmLkVudW1WYWx1ZU9wdGlvbnMY9b8FIAEoCzJDLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5hcGlyZXNvdXJjZWtpbmQuQXBpUmVzb3VyY2VLaW5kTWV0YVIIa2luZE1ldGFCG0IZQXBpUmVzb3VyY2VLaW5kT3V0ZXJDbGFzc2IGcHJvdG8z",
-    [
-      file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_group,
-      file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config,
-      file_google_protobuf_descriptor,
-    ],
-  );
+export const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind: GenFile = /*@__PURE__*/
+  fileDesc("CkZhaS9zdGlnbWVyL2NvbW1vbnMvYXBpcmVzb3VyY2UvYXBpcmVzb3VyY2VraW5kL2FwaV9yZXNvdXJjZV9raW5kLnByb3RvEi5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kIswDChNBcGlSZXNvdXJjZUtpbmRNZXRhEk8KBWdyb3VwGAEgASgOMkAuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLmFwaXJlc291cmNla2luZC5BcGlSZXNvdXJjZUdyb3VwElMKB3ZlcnNpb24YAiABKA4yQi5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kLkFwaVJlc291cmNlVmVyc2lvbhIMCgRuYW1lGAMgASgJEhQKDGRpc3BsYXlfbmFtZRgEIAEoCRIRCglpZF9wcmVmaXgYBSABKAkSFAoMaXNfdmVyc2lvbmVkGAYgASgIEhoKEm5vdF9zZWFyY2hfaW5kZXhlZBgHIAEoCBJKCgR0aWVyGAggASgOMjwuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLmFwaXJlc291cmNla2luZC5SZXNvdXJjZVRpZXISWgoNYXV0aG9yaXphdGlvbhgJIAEoCzJDLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5hcGlyZXNvdXJjZWtpbmQuQXV0aG9yaXphdGlvbkNvbmZpZypCChJBcGlSZXNvdXJjZVZlcnNpb24SJAogYXBpX3Jlc291cmNlX3ZlcnNpb25fdW5zcGVjaWZpZWQQABIGCgJ2MRABKl4KDFJlc291cmNlVGllchIdChlyZXNvdXJjZV90aWVyX3Vuc3BlY2lmaWVkEAASDwoLb3Blbl9zb3VyY2UQARIOCgpjbG91ZF9vbmx5EAISDgoKZW50ZXJwcmlzZRADKkEKD1BsYXRmb3JtSWRWYWx1ZRIhCh1wbGF0Zm9ybV9pZF92YWx1ZV91bnNwZWNpZmllZBAAEgsKB3N0aWdtZXIQASqBEgoPQXBpUmVzb3VyY2VLaW5kEh0KGWFwaV9yZXNvdXJjZV9raW5kX3Vua25vd24QABJbChRhcGlfcmVzb3VyY2VfdmVyc2lvbhABGkGq/ys9CAEQARoSQXBpUmVzb3VyY2VWZXJzaW9uIhRBUEkgUmVzb3VyY2UgVmVyc2lvbioDdmVyOAFAAkoECAUQBBI/CgppYW1fcG9saWN5EAoaL6r/KysIAhABGglJYW1Qb2xpY3kiCklBTSBQb2xpY3kqBGlhbXA4AUADSgQIAhABEk4KEGlkZW50aXR5X2FjY291bnQQCxo4qv8rNAgCEAEaD0lkZW50aXR5QWNjb3VudCIQSWRlbnRpdHkgQWNjb3VudCoDaWRhQAJKBAgEEAMSNQoHYXBpX2tleRAMGiiq/yskCAIQARoGQXBpS2V5IgdBUEkgS2V5KgNrZXk4AUABSgQIBBABEj8KCmludml0YXRpb24QFBovqv8rKwgCEAEaCkludml0YXRpb24iCkludml0YXRpb24qA2ludjgBQANKBAgCEAESVwoRaWRlbnRpdHlfcHJvdmlkZXIQFRpAqv8rPAgCEAEaEElkZW50aXR5UHJvdmlkZXIiEUlkZW50aXR5IFByb3ZpZGVyKgNpZHA4AUADSggIAhABOgIBBBJACglvYXV0aF9hcHAQFhoxqv8rLQgCEAEaCE9BdXRoQXBwIglPQXV0aCBBcHAqBG9hcHA4AUABSggIAhABOgIBBBJRCg9wbGF0Zm9ybV9jbGllbnQQFxo8qv8rOAgCEAEaDlBsYXRmb3JtQ2xpZW50Ig9QbGF0Zm9ybSBDbGllbnQqA3BjbDgBQAJKCAgCEAE6AgEEEkkKDG9yZ2FuaXphdGlvbhAeGjeq/yszCAMQARoMT3JnYW5pemF0aW9uIgxPcmdhbml6YXRpb24qA29yZ0ABSgoIBBABOgQBAgMEEjkKCHBsYXRmb3JtEB8aK6r/KycIAxABGghQbGF0Zm9ybSIIUGxhdGZvcm0qA3BsdDgBQANKBAgFEAQSPAoFYWdlbnQQKBoxqv8rLQgBEAEaBUFnZW50IgVBZ2VudCoDYWd0QAFKEggCEAEqCAgBEAEYASABOgIBBBJrCg9hZ2VudF9leGVjdXRpb24QKRpWqv8rUggBEAEaDkFnZW50RXhlY3V0aW9uIg9BZ2VudCBFeGVjdXRpb24qA2FleEABSiQIAxACGh4KB3Nlc3Npb24SB3Nlc3Npb24aCnNlc3Npb25faWQSOAoHc2Vzc2lvbhAqGiuq/ysnCAEQARoHU2Vzc2lvbiIHU2Vzc2lvbioDc2VzQAFKCAgCEAE6AgEEEj4KBXNraWxsECsaM6r/Ky8IARABGgVTa2lsbCIFU2tpbGwqA3NrbDABQAFKEggCEAEqCAgBEAEYASABOgIBBBJKCgptY3Bfc2VydmVyECwaOqr/KzYIARABGglNY3BTZXJ2ZXIiCk1DUCBTZXJ2ZXIqA21jcEABShIIAhABKggIARABGAEgAToCAQQSbAoOYWdlbnRfaW5zdGFuY2UQLRpYqv8rVAgBEAEaDUFnZW50SW5zdGFuY2UiDkFnZW50IEluc3RhbmNlKgNhaW5AAUooCAIQASIYCgVhZ2VudBIFYWdlbnQaCGFnZW50X2lkKgQIARgBOgIBBBJFCgthZ2VudF9zaGFyZRAuGjSq/yswCAEQARoKQWdlbnRTaGFyZSILQWdlbnQgU2hhcmUqA2FzaDgBQAFKCAgCEAE6AgEEEkwKDWFnZW50X2NoYW5uZWwQLxo5qv8rNQgBEAEaDEFnZW50Q2hhbm5lbCINQWdlbnQgQ2hhbm5lbCoDYWNoOAFAAUoJCAIQAToDAQQFEkcKC2NoYW5uZWxfYXBwEDAaNqr/KzIIARABGgpDaGFubmVsQXBwIgtDaGFubmVsIEFwcCoFY2hhcHA4AUABSggIAhABOgIBBBJHCgh3b3JrZmxvdxAyGjmq/ys1CAEQARoIV29ya2Zsb3ciCFdvcmtmbG93KgN3ZmwwAUABShIIAhABKggIARABGAEgAToCAQQSfgoRd29ya2Zsb3dfaW5zdGFuY2UQMxpnqv8rYwgBEAEaEFdvcmtmbG93SW5zdGFuY2UiEVdvcmtmbG93IEluc3RhbmNlKgN3aW5AAUoxCAIQASIhCgh3b3JrZmxvdxIId29ya2Zsb3caC3dvcmtmbG93X2lkKgQIARgBOgIBBBKWAQoSd29ya2Zsb3dfZXhlY3V0aW9uEDQafqr/K3oIARABGhFXb3JrZmxvd0V4ZWN1dGlvbiISV29ya2Zsb3cgRXhlY3V0aW9uKgN3ZXhAAUpGCAIQASI8ChF3b3JrZmxvd19pbnN0YW5jZRIRd29ya2Zsb3dfaW5zdGFuY2UaFHdvcmtmbG93X2luc3RhbmNlX2lkOgIBBBJKCgtlbnZpcm9ubWVudBA1Gjmq/ys1CAEQARoLRW52aXJvbm1lbnQiC0Vudmlyb25tZW50KgNlbnZAAUoOCAIQASoCGAEwAToCAQQSPQoIYXJ0aWZhY3QQNxovqv8rKwgBEAEaCEFydGlmYWN0IghBcnRpZmFjdCoDYXJ0OAFAAUoICAIQAToCAQQSUgoRZXhlY3V0aW9uX2NvbnRleHQQNho7qv8rNwgBEAEaEEV4ZWN1dGlvbkNvbnRleHQiEUV4ZWN1dGlvbiBDb250ZXh0KgRlY3R4QAFKBAgEEAESPQoIc2NoZWR1bGUQOBovqv8rKwgBEAEaCFNjaGVkdWxlIghTY2hlZHVsZSoDc2NoOAFAAUoICAIQAToCAQQSbQoGbWVtb3J5EDkaYar/K10IARABGgZNZW1vcnkiBk1lbW9yeSoDbWVtOAFAAUo+CAIQBCI4ChBpZGVudGl0eV9hY2NvdW50EgdzdWJqZWN0GhtzdWJqZWN0X2lkZW50aXR5X2FjY291bnRfaWQSOAoHcHJvamVjdBA8Giuq/ysnCAMQARoHUHJvamVjdCIHUHJvamVjdCoDcHJqQAFKCAgCEAE6AgEEIgQIMRAxKglkYXRhc3RvcmU6hQEKCWtpbmRfbWV0YRIhLmdvb2dsZS5wcm90b2J1Zi5FbnVtVmFsdWVPcHRpb25zGPW/BSABKAsyQy5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kLkFwaVJlc291cmNlS2luZE1ldGFSCGtpbmRNZXRhQhtCGUFwaVJlc291cmNlS2luZE91dGVyQ2xhc3NiBnByb3RvMw", [file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_group, file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config, file_google_protobuf_descriptor]);
 
 /**
  * Metadata for api-resource-kind
  *
  * @generated from message ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindMeta
  */
-export type ApiResourceKindMeta =
-  Message<"ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindMeta"> & {
-    /**
-     * API resource group
-     *
-     * @generated from field: ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceGroup group = 1;
-     */
-    group: ApiResourceGroup;
+export type ApiResourceKindMeta = Message<"ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindMeta"> & {
+  /**
+   * API resource group
+   *
+   * @generated from field: ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceGroup group = 1;
+   */
+  group: ApiResourceGroup;
 
-    /**
-     * API resource version
-     *
-     * @generated from field: ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceVersion version = 2;
-     */
-    version: ApiResourceVersion;
+  /**
+   * API resource version
+   *
+   * @generated from field: ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceVersion version = 2;
+   */
+  version: ApiResourceVersion;
 
-    /**
-     * Kind name
-     *
-     * @generated from field: string name = 3;
-     */
-    name: string;
+  /**
+   * Kind name
+   *
+   * @generated from field: string name = 3;
+   */
+  name: string;
 
-    /**
-     * Display name
-     *
-     * @generated from field: string display_name = 4;
-     */
-    displayName: string;
+  /**
+   * Display name
+   *
+   * @generated from field: string display_name = 4;
+   */
+  displayName: string;
 
-    /**
-     * Prefix to be used for api-resource metadata.id field
-     *
-     * @generated from field: string id_prefix = 5;
-     */
-    idPrefix: string;
+  /**
+   * Prefix to be used for api-resource metadata.id field
+   *
+   * @generated from field: string id_prefix = 5;
+   */
+  idPrefix: string;
 
-    /**
-     * Flag to indicate if the api-resource-kind is versioned
-     *
-     * @generated from field: bool is_versioned = 6;
-     */
-    isVersioned: boolean;
+  /**
+   * Flag to indicate if the api-resource-kind is versioned
+   *
+   * @generated from field: bool is_versioned = 6;
+   */
+  isVersioned: boolean;
 
-    /**
-     * Flag to indicate if the api-resource-kind is not searchable
-     *
-     * @generated from field: bool not_search_indexed = 7;
-     */
-    notSearchIndexed: boolean;
+  /**
+   * Flag to indicate if the api-resource-kind is not searchable
+   *
+   * @generated from field: bool not_search_indexed = 7;
+   */
+  notSearchIndexed: boolean;
 
-    /**
-     * Defines availability context - whether resource is available in open source or cloud only
-     *
-     * @generated from field: ai.stigmer.commons.apiresource.apiresourcekind.ResourceTier tier = 8;
-     */
-    tier: ResourceTier;
+  /**
+   * The minimum edition that serves this kind (open_source, enterprise or cloud_only).
+   *
+   * @generated from field: ai.stigmer.commons.apiresource.apiresourcekind.ResourceTier tier = 8;
+   */
+  tier: ResourceTier;
 
-    /**
-     * FGA authorization configuration - defines how FGA tuples are created for this resource
-     *
-     * @generated from field: ai.stigmer.commons.apiresource.apiresourcekind.AuthorizationConfig authorization = 9;
-     */
-    authorization?: AuthorizationConfig;
-  };
+  /**
+   * FGA authorization configuration - defines how FGA tuples are created for this resource
+   *
+   * @generated from field: ai.stigmer.commons.apiresource.apiresourcekind.AuthorizationConfig authorization = 9;
+   */
+  authorization?: AuthorizationConfig;
+};
 
 /**
  * Describes the message ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindMeta.
  * Use `create(ApiResourceKindMetaSchema)` to create a new message.
  */
-export const ApiResourceKindMetaSchema: GenMessage<ApiResourceKindMeta> =
-  /*@__PURE__*/
-  messageDesc(
-    file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind,
-    0,
-  );
+export const ApiResourceKindMetaSchema: GenMessage<ApiResourceKindMeta> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind, 0);
 
 /**
  * API resource version.
@@ -142,15 +119,27 @@ export enum ApiResourceVersion {
 /**
  * Describes the enum ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceVersion.
  */
-export const ApiResourceVersionSchema: GenEnum<ApiResourceVersion> =
-  /*@__PURE__*/
-  enumDesc(
-    file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind,
-    0,
-  );
+export const ApiResourceVersionSchema: GenEnum<ApiResourceVersion> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind, 0);
 
 /**
- * Resource tier defines the availability context of a resource
+ * The minimum edition that serves a resource kind.
+ *
+ * Editions are ordered oss < enterprise < cloud because each composes the
+ * previous one's units (ai.stigmer.platform.v1.ServerEdition). A kind
+ * tiered `open_source` is served everywhere; `enterprise` in Enterprise
+ * and Cloud; `cloud_only` in Cloud alone. Clients hide kinds the connected
+ * edition does not serve (the SDK's `isResourceAvailable`).
+ *
+ * A tier states what the edition's server SERVES today, not a plan: a
+ * kind's tier changes in the same change that makes the edition serve it,
+ * so a client never offers a surface the server answers UNIMPLEMENTED to.
+ *
+ * Value names are JSON wire and the conformance suite pins them, so
+ * `cloud_only` keeps its pre-Enterprise name beside `open_source` and
+ * `enterprise`. Value numbers are wire identifiers, not ranks —
+ * `enterprise` was added after `cloud_only` and sits at 3; compare tiers
+ * to editions through an explicit rank, never through these numbers.
  *
  * @generated from enum ai.stigmer.commons.apiresource.apiresourcekind.ResourceTier
  */
@@ -161,29 +150,32 @@ export enum ResourceTier {
   resource_tier_unspecified = 0,
 
   /**
-   * Available in CLI local mode & Cloud
+   * Served by every edition.
    *
    * @generated from enum value: open_source = 1;
    */
   open_source = 1,
 
   /**
-   * Hidden in CLI local mode; Available in Cloud
+   * Served by Stigmer Cloud only.
    *
    * @generated from enum value: cloud_only = 2;
    */
   cloud_only = 2,
+
+  /**
+   * Served by Stigmer Enterprise and Stigmer Cloud.
+   *
+   * @generated from enum value: enterprise = 3;
+   */
+  enterprise = 3,
 }
 
 /**
  * Describes the enum ai.stigmer.commons.apiresource.apiresourcekind.ResourceTier.
  */
-export const ResourceTierSchema: GenEnum<ResourceTier> =
-  /*@__PURE__*/
-  enumDesc(
-    file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind,
-    1,
-  );
+export const ResourceTierSchema: GenEnum<ResourceTier> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind, 1);
 
 /**
  * Platform ID values - defines the singleton platform instance ID
@@ -209,12 +201,8 @@ export enum PlatformIdValue {
 /**
  * Describes the enum ai.stigmer.commons.apiresource.apiresourcekind.PlatformIdValue.
  */
-export const PlatformIdValueSchema: GenEnum<PlatformIdValue> =
-  /*@__PURE__*/
-  enumDesc(
-    file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind,
-    2,
-  );
+export const PlatformIdValueSchema: GenEnum<PlatformIdValue> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind, 2);
 
 /**
  * API resource kinds for Stigmer.
@@ -437,19 +425,12 @@ export enum ApiResourceKind {
 /**
  * Describes the enum ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind.
  */
-export const ApiResourceKindSchema: GenEnum<ApiResourceKind> =
-  /*@__PURE__*/
-  enumDesc(
-    file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind,
-    3,
-  );
+export const ApiResourceKindSchema: GenEnum<ApiResourceKind> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind, 3);
 
 /**
  * @generated from extension: ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindMeta kind_meta = 90101;
  */
-export const kind_meta: GenExtension<EnumValueOptions, ApiResourceKindMeta> =
-  /*@__PURE__*/
-  extDesc(
-    file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind,
-    0,
-  );
+export const kind_meta: GenExtension<EnumValueOptions, ApiResourceKindMeta> = /*@__PURE__*/
+  extDesc(file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind, 0);
+

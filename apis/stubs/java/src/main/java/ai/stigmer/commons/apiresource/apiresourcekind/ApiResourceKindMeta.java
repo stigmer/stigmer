@@ -286,7 +286,7 @@ private static final long serialVersionUID = 0L;
   private int tier_ = 0;
   /**
    * <pre>
-   * Defines availability context - whether resource is available in open source or cloud only
+   * The minimum edition that serves this kind (open_source, enterprise or cloud_only).
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.apiresourcekind.ResourceTier tier = 8 [json_name = "tier"];</code>
@@ -297,7 +297,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Defines availability context - whether resource is available in open source or cloud only
+   * The minimum edition that serves this kind (open_source, enterprise or cloud_only).
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.apiresourcekind.ResourceTier tier = 8 [json_name = "tier"];</code>
@@ -1362,7 +1362,7 @@ private static final long serialVersionUID = 0L;
     private int tier_ = 0;
     /**
      * <pre>
-     * Defines availability context - whether resource is available in open source or cloud only
+     * The minimum edition that serves this kind (open_source, enterprise or cloud_only).
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.apiresourcekind.ResourceTier tier = 8 [json_name = "tier"];</code>
@@ -1373,7 +1373,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Defines availability context - whether resource is available in open source or cloud only
+     * The minimum edition that serves this kind (open_source, enterprise or cloud_only).
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.apiresourcekind.ResourceTier tier = 8 [json_name = "tier"];</code>
@@ -1389,7 +1389,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Defines availability context - whether resource is available in open source or cloud only
+     * The minimum edition that serves this kind (open_source, enterprise or cloud_only).
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.apiresourcekind.ResourceTier tier = 8 [json_name = "tier"];</code>
@@ -1402,7 +1402,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Defines availability context - whether resource is available in open source or cloud only
+     * The minimum edition that serves this kind (open_source, enterprise or cloud_only).
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.apiresourcekind.ResourceTier tier = 8 [json_name = "tier"];</code>
@@ -1418,7 +1418,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Defines availability context - whether resource is available in open source or cloud only
+     * The minimum edition that serves this kind (open_source, enterprise or cloud_only).
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.apiresourcekind.ResourceTier tier = 8 [json_name = "tier"];</code>

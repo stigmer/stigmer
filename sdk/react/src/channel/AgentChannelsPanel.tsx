@@ -127,8 +127,11 @@ export function AgentChannelsPanel({
     "can_edit",
   );
 
-  // Installs are cloud-only; CRUD is not. In local mode the cards render
-  // and toggles work, but connect affordances give way to the notice.
+  // Installs go through the shared platform Slack/WhatsApp apps, a
+  // cloud-only facility (editions program, DD-001); CRUD is not. Outside
+  // Cloud the cards render and toggles work, but connect affordances give
+  // way to the notice. Installs through a customer's own ChannelApp in
+  // Enterprise are that edition's work, not assumed here.
   const installsAvailable = useDeploymentMode() === "cloud";
 
   const { deleteChannel } = useDeleteAgentChannel();

@@ -13,9 +13,11 @@ class ServerEdition(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     server_edition_unspecified: _ClassVar[ServerEdition]
     oss: _ClassVar[ServerEdition]
     cloud: _ClassVar[ServerEdition]
+    enterprise: _ClassVar[ServerEdition]
 server_edition_unspecified: ServerEdition
 oss: ServerEdition
 cloud: ServerEdition
+enterprise: ServerEdition
 
 class GetServerInfoInput(_message.Message):
     __slots__ = ()

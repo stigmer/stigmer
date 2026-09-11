@@ -36,6 +36,34 @@ describe("environmentVisibilityLevels", () => {
   it("collapses to a single read-only level in local mode", () => {
     expect(environmentVisibilityLevels("local")).toHaveLength(1);
   });
+
+  it("offers the cloud shape in enterprise mode — org sharing is an FGA-model question, not a facility", () => {
+    expect(environmentVisibilityLevels("enterprise").map((l) => l.value)).toEqual(
+      environmentVisibilityLevels("cloud").map((l) => l.value),
+    );
+  });
+});
+
+describe("blueprintVisibilityLevels across the three editions", () => {
+  const valuesFor = (deploymentMode: "local" | "enterprise" | "cloud") =>
+    blueprintVisibilityLevels({
+      deploymentMode,
+      hasIdentityProvider: true,
+      canSetPublicVisibility: true,
+    }).map((l) => l.value);
+
+  it("collapses to Private/Public only in local mode", () => {
+    expect(valuesFor("local")).toEqual([
+      ApiResourceVisibility.visibility_private,
+      ApiResourceVisibility.visibility_public,
+    ]);
+  });
+
+  it("enterprise offers exactly what cloud offers — the org, platform and public levels", () => {
+    expect(valuesFor("enterprise")).toEqual(valuesFor("cloud"));
+    expect(valuesFor("enterprise")).toContain(ApiResourceVisibility.visibility_org);
+    expect(valuesFor("enterprise")).toContain(ApiResourceVisibility.visibility_platform);
+  });
 });
 
 describe("operator-gated PUBLIC level", () => {

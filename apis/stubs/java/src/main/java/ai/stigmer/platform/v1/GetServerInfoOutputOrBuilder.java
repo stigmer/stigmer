@@ -12,7 +12,7 @@ public interface GetServerInfoOutputOrBuilder extends
 
   /**
    * <pre>
-   * Server edition (oss or cloud).
+   * Server edition (oss, enterprise or cloud).
    * </pre>
    *
    * <code>.ai.stigmer.platform.v1.ServerEdition edition = 1 [json_name = "edition"];</code>
@@ -21,7 +21,7 @@ public interface GetServerInfoOutputOrBuilder extends
   int getEditionValue();
   /**
    * <pre>
-   * Server edition (oss or cloud).
+   * Server edition (oss, enterprise or cloud).
    * </pre>
    *
    * <code>.ai.stigmer.platform.v1.ServerEdition edition = 1 [json_name = "edition"];</code>

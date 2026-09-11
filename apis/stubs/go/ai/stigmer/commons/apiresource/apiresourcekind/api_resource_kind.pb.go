@@ -71,13 +71,33 @@ func (ApiResourceVersion) EnumDescriptor() ([]byte, []int) {
 	return file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_proto_rawDescGZIP(), []int{0}
 }
 
-// Resource tier defines the availability context of a resource
+// The minimum edition that serves a resource kind.
+//
+// Editions are ordered oss < enterprise < cloud because each composes the
+// previous one's units (ai.stigmer.platform.v1.ServerEdition). A kind
+// tiered `open_source` is served everywhere; `enterprise` in Enterprise
+// and Cloud; `cloud_only` in Cloud alone. Clients hide kinds the connected
+// edition does not serve (the SDK's `isResourceAvailable`).
+//
+// A tier states what the edition's server SERVES today, not a plan: a
+// kind's tier changes in the same change that makes the edition serve it,
+// so a client never offers a surface the server answers UNIMPLEMENTED to.
+//
+// Value names are JSON wire and the conformance suite pins them, so
+// `cloud_only` keeps its pre-Enterprise name beside `open_source` and
+// `enterprise`. Value numbers are wire identifiers, not ranks —
+// `enterprise` was added after `cloud_only` and sits at 3; compare tiers
+// to editions through an explicit rank, never through these numbers.
 type ResourceTier int32
 
 const (
 	ResourceTier_resource_tier_unspecified ResourceTier = 0
-	ResourceTier_open_source               ResourceTier = 1 // Available in CLI local mode & Cloud
-	ResourceTier_cloud_only                ResourceTier = 2 // Hidden in CLI local mode; Available in Cloud
+	// Served by every edition.
+	ResourceTier_open_source ResourceTier = 1
+	// Served by Stigmer Cloud only.
+	ResourceTier_cloud_only ResourceTier = 2
+	// Served by Stigmer Enterprise and Stigmer Cloud.
+	ResourceTier_enterprise ResourceTier = 3
 )
 
 // Enum value maps for ResourceTier.
@@ -86,11 +106,13 @@ var (
 		0: "resource_tier_unspecified",
 		1: "open_source",
 		2: "cloud_only",
+		3: "enterprise",
 	}
 	ResourceTier_value = map[string]int32{
 		"resource_tier_unspecified": 0,
 		"open_source":               1,
 		"cloud_only":                2,
+		"enterprise":                3,
 	}
 )
 
@@ -353,7 +375,7 @@ type ApiResourceKindMeta struct {
 	IsVersioned bool `protobuf:"varint,6,opt,name=is_versioned,json=isVersioned,proto3" json:"is_versioned,omitempty"`
 	// Flag to indicate if the api-resource-kind is not searchable
 	NotSearchIndexed bool `protobuf:"varint,7,opt,name=not_search_indexed,json=notSearchIndexed,proto3" json:"not_search_indexed,omitempty"`
-	// Defines availability context - whether resource is available in open source or cloud only
+	// The minimum edition that serves this kind (open_source, enterprise or cloud_only).
 	Tier ResourceTier `protobuf:"varint,8,opt,name=tier,proto3,enum=ai.stigmer.commons.apiresource.apiresourcekind.ResourceTier" json:"tier,omitempty"`
 	// FGA authorization configuration - defines how FGA tuples are created for this resource
 	Authorization *AuthorizationConfig `protobuf:"bytes,9,opt,name=authorization,proto3" json:"authorization,omitempty"`
@@ -488,12 +510,14 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"\rauthorization\x18\t \x01(\v2C.ai.stigmer.commons.apiresource.apiresourcekind.AuthorizationConfigR\rauthorization*B\n" +
 	"\x12ApiResourceVersion\x12$\n" +
 	" api_resource_version_unspecified\x10\x00\x12\x06\n" +
-	"\x02v1\x10\x01*N\n" +
+	"\x02v1\x10\x01*^\n" +
 	"\fResourceTier\x12\x1d\n" +
 	"\x19resource_tier_unspecified\x10\x00\x12\x0f\n" +
 	"\vopen_source\x10\x01\x12\x0e\n" +
 	"\n" +
-	"cloud_only\x10\x02*A\n" +
+	"cloud_only\x10\x02\x12\x0e\n" +
+	"\n" +
+	"enterprise\x10\x03*A\n" +
 	"\x0fPlatformIdValue\x12!\n" +
 	"\x1dplatform_id_value_unspecified\x10\x00\x12\v\n" +
 	"\astigmer\x10\x01*\x81\x12\n" +
@@ -503,19 +527,19 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"\n" +
 	"iam_policy\x10\n" +
 	"\x1a/\xaa\xff++\b\x02\x10\x01\x1a\tIamPolicy\"\n" +
-	"IAM Policy*\x04iamp8\x01@\x02J\x04\b\x02\x10\x01\x12N\n" +
+	"IAM Policy*\x04iamp8\x01@\x03J\x04\b\x02\x10\x01\x12N\n" +
 	"\x10identity_account\x10\v\x1a8\xaa\xff+4\b\x02\x10\x01\x1a\x0fIdentityAccount\"\x10Identity Account*\x03ida@\x02J\x04\b\x04\x10\x03\x125\n" +
 	"\aapi_key\x10\f\x1a(\xaa\xff+$\b\x02\x10\x01\x1a\x06ApiKey\"\aAPI Key*\x03key8\x01@\x01J\x04\b\x04\x10\x01\x12?\n" +
 	"\n" +
 	"invitation\x10\x14\x1a/\xaa\xff++\b\x02\x10\x01\x1a\n" +
 	"Invitation\"\n" +
-	"Invitation*\x03inv8\x01@\x02J\x04\b\x02\x10\x01\x12W\n" +
-	"\x11identity_provider\x10\x15\x1a@\xaa\xff+<\b\x02\x10\x01\x1a\x10IdentityProvider\"\x11Identity Provider*\x03idp8\x01@\x02J\b\b\x02\x10\x01:\x02\x01\x04\x12@\n" +
-	"\toauth_app\x10\x16\x1a1\xaa\xff+-\b\x02\x10\x01\x1a\bOAuthApp\"\tOAuth App*\x04oapp8\x01@\x02J\b\b\x02\x10\x01:\x02\x01\x04\x12Q\n" +
+	"Invitation*\x03inv8\x01@\x03J\x04\b\x02\x10\x01\x12W\n" +
+	"\x11identity_provider\x10\x15\x1a@\xaa\xff+<\b\x02\x10\x01\x1a\x10IdentityProvider\"\x11Identity Provider*\x03idp8\x01@\x03J\b\b\x02\x10\x01:\x02\x01\x04\x12@\n" +
+	"\toauth_app\x10\x16\x1a1\xaa\xff+-\b\x02\x10\x01\x1a\bOAuthApp\"\tOAuth App*\x04oapp8\x01@\x01J\b\b\x02\x10\x01:\x02\x01\x04\x12Q\n" +
 	"\x0fplatform_client\x10\x17\x1a<\xaa\xff+8\b\x02\x10\x01\x1a\x0ePlatformClient\"\x0fPlatform Client*\x03pcl8\x01@\x02J\b\b\x02\x10\x01:\x02\x01\x04\x12I\n" +
 	"\forganization\x10\x1e\x1a7\xaa\xff+3\b\x03\x10\x01\x1a\fOrganization\"\fOrganization*\x03org@\x01J\n" +
 	"\b\x04\x10\x01:\x04\x01\x02\x03\x04\x129\n" +
-	"\bplatform\x10\x1f\x1a+\xaa\xff+'\b\x03\x10\x01\x1a\bPlatform\"\bPlatform*\x03plt8\x01@\x02J\x04\b\x05\x10\x04\x12<\n" +
+	"\bplatform\x10\x1f\x1a+\xaa\xff+'\b\x03\x10\x01\x1a\bPlatform\"\bPlatform*\x03plt8\x01@\x03J\x04\b\x05\x10\x04\x12<\n" +
 	"\x05agent\x10(\x1a1\xaa\xff+-\b\x01\x10\x01\x1a\x05Agent\"\x05Agent*\x03agt@\x01J\x12\b\x02\x10\x01*\b\b\x01\x10\x01\x18\x01 \x01:\x02\x01\x04\x12k\n" +
 	"\x0fagent_execution\x10)\x1aV\xaa\xff+R\b\x01\x10\x01\x1a\x0eAgentExecution\"\x0fAgent Execution*\x03aex@\x01J$\b\x03\x10\x02\x1a\x1e\n" +
 	"\asession\x12\asession\x1a\n" +

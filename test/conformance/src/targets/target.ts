@@ -5,6 +5,7 @@
 // server is reached (spawned locally vs. an external endpoint), how tenancy is
 // provisioned, and which optional behaviors are available — behind one interface
 // so the suites stay implementation-agnostic.
+import type { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 import type { ConformanceClients } from "../harness/clients";
 import type { McpToolFixture } from "../harness/mcp-server";
 import type { MockLlmProxy } from "../harness/mock-llm";
@@ -380,6 +381,12 @@ export interface PrivilegedScope {
 // A new implementation, should one ever exist, enters as a new TARGET.
 export interface TargetProfile {
   readonly name: string;
+  // The edition the target's composition serves — what the server IS, not a
+  // behavior that may differ (so an identity field, not a CapabilityFlag).
+  // The platform suite asserts getServerInfo answers exactly this: a
+  // composition that lost its edition declaration and fell back to oss must
+  // fail, which a membership check over the known editions would let pass.
+  readonly edition: ServerEdition;
   readonly capabilities: CapabilityFlags;
 
   // Bring the target to a state where clients() can be used. For managed
