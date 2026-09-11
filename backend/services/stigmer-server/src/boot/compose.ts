@@ -323,13 +323,18 @@ export async function composeServer(
     authEnabled || extensions.requireAuthentication !== undefined;
 
   // Stage: identity accounts (20260911.11) — the first domain whose
-  // persistence is a PORT rather than the generic Store: open source's
-  // adapter over `store` here; a composition registers its own driver as
-  // `drivers.identityAccountStore` (the registry point lands with the
-  // slot and the federation capability). The domain's one create path is
+  // persistence is a PORT rather than the generic Store. The composed
+  // driver (`drivers.identityAccountStore`, Q-IA-9) serves when a unit
+  // registers one; otherwise open source's adapter over `store` installs
+  // HERE (the default lives with the consumer, never in the registry).
+  // This ONE binding is what the create path, the provisioner, the
+  // operator ensure and both OSS verifiers read, so a composed driver is
+  // followed everywhere by construction. The domain's one create path is
   // built once and shared by the create RPC, provisioning and the operator
   // ensure below.
-  const identityAccounts = newResourceIdentityAccountStore(store);
+  const identityAccounts =
+    extensions.drivers.identityAccountStore ??
+    newResourceIdentityAccountStore(store);
   const identityAccountPath = {
     accounts: identityAccounts,
     logger,
@@ -882,14 +887,15 @@ export async function composeServer(
       listReadScope: extensions.drivers.listReadScope,
     });
     // IdentityAccount (20260911.11): served once by open source in every
-    // edition over the store PORT built in the storage stage. The
-    // federation capability and the provision slot's gate steps arrive
-    // with the registry points.
+    // edition over the store PORT bound in the identity-accounts stage; a
+    // composition adds what differs per edition through the registry —
+    // the federation capability (the four federated RPC arms) and the
+    // provision slot's gate steps (the cloud's personal organization).
     registerIdentityAccountServices(router, {
       ...identityAccountPath,
       provisioner: identityAccountProvisioner,
-      federation: undefined,
-      provisionPostPersistSteps: [],
+      federation: extensions.drivers.identityFederation,
+      gateSteps: extensions.gateSteps,
     });
     registerEnvironmentServices(router, {
       store,
@@ -1203,9 +1209,9 @@ export async function composeServer(
   //     account domain (20260911.11 Q-IA-2, A6): a provisioned user is
   //     stamped with the account id whichever credential they present,
   //     an unprovisioned one is admitted idp-shaped. They read the SAME
-  //     port the domain writes through (`identityAccounts`, the storage
-  //     stage), so a row provisioning creates resolves on the very next
-  //     request.
+  //     port the domain writes through (`identityAccounts`, the
+  //     identity-accounts stage — a composed driver included), so a row
+  //     provisioning creates resolves on the very next request.
   // The runner's credential in either posture is an operator-minted API
   // token via STIGMER_TOKEN (O3 ruling Q3) — no runner-specific verifier.
   const identityVerifiers = [

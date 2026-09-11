@@ -14,8 +14,10 @@
  * verifiers, status hooks, the O5 driver kinds, and gate-step
  * registrations into the O4-declared slot names — a misspelled slot fails
  * THIS compile via the GateSlotName union), a gate-step body built from
- * the pipeline primitives, the store-fault idiom, and the compose entry
- * itself. It is never executed — the runtime behavior is pinned by the
+ * the pipeline primitives, the store-fault idiom, the 20260911.11
+ * identity-account seams (the store PORT, the federation capability, and
+ * a verifier converging on the exported subject-resolution rule), and the
+ * compose entry itself. It is never executed — the runtime behavior is pinned by the
  * server's own extension suite; execution here would need real
  * infrastructure for no additional proof.
  */
@@ -40,6 +42,8 @@ import {
 import { BillingAccountSchema } from "@stigmer/protos/ai/stigmer/billing/v1/billing_account_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { BillingQueryController } from "@stigmer/protos/ai/stigmer/billing/v1/query_pb";
+import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 
 import {
@@ -48,8 +52,10 @@ import {
   callerIdentityOf,
   composeServer,
   createLogger,
+  DuplicateAccountError,
   EncryptionScope,
   EncryptionUnavailableError,
+  identityIdForSubject,
   InvalidTokenError,
   isRunGateCheck,
   loadConfig,
@@ -81,6 +87,8 @@ import type {
   ChannelRuntime,
   ComposedServer,
   GateSlotName,
+  IdentityAccountStore,
+  IdentityFederation,
   IdentityVerifier,
   MintedToken,
   ModelCatalogProvider,
@@ -146,20 +154,88 @@ const callerGuard: CallerGuard = {
   },
 };
 
-/** A claim-or-pass verifier (the O2 chain-entry shape). */
+/**
+ * A consumer-shaped identity-account store driver (the 20260911.11 seam,
+ * Q-IA-9): the PORT the identity-account domain writes and reads through
+ * when a composition registers one — the cloud's `cloud.iam_identity_account`
+ * store takes this position. `save` is create-only in effect: a held id
+ * raises the exported DuplicateAccountError so the domain's race arms
+ * (provisioning resolves the winner by subject; the create RPC answers
+ * ALREADY_EXISTS) work over a consumer driver exactly as over the OSS one.
+ */
+const consumerIdentityAccountStore: IdentityAccountStore = {
+  save: (account: IdentityAccount) =>
+    Promise.reject(
+      new DuplicateAccountError(
+        `identity account '${account.metadata?.id ?? ""}' already exists`,
+      ),
+    ),
+  update: () => Promise.resolve(),
+  deleteById: () => Promise.resolve(),
+  findById: () => Promise.resolve(undefined),
+  findByIdpId: () => Promise.resolve(undefined),
+  findDirectByIdpId: (idpId: string) =>
+    Promise.resolve(
+      idpId === "consumer|known"
+        ? create(IdentityAccountSchema, {
+            metadata: { id: "ida_consumer" },
+            spec: { idpId },
+          })
+        : undefined,
+    ),
+  findDirectByEmail: () => Promise.resolve(undefined),
+  findByIds: () => Promise.resolve([]),
+};
+
+/**
+ * A claim-or-pass verifier (the O2 chain-entry shape) that resolves its
+ * subject the way both OSS verifiers do — through the exported
+ * identityIdForSubject over the composition's own driver, so a provisioned
+ * subject is stamped with its account id and an unprovisioned one stays
+ * idp-shaped. This is the convergence a composition's own verifier makes
+ * instead of restating the rule (20260911.11 S2 slice 3 ruling).
+ */
 const verifier: IdentityVerifier = {
   name: "consumer-fake",
-  verify: (token) =>
-    Promise.resolve(
-      token.startsWith("fake_")
-        ? {
-            identityId: "ida_consumer",
-            callerClass: "user",
-            issuer: "https://issuer.invalid",
-            rawToken: token,
-          }
-        : null,
-    ),
+  verify: async (token) => {
+    if (!token.startsWith("fake_")) {
+      return null;
+    }
+    const subject = token.slice("fake_".length);
+    return {
+      identityId: await identityIdForSubject(
+        consumerIdentityAccountStore,
+        subject,
+      ),
+      callerClass: "user",
+      issuer: "https://issuer.invalid",
+      rawToken: token,
+    };
+  },
+};
+
+/**
+ * A consumer-shaped identity-federation capability (the 20260911.11 seam,
+ * Q-IA-9): the four federated-account RPC arms the controller dispatches
+ * to after its own shared checks, plus the IdP-exists probe. The arms
+ * receive the RESOLVED reference and the authenticated caller; the
+ * federated natural key and its rows stay on the consumer's own store.
+ */
+const consumerIdentityFederation: IdentityFederation = {
+  createFederatedAccount: (_input, ref, caller) => {
+    void caller.identityId;
+    return Promise.resolve(
+      create(IdentityAccountSchema, {
+        metadata: { id: `ida_federated_${ref.slug}` },
+      }),
+    );
+  },
+  updateFederatedAccount: () => Promise.resolve(create(IdentityAccountSchema)),
+  deprovisionFederatedAccount: () =>
+    Promise.resolve(create(IdentityAccountSchema)),
+  getByExternalSub: () => Promise.resolve(create(IdentityAccountSchema)),
+  providerExists: (org: string, slug: string) =>
+    Promise.resolve(org === "consumer-org" && slug === "consumer-idp"),
 };
 
 /**
@@ -613,6 +689,10 @@ export const fakeExtension: ServerExtension = {
     // The sixth ratified slot (C4): the workflow-execution chains'
     // capacity-gate position.
     ["sandbox-acquisition:gate", [consumerCapacityGateStep()]],
+    // The seventh (20260911.11, Q-IA-9): after the caller's account is
+    // persisted or found inside provisionMyAccount — the cloud's
+    // personal-organization ensure and backfill ride it.
+    ["identity-account-provision:post-persist", [consumerGateStep()]],
   ]),
   statusTransitionHooks: {
     observers: [statusObserver],
@@ -638,6 +718,10 @@ export const fakeExtension: ServerExtension = {
     secretCodecs: new Map([["v2", consumerVaultCodec]]),
     // The stigmer-cloud#572 seam: who a schedule fire acts as.
     scheduleFireCaller: consumerScheduleFireCaller,
+    // The 20260911.11 seams: the identity-account domain served over the
+    // consumer's own store, and the federated arms only it can serve.
+    identityAccountStore: consumerIdentityAccountStore,
+    identityFederation: consumerIdentityFederation,
   },
   services: [registerBillingService],
   workers: [workerFactory],

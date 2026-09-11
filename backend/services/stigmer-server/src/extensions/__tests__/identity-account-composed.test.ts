@@ -446,12 +446,17 @@ describe("identity-account points (composed server, trusted-local: driver + fede
         armCalls.length = 0;
         const answer = await call("acme", ref);
         expect(answer.metadata?.id).toBe(`ida_federated_${name}`);
+        // The caller reaches the arm AS STAMPED at position 1: under the
+        // trusted-local posture that is the operator's email, not the
+        // operator's account id (Q-IA-3 kept the interceptor unchanged so
+        // the `created_by.id` on every existing self-host resource still
+        // names its owner).
         expect(armCalls).toEqual([
           {
             method: name,
             refOrg: "acme",
             refSlug: "okta",
-            callerIdentityId: accountIdFor(`local|${OPERATOR_EMAIL}`),
+            callerIdentityId: OPERATOR_EMAIL,
           },
         ]);
       },

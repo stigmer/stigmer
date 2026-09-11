@@ -67,6 +67,8 @@ import { IdentityAccountQueryController } from "@stigmer/protos/ai/stigmer/iam/i
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
+import { stepsForSlot } from "../../extensions/gate-slots.js";
+import type { ResolvedGateSteps } from "../../extensions/gate-slots.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import type { IdentityFederation } from "../../extensions/identity-federation.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
@@ -74,7 +76,6 @@ import { internalError, invalidArgumentError } from "../../pipeline/errors.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
-import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import {
   newCleanupIamPoliciesStep,
@@ -137,14 +138,8 @@ export interface IdentityAccountControllerDeps extends CreateAccountPathDeps {
   readonly provisioner: DirectAccountProvisioner;
   /** The composed federation capability — undefined = the four RPCs refuse UNIMPLEMENTED. */
   readonly federation: IdentityFederation | undefined;
-  /**
-   * The composed gate steps of `identity-account-provision:post-persist`
-   * (A10; empty in the no-extension composition). The slot's declaration
-   * and the registry read land with the registry points.
-   */
-  readonly provisionPostPersistSteps: ReadonlyArray<
-    PipelineStep<typeof IdentityAccountSchema>
-  >;
+  /** The composed slot registrations — this domain's provision slot (Q-IA-9, A10). */
+  readonly gateSteps: ResolvedGateSteps;
 }
 
 /** Registers both identityaccount services on the router (routes stage). */
@@ -539,10 +534,12 @@ async function lookupThenAuthorize(
  * personal organization) with the caller RE-STAMPED as the account: the
  * position-1 identity was idp-shaped because no row existed when the
  * verifier ran, and a gate that attributes ownership must name the
- * account, never a principal no later request carries. Non-transactional
- * in the `org-create:post-persist` sense: a gate failure fails the
- * request, the row survives, the next call's idempotent early return
- * heals it.
+ * account, never a principal no later request carries. The gates run on
+ * EVERY call, the idempotent early return included — the cloud's step
+ * backfills accounts that predate personal organizations there, which is
+ * why Q-IA-9 chose a slot over onResourceCreated. Non-transactional in
+ * the `org-create:post-persist` sense: a gate failure fails the request,
+ * the row survives, the next call heals it.
  */
 async function provisionMyAccount(
   deps: IdentityAccountControllerDeps,
@@ -566,7 +563,13 @@ async function provisionMyAccount(
     }
     throw error;
   }
-  if (deps.provisionPostPersistSteps.length > 0) {
+  // The ratified provision slot (Q-IA-9; the gate-slots.ts header carries
+  // its semantics). Empty in OSS — no pipeline is built for zero steps.
+  const gates = stepsForSlot<typeof IdentityAccountSchema>(
+    deps.gateSteps,
+    "identity-account-provision:post-persist",
+  );
+  if (gates.length > 0) {
     const asAccount: CallerIdentity = {
       ...caller,
       identityId: account.metadata?.id ?? "",
@@ -581,7 +584,7 @@ async function provisionMyAccount(
       "identityaccount-provision-post-persist",
       deps.logger,
     );
-    for (const step of deps.provisionPostPersistSteps) {
+    for (const step of gates) {
       pipeline.addStep(step);
     }
     await pipeline.build().execute(reqCtx);

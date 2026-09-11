@@ -109,6 +109,17 @@ export type {
 } from "./extensions/resource-authorization.js";
 export type { OrganizationDirectory } from "./extensions/organization-directory.js";
 export { ALL_ORGANIZATIONS } from "./extensions/organization-directory.js";
+// The 20260911.11 identity-account seams (Q-IA-9): the store PORT a
+// composition drives the domain through (drivers.identityAccountStore;
+// a driver throws DuplicateAccountError for a held id), the federation
+// capability (drivers.identityFederation), and the ONE subject →
+// identityId rule both OSS verifiers already apply, exported so a
+// composition's own verifier converges on it instead of restating it.
+export type { IdentityAccountStore } from "./domain/identityaccount/store.js";
+export { DuplicateAccountError } from "./domain/identityaccount/store.js";
+export type { IdentityFederation } from "./extensions/identity-federation.js";
+export type { AccountsBySubject } from "./domain/identityaccount/resolve.js";
+export { identityIdForSubject } from "./domain/identityaccount/resolve.js";
 export type {
   ListReadScope,
   ListEntryMeta,
