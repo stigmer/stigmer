@@ -210,9 +210,15 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # Apple Silicon only. The embedded runner is staged for the build
+          # host (stage-runner-slim.sh), and macos-latest is arm64, so the
+          # former universal target shipped an arm64-only runner inside an
+          # Intel-capable shell. An Intel leg is a second row here on
+          # macos-15-intel; ci-latest-json.mjs already keys macOS bundles by
+          # target triple. See stigmer-cloud 20260912.01 DD-001.
           - platform: macos-latest
-            rust_target: universal-apple-darwin
-            tauri_args: '--target universal-apple-darwin'
+            rust_target: aarch64-apple-darwin
+            tauri_args: '--target aarch64-apple-darwin'
           - platform: ubuntu-22.04
             rust_target: x86_64-unknown-linux-gnu
             tauri_args: ''
@@ -224,6 +230,109 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      # ── macOS code signing and notarization ─────────────────────────────
+      #
+      # Seven repository secrets drive it: APPLE_CERTIFICATE (base64 .p12),
+      # APPLE_CERTIFICATE_PASSWORD, APPLE_SIGNING_IDENTITY, APPLE_TEAM_ID,
+      # APPLE_API_ISSUER, APPLE_API_KEY, APPLE_API_KEY_P8 (base64 .p8). The
+      # scripts under client-apps/desktop/scripts/macos-*.sh do the work and
+      # run identically on a laptop; these steps only move secrets into files
+      # and environment variables.
+      #
+      # Two rules shape the steps. First, all seven or none: with only some
+      # set, Tauri signs and then silently skips notarization (tauri-bundler
+      # notarize_auth warns and continues), and a signed-but-unnotarized DMG is
+      # blocked by Gatekeeper exactly like an unsigned one while looking like
+      # it worked. Second, the APPLE_* variables the build reads are exported
+      # to GITHUB_ENV only when signing is available: tauri-cli treats a
+      # present-but-empty APPLE_SIGNING_IDENTITY as an identity and fails
+      # (interface/rust.rs), so absent means unsigned and present means
+      # signed, never the empty string. APPLE_CERTIFICATE itself is never
+      # handed to Tauri: its keychain import takes the leaf only, and codesign
+      # needs the Developer ID intermediate to build a chain, so the import
+      # script imports chain and leaf and Tauri looks the identity up on the
+      # keychain search list.
+      #
+      # An unsigned macOS build is allowed only on a build-only run. On a
+      # release, missing signing fails the leg (stigmer-cloud 20260912.01
+      # DD-002) so a tag can never regress to shipping the scare-screen DMG.
+      - name: Detect Apple signing availability
+        id: signing
+        if: runner.os == 'macOS'
+        # Secrets are not visible to a step-level `if:`, so presence is
+        # evaluated here and later steps gate on this step's output.
+        env:
+          HAS_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE != '' }}
+          HAS_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD != '' }}
+          HAS_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY != '' }}
+          HAS_TEAM_ID: ${{ secrets.APPLE_TEAM_ID != '' }}
+          HAS_API_ISSUER: ${{ secrets.APPLE_API_ISSUER != '' }}
+          HAS_API_KEY: ${{ secrets.APPLE_API_KEY != '' }}
+          HAS_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 != '' }}
+          SHOULD_RELEASE: ${{ needs.determine-version.outputs.should_release }}
+        run: |
+          set -euo pipefail
+          present=0
+          missing=()
+          for name in CERTIFICATE CERTIFICATE_PASSWORD SIGNING_IDENTITY TEAM_ID API_ISSUER API_KEY API_KEY_P8; do
+            flag="HAS_$name"
+            if [ "${!flag}" = "true" ]; then
+              present=$((present + 1))
+            else
+              missing+=("APPLE_$name")
+            fi
+          done
+          if [ "$present" -eq 7 ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+            echo "Apple signing: all seven secrets present; the build will be signed and notarized."
+          elif [ "$present" -eq 0 ] && [ "$SHOULD_RELEASE" != "true" ]; then
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "Apple signing: no secrets configured; build-only run continues unsigned."
+          elif [ "$present" -eq 0 ]; then
+            echo "::error::Apple signing secrets are not configured. A release never ships an unsigned macOS build; add the seven APPLE_* secrets or run a build-only dispatch."
+            exit 1
+          else
+            echo "::error::Apple signing is PARTIALLY configured ($present/7; missing: ${missing[*]}). Tauri would sign and skip notarization, so refusing to build."
+            exit 1
+          fi
+
+      - name: Import Apple signing certificate
+        if: runner.os == 'macOS' && steps.signing.outputs.available == 'true'
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+        run: |
+          set -euo pipefail
+          P12="$RUNNER_TEMP/certificate.p12"
+          echo -n "$APPLE_CERTIFICATE" | base64 --decode > "$P12"
+          chmod 600 "$P12"
+          client-apps/desktop/scripts/macos-import-signing-keychain.sh "$P12" "$RUNNER_TEMP/stigmer-signing.keychain-db"
+          rm -f "$P12"
+
+      - name: Install Apple notarization key
+        if: runner.os == 'macOS' && steps.signing.outputs.available == 'true'
+        env:
+          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          KEY_PATH="$RUNNER_TEMP/AuthKey_${APPLE_API_KEY}.p8"
+          echo -n "$APPLE_API_KEY_P8" | base64 --decode > "$KEY_PATH"
+          chmod 600 "$KEY_PATH"
+          # From here on every step, tauri-action included, sees the signing
+          # identity and the notarization credentials. Same names Tauri reads.
+          {
+            echo "APPLE_SIGNING_IDENTITY=$APPLE_SIGNING_IDENTITY"
+            echo "APPLE_TEAM_ID=$APPLE_TEAM_ID"
+            echo "APPLE_API_KEY=$APPLE_API_KEY"
+            echo "APPLE_API_ISSUER=$APPLE_API_ISSUER"
+            echo "APPLE_API_KEY_PATH=$KEY_PATH"
+          } >> "$GITHUB_ENV"
 
       - name: Download proto stubs
         uses: actions/download-artifact@v4
@@ -242,7 +351,7 @@ jobs:
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.rust_target == 'universal-apple-darwin' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+          targets: ${{ matrix.rust_target }}
 
       - name: Rust cache
         uses: swatinem/rust-cache@v2
@@ -272,6 +381,9 @@ jobs:
       # the full ~485 MB runner tree into local bundles — or a broken one
       # without dist/node_modules in CI). The runner is not an npm workspace,
       # so its deps install here. @stigmer/protos dist was built by build:libs.
+      # On macOS with APPLE_SIGNING_IDENTITY exported above, the stage script
+      # also code-signs the runner's native binaries: Tauri never signs
+      # Resources/, and the notary rejects a bundle with any unsigned Mach-O.
       - name: Stage embedded runner (slim artifact)
         shell: bash
         run: |
@@ -292,13 +404,11 @@ jobs:
             fs.writeFileSync('tauri.conf.json', JSON.stringify(conf, null, 2) + '\n');
           "
 
-      # TODO: Re-enable macOS code signing once APPLE_CERTIFICATE and related
-      # secrets are properly configured. Setting APPLE_CERTIFICATE to any
-      # non-empty value causes tauri-action to attempt keychain import, which
-      # fails if the certificate is invalid.
       # Upload this platform's signed bundles to the shared draft release.
       # includeUpdaterJson is disabled: latest.json is assembled once in the
-      # publish job to avoid the parallel read-modify-write race.
+      # publish job to avoid the parallel read-modify-write race. On macOS the
+      # APPLE_* variables arrive through GITHUB_ENV (see the signing steps
+      # above), so this env block is the same on every platform.
       - name: Build and upload (release)
         if: needs.determine-version.outputs.should_release == 'true'
         uses: tauri-apps/tauri-action@v0
@@ -312,6 +422,59 @@ jobs:
           includeUpdaterJson: false
           retryAttempts: 3
           args: ${{ matrix.tauri_args }}
+
+      - name: Build only (no release)
+        if: needs.determine-version.outputs.should_release != 'true'
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          projectPath: client-apps/desktop
+          includeUpdaterJson: false
+          args: ${{ matrix.tauri_args }}
+
+      # Tauri notarizes and staples the .app and signs the DMG, but never
+      # notarizes the DMG container; a first-time download is the DMG. The
+      # script submits it, staples it, and then proves the whole artifact with
+      # Gatekeeper's own checks, so this step passing means "a Mac opens it".
+      # Stapling changes the bytes, and tauri-action has already uploaded the
+      # pre-staple DMG on the release path, so the stapled one replaces it.
+      - name: Locate macOS bundles
+        id: bundles
+        if: runner.os == 'macOS'
+        run: |
+          set -euo pipefail
+          BUNDLE_DIR="client-apps/desktop/src-tauri/target/${{ matrix.rust_target }}/release/bundle"
+          shopt -s nullglob
+          dmgs=("$BUNDLE_DIR"/dmg/*.dmg)
+          [ "${#dmgs[@]}" -eq 1 ] || { echo "::error::expected exactly one DMG under $BUNDLE_DIR/dmg, found ${#dmgs[@]}"; exit 1; }
+          echo "dmg=${dmgs[0]}" >> "$GITHUB_OUTPUT"
+          echo "app=$BUNDLE_DIR/macos/Stigmer.app" >> "$GITHUB_OUTPUT"
+
+      - name: Notarize, staple and verify the DMG
+        if: runner.os == 'macOS' && steps.signing.outputs.available == 'true'
+        run: |
+          client-apps/desktop/scripts/macos-notarize-dmg.sh \
+            "${{ steps.bundles.outputs.dmg }}" "${{ steps.bundles.outputs.app }}"
+
+      - name: Replace the release DMG with the stapled one
+        if: runner.os == 'macOS' && steps.signing.outputs.available == 'true' && needs.determine-version.outputs.should_release == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.determine-version.outputs.version }}
+        run: gh release upload "$TAG" "${{ steps.bundles.outputs.dmg }}" --clobber
+
+      # Build-only runs have no release to upload to; the DMG rides as a
+      # workflow artifact so it can be opened on a Mac before a tag is cut.
+      - name: Upload macOS DMG artifact
+        if: runner.os == 'macOS' && needs.determine-version.outputs.should_release != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-macos-dmg
+          path: ${{ steps.bundles.outputs.dmg }}
+          retention-days: 7
 
       - name: Build updater fragment
         if: needs.determine-version.outputs.should_release == 'true'
@@ -331,18 +494,6 @@ jobs:
           name: updater-fragment-${{ matrix.platform }}
           path: updater-fragment-${{ matrix.platform }}.json
           retention-days: 1
-
-      - name: Build only (no release)
-        if: needs.determine-version.outputs.should_release != 'true'
-        uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        with:
-          projectPath: client-apps/desktop
-          includeUpdaterJson: false
-          args: ${{ matrix.tauri_args }}
 
   # Merge every platform's updater fragment into a single latest.json, attach it
   # to the release, then flip the draft to published. This is the single writer
