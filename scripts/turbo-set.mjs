@@ -34,8 +34,13 @@
  *   - `libs test` runs with --concurrency=1. The ten suites already fan out
  *     across cores inside vitest, and the react suite raised its timeouts for
  *     CI load once (sdk/react/vitest.config.ts); running ten vitest processes
- *     at once on a 4-core runner would trade wall time for flakes. Serial is
- *     today's behavior; raising it is a measurement for the CI stage.
+ *     at once on a 4-core runner would trade wall time for flakes. Measured
+ *     on ubuntu-latest, 2026-09-11 (stigmer-cloud project 20260904.04, T01_6):
+ *     the full set takes 5:07 / 5:34 / 5:17 at 1, 3:52 / 5:14 / 5:17 at 2,
+ *     5:10 at 4. The react suite alone is ~309 s of that and already uses
+ *     every core, so the other nine suites finish under it whatever the cap;
+ *     1 stays, and the lever is the react suite itself. A caller's own
+ *     --concurrency replaces this default (turbo refuses a repeated flag).
  *   - Telemetry is off (owner ruling D3, 2026-09-10): Turborepo reports
  *     anonymous usage to Vercel by default from every machine and runner, and
  *     the only switches are per machine or this variable. Setting it here
