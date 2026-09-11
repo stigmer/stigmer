@@ -13,8 +13,20 @@
  *                scripts/verify-esm-node.mjs uses "so the two never drift").
  *   runner-deps  the workspace libs the standalone runner and stigmer-server
  *                link with `file:` (their own package.json is the truth; the
- *                comment in ci.ts-libs.yaml used to ask humans to keep a copy
- *                in step by hand).
+ *                retired ci.ts-libs lane used to ask humans to keep a copy in
+ *                step by hand).
+ *   workspace    every member of the root package.json `workspaces` list, in
+ *                that order. The CI lane runs `typecheck` and `lint` over it,
+ *                and names web or desktop out of it for their test suites.
+ *
+ * `--only=<name,...>` narrows a set to the named packages (the intersection,
+ * in the set's order). It is how the CI lane runs a set over exactly the
+ * packages its gate found affected (scripts/turbo-affected.mjs): the set
+ * still says what the task means, the list says how much of it applies. A
+ * name that is not a workspace member is refused rather than ignored, because
+ * a misspelt name that silently selected nothing would make a green job that
+ * ran no tests. An empty intersection is not an error: the wrapper says so
+ * and exits 0, since "nothing in this set changed" is a normal CI outcome.
  *
  * Task edges, outputs and cache inputs live in turbo.json; this script only
  * chooses the packages and the flags that belong to a set:
@@ -22,8 +34,13 @@
  *   - `libs test` runs with --concurrency=1. The ten suites already fan out
  *     across cores inside vitest, and the react suite raised its timeouts for
  *     CI load once (sdk/react/vitest.config.ts); running ten vitest processes
- *     at once on a 4-core runner would trade wall time for flakes. Serial is
- *     today's behavior; raising it is a measurement for the CI stage.
+ *     at once on a 4-core runner would trade wall time for flakes. Measured
+ *     on ubuntu-latest, 2026-09-11 (stigmer-cloud project 20260904.04, T01_6):
+ *     the full set takes 5:07 / 5:34 / 5:17 at 1, 3:52 / 5:14 / 5:17 at 2,
+ *     5:10 at 4. The react suite alone is ~309 s of that and already uses
+ *     every core, so the other nine suites finish under it whatever the cap;
+ *     1 stays, and the lever is the react suite itself. A caller's own
+ *     --concurrency replaces this default (turbo refuses a repeated flag).
  *   - Telemetry is off (owner ruling D3, 2026-09-10): Turborepo reports
  *     anonymous usage to Vercel by default from every machine and runner, and
  *     the only switches are per machine or this variable. Setting it here
@@ -35,13 +52,14 @@
  * sdk/react/scripts/build-styles.ts invokes the Tailwind CLI that way).
  *
  * Usage:
- *   node scripts/turbo-set.mjs <set> <task> [turbo flags...]
+ *   node scripts/turbo-set.mjs <set> <task> [--only=<name,...>] [turbo flags...]
  *   node scripts/turbo-set.mjs libs build
  *   node scripts/turbo-set.mjs libs build --force        # bypass the cache
  *   node scripts/turbo-set.mjs runner-deps build
+ *   node scripts/turbo-set.mjs libs test --only=@stigmer/sdk,@stigmer/react
  *
- * Every extra argument is handed to `turbo run` unchanged, so
- * `npm run build:libs -- --dry-run` works.
+ * Every extra argument other than --only is handed to `turbo run` unchanged,
+ * so `npm run build:libs -- --dry-run` works.
  */
 
 import { spawnSync } from "node:child_process";
@@ -97,9 +115,21 @@ export function runnerLinkedSet(
   return [...names].sort();
 }
 
+/**
+ * Package names of every root `workspaces` member, in the root's order. The
+ * root manifest is the one list npm itself reads, so a member added there is
+ * in this set with no second edit.
+ */
+export function workspaceSet(rootDir = root) {
+  return readManifest(rootDir, "package.json").workspaces.map(
+    (relDir) => readManifest(rootDir, join(relDir, "package.json")).name,
+  );
+}
+
 export const SETS = {
   libs: libsSet,
   "runner-deps": runnerLinkedSet,
+  workspace: workspaceSet,
 };
 
 /** Resolve a set name to package names, or throw with the valid names. */
@@ -113,25 +143,83 @@ export function resolveSet(set, rootDir = root) {
   return resolver(rootDir);
 }
 
+const ONLY_FLAG = /^--only(?:=(.*))?$/;
+
 /**
- * The argument list for `turbo run`: the task, one --filter per package in
- * the set, the set's own flags, then whatever the caller appended.
+ * Split `--only=<name,...>` out of the caller's flags. Repeated flags merge;
+ * `--only` with no names is a usage error, not "everything". Returns
+ * `{ only: null, rest }` when the flag is absent.
+ */
+export function splitOnly(extra) {
+  let only = null;
+  const rest = [];
+  for (const arg of extra) {
+    const match = ONLY_FLAG.exec(arg);
+    if (!match) {
+      rest.push(arg);
+      continue;
+    }
+    const names = (match[1] ?? "")
+      .split(",")
+      .map((name) => name.trim())
+      .filter(Boolean);
+    if (names.length === 0) {
+      throw new Error(
+        "turbo-set: --only needs at least one package name (--only=<name,...>)",
+      );
+    }
+    only = [...(only ?? []), ...names];
+  }
+  return { only, rest };
+}
+
+/**
+ * The packages a run covers: the whole set, or its intersection with `only`
+ * in the set's order. Every `only` name must be a workspace member; an
+ * unknown name is refused so a typo cannot select nothing and pass.
+ */
+export function selectPackages(set, only = null, rootDir = root) {
+  const members = resolveSet(set, rootDir);
+  if (only === null) return members;
+  const workspace = new Set(workspaceSet(rootDir));
+  const unknown = only.filter((name) => !workspace.has(name));
+  if (unknown.length > 0) {
+    throw new Error(
+      `turbo-set: --only names ${unknown.map((n) => `"${n}"`).join(", ")}, ` +
+        "which is not a workspace package.",
+    );
+  }
+  const wanted = new Set(only);
+  return members.filter((name) => wanted.has(name));
+}
+
+/**
+ * The argument list for `turbo run`: the task, one --filter per selected
+ * package, the set's own flags, then whatever the caller appended. Returns
+ * `null` when `--only` leaves nothing in the set: there is no turbo command
+ * that means "run this task over no packages" (no filter at all would mean
+ * every package), so the caller must treat null as "nothing to run".
  */
 export function turboArgs(set, task, extra = [], rootDir = root) {
   if (!task || task.startsWith("-")) {
     throw new Error(
-      "turbo-set: usage: turbo-set.mjs <set> <task> [turbo flags...]",
+      "turbo-set: usage: turbo-set.mjs <set> <task> [--only=<name,...>] [turbo flags...]",
     );
   }
-  const args = [
-    "run",
-    task,
-    ...resolveSet(set, rootDir).map((name) => `--filter=${name}`),
-  ];
-  if (set === "libs" && task === "test") {
+  const { only, rest } = splitOnly(extra);
+  const packages = selectPackages(set, only, rootDir);
+  if (packages.length === 0) return null;
+  const args = ["run", task, ...packages.map((name) => `--filter=${name}`)];
+  // The set's flags are defaults: a caller who passes the same flag means
+  // it (turbo refuses a repeated flag outright).
+  if (set === "libs" && task === "test" && !hasFlag(rest, "--concurrency")) {
     args.push("--concurrency=1");
   }
-  return [...args, ...extra];
+  return [...args, ...rest];
+}
+
+function hasFlag(args, flag) {
+  return args.some((arg) => arg === flag || arg.startsWith(`${flag}=`));
 }
 
 /** The environment turbo runs with: the caller's, plus telemetry off (D3). */
@@ -185,7 +273,7 @@ function main(argv) {
   const [set, task, ...extra] = argv;
   if (!set) {
     console.error(
-      "turbo-set: usage: turbo-set.mjs <set> <task> [turbo flags...]",
+      "turbo-set: usage: turbo-set.mjs <set> <task> [--only=<name,...>] [turbo flags...]",
     );
     console.error(`  sets: ${Object.keys(SETS).join(", ")}`);
     return 2;
@@ -196,6 +284,12 @@ function main(argv) {
   } catch (error) {
     console.error(error.message);
     return 2;
+  }
+  if (args === null) {
+    console.log(
+      `turbo-set: no package of the "${set}" set is in --only; nothing to run for "${task}".`,
+    );
+    return 0;
   }
   console.log(`  $ turbo ${args.join(" ")}`);
   const result = runTurbo(args);

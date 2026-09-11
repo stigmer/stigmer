@@ -43,6 +43,16 @@ on:
       - "backend/services/runner/**"
       - "apis/stubs/ts/**"
       - "backend/libs/ts/**"
+      # `make build-runner-deps` goes through the root `build:runner-deps`
+      # script: the turbo wrapper, its task graph and the set it resolves
+      # from. A change to any of them must exercise this lane (2026-09-11,
+      # stigmer-cloud project 20260904.04 D-S6c: the Stage B merge reached
+      # main without this lane running).
+      - "package.json"
+      - "package-lock.json"
+      - "turbo.json"
+      - "scripts/turbo-set.mjs"
+      - "scripts/publish-libs.mjs"
       - "Makefile"
       - ".github/workflows/ci.runner.yaml"
   push:
@@ -51,6 +61,16 @@ on:
       - "backend/services/runner/**"
       - "apis/stubs/ts/**"
       - "backend/libs/ts/**"
+      # `make build-runner-deps` goes through the root `build:runner-deps`
+      # script: the turbo wrapper, its task graph and the set it resolves
+      # from. A change to any of them must exercise this lane (2026-09-11,
+      # stigmer-cloud project 20260904.04 D-S6c: the Stage B merge reached
+      # main without this lane running).
+      - "package.json"
+      - "package-lock.json"
+      - "turbo.json"
+      - "scripts/turbo-set.mjs"
+      - "scripts/publish-libs.mjs"
       - "Makefile"
       - ".github/workflows/ci.runner.yaml"
 

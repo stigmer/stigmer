@@ -73,6 +73,8 @@ npm run typecheck -w @stigmer/sdk
 
 The root scripts run through [Turborepo](https://turborepo.dev) (`turbo.json` is the task graph). A build whose inputs have not changed is restored from the local cache in `.turbo/` instead of recompiled, and a test run is replayed from its log; pass `--force` to run anyway (`npm run build:libs -- --force`). Delete `.turbo/` to reclaim the space. Turborepo's anonymous telemetry is switched off by the wrapper the root scripts use (`scripts/turbo-set.mjs`).
 
+CI (`.github/workflows/ci.ts-workspace.yaml`) runs the same task graph over the packages your change reaches: its first job asks `turbo query affected` which packages changed or depend on one that did, and the other jobs build, typecheck, lint and test exactly those (a change to the root manifests, `scripts/**` or the lane's own file runs everything). To see what a branch would run before pushing: `node scripts/turbo-affected.mjs --base origin/main`. To run one of the lane's steps over a subset yourself: `node scripts/turbo-set.mjs libs test --only=@stigmer/sdk`.
+
 **Requirements**:
 - Node.js 22 (the version in the repo's `.nvmrc`; `nvm use` picks it up)
 - npm, the version bundled with that Node (named by `packageManager` in the root `package.json`). npm is the workspace's only package manager; yarn is used only inside `site/`, which is a separate project.

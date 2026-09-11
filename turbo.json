@@ -107,6 +107,17 @@
       "outputs": [],
       "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/test/fixtures/tool-view/**"]
     },
+    // The browser-mode suite (vitest.a11y.config.ts: a11y audits, layout
+    // contracts, pixel work in a real Chromium). It renders against react's
+    // OWN dist/styles.css, the shipped stylesheet, so it waits on react's build
+    // (which waits on ^build). Default inputs: the one out-of-package read in
+    // this package (test/fixtures/tool-view) belongs to the default suite, and
+    // scripts/turbo-inputs.test.mjs checks each react test file against the
+    // suite its glob puts it in.
+    "@stigmer/react#test:a11y": {
+      "dependsOn": ["build"],
+      "outputs": []
+    },
     // The conformance suite boots a server (and, on its execution targets,
     // Temporal and a runner); the e2e suite drives a browser against a stack.
     // Their outcome is a property of the infrastructure they ran against, not

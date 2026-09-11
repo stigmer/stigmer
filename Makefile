@@ -663,8 +663,12 @@ lint-desktop: ## Lint desktop app (TypeScript)
 typecheck-desktop: ## Typecheck desktop app (TypeScript)
 	npm run typecheck -w desktop
 
-verify-desktop: lint-desktop typecheck-desktop ## Lint + typecheck desktop (TS + Rust)
+# Its own target so the CI lane can run the Rust check alone: lint and
+# typecheck reach it there as turbo tasks over the affected packages.
+check-desktop-rust: ## Type-check the Tauri shell's Rust crate
 	cd client-apps/desktop/src-tauri && cargo check --quiet
+
+verify-desktop: lint-desktop typecheck-desktop check-desktop-rust ## Lint + typecheck desktop (TS + Rust)
 
 test-desktop: ## Run desktop app component tests (Vitest)
 	npm run test -w desktop
@@ -801,7 +805,8 @@ check-go: ## check bucket: Go build/vet/test over every go.work module + buf lin
 	done
 check-node: ## check bucket: npm typecheck/lint/build/test (web, react, sdk, desktop, runner, demos, e2e)
 	npm run typecheck -w @stigmer/sdk
-	# The conformance package's typecheck (the same step ci.ts-sdk runs): it
+	# The conformance package's typecheck (ci.ts-workspace runs it as the
+	# turbo `typecheck` task whenever the package is affected): it
 	# compiles mcp-server and sdk source under its own stricter options, so
 	# it can be red while both packages' own typechecks are green (#999).
 	npm run typecheck -w @stigmer/conformance

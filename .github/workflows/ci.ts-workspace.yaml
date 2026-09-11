@@ -1,0 +1,360 @@
+# =============================================================================
+# The TypeScript workspace lane: build, typecheck, lint and test whatever a
+# change reaches, decided by the Turborepo task graph
+# =============================================================================
+# One lane for the npm workspace (the TS counterpart of ci.go-sdk and
+# ci.java-sdk: one lane per language, where that language compiles). It
+# replaced three lanes on 2026-09-11 (stigmer-cloud project 20260904.04,
+# Stage B): ci.ts-libs (backend/libs/ts), ci.ts-sdk (the SDK typecheck gate)
+# and ci.frontend (SDK and client-app tests). Each of those carried a
+# hand-written `paths:` list that approximated the package graph and said so
+# in its comments ("sdk/react consumes @stigmer/theme workspace source, so a
+# theme change can break react's typecheck without touching sdk/react/**").
+# Turborepo derives that graph from the manifests, so this lane has no
+# `paths:` at all: it runs on every pull request and push, and its first job
+# asks turbo which packages the change reaches.
+#
+# How the jobs are cut: by TASK, not by package group. `libs` builds and tests
+# the publishable @stigmer/* packages (the set publish-libs.mjs publishes);
+# `verify` typechecks and lints every affected package; three jobs run the
+# suites that need their own runner shape (a real Chromium, the web console,
+# the desktop shell); `typecheck-clean-room` is the one job that is not about
+# the diff at all (below). No package is tested twice in one run.
+#
+# The gate (`changes`) runs scripts/turbo-affected.mjs, which asks
+# `turbo query affected --tasks ...`: task-level, so a change to a fixture a
+# suite reads from outside its package (turbo.json widens those `inputs`)
+# re-runs that suite, where package-level `--affected` would run nothing. Its
+# answer is a package list the other jobs hand to scripts/turbo-set.mjs as
+# `--only`; turbo builds the dependencies (`^build`) itself. Three cases run
+# everything, because turbo cannot see the change: a manual dispatch; a change
+# to this file or to the workspace tooling (root manifests, scripts/**); an
+# SCM fallback, which also prints a warning. The job summary shows base, head
+# and turbo's reason per task, so a skipped job can be trusted from the PR.
+# It is the only job that needs git history: a full commit graph without
+# blobs (`filter: blob:none`), since `git diff --name-only` reads trees.
+#
+# Skipped, not absent: a job whose packages did not change reports
+# conclusion "skipped", which branch protection accepts (the shape ci.docs'
+# `changes` job established when the noop twin retired, #709).
+#
+# --- The SDK typecheck gate's history (moved here from ci.ts-sdk) ------------
+# ci.ts-sdk was created after the #607/#628 incident: a fresh checkout showed
+# 477 tsc errors in sdk/typescript because an upstream @bufbuild/protobuf
+# publish split the workspace into two protobuf-es copies whose branded types
+# don't unify, and NO lane could see it. vitest doesn't typecheck (395 tests
+# passed green against the broken types), and a build against the tracked
+# package-lock.json can never reproduce the drift: it only exists on installs
+# that RE-RESOLVE caret ranges, the integrator fresh-clone path. Two failure
+# classes, two homes:
+#   - locked resolution: `npm ci`, then tsc on the shipping config (turbo
+#     `build` emits from tsconfig.build.json, a superset of a --noEmit pass)
+#     and on tsconfig.json (turbo `typecheck`; the only config that includes
+#     the test files, which mcp-server/ink/cli once had typechecked by NO
+#     lane). Deterministic. Today: the `libs` and `verify` jobs.
+#   - clean-room resolution: `npm install` with the lockfile REMOVED, then
+#     tsc on the build configs. The only job in the fleet that can catch the
+#     #628 class before it ships. Today: `typecheck-clean-room`, below.
+# The conformance package typechecks mcp-server (and, through it, sdk) SOURCE
+# under its own stricter options, so a guard-free indexed read in either
+# fails there even when both packages' own typechecks pass; before #999 no
+# lane ran it and 19 errors accumulated on main unseen. It is a workspace
+# member with a `typecheck` script, so `verify` reaches it through the graph.
+# Issue #1044 (react importing a sibling's devDependency) is each package's
+# own devDependencies discipline: npm hoists, so no install-shaped job can
+# see that class.
+#
+# @stigmer/protos exports ./dist (everything else exports src in dev); its
+# dist is never committed, so every job that needs it builds it, which turbo
+# does through `^build`.
+# =============================================================================
+
+name: ci.ts-workspace
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+concurrency:
+  group: ci-ts-workspace-${{ github.head_ref || github.ref }}
+  # PR pushes cancel superseded runs; main pushes queue instead, so every
+  # merge gets a completed, attributable run (stigmer/stigmer#725).
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
+env:
+  # Make installs resilient to transient registry drops (ECONNRESET): npm
+  # reads these npm_config_* vars, so every install step retries with backoff
+  # instead of failing the job on the first dropped download.
+  npm_config_fetch_retries: "5"
+  npm_config_fetch_retry_factor: "2"
+  npm_config_fetch_retry_mintimeout: "20000"
+  npm_config_fetch_retry_maxtimeout: "120000"
+  # Turborepo reports anonymous usage to Vercel by default; off everywhere
+  # this lane runs turbo (owner ruling D3, 2026-09-10; the wrapper sets it
+  # too, this covers any direct call).
+  TURBO_TELEMETRY_DISABLED: "1"
+
+jobs:
+  # Which packages does this change reach? See the header. Also runs the root
+  # scripts' own tests: they are this lane's tooling (the gate, the wrapper,
+  # the ESM gate, the routing gate), a `scripts/**` change is one of the
+  # run-everything cases, and no package's suite covers them.
+  changes:
+    name: Detect affected packages
+    runs-on: ubuntu-latest
+    outputs:
+      packages: ${{ steps.verdict.outputs.packages }}
+      libs: ${{ steps.verdict.outputs.libs }}
+      everything: ${{ steps.verdict.outputs.everything }}
+    steps:
+      - name: Checkout (full history, no blobs)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          filter: blob:none
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: npm
+
+      - name: Install dependencies (npm ci, tracked lockfile)
+        run: npm ci
+
+      # One root test (verify-docs-tour-parity) imports the tour fixtures,
+      # which import @stigmer/protos from its dist; the root `test` script
+      # has the same order (build:libs first) implicitly.
+      - name: Build @stigmer/protos dist
+        run: node scripts/turbo-set.mjs libs build --only=@stigmer/protos
+
+      - name: Root script tests
+        run: node --test scripts/*.test.mjs
+
+      - name: Verdict
+        id: verdict
+        run: node scripts/turbo-affected.mjs
+
+  # The publishable @stigmer/* packages: build (tsconfig.build.json, what
+  # ships), then their unit suites, then the Node-ESM gate over the dists
+  # that were rebuilt (regression lock for #209: a dist that ships an
+  # extension-less relative specifier crashes under plain Node ESM).
+  libs:
+    name: Libs build + tests
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.libs == 'true'
+    env:
+      AFFECTED: ${{ join(fromJSON(needs.changes.outputs.packages), ',') }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: npm
+
+      - name: Install dependencies (npm ci, tracked lockfile)
+        run: npm ci
+
+      - name: Build
+        run: node scripts/turbo-set.mjs libs build --only="$AFFECTED"
+
+      - name: Verify Node-ESM output
+        run: node scripts/verify-esm-node.mjs --only="$AFFECTED"
+
+      - name: Tests
+        run: node scripts/turbo-set.mjs libs test --only="$AFFECTED"
+
+  # Every affected package's tsconfig.json pass (the one config that includes
+  # its test files) and eslint where a package has one, then the gates that
+  # are not turbo tasks: the web routing gate (client-apps/web/nginx.conf
+  # against the static export), the Scenar tours (determinism, DD-006;
+  # timeline shape; docs embed-id resolution — also wired in ci.docs for the
+  # docs half of that contract), and the desktop shell's Rust crate.
+  verify:
+    name: Lint + Typecheck
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.packages != '[]'
+    env:
+      AFFECTED: ${{ join(fromJSON(needs.changes.outputs.packages), ',') }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: npm
+
+      - name: Install dependencies (npm ci, tracked lockfile)
+        run: npm ci
+
+      - name: Typecheck
+        run: node scripts/turbo-set.mjs workspace typecheck --only="$AFFECTED"
+
+      - name: Lint
+        run: node scripts/turbo-set.mjs workspace lint --only="$AFFECTED"
+
+      - name: Verify web routing
+        if: contains(fromJSON(needs.changes.outputs.packages), 'web')
+        run: make verify-web-routing
+
+      - name: Verify Scenar tours
+        if: contains(fromJSON(needs.changes.outputs.packages), '@stigmer/demos')
+        run: node scripts/verify-scenar-tours.mjs
+
+      # continue-on-error since the desktop lane existed: the runner lacks
+      # Tauri's system packages. Recorded on the project's open list.
+      - name: Check desktop Rust crate
+        if: contains(fromJSON(needs.changes.outputs.packages), 'desktop')
+        run: make check-desktop-rust
+        continue-on-error: true
+
+  # Browser-mode suites (sdk/react/vitest.a11y.config.ts): the workspace-panel
+  # a11y audit (DD-22) plus layout-contract regressions (*.layout.test.tsx,
+  # e.g. the provider container's sizing contract, #260/DD-019) — both need a
+  # real Chromium for layout/paint that happy-dom cannot evaluate. The task
+  # waits on react's own build: the suites render against dist/styles.css,
+  # the SHIPPED stylesheet (DD-21).
+  a11y-audit:
+    name: Browser Suite (A11y Audit + Layout Contracts)
+    runs-on: ubuntu-latest
+    needs: changes
+    if: contains(fromJSON(needs.changes.outputs.packages), '@stigmer/react')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: npm
+
+      - name: Install dependencies (npm ci, tracked lockfile)
+        run: npm ci
+
+      - name: Install Chromium for Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Run browser-mode suites
+        run: node scripts/turbo-set.mjs workspace test:a11y --only=@stigmer/react
+
+  web-tests:
+    name: Web Console Tests
+    runs-on: ubuntu-latest
+    needs: changes
+    if: contains(fromJSON(needs.changes.outputs.packages), 'web')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: npm
+
+      - name: Install dependencies (npm ci, tracked lockfile)
+        run: npm ci
+
+      - name: Run web console tests
+        run: node scripts/turbo-set.mjs workspace test --only=web
+
+  desktop-tests:
+    name: Desktop App Tests
+    runs-on: ubuntu-latest
+    needs: changes
+    if: contains(fromJSON(needs.changes.outputs.packages), 'desktop')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: npm
+
+      - name: Install dependencies (npm ci, tracked lockfile)
+        run: npm ci
+
+      - name: Run desktop app tests
+        run: node scripts/turbo-set.mjs workspace test --only=desktop
+
+  # Fresh resolution, deliberately outside turbo: the lockfile is deleted
+  # before the install, so the package graph turbo hashes from is the thing
+  # this job throws away. Gated on a publishable lib being affected (what
+  # ci.ts-sdk's `paths:` did, widened): the drift it catches is upstream's,
+  # but a run per SDK change is the cadence that has caught it so far.
+  typecheck-clean-room:
+    name: typecheck (clean-room resolution)
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.libs == 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # No `cache: npm` here on purpose: the cache key is package-lock.json,
+      # and this job's whole point is to resolve WITHOUT it.
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+
+      # The tracked lockfile is removed before the install, so npm RE-RESOLVES
+      # every caret range from the live registry: the exact path that exposed
+      # the 477-error split. `--no-package-lock` keeps npm from writing a new
+      # one (nothing downstream needs it, and a lockfile left behind would make
+      # the next step's resolution look reproducible when it is not). The root
+      # `overrides` block pins the known-toxic drifts (@bufbuild/protobuf from
+      # PR #628; zod from this job's first dry run: @modelcontextprotocol/sdk
+      # had drifted 1.27→1.30 and pulled a nested zod v4 whose type inference
+      # OOMs tsc on mcp-server and cli); anything else that drifts into
+      # un-unifiable or pathological types fails HERE, before a consumer's
+      # fresh install finds it. Inherently non-hermetic: an unrelated upstream
+      # publish can redden a PR. That is the point of the gate; if it proves
+      # too flaky in practice, demote THIS JOB ONLY to a scheduled canary (the
+      # ci.integration-canary precedent) and keep the locked jobs on PRs.
+      #
+      # Two consequences of npm (this job used Yarn Berry until 2026-09-10):
+      #   * npm is STRICTER than yarn on peer ranges: a conflicting peer that
+      #     yarn only warned about fails `npm install` with ERESOLVE. That is a
+      #     real consumer-facing signal, not noise — a consumer's fresh install
+      #     hits the same wall.
+      #   * npm is MORE LENIENT than yarn on undeclared siblings: it hoists
+      #     every workspace's dependencies to the root node_modules, so a
+      #     package that imports something only a SIBLING workspace declares
+      #     still typechecks here (issue #1044 was exactly that class, and
+      #     yarn's last catch on this job). Under npm that is each package's
+      #     own devDependencies discipline.
+      - name: Install dependencies (npm, fresh resolution)
+        run: |
+          rm package-lock.json
+          npm install --no-package-lock --no-audit --no-fund
+
+      - name: Build @stigmer/protos dist
+        run: npm run build -w @stigmer/protos
+
+      # Build configs only: the resolution-split class this job exists for
+      # surfaces in the shipping surface. Test-file typechecking is the locked
+      # jobs' business — including it here would add @types-drift flake
+      # without adding signal for this failure class.
+      - name: Typecheck the five consumer packages
+        run: |
+          npx tsc -p sdk/typescript/tsconfig.build.json --noEmit
+          npx tsc -p mcp-server/tsconfig.build.json --noEmit
+          npx tsc -p sdk/react/tsconfig.build.json --noEmit
+          npx tsc -p sdk/ink/tsconfig.build.json --noEmit
+          npx tsc -p client-apps/cli/tsconfig.build.json --noEmit

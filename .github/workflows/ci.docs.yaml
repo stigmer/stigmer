@@ -79,8 +79,8 @@ jobs:
       # Keep this list in lockstep with the push trigger's `paths` above —
       # same list, one file, checked in one review (the twin's two-file
       # mirror contract is the thing #709 retired). The workflow file itself
-      # is included so edits to this gate re-run it (the ci.ts-sdk
-      # precedent).
+      # is included so edits to this gate re-run it (the precedent every lane
+      # follows; ci.ts-workspace's gate applies the same rule to its own file).
       # Pinned by commit SHA (v3 / v3.0.2): the required check's verdict
       # depends on this third-party action's output, so a mutable tag is not
       # an acceptable trust anchor here.
@@ -156,8 +156,9 @@ jobs:
 
       # Every <ScenarEmbed id> in docs/** must resolve to a real
       # demos/tours/<id>/ — nothing else checks this, and a typo ships a
-      # blank iframe with CI green. Also wired in ci.frontend.yaml, which
-      # covers the demos/** side (this workflow doesn't trigger on demos/**).
+      # blank iframe with CI green. Also wired in ci.ts-workspace.yaml, which
+      # runs it whenever @stigmer/demos is affected (this workflow doesn't
+      # trigger on demos/**).
       - name: Verify Scenar tours
         run: node scripts/verify-scenar-tours.mjs
 

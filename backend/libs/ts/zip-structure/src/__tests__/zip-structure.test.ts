@@ -1,8 +1,9 @@
 /**
  * The structural layer's own suite. Until the lib extraction this module
  * was tested only through its consumers (the runner's zip-extract and
- * attachment-injector suites); per ci.ts-libs' contract a lib change must
- * fail attributably here even when no consumer file moved.
+ * attachment-injector suites); a lib change must fail attributably here even
+ * when no consumer file moved (the contract ci.ts-libs stated, kept by
+ * ci.ts-workspace, which runs this suite whenever the package is affected).
  */
 import { inflateRawSync } from "node:zlib";
 import { describe, expect, it } from "vitest";

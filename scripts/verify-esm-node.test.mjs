@@ -4,11 +4,30 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import { PACKAGES } from "./publish-libs.mjs";
 import {
   extractRelativeSpecifiers,
   validateSpecifier,
   checkDistDir,
+  packagesFor,
 } from "./verify-esm-node.mjs";
+
+test("packagesFor: no --only checks every publishable package", () => {
+  assert.deepEqual(packagesFor(null), PACKAGES);
+});
+
+test("packagesFor: --only narrows to the named libs in publish order; a client app is outside the set; a typo is refused", () => {
+  assert.deepEqual(
+    packagesFor(["@stigmer/react", "@stigmer/protos", "web"]),
+    ["apis/stubs/ts", "sdk/react"],
+    "protos before react (publish order), web dropped (not publishable)",
+  );
+  assert.deepEqual(packagesFor(["web"]), [], "nothing publishable named");
+  assert.throws(
+    () => packagesFor(["@stigmer/reakt"]),
+    /not a workspace package/,
+  );
+});
 
 test("extractRelativeSpecifiers finds static, re-export, and dynamic relative imports", () => {
   const source = [
@@ -36,7 +55,10 @@ test("validateSpecifier rejects extension-less relative specifiers", () => {
 });
 
 test("validateSpecifier rejects .js specifiers whose target is missing", () => {
-  const reason = validateSpecifier("/tmp/pkg/dist/index.js", "./does-not-exist.js");
+  const reason = validateSpecifier(
+    "/tmp/pkg/dist/index.js",
+    "./does-not-exist.js",
+  );
   assert.ok(reason);
   assert.match(reason, /missing file/);
 });
@@ -61,7 +83,10 @@ test("checkDistDir flags a bad module and passes a clean one", () => {
     // broken: extension-less relative specifier
     writeFileSync(join(dir, "bad.js"), 'export { x } from "./target";\n');
     // ignored: test files are not consumer-reachable runtime modules
-    writeFileSync(join(dir, "ignored.test.js"), 'export { x } from "./target";\n');
+    writeFileSync(
+      join(dir, "ignored.test.js"),
+      'export { x } from "./target";\n',
+    );
 
     const violations = checkDistDir(dir);
     assert.equal(violations.length, 1, "only bad.js should fail");
@@ -76,7 +101,10 @@ test("checkDistDir skips the __tests__ directory", () => {
   const dir = mkdtempSync(join(tmpdir(), "esm-gate-tests-"));
   try {
     mkdirSync(join(dir, "__tests__"));
-    writeFileSync(join(dir, "__tests__", "a.js"), 'import x from "./missing";\n');
+    writeFileSync(
+      join(dir, "__tests__", "a.js"),
+      'import x from "./missing";\n',
+    );
     assert.equal(checkDistDir(dir).length, 0);
   } finally {
     rmSync(dir, { recursive: true, force: true });

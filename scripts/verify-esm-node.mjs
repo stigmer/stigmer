@@ -32,8 +32,15 @@
  * Package list is shared with the publisher (scripts/publish-libs.mjs) so the
  * two never drift.
  *
+ * `--only=<name,...>` checks a subset, by package name. The CI lane builds
+ * only the affected libs (scripts/turbo-affected.mjs decides which), and a
+ * dist that was not rebuilt cannot have changed, so the gate follows the same
+ * list. A name outside PACKAGES is refused: a misspelt name that quietly
+ * checked nothing would be a green gate that guarded nothing.
+ *
  * Usage:
  *   npm run build:libs && node scripts/verify-esm-node.mjs
+ *   node scripts/verify-esm-node.mjs --only=@stigmer/sdk,@stigmer/react
  */
 
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
@@ -42,6 +49,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { createRequire } from "node:module";
 
 import { PACKAGES } from "./publish-libs.mjs";
+import { selectPackages, splitOnly } from "./turbo-set.mjs";
 
 const require = createRequire(import.meta.url);
 const ts = require("typescript");
@@ -151,8 +159,43 @@ export function checkDistDir(distDir) {
   return violations;
 }
 
-function main() {
-  const packages = PACKAGES;
+/**
+ * The PACKAGES entries to check: all of them, or those whose manifest name is
+ * in `only` (publish order kept). `only` follows turbo-set's contract: every
+ * name must be a workspace member (a typo is refused), and a member that is
+ * not publishable (web, desktop, ...) simply falls outside this gate's set.
+ */
+export function packagesFor(only, rootDir = root) {
+  if (only === null) return PACKAGES;
+  const wanted = new Set(selectPackages("libs", only, rootDir));
+  return PACKAGES.filter((relDir) =>
+    wanted.has(
+      JSON.parse(readFileSync(join(rootDir, relDir, "package.json"), "utf8"))
+        .name,
+    ),
+  );
+}
+
+function main(argv) {
+  let packages;
+  try {
+    const { only, rest } = splitOnly(argv);
+    if (rest.length > 0) {
+      throw new Error(
+        `verify-esm-node: unknown argument(s) ${rest.map((a) => `"${a}"`).join(", ")}`,
+      );
+    }
+    packages = packagesFor(only);
+  } catch (error) {
+    console.error(error.message);
+    process.exit(2);
+  }
+  if (packages.length === 0) {
+    console.log(
+      "\nverify-esm-node: no publishable package in --only; nothing to check.\n",
+    );
+    return;
+  }
   let total = 0;
   let scanned = 0;
 
@@ -192,5 +235,5 @@ function main() {
 
 // Only run when invoked directly (not when imported by the test).
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  main();
+  main(process.argv.slice(2));
 }

@@ -14,8 +14,9 @@
 #     fails here rather than drifting.
 #   - Python runs codegen-verify (regen + ast.parse) because no other lane
 #     ever syntax-checks the committed Python output; TypeScript and
-#     mcp-server compile validity is already covered by ci.frontend's
-#     `npm run build:libs`, so their steps stay freshness-only.
+#     mcp-server compile validity is already covered by ci.ts-workspace's
+#     turbo `build` (their src/gen is inside the package, so a regen makes
+#     the package affected), so their steps stay freshness-only.
 # =============================================================================
 
 name: ci.codegen
