@@ -27,7 +27,9 @@
  *
  * Resolution rules a scenario declares, mirroring what the real SDK does:
  *  - `Agent.create` hands out the NEXT unclaimed agent in `agents` (turn 1 of a
- *    fresh session; the fresh agent of a poisoned-handle recovery).
+ *    fresh session; the fresh agent of a poisoned-handle recovery) — unless the
+ *    scenario declared a `createFailure`, which the FIRST create throws instead
+ *    (the SDK refusing to mint an agent: a 401 on the key, a validation error).
  *  - `Agent.resume(id)` hands back the agent with that id if the scenario
  *    declared it (in `agents` or `resumableAgents`), else throws — `resolveAgent`
  *    then falls back to `create`, which is the production shape of a lost handle.
@@ -45,6 +47,13 @@ export interface ScriptedSdkOptions {
    * previous turn's agent the session knows only by `harness_state_id`.
    */
   readonly resumableAgents?: readonly ScriptedCursorAgent[];
+  /**
+   * Thrown by the FIRST `Agent.create` instead of handing out an agent; later
+   * creates hand out `agents` as usual. A {@link ScriptedCursorSdkError} here is
+   * the SDK's own refusal (the activity's outer catch keys on `instanceof`);
+   * a plain `Error` is anything else that can escape the SDK boundary.
+   */
+  readonly createFailure?: Error;
   /** What `Cursor.models.list` answers. */
   readonly catalog: readonly ModelListItem[];
 }
@@ -60,15 +69,22 @@ export class ScriptedCursorSdk {
   readonly resolutions: RecordedResolution[] = [];
   readonly archived: string[] = [];
   private nextCreate = 0;
+  private createFailurePending: boolean;
   private readonly byId = new Map<string, ScriptedCursorAgent>();
 
   constructor(private readonly options: ScriptedSdkOptions) {
     for (const a of [...options.agents, ...(options.resumableAgents ?? [])]) {
       this.byId.set(a.agentId, a);
     }
+    this.createFailurePending = options.createFailure !== undefined;
   }
 
   create(options: AgentOptions): SDKAgent {
+    if (this.createFailurePending && this.options.createFailure) {
+      this.createFailurePending = false;
+      this.resolutions.push({ kind: "create", agentId: undefined, options });
+      throw this.options.createFailure;
+    }
     const agent = this.options.agents[this.nextCreate];
     if (!agent) {
       throw new Error(
@@ -101,20 +117,55 @@ export class ScriptedCursorSdk {
   }
 }
 
+/** The construction options of the SDK's `CursorSdkError` (`errors.d.ts`), minus `cause`. */
+export interface ScriptedCursorSdkErrorOptions {
+  readonly isRetryable?: boolean;
+  readonly code?: string;
+  readonly status?: number;
+  readonly endpoint?: string;
+  readonly requestId?: string;
+  readonly operation?: string;
+}
+
 /**
  * The `CursorSdkError` the mocked module exports. A real `Error` subclass with
- * the two fields the classifier reads (`isRetryable`, `code`), under the SDK's
- * class name so `err.constructor.name` and `instanceof` (against THIS module's
- * export, which is what the activity's dynamic import resolves to) both hold.
+ * the SDK class's public surface (`@cursor/sdk` `errors.d.ts`: `isRetryable`,
+ * `code`, `status`, `endpoint`, `requestId`, `operation`, `toJSON()`), under
+ * the SDK's class name so `err.constructor.name` and `instanceof` (against
+ * THIS module's export, which is what the activity's dynamic import resolves
+ * to) both hold. The activity's outer catch reads `code`, `status` and
+ * `message` for the classifier and logs `toJSON()`; the double must carry the
+ * whole surface or the catch arm itself throws instead of mapping the error.
  */
 export class ScriptedCursorSdkError extends Error {
   readonly isRetryable: boolean;
   readonly code: string | undefined;
-  constructor(message: string, opts: { isRetryable?: boolean; code?: string } = {}) {
+  readonly status: number | undefined;
+  readonly endpoint: string | undefined;
+  readonly requestId: string | undefined;
+  readonly operation: string | undefined;
+  constructor(message: string, opts: ScriptedCursorSdkErrorOptions = {}) {
     super(message);
     this.name = "CursorSdkError";
     this.isRetryable = opts.isRetryable ?? false;
     this.code = opts.code;
+    this.status = opts.status;
+    this.endpoint = opts.endpoint;
+    this.requestId = opts.requestId;
+    this.operation = opts.operation;
+  }
+
+  toJSON(): Record<string, unknown> {
+    return {
+      name: this.name,
+      message: this.message,
+      isRetryable: this.isRetryable,
+      code: this.code,
+      status: this.status,
+      endpoint: this.endpoint,
+      requestId: this.requestId,
+      operation: this.operation,
+    };
   }
 }
 

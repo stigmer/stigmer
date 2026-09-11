@@ -32,6 +32,15 @@
  * circuits `resolveServiceTierParams` before the catalog, and a pinned model runs
  * the catalog path, the variant-param pinning, and the `run.wait()` model echo
  * check — more of the production path under the golden.
+ *
+ * Where a scenario reaches the knobs that drive the terminal table, each on
+ * the object that models the thing deciding it: the execution's cost budget
+ * and the control plane's STOP answer on the record (`CursorRecordOptions`);
+ * a control-plane fault on the client (`clientOverrides`); the runner's stall
+ * and lock windows on the scenario's `Config` (`config`); an SDK failure on
+ * the SDK double (`ScriptedSdkOptions`); an SDK-side cancel or a mid-stream
+ * wedge as an `effect` step on the run. Nothing here is a switch in production
+ * code — every knob is a value the production path already reads.
  */
 
 import { execFileSync } from "node:child_process";
@@ -64,6 +73,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
 import { AgentInstanceSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/spec_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+import type { StigmerClient } from "../../../client/stigmer-client.js";
 import type { Config } from "../../../config.js";
 import type { ExecuteActivityInput } from "../../../shared/activity-input.js";
 import {
@@ -72,6 +82,7 @@ import {
   bindHermeticClient,
   runActivityHermetically,
   type ActivityInvocation,
+  type ExecutionRecordInput,
   type HermeticEnvironment,
   type InvocationControls,
 } from "../../../__test-utils__/hermetic-activity.js";
@@ -110,6 +121,15 @@ export interface CursorRecordOptions {
   readonly workspaceEntries?: WorkspaceEntry[];
   readonly modelName?: string;
   readonly autoApproveAll?: boolean;
+  /**
+   * `ExecutionConfig.max_cost_usd`: the per-message cost budget the harness
+   * enforces as a hard stop (cost-guard.ts). Omitted or 0 = no cap, the proto's
+   * default. Priced against {@link REGISTRY_DOCUMENT}'s round numbers, so a
+   * scenario can state its overrun exactly (600 000 input tokens = $0.60).
+   */
+  readonly maxCostUsd?: number;
+  /** The control plane's STOP lever; see `ExecutionRecordInput.controlSignal`. */
+  readonly controlSignal?: ExecutionRecordInput["controlSignal"];
 }
 
 /** The four resources of one execution, wired by id into a chain. */
@@ -126,6 +146,7 @@ export function cursorExecutionRecord(options: CursorRecordOptions): ExecutionRe
       autoApproveAll: options.autoApproveAll ?? false,
       executionConfig: create(ExecutionConfigSchema, {
         modelName: options.modelName ?? FIXTURE.model,
+        maxCostUsd: options.maxCostUsd ?? 0,
       }),
     }),
   });
@@ -159,7 +180,13 @@ export function cursorExecutionRecord(options: CursorRecordOptions): ExecutionRe
       instructions: options.instructions ?? "You are the hermetic fixture agent. Answer briefly.",
     }),
   });
-  return new ExecutionRecord({ execution, session, agentInstance, agent });
+  return new ExecutionRecord({
+    execution,
+    session,
+    agentInstance,
+    agent,
+    controlSignal: options.controlSignal,
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -369,6 +396,8 @@ export interface CursorScenario {
   readonly clock: ScriptedClock;
   readonly record: ExecutionRecord;
   readonly sdk: ScriptedCursorSdk;
+  /** The runner this scenario runs on: the OSS posture plus the scenario's knobs. */
+  readonly config: Config;
 }
 
 export interface CursorScenarioOptions {
@@ -376,6 +405,19 @@ export interface CursorScenarioOptions {
   readonly clock: ScriptedClock;
   readonly record: ExecutionRecord;
   readonly sdk: ScriptedSdkOptions;
+  /**
+   * Control-plane facets the scenario opts INTO, or faults it injects, over
+   * the record's everyday answers (`ExecutionRecord.client`): a rejecting
+   * `getAgent` is how a blueprint-resolution failure is staged.
+   */
+  readonly clientOverrides?: Partial<StigmerClient>;
+  /**
+   * Runner knobs over {@link hermeticCursorConfig}: a scenario that needs the
+   * stall watchdog or the workspace-lock wait to expire states the window
+   * here. A property of the runner the scenario runs on, not of one turn, so
+   * it lives on the scenario and every turn of it sees the same `Config`.
+   */
+  readonly config?: Partial<Config>;
 }
 
 /** Bind the record and the SDK for a scenario; resets the harness caches first. */
@@ -383,8 +425,14 @@ export function beginCursorScenario(options: CursorScenarioOptions): CursorScena
   resetCursorModuleState();
   const sdk = new ScriptedCursorSdk(options.sdk);
   bindScriptedSdk(sdk);
-  bindHermeticClient(options.record.client());
-  return { env: options.env, clock: options.clock, record: options.record, sdk };
+  bindHermeticClient(options.record.client(options.clientOverrides));
+  return {
+    env: options.env,
+    clock: options.clock,
+    record: options.record,
+    sdk,
+    config: { ...hermeticCursorConfig(options.env), ...options.config },
+  };
 }
 
 export interface CursorTurnOptions {
@@ -408,7 +456,7 @@ export async function runCursorTurn(
   // force before the activity module (and, through it, `@cursor/sdk` and the
   // client) is loaded.
   const { createCursorActivities } = await import("../index.js");
-  const activities = createCursorActivities(hermeticCursorConfig(scenario.env));
+  const activities = createCursorActivities(scenario.config);
   // The typed wire shape the control plane's workflow sends (activity-input.ts).
   const input: ExecuteActivityInput = {
     execution_id: scenario.record.executionId,

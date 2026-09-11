@@ -1,0 +1,59 @@
+{
+  "messages": [
+    {
+      "type": "MESSAGE_AI",
+      "content": "Running the suite.",
+      "timestamp": "2026-01-01T00:00:02.000Z",
+      "toolCalls": [
+        {
+          "id": "call-hermetic-stall-0001",
+          "name": "shell",
+          "args": {
+            "command": "npm test"
+          },
+          "status": "TOOL_CALL_RUNNING",
+          "startedAt": "2026-01-01T00:00:03.000Z",
+          "requiresApproval": true,
+          "approvalMessage": "Run command: npm test",
+          "argsPreview": "{\"command\":\"npm test\"}",
+          "toolKind": "TOOL_KIND_SHELL",
+          "approvalPolicySource": "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
+          "policyEngineVersion": "phase-7"
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_SYSTEM",
+      "content": "Execution failed: the agent made no progress for too long and was stopped (Agent stream stalled: no activity for 3s (last tool: shell)). You can retry or resume.",
+      "timestamp": "2026-01-01T00:00:06.000Z"
+    }
+  ],
+  "phase": "EXECUTION_FAILED",
+  "error": "[StallTimeoutError] Agent stream stalled: no activity for 3s (last tool: shell). Retry or resume.",
+  "startedAt": "2026-01-01T00:00:00.000Z",
+  "completedAt": "2026-01-01T00:00:06.000Z",
+  "fileReviewEventStream": {
+    "executionId": "aex_hermetic_0001",
+    "events": [
+      {
+        "eventId": "aex_hermetic_0001:0:aex_hermetic_0001:0:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+        "changeSetId": "aex_hermetic_0001:0",
+        "eventType": "FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+        "timestamp": "2026-01-01T00:00:00.000Z",
+        "actor": "runner",
+        "baselineCaptured": {
+          "changeSetId": "aex_hermetic_0001:0",
+          "turnId": "aex_hermetic_0001:0",
+          "harnessId": "cursor",
+          "baselineSnapshot": {
+            "kind": "SNAPSHOT_KIND_CAS_MANIFEST"
+          }
+        }
+      }
+    ]
+  },
+  "fileChangeProgress": {
+    "changeSetId": "aex_hermetic_0001:0",
+    "capturedAt": "2026-01-01T00:00:01.000Z"
+  }
+}

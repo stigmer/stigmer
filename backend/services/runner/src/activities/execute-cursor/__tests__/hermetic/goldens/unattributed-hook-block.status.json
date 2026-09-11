@@ -1,0 +1,79 @@
+{
+  "messages": [
+    {
+      "type": "MESSAGE_AI",
+      "content": "Removing the build directory.",
+      "timestamp": "2026-01-01T00:00:02.000Z",
+      "toolCalls": [
+        {
+          "id": "call-hermetic-hookblock-0001",
+          "name": "shell",
+          "args": {
+            "command": "rm -rf build"
+          },
+          "result": "blocked by a hook",
+          "status": "TOOL_CALL_FAILED",
+          "completedAt": "2026-01-01T00:00:03.000Z",
+          "error": "blocked by a hook",
+          "requiresApproval": true,
+          "approvalMessage": "Run command: rm -rf build",
+          "approvalRequestedAt": "2026-01-01T00:00:03.000Z",
+          "argsPreview": "{\"command\":\"rm -rf build\"}",
+          "toolKind": "TOOL_KIND_SHELL",
+          "approvalPolicySource": "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
+          "policyEngineVersion": "phase-7"
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "I could not clean the build directory: the shell command was blocked.",
+      "timestamp": "2026-01-01T00:00:04.000Z"
+    },
+    {
+      "type": "MESSAGE_SYSTEM",
+      "content": "Execution failed: A Cursor hook outside Stigmer's approval gate blocked tool(s): shell. The workspace's .cursor/hooks.json registers hook(s) outside Stigmer's control [./scripts/team-policy-hook.sh], which most likely denied it. Stigmer cannot request approval on a foreign hook's behalf — remove or adjust the hook in .cursor/hooks.json and retry.",
+      "timestamp": "2026-01-01T00:00:06.000Z"
+    }
+  ],
+  "phase": "EXECUTION_FAILED",
+  "error": "A Cursor hook outside Stigmer's approval gate blocked tool(s): shell. The workspace's .cursor/hooks.json registers hook(s) outside Stigmer's control [./scripts/team-policy-hook.sh], which most likely denied it. Stigmer cannot request approval on a foreign hook's behalf — remove or adjust the hook in .cursor/hooks.json and retry.",
+  "startedAt": "2026-01-01T00:00:00.000Z",
+  "completedAt": "2026-01-01T00:00:06.000Z",
+  "streamingUsage": {
+    "inputTokens": "1500",
+    "outputTokens": "40",
+    "totalTokens": "1540",
+    "turnCount": 1,
+    "estimatedCostUsd": 0.00166,
+    "model": "composer-2.5",
+    "observedAt": "2026-01-01T00:00:05.000Z",
+    "requestedServiceTier": "SERVICE_TIER_STANDARD",
+    "requestedModelParams": "[{\"id\":\"fast\",\"value\":\"false\"},{\"id\":\"thinking\",\"value\":\"false\"}]",
+    "requestedThinkingMode": "THINKING_MODE_DISABLED"
+  },
+  "fileReviewEventStream": {
+    "executionId": "aex_hermetic_0001",
+    "events": [
+      {
+        "eventId": "aex_hermetic_0001:0:aex_hermetic_0001:0:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+        "changeSetId": "aex_hermetic_0001:0",
+        "eventType": "FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+        "timestamp": "2026-01-01T00:00:00.000Z",
+        "actor": "runner",
+        "baselineCaptured": {
+          "changeSetId": "aex_hermetic_0001:0",
+          "turnId": "aex_hermetic_0001:0",
+          "harnessId": "cursor",
+          "baselineSnapshot": {
+            "kind": "SNAPSHOT_KIND_CAS_MANIFEST"
+          }
+        }
+      }
+    ]
+  },
+  "fileChangeProgress": {
+    "changeSetId": "aex_hermetic_0001:0",
+    "capturedAt": "2026-01-01T00:00:01.000Z"
+  }
+}
