@@ -46,11 +46,12 @@
  * What is deliberately NOT here, and where it is instead:
  *
  *  - Cursor's catalog validation of the requested model (`resolveModelId`),
- *    the pricing preload, the MCP env pre-flight warning and the skill mount
- *    (`resolveSkills`) stay in the Cursor orchestrator for S2: each reads a
- *    module in the adapter column of the entry's disposition table, and the
- *    runtime carries the REQUESTED model name so every harness validates
- *    against its own catalog (S2 M2 gate, Q-M2-1).
+ *    the pricing preload and the MCP env pre-flight warning stay in the
+ *    Cursor adapter for S2: each reads a module in the adapter column of the
+ *    entry's disposition table, and the runtime carries the REQUESTED model
+ *    name so every harness validates against its own catalog (S2 M2 gate,
+ *    Q-M2-1). The skill mount was in that list until M3b found it reads the
+ *    control plane, which only the runtime holds; it is {@link mountSkills}.
  *  - The approval grants, the HITL gate, the capture baseline pin and the
  *    Cursor agent itself (phases 5c, 7, 8a, 9) are the adapter's.
  *  - The memory selection is a memoized thunk, not a value: whether a prompt
@@ -101,6 +102,7 @@ import { synthesizeMemoryAttachment } from "../shared/memory-attachment.js";
 import { injectSynthesizedAttachment } from "../shared/synthesized-attachment.js";
 import { deriveActiveLeases, mergeApprovalPolicies } from "../shared/approval-policy.js";
 import { resolveAttachments } from "../shared/attachment-resolver.js";
+import { resolveSkills, type SkillMetadata } from "../shared/skill-resolver.js";
 import { VisionBudget, type NotViewableEntry, type VisionProfile } from "../shared/attachment-vision.js";
 import { getModelVisionCapability } from "../shared/model-registry.js";
 import { applyApprovedWholeFileWrites } from "../shared/exact-apply.js";
@@ -740,6 +742,30 @@ export async function resolveMcpServersAndPolicies(
 }
 
 /**
+ * Phase 5 (`index.ts` L493-501, the orchestrator's position between the
+ * tool surface and the attachments): mount the merged skills under the
+ * session's platform dir, reachable from the workspace through its
+ * `.stigmer` link, and return what a prompt renders (`shared/skill-
+ * resolver.ts`). Reads the control plane, which is why it is the runtime's
+ * and not a harness's; each harness places the returned metadata in its own
+ * prompt shape. The `.stigmer` link this and the attachment phase create is
+ * removed in the runtime's finally, after the harness's own teardown.
+ */
+export async function mountSkills(
+  deps: ResolutionDeps,
+  args: { readonly blueprint: ResolvedBlueprint; readonly sessionId: string; readonly primaryDir: string },
+): Promise<readonly SkillMetadata[]> {
+  deps.enterPhase("resolve_skills");
+  await deps.reportProgress("Resolving skills");
+  const skills = await resolveSkills(deps.client, args.blueprint.mergedSkillRefs, {
+    sessionId: args.sessionId,
+    primaryWorkspaceDir: args.primaryDir,
+  });
+  deps.timing.mark("resolve_skills");
+  return skills;
+}
+
+/**
  * Phase 5b (`index.ts` L803-838): resolve the turn's attachments, fail-hard
  * (they are explicit user inputs; see `shared/attachment-resolver.ts`).
  * Downloads by storage key through the same artifact storage resolved for
@@ -923,11 +949,9 @@ export type TurnResolution =
  * stop at the first settlement.
  *
  * The order is the orchestrator's, with its harness-specific steps gone
- * (they run inside `adapter.runTurn`, after this returns). One consequence
- * is recorded: the attachments (5b) and the exact-apply (5b3) now resolve
- * BEFORE the harness mounts its skills (5), where the orchestrator
- * interleaved them; no user-visible label moves, the two have no shared side
- * effect, and only the failure precedence differs when both fail.
+ * (they run inside `adapter.runTurn`, after this returns): the tool surface,
+ * the skills, the attachments, the exact-apply, then the reads that need no
+ * network.
  *
  * The one persist a phase requires — the applied writes must be durable
  * before the continuation runs — goes through the caller's chokepoint
@@ -960,6 +984,7 @@ export async function resolveTurnContext(
   if (reinvoked.kind === "settled") return { kind: "settled", settlement: reinvoked.settlement };
 
   const mcp = await resolveMcpServersAndPolicies(deps, { execution, session, sessionId, blueprint, environment });
+  const skills = await mountSkills(deps, { blueprint, sessionId, primaryDir: workspace.primaryDir });
   const attachments = await resolveTurnAttachments(deps, {
     spec,
     sessionId,
@@ -988,6 +1013,7 @@ export async function resolveTurnContext(
       environment,
       workspace,
       mcp,
+      skills,
       attachments,
       appliedToolCallIds,
       model: resolveModelPreferences(spec),

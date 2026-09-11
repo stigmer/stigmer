@@ -74,6 +74,7 @@ import type { SessionWorkspaceProvision } from "../shared/workspace/session-prov
 import type { ResolvedMcpServer } from "../shared/mcp-resolver.js";
 import type { ChannelMessagingInfo } from "../shared/channel-attachment.js";
 import type { ActiveLeases, MergedToolPolicy } from "../shared/approval-policy.js";
+import type { SkillMetadata } from "../shared/skill-resolver.js";
 import type { ResolvedAttachment } from "../shared/attachment-resolver.js";
 import type { NotViewableEntry, VisionImage } from "../shared/attachment-vision.js";
 import type { EffectiveServiceTier } from "../shared/service-tier.js";
@@ -277,6 +278,8 @@ export interface TurnInput extends NormalizedActivityInput {
   readonly environment: TurnEnvironment;
   readonly workspace: TurnWorkspace;
   readonly mcp: TurnMcp;
+  /** The mounted skills (phase 5): each under the session's platform dir, reachable from the workspace through its `.stigmer` link; the harness renders them into its prompt. */
+  readonly skills: readonly SkillMetadata[];
   readonly attachments: TurnAttachments;
   /** Approved whole-file writes the runtime applied itself this turn (exact-apply); the harness issues no grant for them. */
   readonly appliedToolCallIds: ReadonlySet<string>;

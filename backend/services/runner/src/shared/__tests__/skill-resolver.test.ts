@@ -75,7 +75,7 @@ describe("resolveSkills — artifact extraction", () => {
 
     // We need to clean up the platform dir after the test; capture it
     // via the getPlatformDir import so we know the actual path.
-    const { getPlatformDir } = await import("../../../shared/workspace/platform-dir.js");
+    const { getPlatformDir } = await import("../workspace/platform-dir.js");
     const platformDir = getPlatformDir(sessionId);
 
     const client = {

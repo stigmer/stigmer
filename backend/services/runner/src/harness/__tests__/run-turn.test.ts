@@ -62,13 +62,14 @@ const TASK_QUEUE = "runtime-test-queue";
 /** Above the clock's 1 s step and small enough that the watchdog's real poll (stallMs / 4) fires promptly. */
 const STALL_TIMEOUT_MS = 2_000;
 
-/** The runtime's own resolution labels, in order; a harness's setup labels follow them. */
+/** The runtime's own resolution labels, in order; a harness's setup labels ("Initializing Cursor agent") follow them. */
 const RUNTIME_SETUP_LABELS = [
   "Fetching execution",
   "Resolving agent blueprint",
   "Resolving environment",
   "Provisioning workspace",
   "Resolving MCP servers",
+  "Resolving skills",
 ];
 
 function systemMessages(status: { messages: { type: MessageType; content: string }[] }): string[] {

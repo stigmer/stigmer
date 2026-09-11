@@ -67,7 +67,6 @@ import { toCursorMcpConfig, validateMcpServerEnv } from "./cursor-mcp-config.js"
 import { isUnattendedApprovalMode } from "../../shared/approval-policy.js";
 import { enabledToolsBySlug } from "../../shared/mcp-enabled-tools.js";
 import { buildCursorSubAgentDefinitions } from "./subagent-config.js";
-import { resolveSkills } from "./skill-resolver.js";
 import { removeStigmerSymlink } from "../../shared/workspace/stigmer-link.js";
 import { buildEnhancedPrompt, buildHitlRecoveryPrompt, buildReinvocationPrompt, formatConversationCatchupSection, formatInputFiles, formatInteractionModePrefix, formatImplementPlanSection } from "./prompt-builder.js";
 import { composeTurnRecoveryDigest } from "./turn-recovery.js";
@@ -405,7 +404,7 @@ async function executeCursorInner(
       }
     }
     const turn = resolved.input;
-    const { execution, session, blueprint, environment, workspace, mcp, attachments, appliedToolCallIds, standing } = turn;
+    const { execution, session, blueprint, environment, workspace, mcp, skills: skillMetadata, attachments, appliedToolCallIds, standing } = turn;
     const spec = execution.spec!;
     const { sessionId, approvalDecisions } = turn;
     const { primaryDir: primaryWorkspaceDir, gitWorkspace, captureMode, changeSetId } = workspace;
@@ -464,15 +463,6 @@ async function executeCursorInner(
         mcpWarnings.map((w) => `  - ${w}`).join("\n"),
       );
     }
-
-    // Phase 5: Resolve skills (merged from agent + session)
-    await reportSetupProgress(client, executionId, "Resolving skills");
-    const skillMetadata = await resolveSkills(client, blueprint.mergedSkillRefs, {
-      sessionId,
-      primaryWorkspaceDir,
-    });
-    heartbeat();
-    setupTiming.mark("resolve_skills");
 
     // The prompt-shaped projections of the runtime's attachments: the
     // `<input_files>` entries and the vision disclosure the prompt renders.
@@ -2048,7 +2038,7 @@ export interface BuildPromptInput {
   approvalDecisions: ReadonlyMap<string, ApprovalAction>;
   instructions: string;
   userMessage: string;
-  skills: import("./prompt-builder.js").SkillMetadata[];
+  skills: readonly import("../../shared/skill-resolver.js").SkillMetadata[];
   /**
    * Serving proactive channels + their templates (the DD-006 D2
    * discovery read) — the `<available_channel_templates>` section.

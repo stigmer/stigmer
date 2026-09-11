@@ -48,6 +48,7 @@ import {
   type DownloadUrlKind,
 } from "../../shared/attachment-download-urls.js";
 import { formatTurnRecoveryText } from "./turn-recovery.js";
+import type { SkillMetadata } from "../../shared/skill-resolver.js";
 import { PLAN_MODE_DIRECTIVE } from "../../shared/plan-mode-prompt.js";
 import {
   buildImplementPlanDirective,
@@ -65,12 +66,6 @@ const RUNNER_PATH_MARKERS = [
   "/node_modules/",
   "/dist/main.js",
 ] as const;
-
-export interface SkillMetadata {
-  name: string;
-  description: string;
-  path: string;
-}
 
 /**
  * Vision facts about this turn's attachments, rendered inside the
@@ -104,7 +99,7 @@ export interface AttachmentPromptEntry {
 export interface EnhancedPromptOptions {
   instructions: string;
   userMessage: string;
-  skills: SkillMetadata[];
+  skills: readonly SkillMetadata[];
   /**
    * Serving proactive channels + their approved templates — rendered as
    * the `<available_channel_templates>` section (proactive-messaging
@@ -508,7 +503,7 @@ export function formatConversationCatchupSection(digest: string): string {
   return `<conversation_catchup>\n${formatConversationCatchupText(digest)}\n</conversation_catchup>`;
 }
 
-export function formatSkillsSection(skills: SkillMetadata[]): string {
+export function formatSkillsSection(skills: readonly SkillMetadata[]): string {
   const entries = skills.map(
     (s) => `- **${s.name}**: ${s.description}\n  Path: \`${s.path}\``,
   );

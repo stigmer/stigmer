@@ -5,8 +5,16 @@
  * - Mounts each skill via the shared skill-mount mechanics (SKILL.md +
  *   extracted artifact, hash-keyed cache — see shared/skill-mount.ts)
  * - Uses a platform-managed directory outside the workspace
- * - Ensures the workspace `.stigmer` symlink (see stigmer-link.ts)
+ * - Ensures the workspace `.stigmer` symlink (see workspace/stigmer-link.ts)
  * - Returns metadata for prompt injection
+ *
+ * A turn-runtime phase (`harness/turn-context.ts` `mountSkills`): it reads
+ * the control plane, which only the runtime holds, and writes under the
+ * platform dir the runtime owns; the harness renders the returned metadata
+ * into its prompt in its own placement. Moved from
+ * `activities/execute-cursor/` at S2 M3b; the native harness's twin
+ * (`skill-writer.ts` `fetchSkillsByRefs` + `mountSkills`) is what S3
+ * reconciles it with.
  *
  * The mount is cached by the skill's content-addressed version hash
  * (stigmer/stigmer#672): metadata is fetched on every execution (that keeps
@@ -19,17 +27,23 @@
 
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
-import type { StigmerClient } from "../../client/stigmer-client.js";
+import type { StigmerClient } from "../client/stigmer-client.js";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import type { SkillMetadata } from "./prompt-builder.js";
-import { getPlatformDir } from "../../shared/workspace/platform-dir.js";
+import { getPlatformDir } from "./workspace/platform-dir.js";
 import {
   SKILLS_SUBDIR,
   mountIsFresh,
   downloadArtifact,
   writeSkillMount,
-} from "../../shared/skill-mount.js";
-import { ensureStigmerSymlink, STIGMER_LOCAL_STATE_DIR } from "../../shared/workspace/stigmer-link.js";
+} from "./skill-mount.js";
+import { ensureStigmerSymlink, STIGMER_LOCAL_STATE_DIR } from "./workspace/stigmer-link.js";
+
+/** One mounted skill as a prompt renders it: its name, its description, and the workspace-relative path of its SKILL.md. */
+export interface SkillMetadata {
+  name: string;
+  description: string;
+  path: string;
+}
 
 export interface SkillResolverOptions {
   sessionId: string;

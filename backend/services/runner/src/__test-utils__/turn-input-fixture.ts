@@ -113,6 +113,7 @@ export function turnInputFixture(overrides: TurnInputFixtureOverrides = {}): Tur
       leases: { global: false, categories: new Set(), servers: new Set() },
       policies: new Map(),
     },
+    skills: overrides.skills ?? [],
     attachments: overrides.attachments ?? { results: [], visionImages: [], visionNotViewable: [] },
     appliedToolCallIds: overrides.appliedToolCallIds ?? new Set(),
     model: overrides.model ?? { requested: "default", serviceTier: ServiceTier.STANDARD, thinkingMode: ThinkingMode.DISABLED },
