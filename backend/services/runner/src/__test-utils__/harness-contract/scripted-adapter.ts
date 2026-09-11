@@ -35,7 +35,6 @@
  */
 
 import { ApprovalAction, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 
 import type { Config } from "../../config.js";
@@ -52,13 +51,6 @@ export interface ScriptedHarnessOptions {
   readonly name?: string;
   readonly pausePrimitive: PausePrimitive;
   readonly stateIdSource: StateIdSource;
-}
-
-/** The lifecycle calls the adapter received, for the kit's lifetime invariants. */
-export interface RecordedLifecycle {
-  readonly boots: readonly Config[];
-  readonly shutdowns: number;
-  readonly releasedSessions: readonly string[];
 }
 
 /**
@@ -87,10 +79,6 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
   private readonly executions = new Map<string, number>();
   private mintCounter = 0;
 
-  private readonly boots: Config[] = [];
-  private shutdowns = 0;
-  private readonly releasedSessions: string[] = [];
-
   constructor(options: ScriptedHarnessOptions) {
     this.name = options.name ?? `scripted(${options.pausePrimitive}, ${options.stateIdSource})`;
     this.capabilities = {
@@ -114,24 +102,16 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
     return this.executions.get(toolCallId) ?? 0;
   }
 
-  get lifecycle(): RecordedLifecycle {
-    return { boots: this.boots, shutdowns: this.shutdowns, releasedSessions: this.releasedSessions };
-  }
-
   // ── HarnessAdapter ────────────────────────────────────────────────────────
 
-  async boot(config: Config): Promise<void> {
-    this.boots.push(config);
-  }
+  /** Nothing to install: a real adapter imports its SDK lazily and installs its transport here. */
+  async boot(_config: Config): Promise<void> {}
 
-  async shutdown(): Promise<void> {
-    this.shutdowns += 1;
-  }
+  /** Nothing held: a real adapter closes every engine it still has parked. */
+  async shutdown(): Promise<void> {}
 
-  /** Nothing is parked per session here; a real adapter releases its parked engine. */
-  async releaseSession(sessionId: string): Promise<void> {
-    this.releasedSessions.push(sessionId);
-  }
+  /** Nothing is parked per session here; a real adapter releases the engine it parked for `sessionId`. */
+  async releaseSession(_sessionId: string): Promise<void> {}
 
   async runTurn(input: TurnInput, sink: TurnSink): Promise<TurnOutcome> {
     const turn = this.queue.shift();
