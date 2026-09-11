@@ -127,6 +127,12 @@ jobs:
       - name: Install dependencies (npm ci, tracked lockfile)
         run: npm ci
 
+      # One root test (verify-docs-tour-parity) imports the tour fixtures,
+      # which import @stigmer/protos from its dist; the root `test` script
+      # has the same order (build:libs first) implicitly.
+      - name: Build @stigmer/protos dist
+        run: node scripts/turbo-set.mjs libs build --only=@stigmer/protos
+
       - name: Root script tests
         run: node --test scripts/*.test.mjs
 
