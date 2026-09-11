@@ -29,8 +29,8 @@
  *  - `Agent.create` hands out the NEXT unclaimed agent in `agents` (turn 1 of a
  *    fresh session; the fresh agent of a poisoned-handle recovery).
  *  - `Agent.resume(id)` hands back the agent with that id if the scenario
- *    declared it resumable, else throws — `resolveAgent` then falls back to
- *    `create`, which is the production shape of a stale handle.
+ *    declared it (in `agents` or `resumableAgents`), else throws — `resolveAgent`
+ *    then falls back to `create`, which is the production shape of a lost handle.
  *  - `Cursor.models.list` answers the scenario's catalog.
  */
 
@@ -38,10 +38,13 @@ import type { AgentOptions, ModelListItem, SDKAgent } from "@cursor/sdk";
 import type { ScriptedCursorAgent } from "./scripted-agent.js";
 
 export interface ScriptedSdkOptions {
-  /** Agents handed out by `Agent.create`, in order. */
+  /** Agents handed out by `Agent.create`, in order. Also resumable by id. */
   readonly agents: readonly ScriptedCursorAgent[];
-  /** Agent ids `Agent.resume` succeeds for (defaults to every declared agent). */
-  readonly resumable?: readonly string[];
+  /**
+   * Agents `Agent.resume` finds by id but `Agent.create` never hands out — a
+   * previous turn's agent the session knows only by `harness_state_id`.
+   */
+  readonly resumableAgents?: readonly ScriptedCursorAgent[];
   /** What `Cursor.models.list` answers. */
   readonly catalog: readonly ModelListItem[];
 }
@@ -58,11 +61,11 @@ export class ScriptedCursorSdk {
   readonly archived: string[] = [];
   private nextCreate = 0;
   private readonly byId = new Map<string, ScriptedCursorAgent>();
-  private readonly resumable: ReadonlySet<string>;
 
   constructor(private readonly options: ScriptedSdkOptions) {
-    for (const a of options.agents) this.byId.set(a.agentId, a);
-    this.resumable = new Set(options.resumable ?? options.agents.map((a) => a.agentId));
+    for (const a of [...options.agents, ...(options.resumableAgents ?? [])]) {
+      this.byId.set(a.agentId, a);
+    }
   }
 
   create(options: AgentOptions): SDKAgent {
@@ -82,7 +85,7 @@ export class ScriptedCursorSdk {
   resume(agentId: string, options: Partial<AgentOptions> | undefined): SDKAgent {
     this.resolutions.push({ kind: "resume", agentId, options });
     const agent = this.byId.get(agentId);
-    if (!agent || !this.resumable.has(agentId)) {
+    if (!agent) {
       throw new ScriptedCursorSdkError(`agent ${agentId} not found`, { code: "agent_not_found" });
     }
     if (options?.model) agent.model = options.model;

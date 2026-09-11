@@ -388,6 +388,12 @@ export class ScriptedClock {
     vi.setSystemTime(this.nowMs);
   }
 
+  /** Back to the epoch — for a second scenario in the same file. */
+  reset(): void {
+    this.nowMs = ScriptedClock.EPOCH_MS;
+    vi.setSystemTime(this.nowMs);
+  }
+
   uninstall(): void {
     vi.useRealTimers();
   }
