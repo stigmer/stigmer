@@ -17,6 +17,14 @@
  * the API-key lane). The store is a REQUIRED dependency (a nullable that
  * changes what identityId means is exactly the modeled-state rule
  * forbids); over an empty store every pre-entry arm reads as before.
+ *
+ * Issuer discovery is a REQUIRED dependency too (T01_1_review.md A8; the
+ * S2 slice-2 refinement): the verifier reads the JWKS location through
+ * the shared oidc-discovery module the composition root builds once for
+ * every lane. Two arms make the memo visible — N sequential verifies
+ * fetch the well-known document once and the JWKS once — and one pins
+ * that claim-or-pass precedes discovery: a non-JWT token passes with no
+ * network even when the issuer is unreachable.
  */
 import { createServer } from "node:http";
 import type { Server } from "node:http";
@@ -33,6 +41,7 @@ import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/
 
 import { fakeIdentityAccountStore } from "../../domain/identityaccount/__tests__/support.js";
 import { accountIdFor } from "../../domain/identityaccount/constants.js";
+import { newIssuerDiscovery } from "../oidc-discovery.js";
 import {
   INVALID_TOKEN_MESSAGE,
   TOKEN_AUDIENCE_MESSAGE,
@@ -47,6 +56,8 @@ let issuerServer: Server;
 let issuer: string;
 let keys: GenerateKeyPairResult;
 let strangerKeys: GenerateKeyPairResult;
+// How often the hermetic issuer served each document — the memo arms read these.
+const hits = { discovery: 0, jwks: 0 };
 
 beforeAll(async () => {
   keys = await generateKeyPair("RS256");
@@ -59,11 +70,13 @@ beforeAll(async () => {
 
   issuerServer = createServer((req, res) => {
     if (req.url === "/.well-known/openid-configuration") {
+      hits.discovery += 1;
       res.setHeader("content-type", "application/json");
       res.end(JSON.stringify({ issuer, jwks_uri: `${issuer}/jwks` }));
       return;
     }
     if (req.url === "/jwks") {
+      hits.jwks += 1;
       res.setHeader("content-type", "application/json");
       res.end(JSON.stringify({ keys: [jwk] }));
       return;
@@ -119,6 +132,7 @@ function verifier() {
     issuer,
     audience: AUDIENCE,
     accounts: fakeIdentityAccountStore(),
+    discovery: newIssuerDiscovery(),
   });
 }
 
@@ -234,6 +248,7 @@ describe("subject → account resolution (20260911.11 Q-IA-2, A1)", () => {
       issuer,
       audience: AUDIENCE,
       accounts,
+      discovery: newIssuerDiscovery(),
     }).verify(token);
     expect(identity).toEqual({
       identityId: accountIdFor("auth0|known"),
@@ -252,6 +267,7 @@ describe("subject → account resolution (20260911.11 Q-IA-2, A1)", () => {
       issuer,
       audience: AUDIENCE,
       accounts,
+      discovery: newIssuerDiscovery(),
     }).verify(token);
     expect(identity?.identityId).toBe("auth0|unknown");
   });
@@ -262,6 +278,7 @@ describe("subject → account resolution (20260911.11 Q-IA-2, A1)", () => {
       issuer,
       audience: AUDIENCE,
       accounts,
+      discovery: newIssuerDiscovery(),
     });
     const token = await mintToken({ sub: "auth0|late" });
     expect((await verifierWithStore.verify(token))?.identityId).toBe(
@@ -295,10 +312,35 @@ describe("subject → account resolution (20260911.11 Q-IA-2, A1)", () => {
         issuer,
         audience: AUDIENCE,
         accounts: broken,
+        discovery: newIssuerDiscovery(),
       }).verify(token),
     );
     expect(error).not.toBeInstanceOf(ConnectError);
     expect(String(error)).toContain("store is on fire");
+  });
+});
+
+describe("discovery and keys are fetched once per verifier (A8; the shared oidc-discovery module)", () => {
+  it("N sequential verifies fetch the well-known document once and the JWKS once", async () => {
+    const one = verifier();
+    const before = { ...hits };
+    for (const sub of ["auth0|a", "auth0|b", "auth0|c"]) {
+      expect((await one.verify(await mintToken({ sub })))?.identityId).toBe(
+        sub,
+      );
+    }
+    expect(hits.discovery - before.discovery).toBe(1);
+    expect(hits.jwks - before.jwks).toBe(1);
+  });
+
+  it("claim-or-pass precedes discovery: a non-JWT token passes with no network, even when the issuer is unreachable", async () => {
+    const dead = newOidcIdentityVerifier({
+      issuer: "http://127.0.0.1:1",
+      audience: AUDIENCE,
+      accounts: fakeIdentityAccountStore(),
+      discovery: newIssuerDiscovery(),
+    });
+    expect(await dead.verify("stk_notajwt")).toBeNull();
   });
 });
 
@@ -309,6 +351,7 @@ describe("infrastructure faults are never credential rejections", () => {
       issuer: "http://127.0.0.1:1",
       audience: AUDIENCE,
       accounts: fakeIdentityAccountStore(),
+      discovery: newIssuerDiscovery(),
     });
     const error = await rejectionOf(dead.verify(await mintToken({ sub: "s" })));
     expect(error).not.toBeInstanceOf(ConnectError);
@@ -321,6 +364,7 @@ describe("infrastructure faults are never credential rejections", () => {
       issuer: `${issuer}/`,
       audience: AUDIENCE,
       accounts: fakeIdentityAccountStore(),
+      discovery: newIssuerDiscovery(),
     });
     const error = await rejectionOf(
       misconfigured.verify(await mintToken({ sub: "s" })),
