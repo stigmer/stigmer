@@ -7,8 +7,8 @@
  * half: what an adapter owes the runtime through `runTurn`, `boot`,
  * `shutdown` and `releaseSession`. The runtime-side half (the throw-vs-return
  * table end to end, the whole-activity heartbeat, the single persist
- * chokepoint, the byte-pinned copy) is proven against the real runtime once
- * it exists, through the hermetic activity driver.
+ * chokepoint, the byte-pinned copy) is `runtime-contract.ts`, proven against
+ * the real runtime under `MockActivityEnvironment` with the same subjects.
  *
  * The kit IS the runtime stand-in. {@link ExecutionDriver} does what the
  * runtime and the server do around a turn: builds the `TurnInput`, threads

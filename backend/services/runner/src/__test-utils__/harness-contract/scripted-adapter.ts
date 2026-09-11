@@ -54,7 +54,7 @@ import type { HarnessAdapter, TurnInput, TurnOutcome, TurnSink } from "../../har
 import { DEEP_AGENT_VISION_PROFILE } from "../../shared/attachment-vision.js";
 import type { ProposedAction } from "../approval-contract/types.js";
 import { testConfig } from "../config-fixture.js";
-import { aiMessage, findToolCallRow, waitingToolCall } from "../proto-helpers.js";
+import { aiMessage, findToolCallRow, toolCall, waitingToolCall } from "../proto-helpers.js";
 import type { EngineView, HarnessContractSubject, ScenarioStep, TurnScenario } from "./types.js";
 
 export interface ScriptedHarnessOptions {
@@ -62,6 +62,13 @@ export interface ScriptedHarnessOptions {
   readonly name?: string;
   readonly pausePrimitive: PausePrimitive;
   readonly stateIdSource: StateIdSource;
+  /**
+   * The subject's `Config` over `testConfig()`'s inert defaults. The fake reads
+   * none of it; the RUNTIME does when the subject runs through the real
+   * activity (the workspace root it provisions under, the task queue the
+   * drain signal is keyed by).
+   */
+  readonly config?: Partial<Config>;
 }
 
 /**
@@ -211,6 +218,20 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
       }
       case "propose":
         return this.propose(step.toolCallId, step.action, input, sink);
+      case "read": {
+        // Ungated: the row lands COMPLETED at once, the effect counts as run,
+        // and the persist is awaited like `say`'s — a real engine's tool call
+        // is the discrete event its loop flushes on.
+        const message = aiMessage("");
+        const row = toolCall(step.toolCallId, "read", ToolCallStatus.TOOL_CALL_COMPLETED);
+        row.result = `contents of ${step.path}`;
+        message.toolCalls.push(row);
+        sink.status.messages.push(message);
+        this.executions.set(step.toolCallId, this.executionCount(step.toolCallId) + 1);
+        sink.recordActivity("read");
+        await sink.requestPersist();
+        return undefined;
+      }
       case "usage": {
         sink.reportUsage(step.delta);
         sink.recordActivity();
@@ -320,7 +341,7 @@ export function scriptedSubject(options: ScriptedHarnessOptions): ScriptedSubjec
     name: adapter.name,
     harness: "deep-agent",
     adapter,
-    config: testConfig(),
+    config: testConfig(options.config),
     arrange: (turn, view) => adapter.arrange(turn, view),
     whenHanging: () => adapter.whenHanging(),
     executionCount: (toolCallId) => adapter.executionCount(toolCallId),

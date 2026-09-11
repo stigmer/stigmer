@@ -39,7 +39,15 @@ import type { TurnInputFixtureOverrides } from "../turn-input-fixture.js";
  *  - `propose`: the engine reaches a gated side effect identified by
  *    `toolCallId`. Undecided → the turn ends `awaiting_approval` and later
  *    steps do not run; APPROVE → the effect runs once and the turn continues;
- *    REJECT / SKIP → the effect never runs and the turn continues.
+ *    REJECT / SKIP → the effect never runs and the turn continues. WHICH
+ *    kinds a harness gates is the harness's policy and the workspace's
+ *    posture: a `shell` is gated by every harness in every posture; a `write`
+ *    is gated only outside apply-then-review capture (a git tree, or artifact
+ *    storage), so an arm that must gate on every subject proposes a `shell`.
+ *  - `read`: the engine performs an UNGATED read of `path` — a tool-call row
+ *    that runs at once, never pauses, and is the discrete event every harness
+ *    flushes a persist on (the lever an arm pulls when it needs the control
+ *    plane to answer a mid-turn persist).
  *  - `usage`: the engine reports one turn's token counts.
  *  - `hang`: the engine makes no further progress until told to stop. The
  *    step that the stop-signal invariants and the runtime's stall watchdog
@@ -53,6 +61,7 @@ import type { TurnInputFixtureOverrides } from "../turn-input-fixture.js";
 export type ScenarioStep =
   | { readonly kind: "say"; readonly text: string }
   | { readonly kind: "propose"; readonly toolCallId: string; readonly action: ProposedAction }
+  | { readonly kind: "read"; readonly toolCallId: string; readonly path: string }
   | { readonly kind: "usage"; readonly delta: UsageDelta }
   | { readonly kind: "hang" }
   | { readonly kind: "fail"; readonly message: string; readonly surface: FailureSurface }
@@ -68,6 +77,9 @@ export const scenario = {
   },
   propose(toolCallId: string, action: ProposedAction): ScenarioStep {
     return { kind: "propose", toolCallId, action };
+  },
+  read(toolCallId: string, path: string): ScenarioStep {
+    return { kind: "read", toolCallId, path };
   },
   usage(delta: UsageDelta): ScenarioStep {
     return { kind: "usage", delta };

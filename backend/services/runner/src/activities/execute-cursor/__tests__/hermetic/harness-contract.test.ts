@@ -1,16 +1,26 @@
 /**
- * The harness contract kit against the REAL Cursor adapter.
+ * The harness contract kit, BOTH halves, against the REAL Cursor adapter.
  *
- * The kit's invariant catalog (`__test-utils__/harness-contract/contract.ts`)
- * is the single statement of what every `HarnessAdapter` owes the runtime;
+ * The adapter-side half (`__test-utils__/harness-contract/contract.ts`) is the
+ * single statement of what every `HarnessAdapter` owes the runtime;
  * `src/__tests__/harness-contract.test.ts` runs it against the scripted fake
- * under both pause primitives. This file runs the SAME catalog against
- * `createCursorAdapter()` through the Cursor subject
- * (`__test-utils__/contract-subject.ts`), which translates the kit's
- * scenarios onto S0's scripted `@cursor/sdk` double and runs the REAL bash
- * preToolUse hook the adapter installs for every gated proposal. Nothing of
- * the adapter is mocked; the SDK and the control-plane client are the two
- * doubles every hermetic golden already substitutes.
+ * under both pause primitives. The runtime-side half
+ * (`__test-utils__/harness-contract/runtime-contract.ts`) is what the turn
+ * runtime owes every harness, through the real activity under
+ * `MockActivityEnvironment`; `harness/__tests__/run-turn.test.ts` runs it
+ * against the fake. This file runs BOTH against `createCursorAdapter()`
+ * through the Cursor subject (`__test-utils__/contract-subject.ts`), which
+ * translates the kit's scenarios onto S0's scripted `@cursor/sdk` double and
+ * runs the REAL bash preToolUse hook the adapter installs for every gated
+ * proposal. Nothing of the adapter is mocked; the SDK and the control-plane
+ * client are the two doubles every hermetic golden already substitutes.
+ *
+ * Every runtime arm here has a golden twin under `goldens/`; the goldens pin
+ * the transcript byte for byte, the kit asserts the contract facts in words
+ * any harness can satisfy. The `actionable` failure arm is registered
+ * SKIPPED: only the unattributed-hook-block path produces that surface on
+ * this harness (`unattributed-hook-block.test.ts` pins it), and the kit's
+ * vocabulary has no word for it.
  *
  * Beside the kit, the Cursor-only observations the kit's vocabulary cannot
  * express: the agent the SDK minted is CLOSED when the session write behind
@@ -47,8 +57,9 @@ vi.mock("../../../../client/stigmer-client.js", async () =>
 import { approvalDecisionsOf } from "../../../../harness/turn-context.js";
 import { ExecutionDriver, describeHarnessContract } from "../../../../__test-utils__/harness-contract/contract.js";
 import { RecordingTurnSink } from "../../../../__test-utils__/harness-contract/recording-sink.js";
+import { describeHarnessRuntimeContract } from "../../../../__test-utils__/harness-contract/runtime-contract.js";
 import { scenario } from "../../../../__test-utils__/harness-contract/types.js";
-import { createHermeticEnvironment } from "../../../../__test-utils__/hermetic-activity.js";
+import { ScriptedClock, createHermeticEnvironment } from "../../../../__test-utils__/hermetic-activity.js";
 import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
 import { findToolCallRow } from "../../../../__test-utils__/proto-helpers.js";
 import { createCursorContractSubject } from "../../__test-utils__/contract-subject.js";
@@ -56,6 +67,7 @@ import { hasBash } from "../../__test-utils__/cursor-hook-harness.js";
 import { resetCursorModuleState } from "../../__test-utils__/hermetic-cursor.js";
 
 const env = createHermeticEnvironment();
+const clock = new ScriptedClock();
 const subject = createCursorContractSubject(env);
 const WRITE_GAMMA = { kind: "write", resource: "/work/gamma.txt" } as const;
 
@@ -67,14 +79,17 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — the harness contract kit a
     // turn 2 as it does in a live worker.
     resetCursorModuleState();
     registry = stubRegistryFetch();
+    clock.install();
   });
 
   afterAll(() => {
+    clock.uninstall();
     registry.restore();
     env.dispose();
   });
 
   describeHarnessContract(subject);
+  describeHarnessRuntimeContract({ subject, env, clock }, { failureSurfaces: ["engine", "internal"] });
 
   describe("cursor-only observations", () => {
     beforeAll(async () => {

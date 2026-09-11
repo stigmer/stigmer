@@ -8,11 +8,13 @@
  * deterministic id. Neither the kit nor the fake branches on the pause
  * primitive — running both is what proves it.
  *
- * This is the consolidation home for what every harness owes the turn
- * runtime. A real adapter joins the net by implementing
- * `HarnessContractSubject` for its own SDK double and adding one line below;
- * the runtime extraction (S2 of the program) adds the Cursor adapter here
- * and runs the runtime-side half through the hermetic activity driver.
+ * This is the fake's home in the net. A real adapter joins by implementing
+ * `HarnessContractSubject` over its own SDK double and registering both
+ * halves in its own hermetic file, where the mocks its double needs can be
+ * hoisted: the Cursor adapter does so in
+ * `activities/execute-cursor/__tests__/hermetic/harness-contract.test.ts`
+ * (S2 M4), and the fake's runtime-side half runs in
+ * `harness/__tests__/run-turn.test.ts`.
  */
 
 import { describeHarnessContract } from "../__test-utils__/harness-contract/contract.js";

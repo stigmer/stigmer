@@ -39,6 +39,10 @@
  *                       emitted is decided from the kit's view and this
  *                       subject's own memory, as the model and the SDK would
  *                       decide it (see {@link CursorContractSubject.proposeSteps}).
+ *  - `read(id, path)` → the `read` tool call, the REAL hook (which allows it —
+ *                       a read is never gated) and the completion; counted as
+ *                       run. The discrete event the adapter's loop flushes a
+ *                       persist on.
  *  - `usage(delta)`   → a `turn-ended` delta; the adapter prices it.
  *  - `hang`           → an `effect` parked on the run's own `cancelled`
  *                       status, which the adapter's stop-signal listener
@@ -235,6 +239,9 @@ class CursorSubject implements CursorContractSubject {
         case "propose":
           script.push(...this.proposeSteps(s.toolCallId, s.action, view, ev));
           break;
+        case "read":
+          script.push(...this.readSteps(s.toolCallId, s.path, view, ev));
+          break;
         case "usage":
           script.push(
             step.turnEnded({
@@ -342,6 +349,30 @@ class CursorSubject implements CursorContractSubject {
       emission.expectAllow
         ? step.event(ev.toolCall(callId, name, "completed", args, ALLOWED_RESULT))
         : step.event(ev.toolCall(callId, name, "error", args, HOOK_BLOCKED_RESULT)),
+    ];
+  }
+
+  /**
+   * An ungated read: the stream tool call, the REAL hook (which allows every
+   * read — the gate's baked-in category set has no arm for it; asserted
+   * through the disagreement record like every other hook answer), and the
+   * completion with contents. The SDK executes what the hook allows, so the
+   * read counts as run.
+   */
+  private readSteps(toolCallId: string, path: string, view: EngineView, ev: ReturnType<typeof sdkEvents>): ScriptStep[] {
+    const memory = this.proposals.get(toolCallId) ?? { emitted: 0, allowed: 0 };
+    this.proposals.set(toolCallId, memory);
+    memory.emitted += 1;
+    const args = { path };
+    const workspaceRoot = this.workspaceRootOf(view.sessionId);
+    return [
+      step.event(ev.toolCall(toolCallId, "read", "running", args)),
+      step.effect(`kit: the real hook judges read ${path}`, () => {
+        const { permission } = runWorkspaceHook(workspaceRoot, hookInputFor({ kind: "read", resource: path }));
+        if (permission === "allow") memory.allowed += 1;
+        else this.hookDisagreements.push(`${toolCallId}: expected allow for a read, hook answered ${permission}`);
+      }),
+      step.event(ev.toolCall(toolCallId, "read", "completed", args, `contents of ${path}`)),
     ];
   }
 
