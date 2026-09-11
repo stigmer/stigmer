@@ -51,9 +51,17 @@ export interface DesktopPlatform {
   fileExt: string;
 }
 
-/** Static platform metadata used for display regardless of the release. */
+/**
+ * Static platform metadata used for display regardless of the release.
+ *
+ * macOS is Apple Silicon only: the embedded runner is built for the release
+ * lane's arm64 host, so the former "universal" DMG could not run its runner
+ * on an Intel Mac (release.desktop.yaml, matrix; stigmer-cloud 20260912.01
+ * DD-001). An Intel build would arrive as a second macOS entry and its own
+ * asset matcher.
+ */
 export const DESKTOP_PLATFORMS: DesktopPlatform[] = [
-  { os: "macos", arch: "universal", label: "macOS", archLabel: "Universal", fileExt: ".dmg" },
+  { os: "macos", arch: "aarch64", label: "macOS", archLabel: "Apple Silicon", fileExt: ".dmg" },
   { os: "windows", arch: "x64", label: "Windows", archLabel: "64-bit", fileExt: ".exe" },
   { os: "linux", arch: "x64", label: "Linux", archLabel: ".deb", fileExt: ".deb" },
   { os: "linux", arch: "x64-appimage", label: "Linux", archLabel: ".AppImage", fileExt: ".AppImage" },
@@ -73,7 +81,9 @@ export interface DesktopRelease {
 
 // Asset filename → platform matching rules (Tauri 2 naming conventions)
 const ASSET_MATCHERS: { test: (name: string) => boolean; os: DesktopPlatform["os"]; arch: DesktopPlatform["arch"] }[] = [
-  { test: (n) => n.endsWith(".dmg"), os: "macos", arch: "universal" },
+  // Any DMG is the one macOS build; a second macOS entry would match by its
+  // arch suffix (_aarch64.dmg / _x64.dmg) instead.
+  { test: (n) => n.endsWith(".dmg"), os: "macos", arch: "aarch64" },
   { test: (n) => n.endsWith("-setup.exe"), os: "windows", arch: "x64" },
   { test: (n) => n.endsWith(".deb"), os: "linux", arch: "x64" },
   { test: (n) => n.endsWith(".AppImage"), os: "linux", arch: "x64-appimage" },
