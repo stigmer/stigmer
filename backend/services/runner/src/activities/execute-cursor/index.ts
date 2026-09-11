@@ -474,7 +474,10 @@ async function executeCursorInner(
 
     // Phase 3: Check if this is a reinvocation after approval
     const isReinvocation = !!threadId;
-    let approvalDecisions: Map<string, ApprovalAction> | undefined;
+    // Empty on a first turn and on a reinvocation with no adjudicated rows
+    // (a pure file-review resume); every consumer keys on `size > 0`, the
+    // shape the harness contract's `TurnInput.approvalDecisions` carries.
+    let approvalDecisions: ReadonlyMap<string, ApprovalAction> = new Map();
     // Adjudicated approvals reconstructed from the tool calls (the source of
     // truth for a decision). The backend projects pending_approvals from
     // tool-call status and clears decided entries, so pending_approvals is empty
@@ -851,7 +854,7 @@ async function executeCursorInner(
     // mechanism (the model regenerates content on reinvocation). Capture mode
     // does not reinvoke the model for file edits — it applies the exact captured
     // bytes itself in applyCaptureDecisions — so exact-apply is scoped OUT of it.
-    if (!captureMode && isReinvocation && approvalDecisions) {
+    if (!captureMode && isReinvocation && approvalDecisions.size > 0) {
       appliedToolCallIds = await applyApprovedWholeFileWrites({
         messages: status.messages,
         workspaceBackend: new LocalWorkspaceBackend(primaryWorkspaceDir),
@@ -902,7 +905,7 @@ async function executeCursorInner(
 
     hitlDir = await ensureHitlDir(sessionId);
     const grantApprovals = excludeAppliedFromGrants(adjudicatedApprovals, appliedToolCallIds);
-    const approvalGrants = approvalDecisions
+    const approvalGrants = approvalDecisions.size > 0
       ? buildApprovalGrants(grantApprovals, approvalDecisions, adjudicatedContentDigests)
       : undefined;
     if (approvalGrants && approvalGrants.length > 0 && !globalBypass) {
@@ -2483,7 +2486,8 @@ function seedCursorTranscriptFromExecution(
 
 export interface BuildPromptInput {
   resolution: AgentResolution;
-  approvalDecisions: Map<string, ApprovalAction> | undefined;
+  /** Empty when the turn carries no adjudicated approvals (see isHitlReinvocation). */
+  approvalDecisions: ReadonlyMap<string, ApprovalAction>;
   instructions: string;
   userMessage: string;
   skills: import("./prompt-builder.js").SkillMetadata[];
@@ -2619,9 +2623,9 @@ export interface BuildPromptInput {
  * needs the full re-delivery (issue #366).
  */
 export function isHitlReinvocation(
-  approvalDecisions: Map<string, ApprovalAction> | undefined,
-): approvalDecisions is Map<string, ApprovalAction> {
-  return approvalDecisions !== undefined && approvalDecisions.size > 0;
+  approvalDecisions: ReadonlyMap<string, ApprovalAction>,
+): boolean {
+  return approvalDecisions.size > 0;
 }
 
 /**
@@ -2636,7 +2640,7 @@ export function isHitlReinvocation(
  * unconditionally rather than consulting this.
  */
 export function primarySendCarriesImages(
-  approvalDecisions: Map<string, ApprovalAction> | undefined,
+  approvalDecisions: ReadonlyMap<string, ApprovalAction>,
   reason: AgentResolutionReason,
 ): boolean {
   return !(isHitlReinvocation(approvalDecisions) && reason === "resumed_successfully");

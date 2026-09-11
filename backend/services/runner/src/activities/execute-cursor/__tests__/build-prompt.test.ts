@@ -38,7 +38,7 @@ function resolution(
 function input(overrides: Partial<BuildPromptInput>): BuildPromptInput {
   return {
     resolution: resolution("local", "resumed_successfully"),
-    approvalDecisions: undefined,
+    approvalDecisions: new Map(),
     instructions: "You are a test agent.",
     userMessage: USER_MESSAGE,
     skills: [],
@@ -357,7 +357,7 @@ describe("buildPrompt", () => {
         const prompt = buildPrompt(
           input({
             resolution: resolution("local", reason),
-            approvalDecisions: hitl ? hitlDecisions : undefined,
+            approvalDecisions: hitl ? hitlDecisions : new Map(),
             pendingApprovals: hitl ? hitlApprovals : [],
             recalledMemories: { facts: ["Prefers OpenTofu."] },
           }),
@@ -395,8 +395,7 @@ describe("buildPrompt", () => {
 });
 
 describe("isHitlReinvocation (paired with resolution.reason at every consumer — issue #366)", () => {
-  it("is false with no decisions and false with an empty map", () => {
-    expect(isHitlReinvocation(undefined)).toBe(false);
+  it("is false with an empty map (the shape a turn with no adjudicated approvals carries)", () => {
     expect(isHitlReinvocation(new Map())).toBe(false);
   });
 
@@ -504,8 +503,8 @@ describe("HITL recovery — fresh agent mid-HITL (issue #366)", () => {
     // resolution-time resume failure.
     expect(primarySendCarriesImages(decisions(), "created_after_resume_failure")).toBe(true);
     // Non-HITL turns always carry the message's images, resumed or not.
-    expect(primarySendCarriesImages(undefined, "resumed_successfully")).toBe(true);
-    expect(primarySendCarriesImages(undefined, "created_first_execution")).toBe(true);
+    expect(primarySendCarriesImages(new Map(), "resumed_successfully")).toBe(true);
+    expect(primarySendCarriesImages(new Map(), "created_first_execution")).toBe(true);
   });
 
   it("the structured-output directive is a pure append shared by the primary and recovery sends — absent schema, absent suffix", () => {

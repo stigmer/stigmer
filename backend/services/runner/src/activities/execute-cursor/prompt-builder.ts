@@ -326,7 +326,7 @@ export function buildEnhancedPrompt(options: EnhancedPromptOptions): string {
  */
 export function buildReinvocationPrompt(
   pendingApprovals: PendingApproval[],
-  approvalDecisions: Map<string, ApprovalAction>,
+  approvalDecisions: ReadonlyMap<string, ApprovalAction>,
   appliedToolCallIds: ReadonlySet<string> = new Set(),
 ): string {
   const approved: string[] = [];
@@ -415,7 +415,7 @@ export function buildHitlRecoveryPrompt(
   recovery: {
     turnDigest: string | undefined;
     pendingApprovals: PendingApproval[];
-    approvalDecisions: Map<string, ApprovalAction>;
+    approvalDecisions: ReadonlyMap<string, ApprovalAction>;
     appliedToolCallIds?: ReadonlySet<string>;
   },
 ): string {

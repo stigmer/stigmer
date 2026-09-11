@@ -346,7 +346,7 @@ export function emitCursorGrantReceipts(
  */
 export function buildApprovalGrants(
   pendingApprovals: PendingApproval[],
-  decisions: Map<string, ApprovalAction>,
+  decisions: ReadonlyMap<string, ApprovalAction>,
   contentDigests?: Map<string, string>,
 ): ApprovalGrant[] {
   const grants: ApprovalGrant[] = [];
