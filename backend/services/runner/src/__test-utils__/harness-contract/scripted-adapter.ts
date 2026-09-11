@@ -44,7 +44,7 @@ import type { HarnessAdapter, TurnInput, TurnOutcome, TurnSink } from "../../har
 import { DEEP_AGENT_VISION_PROFILE } from "../../shared/attachment-vision.js";
 import type { ProposedAction } from "../approval-contract/types.js";
 import { testConfig } from "../config-fixture.js";
-import { aiMessage, waitingToolCall } from "../proto-helpers.js";
+import { aiMessage, findToolCallRow, waitingToolCall } from "../proto-helpers.js";
 import type { HarnessContractSubject, ScenarioStep, TurnScenario } from "./types.js";
 
 export interface ScriptedHarnessOptions {
@@ -70,14 +70,6 @@ export interface RecordedLifecycle {
 function whenAborted(signal: AbortSignal): Promise<void> {
   if (signal.aborted) return Promise.resolve();
   return new Promise((resolve) => signal.addEventListener("abort", () => resolve(), { once: true }));
-}
-
-function findToolCall(status: AgentExecutionStatus, toolCallId: string): ToolCall | undefined {
-  for (const message of status.messages) {
-    const row = message.toolCalls.find((tc) => tc.id === toolCallId);
-    if (row) return row;
-  }
-  return undefined;
 }
 
 /** A proposal already carried to a terminal row has been settled by an earlier invocation. */
@@ -238,7 +230,7 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
     input: TurnInput,
     sink: TurnSink,
   ): TurnOutcome | undefined {
-    const existing = findToolCall(sink.status, toolCallId);
+    const existing = findToolCallRow(sink.status, toolCallId);
     if (isSettled(existing)) return undefined;
 
     const decision = input.approvalDecisions.get(toolCallId) ?? ApprovalAction.UNSPECIFIED;
