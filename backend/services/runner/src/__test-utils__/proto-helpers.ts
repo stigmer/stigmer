@@ -39,3 +39,19 @@ export function toolCall(
 ): ToolCall {
   return create(ToolCallSchema, { id, name, status });
 }
+
+/**
+ * A tool call withheld for approval — the row a harness writes when it
+ * proposes a gated side effect: WAITING_APPROVAL, `requiresApproval` set, and
+ * the approval fields the server owns (`approvalAction`, `approvalDecidedAt`)
+ * left at their defaults for the decision to fill in.
+ */
+export function waitingToolCall(id: string, name: string, approvalMessage: string): ToolCall {
+  return create(ToolCallSchema, {
+    id,
+    name,
+    status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
+    requiresApproval: true,
+    approvalMessage,
+  });
+}
