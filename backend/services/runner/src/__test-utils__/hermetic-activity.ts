@@ -75,8 +75,13 @@ import {
   type AgentExecution,
   type AgentExecutionStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import {
+  ApprovalAction,
+  ExecutionPhase,
+  ToolCallStatus,
+} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { UpdateStatusResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
+import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
@@ -168,6 +173,32 @@ export class ExecutionRecord {
       if (out[out.length - 1] !== s.phase) out.push(s.phase);
     }
     return out;
+  }
+
+  /** Every tool call on the held transcript (top-level messages), in order. */
+  toolCalls(): ToolCall[] {
+    return this.execution.status?.messages.flatMap((m) => m.toolCalls) ?? [];
+  }
+
+  /** The tool calls currently paused for a decision. */
+  waitingToolCalls(): ToolCall[] {
+    return this.toolCalls().filter((tc) => tc.status === ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
+  }
+
+  /**
+   * What the server's `SubmitApproval` does to the row: record the decision on
+   * the tool call the runner wrote. The runner owns `status`; the server owns
+   * `approval_action` (field ownership, 005 mandate 2) — so this is the ONE
+   * place a test writes it, and the status stays WAITING_APPROVAL until the
+   * resumed turn runs the tool, exactly as in production.
+   */
+  decideWaitingToolCalls(action: ApprovalAction, decidedAt: string): number {
+    const waiting = this.waitingToolCalls();
+    for (const tc of waiting) {
+      tc.approvalAction = action;
+      tc.approvalDecidedAt = decidedAt;
+    }
+    return waiting.length;
   }
 
   applyStatusUpdate(status: AgentExecutionStatus): void {

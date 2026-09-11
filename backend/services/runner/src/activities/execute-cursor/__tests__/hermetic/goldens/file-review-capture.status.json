@@ -1,0 +1,126 @@
+{
+  "messages": [
+    {
+      "type": "MESSAGE_AI",
+      "content": "Appending the review line.",
+      "timestamp": "2026-01-01T00:00:02.000Z",
+      "toolCalls": [
+        {
+          "id": "call-hermetic-edit-0001",
+          "name": "edit",
+          "args": {
+            "path": "notes.md",
+            "content": "# Notes\n\nA fixture file.\n\nReviewed by the hermetic run.\n"
+          },
+          "result": "ok",
+          "status": "TOOL_CALL_COMPLETED",
+          "startedAt": "2026-01-01T00:00:05.000Z",
+          "completedAt": "2026-01-01T00:00:06.000Z",
+          "requiresApproval": true,
+          "approvalMessage": "Write file: notes.md",
+          "argsPreview": "{\"path\":\"notes.md\",\"content\":\"# Notes\\n\\nA fixture file.\\n\\nReviewed by the hermetic run.\\n\"}",
+          "toolKind": "TOOL_KIND_FILE_EDIT",
+          "approvalPolicySource": "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
+          "policyEngineVersion": "phase-7",
+          "fileChangeSetId": "aex_hermetic_0001:0"
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "Done — notes.md now records the review.",
+      "timestamp": "2026-01-01T00:00:07.000Z"
+    }
+  ],
+  "phase": "EXECUTION_WAITING_FOR_APPROVAL",
+  "startedAt": "2026-01-01T00:00:00.000Z",
+  "streamingUsage": {
+    "inputTokens": "2400",
+    "outputTokens": "70",
+    "totalTokens": "2470",
+    "turnCount": 1,
+    "estimatedCostUsd": 0.00268,
+    "model": "composer-2.5",
+    "observedAt": "2026-01-01T00:00:08.000Z",
+    "requestedServiceTier": "SERVICE_TIER_STANDARD",
+    "requestedModelParams": "[{\"id\":\"fast\",\"value\":\"false\"},{\"id\":\"thinking\",\"value\":\"false\"}]",
+    "requestedThinkingMode": "THINKING_MODE_DISABLED"
+  },
+  "fileReviewEventStream": {
+    "executionId": "aex_hermetic_0001",
+    "events": [
+      {
+        "eventId": "aex_hermetic_0001:0:aex_hermetic_0001:0:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+        "changeSetId": "aex_hermetic_0001:0",
+        "eventType": "FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+        "timestamp": "2026-01-01T00:00:00.000Z",
+        "actor": "runner",
+        "baselineCaptured": {
+          "changeSetId": "aex_hermetic_0001:0",
+          "turnId": "aex_hermetic_0001:0",
+          "harnessId": "cursor",
+          "baselineSnapshot": {
+            "kind": "SNAPSHOT_KIND_GIT_TREE_REF",
+            "git": {
+              "treeOid": "06669a7bfb7a3e46bda2c295d6851e52e8f778c6",
+              "ref": "refs/stigmer/baseline/aex_hermetic_0001"
+            }
+          }
+        }
+      },
+      {
+        "eventId": "aex_hermetic_0001:0:aex_hermetic_0001:0:FILE_REVIEW_EVENT_TYPE_CANDIDATE_CAPTURED",
+        "changeSetId": "aex_hermetic_0001:0",
+        "eventType": "FILE_REVIEW_EVENT_TYPE_CANDIDATE_CAPTURED",
+        "timestamp": "2026-01-01T00:00:09.000Z",
+        "actor": "runner",
+        "candidateCaptured": {
+          "changeSetId": "aex_hermetic_0001:0",
+          "candidateSnapshot": {
+            "kind": "SNAPSHOT_KIND_GIT_TREE_REF",
+            "git": {
+              "treeOid": "2bb46c28a7498d578d76b52fa1cd9c941032e787",
+              "ref": "refs/stigmer/capture/aex_hermetic_0001"
+            }
+          },
+          "changes": [
+            {
+              "id": "aex_hermetic_0001:0:notes.md",
+              "pathBefore": "notes.md",
+              "pathAfter": "notes.md",
+              "kind": "FILE_CHANGE_KIND_MODIFY",
+              "captureClass": "FILE_CAPTURE_CLASS_GIT_TRACKED",
+              "before": {
+                "inline": "# Notes\n\nA fixture file.\n"
+              },
+              "after": {
+                "inline": "# Notes\n\nA fixture file.\n\nReviewed by the hermetic run.\n"
+              },
+              "beforeSha256": "0db28d643539d6a16370a30971d73a2ee0f9509dec6cbb5a143373d5ad52b83f",
+              "afterSha256": "96e76ecee9e8af5ef051ad2edaeeed6fbc989a50850a3ef1bcf518115fd1c097",
+              "diffComplete": true,
+              "fileDigest": "10056ad414223572125b6f8a148e79dbed10b58e18957d213992e79f475bedef",
+              "linesAdded": 2
+            }
+          ],
+          "aggregateDigest": "0a2af1c9c6e6f36e81beb770fdeea30860686096a409eb6df47d34d8e46737b9",
+          "diffCompleteness": "DIFF_COMPLETENESS_COMPLETE"
+        }
+      }
+    ]
+  },
+  "fileChangeProgress": {
+    "changeSetId": "aex_hermetic_0001:0",
+    "filesChanged": 1,
+    "linesAdded": 2,
+    "entries": [
+      {
+        "pathBefore": "notes.md",
+        "pathAfter": "notes.md",
+        "kind": "FILE_CHANGE_KIND_MODIFY",
+        "linesAdded": 2
+      }
+    ],
+    "capturedAt": "2026-01-01T00:00:05.000Z"
+  }
+}

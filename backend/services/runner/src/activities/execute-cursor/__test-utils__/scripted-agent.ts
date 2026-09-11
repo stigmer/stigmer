@@ -111,6 +111,39 @@ export const step = {
   },
 } as const;
 
+/**
+ * `SDKMessage` builders bound to one (agent_id, run_id) pair, so a scenario
+ * reads as the conversation it scripts. Shapes are the SDK's `messages.d.ts`;
+ * tool names are the STREAM taxonomy (`edit`, `shell`, `read` — lowercase; the
+ * hook sees `Write`, `Shell`, `Read`; see `approval-gate.test.ts`).
+ */
+export function sdkEvents(agentId: string, runId: string) {
+  const base = { agent_id: agentId, run_id: runId } as const;
+  return {
+    init(): SDKMessage {
+      return { type: "system", subtype: "init", ...base };
+    },
+    assistant(text: string): SDKMessage {
+      return { type: "assistant", ...base, message: { role: "assistant", content: [{ type: "text", text }] } };
+    },
+    thinking(text: string): SDKMessage {
+      return { type: "thinking", ...base, text };
+    },
+    toolCall(
+      callId: string,
+      name: string,
+      status: "running" | "completed" | "error",
+      args?: unknown,
+      result?: unknown,
+    ): SDKMessage {
+      return { type: "tool_call", ...base, call_id: callId, name, status, args, result };
+    },
+    status(status: "CREATING" | "RUNNING" | "FINISHED" | "ERROR" | "CANCELLED" | "EXPIRED", message?: string): SDKMessage {
+      return { type: "status", ...base, status, message };
+    },
+  };
+}
+
 // ---------------------------------------------------------------------------
 // The run
 // ---------------------------------------------------------------------------

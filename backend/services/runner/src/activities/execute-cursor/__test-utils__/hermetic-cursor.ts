@@ -34,6 +34,9 @@
  * check — more of the production path under the golden.
  */
 
+import { execFileSync } from "node:child_process";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { create } from "@bufbuild/protobuf";
 import type { ModelListItem } from "@cursor/sdk";
 import { vi } from "vitest";
@@ -47,7 +50,12 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import { SessionSchema, type Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
-import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
+import {
+  LocalPathSourceSchema,
+  WorkspaceEntrySchema,
+  WorkspaceSourceSchema,
+  type WorkspaceEntry,
+} from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import { AgentSchema, type Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import {
@@ -252,6 +260,91 @@ export function hermeticCursorConfig(env: HermeticEnvironment): Config {
     agentResolveTimeoutMs: 120_000,
     workspaceLockTimeoutMs: 900_000,
   };
+}
+
+// ---------------------------------------------------------------------------
+// The side effects the real SDK performs, for `effect` steps
+// ---------------------------------------------------------------------------
+
+/**
+ * The primary workspace directory a session with NO workspace entries runs in
+ * (`session-root.ts`: `<workspaceRootDir>/sessions/<sessionId>`).
+ */
+export function sessionWorkspaceDir(env: HermeticEnvironment): string {
+  return join(env.workspaceRootDir, "sessions", FIXTURE.sessionId);
+}
+
+/**
+ * Run the workspace's installed preToolUse hook exactly as the Cursor SDK does:
+ * read `<workspaceRoot>/.cursor/hooks.json`, take the `preToolUse` command the
+ * gate installed (an absolute path to the runner's own stable bash script under
+ * `~/.stigmer/hitl-gate/<key>/`), and run it with the hook input on stdin. The
+ * script resolves the CURRENT turn's state file and denial ledger from the
+ * active-turn pointer, walks its parent PIDs to confirm this process is the
+ * runner, and prints `{"permission":"allow"|"deny"}`. A deny appends to the
+ * ledger the activity's stream loop reads.
+ *
+ * This is the out-of-process half of deny-and-retry, driven by the real script
+ * against the real gate the activity installed — not a simulation of either.
+ */
+export function runWorkspaceHook(
+  workspaceRoot: string,
+  hookInput: object,
+): { readonly permission: "allow" | "deny" | "?"; readonly raw: string } {
+  const hooksJsonPath = join(workspaceRoot, ".cursor", "hooks.json");
+  const parsed = JSON.parse(readFileSync(hooksJsonPath, "utf-8")) as {
+    hooks?: { preToolUse?: Array<{ command: string }> };
+  };
+  const command = parsed.hooks?.preToolUse?.[0]?.command;
+  if (!command) {
+    throw new Error(`runWorkspaceHook: no preToolUse hook installed in ${hooksJsonPath}`);
+  }
+  const raw = execFileSync("bash", [command], { input: JSON.stringify(hookInput) }).toString();
+  const permission = raw.includes('"permission":"deny"')
+    ? "deny"
+    : raw.includes('"permission":"allow"')
+      ? "allow"
+      : "?";
+  return { permission, raw };
+}
+
+/**
+ * A git work tree with one committed file, for the file-review capture
+ * scenario. Author, committer and both dates are pinned so the commit AND tree
+ * object ids are byte-stable — a file-review golden may carry them.
+ */
+export function initGitWorkspace(root: string, files: Record<string, string>): void {
+  mkdirSync(root, { recursive: true });
+  const gitEnv = {
+    ...process.env,
+    GIT_AUTHOR_NAME: "hermetic",
+    GIT_AUTHOR_EMAIL: "hermetic@stigmer.test",
+    GIT_COMMITTER_NAME: "hermetic",
+    GIT_COMMITTER_EMAIL: "hermetic@stigmer.test",
+    GIT_AUTHOR_DATE: "2026-01-01T00:00:00Z",
+    GIT_COMMITTER_DATE: "2026-01-01T00:00:00Z",
+  };
+  const git = (args: string[]): void => {
+    execFileSync("git", args, { cwd: root, env: gitEnv, stdio: "ignore" });
+  };
+  git(["init", "-q", "-b", "main"]);
+  for (const [rel, content] of Object.entries(files)) {
+    const abs = join(root, rel);
+    mkdirSync(dirname(abs), { recursive: true });
+    writeFileSync(abs, content, "utf-8");
+  }
+  git(["add", "-A"]);
+  git(["commit", "-q", "-m", "initial"]);
+}
+
+/** A session workspace entry mounting an absolute local path (local mode only). */
+export function localPathEntry(name: string, path: string): WorkspaceEntry {
+  return create(WorkspaceEntrySchema, {
+    name,
+    source: create(WorkspaceSourceSchema, {
+      source: { case: "localPath", value: create(LocalPathSourceSchema, { path }) },
+    }),
+  });
 }
 
 // ---------------------------------------------------------------------------
