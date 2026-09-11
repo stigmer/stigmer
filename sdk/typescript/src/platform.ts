@@ -3,11 +3,16 @@ import { create } from "@bufbuild/protobuf";
 import {
   GetServerInfoInputSchema,
   PlatformQueryController,
+} from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
+import type {
+  GetServerInfoOutput,
   ServerEdition,
 } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
-import type { GetServerInfoOutput } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 import { wrapError } from "./gen/errors.js";
-import type { DeploymentMode } from "./resource-availability.js";
+import {
+  deploymentModeOf,
+  type DeploymentMode,
+} from "./resource-availability.js";
 
 /** Server identity information returned by {@link PlatformClient.getServerInfo}. */
 export interface ServerInfo {
@@ -36,8 +41,10 @@ export class PlatformClient {
   /**
    * Retrieve the connected server's edition and version.
    *
-   * Maps the proto {@link ServerEdition} to a {@link DeploymentMode}:
+   * Maps the proto {@link ServerEdition} to a {@link DeploymentMode}
+   * through {@link deploymentModeOf}:
    * - `oss` -> `"local"`
+   * - `enterprise` -> `"enterprise"`
    * - `cloud` -> `"cloud"`
    * - unspecified/unknown -> `"cloud"` (safe default)
    */
@@ -47,7 +54,7 @@ export class PlatformClient {
         create(GetServerInfoInputSchema, {}),
       );
       return {
-        deploymentMode: resp.edition === ServerEdition.oss ? "local" : "cloud",
+        deploymentMode: deploymentModeOf(resp.edition),
         edition: resp.edition,
         version: resp.version,
       };

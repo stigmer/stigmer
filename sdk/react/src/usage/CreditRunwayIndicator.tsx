@@ -33,6 +33,9 @@ export function CreditRunwayIndicator({
   const mode = useDeploymentMode();
   const { activeOrg } = useOrg();
   const orgId = activeOrg?.metadata?.id ?? "";
+  // The wallet is a cloud-only facility (editions program, DD-001):
+  // Enterprise customers bring their own provider keys and have no credit
+  // balance to run down, so only Cloud asks.
   const { account } = useBillingAccount(mode === "cloud" ? orgId : "");
 
   if (!account?.balance || daysInRange <= 0) return null;

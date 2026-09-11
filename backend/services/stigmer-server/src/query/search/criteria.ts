@@ -5,13 +5,20 @@
  * discover).
  *
  * The searchable-kind set is DERIVED from the proto kind_meta extension
- * (not_search_indexed: false, tier != cloud_only) — Go's
+ * (not_search_indexed: false, tier == open_source) — Go's
  * SearchIndexedKinds() posture since stigmer/stigmer#439, where hand-copied
  * kind lists drifted from the proto and from each other. Go still carries a
  * hand map (SearchableKinds) pinned to the derivation by an invariant test;
  * here the derivation IS the set — parity by construction, one source. The
  * registry unit test pins the registered extractors against this same
  * derivation (the #439 invariant's TS home).
+ *
+ * The tier clause admits open_source alone, not "anything but cloud_only":
+ * the index is the core's, and a kind tiered enterprise (editions program,
+ * DD-001) must not enter it by accident. This derivation is edition-blind
+ * by design (the same code runs in every composition); an edition-aware
+ * derivation is a design act with a named trigger — the first searchable
+ * kind above open_source.
  *
  * kinds are kept VERBATIM from the request; filtering to the searchable set
  * happens in effectiveKinds(). Keeping the raw request is what
@@ -45,8 +52,8 @@ let searchableKindSetCache: ReadonlySet<ApiResourceKind> | undefined;
 
 /**
  * Go SearchIndexedKinds(): every kind this edition's search read side
- * serves — kind_meta declares it search-indexed and servable outside the
- * cloud. Sorted ascending by enum value, exactly Go's sort. Kinds whose
+ * serves — kind_meta declares it search-indexed and open_source-tier.
+ * Sorted ascending by enum value, exactly Go's sort. Kinds whose
  * kind_meta cannot be read are skipped (Go's contract; the registry unit
  * test separately fails on such a defect).
  */
@@ -64,7 +71,7 @@ export function searchIndexedKinds(): readonly ApiResourceKind[] {
       } catch {
         continue;
       }
-      if (meta.notSearchIndexed || meta.tier === ResourceTier.cloud_only) {
+      if (meta.notSearchIndexed || meta.tier !== ResourceTier.open_source) {
         continue;
       }
       kinds.push(kind);

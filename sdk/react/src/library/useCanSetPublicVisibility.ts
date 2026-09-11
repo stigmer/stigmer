@@ -1,6 +1,6 @@
 "use client";
 
-import { useDeploymentMode } from "../deployment-mode.js";
+import { ApiResourceKind, useResourceAvailable } from "../deployment-mode.js";
 import { useCheckPermission } from "../iam-policy/useCheckPermission.js";
 
 /**
@@ -23,33 +23,36 @@ export interface UseCanSetPublicVisibilityReturn {
  * only level that crosses every org boundary (the cross-org "explore"
  * catalog).
  *
- * In the cloud edition, publishing is a curation decision: the backend
- * gates both write doors (updateVisibility escalation and
- * create-with-public) on `can_set_public_visibility` on `platform:stigmer`,
- * an explicit platform-operator capability. This hook runs the same check
- * so selectors can present the Public option as locked instead of letting
- * the request fail.
+ * Where the server has an operator seat — the `platform` kind is served,
+ * which is Enterprise and Cloud (editions program, DD-001) — publishing is
+ * a curation decision: the backend gates both write doors (updateVisibility
+ * escalation and create-with-public) on `can_set_public_visibility` on
+ * `platform:stigmer`, an explicit platform-operator capability. This hook
+ * runs the same check so selectors can present the Public option as locked
+ * instead of letting the request fail.
  *
  * Fail-closed, deliberately the opposite of the `useCheckPermission`
  * default: an escalation gate must not open while the check is loading or
  * when it errors — a locked option that unlocks a moment later is a far
  * better failure than an unlocked option the server then rejects.
  *
- * In `local` deployment mode (OSS Go backend) the answer is always `true`:
- * the self-hosted operator owns the store, the same scoping cloud#320
- * applied to reserved labels.
+ * Where there is no operator seat (the open-source edition) the answer is
+ * always `true`: the self-hosted operator owns the store, the same scoping
+ * cloud#320 applied to reserved labels. The question is asked of the kind
+ * registry, not of the deployment mode, so a new edition answers it by its
+ * tier table and never by falling between two mode compares.
  */
 export function useCanSetPublicVisibility(): UseCanSetPublicVisibilityReturn {
-  const deploymentMode = useDeploymentMode();
-  // Hooks run unconditionally; in local mode the null resource skips the
+  const hasOperatorSeat = useResourceAvailable(ApiResourceKind.platform);
+  // Hooks run unconditionally; without a seat the null resource skips the
   // RPC entirely and the fail mode's answer is discarded below.
   const { allowed, isLoading } = useCheckPermission(
-    deploymentMode === "cloud" ? PLATFORM_RESOURCE : null,
+    hasOperatorSeat ? PLATFORM_RESOURCE : null,
     "can_set_public_visibility",
     { fail: "closed" },
   );
 
-  if (deploymentMode === "local") {
+  if (!hasOperatorSeat) {
     return { allowed: true, isLoading: false };
   }
   return { allowed, isLoading };

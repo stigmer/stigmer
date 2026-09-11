@@ -15,7 +15,11 @@ type McpServerType = McpServerSpec["serverType"];
  * execution create, and the cloud connect flow refuses to spawn them. This
  * predicate identifies exactly that combination so the UI can explain the
  * policy and its remediation (run the session on a local runner). HTTP
- * servers and any transport in local mode return `false`.
+ * servers and any transport outside Cloud return `false`.
+ *
+ * Stigmer-managed compute is a cloud-only facility (editions program,
+ * DD-001); whether an Enterprise sandbox fleet refuses stdio is that
+ * edition's ruling and is not assumed here.
  *
  * Pure and framework-free so it can be unit-tested without rendering.
  */

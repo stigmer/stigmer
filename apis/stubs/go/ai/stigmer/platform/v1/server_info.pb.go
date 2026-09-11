@@ -23,22 +23,40 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// Edition of the Stigmer server binary.
+// Edition of the Stigmer server.
 //
-// Indicates whether the server is the open-source Go edition
-// (stigmer-server) or the cloud Java edition (stigmer-service).
-// Clients use this to determine feature availability instead of
-// guessing from the API base URL.
+// One TypeScript control plane (`@stigmer/server`) serves three editions,
+// each a composition of extension units over the same core:
+// `composeServer({ extensions: [] })` is Stigmer (open source),
+// `[...enterpriseUnits]` is Stigmer Enterprise, and
+// `[...enterpriseUnits, ...cloudOnlyUnits]` is Stigmer Cloud. Because
+// each edition composes the previous one's units, the editions are
+// ordered: oss < enterprise < cloud. A resource kind's ResourceTier names
+// the least edition that serves it, and every edition above it serves it
+// too.
+//
+// Value numbers are wire identifiers, not ranks: `enterprise` was added
+// after `cloud` and sits at 3. Compare editions through an explicit rank
+// (the SDK's `isResourceAvailable`), never through these numbers.
+//
+// Clients call getServerInfo once on startup and read this value to
+// decide feature availability instead of guessing from the API base URL.
 type ServerEdition int32
 
 const (
 	ServerEdition_server_edition_unspecified ServerEdition = 0
-	// Open-source Go server (stigmer-server).
-	// Only open_source-tier resources are available.
+	// Stigmer, the open-source edition: the empty composition.
+	// Serves open_source-tier resources.
 	ServerEdition_oss ServerEdition = 1
-	// Stigmer Cloud Java server (stigmer-service).
-	// All resources (including cloud_only) are available.
+	// Stigmer Cloud, the managed edition: Enterprise plus the cloud-only
+	// units (billing, the metered proxy, operations).
+	// Serves every resource, including cloud_only.
 	ServerEdition_cloud ServerEdition = 2
+	// Stigmer Enterprise, the self-hosted paid edition: the open-source
+	// core plus the Enterprise units (many organizations, SSO, fine-grained
+	// authorization, audit). Serves open_source- and enterprise-tier
+	// resources.
+	ServerEdition_enterprise ServerEdition = 3
 )
 
 // Enum value maps for ServerEdition.
@@ -47,11 +65,13 @@ var (
 		0: "server_edition_unspecified",
 		1: "oss",
 		2: "cloud",
+		3: "enterprise",
 	}
 	ServerEdition_value = map[string]int32{
 		"server_edition_unspecified": 0,
 		"oss":                        1,
 		"cloud":                      2,
+		"enterprise":                 3,
 	}
 )
 
@@ -122,7 +142,7 @@ func (*GetServerInfoInput) Descriptor() ([]byte, []int) {
 // Server identity and version information.
 type GetServerInfoOutput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Server edition (oss or cloud).
+	// Server edition (oss, enterprise or cloud).
 	Edition ServerEdition `protobuf:"varint,1,opt,name=edition,proto3,enum=ai.stigmer.platform.v1.ServerEdition" json:"edition,omitempty"`
 	// Semantic version of the server binary (e.g., "0.5.1").
 	Version       string `protobuf:"bytes,2,opt,name=version,proto3" json:"version,omitempty"`
@@ -698,11 +718,13 @@ const file_ai_stigmer_platform_v1_server_info_proto_rawDesc = "" +
 	"\x13runner_scoped_token\x18\x01 \x01(\tR\x11runnerScopedToken\x12\x1d\n" +
 	"\n" +
 	"token_type\x18\x02 \x01(\tR\ttokenType\x12,\n" +
-	"\x12expires_in_seconds\x18\x03 \x01(\x05R\x10expiresInSeconds*C\n" +
+	"\x12expires_in_seconds\x18\x03 \x01(\x05R\x10expiresInSeconds*S\n" +
 	"\rServerEdition\x12\x1e\n" +
 	"\x1aserver_edition_unspecified\x10\x00\x12\a\n" +
 	"\x03oss\x10\x01\x12\t\n" +
-	"\x05cloud\x10\x022\xa1\x03\n" +
+	"\x05cloud\x10\x02\x12\x0e\n" +
+	"\n" +
+	"enterprise\x10\x032\xa1\x03\n" +
 	"\x17PlatformQueryController\x12n\n" +
 	"\rgetServerInfo\x12*.ai.stigmer.platform.v1.GetServerInfoInput\x1a+.ai.stigmer.platform.v1.GetServerInfoOutput\"\x04ȸ\x18\x01\x12\x8f\x01\n" +
 	"\x18getRunnerBootstrapConfig\x125.ai.stigmer.platform.v1.GetRunnerBootstrapConfigInput\x1a6.ai.stigmer.platform.v1.GetRunnerBootstrapConfigOutput\"\x04и\x18\x01\x12\x83\x01\n" +

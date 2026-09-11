@@ -7,8 +7,12 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import {
+  ApiResourceKind,
+  ResourceTier,
+} from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
+import { getKindMeta } from "../../../pipeline/apiresource-meta.js";
 import {
   DEFAULT_PAGE_SIZE,
   MAX_PAGE_SIZE,
@@ -67,6 +71,19 @@ describe("searchIndexedKinds derivation (kind_meta)", () => {
     expect(kinds).not.toContain(ApiResourceKind.agent_channel);
     expect(kinds).not.toContain(ApiResourceKind.channel_app);
     expect(kinds).not.toContain(ApiResourceKind.memory);
+  });
+
+  it("contains no kind above the open_source tier — the index is the core's (editions program)", () => {
+    // Read from the descriptors, not a hand list: a kind re-tiered to
+    // enterprise or cloud_only must drop out of the derivation whatever
+    // its not_search_indexed flag says. Today every such kind is also
+    // not_search_indexed, so this pins a guard, not a behaviour change.
+    for (const kind of searchIndexedKinds()) {
+      expect(
+        getKindMeta(kind).tier,
+        `${ApiResourceKind[kind]} is searchable but not open_source-tier`,
+      ).toBe(ResourceTier.open_source);
+    }
   });
 });
 

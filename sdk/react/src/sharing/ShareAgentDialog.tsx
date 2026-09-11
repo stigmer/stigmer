@@ -834,7 +834,8 @@ function WhoPaysLine({
   const mode = useDeploymentMode();
   // An Organization's id equals its slug (see ApiResourceMetadata.id), so
   // the share's org reference is directly usable as the billing org id.
-  // Cloud-only: local mode has no billing accounts.
+  // The wallet is a cloud-only facility (editions program, DD-001): neither
+  // the open-source nor the Enterprise edition has billing accounts.
   const { account } = useBillingAccount(mode === "cloud" ? org : null);
 
   const balance =

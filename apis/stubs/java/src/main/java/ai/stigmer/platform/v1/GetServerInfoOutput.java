@@ -58,7 +58,7 @@ private static final long serialVersionUID = 0L;
   private int edition_ = 0;
   /**
    * <pre>
-   * Server edition (oss or cloud).
+   * Server edition (oss, enterprise or cloud).
    * </pre>
    *
    * <code>.ai.stigmer.platform.v1.ServerEdition edition = 1 [json_name = "edition"];</code>
@@ -69,7 +69,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Server edition (oss or cloud).
+   * Server edition (oss, enterprise or cloud).
    * </pre>
    *
    * <code>.ai.stigmer.platform.v1.ServerEdition edition = 1 [json_name = "edition"];</code>
@@ -450,7 +450,7 @@ private static final long serialVersionUID = 0L;
     private int edition_ = 0;
     /**
      * <pre>
-     * Server edition (oss or cloud).
+     * Server edition (oss, enterprise or cloud).
      * </pre>
      *
      * <code>.ai.stigmer.platform.v1.ServerEdition edition = 1 [json_name = "edition"];</code>
@@ -461,7 +461,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Server edition (oss or cloud).
+     * Server edition (oss, enterprise or cloud).
      * </pre>
      *
      * <code>.ai.stigmer.platform.v1.ServerEdition edition = 1 [json_name = "edition"];</code>
@@ -477,7 +477,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Server edition (oss or cloud).
+     * Server edition (oss, enterprise or cloud).
      * </pre>
      *
      * <code>.ai.stigmer.platform.v1.ServerEdition edition = 1 [json_name = "edition"];</code>
@@ -490,7 +490,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Server edition (oss or cloud).
+     * Server edition (oss, enterprise or cloud).
      * </pre>
      *
      * <code>.ai.stigmer.platform.v1.ServerEdition edition = 1 [json_name = "edition"];</code>
@@ -506,7 +506,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Server edition (oss or cloud).
+     * Server edition (oss, enterprise or cloud).
      * </pre>
      *
      * <code>.ai.stigmer.platform.v1.ServerEdition edition = 1 [json_name = "edition"];</code>

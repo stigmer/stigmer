@@ -179,6 +179,55 @@ describe("extension composition (composed server)", () => {
 });
 
 /**
+ * The third edition on the wire (editions program, sp.edition-contract):
+ * a unit declaring ServerEdition.enterprise is answered verbatim by
+ * getServerInfo. The registry is generic over concrete editions, so this
+ * pins the end-to-end path (declaration → resolved registry → platform
+ * controller → wire) for the value no composition emits yet — the day
+ * P4's Enterprise composition declares it, the wire is already proven.
+ */
+describe("extension composition (enterprise edition on the wire)", () => {
+  let server: ComposedServer;
+  let dir: string;
+  let portTransport: Transport;
+
+  const enterpriseUnit: ServerExtension = {
+    name: "fake-enterprise",
+    edition: ServerEdition.enterprise,
+  };
+
+  beforeAll(async () => {
+    dir = mkdtempSync(path.join(tmpdir(), "extension-composition-ee-test-"));
+    server = await composeServer({
+      config: loadConfig({
+        STIGMER_MODEL_REGISTRY_REFRESH: "off",
+        DB_PATH: path.join(dir, "stigmer.db"),
+        ARTIFACT_LOCAL_BASE_PATH: path.join(dir, "artifacts"),
+      }),
+      logger: createLogger({ level: "warn", pretty: false, write: () => {} }),
+      extensions: [enterpriseUnit],
+      portOverride: 0,
+      host: "127.0.0.1",
+    });
+    const port = await server.start();
+    portTransport = createGrpcTransport({
+      baseUrl: `http://127.0.0.1:${port}`,
+    });
+  });
+
+  afterAll(async () => {
+    await server.shutdown();
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("answers enterprise on getServerInfo", async () => {
+    const client = createClient(PlatformQueryController, portTransport);
+    const info = await client.getServerInfo({});
+    expect(info.edition).toBe(ServerEdition.enterprise);
+  });
+});
+
+/**
  * The caller-guard arm (entry 20260902.02 ruling Q1): a composed guard
  * is enforced on the SERVING chain and structurally absent from the
  * in-process chain. This is the wiring proof the unit arms cannot give —

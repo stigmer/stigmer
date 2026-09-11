@@ -27,6 +27,7 @@
 // (the hermetic launcher or a pre-provisioned endpoint owns its lifecycle).
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import type { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 import { CLOUD_ENV } from "../harness/cloud-env";
 import type { ConformanceClients } from "../harness/clients";
 import { McpToolFixture } from "../harness/mcp-server";
@@ -65,6 +66,10 @@ export class CloudExecutionTarget implements TargetProfile {
 
   get capabilities(): CapabilityFlags {
     return this.cloud.capabilities;
+  }
+
+  get edition(): ServerEdition {
+    return this.cloud.edition;
   }
 
   async setup(): Promise<void> {

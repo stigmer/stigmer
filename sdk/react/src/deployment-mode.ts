@@ -18,19 +18,25 @@ export const DeploymentModeContext = createContext<DeploymentMode>("cloud");
 /**
  * Read the deployment mode from the nearest `StigmerProvider`.
  *
- * Returns `"local"` when connected to the local Go CLI server (OSS)
- * and `"cloud"` when connected to Stigmer Cloud.
+ * Returns `"local"` for Stigmer (the open-source edition), `"enterprise"`
+ * for Stigmer Enterprise and `"cloud"` for Stigmer Cloud. Ask it a TIER
+ * question through {@link useResourceAvailable}; a site that compares it to
+ * `"cloud"` directly is asking about a cloud-only facility (the wallet,
+ * Stigmer-managed compute, the shared platform messaging apps) and should
+ * say which one.
  */
 export function useDeploymentMode(): DeploymentMode {
   return useContext(DeploymentModeContext);
 }
 
 /**
- * Check whether a given {@link ApiResourceKind} is available in the
- * current deployment mode.
+ * Check whether a given {@link ApiResourceKind} is served by the connected
+ * edition.
  *
- * Combines the deployment mode from context with the proto-derived
- * tier metadata via {@link isResourceAvailable}.
+ * Combines the deployment mode from context with the proto-derived tier
+ * metadata via {@link isResourceAvailable}: a kind is served when the
+ * edition ranks at or above the kind's minimum edition (oss < enterprise <
+ * cloud).
  *
  * @example
  * ```tsx

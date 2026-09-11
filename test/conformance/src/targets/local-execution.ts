@@ -8,6 +8,7 @@
 // TemporalManager's initial connect flips the engine-state provider to
 // connected), and the server before the runner (which streams status back
 // to it). teardown() reverses it.
+import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 import { awaitGrpcReady } from "../harness/grpc-ready";
 import { createTransport, makeClients, type ConformanceClients } from "../harness/clients";
 import { McpToolFixture } from "../harness/mcp-server";
@@ -29,6 +30,9 @@ import type {
 
 export class LocalExecutionTarget implements TargetProfile {
   readonly name: string = "local-execution";
+  // Same empty composition as `local`, with an engine behind it; having an
+  // engine changes no edition. local-postgres-execution inherits it.
+  readonly edition: ServerEdition = ServerEdition.oss;
   // The retired local-go-execution matrix plus exactly ONE deliberate
   // difference: workflowChildApprovalForwarding is true here (the D4
   // ratified parity-plus delta, #23) where the Go server never sent it.

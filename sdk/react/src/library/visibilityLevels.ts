@@ -1,4 +1,5 @@
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import type { DeploymentMode } from "@stigmer/sdk";
 
 /**
  * A selectable visibility level: label, explanation, and escalation copy.
@@ -110,9 +111,10 @@ const PUBLIC_OPTION: VisibilityLevelOption = {
  * Mirrors the backend's per-kind `VisibilityConfig` plus runtime context the
  * proto cannot know:
  *
- * - `deploymentMode`: the OSS Go backend (`local`) is single-user and
+ * - `deploymentMode`: the open-source edition (`local`) is single-user and
  *   performs no org/platform visibility gating, so only Private/Public are
- *   meaningful there.
+ *   meaningful there. Enterprise and Cloud share the org/FGA model, so the
+ *   full ladder is offered in both (editions program, DD-001).
  * - `hasIdentityProvider`: `visibility_platform` requires the owning org to
  *   operate an IdentityProvider — the backend rejects it otherwise
  *   (`ValidateVisibilityStep`), so the option only renders when the signal
@@ -123,7 +125,7 @@ const PUBLIC_OPTION: VisibilityLevelOption = {
  *   `useCanSetPublicVisibility`, which is always `true` in local mode).
  */
 export interface BlueprintVisibilityLevelsContext {
-  readonly deploymentMode: "cloud" | "local";
+  readonly deploymentMode: DeploymentMode;
   readonly hasIdentityProvider: boolean;
   readonly canSetPublicVisibility: boolean;
 }
@@ -144,9 +146,9 @@ function publicOption(canSetPublicVisibility: boolean): VisibilityLevelOption {
  * The levels a blueprint (agent, skill, workflow, mcp_server) selector
  * offers, in escalation order.
  *
- * Cloud: Private / Organization [/ Platform] / Public — Organization is the
- * creation default (blueprints are shared org assets; Private is an explicit
- * opt-in). Local: Private / Public.
+ * Cloud and Enterprise: Private / Organization [/ Platform] / Public —
+ * Organization is the creation default (blueprints are shared org assets;
+ * Private is an explicit opt-in). Local: Private / Public.
  */
 export function blueprintVisibilityLevels(
   context: BlueprintVisibilityLevelsContext,
@@ -206,12 +208,13 @@ export function instanceVisibilityLevels(
  * the values at runtime. Secret reveal stays creator-only at every
  * level.
  *
- * In `local` mode (OSS Go backend, single-user) sharing has no
+ * In `local` mode (the open-source edition, single-user) sharing has no
  * enforcement meaning, so no interactive levels are offered —
  * {@link ResourceVisibilityControl} degrades to a read-only badge.
+ * Enterprise and Cloud enforce org sharing alike.
  */
 export function environmentVisibilityLevels(
-  deploymentMode: "cloud" | "local",
+  deploymentMode: DeploymentMode,
 ): readonly VisibilityLevelOption[] {
   if (deploymentMode === "local") {
     return [PRIVATE_OPTION];
