@@ -171,7 +171,7 @@ jobs:
         run: node scripts/verify-esm-node.mjs --only="$AFFECTED"
 
       - name: Tests
-        run: node scripts/turbo-set.mjs libs test --only="$AFFECTED"
+        run: node scripts/turbo-set.mjs libs test --only="$AFFECTED" --concurrency=2
 
   # Every affected package's tsconfig.json pass (the one config that includes
   # its test files) and eslint where a package has one, then the gates that
