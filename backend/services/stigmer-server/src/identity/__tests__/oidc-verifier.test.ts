@@ -7,16 +7,32 @@
  * classifyAuthError arms, and the infrastructure-fault posture (discovery
  * failures are plain errors for the chassis's INTERNAL arm — never
  * credential rejections).
+ *
+ * Since 20260911.11 (Q-IA-2, A1) the verifier also resolves the subject to
+ * an identity ACCOUNT id when one exists — the cloud's direct-login
+ * posture — through the store port it is composed with: a hit stamps the
+ * account id, a miss admits the caller idp-shaped (identityId = sub) so
+ * whoAmI can answer NOT_FOUND and provisionMyAccount can run. One
+ * primary-key read per request, no cache (the same liveness posture as
+ * the API-key lane). The store is a REQUIRED dependency (a nullable that
+ * changes what identityId means is exactly the modeled-state rule
+ * forbids); over an empty store every pre-entry arm reads as before.
  */
 import { createServer } from "node:http";
 import type { Server } from "node:http";
 import { once } from "node:events";
 
+import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { SignJWT, exportJWK, generateKeyPair } from "jose";
 import type { GenerateKeyPairResult } from "jose";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
+
+import { fakeIdentityAccountStore } from "../../domain/identityaccount/__tests__/support.js";
+import { accountIdFor } from "../../domain/identityaccount/constants.js";
 import {
   INVALID_TOKEN_MESSAGE,
   TOKEN_AUDIENCE_MESSAGE,
@@ -35,7 +51,11 @@ let strangerKeys: GenerateKeyPairResult;
 beforeAll(async () => {
   keys = await generateKeyPair("RS256");
   strangerKeys = await generateKeyPair("RS256");
-  const jwk = { ...(await exportJWK(keys.publicKey)), kid: "test-key", alg: "RS256" };
+  const jwk = {
+    ...(await exportJWK(keys.publicKey)),
+    kid: "test-key",
+    alg: "RS256",
+  };
 
   issuerServer = createServer((req, res) => {
     if (req.url === "/.well-known/openid-configuration") {
@@ -93,8 +113,13 @@ async function mintToken(options: TokenOptions = {}): Promise<string> {
   return jwt.sign(key);
 }
 
+/** The verifier over an EMPTY account store: every subject is a miss, so the pre-entry arms read exactly as before. */
 function verifier() {
-  return newOidcIdentityVerifier({ issuer, audience: AUDIENCE });
+  return newOidcIdentityVerifier({
+    issuer,
+    audience: AUDIENCE,
+    accounts: fakeIdentityAccountStore(),
+  });
 }
 
 async function rejectionOf(promise: Promise<unknown>): Promise<unknown> {
@@ -166,7 +191,10 @@ describe("the byte-pinned classifyAuthError arms", () => {
   });
 
   it("issuer-claim mismatch → 'invalid token' (the fallback arm)", async () => {
-    const token = await mintToken({ sub: "s", issuerClaim: "https://evil.test" });
+    const token = await mintToken({
+      sub: "s",
+      issuerClaim: "https://evil.test",
+    });
     const error = await rejectionOf(verifier().verify(token));
     expect(ConnectError.from(error).rawMessage).toBe(INVALID_TOKEN_MESSAGE);
   });
@@ -178,12 +206,109 @@ describe("the byte-pinned classifyAuthError arms", () => {
   });
 });
 
+describe("subject → account resolution (20260911.11 Q-IA-2, A1)", () => {
+  function seeded(sub: string, email: string) {
+    const accounts = fakeIdentityAccountStore();
+    accounts.rows.set(
+      accountIdFor(sub),
+      create(IdentityAccountSchema, {
+        metadata: { id: accountIdFor(sub), name: email },
+        spec: {
+          idpId: sub,
+          email,
+          provisioningMode: IdentityAccountProvisioningMode.direct,
+        },
+      }),
+    );
+    return accounts;
+  }
+
+  it("a subject with an account resolves to the ACCOUNT id; the claims still flow", async () => {
+    const accounts = seeded("auth0|known", "known@example.com");
+    const token = await mintToken({
+      sub: "auth0|known",
+      email: "known@example.com",
+      name: "Known",
+    });
+    const identity = await newOidcIdentityVerifier({
+      issuer,
+      audience: AUDIENCE,
+      accounts,
+    }).verify(token);
+    expect(identity).toEqual({
+      identityId: accountIdFor("auth0|known"),
+      callerClass: "user",
+      issuer,
+      rawToken: token,
+      email: "known@example.com",
+      displayName: "Known",
+    });
+  });
+
+  it("a subject without an account is admitted idp-shaped — identityId is the sub", async () => {
+    const accounts = seeded("auth0|someone-else", "other@example.com");
+    const token = await mintToken({ sub: "auth0|unknown" });
+    const identity = await newOidcIdentityVerifier({
+      issuer,
+      audience: AUDIENCE,
+      accounts,
+    }).verify(token);
+    expect(identity?.identityId).toBe("auth0|unknown");
+  });
+
+  it("resolution is one primary-key read per request, no cache — a row created after the first request is seen on the next", async () => {
+    const accounts = fakeIdentityAccountStore();
+    const verifierWithStore = newOidcIdentityVerifier({
+      issuer,
+      audience: AUDIENCE,
+      accounts,
+    });
+    const token = await mintToken({ sub: "auth0|late" });
+    expect((await verifierWithStore.verify(token))?.identityId).toBe(
+      "auth0|late",
+    );
+
+    accounts.rows.set(
+      accountIdFor("auth0|late"),
+      create(IdentityAccountSchema, {
+        metadata: { id: accountIdFor("auth0|late"), name: "late" },
+        spec: {
+          idpId: "auth0|late",
+          provisioningMode: IdentityAccountProvisioningMode.direct,
+        },
+      }),
+    );
+    expect((await verifierWithStore.verify(token))?.identityId).toBe(
+      accountIdFor("auth0|late"),
+    );
+  });
+
+  it("a store fault during resolution is an infrastructure fault (plain error), never a credential rejection", async () => {
+    const accounts = fakeIdentityAccountStore();
+    const broken = {
+      ...accounts,
+      findDirectByIdpId: () => Promise.reject(new Error("store is on fire")),
+    };
+    const token = await mintToken({ sub: "auth0|anyone" });
+    const error = await rejectionOf(
+      newOidcIdentityVerifier({
+        issuer,
+        audience: AUDIENCE,
+        accounts: broken,
+      }).verify(token),
+    );
+    expect(error).not.toBeInstanceOf(ConnectError);
+    expect(String(error)).toContain("store is on fire");
+  });
+});
+
 describe("infrastructure faults are never credential rejections", () => {
   it("an unreachable issuer throws a PLAIN error (chassis maps INTERNAL)", async () => {
     const dead = newOidcIdentityVerifier({
       // Port 1 is deterministically closed.
       issuer: "http://127.0.0.1:1",
       audience: AUDIENCE,
+      accounts: fakeIdentityAccountStore(),
     });
     const error = await rejectionOf(dead.verify(await mintToken({ sub: "s" })));
     expect(error).not.toBeInstanceOf(ConnectError);
@@ -195,6 +320,7 @@ describe("infrastructure faults are never credential rejections", () => {
       // one — the discovery-document identity check must refuse.
       issuer: `${issuer}/`,
       audience: AUDIENCE,
+      accounts: fakeIdentityAccountStore(),
     });
     const error = await rejectionOf(
       misconfigured.verify(await mintToken({ sub: "s" })),

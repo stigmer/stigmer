@@ -149,8 +149,8 @@ function countingClient(preferences: StubPreferences): { client: Stigmer; calls:
   return { client, calls: () => calls };
 }
 
-/** prepareAgentExec options as `run` passes them: cloud + harness opt-in. */
-const CLOUD_RUN_OPTIONS = { cloudBackend: true, applyAccountHarnessDefault: true } as const;
+/** prepareAgentExec options as `run` passes them: the kind is served here + harness opt-in. */
+const SERVED_RUN_OPTIONS = { accountPreferencesAvailable: true, applyAccountHarnessDefault: true } as const;
 
 describe("prepareAgentExec env injection", () => {
   it("injects STIGMER_ORG_ID when absent", async () => {
@@ -193,7 +193,7 @@ describe("prepareAgentExec account-preference model fill (oss#293 Phase 1.5)", (
       clientWithPreference("claude-sonnet-4.6"),
       "acme",
       undefined,
-      { cloudBackend: true },
+      { accountPreferencesAvailable: true },
     );
     expect(prepared.model).toBe("claude-sonnet-4.6");
   });
@@ -204,20 +204,22 @@ describe("prepareAgentExec account-preference model fill (oss#293 Phase 1.5)", (
       clientWithPreference("claude-sonnet-4.6"),
       "acme",
       undefined,
-      { cloudBackend: true },
+      { accountPreferencesAvailable: true },
     );
     expect(prepared.model).toBe("gpt-5.3");
   });
 
-  it("never consults identity on a local backend", async () => {
-    // The failing stub doubles as a call detector: local mode must not even
-    // attempt whoAmI, so a rejecting client cannot affect the result.
+  it("never consults identity where the kind is not served", async () => {
+    // The failing stub doubles as a call detector: a backend that does not
+    // serve identity accounts must not even attempt whoAmI, so a rejecting
+    // client cannot affect the result. (20260911.11 A3: the gate is the
+    // kind's tier, not the backend type — client/edition.ts resourceServedOn.)
     const prepared = await prepareAgentExec(
       BASE_FLAGS,
       clientWithFailingWhoAmI(),
       "acme",
       undefined,
-      { cloudBackend: false },
+      { accountPreferencesAvailable: false },
     );
     expect(prepared.model).toBe("");
   });
@@ -228,7 +230,7 @@ describe("prepareAgentExec account-preference model fill (oss#293 Phase 1.5)", (
       clientWithFailingWhoAmI(),
       "acme",
       undefined,
-      { cloudBackend: true },
+      { accountPreferencesAvailable: true },
     );
     expect(prepared.model).toBe("");
   });
@@ -239,7 +241,7 @@ describe("prepareAgentExec account-preference model fill (oss#293 Phase 1.5)", (
       clientWithPreference(""),
       "acme",
       undefined,
-      { cloudBackend: true },
+      { accountPreferencesAvailable: true },
     );
     expect(prepared.model).toBe("");
   });
@@ -252,7 +254,7 @@ describe("prepareAgentExec harness resolution (oss#293)", () => {
       clientWithPreferences({ defaultHarness: "cursor" }),
       "acme",
       undefined,
-      CLOUD_RUN_OPTIONS,
+      SERVED_RUN_OPTIONS,
     );
     expect(prepared.harness).toBe("cursor");
   });
@@ -265,7 +267,7 @@ describe("prepareAgentExec harness resolution (oss#293)", () => {
       clientWithPreferences({ defaultHarness: "cursor" }),
       "acme",
       undefined,
-      CLOUD_RUN_OPTIONS,
+      SERVED_RUN_OPTIONS,
     );
     expect(prepared.harness).toBe("native");
   });
@@ -279,7 +281,7 @@ describe("prepareAgentExec harness resolution (oss#293)", () => {
       clientWithPreferences({ defaultHarness: "cursor" }),
       "acme",
       undefined,
-      { cloudBackend: true },
+      { accountPreferencesAvailable: true },
     );
     expect(prepared.harness).toBe("");
   });
@@ -290,7 +292,7 @@ describe("prepareAgentExec harness resolution (oss#293)", () => {
       STUB_CLIENT,
       "acme",
       undefined,
-      { cloudBackend: false },
+      { accountPreferencesAvailable: false },
     );
     expect(prepared.harness).toBe("cursor");
   });
@@ -303,7 +305,7 @@ describe("prepareAgentExec harness resolution (oss#293)", () => {
       clientWithPreferences({ defaultHarness: "devin" }),
       "acme",
       undefined,
-      CLOUD_RUN_OPTIONS,
+      SERVED_RUN_OPTIONS,
     );
     expect(prepared.harness).toBe("");
   });
@@ -314,7 +316,7 @@ describe("prepareAgentExec harness resolution (oss#293)", () => {
       clientWithFailingWhoAmI(),
       "acme",
       undefined,
-      CLOUD_RUN_OPTIONS,
+      SERVED_RUN_OPTIONS,
     );
     expect(prepared.harness).toBe("");
     expect(prepared.model).toBe("");
@@ -327,7 +329,7 @@ describe("prepareAgentExec harness resolution (oss#293)", () => {
       clientWithFailingWhoAmI(),
       "acme",
       undefined,
-      { cloudBackend: false, applyAccountHarnessDefault: true },
+      { accountPreferencesAvailable: false, applyAccountHarnessDefault: true },
     );
     expect(prepared.harness).toBe("");
   });
@@ -338,7 +340,7 @@ describe("prepareAgentExec harness resolution (oss#293)", () => {
       clientWithPreferences({}),
       "acme",
       undefined,
-      CLOUD_RUN_OPTIONS,
+      SERVED_RUN_OPTIONS,
     );
     expect(prepared.harness).toBe("");
   });
@@ -356,7 +358,7 @@ describe("prepareAgentExec harness-aware model fill (oss#293)", () => {
       clientWithPreferences(BOTH_MODELS),
       "acme",
       undefined,
-      CLOUD_RUN_OPTIONS,
+      SERVED_RUN_OPTIONS,
     );
     expect(prepared.model).toBe("composer-2.5");
   });
@@ -367,7 +369,7 @@ describe("prepareAgentExec harness-aware model fill (oss#293)", () => {
       clientWithPreferences({ ...BOTH_MODELS, defaultHarness: "cursor" }),
       "acme",
       undefined,
-      CLOUD_RUN_OPTIONS,
+      SERVED_RUN_OPTIONS,
     );
     expect(prepared.harness).toBe("cursor");
     expect(prepared.model).toBe("composer-2.5");
@@ -379,7 +381,7 @@ describe("prepareAgentExec harness-aware model fill (oss#293)", () => {
       clientWithPreferences(BOTH_MODELS),
       "acme",
       undefined,
-      CLOUD_RUN_OPTIONS,
+      SERVED_RUN_OPTIONS,
     );
     expect(explicit.model).toBe("claude-sonnet-4.6");
 
@@ -388,7 +390,7 @@ describe("prepareAgentExec harness-aware model fill (oss#293)", () => {
       clientWithPreferences(BOTH_MODELS),
       "acme",
       undefined,
-      CLOUD_RUN_OPTIONS,
+      SERVED_RUN_OPTIONS,
     );
     expect(unset.model).toBe("claude-sonnet-4.6");
   });
@@ -399,7 +401,7 @@ describe("prepareAgentExec harness-aware model fill (oss#293)", () => {
       clientWithPreferences(BOTH_MODELS),
       "acme",
       undefined,
-      CLOUD_RUN_OPTIONS,
+      SERVED_RUN_OPTIONS,
     );
     expect(prepared.model).toBe("gpt-5.3");
   });
@@ -412,7 +414,7 @@ describe("prepareAgentExec harness-aware model fill (oss#293)", () => {
       clientWithPreferences(BOTH_MODELS),
       "acme",
       undefined,
-      { cloudBackend: true },
+      { accountPreferencesAvailable: true },
     );
     expect(prepared.harness).toBe("cursor");
     expect(prepared.model).toBe("composer-2.5");
@@ -420,7 +422,7 @@ describe("prepareAgentExec harness-aware model fill (oss#293)", () => {
 
   it("serves both fills from one whoAmI round trip, and none when both flags are explicit", async () => {
     const single = countingClient({ ...BOTH_MODELS, defaultHarness: "cursor" });
-    const filled = await prepareAgentExec(BASE_FLAGS, single.client, "acme", undefined, CLOUD_RUN_OPTIONS);
+    const filled = await prepareAgentExec(BASE_FLAGS, single.client, "acme", undefined, SERVED_RUN_OPTIONS);
     expect(filled.harness).toBe("cursor");
     expect(filled.model).toBe("composer-2.5");
     expect(single.calls(), "harness + model fills share one whoAmI").toBe(1);
@@ -431,7 +433,7 @@ describe("prepareAgentExec harness-aware model fill (oss#293)", () => {
       skipped.client,
       "acme",
       undefined,
-      CLOUD_RUN_OPTIONS,
+      SERVED_RUN_OPTIONS,
     );
     expect(explicit.harness).toBe("native");
     expect(explicit.model).toBe("gpt-5.3");
