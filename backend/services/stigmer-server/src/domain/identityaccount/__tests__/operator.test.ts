@@ -18,20 +18,29 @@
  *   - two ensures racing (a two-replica boot) converge to one row by
  *     primary key.
  *
+ * The row goes through the domain's ONE create path (the same chain the
+ * create RPC runs), built here over the temp store with the permissive
+ * authorizer and no lifecycle driver — the no-extension composition.
+ *
  * Whether the stage runs at all — only when no authentication posture is
  * on — is pinned where the posture is decided: boot/__tests__.
  */
-import { create } from "@bufbuild/protobuf";
+import { clone, create } from "@bufbuild/protobuf";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
+import { IdentityAccountPreferencesSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/spec_pb";
 
+import { createLogger } from "../../../boot/logger.js";
+import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/authorize.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../store/sqlite/__tests__/support.js";
 import { accountIdFor, localIdpIdFor } from "../constants.js";
+import { newCreateAccountPath } from "../controller.js";
 import { ensureOperatorAccount } from "../operator.js";
+import type { OperatorAccountDeps } from "../operator.js";
 import { newResourceIdentityAccountStore } from "../resource-store.js";
 
 let temp: TempStore;
@@ -44,9 +53,30 @@ afterEach(() => {
   temp.cleanup();
 });
 
+/** The domain over the temp store: the port and its one create path. */
+function domainOver(store: TempStore["store"]): OperatorAccountDeps {
+  const accounts = newResourceIdentityAccountStore(store);
+  return {
+    accounts,
+    createAccount: newCreateAccountPath(
+      {
+        accounts,
+        logger: createLogger({
+          level: "error",
+          pretty: false,
+          write: () => {},
+        }),
+        authorizer: newPermissiveSingleTeamAuthorizer(),
+        authorizationLifecycle: undefined,
+      },
+      ApiResourceKind.identity_account,
+    ),
+  };
+}
+
 describe("ensureOperatorAccount", () => {
   it("creates the configured operator's account once, under the derived id", async () => {
-    const accounts = newResourceIdentityAccountStore(temp.store);
+    const accounts = domainOver(temp.store);
     const account = await ensureOperatorAccount(accounts, {
       email: "operator@example.com",
       displayName: "The Operator",
@@ -69,7 +99,7 @@ describe("ensureOperatorAccount", () => {
   });
 
   it("the unconfigured laptop is the 'system' operator with an empty profile", async () => {
-    const accounts = newResourceIdentityAccountStore(temp.store);
+    const accounts = domainOver(temp.store);
     const account = await ensureOperatorAccount(accounts, {
       email: "",
       displayName: "",
@@ -82,19 +112,26 @@ describe("ensureOperatorAccount", () => {
   });
 
   it("a second boot never touches the row — preferences and an edited name survive", async () => {
-    const accounts = newResourceIdentityAccountStore(temp.store);
+    const accounts = domainOver(temp.store);
     const operator = {
       email: "operator@example.com",
       displayName: "The Operator",
     };
     const created = await ensureOperatorAccount(accounts, operator);
 
-    const edited = create(IdentityAccountSchema, {
-      ...created,
-      metadata: { ...created.metadata, name: "Renamed by the console" },
-      spec: { ...created.spec, preferences: { defaultHarness: "cursor" } },
+    // The console's writes: a renamed profile and a preference, through
+    // the port the update RPC persists with.
+    const edited = clone(IdentityAccountSchema, created);
+    if (edited.metadata === undefined || edited.spec === undefined) {
+      throw new Error(
+        "the create path answered an account without metadata or spec",
+      );
+    }
+    edited.metadata.name = "Renamed by the console";
+    edited.spec.preferences = create(IdentityAccountPreferencesSchema, {
+      defaultHarness: "cursor",
     });
-    await accounts.update(edited);
+    await accounts.accounts.update(edited);
 
     const again = await ensureOperatorAccount(accounts, {
       ...operator,
@@ -108,7 +145,7 @@ describe("ensureOperatorAccount", () => {
   });
 
   it("a changed operator email is a different subject, so a different account", async () => {
-    const accounts = newResourceIdentityAccountStore(temp.store);
+    const accounts = domainOver(temp.store);
     await ensureOperatorAccount(accounts, {
       email: "old@example.com",
       displayName: "",
@@ -125,7 +162,7 @@ describe("ensureOperatorAccount", () => {
   });
 
   it("two ensures racing converge to one row", async () => {
-    const accounts = newResourceIdentityAccountStore(temp.store);
+    const accounts = domainOver(temp.store);
     const operator = {
       email: "operator@example.com",
       displayName: "The Operator",

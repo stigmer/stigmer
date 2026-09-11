@@ -6,10 +6,11 @@
  *
  *   1. idempotent early return when the subject already has an account
  *      (no create, no userinfo call);
- *   2. the profile comes from the issuer's userinfo endpoint with the
- *      caller's own access token, for every token-bearing caller — the
- *      cloud's posture, one path, given_name/family_name as the IdP states
- *      them (a claims shortcut that split `name` into two would be
+ *   2. the profile comes from the userinfo endpoint of the ISSUER THAT
+ *      VOUCHED for the token (caller.issuer; T01_1_review.md A8), fetched
+ *      with the caller's own access token, for every token-bearing caller
+ *      — the cloud's posture, one path, given_name/family_name as the IdP
+ *      states them (a claims shortcut that split `name` into two would be
  *      guesswork; recorded in T01_3_execution.md). A caller with no issuer
  *      never dials out: its profile is what the CallerIdentity carries;
  *   3. create through the ONE create path the domain owns (the same path
@@ -63,14 +64,18 @@ function fakeCreatePath(accounts: IdentityAccountStore) {
   };
 }
 
+/** Records every `[issuer, token]` the provisioner asks about. */
 function fakeUserInfo(
   profile: UserProfile | Error,
-): UserInfoClient & { tokens: string[] } {
-  const tokens: string[] = [];
+): UserInfoClient & { calls: Array<[string, string]>; tokens: string[] } {
+  const calls: Array<[string, string]> = [];
   return {
-    tokens,
-    async fetchUserProfile(accessToken) {
-      tokens.push(accessToken);
+    calls,
+    get tokens() {
+      return calls.map(([, token]) => token);
+    },
+    async fetchUserProfile(issuer, accessToken) {
+      calls.push([issuer, accessToken]);
       if (profile instanceof Error) throw profile;
       return profile;
     },
@@ -126,7 +131,7 @@ describe("provisionDirectAccount", () => {
     expect(userInfo.tokens).toEqual(["token-for-auth0|alice"]);
   });
 
-  it("a token-bearing caller's profile comes from userinfo with the caller's own token", async () => {
+  it("a token-bearing caller's profile comes from the vouching issuer's userinfo with the caller's own token", async () => {
     const accounts = fakeAccounts();
     const path = fakeCreatePath(accounts);
     const userInfo = fakeUserInfo(PROFILE);
@@ -140,7 +145,9 @@ describe("provisionDirectAccount", () => {
       oidcCaller("auth0|alice"),
     );
 
-    expect(userInfo.tokens).toEqual(["token-for-auth0|alice"]);
+    expect(userInfo.calls).toEqual([
+      ["https://issuer.test", "token-for-auth0|alice"],
+    ]);
     expect(account.metadata?.id).toBe(accountIdFor("auth0|alice"));
     expect(account.metadata?.name).toBe("alice@example.com");
     expect(account.spec).toMatchObject({

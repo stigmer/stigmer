@@ -172,7 +172,19 @@ export function callerIdentityOf(ctx: HandlerContext): CallerIdentity {
  * operator seam remains process-global.
  */
 export function trustedLocalIdentity(): CallerIdentity {
-  const operator = operatorIdentitySnapshot();
+  return trustedLocalIdentityFor(operatorIdentitySnapshot());
+}
+
+/**
+ * The trusted-local identity for a given operator — the one construction
+ * of that principal, shared by the per-request stamp above and by the
+ * boot-time operator account (domain/identityaccount/operator.ts), so the
+ * row the server ensures and the caller it stamps can never disagree.
+ */
+export function trustedLocalIdentityFor(operator: {
+  readonly email: string;
+  readonly displayName: string;
+}): CallerIdentity {
   if (operator.email === "") {
     return {
       identityId: "system",
