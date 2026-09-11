@@ -39,3 +39,28 @@ export function toolCall(
 ): ToolCall {
   return create(ToolCallSchema, { id, name, status });
 }
+
+/** The tool-call row with this id, wherever it sits in the transcript. */
+export function findToolCallRow(status: AgentExecutionStatus, toolCallId: string): ToolCall | undefined {
+  for (const message of status.messages) {
+    const row = message.toolCalls.find((tc) => tc.id === toolCallId);
+    if (row) return row;
+  }
+  return undefined;
+}
+
+/**
+ * A tool call withheld for approval — the row a harness writes when it
+ * proposes a gated side effect: WAITING_APPROVAL, `requiresApproval` set, and
+ * the approval fields the server owns (`approvalAction`, `approvalDecidedAt`)
+ * left at their defaults for the decision to fill in.
+ */
+export function waitingToolCall(id: string, name: string, approvalMessage: string): ToolCall {
+  return create(ToolCallSchema, {
+    id,
+    name,
+    status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
+    requiresApproval: true,
+    approvalMessage,
+  });
+}
