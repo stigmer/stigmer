@@ -205,10 +205,16 @@ export function turboArgs(set, task, extra = [], rootDir = root) {
   const packages = selectPackages(set, only, rootDir);
   if (packages.length === 0) return null;
   const args = ["run", task, ...packages.map((name) => `--filter=${name}`)];
-  if (set === "libs" && task === "test") {
+  // The set's flags are defaults: a caller who passes the same flag means
+  // it (turbo refuses a repeated flag outright).
+  if (set === "libs" && task === "test" && !hasFlag(rest, "--concurrency")) {
     args.push("--concurrency=1");
   }
   return [...args, ...rest];
+}
+
+function hasFlag(args, flag) {
+  return args.some((arg) => arg === flag || arg.startsWith(`${flag}=`));
 }
 
 /** The environment turbo runs with: the caller's, plus telemetry off (D3). */

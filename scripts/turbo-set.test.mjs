@@ -244,6 +244,21 @@ test("turboArgs: only `libs test` is serialized", () => {
   assert.ok(!turboArgs("runner-deps", "build").includes("--concurrency=1"));
 });
 
+test("turboArgs: a caller's --concurrency replaces the set's default instead of duplicating it", () => {
+  const inline = turboArgs("libs", "test", ["--concurrency=4"]);
+  assert.deepEqual(
+    inline.filter((a) => a.startsWith("--concurrency")),
+    ["--concurrency=4"],
+    "turbo refuses a repeated flag, so the set's must step aside",
+  );
+  const spaced = turboArgs("libs", "test", ["--concurrency", "2"]);
+  assert.deepEqual(
+    spaced.filter((a) => a.startsWith("--concurrency")),
+    ["--concurrency"],
+  );
+  assert.ok(spaced.includes("2"));
+});
+
 test("turboArgs refuses a missing task or a flag in the task position", () => {
   assert.throws(() => turboArgs("libs", undefined), /usage/);
   assert.throws(() => turboArgs("libs", "--dry-run"), /usage/);
