@@ -9,12 +9,18 @@
 // downstream job merges those fragments into one manifest. This keeps the
 // manifest deterministic while allowing fully concurrent builds.
 //
+// macOS bundles are keyed by the Rust target triple in their path
+// (MACOS_TARGETS), so adding or removing a macOS leg is a matrix change in
+// release.desktop.yaml and nothing here. The lane builds aarch64 only today;
+// see stigmer-cloud 20260912.01 DD-001 for why the universal build was retired.
+//
 // Usage:
 //   node ci-latest-json.mjs fragment --target-dir <dir> --tag <vX.Y.Z> --out <file>
 //   node ci-latest-json.mjs merge --fragments-dir <dir> --version <X.Y.Z> --out <file>
 
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
 import { join, basename } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 function parseArgs(argv) {
   const args = {};
@@ -58,12 +64,34 @@ function findSignatureFiles(root) {
   return results;
 }
 
-// Map a signed updater bundle to the latest.json platform key(s). Tauri's
-// universal macOS bundle serves both Apple Silicon and Intel, so it maps to
-// two keys. Returns null for non-updater signatures we should ignore.
-function platformKeysFor(bundleName) {
+// The macOS Rust targets the desktop lane may build, keyed by the target
+// triple that appears in the bundle's path under src-tauri/target/. Each row
+// gives the arch suffix tauri-action puts on the uploaded asset name
+// (tauri-action utils.ts: universal -> "universal", aarch64 -> "aarch64",
+// anything else -> "x64") and the latest.json platform key(s) the bundle
+// serves. A universal bundle serves both.
+const MACOS_TARGETS = {
+  'aarch64-apple-darwin': { uploadArch: 'aarch64', platformKeys: ['darwin-aarch64'] },
+  'x86_64-apple-darwin': { uploadArch: 'x64', platformKeys: ['darwin-x86_64'] },
+  'universal-apple-darwin': {
+    uploadArch: 'universal',
+    platformKeys: ['darwin-aarch64', 'darwin-x86_64'],
+  },
+};
+
+function macosTargetOf(sigPath) {
+  return Object.keys(MACOS_TARGETS).find((triple) => sigPath.includes(triple)) ?? null;
+}
+
+// Map a signed updater bundle to the latest.json platform key(s). macOS keys
+// come from the target triple in the signature's path, since the on-disk
+// bundle name (Stigmer.app.tar.gz) carries no arch. Returns null for
+// non-updater signatures we should ignore, and for a macOS bundle under an
+// unknown target.
+export function platformKeysFor(bundleName, sigPath) {
   if (bundleName.endsWith('.app.tar.gz')) {
-    return ['darwin-aarch64', 'darwin-x86_64'];
+    const triple = macosTargetOf(sigPath);
+    return triple ? MACOS_TARGETS[triple].platformKeys : null;
   }
   if (bundleName.endsWith('.AppImage') || bundleName.endsWith('.AppImage.tar.gz')) {
     return ['linux-x86_64'];
@@ -74,31 +102,37 @@ function platformKeysFor(bundleName) {
   return null;
 }
 
+// The asset name as tauri-action uploads it. macOS updater bundles are
+// renamed with the arch suffix on upload (Stigmer.app.tar.gz ->
+// Stigmer_aarch64.app.tar.gz), so the manifest URL must use the uploaded
+// name, not the on-disk one. Every other bundle already carries its arch.
+export function uploadedBundleName(bundleName, sigPath) {
+  if (!bundleName.endsWith('.app.tar.gz')) return bundleName;
+  const triple = macosTargetOf(sigPath);
+  if (!triple) return bundleName;
+  const suffix = `_${MACOS_TARGETS[triple].uploadArch}`;
+  const stem = bundleName.slice(0, -'.app.tar.gz'.length);
+  return stem.endsWith(suffix) ? bundleName : `${stem}${suffix}.app.tar.gz`;
+}
+
 function downloadUrl(repo, tag, bundleName) {
   return `https://github.com/${repo}/releases/download/${encodeURIComponent(
     tag,
   )}/${encodeURIComponent(bundleName)}`;
 }
 
-function buildFragment({ targetDir, tag, repo }) {
+export function buildFragment({ targetDir, tag, repo }) {
   const sigFiles = findSignatureFiles(targetDir).filter((p) =>
     p.includes('bundle'),
   );
 
   const platforms = {};
   for (const sigPath of sigFiles) {
-    let bundleName = basename(sigPath).replace(/\.sig$/, '');
-    // tauri-action uploads the universal macOS bundle renamed with an arch
-    // suffix (Stigmer.app.tar.gz -> Stigmer_universal.app.tar.gz), so the
-    // manifest URL must use the uploaded name, not the on-disk one.
-    if (
-      bundleName.endsWith('.app.tar.gz') &&
-      sigPath.includes('universal-apple-darwin') &&
-      !bundleName.includes('_universal')
-    ) {
-      bundleName = bundleName.replace(/\.app\.tar\.gz$/, '_universal.app.tar.gz');
-    }
-    const keys = platformKeysFor(bundleName);
+    const bundleName = uploadedBundleName(
+      basename(sigPath).replace(/\.sig$/, ''),
+      sigPath,
+    );
+    const keys = platformKeysFor(bundleName, sigPath);
     if (!keys) continue;
 
     const signature = readFileSync(sigPath, 'utf8').trim();
@@ -128,7 +162,7 @@ function buildFragment({ targetDir, tag, repo }) {
   return { platforms };
 }
 
-function mergeFragments({ fragmentsDir, version }) {
+export function mergeFragments({ fragmentsDir, version }) {
   const platforms = {};
 
   const walk = (dir) => {
@@ -188,4 +222,8 @@ function main() {
   process.exit(1);
 }
 
-main();
+// Run only when invoked directly, so ci-latest-json.test.mjs can import the
+// mapping functions without triggering the CLI.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main();
+}
