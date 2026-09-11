@@ -491,7 +491,22 @@ export async function resolveEngine(input: TurnInput, sink: TurnSink, config: Cu
     if (blueprint.sessionSpec.cursorMode === CursorMode.UNSPECIFIED) {
       blueprint.sessionSpec.cursorMode = cursorMode;
     }
-    await sink.bindHarnessState(resolution.agentId);
+    try {
+      await sink.bindHarnessState(resolution.agentId);
+    } catch (bindErr) {
+      // The handle this function just created has no owner yet (the adapter
+      // receives the engine only when this returns) and its id was never
+      // saved, so no later turn can resume it: close it here, or its executor
+      // lease and MCP subprocesses outlive the failed turn with nothing to
+      // release them (S2 M4, Q-M4-8). Then let the rejection settle the turn
+      // `failed` as R3 rules.
+      try {
+        resolution.agent.close();
+      } catch {
+        /* best effort */
+      }
+      throw bindErr;
+    }
     console.log(`Stored Cursor agentId=${resolution.agentId} as harness_state_id, cursorMode=${CursorMode[cursorMode]} on session ${sessionId}`);
   }
 

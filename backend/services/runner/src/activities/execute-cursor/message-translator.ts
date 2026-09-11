@@ -37,7 +37,7 @@ import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/a
 import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
-import { ApprovalPolicySource, MessageType, ToolCallStatus, SubAgentStatus, ToolKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ApprovalAction, ApprovalPolicySource, MessageType, ToolCallStatus, SubAgentStatus, ToolKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { SDKMessage } from "@cursor/sdk";
 import type { MergedToolPolicy } from "./approval-policy.js";
 import { lookupMcpToolPolicy, resolveApprovalMessage, builtInRequiresApproval, getBuiltInApprovalMessage, SALIENT_ARG_FIELDS } from "./approval-policy.js";
@@ -966,12 +966,21 @@ export class MessageAccumulator {
    * pending call with the same identity naturally reconciles onto the next one.
    * Tool calls created during this turn are not WAITING_APPROVAL until the
    * post-stream denial reconciliation runs, so they can never be matched here.
+   *
+   * Only a row whose decision EXECUTES is resumable: the re-issue after an
+   * APPROVE is the approved act itself, landing on its row. A row the user
+   * declined (SKIP / REJECT) is a closed gate — a later same-identity call is a
+   * NEW act the model was told not to perform, and it gets its own row so the
+   * hook's denial gates it afresh instead of landing on the declined row and
+   * inheriting its decision (S2 M4 finding F9, the accumulator's half; the
+   * denial overlay's half is {@link isAdjudicatedRow}).
    */
   private findResumableSeededToolCall(candidate: ToolCall): ToolCall | undefined {
     const wanted = toolCallIdentityToken(candidate);
     for (const tc of this.toolCallIndex.values()) {
       if (
         tc.status === ToolCallStatus.TOOL_CALL_WAITING_APPROVAL &&
+        !isDeclinedRow(tc) &&
         toolCallIdentityToken(tc) === wanted
       ) {
         return tc;
@@ -1273,10 +1282,13 @@ export async function reconcileDeniedToolCalls(
   //    byte-for-byte (the path form agreed on both sides). The anchor resource
   //    re-attempted within the turn shares one token and collapses to a single
   //    approval (the first match is the keeper; same-identity twins are blanked
-  //    by collapseRedundantToolCallTwins below).
+  //    by collapseRedundantToolCallTwins below). A row an earlier invocation's
+  //    gate already settled is never the home of THIS turn's denial
+  //    (isAdjudicatedRow) — the search moves past it to this turn's attempt.
   for (const msg of messages) {
     if (anchorMatched) break;
     for (const tc of msg.toolCalls) {
+      if (isAdjudicatedRow(tc)) continue;
       if (toolCallIdentityToken(tc) !== anchorToken) continue;
       overlayDeniedStreamCall(tc, anchorInput, mergedPolicies);
       matchedCalls.add(tc);
@@ -1459,6 +1471,42 @@ function isAlreadyCollapsed(tc: ToolCall): boolean {
 }
 
 /**
+ * Whether the server has already adjudicated this row — the user decided its
+ * gate (`approval_action`, the server's field; the runner never writes it).
+ *
+ * Such a row belongs to a gate that is CLOSED: approved and executed, or
+ * declined, in an earlier invocation of this execution. No reconciliation of
+ * the CURRENT turn may rewrite it — not the denial overlay (a new denial of the
+ * same identity is a NEW act and gets its own row), not the twin collapse (the
+ * executed row is the transcript's record). Before this rule the overlay matched
+ * a denial to the FIRST same-identity row in the whole transcript, flipped a
+ * completed, approved row back to WAITING_APPROVAL with its APPROVE still on
+ * it, and the next invocation read that as the decision for the new, undecided
+ * proposal — an approval bleeding to a later identical act (S2 M4 finding F9,
+ * found by the harness contract kit's invariant 3 against this adapter).
+ */
+function isAdjudicatedRow(tc: ToolCall): boolean {
+  return tc.approvalAction !== ApprovalAction.UNSPECIFIED;
+}
+
+/** Adjudicated with a decision that does NOT execute: the user declined this gate. */
+function isDeclinedRow(tc: ToolCall): boolean {
+  switch (tc.approvalAction) {
+    case ApprovalAction.SKIP:
+    case ApprovalAction.REJECT:
+      return true;
+    case ApprovalAction.UNSPECIFIED:
+    case ApprovalAction.APPROVE:
+    case ApprovalAction.APPROVE_ALL:
+      return false;
+    default: {
+      const exhaustive: never = tc.approvalAction;
+      throw new Error(`isDeclinedRow: unknown approval action ${String(exhaustive)}`);
+    }
+  }
+}
+
+/**
  * Whether a tool call carries a change/output of its own — the signal that it is
  * authoritative for its resource rather than a redundant denial/cancel twin.
  *
@@ -1548,8 +1596,11 @@ export function collapseRedundantToolCallTwins(messages: AgentMessage[]): number
     if (group.length < 2) continue; // a lone call is never a twin
 
     // Keepers carry authoritative state: a change/output of their own
-    // (carriesOwnChange) or the approval gate itself. For a file mutation the gate
-    // is the sole authoritative row (the row carries no diff — review lives in the
+    // (carriesOwnChange), the approval gate itself, or a gate an earlier
+    // invocation already settled (isAdjudicatedRow — the transcript's record of
+    // what the user decided and what ran; a same-identity act in a later turn
+    // is a new act, never this row's twin). For a file mutation the gate is the
+    // sole authoritative row (the row carries no diff — review lives in the
     // ledger, or the row IS the no-storage deny-gate), so a denied write's
     // same-identity siblings collapse onto it; a shell/MCP twin keeps every
     // distinct run with output.
@@ -1557,6 +1608,7 @@ export function collapseRedundantToolCallTwins(messages: AgentMessage[]): number
       group.filter(
         (tc) =>
           carriesOwnChange(tc) ||
+          isAdjudicatedRow(tc) ||
           tc.status === ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
       ),
     );
@@ -1605,6 +1657,7 @@ function collapseNonAnchorDenials(
   let collapsed = 0;
   for (const msg of messages) {
     for (const tc of msg.toolCalls) {
+      if (isAdjudicatedRow(tc)) continue;
       const token = toolCallIdentityToken(tc);
       if (token === anchorToken) continue;
       if (!deniedTokens.has(token)) continue;
@@ -1706,7 +1759,7 @@ function findUnmatchedStreamCallByNormalizedSalient(
 ): ToolCall | undefined {
   for (const msg of messages) {
     for (const tc of msg.toolCalls) {
-      if (matchedCalls.has(tc)) continue;
+      if (matchedCalls.has(tc) || isAdjudicatedRow(tc)) continue;
       const id = toolIdentity(tc.name, tc.mcpServerSlug, toolCallArgs(tc));
       if (normalizedFileSalient(id.key, id.salient, workspaceRoot) === wanted) {
         return tc;
