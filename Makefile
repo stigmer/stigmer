@@ -805,7 +805,8 @@ check-go: ## check bucket: Go build/vet/test over every go.work module + buf lin
 	done
 check-node: ## check bucket: npm typecheck/lint/build/test (web, react, sdk, desktop, runner, demos, e2e)
 	npm run typecheck -w @stigmer/sdk
-	# The conformance package's typecheck (the same step ci.ts-sdk runs): it
+	# The conformance package's typecheck (ci.ts-workspace runs it as the
+	# turbo `typecheck` task whenever the package is affected): it
 	# compiles mcp-server and sdk source under its own stricter options, so
 	# it can be red while both packages' own typechecks are green (#999).
 	npm run typecheck -w @stigmer/conformance

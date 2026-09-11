@@ -236,10 +236,11 @@ black box.
 ### Typecheck
 
 `npm run typecheck -w @stigmer/conformance` is the package's own gate. It runs in
-`ci.ts-sdk` (the workspace's TypeScript typecheck lane), in `make check-node`,
-and in the `test/conformance/**` row of `@verify-stigmer-oss-changes`. It must
-be clean; `vitest` does not typecheck, so a suite can run green over a type
-error that this step is the only thing catching (stigmer/stigmer#999).
+`ci.ts-workspace` (the TS workspace lane, as the turbo `typecheck` task whenever
+this package is affected), in `make check-node`, and in the
+`test/conformance/**` row of `@verify-stigmer-oss-changes`. It must be clean;
+`vitest` does not typecheck, so a suite can run green over a type error that
+this step is the only thing catching (stigmer/stigmer#999).
 
 Two things about it are deliberate:
 
@@ -255,9 +256,10 @@ Two things about it are deliberate:
   coupling only — no suite calls the SDK, and the "Raw stubs, not the SDK"
   principle above is intact — but it means a guard-free indexed read in either
   package fails this typecheck while both packages' own typechecks stay green.
-  That is why the gate lives in `ci.ts-sdk`, whose path filter already covers
-  `sdk/typescript/**` and `mcp-server/**`: drift on either side of the coupling
-  fails a check.
+  That is why the gate runs from the workspace's task graph: this package
+  declares `@stigmer/mcp-server` (and, through it, `@stigmer/sdk`), so
+  `ci.ts-workspace` marks it affected when either changes and drift on either
+  side of the coupling fails a check.
 
 Two alternatives were considered for that coupling and rejected (2026-09-08):
 importing the built packages instead of source goes against the repo-wide

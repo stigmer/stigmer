@@ -75,8 +75,9 @@
  *    whose steps.ts declares that `shot`, and must carry non-empty alt
  *    text (DD-01's text-fallback bar — MDX is never typechecked, so the
  *    component's required prop cannot enforce it). This check runs from
- *    both sides: ci.docs covers docs-only changes, ci.frontend covers
- *    demos-only changes — so removing a shot a page references fails CI
+ *    both sides: ci.docs covers docs-only changes, ci.ts-workspace runs it
+ *    whenever @stigmer/demos is affected — so removing a shot a page
+ *    references fails CI
  *    exactly like referencing a shot that never existed. It is also what
  *    keeps a replaced tour alive: once a page's embed becomes a still,
  *    the `<Still>` id may be the tour's only reference in the repo, and
