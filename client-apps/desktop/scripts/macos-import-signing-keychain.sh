@@ -4,24 +4,34 @@
 # that codesign can use without prompting, on a CI runner or a laptop alike.
 #
 # What it does, in order:
-#   1. Checks the vendored Apple CA certificates (apple-ca/) against the SHA-256
-#      fingerprints pinned below and refuses a mismatch.
-#   2. Creates the keychain at <keychain-path> with a random password, imports
-#      the CA chain and then the .p12, grants codesign access to the key
-#      without a UI prompt, and adds the keychain to the user search list
-#      (keeping whatever was there).
-#   3. Asserts the keychain now holds exactly one code-signing identity, that it
+#   1. Checks the vendored Developer ID G2 intermediate (apple-ca/) against
+#      the SHA-256 fingerprint pinned below and refuses a mismatch.
+#   2. Installs that intermediate into the LOGIN keychain if it is not there.
+#   3. Creates the keychain at <keychain-path> with a random password, imports
+#      the .p12, grants codesign access to the key without a UI prompt, and
+#      adds the keychain to the user search list (keeping whatever was there).
+#   4. Asserts the keychain now holds exactly one code-signing identity, that it
 #      equals $APPLE_SIGNING_IDENTITY when that is set, and prints the
 #      certificate's expiry (a warning under 90 days).
 #
+# Why the intermediate goes into the login keychain and not the dedicated one:
+# the .p12 carries only the leaf, and codesign must build a chain to Apple's
+# root before it signs. On macOS 26 the trust evaluation codesign runs
+# (trustd) looks for intermediates in the login and System keychains only;
+# a file-based keychain on the user search list does not count, even when it
+# holds the very certificate. Measured on 2026-09-12: identity and
+# intermediate together in a dedicated keychain fail with
+# "errSecInternalComponent" and the unified log line
+# "Trust evaluate failure: [leaf MissingIntermediate]"; the same identity
+# signs the moment the intermediate is in the login keychain. This is also
+# where Xcode installs Apple's intermediates. Apple's root is already in
+# macOS's System Roots and needs no import.
+#
 # Why we import ourselves instead of handing APPLE_CERTIFICATE to Tauri: Tauri's
 # tauri_macos_sign::Keychain::with_certificate imports only the leaf into a
-# throwaway keychain, and the .p12 carries only the leaf. codesign must build a
-# chain from the leaf to Apple's root before it signs anything; without the
-# Developer ID G2 intermediate in some keychain on the search list it fails
-# with "unable to build chain to self-signed root certificate". So the lane
-# imports chain and leaf here and passes Tauri only APPLE_SIGNING_IDENTITY,
-# which makes it look the identity up on the search list (with_signing_identity).
+# throwaway keychain, so it hits the chain failure above. The lane imports
+# here and passes Tauri only APPLE_SIGNING_IDENTITY, which makes it look the
+# identity up on the search list (with_signing_identity).
 #
 # Usage: macos-import-signing-keychain.sh <certificate.p12> <keychain-path>
 #
@@ -41,10 +51,10 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CA_DIR="$SCRIPT_DIR/apple-ca"
+LOGIN_KEYCHAIN="$HOME/Library/Keychains/login.keychain-db"
 
-# Pinned in apple-ca/README.md beside the source URLs. Update both together.
+# Pinned in apple-ca/README.md beside the source URL. Update both together.
 DEVELOPER_ID_G2_CA_SHA256="F1:6C:D3:C5:4C:7F:83:CE:A4:BF:1A:3E:6A:08:19:C8:AA:A8:E4:A1:52:8F:D1:44:71:5F:35:06:43:D2:DF:3A"
-APPLE_ROOT_CA_SHA256="B0:B1:73:0E:CB:C7:FF:45:05:14:2C:49:F1:29:5E:6E:DA:6B:CA:ED:7E:2C:68:C5:BE:91:B5:A1:10:01:F0:24"
 
 EXPIRY_WARNING_DAYS=90
 
@@ -63,11 +73,11 @@ der_fingerprint() {
   openssl x509 -inform der -in "$1" -noout -fingerprint -sha256 | sed 's/^.*Fingerprint=//'
 }
 
-assert_fingerprint() {
-  local file="$1" expected="$2" actual
-  actual="$(der_fingerprint "$file")"
-  [ "$actual" = "$expected" ] \
-    || fail "$(basename "$file") fingerprint $actual does not match the pinned $expected; see apple-ca/README.md"
+# True when a certificate with this SHA-256 (colon-free form, as `security`
+# prints it) is already in the keychain.
+keychain_has_certificate() {
+  local keychain="$1" fingerprint="$2"
+  security find-certificate -a -Z "$keychain" 2>/dev/null | grep -q "SHA-256 hash: ${fingerprint//:/}"
 }
 
 [ "$(uname -s)" = Darwin ] || fail "the security tool is macOS-only; nothing to do on $(uname -s)"
@@ -76,6 +86,7 @@ P12_PATH="$1"
 KEYCHAIN_PATH="$2"
 [ -f "$P12_PATH" ] || fail "certificate not found: $P12_PATH"
 [ ! -e "$KEYCHAIN_PATH" ] || fail "keychain already exists: $KEYCHAIN_PATH (delete it with 'security delete-keychain' to redo the import)"
+[ -f "$LOGIN_KEYCHAIN" ] || fail "login keychain not found at $LOGIN_KEYCHAIN; the intermediate has nowhere codesign will look"
 
 if [ -z "${APPLE_CERTIFICATE_PASSWORD:-}" ]; then
   [ -t 0 ] || fail "APPLE_CERTIFICATE_PASSWORD is not set and stdin is not a terminal"
@@ -83,8 +94,17 @@ if [ -z "${APPLE_CERTIFICATE_PASSWORD:-}" ]; then
   echo
 fi
 
-assert_fingerprint "$CA_DIR/DeveloperIDG2CA.cer" "$DEVELOPER_ID_G2_CA_SHA256"
-assert_fingerprint "$CA_DIR/AppleIncRootCertificate.cer" "$APPLE_ROOT_CA_SHA256"
+G2_CER="$CA_DIR/DeveloperIDG2CA.cer"
+actual="$(der_fingerprint "$G2_CER")"
+[ "$actual" = "$DEVELOPER_ID_G2_CA_SHA256" ] \
+  || fail "DeveloperIDG2CA.cer fingerprint $actual does not match the pinned $DEVELOPER_ID_G2_CA_SHA256; see apple-ca/README.md"
+
+if keychain_has_certificate "$LOGIN_KEYCHAIN" "$DEVELOPER_ID_G2_CA_SHA256"; then
+  echo "macos-import-signing-keychain: Developer ID G2 intermediate already in the login keychain"
+else
+  security import "$G2_CER" -k "$LOGIN_KEYCHAIN" >/dev/null
+  echo "macos-import-signing-keychain: installed the Developer ID G2 intermediate into the login keychain"
+fi
 
 KEYCHAIN_PASSWORD="$(openssl rand -base64 32)"
 security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
@@ -92,9 +112,6 @@ security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
 security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
 security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
 
-# Chain first, so the leaf's issuer is resolvable the moment it lands.
-security import "$CA_DIR/AppleIncRootCertificate.cer" -k "$KEYCHAIN_PATH" -T /usr/bin/codesign >/dev/null
-security import "$CA_DIR/DeveloperIDG2CA.cer" -k "$KEYCHAIN_PATH" -T /usr/bin/codesign >/dev/null
 security import "$P12_PATH" -k "$KEYCHAIN_PATH" -f pkcs12 -P "$APPLE_CERTIFICATE_PASSWORD" \
   -T /usr/bin/codesign -T /usr/bin/security >/dev/null
 
@@ -102,7 +119,7 @@ security import "$P12_PATH" -k "$KEYCHAIN_PATH" -f pkcs12 -P "$APPLE_CERTIFICATE
 security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH" >/dev/null
 
 # Append to the search list rather than replacing it, so the login keychain's
-# contents stay reachable on a laptop.
+# contents (the intermediate among them) stay reachable.
 existing_keychains=()
 while IFS= read -r line; do
   line="${line#"${line%%[![:space:]]*}"}"
