@@ -58,25 +58,30 @@ git status --short
 
 If there are uncommitted changes, warn the user and ask whether to commit first or abort.
 
-### 5. Bump the mcp-server Bridge Pin (MANDATORY before tagging)
+### 5. Bump the Release Pins (MANDATORY before tagging)
 
-`mcp-server/Dockerfile` pins the npm version the production bridge image installs
-(`ARG MCP_SERVER_VERSION=X.Y.Z`). The `release.npm-libs` workflow has a hard
-pre-publish gate: it refuses to publish a release whose version does not match
-this pin — prod deploys the pin, not the tag. The pin must be bumped **in a
-commit that is included in the tag** (the v3.8.0 release failed this gate,
-2026-08-08).
+Three pins travel in the commit the tag is cut from:
+
+- `mcp-server/Dockerfile` `ARG MCP_SERVER_VERSION=X.Y.Z` — the npm version the
+  production bridge image installs. `release.npm-libs` has a hard pre-publish
+  gate: it refuses to publish a release whose version does not match this pin —
+  prod deploys the pin, not the tag (the v3.8.0 release failed this gate,
+  2026-08-08).
+- `docker-compose.yml` `STIGMER_VERSION:-vX.Y.Z` (both image lines) and
+  `.env.example` `#STIGMER_VERSION=vX.Y.Z` — the stack a fresh clone runs.
+  Until v3.14.1 the release lane bumped these itself after the compose smokes
+  passed; every automated route to `main` was refused (a PR needed an org
+  setting, the direct push hits branch protection GH006), so the bump moved
+  here, next to the pin it already required.
 
 ```bash
-# Verify the pin at HEAD matches the new version
-git show HEAD:mcp-server/Dockerfile | sed -n 's/^ARG MCP_SERVER_VERSION=//p'
+make release-pins version=<NEW_VERSION>
+git commit -am "chore(release): bump the release pins to <NEW_VERSION>"
+git push origin main
 ```
 
-If it does not match, update the `ARG MCP_SERVER_VERSION=` line in
-`mcp-server/Dockerfile` to the new version, commit it to main
-(`chore(mcp-server): bump the Dockerfile bridge pin to <NEW_VERSION>`), push,
-and tag that commit. `make release` also enforces this check before creating
-any tags.
+Tag THAT commit. `make release` refuses to create any tag until all three pins
+name the new version, and prints the two commands above when they do not.
 
 > Note: the pin-bump push to main triggers a Planton bridge build that can fail
 > once with an npm 404 (the version isn't published yet). Re-run it after
@@ -170,6 +175,6 @@ Tags pushed. CI will handle:
 
 - **Never force-push tags** — if a tag already exists, stop and tell the user
 - **Always confirm** the version bump with the user before creating tags
-- **Never tag without the bridge pin bumped** — `release.npm-libs` will hard-fail the publish if `mcp-server/Dockerfile` pins a different version than the tag (see step 5)
+- **Never tag without the release pins bumped** (`make release-pins`) — `release.npm-libs` will hard-fail the publish if `mcp-server/Dockerfile` pins a different version than the tag, and a stale compose pin points fresh clones at the previous stack (see step 5)
 - **Clean working tree required** — do not tag with uncommitted changes unless the user explicitly approves
 - If the user specifies a bump type (`patch`, `minor`, `major`), use it; otherwise infer from commits

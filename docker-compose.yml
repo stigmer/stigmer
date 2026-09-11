@@ -16,10 +16,11 @@
 #                   servers spawn INSIDE this container — they can reach this
 #                   container's filesystem and network, not your host's.
 #
-# Image pins: the STIGMER_VERSION default below is managed by the release
-# lane (release.npm-libs.yaml pushes the bump to main after both published
-# images pass the compose smoke on both architectures). Override in .env to
-# run a different released version.
+# Image pins: the STIGMER_VERSION default below is bumped in the release
+# commit the tag is cut from (`make release` / @release-stigmer-oss refuse
+# to tag without it, alongside the mcp-server bridge pin); release.npm-libs
+# then proves the pinned images with the compose smoke on both
+# architectures. Override in .env to run a different released version.
 #
 # The env blocks below set every load-bearing variable EXPLICITLY, even
 # where the image default would coincide — two independent defaults
@@ -88,7 +89,7 @@ services:
       retries: 30
 
   stigmer-server:
-    image: ghcr.io/stigmer/stigmer-server:${STIGMER_VERSION:-v3.14.0}
+    image: ghcr.io/stigmer/stigmer-server:${STIGMER_VERSION:-v3.14.1}
     restart: unless-stopped
     depends_on:
       postgres:
@@ -140,7 +141,7 @@ services:
     # runner's depends_on gates on it.
 
   stigmer-runner:
-    image: ghcr.io/stigmer/stigmer-runner:${STIGMER_VERSION:-v3.14.0}
+    image: ghcr.io/stigmer/stigmer-runner:${STIGMER_VERSION:-v3.14.1}
     restart: unless-stopped
     depends_on:
       stigmer-server:

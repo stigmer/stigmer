@@ -1001,8 +1001,24 @@ gen-llms: ## Generate LLM-friendly output (llms.txt, llms-full.txt, per-page .md
 
 # ─── Release ──────────────────────────────────
 
-.PHONY: release
-release: ## Tag and push a release (usage: make release [bump=patch|minor|major])
+.PHONY: release release-pins
+# The three release pins travel in the commit the tag is cut from: the
+# mcp-server bridge pin (release.npm-libs refuses to publish on a mismatch)
+# and the compose stack pin in docker-compose.yml + .env.example (the
+# release lane cannot push the bump to the protected main — GH006 on
+# v3.14.0 and v3.14.1 — so it moved here, next to the pin it already
+# required). `make release` refuses to tag until all three name the new
+# version. perl, not sed -i: the recipe must run the same on macOS and
+# Linux.
+release-pins: ## Bump the release pins to version=X.Y.Z (mcp-server bridge, compose stack); commit before `make release`
+	@[ -n "$(version)" ] || { echo "usage: make release-pins version=X.Y.Z"; exit 1; }
+	@echo "$(version)" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$$' || { echo "error: version must be X.Y.Z (got '$(version)')"; exit 1; }
+	@perl -pi -e 's/^ARG MCP_SERVER_VERSION=.*/ARG MCP_SERVER_VERSION=$(version)/' mcp-server/Dockerfile
+	@perl -pi -e 's/STIGMER_VERSION:-v[0-9A-Za-z.+-]+/STIGMER_VERSION:-v$(version)/g' docker-compose.yml
+	@perl -pi -e 's/^#STIGMER_VERSION=.*/#STIGMER_VERSION=v$(version)/' .env.example
+	@echo "release pins set to $(version):"; git --no-pager diff --stat -- mcp-server/Dockerfile docker-compose.yml .env.example
+
+release: ## Tag and push a release (usage: make release [bump=patch|minor|major]); run `make release-pins` and commit first
 	@LATEST_TAG=$$(git tag -l "v*" | sort -V | tail -n1); \
 	[ -z "$$LATEST_TAG" ] && LATEST_TAG="v0.0.0"; \
 	VERSION=$$(echo $$LATEST_TAG | sed 's/^v//'); \
@@ -1021,15 +1037,19 @@ release: ## Tag and push a release (usage: make release [bump=patch|minor|major]
 	fi; \
 	NEW_VERSION="$$MAJOR.$$MINOR.$$PATCH"; \
 	PIN=$$(git show HEAD:mcp-server/Dockerfile | sed -n 's/^ARG MCP_SERVER_VERSION=//p'); \
-	if [ "$$PIN" != "$$NEW_VERSION" ]; then \
-		echo "error: mcp-server/Dockerfile at HEAD pins MCP_SERVER_VERSION=$$PIN but this release is $$NEW_TAG."; \
-		echo "release.npm-libs will refuse to publish (prod deploys the pin, not the tag)."; \
-		echo "Bump the pin and COMMIT it before tagging:"; \
-		echo "  sed -i '' 's/^ARG MCP_SERVER_VERSION=.*/ARG MCP_SERVER_VERSION=$$NEW_VERSION/' mcp-server/Dockerfile"; \
-		echo "  git add mcp-server/Dockerfile && git commit -m 'chore(mcp-server): bump the Dockerfile bridge pin to $$NEW_VERSION'"; \
+	COMPOSE_PIN=$$(git show HEAD:docker-compose.yml | sed -n -E 's/.*STIGMER_VERSION:-v([0-9A-Za-z.+-]+).*/\1/p' | sort -u | tr '\n' ' ' | sed 's/ $$//'); \
+	ENV_PIN=$$(git show HEAD:.env.example | sed -n -E 's/^#STIGMER_VERSION=v(.*)$$/\1/p'); \
+	if [ "$$PIN" != "$$NEW_VERSION" ] || [ "$$COMPOSE_PIN" != "$$NEW_VERSION" ] || [ "$$ENV_PIN" != "$$NEW_VERSION" ]; then \
+		echo "error: the release pins at HEAD do not all name $$NEW_VERSION:"; \
+		echo "  mcp-server/Dockerfile  MCP_SERVER_VERSION=$$PIN   (release.npm-libs refuses to publish on a mismatch; prod deploys the pin, not the tag)"; \
+		echo "  docker-compose.yml     STIGMER_VERSION:-v$$COMPOSE_PIN   (a fresh clone runs this stack)"; \
+		echo "  .env.example           #STIGMER_VERSION=v$$ENV_PIN"; \
+		echo "Bump them and COMMIT before tagging:"; \
+		echo "  make release-pins version=$$NEW_VERSION"; \
+		echo "  git commit -am 'chore(release): bump the release pins to $$NEW_VERSION'"; \
 		exit 1; \
 	fi; \
-	echo "$$LATEST_TAG -> $$NEW_TAG (bridge pin OK)"; \
+	echo "$$LATEST_TAG -> $$NEW_TAG (release pins OK)"; \
 	git tag -a "sdk/go/$$NEW_TAG" -m "Release sdk/go $$NEW_TAG"; \
 	git tag -a "$$NEW_TAG" -m "Release $$NEW_TAG"; \
 	for t in "sdk/go/$$NEW_TAG" "$$NEW_TAG"; do \
