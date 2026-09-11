@@ -18,6 +18,16 @@ import { LocalWorkspaceBackend } from "./local-backend.js";
 import { ensurePlatformDir } from "./platform-dir.js";
 import { resolveSessionWorkspaceRoot } from "./session-root.js";
 
+/**
+ * The two runner settings provisioning reads. A `Pick` over `Config` rather
+ * than a fresh options type so a caller holding the whole `Config` (the turn
+ * orchestrator, and the runtime that replaces it) passes it unchanged, while
+ * the signature states exactly what is consumed: the root every workspace
+ * resolves under, and the mode that decides whether git entries are cloned
+ * or expected in place. A test constructs the two fields and nothing else.
+ */
+export type SessionProvisionConfig = Pick<Config, "workspaceRootDir" | "mode">;
+
 /** What {@link provisionSessionWorkspace} hands back to the harness. */
 export interface SessionWorkspaceProvision {
   /** The directories the agent should operate in (never empty). */
@@ -50,7 +60,7 @@ export interface SessionWorkspaceProvision {
  * to call on every execution, including multi-turn and HITL reinvocations.
  */
 export async function provisionSessionWorkspace(
-  config: Config,
+  config: SessionProvisionConfig,
   session: Session,
   envVars: Record<string, string>,
   sessionId: string,

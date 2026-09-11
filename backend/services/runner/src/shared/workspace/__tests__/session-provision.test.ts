@@ -23,8 +23,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import type { Config } from "../../../config.js";
-import { provisionSessionWorkspace } from "../session-provision.js";
+import { provisionSessionWorkspace, type SessionProvisionConfig } from "../session-provision.js";
 
 const MARKER_FILE = "MARKER.txt";
 const MARKER_CONTENT = "stigmer-cursor-clone-proof-7e3a1c";
@@ -56,11 +55,8 @@ function seedSourceRepo(branch = "main", content = MARKER_CONTENT): string {
   return repo;
 }
 
-function makeConfig(workspaceRootDir: string): Config {
-  return {
-    mode: "local",
-    workspaceRootDir,
-  } as unknown as Config;
+function makeConfig(workspaceRootDir: string): SessionProvisionConfig {
+  return { mode: "local", workspaceRootDir };
 }
 
 function gitRepoSession(url: string, branch = "main"): Session {
