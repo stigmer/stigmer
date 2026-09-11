@@ -42,7 +42,7 @@ export type CursorMcpServerConfig =
  * expressed here — the HITL hook enforces it (see ResolvedMcpServer.enabledTools).
  */
 export function toCursorMcpConfig(
-  servers: ResolvedMcpServer[],
+  servers: readonly ResolvedMcpServer[],
 ): Record<string, CursorMcpServerConfig> {
   const result: Record<string, CursorMcpServerConfig> = {};
 
@@ -75,7 +75,7 @@ export function toCursorMcpConfig(
  * Used as a pre-flight check before agent.send() to surface config issues early.
  */
 export function validateMcpServerEnv(
-  servers: ResolvedMcpServer[],
+  servers: readonly ResolvedMcpServer[],
   usages: McpServerUsage[],
 ): string[] {
   const warnings: string[] = [];

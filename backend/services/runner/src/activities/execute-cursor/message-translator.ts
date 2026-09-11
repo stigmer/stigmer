@@ -192,7 +192,7 @@ function translateToolCall(event: Extract<SDKMessage, { type: "tool_call" }>): A
  */
 export function buildToolCallProto(
   event: Extract<SDKMessage, { type: "tool_call" }>,
-  mergedPolicies?: Map<string, MergedToolPolicy>,
+  mergedPolicies?: ReadonlyMap<string, MergedToolPolicy>,
   provenance?: ApprovalProvenanceContext,
 ): ToolCall {
   const status = mapToolCallStatus(event.status);
@@ -714,7 +714,7 @@ function interpretSubAgentToolResult(result: unknown): {
  * Options for creating a MessageAccumulator with policy awareness.
  */
 export interface MessageAccumulatorOptions {
-  mergedPolicies?: Map<string, MergedToolPolicy>;
+  mergedPolicies?: ReadonlyMap<string, MergedToolPolicy>;
   /**
    * Run-scoped approval context (global bypass + active leases) so reconstructed
    * tool calls carry their authorization provenance. Omitted in unit tests that
@@ -735,7 +735,7 @@ export interface MessageAccumulatorOptions {
    * survives the round-trip rather than being dropped from the rebuilt status.
    * Empty on a first run.
    */
-  seededSubAgents?: SubAgentExecution[];
+  seededSubAgents?: readonly SubAgentExecution[];
 }
 
 /**
@@ -797,7 +797,7 @@ export class MessageAccumulator {
   private activeThinkingByRunId = new Map<string, AgentMessage>();
   private readonly _subAgentExecutions: SubAgentExecution[] = [];
   private readonly subAgentMap = new Map<string, SubAgentExecution>();
-  private readonly mergedPolicies?: Map<string, MergedToolPolicy>;
+  private readonly mergedPolicies?: ReadonlyMap<string, MergedToolPolicy>;
   private readonly provenance?: ApprovalProvenanceContext;
   private readonly workspaceRoot?: string;
   private readonly toolCallIndex = new Map<string, ToolCall>();
@@ -1241,7 +1241,7 @@ export class MessageAccumulator {
 export async function reconcileDeniedToolCalls(
   messages: AgentMessage[],
   ledger: DeniedLedgerEntry[],
-  mergedPolicies?: Map<string, MergedToolPolicy>,
+  mergedPolicies?: ReadonlyMap<string, MergedToolPolicy>,
   workspaceBackend?: WorkspaceBackend,
 ): Promise<ToolCall[]> {
   // Defense-in-depth: only APPROVAL-kind denials may become approval gates.
@@ -1415,7 +1415,7 @@ export async function reconcileDeniedToolCalls(
 function overlayDeniedStreamCall(
   tc: ToolCall,
   input: Record<string, unknown> | undefined,
-  mergedPolicies: Map<string, MergedToolPolicy> | undefined,
+  mergedPolicies: ReadonlyMap<string, MergedToolPolicy> | undefined,
 ): void {
   markWaitingApproval(tc, mergedPolicies);
   applyGateInput(tc, input);
@@ -2189,7 +2189,7 @@ function toolCallArgs(tc: ToolCall): Record<string, unknown> {
  */
 function markWaitingApproval(
   tc: ToolCall,
-  mergedPolicies?: Map<string, MergedToolPolicy>,
+  mergedPolicies?: ReadonlyMap<string, MergedToolPolicy>,
 ): void {
   tc.status = ToolCallStatus.TOOL_CALL_WAITING_APPROVAL;
   tc.requiresApproval = true;
@@ -2209,7 +2209,7 @@ function synthesizeWaitingApprovalToolCall(
   salient: string,
   digest: string,
   token: string,
-  mergedPolicies?: Map<string, MergedToolPolicy>,
+  mergedPolicies?: ReadonlyMap<string, MergedToolPolicy>,
 ): ToolCall {
   const tc = create(ToolCallSchema, {
     id: `approval:${token}`,
@@ -2255,7 +2255,7 @@ function resolveDeniedApprovalMessage(
   name: string,
   mcpServerSlug: string,
   args: Record<string, unknown>,
-  mergedPolicies?: Map<string, MergedToolPolicy>,
+  mergedPolicies?: ReadonlyMap<string, MergedToolPolicy>,
 ): string {
   if (mergedPolicies && mcpServerSlug) {
     const policy = lookupMcpToolPolicy(name, mcpServerSlug, mergedPolicies);

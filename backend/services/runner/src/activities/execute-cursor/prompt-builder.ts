@@ -80,7 +80,7 @@ export interface SkillMetadata {
  */
 export interface VisionPromptInfo {
   inlineFilenames: string[];
-  notViewable: NotViewableEntry[];
+  notViewable: readonly NotViewableEntry[];
 }
 
 /**
@@ -110,7 +110,7 @@ export interface EnhancedPromptOptions {
    * the `<available_channel_templates>` section (proactive-messaging
    * DD-003 D5) beside the synthesized send_channel_message tool.
    */
-  channelMessaging?: ChannelMessagingInfo[];
+  channelMessaging?: readonly ChannelMessagingInfo[];
   subAgents: SubAgent[];
   workspaceDirs: string[];
   workspaceFileRefs: string[];

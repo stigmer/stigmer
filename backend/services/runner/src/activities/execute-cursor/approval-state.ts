@@ -406,7 +406,7 @@ function parseArgs(argsPreview: string): Record<string, unknown> | undefined {
  * generated hook script (from approval-policy.ts), not carried here.
  */
 export function buildApprovalState(
-  mergedPolicies: Map<string, MergedToolPolicy>,
+  mergedPolicies: ReadonlyMap<string, MergedToolPolicy>,
   globalBypass: boolean,
   leasedCategories: ReadonlySet<ApprovalCategory>,
   grants?: ApprovalGrant[],

@@ -27,18 +27,32 @@
  */
 
 import { heartbeat, Context, CancelledFailure } from "@temporalio/activity";
-import { create, clone, type JsonObject } from "@bufbuild/protobuf";
+import { create, type JsonObject } from "@bufbuild/protobuf";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
-import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
-import type { AgentExecution, AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionControlSignal, ExecutionPhase, FileChangeSetStatus, InteractionMode, MessageType, ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { ExecutionControlSignal, ExecutionPhase, InteractionMode, MessageType, ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { Run, ConversationTurn, SDKUserMessage } from "@cursor/sdk";
 
 import type { Config } from "../../config.js";
 import { StigmerClient } from "../../client/stigmer-client.js";
+import {
+  acquireWorkspaceTurnLock,
+  applyApprovedWrites,
+  bindTelemetryBaggage,
+  fetchExecution,
+  provisionWorkspace,
+  reconcileReinvocation,
+  resolveAgentBlueprint,
+  resolveEnvironment,
+  resolveMcpServersAndPolicies,
+  resolveModelPreferences,
+  resolveStandingContext,
+  resolveTurnAttachments,
+  structuredOutputSchemaOf,
+  type ResolutionDeps,
+} from "../../harness/turn-context.js";
 import { describeExecutionError } from "../../shared/model-error.js";
 import { resolveAgentWithTransportRecovery } from "./session-lifecycle.js";
 import { cacheSessionAgent, computeAgentFingerprint, takeCachedAgent } from "./agent-session-cache.js";
@@ -48,74 +62,32 @@ import { determineCursorMode, isCloudMode } from "./cursor-mode.js";
 import { MessageAccumulator, cancelInProgressSubAgentProtos, collapseRedundantToolCallTwins } from "./message-translator.js";
 import { utcTimestamp, persistStatus, reportSetupProgress, slimStatus } from "../../shared/status.js";
 import { TimingRecorder, emitTimingLog } from "../../shared/cold-start-timing.js";
-import { readContextBridge } from "../../shared/context-bridge.js";
-import { readConversationCatchup } from "../../shared/conversation-catchup.js";
-import { readSenderIdentity } from "../../shared/sender-identity.js";
-import {
-  injectCallerIdentityEnv,
-  resolveCallerIdentity,
-} from "../../shared/caller-identity.js";
-import { readSessionContext } from "../../shared/session-context.js";
-import { readDeclaredPreferences } from "../../shared/declared-preferences.js";
-import type { RecalledMemoriesContent } from "../../shared/recalled-memories.js";
-import { selectRecalledFacts } from "../../shared/memory-retrieval.js";
 import { withholdSecretContentFromMessages } from "../../shared/tool-row.js";
 import { StallTimeoutError, formatStallFailure } from "../../shared/stall-watchdog.js";
 import { resolveUsableArtifactStorage, loadArtifactStorageConfig, type ArtifactStorage } from "../../shared/artifact-storage.js";
-import {
-  CURSOR_VISION_PROFILE,
-  VisionBudget,
-  toCursorImages,
-  type NotViewableEntry,
-} from "../../shared/attachment-vision.js";
-import { getModelVisionCapability } from "../../shared/model-registry.js";
+import { CURSOR_VISION_PROFILE, toCursorImages } from "../../shared/attachment-vision.js";
 import { publishPlanArtifact } from "../../shared/plan-artifact.js";
 import { DeltaEnricher } from "./delta-enricher.js";
 import { TodoTracker } from "./todo-tracker.js";
 import { StreamingUpdateScheduler, loadStreamingConfig } from "../../shared/streaming-scheduler.js";
 import { createCursorEventRecorder } from "./cursor-event-recorder.js";
-import { resolveMcpServers } from "../../shared/mcp-resolver.js";
 import { toCursorMcpConfig, validateMcpServerEnv } from "./cursor-mcp-config.js";
-import { resolveMcpTransportPosture } from "../../shared/mcp-transport-guard.js";
-import {
-  discoverChannelMessaging,
-  synthesizeChannelAttachment,
-} from "../../shared/channel-attachment.js";
-import {
-  readChannelConversationId,
-  synthesizeConversationAttachment,
-} from "../../shared/conversation-attachment.js";
-import { synthesizeMemoryAttachment } from "../../shared/memory-attachment.js";
-import { injectSynthesizedAttachment } from "../../shared/synthesized-attachment.js";
-import { mergeApprovalPolicies } from "./approval-policy.js";
-import { deriveActiveLeases, isUnattendedApprovalMode } from "../../shared/approval-policy.js";
+import { isUnattendedApprovalMode } from "../../shared/approval-policy.js";
 import { enabledToolsBySlug } from "../../shared/mcp-enabled-tools.js";
-import { backfillMcpServersIfNeeded } from "../../shared/connect-backfill.js";
-import { resolveExecutionEnv } from "../../shared/env-resolver.js";
-import { resolveBlueprint } from "../../shared/blueprint-resolver.js";
 import { buildCursorSubAgentDefinitions } from "./subagent-config.js";
 import { resolveSkills } from "./skill-resolver.js";
 import { removeStigmerSymlink } from "../../shared/workspace/stigmer-link.js";
-import { resolveAttachments } from "../../shared/attachment-resolver.js";
 import { buildEnhancedPrompt, buildHitlRecoveryPrompt, buildReinvocationPrompt, formatConversationCatchupSection, formatInputFiles, formatInteractionModePrefix, formatImplementPlanSection } from "./prompt-builder.js";
 import { composeTurnRecoveryDigest } from "./turn-recovery.js";
 import { installHitlGate, removeHitlGate } from "./workspace-setup.js";
 import { ensureHitlDir } from "../../shared/workspace/platform-dir.js";
-import {
-  acquireWorkspaceLock,
-  WorkspaceLockCancelledError,
-  WorkspaceLockTimeoutError,
-  type ReleaseWorkspaceLock,
-} from "../../shared/workspace/workspace-lock.js";
-import { LocalWorkspaceBackend } from "../../shared/workspace/local-backend.js";
+import type { ReleaseWorkspaceLock } from "../../shared/workspace/workspace-lock.js";
 import { buildApprovalState, buildApprovalGrants, emitCursorGrantReceipts, reconstructAdjudicatedApprovals, watchDenialLedger } from "./approval-state.js";
-import { applyApprovedWholeFileWrites, excludeAppliedFromGrants } from "../../shared/exact-apply.js";
-import { isGitWorkTree } from "../../shared/filereview/git-substrate.js";
+import { excludeAppliedFromGrants } from "../../shared/exact-apply.js";
 import {
   captureBaselineToLedger,
   buildCursorProgressSubstrate,
-  applyCaptureDecisions,
-  deriveCaptureMode,
+  CURSOR_FILE_REVIEW_IDENTITY,
 } from "./capture-flow.js";
 import { runTurnBoundary, type TurnBoundaryResult } from "./turn-boundary.js";
 import {
@@ -134,14 +106,9 @@ import {
 } from "../../shared/filereview/progress.js";
 import { deriveExecutionFingerprintKey } from "../../shared/approval-fingerprint.js";
 import { getRunnerHitlMasterSecret } from "../../shared/fingerprint-secret.js";
-import { provisionSessionWorkspace } from "../../shared/workspace/session-provision.js";
-import { WriteBackCoordinator } from "../../shared/workspace/writeback-coordinator.js";
-import { statusProtoWriter } from "../../shared/execution-status-writer.js";
 import { setInterceptorExecutionId, runWithExecutionContext } from "./fetch-interceptor.js";
 import { closeProxySessions } from "./http2-interceptor.js";
 import { resolveModelId, ensureLoaded as ensurePricingLoaded } from "./model-pricing.js";
-import { resolveEffectiveServiceTier } from "../../shared/service-tier.js";
-import { resolveEffectiveThinkingMode } from "../../shared/thinking-mode.js";
 import { resolveServiceTierParams } from "./service-tier.js";
 import { UsageAccumulator } from "./usage-accumulator.js";
 import { StreamingUsageSummarySchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
@@ -255,8 +222,6 @@ async function executeCursorInner(
     return persistStatus(client, executionId, s, { offload: statusOffload });
   };
 
-  let sessionId: string | undefined;
-  let session: import("@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb").Session | undefined;
   // Single owner for every flag the turn's stream produces (pause, stall,
   // first-denial, platform-stop, event count, the stall watchdog, …). Created
   // once here — before the fs denial-watcher, the SDK onDelta, the stall
@@ -321,144 +286,77 @@ async function executeCursorInner(
     execution: executionId,
   }), { shutdownSignal });
 
+  // The resolution phases (harness/turn-context.ts) read the turn through
+  // this one object. The four function members are this orchestrator's seams
+  // — the periodic heartbeat's label, Temporal's pulse, the setup-progress
+  // reporter — bound here so the phase bodies are the same code the turn
+  // runtime runs them under in S2 M3.
+  const resolutionDeps: ResolutionDeps = {
+    input: { executionId, threadId, turnSeq },
+    client,
+    config,
+    status,
+    artifactStorage,
+    timing: setupTiming,
+    signal: Context.current().cancellationSignal,
+    heartbeat,
+    enterPhase: (step) => {
+      heartbeatPhase = step;
+      heartbeat();
+    },
+    reportProgress: (label) => reportSetupProgress(client, executionId, label),
+  };
+
   try {
     // Phase 1: Hydrate execution from DB
-    await reportSetupProgress(client, executionId, "Fetching execution");
-    const execution = await client.getExecution(executionId);
-    const spec = execution.spec!;
-    sessionId = spec.sessionId;
-    setupTiming.mark("fetch_execution");
+    const { execution, spec, sessionId } = await fetchExecution(resolutionDeps);
 
     // Phase 2: Load session and resolve full agent blueprint
-    await reportSetupProgress(client, executionId, "Resolving agent blueprint");
-    session = await client.getSession(sessionId);
-    const blueprint = await resolveBlueprint(client, session, config.workspaceRootDir);
-    setupTiming.mark("resolve_blueprint");
+    const { session, blueprint } = await resolveAgentBlueprint(resolutionDeps, sessionId);
 
     // Phase 2b: Resolve execution environment (MCP server credentials)
-    heartbeatPhase = "resolving_environment";
-    await reportSetupProgress(client, executionId, "Resolving environment");
-    const { envVars, secretKeys } = await resolveExecutionEnv(client, executionId);
-    heartbeat();
-    setupTiming.mark("resolve_environment");
+    const environment = await resolveEnvironment(resolutionDeps);
+    const { envVars } = environment;
 
     // Phase 2c: Provision the workspace (clone git repos / mount local paths)
-    // so the LOCAL Cursor agent operates on the actual repo. Cursor previously
-    // relied on cloud agents to clone git-repo workspace entries; with cloud
-    // disabled the runner must provision the workspace itself, mirroring the
-    // native harness. Git provisioning is idempotent across multi-turn and
-    // HITL reinvocations.
-    heartbeatPhase = "provisioning_workspace";
-    await reportSetupProgress(client, executionId, "Provisioning workspace");
-    const workspaceProvision = await provisionSessionWorkspace(
-      config, session, envVars, sessionId ?? "",
-    );
-    blueprint.workspaceDirs = workspaceProvision.workspaceDirs;
-    heartbeat();
-    setupTiming.mark("provision_workspace");
-
-    // Git write-back: pushes the session's APPROVED tree to the session
-    // branch (stigmer/<session-id>) and keeps one PR open — the same
-    // approval-gated model as the deep-agent harness (its
-    // processCaptureWriteback). Finalize runs at exactly two seams below:
-    // the pure-file-review resume (after decisions reconcile) and terminal
-    // completion. Never mid-turn: the working tree is speculative until
-    // reviewed. Non-eligible workspaces (local paths, no credentials) make
-    // this a no-op coordinator.
-    const writebackCoordinator = workspaceProvision.provisionResults.length > 0
-      ? new WriteBackCoordinator({
-          statusWriter: statusProtoWriter(status),
-          executionId,
-          sessionId: sessionId ?? "",
-          githubToken: envVars.GITHUB_TOKEN ?? "",
-          provisionResults: workspaceProvision.provisionResults,
-          workspaceEntries: session.spec?.workspaceEntries ?? [],
-          workspaceBackend: workspaceProvision.workspaceBackend,
-        })
-      : null;
-
-    // Apply-then-review is the universal file-review model (Slice 2c). When the
-    // primary workspace is a real git work tree, file edits flow during the turn
-    // and are captured per-file from the git diff at the turn boundary
-    // (capture-flow.ts / shared/filereview/git-substrate.ts). A NON-git workspace
-    // has no git snapshot, so it captures every file write via the path-scoped CAS
-    // substrate instead — which requires artifact storage to persist blobs; when
-    // storage is unavailable a non-git workspace falls back to the classic
-    // deny-gate (no regression). `gitWorkspace` selects the substrate; both flow
-    // file edits and review post-hoc, and the deny-gate then survives only for
-    // shell/MCP/irreversible tools. Detected once from the provisioned primary root.
-    const primaryWorkspaceDir = blueprint.workspaceDirs[0];
-    const gitWorkspace = primaryWorkspaceDir
-      ? await isGitWorkTree(primaryWorkspaceDir)
-      : false;
-    const captureMode = deriveCaptureMode(primaryWorkspaceDir, gitWorkspace, !!artifactStorage);
+    // so the LOCAL Cursor agent operates on the actual repo, wire the git
+    // write-back coordinator, and decide the capture posture — all in the
+    // runtime's phase. The blueprint's `workspaceDirs` is overwritten with the
+    // provisioned list as it always was (two writers of one field; the
+    // runtime's `workspace.dirs` becomes the one in M3).
+    const { workspace, writeback: writebackCoordinator } = await provisionWorkspace(resolutionDeps, {
+      session, sessionId, envVars,
+    });
+    blueprint.workspaceDirs = workspace.provision.workspaceDirs;
+    const { primaryDir: primaryWorkspaceDir, gitWorkspace, captureMode, changeSetId } = workspace;
     // Pre-turn baseline tree, pinned before the agent runs (capture mode only)
     // so the turn-end capture diffs against it and the tree restores exactly.
     let baselineTree: string | undefined;
     // Per-turn state for mid-run live capture (DD-32): the last progress tree sha
     // (short-circuit) + last capture time (floor), threaded across persists.
     const progressState: ProgressCaptureState = newProgressCaptureState();
-    // Deterministic id of the change set this turn may produce:
-    // `${executionId}:${turnSeq}`. Minted from the workflow-threaded turn index
-    // so it is stable across a Temporal retry (idempotent ledger authoring) and
-    // unique per turn. The resume reconcile reads the change set id back from the
-    // DECIDED projection, not from turnSeq — so a "wasted" id on a pure-reconcile
-    // resume (which never authors a baseline) is harmless.
-    const changeSetId = `${executionId}:${turnSeq}`;
-    heartbeat();
 
     // Serialize this turn against every other execution sharing this working
-    // tree — sessions declaring the same localPath (or the shared runner root)
-    // resolve to ONE directory, and an unserialized concurrent write lands
-    // inside this turn's baseline→candidate window, misattributing another
-    // session's file to this turn's review. Acquired before ANY tree mutation
-    // below (decision reconcile, gate install, agent writes, capture). While
-    // another turn holds the lock this surfaces a visible waiting state and
-    // heartbeats; a cancel aborts the wait immediately.
-    if (primaryWorkspaceDir) {
-      try {
-        releaseWorkspaceLock = await acquireWorkspaceLock(primaryWorkspaceDir, {
-          onWaiting: () => reportSetupProgress(
-            client, executionId, "Waiting for workspace — in use by another session",
-          ),
-          heartbeat,
-          signal: Context.current().cancellationSignal,
-          timeoutMs: config.workspaceLockTimeoutMs,
-        });
-      } catch (lockErr) {
-        if (lockErr instanceof WorkspaceLockCancelledError) {
-          throw new CancelledFailure("Activity cancelled while waiting for the workspace lock");
-        }
-        if (lockErr instanceof WorkspaceLockTimeoutError) {
-          status.phase = ExecutionPhase.EXECUTION_FAILED;
-          status.error = lockErr.message;
-          status.completedAt = utcTimestamp();
-          status.messages.push(create(AgentMessageSchema, {
-            type: MessageType.MESSAGE_SYSTEM,
-            content: `Execution failed: ${lockErr.message}`,
-            timestamp: utcTimestamp(),
-          }));
-          await persist(status);
-          console.warn(`ExecuteCursor workspace lock timeout: execution=${executionId}`);
-          return slimStatus(status);
-        }
-        throw lockErr;
-      }
+    // tree (see acquireWorkspaceTurnLock). The release handle is assigned the
+    // instant the lock exists; the finally releases it AFTER hitlCleanup.
+    const lock = await acquireWorkspaceTurnLock(resolutionDeps, primaryWorkspaceDir);
+    if (lock.kind === "settled") {
+      const lockErr = lock.settlement.error;
+      status.phase = ExecutionPhase.EXECUTION_FAILED;
+      status.error = lockErr.message;
+      status.completedAt = utcTimestamp();
+      status.messages.push(create(AgentMessageSchema, {
+        type: MessageType.MESSAGE_SYSTEM,
+        content: `Execution failed: ${lockErr.message}`,
+        timestamp: utcTimestamp(),
+      }));
+      await persist(status);
+      console.warn(`ExecuteCursor workspace lock timeout: execution=${executionId}`);
+      return slimStatus(status);
     }
-    heartbeat();
-    setupTiming.mark("acquire_workspace_lock");
+    releaseWorkspaceLock = lock.release;
 
-    // Set OTel baggage so downstream calls carry execution context.
-    try {
-      const { setBaggage, BAGGAGE_EXECUTION_ID, BAGGAGE_SESSION_ID, BAGGAGE_ORG_ID } = await import("../../otel.js");
-      await setBaggage({
-        [BAGGAGE_EXECUTION_ID]: executionId,
-        [BAGGAGE_SESSION_ID]: sessionId ?? "",
-        [BAGGAGE_ORG_ID]: session?.metadata?.org ?? "",
-      });
-    } catch {
-      // Tracing not initialized — silently skip.
-    }
+    await bindTelemetryBaggage(resolutionDeps, { session, sessionId });
 
     // Cloud Cursor agents are disabled platform-wide (see determineCursorMode),
     // so every session runs LOCAL. We intentionally ignore any persisted
@@ -472,92 +370,22 @@ async function executeCursorInner(
 
     heartbeat();
 
-    // Phase 3: Check if this is a reinvocation after approval
-    const isReinvocation = !!threadId;
-    // Empty on a first turn and on a reinvocation with no adjudicated rows
-    // (a pure file-review resume); every consumer keys on `size > 0`, the
-    // shape the harness contract's `TurnInput.approvalDecisions` carries.
-    let approvalDecisions: ReadonlyMap<string, ApprovalAction> = new Map();
-    // Adjudicated approvals reconstructed from the tool calls (the source of
-    // truth for a decision). The backend projects pending_approvals from
-    // tool-call status and clears decided entries, so pending_approvals is empty
-    // by reinvocation time — the decision survives only on the tool call. This
-    // feeds both the grant builder and the reinvocation prompt below.
-    let adjudicatedApprovals: PendingApproval[] = [];
-    // tool-call id -> content digest of the approved edit, threaded into the
-    // grant builder so an approved edit is authorized by its exact content (a
-    // sibling edit to the same file re-gates). Sourced from the persisted
-    // approval_content_digest field (see reconstructAdjudicatedApprovals).
-    let adjudicatedContentDigests: Map<string, string> = new Map();
-    // Sub-agent executions carried over from the persisted transcript on a
-    // resume, handed to the MessageAccumulator so a gated tool inside a
-    // delegated sub-agent survives the round-trip (see seeding below).
-    let seededSubAgents: SubAgentExecution[] = [];
-
-    if (isReinvocation) {
-      const existingStatus = execution.status;
-      // Seed the in-progress status from the persisted execution BEFORE the
-      // MessageAccumulator wraps status.messages, so this resumed turn APPENDS
-      // onto prior history rather than rebuilding from empty. A Cursor resume
-      // re-issues approved tool calls with fresh ids; a from-empty rebuild would
-      // drop the previously-committed ids and the backend's append-only-at-
-      // identity guard would reject the whole update, stalling the run (the
-      // "approval propagation is broken" watchdog failure). The resumed re-runs
-      // are reconciled onto these seeded calls by canonical identity inside the
-      // accumulator. Mirrors the deep-agent seedStatusFromExecution.
-      seededSubAgents = seedCursorTranscriptFromExecution(status, execution);
-
-      // File-review reconcile (the dual-source half): reconcile every change set
-      // the server projected as DECIDED, sourced from the ledger decisions and
-      // the pinned git refs (approved kept at their "after" bytes, rejected
-      // snapped back to baseline — all uncommitted, hash-verified). This is
-      // independent of tool approvals: a single turn can carry BOTH a DECIDED
-      // file change set AND an approved shell/MCP action.
-      let reconciledFileReview = false;
-      let fileReviewFailed = false;
-      let fileReviewFailureDetail = "";
-      const discardedPaths: string[] = [];
-      if (captureMode && primaryWorkspaceDir) {
-        const decidedSets = (existingStatus?.fileChangeSets ?? []).filter(
-          (cs) => cs.status === FileChangeSetStatus.DECIDED,
-        );
-        for (const changeSet of decidedSets) {
-          const capResult = await applyCaptureDecisions({
-            status,
-            gitRoot: primaryWorkspaceDir,
-            executionId,
-            changeSet,
-            // Thread the CAS store so CAS-captured files in the change set
-            // reconcile from the durable manifest (approved after-blobs written,
-            // rejected snapped back). In a non-git workspace this is the ONLY
-            // reconcile; in a git tree it composes with the git-ref reconcile.
-            storage: artifactStorage,
-            gitWorkspace,
-          });
-          if (!capResult.isCaptureTurn) continue;
-          reconciledFileReview = true;
-          if (capResult.failed) {
-            fileReviewFailed = true;
-            fileReviewFailureDetail = capResult.failureDetail ?? "file review reconcile failed";
-          }
-          if (capResult.hadReject) discardedPaths.push(...capResult.rejectedPaths);
-        }
-      }
-
-      // Tool approvals (shell / MCP / gitignored writes) still resolve from the
-      // message transcript — the deny-gate path, unchanged by the file-review
-      // cutover.
-      const adjudicated = reconstructAdjudicatedApprovals(existingStatus?.messages ?? []);
-      if (adjudicated.decisions.size > 0) {
-        approvalDecisions = adjudicated.decisions;
-        adjudicatedApprovals = adjudicated.pendingApprovals;
-        adjudicatedContentDigests = adjudicated.contentDigests;
-
-        // A reject of an irreversible action (shell/MCP) fails the execution.
-        const hasReject = [...approvalDecisions.values()].some(
-          (a) => a === ApprovalAction.REJECT,
-        );
-        if (hasReject) {
+    // Phase 3: What the previous invocation left, and whether this one runs
+    // the agent at all. The runtime's phase seeds the transcript, reconciles
+    // every DECIDED change set under Cursor's file-review identity, reads the
+    // adjudicated decisions, and decides; the two settlements it can return
+    // are written, persisted and returned HERE, exactly as before.
+    const reinvoked = await reconcileReinvocation(resolutionDeps, {
+      stateIdSource: "engine-minted",
+      execution,
+      workspace,
+      fileReview: CURSOR_FILE_REVIEW_IDENTITY,
+    });
+    if (reinvoked.kind === "settled") {
+      const { settlement } = reinvoked;
+      switch (settlement.kind) {
+        case "rejected-by-user": {
+          // A reject of an irreversible action (shell/MCP) fails the execution.
           status.phase = ExecutionPhase.EXECUTION_FAILED;
           status.error = "Execution rejected by user";
           status.completedAt = utcTimestamp();
@@ -569,208 +397,86 @@ async function executeCursorInner(
           await persist(status);
           return slimStatus(status);
         }
-        // else: fall through to run the approved shell/MCP. The agent may produce
-        // further edits, captured as a new change set in the next cycle.
-      } else if (reconciledFileReview) {
-        // Pure file review: the agent already finished its full turn during
-        // capture, so keeping/discarding a change does NOT re-prompt it
-        // (Cursor-like). The reconcile is done; the execution is complete.
-        status.phase = ExecutionPhase.EXECUTION_COMPLETED;
-        status.completedAt = utcTimestamp();
-        // Push the APPROVED tree — reconcile snapped rejected files back to
-        // baseline, so what finalize commits is exactly what the user kept.
-        // Mirrors the deep-agent's processCaptureWriteback: after reconcile,
-        // before persist, never on a failed reconcile (diverged bytes must
-        // not reach the remote).
-        if (!fileReviewFailed && writebackCoordinator) {
-          await writebackCoordinator.finalize();
+        case "file-review-resolved": {
+          // Pure file review: the agent already finished its full turn during
+          // capture, so keeping/discarding a change does NOT re-prompt it
+          // (Cursor-like). The reconcile is done; the execution is complete.
+          const { failed: fileReviewFailed, failureDetail: fileReviewFailureDetail, discardedPaths } = settlement;
+          status.phase = ExecutionPhase.EXECUTION_COMPLETED;
+          status.completedAt = utcTimestamp();
+          // Push the APPROVED tree — reconcile snapped rejected files back to
+          // baseline, so what finalize commits is exactly what the user kept.
+          // Mirrors the deep-agent's processCaptureWriteback: after reconcile,
+          // before persist, never on a failed reconcile (diverged bytes must
+          // not reach the remote).
+          if (!fileReviewFailed && writebackCoordinator) {
+            await writebackCoordinator.finalize();
+          }
+          if (fileReviewFailed) {
+            // What-you-approve-is-what-applies could not be honored (on-disk bytes
+            // diverged from the approved digest). Surface it to the human; the
+            // FileReviewFailure(HASH_MISMATCH) event is the audit record.
+            status.messages.push(create(AgentMessageSchema, {
+              type: MessageType.MESSAGE_SYSTEM,
+              content:
+                "Some approved file changes could not be applied because the file " +
+                "changed after review: " + fileReviewFailureDetail + ".",
+              timestamp: utcTimestamp(),
+            }));
+          } else if (discardedPaths.length > 0) {
+            // A reject is a DISCARD that COMPLETES (not FAILED) — surface a SYSTEM
+            // note listing the reverted files. This note is for the human; it does
+            // NOT re-sync the Cursor SDK agent (its native context still believes
+            // those edits stuck). The agent self-corrects by re-reading, and any
+            // edit it makes from that stale belief is itself re-surfaced as a new
+            // change set next turn (the structural safety net). See
+            // design-decisions/capture-reject-next-turn-resync-not-built.md.
+            status.messages.push(create(AgentMessageSchema, {
+              type: MessageType.MESSAGE_SYSTEM,
+              content:
+                "Some proposed file changes were discarded by the user and were not applied: " +
+                discardedPaths.join(", ") + ".",
+              timestamp: utcTimestamp(),
+            }));
+          }
+          await persist(status);
+          console.log(
+            `ExecuteCursor file-review resume short-circuit: execution=${executionId}, ` +
+            `failed=${fileReviewFailed}, discarded=${discardedPaths.length}`,
+          );
+          return slimStatus(status);
         }
-        if (fileReviewFailed) {
-          // What-you-approve-is-what-applies could not be honored (on-disk bytes
-          // diverged from the approved digest). Surface it to the human; the
-          // FileReviewFailure(HASH_MISMATCH) event is the audit record.
-          status.messages.push(create(AgentMessageSchema, {
-            type: MessageType.MESSAGE_SYSTEM,
-            content:
-              "Some approved file changes could not be applied because the file " +
-              "changed after review: " + fileReviewFailureDetail + ".",
-            timestamp: utcTimestamp(),
-          }));
-        } else if (discardedPaths.length > 0) {
-          // A reject is a DISCARD that COMPLETES (not FAILED) — surface a SYSTEM
-          // note listing the reverted files. This note is for the human; it does
-          // NOT re-sync the Cursor SDK agent (its native context still believes
-          // those edits stuck). The agent self-corrects by re-reading, and any
-          // edit it makes from that stale belief is itself re-surfaced as a new
-          // change set next turn (the structural safety net). See
-          // design-decisions/capture-reject-next-turn-resync-not-built.md.
-          status.messages.push(create(AgentMessageSchema, {
-            type: MessageType.MESSAGE_SYSTEM,
-            content:
-              "Some proposed file changes were discarded by the user and were not applied: " +
-              discardedPaths.join(", ") + ".",
-            timestamp: utcTimestamp(),
-          }));
+        default: {
+          const exhaustive: never = settlement;
+          throw new Error(`ExecuteCursor: unknown resolution settlement ${String(exhaustive)}`);
         }
-        await persist(status);
-        console.log(
-          `ExecuteCursor file-review resume short-circuit: execution=${executionId}, ` +
-          `failed=${fileReviewFailed}, discarded=${discardedPaths.length}`,
-        );
-        return slimStatus(status);
       }
     }
+    const { isReinvocation, approvalDecisions, seededSubAgents } = reinvoked.reinvocation;
 
-    // Phase 4: Resolve MCP servers with approval policies.
-    // The MCP-bound env map (and ONLY it — never the agent process env)
-    // carries the reserved caller-identity keys, so a server that declares
-    // them in spec.env can template the platform-verified caller into its
-    // headers. filterEnvToDeclaredKeys keeps every other server blind.
-    await reportSetupProgress(client, executionId, "Resolving MCP servers");
-    const transportPosture = resolveMcpTransportPosture(config.mode);
-    const mcpEnvVars = injectCallerIdentityEnv(
-      envVars,
-      resolveCallerIdentity(
-        blueprint.sessionSpec.metadata,
-        session.status?.audit?.specAudit?.createdBy,
-      ),
-      sessionId,
-    );
-    // The resolved-server list mutates through backfill and attachment
-    // injection below; the Cursor SDK config is projected from it exactly
-    // once, after the last mutation (see toCursorMcpConfig).
-    let resolvedMcpServers = (await resolveMcpServers(
-      client, blueprint.mergedMcpServerUsages, mcpEnvVars, transportPosture,
-    )).resolvedServers;
-    setupTiming.mark("resolve_mcp_servers");
+    // The adapter's own read of the same adjudicated rows: the pending-approval
+    // protos the grant builder and the reinvocation prompt render, and the
+    // content digest that authorizes an approved edit by its exact bytes (a
+    // sibling edit to the same file re-gates). The runtime's `approvalDecisions`
+    // is the verdict; these are the row facts beside it (the contract's rule:
+    // the adapter reads the ROW for anything else it needs).
+    const adjudicated = isReinvocation
+      ? reconstructAdjudicatedApprovals(execution.status?.messages ?? [])
+      : undefined;
+    const adjudicatedApprovals: PendingApproval[] = adjudicated?.pendingApprovals ?? [];
+    const adjudicatedContentDigests: Map<string, string> = adjudicated?.contentDigests ?? new Map();
 
-    // Phase 4a: Connect backfill for undiscovered MCP servers
-    heartbeatPhase = "resolving_mcp_servers";
-    const sessionOrg = session.metadata?.org ?? "";
-    resolvedMcpServers = await backfillMcpServersIfNeeded(
-      client, resolvedMcpServers, blueprint.mergedMcpServerUsages, mcpEnvVars, sessionOrg,
-      transportPosture, heartbeat, secretKeys,
-    );
-    setupTiming.mark("backfill_mcp");
-
-    // The synthesized attachments' credential story (DD-006 D4): the
-    // exchanged token authenticates the discovery reads per-call (a
-    // desktop runner's ambient embedded_runner credential is refused by
-    // the messaging reach; undefined lets a cloud sandbox runner's
-    // ambient session-scoped token or OSS's no-auth apply). The
-    // attachment header falls back to the ambient credential where no
-    // exchange happens. Unlike the env read (which hard-fails on a broken
-    // exchange — secrets are load-bearing there), this exchange is
-    // opportunistic: every consumer below degrades to an empty answer by
-    // contract, and the server refuses the ambient fallback safely, so a
-    // failed exchange must not kill the run.
-    let exchangedRunnerToken: string | undefined;
-    try {
-      exchangedRunnerToken =
-        await client.acquireScopedRunnerToken({ agentExecutionId: executionId });
-    } catch (err) {
-      console.warn(
-        "[execute-cursor] Scoped-token exchange failed for attachment/discovery " +
-        `reads; degrading to the ambient credential: ${err instanceof Error ? err.message : err}`,
-      );
-    }
-    const attachmentCredential = exchangedRunnerToken
-      ?? config.stigmerTokenRef?.current
-      ?? config.stigmerToken;
-
-    // Phase 4a2: Synthesize the channel messaging attachment (DD-006
-    // D7/D8). Deliberately AFTER resolve + backfill: the attachment has
-    // no McpServerUsage and reports discovered capabilities, so the
-    // backfill's destructiveHint tightener can never force-gate its
-    // tools; empty approval maps keep it approval-free by construction.
-    // The discovery read is the attachment decision — the control plane
-    // runs the SAME candidate computation the send authorization uses —
-    // and every failure mode (no channel, OSS, registry down, pre-3a
-    // control plane) degrades to honest absence: no tool, no section,
-    // execution unharmed.
-    const channelMessaging = await discoverChannelMessaging(client, exchangedRunnerToken);
-    if (channelMessaging.length > 0) {
-      const attachment = synthesizeChannelAttachment(channelMessaging, {
-        bridgeEndpoint: config.mcpBridgeEndpoint,
-        credential: attachmentCredential,
-        backendEndpoint: config.stigmerBackendEndpoint,
-      });
-      if (attachment) {
-        resolvedMcpServers = injectSynthesizedAttachment(
-          resolvedMcpServers, attachment, "channel messaging",
-        );
-      }
-    }
-
-    // Phase 4a4: Synthesize the conversation participation attachment
-    // (channel-conversations DD-008 D-c) — the third sibling. The
-    // channel-id session label IS the attachment decision (stamped
-    // server-side on every channel session; a free local read, unlike
-    // the channels discovery RPC above). HTTP-only: synthesize answers
-    // undefined with no bridge endpoint by design (see
-    // shared/conversation-attachment.ts).
-    const conversationAttachment = synthesizeConversationAttachment(
-      readChannelConversationId(session.metadata?.labels),
-      {
-        bridgeEndpoint: config.mcpBridgeEndpoint,
-        credential: attachmentCredential,
-        backendEndpoint: config.stigmerBackendEndpoint,
-      },
-    );
-    if (conversationAttachment) {
-      resolvedMcpServers = injectSynthesizedAttachment(
-        resolvedMcpServers, conversationAttachment, "conversation participation",
-      );
-    }
-
-    // Phase 4a5: Synthesize the memory capture attachment (DD-005 D1) —
-    // the fourth sibling. The recall snapshot's enabled bit IS the
-    // attachment decision (server-stamped at execution create; a free
-    // local read, like the conversation attachment's session label). The
-    // capture context is attribution the server verifies or trusts per
-    // edition (Stage 3 provenance decision); the subject is never
-    // threaded — it derives from the credential.
-    const memoryAttachment = synthesizeMemoryAttachment(
-      execution.spec?.recalledMemories,
-      {
-        org: session.metadata?.org ?? "",
-        agentId: blueprint.agent.metadata?.id ?? "",
-        sessionId,
-        agentExecutionId: executionId,
-      },
-      {
-        bridgeEndpoint: config.mcpBridgeEndpoint,
-        credential: attachmentCredential,
-        backendEndpoint: config.stigmerBackendEndpoint,
-      },
-    );
-    if (memoryAttachment) {
-      resolvedMcpServers = injectSynthesizedAttachment(
-        resolvedMcpServers, memoryAttachment, "memory capture",
-      );
-    }
-    // The one projection point: every mutation above is now visible in the
-    // Cursor SDK config by construction (no per-mutation rebuild to forget).
-    const mcpConfig = toCursorMcpConfig(resolvedMcpServers);
-
-    // Phase 4b: Merge approval policies from all layers.
-    //
-    // Two bypasses (see ActiveLeases, shared with the native harness): the
-    // pre-armed spec.auto_approve_all is the one whole-run global bypass; an
-    // interactive APPROVE_ALL grants a run-lifetime lease scoped to that action's
-    // class. deriveActiveLeases keeps this contract defined once. Server-scoped
-    // leases drop that server's tools from the merged map (so the hook treats
-    // them as auto-approved); the global bypass empties the map entirely.
-    const leases = deriveActiveLeases(execution);
+    // Phase 4 to 4b: the tool surface — resolved servers (backfill and the
+    // three synthesized attachments folded in) and the merged approval
+    // policies — is the runtime's phase. The Cursor SDK config is projected
+    // from the final list exactly once, here, after the last mutation.
+    const mcp = await resolveMcpServersAndPolicies(resolutionDeps, {
+      execution, session, sessionId, blueprint, environment,
+    });
+    const resolvedMcpServers = mcp.servers;
+    const { channelMessaging, leases, policies: mergedPolicies } = mcp;
     const globalBypass = leases.global;
-    // Layer-3 overrides ride each resolved server from its merged usage —
-    // see ResolvedMcpServer.toolApprovalOverrides (issue #349) — so there
-    // is no separate override input to pass here.
-    const mergedPolicies = mergeApprovalPolicies(
-      resolvedMcpServers,
-      leases,
-    );
-    heartbeat();
+    const mcpConfig = toCursorMcpConfig(resolvedMcpServers);
 
     // Phase 4c: Validate MCP server env health (diagnostic, non-blocking)
     const mcpWarnings = validateMcpServerEnv(
@@ -794,79 +500,39 @@ async function executeCursorInner(
     heartbeat();
     setupTiming.mark("resolve_skills");
 
-    // Phase 5b: Resolve attachments (fail-hard — explicit user inputs; see
-    // attachment-resolver.ts). Downloads by storage key through the same
-    // artifactStorage resolved for status offload above. The vision budget
-    // rides along so image attachments are selected for inline delivery while
-    // their bytes are already in hand (attachment-vision.ts owns all policy).
-    // The budget also carries the requested model's registry vision
-    // capability, looked up from the raw executionConfig name — full model
-    // validation (Phase 6) isn't needed for this, and ""/"default" (the Auto
-    // pool) resolves to unknown, which the policy treats as sighted.
-    const visionBudget = new VisionBudget(CURSOR_VISION_PROFILE, {
-      modelVision: await getModelVisionCapability(spec.executionConfig?.modelName ?? ""),
+    // Phase 5b: the turn's attachments, resolved into the workspace with the
+    // vision facts derived once, is the runtime's phase; the vision profile is
+    // this harness's. The prompt-shaped projections stay here: the
+    // `<input_files>` entries and the vision disclosure the prompt renders.
+    const attachments = await resolveTurnAttachments(resolutionDeps, {
+      spec, sessionId, primaryDir: primaryWorkspaceDir, visionProfile: CURSOR_VISION_PROFILE,
     });
-    const attachmentResults = await resolveAttachments(spec.attachments, {
-      sessionId,
-      primaryWorkspaceDir,
-      mode: config.mode,
-      storage: artifactStorage,
-      visionBudget,
-    });
-    const attachmentEntries = attachmentResults.map((a) => ({
+    const { visionImages, visionNotViewable } = attachments;
+    const attachmentEntries = attachments.results.map((a) => ({
       path: a.relativePath,
       ...(a.renamedFrom !== undefined ? { renamedFrom: a.renamedFrom } : {}),
       ...(a.downloadUrl !== undefined ? { downloadUrl: a.downloadUrl } : {}),
     }));
-    // Vision facts, derived once from the single resolution result: the
-    // images the model will see inline (in attachment order) and the ones
-    // that degraded to path-only, disclosed in the prompt.
-    const visionImages = attachmentResults.flatMap((a) => (a.vision ? [a.vision] : []));
-    const visionNotViewable: NotViewableEntry[] = attachmentResults.flatMap((a) =>
-      a.visionDegraded ? [{ path: a.relativePath, reason: a.visionDegraded }] : [],
-    );
     const visionPromptInfo = visionImages.length > 0 || visionNotViewable.length > 0
       ? {
           inlineFilenames: visionImages.map((v) => v.filename),
           notViewable: visionNotViewable,
         }
       : undefined;
-    if (visionPromptInfo) {
-      console.log(
-        `[attachment-vision] execution=${executionId} inline=${visionImages.length} ` +
-        `(${visionImages.reduce((n, v) => n + v.byteSize, 0)} bytes) ` +
-        `degraded=${JSON.stringify(visionNotViewable.map((d) => `${d.path}:${d.reason}`))}`,
-      );
-    }
-    setupTiming.mark("resolve_attachments");
 
-    // Phase 5b3: Exact-apply approved whole-file writes (HITL "what you approve
-    // is what gets applied"). The Cursor deny-only harness reinvokes the model,
-    // which regenerates content, so a resource grant alone cannot guarantee the
-    // bytes that land match the bytes the user approved. The runner therefore
-    // writes the EXACT approved whole-file content itself, marks those tool calls
-    // COMPLETED, and (below) issues NO grant for them — so any FURTHER change the
-    // model makes to those files is re-gated. Hunk edits / shell / MCP stay on
-    // the grant + reinvocation path. Every uncertain case degrades to that path,
-    // so this can never corrupt a file (see exact-apply.ts).
-    let appliedToolCallIds: ReadonlySet<string> = new Set();
-    // Exact-apply is the deny-gate path's "what you approve is what gets applied"
-    // mechanism (the model regenerates content on reinvocation). Capture mode
-    // does not reinvoke the model for file edits — it applies the exact captured
-    // bytes itself in applyCaptureDecisions — so exact-apply is scoped OUT of it.
-    if (!captureMode && isReinvocation && approvalDecisions.size > 0) {
-      appliedToolCallIds = await applyApprovedWholeFileWrites({
-        messages: status.messages,
-        workspaceBackend: new LocalWorkspaceBackend(primaryWorkspaceDir),
-        workspaceDirs: blueprint.workspaceDirs,
-        executionId,
-      });
-      if (appliedToolCallIds.size > 0) {
-        // Persist the applied writes (tool calls now COMPLETED with the approved
-        // diff) before reinvocation, so the applied state is durable even if the
-        // continuation fails, and the UI reflects it immediately.
-        await persist(status);
-      }
+    // Phase 5b3: exact-apply approved whole-file writes (HITL "what you approve
+    // is what gets applied") is the runtime's phase; the persist that makes
+    // the applied state durable before the continuation runs stays here, the
+    // one place this turn persists.
+    const appliedToolCallIds = await applyApprovedWrites(resolutionDeps, {
+      workspace,
+      reinvocation: reinvoked.reinvocation,
+    });
+    if (appliedToolCallIds.size > 0) {
+      // Persist the applied writes (tool calls now COMPLETED with the approved
+      // diff) before reinvocation, so the applied state is durable even if the
+      // continuation fails, and the UI reflects it immediately.
+      await persist(status);
     }
 
     // Phase 5c: Install the HITL approval gate BEFORE resolving the agent.
@@ -998,15 +664,28 @@ async function executeCursorInner(
     // UNSPECIFIED → STANDARD (#357) and UNSPECIFIED → DISABLED (#772)
     // resolve here and nowhere else: every upstream layer preserves the
     // caller's raw enum values.
-    const requestedModel = spec.executionConfig?.modelName || "default";
+    // The requested name and the effective tier and thinking mode are the
+    // runtime's (UNSPECIFIED → STANDARD / DISABLED resolve there); validating
+    // the NAME against Cursor's catalog is this harness's.
+    const {
+      requested: requestedModel,
+      serviceTier: requestedServiceTier,
+      thinkingMode: requestedThinkingMode,
+    } = resolveModelPreferences(spec);
     const validatedModel = resolveModelId(requestedModel);
     if (validatedModel !== requestedModel) {
       console.log(
         `ExecuteCursor model resolved: execution=${executionId}, requested="${requestedModel}", using="${validatedModel}"`,
       );
     }
-    const requestedServiceTier = resolveEffectiveServiceTier(spec.executionConfig?.serviceTier);
-    const requestedThinkingMode = resolveEffectiveThinkingMode(spec.executionConfig?.thinkingMode);
+
+    // Phases 9b and 9c, resolved by the runtime before the agent exists: the
+    // structured-output schema and the standing context, with the memory
+    // selection prepared once and pulled only where a prompt carries standing
+    // context (see promptCarriesStandingContext).
+    const structuredOutputSchema = structuredOutputSchemaOf(spec);
+    const standing = resolveStandingContext(resolutionDeps, { execution, spec, blueprint });
+    const selectMemoriesOnce = standing.selectRecalledMemories;
 
     heartbeat();
 
@@ -1182,38 +861,12 @@ async function executeCursorInner(
       }
     }
 
-    // Phase 9b: Detect structured output schema from execution config
-    const structuredOutputSchema = spec.executionConfig?.structuredOutputSchema as
-      Record<string, unknown> | undefined;
-
-    // Phase 9c: Semantic memory selection (DD-008), memoized to at most one
-    // run per invocation. Deliberately NOT decided by the Phase-10
-    // resolution alone: a resumed-agent primary send carries no memories,
-    // but a mid-send poisoned-handle failure rebuilds on a FRESH agent
-    // whose recovery prompt does — the buildFromPlan drop-hazard class —
-    // so every memory-carrying build site awaits this lazily instead.
-    // Selection runs against the frozen first message's semantics: above
-    // the activation threshold it picks top-k for spec.message, otherwise
-    // (and on any failure) it injects the full candidate set — Phase 2
-    // behavior. The outcome report is stamped on the turn's status ONCE,
-    // picked up by the next persist; a re-invocation replays the report
-    // already persisted on the execution rather than re-selecting (the
-    // written-once rule).
-    let memorySelection: Promise<RecalledMemoriesContent | undefined> | undefined;
-    const selectMemoriesOnce = (): Promise<RecalledMemoriesContent | undefined> => {
-      memorySelection ??= selectRecalledFacts(spec.recalledMemories, spec.message, {
-        proxyEndpoint: config.proxyEndpoint,
-        stigmerToken: config.stigmerToken,
-        executionId,
-        priorReport: execution.status?.recalledMemoriesReport,
-      }).then((selection) => {
-        if (selection.report !== undefined) {
-          status.recalledMemoriesReport = selection.report;
-        }
-        return selection.content;
-      });
-      return memorySelection;
-    };
+    // Phase 9c: the memory selection is the runtime's memoized thunk (see
+    // resolveStandingContext); whether THIS prompt carries it is decided by
+    // how the agent resolved — a successfully resumed agent already holds its
+    // standing context. Deliberately NOT decided once here: a mid-send
+    // poisoned-handle failure rebuilds on a FRESH agent whose recovery prompt
+    // does carry it, so that build site awaits the same thunk.
     const recalledMemories = promptCarriesStandingContext(resolution.reason)
       ? await selectMemoriesOnce()
       : undefined;
@@ -1240,12 +893,12 @@ async function executeCursorInner(
       appliedToolCallIds,
       interactionMode,
       buildFromPlan,
-      contextBridge: readContextBridge(blueprint.sessionSpec.metadata),
-      senderIdentity: readSenderIdentity(blueprint.sessionSpec.metadata),
-      sessionContext: readSessionContext(blueprint.sessionSpec.metadata),
-      declaredPreferences: readDeclaredPreferences(spec.declaredPreferences),
+      contextBridge: standing.contextBridge,
+      senderIdentity: standing.senderIdentity,
+      sessionContext: standing.sessionContext,
+      declaredPreferences: standing.declaredPreferences,
       recalledMemories,
-      conversationCatchup: readConversationCatchup(spec.conversationCatchup),
+      conversationCatchup: standing.conversationCatchup,
       // The turn's recorded transcript, seeded from the persisted execution
       // on a reinvocation (Phase 3). Consumed only by the HITL-recovery
       // shape — reached from HERE when the stored handle failed to resume
@@ -1948,15 +1601,15 @@ async function executeCursorInner(
             // fresh prompt must carry every per-turn directive the original
             // did.
             buildFromPlan,
-            contextBridge: readContextBridge(blueprint.sessionSpec.metadata),
-            senderIdentity: readSenderIdentity(blueprint.sessionSpec.metadata),
-            sessionContext: readSessionContext(blueprint.sessionSpec.metadata),
-            declaredPreferences: readDeclaredPreferences(spec.declaredPreferences),
+            contextBridge: standing.contextBridge,
+            senderIdentity: standing.senderIdentity,
+            sessionContext: standing.sessionContext,
+            declaredPreferences: standing.declaredPreferences,
             // Lazily selected: the primary send may have been a resumed-agent
             // shape that carried no memories, but this fresh agent's prompt
             // must (see the Phase 9c memoized selection).
             recalledMemories: await selectMemoriesOnce(),
-            conversationCatchup: readConversationCatchup(spec.conversationCatchup),
+            conversationCatchup: standing.conversationCatchup,
             // Composed fresh (not reused from Phase 10): the failed primary
             // stream may have appended partial work onto status.messages,
             // and the replacement agent should know about that too.
@@ -2441,45 +2094,6 @@ async function executeCursorInner(
   }
 }
 
-/**
- * Seed an in-progress status from the persisted execution on a durable resume
- * (HITL approval, pause/resume, or transient recovery) so the upcoming turn
- * APPENDS onto prior history instead of replacing it. This is the Cursor analog
- * of the deep-agent's seedStatusFromExecution (execute-deep-agent/index.ts).
- *
- * Why it is required: a resumed Cursor agent re-issues the previously gated tool
- * calls with brand-new call ids. Without seeding, the MessageAccumulator would
- * rebuild the transcript from empty and emit a status that drops the already-
- * committed tool-call ids. The backend's append-only-at-identity guard
- * (AgentExecutionUpdateStatusHandler / update_status.go) rejects any non-
- * terminal update that drops a committed tool-call id, so the resumed progress
- * would never persist — the run stalls in WAITING_FOR_APPROVAL with no pending
- * approvals and the workflow watchdog fails it. Seeding makes the resume status
- * a strict superset; the re-runs are then reconciled in place onto these seeded
- * calls by canonical identity inside the accumulator.
- *
- * The persisted protos are cloned so the input execution stays immutable, and
- * the seeded messages are pushed into status.messages (which the accumulator
- * wraps by reference) BEFORE the accumulator is constructed. Sub-agent
- * executions are returned rather than written to status.subAgentExecutions
- * directly, because the accumulator owns that array (it overwrites
- * status.subAgentExecutions with its own on every flush) — handing them to the
- * accumulator keeps the seeded sub-agent rows from being clobbered.
- *
- * @returns the cloned sub-agent executions to seed into the MessageAccumulator.
- */
-function seedCursorTranscriptFromExecution(
-  status: AgentExecutionStatus,
-  execution: AgentExecution,
-): SubAgentExecution[] {
-  const persisted = execution.status;
-  if (!persisted || persisted.messages.length === 0) return [];
-  for (const message of persisted.messages) {
-    status.messages.push(clone(AgentMessageSchema, message));
-  }
-  return persisted.subAgentExecutions.map((sub) => clone(SubAgentExecutionSchema, sub));
-}
-
 // ---------------------------------------------------------------------------
 // Prompt selection
 // ---------------------------------------------------------------------------
@@ -2495,7 +2109,7 @@ export interface BuildPromptInput {
    * Serving proactive channels + their templates (the DD-006 D2
    * discovery read) — the `<available_channel_templates>` section.
    */
-  channelMessaging?: import("../../shared/channel-attachment.js").ChannelMessagingInfo[];
+  channelMessaging?: readonly import("../../shared/channel-attachment.js").ChannelMessagingInfo[];
   subAgents: import("@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb").SubAgent[];
   workspaceDirs: string[];
   workspaceFileRefs: string[];
