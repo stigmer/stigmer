@@ -1,0 +1,71 @@
+{
+  "messages": [
+    {
+      "type": "MESSAGE_AI",
+      "content": "Let me look.",
+      "timestamp": "2026-01-01T00:00:01.000Z"
+    },
+    {
+      "type": "MESSAGE_AI",
+      "timestamp": "2026-01-01T00:00:01.000Z",
+      "toolCalls": [
+        {
+          "id": "call-hermetic-read-0001",
+          "name": "read_file",
+          "args": {
+            "file_path": "/notes.md"
+          },
+          "result": "[{\"type\":\"text\",\"text\":\"Error: File '/notes.md' not found\"}]",
+          "status": "TOOL_CALL_COMPLETED",
+          "startedAt": "2026-01-01T00:00:01.000Z",
+          "completedAt": "2026-01-01T00:00:01.000Z",
+          "toolKind": "TOOL_KIND_FILE_READ"
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "Stopping here as asked.",
+      "timestamp": "2026-01-01T00:00:02.000Z"
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "Platform STOP signal",
+      "timestamp": "2026-01-01T00:00:02.000Z"
+    }
+  ],
+  "phase": "EXECUTION_COMPLETED",
+  "startedAt": "2026-01-01T00:00:00.000Z",
+  "completedAt": "2026-01-01T00:00:02.000Z",
+  "streamingUsage": {
+    "inputTokens": "2600",
+    "outputTokens": "40",
+    "totalTokens": "2640",
+    "turnCount": 2,
+    "observedAt": "2026-01-01T00:00:02.000Z"
+  },
+  "fileReviewEventStream": {
+    "executionId": "aex_hermetic_0001",
+    "events": [
+      {
+        "eventId": "aex_hermetic_0001:0:aex_hermetic_0001:0:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+        "changeSetId": "aex_hermetic_0001:0",
+        "eventType": "FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+        "timestamp": "2026-01-01T00:00:00.000Z",
+        "actor": "runner",
+        "baselineCaptured": {
+          "changeSetId": "aex_hermetic_0001:0",
+          "turnId": "aex_hermetic_0001:0",
+          "harnessId": "deep-agent",
+          "baselineSnapshot": {
+            "kind": "SNAPSHOT_KIND_CAS_MANIFEST"
+          }
+        }
+      }
+    ]
+  },
+  "fileChangeProgress": {
+    "changeSetId": "aex_hermetic_0001:0",
+    "capturedAt": "2026-01-01T00:00:00.000Z"
+  }
+}

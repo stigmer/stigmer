@@ -12,14 +12,14 @@
  * byte-stable.
  */
 
-import { create } from "@bufbuild/protobuf";
+import { create, type JsonObject } from "@bufbuild/protobuf";
 import { AgentExecutionSchema, type AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentExecutionSpecSchema, ExecutionConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import { SessionSchema, type Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import { AgentSchema, type Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import { AgentSpecSchema, type SubAgent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { AgentInstanceSchema, type AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
 import { AgentInstanceSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/spec_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
@@ -63,6 +63,18 @@ export interface ExecutionRecordOptions {
    * a scenario can state its overrun exactly (600 000 input tokens = $0.60).
    */
   readonly maxCostUsd?: number;
+  /**
+   * `ExecutionConfig.max_tool_rounds`: the hard tool-round budget the engine
+   * enforces (native: LangGraph's `recursionLimit`, `shared/tool-rounds.ts`).
+   * Omitted or 0 = unlimited, the proto's default. Clamped to the floor of 10
+   * by the runner, so a scenario that wants the limit reached scripts a model
+   * that keeps calling tools (`repeatLast`).
+   */
+  readonly maxToolRounds?: number;
+  /** `ExecutionConfig.structured_output_schema`: a JSON schema the agent's answer must match. */
+  readonly structuredOutputSchema?: JsonObject;
+  /** The agent's declared sub-agents (`AgentSpec.sub_agents`). */
+  readonly subAgents?: SubAgent[];
   /** The control plane's STOP lever; see `ExecutionRecordInput.controlSignal`. */
   readonly controlSignal?: ExecutionRecordInput["controlSignal"];
   readonly ids?: ExecutionRecordIds;
@@ -79,6 +91,9 @@ export function executionRecordFixture(options: ExecutionRecordOptions): Executi
       executionConfig: create(ExecutionConfigSchema, {
         modelName: options.modelName ?? FIXTURE_MODEL,
         maxCostUsd: options.maxCostUsd ?? 0,
+        maxToolRounds: options.maxToolRounds ?? 0,
+        // A `google.protobuf.Struct` field is a plain `JsonObject` in protobuf-es.
+        structuredOutputSchema: options.structuredOutputSchema,
       }),
     }),
   });
@@ -98,6 +113,7 @@ export function executionRecordFixture(options: ExecutionRecordOptions): Executi
     spec: create(AgentSpecSchema, {
       description: "Hermetic fixture agent",
       instructions: options.instructions ?? "You are the hermetic fixture agent. Answer briefly.",
+      subAgents: options.subAgents ?? [],
     }),
   });
   return new ExecutionRecord({ execution, session, agentInstance, agent, controlSignal: options.controlSignal });

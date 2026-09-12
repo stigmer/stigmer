@@ -1,0 +1,86 @@
+{
+  "messages": [
+    {
+      "type": "MESSAGE_AI",
+      "content": "Delegating to the helper.",
+      "timestamp": "2026-01-01T00:00:01.000Z"
+    },
+    {
+      "type": "MESSAGE_AI",
+      "timestamp": "2026-01-01T00:00:01.000Z",
+      "toolCalls": [
+        {
+          "id": "call-hermetic-task-0001",
+          "name": "task",
+          "args": {
+            "description": "Look up the fixture value.",
+            "subagent_type": "helper"
+          },
+          "result": "{\"lg_name\":\"Command\",\"update\":{\"files\":{},\"messages\":[{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"ToolMessage\"],\"kwargs\":{\"content\":[{\"type\":\"text\",\"text\":\"The fixture value is forty-two.\"}],\"tool_call_id\":\"call-hermetic-task-0001\",\"name\":\"task\",\"additional_kwargs\":{},\"response_metadata\":{}}}]},\"goto\":[]}",
+          "status": "TOOL_CALL_COMPLETED",
+          "startedAt": "2026-01-01T00:00:01.000Z",
+          "completedAt": "2026-01-01T00:00:02.000Z",
+          "toolKind": "TOOL_KIND_SUBAGENT"
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "The helper reports the fixture value is forty-two.",
+      "timestamp": "2026-01-01T00:00:03.000Z"
+    }
+  ],
+  "phase": "EXECUTION_COMPLETED",
+  "subAgentExecutions": [
+    {
+      "id": "call-hermetic-task-0001",
+      "name": "helper",
+      "input": "Look up the fixture value.",
+      "output": "{\"lg_name\":\"Command\",\"update\":{\"files\":{},\"messages\":[{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"ToolMessage\"],\"kwargs\":{\"content\":[{\"type\":\"text\",\"text\":\"The fixture value is forty-two.\"}],\"tool_call_id\":\"call-hermetic-task-0001\",\"name\":\"task\",\"additional_kwargs\":{},\"response_metadata\":{}}}]},\"goto\":[]}",
+      "status": "SUB_AGENT_COMPLETED",
+      "startedAt": "2026-01-01T00:00:01.000Z",
+      "completedAt": "2026-01-01T00:00:02.000Z",
+      "messages": [
+        {
+          "type": "MESSAGE_AI",
+          "content": "The fixture value is forty-two.",
+          "timestamp": "2026-01-01T00:00:02.000Z"
+        }
+      ],
+      "subject": "Look up the fixture value."
+    }
+  ],
+  "startedAt": "2026-01-01T00:00:00.000Z",
+  "completedAt": "2026-01-01T00:00:03.000Z",
+  "streamingUsage": {
+    "inputTokens": "3300",
+    "outputTokens": "90",
+    "totalTokens": "3390",
+    "turnCount": 2,
+    "observedAt": "2026-01-01T00:00:03.000Z"
+  },
+  "fileReviewEventStream": {
+    "executionId": "aex_hermetic_0001",
+    "events": [
+      {
+        "eventId": "aex_hermetic_0001:0:aex_hermetic_0001:0:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+        "changeSetId": "aex_hermetic_0001:0",
+        "eventType": "FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+        "timestamp": "2026-01-01T00:00:00.000Z",
+        "actor": "runner",
+        "baselineCaptured": {
+          "changeSetId": "aex_hermetic_0001:0",
+          "turnId": "aex_hermetic_0001:0",
+          "harnessId": "deep-agent",
+          "baselineSnapshot": {
+            "kind": "SNAPSHOT_KIND_CAS_MANIFEST"
+          }
+        }
+      }
+    ]
+  },
+  "fileChangeProgress": {
+    "changeSetId": "aex_hermetic_0001:0",
+    "capturedAt": "2026-01-01T00:00:00.000Z"
+  }
+}

@@ -50,6 +50,7 @@ import {
   AIMessage,
   AIMessageChunk,
   isAIMessage,
+  isSystemMessage,
   type BaseMessage,
   type ContentBlock,
   type UsageMetadata,
@@ -107,14 +108,26 @@ export interface ScriptStep {
 }
 
 /**
- * Picks the script for the currently-bound tool set. A single-agent test
- * ignores the argument; a parent/sub-agent test keys the role on a tool unique
- * to one role (e.g. the sub-agent's gated tool), because `createDeepAgent`
- * injects the `task` tool into both the parent and its sub-agents. Called at
- * `_generate` time, never at bind time, so a role that is compiled but never
- * invoked (the default general-purpose sub-agent) needs no script.
+ * What a selector can tell one role from another by. `createDeepAgent` gives
+ * a declared sub-agent the SAME tool set as its parent (`task` included), so
+ * tool names alone cannot separate them; the system prompt can — it carries
+ * the role's own instructions.
  */
-export type ScriptSelector = (boundToolNames: string[]) => ScriptStep | RoleScript;
+export interface ScriptRoleContext {
+  /** The transcript's leading system message, or "" when there is none. */
+  readonly systemPrompt: string;
+}
+
+/**
+ * Picks the script for the role being asked. A single-agent test ignores both
+ * arguments; a parent/sub-agent test keys the role on a tool unique to one
+ * role when there is one (a custom counting tool), or on the role's
+ * instructions in `context.systemPrompt` when both roles bind the same tools
+ * (the hermetic delegation arm). Called at `_generate` time, never at bind
+ * time, so a role that is compiled but never invoked (the default
+ * general-purpose sub-agent) needs no script.
+ */
+export type ScriptSelector = (boundToolNames: string[], context: ScriptRoleContext) => ScriptStep | RoleScript;
 
 /** What the driver learns before a turn is rendered: which role, which round. */
 export interface ScriptedTurnInfo {
@@ -163,7 +176,7 @@ export class ScriptedModel extends BaseChatModel {
 
   bindTools(tools: unknown[]): this {
     const next = new ScriptedModel(this.select, this.boundTools, this.options);
-    next.toolNames = (tools as Array<{ name?: string }>).map((t) => t?.name ?? "");
+    next.toolNames = tools.map(boundToolName);
     this.boundTools.length = 0;
     this.boundTools.push(...tools);
     return next as unknown as this;
@@ -173,7 +186,8 @@ export class ScriptedModel extends BaseChatModel {
   private async turnFor(messages: BaseMessage[]): Promise<ScriptedTurn> {
     const round = completedToolRounds(messages);
     await this.options.onTurn?.({ boundToolNames: this.toolNames, round });
-    return resolveTurn(normalizeScript(this.select(this.toolNames)), round, this.toolNames);
+    const context: ScriptRoleContext = { systemPrompt: systemPromptOf(messages) };
+    return resolveTurn(normalizeScript(this.select(this.toolNames, context)), round, this.toolNames);
   }
 
   async _generate(messages: BaseMessage[]): Promise<ChatResult> {
@@ -198,6 +212,25 @@ export class ScriptedModel extends BaseChatModel {
 // ---------------------------------------------------------------------------
 // Script resolution
 // ---------------------------------------------------------------------------
+
+/**
+ * The name a bound tool answers to: a LangChain tool's `name`, or an
+ * OpenAI-style function definition's `function.name` (how langchain binds the
+ * structured-output schema tool of `toolStrategy`). A real provider client
+ * accepts both shapes; so does this double.
+ */
+function boundToolName(tool: unknown): string {
+  const t = tool as { name?: unknown; function?: { name?: unknown } } | null | undefined;
+  if (typeof t?.name === "string") return t.name;
+  if (typeof t?.function?.name === "string") return t.function.name;
+  return "";
+}
+
+function systemPromptOf(messages: readonly BaseMessage[]): string {
+  const system = messages.find((m) => isSystemMessage(m));
+  if (!system) return "";
+  return typeof system.content === "string" ? system.content : system.text;
+}
 
 function normalizeScript(script: ScriptStep | RoleScript): RoleScript {
   if ("done" in script) {

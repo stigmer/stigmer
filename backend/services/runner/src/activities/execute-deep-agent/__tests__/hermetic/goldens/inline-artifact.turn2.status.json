@@ -1,0 +1,166 @@
+{
+  "messages": [
+    {
+      "type": "MESSAGE_AI",
+      "content": "Writing the report.",
+      "timestamp": "2026-01-01T00:00:01.000Z"
+    },
+    {
+      "type": "MESSAGE_AI",
+      "timestamp": "2026-01-01T00:00:01.000Z",
+      "toolCalls": [
+        {
+          "id": "call-hermetic-write-0001",
+          "name": "write_file",
+          "args": {
+            "file_path": "/report.md",
+            "content": "# Report\n\nAll fixtures nominal.\n"
+          },
+          "result": "Successfully wrote to '/report.md'",
+          "status": "TOOL_CALL_COMPLETED",
+          "startedAt": "2026-01-01T00:00:01.000Z",
+          "completedAt": "2026-01-01T00:00:01.000Z",
+          "toolKind": "TOOL_KIND_FILE_WRITE",
+          "approvalPolicySource": "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
+          "policyEngineVersion": "phase-7",
+          "fileChangeSetId": "aex_hermetic_0001:0"
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "Now the command.",
+      "timestamp": "2026-01-01T00:00:02.000Z"
+    },
+    {
+      "type": "MESSAGE_AI",
+      "timestamp": "2026-01-01T00:00:02.000Z",
+      "toolCalls": [
+        {
+          "id": "call-hermetic-exec-0001",
+          "name": "execute",
+          "args": {
+            "command": "echo hermetic-a"
+          },
+          "result": "hermetic-a\n\n[Command succeeded with exit code 0]",
+          "status": "TOOL_CALL_COMPLETED",
+          "startedAt": "2026-01-01T00:00:02.000Z",
+          "completedAt": "2026-01-01T00:00:02.000Z",
+          "requiresApproval": true,
+          "approvalMessage": "Execute command: echo hermetic-a",
+          "approvalRequestedAt": "2026-01-01T00:00:02.000Z",
+          "approvalDecidedAt": "2026-01-01T00:00:30.000Z",
+          "approvalAction": "APPROVAL_ACTION_APPROVE",
+          "argsPreview": "{\"command\":\"echo hermetic-a\"}",
+          "toolKind": "TOOL_KIND_SHELL",
+          "approvalPolicySource": "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
+          "policyEngineVersion": "phase-7"
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "Done with the command.",
+      "timestamp": "2026-01-01T00:00:03.000Z"
+    }
+  ],
+  "phase": "EXECUTION_COMPLETED",
+  "startedAt": "2026-01-01T00:00:00.000Z",
+  "completedAt": "2026-01-01T00:00:03.000Z",
+  "artifacts": [
+    {
+      "name": "report.md",
+      "sandboxPath": "report.md",
+      "kind": "EXECUTION_ARTIFACT_KIND_FILE",
+      "sizeBytes": "32",
+      "storageKey": "artifacts/aex_hermetic_0001/report.md",
+      "createdAt": "2026-01-01T00:00:02.000Z",
+      "contentHash": "62eae4d09b2b051cf4ac5aa1fd70847b34c47994a1732ff999f47749e71b0441"
+    }
+  ],
+  "streamingUsage": {
+    "inputTokens": "1600",
+    "outputTokens": "20",
+    "totalTokens": "1620",
+    "turnCount": 1,
+    "observedAt": "2026-01-01T00:00:03.000Z"
+  },
+  "fileReviewEventStream": {
+    "executionId": "aex_hermetic_0001",
+    "events": [
+      {
+        "eventId": "aex_hermetic_0001:0:aex_hermetic_0001:0:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+        "changeSetId": "aex_hermetic_0001:0",
+        "eventType": "FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+        "timestamp": "2026-01-01T00:00:00.000Z",
+        "actor": "runner",
+        "baselineCaptured": {
+          "changeSetId": "aex_hermetic_0001:0",
+          "turnId": "aex_hermetic_0001:0",
+          "harnessId": "deep-agent",
+          "baselineSnapshot": {
+            "kind": "SNAPSHOT_KIND_CAS_MANIFEST"
+          }
+        }
+      },
+      {
+        "eventId": "aex_hermetic_0001:0:aex_hermetic_0001:0:FILE_REVIEW_EVENT_TYPE_CANDIDATE_CAPTURED",
+        "changeSetId": "aex_hermetic_0001:0",
+        "eventType": "FILE_REVIEW_EVENT_TYPE_CANDIDATE_CAPTURED",
+        "timestamp": "2026-01-01T00:00:02.000Z",
+        "actor": "runner",
+        "candidateCaptured": {
+          "changeSetId": "aex_hermetic_0001:0",
+          "candidateSnapshot": {
+            "kind": "SNAPSHOT_KIND_CAS_MANIFEST",
+            "cas": {
+              "manifestDigest": "f0f81d5105329f7c5cfacd39f4d96d5648c1a31ef6cfc9e4798eaf542b332256",
+              "artifactUri": "artifacts/aex_hermetic_0001/filereview/cas/aex_hermetic_0001_0.manifest.json"
+            }
+          },
+          "changes": [
+            {
+              "id": "aex_hermetic_0001:0:report.md",
+              "pathAfter": "report.md",
+              "kind": "FILE_CHANGE_KIND_ADD",
+              "captureClass": "FILE_CAPTURE_CLASS_NON_GIT_CAS",
+              "after": {
+                "ref": {
+                  "storageKey": "artifacts/aex_hermetic_0001/filereview/cas/blobs/62eae4d09b2b051cf4ac5aa1fd70847b34c47994a1732ff999f47749e71b0441",
+                  "sizeBytes": "32",
+                  "contentHash": "62eae4d09b2b051cf4ac5aa1fd70847b34c47994a1732ff999f47749e71b0441",
+                  "mimeType": "application/octet-stream"
+                }
+              },
+              "afterSha256": "62eae4d09b2b051cf4ac5aa1fd70847b34c47994a1732ff999f47749e71b0441",
+              "diffComplete": true,
+              "fileDigest": "0a4cb3abb53bd2667729af625cb5aaa824831b99a16ec98149a5a813c214b131",
+              "linesAdded": 3
+            }
+          ],
+          "aggregateDigest": "18fe5eace0df12eae8bb199c7069050994b4bce1f9e63031ecd47b11c06148fc",
+          "diffCompleteness": "DIFF_COMPLETENESS_COMPLETE"
+        }
+      },
+      {
+        "eventId": "aex_hermetic_0001:1:aex_hermetic_0001:1:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+        "changeSetId": "aex_hermetic_0001:1",
+        "eventType": "FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+        "timestamp": "2026-01-01T00:00:02.000Z",
+        "actor": "runner",
+        "baselineCaptured": {
+          "changeSetId": "aex_hermetic_0001:1",
+          "turnId": "aex_hermetic_0001:1",
+          "harnessId": "deep-agent",
+          "baselineSnapshot": {
+            "kind": "SNAPSHOT_KIND_CAS_MANIFEST"
+          }
+        }
+      }
+    ]
+  },
+  "fileChangeProgress": {
+    "changeSetId": "aex_hermetic_0001:1",
+    "capturedAt": "2026-01-01T00:00:02.000Z"
+  }
+}

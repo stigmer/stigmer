@@ -1,0 +1,63 @@
+{
+  "messages": [
+    {
+      "type": "MESSAGE_AI",
+      "content": "Let me look.",
+      "timestamp": "2026-01-01T00:00:01.000Z"
+    },
+    {
+      "type": "MESSAGE_AI",
+      "timestamp": "2026-01-01T00:00:01.000Z",
+      "toolCalls": [
+        {
+          "id": "call-hermetic-read-0001",
+          "name": "read_file",
+          "args": {
+            "file_path": "/notes.md"
+          },
+          "status": "TOOL_CALL_RUNNING",
+          "startedAt": "2026-01-01T00:00:01.000Z",
+          "toolKind": "TOOL_KIND_FILE_READ"
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_SYSTEM",
+      "content": "Execution paused by user. Use resume to continue from this checkpoint.",
+      "timestamp": "2026-01-01T00:00:01.000Z"
+    }
+  ],
+  "phase": "EXECUTION_PAUSED",
+  "startedAt": "2026-01-01T00:00:00.000Z",
+  "streamingUsage": {
+    "inputTokens": "1200",
+    "outputTokens": "30",
+    "totalTokens": "1230",
+    "turnCount": 1,
+    "observedAt": "2026-01-01T00:00:01.000Z"
+  },
+  "fileReviewEventStream": {
+    "executionId": "aex_hermetic_0001",
+    "events": [
+      {
+        "eventId": "aex_hermetic_0001:0:aex_hermetic_0001:0:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+        "changeSetId": "aex_hermetic_0001:0",
+        "eventType": "FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+        "timestamp": "2026-01-01T00:00:00.000Z",
+        "actor": "runner",
+        "baselineCaptured": {
+          "changeSetId": "aex_hermetic_0001:0",
+          "turnId": "aex_hermetic_0001:0",
+          "harnessId": "deep-agent",
+          "baselineSnapshot": {
+            "kind": "SNAPSHOT_KIND_CAS_MANIFEST"
+          }
+        }
+      }
+    ]
+  },
+  "fileChangeProgress": {
+    "changeSetId": "aex_hermetic_0001:0",
+    "capturedAt": "2026-01-01T00:00:00.000Z"
+  }
+}
