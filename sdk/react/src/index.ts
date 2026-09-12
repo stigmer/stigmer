@@ -29,8 +29,15 @@ export {
   useDeploymentMode,
   useResourceAvailable,
 } from "./deployment-mode.js";
-export { type DeploymentMode, isResourceAvailable, ApiResourceKind } from "@stigmer/sdk";
-export { CloudFeatureNotice, type CloudFeatureNoticeProps } from "./internal/CloudFeatureNotice.js";
+export {
+  type DeploymentMode,
+  isResourceAvailable,
+  ApiResourceKind,
+} from "@stigmer/sdk";
+export {
+  CloudFeatureNotice,
+  type CloudFeatureNoticeProps,
+} from "./internal/CloudFeatureNotice.js";
 
 // Models — data hook, styled components, and registry data
 export {
@@ -864,6 +871,14 @@ export type {
   UseUpdateIdentityAccountReturn,
   AccountPreferencesPanelProps,
 } from "./identity-account/index.js";
+// The first-sign-in flow the gate hook delegates to, for consumers who want
+// it without the hook (the `isResourceAvailable` re-export is the precedent).
+export {
+  ensureMyIdentityAccount,
+  type EnsuredIdentityAccount,
+  type EnsureMyIdentityAccountOptions,
+  type IdentityAccountLane,
+} from "@stigmer/sdk";
 
 // Memory — agent-proposed, user-confirmed facts: data hook, decision
 // hooks (confirm/reject/delete/edit), grouping helpers, and the list panel
@@ -1454,8 +1469,15 @@ export type {
 } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
 
 // Error — structured error display with classification, retry, and contextual guidance
-export { ErrorMessage, SecretFlowErrorGuide, isSecretFlowError } from "./error/index.js";
-export type { ErrorMessageProps, SecretFlowErrorGuideProps } from "./error/index.js";
+export {
+  ErrorMessage,
+  SecretFlowErrorGuide,
+  isSecretFlowError,
+} from "./error/index.js";
+export type {
+  ErrorMessageProps,
+  SecretFlowErrorGuideProps,
+} from "./error/index.js";
 
 // Library — cross-resource UI components, resource detection, apply flow, browsing, and visibility management
 export {
@@ -1695,7 +1717,10 @@ export type {
 } from "./resource-creation/index.js";
 
 // Dependency Graph — visual tree of agent dependencies (MCP servers, skills, sub-agents)
-export { DependencyGraph, useDependencyGraph } from "./dependency-graph/index.js";
+export {
+  DependencyGraph,
+  useDependencyGraph,
+} from "./dependency-graph/index.js";
 export type {
   NodeKind,
   DependencyNode,

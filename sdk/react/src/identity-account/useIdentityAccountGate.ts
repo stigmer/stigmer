@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
-import { isNotFound } from "@stigmer/sdk";
+import { ensureMyIdentityAccount } from "@stigmer/sdk";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 
@@ -65,12 +65,18 @@ export interface UseIdentityAccountGateReturn {
  * Headless behavior hook that ensures the authenticated caller has an
  * identity account before the application renders.
  *
+ * The flow itself is `@stigmer/sdk`'s {@link ensureMyIdentityAccount} — the
+ * same one the `stigmer` CLI runs on `auth login` and `auth whoami`, and the
+ * one a platform builder without React calls directly. This hook adds the
+ * React lifecycle around it: a state machine, a `retry`, and the discipline
+ * that a retry issued mid-flight discards the earlier attempt's outcome.
+ *
  * The hook drives the following lifecycle:
  *
- * 1. **`checking`** — calls `whoAmI()` to look up the caller's account.
+ * 1. **`checking`** — `whoAmI()` looks up the caller's account.
  * 2. **`provisioning`** — `whoAmI` returned NOT_FOUND (first login after
- *    signup); the hook calls `provisionMyAccount()` to create the account
- *    and personal organization.
+ *    signup); `provisionMyAccount()` creates the account (and, on Stigmer
+ *    Cloud, the personal organization).
  * 3. **`ready`** — an identity account is available (either pre-existing
  *    or freshly provisioned).
  * 4. **`error`** — a non-recoverable failure occurred; `message` carries
@@ -109,31 +115,24 @@ export function useIdentityAccountGate(options: {
   const attemptRef = useRef(0);
 
   const resolve = useCallback(async () => {
+    // Every setState below is guarded by `attempt`: a retry() issued while
+    // this attempt is in flight bumps the counter, and this attempt's
+    // outcome — whichever RPC it was waiting on — is discarded.
     const attempt = ++attemptRef.current;
     setState({ status: "checking" });
 
     try {
-      const account = await stigmer.identityAccount.whoAmI();
+      const { account } = await ensureMyIdentityAccount(stigmer, {
+        onProvisioning: () => {
+          if (attempt === attemptRef.current)
+            setState({ status: "provisioning" });
+        },
+      });
       if (attempt !== attemptRef.current) return;
       setState({ status: "ready", account });
-    } catch (whoAmIErr: unknown) {
+    } catch (err: unknown) {
       if (attempt !== attemptRef.current) return;
-
-      if (!isNotFound(whoAmIErr)) {
-        setState({ status: "error", message: toError(whoAmIErr).message });
-        return;
-      }
-
-      setState({ status: "provisioning" });
-
-      try {
-        const account = await stigmer.identityAccount.provisionMyAccount();
-        if (attempt !== attemptRef.current) return;
-        setState({ status: "ready", account });
-      } catch (provisionErr: unknown) {
-        if (attempt !== attemptRef.current) return;
-        setState({ status: "error", message: toError(provisionErr).message });
-      }
+      setState({ status: "error", message: toError(err).message });
     }
   }, [stigmer]);
 
