@@ -14,7 +14,7 @@ import { describe, expect, it } from "vitest";
 
 import { whoamiResult } from "./whoami.js";
 
-const ACCOUNT = create(IdentityAccountSchema, {
+const ALICE = {
   metadata: { id: "ida_wtr3jcf281yfk9xx61kj59fsme", name: "alice@example.com" },
   spec: {
     idpId: "auth0|alice",
@@ -23,7 +23,8 @@ const ACCOUNT = create(IdentityAccountSchema, {
     lastName: "Liddell",
     isMachineAccount: false,
   },
-});
+};
+const ACCOUNT = create(IdentityAccountSchema, ALICE);
 
 function fields(
   result: ReturnType<typeof whoamiResult>,
@@ -85,8 +86,8 @@ describe("whoamiResult", () => {
   it("names a machine account", () => {
     const result = whoamiResult(
       create(IdentityAccountSchema, {
-        ...ACCOUNT,
-        spec: { ...ACCOUNT.spec, isMachineAccount: true },
+        ...ALICE,
+        spec: { ...ALICE.spec, isMachineAccount: true },
       }),
       { created: false, org: "acme" },
     );

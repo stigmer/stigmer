@@ -93,18 +93,20 @@ export interface PreparedRun {
 /** Optional behavior switches for {@link prepareAgentExec}. */
 export interface PrepareAgentExecOptions {
   /**
-   * When `true` (the caller's backend is Stigmer Cloud) and `--model` is
-   * omitted, the model is filled from the caller's account preference
-   * (`IdentityAccountPreferences.default_*_model` for the resolved harness)
-   * via `whoAmI()`. Local mode has no IdentityAccount, so callers pass
-   * `false` there and the omitted model keeps resolving to the platform
-   * default.
+   * When `true` and `--model` is omitted, the model is filled from the
+   * caller's account preference (`IdentityAccountPreferences.default_*_model`
+   * for the resolved harness) via `whoAmI()`. The caller answers this from
+   * the connected server's edition and the kind's tier —
+   * `client.isResourceAvailable(ApiResourceKind.identity_account)` — never
+   * from the config's backend type (20260911.11 A3): a server that does not
+   * serve identity accounts is not even asked, and the omitted model keeps
+   * resolving to the platform default.
    */
-  readonly cloudBackend?: boolean;
+  readonly accountPreferencesAvailable?: boolean;
   /**
    * When `true` and `--harness` is omitted, the harness is filled from the
    * caller's account preference (`IdentityAccountPreferences.default_harness`)
-   * on cloud. `run` opts in; `draft` deliberately does not: draft executes the
+   * where the kind is served. `run` opts in; `draft` deliberately does not: draft executes the
    * seedpack's system creator agents (a utility flow, not the user's own
    * conversation), which are built and exercised on the native harness —
    * silently rerouting them onto the cursor engine (different toolset,
@@ -133,27 +135,38 @@ export async function prepareAgentExec(
   validateHarness(flags.harness);
 
   // Layered seeds (oss#293, DD-003): explicit flag > account preference
-  // (cloud only) > platform default. Harness resolves first because the model
+  // (where the server serves identity accounts) > platform default. Harness resolves first because the model
   // fill is harness-aware: a cursor session fills from default_cursor_model,
   // everything else from default_native_model. `run` and `draft` always
   // create a NEW session (threading lives in `resume`, which does not pass
   // through here), so neither fill can ever contradict an existing session's
   // immutable harness. One whoAmI round trip serves both fills, and it is
   // skipped entirely when explicit flags leave nothing to fill.
-  const wantsHarnessFill = flags.harness === "" && options?.applyAccountHarnessDefault === true;
+  const wantsHarnessFill =
+    flags.harness === "" && options?.applyAccountHarnessDefault === true;
   const wantsModelFill = flags.model === "";
   const accountDefaults =
-    options?.cloudBackend === true && (wantsHarnessFill || wantsModelFill)
+    options?.accountPreferencesAvailable === true &&
+    (wantsHarnessFill || wantsModelFill)
       ? await resolveAccountExecutionDefaults(client)
       : NO_ACCOUNT_DEFAULTS;
-  const harness = flags.harness !== "" ? flags.harness : wantsHarnessFill ? accountDefaults.harness : "";
+  const harness =
+    flags.harness !== ""
+      ? flags.harness
+      : wantsHarnessFill
+        ? accountDefaults.harness
+        : "";
   const model = wantsModelFill
     ? harness === "cursor"
       ? accountDefaults.cursorModel
       : accountDefaults.nativeModel
     : flags.model;
 
-  const workspaceEntries = parseWorkspaceEntries(flags.workspace, flags.branch, flags.commit);
+  const workspaceEntries = parseWorkspaceEntries(
+    flags.workspace,
+    flags.branch,
+    flags.commit,
+  );
 
   const runtimeEnv = loadAndMergeEnv({
     envFlags: flags.env,
@@ -197,7 +210,11 @@ interface AccountExecutionDefaults {
   readonly cursorModel: string;
 }
 
-const NO_ACCOUNT_DEFAULTS: AccountExecutionDefaults = { harness: "", nativeModel: "", cursorModel: "" };
+const NO_ACCOUNT_DEFAULTS: AccountExecutionDefaults = {
+  harness: "",
+  nativeModel: "",
+  cursorModel: "",
+};
 
 /**
  * Best-effort read of the caller's execution defaults
@@ -206,12 +223,19 @@ const NO_ACCOUNT_DEFAULTS: AccountExecutionDefaults = { harness: "", nativeModel
  * IdentityAccount — resolves to no defaults and the run proceeds exactly as
  * unfilled flags do today: a missing preference must never fail a run.
  *
+ * This reads `whoAmI` directly and never the SDK's ensureMyIdentityAccount:
+ * a run must not create an account as a side effect, so NOT_FOUND here means
+ * "no preferences yet". Provisioning belongs to `auth login` and `auth
+ * whoami`, the commands whose purpose is the caller's identity.
+ *
  * The persisted harness value is allowlist-guarded to the shipped engines
  * (the same guard the web launcher's useAccountExecutionDefaults applies):
  * a client must not trust stored data it did not write, so anything outside
  * native/cursor is treated as undeclared rather than stamped on the wire.
  */
-async function resolveAccountExecutionDefaults(client: Stigmer): Promise<AccountExecutionDefaults> {
+async function resolveAccountExecutionDefaults(
+  client: Stigmer,
+): Promise<AccountExecutionDefaults> {
   try {
     const account = await client.identityAccount.whoAmI();
     const prefs = account.spec?.preferences;
@@ -257,7 +281,9 @@ export function parseApprovalAction(value: string): ApprovalAction {
  */
 export function validateMode(mode: string): asserts mode is RunMode {
   if (mode !== "" && mode !== "agent" && mode !== "plan") {
-    throw new UsageError(`invalid --mode value "${mode}": must be "agent" or "plan"`);
+    throw new UsageError(
+      `invalid --mode value "${mode}": must be "agent" or "plan"`,
+    );
   }
 }
 
@@ -267,7 +293,9 @@ export function validateMode(mode: string): asserts mode is RunMode {
  * server refuses fast on models without a registry fast variant; this check
  * only catches spelling errors before a network round trip.
  */
-export function validateServiceTier(tier: string): asserts tier is ServiceTierFlag {
+export function validateServiceTier(
+  tier: string,
+): asserts tier is ServiceTierFlag {
   if (tier !== "" && tier !== "standard" && tier !== "fast") {
     throw new UsageError(
       `invalid --service-tier value "${tier}": must be "standard" or "fast"`,
@@ -298,7 +326,9 @@ export function validateThinking(mode: string): asserts mode is ThinkingFlag {
  * them here is honest, and this check catches spelling errors before a
  * network round trip.
  */
-export function validateHarness(harness: string): asserts harness is HarnessFlag {
+export function validateHarness(
+  harness: string,
+): asserts harness is HarnessFlag {
   if (harness !== "" && harness !== "native" && harness !== "cursor") {
     throw new UsageError(
       `invalid --harness value "${harness}": must be "native" or "cursor"`,
