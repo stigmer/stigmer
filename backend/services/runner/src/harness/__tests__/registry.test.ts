@@ -36,6 +36,7 @@ function stubAdapter(name: string, log: string[], behaviour: StubBehaviour = {})
       subAgents: false,
       toolRestriction: true,
       visionProfile: DEEP_AGENT_VISION_PROFILE,
+      fileReview: { harnessId: "stub", excludePaths: [] },
     },
     async boot() {
       log.push(`boot:${name}`);

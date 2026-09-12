@@ -29,9 +29,20 @@
  * approval exactly once, refusing to resume a state it never minted — because
  * those are what the kit measures.
  *
- * A `runTurn` with no scenario arranged is a test bug and throws (the same
- * rule as the scripted `@cursor/sdk` agent's `send()` with no script left);
- * every other exit is a `TurnOutcome`.
+ * What this fake deliberately does NOT do, because it is not an adapter's
+ * job: carry a REJECTed or SKIPped row to its terminal status. The decision
+ * is on the row (the server's field) and the transition follows from it with
+ * no engine knowledge, so it belongs to the runtime — one writer per field,
+ * as `approvalDecisionsOf` is the runtime's one reader (S2 M4, Q-M4-1; the
+ * runtime's arm lands in S3). An adapter's whole duty for a non-executing
+ * decision is to not execute.
+ *
+ * Scenarios are arranged PER SESSION (the engine is per session in every real
+ * harness; a subject arranges that session's engine), and arranging replaces
+ * what that session had not yet played. A `runTurn` with no scenario arranged
+ * for its session is a test bug and throws (the same rule as the scripted
+ * `@cursor/sdk` agent's `send()` with no script left); every other exit is a
+ * `TurnOutcome`.
  */
 
 import { ApprovalAction, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
@@ -43,14 +54,21 @@ import type { HarnessAdapter, TurnInput, TurnOutcome, TurnSink } from "../../har
 import { DEEP_AGENT_VISION_PROFILE } from "../../shared/attachment-vision.js";
 import type { ProposedAction } from "../approval-contract/types.js";
 import { testConfig } from "../config-fixture.js";
-import { aiMessage, findToolCallRow, waitingToolCall } from "../proto-helpers.js";
-import type { HarnessContractSubject, ScenarioStep, TurnScenario } from "./types.js";
+import { aiMessage, findToolCallRow, toolCall, waitingToolCall } from "../proto-helpers.js";
+import type { EngineView, HarnessContractSubject, ScenarioStep, TurnScenario } from "./types.js";
 
 export interface ScriptedHarnessOptions {
   /** Diagnostic name; defaults to a name that says which primitives this instance runs under. */
   readonly name?: string;
   readonly pausePrimitive: PausePrimitive;
   readonly stateIdSource: StateIdSource;
+  /**
+   * The subject's `Config` over `testConfig()`'s inert defaults. The fake reads
+   * none of it; the RUNTIME does when the subject runs through the real
+   * activity (the workspace root it provisions under, the task queue the
+   * drain signal is keyed by).
+   */
+  readonly config?: Partial<Config>;
 }
 
 /**
@@ -74,9 +92,11 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
   readonly name: string;
   readonly capabilities: HarnessCapabilities;
 
-  private readonly queue: TurnScenario[] = [];
+  /** The next turn each session plays; arranging a session replaces its entry. */
+  private readonly arranged = new Map<string, TurnScenario>();
   private readonly mintedStateIds = new Set<string>();
   private readonly executions = new Map<string, number>();
+  private readonly hangWaiters: Array<() => void> = [];
   private mintCounter = 0;
 
   constructor(options: ScriptedHarnessOptions) {
@@ -88,14 +108,29 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
       subAgents: false,
       toolRestriction: true,
       visionProfile: DEEP_AGENT_VISION_PROFILE,
+      fileReview: { harnessId: "scripted", excludePaths: [] },
     };
+  }
+
+  /**
+   * Resolves the next time a turn parks on a `hang` step — for a test that
+   * stands where the runtime's watchdog stands and needs to know the engine
+   * is silent before it advances the clock. Never on a timer.
+   */
+  whenHanging(): Promise<void> {
+    return new Promise((resolve) => this.hangWaiters.push(resolve));
   }
 
   // ── Engine controls (the subject's side of the kit seam) ──────────────────
 
-  /** Queue what the next `runTurn` plays. */
-  arrange(turn: TurnScenario): void {
-    this.queue.push(turn);
+  /**
+   * What the session's next `runTurn` plays. The rest of the view is not
+   * needed here: this fake reads its decisions from `input.approvalDecisions`
+   * and settles a repeated proposal from the row itself, so it has nothing to
+   * decide before the turn.
+   */
+  arrange(turn: TurnScenario, view: Pick<EngineView, "sessionId">): void {
+    this.arranged.set(view.sessionId, turn);
   }
 
   executionCount(toolCallId: string): number {
@@ -114,8 +149,9 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
   async releaseSession(_sessionId: string): Promise<void> {}
 
   async runTurn(input: TurnInput, sink: TurnSink): Promise<TurnOutcome> {
-    const turn = this.queue.shift();
-    if (!turn) throw new Error(`${this.name}: runTurn called with no scenario arranged (test bug)`);
+    const turn = this.arranged.get(input.sessionId);
+    if (!turn) throw new Error(`${this.name}: runTurn called with no scenario arranged for session '${input.sessionId}' (test bug)`);
+    this.arranged.delete(input.sessionId);
 
     // The signal may be aborted before the turn is entered; do no work then.
     if (sink.stopSignal.aborted) return { kind: "interrupted" };
@@ -153,7 +189,7 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
       } catch (err) {
         return {
           kind: "ended",
-          outcome: { kind: "failed", message: `${this.name}: could not bind engine state`, cause: err },
+          outcome: { kind: "failed", surface: "internal", message: `${this.name}: could not bind engine state`, cause: err },
         };
       }
       return { kind: "ok" };
@@ -162,7 +198,7 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
     if (!this.mintedStateIds.has(input.threadId)) {
       return {
         kind: "ended",
-        outcome: { kind: "failed", message: `${this.name}: no engine state '${input.threadId}' to resume` },
+        outcome: { kind: "failed", surface: "internal", message: `${this.name}: no engine state '${input.threadId}' to resume` },
       };
     }
     return { kind: "ok" };
@@ -174,22 +210,42 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
       case "say": {
         sink.status.messages.push(aiMessage(step.text));
         sink.recordActivity();
-        sink.requestPersist();
+        // Awaited, as the Cursor loop awaits its own: a platform STOP the
+        // runtime reads from this write aborts the signal before the next
+        // step boundary sees it (the contract's "MAY await for ordering").
+        await sink.requestPersist();
         return undefined;
       }
       case "propose":
         return this.propose(step.toolCallId, step.action, input, sink);
+      case "read": {
+        // Ungated: the row lands COMPLETED at once, the effect counts as run,
+        // and the persist is awaited like `say`'s — a real engine's tool call
+        // is the discrete event its loop flushes on.
+        const message = aiMessage("");
+        const row = toolCall(step.toolCallId, "read", ToolCallStatus.TOOL_CALL_COMPLETED);
+        row.result = `contents of ${step.path}`;
+        message.toolCalls.push(row);
+        sink.status.messages.push(message);
+        this.executions.set(step.toolCallId, this.executionCount(step.toolCallId) + 1);
+        sink.recordActivity("read");
+        await sink.requestPersist();
+        return undefined;
+      }
       case "usage": {
         sink.reportUsage(step.delta);
         sink.recordActivity();
         return undefined;
       }
       case "hang": {
+        for (const waiter of this.hangWaiters.splice(0)) waiter();
         await whenAborted(sink.stopSignal);
         return { kind: "interrupted" };
       }
       case "fail":
-        return { kind: "failed", message: step.message };
+        return { kind: "failed", surface: step.surface, message: step.message };
+      case "cancelled":
+        return { kind: "cancelled" };
       default: {
         const exhaustive: never = step;
         throw new Error(`${this.name}: unknown scenario step ${JSON.stringify(exhaustive)}`);
@@ -230,12 +286,14 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
       case ApprovalAction.APPROVE:
       case ApprovalAction.APPROVE_ALL: {
         this.executions.set(toolCallId, this.executionCount(toolCallId) + 1);
-        this.settleRow(existing, toolCallId, action, ToolCallStatus.TOOL_CALL_COMPLETED, sink);
+        this.completeRow(existing, toolCallId, action, sink);
         return undefined;
       }
       case ApprovalAction.SKIP:
       case ApprovalAction.REJECT: {
-        this.settleRow(existing, toolCallId, action, ToolCallStatus.TOOL_CALL_SKIPPED, sink);
+        // Not executed, and the row is left as the runtime handed it (see
+        // the header): the engine simply moves on.
+        sink.recordActivity();
         return undefined;
       }
       default: {
@@ -246,24 +304,19 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
   }
 
   /**
-   * Carry the proposal's row to its terminal status. The row normally exists
-   * (the runtime seeded the status with last turn's WAITING row); a decision
-   * with no row is a runtime that decided out of band, and the adapter still
-   * records what happened rather than losing the fact.
+   * Report the executed action on its row, as a real engine's completion
+   * event does. The row normally exists (the runtime seeded the status with
+   * last turn's WAITING row); a decision with no row is a runtime that decided
+   * out of band, and the adapter still records what happened rather than
+   * losing the fact.
    */
-  private settleRow(
-    existing: ToolCall | undefined,
-    toolCallId: string,
-    action: ProposedAction,
-    status: ToolCallStatus,
-    sink: TurnSink,
-  ): void {
+  private completeRow(existing: ToolCall | undefined, toolCallId: string, action: ProposedAction, sink: TurnSink): void {
     if (existing) {
-      existing.status = status;
+      existing.status = ToolCallStatus.TOOL_CALL_COMPLETED;
     } else {
       const message = aiMessage("");
       const row = waitingToolCall(toolCallId, action.kind, "");
-      row.status = status;
+      row.status = ToolCallStatus.TOOL_CALL_COMPLETED;
       message.toolCalls.push(row);
       sink.status.messages.push(message);
     }
@@ -277,13 +330,20 @@ export interface ScriptedSubject extends HarnessContractSubject {
   readonly adapter: ScriptedHarnessAdapter;
 }
 
+/**
+ * The fake fills the `deep-agent` row in S2 — the one row the runtime does
+ * not yet serve for real (the native adapter lands in S3, and takes the row
+ * over from the fake in the runtime half then).
+ */
 export function scriptedSubject(options: ScriptedHarnessOptions): ScriptedSubject {
   const adapter = new ScriptedHarnessAdapter(options);
   return {
     name: adapter.name,
+    harness: "deep-agent",
     adapter,
-    config: testConfig(),
-    arrange: (turn) => adapter.arrange(turn),
+    config: testConfig(options.config),
+    arrange: (turn, view) => adapter.arrange(turn, view),
+    whenHanging: () => adapter.whenHanging(),
     executionCount: (toolCallId) => adapter.executionCount(toolCallId),
   };
 }

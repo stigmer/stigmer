@@ -1,0 +1,48 @@
+{
+  "messages": [
+    {
+      "type": "MESSAGE_AI",
+      "content": "There are three open pull requests: #12, #15 and #18.",
+      "timestamp": "2026-01-01T00:00:05.000Z"
+    }
+  ],
+  "phase": "EXECUTION_COMPLETED",
+  "startedAt": "2026-01-01T00:00:00.000Z",
+  "completedAt": "2026-01-01T00:00:07.000Z",
+  "streamingUsage": {
+    "inputTokens": "2200",
+    "outputTokens": "30",
+    "totalTokens": "2230",
+    "turnCount": 1,
+    "estimatedCostUsd": 0.00232,
+    "model": "composer-2.5",
+    "observedAt": "2026-01-01T00:00:06.000Z",
+    "requestedServiceTier": "SERVICE_TIER_STANDARD",
+    "requestedModelParams": "[{\"id\":\"fast\",\"value\":\"false\"},{\"id\":\"thinking\",\"value\":\"false\"}]",
+    "requestedThinkingMode": "THINKING_MODE_DISABLED"
+  },
+  "fileReviewEventStream": {
+    "executionId": "aex_hermetic_0001",
+    "events": [
+      {
+        "eventId": "aex_hermetic_0001:0:aex_hermetic_0001:0:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+        "changeSetId": "aex_hermetic_0001:0",
+        "eventType": "FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+        "timestamp": "2026-01-01T00:00:00.000Z",
+        "actor": "runner",
+        "baselineCaptured": {
+          "changeSetId": "aex_hermetic_0001:0",
+          "turnId": "aex_hermetic_0001:0",
+          "harnessId": "cursor",
+          "baselineSnapshot": {
+            "kind": "SNAPSHOT_KIND_CAS_MANIFEST"
+          }
+        }
+      }
+    ]
+  },
+  "fileChangeProgress": {
+    "changeSetId": "aex_hermetic_0001:0",
+    "capturedAt": "2026-01-01T00:00:01.000Z"
+  }
+}

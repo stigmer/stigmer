@@ -15,15 +15,7 @@
  * (`enforcesExactResource: true`) and implements `authorizeAfterGrant`.
  */
 
-import {
-  setupCursorHookHarness,
-  hasBash,
-  hookWrite,
-  hookShell,
-  hookDelete,
-  hookRead,
-  hookMcp,
-} from "./cursor-hook-harness.js";
+import { setupCursorHookHarness, hasBash, hookInputFor, streamArgsFor, STREAM_NAME } from "./cursor-hook-harness.js";
 import { toolIdentity, type ApprovalGrant } from "../approval-state.js";
 import { contentDigest } from "../../../shared/file-tools.js";
 import type { ApprovalCategory } from "../approval-policy.js";
@@ -33,31 +25,6 @@ import type {
   GatewaySubstrate,
   ProposedAction,
 } from "../../../__test-utils__/approval-contract/types.js";
-
-/** Build the real preToolUse hook-input payload for an abstract action. */
-function hookInputFor(action: ProposedAction): object {
-  switch (action.kind) {
-    case "write":
-      return hookWrite(action.resource, action.content ?? "x");
-    case "shell":
-      return hookShell(action.resource);
-    case "delete":
-      return hookDelete(action.resource);
-    case "read":
-      return hookRead(action.resource);
-    case "mcp":
-      return hookMcp(action.mcpToolName ?? "mcp_tool");
-  }
-}
-
-// Stream-side (SDK) tool name per gated category — deliberately the OTHER
-// taxonomy from the hook input, so a grant minted here matches a hook-named call
-// only via the canonical category, not the raw name.
-const STREAM_NAME: Record<"write" | "shell" | "delete", string> = {
-  write: "edit",
-  shell: "shell",
-  delete: "delete",
-};
 
 /**
  * Mint the approval grant for an action using its stream-side identity. Only the
@@ -69,15 +36,7 @@ function grantFor(action: ProposedAction): ApprovalGrant {
     throw new Error(`grantFor: ${action.kind} actions are not granted in the contract`);
   }
   const streamName = STREAM_NAME[action.kind];
-  // Mirror hookInputFor: a write carries whole-file content (so its digest is
-  // content-exact and matches the hook's), a delete carries only a path (no
-  // content), and a shell carries its command (the salient is already exact).
-  const args: Record<string, unknown> =
-    action.kind === "shell"
-      ? { command: action.resource }
-      : action.kind === "delete"
-        ? { path: action.resource }
-        : { path: action.resource, content: action.content ?? "x" };
+  const args = streamArgsFor({ ...action, kind: action.kind });
   const identity = toolIdentity(streamName, "", args);
   return {
     toolName: streamName,

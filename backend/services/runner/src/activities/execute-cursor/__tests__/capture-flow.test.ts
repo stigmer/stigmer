@@ -44,7 +44,7 @@ import {
   ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import {
-  applyCaptureDecisions,
+  CURSOR_FILE_REVIEW_IDENTITY,
   captureBaselineToLedger,
   captureTurnToLedger,
 } from "../capture-flow.js";
@@ -52,6 +52,33 @@ import { toolIdentity, primaryToken } from "../approval-state.js";
 import { contentDigest } from "../../../shared/file-tools.js";
 import { buildObservationStagingScript, casObservationsDir } from "../cas-observations.js";
 import { makeInMemoryArtifactStorage } from "../../../__test-utils__/fake-artifact-storage.js";
+import { applyCaptureDecisions as sharedApplyCaptureDecisions } from "../../../shared/filereview/capture.js";
+import { casBlobReader } from "../../../shared/filereview/cas-substrate.js";
+import type { ArtifactStorage } from "../../../shared/artifact-storage.js";
+import type { FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
+
+/**
+ * The resume reconcile as the turn runtime runs it for this harness
+ * (`harness/turn-context.ts` `reconcileReinvocation`): the shared reconcile
+ * under Cursor's file-review identity, with the CAS blob reader derived from
+ * the same storage. Bound here so every resume case below proves the Cursor
+ * pair (harness id, excluded gate paths) over the shared code, exactly as
+ * production composes it.
+ */
+function applyCaptureDecisions(opts: {
+  readonly status: AgentExecutionStatus;
+  readonly gitRoot: string;
+  readonly executionId: string;
+  readonly changeSet: FileChangeSet;
+  readonly storage?: ArtifactStorage;
+  readonly gitWorkspace?: boolean;
+}) {
+  return sharedApplyCaptureDecisions({
+    ...opts,
+    ...CURSOR_FILE_REVIEW_IDENTITY,
+    readBlob: opts.storage ? casBlobReader(opts.storage) : undefined,
+  });
+}
 
 const execFileAsync = promisify(execFile);
 const EXEC_ID = "exec-capflow-1";

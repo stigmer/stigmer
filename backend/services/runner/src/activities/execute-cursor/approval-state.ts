@@ -346,7 +346,7 @@ export function emitCursorGrantReceipts(
  */
 export function buildApprovalGrants(
   pendingApprovals: PendingApproval[],
-  decisions: Map<string, ApprovalAction>,
+  decisions: ReadonlyMap<string, ApprovalAction>,
   contentDigests?: Map<string, string>,
 ): ApprovalGrant[] {
   const grants: ApprovalGrant[] = [];
@@ -406,7 +406,7 @@ function parseArgs(argsPreview: string): Record<string, unknown> | undefined {
  * generated hook script (from approval-policy.ts), not carried here.
  */
 export function buildApprovalState(
-  mergedPolicies: Map<string, MergedToolPolicy>,
+  mergedPolicies: ReadonlyMap<string, MergedToolPolicy>,
   globalBypass: boolean,
   leasedCategories: ReadonlySet<ApprovalCategory>,
   grants?: ApprovalGrant[],

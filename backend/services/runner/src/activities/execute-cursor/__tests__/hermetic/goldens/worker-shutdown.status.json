@@ -8,18 +8,18 @@
     {
       "type": "MESSAGE_SYSTEM",
       "content": "Execution interrupted: the runner worker was shut down while the agent was still running. You can retry or resume.",
-      "timestamp": "2026-01-01T00:00:04.000Z"
+      "timestamp": "2026-01-01T00:00:03.000Z"
     },
     {
       "type": "MESSAGE_SYSTEM",
       "content": "Execution interrupted: the runner worker was shut down while the agent was still running. You can retry or resume.",
-      "timestamp": "2026-01-01T00:00:04.000Z"
+      "timestamp": "2026-01-01T00:00:03.000Z"
     }
   ],
   "phase": "EXECUTION_FAILED",
   "error": "Execution interrupted: runner worker was shut down. Retry or resume.",
   "startedAt": "2026-01-01T00:00:00.000Z",
-  "completedAt": "2026-01-01T00:00:04.000Z",
+  "completedAt": "2026-01-01T00:00:03.000Z",
   "fileReviewEventStream": {
     "executionId": "aex_hermetic_0001",
     "events": [

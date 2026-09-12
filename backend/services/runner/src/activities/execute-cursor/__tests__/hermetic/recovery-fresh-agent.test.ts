@@ -49,8 +49,8 @@ import {
   beginCursorScenario,
   cursorExecutionRecord,
   runCursorTurn,
-  stubRegistryFetch,
 } from "../../__test-utils__/hermetic-cursor.js";
+import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
 
 const STALE_AGENT_ID = "agent-hermetic-stale-0001";
 const FRESH_AGENT_ID = "agent-hermetic-fresh-0002";

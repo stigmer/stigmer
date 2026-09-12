@@ -42,7 +42,7 @@ export async function resolveEnvironment(
     execCtx = await client.getExecutionContextByExecutionId(executionId, scopedToken);
   } catch (err: unknown) {
     // ConnectError uses numeric Code.NotFound (5); match the pattern
-    // from execute-cursor/env-resolver.ts.
+    // from shared/env-resolver.ts.
     const code = (err as { code?: number | string })?.code;
     if (code === 5 || code === "not_found" || code === "NOT_FOUND") {
       console.log(

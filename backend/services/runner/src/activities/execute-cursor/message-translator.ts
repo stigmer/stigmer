@@ -30,13 +30,14 @@
  * - approvalMessage: from the policy, with placeholder resolution
  */
 
-import { create } from "@bufbuild/protobuf";
+import { clone, create } from "@bufbuild/protobuf";
 import type { JsonObject } from "@bufbuild/protobuf";
+import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
-import { ApprovalPolicySource, MessageType, ToolCallStatus, SubAgentStatus, ToolKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ApprovalAction, ApprovalPolicySource, MessageType, ToolCallStatus, SubAgentStatus, ToolKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { SDKMessage } from "@cursor/sdk";
 import type { MergedToolPolicy } from "./approval-policy.js";
 import { lookupMcpToolPolicy, resolveApprovalMessage, builtInRequiresApproval, getBuiltInApprovalMessage, SALIENT_ARG_FIELDS } from "./approval-policy.js";
@@ -55,6 +56,7 @@ import {
   type DeniedLedgerEntry,
 } from "./approval-state.js";
 import { utcTimestamp } from "../../shared/status.js";
+import { cancelInProgressSubAgentProtos } from "../../shared/subagent-rows.js";
 import { hideToolCallRow, isToolCallRowHidden } from "../../shared/tool-row.js";
 import { classifyTool, toolApprovalCategory, type ToolApprovalCategory } from "../../shared/tool-kind.js";
 import { resolveWorkspacePath } from "../../shared/file-change.js";
@@ -192,7 +194,7 @@ function translateToolCall(event: Extract<SDKMessage, { type: "tool_call" }>): A
  */
 export function buildToolCallProto(
   event: Extract<SDKMessage, { type: "tool_call" }>,
-  mergedPolicies?: Map<string, MergedToolPolicy>,
+  mergedPolicies?: ReadonlyMap<string, MergedToolPolicy>,
   provenance?: ApprovalProvenanceContext,
 ): ToolCall {
   const status = mapToolCallStatus(event.status);
@@ -714,7 +716,7 @@ function interpretSubAgentToolResult(result: unknown): {
  * Options for creating a MessageAccumulator with policy awareness.
  */
 export interface MessageAccumulatorOptions {
-  mergedPolicies?: Map<string, MergedToolPolicy>;
+  mergedPolicies?: ReadonlyMap<string, MergedToolPolicy>;
   /**
    * Run-scoped approval context (global bypass + active leases) so reconstructed
    * tool calls carry their authorization provenance. Omitted in unit tests that
@@ -729,13 +731,28 @@ export interface MessageAccumulatorOptions {
   workspaceRoot?: string;
   /**
    * Sub-agent executions carried over from the persisted transcript on a
-   * durable resume (see seedCursorTranscriptFromExecution in index.ts). The
-   * accumulator re-registers them so a sub-agent's resumed lifecycle updates
-   * merge onto the seeded row instead of producing a duplicate, and so the row
-   * survives the round-trip rather than being dropped from the rebuilt status.
-   * Empty on a first run.
+   * durable resume ({@link seededSubAgentsOf}). The accumulator re-registers
+   * them so a sub-agent's resumed lifecycle updates merge onto the seeded row
+   * instead of producing a duplicate, and so the row survives the round-trip
+   * rather than being dropped from the rebuilt status. Empty on a first run.
    */
-  seededSubAgents?: SubAgentExecution[];
+  seededSubAgents?: readonly SubAgentExecution[];
+}
+
+/**
+ * The sub-agent rows a resumed turn re-registers, cloned from the persisted
+ * execution so the input stays immutable. This accumulator OWNS
+ * `status.subAgentExecutions` and overwrites it on every flush, which is why
+ * the runtime's transcript seeding (`harness/turn-context.ts`
+ * `seedTranscriptFromExecution`) leaves the sub-agents to this harness: they
+ * are re-registered here, never pushed onto the status. Same "left a
+ * transcript" test as the seeding, so a resume that seeded messages always
+ * seeds their sub-agents too.
+ */
+export function seededSubAgentsOf(execution: AgentExecution): SubAgentExecution[] {
+  const persisted = execution.status;
+  if (!persisted || persisted.messages.length === 0) return [];
+  return persisted.subAgentExecutions.map((sub) => clone(SubAgentExecutionSchema, sub));
 }
 
 /**
@@ -765,31 +782,6 @@ export interface MessageAccumulatorOptions {
  * Task (sub-agent) tool calls additionally produce SubAgentExecution
  * protos, accessible via the subAgentExecutions getter.
  */
-/**
- * Transition any non-terminal sub-agent (IN_PROGRESS or PENDING) in the given
- * proto array to CANCELLED with a completion timestamp, in place.
- *
- * Operates directly on the status array (not the accumulator) because the
- * Cursor cancellation exception unwinds out of the streaming loop into the
- * activity's catch block, where the MessageAccumulator is out of scope. Returns
- * true if any sub-agent changed.
- */
-export function cancelInProgressSubAgentProtos(
-  subAgents: SubAgentExecution[],
-): boolean {
-  let changed = false;
-  for (const sub of subAgents) {
-    if (
-      sub.status === SubAgentStatus.SUB_AGENT_IN_PROGRESS ||
-      sub.status === SubAgentStatus.SUB_AGENT_PENDING
-    ) {
-      sub.status = SubAgentStatus.SUB_AGENT_CANCELLED;
-      sub.completedAt = utcTimestamp();
-      changed = true;
-    }
-  }
-  return changed;
-}
 
 export class MessageAccumulator {
   private readonly messages: AgentMessage[];
@@ -797,7 +789,7 @@ export class MessageAccumulator {
   private activeThinkingByRunId = new Map<string, AgentMessage>();
   private readonly _subAgentExecutions: SubAgentExecution[] = [];
   private readonly subAgentMap = new Map<string, SubAgentExecution>();
-  private readonly mergedPolicies?: Map<string, MergedToolPolicy>;
+  private readonly mergedPolicies?: ReadonlyMap<string, MergedToolPolicy>;
   private readonly provenance?: ApprovalProvenanceContext;
   private readonly workspaceRoot?: string;
   private readonly toolCallIndex = new Map<string, ToolCall>();
@@ -974,12 +966,21 @@ export class MessageAccumulator {
    * pending call with the same identity naturally reconciles onto the next one.
    * Tool calls created during this turn are not WAITING_APPROVAL until the
    * post-stream denial reconciliation runs, so they can never be matched here.
+   *
+   * Only a row whose decision EXECUTES is resumable: the re-issue after an
+   * APPROVE is the approved act itself, landing on its row. A row the user
+   * declined (SKIP / REJECT) is a closed gate — a later same-identity call is a
+   * NEW act the model was told not to perform, and it gets its own row so the
+   * hook's denial gates it afresh instead of landing on the declined row and
+   * inheriting its decision (S2 M4 finding F9, the accumulator's half; the
+   * denial overlay's half is {@link isAdjudicatedRow}).
    */
   private findResumableSeededToolCall(candidate: ToolCall): ToolCall | undefined {
     const wanted = toolCallIdentityToken(candidate);
     for (const tc of this.toolCallIndex.values()) {
       if (
         tc.status === ToolCallStatus.TOOL_CALL_WAITING_APPROVAL &&
+        !isDeclinedRow(tc) &&
         toolCallIdentityToken(tc) === wanted
       ) {
         return tc;
@@ -1241,7 +1242,7 @@ export class MessageAccumulator {
 export async function reconcileDeniedToolCalls(
   messages: AgentMessage[],
   ledger: DeniedLedgerEntry[],
-  mergedPolicies?: Map<string, MergedToolPolicy>,
+  mergedPolicies?: ReadonlyMap<string, MergedToolPolicy>,
   workspaceBackend?: WorkspaceBackend,
 ): Promise<ToolCall[]> {
   // Defense-in-depth: only APPROVAL-kind denials may become approval gates.
@@ -1281,10 +1282,13 @@ export async function reconcileDeniedToolCalls(
   //    byte-for-byte (the path form agreed on both sides). The anchor resource
   //    re-attempted within the turn shares one token and collapses to a single
   //    approval (the first match is the keeper; same-identity twins are blanked
-  //    by collapseRedundantToolCallTwins below).
+  //    by collapseRedundantToolCallTwins below). A row an earlier invocation's
+  //    gate already settled is never the home of THIS turn's denial
+  //    (isAdjudicatedRow) — the search moves past it to this turn's attempt.
   for (const msg of messages) {
     if (anchorMatched) break;
     for (const tc of msg.toolCalls) {
+      if (isAdjudicatedRow(tc)) continue;
       if (toolCallIdentityToken(tc) !== anchorToken) continue;
       overlayDeniedStreamCall(tc, anchorInput, mergedPolicies);
       matchedCalls.add(tc);
@@ -1415,7 +1419,7 @@ export async function reconcileDeniedToolCalls(
 function overlayDeniedStreamCall(
   tc: ToolCall,
   input: Record<string, unknown> | undefined,
-  mergedPolicies: Map<string, MergedToolPolicy> | undefined,
+  mergedPolicies: ReadonlyMap<string, MergedToolPolicy> | undefined,
 ): void {
   markWaitingApproval(tc, mergedPolicies);
   applyGateInput(tc, input);
@@ -1464,6 +1468,42 @@ function isAlreadyCollapsed(tc: ToolCall): boolean {
     !tc.error &&
     !tc.argsPreview
   );
+}
+
+/**
+ * Whether the server has already adjudicated this row — the user decided its
+ * gate (`approval_action`, the server's field; the runner never writes it).
+ *
+ * Such a row belongs to a gate that is CLOSED: approved and executed, or
+ * declined, in an earlier invocation of this execution. No reconciliation of
+ * the CURRENT turn may rewrite it — not the denial overlay (a new denial of the
+ * same identity is a NEW act and gets its own row), not the twin collapse (the
+ * executed row is the transcript's record). Before this rule the overlay matched
+ * a denial to the FIRST same-identity row in the whole transcript, flipped a
+ * completed, approved row back to WAITING_APPROVAL with its APPROVE still on
+ * it, and the next invocation read that as the decision for the new, undecided
+ * proposal — an approval bleeding to a later identical act (S2 M4 finding F9,
+ * found by the harness contract kit's invariant 3 against this adapter).
+ */
+function isAdjudicatedRow(tc: ToolCall): boolean {
+  return tc.approvalAction !== ApprovalAction.UNSPECIFIED;
+}
+
+/** Adjudicated with a decision that does NOT execute: the user declined this gate. */
+function isDeclinedRow(tc: ToolCall): boolean {
+  switch (tc.approvalAction) {
+    case ApprovalAction.SKIP:
+    case ApprovalAction.REJECT:
+      return true;
+    case ApprovalAction.UNSPECIFIED:
+    case ApprovalAction.APPROVE:
+    case ApprovalAction.APPROVE_ALL:
+      return false;
+    default: {
+      const exhaustive: never = tc.approvalAction;
+      throw new Error(`isDeclinedRow: unknown approval action ${String(exhaustive)}`);
+    }
+  }
 }
 
 /**
@@ -1556,8 +1596,11 @@ export function collapseRedundantToolCallTwins(messages: AgentMessage[]): number
     if (group.length < 2) continue; // a lone call is never a twin
 
     // Keepers carry authoritative state: a change/output of their own
-    // (carriesOwnChange) or the approval gate itself. For a file mutation the gate
-    // is the sole authoritative row (the row carries no diff — review lives in the
+    // (carriesOwnChange), the approval gate itself, or a gate an earlier
+    // invocation already settled (isAdjudicatedRow — the transcript's record of
+    // what the user decided and what ran; a same-identity act in a later turn
+    // is a new act, never this row's twin). For a file mutation the gate is the
+    // sole authoritative row (the row carries no diff — review lives in the
     // ledger, or the row IS the no-storage deny-gate), so a denied write's
     // same-identity siblings collapse onto it; a shell/MCP twin keeps every
     // distinct run with output.
@@ -1565,6 +1608,7 @@ export function collapseRedundantToolCallTwins(messages: AgentMessage[]): number
       group.filter(
         (tc) =>
           carriesOwnChange(tc) ||
+          isAdjudicatedRow(tc) ||
           tc.status === ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
       ),
     );
@@ -1613,6 +1657,7 @@ function collapseNonAnchorDenials(
   let collapsed = 0;
   for (const msg of messages) {
     for (const tc of msg.toolCalls) {
+      if (isAdjudicatedRow(tc)) continue;
       const token = toolCallIdentityToken(tc);
       if (token === anchorToken) continue;
       if (!deniedTokens.has(token)) continue;
@@ -1714,7 +1759,7 @@ function findUnmatchedStreamCallByNormalizedSalient(
 ): ToolCall | undefined {
   for (const msg of messages) {
     for (const tc of msg.toolCalls) {
-      if (matchedCalls.has(tc)) continue;
+      if (matchedCalls.has(tc) || isAdjudicatedRow(tc)) continue;
       const id = toolIdentity(tc.name, tc.mcpServerSlug, toolCallArgs(tc));
       if (normalizedFileSalient(id.key, id.salient, workspaceRoot) === wanted) {
         return tc;
@@ -2189,7 +2234,7 @@ function toolCallArgs(tc: ToolCall): Record<string, unknown> {
  */
 function markWaitingApproval(
   tc: ToolCall,
-  mergedPolicies?: Map<string, MergedToolPolicy>,
+  mergedPolicies?: ReadonlyMap<string, MergedToolPolicy>,
 ): void {
   tc.status = ToolCallStatus.TOOL_CALL_WAITING_APPROVAL;
   tc.requiresApproval = true;
@@ -2209,7 +2254,7 @@ function synthesizeWaitingApprovalToolCall(
   salient: string,
   digest: string,
   token: string,
-  mergedPolicies?: Map<string, MergedToolPolicy>,
+  mergedPolicies?: ReadonlyMap<string, MergedToolPolicy>,
 ): ToolCall {
   const tc = create(ToolCallSchema, {
     id: `approval:${token}`,
@@ -2255,7 +2300,7 @@ function resolveDeniedApprovalMessage(
   name: string,
   mcpServerSlug: string,
   args: Record<string, unknown>,
-  mergedPolicies?: Map<string, MergedToolPolicy>,
+  mergedPolicies?: ReadonlyMap<string, MergedToolPolicy>,
 ): string {
   if (mergedPolicies && mcpServerSlug) {
     const policy = lookupMcpToolPolicy(name, mcpServerSlug, mergedPolicies);

@@ -1,8 +1,9 @@
 /**
  * Public factory for the unified Stigmer runner.
  *
- * Encapsulates the full boot sequence: fetch interceptor installation,
- * dynamic activity imports, Temporal worker creation. Consumers call
+ * Encapsulates the full boot sequence: harness boot (the Cursor adapter
+ * installs its proxy interceptors there), bootstrap resolution, dynamic
+ * activity imports, Temporal worker creation. Consumers call
  * {@link createStigmerRunner} with typed options and get back a handle
  * to start/shutdown the worker.
  *
@@ -125,13 +126,14 @@ export interface StigmerRunner {
 /**
  * Wire up self-renewal for a static cloud sandbox's control-plane credential
  * (see sandbox-token-renewal.ts for the model). The applied token reaches
- * every consumer: activity gRPC clients read {@code tokenRef} per request,
- * per-call sites (call-llm, registry-endpoint headers) resolve it through
- * the runner credential store (which replaced the process.env.STIGMER_TOKEN
- * channel, #508), artifact storage resolves the ref per call, and the two
- * Cursor SDK interceptors are updated directly — a static runner has no
+ * every consumer through the ONE ref: activity gRPC clients read
+ * {@code tokenRef} per request, per-call sites (call-llm, registry-endpoint
+ * headers) resolve it through the runner credential store (which replaced
+ * the process.env.STIGMER_TOKEN channel, #508), artifact storage resolves
+ * the ref per call, and the two Cursor SDK interceptors read the same ref per
+ * request as {@code Config.proxyTokenRef} — a static runner has no
  * {@code RunnerTokenCoordinator} minting a separate proxy credential, so its
- * x-stigmer-auth IS this token.
+ * x-stigmer-auth IS this token and one write here rotates it everywhere.
  */
 async function startStaticSandboxTokenRenewal(
   config: Config,
@@ -148,12 +150,6 @@ async function startStaticSandboxTokenRenewal(
   }
 
   const { StigmerClient } = await import("./client/stigmer-client.js");
-  const { updateInterceptorToken } = await import(
-    "./activities/execute-cursor/fetch-interceptor.js"
-  );
-  const { updateHttp2InterceptorToken } = await import(
-    "./activities/execute-cursor/http2-interceptor.js"
-  );
   const client = new StigmerClient({
     endpoint: config.stigmerBackendEndpoint,
     token: null,
@@ -169,8 +165,6 @@ async function startStaticSandboxTokenRenewal(
       // Store write replaced the process.env.STIGMER_TOKEN write (#508) —
       // same per-call readers (call-llm, registry headers), no env exposure.
       setRunnerSecret("STIGMER_TOKEN", token);
-      updateInterceptorToken(token);
-      updateHttp2InterceptorToken(token);
     },
   });
 }
@@ -178,8 +172,8 @@ async function startStaticSandboxTokenRenewal(
 /**
  * Create a Stigmer runner ready to poll a Temporal task queue.
  *
- * Handles all internal setup: Cursor SDK fetch interceptor, activity
- * registration, and Temporal worker creation. Returns a handle with
+ * Handles all internal setup: harness boot, activity registration, and
+ * Temporal worker creation. Returns a handle with
  * `start()` and `shutdown()` methods.
  *
  * @example
@@ -216,42 +210,40 @@ export async function createStigmerRunner(
 
   assertLlmBackendsPreflight(baseConfig.proxyEndpoint);
 
-  // Install the Cursor SDK interceptors BEFORE resolving Temporal coordinates.
-  // Coordinate discovery dials the control plane via StigmerClient, which loads
-  // @connectrpc/connect-node and snapshots the node:http2 ESM facade on first
-  // import. The HTTP/2 interceptor patches http2.connect and only propagates to
-  // that facade if it runs first, so install MUST precede any connect-node load
-  // (discovery here, and the SDK later). The interceptors depend only on
-  // proxyEndpoint/stigmerToken (already in baseConfig), not resolved coordinates.
+  // The control-plane credential lives in a shared mutable ref (as in manager
+  // mode) so the sandbox-token renewal below can rotate it in-process:
+  // activity clients read the ref per request instead of pinning the boot
+  // token for the pod's whole life. It is ALSO this root's proxy credential
+  // (Config.proxyTokenRef): a static host provides the proxy token itself and
+  // mints no separate one, so the interceptors read this same ref per request.
+  const tokenRef = { current: baseConfig.stigmerToken };
+  // The runner-class credential the bootstrap below may mint (see there); the
+  // ref exists from here so the boot config can carry it.
+  const runnerTokenRef: { current: string | null } = { current: null };
 
-  // The Cursor SDK captures a reference to global.fetch at import time.
-  // The fetch interceptor MUST be installed before any @cursor/sdk import.
-  const { installFetchInterceptor, getExecutionContext } = await import(
-    "./activities/execute-cursor/fetch-interceptor.js"
-  );
-  installFetchInterceptor({
-    proxyEndpoint: baseConfig.proxyEndpoint ?? undefined,
-    stigmerToken: baseConfig.stigmerToken ?? undefined,
-  });
+  // Boot the harnesses BEFORE resolving Temporal coordinates. Coordinate
+  // discovery dials the control plane through connect-node, which snapshots
+  // the node:http2 ESM facade on first import; the Cursor adapter's boot
+  // installs the proxy interceptors (the HTTP/2 one patches http2.connect,
+  // which only reaches that facade if it runs first), proves the patch landed,
+  // and only then loads its SDK. Nothing a boot reads depends on the
+  // coordinates, so `bootConfig` carries none yet. The two modules imported
+  // here are connect-free by construction (`harness-adapters.ts`,
+  // `harness/registry.ts`; `__tests__/harness-boot-order.test.ts`).
+  const bootConfig: Config = {
+    ...baseConfig,
+    stigmerTokenRef: tokenRef,
+    stigmerRunnerTokenRef: runnerTokenRef,
+    proxyTokenRef: tokenRef,
+  };
+  const [{ HARNESS_ADAPTERS }, { adaptersOf, bootHarnesses, shutdownHarnesses }] = await Promise.all([
+    import("./harness-adapters.js"),
+    import("./harness/registry.js"),
+  ]);
+  await bootHarnesses(adaptersOf(HARNESS_ADAPTERS), bootConfig);
+  markBoot("harnesses_booted");
 
-  // The Cursor SDK's Connect RPC transport uses native HTTP/2, bypassing
-  // globalThis.fetch. This interceptor injects x-stigmer-execution-id and
-  // the Stigmer auth token on HTTP/2 streams so the BiDi proxy can
-  // authenticate and meter billing.
-  const { installHttp2Interceptor, assertHttp2ConnectPatched } = await import(
-    "./activities/execute-cursor/http2-interceptor.js"
-  );
-  installHttp2Interceptor({
-    proxyEndpoint: baseConfig.proxyEndpoint ?? undefined,
-    stigmerToken: baseConfig.stigmerToken ?? undefined,
-  });
-  // Fail loudly at boot if a load-order regression left the node:http2 ESM
-  // facade unpatched (otherwise BiDi streams would silently 401). No-op when
-  // the interceptor is unconfigured (no proxy/token).
-  await assertHttp2ConnectPatched();
-  markBoot("interceptors_installed");
-
-  // Resolve Temporal coordinates after the http2 patch is in place (discovery
+  // Resolve Temporal coordinates after the harnesses have booted (discovery
   // dials the control plane through connect-node). Explicit address wins;
   // otherwise a token triggers control-plane discovery; otherwise localhost.
   // Only the worker connection consumes these coordinates — no activity dials
@@ -263,11 +255,6 @@ export async function createStigmerRunner(
     token: options.stigmerToken,
     stigmerEndpoint: baseConfig.stigmerBackendEndpoint,
   });
-  // The control-plane credential lives in a shared mutable ref (as in manager
-  // mode) so the sandbox-token renewal below can rotate it in-process:
-  // activity clients read the ref per request instead of pinning the boot
-  // token for the pod's whole life.
-  const tokenRef = { current: baseConfig.stigmerToken };
 
   // Adopt the bootstrap-minted embedded_runner credential for gRPC runner-class
   // calls (stigmer-cloud#507). The static path historically discarded it ("the
@@ -282,7 +269,6 @@ export async function createStigmerRunner(
   // Servers that mint nothing (explicit-address boots, tokenless OSS, cloud
   // sandboxes with baked credentials) leave the ref null — byte-identical
   // behavior to before.
-  const runnerTokenRef: { current: string | null } = { current: null };
   const runnerTokenCoordinator = createRunnerTokenCoordinator({
     applyProxyToken: (token) => {
       runnerTokenRef.current = token;
@@ -301,11 +287,9 @@ export async function createStigmerRunner(
   }
 
   const config: Config = {
-    ...baseConfig,
+    ...bootConfig,
     temporalAddress: coordinates.temporalAddress,
     temporalNamespace: coordinates.temporalNamespace,
-    stigmerTokenRef: tokenRef,
-    stigmerRunnerTokenRef: runnerTokenRef,
   };
   markBoot("bootstrap_resolved");
 
@@ -313,11 +297,6 @@ export async function createStigmerRunner(
   // credentials — see the helper). Started before the worker so the first
   // renewal point is scheduled even if the pod boots with a part-used token.
   const tokenRenewal = await startStaticSandboxTokenRenewal(config, tokenRef);
-
-  const { setExecutionContextRef } = await import(
-    "./activities/execute-cursor/rejection-capture.js"
-  );
-  setExecutionContextRef(getExecutionContext());
 
   const activities = await createAllActivities(config);
   markBoot("activities_imported");
@@ -382,12 +361,18 @@ export async function createStigmerRunner(
       emitRunnerBootTiming({ task_queue: config.taskQueue, mode: config.mode });
       await worker.run();
       console.log("Worker stopped");
-      // The worker has drained — release any parked session agent so its
-      // executor lease disposes with the process (#215).
-      const { closeAllCachedAgents } = await import(
-        "./activities/execute-cursor/agent-session-cache.js"
-      );
-      closeAllCachedAgents();
+      // The worker has drained — every harness releases what it still holds
+      // (the Cursor harness: its parked session agents, whose executor leases
+      // dispose with the process, #215). Logged, never thrown: the drain has
+      // already happened and the process is exiting, so a teardown failure
+      // must not mask a clean stop.
+      try {
+        await shutdownHarnesses(adaptersOf(HARNESS_ADAPTERS));
+      } catch (err) {
+        console.error(
+          `[runner] Harness shutdown failed after the worker drained (continuing): ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
     },
     shutdown() {
       tokenRenewal?.stop();
@@ -467,13 +452,16 @@ export function mapOptionsToConfig(options: StigmerRunnerOptions): Config {
 /**
  * Dynamically import all activity factories and merge into a single map.
  *
- * Dynamic imports are required because several modules transitively import
- * @cursor/sdk, which captures global.fetch at import time. The fetch
- * interceptor must be installed before these imports.
+ * Dynamic imports, after the harnesses have booted: several of these modules
+ * transitively load `@connectrpc/connect-node` and LangChain, and the Cursor
+ * adapter's boot must have patched `node:http2` before connect-node is first
+ * imported (see createStigmerRunner). The harness rows and the registry were
+ * imported by the factory for the boot; the imports here hit the module cache.
  */
 async function createAllActivities(config: Config): Promise<WorkerActivities> {
   const [
-    { createCursorActivities },
+    { HARNESS_ADAPTERS },
+    { createHarnessActivities },
     { createDeepAgentActivities },
     { createEnsureThreadActivities },
     { createGenerateSessionSubjectActivities },
@@ -492,7 +480,8 @@ async function createAllActivities(config: Config): Promise<WorkerActivities> {
     { createPromoteTaskOutputActivities },
     { createAttachSessionActivities },
   ] = await Promise.all([
-    import("./activities/execute-cursor/index.js"),
+    import("./harness-adapters.js"),
+    import("./harness/registry.js"),
     import("./activities/execute-deep-agent/index.js"),
     import("./activities/ensure-thread.js"),
     import("./activities/generate-session-subject.js"),
@@ -513,7 +502,7 @@ async function createAllActivities(config: Config): Promise<WorkerActivities> {
   ]);
 
   return {
-    ...createCursorActivities(config),
+    ...(await createHarnessActivities(HARNESS_ADAPTERS, config)),
     ...createDeepAgentActivities(config),
     ...createEnsureThreadActivities(),
     ...createGenerateSessionSubjectActivities(config),

@@ -13,7 +13,16 @@
  * so a rejection here is attributable to the kit's assertion and not to some
  * other defect of the double. Where an invariant races a hang against the
  * interrupt bound, the bound is shortened through the assertion's parameter;
- * the production bound stays what `contract.ts` declares.
+ * the production bound stays what `contract.ts` declares. Every subject is
+ * booted first, as the kit's `describeHarnessContract` boots the adapters it
+ * runs (the assertion functions require it).
+ *
+ * The second half checks the kit's own driver — the runtime stand-in — for
+ * the facts a real adapter depends on and the fake never notices: the record
+ * carries the persisted status (an adapter may read its grants from
+ * `execution.status`, as the runtime guarantees), the engine's view carries
+ * the driver's ids and decisions, and a stop lands only once the engine
+ * reports it is parked.
  */
 
 import { describe, it, expect } from "vitest";
@@ -22,6 +31,7 @@ import { ApprovalAction, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agent
 
 import type { HarnessAdapter, TurnInput, TurnOutcome, TurnSink } from "../../harness/types.js";
 import {
+  ExecutionDriver,
   assertConcurrentTurnsAreIndependent,
   assertDecisionsExecuteExactlyOnce,
   assertEveryExitIsAnOutcome,
@@ -33,12 +43,20 @@ import {
 } from "../harness-contract/contract.js";
 import { scriptedSubject } from "../harness-contract/scripted-adapter.js";
 import type { ScriptedSubject } from "../harness-contract/scripted-adapter.js";
-import type { HarnessContractSubject, TurnScenario } from "../harness-contract/types.js";
+import { scenario } from "../harness-contract/types.js";
+import type { EngineView, HarnessContractSubject, TurnScenario } from "../harness-contract/types.js";
+import { findToolCallRow } from "../proto-helpers.js";
 
 /** Short enough to keep this file fast; long enough that an honest microtask settle never trips it. */
 const SHORT_BOUND_MS = 100;
 
 // ── Wrapping helpers ────────────────────────────────────────────────────────
+
+/** The kit boots before it asserts; so does every arm here. */
+async function booted<S extends HarnessContractSubject>(subject: S): Promise<S> {
+  await subject.adapter.boot(subject.config);
+  return subject;
+}
 
 /** The honest fake's adapter with the named members replaced. */
 function adapterOver(inner: HarnessAdapter, name: string, patch: Partial<HarnessAdapter>): HarnessAdapter {
@@ -58,9 +76,11 @@ function sinkOver(inner: TurnSink, patch: Partial<TurnSink>): TurnSink {
   return {
     status: inner.status,
     stopSignal: inner.stopSignal,
+    setupTiming: inner.setupTiming,
     requestPersist: () => inner.requestPersist(),
-    recordActivity: () => inner.recordActivity(),
+    recordActivity: (detail) => inner.recordActivity(detail),
     reportUsage: (delta) => inner.reportUsage(delta),
+    reportProgress: (label) => inner.reportProgress(label),
     bindHarnessState: (id) => inner.bindHarnessState(id),
     ...patch,
   };
@@ -70,9 +90,11 @@ function sinkOver(inner: TurnSink, patch: Partial<TurnSink>): TurnSink {
 function subjectOver(inner: ScriptedSubject, adapter: HarnessAdapter): HarnessContractSubject {
   return {
     name: adapter.name,
+    harness: inner.harness,
     adapter,
     config: inner.config,
-    arrange: (turn) => inner.arrange(turn),
+    arrange: (turn, view) => inner.arrange(turn, view),
+    whenHanging: () => inner.whenHanging(),
     executionCount: (toolCallId) => inner.executionCount(toolCallId),
   };
 }
@@ -106,9 +128,9 @@ function executesUndecidedProposals(): HarnessContractSubject {
   });
   return {
     ...subjectOver(inner, adapter),
-    arrange: (turn: TurnScenario) => {
+    arrange: (turn: TurnScenario, view: EngineView) => {
       proposedIds = turn.flatMap((step) => (step.kind === "propose" ? [step.toolCallId] : []));
-      inner.arrange(turn);
+      inner.arrange(turn, view);
     },
   };
 }
@@ -196,34 +218,108 @@ function serializesTurns(): HarnessContractSubject {
 
 describe("harness contract kit self-check — every invariant can fail", () => {
   it("invariant 1 fires when runTurn throws a CancelledFailure", async () => {
-    await expect(assertEveryExitIsAnOutcome(throwsCancelledFailure(), SHORT_BOUND_MS)).rejects.toThrow(/broken:throws-CancelledFailure: runTurn rejected with a CancelledFailure/);
+    await expect(assertEveryExitIsAnOutcome(await booted(throwsCancelledFailure()), SHORT_BOUND_MS)).rejects.toThrow(/broken:throws-CancelledFailure: runTurn rejected with a CancelledFailure/);
   });
 
   it("invariant 2 fires when an undecided proposal executes", async () => {
-    await expect(assertProposalIsWaitingAndUnexecuted(executesUndecidedProposals())).rejects.toThrow(/broken:executes-undecided: .*awaiting_approval/);
+    await expect(assertProposalIsWaitingAndUnexecuted(await booted(executesUndecidedProposals()))).rejects.toThrow(/broken:executes-undecided: .*awaiting_approval/);
   });
 
   it("invariant 3 fires when a settled row is re-gated on a later invocation", async () => {
-    await expect(assertDecisionsExecuteExactlyOnce(reGatesSettledRows())).rejects.toThrow(/broken:re-gates-settled: .*must not re-gate/);
+    await expect(assertDecisionsExecuteExactlyOnce(await booted(reGatesSettledRows()))).rejects.toThrow(/broken:re-gates-settled: .*must not re-gate/);
   });
 
   it("invariant 4 fires when the adapter ignores stopSignal", async () => {
-    await expect(assertStopSignalInterrupts(ignoresStopSignal(), SHORT_BOUND_MS)).rejects.toThrow(/broken:ignores-stopSignal: runTurn did not settle within 100ms/);
+    await expect(assertStopSignalInterrupts(await booted(ignoresStopSignal()), SHORT_BOUND_MS)).rejects.toThrow(/broken:ignores-stopSignal: runTurn did not settle within 100ms/);
   });
 
   it("invariant 5 fires when usage is reported as running totals", async () => {
-    await expect(assertUsageReachesSinkAsDeltas(reportsCumulativeUsage())).rejects.toThrow(/broken:cumulative-usage: .*must sum to what the engine emitted/);
+    await expect(assertUsageReachesSinkAsDeltas(await booted(reportsCumulativeUsage()))).rejects.toThrow(/broken:cumulative-usage: .*must sum to what the engine emitted/);
   });
 
   it("invariant 6 fires when an adapter claims engine-minted and never binds", async () => {
-    await expect(assertStateIdCapabilityAgrees(claimsEngineMintedNeverBinds())).rejects.toThrow(/broken:claims-engine-minted: .*must bind its state id/);
+    await expect(assertStateIdCapabilityAgrees(await booted(claimsEngineMintedNeverBinds()))).rejects.toThrow(/broken:claims-engine-minted: .*must bind its state id/);
   });
 
   it("invariant 7 fires when releaseSession rejects an unknown session", async () => {
-    await expect(assertLifetimesResolve(refusesUnknownRelease())).rejects.toThrow(/broken:refuses-unknown-release: releaseSession for an unknown session rejected/);
+    await expect(assertLifetimesResolve(await booted(refusesUnknownRelease()))).rejects.toThrow(/broken:refuses-unknown-release: releaseSession for an unknown session rejected/);
   });
 
   it("invariant 8 fires when the adapter serializes turns through shared state", async () => {
-    await expect(assertConcurrentTurnsAreIndependent(serializesTurns(), SHORT_BOUND_MS)).rejects.toThrow(/broken:serializes-turns: runTurn did not settle within 100ms/);
+    await expect(assertConcurrentTurnsAreIndependent(await booted(serializesTurns()), SHORT_BOUND_MS)).rejects.toThrow(/broken:serializes-turns: runTurn did not settle within 100ms/);
+  });
+});
+
+// ── The driver: the runtime stand-in's own guarantees ───────────────────────
+
+const WRITE_BETA = { kind: "write", resource: "/work/beta.txt" } as const;
+
+describe("harness contract kit self-check — the driver stands in for the runtime faithfully", () => {
+  it("hands the adapter the persisted status on the record AND the sink, as two clones", async () => {
+    const subject = await booted(honest());
+    const driver = new ExecutionDriver(subject, "driver-record");
+    const id = "driver-record-write";
+
+    const first = await driver.turn([scenario.propose(id, WRITE_BETA)]);
+    expect(first.outcome.kind).toBe("awaiting_approval");
+    expect(first.input.execution.status?.messages ?? [], "a first turn's record carries no persisted status").toHaveLength(0);
+    driver.decide(id, ApprovalAction.APPROVE);
+
+    const second = driver.begin([scenario.propose(id, WRITE_BETA)]);
+    const onRecord = second.input.execution.status;
+    expect(onRecord, "the reinvocation's record must carry what the previous turn persisted").toBeDefined();
+    expect(findToolCallRow(onRecord!, id)?.approvalAction, "the decision is on the record's row").toBe(ApprovalAction.APPROVE);
+    expect(findToolCallRow(second.sink.status, id)?.approvalAction, "and on the sink's row").toBe(ApprovalAction.APPROVE);
+    expect(onRecord, "the record's copy and the sink's copy are distinct objects, as after a real persist and read-back").not.toBe(second.sink.status);
+    expect(second.input.approvalDecisions.get(id), "the decisions map is the runtime's reader over the same rows").toBe(ApprovalAction.APPROVE);
+    await second.settled;
+  });
+
+  it("arranges the engine with the driver's ids and the decisions the prompt will carry", async () => {
+    const inner = await booted(honest());
+    const views: EngineView[] = [];
+    const subject: HarnessContractSubject = {
+      ...inner,
+      arrange: (turn, view) => {
+        views.push(view);
+        inner.arrange(turn, view);
+      },
+    };
+    const driver = new ExecutionDriver(subject, "driver-view");
+    const id = "driver-view-write";
+
+    await driver.turn([scenario.propose(id, WRITE_BETA)]);
+    driver.decide(id, ApprovalAction.SKIP);
+    await driver.turn([scenario.propose(id, WRITE_BETA), scenario.say("on")]);
+
+    expect(views.map((v) => v.executionId)).toEqual([driver.executionId, driver.executionId]);
+    expect(views.map((v) => v.sessionId)).toEqual([driver.sessionId, driver.sessionId]);
+    expect(views[0]!.approvalDecisions.size, "nothing decided before the first turn").toBe(0);
+    expect(views[1]!.approvalDecisions.get(id), "the reinvocation's view carries the decision").toBe(ApprovalAction.SKIP);
+  });
+
+  it("stops a turn only once the engine reports it is parked, never during setup", async () => {
+    const inner = await booted(honest());
+    let sinkInFlight: TurnSink | undefined;
+    let abortedWhenParked: boolean | undefined;
+    // Observes the signal at the instant the engine reports the hang; the
+    // driver's own abort is chained after this observer.
+    const subject: HarnessContractSubject = {
+      ...inner,
+      whenHanging: () =>
+        inner.whenHanging().then(() => {
+          abortedWhenParked = sinkInFlight?.stopSignal.aborted;
+        }),
+    };
+    const driver = new ExecutionDriver(subject, "driver-stop");
+
+    const turn = driver.begin([scenario.say("setting up"), scenario.hang(), scenario.say("never")], { stopWhenHanging: "kit: stop" });
+    sinkInFlight = turn.sink;
+    const outcome = await turn.settled;
+
+    expect(outcome.kind).toBe("interrupted");
+    expect(abortedWhenParked, "at the moment the engine reported the hang the signal was still live").toBe(false);
+    expect(turn.sink.stopSignal.aborted, "and it was aborted after").toBe(true);
+    expect(turn.sink.status.messages.map((m) => m.content), "the stop landed in the hang, after the setup step and before the step after it").toEqual(["setting up"]);
   });
 });

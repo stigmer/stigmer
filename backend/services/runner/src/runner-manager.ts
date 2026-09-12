@@ -234,9 +234,9 @@ export async function createStigmerRunnerManager(
   // `tokenRef` holds the control-plane token (the host's durable credential,
   // e.g. the desktop's Auth0 token) and is shared with activity clients via
   // config.stigmerTokenRef. The proxy credential (x-stigmer-auth) is managed
-  // separately by a RunnerTokenCoordinator (created after the interceptors are
-  // installed) — see that module for the two-writer rationale and the staleness
-  // history it guards.
+  // separately by a RunnerTokenCoordinator (created after the harnesses boot)
+  // — see that module for the two-writer rationale and the staleness history
+  // it guards.
   const tokenRef = { current: options.stigmerToken ?? null };
   // `runnerTokenRef` mirrors the coordinator's proxy credential for gRPC use:
   // the minted runner token (token_type=embedded_runner) once adopted, tracking
@@ -251,48 +251,33 @@ export async function createStigmerRunnerManager(
 
   assertLlmBackendsPreflight(baseConfig.proxyEndpoint);
 
-  // Install the Cursor SDK interceptors BEFORE resolving Temporal coordinates.
-  // Coordinate discovery dials the control plane via StigmerClient, which loads
-  // @connectrpc/connect-node and snapshots the node:http2 ESM facade on first
-  // import. The HTTP/2 interceptor patches http2.connect and only propagates to
-  // that facade if it runs first, so install MUST precede any connect-node load
-  // (discovery here, and the SDK later). The interceptors depend only on
-  // proxyEndpoint/stigmerToken (already in baseConfig), not resolved coordinates.
-
-  // Install fetch interceptor before any @cursor/sdk imports
-  const { installFetchInterceptor, updateInterceptorToken, getExecutionContext } = await import(
-    "./activities/execute-cursor/fetch-interceptor.js"
-  );
-  installFetchInterceptor({
-    proxyEndpoint: baseConfig.proxyEndpoint ?? undefined,
-    stigmerToken: baseConfig.stigmerToken ?? undefined,
-  });
-
-  // HTTP/2 interceptor for Connect RPC auth + execution ID injection (BiDi billing)
-  const { installHttp2Interceptor, updateHttp2InterceptorToken, assertHttp2ConnectPatched } = await import(
-    "./activities/execute-cursor/http2-interceptor.js"
-  );
-  installHttp2Interceptor({
-    proxyEndpoint: baseConfig.proxyEndpoint ?? undefined,
-    stigmerToken: baseConfig.stigmerToken ?? undefined,
-  });
-  // Fail loudly at boot if a load-order regression left the node:http2 ESM
-  // facade unpatched (otherwise BiDi streams would silently 401). No-op when
-  // the interceptor is unconfigured (no proxy/token).
-  await assertHttp2ConnectPatched();
-  markBoot("interceptors_installed");
+  // Boot the harnesses BEFORE resolving Temporal coordinates. Coordinate
+  // discovery dials the control plane through connect-node, which snapshots
+  // the node:http2 ESM facade on first import; the Cursor adapter's boot
+  // installs the proxy interceptors (the HTTP/2 one patches http2.connect,
+  // which only reaches that facade if it runs first), proves the patch landed,
+  // and only then loads its SDK. The interceptors read the proxy credential
+  // per request from `runnerTokenRef` (Config.proxyTokenRef, bound by
+  // mapManagerOptionsToConfig): the control-plane token until a runner token
+  // is minted, the minted token after, exactly the lockstep the coordinator
+  // below maintains in that ref. Nothing a boot reads depends on the
+  // coordinates, so `baseConfig` carries none yet. The two modules imported
+  // here are connect-free by construction (`harness-adapters.ts`,
+  // `harness/registry.ts`; `__tests__/harness-boot-order.test.ts`).
+  const [{ HARNESS_ADAPTERS }, { adaptersOf, bootHarnesses, releaseHarnessSession, shutdownHarnesses }] =
+    await Promise.all([import("./harness-adapters.js"), import("./harness/registry.js")]);
+  await bootHarnesses(adaptersOf(HARNESS_ADAPTERS), baseConfig);
+  markBoot("harnesses_booted");
 
   // The token coordinator owns the proxy credential (x-stigmer-auth) and its
-  // refresh lifecycle. It writes ONLY its sinks (the interceptors plus the gRPC
-  // runner-credential ref) and re-mints using the always-fresh control-plane
+  // refresh lifecycle. It writes ONE sink, `runnerTokenRef`, which is read per
+  // request by both the interceptors (as Config.proxyTokenRef) and the gRPC
+  // client (as Config.stigmerRunnerTokenRef), so mint and refresh reach every
+  // reader in one write. It re-mints using the always-fresh control-plane
   // token in `tokenRef` — never the (possibly expired) minted token itself, so
   // a slept-past-TTL runner recovers without a restart.
   const tokenCoordinator = createRunnerTokenCoordinator({
     applyProxyToken: (token) => {
-      updateInterceptorToken(token);
-      updateHttp2InterceptorToken(token);
-      // Third sink: keeps the ExecutionContext-read credential in lockstep with
-      // the proxy credential across mint and refresh (see runnerTokenRef above).
       runnerTokenRef.current = token;
     },
     reMint: () =>
@@ -302,7 +287,7 @@ export async function createStigmerRunnerManager(
       }),
   });
 
-  // Resolve the runner bootstrap after the http2 patch is in place (discovery
+  // Resolve the runner bootstrap after the harnesses have booted (discovery
   // dials the control plane through connect-node). An explicit address wins;
   // otherwise a token triggers control-plane discovery; otherwise localhost.
   // Must happen before createAllActivities so the activities' Config carries
@@ -340,11 +325,6 @@ export async function createStigmerRunnerManager(
         "falling back to the control-plane token for x-stigmer-auth",
     );
   }
-
-  const { setExecutionContextRef } = await import(
-    "./activities/execute-cursor/rejection-capture.js"
-  );
-  setExecutionContextRef(getExecutionContext());
 
   const activities = await createAllActivities(config);
   markBoot("activities_imported");
@@ -538,13 +518,19 @@ export async function createStigmerRunnerManager(
       await removeManaged(
         sessions, sessionId, SESSION_QUEUE_PREFIX + sessionId, "session",
       );
-      // The session is done on this host — release its parked agent (and
-      // the executor + MCP subprocesses the lease pins) immediately rather
-      // than waiting out the idle TTL (#215).
-      const { evictSessionAgent } = await import(
-        "./activities/execute-cursor/agent-session-cache.js"
-      );
-      evictSessionAgent(sessionId);
+      // The session is done on this host — every harness releases what it
+      // parked for it (the Cursor harness: the agent, and the executor + MCP
+      // subprocesses its lease pins) now rather than after the idle TTL
+      // (#215). Logged, never thrown: the session's worker is already gone,
+      // and failing this IPC command would tell the desktop a removal that
+      // did happen did not.
+      try {
+        await releaseHarnessSession(adaptersOf(HARNESS_ADAPTERS), sessionId);
+      } catch (err) {
+        console.error(
+          `[runner-manager] Harness release for session ${sessionId} failed (continuing): ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
     },
 
     activeSessions(): string[] {
@@ -659,12 +645,18 @@ export async function createStigmerRunnerManager(
       }
 
       await Promise.all(shutdownPromises);
-      // Workers are drained — release every parked session agent so their
-      // executor leases dispose (stdio MCP subprocesses die with them) (#215).
-      const { closeAllCachedAgents } = await import(
-        "./activities/execute-cursor/agent-session-cache.js"
-      );
-      closeAllCachedAgents();
+      // Workers are drained — every harness releases what it still holds
+      // (the Cursor harness: its parked session agents, whose executor leases
+      // dispose and whose stdio MCP subprocesses die with them, #215). Logged,
+      // never thrown: the drain has already happened, and a teardown failure
+      // must not mask a clean stop.
+      try {
+        await shutdownHarnesses(adaptersOf(HARNESS_ADAPTERS));
+      } catch (err) {
+        console.error(
+          `[runner-manager] Harness shutdown failed after the workers drained (continuing): ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
       sessions.clear();
       workflowExecutions.clear();
       poolControl = null;
@@ -711,6 +703,11 @@ export function mapManagerOptionsToConfig(
     mcpBridgeEndpoint: process.env.STIGMER_MCP_BRIDGE_ENDPOINT ?? null,
     stigmerTokenRef: tokenRef,
     stigmerRunnerTokenRef: runnerTokenRef,
+    // The manager's proxy credential is the minted runner token once adopted
+    // (the control-plane token in lockstep before that), so it is this ref and
+    // not `tokenRef`: binding `tokenRef` would keep sending the desktop's own
+    // Auth0 token as x-stigmer-auth after the mint (Q-S2-7).
+    proxyTokenRef: runnerTokenRef,
     cursorApiKey: proxyActive
       ? (options.cursorApiKey ?? "proxy-managed")
       : (options.cursorApiKey ?? ""),
@@ -736,9 +733,18 @@ export function mapManagerOptionsToConfig(
   };
 }
 
+/**
+ * Dynamically import all activity factories and merge into a single map,
+ * after the harnesses have booted: several of these modules transitively load
+ * `@connectrpc/connect-node` and LangChain, and the Cursor adapter's boot must
+ * have patched `node:http2` before connect-node is first imported (see
+ * createStigmerRunnerManager). The harness rows and the registry were imported
+ * by the factory for the boot; the imports here hit the module cache.
+ */
 async function createAllActivities(config: Config): Promise<WorkerActivities> {
   const [
-    { createCursorActivities },
+    { HARNESS_ADAPTERS },
+    { createHarnessActivities },
     { createDeepAgentActivities },
     { createEnsureThreadActivities },
     { createGenerateSessionSubjectActivities },
@@ -757,7 +763,8 @@ async function createAllActivities(config: Config): Promise<WorkerActivities> {
     { createPromoteTaskOutputActivities },
     { createAttachSessionActivities },
   ] = await Promise.all([
-    import("./activities/execute-cursor/index.js"),
+    import("./harness-adapters.js"),
+    import("./harness/registry.js"),
     import("./activities/execute-deep-agent/index.js"),
     import("./activities/ensure-thread.js"),
     import("./activities/generate-session-subject.js"),
@@ -778,7 +785,7 @@ async function createAllActivities(config: Config): Promise<WorkerActivities> {
   ]);
 
   return {
-    ...createCursorActivities(config),
+    ...(await createHarnessActivities(HARNESS_ADAPTERS, config)),
     ...createDeepAgentActivities(config),
     ...createEnsureThreadActivities(),
     ...createGenerateSessionSubjectActivities(config),

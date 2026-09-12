@@ -109,7 +109,7 @@ export interface TurnBoundaryOptions {
   /** CAS blob store for gitignored/non-git captures; undefined → git-only capture. */
   readonly artifactStorage: ArtifactStorage | undefined;
   /** Merged approval policies, threaded to the denied-call reconcile for gate provenance. */
-  readonly mergedPolicies: Map<string, MergedToolPolicy>;
+  readonly mergedPolicies: ReadonlyMap<string, MergedToolPolicy>;
   /**
    * The first-denial-stop's run.cancel() promise, when a denial stopped this
    * run. Awaited (timeboxed) before the ledger read: run.cancel() races the

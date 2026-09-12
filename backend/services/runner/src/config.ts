@@ -143,6 +143,19 @@ export interface Config {
    * desktop runner (see stigmer-client.ts).
    */
   readonly stigmerRunnerTokenRef?: { current: string | null };
+  /**
+   * Shared mutable reference to the credential the Cursor proxy transport
+   * sends as `x-stigmer-auth` (the fetch and HTTP/2 interceptors read it per
+   * request). Each composition root binds its own credential here, because
+   * the two differ: the static root binds the control-plane token (its host
+   * provides the proxy credential and mints no other, so
+   * `proxyTokenRef === stigmerTokenRef`), the manager binds the minted runner
+   * token (`proxyTokenRef === stigmerRunnerTokenRef`). Reading either sibling
+   * directly would send the wrong credential from one of the two roots
+   * (Q-S2-7). Required whenever `proxyEndpoint` is set; the Cursor adapter's
+   * boot refuses a proxy without it.
+   */
+  readonly proxyTokenRef?: { current: string | null };
 }
 
 export function loadConfig(): Config {

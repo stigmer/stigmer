@@ -12,7 +12,7 @@
  *   path is written into the workspace itself.
  *
  * This module replaces the duplicated `getPlatformDir` helpers in
- * execute-cursor/skill-resolver.ts and execute-cursor/attachment-resolver.ts.
+ * execute-cursor/skill-resolver.ts and shared/attachment-resolver.ts.
  */
 
 import { join } from "node:path";

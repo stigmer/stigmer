@@ -26,9 +26,7 @@ import type { SDKMessage } from "@cursor/sdk";
 import {
   MessageAccumulator,
   extractConversationSteps,
-  cancelInProgressSubAgentProtos,
 } from "../message-translator.js";
-import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 
 function toolCallEvent(
   callId: string,
@@ -1029,44 +1027,6 @@ describe("MessageAccumulator tool call status transitions", () => {
       // Tool start and tool completion are the discrete moments the live UI must
       // see immediately; thinking/assistant deltas are carried by the scheduler.
       expect(flushPoints).toEqual(["tool-start", "tool-done"]);
-    });
-  });
-
-  describe("cancelInProgressSubAgentProtos standalone", () => {
-    it("cancels IN_PROGRESS/PENDING protos in place and reports whether anything changed", () => {
-      const running = create(SubAgentExecutionSchema, {
-        id: "a",
-        status: SubAgentStatus.SUB_AGENT_IN_PROGRESS,
-      });
-      const pending = create(SubAgentExecutionSchema, {
-        id: "b",
-        status: SubAgentStatus.SUB_AGENT_PENDING,
-      });
-      const completed = create(SubAgentExecutionSchema, {
-        id: "c",
-        status: SubAgentStatus.SUB_AGENT_COMPLETED,
-        completedAt: "2026-01-01T00:00:00Z",
-      });
-
-      const list = [running, pending, completed];
-      const changed = cancelInProgressSubAgentProtos(list);
-
-      expect(changed).toBe(true);
-      expect(running.status).toBe(SubAgentStatus.SUB_AGENT_CANCELLED);
-      expect(running.completedAt).not.toBe("");
-      expect(pending.status).toBe(SubAgentStatus.SUB_AGENT_CANCELLED);
-      // Terminal sub-agents are untouched.
-      expect(completed.status).toBe(SubAgentStatus.SUB_AGENT_COMPLETED);
-      expect(completed.completedAt).toBe("2026-01-01T00:00:00Z");
-    });
-
-    it("returns false when there is nothing to cancel", () => {
-      const completed = create(SubAgentExecutionSchema, {
-        id: "c",
-        status: SubAgentStatus.SUB_AGENT_COMPLETED,
-      });
-      expect(cancelInProgressSubAgentProtos([completed])).toBe(false);
-      expect(cancelInProgressSubAgentProtos([])).toBe(false);
     });
   });
 

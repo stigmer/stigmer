@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { createRequire } from "node:module";
 import type http2Type from "node:http2";
-import { installHttp2Interceptor, uninstallHttp2Interceptor, updateHttp2InterceptorToken, assertHttp2ConnectPatched } from "../http2-interceptor.js";
-import { getExecutionContext } from "../fetch-interceptor.js";
+import { installHttp2Interceptor, uninstallHttp2Interceptor, assertHttp2ConnectPatched } from "../http2-interceptor.js";
+import { getExecutionContext } from "../../../shared/execution-context.js";
 
 const require = createRequire(import.meta.url);
 const http2: typeof http2Type = require("node:http2");
@@ -53,26 +53,55 @@ describe("http2-interceptor", () => {
   describe("installHttp2Interceptor", () => {
     it("is a no-op when proxyEndpoint is undefined", () => {
       const before = http2.connect;
-      installHttp2Interceptor({ proxyEndpoint: undefined, stigmerToken: STIGMER_TOKEN });
+      installHttp2Interceptor({ proxyEndpoint: undefined, proxyTokenRef: { current: STIGMER_TOKEN } });
       expect(http2.connect).toBe(before);
     });
 
     it("is a no-op when proxyEndpoint is empty string", () => {
       const before = http2.connect;
-      installHttp2Interceptor({ proxyEndpoint: "", stigmerToken: STIGMER_TOKEN });
+      installHttp2Interceptor({ proxyEndpoint: "", proxyTokenRef: { current: STIGMER_TOKEN } });
       expect(http2.connect).toBe(before);
     });
 
-    it("is a no-op when stigmerToken is undefined", () => {
+    it("is a no-op when no token ref is bound", () => {
       const before = http2.connect;
-      installHttp2Interceptor({ proxyEndpoint: PROXY_ENDPOINT, stigmerToken: undefined });
+      installHttp2Interceptor({ proxyEndpoint: PROXY_ENDPOINT, proxyTokenRef: undefined });
       expect(http2.connect).toBe(before);
     });
 
-    it("replaces http2.connect when proxyEndpoint and stigmerToken are valid", () => {
+    it("is a no-op when the bound ref is empty at install", () => {
       const before = http2.connect;
-      installHttp2Interceptor({ proxyEndpoint: PROXY_ENDPOINT, stigmerToken: STIGMER_TOKEN });
+      installHttp2Interceptor({ proxyEndpoint: PROXY_ENDPOINT, proxyTokenRef: { current: null } });
+      expect(http2.connect).toBe(before);
+    });
+
+    it("replaces http2.connect when proxyEndpoint and a bound ref are valid", () => {
+      const before = http2.connect;
+      installHttp2Interceptor({ proxyEndpoint: PROXY_ENDPOINT, proxyTokenRef: { current: STIGMER_TOKEN } });
       expect(http2.connect).not.toBe(before);
+    });
+
+    it("is idempotent: a second install rebinds the ref and does not wrap a proxy session twice", async () => {
+      const mock = createMockConnect();
+      http2.connect = mock.mockConnect;
+      const first = { current: "first-token" };
+      const second = { current: "second-token" };
+      installHttp2Interceptor({ proxyEndpoint: PROXY_ENDPOINT, proxyTokenRef: first });
+      const patched = http2.connect;
+
+      installHttp2Interceptor({ proxyEndpoint: PROXY_ENDPOINT, proxyTokenRef: second });
+      // The one patch stays; a re-capture here would have made the patched
+      // connect the "original" and wrapped every proxy session twice.
+      expect(http2.connect).toBe(patched);
+
+      const session = http2.connect(PROXY_ENDPOINT);
+      session.request({ ":path": "/agent.v1.AgentService/Run" });
+      expect(mock.calls).toHaveLength(1);
+      expect(mock.calls[0].headers).toHaveProperty("x-stigmer-auth", "Bearer second-token");
+
+      // Uninstall restores the connect that was live at the FIRST install.
+      uninstallHttp2Interceptor();
+      expect(http2.connect).toBe(mock.mockConnect);
     });
   });
 
@@ -81,7 +110,7 @@ describe("http2-interceptor", () => {
       const { mockConnect } = createMockConnect();
       http2.connect = mockConnect;
 
-      installHttp2Interceptor({ proxyEndpoint: PROXY_ENDPOINT, stigmerToken: STIGMER_TOKEN });
+      installHttp2Interceptor({ proxyEndpoint: PROXY_ENDPOINT, proxyTokenRef: { current: STIGMER_TOKEN } });
       expect(http2.connect).not.toBe(mockConnect);
 
       uninstallHttp2Interceptor();
@@ -95,7 +124,7 @@ describe("http2-interceptor", () => {
     beforeEach(() => {
       mock = createMockConnect();
       http2.connect = mock.mockConnect;
-      installHttp2Interceptor({ proxyEndpoint: PROXY_ENDPOINT, stigmerToken: STIGMER_TOKEN });
+      installHttp2Interceptor({ proxyEndpoint: PROXY_ENDPOINT, proxyTokenRef: { current: STIGMER_TOKEN } });
     });
 
     it("injects x-stigmer-execution-id and x-stigmer-auth when context is active and target is proxy", async () => {
@@ -188,7 +217,7 @@ describe("http2-interceptor", () => {
     beforeEach(() => {
       mock = createMockConnect();
       http2.connect = mock.mockConnect;
-      installHttp2Interceptor({ proxyEndpoint: PROXY_ENDPOINT, stigmerToken: STIGMER_TOKEN });
+      installHttp2Interceptor({ proxyEndpoint: PROXY_ENDPOINT, proxyTokenRef: { current: STIGMER_TOKEN } });
     });
 
     it("different requests on same session get execution IDs from their respective ALS contexts", async () => {
@@ -229,7 +258,7 @@ describe("http2-interceptor", () => {
     it("matches https with explicit port", async () => {
       const mock = createMockConnect();
       http2.connect = mock.mockConnect;
-      installHttp2Interceptor({ proxyEndpoint: "https://proxy.example.com:9443", stigmerToken: STIGMER_TOKEN });
+      installHttp2Interceptor({ proxyEndpoint: "https://proxy.example.com:9443", proxyTokenRef: { current: STIGMER_TOKEN } });
 
       const executionContext = getExecutionContext();
       await executionContext.run({ executionId: "exec-port" }, async () => {
@@ -243,7 +272,7 @@ describe("http2-interceptor", () => {
     it("matches https with default port (443)", async () => {
       const mock = createMockConnect();
       http2.connect = mock.mockConnect;
-      installHttp2Interceptor({ proxyEndpoint: "https://proxy.example.com", stigmerToken: STIGMER_TOKEN });
+      installHttp2Interceptor({ proxyEndpoint: "https://proxy.example.com", proxyTokenRef: { current: STIGMER_TOKEN } });
 
       const executionContext = getExecutionContext();
       await executionContext.run({ executionId: "exec-default-port" }, async () => {
@@ -257,7 +286,7 @@ describe("http2-interceptor", () => {
     it("matches http with explicit port", async () => {
       const mock = createMockConnect();
       http2.connect = mock.mockConnect;
-      installHttp2Interceptor({ proxyEndpoint: "http://localhost:9090", stigmerToken: STIGMER_TOKEN });
+      installHttp2Interceptor({ proxyEndpoint: "http://localhost:9090", proxyTokenRef: { current: STIGMER_TOKEN } });
 
       const executionContext = getExecutionContext();
       await executionContext.run({ executionId: "exec-http" }, async () => {
@@ -271,7 +300,7 @@ describe("http2-interceptor", () => {
     it("does not match when port differs", async () => {
       const mock = createMockConnect();
       http2.connect = mock.mockConnect;
-      installHttp2Interceptor({ proxyEndpoint: "https://proxy.example.com:8443", stigmerToken: STIGMER_TOKEN });
+      installHttp2Interceptor({ proxyEndpoint: "https://proxy.example.com:8443", proxyTokenRef: { current: STIGMER_TOKEN } });
 
       const executionContext = getExecutionContext();
       await executionContext.run({ executionId: "exec-wrong-port" }, async () => {
@@ -283,31 +312,30 @@ describe("http2-interceptor", () => {
     });
   });
 
-  describe("updateHttp2InterceptorToken", () => {
+  describe("the token ref is read per request (the root rotates it in place; Q-S2-7)", () => {
     let mock: ReturnType<typeof createMockConnect>;
+    let proxyTokenRef: { current: string | null };
 
     beforeEach(() => {
       mock = createMockConnect();
       http2.connect = mock.mockConnect;
-      installHttp2Interceptor({ proxyEndpoint: PROXY_ENDPOINT, stigmerToken: STIGMER_TOKEN });
+      proxyTokenRef = { current: STIGMER_TOKEN };
+      installHttp2Interceptor({ proxyEndpoint: PROXY_ENDPOINT, proxyTokenRef });
     });
 
-    it("subsequent requests use the updated token", () => {
+    it("a session opened BEFORE a rotation carries the new token on its next request", () => {
       const session = http2.connect(PROXY_ENDPOINT);
       session.request({ ":path": "/agent.v1.AgentService/Run" });
-
       expect(mock.calls[0].headers).toHaveProperty("x-stigmer-auth", `Bearer ${STIGMER_TOKEN}`);
 
-      const refreshedToken = "refreshed-stigmer-jwt-token";
-      updateHttp2InterceptorToken(refreshedToken);
-
+      proxyTokenRef.current = "refreshed-stigmer-jwt-token";
       session.request({ ":path": "/agent.v1.AgentService/Run" });
 
-      expect(mock.calls[1].headers).toHaveProperty("x-stigmer-auth", `Bearer ${refreshedToken}`);
+      expect(mock.calls[1].headers).toHaveProperty("x-stigmer-auth", "Bearer refreshed-stigmer-jwt-token");
     });
 
-    it("new sessions after token update use the updated token", () => {
-      updateHttp2InterceptorToken("new-token-value");
+    it("a session opened AFTER a rotation carries the new token", () => {
+      proxyTokenRef.current = "new-token-value";
 
       const session = http2.connect(PROXY_ENDPOINT);
       session.request({ ":path": "/aiserver.v1.AnalyticsService/BootstrapStatsig" });
@@ -315,15 +343,16 @@ describe("http2-interceptor", () => {
       expect(mock.calls[0].headers).toHaveProperty("x-stigmer-auth", "Bearer new-token-value");
     });
 
-    it("is a no-op when interceptor is not installed", () => {
-      uninstallHttp2Interceptor();
-      // Should not throw
-      updateHttp2InterceptorToken("orphan-token");
-
-      const session = http2.connect(PROXY_ENDPOINT);
-      session.request({ ":path": "/test" });
+    it("an emptied ref omits x-stigmer-auth and keeps the execution id (the proxy's 401 is the diagnostic)", async () => {
+      proxyTokenRef.current = null;
+      const executionContext = getExecutionContext();
+      await executionContext.run({ executionId: "exec-empty-ref" }, async () => {
+        const session = http2.connect(PROXY_ENDPOINT);
+        session.request({ ":path": "/agent.v1.AgentService/Run" });
+      });
 
       expect(mock.calls[0].headers).not.toHaveProperty("x-stigmer-auth");
+      expect(mock.calls[0].headers).toHaveProperty("x-stigmer-execution-id", "exec-empty-ref");
     });
   });
 
@@ -333,8 +362,9 @@ describe("http2-interceptor", () => {
     // and CASE A/B in the probe). That makes the positive "configured + in-sync"
     // path impossible to assert deterministically inside a shared test process
     // — it is guaranteed by load order (interceptor installed before connect-node
-    // imports node:http2) and exercised by the boot guard in the runner
-    // factories. Here we cover the two deterministic contracts: it is a no-op
+    // imports node:http2), exercised by the boot guard inside the Cursor
+    // adapter's boot, and proven in a FRESH process by
+    // src/__tests__/harness-boot-order.test.ts. Here we cover the two deterministic contracts: it is a no-op
     // when unconfigured (no import, so it never freezes the facade), and it
     // throws when the frozen facade is out of sync with the patched connect.
     //
@@ -359,7 +389,7 @@ describe("http2-interceptor", () => {
 
       const mock = createMockConnect();
       http2.connect = mock.mockConnect;
-      installHttp2Interceptor({ proxyEndpoint: PROXY_ENDPOINT, stigmerToken: STIGMER_TOKEN });
+      installHttp2Interceptor({ proxyEndpoint: PROXY_ENDPOINT, proxyTokenRef: { current: STIGMER_TOKEN } });
 
       await expect(assertHttp2ConnectPatched()).rejects.toThrow(
         /node:http2 ESM facade is unpatched/,
