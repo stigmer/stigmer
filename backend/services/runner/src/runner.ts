@@ -522,7 +522,7 @@ async function createAllActivities(config: Config): Promise<WorkerActivities> {
   await bootHarnesses(adaptersOf(HARNESS_ADAPTERS), config);
 
   return {
-    ...createHarnessActivities(HARNESS_ADAPTERS, config),
+    ...(await createHarnessActivities(HARNESS_ADAPTERS, config)),
     ...createDeepAgentActivities(config),
     ...createEnsureThreadActivities(),
     ...createGenerateSessionSubjectActivities(config),

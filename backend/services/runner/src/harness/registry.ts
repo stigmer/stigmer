@@ -30,10 +30,21 @@
  * vocabulary is the registry's concern. An adapter never declares the
  * activity it is bound to (its `name` is a diagnostic identity); the registry
  * row does.
+ *
+ * THIS MODULE'S STATIC GRAPH MUST STAY CONNECT-FREE. Both composition roots
+ * import it BEFORE they boot the harnesses, and the Cursor adapter's boot
+ * patches `node:http2` (its HTTP/2 auth interceptor); a static import of
+ * anything that loads `@connectrpc/connect-node` here would snapshot the
+ * `node:http2` ESM facade to the unpatched `connect` before that boot ran,
+ * and every BiDi stream would silently 401. So `StigmerClient` is loaded
+ * with a dynamic import inside `createHarnessActivities`, the runner's
+ * dynamic-import-for-order convention (`bootstrap.ts` documents the same
+ * omission for the same reason). `__tests__/harness-boot-order.test.ts`
+ * boots a fresh process through this module and fails if the facade froze.
  */
 
 import type { Config } from "../config.js";
-import { StigmerClient } from "../client/stigmer-client.js";
+import type { StigmerClient } from "../client/stigmer-client.js";
 import { activityFinished, activityStarted } from "../idle-watchdog.js";
 import { normalizeActivityInput, type ExecuteActivityInput } from "../shared/activity-input.js";
 import { runTurnActivity } from "./run-turn.js";
@@ -81,12 +92,17 @@ export function adaptersOf(rows: readonly HarnessRow[]): HarnessAdapter[] {
  * watchdog, and hands the turn runtime the adapter. The roots spread the
  * result into the worker's activity map beside the activities the runtime
  * does not own.
+ *
+ * Async because the client is loaded here, not at the top of the module (see
+ * the header): the roots call this after the harnesses have booted, when
+ * connect-node may load.
  */
-export function createHarnessActivities(
+export async function createHarnessActivities(
   rows: readonly HarnessRow[],
   config: Config,
-): Partial<Record<HarnessActivityName, HarnessActivity>> {
-  const client = new StigmerClient({
+): Promise<Partial<Record<HarnessActivityName, HarnessActivity>>> {
+  const { StigmerClient } = await import("../client/stigmer-client.js");
+  const client: StigmerClient = new StigmerClient({
     endpoint: config.stigmerBackendEndpoint,
     token: config.stigmerToken,
     tokenRef: config.stigmerTokenRef,

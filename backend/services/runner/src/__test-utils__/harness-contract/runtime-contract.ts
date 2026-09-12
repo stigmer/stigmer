@@ -187,7 +187,7 @@ export class RuntimeExecutionDriver {
     subject.arrange(turn, view);
     bindHermeticClient(this.record.client(options.clientOverrides));
     const config: Config = { ...subject.config, ...options.config };
-    const activity = createHarnessActivities([{ harness: subject.harness, adapter: subject.adapter }], config)[HARNESS_ACTIVITY_NAMES[subject.harness]];
+    const activity = (await createHarnessActivities([{ harness: subject.harness, adapter: subject.adapter }], config))[HARNESS_ACTIVITY_NAMES[subject.harness]];
     if (!activity) throw new Error(`${subject.name}: the registry built no activity for row '${subject.harness}' (kit bug)`);
     const input: ExecuteActivityInput = {
       execution_id: this.record.executionId,

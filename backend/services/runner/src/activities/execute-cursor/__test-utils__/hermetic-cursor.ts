@@ -328,7 +328,7 @@ export async function runCursorTurn(
   const { createHarnessActivities } = await import("../../../harness/registry.js");
   const adapter = createCursorAdapter();
   await adapter.boot(scenario.config);
-  const activities = createHarnessActivities([{ harness: "cursor", adapter }], scenario.config);
+  const activities = await createHarnessActivities([{ harness: "cursor", adapter }], scenario.config);
   // The typed wire shape the control plane's workflow sends (activity-input.ts).
   const input: ExecuteActivityInput = {
     execution_id: scenario.record.executionId,
