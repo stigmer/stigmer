@@ -106,6 +106,15 @@ eventually violate creatively.
   The organization query forks (enumeration refusal, my-orgs filtering,
   `getByExternalOrgId`) ride the `drivers.organizationDirectory` point —
   never a second registration of an OSS-served RPC.
+- **A store PORT a composition can drive ships its contract as a kit**
+  (20260911.11 A11): a vitest-free case list over `node:assert`, exported
+  from the barrel, that the OSS adapter's test iterates on both drivers
+  and a composition's driver test iterates too, so the port is proven per
+  driver and never restated per repository. The precedent is
+  `domain/identityaccount/store-contract.ts` for
+  `drivers.identityAccountStore`; the in-package `Store` contract suite
+  (`store/__tests__/store-contract.ts`) keeps its vitest shape because
+  no other package runs it.
 - **Status-transition hooks fire from EVERY phase-transition persist
   site**, not one chokepoint (O4 ruling Q3) — the five sites are
   enumerated in `src/domain/agentexecution/status-observers.ts`, and a

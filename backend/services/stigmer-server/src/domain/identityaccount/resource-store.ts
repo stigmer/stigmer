@@ -15,18 +15,27 @@
  * decode-and-scan of the kind's rows, T01_1_review.md finding 2): an
  * administrative RPC, never a per-request path.
  *
- * `save` is get-then-save because the generic Store's saveResource is an
- * upsert with no create-only form. The residual window between the two
- * calls admits a same-content overwrite of the first writer's audit
- * stamp by milliseconds, the posture every create chain on the platform
- * has today (CheckDuplicate then upsert); a create-only store write is a
- * platform-wide follow-up, not this adapter's to invent. The primary key
- * still guarantees ONE row per subject, which is the invariant that
- * matters.
+ * `save` and `update` are both read-then-write because the generic
+ * Store's saveResource is an upsert with neither a create-only nor an
+ * update-only form. `save` refuses when the read finds a row (the port:
+ * a held id is DuplicateAccountError, never a silent overwrite); `update`
+ * returns when the read finds none (the port, A12: replace, never
+ * create — a driver whose UPDATE matches no row writes nothing, and this
+ * adapter must not differ). The residual window between the read and
+ * the write admits a same-content overwrite of the first writer's audit
+ * stamp, or a row recreated under a concurrent delete, by milliseconds —
+ * the posture every chain on the platform has today (CheckDuplicate then
+ * upsert); conditional store writes are a platform-wide follow-up, not
+ * this adapter's to invent. The primary key still guarantees ONE row per
+ * subject, which is the invariant that matters.
  *
  * Store faults follow the ratified mapping (domain/apikey/lookup.ts): a
  * typed ResourceNotFoundError reads as `undefined`; anything else
  * propagates — an outage must never read as "no account".
+ *
+ * The port's contract is proven by store-contract.ts, run over this
+ * adapter on both drivers in __tests__/resource-store.test.ts, which
+ * also pins the two invariants above that are this adapter's own.
  */
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
@@ -81,12 +90,11 @@ export function newResourceIdentityAccountStore(
     },
 
     async update(account): Promise<void> {
-      await store.saveResource(
-        KIND,
-        account.metadata?.id ?? "",
-        IdentityAccountSchema,
-        account,
-      );
+      const id = account.metadata?.id ?? "";
+      if ((await readById(id)) === undefined) {
+        return;
+      }
+      await store.saveResource(KIND, id, IdentityAccountSchema, account);
     },
 
     async deleteById(id): Promise<void> {
@@ -122,7 +130,9 @@ export function newResourceIdentityAccountStore(
 
     async findByIds(ids): Promise<ReadonlyArray<IdentityAccount>> {
       const found: IdentityAccount[] = [];
-      for (const id of ids) {
+      // One row per distinct id, at its first position (the port, A12):
+      // a Set iterates in insertion order, so the dedupe keeps the order.
+      for (const id of new Set(ids)) {
         const account = await readById(id);
         if (account !== undefined) {
           found.push(account);
