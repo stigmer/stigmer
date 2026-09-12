@@ -245,9 +245,13 @@ export interface TurnStandingContext {
  * `engine-minted` harness's first turn (nothing minted yet) and the id the
  * adapter bound through {@link TurnSink.bindHarnessState} on every later
  * invocation; the runtime-minted id on every turn of a `deterministic`
- * harness. An adapter derives create-vs-resume from it and its own state
- * through `turn-context.ts`'s `isReinvocation`; the contract carries no flag
- * because the two harnesses would derive it differently.
+ * harness. An adapter derives create-vs-resume for its ENGINE from it and its
+ * own state; the runtime derives its own reinvocation fact (the seed, the
+ * reconcile) in `turn-context.ts`'s `isReinvocation`, one arm per
+ * `stateIdSource`. The contract carries no flag because the two readings
+ * answer different questions ("does the engine hold state for this session"
+ * vs "does this execution have a transcript") and one name over two meanings
+ * would be the divergence a contract exists to prevent.
  *
  * Adapter-only facts (the Cursor mode, the service-tier params, the seeded
  * sub-agent rows) are read by the adapter from these records, never resolved

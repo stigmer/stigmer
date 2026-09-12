@@ -33,7 +33,6 @@ import { CursorMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_p
 
 import type { Config } from "../../config.js";
 import type { TurnInput, TurnSink } from "../../harness/types.js";
-import { isReinvocation } from "../../harness/turn-context.js";
 import { toCursorImages } from "../../shared/attachment-vision.js";
 import { emitTimingLog } from "../../shared/cold-start-timing.js";
 import { deriveExecutionFingerprintKey } from "../../shared/approval-fingerprint.js";
@@ -158,9 +157,15 @@ export function resolveCursorMode(input: TurnInput, config: CursorAdapterConfig)
   return { cursorMode, agentMode: isCloudMode(cursorMode) ? "cloud" : "local" };
 }
 
-/** The adapter's own read of the adjudicated rows the runtime already turned into verdicts. */
+/**
+ * The adapter's own read of the adjudicated rows the runtime already turned
+ * into verdicts. Create-vs-resume is the adapter's fact about its ENGINE: a
+ * bound agent id (`threadId`, engine-minted) means the Cursor agent already
+ * holds this session's conversation, so this turn resumes it — the runtime's
+ * `isReinvocation` answers its own question and is not consulted here.
+ */
 export function readAdjudicatedRows(input: TurnInput): AdjudicatedRows {
-  const reinvoked = isReinvocation(CURSOR_CAPABILITIES.stateIdSource, input);
+  const reinvoked = input.threadId !== "";
   const adjudicated = reinvoked ? reconstructAdjudicatedApprovals(input.execution.status?.messages ?? []) : undefined;
   return {
     isReinvocation: reinvoked,

@@ -246,18 +246,32 @@ export type ReinvocationOutcome =
  *    and the legacy positional wire shape yields 0, so `turnSeq` cannot be
  *    the signal (`index.ts` L402-407).
  *  - `deterministic` (native: the runtime-minted thread id): the id exists
- *    on the FIRST turn too, so the evidence is the persisted transcript
- *    (pending approvals, DECIDED sets). That arm lands in S3 with the native
- *    adapter; until then this function refuses rather than guess.
+ *    on the FIRST turn too, so the evidence is the persisted transcript.
+ *    Whether the execution already has committed history is the ONE signal
+ *    that behaves identically across the engine's checkpointer backends:
+ *    a durable saver (sqlite locally, http in cloud) keeps the checkpoint
+ *    and resumes from it, while the test-only memory saver recreates it
+ *    empty and replays from scratch — so the live checkpoint cannot be the
+ *    signal (native's `shouldSeedFromPersistedTranscript`, retired with its
+ *    orchestrator). A first run has no persisted messages and starts from
+ *    empty, as it always did.
+ *
+ * This is the runtime's own reading, for its phases (the seed, the reconcile,
+ * the exact-apply). An adapter that needs create-vs-resume for its ENGINE
+ * reads `input.threadId` itself — for an engine-minted harness that is the
+ * same bit, for a deterministic one the engine's checkpoint is the adapter's
+ * to consult — so the contract carries no flag with two meanings (Q-M1-7).
  */
-export function isReinvocation(stateIdSource: StateIdSource, input: NormalizedActivityInput): boolean {
+export function isReinvocation(
+  stateIdSource: StateIdSource,
+  input: NormalizedActivityInput,
+  execution: AgentExecution,
+): boolean {
   switch (stateIdSource) {
     case "engine-minted":
       return input.threadId !== "";
     case "deterministic":
-      throw new Error(
-        "isReinvocation: the deterministic arm lands with the native adapter (S3); no S2 harness mints its state id deterministically",
-      );
+      return (execution.status?.messages.length ?? 0) > 0;
     default: {
       const exhaustive: never = stateIdSource;
       throw new Error(`isReinvocation: unknown state id source ${String(exhaustive)}`);
@@ -555,7 +569,7 @@ export async function reconcileReinvocation(
   },
 ): Promise<ReinvocationOutcome> {
   deps.enterPhase("reconcile_reinvocation");
-  const reinvoked = isReinvocation(args.stateIdSource, deps.input);
+  const reinvoked = isReinvocation(args.stateIdSource, deps.input, args.execution);
   let reconciledFileReview = false;
   let fileReviewFailed = false;
   let fileReviewFailureDetail = "";
