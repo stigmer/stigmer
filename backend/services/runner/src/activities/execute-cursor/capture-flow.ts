@@ -14,8 +14,12 @@
  *    observational/audit records at their transcript positions, while
  *    `file_change_sets` remains the single DECISION surface.
  *
- * The three turn-boundary functions keep their original signatures so the
- * activity wiring (index.ts) and the cutover tests are unchanged.
+ * The resume-time reconcile is NOT here since S2 M2: the turn runtime's
+ * `reconcileReinvocation` (`harness/turn-context.ts`) calls the shared
+ * reconcile directly under {@link CURSOR_FILE_REVIEW_IDENTITY}, the one
+ * export that carries the two Cursor facts it needs. The two capture
+ * functions keep their original signatures so the activity wiring (index.ts)
+ * and the cutover tests are unchanged.
  */
 
 import { readFile } from "node:fs/promises";
@@ -30,10 +34,8 @@ import { readCasObservations } from "./cas-observations.js";
 import { contentDigest } from "../../shared/file-tools.js";
 import { isToolCallRowHidden, stampFileEditRow } from "../../shared/tool-row.js";
 import {
-  applyCaptureDecisions as sharedApplyCaptureDecisions,
   captureBaselineToLedger as sharedCaptureBaselineToLedger,
   captureCandidateToLedger as sharedCaptureCandidateToLedger,
-  type CaptureResumeResult,
 } from "../../shared/filereview/capture.js";
 import {
   createGitProgressSubstrate,
@@ -50,8 +52,7 @@ import { partitionIgnoredPathsBySecret } from "../../shared/filereview/secret-pa
 import { casBlobReader, type CasPathCapture } from "../../shared/filereview/cas-substrate.js";
 import type { GitSubstrateChange as GitCapturedChange } from "../../shared/filereview/git-substrate.js";
 import type { ArtifactStorage } from "../../shared/artifact-storage.js";
-
-export type { CaptureResumeResult };
+import type { FileReviewIdentity } from "../../harness/capabilities.js";
 
 /** The harness id the projection reads from the BASELINE payload (load-bearing). */
 const HARNESS_ID = "cursor";
@@ -66,6 +67,17 @@ const CURSOR_RUNNER_OWNED_PATHS: readonly string[] = [
   ".cursor/hooks.json",
   ".cursor/rules/stigmer-tool-approval.mdc",
 ];
+
+/**
+ * The two facts the runtime's resume-time reconcile needs from this harness
+ * (`harness/turn-context.ts` `reconcileReinvocation`): the same id and
+ * exclude list the capture functions below stamp and apply, so the baseline a
+ * turn authors and the reconcile a resume runs agree by construction.
+ */
+export const CURSOR_FILE_REVIEW_IDENTITY: FileReviewIdentity = {
+  harnessId: HARNESS_ID,
+  excludePaths: CURSOR_RUNNER_OWNED_PATHS,
+};
 
 // `deriveCaptureMode` is the single capture-vs-deny-gate decision, now shared by
 // BOTH harnesses from `shared/filereview/capture.ts`. Re-exported here so existing
@@ -324,41 +336,6 @@ async function readFileOrNull(absolutePath: string): Promise<Uint8Array | null> 
   } catch {
     return null;
   }
-}
-
-/**
- * Resume: reconcile the working tree to the change set's DECIDED decisions
- * (keep approved "after" bytes, snap rejected/undecided back to baseline,
- * hash-verified), author RECONCILED / FAILED, and release the refs. Delegates to
- * the shared orchestration with the Cursor harness id + exclude paths.
- *
- * `storage` threads the CAS blob store + reader so gitignored (CAS) files in the
- * change set reconcile from the durable manifest — approved after-blobs written
- * (hash-verified), rejected files snapped back to their before-blobs. Omit for a
- * git-only harness/turn; the shared CAS branch is then skipped. The read path is
- * the same one `exact-apply` already uses (`ArtifactStorage.download`).
- */
-export function applyCaptureDecisions(opts: {
-  readonly status: AgentExecutionStatus;
-  readonly gitRoot: string;
-  readonly executionId: string;
-  readonly changeSet: FileChangeSet;
-  readonly storage?: ArtifactStorage;
-  /**
-   * True (default) for a git work tree; false for a CAS-only non-git workspace
-   * (Slice 2c). When false the reconcile never consults git refs — it is driven
-   * entirely by the durable CAS manifest.
-   */
-  readonly gitWorkspace?: boolean;
-}): Promise<CaptureResumeResult> {
-  const { storage, ...rest } = opts;
-  return sharedApplyCaptureDecisions({
-    ...rest,
-    harnessId: HARNESS_ID,
-    excludePaths: CURSOR_RUNNER_OWNED_PATHS,
-    storage,
-    readBlob: storage ? casBlobReader(storage) : undefined,
-  });
 }
 
 // ---------------------------------------------------------------------------

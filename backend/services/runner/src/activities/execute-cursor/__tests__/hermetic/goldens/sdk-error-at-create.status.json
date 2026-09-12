@@ -1,0 +1,38 @@
+{
+  "messages": [
+    {
+      "type": "MESSAGE_SYSTEM",
+      "content": "Internal system error occurred. Please contact support if this issue persists.",
+      "timestamp": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "type": "MESSAGE_SYSTEM",
+      "content": "Error details: Cursor API rejected the request: invalid API key [category=auth, source=sdk, retryable=false]",
+      "timestamp": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "phase": "EXECUTION_FAILED",
+  "error": "Cursor API rejected the request: invalid API key [category=auth, source=sdk, retryable=false]",
+  "startedAt": "2026-01-01T00:00:00.000Z",
+  "completedAt": "2026-01-01T00:00:00.000Z",
+  "fileReviewEventStream": {
+    "executionId": "aex_hermetic_0001",
+    "events": [
+      {
+        "eventId": "aex_hermetic_0001:0:aex_hermetic_0001:0:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+        "changeSetId": "aex_hermetic_0001:0",
+        "eventType": "FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+        "timestamp": "2026-01-01T00:00:00.000Z",
+        "actor": "runner",
+        "baselineCaptured": {
+          "changeSetId": "aex_hermetic_0001:0",
+          "turnId": "aex_hermetic_0001:0",
+          "harnessId": "cursor",
+          "baselineSnapshot": {
+            "kind": "SNAPSHOT_KIND_CAS_MANIFEST"
+          }
+        }
+      }
+    ]
+  }
+}

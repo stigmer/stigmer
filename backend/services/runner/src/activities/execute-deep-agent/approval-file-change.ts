@@ -9,7 +9,7 @@
  * few fields). The approval card renders the proposed write/edit content from
  * these args; there is no separate captured `file_changes` (removed in Phase 5
  * Slice 4 — the args are the single source, and the Cursor deny-gate's
- * exact-apply reads the same args on resume; see execute-cursor/exact-apply.ts).
+ * exact-apply reads the same args on resume; see shared/exact-apply.ts).
  *
  * @since First-Class Diff Review (#186), approval-gate phase
  */

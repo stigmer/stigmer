@@ -77,12 +77,13 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import {
   ApprovalAction,
+  ExecutionControlSignal,
   ExecutionPhase,
   ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { UpdateStatusResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import { SessionSchema, type Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
 import type { StigmerClient } from "../client/stigmer-client.js";
@@ -107,11 +108,20 @@ export interface ExecutionRecordInput {
   readonly session: Session;
   readonly agentInstance: AgentInstance;
   readonly agent: Agent;
+  /**
+   * What `UpdateStatus` answers for each FULL status write — the platform's
+   * STOP lever (`ExecutionControlSignal`), decided by the control plane per
+   * write and read by the harness stream loop on its mid-stream persist.
+   * Evaluated AFTER the write lands, on the snapshot just persisted, so a
+   * policy can key on the transcript ("stop once the first assistant message
+   * is in"). Defaults to UNSPECIFIED: keep going.
+   */
+  readonly controlSignal?: (status: AgentExecutionStatus) => ExecutionControlSignal;
 }
 
 /**
  * An in-memory stand-in for the server's execution row, with the TWO merge
- * rules the activity depends on and no others:
+ * rules and the ONE control lever the activity depends on, and no others:
  *
  *  - A status whose phase is UNSPECIFIED is a setup-progress report
  *    (`reportSetupProgress`): the server keeps `setup_progress` and leaves the
@@ -120,6 +130,10 @@ export interface ExecutionRecordInput {
  *    writer of the transcript; the server's own field-ownership merge — approval
  *    fields it owns — is exercised by the test SETTING `approvalAction` on the
  *    record between invocations, exactly as `SubmitApproval` would).
+ *  - Every `UpdateStatus` answers a control signal ({@link ExecutionRecordInput.controlSignal});
+ *    the server's STOP is the one instruction that travels back to the runner
+ *    on this channel, and it is a server decision, so it is modelled here and
+ *    not by the test hand-writing the client.
  *
  * Every persisted status is also kept in order (`persisted`) so a test can
  * assert the phase sequence the activity wrote, independent of the final state.
@@ -129,11 +143,16 @@ export class ExecutionRecord {
   readonly session: Session;
   readonly agentInstance: AgentInstance;
   readonly agent: Agent;
+  private readonly controlSignal: (status: AgentExecutionStatus) => ExecutionControlSignal;
   /** Every `updateStatus` payload, in order, snapshotted at write time. */
   readonly persisted: AgentExecutionStatus[] = [];
   /** Setup-progress labels reported before the stream started, in order. */
   readonly setupProgress: string[] = [];
-  /** Every `updateSession` payload, in order (the `harness_state_id` write-back). */
+  /**
+   * Every `updateSession` payload, in order (the `harness_state_id` write-back),
+   * snapshotted at write time: the activity re-binds the SAME session object on
+   * a fresh-agent recovery, so a live reference would show the second id twice.
+   */
   readonly sessionUpdates: Session[] = [];
 
   constructor(input: ExecutionRecordInput) {
@@ -141,6 +160,7 @@ export class ExecutionRecord {
     this.session = input.session;
     this.agentInstance = input.agentInstance;
     this.agent = input.agent;
+    this.controlSignal = input.controlSignal ?? (() => ExecutionControlSignal.UNSPECIFIED);
   }
 
   get executionId(): string {
@@ -201,16 +221,22 @@ export class ExecutionRecord {
     return waiting.length;
   }
 
-  applyStatusUpdate(status: AgentExecutionStatus): void {
+  /**
+   * Apply one `UpdateStatus` write and answer the control signal the server
+   * would. A setup-progress report never carries a signal (the runner ignores
+   * the response there; the server has nothing to say about a label).
+   */
+  applyStatusUpdate(status: AgentExecutionStatus): ExecutionControlSignal {
     const snapshot = clone(AgentExecutionStatusSchema, status);
     this.persisted.push(snapshot);
     if (snapshot.phase === ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED) {
       if (snapshot.setupProgress?.currentPhase) {
         this.setupProgress.push(snapshot.setupProgress.currentPhase);
       }
-      return;
+      return ExecutionControlSignal.UNSPECIFIED;
     }
     this.execution.status = clone(AgentExecutionStatusSchema, snapshot);
+    return this.controlSignal(snapshot);
   }
 
   /**
@@ -228,12 +254,11 @@ export class ExecutionRecord {
       getAgentInstance: vi.fn(async () => this.agentInstance),
       getAgent: vi.fn(async () => this.agent),
       updateStatus: vi.fn(async (_id: string, status: AgentExecutionStatus) => {
-        this.applyStatusUpdate(status);
         // The activity reads only `.signal`; UNSPECIFIED means "keep going".
-        return create(UpdateStatusResponseSchema, {});
+        return create(UpdateStatusResponseSchema, { signal: this.applyStatusUpdate(status) });
       }),
       updateSession: vi.fn(async (session: Session) => {
-        this.sessionUpdates.push(session);
+        this.sessionUpdates.push(clone(SessionSchema, session));
         return session;
       }),
       getExecutionContextByExecutionId: vi.fn(async () => {

@@ -42,7 +42,11 @@
  *
  * Every `send()` consumes the NEXT script in the agent's queue: turn 1, then
  * the resumed turn 2 on the same parked agent. A `send()` with no script left
- * is a test bug and throws.
+ * is a test bug and throws. A golden scenario declares every script up front
+ * (`turns`); a driver that learns what the next turn plays only just before
+ * it runs — the harness contract kit's Cursor subject — arranges it with
+ * {@link ScriptedCursorAgent.arrangeNextTurn}, which REPLACES the slot the
+ * next `send()` will consume.
  */
 
 import type {
@@ -284,6 +288,11 @@ export interface RecordedSend {
   readonly hasOnDelta: boolean;
 }
 
+/** The run id a send is given when the scenario named none: `run-<agentId>-<n>`, `n` counting sends from 1. */
+export function defaultRunId(agentId: string, sendIndex: number): string {
+  return `run-${agentId}-${sendIndex + 1}`;
+}
+
 export class ScriptedCursorAgent implements SDKAgent {
   readonly agentId: string;
   model: ModelSelection | undefined = undefined;
@@ -291,20 +300,37 @@ export class ScriptedCursorAgent implements SDKAgent {
   readonly runs: ScriptedRun[] = [];
   closeCalls = 0;
   private nextTurn = 0;
+  /** The scenario's scripts, one slot per send; `arrangeNextTurn` writes the slot the next send consumes. */
+  private readonly turns: TurnScript[];
 
   constructor(private readonly options: ScriptedAgentOptions) {
     this.agentId = options.agentId;
+    this.turns = [...options.turns];
+  }
+
+  /** The run id the NEXT `send()` will be given — so a script can be built with matching event ids before the send happens. */
+  get nextRunId(): string {
+    return this.options.runIds?.[this.nextTurn] ?? defaultRunId(this.agentId, this.nextTurn);
+  }
+
+  /**
+   * Set (or replace) what the NEXT `send()` plays. Scripts already consumed
+   * are untouched; a slot declared up front for a later send stays where it
+   * is.
+   */
+  arrangeNextTurn(script: TurnScript): void {
+    this.turns[this.nextTurn] = script;
   }
 
   async send(message: string | SDKUserMessage, options?: SendOptions): Promise<Run> {
-    const script = this.options.turns[this.nextTurn];
+    const script = this.turns[this.nextTurn];
     if (!script) {
       throw new Error(
         `ScriptedCursorAgent ${this.agentId}: send() #${this.nextTurn + 1} has no script ` +
-          `(the scenario declared ${this.options.turns.length})`,
+          `(the scenario declared ${this.turns.length})`,
       );
     }
-    const runId = this.options.runIds?.[this.nextTurn] ?? `run-${this.agentId}-${this.nextTurn + 1}`;
+    const runId = this.nextRunId;
     this.nextTurn++;
     this.sends.push({ message, hasOnDelta: !!options?.onDelta });
     if (options?.model) this.model = options.model;

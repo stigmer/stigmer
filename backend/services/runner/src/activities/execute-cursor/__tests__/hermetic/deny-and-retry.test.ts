@@ -69,8 +69,8 @@ import {
   runCursorTurn,
   runWorkspaceHook,
   sessionWorkspaceDir,
-  stubRegistryFetch,
 } from "../../__test-utils__/hermetic-cursor.js";
+import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
 
 const AGENT_ID = "agent-hermetic-deny-0001";
 const RUN_1 = "run-hermetic-deny-0001";

@@ -16,11 +16,14 @@
  *
  * LOAD ORDER IS THEREFORE LOAD-BEARING: this interceptor MUST be installed
  * before the first connect-node import in the process. The runner enforces this
- * by (a) keeping connect-node out of the pre-install static module graph
- * (bootstrap.ts loads StigmerClient via dynamic import) and (b) installing this
- * interceptor before resolving Temporal coordinates / importing the SDK in the
- * runner factories. assertHttp2ConnectPatched() verifies the ESM-facade view at
- * boot so any future regression fails loudly instead of silently 401-ing.
+ * by (a) keeping connect-node out of the pre-boot static module graph
+ * (bootstrap.ts and harness/registry.ts load StigmerClient via dynamic import;
+ * adapter.ts loads the SDK inside boot) and (b) installing this interceptor in
+ * the Cursor adapter's `boot`, which the registry runs in both composition
+ * roots before Temporal coordinates are resolved. assertHttp2ConnectPatched()
+ * verifies the ESM-facade view right after the install so any future
+ * regression fails loudly instead of silently 401-ing;
+ * src/__tests__/harness-boot-order.test.ts runs that boot in a fresh process.
  *
  * This module patches `http2.connect()` to wrap returned sessions. The
  * wrapped session's `request()` method reads the execution ID from the
@@ -42,7 +45,7 @@
 
 import { createRequire } from "node:module";
 import type http2Type from "node:http2";
-import { getExecutionContext } from "./fetch-interceptor.js";
+import { getExecutionContext } from "../../shared/execution-context.js";
 
 // Use require() to get the ACTUAL CJS module singleton. Mutations here
 // are visible to all importers including ESM namespace imports, because
@@ -56,7 +59,14 @@ const STIGMER_AUTH_HEADER = "x-stigmer-auth";
 interface Http2InterceptorConfig {
   proxyHostname: string;
   proxyPort: string;
-  stigmerToken: string;
+  /**
+   * The proxy credential, read on EVERY stream (never copied): the root that
+   * installed this interceptor owns the ref and rotates it in place, so a
+   * rotation reaches the next `request()` on an already-open session without
+   * a call into this module (see fetch-interceptor.ts for the two roots'
+   * bindings, Q-S2-7).
+   */
+  proxyTokenRef: { readonly current: string | null };
 }
 
 let config: Http2InterceptorConfig | null = null;
@@ -110,10 +120,15 @@ function wrapSession(session: http2Type.ClientHttp2Session): http2Type.ClientHtt
     }
 
     const ctx = getExecutionContext().getStore();
-    const augmented: http2Type.OutgoingHttpHeaders = {
-      ...headers,
-      [STIGMER_AUTH_HEADER]: `Bearer ${config.stigmerToken}`,
-    };
+    const augmented: http2Type.OutgoingHttpHeaders = { ...headers };
+    // An empty ref is unreachable by construction today (no root writes null
+    // into the ref it bound); the stream then goes out without the header and
+    // the proxy's 401 is the diagnostic, rather than a throw inside the SDK's
+    // transport, a path nothing exercises.
+    const token = config.proxyTokenRef.current;
+    if (token !== null) {
+      augmented[STIGMER_AUTH_HEADER] = `Bearer ${token}`;
+    }
     if (ctx?.executionId) {
       augmented[EXECUTION_ID_HEADER] = ctx.executionId;
     }
@@ -124,21 +139,27 @@ function wrapSession(session: http2Type.ClientHttp2Session): http2Type.ClientHtt
 }
 
 /**
- * Install the HTTP/2 interceptor. Call once at startup, BEFORE importing
- * @cursor/sdk.
+ * Install the HTTP/2 interceptor, at boot, BEFORE `@cursor/sdk` (and so
+ * connect-node) is imported. Idempotent: a second install rebinds the config
+ * (a worker may re-boot its harnesses) and leaves the one patch in place —
+ * re-capturing `http2.connect` here would take the patched function as the
+ * original and wrap every proxy session twice.
  *
- * When proxyEndpoint is not provided, the interceptor is not installed
- * and all http2.connect() calls pass through to the original.
+ * When proxyEndpoint is not provided, or no credential ref is bound, the
+ * interceptor is not installed and all http2.connect() calls pass through to
+ * the original. (The fetch interceptor, installed first, throws on a proxy
+ * without a credential; this one stays a silent no-op as it always has, so a
+ * caller that installs only this half keeps its historical posture.)
  */
 export function installHttp2Interceptor(opts: {
   proxyEndpoint: string | undefined;
-  stigmerToken: string | undefined;
+  proxyTokenRef: { readonly current: string | null } | undefined;
 }): void {
   if (!opts.proxyEndpoint) {
     return;
   }
 
-  if (!opts.stigmerToken) {
+  if (!opts.proxyTokenRef || opts.proxyTokenRef.current === null) {
     return;
   }
 
@@ -150,7 +171,11 @@ export function installHttp2Interceptor(opts: {
     return;
   }
 
-  config = { proxyHostname: parsed.hostname, proxyPort: parsed.port, stigmerToken: opts.stigmerToken };
+  const alreadyPatched = config !== null;
+  config = { proxyHostname: parsed.hostname, proxyPort: parsed.port, proxyTokenRef: opts.proxyTokenRef };
+  if (alreadyPatched) {
+    return;
+  }
   originalConnect = http2.connect;
 
   http2.connect = function patchedConnect(
@@ -205,23 +230,11 @@ export async function assertHttp2ConnectPatched(): Promise<void> {
       "[http2-interceptor] node:http2 ESM facade is unpatched: connect-node imported " +
         "node:http2 before installHttp2Interceptor() ran, so its frozen namespace still " +
         "holds the original http2.connect. BiDi streams would omit x-stigmer-auth and 401. " +
-        "Fix the load order: keep @connectrpc/connect-node out of the pre-install static " +
-        "module graph (load StigmerClient via dynamic import) and install this interceptor " +
-        "before resolving Temporal coordinates / importing @cursor/sdk. See bootstrap.ts " +
-        "and the runner factories.",
+        "Fix the load order: keep @connectrpc/connect-node out of the pre-boot static module " +
+        "graph (load StigmerClient via dynamic import, as bootstrap.ts and harness/registry.ts " +
+        "do) and keep @cursor/sdk behind the Cursor adapter's boot (adapter.ts loads turn.ts " +
+        "after this install). See src/__tests__/harness-boot-order.test.ts.",
     );
-  }
-}
-
-/**
- * Update the auth token on the live interceptor config. Must be called
- * whenever the Stigmer JWT is refreshed (e.g. via IPC updateToken) so
- * that HTTP/2-intercepted streams use the current token instead of the
- * one frozen at install time.
- */
-export function updateHttp2InterceptorToken(token: string): void {
-  if (config) {
-    config = { ...config, stigmerToken: token };
   }
 }
 

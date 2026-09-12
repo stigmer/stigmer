@@ -164,7 +164,7 @@ export function synthesizeChannelAttachment(
  * aid). Returns "" when nothing survives the filter — the tool alone
  * still serves text sends inside a 24-hour window.
  */
-export function formatChannelTemplatesSection(channels: ChannelMessagingInfo[]): string {
+export function formatChannelTemplatesSection(channels: readonly ChannelMessagingInfo[]): string {
   let withheld = 0;
   let budget = TEMPLATE_SECTION_CAP;
 

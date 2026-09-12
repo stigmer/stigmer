@@ -3,62 +3,42 @@
  *
  * Provides a periodic heartbeat loop that activities can start for
  * long-running operations. The loop sends heartbeat details at a
- * configurable interval and stops when cancelled or when the
- * returned abort function is called.
+ * configurable interval and stops when the returned handle is stopped.
  *
- * Heartbeats serve two purposes:
- * 1. Prevent Temporal from timing out the activity (heartbeatTimeout)
- * 2. Detect parent workflow cancellation (CancelledFailure from heartbeat)
+ * Heartbeats keep Temporal from timing the activity out
+ * (`heartbeatTimeout`) and are how an activity RECEIVES cancellation: the
+ * server piggybacks a cancel request on a heartbeat response, and the SDK
+ * then aborts `Context.current().cancellationSignal`. `Context.heartbeat()`
+ * itself never throws for cancellation (it enqueues to the worker's
+ * heartbeat subject — `@temporalio/activity/lib/index.js`
+ * `Context.heartbeat`, `@temporalio/worker/lib/worker.js` the heartbeat
+ * callback; the SDK's own doc: "Cancellation is not propagated from this
+ * function"). Until S2 M3 this handle carried two flags for a throw that
+ * cannot happen; a turn reads its interruption from the signal's reason
+ * instead (`worker-shutdown.ts` `classifyTurnInterruption`).
  */
 
 import { Context, CancelledFailure } from "@temporalio/activity";
 
 export interface HeartbeatHandle {
   stop(): void;
-  readonly cancelled: boolean;
-  readonly workerShutdown: boolean;
-}
-
-export interface HeartbeatOptions {
-  shutdownSignal?: AbortSignal;
 }
 
 export function startHeartbeat(
   intervalMs: number,
   getDetails?: () => Record<string, unknown>,
-  options?: HeartbeatOptions,
 ): HeartbeatHandle {
   let stopped = false;
-  let wasCancelled = false;
-  let wasWorkerShutdown = false;
 
   const timer = setInterval(() => {
     if (stopped) return;
-    try {
-      Context.current().heartbeat(getDetails?.());
-    } catch (err) {
-      if (err instanceof CancelledFailure) {
-        if (options?.shutdownSignal?.aborted) {
-          wasWorkerShutdown = true;
-        } else {
-          wasCancelled = true;
-        }
-        stopped = true;
-        clearInterval(timer);
-      }
-    }
+    Context.current().heartbeat(getDetails?.());
   }, intervalMs);
 
   return {
     stop() {
       stopped = true;
       clearInterval(timer);
-    },
-    get cancelled() {
-      return wasCancelled;
-    },
-    get workerShutdown() {
-      return wasWorkerShutdown;
     },
   };
 }

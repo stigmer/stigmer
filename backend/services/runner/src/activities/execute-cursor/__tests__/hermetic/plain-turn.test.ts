@@ -53,8 +53,8 @@ import {
   beginCursorScenario,
   cursorExecutionRecord,
   runCursorTurn,
-  stubRegistryFetch,
 } from "../../__test-utils__/hermetic-cursor.js";
+import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
 
 const AGENT_ID = "agent-hermetic-plain-0001";
 const RUN_ID = "run-hermetic-plain-0001";

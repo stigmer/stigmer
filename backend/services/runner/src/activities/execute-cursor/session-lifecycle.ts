@@ -47,6 +47,7 @@ import type {
   ModelParameterValue,
 } from "@cursor/sdk";
 import { withTimeout, TimeoutError } from "../../shared/with-timeout.js";
+import type { CloudRepo } from "../../shared/blueprint-resolver.js";
 import type { CursorMcpServerConfig } from "./cursor-mcp-config.js";
 
 // ---------------------------------------------------------------------------
@@ -136,11 +137,6 @@ export interface ResumeAgentOptions {
 // ---------------------------------------------------------------------------
 // Public types — cloud mode
 // ---------------------------------------------------------------------------
-
-export interface CloudRepo {
-  url: string;
-  startingRef?: string;
-}
 
 export interface CreateCloudAgentOptions {
   apiKey: string;

@@ -48,6 +48,8 @@ import {
   type DownloadUrlKind,
 } from "../../shared/attachment-download-urls.js";
 import { formatTurnRecoveryText } from "./turn-recovery.js";
+import type { SkillMetadata } from "../../shared/skill-resolver.js";
+import type { AgentResolution, AgentResolutionReason } from "./session-lifecycle.js";
 import { PLAN_MODE_DIRECTIVE } from "../../shared/plan-mode-prompt.js";
 import {
   buildImplementPlanDirective,
@@ -66,12 +68,6 @@ const RUNNER_PATH_MARKERS = [
   "/dist/main.js",
 ] as const;
 
-export interface SkillMetadata {
-  name: string;
-  description: string;
-  path: string;
-}
-
 /**
  * Vision facts about this turn's attachments, rendered inside the
  * input-files section: which images the model can see inline (in send
@@ -80,7 +76,7 @@ export interface SkillMetadata {
  */
 export interface VisionPromptInfo {
   inlineFilenames: string[];
-  notViewable: NotViewableEntry[];
+  notViewable: readonly NotViewableEntry[];
 }
 
 /**
@@ -104,13 +100,13 @@ export interface AttachmentPromptEntry {
 export interface EnhancedPromptOptions {
   instructions: string;
   userMessage: string;
-  skills: SkillMetadata[];
+  skills: readonly SkillMetadata[];
   /**
    * Serving proactive channels + their approved templates — rendered as
    * the `<available_channel_templates>` section (proactive-messaging
    * DD-003 D5) beside the synthesized send_channel_message tool.
    */
-  channelMessaging?: ChannelMessagingInfo[];
+  channelMessaging?: readonly ChannelMessagingInfo[];
   subAgents: SubAgent[];
   workspaceDirs: string[];
   workspaceFileRefs: string[];
@@ -326,7 +322,7 @@ export function buildEnhancedPrompt(options: EnhancedPromptOptions): string {
  */
 export function buildReinvocationPrompt(
   pendingApprovals: PendingApproval[],
-  approvalDecisions: Map<string, ApprovalAction>,
+  approvalDecisions: ReadonlyMap<string, ApprovalAction>,
   appliedToolCallIds: ReadonlySet<string> = new Set(),
 ): string {
   const approved: string[] = [];
@@ -415,7 +411,7 @@ export function buildHitlRecoveryPrompt(
   recovery: {
     turnDigest: string | undefined;
     pendingApprovals: PendingApproval[];
-    approvalDecisions: Map<string, ApprovalAction>;
+    approvalDecisions: ReadonlyMap<string, ApprovalAction>;
     appliedToolCallIds?: ReadonlySet<string>;
   },
 ): string {
@@ -508,7 +504,7 @@ export function formatConversationCatchupSection(digest: string): string {
   return `<conversation_catchup>\n${formatConversationCatchupText(digest)}\n</conversation_catchup>`;
 }
 
-export function formatSkillsSection(skills: SkillMetadata[]): string {
+export function formatSkillsSection(skills: readonly SkillMetadata[]): string {
   const entries = skills.map(
     (s) => `- **${s.name}**: ${s.description}\n  Path: \`${s.path}\``,
   );
@@ -809,4 +805,323 @@ export function buildToolApprovalRuleFile(): string {
     ...TOOL_APPROVAL_PROTOCOL_RULES.map((rule) => `- ${rule}`),
     "",
   ].join("\n");
+}
+
+// ---------------------------------------------------------------------------
+// Prompt selection — which of the four shapes a turn sends, from how the
+// agent resolved and whether the turn carries adjudicated approvals. Moved
+// from `index.ts` at S2 M3b, body unchanged; `__tests__/build-prompt.test.ts`
+// pins every branch.
+// ---------------------------------------------------------------------------
+
+export interface BuildPromptInput {
+  resolution: AgentResolution;
+  /** Empty when the turn carries no adjudicated approvals (see isHitlReinvocation). */
+  approvalDecisions: ReadonlyMap<string, ApprovalAction>;
+  instructions: string;
+  userMessage: string;
+  skills: readonly SkillMetadata[];
+  /**
+   * Serving proactive channels + their templates (the DD-006 D2
+   * discovery read) — the `<available_channel_templates>` section.
+   */
+  channelMessaging?: readonly ChannelMessagingInfo[];
+  subAgents: SubAgent[];
+  workspaceDirs: string[];
+  workspaceFileRefs: string[];
+  /**
+   * This turn's resolved attachments for the `<input_files>` section —
+   * final paths plus duplicate-rename disclosure (attachment-resolver.ts).
+   */
+  attachments: AttachmentPromptEntry[];
+  /**
+   * Vision facts for the input-files section (T04): which attachments the
+   * model sees inline and which degraded to path-only. PER-TURN like the
+   * catchup — it rides both the enhanced prompt and a resumed turn's prefix.
+   */
+  vision?: VisionPromptInfo;
+  /**
+   * What kind of URL the turn's storage backend mints (issue #532) — keys
+   * the input-files hand-off wording. Sourced from the resolved
+   * artifactStorage's self-description; absent when no storage resolved.
+   */
+  downloadUrlKind?: DownloadUrlKind;
+  pendingApprovals: PendingApproval[];
+  /**
+   * Approved whole-file writes the runner already applied itself (exact-apply).
+   * The reinvocation prompt marks these as done so the model does not redo them;
+   * the remaining approved actions are the ones it must still carry out.
+   */
+  appliedToolCallIds?: ReadonlySet<string>;
+  interactionMode?: InteractionMode;
+  /**
+   * The execution is a Build-from-plan turn (spec.execution_config
+   * .build_from_plan): both prompt paths carry the implement-plan directive.
+   */
+  buildFromPlan?: boolean;
+  /**
+   * Rollover context bridge from `SessionSpec.metadata` (cloud DD-013).
+   * Only the enhanced-prompt path consumes it — a resumed agent's native
+   * context IS the previous conversation, so it needs no bridge.
+   */
+  contextBridge?: string;
+  /**
+   * Channel sender identity from `SessionSpec.metadata`. Like the bridge,
+   * only the enhanced-prompt path consumes it — a resumed agent's native
+   * context already carries it from the session's first turn.
+   */
+  senderIdentity?: SenderIdentity;
+  /**
+   * Embedder-supplied session context from `SessionSpec.metadata`. Like
+   * the bridge, only the enhanced-prompt path consumes it — a resumed
+   * agent's native context already carries it from the session's first
+   * turn.
+   */
+  sessionContext?: string;
+  /**
+   * Platform-declared standing preferences from the execution spec's
+   * `declared_preferences` (stigmer/stigmer#293). Like the bridge, only
+   * the enhanced-prompt path consumes it — deliberately frozen per Cursor
+   * session (DD-002 D3): the first turn delivers it into the agent's own
+   * conversation store, and repeating it on resumed turns would bloat the
+   * store with identical content.
+   */
+  declaredPreferences?: DeclaredPreferencesContent;
+  /**
+   * The subject's confirmed memories from the execution spec's
+   * `recalled_memories` (stigmer/stigmer#293 Phase 2, DD-006). Like the
+   * preferences, only the enhanced-prompt path consumes it — deliberately
+   * frozen per Cursor session (DD-002 D3, inherited by DD-006 D4): the
+   * first turn delivers it into the agent's own conversation store, and
+   * repeating it on resumed turns would bloat the store with identical
+   * content.
+   */
+  recalledMemories?: RecalledMemoriesContent;
+  /**
+   * Conversation catchup from the execution spec's `conversation_catchup`
+   * (cloud DD-006): what happened on the channel conversation that the
+   * agent has not seen. PER-TURN, so unlike the standing values
+   * above it rides BOTH prompt paths — the enhanced prompt and a resumed
+   * turn's prefix (the `interaction_mode` shape). Handback lands
+   * mid-session on a resumed agent: the resumed path is the one that
+   * matters. Once delivered, the digest persists in the agent's own
+   * conversation store; the next turn's field is composed fresh and is
+   * usually blank.
+   */
+  conversationCatchup?: string;
+  /**
+   * The turn's recorded transcript rendered as digest lines
+   * (turn-recovery.ts), composed from `status.messages` at the call site.
+   * Consumed ONLY by the HITL-recovery shape — a fresh agent that replaced
+   * a lost one mid-HITL needs the story of the work it no longer remembers
+   * (issue #366); every other shape either has native context or no prior
+   * work to tell.
+   */
+  turnRecoveryDigest?: string;
+}
+
+/**
+ * Select and build the appropriate prompt based on resolution reason and
+ * HITL state.
+ *
+ * Conversation continuation is carried entirely by the Cursor SDK's native
+ * agent state (the local SQLite store persisted on the durable workspace
+ * volume, or cloud server-side state) — there is no separate continuation
+ * store. The prompt therefore depends only on how the agent was resolved:
+ *
+ * 1. HITL reinvocation,        -> buildReinvocationPrompt (approval decisions
+ *    resumed agent                 only; the resumed agent's native context
+ *                                  carries the prior conversation)
+ * 2. HITL reinvocation,        -> buildHitlRecoveryPrompt (full context +
+ *    fresh agent after            the turn's recorded transcript + decisions;
+ *    resume failure               the replacement agent's conversation is
+ *                                 empty, and both fresh-agent crossings —
+ *                                 resolution-time resume failure and mid-send
+ *                                 poisoned-handle recovery — land here by
+ *                                 keying on the reason, issue #366)
+ * 3. resumed_successfully      -> raw userMessage (native context carries it)
+ * 4. first execution / fresh   -> buildEnhancedPrompt (full instructions +
+ *    agent after resume failure   skills; no prior conversation to inherit)
+ */
+/**
+ * Whether this activity invocation is a HITL re-invocation — the turn resumes
+ * an agent purely to convey approval decisions, carrying NO user message.
+ * Discriminates the two surfaces that depend on the agent already holding
+ * this turn's content natively — the prompt shape (below) and the primary
+ * send's vision payload — but never alone: both pair it with
+ * `resolution.reason`, because a FRESH agent mid-HITL holds nothing and
+ * needs the full re-delivery (issue #366).
+ */
+export function isHitlReinvocation(
+  approvalDecisions: ReadonlyMap<string, ApprovalAction>,
+): boolean {
+  return approvalDecisions.size > 0;
+}
+
+/**
+ * Whether the PRIMARY send delivers the turn's vision payload. The invariant
+ * is "images accompany the user's turn message, wherever the conversation
+ * does not already hold them" — so the only send that skips them is a HITL
+ * re-invocation of a successfully RESUMED agent, whose native conversation
+ * carries the images from the original send. A fresh agent mid-HITL
+ * (resolution-time resume failure — issue #366's vision corollary) holds
+ * nothing and needs the re-delivery. The mid-send recovery retries always
+ * run on a fresh agent, so their send sites carry the payload
+ * unconditionally rather than consulting this.
+ */
+export function primarySendCarriesImages(
+  approvalDecisions: ReadonlyMap<string, ApprovalAction>,
+  reason: AgentResolutionReason,
+): boolean {
+  return !(isHitlReinvocation(approvalDecisions) && reason === "resumed_successfully");
+}
+
+/**
+ * Whether a prompt built for this resolution carries the STANDING context —
+ * instructions, skills, declared preferences, recalled memories, session
+ * context. Exactly one resolution shape does not: a successfully RESUMED
+ * agent, whose native conversation already holds the first message's
+ * context (both its prompt shapes — the raw follow-up and the
+ * decisions-only HITL reinvocation — send no standing sections).
+ *
+ * The named authority for that routing property (the
+ * primarySendCarriesImages idiom): buildPrompt's internal routing and the
+ * activity's standing-context preparation (e.g. the memory selection gate)
+ * both consult THIS predicate, so the two can never drift.
+ */
+export function promptCarriesStandingContext(reason: AgentResolutionReason): boolean {
+  return reason !== "resumed_successfully";
+}
+
+/**
+ * Append the structured-output contract to a prompt when the execution
+ * requests one. A per-turn directive (the buildFromPlan rule): it must ride
+ * every prompt this turn sends — the primary send AND the poisoned-handle
+ * recovery rebuild, which previously lost it (issue #366 ride-along).
+ */
+export function appendStructuredOutputDirective(
+  basePrompt: string,
+  schema: Record<string, unknown> | undefined,
+): string {
+  if (!schema) return basePrompt;
+  const schemaStr = JSON.stringify(schema, null, 2);
+  return basePrompt + `\n\n---\nCRITICAL OUTPUT REQUIREMENT:\nYour final response MUST be a single valid JSON object (no markdown, no commentary, no code fences) that matches this schema:\n${schemaStr}\n\nRespond with ONLY the JSON object. Nothing else.`;
+}
+
+export function buildPrompt(input: BuildPromptInput): string {
+  const {
+    resolution,
+    approvalDecisions,
+    instructions,
+    userMessage,
+    skills,
+    subAgents,
+    workspaceDirs,
+    workspaceFileRefs,
+    attachments,
+    interactionMode,
+    buildFromPlan,
+    conversationCatchup,
+  } = input;
+
+  // HITL reinvocation: the decisions-only prompt is correct ONLY while the
+  // agent's native context still carries the prior conversation — which only
+  // resumed_successfully guarantees. Any other reason means a fresh agent
+  // mid-HITL (in practice created_after_resume_failure: the stored handle
+  // failed to resume, or a poisoned handle was replaced mid-send), which
+  // gets the full recovery shape instead — enhanced context + the turn's
+  // recorded transcript + the same decisions — because the bare decisions on
+  // an empty conversation strand the agent with instructions and no story,
+  // and the session inherits that amnesia permanently (issue #366).
+  if (isHitlReinvocation(approvalDecisions)) {
+    if (promptCarriesStandingContext(resolution.reason)) {
+      return buildHitlRecoveryPrompt(
+        {
+          instructions,
+          userMessage,
+          skills,
+          channelMessaging: input.channelMessaging ?? [],
+          subAgents,
+          workspaceDirs,
+          workspaceFileRefs,
+          attachments,
+          vision: input.vision,
+          downloadUrlKind: input.downloadUrlKind,
+          interactionMode,
+          buildFromPlan,
+          contextBridge: input.contextBridge,
+          senderIdentity: input.senderIdentity,
+          sessionContext: input.sessionContext,
+          declaredPreferences: input.declaredPreferences,
+          recalledMemories: input.recalledMemories,
+          conversationCatchup,
+        },
+        {
+          turnDigest: input.turnRecoveryDigest,
+          pendingApprovals: input.pendingApprovals,
+          approvalDecisions,
+          appliedToolCallIds: input.appliedToolCallIds,
+        },
+      );
+    }
+    return buildReinvocationPrompt(
+      input.pendingApprovals,
+      approvalDecisions,
+      input.appliedToolCallIds,
+    );
+  }
+
+  // A successfully resumed agent carries its own conversation context via the
+  // SDK's native store — send the raw user message with no preamble. The
+  // exceptions are the per-EXECUTION values, which never inherit from the
+  // session's first turn: the interaction-mode prefix (a follow-up can switch
+  // Agent→Plan mid-session, and for Cursor the prompt is the only plan-mode
+  // enforcement), the implement-plan directive (the build turn is usually a
+  // follow-up on a resumed agent), THIS turn's attachments (spec.attachments
+  // is per-execution — a file sent on a follow-up turn materializes for this
+  // turn and would otherwise never be announced at all), and the conversation
+  // catchup (handback ALWAYS lands mid-session on a resumed agent — this
+  // prefix is the property the metadata lane structurally cannot deliver,
+  // cloud DD-006). Catchup last: it is context, and context sits closest to
+  // the task (the enhanced prompt's own ordering doctrine); the input files
+  // precede it because they are this turn's payload, not background.
+  if (!promptCarriesStandingContext(resolution.reason)) {
+    const prefixes = [
+      formatInteractionModePrefix(interactionMode),
+      formatImplementPlanSection(buildFromPlan, attachments),
+      attachments.length > 0
+        ? formatInputFiles(attachments, input.vision, input.downloadUrlKind)
+        : undefined,
+      conversationCatchup !== undefined
+        ? formatConversationCatchupSection(conversationCatchup)
+        : undefined,
+    ].filter((p): p is string => p !== undefined);
+    return prefixes.length > 0
+      ? [...prefixes, userMessage].join("\n\n")
+      : userMessage;
+  }
+
+  // First execution, or a fresh agent created after a resume failure: there is
+  // no prior conversation to inherit, so start a new turn with full context —
+  // including the rollover bridge, when the session carries one.
+  return buildEnhancedPrompt({
+    instructions,
+    userMessage,
+    skills,
+    channelMessaging: input.channelMessaging ?? [],
+    subAgents,
+    workspaceDirs,
+    workspaceFileRefs,
+    attachments,
+    vision: input.vision,
+    downloadUrlKind: input.downloadUrlKind,
+    interactionMode,
+    buildFromPlan,
+    contextBridge: input.contextBridge,
+    senderIdentity: input.senderIdentity,
+    sessionContext: input.sessionContext,
+    declaredPreferences: input.declaredPreferences,
+    recalledMemories: input.recalledMemories,
+    conversationCatchup,
+  });
 }

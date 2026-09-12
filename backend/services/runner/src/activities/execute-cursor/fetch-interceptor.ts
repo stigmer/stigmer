@@ -9,15 +9,17 @@
  * This is the JavaScript-level equivalent of LangChain's base_url parameter
  * that the Python agent-runner uses for the LLM proxy pattern.
  *
- * IMPORTANT: This module must be imported BEFORE @cursor/sdk to ensure the
- * interceptor is in place when the SDK initializes its HTTP client.
+ * Installed by the Cursor adapter's `boot` (adapter.ts), which the registry
+ * runs in both composition roots before Temporal coordinates are resolved and
+ * before the adapter loads `@cursor/sdk`, so the interceptor is in place
+ * before the SDK issues its first request. The proxy credential is read per
+ * request from the ref the root bound as `Config.proxyTokenRef`.
  *
  * When STIGMER_PROXY_ENDPOINT is not set, this module is a no-op.
  */
 
-import { AsyncLocalStorage } from "node:async_hooks";
-
 import { TimingRecorder, emitTimingLog } from "../../shared/cold-start-timing.js";
+import { getExecutionContext } from "../../shared/execution-context.js";
 
 /** One REST path's timing identity: the emitted timeline event and its
  * single segment name. */
@@ -56,22 +58,37 @@ const CURSOR_DOMAINS = [
 
 interface ProxyConfig {
   proxyEndpoint: string;
-  stigmerToken: string;
+  /**
+   * The proxy credential, read on EVERY request (never copied): the
+   * composition root that installed this interceptor owns the ref and
+   * rotates it in place (the static root's sandbox-token renewal, the
+   * manager's token coordinator), so a rotation reaches the next request
+   * without a call into this module. Which credential it is differs per
+   * root — the static root's control-plane token, the manager's minted
+   * runner token (Q-S2-7) — and this module never knows which.
+   */
+  proxyTokenRef: { readonly current: string | null };
   executionId?: string;
+}
+
+/**
+ * The `Authorization`-style header value for the current proxy credential,
+ * or undefined when the ref is empty. Empty is unreachable by construction
+ * today (neither root ever writes null into the ref it bound), so the request
+ * goes out without the header and the proxy's 401 is the diagnostic; a
+ * runner-side throw here would surface inside the SDK's transport, a path
+ * nothing exercises.
+ */
+function bearer(config: ProxyConfig): string | undefined {
+  const token = config.proxyTokenRef.current;
+  return token === null ? undefined : `Bearer ${token}`;
 }
 
 let interceptorConfig: ProxyConfig | null = null;
 const originalFetch = globalThis.fetch;
 
-interface ExecutionContextStore {
-  executionId: string;
-}
-
-const executionContext = new AsyncLocalStorage<ExecutionContextStore>();
-
-export function getExecutionContext(): AsyncLocalStorage<ExecutionContextStore> {
-  return executionContext;
-}
+/** The execution-scoped store the headers below are stamped from (`shared/execution-context.ts`). */
+const executionContext = getExecutionContext();
 
 /**
  * Connect RPC path prefixes used by the Cursor SDK. Most requests with
@@ -193,7 +210,11 @@ function rewriteUrl(originalUrl: string, proxyEndpoint: string): string {
  */
 function replaceAuth(init: RequestInit | undefined, config: ProxyConfig): RequestInit {
   const headers = new Headers(init?.headers);
-  headers.set("authorization", `Bearer ${config.stigmerToken}`);
+  const auth = bearer(config);
+  // Replace, never leak: with no proxy credential the SDK's own authorization
+  // (a Cursor credential) must still not reach the proxy.
+  if (auth !== undefined) headers.set("authorization", auth);
+  else headers.delete("authorization");
   const ctx = executionContext.getStore();
   const effectiveExecutionId = ctx?.executionId ?? config.executionId;
   if (effectiveExecutionId) {
@@ -210,7 +231,8 @@ function replaceAuth(init: RequestInit | undefined, config: ProxyConfig): Reques
  */
 function injectProxyAuth(init: RequestInit | undefined, config: ProxyConfig): RequestInit {
   const headers = new Headers(init?.headers);
-  headers.set("x-stigmer-auth", `Bearer ${config.stigmerToken}`);
+  const auth = bearer(config);
+  if (auth !== undefined) headers.set("x-stigmer-auth", auth);
   const ctx = executionContext.getStore();
   const effectiveExecutionId = ctx?.executionId ?? config.executionId;
   if (effectiveExecutionId) {
@@ -362,21 +384,26 @@ async function fetchWithProxyAuth(
 }
 
 /**
- * Install the global fetch interceptor. Call once at startup, BEFORE
- * importing @cursor/sdk.
+ * Install the global fetch interceptor, at boot, BEFORE `@cursor/sdk` is
+ * imported. Idempotent: a second install rebinds the config (a worker may
+ * re-boot its harnesses) and never captures the interceptor itself as the
+ * original fetch.
  *
  * When proxyEndpoint is empty or not provided, the interceptor is not
  * installed and all fetch calls pass through to the original implementation.
+ * A proxy endpoint with no credential bound at install is a configuration
+ * defect and fails the boot here, the same failure as before the ref (the
+ * ref is read per request afterwards; only its presence is judged now).
  */
 export function installFetchInterceptor(config: {
   proxyEndpoint: string | undefined;
-  stigmerToken: string | undefined;
+  proxyTokenRef: { readonly current: string | null } | undefined;
 }): void {
   if (!config.proxyEndpoint) {
     return;
   }
 
-  if (!config.stigmerToken) {
+  if (!config.proxyTokenRef || config.proxyTokenRef.current === null) {
     throw new Error(
       "STIGMER_TOKEN is required when STIGMER_PROXY_ENDPOINT is set. " +
       "In proxy mode, the runner authenticates with Stigmer's proxy using STIGMER_TOKEN.",
@@ -385,7 +412,7 @@ export function installFetchInterceptor(config: {
 
   interceptorConfig = {
     proxyEndpoint: config.proxyEndpoint,
-    stigmerToken: config.stigmerToken,
+    proxyTokenRef: config.proxyTokenRef,
   };
 
   globalThis.fetch = interceptedFetch;
@@ -393,18 +420,6 @@ export function installFetchInterceptor(config: {
   console.log(
     `Cursor proxy interceptor installed: Cursor traffic → ${config.proxyEndpoint}/v1/proxy/cursor/`,
   );
-}
-
-/**
- * Update the auth token on the live interceptor config. Must be called
- * whenever the Stigmer JWT is refreshed (e.g. via IPC updateToken) so
- * that fetch-intercepted REST calls (token exchange, /v1/models) use the
- * current token instead of the one frozen at install time.
- */
-export function updateInterceptorToken(token: string): void {
-  if (interceptorConfig) {
-    interceptorConfig = { ...interceptorConfig, stigmerToken: token };
-  }
 }
 
 /**
@@ -419,18 +434,6 @@ export function setInterceptorExecutionId(executionId: string | undefined): void
   }
 }
 
-/**
- * Run an async function with execution-scoped context. The executionId is
- * propagated through the async call chain via AsyncLocalStorage, ensuring
- * concurrent activities on the same runner process don't overwrite each
- * other's proxy headers.
- */
-export function runWithExecutionContext<T>(
-  executionId: string,
-  fn: () => Promise<T>,
-): Promise<T> {
-  return executionContext.run({ executionId }, fn);
-}
 
 /**
  * Remove the interceptor and restore the original fetch. Primarily for

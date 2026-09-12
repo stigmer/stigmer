@@ -33,6 +33,24 @@ describe("mapManagerOptionsToConfig", () => {
     expect(config.checkpointerType).toBe("http");
   });
 
+  it("binds the proxy credential to the runner-token ref, never the control-plane ref (Q-S2-7)", () => {
+    const tokenRef = { current: "control-plane-token" };
+    const runnerTokenRef = { current: "control-plane-token" };
+    const config = mapManagerOptionsToConfig(
+      { ...base, proxyEndpoint: "https://localhost:9090", stigmerToken: "control-plane-token" },
+      tokenRef,
+      runnerTokenRef,
+    );
+    expect(config.proxyTokenRef).toBe(runnerTokenRef);
+    expect(config.stigmerRunnerTokenRef).toBe(runnerTokenRef);
+    expect(config.stigmerTokenRef).toBe(tokenRef);
+
+    // After the mint the two refs diverge; the proxy credential follows the mint.
+    runnerTokenRef.current = "minted-runner-token";
+    expect(config.proxyTokenRef?.current).toBe("minted-runner-token");
+    expect(config.stigmerTokenRef?.current).toBe("control-plane-token");
+  });
+
   it("uses cloud only when executionMode is explicitly cloud", () => {
     const config = mapManagerOptionsToConfig({
       ...base,

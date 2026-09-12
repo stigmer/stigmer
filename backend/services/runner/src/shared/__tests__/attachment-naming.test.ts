@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { uniquifyFilename, allocateUniqueName } from "../attachment-naming.js";
 import { injectAttachments } from "../../activities/execute-deep-agent/attachment-injector.js";
-import { resolveAttachments } from "../../activities/execute-cursor/attachment-resolver.js";
+import { resolveAttachments } from "../attachment-resolver.js";
 import { getPlatformDir } from "../workspace/platform-dir.js";
 import { makeInMemoryArtifactStorage } from "../../__test-utils__/fake-artifact-storage.js";
 import type { WorkspaceBackend } from "../workspace/types.js";

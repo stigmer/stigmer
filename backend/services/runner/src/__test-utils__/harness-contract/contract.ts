@@ -7,8 +7,8 @@
  * half: what an adapter owes the runtime through `runTurn`, `boot`,
  * `shutdown` and `releaseSession`. The runtime-side half (the throw-vs-return
  * table end to end, the whole-activity heartbeat, the single persist
- * chokepoint, the byte-pinned copy) is proven against the real runtime once
- * it exists, through the hermetic activity driver.
+ * chokepoint, the byte-pinned copy) is `runtime-contract.ts`, proven against
+ * the real runtime under `MockActivityEnvironment` with the same subjects.
  *
  * The kit IS the runtime stand-in. {@link ExecutionDriver} does what the
  * runtime and the server do around a turn: builds the `TurnInput`, threads
@@ -16,10 +16,17 @@
  * the id the adapter bound; one fixed id for a deterministic harness),
  * advances `turnSeq`, records a user's decision the way `SubmitApproval` does
  * (on the persisted row's `approvalAction`, the one copy) and derives the
- * decisions map from those rows on the next invocation, hands each
- * reinvocation a CLONE of the previous status (the runtime persists and reads
- * back; nothing survives by object identity), and owns the sink. The subject
- * owns the engine.
+ * decisions map from those rows on the next invocation with the runtime's
+ * own reader, hands each reinvocation a CLONE of the previous status on BOTH
+ * the sink and the record (`execution.status` — the runtime seeds the one
+ * from the other, and an adapter may read the record's copy for its facts;
+ * nothing survives by object identity), and owns the sink. The subject owns
+ * the engine, and tells the kit when that engine is parked on a hang, which
+ * is the only moment the kit stops a turn from the outside: a real engine
+ * reaches its hang after real setup, and a stop delivered earlier lands in
+ * the setup and proves nothing. The kit also owns the adapter's lifetime —
+ * booted before the first turn, shut down after the last — because the
+ * registry does, and a real adapter refuses a turn before boot.
  *
  * ── Invariant catalog ───────────────────────────────────────────────────────
  *  1. Every exit is a `TurnOutcome`. `runTurn` resolves, never rejects, under
@@ -27,9 +34,12 @@
  *     never escapes (the runtime, not the adapter, throws it).
  *  2. A proposal is a WAITING_APPROVAL row on `sink.status` when
  *     `awaiting_approval` resolves, and never executes in that turn.
- *  3. Reinvoked with APPROVE for that id → executes exactly once; with REJECT
- *     or SKIP → never; reinvoked again after the approval → still once.
- *  4. Aborting `stopSignal` mid-turn settles `runTurn` as `interrupted` within
+ *  3. Reinvoked with APPROVE for that id → executes exactly once and the row
+ *     is carried to COMPLETED; with REJECT or SKIP → never executes and the
+ *     turn continues (the row's terminal status is the runtime's to write,
+ *     not the adapter's — Q-M4-1); reinvoked again after the approval → still
+ *     once, never re-gated.
+ *  4. Aborting `stopSignal` mid-hang settles `runTurn` as `interrupted` within
  *     {@link INTERRUPT_SETTLE_BOUND_MS} and nothing after the stop executes; a
  *     signal aborted BEFORE `runTurn` yields `interrupted` with nothing done.
  *  5. Usage reaches the sink as non-negative deltas summing to what the engine
@@ -38,9 +48,9 @@
  *     adapter binds before its first persist and resumes by the bound id, and
  *     surfaces a rejected bind as `failed` with nothing done after it; a
  *     `deterministic` adapter never binds.
- *  7. Lifetimes: `boot` then `shutdown` resolve; `releaseSession` for a served
- *     session and for an unknown one both resolve; `shutdown` after a release
- *     resolves.
+ *  7. Lifetimes: `releaseSession` for a served session and for an unknown one
+ *     both resolve; `shutdown` after a release resolves; `boot` after
+ *     `shutdown` resolves (a worker restart re-boots the same module state).
  *  8. One adapter object serves concurrent turns independently: a hanging turn
  *     and a completing turn on the same adapter never cross outcomes or
  *     execution counts.
@@ -48,7 +58,8 @@
  * Every invariant is an exported plain async function first and an `it`
  * block second, so `__tests__/harness-contract-self-check.test.ts` can run
  * each one against a deliberately broken adapter and prove it fires — a kit
- * that cannot fail proves nothing. Every message names the subject.
+ * that cannot fail proves nothing. Every message names the subject. Each
+ * function requires a booted adapter; {@link describeHarnessContract} boots.
  *
  * Above the contract line the pause primitives are indistinguishable: both
  * end a turn `awaiting_approval`, both take the decisions on reinvocation.
@@ -56,19 +67,21 @@
  * runner test runs the fake under both to prove it.
  */
 
-import { describe, it, expect } from "vitest";
+import { afterAll, beforeAll, describe, it, expect } from "vitest";
 import { CancelledFailure } from "@temporalio/activity";
 import { clone } from "@bufbuild/protobuf";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ApprovalAction, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
+import { approvalDecisionsOf } from "../../harness/turn-context.js";
 import type { TurnInput, TurnOutcome, UsageDelta } from "../../harness/types.js";
 import type { ProposedAction } from "../approval-contract/types.js";
 import { emptyStatus, findToolCallRow } from "../proto-helpers.js";
+import { turnInputFixture } from "../turn-input-fixture.js";
 import { RecordingTurnSink } from "./recording-sink.js";
 import { scenario } from "./types.js";
-import type { HarnessContractSubject, TurnScenario } from "./types.js";
+import type { EngineView, HarnessContractSubject, TurnScenario } from "./types.js";
 
 /**
  * How long a turn may take to settle `interrupted` after its signal aborts.
@@ -79,7 +92,7 @@ import type { HarnessContractSubject, TurnScenario } from "./types.js";
  */
 export const INTERRUPT_SETTLE_BOUND_MS = 5_000;
 
-const OUTCOME_KINDS = ["completed", "awaiting_approval", "failed", "interrupted"] as const satisfies readonly TurnOutcome["kind"][];
+const OUTCOME_KINDS = ["completed", "cancelled", "awaiting_approval", "failed", "interrupted"] as const satisfies readonly TurnOutcome["kind"][];
 
 /** Representative gated action shared by the invariants. */
 const WRITE_ALPHA: ProposedAction = { kind: "write", resource: "/work/alpha.txt" };
@@ -95,33 +108,18 @@ export interface TurnRun {
 export interface TurnOptions {
   /** A prepared sink (e.g. one whose bind rejects); defaults to a fresh one over the threaded status. */
   readonly sink?: RecordingTurnSink;
-  /** Called synchronously once `runTurn` has been entered, with the live sink — the hook that stops a turn mid-flight. */
-  readonly onStarted?: (sink: RecordingTurnSink) => void;
+  /**
+   * Abort the sink's signal with this reason the moment the engine reports
+   * it is parked on a `hang` — the one way the kit stops a turn from the
+   * outside (see the header on why not sooner).
+   */
+  readonly stopWhenHanging?: string;
 }
 
 export interface TurnInFlight {
   readonly input: TurnInput;
   readonly sink: RecordingTurnSink;
   readonly settled: Promise<TurnOutcome>;
-}
-
-/**
- * The runtime's one reader of approval decisions, as the two harnesses agree
- * on it today: every tool-call row still WAITING_APPROVAL whose
- * `approvalAction` the server has set. The runtime extraction exports this
- * from `src/harness/` and this kit imports it from there; until then the kit
- * carries the definition so the data flow it drives is the real one.
- */
-function approvalDecisionsOf(status: AgentExecutionStatus): ReadonlyMap<string, ApprovalAction> {
-  const decisions = new Map<string, ApprovalAction>();
-  for (const message of status.messages) {
-    for (const row of message.toolCalls) {
-      if (row.status === ToolCallStatus.TOOL_CALL_WAITING_APPROVAL && row.approvalAction !== ApprovalAction.UNSPECIFIED) {
-        decisions.set(row.id, row.approvalAction);
-      }
-    }
-  }
-  return decisions;
 }
 
 /**
@@ -148,17 +146,34 @@ export class ExecutionDriver {
 
   /** Start a turn without awaiting it, for invariants about turns in flight. */
   begin(turn: TurnScenario, options: TurnOptions = {}): TurnInFlight {
-    this.subject.arrange(turn);
     const sink = options.sink ?? new RecordingTurnSink({ status: this.seedStatus() });
-    const input: TurnInput = {
+    // The engine's view and the record's copy both derive from the status
+    // this turn folds into, so a prepared sink's status is honoured too.
+    const view: EngineView = {
+      executionId: this.executionId,
+      sessionId: this.sessionId,
+      approvalDecisions: approvalDecisionsOf(sink.status),
+    };
+    this.subject.arrange(turn, view);
+    // Registered BEFORE the turn is entered so a hang reached synchronously
+    // is still observed; the abort itself lands when the engine reports.
+    const parked = options.stopWhenHanging !== undefined ? this.subject.whenHanging() : undefined;
+    // The whole resolved record: the subject's needs under the driver's five
+    // facts and the persisted status (`turn-input-fixture.ts`).
+    const input: TurnInput = turnInputFixture({
+      ...this.subject.inputOverrides?.(view),
       executionId: this.executionId,
       threadId: this.threadId,
       turnSeq: this.turnSeq,
       sessionId: this.sessionId,
-      approvalDecisions: approvalDecisionsOf(sink.status),
-    };
+      approvalDecisions: view.approvalDecisions,
+      persistedStatus: clone(AgentExecutionStatusSchema, sink.status),
+    });
     const settled = this.subject.adapter.runTurn(input, sink);
-    options.onStarted?.(sink);
+    if (parked && options.stopWhenHanging !== undefined) {
+      const reason = options.stopWhenHanging;
+      void parked.then(() => sink.abort(reason));
+    }
     return { input, sink, settled };
   }
 
@@ -186,7 +201,11 @@ export class ExecutionDriver {
   decide(toolCallId: string, action: ApprovalAction): void {
     const row = this.persisted ? findToolCallRow(this.persisted, toolCallId) : undefined;
     if (!row || row.status !== ToolCallStatus.TOOL_CALL_WAITING_APPROVAL) {
-      throw new Error(`${this.subject.name}: kit bug — decide('${toolCallId}') but no WAITING row was persisted`);
+      const rows = (this.persisted?.messages ?? [])
+        .flatMap((m) => m.toolCalls)
+        .map((tc) => `${tc.id}=${ToolCallStatus[tc.status]}`)
+        .join(", ");
+      throw new Error(`${this.subject.name}: kit bug — decide('${toolCallId}') but no WAITING row was persisted (rows: ${rows || "none"})`);
     }
     row.approvalAction = action;
   }
@@ -233,13 +252,6 @@ async function settleWithinBound<T>(subject: HarnessContractSubject, settled: Pr
   }
 }
 
-/** Stop the turn on the next macrotask, after the adapter has reached whatever it was going to park on. */
-function stopSoon(reason: string): (sink: RecordingTurnSink) => void {
-  return (sink) => {
-    setImmediate(() => sink.abort(reason));
-  };
-}
-
 async function expectResolves(subject: HarnessContractSubject, call: Promise<void>, what: string): Promise<void> {
   try {
     await call;
@@ -263,7 +275,7 @@ export async function assertEveryExitIsAnOutcome(subject: HarnessContractSubject
     { when: "on a usage-only turn", turn: [scenario.usage({ inputTokens: 1, outputTokens: 1 })] },
     { when: "on an undecided proposal", turn: [scenario.propose("inv1-call", WRITE_ALPHA)] },
     { when: "on an engine failure", turn: [scenario.fail("engine exploded")] },
-    { when: "on a hang stopped from the outside", turn: [scenario.hang()], options: { onStarted: stopSoon("kit: stop") } },
+    { when: "on a hang stopped from the outside", turn: [scenario.hang()], options: { stopWhenHanging: "kit: stop" } },
   ];
   for (const play of plays) {
     const { sink, settled } = driver.begin(play.turn, play.options);
@@ -304,10 +316,14 @@ export async function assertProposalIsWaitingAndUnexecuted(subject: HarnessContr
 
 /**
  * Invariant 3: the decision is honoured exactly. APPROVE executes once and
- * only once, however many times the same decided row is seen again; REJECT
- * and SKIP never execute and carry the row to SKIPPED (the enum's own
- * transition). The reinvocation sees a CLONE of the persisted status, as it
- * would from the server.
+ * only once, however many times the same decided row is seen again, and the
+ * engine's completion reaches the row; REJECT and SKIP never execute and the
+ * turn continues — the row's terminal status is NOT asserted here because
+ * it is not the adapter's to write (the decision is the server's field and
+ * the WAITING → SKIPPED transition follows from it with no engine knowledge,
+ * so it is the runtime's; S2 M4 Q-M4-1, the runtime's arm lands in S3). The
+ * reinvocation sees a CLONE of the persisted status, as it would from the
+ * server.
  */
 export async function assertDecisionsExecuteExactlyOnce(subject: HarnessContractSubject): Promise<void> {
   const driver = new ExecutionDriver(subject, "inv3");
@@ -334,7 +350,7 @@ export async function assertDecisionsExecuteExactlyOnce(subject: HarnessContract
     const decided = await driver.turn([scenario.propose(id, WRITE_ALPHA), scenario.say("moving on")]);
     expect(decided.outcome.kind, `${subject.name}: after ${label} the turn must continue to completion`).toBe("completed");
     expect(subject.executionCount(id), `${subject.name}: a ${label}-ed action must never execute`).toBe(0);
-    expect(findToolCallRow(decided.sink.status, id)?.status, `${subject.name}: a ${label}-ed row must be carried to SKIPPED`).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
+    expect(findToolCallRow(decided.sink.status, id)?.status, `${subject.name}: a ${label}-ed action must never be reported as executed`).not.toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
   }
 }
 
@@ -342,9 +358,11 @@ export async function assertDecisionsExecuteExactlyOnce(subject: HarnessContract
 
 /**
  * Invariant 4: the stop signal is honoured promptly and completely. A turn
- * stopped while hanging settles `interrupted` within the bound and executes
- * nothing that came after the hang, even an already-approved action; a turn
- * entered under an aborted signal does nothing at all.
+ * stopped WHILE HANGING (the engine has reported it is parked, so the stop
+ * lands in the hang and not in the adapter's setup) settles `interrupted`
+ * within the bound and executes nothing that came after the hang, even an
+ * already-approved action; a turn entered under an aborted signal does
+ * nothing at all.
  */
 export async function assertStopSignalInterrupts(subject: HarnessContractSubject, boundMs = INTERRUPT_SETTLE_BOUND_MS): Promise<void> {
   const driver = new ExecutionDriver(subject, "inv4");
@@ -354,7 +372,7 @@ export async function assertStopSignalInterrupts(subject: HarnessContractSubject
   expect(proposed.outcome.kind, `${subject.name}: proposal must end awaiting_approval`).toBe("awaiting_approval");
   driver.decide(id, ApprovalAction.APPROVE);
 
-  const hanging = driver.begin([scenario.say("working"), scenario.hang(), scenario.propose(id, WRITE_ALPHA)], { onStarted: stopSoon("kit: user pause") });
+  const hanging = driver.begin([scenario.say("working"), scenario.hang(), scenario.propose(id, WRITE_ALPHA)], { stopWhenHanging: "kit: user pause" });
   const outcome = await settleWithinBound(subject, hanging.settled, "after stopSignal aborted mid-hang", boundMs);
   expect(outcome.kind, `${subject.name}: a turn stopped mid-hang must settle interrupted`).toBe("interrupted");
   expect(subject.executionCount(id), `${subject.name}: nothing after the stop may execute, even an approved action`).toBe(0);
@@ -371,22 +389,31 @@ export async function assertStopSignalInterrupts(subject: HarnessContractSubject
 
 // ── Invariant 5 ─────────────────────────────────────────────────────────────
 
-function sumUsage(deltas: readonly UsageDelta[]): Required<UsageDelta> {
-  const total = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 };
+/** The four counts summed; the price and its basis are the adapter's per delta and are not summed here. */
+interface UsageTotals {
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  cacheWriteTokens: number;
+}
+
+const TOKEN_COUNT_FIELDS = ["inputTokens", "outputTokens", "cacheReadTokens", "cacheWriteTokens"] as const satisfies readonly (keyof UsageTotals)[];
+
+function sumUsage(deltas: readonly UsageDelta[]): UsageTotals {
+  const total: UsageTotals = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 };
   for (const d of deltas) {
-    total.inputTokens += d.inputTokens ?? 0;
-    total.outputTokens += d.outputTokens ?? 0;
-    total.cacheReadTokens += d.cacheReadTokens ?? 0;
-    total.cacheWriteTokens += d.cacheWriteTokens ?? 0;
+    for (const field of TOKEN_COUNT_FIELDS) total[field] += d[field] ?? 0;
   }
   return total;
 }
 
 /**
- * Invariant 5: usage reaches the sink as deltas — non-negative, and summing
- * to what the engine emitted. An adapter that reports cumulative totals
- * instead of deltas would double-count in the runtime's accumulator and trip
- * the cost cap early; one that reports a negative number would credit it.
+ * Invariant 5: usage reaches the sink as deltas — the token counts and the
+ * price non-negative, and the counts summing to what the engine emitted. An
+ * adapter that reports cumulative totals instead of deltas would
+ * double-count in the runtime's accumulator and trip the cost cap early; one
+ * that reports a negative number would credit it. The basis a delta names
+ * (`model`, `requestedModelParams`) is the adapter's own and not judged here.
  */
 export async function assertUsageReachesSinkAsDeltas(subject: HarnessContractSubject): Promise<void> {
   const driver = new ExecutionDriver(subject, "inv5");
@@ -399,7 +426,9 @@ export async function assertUsageReachesSinkAsDeltas(subject: HarnessContractSub
   expect(outcome.kind, `${subject.name}: a usage-reporting turn must complete`).toBe("completed");
 
   for (const delta of sink.usageDeltas) {
-    for (const [field, value] of Object.entries(delta)) {
+    for (const field of [...TOKEN_COUNT_FIELDS, "estimatedCostUsd"] as const) {
+      const value = delta[field];
+      if (value === undefined) continue;
       expect(value, `${subject.name}: usage delta field ${field} must be non-negative`).toBeGreaterThanOrEqual(0);
     }
   }
@@ -455,15 +484,15 @@ export async function assertStateIdCapabilityAgrees(subject: HarnessContractSubj
 // ── Invariant 7 ─────────────────────────────────────────────────────────────
 
 /**
- * Invariant 7: the three lifetimes resolve. Boot with the subject's config,
- * serve a turn, release the served session and an unknown one, shut down.
- * Each must resolve — a rejection in any would fail a worker's boot, leak a
- * session's resources, or hang a drain.
+ * Invariant 7: the lifetimes resolve. On the booted adapter: serve a turn,
+ * release the served session and an unknown one, shut down, and boot again
+ * (a worker restart re-boots the same module state). Each must resolve — a
+ * rejection in any would leak a session's resources, hang a drain, or fail
+ * the next worker's boot. Boot itself is proven by every turn before this
+ * one having run.
  */
 export async function assertLifetimesResolve(subject: HarnessContractSubject): Promise<void> {
   const { adapter } = subject;
-  await expectResolves(subject, adapter.boot(subject.config), "boot(config)");
-
   const driver = new ExecutionDriver(subject, "inv7");
   const served = await driver.turn([scenario.say("served")]);
   expect(served.outcome.kind, `${subject.name}: a plain turn must complete`).toBe("completed");
@@ -471,23 +500,28 @@ export async function assertLifetimesResolve(subject: HarnessContractSubject): P
   await expectResolves(subject, adapter.releaseSession(served.input.sessionId), `releaseSession('${served.input.sessionId}') for a served session`);
   await expectResolves(subject, adapter.releaseSession("ses-never-served"), "releaseSession for an unknown session");
   await expectResolves(subject, adapter.shutdown(), "shutdown() after release");
+  await expectResolves(subject, adapter.boot(subject.config), "boot(config) after shutdown (a worker restart)");
 }
 
 // ── Invariant 8 ─────────────────────────────────────────────────────────────
 
 /**
  * Invariant 8: one adapter object, many turns. While one execution's turn
- * hangs, another execution's turns propose, get decided and execute on the
- * SAME adapter; stopping the hanging turn settles only it; nothing crosses.
- * This is "the adapter holds no per-turn state" made observable — the
- * property `maxConcurrentActivities` relies on.
+ * hangs (reported parked before the other execution starts, so the two are
+ * truly concurrent and not merely queued), another execution's turns
+ * propose, get decided and execute on the SAME adapter; stopping the hanging
+ * turn settles only it; nothing crosses. This is "the adapter holds no
+ * per-turn state" made observable — the property `maxConcurrentActivities`
+ * relies on.
  */
 export async function assertConcurrentTurnsAreIndependent(subject: HarnessContractSubject, boundMs = INTERRUPT_SETTLE_BOUND_MS): Promise<void> {
   const hangingExecution = new ExecutionDriver(subject, "inv8-hanging");
   const busyExecution = new ExecutionDriver(subject, "inv8-busy");
   const id = "inv8-busy-write";
 
+  const parked = subject.whenHanging();
   const hanging = hangingExecution.begin([scenario.say("parked"), scenario.hang()]);
+  await settleWithinBound(subject, parked, "waiting for the first execution to park on its hang", boundMs);
 
   const proposed = await settleWithinBound(subject, busyExecution.turn([scenario.propose(id, WRITE_ALPHA)]), "on a second execution while another turn hangs", boundMs);
   expect(proposed.outcome.kind, `${subject.name}: a second execution's proposal must settle while another turn hangs`).toBe("awaiting_approval");
@@ -505,9 +539,20 @@ export async function assertConcurrentTurnsAreIndependent(subject: HarnessContra
 
 // ── The runnable suite ──────────────────────────────────────────────────────
 
-/** Register the adapter-side contract against one subject. */
+/**
+ * Register the adapter-side contract against one subject. Boots the adapter
+ * once before the first invariant and shuts it down after the last, as the
+ * registry does around a worker's life (`bootHarnesses` / `shutdownHarnesses`).
+ */
 export function describeHarnessContract(subject: HarnessContractSubject): void {
   describe(`harness contract — ${subject.name}`, () => {
+    beforeAll(async () => {
+      await subject.adapter.boot(subject.config);
+    });
+    afterAll(async () => {
+      await subject.adapter.shutdown();
+    });
+
     it("settles every turn with a TurnOutcome and never rejects (invariant 1)", async () => {
       await assertEveryExitIsAnOutcome(subject);
     });
@@ -526,7 +571,7 @@ export function describeHarnessContract(subject: HarnessContractSubject): void {
     it(`binds its state id as its ${subject.adapter.capabilities.stateIdSource} capability declares (invariant 6)`, async () => {
       await assertStateIdCapabilityAgrees(subject);
     });
-    it("boots, serves, releases and shuts down without a rejection (invariant 7)", async () => {
+    it("serves, releases, shuts down and re-boots without a rejection (invariant 7)", async () => {
       await assertLifetimesResolve(subject);
     });
     it("serves concurrent turns on one adapter object independently (invariant 8)", async () => {

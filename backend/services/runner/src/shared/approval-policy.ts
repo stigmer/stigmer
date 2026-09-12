@@ -438,7 +438,7 @@ export function mergeApprovalPolicies(
 export function lookupMcpToolPolicy(
   toolName: string,
   mcpServerSlug: string,
-  policies: Map<string, MergedToolPolicy>,
+  policies: ReadonlyMap<string, MergedToolPolicy>,
 ): MergedToolPolicy | undefined {
   return policies.get(`${mcpServerSlug}/${toolName}`);
 }

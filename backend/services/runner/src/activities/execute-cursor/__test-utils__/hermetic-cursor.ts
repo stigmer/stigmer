@@ -21,17 +21,24 @@
  *   (await import("../../../../__test-utils__/hermetic-activity.js")).hermeticStigmerClientModule());
  * ```
  *
- * Network: the activity's only HTTP fetch is the model registry
- * (`model-pricing-data.ts`, `shared/model-registry.ts`; both fail SOFT to
- * defaults with a 60s failure cache, which would make the goldens depend on
- * DEFAULT_PRICING and log warnings on every run). `fetch` is stubbed to answer
- * one registry document — and to THROW for any other URL, so a new network
- * dependency on the activity path fails the hermetic run instead of leaking.
+ * Network: the registry document and the `fetch` stub that serves it are
+ * the runtime's fixtures (`src/__test-utils__/model-registry-fixture.ts`);
+ * the record's four resources come from `execution-record-fixture.ts` with
+ * this harness's ids and model laid over the defaults.
  *
  * The fixture model is `composer-2.5`, pinned (not Auto) on purpose: Auto short-
  * circuits `resolveServiceTierParams` before the catalog, and a pinned model runs
  * the catalog path, the variant-param pinning, and the `run.wait()` model echo
  * check — more of the production path under the golden.
+ *
+ * Where a scenario reaches the knobs that drive the terminal table, each on
+ * the object that models the thing deciding it: the execution's cost budget
+ * and the control plane's STOP answer on the record (`CursorRecordOptions`);
+ * a control-plane fault on the client (`clientOverrides`); the runner's stall
+ * and lock windows on the scenario's `Config` (`config`); an SDK failure on
+ * the SDK double (`ScriptedSdkOptions`); an SDK-side cancel or a mid-stream
+ * wedge as an `effect` step on the run. Nothing here is a switch in production
+ * code — every knob is a value the production path already reads.
  */
 
 import { execFileSync } from "node:child_process";
@@ -39,31 +46,13 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { create } from "@bufbuild/protobuf";
 import type { ModelListItem } from "@cursor/sdk";
-import { vi } from "vitest";
-import {
-  AgentExecutionSchema,
-  type AgentExecution,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import {
-  AgentExecutionSpecSchema,
-  ExecutionConfigSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
-import { SessionSchema, type Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import {
   LocalPathSourceSchema,
   WorkspaceEntrySchema,
   WorkspaceSourceSchema,
   type WorkspaceEntry,
 } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
-import { AgentSchema, type Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import {
-  AgentInstanceSchema,
-  type AgentInstance,
-} from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
-import { AgentInstanceSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/spec_pb";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+import type { StigmerClient } from "../../../client/stigmer-client.js";
 import type { Config } from "../../../config.js";
 import type { ExecuteActivityInput } from "../../../shared/activity-input.js";
 import {
@@ -75,6 +64,8 @@ import {
   type HermeticEnvironment,
   type InvocationControls,
 } from "../../../__test-utils__/hermetic-activity.js";
+import { executionRecordFixture, type ExecutionRecordOptions } from "../../../__test-utils__/execution-record-fixture.js";
+import { FIXTURE_MODEL } from "../../../__test-utils__/model-registry-fixture.js";
 import { _resetAgentSessionCacheForTests } from "../agent-session-cache.js";
 import { _resetPricingCache } from "../model-pricing-data.js";
 import { resetCatalogCacheForTests } from "../service-tier.js";
@@ -92,8 +83,8 @@ export const FIXTURE = {
   agentInstanceId: "ain_hermetic_0001",
   agentId: "agt_hermetic_0001",
   agentName: "hermetic-agent",
-  /** The pinned model; in the registry stub AND the SDK catalog below. */
-  model: "composer-2.5",
+  /** The pinned model; in the registry fixture AND the SDK catalog below. */
+  model: FIXTURE_MODEL,
   cursorApiKey: "hermetic-cursor-api-key",
 } as const;
 
@@ -101,104 +92,28 @@ export const FIXTURE = {
 // The record
 // ---------------------------------------------------------------------------
 
-export interface CursorRecordOptions {
-  /** The user's message for this execution. */
-  readonly message: string;
-  /** The agent's instructions (system prompt body). */
-  readonly instructions?: string;
-  /** Session workspace entries (a `local_path` entry turns on capture mode). */
-  readonly workspaceEntries?: WorkspaceEntry[];
-  readonly modelName?: string;
-  readonly autoApproveAll?: boolean;
-}
+/** The record's knobs; the ids and the default model are this harness's fixture. */
+export type CursorRecordOptions = Omit<ExecutionRecordOptions, "ids">;
 
-/** The four resources of one execution, wired by id into a chain. */
+/** The four resources of one execution, wired by id into a chain, under the Cursor fixture ids. */
 export function cursorExecutionRecord(options: CursorRecordOptions): ExecutionRecord {
-  const execution: AgentExecution = create(AgentExecutionSchema, {
-    metadata: create(ApiResourceMetadataSchema, {
-      id: FIXTURE.executionId,
+  return executionRecordFixture({
+    ...options,
+    modelName: options.modelName ?? FIXTURE.model,
+    ids: {
       org: FIXTURE.org,
-      name: FIXTURE.executionId,
-    }),
-    spec: create(AgentExecutionSpecSchema, {
+      executionId: FIXTURE.executionId,
       sessionId: FIXTURE.sessionId,
-      message: options.message,
-      autoApproveAll: options.autoApproveAll ?? false,
-      executionConfig: create(ExecutionConfigSchema, {
-        modelName: options.modelName ?? FIXTURE.model,
-      }),
-    }),
-  });
-  const session: Session = create(SessionSchema, {
-    metadata: create(ApiResourceMetadataSchema, {
-      id: FIXTURE.sessionId,
-      org: FIXTURE.org,
-      name: FIXTURE.sessionId,
-    }),
-    spec: create(SessionSpecSchema, {
       agentInstanceId: FIXTURE.agentInstanceId,
-      workspaceEntries: options.workspaceEntries ?? [],
-    }),
+      agentId: FIXTURE.agentId,
+      agentName: FIXTURE.agentName,
+    },
   });
-  const agentInstance: AgentInstance = create(AgentInstanceSchema, {
-    metadata: create(ApiResourceMetadataSchema, {
-      id: FIXTURE.agentInstanceId,
-      org: FIXTURE.org,
-      name: FIXTURE.agentInstanceId,
-    }),
-    spec: create(AgentInstanceSpecSchema, { agentId: FIXTURE.agentId }),
-  });
-  const agent: Agent = create(AgentSchema, {
-    metadata: create(ApiResourceMetadataSchema, {
-      id: FIXTURE.agentId,
-      org: FIXTURE.org,
-      name: FIXTURE.agentName,
-    }),
-    spec: create(AgentSpecSchema, {
-      description: "Hermetic fixture agent",
-      instructions: options.instructions ?? "You are the hermetic fixture agent. Answer briefly.",
-    }),
-  });
-  return new ExecutionRecord({ execution, session, agentInstance, agent });
 }
 
 // ---------------------------------------------------------------------------
-// The registry document and the SDK catalog
+// The SDK catalog
 // ---------------------------------------------------------------------------
-
-/**
- * The model registry document both readers parse (`parsePricingTable` wants
- * `harness: "cursor"` + `pricing`; `parseRegistry` wants `id` + `provider` and
- * reads `capabilities.vision`). One entry, the fixture model, priced at round
- * numbers so the golden's `estimatedCostUsd` is legible.
- */
-export const REGISTRY_DOCUMENT = {
-  models: [
-    {
-      id: FIXTURE.model,
-      displayName: "Composer 2.5 (hermetic fixture)",
-      provider: "cursor",
-      harness: "cursor",
-      costTier: "standard",
-      featured: true,
-      capabilities: { vision: true },
-      pricing: {
-        inputPricePerMillion: 1.0,
-        outputPricePerMillion: 4.0,
-        cacheWritePricePerMillion: 1.0,
-        cacheReadPricePerMillion: 0.1,
-      },
-      pricingVariants: {
-        fast: {
-          inputPricePerMillion: 3.0,
-          outputPricePerMillion: 12.0,
-          cacheWritePricePerMillion: 3.0,
-          cacheReadPricePerMillion: 0.3,
-        },
-      },
-    },
-  ],
-} as const;
 
 /** The SDK catalog entry for the fixture model: both pinnable params declared. */
 export const SDK_CATALOG: readonly ModelListItem[] = [
@@ -211,26 +126,6 @@ export const SDK_CATALOG: readonly ModelListItem[] = [
     ],
   },
 ];
-
-/**
- * Stub `fetch` to answer the registry document and refuse everything else.
- * Returns the URLs fetched, for the "no other network" assertion.
- */
-export function stubRegistryFetch(): { readonly urls: string[]; restore(): void } {
-  const urls: string[] = [];
-  vi.stubGlobal(
-    "fetch",
-    vi.fn(async (input: string | URL | Request) => {
-      const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
-      urls.push(url);
-      if (!url.includes("/model-registry")) {
-        throw new Error(`hermetic run attempted a non-registry network call: ${url}`);
-      }
-      return { ok: true, status: 200, json: async () => REGISTRY_DOCUMENT } as unknown as Response;
-    }),
-  );
-  return { urls, restore: () => vi.unstubAllGlobals() };
-}
 
 // ---------------------------------------------------------------------------
 // Config
@@ -369,6 +264,8 @@ export interface CursorScenario {
   readonly clock: ScriptedClock;
   readonly record: ExecutionRecord;
   readonly sdk: ScriptedCursorSdk;
+  /** The runner this scenario runs on: the OSS posture plus the scenario's knobs. */
+  readonly config: Config;
 }
 
 export interface CursorScenarioOptions {
@@ -376,6 +273,19 @@ export interface CursorScenarioOptions {
   readonly clock: ScriptedClock;
   readonly record: ExecutionRecord;
   readonly sdk: ScriptedSdkOptions;
+  /**
+   * Control-plane facets the scenario opts INTO, or faults it injects, over
+   * the record's everyday answers (`ExecutionRecord.client`): a rejecting
+   * `getAgent` is how a blueprint-resolution failure is staged.
+   */
+  readonly clientOverrides?: Partial<StigmerClient>;
+  /**
+   * Runner knobs over {@link hermeticCursorConfig}: a scenario that needs the
+   * stall watchdog or the workspace-lock wait to expire states the window
+   * here. A property of the runner the scenario runs on, not of one turn, so
+   * it lives on the scenario and every turn of it sees the same `Config`.
+   */
+  readonly config?: Partial<Config>;
 }
 
 /** Bind the record and the SDK for a scenario; resets the harness caches first. */
@@ -383,8 +293,14 @@ export function beginCursorScenario(options: CursorScenarioOptions): CursorScena
   resetCursorModuleState();
   const sdk = new ScriptedCursorSdk(options.sdk);
   bindScriptedSdk(sdk);
-  bindHermeticClient(options.record.client());
-  return { env: options.env, clock: options.clock, record: options.record, sdk };
+  bindHermeticClient(options.record.client(options.clientOverrides));
+  return {
+    env: options.env,
+    clock: options.clock,
+    record: options.record,
+    sdk,
+    config: { ...hermeticCursorConfig(options.env), ...options.config },
+  };
 }
 
 export interface CursorTurnOptions {
@@ -396,26 +312,30 @@ export interface CursorTurnOptions {
 }
 
 /**
- * Run ONE `ExecuteCursor` invocation for the scenario. The activities are
- * constructed per invocation (the factory constructs its client, which is the
- * one bound at `beginCursorScenario`).
+ * Run ONE `ExecuteCursor` invocation for the scenario: the real Cursor
+ * adapter under the real turn runtime, as the composition roots wire them.
+ * Built per invocation (the registry constructs its client, which is the one
+ * bound at `beginCursorScenario`; the adapter boots on the scenario's config).
  */
 export async function runCursorTurn(
   scenario: CursorScenario,
   options: CursorTurnOptions = {},
 ): Promise<ActivityInvocation> {
   // Imported lazily so the scenario file's `vi.mock` declarations are in
-  // force before the activity module (and, through it, `@cursor/sdk` and the
-  // client) is loaded.
-  const { createCursorActivities } = await import("../index.js");
-  const activities = createCursorActivities(hermeticCursorConfig(scenario.env));
+  // force before the adapter module is loaded and before its `boot` loads
+  // `@cursor/sdk` (through `turn.ts`) and the registry loads the client.
+  const { createCursorAdapter } = await import("../adapter.js");
+  const { createHarnessActivities } = await import("../../../harness/registry.js");
+  const adapter = createCursorAdapter();
+  await adapter.boot(scenario.config);
+  const activities = await createHarnessActivities([{ harness: "cursor", adapter }], scenario.config);
   // The typed wire shape the control plane's workflow sends (activity-input.ts).
   const input: ExecuteActivityInput = {
     execution_id: scenario.record.executionId,
     thread_id: options.threadId ?? "",
     turn_seq: options.turnSeq ?? 0,
   };
-  return runActivityHermetically(activities.ExecuteCursor, [input], {
+  return runActivityHermetically(activities.ExecuteCursor!, [input], {
     taskQueue: "hermetic-test-queue",
     onControls: options.onControls,
   });

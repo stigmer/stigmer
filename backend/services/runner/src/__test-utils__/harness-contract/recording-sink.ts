@@ -21,13 +21,15 @@
 import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 
 import type { TurnSink, UsageDelta } from "../../harness/types.js";
+import { TimingRecorder } from "../../shared/cold-start-timing.js";
 import { emptyStatus } from "../proto-helpers.js";
 
 /** One call the adapter made on the sink, in the order it made it. */
 export type SinkEvent =
   | { readonly kind: "persist" }
-  | { readonly kind: "activity" }
+  | { readonly kind: "activity"; readonly detail: string | undefined }
   | { readonly kind: "usage"; readonly delta: UsageDelta }
+  | { readonly kind: "progress"; readonly label: string }
   | { readonly kind: "bind"; readonly harnessStateId: string };
 
 export interface RecordingTurnSinkOptions {
@@ -40,6 +42,7 @@ export interface RecordingTurnSinkOptions {
 export class RecordingTurnSink implements TurnSink {
   readonly status: AgentExecutionStatus;
   readonly stopSignal: AbortSignal;
+  readonly setupTiming = new TimingRecorder();
 
   private readonly controller = new AbortController();
   private readonly log: SinkEvent[] = [];
@@ -56,16 +59,20 @@ export class RecordingTurnSink implements TurnSink {
     this.controller.abort(reason);
   }
 
-  requestPersist(): void {
+  async requestPersist(): Promise<void> {
     this.log.push({ kind: "persist" });
   }
 
-  recordActivity(): void {
-    this.log.push({ kind: "activity" });
+  recordActivity(detail?: string): void {
+    this.log.push({ kind: "activity", detail });
   }
 
   reportUsage(delta: UsageDelta): void {
     this.log.push({ kind: "usage", delta });
+  }
+
+  async reportProgress(label: string): Promise<void> {
+    this.log.push({ kind: "progress", label });
   }
 
   async bindHarnessState(harnessStateId: string): Promise<void> {
@@ -92,5 +99,9 @@ export class RecordingTurnSink implements TurnSink {
 
   get boundStateIds(): readonly string[] {
     return this.log.flatMap((e) => (e.kind === "bind" ? [e.harnessStateId] : []));
+  }
+
+  get progressLabels(): readonly string[] {
+    return this.log.flatMap((e) => (e.kind === "progress" ? [e.label] : []));
   }
 }
