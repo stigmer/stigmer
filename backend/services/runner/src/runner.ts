@@ -125,13 +125,14 @@ export interface StigmerRunner {
 /**
  * Wire up self-renewal for a static cloud sandbox's control-plane credential
  * (see sandbox-token-renewal.ts for the model). The applied token reaches
- * every consumer: activity gRPC clients read {@code tokenRef} per request,
- * per-call sites (call-llm, registry-endpoint headers) resolve it through
- * the runner credential store (which replaced the process.env.STIGMER_TOKEN
- * channel, #508), artifact storage resolves the ref per call, and the two
- * Cursor SDK interceptors are updated directly — a static runner has no
+ * every consumer through the ONE ref: activity gRPC clients read
+ * {@code tokenRef} per request, per-call sites (call-llm, registry-endpoint
+ * headers) resolve it through the runner credential store (which replaced
+ * the process.env.STIGMER_TOKEN channel, #508), artifact storage resolves
+ * the ref per call, and the two Cursor SDK interceptors read the same ref per
+ * request as {@code Config.proxyTokenRef} — a static runner has no
  * {@code RunnerTokenCoordinator} minting a separate proxy credential, so its
- * x-stigmer-auth IS this token.
+ * x-stigmer-auth IS this token and one write here rotates it everywhere.
  */
 async function startStaticSandboxTokenRenewal(
   config: Config,
@@ -148,12 +149,6 @@ async function startStaticSandboxTokenRenewal(
   }
 
   const { StigmerClient } = await import("./client/stigmer-client.js");
-  const { updateInterceptorToken } = await import(
-    "./activities/execute-cursor/fetch-interceptor.js"
-  );
-  const { updateHttp2InterceptorToken } = await import(
-    "./activities/execute-cursor/http2-interceptor.js"
-  );
   const client = new StigmerClient({
     endpoint: config.stigmerBackendEndpoint,
     token: null,
@@ -169,8 +164,6 @@ async function startStaticSandboxTokenRenewal(
       // Store write replaced the process.env.STIGMER_TOKEN write (#508) —
       // same per-call readers (call-llm, registry headers), no env exposure.
       setRunnerSecret("STIGMER_TOKEN", token);
-      updateInterceptorToken(token);
-      updateHttp2InterceptorToken(token);
     },
   });
 }
@@ -216,6 +209,14 @@ export async function createStigmerRunner(
 
   assertLlmBackendsPreflight(baseConfig.proxyEndpoint);
 
+  // The control-plane credential lives in a shared mutable ref (as in manager
+  // mode) so the sandbox-token renewal below can rotate it in-process:
+  // activity clients read the ref per request instead of pinning the boot
+  // token for the pod's whole life. It is ALSO this root's proxy credential
+  // (Config.proxyTokenRef): a static host provides the proxy token itself and
+  // mints no separate one, so the interceptors read this same ref per request.
+  const tokenRef = { current: baseConfig.stigmerToken };
+
   // Install the Cursor SDK interceptors BEFORE resolving Temporal coordinates.
   // Coordinate discovery dials the control plane via StigmerClient, which loads
   // @connectrpc/connect-node and snapshots the node:http2 ESM facade on first
@@ -231,7 +232,7 @@ export async function createStigmerRunner(
   );
   installFetchInterceptor({
     proxyEndpoint: baseConfig.proxyEndpoint ?? undefined,
-    stigmerToken: baseConfig.stigmerToken ?? undefined,
+    proxyTokenRef: tokenRef,
   });
 
   // The Cursor SDK's Connect RPC transport uses native HTTP/2, bypassing
@@ -243,7 +244,7 @@ export async function createStigmerRunner(
   );
   installHttp2Interceptor({
     proxyEndpoint: baseConfig.proxyEndpoint ?? undefined,
-    stigmerToken: baseConfig.stigmerToken ?? undefined,
+    proxyTokenRef: tokenRef,
   });
   // Fail loudly at boot if a load-order regression left the node:http2 ESM
   // facade unpatched (otherwise BiDi streams would silently 401). No-op when
@@ -263,11 +264,6 @@ export async function createStigmerRunner(
     token: options.stigmerToken,
     stigmerEndpoint: baseConfig.stigmerBackendEndpoint,
   });
-  // The control-plane credential lives in a shared mutable ref (as in manager
-  // mode) so the sandbox-token renewal below can rotate it in-process:
-  // activity clients read the ref per request instead of pinning the boot
-  // token for the pod's whole life.
-  const tokenRef = { current: baseConfig.stigmerToken };
 
   // Adopt the bootstrap-minted embedded_runner credential for gRPC runner-class
   // calls (stigmer-cloud#507). The static path historically discarded it ("the
@@ -306,6 +302,7 @@ export async function createStigmerRunner(
     temporalNamespace: coordinates.temporalNamespace,
     stigmerTokenRef: tokenRef,
     stigmerRunnerTokenRef: runnerTokenRef,
+    proxyTokenRef: tokenRef,
   };
   markBoot("bootstrap_resolved");
 

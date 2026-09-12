@@ -52,7 +52,7 @@ describe("fetch-interceptor", () => {
 
   describe("Connect-RPC paths via fetch (BiDi proxy auth injection)", () => {
     beforeEach(() => {
-      installFetchInterceptor({ proxyEndpoint: PROXY_ENDPOINT, stigmerToken: STIGMER_TOKEN });
+      installFetchInterceptor({ proxyEndpoint: PROXY_ENDPOINT, proxyTokenRef: { current: STIGMER_TOKEN } });
     });
 
     it("injects x-stigmer-auth on /aiserver.v1 path targeting proxy endpoint", async () => {
@@ -141,7 +141,7 @@ describe("fetch-interceptor", () => {
 
   describe("REST path URL rewriting (existing behavior)", () => {
     beforeEach(() => {
-      installFetchInterceptor({ proxyEndpoint: PROXY_ENDPOINT, stigmerToken: STIGMER_TOKEN });
+      installFetchInterceptor({ proxyEndpoint: PROXY_ENDPOINT, proxyTokenRef: { current: STIGMER_TOKEN } });
     });
 
     it("rewrites Cursor-domain REST URLs and replaces auth", async () => {
@@ -173,9 +173,65 @@ describe("fetch-interceptor", () => {
     });
   });
 
+  describe("the token ref is read per request (the root rotates it in place; Q-S2-7)", () => {
+    let proxyTokenRef: { current: string | null };
+
+    beforeEach(() => {
+      proxyTokenRef = { current: STIGMER_TOKEN };
+      installFetchInterceptor({ proxyEndpoint: PROXY_ENDPOINT, proxyTokenRef });
+    });
+
+    it("a rotation reaches the next REST rewrite and the next BiDi-auth fetch without a call into the module", async () => {
+      proxyTokenRef.current = "refreshed-stigmer-jwt-token";
+
+      await globalThis.fetch("https://api.cursor.com/v1/models", { headers: { authorization: "Bearer original-key" } });
+      await globalThis.fetch(`${PROXY_ENDPOINT}/aiserver.v1.AnalyticsService/BootstrapStatsig`, { method: "POST" });
+
+      expect(calls).toHaveLength(2);
+      expect(new Headers(calls[0].init?.headers).get("authorization")).toBe("Bearer refreshed-stigmer-jwt-token");
+      expect(new Headers(calls[1].init?.headers).get("x-stigmer-auth")).toBe("Bearer refreshed-stigmer-jwt-token");
+    });
+
+    it("an emptied ref sends no proxy credential and never leaks the SDK's own authorization to the proxy", async () => {
+      proxyTokenRef.current = null;
+
+      await globalThis.fetch("https://api.cursor.com/v1/models", { headers: { authorization: "Bearer cursor-secret" } });
+      await globalThis.fetch(`${PROXY_ENDPOINT}/aiserver.v1.AnalyticsService/BootstrapStatsig`, { method: "POST" });
+
+      expect(new Headers(calls[0].init?.headers).get("authorization")).toBeNull();
+      expect(new Headers(calls[1].init?.headers).get("x-stigmer-auth")).toBeNull();
+    });
+  });
+
+  describe("install guard", () => {
+    it("a proxy endpoint with no bound ref fails the install, as a missing token always has, and leaves fetch untouched", () => {
+      const before = globalThis.fetch;
+      expect(() => installFetchInterceptor({ proxyEndpoint: PROXY_ENDPOINT, proxyTokenRef: undefined })).toThrow(
+        /STIGMER_TOKEN is required when STIGMER_PROXY_ENDPOINT is set/,
+      );
+      expect(() => installFetchInterceptor({ proxyEndpoint: PROXY_ENDPOINT, proxyTokenRef: { current: null } })).toThrow(
+        /STIGMER_TOKEN is required when STIGMER_PROXY_ENDPOINT is set/,
+      );
+      expect(globalThis.fetch).toBe(before);
+    });
+
+    it("is idempotent: a second install rebinds the ref and keeps delegating to the fetch captured at load", async () => {
+      const first = { current: "first-token" };
+      const second = { current: "second-token" };
+      installFetchInterceptor({ proxyEndpoint: PROXY_ENDPOINT, proxyTokenRef: first });
+      installFetchInterceptor({ proxyEndpoint: PROXY_ENDPOINT, proxyTokenRef: second });
+
+      await globalThis.fetch(`${PROXY_ENDPOINT}/aiserver.v1.AnalyticsService/BootstrapStatsig`, { method: "POST" });
+
+      // One hop to the captured fetch (a self-capture would recurse or double-wrap).
+      expect(calls).toHaveLength(1);
+      expect(new Headers(calls[0].init?.headers).get("x-stigmer-auth")).toBe("Bearer second-token");
+    });
+  });
+
   describe("timed REST path timing", () => {
     beforeEach(() => {
-      installFetchInterceptor({ proxyEndpoint: PROXY_ENDPOINT, stigmerToken: STIGMER_TOKEN });
+      installFetchInterceptor({ proxyEndpoint: PROXY_ENDPOINT, proxyTokenRef: { current: STIGMER_TOKEN } });
     });
 
     /**
@@ -286,7 +342,7 @@ describe("fetch-interceptor", () => {
 
   describe("passthrough (no interception)", () => {
     beforeEach(() => {
-      installFetchInterceptor({ proxyEndpoint: PROXY_ENDPOINT, stigmerToken: STIGMER_TOKEN });
+      installFetchInterceptor({ proxyEndpoint: PROXY_ENDPOINT, proxyTokenRef: { current: STIGMER_TOKEN } });
     });
 
     it("does NOT intercept Connect-RPC paths on non-proxy hosts", async () => {

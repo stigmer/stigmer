@@ -259,22 +259,26 @@ export async function createStigmerRunnerManager(
   // (discovery here, and the SDK later). The interceptors depend only on
   // proxyEndpoint/stigmerToken (already in baseConfig), not resolved coordinates.
 
-  // Install fetch interceptor before any @cursor/sdk imports
-  const { installFetchInterceptor, updateInterceptorToken } = await import(
+  // Install fetch interceptor before any @cursor/sdk imports. Both
+  // interceptors read the proxy credential per request from `runnerTokenRef`
+  // (Config.proxyTokenRef): the control-plane token until a runner token is
+  // minted, the minted token after, exactly the lockstep the coordinator
+  // below maintains in that ref.
+  const { installFetchInterceptor } = await import(
     "./activities/execute-cursor/fetch-interceptor.js"
   );
   installFetchInterceptor({
     proxyEndpoint: baseConfig.proxyEndpoint ?? undefined,
-    stigmerToken: baseConfig.stigmerToken ?? undefined,
+    proxyTokenRef: runnerTokenRef,
   });
 
   // HTTP/2 interceptor for Connect RPC auth + execution ID injection (BiDi billing)
-  const { installHttp2Interceptor, updateHttp2InterceptorToken, assertHttp2ConnectPatched } = await import(
+  const { installHttp2Interceptor, assertHttp2ConnectPatched } = await import(
     "./activities/execute-cursor/http2-interceptor.js"
   );
   installHttp2Interceptor({
     proxyEndpoint: baseConfig.proxyEndpoint ?? undefined,
-    stigmerToken: baseConfig.stigmerToken ?? undefined,
+    proxyTokenRef: runnerTokenRef,
   });
   // Fail loudly at boot if a load-order regression left the node:http2 ESM
   // facade unpatched (otherwise BiDi streams would silently 401). No-op when
@@ -283,16 +287,14 @@ export async function createStigmerRunnerManager(
   markBoot("interceptors_installed");
 
   // The token coordinator owns the proxy credential (x-stigmer-auth) and its
-  // refresh lifecycle. It writes ONLY its sinks (the interceptors plus the gRPC
-  // runner-credential ref) and re-mints using the always-fresh control-plane
+  // refresh lifecycle. It writes ONE sink, `runnerTokenRef`, which is read per
+  // request by both the interceptors (as Config.proxyTokenRef) and the gRPC
+  // client (as Config.stigmerRunnerTokenRef), so mint and refresh reach every
+  // reader in one write. It re-mints using the always-fresh control-plane
   // token in `tokenRef` — never the (possibly expired) minted token itself, so
   // a slept-past-TTL runner recovers without a restart.
   const tokenCoordinator = createRunnerTokenCoordinator({
     applyProxyToken: (token) => {
-      updateInterceptorToken(token);
-      updateHttp2InterceptorToken(token);
-      // Third sink: keeps the ExecutionContext-read credential in lockstep with
-      // the proxy credential across mint and refresh (see runnerTokenRef above).
       runnerTokenRef.current = token;
     },
     reMint: () =>
@@ -726,6 +728,11 @@ export function mapManagerOptionsToConfig(
     mcpBridgeEndpoint: process.env.STIGMER_MCP_BRIDGE_ENDPOINT ?? null,
     stigmerTokenRef: tokenRef,
     stigmerRunnerTokenRef: runnerTokenRef,
+    // The manager's proxy credential is the minted runner token once adopted
+    // (the control-plane token in lockstep before that), so it is this ref and
+    // not `tokenRef`: binding `tokenRef` would keep sending the desktop's own
+    // Auth0 token as x-stigmer-auth after the mint (Q-S2-7).
+    proxyTokenRef: runnerTokenRef,
     cursorApiKey: proxyActive
       ? (options.cursorApiKey ?? "proxy-managed")
       : (options.cursorApiKey ?? ""),
