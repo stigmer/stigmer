@@ -301,9 +301,9 @@ function hangingTurn(before: string): TurnScenario {
 
 /**
  * A user pause: Temporal's cancellation delivered while the engine hangs
- * persists PAUSED with the pause row written twice (stigmer#1054, reproduced
- * on purpose), no error, no `completedAt`, and THROWS the pause
- * `CancelledFailure` so the workflow knows to wait.
+ * persists PAUSED with the pause row written exactly once, no error, no
+ * `completedAt`, and THROWS the pause `CancelledFailure` so the workflow
+ * knows to wait.
  */
 export async function assertPausePersistsAndThrows(harness: RuntimeContractHarness, label = "rt-pause"): Promise<RuntimeArmResult> {
   const { subject } = harness;
@@ -320,7 +320,7 @@ export async function assertPausePersistsAndThrows(harness: RuntimeContractHarne
   const final = finalStatusOf(harness, driver);
   expect(final.error, `${subject.name}: a pause is not an error`).toBe("");
   expect(final.completedAt, `${subject.name}: a paused turn is not complete`).toBe("");
-  expect(systemMessages(final), `${subject.name}: the pause row, doubled (#1054)`).toEqual([TERMINAL_COPY.pause.row, TERMINAL_COPY.pause.row]);
+  expect(systemMessages(final), `${subject.name}: the pause row, exactly once`).toEqual([TERMINAL_COPY.pause.row]);
   expect(aiMessages(final)).not.toContain(NEVER_SEEN);
   return { driver, invocations: [invocation], final };
 }
@@ -328,7 +328,7 @@ export async function assertPausePersistsAndThrows(harness: RuntimeContractHarne
 /**
  * A worker shutdown: the queue's shutdown signal aborts, then Temporal
  * cancels (the runner-manager's drain). FAILED with the shutdown copy, the
- * row doubled, stamped, and the shutdown `CancelledFailure` thrown.
+ * row exactly once, stamped, and the shutdown `CancelledFailure` thrown.
  */
 export async function assertWorkerShutdownPersistsAndThrows(harness: RuntimeContractHarness, label = "rt-shutdown"): Promise<RuntimeArmResult> {
   const { subject } = harness;
@@ -348,7 +348,7 @@ export async function assertWorkerShutdownPersistsAndThrows(harness: RuntimeCont
   const final = finalStatusOf(harness, driver);
   expect(final.error).toBe(TERMINAL_COPY.workerShutdown.error);
   expect(final.completedAt).not.toBe("");
-  expect(systemMessages(final)).toEqual([TERMINAL_COPY.workerShutdown.row, TERMINAL_COPY.workerShutdown.row]);
+  expect(systemMessages(final), `${subject.name}: the shutdown row, exactly once`).toEqual([TERMINAL_COPY.workerShutdown.row]);
   expect(aiMessages(final)).not.toContain(NEVER_SEEN);
   return { driver, invocations: [invocation], final };
 }
@@ -620,11 +620,11 @@ export function describeHarnessRuntimeContract(harness: RuntimeContractHarness, 
       clock.reset();
       await assertApprovalRoundTrip(harness);
     });
-    it("a user pause persists PAUSED (the #1054 double) and throws the pause CancelledFailure", async () => {
+    it("a user pause persists PAUSED with the pause row once and throws the pause CancelledFailure", async () => {
       clock.reset();
       await assertPausePersistsAndThrows(harness);
     });
-    it("a worker shutdown persists FAILED with the shutdown copy (doubled) and throws the shutdown CancelledFailure", async () => {
+    it("a worker shutdown persists FAILED with the shutdown copy once and throws the shutdown CancelledFailure", async () => {
       clock.reset();
       await assertWorkerShutdownPersistsAndThrows(harness);
     });

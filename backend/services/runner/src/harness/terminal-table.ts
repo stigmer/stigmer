@@ -21,12 +21,13 @@
  *    infrastructure cancel it delivered — with the message the control
  *    planes recognise.
  *
- * The three THROW arms append their row TWICE: once when the runtime writes
- * the terminal status, once more before it throws. That is stigmer#1054,
- * reproduced on purpose (Q-S2-4): the orchestrator's throw fell into its own
- * catch, which appended the copy again, and the goldens pin the double. The
- * fix is a reviewed golden regeneration in the PR after S2, not a silent
- * change inside it.
+ * An arm's rows are appended exactly once, by `applyTerminalArm`, and an arm
+ * is persisted exactly once, by `run-turn.ts`'s `settleWith` — the one
+ * writer of a terminal. The orchestrator this table replaced appended the
+ * three THROW arms' rows twice (its throw fell into its own catch, which
+ * wrote the copy again); S2 reproduced that on purpose so the goldens could
+ * pin the wire byte for byte, and the PR after S2 removed it with a reviewed
+ * golden regeneration (stigmer#1054, Q-S2-4).
  */
 
 import { create } from "@bufbuild/protobuf";
@@ -48,7 +49,7 @@ export interface TerminalArm {
   readonly phase: ExecutionPhase;
   /** `status.error`; absent leaves it as it is (a pause is not an error). */
   readonly error?: string;
-  /** System rows appended in order; the throw arms append them twice (see header). */
+  /** System rows appended in order, each exactly once. */
   readonly rows: readonly string[];
   /** Stamp `completedAt`; a paused turn is not complete. */
   readonly completes: boolean;
@@ -255,8 +256,12 @@ export function unexpectedErrorArm(errorType: string, errorMessage: string): Ter
 
 // ── Applying an arm ─────────────────────────────────────────────────────────
 
-/** Append system rows, each with its own timestamp, in order. */
-export function appendSystemRows(status: AgentExecutionStatus, rows: readonly string[]): void {
+/**
+ * Append system rows, each with its own timestamp, in order. Module-private
+ * on purpose: rows reach a status only through `applyTerminalArm`, so no
+ * caller can append an arm's copy a second time (the shape of stigmer#1054).
+ */
+function appendSystemRows(status: AgentExecutionStatus, rows: readonly string[]): void {
   for (const content of rows) {
     status.messages.push(create(AgentMessageSchema, { type: MessageType.MESSAGE_SYSTEM, content, timestamp: utcTimestamp() }));
   }
