@@ -34,7 +34,9 @@ stigmer auth logout
 
 `stigmer auth login` opens your default browser to the Stigmer login page. After
 you authenticate, the CLI receives an access token and saves it to
-`~/.stigmer/config.yaml`. The backend is automatically set to cloud mode.
+`~/.stigmer/config.yaml`. The backend is automatically set to cloud mode. On
+your first sign-in the CLI also creates your identity account, the same way the
+web console does; `stigmer auth whoami` tells you when a call did.
 
 For programmatic access (CI/CD, scripts), use [API keys](./apikey) instead of
 browser-based auth.
