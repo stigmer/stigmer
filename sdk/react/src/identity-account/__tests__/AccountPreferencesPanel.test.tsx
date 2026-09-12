@@ -74,14 +74,17 @@ async function findSyncedField(value: string) {
 }
 
 describe("AccountPreferencesPanel", () => {
-  it("renders the cloud notice in local mode without issuing any RPCs", () => {
+  it("renders the form in local mode and reads the account once — the open-source server serves identity accounts (20260911.11)", async () => {
+    // Before the tier flip the panel showed a "requires Stigmer Cloud"
+    // notice here. The operator account exists on every self-host since
+    // the domain moved into @stigmer/server, so the editor is the truth in
+    // every edition and the panel asks no edition question.
     const whoAmI = vi.fn(async () => ACCOUNT);
     renderPanel(createMockStigmer({ whoAmI }), "local");
 
-    expect(screen.getByRole("status")).toBeTruthy();
-    expect(screen.queryByLabelText("Standing context")).toBeNull();
-    // The inner form must not mount — no doomed whoAmI against a local server.
-    expect(whoAmI).not.toHaveBeenCalled();
+    await findSyncedField("Keep answers terse.");
+    expect(screen.queryByRole("status")).toBeNull();
+    expect(whoAmI).toHaveBeenCalledTimes(1);
   });
 
   it("loads and displays the caller's declared standing context", async () => {

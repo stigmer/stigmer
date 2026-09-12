@@ -24,6 +24,30 @@ const LOG_TAIL_BYTES = 8_000;
 // configured — one source of truth, no copy drift.
 export const CONFORMANCE_OAUTH_REDIRECT_URI = "http://127.0.0.1:8234/auth/oauth/callback";
 
+// The storage ONE spawned server writes to, as the env that selects it plus
+// the obligation to release it — the managed targets' storage-driver seam
+// (`provisionStorage()`), so the primary server and a sibling spawned beside
+// it each get their own store by the same call. The sqlite shape is the
+// spawn's own temp `DB_PATH` (below), so its env is empty and its release a
+// no-op; the Postgres shape provisions a throwaway database and drops it
+// (harness/postgres.ts `provisionPostgresStorage`). DD-011: the driver is
+// wire-invisible, so nothing but this env may differ between the two.
+export interface ProvisionedStorage {
+  // Layered over the spawn's base env; `DATABASE_URL` here wins over the
+  // base `DB_PATH` (the server's documented config precedence).
+  readonly serverEnv: Record<string, string>;
+  // Called after the server that used it has stopped.
+  release(): Promise<void>;
+}
+
+// The sqlite storage every spawn already has: `spawnServer` allocates the
+// temp `DB_PATH` and `stop()` removes it, so there is nothing to add or to
+// release. Exists so a target's `provisionStorage()` has the same shape on
+// every driver.
+export function ephemeralSqliteStorage(): ProvisionedStorage {
+  return { serverEnv: {}, release: async () => {} };
+}
+
 export interface RunningServer {
   readonly baseUrl: string;
   readonly port: number;

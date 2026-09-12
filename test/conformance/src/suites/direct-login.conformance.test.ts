@@ -39,10 +39,12 @@ import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { expectGrpcCode } from "../contract/errors";
+import { directLoginClaims } from "../harness/direct-login-tenant";
+import { signRs256Jwt } from "../harness/jwt";
 import {
-  directLoginClaims,
-  signDirectLoginToken,
-} from "../harness/direct-login-tenant";
+  ACCOUNT_NOT_FOUND_FOR_CALLER_MESSAGE,
+  freshSubject,
+} from "../support/identityaccounts";
 import {
   createTarget,
   type DirectLoginTenant,
@@ -54,9 +56,6 @@ const TOKEN_EXPIRED_MESSAGE = "token has expired";
 const TOKEN_AUDIENCE_MESSAGE =
   "token audience does not match the expected audience";
 const TOKEN_SIGNATURE_MESSAGE = "token signature verification failed";
-// iam/account/handlers.ts whoAmI — the Java IdentityAccountWhoAmIHandler copy.
-const ACCOUNT_NOT_FOUND_MESSAGE =
-  "Identity account not found for the authenticated user";
 
 let target: TargetProfile;
 const directLoginEnabled = createTarget().capabilities.directLogin;
@@ -84,12 +83,6 @@ function tenantOrSkip(ctx: {
   return tenant;
 }
 
-// Auth0's subject shape for a database user; unique per test so no run ever
-// meets a row a previous run left behind.
-function freshSubject(): string {
-  return `auth0|conformance-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-}
-
 describe.skipIf(!directLoginEnabled)(
   "direct login: the platform tenant's tokens",
   () => {
@@ -106,7 +99,7 @@ describe.skipIf(!directLoginEnabled)(
       expect(
         error.rawMessage,
         "the console branches on this copy to start provisioning",
-      ).toBe(ACCOUNT_NOT_FOUND_MESSAGE);
+      ).toBe(ACCOUNT_NOT_FOUND_FOR_CALLER_MESSAGE);
     });
 
     it("provisions a first login end to end: a direct account from /userinfo, a personal org OWNED BY the new account, and whoAmI resolving to it", async (ctx) => {
@@ -224,7 +217,7 @@ describe.skipIf(!directLoginEnabled)(
     it("refuses a token signed by a stranger under the tenant's issuer with the byte-pinned signature copy", async (ctx) => {
       const tenant = tenantOrSkip(ctx);
       const stranger = generateKeyPairSync("rsa", { modulusLength: 2048 });
-      const forged = signDirectLoginToken({
+      const forged = signRs256Jwt({
         privateKeyPem: stranger.privateKey
           .export({ type: "pkcs8", format: "pem" })
           .toString(),

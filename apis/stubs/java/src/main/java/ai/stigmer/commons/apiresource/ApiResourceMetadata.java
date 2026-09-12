@@ -188,9 +188,12 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * System-generated unique identifier.
    *
-   * For every kind this is a generated, prefixed id (e.g. agt_&lt;ulid&gt;). The one
-   * exception is Organization: its id equals its slug (the globally unique
-   * tenancy root is addressed by slug, not a minted id).
+   * For every kind this is a generated, prefixed id (e.g. agt_&lt;ulid&gt;). Two
+   * kinds derive it from their natural key instead: Organization's id equals
+   * its slug (the globally unique tenancy root is addressed by slug, not a
+   * minted id), and a direct IdentityAccount's id is derived from its issuer
+   * subject (`ida_` followed by 26 Crockford-base32 characters of
+   * sha256(spec.idp_id)), so one subject can only ever be one account.
    * </pre>
    *
    * <code>string id = 3 [json_name = "id"];</code>
@@ -213,9 +216,12 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * System-generated unique identifier.
    *
-   * For every kind this is a generated, prefixed id (e.g. agt_&lt;ulid&gt;). The one
-   * exception is Organization: its id equals its slug (the globally unique
-   * tenancy root is addressed by slug, not a minted id).
+   * For every kind this is a generated, prefixed id (e.g. agt_&lt;ulid&gt;). Two
+   * kinds derive it from their natural key instead: Organization's id equals
+   * its slug (the globally unique tenancy root is addressed by slug, not a
+   * minted id), and a direct IdentityAccount's id is derived from its issuer
+   * subject (`ida_` followed by 26 Crockford-base32 characters of
+   * sha256(spec.idp_id)), so one subject can only ever be one account.
    * </pre>
    *
    * <code>string id = 3 [json_name = "id"];</code>
@@ -1419,9 +1425,12 @@ java.lang.String defaultValue) {
      * <pre>
      * System-generated unique identifier.
      *
-     * For every kind this is a generated, prefixed id (e.g. agt_&lt;ulid&gt;). The one
-     * exception is Organization: its id equals its slug (the globally unique
-     * tenancy root is addressed by slug, not a minted id).
+     * For every kind this is a generated, prefixed id (e.g. agt_&lt;ulid&gt;). Two
+     * kinds derive it from their natural key instead: Organization's id equals
+     * its slug (the globally unique tenancy root is addressed by slug, not a
+     * minted id), and a direct IdentityAccount's id is derived from its issuer
+     * subject (`ida_` followed by 26 Crockford-base32 characters of
+     * sha256(spec.idp_id)), so one subject can only ever be one account.
      * </pre>
      *
      * <code>string id = 3 [json_name = "id"];</code>
@@ -1443,9 +1452,12 @@ java.lang.String defaultValue) {
      * <pre>
      * System-generated unique identifier.
      *
-     * For every kind this is a generated, prefixed id (e.g. agt_&lt;ulid&gt;). The one
-     * exception is Organization: its id equals its slug (the globally unique
-     * tenancy root is addressed by slug, not a minted id).
+     * For every kind this is a generated, prefixed id (e.g. agt_&lt;ulid&gt;). Two
+     * kinds derive it from their natural key instead: Organization's id equals
+     * its slug (the globally unique tenancy root is addressed by slug, not a
+     * minted id), and a direct IdentityAccount's id is derived from its issuer
+     * subject (`ida_` followed by 26 Crockford-base32 characters of
+     * sha256(spec.idp_id)), so one subject can only ever be one account.
      * </pre>
      *
      * <code>string id = 3 [json_name = "id"];</code>
@@ -1468,9 +1480,12 @@ java.lang.String defaultValue) {
      * <pre>
      * System-generated unique identifier.
      *
-     * For every kind this is a generated, prefixed id (e.g. agt_&lt;ulid&gt;). The one
-     * exception is Organization: its id equals its slug (the globally unique
-     * tenancy root is addressed by slug, not a minted id).
+     * For every kind this is a generated, prefixed id (e.g. agt_&lt;ulid&gt;). Two
+     * kinds derive it from their natural key instead: Organization's id equals
+     * its slug (the globally unique tenancy root is addressed by slug, not a
+     * minted id), and a direct IdentityAccount's id is derived from its issuer
+     * subject (`ida_` followed by 26 Crockford-base32 characters of
+     * sha256(spec.idp_id)), so one subject can only ever be one account.
      * </pre>
      *
      * <code>string id = 3 [json_name = "id"];</code>
@@ -1489,9 +1504,12 @@ java.lang.String defaultValue) {
      * <pre>
      * System-generated unique identifier.
      *
-     * For every kind this is a generated, prefixed id (e.g. agt_&lt;ulid&gt;). The one
-     * exception is Organization: its id equals its slug (the globally unique
-     * tenancy root is addressed by slug, not a minted id).
+     * For every kind this is a generated, prefixed id (e.g. agt_&lt;ulid&gt;). Two
+     * kinds derive it from their natural key instead: Organization's id equals
+     * its slug (the globally unique tenancy root is addressed by slug, not a
+     * minted id), and a direct IdentityAccount's id is derived from its issuer
+     * subject (`ida_` followed by 26 Crockford-base32 characters of
+     * sha256(spec.idp_id)), so one subject can only ever be one account.
      * </pre>
      *
      * <code>string id = 3 [json_name = "id"];</code>
@@ -1507,9 +1525,12 @@ java.lang.String defaultValue) {
      * <pre>
      * System-generated unique identifier.
      *
-     * For every kind this is a generated, prefixed id (e.g. agt_&lt;ulid&gt;). The one
-     * exception is Organization: its id equals its slug (the globally unique
-     * tenancy root is addressed by slug, not a minted id).
+     * For every kind this is a generated, prefixed id (e.g. agt_&lt;ulid&gt;). Two
+     * kinds derive it from their natural key instead: Organization's id equals
+     * its slug (the globally unique tenancy root is addressed by slug, not a
+     * minted id), and a direct IdentityAccount's id is derived from its issuer
+     * subject (`ida_` followed by 26 Crockford-base32 characters of
+     * sha256(spec.idp_id)), so one subject can only ever be one account.
      * </pre>
      *
      * <code>string id = 3 [json_name = "id"];</code>

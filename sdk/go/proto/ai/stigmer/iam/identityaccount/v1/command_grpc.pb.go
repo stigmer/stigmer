@@ -50,6 +50,9 @@ type IdentityAccountCommandControllerClient interface {
 	// Returns the full identity account including its ID, which the platform uses
 	// to grant roles via IAM policies.
 	//
+	// Served by the Enterprise and Cloud editions; the open-source server
+	// answers UNIMPLEMENTED.
+	//
 	// Authorization: Requires can_create_identity_account on the organization
 	// that owns the identity provider.
 	CreateFederatedAccount(ctx context.Context, in *CreateFederatedAccountInput, opts ...grpc.CallOption) (*IdentityAccount, error)
@@ -59,6 +62,9 @@ type IdentityAccountCommandControllerClient interface {
 	// and updates email, name, and picture. Identity keys are immutable.
 	//
 	// Called by platform backends when a user's profile changes on their platform.
+	//
+	// Served by the Enterprise and Cloud editions; the open-source server
+	// answers UNIMPLEMENTED.
 	//
 	// Authorization: Requires can_create_identity_account on the organization
 	// that owns the identity provider.
@@ -71,15 +77,19 @@ type IdentityAccountCommandControllerClient interface {
 	//
 	// Called by platform backends during user offboarding.
 	//
+	// Served by the Enterprise and Cloud editions; the open-source server
+	// answers UNIMPLEMENTED.
+	//
 	// Authorization: Requires can_create_identity_account on the organization
 	// that owns the identity provider.
 	DeprovisionFederatedAccount(ctx context.Context, in *DeprovisionFederatedAccountInput, opts ...grpc.CallOption) (*IdentityAccount, error)
 	// Provision the caller's own identity account.
 	//
-	// Called by the console when whoAmI() returns NOT_FOUND (first login after signup).
-	// Derives all identity information from the caller's JWT and the OIDC /userinfo
-	// endpoint. Creates the IdentityAccount and a personal Organization owned by the
-	// caller. Idempotent: returns the existing account on retry.
+	// The first-sign-in step every client runs when whoAmI() returns NOT_FOUND:
+	// the console's identity gate, `stigmer auth login` and `stigmer auth whoami`,
+	// and the SDK's ensureMyIdentityAccount. Derives the account from the
+	// caller's token and the userinfo endpoint of the issuer that vouched for
+	// it. Idempotent: returns the existing account on retry.
 	ProvisionMyAccount(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*IdentityAccount, error)
 }
 
@@ -182,6 +192,9 @@ type IdentityAccountCommandControllerServer interface {
 	// Returns the full identity account including its ID, which the platform uses
 	// to grant roles via IAM policies.
 	//
+	// Served by the Enterprise and Cloud editions; the open-source server
+	// answers UNIMPLEMENTED.
+	//
 	// Authorization: Requires can_create_identity_account on the organization
 	// that owns the identity provider.
 	CreateFederatedAccount(context.Context, *CreateFederatedAccountInput) (*IdentityAccount, error)
@@ -191,6 +204,9 @@ type IdentityAccountCommandControllerServer interface {
 	// and updates email, name, and picture. Identity keys are immutable.
 	//
 	// Called by platform backends when a user's profile changes on their platform.
+	//
+	// Served by the Enterprise and Cloud editions; the open-source server
+	// answers UNIMPLEMENTED.
 	//
 	// Authorization: Requires can_create_identity_account on the organization
 	// that owns the identity provider.
@@ -203,15 +219,19 @@ type IdentityAccountCommandControllerServer interface {
 	//
 	// Called by platform backends during user offboarding.
 	//
+	// Served by the Enterprise and Cloud editions; the open-source server
+	// answers UNIMPLEMENTED.
+	//
 	// Authorization: Requires can_create_identity_account on the organization
 	// that owns the identity provider.
 	DeprovisionFederatedAccount(context.Context, *DeprovisionFederatedAccountInput) (*IdentityAccount, error)
 	// Provision the caller's own identity account.
 	//
-	// Called by the console when whoAmI() returns NOT_FOUND (first login after signup).
-	// Derives all identity information from the caller's JWT and the OIDC /userinfo
-	// endpoint. Creates the IdentityAccount and a personal Organization owned by the
-	// caller. Idempotent: returns the existing account on retry.
+	// The first-sign-in step every client runs when whoAmI() returns NOT_FOUND:
+	// the console's identity gate, `stigmer auth login` and `stigmer auth whoami`,
+	// and the SDK's ensureMyIdentityAccount. Derives the account from the
+	// caller's token and the userinfo endpoint of the issuer that vouched for
+	// it. Idempotent: returns the existing account on retry.
 	ProvisionMyAccount(context.Context, *emptypb.Empty) (*IdentityAccount, error)
 }
 

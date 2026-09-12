@@ -62,6 +62,16 @@ export {
   isResourceAvailable,
 } from "./resource-availability.js";
 
+// The first-sign-in flow: resolve the caller's identity account, provisioning
+// it on a first sign-in. One home for every surface (console gate, CLI,
+// platform builders' own gates).
+export {
+  ensureMyIdentityAccount,
+  type EnsuredIdentityAccount,
+  type EnsureMyIdentityAccountOptions,
+  type IdentityAccountLane,
+} from "./ensure-identity-account.js";
+
 // Authorization config and IAM role utilities
 export {
   getGrantableRoles,
@@ -127,10 +137,7 @@ export {
 } from "./github.js";
 
 // Platform client (server info / edition detection)
-export {
-  PlatformClient,
-  type ServerInfo,
-} from "./platform.js";
+export { PlatformClient, type ServerInfo } from "./platform.js";
 
 // Manifest engine (kind-agnostic YAML ⇄ proto ⇄ apply)
 export {
@@ -201,7 +208,11 @@ export {
   type AgentShareInput,
   type AgentShareMessagesInput,
 } from "./gen/agentshare.js";
-export { ApiKeyClient, toApiKeyUpdateInput, type ApiKeyInput } from "./gen/apikey.js";
+export {
+  ApiKeyClient,
+  toApiKeyUpdateInput,
+  type ApiKeyInput,
+} from "./gen/apikey.js";
 export {
   ChannelAppClient,
   toChannelAppUpdateInput,
@@ -227,10 +238,7 @@ export {
   toIdentityAccountUpdateInput,
   type IdentityAccountInput,
 } from "./gen/identityaccount.js";
-export {
-  InvitationClient,
-  type InvitationInput,
-} from "./gen/invitation.js";
+export { InvitationClient, type InvitationInput } from "./gen/invitation.js";
 export {
   IdentityProviderClient,
   toIdentityProviderUpdateInput,
@@ -275,7 +283,11 @@ export {
   toPlatformClientUpdateInput,
   type PlatformClientInput,
 } from "./gen/platformclient.js";
-export { ProjectClient, toProjectUpdateInput, type ProjectInput } from "./gen/project.js";
+export {
+  ProjectClient,
+  toProjectUpdateInput,
+  type ProjectInput,
+} from "./gen/project.js";
 export {
   ScheduleClient,
   buildScheduleProto,

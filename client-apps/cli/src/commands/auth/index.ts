@@ -1,16 +1,12 @@
 // `stigmer auth login|logout|whoami` — manage Stigmer Cloud authentication.
 //
 // login is interactive (browser PKCE) and human-only; logout and whoami honor
-// the standard mutating-output flags.
+// the standard mutating-output flags. login and whoami both end in the SDK's
+// ensureMyIdentityAccount (login.ts, whoami.ts): the first-sign-in flow the
+// console runs, so the CLI provisions an account exactly as the console does.
 
 import type { Command } from "commander";
-import {
-  activeBackend,
-  ensureAuthenticated,
-  load,
-  resolveContextOrganization,
-  save,
-} from "../../config/index.js";
+import { activeBackend, load, save } from "../../config/index.js";
 import {
   CommandResult,
   type OutputFlags,
@@ -27,14 +23,8 @@ export function registerAuth(program: Command): void {
     .command("login")
     .description("log in to Stigmer Cloud via browser (PKCE OAuth)")
     .action(async () => {
-      const { login } = await import("../../auth/index.js");
-      await login();
-      renderResult(
-        CommandResult.success("Authenticated with Stigmer Cloud")
-          .hint("Run commands against the cloud backend, e.g.:")
-          .hint("  stigmer list agents"),
-        "human",
-      );
+      const { runLogin } = await import("./login.js");
+      renderResult(await runLogin(), "human");
     });
 
   const logout = auth
@@ -49,6 +39,7 @@ export function registerAuth(program: Command): void {
     .command("whoami")
     .description("show the currently authenticated account")
     .action(async (options: OutputFlags) => {
+      const { runWhoami } = await import("./whoami.js");
       renderResult(await runWhoami(), resultFormat(options));
     });
   addResultFlags(whoami);
@@ -82,44 +73,4 @@ function runLogout(): CommandResult {
   return CommandResult.success("Logged out from Stigmer Cloud").hint(
     "Run 'stigmer auth login' to authenticate again.",
   );
-}
-
-async function runWhoami(): Promise<CommandResult> {
-  const { connectBackend } = await import("../../backend.js");
-  const client = connectBackend();
-  ensureAuthenticated(client.config);
-
-  const account = await client.stigmer.identityAccount.whoAmI();
-  const result = CommandResult.success("Authenticated");
-  const section = result.addSection("");
-
-  if (account.metadata !== undefined) {
-    section.field("Account ID", account.metadata.id);
-    if (account.metadata.name !== "")
-      section.field("Name", account.metadata.name);
-  }
-  if (account.spec !== undefined) {
-    if (account.spec.email !== "") section.field("Email", account.spec.email);
-    if (account.spec.firstName !== "" || account.spec.lastName !== "") {
-      section.field(
-        "Full Name",
-        `${account.spec.firstName} ${account.spec.lastName}`.trim(),
-      );
-    }
-    section.field(
-      "Account Type",
-      account.spec.isMachineAccount ? "Machine Account" : "User Account",
-    );
-  }
-
-  const org = resolveContextOrganization(client.config);
-  if (org !== "") {
-    section.field("Organization", org);
-  } else {
-    result.hint(
-      "No organization set. Use: stigmer config context set --org <slug>",
-    );
-  }
-
-  return result;
 }

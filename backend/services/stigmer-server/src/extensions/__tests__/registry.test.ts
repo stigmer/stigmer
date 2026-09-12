@@ -477,6 +477,10 @@ describe("resolveExtensions — loud-fail throws (DD-006 §2b)", () => {
       "agent-execution-create:pre-side-effect-gate",
       "agent-execution-recover:pre-side-effect-gate",
       "agent-execution-submit-approval:gate",
+      // 20260911.11 Q-IA-9: the seventh ratified slot — after the account
+      // persists inside provisionMyAccount, before the reply (the cloud's
+      // personal-organization ensure and backfill ride it).
+      "identity-account-provision:post-persist",
       "org-create:post-persist",
       "sandbox-acquisition:gate",
       "session-create:pre-side-effect-gate",

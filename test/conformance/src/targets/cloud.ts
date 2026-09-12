@@ -115,6 +115,11 @@ export class CloudTarget implements TargetProfile {
     // the ida_ at position 1: Java's Auth0 decoder + RequestCallerIdentityMapper
     // natively, the composition's direct-idp verifier (stigmer-cloud#604).
     directLogin: true,
+    // The cloud-iam unit composes the IdentityFederation capability, so the
+    // four federation RPCs are served for real; the OSS UNIMPLEMENTED pins
+    // gate off here (their positive behavior needs an IdentityProvider
+    // fixture — the channelMessaging coverage split, target.ts).
+    federatedIdentityAccounts: true,
     // The three cloud-capability surfaces (E1, entry 20260906.04): Java
     // serves all three natively; the composition serves the ledger through
     // the C5 facade today and the proxy/public lanes only once C6/P1 land —
@@ -178,6 +183,16 @@ export class CloudTarget implements TargetProfile {
       `${CLOUD_ENV.directLoginIssuer} is unset — this environment does not hand conformance the platform ` +
       "tenant's signing key (a deployed endpoint's real tenant key is never conformance's to hold), " +
       "so the direct-login lane cannot be driven here"
+    );
+  }
+
+  // Connect-only: the target spawns nothing, so it cannot boot a sibling in
+  // another posture. The cloud's identity lane is the platform tenant's,
+  // driven by the direct-login suite through directLoginTenant.
+  spawnSiblingUnavailable(): string {
+    return (
+      "the cloud target is connect-only and spawns no server; its OIDC lane is the platform " +
+      "tenant's, driven by the direct-login suite"
     );
   }
 

@@ -18,27 +18,43 @@
  *   - everything else → "invalid token"
  *
  * Discovery and key handling: the issuer's /.well-known/openid-configuration
- * is fetched once (memoized on success, retried on the next request after
- * a failure — a flaky IdP at boot must not permanently brick the lane),
- * its `issuer` field must match the configured issuer exactly (RFC 8414
- * §3.3), and the JWKS rides jose's createRemoteJWKSet (cached, rotation-
- * aware). Discovery/JWKS OUTAGES are infrastructure faults — thrown as
+ * is read through the shared oidc-discovery module the composition root
+ * builds once for every lane (20260911.11 A8 — the userinfo client reads
+ * the same document, so one issuer is discovered once and validated the
+ * same way wherever it is consumed: `issuer` must match exactly, RFC 8414
+ * §3.3; `jwks_uri` required). The module memoizes on success only, so a
+ * flaky IdP at boot never permanently bricks the lane. The JWKS client
+ * (jose's createRemoteJWKSet — cached, rotation-aware) is built ONCE per
+ * verifier from the discovered location and kept: discovery hands back a
+ * URI, and a client rebuilt per request would refetch the keys per
+ * request. Discovery/JWKS OUTAGES are infrastructure faults — thrown as
  * plain errors so the chassis maps them to INTERNAL, never a credential
  * rejection (the DD-007 unavailable doctrine).
  *
- * Identity: identityId = `sub` (rejected as invalid when absent), issuer =
- * the configured issuer, email/displayName from the standard `email`/`name`
- * claims when present (the DD-007 Q5 addendum added the fields for exactly
- * these claims).
+ * Identity (20260911.11 Q-IA-2, A1 — the cloud's direct-login posture):
+ * after the token verifies, `sub` (rejected as invalid when absent) is
+ * resolved through the identity-account domain (identityIdForSubject):
+ * a subject with a direct account stamps the ACCOUNT id; a subject
+ * without one is admitted idp-shaped (identityId = sub) so whoAmI can
+ * answer NOT_FOUND and provisionMyAccount can run. One primary-key read
+ * per request, no cache; a store fault is an infrastructure fault. The
+ * issuer is the configured issuer; email/displayName come from the
+ * standard `email`/`name` claims when present (the DD-007 Q5 addendum
+ * added the fields for exactly these claims), whichever way the subject
+ * resolved. Claim-or-pass runs before any of this: a non-JWT token
+ * passes with no network.
  */
 import { createRemoteJWKSet, jwtVerify, errors as joseErrors } from "jose";
 import type { JWTPayload } from "jose";
 import { Code, ConnectError } from "@connectrpc/connect";
 
+import { identityIdForSubject } from "../domain/identityaccount/resolve.js";
+import type { AccountsBySubject } from "../domain/identityaccount/resolve.js";
 import type {
   CallerIdentity,
   IdentityVerifier,
 } from "../extensions/identity.js";
+import type { IssuerDiscovery } from "./oidc-discovery.js";
 
 /** Java classifyAuthError arms — byte-pinned cross-edition copy. */
 export const TOKEN_EXPIRED_MESSAGE = "token has expired";
@@ -52,42 +68,28 @@ export interface OidcVerifierConfig {
   readonly issuer: string;
   /** The audience access tokens must carry. */
   readonly audience: string;
+  /** The identity-account domain's subject lookup — REQUIRED: what identityId means depends on it. */
+  readonly accounts: AccountsBySubject;
+  /** The composition root's one discovery for every lane (A8). */
+  readonly discovery: IssuerDiscovery;
 }
 
-interface DiscoveredIssuer {
-  readonly jwks: ReturnType<typeof createRemoteJWKSet>;
-}
+type RemoteJwks = ReturnType<typeof createRemoteJWKSet>;
 
 export function newOidcIdentityVerifier(
   config: OidcVerifierConfig,
 ): IdentityVerifier {
-  let discovered: DiscoveredIssuer | undefined;
+  // Set on the first successful discovery only: a failed discovery leaves
+  // it unset so the next request retries (the module caches no failure).
+  let jwks: RemoteJwks | undefined;
 
-  async function discover(): Promise<DiscoveredIssuer> {
-    if (discovered !== undefined) {
-      return discovered;
+  async function jwksFor(): Promise<RemoteJwks> {
+    if (jwks !== undefined) {
+      return jwks;
     }
-    const url = discoveryUrl(config.issuer);
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(
-        `OIDC discovery failed: ${url} answered HTTP ${response.status}`,
-      );
-    }
-    const document = (await response.json()) as {
-      issuer?: string;
-      jwks_uri?: string;
-    };
-    if (document.issuer !== config.issuer) {
-      throw new Error(
-        `OIDC discovery failed: document issuer '${document.issuer ?? ""}' does not match configured issuer '${config.issuer}'`,
-      );
-    }
-    if (typeof document.jwks_uri !== "string" || document.jwks_uri === "") {
-      throw new Error(`OIDC discovery failed: ${url} carries no jwks_uri`);
-    }
-    discovered = { jwks: createRemoteJWKSet(new URL(document.jwks_uri)) };
-    return discovered;
+    const { jwksUri } = await config.discovery.discover(config.issuer);
+    jwks = createRemoteJWKSet(new URL(jwksUri));
+    return jwks;
   }
 
   return {
@@ -96,10 +98,10 @@ export function newOidcIdentityVerifier(
       if (!isJwtShaped(token)) {
         return null;
       }
-      const issuer = await discover();
+      const keys = await jwksFor();
       let payload: JWTPayload;
       try {
-        ({ payload } = await jwtVerify(token, issuer.jwks, {
+        ({ payload } = await jwtVerify(token, keys, {
           issuer: config.issuer,
           audience: config.audience,
         }));
@@ -110,7 +112,7 @@ export function newOidcIdentityVerifier(
         throw new ConnectError(INVALID_TOKEN_MESSAGE, Code.Unauthenticated);
       }
       return {
-        identityId: payload.sub,
+        identityId: await identityIdForSubject(config.accounts, payload.sub),
         callerClass: "user",
         issuer: config.issuer,
         rawToken: token,
@@ -123,11 +125,6 @@ export function newOidcIdentityVerifier(
       };
     },
   };
-}
-
-/** issuer + /.well-known/openid-configuration (trailing-slash tolerant). */
-function discoveryUrl(issuer: string): string {
-  return `${issuer.replace(/\/$/, "")}/.well-known/openid-configuration`;
 }
 
 /** Three non-empty dot-separated segments — the JWS compact shape. */

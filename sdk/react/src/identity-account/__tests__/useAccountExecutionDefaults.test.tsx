@@ -36,15 +36,19 @@ function createWrapper(whoAmI: ReturnType<typeof vi.fn>, mode: DeploymentMode = 
 afterEach(cleanup);
 
 describe("useAccountExecutionDefaults", () => {
-  it("returns undefined in local mode without issuing any RPC", async () => {
-    const whoAmI = vi.fn();
+  it("reads the account in local mode — the open-source server serves identity accounts (20260911.11)", async () => {
+    // Before the tier flip this hook stayed idle on a local server. The
+    // operator account exists there since the domain moved into
+    // @stigmer/server, so a laptop's saved defaults seed the composer too.
+    const whoAmI = vi.fn(async () =>
+      accountWithPreferences({ defaultHarness: "native" }),
+    );
     const { result } = renderHook(() => useAccountExecutionDefaults(), {
       wrapper: createWrapper(whoAmI, "local"),
     });
 
-    // Settle any pending effects before asserting the no-RPC invariant.
-    await waitFor(() => expect(result.current).toBeUndefined());
-    expect(whoAmI).not.toHaveBeenCalled();
+    await waitFor(() => expect(result.current).toEqual({ harness: "native" }));
+    expect(whoAmI).toHaveBeenCalledTimes(1);
   });
 
   it("shapes declared defaults for the launcher's accountDefaults prop", async () => {

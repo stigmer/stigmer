@@ -62,10 +62,11 @@ eventually violate creatively.
 - **Gate-slot names are PROTECTED VOCABULARY** (convergence blueprint
   20260826.02/03 §3a; declared in `src/extensions/gate-slots.ts`, spliced
   where the table says, empty when no extension is composed). Never rename
-  a slot; adding one is an owner-visible act (all six ratified names are
+  a slot; adding one is an owner-visible act (all seven ratified names are
   now declared — `sandbox-acquisition:gate` landed with the C4 wave's
-  OSS-side seam work, closing O4 ruling Q1's deferral). The ratified
-  table — the code must match it exactly:
+  OSS-side seam work, closing O4 ruling Q1's deferral;
+  `identity-account-provision:post-persist` with 20260911.11, gate ruling
+  Q-IA-9). The ratified table — the code must match it exactly:
 
   | Slot | Position |
   |---|---|
@@ -75,6 +76,7 @@ eventually violate creatively.
   | `session-create:pre-side-effect-gate` | after `NormalizeReferences`, before `Persist` (Q2 ruling: mirrors Java's post-resolution position; the pre-validation default-instance resolution side-effects pre-gate in BOTH editions) |
   | `org-create:post-persist` | after `Persist`, before `IndexSearch` (non-transactional in BOTH editions: a slot failure fails the request, the row survives, idempotent retry heals) |
   | `sandbox-acquisition:gate` | workflow-execution CREATE: after `NormalizeReferences`, before `SetInitialPhase`; workflow-execution RECOVER: after `ValidateRecoverable`, before `TerminateExistingWorkflow` (the Java capacity-gate positions, cloud#355/#290 — post-authorize, pre-side-effect, pre-provision; the default instance side-effects pre-gate in BOTH editions, inherited orphan-on-refusal semantics; the SESSION lane's capacity gates ride the two agent-execution slots above, whose positions coincide with Java's session gate) |
+  | `identity-account-provision:post-persist` | identity-account `provisionMyAccount` (a direct handler, not a chain): after the provisioner has answered the caller's row — created on this call or found by the idempotent early return — and before the reply, with the caller RE-STAMPED as the account (the position-1 identity was idp-shaped). Fires on EVERY provisionMyAccount, the idempotent path included (the cloud's personal-organization backfill is why a slot, not `onResourceCreated`); never on the `create` RPC or the boot-time operator ensure, which take the create path. Non-transactional like `org-create:post-persist`: a gate failure fails the request, the row survives, the next call heals |
 
   Facts gate AUTHORS inherit (recorded, not mechanisms): slots run
   wherever their chain runs, INCLUDING in-process invocations (the Java
@@ -104,6 +106,15 @@ eventually violate creatively.
   The organization query forks (enumeration refusal, my-orgs filtering,
   `getByExternalOrgId`) ride the `drivers.organizationDirectory` point —
   never a second registration of an OSS-served RPC.
+- **A store PORT a composition can drive ships its contract as a kit**
+  (20260911.11 A11): a vitest-free case list over `node:assert`, exported
+  from the barrel, that the OSS adapter's test iterates on both drivers
+  and a composition's driver test iterates too, so the port is proven per
+  driver and never restated per repository. The precedent is
+  `domain/identityaccount/store-contract.ts` for
+  `drivers.identityAccountStore`; the in-package `Store` contract suite
+  (`store/__tests__/store-contract.ts`) keeps its vitest shape because
+  no other package runs it.
 - **Status-transition hooks fire from EVERY phase-transition persist
   site**, not one chokepoint (O4 ruling Q3) — the five sites are
   enumerated in `src/domain/agentexecution/status-observers.ts`, and a

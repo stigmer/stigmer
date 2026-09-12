@@ -382,6 +382,48 @@ Defaults to `"cloud"` so existing consumers who don't pass
 `deploymentMode` to `StigmerProvider` see all features enabled.
 
 
+### EnsuredIdentityAccount
+
+What [`ensureMyIdentityAccount`](#ensuremyidentityaccount) learned.
+
+<TypeTable
+  type={{
+    account: { type: "IdentityAccount", description: "The caller's account, existing or just created.", required: true, typeDescriptionLink: "/docs/sdk/resources/identity-account" },
+    created: { type: "boolean", description: "`true` when this call created the account (a first sign-in).", required: true },
+  }}
+/>
+
+
+### ensureMyIdentityAccount
+
+Resolve the caller's identity account, provisioning it on a first sign-in.
+
+`whoAmI` first; on NOT_FOUND — and only NOT_FOUND — `onProvisioning` fires
+and `provisionMyAccount` runs. Every other error, from either RPC, is
+rethrown as the same object so the caller's error UX owns it.
+
+```tsx
+function ensureMyIdentityAccount(client: { identityAccount: IdentityAccountLane }, options?: EnsureMyIdentityAccountOptions): Promise<EnsuredIdentityAccount>
+```
+
+```tsx
+const { account, created } = await ensureMyIdentityAccount(stigmer, {
+  onProvisioning: () => console.log("Setting up your account…"),
+});
+```
+
+
+### EnsureMyIdentityAccountOptions
+
+Options for [`ensureMyIdentityAccount`](#ensuremyidentityaccount).
+
+<TypeTable
+  type={{
+    onProvisioning: { type: "() => void", description: "Called once, before `provisionMyAccount` is issued, when `whoAmI` found no account — the moment a surface shows \"Setting up your account…\". Not called when the account already exists." },
+  }}
+/>
+
+
 ### FetchCacheOptions
 
 Configuration for `FetchCache`.
@@ -399,6 +441,12 @@ Configuration for `FetchCache`.
 MIME type used to transfer workspace file-reference data during
 drag-and-drop. The payload is `JSON.stringify({ path })` where
 `path` is the workspace-relative file path.
+
+
+### IdentityAccountLane
+
+The slice of the identity-account client this flow needs. Errors are the
+SDK client's `StigmerError`s; `isNotFound` is the one classifier read.
 
 
 ### isResourceAvailable
