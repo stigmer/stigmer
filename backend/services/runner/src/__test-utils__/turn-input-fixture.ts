@@ -58,7 +58,7 @@ export interface TurnInputFixtureOverrides extends Partial<Omit<TurnInput, "exec
    * The status the default execution carries — what the control plane
    * persisted at the end of the previous invocation, on a reinvocation. The
    * runtime seeds the turn's in-progress status from a clone of it
-   * (`seedTranscriptFromExecution`) and an adapter may read the record's own
+   * (`seedFromPersistedStatus`) and an adapter may read the record's own
    * copy for its facts, so a test standing in for the runtime hands both.
    */
   readonly persistedStatus?: AgentExecutionStatus;

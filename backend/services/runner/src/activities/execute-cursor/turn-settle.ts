@@ -141,7 +141,7 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
     mergedPolicies: mcp.policies,
     provenance: { globalBypass: mcp.leases.global, leasedCategories: mcp.leases.categories },
     workspaceRoot: workspace.primaryDir,
-    seededSubAgents: rows.seededSubAgents,
+    subAgentExecutions: status.subAgentExecutions,
   });
   // Shared cadence with the native harness: discrete state changes force a
   // flush; high-frequency token deltas ride this scheduler's time cadence
@@ -177,7 +177,6 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
     if (sink.stopSignal.aborted) {
       accumulator.cancelInProgressSubAgents();
     }
-    status.subAgentExecutions = accumulator.subAgentExecutions;
     await eventRecorder?.flush();
     console.log(
       `ExecuteCursor stream ended: execution=${executionId}, events=${streamState.eventCount}, messages=${status.messages.length}, subAgents=${status.subAgentExecutions.length}`,

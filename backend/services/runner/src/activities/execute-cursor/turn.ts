@@ -82,7 +82,7 @@ export async function runCursorTurn(input: TurnInput, sink: TurnSink, config: Cu
     // gate so the denial watcher can write into them.
     const streamState = newTurnStreamState();
     const mode = resolveCursorMode(input, config);
-    const rows = readAdjudicatedRows(input);
+    const rows = readAdjudicatedRows(input, sink.status);
     gate = await installGate(input, sink, rows, streamState);
     if (sink.stopSignal.aborted) return (outcome = { kind: "interrupted" });
 

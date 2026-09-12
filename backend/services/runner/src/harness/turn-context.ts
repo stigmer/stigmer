@@ -66,9 +66,8 @@
 
 import { CancelledFailure } from "@temporalio/activity";
 import { clone } from "@bufbuild/protobuf";
-import type { AgentExecution, AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { AgentExecutionStatusSchema, type AgentExecution, type AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { AgentExecutionSpec } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { ApprovalAction, FileChangeSetStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 
@@ -181,9 +180,8 @@ export interface ResolutionDeps {
  * `TurnInput`: `isReinvocation` is the adapter's own derivation from
  * `threadId` (the contract carries no flag by design, `types.ts` header) and
  * the runtime reads it only inside {@link resolveTurnContext}; the decisions
- * ARE on the input. The seeded sub-agent rows are the adapter's to clone from
- * `execution.status` (its accumulator owns `status.subAgentExecutions` and
- * overwrites it on every flush), so they ride nothing here.
+ * ARE on the input. The seeded rows of every kind are on `sink.status`
+ * ({@link seedFromPersistedStatus}); an adapter wraps them by reference.
  */
 export interface TurnReinvocation {
   /** The engine already holds state for this execution (derived per {@link isReinvocation}). */
@@ -321,41 +319,66 @@ export function decideReinvocation(
 }
 
 /**
- * Seed an in-progress status from the persisted execution on a durable
- * resume (HITL approval, pause/resume, transient recovery) so the upcoming
- * turn APPENDS onto prior history instead of replacing it.
+ * Seed an in-progress status from the persisted execution on a resume (HITL
+ * approval, pause/resume, transient recovery) so the upcoming turn APPENDS
+ * onto prior history instead of replacing it.
  *
- * Why it is required: a resumed engine re-issues the previously gated tool
- * calls with brand-new call ids. Without seeding, the harness's accumulator
- * would rebuild the transcript from empty and emit a status that drops the
- * already-committed tool-call ids. The backend's append-only-at-identity
- * guard rejects any non-terminal update that drops a committed tool-call id,
- * so the resumed progress would never persist: the run stalls in
- * WAITING_FOR_APPROVAL with no pending approvals and the workflow watchdog
- * fails it. Seeding makes the resume status a strict superset; the re-runs
- * are then reconciled in place onto these seeded calls by canonical identity
- * inside the accumulator.
+ * Why the transcript must be seeded: a resumed engine re-issues the
+ * previously gated tool calls with brand-new call ids. Without seeding, the
+ * harness's accumulator would rebuild the transcript from empty and emit a
+ * status that drops the already-committed tool-call ids. The backend's
+ * append-only-at-identity guard rejects any non-terminal update that drops a
+ * committed tool-call id, so the resumed progress would never persist: the
+ * run stalls in WAITING_FOR_APPROVAL with no pending approvals and the
+ * workflow watchdog fails it. Seeding makes the resume status a strict
+ * superset; the re-runs are then reconciled in place onto these seeded calls
+ * by canonical identity inside the accumulator.
  *
- * The persisted protos are cloned so the input execution stays immutable.
- * Messages are pushed into `status.messages` (which the accumulator wraps by
- * reference) BEFORE the accumulator is constructed. Sub-agent executions are
- * NOT seeded here: the Cursor accumulator owns `status.subAgentExecutions`
- * and overwrites it on every flush, so the adapter clones them itself from
- * `input.execution.status` under the same "left a transcript" test.
+ * Why the OTHER collections must be seeded too — the server's merge rule
+ * (`stigmer-server/src/domain/agentexecution/update-status.ts`): every list
+ * and singleton the runner owns is PRESENCE-GUARDED and then REPLACED
+ * wholesale — `subAgentExecutions`, `todos`, `artifacts`,
+ * `workspaceWriteBacks` when non-empty (L327-345); `streamingUsage`,
+ * `recalledMemoriesReport`, `structuredOutput` when defined (L492-526). So
+ * the loss an unseeded resume suffers is not "empty replaces full" (the
+ * guard covers that) but "PARTIAL replaces full": a resumed turn that
+ * publishes one artifact, delegates one sub-agent, or touches one to-do
+ * sends a list holding only that, and the server replaces the prior turn's
+ * whole list with it. Seeding every one makes each write a superset again.
+ *
+ * What is NOT seeded, and why: `fileChangeSets` and `pendingApprovals` are
+ * DERIVED by the server from its own ledgers on every write;
+ * `fileReviewEventStream` and `approvalEventStream` are server-owned ledgers
+ * the runner only APPENDS its own events to; `fileChangeProgress`,
+ * `setupProgress` and `contextInfo` are one turn's own or the server's; and
+ * `phase`, `startedAt`, `completedAt`, `error` are this turn's fresh
+ * terminal, written by the runtime.
+ *
+ * Every collection is mutated IN PLACE (pushed into, assigned into), never
+ * reassigned: the write-back coordinator already wraps this status through
+ * `statusProtoWriter`, and the harness's accumulator wraps `messages` and
+ * `subAgentExecutions` by reference after this runs, so a reassigned array
+ * would leave a wrapper holding the old one. The persisted protos are
+ * cloned so the input execution stays immutable.
  *
  * Moved from `execute-cursor/index.ts` `seedCursorTranscriptFromExecution`
- * (L2468-2478); the native twin is `execute-deep-agent/index.ts`
- * `seedStatusFromExecution` (S3 retires it).
+ * (messages only) and widened at S3 M1 to what native's whole-status clone
+ * (`execute-deep-agent/index.ts` `seedStatusFromExecution`, retired with its
+ * orchestrator) always carried, minus the fields above that it carried by
+ * accident (Q-S3-16).
  */
-export function seedTranscriptFromExecution(
-  status: AgentExecutionStatus,
-  execution: AgentExecution,
-): void {
+export function seedFromPersistedStatus(status: AgentExecutionStatus, execution: AgentExecution): void {
   const persisted = execution.status;
   if (!persisted || persisted.messages.length === 0) return;
-  for (const message of persisted.messages) {
-    status.messages.push(clone(AgentMessageSchema, message));
-  }
+  const seed = clone(AgentExecutionStatusSchema, persisted);
+  status.messages.push(...seed.messages);
+  status.subAgentExecutions.push(...seed.subAgentExecutions);
+  status.artifacts.push(...seed.artifacts);
+  status.workspaceWriteBacks.push(...seed.workspaceWriteBacks);
+  for (const [id, todo] of Object.entries(seed.todos)) status.todos[id] = todo;
+  if (seed.streamingUsage !== undefined) status.streamingUsage = seed.streamingUsage;
+  if (seed.recalledMemoriesReport !== undefined) status.recalledMemoriesReport = seed.recalledMemoriesReport;
+  if (seed.structuredOutput !== undefined) status.structuredOutput = seed.structuredOutput;
 }
 
 // ---------------------------------------------------------------------------
@@ -525,7 +548,7 @@ export async function bindTelemetryBaggage(
  * whether this one runs the agent at all.
  *
  * On a reinvocation, first seed the in-progress status from the persisted
- * execution ({@link seedTranscriptFromExecution}), BEFORE the harness's
+ * execution ({@link seedFromPersistedStatus}), BEFORE the harness's
  * accumulator wraps `status.messages`. Then the file-review reconcile (the
  * dual-source half): every change set the server projected as DECIDED is
  * reconciled from the ledger decisions and the pinned git refs (approved
@@ -559,7 +582,7 @@ export async function reconcileReinvocation(
 
   if (reinvoked) {
     const existingStatus = args.execution.status;
-    seedTranscriptFromExecution(deps.status, args.execution);
+    seedFromPersistedStatus(deps.status, args.execution);
 
     if (args.workspace.captureMode && args.workspace.primaryDir) {
       const decidedSets = (existingStatus?.fileChangeSets ?? []).filter(

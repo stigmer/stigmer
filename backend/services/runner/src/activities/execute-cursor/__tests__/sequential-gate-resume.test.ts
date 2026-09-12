@@ -139,7 +139,7 @@ describe("Cursor sequential gates A->B across resume", () => {
     const committed = approvedGateA();
     const seeded = committed.map((m) => clone(AgentMessageSchema, m));
 
-    const acc = new MessageAccumulator(seeded, { seededSubAgents: [] });
+    const acc = new MessageAccumulator(seeded, {});
     for (const event of resumeIntoGateB()) acc.processEvent(event);
     acc.finalize();
 

@@ -31,6 +31,7 @@ import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agent
 import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { CursorMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 
+import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { Config } from "../../config.js";
 import type { TurnInput, TurnSink } from "../../harness/types.js";
 import { toCursorImages } from "../../shared/attachment-vision.js";
@@ -49,7 +50,6 @@ import { CURSOR_CAPABILITIES } from "./cursor-capabilities.js";
 import { toCursorMcpConfig, validateMcpServerEnv } from "./cursor-mcp-config.js";
 import { determineCursorMode, isCloudMode } from "./cursor-mode.js";
 import { closeProxySessions } from "./http2-interceptor.js";
-import { seededSubAgentsOf } from "./message-translator.js";
 import { ensureLoaded as ensurePricingLoaded, resolveModelId } from "./model-pricing.js";
 import {
   appendStructuredOutputDirective,
@@ -92,7 +92,12 @@ export type CursorAgentMode = "cloud" | "local";
 export interface AdjudicatedRows {
   /** Create-vs-resume, derived from the state id exactly as the runtime derives it. */
   readonly isReinvocation: boolean;
-  /** The sub-agent rows the accumulator re-registers on a resume. */
+  /**
+   * The sub-agent rows on the status BEFORE this turn's stream — the runtime's
+   * seed on a resume, none on a first turn — snapshotted so the turn boundary
+   * can tell a prior turn's rows from this turn's. The row objects themselves
+   * are the status's own; the accumulator merges resumed updates onto them.
+   */
   readonly seededSubAgents: readonly SubAgentExecution[];
   /** The pending-approval protos the grant builder and the reinvocation prompt render. */
   readonly adjudicatedApprovals: PendingApproval[];
@@ -164,12 +169,12 @@ export function resolveCursorMode(input: TurnInput, config: CursorAdapterConfig)
  * holds this session's conversation, so this turn resumes it — the runtime's
  * `isReinvocation` answers its own question and is not consulted here.
  */
-export function readAdjudicatedRows(input: TurnInput): AdjudicatedRows {
+export function readAdjudicatedRows(input: TurnInput, status: AgentExecutionStatus): AdjudicatedRows {
   const reinvoked = input.threadId !== "";
   const adjudicated = reinvoked ? reconstructAdjudicatedApprovals(input.execution.status?.messages ?? []) : undefined;
   return {
     isReinvocation: reinvoked,
-    seededSubAgents: seededSubAgentsOf(input.execution),
+    seededSubAgents: [...status.subAgentExecutions],
     adjudicatedApprovals: adjudicated?.pendingApprovals ?? [],
     adjudicatedContentDigests: adjudicated?.contentDigests ?? new Map(),
   };

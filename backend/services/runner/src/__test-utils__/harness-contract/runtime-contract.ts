@@ -47,8 +47,14 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { mkdirSync } from "node:fs";
 import { realpath } from "node:fs/promises";
 import { join } from "node:path";
-import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ApprovalAction, ExecutionControlSignal, ExecutionPhase, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ApprovalAction, ExecutionControlSignal, ExecutionPhase, MessageType, SubAgentStatus, TodoStatus, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { create, type JsonObject } from "@bufbuild/protobuf";
+import { RecalledMemoriesReportSchema, type AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { ExecutionArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
+import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
+import { TodoItemSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/todo_pb";
+import { StreamingUsageSummarySchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
+import { WorkspaceWriteBackPhase, WorkspaceWriteBackSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/writeback_pb";
 
 import type { StigmerClient } from "../../client/stigmer-client.js";
 import type { Config } from "../../config.js";
@@ -363,6 +369,88 @@ export async function assertToolCallLimitTerminates(harness: RuntimeContractHarn
   expect(aiMessages(final), `${subject.name}: the step after the limit is never processed`).not.toContain(NEVER_SEEN);
   expect(driver.record.persistedPhases.at(-1), `${subject.name}: the terminal is persisted, not merely returned`).toBe(ExecutionPhase.EXECUTION_TERMINATED);
   return { driver, invocations: [invocation], final };
+}
+
+// ── Arm: the seed's breadth on a reinvocation ───────────────────────────────
+
+/**
+ * What a reinvocation carries forward. Every runner-owned collection and
+ * singleton the prior invocation persisted — the sub-agent rows, the to-dos,
+ * the artifacts, the write-back rows, the usage summary, the recalled-memories
+ * report, the structured output — is on the completed status of the resumed
+ * turn, because the server REPLACES each of them wholesale when the runner's
+ * write carries any (`update-status.ts`), so a write holding only the resumed
+ * turn's own would erase the prior turn's. A first turn (no transcript)
+ * carries none of them, whatever the record holds: the seed is gated on the
+ * persisted transcript, the one signal every harness shares.
+ *
+ * The record here REPLACES its held status with every full write (stricter
+ * than the server's presence guard), so a dropped collection is a failing
+ * assertion, not a masked one. The planted rows are the prior turn's own
+ * facts, written onto the record between invocations as the prior turn would
+ * have persisted them.
+ */
+export async function assertReinvocationCarriesThePersistedStatus(harness: RuntimeContractHarness, label = "rt-seed"): Promise<RuntimeArmResult> {
+  const { subject } = harness;
+  const driver = new RuntimeExecutionDriver(harness, label);
+  const id = `${label}-shell`;
+  const propose = scenario.propose(id, { kind: "shell", resource: `make release # ${label}` });
+
+  const first = await driver.turn([propose]);
+  expect(slimOf(subject, first).phase).toBe("EXECUTION_WAITING_FOR_APPROVAL");
+  const planted = plantPriorTurnFacts(driver.record.status!, label);
+  expect(driver.decide(ApprovalAction.APPROVE)).toBe(1);
+
+  const second = await driver.turn([propose, scenario.say("Done.")]);
+  expect(slimOf(subject, second).phase, `${subject.name}: the resumed turn completes`).toBe("EXECUTION_COMPLETED");
+  const final = finalStatusOf(harness, driver);
+  expect(final.subAgentExecutions.map((s) => s.id), `${subject.name}: the prior turn's sub-agent row survives the resume`).toContain(planted.subAgentId);
+  expect(Object.keys(final.todos), `${subject.name}: the prior turn's to-dos survive the resume`).toContain(planted.todoId);
+  expect(final.artifacts.map((a) => a.name), `${subject.name}: the prior turn's artifacts survive the resume`).toContain(planted.artifactName);
+  expect(final.workspaceWriteBacks.map((w) => w.workspaceEntryName), `${subject.name}: the prior turn's write-back rows survive the resume`).toContain(planted.writeBackEntry);
+  expect(final.recalledMemoriesReport?.injectedMemoryIds, `${subject.name}: the recalled-memories report survives the resume`).toEqual([planted.memoryId]);
+  expect(final.structuredOutput, `${subject.name}: a structured output already on the record survives the resume`).toEqual(planted.structuredOutput);
+  expect(final.streamingUsage?.inputTokens, `${subject.name}: the usage summary carries until the resumed turn reports its own`).toBe(planted.inputTokens);
+  expect(final.messages.flatMap((m) => m.toolCalls).filter((tc) => tc.id === id), `${subject.name}: the gated row is carried once, not duplicated`).toHaveLength(1);
+  return { driver, invocations: [first, second], final };
+}
+
+/** The same record with the same planted facts but NO transcript: a first turn seeds nothing. */
+export async function assertFirstTurnSeedsNothing(harness: RuntimeContractHarness, label = "rt-seed-first"): Promise<RuntimeArmResult> {
+  const { subject } = harness;
+  const driver = new RuntimeExecutionDriver(harness, label);
+  const planted = plantPriorTurnFacts(driver.record.status ?? (driver.record.execution.status = emptyStatus()), label);
+  const invocation = await driver.turn([scenario.say("Fresh start.")]);
+  expect(slimOf(subject, invocation).phase).toBe("EXECUTION_COMPLETED");
+  const final = finalStatusOf(harness, driver);
+  expect(final.subAgentExecutions.map((s) => s.id), `${subject.name}: a first turn seeds no sub-agent rows`).not.toContain(planted.subAgentId);
+  expect(Object.keys(final.todos), `${subject.name}: a first turn seeds no to-dos`).not.toContain(planted.todoId);
+  expect(final.artifacts.map((a) => a.name), `${subject.name}: a first turn seeds no artifacts`).not.toContain(planted.artifactName);
+  expect(final.workspaceWriteBacks, `${subject.name}: a first turn seeds no write-back rows`).toHaveLength(0);
+  expect(final.recalledMemoriesReport, `${subject.name}: a first turn seeds no report`).toBeUndefined();
+  expect(final.structuredOutput, `${subject.name}: a first turn seeds no structured output`).toBeUndefined();
+  return { driver, invocations: [invocation], final };
+}
+
+/** Write the prior turn's facts onto the server-held status, as its writes would have left them. */
+function plantPriorTurnFacts(held: AgentExecutionStatus, label: string) {
+  const planted = {
+    subAgentId: `${label}-sub`,
+    todoId: `${label}-todo`,
+    artifactName: `${label}-report.md`,
+    writeBackEntry: `${label}-repo`,
+    memoryId: `${label}-memory`,
+    structuredOutput: { verdict: "carried" } as JsonObject,
+    inputTokens: 4_242n,
+  };
+  held.subAgentExecutions.push(create(SubAgentExecutionSchema, { id: planted.subAgentId, name: "researcher", status: SubAgentStatus.SUB_AGENT_COMPLETED }));
+  held.todos[planted.todoId] = create(TodoItemSchema, { id: planted.todoId, content: "carry me", status: TodoStatus.TODO_PENDING });
+  held.artifacts.push(create(ExecutionArtifactSchema, { name: planted.artifactName }));
+  held.workspaceWriteBacks.push(create(WorkspaceWriteBackSchema, { workspaceEntryName: planted.writeBackEntry, phase: WorkspaceWriteBackPhase.WORKSPACE_WRITE_BACK_COMMITTED }));
+  held.recalledMemoriesReport = create(RecalledMemoriesReportSchema, { selectionActive: true, injectedMemoryIds: [planted.memoryId] });
+  held.structuredOutput = planted.structuredOutput;
+  held.streamingUsage = create(StreamingUsageSummarySchema, { inputTokens: planted.inputTokens, totalTokens: planted.inputTokens });
+  return planted;
 }
 
 // ── Arms: the stop controller's producers ───────────────────────────────────
@@ -699,6 +787,12 @@ export function describeHarnessRuntimeContract(harness: RuntimeContractHarness, 
     it("awaiting_approval then APPROVE: the WAITING row, the reinvocation by the bound id, one execution, COMPLETED", async () => {
       clock.reset();
       await assertApprovalRoundTrip(harness);
+    });
+    it("a reinvocation carries every runner-owned collection and singleton the prior turn persisted; a first turn seeds nothing", async () => {
+      clock.reset();
+      await assertReinvocationCarriesThePersistedStatus(harness);
+      clock.reset();
+      await assertFirstTurnSeedsNothing(harness);
     });
     for (const action of [ApprovalAction.REJECT, ApprovalAction.SKIP] as const) {
       it(`awaiting_approval then ${ApprovalAction[action]}: the run continues without the tool and the runtime settles the row SKIPPED`, async () => {

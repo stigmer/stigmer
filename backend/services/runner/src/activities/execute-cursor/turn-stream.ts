@@ -300,10 +300,9 @@ export async function consumeCursorTurnStream(
         state.eventCount,
       );
       if (shouldPersist) {
-        // Sync sub-agent executions into status before every persist so the live
-        // UI reflects delegation (including the IN_PROGRESS state) while the
-        // parent is still running — matching the native harness.
-        status.subAgentExecutions = accumulator.subAgentExecutions;
+        // The accumulator upserts sub-agent rows into `status.subAgentExecutions`
+        // in place (wrapped by reference at construction), so every persist
+        // already carries delegation, IN_PROGRESS included.
         // Mid-run live capture (DD-32 / DD-33): attach the "N files changed so
         // far" snapshot onto status.file_change_progress, throttled internally by
         // the floor. Never authoritative — the turn-boundary candidate remains
