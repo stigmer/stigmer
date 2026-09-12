@@ -58,11 +58,10 @@ import {
   SDK_CATALOG,
   beginCursorScenario,
   cursorExecutionRecord,
-  initGitWorkspace,
-  localPathEntry,
   runCursorTurn,
   runWorkspaceHook,
 } from "../../__test-utils__/hermetic-cursor.js";
+import { initGitWorkspace, localPathEntry } from "../../../../__test-utils__/git-workspace-fixture.js";
 import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
 
 const AGENT_ID = "agent-hermetic-capture-0001";

@@ -1,0 +1,12 @@
+{
+  "messages": [
+    {
+      "type": "MESSAGE_SYSTEM",
+      "content": "Error: [Error] hermetic fault injected at getAgent",
+      "timestamp": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "phase": "EXECUTION_FAILED",
+  "error": "Execution failed: [Error] hermetic fault injected at getAgent",
+  "completedAt": "2026-01-01T00:00:00.000Z"
+}
