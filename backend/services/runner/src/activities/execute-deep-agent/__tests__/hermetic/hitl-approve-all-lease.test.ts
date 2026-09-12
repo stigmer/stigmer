@@ -121,7 +121,8 @@ describe("ExecuteDeepAgent hermetic — APPROVE_ALL leases the class (sqlite)", 
     expect(record.persistedPhases.at(-1)).toBe(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL);
     const run1 = record.lastFullStatus!;
     const thinking = run1.messages.filter((m) => m.type === MessageType.MESSAGE_THINKING);
-    expect(thinking.map((m) => m.content), "the reasoning block is a THINKING message").toEqual([REASONING]);
+    expect(thinking.map((m) => m.content), "the reasoning block is exactly one THINKING message").toEqual([REASONING]);
+    expect(run1.messages[0].type, "and it leads the transcript").toBe(MessageType.MESSAGE_THINKING);
     expect(record.waitingToolCalls().map((tc) => tc.id)).toEqual([EXECUTE_CALL_A.id]);
     await expect(statusJson(run1)).toMatchFileSnapshot("./goldens/approve-all-lease.turn1.status.json");
 
@@ -159,6 +160,7 @@ describe("ExecuteDeepAgent hermetic — APPROVE_ALL leases the class (sqlite)", 
     const run1Shape = run1.messages.map((m) => [m.type, m.content]);
     const finalShape = final.messages.map((m) => [m.type, m.content]);
     expect(finalShape.slice(0, run1Shape.length), "run 1's transcript is a prefix of the final").toEqual(run1Shape);
+    expect(final.messages[0].type, "the leading thinking survives the resume").toBe(MessageType.MESSAGE_THINKING);
     expect(finalShape.at(-1)).toEqual([MessageType.MESSAGE_AI, CLOSING_TURN.text]);
 
     // ── Assert: hermeticity ──────────────────────────────────────────────────

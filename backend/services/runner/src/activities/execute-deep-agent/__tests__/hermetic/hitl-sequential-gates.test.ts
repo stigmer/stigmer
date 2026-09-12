@@ -111,9 +111,8 @@ describe("ExecuteDeepAgent hermetic — two sequential gates (sqlite)", () => {
     const turn1 = await runDeepAgentTurn(scenario, { turnSeq: 0 });
     expect(turn1.outcome.kind).toBe("returned");
     expect(record.waitingToolCalls().map((tc) => tc.id)).toEqual([EXECUTE_CALL_A.id]);
-    await expect(statusJson(record.lastFullStatus!), "the same opening as every gated arm").toMatchFileSnapshot(
-      GATE_TURN1_GOLDEN,
-    );
+    const atGateA = record.lastFullStatus!;
+    await expect(statusJson(atGateA), "the same opening as every gated arm").toMatchFileSnapshot(GATE_TURN1_GOLDEN);
     expect(record.decideWaitingToolCalls(ApprovalAction.APPROVE, DECIDED_A_AT)).toBe(1);
 
     // ── Turn 2: A runs, gate B pauses ────────────────────────────────────────
@@ -130,6 +129,10 @@ describe("ExecuteDeepAgent hermetic — two sequential gates (sqlite)", () => {
     expect(rowsAtB[0].approvalAction).toBe(ApprovalAction.APPROVE);
     expect(rowsAtB[1].approvalMessage).toBe(executeApprovalMessage(EXECUTE_CALL_B));
     expect(record.waitingToolCalls().map((tc) => tc.id), "exactly one pending approval").toEqual([EXECUTE_CALL_B.id]);
+    // The gate-B transcript is a superset of the gate-A one: every id, every message, in order.
+    const gateAIds = atGateA.messages.flatMap((m) => m.toolCalls).map((tc) => tc.id);
+    expect(rowsAtB.map((tc) => tc.id).slice(0, gateAIds.length)).toEqual(gateAIds);
+    expect(atGateB.messages.length).toBeGreaterThanOrEqual(atGateA.messages.length);
     await expect(statusJson(atGateB)).toMatchFileSnapshot("./goldens/sequential-gates.turn2.status.json");
     expect(record.decideWaitingToolCalls(ApprovalAction.APPROVE, DECIDED_B_AT)).toBe(1);
 

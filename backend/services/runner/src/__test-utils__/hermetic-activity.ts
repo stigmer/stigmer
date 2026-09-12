@@ -7,11 +7,15 @@
  * are the wire contract the control plane's workflow keys on — the phases they
  * persist, the copy they write, whether they RETURN a slim status or THROW
  * `CancelledFailure`. Refactoring them safely needs goldens recorded through the
- * activity whole, not through its modules one at a time. The native harness
- * tests already run their activity hermetically by mocking three modules at the
- * boundary (`execute-deep-agent/__tests__/{index,hitl-*,sequential-gate-resume}.test.ts`);
- * this module is that convention made reusable, harness-agnostic, and driven by
- * the framework's own activity environment instead of a hand-written stand-in.
+ * activity whole, not through its modules one at a time. The native harness's
+ * earlier activity tests ran their activity hermetically by mocking three
+ * modules at the boundary with a hand-written `Context` stand-in and a scripted
+ * graph object; this module is that convention made reusable, harness-agnostic,
+ * and driven by the framework's own activity environment. Both harnesses now
+ * run on it (`execute-cursor/__test-utils__/hermetic-cursor.ts`,
+ * `execute-deep-agent/__test-utils__/hermetic-deep-agent.ts`), and the earlier
+ * native tests were re-homed onto the native driver (S3 M0), their assertions
+ * carried into `execute-deep-agent/__tests__/hermetic/`.
  *
  * What is generic here and what is not: everything an activity touches that is
  * NOT the vendor SDK — the Temporal `Context`, the control-plane client, the
