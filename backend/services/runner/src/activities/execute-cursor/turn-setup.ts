@@ -558,7 +558,7 @@ export async function buildTurnPrompt(input: TurnInput, sink: TurnSink, engine: 
     approvalDecisions,
     instructions: blueprint.instructions,
     userMessage: spec.message,
-    skills: input.skills,
+    skills: input.skills.root,
     channelMessaging: input.mcp.channelMessaging,
     subAgents: blueprint.subAgents,
     workspaceDirs: [...workspace.dirs],

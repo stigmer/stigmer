@@ -122,6 +122,7 @@ import type {
   TurnInput,
   TurnMcp,
   TurnModelPreferences,
+  TurnSkills,
   TurnStandingContext,
   TurnWorkspace,
 } from "./types.js";
@@ -762,26 +763,52 @@ export async function resolveMcpServersAndPolicies(
 
 /**
  * Phase 5 (`index.ts` L493-501, the orchestrator's position between the
- * tool surface and the attachments): mount the merged skills under the
- * session's platform dir, reachable from the workspace through its
- * `.stigmer` link, and return what a prompt renders (`shared/skill-
- * resolver.ts`). Reads the control plane, which is why it is the runtime's
- * and not a harness's; each harness places the returned metadata in its own
- * prompt shape. The `.stigmer` link this and the attachment phase create is
- * removed in the runtime's finally, after the harness's own teardown.
+ * tool surface and the attachments): mount the skills under the session's
+ * platform dir, reachable from the workspace through its `.stigmer` link,
+ * and return what a prompt renders, per owner (`shared/skill-resolver.ts`).
+ * Reads the control plane, which is why it is the runtime's and not a
+ * harness's; each harness places the returned metadata in its own prompt
+ * shapes — the root's in its system prompt, a sub-agent's in that
+ * sub-agent's, client-free.
+ *
+ * The root's refs are the blueprint's merged set (agent plus session); a
+ * sub-agent's are its own `skillRefs`. Each ref resolves through the same
+ * resolver, so a skill the root and a sub-agent share is fetched per owner
+ * but MOUNTED once (the hash-keyed mount marker turns the second write into
+ * a no-op), and a ref that fails resolves to nothing for that owner alone,
+ * warned and never thrown, as the root's always did. Sub-agent refs are
+ * resolved only for a harness whose `capabilities.subAgents` is true: the
+ * blueprint's sub-agents are that harness's to compile, so their skills are
+ * its to render. One progress label for the whole phase, as before.
+ *
+ * The `.stigmer` link this and the attachment phase create is removed in
+ * the runtime's finally, after the harness's own teardown. Until S3 M1 the
+ * native orchestrator fetched and mounted sub-agent skills itself
+ * (`subagent-transformer.ts` with a client); this phase is where that read
+ * lives now (Q-S3-5).
  */
 export async function mountSkills(
   deps: ResolutionDeps,
-  args: { readonly blueprint: ResolvedBlueprint; readonly sessionId: string; readonly primaryDir: string },
-): Promise<readonly SkillMetadata[]> {
+  args: {
+    readonly blueprint: ResolvedBlueprint;
+    readonly sessionId: string;
+    readonly primaryDir: string;
+    readonly subAgents: boolean;
+  },
+): Promise<TurnSkills> {
   deps.enterPhase("resolve_skills");
   await deps.reportProgress("Resolving skills");
-  const skills = await resolveSkills(deps.client, args.blueprint.mergedSkillRefs, {
-    sessionId: args.sessionId,
-    primaryWorkspaceDir: args.primaryDir,
-  });
+  const options = { sessionId: args.sessionId, primaryWorkspaceDir: args.primaryDir };
+  const root = await resolveSkills(deps.client, args.blueprint.mergedSkillRefs, options);
+  const bySubAgent = new Map<string, readonly SkillMetadata[]>();
+  if (args.subAgents) {
+    for (const subAgent of args.blueprint.subAgents) {
+      if (subAgent.skillRefs.length === 0) continue;
+      bySubAgent.set(subAgent.name, await resolveSkills(deps.client, subAgent.skillRefs, options));
+    }
+  }
   deps.timing.mark("resolve_skills");
-  return skills;
+  return { root, bySubAgent };
 }
 
 /**
@@ -1012,7 +1039,12 @@ export async function resolveTurnContext(
   if (reinvoked.kind === "settled") return { kind: "settled", settlement: reinvoked.settlement };
 
   const mcp = await resolveMcpServersAndPolicies(deps, { execution, session, sessionId, blueprint, environment });
-  const skills = await mountSkills(deps, { blueprint, sessionId, primaryDir: workspace.primaryDir });
+  const skills = await mountSkills(deps, {
+    blueprint,
+    sessionId,
+    primaryDir: workspace.primaryDir,
+    subAgents: capabilities.subAgents,
+  });
   const attachments = await resolveTurnAttachments(deps, {
     spec,
     sessionId,

@@ -196,6 +196,21 @@ export interface TurnMcp {
   readonly policies: ReadonlyMap<string, MergedToolPolicy>;
 }
 
+/**
+ * The mounted skills (phase 5), each under the session's platform dir and
+ * reachable from the workspace through its `.stigmer` link; the harness
+ * renders them into its prompt shapes. Resolved per OWNER, because a
+ * sub-agent's skills are its own prompt's, not the root's: the root's are
+ * `blueprint.mergedSkillRefs` (agent plus session), a sub-agent's are its
+ * `skillRefs` on the blueprint, keyed by the sub-agent's name (the key its
+ * compiler uses). A sub-agent with no skills has no entry. Empty for a
+ * harness whose `capabilities.subAgents` is false.
+ */
+export interface TurnSkills {
+  readonly root: readonly SkillMetadata[];
+  readonly bySubAgent: ReadonlyMap<string, readonly SkillMetadata[]>;
+}
+
 /** The turn's explicit inputs (phase 5b), resolved into the workspace with the vision facts derived once. */
 export interface TurnAttachments {
   readonly results: readonly ResolvedAttachment[];
@@ -282,8 +297,7 @@ export interface TurnInput extends NormalizedActivityInput {
   readonly environment: TurnEnvironment;
   readonly workspace: TurnWorkspace;
   readonly mcp: TurnMcp;
-  /** The mounted skills (phase 5): each under the session's platform dir, reachable from the workspace through its `.stigmer` link; the harness renders them into its prompt. */
-  readonly skills: readonly SkillMetadata[];
+  readonly skills: TurnSkills;
   readonly attachments: TurnAttachments;
   /** Approved whole-file writes the runtime applied itself this turn (exact-apply); the harness issues no grant for them. */
   readonly appliedToolCallIds: ReadonlySet<string>;
