@@ -134,13 +134,17 @@ enum ApiResourceKind {
     display_name: "Identity Account"
     id_prefix: "ida"
     is_versioned: false
-    not_search_indexed: false
-    // Becomes open_source when the open-source server serves it: the
-    // single-organization identity-account domain lands in @stigmer/server
-    // (project 20260911.04, entry sp.oss-identity-accounts) and that change
-    // flips this tier. Flipping it earlier would make clients call an RPC
-    // the OSS server answers UNIMPLEMENTED to.
-    tier: cloud_only
+    // Nobody searches accounts by prose, and the cloud never indexed them;
+    // the flag keeps the kind out of the core index it would otherwise
+    // join by tier (stigmer/stigmer#439 derives the searchable set).
+    not_search_indexed: true
+    // The open-source server serves this kind: the identity-account domain
+    // lives once in @stigmer/server (project 20260911.04, entry
+    // sp.oss-identity-accounts), and the cloud composition serves the same
+    // domain over its own store driver. The four federation RPCs are a
+    // driver capability the Enterprise and Cloud units provide; open source
+    // answers them UNIMPLEMENTED by probe, not by this tier.
+    tier: open_source
     authorization: {
       scope_type: AUTHORIZATION_SCOPE_TYPE_OWNER_ONLY
       owner_type: OWNER_ATTRIBUTION_TYPE_SELF

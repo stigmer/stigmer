@@ -37,7 +37,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "System-generated unique identifier.\n\n For every kind this is a generated, prefixed id (e.g. agt_\u003culid\u003e). The one\n exception is Organization: its id equals its slug (the globally unique\n tenancy root is addressed by slug, not a minted id).",
+          "description": "System-generated unique identifier.\n\n For every kind this is a generated, prefixed id (e.g. agt_\u003culid\u003e). Two\n kinds derive it from their natural key instead: Organization's id equals\n its slug (the globally unique tenancy root is addressed by slug, not a\n minted id), and a direct IdentityAccount's id is derived from its issuer\n subject (`ida_` followed by 26 Crockford-base32 characters of\n sha256(spec.idp_id)), so one subject can only ever be one account.",
           "required": false
         },
         {
