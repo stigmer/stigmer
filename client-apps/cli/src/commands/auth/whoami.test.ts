@@ -5,13 +5,16 @@
 // created it, the CommandResult a person reads. A first sign-in says so
 // (visibility of system status); a missing organization is a hint, not a
 // failure; an empty profile (the unconfigured laptop's operator) renders
-// only the fields it has.
+// only the fields it has. Accounts are built with the generated schema
+// (DD-007: the generated type is the contract; refinement 12, slice 4).
 
+import { create } from "@bufbuild/protobuf";
+import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { describe, expect, it } from "vitest";
 
 import { whoamiResult } from "./whoami.js";
 
-const ACCOUNT = {
+const ACCOUNT = create(IdentityAccountSchema, {
   metadata: { id: "ida_wtr3jcf281yfk9xx61kj59fsme", name: "alice@example.com" },
   spec: {
     idpId: "auth0|alice",
@@ -20,7 +23,7 @@ const ACCOUNT = {
     lastName: "Liddell",
     isMachineAccount: false,
   },
-};
+});
 
 function fields(
   result: ReturnType<typeof whoamiResult>,
@@ -65,16 +68,10 @@ describe("whoamiResult", () => {
 
   it("renders only the fields an empty profile has (the unconfigured laptop's operator)", () => {
     const result = whoamiResult(
-      {
+      create(IdentityAccountSchema, {
         metadata: { id: "ida_fn0zdvkkkhhrb4wry43zba8gnn", name: "system" },
-        spec: {
-          idpId: "local|system",
-          email: "",
-          firstName: "",
-          lastName: "",
-          isMachineAccount: false,
-        },
-      },
+        spec: { idpId: "local|system" },
+      }),
       { created: false, org: "local" },
     );
     expect(fields(result)).toEqual({
@@ -87,7 +84,10 @@ describe("whoamiResult", () => {
 
   it("names a machine account", () => {
     const result = whoamiResult(
-      { ...ACCOUNT, spec: { ...ACCOUNT.spec, isMachineAccount: true } },
+      create(IdentityAccountSchema, {
+        ...ACCOUNT,
+        spec: { ...ACCOUNT.spec, isMachineAccount: true },
+      }),
       { created: false, org: "acme" },
     );
     expect(fields(result)["Account Type"]).toBe("Machine Account");

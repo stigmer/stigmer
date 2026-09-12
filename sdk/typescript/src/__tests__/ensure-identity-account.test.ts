@@ -14,12 +14,25 @@
  *      UNAVAILABLE, a network fault) — the caller's error UX owns it;
  *   4. a provisionMyAccount failure propagates untouched (UNAVAILABLE when
  *      the issuer's userinfo is down is the documented arm).
+ *
+ * The doubles reject with `StigmerError`, the vocabulary the real
+ * `IdentityAccountClient` speaks (every RPC failure passes through
+ * `wrapError`), so `isNotFound` — the SDK's one classifier — is what the
+ * helper is proven against (refinement 11, slice 4).
  */
-import { Code, ConnectError } from "@connectrpc/connect";
+import { Code } from "@connectrpc/connect";
+import { create } from "@bufbuild/protobuf";
+import {
+  IdentityAccountSchema,
+  type IdentityAccount,
+} from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { describe, expect, it } from "vitest";
 
-import { ensureMyIdentityAccount } from "../ensure-identity-account";
-import type { Stigmer } from "../stigmer";
+import {
+  ensureMyIdentityAccount,
+  type IdentityAccountLane,
+} from "../ensure-identity-account";
+import { StigmerError } from "../gen/errors";
 
 interface Calls {
   whoAmI: number;
@@ -27,9 +40,9 @@ interface Calls {
 }
 
 function clientWith(behaviour: {
-  whoAmI: () => Promise<unknown>;
-  provisionMyAccount?: () => Promise<unknown>;
-}): { client: Stigmer; calls: Calls } {
+  whoAmI: () => Promise<IdentityAccount>;
+  provisionMyAccount?: () => Promise<IdentityAccount>;
+}): { client: { identityAccount: IdentityAccountLane }; calls: Calls } {
   const calls: Calls = { whoAmI: 0, provisionMyAccount: 0 };
   const client = {
     identityAccount: {
@@ -45,18 +58,25 @@ function clientWith(behaviour: {
         )();
       },
     },
-  } as unknown as Stigmer;
+  };
   return { client, calls };
 }
 
-const EXISTING = {
+const EXISTING = create(IdentityAccountSchema, {
   metadata: { id: "ida_existing" },
   spec: { idpId: "auth0|existing" },
-};
-const CREATED = {
+});
+const CREATED = create(IdentityAccountSchema, {
   metadata: { id: "ida_created" },
   spec: { idpId: "auth0|created" },
-};
+});
+
+const NOT_FOUND = () =>
+  new StigmerError(
+    "not-found",
+    "Identity account not found for the authenticated user",
+    Code.NotFound,
+  );
 
 describe("ensureMyIdentityAccount", () => {
   it("answers the existing account without provisioning", async () => {
@@ -70,13 +90,7 @@ describe("ensureMyIdentityAccount", () => {
 
   it("provisions on NOT_FOUND, telling the caller once that it is provisioning", async () => {
     const { client, calls } = clientWith({
-      whoAmI: () =>
-        Promise.reject(
-          new ConnectError(
-            "Identity account not found for the authenticated user",
-            Code.NotFound,
-          ),
-        ),
+      whoAmI: () => Promise.reject(NOT_FOUND()),
       provisionMyAccount: () => Promise.resolve(CREATED),
     });
     let provisioning = 0;
@@ -98,7 +112,8 @@ describe("ensureMyIdentityAccount", () => {
   });
 
   it("propagates any other whoAmI error untouched — only NOT_FOUND means 'provision me'", async () => {
-    const unauthenticated = new ConnectError(
+    const unauthenticated = new StigmerError(
+      "unauthenticated",
       "authentication token missing",
       Code.Unauthenticated,
     );
@@ -108,19 +123,22 @@ describe("ensureMyIdentityAccount", () => {
     await expect(ensureMyIdentityAccount(client)).rejects.toBe(unauthenticated);
     expect(calls.provisionMyAccount).toBe(0);
 
+    // A value that is not a StigmerError at all (a lane double that does
+    // not wrap, a transport fault) is also "any other error": propagated
+    // as the same object, never classified as "provision me".
     const network = new TypeError("Load failed");
     const offline = clientWith({ whoAmI: () => Promise.reject(network) });
     await expect(ensureMyIdentityAccount(offline.client)).rejects.toBe(network);
   });
 
   it("propagates a provisioning failure untouched (the issuer's userinfo down is UNAVAILABLE)", async () => {
-    const unavailable = new ConnectError(
+    const unavailable = new StigmerError(
+      "unavailable",
       "Failed to fetch user profile from identity provider: userinfo answered 503",
       Code.Unavailable,
     );
     const { client } = clientWith({
-      whoAmI: () =>
-        Promise.reject(new ConnectError("not found", Code.NotFound)),
+      whoAmI: () => Promise.reject(NOT_FOUND()),
       provisionMyAccount: () => Promise.reject(unavailable),
     });
     await expect(ensureMyIdentityAccount(client)).rejects.toBe(unavailable);
