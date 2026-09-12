@@ -72,6 +72,7 @@ import {
   platformStopArm,
   stallArm,
   TERMINAL_COPY,
+  toolCallLimitArm,
   unexpectedErrorArm,
   workerShutdownArm,
   workspaceLockTimeoutArm,
@@ -336,6 +337,11 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
         status.phase = ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL;
         await chokepoint.write();
         return { kind: "return", value: slimStatus(status) };
+      }
+      case "tool_call_limit": {
+        const settledLimit = await settleWith(toolCallLimitArm());
+        console.log(`${activityName} terminated (tool-call limit): execution=${executionId}`);
+        return settledLimit;
       }
       case "failed": {
         const settledFailure = await settleWith(failedArm(outcome.message, outcome.surface));

@@ -281,6 +281,8 @@ class CursorSubject implements CursorContractSubject {
           script.push(step.effect("kit: the SDK cancels its own run", ({ run }) => run.cancel()));
           ended = true;
           break;
+        case "limit":
+          throw new Error(`${this.name}: limit() is not producible by this subject (the Cursor SDK has no tool-round budget; the runtime arm is declared off for it); test bug`);
         default: {
           const exhaustive: never = s;
           throw new Error(`${this.name}: unknown scenario step ${JSON.stringify(exhaustive)}`);

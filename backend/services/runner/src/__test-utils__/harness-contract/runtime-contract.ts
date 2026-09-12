@@ -55,6 +55,7 @@ import type { Config } from "../../config.js";
 import { HARNESS_ACTIVITY_NAMES, createHarnessActivities } from "../../harness/registry.js";
 import { TERMINAL_COPY } from "../../harness/terminal-table.js";
 import { REJECTED_BY_USER_ERROR, approvalDecisionsOf } from "../../harness/approval-decisions.js";
+import { TOOL_CALL_LIMIT_ERROR_PREFIX, TOOL_CALL_LIMIT_USER_COPY, formatToolCallLimitError } from "../../shared/tool-rounds.js";
 import type { FailureSurface } from "../../harness/types.js";
 import type { ExecuteActivityInput } from "../../shared/activity-input.js";
 import { acquireWorkspaceLock } from "../../shared/workspace/workspace-lock.js";
@@ -333,6 +334,35 @@ export async function assertNonExecutingDecisionSettlesSkipped(
   expect(driver.record.waitingToolCalls(), `${subject.name}: nothing waits on a finished execution`).toHaveLength(0);
   expect(final.error, `${subject.name}: the execution carries no error`).toBe("");
   return { driver, invocations: [first, second], final };
+}
+
+// ── Arm: the tool-call limit ────────────────────────────────────────────────
+
+/**
+ * The engine exhausted its tool-round budget: TERMINATED (not FAILED — the
+ * platform deliberately stopped the run and the conversation continues on
+ * the next message), `error` starting with the cross-repo prefix Stigmer
+ * Cloud's channel delivery matches on, the user copy as the one system row,
+ * `completedAt` stamped, RETURNED (a retry would spend the same budget), and
+ * the step after the limit never processed. Before S3 M1 the native harness
+ * RETURNED this terminal without persisting it (M0 finding F-M0-4); the
+ * runtime's arm is the one persisted terminal.
+ */
+export async function assertToolCallLimitTerminates(harness: RuntimeContractHarness, label = "rt-tool-call-limit"): Promise<RuntimeArmResult> {
+  const { subject } = harness;
+  const driver = new RuntimeExecutionDriver(harness, label);
+  const invocation = await driver.turn([scenario.say("Working…"), scenario.limit(), scenario.say(NEVER_SEEN)]);
+  // `slimOf` is the RETURN assertion (a retry would spend the same budget).
+  expect(slimOf(subject, invocation).phase, `${subject.name}: the tool-call limit is TERMINATED, not FAILED`).toBe("EXECUTION_TERMINATED");
+  const final = finalStatusOf(harness, driver);
+  expect(final.phase).toBe(ExecutionPhase.EXECUTION_TERMINATED);
+  expect(final.error.startsWith(TOOL_CALL_LIMIT_ERROR_PREFIX), `${subject.name}: the error carries the cross-repo prefix; got "${final.error}"`).toBe(true);
+  expect(final.error, `${subject.name}: the copy is the table's, byte for byte`).toBe(formatToolCallLimitError());
+  expect(systemMessages(final), `${subject.name}: the user copy is the one system row`).toEqual([TOOL_CALL_LIMIT_USER_COPY]);
+  expect(final.completedAt, `${subject.name}: a TERMINATED turn completes`).not.toBe("");
+  expect(aiMessages(final), `${subject.name}: the step after the limit is never processed`).not.toContain(NEVER_SEEN);
+  expect(driver.record.persistedPhases.at(-1), `${subject.name}: the terminal is persisted, not merely returned`).toBe(ExecutionPhase.EXECUTION_TERMINATED);
+  return { driver, invocations: [invocation], final };
 }
 
 // ── Arms: the stop controller's producers ───────────────────────────────────
@@ -632,6 +662,13 @@ export interface RuntimeContractOptions {
    * pass). Every surface by default.
    */
   readonly failureSurfaces?: readonly FailureSurface[];
+  /**
+   * Whether this subject's engine can exhaust a tool-round budget and end a
+   * turn `tool_call_limit` (`scenario.limit()`); the arm is registered
+   * SKIPPED otherwise. On by default; the Cursor subject turns it off (its
+   * SDK has no such budget).
+   */
+  readonly toolCallLimit?: boolean;
 }
 
 const ALL_SURFACES: readonly FailureSurface[] = ["engine", "actionable", "internal"];
@@ -692,6 +729,10 @@ export function describeHarnessRuntimeContract(harness: RuntimeContractHarness, 
     it("an engine-cancelled run ends CANCELLED with no error and no copy", async () => {
       clock.reset();
       await assertEngineCancelledEndsCancelled(harness);
+    });
+    it.skipIf(options.toolCallLimit === false)("a tool-call limit terminates the turn with the cross-repo prefix and the user copy, persisted and returned", async () => {
+      clock.reset();
+      await assertToolCallLimitTerminates(harness);
     });
     for (const surface of ALL_SURFACES) {
       it.skipIf(!surfaces.includes(surface))(`a failed turn on the ${surface} surface writes that surface's copy and returns`, async () => {

@@ -2,10 +2,8 @@ import { describe, expect, it } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import {
-  TOOL_CALL_LIMIT_ERROR_PREFIX,
-  handleRecursionLimit,
-} from "../streaming-terminal.js";
+import { handleRecursionLimit } from "../streaming-terminal.js";
+import { TOOL_CALL_LIMIT_ERROR_PREFIX } from "../../../shared/tool-rounds.js";
 import type { ExecutionStatusWriter } from "../../../shared/execution-status-writer.js";
 
 function writerWith(status = create(AgentExecutionStatusSchema, {})): ExecutionStatusWriter {

@@ -36,6 +36,7 @@ import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexec
 import { ExecutionPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
 import { COST_LIMIT_USER_COPY, formatCostLimitError } from "../shared/cost-guard.js";
+import { TOOL_CALL_LIMIT_USER_COPY, formatToolCallLimitError } from "../shared/tool-rounds.js";
 import { formatStallFailure, type StallTimeoutError } from "../shared/stall-watchdog.js";
 import { utcTimestamp } from "../shared/status.js";
 import type { WorkspaceLockTimeoutError } from "../shared/workspace/workspace-lock.js";
@@ -115,6 +116,23 @@ export function costCapArm(maxCostUsd: number, estimatedCostUsd: number): Termin
     phase: ExecutionPhase.EXECUTION_TERMINATED,
     error: formatCostLimitError(maxCostUsd, estimatedCostUsd),
     rows: [COST_LIMIT_USER_COPY],
+    completes: true,
+    disposition: RETURN,
+  };
+}
+
+/**
+ * The engine exhausted its tool-round budget (`max_tool_rounds`). TERMINATED,
+ * not FAILED, for the cost cap's reason: the platform deliberately stopped
+ * the run, work is checkpointed, and the conversation continues on the next
+ * message. RETURN: a retry would spend the same budget again. The error's
+ * prefix is a cross-repo contract (`shared/tool-rounds.ts`).
+ */
+export function toolCallLimitArm(): TerminalArm {
+  return {
+    phase: ExecutionPhase.EXECUTION_TERMINATED,
+    error: formatToolCallLimitError(),
+    rows: [TOOL_CALL_LIMIT_USER_COPY],
     completes: true,
     disposition: RETURN,
   };

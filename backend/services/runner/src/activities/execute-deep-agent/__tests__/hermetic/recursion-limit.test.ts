@@ -57,7 +57,7 @@ import {
   deepAgentExecutionRecord,
   runDeepAgentTurn,
 } from "../../__test-utils__/hermetic-deep-agent.js";
-import { TOOL_CALL_LIMIT_ERROR_PREFIX } from "../../streaming-terminal.js";
+import { TOOL_CALL_LIMIT_ERROR_PREFIX } from "../../../../shared/tool-rounds.js";
 
 /** More rounds than the budget allows; the graph stops the script, not the other way round. */
 const SCRIPTED_ROUNDS = 40;

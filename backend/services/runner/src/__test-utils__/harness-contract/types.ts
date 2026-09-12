@@ -57,6 +57,11 @@ import type { TurnInputFixtureOverrides } from "../turn-input-fixture.js";
  *    otherwise — the runtime's three failure copies are its own invariant).
  *  - `cancelled`: the engine ends its own run cancelled with nothing to
  *    wait for (an SDK-side cancel); the turn ends `cancelled`.
+ *  - `limit`: the engine exhausts the tool-round budget the execution set and
+ *    stops at a step boundary with its work checkpointed; the turn ends
+ *    `tool_call_limit`. Not every engine has such a budget (Cursor's SDK does
+ *    not), so a subject that cannot produce it says so and the runtime arm
+ *    is reported SKIPPED there.
  */
 export type ScenarioStep =
   | { readonly kind: "say"; readonly text: string }
@@ -65,7 +70,8 @@ export type ScenarioStep =
   | { readonly kind: "usage"; readonly delta: UsageDelta }
   | { readonly kind: "hang" }
   | { readonly kind: "fail"; readonly message: string; readonly surface: FailureSurface }
-  | { readonly kind: "cancelled" };
+  | { readonly kind: "cancelled" }
+  | { readonly kind: "limit" };
 
 /** One turn's worth of engine behaviour. */
 export type TurnScenario = readonly ScenarioStep[];
@@ -92,6 +98,9 @@ export const scenario = {
   },
   cancelled(): ScenarioStep {
     return { kind: "cancelled" };
+  },
+  limit(): ScenarioStep {
+    return { kind: "limit" };
   },
 } as const;
 

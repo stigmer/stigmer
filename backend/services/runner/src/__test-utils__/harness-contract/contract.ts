@@ -93,7 +93,7 @@ import type { EngineView, HarnessContractSubject, TurnScenario } from "./types.j
  */
 export const INTERRUPT_SETTLE_BOUND_MS = 5_000;
 
-const OUTCOME_KINDS = ["completed", "cancelled", "awaiting_approval", "failed", "interrupted"] as const satisfies readonly TurnOutcome["kind"][];
+const OUTCOME_KINDS = ["completed", "cancelled", "awaiting_approval", "tool_call_limit", "failed", "interrupted"] as const satisfies readonly TurnOutcome["kind"][];
 
 /** Representative gated action shared by the invariants. */
 const WRITE_ALPHA: ProposedAction = { kind: "write", resource: "/work/alpha.txt" };

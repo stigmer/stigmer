@@ -464,6 +464,15 @@ export type FailureSurface = "engine" | "actionable" | "internal";
  *    takes, `cause` is for the log. The runtime persists FAILED and RETURNS
  *    (Temporal does not retry a returned activity; re-running the same
  *    prompt would fail the same way).
+ *  - `tool_call_limit`: the engine exhausted the tool-round budget the
+ *    execution set (`max_tool_rounds`, `shared/tool-rounds.ts`) and stopped
+ *    at a step boundary with its work checkpointed. Not `failed`: the
+ *    platform deliberately stopped the run, and the conversation continues
+ *    on the next message. The runtime writes TERMINATED with the cross-repo
+ *    prefix and the user copy, and RETURNS (a retry would spend the same
+ *    budget again). Every surveyed SDK ends a turn on a budget with a
+ *    distinct outcome (Claude's `maxTurns` subtype, Codex's turn reason), so
+ *    this is a cross-harness fact, not an engine quirk.
  *  - `interrupted`: `sink.stopSignal` aborted and the adapter stopped. WHY it
  *    aborted is the runtime's evidence (its watchdog, its accounting, its
  *    chokepoint, the cancellation it was delivered), so no reason rides here;
@@ -473,5 +482,6 @@ export type TurnOutcome =
   | { readonly kind: "completed" }
   | { readonly kind: "cancelled" }
   | { readonly kind: "awaiting_approval" }
+  | { readonly kind: "tool_call_limit" }
   | { readonly kind: "failed"; readonly message: string; readonly surface: FailureSurface; readonly cause?: unknown }
   | { readonly kind: "interrupted" };

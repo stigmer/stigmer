@@ -246,6 +246,8 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
         return { kind: "failed", surface: step.surface, message: step.message };
       case "cancelled":
         return { kind: "cancelled" };
+      case "limit":
+        return { kind: "tool_call_limit" };
       default: {
         const exhaustive: never = step;
         throw new Error(`${this.name}: unknown scenario step ${JSON.stringify(exhaustive)}`);

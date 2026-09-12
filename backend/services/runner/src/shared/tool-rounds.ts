@@ -13,6 +13,12 @@
  * The SAME resolved limit must feed both LangGraph's hard stop (the invoke
  * config) and the ExecutionBudgetMiddleware's wrap-up advisory, so the
  * "~80% of budget" warning and the enforcement point can never disagree.
+ *
+ * The knob and its terminal copy live together (the `cost-guard.ts` shape):
+ * when the budget is exhausted the adapter ends its turn `tool_call_limit`
+ * and the runtime's `toolCallLimitArm` writes TERMINATED with the copy
+ * below — the platform deliberately stopped the run, work is checkpointed,
+ * and the conversation continues on the next message.
  */
 
 export const SUPER_STEPS_PER_ROUND = 6;
@@ -54,3 +60,29 @@ function clampToolRounds(requested: number): number {
   }
   return requested;
 }
+
+/**
+ * Stable prefix of the tool-call-limit terminal error. This is a cross-repo
+ * contract: consumers that need to distinguish "ran out of tool-call budget"
+ * from other TERMINATED causes (Stigmer Cloud's channel reply extractor,
+ * which shows channel users a friendly limit message instead of generic
+ * error copy) match on this prefix with `startsWith`, because
+ * AgentExecutionStatus carries no structured termination reason. Do not
+ * reword without updating them. `COST_LIMIT_ERROR_PREFIX` (`cost-guard.ts`)
+ * mirrors it.
+ */
+export const TOOL_CALL_LIMIT_ERROR_PREFIX = "Agent reached the tool-call limit";
+
+/** The terminal `status.error` for a tool-call-limit stop; the prefix is the contract, the rest is prose. */
+export function formatToolCallLimitError(): string {
+  return `${TOOL_CALL_LIMIT_ERROR_PREFIX} for this message. Send another message to continue.`;
+}
+
+/**
+ * User-facing system message for a tool-call-limit stop. Honest about the
+ * limit, clear that nothing is lost; the cost-cap copy is its parallel.
+ */
+export const TOOL_CALL_LIMIT_USER_COPY =
+  "The agent reached the tool-call limit for this message. " +
+  "Work completed so far has been saved. " +
+  "Send another message to continue where the agent left off.";

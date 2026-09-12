@@ -89,7 +89,7 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — the harness contract kit a
   });
 
   describeHarnessContract(subject);
-  describeHarnessRuntimeContract({ subject, env, clock }, { failureSurfaces: ["engine", "internal"] });
+  describeHarnessRuntimeContract({ subject, env, clock }, { failureSurfaces: ["engine", "internal"], toolCallLimit: false });
 
   describe("cursor-only observations", () => {
     beforeAll(async () => {
