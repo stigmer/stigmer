@@ -2,8 +2,8 @@
  * Hermetic goldens: USER PAUSE versus WORKER SHUTDOWN — the two interruptions
  * that THROW, and the byte-pinned copy that tells them apart.
  *
- * Invariant pinned (the throw-vs-return table the runtime will own in S2; parent
- * §5c): both interruptions end the activity with a thrown Temporal
+ * Invariant pinned (the throw-vs-return table the runtime owns,
+ * `harness/terminal-table.ts`; parent §5c): both interruptions end the activity with a thrown Temporal
  * `CancelledFailure` (never a return), but they persist DIFFERENT terminal
  * states the control plane keys on:
  *
@@ -22,23 +22,25 @@
  * stream loop sees `isCancelled()` on its next iteration and never processes
  * the event that follows.
  *
- * What the goldens ALSO pin, on purpose: both paths append their system message
- * TWICE — once in `resolvePreBoundaryTerminal` before the throw, once again in
- * the outer `catch (CancelledFailure)`, which re-stamps and re-persists. That is
- * today's production behavior on the wire. S2 must reproduce it byte for byte;
- * whether it is later collapsed to one message is a separate, deliberate change
- * (recorded in the entry's execution log for the owner).
+ * What the goldens ALSO pin: each path appends its system message exactly
+ * ONCE. The orchestrator this net was recorded on appended it twice — once in
+ * `resolvePreBoundaryTerminal` before the throw, once again in the outer
+ * `catch (CancelledFailure)`, which re-stamped and re-persisted — and the
+ * goldens pinned that double on purpose so S2 could reproduce the wire byte
+ * for byte (stigmer#1054, Q-S2-4). The runtime's `settleWith` is now the one
+ * writer of a terminal arm, so a second row has no code path to come from.
  *
- * Parent phase rows exercised: the stream loop's cancellation check; the
- * post-stream `classifyTurnInterruption`; `resolvePreBoundaryTerminal`'s
- * pause and worker-shutdown arms; the outer `CancelledFailure` catch; the
- * `finally` teardown under a thrown exit.
+ * Runtime phases exercised: the adapter's stop-signal cancel; the runtime's
+ * `classifyTurnInterruption`; the terminal table's pause and worker-shutdown
+ * arms through `settleWith`; the `finally` teardown under a thrown exit.
  *
- * Both goldens were regenerated at S2 M3b (entry 20260911.03) with a
- * timestamp-only diff — every terminal stamp one scripted second earlier:
- * the adapter now cancels the SDK run the instant the runtime's stop signal
- * aborts (Q-M3-4), before the SDK double pulls, and the clock ticks on, one
- * more step. The transcript is unchanged, the #1054 double included.
+ * Regeneration history:
+ *  - S2 M3b (entry 20260911.03): timestamp-only diff — every terminal stamp
+ *    one scripted second earlier: the adapter cancels the SDK run the instant
+ *    the runtime's stop signal aborts (Q-M3-4), before the SDK double pulls,
+ *    and the clock ticks on, one more step. Transcript unchanged.
+ *  - 2026-09-12 (stigmer#1054, the PR after S2): one removed system row per
+ *    golden, nothing else. The transcript now carries each terminal row once.
  *
  * Regenerate ONLY after a deliberate behavior change:
  *   npx vitest run src/activities/execute-cursor/__tests__/hermetic -u
@@ -150,10 +152,7 @@ describe("ExecuteCursor hermetic — user pause vs worker shutdown", () => {
     expect(final.completedAt, "a paused turn is not complete").toBe("");
     expect(
       final.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content),
-    ).toEqual([
-      "Execution paused by user. Use resume to continue.",
-      "Execution paused by user. Use resume to continue.",
-    ]);
+    ).toEqual(["Execution paused by user. Use resume to continue."]);
     expect(final.messages.some((m) => m.content === NEVER_SEEN), "nothing after the cancel is processed").toBe(false);
 
     const json = JSON.stringify(toJson(AgentExecutionStatusSchema, final), null, 2) + "\n";
@@ -196,7 +195,6 @@ describe("ExecuteCursor hermetic — user pause vs worker shutdown", () => {
     expect(
       final.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content),
     ).toEqual([
-      "Execution interrupted: the runner worker was shut down while the agent was still running. You can retry or resume.",
       "Execution interrupted: the runner worker was shut down while the agent was still running. You can retry or resume.",
     ]);
     expect(final.messages.some((m) => m.content === NEVER_SEEN)).toBe(false);

@@ -9,11 +9,6 @@
       "type": "MESSAGE_SYSTEM",
       "content": "Execution interrupted: the runner worker was shut down while the agent was still running. You can retry or resume.",
       "timestamp": "2026-01-01T00:00:03.000Z"
-    },
-    {
-      "type": "MESSAGE_SYSTEM",
-      "content": "Execution interrupted: the runner worker was shut down while the agent was still running. You can retry or resume.",
-      "timestamp": "2026-01-01T00:00:03.000Z"
     }
   ],
   "phase": "EXECUTION_FAILED",

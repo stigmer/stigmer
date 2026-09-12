@@ -8,7 +8,8 @@
  * stall watchdog, the cost cap, the platform STOP, Temporal's cancellation);
  * the resolution phases (`turn-context.ts`) composed into the `TurnInput`;
  * the sink the adapter is handed; the terminal table (`terminal-table.ts`)
- * with its throw-vs-return rule; the completion epilogue (final text,
+ * with its throw-vs-return rule, applied by `settleWith`, the one writer of
+ * a terminal; the completion epilogue (final text,
  * structured output, plan artifact, write-back); the finally that releases
  * the workspace lock last. The adapter owns its SDK slice inside `runTurn`
  * and its own teardown inside its own `finally`, which runs BEFORE this
@@ -61,7 +62,6 @@ import {
 import { PersistChokepoint } from "./persist-chokepoint.js";
 import { StopController } from "./stop-controller.js";
 import {
-  appendSystemRows,
   applyTerminalArm,
   costCapArm,
   failedArm,
@@ -127,8 +127,13 @@ export async function runTurnActivity(deps: TurnRuntimeDeps, input: NormalizedAc
   return runWithExecutionContext(executionId, () => runTurn(deps, input));
 }
 
-/** Where the activity ends up once the table has been applied: return the slim status, or throw after the finally. */
-type Settled = { readonly kind: "return"; readonly value: unknown } | { readonly kind: "throw"; readonly error: Error };
+/**
+ * Where the activity ends up once the table has been applied: return the
+ * slim status, or throw after the finally. The thrown value is always a
+ * `CancelledFailure` — the table's rule ("THROW when the workflow must see
+ * the activity as cancelled", `terminal-table.ts`) as a type.
+ */
+type Settled = { readonly kind: "return"; readonly value: unknown } | { readonly kind: "throw"; readonly error: CancelledFailure };
 
 async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): Promise<unknown> {
   const { adapter, activityName, client, config } = deps;
@@ -191,20 +196,30 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
       shutdownSignalAborted: shutdownSignal?.aborted ?? false,
     });
 
-  /** Write an arm, persist it, and decide how the activity ends. The throw arms do the #1054 double here. */
-  const settleWith = async (arm: TerminalArm): Promise<Settled> => {
+  /**
+   * The one writer of a terminal: apply the arm, persist it ONCE, and end
+   * the activity the way the arm's disposition says. A thrown arm also marks
+   * the in-progress sub-agent rows cancelled before that persist, so the
+   * status the workflow reads back is the whole terminal state in one write.
+   * (The file-review resume in `settleResolution` is the one place that
+   * applies an arm itself: its write-back must land between the arm and the
+   * persist.)
+   *
+   * The table decides what is written and whether the activity throws; the
+   * caller may supply the `CancelledFailure` to throw. The catch does, to
+   * rethrow the failure it caught (the caught failure IS the evidence, #776)
+   * or to throw the after-error variant of the copy; every other caller lets
+   * the arm's own message stand.
+   */
+  const settleWith = async (arm: TerminalArm, failure?: CancelledFailure): Promise<Settled> => {
     applyTerminalArm(status, arm);
-    await chokepoint.write();
     if (arm.disposition.kind === "return") {
+      await chokepoint.write();
       return { kind: "return", value: slimStatus(status) };
     }
-    // stigmer#1054: the orchestrator's throw fell into its own catch, which
-    // appended the row again and re-stamped completion; the goldens pin it.
-    appendSystemRows(status, arm.rows);
-    if (arm.completes) status.completedAt = utcTimestamp();
     cancelInProgressSubAgentProtos(status.subAgentExecutions);
     await chokepoint.write();
-    return { kind: "throw", error: new CancelledFailure(arm.disposition.message) };
+    return { kind: "throw", error: failure ?? new CancelledFailure(arm.disposition.message) };
   };
 
   // ── The turn ended during resolution ──────────────────────────────────────
@@ -490,9 +505,8 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
    * the runtime's own: a `CancelledFailure` from a resolution phase (the
    * lock wait), an unexpected error during resolution or the epilogue, or a
    * contract violation. The cancellation arms are the table's throw arms
-   * written once (the runtime did not write them before the throw, so there
-   * is no double here) with a best-effort persist; the generic arm is the
-   * `internal` failure surface, returned.
+   * through `settleWith`, with the failure this catch chooses to throw; the
+   * generic arm is the `internal` failure surface, returned.
    */
   async function settleThrown(err: unknown): Promise<Settled> {
     const cancelledArm = (): TerminalArm | undefined => {
@@ -521,11 +535,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
       // signal); the caught failure IS the evidence (#776). A thrown
       // cancellation with no delivered cancellation on the signal can only be
       // the runtime's own `checkCancellation`-style throw: infrastructure.
-      const arm = cancelledArm() ?? infrastructureCancelArm();
-      applyTerminalArm(status, arm);
-      cancelInProgressSubAgentProtos(status.subAgentExecutions);
-      await chokepoint.write();
-      return { kind: "throw", error: err };
+      return settleWith(cancelledArm() ?? infrastructureCancelArm(), err);
     }
 
     const errDetail = err instanceof Error ? err.message : String(err);
@@ -537,19 +547,13 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
       // else reads as the interruption it was.
       if (arm.phase === ExecutionPhase.EXECUTION_PAUSED) {
         console.log(`${activityName} error during pause (treating as pause): execution=${executionId}, error=${errDetail}`);
-        applyTerminalArm(status, arm);
-        cancelInProgressSubAgentProtos(status.subAgentExecutions);
-        await chokepoint.write();
-        return { kind: "throw", error: new CancelledFailure(TERMINAL_COPY.pause.throwMessageAfterError) };
+        return settleWith(arm, new CancelledFailure(TERMINAL_COPY.pause.throwMessageAfterError));
       }
       console.log(`${activityName} error during infrastructure cancel: execution=${executionId}, error=${errDetail}`);
-      applyTerminalArm(status, {
-        ...infrastructureCancelArm(),
-        error: `Execution interrupted: ${errDetail}`,
-      });
-      cancelInProgressSubAgentProtos(status.subAgentExecutions);
-      await chokepoint.write();
-      return { kind: "throw", error: new CancelledFailure(TERMINAL_COPY.infrastructureCancel.throwMessageAfterError) };
+      return settleWith(
+        { ...infrastructureCancelArm(), error: `Execution interrupted: ${errDetail}` },
+        new CancelledFailure(TERMINAL_COPY.infrastructureCancel.throwMessageAfterError),
+      );
     }
 
     // Unwrap + classify before formatting: a model error arrives
@@ -557,9 +561,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
     // the root error's own identity.
     const { errorType, errorMessage } = describeExecutionError(err, { proxyMode: !!config.proxyEndpoint });
     console.error(`${activityName} failed: execution=${executionId}, [${errorType}] ${errorMessage}`);
-    applyTerminalArm(status, unexpectedErrorArm(errorType, errorMessage));
-    await chokepoint.write();
-    return { kind: "return", value: slimStatus(status) };
+    return settleWith(unexpectedErrorArm(errorType, errorMessage));
   }
   // ── Drive ─────────────────────────────────────────────────────────────────
 
