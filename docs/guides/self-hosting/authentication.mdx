@@ -79,6 +79,11 @@ From the next boot, every request needs a credential:
   when it did.
 - **Machines** send an API key (`stk_...`) the same way — as a bearer token.
   `stigmer apikey create` mints them; deleting a key revokes it immediately.
+- **Authorization does not change yet.** Authentication says who is calling; it
+  does not limit what a signed-in person may do. Every authenticated caller has
+  the same access to everything on the server, other people's Identity Accounts
+  and their preferences included. Per-person authorization for self-hosted
+  servers is planned.
 - Requests without a credential are rejected with
   `authentication token missing`. Requests with a bad credential get a specific
   reason (`token has expired`, `token signature verification failed`, and so
