@@ -5,53 +5,75 @@
 // Domain: iam / identityaccount.
 //
 // Drives IdentityAccountCommandController + IdentityAccountQueryController
-// through the raw proto stubs and asserts the cross-edition contract:
-//   - create assigns an ida_ id and answers the created account; the
-//     backend assigns is_machine_account and provisioning_mode whatever the
-//     caller sent; a second create for a held subject is ALREADY_EXISTS;
+// through the raw proto stubs and asserts the cross-edition contract. The
+// shared arms run on the CALLER'S OWN account, reached through whoAmI —
+// the console's real flow — because `create` is a system RPC: the cloud#393
+// gate is core since T01_1_review.md A7, so over the wire a user is
+// PERMISSION_DENIED on every edition and no arm may create a fixture
+// account. What runs on every target:
+//   - create over the wire is PERMISSION_DENIED with the byte-pinned copy
+//     and writes nothing;
 //   - get / getByEmail / getByIdpId answer the byte-pinned NOT_FOUND copy
 //     ("Identity account not found: <handle>", the cloud's Java copy);
+//   - getByIdpId (and getByEmail, where the caller has an email) find the
+//     caller's own account;
 //   - update round-trips preferences — the console's one write; an update
 //     that changes spec.idp_id is FAILED_PRECONDITION (the subject IS the
-//     identity; T01_1_review.md A1). This arm is red against a cloud
-//     composition older than the re-point BY DESIGN, the #544 precedent in
-//     the apikey suite;
-//   - delete answers the account and frees the subject;
+//     identity; A1). That arm is red against a cloud composition older
+//     than the re-point BY DESIGN, the #544 precedent in the apikey suite;
 //   - getActorInfo names the account as audit stamps do;
 //   - the four federation RPCs are UNIMPLEMENTED where no unit composes the
 //     capability (the local OSS targets) — pinned through the capability
-//     flag, never a target name.
+//     flag, never a target name. Their inputs pass the boundary validator
+//     (position 3, before any handler) so the refusal under test is the
+//     handler's.
 //
 // Posture arms, gated on capability flags:
-//   - trusted-local (requiresAuthentication false): whoAmI on a fresh
-//     server answers the operator's account with no prior call (A2: the
-//     boot-time ensure); provisionMyAccount is the idempotent early return;
-//     the operator's preferences round-trip.
+//   - trusted-local (requiresAuthentication false): whoAmI answers the
+//     operator's account (A2: ensured at boot, create-if-absent);
+//     provisionMyAccount is the idempotent early return.
 //   - the OIDC lane (Q-IA-2, Q-IA-10): on a target that can spawn a
 //     sibling server (spawnSibling), one server boots in the OIDC posture
 //     against the harness's local issuer (harness/local-oidc-issuer.ts):
 //     an unprovisioned subject is idp-shaped (whoAmI NOT_FOUND with the
 //     cloud's copy), provisionMyAccount creates the account from the
-//     issuer's /userinfo, the next request resolves to it, and two
-//     concurrent first logins end in one account. The cloud's own lane is
-//     the direct-login suite (directLogin), the oracle this move keeps green.
+//     issuer's /userinfo, the next request resolves to it, an API key
+//     minted over that session answers as the owner (A6), two concurrent
+//     first logins end in one account, delete frees the subject, and a
+//     userinfo outage is UNAVAILABLE and creates nothing. The cloud's own
+//     lane is the direct-login suite (directLogin), the oracle this move
+//     keeps green; where no sibling can be spawned the arms skip VISIBLY
+//     with the target's reason.
 //
 // Deliberately OUT of this suite: how the id is derived (server-internal;
 // the server's unit suites pin it), the personal organization (a cloud
 // composition arm, pinned by the direct-login suite), authorization
-// postures on update/delete (edition-specific, DD-012).
+// postures on update/delete (edition-specific, DD-012), and the cloud's
+// POSITIVE federation behavior (needs an IdentityProvider fixture no
+// hermetic target provisions; the composition's own tests carry it).
 import { Code } from "@connectrpc/connect";
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
 
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
-import { FixtureTracker } from "../harness/fixtures";
 import {
   startLocalOidcIssuer,
   type LocalOidcIssuer,
 } from "../harness/local-oidc-issuer";
+import {
+  ACCOUNT_NOT_FOUND_FOR_CALLER_MESSAGE,
+  CREATE_IS_INTERNAL_MESSAGE,
+  IDENTITY_ACCOUNT_API_VERSION,
+  IDENTITY_ACCOUNT_KIND,
+  USERINFO_UNAVAILABLE_PREFIX,
+  accountNotFoundMessage,
+  freshSubject,
+  idpIdImmutableMessage,
+  withIdpId,
+  withPreferences,
+} from "../support/identityaccounts";
 import { uniqueName } from "../support/naming";
 import {
   createTarget,
@@ -59,20 +81,8 @@ import {
   type TargetProfile,
 } from "../targets";
 
-const API_VERSION = "iam.stigmer.ai/v1";
-const KIND = "IdentityAccount";
-
-// The cloud handlers' copy, moved into @stigmer/server as-is.
-const ACCOUNT_NOT_FOUND_FOR_CALLER =
-  "Identity account not found for the authenticated user";
-const accountNotFound = (handle: string) =>
-  `Identity account not found: ${handle}`;
-const IDP_ID_IMMUTABLE = (subject: string) =>
-  `spec.idp_id is immutable (account subject is '${subject}') — create a new account for a different subject`;
-
 let target: TargetProfile;
 let clients: ConformanceClients;
-const fixtures = new FixtureTracker();
 const capabilities = createTarget().capabilities;
 
 beforeAll(async () => {
@@ -81,117 +91,39 @@ beforeAll(async () => {
   clients = target.clients();
 });
 
-afterEach(async () => {
-  await fixtures.cleanup();
-});
-
 afterAll(async () => {
   await target?.teardown();
 });
 
-function freshSubject(): string {
-  return `auth0|conformance-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-}
-
-async function createAccount(
-  using: ConformanceClients,
-  overrides?: {
-    idpId?: string;
-    email?: string;
-    isMachineAccount?: boolean;
-    provisioningMode?: IdentityAccountProvisioningMode;
-  },
-) {
-  const idpId = overrides?.idpId ?? freshSubject();
-  const email = overrides?.email ?? `${uniqueName("person")}@example.com`;
-  const created = await using.identityAccountCommand.create({
-    apiVersion: API_VERSION,
-    kind: KIND,
-    metadata: { name: email },
-    spec: {
-      idpId,
-      email,
-      firstName: "Conformance",
-      lastName: "Person",
-      ...(overrides?.isMachineAccount !== undefined
-        ? { isMachineAccount: overrides.isMachineAccount }
-        : {}),
-      ...(overrides?.provisioningMode !== undefined
-        ? { provisioningMode: overrides.provisioningMode }
-        : {}),
-    },
-  });
-  fixtures.defer(() =>
-    using.identityAccountCommand.delete({ value: created.metadata!.id }),
-  );
-  return created;
+// The caller's own account — every mutable arm's subject.
+function whoAmI(using: ConformanceClients = clients) {
+  return using.identityAccountQuery.whoAmI({});
 }
 
 describe("IdentityAccount conformance — the shared RPC contract", () => {
-  it("create assigns an ida_ id and answers the created account", async () => {
+  it("create over the wire as a user is PERMISSION_DENIED with the byte-pinned copy, and nothing is written", async () => {
     const subject = freshSubject();
-    const created = await createAccount(clients, { idpId: subject });
-
-    expect(created.metadata?.id, "create should assign a prefixed id").toMatch(
-      /^ida_[0-9a-z]+$/,
-    );
-    expect(created.spec?.idpId).toBe(subject);
-    expect(created.spec?.provisioningMode).toBe(
-      IdentityAccountProvisioningMode.direct,
-    );
-    expect(created.spec?.isMachineAccount).toBe(false);
-    expect(created.status?.audit?.specAudit?.event).toBe("created");
-  });
-
-  it("the backend assigns is_machine_account and provisioning_mode, whatever the caller sent", async () => {
-    const person = await createAccount(clients, {
-      isMachineAccount: true,
-      provisioningMode: IdentityAccountProvisioningMode.federated,
-    });
-    expect(
-      person.spec?.isMachineAccount,
-      "a person is never a machine by request",
-    ).toBe(false);
-    expect(person.spec?.provisioningMode, "create makes DIRECT accounts").toBe(
-      IdentityAccountProvisioningMode.direct,
-    );
-
-    const machine = await createAccount(clients, {
-      idpId: `${uniqueName("svc")}@clients`,
-      isMachineAccount: false,
-    });
-    expect(
-      machine.spec?.isMachineAccount,
-      "the @clients suffix IS the machine flag",
-    ).toBe(true);
-  });
-
-  it("a second create for a held subject is ALREADY_EXISTS and the first row stands", async () => {
-    const subject = freshSubject();
-    const first = await createAccount(clients, {
-      idpId: subject,
-      email: "first@example.com",
-    });
-
     const error = await expectGrpcCode(
       () =>
         clients.identityAccountCommand.create({
-          apiVersion: API_VERSION,
-          kind: KIND,
-          metadata: { name: "second" },
-          spec: { idpId: subject, email: "second@example.com" },
+          apiVersion: IDENTITY_ACCOUNT_API_VERSION,
+          kind: IDENTITY_ACCOUNT_KIND,
+          metadata: { name: uniqueName("person") },
+          spec: {
+            idpId: subject,
+            email: `${uniqueName("person")}@example.com`,
+          },
         }),
-      Code.AlreadyExists,
-      "create for a subject that already has an account",
+      Code.PermissionDenied,
+      "create from a wire user (the cloud#393 gate, core since A7)",
     );
-    expect(error.rawMessage, "the refusal names the subject").toContain(
-      subject,
-    );
+    expect(error.rawMessage).toBe(CREATE_IS_INTERNAL_MESSAGE);
 
-    const fetched = await clients.identityAccountQuery.get({
-      value: first.metadata!.id,
-    });
-    expect(fetched.spec?.email).toBe("first@example.com");
+    await expectGrpcCode(
+      () => clients.identityAccountQuery.getByIdpId({ value: subject }),
+      Code.NotFound,
+      "getByIdpId for the subject the refused create named",
+    );
   });
 
   it("get / getByEmail / getByIdpId answer the byte-pinned NOT_FOUND copy", async () => {
@@ -204,7 +136,7 @@ describe("IdentityAccount conformance — the shared RPC contract", () => {
       "get for an unknown id",
     );
     expect(byId.rawMessage).toBe(
-      accountNotFound("ida_00000000000000000000000000"),
+      accountNotFoundMessage("ida_00000000000000000000000000"),
     );
 
     const email = `${uniqueName("nobody")}@example.com`;
@@ -213,7 +145,7 @@ describe("IdentityAccount conformance — the shared RPC contract", () => {
       Code.NotFound,
       "getByEmail for an unknown email",
     );
-    expect(byEmail.rawMessage).toBe(accountNotFound(email));
+    expect(byEmail.rawMessage).toBe(accountNotFoundMessage(email));
 
     const subject = freshSubject();
     const byIdpId = await expectGrpcCode(
@@ -221,127 +153,139 @@ describe("IdentityAccount conformance — the shared RPC contract", () => {
       Code.NotFound,
       "getByIdpId for an unknown subject",
     );
-    expect(byIdpId.rawMessage).toBe(accountNotFound(subject));
+    expect(byIdpId.rawMessage).toBe(accountNotFoundMessage(subject));
   });
 
-  it("getByEmail and getByIdpId find what create wrote", async () => {
-    const subject = freshSubject();
-    const email = `${uniqueName("findable")}@example.com`;
-    const created = await createAccount(clients, { idpId: subject, email });
-
-    expect(
-      (await clients.identityAccountQuery.getByEmail({ value: email })).metadata
-        ?.id,
-    ).toBe(created.metadata?.id);
-    expect(
-      (await clients.identityAccountQuery.getByIdpId({ value: subject }))
-        .metadata?.id,
-    ).toBe(created.metadata?.id);
+  it("getByIdpId finds the caller's own account", async () => {
+    const me = await whoAmI();
+    const found = await clients.identityAccountQuery.getByIdpId({
+      value: me.spec?.idpId ?? "",
+    });
+    expect(found.metadata?.id).toBe(me.metadata?.id);
   });
 
-  it("update round-trips preferences — the console's one write", async () => {
-    const created = await createAccount(clients);
-    const updated = await clients.identityAccountCommand.update({
-      ...created,
-      spec: {
-        ...created.spec,
-        preferences: {
+  it("getByEmail finds the caller's own account", async (ctx) => {
+    const me = await whoAmI();
+    const email = me.spec?.email ?? "";
+    if (email === "") {
+      // The trusted-local operator has an email only when the server was
+      // booted with STIGMER_OPERATOR_EMAIL; the harness leaves it unset (the
+      // unconfigured-laptop posture A2 was ruled for). The OSS lane's cover
+      // for this lookup is the sibling block below, whose provisioned user
+      // has the email /userinfo asserted.
+      ctx.skip(
+        "the caller's account has no email (an operator booted without STIGMER_OPERATOR_EMAIL)",
+      );
+    }
+    const found = await clients.identityAccountQuery.getByEmail({
+      value: email,
+    });
+    expect(found.metadata?.id).toBe(me.metadata?.id);
+  });
+
+  it("update round-trips preferences on the caller's own account — the console's one write", async () => {
+    const me = await whoAmI();
+    try {
+      const updated = await clients.identityAccountCommand.update(
+        withPreferences(me, {
           defaultHarness: "cursor",
           defaultCursorModel: "gpt-5",
           defaultAutoApprove: true,
-        },
-      },
-    });
-    expect(updated.metadata?.id).toBe(created.metadata?.id);
+        }),
+      );
+      expect(updated.metadata?.id).toBe(me.metadata?.id);
 
-    const fetched = await clients.identityAccountQuery.get({
-      value: created.metadata!.id,
-    });
-    expect(fetched.spec?.preferences).toMatchObject({
-      defaultHarness: "cursor",
-      defaultCursorModel: "gpt-5",
-      defaultAutoApprove: true,
-    });
+      const fetched = await clients.identityAccountQuery.get({
+        value: me.metadata?.id ?? "",
+      });
+      expect(fetched.spec?.preferences).toMatchObject({
+        defaultHarness: "cursor",
+        defaultCursorModel: "gpt-5",
+        defaultAutoApprove: true,
+      });
+    } finally {
+      // Leave the account as we found it for the arms after us.
+      await clients.identityAccountCommand.update(
+        withPreferences(await whoAmI(), me.spec?.preferences),
+      );
+    }
   });
 
   it("update refuses a changed subject with FAILED_PRECONDITION — the subject IS the identity", async () => {
-    const subject = freshSubject();
-    const created = await createAccount(clients, { idpId: subject });
+    const me = await whoAmI();
+    const subject = me.spec?.idpId ?? "";
 
     const error = await expectGrpcCode(
       () =>
-        clients.identityAccountCommand.update({
-          ...created,
-          spec: { ...created.spec, idpId: freshSubject() },
-        }),
+        clients.identityAccountCommand.update(withIdpId(me, freshSubject())),
       Code.FailedPrecondition,
       "update that changes spec.idp_id",
     );
-    expect(error.rawMessage).toBe(IDP_ID_IMMUTABLE(subject));
+    expect(error.rawMessage).toBe(idpIdImmutableMessage(subject));
 
     const fetched = await clients.identityAccountQuery.get({
-      value: created.metadata!.id,
+      value: me.metadata?.id ?? "",
     });
     expect(fetched.spec?.idpId, "the stored subject is untouched").toBe(
       subject,
     );
   });
 
-  it("delete answers the account and frees the subject", async () => {
-    const subject = freshSubject();
-    const created = await clients.identityAccountCommand.create({
-      apiVersion: API_VERSION,
-      kind: KIND,
-      metadata: { name: "deletable" },
-      spec: { idpId: subject, email: `${uniqueName("deletable")}@example.com` },
-    });
-
-    const deleted = await clients.identityAccountCommand.delete({
-      value: created.metadata!.id,
-    });
-    expect(deleted.metadata?.id).toBe(created.metadata?.id);
-
-    await expectGrpcCode(
-      () => clients.identityAccountQuery.get({ value: created.metadata!.id }),
-      Code.NotFound,
-      "get after delete",
-    );
-    const again = await createAccount(clients, { idpId: subject });
-    expect(again.spec?.idpId, "the subject can be provisioned again").toBe(
-      subject,
-    );
-  });
-
-  it("getActorInfo names the account as audit stamps do", async () => {
-    const email = `${uniqueName("actor")}@example.com`;
-    const created = await createAccount(clients, { email });
+  it("getActorInfo names the caller's account as audit stamps do", async () => {
+    const me = await whoAmI();
     const actor = await clients.identityAccountQuery.getActorInfo({
-      value: created.metadata!.id,
+      value: me.metadata?.id ?? "",
     });
-    expect(actor.id).toBe(created.metadata?.id);
-    expect(actor.email).toBe(email);
+    expect(actor.id).toBe(me.metadata?.id);
+    expect(actor.email).toBe(me.spec?.email ?? "");
   });
 });
 
 describe.skipIf(capabilities.federatedIdentityAccounts)(
   "IdentityAccount conformance — no federation capability composed",
   () => {
+    // Inputs that pass the boundary validator (chain position 3, before
+    // any handler) so the refusal under test is the HANDLER's: the
+    // capability is consulted before any lookup or authorization.
+    const ref = { org: "acme", slug: "okta" };
     it.each([
       [
         "createFederatedAccount",
-        () => clients.identityAccountCommand.createFederatedAccount({}),
+        () =>
+          clients.identityAccountCommand.createFederatedAccount({
+            org: "acme",
+            identityProviderRef: ref,
+            externalSub: "okta|1",
+            email: "person@example.com",
+          }),
       ],
       [
         "updateFederatedAccount",
-        () => clients.identityAccountCommand.updateFederatedAccount({}),
+        () =>
+          clients.identityAccountCommand.updateFederatedAccount({
+            org: "acme",
+            identityProviderRef: ref,
+            externalSub: "okta|1",
+            email: "person@example.com",
+          }),
       ],
       [
         "deprovisionFederatedAccount",
-        () => clients.identityAccountCommand.deprovisionFederatedAccount({}),
+        () =>
+          clients.identityAccountCommand.deprovisionFederatedAccount({
+            org: "acme",
+            identityProviderRef: ref,
+            externalSub: "okta|1",
+          }),
       ],
       [
         "getByExternalSub",
-        () => clients.identityAccountQuery.getByExternalSub({}),
+        () =>
+          clients.identityAccountQuery.getByExternalSub({
+            org: "acme",
+            identityProviderRef: ref,
+            externalSub: "okta|1",
+          }),
       ],
     ] as const)(
       "%s is UNIMPLEMENTED with the edition reason, never INTERNAL",
@@ -363,8 +307,8 @@ describe.skipIf(capabilities.federatedIdentityAccounts)(
 describe.skipIf(capabilities.requiresAuthentication)(
   "IdentityAccount conformance — the trusted-local posture (A2)",
   () => {
-    it("a fresh server answers whoAmI with the operator's account before any client called anything", async () => {
-      const me = await clients.identityAccountQuery.whoAmI({});
+    it("whoAmI answers the operator's account: a direct person under the local| subject namespace", async () => {
+      const me = await whoAmI();
       expect(me.metadata?.id).toMatch(/^ida_[0-9a-z]+$/);
       expect(
         me.spec?.idpId,
@@ -377,34 +321,10 @@ describe.skipIf(capabilities.requiresAuthentication)(
     });
 
     it("provisionMyAccount is the idempotent early return for the operator", async () => {
-      const me = await clients.identityAccountQuery.whoAmI({});
+      const me = await whoAmI();
       const provisioned =
         await clients.identityAccountCommand.provisionMyAccount({});
       expect(provisioned.metadata?.id).toBe(me.metadata?.id);
-    });
-
-    it("the operator's preferences round-trip through update and whoAmI", async () => {
-      const me = await clients.identityAccountQuery.whoAmI({});
-      await clients.identityAccountCommand.update({
-        ...me,
-        spec: {
-          ...me.spec,
-          preferences: {
-            defaultHarness: "native",
-            defaultNativeModel: "claude",
-          },
-        },
-      });
-      const again = await clients.identityAccountQuery.whoAmI({});
-      expect(again.spec?.preferences).toMatchObject({
-        defaultHarness: "native",
-        defaultNativeModel: "claude",
-      });
-      // Leave the operator as we found it for the arms after us.
-      await clients.identityAccountCommand.update({
-        ...again,
-        spec: { ...again.spec, preferences: me.spec?.preferences },
-      });
     });
   },
 );
@@ -416,9 +336,19 @@ describe("IdentityAccount conformance — the OIDC lane on a sibling server (Q-I
   beforeAll(async () => {
     if (target.spawnSibling === undefined) return;
     issuer = await startLocalOidcIssuer();
+    // The readiness probe is the harness's one store probe presented with a
+    // real token: an idp-shaped fresh subject, which also forces discovery
+    // and the JWKS fetch, so a lane that cannot reach the issuer fails at
+    // boot with the server's log tail instead of inside the first arm.
     sibling = await target.spawnSibling({
-      STIGMER_OIDC_ISSUER: issuer.issuer,
-      STIGMER_OIDC_AUDIENCE: issuer.audience,
+      env: {
+        STIGMER_OIDC_ISSUER: issuer.issuer,
+        STIGMER_OIDC_AUDIENCE: issuer.audience,
+      },
+      readinessBearer: await issuer.mint({
+        sub: freshSubject(),
+        email: "readiness@example.com",
+      }),
     });
   });
 
@@ -446,11 +376,11 @@ describe("IdentityAccount conformance — the OIDC lane on a sibling server (Q-I
       await issuer.mint({ sub: freshSubject(), email: "fresh@example.com" }),
     );
     const error = await expectGrpcCode(
-      () => asUser.identityAccountQuery.whoAmI({}),
+      () => whoAmI(asUser),
       Code.NotFound,
       "whoAmI for an admitted subject with no account",
     );
-    expect(error.rawMessage).toBe(ACCOUNT_NOT_FOUND_FOR_CALLER);
+    expect(error.rawMessage).toBe(ACCOUNT_NOT_FOUND_FOR_CALLER_MESSAGE);
   });
 
   it("provisionMyAccount creates the account from the issuer's /userinfo, and the next request resolves to it", async (ctx) => {
@@ -475,8 +405,18 @@ describe("IdentityAccount conformance — the OIDC lane on a sibling server (Q-I
     // admitted idp-shaped, because no row existed when the verifier ran.
     expect(account.status?.audit?.specAudit?.createdBy?.id).toBe(subject);
 
-    const me = await asUser.identityAccountQuery.whoAmI({});
+    const me = await whoAmI(asUser);
     expect(me.metadata?.id).toBe(account.metadata?.id);
+
+    // The administrative lookups find it — the OSS-lane cover for the
+    // getByEmail arm the shared block skips on an email-less operator.
+    expect(
+      (
+        await asUser.identityAccountQuery.getByEmail({
+          value: "first-login@example.com",
+        })
+      ).metadata?.id,
+    ).toBe(account.metadata?.id);
 
     // From now on the caller IS the account: a write is stamped with it.
     const key = await asUser.apiKeyCommand.create({
@@ -489,11 +429,10 @@ describe("IdentityAccount conformance — the OIDC lane on a sibling server (Q-I
       account.metadata?.id,
     );
 
-    // And over the key, whoAmI is the owner's account — the key is the user.
+    // And over the key, whoAmI is the owner's account — the key is the user
+    // (A6: every verifier resolves to the account when one exists).
     const overKey = sibling.clientsPresenting(key.spec?.keyHash ?? "");
-    expect((await overKey.identityAccountQuery.whoAmI({})).metadata?.id).toBe(
-      account.metadata?.id,
-    );
+    expect((await whoAmI(overKey)).metadata?.id).toBe(account.metadata?.id);
   });
 
   it("provisionMyAccount is idempotent for a provisioned subject", async (ctx) => {
@@ -526,6 +465,38 @@ describe("IdentityAccount conformance — the OIDC lane on a sibling server (Q-I
     expect(bySubject.metadata?.id).toBe(a.metadata?.id);
   });
 
+  it("delete answers the account and frees the subject — the same login provisions the same account again", async (ctx) => {
+    const { issuer, sibling } = siblingOrSkip(ctx);
+    const subject = freshSubject();
+    const asUser = sibling.clientsPresenting(
+      await issuer.mint({ sub: subject, email: "deletable@example.com" }),
+    );
+    const created = await asUser.identityAccountCommand.provisionMyAccount({});
+
+    const deleted = await asUser.identityAccountCommand.delete({
+      value: created.metadata?.id ?? "",
+    });
+    expect(deleted.metadata?.id).toBe(created.metadata?.id);
+
+    // The verifier misses on the next request, so the caller is idp-shaped
+    // again — exactly the state a never-provisioned subject is in.
+    const error = await expectGrpcCode(
+      () => whoAmI(asUser),
+      Code.NotFound,
+      "whoAmI after deleting one's own account",
+    );
+    expect(error.rawMessage).toBe(ACCOUNT_NOT_FOUND_FOR_CALLER_MESSAGE);
+
+    const again = await asUser.identityAccountCommand.provisionMyAccount({});
+    expect(again.spec?.idpId, "the subject can be provisioned again").toBe(
+      subject,
+    );
+    expect(
+      again.metadata?.id,
+      "one subject, one account id — before and after the delete",
+    ).toBe(created.metadata?.id);
+  });
+
   it("a userinfo failure is UNAVAILABLE with the cloud's copy and creates nothing", async (ctx) => {
     const { issuer, sibling } = siblingOrSkip(ctx);
     const subject = freshSubject();
@@ -541,13 +512,11 @@ describe("IdentityAccount conformance — the OIDC lane on a sibling server (Q-I
         Code.Unavailable,
         "provisionMyAccount while the issuer's userinfo is down",
       );
-      expect(
-        error.rawMessage.startsWith(
-          "Failed to fetch user profile from identity provider: ",
-        ),
-      ).toBe(true);
+      expect(error.rawMessage.startsWith(USERINFO_UNAVAILABLE_PREFIX)).toBe(
+        true,
+      );
       await expectGrpcCode(
-        () => asUser.identityAccountQuery.whoAmI({}),
+        () => whoAmI(asUser),
         Code.NotFound,
         "whoAmI after a failed provisioning",
       );
