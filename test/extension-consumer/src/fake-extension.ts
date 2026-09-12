@@ -55,6 +55,7 @@ import {
   DuplicateAccountError,
   EncryptionScope,
   EncryptionUnavailableError,
+  identityAccountStoreContract,
   identityIdForSubject,
   InvalidTokenError,
   isRunGateCheck,
@@ -88,6 +89,8 @@ import type {
   ComposedServer,
   GateSlotName,
   IdentityAccountStore,
+  IdentityAccountStoreContractCase,
+  IdentityAccountStoreContractFixture,
   IdentityFederation,
   IdentityVerifier,
   MintedToken,
@@ -186,6 +189,29 @@ const consumerIdentityAccountStore: IdentityAccountStore = {
   findDirectByEmail: () => Promise.resolve(undefined),
   findByIds: () => Promise.resolve([]),
 };
+
+/**
+ * The port-contract kit over the consumer's driver (20260911.11 A11): a
+ * composition's driver test iterates these cases with its own framework
+ * — `for (const c of cases) it(c.name, c.run)` — so the same contract the
+ * OSS adapter passes is what the driver is held to. Compile-only here:
+ * this package proves the exported shape, not a fake's behavior.
+ */
+export function consumerIdentityAccountStoreContract(): ReadonlyArray<IdentityAccountStoreContractCase> {
+  return identityAccountStoreContract(
+    async (): Promise<IdentityAccountStoreContractFixture> => ({
+      store: consumerIdentityAccountStore,
+      disconnect: () => Promise.resolve(),
+      cleanup: () => Promise.resolve(),
+    }),
+  );
+}
+
+export async function runConsumerIdentityAccountStoreContract(): Promise<void> {
+  for (const contractCase of consumerIdentityAccountStoreContract()) {
+    await contractCase.run();
+  }
+}
 
 /**
  * A claim-or-pass verifier (the O2 chain-entry shape) that resolves its

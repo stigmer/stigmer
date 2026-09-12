@@ -117,6 +117,14 @@ export { ALL_ORGANIZATIONS } from "./extensions/organization-directory.js";
 // composition's own verifier converges on it instead of restating it.
 export type { IdentityAccountStore } from "./domain/identityaccount/store.js";
 export { DuplicateAccountError } from "./domain/identityaccount/store.js";
+// The port's contract as a vitest-free kit: a driver's own test iterates
+// the same cases the OSS adapter passes, so the port is proven per
+// driver, never restated per repository.
+export type {
+  IdentityAccountStoreContractCase,
+  IdentityAccountStoreContractFixture,
+} from "./domain/identityaccount/store-contract.js";
+export { identityAccountStoreContract } from "./domain/identityaccount/store-contract.js";
 export type { IdentityFederation } from "./extensions/identity-federation.js";
 export type { AccountsBySubject } from "./domain/identityaccount/resolve.js";
 export { identityIdForSubject } from "./domain/identityaccount/resolve.js";

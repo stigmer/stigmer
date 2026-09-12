@@ -1,35 +1,25 @@
 /**
- * Pins the IdentityAccountStore PORT over the OSS adapter
- * (resource-store.ts), on both drivers through the drivers' own fixtures
- * (sqlite always; Postgres under TEST_DATABASE_URL, the store contract's
- * gating). The port is cut from the cloud's store interface to its direct
- * subset (T01_0_plan.md §3a); the adapter's contract, per A1:
+ * Runs the IdentityAccountStore port-contract kit (../store-contract.ts)
+ * over the OSS adapter (../resource-store.ts) on both drivers through the
+ * drivers' own fixtures (sqlite always; Postgres under TEST_DATABASE_URL,
+ * the store contract's gating), and pins the two behaviors that are the
+ * OSS adapter's rather than the port's (T01_1_review.md A1):
  *
- *   - save is create-only in effect: a second save under a held idp_id is
- *     DuplicateAccountError, never a silent overwrite;
- *   - findDirectByIdpId is a PRIMARY-KEY read of the derived id — it never
- *     calls Store.findByField (the per-request scan A1 removed). Asserted
- *     with a spy over the real store, not by inspection;
- *   - every direct account in the OSS store is addressable by its derived
- *     id — the invariant that makes the primary-key read correct;
- *   - findDirectByEmail stays a findByField scan (an administrative
- *     lookup, recorded in T01_1_review.md finding 2);
- *   - the ratified store-fault mapping: a typed not-found reads as
- *     undefined; any other store failure propagates.
+ *   - every subject lookup is a PRIMARY-KEY read of the derived id — it
+ *     never calls Store.findByField (the per-request scan A1 removed).
+ *     Asserted with a spy over the real store, not by inspection;
+ *     findDirectByEmail is the one lookup that scans (an administrative
+ *     RPC, T01_1_review.md finding 2);
+ *   - save refuses a direct account whose id is not its derived id — the
+ *     invariant that makes the primary-key read correct, since a stray row
+ *     would be unreachable by subject forever.
  *
- * The cloud driver runs the same cases in S3; how the cases reach it is an
- * S3 question recorded in T01_3_execution.md.
+ * The kit's case list is pinned by name here so a case cannot drop out of
+ * the kit unnoticed: the cloud driver's test iterates the same export and
+ * would silently prove less.
  */
 import { create } from "@bufbuild/protobuf";
-import {
-  afterAll,
-  afterEach,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  it,
-} from "vitest";
+import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
@@ -47,14 +37,33 @@ import {
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import { accountIdFor } from "../constants.js";
 import { newResourceIdentityAccountStore } from "../resource-store.js";
-import { DuplicateAccountError } from "../store.js";
+import type { IdentityAccountStoreContractFixture } from "../store-contract.js";
+import { identityAccountStoreContract } from "../store-contract.js";
 import type { IdentityAccountStore } from "../store.js";
+
+/** The kit's contract lines, pinned: a dropped or renamed case is a visible diff here. */
+const CONTRACT_CASE_NAMES = [
+  "save then findById round-trips the account",
+  "a second save under a held id is DuplicateAccountError, and the first row stands",
+  "findDirectByIdpId answers a direct account by its subject and undefined for an unknown one",
+  "findByIdpId (any mode) answers the same direct account",
+  "findDirectByEmail is an exact, case-sensitive match on direct accounts",
+  "update replaces the row in place and keeps the id",
+  "deleteById removes the row; the subject is free to be provisioned again",
+  "findByIds answers the present ones in request order and skips the unknown",
+  "a disconnected store is an infrastructure fault, never 'not found'",
+  "two concurrent saves of one subject end in fulfilments and DuplicateAccountErrors only, and the winner is readable by subject",
+  "findDirectByIdpId and findDirectByEmail never answer a federated account, while findByIdpId (any mode) does",
+  "findByIds answers one row per distinct id, in first-occurrence order; an empty request answers an empty list",
+  "update of an unknown id is a no-op: no row appears",
+  "deleteById of an unknown id resolves",
+  "save refuses a direct account with an empty idp_id",
+] as const;
 
 /** A direct account as the domain writes it: id derived, mode direct. */
 function makeDirectAccount(overrides: {
   idpId: string;
   email?: string;
-  firstName?: string;
 }): IdentityAccount {
   return create(IdentityAccountSchema, {
     apiVersion: "iam.stigmer.ai/v1",
@@ -66,16 +75,20 @@ function makeDirectAccount(overrides: {
     spec: {
       idpId: overrides.idpId,
       email: overrides.email ?? "",
-      firstName: overrides.firstName ?? "",
       provisioningMode: IdentityAccountProvisioningMode.direct,
     },
   });
 }
 
+interface OpenedStore {
+  readonly store: Store;
+  close(): Promise<void>;
+}
+
 interface DriverFixture {
   readonly name: string;
   readonly skip: boolean;
-  open(): Promise<{ store: Store; close(): Promise<void> }>;
+  open(): Promise<OpenedStore>;
 }
 
 const sqliteFixture: DriverFixture = {
@@ -83,12 +96,7 @@ const sqliteFixture: DriverFixture = {
   skip: false,
   async open() {
     const temp = tempStore();
-    return {
-      store: temp.store,
-      async close() {
-        temp.cleanup();
-      },
-    };
+    return { store: temp.store, close: () => temp.cleanup() };
   },
 };
 
@@ -102,12 +110,7 @@ const postgresFixture: DriverFixture = {
     }
     const store = await PostgresStore.open(postgresDatabase.databaseUrl);
     await store.deleteResourcesByKind(ApiResourceKind.identity_account);
-    return {
-      store,
-      async close() {
-        await store.close();
-      },
-    };
+    return { store, close: () => store.close() };
   },
 };
 
@@ -118,8 +121,33 @@ afterAll(async () => {
 describe.each([sqliteFixture, postgresFixture])(
   "IdentityAccountStore over the OSS adapter ($name)",
   (fixture) => {
-    describe.skipIf(fixture.skip)("port contract", () => {
-      let opened: { store: Store; close(): Promise<void> };
+    describe.skipIf(fixture.skip)("the port-contract kit", () => {
+      const cases = identityAccountStoreContract(
+        async (): Promise<IdentityAccountStoreContractFixture> => {
+          const opened = await fixture.open();
+          return {
+            store: newResourceIdentityAccountStore(opened.store),
+            // Both drivers' close is idempotent, so cleanup after a
+            // disconnect is a no-op on the handle (plus the temp dir).
+            disconnect: () => opened.store.close(),
+            cleanup: () => opened.close(),
+          };
+        },
+      );
+
+      it("carries every contract line, by name", () => {
+        expect(cases.map((contractCase) => contractCase.name)).toEqual(
+          CONTRACT_CASE_NAMES,
+        );
+      });
+
+      for (const contractCase of cases) {
+        it(contractCase.name, contractCase.run);
+      }
+    });
+
+    describe.skipIf(fixture.skip)("the OSS adapter's own invariants", () => {
+      let opened: OpenedStore;
       let accounts: IdentityAccountStore;
       // Every findByField call the adapter makes, by field path — the spy
       // that proves the hot path is a primary-key read.
@@ -143,49 +171,17 @@ describe.each([sqliteFixture, postgresFixture])(
         await opened.close();
       });
 
-      it("save then findById round-trips the account bytes", async () => {
-        const account = makeDirectAccount({
-          idpId: "auth0|alice",
-          email: "alice@example.com",
-        });
-        await accounts.save(account);
-        const found = await accounts.findById(account.metadata?.id ?? "");
-        expect(found).toEqual(account);
-      });
-
-      it("a second save under a held idp_id is DuplicateAccountError, and the first row stands", async () => {
-        const first = makeDirectAccount({
-          idpId: "auth0|bob",
-          firstName: "First",
-        });
-        const second = makeDirectAccount({
-          idpId: "auth0|bob",
-          firstName: "Second",
-        });
-        await accounts.save(first);
-        await expect(accounts.save(second)).rejects.toBeInstanceOf(
-          DuplicateAccountError,
-        );
-        expect(
-          (await accounts.findDirectByIdpId("auth0|bob"))?.spec?.firstName,
-        ).toBe("First");
-      });
-
-      it("findDirectByIdpId is a primary-key read — never a findByField scan", async () => {
+      it("every subject lookup is a primary-key read — never a findByField scan", async () => {
         await accounts.save(makeDirectAccount({ idpId: "auth0|carol" }));
-        const hit = await accounts.findDirectByIdpId("auth0|carol");
-        expect(hit?.metadata?.id).toBe(accountIdFor("auth0|carol"));
+        expect(
+          (await accounts.findDirectByIdpId("auth0|carol"))?.metadata?.id,
+        ).toBe(accountIdFor("auth0|carol"));
+        expect((await accounts.findByIdpId("auth0|carol"))?.spec?.idpId).toBe(
+          "auth0|carol",
+        );
         expect(
           await accounts.findDirectByIdpId("auth0|nobody"),
         ).toBeUndefined();
-        expect(findByFieldPaths).toEqual([]);
-      });
-
-      it("findByIdpId (any mode) answers the same row in open source, also by primary key", async () => {
-        await accounts.save(makeDirectAccount({ idpId: "auth0|dave" }));
-        expect((await accounts.findByIdpId("auth0|dave"))?.spec?.idpId).toBe(
-          "auth0|dave",
-        );
         expect(findByFieldPaths).toEqual([]);
       });
 
@@ -197,60 +193,9 @@ describe.each([sqliteFixture, postgresFixture])(
           (await accounts.findDirectByEmail("erin@example.com"))?.spec?.idpId,
         ).toBe("auth0|erin");
         expect(
-          await accounts.findDirectByEmail("ERIN@example.com"),
-        ).toBeUndefined();
-        expect(
           await accounts.findDirectByEmail("nobody@example.com"),
         ).toBeUndefined();
-        expect(findByFieldPaths).toEqual([
-          "spec.email",
-          "spec.email",
-          "spec.email",
-        ]);
-      });
-
-      it("update replaces the row in place and keeps the id", async () => {
-        const account = makeDirectAccount({
-          idpId: "auth0|frank",
-          firstName: "Frank",
-        });
-        await accounts.save(account);
-        const edited = makeDirectAccount({
-          idpId: "auth0|frank",
-          firstName: "Francis",
-        });
-        await accounts.update(edited);
-        expect(
-          (await accounts.findById(account.metadata?.id ?? ""))?.spec
-            ?.firstName,
-        ).toBe("Francis");
-      });
-
-      it("deleteById removes the row; the subject is free to be provisioned again", async () => {
-        const account = makeDirectAccount({ idpId: "auth0|grace" });
-        await accounts.save(account);
-        await accounts.deleteById(account.metadata?.id ?? "");
-        expect(
-          await accounts.findById(account.metadata?.id ?? ""),
-        ).toBeUndefined();
-        expect(await accounts.findDirectByIdpId("auth0|grace")).toBeUndefined();
-        await expect(accounts.save(account)).resolves.toBeUndefined();
-      });
-
-      it("findByIds answers the present ones in request order and skips the unknown", async () => {
-        const a = makeDirectAccount({ idpId: "auth0|heidi" });
-        const b = makeDirectAccount({ idpId: "auth0|ivan" });
-        await accounts.save(a);
-        await accounts.save(b);
-        const found = await accounts.findByIds([
-          b.metadata?.id ?? "",
-          "ida_00000000000000000000000000",
-          a.metadata?.id ?? "",
-        ]);
-        expect(found.map((account) => account.spec?.idpId)).toEqual([
-          "auth0|ivan",
-          "auth0|heidi",
-        ]);
+        expect(findByFieldPaths).toEqual(["spec.email", "spec.email"]);
       });
 
       it("refuses to save a direct account whose id is not its derived id", async () => {
@@ -262,53 +207,10 @@ describe.each([sqliteFixture, postgresFixture])(
         await expect(accounts.save(stray)).rejects.toThrow(
           "direct account id must be derived from its idp_id",
         );
-      });
-
-      it("a closed store is an infrastructure fault, never 'not found'", async () => {
-        await opened.close();
-        await expect(
-          accounts.findDirectByIdpId("auth0|anyone"),
-        ).rejects.toThrow();
-        // Re-open so afterEach's close is a no-op on a live handle.
-        opened = await fixture.open();
+        expect(
+          await opened.store.listResources(ApiResourceKind.identity_account),
+        ).toHaveLength(0);
       });
     });
   },
 );
-
-describe("the adapter over the sqlite driver — concurrency", () => {
-  let opened: { store: Store; close(): Promise<void> };
-
-  beforeAll(async () => {
-    opened = await sqliteFixture.open();
-  });
-
-  afterAll(async () => {
-    await opened.close();
-  });
-
-  it("two concurrent saves of one subject leave exactly one row and one winner", async () => {
-    const accounts = newResourceIdentityAccountStore(opened.store);
-    const results = await Promise.allSettled([
-      accounts.save(makeDirectAccount({ idpId: "auth0|race", firstName: "A" })),
-      accounts.save(makeDirectAccount({ idpId: "auth0|race", firstName: "B" })),
-    ]);
-    const fulfilled = results.filter((result) => result.status === "fulfilled");
-    const duplicates = results.filter(
-      (result) =>
-        result.status === "rejected" &&
-        result.reason instanceof DuplicateAccountError,
-    );
-    // Either both interleave to one winner and one duplicate, or the
-    // primary key makes the second an idempotent overwrite of identical
-    // shape — never two rows, never a foreign error.
-    expect(fulfilled.length + duplicates.length).toBe(2);
-    const rows = await opened.store.listResources(
-      ApiResourceKind.identity_account,
-    );
-    expect(rows).toHaveLength(1);
-    expect((await accounts.findDirectByIdpId("auth0|race"))?.metadata?.id).toBe(
-      accountIdFor("auth0|race"),
-    );
-  });
-});
