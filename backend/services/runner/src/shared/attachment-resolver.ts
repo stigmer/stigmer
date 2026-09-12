@@ -14,34 +14,56 @@
  *   the backend's create pipeline requires a storage key on every attachment
  *   it accepts, and in local mode the storage reads directly off disk.
  *
- * Placement is always `inputs/{filename}` — the platform namespace this
- * harness can surface in the workspace. An attachment's `mountPath` is
- * honored by convention, not mechanism: the standard mounts (e.g. the
- * approved plan at `.stigmer/inputs/<slug>_<id>.plan.md`) resolve to exactly this
- * placement, and the prompt's `<input_files>` section plus any path-derived
- * directives are built from the RESOLVED paths, so prompt and filesystem can
- * never disagree.
+ * Placement is the `inputs/` namespace — the platform directory every
+ * harness surfaces in the workspace through the `.stigmer` link, and the
+ * only place an attachment may land. An attachment names its place INSIDE
+ * that namespace with `mountPath` (`inputs/<name>`, `inputs/<dir>/`,
+ * `.stigmer/inputs/<name>`; a leading slash is stripped), or takes the
+ * default `inputs/{filename}`. A `mountPath` outside the namespace is
+ * refused with an actionable error, never relocated silently: a file
+ * written into the user's own tree would be committed to the session's
+ * write-back branch on completion (`git add -A`), and every real producer —
+ * the CLI's directory attachments, the approved plan the console mounts —
+ * already stays inside `inputs/` (S3 M1, Q-M1-2; the proto's `/workspace/…`
+ * example is a doc issue). The prompt's `<input_files>` section and every
+ * path-derived directive are built from the RESOLVED paths, so prompt and
+ * filesystem can never disagree.
  *
- * Duplicate filenames are renamed, never overwritten (issue #364): because
- * placement keys purely on the filename, two attachments with the same name
- * contend for one path — the later one takes the platform's `stem-2.ext`
- * rename (shared/attachment-naming.ts, same semantics as the deep-agent
- * injector and the React composer) and the rename is disclosed in the
- * prompt's `<input_files>` section via {@link ResolvedAttachment.renamedFrom}.
+ * Archives: an attachment marked `extract` is a ZIP whose entries land under
+ * its mount as a DIRECTORY (`inputs/<mount>/<entry>`), validated and
+ * decompressed by `attachment-zip.ts` (the #567 guards). Each entry is its
+ * own {@link ResolvedAttachment} with no vision, no `renamedFrom` and no
+ * `downloadUrl`: an image inside a ZIP has no attachment-level bytes, a
+ * renamed mount directory is visible through every entry path, and the
+ * stored object is the ZIP, not any listed file.
  *
- * Error model: fail-hard, matching the native harness's attachment injector.
- * Attachments are explicit user inputs — an execution that silently runs
- * without one produces silently incorrect results (the "plan file wasn't
- * found" class of failure). Any attachment that cannot be materialized aborts
- * the execution with an actionable error.
+ * Duplicate names are renamed, never overwritten (issue #364), in two passes:
+ * explicit mount paths claim their exact targets first — two attachments
+ * pinning the SAME path is a user contradiction no rename can honestly
+ * resolve, so that alone still refuses — and default-derived names then
+ * uniquify around everything already taken with the platform's `stem-2.ext`
+ * rename (shared/attachment-naming.ts, the React composer's semantics),
+ * disclosed in the prompt via {@link ResolvedAttachment.renamedFrom}.
+ *
+ * Error model: fail-hard. Attachments are explicit user inputs — an
+ * execution that silently runs without one produces silently incorrect
+ * results (the "plan file wasn't found" class of failure). Any attachment
+ * that cannot be materialized aborts the execution with an actionable
+ * {@link AttachmentResolutionError}; an archive that fails its guards
+ * aborts with the guard's own `AttachmentValidationError`.
+ *
+ * Until S3 M1 this resolver ignored `mountPath` and could not extract; the
+ * native harness's `attachment-injector.ts` did both and is retired at M2b
+ * for this one pipeline (Q-S3-14).
  */
 
 import { mkdir, copyFile, readFile, stat, writeFile } from "node:fs/promises";
-import { join, basename } from "node:path";
+import { join, basename, dirname, posix } from "node:path";
 import type { Attachment } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import type { ArtifactStorage } from "./artifact-storage.js";
 import { mintAttachmentDownloadUrl } from "./attachment-download-urls.js";
 import { allocateUniqueName } from "./attachment-naming.js";
+import { decompressEntry, parseAndValidateZip } from "./attachment-zip.js";
 import {
   isVisionCandidate,
   type VisionBudget,
@@ -138,13 +160,18 @@ export async function resolveAttachments(
   // it, but only when the agent has skills).
   await ensureStigmerSymlink(options.primaryWorkspaceDir, platformDir);
 
-  // Placement keys purely on the filename, so this set is the whole
-  // collision domain — sequential resolution means each attachment sees
-  // every name claimed before it (see module doc on duplicate handling).
-  const takenNames = new Set<string>();
+  // Every place is decided before any bytes move: an explicit-path
+  // contradiction refuses up front, and a default name never lands on a path
+  // an explicit one claims (see module doc on duplicate handling).
+  const places = resolvePlacements(attachments);
   const results: ResolvedAttachment[] = [];
   for (const attachment of attachments) {
-    results.push(await resolveAttachment(attachment, inputsDir, takenNames, options));
+    const place = places.get(attachment)!;
+    if (attachment.extract) {
+      results.push(...(await extractArchive(attachment, place, inputsDir, options)));
+    } else {
+      results.push(await resolveAttachment(attachment, place, inputsDir, options));
+    }
   }
 
   console.log(
@@ -157,19 +184,22 @@ export async function resolveAttachments(
 
 async function resolveAttachment(
   attachment: Attachment,
+  place: Placement,
   inputsDir: string,
-  takenNames: Set<string>,
   options: AttachmentResolverOptions,
 ): Promise<ResolvedAttachment> {
+  const { relative, renamedFrom } = place;
+  // The final basename is the canonical filename: after a duplicate rename
+  // the original attachment.filename no longer names the file on disk, and
+  // the vision label must match what the prompt lists.
+  const filename = posix.basename(relative);
+  await mkdir(dirname(join(inputsDir, relative)), { recursive: true });
+
   // Local-mode fast path: the file is already on this machine's disk.
   if (options.mode === "local" && attachment.localPath) {
-    const { name: filename, renamedFrom } = allocateUniqueName(
-      safeInputName(attachment.filename || attachment.localPath),
-      takenNames,
-    );
     let vision: VisionOutcome | undefined;
     try {
-      vision = await materializeLocalFile(attachment, filename, inputsDir, options.visionBudget);
+      vision = await materializeLocalFile(attachment, filename, join(inputsDir, relative), options.visionBudget);
     } catch (err) {
       throw new AttachmentResolutionError(
         attachment.filename,
@@ -185,7 +215,7 @@ async function resolveAttachment(
     );
     return {
       filename,
-      relativePath: join(STIGMER_LOCAL_STATE_DIR, INPUTS_SUBDIR, filename),
+      relativePath: join(STIGMER_LOCAL_STATE_DIR, INPUTS_SUBDIR, relative),
       ...(renamedFrom !== undefined ? { renamedFrom } : {}),
       ...visionOutcomeFields(vision),
       ...(downloadUrl !== undefined ? { downloadUrl } : {}),
@@ -193,6 +223,75 @@ async function resolveAttachment(
   }
 
   // Universal path: download the uploaded content by storage key.
+  const content = await downloadFromStorage(attachment, options);
+  await writeFile(join(inputsDir, relative), content);
+
+  // The bytes are already in hand for the file write — offer them to the
+  // vision budget before they go out of scope (the sniff decides eligibility;
+  // no pre-filter needed on this branch).
+  const vision = options.visionBudget?.offer(filename, attachment.contentType, content);
+
+  const downloadUrl = await mintAttachmentDownloadUrl(
+    options.storage, attachment.storageKey, filename,
+  );
+
+  return {
+    filename,
+    relativePath: join(STIGMER_LOCAL_STATE_DIR, INPUTS_SUBDIR, relative),
+    ...(renamedFrom !== undefined ? { renamedFrom } : {}),
+    ...visionOutcomeFields(vision),
+    ...(downloadUrl !== undefined ? { downloadUrl } : {}),
+  };
+}
+
+/**
+ * Extract an `extract` attachment's archive under its mount directory. The
+ * bytes are read whole (an archive is never a vision candidate, so the local
+ * fast path's lazy read has nothing to save), validated and decompressed by
+ * the shared guards, and written entry by entry; the entries are the
+ * resolved attachments (see the module doc for what they do not carry).
+ */
+async function extractArchive(
+  attachment: Attachment,
+  place: Placement,
+  inputsDir: string,
+  options: AttachmentResolverOptions,
+): Promise<ResolvedAttachment[]> {
+  const content = await bytesOf(attachment, options);
+  const entries = parseAndValidateZip(content, attachment.filename);
+  const mountDir = place.relative.replace(/\/+$/, "");
+  const results: ResolvedAttachment[] = [];
+  for (const entry of entries) {
+    const bytes = await decompressEntry(entry, attachment.filename);
+    const relative = posix.join(mountDir, entry.relativePath);
+    const dest = join(inputsDir, relative);
+    await mkdir(dirname(dest), { recursive: true });
+    await writeFile(dest, bytes);
+    results.push({
+      filename: posix.basename(entry.relativePath),
+      relativePath: join(STIGMER_LOCAL_STATE_DIR, INPUTS_SUBDIR, relative),
+    });
+  }
+  return results;
+}
+
+/** The attachment's bytes, from the local fast path or from storage. */
+async function bytesOf(attachment: Attachment, options: AttachmentResolverOptions): Promise<Buffer> {
+  if (options.mode === "local" && attachment.localPath) {
+    try {
+      return await readFile(attachment.localPath);
+    } catch (err) {
+      throw new AttachmentResolutionError(
+        attachment.filename,
+        `failed to read local file '${attachment.localPath}': ` +
+        `${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
+  return downloadFromStorage(attachment, options);
+}
+
+async function downloadFromStorage(attachment: Attachment, options: AttachmentResolverOptions): Promise<Buffer> {
   if (!attachment.storageKey) {
     throw new AttachmentResolutionError(
       attachment.filename,
@@ -206,14 +305,8 @@ async function resolveAttachment(
       `(key: ${attachment.storageKey}) cannot be downloaded`,
     );
   }
-
-  const { name: filename, renamedFrom } = allocateUniqueName(
-    safeInputName(attachment.filename || attachment.storageKey),
-    takenNames,
-  );
-  let content: Buffer;
   try {
-    content = await options.storage.download(attachment.storageKey);
+    return await options.storage.download(attachment.storageKey);
   } catch (err) {
     throw new AttachmentResolutionError(
       attachment.filename,
@@ -221,24 +314,90 @@ async function resolveAttachment(
       `${err instanceof Error ? err.message : String(err)}`,
     );
   }
-  await writeFile(join(inputsDir, filename), content);
+}
 
-  // The bytes are already in hand for the file write — offer them to the
-  // vision budget before they go out of scope (the sniff decides eligibility;
-  // no pre-filter needed on this branch).
-  const vision = options.visionBudget?.offer(filename, attachment.contentType, content);
+// ── Placement ────────────────────────────────────────────────────────
 
-  const downloadUrl = await mintAttachmentDownloadUrl(
-    options.storage, attachment.storageKey, filename,
-  );
+/** Where an attachment lands, relative to the `inputs/` directory. */
+interface Placement {
+  readonly relative: string;
+  /** Present when a default-derived name was uniquified (issue #364). */
+  readonly renamedFrom?: string;
+}
 
-  return {
-    filename,
-    relativePath: join(STIGMER_LOCAL_STATE_DIR, INPUTS_SUBDIR, filename),
-    ...(renamedFrom !== undefined ? { renamedFrom } : {}),
-    ...visionOutcomeFields(vision),
-    ...(downloadUrl !== undefined ? { downloadUrl } : {}),
-  };
+/**
+ * The two-pass placement (see module doc): explicit mount paths first, each
+ * resolved into the namespace and refused on a contradiction; then the
+ * default-derived names, uniquified around every name already taken directly
+ * under `inputs/`.
+ */
+function resolvePlacements(attachments: readonly Attachment[]): Map<Attachment, Placement> {
+  const places = new Map<Attachment, Placement>();
+  const claimed = new Map<string, Attachment>();
+
+  for (const attachment of attachments) {
+    if (!attachment.mountPath) continue;
+    const relative = explicitPlacement(attachment);
+    const existing = claimed.get(relative);
+    if (existing) {
+      throw new AttachmentResolutionError(
+        attachment.filename,
+        `mount path '${attachment.mountPath}' collides with attachment '${existing.filename}'. ` +
+        "Set distinct mountPath values on the attachments to resolve this conflict.",
+      );
+    }
+    claimed.set(relative, attachment);
+    places.set(attachment, { relative });
+  }
+
+  const takenNames = new Set<string>();
+  for (const relative of claimed.keys()) {
+    if (!relative.includes("/")) takenNames.add(relative);
+  }
+  for (const attachment of attachments) {
+    if (attachment.mountPath) continue;
+    const { name, renamedFrom } = allocateUniqueName(
+      safeInputName(attachment.filename || attachment.localPath || attachment.storageKey),
+      takenNames,
+    );
+    places.set(attachment, renamedFrom !== undefined ? { relative: name, renamedFrom } : { relative: name });
+  }
+  return places;
+}
+
+/** The namespace prefixes an explicit `mountPath` may name, longest first. */
+const INPUTS_NAMESPACE_PREFIXES = [`${STIGMER_LOCAL_STATE_DIR}/${INPUTS_SUBDIR}`, INPUTS_SUBDIR] as const;
+
+/**
+ * Resolve an explicit `mountPath` into a path relative to `inputs/`, or
+ * refuse: empty after cleaning, outside the namespace, or climbing out of it.
+ * A caller-supplied path is untrusted, so `..` is judged after normalization.
+ */
+function explicitPlacement(attachment: Attachment): string {
+  const cleaned = attachment.mountPath.replace(/^\/+/, "").replace(/\/+$/, "");
+  const prefix = INPUTS_NAMESPACE_PREFIXES.find((p) => cleaned === p || cleaned.startsWith(`${p}/`));
+  if (prefix === undefined) {
+    throw new AttachmentResolutionError(
+      attachment.filename,
+      `mount path '${attachment.mountPath}' is outside the attachment namespace. ` +
+      `Attachments land under '${INPUTS_SUBDIR}/' (surfaced as '${STIGMER_LOCAL_STATE_DIR}/${INPUTS_SUBDIR}/'); ` +
+      `set mountPath to '${INPUTS_SUBDIR}/<name>' or leave it empty for the default placement.`,
+    );
+  }
+  const relative = posix.normalize(cleaned.slice(prefix.length).replace(/^\/+/, ""));
+  if (relative === "" || relative === ".") {
+    throw new AttachmentResolutionError(
+      attachment.filename,
+      `mount path '${attachment.mountPath}' names the inputs directory itself, not a place inside it`,
+    );
+  }
+  if (relative === ".." || relative.startsWith("../") || posix.isAbsolute(relative)) {
+    throw new AttachmentResolutionError(
+      attachment.filename,
+      `mount path '${attachment.mountPath}' escapes the attachment namespace`,
+    );
+  }
+  return relative;
 }
 
 /**
@@ -251,10 +410,9 @@ async function resolveAttachment(
 async function materializeLocalFile(
   attachment: Attachment,
   filename: string,
-  inputsDir: string,
+  dest: string,
   visionBudget: VisionBudget | undefined,
 ): Promise<VisionOutcome | undefined> {
-  const dest = join(inputsDir, filename);
   if (!visionBudget || !isVisionCandidate(attachment.contentType, filename)) {
     await copyFile(attachment.localPath, dest);
     return undefined;

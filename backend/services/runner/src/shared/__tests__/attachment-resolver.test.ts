@@ -8,7 +8,11 @@
  * carries a storage key), the workspace `.stigmer` symlink exists even when
  * the agent has no skills, and any attachment that cannot be materialized
  * fails the resolution loudly (the silent-skip regression behind "plan file
- * wasn't found").
+ * wasn't found"). Since S3 M1 (Q-S3-14, Q-M1-2) the resolver is the one
+ * attachment pipeline for every harness, so it also pins the two behaviors
+ * lifted from the native injector: `extract` archives land under their mount
+ * directory through the shared #567 guards, and an explicit `mountPath` is
+ * honoured inside the `inputs/` namespace and refused outside it.
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
@@ -16,6 +20,8 @@ import { mkdtempSync, writeFileSync, readFileSync, rmSync, lstatSync, readlinkSy
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { resolveAttachments, AttachmentResolutionError } from "../attachment-resolver.js";
+import { AttachmentValidationError } from "../attachment-zip.js";
+import { buildZip } from "@stigmer/zip-structure/testing";
 import { getPlatformDir } from "../workspace/platform-dir.js";
 import { makeInMemoryArtifactStorage } from "../../__test-utils__/fake-artifact-storage.js";
 import { CURSOR_VISION_PROFILE, VisionBudget } from "../attachment-vision.js";
@@ -263,6 +269,143 @@ describe("resolveAttachments", () => {
       { filename: "evil.txt", relativePath: ".stigmer/inputs/evil.txt" },
     ]);
     expect(readFileSync(join(platformDir, "inputs", "evil.txt"), "utf-8")).toBe("local-contained");
+  });
+
+  // ── Explicit mountPath: honoured inside the inputs namespace, refused outside ──
+
+  describe("mountPath (S3 M1, Q-M1-2)", () => {
+    it("places a file at its explicit `inputs/…` path, in every spelling the producers use", async () => {
+      const { storage } = makeInMemoryArtifactStorage();
+      await storage.upload("k/a", Buffer.from("A"), "text/plain");
+      await storage.upload("k/b", Buffer.from("B"), "text/plain");
+      await storage.upload("k/c", Buffer.from("C"), "text/plain");
+
+      const result = await resolveAttachments(
+        [
+          makeAttachment({ filename: "a.txt", storageKey: "k/a", mountPath: "inputs/data/a.txt" }),
+          makeAttachment({ filename: "b.txt", storageKey: "k/b", mountPath: ".stigmer/inputs/b-renamed.txt" }),
+          makeAttachment({ filename: "c.txt", storageKey: "k/c", mountPath: "/inputs/c.txt" }),
+        ],
+        options({ storage }),
+      );
+
+      expect(result.map((r) => r.relativePath)).toEqual([
+        ".stigmer/inputs/data/a.txt",
+        ".stigmer/inputs/b-renamed.txt",
+        ".stigmer/inputs/c.txt",
+      ]);
+      expect(result.map((r) => r.filename), "the on-disk basename, not the attachment's").toEqual(["a.txt", "b-renamed.txt", "c.txt"]);
+      expect(readFileSync(join(platformDir, "inputs", "data", "a.txt"), "utf-8")).toBe("A");
+      expect(readFileSync(join(platformDir, "inputs", "b-renamed.txt"), "utf-8")).toBe("B");
+    });
+
+    it("a default-named attachment uniquifies around a name an explicit path claims directly under inputs/", async () => {
+      const { storage } = makeInMemoryArtifactStorage();
+      await storage.upload("k/explicit", Buffer.from("explicit"), "text/plain");
+      await storage.upload("k/default", Buffer.from("default"), "text/plain");
+
+      const result = await resolveAttachments(
+        [
+          makeAttachment({ filename: "other.txt", storageKey: "k/explicit", mountPath: "inputs/plan.md" }),
+          makeAttachment({ filename: "plan.md", storageKey: "k/default" }),
+        ],
+        options({ storage }),
+      );
+
+      expect(result.map(({ filename, relativePath, renamedFrom }) => ({ filename, relativePath, renamedFrom }))).toEqual([
+        { filename: "plan.md", relativePath: ".stigmer/inputs/plan.md", renamedFrom: undefined },
+        { filename: "plan-2.md", relativePath: ".stigmer/inputs/plan-2.md", renamedFrom: "plan.md" },
+      ]);
+      expect(readFileSync(join(platformDir, "inputs", "plan.md"), "utf-8")).toBe("explicit");
+      expect(readFileSync(join(platformDir, "inputs", "plan-2.md"), "utf-8")).toBe("default");
+    });
+
+    it("refuses two attachments explicitly pinning the same path (a contradiction no rename resolves), before any bytes move", async () => {
+      const { storage } = makeInMemoryArtifactStorage();
+      await expect(
+        resolveAttachments(
+          [
+            makeAttachment({ filename: "a.csv", storageKey: "k/a", mountPath: "inputs/data.csv" }),
+            makeAttachment({ filename: "b.csv", storageKey: "k/b", mountPath: "inputs/data.csv" }),
+          ],
+          options({ storage }),
+        ),
+      ).rejects.toThrow(/mount path 'inputs\/data\.csv' collides with attachment 'a\.csv'/);
+      expect(storage.download).not.toHaveBeenCalled();
+    });
+
+    it("refuses a mountPath outside the inputs namespace with the namespace named (a file in the user's tree would ride the write-back commit)", async () => {
+      const { storage } = makeInMemoryArtifactStorage();
+      const attempt = resolveAttachments(
+        [makeAttachment({ filename: "data.yaml", storageKey: "k/d", mountPath: "/workspace/data/data.yaml" })],
+        options({ storage }),
+      );
+      await expect(attempt).rejects.toBeInstanceOf(AttachmentResolutionError);
+      await expect(attempt).rejects.toThrow(/outside the attachment namespace.*set mountPath to 'inputs\/<name>'/);
+      expect(storage.download).not.toHaveBeenCalled();
+    });
+
+    it("refuses a mountPath that climbs out of the namespace, and one that names the inputs directory itself", async () => {
+      const { storage } = makeInMemoryArtifactStorage();
+      await expect(
+        resolveAttachments([makeAttachment({ storageKey: "k/e", mountPath: "inputs/../../evil.md" })], options({ storage })),
+      ).rejects.toThrow(/escapes the attachment namespace/);
+      await expect(
+        resolveAttachments([makeAttachment({ storageKey: "k/e", mountPath: "inputs/" })], options({ storage })),
+      ).rejects.toThrow(/names the inputs directory itself/);
+    });
+  });
+
+  // ── Archives: `extract` lands the entries under the mount directory ──────
+
+  describe("extract (S3 M1, Q-S3-14)", () => {
+    const archive = () =>
+      Buffer.from(
+        buildZip([
+          { name: "notes/readme.md", content: "# notes" },
+          { name: "data.csv", content: "a,b\n1,2" },
+        ]),
+      );
+
+    it("extracts a storage-backed archive under `inputs/<archive filename>/`, one resolved attachment per entry, with no vision, rename or URL", async () => {
+      const { storage } = makeInMemoryArtifactStorage();
+      await storage.upload("k/bundle", archive(), "application/zip");
+
+      const result = await resolveAttachments(
+        [makeAttachment({ filename: "bundle.zip", storageKey: "k/bundle", extract: true, contentType: "application/zip" })],
+        options({ storage, visionBudget: new VisionBudget(CURSOR_VISION_PROFILE, { modelVision: true }) }),
+      );
+
+      expect(result).toEqual([
+        { filename: "data.csv", relativePath: ".stigmer/inputs/bundle.zip/data.csv" },
+        { filename: "readme.md", relativePath: ".stigmer/inputs/bundle.zip/notes/readme.md" },
+      ]);
+      expect(readFileSync(join(platformDir, "inputs", "bundle.zip", "notes", "readme.md"), "utf-8")).toBe("# notes");
+      expect(storage.getDownloadUrl, "no URL for entries: the stored object is the ZIP, not any listed file").not.toHaveBeenCalled();
+    });
+
+    it("extracts a local archive at the CLI's `inputs/<dirname>/` mount (the directory-attachment shape)", async () => {
+      const srcPath = join(workspaceDir, "docs.zip");
+      writeFileSync(srcPath, archive());
+
+      const result = await resolveAttachments(
+        [makeAttachment({ filename: "docs.zip", storageKey: "", localPath: srcPath, extract: true, mountPath: "inputs/docs/" })],
+        options(),
+      );
+
+      expect(result.map((r) => r.relativePath)).toEqual([".stigmer/inputs/docs/data.csv", ".stigmer/inputs/docs/notes/readme.md"]);
+      expect(readFileSync(join(platformDir, "inputs", "docs", "data.csv"), "utf-8")).toBe("a,b\n1,2");
+    });
+
+    it("an archive that fails the shared guards aborts the resolution with the guard's own error", async () => {
+      const srcPath = join(workspaceDir, "evil.zip");
+      writeFileSync(srcPath, Buffer.from(buildZip([{ name: "../escape.txt", content: "x" }])));
+
+      await expect(
+        resolveAttachments([makeAttachment({ filename: "evil.zip", storageKey: "", localPath: srcPath, extract: true })], options()),
+      ).rejects.toBeInstanceOf(AttachmentValidationError);
+      expect(() => readFileSync(join(platformDir, "inputs", "evil.zip"))).toThrow();
+    });
   });
 
   // ── Download-URL hand-off (issue #532) ───────────────────────────────────
