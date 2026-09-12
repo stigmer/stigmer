@@ -54,7 +54,7 @@ import type { StigmerClient } from "../../client/stigmer-client.js";
 import type { Config } from "../../config.js";
 import { HARNESS_ACTIVITY_NAMES, createHarnessActivities } from "../../harness/registry.js";
 import { TERMINAL_COPY } from "../../harness/terminal-table.js";
-import { approvalDecisionsOf } from "../../harness/turn-context.js";
+import { REJECTED_BY_USER_ERROR, approvalDecisionsOf } from "../../harness/approval-decisions.js";
 import type { FailureSurface } from "../../harness/types.js";
 import type { ExecuteActivityInput } from "../../shared/activity-input.js";
 import { acquireWorkspaceLock } from "../../shared/workspace/workspace-lock.js";
@@ -290,6 +290,49 @@ export async function assertApprovalRoundTrip(harness: RuntimeContractHarness, l
   expect(driver.record.waitingToolCalls(), `${subject.name}: nothing waits after the approval`).toHaveLength(0);
   expect(driver.record.sessionUpdates, `${subject.name}: a resumed engine binds nothing new`).toHaveLength(bindsAfterFirst);
   return { driver, invocations: [first, second], final: finalStatusOf(harness, driver) };
+}
+
+// ── Arm: awaiting_approval then REJECT or SKIP ──────────────────────────────
+
+/**
+ * A decision that never runs the tool: the user REJECTs (or SKIPs) the
+ * proposal; the reinvocation continues WITHOUT it — the adapter's next step
+ * runs, the turn COMPLETES, the tool executes zero times — and the runtime
+ * settles the row SKIPPED (a REJECT row carries `error: "Rejected by user"`),
+ * so no WAITING row survives on a finished execution. This is the proto
+ * contract as of stigmer#197 and the runtime's own write
+ * (`harness/approval-decisions.ts`); before S3 M1 the runtime FAILED a
+ * REJECTed reinvocation before any engine ran.
+ */
+export async function assertNonExecutingDecisionSettlesSkipped(
+  harness: RuntimeContractHarness,
+  action: ApprovalAction.REJECT | ApprovalAction.SKIP,
+  label = `rt-${ApprovalAction[action].toLowerCase()}`,
+): Promise<RuntimeArmResult> {
+  const { subject } = harness;
+  const driver = new RuntimeExecutionDriver(harness, label);
+  const id = `${label}-shell`;
+  const propose = scenario.propose(id, { kind: "shell", resource: `rm -rf build # ${label}` });
+  const verdict = ApprovalAction[action];
+
+  const first = await driver.turn([propose]);
+  expect(slimOf(subject, first).phase, `${subject.name}: a proposal returns WAITING_FOR_APPROVAL`).toBe("EXECUTION_WAITING_FOR_APPROVAL");
+  expect(driver.decide(action), `${subject.name}: one row to decide`).toBe(1);
+
+  const second = await driver.turn([propose, scenario.say("Moving on.")]);
+  expect(slimOf(subject, second).phase, `${subject.name}: after ${verdict} the run continues to COMPLETED — it does not fail`).toBe("EXECUTION_COMPLETED");
+  expect(slimOf(subject, second).final_text, `${subject.name}: the step after the ${verdict}ed action ran`).toBe("Moving on.");
+  expect(subject.executionCount(id), `${subject.name}: a ${verdict}ed action never executes`).toBe(0);
+
+  const final = finalStatusOf(harness, driver);
+  const row = final.messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === id);
+  expect(row, `${subject.name}: the decided row is carried on the transcript`).toBeDefined();
+  expect(row!.status, `${subject.name}: the runtime settles a ${verdict}ed row SKIPPED`).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
+  expect(row!.approvalAction, `${subject.name}: the decision stays legible on the settled row`).toBe(action);
+  expect(row!.error, `${subject.name}: a REJECT carries its reason, a SKIP carries none`).toBe(action === ApprovalAction.REJECT ? REJECTED_BY_USER_ERROR : "");
+  expect(driver.record.waitingToolCalls(), `${subject.name}: nothing waits on a finished execution`).toHaveLength(0);
+  expect(final.error, `${subject.name}: the execution carries no error`).toBe("");
+  return { driver, invocations: [first, second], final };
 }
 
 // ── Arms: the stop controller's producers ───────────────────────────────────
@@ -620,6 +663,12 @@ export function describeHarnessRuntimeContract(harness: RuntimeContractHarness, 
       clock.reset();
       await assertApprovalRoundTrip(harness);
     });
+    for (const action of [ApprovalAction.REJECT, ApprovalAction.SKIP] as const) {
+      it(`awaiting_approval then ${ApprovalAction[action]}: the run continues without the tool and the runtime settles the row SKIPPED`, async () => {
+        clock.reset();
+        await assertNonExecutingDecisionSettlesSkipped(harness, action);
+      });
+    }
     it("a user pause persists PAUSED with the pause row once and throws the pause CancelledFailure", async () => {
       clock.reset();
       await assertPausePersistsAndThrows(harness);

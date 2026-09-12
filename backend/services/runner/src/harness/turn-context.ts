@@ -69,12 +69,13 @@ import { clone } from "@bufbuild/protobuf";
 import type { AgentExecution, AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { AgentExecutionSpec } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { ApprovalAction, FileChangeSetStatus, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ApprovalAction, FileChangeSetStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 
 import type { Config } from "../config.js";
 import type { StigmerClient } from "../client/stigmer-client.js";
 import type { NormalizedActivityInput } from "../shared/activity-input.js";
+import { approvalDecisionsOf } from "./approval-decisions.js";
 import type { ArtifactStorage } from "../shared/artifact-storage.js";
 import type { TimingRecorder } from "../shared/cold-start-timing.js";
 import { resolveBlueprint, type ResolvedBlueprint } from "../shared/blueprint-resolver.js";
@@ -204,16 +205,16 @@ export interface TurnReinvocation {
  *  - `workspace-lock-timeout`: another turn held the primary tree past
  *    `Config.workspaceLockTimeoutMs`. FAILED, returned (a Temporal retry
  *    would queue behind the same holder).
- *  - `rejected-by-user`: an adjudicated irreversible action (shell / MCP)
- *    was REJECTed. FAILED, returned.
  *  - `file-review-resolved`: a pure file-review resume; the agent already
  *    finished its turn during capture and the reconcile is the whole act.
  *    COMPLETED, returned, with the write-back finalized first when the
  *    reconcile held.
+ *
+ * A REJECTed tool is not a settlement: the run continues without it
+ * (`approval-decisions.ts`).
  */
 export type TurnSettlement =
   | { readonly kind: "workspace-lock-timeout"; readonly error: WorkspaceLockTimeoutError }
-  | { readonly kind: "rejected-by-user" }
   | {
       readonly kind: "file-review-resolved";
       readonly failed: boolean;
@@ -279,27 +280,6 @@ export function isReinvocation(
   }
 }
 
-/**
- * The runtime's one reader of approval decisions: every top-level tool-call
- * row still WAITING_APPROVAL whose `approvalAction` the server has set,
- * keyed by tool-call id. Derived from the status on every invocation, never
- * stored, so it cannot drift from the rows. The same rows, in the same
- * order, that the Cursor adapter's `reconstructAdjudicatedApprovals` reads
- * for its own facts (the pending-approval protos and content digests); a
- * test pins the two readers' agreement.
- */
-export function approvalDecisionsOf(status: AgentExecutionStatus): ReadonlyMap<string, ApprovalAction> {
-  const decisions = new Map<string, ApprovalAction>();
-  for (const message of status.messages) {
-    for (const row of message.toolCalls) {
-      if (row.status !== ToolCallStatus.TOOL_CALL_WAITING_APPROVAL) continue;
-      if (row.approvalAction === ApprovalAction.UNSPECIFIED) continue;
-      decisions.set(row.id, row.approvalAction);
-    }
-  }
-  return decisions;
-}
-
 /** The facts the reinvocation decision reads; produced by {@link reconcileReinvocation}, exposed for the decision's own tests. */
 export interface ReinvocationFacts {
   readonly approvalDecisions: ReadonlyMap<string, ApprovalAction>;
@@ -312,21 +292,23 @@ export interface ReinvocationFacts {
 }
 
 /**
- * How a reinvocation proceeds, decided once from the facts (`index.ts`
- * L547-618): a REJECT of an irreversible action fails the turn; any other
- * adjudicated decision runs the agent (the approved shell/MCP proceeds and
- * may produce further edits); a resume that reconciled file review and
- * decided nothing else is complete, because keeping or discarding a file
- * never re-prompts the agent (Cursor-like). `undefined` means "run the
- * agent".
+ * How a reinvocation proceeds, decided once from the facts: any adjudicated
+ * decision runs the agent — an approved shell/MCP proceeds and may produce
+ * further edits; a SKIP or REJECT denies its tool and the run continues
+ * without it (the row is settled SKIPPED after the turn,
+ * `approval-decisions.ts`); a resume that reconciled file review and decided
+ * nothing else is complete, because keeping or discarding a file never
+ * re-prompts the agent (Cursor-like). `undefined` means "run the agent".
+ *
+ * Until S3 M1 a REJECT failed the turn here with its own FAILED arm, Cursor's
+ * legacy; the proto (`APPROVAL_ACTION_REJECT`: "does NOT fail the run"), the
+ * conformance suite and the native harness said otherwise since stigmer#197,
+ * and the runtime now agrees (S2 M4 finding F1; Q-S3-2).
  */
 export function decideReinvocation(
   facts: ReinvocationFacts,
 ): Exclude<TurnSettlement, { kind: "workspace-lock-timeout" }> | undefined {
-  if (facts.approvalDecisions.size > 0) {
-    const hasReject = [...facts.approvalDecisions.values()].some((a) => a === ApprovalAction.REJECT);
-    return hasReject ? { kind: "rejected-by-user" } : undefined;
-  }
+  if (facts.approvalDecisions.size > 0) return undefined;
   if (facts.reconciledFileReview) {
     return {
       kind: "file-review-resolved",

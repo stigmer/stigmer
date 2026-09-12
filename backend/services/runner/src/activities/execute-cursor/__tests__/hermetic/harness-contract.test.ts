@@ -54,7 +54,7 @@ vi.mock("../../../../client/stigmer-client.js", async () =>
   (await import("../../../../__test-utils__/hermetic-activity.js")).hermeticStigmerClientModule(),
 );
 
-import { approvalDecisionsOf } from "../../../../harness/turn-context.js";
+import { approvalDecisionsOf } from "../../../../harness/approval-decisions.js";
 import { ExecutionDriver, describeHarnessContract } from "../../../../__test-utils__/harness-contract/contract.js";
 import { RecordingTurnSink } from "../../../../__test-utils__/harness-contract/recording-sink.js";
 import { describeHarnessRuntimeContract } from "../../../../__test-utils__/harness-contract/runtime-contract.js";

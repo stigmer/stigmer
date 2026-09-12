@@ -79,10 +79,6 @@ export const TERMINAL_COPY = {
   platformStop: {
     row: "Execution stopped by the platform.",
   },
-  rejectedByUser: {
-    error: "Execution rejected by user",
-    row: "Execution was rejected by the user during tool approval.",
-  },
   fileReview: {
     applyFailedPrefix: "Some approved file changes could not be applied because the file changed after review: ",
     discardedPrefix: "Some proposed file changes were discarded by the user and were not applied: ",
@@ -172,17 +168,6 @@ export function workspaceLockTimeoutArm(error: WorkspaceLockTimeoutError): Termi
     phase: ExecutionPhase.EXECUTION_FAILED,
     error: error.message,
     rows: [`Execution failed: ${error.message}`],
-    completes: true,
-    disposition: RETURN,
-  };
-}
-
-/** An adjudicated irreversible action (shell / MCP) was REJECTed. */
-export function rejectedByUserArm(): TerminalArm {
-  return {
-    phase: ExecutionPhase.EXECUTION_FAILED,
-    error: TERMINAL_COPY.rejectedByUser.error,
-    rows: [TERMINAL_COPY.rejectedByUser.row],
     completes: true,
     disposition: RETURN,
   };

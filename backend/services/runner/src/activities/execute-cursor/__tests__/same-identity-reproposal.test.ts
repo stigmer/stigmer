@@ -35,7 +35,7 @@ import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/a
 import { ApprovalAction, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { SDKMessage } from "@cursor/sdk";
 
-import { approvalDecisionsOf } from "../../../harness/turn-context.js";
+import { approvalDecisionsOf } from "../../../harness/approval-decisions.js";
 import { MessageAccumulator, reconcileDeniedToolCalls, toolCallIdentityToken } from "../message-translator.js";
 import type { DeniedLedgerEntry } from "../approval-state.js";
 

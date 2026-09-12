@@ -20,7 +20,7 @@ import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/a
 import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { ApprovalAction, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
-import { approvalDecisionsOf } from "../../../harness/turn-context.js";
+import { approvalDecisionsOf } from "../../../harness/approval-decisions.js";
 import { reconstructAdjudicatedApprovals } from "../approval-state.js";
 
 describe("the runtime's approvalDecisionsOf and the adapter's reconstructAdjudicatedApprovals", () => {

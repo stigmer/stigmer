@@ -771,6 +771,24 @@ describe("buildReinvocationPrompt", () => {
     expect(prompt).toContain("Continue the rest of the task");
   });
 
+  it("names a REJECTED action as a refusal, apart from the skipped ones, and still continues the task (stigmer#197; S3 M1)", () => {
+    // A REJECT denies the tool and the run continues; before S3 M1 the
+    // runtime failed the reinvocation before this prompt was ever built, so
+    // the prompt had no REJECT arm.
+    const decisions = new Map<string, ApprovalAction>([
+      ["tc-1", ApprovalAction.REJECT],
+      ["tc-2", ApprovalAction.SKIP],
+    ]);
+    const prompt = buildReinvocationPrompt(
+      [pending("tc-1", "Run command: rm -rf build"), pending("tc-2", "Write file: a.txt")],
+      decisions,
+    );
+    expect(prompt).toContain("The user REJECTED the following action(s). Do not perform them; continue with the rest of the task without them:\n- Run command: rm -rf build");
+    expect(prompt).toContain("The user SKIPPED the following action(s). Do not perform them; continue with the rest of the task without them:\n- Write file: a.txt");
+    expect(prompt).not.toContain("APPROVED");
+    expect(prompt).toContain("Continue the rest of the task");
+  });
+
   it("describes a runner-applied approval as ALREADY applied, not as one to carry out", () => {
     // tc-1 was exact-applied by the runner (a whole-file write); tc-2 (a shell
     // command) was approved but stays on the model's carry-out path.

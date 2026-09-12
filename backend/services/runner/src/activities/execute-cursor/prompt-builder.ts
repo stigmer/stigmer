@@ -328,6 +328,7 @@ export function buildReinvocationPrompt(
   const approved: string[] = [];
   const alreadyApplied: string[] = [];
   const skipped: string[] = [];
+  const rejected: string[] = [];
 
   for (const pa of pendingApprovals) {
     const action = approvalDecisions.get(pa.toolCallId);
@@ -339,6 +340,11 @@ export function buildReinvocationPrompt(
       approved.push(describeApproval(pa));
     } else if (action === ApprovalAction.SKIP) {
       skipped.push(describeApproval(pa));
+    } else if (action === ApprovalAction.REJECT) {
+      // A REJECT denies the tool and the run continues (stigmer#197); the
+      // runtime settles its row SKIPPED. Told apart from a SKIP in the prose
+      // so the model reads a refusal, not an omission (S3 M1, Q-S3-2).
+      rejected.push(describeApproval(pa));
     }
   }
 
@@ -364,6 +370,13 @@ export function buildReinvocationPrompt(
       "The user SKIPPED the following action(s). Do not perform them; continue " +
         "with the rest of the task without them:\n" +
         skipped.map((a) => `- ${a}`).join("\n"),
+    );
+  }
+  if (rejected.length) {
+    parts.push(
+      "The user REJECTED the following action(s). Do not perform them; continue " +
+        "with the rest of the task without them:\n" +
+        rejected.map((a) => `- ${a}`).join("\n"),
     );
   }
 

@@ -41,21 +41,18 @@ import { scriptedSubject } from "../../__test-utils__/harness-contract/scripted-
 import {
   COST_CAP_FAKE_PRICE_USD,
   FAILURE_MESSAGES,
-  NEVER_SEEN,
   RUNTIME_SETUP_LABELS,
-  RuntimeExecutionDriver,
   aiMessages,
   assertApprovalRoundTrip,
   assertCompletedTurn,
   assertCostCapTerminates,
   assertFailedSurfaceWritesItsCopy,
+  assertNonExecutingDecisionSettlesSkipped,
   assertRejectedBindFails,
   describeHarnessRuntimeContract,
-  slimOf,
   systemMessages,
   type RuntimeContractHarness,
 } from "../../__test-utils__/harness-contract/runtime-contract.js";
-import { scenario } from "../../__test-utils__/harness-contract/types.js";
 import { TERMINAL_COPY } from "../terminal-table.js";
 
 const TASK_QUEUE = "runtime-test-queue";
@@ -137,29 +134,22 @@ describe("run-turn: the fake adapter through the real runtime", () => {
       expect(aiMessages(final)).toEqual([]);
     });
 
-    it("REJECT of an irreversible action settles the reinvocation FAILED before any engine runs (today's runtime; see F1)", async () => {
-      // The runtime fails a reinvocation that carries any REJECT
-      // (`decideReinvocation`, moved from Cursor's orchestrator). The proto
-      // contract as of #197 — the enum doc, the conformance suite, the native
-      // harness's `reconcileNonExecutingDecisions` — says REJECT denies the
-      // tool and the run continues with the row SKIPPED. This arm pins the
-      // runtime AS IT IS so the S3 change is a visible diff, and is
-      // deliberately NOT in the kit (S2 M4 finding F1, Q-M4-1).
+    it("REJECT continues the run without the tool and the row settles SKIPPED with its reason (stigmer#197; S3 M1, Q-S3-2)", async () => {
+      // Until S3 M1 this arm pinned the opposite: the runtime FAILED a
+      // reinvocation carrying any REJECT (`rejectedByUserArm`, Cursor's
+      // legacy), against the proto's `APPROVAL_ACTION_REJECT` doc, the
+      // conformance suite and the native harness (S2 M4 finding F1, Q-M4-1).
+      // The kit's runtime half now carries the contract for every subject;
+      // what is the fake's own here is the persist cadence around it.
       clock.reset();
-      const driver = new RuntimeExecutionDriver(harness, "fake-reject");
-      const propose = scenario.propose("call-runtime-reject", { kind: "shell", resource: "rm -rf build" });
-
-      const first = await driver.turn([propose]);
-      expect(slimOf(subject, first).phase).toBe("EXECUTION_WAITING_FOR_APPROVAL");
-      driver.decide(ApprovalAction.REJECT);
-
-      const second = await driver.turn([scenario.say(NEVER_SEEN)]);
-      expect(slimOf(subject, second).phase).toBe("EXECUTION_FAILED");
-      const final = driver.record.lastFullStatus!;
-      expect(final.error).toBe(TERMINAL_COPY.rejectedByUser.error);
-      expect(systemMessages(final).at(-1)).toBe(TERMINAL_COPY.rejectedByUser.row);
-      expect(final.completedAt).not.toBe("");
-      expect(aiMessages(final)).not.toContain(NEVER_SEEN);
+      const { driver, final } = await assertNonExecutingDecisionSettlesSkipped(harness, ApprovalAction.REJECT, "fake-reject");
+      expect(driver.record.persistedPhases).toEqual([
+        ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+        ExecutionPhase.EXECUTION_IN_PROGRESS,
+        ExecutionPhase.EXECUTION_COMPLETED,
+      ]);
+      expect(aiMessages(final)).toContain("Moving on.");
+      expect(systemMessages(final), "no terminal copy: the run ended normally").toEqual([]);
     });
   });
 });

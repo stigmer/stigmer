@@ -7,15 +7,16 @@
  *    The engine-minted arm is `!!threadId`; the deterministic arm is the
  *    persisted transcript's non-emptiness, whatever the thread id says (the
  *    id exists on the first turn too), and never the live engine checkpoint.
- *  - `approvalDecisionsOf`: the runtime's reader of adjudicated approvals,
+ *  - `approvalDecisionsOf` (`approval-decisions.ts`): the runtime's reader of adjudicated approvals,
  *    over a transcript that carries every row shape it must include or
  *    exclude. Its agreement with the Cursor adapter's own reader
  *    (`reconstructAdjudicatedApprovals`) is pinned from the adapter's side
  *    (`activities/execute-cursor/__tests__/approval-state.test.ts`), because
  *    `src/harness/` never imports `src/activities/`, tests included.
- *  - `decideReinvocation`: the four ways a resume proceeds (reject fails,
- *    approvals run, a clean file-review resume completes, a failed or
- *    partially discarded one completes with its facts carried).
+ *  - `decideReinvocation`: the three ways a resume proceeds (any decision
+ *    runs the agent — REJECT included since S3 M1 —, a clean file-review
+ *    resume completes, a failed or partially discarded one completes with
+ *    its facts carried).
  *
  * The phases that fetch and provision are exercised end to end by the
  * hermetic goldens (`activities/execute-cursor/__tests__/hermetic/`), which
@@ -30,7 +31,8 @@ import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/a
 import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import { ApprovalAction, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
-import { approvalDecisionsOf, decideReinvocation, isReinvocation, type ReinvocationFacts } from "../turn-context.js";
+import { approvalDecisionsOf } from "../approval-decisions.js";
+import { decideReinvocation, isReinvocation, type ReinvocationFacts } from "../turn-context.js";
 
 const INPUT = { executionId: "aex_1", threadId: "", turnSeq: 0 } as const;
 
@@ -157,21 +159,22 @@ describe("decideReinvocation", () => {
     expect(decideReinvocation(facts())).toBeUndefined();
   });
 
-  it("any REJECT among the adjudicated decisions fails the turn, whatever else was decided", () => {
+  it("a REJECT runs the agent like any other decision — the run continues without the tool (stigmer#197; S3 M1, Q-S3-2)", () => {
+    // Until S3 M1 this returned `{ kind: "rejected-by-user" }` and the runtime
+    // FAILED the execution before any engine ran, contradicting the proto, the
+    // conformance suite and the native harness (S2 M4 finding F1).
     const decisions = new Map([
       ["tc-1", ApprovalAction.APPROVE],
       ["tc-2", ApprovalAction.REJECT],
     ]);
-    expect(decideReinvocation(facts({ approvalDecisions: decisions }))).toEqual({ kind: "rejected-by-user" });
+    expect(decideReinvocation(facts({ approvalDecisions: decisions }))).toBeUndefined();
+    expect(decideReinvocation(facts({ approvalDecisions: new Map([["tc-2", ApprovalAction.REJECT]]) }))).toBeUndefined();
   });
 
-  it("approvals without a reject run the agent, even when file review was also reconciled", () => {
+  it("any adjudicated decision runs the agent, even when file review was also reconciled", () => {
     const decisions = new Map([["tc-1", ApprovalAction.APPROVE]]);
     expect(decideReinvocation(facts({ approvalDecisions: decisions, reconciledFileReview: true }))).toBeUndefined();
-    expect(
-      decideReinvocation(facts({ approvalDecisions: new Map([["tc-1", ApprovalAction.SKIP]]) })),
-      "a SKIP is not a reject",
-    ).toBeUndefined();
+    expect(decideReinvocation(facts({ approvalDecisions: new Map([["tc-1", ApprovalAction.SKIP]]) }))).toBeUndefined();
   });
 
   it("a pure file-review resume completes, carrying the reconcile's facts", () => {

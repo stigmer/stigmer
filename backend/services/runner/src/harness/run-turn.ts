@@ -59,6 +59,7 @@ import {
   getShutdownSignalForQueue,
   type TurnInterruption,
 } from "../shared/worker-shutdown.js";
+import { terminalizeNonExecutingDecisions } from "./approval-decisions.js";
 import { PersistChokepoint } from "./persist-chokepoint.js";
 import { StopController } from "./stop-controller.js";
 import {
@@ -69,7 +70,6 @@ import {
   infrastructureCancelArm,
   pauseArm,
   platformStopArm,
-  rejectedByUserArm,
   stallArm,
   TERMINAL_COPY,
   unexpectedErrorArm,
@@ -231,9 +231,6 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
         console.warn(`${activityName} workspace lock timeout: execution=${executionId}`);
         return outcome;
       }
-      case "rejected-by-user":
-        // A reject of an irreversible action (shell/MCP) fails the execution.
-        return settleWith(rejectedByUserArm());
       case "file-review-resolved": {
         // Push the APPROVED tree — reconcile snapped rejected files back to
         // baseline, so what finalize commits is exactly what the user kept.
@@ -318,6 +315,13 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
     const outcome = await adapter.runTurn(turn, sink);
     armedWatchdog.stop();
     heartbeatPhase = "epilogue";
+
+    // The rows whose decision never runs the tool (SKIP, REJECT) are settled
+    // by the runtime, once, now that the adapter has had its look at them and
+    // before any persist of the outcome: no engine event flips such a row, so
+    // without this it would persist WAITING on a finished execution. Every
+    // outcome passes through here (`approval-decisions.ts`).
+    terminalizeNonExecutingDecisions(status);
 
     switch (outcome.kind) {
       case "completed":

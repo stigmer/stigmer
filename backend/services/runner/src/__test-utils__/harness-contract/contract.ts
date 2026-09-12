@@ -36,9 +36,10 @@
  *     `awaiting_approval` resolves, and never executes in that turn.
  *  3. Reinvoked with APPROVE for that id → executes exactly once and the row
  *     is carried to COMPLETED; with REJECT or SKIP → never executes and the
- *     turn continues (the row's terminal status is the runtime's to write,
- *     not the adapter's — Q-M4-1); reinvoked again after the approval → still
- *     once, never re-gated.
+ *     turn continues (the row's SKIPPED status is the runtime's to write,
+ *     `harness/approval-decisions.ts`, proven in the runtime half — the
+ *     driver stands in for that write between turns, Q-M1-3); reinvoked again
+ *     after the approval → still once, never re-gated.
  *  4. Aborting `stopSignal` mid-hang settles `runTurn` as `interrupted` within
  *     {@link INTERRUPT_SETTLE_BOUND_MS} and nothing after the stop executes; a
  *     signal aborted BEFORE `runTurn` yields `interrupted` with nothing done.
@@ -74,7 +75,7 @@ import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/a
 import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ApprovalAction, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
-import { approvalDecisionsOf } from "../../harness/turn-context.js";
+import { approvalDecisionsOf, terminalizeNonExecutingDecisions } from "../../harness/approval-decisions.js";
 import type { TurnInput, TurnOutcome, UsageDelta } from "../../harness/types.js";
 import type { ProposedAction } from "../approval-contract/types.js";
 import { emptyStatus, findToolCallRow } from "../proto-helpers.js";
@@ -185,8 +186,14 @@ export class ExecutionDriver {
     return { input, sink, outcome };
   }
 
-  /** The runtime's post-turn bookkeeping: persist the status, adopt a bound id, advance the cycle. */
+  /**
+   * The runtime's post-turn bookkeeping: settle the SKIP and REJECT rows the
+   * adapter never executes (the runtime's write, `terminalizeNonExecutingDecisions`,
+   * so a decided row is not re-read as WAITING on the next turn), persist the
+   * status, adopt a bound id, advance the cycle.
+   */
   recordTurn(sink: RecordingTurnSink): void {
+    terminalizeNonExecutingDecisions(sink.status);
     this.persisted = sink.status;
     const bound = sink.boundStateIds.at(-1);
     if (bound !== undefined) this.threadId = bound;
