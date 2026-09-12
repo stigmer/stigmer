@@ -104,7 +104,7 @@ import { deriveActiveLeases, mergeApprovalPolicies } from "../shared/approval-po
 import { resolveAttachments } from "../shared/attachment-resolver.js";
 import { resolveSkills, type SkillMetadata } from "../shared/skill-resolver.js";
 import { VisionBudget, type NotViewableEntry, type VisionProfile } from "../shared/attachment-vision.js";
-import { getModelVisionCapability } from "../shared/model-registry.js";
+import { getDefaultModel, getModelVisionCapability } from "../shared/model-registry.js";
 import { applyApprovedWholeFileWrites } from "../shared/exact-apply.js";
 import { resolveEffectiveServiceTier } from "../shared/service-tier.js";
 import { resolveEffectiveThinkingMode } from "../shared/thinking-mode.js";
@@ -790,12 +790,17 @@ export async function mountSkills(
  * Downloads by storage key through the same artifact storage resolved for
  * status offload. The vision budget rides along so image attachments are
  * selected for inline delivery while their bytes are already in hand
- * (`shared/attachment-vision.ts` owns all policy); it carries the requested
- * model's registry vision capability, looked up from the raw
- * executionConfig name, because full model validation isn't needed for
- * this and ""/"default" (the Auto pool) resolves to unknown, which the
- * policy treats as sighted. The vision profile is the harness's (each
- * engine accepts different image shapes), so it arrives as an argument.
+ * (`shared/attachment-vision.ts` owns all policy); it carries the vision
+ * capability of the model the turn will run on: the one the execution named,
+ * or the registry's default when it named none — the model the native
+ * harness builds in that case, so the budget asks about the model that will
+ * actually see the image. Full model validation is not needed for this. The
+ * Cursor harness with no model named builds its own catalog default instead
+ * (`resolveModelId("default")`), so for it this is an approximation: today
+ * both answers read as sighted, and the exact per-harness default is S4's
+ * to declare (S3 M1 finding F-M1-4). The vision profile is the harness's
+ * (each engine accepts different image shapes), so it arrives as an
+ * argument.
  */
 export async function resolveTurnAttachments(
   deps: ResolutionDeps,
@@ -807,8 +812,9 @@ export async function resolveTurnAttachments(
   },
 ): Promise<TurnAttachments> {
   deps.enterPhase("resolve_attachments");
+  const modelName = args.spec.executionConfig?.modelName || (await getDefaultModel());
   const visionBudget = new VisionBudget(args.visionProfile, {
-    modelVision: await getModelVisionCapability(args.spec.executionConfig?.modelName ?? ""),
+    modelVision: await getModelVisionCapability(modelName),
   });
   const results = await resolveAttachments(args.spec.attachments, {
     sessionId: args.sessionId,
