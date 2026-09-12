@@ -264,10 +264,31 @@ export interface CapabilityFlags {
   // stigmer-cloud#604). An unknown subject is admitted "idp-shaped" so
   // whoAmI answers NOT_FOUND and provisionMyAccount can create the account
   // — the console's first-login flow. True for cloud. False for the local
-  // OSS targets BY DESIGN: the OSS OIDC lane (STIGMER_OIDC_ISSUER) stamps
-  // the raw subject as the identity — a self-host contract, not this one —
-  // and the trusted-local posture has no tenant at all.
+  // OSS targets BY DESIGN: their primary server runs the trusted-local
+  // posture, which has no tenant at all. The OSS OIDC lane
+  // (STIGMER_OIDC_ISSUER) resolves a subject to its account exactly the
+  // same way since 20260911.11 — the difference is WHOSE tenant: this flag
+  // is the platform's own, whose signing key the harness holds through
+  // CLOUD_ENV; a self-host's issuer is whatever the operator configured,
+  // which the identityaccount suite drives through a sibling server booted
+  // against the harness's local issuer (spawnSibling below).
   directLogin: boolean;
+  // The four federation RPCs (createFederatedAccount, updateFederatedAccount,
+  // deprovisionFederatedAccount, getByExternalSub) are served here: a unit
+  // composes the IdentityFederation capability the OSS controller
+  // dispatches to (20260911.11 Q-IA-9).
+  //
+  // True for cloud, whose cloud-iam unit provides it for real. The lane's
+  // positive behavior needs an IdentityProvider fixture no hermetic target
+  // provisions, so it stays covered by the composition's own tests — the
+  // channelMessaging coverage split.
+  //
+  // False for the local OSS targets — BY DESIGN, not a gap: the OSS
+  // controller answers UNIMPLEMENTED with the edition reason when no unit
+  // composes the capability. Where false, the suite PINS that refusal (the
+  // versionTagging / orgOAuthAppConfiguration posture): the boundary is an
+  // observable contract, never an absence to skip past.
+  federatedIdentityAccounts: boolean;
   // The billing LEDGER is served here: the 22 RPCs of BillingCommandController
   // and BillingQueryController (accounts, balances, ledger, usage reports,
   // pricing, the engine lanes), the Stripe webhook at POST /webhook/stripe,
@@ -343,6 +364,34 @@ export interface DirectLoginTenant {
   // ACCESS token, not an id token. `ttlSeconds` may be negative to mint an
   // already-expired token.
   mint(input: { subject: string; audience?: string; ttlSeconds?: number }): string;
+}
+
+// A SECOND server of the same edition, booted beside the target's primary
+// in a posture the suite chooses — see TargetProfile.spawnSibling. Its
+// lifetime is the suite file's: the block that spawned it tears it down.
+export interface SiblingServer {
+  // Clients presenting exactly the given bearer credential against the
+  // sibling — the same seam as TargetProfile.clientsPresenting. The
+  // sibling deliberately offers no primary `clients()`: which credential
+  // it admits depends on the posture the suite booted it in.
+  clientsPresenting(bearerToken: string): ConformanceClients;
+  // Stops the server and releases its storage.
+  teardown(): Promise<void>;
+}
+
+export interface SpawnSiblingOptions {
+  // The posture: layered over the harness's base env exactly as the
+  // primary's extra env is (e.g. STIGMER_OIDC_ISSUER / _AUDIENCE for the
+  // OIDC posture). The sibling always gets ITS OWN storage.
+  readonly env: Record<string, string>;
+  // The credential the readiness gate presents. The harness has ONE
+  // readiness definition — a store probe through a real RPC — and a
+  // posture that requires authentication refuses it tokenless, so the
+  // suite hands over a token the sibling will admit. The first
+  // authenticated request is therefore the readiness gate: on the OIDC
+  // posture it also forces discovery and the JWKS fetch, so a lane that
+  // cannot reach its issuer fails at boot with the server's log tail.
+  readonly readinessBearer: string;
 }
 
 // Tenancy scope a test operates within. Locally this is just a unique org slug
@@ -425,6 +474,18 @@ export interface TargetProfile {
   // after setup().
   directLoginTenant?(): DirectLoginTenant;
   directLoginUnavailable?(): string;
+
+  // Boot a SECOND server of this target's edition, beside the primary, in a
+  // posture the suite chooses (20260911.11 Q-IA-10: the OSS OIDC posture
+  // against the harness's local issuer, whose contract the trusted-local
+  // primary cannot show). Present only on the managed local targets, which
+  // own how a server is spawned and can give the sibling its own storage
+  // through the same seam the primary uses; the cloud target is
+  // connect-only and its identity lane is the platform tenant's
+  // (directLoginTenant). Where absent, the arms skip VISIBLY with the
+  // target's reason (spawnSiblingUnavailable). Valid only after setup().
+  spawnSibling?(options: SpawnSiblingOptions): Promise<SiblingServer>;
+  spawnSiblingUnavailable?(): string;
 
   // Provision an isolated tenancy scope for a test. cleanupTenancy releases it.
   provisionTenancy(): Promise<TenancyContext>;

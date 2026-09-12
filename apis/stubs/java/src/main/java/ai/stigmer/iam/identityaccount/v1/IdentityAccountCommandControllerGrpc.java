@@ -302,9 +302,14 @@ public final class IdentityAccountCommandControllerGrpc {
      * <pre>
      * Create a new identity account.
      * &#64;internal
-     * System-level RPC used by federated account creation and bootstrap migrations.
-     * No FGA authorization — called via inProcessChannelAsSystem (machine account).
-     * The handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
+     * System-level RPC. The handler admits machine, internal and in-process
+     * callers — the federation lanes, the provisioner behind provisionMyAccount,
+     * the trusted-local operator ensure at boot — and refuses a wire caller of
+     * the user class with PERMISSION_DENIED before the chain runs
+     * (stigmer-cloud#393); the rule is the same in every edition. A caller's
+     * metadata.id is replaced by the id derived from spec.idp_id. The
+     * self-owner grant is the standard CreateAuthorizationTuples step's work
+     * after Persist.
      * </pre>
      */
     default void create(ai.stigmer.iam.identityaccount.v1.IdentityAccount request,
@@ -344,6 +349,8 @@ public final class IdentityAccountCommandControllerGrpc {
      * data. The account must be created before the user can authenticate via the IdP.
      * Returns the full identity account including its ID, which the platform uses
      * to grant roles via IAM policies.
+     * Served by the Enterprise and Cloud editions; the open-source server
+     * answers UNIMPLEMENTED.
      * Authorization: Requires can_create_identity_account on the organization
      * that owns the identity provider.
      * </pre>
@@ -359,6 +366,8 @@ public final class IdentityAccountCommandControllerGrpc {
      * Looks up the account by natural key (identity_provider_ref + external_sub)
      * and updates email, name, and picture. Identity keys are immutable.
      * Called by platform backends when a user's profile changes on their platform.
+     * Served by the Enterprise and Cloud editions; the open-source server
+     * answers UNIMPLEMENTED.
      * Authorization: Requires can_create_identity_account on the organization
      * that owns the identity provider.
      * </pre>
@@ -375,6 +384,8 @@ public final class IdentityAccountCommandControllerGrpc {
      * When delete_account is false, revokes all IAM policies in the organization.
      * When delete_account is true, revokes policies and deletes the account.
      * Called by platform backends during user offboarding.
+     * Served by the Enterprise and Cloud editions; the open-source server
+     * answers UNIMPLEMENTED.
      * Authorization: Requires can_create_identity_account on the organization
      * that owns the identity provider.
      * </pre>
@@ -387,10 +398,16 @@ public final class IdentityAccountCommandControllerGrpc {
     /**
      * <pre>
      * Provision the caller's own identity account.
-     * Called by the console when whoAmI() returns NOT_FOUND (first login after signup).
-     * Derives all identity information from the caller's JWT and the OIDC /userinfo
-     * endpoint. Creates the IdentityAccount and a personal Organization owned by the
-     * caller. Idempotent: returns the existing account on retry.
+     * The first-sign-in step every client runs when whoAmI() returns NOT_FOUND:
+     * the console's identity gate, `stigmer auth login` and `stigmer auth whoami`,
+     * and the SDK's ensureMyIdentityAccount. Derives the account from the
+     * caller's token and the userinfo endpoint of the issuer that vouched for
+     * it. Idempotent: returns the existing account on retry.
+     * &#64;internal
+     * The core creates the account and nothing else. Edition steps ride the
+     * `identity-account-provision:post-persist` gate slot, after the account
+     * persists and before the reply; Stigmer Cloud's personal organization is
+     * one such step, not this RPC's contract.
      * </pre>
      */
     default void provisionMyAccount(com.google.protobuf.Empty request,
@@ -436,9 +453,14 @@ public final class IdentityAccountCommandControllerGrpc {
      * <pre>
      * Create a new identity account.
      * &#64;internal
-     * System-level RPC used by federated account creation and bootstrap migrations.
-     * No FGA authorization — called via inProcessChannelAsSystem (machine account).
-     * The handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
+     * System-level RPC. The handler admits machine, internal and in-process
+     * callers — the federation lanes, the provisioner behind provisionMyAccount,
+     * the trusted-local operator ensure at boot — and refuses a wire caller of
+     * the user class with PERMISSION_DENIED before the chain runs
+     * (stigmer-cloud#393); the rule is the same in every edition. A caller's
+     * metadata.id is replaced by the id derived from spec.idp_id. The
+     * self-owner grant is the standard CreateAuthorizationTuples step's work
+     * after Persist.
      * </pre>
      */
     public void create(ai.stigmer.iam.identityaccount.v1.IdentityAccount request,
@@ -481,6 +503,8 @@ public final class IdentityAccountCommandControllerGrpc {
      * data. The account must be created before the user can authenticate via the IdP.
      * Returns the full identity account including its ID, which the platform uses
      * to grant roles via IAM policies.
+     * Served by the Enterprise and Cloud editions; the open-source server
+     * answers UNIMPLEMENTED.
      * Authorization: Requires can_create_identity_account on the organization
      * that owns the identity provider.
      * </pre>
@@ -497,6 +521,8 @@ public final class IdentityAccountCommandControllerGrpc {
      * Looks up the account by natural key (identity_provider_ref + external_sub)
      * and updates email, name, and picture. Identity keys are immutable.
      * Called by platform backends when a user's profile changes on their platform.
+     * Served by the Enterprise and Cloud editions; the open-source server
+     * answers UNIMPLEMENTED.
      * Authorization: Requires can_create_identity_account on the organization
      * that owns the identity provider.
      * </pre>
@@ -514,6 +540,8 @@ public final class IdentityAccountCommandControllerGrpc {
      * When delete_account is false, revokes all IAM policies in the organization.
      * When delete_account is true, revokes policies and deletes the account.
      * Called by platform backends during user offboarding.
+     * Served by the Enterprise and Cloud editions; the open-source server
+     * answers UNIMPLEMENTED.
      * Authorization: Requires can_create_identity_account on the organization
      * that owns the identity provider.
      * </pre>
@@ -527,10 +555,16 @@ public final class IdentityAccountCommandControllerGrpc {
     /**
      * <pre>
      * Provision the caller's own identity account.
-     * Called by the console when whoAmI() returns NOT_FOUND (first login after signup).
-     * Derives all identity information from the caller's JWT and the OIDC /userinfo
-     * endpoint. Creates the IdentityAccount and a personal Organization owned by the
-     * caller. Idempotent: returns the existing account on retry.
+     * The first-sign-in step every client runs when whoAmI() returns NOT_FOUND:
+     * the console's identity gate, `stigmer auth login` and `stigmer auth whoami`,
+     * and the SDK's ensureMyIdentityAccount. Derives the account from the
+     * caller's token and the userinfo endpoint of the issuer that vouched for
+     * it. Idempotent: returns the existing account on retry.
+     * &#64;internal
+     * The core creates the account and nothing else. Edition steps ride the
+     * `identity-account-provision:post-persist` gate slot, after the account
+     * persists and before the reply; Stigmer Cloud's personal organization is
+     * one such step, not this RPC's contract.
      * </pre>
      */
     public void provisionMyAccount(com.google.protobuf.Empty request,
@@ -563,9 +597,14 @@ public final class IdentityAccountCommandControllerGrpc {
      * <pre>
      * Create a new identity account.
      * &#64;internal
-     * System-level RPC used by federated account creation and bootstrap migrations.
-     * No FGA authorization — called via inProcessChannelAsSystem (machine account).
-     * The handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
+     * System-level RPC. The handler admits machine, internal and in-process
+     * callers — the federation lanes, the provisioner behind provisionMyAccount,
+     * the trusted-local operator ensure at boot — and refuses a wire caller of
+     * the user class with PERMISSION_DENIED before the chain runs
+     * (stigmer-cloud#393); the rule is the same in every edition. A caller's
+     * metadata.id is replaced by the id derived from spec.idp_id. The
+     * self-owner grant is the standard CreateAuthorizationTuples step's work
+     * after Persist.
      * </pre>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount create(ai.stigmer.iam.identityaccount.v1.IdentityAccount request) throws io.grpc.StatusException {
@@ -605,6 +644,8 @@ public final class IdentityAccountCommandControllerGrpc {
      * data. The account must be created before the user can authenticate via the IdP.
      * Returns the full identity account including its ID, which the platform uses
      * to grant roles via IAM policies.
+     * Served by the Enterprise and Cloud editions; the open-source server
+     * answers UNIMPLEMENTED.
      * Authorization: Requires can_create_identity_account on the organization
      * that owns the identity provider.
      * </pre>
@@ -620,6 +661,8 @@ public final class IdentityAccountCommandControllerGrpc {
      * Looks up the account by natural key (identity_provider_ref + external_sub)
      * and updates email, name, and picture. Identity keys are immutable.
      * Called by platform backends when a user's profile changes on their platform.
+     * Served by the Enterprise and Cloud editions; the open-source server
+     * answers UNIMPLEMENTED.
      * Authorization: Requires can_create_identity_account on the organization
      * that owns the identity provider.
      * </pre>
@@ -636,6 +679,8 @@ public final class IdentityAccountCommandControllerGrpc {
      * When delete_account is false, revokes all IAM policies in the organization.
      * When delete_account is true, revokes policies and deletes the account.
      * Called by platform backends during user offboarding.
+     * Served by the Enterprise and Cloud editions; the open-source server
+     * answers UNIMPLEMENTED.
      * Authorization: Requires can_create_identity_account on the organization
      * that owns the identity provider.
      * </pre>
@@ -648,10 +693,16 @@ public final class IdentityAccountCommandControllerGrpc {
     /**
      * <pre>
      * Provision the caller's own identity account.
-     * Called by the console when whoAmI() returns NOT_FOUND (first login after signup).
-     * Derives all identity information from the caller's JWT and the OIDC /userinfo
-     * endpoint. Creates the IdentityAccount and a personal Organization owned by the
-     * caller. Idempotent: returns the existing account on retry.
+     * The first-sign-in step every client runs when whoAmI() returns NOT_FOUND:
+     * the console's identity gate, `stigmer auth login` and `stigmer auth whoami`,
+     * and the SDK's ensureMyIdentityAccount. Derives the account from the
+     * caller's token and the userinfo endpoint of the issuer that vouched for
+     * it. Idempotent: returns the existing account on retry.
+     * &#64;internal
+     * The core creates the account and nothing else. Edition steps ride the
+     * `identity-account-provision:post-persist` gate slot, after the account
+     * persists and before the reply; Stigmer Cloud's personal organization is
+     * one such step, not this RPC's contract.
      * </pre>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount provisionMyAccount(com.google.protobuf.Empty request) throws io.grpc.StatusException {
@@ -683,9 +734,14 @@ public final class IdentityAccountCommandControllerGrpc {
      * <pre>
      * Create a new identity account.
      * &#64;internal
-     * System-level RPC used by federated account creation and bootstrap migrations.
-     * No FGA authorization — called via inProcessChannelAsSystem (machine account).
-     * The handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
+     * System-level RPC. The handler admits machine, internal and in-process
+     * callers — the federation lanes, the provisioner behind provisionMyAccount,
+     * the trusted-local operator ensure at boot — and refuses a wire caller of
+     * the user class with PERMISSION_DENIED before the chain runs
+     * (stigmer-cloud#393); the rule is the same in every edition. A caller's
+     * metadata.id is replaced by the id derived from spec.idp_id. The
+     * self-owner grant is the standard CreateAuthorizationTuples step's work
+     * after Persist.
      * </pre>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount create(ai.stigmer.iam.identityaccount.v1.IdentityAccount request) {
@@ -725,6 +781,8 @@ public final class IdentityAccountCommandControllerGrpc {
      * data. The account must be created before the user can authenticate via the IdP.
      * Returns the full identity account including its ID, which the platform uses
      * to grant roles via IAM policies.
+     * Served by the Enterprise and Cloud editions; the open-source server
+     * answers UNIMPLEMENTED.
      * Authorization: Requires can_create_identity_account on the organization
      * that owns the identity provider.
      * </pre>
@@ -740,6 +798,8 @@ public final class IdentityAccountCommandControllerGrpc {
      * Looks up the account by natural key (identity_provider_ref + external_sub)
      * and updates email, name, and picture. Identity keys are immutable.
      * Called by platform backends when a user's profile changes on their platform.
+     * Served by the Enterprise and Cloud editions; the open-source server
+     * answers UNIMPLEMENTED.
      * Authorization: Requires can_create_identity_account on the organization
      * that owns the identity provider.
      * </pre>
@@ -756,6 +816,8 @@ public final class IdentityAccountCommandControllerGrpc {
      * When delete_account is false, revokes all IAM policies in the organization.
      * When delete_account is true, revokes policies and deletes the account.
      * Called by platform backends during user offboarding.
+     * Served by the Enterprise and Cloud editions; the open-source server
+     * answers UNIMPLEMENTED.
      * Authorization: Requires can_create_identity_account on the organization
      * that owns the identity provider.
      * </pre>
@@ -768,10 +830,16 @@ public final class IdentityAccountCommandControllerGrpc {
     /**
      * <pre>
      * Provision the caller's own identity account.
-     * Called by the console when whoAmI() returns NOT_FOUND (first login after signup).
-     * Derives all identity information from the caller's JWT and the OIDC /userinfo
-     * endpoint. Creates the IdentityAccount and a personal Organization owned by the
-     * caller. Idempotent: returns the existing account on retry.
+     * The first-sign-in step every client runs when whoAmI() returns NOT_FOUND:
+     * the console's identity gate, `stigmer auth login` and `stigmer auth whoami`,
+     * and the SDK's ensureMyIdentityAccount. Derives the account from the
+     * caller's token and the userinfo endpoint of the issuer that vouched for
+     * it. Idempotent: returns the existing account on retry.
+     * &#64;internal
+     * The core creates the account and nothing else. Edition steps ride the
+     * `identity-account-provision:post-persist` gate slot, after the account
+     * persists and before the reply; Stigmer Cloud's personal organization is
+     * one such step, not this RPC's contract.
      * </pre>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount provisionMyAccount(com.google.protobuf.Empty request) {
@@ -803,9 +871,14 @@ public final class IdentityAccountCommandControllerGrpc {
      * <pre>
      * Create a new identity account.
      * &#64;internal
-     * System-level RPC used by federated account creation and bootstrap migrations.
-     * No FGA authorization — called via inProcessChannelAsSystem (machine account).
-     * The handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
+     * System-level RPC. The handler admits machine, internal and in-process
+     * callers — the federation lanes, the provisioner behind provisionMyAccount,
+     * the trusted-local operator ensure at boot — and refuses a wire caller of
+     * the user class with PERMISSION_DENIED before the chain runs
+     * (stigmer-cloud#393); the rule is the same in every edition. A caller's
+     * metadata.id is replaced by the id derived from spec.idp_id. The
+     * self-owner grant is the standard CreateAuthorizationTuples step's work
+     * after Persist.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.identityaccount.v1.IdentityAccount> create(
@@ -848,6 +921,8 @@ public final class IdentityAccountCommandControllerGrpc {
      * data. The account must be created before the user can authenticate via the IdP.
      * Returns the full identity account including its ID, which the platform uses
      * to grant roles via IAM policies.
+     * Served by the Enterprise and Cloud editions; the open-source server
+     * answers UNIMPLEMENTED.
      * Authorization: Requires can_create_identity_account on the organization
      * that owns the identity provider.
      * </pre>
@@ -864,6 +939,8 @@ public final class IdentityAccountCommandControllerGrpc {
      * Looks up the account by natural key (identity_provider_ref + external_sub)
      * and updates email, name, and picture. Identity keys are immutable.
      * Called by platform backends when a user's profile changes on their platform.
+     * Served by the Enterprise and Cloud editions; the open-source server
+     * answers UNIMPLEMENTED.
      * Authorization: Requires can_create_identity_account on the organization
      * that owns the identity provider.
      * </pre>
@@ -881,6 +958,8 @@ public final class IdentityAccountCommandControllerGrpc {
      * When delete_account is false, revokes all IAM policies in the organization.
      * When delete_account is true, revokes policies and deletes the account.
      * Called by platform backends during user offboarding.
+     * Served by the Enterprise and Cloud editions; the open-source server
+     * answers UNIMPLEMENTED.
      * Authorization: Requires can_create_identity_account on the organization
      * that owns the identity provider.
      * </pre>
@@ -894,10 +973,16 @@ public final class IdentityAccountCommandControllerGrpc {
     /**
      * <pre>
      * Provision the caller's own identity account.
-     * Called by the console when whoAmI() returns NOT_FOUND (first login after signup).
-     * Derives all identity information from the caller's JWT and the OIDC /userinfo
-     * endpoint. Creates the IdentityAccount and a personal Organization owned by the
-     * caller. Idempotent: returns the existing account on retry.
+     * The first-sign-in step every client runs when whoAmI() returns NOT_FOUND:
+     * the console's identity gate, `stigmer auth login` and `stigmer auth whoami`,
+     * and the SDK's ensureMyIdentityAccount. Derives the account from the
+     * caller's token and the userinfo endpoint of the issuer that vouched for
+     * it. Idempotent: returns the existing account on retry.
+     * &#64;internal
+     * The core creates the account and nothing else. Edition steps ride the
+     * `identity-account-provision:post-persist` gate slot, after the account
+     * persists and before the reply; Stigmer Cloud's personal organization is
+     * one such step, not this RPC's contract.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.identityaccount.v1.IdentityAccount> provisionMyAccount(

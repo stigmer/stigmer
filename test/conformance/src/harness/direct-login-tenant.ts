@@ -16,12 +16,14 @@
 // signed by a stranger is minted by the suite with its own throwaway key
 // and this module's shape helpers.
 //
-// node:crypto only — jose is the OSS server's dependency, not the suite's.
-import { createSign, randomUUID } from "node:crypto";
+// Signing rides the harness's one RS256 signer (jwt.ts) — node:crypto only;
+// jose is the OSS server's dependency, not the suite's.
+import { randomUUID } from "node:crypto";
 
 import type { DirectLoginTenant } from "../targets/target";
 
 import { CLOUD_ENV } from "./cloud-env";
+import { signRs256Jwt } from "./jwt";
 
 // What a console session lives for; the suite's tokens are short by construction.
 const DEFAULT_TTL_SECONDS = 5 * 60;
@@ -80,7 +82,7 @@ export function newDirectLoginTenant(
     apiAudience: material.apiAudience,
     mcpAudience: material.mcpAudience,
     mint(input) {
-      return signDirectLoginToken({
+      return signRs256Jwt({
         privateKeyPem: material.signingKeyPem,
         kid: material.kid,
         claims: directLoginClaims({
@@ -129,21 +131,4 @@ export function directLoginClaims(input: {
     azp: "conformance-first-party-client",
     jti: randomUUID(),
   };
-}
-
-// RS256 compact JWS over node:crypto.
-export function signDirectLoginToken(input: {
-  privateKeyPem: string;
-  kid: string;
-  claims: Record<string, unknown>;
-}): string {
-  const header = Buffer.from(
-    JSON.stringify({ alg: "RS256", typ: "JWT", kid: input.kid }),
-  ).toString("base64url");
-  const payload = Buffer.from(JSON.stringify(input.claims)).toString(
-    "base64url",
-  );
-  const signer = createSign("RSA-SHA256");
-  signer.update(`${header}.${payload}`);
-  return `${header}.${payload}.${signer.sign(input.privateKeyPem).toString("base64url")}`;
 }

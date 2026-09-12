@@ -5,10 +5,14 @@
 // the differ) load lazily inside the action so `--help` stays fast (DD-001).
 
 import type { Command } from "commander";
-import { ensureAuthenticated, isCloudMode, resolveOrganization } from "../config/index.js";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ensureAuthenticated, resolveOrganization } from "../config/index.js";
 import { UsageError } from "../errors/index.js";
 import { interactiveBrowseEnabled } from "../resources/picker/tty.js";
-import { addAgentExecFlags, type AgentExecOptions } from "./agent-exec-flags.js";
+import {
+  addAgentExecFlags,
+  type AgentExecOptions,
+} from "./agent-exec-flags.js";
 import { globalOrg } from "./shared.js";
 
 interface RunFlags extends AgentExecOptions {
@@ -23,8 +27,13 @@ export function registerRun(program: Command): void {
   addAgentExecFlags(run)
     .option("--json", "stream events as newline-delimited JSON")
     .option("--download <dir>", "download artifacts to directory when complete")
-    .action((type: string | undefined, reference: string | undefined, options: RunFlags, command: Command) =>
-      runRun(type, reference, options, command),
+    .action(
+      (
+        type: string | undefined,
+        reference: string | undefined,
+        options: RunFlags,
+        command: Command,
+      ) => runRun(type, reference, options, command),
     );
 }
 
@@ -76,7 +85,8 @@ async function runSmart(
   outputMode: "inline" | "json",
   client: import("../client/index.js").BackendClient,
 ): Promise<void> {
-  const { isSessionId, hasResourceIdPrefix, isAgentId, validateResourceId } = await import("../resources/reference.js");
+  const { isSessionId, hasResourceIdPrefix, isAgentId, validateResourceId } =
+    await import("../resources/reference.js");
 
   if (isSessionId(value)) {
     throw new UsageError(
@@ -126,13 +136,14 @@ async function runExplicit(
   client: import("../client/index.js").BackendClient,
 ): Promise<void> {
   const { defaultRegistry, Verb } = await import("../registry/index.js");
-  const { ApiResourceKind } = await import(
-    "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb"
-  );
+  const { ApiResourceKind } =
+    await import("@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb");
 
   const info = defaultRegistry().getByAlias(type);
   if (info === undefined) {
-    throw new UsageError(`unknown resource type: ${type}\n\nAvailable types: agent, workflow`);
+    throw new UsageError(
+      `unknown resource type: ${type}\n\nAvailable types: agent, workflow`,
+    );
   }
   if (!info.supportedVerbs.has(Verb.Run)) {
     throw new UsageError(`${info.displayName} does not support 'run'`);
@@ -168,15 +179,26 @@ async function runResolvedAgent(
   client: import("../client/index.js").BackendClient,
 ): Promise<void> {
   const { prepareAgentExec } = await import("../resources/run/prepare.js");
-  const { executeResolvedAgent } = await import("../resources/run/agent-exec.js");
+  const { executeResolvedAgent } =
+    await import("../resources/run/agent-exec.js");
   const { toAgentExecFlags } = await import("./agent-exec-flags.js");
 
-  const prepared = await prepareAgentExec(toAgentExecFlags(options), client.stigmer, org, stderrProgress(), {
-    cloudBackend: isCloudMode(client.config),
-    // run opts into the account default_harness fill; draft deliberately
-    // does not (see the option's doc comment for the D5 rationale).
-    applyAccountHarnessDefault: true,
-  });
+  const prepared = await prepareAgentExec(
+    toAgentExecFlags(options),
+    client.stigmer,
+    org,
+    stderrProgress(),
+    {
+      // The kind's tier against the server's reported edition — the same
+      // question the console asks — never the config's backend type.
+      accountPreferencesAvailable: await client.isResourceAvailable(
+        ApiResourceKind.identity_account,
+      ),
+      // run opts into the account default_harness fill; draft deliberately
+      // does not (see the option's doc comment for the D5 rationale).
+      applyAccountHarnessDefault: true,
+    },
+  );
   await executeResolvedAgent({
     agent,
     prepared,
@@ -199,15 +221,21 @@ async function runWorkflow(
   client: import("../client/index.js").BackendClient,
 ): Promise<void> {
   if (options.workspace.length > 0) {
-    throw new UsageError("--workspace is not supported for workflows (workspace is an agent-level concept)");
+    throw new UsageError(
+      "--workspace is not supported for workflows (workspace is an agent-level concept)",
+    );
   }
-  const [{ resolveWorkflowRef }, { createWorkflowExecution }, { loadAndMergeEnv }, { parseApprovalAction }] =
-    await Promise.all([
-      import("../resources/run/resolve.js"),
-      import("../resources/run/create.js"),
-      import("../resources/run/env.js"),
-      import("../resources/run/prepare.js"),
-    ]);
+  const [
+    { resolveWorkflowRef },
+    { createWorkflowExecution },
+    { loadAndMergeEnv },
+    { parseApprovalAction },
+  ] = await Promise.all([
+    import("../resources/run/resolve.js"),
+    import("../resources/run/create.js"),
+    import("../resources/run/env.js"),
+    import("../resources/run/prepare.js"),
+  ]);
 
   const workflow = await resolveWorkflowRef(client.stigmer, reference, org);
   const runtimeEnv = loadAndMergeEnv({
@@ -220,27 +248,37 @@ async function runWorkflow(
     runtimeEnv.STIGMER_ORG_ID = { value: org, isSecret: false };
   }
 
-  const execution = await createWorkflowExecution(client.controller.bind(client), {
-    workflowId: workflow.metadata?.id ?? "",
-    orgId: org,
-    message: options.message ?? "",
-    runtimeEnv,
-  });
+  const execution = await createWorkflowExecution(
+    client.controller.bind(client),
+    {
+      workflowId: workflow.metadata?.id ?? "",
+      orgId: org,
+      message: options.message ?? "",
+      runtimeEnv,
+    },
+  );
   const id = execution.metadata?.id ?? "";
 
   if (options.detach === true) {
     process.stdout.write(`Workflow execution created: ${id}\n`);
-    process.stdout.write(`Track it with: stigmer execution logs ${id} --follow\n`);
+    process.stdout.write(
+      `Track it with: stigmer execution logs ${id} --follow\n`,
+    );
     return;
   }
 
-  const { ApprovalAction } = await import("@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb");
-  const { streamWorkflowExecution } = await import("../resources/run/workflow-stream.js");
+  const { ApprovalAction } =
+    await import("@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb");
+  const { streamWorkflowExecution } =
+    await import("../resources/run/workflow-stream.js");
   await streamWorkflowExecution({
     client: client.stigmer,
     executionId: id,
     outputMode,
-    defaultAction: options.autoApprove === true ? ApprovalAction.APPROVE_ALL : parseApprovalAction(options.approveDefault ?? ""),
+    defaultAction:
+      options.autoApprove === true
+        ? ApprovalAction.APPROVE_ALL
+        : parseApprovalAction(options.approveDefault ?? ""),
   });
 }
 
@@ -260,7 +298,11 @@ async function browseAndRunAgent(
   client: import("../client/index.js").BackendClient,
 ): Promise<void> {
   const { pickAgent } = await import("../resources/picker/ink.js");
-  const selected = await pickAgent({ client: client.stigmer, org, initialQuery });
+  const selected = await pickAgent({
+    client: client.stigmer,
+    org,
+    initialQuery,
+  });
   if (selected === undefined) return;
   await runAgent(selected.id, options, org, outputMode, client);
 }

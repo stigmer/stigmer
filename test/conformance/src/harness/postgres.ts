@@ -12,6 +12,8 @@ import { randomBytes } from "node:crypto";
 
 import pg from "pg";
 
+import type { ProvisionedStorage } from "./server-process";
+
 export interface ProvisionedPostgresDatabase {
   /** DATABASE_URL for the spawned server (selects the Postgres driver). */
   databaseUrl: string;
@@ -60,5 +62,14 @@ export async function provisionPostgresDatabase(): Promise<ProvisionedPostgresDa
         await dropper.end();
       }
     },
+  };
+}
+
+/** A throwaway database as the storage seam one spawned server selects with DATABASE_URL. */
+export async function provisionPostgresStorage(): Promise<ProvisionedStorage> {
+  const database = await provisionPostgresDatabase();
+  return {
+    serverEnv: { DATABASE_URL: database.databaseUrl },
+    release: () => database.drop(),
   };
 }

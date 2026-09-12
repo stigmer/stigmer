@@ -30,7 +30,7 @@ function SessionPageInner({ id }: { id: string }) {
   const workspaceContentSearcher = useNativeWorkspaceContentSearcher();
   // Seeds session-scoped auto-approve from the account's
   // default_auto_approve preference (same seam as the launcher's seed;
-  // no-op in pure-local mode where IdentityAccount is unavailable).
+  // served in every edition, the operator account included).
   const accountDefaults = useAccountExecutionDefaults();
 
   return (

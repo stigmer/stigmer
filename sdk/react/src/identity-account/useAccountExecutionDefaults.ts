@@ -2,7 +2,6 @@
 
 import { useMemo } from "react";
 import { useMyIdentityAccount } from "./useMyIdentityAccount.js";
-import { useResourceAvailable, ApiResourceKind } from "../deployment-mode.js";
 import type { HarnessOption } from "../models/harness.js";
 
 /**
@@ -30,10 +29,12 @@ export interface AccountExecutionDefaults {
  * (`IdentityAccountSpec.preferences.default_*`) for seeding new-session
  * composers.
  *
- * Returns `undefined` in local mode (no IdentityAccount), while loading,
- * on error, and when no default is declared — every one of those cases
- * degrades to the platform's existing defaults, so consumers wire the
- * result straight through:
+ * Returns `undefined` while loading, on error (including a server that
+ * cannot answer `whoAmI`), and when no default is declared — every one of
+ * those cases degrades to the platform's existing defaults, so consumers
+ * wire the result straight through. Served in every edition: a
+ * trusted-local server answers with the operator account it creates at
+ * boot, so a laptop's saved defaults seed the composer too.
  *
  * @example
  * ```tsx
@@ -47,8 +48,7 @@ export interface AccountExecutionDefaults {
  * synchronously on every visit after the first.
  */
 export function useAccountExecutionDefaults(): AccountExecutionDefaults | undefined {
-  const available = useResourceAvailable(ApiResourceKind.identity_account);
-  const { account } = useMyIdentityAccount({ enabled: available });
+  const { account } = useMyIdentityAccount();
 
   return useMemo(() => {
     const prefs = account?.spec?.preferences;

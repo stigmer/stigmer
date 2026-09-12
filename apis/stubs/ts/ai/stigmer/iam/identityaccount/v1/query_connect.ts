@@ -75,6 +75,9 @@ export const IdentityAccountQueryController = {
      * Used by platform backends to check whether a federated account already exists
      * for a given OIDC subject before calling createFederatedAccount.
      *
+     * Served by the Enterprise and Cloud editions; the open-source server
+     * answers UNIMPLEMENTED.
+     *
      * Authorization: Requires can_create_identity_account on the organization
      * that owns the identity provider.
      *

@@ -23,6 +23,9 @@
  *   - schedule-fire caller (who a schedule fire acts as) — landed with
  *     the stigmer-cloud#572 fix (the Java schedule-token mechanism's
  *     seam; ruled 2026-09-01)
+ *   - identity-account store + identity federation (the first domain
+ *     whose persistence is a PORT, and the four federated RPC arms only
+ *     one edition serves) — landed with 20260911.11, gate ruling Q-IA-9
  *
  * Merge rules (enforced by resolveExtensions, DD-006 §2b): the two
  * provider kinds are single-instance points — a second declaring unit is
@@ -36,11 +39,13 @@
  */
 import type { ArtifactStorageDriverFactory } from "../artifactstorage/artifact-storage.js";
 import type { ChannelRuntime } from "../domain/agentchannel/channel-runtime.js";
+import type { IdentityAccountStore } from "../domain/identityaccount/store.js";
 import type { SecretCodec } from "../encryption/codec.js";
 import type { ModelCatalogProvider } from "../domain/workflow/registry/model-catalog-provider.js";
 import type { VisitorErrorPolicy } from "../pipeline/interceptors/error-boundary.js";
 import type { RunnerCredentialProvider } from "../runnerauth/runner-credential-provider.js";
 import type { SandboxProvisionerFactory } from "../sandbox/provisioner.js";
+import type { IdentityFederation } from "./identity-federation.js";
 import type { ListReadScope } from "./list-read-scope.js";
 import type { OrganizationDirectory } from "./organization-directory.js";
 import type { ResourceAuthorizationLifecycle } from "./resource-authorization.js";
@@ -143,4 +148,25 @@ export interface ExtensionDrivers {
    * the `internal` class — OSS behavior byte-identical.
    */
   readonly scheduleFireCaller?: ScheduleFireCallerMint;
+  /**
+   * The identity-account store driver (20260911.11, Q-IA-9;
+   * single-instance point). The identity-account domain is the first
+   * whose persistence is a PORT rather than the generic Store: when
+   * composed, the domain's every read and write — the create path, the
+   * provisioner, the boot-time operator ensure and BOTH OSS verifiers'
+   * subject resolution — goes through this driver (the cloud serves the
+   * domain over its own `cloud.iam_identity_account` table this way).
+   * When absent, the OSS adapter over the generic Store installs at the
+   * compose.ts consumption site — OSS behavior byte-identical.
+   */
+  readonly identityAccountStore?: IdentityAccountStore;
+  /**
+   * The identity-federation capability (20260911.11, Q-IA-9;
+   * single-instance point): the four federated-account RPC arms plus the
+   * IdP-exists probe their shared precondition rides. When composed, the
+   * identity-account controller dispatches to it after its own shared
+   * checks; when absent, the four RPCs refuse UNIMPLEMENTED with the
+   * edition reason — the organizationDirectory absent-method shape.
+   */
+  readonly identityFederation?: IdentityFederation;
 }

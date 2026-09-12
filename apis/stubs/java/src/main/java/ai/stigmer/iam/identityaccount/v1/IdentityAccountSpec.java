@@ -18,7 +18,10 @@ package ai.stigmer.iam.identityaccount.v1;
  * &#64;internal
  * All FGA tuples use identity_account as the principal type.
  * Provisioning details:
- * - direct: Auth0 subject ID (e.g., "auth0|abc123")
+ * - direct: the subject (`sub`) the server's own issuer released — Stigmer
+ * Cloud's Auth0 tenant or a self-hosted server's OIDC provider (e.g.,
+ * "auth0|abc123"); under the trusted-local posture the operator account's
+ * subject is "local|&lt;operator email&gt;"
  * - federated: raw OIDC sub claim (e.g., "google-oauth2|109876543210"),
  * scoped by identity_provider_ref
  * - machine: Auth0 client ID with "&#64;clients" suffix
@@ -86,7 +89,11 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * IDP ID of the identity account.
    *
-   * For direct accounts: the Auth0 subject ID (e.g., "auth0|abc123").
+   * For direct accounts: the subject (`sub`) asserted by the server's own
+   * issuer — Stigmer Cloud's tenant or a self-hosted server's OIDC provider
+   * (e.g., "auth0|abc123"). Immutable after create: a direct account's id is
+   * derived from it, and an update that changes it is refused with
+   * FAILED_PRECONDITION — a different subject is a different account.
    * For federated accounts: the raw OIDC sub claim from the external identity
    * provider (e.g., "google-oauth2|109876543210"). Uniqueness is scoped by
    * identity_provider_ref — the pair (identity_provider_ref, idp_id) is unique.
@@ -119,7 +126,11 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * IDP ID of the identity account.
    *
-   * For direct accounts: the Auth0 subject ID (e.g., "auth0|abc123").
+   * For direct accounts: the subject (`sub`) asserted by the server's own
+   * issuer — Stigmer Cloud's tenant or a self-hosted server's OIDC provider
+   * (e.g., "auth0|abc123"). Immutable after create: a direct account's id is
+   * derived from it, and an update that changes it is refused with
+   * FAILED_PRECONDITION — a different subject is a different account.
    * For federated accounts: the raw OIDC sub claim from the external identity
    * provider (e.g., "google-oauth2|109876543210"). Uniqueness is scoped by
    * identity_provider_ref — the pair (identity_provider_ref, idp_id) is unique.
@@ -746,7 +757,10 @@ private static final long serialVersionUID = 0L;
    * &#64;internal
    * All FGA tuples use identity_account as the principal type.
    * Provisioning details:
-   * - direct: Auth0 subject ID (e.g., "auth0|abc123")
+   * - direct: the subject (`sub`) the server's own issuer released — Stigmer
+   * Cloud's Auth0 tenant or a self-hosted server's OIDC provider (e.g.,
+   * "auth0|abc123"); under the trusted-local posture the operator account's
+   * subject is "local|&lt;operator email&gt;"
    * - federated: raw OIDC sub claim (e.g., "google-oauth2|109876543210"),
    * scoped by identity_provider_ref
    * - machine: Auth0 client ID with "&#64;clients" suffix
@@ -1031,7 +1045,11 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * IDP ID of the identity account.
      *
-     * For direct accounts: the Auth0 subject ID (e.g., "auth0|abc123").
+     * For direct accounts: the subject (`sub`) asserted by the server's own
+     * issuer — Stigmer Cloud's tenant or a self-hosted server's OIDC provider
+     * (e.g., "auth0|abc123"). Immutable after create: a direct account's id is
+     * derived from it, and an update that changes it is refused with
+     * FAILED_PRECONDITION — a different subject is a different account.
      * For federated accounts: the raw OIDC sub claim from the external identity
      * provider (e.g., "google-oauth2|109876543210"). Uniqueness is scoped by
      * identity_provider_ref — the pair (identity_provider_ref, idp_id) is unique.
@@ -1063,7 +1081,11 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * IDP ID of the identity account.
      *
-     * For direct accounts: the Auth0 subject ID (e.g., "auth0|abc123").
+     * For direct accounts: the subject (`sub`) asserted by the server's own
+     * issuer — Stigmer Cloud's tenant or a self-hosted server's OIDC provider
+     * (e.g., "auth0|abc123"). Immutable after create: a direct account's id is
+     * derived from it, and an update that changes it is refused with
+     * FAILED_PRECONDITION — a different subject is a different account.
      * For federated accounts: the raw OIDC sub claim from the external identity
      * provider (e.g., "google-oauth2|109876543210"). Uniqueness is scoped by
      * identity_provider_ref — the pair (identity_provider_ref, idp_id) is unique.
@@ -1096,7 +1118,11 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * IDP ID of the identity account.
      *
-     * For direct accounts: the Auth0 subject ID (e.g., "auth0|abc123").
+     * For direct accounts: the subject (`sub`) asserted by the server's own
+     * issuer — Stigmer Cloud's tenant or a self-hosted server's OIDC provider
+     * (e.g., "auth0|abc123"). Immutable after create: a direct account's id is
+     * derived from it, and an update that changes it is refused with
+     * FAILED_PRECONDITION — a different subject is a different account.
      * For federated accounts: the raw OIDC sub claim from the external identity
      * provider (e.g., "google-oauth2|109876543210"). Uniqueness is scoped by
      * identity_provider_ref — the pair (identity_provider_ref, idp_id) is unique.
@@ -1125,7 +1151,11 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * IDP ID of the identity account.
      *
-     * For direct accounts: the Auth0 subject ID (e.g., "auth0|abc123").
+     * For direct accounts: the subject (`sub`) asserted by the server's own
+     * issuer — Stigmer Cloud's tenant or a self-hosted server's OIDC provider
+     * (e.g., "auth0|abc123"). Immutable after create: a direct account's id is
+     * derived from it, and an update that changes it is refused with
+     * FAILED_PRECONDITION — a different subject is a different account.
      * For federated accounts: the raw OIDC sub claim from the external identity
      * provider (e.g., "google-oauth2|109876543210"). Uniqueness is scoped by
      * identity_provider_ref — the pair (identity_provider_ref, idp_id) is unique.
@@ -1151,7 +1181,11 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * IDP ID of the identity account.
      *
-     * For direct accounts: the Auth0 subject ID (e.g., "auth0|abc123").
+     * For direct accounts: the subject (`sub`) asserted by the server's own
+     * issuer — Stigmer Cloud's tenant or a self-hosted server's OIDC provider
+     * (e.g., "auth0|abc123"). Immutable after create: a direct account's id is
+     * derived from it, and an update that changes it is refused with
+     * FAILED_PRECONDITION — a different subject is a different account.
      * For federated accounts: the raw OIDC sub claim from the external identity
      * provider (e.g., "google-oauth2|109876543210"). Uniqueness is scoped by
      * identity_provider_ref — the pair (identity_provider_ref, idp_id) is unique.

@@ -30,7 +30,11 @@
  * provider) and O6's sandbox provisioners are consumed at their
  * compose.ts construction sites; the require-authentication posture
  * (20260904.02) is consumed where compose.ts builds the serving chain's
- * identity source, OR'd with the OIDC-issuer arm.
+ * identity source, OR'd with the OIDC-issuer arm; the identity-account
+ * points (20260911.11) at the identity-accounts stage (the store driver,
+ * ahead of the boot-time operator ensure) and the routes stage (the
+ * federation capability and the provision slot's steps, into the
+ * identity-account controller).
  */
 import type { DescMessage } from "@bufbuild/protobuf";
 import type { ConnectRouter } from "@connectrpc/connect";
@@ -40,8 +44,10 @@ import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_inf
 import type { ArtifactStorageDriverFactory } from "../artifactstorage/artifact-storage.js";
 import { BUILT_IN_STORAGE_TYPES } from "../artifactstorage/artifact-storage.js";
 import type { ChannelRuntime } from "../domain/agentchannel/channel-runtime.js";
+import type { IdentityAccountStore } from "../domain/identityaccount/store.js";
 import type { SecretCodec } from "../encryption/codec.js";
 import { V1_VERSION } from "../encryption/v1-codec.js";
+import type { IdentityFederation } from "./identity-federation.js";
 import type { ListReadScope } from "./list-read-scope.js";
 import type { ModelCatalogProvider } from "../domain/workflow/registry/model-catalog-provider.js";
 import type { VisitorErrorPolicy } from "../pipeline/interceptors/error-boundary.js";
@@ -233,6 +239,17 @@ export interface ResolvedExtensionDrivers {
    * codec in and resolves the write version fail-fast.
    */
   readonly secretCodecs: ReadonlyMap<string, SecretCodec>;
+  /**
+   * The 20260911.11 identity-account store driver — undefined = the
+   * compose.ts identity-accounts stage installs the OSS adapter over the
+   * generic Store, OSS behavior byte-identical.
+   */
+  readonly identityAccountStore: IdentityAccountStore | undefined;
+  /**
+   * The 20260911.11 identity-federation capability — undefined = the
+   * four federated RPCs refuse UNIMPLEMENTED with the edition reason.
+   */
+  readonly identityFederation: IdentityFederation | undefined;
 }
 
 /**
@@ -276,6 +293,10 @@ export function resolveExtensions(
   let visitorErrorPolicyDeclaredBy: string | undefined;
   let scheduleFireCaller: ScheduleFireCallerMint | undefined;
   let scheduleFireCallerDeclaredBy: string | undefined;
+  let identityAccountStore: IdentityAccountStore | undefined;
+  let identityAccountStoreDeclaredBy: string | undefined;
+  let identityFederation: IdentityFederation | undefined;
+  let identityFederationDeclaredBy: string | undefined;
   const artifactStorageDrivers = new Map<
     string,
     ArtifactStorageDriverFactory
@@ -417,6 +438,26 @@ export function resolveExtensions(
       scheduleFireCallerDeclaredBy = unit.name;
     }
 
+    if (unit.drivers?.identityAccountStore !== undefined) {
+      if (identityAccountStoreDeclaredBy !== undefined) {
+        throw new Error(
+          `extension '${unit.name}' registers an IdentityAccountStore, but '${identityAccountStoreDeclaredBy}' already did — exactly one may be composed`,
+        );
+      }
+      identityAccountStore = unit.drivers.identityAccountStore;
+      identityAccountStoreDeclaredBy = unit.name;
+    }
+
+    if (unit.drivers?.identityFederation !== undefined) {
+      if (identityFederationDeclaredBy !== undefined) {
+        throw new Error(
+          `extension '${unit.name}' registers an IdentityFederation, but '${identityFederationDeclaredBy}' already did — exactly one may be composed`,
+        );
+      }
+      identityFederation = unit.drivers.identityFederation;
+      identityFederationDeclaredBy = unit.name;
+    }
+
     if (unit.drivers?.artifactStorageDrivers !== undefined) {
       for (const [name, factory] of unit.drivers.artifactStorageDrivers) {
         if ((BUILT_IN_STORAGE_TYPES as ReadonlyArray<string>).includes(name)) {
@@ -537,6 +578,8 @@ export function resolveExtensions(
       visitorErrorPolicy,
       secretCodecs,
       scheduleFireCaller,
+      identityAccountStore,
+      identityFederation,
     },
     services,
     workers,
