@@ -1,8 +1,9 @@
 /**
  * Public factory for the unified Stigmer runner.
  *
- * Encapsulates the full boot sequence: fetch interceptor installation,
- * dynamic activity imports, Temporal worker creation. Consumers call
+ * Encapsulates the full boot sequence: harness boot (the Cursor adapter
+ * installs its proxy interceptors there), bootstrap resolution, dynamic
+ * activity imports, Temporal worker creation. Consumers call
  * {@link createStigmerRunner} with typed options and get back a handle
  * to start/shutdown the worker.
  *
@@ -171,8 +172,8 @@ async function startStaticSandboxTokenRenewal(
 /**
  * Create a Stigmer runner ready to poll a Temporal task queue.
  *
- * Handles all internal setup: Cursor SDK fetch interceptor, activity
- * registration, and Temporal worker creation. Returns a handle with
+ * Handles all internal setup: harness boot, activity registration, and
+ * Temporal worker creation. Returns a handle with
  * `start()` and `shutdown()` methods.
  *
  * @example
@@ -216,43 +217,33 @@ export async function createStigmerRunner(
   // (Config.proxyTokenRef): a static host provides the proxy token itself and
   // mints no separate one, so the interceptors read this same ref per request.
   const tokenRef = { current: baseConfig.stigmerToken };
+  // The runner-class credential the bootstrap below may mint (see there); the
+  // ref exists from here so the boot config can carry it.
+  const runnerTokenRef: { current: string | null } = { current: null };
 
-  // Install the Cursor SDK interceptors BEFORE resolving Temporal coordinates.
-  // Coordinate discovery dials the control plane via StigmerClient, which loads
-  // @connectrpc/connect-node and snapshots the node:http2 ESM facade on first
-  // import. The HTTP/2 interceptor patches http2.connect and only propagates to
-  // that facade if it runs first, so install MUST precede any connect-node load
-  // (discovery here, and the SDK later). The interceptors depend only on
-  // proxyEndpoint/stigmerToken (already in baseConfig), not resolved coordinates.
-
-  // The Cursor SDK captures a reference to global.fetch at import time.
-  // The fetch interceptor MUST be installed before any @cursor/sdk import.
-  const { installFetchInterceptor } = await import(
-    "./activities/execute-cursor/fetch-interceptor.js"
-  );
-  installFetchInterceptor({
-    proxyEndpoint: baseConfig.proxyEndpoint ?? undefined,
+  // Boot the harnesses BEFORE resolving Temporal coordinates. Coordinate
+  // discovery dials the control plane through connect-node, which snapshots
+  // the node:http2 ESM facade on first import; the Cursor adapter's boot
+  // installs the proxy interceptors (the HTTP/2 one patches http2.connect,
+  // which only reaches that facade if it runs first), proves the patch landed,
+  // and only then loads its SDK. Nothing a boot reads depends on the
+  // coordinates, so `bootConfig` carries none yet. The two modules imported
+  // here are connect-free by construction (`harness-adapters.ts`,
+  // `harness/registry.ts`; `__tests__/harness-boot-order.test.ts`).
+  const bootConfig: Config = {
+    ...baseConfig,
+    stigmerTokenRef: tokenRef,
+    stigmerRunnerTokenRef: runnerTokenRef,
     proxyTokenRef: tokenRef,
-  });
+  };
+  const [{ HARNESS_ADAPTERS }, { adaptersOf, bootHarnesses, shutdownHarnesses }] = await Promise.all([
+    import("./harness-adapters.js"),
+    import("./harness/registry.js"),
+  ]);
+  await bootHarnesses(adaptersOf(HARNESS_ADAPTERS), bootConfig);
+  markBoot("harnesses_booted");
 
-  // The Cursor SDK's Connect RPC transport uses native HTTP/2, bypassing
-  // globalThis.fetch. This interceptor injects x-stigmer-execution-id and
-  // the Stigmer auth token on HTTP/2 streams so the BiDi proxy can
-  // authenticate and meter billing.
-  const { installHttp2Interceptor, assertHttp2ConnectPatched } = await import(
-    "./activities/execute-cursor/http2-interceptor.js"
-  );
-  installHttp2Interceptor({
-    proxyEndpoint: baseConfig.proxyEndpoint ?? undefined,
-    proxyTokenRef: tokenRef,
-  });
-  // Fail loudly at boot if a load-order regression left the node:http2 ESM
-  // facade unpatched (otherwise BiDi streams would silently 401). No-op when
-  // the interceptor is unconfigured (no proxy/token).
-  await assertHttp2ConnectPatched();
-  markBoot("interceptors_installed");
-
-  // Resolve Temporal coordinates after the http2 patch is in place (discovery
+  // Resolve Temporal coordinates after the harnesses have booted (discovery
   // dials the control plane through connect-node). Explicit address wins;
   // otherwise a token triggers control-plane discovery; otherwise localhost.
   // Only the worker connection consumes these coordinates — no activity dials
@@ -278,7 +269,6 @@ export async function createStigmerRunner(
   // Servers that mint nothing (explicit-address boots, tokenless OSS, cloud
   // sandboxes with baked credentials) leave the ref null — byte-identical
   // behavior to before.
-  const runnerTokenRef: { current: string | null } = { current: null };
   const runnerTokenCoordinator = createRunnerTokenCoordinator({
     applyProxyToken: (token) => {
       runnerTokenRef.current = token;
@@ -297,12 +287,9 @@ export async function createStigmerRunner(
   }
 
   const config: Config = {
-    ...baseConfig,
+    ...bootConfig,
     temporalAddress: coordinates.temporalAddress,
     temporalNamespace: coordinates.temporalNamespace,
-    stigmerTokenRef: tokenRef,
-    stigmerRunnerTokenRef: runnerTokenRef,
-    proxyTokenRef: tokenRef,
   };
   markBoot("bootstrap_resolved");
 
@@ -379,10 +366,6 @@ export async function createStigmerRunner(
       // dispose with the process, #215). Logged, never thrown: the drain has
       // already happened and the process is exiting, so a teardown failure
       // must not mask a clean stop.
-      const [{ HARNESS_ADAPTERS }, { adaptersOf, shutdownHarnesses }] = await Promise.all([
-        import("./harness-adapters.js"),
-        import("./harness/registry.js"),
-      ]);
       try {
         await shutdownHarnesses(adaptersOf(HARNESS_ADAPTERS));
       } catch (err) {
@@ -469,14 +452,16 @@ export function mapOptionsToConfig(options: StigmerRunnerOptions): Config {
 /**
  * Dynamically import all activity factories and merge into a single map.
  *
- * Dynamic imports are required because several modules transitively import
- * @cursor/sdk, which captures global.fetch at import time. The fetch
- * interceptor must be installed before these imports.
+ * Dynamic imports, after the harnesses have booted: several of these modules
+ * transitively load `@connectrpc/connect-node` and LangChain, and the Cursor
+ * adapter's boot must have patched `node:http2` before connect-node is first
+ * imported (see createStigmerRunner). The harness rows and the registry were
+ * imported by the factory for the boot; the imports here hit the module cache.
  */
 async function createAllActivities(config: Config): Promise<WorkerActivities> {
   const [
     { HARNESS_ADAPTERS },
-    { adaptersOf, bootHarnesses, createHarnessActivities },
+    { createHarnessActivities },
     { createDeepAgentActivities },
     { createEnsureThreadActivities },
     { createGenerateSessionSubjectActivities },
@@ -515,11 +500,6 @@ async function createAllActivities(config: Config): Promise<WorkerActivities> {
     import("./activities/promote-task-output.js"),
     import("./activities/attach-session.js"),
   ]);
-
-  // The harness adapters boot here for now (the Cursor adapter's boot keeps
-  // its config slice; the interceptor installs above move into it at S2 M5,
-  // when this call moves ahead of bootstrap resolution, Q-S2-7).
-  await bootHarnesses(adaptersOf(HARNESS_ADAPTERS), config);
 
   return {
     ...(await createHarnessActivities(HARNESS_ADAPTERS, config)),

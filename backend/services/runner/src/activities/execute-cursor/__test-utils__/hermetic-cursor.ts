@@ -322,8 +322,8 @@ export async function runCursorTurn(
   options: CursorTurnOptions = {},
 ): Promise<ActivityInvocation> {
   // Imported lazily so the scenario file's `vi.mock` declarations are in
-  // force before the adapter module (and, through it, `@cursor/sdk` and the
-  // client) is loaded.
+  // force before the adapter module is loaded and before its `boot` loads
+  // `@cursor/sdk` (through `turn.ts`) and the registry loads the client.
   const { createCursorAdapter } = await import("../adapter.js");
   const { createHarnessActivities } = await import("../../../harness/registry.js");
   const adapter = createCursorAdapter();

@@ -16,11 +16,14 @@
  *
  * LOAD ORDER IS THEREFORE LOAD-BEARING: this interceptor MUST be installed
  * before the first connect-node import in the process. The runner enforces this
- * by (a) keeping connect-node out of the pre-install static module graph
- * (bootstrap.ts loads StigmerClient via dynamic import) and (b) installing this
- * interceptor before resolving Temporal coordinates / importing the SDK in the
- * runner factories. assertHttp2ConnectPatched() verifies the ESM-facade view at
- * boot so any future regression fails loudly instead of silently 401-ing.
+ * by (a) keeping connect-node out of the pre-boot static module graph
+ * (bootstrap.ts and harness/registry.ts load StigmerClient via dynamic import;
+ * adapter.ts loads the SDK inside boot) and (b) installing this interceptor in
+ * the Cursor adapter's `boot`, which the registry runs in both composition
+ * roots before Temporal coordinates are resolved. assertHttp2ConnectPatched()
+ * verifies the ESM-facade view right after the install so any future
+ * regression fails loudly instead of silently 401-ing;
+ * src/__tests__/harness-boot-order.test.ts runs that boot in a fresh process.
  *
  * This module patches `http2.connect()` to wrap returned sessions. The
  * wrapped session's `request()` method reads the execution ID from the
@@ -227,10 +230,10 @@ export async function assertHttp2ConnectPatched(): Promise<void> {
       "[http2-interceptor] node:http2 ESM facade is unpatched: connect-node imported " +
         "node:http2 before installHttp2Interceptor() ran, so its frozen namespace still " +
         "holds the original http2.connect. BiDi streams would omit x-stigmer-auth and 401. " +
-        "Fix the load order: keep @connectrpc/connect-node out of the pre-install static " +
-        "module graph (load StigmerClient via dynamic import) and install this interceptor " +
-        "before resolving Temporal coordinates / importing @cursor/sdk. See bootstrap.ts " +
-        "and the runner factories.",
+        "Fix the load order: keep @connectrpc/connect-node out of the pre-boot static module " +
+        "graph (load StigmerClient via dynamic import, as bootstrap.ts and harness/registry.ts " +
+        "do) and keep @cursor/sdk behind the Cursor adapter's boot (adapter.ts loads turn.ts " +
+        "after this install). See src/__tests__/harness-boot-order.test.ts.",
     );
   }
 }

@@ -362,8 +362,9 @@ describe("http2-interceptor", () => {
     // and CASE A/B in the probe). That makes the positive "configured + in-sync"
     // path impossible to assert deterministically inside a shared test process
     // — it is guaranteed by load order (interceptor installed before connect-node
-    // imports node:http2) and exercised by the boot guard in the runner
-    // factories. Here we cover the two deterministic contracts: it is a no-op
+    // imports node:http2), exercised by the boot guard inside the Cursor
+    // adapter's boot, and proven in a FRESH process by
+    // src/__tests__/harness-boot-order.test.ts. Here we cover the two deterministic contracts: it is a no-op
     // when unconfigured (no import, so it never freezes the facade), and it
     // throws when the frozen facade is out of sync with the patched connect.
     //

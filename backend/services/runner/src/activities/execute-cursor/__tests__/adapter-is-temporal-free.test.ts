@@ -35,7 +35,7 @@ describe("the Cursor adapter never imports @temporalio", () => {
 
   it("inspected the adapter's own files (the walk is rooted where it claims)", () => {
     expect(files.map((f) => relative(ADAPTER_ROOT, f))).toEqual(
-      expect.arrayContaining(["adapter.ts", "turn-setup.ts", "turn-stream.ts", "turn-settle.ts"]),
+      expect.arrayContaining(["adapter.ts", "turn.ts", "turn-setup.ts", "turn-stream.ts", "turn-settle.ts"]),
     );
   });
 

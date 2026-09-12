@@ -15,9 +15,13 @@
  * table at S3 of the harness runtime program; until then both roots import
  * its activities directly beside this table's.
  *
- * Imported DYNAMICALLY by the roots, after the fetch interceptor is
- * installed: `@cursor/sdk` captures `global.fetch` at import time, and the
- * adapter's modules import the SDK statically.
+ * THIS MODULE'S STATIC GRAPH MUST STAY CONNECT- AND SDK-FREE. The roots
+ * import it BEFORE they boot the harnesses, and the Cursor adapter's boot is
+ * where `node:http2` is patched and `@cursor/sdk` first loaded; an adapter
+ * factory that imported its SDK statically would defeat both. An adapter
+ * named here loads its vendor SDK inside `boot` (`adapter.ts` shows the
+ * shape). `__tests__/harness-boot-order.test.ts` boots a fresh process
+ * through this module and fails if the graph regresses.
  */
 
 import { createCursorAdapter } from "./activities/execute-cursor/adapter.js";

@@ -9,8 +9,11 @@
  * This is the JavaScript-level equivalent of LangChain's base_url parameter
  * that the Python agent-runner uses for the LLM proxy pattern.
  *
- * IMPORTANT: This module must be imported BEFORE @cursor/sdk to ensure the
- * interceptor is in place when the SDK initializes its HTTP client.
+ * Installed by the Cursor adapter's `boot` (adapter.ts), which the registry
+ * runs in both composition roots before Temporal coordinates are resolved and
+ * before the adapter loads `@cursor/sdk`, so the interceptor is in place
+ * before the SDK issues its first request. The proxy credential is read per
+ * request from the ref the root bound as `Config.proxyTokenRef`.
  *
  * When STIGMER_PROXY_ENDPOINT is not set, this module is a no-op.
  */
