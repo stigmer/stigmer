@@ -1,0 +1,88 @@
+{
+  "messages": [
+    {
+      "type": "MESSAGE_AI",
+      "content": "I will run the command.",
+      "timestamp": "2026-01-01T00:00:01.000Z"
+    },
+    {
+      "type": "MESSAGE_AI",
+      "timestamp": "2026-01-01T00:00:01.000Z",
+      "toolCalls": [
+        {
+          "id": "call-hermetic-exec-0001",
+          "name": "execute",
+          "args": {
+            "command": "echo hermetic-a"
+          },
+          "status": "TOOL_CALL_SKIPPED",
+          "startedAt": "2026-01-01T00:00:01.000Z",
+          "error": "Rejected by user",
+          "requiresApproval": true,
+          "approvalMessage": "Execute command: echo hermetic-a",
+          "approvalRequestedAt": "2026-01-01T00:00:01.000Z",
+          "approvalDecidedAt": "2026-01-01T00:00:30.000Z",
+          "approvalAction": "APPROVAL_ACTION_REJECT",
+          "argsPreview": "{\"command\":\"echo hermetic-a\"}",
+          "toolKind": "TOOL_KIND_SHELL",
+          "approvalPolicySource": "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
+          "policyEngineVersion": "phase-7"
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "Done with the command.",
+      "timestamp": "2026-01-01T00:00:02.000Z"
+    }
+  ],
+  "phase": "EXECUTION_COMPLETED",
+  "startedAt": "2026-01-01T00:00:00.000Z",
+  "completedAt": "2026-01-01T00:00:02.000Z",
+  "streamingUsage": {
+    "inputTokens": "1600",
+    "outputTokens": "20",
+    "totalTokens": "1620",
+    "turnCount": 1,
+    "observedAt": "2026-01-01T00:00:02.000Z"
+  },
+  "fileReviewEventStream": {
+    "executionId": "aex_hermetic_0001",
+    "events": [
+      {
+        "eventId": "aex_hermetic_0001:0:aex_hermetic_0001:0:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+        "changeSetId": "aex_hermetic_0001:0",
+        "eventType": "FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+        "timestamp": "2026-01-01T00:00:00.000Z",
+        "actor": "runner",
+        "baselineCaptured": {
+          "changeSetId": "aex_hermetic_0001:0",
+          "turnId": "aex_hermetic_0001:0",
+          "harnessId": "deep-agent",
+          "baselineSnapshot": {
+            "kind": "SNAPSHOT_KIND_CAS_MANIFEST"
+          }
+        }
+      },
+      {
+        "eventId": "aex_hermetic_0001:1:aex_hermetic_0001:1:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+        "changeSetId": "aex_hermetic_0001:1",
+        "eventType": "FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+        "timestamp": "2026-01-01T00:00:01.000Z",
+        "actor": "runner",
+        "baselineCaptured": {
+          "changeSetId": "aex_hermetic_0001:1",
+          "turnId": "aex_hermetic_0001:1",
+          "harnessId": "deep-agent",
+          "baselineSnapshot": {
+            "kind": "SNAPSHOT_KIND_CAS_MANIFEST"
+          }
+        }
+      }
+    ]
+  },
+  "fileChangeProgress": {
+    "changeSetId": "aex_hermetic_0001:1",
+    "capturedAt": "2026-01-01T00:00:01.000Z"
+  }
+}
