@@ -48,9 +48,9 @@ export function SessionLauncher() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const org = useActiveOrgSlug();
-  // Local mode has no IdentityAccount, so this resolves to undefined on a
-  // pure-local desktop — wired anyway for DD-016 parity with web, and it
-  // activates automatically when the desktop points at a cloud backend.
+  // The account's saved execution defaults seed the launcher (DD-016 parity
+  // with web). Every edition serves the account: a local desktop reads the
+  // operator account its embedded server creates at boot.
   const accountDefaults = useAccountExecutionDefaults();
   const browseLocalFolder = useNativeFolderPicker();
   const { enableGitHub, enableLocal } = useWorkspaceSources({ hasLocalPicker: true });

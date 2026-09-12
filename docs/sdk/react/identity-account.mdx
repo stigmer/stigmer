@@ -13,10 +13,12 @@ Data hook that reads the current user's execution defaults
 (`IdentityAccountSpec.preferences.default_*`) for seeding new-session
 composers.
 
-Returns `undefined` in local mode (no IdentityAccount), while loading,
-on error, and when no default is declared — every one of those cases
-degrades to the platform's existing defaults, so consumers wire the
-result straight through:
+Returns `undefined` while loading, on error (including a server that
+cannot answer `whoAmI`), and when no default is declared — every one of
+those cases degrades to the platform's existing defaults, so consumers
+wire the result straight through. Served in every edition: a
+trusted-local server answers with the operator account it creates at
+boot, so a laptop's saved defaults seed the composer too.
 
 **Signature**
 
@@ -110,10 +112,11 @@ caller's own account — after a mutation, call `refetch()` to re-sync.
 `whoAmI()` returns the complete resource, so no follow-up `get()` is
 needed.
 
-Cloud-only by nature: the OSS local server does not implement
-IdentityAccount. Gate consumers with
-`useResourceAvailable(ApiResourceKind.identity_account)` — either by
-conditional mounting or via `UseMyIdentityAccountOptions.enabled`.
+Served by every edition: on Stigmer Cloud and an authenticated self-host
+the account is the signed-in user's; on a trusted-local server it is the
+operator account the server creates at boot. A caller with no account yet
+gets NOT_FOUND — the first-sign-in flow (`ensureMyIdentityAccount`, run by
+[`useIdentityAccountGate`](#useidentityaccountgate) and the CLI) is what creates one.
 
 Cached across mounts under a [`FetchCacheProvider`](/docs/sdk/react/core#fetchcacheprovider) (DD-014): a
 revisit renders the previous result immediately and refetches in the
@@ -213,9 +216,11 @@ permission check is needed. On save, calls `identityAccount.update()`
 with the complete mapped input (full-spec-replace safety) and fires
 `onUpdated`.
 
-Cloud-only: the OSS local server has no IdentityAccount (local mode
-is single-user, so the organization's preferences cover it). In local
-mode the panel renders a [`CloudFeatureNotice`](/docs/sdk/react/core#cloudfeaturenotice) instead.
+Served in every edition, so the panel asks no edition question: the
+identity-account kind is `open_source`-tier and a trusted-local server
+creates the operator account at boot, so `whoAmI()` always has a row to
+answer with. A server that cannot answer surfaces its error through the
+fetch-error state below, never a hidden branch.
 
 All visual properties flow through `--stgm-*` design tokens. Zero
 dependencies on Console routing, auth context, or layout — platform
@@ -272,7 +277,7 @@ Options for [`useMyIdentityAccount`](#usemyidentityaccount).
 
 <TypeTable
   type={{
-    enabled: { type: "boolean", description: "When `false`, the hook is idle: no RPC is issued and `account` stays `null`. Lets always-called hooks (React's rules) skip the doomed whoAmI against a local server — pass `useResourceAvailable(ApiResourceKind.identity_account)` here." },
+    enabled: { type: "boolean", description: "When `false`, the hook is idle: no RPC is issued and `account` stays `null`. Lets always-called hooks (React's rules) stay silent on a surface that must not fetch identity — the guest and embed audiences, or a caller who has not signed in yet." },
   }}
 />
 

@@ -72,7 +72,11 @@ services:
 From the next boot, every request needs a credential:
 
 - **People** send an access token from your identity provider. The server
-  verifies it against the issuer's published keys and checks the audience.
+  verifies it against the issuer's published keys and checks the audience, then
+  resolves the token to that person's Identity Account. The account is created
+  the first time that person runs
+  `STIGMER_API_KEY=<oidc-access-token> stigmer auth whoami`; the command says
+  when it did.
 - **Machines** send an API key (`stk_...`) the same way — as a bearer token.
   `stigmer apikey create` mints them; deleting a key revokes it immediately.
 - Requests without a credential are rejected with

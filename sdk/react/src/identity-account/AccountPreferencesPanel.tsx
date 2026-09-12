@@ -14,10 +14,8 @@ import { getUserMessage, toIdentityAccountUpdateInput } from "@stigmer/sdk";
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { useMyIdentityAccount } from "./useMyIdentityAccount.js";
 import { useUpdateIdentityAccount } from "./useUpdateIdentityAccount.js";
-import { useResourceAvailable, ApiResourceKind } from "../deployment-mode.js";
 import { useModelRegistry } from "../models/index.js";
 import { HARNESS_META, type HarnessOption } from "../models/harness.js";
-import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
 import { MemoryEnabledRow } from "../internal/MemoryEnabledRow.js";
 import { StandingContextField } from "../internal/StandingContextField.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
@@ -45,9 +43,11 @@ export interface AccountPreferencesPanelProps {
  * with the complete mapped input (full-spec-replace safety) and fires
  * `onUpdated`.
  *
- * Cloud-only: the OSS local server has no IdentityAccount (local mode
- * is single-user, so the organization's preferences cover it). In local
- * mode the panel renders a {@link CloudFeatureNotice} instead.
+ * Served in every edition, so the panel asks no edition question: the
+ * identity-account kind is `open_source`-tier and a trusted-local server
+ * creates the operator account at boot, so `whoAmI()` always has a row to
+ * answer with. A server that cannot answer surfaces its error through the
+ * fetch-error state below, never a hidden branch.
  *
  * All visual properties flow through `--stgm-*` design tokens. Zero
  * dependencies on Console routing, auth context, or layout — platform
@@ -63,40 +63,7 @@ export function AccountPreferencesPanel({
   className,
 }: AccountPreferencesPanelProps) {
   const baseId = useId();
-  const available = useResourceAvailable(ApiResourceKind.identity_account);
 
-  if (!available) {
-    return (
-      <CloudFeatureNotice className={className}>
-        Personal preferences require Stigmer Cloud. Local mode is
-        single-user, so the organization&apos;s preferences apply to every
-        execution — set standing context there instead.
-      </CloudFeatureNotice>
-    );
-  }
-
-  return (
-    <AccountPreferencesForm
-      baseId={baseId}
-      onUpdated={onUpdated}
-      className={className}
-    />
-  );
-}
-
-/**
- * Inner form, mounted only when IdentityAccount is available — keeps the
- * data hooks from issuing doomed RPCs against a local server.
- */
-function AccountPreferencesForm({
-  baseId,
-  onUpdated,
-  className,
-}: {
-  readonly baseId: string;
-  readonly onUpdated?: (account: IdentityAccount) => void;
-  readonly className?: string;
-}) {
   const {
     account,
     isLoading: isFetching,

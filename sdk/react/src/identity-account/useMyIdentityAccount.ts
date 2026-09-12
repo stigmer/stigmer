@@ -8,9 +8,9 @@ import { useFetch } from "../internal/useFetch.js";
 export interface UseMyIdentityAccountOptions {
   /**
    * When `false`, the hook is idle: no RPC is issued and `account` stays
-   * `null`. Lets always-called hooks (React's rules) skip the doomed
-   * whoAmI against a local server — pass
-   * `useResourceAvailable(ApiResourceKind.identity_account)` here.
+   * `null`. Lets always-called hooks (React's rules) stay silent on a
+   * surface that must not fetch identity — the guest and embed audiences,
+   * or a caller who has not signed in yet.
    *
    * @default true
    */
@@ -41,10 +41,11 @@ export interface UseMyIdentityAccountReturn {
  * `whoAmI()` returns the complete resource, so no follow-up `get()` is
  * needed.
  *
- * Cloud-only by nature: the OSS local server does not implement
- * IdentityAccount. Gate consumers with
- * `useResourceAvailable(ApiResourceKind.identity_account)` — either by
- * conditional mounting or via {@link UseMyIdentityAccountOptions.enabled}.
+ * Served by every edition: on Stigmer Cloud and an authenticated self-host
+ * the account is the signed-in user's; on a trusted-local server it is the
+ * operator account the server creates at boot. A caller with no account yet
+ * gets NOT_FOUND — the first-sign-in flow (`ensureMyIdentityAccount`, run by
+ * {@link useIdentityAccountGate} and the CLI) is what creates one.
  *
  * Cached across mounts under a {@link FetchCacheProvider} (DD-014): a
  * revisit renders the previous result immediately and refetches in the
