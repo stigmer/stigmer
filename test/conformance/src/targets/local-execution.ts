@@ -16,7 +16,12 @@ import { MockLlmProxy } from "../harness/mock-llm";
 import { fetchModelRegistryDocument, type ModelRegistryDocument } from "../harness/model-registry";
 import { ensureRunnerBuilt } from "../harness/runner-build";
 import { spawnRunner, type RunningRunner } from "../harness/runner-process";
-import { spawnServer, type RunningServer } from "../harness/server-process";
+import {
+  ephemeralSqliteStorage,
+  spawnServer,
+  type ProvisionedStorage,
+  type RunningServer,
+} from "../harness/server-process";
 import { spawnTemporal, type RunningTemporal } from "../harness/temporal";
 import { ensureTsServerEntry } from "../harness/ts-build";
 import { uniqueOrg } from "../support/naming";
@@ -79,10 +84,14 @@ export class LocalExecutionTarget implements TargetProfile {
     // No platform identity tenant on the single-operator posture; the OSS
     // OIDC lane is a different contract (target.ts).
     directLogin: false,
+    // No unit composes the federation capability in the empty composition,
+    // as on `local`.
+    federatedIdentityAccounts: false,
   };
 
   private temporal: RunningTemporal | undefined;
   private server: RunningServer | undefined;
+  private storage: ProvisionedStorage | undefined;
   private runner: RunningRunner | undefined;
   private mockLlm: MockLlmProxy | undefined;
   private mcpTools: McpToolFixture | undefined;
@@ -97,7 +106,8 @@ export class LocalExecutionTarget implements TargetProfile {
     this.temporal = await spawnTemporal();
 
     // 2. The TS server (node entry, same env contract as the Go binary),
-    //    pointed at the live Temporal frontend.
+    //    pointed at the live Temporal frontend, on its own storage.
+    this.storage = await this.provisionStorage();
     this.server = await spawnServer(process.execPath, {
       args: [entry],
       temporalHostPort: this.temporal.hostPort,
@@ -106,7 +116,7 @@ export class LocalExecutionTarget implements TargetProfile {
         // the auto-pause provable in two fires (active since #22 ported
         // the schedule clock).
         STIGMER_SCHEDULES_MAX_CONSECUTIVE_FAILURES: "2",
-        ...this.extraServerEnv(),
+        ...this.storage.serverEnv,
       },
     });
     this.conformanceClients = makeClients(createTransport(this.server.baseUrl));
@@ -138,13 +148,14 @@ export class LocalExecutionTarget implements TargetProfile {
     });
   }
 
-  // The storage-driver seam: local-postgres-execution overrides this to
-  // inject DATABASE_URL (winning over the harness's DB_PATH — the
-  // documented config precedence). EVERYTHING else about the target is
-  // inherited, so the capability matrix is byte-identical by construction,
-  // not by copy discipline (DD-011: the driver must be wire-invisible).
-  protected extraServerEnv(): Record<string, string> {
-    return {};
+  // The storage-driver seam (the LocalTarget shape): local-postgres-execution
+  // overrides this to provision a throwaway database (its DATABASE_URL wins
+  // over the harness's DB_PATH — the documented config precedence).
+  // EVERYTHING else about the target is inherited, so the capability
+  // matrix is byte-identical by construction, not by copy discipline
+  // (DD-011: the driver must be wire-invisible).
+  protected async provisionStorage(): Promise<ProvisionedStorage> {
+    return ephemeralSqliteStorage();
   }
 
   llmProxy(): MockLlmProxy {
@@ -239,11 +250,13 @@ export class LocalExecutionTarget implements TargetProfile {
     await this.mockLlm?.close();
     await this.mcpTools?.close();
     await this.server?.stop();
+    await this.storage?.release();
     await this.temporal?.stop();
     this.runner = undefined;
     this.mockLlm = undefined;
     this.mcpTools = undefined;
     this.server = undefined;
+    this.storage = undefined;
     this.temporal = undefined;
     this.conformanceClients = undefined;
   }

@@ -11,11 +11,18 @@ import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_inf
 import { ensureTsServerEntry } from "../harness/ts-build";
 import { createTransport, makeClients, type ConformanceClients } from "../harness/clients";
 import { awaitGrpcReady } from "../harness/grpc-ready";
-import { spawnServer, type RunningServer } from "../harness/server-process";
+import {
+  ephemeralSqliteStorage,
+  spawnServer,
+  type ProvisionedStorage,
+  type RunningServer,
+} from "../harness/server-process";
 import { uniqueOrg } from "../support/naming";
 import type {
   CapabilityFlags,
   PrivilegedScope,
+  SiblingServer,
+  SpawnSiblingOptions,
   TargetProfile,
   TenancyContext,
 } from "./target";
@@ -66,32 +73,70 @@ export class LocalTarget implements TargetProfile {
     // authentication suite pins that admission, entry 20260904.02).
     requiresAuthentication: false,
     // No platform identity tenant on the single-operator posture; the OSS
-    // OIDC lane is a different contract (target.ts).
+    // OIDC lane is driven through a sibling server (spawnSibling below).
     directLogin: false,
+    // No unit composes the federation capability in the empty composition —
+    // the suite pins the four UNIMPLEMENTED refusals here (20260911.11).
+    federatedIdentityAccounts: false,
   };
 
   private server: RunningServer | undefined;
+  private storage: ProvisionedStorage | undefined;
   private conformanceClients: ConformanceClients | undefined;
 
   async setup(): Promise<void> {
     const entry = await ensureTsServerEntry();
+    this.storage = await this.provisionStorage();
     // The TS server is a node entry, not a binary — same env contract,
     // same TCP-readiness gate (server-process.ts).
     this.server = await spawnServer(process.execPath, {
       args: [entry],
-      env: this.extraServerEnv(),
+      env: this.storage.serverEnv,
     });
     this.conformanceClients = makeClients(createTransport(this.server.baseUrl));
     await awaitGrpcReady(this.conformanceClients, () => this.server?.logTail() ?? "(no server)");
   }
 
-  // The storage-driver seam: local-postgres overrides this to inject
-  // DATABASE_URL (winning over the harness's DB_PATH — the documented
-  // config precedence). EVERYTHING else about the target is inherited, so
-  // the capability matrix is byte-identical by construction, not by copy
-  // discipline (DD-011: the driver must be wire-invisible).
-  protected extraServerEnv(): Record<string, string> {
-    return {};
+  // The storage-driver seam: one store per spawned server. local-postgres
+  // overrides this to provision a throwaway database (its DATABASE_URL wins
+  // over the harness's DB_PATH — the documented config precedence).
+  // EVERYTHING else about the target is inherited, so the capability
+  // matrix is byte-identical by construction, not by copy discipline
+  // (DD-011: the driver must be wire-invisible). The primary and every
+  // sibling call it, so a sibling never shares the primary's store.
+  protected async provisionStorage(): Promise<ProvisionedStorage> {
+    return ephemeralSqliteStorage();
+  }
+
+  // A second server of this edition in the suite's posture, with its own
+  // storage from the same seam as the primary (target.ts). Readiness is
+  // the harness's one gate, presented with the bearer the suite supplied.
+  async spawnSibling(options: SpawnSiblingOptions): Promise<SiblingServer> {
+    const entry = await ensureTsServerEntry();
+    const storage = await this.provisionStorage();
+    let server: RunningServer;
+    try {
+      server = await spawnServer(process.execPath, {
+        args: [entry],
+        env: { ...storage.serverEnv, ...options.env },
+      });
+    } catch (error) {
+      await storage.release();
+      throw error;
+    }
+    const clientsPresenting = (bearerToken: string): ConformanceClients =>
+      makeClients(createTransport(server.baseUrl, { bearerToken }));
+    const teardown = async (): Promise<void> => {
+      await server.stop();
+      await storage.release();
+    };
+    try {
+      await awaitGrpcReady(clientsPresenting(options.readinessBearer), () => server.logTail());
+    } catch (error) {
+      await teardown();
+      throw error;
+    }
+    return { clientsPresenting, teardown };
   }
 
   clients(): ConformanceClients {
@@ -150,6 +195,8 @@ export class LocalTarget implements TargetProfile {
   async teardown(): Promise<void> {
     await this.server?.stop();
     this.server = undefined;
+    await this.storage?.release();
+    this.storage = undefined;
     this.conformanceClients = undefined;
   }
 }
