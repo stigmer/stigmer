@@ -377,12 +377,22 @@ export async function createStigmerRunner(
       emitRunnerBootTiming({ task_queue: config.taskQueue, mode: config.mode });
       await worker.run();
       console.log("Worker stopped");
-      // The worker has drained — release any parked session agent so its
-      // executor lease disposes with the process (#215).
-      const { closeAllCachedAgents } = await import(
-        "./activities/execute-cursor/agent-session-cache.js"
-      );
-      closeAllCachedAgents();
+      // The worker has drained — every harness releases what it still holds
+      // (the Cursor harness: its parked session agents, whose executor leases
+      // dispose with the process, #215). Logged, never thrown: the drain has
+      // already happened and the process is exiting, so a teardown failure
+      // must not mask a clean stop.
+      const [{ HARNESS_ADAPTERS }, { adaptersOf, shutdownHarnesses }] = await Promise.all([
+        import("./harness-adapters.js"),
+        import("./harness/registry.js"),
+      ]);
+      try {
+        await shutdownHarnesses(adaptersOf(HARNESS_ADAPTERS));
+      } catch (err) {
+        console.error(
+          `[runner] Harness shutdown failed after the worker drained (continuing): ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
     },
     shutdown() {
       tokenRenewal?.stop();

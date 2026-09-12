@@ -533,13 +533,23 @@ export async function createStigmerRunnerManager(
       await removeManaged(
         sessions, sessionId, SESSION_QUEUE_PREFIX + sessionId, "session",
       );
-      // The session is done on this host — release its parked agent (and
-      // the executor + MCP subprocesses the lease pins) immediately rather
-      // than waiting out the idle TTL (#215).
-      const { evictSessionAgent } = await import(
-        "./activities/execute-cursor/agent-session-cache.js"
-      );
-      evictSessionAgent(sessionId);
+      // The session is done on this host — every harness releases what it
+      // parked for it (the Cursor harness: the agent, and the executor + MCP
+      // subprocesses its lease pins) now rather than after the idle TTL
+      // (#215). Logged, never thrown: the session's worker is already gone,
+      // and failing this IPC command would tell the desktop a removal that
+      // did happen did not.
+      const [{ HARNESS_ADAPTERS }, { adaptersOf, releaseHarnessSession }] = await Promise.all([
+        import("./harness-adapters.js"),
+        import("./harness/registry.js"),
+      ]);
+      try {
+        await releaseHarnessSession(adaptersOf(HARNESS_ADAPTERS), sessionId);
+      } catch (err) {
+        console.error(
+          `[runner-manager] Harness release for session ${sessionId} failed (continuing): ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
     },
 
     activeSessions(): string[] {
@@ -654,12 +664,22 @@ export async function createStigmerRunnerManager(
       }
 
       await Promise.all(shutdownPromises);
-      // Workers are drained — release every parked session agent so their
-      // executor leases dispose (stdio MCP subprocesses die with them) (#215).
-      const { closeAllCachedAgents } = await import(
-        "./activities/execute-cursor/agent-session-cache.js"
-      );
-      closeAllCachedAgents();
+      // Workers are drained — every harness releases what it still holds
+      // (the Cursor harness: its parked session agents, whose executor leases
+      // dispose and whose stdio MCP subprocesses die with them, #215). Logged,
+      // never thrown: the drain has already happened, and a teardown failure
+      // must not mask a clean stop.
+      const [{ HARNESS_ADAPTERS }, { adaptersOf, shutdownHarnesses }] = await Promise.all([
+        import("./harness-adapters.js"),
+        import("./harness/registry.js"),
+      ]);
+      try {
+        await shutdownHarnesses(adaptersOf(HARNESS_ADAPTERS));
+      } catch (err) {
+        console.error(
+          `[runner-manager] Harness shutdown failed after the workers drained (continuing): ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
       sessions.clear();
       workflowExecutions.clear();
       poolControl = null;
