@@ -75,9 +75,9 @@ Multi-root workspace with the following directories:
 
 <input_files>
 The following files have been provided as inputs. Read them when relevant to the task:
-- `.stigmer/inputs/spec.pdf`
-- `.stigmer/inputs/report (2).pdf` (renamed from duplicate 'report.pdf')
-- `.stigmer/inputs/diagram.png` — download URL: https://storage.example.test/diagram.png?sig=abc
+- `.stigmer/inputs/spec.pdf` (204800 bytes)
+- `.stigmer/inputs/report (2).pdf` (1024 bytes) (renamed from duplicate 'report.pdf')
+- `.stigmer/inputs/diagram.png` (4096 bytes) — download URL: https://storage.example.test/diagram.png?sig=abc
 Where a file lists a download URL, you can pass that URL to tools whose backends cannot read this workspace's filesystem (e.g. remote services) — the tool fetches the file's contents itself. These URLs are time-limited and each grants access to its single file only.
 Attached inline and visible to you, in order: 1. diagram.png
 NOT VIEWABLE INLINE: `.stigmer/inputs/huge.png` (too large).

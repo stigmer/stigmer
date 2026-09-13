@@ -64,8 +64,8 @@ import { getDefaultModel } from "../../shared/model-registry.js";
 import { buildChatModel } from "../../shared/model-client.js";
 import { isUnattendedApprovalMode, type MergedToolPolicy } from "../../shared/approval-policy.js";
 import type { ToolApprovalCategory } from "../../shared/tool-kind.js";
-import { filterSkills, SKILL_COUNT_THRESHOLD } from "../../shared/skill-relevance.js";
-import { generateAlsoAvailableSection } from "../../shared/skill-writer.js";
+import { alsoAvailableSkillsNote, selectSkillsForPrompt, visionPromptInfoOf } from "../../shared/prompt-sections.js";
+import type { RecalledMemoriesContent } from "../../shared/recalled-memories.js";
 import { toLangChainImageBlocks } from "../../shared/attachment-vision.js";
 import { resolveRecursionLimit, UNBOUNDED_ADVISORY_RECURSION_LIMIT } from "../../shared/tool-rounds.js";
 import { jsonSchemaToZod } from "../../shared/json-schema-to-zod.js";
@@ -245,29 +245,60 @@ export function readGateState(input: TurnInput, tools: DeepAgentTools): DeepAgen
 }
 
 /**
- * The `## Skills` section of the root prompt: every mounted skill, or — at
- * and above the relevance threshold — the ones the filter keeps for this
- * turn's message plus an "also available" note naming the rest.
+ * The `## Skills` section of the root prompt: the skills the shared selection
+ * highlights for this turn's message (`shared/prompt-sections.ts`
+ * `selectSkillsForPrompt`: every skill below the threshold, the relevant ones
+ * at and above it), rendered with this engine's activation protocol, plus —
+ * when the selection left any out — an `### Also Available` note naming them
+ * (the sentence is the shared, tool-neutral one; the heading is this
+ * harness's markdown framing).
  */
 export function renderRootSkillsSection(input: TurnInput): string {
-  const skills = input.skills.root;
-  if (skills.length === 0) return "";
-  if (skills.length >= SKILL_COUNT_THRESHOLD) {
-    const filter = filterSkills(
-      input.execution.spec?.message ?? "",
-      skills.map((s) => s.name),
-      skills.map((s) => s.description),
-    );
-    if (filter.excludedNames.length > 0) {
-      const included = filter.includedIndices.map((i) => skills[i]);
-      console.log(
-        `[turn-setup] Skill relevance filter: ${included.length} included, ` +
-        `${filter.excludedNames.length} excluded: ${filter.excludedNames.join(", ")}`,
-      );
-      return renderSkillsSection(included) + generateAlsoAvailableSection(filter.excludedNames);
-    }
-  }
-  return renderSkillsSection(skills);
+  const { highlighted, alsoAvailable } = selectSkillsForPrompt(input.execution.spec?.message ?? "", input.skills.root);
+  if (alsoAvailable.length === 0) return renderSkillsSection(highlighted);
+  console.log(
+    `[turn-setup] Skill relevance filter: ${highlighted.length} included, ` +
+    `${alsoAvailable.length} excluded: ${alsoAvailable.join(", ")}`,
+  );
+  return renderSkillsSection(highlighted) + "\n### Also Available\n\n" + alsoAvailableSkillsNote(alsoAvailable) + "\n";
+}
+
+/**
+ * The system prompt over the runtime's resolved record: every input the
+ * builder renders is read from `TurnInput` here, in one place, so the mapping
+ * is a pure step a test can pin whole (`__tests__/prompt-goldens.test.ts`
+ * calls exactly this) rather than a stretch of `buildEngine`. The one input
+ * that is not on the record is the memoized memory selection, which the
+ * caller awaits (the runtime stamps the report on the status the first time
+ * it is pulled, before this turn's first persist).
+ */
+export function composeSystemPrompt(input: TurnInput, recalledMemories: RecalledMemoriesContent | undefined): string {
+  const spec = input.execution.spec!;
+  const execConfig = spec.executionConfig;
+  const primaryDir = input.workspace.primaryDir;
+  return buildEnhancedSystemPrompt({
+    instructions: input.blueprint.instructions,
+    provisionResults: input.workspace.provision.provisionResults,
+    containerRoot: primaryDir,
+    skillsPromptSection: renderRootSkillsSection(input),
+    // "" (nothing sendable) threads as undefined: the tool alone still serves
+    // text sends inside a 24-hour window (DD-006 D6).
+    channelTemplatesPromptSection: input.mcp.channelMessaging.length > 0
+      ? formatChannelTemplatesSection(input.mcp.channelMessaging) || undefined
+      : undefined,
+    workspaceFileRefs: spec.workspaceFileRefs ?? [],
+    workspaceRoot: primaryDir,
+    inputFiles: input.attachments.results,
+    vision: visionPromptInfoOf(input.attachments),
+    downloadUrlKind: input.artifactStorage?.downloadUrlKind,
+    interactionMode: execConfig?.interactionMode,
+    buildFromPlan: execConfig?.buildFromPlan,
+    contextBridge: input.standing.contextBridge,
+    senderIdentity: input.standing.senderIdentity,
+    sessionContext: input.standing.sessionContext,
+    declaredPreferences: input.standing.declaredPreferences,
+    recalledMemories,
+  });
 }
 
 /**
@@ -301,8 +332,7 @@ export async function buildEngine(
 ): Promise<DeepAgentEngine> {
   const { modelName, checkpointer, workspace, tools, gate } = args;
   const { executionId, sessionId, blueprint, artifactStorage } = input;
-  const spec = input.execution.spec!;
-  const execConfig = spec.executionConfig;
+  const execConfig = input.execution.spec!.executionConfig;
   const primaryDir = input.workspace.primaryDir;
 
   // The model. Resolution to the provider API id happens inside
@@ -409,36 +439,9 @@ export async function buildEngine(
   sink.recordActivity();
 
   await sink.reportProgress("Creating agent…");
-  const systemPrompt = buildEnhancedSystemPrompt({
-    instructions: blueprint.instructions,
-    provisionResults: input.workspace.provision.provisionResults,
-    containerRoot: primaryDir,
-    skillsPromptSection: renderRootSkillsSection(input),
-    // "" (nothing sendable) threads as undefined: the tool alone still serves
-    // text sends inside a 24-hour window (DD-006 D6).
-    channelTemplatesPromptSection: input.mcp.channelMessaging.length > 0
-      ? formatChannelTemplatesSection(input.mcp.channelMessaging) || undefined
-      : undefined,
-    workspaceFileRefs: spec.workspaceFileRefs ?? [],
-    workspaceRoot: primaryDir,
-    inputFiles: input.attachments.results,
-    vision: input.attachments.visionImages.length > 0 || input.attachments.visionNotViewable.length > 0
-      ? {
-          inlineFilenames: input.attachments.visionImages.map((v) => v.filename),
-          notViewable: input.attachments.visionNotViewable,
-        }
-      : undefined,
-    downloadUrlKind: artifactStorage?.downloadUrlKind,
-    interactionMode: execConfig?.interactionMode,
-    buildFromPlan: execConfig?.buildFromPlan,
-    contextBridge: input.standing.contextBridge,
-    senderIdentity: input.standing.senderIdentity,
-    sessionContext: input.standing.sessionContext,
-    declaredPreferences: input.standing.declaredPreferences,
-    // The runtime's memoized selection; it stamps the report on the status
-    // the first time it is pulled, before this turn's first persist.
-    recalledMemories: await input.standing.selectRecalledMemories(),
-  });
+  // The runtime's memoized memory selection; it stamps the report on the
+  // status the first time it is pulled, before this turn's first persist.
+  const systemPrompt = composeSystemPrompt(input, await input.standing.selectRecalledMemories());
 
   const outputSchema = input.structuredOutputSchema;
   const responseFormat = outputSchema ? jsonSchemaToZod(outputSchema) : undefined;

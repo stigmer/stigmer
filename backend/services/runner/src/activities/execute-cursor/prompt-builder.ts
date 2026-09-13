@@ -1,52 +1,53 @@
 /**
- * Builds the enhanced prompt for the Cursor agent.
+ * The Cursor harness's prompt: the four shapes `buildPrompt` selects from how
+ * the agent resolved and whether the turn carries adjudicated approvals
+ * (`capabilities.systemPrompt` is false — `@cursor/sdk` takes no system
+ * prompt, so the blueprint and the standing context ride the session's FIRST
+ * user message and persist in the agent's own conversation store; a resumed
+ * agent receives only what is per-turn).
  *
- * Replicates prompt_builder.py::enhance_system_prompt() but delivers
- * the content via the first user message (Cursor SDK has no systemPrompt
- * parameter). On reinvocation, only the approval decisions are sent.
+ * What is this harness's and what is shared (S3 M5, Q-S3-10 / Q-M5-2):
+ *  - Shared through `shared/prompt-sections.ts`: WHICH standing sections
+ *    render and in WHAT order (`standingContextSections`) and the input-files
+ *    bullet and disclosure lines (`inputFileLines`). Their WORDS come from
+ *    each fact's own module; this builder only frames them.
+ *  - This harness's: the framing — `<xml_tag>` sections joined by `---`
+ *    rules, the idiom for structured content inside a USER message — and the
+ *    placement (which sections a first message carries, which a resumed
+ *    turn's prefix repeats, where the catchup and the protocol sit); every
+ *    text that quotes this engine: `<available_skills>` (`the Read tool`),
+ *    `<sub_agent_delegation>` and `<codebase_exploration>` (the Task tool and
+ *    the built-in `explore` agent), the response rules, the structured-output
+ *    directive (prose JSON the activity extracts); and the tool-approval
+ *    protocol, which exists because of this harness's deny-based gate (see
+ *    `formatToolApprovalProtocol`) and would be false on an engine that
+ *    interrupts before a tool runs.
  *
- * Sections (in order, conditionally included):
- * 1. Interaction-mode / implement-plan directives
- * 2. Agent instructions (persona/character)
- * 3. Available skills metadata
- * 4. Sub-agent delegation guidance
- * 5. Workspace context (multi-root only; single-dir is redundant with SDK cwd)
- * 6. Input files / referenced files
- * 7. Response rules (only when agent has no custom instructions)
- * 8. User's actual message
+ * The whole rendered prompt, per shape, is pinned by
+ * `__tests__/prompt-goldens.test.ts`; `__tests__/build-prompt.test.ts` pins
+ * every branch of the selection.
  */
 
 import { resolve } from "node:path";
 import type { SubAgent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import { ApprovalAction, InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { formatContextBridgeText } from "../../shared/context-bridge.js";
 import { formatConversationCatchupText } from "../../shared/conversation-catchup.js";
 import {
   formatChannelTemplatesSection,
   type ChannelMessagingInfo,
 } from "../../shared/channel-attachment.js";
+import type { SenderIdentity } from "../../shared/sender-identity.js";
+import type { DeclaredPreferencesContent } from "../../shared/declared-preferences.js";
+import type { RecalledMemoriesContent } from "../../shared/recalled-memories.js";
+import type { DownloadUrlKind } from "../../shared/attachment-download-urls.js";
+import type { ResolvedAttachment } from "../../shared/attachment-resolver.js";
 import {
-  formatSenderIdentityText,
-  type SenderIdentity,
-} from "../../shared/sender-identity.js";
-import { formatSessionContextText } from "../../shared/session-context.js";
-import {
-  formatDeclaredPreferencesText,
-  type DeclaredPreferencesContent,
-} from "../../shared/declared-preferences.js";
-import {
-  formatRecalledMemoriesText,
-  type RecalledMemoriesContent,
-} from "../../shared/recalled-memories.js";
-import {
-  visionDisclosureLines,
-  type NotViewableEntry,
-} from "../../shared/attachment-vision.js";
-import {
-  downloadUrlDisclosureLine,
-  type DownloadUrlKind,
-} from "../../shared/attachment-download-urls.js";
+  inputFileLines,
+  standingContextSections,
+  type StandingSectionKind,
+  type VisionPromptInfo,
+} from "../../shared/prompt-sections.js";
 import { formatTurnRecoveryText } from "./turn-recovery.js";
 import type { SkillMetadata } from "../../shared/skill-resolver.js";
 import type { AgentResolution, AgentResolutionReason } from "./session-lifecycle.js";
@@ -68,34 +69,29 @@ const RUNNER_PATH_MARKERS = [
   "/dist/main.js",
 ] as const;
 
-/**
- * Vision facts about this turn's attachments, rendered inside the
- * input-files section: which images the model can see inline (in send
- * order) and which degraded to the file-pointer story. Derived per turn
- * from the resolved attachments — never carried across turns.
- */
-export interface VisionPromptInfo {
-  inlineFilenames: string[];
-  notViewable: readonly NotViewableEntry[];
-}
+// The prompt renders the attachment resolver's own result type — a local
+// structural twin (`AttachmentPromptEntry`) lived here until S3 M5 and the
+// projection into it was the one reason `turn-setup.ts` had a
+// `prepareAttachmentPrompt` step; the twin dropped the size, so this
+// harness's input-files line never carried it. One type, one truth: the
+// runtime's `ResolvedAttachment`; the vision facts are the shared
+// `VisionPromptInfo` (prompt-sections.ts) for the same reason.
+
+export type { VisionPromptInfo };
 
 /**
- * One resolved attachment as the `<input_files>` section renders it —
- * the final workspace-relative path plus the duplicate-rename disclosure
- * (attachment-resolver.ts / shared/attachment-naming.ts).
+ * This harness's tag for each shared standing section (the section's
+ * identity and order are `prompt-sections.ts`'s; the XML framing is the
+ * idiom for structured content in a user message). Exhaustive by the
+ * compiler: a new kind fails here until it is named.
  */
-export interface AttachmentPromptEntry {
-  /** Workspace-relative path the agent reads (`.stigmer/inputs/{filename}`). */
-  path: string;
-  /** Original filename, present only when a duplicate name was renamed. */
-  renamedFrom?: string;
-  /**
-   * Download URL for the attachment's stored object, when one was minted
-   * (shared/attachment-download-urls.ts) — rendered beside the path so the
-   * agent can hand the file to tools that cannot read this filesystem.
-   */
-  downloadUrl?: string;
-}
+const STANDING_SECTION_TAGS: Record<StandingSectionKind, string> = {
+  "conversation-sender": "conversation_sender",
+  "declared-preferences": "declared_preferences",
+  "recalled-memories": "recalled_memories",
+  "session-context": "session_context",
+  "previous-conversation": "previous_conversation_context",
+};
 
 export interface EnhancedPromptOptions {
   instructions: string;
@@ -110,7 +106,8 @@ export interface EnhancedPromptOptions {
   subAgents: SubAgent[];
   workspaceDirs: string[];
   workspaceFileRefs: string[];
-  attachments: AttachmentPromptEntry[];
+  /** This turn's resolved input files, as the runtime's attachment phase returns them. */
+  attachments: readonly ResolvedAttachment[];
   /** Inline/degraded image facts for the input-files section (T04 vision). */
   vision?: VisionPromptInfo;
   /**
@@ -248,41 +245,16 @@ export function buildEnhancedPrompt(options: EnhancedPromptOptions): string {
     sections.push(formatResponseRules());
   }
 
-  // The sender identity precedes the bridge: it is standing context about
-  // WHO the conversation is with, which the carried conversation may refer
-  // back to.
-  if (options.senderIdentity) {
-    sections.push(formatSenderIdentitySection(options.senderIdentity));
-  }
-
-  // Platform-declared standing facts precede embedder-supplied context
-  // (DD-002 D3): both are standing background, but the declared preferences
-  // are platform-authored while session context is the embedder's overlay —
-  // the more specific overlay reads later and naturally refines.
-  if (options.declaredPreferences) {
-    sections.push(formatDeclaredPreferencesSection(options.declaredPreferences));
-  }
-
-  // Declared-by-humans precedes learned-and-confirmed (DD-006 D4): both
-  // are platform-authored standing background, but a preference is the
-  // user's exact words while a memory is an agent's confirmed inference —
-  // the exact statement reads first.
-  if (options.recalledMemories) {
-    sections.push(formatRecalledMemoriesSection(options.recalledMemories));
-  }
-
-  // Standing facts about the user (session context) come before the
-  // carried conversation (bridge): the bridge may refer back to them.
-  if (options.sessionContext) {
-    sections.push(formatSessionContextSection(options.sessionContext));
-  }
-
-  // The rollover context bridge sits directly before the protocol + task so
-  // the carried conversation is the freshest CONTEXT the model reads —
-  // while the approval protocol keeps its pinned last-before-task slot (it
-  // is an INSTRUCTION and must outweigh everything, including this bridge).
-  if (options.contextBridge) {
-    sections.push(formatContextBridgeSection(options.contextBridge));
+  // The standing context, in the shared order (the doctrine is stated once,
+  // on `standingContextSections`); this harness only frames each section.
+  // The block sits directly before the catchup, the protocol and the task so
+  // the carried conversation (its last section, the bridge) is the freshest
+  // CONTEXT the model reads — while the approval protocol keeps its pinned
+  // last-before-task slot (it is an INSTRUCTION and must outweigh
+  // everything, including the bridge).
+  for (const section of standingContextSections(options)) {
+    const tag = STANDING_SECTION_TAGS[section.kind];
+    sections.push(`<${tag}>\n${section.body}\n</${tag}>`);
   }
 
   // Catchup after the bridge (DD-007 D-d: bridge first, catchup second) —
@@ -489,30 +461,10 @@ export function formatInstructions(instructions: string): string {
   return `<agent_instructions>\n${instructions}\n</agent_instructions>`;
 }
 
-export function formatContextBridgeSection(bridge: string): string {
-  return `<previous_conversation_context>\n${formatContextBridgeText(bridge)}\n</previous_conversation_context>`;
-}
-
-export function formatSenderIdentitySection(identity: SenderIdentity): string {
-  return `<conversation_sender>\n${formatSenderIdentityText(identity)}\n</conversation_sender>`;
-}
-
-export function formatDeclaredPreferencesSection(
-  preferences: DeclaredPreferencesContent,
-): string {
-  return `<declared_preferences>\n${formatDeclaredPreferencesText(preferences)}\n</declared_preferences>`;
-}
-
-export function formatRecalledMemoriesSection(
-  memories: RecalledMemoriesContent,
-): string {
-  return `<recalled_memories>\n${formatRecalledMemoriesText(memories)}\n</recalled_memories>`;
-}
-
-export function formatSessionContextSection(context: string): string {
-  return `<session_context>\n${formatSessionContextText(context)}\n</session_context>`;
-}
-
+/**
+ * The catchup is per-turn, not standing (it rides BOTH prompt paths), so it
+ * is framed here rather than through the shared standing block.
+ */
 export function formatConversationCatchupSection(digest: string): string {
   return `<conversation_catchup>\n${formatConversationCatchupText(digest)}\n</conversation_catchup>`;
 }
@@ -611,44 +563,24 @@ export function formatWorkspaceContext(dirs: string[]): string {
   ].join("\n");
 }
 
+/**
+ * The `<input_files>` section: this harness's intro around the shared lines
+ * (`prompt-sections.ts` `inputFileLines` says what each bullet and disclosure
+ * carries and why). The size on each bullet is new to this harness at S3 M5
+ * (Q-M5-3): the twin this builder rendered from had dropped it.
+ */
 export function formatInputFiles(
-  attachments: readonly AttachmentPromptEntry[],
+  attachments: readonly ResolvedAttachment[],
   vision?: VisionPromptInfo,
   downloadUrlKind?: DownloadUrlKind,
 ): string {
-  // A duplicate-renamed file (attachment-naming.ts) discloses its original
-  // name so the agent can connect "the two report.pdfs" in the user's
-  // message to distinct files on disk. A file with a minted download URL
-  // (attachment-download-urls.ts) lists it beside the path for the remote
-  // hand-off story.
-  const entries = attachments.map((a) => {
-    const rename =
-      a.renamedFrom !== undefined
-        ? ` (renamed from duplicate '${a.renamedFrom}')`
-        : "";
-    const url = a.downloadUrl !== undefined ? ` — download URL: ${a.downloadUrl}` : "";
-    return `- \`${a.path}\`${rename}${url}`;
-  });
-  // The URL hand-off line (shared wording, attachment-download-urls.ts)
-  // renders only when some listed file actually carries a URL — its wording
-  // keys on what kind of URL the storage backend mints.
-  const urlDisclosure =
-    downloadUrlKind !== undefined && attachments.some((a) => a.downloadUrl !== undefined)
-      ? [downloadUrlDisclosureLine(downloadUrlKind)]
-      : [];
-  // The vision lines (shared wording, attachment-vision.ts) tell the model
-  // which of these files it can already SEE inline versus which degraded to
-  // path-only — without them an agent silently ignores a photo the user
-  // believes it can see.
-  const disclosure = vision
-    ? visionDisclosureLines(vision.inlineFilenames, vision.notViewable)
-    : [];
+  const lines = inputFileLines(attachments, vision, downloadUrlKind);
   return [
     "<input_files>",
     "The following files have been provided as inputs. Read them when relevant to the task:",
-    ...entries,
-    ...urlDisclosure,
-    ...disclosure,
+    ...lines.entries,
+    ...(lines.urlHandoff !== undefined ? [lines.urlHandoff] : []),
+    ...lines.vision,
     "</input_files>",
   ].join("\n");
 }
@@ -697,14 +629,14 @@ export function formatInteractionModePrefix(
  */
 export function formatImplementPlanSection(
   buildFromPlan: boolean | undefined,
-  attachments: readonly AttachmentPromptEntry[],
+  attachments: readonly ResolvedAttachment[],
 ): string | undefined {
   if (!buildFromPlan) {
     return undefined;
   }
 
   const directive = buildImplementPlanDirective(
-    findApprovedPlanPath(attachments.map((a) => a.path)),
+    findApprovedPlanPath(attachments.map((a) => a.relativePath)),
   );
   return ["<implement_plan>", directive, "</implement_plan>"].join("\n");
 }
@@ -842,11 +774,8 @@ export interface BuildPromptInput {
   subAgents: SubAgent[];
   workspaceDirs: string[];
   workspaceFileRefs: string[];
-  /**
-   * This turn's resolved attachments for the `<input_files>` section —
-   * final paths plus duplicate-rename disclosure (attachment-resolver.ts).
-   */
-  attachments: AttachmentPromptEntry[];
+  /** This turn's resolved input files for the `<input_files>` section, as the runtime's attachment phase returns them. */
+  attachments: readonly ResolvedAttachment[];
   /**
    * Vision facts for the input-files section (T04): which attachments the
    * model sees inline and which degraded to path-only. PER-TURN like the

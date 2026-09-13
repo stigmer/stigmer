@@ -22,7 +22,14 @@
  * and the HITL recovery on a fresh agent mid-HITL.
  *
  * Rulings that moved a golden are quoted here:
- *  - (none yet)
+ *  - Q-M5-3 (2026-09-14, owner: A). Every `<input_files>` bullet gained the
+ *    file's size — `- \`.stigmer/inputs/spec.pdf\`` became
+ *    `- \`.stigmer/inputs/spec.pdf\` (204800 bytes)` — in the four goldens
+ *    that carry attachments (`enhanced.everything`, `enhanced.plan-mode`,
+ *    `resumed.prefixed`, `hitl.recovery`); no other line moved. The twin this
+ *    builder rendered from had dropped `sizeBytes`; the shared line
+ *    (`shared/prompt-sections.ts` `inputFileLines`) carries it for both
+ *    harnesses, as the field's own doc says a prompt should.
  *
  * Regenerate with `npx vitest run -u <this file>` only under such a ruling.
  */
@@ -34,6 +41,7 @@ import { PendingApprovalSchema, type PendingApproval } from "@stigmer/protos/ai/
 import { ApprovalAction, InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { ChannelTemplate, MessagingChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
 
+import type { ResolvedAttachment } from "../../../shared/attachment-resolver.js";
 import type { SkillMetadata } from "../../../shared/skill-resolver.js";
 import { buildPrompt, type BuildPromptInput } from "../prompt-builder.js";
 import type { AgentResolution, AgentResolutionReason } from "../session-lifecycle.js";
@@ -78,11 +86,22 @@ const SUB_AGENTS: SubAgent[] = [
   subAgent("writer", "Drafts release notes from a change list"),
 ];
 
-const ATTACHMENTS: BuildPromptInput["attachments"] = [
-  { path: ".stigmer/inputs/spec.pdf" },
-  { path: ".stigmer/inputs/report (2).pdf", renamedFrom: "report.pdf" },
-  { path: ".stigmer/inputs/diagram.png", downloadUrl: "https://storage.example.test/diagram.png?sig=abc" },
+const ATTACHMENTS: readonly ResolvedAttachment[] = [
+  { filename: "spec.pdf", relativePath: ".stigmer/inputs/spec.pdf", sizeBytes: 204800 },
+  { filename: "report (2).pdf", relativePath: ".stigmer/inputs/report (2).pdf", sizeBytes: 1024, renamedFrom: "report.pdf" },
+  {
+    filename: "diagram.png",
+    relativePath: ".stigmer/inputs/diagram.png",
+    sizeBytes: 4096,
+    downloadUrl: "https://storage.example.test/diagram.png?sig=abc",
+  },
 ];
+
+const PLAN_ATTACHMENT: ResolvedAttachment = {
+  filename: "release_aex1.plan.md",
+  relativePath: ".stigmer/inputs/release_aex1.plan.md",
+  sizeBytes: 2048,
+};
 
 const VISION: BuildPromptInput["vision"] = {
   inlineFilenames: ["diagram.png"],
@@ -179,7 +198,7 @@ describe("Cursor prompt goldens (S3 M5, Q-M5-1)", () => {
     const prompt = buildPrompt(
       everything("resumed_successfully", {
         buildFromPlan: true,
-        attachments: [...ATTACHMENTS, { path: ".stigmer/inputs/release_aex1.plan.md" }],
+        attachments: [...ATTACHMENTS, PLAN_ATTACHMENT],
       }),
     );
     await expect(prompt).toMatchFileSnapshot("./goldens/prompt.resumed.prefixed.prompt.md");

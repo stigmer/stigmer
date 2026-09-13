@@ -55,10 +55,9 @@ import {
   buildPrompt,
   primarySendCarriesImages,
   promptCarriesStandingContext,
-  type AttachmentPromptEntry,
   type BuildPromptInput,
-  type VisionPromptInfo,
 } from "./prompt-builder.js";
+import { visionPromptInfoOf } from "../../shared/prompt-sections.js";
 import { resolveServiceTierParams } from "./service-tier.js";
 import {
   createAgent,
@@ -180,21 +179,6 @@ export function projectMcpConfig(input: TurnInput): ReturnType<typeof toCursorMc
     );
   }
   return toCursorMcpConfig(input.mcp.servers);
-}
-
-/** The prompt-shaped projections of the runtime's attachments: the `<input_files>` entries and the vision disclosure. */
-export function prepareAttachmentPrompt(input: TurnInput): { attachmentEntries: AttachmentPromptEntry[]; visionPromptInfo: VisionPromptInfo | undefined } {
-  const { visionImages, visionNotViewable } = input.attachments;
-  const attachmentEntries = input.attachments.results.map((a) => ({
-    path: a.relativePath,
-    ...(a.renamedFrom !== undefined ? { renamedFrom: a.renamedFrom } : {}),
-    ...(a.downloadUrl !== undefined ? { downloadUrl: a.downloadUrl } : {}),
-  }));
-  const visionPromptInfo =
-    visionImages.length > 0 || visionNotViewable.length > 0
-      ? { inlineFilenames: visionImages.map((v) => v.filename), notViewable: visionNotViewable }
-      : undefined;
-  return { attachmentEntries, visionPromptInfo };
 }
 
 /**
@@ -517,7 +501,6 @@ export async function createFreshAgent(engine: CursorEngine): Promise<AgentResol
 export async function buildTurnPrompt(input: TurnInput, sink: TurnSink, engine: CursorEngine, rows: AdjudicatedRows): Promise<CursorPrompt> {
   const { executionId, blueprint, standing, attachments, workspace, approvalDecisions, appliedToolCallIds, structuredOutputSchema } = input;
   const spec = input.execution.spec!;
-  const { attachmentEntries, visionPromptInfo } = prepareAttachmentPrompt(input);
   const interactionMode = spec.executionConfig?.interactionMode ?? InteractionMode.UNSPECIFIED;
   const buildFromPlan = spec.executionConfig?.buildFromPlan ?? false;
 
@@ -530,8 +513,8 @@ export async function buildTurnPrompt(input: TurnInput, sink: TurnSink, engine: 
     subAgents: blueprint.subAgents,
     workspaceDirs: [...workspace.dirs],
     workspaceFileRefs: spec.workspaceFileRefs ?? [],
-    attachments: attachmentEntries,
-    vision: visionPromptInfo,
+    attachments: attachments.results,
+    vision: visionPromptInfoOf(attachments),
     downloadUrlKind: input.artifactStorage?.downloadUrlKind,
     pendingApprovals: rows.adjudicatedApprovals,
     appliedToolCallIds,

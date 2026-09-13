@@ -23,23 +23,35 @@
  * mode and build-from-plan are mutually exclusive in production, so each has
  * its own golden.
  *
+ * The goldens are taken through `turn-setup.ts` `composeSystemPrompt`, the
+ * production mapping from the runtime's resolved record to the builder's
+ * input, so they pin the mapping too, not a copy of it. (C0 photographed the
+ * prompt through a field-for-field copy of the mapping as it then sat inline
+ * in `buildEngine`; C1 extracted it and re-took the goldens through the
+ * extraction — byte-identical, which is the proof the extraction is one.)
+ *
  * A golden moves only under a ruling quoted in this header; never a quiet
  * `-u`. Regenerate with `npx vitest run -u <this file>` once ruled.
  */
 
 import { describe, it, expect } from "vitest";
+import { create } from "@bufbuild/protobuf";
+import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { AgentExecutionSpecSchema, ExecutionConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { ChannelTemplate, MessagingChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
-import { turnInputFixture } from "../../../__test-utils__/turn-input-fixture.js";
+import { makeInMemoryArtifactStorage } from "../../../__test-utils__/fake-artifact-storage.js";
+import { mockWorkspaceBackend } from "../../../__test-utils__/mock-workspace.js";
+import { TURN_INPUT_FIXTURE_IDS, turnInputFixture } from "../../../__test-utils__/turn-input-fixture.js";
 import type { TurnInput } from "../../../harness/types.js";
 import type { ResolvedAttachment } from "../../../shared/attachment-resolver.js";
 import type { SkillMetadata } from "../../../shared/skill-resolver.js";
 import type { RecalledMemoriesContent } from "../../../shared/recalled-memories.js";
-import { formatChannelTemplatesSection } from "../../../shared/channel-attachment.js";
 import { SourceType, type ProvisionResult } from "../../../shared/workspace/types.js";
-import { buildEnhancedSystemPrompt, type PromptBuilderInput } from "../prompt-builder.js";
-import { renderRootSkillsSection } from "../turn-setup.js";
+import { buildEnhancedSystemPrompt } from "../prompt-builder.js";
+import { composeSystemPrompt } from "../turn-setup.js";
 
 // ---------------------------------------------------------------------------
 // Fixtures — every value is a plain fact a golden can name.
@@ -118,11 +130,65 @@ const CHANNEL_MESSAGING = [
 
 const RECALLED: RecalledMemoriesContent = { facts: ["Prefers helm over kustomize.", "Release notes go in CHANGELOG.md."] };
 
-/** The runtime's resolved record for the "everything" shape; the golden tests hand it to the same mapping `buildEngine` uses. */
-function everythingInput(skills: readonly SkillMetadata[]): TurnInput {
+const PLAN_ATTACHMENT: ResolvedAttachment = {
+  filename: "release_aex1.plan.md",
+  relativePath: ".stigmer/inputs/release_aex1.plan.md",
+  sizeBytes: 2048,
+};
+
+interface EverythingShape {
+  readonly skills: readonly SkillMetadata[];
+  readonly interactionMode?: InteractionMode;
+  readonly buildFromPlan?: boolean;
+  readonly inputFiles?: readonly ResolvedAttachment[];
+}
+
+/**
+ * The runtime's resolved record for the "everything" shape — every field the
+ * prompt reads, populated: the two-entry workspace rooted at `/ws`, the
+ * skills, the channel, the referenced files on the spec, the input files with
+ * one inline image and one that degraded, the presigned storage, all five
+ * standing facts. `composeSystemPrompt` reads it exactly as `buildEngine`
+ * does.
+ */
+function everythingInput(shape: EverythingShape): TurnInput {
+  const sessionId = TURN_INPUT_FIXTURE_IDS.sessionId;
+  const executionId = TURN_INPUT_FIXTURE_IDS.executionId;
+  const execution = create(AgentExecutionSchema, {
+    metadata: create(ApiResourceMetadataSchema, { id: executionId, org: TURN_INPUT_FIXTURE_IDS.org, name: executionId }),
+    spec: create(AgentExecutionSpecSchema, {
+      sessionId,
+      message: USER_MESSAGE,
+      workspaceFileRefs: ["app/src/deploy.ts", "docs/RELEASES.md"],
+      executionConfig: create(ExecutionConfigSchema, {
+        ...(shape.interactionMode !== undefined ? { interactionMode: shape.interactionMode } : {}),
+        ...(shape.buildFromPlan !== undefined ? { buildFromPlan: shape.buildFromPlan } : {}),
+      }),
+    }),
+  });
   return turnInputFixture({
-    message: USER_MESSAGE,
-    skills: { root: [...skills], bySubAgent: new Map() },
+    execution,
+    skills: { root: [...shape.skills], bySubAgent: new Map() },
+    workspace: {
+      dirs: ["/ws"],
+      primaryDir: "/ws",
+      gitWorkspace: false,
+      captureMode: false,
+      changeSetId: `${executionId}:0`,
+      provision: { workspaceDirs: ["/ws"], provisionResults: [...PROVISION_RESULTS], workspaceBackend: mockWorkspaceBackend() },
+    },
+    mcp: {
+      servers: [],
+      channelMessaging: CHANNEL_MESSAGING,
+      leases: { global: false, categories: new Set(), servers: new Set() },
+      policies: new Map(),
+    },
+    attachments: {
+      results: [...(shape.inputFiles ?? INPUT_FILES)],
+      visionImages: [{ filename: "diagram.png", mimeType: "image/png", base64: "", byteSize: 4096 }],
+      visionNotViewable: [{ path: ".stigmer/inputs/huge.png", reason: "too_large" }],
+    },
+    artifactStorage: makeInMemoryArtifactStorage({ downloadUrlKind: "presigned" }).storage,
     standing: {
       contextBridge: "Earlier the user asked for a staging deploy; it succeeded.",
       senderIdentity: { value: "15550001111", kind: "whatsapp_phone" },
@@ -134,40 +200,9 @@ function everythingInput(skills: readonly SkillMetadata[]): TurnInput {
   });
 }
 
-/**
- * The mapping `turn-setup.ts` `buildEngine` performs from the resolved record
- * to the builder's input, reproduced here field for field (the golden pins
- * the prompt those fields render). The engine-only inputs it reads beside
- * `TurnInput` — the provision results, the container root, the storage's URL
- * kind, the vision facts — are stated as the fixture's values.
- */
-function promptInputOf(
-  input: TurnInput,
-  extra: Partial<PromptBuilderInput> & { readonly recalledMemories?: RecalledMemoriesContent },
-): PromptBuilderInput {
-  const spec = input.execution.spec!;
-  return {
-    instructions: input.blueprint.instructions,
-    provisionResults: [...PROVISION_RESULTS],
-    containerRoot: "/ws",
-    skillsPromptSection: renderRootSkillsSection(input),
-    channelTemplatesPromptSection: formatChannelTemplatesSection(CHANNEL_MESSAGING) || undefined,
-    workspaceFileRefs: ["app/src/deploy.ts", "docs/RELEASES.md"],
-    workspaceRoot: "/ws",
-    inputFiles: INPUT_FILES,
-    vision: {
-      inlineFilenames: ["diagram.png"],
-      notViewable: [{ path: ".stigmer/inputs/huge.png", reason: "too_large" }],
-    },
-    downloadUrlKind: "presigned",
-    interactionMode: spec.executionConfig?.interactionMode,
-    buildFromPlan: spec.executionConfig?.buildFromPlan,
-    contextBridge: input.standing.contextBridge,
-    senderIdentity: input.standing.senderIdentity,
-    sessionContext: input.standing.sessionContext,
-    declaredPreferences: input.standing.declaredPreferences,
-    ...extra,
-  };
+/** The prompt as `buildEngine` composes it: the production mapping over the record and the awaited memory selection. */
+async function systemPromptOf(input: TurnInput): Promise<string> {
+  return composeSystemPrompt(input, await input.standing.selectRecalledMemories());
 }
 
 // ---------------------------------------------------------------------------
@@ -176,40 +211,23 @@ function promptInputOf(
 
 describe("native system prompt goldens (S3 M5, Q-M5-1)", () => {
   it("everything at once, nine skills so the relevance filter fires", async () => {
-    const input = everythingInput(NINE_SKILLS);
-    const prompt = buildEnhancedSystemPrompt(
-      promptInputOf(input, { recalledMemories: await input.standing.selectRecalledMemories() }),
-    );
+    const prompt = await systemPromptOf(everythingInput({ skills: NINE_SKILLS }));
     await expect(prompt).toMatchFileSnapshot("./goldens/system-prompt.everything.prompt.md");
   });
 
   it("three skills, below the relevance threshold: every skill listed, no also-available note", async () => {
-    const input = everythingInput(THREE_SKILLS);
-    const prompt = buildEnhancedSystemPrompt(
-      promptInputOf(input, { recalledMemories: await input.standing.selectRecalledMemories() }),
-    );
+    const prompt = await systemPromptOf(everythingInput({ skills: THREE_SKILLS }));
     await expect(prompt).toMatchFileSnapshot("./goldens/system-prompt.skills-below-threshold.prompt.md");
   });
 
   it("plan mode appends the shared directive plus the native read-boundary sentence, last", async () => {
-    const input = everythingInput(THREE_SKILLS);
-    const prompt = buildEnhancedSystemPrompt(
-      promptInputOf(input, { interactionMode: InteractionMode.PLAN, recalledMemories: RECALLED }),
-    );
+    const prompt = await systemPromptOf(everythingInput({ skills: THREE_SKILLS, interactionMode: InteractionMode.PLAN }));
     await expect(prompt).toMatchFileSnapshot("./goldens/system-prompt.plan-mode.prompt.md");
   });
 
   it("build-from-plan points at the attached approved plan", async () => {
-    const input = everythingInput(THREE_SKILLS);
-    const prompt = buildEnhancedSystemPrompt(
-      promptInputOf(input, {
-        buildFromPlan: true,
-        inputFiles: [
-          ...INPUT_FILES,
-          { filename: "release_aex1.plan.md", relativePath: ".stigmer/inputs/release_aex1.plan.md", sizeBytes: 2048 },
-        ],
-        recalledMemories: RECALLED,
-      }),
+    const prompt = await systemPromptOf(
+      everythingInput({ skills: THREE_SKILLS, buildFromPlan: true, inputFiles: [...INPUT_FILES, PLAN_ATTACHMENT] }),
     );
     await expect(prompt).toMatchFileSnapshot("./goldens/system-prompt.build-from-plan.prompt.md");
   });
