@@ -923,10 +923,11 @@ export class MessageAccumulator {
     // grants already use — see toolCallIdentityToken) and keep the original id.
     // Without this the seeded approved call and the re-run would both appear (a
     // duplicate row) and dropping the seeded id would trip the backend's
-    // append-only-at-identity guard, stalling the run. This generalizes the v2
-    // deep-agent StatusBuilder.findResumableSeededToolCall (a tool-name match)
-    // to the full Cursor identity, reusing the single existing identity
-    // definition rather than introducing a parallel one.
+    // append-only-at-identity guard, stalling the run. This generalizes what
+    // the native builder does by exact tool_call_id (`V3StatusBuilder`'s resume
+    // reconciliation; its v2 predecessor matched by tool name) to the full
+    // Cursor identity, reusing the single existing identity definition rather
+    // than introducing a parallel one.
     const seeded = this.findResumableSeededToolCall(tc);
     if (seeded) {
       // Re-key the fresh call_id onto the seeded proto so this call_id's later

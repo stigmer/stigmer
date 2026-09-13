@@ -4,20 +4,21 @@
  * proto it is handed: messages, tool-call rows and their approval status,
  * sub-agent rows, todos, artifacts, write-backs.
  *
- * Implements the same behavioral contract as the v2 StatusBuilder for all
- * 8 golden scenarios, using v3 event semantics (tool_call_id keying,
- * content-block-level deltas, explicit tool lifecycle).
+ * The one transcript builder of the native harness since S3 M2b: v3 event
+ * semantics (tool_call_id keying, content-block-level deltas, explicit tool
+ * lifecycle). Its predecessor, the v2 `StatusBuilder` over LangChain's
+ * `streamEvents` v2, was retired with the v2 stream (Q-S3-1); the eight
+ * golden sequences both once had to agree on are this builder's test's.
  *
  * What this builder deliberately does NOT write, and who does (the adapter
  * contract's field ownership, `harness/types.ts` `TurnSink`): the phase,
  * `startedAt` and `streamingUsage` are the turn runtime's. A gated tool
  * start is reported as the {@link awaitingApproval} fact and the caller
- * decides what phase that means; usage is reported raw through
- * {@link V3StatusBuilderOptions.onUsage} and the caller prices and accounts
- * it (until S3 M2a this builder flipped WAITING_FOR_APPROVAL itself and
- * summed usage into `streamingUsage` — a second writer of each field beside
- * the runtime's; `streaming-v3.ts`'s legacy loop now performs both writes
- * from these two hooks until M2b deletes it).
+ * (`turn-stream.ts`) decides what that means for the turn; usage is reported
+ * raw through {@link V3StatusBuilderOptions.onUsage} and the caller prices
+ * it into the sink (until S3 M2a this builder flipped WAITING_FOR_APPROVAL
+ * itself and summed usage into `streamingUsage` — a second writer of each
+ * field beside the runtime's).
  *
  * Usage is reported on message_finish only (standalone usage events are
  * no-ops) to prevent double-counting — v3 emits both for the same turn.
@@ -46,13 +47,13 @@ import { applyTodoUpdate } from "../../shared/todos.js";
 import { ExecutionState } from "./execution-state.js";
 import { utcTimestamp } from "../../shared/status.js";
 import type { ExecutionStatusWriter } from "../../shared/execution-status-writer.js";
-import type { ApprovalPolicyProvider } from "./status-builder.js";
 import type { StigmerRunEvent, V3UsagePayload } from "./v3-events.js";
 import { namespaceDepth } from "./v3-events.js";
 import {
   extractToolResultV3,
   sanitizeArgsPreview,
   stampApprovalProvenance,
+  type ApprovalPolicyProvider,
 } from "./status-builder-shared.js";
 import { SubAgentTracker } from "./subagent-tracker.js";
 
@@ -293,8 +294,9 @@ export class V3StatusBuilder implements ExecutionStatusWriter {
     namespace: string,
   ): void {
     // Resume reconciliation: the gated tool call already exists, seeded from the
-    // persisted transcript of a prior invocation (seedStatusFromExecution in
-    // index.ts). The durable checkpoint re-emits tool_started now that approval
+    // persisted transcript of a prior invocation (the runtime's
+    // `seedFromPersistedStatus`, `harness/turn-context.ts`). The durable
+    // checkpoint re-emits tool_started now that approval
     // is granted — flip the existing call to RUNNING in place rather than
     // appending a duplicate or re-triggering the approval gate. v3 keys by
     // tool_call_id, so this is an exact match (no name heuristics needed).
@@ -340,7 +342,8 @@ export class V3StatusBuilder implements ExecutionStatusWriter {
 
     // Stamp authorization provenance in the same spot as tool_kind, for every
     // observed tool call (gated or auto-approved). A gated call is re-seeded on
-    // reinvocation (index.ts) with the same source carried through the interrupt.
+    // reinvocation (the runtime's wide seed) with the same source carried
+    // through the interrupt.
     stampApprovalProvenance(tc, this.approvalProvider);
 
     if (approvalReq.requiresApproval) {

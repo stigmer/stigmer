@@ -1,13 +1,11 @@
 /**
- * Mutable execution state for the StatusBuilder.
+ * Mutable execution state for `V3StatusBuilder`.
  *
  * Holds the AgentExecutionStatus proto being progressively built and
  * O(1) lookup indexes into its repeated fields. Mutations to indexed
  * references (ToolCall, AgentMessage) propagate directly to the proto
- * because they share the same object reference.
- *
- * Phase 3b-i scope: core indexes for main-agent streaming.
- * Sub-agent routing maps and approval tracking are added in Phase 3c.
+ * because they share the same object reference. Sub-agent transcripts are
+ * `SubAgentTracker`'s, keyed by namespace beside this state.
  */
 
 import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
@@ -69,7 +67,7 @@ export class ExecutionState {
   /**
    * Rebuild the toolCalls index from the proto's messages.
    *
-   * Used on the resume path where the StatusBuilder is initialized
+   * Used on the resume path where the V3StatusBuilder is initialized
    * with a persisted AgentExecutionStatus that already contains
    * messages and tool calls. Only proto-derivable indexes are rebuilt;
    * ephemeral runtime state starts fresh.

@@ -44,9 +44,9 @@ describe("costCapExceeded", () => {
 
 describe("cost-limit terminal copy", () => {
   it("pins the error prefix consumers match on (no structured termination reason exists)", () => {
-    // Mirrors the TOOL_CALL_LIMIT_ERROR_PREFIX guard in
-    // streaming-terminal.test.ts: a reword silently downgrades any consumer
-    // matching this prefix to generic error copy.
+    // The twin of TOOL_CALL_LIMIT_ERROR_PREFIX's pin (`shared/tool-rounds.ts`,
+    // matched by the cloud's reply-extractor): a reword silently downgrades
+    // any consumer matching this prefix to generic error copy.
     expect(COST_LIMIT_ERROR_PREFIX).toBe("Agent reached the cost limit");
   });
 

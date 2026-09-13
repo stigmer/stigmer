@@ -8,8 +8,8 @@
  * contract of the runner (the hermetic goldens pin every string below byte
  * for byte, `activities/execute-cursor/__tests__/hermetic/`), and a table a
  * reader can scan is how that contract stays reviewable. The native
- * harness's `execute-deep-agent/streaming-terminal.ts` keeps one function
- * per arm; S3 aligns the two (P-1's copy alignment) with both in view.
+ * harness once kept one function per arm (`streaming-terminal.ts`, retired
+ * at S3 M2b); since S3 M2a both harnesses' turns end through this one table.
  *
  * The throw-vs-return rule, unchanged from the orchestrator it replaces:
  *  - RETURN when a Temporal retry would only repeat the outcome — a stall
@@ -107,9 +107,9 @@ export function stallArm(error: StallTimeoutError): TerminalArm {
 /**
  * The cost cap stopped the turn. TERMINATED, not FAILED: the platform
  * deliberately stopped the run, work is checkpointed, and the conversation
- * continues on the next message (the recursion-limit precedent in
- * `execute-deep-agent/streaming-terminal.ts`). RETURN: a retry would burn
- * the same budget again.
+ * continues on the next message (the recursion-limit precedent,
+ * {@link toolCallLimitArm}). RETURN: a retry would burn the same budget
+ * again.
  */
 export function costCapArm(maxCostUsd: number, estimatedCostUsd: number): TerminalArm {
   return {

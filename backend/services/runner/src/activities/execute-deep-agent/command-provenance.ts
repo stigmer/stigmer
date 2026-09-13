@@ -8,8 +8,9 @@
  * 1. IDENTITY turn scoping (not positional). Cursor scopes a turn by the message
  *    index its stream started at. The deep-agent cannot: an approved command
  *    executes IN PLACE at its seeded transcript position (it was proposed in a
- *    prior segment, seeded into this segment, and updated to COMPLETED by
- *    `StatusBuilder.findResumableSeededToolCall`). So "this turn's calls" are
+ *    prior segment, seeded into this segment, and updated to COMPLETED in
+ *    place by `V3StatusBuilder.handleToolStarted`'s resume reconciliation). So
+ *    "this turn's calls" are
  *    those whose id is absent from a pre-stream {@link collectSettledToolCallIds}
  *    snapshot, and "executed" is a COMPLETED status.
  *

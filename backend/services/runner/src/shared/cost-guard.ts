@@ -13,8 +13,8 @@
  * same clean-cancel pattern the stall watchdog and first-denial stop use.
  * Slightly harsher than native by construction; both harnesses terminate with
  * the same honesty semantics (EXECUTION_TERMINATED, work checkpointed, the
- * conversation continues on the next message — the recursion-limit precedent
- * in execute-deep-agent/streaming-terminal.ts).
+ * conversation continues on the next message — the recursion-limit precedent,
+ * `harness/terminal-table.ts` `toolCallLimitArm`).
  *
  * The running figure is the usage accumulator's local pricing-table estimate
  * (authoritative billing is the BiDi proxy). That is the same estimation

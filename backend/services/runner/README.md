@@ -223,12 +223,10 @@ These tune internal behavior or support testing. Most operators never set them.
 | `STREAMING_MIN_INTERVAL_MS` | `500` | Minimum time between streaming status updates (rate limit). |
 | `STREAMING_MAX_INTERVAL_MS` | `5000` | Maximum time before a forced keepalive status update. Clamped up to the min if set lower. |
 | `STREAMING_BURST_THRESHOLD` | `50` | Event count that triggers an immediate status update (burst protection). |
-| `LANGGRAPH_STREAM_EVENTS_VERSION` | `v3` | Selects the LangGraph streaming events version; `v2` opts into the older path. |
 | `SKIP_MCP_CONNECT_BACKFILL` | `false` | When `true`, skips MCP Connect backfill. |
 | `STIGMER_MCP_PUBLIC_ENDPOINT` | _(none)_ | Public endpoint injected as `STIGMER_SERVER_ADDRESS` into MCP server environments that request it. |
 | `CURSOR_EVENT_RECORD_DIR` | _(none)_ | Directory to record Cursor harness events (debugging/fixtures). |
-| `V2_EVENT_RECORD_DIR` | _(none)_ | Directory to record deep-agent v2 streaming events. |
-| `V3_EVENT_RECORD_DIR` | _(none)_ | Directory to record deep-agent v3 streaming events. |
+| `V3_EVENT_RECORD_DIR` | _(none)_ | Directory to record deep-agent harness events (debugging/fixtures). |
 | `RECORD_FIXTURES` | `0` | When `1`, records HTTP fixtures for replay-based tests. |
 
 ## Related documentation
