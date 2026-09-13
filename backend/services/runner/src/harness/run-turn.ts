@@ -252,7 +252,10 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
           `${activityName} file-review resume short-circuit: execution=${executionId}, ` +
             `failed=${settlement.failed}, discarded=${settlement.discardedPaths.length}`,
         );
-        return { kind: "return", value: slimStatus(status) };
+        // The execution completes here, so its answer rides the slim as it
+        // does from `completeTurn`: the seed carried the transcript and any
+        // structured output the paused turn resolved (Q-M4-8).
+        return { kind: "return", value: completionSlim(lastAssistantText()) };
       }
       default: {
         const exhaustive: never = settlement;
@@ -368,7 +371,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
 
     switch (outcome.kind) {
       case "completed":
-        return reviewPending ? settleWith(awaitingReviewArm()) : completeTurn(turn, ExecutionPhase.EXECUTION_COMPLETED);
+        return reviewPending ? pauseCompletedTurnForReview(turn) : completeTurn(turn, ExecutionPhase.EXECUTION_COMPLETED);
       case "cancelled":
         return reviewPending ? settleWith(awaitingReviewArm()) : completeTurn(turn, ExecutionPhase.EXECUTION_CANCELLED);
       case "awaiting_approval":
@@ -454,6 +457,19 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
   }
 
   /**
+   * The engine finished AND left a reviewable change: the structured output
+   * is resolved now, before the WAITING persist, so the resume that
+   * reconciles the review completes with it (Q-M4-8 closes Q-M2a-5); then
+   * the review pause. Nothing else of the completion epilogue runs here —
+   * the plan artifact and the write-back belong to the settlement that
+   * actually completes the execution.
+   */
+  async function pauseCompletedTurnForReview(turn: TurnInput): Promise<Settled> {
+    await resolveStructuredOutput(turn, lastAssistantText());
+    return settleWith(awaitingReviewArm());
+  }
+
+  /**
    * A turn the engine finished (COMPLETED) or ended cancelled on its own
    * (CANCELLED): the final text from the last AI row; the structured output
    * the execution asked for, extracted from that text unless the adapter
@@ -466,18 +482,11 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
     status.completedAt = utcTimestamp();
     status.phase = phase;
 
-    let structuredOutput: unknown = status.structuredOutput;
     let finalText: string | undefined;
 
     if (phase === ExecutionPhase.EXECUTION_COMPLETED) {
-      finalText = [...status.messages].reverse().find((m) => m.type === MessageType.MESSAGE_AI)?.content;
-
-      if (structuredOutput === undefined && turn.structuredOutputSchema && finalText) {
-        structuredOutput = await extractStructuredOutputFromText(turn, finalText);
-        if (structuredOutput !== undefined) {
-          status.structuredOutput = structuredOutput as JsonObject;
-        }
-      }
+      finalText = lastAssistantText();
+      await resolveStructuredOutput(turn, finalText);
 
       // Plan mode: publish the final plan message as a plan artifact (named
       // from the plan's title); the only artifact path a harness without an
@@ -505,14 +514,43 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
     await chokepoint.write();
     console.log(
       `${activityName} completed: execution=${executionId}, phase=${ExecutionPhase[status.phase]}, ` +
-        `hasStructuredOutput=${structuredOutput !== undefined}` +
+        `hasStructuredOutput=${status.structuredOutput !== undefined}` +
         (status.error ? `, error=${status.error}` : ""),
     );
+    return { kind: "return", value: completionSlim(finalText) };
+  }
 
+  /** The last assistant text on the transcript: the turn's `final_text`. */
+  function lastAssistantText(): string | undefined {
+    return [...status.messages].reverse().find((m) => m.type === MessageType.MESSAGE_AI)?.content;
+  }
+
+  /**
+   * The structured output the execution asked for, folded onto the status
+   * unless the adapter already did (the deep-agent's `structuredResponse`):
+   * extracted from the final text through the tiers below. Runs where the
+   * engine has FINISHED speaking — a completed turn, and a completed turn
+   * the runtime pauses for file review (Q-M4-8: the pure-reconcile
+   * COMPLETED then carries it, on every harness).
+   */
+  async function resolveStructuredOutput(turn: TurnInput, finalText: string | undefined): Promise<void> {
+    if (status.structuredOutput !== undefined || !turn.structuredOutputSchema || !finalText) return;
+    const extracted = await extractStructuredOutputFromText(turn, finalText);
+    if (extracted !== undefined) status.structuredOutput = extracted as JsonObject;
+  }
+
+  /**
+   * The slim return of a COMPLETED execution: the status the workflow reads,
+   * with `final_text` and `structured` beside it for the callers that consume
+   * an agent's answer as a value (`call-agent-orchestrator.ts`). One shape for
+   * the two ways an execution completes — the engine's own finish and the
+   * pure file-review resume.
+   */
+  function completionSlim(finalText: string | undefined): Record<string, unknown> {
     const slim = slimStatus(status) as Record<string, unknown>;
     if (finalText !== undefined) slim.final_text = finalText;
-    if (structuredOutput !== undefined) slim.structured = structuredOutput;
-    return { kind: "return", value: slim };
+    if (status.structuredOutput !== undefined) slim.structured = status.structuredOutput;
+    return slim;
   }
 
   /**
