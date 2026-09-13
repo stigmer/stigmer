@@ -36,14 +36,35 @@ export interface TemporalControl {
 
 export interface InternalDaemonDeps {
   config?: DaemonConfig;
+  /**
+   * The environment the children inherit (defaults to this process's). The
+   * detached daemon IS the environment the launcher built for it; the
+   * foreground launcher passes that same built environment here so the
+   * children see exactly what they would have seen detached.
+   */
+  env?: NodeJS.ProcessEnv;
   host?: ProcessHost;
   clock?: Clock;
   temporal?: TemporalControl;
   log?: Logger;
   /** Resolves when shutdown is requested (real entry: SIGTERM/SIGINT). */
   waitForShutdown: () => Promise<void>;
-  /** Invoked once the stack is up and the monitor is running (tests). */
-  onStarted?: () => void;
+  /**
+   * Invoked once the stack is up and the monitor is running, and awaited
+   * before the daemon settles into waiting for shutdown. The foreground
+   * launcher does its post-readiness work here (seedpack, the success card);
+   * tests use it to observe "started".
+   */
+  onStarted?: () => void | Promise<void>;
+}
+
+/** Resolve on the first SIGTERM or SIGINT — the daemon's shutdown trigger. */
+export function waitForShutdownSignal(): Promise<void> {
+  return new Promise((resolve) => {
+    const onSignal = (): void => resolve();
+    process.once("SIGTERM", onSignal);
+    process.once("SIGINT", onSignal);
+  });
 }
 
 /** Run the daemon to completion. Returns the process exit code. */
@@ -88,7 +109,13 @@ export async function runInternalDaemon(deps: InternalDaemonDeps): Promise<numbe
   }
 
   // --- Start the server (gated) and runner via the supervisor. ---
-  const supervisor = new ProcessSupervisor(buildComponents(config), { host, clock, healthState, persist, log });
+  const supervisor = new ProcessSupervisor(buildComponents(config, deps.env ?? process.env), {
+    host,
+    clock,
+    healthState,
+    persist,
+    log,
+  });
   const result = await supervisor.startAll();
   if (!result.ok) {
     log.error("critical component failed to start", { component: result.failedCritical });
@@ -127,7 +154,7 @@ export async function runInternalDaemon(deps: InternalDaemonDeps): Promise<numbe
   monitor.unref?.();
 
   log.info("daemon started", { pid: process.pid });
-  deps.onStarted?.();
+  await deps.onStarted?.();
 
   // --- Wait for shutdown, then tear down in reverse order. ---
   await deps.waitForShutdown();

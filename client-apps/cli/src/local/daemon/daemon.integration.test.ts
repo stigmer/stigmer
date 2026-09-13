@@ -35,6 +35,7 @@ describe("NodeProcessHost (real spawn)", () => {
 
     const host = new NodeProcessHost();
     const request: SpawnRequest = {
+      name: "runner",
       command: process.execPath,
       args: [script],
       env: process.env,
@@ -56,6 +57,38 @@ describe("NodeProcessHost (real spawn)", () => {
     handle.kill("SIGTERM");
     await exited;
     expect(handle.hasExited()).toBe(true);
+  });
+
+  // The foreground launcher's window into the children: every complete line,
+  // tagged with the component, in order within a stream; a partial trailing
+  // line is delivered at exit; the log file still receives the same bytes.
+  it("mirrors complete lines tagged with the component, flushing the tail at exit", async () => {
+    const dir = tempDir();
+    const script = join(dir, "chatty-child.cjs");
+    writeFileSync(
+      script,
+      // Two writes that split a line across chunks, one stderr line, and a
+      // final line with no newline.
+      `process.stdout.write("first li");\n` +
+        `process.stdout.write("ne\\nsecond line\\n");\n` +
+        `process.stderr.write("a warning\\n");\n` +
+        `process.stdout.write("tail without newline");\n` +
+        `setTimeout(() => process.exit(0), 50);\n`,
+    );
+    const logFile = join(dir, "child.log");
+    const mirrored: string[] = [];
+    const host = new NodeProcessHost({ mirror: (component, line) => mirrored.push(`${component}|${line}`) });
+
+    const handle = host.spawn({ name: "stigmer-server", command: process.execPath, args: [script], env: process.env, logFile });
+    await new Promise<void>((resolve) => handle.onExit(() => resolve()));
+
+    expect(mirrored.filter((l) => l !== "stigmer-server|a warning")).toEqual([
+      "stigmer-server|first line",
+      "stigmer-server|second line",
+      "stigmer-server|tail without newline",
+    ]);
+    expect(mirrored).toContain("stigmer-server|a warning");
+    await expect.poll(() => readFileSync(logFile, "utf8")).toContain("first line\nsecond line\n");
   });
 });
 

@@ -1,10 +1,14 @@
 // Foreground control of the daemon: `up` (spawn + verify + wait-ready),
-// `down` (signal + wait + safety-net cleanup), and a liveness check.
+// `upForeground` (run the daemon body right here until a signal), `down`
+// (signal + wait + safety-net cleanup), and a liveness check.
 //
-// `up` resolves every heavy dependency in the foreground (Temporal binary,
+// Both `up` shapes resolve every heavy dependency first (Temporal binary,
 // server launch, runner entry) so failures surface with a clear message before
-// a detached daemon is spawned, then re-execs this same CLI as the hidden
-// `internal-daemon` and waits until the server's gRPC port answers.
+// anything long-lived starts. The detached shape then re-execs this same CLI
+// as the hidden `internal-daemon` and waits until the server's gRPC port
+// answers; the foreground shape calls the same daemon body in-process, which
+// is what a container entrypoint, a systemd unit or a tmux pane wants: one
+// process to watch, signals delivered to it, the stack's output on its stdio.
 
 import { spawn } from "node:child_process";
 import { mkdirSync, openSync } from "node:fs";
@@ -26,7 +30,9 @@ import { resolveOperatorIdentity } from "../operator-config.js";
 import { ensureRunner } from "../runtime/runner.js";
 import { ensureServer } from "../runtime/server.js";
 import { TemporalManager } from "../temporal/manager.js";
-import { buildDaemonEnv, type DaemonEnvInputs } from "./env.js";
+import { buildDaemonEnv, type DaemonEnvInputs, readDaemonConfig } from "./env.js";
+import { NodeProcessHost, type OutputMirror } from "./host.js";
+import { type InternalDaemonDeps, runInternalDaemon, waitForShutdownSignal } from "./process.js";
 
 /** How long `up` waits for the server's gRPC port after spawning the daemon. */
 const READY_TIMEOUT_MS = 60_000;
@@ -41,8 +47,94 @@ export interface UpOptions {
   noWeb?: boolean;
 }
 
+/** Everything both `up` shapes need once the heavy resolution is done. */
+interface PreparedLaunch {
+  data: string;
+  logs: string;
+  temporalAddress: string;
+  env: NodeJS.ProcessEnv;
+}
+
 /** Start the local stack in the background. Throws on any startup failure. */
 export async function up(options: UpOptions = {}, home: string = homedir()): Promise<void> {
+  const { data, logs, temporalAddress, env } = await prepareLaunch(options, home);
+
+  const daemonPid = spawnDaemon(env, join(logs, "daemon.log"));
+  log.info("daemon process started", { pid: daemonPid });
+
+  await sleep(DAEMON_SETTLE_MS);
+  if (!isProcessAlive(daemonPid)) {
+    throw new CliExitError("daemon process crashed during startup", ExitCode.General, [
+      `Check ${join(logs, "daemon.log")} for details.`,
+    ]);
+  }
+
+  await waitForTcp({ port: SERVER_PORT, timeoutMs: READY_TIMEOUT_MS, label: "stigmer-server" });
+
+  await applySeedpackBestEffort(home);
+
+  saveStartupConfig(data, buildStartupConfig(data, logs, temporalAddress, daemonPid, options));
+}
+
+/** Seams of the foreground launcher, injectable for tests. */
+export interface UpForegroundDeps {
+  /** The daemon body (default: the real one). */
+  runDaemon?: (deps: InternalDaemonDeps) => Promise<number>;
+  /** Resolves when the stack should shut down (default: the first SIGTERM/SIGINT). */
+  waitForShutdown?: () => Promise<void>;
+  /** Post-readiness bootstrap (default: the best-effort seedpack apply). */
+  bootstrap?: (home: string) => Promise<void>;
+  /** Receives each line the server and runner write (default: a `[component]`-prefixed stdout mirror). */
+  mirror?: OutputMirror;
+  /** Invoked once the stack is serving and seeded — the moment a detached `up` would have returned. */
+  onReady?: () => void | Promise<void>;
+}
+
+/**
+ * Start the local stack in THIS process and run it until shutdown is requested.
+ * Resolves to the daemon's exit code: 0 after a clean shutdown, 1 when a
+ * critical component failed to start (the daemon has already logged why).
+ *
+ * The same resolution, the same daemon body and the same on-disk state as
+ * `up`, so `stigmer status` and `stigmer down` from another shell see an
+ * ordinary daemon whose PID happens to be ours. The children receive the very
+ * environment a detached daemon would have inherited, and what a detached `up`
+ * does once the server answers — the seedpack, the startup record — happens in
+ * `onStarted`, at the same point in the stack's life.
+ */
+export async function upForeground(
+  options: UpOptions = {},
+  home: string = homedir(),
+  deps: UpForegroundDeps = {},
+): Promise<number> {
+  const { data, logs, temporalAddress, env } = await prepareLaunch(options, home);
+  const runDaemon = deps.runDaemon ?? runInternalDaemon;
+  const bootstrap = deps.bootstrap ?? applySeedpackBestEffort;
+
+  return runDaemon({
+    config: readDaemonConfig(env),
+    env,
+    host: new NodeProcessHost({ mirror: deps.mirror ?? mirrorToStdout }),
+    waitForShutdown: deps.waitForShutdown ?? waitForShutdownSignal,
+    onStarted: async () => {
+      await bootstrap(home);
+      saveStartupConfig(data, buildStartupConfig(data, logs, temporalAddress, process.pid, options));
+      await deps.onReady?.();
+    },
+  });
+}
+
+// The default foreground mirror: one line per child line, tagged with the
+// component, on stdout — a terminal in a tmux pane, `docker logs` in a
+// container. The log files keep receiving the same bytes untagged.
+const mirrorToStdout: OutputMirror = (component, line) => {
+  process.stdout.write(`[${component}] ${line}\n`);
+};
+
+// The part of `up` that is the same whether the daemon then runs detached or
+// right here: refuse a second stack, prepare the state dirs, resolve every
+// heavy dependency, and encode the launcher→daemon contract.
+async function prepareLaunch(options: UpOptions, home: string): Promise<PreparedLaunch> {
   const data = dataDir(home);
   const logs = logDir(home);
 
@@ -84,21 +176,7 @@ export async function up(options: UpOptions = {}, home: string = homedir()): Pro
     process.env,
   );
 
-  const daemonPid = spawnDaemon(env, join(logs, "daemon.log"));
-  log.info("daemon process started", { pid: daemonPid });
-
-  await sleep(DAEMON_SETTLE_MS);
-  if (!isProcessAlive(daemonPid)) {
-    throw new CliExitError("daemon process crashed during startup", ExitCode.General, [
-      `Check ${join(logs, "daemon.log")} for details.`,
-    ]);
-  }
-
-  await waitForTcp({ port: SERVER_PORT, timeoutMs: READY_TIMEOUT_MS, label: "stigmer-server" });
-
-  await applySeedpackBestEffort(home);
-
-  saveStartupConfig(data, buildStartupConfig(data, logs, temporal.address, daemonPid, options));
+  return { data, logs, temporalAddress: temporal.address, env };
 }
 
 /**
