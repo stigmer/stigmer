@@ -41,6 +41,14 @@
  * runtime accountant's fields (`model`, `estimatedCostUsd`, the requested
  * tier and thinking mode).
  *
+ * Golden hunk since S3 M4 (Q-M4-7, ruled Q-M4-12 A): turn 1's
+ * `fileChangeProgress` is the TRUE snapshot at the WAITING write
+ * (`filesChanged: 1`, `report.md` ADD +3, `capturedAt` t=2) where it was a
+ * stale t=0 snapshot taken by the stream loop before the engine wrote the
+ * file — no later mid-stream persist crossed the floor, so the pause used
+ * to persist "0 files" beside a one-file change set. The runtime now
+ * refreshes the strip on every write, the terminal one included.
+ *
  * Regenerate ONLY after a deliberate behavior change:
  *   npx vitest run src/activities/execute-deep-agent/__tests__/hermetic -u
  */

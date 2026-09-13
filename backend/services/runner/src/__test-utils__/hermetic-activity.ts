@@ -96,6 +96,7 @@ import {
   signalWorkerShutdown,
   unregisterWorkerShutdownSignal,
 } from "../shared/worker-shutdown.js";
+import { decideCapturedFileChanges, type FileReviewVerdicts } from "./file-review-projection.js";
 import { mockStigmerClient } from "./mock-client.js";
 
 // ---------------------------------------------------------------------------
@@ -223,6 +224,19 @@ export class ExecutionRecord {
       tc.approvalDecidedAt = decidedAt;
     }
     return waiting.length;
+  }
+
+  /**
+   * What the server's `SubmitFileDecision` and its projection do between
+   * invocations: every change of every AWAITING_REVIEW set the runner captured
+   * gets a per-file verdict, and `status.file_change_sets` is re-folded from
+   * the ledger (`file-review-projection.ts` mirrors the server's fold). The
+   * runner authors the ledger; the server owns the sets — so this is the ONE
+   * place a test writes them. Returns how many decisions were written.
+   */
+  decideCapturedFileChanges(verdicts: FileReviewVerdicts, decidedAt: string): number {
+    if (!this.execution.status) throw new Error("ExecutionRecord: no status to decide file changes on (test bug)");
+    return decideCapturedFileChanges(this.execution.status, verdicts, decidedAt);
   }
 
   /**

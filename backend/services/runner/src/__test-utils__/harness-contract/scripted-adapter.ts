@@ -45,6 +45,8 @@
  * `TurnOutcome`.
  */
 
+import { mkdir, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
 import { ApprovalAction, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 
@@ -217,6 +219,7 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
         return undefined;
       }
       case "propose":
+        if (step.flows) return this.flowingWrite(step.toolCallId, step.action, input, sink);
         return this.propose(step.toolCallId, step.action, input, sink);
       case "read": {
         // Ungated: the row lands COMPLETED at once, the effect counts as run,
@@ -303,6 +306,29 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
         throw new Error(`${this.name}: unknown approval action ${String(exhaustive)}`);
       }
     }
+  }
+
+  /**
+   * A write under apply-then-review capture: no gate — the engine writes the
+   * bytes into the workspace and reports a COMPLETED `write` row, and the
+   * RUNTIME captures the change for review after the turn. The bytes are the
+   * fake's own (the tool-call id, one line); an already-settled row on a
+   * reinvocation is a no-op, as `propose`'s is.
+   */
+  private async flowingWrite(toolCallId: string, action: ProposedAction, input: TurnInput, sink: TurnSink): Promise<TurnOutcome | undefined> {
+    if (isSettled(findToolCallRow(sink.status, toolCallId))) return undefined;
+    const file = join(input.workspace.primaryDir, action.resource);
+    await mkdir(dirname(file), { recursive: true });
+    await writeFile(file, `${toolCallId}\n`);
+    const message = aiMessage("");
+    const row = toolCall(toolCallId, "write", ToolCallStatus.TOOL_CALL_COMPLETED);
+    row.args = { path: action.resource };
+    message.toolCalls.push(row);
+    sink.status.messages.push(message);
+    this.executions.set(toolCallId, this.executionCount(toolCallId) + 1);
+    sink.recordActivity("write");
+    await sink.requestPersist();
+    return undefined;
   }
 
   /**

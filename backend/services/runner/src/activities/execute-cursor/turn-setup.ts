@@ -9,8 +9,9 @@
  * the attachments are resolved. What remains is Cursor's own reading of that
  * record: the cursor mode; the row facts beside the runtime's approval
  * verdicts; the SDK's MCP config; the prompt-shaped view of the attachments;
- * the HITL gate (hook script, approval state, grants, denial watcher,
- * capture baseline, progress substrate); the catalog validation of the
+ * the HITL gate (hook script, approval state, grants, denial watcher, and
+ * the hook sidecar bound as the runtime's CAS observations); the catalog
+ * validation of the
  * requested model; the credential, the sub-agents, the variant params and
  * the agent itself (parked or resolved); the bind of a new agent's id through
  * the sink; the prompt in one of its four shapes; the vision payload; the
@@ -27,7 +28,6 @@
 
 import type { SDKUserMessage } from "@cursor/sdk";
 import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
-import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { CursorMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 
@@ -40,12 +40,11 @@ import { deriveExecutionFingerprintKey } from "../../shared/approval-fingerprint
 import { isUnattendedApprovalMode } from "../../shared/approval-policy.js";
 import { excludeAppliedFromGrants } from "../../shared/exact-apply.js";
 import { getRunnerHitlMasterSecret } from "../../shared/fingerprint-secret.js";
-import { newProgressCaptureState, type ProgressCaptureState, type ProgressSubstrate } from "../../shared/filereview/progress.js";
 import { enabledToolsBySlug } from "../../shared/mcp-enabled-tools.js";
 import { ensureHitlDir } from "../../shared/workspace/platform-dir.js";
 import { computeAgentFingerprint, takeCachedAgent } from "./agent-session-cache.js";
 import { buildApprovalGrants, buildApprovalState, emitCursorGrantReceipts, reconstructAdjudicatedApprovals, watchDenialLedger, type ApprovalGrant } from "./approval-state.js";
-import { buildCursorProgressSubstrate, captureBaselineToLedger } from "./capture-flow.js";
+import { readSidecarSnapshot } from "./cas-observations.js";
 import { CURSOR_CAPABILITIES } from "./cursor-capabilities.js";
 import { toCursorMcpConfig, validateMcpServerEnv } from "./cursor-mcp-config.js";
 import { determineCursorMode, isCloudMode } from "./cursor-mode.js";
@@ -92,13 +91,6 @@ export type CursorAgentMode = "cloud" | "local";
 export interface AdjudicatedRows {
   /** Create-vs-resume, derived from the state id exactly as the runtime derives it. */
   readonly isReinvocation: boolean;
-  /**
-   * The sub-agent rows on the status BEFORE this turn's stream — the runtime's
-   * seed on a resume, none on a first turn — snapshotted so the turn boundary
-   * can tell a prior turn's rows from this turn's. The row objects themselves
-   * are the status's own; the accumulator merges resumed updates onto them.
-   */
-  readonly seededSubAgents: readonly SubAgentExecution[];
   /** The pending-approval protos the grant builder and the reinvocation prompt render. */
   readonly adjudicatedApprovals: PendingApproval[];
   /** The content digest that authorizes an approved edit by its exact bytes (a sibling edit to the same file re-gates). */
@@ -111,10 +103,6 @@ export interface CursorGate {
   readonly hitlDir: string;
   readonly hitlGate: HitlGateHandle;
   readonly approvalGrants: ApprovalGrant[] | undefined;
-  /** The pre-turn tree in capture mode, pinned before the agent runs; the boundary diffs against it. */
-  readonly baselineTree: string | undefined;
-  readonly progressSubstrate: ProgressSubstrate | undefined;
-  readonly progressState: ProgressCaptureState;
   /** Closes the denial-ledger watcher; idempotent. */
   readonly stopDenialWatcher: () => void;
   /** Restores the workspace's `.cursor/hooks.json` (issue #173); the runtime removes the `.stigmer` link after it. */
@@ -174,7 +162,6 @@ export function readAdjudicatedRows(input: TurnInput, status: AgentExecutionStat
   const adjudicated = reinvoked ? reconstructAdjudicatedApprovals(input.execution.status?.messages ?? []) : undefined;
   return {
     isReinvocation: reinvoked,
-    seededSubAgents: [...status.subAgentExecutions],
     adjudicatedApprovals: adjudicated?.pendingApprovals ?? [],
     adjudicatedContentDigests: adjudicated?.contentDigests ?? new Map(),
   };
@@ -226,25 +213,15 @@ export function prepareAttachmentPrompt(input: TurnInput): { attachmentEntries: 
  * the resumed agent's re-attempt (which carries a fresh tool-call id) is
  * allowed through. Exact-applied writes are EXCLUDED from the grants: with no
  * grant, a further write to that file is re-gated (the user sees every change).
- * Capture mode: pin the pre-turn baseline tree before the agent runs (and
- * before the gate is installed, though the gate files are excluded from the
- * capture anyway). The turn-end capture diffs the post-turn tree against this
- * to build the per-file cards; the baseline ref is also what a reject reverts
- * to on resume. Covers a fresh turn and the approved-irreversible resume
- * fall-through (the agent will run and may make further edits).
+ * Capture mode is the runtime's (`harness/capture.ts`: the baseline is pinned
+ * before this adapter runs, the candidate captured after it returns); what
+ * this gate contributes is the hook's on-disk sidecar of gitignored writes,
+ * bound as the runtime's CAS observations.
  */
 export async function installGate(input: TurnInput, sink: TurnSink, rows: AdjudicatedRows, streamState: TurnStreamState): Promise<CursorGate> {
   const { executionId, sessionId, workspace, mcp, approvalDecisions, appliedToolCallIds, artifactStorage } = input;
-  const { primaryDir, gitWorkspace, captureMode, changeSetId } = workspace;
+  const { primaryDir, gitWorkspace, captureMode } = workspace;
   const globalBypass = mcp.leases.global;
-
-  let baselineTree: string | undefined;
-  if (captureMode && primaryDir) {
-    // Pin the pre-turn tree AND author BASELINE_CAPTURED so the projection can
-    // materialize the change set (status CAPTURING) before any candidate exists.
-    // The event rides the next persist; CAPTURING does not arm the unified gate.
-    baselineTree = await captureBaselineToLedger({ status: sink.status, gitRoot: primaryDir, executionId, changeSetId, gitWorkspace });
-  }
 
   const hitlDir = await ensureHitlDir(sessionId);
   const grantApprovals = excludeAppliedFromGrants(rows.adjudicatedApprovals, appliedToolCallIds);
@@ -305,28 +282,18 @@ export async function installGate(input: TurnInput, sink: TurnSink, rows: Adjudi
   });
   sink.setupTiming.mark("install_hitl_gate");
 
-  // Mid-run live capture (DD-32 / DD-33): choose the progress substrate for this
-  // turn's workspace shape ONCE (git / non-git CAS / hybrid). It owns its own
-  // short-circuit cache across the loop's persists; the floor lives in
-  // progressState. Undefined outside capture mode — writes are deny-gated and
-  // nothing is captured.
-  const progressSubstrate = buildCursorProgressSubstrate({
-    captureMode,
-    gitWorkspace,
-    workspaceRoot: primaryDir,
-    baselineTree,
-    executionId,
-    hitlDir,
-    storage: artifactStorage,
-  });
+  // What the hook observed touching gitignored (or, in a non-git tree, any)
+  // paths this turn — the sidecar it stages under `captureIgnored`. Bound as
+  // the runtime's CAS observations; each read is one small directory scan,
+  // and the runtime reads it at most once per progress floor and once at the
+  // boundary. Bound whenever the gate exists: without storage the runtime
+  // ignores it (a gitignored write is deny-gated then, never captured).
+  sink.bindCasObservations(() => readSidecarSnapshot(hitlDir));
 
   return {
     hitlDir,
     hitlGate,
     approvalGrants,
-    baselineTree,
-    progressSubstrate,
-    progressState: newProgressCaptureState(),
     stopDenialWatcher,
     removeGate: () => removeHitlGate(hitlGate),
   };

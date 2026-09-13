@@ -38,11 +38,10 @@ import { RecordingTurnSink } from "../../../__test-utils__/harness-contract/reco
 import { makeInMemoryArtifactStorage } from "../../../__test-utils__/fake-artifact-storage.js";
 import { turnInputFixture } from "../../../__test-utils__/turn-input-fixture.js";
 import type { WorkspaceBackend } from "../../../shared/workspace/types.js";
-import { newProgressCaptureState } from "../../../shared/filereview/progress.js";
 import type { ModelPricing } from "../../../shared/model-pricing.js";
 import type { MergedToolPolicy } from "../../../shared/approval-policy.js";
 import { CasCaptureObserver } from "../cas-capture-observer.js";
-import type { DeepAgentCapture, DeepAgentEngine, DeepAgentGateState, DeepAgentGraphInput, DeepAgentWorkspace } from "../turn-setup.js";
+import type { DeepAgentEngine, DeepAgentGateState, DeepAgentGraphInput, DeepAgentWorkspace } from "../turn-setup.js";
 import { consumeDeepAgentStream, createDeepAgentTranscript, type StreamableRun } from "../turn-stream.js";
 import type { V3ProtocolEvent } from "../v3-event-recorder.js";
 import {
@@ -96,14 +95,6 @@ function workspaceOver(files: Record<string, string>): DeepAgentWorkspace {
     isCapturablePath: async () => false,
   };
 }
-
-const NO_CAPTURE: DeepAgentCapture = {
-  baselineTree: "",
-  progressSubstrate: undefined,
-  progressState: newProgressCaptureState(),
-  priorSubAgentToolCallIds: new Set(),
-  priorSettledToolCallIds: new Set(),
-};
 
 interface ScriptedRunOptions {
   /** The final state `run.output` resolves to; a function so a rejection is created when the run is. */
@@ -164,7 +155,7 @@ function harness(options: { gate?: DeepAgentGateState; files?: Record<string, st
     run(run) {
       streamEvents.mockResolvedValue(run);
       const transcript = createDeepAgentTranscript(input, sink, engine, workspace);
-      return consumeDeepAgentStream({ input, sink, engine, graphInput, transcript, capture: NO_CAPTURE });
+      return consumeDeepAgentStream({ input, sink, engine, graphInput, transcript });
     },
   };
 }

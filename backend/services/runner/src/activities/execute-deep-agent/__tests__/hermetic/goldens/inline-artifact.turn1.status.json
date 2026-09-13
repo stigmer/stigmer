@@ -140,6 +140,15 @@
   },
   "fileChangeProgress": {
     "changeSetId": "aex_hermetic_0001:0",
-    "capturedAt": "2026-01-01T00:00:00.000Z"
+    "filesChanged": 1,
+    "linesAdded": 3,
+    "entries": [
+      {
+        "pathAfter": "report.md",
+        "kind": "FILE_CHANGE_KIND_ADD",
+        "linesAdded": 3
+      }
+    ],
+    "capturedAt": "2026-01-01T00:00:02.000Z"
   }
 }

@@ -1,35 +1,37 @@
 /**
- * The Cursor harness's turn boundary — the single post-run pipeline that turns
- * a finished agent run into the durable review surfaces:
+ * The Cursor harness's turn boundary — the post-run pipeline that turns the
+ * deny-and-retry primitive's evidence into the runtime's review surfaces:
  *
  *  1. read the denial ledger the preToolUse hook appended this turn (ALL
  *     kinds — every entry means "this action did not execute"; only the
  *     approval-kind subset may pause, see approval-state.ts);
- *  2. derive the approved-command provenance (DD-28 auto-keep facts);
- *  3. capture the turn's net file change set to the file_review ledger
- *     (CANDIDATE_CAPTURED) and stamp the flowed edit rows;
- *  4. reconcile denied (approval-kind) tool calls to WAITING_APPROVAL gate rows
+ *  2. reconcile denied (approval-kind) tool calls to WAITING_APPROVAL gate rows
  *     and redact the model's provisional post-denial narration;
- *  5. detect UNATTRIBUTED hook blocks (issue #205) — a tool blocked by a hook
+ *  3. settle unattended-mode denials as SKIPPED (DD-014);
+ *  4. detect UNATTRIBUTED hook blocks (issue #205) — a tool blocked by a hook
  *     with no ledger entry of any kind was denied by a FOREIGN hook the merge
  *     preserved, and the caller fails the run rather than completing silently;
- *  6. settle UNRESOLVED tool calls (issue #965) — a this-turn row still
+ *  5. settle UNRESOLVED tool calls (issue #965) — a this-turn row still
  *     non-terminal on a completing turn with no ledger attribution hung inside
  *     the harness and can never complete; it is settled to an honest
  *     TOOL_CALL_INTERRUPTED and disclosed on the transcript instead of being
  *     silently stamped by the server's terminal settle after the fact.
  *
+ * `waiting` means "a denial pauses": a gated tool call the user must decide.
+ * The turn's FILE CHANGES are not this boundary's since S3 M4 — the runtime
+ * captures them once, over whatever the whole turn left on the tree, after
+ * `runTurn` returns (`harness/capture.ts`), and decides the review pause
+ * itself. Two consequences the boundary used to suppress when it could see
+ * the capture: steps 4 and 5 now run on a turn whose only pause would have
+ * been a file review, so a hung row is disclosed and a foreign-hook block is
+ * failed BEFORE the review rather than after it (F-M4-P9, F-M4-P10, Q-M4-11).
+ *
  * Extracted from the activity entry point (index.ts Phase 12) so it is directly
  * unit-testable AND re-enterable: the poisoned-handle / transport-timeout
  * recoveries re-run the agent with a fresh handle AFTER the primary boundary
- * already ran, so their edits must flow through this exact pipeline again or
- * they silently escape review (production case aex_01kws27q1e2esvkqjpvectttxf,
- * where a Build-from-plan retry created a file with no review gate).
- *
- * Re-entry is safe by construction: a retry is only reachable when the primary
- * boundary captured nothing (a captured change pauses the turn before
- * run.wait() is ever consulted), `stampFlowedFileEditRows` skips already-stamped
- * rows, and the denial ledger is per-turn append-only.
+ * already ran, so their denials must flow through this exact pipeline again.
+ * Re-entry is safe by construction: the denial ledger is per-turn append-only
+ * and the reconcile is idempotent over it.
  *
  * The caller owns everything around the boundary: the stream epilogue
  * (accumulator/enricher finalize), the WAITING_FOR_APPROVAL phase flip +
@@ -37,21 +39,14 @@
  */
 
 import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
-import { collectSubAgentToolCallIds } from "../../shared/tool-row.js";
 import { LocalWorkspaceBackend } from "../../shared/workspace/local-backend.js";
-import type { ArtifactStorage } from "../../shared/artifact-storage.js";
 import type { MergedToolPolicy } from "../../shared/approval-policy.js";
 import {
   approvalDenials,
   denialKindOf,
-  primaryToken,
   readDenialLedger,
   unattendedDenials,
-  type ApprovalGrant,
 } from "./approval-state.js";
-import { deriveTurnCommandProvenance } from "./command-provenance.js";
-import { captureTurnToLedger } from "./capture-flow.js";
 import {
   clearProvisionalPostDenialNarration,
   detectUnattributedHookBlocks,
@@ -66,48 +61,25 @@ import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexec
 import { MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
 // How long the boundary waits for the first-denial-stop's run.cancel() to
-// settle before reading the final denial ledger and capturing the turn's tree.
-// Long enough for the SDK's normal teardown, short enough that a wedged cancel
-// cannot noticeably delay the approval pause the user is already waiting on.
+// settle before reading the final denial ledger. Long enough for the SDK's
+// normal teardown, short enough that a wedged cancel cannot noticeably delay
+// the approval pause the user is already waiting on. (The runtime's capture
+// runs after the adapter's whole turn, its gate already torn down, so a late
+// tool can no longer mutate the tree mid-capture.)
 const FIRST_DENIAL_CANCEL_TIMEOUT_MS = 5_000;
 
 export interface TurnBoundaryOptions {
-  /** Mutated in place: gate rows overlaid, edit rows stamped, narration redacted. */
+  /** Mutated in place: gate rows overlaid, narration redacted. */
   readonly status: AgentExecutionStatus;
   readonly executionId: string;
-  /** This turn's change set id (`{executionId}:{turnSeq}`). */
-  readonly changeSetId: string;
-  /** Session HITL dir holding the denial ledger + CAS sidecar; undefined → no gate installed. */
+  /** Session HITL dir holding the denial ledger; undefined → no gate installed. */
   readonly hitlDir: string | undefined;
-  /** Whether this turn runs apply-then-review capture (vs. the deny-gate fallback). */
-  readonly captureMode: boolean;
-  /**
-   * The baseline authored at turn start — the git tree sha for a git workspace,
-   * or "" (empty, but authored) for a non-git one. `undefined` means no baseline
-   * was authored this turn, which skips capture entirely; a plain truthiness
-   * check would wrongly skip the non-git capture.
-   */
-  readonly baselineTree: string | undefined;
   readonly primaryWorkspaceDir: string;
-  /** True for a git work tree; false for a CAS-only non-git workspace. */
-  readonly gitWorkspace: boolean;
   /**
    * Index of the first message produced by THIS turn's stream — the positional
-   * turn boundary the approved-command provenance (DD-28) scopes to.
+   * scope the #205 attribution and the #965 settle read.
    */
   readonly turnStartMessageIndex: number;
-  /** Reinvocation grants; their tokens map back to the consent rows for DD-28. */
-  readonly approvalGrants: ApprovalGrant[] | undefined;
-  /** spec.auto_approve_all — qualifies every command as consented for DD-28. */
-  readonly globalBypass: boolean;
-  /**
-   * Sub-agent executions that existed BEFORE this turn's stream (cloned in on
-   * resume); their rows are skipped when stamping so a resume never re-stamps a
-   * prior turn's sub-agent rows.
-   */
-  readonly seededSubAgents: readonly SubAgentExecution[];
-  /** CAS blob store for gitignored/non-git captures; undefined → git-only capture. */
-  readonly artifactStorage: ArtifactStorage | undefined;
   /** Merged approval policies, threaded to the denied-call reconcile for gate provenance. */
   readonly mergedPolicies: ReadonlyMap<string, MergedToolPolicy>;
   /**
@@ -132,13 +104,11 @@ export interface TurnBoundaryOptions {
 
 export interface TurnBoundaryResult {
   /**
-   * True when the turn must pause for human review — at least one gated tool
-   * call or one captured file change. The caller flips the phase to
-   * WAITING_FOR_APPROVAL, persists, and returns without consulting run.wait().
+   * True when a denial pauses the turn — at least one gated tool call the
+   * user must decide. The caller ends the turn `awaiting_approval` without
+   * consulting run.wait().
    */
   readonly waiting: boolean;
-  /** File changes authored to the file_review ledger this call (0 = no candidate). */
-  readonly capturedChangeCount: number;
   /** Denied tool calls reconciled to WAITING_APPROVAL gate rows this call. */
   readonly deniedToolCallCount: number;
   /**
@@ -163,9 +133,9 @@ export interface TurnBoundaryResult {
 }
 
 /**
- * Run the turn boundary: author this turn's change set to the file_review
- * ledger and overlay the hook's denials as approval gates. Mutates
- * `opts.status` in place and reports whether the turn must pause.
+ * Run the turn boundary: overlay the hook's denials as approval gates and
+ * settle what the ledger accounts for. Mutates `opts.status` in place and
+ * reports whether a denial pauses the turn.
  *
  * The hook records each denial to the ledger; we mark the corresponding tool
  * calls WAITING_APPROVAL. The backend projects pending_approvals from that
@@ -178,17 +148,9 @@ export async function runTurnBoundary(opts: TurnBoundaryOptions): Promise<TurnBo
   const {
     status,
     executionId,
-    changeSetId,
     hitlDir,
-    captureMode,
-    baselineTree,
     primaryWorkspaceDir,
-    gitWorkspace,
     turnStartMessageIndex,
-    approvalGrants,
-    globalBypass,
-    seededSubAgents,
-    artifactStorage,
     mergedPolicies,
     denialCancelSettled,
     foreignGatingHooks,
@@ -207,78 +169,11 @@ export async function runTurnBoundary(opts: TurnBoundaryOptions): Promise<TurnBo
   }
   // The FULL ledger (all kinds) vs its APPROVAL subset — the kind split:
   // every ledger entry means "this action did NOT execute", so the full set
-  // feeds capture stamping, DD-28 provenance, and foreign-hook attribution;
+  // feeds the unattended settle and the foreign-hook attribution;
   // only approval-kind entries may become WAITING_APPROVAL gates (a secret
   // hard-block or fail-closed deny is attributable but never pausable).
   const deniedLedger = await readDenialLedger(hitlDir ?? "");
   const approvalLedger = approvalDenials(deniedLedger);
-
-  // Capture mode: author the net change set to the file_review ledger as the
-  // CANDIDATE_CAPTURED event (projected server-side to a file_change_set
-  // AWAITING_REVIEW — the single review surface). The runner-owned gate files
-  // are excluded from the capture. The agent's edits are LEFT applied on the
-  // working tree (Cursor parity — the user reviews the real change; nothing is
-  // committed and the next turn is blocked until approval, and a reject snaps
-  // each file back on resume). Runs BEFORE the denial reconcile so a denied
-  // (gitignored) write stays on the deny-gate path while every flowed edit is
-  // captured to the ledger.
-  let capturedChangeCount = 0;
-  if (captureMode && baselineTree !== undefined && primaryWorkspaceDir) {
-    const deniedTokens = new Set(deniedLedger.map((e) => e.token));
-    // Approved-command turn facts (DD-28): when every mutation-capable call
-    // this turn was a consented shell command, attach the provenance so the
-    // backend can verify the cited consent rows and auto-keep the set instead
-    // of arming a second gate. Fail-closed: any non-qualifying turn attaches
-    // nothing and reviews manually exactly as before.
-    const commandProvenance = deriveTurnCommandProvenance({
-      messages: status.messages,
-      turnStartIndex: turnStartMessageIndex,
-      deniedTokens,
-      grantTokenToConsentId: new Map(
-        (approvalGrants ?? []).map((g) => [
-          primaryToken(g.key, g.salient, g.contentDigest),
-          g.sourceToolCallId,
-        ]),
-      ),
-      globalBypass,
-    });
-    if (commandProvenance) {
-      console.log(
-        `ExecuteCursor capture: turn qualifies for approved-command auto-keep ` +
-        `(consent rows: ${commandProvenance.consentToolCallIds.join(",") || "(auto_approve_all)"}); ` +
-        `attaching provenance to candidate (execution=${executionId})`,
-      );
-    }
-    const captured = await captureTurnToLedger({
-      status,
-      gitRoot: primaryWorkspaceDir,
-      executionId,
-      changeSetId,
-      baselineTree,
-      messages: status.messages,
-      deniedTokens,
-      commandProvenance,
-      // Scope sub-agent row stamping to this turn: the seeded prior sub-agents
-      // (cloned in on resume) are the "before this turn" rows to skip.
-      priorSubAgentToolCallIds: collectSubAgentToolCallIds(seededSubAgents),
-      // The CAS half: read the sidecar the hook staged this turn and compose it
-      // into the change set. hitlDir + storage are present when captureIgnored
-      // was on (a git tree's gitignored writes, or ALL writes in a non-git
-      // workspace). In a git tree this composes with the git diff (HYBRID); in a
-      // non-git workspace it IS the whole change set (CAS-only).
-      hitlDir,
-      storage: artifactStorage,
-      gitWorkspace,
-    });
-    capturedChangeCount = captured.length;
-    if (capturedChangeCount > 0) {
-      console.log(
-        `ExecuteCursor capture: ${capturedChangeCount} file change(s) authored to the ` +
-        `file_review ledger (change_set=${changeSetId}), working tree left applied ` +
-        `for review (execution=${executionId})`,
-      );
-    }
-  }
 
   // The gate reads each denied file's pre-edit `before` from the workspace the
   // runner is co-located with (local FS for OSS; the sandbox in cloud), so a
@@ -357,7 +252,7 @@ export async function runTurnBoundary(opts: TurnBoundaryOptions): Promise<TurnBo
     deniedLedger,
     primaryWorkspaceDir,
   );
-  const waiting = deniedToolCalls.length > 0 || capturedChangeCount > 0;
+  const waiting = deniedToolCalls.length > 0;
 
   // Issue #965 invariant: an unresolved tool must never silently complete.
   // On a COMPLETING (non-pausing) turn, any this-turn row still PENDING /
@@ -426,7 +321,6 @@ export async function runTurnBoundary(opts: TurnBoundaryOptions): Promise<TurnBo
 
   return {
     waiting,
-    capturedChangeCount,
     deniedToolCallCount: deniedToolCalls.length,
     unattributedHookBlocks,
     settledUnresolvedCount: settledUnresolved.length,

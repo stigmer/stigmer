@@ -1,13 +1,12 @@
 /**
  * The Cursor harness's stream phase — the single per-event consumption loop that
- * turns a live Cursor SDK run into the streamed transcript, mid-run progress, and
- * the one flag that decides how the turn goes on (the first-denial stop).
+ * turns a live Cursor SDK run into the streamed transcript and the one flag
+ * that decides how the turn goes on (the first-denial stop).
  *
  * Extracted from the activity entry point so that BOTH the primary turn and
  * the two recovery retries (poisoned-handle / transport-timeout) drive the
  * exact same code. The retries previously re-implemented a stripped "bare"
- * loop that dropped live persist, DD-32/DD-33 mid-run progress, sub-agent
- * tracking, the first-denial early stop, and correct pause handling — so a
+ * loop that dropped live persist, sub-agent tracking, the first-denial early stop, and correct pause handling — so a
  * retry froze the UI and mis-handled a mid-retry pause. One loop removes that
  * drift by construction.
  *
@@ -34,11 +33,6 @@ import type { SDKMessage, InteractionUpdate } from "@cursor/sdk";
 import type { TurnSink } from "../../harness/types.js";
 import { shouldPersistStreamingStatus } from "../../shared/persist-decision.js";
 import { approvalDenials, readDenialLedger } from "./approval-state.js";
-import {
-  captureFileChangeProgress,
-  type ProgressCaptureState,
-  type ProgressSubstrate,
-} from "../../shared/filereview/progress.js";
 import type { MessageAccumulator } from "./message-translator.js";
 import type { DeltaEnricher } from "./delta-enricher.js";
 import type { TodoTracker } from "./todo-tracker.js";
@@ -117,9 +111,6 @@ export interface CursorTurnStreamDeps extends TurnOnDeltaDeps {
   readonly todoTracker: TodoTracker;
   readonly eventRecorder: CursorTurnEventRecorder | undefined;
   readonly scheduler: StreamingUpdateScheduler;
-  readonly progressSubstrate: ProgressSubstrate | undefined;
-  readonly progressState: ProgressCaptureState;
-  readonly changeSetId: string;
   /** Session HITL dir holding the denial ledger; undefined → no gate installed → no first-denial stop. */
   readonly hitlDir: string | undefined;
 }
@@ -178,9 +169,6 @@ export async function consumeCursorTurnStream(
     deltaEnricher,
     eventRecorder,
     scheduler,
-    progressSubstrate,
-    progressState,
-    changeSetId,
     hitlDir,
     executionId,
     state,
@@ -302,19 +290,9 @@ export async function consumeCursorTurnStream(
       if (shouldPersist) {
         // The accumulator upserts sub-agent rows into `status.subAgentExecutions`
         // in place (wrapped by reference at construction), so every persist
-        // already carries delegation, IN_PROGRESS included.
-        // Mid-run live capture (DD-32 / DD-33): attach the "N files changed so
-        // far" snapshot onto status.file_change_progress, throttled internally by
-        // the floor. Never authoritative — the turn-boundary candidate remains
-        // the reviewed diff.
-        if (progressSubstrate) {
-          await captureFileChangeProgress({
-            status,
-            changeSetId,
-            substrate: progressSubstrate,
-            state: progressState,
-          });
-        }
+        // already carries delegation, IN_PROGRESS included. The runtime attaches
+        // the mid-run file-change progress on this write (the chokepoint's
+        // step 2), as it does on every write.
         // Awaited: the runtime reads the control plane's answer to this write,
         // and a STOP must be seen at the next event boundary, not one event late.
         await sink.requestPersist();

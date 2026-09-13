@@ -44,7 +44,7 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { mkdirSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { realpath } from "node:fs/promises";
 import { join } from "node:path";
 import { ApprovalAction, ExecutionControlSignal, ExecutionPhase, MessageType, SubAgentStatus, TodoStatus, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
@@ -66,6 +66,7 @@ import type { FailureSurface } from "../../harness/types.js";
 import type { ExecuteActivityInput } from "../../shared/activity-input.js";
 import { acquireWorkspaceLock } from "../../shared/workspace/workspace-lock.js";
 import { executionRecordFixture, type ExecutionRecordOptions } from "../execution-record-fixture.js";
+import { initGitWorkspace } from "../git-workspace-fixture.js";
 import {
   ExecutionRecord,
   ScriptedClock,
@@ -297,6 +298,95 @@ export async function assertApprovalRoundTrip(harness: RuntimeContractHarness, l
   expect(driver.record.waitingToolCalls(), `${subject.name}: nothing waits after the approval`).toHaveLength(0);
   expect(driver.record.sessionUpdates, `${subject.name}: a resumed engine binds nothing new`).toHaveLength(bindsAfterFirst);
   return { driver, invocations: [first, second], final: finalStatusOf(harness, driver) };
+}
+
+// ── Arm: file review — capture, decide, reconcile ───────────────────────────
+
+/**
+ * Apply-then-review across two invocations — the runtime's own act for every
+ * harness (`harness/capture.ts`; `turn-context.ts` `reconcileReinvocation`),
+ * proven on a REAL git work tree (the session's workspace directory IS the
+ * tree, so no harness needs a workspace entry to reach it).
+ *
+ * Turn 1: two writes FLOW (no gate row, each executed exactly once), and the
+ * runtime — not the adapter — pins the baseline before the engine, captures
+ * the candidate after it, badges the two flowed rows with the change set,
+ * carries the strip at the WAITING write, and pauses `WAITING_FOR_APPROVAL`
+ * with the ledger reading `[baseline, candidate]` under the harness's own
+ * file-review identity. Between turns the reviewer keeps one file and
+ * discards the other (the record stands in for the server's decision and
+ * projection). Turn 2: the reinvocation reconciles WITHOUT asking the engine
+ * — the kept file holds its bytes, the discarded one is back at its baseline,
+ * RECONCILED is authored, the execution settles COMPLETED with the runtime's
+ * discard row, and the engine's execution counts are unchanged.
+ *
+ * Content is the engine's own (a real `edit_file`, a real hook-allowed edit,
+ * the fake's one line), so the arm asserts PATHS and the reconcile's effect
+ * on disk, never bytes; the change kinds differ per engine (an engine that
+ * seeds its ledger file before the turn produces a MODIFY where another
+ * produces an ADD) and are not asserted either.
+ */
+export async function assertFileReviewRoundTrip(harness: RuntimeContractHarness, label = "rt-file-review"): Promise<RuntimeArmResult> {
+  const { subject } = harness;
+  const driver = new RuntimeExecutionDriver(harness, label);
+  initGitWorkspace(driver.workspaceDir, { "README.md": "# the kit's tree\n" });
+  const keepId = `${label}-keep`;
+  const dropId = `${label}-drop`;
+  const KEPT = "kept.md";
+  const DROPPED = "dropped.md";
+  const changeSetId = `${driver.record.executionId}:0`;
+
+  const first = await driver.turn([scenario.flowingWrite(keepId, KEPT), scenario.flowingWrite(dropId, DROPPED), scenario.say("Edited two files.")]);
+  expect(slimOf(subject, first).phase, `${subject.name}: a captured change pauses the turn for review`).toBe("EXECUTION_WAITING_FOR_APPROVAL");
+  expect(driver.record.waitingToolCalls(), `${subject.name}: a flowing write opens no gate row`).toHaveLength(0);
+  expect(subject.executionCount(keepId), `${subject.name}: a flowing write executes at once`).toBe(1);
+  expect(subject.executionCount(dropId)).toBe(1);
+  expect(existsSync(join(driver.workspaceDir, KEPT)) && existsSync(join(driver.workspaceDir, DROPPED)), `${subject.name}: both writes landed on the tree`).toBe(true);
+
+  const afterCapture = finalStatusOf(harness, driver);
+  const events = afterCapture.fileReviewEventStream?.events ?? [];
+  expect(events.map((e) => e.payload.case), `${subject.name}: the runtime authored the baseline and the candidate`).toEqual(["baselineCaptured", "candidateCaptured"]);
+  const candidate = events[1]!.payload;
+  if (candidate.case !== "candidateCaptured") throw new Error("unreachable");
+  expect(candidate.value.changeSetId).toBe(changeSetId);
+  expect([...candidate.value.changes.map((c) => c.pathAfter)].sort(), `${subject.name}: exactly the two written paths are reviewable`).toEqual([DROPPED, KEPT]);
+  const baseline = events[0]!.payload;
+  if (baseline.case !== "baselineCaptured") throw new Error("unreachable");
+  expect(baseline.value.harnessId, `${subject.name}: the ledger carries this harness's file-review identity`).toBe(subject.adapter.capabilities.fileReview.harnessId);
+  const rows = new Map(afterCapture.messages.flatMap((m) => m.toolCalls).map((tc) => [tc.id, tc]));
+  expect(rows.get(keepId)?.fileChangeSetId, `${subject.name}: a flowed row is badged with the change set`).toBe(changeSetId);
+  expect(rows.get(dropId)?.fileChangeSetId).toBe(changeSetId);
+  expect(rows.get(keepId)?.status, `${subject.name}: a flowed row is COMPLETED, never gated`).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+  // The strip is the runtime's, attached on its writes (Q-M4-7). Its COUNT is
+  // the capture floor's: a real engine's first persist precedes its first
+  // write and both writes land within one floor interval, so the pause can
+  // honestly read "0 files" beside a two-file candidate (F-M4-3, recorded
+  // for S5: whether the terminal write should bypass the floor). The arm
+  // asserts the ownership, not the floor.
+  expect(afterCapture.fileChangeProgress?.changeSetId, `${subject.name}: the runtime carries this turn's strip`).toBe(changeSetId);
+  expect(afterCapture.completedAt, `${subject.name}: a review pause is not complete`).toBe("");
+
+  const keptBytes = readFileSync(join(driver.workspaceDir, KEPT), "utf-8");
+  expect(keptBytes).toContain(keepId);
+  harness.clock.tick();
+  expect(driver.record.decideCapturedFileChanges({ approve: [KEPT], reject: [DROPPED] }, new Date().toISOString()), `${subject.name}: two files to decide`).toBe(2);
+
+  const second = await driver.turn([]);
+  expect(slimOf(subject, second).phase, `${subject.name}: a pure file-review resume completes without the engine`).toBe("EXECUTION_COMPLETED");
+  // The kept file is the engine-not-re-run witness: a subject that counts
+  // executions by reading its ledger off disk (the native one, Q-M3-4) reads
+  // the DISCARDED file's count as 0 now, because the reconcile just restored
+  // that file to its baseline — which is the reconcile working, not the
+  // engine forgetting.
+  expect(subject.executionCount(keepId), `${subject.name}: the engine was not asked again`).toBe(1);
+  expect(readFileSync(join(driver.workspaceDir, KEPT), "utf-8"), `${subject.name}: the kept file holds its reviewed bytes`).toBe(keptBytes);
+  const droppedPath = join(driver.workspaceDir, DROPPED);
+  expect(!existsSync(droppedPath) || !readFileSync(droppedPath, "utf-8").includes(dropId), `${subject.name}: the discarded file is back at its baseline`).toBe(true);
+  const final = finalStatusOf(harness, driver);
+  expect(systemMessages(final), `${subject.name}: the discard row names the discarded path`).toContain(`${TERMINAL_COPY.fileReview.discardedPrefix}${DROPPED}.`);
+  expect(final.fileReviewEventStream?.events.map((e) => e.payload.case), `${subject.name}: the reconcile is authored`).toContain("reconciled");
+  expect(final.completedAt).not.toBe("");
+  return { driver, invocations: [first, second], final };
 }
 
 // ── Arm: awaiting_approval then REJECT or SKIP ──────────────────────────────
@@ -833,6 +923,10 @@ export function describeHarnessRuntimeContract(harness: RuntimeContractHarness, 
       await assertReinvocationCarriesThePersistedStatus(harness);
       clock.reset();
       await assertFirstTurnSeedsNothing(harness);
+    });
+    it("file review: two writes flow, the runtime captures and pauses, the reviewer keeps one and discards one, the resume reconciles and completes", async () => {
+      clock.reset();
+      await assertFileReviewRoundTrip(harness);
     });
     for (const action of [ApprovalAction.REJECT, ApprovalAction.SKIP] as const) {
       it(`awaiting_approval then ${ApprovalAction[action]}: the run continues without the tool and the runtime settles the row SKIPPED`, async () => {

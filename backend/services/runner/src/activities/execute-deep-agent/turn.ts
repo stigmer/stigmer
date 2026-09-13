@@ -51,7 +51,6 @@ import {
   composeGraphInput,
   connectTools,
   openCheckpointer,
-  pinCaptureBaseline,
   readGateState,
   resolveModelName,
   type DeepAgentAdapterConfig,
@@ -70,6 +69,9 @@ export async function runDeepAgentTurn(input: TurnInput, sink: TurnSink, config:
     modelName = await resolveModelName(input);
     checkpointer = await openCheckpointer(input, sink, config);
     const workspace = buildDeepAgentWorkspace(input);
+    // What this engine observes touching CAS-owned paths — the one capture
+    // fact the runtime cannot read from the tree (`harness/capture.ts`).
+    sink.bindCasObservations(() => workspace.casObserver.snapshot());
     const tools = await connectTools(input, sink);
     connection = tools.connection;
     if (sink.stopSignal.aborted) return { kind: "interrupted" };
@@ -79,12 +81,11 @@ export async function runDeepAgentTurn(input: TurnInput, sink: TurnSink, config:
     if (sink.stopSignal.aborted) return { kind: "interrupted" };
 
     const graphInput = await composeGraphInput(input, engine);
-    const capture = await pinCaptureBaseline(input, sink, workspace);
     sink.recordActivity();
 
     const transcript = createDeepAgentTranscript(input, sink, engine, workspace);
-    const stream = await consumeDeepAgentStream({ input, sink, engine, graphInput, transcript, capture });
-    return await settleDeepAgentTurn({ input, sink, engine, workspace, capture, transcript, stream });
+    const stream = await consumeDeepAgentStream({ input, sink, engine, graphInput, transcript });
+    return await settleDeepAgentTurn({ input, sink, engine, transcript, stream });
   } catch (err) {
     return classifyThrown(err, input, config, modelName);
   } finally {

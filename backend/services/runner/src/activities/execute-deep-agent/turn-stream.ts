@@ -1,7 +1,7 @@
 /**
  * The native deep-agent harness's stream phase — the single per-event
  * consumption loop that turns a live LangGraph v3 event stream into the
- * streamed transcript, mid-run progress, and the one fact that decides how
+ * streamed transcript and the one fact that decides how
  * the turn goes on (the graph paused at a gate).
  *
  * What the loop asks of the runtime, through the sink (`harness/types.ts`):
@@ -48,14 +48,13 @@
 import type { TurnInput, TurnSink } from "../../harness/types.js";
 import { shouldPersistStreamingStatus } from "../../shared/persist-decision.js";
 import { StreamingUpdateScheduler, loadStreamingConfig } from "../../shared/streaming-scheduler.js";
-import { captureFileChangeProgress } from "../../shared/filereview/progress.js";
 import { computeTurnCost } from "../../shared/model-pricing.js";
 import { InlinePublisher } from "./inline-publisher.js";
 import { StreamingSideEffects } from "./streaming-side-effects.js";
 import { createV3EventRecorder, type V3ProtocolEvent } from "./v3-event-recorder.js";
 import { normalize } from "./v3-protocol-normalizer.js";
 import { V3StatusBuilder } from "./v3-status-builder.js";
-import type { DeepAgentCapture, DeepAgentEngine, DeepAgentGraphInput, DeepAgentWorkspace } from "./turn-setup.js";
+import type { DeepAgentEngine, DeepAgentGraphInput, DeepAgentWorkspace } from "./turn-setup.js";
 
 /**
  * The subset of the v3 `GraphRunStream` this loop consumes. Kept structural
@@ -155,7 +154,6 @@ export interface DeepAgentStreamDeps {
   readonly engine: DeepAgentEngine;
   readonly graphInput: DeepAgentGraphInput;
   readonly transcript: DeepAgentTranscript;
-  readonly capture: DeepAgentCapture;
 }
 
 /**
@@ -164,7 +162,7 @@ export interface DeepAgentStreamDeps {
  * classifies (the recursion limit, an empty stream, an engine error).
  */
 export async function consumeDeepAgentStream(deps: DeepAgentStreamDeps): Promise<DeepAgentStreamResult> {
-  const { input, sink, engine, graphInput, transcript, capture } = deps;
+  const { input, sink, engine, graphInput, transcript } = deps;
   const { executionId } = input;
   const { builder, publisher } = transcript;
 
@@ -230,17 +228,8 @@ export async function consumeDeepAgentStream(deps: DeepAgentStreamDeps): Promise
         );
         if (!persist) continue;
         builder.clearForceFlag();
-        // Mid-run live capture (DD-32 / DD-33): attach file_change_progress to
-        // the status before it is persisted; a no-op outside capture mode.
-        if (capture.progressSubstrate) {
-          await captureFileChangeProgress({
-            status: sink.status,
-            changeSetId: input.workspace.changeSetId,
-            substrate: capture.progressSubstrate,
-            state: capture.progressState,
-          });
-        }
-        // Awaited so a platform STOP the runtime reads from this write has
+        // The runtime attaches the mid-run file-change progress on this write
+        // (the chokepoint's step 2), as it does on every write. Awaited so a platform STOP the runtime reads from this write has
         // aborted the signal by the time the next event arrives — where the
         // stop is taken (see the header on why not here).
         await sink.requestPersist();

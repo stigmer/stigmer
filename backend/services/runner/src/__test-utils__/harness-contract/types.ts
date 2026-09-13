@@ -68,7 +68,7 @@ import type { TurnInputFixtureOverrides } from "../turn-input-fixture.js";
  */
 export type ScenarioStep =
   | { readonly kind: "say"; readonly text: string }
-  | { readonly kind: "propose"; readonly toolCallId: string; readonly action: ProposedAction }
+  | { readonly kind: "propose"; readonly toolCallId: string; readonly action: ProposedAction; readonly flows?: boolean }
   | { readonly kind: "read"; readonly toolCallId: string; readonly path: string }
   | { readonly kind: "usage"; readonly delta: UsageDelta }
   | { readonly kind: "hang" }
@@ -86,6 +86,18 @@ export const scenario = {
   },
   propose(toolCallId: string, action: ProposedAction): ScenarioStep {
     return { kind: "propose", toolCallId, action };
+  },
+  /**
+   * A `write` the arm EXPECTS to flow under apply-then-review capture (a git
+   * work tree, or artifact storage): the engine performs it at once, the row
+   * completes, and the RUNTIME captures it for review after the turn
+   * (`harness/capture.ts`). The arm states the posture rather than the
+   * subject inferring it, so a subject that gates a flowing write is caught,
+   * not accommodated. The bytes written are the engine's own; the arm
+   * asserts the captured PATH and the reconcile's effect, never the content.
+   */
+  flowingWrite(toolCallId: string, path: string): ScenarioStep {
+    return { kind: "propose", toolCallId, action: { kind: "write", resource: path }, flows: true };
   },
   read(toolCallId: string, path: string): ScenarioStep {
     return { kind: "read", toolCallId, path };

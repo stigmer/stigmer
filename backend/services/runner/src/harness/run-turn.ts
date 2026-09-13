@@ -60,12 +60,13 @@ import {
   type TurnInterruption,
 } from "../shared/worker-shutdown.js";
 import { terminalizeNonExecutingDecisions } from "./approval-decisions.js";
-import type { TurnCapture } from "./capture.js";
+import { captureCandidate, pinCaptureBaseline, type TurnCapture } from "./capture.js";
 import { PersistChokepoint } from "./persist-chokepoint.js";
 import { StopController } from "./stop-controller.js";
 import {
   applyTerminalArm,
   awaitingApprovalArm,
+  awaitingReviewArm,
   costCapArm,
   failedArm,
   fileReviewResolvedArm,
@@ -322,10 +323,41 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
       },
     };
 
+    // The capture baseline: the runtime's LAST act before the engine, after
+    // every write of its own into the tree (the reconcile, the mounts), so
+    // anything on the tree after this point is the turn's change, whoever
+    // wrote it (`capture.ts`). Absent outside capture mode.
+    capture = await pinCaptureBaseline({
+      status,
+      executionId,
+      workspace: turn.workspace,
+      fileReview: adapter.capabilities.fileReview,
+      artifactStorage: turn.artifactStorage,
+    });
+
     heartbeatPhase = "harness";
     const outcome = await adapter.runTurn(turn, sink);
     armedWatchdog.stop();
     heartbeatPhase = "epilogue";
+
+    // The capture boundary, ONCE, over whatever the whole turn left on the
+    // tree — unless a stop fired mid-turn (`interrupted`: the tree may be
+    // mid-edit and the pause or drain reinvokes this same turn). Before the
+    // decisions settle below, so the stamp reads the rows as the engine
+    // left them. A pending review is the outcome table's second WAITING
+    // cause (`awaitingReviewArm`).
+    const reviewPending =
+      capture !== undefined && outcome.kind !== "interrupted"
+        ? await captureCandidate({
+            status,
+            executionId,
+            workspace: turn.workspace,
+            fileReview: adapter.capabilities.fileReview,
+            artifactStorage: turn.artifactStorage,
+            capture,
+            globalBypass: turn.mcp.leases.global,
+          })
+        : false;
 
     // The rows whose decision never runs the tool (SKIP, REJECT) are settled
     // by the runtime, once, now that the adapter has had its look at them and
@@ -336,24 +368,29 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
 
     switch (outcome.kind) {
       case "completed":
-        return completeTurn(turn, ExecutionPhase.EXECUTION_COMPLETED);
+        return reviewPending ? settleWith(awaitingReviewArm()) : completeTurn(turn, ExecutionPhase.EXECUTION_COMPLETED);
       case "cancelled":
-        return completeTurn(turn, ExecutionPhase.EXECUTION_CANCELLED);
+        return reviewPending ? settleWith(awaitingReviewArm()) : completeTurn(turn, ExecutionPhase.EXECUTION_CANCELLED);
       case "awaiting_approval":
-        // The adapter put the WAITING rows on the transcript; the arm flips
-        // the phase, persists once, and RETURNS to the workflow, which waits
-        // for the approval signal and reinvokes.
+        // The adapter put the WAITING rows on the transcript (and a captured
+        // candidate, if any, rides the same write); the arm flips the phase,
+        // persists once, and RETURNS to the workflow, which waits for the
+        // approval or file-review signal and reinvokes.
         return settleWith(awaitingApprovalArm());
       case "tool_call_limit": {
-        const settledLimit = await settleWith(toolCallLimitArm());
-        console.log(`${activityName} terminated (tool-call limit): execution=${executionId}`);
+        // A review wins over the terminal (Q-M4-2): the limit's copy rides
+        // the transcript and the reinvocation's reconcile completes the turn.
+        const settledLimit = await settleWith(reviewPending ? awaitingReviewArm(toolCallLimitArm()) : toolCallLimitArm());
+        console.log(`${activityName} terminated (tool-call limit): execution=${executionId}${reviewPending ? ", review pending" : ""}`);
         return settledLimit;
       }
       case "failed": {
-        const settledFailure = await settleWith(failedArm(outcome.message, outcome.surface));
+        const arm = failedArm(outcome.message, outcome.surface);
+        const settledFailure = await settleWith(reviewPending ? awaitingReviewArm(arm) : arm);
         console.error(
           `${activityName} failed (${outcome.surface}): execution=${executionId}, error=${outcome.message}` +
-            (outcome.cause instanceof Error ? `, cause=${outcome.cause.message}` : ""),
+            (outcome.cause instanceof Error ? `, cause=${outcome.cause.message}` : "") +
+            (reviewPending ? " — edits on the tree; review pending" : ""),
         );
         return settledFailure;
       }

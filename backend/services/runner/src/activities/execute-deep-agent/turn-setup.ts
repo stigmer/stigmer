@@ -13,9 +13,10 @@
  * tree the runtime locked; the MCP connection that turns resolved servers
  * into LangChain tools; the model; the middleware stack with the approval
  * gate over the runtime's policies; the compiled sub-agents; the system
- * prompt and the user message; `createDeepAgent`; the checkpoint read that
- * decides between a `Command(resume)` and a fresh message; and, in capture
- * mode, the baseline pin and the progress substrate.
+ * prompt and the user message; `createDeepAgent`; and the checkpoint read
+ * that decides between a `Command(resume)` and a fresh message. The
+ * file-review capture is the runtime's (`harness/capture.ts`); this harness
+ * hands it only what its CAS observer saw (`turn.ts`).
  *
  * Every step reads `TurnInput` and the sink and nothing else of the
  * runtime's. The `execution_setup` cold-start line is emitted here, once the
@@ -68,20 +69,8 @@ import { generateAlsoAvailableSection } from "../../shared/skill-writer.js";
 import { toLangChainImageBlocks } from "../../shared/attachment-vision.js";
 import { resolveRecursionLimit, UNBOUNDED_ADVISORY_RECURSION_LIMIT } from "../../shared/tool-rounds.js";
 import { jsonSchemaToZod } from "../../shared/json-schema-to-zod.js";
-import { captureBaselineToLedger } from "../../shared/filereview/capture.js";
-import {
-  createGitProgressSubstrate,
-  createHybridProgressSubstrate,
-  newProgressCaptureState,
-  type ProgressCaptureState,
-  type ProgressSubstrate,
-} from "../../shared/filereview/progress.js";
-import { createCasProgressSubstrate } from "../../shared/filereview/cas-progress.js";
-import type { CasTouchedSnapshot } from "../../shared/filereview/cas-touched.js";
-import { collectSettledToolCallIds, collectSubAgentToolCallIds } from "../../shared/tool-row.js";
 import { CasCaptureObserver } from "./cas-capture-observer.js";
 import { createCasCaptureBackend } from "./cas-capture-backend.js";
-import { DEEP_AGENT_HARNESS_ID } from "./deep-agent-capabilities.js";
 import { resolveResumeInput, type GraphStateSnapshot } from "./hitl.js";
 import { buildEnhancedSystemPrompt, composeUserMessage, renderSkillsSection } from "./prompt-builder.js";
 import { buildShellEnv } from "./shell-env.js";
@@ -149,18 +138,6 @@ export interface DeepAgentEngine {
 export type DeepAgentGraphInput =
   | { readonly kind: "resume"; readonly command: Command }
   | { readonly kind: "message"; readonly input: Record<string, unknown> };
-
-/** The capture posture pinned for this turn (adapter-side until M4). */
-export interface DeepAgentCapture {
-  /** The pre-turn tree in capture mode on a git work tree; `""` otherwise. */
-  readonly baselineTree: string;
-  readonly progressSubstrate: ProgressSubstrate | undefined;
-  readonly progressState: ProgressCaptureState;
-  /** Sub-agent tool-call ids on the status BEFORE this turn's stream, so the boundary stamps only this turn's rows. */
-  readonly priorSubAgentToolCallIds: ReadonlySet<string>;
-  /** Top-level tool-call ids already settled before this turn's stream (the DD-28 provenance scope). */
-  readonly priorSettledToolCallIds: ReadonlySet<string>;
-}
 
 // ── Steps ───────────────────────────────────────────────────────────────────
 
@@ -554,60 +531,5 @@ export async function composeGraphInput(input: TurnInput, engine: DeepAgentEngin
         },
       ],
     },
-  };
-}
-
-/**
- * Turn start in capture mode: pin the pre-turn tree and author BASELINE on
- * the status (the event rides the next persist), then choose the mid-run
- * progress substrate for this turn's workspace shape (git → hybrid of
- * numstat for tracked paths and the observer for ignored ones; non-git →
- * CAS over the observer). Taken AFTER the runtime's reconcile and AFTER its
- * skill and attachment phases wrote into the workspace, so the baseline
- * absorbs the reconciled state and the runner-owned entries.
- *
- * The two id snapshots scope the turn boundary to THIS turn's rows: the
- * sub-agent stamp to sub-agent rows created this turn, the DD-28 provenance
- * to commands executed this turn (the deep-agent's approved shell executes
- * in place at its seeded position, so a positional scope would miss it).
- */
-export async function pinCaptureBaseline(input: TurnInput, sink: TurnSink, workspace: DeepAgentWorkspace): Promise<DeepAgentCapture> {
-  const { executionId } = input;
-  const { primaryDir, gitWorkspace, captureMode, changeSetId } = input.workspace;
-  const { status } = sink;
-
-  const priorSubAgentToolCallIds = collectSubAgentToolCallIds(status.subAgentExecutions);
-  const priorSettledToolCallIds = collectSettledToolCallIds(status.messages);
-
-  let baselineTree = "";
-  if (captureMode) {
-    baselineTree = await captureBaselineToLedger({
-      status,
-      gitRoot: primaryDir,
-      executionId,
-      changeSetId,
-      harnessId: DEEP_AGENT_HARNESS_ID,
-      gitWorkspace,
-    });
-  }
-
-  const readObserverTouched = (): CasTouchedSnapshot => workspace.casObserver.snapshot();
-  const progressSubstrate: ProgressSubstrate | undefined = !captureMode
-    ? undefined
-    : gitWorkspace
-      ? baselineTree
-        ? createHybridProgressSubstrate(
-            createGitProgressSubstrate({ workspaceRoot: primaryDir, executionId, baselineTree }),
-            createCasProgressSubstrate({ workspaceRoot: primaryDir, read: readObserverTouched }),
-          )
-        : undefined
-      : createCasProgressSubstrate({ workspaceRoot: primaryDir, read: readObserverTouched });
-
-  return {
-    baselineTree,
-    progressSubstrate,
-    progressState: newProgressCaptureState(),
-    priorSubAgentToolCallIds,
-    priorSettledToolCallIds,
   };
 }

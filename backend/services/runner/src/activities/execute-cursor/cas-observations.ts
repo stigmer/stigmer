@@ -11,7 +11,9 @@
  * invocation is a FRESH, EPHEMERAL process that cannot hold in-memory state
  * across writes. So Cursor's before-map must be DISK-BACKED: the hook stages each
  * first-touched gitignored path into a per-turn "cas-observations" sidecar, and
- * the runner reads it back at the turn boundary.
+ * the runtime reads it back — as the CAS observations this adapter binds on
+ * the sink ({@link readSidecarSnapshot}) — at each progress capture and at
+ * the turn boundary (`harness/capture.ts`).
  *
  * The sidecar lives under the session HITL directory
  * (`~/.stigmer/sessions/{id}/hitl/cas-observations/`), OUTSIDE the user's
@@ -22,7 +24,8 @@
  * never this scratch. A Temporal retry re-runs the reset and re-observes.
  *
  * ONE MODULE OWNS THE ON-DISK FORMAT. Both sides live here so they cannot drift:
- *  - the READER ({@link readCasObservations}) the runner boundary calls;
+ *  - the READER ({@link readCasObservations}, and its runtime-shaped view
+ *    {@link readSidecarSnapshot});
  *  - the WRITER-SCRIPT GENERATOR ({@link buildObservationStagingScript}) whose
  *    output the hook embeds and runs on the runner's own Node binary. The writer
  *    classifies secrets from the SAME {@link isSecretLikePath} pattern arrays the
@@ -43,6 +46,7 @@
 
 import { readFile, readdir, rm, mkdir } from "node:fs/promises";
 import { join } from "node:path";
+import type { CasTouchedSnapshot } from "../../shared/filereview/cas-touched.js";
 import { SECRET_BASENAME_PATTERNS, SECRET_PATH_PATTERNS } from "../../shared/filereview/secret-paths.js";
 
 /** Sidecar directory name under the session HITL dir. */
@@ -133,6 +137,20 @@ export async function readCasObservations(hitlDir: string): Promise<CasObservati
     }
   }
   return { captured, secretPaths };
+}
+
+/**
+ * One atomic read of the sidecar as the runtime's {@link CasTouchedSnapshot}
+ * — what this adapter binds through `TurnSink.bindCasObservations`. The
+ * sidecar is small (one marker plus one before-blob per touched path), so
+ * re-reading it per capture is cheap and always reflects a sub-agent's
+ * writes staged since the last read.
+ */
+export async function readSidecarSnapshot(hitlDir: string): Promise<CasTouchedSnapshot> {
+  const { captured, secretPaths } = await readCasObservations(hitlDir);
+  const before = new Map<string, Uint8Array | null>();
+  for (const c of captured) before.set(c.path, c.before);
+  return { before, blockedSecretPaths: new Set(secretPaths) };
 }
 
 /**

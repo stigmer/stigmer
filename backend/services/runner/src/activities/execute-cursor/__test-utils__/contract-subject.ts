@@ -79,8 +79,8 @@
  * would show up there AND in `executionCount`, never be papered over.
  */
 
-import { mkdirSync } from "node:fs";
-import { join } from "node:path";
+import { appendFileSync, mkdirSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { ApprovalAction, ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
 import type { Config } from "../../../config.js";
@@ -237,7 +237,11 @@ class CursorSubject implements CursorContractSubject {
           lastSay = s.text;
           break;
         case "propose":
-          script.push(...this.proposeSteps(s.toolCallId, s.action, view, ev));
+          script.push(
+            ...(s.flows
+              ? this.flowingWriteSteps(s.toolCallId, s.action, view, ev)
+              : this.proposeSteps(s.toolCallId, s.action, view, ev)),
+          );
           break;
         case "read":
           script.push(...this.readSteps(s.toolCallId, s.path, view, ev));
@@ -351,6 +355,44 @@ class CursorSubject implements CursorContractSubject {
       emission.expectAllow
         ? step.event(ev.toolCall(callId, name, "completed", args, ALLOWED_RESULT))
         : step.event(ev.toolCall(callId, name, "error", args, HOOK_BLOCKED_RESULT)),
+    ];
+  }
+
+  /**
+   * A write the arm expects to FLOW under apply-then-review capture: the
+   * stream tool call, the REAL hook (which allows a git-capturable write in
+   * capture mode — asserted through the disagreement record like every other
+   * hook answer), the write itself as the SDK would perform it once allowed
+   * (the bytes are this double's own: the tool-call id, one line, appended),
+   * and the completion. The runtime captures the change after the turn; the
+   * hook's sidecar is what this adapter binds as its CAS observations, so a
+   * gitignored path here would reach the review that way.
+   */
+  private flowingWriteSteps(toolCallId: string, action: ProposedAction, view: EngineView, ev: ReturnType<typeof sdkEvents>): ScriptStep[] {
+    if (action.kind !== "write") {
+      throw new Error(`${this.name}: only a write flows under capture (got ${action.kind}); test bug`);
+    }
+    const memory = this.proposals.get(toolCallId) ?? { emitted: 0, allowed: 0 };
+    this.proposals.set(toolCallId, memory);
+    if (memory.allowed > 0) return [];
+    memory.emitted += 1;
+    const gated: ProposedAction & { kind: GatedActionKind } = { ...action, kind: "write" };
+    const args = streamArgsFor(gated);
+    const workspaceRoot = this.workspaceRootOf(view.sessionId);
+    const file = join(workspaceRoot, action.resource);
+    return [
+      step.event(ev.toolCall(toolCallId, STREAM_NAME.write, "running", args)),
+      step.effect(`kit: the real hook lets ${action.resource} flow under capture`, () => {
+        const { permission } = runWorkspaceHook(workspaceRoot, hookInputFor(gated));
+        if (permission !== "allow") {
+          this.hookDisagreements.push(`${toolCallId}: expected a flowing write to be allowed, hook answered ${permission}`);
+          return;
+        }
+        memory.allowed += 1;
+        mkdirSync(dirname(file), { recursive: true });
+        appendFileSync(file, `${toolCallId}\n`);
+      }),
+      step.event(ev.toolCall(toolCallId, STREAM_NAME.write, "completed", args, ALLOWED_RESULT)),
     ];
   }
 

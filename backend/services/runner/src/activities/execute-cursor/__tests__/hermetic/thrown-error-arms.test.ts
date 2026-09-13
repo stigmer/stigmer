@@ -28,6 +28,15 @@
  * plane ever sees for these executions is EXECUTION_FAILED — `persistedPhases`
  * is `[FAILED]`, not `[IN_PROGRESS, FAILED]`.
  *
+ * Golden hunk since S3 M4 (Q-M4-7, ruled Q-M4-12 A): `sdk-error-at-create`
+ * carries an EMPTY `fileChangeProgress` (`changeSetId`, `capturedAt`, no
+ * entries). The runtime refreshes the strip on every write, and this turn's
+ * FAILED write is its first write in capture mode (the hermetic environment
+ * carries artifact storage); the first capture of an unchanged tree attaches
+ * the designed empty snapshot the strip hides at zero. The resolution-error
+ * golden is unchanged: its turn fails before the workspace is provisioned,
+ * so no capture is pinned.
+ *
  * Regenerate ONLY after a deliberate behavior change:
  *   npx vitest run src/activities/execute-cursor/__tests__/hermetic -u
  */
