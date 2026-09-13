@@ -94,6 +94,7 @@ export function buildComponents(config: DaemonConfig, base: NodeJS.ProcessEnv = 
       // The server is `node <entry>` — the runner's launch shape, one child
       // contract for both components.
       resolve: () => ({
+        name: "stigmer-server",
         command: config.server.nodeBin,
         args: [config.server.entryPath],
         env: buildServerEnv(config, base),
@@ -113,6 +114,7 @@ export function buildComponents(config: DaemonConfig, base: NodeJS.ProcessEnv = 
     pidFile: join(config.dataDir, RUNNER_PID_FILE),
     critical: false,
     resolve: () => ({
+      name: "runner",
       command: runner.nodeBin,
       args: [runner.entryPath],
       cwd: join(config.dataDir, "workspace"),

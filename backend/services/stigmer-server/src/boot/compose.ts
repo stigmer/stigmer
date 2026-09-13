@@ -161,7 +161,10 @@ import { newWorkflowExecutionEngineStateProvider } from "../temporal/workflowexe
 import { newWorkflowExecutionWorkerFactory } from "../temporal/workflowexecution/worker.js";
 import { HealthState, registerHealthService } from "../transport/health.js";
 import { resolveConsoleAssets } from "../transport/console/assets.js";
-import { createConsoleLane } from "../transport/console/handler.js";
+import {
+  createConsoleLane,
+  type ConsoleSignInPosture,
+} from "../transport/console/handler.js";
 import { createRegistryLanes } from "../transport/registry/lanes.js";
 import { createUnifiedPortServer } from "../transport/server.js";
 import type { ServerConfig } from "./config.js";
@@ -762,11 +765,36 @@ export async function composeServer(
   } else {
     logger.debug("no web console export bundled; console lane disabled");
   }
+  // The console is told how to sign in (20260913.02 sp.console-login): the
+  // OSS issuer arm of the posture, in the console's vocabulary. A composed
+  // unit's own `requireAuthentication` is NOT expressed here — a
+  // composition whose verifiers resolve its users serves its console its
+  // own way (the cloud's container does); the Enterprise console story is
+  // P4's. Issuer set but no console client registered is WARN-degrade, the
+  // STIGMER_OAUTH_REDIRECT_URI posture: the CLI and SDKs keep working with
+  // API keys, and the served console refuses with copy naming the knob.
+  const consoleSignIn: ConsoleSignInPosture = authEnabled
+    ? {
+        posture: "oidc",
+        issuer: config.oidcIssuer,
+        audience: config.oidcAudience,
+        consoleClientId: config.oidcConsoleClientId,
+      }
+    : { posture: "trusted-local" };
+  if (
+    consoleAssets !== undefined &&
+    consoleSignIn.posture === "oidc" &&
+    consoleSignIn.consoleClientId === ""
+  ) {
+    logger.warn(
+      "STIGMER_OIDC_ISSUER is set but STIGMER_OIDC_CONSOLE_CLIENT_ID is not — the web console this server serves cannot sign in; register a public PKCE client for the console at the issuer and set it",
+    );
+  }
   const consoleLane =
     consoleAssets !== undefined
       ? createConsoleLane({
           assets: consoleAssets,
-          grpcPort: options.portOverride ?? config.grpcPort,
+          signIn: consoleSignIn,
           logger,
         })
       : undefined;

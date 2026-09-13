@@ -6,6 +6,13 @@
  * nginx-equivalence-gated); this module owns the HTTP half: the lane
  * guard, header policy, config synthesis, and file streaming.
  *
+ * /config.json is also how the served console learns to sign in
+ * (20260913.02 sp.console-login; stigmer#924): the composition root hands
+ * the lane the server's authentication posture (ConsoleSignInPosture) and
+ * the lane publishes it in the console's own vocabulary — the OIDC
+ * issuer, audience and the console's PKCE client id under the posture,
+ * `disabled` under trusted local.
+ *
  * Lane guard (consoleLaneEligible): the lane claims GET/HEAD only — RPC
  * traffic is POST on service-qualified paths, and OPTIONS preflights keep
  * flowing to the RPC lane's CORS handling — and it never claims:
@@ -74,18 +81,39 @@ function isServiceShapedPath(pathname: string): boolean {
   return segments.length === 2 && (segments[0] ?? "").includes(".");
 }
 
+/**
+ * How the console this lane serves signs in — the server's authentication
+ * posture as the console needs to hear it (20260913.02 sp.console-login).
+ * A modeled state, never a nullable: "no issuer configured" and "forgot to
+ * wire the posture" must stay distinguishable at the call site.
+ *
+ * Under `oidc`, `consoleClientId` is the PUBLIC client the operator
+ * registered for the browser's PKCE flow, or "" when they have not
+ * (Q-CL-1): the lane publishes that truth as-is and the console refuses
+ * with copy that names the knob (Q-CL-2), while the composition root has
+ * already WARNed at wiring time. Emitting `disabled` instead would send
+ * the console into every RPC tokenless, to fail with a worse message.
+ */
+export type ConsoleSignInPosture =
+  | { readonly posture: "trusted-local" }
+  | {
+      readonly posture: "oidc";
+      readonly issuer: string;
+      readonly audience: string;
+      readonly consoleClientId: string;
+    };
+
 export interface ConsoleLaneOptions {
   readonly assets: ConsoleAssets;
-  /**
-   * Fallback port for the synthesized apiUrl when a request carries no
-   * Host/:authority (technically possible on HTTP/1.0-style clients).
-   */
-  readonly grpcPort: number;
+  readonly signIn: ConsoleSignInPosture;
   readonly logger: Logger;
 }
 
 export function createConsoleLane(options: ConsoleLaneOptions): LaneHandler {
-  const { assets, grpcPort, logger } = options;
+  const { assets, signIn, logger } = options;
+  // The console's runtime config is a pure function of the posture: one
+  // body, built once, served on every request.
+  const configJsonBody = JSON.stringify(consoleRuntimeConfig(signIn));
 
   return (request: LaneRequest, response: LaneResponse): void => {
     const url = request.url ?? "";
@@ -94,7 +122,7 @@ export function createConsoleLane(options: ConsoleLaneOptions): LaneHandler {
     const query = queryStart === -1 ? "" : url.slice(queryStart);
 
     if (rawPath === CONFIG_JSON_PATH) {
-      serveConfigJson(request, response, grpcPort);
+      serveConfigJson(request, response, configJsonBody);
       return;
     }
 
@@ -134,34 +162,60 @@ export function createConsoleLane(options: ConsoleLaneOptions): LaneHandler {
 
 /**
  * The runtime config the cloud container's entrypoint.sh generates from
- * env — synthesized here from the server's own knowledge instead (DD-012:
- * the nginx entrypoint script is not ported). apiUrl derives from the
- * request's own Host so the answer is correct wherever the browser
- * reached us from (localhost, a LAN address, a self-host name) — the
- * console cannot express "same origin" itself (its config loader maps
- * empty fields to a localhost default). TLS-terminating proxies
- * (x-forwarded-proto) are out of scope until a tier serves TLS.
+ * env, synthesized here from the server's own knowledge instead (DD-012:
+ * the nginx entrypoint script is not ported). The field names are the
+ * console's loader's (client-apps/web/src/config/runtime-config.ts).
+ *
+ * `apiUrl` is the empty string, which the console reads as "my own
+ * origin" — the rule its `appUrl` already follows (20260913.02 Q-CL-3).
+ * This lane and the RPC lane share one port, so the console can never
+ * need a different origin, and it makes the answer right behind a
+ * TLS-terminating proxy without trusting x-forwarded-proto: the earlier
+ * Host-derived `http://<host>` sent an https-loaded console to an http
+ * API and died on mixed content.
+ *
+ * Every value here is public metadata: an OIDC issuer URL, an audience
+ * string and a PKCE client id are what a browser is handed by design.
  */
+function consoleRuntimeConfig(signIn: ConsoleSignInPosture): {
+  readonly apiUrl: "";
+  readonly appUrl: "";
+  readonly authMode: "disabled" | "oidc";
+  readonly oidcIssuer: string;
+  readonly oidcClientId: string;
+  readonly oidcAudience: string;
+} {
+  switch (signIn.posture) {
+    case "trusted-local":
+      return {
+        apiUrl: "",
+        appUrl: "",
+        authMode: "disabled",
+        oidcIssuer: "",
+        oidcClientId: "",
+        oidcAudience: "",
+      };
+    case "oidc":
+      return {
+        apiUrl: "",
+        appUrl: "",
+        authMode: "oidc",
+        oidcIssuer: signIn.issuer,
+        oidcClientId: signIn.consoleClientId,
+        oidcAudience: signIn.audience,
+      };
+    default: {
+      const exhaustive: never = signIn;
+      throw new Error(`unhandled sign-in posture ${String(exhaustive)}`);
+    }
+  }
+}
+
 function serveConfigJson(
   request: LaneRequest,
   response: LaneResponse,
-  grpcPort: number,
+  body: string,
 ): void {
-  // HTTP/1.1 carries Host; Node maps HTTP/2's :authority into the same
-  // headers view (and Http2ServerRequest.authority falls back to it).
-  const host = request.headers.host ?? request.headers[":authority"];
-  const apiUrl =
-    typeof host === "string" && host !== ""
-      ? `http://${host}`
-      : `http://localhost:${grpcPort}`;
-  const body = JSON.stringify({
-    apiUrl,
-    appUrl: "",
-    authMode: "disabled",
-    oidcIssuer: "",
-    oidcClientId: "",
-    oidcAudience: "",
-  });
   response.statusCode = 200;
   response.setHeader("Content-Type", "application/json");
   response.setHeader("Cache-Control", CONFIG_JSON_CACHE_CONTROL);

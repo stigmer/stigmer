@@ -27,7 +27,8 @@
     "build:runner-deps": "node scripts/turbo-set.mjs runner-deps build",
     "build:libs": "node scripts/turbo-set.mjs libs build",
     "clean:libs": "node scripts/turbo-set.mjs libs clean",
-    "test": "node --test scripts/*.test.mjs && node scripts/turbo-set.mjs libs test"
+    "test:scripts": "node --test scripts/*.test.mjs scripts/lib/*.test.mjs",
+    "test": "npm run test:scripts && node scripts/turbo-set.mjs libs test"
   },
   "lint-staged": {
     "docs/**/*.{md,mdx}": [

@@ -2,9 +2,9 @@
 
 export { buildComponents, buildRunnerEnv, buildServerEnv } from "./components.js";
 export { type DaemonConfig, type DaemonEnvInputs, DaemonEnvVar, buildDaemonEnv, readDaemonConfig } from "./env.js";
-export { NodeProcessHost, systemClock } from "./host.js";
-export { down, isRunning, type UpOptions, up } from "./launch.js";
-export { type InternalDaemonDeps, type TemporalControl, runInternalDaemon } from "./process.js";
+export { NodeProcessHost, type NodeProcessHostOptions, type OutputMirror, systemClock } from "./host.js";
+export { down, isRunning, type UpForegroundDeps, type UpOptions, up, upForeground } from "./launch.js";
+export { type InternalDaemonDeps, type TemporalControl, runInternalDaemon, waitForShutdownSignal } from "./process.js";
 export {
   HEALTH_CHECK_INTERVAL_MS,
   MAX_RESTARTS,

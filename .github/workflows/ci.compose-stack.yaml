@@ -27,6 +27,10 @@ on:
       - "docker-compose.dev.yml"
       - ".env.example"
       - "scripts/smoke-compose.mjs"
+      # The whole lib, not one file: the smoke imports stigmer-smoke.mjs and
+      # the build-from-source path runs bundle-slim.mjs, which imports
+      # source-map-pragma.mjs (#1087).
+      - "scripts/lib/**"
       - "backend/services/runner/Dockerfile.sandbox"
       - "backend/services/stigmer-server/Dockerfile"
       - "Makefile"
@@ -38,6 +42,10 @@ on:
       - "docker-compose.dev.yml"
       - ".env.example"
       - "scripts/smoke-compose.mjs"
+      # The whole lib, not one file: the smoke imports stigmer-smoke.mjs and
+      # the build-from-source path runs bundle-slim.mjs, which imports
+      # source-map-pragma.mjs (#1087).
+      - "scripts/lib/**"
       - "backend/services/runner/Dockerfile.sandbox"
       - "backend/services/stigmer-server/Dockerfile"
       - "Makefile"

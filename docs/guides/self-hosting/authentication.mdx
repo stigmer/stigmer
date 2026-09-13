@@ -2,7 +2,7 @@
 title: Enable authentication
 description:
   Turn on authentication for a self-hosted Stigmer server with your own OIDC
-  identity provider and API keys.
+  identity provider and API keys, and let the web console sign in through it.
 ---
 
 By default, a self-hosted Stigmer server trusts every request. That is the right
@@ -92,6 +92,9 @@ From the next boot, every request needs a credential:
   `getServerInfo` read your console and CLI use before login, and the standard
   gRPC health service (`grpc.health.v1.Health`), so Kubernetes `grpc:` readiness
   and liveness probes keep working exactly as before.
+- **The web console signs in through your provider.** Register it as a client
+  and tell the server its ID; see
+  [Sign in to the console](#sign-in-to-the-console).
 
 Point your CLI at the stack as a named backend with its key:
 
@@ -100,11 +103,73 @@ stigmer config backend add prod --endpoint stigmer.example.com:7234 --api-key st
 stigmer config backend use prod
 ```
 
-## Known limitation: The web console
+## Sign in to the console
 
-The web console served by the stack cannot sign in to an authenticated server
-yet — console login is planned separately. Use the CLI and SDKs against an
-authenticated stack; keep the console for unauthenticated local use.
+The web console the server serves signs in through your identity provider, with
+the browser's standard Authorization Code flow (PKCE). Two steps: register the
+console with your provider, then tell the server which client you registered.
+
+### Register the console with your identity provider
+
+Create a client (an "application") for the console. Every provider names these
+settings a little differently; this is what each one must be:
+
+- **Client type: public, using PKCE, with no client secret.** The console runs
+  in the browser and cannot keep a secret. In Keycloak this is a client with
+  "Client authentication" off; in Auth0 a "Single Page Application"; in Okta a
+  "Single-Page App".
+- **Redirect URI**: `https://stigmer.example.com/auth/callback` — your console's
+  address plus `/auth/callback`. For a laptop evaluation over plain HTTP,
+  `http://localhost:7234/auth/callback`.
+- **Post-logout redirect URI**: `https://stigmer.example.com/login`.
+- **Allowed web origins**: `https://stigmer.example.com`. The browser calls your
+  provider's token endpoint directly, so your provider must allow that origin.
+  Keycloak calls this "Web origins"; Auth0 "Allowed Web Origins"; Okta "Trusted
+  Origins".
+- **Refresh tokens allowed**: the console asks for `offline_access` so it can
+  renew your sign-in without asking you again. Without a refresh token the
+  console signs you in again when the token expires.
+- **The access token carries your audience**: the server checks that the token
+  it receives names `STIGMER_OIDC_AUDIENCE`. Auth0 and Okta do this when you
+  request the API you configured; Keycloak needs an **Audience mapper** on the
+  console client that adds the audience to the access token.
+
+Copy the client ID your provider shows you. It is a public identifier, not a
+secret.
+
+### Tell the server
+
+Add the client ID beside the two variables you already set:
+
+```yaml no-validate="docker-compose service fragment, not a Stigmer resource"
+services:
+  server:
+    environment:
+      STIGMER_OIDC_ISSUER: "https://auth.example.com/realms/main"
+      STIGMER_OIDC_AUDIENCE: "https://stigmer.example.com/"
+      STIGMER_OIDC_CONSOLE_CLIENT_ID: "stigmer-console"
+```
+
+Restart the server. The variable is optional: a server with the issuer set but
+no console client still boots, logs a warning, and the console tells anyone who
+opens it which variable to set.
+
+### What you see
+
+Open the console. It sends you to your provider to sign in and brings you back.
+The first time, the server creates your Identity Account from the profile your
+provider publishes, and the console asks you to create your first Organization.
+Sign out from the console's account menu; you land on the console's sign-in
+page.
+
+### What still needs an API key
+
+The `stigmer` CLI and the desktop app cannot sign in to a self-hosted server
+through your identity provider yet. Point the CLI at the stack with an API key
+as shown above, or pass an access token from your provider as `STIGMER_API_KEY`.
+Console-style sign-in for the CLI and the desktop app is tracked as
+[stigmer#1077](https://github.com/stigmer/stigmer/issues/1077) and
+[stigmer#1080](https://github.com/stigmer/stigmer/issues/1080).
 
 ## Next step
 

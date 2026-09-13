@@ -171,6 +171,20 @@ export interface ServerConfig {
    */
   readonly oidcAudience: string;
   /**
+   * The OAuth client the served web console signs in with
+   * (STIGMER_OIDC_CONSOLE_CLIENT_ID; 20260913.02 sp.console-login, Q-CL-1):
+   * a PUBLIC client the operator registers at the issuer for the browser's
+   * Authorization Code + PKCE flow — a public identifier, never a secret.
+   * Deliberately lenient beside the two boot-fatal OIDC fields: a
+   * self-host that set the issuer before this knob existed, and uses the
+   * CLI and SDKs with API keys, must keep booting on upgrade. Empty means
+   * the console cannot sign in; the composition root WARNs and the served
+   * console says so itself (Q-CL-2). Named for the console on purpose — a
+   * future CLI or desktop sign-in against a self-host is a different
+   * client type (loopback/native) and should not be tempted to reuse it.
+   */
+  readonly oidcConsoleClientId: string;
+  /**
    * Sandbox provisioner driver (SANDBOX_PROVISIONER_TYPE; §6d, O6). ""
    * — the default — is the external-runner posture: no provisioner is
    * constructed and an operator-managed runner polls the queues (today's
@@ -329,6 +343,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     oauthRedirectUri: envString(env, "STIGMER_OAUTH_REDIRECT_URI", ""),
     consoleDir: envString(env, "STIGMER_CONSOLE_DIR", ""),
     ...loadOidcConfig(env),
+    oidcConsoleClientId: envString(env, "STIGMER_OIDC_CONSOLE_CLIENT_ID", ""),
     sandboxProvisionerType: envString(env, "SANDBOX_PROVISIONER_TYPE", ""),
     sandboxBackendEndpoint: envString(
       env,

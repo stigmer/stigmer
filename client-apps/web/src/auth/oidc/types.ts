@@ -2,16 +2,16 @@
  * OIDC provider configuration.
  *
  * Defines the parameters needed to connect to an OpenID Connect identity
- * provider. This interface is the contract for the future OIDC auth
- * provider implementation.
+ * provider. The values come from the runtime config (`/config.json`): the
+ * cloud container's entrypoint writes it from `NEXT_PUBLIC_*` variables;
+ * a self-hosted stigmer-server's console lane synthesizes it from
+ * `STIGMER_OIDC_ISSUER`, `STIGMER_OIDC_AUDIENCE` and
+ * `STIGMER_OIDC_CONSOLE_CLIENT_ID`; `next dev` reads the same
+ * `NEXT_PUBLIC_*` variables directly.
  *
- * When OIDC mode is implemented, these values will be sourced from the
- * runtime config endpoint (`/api/config`) served by the Go server, or
- * from `NEXT_PUBLIC_*` environment variables during development.
- *
- * The OIDC provider will use the Authorization Code flow with PKCE
- * (client-side, no server secrets required) to support static export
- * deployment.
+ * The provider uses the Authorization Code flow with PKCE (client-side,
+ * no server secrets), which is what lets the console ship as a static
+ * export and sign in against any standards-compliant issuer.
  */
 export interface OidcConfig {
   /** OIDC issuer URL (e.g., `https://auth.stigmer.com/`). */
@@ -32,7 +32,8 @@ export interface OidcConfig {
 
   /**
    * URI to redirect to after logout.
-   * Defaults to the application's base URL when not specified.
+   * Defaults to `/login` on the application's own origin when not
+   * specified — the signed-out landing.
    */
   readonly postLogoutRedirectUri?: string;
 }

@@ -1,4 +1,10 @@
 import { defineConfig, devices } from "@playwright/test";
+import {
+  OIDC_AUDIENCE,
+  OIDC_CONSOLE_CLIENT_ID,
+  OIDC_ISSUER,
+  OIDC_STACK,
+} from "./fixtures/oidc";
 
 /**
  * E2E tests for the Stigmer web console, split into three tiers:
@@ -24,6 +30,13 @@ import { defineConfig, devices } from "@playwright/test";
  *   `--workers=1`). Specs skip gracefully when the mock control URL is absent.
  *   Run via `make test-e2e-approval`.
  *
+ * - **console-login**: the served console signing in to an authenticated
+ *   self-hosted server (20260913.02, stigmer#924), against the conformance
+ *   harness's hermetic OIDC issuer run as a process (opt-in via
+ *   STIGMER_E2E_OIDC). One Playwright invocation boots exactly one stack, so
+ *   this is its own invocation: `make test-e2e-console-login`. The spec skips
+ *   visibly without the flag.
+ *
  * Override the target with STIGMER_E2E_BASE_URL for staging or local.
  * When no STIGMER_E2E_BASE_URL is set, Playwright auto-starts the local
  * dev server and defaults to http://localhost:3000.
@@ -43,7 +56,10 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
   reporter: process.env.CI
-    ? [["html", { open: "never" }], ["junit", { outputFile: "test-results/junit.xml" }]]
+    ? [
+        ["html", { open: "never" }],
+        ["junit", { outputFile: "test-results/junit.xml" }],
+      ]
     : "html",
 
   use: {
@@ -93,6 +109,15 @@ export default defineConfig({
       fullyParallel: false,
       use: { ...devices["Desktop Chrome"] },
     },
+    {
+      // The OIDC stack shape: global-setup boots the issuer and the server
+      // in the posture; webServer gives `next dev` the matching NEXT_PUBLIC_*
+      // (below). Serial — one person signs in to one fresh server.
+      name: "console-login",
+      testDir: "./tests/console-login",
+      fullyParallel: false,
+      use: { ...devices["Desktop Chrome"] },
+    },
   ],
 
   globalSetup: "./global-setup.ts",
@@ -103,17 +128,28 @@ export default defineConfig({
         command: "npm run dev -w client-apps/web",
         cwd: "../..",
         url: "http://localhost:3000",
-        reuseExistingServer: true,
+        // A dev server already on :3000 was started in the developer's own
+        // auth mode; the OIDC shape needs its own, so it never reuses one.
+        reuseExistingServer: !OIDC_STACK,
         timeout: 60_000,
-        // A local e2e stack must run in OSS no-auth mode against the e2e server,
+        // A local e2e stack runs in OSS no-auth mode against the e2e server,
         // regardless of a developer's personal client-apps/web/.env (which may
-        // point at prod Auth0/OIDC). @next/env does not override variables that
-        // are already present in process.env, so these win over the .env file.
-        // Only applies to the locally-spawned dev server — external targets
-        // (STIGMER_E2E_BASE_URL) skip webServer entirely.
+        // point at prod Auth0/OIDC) — or, under STIGMER_E2E_OIDC, in OIDC mode
+        // against the hermetic issuer, with the same coordinates global-setup
+        // gives the server (fixtures/oidc.ts). @next/env does not override
+        // variables that are already present in process.env, so these win over
+        // the .env file. Only applies to the locally-spawned dev server —
+        // external targets (STIGMER_E2E_BASE_URL) skip webServer entirely.
         env: {
-          NEXT_PUBLIC_AUTH_MODE: "disabled",
           NEXT_PUBLIC_API_URL: `http://localhost:${process.env.STIGMER_E2E_API_PORT ?? "7234"}`,
+          ...(OIDC_STACK
+            ? {
+                NEXT_PUBLIC_AUTH_MODE: "oidc",
+                NEXT_PUBLIC_OIDC_ISSUER: OIDC_ISSUER,
+                NEXT_PUBLIC_OIDC_CLIENT_ID: OIDC_CONSOLE_CLIENT_ID,
+                NEXT_PUBLIC_OIDC_AUDIENCE: OIDC_AUDIENCE,
+              }
+            : { NEXT_PUBLIC_AUTH_MODE: "disabled" }),
         },
       }
     : undefined,

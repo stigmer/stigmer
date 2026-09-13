@@ -13,8 +13,17 @@
  *   node scripts/publish-libs.mjs --version 0.5.0 --skip-build # publish pre-built dist/
  *   node scripts/publish-libs.mjs --version 0.5.0-dev.20260608 --tag dev  # dev channel
  *   NPM_TOKEN=npm_xxx node scripts/publish-libs.mjs --version 0.5.0  # CI with token
+ *   node scripts/publish-libs.mjs --version 0.0.0-dev.abc1234 --pack-dir out/pkgs  # tarballs, no registry
  *
  * --version is required. It stamps the version into every dist/package.json.
+ *
+ * --pack-dir <dir> "publishes" to a directory instead of the registry: every
+ * package is packed (`npm pack`) into <dir> with the same stamped dist/ that
+ * `npm publish` would upload, and nothing is sent anywhere. This is how a
+ * build that must carry the workspace's OWN packages at an unpublished
+ * version — the all-in-one image built from a PR's sources — gets bytes
+ * identical to a release's, and it needs no npm token. Mutually exclusive
+ * with --dry-run and --tag (no dist-tag exists for a directory).
  *
  * The npm dist-tag is chosen as follows:
  *   - If --tag is passed explicitly, that tag is used verbatim. This is how the
@@ -90,11 +99,24 @@ function parseArgs() {
     ? args[args.indexOf("--tag") + 1]
     : undefined;
 
+  const packDir = args.includes("--pack-dir")
+    ? args[args.indexOf("--pack-dir") + 1]
+    : undefined;
+  if (args.includes("--pack-dir") && !packDir) {
+    console.error("error: --pack-dir requires a directory");
+    process.exit(1);
+  }
+  if (packDir && (tag || args.includes("--dry-run"))) {
+    console.error("error: --pack-dir cannot be combined with --tag or --dry-run");
+    process.exit(1);
+  }
+
   return {
     version,
     tag,
     dryRun: args.includes("--dry-run"),
     skipBuild: args.includes("--skip-build"),
+    packDir: packDir ? resolve(packDir) : undefined,
   };
 }
 
@@ -271,14 +293,28 @@ function teardownNpmrc(created) {
   }
 }
 
+/**
+ * The `npm pack` invocation for one built package: the tarball lands in
+ * `packDir`, named `<scope>-<name>-<version>.tgz` as npm names it. Returned so
+ * callers (and the test) can address the file without re-deriving npm's rule.
+ */
+export function packCommand(distDir, packDir) {
+  return `npm pack ${distDir} --pack-destination ${packDir} --silent`;
+}
+
 async function main() {
-  const { version, tag: explicitTag, dryRun, skipBuild } = parseArgs();
+  const { version, tag: explicitTag, dryRun, skipBuild, packDir } = parseArgs();
   const inferredTag = isPrerelease(version) ? "next" : "latest";
   const tag = explicitTag ?? inferredTag;
 
   console.log(`\n  version: ${version}`);
-  console.log(`  tag:     ${tag}${explicitTag ? "" : " (default; some packages may pin lower)"}`);
-  console.log(`  dry-run: ${dryRun}\n`);
+  if (packDir) {
+    console.log(`  pack to: ${packDir} (no registry)`);
+  } else {
+    console.log(`  tag:     ${tag}${explicitTag ? "" : " (default; some packages may pin lower)"}`);
+    console.log(`  dry-run: ${dryRun}`);
+  }
+  console.log("");
 
   if (!skipBuild) {
     console.log("=== Building all packages ===\n");
@@ -288,10 +324,12 @@ async function main() {
     console.log("=== Skipping build (--skip-build) ===\n");
   }
 
-  const npmrcCreated = setupNpmrc();
+  // A directory needs no credentials; never touch .npmrc for a pack run.
+  const npmrcCreated = packDir ? false : setupNpmrc();
+  if (packDir) mkdirSync(packDir, { recursive: true });
 
   try {
-    console.log("=== Publishing packages ===\n");
+    console.log(packDir ? "=== Packing packages ===\n" : "=== Publishing packages ===\n");
 
     for (const relPath of PACKAGES) {
       const pkgDir = resolve(root, relPath);
@@ -313,7 +351,7 @@ async function main() {
 
       const distPkgPath = generateDistPackageJson(pkgDir, version);
       console.log(`  Generated ${distPkgPath}`);
-      if (pkgTag !== tag) {
+      if (!packDir && pkgTag !== tag) {
         console.log(`  dist-tag: ${pkgTag} (pinned below the run default "${tag}")`);
       }
 
@@ -327,6 +365,12 @@ async function main() {
       const licenseSrc = resolve(root, "LICENSE");
       if (existsSync(licenseSrc)) {
         cpSync(licenseSrc, resolve(distDir, "LICENSE"));
+      }
+
+      if (packDir) {
+        run(packCommand(distDir, packDir));
+        console.log("");
+        continue;
       }
 
       let publishCmd = `npm publish ${distDir} --access public --tag ${pkgTag}`;

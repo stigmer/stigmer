@@ -485,6 +485,18 @@ smoke-docker-image: build-server build-web ## Build the server Docker image from
 	@cd $(SERVER_DIR) && node scripts/bundle-slim.mjs --platform=linux-$$(node -e "process.stdout.write(process.arch==='x64'?'x64':'arm64')")
 	@cd $(SERVER_DIR) && node scripts/smoke-docker-image.mjs
 
+# The all-in-one evaluation image (P3 entry 2): stage every package the image
+# bakes from THIS checkout (scripts/stage-all-in-one.mjs — the workspace
+# tarballs, the slim server and runner packages for this arch, the verified
+# Temporal binary), build deploy/all-in-one natively, and run the one smoke
+# the PR gate (ci.all-in-one.yaml) and the release lane run. Needs Docker;
+# builds a linux image for the docker daemon's native arch.
+.PHONY: smoke-all-in-one
+smoke-all-in-one: build-runner build-server build-web ## Stage, build and boot-smoke the all-in-one evaluation image (needs Docker)
+	@command -v docker >/dev/null 2>&1 || { echo "error: docker not found — the all-in-one smoke needs a Docker daemon"; exit 1; }
+	node scripts/stage-all-in-one.mjs
+	node scripts/smoke-all-in-one.mjs
+
 # The compose gate (DD-013, Phase-2 P5): build both images from source and
 # prove the full self-host stack — server + Postgres + Temporal + runner —
 # up to one end-to-end workflow run. The same script the PR gate
@@ -558,7 +570,7 @@ tidy: ## Run go mod tidy on all Go modules
        lint-desktop typecheck-desktop verify-desktop kill-desktop launch-desktop build-desktop clean-build-desktop release-desktop-local \
        lint-docs lint-docs-audit format-docs format-docs-check check-links libs-build web-build validate-demos tsdoc-check test-demos \
        check-docs-inventory check-conformance-inventory \
-       test-web test-desktop test-runner-host test-e2e test-e2e-approval test-a11y check check-all \
+       test-web test-desktop test-runner-host test-e2e test-e2e-approval test-e2e-console-login test-a11y check check-all \
        check-prep check-go check-node check-site check-rust check-java
 fix: ## Auto-fix linting and formatting issues
 	@gofmt -s -w .
@@ -737,6 +749,16 @@ test-e2e-approval: ## Run the deterministic HITL approval E2E (mock LLM, serial,
 	cd test/e2e && npx playwright install --with-deps chromium && \
 		STIGMER_E2E_MOCK_LLM=1 npx playwright test --project=interactive-approval --workers=1 && \
 		STIGMER_E2E_MOCK_LLM=1 STIGMER_E2E_FILE_GATES=1 npx playwright test --project=interactive-approval-gate --workers=1
+
+test-e2e-console-login: ## Run the console sign-in E2E against a server in the OIDC posture (hermetic issuer, serial)
+	# One stack shape of its own (20260913.02 sp.console-login): the
+	# conformance harness's local OIDC issuer as a process, the server booted
+	# with STIGMER_OIDC_ISSUER pointed at it, `next dev` in OIDC mode with the
+	# same coordinates (test/e2e/fixtures/oidc.ts). Root install for the same
+	# reason as test-e2e-approval; needs the built server and runner.
+	npm ci
+	cd test/e2e && npx playwright install --with-deps chromium && \
+		STIGMER_E2E_OIDC=1 npx playwright test --project=console-login --workers=1
 
 # Parallel CI gate.
 #

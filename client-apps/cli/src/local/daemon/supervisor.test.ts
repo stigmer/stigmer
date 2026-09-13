@@ -109,7 +109,7 @@ function spec(name: string, opts: { critical?: boolean; marker?: string; gate?: 
     name,
     pidFile: join(dir, `${name}.pid`),
     critical: opts.critical ?? false,
-    resolve: () => ({ command: name, args: [], env: {}, logFile: join(dir, `${name}.log`), readinessMarker: opts.marker }),
+    resolve: () => ({ name, command: name, args: [], env: {}, logFile: join(dir, `${name}.log`), readinessMarker: opts.marker }),
     gate: opts.gate,
   };
 }

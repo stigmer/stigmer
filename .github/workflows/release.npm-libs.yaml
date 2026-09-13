@@ -730,6 +730,243 @@ jobs:
             --tag "ghcr.io/${{ github.repository_owner }}/stigmer-runner:latest" \
             "ghcr.io/${{ github.repository_owner }}/stigmer-runner:v${VERSION}"
 
+  # ---------------------------------------------------------------------------
+  # The all-in-one evaluation image: ghcr.io/<owner>/stigmer (P3 entry 2,
+  # stigmer-cloud project 20260913.03). A pre-warmed `stigmer up`: every
+  # package the CLI would acquire, pre-installed into its own runtimes layout,
+  # plus the CLI and the checksum-verified Temporal binary, run in the
+  # foreground under tini. Stage once (the npm-shaped packages are
+  # arch-independent; only the Temporal binary and the choice of native-bridge
+  # platform package differ), build natively per arch (the Dockerfile has RUN
+  # steps — the compose-runner precedent, no QEMU), merge the per-arch tags,
+  # smoke the PUSHED tag on native runners, promote `latest` on stable only.
+  # `needs` the npm publishes so an image never exists for a version the
+  # registry never got, even though the image is built from this checkout.
+  # ---------------------------------------------------------------------------
+  stage-all-in-one:
+    needs: [determine-version, publish, publish-runner, publish-server-slim]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Install npm workspace dependencies
+        run: npm ci
+
+      - name: Build the runner, the server and the web console
+        run: make build-runner build-server build-web
+
+      # The first call builds and packs the workspace libs; the second reuses
+      # them (--skip-build) and differs only in the Temporal binary and the
+      # native-bridge platform package it picks.
+      - name: Stage both arches at the release version
+        env:
+          VERSION: ${{ needs.determine-version.outputs.version }}
+        run: |
+          node scripts/stage-all-in-one.mjs --version="${VERSION}" --arch=amd64 --out=stage-amd64
+          node scripts/stage-all-in-one.mjs --version="${VERSION}" --arch=arm64 --out=stage-arm64 --skip-build
+
+      - name: Upload the amd64 stage
+        uses: actions/upload-artifact@v4
+        with:
+          name: all-in-one-stage-amd64
+          path: stage-amd64/
+          retention-days: 3
+          if-no-files-found: error
+
+      - name: Upload the arm64 stage
+        uses: actions/upload-artifact@v4
+        with:
+          name: all-in-one-stage-arm64
+          path: stage-arm64/
+          retention-days: 3
+          if-no-files-found: error
+
+  publish-all-in-one-image-amd64:
+    needs: [determine-version, stage-all-in-one]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download the amd64 stage
+        uses: actions/download-artifact@v4
+        with:
+          name: all-in-one-stage-amd64
+          path: deploy/all-in-one/stage
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push (native amd64, per-arch tag)
+        env:
+          VERSION: ${{ needs.determine-version.outputs.version }}
+        run: |
+          docker buildx build \
+            --platform linux/amd64 \
+            --build-arg STIGMER_VERSION="${VERSION}" \
+            --build-arg IMAGE_REVISION="${{ github.sha }}" \
+            --tag "ghcr.io/${{ github.repository_owner }}/stigmer:v${VERSION}-amd64" \
+            --push \
+            deploy/all-in-one
+
+  publish-all-in-one-image-arm64:
+    needs: [determine-version, stage-all-in-one]
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download the arm64 stage
+        uses: actions/download-artifact@v4
+        with:
+          name: all-in-one-stage-arm64
+          path: deploy/all-in-one/stage
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push (native arm64, per-arch tag)
+        env:
+          VERSION: ${{ needs.determine-version.outputs.version }}
+        run: |
+          docker buildx build \
+            --platform linux/arm64 \
+            --build-arg STIGMER_VERSION="${VERSION}" \
+            --build-arg IMAGE_REVISION="${{ github.sha }}" \
+            --tag "ghcr.io/${{ github.repository_owner }}/stigmer:v${VERSION}-arm64" \
+            --push \
+            deploy/all-in-one
+
+  publish-all-in-one-image:
+    needs: [determine-version, publish-all-in-one-image-amd64, publish-all-in-one-image-arm64]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      packages: write
+    steps:
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Note: a NEW GHCR package is private until made public once, by hand,
+      # in the org's package settings (the server image's first push had the
+      # same step). Until then the smokes below pull with the workflow token.
+      - name: Merge the per-arch tags into the version manifest
+        env:
+          VERSION: ${{ needs.determine-version.outputs.version }}
+        run: |
+          docker buildx imagetools create \
+            --tag "ghcr.io/${{ github.repository_owner }}/stigmer:v${VERSION}" \
+            "ghcr.io/${{ github.repository_owner }}/stigmer:v${VERSION}-amd64" \
+            "ghcr.io/${{ github.repository_owner }}/stigmer:v${VERSION}-arm64"
+
+  smoke-all-in-one-amd64:
+    needs: [determine-version, publish-all-in-one-image]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Boot-smoke the pushed image (native amd64)
+        run: |
+          node scripts/smoke-all-in-one.mjs \
+            --image="ghcr.io/${{ github.repository_owner }}/stigmer:v${{ needs.determine-version.outputs.version }}"
+
+  smoke-all-in-one-arm64:
+    needs: [determine-version, publish-all-in-one-image]
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Boot-smoke the pushed image (native arm64)
+        run: |
+          node scripts/smoke-all-in-one.mjs \
+            --image="ghcr.io/${{ github.repository_owner }}/stigmer:v${{ needs.determine-version.outputs.version }}"
+
+  promote-all-in-one-latest:
+    needs: [determine-version, smoke-all-in-one-amd64, smoke-all-in-one-arm64]
+    # Stable only — the server and runner images' channel policy: `latest`
+    # moves only after the pushed tag ran the full smoke on both arches.
+    if: ${{ !contains(needs.determine-version.outputs.version, '-') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      packages: write
+    steps:
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Promote latest to the smoked version tag
+        env:
+          VERSION: ${{ needs.determine-version.outputs.version }}
+        run: |
+          docker buildx imagetools create \
+            --tag "ghcr.io/${{ github.repository_owner }}/stigmer:latest" \
+            "ghcr.io/${{ github.repository_owner }}/stigmer:v${VERSION}"
+
   # The compose pin (docker-compose.yml's STIGMER_VERSION default and the
   # .env.example doc line) is NOT bumped here. Every automated route to
   # main has been tried and refused: a PR needed an org setting that

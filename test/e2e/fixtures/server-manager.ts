@@ -19,6 +19,9 @@ export interface ServerState {
   // file writes take the pre-execution approval gate instead of apply-then-review.
   // Specs read it to skip against the wrong stack shape.
   fileGateMode?: boolean;
+  // The hermetic OIDC issuer process, when the stack was booted in the OIDC
+  // posture (STIGMER_E2E_OIDC). Torn down with the stack.
+  issuerPid?: number;
 }
 
 const REPO_ROOT = path.resolve(__dirname, "../../..");
@@ -85,9 +88,7 @@ async function waitForPort(
     if (await isPortReachable(port, host)) return;
     await sleep(intervalMs);
   }
-  throw new Error(
-    `Port ${host}:${port} not reachable after ${timeoutMs}ms`,
-  );
+  throw new Error(`Port ${host}:${port} not reachable after ${timeoutMs}ms`);
 }
 
 /**
@@ -113,7 +114,9 @@ function waitForOutput(
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
       cleanup();
-      reject(new Error(`Timeout (${timeoutMs}ms) waiting for output: ${pattern}`));
+      reject(
+        new Error(`Timeout (${timeoutMs}ms) waiting for output: ${pattern}`),
+      );
     }, timeoutMs);
 
     function cleanup() {
@@ -134,7 +137,9 @@ function waitForOutput(
 
     proc.on("exit", (code) => {
       cleanup();
-      reject(new Error(`Process exited with code ${code} before pattern matched`));
+      reject(
+        new Error(`Process exited with code ${code} before pattern matched`),
+      );
     });
   });
 }
@@ -154,7 +159,7 @@ function resolveServerEntrypoint(): string {
 
   throw new Error(
     `stigmer-server not built: ${distEntry} not found.\n` +
-    `  Run: make build-server`,
+      `  Run: make build-server`,
   );
 }
 
@@ -168,8 +173,8 @@ function resolveRunnerEntrypoint(runnerDir: string): string {
 
   throw new Error(
     `Unified runner not built: ${distEntry} not found.\n` +
-    `  Run: npm run build -w @stigmer/protos && npm run build -w @stigmer/runner\n` +
-    `  Or:  make build-runner (repo root)`,
+      `  Run: npm run build -w @stigmer/protos && npm run build -w @stigmer/runner\n` +
+      `  Or:  make build-runner (repo root)`,
   );
 }
 
@@ -186,6 +191,10 @@ export async function startBackendStack(opts: {
   // the stack shape the file-diff gate-card specs need. The server keeps its
   // own artifact config; only the runner's capture substrate is removed.
   fileGates?: boolean;
+  // Layered over the server's env after the stack's own values — a stack
+  // SHAPE the caller chooses (the OIDC posture: STIGMER_OIDC_ISSUER /
+  // _AUDIENCE / _CONSOLE_CLIENT_ID), never a knob a spec flips.
+  extraServerEnv?: Record<string, string>;
 }): Promise<ServerState> {
   const apiPort = opts.apiPort ?? 7234;
   // Default to a free port (not the fixed 7233) so a developer's live dev stack
@@ -212,16 +221,26 @@ export async function startBackendStack(opts: {
 
   // 1. Temporal dev server
   console.log(`[e2e] Starting Temporal dev server on :${temporalPort}...`);
-  const temporal = spawn("temporal", [
-    "server", "start-dev",
-    "--port", String(temporalPort),
-    "--namespace", "default",
-    "--headless",
-    "--db-filename", path.join(tempDir, "temporal.db"),
-  ], { stdio: ["ignore", "pipe", "pipe"] });
+  const temporal = spawn(
+    "temporal",
+    [
+      "server",
+      "start-dev",
+      "--port",
+      String(temporalPort),
+      "--namespace",
+      "default",
+      "--headless",
+      "--db-filename",
+      path.join(tempDir, "temporal.db"),
+    ],
+    { stdio: ["ignore", "pipe", "pipe"] },
+  );
 
   if (!temporal.pid) {
-    throw new Error("Failed to spawn Temporal dev server. Is `temporal` CLI on PATH?");
+    throw new Error(
+      "Failed to spawn Temporal dev server. Is `temporal` CLI on PATH?",
+    );
   }
   drainStdio(temporal);
 
@@ -232,7 +251,7 @@ export async function startBackendStack(opts: {
   console.log(`[e2e] Starting stigmer-server on :${apiPort}...`);
   const serverEntry = resolveServerEntrypoint();
   const serverEnv: Record<string, string> = {
-    ...process.env as Record<string, string>,
+    ...(process.env as Record<string, string>),
     GRPC_PORT: String(apiPort),
     TEMPORAL_HOST_PORT: `127.0.0.1:${temporalPort}`,
     TEMPORAL_NAMESPACE: "default",
@@ -248,20 +267,28 @@ export async function startBackendStack(opts: {
     // Test hermeticity: never let the server phone the cloud registry
     // endpoint from CI — the bundled registry is the fixture.
     STIGMER_MODEL_REGISTRY_REFRESH: "off",
+    ...(opts.extraServerEnv ?? {}),
   };
 
-  const server = spawn(process.execPath, [serverEntry], { env: serverEnv, stdio: ["ignore", "pipe", "pipe"] });
+  const server = spawn(process.execPath, [serverEntry], {
+    env: serverEnv,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
 
   // Opt-in: tee server logs for the post-approval resume-wedge probe (see diag.ts).
   if (diagEnabled()) {
-    const serverLog = fs.createWriteStream(diagLogPath("server"), { flags: "w" });
+    const serverLog = fs.createWriteStream(diagLogPath("server"), {
+      flags: "w",
+    });
     server.stdout?.on("data", (d: Buffer) => serverLog.write(d));
     server.stderr?.on("data", (d: Buffer) => serverLog.write(d));
   }
 
   if (!server.pid) {
     temporal.kill();
-    throw new Error(`Failed to spawn stigmer-server at ${serverEntry}. Build with: make build-server`);
+    throw new Error(
+      `Failed to spawn stigmer-server at ${serverEntry}. Build with: make build-server`,
+    );
   }
   drainStdio(server);
 
@@ -274,7 +301,7 @@ export async function startBackendStack(opts: {
   const entrypoint = resolveRunnerEntrypoint(runnerDir);
 
   const runnerEnv: Record<string, string> = {
-    ...process.env as Record<string, string>,
+    ...(process.env as Record<string, string>),
     MODE: "local",
     TEMPORAL_SERVICE_ADDRESS: `127.0.0.1:${temporalPort}`,
     TEMPORAL_NAMESPACE: "default",
@@ -324,12 +351,18 @@ export async function startBackendStack(opts: {
     stdio: ["ignore", "pipe", "pipe"],
   });
 
-  runner.stdout?.on("data", (data: Buffer) => runnerOutput.push(data.toString()));
-  runner.stderr?.on("data", (data: Buffer) => runnerOutput.push(data.toString()));
+  runner.stdout?.on("data", (data: Buffer) =>
+    runnerOutput.push(data.toString()),
+  );
+  runner.stderr?.on("data", (data: Buffer) =>
+    runnerOutput.push(data.toString()),
+  );
 
   // Opt-in: tee runner logs for the post-approval resume-wedge probe (see diag.ts).
   if (diagEnabled()) {
-    const runnerLog = fs.createWriteStream(diagLogPath("runner"), { flags: "w" });
+    const runnerLog = fs.createWriteStream(diagLogPath("runner"), {
+      flags: "w",
+    });
     runner.stdout?.on("data", (d: Buffer) => runnerLog.write(d));
     runner.stderr?.on("data", (d: Buffer) => runnerLog.write(d));
   }
@@ -346,9 +379,9 @@ export async function startBackendStack(opts: {
     const tail = runnerOutput.slice(-20).join("");
     throw new Error(
       `Unified runner failed to start.\n` +
-      `  Entrypoint: ${entrypoint}\n` +
-      `  Last output:\n${tail}\n` +
-      `  Original error: ${err instanceof Error ? err.message : err}`,
+        `  Entrypoint: ${entrypoint}\n` +
+        `  Last output:\n${tail}\n` +
+        `  Original error: ${err instanceof Error ? err.message : err}`,
     );
   }
   console.log(`[e2e] Unified runner ready (pid: ${runner.pid})`);
@@ -365,7 +398,12 @@ export async function startBackendStack(opts: {
 export function stopBackendStack(state: ServerState): void {
   if (state.reused) return;
 
-  const pids = [state.runnerPid, state.serverPid, state.temporalPid];
+  const pids = [
+    state.runnerPid,
+    state.serverPid,
+    state.temporalPid,
+    state.issuerPid,
+  ];
   for (const pid of pids) {
     if (pid) {
       try {

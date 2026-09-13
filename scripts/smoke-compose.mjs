@@ -48,11 +48,17 @@
 import { execFileSync, spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { cpSync, existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { connect } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
+import {
+  assertArtifactLane,
+  assertConsoleServed,
+  assertPortFree,
+  runSetVarsWorkflow,
+  waitForServing,
+} from "./lib/stigmer-smoke.mjs";
 
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
 const serverRoot = join(repoRoot, "backend", "services", "stigmer-server");
@@ -92,59 +98,6 @@ function fail(message) {
 
 function log(step) {
   console.log(`smoke-compose: ${step}`);
-}
-
-async function sleep(ms) {
-  await new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-async function pollUntil(label, timeoutMs, probe) {
-  const deadline = Date.now() + timeoutMs;
-  let lastError = "";
-  while (Date.now() < deadline) {
-    try {
-      const result = await probe();
-      if (result !== undefined && result !== false) return result;
-      lastError = "probe returned falsy";
-    } catch (error) {
-      lastError = error instanceof Error ? error.message : String(error);
-    }
-    await sleep(2000);
-  }
-  throw new Error(`timed out waiting for ${label} (${timeoutMs}ms): ${lastError}`);
-}
-
-/** Unary Connect-JSON call — the same lane a curl user gets. */
-async function connectJson(procedure, body) {
-  const response = await fetch(`http://127.0.0.1:${SERVER_PORT}/${procedure}`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  const text = await response.text();
-  if (!response.ok) {
-    throw new Error(`${procedure} -> HTTP ${response.status}: ${text.slice(0, 300)}`);
-  }
-  return JSON.parse(text);
-}
-
-/** Fails when the port is already taken — a stigmer stack is running. */
-function assertPortFree(port) {
-  return new Promise((resolve, reject) => {
-    const socket = connect({ host: "127.0.0.1", port, timeout: 1500 });
-    socket.once("connect", () => {
-      socket.destroy();
-      reject(new Error(
-        `port ${port} is already in use — stop the running stigmer stack ` +
-        `(stigmer down / docker compose down) before the smoke`,
-      ));
-    });
-    socket.once("error", () => resolve(undefined)); // refused = free
-    socket.once("timeout", () => {
-      socket.destroy();
-      resolve(undefined);
-    });
-  });
 }
 
 /**
@@ -222,118 +175,26 @@ async function main() {
     log("docker compose up -d");
     compose(["up", "-d"], { stdio: "inherit" });
 
+    const baseUrl = `http://127.0.0.1:${SERVER_PORT}`;
+
     // 1. The server healthy — through compose depends_on this also proves
     // Postgres answered pg_isready and the image HEALTHCHECK went green.
     log("waiting for the server health service (SERVING)...");
-    await pollUntil("health SERVING", SERVER_HEALTHY_TIMEOUT_MS, async () => {
-      const health = await connectJson("grpc.health.v1.Health/Check", {});
-      return health.status === "SERVING";
-    });
+    await waitForServing(baseUrl, SERVER_HEALTHY_TIMEOUT_MS);
     log("health service: SERVING");
 
-    // 2. The console lane (DD-012) through the compose topology.
-    const config = await (await fetch(`http://127.0.0.1:${SERVER_PORT}/config.json`)).json();
-    if (config.authMode !== "disabled") {
-      throw new Error(`/config.json authMode=${config.authMode} — want disabled`);
-    }
-    if (config.apiUrl !== `http://127.0.0.1:${SERVER_PORT}`) {
-      throw new Error(`/config.json apiUrl=${config.apiUrl} — want the Host-derived origin`);
-    }
-    const index = await fetch(`http://127.0.0.1:${SERVER_PORT}/`);
-    const indexType = index.headers.get("content-type") ?? "";
-    if (index.status !== 200 || !indexType.includes("text/html")) {
-      throw new Error(`console / -> ${index.status} ${indexType} — want 200 text/html`);
-    }
+    // 2. The console lane (DD-012) through the compose topology: the one
+    // trusted-local /config.json document (scripts/lib/stigmer-smoke.mjs).
+    await assertConsoleServed(baseUrl);
     log("console lane: /config.json contract + / html both answer");
 
-    // 3. The artifact file server on its published port: a 404 from the
-    // listener proves the 0.0.0.0 bind and the port publish; content
-    // round-trips ride the artifact conformance suites, not this smoke.
-    const artifactProbe = await fetch(
-      `http://127.0.0.1:${ARTIFACT_PORT}/smoke-nonexistent-key`,
-    );
-    if (artifactProbe.status !== 404) {
-      throw new Error(`artifact server probe -> HTTP ${artifactProbe.status} — want 404`);
-    }
+    // 3. The artifact file server on its published port.
+    await assertArtifactLane(`http://127.0.0.1:${ARTIFACT_PORT}`);
     log("artifact file server: answering on the published port");
 
-    // 4. The end-to-end run — the phase gate's line. A single set_vars
-    // task: sub-second, hermetic, no LLM/MCP/keys (the conformance
-    // suite's canonical execution fixture), but it only completes if the
+    // 4. The end-to-end run — the phase gate's line: it only completes if the
     // runner container connected to Temporal and polled the queue.
-    const suffix = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
-    const org = await connectJson(
-      "ai.stigmer.tenancy.organization.v1.OrganizationCommandController/create",
-      {
-        apiVersion: "tenancy.stigmer.ai/v1",
-        kind: "Organization",
-        metadata: { name: `smoke-org-${suffix}` },
-      },
-    );
-    const orgId = org.metadata?.id;
-    if (!orgId) throw new Error(`organization create returned no id: ${JSON.stringify(org)}`);
-
-    const workflow = await connectJson(
-      "ai.stigmer.agentic.workflow.v1.WorkflowCommandController/create",
-      {
-        apiVersion: "agentic.stigmer.ai/v1",
-        kind: "Workflow",
-        metadata: { name: `smoke-wf-${suffix}`, org: orgId },
-        spec: {
-          description: "compose smoke fixture",
-          document: {
-            dsl: "1.0.0",
-            namespace: orgId,
-            name: `smoke-wf-${suffix}`,
-            version: "1.0.0",
-          },
-          tasks: [
-            {
-              name: "setVars",
-              kind: "set_vars",
-              taskConfig: { variables: { greeting: "hello" } },
-              export: { as: "${ . }" },
-            },
-          ],
-        },
-      },
-    );
-    const workflowId = workflow.metadata?.id;
-    if (!workflowId) throw new Error(`workflow create returned no id: ${JSON.stringify(workflow)}`);
-    log(`workflow ${workflowId} created`);
-
-    const execution = await connectJson(
-      "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/create",
-      {
-        apiVersion: "agentic.stigmer.ai/v1",
-        kind: "WorkflowExecution",
-        metadata: { name: `smoke-wfx-${suffix}`, org: orgId },
-        spec: { workflowId },
-      },
-    );
-    const executionId = execution.metadata?.id;
-    if (!executionId) throw new Error(`execution create returned no id: ${JSON.stringify(execution)}`);
-    log(`execution ${executionId} created — awaiting COMPLETED...`);
-
-    const TERMINAL_FAILURES = new Set([
-      "EXECUTION_FAILED",
-      "EXECUTION_CANCELLED",
-      "EXECUTION_TERMINATED",
-    ]);
-    await pollUntil("execution EXECUTION_COMPLETED", RUN_COMPLETED_TIMEOUT_MS, async () => {
-      const current = await connectJson(
-        "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController/get",
-        { value: executionId },
-      );
-      const phase = current.status?.phase ?? "EXECUTION_PHASE_UNSPECIFIED";
-      if (TERMINAL_FAILURES.has(phase)) {
-        // Terminal-and-wrong: surface immediately with the server's own error.
-        throw new Error(
-          `execution reached ${phase}: ${JSON.stringify(current.status?.error ?? {})}`,
-        );
-      }
-      return phase === "EXECUTION_COMPLETED";
-    });
+    const executionId = await runSetVarsWorkflow(baseUrl, RUN_COMPLETED_TIMEOUT_MS, log);
     log(`end-to-end run: execution ${executionId} COMPLETED through the runner`);
 
     log("PASS");

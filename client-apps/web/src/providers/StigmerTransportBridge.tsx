@@ -41,7 +41,9 @@ export function StigmerTransportBridge({ children }: { children: ReactNode }) {
     [getAccessToken, onUnauthenticated],
   );
 
-  const deploymentMode = useDeploymentMode(client);
+  // The provider tunes itself on the mode and corrects when the server
+  // answers; it has nothing to hide meanwhile, so the guess is fine here.
+  const { mode: deploymentMode } = useDeploymentMode(client);
 
   return (
     <StigmerProvider
