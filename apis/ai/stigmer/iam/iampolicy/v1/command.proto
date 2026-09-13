@@ -17,8 +17,9 @@ import "google/protobuf/empty.proto";
 // - Resource: WHAT is being accessed (any API resource)
 // - Relation: HOW they can access it (viewer, admin, user, etc.)
 //
-// Under the hood, each IAM policy creates an OpenFGA tuple that enforces
-// the permission in the authorization system.
+// An IAM policy is the recorded grant; the edition's authorizer enforces
+// it. The Enterprise and Cloud editions also mirror each policy to an
+// OpenFGA tuple for fine-grained checks.
 //
 // Common Use Cases:
 // - Granting users access to organizations
@@ -42,6 +43,8 @@ service IamPolicyCommandController {
   // Authorization:
   // - Caller must have 'can_grant_access' permission on the RESOURCE being shared
   // - This ensures only resource owners/admins can grant access to their resources
+  // - The target is the spec's `resource` (`resource_kind_path` reads its kind by
+  //   enum name, `field_path` its id); the annotation drives the check in every edition
   //
   // Example:
   // Input:
@@ -56,6 +59,8 @@ service IamPolicyCommandController {
   // Output: The created IamPolicy with generated ID and metadata
   rpc create(IamPolicySpec) returns (IamPolicy) {
     option (ai.stigmer.commons.rpc.config).permission = can_grant_access;
+    option (ai.stigmer.commons.rpc.config).resource_kind_path = "resource.kind";
+    option (ai.stigmer.commons.rpc.config).field_path = "resource.id";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to grant access";
   }
 
@@ -73,6 +78,9 @@ service IamPolicyCommandController {
   //
   // Authorization:
   // - Caller must have 'can_grant_access' permission on the RESOURCE referenced in the policy
+  // - The check runs against the spec-named resource BEFORE the policy is looked up
+  //   (the annotation-driven order), so a caller without the permission is refused
+  //   even when no matching policy exists
   //
   // Use Cases:
   // - Revoking a specific permission from a user
@@ -90,6 +98,8 @@ service IamPolicyCommandController {
   // Output: The deleted IamPolicy object (for audit/confirmation purposes)
   rpc delete(IamPolicySpec) returns (IamPolicy) {
     option (ai.stigmer.commons.rpc.config).permission = can_grant_access;
+    option (ai.stigmer.commons.rpc.config).resource_kind_path = "resource.kind";
+    option (ai.stigmer.commons.rpc.config).field_path = "resource.id";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to revoke access";
   }
 
@@ -205,6 +215,8 @@ service IamPolicyCommandController {
   // Output: Empty (google.protobuf.Empty)
   rpc revokeOrgAccess(RevokeOrgAccessInput) returns (google.protobuf.Empty) {
     option (ai.stigmer.commons.rpc.config).permission = can_grant_access;
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).field_path = "organization_id";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to revoke organization access";
   }
 

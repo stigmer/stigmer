@@ -8,6 +8,22 @@
  * Both editions resolve the same strings from the same proto metadata; the
  * visibility helpers mirror Cloud's VisibilityConfigResolver so the
  * cross-edition error contract is identical by construction.
+ *
+ * The contract carries TWO kind vocabularies, and this module holds one
+ * lookup for each so they are never merged:
+ *
+ *   - A resource's own `kind` field is the `kind_meta.name` ("McpServer").
+ *     `getKindEnum` reads it by canonical name (case-insensitive,
+ *     underscores ignored) and throws on an unknown value.
+ *   - An `ApiResourceRef.kind` — the IamPolicy spec's principal and
+ *     resource, the FGA object type — is the enum MEMBER name
+ *     ("mcp_server"). `kindByEnumName` reads it by the descriptor's exact
+ *     proto name and never throws (20260913.01, Q-OR-2). Exact, because the
+ *     IamPolicy id is derived from the spec's text (Q-OR-9): a lenient
+ *     match would let "Organization" and "organization" mint two rows for
+ *     one grant. Reading the descriptor's name is not deriving a spelling;
+ *     the #545 rule is about recovering kind_meta.name from an enum, which
+ *     neither lookup does.
  */
 import { getOption, hasOption } from "@bufbuild/protobuf";
 import type { DescEnumValue } from "@bufbuild/protobuf";
@@ -56,12 +72,30 @@ export function getKindEnum(kindValue: string): ApiResourceKind {
 }
 
 /**
+ * Resolves an `ApiResourceRef.kind` — a kind's enum MEMBER name, exactly
+ * as the proto spells it ("organization", "identity_account") — to the
+ * enum. Anything else, including the kind_meta spelling, a different case,
+ * the empty string and the zero value's own name, is
+ * `api_resource_kind_unknown`; never a throw, because the Authorize step
+ * resolves `resource_kind_path` through this at position 1 of every chain
+ * and resolution never fails a request (authorize.ts header). See the
+ * module header for why the match is exact.
+ */
+export function kindByEnumName(value: string): ApiResourceKind {
+  return (
+    kindsByEnumName().get(value) ?? ApiResourceKind.api_resource_kind_unknown
+  );
+}
+
+/**
  * Go DefaultVisibilityFor: blueprint kinds flagged defaults_to_org_visibility
  * get visibility_org (blueprints are shared org assets — a private default
  * would silently hide new blueprints from teammates); all others get
  * visibility_private.
  */
-export function defaultVisibilityFor(kind: ApiResourceKind): ApiResourceVisibility {
+export function defaultVisibilityFor(
+  kind: ApiResourceKind,
+): ApiResourceVisibility {
   const config = getKindMeta(kind).authorization?.visibility;
   return config?.defaultsToOrgVisibility === true
     ? ApiResourceVisibility.visibility_org
@@ -133,4 +167,24 @@ function kindsByCanonicalName(): Map<string, ApiResourceKind> {
     );
   }
   return canonicalNameCache;
+}
+
+let enumNameCache: Map<string, ApiResourceKind> | undefined;
+
+/**
+ * Every member by its descriptor name, the zero value included (it maps to
+ * itself, which is the unknown kind either way). A Map rather than the TS
+ * enum's reverse mapping, so a prototype key or a number spelled as text
+ * cannot resolve to anything.
+ */
+function kindsByEnumName(): Map<string, ApiResourceKind> {
+  if (enumNameCache === undefined) {
+    enumNameCache = new Map(
+      ApiResourceKindSchema.values.map((value) => [
+        value.name,
+        value.number as ApiResourceKind,
+      ]),
+    );
+  }
+  return enumNameCache;
 }

@@ -4,9 +4,11 @@
  * annotation's byte-pinned error_msg; unavailable → INTERNAL, never a
  * softened denial), the skip arms (internal caller class, is_public,
  * is_skip_authorization, no-config methods), check-target resolution
- * (field_path, static resource_id, absent field = empty id — never a
- * throw), and the mid-chain resolved-id pattern the traced ListVersions
- * handlers port onto.
+ * (field_path, static resource_id, absent field = empty id, a string
+ * resource_kind_path resolved by enum name with an unknown name = the
+ * unknown kind — never a throw), the direct-handler override in both its
+ * shapes (a server-side id; a server-side kind AND id), and the mid-chain
+ * resolved-id pattern the traced ListVersions handlers port onto.
  */
 import { describe, expect, it } from "vitest";
 import { create } from "@bufbuild/protobuf";
@@ -17,6 +19,7 @@ import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb"
 import { AgentExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/command_pb";
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
+import { IamPolicyQueryController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/query_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { PlatformQueryController } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -413,6 +416,49 @@ describe("authorizeDirect (the direct-handler arm, C2 Stage 4)", () => {
         resourceId: "server-side-truth",
       },
     ]);
+  });
+
+  // 20260913.01 (Q-OR-2): the IamPolicy `get(IamPolicyId)` lane. Its
+  // annotation names a permission and NO kind, because the target is the
+  // loaded row's resource — kind AND id are server-side state. The
+  // override carries both; the annotation still owns the permission and
+  // the copy.
+  it("the target override may carry the resource KIND too — the IamPolicy get lane", async () => {
+    const { authorizer, checks } = fakeAuthorizer({ kind: "allow" });
+    const method = IamPolicyQueryController.method.get;
+    await authorizeDirect(
+      method,
+      authorizer,
+      testCallerIdentity(),
+      create(method.input, { value: "iamp_01row" }),
+      { resourceKind: ApiResourceKind.organization, resourceId: "acme" },
+    );
+    expect(checks).toEqual([
+      {
+        permission: IamPermission.can_view_access,
+        resourceKind: ApiResourceKind.organization,
+        resourceId: "acme",
+      },
+    ]);
+  });
+
+  it("an override with the id alone leaves the annotation's kind in place — the completeOAuthConnect lane is unchanged", async () => {
+    const { authorizer, checks } = fakeAuthorizer({ kind: "allow" });
+    const method = IamPolicyQueryController.method.get;
+    // A kind-less annotation plus an id-only override: the kind stays
+    // unknown, exactly what the annotation says. The lane that needs a
+    // kind must say so; nothing is inferred.
+    await authorizeDirect(
+      method,
+      authorizer,
+      testCallerIdentity(),
+      create(method.input, { value: "iamp_01row" }),
+      { resourceId: "acme" },
+    );
+    expect(checks[0]?.resourceKind).toBe(
+      ApiResourceKind.api_resource_kind_unknown,
+    );
+    expect(checks[0]?.resourceId).toBe("acme");
   });
 
   it("the ruling-Q1 not-found arm maps identically from the direct entry", async () => {

@@ -10,8 +10,9 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
  * - Principal: WHO gets access (user, team, etc.)
  * - Resource: WHAT is being accessed (any API resource)
  * - Relation: HOW they can access it (viewer, admin, user, etc.)
- * Under the hood, each IAM policy creates an OpenFGA tuple that enforces
- * the permission in the authorization system.
+ * An IAM policy is the recorded grant; the edition's authorizer enforces
+ * it. The Enterprise and Cloud editions also mirror each policy to an
+ * OpenFGA tuple for fine-grained checks.
  * Common Use Cases:
  * - Granting users access to organizations
  * - Setting up team-based access control
@@ -279,8 +280,9 @@ public final class IamPolicyCommandControllerGrpc {
    * - Principal: WHO gets access (user, team, etc.)
    * - Resource: WHAT is being accessed (any API resource)
    * - Relation: HOW they can access it (viewer, admin, user, etc.)
-   * Under the hood, each IAM policy creates an OpenFGA tuple that enforces
-   * the permission in the authorization system.
+   * An IAM policy is the recorded grant; the edition's authorizer enforces
+   * it. The Enterprise and Cloud editions also mirror each policy to an
+   * OpenFGA tuple for fine-grained checks.
    * Common Use Cases:
    * - Granting users access to organizations
    * - Setting up team-based access control
@@ -303,6 +305,8 @@ public final class IamPolicyCommandControllerGrpc {
      * Authorization:
      * - Caller must have 'can_grant_access' permission on the RESOURCE being shared
      * - This ensures only resource owners/admins can grant access to their resources
+     * - The target is the spec's `resource` (`resource_kind_path` reads its kind by
+     *   enum name, `field_path` its id); the annotation drives the check in every edition
      * Example:
      * Input:
      *   principal: {kind: "identity_account", id: "ia_alice-123"}
@@ -333,6 +337,9 @@ public final class IamPolicyCommandControllerGrpc {
      * 4. If no matching policy exists, the operation is idempotent (no error)
      * Authorization:
      * - Caller must have 'can_grant_access' permission on the RESOURCE referenced in the policy
+     * - The check runs against the spec-named resource BEFORE the policy is looked up
+     *   (the annotation-driven order), so a caller without the permission is refused
+     *   even when no matching policy exists
      * Use Cases:
      * - Revoking a specific permission from a user
      * - Removing access after a team member leaves
@@ -502,8 +509,9 @@ public final class IamPolicyCommandControllerGrpc {
    * - Principal: WHO gets access (user, team, etc.)
    * - Resource: WHAT is being accessed (any API resource)
    * - Relation: HOW they can access it (viewer, admin, user, etc.)
-   * Under the hood, each IAM policy creates an OpenFGA tuple that enforces
-   * the permission in the authorization system.
+   * An IAM policy is the recorded grant; the edition's authorizer enforces
+   * it. The Enterprise and Cloud editions also mirror each policy to an
+   * OpenFGA tuple for fine-grained checks.
    * Common Use Cases:
    * - Granting users access to organizations
    * - Setting up team-based access control
@@ -527,8 +535,9 @@ public final class IamPolicyCommandControllerGrpc {
    * - Principal: WHO gets access (user, team, etc.)
    * - Resource: WHAT is being accessed (any API resource)
    * - Relation: HOW they can access it (viewer, admin, user, etc.)
-   * Under the hood, each IAM policy creates an OpenFGA tuple that enforces
-   * the permission in the authorization system.
+   * An IAM policy is the recorded grant; the edition's authorizer enforces
+   * it. The Enterprise and Cloud editions also mirror each policy to an
+   * OpenFGA tuple for fine-grained checks.
    * Common Use Cases:
    * - Granting users access to organizations
    * - Setting up team-based access control
@@ -562,6 +571,8 @@ public final class IamPolicyCommandControllerGrpc {
      * Authorization:
      * - Caller must have 'can_grant_access' permission on the RESOURCE being shared
      * - This ensures only resource owners/admins can grant access to their resources
+     * - The target is the spec's `resource` (`resource_kind_path` reads its kind by
+     *   enum name, `field_path` its id); the annotation drives the check in every edition
      * Example:
      * Input:
      *   principal: {kind: "identity_account", id: "ia_alice-123"}
@@ -593,6 +604,9 @@ public final class IamPolicyCommandControllerGrpc {
      * 4. If no matching policy exists, the operation is idempotent (no error)
      * Authorization:
      * - Caller must have 'can_grant_access' permission on the RESOURCE referenced in the policy
+     * - The check runs against the spec-named resource BEFORE the policy is looked up
+     *   (the annotation-driven order), so a caller without the permission is refused
+     *   even when no matching policy exists
      * Use Cases:
      * - Revoking a specific permission from a user
      * - Removing access after a team member leaves
@@ -767,8 +781,9 @@ public final class IamPolicyCommandControllerGrpc {
    * - Principal: WHO gets access (user, team, etc.)
    * - Resource: WHAT is being accessed (any API resource)
    * - Relation: HOW they can access it (viewer, admin, user, etc.)
-   * Under the hood, each IAM policy creates an OpenFGA tuple that enforces
-   * the permission in the authorization system.
+   * An IAM policy is the recorded grant; the edition's authorizer enforces
+   * it. The Enterprise and Cloud editions also mirror each policy to an
+   * OpenFGA tuple for fine-grained checks.
    * Common Use Cases:
    * - Granting users access to organizations
    * - Setting up team-based access control
@@ -802,6 +817,8 @@ public final class IamPolicyCommandControllerGrpc {
      * Authorization:
      * - Caller must have 'can_grant_access' permission on the RESOURCE being shared
      * - This ensures only resource owners/admins can grant access to their resources
+     * - The target is the spec's `resource` (`resource_kind_path` reads its kind by
+     *   enum name, `field_path` its id); the annotation drives the check in every edition
      * Example:
      * Input:
      *   principal: {kind: "identity_account", id: "ia_alice-123"}
@@ -832,6 +849,9 @@ public final class IamPolicyCommandControllerGrpc {
      * 4. If no matching policy exists, the operation is idempotent (no error)
      * Authorization:
      * - Caller must have 'can_grant_access' permission on the RESOURCE referenced in the policy
+     * - The check runs against the spec-named resource BEFORE the policy is looked up
+     *   (the annotation-driven order), so a caller without the permission is refused
+     *   even when no matching policy exists
      * Use Cases:
      * - Revoking a specific permission from a user
      * - Removing access after a team member leaves
@@ -1001,8 +1021,9 @@ public final class IamPolicyCommandControllerGrpc {
    * - Principal: WHO gets access (user, team, etc.)
    * - Resource: WHAT is being accessed (any API resource)
    * - Relation: HOW they can access it (viewer, admin, user, etc.)
-   * Under the hood, each IAM policy creates an OpenFGA tuple that enforces
-   * the permission in the authorization system.
+   * An IAM policy is the recorded grant; the edition's authorizer enforces
+   * it. The Enterprise and Cloud editions also mirror each policy to an
+   * OpenFGA tuple for fine-grained checks.
    * Common Use Cases:
    * - Granting users access to organizations
    * - Setting up team-based access control
@@ -1036,6 +1057,8 @@ public final class IamPolicyCommandControllerGrpc {
      * Authorization:
      * - Caller must have 'can_grant_access' permission on the RESOURCE being shared
      * - This ensures only resource owners/admins can grant access to their resources
+     * - The target is the spec's `resource` (`resource_kind_path` reads its kind by
+     *   enum name, `field_path` its id); the annotation drives the check in every edition
      * Example:
      * Input:
      *   principal: {kind: "identity_account", id: "ia_alice-123"}
@@ -1066,6 +1089,9 @@ public final class IamPolicyCommandControllerGrpc {
      * 4. If no matching policy exists, the operation is idempotent (no error)
      * Authorization:
      * - Caller must have 'can_grant_access' permission on the RESOURCE referenced in the policy
+     * - The check runs against the spec-named resource BEFORE the policy is looked up
+     *   (the annotation-driven order), so a caller without the permission is refused
+     *   even when no matching policy exists
      * Use Cases:
      * - Revoking a specific permission from a user
      * - Removing access after a team member leaves
@@ -1235,8 +1261,9 @@ public final class IamPolicyCommandControllerGrpc {
    * - Principal: WHO gets access (user, team, etc.)
    * - Resource: WHAT is being accessed (any API resource)
    * - Relation: HOW they can access it (viewer, admin, user, etc.)
-   * Under the hood, each IAM policy creates an OpenFGA tuple that enforces
-   * the permission in the authorization system.
+   * An IAM policy is the recorded grant; the edition's authorizer enforces
+   * it. The Enterprise and Cloud editions also mirror each policy to an
+   * OpenFGA tuple for fine-grained checks.
    * Common Use Cases:
    * - Granting users access to organizations
    * - Setting up team-based access control
@@ -1270,6 +1297,8 @@ public final class IamPolicyCommandControllerGrpc {
      * Authorization:
      * - Caller must have 'can_grant_access' permission on the RESOURCE being shared
      * - This ensures only resource owners/admins can grant access to their resources
+     * - The target is the spec's `resource` (`resource_kind_path` reads its kind by
+     *   enum name, `field_path` its id); the annotation drives the check in every edition
      * Example:
      * Input:
      *   principal: {kind: "identity_account", id: "ia_alice-123"}
@@ -1301,6 +1330,9 @@ public final class IamPolicyCommandControllerGrpc {
      * 4. If no matching policy exists, the operation is idempotent (no error)
      * Authorization:
      * - Caller must have 'can_grant_access' permission on the RESOURCE referenced in the policy
+     * - The check runs against the spec-named resource BEFORE the policy is looked up
+     *   (the annotation-driven order), so a caller without the permission is refused
+     *   even when no matching policy exists
      * Use Cases:
      * - Revoking a specific permission from a user
      * - Removing access after a team member leaves

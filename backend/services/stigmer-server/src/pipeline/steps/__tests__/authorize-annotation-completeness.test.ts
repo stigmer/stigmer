@@ -34,13 +34,18 @@
  * DESIGN: its target is inside the row it loads, so it is the one
  * load-then-authorize lane (`authorizeDirect` with the override's
  * resourceKind + resourceId, the getByEmail precedent). The two
- * `listAuthorized*Ids` are deliberately NOT pinned either way: an annotation
- * with a permission and no kind resolves to an EMPTY target, which the
- * open-source permissive Authorizer allows and the cloud's OpenFGA
- * Authorizer denies for every caller — the #1073 class this invariant
- * cannot see — and the cloud serves both RPCs with no authorization today,
- * so their contract is slice 1's to choose (the S1 execution record,
- * finding 7), not this file's to assume.
+ * `listAuthorized*Ids` were the open question of S1 (finding 7): an
+ * annotation with a permission and no kind resolves to an EMPTY target,
+ * which the open-source permissive Authorizer allows and the cloud's
+ * OpenFGA Authorizer denies for every caller — the #1073 class this
+ * invariant cannot see. Ruled at slice 1 (2026-09-13, T01_1_review.md
+ * Q-OR-2): `listAuthorizedPrincipalIds` HAS a resource and names it (the
+ * same `can_view_access` target `listResourceAccessByPrincipal` enforces
+ * for the same question); `listAuthorizedResourceIds` has a principal and
+ * no resource, so it is an `is_skip_authorization` lane whose handler
+ * enforces `checkAuthorization`'s principal-trust rule (a user only for
+ * themselves; machine and internal for anyone) — a dead `can_view_access`
+ * config would have been exactly the kind-less shape this file guards.
  *
  * The mutation arms prove the check bites over the same function.
  */
@@ -187,6 +192,7 @@ describe("the IamPolicy contract names its targets (sp.oss-organization-roles sl
     "listResourceAccessByPrincipal",
     "getPrincipalResourceRoles",
     "getPrincipalsCount",
+    "listAuthorizedPrincipalIds",
   ])("%s names a resource kind AND where its id comes from", (method) => {
     const target = byName.get(method);
     expect(target, `${method} carries rpc.config`).toBeDefined();
@@ -199,6 +205,15 @@ describe("the IamPolicy contract names its targets (sp.oss-organization-roles sl
     expect(get, "get carries rpc.config").toBeDefined();
     expect(get?.namesKind).toBe(false);
     expect(get?.skipsResolution).toBe(false);
+  });
+
+  it("listAuthorizedResourceIds carries NO rpc.config and skips — its trust rule is the handler's (finding 7)", () => {
+    // Read the descriptor directly: `annotationTargets` lists only
+    // config-carrying methods, and this one must have left that set.
+    const method = IamPolicyQueryController.method.listAuthorizedResourceIds;
+    expect(byName.has("listAuthorizedResourceIds")).toBe(false);
+    expect(hasOption(method, rpcAuthorizationConfig)).toBe(false);
+    expect(getOption(method, is_skip_authorization)).toBe(true);
   });
 
   it("the invariant reports none of them once slice 1 lands", () => {

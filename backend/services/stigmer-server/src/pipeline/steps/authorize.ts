@@ -31,9 +31,13 @@
  * Resolution never throws: an unresolvable `field_path` yields an empty
  * resource id and an unresolvable `resource_kind_path` yields the unknown
  * kind — the check still reaches the Authorizer, which owns the decision.
- * A thrown resolution would be a NEW wire behavior on requests that are
- * legal today (byte-identity forbids it); an implementation that wants to
- * refuse empty ids does so as a deny, visibly.
+ * A `resource_kind_path` may point at an `ApiResourceKind` field or at a
+ * string carrying a kind's enum member name (an `ApiResourceRef.kind`, the
+ * IamPolicy RPCs' spec-named target; 20260913.01 Q-OR-2); a string that is
+ * not exactly a member name is the unknown kind, which an enforcing
+ * authorizer denies. A thrown resolution would be a NEW wire behavior on
+ * requests that are legal today (byte-identity forbids it); an
+ * implementation that wants to refuse empty ids does so as a deny, visibly.
  *
  * `authorizeDirect` is the SAME evaluation exported for the direct
  * handlers — the config-annotated methods that deliberately run no
@@ -42,11 +46,16 @@
  * two entry shapes; a direct handler calls it after its own input
  * validation and before any load or side effect, mirroring the Java
  * edition's validate → authorize handler order (C2 Stage 4 ruling,
- * 20260827.10). The optional target override serves the one lane whose
- * true target is server-side state rather than caller input
- * (completeOAuthConnect authorizes the PENDING RECORD's server id — a
- * caller-supplied id would be a confused-deputy hole, the Java
- * McpServerCompleteOAuthConnectHandler discipline).
+ * 20260827.10). The optional target override serves the lanes whose true
+ * target is server-side state rather than caller input, in two shapes:
+ * a server-side ID under the annotation's static kind (completeOAuthConnect
+ * authorizes the PENDING RECORD's server id — a caller-supplied id would
+ * be a confused-deputy hole, the Java McpServerCompleteOAuthConnectHandler
+ * discipline; getByEmail/getByIdpId authorize the account they looked up),
+ * and a server-side kind AND id (the IamPolicy `get`, whose annotation
+ * names no kind because the target is the loaded row's resource). The
+ * annotation keeps owning the permission, the copy and the skip arms in
+ * both shapes; only the target is the handler's.
  */
 import { Code, ConnectError } from "@connectrpc/connect";
 import type { DescMethod, DescMessage, Message } from "@bufbuild/protobuf";
@@ -66,7 +75,7 @@ import type {
   AuthzDecision,
 } from "../../extensions/authorizer.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
-import { getKindName } from "../apiresource-meta.js";
+import { getKindName, kindByEnumName } from "../apiresource-meta.js";
 import { internalError, notFoundError } from "../errors.js";
 import type { PipelineStep } from "../pipeline.js";
 import type { RequestContext } from "../request-context.js";
@@ -115,12 +124,16 @@ export function newAuthorizeStep<Desc extends DescMessage>(
 }
 
 /**
- * The one lane whose authorization target is server-side state rather
- * than a request field (see the module header). `resourceId` replaces the
- * annotation's `field_path`/`resource_id` resolution; everything else —
- * skip arms, kind, permission, copy — still comes from the annotation.
+ * The lanes whose authorization target is server-side state rather than a
+ * request field (see the module header). `resourceId` replaces the
+ * annotation's `field_path`/`resource_id` resolution; `resourceKind`, when
+ * given, replaces its `resource_kind`/`resource_kind_path` resolution — the
+ * lane whose annotation names no kind because the kind is inside the row
+ * it loaded. Everything else — skip arms, permission, copy — still comes
+ * from the annotation.
  */
 export interface AuthorizeTargetOverride {
+  readonly resourceKind?: ApiResourceKind;
   readonly resourceId: string;
 }
 
@@ -156,7 +169,8 @@ export async function authorizeDirect(
     identity,
     {
       permission: config.permission,
-      resourceKind: resolveResourceKind(input, config),
+      resourceKind:
+        override?.resourceKind ?? resolveResourceKind(input, config),
       resourceId: override?.resourceId ?? resolveResourceId(input, config),
     },
     config.errorMsg,
@@ -251,7 +265,10 @@ async function runAuthorizer(
   }
 }
 
-/** Static kind, or the resource_kind_path read, or unknown — never a throw. */
+/**
+ * Static kind, or the resource_kind_path read — an enum field as its
+ * number, a string as an enum member name — or unknown. Never a throw.
+ */
 function resolveResourceKind(
   input: Message,
   config: RpcAuthorizationConfig,
@@ -260,9 +277,13 @@ function resolveResourceKind(
     return config.resourceKind;
   }
   const value = resolveDotPath(input, config.resourceKindPath);
-  return typeof value === "number"
-    ? (value as ApiResourceKind)
-    : ApiResourceKind.api_resource_kind_unknown;
+  if (typeof value === "number") {
+    return value as ApiResourceKind;
+  }
+  if (typeof value === "string") {
+    return kindByEnumName(value);
+  }
+  return ApiResourceKind.api_resource_kind_unknown;
 }
 
 /** Static resource_id, or the field_path read, or "" — never a throw. */
