@@ -105,6 +105,8 @@ export interface DeepAgentContractSubject extends HarnessContractSubject {
   readonly adapter: HarnessAdapter;
   /** The engine minted for an execution, once the kit has arranged a turn for it. */
   engineFor(executionId: string): ScriptedModel | undefined;
+  /** The conversation the engine was last asked with, for the subject file's observations of what the graph shows the model. */
+  lastTranscriptOf(executionId: string): readonly BaseMessage[] | undefined;
   /** The session's workspace directory, as the runtime's provisioner resolves it and as this subject seeds it. */
   workspaceDirOf(sessionId: string): string;
 }
@@ -136,6 +138,7 @@ class DeepAgentSubject implements DeepAgentContractSubject {
 
   private readonly engines = new Map<string, ScriptedModel>();
   private readonly arranged = new Map<string, ArrangedTurn>();
+  private readonly lastTranscripts = new Map<string, readonly BaseMessage[]>();
   private readonly ledgers = new Map<string, LedgerRef>();
   private readonly hangWaiters: Array<() => void> = [];
   private mintCounter = 0;
@@ -188,6 +191,10 @@ class DeepAgentSubject implements DeepAgentContractSubject {
 
   engineFor(executionId: string): ScriptedModel | undefined {
     return this.engines.get(executionId);
+  }
+
+  lastTranscriptOf(executionId: string): readonly BaseMessage[] | undefined {
+    return this.lastTranscripts.get(executionId);
   }
 
   /** The directory the runtime's provisioner gives a session with no workspace entries (`session-root.ts`). */
@@ -263,6 +270,7 @@ class DeepAgentSubject implements DeepAgentContractSubject {
   private play(executionId: string, transcript: readonly BaseMessage[]): ScriptedTurn {
     const plan = this.arranged.get(executionId);
     if (!plan) throw new Error(`${this.name}: the model was asked for execution '${executionId}' with no turn arranged (kit bug)`);
+    this.lastTranscripts.set(executionId, transcript);
     const settled = settledToolCallIds(transcript);
     const segment = messagesOfThisTurn(transcript);
     const spoken = new Set(segment.filter((m) => isAIMessage(m)).map((m) => m.text));
