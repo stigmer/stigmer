@@ -7,8 +7,11 @@
  *     byte-identity arm the four local conformance rosters also pin);
  *   - a composed scope narrows to the kept ids — and can only narrow:
  *     ids the scope answers that were never offered add nothing;
- *   - the org argument narrows AFTER the scope, only when non-blank
- *     (the Java repos' uniform blank-org posture);
+ *   - the org argument narrows BEFORE the scope, only when non-blank
+ *     (the Java repos' uniform blank-org posture; since stigmer-cloud
+ *     20260913.04 T02 the scope is the last per-row predicate, so it is
+ *     offered the org's rows and never the kind's — the same result set,
+ *     a fraction of the candidates);
  *   - the candidates carry {id, org, labels} — the driver's guest
  *     cookie rule keys on labels;
  *   - a scope failure PROPAGATES — never an empty result (the outage
@@ -76,24 +79,39 @@ describe("restrictListByReadScope", () => {
     expect(kept.map((r) => r.metadata.id)).toEqual(["ses_b"]);
   });
 
-  it("a non-blank org narrows AFTER the scope; blank org does not", async () => {
-    const scoped = scopeKeeping(["ses_a", "ses_c"]);
+  it("a non-blank org narrows BEFORE the scope: the scope is offered the org's rows only; blank org offers them all", async () => {
+    const offered: ReadonlyArray<ListEntryMeta>[] = [];
+    const recording: ListReadScope = {
+      authorizedResourceIds: () => Promise.resolve(new Set<string>()),
+      restrictListEntries: (_caller, _kind, entries) => {
+        offered.push(entries);
+        return Promise.resolve(new Set(["ses_a", "ses_c"]));
+      },
+    };
     const withOrg = await restrictListByReadScope(
-      scoped,
+      recording,
       caller,
       ApiResourceKind.session,
       rows,
       "acme",
     );
     expect(withOrg.map((r) => r.metadata.id)).toEqual(["ses_a"]);
+    // The rival's row was never a candidate: the engine is not asked
+    // about rows the request's own predicate excludes.
+    expect(offered[0]!.map((entry) => entry.id)).toEqual(["ses_a", "ses_b"]);
     const blankOrg = await restrictListByReadScope(
-      scoped,
+      recording,
       caller,
       ApiResourceKind.session,
       rows,
       "",
     );
     expect(blankOrg.map((r) => r.metadata.id)).toEqual(["ses_a", "ses_c"]);
+    expect(offered[1]!.map((entry) => entry.id)).toEqual([
+      "ses_a",
+      "ses_b",
+      "ses_c",
+    ]);
   });
 
   it("an empty kept set is a real answer — the empty list", async () => {
@@ -127,7 +145,11 @@ describe("restrictListByReadScope", () => {
     );
     expect(seenKind).toBe(ApiResourceKind.session);
     expect(seen).toEqual([
-      { id: "ses_a", org: "acme", labels: { "stigmer.ai/guest-cookie-id": "ck_1" } },
+      {
+        id: "ses_a",
+        org: "acme",
+        labels: { "stigmer.ai/guest-cookie-id": "ck_1" },
+      },
       { id: "ses_b", org: "acme", labels: {} },
       { id: "ses_c", org: "rival", labels: {} },
     ]);

@@ -596,27 +596,24 @@ function newLoadSharesByAgentStep(
           continue;
         }
       }
-      // 20260830.01 census lane 17: the scope narrows the decoded scan;
-      // the org/agent filters below are contract parity in both editions.
-      const visible = await restrictListByReadScope(
+      // 20260830.01 census lane 17: the org/agent filters are contract
+      // parity in both editions and run FIRST; the scope narrows the
+      // agent's shares last (the scope is the last per-row predicate,
+      // stigmer-cloud 20260913.04 T02).
+      const shares = await restrictListByReadScope(
         listReadScope,
         ctx.callerIdentity,
         ApiResourceKind.agent_share,
-        decoded,
+        decoded.filter((share) => {
+          const ref = share.spec?.agentRef;
+          return (
+            (ref?.org ?? "") === agentOrg &&
+            (ref?.slug ?? "") === agentSlug &&
+            (req.org === "" || (share.metadata?.org ?? "") === req.org)
+          );
+        }),
         "",
       );
-
-      const shares: AgentShare[] = [];
-      for (const share of visible) {
-        const ref = share.spec?.agentRef;
-        if ((ref?.org ?? "") !== agentOrg || (ref?.slug ?? "") !== agentSlug) {
-          continue;
-        }
-        if (req.org !== "" && (share.metadata?.org ?? "") !== req.org) {
-          continue;
-        }
-        shares.push(share);
-      }
 
       ctx.set(
         SHARE_LIST_KEY,
@@ -700,26 +697,21 @@ function newListByOrgAndLabelsStep(
           continue;
         }
       }
-      // 20260830.01 census lane 16: the scope narrows the decoded scan;
-      // the org equality below already serves the Java handler's org arm.
-      const visible = await restrictListByReadScope(
+      // 20260830.01 census lane 16: the org and label filters serve the
+      // Java handler's arms in both editions and run FIRST; the scope
+      // narrows the org's rows last (the scope is the last per-row
+      // predicate, stigmer-cloud 20260913.04 T02).
+      const shares = await restrictListByReadScope(
         listReadScope,
         ctx.callerIdentity,
         ApiResourceKind.agent_share,
-        decoded,
+        decoded.filter(
+          (share) =>
+            (share.metadata?.org ?? "") === org &&
+            matchesAllLabels(share.metadata?.labels ?? {}, filterLabels),
+        ),
         "",
       );
-
-      const shares: AgentShare[] = [];
-      for (const share of visible) {
-        if ((share.metadata?.org ?? "") !== org) {
-          continue;
-        }
-        if (!matchesAllLabels(share.metadata?.labels ?? {}, filterLabels)) {
-          continue;
-        }
-        shares.push(share);
-      }
 
       shares.sort((a, b) =>
         compareCreatedAtDesc(

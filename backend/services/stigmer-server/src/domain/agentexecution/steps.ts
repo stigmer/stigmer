@@ -78,32 +78,56 @@ export function newValidateListRequestStep(): PipelineStep<ListDesc> {
 }
 
 /**
- * QueryAllExecutions — list.go: full scan into the context. With a
- * composed ListReadScope (20260830.01, census lane 4) the scan narrows
- * to the caller's authorized executions ∩ the request's org (the Java
- * AgentExecutionListHandler baseline: org set = one-org view, blank =
- * permission-bounded across orgs; the guest cookie rule rides the
- * driver); no scope = the full scan, org a no-op — byte-identical.
+ * QueryAllExecutions — list.go: full scan into the context. The read
+ * scope no longer runs here: since stigmer-cloud 20260913.04 T02 the scope
+ * is the LAST per-row predicate of the chain (RestrictByReadScope below,
+ * after ApplyPhaseFilter), so a composed driver is offered the request's
+ * org and phase, not the kind (extensions/list-read-scope.ts, the
+ * header's last contract line).
  */
 export function newQueryAllExecutionsStep(
   store: Store,
   logger: Logger,
-  listReadScope: ListReadScope | undefined,
 ): PipelineStep<ListDesc> {
   return {
     name: "QueryAllExecutions",
     async execute(ctx) {
-      const executions = await restrictListByReadScope(
-        listReadScope,
-        ctx.callerIdentity,
-        ApiResourceKind.agent_execution,
-        await loadAllAgentExecutions(store, logger),
-        ctx.input.org,
-      );
+      const executions = await loadAllAgentExecutions(store, logger);
       logger.debug("Successfully queried executions", {
         count: executions.length,
       });
       ctx.set(EXECUTION_LIST_KEY, executions);
+    },
+  };
+}
+
+/**
+ * RestrictByReadScope — the list chain's last per-row predicate (census
+ * lane 4). With a composed ListReadScope (20260830.01) the working list
+ * narrows to the caller's authorized executions ∩ the request's org (the
+ * Java AgentExecutionListHandler baseline: org set = one-org view, blank
+ * = permission-bounded across orgs; the guest cookie rule rides the
+ * driver); no scope = the working list unchanged, org a no-op —
+ * byte-identical. Placed after ApplyPhaseFilter so the driver is asked
+ * about the rows the request keeps, never about the whole kind.
+ */
+export function newRestrictByReadScopeStep(
+  listReadScope: ListReadScope | undefined,
+): PipelineStep<ListDesc> {
+  return {
+    name: "RestrictByReadScope",
+    async execute(ctx) {
+      const executions = requireExecutions(ctx.get(EXECUTION_LIST_KEY));
+      ctx.set(
+        EXECUTION_LIST_KEY,
+        await restrictListByReadScope(
+          listReadScope,
+          ctx.callerIdentity,
+          ApiResourceKind.agent_execution,
+          executions,
+          ctx.input.org,
+        ),
+      );
     },
   };
 }
@@ -153,7 +177,8 @@ export function newValidateListBySessionRequestStep(): PipelineStep<ListBySessio
 
 /**
  * QueryExecutionsBySession — list_by_session.go: full scan +
- * spec.session_id equality filter.
+ * spec.session_id equality filter, then the read scope over the session's
+ * executions only (the scope is the last per-row predicate).
  */
 export function newQueryExecutionsBySessionStep(
   store: Store,
@@ -163,18 +188,18 @@ export function newQueryExecutionsBySessionStep(
   return {
     name: "QueryExecutionsBySession",
     async execute(ctx) {
-      // Census lane 5: authorized ids ∩ session filter; the Java handler
+      // Census lane 5: session filter ∩ authorized ids; the Java handler
       // never consults org on this lane (bounded by the session id).
-      const all = await restrictListByReadScope(
+      const ofSession = (await loadAllAgentExecutions(store, logger)).filter(
+        (execution) =>
+          (execution.spec?.sessionId ?? "") === ctx.input.sessionId,
+      );
+      const executions = await restrictListByReadScope(
         listReadScope,
         ctx.callerIdentity,
         ApiResourceKind.agent_execution,
-        await loadAllAgentExecutions(store, logger),
+        ofSession,
         "",
-      );
-      const executions = all.filter(
-        (execution) =>
-          (execution.spec?.sessionId ?? "") === ctx.input.sessionId,
       );
       logger.debug("Successfully queried executions by session", {
         sessionId: ctx.input.sessionId,

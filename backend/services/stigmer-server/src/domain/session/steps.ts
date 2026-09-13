@@ -725,15 +725,22 @@ export function newFilterByAgentInstanceStep(
         throw invalidArgumentError("agent_instance_id is required");
       }
 
-      const sessions = await restrictListByReadScope(
+      // The instance's sessions first, the scope last (census lane 2): a
+      // composed driver is asked about one instance's rows, not the kind.
+      const sessions = await loadAllSessions(
+        store,
+        logger,
+        ctx.apiResourceKind,
+      );
+      const filtered = await restrictListByReadScope(
         listReadScope,
         ctx.callerIdentity,
         ApiResourceKind.session,
-        await loadAllSessions(store, logger, ctx.apiResourceKind),
+        sessions.filter(
+          (session) =>
+            (session.spec?.agentInstanceId ?? "") === agentInstanceId,
+        ),
         "",
-      );
-      const filtered = sessions.filter(
-        (session) => (session.spec?.agentInstanceId ?? "") === agentInstanceId,
       );
 
       logger.info("Filtered sessions by agent instance", {
@@ -816,16 +823,22 @@ export function newFilterByChannelStep(
         throw invalidArgumentError("channel_id is required");
       }
 
-      const sessions = await restrictListByReadScope(
+      // The channel's sessions first, the scope last (census lane 3).
+      const sessions = await loadAllSessions(
+        store,
+        logger,
+        ctx.apiResourceKind,
+      );
+      const filtered = await restrictListByReadScope(
         listReadScope,
         ctx.callerIdentity,
         ApiResourceKind.session,
-        await loadAllSessions(store, logger, ctx.apiResourceKind),
+        sessions.filter(
+          (session) =>
+            (session.metadata?.labels ?? {})[CHANNEL_ID_LABEL_KEY] ===
+            channelId,
+        ),
         "",
-      );
-      const filtered = sessions.filter(
-        (session) =>
-          (session.metadata?.labels ?? {})[CHANNEL_ID_LABEL_KEY] === channelId,
       );
 
       logger.info("Filtered sessions by channel", {

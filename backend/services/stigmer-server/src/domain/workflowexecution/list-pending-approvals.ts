@@ -8,7 +8,11 @@ import { create } from "@bufbuild/protobuf";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { timestampFromMs } from "@bufbuild/protobuf/wkt";
 
-import { ExecutionPhase, WorkflowTaskStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import {
+  ExecutionPhase,
+  WorkflowTaskStatus,
+} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
 import {
   PendingApprovalSchema,
   PendingApprovalsListSchema,
@@ -46,19 +50,25 @@ export async function listPendingApprovals(
   req: ListPendingApprovalsRequest,
   identity: CallerIdentity,
 ): Promise<PendingApprovalsList> {
-  // Census lane 8 (20260830.01): the scope narrows the EXECUTION scan —
-  // before the approvals projection and its pagination, the Java
+  // Census lane 8 (20260830.01): the scope narrows the EXECUTIONS — before
+  // the approvals projection and its pagination, the Java
   // WorkflowExecutionListPendingApprovalsHandler order — and the request
   // org narrows when non-blank (blank = permission-bounded across orgs).
+  // It runs over the executions that CAN carry a pending approval (in
+  // progress, a task waiting) rather than the org's whole history: the
+  // predicate is per-row, so the scope is last (stigmer-cloud 20260913.04
+  // T02) and a composed driver is asked about a handful of rows.
   const executions = await restrictListByReadScope(
     deps.listReadScope,
     identity,
     ApiResourceKind.workflow_execution,
-    await loadAllWorkflowExecutions(
-      deps.store,
-      deps.logger,
-      "failed to list workflow executions for pending approvals",
-    ),
+    (
+      await loadAllWorkflowExecutions(
+        deps.store,
+        deps.logger,
+        "failed to list workflow executions for pending approvals",
+      )
+    ).filter(mayHavePendingApproval),
     req.org,
   );
 
@@ -72,12 +82,6 @@ export async function listPendingApprovals(
 
   let approvals: PendingApproval[] = [];
   for (const execution of executions) {
-    const phase =
-      execution.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
-    if (phase !== ExecutionPhase.EXECUTION_IN_PROGRESS) {
-      continue;
-    }
-
     for (const task of execution.status?.tasks ?? []) {
       if (task.status !== WorkflowTaskStatus.WORKFLOW_TASK_WAITING_APPROVAL) {
         continue;
@@ -90,8 +94,7 @@ export async function listPendingApprovals(
           // would break submitWorkflowTaskApproval, whose runner-side
           // signal is keyed by the plain task name.
           taskName: task.taskName,
-          requester:
-            execution.status?.audit?.specAudit?.createdBy?.id ?? "",
+          requester: execution.status?.audit?.specAudit?.createdBy?.id ?? "",
           requestedAt: parseTimestampString(task.startedAt),
           uiHint: task.uiHint,
         }),
@@ -117,4 +120,22 @@ function parseTimestampString(value: string): Timestamp | undefined {
     return undefined;
   }
   return timestampFromMs(ms);
+}
+
+/**
+ * The per-row predicate of the projection above: only an execution in
+ * progress with a task waiting for approval contributes an entry, so only
+ * those are worth a scope check. Same rows kept as the loop's own `continue`
+ * arms, decided once before the scope.
+ */
+function mayHavePendingApproval(execution: WorkflowExecution): boolean {
+  const phase =
+    execution.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+  return (
+    phase === ExecutionPhase.EXECUTION_IN_PROGRESS &&
+    (execution.status?.tasks ?? []).some(
+      (task) =>
+        task.status === WorkflowTaskStatus.WORKFLOW_TASK_WAITING_APPROVAL,
+    )
+  );
 }

@@ -264,24 +264,20 @@ export function newListByOrgAndLabelsStep(
           continue;
         }
       }
-      const visible = await restrictListByReadScope(
+      // Census lane 14: the org and label filters (contract in both
+      // editions) first, the scope last over the org's rows (the scope is
+      // the last per-row predicate, stigmer-cloud 20260913.04 T02).
+      const instances = await restrictListByReadScope(
         listReadScope,
         ctx.callerIdentity,
         ApiResourceKind.agent_instance,
-        decoded,
+        decoded.filter(
+          (instance) =>
+            (instance.metadata?.org ?? "") === org &&
+            matchesAllLabels(instance.metadata?.labels ?? {}, filterLabels),
+        ),
         "",
       );
-
-      const instances: AgentInstance[] = [];
-      for (const instance of visible) {
-        if ((instance.metadata?.org ?? "") !== org) {
-          continue;
-        }
-        if (!matchesAllLabels(instance.metadata?.labels ?? {}, filterLabels)) {
-          continue;
-        }
-        instances.push(instance);
-      }
 
       instances.sort((a, b) =>
         compareCreatedAtDesc(
@@ -346,24 +342,19 @@ export function newLoadByAgentStep(
           continue;
         }
       }
-      const visible = await restrictListByReadScope(
+      // Census lane 15: the agent's instances (and the optional org) first,
+      // the scope last.
+      const instances = await restrictListByReadScope(
         listReadScope,
         ctx.callerIdentity,
         ApiResourceKind.agent_instance,
-        decoded,
+        decoded.filter(
+          (instance) =>
+            (instance.spec?.agentId ?? "") === agentId &&
+            (req.org === "" || (instance.metadata?.org ?? "") === req.org),
+        ),
         "",
       );
-
-      const instances: AgentInstance[] = [];
-      for (const instance of visible) {
-        if ((instance.spec?.agentId ?? "") !== agentId) {
-          continue;
-        }
-        if (req.org !== "" && (instance.metadata?.org ?? "") !== req.org) {
-          continue;
-        }
-        instances.push(instance);
-      }
 
       ctx.set(
         INSTANCE_LIST_KEY,
