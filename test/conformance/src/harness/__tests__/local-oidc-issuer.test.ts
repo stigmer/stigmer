@@ -11,7 +11,21 @@
 // the lever the UNAVAILABLE arm pulls). Signing rides node:crypto like the
 // direct-login tenant's mint (harness/direct-login-tenant.ts) — the
 // conformance package deliberately carries no JOSE dependency.
-import { createPublicKey, createVerify } from "node:crypto";
+//
+// 20260913.02 (sp.console-login, Q-CL-7): the issuer also drives a BROWSER
+// through the Authorization Code + PKCE flow the console runs — /authorize
+// auto-consents as its configured person and redirects with a single-use
+// code; /token verifies the PKCE verifier against the stored challenge and
+// mints an access token (for the server), an id_token (for oidc-client-ts,
+// `aud` = the client, `nonce` echoed) and, for `offline_access`, a refresh
+// token; /end-session exists only when asked for, so both of the console's
+// sign-out arms are drivable; every browser-facing document answers CORS.
+import {
+  createHash,
+  createPublicKey,
+  createVerify,
+  randomBytes,
+} from "node:crypto";
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -28,6 +42,222 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await issuer.close();
+});
+
+const CLIENT_ID = "stigmer-console";
+const REDIRECT_URI = "http://localhost:3000/auth/callback";
+
+function pkcePair(): { verifier: string; challenge: string } {
+  const verifier = randomBytes(32).toString("base64url");
+  const challenge = createHash("sha256").update(verifier).digest("base64url");
+  return { verifier, challenge };
+}
+
+function decodeClaims(token: string): Record<string, unknown> {
+  const payload = token.split(".")[1] ?? "";
+  return JSON.parse(
+    Buffer.from(payload, "base64url").toString("utf8"),
+  ) as Record<string, unknown>;
+}
+
+/** Drive /authorize as a browser would and return the code it was handed. */
+async function authorize(
+  target: LocalOidcIssuer,
+  input: { challenge: string; scope?: string; state?: string; nonce?: string },
+): Promise<{ code: string; location: URL }> {
+  const url = new URL(`${target.issuer}/authorize`);
+  url.searchParams.set("response_type", "code");
+  url.searchParams.set("client_id", CLIENT_ID);
+  url.searchParams.set("redirect_uri", REDIRECT_URI);
+  url.searchParams.set("scope", input.scope ?? "openid email profile");
+  url.searchParams.set("state", input.state ?? "st-1");
+  url.searchParams.set("nonce", input.nonce ?? "n-1");
+  url.searchParams.set("code_challenge", input.challenge);
+  url.searchParams.set("code_challenge_method", "S256");
+  const response = await fetch(url, { redirect: "manual" });
+  expect(response.status).toBe(302);
+  const location = new URL(response.headers.get("location") ?? "");
+  const code = location.searchParams.get("code");
+  expect(code, "the redirect carries a code").toBeTruthy();
+  return { code: code ?? "", location };
+}
+
+async function exchange(
+  target: LocalOidcIssuer,
+  input: { code: string; verifier: string },
+): Promise<Response> {
+  return fetch(`${target.issuer}/token`, {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "authorization_code",
+      code: input.code,
+      redirect_uri: REDIRECT_URI,
+      client_id: CLIENT_ID,
+      code_verifier: input.verifier,
+    }),
+  });
+}
+
+describe("local OIDC issuer: the browser's code flow (20260913.02)", () => {
+  it("publishes the code-flow endpoints and PKCE S256, and no end_session_endpoint unless asked", async () => {
+    const document = (await (
+      await fetch(`${issuer.issuer}/.well-known/openid-configuration`)
+    ).json()) as Record<string, unknown>;
+    expect(document.authorization_endpoint).toBe(`${issuer.issuer}/authorize`);
+    expect(document.token_endpoint).toBe(`${issuer.issuer}/token`);
+    expect(document.code_challenge_methods_supported).toEqual(["S256"]);
+    expect(document.end_session_endpoint).toBeUndefined();
+  });
+
+  it("/authorize auto-consents and redirects to the client with a code and the state", async () => {
+    const { challenge } = pkcePair();
+    const { location } = await authorize(issuer, { challenge, state: "st-42" });
+    expect(`${location.origin}${location.pathname}`).toBe(REDIRECT_URI);
+    expect(location.searchParams.get("state")).toBe("st-42");
+  });
+
+  it("/authorize refuses a request without PKCE — the console never sends one", async () => {
+    const url = new URL(`${issuer.issuer}/authorize`);
+    url.searchParams.set("response_type", "code");
+    url.searchParams.set("client_id", CLIENT_ID);
+    url.searchParams.set("redirect_uri", REDIRECT_URI);
+    url.searchParams.set("scope", "openid");
+    url.searchParams.set("state", "st");
+    const response = await fetch(url, { redirect: "manual" });
+    expect(response.status).toBe(400);
+  });
+
+  it("/token exchanges the code for an access token the server verifies, an id_token for the client, and echoes the nonce", async () => {
+    const { verifier, challenge } = pkcePair();
+    const { code } = await authorize(issuer, { challenge, nonce: "n-77" });
+    const response = await exchange(issuer, { code, verifier });
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as Record<string, unknown>;
+    expect(body.token_type).toBe("Bearer");
+    expect(typeof body.expires_in).toBe("number");
+
+    const access = decodeClaims(String(body.access_token));
+    expect(access.iss).toBe(issuer.issuer);
+    expect(access.aud).toBe(issuer.audience);
+    expect(access.sub).toBe(issuer.person.sub);
+    expect(access.email).toBe(issuer.person.email);
+
+    const id = decodeClaims(String(body.id_token));
+    expect(id.iss).toBe(issuer.issuer);
+    expect(id.aud).toBe(CLIENT_ID);
+    expect(id.sub).toBe(issuer.person.sub);
+    expect(id.nonce).toBe("n-77");
+    expect(
+      body.refresh_token,
+      "no offline_access, no refresh token",
+    ).toBeUndefined();
+  });
+
+  it("/token mints a refresh token for offline_access and honours the refresh grant", async () => {
+    const { verifier, challenge } = pkcePair();
+    const { code } = await authorize(issuer, {
+      challenge,
+      scope: "openid email profile offline_access",
+    });
+    const first = (await (
+      await exchange(issuer, { code, verifier })
+    ).json()) as Record<string, unknown>;
+    expect(typeof first.refresh_token).toBe("string");
+
+    const refreshed = await fetch(`${issuer.issuer}/token`, {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        grant_type: "refresh_token",
+        refresh_token: String(first.refresh_token),
+        client_id: CLIENT_ID,
+      }),
+    });
+    expect(refreshed.status).toBe(200);
+    const second = (await refreshed.json()) as Record<string, unknown>;
+    expect(decodeClaims(String(second.access_token)).sub).toBe(
+      issuer.person.sub,
+    );
+  });
+
+  it("/token refuses a wrong verifier and a reused code with invalid_grant", async () => {
+    const { verifier, challenge } = pkcePair();
+    const { code } = await authorize(issuer, { challenge });
+
+    const wrong = await exchange(issuer, {
+      code,
+      verifier: "not-the-verifier",
+    });
+    expect(wrong.status).toBe(400);
+    expect(((await wrong.json()) as { error: string }).error).toBe(
+      "invalid_grant",
+    );
+
+    // The wrong attempt did not burn the code; the right one redeems it once.
+    expect((await exchange(issuer, { code, verifier })).status).toBe(200);
+    const reused = await exchange(issuer, { code, verifier });
+    expect(reused.status).toBe(400);
+    expect(((await reused.json()) as { error: string }).error).toBe(
+      "invalid_grant",
+    );
+  });
+
+  it("answers CORS for the browser: a preflight on /token and the header on every document", async () => {
+    const preflight = await fetch(`${issuer.issuer}/token`, {
+      method: "OPTIONS",
+      headers: {
+        origin: "http://localhost:3000",
+        "access-control-request-method": "POST",
+        "access-control-request-headers": "content-type",
+      },
+    });
+    expect(preflight.status).toBe(204);
+    expect(preflight.headers.get("access-control-allow-origin")).toBe("*");
+    const discovery = await fetch(
+      `${issuer.issuer}/.well-known/openid-configuration`,
+      { headers: { origin: "http://localhost:3000" } },
+    );
+    expect(discovery.headers.get("access-control-allow-origin")).toBe("*");
+  });
+
+  it("with endSession: publishes /end-session, which sends the browser to the post-logout URI with its state", async () => {
+    const withLogout = await startLocalOidcIssuer({ endSession: true });
+    try {
+      const document = (await (
+        await fetch(`${withLogout.issuer}/.well-known/openid-configuration`)
+      ).json()) as Record<string, unknown>;
+      expect(document.end_session_endpoint).toBe(
+        `${withLogout.issuer}/end-session`,
+      );
+
+      const url = new URL(`${withLogout.issuer}/end-session`);
+      url.searchParams.set(
+        "post_logout_redirect_uri",
+        "http://localhost:3000/login",
+      );
+      url.searchParams.set("state", "bye");
+      const response = await fetch(url, { redirect: "manual" });
+      expect(response.status).toBe(302);
+      expect(response.headers.get("location")).toBe(
+        "http://localhost:3000/login?state=bye",
+      );
+    } finally {
+      await withLogout.close();
+    }
+  });
+
+  it("binds the requested port when given one", async () => {
+    const probe = await startLocalOidcIssuer();
+    const port = Number(new URL(probe.issuer).port);
+    await probe.close();
+    const pinned = await startLocalOidcIssuer({ port });
+    try {
+      expect(pinned.issuer).toBe(`http://127.0.0.1:${port}`);
+    } finally {
+      await pinned.close();
+    }
+  });
 });
 
 describe("local OIDC issuer", () => {

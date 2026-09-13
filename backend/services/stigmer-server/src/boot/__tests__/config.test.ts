@@ -59,13 +59,51 @@ describe("loadConfig", () => {
   });
 
   it("reads an explicit ARTIFACT_HTTP_HOST (the container override)", () => {
-    expect(
-      loadConfig({ ARTIFACT_HTTP_HOST: "0.0.0.0" }).artifactHttpHost,
-    ).toBe("0.0.0.0");
+    expect(loadConfig({ ARTIFACT_HTTP_HOST: "0.0.0.0" }).artifactHttpHost).toBe(
+      "0.0.0.0",
+    );
     // Empty string is absent, per the Go getEnvString leniency.
     expect(loadConfig({ ARTIFACT_HTTP_HOST: "" }).artifactHttpHost).toBe(
       "127.0.0.1",
     );
+  });
+
+  // 20260913.02 (sp.console-login, Q-CL-1): the console's public PKCE client
+  // id is lenient on purpose — a CLI-only self-host that set the issuer
+  // before this knob existed must keep booting on upgrade, and the served
+  // console reports the gap itself (Q-CL-2).
+  describe("STIGMER_OIDC_CONSOLE_CLIENT_ID (the console's sign-in client)", () => {
+    const OIDC = {
+      STIGMER_OIDC_ISSUER: "https://auth.example.com/realms/main",
+      STIGMER_OIDC_AUDIENCE: "https://stigmer.example.com/",
+    };
+
+    it("is empty when absent, and the issuer alone still boots", () => {
+      expect(loadConfig(OIDC).oidcConsoleClientId).toBe("");
+    });
+
+    it("reads the explicit value", () => {
+      expect(
+        loadConfig({
+          ...OIDC,
+          STIGMER_OIDC_CONSOLE_CLIENT_ID: "stigmer-console",
+        }).oidcConsoleClientId,
+      ).toBe("stigmer-console");
+    });
+
+    it("treats an empty string as absent (Go's getEnvString)", () => {
+      expect(
+        loadConfig({ ...OIDC, STIGMER_OIDC_CONSOLE_CLIENT_ID: "" })
+          .oidcConsoleClientId,
+      ).toBe("");
+    });
+
+    it("is carried even without an issuer — the posture, not this knob, decides whether it is used", () => {
+      expect(
+        loadConfig({ STIGMER_OIDC_CONSOLE_CLIENT_ID: "stigmer-console" })
+          .oidcConsoleClientId,
+      ).toBe("stigmer-console");
+    });
   });
 
   it("disables the model-registry refresh only for the literal 'off'", () => {

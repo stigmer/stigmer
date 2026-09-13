@@ -136,24 +136,27 @@ const { organization, isLoading, error } = useOrganization("org-id-123");
 
 ### useOrgGate
 
-Headless behavior hook that encapsulates the org-gate provisioning
-state machine.
-
-The hook observes the organization context from [`useOrg`](#useorg) and
-drives the following lifecycle:
+Headless behavior hook that derives the org-gate state from
+[`useOrg`](#useorg).
 
 1. **`bypassed`** — `isBypassed` is true; the gate is inactive.
 2. **`loading`** — the initial org list fetch is in flight.
-3. **`provisioning`** — OIDC mode, zero orgs: the server is creating
-   the personal org. The hook polls every 2 s and times out after 10 s.
-4. **`error`** — the org fetch failed; `message` carries the reason.
-5. **`no-orgs`** — no organizations exist (or provisioning timed out);
-   the consumer should show an onboarding form.
-6. **`ready`** — at least one org exists; render the app.
+3. **`error`** — the org fetch failed; `message` carries the reason.
+4. **`no-orgs`** — no organizations exist; the consumer should show an
+   onboarding form.
+5. **`ready`** — at least one org exists; render the app.
 
-The consumer computes `isBypassed` and `isOidcMode` using
-framework-specific APIs and passes them in, keeping this hook free of
-routing or auth-framework dependencies (DD-004).
+A pure derivation, deliberately: the organization list is final by the
+time this hook runs. Where a server creates a personal organization on
+first sign-in (Stigmer Cloud), it does so inside `provisionMyAccount`,
+before the identity gate ahead of this one reports ready — so there is
+nothing to wait for, and an empty list means the person creates their
+first organization now. (The hook once polled for that organization for
+ten seconds, a relic of an earlier asynchronous provisioner; on a server
+that never provisions one, every first sign-in paid the full wait.)
+
+The consumer computes `isBypassed` using framework-specific APIs and
+passes it in, keeping this hook free of routing dependencies (DD-004).
 
 **Signature**
 
@@ -178,7 +181,7 @@ function useOrgGate(options: UseOrgGateOptions): UseOrgGateReturn
 />
 
 ```tsx
-const { state, retry, refresh } = useOrgGate({ isBypassed, isOidcMode });
+const { state, retry, refresh } = useOrgGate({ isBypassed });
 
 switch (state.status) {
   case "bypassed":
@@ -186,8 +189,6 @@ switch (state.status) {
     return <>{children}</>;
   case "loading":
     return <Spinner />;
-  case "provisioning":
-    return <WelcomeScreen />;
   case "error":
     return <ErrorScreen message={state.message} onRetry={retry} />;
   case "no-orgs":
@@ -422,14 +423,13 @@ if (state.status === "error") {
 
 Options passed to [`useOrgGate`](#useorggate) by the host application.
 
-Both values are computed by the consumer using framework-specific APIs
+`isBypassed` is computed by the consumer using framework-specific APIs
 (e.g. `usePathname()` in Next.js, `useLocation()` in react-router) so
 that the hook itself has zero framework dependencies.
 
 <TypeTable
   type={{
     isBypassed: { type: "boolean", description: "True when the current route should bypass the gate (e.g. `/invite/` links).", required: true },
-    isOidcMode: { type: "boolean", description: "True when the auth mode supports server-side personal org provisioning.", required: true },
   }}
 />
 

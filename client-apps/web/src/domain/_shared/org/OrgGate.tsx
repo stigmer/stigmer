@@ -2,11 +2,16 @@
 
 import { useCallback } from "react";
 import { usePathname } from "next/navigation";
-import { Loader2, AlertCircle, RefreshCw, Building2, LogOut } from "lucide-react";
+import {
+  Loader2,
+  AlertCircle,
+  RefreshCw,
+  Building2,
+  LogOut,
+} from "lucide-react";
 import { CreateOrganizationForm, useOrgGate } from "@stigmer/react";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { useAuth } from "@/auth";
-import { getRuntimeConfig } from "@/config/runtime-config";
 
 /** Routes that bypass the org gate (user may not have an org yet). */
 const ORG_GATE_BYPASS_PREFIXES = ["/invite/"] as const;
@@ -14,8 +19,12 @@ const ORG_GATE_BYPASS_PREFIXES = ["/invite/"] as const;
 /**
  * Blocks the application shell until the user has at least one organization.
  *
- * Delegates provisioning state machine logic to `useOrgGate()` from the
- * SDK and renders Console-specific gate screens based on the returned state.
+ * Delegates the gate derivation to `useOrgGate()` from the SDK and renders
+ * Console-specific gate screens based on the returned state. The list the
+ * gate reads is final by the time it renders (the identity gate ahead of
+ * it has already provisioned whatever the server provisions), so an empty
+ * list goes straight to onboarding — on Stigmer Cloud and on a self-hosted
+ * server alike.
  *
  * Certain routes (e.g. `/invite/[token]`) bypass the gate because the
  * user may not have an org yet — they are joining one via an invitation.
@@ -26,12 +35,11 @@ const ORG_GATE_BYPASS_PREFIXES = ["/invite/"] as const;
 export function OrgGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
-  const isBypassed = ORG_GATE_BYPASS_PREFIXES.some((p) => pathname.startsWith(p));
+  const isBypassed = ORG_GATE_BYPASS_PREFIXES.some((p) =>
+    pathname.startsWith(p),
+  );
 
-  const { state, retry, refresh } = useOrgGate({
-    isBypassed,
-    isOidcMode: getRuntimeConfig().authMode === "oidc",
-  });
+  const { state, retry, refresh } = useOrgGate({ isBypassed });
 
   switch (state.status) {
     case "bypassed":
@@ -39,8 +47,6 @@ export function OrgGate({ children }: { children: React.ReactNode }) {
       return <>{children}</>;
     case "loading":
       return <LoadingState />;
-    case "provisioning":
-      return <ProvisioningState />;
     case "error":
       return <ErrorState message={state.message} onRetry={retry} />;
     case "no-orgs":
@@ -80,39 +86,6 @@ function GateHeader() {
 }
 
 // ---------------------------------------------------------------------------
-// Provisioning — waiting for server-side personal org creation (OIDC only)
-// ---------------------------------------------------------------------------
-
-function ProvisioningState() {
-  const { user } = useAuth();
-  const displayName = user?.name ?? user?.email;
-
-  return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center p-8">
-      <GateHeader />
-      <div className="flex flex-col items-center gap-4 text-center">
-        {user && (
-          <div className="flex size-12 items-center justify-center rounded-full bg-muted">
-            <span className="text-muted-foreground text-lg font-medium">
-              {(displayName ?? "?").charAt(0).toUpperCase()}
-            </span>
-          </div>
-        )}
-        <div className="space-y-1.5">
-          <h1 className="text-lg font-semibold text-foreground">
-            {displayName ? `Welcome, ${displayName}!` : "Welcome!"}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Setting up your workspace&hellip;
-          </p>
-        </div>
-        <Loader2 className="text-muted-foreground size-5 animate-spin" />
-      </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // Loading
 // ---------------------------------------------------------------------------
 
@@ -147,7 +120,7 @@ function ErrorState({
       </p>
       <button
         onClick={onRetry}
-        className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary-hover"
+        className="bg-primary text-primary-foreground hover:bg-primary-hover inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium"
       >
         <RefreshCw className="size-3" />
         Try again
@@ -177,13 +150,13 @@ function OnboardingState({
       <GateHeader />
       <div className="w-full max-w-sm space-y-6">
         <div className="flex flex-col items-center gap-3 text-center">
-          <div className="flex size-12 items-center justify-center rounded-full bg-muted">
+          <div className="bg-muted flex size-12 items-center justify-center rounded-full">
             <Building2 className="text-muted-foreground size-6" />
           </div>
-          <h1 className="text-lg font-semibold text-foreground">
+          <h1 className="text-foreground text-lg font-semibold">
             Welcome to Stigmer
           </h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             Create an organization to get started. Organizations are the
             top-level context that owns your agents, environments, and
             resources.
