@@ -14,11 +14,15 @@
  * pipeline/apiresource-meta.ts): an `ApiResourceRef.kind` is the enum
  * MEMBER name and the derived policy id hashes the spec's text (Q-OR-9), so
  * a lenient match would let "Organization" and "organization" mint two
- * rows for one grant. Why refuse at all under an enforcing Authorizer,
- * which already denies the unknown kind at position 1 (Q-OR-2 ii): the
- * three `is_skip_authorization` lanes have no position-1 check in any
- * edition, and under the permissive posture nothing else keeps a garbage
- * row out of the store.
+ * rows for one grant. Where the refusal runs (Q-S6-1, 2026-09-14): the
+ * controller calls it BEFORE position 1 on every lane, so no Authorizer in
+ * any edition is ever asked about a kind that is not a kind — a kind
+ * string that names no kind names no authorization target (the cloud's
+ * handlers kept this order; the resolver's unknown-kind deny stays as the
+ * backstop for a stored row on `get`). The grant path and the
+ * ValidateGrantableRole step keep their own calls for the callers that
+ * reach them without the controller (the lifecycle, the membership rules,
+ * the unit suites), so a garbage row never enters the store from any door.
  *
  * A spec missing either reference is a plain Error, not a refusal: the
  * protovalidate boundary marks both `required`, so absence is a contract

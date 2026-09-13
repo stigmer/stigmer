@@ -50,8 +50,21 @@
  *     admit anyone (Q-OR-7). Position 1 still runs the static platform
  *     check, so the cloud's `can_bootstrap_iam` FGA check is unchanged.
  *   - every kind string that came off the wire passes the domain's wire
- *     refusals (Q-S5-2): INVALID_ARGUMENT with the pinned copy, on every
- *     lane, in every edition.
+ *     refusals (Q-S5-2) BEFORE position 1 (Q-S6-1, 2026-09-14):
+ *     INVALID_ARGUMENT with the pinned copy, on every lane, in every
+ *     edition. This is not input validation moved ahead of authorization
+ *     — it is naming the authorization target. A kind string that names
+ *     no kind names nothing to authorize against, so there is no
+ *     position-1 question to ask; `checkMyPermission` refuses an unknown
+ *     permission name first for the same reason, and the cloud's
+ *     handlers kept this order (`kindFromSpecString` before
+ *     `authorizeRpc`), so the wire is unchanged at the re-point. Safe by
+ *     construction: the protovalidate interceptor (chain position 3) has
+ *     validated every request before a handler runs, so both refs are
+ *     present. The resolver's "resolution never throws" rule
+ *     (steps/authorize.ts) is untouched — its unknown-kind deny remains
+ *     the backstop for a stored row on `get`, the one kind string that is
+ *     not wire input.
  *
  * `checkMyPermission` has one definition (Q-OR-8; Q-S5-3), in this order:
  * UNAUTHENTICATED for an empty identity; the relation must be an
@@ -266,12 +279,13 @@ function guardSystemRpc(method: DescMethod, caller: CallerIdentity): void {
 // The command chains
 // ---------------------------------------------------------------------------
 
-/** `create`: Authorize → ValidateProto → ValidateGrantableRole → Grant. */
+/** `create`: the wire refusal, then Authorize → ValidateProto → ValidateGrantableRole → Grant. */
 function createPolicy(
   deps: IamPolicyControllerDeps,
   spec: IamPolicySpec,
   ctx: HandlerContext,
 ): Promise<IamPolicy> {
+  requireWellFormedTriple(spec);
   return grantThroughChain(
     deps,
     IamPolicyCommandController.method.create,
@@ -312,12 +326,13 @@ async function grantThroughChain(
   return policyResultOf(reqCtx, method);
 }
 
-/** `delete`: Authorize → ValidateProto → Revoke; the revoked row, or the default instance. */
+/** `delete`: the wire refusal, then Authorize → ValidateProto → Revoke; the revoked row, or the default instance. */
 async function deletePolicy(
   deps: IamPolicyControllerDeps,
   spec: IamPolicySpec,
   ctx: HandlerContext,
 ): Promise<IamPolicy> {
+  requireWellFormedTriple(spec);
   const method = IamPolicyCommandController.method.delete;
   const reqCtx = new RequestContext(
     IamPolicySpecSchema,
@@ -537,15 +552,15 @@ async function listAuthorizedPrincipalIds(
   input: ListAuthorizedPrincipalIdsInput,
   ctx: HandlerContext,
 ) {
+  const resource = requireRef(input.resource);
+  requireKnownResourceKind(resource.kind);
+  requireKnownPrincipalKind(input.principalKind);
   await authorizeDirect(
     IamPolicyQueryController.method.listAuthorizedPrincipalIds,
     deps.authorizer,
     callerIdentityOf(ctx),
     input,
   );
-  const resource = requireRef(input.resource);
-  requireKnownResourceKind(resource.kind);
-  requireKnownPrincipalKind(input.principalKind);
   const engine = requireQueryEngine(deps);
   const principalIds = await engine.listPrincipalIds(
     resource,
@@ -564,14 +579,14 @@ async function listResourceAccessByPrincipal(
   input: ListResourceAccessInput,
   ctx: HandlerContext,
 ) {
+  const resource = requireRef(input.resource);
+  requireKnownResourceKind(resource.kind);
   await authorizeDirect(
     IamPolicyQueryController.method.listResourceAccessByPrincipal,
     deps.authorizer,
     callerIdentityOf(ctx),
     input,
   );
-  const resource = requireRef(input.resource);
-  requireKnownResourceKind(resource.kind);
   const entries = await read(async () => {
     const hierarchy = await resolveHierarchy(
       deps.policies,
@@ -591,16 +606,16 @@ async function getPrincipalResourceRoles(
   input: PrincipalResourceInput,
   ctx: HandlerContext,
 ) {
+  const resource = requireRef(input.resource);
+  const principal = requireRef(input.principal);
+  requireKnownResourceKind(resource.kind);
+  requireKnownPrincipalKind(principal.kind);
   await authorizeDirect(
     IamPolicyQueryController.method.getPrincipalResourceRoles,
     deps.authorizer,
     callerIdentityOf(ctx),
     input,
   );
-  const resource = requireRef(input.resource);
-  const principal = requireRef(input.principal);
-  requireKnownResourceKind(resource.kind);
-  requireKnownPrincipalKind(principal.kind);
   const rows = await read(
     () =>
       deps.policies.findByPrincipalAndResource(
@@ -623,18 +638,18 @@ async function getPrincipalsCount(
   input: GetPrincipalsCountInput,
   ctx: HandlerContext,
 ) {
-  await authorizeDirect(
-    IamPolicyQueryController.method.getPrincipalsCount,
-    deps.authorizer,
-    callerIdentityOf(ctx),
-    input,
-  );
   // The wire's "" means any principal kind (the port's `undefined`).
   const principalKind =
     input.principalKind === "" ? undefined : input.principalKind;
   if (principalKind !== undefined) {
     requireKnownPrincipalKind(principalKind);
   }
+  await authorizeDirect(
+    IamPolicyQueryController.method.getPrincipalsCount,
+    deps.authorizer,
+    callerIdentityOf(ctx),
+    input,
+  );
   const count = await read(
     () =>
       deps.policies.countDistinctPrincipalsByResource(

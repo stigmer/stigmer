@@ -17,7 +17,9 @@
  * answered as a duplicate — and reads, in this order (Q-OR-3 as refined;
  * Q-S3-3):
  *   1. the wire refusals: an unknown resource kind is `Unknown resource
- *      kind`, never a role sentence;
+ *      kind`, never a role sentence — the second line behind the
+ *      controller's pre-position-1 refusal (Q-S6-1), kept so the step's
+ *      own contract holds for whoever splices it;
  *   2. the PROTO (`grantableRolesFor`): a kind that lists no role is
  *      system-managed in every edition — the cloud's byte-pinned copy,
  *      whatever the composed scope claims;

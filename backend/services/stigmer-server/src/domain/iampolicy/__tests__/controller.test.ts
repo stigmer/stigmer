@@ -847,3 +847,83 @@ describe("the write lanes' order", () => {
     );
   });
 });
+
+describe("a wire kind string is refused BEFORE position 1 on every annotated lane (Q-S6-1)", () => {
+  // A kind string that names no kind names no authorization target, so
+  // there is nothing to ask the Authorizer — the same reason
+  // checkMyPermission refuses an unknown permission name first, and the
+  // order the cloud's handlers kept (kindFromSpecString before
+  // authorizeRpc). The Authorizer here DENIES everything: were it asked,
+  // the answer would be PERMISSION_DENIED, so the INVALID_ARGUMENT and the
+  // empty check log together pin the order.
+  const cases: ReadonlyArray<
+    [name: string, copy: string, call: (h: Harness) => Promise<unknown>]
+  > = [
+    [
+      "create",
+      unknownResourceKindMessage("Organization"),
+      (h) =>
+        h.command.create(
+          triple({ kind: "identity_account", id: ALICE_ID }, "member", {
+            kind: "Organization",
+            id: "acme",
+          }),
+        ),
+    ],
+    [
+      "delete",
+      unknownResourceKindMessage("Organization"),
+      (h) =>
+        h.command.delete(
+          triple({ kind: "identity_account", id: ALICE_ID }, "member", {
+            kind: "Organization",
+            id: "acme",
+          }),
+        ),
+    ],
+    [
+      "listAuthorizedPrincipalIds",
+      unknownResourceKindMessage("Organization"),
+      (h) =>
+        h.query.listAuthorizedPrincipalIds({
+          resource: ref("Organization", "acme"),
+          principalKind: "identity_account",
+          relation: "can_view",
+        }),
+    ],
+    [
+      "listResourceAccessByPrincipal",
+      unknownResourceKindMessage("Organization"),
+      (h) =>
+        h.query.listResourceAccessByPrincipal({
+          resource: ref("Organization", "acme"),
+        }),
+    ],
+    [
+      "getPrincipalResourceRoles",
+      unknownResourceKindMessage("Organization"),
+      (h) =>
+        h.query.getPrincipalResourceRoles({
+          principal: ref("identity_account", ALICE_ID),
+          resource: ref("Organization", "acme"),
+        }),
+    ],
+    [
+      "getPrincipalsCount",
+      unknownPrincipalKindMessage("People"),
+      (h) =>
+        h.query.getPrincipalsCount({ orgId: "acme", principalKind: "People" }),
+    ],
+  ];
+
+  for (const [name, copy, call] of cases) {
+    it(`${name}: INVALID_ARGUMENT with the pinned copy and the Authorizer never consulted`, async () => {
+      const h = await harness({ caller: alice });
+      h.authorizer.decision = { kind: "deny", reason: "" };
+      const error = await refusal(() => call(h));
+      expect(error.code).toBe(Code.InvalidArgument);
+      expect(error.rawMessage).toBe(copy);
+      expect(h.authorizer.checks).toEqual([]);
+    });
+  }
+});

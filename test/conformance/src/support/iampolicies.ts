@@ -70,6 +70,51 @@ export function unknownPermissionMessage(relation: string): string {
   return `unknown permission '${relation}'`;
 }
 
+// A kind string that is not exactly an ApiResourceKind member name (the
+// cloud's kindFromSpecString copy; the OSS wire refusals). Refused before
+// position 1 on every lane in every edition (slice 6, Q-S6-1): a kind
+// that names no kind names no authorization target.
+export function unknownResourceKindMessage(kind: string): string {
+  return `Unknown resource kind: '${kind}'`;
+}
+export function unknownPrincipalKindMessage(kind: string): string {
+  return `Unknown principal kind: '${kind}'`;
+}
+
+// The principal-trust rule of checkAuthorization and listAuthorizedResourceIds
+// (the Java EnforcePrincipalTrust copy): a user may ask only about their own
+// account. Enforced before any engine, so every edition answers it.
+export const NON_ACCOUNT_PRINCIPAL_MESSAGE =
+  "Only self identity_account permission checks are supported";
+export const SELF_ALIAS_MESSAGE =
+  "The '_self' principal alias is not supported — use checkMyPermission for self permission checks";
+export const PRINCIPAL_NOT_CALLER_MESSAGE =
+  "Principal must be the authenticated caller";
+
+// An annotated RPC against an organization that does not exist, under an
+// Authorizer with a `not-found` arm (the cloud's OpenFGA existence probe;
+// open source's from entry 3): the pipeline's NOT_FOUND copy for the kind.
+export function organizationNotFoundMessage(id: string): string {
+  return `Organization not found: ${id}`;
+}
+
+// The annotation copy (rpc.config error_msg) an enforcing Authorizer
+// answers with when the caller lacks the permission on an EXISTING target.
+export const GRANT_DENIED_MESSAGE = "unauthorized to grant access";
+export const REVOKE_DENIED_MESSAGE = "unauthorized to revoke access";
+export const REVOKE_ORG_ACCESS_DENIED_MESSAGE =
+  "unauthorized to revoke organization access";
+export const VIEW_ACCESS_POLICIES_DENIED_MESSAGE =
+  "unauthorized to view access policies";
+export const VIEW_AUTHORIZED_PRINCIPAL_IDS_DENIED_MESSAGE =
+  "unauthorized to view authorized principal ids";
+export const VIEW_RESOURCE_ACCESS_DENIED_MESSAGE =
+  "unauthorized to view resource access";
+export const VIEW_PRINCIPAL_ROLES_DENIED_MESSAGE =
+  "unauthorized to view principal roles";
+export const VIEW_PRINCIPALS_COUNT_DENIED_MESSAGE =
+  "unauthorized to view principals count";
+
 // The three system RPCs' annotation copy (command.proto error_msg), the
 // sentence a wire user hears in every edition (Q-OR-7).
 export const BOOTSTRAP_POLICY_DENIED_MESSAGE =

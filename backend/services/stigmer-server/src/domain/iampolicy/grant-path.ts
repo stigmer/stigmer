@@ -37,10 +37,12 @@
  * whose resource or principal kind is not an ApiResourceKind member name,
  * or whose fields hold a canonical-text delimiter, is INVALID_ARGUMENT
  * with the pinned copy; slice 5 made that module the one home of the rule
- * the controller and the ValidateGrantableRole step share). Under an
- * enforcing Authorizer the chain's position 1 already denied the unknown
- * kind; under the permissive one this is what keeps a garbage row out of
- * the store and a garbage spec away from a composition's tuple delete.
+ * the controller and the ValidateGrantableRole step share). The
+ * controller refuses the same kinds BEFORE position 1 (Q-S6-1), so a wire
+ * caller never reaches this check; it stands for the callers that enter
+ * here without the controller — the built-in lifecycle and the membership
+ * rules — and is what keeps a garbage row out of the store and a garbage
+ * spec away from a composition's tuple delete from every door.
  * `cleanupResource` and `revokeOrgAccess` take refs and ids their callers
  * read from rows, so they do not refuse.
  *

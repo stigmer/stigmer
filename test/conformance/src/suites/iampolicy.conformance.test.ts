@@ -49,7 +49,23 @@
 //     INVALID_ARGUMENT — PREDICTED RED on the 3.15.0 oracle, which
 //     surfaces the OpenFGA 400 as INTERNAL (handlers.ts L430-451), and
 //     green after the re-point: the matrix's red→green cell, kept on
-//     purpose.
+//     purpose;
+//   - the principal-trust rule (S1 finding 7; slice 6): checkAuthorization
+//     and listAuthorizedResourceIds refuse another account's principal
+//     PERMISSION_DENIED, a non-account principal and the `_self` alias
+//     INVALID_ARGUMENT — before any engine, so `local` answers it ahead of
+//     its UNIMPLEMENTED. PREDICTED RED on the oracle for
+//     listAuthorizedResourceIds, which the 3.15.0 handler served with no
+//     rule at all (L248);
+//   - a kind string that is not exactly an enum member name is
+//     INVALID_ARGUMENT with the cloud's copy on every lane in every
+//     edition, BEFORE any Authorizer is asked (Q-S6-1, 2026-09-14: a kind
+//     that names no kind names no authorization target — the order the
+//     cloud's create and row reads kept, so no wire change at the
+//     re-point). PREDICTED RED on the oracle for the lanes that parsed no
+//     kind and let the string reach OpenFGA (INTERNAL) or the store
+//     (`delete`'s default instance; `getPrincipalsCount`'s zero);
+//   - revokeOrgAccess is idempotent: nothing to revoke is not an error.
 //
 // Flagged arms (`describe.skipIf` on a capability, never a target name):
 //   - perResourceGrants: a grant on an agent is admitted where true and
@@ -59,7 +75,23 @@
 //     already has);
 //   - authorizationQueries: the three tuple-half RPCs and a contextual
 //     checkMyPermission answer where true and are UNIMPLEMENTED with the
-//     edition sentence where false, never INTERNAL.
+//     edition sentence where false, never INTERNAL;
+//   - multiTenant (slice 6, Q-S6-2): what only an ENFORCING Authorizer can
+//     show, with a second real account from provisionIdentity. An outsider
+//     is PERMISSION_DENIED with each annotation's copy on the seven
+//     annotated RPCs, on `get` of a row (load-then-authorize) and hears
+//     `false` from checkMyPermission; an organization that does not exist
+//     is NOT_FOUND on the same seven (S2 finding 10 — the Authorizer's
+//     `not-found` arm; open source answers this from entry 3, which lifts
+//     the gate) and `false` from checkMyPermission (finding 33 i); and a
+//     member the owner made through the ordinary `create` — the one arm
+//     where a grant's EFFECT is read back on the wire — sees the roster
+//     (can_view_access: viewer) and is refused promoting itself to owner
+//     (can_grant_access: admin). PREDICTED RED on the oracle where its
+//     handlers ran no authorization (listAuthorizedPrincipalIds, L264) or
+//     found no row before authorizing (`delete`, L124), and for every
+//     NOT_FOUND cell (the retiring authorizeRpc folded `not-found` into
+//     PERMISSION_DENIED).
 //
 // The OIDC sibling lane (Q-OR-6; spawnSibling, the 20260911.11 shape): a
 // second open-source server in the OIDC posture against the harness's
@@ -70,19 +102,30 @@
 // idp-shaped and provisions after owns it too (the heal path); a later
 // arrival is a member; a creator of a blueprint before provisioning is an
 // admin after; the operator's email is an admin; a revoked member who
-// provisions again holds nothing. Each arm on its own organization. Where
-// no sibling can be spawned the arms skip VISIBLY with the target's reason.
+// provisions again holds nothing; a stranger who provisions while the
+// founder is still idp-shaped is a member, never the admin of a row-less
+// organization (Q-S4-7 — the founder's stamp is a person); a later arrival
+// is a member of EVERY organization; and a real person's Members row
+// carries the name the issuer's userinfo gave (first + last, the cloud's
+// precedence, observed on open source). Each arm on its own organization.
+// Where no sibling can be spawned the arms skip VISIBLY with the target's
+// reason.
 //
 // No separate trusted-local block: on `local` the creator IS the
 // operator, so the shared arms are the trusted-local proof.
 //
 // Deliberately OUT of this suite: how the id is derived (server-internal;
 // the domain's unit suites pin it); the cloud's positive tuple behaviour
-// (the composition's own tests); the operator's boot-time ownership of
-// pre-existing organizations (needs a restart; unit-pinned); revoking an
-// organization's last owner (plan finding 3, a product rule nobody owns
-// yet); the two listAuthorized*Ids' authorization contract (slice 1's,
-// S1 finding 7).
+// (the composition's own tests; the member arm above reads one grant's
+// effect, not the tuple); the operator's boot-time ownership of
+// pre-existing organizations (needs a restart; unit-pinned); the
+// first-caller arm of the membership rules taken positively (an
+// organization whose creator stamp is not a person needs a store from
+// before this entry; unit-pinned); revoking an organization's last owner
+// (plan finding 3, a product rule nobody owns yet); an empty resource id
+// (the A28 class, entry 3's handoff); the guest visitor-isolation
+// consequence of checkMyPermission through the composed Authorizer (S2
+// finding 33 ii — no guest caller exists in this harness).
 import { Code } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
@@ -100,9 +143,21 @@ import {
   BOOTSTRAP_POLICY_DENIED_MESSAGE,
   BOOTSTRAP_REVOKE_ORG_ACCESS_DENIED_MESSAGE,
   CLEANUP_RESOURCE_POLICIES_DENIED_MESSAGE,
+  GRANT_DENIED_MESSAGE,
+  NON_ACCOUNT_PRINCIPAL_MESSAGE,
   ORGANIZATION_ROLES,
   PER_RESOURCE_GRANTS_UNIMPLEMENTED_MESSAGE,
+  PRINCIPAL_NOT_CALLER_MESSAGE,
+  REVOKE_DENIED_MESSAGE,
+  REVOKE_ORG_ACCESS_DENIED_MESSAGE,
+  SELF_ALIAS_MESSAGE,
+  VIEW_ACCESS_POLICIES_DENIED_MESSAGE,
+  VIEW_AUTHORIZED_PRINCIPAL_IDS_DENIED_MESSAGE,
+  VIEW_PRINCIPALS_COUNT_DENIED_MESSAGE,
+  VIEW_PRINCIPAL_ROLES_DENIED_MESSAGE,
+  VIEW_RESOURCE_ACCESS_DENIED_MESSAGE,
   noGrantableRolesMessage,
+  organizationNotFoundMessage,
   organizationRole,
   policyNotFoundMessage,
   policyTriple,
@@ -110,6 +165,8 @@ import {
   roleNotGrantableMessage,
   syntheticAccountId,
   unknownPermissionMessage,
+  unknownPrincipalKindMessage,
+  unknownResourceKindMessage,
 } from "../support/iampolicies";
 import { uniqueName } from "../support/naming";
 import {
@@ -439,6 +496,230 @@ describe("IamPolicy conformance — checkMyPermission has one definition (Q-OR-8
   });
 });
 
+describe("IamPolicy conformance — the principal-trust rule runs before any engine (S1 finding 7)", () => {
+  // Both skip-authorization lanes ask about a PRINCIPAL; the rule is that a
+  // user may ask only about their own account (handlers.ts L368-396, the
+  // Java EnforcePrincipalTrust). It runs before the query engine is even
+  // looked for, so `local` — which has no engine — answers it ahead of
+  // the UNIMPLEMENTED the block below pins, and every edition gives one
+  // answer here.
+  it.each([
+    [
+      "checkAuthorization",
+      (other: string, org: string) =>
+        clients.iamPolicyQuery.checkAuthorization({
+          policy: organizationRole(other, "admin", org),
+        }),
+    ],
+    [
+      "listAuthorizedResourceIds",
+      (other: string, _org: string) =>
+        clients.iamPolicyQuery.listAuthorizedResourceIds({
+          principal: ref("identity_account", other),
+          resourceKind: "organization",
+          relation: "can_view",
+        }),
+    ],
+  ] as const)(
+    "%s about another account's principal is PERMISSION_DENIED (predicted red on the 3.15.0 oracle for the listing, which ran no rule)",
+    async (name, call) => {
+      const org = await createOwnedOrganization();
+      const error = await expectGrpcCode(
+        () => call(syntheticAccountId(), org),
+        Code.PermissionDenied,
+        `${name} about a principal that is not the caller`,
+      );
+      expect(error.rawMessage).toBe(PRINCIPAL_NOT_CALLER_MESSAGE);
+    },
+  );
+
+  it.each([
+    [
+      "a principal that is not an identity account",
+      (org: string) =>
+        policyTriple({ kind: "organization", id: org }, "organization", {
+          kind: "organization",
+          id: org,
+        }),
+      NON_ACCOUNT_PRINCIPAL_MESSAGE,
+    ],
+    [
+      "the Java `_self` alias",
+      (org: string) => organizationRole("_self", "admin", org),
+      SELF_ALIAS_MESSAGE,
+    ],
+  ] as const)(
+    "checkAuthorization with %s is INVALID_ARGUMENT with the pinned copy",
+    async (_name, policy, copy) => {
+      const org = await createOwnedOrganization();
+      const error = await expectGrpcCode(
+        () =>
+          clients.iamPolicyQuery.checkAuthorization({ policy: policy(org) }),
+        Code.InvalidArgument,
+        "checkAuthorization with a principal the trust rule refuses",
+      );
+      expect(error.rawMessage).toBe(copy);
+    },
+  );
+});
+
+describe("IamPolicy conformance — a kind string that names no kind is refused before anything else (Q-S5-2, Q-S6-1)", () => {
+  // `Organization` is the kind_meta spelling and the realistic typo; the
+  // match is exact by doctrine (kindByEnumName), because a lenient match
+  // would let two spellings mint two rows for one grant. Every arm targets
+  // an organization the caller OWNS, so the refusal measured is the kind's
+  // and never an authorization answer. On the annotated lanes the refusal
+  // precedes position 1 (Q-S6-1); on the skip lanes it precedes the engine.
+  const GARBAGE_KIND = "Organization";
+  const GARBAGE_PRINCIPAL_KIND = "People";
+  const me = () =>
+    clients.identityAccountQuery
+      .whoAmI({})
+      .then((account) => account.metadata?.id ?? "");
+
+  it.each([
+    [
+      "create",
+      (org: string) =>
+        clients.iamPolicyCommand.create(
+          policyTriple(
+            { kind: "identity_account", id: syntheticAccountId() },
+            "member",
+            { kind: GARBAGE_KIND, id: org },
+          ),
+        ),
+      unknownResourceKindMessage(GARBAGE_KIND),
+    ],
+    [
+      "delete",
+      (org: string) =>
+        clients.iamPolicyCommand.delete(
+          policyTriple(
+            { kind: "identity_account", id: syntheticAccountId() },
+            "member",
+            { kind: GARBAGE_KIND, id: org },
+          ),
+        ),
+      unknownResourceKindMessage(GARBAGE_KIND),
+    ],
+    [
+      "checkMyPermission",
+      (org: string) =>
+        clients.iamPolicyQuery.checkMyPermission({
+          resource: ref(GARBAGE_KIND, org),
+          relation: "can_view_access",
+        }),
+      unknownResourceKindMessage(GARBAGE_KIND),
+    ],
+    [
+      "checkAuthorization",
+      async (org: string) =>
+        clients.iamPolicyQuery.checkAuthorization({
+          policy: policyTriple(
+            { kind: "identity_account", id: await me() },
+            "admin",
+            { kind: GARBAGE_KIND, id: org },
+          ),
+        }),
+      unknownResourceKindMessage(GARBAGE_KIND),
+    ],
+    [
+      "listAuthorizedResourceIds",
+      async (_org: string) =>
+        clients.iamPolicyQuery.listAuthorizedResourceIds({
+          principal: ref("identity_account", await me()),
+          resourceKind: GARBAGE_KIND,
+          relation: "can_view",
+        }),
+      unknownResourceKindMessage(GARBAGE_KIND),
+    ],
+    [
+      "listAuthorizedPrincipalIds",
+      (org: string) =>
+        clients.iamPolicyQuery.listAuthorizedPrincipalIds({
+          resource: ref(GARBAGE_KIND, org),
+          principalKind: "identity_account",
+          relation: "can_view",
+        }),
+      unknownResourceKindMessage(GARBAGE_KIND),
+    ],
+    [
+      "listResourceAccessByPrincipal",
+      (org: string) =>
+        clients.iamPolicyQuery.listResourceAccessByPrincipal({
+          resource: ref(GARBAGE_KIND, org),
+        }),
+      unknownResourceKindMessage(GARBAGE_KIND),
+    ],
+    [
+      "getPrincipalResourceRoles",
+      (org: string) =>
+        clients.iamPolicyQuery.getPrincipalResourceRoles({
+          principal: ref("identity_account", syntheticAccountId()),
+          resource: ref(GARBAGE_KIND, org),
+        }),
+      unknownResourceKindMessage(GARBAGE_KIND),
+    ],
+    [
+      "getPrincipalsCount",
+      (org: string) =>
+        clients.iamPolicyQuery.getPrincipalsCount({
+          orgId: org,
+          principalKind: GARBAGE_PRINCIPAL_KIND,
+        }),
+      unknownPrincipalKindMessage(GARBAGE_PRINCIPAL_KIND),
+    ],
+  ] as const)(
+    "%s is INVALID_ARGUMENT with the cloud's copy in every edition",
+    async (name, call, copy) => {
+      const org = await createOwnedOrganization();
+      const error = await expectGrpcCode(
+        () => call(org),
+        Code.InvalidArgument,
+        `${name} with a kind string that is no enum member name`,
+      );
+      expect(error.rawMessage).toBe(copy);
+    },
+  );
+});
+
+describe("IamPolicy conformance — revokeOrgAccess is idempotent", () => {
+  it("revoking a person twice, and a person with no rows, both succeed and change nothing", async () => {
+    const org = await createOwnedOrganization();
+    const person = syntheticAccountId();
+    const bystander = syntheticAccountId();
+    await clients.iamPolicyCommand.create(
+      organizationRole(person, "member", org),
+    );
+    await clients.iamPolicyCommand.create(
+      organizationRole(bystander, "member", org),
+    );
+
+    // handlers.ts L164-179 → service.revokeOrgAccess: nothing to revoke is
+    // not an error — a Members page that retries a removal must not fail.
+    await clients.iamPolicyCommand.revokeOrgAccess({
+      identityAccountId: person,
+      organizationId: org,
+    });
+    await clients.iamPolicyCommand.revokeOrgAccess({
+      identityAccountId: person,
+      organizationId: org,
+    });
+    await clients.iamPolicyCommand.revokeOrgAccess({
+      identityAccountId: syntheticAccountId(),
+      organizationId: org,
+    });
+
+    expect(await rolesOf(person, org)).toEqual([]);
+    expect(await rolesOf(bystander, org)).toEqual(["member"]);
+    const count = await clients.iamPolicyQuery.getPrincipalsCount({
+      orgId: org,
+      principalKind: "identity_account",
+    });
+    expect(count.count, "the creator and the bystander").toBe(2);
+  });
+});
+
 describe.skipIf(capabilities.perResourceGrants)(
   "IamPolicy conformance — organization-only grants (the open-source scope)",
   () => {
@@ -622,6 +903,213 @@ describe.skipIf(!capabilities.authorizationQueries)(
   },
 );
 
+describe.skipIf(!capabilities.multiTenant)(
+  "IamPolicy conformance — what only an enforcing Authorizer can show (Q-S6-2)",
+  () => {
+    // A second REAL account: provisionIdentity mints a person who holds
+    // nothing on any organization this run created. Its id is read from
+    // its own whoAmI — the server's business, never derived here.
+    async function outsider(): Promise<{
+      clients: ConformanceClients;
+      id: string;
+    }> {
+      if (target.provisionIdentity === undefined) {
+        throw new Error(
+          `target "${target.name}" declares multiTenant but provides no provisionIdentity()`,
+        );
+      }
+      const theirs = await target.provisionIdentity();
+      const me = await theirs.identityAccountQuery.whoAmI({});
+      return { clients: theirs, id: me.metadata?.id ?? "" };
+    }
+
+    // The seven annotated RPCs, each as a call some caller makes against
+    // some organization; the outsider block and the nonexistent block
+    // read the same table so the two answers are visibly one contract:
+    // exists-but-not-yours → PERMISSION_DENIED, does-not-exist → NOT_FOUND.
+    const annotated: ReadonlyArray<
+      [
+        name: string,
+        call: (using: ConformanceClients, org: string) => Promise<unknown>,
+        deniedCopy: string,
+      ]
+    > = [
+      [
+        "create",
+        (using, org) =>
+          using.iamPolicyCommand.create(
+            organizationRole(syntheticAccountId(), "member", org),
+          ),
+        GRANT_DENIED_MESSAGE,
+      ],
+      [
+        "delete of an absent triple",
+        (using, org) =>
+          using.iamPolicyCommand.delete(
+            organizationRole(syntheticAccountId(), "member", org),
+          ),
+        REVOKE_DENIED_MESSAGE,
+      ],
+      [
+        "revokeOrgAccess",
+        (using, org) =>
+          using.iamPolicyCommand.revokeOrgAccess({
+            identityAccountId: syntheticAccountId(),
+            organizationId: org,
+          }),
+        REVOKE_ORG_ACCESS_DENIED_MESSAGE,
+      ],
+      [
+        "listAuthorizedPrincipalIds",
+        (using, org) =>
+          using.iamPolicyQuery.listAuthorizedPrincipalIds({
+            resource: ref("organization", org),
+            principalKind: "identity_account",
+            relation: "can_view",
+          }),
+        VIEW_AUTHORIZED_PRINCIPAL_IDS_DENIED_MESSAGE,
+      ],
+      [
+        "listResourceAccessByPrincipal",
+        (using, org) =>
+          using.iamPolicyQuery.listResourceAccessByPrincipal({
+            resource: ref("organization", org),
+          }),
+        VIEW_RESOURCE_ACCESS_DENIED_MESSAGE,
+      ],
+      [
+        "getPrincipalResourceRoles",
+        (using, org) =>
+          using.iamPolicyQuery.getPrincipalResourceRoles({
+            principal: ref("identity_account", syntheticAccountId()),
+            resource: ref("organization", org),
+          }),
+        VIEW_PRINCIPAL_ROLES_DENIED_MESSAGE,
+      ],
+      [
+        "getPrincipalsCount",
+        (using, org) =>
+          using.iamPolicyQuery.getPrincipalsCount({
+            orgId: org,
+            principalKind: "identity_account",
+          }),
+        VIEW_PRINCIPALS_COUNT_DENIED_MESSAGE,
+      ],
+    ];
+
+    describe("an outsider on an organization it holds nothing on", () => {
+      it.each(annotated)(
+        "%s is PERMISSION_DENIED with the annotation's copy",
+        async (name, call, deniedCopy) => {
+          const org = await createOwnedOrganization();
+          const them = await outsider();
+          const error = await expectGrpcCode(
+            () => call(them.clients, org),
+            Code.PermissionDenied,
+            `${name} by an outsider`,
+          );
+          expect(error.rawMessage).toBe(deniedCopy);
+        },
+      );
+
+      it("get of a row on that organization is PERMISSION_DENIED — the row is loaded, then its resource is the target", async () => {
+        const org = await createOwnedOrganization();
+        const created = await clients.iamPolicyCommand.create(
+          organizationRole(syntheticAccountId(), "member", org),
+        );
+        const them = await outsider();
+        const error = await expectGrpcCode(
+          () =>
+            them.clients.iamPolicyQuery.get({
+              value: created.metadata?.id ?? "",
+            }),
+          Code.PermissionDenied,
+          "get of a foreign organization's row",
+        );
+        expect(error.rawMessage).toBe(VIEW_ACCESS_POLICIES_DENIED_MESSAGE);
+      });
+
+      it("checkMyPermission(can_view_access) answers false, never an error", async () => {
+        const org = await createOwnedOrganization();
+        const them = await outsider();
+        const result = await them.clients.iamPolicyQuery.checkMyPermission({
+          resource: ref("organization", org),
+          relation: "can_view_access",
+        });
+        expect(result.isAuthorized).toBe(false);
+      });
+    });
+
+    describe("an organization that does not exist", () => {
+      // The Authorizer's `not-found` arm (the cloud's OpenFGA existence
+      // probe; S2 finding 10) reaches the wire as the pipeline's NOT_FOUND
+      // for the kind — what every other annotated RPC answers for a
+      // missing organization. Open source answers this from entry 3,
+      // whose Authorizer gains the arm; that entry lifts this gate.
+      const ABSENT_ORG = "roles-org-that-was-never-created";
+
+      it.each(annotated)(
+        "%s is NOT_FOUND with the organization's copy",
+        async (name, call) => {
+          const error = await expectGrpcCode(
+            () => call(clients, ABSENT_ORG),
+            Code.NotFound,
+            `${name} against a nonexistent organization`,
+          );
+          expect(error.rawMessage).toBe(
+            organizationNotFoundMessage(ABSENT_ORG),
+          );
+        },
+      );
+
+      it("checkMyPermission(can_view_access) answers false — `not-found` is a denial, not an error (S2 finding 33 i)", async () => {
+        const result = await clients.iamPolicyQuery.checkMyPermission({
+          resource: ref("organization", ABSENT_ORG),
+          relation: "can_view_access",
+        });
+        expect(result.isAuthorized).toBe(false);
+      });
+    });
+
+    describe("a member the owner made through the Members page's own RPC", () => {
+      // The one arm where a grant's EFFECT is read back on the wire: the
+      // owner grants `member` to a real person through the ordinary
+      // create; that person then sees the roster (organization.fga L84:
+      // can_view_access is viewer's, and member ⊂ viewer) and is refused
+      // when they try to make themselves owner (L83: can_grant_access is
+      // admin's). This is the rule the cloud enforces today and the rule
+      // open source gains at entry 3 (T01_1_review.md Q-OR-13).
+      it("sees the roster, and is refused promoting itself to owner", async () => {
+        const org = await createOwnedOrganization();
+        const member = await outsider();
+        await clients.iamPolicyCommand.create(
+          organizationRole(member.id, "member", org),
+        );
+
+        const roster =
+          await member.clients.iamPolicyQuery.listResourceAccessByPrincipal({
+            resource: ref("organization", org),
+          });
+        expect(
+          roster.entries.map((entry) => entry.principal?.id),
+          "the member reads the roster it is on",
+        ).toContain(member.id);
+
+        const error = await expectGrpcCode(
+          () =>
+            member.clients.iamPolicyCommand.create(
+              organizationRole(member.id, "owner", org),
+            ),
+          Code.PermissionDenied,
+          "a member granting itself owner",
+        );
+        expect(error.rawMessage).toBe(GRANT_DENIED_MESSAGE);
+        expect(await rolesOf(member.id, org)).toEqual(["member"]);
+      });
+    });
+  },
+);
+
 describe("IamPolicy conformance — the membership rules on an OIDC sibling (Q-OR-6)", () => {
   const OPERATOR_EMAIL = "operator@conformance.example.com";
   let issuer: LocalOidcIssuer | undefined;
@@ -791,5 +1279,82 @@ describe("IamPolicy conformance — the membership rules on an OIDC sibling (Q-O
     expect(again).toBe(memberId);
     expect(await rolesOf(memberId, org, member.asPerson)).toEqual([]);
     expect(await rolesOf(founderId, org, founder.asPerson)).toEqual(["owner"]);
+  });
+
+  it("a stranger who provisions while the founder is still idp-shaped is a member, never the admin of a row-less organization (Q-S4-7)", async (ctx) => {
+    const lane = siblingOrSkip(ctx);
+    // The organization exists with ZERO role rows: its founder created it
+    // before provisioning, so the lifecycle wrote nothing (Q-OR-6a). The
+    // first-caller arm must not hand it to whoever provisions next — the
+    // founder's creator stamp is a PERSON's, and a person other than the
+    // caller having created the organization is what keeps arm 4 closed.
+    const founder = await newPerson(lane, "late-founder@example.com");
+    const org = await createOwnedOrganization(
+      founder.asPerson,
+      siblingFixtures,
+    );
+
+    const stranger = await newPerson(lane, "stranger@example.com");
+    const strangerId = await stranger.provision();
+    expect(await rolesOf(strangerId, org, stranger.asPerson)).toEqual([
+      "member",
+    ]);
+
+    // The founder's own arrival heals through the creator stamp, exactly
+    // as when nobody came first.
+    const founderId = await founder.provision();
+    expect(await rolesOf(founderId, org, founder.asPerson)).toEqual(["owner"]);
+  });
+
+  it("a later arrival is a member of EVERY organization that exists, not only the first", async (ctx) => {
+    const lane = siblingOrSkip(ctx);
+    const first = await newPerson(lane, "founder-6@example.com");
+    await first.provision();
+    const orgA = await createOwnedOrganization(first.asPerson, siblingFixtures);
+    const second = await newPerson(lane, "founder-7@example.com");
+    await second.provision();
+    const orgB = await createOwnedOrganization(
+      second.asPerson,
+      siblingFixtures,
+    );
+
+    const newcomer = await newPerson(lane, "newcomer-2@example.com");
+    const newcomerId = await newcomer.provision();
+
+    expect(await rolesOf(newcomerId, orgA, newcomer.asPerson)).toEqual([
+      "member",
+    ]);
+    expect(await rolesOf(newcomerId, orgB, newcomer.asPerson)).toEqual([
+      "member",
+    ]);
+  });
+
+  it("a real person's Members row carries the name the issuer's userinfo gave — first and last, the cloud's precedence", async (ctx) => {
+    const lane = siblingOrSkip(ctx);
+    // The shared arm above sees the trusted-local operator, whose name
+    // lives in metadata.name (Q-S5-4). This is the OIDC person: their
+    // first and last names come from /userinfo at provisioning
+    // (20260911.11), and the display resolver renders `first last` ahead
+    // of everything else — the row the cloud's Members page shows.
+    const email = "named-founder@example.com";
+    const founder = await newPerson(lane, email);
+    const founderId = await founder.provision();
+    const org = await createOwnedOrganization(
+      founder.asPerson,
+      siblingFixtures,
+    );
+
+    const access =
+      await founder.asPerson.iamPolicyQuery.listResourceAccessByPrincipal({
+        resource: ref("organization", org),
+      });
+    const mine = access.entries.find(
+      (entry) => entry.principal?.id === founderId,
+    );
+    expect(mine, "the founder has an entry").toBeDefined();
+    expect(mine?.principal?.name).toBe(
+      `${lane.issuer.profile.givenName} ${lane.issuer.profile.familyName}`,
+    );
+    expect(mine?.principal?.email).toBe(email);
   });
 });
