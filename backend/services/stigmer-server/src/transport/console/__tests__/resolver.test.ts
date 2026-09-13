@@ -32,6 +32,7 @@ const index = buildConsoleFileIndex([
   "/__next._tree.txt",
   "/conversations.html",
   "/conversations.txt",
+  "/auth/callback.html",
   "/auth/github/callback.html",
   "/sessions/__placeholder__.html",
   "/sessions/__placeholder__.txt",
@@ -69,6 +70,11 @@ describe("page contract (the nginx chain)", () => {
     expect(servedFile("/auth/github/callback")).toBe(
       "/auth/github/callback.html",
     );
+    // The OIDC return leg (20260913.02): the provider redirects here with
+    // `?code&state`; the handler strips the query, so the resolver sees
+    // exactly this path and must answer the callback document, never
+    // the 404 page — a 404 here is a login that can never complete.
+    expect(servedFile("/auth/callback")).toBe("/auth/callback.html");
   });
 
   it("resolves one trailing dynamic segment to its placeholder document", () => {

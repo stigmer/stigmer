@@ -4,7 +4,14 @@
  *
  *   - documents, flight payloads, redirects, and the 404 posture arrive
  *     with the right status, Content-Type, and Cache-Control;
- *   - /config.json is synthesized per request with a Host-derived apiUrl;
+ *   - /config.json is synthesized per request: apiUrl is the empty string
+ *     the console reads as "my own origin" (20260913.02 Q-CL-3), and the
+ *     sign-in block tells the truth about the server's posture — trusted
+ *     local says `disabled`; the OIDC posture says `oidc` with the issuer,
+ *     the audience and the console's client id, the client id empty when
+ *     the operator has not registered one (Q-CL-1, Q-CL-2);
+ *   - the OIDC return leg: /auth/callback with the provider's query
+ *     resolves to the callback document;
  *   - the guard: RPC (POST and service-shaped GET), /v1/* paths, and
  *     OPTIONS preflights flow exactly as they do WITHOUT the lane — the
  *     wire-invisibility half of the P3 acceptance;
@@ -30,8 +37,8 @@ import {
   createUnifiedPortServer,
   type UnifiedPortServer,
 } from "../../server.js";
-import { resolveConsoleAssets } from "../assets.js";
-import { createConsoleLane } from "../handler.js";
+import { resolveConsoleAssets, type ConsoleAssets } from "../assets.js";
+import { createConsoleLane, type ConsoleSignInPosture } from "../handler.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -46,6 +53,7 @@ const FIXTURE_FILES: Record<string, string> = {
   "embed.js": "// embed loader",
   "conversations.html": "<html>conversations</html>",
   "conversations.txt": "flight:conversations",
+  "auth/callback.html": "<html>completing sign-in</html>",
   "sessions/__placeholder__.html": "<html>session detail</html>",
   "sessions/__placeholder__.txt": "flight:session",
   "sessions/__placeholder__/__next.sessions.txt": "flight:nested-session",
@@ -53,25 +61,18 @@ const FIXTURE_FILES: Record<string, string> = {
 };
 
 let fixtureRoot: string;
+let assets: ConsoleAssets;
 let server: UnifiedPortServer;
 let port: number;
 let baseUrl: string;
 
-beforeAll(async () => {
-  fixtureRoot = mkdtempSync(path.join(tmpdir(), "console-lane-fixture-"));
-  for (const [file, content] of Object.entries(FIXTURE_FILES)) {
-    const target = path.join(fixtureRoot, ...file.split("/"));
-    mkdirSync(path.dirname(target), { recursive: true });
-    writeFileSync(target, content);
-  }
-
-  const assets = resolveConsoleAssets(fixtureRoot, silentLogger);
-  if (assets === undefined) {
-    throw new Error("fixture export was not discovered");
-  }
+/** A unified-port server whose console lane serves the fixture under `signIn`. */
+async function startServer(
+  signIn: ConsoleSignInPosture,
+): Promise<UnifiedPortServer> {
   const healthState = new HealthState();
   healthState.setOverall(ServingStatus.SERVING);
-  server = createUnifiedPortServer({
+  return createUnifiedPortServer({
     logger: silentLogger,
     routes: (router) => registerHealthService(router, healthState),
     interceptors: [],
@@ -83,12 +84,24 @@ beforeAll(async () => {
       response.setHeader("x-lane", "model");
       response.end("{}");
     },
-    consoleLane: createConsoleLane({
-      assets,
-      grpcPort: 7234,
-      logger: silentLogger,
-    }),
+    consoleLane: createConsoleLane({ assets, signIn, logger: silentLogger }),
   });
+}
+
+beforeAll(async () => {
+  fixtureRoot = mkdtempSync(path.join(tmpdir(), "console-lane-fixture-"));
+  for (const [file, content] of Object.entries(FIXTURE_FILES)) {
+    const target = path.join(fixtureRoot, ...file.split("/"));
+    mkdirSync(path.dirname(target), { recursive: true });
+    writeFileSync(target, content);
+  }
+
+  const discovered = resolveConsoleAssets(fixtureRoot, silentLogger);
+  if (discovered === undefined) {
+    throw new Error("fixture export was not discovered");
+  }
+  assets = discovered;
+  server = await startServer({ posture: "trusted-local" });
   port = await server.listen(0, "127.0.0.1");
   baseUrl = `http://127.0.0.1:${port}`;
 });
@@ -175,8 +188,19 @@ describe("document serving", () => {
   });
 });
 
+describe("the OIDC return leg", () => {
+  it("serves /auth/callback with the provider's query the callback document", async () => {
+    const response = await fetch(`${baseUrl}/auth/callback?code=abc&state=xyz`);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe(
+      "text/html; charset=utf-8",
+    );
+    expect(await response.text()).toBe(FIXTURE_FILES["auth/callback.html"]);
+  });
+});
+
 describe("/config.json synthesis", () => {
-  it("derives apiUrl from the request Host and forbids caching", async () => {
+  it("under trusted local: same-origin apiUrl, sign-in disabled, never cached", async () => {
     const response = await fetch(`${baseUrl}/config.json`);
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toBe("application/json");
@@ -184,12 +208,58 @@ describe("/config.json synthesis", () => {
       "no-cache, no-store, must-revalidate",
     );
     expect(await response.json()).toEqual({
-      apiUrl: `http://127.0.0.1:${port}`,
+      apiUrl: "",
       appUrl: "",
       authMode: "disabled",
       oidcIssuer: "",
       oidcClientId: "",
       oidcAudience: "",
+    });
+  });
+
+  describe("under the OIDC posture", () => {
+    const ISSUER = "https://auth.example.com/realms/main";
+    const AUDIENCE = "https://stigmer.example.com/";
+
+    async function configUnder(consoleClientId: string): Promise<unknown> {
+      const oidcServer = await startServer({
+        posture: "oidc",
+        issuer: ISSUER,
+        audience: AUDIENCE,
+        consoleClientId,
+      });
+      const oidcPort = await oidcServer.listen(0, "127.0.0.1");
+      try {
+        const response = await fetch(
+          `http://127.0.0.1:${oidcPort}/config.json`,
+        );
+        expect(response.status).toBe(200);
+        return await response.json();
+      } finally {
+        await oidcServer.shutdown();
+      }
+    }
+
+    it("tells the console the issuer, the audience and its client id", async () => {
+      expect(await configUnder("stigmer-console")).toEqual({
+        apiUrl: "",
+        appUrl: "",
+        authMode: "oidc",
+        oidcIssuer: ISSUER,
+        oidcClientId: "stigmer-console",
+        oidcAudience: AUDIENCE,
+      });
+    });
+
+    it("keeps authMode honest when no console client is registered — the client id is empty, never a disabled lie", async () => {
+      expect(await configUnder("")).toEqual({
+        apiUrl: "",
+        appUrl: "",
+        authMode: "oidc",
+        oidcIssuer: ISSUER,
+        oidcClientId: "",
+        oidcAudience: AUDIENCE,
+      });
     });
   });
 });

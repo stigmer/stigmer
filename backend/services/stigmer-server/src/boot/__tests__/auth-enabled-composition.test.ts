@@ -21,9 +21,17 @@
  *      the issuer's userinfo profile; from then on the verifier resolves
  *      the subject to the account id and API keys minted before OR after
  *      provisioning answer whoAmI with the owner's account; no operator
- *      account exists under the posture.
+ *      account exists under the posture;
+ *   7. (20260913.02, sp.console-login) the console the server serves is
+ *      told the posture through /config.json — the issuer and audience
+ *      this composition runs under, with the console client id the
+ *      operator did NOT register here left empty — and the composition
+ *      root WARNs at wiring time that the served console cannot sign in
+ *      (Q-CL-2), the STIGMER_OAUTH_REDIRECT_URI precedent. Proven through
+ *      compose.ts with STIGMER_CONSOLE_DIR at a fixture export, not
+ *      through the lane alone (handler.test.ts covers that).
  */
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { createServer } from "node:http";
@@ -75,6 +83,9 @@ let port: number;
 // the raw sub. The identity-account arms prove that stamp resolves to the
 // owner's account once one exists (20260911.11 A1's derived id).
 let keyMintedBeforeProvisioning: string;
+// Every WARN the composition root logged while wiring — the console
+// sign-in arm (7) reads it.
+const warnings: string[] = [];
 
 function bearer(token: string): Interceptor {
   return (next) => (request) => {
@@ -177,6 +188,10 @@ beforeAll(async () => {
   issuer = `http://127.0.0.1:${address.port}`;
 
   dir = mkdtempSync(path.join(tmpdir(), "auth-enabled-test-"));
+  // The smallest export the console lane discovers: the app shell alone.
+  const consoleDir = path.join(dir, "console");
+  mkdirSync(consoleDir, { recursive: true });
+  writeFileSync(path.join(consoleDir, "index.html"), "<html>app shell</html>");
   server = await composeServer({
     config: loadConfig({
       STIGMER_MODEL_REGISTRY_REFRESH: "off",
@@ -186,8 +201,18 @@ beforeAll(async () => {
       ARTIFACT_LOCAL_BASE_PATH: path.join(dir, "artifacts"),
       STIGMER_OIDC_ISSUER: issuer,
       STIGMER_OIDC_AUDIENCE: AUDIENCE,
+      STIGMER_CONSOLE_DIR: consoleDir,
     }),
-    logger: createLogger({ level: "error", pretty: false, write: () => {} }),
+    logger: createLogger({
+      level: "warn",
+      pretty: false,
+      write: (line) => {
+        const entry = JSON.parse(line) as { level?: string; message?: string };
+        if (entry.level === "warn" && entry.message !== undefined) {
+          warnings.push(entry.message);
+        }
+      },
+    }),
     portOverride: 0,
     host: "127.0.0.1",
   });
@@ -232,6 +257,27 @@ describe("the require-authentication posture on the wire", () => {
     expect(ConnectError.from(error).code).toBe(Code.Unauthenticated);
     expect(ConnectError.from(error).rawMessage).toBe(
       "the presented token was not accepted by any configured identity verifier",
+    );
+  });
+});
+
+describe("the console the server serves is told the posture (20260913.02, sp.console-login)", () => {
+  it("/config.json carries the issuer and audience this composition verifies against, with the unregistered console client id empty", async () => {
+    const response = await fetch(`http://127.0.0.1:${port}/config.json`);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      apiUrl: "",
+      appUrl: "",
+      authMode: "oidc",
+      oidcIssuer: issuer,
+      oidcClientId: "",
+      oidcAudience: AUDIENCE,
+    });
+  });
+
+  it("the composition root WARNs at wiring time that the served console cannot sign in without STIGMER_OIDC_CONSOLE_CLIENT_ID (Q-CL-2)", () => {
+    expect(warnings).toContainEqual(
+      expect.stringContaining("STIGMER_OIDC_CONSOLE_CLIENT_ID"),
     );
   });
 });

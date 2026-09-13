@@ -12,13 +12,20 @@
 // The single-flight memo is module state, so each test re-imports the
 // provider via vi.resetModules() + dynamic import instead of a test-only
 // reset hook — production code stays free of test scaffolding.
+//
+// Sign-out (20260913.02, sp.console-login Q-CL-4): the provider speaks
+// only the OIDC standard. When the issuer publishes `end_session_endpoint`
+// it uses RP-initiated logout; when it does not (Dex, and any issuer with
+// no logout endpoint) it clears the local session and lands on /login. It
+// never builds a vendor URL — the Auth0 `/v2/logout` fallback is gone.
 // ---------------------------------------------------------------------------
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { StrictMode } from "react";
+import { StrictMode, useEffect } from "react";
 import { render, waitFor } from "@testing-library/react";
 import type { User } from "oidc-client-ts";
 import type { OidcConfig } from "../types";
+import { useAuth } from "../../use-auth";
 
 const REDIRECT_PATH_KEY = "stigmer:auth:redirect_path";
 const SAVED_PATH = "/agents?tab=all";
@@ -40,8 +47,13 @@ const mocks = vi.hoisted(() => {
     signinRedirectCallback: vi.fn(async () => user),
     getUser: vi.fn(async () => null),
     signinRedirect: vi.fn(),
-    signoutRedirect: vi.fn(),
-    removeUser: vi.fn(),
+    signoutRedirect: vi.fn(async () => {}),
+    removeUser: vi.fn(async () => {}),
+    metadataService: {
+      getEndSessionEndpoint: vi.fn(
+        async (): Promise<string | undefined> => undefined,
+      ),
+    },
     events: {
       addUserLoaded: vi.fn(),
       addUserUnloaded: vi.fn(),
@@ -115,5 +127,77 @@ describe("OidcAuthProvider callback single-flight", () => {
       expect(call[0]).toBe(SAVED_PATH);
     }
     expect(sessionStorage.getItem(REDIRECT_PATH_KEY)).toBeNull();
+  });
+});
+
+/** Calls logout() once the restored session is in place. */
+function LogoutOnceAuthenticated() {
+  const { isAuthenticated, logout } = useAuth();
+  useEffect(() => {
+    if (isAuthenticated) logout();
+  }, [isAuthenticated, logout]);
+  return null;
+}
+
+/** Render the provider on an ordinary page with a restored session, then sign out. */
+async function renderAndLogout() {
+  mocks.manager.getUser.mockResolvedValueOnce(mocks.user);
+  const OidcAuthProvider = await importProvider();
+  render(
+    <OidcAuthProvider config={CONFIG}>
+      <LogoutOnceAuthenticated />
+    </OidcAuthProvider>,
+  );
+}
+
+describe("OidcAuthProvider sign-out speaks only the standard (Q-CL-4)", () => {
+  let replaceSpy: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    vi.resetModules();
+    vi.clearAllMocks();
+    sessionStorage.clear();
+    const happyDom = (
+      window as unknown as { happyDOM: { setURL(url: string): void } }
+    ).happyDOM;
+    happyDom.setURL("http://localhost:3000/sessions");
+    replaceSpy = vi.fn();
+    vi.spyOn(window.location, "replace").mockImplementation(replaceSpy);
+  });
+
+  it("uses RP-initiated logout when the issuer publishes end_session_endpoint", async () => {
+    mocks.manager.metadataService.getEndSessionEndpoint.mockResolvedValue(
+      "https://auth.example.com/protocol/openid-connect/logout",
+    );
+    await renderAndLogout();
+
+    await waitFor(() =>
+      expect(mocks.manager.signoutRedirect).toHaveBeenCalledTimes(1),
+    );
+    expect(replaceSpy).not.toHaveBeenCalled();
+  });
+
+  it("clears the local session and lands on /login when the issuer has no end_session_endpoint", async () => {
+    mocks.manager.metadataService.getEndSessionEndpoint.mockResolvedValue(
+      undefined,
+    );
+    await renderAndLogout();
+
+    await waitFor(() => expect(replaceSpy).toHaveBeenCalledWith("/login"));
+    expect(mocks.manager.removeUser).toHaveBeenCalledTimes(1);
+    expect(mocks.manager.signoutRedirect).not.toHaveBeenCalled();
+  });
+
+  it("never builds a vendor logout URL", async () => {
+    mocks.manager.metadataService.getEndSessionEndpoint.mockResolvedValue(
+      undefined,
+    );
+    await renderAndLogout();
+
+    await waitFor(() => expect(replaceSpy).toHaveBeenCalled());
+    for (const call of replaceSpy.mock.calls) {
+      expect(String(call[0])).not.toContain("/v2/logout");
+      expect(String(call[0])).not.toContain(CONFIG.issuer);
+    }
   });
 });
