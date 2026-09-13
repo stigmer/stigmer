@@ -57,21 +57,69 @@ export async function waitForServing(baseUrl, timeoutMs) {
 }
 
 /**
- * The console lane (DD-012): /config.json honours its contract and / answers
- * HTML. Returns the parsed config so a caller can pin edition-specific fields
- * (the compose gate pins the Host-derived apiUrl; the all-in-one does not).
+ * The /config.json document the console lane serves under the trusted-local
+ * posture — the same six fields the server's handler test pins
+ * (transport/console/__tests__/handler.test.ts). `apiUrl` and `appUrl` are
+ * EMPTY by contract: the console resolves them to its own origin, because the
+ * lane that serves it also serves the API on the same port and cannot know the
+ * scheme and host the browser reached it by (a TLS proxy, a LAN address;
+ * 20260913.02 Q-CL-3). There is no edition-specific value here: a `stigmer up`
+ * laptop, the compose stack, the server image and the all-in-one image all
+ * serve this one document. Four gates once pinned a Host-derived
+ * `http://<host>` inline instead and went red together when the server stopped
+ * serving it (#1087) — so the contract lives here, once.
+ */
+export const TRUSTED_LOCAL_CONSOLE_CONFIG = Object.freeze({
+  apiUrl: "",
+  appUrl: "",
+  authMode: "disabled",
+  oidcIssuer: "",
+  oidcClientId: "",
+  oidcAudience: "",
+});
+
+/**
+ * The console lane (DD-012): /config.json IS the trusted-local document,
+ * asserted whole (a missing or unexpected field refuses, not just a wrong
+ * value), and / answers HTML. The status and content-type are checked before
+ * the body is read so a 404 or an app-shell page is diagnosed as such, never as
+ * a JSON parse error with no URL in it.
  */
 export async function assertConsoleServed(baseUrl) {
-  const config = await (await fetch(`${baseUrl}/config.json`)).json();
-  if (config.authMode !== "disabled") {
-    throw new Error(`/config.json authMode=${config.authMode} — want disabled`);
+  const config = await fetch(`${baseUrl}/config.json`);
+  if (config.status !== 200) {
+    throw new Error(`/config.json -> HTTP ${config.status} — want 200`);
+  }
+  const configType = config.headers.get("content-type") ?? "";
+  if (!configType.includes("application/json")) {
+    throw new Error(`/config.json content-type=${configType} — want application/json`);
+  }
+  const document = await config.json();
+  if (canonicalJson(document) !== canonicalJson(TRUSTED_LOCAL_CONSOLE_CONFIG)) {
+    throw new Error(
+      `/config.json got=${JSON.stringify(document)} — want the trusted-local document ` +
+        JSON.stringify(TRUSTED_LOCAL_CONSOLE_CONFIG),
+    );
   }
   const index = await fetch(`${baseUrl}/`);
   const indexType = index.headers.get("content-type") ?? "";
   if (index.status !== 200 || !indexType.includes("text/html")) {
     throw new Error(`console / -> ${index.status} ${indexType} — want 200 text/html`);
   }
-  return config;
+}
+
+/**
+ * JSON with keys in sorted order, so two flat documents compare by content and
+ * not by the order a server happened to write them. Anything that is not a
+ * plain object (null, an array, a scalar) serializes as itself and so can never
+ * equal the document.
+ */
+function canonicalJson(value) {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return JSON.stringify(value);
+  }
+  const sorted = Object.entries(value).sort(([a], [b]) => a.localeCompare(b));
+  return JSON.stringify(Object.fromEntries(sorted));
 }
 
 /**

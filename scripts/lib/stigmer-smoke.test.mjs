@@ -133,7 +133,7 @@ test("refuses a /config.json that is not 200, with the status, before reading th
   assert.match(refusal.message, /\/config\.json.*404/);
   assert.doesNotMatch(
     refusal.message,
-    /JSON/i,
+    /Unexpected token|not valid JSON/,
     "no parse error leaks: the status is the diagnosis",
   );
 });

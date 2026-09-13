@@ -53,6 +53,10 @@ on:
       - "turbo.json"
       - "scripts/turbo-set.mjs"
       - "scripts/publish-libs.mjs"
+      # scripts/lib/ is imported by this package's bundle-slim.mjs
+      # (source-map-pragma.mjs, the slim packages' source-map rule), so a
+      # change there must run this gate in its own PR (#1087).
+      - "scripts/lib/**"
       - "Makefile"
       - ".github/workflows/ci.runner.yaml"
   push:
@@ -71,6 +75,10 @@ on:
       - "turbo.json"
       - "scripts/turbo-set.mjs"
       - "scripts/publish-libs.mjs"
+      # scripts/lib/ is imported by this package's bundle-slim.mjs
+      # (source-map-pragma.mjs, the slim packages' source-map rule), so a
+      # change there must run this gate in its own PR (#1087).
+      - "scripts/lib/**"
       - "Makefile"
       - ".github/workflows/ci.runner.yaml"
 

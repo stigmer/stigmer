@@ -133,8 +133,12 @@ jobs:
       - name: Build @stigmer/protos dist
         run: node scripts/turbo-set.mjs libs build --only=@stigmer/protos
 
+      # Through the root script, never a glob repeated here: the globs live in
+      # package.json's `test:scripts` once, so this lane and `npm test` run the
+      # same files. (Before #1087 this step named `scripts/*.test.mjs` alone
+      # and `scripts/lib/*.test.mjs` never ran in CI.)
       - name: Root script tests
-        run: node --test scripts/*.test.mjs
+        run: npm run test:scripts
 
       - name: Verdict
         id: verdict

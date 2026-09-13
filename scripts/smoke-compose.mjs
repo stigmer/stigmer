@@ -183,12 +183,9 @@ async function main() {
     await waitForServing(baseUrl, SERVER_HEALTHY_TIMEOUT_MS);
     log("health service: SERVING");
 
-    // 2. The console lane (DD-012) through the compose topology; the
-    // Host-derived apiUrl is this stack's contract, pinned here.
-    const config = await assertConsoleServed(baseUrl);
-    if (config.apiUrl !== baseUrl) {
-      throw new Error(`/config.json apiUrl=${config.apiUrl} — want the Host-derived origin`);
-    }
+    // 2. The console lane (DD-012) through the compose topology: the one
+    // trusted-local /config.json document (scripts/lib/stigmer-smoke.mjs).
+    await assertConsoleServed(baseUrl);
     log("console lane: /config.json contract + / html both answer");
 
     // 3. The artifact file server on its published port.
