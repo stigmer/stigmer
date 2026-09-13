@@ -222,4 +222,19 @@ describe("acquireRunner", () => {
       /non-release build/,
     );
   });
+
+  // Presence beats acquirability (the server acquirer's rule; the all-in-one
+  // image bakes a dev-stamped runtime npm never published).
+  it("uses an already-installed runtime even for a non-release (dev) build", () => {
+    const home = tempDir("stigmer-home-");
+    const pkgDir = join(home, ".stigmer", "runtimes", "0.0.0-dev.abc123", "node_modules", "@stigmer", "runner-slim");
+    mkdirSync(pkgDir, { recursive: true });
+    writeFileSync(join(pkgDir, "main.js"), "// slim bundle");
+
+    const install = vi.fn();
+    const resolution = acquireRunner({ home, version: "0.0.0-dev.abc123", node: fakeNode, install });
+
+    expect(resolution.entryPath).toBe(join(pkgDir, "main.js"));
+    expect(install).not.toHaveBeenCalled();
+  });
 });

@@ -19,7 +19,7 @@ import { binDir, logDir, temporalDataDir, temporalLockFile, temporalPidFile } fr
 import { TEMPORAL_PORT, TEMPORAL_UI_PORT } from "../constants.js";
 import { type FileLock, acquireLock } from "../state/lock.js";
 import { readPidFile, removePidFile, writePidFile } from "../state/pidfile.js";
-import { findProcessByPort, isProcessAlive, killProcessGroup } from "../state/proc.js";
+import { findProcessByPort, isOtherLiveProcess, killProcessGroup } from "../state/proc.js";
 import { DEFAULT_TEMPORAL_VERSION, downloadTemporalCli, isTemporalInstalled } from "./download.js";
 import { isLikelyTemporal } from "./inspect.js";
 
@@ -27,8 +27,16 @@ const READY_TIMEOUT_MS = 10_000;
 const STOP_POLL_MS = 500;
 const STOP_TIMEOUT_MS = 10_000;
 
+/**
+ * Env var naming a pre-installed `temporal` binary to use instead of the one
+ * the CLI downloads into ~/.stigmer/bin — the STIGMER_NODE_BIN precedent. The
+ * all-in-one image bakes the binary read-only off its data volume and points
+ * here; `ensureInstalled` then has nothing to download.
+ */
+export const TEMPORAL_BIN_ENV = "STIGMER_TEMPORAL_BIN";
+
 export interface TemporalManagerOptions {
-  /** Path to the temporal binary (~/.stigmer/bin/temporal). */
+  /** Path to the temporal binary (~/.stigmer/bin/temporal, or STIGMER_TEMPORAL_BIN). */
   binPath: string;
   /** Temporal dev-server data directory (~/.stigmer/temporal-data). */
   dataDir: string;
@@ -44,7 +52,8 @@ export interface TemporalManagerOptions {
 }
 
 export class TemporalManager {
-  private readonly binPath: string;
+  /** The `temporal` binary this manager runs (downloaded, or pre-installed via STIGMER_TEMPORAL_BIN). */
+  readonly binPath: string;
   private readonly dataDir: string;
   private readonly logFile: string;
   private readonly pidFile: string;
@@ -65,10 +74,15 @@ export class TemporalManager {
     this.uiPort = options.uiPort ?? TEMPORAL_UI_PORT;
   }
 
-  /** Build a manager from the standard ~/.stigmer layout. */
-  static forHome(home: string = homedir()): TemporalManager {
+  /**
+   * Build a manager from the standard ~/.stigmer layout. The binary alone may
+   * be relocated through STIGMER_TEMPORAL_BIN; the dev server's data, log,
+   * PID and lock stay under the home, because they are state, not software.
+   */
+  static forHome(home: string = homedir(), env: NodeJS.ProcessEnv = process.env): TemporalManager {
+    const binOverride = env[TEMPORAL_BIN_ENV];
     return new TemporalManager({
-      binPath: join(binDir(home), "temporal"),
+      binPath: binOverride !== undefined && binOverride !== "" ? binOverride : join(binDir(home), "temporal"),
       dataDir: temporalDataDir(home),
       logFile: join(logDir(home), "temporal.log"),
       pidFile: temporalPidFile(home),
@@ -183,7 +197,7 @@ export class TemporalManager {
   async isRunning(): Promise<boolean> {
     const pid = this.getPid();
     if (pid === null) return false;
-    if (!isProcessAlive(pid)) return false;
+    if (!isOtherLiveProcess(pid)) return false;
     if (!isLikelyTemporal(pid, this.binPath)) return false;
     return this.isPortInUse();
   }
@@ -229,7 +243,7 @@ export class TemporalManager {
   private cleanupStaleProcesses(): void {
     const pid = this.getPid();
     if (pid !== null) {
-      if (!isProcessAlive(pid) || !isLikelyTemporal(pid, this.binPath)) {
+      if (!isOtherLiveProcess(pid) || !isLikelyTemporal(pid, this.binPath)) {
         removePidFile(this.pidFile);
       }
       return;

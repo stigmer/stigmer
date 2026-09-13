@@ -6,7 +6,7 @@ import { type HealthState, loadHealthState, writeHealthState } from "./health-st
 import { acquireLock } from "./lock.js";
 import { cleanupOldLogs, rotateLogs } from "./log-rotation.js";
 import { readPidFile, removePidFile, writePidFile } from "./pidfile.js";
-import { isProcessAlive } from "./proc.js";
+import { isOtherLiveProcess, isProcessAlive } from "./proc.js";
 import { loadStartupConfig, removeStartupConfig, saveStartupConfig, type StartupConfig } from "./startup-config.js";
 
 function tempDir(prefix: string): string {
@@ -46,6 +46,17 @@ describe("isProcessAlive", () => {
   it("is true for the current process and false for a dead PID", () => {
     expect(isProcessAlive(process.pid)).toBe(true);
     expect(isProcessAlive(DEAD_PID)).toBe(false);
+  });
+});
+
+describe("isOtherLiveProcess", () => {
+  // A recorded PID equal to our own is a leftover from a previous life of this
+  // PID (a restarted container's fresh PID namespace, a laptop after reboot),
+  // never a live peer — the distinction every stale-state reader needs.
+  it("is false for the current process, true for its parent, false for a dead PID", () => {
+    expect(isOtherLiveProcess(process.pid)).toBe(false);
+    expect(isOtherLiveProcess(process.ppid)).toBe(true);
+    expect(isOtherLiveProcess(DEAD_PID)).toBe(false);
     expect(isProcessAlive(0)).toBe(false);
     expect(isProcessAlive(-1)).toBe(false);
   });
@@ -174,6 +185,19 @@ describe("lock", () => {
     const lock = acquireLock(path);
     expect(lock).not.toBeNull();
     expect(readFileSync(path, "utf8").trim()).toBe(String(process.pid));
+  });
+
+  // The container case: after an unclean stop the lock file on the volume names
+  // the PID the daemon had last time — and a fresh PID namespace hands the
+  // restarted daemon that same PID. We are not holding a lock we are trying to
+  // acquire, so an owner equal to ourselves is stale by construction.
+  it("reclaims a lock whose recorded owner is this very process (a previous life of the PID)", () => {
+    const path = join(tempDir("stigmer-lock-"), "temporal.lock");
+    writeFileSync(path, `${process.pid}\n`);
+    const lock = acquireLock(path);
+    expect(lock).not.toBeNull();
+    lock?.release();
+    expect(acquireLock(path)).not.toBeNull();
   });
 
   it("release is idempotent and only removes our own lock", () => {

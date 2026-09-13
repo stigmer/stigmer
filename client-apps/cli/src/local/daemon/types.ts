@@ -14,6 +14,8 @@ export interface ExitInfo {
 
 /** A request to launch one child process. */
 export interface SpawnRequest {
+  /** The component's name (the ComponentSpec's), used to label mirrored output. */
+  name: string;
   command: string;
   args: string[];
   cwd?: string;

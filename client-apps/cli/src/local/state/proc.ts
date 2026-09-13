@@ -19,6 +19,22 @@ export function isProcessAlive(pid: number): boolean {
   }
 }
 
+/**
+ * Report whether `pid` names a live process OTHER than this one — the question
+ * every stale-state reader (a PID file, a lock file's owner) actually asks.
+ *
+ * A recorded PID equal to our own can never be a live peer: we did not write it
+ * in this life, so it is a leftover from a previous process that happened to
+ * get the same number. That happens deterministically in a container (every
+ * start is a fresh PID namespace, so the daemon lands on the same low PID it
+ * had before the unclean stop) and occasionally on a laptop after a reboot.
+ * Treating such a PID as "alive" makes a launcher SIGTERM itself or refuse a
+ * lock it could never have been holding.
+ */
+export function isOtherLiveProcess(pid: number): boolean {
+  return pid !== process.pid && isProcessAlive(pid);
+}
+
 /** Send a signal to a single process. Returns false if the process is gone. */
 export function killProcess(pid: number, signal: NodeJS.Signals = "SIGTERM"): boolean {
   try {
