@@ -49,6 +49,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { assertConsoleServed } from "./lib/stigmer-smoke.mjs";
 
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
 const cliDir = join(repoRoot, "client-apps", "cli");
@@ -197,21 +198,17 @@ try {
   // 3. Console restoration (DD-012): the slim artifact ships the web
   //    console and the server serves it from the unified port. Probe the
   //    three load-bearing arms a browser exercises: the synthesized
-  //    /config.json (Host-derived apiUrl), a dynamic deep link resolving
-  //    to its placeholder document, and the 404 posture (the export's
-  //    not-found page WITH a 404 status — never the blank app shell).
-  //    `--no-web` only suppresses URL reporting; serving is unconditional.
+  //    /config.json (the one trusted-local document, asserted by the shared
+  //    probe in scripts/lib/stigmer-smoke.mjs together with / as HTML), a
+  //    dynamic deep link resolving to its placeholder document, and the 404
+  //    posture (the export's not-found page WITH a 404 status — never the
+  //    blank app shell). `--no-web` only suppresses URL reporting; serving
+  //    is unconditional. The probe's refusal goes through fail() so the
+  //    detached daemon is torn down on this path like every other.
   const consoleBase = `http://127.0.0.1:7234`;
-  const config = await fetch(`${consoleBase}/config.json`);
-  if (config.status !== 200) {
-    fail(`console /config.json answered ${config.status}`);
-  }
-  const configBody = await config.json();
-  if (configBody.authMode !== "disabled" || configBody.apiUrl !== consoleBase) {
-    fail(
-      `console /config.json synthesized wrong: ${JSON.stringify(configBody)}`,
-    );
-  }
+  await assertConsoleServed(consoleBase).catch((error) =>
+    fail(`console ${error instanceof Error ? error.message : String(error)}`),
+  );
   const deepLink = await fetch(`${consoleBase}/sessions/zz-smoke-probe`);
   if (
     deepLink.status !== 200 ||

@@ -17,8 +17,8 @@
  *      Dockerfile's HEALTHCHECK line, which no other test touches;
  *   2. the real health service answers SERVING over the Connect JSON lane
  *      (wiring-complete, not merely port-bound);
- *   3. the console is served: /config.json honors its contract
- *      (authMode disabled, apiUrl derived from the request Host) and /
+ *   3. the console is served: /config.json is the trusted-local document
+ *      (the shared probe in scripts/lib/stigmer-smoke.mjs; #1087) and /
  *      answers HTML — DD-012's restoration must survive packaging;
  *   4. a CRUD round-trip (Organization create → get) through the Connect
  *      JSON lane;
@@ -45,6 +45,10 @@ import { cpSync, existsSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
+import {
+  assertConsoleServed,
+  connectJson,
+} from "../../../../scripts/lib/stigmer-smoke.mjs";
 
 const serverRoot = fileURLToPath(new URL("..", import.meta.url));
 
@@ -127,20 +131,6 @@ async function pollUntil(label, timeoutMs, probe) {
   throw new Error(`timed out waiting for ${label} (${timeoutMs}ms): ${lastError}`);
 }
 
-/** Unary Connect-JSON call — the same lane a curl user gets. */
-async function connectJson(baseUrl, procedure, body) {
-  const response = await fetch(`${baseUrl}/${procedure}`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  const text = await response.text();
-  if (!response.ok) {
-    throw new Error(`${procedure} -> HTTP ${response.status}: ${text.slice(0, 300)}`);
-  }
-  return JSON.parse(text);
-}
-
 async function main() {
   const { image: imageArg, databaseUrl } = parseArgs();
   const image = imageArg !== "" ? imageArg : buildLocalImage();
@@ -202,19 +192,9 @@ async function main() {
     }
     log("health service: SERVING");
 
-    // 3. The console lane (DD-012): the /config.json contract and a real page.
-    const config = await (await fetch(`${baseUrl}/config.json`)).json();
-    if (config.authMode !== "disabled") {
-      throw new Error(`/config.json authMode=${config.authMode} — want disabled`);
-    }
-    if (config.apiUrl !== baseUrl) {
-      throw new Error(`/config.json apiUrl=${config.apiUrl} — want ${baseUrl} (Host-derived)`);
-    }
-    const index = await fetch(`${baseUrl}/`);
-    const indexType = index.headers.get("content-type") ?? "";
-    if (index.status !== 200 || !indexType.includes("text/html")) {
-      throw new Error(`console / -> ${index.status} ${indexType} — want 200 text/html`);
-    }
+    // 3. The console lane (DD-012): the one trusted-local /config.json
+    // document and a real page (scripts/lib/stigmer-smoke.mjs).
+    await assertConsoleServed(baseUrl);
     log("console lane: /config.json contract + / html both answer");
 
     // 4. CRUD through the same lane a curl user gets.

@@ -17,10 +17,11 @@
  *      pre-built bundles through the native bridge,
  *   3. the console lane answers over live HTTP (DD-012; the #24 lesson —
  *      packaging gaps are invisible at PR time unless a gate exercises
- *      the artifact): /config.json synthesizes with a Host-derived
- *      apiUrl, the root and a dynamic deep link serve documents, an
- *      unknown URL serves the export's 404 page WITH a 404 status, and a
- *      flight .txt request serves its placeholder payload,
+ *      the artifact): /config.json is the trusted-local document (the
+ *      shared probe in scripts/lib/stigmer-smoke.mjs; #1087), the root
+ *      and a dynamic deep link serve documents, an unknown URL serves the
+ *      export's 404 page WITH a 404 status, and a flight .txt request
+ *      serves its placeholder payload,
  *   4. SIGTERM → clean exit 0.
  *
  * The console assets themselves are asserted present in the isolated copy
@@ -35,6 +36,7 @@ import { cpSync, existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { assertConsoleServed } from "../../../../scripts/lib/stigmer-smoke.mjs";
 
 const serverRoot = fileURLToPath(new URL("..", import.meta.url));
 const slimDir = join(serverRoot, "dist-slim");
@@ -128,24 +130,9 @@ async function probeConsole() {
   }
   const baseUrl = `http://127.0.0.1:${portMatch[1]}`;
 
-  const config = await fetch(`${baseUrl}/config.json`);
-  if (config.status !== 200) {
-    throw new Error(`/config.json answered ${config.status}`);
-  }
-  const configBody = await config.json();
-  if (configBody.authMode !== "disabled" || configBody.apiUrl !== baseUrl) {
-    throw new Error(
-      `/config.json synthesized wrong (authMode=${configBody.authMode}, apiUrl=${configBody.apiUrl}, expected apiUrl ${baseUrl})`,
-    );
-  }
-
-  const root = await fetch(`${baseUrl}/`);
-  if (
-    root.status !== 200 ||
-    !(root.headers.get("content-type") ?? "").includes("text/html")
-  ) {
-    throw new Error(`/ answered ${root.status} ${root.headers.get("content-type")}`);
-  }
+  // /config.json is the one trusted-local document and / is HTML — the
+  // probe every self-host smoke shares (scripts/lib/stigmer-smoke.mjs).
+  await assertConsoleServed(baseUrl);
 
   // A dynamic deep link and its flight payload: /sessions/[id] is a core
   // route; if the route tree ever drops it, update this probe with it.
