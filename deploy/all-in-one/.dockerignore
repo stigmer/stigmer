@@ -1,0 +1,6 @@
+# The build context is this directory. Only what the Dockerfile COPYs:
+# the staged packages and Temporal binary, and the entrypoint.
+*
+!stage/pkgs/*.tgz
+!stage/temporal
+!entrypoint.sh

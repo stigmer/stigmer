@@ -12,7 +12,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 
-import { PACKAGES, generateDistPackageJson, resolvePackageTag, rewriteBinPaths } from "./publish-libs.mjs";
+import { PACKAGES, generateDistPackageJson, packCommand, resolvePackageTag, rewriteBinPaths } from "./publish-libs.mjs";
 
 test("PACKAGES is exactly the workspace members that are not private", () => {
   // The publish set and the workspace's `private` flags are two statements of
@@ -124,4 +124,15 @@ test("generateDistPackageJson carries bin and pins workspace deps", () => {
   } finally {
     rmSync(pkgDir, { recursive: true, force: true });
   }
+});
+
+test("packCommand packs the built dist into the pack directory, silently", () => {
+  // --pack-dir "publishes" to a directory: the same stamped dist/ that
+  // `npm publish` would upload, packed where a from-source build (the
+  // all-in-one image) can install it at an unpublished version. The tarball's
+  // name is npm's own rule (<scope>-<name>-<version>.tgz), never re-derived.
+  assert.equal(
+    packCommand("/repo/client-apps/cli/dist", "/out/pkgs"),
+    "npm pack /repo/client-apps/cli/dist --pack-destination /out/pkgs --silent",
+  );
 });
