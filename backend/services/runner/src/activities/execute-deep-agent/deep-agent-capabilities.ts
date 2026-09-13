@@ -19,9 +19,11 @@
  *    honoured at connect time, so the engine never sees a disabled tool.
  *  - PNG, JPEG, WebP and GIF inline (`shared/attachment-vision.ts`).
  *  - File review under the `deep-agent` harness id with nothing excluded:
- *    this harness writes no transient file into the repo (its only
- *    runner-owned tree entry, the `.stigmer` link, is created before the
- *    baseline and cancels out of every diff).
+ *    this harness writes no transient file into the repo (the `.stigmer`
+ *    link is the runtime's, created before its baseline pin and git-excluded
+ *    at provision). The capture is the runtime's (`harness/capture.ts`, S3
+ *    M4); this harness binds its `CasCaptureObserver`'s snapshot as the
+ *    runtime's CAS observations (`turn.ts`).
  */
 
 import type { HarnessCapabilities } from "../../harness/capabilities.js";

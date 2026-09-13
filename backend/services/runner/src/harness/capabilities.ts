@@ -63,13 +63,15 @@ export type PausePrimitive = "interrupt" | "deny-and-retry" | "callback" | "none
 export type StateIdSource = "deterministic" | "engine-minted";
 
 /**
- * The two facts the runtime's file-review reconcile needs from the harness
- * and cannot know: the id the projection reads from the BASELINE payload
- * (`shared/filereview/capture.ts` `applyCaptureDecisions`), and the
+ * The two facts the runtime's file-review capture and reconcile need from
+ * the harness and cannot know: the id the projection reads from the
+ * BASELINE payload (`shared/filereview/capture.ts`), and the
  * workspace-relative paths the harness writes into the repo that a turn's
  * diff must never show (Cursor's transient `.cursor/hooks.json`). Declared
- * once per adapter, read by `turn-context.ts` (ruled Q-M2-6 as an argument,
- * homed here at M3).
+ * once per adapter, read by `harness/capture.ts` (the pin, the progress
+ * slice, the candidate) and `turn-context.ts` (the reconcile). Ruled Q-M2-6
+ * as an argument, homed here at S2 M3; the capture joined the reconcile as a
+ * reader at S3 M4.
  */
 export interface FileReviewIdentity {
   readonly harnessId: string;

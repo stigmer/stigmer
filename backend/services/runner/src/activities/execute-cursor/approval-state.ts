@@ -208,9 +208,10 @@ export interface ApprovalStateFile {
    * CAS capture for gitignored writes (the deep-agent parity switch). When true,
    * a non-secret gitignored write/edit no longer stays on the deny-gate: the hook
    * stages its pre-write bytes into the runner-owned cas-observations sidecar and
-   * ALLOWS it to flow, and the turn boundary captures it into content-addressable
-   * storage as a `GIT_IGNORED_CAPTURED` change for per-file review (mirroring the
-   * deep-agent `CasCaptureFilesystemBackend` observer). A secret-like gitignored
+   * ALLOWS it to flow, and the runtime's capture (`harness/capture.ts`, reading
+   * the sidecar as this adapter's CAS observations) stores it as a
+   * `GIT_IGNORED_CAPTURED` change for per-file review (the deep-agent's
+   * `CasCaptureFilesystemBackend` observer is the same fact, in-process). A secret-like gitignored
    * path is instead hard-blocked (denied, nothing written) and recorded as an
    * unreviewable observation, so its bytes never reach durable storage.
    *
