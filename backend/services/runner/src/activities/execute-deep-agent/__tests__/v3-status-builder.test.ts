@@ -613,6 +613,26 @@ describe("V3StatusBuilder", () => {
       expect(todos["todo-0"].status).toBe(TodoStatus.TODO_COMPLETED);
     });
 
+    it("reports a sub-agent's usage through the same hook as the parent's (S3 M2b, Q-M2b-1)", () => {
+      const sb = makeBuilder();
+      const subNs = ["tools:task-1", "model_request:sub-run"];
+      feedAll(sb, [
+        ...[makeMessageStart("parent-1"), makeTextDelta("parent-1", "Delegating."), makeMessageFinish("parent-1", { usage: { input_tokens: 1_000, output_tokens: 10 } })],
+        makeToolStarted("task-1", "task", { subagent_type: "worker", description: "delegate" }),
+        makeMessageStart("sub-run", { namespace: subNs }),
+        makeTextDelta("sub-run", "Working on it.", { namespace: subNs }),
+        makeMessageFinish("sub-run", { namespace: subNs, usage: { input_tokens: 600, output_tokens: 12 } }),
+      ]);
+
+      const usage = reportedUsage(sb);
+      expect(usage.inputTokens, "the parent's 1,000 and the sub-agent's 600").toBe(1_600);
+      expect(usage.outputTokens).toBe(22);
+      expect(usage.turnCount).toBe(2);
+      // The transcript still routes the sub-agent's message to its own row, never the parent's.
+      expect(sb.currentStatus.messages.map((m) => m.content)).toEqual(["Delegating."]);
+      expect(sb.currentStatus.subAgentExecutions).toHaveLength(1);
+    });
+
     it("does not project a sub-agent's write_todos into parent status.todos", () => {
       const sb = makeBuilder();
       const subNs = ["tools:task-1", "tools:sub-todo"];

@@ -26,6 +26,18 @@
  * thinking mode (Q-M2a-2: one writer of the summary, the runtime). Nothing
  * else in this golden moved with the flip.
  *
+ * Since S3 M2b (Q-M2b-1, owner ruling 2026-09-13) the sub-agent's spend is
+ * the execution's spend: the helper's one turn (600 in, 12 out) is reported
+ * through the same hook as the root's, so `streamingUsage` reads 3,900 in /
+ * 102 out / 3 turns where it read 3,300 / 90 / 2, and `estimatedCostUsd`
+ * 0.00441 where it read 0.00375 — the helper's 660 micro-dollars at the
+ * PARENT's rate (per-sub-agent pricing is an S5 item; the in-graph cost cap
+ * this replaces priced sub-agents the same way). The five lines of
+ * `streamingUsage` are the whole diff; the transcript and the sub-agent row
+ * are byte-identical. `max_cost_usd` is now enforced over this total by the
+ * runtime, the one enforcement since the cost middleware became advisory
+ * (Q-S3-3).
+ *
  * Regenerate ONLY after a deliberate behavior change:
  *   npx vitest run src/activities/execute-deep-agent/__tests__/hermetic -u
  */

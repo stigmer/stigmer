@@ -22,9 +22,12 @@
  *
  * Usage is reported on message_finish only (standalone usage events are
  * no-ops) to prevent double-counting — v3 emits both for the same turn.
- * Only the PARENT graph's usage is reported: a sub-agent's `message_finish`
- * is routed to the tracker, which discards it, as it always has
- * (S3 M2a finding F-M2a-12, recorded for the owner).
+ * EVERY graph's usage is reported, the sub-agents' included (S3 M2b,
+ * Q-M2b-1): a sub-agent's `message_finish` fires the same hook before it is
+ * routed to the tracker, so the execution's usage — and the cost cap the
+ * runtime enforces over it — is the whole execution's spend. Until M2b the
+ * sub-agents' turns were discarded (S3 M2a finding F-M2a-12); the cost cap
+ * then lived inside the graph, where a middleware saw every model call.
  */
 
 import { create, type JsonObject } from "@bufbuild/protobuf";
@@ -59,10 +62,12 @@ import { SubAgentTracker } from "./subagent-tracker.js";
 
 export interface V3StatusBuilderOptions {
   /**
-   * Fired once per PARENT `message_finish` that carries usage, with the
-   * payload exactly as the protocol delivered it. The builder never sums or
-   * prices: the caller accounts (the turn runtime through
-   * `TurnSink.reportUsage`; the legacy loop into `streamingUsage` directly).
+   * Fired once per `message_finish` that carries usage — the parent graph's
+   * and every sub-agent's — with the payload exactly as the protocol
+   * delivered it. The builder never sums or prices: the caller accounts (the
+   * turn runtime through `TurnSink.reportUsage`, priced at the turn's model;
+   * a sub-agent on its own model is priced at the parent's rate, as the
+   * in-graph cost cap always did — per-sub-agent pricing is an S5 item).
    */
   readonly onUsage?: (usage: V3UsagePayload) => void;
 }
@@ -156,6 +161,9 @@ export class V3StatusBuilder implements ExecutionStatusWriter {
       }
 
       if (this.subAgentTracker.isSubAgentNamespace(event.namespace)) {
+        // A sub-agent's spend is the execution's spend (Q-M2b-1): report it
+        // through the one hook before the tracker folds the message.
+        if (event.kind === "message_finish" && event.usage) this.onUsage?.(event.usage);
         this.subAgentTracker.routeEvent(event);
         return;
       }

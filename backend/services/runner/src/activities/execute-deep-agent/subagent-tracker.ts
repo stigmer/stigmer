@@ -48,7 +48,7 @@ import {
 import { utcTimestamp } from "../../shared/status.js";
 import { classifyTool } from "../../shared/tool-kind.js";
 import { extractToolResultV3 } from "./status-builder-shared.js";
-import type { StigmerRunEvent, V3UsagePayload } from "./v3-events.js";
+import type { StigmerRunEvent } from "./v3-events.js";
 
 // ── Per-SubAgent State ───────────────────────────────────────────────────────
 
@@ -235,7 +235,7 @@ export class SubAgentTracker {
         this.handleToolCallArgDelta(state, event.callId, event.argsChunk);
         break;
       case "message_finish":
-        this.handleMessageFinish(state, event.runId, event.usage);
+        this.handleMessageFinish(state, event.runId);
         break;
       case "tool_started":
         this.handleToolStarted(state, event.callId, event.name, event.input, localNs);
@@ -293,11 +293,11 @@ export class SubAgentTracker {
     state.messagesByRun.set(thinkingKey, msg);
   }
 
-  private handleMessageFinish(state: SubAgentState, runId: string, usage?: V3UsagePayload): void {
+  private handleMessageFinish(state: SubAgentState, runId: string): void {
     const msg = state.messagesByRun.get(runId);
     if (msg) msg.isStreaming = false;
-    // Usage is tracked at parent level via V3StatusBuilder — not duplicated per sub-agent
-    void usage;
+    // The usage on this event was reported by `V3StatusBuilder.processEvent`
+    // before it routed here (Q-M2b-1); the tracker owns the transcript only.
   }
 
   // ── Tool Handlers ──────────────────────────────────────────────────────
