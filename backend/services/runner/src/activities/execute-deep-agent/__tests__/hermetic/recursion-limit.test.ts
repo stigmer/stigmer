@@ -27,6 +27,17 @@
  * empty AI message, because `ensureAiMessageForToolCall("")` creates it once
  * and `currentAiMessage[""]` then catches every later row.
  *
+ * How many rounds fit is the middleware stack's shape, not the knob's
+ * (S3 M2b, owner ruling 2026-09-13 on F-M2b-26): LangChain makes every
+ * middleware hook its own graph node, and `max_tool_rounds` becomes a
+ * super-step budget at the ×6 floor estimate, so a node fewer per round
+ * means more rounds within the same 60 steps. When `graceful-stop.ts` (an
+ * `afterModel` node) was deleted with Q-S3-3, this golden went from 11 tool
+ * calls to 13 before TERMINATED — the only hunk, the copy unchanged. That the
+ * knob counts super-steps and not rounds is recorded as an S5 design item
+ * (a round counter in the budget middleware would make it mean what it
+ * says); this file pins what the stack delivers today.
+ *
  * Regenerate ONLY after a deliberate behavior change:
  *   npx vitest run src/activities/execute-deep-agent/__tests__/hermetic -u
  */

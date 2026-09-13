@@ -17,9 +17,10 @@
  * which handed the model one more tool-free round: the transcript carried
  * the model's wrap-up ("Stopping here as asked.") AND the middleware's own
  * notice rendered as the agent's words (F-M0-7), and the run ended
- * COMPLETED with no row. The graceful-stop middleware is still in the graph
- * (Q-M2a-4: its deletion is M2b's, with the legacy loop that activated it)
- * and never activated, so the second scripted turn is never reached.
+ * COMPLETED with no row. The graceful-stop middleware was deleted at S3 M2b
+ * (Q-M2a-4 sequenced it after the legacy loop that activated it); nothing in
+ * the graph answers a STOP any more, so the second scripted turn is never
+ * reached — this golden was byte-identical across the deletion.
  *
  * Regenerate ONLY after a deliberate behavior change:
  *   npx vitest run src/activities/execute-deep-agent/__tests__/hermetic -u

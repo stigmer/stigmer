@@ -1,10 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
 import { buildSubAgentMiddleware } from "../subagent-wiring.js";
-import { createCostCapMiddleware } from "../../../middleware/cost-cap.js";
+import { createCostAdvisoryMiddleware } from "../../../middleware/cost-advisory.js";
 import * as approvalGateModule from "../../../middleware/approval-gate.js";
 
 describe("buildSubAgentMiddleware", () => {
-  it("returns the correct middleware order without cost cap", () => {
+  it("returns the correct middleware order without a cost advisory", () => {
     const stack = buildSubAgentMiddleware();
 
     expect(stack).toHaveLength(5);
@@ -15,8 +15,8 @@ describe("buildSubAgentMiddleware", () => {
     expect(stack[4].name).toBe("ErrorHintsMiddleware");
   });
 
-  it("includes cost cap view when parent cost cap is provided", () => {
-    const parentCostCap = createCostCapMiddleware({
+  it("includes the parent's cost advisory view when one is provided", () => {
+    const parentCostAdvisory = createCostAdvisoryMiddleware({
       maxCostUsd: 10,
       inputPricePerMillion: 3,
       outputPricePerMillion: 15,
@@ -24,15 +24,15 @@ describe("buildSubAgentMiddleware", () => {
       warningPct: 80,
     });
 
-    const stack = buildSubAgentMiddleware({ costCap: parentCostCap });
+    const stack = buildSubAgentMiddleware({ costAdvisory: parentCostAdvisory });
 
     expect(stack).toHaveLength(6);
-    expect(stack[4].name).toBe("CostCapSubAgentView");
+    expect(stack[4].name).toBe("CostAdvisorySubAgentView");
     expect(stack[5].name).toBe("ErrorHintsMiddleware");
   });
 
-  it("sub-agent cost cap view shares parent state", () => {
-    const parentCostCap = createCostCapMiddleware({
+  it("the sub-agent advisory view shares the parent's running total and has no tool hook", () => {
+    const parentCostAdvisory = createCostAdvisoryMiddleware({
       maxCostUsd: 1,
       inputPricePerMillion: 3,
       outputPricePerMillion: 15,
@@ -40,13 +40,13 @@ describe("buildSubAgentMiddleware", () => {
       warningPct: 80,
     });
 
-    const stack = buildSubAgentMiddleware({ costCap: parentCostCap });
+    const stack = buildSubAgentMiddleware({ costAdvisory: parentCostAdvisory });
 
-    expect(parentCostCap.runningCost).toBe(0);
+    expect(parentCostAdvisory.runningCost).toBe(0);
 
     const subView = stack[4];
     expect(subView.afterModel).toBeDefined();
-    expect(subView.wrapToolCall).toBeDefined();
+    expect(subView.wrapToolCall, "the advisory never blocks a tool; the runtime enforces the cap (Q-S3-3)").toBeUndefined();
     expect(subView.beforeAgent).toBeUndefined();
   });
 
@@ -92,7 +92,7 @@ describe("buildSubAgentMiddleware", () => {
   });
 
   it("orders the gate before the cost-cap view", () => {
-    const parentCostCap = createCostCapMiddleware({
+    const parentCostAdvisory = createCostAdvisoryMiddleware({
       maxCostUsd: 10,
       inputPricePerMillion: 3,
       outputPricePerMillion: 15,
@@ -101,16 +101,16 @@ describe("buildSubAgentMiddleware", () => {
     });
 
     const stack = buildSubAgentMiddleware({
-      costCap: parentCostCap,
+      costAdvisory: parentCostAdvisory,
       approvalGate: { policies: new Map(), toolServerMap: new Map() },
     });
 
-    // loop, budget, tool intent, truncation, approval gate, cost cap view,
+    // loop, budget, tool intent, truncation, approval gate, cost advisory view,
     // error hints. Hints AFTER the gate matches the parent nesting: the
     // gate's HITL interrupt stays outside the hints' try/catch (issue #255).
     expect(stack).toHaveLength(7);
     expect(stack[4].name).toBe("ApprovalGateMiddleware");
-    expect(stack[5].name).toBe("CostCapSubAgentView");
+    expect(stack[5].name).toBe("CostAdvisorySubAgentView");
     expect(stack[6].name).toBe("ErrorHintsMiddleware");
   });
 

@@ -34,7 +34,7 @@ import type { WorkspaceBackend } from "../../shared/workspace/types.js";
 import type { ApprovalGateConfig } from "../../middleware/approval-gate.js";
 import { createCasCaptureBackend } from "./cas-capture-backend.js";
 import type { CasCaptureObserver } from "./cas-capture-observer.js";
-import type { CostCapMiddleware, StigmerMiddleware } from "../../middleware/index.js";
+import type { CostAdvisoryMiddleware, StigmerMiddleware } from "../../middleware/index.js";
 import { createThinkTool, createWebFetchTool, type GuardPosture } from "../../tools/index.js";
 import { buildSubAgentMiddleware } from "./subagent-wiring.js";
 import { SubAgentGate } from "../../shared/subagent-gate.js";
@@ -169,7 +169,7 @@ export interface SubagentTransformOptions {
    * fetch is bounded exactly like a parent fetch.
    */
   readonly webFetchPosture: GuardPosture;
-  readonly costCap?: CostCapMiddleware;
+  readonly costAdvisory?: CostAdvisoryMiddleware;
   /**
    * Builds a configured chat-model instance for a given model name. When
    * provided, sub-agents are compiled with the same proxy-aware model client
@@ -512,7 +512,7 @@ async function buildSubagentBackend(opts: {
 export async function compileSubagents(
   transformed: readonly TransformedSubagent[],
   opts: {
-    readonly costCap?: CostCapMiddleware;
+    readonly costAdvisory?: CostAdvisoryMiddleware;
     readonly approvalGate?: ApprovalGateConfig | null;
     readonly parentModelName: string;
     readonly workspaceRootDir: string;
@@ -539,7 +539,7 @@ export async function compileSubagents(
       // (issue #754): every graph speaks the virtual dialect, so every graph
       // carries the repair seam — matching the parent's composition.
       const middleware = buildSubAgentMiddleware({
-        costCap: opts.costCap,
+        costAdvisory: opts.costAdvisory,
         approvalGate: opts.approvalGate,
         captureIgnored: !!opts.casObserver,
         pathNormalization: { rootDir: opts.workspaceRootDir },
@@ -624,7 +624,7 @@ export async function transformAndCompileSubagents(
     parentModelName,
     parentHasNativeThinking,
     webFetchPosture,
-    costCap,
+    costAdvisory,
     modelFactory,
     shellEnv,
     permissions,
@@ -711,7 +711,7 @@ export async function transformAndCompileSubagents(
 
   // Step 4: Compile all subagents
   const compiled = await compileSubagents(allSpecs, {
-    costCap,
+    costAdvisory,
     approvalGate,
     parentModelName,
     workspaceRootDir: workspaceBackend.rootDir,

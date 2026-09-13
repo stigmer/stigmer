@@ -140,6 +140,30 @@
           "startedAt": "2026-01-01T00:00:11.000Z",
           "completedAt": "2026-01-01T00:00:11.000Z",
           "toolKind": "TOOL_KIND_FILE_READ"
+        },
+        {
+          "id": "call-hermetic-loop-0011",
+          "name": "read_file",
+          "args": {
+            "file_path": "/f11.md"
+          },
+          "result": "[{\"type\":\"text\",\"text\":\"Error: File '/f11.md' not found\"}]",
+          "status": "TOOL_CALL_COMPLETED",
+          "startedAt": "2026-01-01T00:00:12.000Z",
+          "completedAt": "2026-01-01T00:00:12.000Z",
+          "toolKind": "TOOL_KIND_FILE_READ"
+        },
+        {
+          "id": "call-hermetic-loop-0012",
+          "name": "read_file",
+          "args": {
+            "file_path": "/f12.md"
+          },
+          "result": "[{\"type\":\"text\",\"text\":\"Error: File '/f12.md' not found\"}]",
+          "status": "TOOL_CALL_COMPLETED",
+          "startedAt": "2026-01-01T00:00:13.000Z",
+          "completedAt": "2026-01-01T00:00:13.000Z",
+          "toolKind": "TOOL_KIND_FILE_READ"
         }
       ]
     },
@@ -194,23 +218,38 @@
       "timestamp": "2026-01-01T00:00:11.000Z"
     },
     {
+      "type": "MESSAGE_AI",
+      "content": "Reading file 11.",
+      "timestamp": "2026-01-01T00:00:12.000Z"
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "Reading file 12.",
+      "timestamp": "2026-01-01T00:00:13.000Z"
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "Reading file 13.",
+      "timestamp": "2026-01-01T00:00:14.000Z"
+    },
+    {
       "type": "MESSAGE_SYSTEM",
       "content": "The agent reached the tool-call limit for this message. Work completed so far has been saved. Send another message to continue where the agent left off.",
-      "timestamp": "2026-01-01T00:00:11.000Z"
+      "timestamp": "2026-01-01T00:00:14.000Z"
     }
   ],
   "phase": "EXECUTION_TERMINATED",
   "error": "Agent reached the tool-call limit for this message. Send another message to continue.",
   "startedAt": "2026-01-01T00:00:00.000Z",
-  "completedAt": "2026-01-01T00:00:11.000Z",
+  "completedAt": "2026-01-01T00:00:14.000Z",
   "streamingUsage": {
-    "inputTokens": "11000",
-    "outputTokens": "220",
-    "totalTokens": "11220",
-    "turnCount": 11,
-    "estimatedCostUsd": 0.012100000000000001,
+    "inputTokens": "14000",
+    "outputTokens": "280",
+    "totalTokens": "14280",
+    "turnCount": 14,
+    "estimatedCostUsd": 0.015400000000000002,
     "model": "claude-haiku-4.5",
-    "observedAt": "2026-01-01T00:00:11.000Z",
+    "observedAt": "2026-01-01T00:00:14.000Z",
     "requestedServiceTier": "SERVICE_TIER_STANDARD",
     "requestedThinkingMode": "THINKING_MODE_DISABLED"
   },

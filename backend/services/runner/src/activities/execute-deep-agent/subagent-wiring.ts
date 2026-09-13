@@ -41,7 +41,7 @@ import type {
   ToolTruncationConfig,
   PathNormalizationConfig,
 } from "../../middleware/types.js";
-import type { CostCapMiddleware } from "../../middleware/index.js";
+import type { CostAdvisoryMiddleware } from "../../middleware/index.js";
 import { createPathNormalizationMiddleware } from "../../middleware/path-normalization.js";
 import { createLoopDetectionMiddleware } from "../../middleware/loop-detection.js";
 import { createToolTruncationMiddleware } from "../../middleware/tool-truncation.js";
@@ -57,7 +57,8 @@ const SUB_AGENT_ADVISORY_INTERVAL = 30;
 const SUB_AGENT_MAX_ADVISORIES = 4;
 
 export interface SubAgentMiddlewareOptions {
-  readonly costCap?: CostCapMiddleware;
+  /** The parent's cost advisory, whose running total the sub-agent's calls advance. */
+  readonly costAdvisory?: CostAdvisoryMiddleware;
   readonly toolTruncation?: Partial<ToolTruncationConfig>;
   /**
    * Approval gate config inherited from the parent. When present, the sub-agent
@@ -142,8 +143,8 @@ export function buildSubAgentMiddleware(
     ));
   }
 
-  if (options.costCap) {
-    stack.push(options.costCap.forSubAgent());
+  if (options.costAdvisory) {
+    stack.push(options.costAdvisory.forSubAgent());
   }
 
   stack.push(createErrorHintsMiddleware());

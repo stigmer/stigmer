@@ -303,11 +303,11 @@ export function renderRootSkillsSection(input: TurnInput): string {
  * stop on the invoke config and the budget middleware's ~80% advisory, so
  * the warning and the enforcement can never disagree.
  *
- * The middleware stack is the orchestrator's whole (graceful stop included,
- * never activated here; the cost cap still enforcing inside the graph)
- * until M2b performs Q-S3-3's deletions with the legacy caller gone
- * (Q-M2a-4): the runtime's abort is the platform's one stop, and its
- * TERMINATED arm the one enforcement of `max_cost_usd`.
+ * Nothing in the middleware stack stops the run (Q-S3-3, landed at S3 M2b):
+ * the runtime's abort is the platform's one stop, and its TERMINATED arm the
+ * one enforcement of `max_cost_usd`; the cost advisory warns the model at
+ * ~80% of the cap the way the budget middleware warns at ~80% of the
+ * recursion limit.
  */
 export async function buildEngine(
   input: TurnInput,
@@ -379,11 +379,11 @@ export async function buildEngine(
 
   const maxCostUsd = execConfig?.maxCostUsd ?? 0;
   const recursionLimit = resolveRecursionLimit(execConfig?.maxToolRounds);
-  const { middleware, costCap: costCapMiddleware } = buildMiddlewareStack({
+  const { middleware, costAdvisory } = buildMiddlewareStack({
     loopDetection: { historySize: 20, consecutiveThreshold: 7, totalThreshold: 20 },
     executionBudget: { recursionLimit: recursionLimit ?? UNBOUNDED_ADVISORY_RECURSION_LIMIT, warningPct: 80 },
     toolTruncation: { maxChars: execConfig?.maxToolResultChars || 30_000 },
-    costCap: maxCostUsd > 0
+    costAdvisory: maxCostUsd > 0
       ? {
           maxCostUsd,
           inputPricePerMillion: pricing.inputPricePerMillion,
@@ -422,7 +422,7 @@ export async function buildEngine(
     parentModelName: modelName,
     parentHasNativeThinking: modelHasNativeThinking(modelName),
     webFetchPosture,
-    costCap: costCapMiddleware ?? undefined,
+    costAdvisory: costAdvisory ?? undefined,
     modelFactory: buildModelFor,
     shellEnv,
     ...(planModePermissions ? { permissions: planModePermissions } : {}),

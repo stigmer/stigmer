@@ -82,7 +82,8 @@ export interface ToolTruncationConfig {
   readonly onTruncation?: (toolName: string, charsTruncated: number) => void;
 }
 
-export interface CostCapConfig {
+/** The cap the advisory warns toward; the turn runtime enforces it (`shared/cost-guard.ts`). */
+export interface CostAdvisoryConfig {
   readonly maxCostUsd: number;
   readonly inputPricePerMillion: number;
   readonly outputPricePerMillion: number;
@@ -113,7 +114,7 @@ export interface MiddlewareStackConfig {
   readonly loopDetection?: Partial<LoopDetectionConfig>;
   readonly executionBudget?: Partial<ExecutionBudgetConfig>;
   readonly toolTruncation?: Partial<ToolTruncationConfig>;
-  readonly costCap?: CostCapConfig | null;
+  readonly costAdvisory?: CostAdvisoryConfig | null;
   readonly otelSpans?: Partial<OtelSpansConfig>;
   readonly approvalGate?: ApprovalGateConfig | null;
   /**

@@ -1,29 +1,46 @@
 /**
- * Cost cap middleware for agent execution budget enforcement.
+ * Cost advisory middleware: warns the model once as the execution's estimated
+ * spend nears `max_cost_usd`, so it can wrap up before the cap.
  *
- * Tracks running estimated cost of LLM calls and enforces a
- * configurable cost ceiling:
+ * It ADVISES; it does not cap. The one enforcement of `max_cost_usd` is the
+ * turn runtime's (`harness/run-turn.ts` over `shared/cost-guard.ts`): every
+ * usage delta the adapter reports moves the runtime's estimate, and when the
+ * estimate crosses the cap the runtime stops the turn and settles TERMINATED
+ * with the cost-limit copy. The graph learns of the stop through its abort
+ * signal, the same way it learns of a platform STOP or a stall. This is the
+ * shape `execution-budget.ts` already has beside LangGraph's `recursionLimit`:
+ * the middleware warns inside the graph, the engine's own limit enforces.
  *
- * afterModel — extracts usage_metadata from the latest AIMessage,
- *   computes incremental cost, accumulates a running total. Injects
- *   a warning SystemMessage at ~80% and a termination message at 100%.
+ * Until S3 M2b (Q-S3-3) this module was `cost-cap.ts` and did both: it also
+ * blocked every tool call once the running cost passed the cap and gave the
+ * model one tool-free round to summarize. That second enforcement lived
+ * inside the graph, where the runtime could not see it, and a platform STOP
+ * had a sibling (`graceful-stop.ts`, deleted with it) that let the run spend
+ * a summary round after the platform said stop. Both went when the runtime
+ * became the one place a turn is stopped (harness runtime program, S3).
  *
- * wrapToolCall — blocks all tool execution when the budget is exceeded,
- *   giving the model one final tool-free round to produce a summary.
+ * afterModel — reads `usage_metadata` off the latest AIMessage, prices the
+ *   call at the parent's rates (a sub-agent on its own model is priced the
+ *   same way the enforcement prices it; per-sub-agent pricing is an S5 item),
+ *   accumulates the running total, and injects the warning SystemMessage once
+ *   at `warningPct` of the cap.
  *
- * Only injected when maxCostUsd > 0 is explicitly configured.
+ * forSubAgent — a view that shares the running total, so a sub-agent's calls
+ *   advance the same figure the parent's warning reads.
+ *
+ * Only built when `max_cost_usd > 0` is explicitly configured.
  */
 
-import { ToolMessage, SystemMessage } from "@langchain/core/messages";
-import type { StigmerMiddleware, CostCapConfig } from "./types.js";
+import { SystemMessage } from "@langchain/core/messages";
+import type { StigmerMiddleware, CostAdvisoryConfig } from "./types.js";
 
 const DEFAULT_WARNING_PCT = 80;
 const MIN_WARNING_PCT = 50;
 const MAX_WARNING_PCT = 95;
 
-export interface CostCapMiddleware extends StigmerMiddleware {
+export interface CostAdvisoryMiddleware extends StigmerMiddleware {
+  /** The running estimate this advisory has priced, in USD. */
   readonly runningCost: number;
-  readonly exceeded: boolean;
   forSubAgent(): StigmerMiddleware;
 }
 
@@ -49,7 +66,7 @@ function extractUsage(aiMessage: Record<string, unknown>): {
   return { totalInput, output, cacheRead };
 }
 
-export function createCostCapMiddleware(config: CostCapConfig): CostCapMiddleware {
+export function createCostAdvisoryMiddleware(config: CostAdvisoryConfig): CostAdvisoryMiddleware {
   const {
     maxCostUsd,
     inputPricePerMillion,
@@ -65,7 +82,6 @@ export function createCostCapMiddleware(config: CostCapConfig): CostCapMiddlewar
 
   let runningCost = 0;
   let warned = false;
-  let exceeded = false;
   let modelCallCount = 0;
 
   function computeCallCost(totalInput: number, output: number, cacheRead: number): number {
@@ -99,21 +115,7 @@ export function createCostCapMiddleware(config: CostCapConfig): CostCapMiddlewar
     });
   }
 
-  function createExceededMessage(): SystemMessage {
-    return new SystemMessage({
-      content:
-        `Budget exceeded: This execution has consumed ` +
-        `$${runningCost.toFixed(4)}, exceeding the ` +
-        `$${maxCostUsd.toFixed(2)} budget. ` +
-        `All tool calls are now blocked. ` +
-        `Respond with a summary of what you accomplished and ` +
-        `what work remains so the user can continue.`,
-    });
-  }
-
   function processAfterModel(state: Record<string, unknown>): { messages: SystemMessage[] } | void {
-    if (exceeded) return;
-
     const messages = (state.messages ?? []) as unknown[];
     let lastAi: Record<string, unknown> | null = null;
     for (let i = messages.length - 1; i >= 0; i--) {
@@ -128,57 +130,28 @@ export function createCostCapMiddleware(config: CostCapConfig): CostCapMiddlewar
     const { totalInput, output, cacheRead } = extractUsage(lastAi);
     if (totalInput === 0 && output === 0) return;
 
-    const callCost = computeCallCost(totalInput, output, cacheRead);
-    runningCost += callCost;
+    runningCost += computeCallCost(totalInput, output, cacheRead);
     modelCallCount++;
 
     const warningThreshold = maxCostUsd * warningPct / 100;
-
-    if (runningCost >= maxCostUsd) {
-      exceeded = true;
-      console.warn(
-        `[CostCap] EXCEEDED: $${runningCost.toFixed(4)} >= $${maxCostUsd.toFixed(2)} ` +
-        `after ${modelCallCount} calls. Tool execution will be blocked.`,
-      );
-      return { messages: [createExceededMessage()] };
-    }
-
     if (!warned && runningCost >= warningThreshold) {
       warned = true;
       console.warn(
-        `[CostCap] WARNING: $${runningCost.toFixed(4)} >= $${warningThreshold.toFixed(4)} ` +
+        `[CostAdvisory] WARNING: $${runningCost.toFixed(4)} >= $${warningThreshold.toFixed(4)} ` +
         `(${warningPct}% of $${maxCostUsd.toFixed(2)}) after ${modelCallCount} calls.`,
       );
       return { messages: [createWarningMessage()] };
     }
   }
 
-  async function processWrapToolCall(
-    request: Parameters<NonNullable<StigmerMiddleware["wrapToolCall"]>>[0],
-    handler: Parameters<NonNullable<StigmerMiddleware["wrapToolCall"]>>[1],
-  ) {
-    if (exceeded) {
-      return new ToolMessage({
-        content:
-          `[Budget exceeded: tool execution blocked. ` +
-          `Summarize your progress for the user.]`,
-        tool_call_id: request.toolCall.id,
-        name: request.toolCall.name,
-      });
-    }
-    return await handler(request);
-  }
-
-  const middleware: CostCapMiddleware = {
-    name: "CostCapMiddleware",
+  const middleware: CostAdvisoryMiddleware = {
+    name: "CostAdvisoryMiddleware",
 
     get runningCost() { return runningCost; },
-    get exceeded() { return exceeded; },
 
     beforeAgent() {
       runningCost = 0;
       warned = false;
-      exceeded = false;
       modelCallCount = 0;
     },
 
@@ -186,25 +159,22 @@ export function createCostCapMiddleware(config: CostCapConfig): CostCapMiddlewar
       return processAfterModel(state);
     },
 
-    wrapToolCall: processWrapToolCall,
-
     afterAgent() {
       const pctUsed = maxCostUsd > 0
         ? (runningCost / maxCostUsd * 100)
         : 0;
       console.log(
-        `[CostCap] Summary: $${runningCost.toFixed(4)} of $${maxCostUsd.toFixed(2)} ` +
-        `(~${pctUsed.toFixed(0)}%) across ${modelCallCount} calls, ` +
-        `warned=${warned}, exceeded=${exceeded}`,
+        `[CostAdvisory] Summary: $${runningCost.toFixed(4)} of $${maxCostUsd.toFixed(2)} ` +
+        `(~${pctUsed.toFixed(0)}%) across ${modelCallCount} calls, warned=${warned}`,
       );
     },
 
     forSubAgent(): StigmerMiddleware {
       return {
-        name: "CostCapSubAgentView",
-        // Sub-agent view does NOT reset state on beforeAgent
+        name: "CostAdvisorySubAgentView",
+        // The view does NOT reset the running total on beforeAgent: a
+        // sub-agent's calls advance the parent's figure.
         afterModel(state) { return processAfterModel(state); },
-        wrapToolCall: processWrapToolCall,
       };
     },
   };

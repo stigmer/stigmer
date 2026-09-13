@@ -115,8 +115,8 @@ export function createDeepAgentTranscript(
   const builder = new V3StatusBuilder(input.executionId, sink.status, {
     onUsage: (usage) => {
       // LangChain's `input_tokens` already INCLUDES the cache buckets (the
-      // Anthropic adapter folds them in; the cost-cap middleware reads them
-      // the same way), so the counts are reported as delivered and the price
+      // Anthropic adapter folds them in; the cost advisory reads them the
+      // same way), so the counts are reported as delivered and the price
       // is computed over the disjoint buckets.
       const inputTokens = usage.input_tokens ?? 0;
       const outputTokens = usage.output_tokens ?? 0;
