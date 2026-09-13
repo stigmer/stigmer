@@ -90,11 +90,6 @@ export function handleRecursionLimit(
   };
 }
 
-export function isGraphRecursionError(err: unknown): boolean {
-  if (err instanceof Error) {
-    return err.constructor.name === "GraphRecursionError" ||
-      err.message.includes("GraphRecursionError") ||
-      err.message.includes("Recursion limit");
-  }
-  return false;
-}
+// `isGraphRecursionError` lives in `shared/tool-rounds.ts` beside the limit it
+// detects (moved at S3 M2a; re-exported for the legacy loops until M2b).
+export { isGraphRecursionError } from "../../shared/tool-rounds.js";

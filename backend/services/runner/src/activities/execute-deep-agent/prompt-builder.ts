@@ -212,8 +212,8 @@ export interface PromptBuilderInput {
  * input-files section telling the agent the same thing.
  */
 export interface VisionPromptInfo {
-  inlineFilenames: string[];
-  notViewable: NotViewableEntry[];
+  inlineFilenames: readonly string[];
+  notViewable: readonly NotViewableEntry[];
 }
 
 /**

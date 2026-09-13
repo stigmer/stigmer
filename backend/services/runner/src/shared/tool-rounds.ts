@@ -86,3 +86,19 @@ export const TOOL_CALL_LIMIT_USER_COPY =
   "The agent reached the tool-call limit for this message. " +
   "Work completed so far has been saved. " +
   "Send another message to continue where the agent left off.";
+
+/**
+ * Whether an error thrown out of a LangGraph run is the graph exhausting the
+ * recursion limit `resolveRecursionLimit` placed on it — the budget's own
+ * signal, not a failure: the adapter ends the turn `tool_call_limit`.
+ * Matched by class name and message because the error class is not
+ * exported on a stable path across `@langchain/langgraph` versions.
+ */
+export function isGraphRecursionError(err: unknown): boolean {
+  if (err instanceof Error) {
+    return err.constructor.name === "GraphRecursionError" ||
+      err.message.includes("GraphRecursionError") ||
+      err.message.includes("Recursion limit");
+  }
+  return false;
+}

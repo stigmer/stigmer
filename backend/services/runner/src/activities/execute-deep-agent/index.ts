@@ -73,9 +73,8 @@ import { deriveTurnCommandProvenance } from "./command-provenance.js";
 import { describeExecutionError } from "../../shared/model-error.js";
 import { tryInferProvider } from "../../shared/llm-proxy.js";
 import { getShutdownSignalForQueue } from "../../shared/worker-shutdown.js";
+import { DEEP_AGENT_HARNESS_ID } from "./deep-agent-capabilities.js";
 
-/** The harness id stamped on the deep-agent's file-review ledger events. */
-const DEEP_AGENT_HARNESS_ID = "deep-agent";
 
 /**
  * The worker-shutdown terminal status (#776). A shutdown is not a pause: the
