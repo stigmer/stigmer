@@ -1,0 +1,95 @@
+{
+  "messages": [
+    {
+      "type": "MESSAGE_AI",
+      "content": "Planning the two steps.",
+      "timestamp": "2026-01-01T00:00:01.000Z"
+    },
+    {
+      "type": "MESSAGE_AI",
+      "timestamp": "2026-01-01T00:00:01.000Z",
+      "toolCalls": [
+        {
+          "id": "call-hermetic-todos-0001",
+          "name": "write_todos",
+          "args": {
+            "todos": [
+              {
+                "content": "Read the fixture",
+                "status": "pending"
+              },
+              {
+                "content": "Summarise it",
+                "status": "in_progress"
+              }
+            ]
+          },
+          "result": "{\"lg_name\":\"Command\",\"update\":{\"todos\":[{\"content\":\"Read the fixture\",\"status\":\"pending\"},{\"content\":\"Summarise it\",\"status\":\"in_progress\"}],\"messages\":[{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"ToolMessage\"],\"kwargs\":{\"content\":\"Updated todo list to [{\\\"content\\\":\\\"Read the fixture\\\",\\\"status\\\":\\\"pending\\\"},{\\\"content\\\":\\\"Summarise it\\\",\\\"status\\\":\\\"in_progress\\\"}]\",\"tool_call_id\":\"call-hermetic-todos-0001\",\"additional_kwargs\":{},\"response_metadata\":{}}}]},\"goto\":[]}",
+          "status": "TOOL_CALL_COMPLETED",
+          "startedAt": "2026-01-01T00:00:01.000Z",
+          "completedAt": "2026-01-01T00:00:01.000Z",
+          "toolKind": "TOOL_KIND_TODO"
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "The plan is written.",
+      "timestamp": "2026-01-01T00:00:02.000Z"
+    }
+  ],
+  "phase": "EXECUTION_COMPLETED",
+  "startedAt": "2026-01-01T00:00:00.000Z",
+  "completedAt": "2026-01-01T00:00:02.000Z",
+  "todos": {
+    "todo-0": {
+      "id": "todo-0",
+      "content": "Read the fixture",
+      "status": "TODO_PENDING",
+      "createdAt": "2026-01-01T00:00:01.000Z",
+      "updatedAt": "2026-01-01T00:00:01.000Z"
+    },
+    "todo-1": {
+      "id": "todo-1",
+      "content": "Summarise it",
+      "status": "TODO_IN_PROGRESS",
+      "createdAt": "2026-01-01T00:00:01.000Z",
+      "updatedAt": "2026-01-01T00:00:01.000Z"
+    }
+  },
+  "streamingUsage": {
+    "inputTokens": "3000",
+    "outputTokens": "90",
+    "totalTokens": "3090",
+    "turnCount": 2,
+    "estimatedCostUsd": 0.00345,
+    "model": "claude-haiku-4.5",
+    "observedAt": "2026-01-01T00:00:02.000Z",
+    "requestedServiceTier": "SERVICE_TIER_STANDARD",
+    "requestedThinkingMode": "THINKING_MODE_DISABLED"
+  },
+  "fileReviewEventStream": {
+    "executionId": "aex_hermetic_0001",
+    "events": [
+      {
+        "eventId": "aex_hermetic_0001:0:aex_hermetic_0001:0:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+        "changeSetId": "aex_hermetic_0001:0",
+        "eventType": "FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+        "timestamp": "2026-01-01T00:00:00.000Z",
+        "actor": "runner",
+        "baselineCaptured": {
+          "changeSetId": "aex_hermetic_0001:0",
+          "turnId": "aex_hermetic_0001:0",
+          "harnessId": "deep-agent",
+          "baselineSnapshot": {
+            "kind": "SNAPSHOT_KIND_CAS_MANIFEST"
+          }
+        }
+      }
+    ]
+  },
+  "fileChangeProgress": {
+    "changeSetId": "aex_hermetic_0001:0",
+    "capturedAt": "2026-01-01T00:00:00.000Z"
+  }
+}

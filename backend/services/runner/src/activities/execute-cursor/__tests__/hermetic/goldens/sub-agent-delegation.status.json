@@ -1,0 +1,113 @@
+{
+  "messages": [
+    {
+      "type": "MESSAGE_AI",
+      "content": "Delegating to the helper.",
+      "timestamp": "2026-01-01T00:00:02.000Z",
+      "toolCalls": [
+        {
+          "id": "call-hermetic-task-0001",
+          "name": "task",
+          "args": {
+            "subagentType": "helper",
+            "description": "Read README.md and report its content.",
+            "prompt": "Read README.md and reply with its content in one line."
+          },
+          "result": "{\"conversationSteps\":[{\"type\":\"assistantMessage\",\"message\":{\"text\":\"Looking at README.md.\"}},{\"toolCall\":{\"toolCallId\":\"call-hermetic-sub-read-0001\",\"readToolCall\":{\"args\":{\"path\":\"README.md\"},\"result\":{\"success\":{\"content\":\"# Hermetic\\n\\nA fixture readme.\\n\"}}}}},{\"type\":\"assistantMessage\",\"message\":{\"text\":\"README.md is a one-line fixture description.\"}}]}",
+          "status": "TOOL_CALL_COMPLETED",
+          "startedAt": "2026-01-01T00:00:03.000Z",
+          "completedAt": "2026-01-01T00:00:04.000Z",
+          "argsPreview": "{\"subagentType\":\"helper\",\"description\":\"Read README.md and report its content.\",\"prompt\":\"Read README.md and reply with its content in one line.\"}",
+          "toolKind": "TOOL_KIND_SUBAGENT"
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "The helper reports: README.md is a one-line fixture description.",
+      "timestamp": "2026-01-01T00:00:05.000Z"
+    }
+  ],
+  "phase": "EXECUTION_COMPLETED",
+  "subAgentExecutions": [
+    {
+      "id": "call-hermetic-task-0001",
+      "name": "helper",
+      "input": "Read README.md and reply with its content in one line.",
+      "output": "{\"conversationSteps\":[{\"type\":\"assistantMessage\",\"message\":{\"text\":\"Looking at README.md.\"}},{\"toolCall\":{\"toolCallId\":\"call-hermetic-sub-read-0001\",\"readToolCall\":{\"args\":{\"path\":\"README.md\"},\"result\":{\"success\":{\"content\":\"# Hermetic\\n\\nA fixture readme.\\n\"}}}}},{\"type\":\"assistantMessage\",\"message\":{\"text\":\"README.md is a one-line fixture description.\"}}]}",
+      "status": "SUB_AGENT_COMPLETED",
+      "startedAt": "2026-01-01T00:00:03.000Z",
+      "completedAt": "2026-01-01T00:00:04.000Z",
+      "messages": [
+        {
+          "type": "MESSAGE_AI",
+          "content": "Looking at README.md.",
+          "timestamp": "2026-01-01T00:00:04.000Z"
+        },
+        {
+          "type": "MESSAGE_AI",
+          "timestamp": "2026-01-01T00:00:04.000Z",
+          "toolCalls": [
+            {
+              "id": "call-hermetic-sub-read-0001",
+              "name": "read",
+              "args": {
+                "path": "README.md"
+              },
+              "result": "{\"content\":\"# Hermetic\\n\\nA fixture readme.\\n\"}",
+              "status": "TOOL_CALL_COMPLETED",
+              "startedAt": "2026-01-01T00:00:04.000Z",
+              "completedAt": "2026-01-01T00:00:04.000Z",
+              "argsPreview": "{\"path\":\"README.md\"}",
+              "toolKind": "TOOL_KIND_FILE_READ"
+            }
+          ]
+        },
+        {
+          "type": "MESSAGE_AI",
+          "content": "README.md is a one-line fixture description.",
+          "timestamp": "2026-01-01T00:00:04.000Z"
+        }
+      ],
+      "subject": "Read README.md and report its content."
+    }
+  ],
+  "startedAt": "2026-01-01T00:00:00.000Z",
+  "completedAt": "2026-01-01T00:00:07.000Z",
+  "streamingUsage": {
+    "inputTokens": "3900",
+    "outputTokens": "102",
+    "totalTokens": "4002",
+    "turnCount": 1,
+    "estimatedCostUsd": 0.004308,
+    "model": "composer-2.5",
+    "observedAt": "2026-01-01T00:00:06.000Z",
+    "requestedServiceTier": "SERVICE_TIER_STANDARD",
+    "requestedModelParams": "[{\"id\":\"fast\",\"value\":\"false\"},{\"id\":\"thinking\",\"value\":\"false\"}]",
+    "requestedThinkingMode": "THINKING_MODE_DISABLED"
+  },
+  "fileReviewEventStream": {
+    "executionId": "aex_hermetic_0001",
+    "events": [
+      {
+        "eventId": "aex_hermetic_0001:0:aex_hermetic_0001:0:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+        "changeSetId": "aex_hermetic_0001:0",
+        "eventType": "FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+        "timestamp": "2026-01-01T00:00:00.000Z",
+        "actor": "runner",
+        "baselineCaptured": {
+          "changeSetId": "aex_hermetic_0001:0",
+          "turnId": "aex_hermetic_0001:0",
+          "harnessId": "cursor",
+          "baselineSnapshot": {
+            "kind": "SNAPSHOT_KIND_CAS_MANIFEST"
+          }
+        }
+      }
+    ]
+  },
+  "fileChangeProgress": {
+    "changeSetId": "aex_hermetic_0001:0",
+    "capturedAt": "2026-01-01T00:00:01.000Z"
+  }
+}
