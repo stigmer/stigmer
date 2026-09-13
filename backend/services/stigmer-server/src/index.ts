@@ -127,11 +127,15 @@ export type {
   IdentityAccountStoreContractFixture,
 } from "./domain/identityaccount/store-contract.js";
 export { identityAccountStoreContract } from "./domain/identityaccount/store-contract.js";
-// The 20260913.01 IamPolicy seam (Q-OR-1, slice 2): the store PORT a
-// composition drives the domain's grant path through (drivers.iamPolicyStore,
-// registered by slice 3; a driver throws DuplicatePolicyError for a held
-// id) and its vitest-free contract kit. The grant path itself is NOT
-// exported: a composition reaches it as in-process RPCs, the doctrine.
+// The 20260913.01 IamPolicy seams (Q-OR-1, Q-OR-10): the store PORT a
+// composition drives the domain's grant path through (drivers.iamPolicyStore;
+// a driver throws DuplicatePolicyError for a held id) and its vitest-free
+// contract kit; the grant scope (drivers.policyGrantScope — which kinds an
+// edition grants on, with which roles; open source's default is the
+// organization alone); and the tuple-half query engine
+// (drivers.authorizationQueries — the three graph questions only an
+// authorization backend answers). The grant path itself is NOT exported: a
+// composition reaches it as in-process RPCs, the doctrine.
 export type { IamPolicyStore } from "./domain/iampolicy/store.js";
 export { DuplicatePolicyError } from "./domain/iampolicy/store.js";
 export type {
@@ -139,6 +143,8 @@ export type {
   IamPolicyStoreContractFixture,
 } from "./domain/iampolicy/store-contract.js";
 export { iamPolicyStoreContract } from "./domain/iampolicy/store-contract.js";
+export type { PolicyGrantScope } from "./extensions/policy-grant-scope.js";
+export type { AuthorizationQueryEngine } from "./extensions/authorization-queries.js";
 export type { IdentityFederation } from "./extensions/identity-federation.js";
 export type { AccountsBySubject } from "./domain/identityaccount/resolve.js";
 export { identityIdForSubject } from "./domain/identityaccount/resolve.js";

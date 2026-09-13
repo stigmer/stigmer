@@ -26,6 +26,11 @@
  *   - identity-account store + identity federation (the first domain
  *     whose persistence is a PORT, and the four federated RPC arms only
  *     one edition serves) — landed with 20260911.11, gate ruling Q-IA-9
+ *   - IamPolicy store + policy grant scope + authorization queries (the
+ *     IamPolicy domain's row half served in every edition; the store
+ *     port, which kinds an edition grants on, and the tuple-half query
+ *     engine only an authorization backend can answer) — landed with
+ *     20260913.01, gate ruling Q-OR-10
  *
  * Merge rules (enforced by resolveExtensions, DD-006 §2b): the two
  * provider kinds are single-instance points — a second declaring unit is
@@ -40,14 +45,17 @@
 import type { ArtifactStorageDriverFactory } from "../artifactstorage/artifact-storage.js";
 import type { ChannelRuntime } from "../domain/agentchannel/channel-runtime.js";
 import type { IdentityAccountStore } from "../domain/identityaccount/store.js";
+import type { IamPolicyStore } from "../domain/iampolicy/store.js";
 import type { SecretCodec } from "../encryption/codec.js";
 import type { ModelCatalogProvider } from "../domain/workflow/registry/model-catalog-provider.js";
 import type { VisitorErrorPolicy } from "../pipeline/interceptors/error-boundary.js";
 import type { RunnerCredentialProvider } from "../runnerauth/runner-credential-provider.js";
 import type { SandboxProvisionerFactory } from "../sandbox/provisioner.js";
+import type { AuthorizationQueryEngine } from "./authorization-queries.js";
 import type { IdentityFederation } from "./identity-federation.js";
 import type { ListReadScope } from "./list-read-scope.js";
 import type { OrganizationDirectory } from "./organization-directory.js";
+import type { PolicyGrantScope } from "./policy-grant-scope.js";
 import type { ResourceAuthorizationLifecycle } from "./resource-authorization.js";
 import type { ScheduleFireCallerMint } from "./schedule-fire-caller.js";
 
@@ -174,4 +182,38 @@ export interface ExtensionDrivers {
    * edition reason — the organizationDirectory absent-method shape.
    */
   readonly identityFederation?: IdentityFederation;
+  /**
+   * The IamPolicy store driver (20260913.01, Q-OR-10; single-instance
+   * point). The IamPolicy domain's persistence is a PORT like the
+   * identity-account domain's: when composed, every row the one grant
+   * path writes, deletes or reads — user grants, the structural
+   * bootstrap lanes, the access lists and counts — goes through this
+   * driver (the cloud serves the domain over its own `cloud.iam_policy`
+   * table this way, legacy random ids included). When absent, the OSS
+   * adapter over the generic Store installs at the compose.ts
+   * consumption site — OSS behavior byte-identical.
+   */
+  readonly iamPolicyStore?: IamPolicyStore;
+  /**
+   * The policy grant scope (20260913.01, Q-OR-3; single-instance point):
+   * which kinds a user may grant a role on in this edition, with which
+   * roles. Narrows the proto's `grantable_roles`, total over the enum,
+   * synchronous (policy-grant-scope.ts carries the reasons). When
+   * composed, ValidateGrantableRole and checkMyPermission's
+   * `can_grant_access` arm read it; when absent, open source's
+   * organization-only default installs at the compose.ts consumption
+   * site — the organization grants its four proto roles, nothing else
+   * grants anything.
+   */
+  readonly policyGrantScope?: PolicyGrantScope;
+  /**
+   * The authorization-query engine (20260913.01, Q-OR-8; single-instance
+   * point): the tuple-half questions — checkAuthorization, the two
+   * listAuthorized*Ids, a checkMyPermission with contextual policies —
+   * only an authorization backend can answer over its own graph. When
+   * composed, the IamPolicy query controller dispatches to it after its
+   * own trust checks; when absent, those RPC arms refuse UNIMPLEMENTED
+   * with the edition reason — the identityFederation absent shape.
+   */
+  readonly authorizationQueries?: AuthorizationQueryEngine;
 }

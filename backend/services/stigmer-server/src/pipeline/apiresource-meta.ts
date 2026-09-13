@@ -23,7 +23,10 @@
  *     match would let "Organization" and "organization" mint two rows for
  *     one grant. Reading the descriptor's name is not deriving a spelling;
  *     the #545 rule is about recovering kind_meta.name from an enum, which
- *     neither lookup does.
+ *     neither lookup does. A reader asked about a kind that arrived
+ *     through this vocabulary follows its doctrine: `grantableRolesFor`
+ *     answers the empty list for the unknown kind instead of throwing,
+ *     because the kind it is asked about may have come off the wire.
  */
 import { getOption, hasOption } from "@bufbuild/protobuf";
 import type { DescEnumValue } from "@bufbuild/protobuf";
@@ -35,6 +38,7 @@ import {
   kind_meta,
 } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { ApiResourceKindMeta } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 /** Go GetKindMeta: the kind_meta extension of the enum value. */
 export function getKindMeta(kind: ApiResourceKind): ApiResourceKindMeta {
@@ -100,6 +104,31 @@ export function defaultVisibilityFor(
   return config?.defaultsToOrgVisibility === true
     ? ApiResourceVisibility.visibility_org
     : ApiResourceVisibility.visibility_private;
+}
+
+/**
+ * The roles a user may be granted on a resource of `kind` according to the
+ * CONTRACT — `kind_meta.authorization.grantable_roles`, the one source of
+ * "what can be granted at all" (Java AuthorizationConfigResolver
+ * .getGrantableRoles; the cloud's iam/policy/roles.ts grantableRolesFor,
+ * which this replaces at the 20260913.01 re-point). A kind that lists none
+ * is system-managed in every edition (identity_account, api_key,
+ * iam_policy, invitation, agent_execution); an edition's PolicyGrantScope
+ * (extensions/policy-grant-scope.ts) only narrows this list.
+ *
+ * Total, never a throw: the kind is an `ApiResourceRef.kind` resolved by
+ * `kindByEnumName`, so the unknown kind — the one member without
+ * `kind_meta` — is a legitimate argument and answers the empty list
+ * (module header, the second vocabulary).
+ */
+export function grantableRolesFor(
+  kind: ApiResourceKind,
+): ReadonlyArray<IamRole> {
+  const valueDesc = kindValueDescriptor(kind);
+  if (valueDesc === undefined || !hasOption(valueDesc, kind_meta)) {
+    return [];
+  }
+  return getOption(valueDesc, kind_meta).authorization?.grantableRoles ?? [];
 }
 
 /**
