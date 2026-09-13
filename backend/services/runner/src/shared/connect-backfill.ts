@@ -21,6 +21,7 @@
 import type { ResolvedMcpServer } from "./mcp-resolver.js";
 import { resolveMcpServers } from "./mcp-resolver.js";
 import type { McpTransportPosture } from "./mcp-transport-guard.js";
+import { withTimeout } from "./with-timeout.js";
 import type { StigmerClient } from "../client/stigmer-client.js";
 import type { McpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 
@@ -98,17 +99,14 @@ export async function backfillMcpServersIfNeeded(
       );
       onHeartbeat?.();
 
-      const updated = await Promise.race([
-        client.connectMcpServer(serverId, org, runtimeEnv),
-        new Promise<never>((_, reject) =>
-          setTimeout(
-            () => reject(new Error(
-              `Connect timed out after ${CONNECT_TIMEOUT_MS / 1000}s`,
-            )),
-            CONNECT_TIMEOUT_MS,
-          ),
-        ),
-      ]);
+      // Bounded through the shared helper so the timer is cleared when the
+      // connect wins; a bare `setTimeout` in a `Promise.race` stays armed and
+      // holds the event loop open for the full bound (stigmer#1008).
+      const updated = await withTimeout(
+        CONNECT_TIMEOUT_MS,
+        `Connect timed out after ${CONNECT_TIMEOUT_MS / 1000}s`,
+        () => client.connectMcpServer(serverId, org, runtimeEnv),
+      );
 
       const toolCount = updated.status?.discoveredCapabilities?.tools.length ?? 0;
       const approvalCount = updated.status?.toolApprovals?.length ?? 0;

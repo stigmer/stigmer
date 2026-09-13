@@ -18,6 +18,7 @@ import { normalize } from "./v3-protocol-normalizer.js";
 import { V3StatusBuilder } from "./v3-status-builder.js";
 import { StreamingUpdateScheduler } from "../../shared/streaming-scheduler.js";
 import { persistStatus, slimStatus } from "../../shared/status.js";
+import { TimeoutError, withTimeout } from "../../shared/with-timeout.js";
 import { StreamingSideEffects } from "./streaming-side-effects.js";
 import {
   handlePause,
@@ -204,23 +205,27 @@ export async function streamExecutionV3(
 
 // ── Run Output Extraction ────────────────────────────────────────────
 
+/**
+ * The bounded wait for the graph's final state. Bounded through the shared
+ * `withTimeout`, never a hand-rolled `Promise.race` against a bare
+ * `setTimeout`: a race leaves its losing timer armed, and a referenced timer
+ * holds the Node event loop open. Here that loser was a 30 s timer left
+ * behind by every completed execution, so a runner asked to exit right after
+ * one idled for up to 30 s with its worker already stopped — the full
+ * Kubernetes termination grace on a roll, and 30 s of every agent suite in
+ * the conformance lane (stigmer#1008). `withTimeout` clears the timer on
+ * whichever side settles first.
+ */
 async function extractRunOutput(
   run: { output: Promise<unknown> },
   executionId: string,
 ): Promise<Record<string, unknown> | undefined> {
   try {
-    const finalState = await Promise.race([
-      run.output,
-      timeoutPromise(RUN_OUTPUT_TIMEOUT_MS),
-    ]);
-
-    if (finalState === TIMEOUT_SENTINEL) {
-      console.warn(
-        `[streaming-v3] execution=${executionId} — run.output did not resolve ` +
-        `within ${RUN_OUTPUT_TIMEOUT_MS}ms. Proceeding without final state.`,
-      );
-      return undefined;
-    }
+    const finalState = await withTimeout(
+      RUN_OUTPUT_TIMEOUT_MS,
+      `run.output did not resolve within ${RUN_OUTPUT_TIMEOUT_MS}ms`,
+      () => run.output,
+    );
 
     const output = finalState as Record<string, unknown>;
     console.log(
@@ -230,17 +235,17 @@ async function extractRunOutput(
     );
     return output;
   } catch (err) {
+    if (err instanceof TimeoutError) {
+      console.warn(
+        `[streaming-v3] execution=${executionId} — ${err.message}. Proceeding without final state.`,
+      );
+      return undefined;
+    }
     console.warn(
       `[streaming-v3] execution=${executionId} — run.output rejected: ${err}`,
     );
     return undefined;
   }
-}
-
-const TIMEOUT_SENTINEL = Symbol("timeout");
-
-function timeoutPromise(ms: number): Promise<typeof TIMEOUT_SENTINEL> {
-  return new Promise((resolve) => setTimeout(() => resolve(TIMEOUT_SENTINEL), ms));
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────
