@@ -558,7 +558,7 @@ tidy: ## Run go mod tidy on all Go modules
        lint-desktop typecheck-desktop verify-desktop kill-desktop launch-desktop build-desktop clean-build-desktop release-desktop-local \
        lint-docs lint-docs-audit format-docs format-docs-check check-links libs-build web-build validate-demos tsdoc-check test-demos \
        check-docs-inventory check-conformance-inventory \
-       test-web test-desktop test-runner-host test-e2e test-e2e-approval test-a11y check check-all \
+       test-web test-desktop test-runner-host test-e2e test-e2e-approval test-e2e-console-login test-a11y check check-all \
        check-prep check-go check-node check-site check-rust check-java
 fix: ## Auto-fix linting and formatting issues
 	@gofmt -s -w .
@@ -737,6 +737,16 @@ test-e2e-approval: ## Run the deterministic HITL approval E2E (mock LLM, serial,
 	cd test/e2e && npx playwright install --with-deps chromium && \
 		STIGMER_E2E_MOCK_LLM=1 npx playwright test --project=interactive-approval --workers=1 && \
 		STIGMER_E2E_MOCK_LLM=1 STIGMER_E2E_FILE_GATES=1 npx playwright test --project=interactive-approval-gate --workers=1
+
+test-e2e-console-login: ## Run the console sign-in E2E against a server in the OIDC posture (hermetic issuer, serial)
+	# One stack shape of its own (20260913.02 sp.console-login): the
+	# conformance harness's local OIDC issuer as a process, the server booted
+	# with STIGMER_OIDC_ISSUER pointed at it, `next dev` in OIDC mode with the
+	# same coordinates (test/e2e/fixtures/oidc.ts). Root install for the same
+	# reason as test-e2e-approval; needs the built server and runner.
+	npm ci
+	cd test/e2e && npx playwright install --with-deps chromium && \
+		STIGMER_E2E_OIDC=1 npx playwright test --project=console-login --workers=1
 
 # Parallel CI gate.
 #

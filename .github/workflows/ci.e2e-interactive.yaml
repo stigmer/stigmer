@@ -36,6 +36,9 @@ on:
     branches: [main]
     paths:
       - "test/e2e/**"
+      # The console-login stack shape runs the conformance harness's OIDC
+      # issuer as a process (20260913.02).
+      - "test/conformance/src/harness/local-oidc-issuer*.ts"
       - "backend/**"
       - "client-apps/web/**"
       - "sdk/**"
@@ -95,6 +98,7 @@ jobs:
           filters: |
             stack:
               - "test/e2e/**"
+              - "test/conformance/src/harness/local-oidc-issuer*.ts"
               - "backend/**"
               - "client-apps/web/**"
               - "sdk/**"
@@ -262,5 +266,69 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: e2e-approval-playwright-report
+          path: test/e2e/playwright-report/
+          retention-days: 30
+
+  # The served console signing in to an authenticated self-hosted server
+  # (20260913.02 sp.console-login; stigmer#924): a real browser through a
+  # real PKCE code flow against the conformance harness's hermetic issuer,
+  # verified by a real server in the OIDC posture. Its own stack shape, so
+  # its own job (the approval job's precedent); no runner is needed — the
+  # flow ends at the create-organization form — but the stack boots one.
+  e2e-console-login:
+    name: Console login E2E (OIDC posture, hermetic issuer)
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.stack == 'true'
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Install npm workspace dependencies
+        run: npm ci
+
+      - name: Build SDK libraries
+        run: npm run build:libs
+
+      - name: Install Temporal CLI
+        run: |
+          curl -sSf https://temporal.download/cli.sh | sh
+          echo "$HOME/.temporalio/bin" >> "$GITHUB_PATH"
+
+      - name: Build stigmer-server
+        run: make build-server
+
+      - name: Build unified runner
+        run: make build-runner
+
+      - name: Install Playwright browsers
+        working-directory: test/e2e
+        run: npx playwright install --with-deps chromium
+
+      - name: Run console-login suite (OIDC stack)
+        working-directory: test/e2e
+        env:
+          STIGMER_E2E_OIDC: "1"
+        run: npx playwright test --project=console-login --workers=1
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-console-login-test-results
+          path: test/e2e/test-results/
+          retention-days: 30
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-console-login-playwright-report
           path: test/e2e/playwright-report/
           retention-days: 30

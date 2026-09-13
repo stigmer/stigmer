@@ -146,13 +146,14 @@ Headless behavior hook that derives the org-gate state from
    onboarding form.
 5. **`ready`** — at least one org exists; render the app.
 
-A pure derivation: the organization list is final by the time this hook
-runs. Where a server creates a personal organization on first sign-in
-(Stigmer Cloud), it does so inside `provisionMyAccount`, before the
-identity gate reports ready, so an empty list means the person creates
-their first organization now. Earlier versions carried a `provisioning`
-state and an `isOidcMode` option that polled for that organization for
-ten seconds; both were removed.
+A pure derivation, deliberately: the organization list is final by the
+time this hook runs. Where a server creates a personal organization on
+first sign-in (Stigmer Cloud), it does so inside `provisionMyAccount`,
+before the identity gate ahead of this one reports ready — so there is
+nothing to wait for, and an empty list means the person creates their
+first organization now. (The hook once polled for that organization for
+ten seconds, a relic of an earlier asynchronous provisioner; on a server
+that never provisions one, every first sign-in paid the full wait.)
 
 The consumer computes `isBypassed` using framework-specific APIs and
 passes it in, keeping this hook free of routing dependencies (DD-004).
