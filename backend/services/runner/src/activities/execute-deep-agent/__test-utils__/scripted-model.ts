@@ -23,6 +23,24 @@
  * next call sees one more completed round. A call-counted script would emit
  * the wrong turn on replay.
  *
+ * A script may also be a {@link TurnPlayer}: a function of the whole
+ * transcript that returns the one turn to play now. The same rule, with the
+ * indexing left to the caller — for a consumer whose plan is not "turn k on
+ * round k" but "the first step the conversation does not yet show" (the
+ * harness contract kit's native subject, whose one execution spans many
+ * kit turns on one sqlite thread, S3 M3).
+ *
+ * A turn may END the model call instead of finishing the message
+ * ({@link TurnEnding}): `fail` throws after its chunks (a provider error
+ * mid-stream); `hang` parks on the call's abort signal after its chunks and
+ * throws the abort when it fires (a provider stream that stalls and is then
+ * cancelled). A hang never parks on a timer: `@langchain/core` hands the
+ * graph run's signal to `_streamResponseChunks` as `options.signal`
+ * (`_separateRunnableConfigFromCallOptionsCompat`), and LangGraph threads
+ * its composite abort signal into every task's config, so the runtime's one
+ * stop is what unparks it. The `onPark` hook is how a test learns the engine
+ * is silent before it stops the turn from the outside.
+ *
  * The model STREAMS. With LangGraph's v3 messages handler attached, LangChain
  * Core streams a model internally when it implements `_streamResponseChunks`
  * and otherwise falls back to a synthesized final-message event sequence
@@ -63,11 +81,29 @@ export interface ScriptedToolCall {
   id: string;
 }
 
-/** Token usage a turn reports; fixed round numbers keep `streamingUsage` legible in a golden. */
+/**
+ * Token usage a turn reports; fixed round numbers keep `streamingUsage`
+ * legible in a golden. The cache buckets ride `input_token_details` the way
+ * the Anthropic adapter reports them (`cache_read`, `cache_creation`);
+ * `inputTokens` is the total the provider states, cache included.
+ */
 export interface ScriptedUsage {
   readonly inputTokens: number;
   readonly outputTokens: number;
+  readonly cacheReadTokens?: number;
+  readonly cacheWriteTokens?: number;
 }
+
+/**
+ * How a turn ends the model call instead of finishing its message.
+ *  - `fail`: throw `error` after the turn's chunks — a provider error
+ *    mid-stream; the graph propagates it and the adapter classifies it.
+ *  - `hang`: after the turn's chunks, park on the call's abort signal and
+ *    throw the abort when it fires — a stalled provider stream, cancelled by
+ *    the run's one stop. Refused (thrown, diagnosing) when the call carries
+ *    no signal: a hang outside an abortable run would park forever.
+ */
+export type TurnEnding = { readonly kind: "fail"; readonly error: Error } | { readonly kind: "hang" };
 
 /**
  * One assistant turn, rendered in the standard content-block shape a
@@ -75,13 +111,15 @@ export interface ScriptedUsage {
  * optional text block, and one `tool_call` per entry of `toolCalls` (which is
  * also what the graph executes). A turn with neither text nor tool calls is
  * an empty assistant message — legal, and what a script that has said all it
- * has to say looks like.
+ * has to say looks like. A turn with `ends` never finishes its message: its
+ * chunks are streamed, then the ending takes the call.
  */
 export interface ScriptedTurn {
   readonly reasoning?: string;
   readonly text?: string;
   readonly toolCalls?: readonly ScriptedToolCall[];
   readonly usage?: ScriptedUsage;
+  readonly ends?: TurnEnding;
 }
 
 /**
@@ -118,6 +156,17 @@ export interface ScriptRoleContext {
 }
 
 /**
+ * A script as a function of the whole transcript: called on every model turn
+ * with the messages the model was asked with, returns the turn to play. The
+ * round-indexed `RoleScript` is the common case; this is for a plan whose
+ * progress is read off the conversation itself (see the header).
+ */
+export type TurnPlayer = (transcript: readonly BaseMessage[]) => ScriptedTurn;
+
+/** The three shapes a selector may answer with. */
+export type Script = ScriptStep | RoleScript | TurnPlayer;
+
+/**
  * Picks the script for the role being asked. A single-agent test ignores both
  * arguments; a parent/sub-agent test keys the role on a tool unique to one
  * role when there is one (a custom counting tool), or on the role's
@@ -126,7 +175,7 @@ export interface ScriptRoleContext {
  * time, so a role that is compiled but never invoked (the default
  * general-purpose sub-agent) needs no script.
  */
-export type ScriptSelector = (boundToolNames: string[], context: ScriptRoleContext) => ScriptStep | RoleScript;
+export type ScriptSelector = (boundToolNames: string[], context: ScriptRoleContext) => Script;
 
 /** What the driver learns before a turn is rendered: which role, which round. */
 export interface ScriptedTurnInfo {
@@ -142,6 +191,13 @@ export interface ScriptedModelOptions {
    * interruption lands at the same instant every run.
    */
   readonly onTurn?: (info: ScriptedTurnInfo) => void | Promise<void>;
+  /**
+   * Called the moment a `hang` turn parks on its abort signal — the engine
+   * is silent from here until the signal fires. A test that must stop the
+   * turn from the outside (the contract kit's `whenHanging`) listens here,
+   * so the stop lands in the hang and never in the adapter's setup.
+   */
+  readonly onPark?: () => void;
 }
 
 /**
@@ -186,7 +242,7 @@ export class ScriptedModel extends BaseChatModel {
     const round = completedToolRounds(messages);
     await this.options.onTurn?.({ boundToolNames: this.toolNames, round });
     const context: ScriptRoleContext = { systemPrompt: systemPromptOf(messages) };
-    return resolveTurn(normalizeScript(this.select(this.toolNames, context)), round, this.toolNames);
+    return resolveTurn(this.select(this.toolNames, context), { round, transcript: messages, toolNames: this.toolNames });
   }
 
   /**
@@ -196,24 +252,60 @@ export class ScriptedModel extends BaseChatModel {
    * provider's `invoke` returns. `@langchain/core`'s base `withStructuredOutput`
    * pipeline reads exactly that shape (`AIMessageChunk.isInstance`, then
    * `tool_calls`); a plain `AIMessage` here would fail it with "Input is not
-   * an AIMessageChunk" where the real provider succeeds.
+   * an AIMessageChunk" where the real provider succeeds. An ending turn ends
+   * this call the same way it ends the stream.
    */
-  async _generate(messages: BaseMessage[]): Promise<ChatResult> {
+  async _generate(messages: BaseMessage[], options: this["ParsedCallOptions"]): Promise<ChatResult> {
     const turn = await this.turnFor(messages);
+    if (turn.ends) await this.takeEnding(turn.ends, options.signal);
     const message = renderTurnChunks(turn).reduce((merged, chunk) => merged.concat(chunk));
     return { generations: [{ message, text: turn.text ?? "" }] };
   }
 
   async *_streamResponseChunks(
     messages: BaseMessage[],
-    _options: this["ParsedCallOptions"] & BaseChatModelCallOptions,
+    options: this["ParsedCallOptions"] & BaseChatModelCallOptions,
     _runManager?: CallbackManagerForLLMRun,
   ): AsyncGenerator<ChatGenerationChunk> {
     const turn = await this.turnFor(messages);
     for (const chunk of renderTurnChunks(turn)) {
       yield new ChatGenerationChunk({ message: chunk, text: typeof chunk.content === "string" ? chunk.content : "" });
     }
+    if (turn.ends) await this.takeEnding(turn.ends, options.signal);
   }
+
+  /** Never returns: throws the ending's error, or parks on the signal and throws its abort. */
+  private async takeEnding(ending: TurnEnding, signal: AbortSignal | undefined): Promise<never> {
+    switch (ending.kind) {
+      case "fail":
+        throw ending.error;
+      case "hang": {
+        if (!signal) {
+          throw new Error(
+            "ScriptedModel: a `hang` turn parks on the call's abort signal and this call carried none; " +
+              "a hang is only meaningful inside a run that can be aborted",
+          );
+        }
+        this.options.onPark?.();
+        if (!signal.aborted) {
+          await new Promise<void>((resolve) => signal.addEventListener("abort", () => resolve(), { once: true }));
+        }
+        throw abortErrorOf(signal);
+      }
+      default: {
+        const exhaustive: never = ending;
+        throw new Error(`ScriptedModel: unknown turn ending ${String(exhaustive)}`);
+      }
+    }
+  }
+}
+
+/** What a provider SDK throws when its in-flight request is aborted: the signal's own reason, or an `AbortError` naming it. */
+function abortErrorOf(signal: AbortSignal): Error {
+  if (signal.reason instanceof Error) return signal.reason;
+  const err = new Error(`ScriptedModel: the hang was aborted (${String(signal.reason)})`);
+  err.name = "AbortError";
+  return err;
 }
 
 // ---------------------------------------------------------------------------
@@ -255,11 +347,21 @@ export function completedToolRounds(messages: readonly BaseMessage[]): number {
   return rounds;
 }
 
-function resolveTurn(script: RoleScript, round: number, toolNames: readonly string[]): ScriptedTurn {
-  if (round < script.turns.length) return script.turns[round];
-  if (script.repeatLast && script.turns.length > 0) return script.turns[script.turns.length - 1];
+/** What one model call knows when it picks its turn. */
+interface TurnRequest {
+  readonly round: number;
+  readonly transcript: readonly BaseMessage[];
+  readonly toolNames: readonly string[];
+}
+
+function resolveTurn(script: Script, request: TurnRequest): ScriptedTurn {
+  if (typeof script === "function") return script(request.transcript);
+  const role = normalizeScript(script);
+  const { round, toolNames } = request;
+  if (round < role.turns.length) return role.turns[round];
+  if (role.repeatLast && role.turns.length > 0) return role.turns[role.turns.length - 1];
   throw new Error(
-    `ScriptedModel: the script for role [${toolNames.join(", ")}] has ${script.turns.length} turn(s) ` +
+    `ScriptedModel: the script for role [${toolNames.join(", ")}] has ${role.turns.length} turn(s) ` +
       `but the transcript already holds ${round} completed tool round(s); ` +
       "add a turn or set repeatLast.",
   );
@@ -271,10 +373,14 @@ function resolveTurn(script: RoleScript, round: number, toolNames: readonly stri
 
 function usageMetadataOf(usage: ScriptedUsage | undefined): UsageMetadata | undefined {
   if (!usage) return undefined;
+  const hasCacheBuckets = usage.cacheReadTokens !== undefined || usage.cacheWriteTokens !== undefined;
   return {
     input_tokens: usage.inputTokens,
     output_tokens: usage.outputTokens,
     total_tokens: usage.inputTokens + usage.outputTokens,
+    ...(hasCacheBuckets
+      ? { input_token_details: { cache_read: usage.cacheReadTokens ?? 0, cache_creation: usage.cacheWriteTokens ?? 0 } }
+      : {}),
   };
 }
 
@@ -286,7 +392,11 @@ function textBlock(text: string, index?: number): ContentBlock.Text {
   return { type: "text", text, ...(index !== undefined ? { index } : {}) };
 }
 
-/** The chunk sequence `convertChunksToEvents` turns into the production event stream (see the header). */
+/**
+ * The chunk sequence `convertChunksToEvents` turns into the production event
+ * stream (see the header). An ending turn gets NO closing chunk: its message
+ * never finishes — the ending takes the call after these chunks.
+ */
 function renderTurnChunks(turn: ScriptedTurn): AIMessageChunk[] {
   const chunks: AIMessageChunk[] = [];
   let nextIndex = 0;
@@ -317,6 +427,8 @@ function renderTurnChunks(turn: ScriptedTurn): AIMessageChunk[] {
       }),
     );
   }
+
+  if (turn.ends) return chunks;
 
   const usage = usageMetadataOf(turn.usage);
   // The closing chunk: carries usage onto message-finish, and guarantees at

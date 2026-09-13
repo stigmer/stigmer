@@ -14,8 +14,21 @@
  *     keeps playing the final turn.
  *  4. Streaming produces the production event sequence: reasoning as an
  *     opener plus a delta, text as a delta, a tool call as a `tool_call_chunk`
- *     whose `args` is a JSON STRING, usage on `message-finish` — and the
- *     aggregated streamed message equals the `invoke` message.
+ *     whose `args` is a JSON STRING, usage on `message-finish` (the cache
+ *     buckets under `input_token_details`) — and the aggregated streamed
+ *     message equals the `invoke` message.
+ *  5. A `TurnPlayer` script is asked with the whole transcript and its
+ *     answer is played, whatever the round.
+ *  6. A turn's ending takes the call: `fail` throws after the chunks; `hang`
+ *     parks on the call's abort signal (reporting the park), throws the
+ *     abort when it fires, and refuses a call with no signal. On a REAL
+ *     deepagents graph aborted mid-hang through the run's own signal, the
+ *     parked model unparks, the stream rejects with the abort, and the
+ *     process sees no orphaned rejection — the posture the contract kit's
+ *     hang arms and the runtime's stall watchdog rely on (S3 M2a F-M2a-18
+ *     measured one orphan for a forced mid-step abort of a WEDGED engine;
+ *     an engine that honours its signal leaves none, and this arm is where
+ *     that fact is pinned).
  */
 
 import { describe, expect, it } from "vitest";
@@ -32,7 +45,13 @@ import { z } from "zod";
 import { MemorySaver } from "@langchain/langgraph";
 import { createDeepAgent, StateBackend } from "deepagents";
 
-import { ScriptedModel, completedToolRounds, type RoleScript, type ScriptedTurnInfo } from "../__test-utils__/scripted-model.js";
+import {
+  ScriptedModel,
+  completedToolRounds,
+  type RoleScript,
+  type ScriptedTurnInfo,
+  type TurnPlayer,
+} from "../__test-utils__/scripted-model.js";
 
 const CALL = { name: "probe", args: { path: "a.txt" }, id: "call_1" };
 
@@ -197,4 +216,114 @@ describe("ScriptedModel — streaming is the production event path", () => {
     }
     expect(streamed!.content).toBe("hello");
   });
+
+  it("puts the cache buckets under input_token_details on message-finish, the Anthropic adapter's shape", async () => {
+    const model = new ScriptedModel(() => ({
+      turns: [{ text: "cached", usage: { inputTokens: 30, outputTokens: 4, cacheReadTokens: 20, cacheWriteTokens: 5 } }],
+    }));
+    let finish: { usage?: Record<string, unknown> } | undefined;
+    for await (const ev of model.streamEvents(transcriptWithRounds(0))) {
+      if ((ev as { event: string }).event === "message-finish") finish = ev as typeof finish;
+    }
+    expect(finish?.usage).toEqual({
+      input_tokens: 30,
+      output_tokens: 4,
+      total_tokens: 34,
+      input_token_details: { cache_read: 20, cache_creation: 5 },
+    });
+  });
 });
+
+describe("ScriptedModel — a TurnPlayer script reads the transcript itself", () => {
+  it("is asked with the whole transcript and its turn is played whatever the round", async () => {
+    const asked: number[] = [];
+    const player: TurnPlayer = (transcript) => {
+      asked.push(transcript.length);
+      return { text: `saw ${transcript.length} messages` };
+    };
+    const model = new ScriptedModel(() => player);
+    expect((await model.invoke(transcriptWithRounds(0))).content).toBe("saw 2 messages");
+    expect((await model.invoke(transcriptWithRounds(3))).content).toBe("saw 8 messages");
+    expect(asked).toEqual([2, 8]);
+  });
+});
+
+describe("ScriptedModel — a turn's ending takes the call", () => {
+  const boom = new Error("Engine rejected the request: invalid API key");
+
+  it("fail: streams the turn's chunks, never finishes the message, then throws the error", async () => {
+    const model = new ScriptedModel(() => ({ turns: [{ text: "Checking.", ends: { kind: "fail", error: boom } }] }));
+    const seen: string[] = [];
+    await expect(
+      (async () => {
+        for await (const ev of model.streamEvents(transcriptWithRounds(0))) seen.push((ev as { event: string }).event);
+      })(),
+    ).rejects.toBe(boom);
+    expect(seen).toContain("content-block-delta");
+    expect(seen, "an ending turn never reaches message-finish").not.toContain("message-finish");
+    await expect(model.invoke(transcriptWithRounds(0)), "invoke ends the same way").rejects.toBe(boom);
+  });
+
+  it("hang: refuses a call that carries no abort signal, diagnosing", async () => {
+    const model = new ScriptedModel(() => ({ turns: [{ ends: { kind: "hang" } }] }));
+    await expect(model.invoke(transcriptWithRounds(0))).rejects.toThrow(/parks on the call's abort signal and this call carried none/);
+  });
+
+  it("hang: parks after its chunks, reports the park, and throws the abort when the signal fires", async () => {
+    let parked = false;
+    const model = new ScriptedModel(() => ({ turns: [{ text: "Working…", ends: { kind: "hang" } }] }), [], { onPark: () => (parked = true) });
+    const controller = new AbortController();
+    const seen: string[] = [];
+    const consumed = (async () => {
+      for await (const ev of model.streamEvents(transcriptWithRounds(0), { signal: controller.signal })) {
+        seen.push((ev as { event: string }).event);
+      }
+    })();
+    await waitUntil(() => parked);
+    expect(seen, "the text reached the consumer before the park").toContain("content-block-delta");
+    controller.abort("stopped by the runtime");
+    await expect(consumed).rejects.toThrow(/stopped by the runtime/);
+  });
+
+  it("hang on a REAL graph: the run's abort signal unparks the model, the stream rejects, and no rejection is orphaned", async () => {
+    let parked = false;
+    const model = new ScriptedModel(() => ({ turns: [{ text: "Working…", ends: { kind: "hang" } }] }), [], { onPark: () => (parked = true) });
+    const agent = await createDeepAgent({
+      model,
+      checkpointer: new MemorySaver() as never,
+      backend: new StateBackend(),
+    } as unknown as Parameters<typeof createDeepAgent>[0]);
+    const controller = new AbortController();
+    const orphans: unknown[] = [];
+    const onOrphan = (reason: unknown): void => void orphans.push(reason);
+    process.on("unhandledRejection", onOrphan);
+    try {
+      const run = await agent.streamEvents(
+        { messages: [new HumanMessage("go")] },
+        { configurable: { thread_id: "hang-probe" }, version: "v3", signal: controller.signal },
+      );
+      const consumed = (async () => {
+        let events = 0;
+        for await (const _event of run) events += 1;
+        return events;
+      })();
+      await waitUntil(() => parked);
+      controller.abort("stopped by the runtime");
+      await expect(consumed, "the aborted run rejects out of the pull").rejects.toThrow();
+      // Give any orphan the macrotask turns it needs to surface as unhandled.
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      expect(orphans, "an engine that honours its signal leaves no orphaned rejection behind").toEqual([]);
+    } finally {
+      process.off("unhandledRejection", onOrphan);
+    }
+  });
+});
+
+/** Poll a predicate on the microtask/macrotask boundary — never a fixed sleep. */
+async function waitUntil(ready: () => boolean, budgetMs = 5_000): Promise<void> {
+  const deadline = Date.now() + budgetMs;
+  while (!ready()) {
+    if (Date.now() > deadline) throw new Error("waitUntil: the condition did not become true in time");
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  }
+}

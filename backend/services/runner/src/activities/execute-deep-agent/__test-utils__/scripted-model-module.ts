@@ -26,22 +26,34 @@
  * proxy posture — while the model handed back is the scenario's script. The
  * provider is inferred from the requested name exactly as the real module
  * does, so a golden's provider-labelled copy reads as in production.
+ *
+ * A scenario binds ONE model (every build of every execution gets it) or a
+ * RESOLVER over the build's options: production scopes every build to its
+ * execution through `headerScope.executionId` (the proxy's attribution
+ * header), so a test that runs several executions at once — the harness
+ * contract kit's concurrency invariant — routes each build to that
+ * execution's own engine through the id production already sends, and
+ * through nothing added for the test (S3 M3).
  */
 
 import type { BuildChatModelOptions, BuiltChatModel } from "../../../shared/model-client.js";
 import { stripProviderPrefix, tryInferProvider } from "../../../shared/llm-proxy.js";
 import type { ScriptedModel } from "./scripted-model.js";
 
-let boundModel: ScriptedModel | undefined;
+/** Which `ScriptedModel` answers one `buildChatModel` call. */
+export type ScriptedModelResolver = (opts: BuildChatModelOptions) => ScriptedModel;
+
+let resolve: ScriptedModelResolver | undefined;
 const builds: BuildChatModelOptions[] = [];
 
 /**
  * Bind the model every `buildChatModel` call hands back for the current
- * scenario, and forget the previous scenario's build log. Called by the
- * driver at `beginDeepAgentScenario`, before the activity factory runs.
+ * scenario — or a resolver that picks one per call — and forget the previous
+ * scenario's build log. Called by the driver at `beginDeepAgentScenario`,
+ * before the activity factory runs.
  */
-export function bindScriptedModel(model: ScriptedModel): void {
-  boundModel = model;
+export function bindScriptedModel(model: ScriptedModel | ScriptedModelResolver): void {
+  resolve = typeof model === "function" ? model : () => model;
   builds.length = 0;
 }
 
@@ -56,7 +68,7 @@ export function scriptedModelClientModule(): {
 } {
   return {
     buildChatModel: async (opts) => {
-      if (!boundModel) {
+      if (!resolve) {
         throw new Error(
           "scripted-model-module: no ScriptedModel bound — call bindScriptedModel(model) " +
             "before constructing the activities",
@@ -64,7 +76,7 @@ export function scriptedModelClientModule(): {
       }
       builds.push(opts);
       return {
-        model: boundModel,
+        model: resolve(opts),
         provider: tryInferProvider(opts.modelName) ?? "anthropic",
         apiModelId: stripProviderPrefix(opts.modelName),
       };

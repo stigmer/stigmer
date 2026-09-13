@@ -60,9 +60,9 @@ class CapturingModel extends ScriptedModel {
     return next as unknown as this;
   }
 
-  override async _generate(messages: BaseMessage[]): Promise<ChatResult> {
+  override async _generate(messages: BaseMessage[], options: this["ParsedCallOptions"]): Promise<ChatResult> {
     this.captured.push(messages);
-    return super._generate(messages);
+    return super._generate(messages, options);
   }
 }
 
