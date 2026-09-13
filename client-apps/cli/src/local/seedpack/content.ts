@@ -36,6 +36,7 @@ import { ExitCode } from "../../errors/exit-codes.js";
 import { log } from "../../logger.js";
 import { VERSION } from "../../version.js";
 import { runtimesDir } from "../paths.js";
+import { isAcquirableRelease } from "../runtime/runtimes-install.js";
 
 const SEEDPACK_PACKAGE = "@stigmer/seedpack";
 
@@ -91,26 +92,30 @@ export function resolveSeedpackContent(
  * ~/.stigmer/runtimes/<version>/ (idempotent) and return its package directory.
  * The version is pinned to the CLI's own version so system content stays in
  * lockstep with the control plane it bootstraps.
+ *
+ * Presence beats acquirability (the server acquirer's rule, stated in
+ * runtime/server.ts): installed content is used whatever its version string;
+ * only an install we would have to perform is refused for a non-release build.
  */
 export function acquireSeedpack(opts: ResolveSeedpackOptions = {}): string {
   const home = opts.home ?? homedir();
   const version = opts.version ?? VERSION;
-  if (!isAcquirableRelease(version)) {
-    throw new CliExitError(
-      `cannot acquire ${SEEDPACK_PACKAGE} for a non-release build (${version})`,
-      ExitCode.General,
-      [
-        "Run from the repo (the seedpack/ tree is used directly in dev).",
-        "On-demand acquisition is only available for published releases.",
-      ],
-    );
-  }
 
   const installDir = join(runtimesDir(home), version);
   const pkgDir = join(installDir, "node_modules", "@stigmer", "seedpack");
   const marker = join(pkgDir, "stigmer.yaml");
 
   if (!existsSync(marker)) {
+    if (!isAcquirableRelease(version)) {
+      throw new CliExitError(
+        `cannot acquire ${SEEDPACK_PACKAGE} for a non-release build (${version})`,
+        ExitCode.General,
+        [
+          "Run from the repo (the seedpack/ tree is used directly in dev).",
+          "On-demand acquisition is only available for published releases.",
+        ],
+      );
+    }
     log.info(`acquiring ${SEEDPACK_PACKAGE}`, { version, dir: installDir });
     mkdirSync(installDir, { recursive: true });
     // A stable package.json root keeps the install deterministic. npm install is
@@ -232,12 +237,6 @@ export function writeMarker(markerDir: string, hash: string): void {
 
 function toPosix(p: string): string {
   return sep === posix.sep ? p : p.split(sep).join(posix.sep);
-}
-
-// A source build reports "0.0.0-dev" and the dev channel stamps "<v>-dev.<stamp>";
-// neither publishes a matching @stigmer/seedpack, so they are not acquirable.
-function isAcquirableRelease(version: string): boolean {
-  return !version.includes("-dev");
 }
 
 // Walk up from this module to a repo root containing seedpack/stigmer.yaml.

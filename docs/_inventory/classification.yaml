@@ -686,6 +686,16 @@ pages:
       limitation of self-hosting today (Compose is the packaging).
     medium: none
 
+  guides/self-hosting/all-in-one:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Run the whole stack from one Docker image for evaluation — the run
+      command and what each flag means, stopping and upgrading, looking inside
+      with the CLI, what runs where — with the evaluation-only label and the
+      no-auth trust model stated up front.
+    medium: none
+
   guides/self-hosting/docker-compose:
     fate: keep
     diataxis: how-to

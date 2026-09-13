@@ -67,7 +67,12 @@
  * Build with `npm run build` first; this consumes the compiled dist/.
  *
  * Usage:
- *   node scripts/bundle-slim.mjs [--platform=<darwin-arm64|darwin-x64|linux-x64|linux-arm64|win32-x64>] [--emit-packages]
+ *   node scripts/bundle-slim.mjs [--platform=<darwin-arm64|darwin-x64|linux-x64|linux-arm64|win32-x64>] [--emit-packages] [--version=<semver>]
+ *
+ * --version stamps the emitted manifests instead of the package's own
+ * version. The release lane stamps package.json in its ephemeral checkout; a
+ * from-source staging (the all-in-one image) passes the version here and
+ * leaves the checkout clean.
  */
 
 import { build } from "esbuild";
@@ -84,6 +89,7 @@ import {
 import { createRequire } from "node:module";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
+import { stripExternalSourceMapPragma } from "../../../../scripts/lib/source-map-pragma.mjs";
 
 const require = createRequire(import.meta.url);
 
@@ -158,9 +164,12 @@ function parseArgs() {
   const hostPlatform = `${process.platform}-${process.arch}`;
   let platform = hostPlatform;
   let emitPackages = false;
+  let version;
   for (const arg of process.argv.slice(2)) {
     const m = arg.match(/^--platform=(.+)$/);
+    const v = arg.match(/^--version=(.+)$/);
     if (m) platform = m[1];
+    else if (v) version = v[1];
     else if (arg === "--emit-packages") emitPackages = true;
     else fail(`unknown argument: ${arg}`);
   }
@@ -169,7 +178,7 @@ function parseArgs() {
       `Unsupported platform "${platform}". Supported: ${Object.keys(CORE_BRIDGE_TRIPLES).join(", ")}`,
     );
   }
-  return { platform, emitPackages };
+  return { platform, emitPackages, version };
 }
 
 function fail(message) {
@@ -667,13 +676,12 @@ function emitNpmPackages() {
     const src = join(outDir, file);
     const dest = join(metaDir, file);
     if (file.endsWith(".js") || file.endsWith(".cjs")) {
-      // We don't ship the .map files, so strip the trailing sourceMappingURL
-      // pragma rather than leave the published bundle pointing at a 404.
-      const code = readFileSync(src, "utf8").replace(
-        /\n\/\/# sourceMappingURL=\S*\s*$/,
-        "\n",
-      );
-      writeFileSync(dest, code);
+      // We don't ship the .map files, so strip a trailing sourceMappingURL
+      // pragma that points at one rather than leave the published bundle
+      // pointing at a 404 — but never an INLINED map (the workflow-bundle-*.js
+      // files): Temporal's Worker.create refuses a workflow bundle without its
+      // inlined source map. The rule lives once in scripts/lib/source-map-pragma.mjs.
+      writeFileSync(dest, stripExternalSourceMapPragma(readFileSync(src, "utf8")));
     } else {
       // recursive covers the console/ directory entry; a no-op for files.
       cpSync(src, dest, { recursive: true });
@@ -743,7 +751,9 @@ function printSizeReport(platform) {
 
 // ─── Main ────────────────────────────────────────────────────────────────────
 
-const { platform, emitPackages } = parseArgs();
+const { platform, emitPackages, version } = parseArgs();
+// The emitted manifests' version: the package's own unless --version stamps it.
+if (version !== undefined) serverPkg.version = version;
 
 if (!existsSync(join(distDir, "main.js"))) {
   fail("dist/main.js not found — run `npm run build` first");

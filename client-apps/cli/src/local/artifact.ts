@@ -2,11 +2,12 @@
 // `.tar.gz`: release platform/arch mapping, a fetch + gunzip + minimal tar
 // reader, optional sha256 verification, and an executable write.
 //
-// Both on-demand downloaders — the Temporal CLI (`temporal/download.ts`) and the
-// `stigmer-server` control plane (`runtime/server.ts`) — build on this, so the
-// fetch/extract contract lives in exactly one place. The tar reader is a tiny
-// POSIX/ustar implementation: no native `tar` dependency, which keeps the base
-// install lean (DD-002).
+// The Temporal CLI downloader (`temporal/download.ts`) builds on this, and any
+// future release-binary downloader should too, so the fetch/verify/extract
+// contract lives in exactly one place. (The `stigmer-server` Go binary was its
+// second consumer until the server became an npm artifact.) The tar reader is a
+// tiny POSIX/ustar implementation: no native `tar` dependency, which keeps the
+// base install lean (DD-002).
 
 import { createHash } from "node:crypto";
 import { chmodSync, mkdirSync, writeFileSync } from "node:fs";
@@ -43,9 +44,11 @@ export interface TarballBinarySource {
   /** URL of the `.tar.gz` archive. */
   url: string;
   /**
-   * URL of a `shasum -a 256`-format checksum file for {@link url}. When set, the
-   * downloaded archive's sha256 is verified against it before extraction and any
-   * mismatch aborts the install.
+   * URL of a `shasum -a 256`-format checksum file covering {@link url}. The
+   * file may list many assets (a release's `checksums.txt`); the line whose
+   * filename is the archive's basename is the one that counts. When set, the
+   * downloaded archive's sha256 is verified against it before extraction and
+   * any mismatch — or a file with no entry for the archive — aborts the install.
    */
   checksumUrl?: string;
   /** Basename of the entry to extract from the archive. */
@@ -69,11 +72,12 @@ export async function fetchTarballBinary(src: TarballBinarySource): Promise<void
   const archive = await fetchBytes(doFetch, src.url, src.label);
 
   if (src.checksumUrl !== undefined) {
-    const expected = parseShasum(await fetchText(doFetch, src.checksumUrl, `${src.label} checksum`));
+    const archiveName = archiveBasename(src.url);
+    const expected = parseShasum(await fetchText(doFetch, src.checksumUrl, `${src.label} checksum`), archiveName);
     const actual = sha256Hex(archive);
     if (expected === "" || expected !== actual) {
       throw new CliExitError(`${src.label} checksum mismatch — refusing to use the download`, ExitCode.General, [
-        `expected: ${expected || "(unparseable)"}`,
+        `expected: ${expected || `(no entry for ${archiveName} in ${src.checksumUrl})`}`,
         `actual:   ${actual}`,
         `archive:  ${src.url}`,
       ]);
@@ -121,9 +125,27 @@ async function doFetchOrThrow(doFetch: typeof fetch, url: string, label: string)
   return res;
 }
 
-// `shasum`/`sha256sum` output is "<hex>  <filename>"; take the first token.
-function parseShasum(content: string): string {
-  return (content.trim().split(/\s+/)[0] ?? "").toLowerCase();
+/**
+ * The sha256 a `shasum`/`sha256sum`-format file records for `filename`, lowercase
+ * hex, or "" when the file has no entry for it. Each line is "<hex>  <filename>";
+ * `sha256sum -b` writes the filename with a leading "*" (binary mode), which is
+ * not part of the name. A release-wide file lists every asset, so the match is
+ * by filename, never by position.
+ */
+export function parseShasum(content: string, filename: string): string {
+  for (const line of content.split("\n")) {
+    const [hex, name] = line.trim().split(/\s+/, 2);
+    if (hex === undefined || name === undefined) continue;
+    if (name.replace(/^\*/, "") === filename) return hex.toLowerCase();
+  }
+  return "";
+}
+
+// The archive's basename as the checksum file names it: the last path segment
+// of the URL, with any query string already excluded by URL parsing.
+function archiveBasename(url: string): string {
+  const segments = new URL(url).pathname.split("/");
+  return segments[segments.length - 1] ?? "";
 }
 
 /**

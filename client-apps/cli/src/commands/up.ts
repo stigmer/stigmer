@@ -1,6 +1,7 @@
 // `stigmer up [server]` — start the local Stigmer stack (managed Temporal, the
 // control-plane server, and the unified runner) as a supervised background
-// daemon. `up server` brings up only the control plane.
+// daemon, or with `--foreground` as this very process. `up server` brings up
+// only the control plane.
 //
 // Thin handler: parse flags, delegate to the local daemon launcher, render the
 // outcome. The launcher (and the heavy resolvers it pulls in) load lazily so
@@ -9,6 +10,8 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
 import type { Command } from "commander";
+import { CliExitError } from "../errors/cli-exit-error.js";
+import { ExitCode } from "../errors/exit-codes.js";
 import { CommandResult, type OutputFlags, renderResult } from "../output/index.js";
 import { HEALTH_STATE_FILE, SERVER_PORT } from "../local/constants.js";
 import { addResultFlags, resultFormat } from "./shared.js";
@@ -16,6 +19,13 @@ import { addResultFlags, resultFormat } from "./shared.js";
 interface UpFlags extends OutputFlags {
   serverOnly?: boolean;
   web?: boolean; // false when --no-web is passed
+  foreground?: boolean;
+}
+
+interface UpRun {
+  serverOnly: boolean;
+  noWeb: boolean;
+  foreground: boolean;
 }
 
 // The server serves the web console from its unified port (DD-012); the
@@ -23,14 +33,23 @@ interface UpFlags extends OutputFlags {
 // process, one origin — there is no separate console to not-start).
 const NO_WEB_HELP = "don't report the web console URL";
 
+// Foreground is the shape a supervisor wants — a container entrypoint, a
+// systemd unit, a tmux pane: one process to watch, signals delivered to it,
+// the stack's output on its stdio — instead of a detached daemon to poll.
+const FOREGROUND_HELP = "run the stack in this process until Ctrl-C or SIGTERM (for containers and service managers)";
+
 export function registerUp(program: Command): void {
   const up = program
     .command("up")
     .description("start the local Stigmer stack (server, runner, Temporal)")
     .option("--server-only", "start only the control plane (no runners)")
     .option("--no-web", NO_WEB_HELP)
+    .option("--foreground", FOREGROUND_HELP)
     .action((options: UpFlags) =>
-      runUp({ serverOnly: options.serverOnly === true, noWeb: options.web === false }, options),
+      runUp(
+        { serverOnly: options.serverOnly === true, noWeb: options.web === false, foreground: options.foreground === true },
+        options,
+      ),
     );
   addResultFlags(up);
 
@@ -38,16 +57,40 @@ export function registerUp(program: Command): void {
     .command("server")
     .description("start only the control plane (no runners)")
     .option("--no-web", NO_WEB_HELP)
-    .action((options: UpFlags) => runUp({ serverOnly: true, noWeb: options.web === false }, options));
+    .option("--foreground", FOREGROUND_HELP)
+    .action((options: UpFlags) =>
+      runUp({ serverOnly: true, noWeb: options.web === false, foreground: options.foreground === true }, options),
+    );
   addResultFlags(server);
 }
 
-async function runUp(opts: { serverOnly: boolean; noWeb: boolean }, flags: OutputFlags): Promise<void> {
+async function runUp(run: UpRun, flags: OutputFlags): Promise<void> {
   process.stderr.write("Starting Stigmer local stack… (first run may take a moment)\n");
-  const { up } = await import("../local/daemon/launch.js");
-  await up(opts);
+  const launch = await import("../local/daemon/launch.js");
 
-  const result = CommandResult.success(opts.serverOnly ? "Stigmer control plane is up" : "Stigmer local stack is up");
+  if (!run.foreground) {
+    await launch.up(run);
+    await renderUpCard(run, flags);
+    return;
+  }
+
+  // The card renders when the stack is serving and seeded — the moment the
+  // detached shape would have returned — and the process then stays up,
+  // mirroring the server's and runner's output, until a shutdown signal.
+  const code = await launch.upForeground(run, homedir(), {
+    onReady: () => renderUpCard(run, flags),
+  });
+  if (code !== 0) {
+    // The daemon body has already logged which component failed and why.
+    const { logDir } = await import("../local/paths.js");
+    throw new CliExitError("the local stack did not start", ExitCode.General, [
+      `Check the component logs under ${logDir(homedir())}.`,
+    ]);
+  }
+}
+
+async function renderUpCard(run: UpRun, flags: OutputFlags): Promise<void> {
+  const result = CommandResult.success(run.serverOnly ? "Stigmer control plane is up" : "Stigmer local stack is up");
   const section = result.addSection("Endpoints");
   section.field("server", `http://localhost:${SERVER_PORT}`);
   if (await consoleReported()) {
@@ -56,7 +99,8 @@ async function runUp(opts: { serverOnly: boolean; noWeb: boolean }, flags: Outpu
     // server without one must not advertise a dead URL.
     section.field("console", `http://localhost:${SERVER_PORT}`);
   }
-  result.hint("Check status with: stigmer status").hint("Stop it with:    stigmer down");
+  result.hint("Check status with: stigmer status");
+  result.hint(run.foreground ? "Stop it with:    Ctrl-C (or stigmer down from another shell)" : "Stop it with:    stigmer down");
   renderResult(result, resultFormat(flags));
 }
 

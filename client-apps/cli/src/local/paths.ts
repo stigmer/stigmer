@@ -47,11 +47,24 @@ export function binDir(home: string = homedir()): string {
 }
 
 /**
- * Root for on-demand-acquired npm runtimes (~/.stigmer/runtimes). Each release
- * version installs into its own `<version>/` subtree so multiple CLI versions can
- * coexist and a partial install never poisons another version's runner.
+ * Env var that relocates the acquired-runtimes root. The acquirers (server,
+ * runner, seedpack) keep their `<root>/<version>/node_modules/@stigmer/<pkg>`
+ * layout under it, so a root that already holds the packages is used as-is
+ * and nothing is downloaded. The all-in-one image bakes exactly that layout
+ * read-only off its data volume — a `stigmer up` whose first-run acquisitions
+ * already happened — and points here.
  */
-export function runtimesDir(home: string = homedir()): string {
+export const RUNTIMES_DIR_ENV = "STIGMER_RUNTIMES_DIR";
+
+/**
+ * Root for on-demand-acquired npm runtimes (~/.stigmer/runtimes, or
+ * STIGMER_RUNTIMES_DIR). Each release version installs into its own
+ * `<version>/` subtree so multiple CLI versions can coexist and a partial
+ * install never poisons another version's runner.
+ */
+export function runtimesDir(home: string = homedir(), env: NodeJS.ProcessEnv = process.env): string {
+  const override = env[RUNTIMES_DIR_ENV];
+  if (override !== undefined && override !== "") return override;
   return join(configDir(home), "runtimes");
 }
 

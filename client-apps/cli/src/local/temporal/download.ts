@@ -2,12 +2,14 @@
 //
 // `up` needs a `temporal` binary and the upstream release is a small, public,
 // stable artifact. The fetch/gunzip/untar/write mechanics are shared with the
-// stigmer-server downloader in `../artifact.ts`; this module only owns Temporal's
-// asset-naming and the default version.
+// other release downloaders in `../artifact.ts`; this module only owns
+// Temporal's asset-naming and the default version.
 //
-// Parity note: like the Go CLI, this does not verify a checksum (the stigmer
-// -server downloader does, per DD-003). A checksum-hardening follow-up is filed;
-// until then the integrity guarantee is HTTPS + GitHub's release immutability.
+// Every download is verified against the release's `checksums.txt` (the
+// `sha256sum` file Temporal publishes beside its archives) before the binary is
+// written: the integrity guarantee is the published digest, not merely HTTPS
+// plus GitHub's release immutability. The same code path stages the binary the
+// all-in-one image bakes, so one pin and one verification serve every channel.
 
 import { existsSync } from "node:fs";
 import { fetchTarballBinary, mapReleaseArch, mapReleaseOs } from "../artifact.js";
@@ -18,6 +20,9 @@ export { extractTarEntry } from "../artifact.js";
 
 /** Default Temporal CLI version (matches the Go CLI's `DefaultTemporalVersion`). */
 export const DEFAULT_TEMPORAL_VERSION = "1.5.1";
+
+/** The release's `sha256sum`-format digest file, one line per published asset. */
+export const TEMPORAL_CHECKSUMS_FILE = "checksums.txt";
 
 export interface TemporalDownloadTarget {
   /** Temporal CLI version, e.g. "1.5.1". */
@@ -32,15 +37,23 @@ export interface TemporalDownloadTarget {
   fetchImpl?: typeof fetch;
 }
 
-/** Download and install the Temporal CLI binary to `binPath`. */
+/** The release asset name for a version on a platform, as Temporal publishes it. */
+export function temporalArchiveName(version: string, platform: NodeJS.Platform, arch: string): string {
+  return `temporal_cli_${version}_${mapReleaseOs(platform)}_${mapReleaseArch(arch)}.tar.gz`;
+}
+
+/** The GitHub release download URL for one asset of a version. */
+export function temporalReleaseAssetUrl(version: string, asset: string): string {
+  return `https://github.com/temporalio/cli/releases/download/v${version}/${asset}`;
+}
+
+/** Download, verify and install the Temporal CLI binary to `binPath`. */
 export async function downloadTemporalCli(target: TemporalDownloadTarget): Promise<void> {
-  const goos = mapReleaseOs(target.platform ?? process.platform);
-  const goarch = mapReleaseArch(target.arch ?? process.arch);
-  const archive = `temporal_cli_${target.version}_${goos}_${goarch}.tar.gz`;
-  const url = `https://github.com/temporalio/cli/releases/download/v${target.version}/${archive}`;
+  const archive = temporalArchiveName(target.version, target.platform ?? process.platform, target.arch ?? process.arch);
 
   await fetchTarballBinary({
-    url,
+    url: temporalReleaseAssetUrl(target.version, archive),
+    checksumUrl: temporalReleaseAssetUrl(target.version, TEMPORAL_CHECKSUMS_FILE),
     entryName: "temporal",
     binPath: target.binPath,
     label: "Temporal CLI",

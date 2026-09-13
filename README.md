@@ -186,6 +186,7 @@ Resource definitions are portable across both modes. The CLI talks to the same g
 
 - [Getting Started (Cloud)](https://stigmer.ai/docs/getting-started/quickstart) — Create your first agent in 5 minutes
 - [Getting Started (Local)](https://stigmer.ai/docs/getting-started/local) — Run agents on your machine
+- [Try it in one container](https://stigmer.ai/docs/guides/self-hosting/all-in-one) — `docker run ghcr.io/stigmer/stigmer` for evaluation (not for production)
 - [Self-hosting](https://stigmer.ai/docs/guides/self-hosting/docker-compose) — Run the full stack on your own machine with Docker Compose
 - [CLI Reference](https://stigmer.ai/docs/cli) — Commands, flags, and examples
 - [SDK Reference](https://stigmer.ai/docs/sdk) — Go, TypeScript, Python, Java, React, and Ink

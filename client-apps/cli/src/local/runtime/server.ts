@@ -97,23 +97,17 @@ export function resolveServerTs(
  * the install root with the runner's package) and resolve its `main.js`
  * entry. The version is pinned to the CLI's own version so the server's
  * protos and behavior stay in lockstep with the CLI and the runner.
+ *
+ * Presence beats acquirability: a runtime that is already installed is used
+ * whatever its version string looks like; only an install we would have to
+ * perform is refused for a non-release build. (The all-in-one image relies on
+ * this: it bakes a dev-stamped runtime that npm never published.)
  */
 export function acquireServer(opts: EnsureServerOptions = {}): ServerLaunch {
   const home = opts.home ?? homedir();
   const version = opts.version ?? VERSION;
-  if (!isAcquirableRelease(version)) {
-    throw new CliExitError(
-      `cannot acquire ${SLIM_PACKAGE} for a non-release build (${version})`,
-      ExitCode.General,
-      [
-        "Run from the repo with a built server (make build-server), or set",
-        "STIGMER_SERVER_DIR to a built server package.",
-        "On-demand acquisition is only available for published releases.",
-      ],
-    );
-  }
 
-  // Probe the Node capability BEFORE the download: a user on an FTS5-less
+  // Probe the Node capability BEFORE any download: a user on an FTS5-less
   // Node must not fetch the full slim artifact only to be rejected after.
   const node = opts.node ?? resolveServerNode;
   const nodeBin = node();
@@ -127,6 +121,17 @@ export function acquireServer(opts: EnsureServerOptions = {}): ServerLaunch {
   );
 
   if (!existsSync(entryPath)) {
+    if (!isAcquirableRelease(version)) {
+      throw new CliExitError(
+        `cannot acquire ${SLIM_PACKAGE} for a non-release build (${version})`,
+        ExitCode.General,
+        [
+          "Run from the repo with a built server (make build-server), or set",
+          "STIGMER_SERVER_DIR to a built server package.",
+          "On-demand acquisition is only available for published releases.",
+        ],
+      );
+    }
     log.info(`acquiring ${SLIM_PACKAGE}`, { version, dir: installDir });
     ensureRuntimesRoot(installDir);
     const install = opts.install ?? npmInstallIntoRuntimes;
