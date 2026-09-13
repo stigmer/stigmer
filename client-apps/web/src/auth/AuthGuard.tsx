@@ -26,10 +26,16 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   }, [isLoading, isAuthenticated, login]);
 
   if (isLoading || !isAuthenticated) {
+    // Two waits look alike but are not: resolving the stored session, and
+    // the hand-off to the identity provider. Naming the second keeps the
+    // person oriented while the browser leaves (visibility of status).
+    const redirecting = !isLoading && !isAuthenticated;
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-3">
         <Loader2 className="text-muted-foreground size-8 animate-spin" />
-        <p className="text-muted-foreground text-sm">Loading...</p>
+        <p className="text-muted-foreground text-sm">
+          {redirecting ? "Redirecting you to sign in\u2026" : "Loading..."}
+        </p>
       </div>
     );
   }

@@ -5,9 +5,16 @@
 // The UserManager handles the full OIDC lifecycle: Authorization Code + PKCE
 // flow, token storage, silent renewal, and logout.
 //
-// Auth0-specific: The `audience` parameter is passed as an extra query
-// parameter on the /authorize request. This tells Auth0 to issue a JWT
-// access token scoped to the API, rather than an opaque token.
+// The two URIs below are the pair an operator registers at their identity
+// provider for the console (docs/guides/self-hosting/authentication.mdx):
+// the redirect URI `/auth/callback` and the post-logout URI `/login`, both
+// on the console's own origin (20260913.02 Q-CL-9: one signed-out landing
+// for both sign-out arms).
+//
+// The `audience` extra query parameter is how Auth0 is told to mint a JWT
+// access token for the API instead of an opaque one; standards-compliant
+// issuers that do not know the parameter ignore it (Keycloak, Okta, Dex
+// carry the audience through their own client configuration instead).
 // ---------------------------------------------------------------------------
 
 import { UserManager, WebStorageStateStore } from "oidc-client-ts";
@@ -28,7 +35,7 @@ export function createUserManager(config: OidcConfig): UserManager {
     authority: config.issuer,
     client_id: config.clientId,
     redirect_uri: `${origin}/auth/callback`,
-    post_logout_redirect_uri: config.postLogoutRedirectUri ?? origin,
+    post_logout_redirect_uri: config.postLogoutRedirectUri ?? `${origin}/login`,
     scope: config.scopes?.join(" ") ?? DEFAULT_SCOPES,
     response_type: "code",
     automaticSilentRenew: true,
