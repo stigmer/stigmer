@@ -9,11 +9,12 @@
  * connect- and SDK-free (the Cursor adapter's boot patches `node:http2`
  * before anything dials the control plane; `harness-adapters.ts` states the
  * rule). An adapter that imported its SDK at the top of its module would
- * defeat it the moment its row joined the table — at M2b. This fence holds
- * the shape from the day the module exists; the runtime proof (a fresh
- * process boots the table and `deepagents` is not in it before `boot`) is
- * `src/__tests__/harness-boot-order.test.ts`'s native arm, which needs the
- * row.
+ * defeat it: this adapter's row is the table's second (S3 M2b, 2026-09-13).
+ * This fence is THE proof that the engine is not on the static graph — it
+ * walks every relative module transitively and records every package the
+ * graph names; the boot ORDER (native's `boot` runs after the Cursor patch)
+ * is proven in a real process by `src/__tests__/harness-boot-order.test.ts`,
+ * which boots both rows.
  *
  * Read off the syntax tree (`__test-utils__/module-specifiers.ts`): a
  * `import type` is erased and a dynamic `import()` runs only inside `boot`,

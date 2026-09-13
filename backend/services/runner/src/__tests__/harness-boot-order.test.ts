@@ -20,9 +20,16 @@
  * `adapter.ts`'s graph, or a static client import on the registry's, fails
  * the first arm; a `boot` that stopped asserting fails the second.
  *
+ * The table has two rows since S3 M2b (2026-09-13): the child boots the
+ * Cursor adapter and then the native deep-agent adapter, whose `boot`
+ * registers the deepagents profiles and loads LangChain — after the patch,
+ * because it is the second row. A `boot` that reordered the rows, or a
+ * native adapter that imported its engine statically, would move that load
+ * before the patch; the first arm below is where that would show.
+ *
  * `HOME` points at a temp dir so an SDK import-time side effect cannot touch
  * the developer's home; the proxy endpoint is an inert loopback; nothing is
- * dialled. Two spawns, a few seconds: the SDK is imported for real once.
+ * dialled. Two spawns, a few seconds: both SDKs are imported for real once.
  */
 
 import { describe, it, expect } from "vitest";
@@ -63,7 +70,7 @@ function lastLine(text: string): string {
 }
 
 describe("harness boot order (fresh process)", () => {
-  it("booting the harnesses on a proxy-mode config, the way the roots do, installs the interceptors, patches the facade, and loads the SDK", async () => {
+  it("booting both harnesses on a proxy-mode config, the way the roots do, installs the interceptors, patches the facade, and loads both engines after it", async () => {
     const verdict = await runChild("boot");
     expect(verdict.line, "the child's verdict").toBe("harness-boot-order: ok");
     expect(verdict.exitCode).toBe(0);
