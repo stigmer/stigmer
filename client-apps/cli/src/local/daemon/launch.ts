@@ -18,7 +18,7 @@ import { DAEMON_PID_FILE, SERVER_PORT } from "../constants.js";
 import { tcpConnects, waitForTcp } from "../net/tcp.js";
 import { dataDir, logDir } from "../paths.js";
 import { readPidFile, removePidFile } from "../state/pidfile.js";
-import { findProcessByPort, isProcessAlive, killProcess } from "../state/proc.js";
+import { findProcessByPort, isOtherLiveProcess, isProcessAlive, killProcess } from "../state/proc.js";
 import { type StartupConfig, removeStartupConfig, saveStartupConfig } from "../state/startup-config.js";
 import { rotateLogs } from "../state/log-rotation.js";
 import { resolveApiKey, resolveProvider } from "../llm-config.js";
@@ -143,7 +143,7 @@ export async function down(home: string = homedir()): Promise<boolean> {
   let pid = readPidFile(join(data, DAEMON_PID_FILE));
   if (pid === null) pid = findProcessByPort(SERVER_PORT);
 
-  if (pid === null || !isProcessAlive(pid)) {
+  if (pid === null || !isOtherLiveProcess(pid)) {
     removePidFile(join(data, DAEMON_PID_FILE));
     await stopManagedTemporal(home);
     cleanupOrphans(data);
@@ -173,13 +173,13 @@ export async function down(home: string = homedir()): Promise<boolean> {
   return true;
 }
 
-/** Whether the daemon is running: live PID, else a server-port fallback. */
+/** Whether the daemon is running: a live peer's PID, else a server-port fallback. */
 export async function isRunning(home: string = homedir()): Promise<boolean> {
   const data = dataDir(home);
   const pid = readPidFile(join(data, DAEMON_PID_FILE));
   if (pid !== null) {
-    if (isProcessAlive(pid)) return true;
-    removePidFile(join(data, DAEMON_PID_FILE)); // stale
+    if (isOtherLiveProcess(pid)) return true;
+    removePidFile(join(data, DAEMON_PID_FILE)); // stale (dead, or a previous life of our own PID)
   }
   return tcpConnects(SERVER_PORT, "127.0.0.1", 1000);
 }
@@ -204,13 +204,16 @@ function spawnDaemon(env: NodeJS.ProcessEnv, daemonLog: string): number {
   return child.pid;
 }
 
-// Kill any daemon/server/runner left alive by a previous, improperly-stopped run.
+// Kill any daemon/server/runner left alive by a previous, improperly-stopped
+// run. A recorded PID that is our own is a leftover, never a peer (the fresh
+// PID namespace of a restarted container hands the launcher the PID its last
+// life had) — signalling it would be signalling ourselves.
 function cleanupOrphans(data: string): void {
   for (const name of [DAEMON_PID_FILE, "stigmer-server.pid", "runner.pid"]) {
     const pidPath = join(data, name);
     const pid = readPidFile(pidPath);
     if (pid === null) continue;
-    if (isProcessAlive(pid)) {
+    if (isOtherLiveProcess(pid)) {
       log.warn("killing orphaned process from a previous run", { file: name, pid });
       killProcess(pid, "SIGTERM");
     }

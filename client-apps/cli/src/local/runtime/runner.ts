@@ -94,22 +94,26 @@ export function resolveRunner(node: () => string = resolveNode): RunnerResolutio
  * ~/.stigmer/runtimes/<version>/ (idempotent: reuses a prior install) and resolve
  * its `main.js` entry. The version is pinned to the CLI's own version so the
  * runner's protos/SDK stay in lockstep with the control plane.
+ *
+ * Presence beats acquirability (the server acquirer's rule, stated there): an
+ * installed runtime is used whatever its version string; only an install we
+ * would have to perform is refused for a non-release build.
  */
 export function acquireRunner(opts: EnsureRunnerOptions = {}): RunnerResolution {
   const home = opts.home ?? homedir();
   const version = opts.version ?? VERSION;
-  if (!isAcquirableRelease(version)) {
-    throw new CliExitError(`cannot acquire ${SLIM_PACKAGE} for a non-release build (${version})`, ExitCode.General, [
-      "Run from the repo with a built runner, or set STIGMER_RUNNER_DIR.",
-      "On-demand acquisition is only available for published releases.",
-    ]);
-  }
 
   const node = opts.node ?? resolveNode;
   const installDir = join(runtimesDir(home), version);
   const entryPath = join(installDir, "node_modules", "@stigmer", "runner-slim", "main.js");
 
   if (!existsSync(entryPath)) {
+    if (!isAcquirableRelease(version)) {
+      throw new CliExitError(`cannot acquire ${SLIM_PACKAGE} for a non-release build (${version})`, ExitCode.General, [
+        "Run from the repo with a built runner, or set STIGMER_RUNNER_DIR.",
+        "On-demand acquisition is only available for published releases.",
+      ]);
+    }
     log.info(`acquiring ${SLIM_PACKAGE}`, { version, dir: installDir });
     ensureRuntimesRoot(installDir);
     const install = opts.install ?? npmInstallIntoRuntimes;

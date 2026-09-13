@@ -22,6 +22,7 @@ const fakeNode = (): string => "/usr/bin/node";
 const TOUCHED = [
   "STIGMER_SERVER_DIR",
   "STIGMER_NODE_BIN",
+  "STIGMER_RUNTIMES_DIR",
 ] as const;
 let saved: Record<string, string | undefined>;
 
@@ -188,6 +189,42 @@ describe("acquireServer", () => {
     const hints = captureHints(attempt).join("\n");
     expect(hints).toMatch(/platform-native/);
     expect(hints).toMatch(/Remove .* and retry/);
+  });
+
+  // Presence beats acquirability: the all-in-one image bakes a dev-stamped
+  // runtime npm never published; an installed runtime is usable whatever its
+  // version string, and only an install we would have to perform is refused.
+  it("uses an already-installed runtime even for a non-release (dev) build", () => {
+    const home = tempDir("stigmer-home-");
+    const pkgDir = join(home, ".stigmer", "runtimes", "0.0.0-dev.abc123", "node_modules", "@stigmer", "server-slim");
+    mkdirSync(pkgDir, { recursive: true });
+    writeFileSync(join(pkgDir, "main.js"), "// slim bundle");
+
+    const install = vi.fn();
+    const launch = acquireServer({ home, version: "0.0.0-dev.abc123", node: fakeNode, install });
+
+    expect(launch.entryPath).toBe(join(pkgDir, "main.js"));
+    expect(install).not.toHaveBeenCalled();
+  });
+
+  // STIGMER_RUNTIMES_DIR relocates the whole acquired-runtimes root; the
+  // per-version layout under it is unchanged, so a pre-filled root is found
+  // exactly where an on-demand install would have put things.
+  it("reads the runtimes root from STIGMER_RUNTIMES_DIR, keeping the per-version layout", () => {
+    const home = tempDir("stigmer-home-");
+    const root = tempDir("stigmer-runtimes-");
+    process.env.STIGMER_RUNTIMES_DIR = root;
+    const pkgDir = join(root, "0.5.0", "node_modules", "@stigmer", "server-slim");
+    mkdirSync(pkgDir, { recursive: true });
+    writeFileSync(join(pkgDir, "main.js"), "// slim bundle");
+
+    const install = vi.fn();
+    const launch = acquireServer({ home, version: "0.5.0", node: fakeNode, install });
+
+    expect(launch.entryPath).toBe(join(pkgDir, "main.js"));
+    expect(launch.appDir).toBe(pkgDir);
+    expect(install).not.toHaveBeenCalled();
+    expect(readFileSync(join(pkgDir, "main.js"), "utf8")).toBe("// slim bundle");
   });
 
   it("refuses to acquire for a non-release (dev) build, naming the fallback", () => {

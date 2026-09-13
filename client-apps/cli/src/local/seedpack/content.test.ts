@@ -126,6 +126,27 @@ describe("acquireSeedpack", () => {
     expect(classify(err)?.exitCode).toBe(ExitCode.General);
   });
 
+  // Presence beats acquirability (the server acquirer's rule; the all-in-one
+  // image bakes dev-stamped content npm never published).
+  it("uses already-installed content even for a non-release (dev) build", () => {
+    const home = mkdtempSync(join(tmpdir(), "seedpack-home-"));
+    const pkgDir = join(home, ".stigmer", "runtimes", "0.0.0-dev.abc123", "node_modules", "@stigmer", "seedpack");
+    mkdirSync(pkgDir, { recursive: true });
+    writeFileSync(join(pkgDir, "stigmer.yaml"), "kind: Organization\n");
+
+    let installs = 0;
+    const dir = acquireSeedpack({
+      home,
+      version: "0.0.0-dev.abc123",
+      install: () => {
+        installs += 1;
+      },
+    });
+
+    expect(dir).toBe(pkgDir);
+    expect(installs).toBe(0);
+  });
+
   it("installs on demand and is idempotent on the second call", () => {
     const home = mkdtempSync(join(tmpdir(), "seedpack-home-"));
     let installs = 0;
