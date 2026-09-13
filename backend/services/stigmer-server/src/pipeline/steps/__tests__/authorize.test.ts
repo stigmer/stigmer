@@ -37,9 +37,7 @@ import {
 } from "../authorize.js";
 
 /** Awaits the rejection and returns it as a ConnectError. */
-async function captureError(
-  run: () => Promise<void>,
-): Promise<ConnectError> {
+async function captureError(run: () => Promise<void>): Promise<ConnectError> {
   try {
     await run();
   } catch (error) {
@@ -290,6 +288,75 @@ describe("check-target resolution (never a throw — byte-identity)", () => {
       },
     ]);
   });
+
+  // 20260913.01 (Q-OR-2): the IamPolicy RPCs name their target inside the
+  // request as a STRING kind (`ApiResourceRef.kind`, "organization"), so
+  // `resource_kind_path` resolves a string through the kind enum's names.
+  // The option had no user before this entry; a numeric field still works.
+  it("resource_kind_path over a string field resolves through the kind enum's names (IamPolicy create)", async () => {
+    const { authorizer, checks } = fakeAuthorizer({ kind: "allow" });
+    const method = IamPolicyCommandController.method.create;
+    const step = newAuthorizeStep(method, authorizer);
+    const ctx = new RequestContext(
+      method.input,
+      create(method.input, {
+        principal: { kind: "identity_account", id: "ida_alice" },
+        relation: "member",
+        resource: { kind: "organization", id: "acme" },
+      }),
+      testCallerIdentity(),
+    );
+    await step.execute(ctx);
+    expect(checks).toEqual([
+      {
+        permission: IamPermission.can_grant_access,
+        resourceKind: ApiResourceKind.organization,
+        resourceId: "acme",
+      },
+    ]);
+  });
+
+  it("an unknown kind name resolves to the unknown kind — never a throw; the Authorizer owns the decision", async () => {
+    const { authorizer, checks } = fakeAuthorizer({ kind: "allow" });
+    const method = IamPolicyCommandController.method.create;
+    const step = newAuthorizeStep(method, authorizer);
+    const ctx = new RequestContext(
+      method.input,
+      create(method.input, {
+        principal: { kind: "identity_account", id: "ida_alice" },
+        relation: "member",
+        resource: { kind: "spaceship", id: "acme" },
+      }),
+      testCallerIdentity(),
+    );
+    await expect(step.execute(ctx)).resolves.toBeUndefined();
+    expect(checks[0]?.resourceKind).toBe(
+      ApiResourceKind.api_resource_kind_unknown,
+    );
+    expect(checks[0]?.resourceId).toBe("acme");
+  });
+
+  it("revokeOrgAccess names the organization statically and its id by field_path (organization_id)", async () => {
+    const { authorizer, checks } = fakeAuthorizer({ kind: "allow" });
+    const method = IamPolicyCommandController.method.revokeOrgAccess;
+    const step = newAuthorizeStep(method, authorizer);
+    const ctx = new RequestContext(
+      method.input,
+      create(method.input, {
+        identityAccountId: "ida_alice",
+        organizationId: "acme",
+      }),
+      testCallerIdentity(),
+    );
+    await step.execute(ctx);
+    expect(checks).toEqual([
+      {
+        permission: IamPermission.can_grant_access,
+        resourceKind: ApiResourceKind.organization,
+        resourceId: "acme",
+      },
+    ]);
+  });
 });
 
 describe("authorizeDirect (the direct-handler arm, C2 Stage 4)", () => {
@@ -438,18 +505,30 @@ describe("authorizeResolvedResource (the mid-chain resolved-id pattern, 20260830
       ),
     );
     expect(err.code).toBe(Code.PermissionDenied);
-    expect(err.rawMessage).toBe("unauthorized to view workflow version history");
+    expect(err.rawMessage).toBe(
+      "unauthorized to view workflow version history",
+    );
   });
 
   it("deny without lane copy falls back to the reason, then the shared fallback", async () => {
     const reasoned = fakeAuthorizer({ kind: "deny", reason: "because" });
     const err1 = await captureError(() =>
-      authorizeResolvedResource(reasoned.authorizer, testCallerIdentity(), check, ""),
+      authorizeResolvedResource(
+        reasoned.authorizer,
+        testCallerIdentity(),
+        check,
+        "",
+      ),
     );
     expect(err1.rawMessage).toBe("because");
     const bare = fakeAuthorizer({ kind: "deny", reason: "" });
     const err2 = await captureError(() =>
-      authorizeResolvedResource(bare.authorizer, testCallerIdentity(), check, ""),
+      authorizeResolvedResource(
+        bare.authorizer,
+        testCallerIdentity(),
+        check,
+        "",
+      ),
     );
     expect(err2.rawMessage).toBe("permission denied");
   });

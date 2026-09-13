@@ -218,6 +218,14 @@ describe("tier truthfulness against the empty composition", () => {
     );
     expect(served.has("identityaccount")).toBe(true);
   });
+
+  it("iam_policy is open_source and served — the row half lives in open source (20260913.01, Q-EC-2b again)", () => {
+    const served = servedKindSegments(server.routes);
+    expect(getKindMeta(ApiResourceKind.iam_policy).tier).toBe(
+      ResourceTier.open_source,
+    );
+    expect(served.has("iampolicy")).toBe(true);
+  });
 });
 
 describe("the check bites (mutation proofs over the same function)", () => {

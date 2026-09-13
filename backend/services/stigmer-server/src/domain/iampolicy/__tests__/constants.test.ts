@@ -1,0 +1,222 @@
+/**
+ * Pins the IamPolicy domain's constants (project 20260913.01,
+ * T01_0_plan.md §3a, T01_1_review.md Q-OR-9):
+ *
+ *   - the policy-id derivation — `iamp_` + the top 130 bits of sha256 over
+ *     the triple's canonical text as 26 lowercase Crockford-base32
+ *     characters. The canonical text IS the tuple notation the contract's
+ *     own comment documents (`principal.kind:principal.id#principal.relation
+ *     @resource.kind:resource.id#relation`, spec.proto), so the natural key
+ *     has one spelling and the primary key is the one home of "one row per
+ *     triple". The golden vectors are wire-adjacent constants: a change
+ *     re-addresses every policy open source ever wrote;
+ *   - `BLUEPRINT_KINDS` — the kinds an admin authors, the legacy-creator
+ *     rule's whole scan (Q-OR-6b); sessions and executions are personal
+ *     and never appear here;
+ *   - the byte-pinned copy moved from the cloud's handlers as-is, plus the
+ *     new sentences (the two edition refusals, the unknown permission).
+ */
+import { create } from "@bufbuild/protobuf";
+import { describe, expect, it } from "vitest";
+
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { IamPolicySpec } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+import { IamPolicySpecSchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+
+import {
+  AUTHENTICATION_REQUIRED_MESSAGE,
+  AUTHORIZATION_QUERIES_UNIMPLEMENTED_MESSAGE,
+  BLUEPRINT_KINDS,
+  IAM_POLICY_API_VERSION,
+  IAM_POLICY_KIND,
+  PER_RESOURCE_GRANTS_UNIMPLEMENTED_MESSAGE,
+  POLICY_ID_PREFIX,
+  noGrantableRolesMessage,
+  policyIdFor,
+  policyNotFoundMessage,
+  roleNotGrantableMessage,
+  unknownPermissionMessage,
+} from "../constants.js";
+
+const CROCKFORD_ID = /^iamp_[0-9abcdefghjkmnpqrstvwxyz]{26}$/;
+
+function spec(
+  principal: { kind: string; id: string; relation?: string },
+  relation: string,
+  resource: { kind: string; id: string },
+): IamPolicySpec {
+  return create(IamPolicySpecSchema, {
+    principal: {
+      kind: principal.kind,
+      id: principal.id,
+      relation: principal.relation ?? "",
+    },
+    relation,
+    resource: { kind: resource.kind, id: resource.id },
+  });
+}
+
+const ALICE = "ida_wtr3jcf281yfk9xx61kj59fsme";
+const AGENT = "agt_01hzzzzzzzzzzzzzzzzzzzzzzz";
+
+describe("policyIdFor — the derived policy id", () => {
+  it("pins the golden vectors (a change re-addresses every OSS policy)", () => {
+    expect(
+      policyIdFor(
+        spec({ kind: "identity_account", id: ALICE }, "admin", {
+          kind: "organization",
+          id: "acme",
+        }),
+      ),
+    ).toBe("iamp_vkbjb6nvqm77vtwnr2bj0x95f9");
+    expect(
+      policyIdFor(
+        spec({ kind: "identity_account", id: ALICE }, "member", {
+          kind: "organization",
+          id: "acme",
+        }),
+      ),
+    ).toBe("iamp_8excwectzw4xzrphy43zpar661");
+    // A structural link (the cloud's scope tuple) derives the same way: the
+    // id is the triple's, whatever the relation means.
+    expect(
+      policyIdFor(
+        spec({ kind: "organization", id: "acme" }, "organization", {
+          kind: "agent",
+          id: AGENT,
+        }),
+      ),
+    ).toBe("iamp_e8ak7be793avgz5tk4abmew2fp");
+    // The public-viewer wildcard principal is a legal triple.
+    expect(
+      policyIdFor(
+        spec({ kind: "identity_account", id: "*" }, "viewer", {
+          kind: "agent",
+          id: AGENT,
+        }),
+      ),
+    ).toBe("iamp_w5wqxkyrtbspjyp3jd6ce565q2");
+  });
+
+  it("has the shape of every minted id: prefix, underscore, 26 Crockford chars", () => {
+    expect(POLICY_ID_PREFIX).toBe("iamp");
+    expect(
+      policyIdFor(
+        spec({ kind: "identity_account", id: ALICE }, "viewer", {
+          kind: "organization",
+          id: "acme",
+        }),
+      ),
+    ).toMatch(CROCKFORD_ID);
+  });
+
+  it("changes with every axis of the triple, the principal's relation qualifier included", () => {
+    const base = spec({ kind: "identity_account", id: ALICE }, "admin", {
+      kind: "organization",
+      id: "acme",
+    });
+    const variants = [
+      spec({ kind: "team", id: ALICE }, "admin", {
+        kind: "organization",
+        id: "acme",
+      }),
+      spec({ kind: "identity_account", id: "ida_other" }, "admin", {
+        kind: "organization",
+        id: "acme",
+      }),
+      spec(
+        { kind: "identity_account", id: ALICE, relation: "member" },
+        "admin",
+        { kind: "organization", id: "acme" },
+      ),
+      spec({ kind: "identity_account", id: ALICE }, "member", {
+        kind: "organization",
+        id: "acme",
+      }),
+      spec({ kind: "identity_account", id: ALICE }, "admin", {
+        kind: "environment",
+        id: "acme",
+      }),
+      spec({ kind: "identity_account", id: ALICE }, "admin", {
+        kind: "organization",
+        id: "globex",
+      }),
+    ];
+    const ids = new Set([policyIdFor(base), ...variants.map(policyIdFor)]);
+    expect(ids.size).toBe(variants.length + 1);
+  });
+
+  it("refuses a spec missing either reference — a triple is the whole key", () => {
+    expect(() =>
+      policyIdFor(create(IamPolicySpecSchema, { relation: "admin" })),
+    ).toThrow("policy spec must carry principal and resource");
+  });
+});
+
+describe("the contract's identity strings", () => {
+  it("stamps the proto's apiVersion const, not the Java-era value (Q-OR-9)", () => {
+    expect(IAM_POLICY_API_VERSION).toBe("iam.stigmer.ai/v1");
+    expect(IAM_POLICY_KIND).toBe("IamPolicy");
+  });
+});
+
+describe("BLUEPRINT_KINDS — the legacy-creator rule's scan (Q-OR-6b)", () => {
+  it("is exactly the six kinds an admin authors, in registry order", () => {
+    expect([...BLUEPRINT_KINDS]).toEqual([
+      ApiResourceKind.agent,
+      ApiResourceKind.workflow,
+      ApiResourceKind.skill,
+      ApiResourceKind.mcp_server,
+      ApiResourceKind.environment,
+      ApiResourceKind.schedule,
+    ]);
+  });
+
+  it("never names a personal kind — those stay with their creator by DD-002 rule 2, no role needed", () => {
+    for (const personal of [
+      ApiResourceKind.session,
+      ApiResourceKind.agent_execution,
+      ApiResourceKind.workflow_execution,
+      ApiResourceKind.api_key,
+      ApiResourceKind.memory,
+    ]) {
+      expect(BLUEPRINT_KINDS).not.toContain(personal);
+    }
+  });
+});
+
+describe("byte-pinned copy", () => {
+  it("moves the cloud's sentences as-is", () => {
+    expect(policyNotFoundMessage("iamp_x")).toBe(
+      "IAM policy not found: iamp_x",
+    );
+    expect(noGrantableRolesMessage("agent_execution")).toBe(
+      "No roles can be granted on resource kind 'agent_execution'. Role assignments for this resource kind are system-managed.",
+    );
+    expect(
+      roleNotGrantableMessage("editor", "organization", [
+        "owner",
+        "admin",
+        "member",
+        "viewer",
+      ]),
+    ).toBe(
+      "Role 'editor' cannot be granted on resource kind 'organization'. Grantable roles: [owner, admin, member, viewer]",
+    );
+    expect(AUTHENTICATION_REQUIRED_MESSAGE).toBe(
+      "Authentication required to check permissions",
+    );
+  });
+
+  it("names the edition in the two new refusals, and quotes the unknown permission single-quoted", () => {
+    expect(PER_RESOURCE_GRANTS_UNIMPLEMENTED_MESSAGE).toBe(
+      "per-resource access grants are served by the Enterprise and Cloud editions",
+    );
+    expect(AUTHORIZATION_QUERIES_UNIMPLEMENTED_MESSAGE).toBe(
+      "authorization queries are served by the Enterprise and Cloud editions",
+    );
+    expect(unknownPermissionMessage("can_fly")).toBe(
+      "unknown permission 'can_fly'",
+    );
+  });
+});
