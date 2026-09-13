@@ -54,15 +54,25 @@ describe("isResourceAvailable — a tier is a minimum edition", () => {
   });
 
   it("enterprise-tier kinds are available in enterprise and cloud, not local", () => {
-    expect(isResourceAvailable(ApiResourceKind.iam_policy, "local")).toBe(
+    // `invitation` is the example since `iam_policy` moved to open_source
+    // (20260913.01: the row half is served by every edition).
+    expect(isResourceAvailable(ApiResourceKind.invitation, "local")).toBe(
       false,
     );
-    expect(isResourceAvailable(ApiResourceKind.iam_policy, "enterprise")).toBe(
+    expect(isResourceAvailable(ApiResourceKind.invitation, "enterprise")).toBe(
       true,
     );
     // The inversion case: enterprise = 3 > cloud = 2 on the wire. A
     // wire-number comparison fails exactly here.
-    expect(isResourceAvailable(ApiResourceKind.iam_policy, "cloud")).toBe(true);
+    expect(isResourceAvailable(ApiResourceKind.invitation, "cloud")).toBe(true);
+  });
+
+  it("iam_policy is open_source since the row half moved into open source — served everywhere", () => {
+    for (const mode of MODES) {
+      expect(isResourceAvailable(ApiResourceKind.iam_policy, mode), mode).toBe(
+        true,
+      );
+    }
   });
 
   it("cloud_only-tier kinds are available in cloud only", () => {

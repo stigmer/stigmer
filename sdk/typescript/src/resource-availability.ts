@@ -10,8 +10,12 @@
  *   every edition above it.
  * - The proto enums' numbers are wire identifiers, not ranks: `enterprise`
  *   was added after `cloud` / `cloud_only` and sits at 3 in both. The two
- *   rank functions below are the ONLY place a tier meets an edition; nothing
- *   compares enum numbers.
+ *   rank functions below are the ONLY place a tier meets an edition in the
+ *   SDK; nothing compares enum numbers. The server carries the one twin —
+ *   `kindServedByEdition` in `backend/services/stigmer-server/src/pipeline/
+ *   apiresource-meta.ts`, which `checkMyPermission` reads to decide what is
+ *   HELD while this table decides what is SHOWN — and a test there pins the
+ *   two tables equal on the whole matrix.
  * - `DeploymentMode` is `ServerEdition` in string-literal form, the shape
  *   React consumers expect (`colorMode: "light" | "dark"` is the sibling),
  *   with `oss` spelled `"local"` for history's sake. `deploymentModeOf` is

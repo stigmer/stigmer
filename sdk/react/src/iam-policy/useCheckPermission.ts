@@ -22,17 +22,16 @@ export interface PermissionCheckResource {
 export interface CheckPermissionOptions {
   /**
    * Behavior when authorization cannot be confirmed — the check is in
-   * flight, the RPC failed, the resource is `null`, or the server does
-   * not implement authorization checks (OSS edition).
+   * flight, the RPC failed, or the resource is `null`.
    *
    * - `"open"` (default): `allowed` is `true`. Right for gating
    *   *capabilities* (buttons, actions) — the server re-checks every
-   *   request anyway, and all UI stays visible in single-user local
-   *   mode.
+   *   request anyway, so a transient failure never hides a control the
+   *   server would honor.
    * - `"closed"`: `allowed` is `false` until the server explicitly
    *   authorizes. Right for *discoverability* surfaces (navigation to
-   *   operator-only areas) that must not appear on deployments where
-   *   the feature does not exist.
+   *   operator-only areas) that must not appear before the server has
+   *   said yes.
    */
   readonly fail?: "open" | "closed";
 }
@@ -54,12 +53,16 @@ export interface UseCheckPermissionReturn {
  * Wraps `iamPolicy.checkMyPermission()` — the dedicated self-check RPC
  * where the server derives the principal from the authenticated token
  * (the client never names a principal) — with caching and configurable
- * degradation. By default the hook *fails open*: when the server does
- * not support authorization checks (OSS edition where the IAM service
- * is not registered), it returns `allowed: true` so all UI remains
- * visible in single-user local mode. Pass `{ fail: "closed" }` for
- * surfaces that must stay hidden until authorization is confirmed
- * (see {@link CheckPermissionOptions}).
+ * degradation. The RPC is served in every edition and its answer has one
+ * definition: a permission on a kind the edition does not serve is
+ * `false` (so operator-only navigation never appears where the seat
+ * does not exist), `can_grant_access` on a resource the edition does not
+ * share per person is `false` (open source grants roles on organizations
+ * only), and everything else is the edition's authorizer's answer. By
+ * default the hook *fails open* while the check is in flight or when the
+ * RPC fails, so a transient error never hides a control the server would
+ * honor. Pass `{ fail: "closed" }` for surfaces that must stay hidden
+ * until authorization is confirmed (see {@link CheckPermissionOptions}).
  *
  * Pass `null` as `resource` to skip the check — the result resolves
  * through the fail mode (`allowed: true` under the default fail-open).

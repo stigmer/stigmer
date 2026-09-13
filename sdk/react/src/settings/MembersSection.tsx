@@ -3,15 +3,26 @@
 import { useId } from "react";
 import { OrgMembersPanel } from "../iam-policy/OrgMembersPanel.js";
 import { useResourceAvailable, ApiResourceKind } from "../deployment-mode.js";
-import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
 import { useOrg } from "../organization/OrgProvider.js";
 import { useIdentityProviderList } from "../identity-provider/useIdentityProviderList.js";
 
-/** Settings section for organization membership and role management. */
+/**
+ * Settings section for organization membership and role management.
+ *
+ * Rendered in every edition: the IamPolicy row half — who holds which
+ * role on the organization — is served by open source as well as the
+ * Enterprise and Cloud editions. What differs is how people ARRIVE: where
+ * the edition serves invitations, the Invitations section beside this one
+ * is the door; where it does not (open source), people join the
+ * organization the first time they sign in and the server records their
+ * role, so this section says so.
+ */
 export function MembersSection() {
   const headingId = useId();
   const { activeOrg } = useOrg();
-  const membersAvailable = useResourceAvailable(ApiResourceKind.iam_policy);
+  const invitationsAvailable = useResourceAvailable(
+    ApiResourceKind.invitation,
+  );
   const idpAvailable = useResourceAvailable(ApiResourceKind.identity_provider);
   const orgId = activeOrg?.metadata?.id ?? "";
   const orgSlug = activeOrg?.metadata?.slug ?? "";
@@ -35,14 +46,17 @@ export function MembersSection() {
       <p className="stg:text-muted-foreground stg:mb-4 stg:text-xs">
         Manage who has access to this organization and what they can do.
         Members can be granted owner, admin, member, or viewer roles.
+        {!invitationsAvailable && (
+          <>
+            {" "}
+            There are no invitations on this edition: people join this
+            organization the first time they sign in, and you adjust their
+            roles here.
+          </>
+        )}
       </p>
 
-      {!membersAvailable ? (
-        <CloudFeatureNotice>
-          Members management is not available in local mode. IAM policies
-          require Stigmer Cloud.
-        </CloudFeatureNotice>
-      ) : !orgId ? (
+      {!orgId ? (
         <p className="stg:text-muted-foreground stg:py-4 stg:text-center stg:text-xs">
           Select an organization to manage members.
         </p>

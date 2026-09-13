@@ -203,7 +203,7 @@ export async function authorizeResolvedResource(
   if (identity.callerClass === "internal") {
     return;
   }
-  const decision = await runAuthorizer(authorizer, identity, check);
+  const decision = await evaluateAuthorizer(authorizer, identity, check);
   switch (decision.kind) {
     case "allow":
       return;
@@ -248,9 +248,13 @@ export async function authorizeResolvedResource(
 /**
  * An Authorizer that THROWS is an evaluation failure by definition —
  * normalized into the unavailable arm so a buggy implementation can never
- * soften an outage into a denial by accident.
+ * soften an outage into a denial by accident. Exported for the one lane
+ * that needs the DECISION rather than the wire mapping: `checkMyPermission`
+ * answers a boolean (allow → true, deny and not-found → false) and maps
+ * only `unavailable` to the wire, through the same INTERNAL copy
+ * (20260913.01, Q-S5-3).
  */
-async function runAuthorizer(
+export async function evaluateAuthorizer(
   authorizer: Authorizer,
   identity: CallerIdentity,
   check: AuthzCheck,

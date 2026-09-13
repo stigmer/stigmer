@@ -72,6 +72,7 @@ import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
 import { stepsForSlot } from "../../extensions/gate-slots.js";
 import type { ResolvedGateSteps } from "../../extensions/gate-slots.js";
+import { isPlatformPipelineCaller } from "../../extensions/identity.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import type { IdentityFederation } from "../../extensions/identity-federation.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
@@ -306,11 +307,9 @@ function createRpc(
 }
 
 function guardInternalRpc(caller: CallerIdentity): void {
-  if (
-    caller.callerClass === "machine" ||
-    caller.callerClass === "internal" ||
-    caller.origin === "in-process"
-  ) {
+  // The one definition of "the platform's own pipelines"
+  // (extensions/identity.ts), shared with the IamPolicy system RPCs.
+  if (isPlatformPipelineCaller(caller)) {
     return;
   }
   throw new ConnectError(CREATE_IS_INTERNAL_MESSAGE, Code.PermissionDenied);

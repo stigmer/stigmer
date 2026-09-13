@@ -3,16 +3,22 @@ import { test, expect } from "@playwright/test";
 /**
  * OSS Mode Authorization Tests
  *
- * Verifies that authorization-specific UI is correctly absent when
- * running against the OSS server edition (no FGA, no IAM service).
+ * Verifies the authorization UI's open-source posture when running
+ * against the OSS server edition (no OpenFGA; the IamPolicy row half is
+ * served by open source since 20260913.01).
  *
  * Key behaviors in OSS:
  * - Visibility toggles for blueprints (private/public) remain visible
  *   (they update metadata in SQLite without FGA)
- * - Organization members / invitations pages show CloudFeatureNotice
- * - Share buttons are absent (no IAM policy service)
+ * - The organization members page lists the organization's roles — on a
+ *   trusted-local server the operator is the owner of every organization
+ * - The invitations page shows CloudFeatureNotice (invitations stay an
+ *   Enterprise/Cloud kind)
+ * - Per-person sharing is not offered: an agent's Manage access dialog
+ *   says so instead of listing people, and has no "Add people" control
  * - Instance visibility selector is absent (requires FGA for enforcement)
- * - All actions (edit, delete, run) are always enabled (no permission checks)
+ * - All actions (edit, delete, run) are always enabled (no permission
+ *   checks until per-person authorization lands)
  *
  * Prerequisites:
  * - Running against OSS stigmer-server (not cloud)
@@ -24,20 +30,28 @@ test.describe("OSS Mode - Authorization UI", () => {
     "These tests validate OSS-specific behavior",
   );
 
-  test("settings/members shows cloud feature notice", async ({ page }) => {
+  test("settings/members lists the operator as the organization's owner", async ({
+    page,
+  }) => {
     await page.goto("/settings/members");
     await page.waitForLoadState("networkidle");
 
-    // In OSS mode, the members page should indicate it's cloud-only
-    const notice = page.getByText(/cloud|not available|local mode/i);
-    await expect(notice).toBeVisible();
+    // The row half of IAM policies is served by open source: the page
+    // renders the members panel, never a cloud-only notice.
+    await expect(page.getByText(/not available in local mode/i)).not.toBeVisible();
+    const members = page.getByRole("list", { name: "Organization members" });
+    await expect(members).toBeVisible();
+    await expect(members.getByRole("listitem")).toHaveCount(1);
+    await expect(members.getByText("Owner", { exact: true })).toBeVisible();
   });
 
   test("settings/invitations shows cloud feature notice", async ({ page }) => {
     await page.goto("/settings/invitations");
     await page.waitForLoadState("networkidle");
 
-    const notice = page.getByText(/cloud|not available|local mode/i);
+    // The notice itself, not the sidebar's "Local mode" label (which the
+    // looser /local mode/ match also caught, a strict-mode violation).
+    const notice = page.getByText(/Invitations are not available in local mode/i);
     await expect(notice).toBeVisible();
   });
 
@@ -65,6 +79,15 @@ test.describe("OSS Mode - Authorization UI", () => {
       await expect(
         dialog.getByRole("button", { name: /Resource visibility/i }),
       ).toBeVisible();
+
+      // Per-person sharing is what the Enterprise and Cloud editions add:
+      // open source says so in one sentence and offers no grant control.
+      await expect(
+        dialog.getByText(/does not share agents with individual people/i),
+      ).toBeVisible();
+      await expect(
+        dialog.getByRole("button", { name: /Add people/ }),
+      ).not.toBeVisible();
     }
   });
 

@@ -72,7 +72,9 @@ import {
 import { ensureOperatorAccount } from "../domain/identityaccount/operator.js";
 import { newDirectAccountProvisioner } from "../domain/identityaccount/provisioning.js";
 import { newResourceIdentityAccountStore } from "../domain/identityaccount/resource-store.js";
+import { registerIamPolicyServices } from "../domain/iampolicy/controller.js";
 import { newIamPolicyGrantPath } from "../domain/iampolicy/grant-path.js";
+import { newOrganizationOnlyGrantScope } from "../domain/iampolicy/grant-scope.js";
 import { newMembershipRules } from "../domain/iampolicy/membership.js";
 import { newResourceIamPolicyStore } from "../domain/iampolicy/resource-store.js";
 import { newBuiltInRoleLifecycle } from "../domain/iampolicy/role-lifecycle.js";
@@ -348,7 +350,7 @@ export async function composeServer(
   // The grant path's lifecycle is the composed DRIVER — the cloud's tuple
   // hooks — never the built-in lifecycle below, which sits ON TOP of the
   // grant path; that direction keeps the two acyclic (S1 finding B). Both
-  // bindings are what the IamPolicy controller registers over (slice 5).
+  // bindings are what the IamPolicy controller registers over (routes).
   const iamPolicies =
     extensions.drivers.iamPolicyStore ?? newResourceIamPolicyStore(store);
   const iamPolicyGrantPath = newIamPolicyGrantPath({
@@ -999,6 +1001,26 @@ export async function composeServer(
       federation: extensions.drivers.identityFederation,
       gateSteps: extensions.gateSteps,
       membership,
+    });
+    // IamPolicy (20260913.01): the ROW half served once by open source in
+    // every edition over the store port and the grant path bound in the
+    // identity stage. A composition adds what differs per edition through
+    // the registry — a wider grant scope (`drivers.policyGrantScope`; the
+    // default is open source's organization-only scope, installed at this
+    // `??` site like the permissive Authorizer) and the tuple-half query
+    // engine (`drivers.authorizationQueries`; absent, those RPCs refuse
+    // UNIMPLEMENTED). The chains take no lifecycle: a policy is the
+    // authorization record, not a protected resource.
+    registerIamPolicyServices(router, {
+      grantPath: iamPolicyGrantPath,
+      policies: iamPolicies,
+      accounts: identityAccounts,
+      authorizer,
+      grantScope:
+        extensions.drivers.policyGrantScope ?? newOrganizationOnlyGrantScope(),
+      queries: extensions.drivers.authorizationQueries,
+      edition: extensions.edition,
+      logger,
     });
     registerEnvironmentServices(router, {
       store,

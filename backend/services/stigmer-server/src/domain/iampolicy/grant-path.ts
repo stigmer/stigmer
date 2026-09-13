@@ -31,16 +31,18 @@
  * `get` RPC alone. On the OSS adapter that read is one scan of the kind
  * (resource-store.ts); §4 measures it.
  *
- * The path is the one writer, so it is the one gate (Q-S2-1; slice 1
- * ruling 2): before any read, write or hook, `grant` and `revokeBySpec`
- * refuse a spec whose resource or principal kind is not an ApiResourceKind
- * member name, or whose fields hold a canonical-text delimiter —
- * INVALID_ARGUMENT with the pinned copy. Under an enforcing Authorizer the
- * chain's position 1 already denied the unknown kind; under the permissive
- * one this is what keeps a garbage row out of the store and a garbage spec
- * away from a composition's tuple delete. `cleanupResource` and
- * `revokeOrgAccess` take refs and ids their callers read from rows, so they
- * do not gate.
+ * The path is the one writer, so it refuses before it writes (Q-S2-1;
+ * slice 1 ruling 2): before any read, write or hook, `grant` and
+ * `revokeBySpec` run the domain's wire refusals (wire-refusals.ts — a spec
+ * whose resource or principal kind is not an ApiResourceKind member name,
+ * or whose fields hold a canonical-text delimiter, is INVALID_ARGUMENT
+ * with the pinned copy; slice 5 made that module the one home of the rule
+ * the controller and the ValidateGrantableRole step share). Under an
+ * enforcing Authorizer the chain's position 1 already denied the unknown
+ * kind; under the permissive one this is what keeps a garbage row out of
+ * the store and a garbage spec away from a composition's tuple delete.
+ * `cleanupResource` and `revokeOrgAccess` take refs and ids their callers
+ * read from rows, so they do not refuse.
  *
  * The row this path builds: the proto's apiVersion const and kind, the
  * derived id, the spec as given, and the caller's audit stamp through the
@@ -50,7 +52,6 @@
  * span organizations and none owns it.
  */
 import { create } from "@bufbuild/protobuf";
-import { Code, ConnectError } from "@connectrpc/connect";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
@@ -64,19 +65,16 @@ import type {
 import type { Logger } from "../../boot/logger.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
-import { kindByEnumName } from "../../pipeline/apiresource-meta.js";
+import { kindEnumName } from "../../pipeline/apiresource-meta.js";
 import { setAuditFieldsForCreate } from "../../pipeline/steps/defaults.js";
 import {
   IAM_POLICY_API_VERSION,
   IAM_POLICY_KIND,
-  malformedTripleField,
-  malformedTripleMessage,
   policyIdFor,
-  unknownPrincipalKindMessage,
-  unknownResourceKindMessage,
 } from "./constants.js";
 import { DuplicatePolicyError } from "./store.js";
 import type { IamPolicyStore } from "./store.js";
+import { refsOf, requireWellFormedTriple } from "./wire-refusals.js";
 
 export interface GrantResult {
   readonly policy: IamPolicy;
@@ -127,7 +125,7 @@ export function newIamPolicyGrantPath(
   async function findByTriple(
     spec: IamPolicySpec,
   ): Promise<IamPolicy | undefined> {
-    const { principal, resource } = admittedRefs(spec);
+    const { principal, resource } = refsOf(spec);
     const onPair = await policies.findByPrincipalAndResource(
       principal.kind,
       principal.id,
@@ -158,7 +156,7 @@ export function newIamPolicyGrantPath(
 
   return {
     async grant(spec, caller): Promise<GrantResult> {
-      admittedTriple(spec);
+      requireWellFormedTriple(spec);
       let policy = await findByTriple(spec);
       let duplicate = policy !== undefined;
       if (policy === undefined) {
@@ -196,7 +194,7 @@ export function newIamPolicyGrantPath(
     },
 
     async revokeBySpec(spec): Promise<IamPolicy | undefined> {
-      admittedTriple(spec);
+      requireWellFormedTriple(spec);
       const existing = await findByTriple(spec);
       if (existing === undefined) {
         // No row: a composition still deletes the bare tuple (one written
@@ -218,9 +216,9 @@ export function newIamPolicyGrantPath(
 
     async revokeOrgAccess(identityAccountId, organizationId): Promise<void> {
       const direct = await policies.findByPrincipalAndResource(
-        "identity_account",
+        kindEnumName(ApiResourceKind.identity_account),
         identityAccountId,
-        "organization",
+        kindEnumName(ApiResourceKind.organization),
         organizationId,
       );
       for (const policy of direct) {
@@ -228,49 +226,6 @@ export function newIamPolicyGrantPath(
       }
     },
   };
-}
-
-/** Both refs, present — the gate has run or the spec came from a stored row. */
-function admittedRefs(spec: IamPolicySpec): {
-  principal: ApiResourceRef;
-  resource: ApiResourceRef;
-} {
-  if (spec.principal === undefined || spec.resource === undefined) {
-    throw new Error("policy spec must carry principal and resource");
-  }
-  return { principal: spec.principal, resource: spec.resource };
-}
-
-/**
- * The gate every spec-taking writer runs first: refs present, no
- * delimiter in any field, both kinds enum member names — the resource kind
- * read first, the cloud's order. INVALID_ARGUMENT with the pinned copy.
- */
-function admittedTriple(spec: IamPolicySpec): void {
-  const { principal, resource } = admittedRefs(spec);
-  const malformed = malformedTripleField(spec);
-  if (malformed !== undefined) {
-    throw new ConnectError(
-      malformedTripleMessage(malformed),
-      Code.InvalidArgument,
-    );
-  }
-  if (
-    kindByEnumName(resource.kind) === ApiResourceKind.api_resource_kind_unknown
-  ) {
-    throw new ConnectError(
-      unknownResourceKindMessage(resource.kind),
-      Code.InvalidArgument,
-    );
-  }
-  if (
-    kindByEnumName(principal.kind) === ApiResourceKind.api_resource_kind_unknown
-  ) {
-    throw new ConnectError(
-      unknownPrincipalKindMessage(principal.kind),
-      Code.InvalidArgument,
-    );
-  }
 }
 
 /** The row for a fresh grant: the contract's identity strings, the derived id, the caller's stamp. */

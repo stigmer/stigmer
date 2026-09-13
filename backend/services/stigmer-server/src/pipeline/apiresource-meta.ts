@@ -31,6 +31,16 @@
  *     it builds an `ApiResourceRef` itself (the built-in role lifecycle's
  *     cleanup refs; the organization-role specs) — so no caller reaches
  *     for the enum's reverse index by hand.
+ *
+ * A kind's TIER meets the served EDITION in exactly one place on the
+ * server, `tierServedByEdition` / `kindServedByEdition` (20260913.01
+ * Q-OR-8; claim check C5) — the twin of the SDK's rank functions
+ * (sdk/typescript/src/resource-availability.ts), pinned equal on the whole
+ * matrix by __tests__/kind-served-by-edition.test.ts. The console reads
+ * the SDK's answer to decide what to SHOW; `checkMyPermission` reads the
+ * server's to decide what is HELD; a disagreement is a surface that
+ * appears and then fails. The enum NUMBERS are wire identifiers, never
+ * ranks (`enterprise` sits at 3 in both enums and ranks second).
  */
 import { getOption, hasOption } from "@bufbuild/protobuf";
 import type { DescEnumValue } from "@bufbuild/protobuf";
@@ -39,10 +49,12 @@ import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apires
 import {
   ApiResourceKind,
   ApiResourceKindSchema,
+  ResourceTier,
   kind_meta,
 } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { ApiResourceKindMeta } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 
 /** Go GetKindMeta: the kind_meta extension of the enum value. */
 export function getKindMeta(kind: ApiResourceKind): ApiResourceKindMeta {
@@ -149,6 +161,71 @@ export function grantableRolesFor(
     return [];
   }
   return getOption(valueDesc, kind_meta).authorization?.grantableRoles ?? [];
+}
+
+/**
+ * Whether an edition serves a tier: the tier names the MINIMUM edition,
+ * the editions are ordered oss < enterprise < cloud (each composes the
+ * previous one's units), so a tier admits its own edition and every one
+ * above. An edition the server does not know (`server_edition_unspecified`)
+ * serves everything — the SDK's own fallback: an older client against a
+ * newer server hides nothing. A tier the proto forgot is treated as core
+ * for the same reason the SDK does: hiding a served kind is the worse
+ * failure.
+ */
+export function tierServedByEdition(
+  tier: ResourceTier,
+  edition: ServerEdition,
+): boolean {
+  if (edition === ServerEdition.server_edition_unspecified) {
+    return true;
+  }
+  return editionRank(edition) >= tierRank(tier);
+}
+
+/**
+ * Whether this edition serves a kind: its `kind_meta.tier` through the
+ * table above. Throws for a kind without `kind_meta` (the unknown kind):
+ * a caller that reaches this with wire input has skipped the kind
+ * refusals, and "served" for it would hide that bug.
+ */
+export function kindServedByEdition(
+  kind: ApiResourceKind,
+  edition: ServerEdition,
+): boolean {
+  return tierServedByEdition(getKindMeta(kind).tier, edition);
+}
+
+function editionRank(edition: ServerEdition): number {
+  switch (edition) {
+    case ServerEdition.oss:
+      return 1;
+    case ServerEdition.enterprise:
+      return 2;
+    case ServerEdition.cloud:
+    case ServerEdition.server_edition_unspecified:
+      return 3;
+    default: {
+      const exhaustive: never = edition;
+      throw new Error(`unknown server edition: ${String(exhaustive)}`);
+    }
+  }
+}
+
+function tierRank(tier: ResourceTier): number {
+  switch (tier) {
+    case ResourceTier.open_source:
+    case ResourceTier.resource_tier_unspecified:
+      return 1;
+    case ResourceTier.enterprise:
+      return 2;
+    case ResourceTier.cloud_only:
+      return 3;
+    default: {
+      const exhaustive: never = tier;
+      throw new Error(`unknown resource tier: ${String(exhaustive)}`);
+    }
+  }
 }
 
 /**
