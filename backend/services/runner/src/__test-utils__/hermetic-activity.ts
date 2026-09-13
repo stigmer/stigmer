@@ -407,12 +407,30 @@ export function createHermeticEnvironment(): HermeticEnvironment {
 // ---------------------------------------------------------------------------
 
 /**
- * A deterministic, TICKING `Date`. Only `Date` is faked; timers stay real (the
- * periodic heartbeat, the stall watchdog, `withTimeout` all need them). The
- * harness double calls {@link ScriptedClock.tick} once per script step, so
- * every `Date.now()`-based decision on the activity path (status timestamps,
- * the enricher's persist debounce, cache TTLs) sees the same instants run after
- * run and runs the same branches production runs.
+ * A deterministic, TICKING clock: `Date` AND `performance` are faked and
+ * advance together; timers stay real (the periodic heartbeat, the stall
+ * watchdog, `withTimeout` all need them). The harness double calls
+ * {@link ScriptedClock.tick} once per script step, so every clock-based
+ * decision on the activity path — status timestamps, the enricher's persist
+ * debounce, cache TTLs (`Date`); the streaming scheduler's persist cadence
+ * (`performance.now()`) — sees the same instants run after run and runs the
+ * same branches production runs.
+ *
+ * Why both (S3 M5, Q-M5-7; F-M2a-20): until M5 only `Date` was faked, so the
+ * scheduler paced persists on REAL elapsed time and `fileChangeProgress`,
+ * which rides persists, could gain or lose a capture under load — a golden
+ * flake seen twice across S3. One clock, two faces: `tick` advances through
+ * the fake clock's own `tick` (`vi.advanceTimersByTime`), which moves both
+ * `Date` and `performance.now()`; `vi.setSystemTime` would move `Date` alone
+ * (fake-timers keeps `performance` monotonic across a system-time jump), so
+ * only {@link reset} uses it — rewinding `Date` to the epoch for a second
+ * scenario while `performance` stays monotonic, which is harmless because
+ * every turn constructs its scheduler fresh and measures from its own start.
+ *
+ * Faking `performance` replaces the whole global (`now`, a `timeOrigin` at
+ * the epoch, every other method a no-op); nothing on the activity path reads
+ * more than `now`, and a module importing from `node:perf_hooks` would bypass
+ * the fake (none under `src/` does).
  */
 export class ScriptedClock {
   /** A fixed epoch: 2026-01-01T00:00:00.000Z. Chosen for readability in goldens. */
@@ -423,15 +441,17 @@ export class ScriptedClock {
   private nowMs = ScriptedClock.EPOCH_MS;
 
   install(): void {
-    vi.useFakeTimers({ toFake: ["Date"], now: this.nowMs });
+    vi.useFakeTimers({ toFake: ["Date", "performance"], now: this.nowMs });
   }
 
   tick(ms: number = ScriptedClock.STEP_MS): void {
     this.nowMs += ms;
-    vi.setSystemTime(this.nowMs);
+    // Through the fake clock's own tick, so `performance.now()` advances with
+    // `Date`; with no timers faked there is nothing for it to fire.
+    vi.advanceTimersByTime(ms);
   }
 
-  /** Back to the epoch — for a second scenario in the same file. */
+  /** Back to the epoch — for a second scenario in the same file. `Date` rewinds; `performance` stays monotonic (see the header). */
   reset(): void {
     this.nowMs = ScriptedClock.EPOCH_MS;
     vi.setSystemTime(this.nowMs);
