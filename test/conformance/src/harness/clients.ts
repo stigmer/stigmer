@@ -63,6 +63,8 @@ import { Health } from "@stigmer/protos/grpc/health/v1/health_pb";
 import { ApiKeyCommandController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/command_pb";
 import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/command_pb";
 import { IdentityAccountQueryController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/query_pb";
+import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
+import { IamPolicyQueryController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/query_pb";
 import { ApiKeyQueryController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/query_pb";
 import { ProjectCommandController } from "@stigmer/protos/ai/stigmer/tenancy/project/v1/command_pb";
 import { ProjectQueryController } from "@stigmer/protos/ai/stigmer/tenancy/project/v1/query_pb";
@@ -95,6 +97,8 @@ export interface ConformanceClients {
   projectQuery: Client<typeof ProjectQueryController>;
   identityAccountCommand: Client<typeof IdentityAccountCommandController>;
   identityAccountQuery: Client<typeof IdentityAccountQueryController>;
+  iamPolicyCommand: Client<typeof IamPolicyCommandController>;
+  iamPolicyQuery: Client<typeof IamPolicyQueryController>;
   organizationCommand: Client<typeof OrganizationCommandController>;
   organizationQuery: Client<typeof OrganizationQueryController>;
   workflowCommand: Client<typeof WorkflowCommandController>;
@@ -211,6 +215,8 @@ export function makeClients(transport: Transport): ConformanceClients {
       IdentityAccountQueryController,
       transport,
     ),
+    iamPolicyCommand: createClient(IamPolicyCommandController, transport),
+    iamPolicyQuery: createClient(IamPolicyQueryController, transport),
     organizationCommand: createClient(OrganizationCommandController, transport),
     organizationQuery: createClient(OrganizationQueryController, transport),
     workflowCommand: createClient(WorkflowCommandController, transport),

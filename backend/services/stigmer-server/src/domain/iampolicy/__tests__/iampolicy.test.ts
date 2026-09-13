@@ -7,9 +7,12 @@
  *   - creating an organization makes its creator the owner: the built-in
  *     role lifecycle's one write arm, read back through the row-driven
  *     access list and count with the operator's display fields;
- *   - a grant on anything but an organization is UNIMPLEMENTED with the
- *     edition named (the grant scope), and a role the organization does
- *     not admit is INVALID_ARGUMENT with the cloud's copy;
+ *   - a grant on a kind no edition grants on (kind_meta lists no roles) is
+ *     INVALID_ARGUMENT with the cloud's system-managed copy; a grant on
+ *     any other kind but the organization is UNIMPLEMENTED with the
+ *     edition named (the grant scope); a role the organization does not
+ *     admit is INVALID_ARGUMENT with the cloud's copy — the proto first,
+ *     the scope second, the role third;
  *   - create is idempotent by derived id and stamps the proto's apiVersion;
  *     a role change is delete then create; revokeOrgAccess empties the
  *     account's rows; deleting the organization cleans its rows;
@@ -56,6 +59,7 @@ import {
   AUTHORIZATION_QUERIES_UNIMPLEMENTED_MESSAGE,
   IAM_POLICY_API_VERSION,
   PER_RESOURCE_GRANTS_UNIMPLEMENTED_MESSAGE,
+  noGrantableRolesMessage,
   policyIdFor,
   policyNotFoundMessage,
   roleNotGrantableMessage,
@@ -323,6 +327,25 @@ describe("iampolicy domain (composed server, trusted-local posture)", () => {
   });
 
   describe("the grant scope: open source grants on organizations only (Q-OR-3)", () => {
+    it("a grant on a kind whose kind_meta lists no roles is INVALID_ARGUMENT with the cloud's system-managed copy — no edition grants on it, so no edition is named", async () => {
+      // The proto is read BEFORE the scope (Q-OR-3 refinement, 2026-09-13):
+      // an identity account is system-managed in the cloud too, and
+      // "served by the Enterprise and Cloud editions" would be a lie here.
+      const bob = await newAccount();
+      const error = await grpcError(() =>
+        command.create(
+          triple({ kind: "identity_account", id: bob }, "viewer", {
+            kind: "identity_account",
+            id: operatorId,
+          }),
+        ),
+      );
+      expect(error.code).toBe(Code.InvalidArgument);
+      expect(error.rawMessage).toBe(
+        noGrantableRolesMessage("identity_account"),
+      );
+    });
+
     it("a grant on an agent is UNIMPLEMENTED with the edition named, never INVALID_ARGUMENT or INTERNAL", async () => {
       const bob = await newAccount();
       const error = await grpcError(() =>
