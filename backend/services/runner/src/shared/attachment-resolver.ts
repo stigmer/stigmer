@@ -53,8 +53,8 @@
  * aborts with the guard's own `AttachmentValidationError`.
  *
  * Until S3 M1 this resolver ignored `mountPath` and could not extract; the
- * native harness's `attachment-injector.ts` did both and is retired at M2b
- * for this one pipeline (Q-S3-14).
+ * native harness's `attachment-injector.ts` did both and was retired at S3
+ * M2b for this one pipeline (Q-S3-14).
  */
 
 import { mkdir, copyFile, readFile, stat, writeFile } from "node:fs/promises";

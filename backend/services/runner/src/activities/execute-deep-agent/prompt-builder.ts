@@ -142,7 +142,7 @@ export interface PromptBuilderInput {
   /**
    * The execution's interaction mode. PLAN appends the shared plan-mode
    * directive so the model knows the turn's deliverable is a plan document.
-   * Tool-level write enforcement is separate (see setup.ts permissions) —
+   * Tool-level write enforcement is separate (see turn-setup.ts permissions) —
    * without this directive the model is silently read-only but never told
    * to produce a plan.
    */

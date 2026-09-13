@@ -34,7 +34,7 @@ export function costCapExceeded(maxCostUsd: number, estimatedCostUsd: number): b
 
 /**
  * Stable prefix of the cost-limit terminal error. Mirrors the cross-repo
- * pattern of TOOL_CALL_LIMIT_ERROR_PREFIX (streaming-terminal.ts): consumers
+ * pattern of TOOL_CALL_LIMIT_ERROR_PREFIX (tool-rounds.ts): consumers
  * that need to distinguish "ran out of cost budget" from other TERMINATED
  * causes can match on this prefix, because AgentExecutionStatus carries no
  * structured termination reason. Do not reword without checking consumers.

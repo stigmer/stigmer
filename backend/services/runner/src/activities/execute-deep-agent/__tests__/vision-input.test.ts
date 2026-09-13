@@ -1,6 +1,6 @@
 /**
  * Proves the T04 vision input path end-to-end through the REAL framework
- * stack: the exact `{ role: "user", content: [...] }` shape that setup.ts
+ * stack: the exact `{ role: "user", content: [...] }` shape that turn-setup.ts
  * builds is driven through `createDeepAgent` (the production graph factory,
  * default middleware included) and the test asserts what the chat model's
  * `_generate` actually received.
@@ -92,7 +92,7 @@ describe("deep-agent vision input through the real graph", () => {
   });
 
   /**
-   * `content` is exactly what setup.ts puts on the user message: a plain
+   * `content` is exactly what turn-setup.ts puts on the user message: a plain
    * string, or the content-block array built by toLangChainImageBlocks plus
    * the composed text block.
    */
@@ -111,7 +111,7 @@ describe("deep-agent vision input through the real graph", () => {
       backend,
     } as Parameters<typeof createDeepAgent>[0]);
 
-    // The EXACT input shape setup.ts constructs (plain role/content dict, not
+    // The EXACT input shape turn-setup.ts constructs (plain role/content dict, not
     // a HumanMessage instance — the reducer does the coercion in production).
     await agent.invoke(
       { messages: [{ role: "user", content }] },

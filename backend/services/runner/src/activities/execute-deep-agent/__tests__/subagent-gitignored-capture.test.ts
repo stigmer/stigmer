@@ -58,7 +58,7 @@ describe("sub-agent gitignored capture (DD-19)", () => {
   }
 
   /**
-   * A capture-mode gate wired to `observer`, exactly as setup.ts builds the parent
+   * A capture-mode gate wired to `observer`, exactly as turn-setup.ts builds the parent
    * gate and buildSubAgentMiddleware inherits it when a CAS observer backs the
    * sub-agent (captureIgnored true).
    */

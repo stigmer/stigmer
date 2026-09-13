@@ -14,7 +14,7 @@
  * - Built-in general-purpose replaces deepagents' auto-injected one (which carries
  *   no approval gate — see deepagents-profiles.ts for the suppression half)
  * - Sub-agent backends are shell-capable outside plan mode (issue #248), mirroring
- *   the parent's backend selection in setup.ts
+ *   the parent's backend selection in turn-setup.ts
  * - Sub-agent graphs carry the parent's filesystem permissions explicitly
  *   (issue #255): pre-built CompiledSubAgents never inherit them, so plan
  *   mode's deny-all-writes rule is baked into each graph at compile time
@@ -165,7 +165,7 @@ export interface SubagentTransformOptions {
   readonly parentHasNativeThinking: boolean;
   /**
    * URL-guard posture for the native `web_fetch` tool, inherited from the
-   * parent (resolveGuardPosture(config.mode) in setup.ts) so a sub-agent
+   * parent (resolveGuardPosture(config.mode) in turn-setup.ts) so a sub-agent
    * fetch is bounded exactly like a parent fetch.
    */
   readonly webFetchPosture: GuardPosture;
@@ -187,7 +187,7 @@ export interface SubagentTransformOptions {
   readonly shellEnv?: Record<string, string>;
   /**
    * Filesystem permission rules baked into each compiled sub-agent graph,
-   * inherited from the parent's rules in setup.ts (plan mode's deny-all-writes
+   * inherited from the parent's rules in turn-setup.ts (plan mode's deny-all-writes
    * today). Required because deepagents' parent-permission inheritance covers
    * only spec-style sub-agents — pre-built CompiledSubAgents bypass it, so
    * without this a plan-mode sub-agent could still write (issue #255).
@@ -324,7 +324,7 @@ export async function transformSingleSubagent(
   }
 
   // web_fetch is unconditional — unlike think, it is a capability, not a
-  // reasoning aid, and the parent always has it (setup.ts Step 11). A
+  // reasoning aid, and the parent always has it (turn-setup.ts `buildEngine`). A
   // sub-agent silently lacking web access the parent has would recreate the
   // harness-parity gap of issue #214 one level down.
   tools.push(createWebFetchTool({ posture: opts.webFetchPosture }) as unknown as StructuredTool);
@@ -458,7 +458,7 @@ export function modelHasNativeThinking(modelId: string): boolean {
 
 /**
  * Select a sub-agent's deepagents backend, mirroring the parent's selection in
- * setup.ts along two independent axes:
+ * turn-setup.ts along two independent axes:
  *
  * - CAS observation (capture mode): when a shared observer is supplied, the
  *   backend records pre-turn bytes of CAS-owned paths so the sub-agent's
@@ -600,7 +600,7 @@ export async function compileSubagents(
 /**
  * Transform proto SubAgents and compile into CompiledSubAgent instances.
  *
- * This is the main entry point called from setup.ts. It orchestrates:
+ * This is the main entry point called from turn-setup.ts. It orchestrates:
  * 1. Built-in subagent creation (explore, shell, general-purpose)
  * 2. Per-subagent transformation (proto → TransformedSubagent)
  * 3. MCP tool filtering per subagent

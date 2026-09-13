@@ -1,13 +1,11 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { uniquifyFilename, allocateUniqueName } from "../attachment-naming.js";
-import { injectAttachments } from "../../activities/execute-deep-agent/attachment-injector.js";
 import { resolveAttachments } from "../attachment-resolver.js";
 import { getPlatformDir } from "../workspace/platform-dir.js";
 import { makeInMemoryArtifactStorage } from "../../__test-utils__/fake-artifact-storage.js";
-import type { WorkspaceBackend } from "../workspace/types.js";
 
 describe("uniquifyFilename", () => {
   // This table is the byte-for-byte twin of the React SDK suite
@@ -118,7 +116,7 @@ describe("cross-harness naming parity", () => {
     } as any;
   }
 
-  it("both harnesses produce identical final basenames for the same duplicate-heavy list", async () => {
+  it("the resolver produces the React SDK's basenames for the same duplicate-heavy list", async () => {
     const { storage } = makeInMemoryArtifactStorage();
     await storage.upload("attachments/01A/data.csv", Buffer.from("a"), "text/plain");
     await storage.upload("attachments/01B/data.csv", Buffer.from("b"), "text/plain");
@@ -131,14 +129,8 @@ describe("cross-harness naming parity", () => {
       makeAttachment("Makefile", "attachments/01D/Makefile"),
     ];
 
-    const backend = { writeFileBuffer: vi.fn() } as unknown as WorkspaceBackend;
-    const injected = await injectAttachments({
-      backend,
-      attachments,
-      storage,
-      isLocalMode: false,
-    });
-
+    // One attachment pipeline serves both harnesses since S3 M2b (Q-S3-14);
+    // the names it lands are the ones the React SDK's table above predicts.
     const resolved = await resolveAttachments(attachments, {
       sessionId,
       primaryWorkspaceDir: workspaceDir,
@@ -146,13 +138,8 @@ describe("cross-harness naming parity", () => {
       storage,
     });
 
-    const injectedNames = injected.map((f) => f.filename);
-    const resolvedNames = resolved.map((r) => r.filename);
-    expect(injectedNames).toEqual(["data.csv", "data-2.csv", "Makefile", "Makefile-2"]);
-    expect(resolvedNames).toEqual(injectedNames);
-    expect(injected.map((f) => f.renamedFrom)).toEqual(
-      resolved.map((r) => r.renamedFrom),
-    );
+    expect(resolved.map((r) => r.filename)).toEqual(["data.csv", "data-2.csv", "Makefile", "Makefile-2"]);
+    expect(resolved.map((r) => r.renamedFrom)).toEqual([undefined, "data.csv", undefined, "Makefile"]);
     // The resolver's files really land under the renamed paths.
     expect(readFileSync(join(platformDir, "inputs", "data-2.csv"), "utf-8")).toBe("b");
   });

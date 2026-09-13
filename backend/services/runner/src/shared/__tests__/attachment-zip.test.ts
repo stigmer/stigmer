@@ -6,8 +6,7 @@
  * from the native injector's test file at S3 M1 with the code; every
  * archive comes from the shared real-shape builder
  * (@stigmer/zip-structure/testing). The write of an admitted entry is each
- * caller's and is pinned in that caller's tests (`attachment-resolver.test.ts`,
- * the injector's until M2b).
+ * caller's and is pinned in that caller's tests (`attachment-resolver.test.ts`).
  */
 
 import { describe, it, expect } from "vitest";

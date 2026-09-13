@@ -10,8 +10,8 @@
  * An offline end-to-end test is structurally infeasible for this path (DD-23 /
  * DD-26 F3: the offline harness always runs a git workspace with LocalArtifactDir,
  * so deriveCaptureMode is always true and the no-storage deny-gate is unreachable).
- * This test exercises the exact function both `execute-deep-agent/index.ts` and the
- * Cursor `persist` wrapper invoke, over a full AgentExecutionStatus.
+ * This test exercises the exact function the turn runtime's persist chokepoint
+ * invokes for both harnesses, over a full AgentExecutionStatus.
  */
 
 import { describe, it, expect } from "vitest";

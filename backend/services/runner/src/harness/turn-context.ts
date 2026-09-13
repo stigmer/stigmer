@@ -16,9 +16,9 @@
  * sequences them, and the adapter runs its own harness-specific steps after
  * the whole record exists.
  *
- * Shape, chosen against `execute-deep-agent/setup.ts`: a typed record built
- * from small functions (the `SetupResult` mold), never one 775-line
- * `performSetup`. The record is the adapter contract's `TurnInput`
+ * Shape, chosen against the native orchestrator's `setup.ts` (deleted at S3
+ * M2b): a typed record built from small functions (the `SetupResult` mold),
+ * never one 775-line `performSetup`. The record is the adapter contract's `TurnInput`
  * (`types.ts`): every phase returns a named slice of it, and
  * {@link resolveTurnContext} composes the whole. There is no wider
  * "runtime-private" record beside it — the lock release and the write-back

@@ -26,8 +26,8 @@
  *     is NON-FATAL — both editions' push gates validated every artifact
  *     with a central-directory-based reader before storage, so a defect
  *     here can only be a truncated or corrupted download.
- *   - runner execute-deep-agent/attachment-injector.ts (user
- *     attachments): structural failure is FAIL-HARD — the input is an
+ *   - runner shared/attachment-zip.ts (user attachments, both
+ *     harnesses): structural failure is FAIL-HARD — the input is an
  *     untrusted upload and nothing upstream vouched for it.
  *   - stigmer-server src/domain/skill/storage/ (the push gate):
  *     FAIL-HARD, plus a safearchive-parity entry pre-filter decoded from

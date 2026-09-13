@@ -109,7 +109,7 @@ export interface ApprovalGateConfig {
    * gitignored path stays on the interrupt gate exactly as before.
    *
    * True only for gates whose backend a CAS observer wraps: the parent gate
-   * always (setup.ts), and — since DD-19 — sub-agent gates too, because
+   * always (turn-setup.ts), and — since DD-19 — sub-agent gates too, because
    * `compileSubagents` gives every sub-agent a CAS-observing backend wired to
    * the SAME shared observer and `buildSubAgentMiddleware` then inherits this
    * config verbatim. A gate over an UNOBSERVED backend must keep this false:
@@ -199,7 +199,7 @@ export function createApprovalGateMiddleware(
   const leasedCategories = config.leasedCategories ?? EMPTY_CATEGORY_SET;
 
   // No global-bypass early return: a pre-armed spec.auto_approve_all means the
-  // gate is never even installed (setup.ts builds this config only when not
+  // gate is never even installed (turn-setup.ts builds this config only when not
   // global). Scoped leases keep the gate active so non-leased actions still gate.
 
   return {

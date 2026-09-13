@@ -10,7 +10,6 @@ import {
   STIGMER_LOCAL_STATE_DIR,
 } from "../stigmer-link.js";
 import { LocalWorkspaceBackend } from "../local-backend.js";
-import { injectAttachments } from "../../../activities/execute-deep-agent/attachment-injector.js";
 
 /**
  * The `.stigmer` symlink is the bridge that makes platform-mounted content
@@ -114,31 +113,17 @@ describe("stigmer-link", () => {
       return agentBackend.read(path) as Promise<{ content?: string; error?: string }>;
     }
 
-    it("approved plan injected via injectAttachments is readable by the deepagents backend", async () => {
+    it("an approved plan mounted under .stigmer/inputs is readable by the deepagents backend once the link exists", async () => {
       const planFileName = "notes_ab12cd34.plan.md";
       const planText = "# The Approved Plan\n\nStep 1: do the thing.\n";
-      const uploadPath = join(platformDir, "upload-src.md");
-      await writeFile(uploadPath, planText);
 
-      // Write path: exactly what the build turn does — the attachment is
-      // materialized through the platform-routing backend at the mount path
-      // the implement-plan directive will tell the model to read.
+      // Write path: the attachment lands in the platform dir at the mount
+      // path the implement-plan directive tells the model to read — here
+      // through the platform-routing backend, the same physical write
+      // `shared/attachment-resolver.ts` performs (it ensures the link itself,
+      // which is why the link's absence is staged by hand below).
       const workspaceBackend = new LocalWorkspaceBackend(workspaceDir, platformDir);
-      const injected = await injectAttachments({
-        backend: workspaceBackend,
-        attachments: [{
-          filename: planFileName,
-          storageKey: "",
-          mountPath: `.stigmer/inputs/${planFileName}`,
-          contentType: "text/markdown",
-          extract: false,
-          localPath: uploadPath,
-          $typeName: "ai.stigmer.agentic.agentexecution.v1.Attachment",
-        } as any],
-        storage: undefined,
-        isLocalMode: true,
-      });
-      expect(injected.map((f) => f.path)).toEqual([`.stigmer/inputs/${planFileName}`]);
+      await workspaceBackend.writeFile(`.stigmer/inputs/${planFileName}`, planText);
 
       // Without the symlink the agent cannot see the plan — the bug this
       // module fixes for the native harness. Pinned so the link stays

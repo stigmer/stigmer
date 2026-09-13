@@ -16,7 +16,7 @@
  * is house style; the words are shared.
  *
  * Enforcement is separate from instruction: the native harness ALSO denies
- * filesystem writes at the tool layer (see execute-deep-agent/setup.ts), so
+ * filesystem writes at the tool layer (see execute-deep-agent/turn-setup.ts), so
  * for it this directive is guidance toward a well-formed plan, not the
  * enforcement mechanism. The Cursor harness has no tool-level lever (the
  * Cursor SDK exposes no mode parameter), so there this directive is the

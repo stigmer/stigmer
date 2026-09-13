@@ -24,10 +24,9 @@
  * still carrying its payload slice), so parsing happens exactly once and
  * "the manifest promised a file extraction cannot find" is unrepresentable.
  * The WRITE of an extracted entry is the caller's: the attachment resolver
- * writes under the session's platform dir (`attachment-resolver.ts`), and
- * until S3 M2b retires it, the native injector writes through its workspace
- * backend. Moved here from `execute-deep-agent/attachment-injector.ts` at
- * S3 M1 (Q-S3-14) so the guards have one home.
+ * writes under the session's platform dir (`attachment-resolver.ts`), the
+ * one caller since S3 M2b retired the native injector. Moved here from that
+ * injector at S3 M1 (Q-S3-14) so the guards have one home.
  */
 
 import { createInflateRaw } from "node:zlib";

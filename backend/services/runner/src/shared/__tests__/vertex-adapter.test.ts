@@ -119,7 +119,7 @@ describe("buildChatModel vertex adapter", () => {
   });
 
   it("translated ids inherit the same default maxTokens as canonical ids", () => {
-    // setup.ts deliberately omits maxTokens, so the LangChain per-model
+    // turn-setup.ts deliberately omits maxTokens, so the LangChain per-model
     // default applies. That default prefix-matches the model string — and the
     // vertex branch hands ChatAnthropic the TRANSLATED string. This pins the
     // equality the zero-behavior-change criterion rests on (verified 16384 ==

@@ -1158,7 +1158,7 @@ export class MessageAccumulator {
  * WAITING_APPROVAL.
  *
  * This is the cursor analog of the native harness synthesizing WAITING_APPROVAL
- * tool calls from LangGraph interrupts (execute-deep-agent/index.ts). The hook
+ * tool calls from LangGraph interrupts (execute-deep-agent/turn-settle.ts). The hook
  * ledger — not the SDK-reported tool status — is the authoritative record of
  * what was gated, because the hook is the only component that makes the per-call
  * allow/deny decision. The backend then projects pending_approvals from these

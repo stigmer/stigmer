@@ -1,7 +1,8 @@
 /**
- * Tests for the attachment resolver, which the Cursor activity calls today
- * and the turn runtime takes over in S2 M3 (S3 retires the native twin,
- * execute-deep-agent/attachment-injector.ts).
+ * Tests for the attachment resolver — the turn runtime's attachment phase,
+ * the one pipeline for both harnesses since S3 M2b (the native twin,
+ * `attachment-injector.ts`, retired then; its ZIP guards moved to
+ * `attachment-zip.ts` at S3 M1).
  *
  * The load-bearing behaviors: storage-key attachments materialize under the
  * platform inputs dir (the universal path — every server-created attachment
