@@ -29,8 +29,9 @@ import { create, type JsonObject } from "@bufbuild/protobuf";
 import { AgentExecutionStatusSchema, type AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentMessageSchema, ToolCallSchema, type ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
-import { ApprovalAction, MessageType, SnapshotKind, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ApprovalAction, FileChangeKind, MessageType, SnapshotKind, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
+import { makeInMemoryArtifactStorage } from "../../__test-utils__/fake-artifact-storage.js";
 import { initGitWorkspace } from "../../__test-utils__/git-workspace-fixture.js";
 import { mockWorkspaceBackend } from "../../__test-utils__/mock-workspace.js";
 import type { FileReviewIdentity } from "../capabilities.js";
@@ -143,6 +144,49 @@ describe("harness/capture over a git work tree", () => {
     const pending = await captureCandidate({ status, executionId: EXECUTION_ID, workspace, fileReview: FILE_REVIEW, artifactStorage: undefined, capture, globalBypass: false });
     expect(pending).toBe(false);
     expect(status.fileReviewEventStream?.events.map((e) => e.payload.case)).toEqual(["baselineCaptured"]);
+  });
+
+  it("a turn that changed nothing on the tree stamps no row, even a COMPLETED write whose edit was reverted before the boundary", async () => {
+    const workspace = workspaceOver(root);
+    const capture = (await pinCaptureBaseline({ status, executionId: EXECUTION_ID, workspace, fileReview: FILE_REVIEW, artifactStorage: undefined }))!;
+    status.messages.push(messageWith(row("tc-reverted", "write_file", ToolCallStatus.TOOL_CALL_COMPLETED, { args: { file_path: "notes.md" } })));
+    // The engine wrote and then wrote the original back: no net change.
+    writeFileSync(join(root, "notes.md"), "one\n");
+
+    const pending = await captureCandidate({ status, executionId: EXECUTION_ID, workspace, fileReview: FILE_REVIEW, artifactStorage: undefined, capture, globalBypass: false });
+
+    expect(pending).toBe(false);
+    expect(status.messages[0]!.toolCalls[0]!.fileChangeSetId, "a row must never reference a change set that does not exist").toBe("");
+  });
+
+  it("the progress substrate follows the workspace shape: git-only without storage surfaces the tracked change; CAS reads what the adapter bound", async () => {
+    const gitOnly = (await pinCaptureBaseline({ status, executionId: EXECUTION_ID, workspace: workspaceOver(root), fileReview: FILE_REVIEW, artifactStorage: undefined }))!;
+    writeFileSync(join(root, "notes.md"), "one\ntwo\n");
+    const tracked = await gitOnly.progress.substrate.capture();
+    expect(tracked.changed).toBe(true);
+    expect(tracked.delta.entries.map((e) => e.pathAfter)).toEqual(["notes.md"]);
+
+    // A non-git workspace with storage: the CAS slice alone, over the reader
+    // the adapter binds; unbound it reads nothing observed.
+    const casRoot = mkdtempSync(join(tmpdir(), "stigmer-capture-cas-"));
+    try {
+      const casWorkspace: TurnWorkspace = { ...workspaceOver(casRoot), gitWorkspace: false };
+      const cas = (await pinCaptureBaseline({
+        status: create(AgentExecutionStatusSchema, {}),
+        executionId: EXECUTION_ID,
+        workspace: casWorkspace,
+        fileReview: FILE_REVIEW,
+        artifactStorage: makeInMemoryArtifactStorage().storage,
+      }))!;
+      expect(cas.baselineTree, "a non-git baseline is the CAS manifest, not a tree").toBe("");
+      writeFileSync(join(casRoot, "scratch.log"), "line\n");
+      expect((await cas.progress.substrate.capture()).delta.entries, "nothing bound, nothing observed").toEqual([]);
+      cas.casObservations = () => ({ before: new Map([["scratch.log", null]]), blockedSecretPaths: new Set() });
+      const observed = await cas.progress.substrate.capture();
+      expect(observed.delta.entries.map((e) => [e.pathAfter, e.kind])).toEqual([["scratch.log", FileChangeKind.ADD]]);
+    } finally {
+      rmSync(casRoot, { recursive: true, force: true });
+    }
   });
 
   it("scopes the stamp to this turn: a seeded prior-turn row keeps its change set, a sub-agent row created this turn takes the parent's", async () => {

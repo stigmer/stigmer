@@ -54,8 +54,14 @@
  *  - No persist cadence. The runtime's chokepoint is single-flight and
  *    unconditional at settle; WHEN a streaming turn asks for a write is the
  *    adapter's (`shared/persist-decision.ts` over its own dirty flags, since
- *    what counts as a discrete change is engine knowledge), until S3 lifts
- *    the file-review capture and can revisit with both loops in view.
+ *    what counts as a discrete change is engine knowledge). Revisited with
+ *    both loops in view at S3 M4 and kept (Q-S3-13): the cadence RULE is
+ *    shared, the timing is the engine's.
+ *  - No capture. The file-review capture is the runtime's whole
+ *    (`harness/capture.ts`): the baseline before `runTurn`, the candidate
+ *    after it, the stamp, the review decision. The one capture fact an
+ *    adapter holds — what its engine observed touching CAS-owned paths — it
+ *    binds through `TurnSink.bindCasObservations`.
  *
  * Module shape follows `shared/checkpointer/`: `types.ts`, `capabilities.ts`,
  * `registry.ts`, no barrel.
@@ -323,11 +329,10 @@ export interface TurnInput extends NormalizedActivityInput {
  * the adapter appends the engine's transcript rows (assistant messages,
  * tool-call rows and their approval status, sub-agent rows, todos); the
  * runtime writes the phase, the terminal system messages, `streamingUsage`,
- * artifacts, write-backs and the file-review projection. An adapter never
- * writes a phase or a terminal copy: those are Temporal semantics the
- * runtime owns once. (The file-review boundary itself is the adapter's until
- * S3 lifts both harnesses' captures together; `execute-cursor/adapter.ts`
- * says so.)
+ * artifacts, write-backs, `fileChangeProgress`, the file-review ledger
+ * events and the change-set stamp on a flowed edit row (S3 M4,
+ * `harness/capture.ts`). An adapter never writes a phase or a terminal copy:
+ * those are Temporal semantics the runtime owns once.
  */
 export interface TurnSink {
   /**

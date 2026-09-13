@@ -23,6 +23,7 @@ import { join } from "node:path";
 
 import {
   readCasObservations,
+  readSidecarSnapshot,
   resetCasObservations,
   casObservationsDir,
   buildObservationStagingScript,
@@ -94,6 +95,30 @@ describe("cas-observations sidecar", () => {
       const obs = await readCasObservations(hitl);
       expect(obs.captured).toEqual([]);
       expect(obs.secretPaths).toEqual([]);
+    });
+  });
+
+  describe("readSidecarSnapshot (what the adapter binds as the runtime's CAS observations)", () => {
+    it("maps captured entries to the before-map (null for an ADD) and secret markers to the blocked set", async () => {
+      const hitl = tmp("obs-snap-");
+      const dir = await resetCasObservations(hitl);
+      writeFileSync(join(dir, "aaa.meta.json"), JSON.stringify({ path: "logs/a.log", kind: "captured", existed: true }));
+      writeFileSync(join(dir, "aaa.blob"), "ORIGINAL");
+      writeFileSync(join(dir, "bbb.meta.json"), JSON.stringify({ path: "logs/b.log", kind: "captured", existed: false }));
+      writeFileSync(join(dir, "ccc.meta.json"), JSON.stringify({ path: ".env", kind: "secret" }));
+
+      const snapshot = await readSidecarSnapshot(hitl);
+
+      expect([...snapshot.before.keys()].sort()).toEqual(["logs/a.log", "logs/b.log"]);
+      expect(Buffer.from(snapshot.before.get("logs/a.log")!).toString("utf8")).toBe("ORIGINAL");
+      expect(snapshot.before.get("logs/b.log")).toBeNull();
+      expect([...snapshot.blockedSecretPaths]).toEqual([".env"]);
+    });
+
+    it("reads an empty snapshot when the hook staged nothing", async () => {
+      const snapshot = await readSidecarSnapshot(tmp("obs-snap-"));
+      expect(snapshot.before.size).toBe(0);
+      expect(snapshot.blockedSecretPaths.size).toBe(0);
     });
   });
 
