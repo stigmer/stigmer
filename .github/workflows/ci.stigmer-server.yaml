@@ -46,6 +46,12 @@ on:
       - "scripts/turbo-set.mjs"
       - "scripts/publish-libs.mjs"
       - "client-apps/web/nginx.conf"
+      # scripts/lib/ is imported by this package's own scripts: bundle-slim.mjs
+      # (source-map-pragma.mjs) and verify-slim-artifact.mjs / smoke-docker-
+      # image.mjs (stigmer-smoke.mjs, the shared console-lane probe). A change
+      # there must run this gate in its own PR (#1087: the probe's contract
+      # moved and this lane went red on main).
+      - "scripts/lib/**"
       - "scripts/verify-static-export-routes.mjs"
       - "test/extension-consumer/**"
       - "Makefile"
@@ -65,6 +71,12 @@ on:
       - "scripts/turbo-set.mjs"
       - "scripts/publish-libs.mjs"
       - "client-apps/web/nginx.conf"
+      # scripts/lib/ is imported by this package's own scripts: bundle-slim.mjs
+      # (source-map-pragma.mjs) and verify-slim-artifact.mjs / smoke-docker-
+      # image.mjs (stigmer-smoke.mjs, the shared console-lane probe). A change
+      # there must run this gate in its own PR (#1087: the probe's contract
+      # moved and this lane went red on main).
+      - "scripts/lib/**"
       - "scripts/verify-static-export-routes.mjs"
       - "test/extension-consumer/**"
       - "Makefile"
