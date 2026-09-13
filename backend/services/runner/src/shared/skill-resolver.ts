@@ -13,8 +13,10 @@
  * platform dir the runtime owns; the harness renders the returned metadata
  * into its prompt in its own placement. Moved from
  * `activities/execute-cursor/` at S2 M3b; the native harness's twin
- * (`skill-writer.ts` `fetchSkillsByRefs` + `mountSkills`) is what S3
- * reconciles it with.
+ * (`skill-writer.ts` `fetchSkillsByRefs` + `mountSkills`) retired at S3 M2b,
+ * and the module itself at S3 M5 — the one renderer it kept is
+ * `shared/prompt-sections.ts` `alsoAvailableSkillsNote`. This is the one
+ * skills path for every harness.
  *
  * The mount is cached by the skill's content-addressed version hash
  * (stigmer/stigmer#672): metadata is fetched on every execution (that keeps

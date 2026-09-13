@@ -159,7 +159,7 @@ All configuration is environment-driven. Names and defaults below are verified a
 | `STIGMER_PROXY_ENDPOINT` | Proxy/cloud | No | _(none)_ | Stigmer proxy endpoint. When set, activates proxy transport: Cursor SDK traffic and artifact uploads are routed through the proxy. |
 | `WORKSPACE_ROOT_DIR` | All | No | `~/.stigmer/workspaces/runner` (fallback) | Root directory for agent workspaces. If unset, the runner warns and creates an isolated fallback directory — it never falls back to the process working directory. |
 | `TEMPORAL_MAX_CONCURRENCY` | All | No | `5` | Maximum concurrent Temporal activity executions (per session Worker in manager mode). |
-| `STIGMER_CHECKPOINTER_TYPE` | All | No | `memory` (local), `http` (cloud) | LangGraph checkpointer backend for agent state: `memory` or `http`. |
+| `STIGMER_CHECKPOINTER_TYPE` | All | No | `sqlite` (local), `http` (cloud) | LangGraph checkpointer backend for the native harness's agent state: `sqlite` (a durable per-session file under the platform dir, so a paused or interrupted run resumes across invocations), `http` (the proxy-backed saver), or `memory` (ephemeral; test runs only — a paused run cannot resume on it). |
 | `STIGMER_CHECKPOINTER_PROXY_ENDPOINT` | `http` checkpointer | No | value of `STIGMER_PROXY_ENDPOINT` | Endpoint for the HTTP checkpointer; falls back to the proxy endpoint. |
 | `STIGMER_PRIMARY_MODEL` | All | No | `gpt-4.1` | Default LLM model identifier. |
 | `STIGMER_CURSOR_CLOUD_MODE_ENABLED` | All | No | `false` | When `true`, enables Cursor cloud (workspace-less) execution mode for the Cursor harness. |

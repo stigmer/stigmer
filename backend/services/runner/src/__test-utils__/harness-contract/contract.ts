@@ -335,9 +335,10 @@ export async function assertProposalIsWaitingAndUnexecuted(subject: HarnessContr
  * turn continues — the row's terminal status is NOT asserted here because
  * it is not the adapter's to write (the decision is the server's field and
  * the WAITING → SKIPPED transition follows from it with no engine knowledge,
- * so it is the runtime's; S2 M4 Q-M4-1, the runtime's arm lands in S3). The
- * reinvocation sees a CLONE of the persisted status, as it would from the
- * server.
+ * so it is the runtime's — `terminalizeNonExecutingDecisions`, landed at
+ * S3 M1 and pinned by the runtime half's REJECT / SKIP arms; S2 M4 Q-M4-1).
+ * The reinvocation sees a CLONE of the persisted status, as it would from
+ * the server.
  */
 export async function assertDecisionsExecuteExactlyOnce(subject: HarnessContractSubject): Promise<void> {
   const driver = new ExecutionDriver(subject, "inv3");

@@ -33,9 +33,10 @@
  * job: carry a REJECTed or SKIPped row to its terminal status. The decision
  * is on the row (the server's field) and the transition follows from it with
  * no engine knowledge, so it belongs to the runtime — one writer per field,
- * as `approvalDecisionsOf` is the runtime's one reader (S2 M4, Q-M4-1; the
- * runtime's arm lands in S3). An adapter's whole duty for a non-executing
- * decision is to not execute.
+ * as `approvalDecisionsOf` is the runtime's one reader and
+ * `terminalizeNonExecutingDecisions` its one writer (S2 M4, Q-M4-1; landed at
+ * S3 M1, `harness/approval-decisions.ts`). An adapter's whole duty for a
+ * non-executing decision is to not execute.
  *
  * Scenarios are arranged PER SESSION (the engine is per session in every real
  * harness; a subject arranges that session's engine), and arranging replaces
@@ -359,9 +360,12 @@ export interface ScriptedSubject extends HarnessContractSubject {
 }
 
 /**
- * The fake fills the `deep-agent` row in S2 — the one row the runtime does
- * not yet serve for real (the native adapter lands in S3, and takes the row
- * over from the fake in the runtime half then).
+ * The fake declares the `deep-agent` row: in S2 the runtime served that row
+ * through this fake alone; since S3 M3 the real native adapter takes it over
+ * in the runtime half
+ * (`execute-deep-agent/__test-utils__/contract-subject.ts`), and the fake
+ * keeps declaring it so the kit's self-check runs a full subject under both
+ * pause primitives without an engine.
  */
 export function scriptedSubject(options: ScriptedHarnessOptions): ScriptedSubject {
   const adapter = new ScriptedHarnessAdapter(options);

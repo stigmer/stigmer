@@ -29,9 +29,12 @@
  * name->category mapping are baked into the generated hook script (from
  * approval-policy.ts), not carried in the state file — only the dynamic inputs
  * (autoApproveAll, leasedCategories, mcpToolPolicies, approvedGrantTokens) live
- * here. This mirrors the native harness and avoids denying auto-approved MCP
- * tools, which are absent from the policy map and indistinguishable from unknown
- * tools by name.
+ * here. The gated set is the shared taxonomy (`shared/tool-kind.ts`
+ * `toolApprovalCategory`, the native gate's too), and the policy map is the
+ * runtime's merged one (`TurnInput.mcp.policies`), so this file adds no rule of
+ * its own; fail-open on an unknown name is what keeps auto-approved MCP tools
+ * — absent from the policy map and indistinguishable from unknown tools by
+ * name — from being denied.
  *
  * Approval leases (the scoped successor to autoApproveAll): `autoApproveAll` is
  * now ONLY the pre-armed spec.auto_approve_all global bypass. An interactive
@@ -777,8 +780,12 @@ export async function removeActiveTurnPointer(gateDir: string): Promise<void> {
  * (PendingApprovalComputer) and CLEARS entries once they carry an approval_action,
  * so by the time the workflow reinvokes this activity, pending_approvals is empty
  * and the decision survives only on the tool call (status WAITING_APPROVAL +
- * approval_action set). This mirrors the native harness
- * (execute-deep-agent/hitl.ts extractApprovalDecisions).
+ * approval_action set). The runtime reads the same rows for the decisions
+ * themselves (`harness/approval-decisions.ts` `approvalDecisionsOf`, on
+ * `TurnInput.approvalDecisions`, for every harness); this reader exists for
+ * the two facts only this harness needs beside them — the pending-approval
+ * protos the grant and prompt builders take, and the content digests for the
+ * exact grant — and a test pins the two readers' agreement.
  *
  * Returns a PendingApproval list reconstructed from those tool calls (so the
  * existing grant/prompt builders work unchanged) alongside the decision map.

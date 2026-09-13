@@ -41,12 +41,6 @@ export class ExecutionState {
    */
   readonly lastLlmRunId: Map<string, string> = new Map();
 
-  /**
-   * Tool run_id -> monotonic start time (ms) for duration calculation.
-   * Set on on_tool_start, consumed and removed on on_tool_end.
-   */
-  readonly toolStartTimes: Map<string, number> = new Map();
-
   constructor(proto: AgentExecutionStatus) {
     this.proto = proto;
   }
@@ -61,7 +55,6 @@ export class ExecutionState {
     this.messagesByRun.clear();
     this.currentAiMessage.clear();
     this.lastLlmRunId.clear();
-    this.toolStartTimes.clear();
   }
 
   /**

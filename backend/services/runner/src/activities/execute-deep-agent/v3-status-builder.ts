@@ -316,7 +316,6 @@ export class V3StatusBuilder implements ExecutionStatusWriter {
       if (Object.keys(input).length > 0 && !existing.args) {
         existing.args = input as JsonObject;
       }
-      this.state.toolStartTimes.set(callId, performance.now());
       this._forceNextUpdate = true;
       return;
     }
@@ -369,7 +368,6 @@ export class V3StatusBuilder implements ExecutionStatusWriter {
 
     parentMsg.toolCalls.push(tc);
     this.state.toolCalls.set(callId, tc);
-    this.state.toolStartTimes.set(callId, performance.now());
 
     this._forceNextUpdate = true;
   }
@@ -386,7 +384,6 @@ export class V3StatusBuilder implements ExecutionStatusWriter {
     tc.result = extractToolResultV3(output);
     tc.completedAt = utcTimestamp();
     tc.isStreaming = false;
-    this.state.toolStartTimes.delete(callId);
     this.toolArgBuffers.delete(callId);
 
     // Project a completed to-do write into status.todos. deepagents' write_todos
@@ -411,7 +408,6 @@ export class V3StatusBuilder implements ExecutionStatusWriter {
     tc.error = message;
     tc.completedAt = utcTimestamp();
     tc.isStreaming = false;
-    this.state.toolStartTimes.delete(callId);
     this.toolArgBuffers.delete(callId);
 
     this._forceNextUpdate = true;

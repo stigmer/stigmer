@@ -9,6 +9,15 @@
  * Every row of the matrix below is either a flag here or internal to one
  * adapter; nothing in it needed a third kind of thing.
  *
+ * One flag is declared for the matrix and read by no runtime phase today:
+ * `systemPrompt`. Its readers are the adapters' own prompt builders, by
+ * placement (the native builder renders a system prompt rebuilt every turn;
+ * the Cursor builder renders the session's first user message), and the
+ * shared prompt glue (`shared/prompt-sections.ts`) is written so that
+ * placement stays each adapter's. The runtime would branch on it only if it
+ * ever composed prompts itself — the S4/S5 unification question, not a phase
+ * that exists (S3 M5, Q-M5-6).
+ *
  * The matrix the contract was designed against (2026-09; Claude and Codex are
  * the surveyed SDKs, not built harnesses):
  *

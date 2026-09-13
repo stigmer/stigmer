@@ -142,13 +142,16 @@ export type DeepAgentGraphInput =
 // ── Steps ───────────────────────────────────────────────────────────────────
 
 /**
- * The registry id the turn runs on: the execution's, or the registry's
- * default when it named none — the same reading the runtime's attachment
- * phase made for the vision budget, so the model that sees the images is
- * the model that runs.
+ * The registry id the turn runs on: what the execution asked for, as the
+ * runtime already resolved it (`input.model.requested`, `"default"` when the
+ * spec named none — the one reader of `spec.executionConfig.modelName`, which
+ * the Cursor adapter reads too), or the registry's default for `"default"`.
+ * The same reading the runtime's attachment phase made for the vision budget,
+ * so the model that sees the images is the model that runs. (Until S3 M5 this
+ * read the spec field beside the runtime's resolved copy; F-M3-P7.)
  */
 export async function resolveModelName(input: TurnInput): Promise<string> {
-  return input.execution.spec?.executionConfig?.modelName || (await getDefaultModel());
+  return input.model.requested === "default" ? await getDefaultModel() : input.model.requested;
 }
 
 /**
