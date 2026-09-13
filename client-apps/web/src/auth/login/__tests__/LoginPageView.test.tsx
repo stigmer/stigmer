@@ -25,7 +25,10 @@ vi.mock("next/navigation", () => ({
 vi.mock("next-themes", () => ({
   useTheme: () => ({ resolvedTheme: "light" }),
 }));
-vi.mock("@stigmer/sdk", () => ({
+// The tier mechanism (`isResourceAvailable`) stays real: it is the thing
+// under test. Only the client constructor is stubbed.
+vi.mock("@stigmer/sdk", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@stigmer/sdk")>()),
   Stigmer: class {},
 }));
 vi.mock("@stigmer/react", () => ({

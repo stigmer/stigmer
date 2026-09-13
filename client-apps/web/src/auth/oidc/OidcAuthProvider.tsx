@@ -17,7 +17,18 @@ import {
 } from "./sso-session";
 
 const CALLBACK_PATH = "/auth/callback";
+/** The signed-out landing — the console's own sign-in page (Q-CL-9). */
+const LOGIN_PATH = "/login";
 const REDIRECT_PATH_KEY = "stigmer:auth:redirect_path";
+
+/** Drop the stored session; the entry may already be gone. */
+async function removeUserBestEffort(manager: UserManager): Promise<void> {
+  try {
+    await manager.removeUser();
+  } catch {
+    // Nothing to remove is the state we wanted.
+  }
+}
 
 /**
  * Resolve the UserManager for the current session.
@@ -48,6 +59,13 @@ function resolveActiveManager(auth0Config: OidcConfig) {
  * track authentication state. Provides the standard {@link AuthState} via
  * {@link AuthContext}, keeping the public API identical to
  * `DisabledAuthProvider`.
+ *
+ * **Any standards-compliant issuer**: the provider is configured from the
+ * runtime config the deployment publishes — Stigmer Cloud's Auth0 tenant,
+ * or a self-hosted server's own issuer (Keycloak, Okta, Dex, …) through
+ * `STIGMER_OIDC_CONSOLE_CLIENT_ID` (20260913.02, stigmer#924). Nothing in
+ * here is vendor-shaped: discovery, PKCE, refresh and sign-out are the
+ * OIDC standard's, so the same code signs in against every one of them.
  *
  * **SSO support**: Detects SSO callbacks via `stigmer:sso:login` in
  * sessionStorage. When present, creates a temporary SSO `UserManager` for
@@ -165,36 +183,47 @@ export default function OidcAuthProvider({
     managerRef.current!.signinRedirect();
   }, []);
 
+  // Sign-out speaks only the OIDC standard (20260913.02 Q-CL-4, Q-CL-9).
+  // An issuer that publishes `end_session_endpoint` (Auth0, Keycloak,
+  // Okta) gets RP-initiated logout and sends the browser back to
+  // `post_logout_redirect_uri` — /login, the signed-out landing. An issuer
+  // that publishes none (Dex, or any issuer with no logout endpoint) gets a
+  // local sign-out that lands on the same page. Either way the person sees
+  // that they are signed out; landing on "/" would let AuthGuard march them
+  // straight back into the issuer. No vendor URL is ever built here.
   const logout = useCallback(async () => {
     setIsLoggingOut(true);
     setAuthToken(null);
+    const manager = managerRef.current!;
 
     const ssoSession = getSsoSession();
     if (ssoSession) {
       clearSsoSession();
-      try {
-        await managerRef.current!.removeUser();
-      } catch {
-        // Best-effort — the session storage entry may already be gone.
-      }
-      const orgParam = ssoSession.org ? `?org=${encodeURIComponent(ssoSession.org)}` : "";
-      window.location.replace(`/login${orgParam}`);
+      await removeUserBestEffort(manager);
+      const orgParam = ssoSession.org
+        ? `?org=${encodeURIComponent(ssoSession.org)}`
+        : "";
+      window.location.replace(`${LOGIN_PATH}${orgParam}`);
       return;
     }
 
-    try {
-      await managerRef.current!.signoutRedirect();
-    } catch (err) {
-      console.error("[auth] signoutRedirect failed, falling back:", err);
-      const issuer = config.issuer.replace(/\/+$/, "");
-      const params = new URLSearchParams({
-        client_id: config.clientId,
-        post_logout_redirect_uri: window.location.origin,
-        returnTo: window.location.origin,
-      });
-      window.location.replace(`${issuer}/v2/logout?${params}`);
+    const endSession = await manager.metadataService
+      .getEndSessionEndpoint()
+      .catch(() => undefined);
+    if (endSession !== undefined) {
+      try {
+        await manager.signoutRedirect();
+        return;
+      } catch (err) {
+        console.error(
+          "[auth] signoutRedirect failed; signing out locally:",
+          err,
+        );
+      }
     }
-  }, [config.issuer, config.clientId]);
+    await removeUserBestEffort(manager);
+    window.location.replace(LOGIN_PATH);
+  }, []);
 
   const authUser = useMemo<AuthUser | null>(() => {
     if (!user?.profile) return null;

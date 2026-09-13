@@ -25,7 +25,6 @@ import { StrictMode, useEffect } from "react";
 import { render, waitFor } from "@testing-library/react";
 import type { User } from "oidc-client-ts";
 import type { OidcConfig } from "../types";
-import { useAuth } from "../../use-auth";
 
 const REDIRECT_PATH_KEY = "stigmer:auth:redirect_path";
 const SAVED_PATH = "/agents?tab=all";
@@ -130,19 +129,25 @@ describe("OidcAuthProvider callback single-flight", () => {
   });
 });
 
-/** Calls logout() once the restored session is in place. */
-function LogoutOnceAuthenticated() {
-  const { isAuthenticated, logout } = useAuth();
-  useEffect(() => {
-    if (isAuthenticated) logout();
-  }, [isAuthenticated, logout]);
-  return null;
-}
-
-/** Render the provider on an ordinary page with a restored session, then sign out. */
+/**
+ * Render the provider on an ordinary page with a restored session, then
+ * sign out from a child. The child's `useAuth` is imported AFTER
+ * vi.resetModules(), from the same fresh module graph as the provider —
+ * a statically imported hook would read the stale AuthContext instance.
+ */
 async function renderAndLogout() {
   mocks.manager.getUser.mockResolvedValueOnce(mocks.user);
   const OidcAuthProvider = await importProvider();
+  const { useAuth } = await import("../../use-auth");
+
+  function LogoutOnceAuthenticated() {
+    const { isAuthenticated, logout } = useAuth();
+    useEffect(() => {
+      if (isAuthenticated) logout();
+    }, [isAuthenticated, logout]);
+    return null;
+  }
+
   render(
     <OidcAuthProvider config={CONFIG}>
       <LogoutOnceAuthenticated />

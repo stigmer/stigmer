@@ -17,21 +17,17 @@ const ORG_GATE_BYPASS_PREFIXES = ["/invite/"] as const;
 /**
  * Blocks the app until the user has at least one organization.
  *
- * Delegates provisioning state machine logic to `useOrgGate()` from the
- * SDK and renders app-specific gate screens based on the returned state.
+ * Delegates the gate derivation to `useOrgGate()` from the SDK and renders
+ * app-specific gate screens based on the returned state.
  */
 export function OrgGate({ children }: { children: ReactNode }) {
   const location = useLocation();
-  const { user } = useAuth();
 
   const isBypassed = ORG_GATE_BYPASS_PREFIXES.some((p) =>
     location.pathname.startsWith(p),
   );
 
-  const { state, retry, refresh } = useOrgGate({
-    isBypassed,
-    isOidcMode: user !== null,
-  });
+  const { state, retry, refresh } = useOrgGate({ isBypassed });
 
   switch (state.status) {
     case "bypassed":
@@ -39,8 +35,6 @@ export function OrgGate({ children }: { children: ReactNode }) {
       return <>{children}</>;
     case "loading":
       return <LoadingState />;
-    case "provisioning":
-      return <ProvisioningState />;
     case "error":
       return <ErrorState message={state.message} onRetry={retry} />;
     case "no-orgs":
@@ -74,39 +68,6 @@ function GateHeader() {
         <LogOut className="size-3.5" />
         Sign out
       </button>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Provisioning — waiting for server-side personal org creation (OIDC)
-// ---------------------------------------------------------------------------
-
-function ProvisioningState() {
-  const { user } = useAuth();
-  const displayName = user?.name ?? user?.email;
-
-  return (
-    <div className="relative flex h-screen flex-col items-center justify-center p-8 bg-background text-foreground">
-      <GateHeader />
-      <div className="flex flex-col items-center gap-4 text-center">
-        {user && (
-          <div className="flex size-12 items-center justify-center rounded-full bg-muted">
-            <span className="text-lg font-medium text-muted-foreground">
-              {(displayName ?? "?").charAt(0).toUpperCase()}
-            </span>
-          </div>
-        )}
-        <div className="space-y-1.5">
-          <h1 className="text-lg font-semibold text-foreground">
-            {displayName ? `Welcome, ${displayName}!` : "Welcome!"}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Setting up your workspace&hellip;
-          </p>
-        </div>
-        <Loader2 className="size-5 animate-spin text-muted-foreground" />
-      </div>
     </div>
   );
 }

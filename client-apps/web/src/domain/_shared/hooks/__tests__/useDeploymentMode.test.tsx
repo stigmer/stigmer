@@ -12,8 +12,8 @@
 // there is, and a skeleton that never lifts would be worse than a guess.
 // ---------------------------------------------------------------------------
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { renderHook, waitFor } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { cleanup, renderHook, waitFor } from "@testing-library/react";
 import type { Stigmer } from "@stigmer/sdk";
 
 vi.mock("@/config/env", () => ({
@@ -40,6 +40,10 @@ function clientFailing(): Stigmer {
 
 describe("useDeploymentMode", () => {
   beforeEach(() => vi.clearAllMocks());
+  // Unmount so no state update from a settling getServerInfo lands after
+  // the environment is torn down (the web vitest config has no globals,
+  // so testing-library's auto-cleanup is not wired).
+  afterEach(cleanup);
 
   it("starts unresolved on the hostname guess (a self-host guesses 'cloud')", () => {
     const { result } = renderHook(() => useDeploymentMode(undefined));

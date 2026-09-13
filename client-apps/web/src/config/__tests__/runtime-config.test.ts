@@ -27,9 +27,8 @@ function configJson(body: Record<string, unknown>): void {
   );
 }
 
-async function load() {
-  const module = await import("../runtime-config");
-  return module;
+function load() {
+  return import("../runtime-config");
 }
 
 describe("runtime-config: /config.json from the server that serves the console", () => {
