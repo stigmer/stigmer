@@ -2,7 +2,7 @@
  * Native built-in tools for the deep-agent harness.
  *
  * These are Stigmer-authored capabilities appended to the agent's tool list
- * in execute-deep-agent/setup.ts (and mirrored for sub-agents in
+ * in execute-deep-agent/turn-setup.ts (and mirrored for sub-agents in
  * subagent-transformer.ts) — distinct from deepagents' backend tools
  * (ls/read_file/execute/…) and from MCP tools, which arrive via the
  * connection layer.

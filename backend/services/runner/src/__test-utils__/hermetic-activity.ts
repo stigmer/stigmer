@@ -7,11 +7,15 @@
  * are the wire contract the control plane's workflow keys on — the phases they
  * persist, the copy they write, whether they RETURN a slim status or THROW
  * `CancelledFailure`. Refactoring them safely needs goldens recorded through the
- * activity whole, not through its modules one at a time. The native harness
- * tests already run their activity hermetically by mocking three modules at the
- * boundary (`execute-deep-agent/__tests__/{index,hitl-*,sequential-gate-resume}.test.ts`);
- * this module is that convention made reusable, harness-agnostic, and driven by
- * the framework's own activity environment instead of a hand-written stand-in.
+ * activity whole, not through its modules one at a time. The native harness's
+ * earlier activity tests ran their activity hermetically by mocking three
+ * modules at the boundary with a hand-written `Context` stand-in and a scripted
+ * graph object; this module is that convention made reusable, harness-agnostic,
+ * and driven by the framework's own activity environment. Both harnesses now
+ * run on it (`execute-cursor/__test-utils__/hermetic-cursor.ts`,
+ * `execute-deep-agent/__test-utils__/hermetic-deep-agent.ts`), and the earlier
+ * native tests were re-homed onto the native driver (S3 M0), their assertions
+ * carried into `execute-deep-agent/__tests__/hermetic/`.
  *
  * What is generic here and what is not: everything an activity touches that is
  * NOT the vendor SDK — the Temporal `Context`, the control-plane client, the
@@ -92,6 +96,7 @@ import {
   signalWorkerShutdown,
   unregisterWorkerShutdownSignal,
 } from "../shared/worker-shutdown.js";
+import { decideCapturedFileChanges, type FileReviewVerdicts } from "./file-review-projection.js";
 import { mockStigmerClient } from "./mock-client.js";
 
 // ---------------------------------------------------------------------------
@@ -219,6 +224,19 @@ export class ExecutionRecord {
       tc.approvalDecidedAt = decidedAt;
     }
     return waiting.length;
+  }
+
+  /**
+   * What the server's `SubmitFileDecision` and its projection do between
+   * invocations: every change of every AWAITING_REVIEW set the runner captured
+   * gets a per-file verdict, and `status.file_change_sets` is re-folded from
+   * the ledger (`file-review-projection.ts` mirrors the server's fold). The
+   * runner authors the ledger; the server owns the sets — so this is the ONE
+   * place a test writes them. Returns how many decisions were written.
+   */
+  decideCapturedFileChanges(verdicts: FileReviewVerdicts, decidedAt: string): number {
+    if (!this.execution.status) throw new Error("ExecutionRecord: no status to decide file changes on (test bug)");
+    return decideCapturedFileChanges(this.execution.status, verdicts, decidedAt);
   }
 
   /**
@@ -389,12 +407,30 @@ export function createHermeticEnvironment(): HermeticEnvironment {
 // ---------------------------------------------------------------------------
 
 /**
- * A deterministic, TICKING `Date`. Only `Date` is faked; timers stay real (the
- * periodic heartbeat, the stall watchdog, `withTimeout` all need them). The
- * harness double calls {@link ScriptedClock.tick} once per script step, so
- * every `Date.now()`-based decision on the activity path (status timestamps,
- * the enricher's persist debounce, cache TTLs) sees the same instants run after
- * run and runs the same branches production runs.
+ * A deterministic, TICKING clock: `Date` AND `performance` are faked and
+ * advance together; timers stay real (the periodic heartbeat, the stall
+ * watchdog, `withTimeout` all need them). The harness double calls
+ * {@link ScriptedClock.tick} once per script step, so every clock-based
+ * decision on the activity path — status timestamps, the enricher's persist
+ * debounce, cache TTLs (`Date`); the streaming scheduler's persist cadence
+ * (`performance.now()`) — sees the same instants run after run and runs the
+ * same branches production runs.
+ *
+ * Why both (S3 M5, Q-M5-7; F-M2a-20): until M5 only `Date` was faked, so the
+ * scheduler paced persists on REAL elapsed time and `fileChangeProgress`,
+ * which rides persists, could gain or lose a capture under load — a golden
+ * flake seen twice across S3. One clock, two faces: `tick` advances through
+ * the fake clock's own `tick` (`vi.advanceTimersByTime`), which moves both
+ * `Date` and `performance.now()`; `vi.setSystemTime` would move `Date` alone
+ * (fake-timers keeps `performance` monotonic across a system-time jump), so
+ * only {@link reset} uses it — rewinding `Date` to the epoch for a second
+ * scenario while `performance` stays monotonic, which is harmless because
+ * every turn constructs its scheduler fresh and measures from its own start.
+ *
+ * Faking `performance` replaces the whole global (`now`, a `timeOrigin` at
+ * the epoch, every other method a no-op); nothing on the activity path reads
+ * more than `now`, and a module importing from `node:perf_hooks` would bypass
+ * the fake (none under `src/` does).
  */
 export class ScriptedClock {
   /** A fixed epoch: 2026-01-01T00:00:00.000Z. Chosen for readability in goldens. */
@@ -405,15 +441,17 @@ export class ScriptedClock {
   private nowMs = ScriptedClock.EPOCH_MS;
 
   install(): void {
-    vi.useFakeTimers({ toFake: ["Date"], now: this.nowMs });
+    vi.useFakeTimers({ toFake: ["Date", "performance"], now: this.nowMs });
   }
 
   tick(ms: number = ScriptedClock.STEP_MS): void {
     this.nowMs += ms;
-    vi.setSystemTime(this.nowMs);
+    // Through the fake clock's own tick, so `performance.now()` advances with
+    // `Date`; with no timers faked there is nothing for it to fire.
+    vi.advanceTimersByTime(ms);
   }
 
-  /** Back to the epoch — for a second scenario in the same file. */
+  /** Back to the epoch — for a second scenario in the same file. `Date` rewinds; `performance` stays monotonic (see the header). */
   reset(): void {
     this.nowMs = ScriptedClock.EPOCH_MS;
     vi.setSystemTime(this.nowMs);

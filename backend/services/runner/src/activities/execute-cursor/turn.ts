@@ -82,7 +82,7 @@ export async function runCursorTurn(input: TurnInput, sink: TurnSink, config: Cu
     // gate so the denial watcher can write into them.
     const streamState = newTurnStreamState();
     const mode = resolveCursorMode(input, config);
-    const rows = readAdjudicatedRows(input);
+    const rows = readAdjudicatedRows(input, sink.status);
     gate = await installGate(input, sink, rows, streamState);
     if (sink.stopSignal.aborted) return (outcome = { kind: "interrupted" });
 
@@ -179,6 +179,10 @@ function disposeEngine(engine: CursorEngine, sessionId: string, outcome: TurnOut
     case "cancelled":
     case "awaiting_approval":
     case "interrupted":
+    // The Cursor SDK has no tool-round budget, so this adapter never ends a
+    // turn `tool_call_limit`; were it to, the engine would be parked like any
+    // other non-failed exit (the conversation continues on the next message).
+    case "tool_call_limit":
       park();
       return;
     case "failed":

@@ -215,7 +215,7 @@ describe("Cursor HITL resume — append-only transcript", () => {
     // Pre-fix behavior: status.messages starts empty on resume, so the
     // accumulator can never reconcile onto the committed calls.
     const fromEmpty: AgentMessage[] = [];
-    const acc = new MessageAccumulator(fromEmpty, { seededSubAgents: [] });
+    const acc = new MessageAccumulator(fromEmpty, {});
     for (const event of resumeEvents()) acc.processEvent(event);
     acc.finalize();
 
@@ -235,7 +235,7 @@ describe("Cursor HITL resume — append-only transcript", () => {
     // Post-fix behavior: index.ts seeds status.messages from the persisted
     // execution (cloned) before constructing the accumulator.
     const seeded = committed.map((m) => clone(AgentMessageSchema, m));
-    const acc = new MessageAccumulator(seeded, { seededSubAgents: [] });
+    const acc = new MessageAccumulator(seeded, {});
     for (const event of resumeEvents()) acc.processEvent(event);
     acc.finalize();
 
@@ -280,19 +280,22 @@ describe("Cursor HITL resume — append-only transcript", () => {
     expect(guardRejectionReason(committed, seeded)).toBeUndefined();
   });
 
-  it("FIX: a sub-agent's gated tool also survives resume (seeded sub-agent rows are retained)", () => {
-    // Sub-agent parity: seedCursorTranscriptFromExecution hands seeded sub-agent
-    // executions to the accumulator so they are not dropped on the rebuilt
-    // status (the accumulator owns status.subAgentExecutions).
+  it("FIX: a sub-agent's gated tool also survives resume (the seeded sub-agent rows are wrapped by reference and indexed)", () => {
+    // Sub-agent parity: the runtime seeds `status.subAgentExecutions` on a
+    // resume (`seedFromPersistedStatus`) and the accumulator wraps that very
+    // array, exactly as it wraps `status.messages`, so the seeded row is
+    // retained, indexed by id, and a resumed update lands on it in place.
     const seededSub = create(SubAgentExecutionSchema, {
       id: "sub_1",
       name: "researcher",
       status: SubAgentStatus.SUB_AGENT_IN_PROGRESS,
     });
+    const statusRows = [seededSub];
 
-    const acc = new MessageAccumulator([], { seededSubAgents: [seededSub] });
+    const acc = new MessageAccumulator([], { subAgentExecutions: statusRows });
     acc.finalize();
 
+    expect(acc.subAgentExecutions, "the status's own array, not a copy").toBe(statusRows);
     expect(acc.subAgentExecutions.some((s) => s.id === "sub_1")).toBe(true);
   });
 
@@ -401,7 +404,7 @@ describe("Cursor HITL resume — two approvals then clean completion (no loop)",
     const committed = committedBuiltInApprovals();
     const seeded = committed.map((m) => clone(AgentMessageSchema, m));
 
-    const acc = new MessageAccumulator(seeded, { seededSubAgents: [] });
+    const acc = new MessageAccumulator(seeded, {});
     for (const event of builtInResumeEvents()) acc.processEvent(event);
     acc.finalize();
 

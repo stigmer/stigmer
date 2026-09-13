@@ -1,44 +1,54 @@
 /**
- * System prompt construction for deep agent execution.
+ * The native harness's system prompt: what `createDeepAgent` receives as
+ * `systemPrompt`, rebuilt on EVERY invocation (never checkpointed with the
+ * message history), so every standing fact is injected on every turn by
+ * design — a first-turn-only injection would vanish from turn 2 onward.
  *
- * Pure functions: no side effects, no I/O. Accepts pre-computed data
- * (provision results, skill sections, file refs) and returns the
- * assembled system prompt string.
+ * Pure functions: no side effects, no I/O. `turn-setup.ts` gathers the
+ * inputs from the runtime's resolved record and this module renders them.
+ *
+ * What is this harness's and what is shared (S3 M5, Q-S3-10 / Q-M5-2):
+ *  - Shared through `shared/prompt-sections.ts`: WHICH standing sections
+ *    render and in WHAT order (`standingContextSections`), the input-files
+ *    bullet and disclosure lines (`inputFileLines`), which skills a prompt
+ *    highlights (`selectSkillsForPrompt`, called from `turn-setup.ts`) and
+ *    the also-available sentence. Their WORDS come from each fact's own
+ *    module; this builder only frames them.
+ *  - This harness's: the framing — `## Heading` markdown sections, the house
+ *    style for a system prompt — and every text that quotes this engine's
+ *    tools: the `## Skills` activation protocol (`read`, `execute(...)`), the
+ *    response rules, the sub-agent delegation rules, the plan-mode
+ *    read-boundary sentence, and the workspace section (the deepagents
+ *    backend's path resolution is this engine's).
+ *
+ * The rendered bytes are load-bearing for the hermetic tests: `ScriptedModel`
+ * tells its scripted roles apart by the system prompt's text, so this
+ * module's whole output is pinned by `__tests__/prompt-goldens.test.ts`.
  */
 
 import { relative } from "node:path";
 import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { ProvisionResult, GitMetadata } from "../../shared/workspace/types.js";
 import { SourceType } from "../../shared/workspace/types.js";
-import { formatContextBridgeText } from "../../shared/context-bridge.js";
 import { formatConversationCatchupText } from "../../shared/conversation-catchup.js";
+import type { SenderIdentity } from "../../shared/sender-identity.js";
+import type { DeclaredPreferencesContent } from "../../shared/declared-preferences.js";
+import type { RecalledMemoriesContent } from "../../shared/recalled-memories.js";
+import type { DownloadUrlKind } from "../../shared/attachment-download-urls.js";
 import {
-  formatSenderIdentityText,
-  type SenderIdentity,
-} from "../../shared/sender-identity.js";
-import { formatSessionContextText } from "../../shared/session-context.js";
-import {
-  formatDeclaredPreferencesText,
-  type DeclaredPreferencesContent,
-} from "../../shared/declared-preferences.js";
-import {
-  formatRecalledMemoriesText,
-  type RecalledMemoriesContent,
-} from "../../shared/recalled-memories.js";
-import {
-  visionDisclosureLines,
-  type NotViewableEntry,
-} from "../../shared/attachment-vision.js";
-import {
-  downloadUrlDisclosureLine,
-  type DownloadUrlKind,
-} from "../../shared/attachment-download-urls.js";
+  inputFileLines,
+  standingContextSections,
+  type StandingSectionKind,
+  type VisionPromptInfo,
+} from "../../shared/prompt-sections.js";
 import { PLAN_MODE_DIRECTIVE } from "../../shared/plan-mode-prompt.js";
 import {
   buildImplementPlanDirective,
   findApprovedPlanPath,
 } from "../../shared/implement-plan-prompt.js";
-import type { InjectedFile } from "./attachment-injector.js";
+import type { ResolvedAttachment } from "../../shared/attachment-resolver.js";
+import type { SkillMetadata } from "../../shared/skill-resolver.js";
+import { STIGMER_LOCAL_STATE_DIR } from "../../shared/workspace/stigmer-link.js";
 
 const RESPONSE_RULES = `
 
@@ -106,7 +116,11 @@ directly over delegating. Only delegate when context isolation \
 or parallelism genuinely helps the user.
 `;
 
+/** The agent's instructions when the blueprint carries none; the prompt is never empty (S3 M2a, F-M2a-16: was `setup.ts`'s alone). */
+export const DEFAULT_INSTRUCTIONS = "You are a helpful AI assistant.";
+
 export interface PromptBuilderInput {
+  /** The blueprint's instructions, raw; empty falls back to {@link DEFAULT_INSTRUCTIONS}. */
   instructions: string;
   provisionResults: ProvisionResult[];
   containerRoot: string;
@@ -119,7 +133,8 @@ export interface PromptBuilderInput {
   channelTemplatesPromptSection?: string;
   workspaceFileRefs: string[];
   workspaceRoot: string;
-  injectedFiles: InjectedFile[];
+  /** The turn's resolved input files, as the runtime's attachment phase returns them. */
+  inputFiles: readonly ResolvedAttachment[];
   /**
    * Vision facts about this turn's attachments (T04): which images the model
    * sees inline in the user message and which degraded to path-only.
@@ -135,7 +150,7 @@ export interface PromptBuilderInput {
   /**
    * The execution's interaction mode. PLAN appends the shared plan-mode
    * directive so the model knows the turn's deliverable is a plan document.
-   * Tool-level write enforcement is separate (see setup.ts permissions) —
+   * Tool-level write enforcement is separate (see turn-setup.ts permissions) —
    * without this directive the model is silently read-only but never told
    * to produce a plan.
    */
@@ -192,28 +207,34 @@ export interface PromptBuilderInput {
   recalledMemories?: RecalledMemoriesContent;
 }
 
-// The prompt renders the injector's own result type — a local structural twin
-// once lived here and silently dropped the size field (`size` vs `sizeBytes`),
-// so the "(N bytes)" annotation never rendered. One type, one truth.
-export type { InjectedFile } from "./attachment-injector.js";
+// The prompt renders the attachment resolver's own result type — a local
+// structural twin once lived here and silently dropped the size field
+// (`size` vs `sizeBytes`), so the "(N bytes)" annotation never rendered. One
+// type, one truth: the runtime's `ResolvedAttachment`; the vision facts are
+// the shared `VisionPromptInfo` (prompt-sections.ts) for the same reason.
+
+export type { VisionPromptInfo };
 
 /**
- * Which images ride the user message inline (in send order) and which
- * degraded to the file-pointer story — the shared vision wording
- * (attachment-vision.ts) keeps this prompt and the Cursor harness's
- * input-files section telling the agent the same thing.
+ * This harness's heading for each shared standing section (the section's
+ * identity and order are `prompt-sections.ts`'s; the `##` framing is the
+ * house style for a system prompt). Exhaustive by the compiler: a new kind
+ * fails here until it is named.
  */
-export interface VisionPromptInfo {
-  inlineFilenames: string[];
-  notViewable: NotViewableEntry[];
-}
+const STANDING_SECTION_HEADINGS: Record<StandingSectionKind, string> = {
+  "conversation-sender": "Conversation sender",
+  "declared-preferences": "Declared preferences",
+  "recalled-memories": "Remembered facts",
+  "session-context": "Session context",
+  "previous-conversation": "Previous conversation context",
+};
 
 /**
  * Assemble the full system prompt from base instructions and contextual
  * sections. Pure function with no I/O.
  */
 export function buildEnhancedSystemPrompt(input: PromptBuilderInput): string {
-  let prompt = input.instructions;
+  let prompt = input.instructions || DEFAULT_INSTRUCTIONS;
 
   const workspaceSection = buildWorkspacePromptSection(
     input.provisionResults,
@@ -241,50 +262,16 @@ export function buildEnhancedSystemPrompt(input: PromptBuilderInput): string {
     }
   }
 
-  if (input.injectedFiles.length > 0) {
-    prompt += buildInjectedFilesSection(
-      input.injectedFiles, input.vision, input.downloadUrlKind,
+  if (input.inputFiles.length > 0) {
+    prompt += buildInputFilesSection(
+      input.inputFiles, input.vision, input.downloadUrlKind,
     );
   }
 
-  if (input.senderIdentity) {
-    prompt +=
-      "\n\n## Conversation sender\n\n" +
-      formatSenderIdentityText(input.senderIdentity);
-  }
-
-  // Platform-declared standing facts precede embedder-supplied context
-  // (DD-002 D3): both are standing background, but the declared preferences
-  // are platform-authored while session context is the embedder's overlay —
-  // the more specific overlay reads later and naturally refines.
-  if (input.declaredPreferences) {
-    prompt +=
-      "\n\n## Declared preferences\n\n" +
-      formatDeclaredPreferencesText(input.declaredPreferences);
-  }
-
-  // Declared-by-humans precedes learned-and-confirmed (DD-006 D4): both
-  // are platform-authored standing background, but a preference is the
-  // user's exact words while a memory is an agent's confirmed inference —
-  // the exact statement reads first.
-  if (input.recalledMemories) {
-    prompt +=
-      "\n\n## Remembered facts\n\n" +
-      formatRecalledMemoriesText(input.recalledMemories);
-  }
-
-  // Standing facts about the user (session context) come before the
-  // carried conversation (bridge): the bridge may refer back to them.
-  if (input.sessionContext) {
-    prompt +=
-      "\n\n## Session context\n\n" +
-      formatSessionContextText(input.sessionContext);
-  }
-
-  if (input.contextBridge) {
-    prompt +=
-      "\n\n## Previous conversation context\n\n" +
-      formatContextBridgeText(input.contextBridge);
+  // The standing context, in the shared order (the doctrine is stated once,
+  // on `standingContextSections`); this harness only frames each section.
+  for (const section of standingContextSections(input)) {
+    prompt += `\n\n## ${STANDING_SECTION_HEADINGS[section.kind]}\n\n${section.body}`;
   }
 
   prompt += RESPONSE_RULES;
@@ -310,7 +297,7 @@ export function buildEnhancedSystemPrompt(input: PromptBuilderInput): string {
 
   if (input.buildFromPlan) {
     const planPath = findApprovedPlanPath(
-      input.injectedFiles.map((f) => f.path),
+      input.inputFiles.map((f) => f.relativePath),
     );
     prompt +=
       "\n\n## Implement the approved plan\n\n" +
@@ -337,6 +324,62 @@ export function composeUserMessage(
   return conversationCatchup
     ? `${formatConversationCatchupText(conversationCatchup)}\n\n---\n\n${message}`
     : message;
+}
+
+/**
+ * The `## Skills` section of this harness's system prompt, rendered from the
+ * runtime's mounted-skill metadata (`shared/skill-resolver.ts`
+ * `SkillMetadata`), following the Agent Skills spec's progressive
+ * disclosure model: only name, description and location are injected; the
+ * agent reads SKILL.md on demand through its filesystem tools. Byte for byte
+ * the text the orchestrator-era `generatePromptSection` rendered from the
+ * `Skill` proto (deleted with `setup.ts` at S3 M2b); the one difference is
+ * the input — a mounted file's metadata, not a fetched resource — so this
+ * renderer needs no client and serves the root and every sub-agent alike.
+ * Empty for no skills.
+ */
+export function renderSkillsSection(skills: readonly SkillMetadata[]): string {
+  if (skills.length === 0) return "";
+
+  const lines: string[] = [
+    "",
+    "",
+    "## Skills",
+    "",
+    "You have access to the following skills. Each skill provides specialized " +
+    "knowledge or capabilities.",
+    "",
+    "**Activation protocol**: To use a skill, read its SKILL.md file " +
+    "using the `read` tool. The SKILL.md contains detailed instructions, " +
+    "available tools, and usage examples.",
+    "",
+    "**Usage pattern**:",
+    "",
+    "1. Review the skill description below to determine relevance",
+    "2. Read `{location}/SKILL.md` for full instructions",
+    "3. Follow the skill's documented operations:",
+    "",
+    "`read {location}/references/schema.md`",
+    '`execute("python3 {location}/scripts/run.py")`',
+    "",
+  ];
+
+  for (const skill of skills) {
+    const skillDir = skillDirOf(skill);
+    lines.push(`### ${skill.name}`);
+    lines.push(`**Description**: ${skill.description || "(no description)"}`);
+    lines.push(`**Location**: \`${skillDir}/\``);
+    lines.push(`**Activate**: \`read ${skillDir}/SKILL.md\``);
+    lines.push("");
+  }
+
+  return lines.join("\n");
+}
+
+/** The mount directory a skill's `SKILL.md` path names (`.stigmer/skills/<name>`). */
+function skillDirOf(skill: SkillMetadata): string {
+  const slash = skill.path.lastIndexOf("/");
+  return slash > 0 ? skill.path.slice(0, slash) : `${STIGMER_LOCAL_STATE_DIR}/skills/${skill.name}`;
 }
 
 function buildWorkspacePromptSection(
@@ -452,8 +495,14 @@ function buildReferencedFilesSection(
   return section;
 }
 
-function buildInjectedFilesSection(
-  files: readonly InjectedFile[],
+/**
+ * The `## Input Files` section: this harness's intro (it names this engine's
+ * `read` tool) around the shared lines (`prompt-sections.ts` `inputFileLines`
+ * says what each bullet and disclosure carries and why). Each disclosure
+ * group is set off by a blank line, the markdown idiom.
+ */
+function buildInputFilesSection(
+  files: readonly ResolvedAttachment[],
   vision?: VisionPromptInfo,
   downloadUrlKind?: DownloadUrlKind,
 ): string {
@@ -467,38 +516,15 @@ function buildInjectedFilesSection(
     "-- they are reference material, not output. " +
     "Do NOT modify or delete these files.\n\n";
 
-  for (const f of files) {
-    const sizeInfo = ` (${f.sizeBytes} bytes)`;
-    // A duplicate-renamed file (attachment-naming.ts) discloses its original
-    // name so the agent can connect "the two report.pdfs" in the user's
-    // message to distinct files on disk. A file with a minted download URL
-    // (attachment-download-urls.ts) lists it beside the path for the remote
-    // hand-off story.
-    const renameInfo =
-      f.renamedFrom !== undefined
-        ? ` (renamed from duplicate '${f.renamedFrom}')`
-        : "";
-    const urlInfo =
-      f.downloadUrl !== undefined ? ` — download URL: ${f.downloadUrl}` : "";
-    section += `- \`${f.path}\`${sizeInfo}${renameInfo}${urlInfo}\n`;
+  const lines = inputFileLines(files, vision, downloadUrlKind);
+  for (const entry of lines.entries) {
+    section += `${entry}\n`;
   }
-
-  // The URL hand-off line (shared wording, attachment-download-urls.ts)
-  // renders only when some listed file actually carries a URL — its wording
-  // keys on what kind of URL the storage backend mints.
-  if (downloadUrlKind !== undefined && files.some((f) => f.downloadUrl !== undefined)) {
-    section += "\n" + downloadUrlDisclosureLine(downloadUrlKind) + "\n";
+  if (lines.urlHandoff !== undefined) {
+    section += "\n" + lines.urlHandoff + "\n";
   }
-
-  // The vision lines (shared wording, attachment-vision.ts) tell the model
-  // which of these files it can already SEE inline in the user message versus
-  // which degraded to path-only — without them an agent silently ignores a
-  // photo the user believes it can see.
-  if (vision) {
-    const lines = visionDisclosureLines(vision.inlineFilenames, vision.notViewable);
-    if (lines.length > 0) {
-      section += "\n" + lines.join("\n") + "\n";
-    }
+  if (lines.vision.length > 0) {
+    section += "\n" + lines.vision.join("\n") + "\n";
   }
 
   return section;

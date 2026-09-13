@@ -7,7 +7,6 @@ import {
   createBuiltinSubagents,
   transformSingleSubagent,
   filterMcpToolsForSubagent,
-  collectAllSkillRefs,
   resolveSubagentSkillPrompt,
   compileSubagents,
   transformAndCompileSubagents,
@@ -448,7 +447,7 @@ describe("transformAndCompileSubagents", () => {
     parentMcpTools: [] as StructuredTool[],
     parentMcpServerToolMap: new Map<string, StructuredTool[]>(),
     parentMcpUsages: [] as McpServerUsage[],
-    skillClient: {} as unknown,
+    skills: new Map(),
     workspaceBackend: mockWorkspaceBackend(),
     approvalGate: null,
     parentModelName: "claude-sonnet-4-6",
@@ -544,90 +543,31 @@ describe("transformAndCompileSubagents", () => {
 });
 
 // =========================================================================
-// Tests: collectAllSkillRefs
-// =========================================================================
-
-describe("collectAllSkillRefs", () => {
-  it("returns empty for subagents without skills", () => {
-    const result = collectAllSkillRefs([
-      mockSubAgentProto({ skillRefs: [] }),
-      mockSubAgentProto({ skillRefs: [] }),
-    ] as unknown as import("@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb").SubAgent[]);
-
-    expect(result).toEqual([]);
-  });
-
-  it("collects unique refs from multiple subagents", () => {
-    const result = collectAllSkillRefs([
-      mockSubAgentProto({ skillRefs: [{ slug: "org/skill-a" }] }),
-      mockSubAgentProto({ skillRefs: [{ slug: "org/skill-b" }] }),
-    ] as unknown as import("@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb").SubAgent[]);
-
-    expect(result).toHaveLength(2);
-    expect(result.map((r) => r.slug)).toEqual(["org/skill-a", "org/skill-b"]);
-  });
-
-  it("deduplicates refs by slug", () => {
-    const result = collectAllSkillRefs([
-      mockSubAgentProto({ skillRefs: [{ slug: "org/same-skill" }] }),
-      mockSubAgentProto({ skillRefs: [{ slug: "org/same-skill" }] }),
-    ] as unknown as import("@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb").SubAgent[]);
-
-    expect(result).toHaveLength(1);
-    expect(result[0].slug).toBe("org/same-skill");
-  });
-
-  it("skips refs without slugs", () => {
-    const result = collectAllSkillRefs([
-      mockSubAgentProto({ skillRefs: [{ slug: "" }, { slug: "org/valid" }] }),
-    ] as unknown as import("@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb").SubAgent[]);
-
-    expect(result).toHaveLength(1);
-    expect(result[0].slug).toBe("org/valid");
-  });
-});
-
-// =========================================================================
 // Tests: resolveSubagentSkillPrompt
 // =========================================================================
 
 describe("resolveSubagentSkillPrompt", () => {
-  it("returns empty string for subagent without skill refs", () => {
-    const proto = mockSubAgentProto({ skillRefs: [] });
-    const result = resolveSubagentSkillPrompt(
-      proto as unknown as import("@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb").SubAgent,
-      new Map(),
-    );
-    expect(result).toBe("");
+  const asSubAgent = (proto: unknown): import("@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb").SubAgent =>
+    proto as import("@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb").SubAgent;
+
+  it("returns empty string for a sub-agent the runtime mounted no skills for", () => {
+    const proto = mockSubAgentProto({ name: "researcher", skillRefs: [] });
+    expect(resolveSubagentSkillPrompt(asSubAgent(proto), new Map())).toBe("");
   });
 
-  it("returns empty string when no skills match", () => {
-    const proto = mockSubAgentProto({ skillRefs: [{ slug: "org/missing" }] });
-    const result = resolveSubagentSkillPrompt(
-      proto as unknown as import("@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb").SubAgent,
-      new Map(),
-    );
-    expect(result).toBe("");
-  });
-
-  it("generates prompt section for matched skills", () => {
-    const proto = mockSubAgentProto({ skillRefs: [{ slug: "org/my-skill" }] });
-    const skillsBySlug = new Map([
-      ["org/my-skill", {
-        skill: {
-          metadata: { id: "sk-1", name: "my-skill", slug: "org/my-skill" },
-          spec: { name: "my-skill", description: "A test skill", skillMd: "# Skill\nDo things." },
-        },
-        path: ".stigmer/skills/my-skill",
-      }],
+  it("renders the skills section from the sub-agent's own mounted skills, keyed by its name", () => {
+    const proto = mockSubAgentProto({ name: "researcher", skillRefs: [{ slug: "org/my-skill" }] });
+    const skills = new Map([
+      ["researcher", [{ name: "my-skill", description: "A test skill", path: ".stigmer/skills/my-skill/SKILL.md" }]],
+      ["other", [{ name: "not-mine", description: "Another agent's", path: ".stigmer/skills/not-mine/SKILL.md" }]],
     ]);
 
-    const result = resolveSubagentSkillPrompt(
-      proto as unknown as import("@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb").SubAgent,
-      skillsBySlug,
-    );
+    const result = resolveSubagentSkillPrompt(asSubAgent(proto), skills);
 
-    expect(result.length).toBeGreaterThan(0);
+    expect(result).toContain("## Skills");
+    expect(result).toContain("### my-skill");
+    expect(result).toContain("**Location**: `.stigmer/skills/my-skill/`");
+    expect(result).not.toContain("not-mine");
   });
 });
 
@@ -681,7 +621,7 @@ describe("subagent-transformer edge cases", () => {
       parentMcpTools: [],
       parentMcpServerToolMap: new Map(),
       parentMcpUsages: [],
-      skillClient: {} as unknown,
+      skills: new Map(),
       workspaceBackend: mockWorkspaceBackend({ rootDir: "" }),
       approvalGate: null,
       parentModelName: "claude-sonnet-4-6",
@@ -705,7 +645,7 @@ describe("subagent-transformer edge cases", () => {
       parentMcpTools: [],
       parentMcpServerToolMap: new Map(),
       parentMcpUsages: [],
-      skillClient: {} as unknown,
+      skills: new Map(),
       workspaceBackend: mockWorkspaceBackend(),
       approvalGate: null,
       parentModelName: "claude-sonnet-4-6",

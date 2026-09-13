@@ -44,21 +44,29 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { mkdirSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { realpath } from "node:fs/promises";
 import { join } from "node:path";
-import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ApprovalAction, ExecutionControlSignal, ExecutionPhase, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ApprovalAction, ExecutionControlSignal, ExecutionPhase, MessageType, SubAgentStatus, TodoStatus, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { create, type JsonObject } from "@bufbuild/protobuf";
+import { RecalledMemoriesReportSchema, type AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { ExecutionArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
+import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
+import { TodoItemSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/todo_pb";
+import { StreamingUsageSummarySchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
+import { WorkspaceWriteBackPhase, WorkspaceWriteBackSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/writeback_pb";
 
 import type { StigmerClient } from "../../client/stigmer-client.js";
 import type { Config } from "../../config.js";
 import { HARNESS_ACTIVITY_NAMES, createHarnessActivities } from "../../harness/registry.js";
 import { TERMINAL_COPY } from "../../harness/terminal-table.js";
-import { approvalDecisionsOf } from "../../harness/turn-context.js";
+import { REJECTED_BY_USER_ERROR, approvalDecisionsOf } from "../../harness/approval-decisions.js";
+import { MIN_TOOL_ROUNDS, TOOL_CALL_LIMIT_ERROR_PREFIX, TOOL_CALL_LIMIT_USER_COPY, formatToolCallLimitError } from "../../shared/tool-rounds.js";
 import type { FailureSurface } from "../../harness/types.js";
 import type { ExecuteActivityInput } from "../../shared/activity-input.js";
 import { acquireWorkspaceLock } from "../../shared/workspace/workspace-lock.js";
 import { executionRecordFixture, type ExecutionRecordOptions } from "../execution-record-fixture.js";
+import { initGitWorkspace } from "../git-workspace-fixture.js";
 import {
   ExecutionRecord,
   ScriptedClock,
@@ -292,6 +300,256 @@ export async function assertApprovalRoundTrip(harness: RuntimeContractHarness, l
   return { driver, invocations: [first, second], final: finalStatusOf(harness, driver) };
 }
 
+// ── Arm: file review — capture, decide, reconcile ───────────────────────────
+
+/**
+ * Apply-then-review across two invocations — the runtime's own act for every
+ * harness (`harness/capture.ts`; `turn-context.ts` `reconcileReinvocation`),
+ * proven on a REAL git work tree (the session's workspace directory IS the
+ * tree, so no harness needs a workspace entry to reach it).
+ *
+ * Turn 1: two writes FLOW (no gate row, each executed exactly once), and the
+ * runtime — not the adapter — pins the baseline before the engine, captures
+ * the candidate after it, badges the two flowed rows with the change set,
+ * carries the strip at the WAITING write, and pauses `WAITING_FOR_APPROVAL`
+ * with the ledger reading `[baseline, candidate]` under the harness's own
+ * file-review identity. Between turns the reviewer keeps one file and
+ * discards the other (the record stands in for the server's decision and
+ * projection). Turn 2: the reinvocation reconciles WITHOUT asking the engine
+ * — the kept file holds its bytes, the discarded one is back at its baseline,
+ * RECONCILED is authored, the execution settles COMPLETED with the runtime's
+ * discard row, and the engine's execution counts are unchanged.
+ *
+ * Content is the engine's own (a real `edit_file`, a real hook-allowed edit,
+ * the fake's one line), so the arm asserts PATHS and the reconcile's effect
+ * on disk, never bytes; the change kinds differ per engine (an engine that
+ * seeds its ledger file before the turn produces a MODIFY where another
+ * produces an ADD) and are not asserted either.
+ */
+export async function assertFileReviewRoundTrip(harness: RuntimeContractHarness, label = "rt-file-review"): Promise<RuntimeArmResult> {
+  const { subject } = harness;
+  const driver = new RuntimeExecutionDriver(harness, label);
+  initGitWorkspace(driver.workspaceDir, { "README.md": "# the kit's tree\n" });
+  const keepId = `${label}-keep`;
+  const dropId = `${label}-drop`;
+  const KEPT = "kept.md";
+  const DROPPED = "dropped.md";
+  const changeSetId = `${driver.record.executionId}:0`;
+
+  const first = await driver.turn([scenario.flowingWrite(keepId, KEPT), scenario.flowingWrite(dropId, DROPPED), scenario.say("Edited two files.")]);
+  expect(slimOf(subject, first).phase, `${subject.name}: a captured change pauses the turn for review`).toBe("EXECUTION_WAITING_FOR_APPROVAL");
+  expect(driver.record.waitingToolCalls(), `${subject.name}: a flowing write opens no gate row`).toHaveLength(0);
+  expect(subject.executionCount(keepId), `${subject.name}: a flowing write executes at once`).toBe(1);
+  expect(subject.executionCount(dropId)).toBe(1);
+  expect(existsSync(join(driver.workspaceDir, KEPT)) && existsSync(join(driver.workspaceDir, DROPPED)), `${subject.name}: both writes landed on the tree`).toBe(true);
+
+  const afterCapture = finalStatusOf(harness, driver);
+  const events = afterCapture.fileReviewEventStream?.events ?? [];
+  expect(events.map((e) => e.payload.case), `${subject.name}: the runtime authored the baseline and the candidate`).toEqual(["baselineCaptured", "candidateCaptured"]);
+  const candidate = events[1]!.payload;
+  if (candidate.case !== "candidateCaptured") throw new Error("unreachable");
+  expect(candidate.value.changeSetId).toBe(changeSetId);
+  expect([...candidate.value.changes.map((c) => c.pathAfter)].sort(), `${subject.name}: exactly the two written paths are reviewable`).toEqual([DROPPED, KEPT]);
+  const baseline = events[0]!.payload;
+  if (baseline.case !== "baselineCaptured") throw new Error("unreachable");
+  expect(baseline.value.harnessId, `${subject.name}: the ledger carries this harness's file-review identity`).toBe(subject.adapter.capabilities.fileReview.harnessId);
+  const rows = new Map(afterCapture.messages.flatMap((m) => m.toolCalls).map((tc) => [tc.id, tc]));
+  expect(rows.get(keepId)?.fileChangeSetId, `${subject.name}: a flowed row is badged with the change set`).toBe(changeSetId);
+  expect(rows.get(dropId)?.fileChangeSetId).toBe(changeSetId);
+  expect(rows.get(keepId)?.status, `${subject.name}: a flowed row is COMPLETED, never gated`).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+  // The strip is the runtime's, attached on its writes (Q-M4-7). Its COUNT is
+  // the capture floor's: a real engine's first persist precedes its first
+  // write and both writes land within one floor interval, so the pause can
+  // honestly read "0 files" beside a two-file candidate (F-M4-3, recorded
+  // for S5: whether the terminal write should bypass the floor). The arm
+  // asserts the ownership, not the floor.
+  expect(afterCapture.fileChangeProgress?.changeSetId, `${subject.name}: the runtime carries this turn's strip`).toBe(changeSetId);
+  expect(afterCapture.completedAt, `${subject.name}: a review pause is not complete`).toBe("");
+
+  const keptBytes = readFileSync(join(driver.workspaceDir, KEPT), "utf-8");
+  expect(keptBytes).toContain(keepId);
+  harness.clock.tick();
+  expect(driver.record.decideCapturedFileChanges({ approve: [KEPT], reject: [DROPPED] }, new Date().toISOString()), `${subject.name}: two files to decide`).toBe(2);
+
+  const second = await driver.turn([]);
+  expect(slimOf(subject, second).phase, `${subject.name}: a pure file-review resume completes without the engine`).toBe("EXECUTION_COMPLETED");
+  // The kept file is the engine-not-re-run witness: a subject that counts
+  // executions by reading its ledger off disk (the native one, Q-M3-4) reads
+  // the DISCARDED file's count as 0 now, because the reconcile just restored
+  // that file to its baseline — which is the reconcile working, not the
+  // engine forgetting.
+  expect(subject.executionCount(keepId), `${subject.name}: the engine was not asked again`).toBe(1);
+  expect(readFileSync(join(driver.workspaceDir, KEPT), "utf-8"), `${subject.name}: the kept file holds its reviewed bytes`).toBe(keptBytes);
+  const droppedPath = join(driver.workspaceDir, DROPPED);
+  expect(!existsSync(droppedPath) || !readFileSync(droppedPath, "utf-8").includes(dropId), `${subject.name}: the discarded file is back at its baseline`).toBe(true);
+  const final = finalStatusOf(harness, driver);
+  expect(systemMessages(final), `${subject.name}: the discard row names the discarded path`).toContain(`${TERMINAL_COPY.fileReview.discardedPrefix}${DROPPED}.`);
+  expect(final.fileReviewEventStream?.events.map((e) => e.payload.case), `${subject.name}: the reconcile is authored`).toContain("reconciled");
+  expect(final.completedAt).not.toBe("");
+  return { driver, invocations: [first, second], final };
+}
+
+// ── Arm: awaiting_approval then REJECT or SKIP ──────────────────────────────
+
+/**
+ * A decision that never runs the tool: the user REJECTs (or SKIPs) the
+ * proposal; the reinvocation continues WITHOUT it — the adapter's next step
+ * runs, the turn COMPLETES, the tool executes zero times — and the runtime
+ * settles the row SKIPPED (a REJECT row carries `error: "Rejected by user"`),
+ * so no WAITING row survives on a finished execution. This is the proto
+ * contract as of stigmer#197 and the runtime's own write
+ * (`harness/approval-decisions.ts`); before S3 M1 the runtime FAILED a
+ * REJECTed reinvocation before any engine ran.
+ */
+export async function assertNonExecutingDecisionSettlesSkipped(
+  harness: RuntimeContractHarness,
+  action: ApprovalAction.REJECT | ApprovalAction.SKIP,
+  label = `rt-${ApprovalAction[action].toLowerCase()}`,
+): Promise<RuntimeArmResult> {
+  const { subject } = harness;
+  const driver = new RuntimeExecutionDriver(harness, label);
+  const id = `${label}-shell`;
+  const propose = scenario.propose(id, { kind: "shell", resource: `rm -rf build # ${label}` });
+  const verdict = ApprovalAction[action];
+
+  const first = await driver.turn([propose]);
+  expect(slimOf(subject, first).phase, `${subject.name}: a proposal returns WAITING_FOR_APPROVAL`).toBe("EXECUTION_WAITING_FOR_APPROVAL");
+  expect(driver.decide(action), `${subject.name}: one row to decide`).toBe(1);
+
+  const second = await driver.turn([propose, scenario.say("Moving on.")]);
+  expect(slimOf(subject, second).phase, `${subject.name}: after ${verdict} the run continues to COMPLETED — it does not fail`).toBe("EXECUTION_COMPLETED");
+  expect(slimOf(subject, second).final_text, `${subject.name}: the step after the ${verdict}ed action ran`).toBe("Moving on.");
+  expect(subject.executionCount(id), `${subject.name}: a ${verdict}ed action never executes`).toBe(0);
+
+  const final = finalStatusOf(harness, driver);
+  const row = final.messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === id);
+  expect(row, `${subject.name}: the decided row is carried on the transcript`).toBeDefined();
+  expect(row!.status, `${subject.name}: the runtime settles a ${verdict}ed row SKIPPED`).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
+  expect(row!.approvalAction, `${subject.name}: the decision stays legible on the settled row`).toBe(action);
+  expect(row!.error, `${subject.name}: a REJECT carries its reason, a SKIP carries none`).toBe(action === ApprovalAction.REJECT ? REJECTED_BY_USER_ERROR : "");
+  expect(driver.record.waitingToolCalls(), `${subject.name}: nothing waits on a finished execution`).toHaveLength(0);
+  expect(final.error, `${subject.name}: the execution carries no error`).toBe("");
+  return { driver, invocations: [first, second], final };
+}
+
+// ── Arm: the tool-call limit ────────────────────────────────────────────────
+
+/**
+ * The engine exhausted its tool-round budget: TERMINATED (not FAILED — the
+ * platform deliberately stopped the run and the conversation continues on
+ * the next message), `error` starting with the cross-repo prefix Stigmer
+ * Cloud's channel delivery matches on, the user copy as the one system row,
+ * `completedAt` stamped, RETURNED (a retry would spend the same budget), and
+ * the step after the limit never processed. Before S3 M1 the native harness
+ * RETURNED this terminal without persisting it (M0 finding F-M0-4); the
+ * runtime's arm is the one persisted terminal.
+ *
+ * The execution SETS the budget it exhausts: the record carries the smallest
+ * valid `max_tool_rounds` (an unbounded execution has no limit to reach — on
+ * native `resolveRecursionLimit(0)` is unlimited, and the first run of this
+ * arm against it spun until the test timed out; S3 M3 F-M3-3). The fake
+ * exhausts whatever budget it is given; a real engine spins its cheapest
+ * ungated tool until the graph stops it.
+ */
+export async function assertToolCallLimitTerminates(harness: RuntimeContractHarness, label = "rt-tool-call-limit"): Promise<RuntimeArmResult> {
+  const { subject } = harness;
+  const driver = new RuntimeExecutionDriver(harness, label, { maxToolRounds: MIN_TOOL_ROUNDS });
+  const invocation = await driver.turn([scenario.say("Working…"), scenario.limit(), scenario.say(NEVER_SEEN)]);
+  // `slimOf` is the RETURN assertion (a retry would spend the same budget).
+  expect(slimOf(subject, invocation).phase, `${subject.name}: the tool-call limit is TERMINATED, not FAILED`).toBe("EXECUTION_TERMINATED");
+  const final = finalStatusOf(harness, driver);
+  expect(final.phase).toBe(ExecutionPhase.EXECUTION_TERMINATED);
+  expect(final.error.startsWith(TOOL_CALL_LIMIT_ERROR_PREFIX), `${subject.name}: the error carries the cross-repo prefix; got "${final.error}"`).toBe(true);
+  expect(final.error, `${subject.name}: the copy is the table's, byte for byte`).toBe(formatToolCallLimitError());
+  expect(systemMessages(final), `${subject.name}: the user copy is the one system row`).toEqual([TOOL_CALL_LIMIT_USER_COPY]);
+  expect(final.completedAt, `${subject.name}: a TERMINATED turn completes`).not.toBe("");
+  expect(aiMessages(final), `${subject.name}: the step after the limit is never processed`).not.toContain(NEVER_SEEN);
+  expect(driver.record.persistedPhases.at(-1), `${subject.name}: the terminal is persisted, not merely returned`).toBe(ExecutionPhase.EXECUTION_TERMINATED);
+  return { driver, invocations: [invocation], final };
+}
+
+// ── Arm: the seed's breadth on a reinvocation ───────────────────────────────
+
+/**
+ * What a reinvocation carries forward. Every runner-owned collection and
+ * singleton the prior invocation persisted — the sub-agent rows, the to-dos,
+ * the artifacts, the write-back rows, the usage summary, the recalled-memories
+ * report, the structured output — is on the completed status of the resumed
+ * turn, because the server REPLACES each of them wholesale when the runner's
+ * write carries any (`update-status.ts`), so a write holding only the resumed
+ * turn's own would erase the prior turn's. A first turn (no transcript)
+ * carries none of them, whatever the record holds: the seed is gated on the
+ * persisted transcript, the one signal every harness shares.
+ *
+ * The record here REPLACES its held status with every full write (stricter
+ * than the server's presence guard), so a dropped collection is a failing
+ * assertion, not a masked one. The planted rows are the prior turn's own
+ * facts, written onto the record between invocations as the prior turn would
+ * have persisted them.
+ */
+export async function assertReinvocationCarriesThePersistedStatus(harness: RuntimeContractHarness, label = "rt-seed"): Promise<RuntimeArmResult> {
+  const { subject } = harness;
+  const driver = new RuntimeExecutionDriver(harness, label);
+  const id = `${label}-shell`;
+  const propose = scenario.propose(id, { kind: "shell", resource: `make release # ${label}` });
+
+  const first = await driver.turn([propose]);
+  expect(slimOf(subject, first).phase).toBe("EXECUTION_WAITING_FOR_APPROVAL");
+  const planted = plantPriorTurnFacts(driver.record.status!, label);
+  expect(driver.decide(ApprovalAction.APPROVE)).toBe(1);
+
+  const second = await driver.turn([propose, scenario.say("Done.")]);
+  expect(slimOf(subject, second).phase, `${subject.name}: the resumed turn completes`).toBe("EXECUTION_COMPLETED");
+  const final = finalStatusOf(harness, driver);
+  expect(final.subAgentExecutions.map((s) => s.id), `${subject.name}: the prior turn's sub-agent row survives the resume`).toContain(planted.subAgentId);
+  expect(Object.keys(final.todos), `${subject.name}: the prior turn's to-dos survive the resume`).toContain(planted.todoId);
+  expect(final.artifacts.map((a) => a.name), `${subject.name}: the prior turn's artifacts survive the resume`).toContain(planted.artifactName);
+  expect(final.workspaceWriteBacks.map((w) => w.workspaceEntryName), `${subject.name}: the prior turn's write-back rows survive the resume`).toContain(planted.writeBackEntry);
+  expect(final.recalledMemoriesReport?.injectedMemoryIds, `${subject.name}: the recalled-memories report survives the resume`).toEqual([planted.memoryId]);
+  expect(final.structuredOutput, `${subject.name}: a structured output already on the record survives the resume`).toEqual(planted.structuredOutput);
+  expect(final.streamingUsage?.inputTokens, `${subject.name}: the usage summary carries until the resumed turn reports its own`).toBe(planted.inputTokens);
+  expect(final.messages.flatMap((m) => m.toolCalls).filter((tc) => tc.id === id), `${subject.name}: the gated row is carried once, not duplicated`).toHaveLength(1);
+  return { driver, invocations: [first, second], final };
+}
+
+/** The same record with the same planted facts but NO transcript: a first turn seeds nothing. */
+export async function assertFirstTurnSeedsNothing(harness: RuntimeContractHarness, label = "rt-seed-first"): Promise<RuntimeArmResult> {
+  const { subject } = harness;
+  const driver = new RuntimeExecutionDriver(harness, label);
+  const planted = plantPriorTurnFacts(driver.record.status ?? (driver.record.execution.status = emptyStatus()), label);
+  const invocation = await driver.turn([scenario.say("Fresh start.")]);
+  expect(slimOf(subject, invocation).phase).toBe("EXECUTION_COMPLETED");
+  const final = finalStatusOf(harness, driver);
+  expect(final.subAgentExecutions.map((s) => s.id), `${subject.name}: a first turn seeds no sub-agent rows`).not.toContain(planted.subAgentId);
+  expect(Object.keys(final.todos), `${subject.name}: a first turn seeds no to-dos`).not.toContain(planted.todoId);
+  expect(final.artifacts.map((a) => a.name), `${subject.name}: a first turn seeds no artifacts`).not.toContain(planted.artifactName);
+  expect(final.workspaceWriteBacks, `${subject.name}: a first turn seeds no write-back rows`).toHaveLength(0);
+  expect(final.recalledMemoriesReport, `${subject.name}: a first turn seeds no report`).toBeUndefined();
+  expect(final.structuredOutput, `${subject.name}: a first turn seeds no structured output`).toBeUndefined();
+  return { driver, invocations: [invocation], final };
+}
+
+/** Write the prior turn's facts onto the server-held status, as its writes would have left them. */
+function plantPriorTurnFacts(held: AgentExecutionStatus, label: string) {
+  const planted = {
+    subAgentId: `${label}-sub`,
+    todoId: `${label}-todo`,
+    artifactName: `${label}-report.md`,
+    writeBackEntry: `${label}-repo`,
+    memoryId: `${label}-memory`,
+    structuredOutput: { verdict: "carried" } as JsonObject,
+    inputTokens: 4_242n,
+  };
+  held.subAgentExecutions.push(create(SubAgentExecutionSchema, { id: planted.subAgentId, name: "researcher", status: SubAgentStatus.SUB_AGENT_COMPLETED }));
+  held.todos[planted.todoId] = create(TodoItemSchema, { id: planted.todoId, content: "carry me", status: TodoStatus.TODO_PENDING });
+  held.artifacts.push(create(ExecutionArtifactSchema, { name: planted.artifactName }));
+  held.workspaceWriteBacks.push(create(WorkspaceWriteBackSchema, { workspaceEntryName: planted.writeBackEntry, phase: WorkspaceWriteBackPhase.WORKSPACE_WRITE_BACK_COMMITTED }));
+  held.recalledMemoriesReport = create(RecalledMemoriesReportSchema, { selectionActive: true, injectedMemoryIds: [planted.memoryId] });
+  held.structuredOutput = planted.structuredOutput;
+  held.streamingUsage = create(StreamingUsageSummarySchema, { inputTokens: planted.inputTokens, totalTokens: planted.inputTokens });
+  return planted;
+}
+
 // ── Arms: the stop controller's producers ───────────────────────────────────
 
 /** A hanging scenario with the never-seen text after the hang; the arms below stop it in three different ways. */
@@ -353,17 +611,42 @@ export async function assertWorkerShutdownPersistsAndThrows(harness: RuntimeCont
   return { driver, invocations: [invocation], final };
 }
 
+/** How often the stall arm's clock advances once the engine is parked; real time between scripted windows. */
+const STALL_CLOCK_INTERVAL_MS = 25;
+
 /**
- * A stall: the watchdog measures idle time on the scripted clock; one tick
- * past the window while the engine hangs fails the turn (RETURNED — a retry
- * would wedge again) with the watchdog's copy naming the idle seconds.
+ * A stall: the watchdog measures idle time on the scripted clock; while the
+ * engine hangs the clock KEEPS RUNNING — a stall window per interval until
+ * the turn settles — and the first window with no activity fails the turn
+ * (RETURNED — a retry would wedge again) with the watchdog's copy naming the
+ * idle seconds.
+ *
+ * Why the clock runs rather than ticks once: on a push-based engine the
+ * park is reported while the chunks the engine produced before parking are
+ * still in its event pipeline ahead of the adapter's loop, so activity marks
+ * land AFTER a single tick and a frozen clock reads idle 0 from then on
+ * (S3 M3 F-M3-5, measured on the native adapter: 35 marks at the park, 37
+ * within 10 ms). A pull-based double's park implies everything before it
+ * was seen; a real stall is wall time passing while the engine is silent,
+ * whichever shape the engine has. The interval advances a SCRIPTED clock —
+ * the kit's rule against timers is about stopping a turn on a guess, which
+ * this never does (Q-M3-7).
  */
 export async function assertStallFailsTheTurn(harness: RuntimeContractHarness, label = "rt-stall"): Promise<RuntimeArmResult> {
   const { subject, clock } = harness;
   const driver = new RuntimeExecutionDriver(harness, label);
-  void subject.whenHanging().then(() => clock.tick(STALL_TIMEOUT_MS));
+  let running: NodeJS.Timeout | undefined;
+  void subject.whenHanging().then(() => {
+    clock.tick(STALL_TIMEOUT_MS);
+    running = setInterval(() => clock.tick(STALL_TIMEOUT_MS), STALL_CLOCK_INTERVAL_MS);
+  });
 
-  const invocation = await driver.turn(hangingTurn("Running the suite."), { config: { cursorStreamStallTimeoutMs: STALL_TIMEOUT_MS } });
+  let invocation: ActivityInvocation;
+  try {
+    invocation = await driver.turn(hangingTurn("Running the suite."), { config: { cursorStreamStallTimeoutMs: STALL_TIMEOUT_MS } });
+  } finally {
+    if (running) clearInterval(running);
+  }
 
   expect(slimOf(subject, invocation).phase, `${subject.name}: a stall RETURNS FAILED`).toBe("EXECUTION_FAILED");
   expect(driver.record.persistedPhases.at(-1)).toBe(ExecutionPhase.EXECUTION_FAILED);
@@ -589,6 +872,21 @@ export interface RuntimeContractOptions {
    * pass). Every surface by default.
    */
   readonly failureSurfaces?: readonly FailureSurface[];
+  /**
+   * Whether this subject's engine can exhaust a tool-round budget and end a
+   * turn `tool_call_limit` (`scenario.limit()`); the arm is registered
+   * SKIPPED otherwise. On by default; the Cursor subject turns it off (its
+   * SDK has no such budget).
+   */
+  readonly toolCallLimit?: boolean;
+  /**
+   * Whether this subject's engine can end its OWN run cancelled with nothing
+   * to wait for (`scenario.cancelled()`, an SDK-side cancel); the arm is
+   * registered SKIPPED otherwise. On by default; the native subject turns it
+   * off (no LangGraph path ends a turn `cancelled` — a stop is the runtime's
+   * and settles `interrupted`; S3 M3 F-M3-2).
+   */
+  readonly engineCancel?: boolean;
 }
 
 const ALL_SURFACES: readonly FailureSurface[] = ["engine", "actionable", "internal"];
@@ -620,6 +918,22 @@ export function describeHarnessRuntimeContract(harness: RuntimeContractHarness, 
       clock.reset();
       await assertApprovalRoundTrip(harness);
     });
+    it("a reinvocation carries every runner-owned collection and singleton the prior turn persisted; a first turn seeds nothing", async () => {
+      clock.reset();
+      await assertReinvocationCarriesThePersistedStatus(harness);
+      clock.reset();
+      await assertFirstTurnSeedsNothing(harness);
+    });
+    it("file review: two writes flow, the runtime captures and pauses, the reviewer keeps one and discards one, the resume reconciles and completes", async () => {
+      clock.reset();
+      await assertFileReviewRoundTrip(harness);
+    });
+    for (const action of [ApprovalAction.REJECT, ApprovalAction.SKIP] as const) {
+      it(`awaiting_approval then ${ApprovalAction[action]}: the run continues without the tool and the runtime settles the row SKIPPED`, async () => {
+        clock.reset();
+        await assertNonExecutingDecisionSettlesSkipped(harness, action);
+      });
+    }
     it("a user pause persists PAUSED with the pause row once and throws the pause CancelledFailure", async () => {
       clock.reset();
       await assertPausePersistsAndThrows(harness);
@@ -640,9 +954,13 @@ export function describeHarnessRuntimeContract(harness: RuntimeContractHarness, 
       clock.reset();
       await assertPlatformStopCompletesEarly(harness);
     });
-    it("an engine-cancelled run ends CANCELLED with no error and no copy", async () => {
+    it.skipIf(options.engineCancel === false)("an engine-cancelled run ends CANCELLED with no error and no copy", async () => {
       clock.reset();
       await assertEngineCancelledEndsCancelled(harness);
+    });
+    it.skipIf(options.toolCallLimit === false)("a tool-call limit terminates the turn with the cross-repo prefix and the user copy, persisted and returned", async () => {
+      clock.reset();
+      await assertToolCallLimitTerminates(harness);
     });
     for (const surface of ALL_SURFACES) {
       it.skipIf(!surfaces.includes(surface))(`a failed turn on the ${surface} surface writes that surface's copy and returns`, async () => {

@@ -35,7 +35,7 @@ import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/a
 import { ApprovalAction, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { SDKMessage } from "@cursor/sdk";
 
-import { approvalDecisionsOf } from "../../../harness/turn-context.js";
+import { approvalDecisionsOf } from "../../../harness/approval-decisions.js";
 import { MessageAccumulator, reconcileDeniedToolCalls, toolCallIdentityToken } from "../message-translator.js";
 import type { DeniedLedgerEntry } from "../approval-state.js";
 
@@ -83,7 +83,7 @@ function allToolCalls(messages: AgentMessage[]): ToolCall[] {
 
 /** The later turn: the model proposes the same edit under a fresh id, the hook denies it, the turn boundary reconciles. */
 async function laterTurnProposesSameEdit(seeded: AgentMessage[]): Promise<ToolCall[]> {
-  const acc = new MessageAccumulator(seeded, { seededSubAgents: [] });
+  const acc = new MessageAccumulator(seeded, {});
   acc.processEvent(toolCallEvent(LATER_ID, "running"));
   acc.processEvent(toolCallEvent(LATER_ID, "error", "Blocked by hook"));
   acc.finalize();
@@ -158,7 +158,7 @@ describe("a later same-identity proposal never lands on a decided row (F9)", () 
       }),
     ];
 
-    const acc = new MessageAccumulator(seeded, { seededSubAgents: [] });
+    const acc = new MessageAccumulator(seeded, {});
     acc.processEvent(toolCallEvent(`${FIRST_ID}_RESUME`, "running"));
     acc.processEvent(toolCallEvent(`${FIRST_ID}_RESUME`, "completed", RESULT_OF_FIRST));
     acc.finalize();

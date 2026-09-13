@@ -2,8 +2,7 @@
  * Unit tests for the Cursor harness's shared stream seam (turn-stream.ts).
  *
  * These lock the behaviors the old bare retry loops used to DROP — live persist,
- * DD-32/DD-33 mid-run progress, sub-agent tracking, the first-denial early stop
- * — and the loop's side of the adapter contract: progress reported per event
+ * sub-agent tracking, the first-denial early stop — and the loop's side of the adapter contract: progress reported per event
  * and per delta, usage reported priced, the persist awaited, and the runtime's
  * stop signal honoured at every event boundary and inside a blocked pull by
  * cancelling the SDK run. Since S2 M3 the loop no longer decides WHY it
@@ -30,7 +29,6 @@ import {
   type StreamableRun,
   type TurnStreamState,
 } from "../turn-stream.js";
-import type { ProgressSubstrate } from "../../../shared/filereview/progress.js";
 
 // A stream event is only inspected by the loop for `type`/`name`/`status`/
 // `message`; the accumulator (stubbed) owns the rest, so a minimal cast is safe.
@@ -109,9 +107,6 @@ function buildDeps(overrides: Partial<CursorTurnStreamDeps> = {}): BuiltDeps {
     // contentDirty (accumulator.isDirty) forces the persist, so shouldSendUpdate
     // is never consulted; markUpdateSent must still exist.
     scheduler: { shouldSendUpdate: () => false, markUpdateSent: vi.fn() },
-    progressSubstrate: undefined,
-    progressState: { lastAtMs: 0 },
-    changeSetId: "exec-test:0",
     hitlDir: undefined,
     ...overrides,
   } as unknown as CursorTurnStreamDeps;
@@ -148,26 +143,6 @@ describe("consumeCursorTurnStream", () => {
     await consumeCursorTurnStream(mockRun([ev({ type: "tool_call", name: "task" })]), deps);
 
     expect(accumulator.trackSubAgentExecution).toHaveBeenCalledTimes(1);
-  });
-
-  it("attaches DD-32/DD-33 mid-run progress when a substrate is present", async () => {
-    const capture = vi.fn(async () => ({ delta: { entries: [] }, changed: true }));
-    const progressSubstrate = { capture } as unknown as ProgressSubstrate;
-    const { deps, sink } = buildDeps({ progressSubstrate });
-
-    await consumeCursorTurnStream(mockRun([ev({ type: "assistant" })]), deps);
-
-    expect(capture).toHaveBeenCalled();
-    // changed:true → the transient snapshot is attached to status.
-    expect(sink.status.fileChangeProgress).toBeDefined();
-  });
-
-  it("does not touch progress when no substrate is configured", async () => {
-    const { deps, sink } = buildDeps({ progressSubstrate: undefined });
-
-    await consumeCursorTurnStream(mockRun([ev({ type: "assistant" })]), deps);
-
-    expect(sink.status.fileChangeProgress).toBeUndefined();
   });
 
   it("captures a stream ERROR status message onto state.streamErrorMessage", async () => {

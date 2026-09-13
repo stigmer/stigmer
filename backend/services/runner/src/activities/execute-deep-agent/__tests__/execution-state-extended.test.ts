@@ -118,14 +118,12 @@ describe("ExecutionState", () => {
       state.messagesByRun.set("run-1", state.proto.messages[0]);
       state.currentAiMessage.set("", state.proto.messages[0]);
       state.lastLlmRunId.set("", "run-1");
-      state.toolStartTimes.set("tc-1", 12345);
 
       state.resetEphemeralState();
 
       expect(state.messagesByRun.size).toBe(0);
       expect(state.currentAiMessage.size).toBe(0);
       expect(state.lastLlmRunId.size).toBe(0);
-      expect(state.toolStartTimes.size).toBe(0);
     });
 
     it("does not clear proto or toolCalls index", () => {

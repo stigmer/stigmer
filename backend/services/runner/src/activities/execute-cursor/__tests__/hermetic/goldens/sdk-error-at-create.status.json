@@ -34,5 +34,9 @@
         }
       }
     ]
+  },
+  "fileChangeProgress": {
+    "changeSetId": "aex_hermetic_0001:0",
+    "capturedAt": "2026-01-01T00:00:00.000Z"
   }
 }

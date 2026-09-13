@@ -105,8 +105,11 @@ export const SALIENT_ARG_FIELDS = ["file_path", "path", "target_notebook", "comm
  * `edit`/`shell`/`delete` all return true. Only mutating/destructive tools are
  * gated; everything else (read-only built-ins, and — at the hook layer —
  * auto-approved MCP tools) is allowed. This "gate the dangerous set, allow the
- * rest" model mirrors the native harness's resolveToolApproval. It is
- * deliberately fail-OPEN for unknown tools: the merged MCP policy map carries
+ * rest" model is the platform's one approval rule, read through the shared
+ * `approvalCategory` / `toolApprovalCategory` (`shared/tool-kind.ts`) that the
+ * native gate (`middleware/approval-gate.ts` `resolveToolApproval`) also
+ * reads — one taxonomy, two enforcement points. It is deliberately fail-OPEN
+ * for unknown tools: the merged MCP policy map carries
  * only the tools that REQUIRE approval, so a fail-closed default would wrongly
  * deny every auto-approved MCP tool, which the hook cannot distinguish from an
  * unknown built-in by name.

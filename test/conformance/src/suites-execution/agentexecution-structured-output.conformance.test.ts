@@ -4,20 +4,30 @@
 // Domain: agentic / agentexecution — the typed result a workflow's agent_call
 // or an SDK consumer reads instead of prose.
 //
-// The runner has two sources for the value: deepagents' structuredResponse
-// (the primary path a live model populates) and, when that is absent — which
-// it always is under the mock's plain text turns — extraction from the final
-// AI message (shared/extract-json.ts: whole text, then the LAST parseable code
-// fence, then the last balanced brace object; trailing commas repaired before
-// every parse). What this suite pins is the extraction contract a consumer can
-// rely on, read through status:
-// - pure JSON, fenced JSON, and JSON inside prose all populate the field;
+// The runner has three sources for the value: the engine's own structured
+// response (the primary path a live model populates), and, when that is
+// absent — which it always is under the mock's plain text turns — the turn
+// runtime's two extraction tiers over the final AI message
+// (harness/run-turn.ts): tier 1, text extraction (shared/extract-json.ts:
+// whole text, then the LAST parseable code fence, then the last balanced
+// brace object; trailing commas repaired before every parse); and when tier 1
+// finds nothing, tier 2, ONE more LLM call that asks a model to extract the
+// value through function calling (shared/extract-structured-output.ts) —
+// on both harnesses since the turn runtime owns the epilogue (S2 M3 for
+// Cursor, S3 M2a for native; harness runtime program Q-S3-7). What this suite
+// pins is the extraction contract a consumer can rely on, read through
+// status:
+// - pure JSON, fenced JSON, and JSON inside prose all populate the field
+//   (tier 1; the mock is asked exactly one turn);
 // - when several fences appear the LAST one wins (the runner's prompt asks for
 //   the result as the final response; intermediate debug output comes first);
 // - a trailing comma is repaired, not a failure;
-// - prose with no JSON leaves the field absent and the run COMPLETED — an
-//   extraction miss never fails a run;
-// - without a schema the field is never populated;
+// - prose with no JSON is handed to tier 2: the extractor's reply populates
+//   the field, and the mock sees that second call — a tool named `extract`,
+//   no agent system prompt — and nothing more;
+// - an extraction miss never fails a run: when the extractor itself answers
+//   in prose (no tool call), the field stays absent and the run COMPLETED;
+// - without a schema the field is never populated and tier 2 is never asked;
 // - the schema itself round-trips on spec.execution_config as submitted.
 //
 // Deliberately NOT asserted (entry 20260910.02, ruling 1): whether the
@@ -33,7 +43,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import type { MockLlmProxy } from "../harness/mock-llm";
-import { anthropicText } from "../harness/mock-llm";
+import { anthropicText, anthropicToolUse, type AnthropicMessageBody } from "../harness/mock-llm";
 import { makeAgent } from "../support/agents";
 import { awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/agentexecutions";
 import { uniqueName } from "../support/naming";
@@ -100,8 +110,15 @@ const COHORTS_ARRAY_SCHEMA: JsonObject = {
   required: ["cohorts"],
 };
 
-// One execution whose single text turn is `finalText`, with (or without) a schema.
-async function runWithSchema(finalText: string, schema: JsonObject | undefined): Promise<AgentExecution> {
+// One execution whose single agent turn is `finalText`, with (or without) a
+// schema. `extractorTurn` is the reply queued for tier 2 — the second call the
+// runner makes only when `finalText` carries no JSON; an arm that expects tier
+// 1 to succeed queues none, and the mock's `consumed()` proves which tier ran.
+async function runWithSchema(
+  finalText: string,
+  schema: JsonObject | undefined,
+  extractorTurn?: AnthropicMessageBody,
+): Promise<AgentExecution> {
   const { org } = await target.provisionTenancy();
   const agent = await clients.agentCommand.create(
     makeAgent({
@@ -113,6 +130,7 @@ async function runWithSchema(finalText: string, schema: JsonObject | undefined):
   fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
 
   mock.enqueue(anthropicText(finalText));
+  if (extractorTurn) mock.enqueue(extractorTurn);
   const execution = await clients.agentExecutionCommand.create(
     makeAgentExecution({
       org,
@@ -192,17 +210,45 @@ describe("AgentExecution structured output — extraction from the final message
     });
   });
 
-  it("prose with no JSON leaves structured_output absent and the run COMPLETED", async () => {
+  it("a pure JSON final message is tier 1's: the mock is asked exactly the agent's one turn", async () => {
+    await runWithSchema(`{"summary": "one turn", "score": 1}`, SUMMARY_SCORE_SCHEMA);
+    expect(mock.consumed(), "no extraction call follows a text extraction that succeeded").toBe(1);
+  });
+
+  it("prose with no JSON is handed to tier 2: the extractor's function call populates structured_output", async () => {
     const final = await runWithSchema(
       "# Blue Color Analysis\n\nBlue is a primary color associated with calm and serenity.\n\n## Key Points\n\n- Often used in corporate branding\n- Score: approximately 8 out of 10 for positive associations",
       SUMMARY_SCORE_SCHEMA,
+      anthropicToolUse("toolu_extract_1", "extract", { summary: "Blue: calm, serene, corporate", score: 8 }),
     );
-    expect(final.status?.structuredOutput, "an extraction miss is not a failure and not a guess").toBeUndefined();
+    expect(structuredOutputOf(final)).toEqual({ summary: "Blue: calm, serene, corporate", score: 8 });
+    expect(mock.consumed(), "the agent's turn, then exactly one extraction call").toBe(2);
+
+    // The second call is the extractor's, not another agent turn: it binds the
+    // one function-calling tool `extract`, and its system prompt is the
+    // extractor's own sentence, not the agent's instructions.
+    const extraction = mock.requests().at(-1)?.body as { tools?: Array<{ name: string }>; system?: unknown } | undefined;
+    expect(extraction?.tools?.map((t) => t.name), "the extractor binds the schema as one tool").toEqual(["extract"]);
+    const extractorSystem = JSON.stringify(extraction?.system ?? "");
+    expect(extractorSystem).toContain("Extract the structured data");
+    expect(extractorSystem, "the extractor is not the agent").not.toContain("Answer the question");
+    expect(final.status?.messages, "the extraction call is not a turn of the transcript").toHaveLength(1);
   });
 
-  it("without a schema, structured_output is absent even when the final message is JSON", async () => {
+  it("an extraction miss never fails a run: an extractor that answers in prose leaves structured_output absent and the run COMPLETED", async () => {
+    const final = await runWithSchema(
+      "Blue is a primary color associated with calm and serenity.",
+      SUMMARY_SCORE_SCHEMA,
+      anthropicText("I cannot express that as the requested structure."),
+    );
+    expect(final.status?.structuredOutput, "an extraction miss is not a failure and not a guess").toBeUndefined();
+    expect(mock.consumed(), "tier 2 was asked once and not retried").toBe(2);
+  });
+
+  it("without a schema, structured_output is absent even when the final message is JSON, and tier 2 is never asked", async () => {
     const final = await runWithSchema(`{"summary": "hello", "score": 5}`, undefined);
     expect(final.status?.structuredOutput).toBeUndefined();
+    expect(mock.consumed()).toBe(1);
   });
 });
 

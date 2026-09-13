@@ -1,7 +1,9 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import { SubAgentStatus, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { cancelInProgressSubAgentProtos } from "../../../shared/subagent-rows.js";
 import { V3StatusBuilder } from "../v3-status-builder.js";
 import { normalize } from "../v3-protocol-normalizer.js";
 import type { V3ProtocolEvent } from "../v3-event-recorder.js";
@@ -88,8 +90,6 @@ describe("SubAgentTracker (via V3StatusBuilder integration)", () => {
         makeMessageFinish("parent-1"),
         makeTaskToolStarted("call_sub_1", "researcher", "Research renewable energy"),
       ]);
-
-      sb.syncSubAgentExecutions();
       const subs = sb.currentStatus.subAgentExecutions;
       expect(subs).toHaveLength(1);
       expect(subs[0].id).toBe("call_sub_1");
@@ -106,8 +106,6 @@ describe("SubAgentTracker (via V3StatusBuilder integration)", () => {
         makeTaskToolStarted("call_sub_1", "researcher", "Research topic"),
         makeTaskToolFinished("call_sub_1", "Renewable energy summary here."),
       ]);
-
-      sb.syncSubAgentExecutions();
       const sub = sb.currentStatus.subAgentExecutions[0];
       expect(sub.status).toBe(SubAgentStatus.SUB_AGENT_COMPLETED);
       expect(sub.output).toBe("Renewable energy summary here.");
@@ -120,8 +118,6 @@ describe("SubAgentTracker (via V3StatusBuilder integration)", () => {
         makeTaskToolStarted("call_sub_1", "researcher", "Research topic"),
         makeTaskToolError("call_sub_1", "Context overflow in sub-agent"),
       ]);
-
-      sb.syncSubAgentExecutions();
       const sub = sb.currentStatus.subAgentExecutions[0];
       expect(sub.status).toBe(SubAgentStatus.SUB_AGENT_FAILED);
       expect(sub.error).toBe("Context overflow in sub-agent");
@@ -129,19 +125,19 @@ describe("SubAgentTracker (via V3StatusBuilder integration)", () => {
     });
   });
 
-  describe("lifecycle — cancellation", () => {
-    it("cancelSubAgents marks active sub-agents as CANCELLED", () => {
+  describe("lifecycle — a stopped turn (the shared cancel act + the tracker's streaming finalize)", () => {
+    it("the shared cancelInProgressSubAgentProtos marks the tracked rows CANCELLED in place", () => {
       const sb = makeBuilder();
       feedAll(sb, [
         makeTaskToolStarted("call_sub_1", "researcher", "Task 1"),
         makeTaskToolStarted("call_sub_2", "shell", "Task 2"),
       ]);
 
-      sb.cancelSubAgents();
+      cancelInProgressSubAgentProtos(sb.currentStatus.subAgentExecutions);
       const subs = sb.currentStatus.subAgentExecutions;
       expect(subs).toHaveLength(2);
       expect(subs[0].status).toBe(SubAgentStatus.SUB_AGENT_CANCELLED);
-      expect(subs[0].error).toContain("parent execution was cancelled");
+      expect(subs[0].completedAt).toBeTruthy();
       expect(subs[1].status).toBe(SubAgentStatus.SUB_AGENT_CANCELLED);
     });
 
@@ -153,10 +149,60 @@ describe("SubAgentTracker (via V3StatusBuilder integration)", () => {
         makeTaskToolStarted("call_sub_2", "shell", "Task 2"),
       ]);
 
-      sb.cancelSubAgents();
+      cancelInProgressSubAgentProtos(sb.currentStatus.subAgentExecutions);
       const subs = sb.currentStatus.subAgentExecutions;
       expect(subs[0].status).toBe(SubAgentStatus.SUB_AGENT_COMPLETED);
       expect(subs[1].status).toBe(SubAgentStatus.SUB_AGENT_CANCELLED);
+    });
+
+    it("finalizeSubAgentStreaming clears the streaming flag on a sub-agent's in-flight message", () => {
+      const sb = makeBuilder();
+      feedAll(sb, [
+        makeTaskToolStarted("call_sub_1", "researcher", "Task 1"),
+        makeSubAgentEvent("call_sub_1", "messages", { event: "message-start", id: "msg_sub_1", run_id: "sub-run-1" }),
+        makeSubAgentEvent("call_sub_1", "messages", {
+          event: "content-block-delta", index: 0, delta: { type: "text-delta", text: "Half a sente" }, run_id: "sub-run-1",
+        }),
+      ]);
+      const msg = sb.currentStatus.subAgentExecutions[0].messages[0];
+      expect(msg.isStreaming, "the delta left the message streaming").toBe(true);
+
+      sb.finalizeSubAgentStreaming();
+      expect(msg.isStreaming).toBe(false);
+    });
+  });
+
+  describe("the status's array is built into by reference (S3 M1 deferred debt)", () => {
+    it("new rows are pushed onto the array the builder was handed, never a replacement", () => {
+      const status = create(AgentExecutionStatusSchema, {});
+      const rows = status.subAgentExecutions;
+      const sb = new V3StatusBuilder("exec-test", status);
+      feedAll(sb, [makeTaskToolStarted("call_sub_1", "researcher", "Task 1")]);
+      expect(status.subAgentExecutions, "the same array object").toBe(rows);
+      expect(rows).toHaveLength(1);
+    });
+
+    it("a seeded row re-announced by a replayed task start is reconciled, not duplicated", () => {
+      const seeded = create(SubAgentExecutionSchema, {
+        id: "call_sub_1",
+        name: "researcher",
+        status: SubAgentStatus.SUB_AGENT_IN_PROGRESS,
+      });
+      const status = create(AgentExecutionStatusSchema, { subAgentExecutions: [seeded] });
+      const sb = new V3StatusBuilder("exec-test", status);
+      feedAll(sb, [
+        makeTaskToolStarted("call_sub_1", "researcher", "Task 1"),
+        makeSubAgentEvent("call_sub_1", "messages", { event: "message-start", id: "msg_sub_1", run_id: "sub-run-1" }),
+        makeSubAgentEvent("call_sub_1", "messages", {
+          event: "content-block-delta", index: 0, delta: { type: "text-delta", text: "Resumed." }, run_id: "sub-run-1",
+        }),
+        makeSubAgentEvent("call_sub_1", "messages", { event: "message-finish", reason: "end_turn", run_id: "sub-run-1" }),
+        makeTaskToolFinished("call_sub_1", "done"),
+      ]);
+      expect(status.subAgentExecutions, "one row, the seeded one").toHaveLength(1);
+      expect(status.subAgentExecutions[0]).toBe(seeded);
+      expect(seeded.status).toBe(SubAgentStatus.SUB_AGENT_COMPLETED);
+      expect(seeded.messages.map((m) => m.content), "child events routed onto the seeded row").toEqual(["Resumed."]);
     });
   });
 
@@ -181,8 +227,6 @@ describe("SubAgentTracker (via V3StatusBuilder integration)", () => {
         }),
         makeTaskToolFinished("call_sub_1", "Research complete."),
       ]);
-
-      sb.syncSubAgentExecutions();
 
       // Parent messages should NOT contain sub-agent text
       const parentMessages = sb.currentStatus.messages;
@@ -219,8 +263,6 @@ describe("SubAgentTracker (via V3StatusBuilder integration)", () => {
           event: "message-finish", reason: "end_turn", run_id: "sub-run-1",
         }),
       ]);
-
-      sb.syncSubAgentExecutions();
       const sub = sb.currentStatus.subAgentExecutions[0];
       expect(sub.messages).toHaveLength(2);
       expect(sub.messages[0].type).toBe(MessageType.MESSAGE_THINKING);
@@ -262,8 +304,6 @@ describe("SubAgentTracker (via V3StatusBuilder integration)", () => {
           output: { lc: 1, type: "constructor", id: ["langchain_core", "messages", "ToolMessage"], kwargs: { content: "Found 3 matches", status: "success", tool_call_id: subToolCallId, name: "grep" } },
         }, { namespace: [toolsNodeSegment(taskCallId), `tools:${subToolCallId}`] }),
       ]);
-
-      sb.syncSubAgentExecutions();
       const sub = sb.currentStatus.subAgentExecutions[0];
       expect(sub.messages).toHaveLength(1);
       expect(sub.messages[0].toolCalls).toHaveLength(1);
@@ -307,8 +347,6 @@ describe("SubAgentTracker (via V3StatusBuilder integration)", () => {
         makeTaskToolFinished("call_sub_1", "A done"),
         makeTaskToolFinished("call_sub_2", "B done"),
       ]);
-
-      sb.syncSubAgentExecutions();
       const subs = sb.currentStatus.subAgentExecutions;
       expect(subs).toHaveLength(2);
 
@@ -332,8 +370,6 @@ describe("SubAgentTracker (via V3StatusBuilder integration)", () => {
         makeTaskToolStarted("call_2", "researcher", "Research B"),
         makeTaskToolFinished("call_2", "Result B"),
       ]);
-
-      sb.syncSubAgentExecutions();
       const subs = sb.currentStatus.subAgentExecutions;
       expect(subs).toHaveLength(2);
       expect(subs[0].id).toBe("call_1");
@@ -356,8 +392,6 @@ describe("SubAgentTracker (via V3StatusBuilder integration)", () => {
         makeTextDelta("parent-2", "The research is complete."),
         makeMessageFinish("parent-2"),
       ]);
-
-      sb.syncSubAgentExecutions();
       const msgs = sb.currentStatus.messages;
 
       // First AI message has the task tool call
@@ -380,8 +414,6 @@ describe("SubAgentTracker (via V3StatusBuilder integration)", () => {
         makeTaskToolStarted("call_sub_1", "researcher", "Research"),
         makeTaskToolStarted("call_sub_1", "researcher", "Research"),
       ]);
-
-      sb.syncSubAgentExecutions();
       expect(sb.currentStatus.subAgentExecutions).toHaveLength(1);
     });
 
@@ -390,8 +422,6 @@ describe("SubAgentTracker (via V3StatusBuilder integration)", () => {
       feedAll(sb, [
         makeTaskToolFinished("unknown_call_id", "output"),
       ]);
-
-      sb.syncSubAgentExecutions();
       expect(sb.currentStatus.subAgentExecutions).toHaveLength(0);
     });
 
@@ -431,8 +461,6 @@ describe("SubAgentTracker (via V3StatusBuilder integration)", () => {
           event: "message-finish", reason: "end_turn", run_id: "sub-run",
         }, { namespace: [`tools:${callId}`, "model_request"], node: "model_request" }),
       ]);
-
-      sb.syncSubAgentExecutions();
       const subs = sb.currentStatus.subAgentExecutions;
       expect(subs).toHaveLength(1);
       expect(subs[0].name).toBe("researcher");
@@ -459,8 +487,6 @@ describe("SubAgentTracker (via V3StatusBuilder integration)", () => {
           event: "message-finish", reason: "end_turn", run_id: "parent-run",
         }, { namespace: [], node: "model_request" }),
       ]);
-
-      sb.syncSubAgentExecutions();
       // First message: AI message with task tool call (created by handleToolStarted)
       // Second message: parent text that follows
       expect(sb.currentStatus.messages).toHaveLength(2);

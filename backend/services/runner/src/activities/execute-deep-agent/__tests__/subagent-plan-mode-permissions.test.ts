@@ -2,7 +2,7 @@
  * End-to-end proof (real deepagents + LangGraph runtime, no LLM/network) that a
  * plan-mode SUB-AGENT is read-only BY CONSTRUCTION (issue #255).
  *
- * The parent graph receives PLAN_MODE_PERMISSIONS in setup.ts, but deepagents'
+ * The parent graph receives PLAN_MODE_PERMISSIONS in turn-setup.ts, but deepagents'
  * parent-permission inheritance covers only spec-style sub-agents — our
  * pre-built CompiledSubAgents bypass `normalizeSubagentSpec` entirely, so
  * `compileSubagents` must bake the rules into each sub-agent graph itself.
@@ -14,7 +14,7 @@
  * delta.
  *
  * The rules under test are the PRODUCTION buildPlanModePermissions output
- * from shared/plan-mode-permissions.ts (the same setup.ts applies to both
+ * from shared/plan-mode-permissions.ts (the same turn-setup.ts applies to both
  * graph sites), not a test copy, so a change to the plan-mode permission set
  * re-proves sub-agent coverage automatically.
  */

@@ -2,12 +2,13 @@
  * V3 event recorder for capturing raw LangGraph v3 ProtocolEvents.
  *
  * Activated by the V3_EVENT_RECORD_DIR environment variable. When set,
- * the v3 streaming loop records every raw protocol event and flushes
- * them atomically to a JSON file after the stream completes.
+ * the adapter's stream loop (`turn-stream.ts`) records every raw protocol
+ * event and flushes them atomically to a JSON file after the stream
+ * completes — the native twin of `execute-cursor/cursor-event-recorder.ts`.
  *
- * This is test/development infrastructure for the v3 streaming migration.
- * The captured events serve as ground-truth for building the
- * V3StatusBuilder and validating v3 event shape assumptions.
+ * Development infrastructure: the captured events are the ground truth the
+ * v3 fixtures (`__test-utils__/v3-event-fixtures.ts`) and the builder's
+ * tests were shaped from, and the way a new provider's event shape is read.
  */
 
 import { writeFile, mkdir } from "node:fs/promises";

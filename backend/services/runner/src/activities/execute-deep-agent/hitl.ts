@@ -1,47 +1,64 @@
 /**
- * HITL (human-in-the-loop) resume infrastructure for ExecuteDeepAgent.
+ * HITL (human-in-the-loop) resume infrastructure for the native deep-agent
+ * harness — the LangGraph side of an approval round trip.
  *
- * On reinvocation after an approval signal, this module:
- * 1. Reads the persisted execution status from the database
- * 2. Queries the LangGraph checkpoint for pending interrupts
- * 3. Matches each interrupt's tool_call_id to the user's approval decision
- * 4. Builds a `Command(resume={...})` payload for LangGraph
- * 5. Reconciles tool call statuses in the StatusBuilder
+ * The runtime reads the user's decisions off the persisted rows
+ * (`harness/approval-decisions.ts` `approvalDecisionsOf`, on `TurnInput`)
+ * and settles the rows that never run (SKIP, REJECT) after the turn; what is
+ * this harness's is how those decisions reach the ENGINE: the graph
+ * checkpoint's un-resumed interrupts, keyed by the interrupt's own id, become
+ * a `Command(resume)` map ({@link resolveResumeInput}), and after a stream the
+ * interrupts still pending become WAITING_APPROVAL rows
+ * ({@link detectPendingInterrupts}). {@link reconcileUnattendedSkips} is the
+ * one settlement that stays here because its evidence — the gate's registry
+ * of auto-skipped call ids — exists only inside this harness.
  *
- * DB-driven resume: Approval decisions are read from the persisted
- * execution status (via `client.getExecution()`), NOT passed as Temporal
- * activity arguments. This matches the Go workflow contract.
+ * Until S3 M2a this module also read the decisions from the execution itself
+ * and carried the SKIP/REJECT settlement; both are the runtime's now, one
+ * copy for every harness (S3 M1, Q-S3-2).
  */
 
 import { Command } from "@langchain/langgraph";
-import type { AgentExecution, AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import {
   ApprovalAction,
   ApprovalPolicySource,
   ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { POLICY_ENGINE_VERSION, unattendedSkipMessage } from "../../shared/approval-policy.js";
+import { POLICY_ENGINE_VERSION, unattendedSkipMessage, type PolicySource } from "../../shared/approval-policy.js";
 
-// APPROVE_ALL resumes the interrupted tool exactly like APPROVE. Its
-// "auto-approve the rest of the run" effect is realized in setup.ts (the
-// approval gate is disabled for the whole execution once any APPROVE_ALL
-// decision exists), not here — this map only resolves the currently
-// interrupted tool calls. REJECT resumes the gate too (the gate returns a
-// denial ToolMessage that the model reads); it denies a single tool, it does
-// NOT fail the run — see reconcileNonExecutingDecisions for the terminal status.
-const ACTION_MAP: ReadonlyMap<ApprovalAction, string> = new Map([
-  [ApprovalAction.APPROVE, "approve"],
-  [ApprovalAction.APPROVE_ALL, "approve"],
-  [ApprovalAction.SKIP, "skip"],
-  [ApprovalAction.REJECT, "reject"],
-]);
+/**
+ * The gate's resume vocabulary for each decision. APPROVE_ALL resumes the
+ * interrupted tool exactly like APPROVE; its "auto-approve the rest of the
+ * run" effect is a scoped lease the gate config carries, not this map's.
+ * REJECT resumes the gate too (the gate returns a denial ToolMessage the
+ * model reads): it denies one tool and never fails the run — the runtime
+ * settles the row SKIPPED afterwards (`harness/approval-decisions.ts`).
+ */
+function resumeActionOf(action: ApprovalAction): string | undefined {
+  switch (action) {
+    case ApprovalAction.APPROVE:
+    case ApprovalAction.APPROVE_ALL:
+      return "approve";
+    case ApprovalAction.SKIP:
+      return "skip";
+    case ApprovalAction.REJECT:
+      return "reject";
+    case ApprovalAction.UNSPECIFIED:
+      return undefined;
+    default: {
+      const exhaustive: never = action;
+      throw new Error(`hitl: unknown approval action ${String(exhaustive)}`);
+    }
+  }
+}
 
 /**
  * Either a genuine approval resume carrying the `Command(resume)` payload, or
- * not one — in which case the caller uses `setup.langgraphInput` (the single
- * construction site of the turn's user message; this module deliberately does
- * NOT build a second copy that could drift from it).
+ * not one — in which case the caller sends the turn's user message (its
+ * single construction site; this module deliberately does NOT build a second
+ * copy that could drift from it).
  */
 export type ResumeResult =
   | { readonly isResumeFromApproval: true; readonly graphInput: Command }
@@ -77,15 +94,17 @@ export interface InterruptValue {
  *
  * Returns a `Command(resume=...)` if there are pending interrupts with
  * matching approval decisions; otherwise reports "not a resume" and the
- * caller falls back to `setup.langgraphInput`.
+ * caller sends the turn's user message.
  *
- * The graph checkpoint snapshot is read once by the caller and passed in: the
- * same snapshot also decides whether status must be seeded from the persisted
- * transcript (see `index.ts`), and on the durable (http) saver an extra
- * `getState` is a network round-trip best avoided.
+ * `decisions` is the runtime's reading of the adjudicated rows
+ * (`TurnInput.approvalDecisions`, keyed by tool-call id) — the one
+ * projection both harnesses agree on; this module never re-derives the
+ * verdict from the rows. The graph checkpoint snapshot is read once by the
+ * caller and passed in: on the durable (http) saver an extra `getState` is a
+ * network round-trip best avoided.
  */
 export function resolveResumeInput(
-  execution: AgentExecution,
+  decisions: ReadonlyMap<string, ApprovalAction>,
   graphState: GraphStateSnapshot,
 ): ResumeResult {
   const pendingInterrupts = extractPendingInterrupts(graphState);
@@ -93,25 +112,20 @@ export function resolveResumeInput(
     return { isResumeFromApproval: false };
   }
 
-  const decisions = extractApprovalDecisions(execution);
   if (decisions.size === 0) {
     return { isResumeFromApproval: false };
   }
 
-  const resumeDict: Record<string, { action: string; comment?: string }> = {};
+  const resumeDict: Record<string, { action: string }> = {};
 
   for (const intr of pendingInterrupts) {
-    const toolCallId = intr.toolCallId;
-    const decision = decisions.get(toolCallId);
-    if (!decision) continue;
+    const decision = decisions.get(intr.toolCallId);
+    if (decision === undefined) continue;
 
-    const actionStr = ACTION_MAP.get(decision.action);
-    if (!actionStr) continue;
+    const action = resumeActionOf(decision);
+    if (!action) continue;
 
-    resumeDict[intr.interruptId] = {
-      action: actionStr,
-      ...(decision.comment ? { comment: decision.comment } : {}),
-    };
+    resumeDict[intr.interruptId] = { action };
   }
 
   if (Object.keys(resumeDict).length === 0) {
@@ -128,13 +142,14 @@ export function resolveResumeInput(
   };
 }
 
-interface PendingInterrupt {
+/** An un-resumed interrupt as the resume map addresses it: the id LangGraph matches, and the tool call it gates. */
+interface ResumableInterrupt {
   readonly interruptId: string;
   readonly toolCallId: string;
 }
 
-function extractPendingInterrupts(state: GraphStateSnapshot): PendingInterrupt[] {
-  const result: PendingInterrupt[] = [];
+function extractPendingInterrupts(state: GraphStateSnapshot): ResumableInterrupt[] {
+  const result: ResumableInterrupt[] = [];
 
   for (const task of state.tasks) {
     if (!task.interrupts) continue;
@@ -158,83 +173,10 @@ function extractPendingInterrupts(state: GraphStateSnapshot): PendingInterrupt[]
   return result;
 }
 
-interface ApprovalDecisionEntry {
-  readonly action: ApprovalAction;
-  readonly comment: string;
-}
-
-function extractApprovalDecisions(
-  execution: AgentExecution,
-): Map<string, ApprovalDecisionEntry> {
-  const decisions = new Map<string, ApprovalDecisionEntry>();
-  const status = execution.status;
-  if (!status) return decisions;
-
-  for (const message of status.messages) {
-    for (const tc of message.toolCalls) {
-      if (
-        tc.approvalAction !== ApprovalAction.UNSPECIFIED &&
-        tc.status === ToolCallStatus.TOOL_CALL_WAITING_APPROVAL
-      ) {
-        decisions.set(tc.id, {
-          action: tc.approvalAction,
-          comment: "",
-        });
-      }
-    }
-  }
-
-  return decisions;
-}
-
-/**
- * Terminalize tool calls whose approval decision is non-executing — SKIP or
- * REJECT — so a denied or skipped call is never left stuck at WAITING_APPROVAL.
- *
- * This is the single, authoritative, checkpointer-independent reconciliation of
- * the two decisions that never run the tool: their outcome is fully determined
- * by the recorded decision (ToolCall.approval_action), not by any graph event.
- * APPROVE / APPROVE_ALL are intentionally NOT handled here — the tool actually
- * executes, and real tool events (v3 tool_started → tool_finished) terminalize
- * it in place.
- *
- * Why a decision-derived reconciler rather than the resumed stream: on the
- * durable path (sqlite local / http cloud) the gate returns a denial/skip
- * ToolMessage WITHOUT an on_tool_start/on_tool_end pair, and on the memory path
- * the graph replays without ever re-driving the gate — so in both cases the
- * seeded WAITING_APPROVAL row is never flipped by the stream and would persist
- * on a COMPLETED execution. Folding the recorded decision into a terminal status
- * makes every checkpointer backend behave identically by construction.
- *
- * REJECT and SKIP share TOOL_CALL_SKIPPED as the terminal status (the tool did
- * not run); they stay distinguishable by ToolCall.approval_action and by the
- * append-only approval-event stream (REJECTED vs SKIPPED). Idempotent: a row
- * already resolved carries the same decision and re-resolves identically.
- */
-export function reconcileNonExecutingDecisions(status: AgentExecutionStatus): void {
-  const apply = (messages: readonly AgentMessage[]): void => {
-    for (const msg of messages) {
-      for (const tc of msg.toolCalls) {
-        if (tc.approvalAction === ApprovalAction.SKIP) {
-          tc.status = ToolCallStatus.TOOL_CALL_SKIPPED;
-        } else if (tc.approvalAction === ApprovalAction.REJECT) {
-          tc.status = ToolCallStatus.TOOL_CALL_SKIPPED;
-          if (!tc.error) tc.error = "Rejected by user";
-        }
-      }
-    }
-  };
-
-  apply(status.messages);
-  for (const subAgent of status.subAgentExecutions) {
-    apply(subAgent.messages);
-  }
-}
-
 /**
  * Terminalize every tool call the approval gate auto-skipped under UNATTENDED
- * approval mode — the sibling of {@link reconcileNonExecutingDecisions} for
- * skips that have no human decision behind them.
+ * approval mode — the sibling of the runtime's `terminalizeNonExecutingDecisions`
+ * for skips that have no human decision behind them.
  *
  * The gate (the single writer of the registry) records each auto-skipped
  * tool-call id at the moment it returns the skip ToolMessage; this reconciler
@@ -278,4 +220,39 @@ export function reconcileUnattendedSkips(
   for (const subAgent of status.subAgentExecutions) {
     apply(subAgent.messages);
   }
+}
+
+/** A pending LangGraph approval interrupt, normalized from the graph checkpoint. */
+export interface PendingInterrupt {
+  readonly toolCallId: string;
+  readonly toolName: string;
+  readonly mcpServerSlug: string;
+  readonly message: string;
+  /** Gate provenance carried through the interrupt; undefined → UNSPECIFIED. */
+  readonly policySource: PolicySource | undefined;
+}
+
+/**
+ * Normalize the graph checkpoint's un-resumed interrupts into pending
+ * approvals — what a stream that ended on a gate left for the user. The
+ * caller seeds one WAITING_APPROVAL row per entry and ends the turn awaiting
+ * approval; the interrupt carries only `tool_call_id` and `message` beside
+ * the gate's own facts, so the row's args are read from the AI message in
+ * graph state, never from a second copy here.
+ */
+export function detectPendingInterrupts(graphState: GraphStateSnapshot): PendingInterrupt[] {
+  return graphState.tasks.flatMap((task) =>
+    (task.interrupts ?? [])
+      .filter((intr) => intr.resumeValue === undefined)
+      .map((intr) => {
+        const val = intr.value;
+        return {
+          toolCallId: (val?.tool_call_id as string) ?? "",
+          toolName: (val?.tool_name as string) ?? "",
+          mcpServerSlug: (val?.mcp_server_slug as string) ?? "",
+          message: (val?.message as string) ?? "",
+          policySource: (val?.policy_source as PolicySource) || undefined,
+        };
+      }),
+  );
 }

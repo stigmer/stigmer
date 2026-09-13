@@ -159,7 +159,7 @@ All configuration is environment-driven. Names and defaults below are verified a
 | `STIGMER_PROXY_ENDPOINT` | Proxy/cloud | No | _(none)_ | Stigmer proxy endpoint. When set, activates proxy transport: Cursor SDK traffic and artifact uploads are routed through the proxy. |
 | `WORKSPACE_ROOT_DIR` | All | No | `~/.stigmer/workspaces/runner` (fallback) | Root directory for agent workspaces. If unset, the runner warns and creates an isolated fallback directory — it never falls back to the process working directory. |
 | `TEMPORAL_MAX_CONCURRENCY` | All | No | `5` | Maximum concurrent Temporal activity executions (per session Worker in manager mode). |
-| `STIGMER_CHECKPOINTER_TYPE` | All | No | `memory` (local), `http` (cloud) | LangGraph checkpointer backend for agent state: `memory` or `http`. |
+| `STIGMER_CHECKPOINTER_TYPE` | All | No | `sqlite` (local), `http` (cloud) | LangGraph checkpointer backend for the native harness's agent state: `sqlite` (a durable per-session file under the platform dir, so a paused or interrupted run resumes across invocations), `http` (the proxy-backed saver), or `memory` (ephemeral; test runs only — a paused run cannot resume on it). |
 | `STIGMER_CHECKPOINTER_PROXY_ENDPOINT` | `http` checkpointer | No | value of `STIGMER_PROXY_ENDPOINT` | Endpoint for the HTTP checkpointer; falls back to the proxy endpoint. |
 | `STIGMER_PRIMARY_MODEL` | All | No | `gpt-4.1` | Default LLM model identifier. |
 | `STIGMER_CURSOR_CLOUD_MODE_ENABLED` | All | No | `false` | When `true`, enables Cursor cloud (workspace-less) execution mode for the Cursor harness. |
@@ -223,12 +223,10 @@ These tune internal behavior or support testing. Most operators never set them.
 | `STREAMING_MIN_INTERVAL_MS` | `500` | Minimum time between streaming status updates (rate limit). |
 | `STREAMING_MAX_INTERVAL_MS` | `5000` | Maximum time before a forced keepalive status update. Clamped up to the min if set lower. |
 | `STREAMING_BURST_THRESHOLD` | `50` | Event count that triggers an immediate status update (burst protection). |
-| `LANGGRAPH_STREAM_EVENTS_VERSION` | `v3` | Selects the LangGraph streaming events version; `v2` opts into the older path. |
 | `SKIP_MCP_CONNECT_BACKFILL` | `false` | When `true`, skips MCP Connect backfill. |
 | `STIGMER_MCP_PUBLIC_ENDPOINT` | _(none)_ | Public endpoint injected as `STIGMER_SERVER_ADDRESS` into MCP server environments that request it. |
 | `CURSOR_EVENT_RECORD_DIR` | _(none)_ | Directory to record Cursor harness events (debugging/fixtures). |
-| `V2_EVENT_RECORD_DIR` | _(none)_ | Directory to record deep-agent v2 streaming events. |
-| `V3_EVENT_RECORD_DIR` | _(none)_ | Directory to record deep-agent v3 streaming events. |
+| `V3_EVENT_RECORD_DIR` | _(none)_ | Directory to record deep-agent harness events (debugging/fixtures). |
 | `RECORD_FIXTURES` | `0` | When `1`, records HTTP fixtures for replay-based tests. |
 
 ## Related documentation

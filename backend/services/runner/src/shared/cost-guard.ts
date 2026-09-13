@@ -13,8 +13,8 @@
  * same clean-cancel pattern the stall watchdog and first-denial stop use.
  * Slightly harsher than native by construction; both harnesses terminate with
  * the same honesty semantics (EXECUTION_TERMINATED, work checkpointed, the
- * conversation continues on the next message — the recursion-limit precedent
- * in execute-deep-agent/streaming-terminal.ts).
+ * conversation continues on the next message — the recursion-limit precedent,
+ * `harness/terminal-table.ts` `toolCallLimitArm`).
  *
  * The running figure is the usage accumulator's local pricing-table estimate
  * (authoritative billing is the BiDi proxy). That is the same estimation
@@ -34,7 +34,7 @@ export function costCapExceeded(maxCostUsd: number, estimatedCostUsd: number): b
 
 /**
  * Stable prefix of the cost-limit terminal error. Mirrors the cross-repo
- * pattern of TOOL_CALL_LIMIT_ERROR_PREFIX (streaming-terminal.ts): consumers
+ * pattern of TOOL_CALL_LIMIT_ERROR_PREFIX (tool-rounds.ts): consumers
  * that need to distinguish "ran out of cost budget" from other TERMINATED
  * causes can match on this prefix, because AgentExecutionStatus carries no
  * structured termination reason. Do not reword without checking consumers.

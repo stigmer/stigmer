@@ -39,6 +39,7 @@
 
 import { readFile } from "node:fs/promises";
 import { resolveWorkspacePath } from "../../shared/file-change.js";
+import type { CasTouchedSnapshot } from "../../shared/filereview/cas-touched.js";
 
 /**
  * Pre-turn bytes of each first-touched gitignored path, keyed by workspace-root-
@@ -73,6 +74,16 @@ export class CasCaptureObserver {
   /** Gitignored paths the gate refused as secret-like, read at the turn boundary. */
   get blockedSecretPaths(): ReadonlySet<string> {
     return this.blocked;
+  }
+
+  /**
+   * An atomic copy of what has been observed so far — the shape the progress
+   * slice and the turn-boundary capture read (`shared/filereview/cas-touched.ts`).
+   * Copied synchronously, so a sub-agent's concurrent `recordBefore` landing
+   * mid-capture cannot mutate a snapshot a reader is walking.
+   */
+  snapshot(): CasTouchedSnapshot {
+    return { before: new Map(this.before), blockedSecretPaths: new Set(this.blocked) };
   }
 
   /**

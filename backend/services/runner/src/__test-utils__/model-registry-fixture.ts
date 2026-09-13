@@ -10,18 +10,28 @@
  * registry document — and to THROW for any other URL, so a new network
  * dependency on the activity path fails the run instead of leaking.
  *
- * One entry, `composer-2.5`, priced at round numbers so a golden's
- * `estimatedCostUsd` is legible (600 000 input tokens = $0.60). The entry is
- * a Cursor-harness model because that is what the registry lists; the
- * document itself is the control plane's, read by every harness's runtime.
- * `parsePricingTable` wants `harness: "cursor"` + `pricing`; `parseRegistry`
- * wants `id` + `provider` and reads `capabilities.vision`.
+ * One entry per harness, each priced at round numbers so a golden's usage and
+ * cost are legible (600 000 input tokens = $0.60). `composer-2.5` is the
+ * Cursor harness's pinned model (also in the Cursor double's catalog);
+ * `claude-haiku-4.5` is the native harness's, an Anthropic id so the native
+ * error arms' provider label (`tryInferProvider`) and the thinking heuristic
+ * read as they do in production. The document itself is the control plane's,
+ * read by every harness's runtime: `parsePricingTable` keeps every entry with
+ * `pricing`; `parseRegistry` wants `id` + `provider` and reads
+ * `capabilities.vision`; `getDefaultModel` selects only `harness: "native"`.
+ * Every fixture NAMES its model on the execution, so the list's order is
+ * never consulted and adding an entry is byte-invisible to the other
+ * harness's goldens (verified when the native entry landed: Cursor's
+ * seventeen unchanged).
  */
 
 import { vi } from "vitest";
 
-/** The pinned model of every hermetic run; in the registry document AND in the Cursor double's catalog. */
+/** The pinned model of every Cursor hermetic run; in the registry document AND in the Cursor double's catalog. */
 export const FIXTURE_MODEL = "composer-2.5";
+
+/** The pinned model of every native (deep-agent) hermetic run. */
+export const FIXTURE_NATIVE_MODEL = "claude-haiku-4.5";
 
 export const REGISTRY_DOCUMENT = {
   models: [
@@ -46,6 +56,21 @@ export const REGISTRY_DOCUMENT = {
           cacheWritePricePerMillion: 3.0,
           cacheReadPricePerMillion: 0.3,
         },
+      },
+    },
+    {
+      id: FIXTURE_NATIVE_MODEL,
+      displayName: "Claude Haiku 4.5 (hermetic fixture)",
+      provider: "anthropic",
+      harness: "native",
+      costTier: "standard",
+      featured: true,
+      capabilities: { vision: true },
+      pricing: {
+        inputPricePerMillion: 1.0,
+        outputPricePerMillion: 5.0,
+        cacheWritePricePerMillion: 1.25,
+        cacheReadPricePerMillion: 0.1,
       },
     },
   ],

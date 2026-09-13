@@ -17,6 +17,7 @@ import type { BuildPromptInput } from "../prompt-builder.js";
 import { buildReinvocationPrompt, formatInteractionModePrefix, formatImplementPlanSection, formatToolApprovalProtocol, buildToolApprovalRuleFile } from "../prompt-builder.js";
 import { PLAN_MODE_DIRECTIVE } from "../../../shared/plan-mode-prompt.js";
 import type { AgentResolution, AgentResolutionReason } from "../session-lifecycle.js";
+import type { ResolvedAttachment } from "../../../shared/attachment-resolver.js";
 
 const USER_MESSAGE = "What was the secret token I told you?";
 
@@ -33,6 +34,11 @@ function resolution(
     mode,
     reason,
   };
+}
+
+/** A resolved input file as the runtime's attachment phase returns it; only the path (and a disclosure) matter to these arms. */
+function attachment(relativePath: string, extra: Partial<ResolvedAttachment> = {}): ResolvedAttachment {
+  return { filename: relativePath.split("/").pop()!, relativePath, sizeBytes: 1024, ...extra };
 }
 
 function input(overrides: Partial<BuildPromptInput>): BuildPromptInput {
@@ -520,7 +526,7 @@ describe("attachments on a resumed turn (T04 — the mid-session WhatsApp case)"
 
   it("announces this turn's attachments to a resumed agent (per-execution value, never inherited)", () => {
     const prompt = buildPrompt(
-      input({ ...RESUMED, attachments: [{ path: ".stigmer/inputs/lease.pdf" }] }),
+      input({ ...RESUMED, attachments: [attachment(".stigmer/inputs/lease.pdf")] }),
     );
     expect(prompt).toContain("<input_files>");
     expect(prompt).toContain("`.stigmer/inputs/lease.pdf`");
@@ -533,16 +539,17 @@ describe("attachments on a resumed turn (T04 — the mid-session WhatsApp case)"
       input({
         ...RESUMED,
         attachments: [
-          { path: ".stigmer/inputs/report.pdf" },
-          { path: ".stigmer/inputs/report-2.pdf", renamedFrom: "report.pdf" },
+          attachment(".stigmer/inputs/report.pdf"),
+          attachment(".stigmer/inputs/report-2.pdf", { renamedFrom: "report.pdf" }),
         ],
       }),
     );
+    // The size precedes the disclosure (the shared line, S3 M5 Q-M5-3).
     expect(prompt).toContain(
-      "- `.stigmer/inputs/report-2.pdf` (renamed from duplicate 'report.pdf')",
+      "- `.stigmer/inputs/report-2.pdf` (1024 bytes) (renamed from duplicate 'report.pdf')",
     );
-    // The first file keeps a clean entry — no disclosure noise.
-    expect(prompt).toContain("- `.stigmer/inputs/report.pdf`\n");
+    // The first file keeps a clean entry — the size, no disclosure noise.
+    expect(prompt).toContain("- `.stigmer/inputs/report.pdf` (1024 bytes)\n");
   });
 
   it("keeps a resumed turn WITHOUT attachments byte-identical to the raw message (regression guard)", () => {
@@ -554,7 +561,7 @@ describe("attachments on a resumed turn (T04 — the mid-session WhatsApp case)"
     const prompt = buildPrompt(
       input({
         ...RESUMED,
-        attachments: [{ path: ".stigmer/inputs/photo.jpg" }],
+        attachments: [attachment(".stigmer/inputs/photo.jpg")],
         conversationCatchup: "User also said hello on the channel.",
       }),
     );
@@ -568,7 +575,7 @@ describe("attachments on a resumed turn (T04 — the mid-session WhatsApp case)"
     const prompt = buildPrompt(
       input({
         ...RESUMED,
-        attachments: [{ path: ".stigmer/inputs/a.jpg" }, { path: ".stigmer/inputs/big.png" }],
+        attachments: [attachment(".stigmer/inputs/a.jpg"), attachment(".stigmer/inputs/big.png")],
         vision: {
           inlineFilenames: ["a.jpg"],
           notViewable: [{ path: ".stigmer/inputs/big.png", reason: "too_large" }],
@@ -584,7 +591,7 @@ describe("attachments on a resumed turn (T04 — the mid-session WhatsApp case)"
     const prompt = buildPrompt(
       input({
         resolution: resolution("local", "created_first_execution"),
-        attachments: [{ path: ".stigmer/inputs/a.jpg" }],
+        attachments: [attachment(".stigmer/inputs/a.jpg")],
         vision: { inlineFilenames: ["a.jpg"], notViewable: [] },
       }),
     );
@@ -597,17 +604,17 @@ describe("attachments on a resumed turn (T04 — the mid-session WhatsApp case)"
       input({
         ...RESUMED,
         attachments: [
-          { path: ".stigmer/inputs/lease.pdf", downloadUrl: "https://r2.example/lease?sig=abc" },
-          { path: ".stigmer/inputs/notes.md" },
+          attachment(".stigmer/inputs/lease.pdf", { downloadUrl: "https://r2.example/lease?sig=abc" }),
+          attachment(".stigmer/inputs/notes.md"),
         ],
         downloadUrlKind: "presigned",
       }),
     );
     expect(prompt).toContain(
-      "- `.stigmer/inputs/lease.pdf` — download URL: https://r2.example/lease?sig=abc",
+      "- `.stigmer/inputs/lease.pdf` (1024 bytes) — download URL: https://r2.example/lease?sig=abc",
     );
-    // The URL-less file keeps a clean entry.
-    expect(prompt).toContain("- `.stigmer/inputs/notes.md`\n");
+    // The URL-less file keeps a clean entry — the size, no URL.
+    expect(prompt).toContain("- `.stigmer/inputs/notes.md` (1024 bytes)\n");
     expect(prompt).toContain("These URLs are time-limited");
   });
 
@@ -616,7 +623,7 @@ describe("attachments on a resumed turn (T04 — the mid-session WhatsApp case)"
       input({
         ...RESUMED,
         attachments: [
-          { path: ".stigmer/inputs/lease.pdf", downloadUrl: "http://localhost:7235/attachments/01A/lease.pdf" },
+          attachment(".stigmer/inputs/lease.pdf", { downloadUrl: "http://localhost:7235/attachments/01A/lease.pdf" }),
         ],
         downloadUrlKind: "local-serve",
       }),
@@ -630,7 +637,7 @@ describe("attachments on a resumed turn (T04 — the mid-session WhatsApp case)"
     const prompt = buildPrompt(
       input({
         ...RESUMED,
-        attachments: [{ path: ".stigmer/inputs/local-only.csv" }],
+        attachments: [attachment(".stigmer/inputs/local-only.csv")],
         downloadUrlKind: "presigned",
       }),
     );
@@ -644,7 +651,7 @@ describe("attachments on a resumed turn (T04 — the mid-session WhatsApp case)"
       input({
         resolution: resolution("local", "created_first_execution"),
         attachments: [
-          { path: ".stigmer/inputs/lease.pdf", downloadUrl: "https://r2.example/lease?sig=abc" },
+          attachment(".stigmer/inputs/lease.pdf", { downloadUrl: "https://r2.example/lease?sig=abc" }),
         ],
         downloadUrlKind: "presigned",
       }),
@@ -666,7 +673,7 @@ describe("attachments on a resumed turn (T04 — the mid-session WhatsApp case)"
             message: "Write file: gated.txt",
           }),
         ],
-        attachments: [{ path: ".stigmer/inputs/photo.jpg" }],
+        attachments: [attachment(".stigmer/inputs/photo.jpg")],
         vision: { inlineFilenames: ["photo.jpg"], notViewable: [] },
       }),
     );
@@ -768,6 +775,24 @@ describe("buildReinvocationPrompt", () => {
     ]);
     const prompt = buildReinvocationPrompt([pending("tc-1", "Write file: a.txt")], decisions);
     expect(prompt).toContain("SKIPPED");
+    expect(prompt).toContain("Continue the rest of the task");
+  });
+
+  it("names a REJECTED action as a refusal, apart from the skipped ones, and still continues the task (stigmer#197; S3 M1)", () => {
+    // A REJECT denies the tool and the run continues; before S3 M1 the
+    // runtime failed the reinvocation before this prompt was ever built, so
+    // the prompt had no REJECT arm.
+    const decisions = new Map<string, ApprovalAction>([
+      ["tc-1", ApprovalAction.REJECT],
+      ["tc-2", ApprovalAction.SKIP],
+    ]);
+    const prompt = buildReinvocationPrompt(
+      [pending("tc-1", "Run command: rm -rf build"), pending("tc-2", "Write file: a.txt")],
+      decisions,
+    );
+    expect(prompt).toContain("The user REJECTED the following action(s). Do not perform them; continue with the rest of the task without them:\n- Run command: rm -rf build");
+    expect(prompt).toContain("The user SKIPPED the following action(s). Do not perform them; continue with the rest of the task without them:\n- Write file: a.txt");
+    expect(prompt).not.toContain("APPROVED");
     expect(prompt).toContain("Continue the rest of the task");
   });
 
@@ -874,8 +899,8 @@ describe("formatImplementPlanSection", () => {
 
   it("wraps the attached-plan directive when the plan is among the attachments", () => {
     const section = formatImplementPlanSection(true, [
-      { path: PLAN_PATH },
-      { path: ".stigmer/inputs/data.csv" },
+      attachment(PLAN_PATH),
+      attachment(".stigmer/inputs/data.csv"),
     ]);
 
     expect(section).toBeDefined();
@@ -887,7 +912,7 @@ describe("formatImplementPlanSection", () => {
 
   it("falls back to the conversation-plan directive when no plan attachment resolved", () => {
     const section = formatImplementPlanSection(true, [
-      { path: ".stigmer/inputs/data.csv" },
+      attachment(".stigmer/inputs/data.csv"),
     ]);
 
     expect(section).toBeDefined();
@@ -896,12 +921,12 @@ describe("formatImplementPlanSection", () => {
   });
 
   it("returns undefined for an ordinary (non-build) execution", () => {
-    expect(formatImplementPlanSection(false, [{ path: PLAN_PATH }])).toBeUndefined();
-    expect(formatImplementPlanSection(undefined, [{ path: PLAN_PATH }])).toBeUndefined();
+    expect(formatImplementPlanSection(false, [attachment(PLAN_PATH)])).toBeUndefined();
+    expect(formatImplementPlanSection(undefined, [attachment(PLAN_PATH)])).toBeUndefined();
   });
 
   it("carries the plan-derived progress-tracking instruction (Tier 3)", () => {
-    const section = formatImplementPlanSection(true, [{ path: PLAN_PATH }]);
+    const section = formatImplementPlanSection(true, [attachment(PLAN_PATH)]);
 
     expect(section).toContain("to-do list");
     expect(section).toContain("break the plan into");
@@ -912,7 +937,7 @@ describe("formatImplementPlanSection", () => {
       input({
         resolution: resolution("local", "created_first_execution"),
         buildFromPlan: true,
-        attachments: [{ path: PLAN_PATH }],
+        attachments: [attachment(PLAN_PATH)],
       }),
     );
 
@@ -928,7 +953,7 @@ describe("formatImplementPlanSection", () => {
       input({
         resolution: resolution("local", "resumed_successfully"),
         buildFromPlan: true,
-        attachments: [{ path: PLAN_PATH }],
+        attachments: [attachment(PLAN_PATH)],
       }),
     );
 
@@ -946,7 +971,7 @@ describe("formatImplementPlanSection", () => {
       input({
         resolution: resolution("local", "resumed_successfully"),
         buildFromPlan: false,
-        attachments: [{ path: PLAN_PATH }],
+        attachments: [attachment(PLAN_PATH)],
       }),
     );
 

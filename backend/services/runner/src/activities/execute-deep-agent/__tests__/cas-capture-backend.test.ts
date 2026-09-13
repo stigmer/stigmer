@@ -145,7 +145,7 @@ describe("virtual-root confinement (issue #754)", () => {
   });
 
   function makeBackend(): { backend: CasCaptureFilesystemBackend; observer: CasCaptureObserver } {
-    // Non-git shape: the observer owns EVERY touched path (setup.ts wires
+    // Non-git shape: the observer owns EVERY touched path (turn-setup.ts wires
     // isIgnored to always-true when there is no git work tree).
     const observer = new CasCaptureObserver({ rootDir: root, isIgnored: async () => true });
     const backend = new CasCaptureFilesystemBackend(

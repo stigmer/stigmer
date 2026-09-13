@@ -33,9 +33,10 @@
  * job: carry a REJECTed or SKIPped row to its terminal status. The decision
  * is on the row (the server's field) and the transition follows from it with
  * no engine knowledge, so it belongs to the runtime — one writer per field,
- * as `approvalDecisionsOf` is the runtime's one reader (S2 M4, Q-M4-1; the
- * runtime's arm lands in S3). An adapter's whole duty for a non-executing
- * decision is to not execute.
+ * as `approvalDecisionsOf` is the runtime's one reader and
+ * `terminalizeNonExecutingDecisions` its one writer (S2 M4, Q-M4-1; landed at
+ * S3 M1, `harness/approval-decisions.ts`). An adapter's whole duty for a
+ * non-executing decision is to not execute.
  *
  * Scenarios are arranged PER SESSION (the engine is per session in every real
  * harness; a subject arranges that session's engine), and arranging replaces
@@ -45,6 +46,8 @@
  * `TurnOutcome`.
  */
 
+import { mkdir, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
 import { ApprovalAction, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 
@@ -217,6 +220,7 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
         return undefined;
       }
       case "propose":
+        if (step.flows) return this.flowingWrite(step.toolCallId, step.action, input, sink);
         return this.propose(step.toolCallId, step.action, input, sink);
       case "read": {
         // Ungated: the row lands COMPLETED at once, the effect counts as run,
@@ -246,6 +250,8 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
         return { kind: "failed", surface: step.surface, message: step.message };
       case "cancelled":
         return { kind: "cancelled" };
+      case "limit":
+        return { kind: "tool_call_limit" };
       default: {
         const exhaustive: never = step;
         throw new Error(`${this.name}: unknown scenario step ${JSON.stringify(exhaustive)}`);
@@ -304,6 +310,29 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
   }
 
   /**
+   * A write under apply-then-review capture: no gate — the engine writes the
+   * bytes into the workspace and reports a COMPLETED `write` row, and the
+   * RUNTIME captures the change for review after the turn. The bytes are the
+   * fake's own (the tool-call id, one line); an already-settled row on a
+   * reinvocation is a no-op, as `propose`'s is.
+   */
+  private async flowingWrite(toolCallId: string, action: ProposedAction, input: TurnInput, sink: TurnSink): Promise<TurnOutcome | undefined> {
+    if (isSettled(findToolCallRow(sink.status, toolCallId))) return undefined;
+    const file = join(input.workspace.primaryDir, action.resource);
+    await mkdir(dirname(file), { recursive: true });
+    await writeFile(file, `${toolCallId}\n`);
+    const message = aiMessage("");
+    const row = toolCall(toolCallId, "write", ToolCallStatus.TOOL_CALL_COMPLETED);
+    row.args = { path: action.resource };
+    message.toolCalls.push(row);
+    sink.status.messages.push(message);
+    this.executions.set(toolCallId, this.executionCount(toolCallId) + 1);
+    sink.recordActivity("write");
+    await sink.requestPersist();
+    return undefined;
+  }
+
+  /**
    * Report the executed action on its row, as a real engine's completion
    * event does. The row normally exists (the runtime seeded the status with
    * last turn's WAITING row); a decision with no row is a runtime that decided
@@ -331,9 +360,12 @@ export interface ScriptedSubject extends HarnessContractSubject {
 }
 
 /**
- * The fake fills the `deep-agent` row in S2 — the one row the runtime does
- * not yet serve for real (the native adapter lands in S3, and takes the row
- * over from the fake in the runtime half then).
+ * The fake declares the `deep-agent` row: in S2 the runtime served that row
+ * through this fake alone; since S3 M3 the real native adapter takes it over
+ * in the runtime half
+ * (`execute-deep-agent/__test-utils__/contract-subject.ts`), and the fake
+ * keeps declaring it so the kit's self-check runs a full subject under both
+ * pause primitives without an engine.
  */
 export function scriptedSubject(options: ScriptedHarnessOptions): ScriptedSubject {
   const adapter = new ScriptedHarnessAdapter(options);

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { extractToolResult, extractToolResultV3 } from "../status-builder-shared.js";
+import { extractToolResultV3 } from "../status-builder-shared.js";
 
 // Image/mixed content blocks (e.g. a computer-use screenshot). The extractor
 // must serialize the BLOCKS ARRAY — not the LangChain envelope around it — so
@@ -43,24 +43,5 @@ describe("extractToolResultV3", () => {
 
   it("falls back to JSON.stringify for unrecognized shapes", () => {
     expect(extractToolResultV3({ foo: "bar" })).toBe(JSON.stringify({ foo: "bar" }));
-  });
-});
-
-describe("extractToolResult (v2)", () => {
-  it("passes a string output through unchanged", () => {
-    expect(extractToolResult({ output: "text" })).toBe("text");
-  });
-
-  it("returns output.content when it is a text string", () => {
-    expect(extractToolResult({ output: { content: "hello" } })).toBe("hello");
-  });
-
-  it("serializes the blocks array when output.content is an array", () => {
-    const data = { output: { content: [imageBlock] } };
-    expect(JSON.parse(extractToolResult(data))).toEqual([imageBlock]);
-  });
-
-  it("falls back to JSON.stringify when there is no usable content", () => {
-    expect(extractToolResult({ output: { other: 1 } })).toBe(JSON.stringify({ other: 1 }));
   });
 });

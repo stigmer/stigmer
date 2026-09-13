@@ -30,13 +30,11 @@
  * - approvalMessage: from the policy, with placeholder resolution
  */
 
-import { clone, create } from "@bufbuild/protobuf";
+import { create } from "@bufbuild/protobuf";
 import type { JsonObject } from "@bufbuild/protobuf";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
-import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
+import { SubAgentExecutionSchema, type SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import { ApprovalAction, ApprovalPolicySource, MessageType, ToolCallStatus, SubAgentStatus, ToolKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { SDKMessage } from "@cursor/sdk";
 import type { MergedToolPolicy } from "./approval-policy.js";
@@ -730,29 +728,15 @@ export interface MessageAccumulatorOptions {
    */
   workspaceRoot?: string;
   /**
-   * Sub-agent executions carried over from the persisted transcript on a
-   * durable resume ({@link seededSubAgentsOf}). The accumulator re-registers
-   * them so a sub-agent's resumed lifecycle updates merge onto the seeded row
-   * instead of producing a duplicate, and so the row survives the round-trip
-   * rather than being dropped from the rebuilt status. Empty on a first run.
+   * The status's own `subAgentExecutions` array, wrapped BY REFERENCE exactly
+   * as `messages` is: the accumulator upserts into it in place, so the rows
+   * the runtime seeded on a resume (`harness/turn-context.ts`
+   * `seedFromPersistedStatus`) are indexed by id at construction and a
+   * resumed sub-agent's lifecycle updates merge onto its seeded row instead
+   * of producing a duplicate. Omitted in unit tests that only assert basic
+   * translation; the accumulator then owns a private array.
    */
-  seededSubAgents?: readonly SubAgentExecution[];
-}
-
-/**
- * The sub-agent rows a resumed turn re-registers, cloned from the persisted
- * execution so the input stays immutable. This accumulator OWNS
- * `status.subAgentExecutions` and overwrites it on every flush, which is why
- * the runtime's transcript seeding (`harness/turn-context.ts`
- * `seedTranscriptFromExecution`) leaves the sub-agents to this harness: they
- * are re-registered here, never pushed onto the status. Same "left a
- * transcript" test as the seeding, so a resume that seeded messages always
- * seeds their sub-agents too.
- */
-export function seededSubAgentsOf(execution: AgentExecution): SubAgentExecution[] {
-  const persisted = execution.status;
-  if (!persisted || persisted.messages.length === 0) return [];
-  return persisted.subAgentExecutions.map((sub) => clone(SubAgentExecutionSchema, sub));
+  subAgentExecutions?: SubAgentExecution[];
 }
 
 /**
@@ -787,7 +771,7 @@ export class MessageAccumulator {
   private readonly messages: AgentMessage[];
   private activeAiByRunId = new Map<string, AgentMessage>();
   private activeThinkingByRunId = new Map<string, AgentMessage>();
-  private readonly _subAgentExecutions: SubAgentExecution[] = [];
+  private readonly _subAgentExecutions: SubAgentExecution[];
   private readonly subAgentMap = new Map<string, SubAgentExecution>();
   private readonly mergedPolicies?: ReadonlyMap<string, MergedToolPolicy>;
   private readonly provenance?: ApprovalProvenanceContext;
@@ -797,20 +781,23 @@ export class MessageAccumulator {
 
   constructor(messages: AgentMessage[], options?: MessageAccumulatorOptions) {
     this.messages = messages;
+    this._subAgentExecutions = options?.subAgentExecutions ?? [];
     this.mergedPolicies = options?.mergedPolicies;
     this.provenance = options?.provenance;
     this.workspaceRoot = options?.workspaceRoot;
 
-    // Resume seeding. When constructed over a pre-seeded transcript (a durable
-    // resume — see seedCursorTranscriptFromExecution in index.ts), rebuild the
-    // by-id tool-call index so a cross-message completion for a seeded call
-    // resolves onto the existing proto, and re-register seeded sub-agents so
-    // their resumed lifecycle updates merge in place. A first run carries an
-    // empty transcript and no seed, so both are no-ops. Mirrors the deep-agent
-    // ExecutionState.rebuildToolCallIndex + sub-agent re-registration on resume.
+    // Resume seeding. When constructed over a pre-seeded status (the runtime's
+    // `seedFromPersistedStatus` on a resume), rebuild the by-id indexes so a
+    // cross-message completion for a seeded call resolves onto the existing
+    // proto and a resumed sub-agent's lifecycle updates merge onto its seeded
+    // row. A first run carries an empty status, so both are no-ops.
     this.rebuildToolCallIndex();
-    for (const sub of options?.seededSubAgents ?? []) {
-      this._subAgentExecutions.push(sub);
+    this.rebuildSubAgentIndex();
+  }
+
+  /** Index every sub-agent row already present in the (seeded) array by its id, so upserts land on it. */
+  private rebuildSubAgentIndex(): void {
+    for (const sub of this._subAgentExecutions) {
       if (sub.id) this.subAgentMap.set(sub.id, sub);
     }
   }
@@ -936,10 +923,11 @@ export class MessageAccumulator {
     // grants already use — see toolCallIdentityToken) and keep the original id.
     // Without this the seeded approved call and the re-run would both appear (a
     // duplicate row) and dropping the seeded id would trip the backend's
-    // append-only-at-identity guard, stalling the run. This generalizes the v2
-    // deep-agent StatusBuilder.findResumableSeededToolCall (a tool-name match)
-    // to the full Cursor identity, reusing the single existing identity
-    // definition rather than introducing a parallel one.
+    // append-only-at-identity guard, stalling the run. This generalizes what
+    // the native builder does by exact tool_call_id (`V3StatusBuilder`'s resume
+    // reconciliation; its v2 predecessor matched by tool name) to the full
+    // Cursor identity, reusing the single existing identity definition rather
+    // than introducing a parallel one.
     const seeded = this.findResumableSeededToolCall(tc);
     if (seeded) {
       // Re-key the fresh call_id onto the seeded proto so this call_id's later
@@ -1170,7 +1158,7 @@ export class MessageAccumulator {
  * WAITING_APPROVAL.
  *
  * This is the cursor analog of the native harness synthesizing WAITING_APPROVAL
- * tool calls from LangGraph interrupts (execute-deep-agent/index.ts). The hook
+ * tool calls from LangGraph interrupts (execute-deep-agent/turn-settle.ts). The hook
  * ledger — not the SDK-reported tool status — is the authoritative record of
  * what was gated, because the hook is the only component that makes the per-call
  * allow/deny decision. The backend then projects pending_approvals from these

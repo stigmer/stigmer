@@ -1,10 +1,12 @@
 /**
  * @regression file-hitl-phase0 — pins file-edit HITL fixes #7, #8, #9 (see _projects/2026-06/20260630.01.file-change-hitl-redesign/tasks/T01_3_regression-manifest.md)
  *
- * Tests the harness-agnostic capture orchestration directly with the deep-agent
- * harness id (the Cursor adapter is covered by execute-cursor/capture-flow.test).
- * Confirms producer parity: the deep-agent authors IDENTICAL ledger entries to
- * Cursor through this seam — only `harness_id` differs — and that with no
+ * Tests the harness-agnostic capture orchestration directly, under one
+ * harness id (since S3 M4 the runtime is the ONE caller for every harness,
+ * `harness/capture.ts`; until then each adapter called this seam and the
+ * Cursor side had its own test, `execute-cursor/capture-flow.test.ts`, whose
+ * three reconcile arms no other file carried moved here). Confirms that the
+ * ledger entries depend on nothing but `harness_id` and that with no
  * excludePaths every changed file is captured. Runs against a REAL temp git repo.
  */
 
@@ -332,6 +334,86 @@ function candidateCompleteness(status: AgentExecutionStatus): DiffCompleteness |
     ? ev.payload.value.diffCompleteness
     : undefined;
 }
+
+describe("capture reconcile — the decision rules the resume enforces (moved from execute-cursor/capture-flow.test at S3 M4)", () => {
+  async function captureTwoFileTurn(status: AgentExecutionStatus): Promise<void> {
+    const baseline = await captureBaselineToLedger({ status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID, harnessId: HARNESS });
+    await write("notes.md", "planton notes\n");
+    await write("src/main.ts", "export const x = 99;\n");
+    await captureCandidateToLedger({ status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID, baselineTree: baseline, harnessId: HARNESS });
+  }
+
+  it("reconstructs an approved file from the ref even if the tree was reset (retry-safe)", async () => {
+    const status = newStatus();
+    const baseline = await captureBaselineToLedger({ status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID, harnessId: HARNESS });
+    await write("notes.md", "planton notes\n");
+    await captureCandidateToLedger({ status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID, baselineTree: baseline, harnessId: HARNESS });
+    const changeSet = decidedChangeSet(status, { "notes.md": FileDecisionAction.APPROVE });
+
+    // A tree reset before the resume (a Temporal retry, a sandbox recycle):
+    // the approved bytes are gone from disk, the pinned refs survive.
+    await write("notes.md", "platon notes\n");
+
+    const result = await applyCaptureDecisions({ status, gitRoot: repo, executionId: EXEC_ID, changeSet, harnessId: HARNESS });
+
+    expect(result.approvedPaths).toEqual(["notes.md"]);
+    // Reconcile-from-refs re-asserts the approved "after" bytes whatever the tree holds.
+    expect(await read("notes.md")).toBe("planton notes\n");
+  });
+
+  it("CHANGE_SET-scoped approval covers all files; a FILE decision overrides it (most-specific-wins)", async () => {
+    const status = newStatus();
+    await captureTwoFileTurn(status);
+    const changes = candidateChanges(status);
+    const mainChange = changes.find((c) => c.pathAfter === "src/main.ts")!;
+    const changeSet = create(FileChangeSetSchema, {
+      id: CHANGE_SET_ID,
+      changes,
+      status: FileChangeSetStatus.DECIDED,
+      decisions: [
+        // CHANGE_SET: approve everything…
+        create(FileDecisionSchema, { id: "d-cs", changeSetId: CHANGE_SET_ID, scope: FileDecisionScope.CHANGE_SET, action: FileDecisionAction.APPROVE }),
+        // …but a FILE decision rejects src/main.ts (more specific wins).
+        create(FileDecisionSchema, {
+          id: "d-file",
+          changeSetId: CHANGE_SET_ID,
+          scope: FileDecisionScope.FILE,
+          fileChangeId: mainChange.id,
+          action: FileDecisionAction.REJECT,
+          expectedDigest: mainChange.fileDigest,
+        }),
+      ],
+    });
+
+    const result = await applyCaptureDecisions({ status, gitRoot: repo, executionId: EXEC_ID, changeSet, harnessId: HARNESS });
+
+    expect(result.approvedPaths).toEqual(["notes.md"]);
+    expect(result.rejectedPaths).toEqual(["src/main.ts"]);
+    expect(await read("notes.md")).toBe("planton notes\n");
+    expect(await read("src/main.ts")).toBe("export const x = 1;\n");
+  });
+
+  it("refuses to apply and authors FAILED(HASH_MISMATCH) when on-disk bytes diverge from the approved digest", async () => {
+    const status = newStatus();
+    await captureTwoFileTurn(status);
+    // The reviewer approved both, but the recorded after_sha256 for notes.md no
+    // longer matches the captured bytes (what-you-approve-is-what-applies fails).
+    const changeSet = decidedChangeSet(status, { "notes.md": FileDecisionAction.APPROVE, "src/main.ts": FileDecisionAction.APPROVE });
+    changeSet.changes.find((c) => c.pathAfter === "notes.md")!.afterSha256 = "deadbeef".repeat(8);
+
+    const result = await applyCaptureDecisions({ status, gitRoot: repo, executionId: EXEC_ID, changeSet, harnessId: HARNESS });
+
+    expect(result.failed).toBe(true);
+    expect(result.failureDetail).toContain("notes.md");
+    // NOTHING was applied (a partial apply under a verification failure is
+    // worse than none): src/main.ts still holds its un-reconciled (after) bytes.
+    expect(await read("src/main.ts")).toBe("export const x = 99;\n");
+    const failed = eventsOfType(status, FileReviewEventType.FAILED);
+    expect(failed).toHaveLength(1);
+    if (failed[0]!.payload.case === "failed") expect(failed[0]!.payload.value.detail).toContain("notes.md");
+    expect(eventsOfType(status, FileReviewEventType.RECONCILED)).toHaveLength(0);
+  });
+});
 
 describe("capture orchestration — hybrid git + CAS (Phase 3)", () => {
   it("composes git-tracked and CAS captures into one HYBRID change set", async () => {

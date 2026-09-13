@@ -309,7 +309,7 @@ describe("middleware stack ordering in createDeepAgent", () => {
      *   const resolvedModel = request.model ?? await getChatModel();
      *
      * Since no model option is provided, the middleware uses request.model
-     * which is the same ChatAnthropic instance from setup.ts with the
+     * which is the same ChatAnthropic instance from turn-setup.ts with the
      * proxy baseURL. All summarization LLM calls route through the proxy.
      */
 

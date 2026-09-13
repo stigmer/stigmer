@@ -2,20 +2,25 @@
  * Pins the turn context's pure decisions — the three places `turn-context.ts`
  * decides something rather than fetching it:
  *
- *  - `isReinvocation`: the one reading of "does the engine already hold state
- *    for this execution", keyed on how the harness mints its state id. The
- *    engine-minted arm is today's `!!threadId`; the deterministic arm refuses
- *    until the native adapter lands (S3), and the refusal is pinned so a
- *    future caller cannot get a silent `false`.
- *  - `approvalDecisionsOf`: the runtime's reader of adjudicated approvals,
+ *  - `isReinvocation`: the runtime's one reading of "does this invocation
+ *    resume rather than begin", keyed on how the harness mints its state id.
+ *    The engine-minted arm is `!!threadId`; the deterministic arm is the
+ *    persisted transcript's non-emptiness, whatever the thread id says (the
+ *    id exists on the first turn too), and never the live engine checkpoint.
+ *  - `approvalDecisionsOf` (`approval-decisions.ts`): the runtime's reader of adjudicated approvals,
  *    over a transcript that carries every row shape it must include or
  *    exclude. Its agreement with the Cursor adapter's own reader
  *    (`reconstructAdjudicatedApprovals`) is pinned from the adapter's side
  *    (`activities/execute-cursor/__tests__/approval-state.test.ts`), because
  *    `src/harness/` never imports `src/activities/`, tests included.
- *  - `decideReinvocation`: the four ways a resume proceeds (reject fails,
- *    approvals run, a clean file-review resume completes, a failed or
- *    partially discarded one completes with its facts carried).
+ *  - `decideReinvocation`: the three ways a resume proceeds (any decision
+ *    runs the agent — REJECT included since S3 M1 —, a clean file-review
+ *    resume completes, a failed or partially discarded one completes with
+ *    its facts carried).
+ *  - `regeneratesApprovedWrites`: which pause primitives make the runner pin
+ *    an approved whole-file write's bytes itself (the engine re-runs the
+ *    model) and which never do (the engine applies the exact args it paused
+ *    on). S3 M2a, Q-M2a-3.
  *
  * The phases that fetch and provision are exercised end to end by the
  * hermetic goldens (`activities/execute-cursor/__tests__/hermetic/`), which
@@ -25,30 +30,53 @@
 
 import { describe, expect, it } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { AgentExecutionSchema, AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import { ApprovalAction, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
-import { approvalDecisionsOf, decideReinvocation, isReinvocation, type ReinvocationFacts } from "../turn-context.js";
+import { approvalDecisionsOf } from "../approval-decisions.js";
+import { decideReinvocation, isReinvocation, regeneratesApprovedWrites, type ReinvocationFacts } from "../turn-context.js";
 
 const INPUT = { executionId: "aex_1", threadId: "", turnSeq: 0 } as const;
 
+/** An execution with no persisted history (a first run) or with `n` persisted AI rows (a continuation). */
+function executionWithTranscript(rows: number) {
+  return create(AgentExecutionSchema, {
+    status: {
+      messages: Array.from({ length: rows }, (_, i) =>
+        create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, content: `row ${i}` }),
+      ),
+    },
+  });
+}
+const FIRST_RUN = executionWithTranscript(0);
+const CONTINUATION = executionWithTranscript(1);
+
 describe("isReinvocation", () => {
   it("engine-minted: an empty state id is a first turn, any id is a resume", () => {
-    expect(isReinvocation("engine-minted", INPUT)).toBe(false);
-    expect(isReinvocation("engine-minted", { ...INPUT, threadId: "agent-42" })).toBe(true);
+    expect(isReinvocation("engine-minted", INPUT, FIRST_RUN)).toBe(false);
+    expect(isReinvocation("engine-minted", { ...INPUT, threadId: "agent-42" }, FIRST_RUN)).toBe(true);
   });
 
   it("engine-minted: turnSeq is NOT the signal (a pure-reconcile turn does not advance it; the legacy wire shape yields 0)", () => {
-    expect(isReinvocation("engine-minted", { ...INPUT, turnSeq: 3 })).toBe(false);
-    expect(isReinvocation("engine-minted", { ...INPUT, threadId: "agent-42", turnSeq: 0 })).toBe(true);
+    expect(isReinvocation("engine-minted", { ...INPUT, turnSeq: 3 }, FIRST_RUN)).toBe(false);
+    expect(isReinvocation("engine-minted", { ...INPUT, threadId: "agent-42", turnSeq: 0 }, FIRST_RUN)).toBe(true);
   });
 
-  it("deterministic: refuses rather than guess until the native adapter lands (S3)", () => {
-    expect(() => isReinvocation("deterministic", { ...INPUT, threadId: "thread-1" })).toThrow(
-      /deterministic arm lands with the native adapter \(S3\)/,
-    );
+  it("engine-minted: the transcript is NOT the signal (the bound id is; a follow-up turn with a bound id and an empty transcript still resumes the engine)", () => {
+    expect(isReinvocation("engine-minted", { ...INPUT, threadId: "agent-42" }, FIRST_RUN)).toBe(true);
+    expect(isReinvocation("engine-minted", INPUT, CONTINUATION)).toBe(false);
+  });
+
+  it("deterministic: the persisted transcript is the signal — empty is a first run, any committed history is a continuation", () => {
+    expect(isReinvocation("deterministic", { ...INPUT, threadId: "thread-ses_1" }, FIRST_RUN)).toBe(false);
+    expect(isReinvocation("deterministic", { ...INPUT, threadId: "thread-ses_1" }, CONTINUATION)).toBe(true);
+  });
+
+  it("deterministic: the thread id is NOT the signal (a deterministic harness has one on its first turn too)", () => {
+    expect(isReinvocation("deterministic", { ...INPUT, threadId: "thread-ses_1", turnSeq: 0 }, FIRST_RUN)).toBe(false);
+    expect(isReinvocation("deterministic", { ...INPUT, threadId: "", turnSeq: 0 }, CONTINUATION)).toBe(true);
   });
 });
 
@@ -135,21 +163,22 @@ describe("decideReinvocation", () => {
     expect(decideReinvocation(facts())).toBeUndefined();
   });
 
-  it("any REJECT among the adjudicated decisions fails the turn, whatever else was decided", () => {
+  it("a REJECT runs the agent like any other decision — the run continues without the tool (stigmer#197; S3 M1, Q-S3-2)", () => {
+    // Until S3 M1 this returned `{ kind: "rejected-by-user" }` and the runtime
+    // FAILED the execution before any engine ran, contradicting the proto, the
+    // conformance suite and the native harness (S2 M4 finding F1).
     const decisions = new Map([
       ["tc-1", ApprovalAction.APPROVE],
       ["tc-2", ApprovalAction.REJECT],
     ]);
-    expect(decideReinvocation(facts({ approvalDecisions: decisions }))).toEqual({ kind: "rejected-by-user" });
+    expect(decideReinvocation(facts({ approvalDecisions: decisions }))).toBeUndefined();
+    expect(decideReinvocation(facts({ approvalDecisions: new Map([["tc-2", ApprovalAction.REJECT]]) }))).toBeUndefined();
   });
 
-  it("approvals without a reject run the agent, even when file review was also reconciled", () => {
+  it("any adjudicated decision runs the agent, even when file review was also reconciled", () => {
     const decisions = new Map([["tc-1", ApprovalAction.APPROVE]]);
     expect(decideReinvocation(facts({ approvalDecisions: decisions, reconciledFileReview: true }))).toBeUndefined();
-    expect(
-      decideReinvocation(facts({ approvalDecisions: new Map([["tc-1", ApprovalAction.SKIP]]) })),
-      "a SKIP is not a reject",
-    ).toBeUndefined();
+    expect(decideReinvocation(facts({ approvalDecisions: new Map([["tc-1", ApprovalAction.SKIP]]) }))).toBeUndefined();
   });
 
   it("a pure file-review resume completes, carrying the reconcile's facts", () => {
@@ -174,5 +203,23 @@ describe("decideReinvocation", () => {
       failureDetail: "src/a.ts changed after review",
       discardedPaths: ["src/b.ts"],
     });
+  });
+});
+
+describe("regeneratesApprovedWrites", () => {
+  it("a deny-and-retry engine re-prompts the model with grants, so the runner pins the approved bytes", () => {
+    expect(regeneratesApprovedWrites("deny-and-retry")).toBe(true);
+  });
+
+  it("a callback engine's resumed session re-attempts the call, so the runner pins the approved bytes", () => {
+    expect(regeneratesApprovedWrites("callback")).toBe(true);
+  });
+
+  it("an interrupt engine applies the exact args it paused on — a runner-side write would land twice and pre-empt the row", () => {
+    expect(regeneratesApprovedWrites("interrupt")).toBe(false);
+  });
+
+  it("a gate-less engine has nothing approved to apply", () => {
+    expect(regeneratesApprovedWrites("none")).toBe(false);
   });
 });

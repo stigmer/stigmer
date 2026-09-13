@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { Command } from "@langchain/langgraph";
-import { resolveResumeInput, reconcileNonExecutingDecisions, reconcileUnattendedSkips } from "../hitl.js";
+import { detectPendingInterrupts, resolveResumeInput, reconcileUnattendedSkips } from "../hitl.js";
 import { ApprovalAction, ApprovalPolicySource, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { create } from "@bufbuild/protobuf";
 import {
@@ -8,50 +8,19 @@ import {
   ToolCallSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { GraphStateSnapshot } from "../hitl.js";
 
-function makeExecution(
-  toolCalls: Array<{
-    id: string;
-    status: ToolCallStatus;
-    approvalAction: ApprovalAction;
-  }>,
-): AgentExecution {
-  const msg = create(AgentMessageSchema, {
-    type: MessageType.MESSAGE_AI,
-    content: "test",
-    toolCalls: toolCalls.map(tc =>
-      create(ToolCallSchema, {
-        id: tc.id,
-        name: "test_tool",
-        status: tc.status,
-        approvalAction: tc.approvalAction,
-      }),
-    ),
-  });
-
-  return {
-    $typeName: "ai.stigmer.agentic.agentexecution.v1.AgentExecution",
-    $unknown: undefined,
-    metadata: undefined,
-    spec: {
-      $typeName: "ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec",
-      $unknown: undefined,
-      sessionId: "session-1",
-      agentId: "agent-1",
-      message: "test message",
-      executionConfig: undefined,
-      workspaceFileRefs: [],
-      callbackToken: new Uint8Array(),
-      autoApproveAll: false,
-      parentWorkflowId: "",
-    },
-    status: create(AgentExecutionStatusSchema, {
-      messages: [msg],
-    }),
-  } as unknown as AgentExecution;
+/** The runtime's reading of the adjudicated rows (`approvalDecisionsOf`): a decision per WAITING tool-call id. */
+function makeDecisions(
+  toolCalls: Array<{ id: string; status: ToolCallStatus; approvalAction: ApprovalAction }>,
+): ReadonlyMap<string, ApprovalAction> {
+  const decisions = new Map<string, ApprovalAction>();
+  for (const tc of toolCalls) {
+    if (tc.status === ToolCallStatus.TOOL_CALL_WAITING_APPROVAL && tc.approvalAction !== ApprovalAction.UNSPECIFIED) {
+      decisions.set(tc.id, tc.approvalAction);
+    }
+  }
+  return decisions;
 }
 
 function makeGraphState(
@@ -70,29 +39,29 @@ function makeGraphState(
 }
 
 describe("resolveResumeInput", () => {
-  it("reports not-a-resume when no interrupts exist (caller falls back to setup.langgraphInput)", () => {
-    const execution = makeExecution([]);
+  it("reports not-a-resume when no interrupts exist (the caller sends the turn's user message)", () => {
+    const decisions = makeDecisions([]);
     const state: GraphStateSnapshot = { values: {}, tasks: [] };
 
-    const result = resolveResumeInput(execution, state);
+    const result = resolveResumeInput(decisions, state);
 
     expect(result.isResumeFromApproval).toBe(false);
     // No graphInput on this branch — the turn's user message has exactly ONE
-    // construction site (setup.langgraphInput), never a second copy here.
+    // construction site (the caller's), never a second copy here.
     expect("graphInput" in result).toBe(false);
   });
 
   it("reports not-a-resume when interrupts exist but no decisions", () => {
-    const execution = makeExecution([]);
+    const decisions = makeDecisions([]);
     const state = makeGraphState([{ taskId: "task-1", toolCallId: "call-1" }]);
 
-    const result = resolveResumeInput(execution, state);
+    const result = resolveResumeInput(decisions, state);
 
     expect(result.isResumeFromApproval).toBe(false);
   });
 
   it("builds Command(resume) when interrupts match decisions", () => {
-    const execution = makeExecution([{
+    const decisions = makeDecisions([{
       id: "call-1",
       status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
       approvalAction: ApprovalAction.APPROVE,
@@ -100,14 +69,14 @@ describe("resolveResumeInput", () => {
 
     const state = makeGraphState([{ taskId: "task-1", toolCallId: "call-1" }]);
 
-    const result = resolveResumeInput(execution, state);
+    const result = resolveResumeInput(decisions, state);
 
     if (!result.isResumeFromApproval) throw new Error("expected an approval resume");
     expect(result.graphInput).toBeInstanceOf(Command);
   });
 
   it("builds a resume Command for a REJECT decision (denies the tool, does not fail the run)", () => {
-    const execution = makeExecution([{
+    const decisions = makeDecisions([{
       id: "call-1",
       status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
       approvalAction: ApprovalAction.REJECT,
@@ -115,7 +84,7 @@ describe("resolveResumeInput", () => {
 
     const state = makeGraphState([{ taskId: "task-1", toolCallId: "call-1" }]);
 
-    const result = resolveResumeInput(execution, state);
+    const result = resolveResumeInput(decisions, state);
 
     // REJECT resumes the gate like any other decision — the gate returns a
     // denial ToolMessage and the run continues. There is no execution-level
@@ -126,7 +95,7 @@ describe("resolveResumeInput", () => {
   });
 
   it("handles multiple interrupts with mixed decisions", () => {
-    const execution = makeExecution([
+    const decisions = makeDecisions([
       {
         id: "call-1",
         status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
@@ -144,13 +113,13 @@ describe("resolveResumeInput", () => {
       { taskId: "task-2", toolCallId: "call-2" },
     ]);
 
-    const result = resolveResumeInput(execution, state);
+    const result = resolveResumeInput(decisions, state);
 
     expect(result.isResumeFromApproval).toBe(true);
   });
 
   it("skips already-resumed interrupts", () => {
-    const execution = makeExecution([{
+    const decisions = makeDecisions([{
       id: "call-1",
       status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
       approvalAction: ApprovalAction.APPROVE,
@@ -160,82 +129,41 @@ describe("resolveResumeInput", () => {
       { taskId: "task-1", toolCallId: "call-1", hasResume: true },
     ]);
 
-    const result = resolveResumeInput(execution, state);
+    const result = resolveResumeInput(decisions, state);
 
     expect(result.isResumeFromApproval).toBe(false);
   });
 });
 
-describe("reconcileNonExecutingDecisions", () => {
-  function statusWith(
-    toolCalls: Array<{ id: string; status: ToolCallStatus; approvalAction: ApprovalAction }>,
-  ) {
-    return create(AgentExecutionStatusSchema, {
-      messages: [
-        create(AgentMessageSchema, {
-          toolCalls: toolCalls.map(tc =>
-            create(ToolCallSchema, {
-              id: tc.id,
-              name: "test_tool",
-              status: tc.status,
-              approvalAction: tc.approvalAction,
-            }),
-          ),
-        }),
+describe("detectPendingInterrupts", () => {
+  it("normalizes each un-resumed interrupt into a pending approval and skips resumed ones", () => {
+    const state: GraphStateSnapshot = {
+      values: {},
+      tasks: [
+        {
+          id: "task-1",
+          interrupts: [{
+            value: { tool_call_id: "call-1", tool_name: "shell", mcp_server_slug: "", message: "Run it?", policy_source: "classifier_default" },
+          }],
+        },
+        {
+          id: "task-2",
+          interrupts: [{ value: { tool_call_id: "call-2", tool_name: "write_file", message: "Write?" }, resumeValue: { action: "approve" } }],
+        },
       ],
-    });
-  }
+    };
 
-  it("terminalizes a REJECT decision to SKIPPED with a reason (does not FAIL)", () => {
-    const status = statusWith([{
-      id: "call-reject",
-      status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
-      approvalAction: ApprovalAction.REJECT,
-    }]);
-
-    reconcileNonExecutingDecisions(status);
-
-    const tc = status.messages[0].toolCalls[0];
-    expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
-    expect(tc.error).toContain("Rejected by user");
-    // The REJECT decision is preserved so the audit trail stays honest.
-    expect(tc.approvalAction).toBe(ApprovalAction.REJECT);
-  });
-
-  it("terminalizes a SKIP decision to SKIPPED (fixes the stuck-WAITING for skip too)", () => {
-    const status = statusWith([{
-      id: "call-skip",
-      status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
-      approvalAction: ApprovalAction.SKIP,
-    }]);
-
-    reconcileNonExecutingDecisions(status);
-
-    expect(status.messages[0].toolCalls[0].status).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
-  });
-
-  it("leaves APPROVE / APPROVE_ALL untouched (the tool executes)", () => {
-    const status = statusWith([
-      { id: "call-approve", status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL, approvalAction: ApprovalAction.APPROVE },
-      { id: "call-approve-all", status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL, approvalAction: ApprovalAction.APPROVE_ALL },
+    expect(detectPendingInterrupts(state)).toEqual([
+      { toolCallId: "call-1", toolName: "shell", mcpServerSlug: "", message: "Run it?", policySource: "classifier_default" },
     ]);
-
-    reconcileNonExecutingDecisions(status);
-
-    // Still WAITING — real tool events (not this reconciler) terminalize them.
-    expect(status.messages[0].toolCalls[0].status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
-    expect(status.messages[0].toolCalls[1].status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
   });
 
-  it("is a no-op when there are no decided tool calls", () => {
-    const status = statusWith([{
-      id: "call-pending",
-      status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
-      approvalAction: ApprovalAction.UNSPECIFIED,
-    }]);
-
-    expect(() => reconcileNonExecutingDecisions(status)).not.toThrow();
-    expect(status.messages[0].toolCalls[0].status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
+  it("reads an absent policy source as undefined", () => {
+    const state: GraphStateSnapshot = {
+      values: {},
+      tasks: [{ id: "task-1", interrupts: [{ value: { tool_call_id: "call-1", tool_name: "shell", message: "Run it?" } }] }],
+    };
+    expect(detectPendingInterrupts(state)[0].policySource).toBeUndefined();
   });
 });
 

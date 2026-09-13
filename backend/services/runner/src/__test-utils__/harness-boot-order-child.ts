@@ -13,8 +13,13 @@
  * Arms (argv[2]):
  *  - `boot`: import the two pre-boot modules, boot with a proxy endpoint and
  *    a bound token ref. Success means the pre-boot graph was connect-free,
- *    both interceptors installed, `assertHttp2ConnectPatched` passed, and the
- *    SDK slice loaded from inside `boot`.
+ *    both interceptors installed, `assertHttp2ConnectPatched` passed, the
+ *    Cursor SDK slice loaded from inside its `boot`, and the native
+ *    deep-agent adapter (the table's second row since S3 M2b) registered its
+ *    profiles and loaded LangChain after the patch. That neither engine is
+ *    on the table's STATIC graph is each adapter's own fence
+ *    (`adapter-graph-is-sdk-free.test.ts`); this child proves the boot
+ *    ORDER in a real process.
  *  - `boot-after-connect-node`: the same, after importing the Stigmer client
  *    (connect-node) FIRST. Must fail with the facade sentence: proves the
  *    guard is live inside `boot`, so a future regression is loud.

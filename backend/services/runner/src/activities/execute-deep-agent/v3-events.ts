@@ -6,7 +6,7 @@
  * AgentExecutionStatus proto.
  *
  * This is a runner-internal contract (not persisted, not exposed to
- * clients). It isolates the StatusBuilder from LangGraph protocol
+ * clients). It isolates the V3StatusBuilder from LangGraph protocol
  * instability (field naming, delta shapes, channel semantics).
  *
  * ID conventions:

@@ -38,24 +38,25 @@ vi.mock("../../client/stigmer-client.js", async () =>
 import { ScriptedClock, createHermeticEnvironment } from "../../__test-utils__/hermetic-activity.js";
 import { stubRegistryFetch } from "../../__test-utils__/model-registry-fixture.js";
 import { scriptedSubject } from "../../__test-utils__/harness-contract/scripted-adapter.js";
+import { initGitWorkspace } from "../../__test-utils__/git-workspace-fixture.js";
+import { scenario } from "../../__test-utils__/harness-contract/types.js";
 import {
   COST_CAP_FAKE_PRICE_USD,
   FAILURE_MESSAGES,
-  NEVER_SEEN,
   RUNTIME_SETUP_LABELS,
-  RuntimeExecutionDriver,
   aiMessages,
   assertApprovalRoundTrip,
   assertCompletedTurn,
   assertCostCapTerminates,
   assertFailedSurfaceWritesItsCopy,
+  assertNonExecutingDecisionSettlesSkipped,
   assertRejectedBindFails,
   describeHarnessRuntimeContract,
+  RuntimeExecutionDriver,
   slimOf,
   systemMessages,
   type RuntimeContractHarness,
 } from "../../__test-utils__/harness-contract/runtime-contract.js";
-import { scenario } from "../../__test-utils__/harness-contract/types.js";
 import { TERMINAL_COPY } from "../terminal-table.js";
 
 const TASK_QUEUE = "runtime-test-queue";
@@ -137,29 +138,44 @@ describe("run-turn: the fake adapter through the real runtime", () => {
       expect(aiMessages(final)).toEqual([]);
     });
 
-    it("REJECT of an irreversible action settles the reinvocation FAILED before any engine runs (today's runtime; see F1)", async () => {
-      // The runtime fails a reinvocation that carries any REJECT
-      // (`decideReinvocation`, moved from Cursor's orchestrator). The proto
-      // contract as of #197 — the enum doc, the conformance suite, the native
-      // harness's `reconcileNonExecutingDecisions` — says REJECT denies the
-      // tool and the run continues with the row SKIPPED. This arm pins the
-      // runtime AS IT IS so the S3 change is a visible diff, and is
-      // deliberately NOT in the kit (S2 M4 finding F1, Q-M4-1).
+    it("REJECT continues the run without the tool and the row settles SKIPPED with its reason (stigmer#197; S3 M1, Q-S3-2)", async () => {
+      // Until S3 M1 this arm pinned the opposite: the runtime FAILED a
+      // reinvocation carrying any REJECT (`rejectedByUserArm`, Cursor's
+      // legacy), against the proto's `APPROVAL_ACTION_REJECT` doc, the
+      // conformance suite and the native harness (S2 M4 finding F1, Q-M4-1).
+      // The kit's runtime half now carries the contract for every subject;
+      // what is the fake's own here is the persist cadence around it.
       clock.reset();
-      const driver = new RuntimeExecutionDriver(harness, "fake-reject");
-      const propose = scenario.propose("call-runtime-reject", { kind: "shell", resource: "rm -rf build" });
+      const { driver, final } = await assertNonExecutingDecisionSettlesSkipped(harness, ApprovalAction.REJECT, "fake-reject");
+      expect(driver.record.persistedPhases).toEqual([
+        ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+        ExecutionPhase.EXECUTION_IN_PROGRESS,
+        ExecutionPhase.EXECUTION_COMPLETED,
+      ]);
+      expect(aiMessages(final)).toContain("Moving on.");
+      expect(systemMessages(final), "no terminal copy: the run ended normally").toEqual([]);
+    });
 
-      const first = await driver.turn([propose]);
+    it("structured output on a file-review-pending turn is resolved before the pause and rides the reconcile's completion (Q-M4-8)", async () => {
+      clock.reset();
+      const driver = new RuntimeExecutionDriver(harness, "fake-review-structured", {
+        structuredOutputSchema: { type: "object", properties: { answer: { type: "number" } }, required: ["answer"] },
+      });
+      initGitWorkspace(driver.workspaceDir, { "README.md": "# kit\n" });
+
+      // The engine edits a file and answers in JSON (tier 1 extracts it; no
+      // LLM is asked), then the runtime pauses for the review.
+      const first = await driver.turn([scenario.flowingWrite("fake-review-structured-w", "answer.md"), scenario.say('{"answer": 42}')]);
       expect(slimOf(subject, first).phase).toBe("EXECUTION_WAITING_FOR_APPROVAL");
-      driver.decide(ApprovalAction.REJECT);
+      expect(driver.record.lastFullStatus?.structuredOutput, "resolved before the WAITING persist").toEqual({ answer: 42 });
 
-      const second = await driver.turn([scenario.say(NEVER_SEEN)]);
-      expect(slimOf(subject, second).phase).toBe("EXECUTION_FAILED");
-      const final = driver.record.lastFullStatus!;
-      expect(final.error).toBe(TERMINAL_COPY.rejectedByUser.error);
-      expect(systemMessages(final).at(-1)).toBe(TERMINAL_COPY.rejectedByUser.row);
-      expect(final.completedAt).not.toBe("");
-      expect(aiMessages(final)).not.toContain(NEVER_SEEN);
+      clock.tick();
+      driver.record.decideCapturedFileChanges({ approve: ["answer.md"] }, new Date().toISOString());
+      const second = await driver.turn([]);
+      const slim = slimOf(subject, second);
+      expect(slim.phase).toBe("EXECUTION_COMPLETED");
+      expect(slim.structured, "the pure-reconcile completion carries the answer as a value").toEqual({ answer: 42 });
+      expect(slim.final_text).toBe('{"answer": 42}');
     });
   });
 });

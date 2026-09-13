@@ -225,8 +225,8 @@ export async function callAgentAction(
   // Honest RunConfig → ExecutionConfig mapping (issue #358): every field
   // the author may set is forwarded to a field the runner enforces.
   // model_name replaces the agent's default outright; max_cost_usd feeds
-  // the harness-generic cost guards (cost-cap middleware / cursor
-  // cost-guard); max_tool_rounds feeds resolveRecursionLimit (native
+  // the turn runtime's cost guard (shared/cost-guard.ts, both harnesses);
+  // max_tool_rounds feeds resolveRecursionLimit (native
   // harness only); service_tier and thinking_mode feed the cursor
   // harness's explicit variant selection (issues #357/#772). Zero/unset
   // means "no override" and is omitted.
