@@ -1,0 +1,103 @@
+---
+title: Try Stigmer in one container
+description:
+  Run the whole Stigmer stack — server, console, Temporal, and runner — from a
+  single Docker image. For evaluation only.
+---
+
+The all-in-one image runs the whole platform in one container: the server with
+the web console, an embedded Temporal dev-server, an embedded runner that
+executes your Agents and Workflows, and SQLite. One `docker run`, one volume, no
+Node.js on your machine.
+
+<Callout type="warn">
+  **Evaluation only — not for production.** One container is right for a
+  thirty-second try and wrong for running it for real: there are no separate
+  backups or scaling, an upgrade kills in-flight runs, and Temporal's dev-server
+  is not built for durable history. For a team, use [Docker
+  Compose](./docker-compose). The image itself says so every time it starts.
+</Callout>
+
+<Callout type="warn">
+  **No sign-in.** Like `stigmer up`, the container trusts every caller. Keep the
+  published ports on localhost or a private network you trust, and never expose
+  them to the internet. stdio MCP Servers spawn **inside the container**: they
+  can reach its filesystem and network, not your host's.
+</Callout>
+
+## Start it
+
+```bash
+docker run -d --name stigmer \
+  -p 7234:7234 -p 7235:7235 \
+  -v stigmer-data:/data \
+  -e ANTHROPIC_API_KEY=sk-ant-... \
+  ghcr.io/stigmer/stigmer:latest
+```
+
+Open the console at [http://localhost:7234](http://localhost:7234). The first
+start takes a moment: the container starts Temporal, the server, and the runner,
+then loads the system Agents, Skills, and MCP Servers. Watch it with
+`docker logs -f stigmer`.
+
+Both amd64 and arm64 are supported — every release is smoke-tested on both
+architectures before the image publishes.
+
+## What the flags mean
+
+| Flag                       | Why                                                                                                                       |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `-p 7234:7234`             | The one port for the API and the console.                                                                                 |
+| `-p 7235:7235`             | The artifact file server. Files an Agent produces are downloaded through it.                                              |
+| `-v stigmer-data:/data`    | Everything the stack stores: the database, its encryption keys, Temporal's history, Workspaces, artifacts, logs. Keep it. |
+| `-e ANTHROPIC_API_KEY=...` | The runner's LLM credential. Without one the console works, but no Agent runs — the container warns you on start.         |
+
+Without `-v`, Docker still keeps your data in an anonymous volume, but
+`docker rm` discards it. Name the volume.
+
+## Stop, restart, upgrade
+
+```bash
+docker stop -t 30 stigmer     # graceful: the runner, the server, then Temporal
+docker start stigmer          # everything on the volume comes back
+```
+
+Give `docker stop` the extra seconds: a graceful shutdown can take longer than
+Docker's default ten. A container that was killed instead of stopped still
+starts cleanly.
+
+To upgrade, stop and remove the container, then run the new tag against the same
+volume. In-flight runs do not survive an upgrade on this image.
+
+## Look inside
+
+The container carries the `stigmer` CLI, already pointed at the stack:
+
+```bash
+docker exec stigmer stigmer status
+docker exec stigmer stigmer get agents
+```
+
+The component logs live on the volume under `/data/.stigmer/data/logs/`.
+
+## What runs where
+
+The image is the `stigmer up` composition from the CLI, run in the foreground,
+with everything a laptop's first `up` would download already in the image. The
+data layout under `/data/.stigmer` is byte for byte a laptop's `~/.stigmer`.
+
+MCP Servers that run as a local process (stdio) start inside the container. Ones
+that need `node` or `npx` work. Ones that need `uvx`, Python, or Go do not — the
+image ships Node.js and git only. Remote MCP Servers, including every one in the
+system catalog, are unaffected.
+
+Temporal's own web UI is running inside the container but is not published; it
+is not part of the evaluation surface.
+
+## Next step
+
+You have the whole platform on your machine and an Agent that runs. The
+container is a demo, not a deployment: it has one process tree, one volume, and
+a Temporal that forgets. When you want a stack a team can rely on — Postgres, a
+real Temporal server, separate backups, an upgrade path — move to
+[Self-host with Docker Compose](./docker-compose).
