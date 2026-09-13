@@ -16,8 +16,10 @@ import { ExecutionControlSignal, ExecutionPhase } from "@stigmer/protos/ai/stigm
 import { createV3EventRecorder, type V3ProtocolEvent } from "./v3-event-recorder.js";
 import { normalize } from "./v3-protocol-normalizer.js";
 import { V3StatusBuilder } from "./v3-status-builder.js";
+import { UsageAccumulator } from "./status-builder-shared.js";
 import { StreamingUpdateScheduler } from "../../shared/streaming-scheduler.js";
 import { persistStatus, slimStatus } from "../../shared/status.js";
+import { cancelInProgressSubAgentProtos } from "../../shared/subagent-rows.js";
 import { StreamingSideEffects } from "./streaming-side-effects.js";
 import {
   handlePause,
@@ -58,7 +60,31 @@ export async function streamExecutionV3(
     approvalProvider,
   } = deps;
 
-  const statusBuilder = new V3StatusBuilder(executionId, initialStatus);
+  // The two writes the builder no longer performs (S3 M2a, Q-M2a-7): this
+  // orchestrator-era loop sums usage into `streamingUsage` itself and flips
+  // the phase when a gated tool is left WAITING, exactly as the builder did
+  // before the turn runtime became the owner of both fields. Both go with
+  // this loop at M2b (`turn-stream.ts` reports through the sink instead).
+  const legacyUsage = new UsageAccumulator();
+  const statusBuilder = new V3StatusBuilder(executionId, initialStatus, {
+    onUsage: (usage) => {
+      const meta: Record<string, unknown> = {
+        input_tokens: usage.input_tokens,
+        output_tokens: usage.output_tokens,
+      };
+      if (usage.input_token_details) {
+        meta.cache_read_input_tokens = usage.input_token_details.cache_read;
+        meta.cache_creation_input_tokens = usage.input_token_details.cache_creation;
+      }
+      legacyUsage.accumulate(meta);
+      initialStatus.streamingUsage = legacyUsage.toProto();
+    },
+  });
+  const flipPhaseIfAwaitingApproval = (): void => {
+    if (statusBuilder.awaitingApproval) {
+      initialStatus.phase = ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL;
+    }
+  };
   if (approvalProvider) {
     statusBuilder.setApprovalProvider(approvalProvider);
   }
@@ -92,7 +118,8 @@ export async function streamExecutionV3(
     for await (const event of run as AsyncIterable<V3ProtocolEvent>) {
       if (isCancelledFn?.()) {
         abortController.abort("Cancelled by platform");
-        statusBuilder.cancelSubAgents();
+        cancelInProgressSubAgentProtos(initialStatus.subAgentExecutions);
+        statusBuilder.finalizeSubAgentStreaming();
         return handlePause(
           statusBuilder, eventsProcessed,
           sideEffects.pendingPublishPromises,
@@ -117,7 +144,7 @@ export async function streamExecutionV3(
           statusBuilder.clearForceFlag();
         }
 
-        statusBuilder.syncSubAgentExecutions();
+        flipPhaseIfAwaitingApproval();
         // Mid-run live capture (DD-32): attach file_change_progress to the live
         // status before it is persisted. Injected so this loop stays ignorant of
         // file-review specifics; a no-op when the hook is absent or nothing changed.
@@ -172,7 +199,7 @@ export async function streamExecutionV3(
     );
   }
 
-  statusBuilder.syncSubAgentExecutions();
+  flipPhaseIfAwaitingApproval();
 
   if (initialStatus.phase === ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL) {
     console.log(

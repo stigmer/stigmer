@@ -20,8 +20,38 @@ import {
 } from "../__test-utils__/v3-event-fixtures.js";
 import type { V3ProtocolEvent } from "../v3-event-recorder.js";
 
+/**
+ * What the builder REPORTED through `onUsage`, summed by the test the way an
+ * accountant would (the builder itself sums nothing and writes no
+ * `streamingUsage`; the runtime does, priced, through the sink).
+ */
+interface ReportedUsage {
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  cacheWriteTokens: number;
+  turnCount: number;
+}
+
+const reportedByBuilder = new WeakMap<V3StatusBuilder, ReportedUsage>();
+
 function makeBuilder(): V3StatusBuilder {
-  return new V3StatusBuilder("exec-test", create(AgentExecutionStatusSchema, {}));
+  const reported: ReportedUsage = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, turnCount: 0 };
+  const sb = new V3StatusBuilder("exec-test", create(AgentExecutionStatusSchema, {}), {
+    onUsage: (usage) => {
+      reported.inputTokens += usage.input_tokens ?? 0;
+      reported.outputTokens += usage.output_tokens ?? 0;
+      reported.cacheReadTokens += usage.input_token_details?.cache_read ?? 0;
+      reported.cacheWriteTokens += usage.input_token_details?.cache_creation ?? 0;
+      reported.turnCount += 1;
+    },
+  });
+  reportedByBuilder.set(sb, reported);
+  return sb;
+}
+
+function reportedUsage(sb: V3StatusBuilder): ReportedUsage {
+  return reportedByBuilder.get(sb)!;
 }
 
 function feedAll(sb: V3StatusBuilder, events: V3ProtocolEvent[]): void {
@@ -39,14 +69,11 @@ describe("V3StatusBuilder", () => {
   // ── Initialization ───────────────────────────────────────────────
 
   describe("initialization", () => {
-    it("sets phase to IN_PROGRESS on construction", () => {
+    it("writes neither phase nor startedAt (the turn runtime owns both; S3 M2a, Q-M2a-7)", () => {
       const sb = makeBuilder();
-      expect(sb.currentStatus.phase).toBe(ExecutionPhase.EXECUTION_IN_PROGRESS);
-    });
-
-    it("sets startedAt on construction", () => {
-      const sb = makeBuilder();
-      expect(sb.currentStatus.startedAt).toBeTruthy();
+      expect(sb.currentStatus.phase).toBe(ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED);
+      expect(sb.currentStatus.startedAt).toBe("");
+      expect(sb.awaitingApproval).toBe(false);
     });
 
     it("starts with forceNextUpdate = false", () => {
@@ -95,13 +122,11 @@ describe("V3StatusBuilder", () => {
         expect(status.messages[1].content).toBe("Here is more detail.");
         expect(status.messages[1].isStreaming).toBe(false);
 
-        const usage = status.streamingUsage!;
-        expect(usage.inputTokens).toBe(130n);
-        expect(usage.outputTokens).toBe(20n);
+        const usage = reportedUsage(sb);
+        expect(usage.inputTokens).toBe(130);
+        expect(usage.outputTokens).toBe(20);
         expect(usage.turnCount).toBe(2);
-        expect(usage.totalTokens).toBe(150n);
-
-        expect(status.phase).toBe(ExecutionPhase.EXECUTION_IN_PROGRESS);
+        expect(status.streamingUsage, "the runtime owns streamingUsage; the builder reports").toBeUndefined();
       });
     });
 
@@ -144,12 +169,11 @@ describe("V3StatusBuilder", () => {
         expect(status.messages[2].content).toBe("Let me elaborate.");
         expect(status.messages[2].isStreaming).toBe(false);
 
-        const usage = status.streamingUsage!;
-        expect(usage.inputTokens).toBe(500n);
-        expect(usage.outputTokens).toBe(120n);
-        expect(usage.cacheReadTokens).toBe(50n);
+        const usage = reportedUsage(sb);
+        expect(usage.inputTokens).toBe(500);
+        expect(usage.outputTokens).toBe(120);
+        expect(usage.cacheReadTokens).toBe(50);
         expect(usage.turnCount).toBe(2);
-        expect(usage.totalTokens).toBe(670n);
       });
     });
 
@@ -197,9 +221,9 @@ describe("V3StatusBuilder", () => {
         expect(secondMsg.content).toBe("The file contains a main function that logs 'hello'.");
         expect(secondMsg.toolCalls).toHaveLength(0);
 
-        const usage = status.streamingUsage!;
-        expect(usage.inputTokens).toBe(300n);
-        expect(usage.outputTokens).toBe(35n);
+        const usage = reportedUsage(sb);
+        expect(usage.inputTokens).toBe(300);
+        expect(usage.outputTokens).toBe(35);
         expect(usage.turnCount).toBe(2);
       });
     });
@@ -293,7 +317,8 @@ describe("V3StatusBuilder", () => {
         ]);
 
         const status = sb.currentStatus;
-        expect(status.phase).toBe(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL);
+        expect(sb.awaitingApproval, "a fact for the caller, never a phase write").toBe(true);
+        expect(status.phase).toBe(ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED);
 
         const tc = status.messages[0].toolCalls[0];
         expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
@@ -338,14 +363,12 @@ describe("V3StatusBuilder", () => {
           }),
         ]);
 
-        const usage = sb.currentStatus.streamingUsage!;
-        expect(usage.inputTokens).toBe(600n);
-        expect(usage.outputTokens).toBe(60n);
-        expect(usage.cacheWriteTokens).toBe(80n);
-        expect(usage.cacheReadTokens).toBe(150n);
+        const usage = reportedUsage(sb);
+        expect(usage.inputTokens).toBe(600);
+        expect(usage.outputTokens).toBe(60);
+        expect(usage.cacheWriteTokens).toBe(80);
+        expect(usage.cacheReadTokens).toBe(150);
         expect(usage.turnCount).toBe(3);
-        expect(usage.totalTokens).toBe(890n);
-        expect(usage.observedAt).toBeTruthy();
       });
     });
 
@@ -406,9 +429,9 @@ describe("V3StatusBuilder", () => {
         expect(status.messages[3].type).toBe(MessageType.MESSAGE_AI);
         expect(status.messages[3].content).toBe("The research is complete.");
 
-        const usage = status.streamingUsage!;
-        expect(usage.inputTokens).toBe(650n);
-        expect(usage.outputTokens).toBe(50n);
+        const usage = reportedUsage(sb);
+        expect(usage.inputTokens).toBe(650);
+        expect(usage.outputTokens).toBe(50);
         expect(usage.turnCount).toBe(3);
       });
     });
@@ -442,9 +465,9 @@ describe("V3StatusBuilder", () => {
         }),
       ]);
 
-      const usage = sb.currentStatus.streamingUsage!;
-      expect(usage.inputTokens).toBe(50n);
-      expect(usage.outputTokens).toBe(10n);
+      const usage = reportedUsage(sb);
+      expect(usage.inputTokens).toBe(50);
+      expect(usage.outputTokens).toBe(10);
       expect(usage.turnCount).toBe(1);
     });
 
