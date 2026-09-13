@@ -226,11 +226,6 @@ export async function createStigmerRunnerManager(
   // in-process embedders like the desktop never execute main.ts.
   captureRunnerSecrets();
 
-  const { registerStigmerDeepagentsProfiles } = await import(
-    "./activities/execute-deep-agent/deepagents-profiles.js"
-  );
-  registerStigmerDeepagentsProfiles();
-
   // `tokenRef` holds the control-plane token (the host's durable credential,
   // e.g. the desktop's Auth0 token) and is shared with activity clients via
   // config.stigmerTokenRef. The proxy credential (x-stigmer-auth) is managed
@@ -745,7 +740,6 @@ async function createAllActivities(config: Config): Promise<WorkerActivities> {
   const [
     { HARNESS_ADAPTERS },
     { createHarnessActivities },
-    { createDeepAgentActivities },
     { createEnsureThreadActivities },
     { createGenerateSessionSubjectActivities },
     { createClassifyToolApprovalsActivities },
@@ -765,7 +759,6 @@ async function createAllActivities(config: Config): Promise<WorkerActivities> {
   ] = await Promise.all([
     import("./harness-adapters.js"),
     import("./harness/registry.js"),
-    import("./activities/execute-deep-agent/index.js"),
     import("./activities/ensure-thread.js"),
     import("./activities/generate-session-subject.js"),
     import("./activities/classify-tool-approvals.js"),
@@ -786,7 +779,6 @@ async function createAllActivities(config: Config): Promise<WorkerActivities> {
 
   return {
     ...(await createHarnessActivities(HARNESS_ADAPTERS, config)),
-    ...createDeepAgentActivities(config),
     ...createEnsureThreadActivities(),
     ...createGenerateSessionSubjectActivities(config),
     ...createClassifyToolApprovalsActivities(config),

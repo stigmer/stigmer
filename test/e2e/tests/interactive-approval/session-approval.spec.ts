@@ -170,10 +170,10 @@ test.describe("HITL approval flow (deterministic mock LLM)", () => {
   // nonTerminalTranscriptRegression) then rejected the update, and gate B landed
   // as WAITING_FOR_APPROVAL with pending_approvals_count=0 and auto-resumed with
   // no approval. The fix seeds status from the persisted transcript whenever the
-  // execution already has history (execute-deep-agent/index.ts
-  // shouldSeedFromPersistedTranscript), so gate B's update is a superset of gate
-  // A rather than a replacement. Unit-pinned by
-  // execute-deep-agent/__tests__/sequential-gate-resume.test.ts.
+  // execution already has history (the turn runtime's seed,
+  // harness/turn-context.ts `seedFromPersistedStatus`), so gate B's update is a
+  // superset of gate A rather than a replacement. Pinned by the native hermetic
+  // golden execute-deep-agent/__tests__/hermetic/hitl-sequential-gates.test.ts.
   test("Multi-step: approve gate A, then a fresh gate B, then the run completes", async ({
     page,
     stigmerClient,

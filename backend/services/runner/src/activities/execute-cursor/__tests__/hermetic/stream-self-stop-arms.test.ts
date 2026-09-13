@@ -29,11 +29,12 @@
  *    fixture registry's round numbers; the loop breaks at the NEXT event.
  *  - PLATFORM STOP: the control plane answers STOP (`ExecutionRecord.controlSignal`)
  *    to the mid-stream persist that carries a COMPLETED tool call. That persist
- *    is the one point a scenario can rely on: the streaming scheduler paces
- *    persists on `performance.now()` — REAL time, not the scripted clock — so
- *    after its first-event update a text-only event persists only if 500 ms
- *    of wall time have passed, while a tool-call transition force-flushes
- *    (`contentDirty`) whatever the clock says.
+ *    is the one point a scenario can rely on: the STOP is keyed on the
+ *    persisted status's CONTENT (the COMPLETED row), not on which persist
+ *    happens to carry it, because a tool-call transition force-flushes
+ *    (`contentDirty`) whatever the cadence says. (Until S3 M5 the scheduler
+ *    paced text-only persists on REAL `performance.now()` time; the scripted
+ *    clock fakes it since Q-M5-7, so every persist is deterministic now.)
  *
  * Engine disposition and cancellation since S2 M3 (entry 20260911.03): the
  * adapter cancels the SDK run on EVERY stop (Q-M3-4; before, a platform stop

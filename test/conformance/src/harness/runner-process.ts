@@ -62,6 +62,15 @@ const LOG_TAIL_BYTES = 8_000;
 // phase before teardown, so the drain has nothing in flight and exit is
 // prompt; the bound only exists so a wedged drain cannot hang the vitest run.
 const SHUTDOWN_GRACE_MS = 30_000;
+// How long a healthy runner may take from SIGTERM to exit before this
+// harness says so. The worker drains in milliseconds and the process has
+// nothing else to wait on, so an exit measured in seconds means a handle —
+// a timer, a socket, a child — outlived the worker. That is exactly the
+// stigmer#1008 shape, and at 29 s it hid inside the 30 s grace above with
+// no line printed: the fallback only speaks when the grace EXPIRES. This
+// threshold gives a slow-but-not-forced exit a voice of its own. Generous
+// against CI jitter (a real drain is ~2 ms) and far under the grace.
+const PROMPT_EXIT_MS = 2_000;
 
 // Two lines the runner prints that this harness reads back (runner/src/runner.ts,
 // `start()`): the first immediately before the worker begins polling, the
@@ -279,11 +288,16 @@ export async function spawnRunner(opts: RunnerOptions): Promise<RunningRunner> {
     // then the tee (its sink ends only once stdio has closed — the runner's
     // shutdown lines land in the file instead of throwing write-after-end),
     // then the directories the runner was still using.
-    await stopChild(child, {
+    const outcome = await stopChild(child, {
       signal: "SIGTERM",
       graceMs: SHUTDOWN_GRACE_MS,
       onForceKill: () => console.error(describeRunnerForceKill(output.tail())),
     });
+    // A forced kill already spoke, above; this line is for the exit that
+    // stayed inside the grace but should not have taken that long.
+    if (!outcome.forced && outcome.exitedAfterMs > PROMPT_EXIT_MS) {
+      console.error(describeRunnerSlowExit(outcome.exitedAfterMs));
+    }
     await output.close();
     await rm(workspaceDir, { recursive: true, force: true });
     await rm(homeDir, { recursive: true, force: true });
@@ -336,6 +350,20 @@ export function describeRunnerForceKill(tail: string): string {
   return (
     `[runner] did not exit within ${SHUTDOWN_GRACE_MS}ms of SIGTERM — SIGKILL fallback; ${verdict}\n` +
     `[runner] last output:\n${quoteLastLines(lines)}`
+  );
+}
+
+// The line stop() prints when the runner exited on its own but slowly: past
+// PROMPT_EXIT_MS, inside SHUTDOWN_GRACE_MS. The force-kill line above cannot
+// cover this case — it speaks only when the grace expires — and a leak whose
+// timer happens to fire a second before the grace is the same bug as one
+// that fires a second after (stigmer#1008 was both, depending on the file).
+// Pure, like describeRunnerForceKill, so the unit arms drive it directly.
+export function describeRunnerSlowExit(exitedAfterMs: number): string {
+  return (
+    `[runner] exited ${exitedAfterMs}ms after SIGTERM (expected within ${PROMPT_EXIT_MS}ms) — ` +
+    `something kept the event loop alive after the worker drained: a timer, a socket or a child ` +
+    `that outlived the execution (the stigmer#1008 shape). Not a failure; a leak to find.`
   );
 }
 

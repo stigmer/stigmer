@@ -1,7 +1,7 @@
 /**
  * @regression file-hitl-phase0 — pins file-edit HITL fix #2 (see _projects/2026-06/20260630.01.file-change-hitl-redesign/tasks/T01_3_regression-manifest.md)
  *
- * Cursor analog of execute-deep-agent/__tests__/sequential-gate-resume.test.ts:
+ * Cursor analog of execute-deep-agent/__tests__/hermetic/hitl-sequential-gates.test.ts:
  * two SEQUENTIAL approval gates across a resume, on the Cursor deny-and-reconcile
  * harness instead of the native in-process gate.
  *
@@ -139,7 +139,7 @@ describe("Cursor sequential gates A->B across resume", () => {
     const committed = approvedGateA();
     const seeded = committed.map((m) => clone(AgentMessageSchema, m));
 
-    const acc = new MessageAccumulator(seeded, { seededSubAgents: [] });
+    const acc = new MessageAccumulator(seeded, {});
     for (const event of resumeIntoGateB()) acc.processEvent(event);
     acc.finalize();
 

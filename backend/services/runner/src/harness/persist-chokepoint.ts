@@ -10,13 +10,21 @@
  *     any built-in write row targeting a secret-like path, top-level and
  *     sub-agent. The single airtight choke point for a deny-gate harness and
  *     the only guarantee under `auto_approve_all`. Idempotent.
- *  2. `streaming_usage` is refreshed from the accumulator when it has turns,
+ *  2. `file_change_progress` is refreshed from the turn's capture (the "N
+ *     files changed so far" strip, DD-32) when the turn is in capture mode:
+ *     the tree is read at most once per floor interval and only re-attached
+ *     when it moved (`shared/filereview/progress.ts`), so a write that
+ *     changed nothing on disk carries the snapshot it already had. Before
+ *     S3 M4 each adapter's stream loop did this before its own persists; the
+ *     runtime owns the capture now, so the display field it derives is
+ *     refreshed where every other runtime-owned field is — here.
+ *  3. `streaming_usage` is refreshed from the accumulator when it has turns,
  *     so the summary the UI shows is the one the write carries.
- *  3. `persistStatus` (`shared/status.ts`): tool-output offload, the
+ *  4. `persistStatus` (`shared/status.ts`): tool-output offload, the
  *     aggregate size cap, transient retry, oversize recovery. Never rejects.
- *  4. A Temporal heartbeat, so a long streaming turn's liveness is proven by
+ *  5. A Temporal heartbeat, so a long streaming turn's liveness is proven by
  *     the writes it makes (Q-S2-10).
- *  5. The control plane's answer: STOP becomes the runtime's platform-stop
+ *  6. The control plane's answer: STOP becomes the runtime's platform-stop
  *     cause on the stop controller, which aborts the adapter's signal.
  *
  * Single-flight with coalescing: an adapter's `requestPersist()` while a
@@ -39,9 +47,11 @@ import { ExecutionControlSignal } from "@stigmer/protos/ai/stigmer/agentic/agent
 import { StreamingUsageSummarySchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
 
 import type { StigmerClient } from "../client/stigmer-client.js";
+import { captureFileChangeProgress } from "../shared/filereview/progress.js";
 import { persistStatus } from "../shared/status.js";
 import type { ToolOutputOffloadContext } from "../shared/status-offload.js";
 import { withholdSecretContentFromMessages } from "../shared/tool-row.js";
+import type { TurnProgress } from "./capture.js";
 import type { UsageAccumulator } from "./usage-accumulator.js";
 
 export interface PersistChokepointDeps {
@@ -56,6 +66,12 @@ export interface PersistChokepointDeps {
    * and is `undefined` for a write made before then (no usage yet anyway).
    */
   readonly usage: () => UsageAccumulator | undefined;
+  /**
+   * The turn's mid-run progress, read at WRITE time for the same reason as
+   * `usage`: it exists only once the runtime has pinned the capture baseline,
+   * after resolution, and is `undefined` outside capture mode.
+   */
+  readonly progress: () => TurnProgress | undefined;
   /** The Temporal heartbeat, pulsed after each write. */
   readonly heartbeat: () => void;
   /** The control plane answered STOP to this write. */
@@ -99,6 +115,10 @@ export class PersistChokepoint {
   async write(): Promise<void> {
     const { client, executionId, status, offload, heartbeat } = this.deps;
     withholdSecretContentFromMessages(status.messages, status.subAgentExecutions);
+    const progress = this.deps.progress();
+    if (progress) {
+      await captureFileChangeProgress({ status, changeSetId: progress.changeSetId, substrate: progress.substrate, state: progress.state });
+    }
     const usage = this.deps.usage();
     if (usage?.hasTurns) {
       status.streamingUsage = create(StreamingUsageSummarySchema, usage.snapshot());

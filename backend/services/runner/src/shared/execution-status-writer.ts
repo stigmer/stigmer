@@ -2,10 +2,10 @@
  * Shared interface for proto mutation consumed by side-effect classes
  * (InlinePublisher, WriteBackCoordinator) and streaming loops.
  *
- * The deep-agent harness implements it on its v2 StatusBuilder and
- * V3StatusBuilder; the Cursor harness — which mutates a bare status proto
- * with no builder — uses {@link statusProtoWriter}. Side-effect classes
- * depend only on this interface, never on a specific implementation.
+ * The deep-agent harness implements it on its `V3StatusBuilder`; the Cursor
+ * harness — which mutates a bare status proto with no builder — uses
+ * {@link statusProtoWriter}. Side-effect classes depend only on this
+ * interface, never on a specific implementation.
  */
 
 import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
@@ -28,7 +28,7 @@ export interface ExecutionStatusWriter {
  * concern the direct-mutation style has no use for, so it stays `false`.
  *
  * Write-backs upsert by `workspaceEntryName` — the same contract as the
- * deep-agent `StatusBuilder.addWriteBack`: each git-backed workspace entry
+ * deep-agent `V3StatusBuilder.addWriteBack`: each git-backed workspace entry
  * carries at most one record, progressing through phases.
  */
 export function statusProtoWriter(status: AgentExecutionStatus): ExecutionStatusWriter {

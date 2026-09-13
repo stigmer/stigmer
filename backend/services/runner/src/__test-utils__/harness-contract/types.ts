@@ -56,16 +56,25 @@ import type { TurnInputFixtureOverrides } from "../turn-input-fixture.js";
  *    ends `failed` on the given surface (`engine` unless the scenario says
  *    otherwise — the runtime's three failure copies are its own invariant).
  *  - `cancelled`: the engine ends its own run cancelled with nothing to
- *    wait for (an SDK-side cancel); the turn ends `cancelled`.
+ *    wait for (an SDK-side cancel); the turn ends `cancelled`. Not every
+ *    engine can end itself (a LangGraph run is stopped only by the runtime's
+ *    signal and settles `interrupted`), so a subject that cannot produce it
+ *    says so and the runtime arm is reported SKIPPED there.
+ *  - `limit`: the engine exhausts the tool-round budget the execution set and
+ *    stops at a step boundary with its work checkpointed; the turn ends
+ *    `tool_call_limit`. Not every engine has such a budget (Cursor's SDK does
+ *    not), so a subject that cannot produce it says so and the runtime arm
+ *    is reported SKIPPED there.
  */
 export type ScenarioStep =
   | { readonly kind: "say"; readonly text: string }
-  | { readonly kind: "propose"; readonly toolCallId: string; readonly action: ProposedAction }
+  | { readonly kind: "propose"; readonly toolCallId: string; readonly action: ProposedAction; readonly flows?: boolean }
   | { readonly kind: "read"; readonly toolCallId: string; readonly path: string }
   | { readonly kind: "usage"; readonly delta: UsageDelta }
   | { readonly kind: "hang" }
   | { readonly kind: "fail"; readonly message: string; readonly surface: FailureSurface }
-  | { readonly kind: "cancelled" };
+  | { readonly kind: "cancelled" }
+  | { readonly kind: "limit" };
 
 /** One turn's worth of engine behaviour. */
 export type TurnScenario = readonly ScenarioStep[];
@@ -77,6 +86,18 @@ export const scenario = {
   },
   propose(toolCallId: string, action: ProposedAction): ScenarioStep {
     return { kind: "propose", toolCallId, action };
+  },
+  /**
+   * A `write` the arm EXPECTS to flow under apply-then-review capture (a git
+   * work tree, or artifact storage): the engine performs it at once, the row
+   * completes, and the RUNTIME captures it for review after the turn
+   * (`harness/capture.ts`). The arm states the posture rather than the
+   * subject inferring it, so a subject that gates a flowing write is caught,
+   * not accommodated. The bytes written are the engine's own; the arm
+   * asserts the captured PATH and the reconcile's effect, never the content.
+   */
+  flowingWrite(toolCallId: string, path: string): ScenarioStep {
+    return { kind: "propose", toolCallId, action: { kind: "write", resource: path }, flows: true };
   },
   read(toolCallId: string, path: string): ScenarioStep {
     return { kind: "read", toolCallId, path };
@@ -92,6 +113,9 @@ export const scenario = {
   },
   cancelled(): ScenarioStep {
     return { kind: "cancelled" };
+  },
+  limit(): ScenarioStep {
+    return { kind: "limit" };
   },
 } as const;
 

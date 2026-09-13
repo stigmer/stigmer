@@ -15,8 +15,8 @@
 // LIVE, lists tools, and builds the approval gate from the agent's
 // tool_approval_overrides — none of which depends on a prior discovery pass
 // (and the conformance runner sets SKIP_MCP_CONNECT_BACKFILL=true, so the
-// execution-time backfill is a no-op). See execute-deep-agent/setup.ts and
-// shared/approval-policy.ts in the runner. The agent points at this server's URL
+// execution-time backfill is a no-op). See the runner's harness/turn-context.ts
+// (the MCP phase) and shared/approval-policy.ts. The agent points at this server's URL
 // and the runner reaches it directly.
 //
 // Transport choice: stateless Streamable HTTP. Each POST gets a fresh

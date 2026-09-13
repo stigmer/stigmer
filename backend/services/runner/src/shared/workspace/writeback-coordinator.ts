@@ -14,16 +14,18 @@
  * already exists (locally, or on the remote after a sandbox re-provision), and
  * an already-open PR for the branch is adopted instead of re-created.
  *
- * When this runs depends on the harness's file-review mode:
- *  - Capture mode (apply-then-review — every git workspace): the streaming
- *    trigger is suppressed and `finalize()` runs exactly once on the APPROVED
- *    tree, after review decisions reconcile (see processCaptureWriteback in
- *    index.ts). Speculative mid-turn edits never reach GitHub.
- *  - Legacy non-capture turns: `onFileModified(path)` triggers an incremental
- *    commit/push per file-modifying tool call (DD-5), with `finalize()` as the
- *    post-stream safety net.
+ * It runs ONCE per turn, at the end: the turn runtime calls `finalize()`
+ * (`harness/run-turn.ts`) — in capture mode on the APPROVED tree after the
+ * review decisions reconcile, so speculative mid-turn edits never reach
+ * GitHub; on a non-capture git turn on whatever the turn left in the tree.
+ * Until S3 M2b (Q-M1-1) an incremental path also existed — `onFileModified`,
+ * a commit-and-push per file-modifying tool call on non-capture turns — and
+ * was reachable in no supported posture (every git workspace with artifact
+ * storage is a capture workspace, `shared/filereview/capture.ts`
+ * `deriveCaptureMode`); it went with the native stream loop that called it.
  *
- * Concurrency: one mutex per workspace entry serializes git operations.
+ * Entries are written back in sequence, one cycle each; nothing here runs
+ * concurrently with itself.
  */
 
 import { create } from "@bufbuild/protobuf";
@@ -81,7 +83,6 @@ export class WriteBackCoordinator {
 
   private readonly eligible = new Map<string, EligibleEntry>();
   private readonly state = new Map<string, EntryState>();
-  private readonly locks = new Map<string, Promise<void>>();
 
   constructor(opts: {
     statusWriter: ExecutionStatusWriter;
@@ -109,38 +110,15 @@ export class WriteBackCoordinator {
   }
 
   /**
-   * Called after a file-modifying tool completes (legacy non-capture turns
-   * only). Resolves the path to a workspace entry and runs an incremental
-   * commit/push cycle. Fire-and-forget: errors are logged, never thrown.
-   */
-  async onFileModified(path: string): Promise<void> {
-    try {
-      const entryName = this.resolveEntry(path);
-      if (!entryName) return;
-
-      await this.withLock(entryName, () =>
-        this.writeBackEntry(entryName),
-      );
-    } catch (err) {
-      console.warn(
-        `[WriteBack] execution=${this.executionId} — ` +
-        `onFileModified error for '${path}': ${err}`,
-      );
-    }
-  }
-
-  /**
-   * Commits and pushes every eligible workspace entry's remaining uncommitted
-   * changes. In capture mode this is THE write-back — invoked once on the
-   * approved tree after review reconcile; on legacy turns it is the
-   * post-stream safety net.
+   * Commits and pushes every eligible workspace entry's uncommitted changes —
+   * THE write-back, once per turn (see the header). An entry's failure is
+   * recorded on its own write-back row and logged; it never throws, and it
+   * never stops the next entry.
    */
   async finalize(): Promise<void> {
     for (const entryName of this.eligible.keys()) {
       try {
-        await this.withLock(entryName, () =>
-          this.writeBackEntry(entryName),
-        );
+        await this.writeBackEntry(entryName);
       } catch (err) {
         console.warn(
           `[WriteBack] execution=${this.executionId} entry=${entryName} — ` +
@@ -197,21 +175,6 @@ export class WriteBackCoordinator {
         `${this.eligible.size} eligible workspace(s): ${[...this.eligible.keys()].join(", ")}`,
       );
     }
-  }
-
-  // ── Path Resolution ─────────────────────────────────────────────────
-
-  private resolveEntry(path: string): string | null {
-    if (this.eligible.size === 0) return null;
-    if (this.eligible.size === 1) return this.eligible.keys().next().value!;
-
-    const normalized = path.replace(/^\/+/, "");
-    for (const entryName of this.eligible.keys()) {
-      if (normalized.startsWith(entryName + "/") || normalized === entryName) {
-        return entryName;
-      }
-    }
-    return null;
   }
 
   // ── Core Write-Back Cycle ───────────────────────────────────────────
@@ -506,17 +469,6 @@ export class WriteBackCoordinator {
     this.statusWriter.addWriteBack(wb);
   }
 
-  // ── Concurrency ─────────────────────────────────────────────────────
-
-  private async withLock(
-    entryName: string,
-    fn: () => Promise<void>,
-  ): Promise<void> {
-    const existing = this.locks.get(entryName) ?? Promise.resolve();
-    const next = existing.then(fn, fn);
-    this.locks.set(entryName, next);
-    await next;
-  }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────

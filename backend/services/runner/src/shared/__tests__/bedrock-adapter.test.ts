@@ -152,7 +152,7 @@ describe("buildChatModel bedrock adapter", () => {
   it("injects the CANONICAL id's default maxTokens when the caller omits it (the 4096 landmine)", async () => {
     // LangChain's per-model default table prefix-matches the model string.
     // `anthropic.…` ids match nothing and silently fall back to 4096 —
-    // setup.ts omits maxTokens, so every deep-agent call would be capped.
+    // turn-setup.ts omits maxTokens, so every deep-agent call would be capped.
     // The adapter must inject what the canonical id would have received on
     // the public API or vertex, whatever that is at the installed LangChain
     // version (16384 for 4.5/4.6-generation ids at 1.4.0).

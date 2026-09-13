@@ -22,7 +22,7 @@ const SESSION_ID = "ses-01test";
 const SESSION_BRANCH = `stigmer/${SESSION_ID}`;
 
 // The shared proto-backed writer — the same implementation the Cursor harness
-// wires in, and upsert-compatible with the deep-agent StatusBuilder.
+// wires in, and upsert-compatible with the deep-agent V3StatusBuilder.
 function makeStatusBuilder(): ExecutionStatusWriter {
   return statusProtoWriter(create(AgentExecutionStatusSchema, {}));
 }
@@ -185,11 +185,14 @@ describe("WriteBackCoordinator", () => {
 
   // ── Full cycle ──────────────────────────────────────────────────────
 
+  // Every cycle below runs through `finalize()`, the coordinator's one entry
+  // point since S3 M2b (Q-M1-1; the per-file `onFileModified` went with the
+  // native stream loop that called it). The mechanics it pins are the same.
   it("performs full cycle on the SESSION branch: branch -> commit -> push -> PR", async () => {
     const backend = mockWorkspaceBackend();
     const coord = makeCoordinator({ sb, backend });
 
-    await coord.onFileModified("src/main.ts");
+    await coord.finalize();
 
     const wbs = sb.currentStatus.workspaceWriteBacks;
     expect(wbs).toHaveLength(1);
@@ -213,7 +216,7 @@ describe("WriteBackCoordinator", () => {
     const backend = mockWorkspaceBackend();
     const coord = makeCoordinator({ sb, backend, executionId: "exec-12345678rest" });
 
-    await coord.onFileModified("src/main.ts");
+    await coord.finalize();
 
     const commands = (backend.execute as ReturnType<typeof vi.fn>).mock.calls
       .map((c: any) => c[0] as string);
@@ -233,19 +236,19 @@ describe("WriteBackCoordinator", () => {
     });
     const coord = makeCoordinator({ sb, backend });
 
-    await coord.onFileModified("src/main.ts");
+    await coord.finalize();
 
     expect(sb.currentStatus.workspaceWriteBacks).toHaveLength(0);
   });
 
   // ── Session-branch idempotency ──────────────────────────────────────
 
-  it("on second call, commits to the existing branch without re-creating", async () => {
+  it("a second finalize commits to the existing branch without re-creating it", async () => {
     const backend = mockWorkspaceBackend();
     const coord = makeCoordinator({ sb, backend });
 
-    await coord.onFileModified("first.ts");
-    await coord.onFileModified("second.ts");
+    await coord.finalize();
+    await coord.finalize();
 
     const commands = (backend.execute as ReturnType<typeof vi.fn>).mock.calls
       .map((c: any) => c[0] as string);
@@ -263,7 +266,7 @@ describe("WriteBackCoordinator", () => {
     });
     const coord = makeCoordinator({ sb, backend, executionId: "exec-turn2" });
 
-    await coord.onFileModified("src/more.ts");
+    await coord.finalize();
 
     const commands = (backend.execute as ReturnType<typeof vi.fn>).mock.calls
       .map((c: any) => c[0] as string);
@@ -278,7 +281,7 @@ describe("WriteBackCoordinator", () => {
     });
     const coord = makeCoordinator({ sb, backend });
 
-    await coord.onFileModified("src/main.ts");
+    await coord.finalize();
 
     const commands = (backend.execute as ReturnType<typeof vi.fn>).mock.calls
       .map((c: any) => c[0] as string);
@@ -296,7 +299,7 @@ describe("WriteBackCoordinator", () => {
     });
     const coord = makeCoordinator({ sb, backend });
 
-    await coord.onFileModified("src/main.ts");
+    await coord.finalize();
 
     const commands = (backend.execute as ReturnType<typeof vi.fn>).mock.calls
       .map((c: any) => c[0] as string);
@@ -312,7 +315,7 @@ describe("WriteBackCoordinator", () => {
     });
     const coord = makeCoordinator({ sb });
 
-    await coord.onFileModified("src/main.ts");
+    await coord.finalize();
 
     const wbs = sb.currentStatus.workspaceWriteBacks;
     expect(wbs[0].pullRequestNumber).toBe(7);
@@ -328,7 +331,7 @@ describe("WriteBackCoordinator", () => {
     const calls = mockGithubApi();
     const coord = makeCoordinator({ sb, githubToken: "ghp_plumbed_token" });
 
-    await coord.onFileModified("src/main.ts");
+    await coord.finalize();
 
     expect(calls.length).toBeGreaterThan(0);
     for (const call of calls) {
@@ -350,7 +353,7 @@ describe("WriteBackCoordinator", () => {
     });
     const coord = makeCoordinator({ sb, backend });
 
-    await coord.onFileModified("src/main.ts");
+    await coord.finalize();
 
     const wbs = sb.currentStatus.workspaceWriteBacks;
     expect(wbs).toHaveLength(1);
@@ -364,7 +367,7 @@ describe("WriteBackCoordinator", () => {
     mockGithubApi({ createStatus: 403 });
     const coord = makeCoordinator({ sb });
 
-    await coord.onFileModified("src/main.ts");
+    await coord.finalize();
 
     const wbs = sb.currentStatus.workspaceWriteBacks;
     expect(wbs).toHaveLength(1);
@@ -381,7 +384,7 @@ describe("WriteBackCoordinator", () => {
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     const coord = makeCoordinator({ sb, githubToken: "" });
 
-    await coord.onFileModified("src/main.ts");
+    await coord.finalize();
 
     const wbs = sb.currentStatus.workspaceWriteBacks;
     expect(wbs).toHaveLength(1);
@@ -391,9 +394,9 @@ describe("WriteBackCoordinator", () => {
     warnSpy.mockRestore();
   });
 
-  // ── finalize / path resolution ──────────────────────────────────────
+  // ── finalize on a fresh coordinator ─────────────────────────────────
 
-  it("finalize catches remaining uncommitted changes", async () => {
+  it("finalize commits, pushes and opens the PR for the entry's uncommitted changes", async () => {
     const coord = makeCoordinator({ sb });
 
     await coord.finalize();
@@ -402,50 +405,6 @@ describe("WriteBackCoordinator", () => {
     expect(sb.currentStatus.workspaceWriteBacks[0].phase).toBe(
       WorkspaceWriteBackPhase.WORKSPACE_WRITE_BACK_PR_CREATED,
     );
-  });
-
-  it("resolves path to single entry without prefix matching", async () => {
-    const coord = makeCoordinator({ sb });
-
-    await coord.onFileModified("any/path/file.ts");
-
-    expect(sb.currentStatus.workspaceWriteBacks).toHaveLength(1);
-  });
-
-  it("resolves path to correct entry in multi-entry workspace", async () => {
-    const coord = makeCoordinator({
-      sb,
-      provisionResults: [
-        makeProvisionResult({ entryName: "frontend", rootDir: "/workspace/frontend" }),
-        makeProvisionResult({ entryName: "backend", rootDir: "/workspace/backend" }),
-      ],
-      workspaceEntries: [
-        makeWorkspaceEntry("frontend"),
-        makeWorkspaceEntry("backend"),
-      ],
-    });
-
-    await coord.onFileModified("frontend/src/app.tsx");
-
-    const wbs = sb.currentStatus.workspaceWriteBacks;
-    expect(wbs).toHaveLength(1);
-    expect(wbs[0].workspaceEntryName).toBe("frontend");
-  });
-
-  it("ignores paths outside eligible entries in multi-entry mode", async () => {
-    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const coord = makeCoordinator({
-      sb,
-      provisionResults: [
-        makeProvisionResult({ entryName: "fe", rootDir: "/workspace/fe" }),
-        makeProvisionResult({ entryName: "be", rootDir: "/workspace/be" }),
-      ],
-      workspaceEntries: [makeWorkspaceEntry("fe"), makeWorkspaceEntry("be")],
-    });
-
-    await coord.onFileModified("unknown/file.ts");
-    expect(sb.currentStatus.workspaceWriteBacks).toHaveLength(0);
-    warnSpy.mockRestore();
   });
 });
 

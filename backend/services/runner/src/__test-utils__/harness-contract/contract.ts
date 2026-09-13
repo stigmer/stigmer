@@ -36,12 +36,20 @@
  *     `awaiting_approval` resolves, and never executes in that turn.
  *  3. Reinvoked with APPROVE for that id → executes exactly once and the row
  *     is carried to COMPLETED; with REJECT or SKIP → never executes and the
- *     turn continues (the row's terminal status is the runtime's to write,
- *     not the adapter's — Q-M4-1); reinvoked again after the approval → still
- *     once, never re-gated.
+ *     turn continues (the row's SKIPPED status is the runtime's to write,
+ *     `harness/approval-decisions.ts`, proven in the runtime half — the
+ *     driver stands in for that write between turns, Q-M1-3); reinvoked again
+ *     after the approval → still once, never re-gated.
  *  4. Aborting `stopSignal` mid-hang settles `runTurn` as `interrupted` within
- *     {@link INTERRUPT_SETTLE_BOUND_MS} and nothing after the stop executes; a
- *     signal aborted BEFORE `runTurn` yields `interrupted` with nothing done.
+ *     {@link INTERRUPT_SETTLE_BOUND_MS} and nothing after the stop executes or
+ *     is even gated (a proposal after the hang has no row); a signal aborted
+ *     BEFORE `runTurn` yields `interrupted` with nothing done. Stated over a
+ *     FRESH proposal on purpose: WHEN an already-approved pending action
+ *     executes on the resumed turn is the pause primitive's business — an
+ *     interrupt engine completes the pending task before its model speaks,
+ *     a deny-and-retry engine re-reaches it whenever its model does — so it
+ *     is below the contract line (S3 M3 Q-M3-2; each harness's own kit file
+ *     observes its order).
  *  5. Usage reaches the sink as non-negative deltas summing to what the engine
  *     emitted.
  *  6. Capability and behaviour agree on the state id: an `engine-minted`
@@ -74,7 +82,7 @@ import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/a
 import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ApprovalAction, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
-import { approvalDecisionsOf } from "../../harness/turn-context.js";
+import { approvalDecisionsOf, terminalizeNonExecutingDecisions } from "../../harness/approval-decisions.js";
 import type { TurnInput, TurnOutcome, UsageDelta } from "../../harness/types.js";
 import type { ProposedAction } from "../approval-contract/types.js";
 import { emptyStatus, findToolCallRow } from "../proto-helpers.js";
@@ -92,7 +100,7 @@ import type { EngineView, HarnessContractSubject, TurnScenario } from "./types.j
  */
 export const INTERRUPT_SETTLE_BOUND_MS = 5_000;
 
-const OUTCOME_KINDS = ["completed", "cancelled", "awaiting_approval", "failed", "interrupted"] as const satisfies readonly TurnOutcome["kind"][];
+const OUTCOME_KINDS = ["completed", "cancelled", "awaiting_approval", "tool_call_limit", "failed", "interrupted"] as const satisfies readonly TurnOutcome["kind"][];
 
 /** Representative gated action shared by the invariants. */
 const WRITE_ALPHA: ProposedAction = { kind: "write", resource: "/work/alpha.txt" };
@@ -185,8 +193,14 @@ export class ExecutionDriver {
     return { input, sink, outcome };
   }
 
-  /** The runtime's post-turn bookkeeping: persist the status, adopt a bound id, advance the cycle. */
+  /**
+   * The runtime's post-turn bookkeeping: settle the SKIP and REJECT rows the
+   * adapter never executes (the runtime's write, `terminalizeNonExecutingDecisions`,
+   * so a decided row is not re-read as WAITING on the next turn), persist the
+   * status, adopt a bound id, advance the cycle.
+   */
   recordTurn(sink: RecordingTurnSink): void {
+    terminalizeNonExecutingDecisions(sink.status);
     this.persisted = sink.status;
     const bound = sink.boundStateIds.at(-1);
     if (bound !== undefined) this.threadId = bound;
@@ -321,9 +335,10 @@ export async function assertProposalIsWaitingAndUnexecuted(subject: HarnessContr
  * turn continues — the row's terminal status is NOT asserted here because
  * it is not the adapter's to write (the decision is the server's field and
  * the WAITING → SKIPPED transition follows from it with no engine knowledge,
- * so it is the runtime's; S2 M4 Q-M4-1, the runtime's arm lands in S3). The
- * reinvocation sees a CLONE of the persisted status, as it would from the
- * server.
+ * so it is the runtime's — `terminalizeNonExecutingDecisions`, landed at
+ * S3 M1 and pinned by the runtime half's REJECT / SKIP arms; S2 M4 Q-M4-1).
+ * The reinvocation sees a CLONE of the persisted status, as it would from
+ * the server.
  */
 export async function assertDecisionsExecuteExactlyOnce(subject: HarnessContractSubject): Promise<void> {
   const driver = new ExecutionDriver(subject, "inv3");
@@ -360,22 +375,20 @@ export async function assertDecisionsExecuteExactlyOnce(subject: HarnessContract
  * Invariant 4: the stop signal is honoured promptly and completely. A turn
  * stopped WHILE HANGING (the engine has reported it is parked, so the stop
  * lands in the hang and not in the adapter's setup) settles `interrupted`
- * within the bound and executes nothing that came after the hang, even an
- * already-approved action; a turn entered under an aborted signal does
- * nothing at all.
+ * within the bound, and the proposal after the hang neither executes nor
+ * reaches the gate (no row of any status); a turn entered under an aborted
+ * signal does nothing at all. The proposal is FRESH — see the catalog on why
+ * an approved one would assert the pause primitive's order, not the contract.
  */
 export async function assertStopSignalInterrupts(subject: HarnessContractSubject, boundMs = INTERRUPT_SETTLE_BOUND_MS): Promise<void> {
   const driver = new ExecutionDriver(subject, "inv4");
-  const id = "inv4-approved-after-hang";
-
-  const proposed = await driver.turn([scenario.propose(id, WRITE_ALPHA)]);
-  expect(proposed.outcome.kind, `${subject.name}: proposal must end awaiting_approval`).toBe("awaiting_approval");
-  driver.decide(id, ApprovalAction.APPROVE);
+  const id = "inv4-proposed-after-hang";
 
   const hanging = driver.begin([scenario.say("working"), scenario.hang(), scenario.propose(id, WRITE_ALPHA)], { stopWhenHanging: "kit: user pause" });
   const outcome = await settleWithinBound(subject, hanging.settled, "after stopSignal aborted mid-hang", boundMs);
   expect(outcome.kind, `${subject.name}: a turn stopped mid-hang must settle interrupted`).toBe("interrupted");
-  expect(subject.executionCount(id), `${subject.name}: nothing after the stop may execute, even an approved action`).toBe(0);
+  expect(subject.executionCount(id), `${subject.name}: nothing after the stop may execute`).toBe(0);
+  expect(findToolCallRow(hanging.sink.status, id), `${subject.name}: nothing after the stop may even reach the gate — the proposal after the hang has no row`).toBeUndefined();
   driver.recordTurn(hanging.sink);
 
   const preAborted = new RecordingTurnSink({ status: driver.seedStatus() });

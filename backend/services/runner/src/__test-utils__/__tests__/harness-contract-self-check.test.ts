@@ -82,6 +82,7 @@ function sinkOver(inner: TurnSink, patch: Partial<TurnSink>): TurnSink {
     reportUsage: (delta) => inner.reportUsage(delta),
     reportProgress: (label) => inner.reportProgress(label),
     bindHarnessState: (id) => inner.bindHarnessState(id),
+    bindCasObservations: (read) => inner.bindCasObservations(read),
     ...patch,
   };
 }

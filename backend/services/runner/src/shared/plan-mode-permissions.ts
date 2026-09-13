@@ -22,12 +22,12 @@
  * (shared/workspace/stigmer-link.ts), an in-root path string in either
  * dialect.
  *
- * Applied in execute-deep-agent/setup.ts to the parent graph AND threaded
+ * Applied in execute-deep-agent/turn-setup.ts to the parent graph AND threaded
  * into every compiled sub-agent graph: deepagents' parent-permission
  * inheritance covers only spec-style sub-agents, and ours are pre-built
  * CompiledSubAgents, so each sub-agent graph must carry the rules itself
  * (issue #255). Kept as its own side-effect-free module so tests can pin the
- * production rules without dragging in setup.ts's import graph.
+ * production rules without dragging in the engine build's import graph.
  *
  * Invariant: never combine these rules with a shell-capable (sandbox)
  * backend — deepagents rejects that pairing at graph construction (see the

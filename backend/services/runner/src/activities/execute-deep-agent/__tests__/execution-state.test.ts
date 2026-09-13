@@ -22,7 +22,6 @@ describe("ExecutionState", () => {
     expect(state.messagesByRun.size).toBe(0);
     expect(state.currentAiMessage.size).toBe(0);
     expect(state.lastLlmRunId.size).toBe(0);
-    expect(state.toolStartTimes.size).toBe(0);
   });
 
   it("indexes share object references with proto repeated fields", () => {
@@ -82,14 +81,12 @@ describe("ExecutionState", () => {
       state.messagesByRun.set("run-1", msg);
       state.currentAiMessage.set("", msg);
       state.lastLlmRunId.set("", "run-1");
-      state.toolStartTimes.set("tool-run-1", 1000);
 
       state.resetEphemeralState();
 
       expect(state.messagesByRun.size).toBe(0);
       expect(state.currentAiMessage.size).toBe(0);
       expect(state.lastLlmRunId.size).toBe(0);
-      expect(state.toolStartTimes.size).toBe(0);
       expect(proto.messages).toHaveLength(1);
     });
 

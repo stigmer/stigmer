@@ -14,7 +14,7 @@
  * - Built-in general-purpose replaces deepagents' auto-injected one (which carries
  *   no approval gate — see deepagents-profiles.ts for the suppression half)
  * - Sub-agent backends are shell-capable outside plan mode (issue #248), mirroring
- *   the parent's backend selection in setup.ts
+ *   the parent's backend selection in turn-setup.ts
  * - Sub-agent graphs carry the parent's filesystem permissions explicitly
  *   (issue #255): pre-built CompiledSubAgents never inherit them, so plan
  *   mode's deny-all-writes rule is baked into each graph at compile time
@@ -31,20 +31,16 @@ import type { BaseChatModel } from "@langchain/core/language_models/chat_models"
 import type { SubAgent, McpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 
 import type { WorkspaceBackend } from "../../shared/workspace/types.js";
-import type { StigmerClient } from "../../client/stigmer-client.js";
 import type { ApprovalGateConfig } from "../../middleware/approval-gate.js";
 import { createCasCaptureBackend } from "./cas-capture-backend.js";
 import type { CasCaptureObserver } from "./cas-capture-observer.js";
-import type { CostCapMiddleware, StigmerMiddleware } from "../../middleware/index.js";
+import type { CostAdvisoryMiddleware, StigmerMiddleware } from "../../middleware/index.js";
 import { createThinkTool, createWebFetchTool, type GuardPosture } from "../../tools/index.js";
 import { buildSubAgentMiddleware } from "./subagent-wiring.js";
 import { SubAgentGate } from "../../shared/subagent-gate.js";
 import { isModelRegistered } from "../../shared/model-registry.js";
-import {
-  fetchSkillsByRefs,
-  mountSkills,
-  generatePromptSection,
-} from "../../shared/skill-writer.js";
+import type { SkillMetadata } from "../../shared/skill-resolver.js";
+import { renderSkillsSection } from "./prompt-builder.js";
 
 // =========================================================================
 // Built-in subagent types and prompts
@@ -141,7 +137,14 @@ export interface SubagentTransformOptions {
   readonly parentMcpTools: readonly StructuredTool[];
   readonly parentMcpServerToolMap: ReadonlyMap<string, readonly StructuredTool[]>;
   readonly parentMcpUsages: readonly McpServerUsage[];
-  readonly skillClient: StigmerClient;
+  /**
+   * Each sub-agent's mounted skills, keyed by the sub-agent's name — the
+   * runtime's `TurnSkills.bySubAgent` (resolved and mounted by its skills
+   * phase, S3 M1 Q-S3-5). A sub-agent with no entry renders no skills
+   * section. Until S3 M2a this module fetched and mounted them itself with
+   * a control-plane client; the compile step is client-free now.
+   */
+  readonly skills: ReadonlyMap<string, readonly SkillMetadata[]>;
   readonly workspaceBackend: WorkspaceBackend;
   /**
    * The parent's approval-gate config, inherited verbatim so a mutating tool
@@ -162,11 +165,11 @@ export interface SubagentTransformOptions {
   readonly parentHasNativeThinking: boolean;
   /**
    * URL-guard posture for the native `web_fetch` tool, inherited from the
-   * parent (resolveGuardPosture(config.mode) in setup.ts) so a sub-agent
+   * parent (resolveGuardPosture(config.mode) in turn-setup.ts) so a sub-agent
    * fetch is bounded exactly like a parent fetch.
    */
   readonly webFetchPosture: GuardPosture;
-  readonly costCap?: CostCapMiddleware;
+  readonly costAdvisory?: CostAdvisoryMiddleware;
   /**
    * Builds a configured chat-model instance for a given model name. When
    * provided, sub-agents are compiled with the same proxy-aware model client
@@ -184,7 +187,7 @@ export interface SubagentTransformOptions {
   readonly shellEnv?: Record<string, string>;
   /**
    * Filesystem permission rules baked into each compiled sub-agent graph,
-   * inherited from the parent's rules in setup.ts (plan mode's deny-all-writes
+   * inherited from the parent's rules in turn-setup.ts (plan mode's deny-all-writes
    * today). Required because deepagents' parent-permission inheritance covers
    * only spec-style sub-agents — pre-built CompiledSubAgents bypass it, so
    * without this a plan-mode sub-agent could still write (issue #255).
@@ -321,7 +324,7 @@ export async function transformSingleSubagent(
   }
 
   // web_fetch is unconditional — unlike think, it is a capability, not a
-  // reasoning aid, and the parent always has it (setup.ts Step 11). A
+  // reasoning aid, and the parent always has it (turn-setup.ts `buildEngine`). A
   // sub-agent silently lacking web access the parent has would recreate the
   // harness-parity gap of issue #214 one level down.
   tools.push(createWebFetchTool({ posture: opts.webFetchPosture }) as unknown as StructuredTool);
@@ -415,64 +418,38 @@ export function filterMcpToolsForSubagent(
 // =========================================================================
 
 /**
- * Collect all unique skill refs across all subagents for batch fetching.
- *
- * Deduplicates by slug to minimize gRPC calls. Returns an array of refs
- * and the mapping from slug to original refs for distribution.
- */
-export function collectAllSkillRefs(
-  subAgents: readonly SubAgent[],
-): { slug: string; ref: unknown }[] {
-  const seen = new Set<string>();
-  const unique: { slug: string; ref: unknown }[] = [];
-
-  for (const sa of subAgents) {
-    for (const ref of sa.skillRefs) {
-      const slug = (ref as { slug?: string }).slug;
-      if (slug && !seen.has(slug)) {
-        seen.add(slug);
-        unique.push({ slug, ref });
-      }
-    }
-  }
-
-  return unique;
-}
-
-/**
- * Resolve skills for a single subagent and return the prompt section.
- *
- * Looks up each of the subagent's skill_refs in the pre-fetched skills
- * collection and generates a prompt section containing activation
- * instructions and file paths.
- *
- * Returns empty string if no skills match or if the subagent has no skill_refs.
+ * The `## Skills` section of one sub-agent's system prompt, from the skills
+ * the runtime mounted for it. Empty when it has none.
  */
 export function resolveSubagentSkillPrompt(
   subAgent: SubAgent,
-  skillsBySlug: ReadonlyMap<string, { skill: unknown; path: string }>,
+  skills: ReadonlyMap<string, readonly SkillMetadata[]>,
 ): string {
-  if (subAgent.skillRefs.length === 0) return "";
+  return renderSkillsSection(skills.get(subAgent.name) ?? []);
+}
 
-  const matchedSkills: unknown[] = [];
-  const matchedPaths = new Map<string, string>();
+/**
+ * Heuristic check for native extended thinking support. Models with thinking
+ * support don't need the explicit think tool. Read for the parent (does its
+ * graph carry `think`?) and inherited by every sub-agent that names no model
+ * of its own. Moved from `setup.ts` at S3 M2a: the compile step is where it
+ * is consumed, and the adapter's setup reads it from here too.
+ */
+export function modelHasNativeThinking(modelId: string): boolean {
+  const lower = modelId.toLowerCase();
 
-  for (const ref of subAgent.skillRefs) {
-    const slug = (ref as { slug?: string }).slug;
-    if (!slug) continue;
+  if (lower.includes("haiku")) return false;
+  if (lower.includes("gpt-4o-mini")) return false;
 
-    const entry = skillsBySlug.get(slug);
-    if (entry) {
-      matchedSkills.push(entry.skill);
-      const id = (entry.skill as { metadata?: { id?: string } }).metadata?.id;
-      if (id) matchedPaths.set(id, entry.path);
-    }
+  if (lower.includes("claude") && (
+    lower.includes("sonnet") || lower.includes("opus")
+  )) return true;
+
+  if (lower.includes("o1") || lower.includes("o3") || lower.includes("o4")) {
+    return true;
   }
 
-  if (matchedSkills.length === 0) return "";
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return generatePromptSection(matchedSkills as any[], matchedPaths);
+  return false;
 }
 
 // =========================================================================
@@ -481,7 +458,7 @@ export function resolveSubagentSkillPrompt(
 
 /**
  * Select a sub-agent's deepagents backend, mirroring the parent's selection in
- * setup.ts along two independent axes:
+ * turn-setup.ts along two independent axes:
  *
  * - CAS observation (capture mode): when a shared observer is supplied, the
  *   backend records pre-turn bytes of CAS-owned paths so the sub-agent's
@@ -535,7 +512,7 @@ async function buildSubagentBackend(opts: {
 export async function compileSubagents(
   transformed: readonly TransformedSubagent[],
   opts: {
-    readonly costCap?: CostCapMiddleware;
+    readonly costAdvisory?: CostAdvisoryMiddleware;
     readonly approvalGate?: ApprovalGateConfig | null;
     readonly parentModelName: string;
     readonly workspaceRootDir: string;
@@ -562,7 +539,7 @@ export async function compileSubagents(
       // (issue #754): every graph speaks the virtual dialect, so every graph
       // carries the repair seam — matching the parent's composition.
       const middleware = buildSubAgentMiddleware({
-        costCap: opts.costCap,
+        costAdvisory: opts.costAdvisory,
         approvalGate: opts.approvalGate,
         captureIgnored: !!opts.casObserver,
         pathNormalization: { rootDir: opts.workspaceRootDir },
@@ -623,7 +600,7 @@ export async function compileSubagents(
 /**
  * Transform proto SubAgents and compile into CompiledSubAgent instances.
  *
- * This is the main entry point called from setup.ts. It orchestrates:
+ * This is the main entry point called from turn-setup.ts. It orchestrates:
  * 1. Built-in subagent creation (explore, shell, general-purpose)
  * 2. Per-subagent transformation (proto → TransformedSubagent)
  * 3. MCP tool filtering per subagent
@@ -640,14 +617,14 @@ export async function transformAndCompileSubagents(
     parentMcpTools,
     parentMcpServerToolMap,
     parentMcpUsages,
-    skillClient,
+    skills,
     workspaceBackend,
     approvalGate,
     casObserver,
     parentModelName,
     parentHasNativeThinking,
     webFetchPosture,
-    costCap,
+    costAdvisory,
     modelFactory,
     shellEnv,
     permissions,
@@ -668,42 +645,6 @@ export async function transformAndCompileSubagents(
     parentMcpTools,
     webFetchPosture,
   );
-
-  // Step 1b: Batch fetch all skills referenced by subagents
-  const allSkillRefs = collectAllSkillRefs(subAgents);
-  const skillsBySlug = new Map<string, { skill: unknown; path: string }>();
-
-  if (allSkillRefs.length > 0) {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const refs = allSkillRefs.map((r) => r.ref) as any[];
-      const skills = await fetchSkillsByRefs(skillClient, refs);
-
-      if (skills.length > 0) {
-        // Runs after the parent's setup step 7b mounted its skills, so any
-        // skill shared by parent and sub-agent is a cache hit here — the
-        // hash-keyed marker turns the old double download into a no-op.
-        // platformDir is an invariant: provisionWorkspace threads
-        // ensurePlatformDir into every backend it constructs.
-        const { paths: skillPaths } = await mountSkills(
-          skillClient, skills, workspaceBackend.platformDir!,
-        );
-
-        for (const skill of skills) {
-          const slug = (skill as { metadata?: { slug?: string } }).metadata?.slug;
-          const id = (skill as { metadata?: { id?: string } }).metadata?.id;
-          if (slug && id) {
-            skillsBySlug.set(slug, { skill, path: skillPaths.get(id) ?? "" });
-          }
-        }
-        console.log(
-          `[subagent-transformer] Fetched ${skills.length} skill(s) for subagents`,
-        );
-      }
-    } catch (err) {
-      console.error(`[subagent-transformer] Failed to fetch skills for subagents: ${err}`);
-    }
-  }
 
   // Step 2: Transform proto subagents
   const transformed: TransformedSubagent[] = [];
@@ -735,7 +676,7 @@ export async function transformAndCompileSubagents(
         );
 
         // Resolve skills prompt section for this subagent
-        const skillsSection = resolveSubagentSkillPrompt(subAgent, skillsBySlug);
+        const skillsSection = resolveSubagentSkillPrompt(subAgent, skills);
         const enhancedPrompt = skillsSection
           ? result.systemPrompt.replace(
               RESPONSE_RULES,
@@ -770,7 +711,7 @@ export async function transformAndCompileSubagents(
 
   // Step 4: Compile all subagents
   const compiled = await compileSubagents(allSpecs, {
-    costCap,
+    costAdvisory,
     approvalGate,
     parentModelName,
     workspaceRootDir: workspaceBackend.rootDir,

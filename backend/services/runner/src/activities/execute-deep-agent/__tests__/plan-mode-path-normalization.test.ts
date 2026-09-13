@@ -14,7 +14,7 @@
  * the workspace — an out-of-root name is simply nonexistent, and the
  * `.stigmer` symlink keeps platform-dir reads addressable in-root.
  *
- * The graph here is composed exactly the way setup.ts composes the parent:
+ * The graph here is composed exactly the way turn-setup.ts composes the parent:
  * the PRODUCTION buildMiddlewareStack (pathNormalization present on every
  * graph) + the CAS capture backend + the PRODUCTION buildPlanModePermissions
  * rules. These tests are also the empirical proof that langchain's
@@ -44,7 +44,7 @@ const OUTSIDE_CONTENT = "OUT_OF_ROOT_SECRET_TOKEN: must never cross the boundary
 const PLATFORM_CONTENT = "PLATFORM_SKILL_TOKEN: reached through the .stigmer symlink";
 
 /**
- * Build a plan-mode parent graph the way setup.ts does: the production
+ * Build a plan-mode parent graph the way turn-setup.ts does: the production
  * middleware stack with pathNormalization set (derived, like the graph's
  * permissions, from the plan-mode rules), a filesystem-only CAS capture
  * backend (no shellEnv — plan mode clears it), and the production

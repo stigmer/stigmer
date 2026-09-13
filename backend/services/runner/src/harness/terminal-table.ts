@@ -8,8 +8,8 @@
  * contract of the runner (the hermetic goldens pin every string below byte
  * for byte, `activities/execute-cursor/__tests__/hermetic/`), and a table a
  * reader can scan is how that contract stays reviewable. The native
- * harness's `execute-deep-agent/streaming-terminal.ts` keeps one function
- * per arm; S3 aligns the two (P-1's copy alignment) with both in view.
+ * harness once kept one function per arm (`streaming-terminal.ts`, retired
+ * at S3 M2b); since S3 M2a both harnesses' turns end through this one table.
  *
  * The throw-vs-return rule, unchanged from the orchestrator it replaces:
  *  - RETURN when a Temporal retry would only repeat the outcome — a stall
@@ -36,6 +36,7 @@ import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexec
 import { ExecutionPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
 import { COST_LIMIT_USER_COPY, formatCostLimitError } from "../shared/cost-guard.js";
+import { TOOL_CALL_LIMIT_USER_COPY, formatToolCallLimitError } from "../shared/tool-rounds.js";
 import { formatStallFailure, type StallTimeoutError } from "../shared/stall-watchdog.js";
 import { utcTimestamp } from "../shared/status.js";
 import type { WorkspaceLockTimeoutError } from "../shared/workspace/workspace-lock.js";
@@ -79,10 +80,6 @@ export const TERMINAL_COPY = {
   platformStop: {
     row: "Execution stopped by the platform.",
   },
-  rejectedByUser: {
-    error: "Execution rejected by user",
-    row: "Execution was rejected by the user during tool approval.",
-  },
   fileReview: {
     applyFailedPrefix: "Some approved file changes could not be applied because the file changed after review: ",
     discardedPrefix: "Some proposed file changes were discarded by the user and were not applied: ",
@@ -110,15 +107,32 @@ export function stallArm(error: StallTimeoutError): TerminalArm {
 /**
  * The cost cap stopped the turn. TERMINATED, not FAILED: the platform
  * deliberately stopped the run, work is checkpointed, and the conversation
- * continues on the next message (the recursion-limit precedent in
- * `execute-deep-agent/streaming-terminal.ts`). RETURN: a retry would burn
- * the same budget again.
+ * continues on the next message (the recursion-limit precedent,
+ * {@link toolCallLimitArm}). RETURN: a retry would burn the same budget
+ * again.
  */
 export function costCapArm(maxCostUsd: number, estimatedCostUsd: number): TerminalArm {
   return {
     phase: ExecutionPhase.EXECUTION_TERMINATED,
     error: formatCostLimitError(maxCostUsd, estimatedCostUsd),
     rows: [COST_LIMIT_USER_COPY],
+    completes: true,
+    disposition: RETURN,
+  };
+}
+
+/**
+ * The engine exhausted its tool-round budget (`max_tool_rounds`). TERMINATED,
+ * not FAILED, for the cost cap's reason: the platform deliberately stopped
+ * the run, work is checkpointed, and the conversation continues on the next
+ * message. RETURN: a retry would spend the same budget again. The error's
+ * prefix is a cross-repo contract (`shared/tool-rounds.ts`).
+ */
+export function toolCallLimitArm(): TerminalArm {
+  return {
+    phase: ExecutionPhase.EXECUTION_TERMINATED,
+    error: formatToolCallLimitError(),
+    rows: [TOOL_CALL_LIMIT_USER_COPY],
     completes: true,
     disposition: RETURN,
   };
@@ -156,6 +170,44 @@ export function infrastructureCancelArm(): TerminalArm {
   };
 }
 
+/**
+ * The engine proposed at least one gated side effect and stopped: the
+ * WAITING_APPROVAL rows are already on the transcript. Not an error, not
+ * complete, no copy; RETURN to the workflow, which waits for the approval
+ * signal and reinvokes with the decisions. Until S3 M4 this was an inline
+ * phase flip in `run-turn.ts`; it is an arm because every way an activity
+ * ends belongs in this one table.
+ */
+export function awaitingApprovalArm(): TerminalArm {
+  return { phase: ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL, rows: [], completes: false, disposition: RETURN };
+}
+
+/**
+ * The engine's turn left a reviewable change on the tree (the runtime
+ * captured a candidate, `harness/capture.ts`): the same WAITING pause as an
+ * approval, because a file review is the other thing the workflow waits on
+ * and reinvokes for. A review WINS over the terminal the engine reported:
+ * edits on the user's disk must reach review whatever else happened, and a
+ * FAILED or TERMINATED execution never reinvokes, so the terminal is
+ * DEFERRED — its ROWS ride the transcript now (the failure copy, the
+ * tool-call-limit copy; an `engine`-surface failure has none), never its
+ * phase, its `error` or its completion stamp, and the resume's reconcile
+ * settles the execution COMPLETED as every pure file-review resume does
+ * (`fileReviewResolvedArm`). Until S3 M4 only the Cursor harness behaved so,
+ * and only because its boundary ran before it consulted its engine's
+ * result; the deep-agent wrote FAILED with the edits applied and unreviewed.
+ * Stated cost: the cloud's `status.error` prefix match for a tool-call limit
+ * does not fire when that limit left edits (Q-M4-2).
+ */
+export function awaitingReviewArm(deferred?: TerminalArm): TerminalArm {
+  return {
+    phase: ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+    rows: deferred?.rows ?? [],
+    completes: false,
+    disposition: RETURN,
+  };
+}
+
 /** The control plane answered STOP. A clean COMPLETED early exit. */
 export function platformStopArm(): TerminalArm {
   return {
@@ -172,17 +224,6 @@ export function workspaceLockTimeoutArm(error: WorkspaceLockTimeoutError): Termi
     phase: ExecutionPhase.EXECUTION_FAILED,
     error: error.message,
     rows: [`Execution failed: ${error.message}`],
-    completes: true,
-    disposition: RETURN,
-  };
-}
-
-/** An adjudicated irreversible action (shell / MCP) was REJECTed. */
-export function rejectedByUserArm(): TerminalArm {
-  return {
-    phase: ExecutionPhase.EXECUTION_FAILED,
-    error: TERMINAL_COPY.rejectedByUser.error,
-    rows: [TERMINAL_COPY.rejectedByUser.row],
     completes: true,
     disposition: RETURN,
   };

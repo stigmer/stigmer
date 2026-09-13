@@ -1,16 +1,16 @@
 /**
- * Shared utilities for both v2 StatusBuilder and V3StatusBuilder.
+ * What the transcript builders share: the tool-result serialization and the
+ * approval-provenance stamp that `V3StatusBuilder` (the root transcript) and
+ * `SubAgentTracker` (the sub-agent transcripts) both perform at the moment
+ * they classify a tool call, so the two never drift on either rule.
  *
- * Extracted from status-builder.ts so both builders share identical
- * token accumulation, tool result parsing, and approval arg sanitization
- * without duplication.
+ * Until S3 M2b this module also carried the v2 `StatusBuilder`'s share — the
+ * `UsageAccumulator` that summed `streamingUsage` (the turn runtime's
+ * accountant owns the field now, `harness/usage-accumulator.ts`) and the v2
+ * `on_tool_end` result extractor — both retired with the v2 stream (Q-S3-1).
  */
 
-import { create } from "@bufbuild/protobuf";
-import { StreamingUsageSummarySchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
-import type { StreamingUsageSummary } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { utcTimestamp } from "../../shared/status.js";
 import {
   POLICY_ENGINE_VERSION,
   resolveApprovalProvenance,
@@ -18,62 +18,6 @@ import {
   type MergedToolPolicy,
 } from "../../shared/approval-policy.js";
 import type { ToolApprovalCategory } from "../../shared/tool-kind.js";
-
-// ── Usage Accumulator ──────────────────────────────────────────────
-
-export interface UsageSnapshot {
-  inputTokens: bigint;
-  outputTokens: bigint;
-  cacheReadTokens: bigint;
-  cacheWriteTokens: bigint;
-  totalTokens: bigint;
-  turnCount: number;
-  observedAt: string;
-}
-
-export class UsageAccumulator {
-  private inputTokens = 0n;
-  private outputTokens = 0n;
-  private cacheReadTokens = 0n;
-  private cacheWriteTokens = 0n;
-  private turnCount = 0;
-  private lastObservedAt = "";
-
-  accumulate(meta: Record<string, unknown>): void {
-    this.inputTokens += toBigInt(meta.input_tokens);
-    this.outputTokens += toBigInt(meta.output_tokens);
-    this.cacheReadTokens += toBigInt(meta.cache_read_input_tokens);
-    this.cacheWriteTokens += toBigInt(meta.cache_creation_input_tokens);
-    this.turnCount++;
-    this.lastObservedAt = utcTimestamp();
-  }
-
-  snapshot(): UsageSnapshot {
-    return {
-      inputTokens: this.inputTokens,
-      outputTokens: this.outputTokens,
-      cacheReadTokens: this.cacheReadTokens,
-      cacheWriteTokens: this.cacheWriteTokens,
-      totalTokens: this.inputTokens + this.outputTokens +
-        this.cacheReadTokens + this.cacheWriteTokens,
-      turnCount: this.turnCount,
-      observedAt: this.lastObservedAt,
-    };
-  }
-
-  /** Create a protobuf StreamingUsageSummary from the current snapshot. */
-  toProto(): StreamingUsageSummary {
-    return create(StreamingUsageSummarySchema, this.snapshot());
-  }
-}
-
-// ── BigInt Coercion ────────────────────────────────────────────────
-
-export function toBigInt(value: unknown): bigint {
-  if (typeof value === "bigint") return value;
-  if (typeof value === "number" && Number.isFinite(value)) return BigInt(Math.floor(value));
-  return 0n;
-}
 
 // ── Tool Result Extraction ─────────────────────────────────────────
 
@@ -97,20 +41,6 @@ function serializeToolContent(content: unknown): string | undefined {
   if (typeof content === "string") return content;
   if (Array.isArray(content)) return JSON.stringify(content);
   return undefined;
-}
-
-export function extractToolResult(data: Record<string, unknown>): string {
-  const output = data.output;
-  if (typeof output === "string") return output;
-  if (typeof output === "object" && output !== null) {
-    const fromContent = serializeToolContent((output as Record<string, unknown>).content);
-    if (fromContent !== undefined) return fromContent;
-  }
-  try {
-    return JSON.stringify(output ?? data);
-  } catch {
-    return "[serialization error]";
-  }
 }
 
 /**
@@ -140,10 +70,8 @@ export function extractToolResultV3(output: unknown): string {
 // ── Authorization Provenance ───────────────────────────────────────
 
 /**
- * The policy inputs the StatusBuilders need to attribute a tool call's approval
- * provenance. The full {@link ApprovalPolicyProvider} (status-builder.ts) is
- * structurally this — defined here so the shared stamper has no import cycle back
- * into the builders.
+ * The policy inputs the builders need to decide whether a tool call waits for
+ * approval and to attribute its authorization provenance.
  */
 export interface ApprovalProvenanceInputs {
   readonly policies: ReadonlyMap<string, MergedToolPolicy>;
@@ -166,6 +94,15 @@ export interface ApprovalProvenanceInputs {
    */
   readonly unattended?: boolean;
 }
+
+/**
+ * The name the builder's API uses for the same shape (`setApprovalProvider`):
+ * the adapter hands the gate's policy state in under this name. One shape, two
+ * names on purpose — the provider is what a caller SUPPLIES, the inputs are
+ * what the stamper READS; until S3 M2b the v2 builder declared the provider as
+ * an empty `interface extends`, a second type for one shape.
+ */
+export type ApprovalPolicyProvider = ApprovalProvenanceInputs;
 
 /** Shared empty set so a provider without leases allocates nothing per call. */
 const NO_LEASED_CATEGORIES: ReadonlySet<ToolApprovalCategory> = new Set();
@@ -200,6 +137,6 @@ export function stampApprovalProvenance(
 // ── Approval Args Sanitization ─────────────────────────────────────
 
 // Relocated to src/shared/args-preview.ts so both harnesses share one home for
-// arg sanitization. Re-exported here so the native importers (status-builder,
-// v3-status-builder, approval-file-change) keep their existing import path.
+// arg sanitization. Re-exported here so the native importers (v3-status-builder,
+// approval-file-change) keep their existing import path.
 export { sanitizeArgsPreview } from "../../shared/args-preview.js";

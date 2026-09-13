@@ -59,19 +59,23 @@ import {
   getShutdownSignalForQueue,
   type TurnInterruption,
 } from "../shared/worker-shutdown.js";
+import { terminalizeNonExecutingDecisions } from "./approval-decisions.js";
+import { captureCandidate, pinCaptureBaseline, type TurnCapture } from "./capture.js";
 import { PersistChokepoint } from "./persist-chokepoint.js";
 import { StopController } from "./stop-controller.js";
 import {
   applyTerminalArm,
+  awaitingApprovalArm,
+  awaitingReviewArm,
   costCapArm,
   failedArm,
   fileReviewResolvedArm,
   infrastructureCancelArm,
   pauseArm,
   platformStopArm,
-  rejectedByUserArm,
   stallArm,
   TERMINAL_COPY,
+  toolCallLimitArm,
   unexpectedErrorArm,
   workerShutdownArm,
   workspaceLockTimeoutArm,
@@ -161,6 +165,8 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
   const frame: TurnFrame = { primaryDir: undefined, releaseWorkspaceLock: undefined, writeback: null };
   const stop = new StopController();
   let usage: UsageAccumulator | undefined;
+  /** The turn's capture once the baseline is pinned (capture mode only); the chokepoint reads its progress at every write. */
+  let capture: TurnCapture | undefined;
   let heartbeatPhase = "setup";
   let lastActivityDetail: string | undefined;
   let watchdog: StallWatchdog | undefined;
@@ -175,6 +181,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
     status,
     offload: artifactStorage ? { artifactStorage, executionId } : undefined,
     usage: () => usage,
+    progress: () => capture?.progress,
     heartbeat,
     onPlatformStop: () => stop.stop({ kind: "platform-stop" }),
   });
@@ -231,9 +238,6 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
         console.warn(`${activityName} workspace lock timeout: execution=${executionId}`);
         return outcome;
       }
-      case "rejected-by-user":
-        // A reject of an irreversible action (shell/MCP) fails the execution.
-        return settleWith(rejectedByUserArm());
       case "file-review-resolved": {
         // Push the APPROVED tree — reconcile snapped rejected files back to
         // baseline, so what finalize commits is exactly what the user kept.
@@ -248,7 +252,10 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
           `${activityName} file-review resume short-circuit: execution=${executionId}, ` +
             `failed=${settlement.failed}, discarded=${settlement.discardedPaths.length}`,
         );
-        return { kind: "return", value: slimStatus(status) };
+        // The execution completes here, so its answer rides the slim as it
+        // does from `completeTurn`: the seed carried the transcript and any
+        // structured output the paused turn resolved (Q-M4-8).
+        return { kind: "return", value: completionSlim(lastAssistantText()) };
       }
       default: {
         const exhaustive: never = settlement;
@@ -312,32 +319,81 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
         await client.updateSession(turn.session);
         console.log(`Stored ${harnessStateId} as harness_state_id on session ${turn.sessionId}`);
       },
+      bindCasObservations: (read) => {
+        // Outside capture mode there is no capture to feed; the bind is a
+        // no-op, as the contract promises a harness that always binds.
+        if (capture) capture.casObservations = read;
+      },
     };
+
+    // The capture baseline: the runtime's LAST act before the engine, after
+    // every write of its own into the tree (the reconcile, the mounts), so
+    // anything on the tree after this point is the turn's change, whoever
+    // wrote it (`capture.ts`). Absent outside capture mode.
+    capture = await pinCaptureBaseline({
+      status,
+      executionId,
+      workspace: turn.workspace,
+      fileReview: adapter.capabilities.fileReview,
+      artifactStorage: turn.artifactStorage,
+    });
 
     heartbeatPhase = "harness";
     const outcome = await adapter.runTurn(turn, sink);
     armedWatchdog.stop();
     heartbeatPhase = "epilogue";
 
+    // The capture boundary, ONCE, over whatever the whole turn left on the
+    // tree — unless a stop fired mid-turn (`interrupted`: the tree may be
+    // mid-edit and the pause or drain reinvokes this same turn). Before the
+    // decisions settle below, so the stamp reads the rows as the engine
+    // left them. A pending review is the outcome table's second WAITING
+    // cause (`awaitingReviewArm`).
+    const reviewPending =
+      capture !== undefined && outcome.kind !== "interrupted"
+        ? await captureCandidate({
+            status,
+            executionId,
+            workspace: turn.workspace,
+            fileReview: adapter.capabilities.fileReview,
+            artifactStorage: turn.artifactStorage,
+            capture,
+            globalBypass: turn.mcp.leases.global,
+          })
+        : false;
+
+    // The rows whose decision never runs the tool (SKIP, REJECT) are settled
+    // by the runtime, once, now that the adapter has had its look at them and
+    // before any persist of the outcome: no engine event flips such a row, so
+    // without this it would persist WAITING on a finished execution. Every
+    // outcome passes through here (`approval-decisions.ts`).
+    terminalizeNonExecutingDecisions(status);
+
     switch (outcome.kind) {
       case "completed":
-        return completeTurn(turn, ExecutionPhase.EXECUTION_COMPLETED);
+        return reviewPending ? pauseCompletedTurnForReview(turn) : completeTurn(turn, ExecutionPhase.EXECUTION_COMPLETED);
       case "cancelled":
-        return completeTurn(turn, ExecutionPhase.EXECUTION_CANCELLED);
-      case "awaiting_approval": {
-        // Pause for review exactly like the native harness: the adapter put
-        // the WAITING rows on the transcript; flip the phase, persist, and
-        // RETURN to the workflow, which waits for the approval signal and
-        // reinvokes.
-        status.phase = ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL;
-        await chokepoint.write();
-        return { kind: "return", value: slimStatus(status) };
+        return reviewPending ? settleWith(awaitingReviewArm()) : completeTurn(turn, ExecutionPhase.EXECUTION_CANCELLED);
+      case "awaiting_approval":
+        // The adapter put the WAITING rows on the transcript (and a captured
+        // candidate, if any, rides the same write); the arm flips the phase,
+        // persists once, and RETURNS to the workflow, which waits for the
+        // approval or file-review signal and reinvokes.
+        return settleWith(awaitingApprovalArm());
+      case "tool_call_limit": {
+        // A review wins over the terminal (Q-M4-2): the limit's copy rides
+        // the transcript and the reinvocation's reconcile completes the turn.
+        const settledLimit = await settleWith(reviewPending ? awaitingReviewArm(toolCallLimitArm()) : toolCallLimitArm());
+        console.log(`${activityName} terminated (tool-call limit): execution=${executionId}${reviewPending ? ", review pending" : ""}`);
+        return settledLimit;
       }
       case "failed": {
-        const settledFailure = await settleWith(failedArm(outcome.message, outcome.surface));
+        const arm = failedArm(outcome.message, outcome.surface);
+        const settledFailure = await settleWith(reviewPending ? awaitingReviewArm(arm) : arm);
         console.error(
           `${activityName} failed (${outcome.surface}): execution=${executionId}, error=${outcome.message}` +
-            (outcome.cause instanceof Error ? `, cause=${outcome.cause.message}` : ""),
+            (outcome.cause instanceof Error ? `, cause=${outcome.cause.message}` : "") +
+            (reviewPending ? " — edits on the tree; review pending" : ""),
         );
         return settledFailure;
       }
@@ -401,6 +457,19 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
   }
 
   /**
+   * The engine finished AND left a reviewable change: the structured output
+   * is resolved now, before the WAITING persist, so the resume that
+   * reconciles the review completes with it (Q-M4-8 closes Q-M2a-5); then
+   * the review pause. Nothing else of the completion epilogue runs here —
+   * the plan artifact and the write-back belong to the settlement that
+   * actually completes the execution.
+   */
+  async function pauseCompletedTurnForReview(turn: TurnInput): Promise<Settled> {
+    await resolveStructuredOutput(turn, lastAssistantText());
+    return settleWith(awaitingReviewArm());
+  }
+
+  /**
    * A turn the engine finished (COMPLETED) or ended cancelled on its own
    * (CANCELLED): the final text from the last AI row; the structured output
    * the execution asked for, extracted from that text unless the adapter
@@ -413,18 +482,11 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
     status.completedAt = utcTimestamp();
     status.phase = phase;
 
-    let structuredOutput: unknown = status.structuredOutput;
     let finalText: string | undefined;
 
     if (phase === ExecutionPhase.EXECUTION_COMPLETED) {
-      finalText = [...status.messages].reverse().find((m) => m.type === MessageType.MESSAGE_AI)?.content;
-
-      if (structuredOutput === undefined && turn.structuredOutputSchema && finalText) {
-        structuredOutput = await extractStructuredOutputFromText(turn, finalText);
-        if (structuredOutput !== undefined) {
-          status.structuredOutput = structuredOutput as JsonObject;
-        }
-      }
+      finalText = lastAssistantText();
+      await resolveStructuredOutput(turn, finalText);
 
       // Plan mode: publish the final plan message as a plan artifact (named
       // from the plan's title); the only artifact path a harness without an
@@ -452,14 +514,43 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
     await chokepoint.write();
     console.log(
       `${activityName} completed: execution=${executionId}, phase=${ExecutionPhase[status.phase]}, ` +
-        `hasStructuredOutput=${structuredOutput !== undefined}` +
+        `hasStructuredOutput=${status.structuredOutput !== undefined}` +
         (status.error ? `, error=${status.error}` : ""),
     );
+    return { kind: "return", value: completionSlim(finalText) };
+  }
 
+  /** The last assistant text on the transcript: the turn's `final_text`. */
+  function lastAssistantText(): string | undefined {
+    return [...status.messages].reverse().find((m) => m.type === MessageType.MESSAGE_AI)?.content;
+  }
+
+  /**
+   * The structured output the execution asked for, folded onto the status
+   * unless the adapter already did (the deep-agent's `structuredResponse`):
+   * extracted from the final text through the tiers below. Runs where the
+   * engine has FINISHED speaking — a completed turn, and a completed turn
+   * the runtime pauses for file review (Q-M4-8: the pure-reconcile
+   * COMPLETED then carries it, on every harness).
+   */
+  async function resolveStructuredOutput(turn: TurnInput, finalText: string | undefined): Promise<void> {
+    if (status.structuredOutput !== undefined || !turn.structuredOutputSchema || !finalText) return;
+    const extracted = await extractStructuredOutputFromText(turn, finalText);
+    if (extracted !== undefined) status.structuredOutput = extracted as JsonObject;
+  }
+
+  /**
+   * The slim return of a COMPLETED execution: the status the workflow reads,
+   * with `final_text` and `structured` beside it for the callers that consume
+   * an agent's answer as a value (`call-agent-orchestrator.ts`). One shape for
+   * the two ways an execution completes — the engine's own finish and the
+   * pure file-review resume.
+   */
+  function completionSlim(finalText: string | undefined): Record<string, unknown> {
     const slim = slimStatus(status) as Record<string, unknown>;
     if (finalText !== undefined) slim.final_text = finalText;
-    if (structuredOutput !== undefined) slim.structured = structuredOutput;
-    return { kind: "return", value: slim };
+    if (status.structuredOutput !== undefined) slim.structured = status.structuredOutput;
+    return slim;
   }
 
   /**

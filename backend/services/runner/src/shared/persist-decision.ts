@@ -1,10 +1,9 @@
 /**
  * Streaming persist decision for a harness turn.
  *
- * Harness-agnostic: the Cursor stream loop is today's only caller, the turn
- * runtime takes it over in S2 M3, and S3 retires the native twin below.
- *
- * Mirrors the native deep-agent harness (execute-deep-agent/streaming.ts):
+ * Harness-agnostic, and both adapters' stream loops read it
+ * (`execute-cursor/turn-stream.ts`, `execute-deep-agent/turn-stream.ts`; the
+ * native orchestrator's own copy of the rule retired with it at S3 M2b):
  * `shouldPersist = forceFlush || scheduler.shouldSendUpdate(eventCount)`.
  * Both harnesses thus share one cadence model — discrete state changes flush
  * immediately, high-frequency token deltas ride a bounded time cadence.

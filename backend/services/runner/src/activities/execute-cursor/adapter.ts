@@ -37,11 +37,13 @@
  * pins it, which is what lets the contract kit run this adapter outside any
  * activity context).
  *
- * The file-review boundary (`turn-boundary.ts`) runs whole inside `turn.ts`
- * for S2 (Q-S2-1): five of its six steps read the denial ledger, this
- * harness's deny-and-retry primitive. S3 lifts the capture into the runtime
- * with both harnesses' captures in view; `types.ts`'s "the file-review
- * boundary is the runtime's" becomes true then.
+ * The turn boundary (`turn-boundary.ts`) runs inside `turn.ts` and reads
+ * this harness's deny-and-retry evidence — the denial ledger — into WAITING
+ * rows and settled rows. The file-review capture is NOT here since S3 M4:
+ * the runtime pins the baseline before this adapter runs and captures the
+ * whole turn's tree after it returns (`harness/capture.ts`); what this
+ * adapter contributes is the hook sidecar it binds as the runtime's CAS
+ * observations (`turn-setup.ts` `installGate`).
  *
  * Extracted from `index.ts` `createCursorActivities` at S2 M3b; split from
  * the turn body at S2 M5. The seventeen hermetic goldens under

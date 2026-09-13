@@ -260,15 +260,17 @@ describe("buildApprovalState", () => {
 });
 
 describe("buildReinvocationPrompt", () => {
-  it("describes approved and skipped actions in human terms, not opaque ids", () => {
+  it("describes approved, skipped and rejected actions in human terms, not opaque ids", () => {
     const prompt = buildReinvocationPrompt(
       [
         pending({ toolCallId: "c1", toolName: "edit", message: "Write file: gated.txt" }),
         pending({ toolCallId: "c2", toolName: "shell", message: "Run command: rm -rf build" }),
+        pending({ toolCallId: "c3", toolName: "shell", message: "Run command: git push --force" }),
       ],
       new Map([
         ["c1", ApprovalAction.APPROVE],
         ["c2", ApprovalAction.SKIP],
+        ["c3", ApprovalAction.REJECT],
       ]),
     );
 
@@ -276,8 +278,11 @@ describe("buildReinvocationPrompt", () => {
     expect(prompt).toContain("Write file: gated.txt");
     expect(prompt).toContain("SKIPPED");
     expect(prompt).toContain("Run command: rm -rf build");
+    expect(prompt).toContain("REJECTED");
+    expect(prompt).toContain("Run command: git push --force");
     expect(prompt).not.toContain("c1");
     expect(prompt).not.toContain("c2");
+    expect(prompt).not.toContain("c3");
   });
 
   it("falls back to tool name + args preview when no message is set", () => {

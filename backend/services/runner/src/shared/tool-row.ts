@@ -63,6 +63,67 @@ export function stampFileEditRow(tc: ToolCall, changeSetId: string): void {
 }
 
 /**
+ * The turn-boundary pass over a transcript: stamp every file-edit row
+ * (category write/delete) that FLOWED this turn with the change set id, so
+ * the row stays visible in place as an observational record while
+ * `file_change_sets` remains the single decision surface (DD-24). Skips:
+ *
+ *  - already-stamped rows — the idempotency AND cross-turn guard: a resume
+ *    seeds prior turns' rows into this transcript, and re-stamping them with
+ *    this turn's id would mis-attribute them ({@link stampFileEditRow});
+ *  - legacy hidden rows (sessions persisted before stamping existed) — they
+ *    belong to an earlier turn's set;
+ *  - ids in `skipToolCallIds` — the sub-agent callers' pre-turn snapshot
+ *    ({@link collectSubAgentToolCallIds}), since sub-agent rows have neither
+ *    of the two shields above; top-level callers omit it;
+ *  - rows `flowed` refuses — the caller's evidence that a row did NOT flow
+ *    (the Cursor deny-gate's ledger tokens; a status rule). Omit to stamp
+ *    every write/delete row, the deep-agent posture where every such row flowed.
+ *
+ * One pass for every harness (S3 M4; until then each adapter carried a copy
+ * differing only in the `flowed` predicate).
+ */
+export function stampFlowedFileEditRows(
+  messages: readonly AgentMessage[],
+  changeSetId: string,
+  opts: {
+    readonly skipToolCallIds?: ReadonlySet<string>;
+    readonly flowed?: (tc: ToolCall) => boolean;
+  } = {},
+): void {
+  for (const msg of messages) {
+    for (const tc of msg.toolCalls) {
+      if (tc.fileChangeSetId) continue;
+      if (opts.skipToolCallIds?.has(tc.id)) continue;
+      if (isToolCallRowHidden(tc)) continue;
+      const category = toolApprovalCategory(tc.name);
+      if (category !== "write" && category !== "delete") continue;
+      if (opts.flowed && !opts.flowed(tc)) continue;
+      stampFileEditRow(tc, changeSetId);
+    }
+  }
+}
+
+/**
+ * The same pass over the turn's sub-agent transcripts. Sub-agent writes fold
+ * their files into the SAME parent turn set (shared git diff + one shared CAS
+ * observation, DD-19), so they carry the parent change set id and badge
+ * against the same set the parent's rows do. Scoped to this turn by
+ * `priorToolCallIds` (the sub-agent tool-call ids that existed before the
+ * turn's stream), because sub-agent rows lack the top-level pass's shields.
+ */
+export function stampFlowedSubAgentFileEditRows(
+  subAgents: readonly SubAgentExecution[],
+  changeSetId: string,
+  priorToolCallIds: ReadonlySet<string>,
+  flowed?: (tc: ToolCall) => boolean,
+): void {
+  for (const sa of subAgents) {
+    stampFlowedFileEditRows(sa.messages, changeSetId, { skipToolCallIds: priorToolCallIds, flowed });
+  }
+}
+
+/**
  * Withhold a file-mutating row's CONTENT while keeping its path visible: reduce
  * `args` to `{ path }` (or `undefined` when the path cannot be determined) and
  * clear `args_preview`. `result` and `status` are left untouched — a caller that

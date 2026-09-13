@@ -1,14 +1,19 @@
 /**
- * Side-effect triggers for v3 streaming: artifact publish and git writeback.
+ * The inline-publish trigger of the native stream: a v3 `tools` event carries
+ * the tool INPUT on `tool-started` and the OUTPUT on `tool-finished`, so the
+ * two are correlated by `tool_call_id` and a file-modifying tool's target
+ * path is published (`InlinePublisher`) once the call has finished — the
+ * artifact appears on the status mid-turn, not at the end.
  *
- * v3 `tool-finished` events do not carry input — unlike v2 `on_tool_end`.
- * A ToolInputCache correlates `tool-started` input with `tool-finished`
- * by `tool_call_id` so file paths can be extracted for publish/writeback.
+ * Until S3 M2b (Q-M1-1) the same correlation also fed the write-back
+ * coordinator's per-file commit (`onFileModified`); write-back is
+ * finalize-only now, the turn runtime's, so publishing is this trigger's one
+ * effect. The loop (`turn-stream.ts`) drains {@link pendingPublishPromises}
+ * in the settle.
  */
 
 import type { V3ProtocolEvent } from "./v3-event-recorder.js";
 import type { InlinePublisher } from "./inline-publisher.js";
-import type { WriteBackCoordinator } from "../../shared/workspace/writeback-coordinator.js";
 import { extractFilePath, isFileModifyingTool } from "../../shared/file-tools.js";
 
 interface CachedToolInput {
@@ -19,21 +24,15 @@ interface CachedToolInput {
 export class StreamingSideEffects {
   private readonly inputCache = new Map<string, CachedToolInput>();
   private readonly inlinePublisher: InlinePublisher | undefined;
-  private readonly writebackCoordinator: WriteBackCoordinator | undefined;
   readonly pendingPublishPromises: Promise<void>[] = [];
-  readonly pendingWritebackPromises: Promise<void>[] = [];
 
-  constructor(opts: {
-    inlinePublisher?: InlinePublisher;
-    writebackCoordinator?: WriteBackCoordinator;
-  }) {
+  constructor(opts: { inlinePublisher?: InlinePublisher }) {
     this.inlinePublisher = opts.inlinePublisher;
-    this.writebackCoordinator = opts.writebackCoordinator;
   }
 
   onProtocolEvent(event: V3ProtocolEvent): void {
     if (event.method !== "tools") return;
-    if (!this.inlinePublisher && !this.writebackCoordinator) return;
+    if (!this.inlinePublisher) return;
 
     const data = event.params.data as Record<string, unknown> | undefined;
     if (!data) return;
@@ -64,12 +63,7 @@ export class StreamingSideEffects {
       const filePath = extractFilePath(cached.input);
       if (!filePath) return;
 
-      if (this.inlinePublisher) {
-        this.pendingPublishPromises.push(this.inlinePublisher.publish(filePath));
-      }
-      if (this.writebackCoordinator) {
-        this.pendingWritebackPromises.push(this.writebackCoordinator.onFileModified(filePath));
-      }
+      this.pendingPublishPromises.push(this.inlinePublisher.publish(filePath));
     }
   }
 }

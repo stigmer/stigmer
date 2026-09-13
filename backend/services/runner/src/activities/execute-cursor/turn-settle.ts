@@ -4,10 +4,10 @@
  * In order: the post-stream finalize (transcript, enrichments, sub-agents,
  * the usage snapshot's carrier, the recorder flush, one persist so the UI
  * sees settled rows); the runtime's stop, if it fired, settled as
- * `interrupted` with nothing further; the turn boundary (`turn-boundary.ts`,
- * whole, Q-S2-1) that authors this turn's change set and overlays the hook's
- * denials as WAITING rows, ending `awaiting_approval` when it says so or
- * failing on an unattributed hook block (#205); `run.wait()` and the
+ * `interrupted` with nothing further; the turn boundary (`turn-boundary.ts`)
+ * that overlays the hook's denials as WAITING rows, ending `awaiting_approval`
+ * when a denial pauses or failing on an unattributed hook block (#205);
+ * `run.wait()` and the
  * classifier; the two recovery spines (a poisoned resumed handle, a
  * transport timeout on a created agent), each running the IDENTICAL stream,
  * finalize and boundary against a fresh agent at most once; the collapse of
@@ -15,9 +15,13 @@
  *
  * What this module never does: write a phase, a terminal copy or
  * `completedAt` — those are the runtime's (`harness/run-turn.ts`,
- * `terminal-table.ts`); the outcome carries what the runtime cannot read
- * from the status (`failed`'s message and surface, `cancelled`). It does
- * mutate `sink.status`'s transcript rows, which are this harness's to write.
+ * `terminal-table.ts`); capture the turn's file changes or decide whether a
+ * review is pending — the runtime's too (`harness/capture.ts`, once over the
+ * whole turn after this settle returns, so a recovery's edits reach review
+ * without the boundary being re-entered for them; S3 M4). The outcome carries
+ * what the runtime cannot read from the status (`failed`'s message and
+ * surface, `cancelled`). It does mutate `sink.status`'s transcript rows,
+ * which are this harness's to write.
  *
  * Moved from `index.ts` `executeCursorInner` phases 11 to 13 at S2 M3b; the
  * bodies are the orchestrator's, with the runtime's arms taken out.
@@ -133,15 +137,15 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
   }
 
   // Everything at an index >= this was produced by THIS turn's stream — the
-  // positional turn boundary the approved-command provenance (DD-28) scopes
-  // its qualification to. Snapshotted before the accumulator can append.
+  // positional scope the boundary's #205 attribution and #965 settle read.
+  // Snapshotted before the accumulator can append.
   const turnStartMessageIndex = status.messages.length;
 
   const accumulator = new MessageAccumulator(status.messages, {
     mergedPolicies: mcp.policies,
     provenance: { globalBypass: mcp.leases.global, leasedCategories: mcp.leases.categories },
     workspaceRoot: workspace.primaryDir,
-    seededSubAgents: rows.seededSubAgents,
+    subAgentExecutions: status.subAgentExecutions,
   });
   // Shared cadence with the native harness: discrete state changes force a
   // flush; high-frequency token deltas ride this scheduler's time cadence
@@ -156,9 +160,6 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
     todoTracker,
     eventRecorder,
     scheduler,
-    progressSubstrate: gate.progressSubstrate,
-    progressState: gate.progressState,
-    changeSetId: workspace.changeSetId,
     hitlDir: gate.hitlDir,
   };
 
@@ -177,7 +178,6 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
     if (sink.stopSignal.aborted) {
       accumulator.cancelInProgressSubAgents();
     }
-    status.subAgentExecutions = accumulator.subAgentExecutions;
     await eventRecorder?.flush();
     console.log(
       `ExecuteCursor stream ended: execution=${executionId}, events=${streamState.eventCount}, messages=${status.messages.length}, subAgents=${status.subAgentExecutions.length}`,
@@ -188,41 +188,28 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
     sink.recordActivity();
   };
 
-  // The turn boundary — author this turn's change set to the file_review
-  // ledger (CANDIDATE_CAPTURED) and overlay the hook's denials as
-  // WAITING_APPROVAL gate rows. The full pipeline and its ordering rationale
-  // live in turn-boundary.ts; this closure binds the turn's state so the
-  // recovery retries (which re-run the agent AFTER this primary call) can
-  // re-enter the IDENTICAL pipeline — a retry's edits must reach the ledger
-  // or they silently escape review.
+  // The turn boundary — overlay the hook's denials as WAITING_APPROVAL gate
+  // rows and settle what the ledger accounts for. The pipeline and its
+  // ordering rationale live in turn-boundary.ts; this closure binds the
+  // turn's state so the recovery retries (which re-run the agent AFTER this
+  // primary call) re-enter the IDENTICAL pipeline for their denials.
   const runBoundary = (denialSettled?: Promise<void>): Promise<TurnBoundaryResult> =>
     runTurnBoundary({
       status,
       executionId,
-      changeSetId: workspace.changeSetId,
       hitlDir: gate.hitlDir,
-      captureMode: workspace.captureMode,
-      baselineTree: gate.baselineTree,
       primaryWorkspaceDir: workspace.primaryDir,
-      gitWorkspace: workspace.gitWorkspace,
       turnStartMessageIndex,
-      approvalGrants: gate.approvalGrants,
-      globalBypass: mcp.leases.global,
-      seededSubAgents: rows.seededSubAgents,
-      artifactStorage: input.artifactStorage,
       mergedPolicies: mcp.policies,
       denialCancelSettled: denialSettled,
       foreignGatingHooks: gate.hitlGate.foreignGatingHooks,
     });
 
-  // The boundary mutated the transcript in place and asked to pause for
-  // review: the runtime flips the phase, persists, and returns to the
-  // workflow, which waits for the approval/file-review signal and reinvokes.
+  // The boundary mutated the transcript in place and a denial pauses the
+  // turn: the runtime flips the phase, persists, and returns to the
+  // workflow, which waits for the approval signal and reinvokes.
   const awaitingApproval = (boundary: TurnBoundaryResult): TurnOutcome => {
-    console.log(
-      `ExecuteCursor returning WAITING_FOR_APPROVAL: ${boundary.deniedToolCallCount} gated tool(s), ` +
-        `${boundary.capturedChangeCount} file card(s) pending`,
-    );
+    console.log(`ExecuteCursor returning WAITING_FOR_APPROVAL: ${boundary.deniedToolCallCount} gated tool(s)`);
     return { kind: "awaiting_approval" };
   };
 
@@ -252,13 +239,13 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
     return { kind: "failed", surface: "actionable", message };
   };
 
-  // Re-enter the turn boundary for a recovery retry: author the retry's net
-  // change set to the file_review ledger and overlay any denials as gates —
-  // without this a retry's file edits silently escape review (production case
-  // aex_01kws27q1e2esvkqjpvectttxf). Returns undefined for a cancelled retry —
-  // there is no review to open. Passes denialCancelSettled so a first denial
-  // that stopped the RETRY waits for run.cancel() before the ledger read,
-  // exactly like the primary path.
+  // Re-enter the turn boundary for a recovery retry: overlay the retry's
+  // denials as gates. (Its file edits need no re-entry: the runtime captures
+  // the whole turn's tree once after `runTurn` returns — the shape production
+  // case aex_01kws27q1e2esvkqjpvectttxf asked for, now by construction.)
+  // Returns undefined for a cancelled retry — there is no gate to open.
+  // Passes denialCancelSettled so a first denial that stopped the RETRY waits
+  // for run.cancel() before the ledger read, exactly like the primary path.
   const settleRetryTurn = async (retryResultStatus: string): Promise<TurnBoundaryResult | undefined> =>
     retryResultStatus === "cancelled"
       ? undefined
@@ -419,11 +406,10 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
 
         const { retryRun, retryResult, retryBoundary } = recovery;
         if (retryBoundary?.waiting) {
-          // The retry's edits/denials armed the gate — pause for review. On a
-          // retry error this supersedes the failure, exactly as on the primary
-          // path (a captured change pauses the turn before run.wait() is
-          // consulted).
-          console.log(`ExecuteCursor poisoned-handle recovery paused for review: execution=${executionId}`);
+          // The retry's denials armed the gate — pause for approval. On a
+          // retry error this supersedes the failure, exactly as on the
+          // primary path.
+          console.log(`ExecuteCursor poisoned-handle recovery paused for approval: execution=${executionId}`);
           return awaitingApproval(retryBoundary);
         }
         if (retryBoundary && retryBoundary.unattributedHookBlocks.length > 0) {
@@ -484,9 +470,9 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
 
         const { retryResult, retryBoundary } = recovery;
         if (retryBoundary?.waiting) {
-          // The retry's edits/denials armed the gate — pause for review (see
-          // the poisoned-handle branch above for the precedence rationale).
-          console.log(`ExecuteCursor transport-timeout recovery paused for review: execution=${executionId}`);
+          // The retry's denials armed the gate — pause for approval (see the
+          // poisoned-handle branch above for the precedence rationale).
+          console.log(`ExecuteCursor transport-timeout recovery paused for approval: execution=${executionId}`);
           return awaitingApproval(retryBoundary);
         }
         if (retryBoundary && retryBoundary.unattributedHookBlocks.length > 0) {

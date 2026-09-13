@@ -1,19 +1,20 @@
 /**
  * Tier-2 structured-output extraction for a harness turn.
  *
- * Harness-agnostic: the Cursor activity is today's only caller and the turn
- * runtime takes it over in S2 M3 (the native harness has no tier 2 today).
+ * Harness-agnostic, and called from one place: the turn runtime's epilogue
+ * (`harness/run-turn.ts` `extractStructuredOutputFromText`), so both
+ * harnesses have it — Cursor since S2 M3, native since S3 M2a (pinned by the
+ * native hermetic `structured-output` tier-2 arm since M2b, Q-S3-7).
  *
  * When tier-1 text extraction (shared/extract-json.ts) cannot find JSON in
  * the agent's free-text response, this tier asks an economy-tier LLM to
  * extract it via withStructuredOutput (function-calling), which guarantees
  * schema-conformant output through the API's tool-use mechanism.
  *
- * Lives in its own module (rather than inside execute-cursor/index.ts) so
- * the LangChain construction path stays out of the Cursor activity's module
- * graph until a run actually needs tier 2 — index.ts imports this module
- * lazily at the call site, mirroring its tier-1 import, which is what
- * bundle-slim's deferred evaluation preserves.
+ * Lives in its own module so the LangChain construction path stays out of
+ * the runtime's module graph until a run actually needs tier 2 — the
+ * runtime imports this module lazily at the call site, mirroring its tier-1
+ * import, which is what bundle-slim's deferred evaluation preserves.
  */
 
 import type { Config } from "../config.js";

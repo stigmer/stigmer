@@ -48,7 +48,7 @@ describe("ApprovalGateMiddleware", () => {
   });
 
   // The global pre-arm (spec.auto_approve_all) is no longer the gate's concern:
-  // setup.ts simply does not install the gate when it is set. The gate is always
+  // turn-setup.ts simply does not install the gate when it is set. The gate is always
   // active once built; scoped leases (below) decide what it lets through.
 
   it("auto-approves a built-in whose category holds a run-lifetime lease", async () => {

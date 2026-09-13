@@ -1,13 +1,33 @@
 /**
  * V3StatusBuilder — consumes StigmerRunEvents from the V3ProtocolNormalizer
- * and progressively builds the AgentExecutionStatus proto.
+ * and progressively builds the transcript half of the AgentExecutionStatus
+ * proto it is handed: messages, tool-call rows and their approval status,
+ * sub-agent rows, todos, artifacts, write-backs.
  *
- * Implements the same behavioral contract as the v2 StatusBuilder for all
- * 8 golden scenarios, using v3 event semantics (tool_call_id keying,
- * content-block-level deltas, explicit tool lifecycle).
+ * The one transcript builder of the native harness since S3 M2b: v3 event
+ * semantics (tool_call_id keying, content-block-level deltas, explicit tool
+ * lifecycle). Its predecessor, the v2 `StatusBuilder` over LangChain's
+ * `streamEvents` v2, was retired with the v2 stream (Q-S3-1); the eight
+ * golden sequences both once had to agree on are this builder's test's.
  *
- * Usage is accumulated on message_finish only (standalone usage events are
+ * What this builder deliberately does NOT write, and who does (the adapter
+ * contract's field ownership, `harness/types.ts` `TurnSink`): the phase,
+ * `startedAt` and `streamingUsage` are the turn runtime's. A gated tool
+ * start is reported as the {@link awaitingApproval} fact and the caller
+ * (`turn-stream.ts`) decides what that means for the turn; usage is reported
+ * raw through {@link V3StatusBuilderOptions.onUsage} and the caller prices
+ * it into the sink (until S3 M2a this builder flipped WAITING_FOR_APPROVAL
+ * itself and summed usage into `streamingUsage` — a second writer of each
+ * field beside the runtime's).
+ *
+ * Usage is reported on message_finish only (standalone usage events are
  * no-ops) to prevent double-counting — v3 emits both for the same turn.
+ * EVERY graph's usage is reported, the sub-agents' included (S3 M2b,
+ * Q-M2b-1): a sub-agent's `message_finish` fires the same hook before it is
+ * routed to the tracker, so the execution's usage — and the cost cap the
+ * runtime enforces over it — is the whole execution's spend. Until M2b the
+ * sub-agents' turns were discarded (S3 M2a finding F-M2a-12); the cost cap
+ * then lived inside the graph, where a middleware saw every model call.
  */
 
 import { create, type JsonObject } from "@bufbuild/protobuf";
@@ -20,7 +40,6 @@ import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/
 import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
 import type { WorkspaceWriteBack } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/writeback_pb";
 import {
-  ExecutionPhase,
   MessageType,
   ToolCallStatus,
   ToolKind,
@@ -31,48 +50,61 @@ import { applyTodoUpdate } from "../../shared/todos.js";
 import { ExecutionState } from "./execution-state.js";
 import { utcTimestamp } from "../../shared/status.js";
 import type { ExecutionStatusWriter } from "../../shared/execution-status-writer.js";
-import type { ApprovalPolicyProvider } from "./status-builder.js";
 import type { StigmerRunEvent, V3UsagePayload } from "./v3-events.js";
 import { namespaceDepth } from "./v3-events.js";
 import {
-  UsageAccumulator,
   extractToolResultV3,
   sanitizeArgsPreview,
   stampApprovalProvenance,
+  type ApprovalPolicyProvider,
 } from "./status-builder-shared.js";
 import { SubAgentTracker } from "./subagent-tracker.js";
+
+export interface V3StatusBuilderOptions {
+  /**
+   * Fired once per `message_finish` that carries usage — the parent graph's
+   * and every sub-agent's — with the payload exactly as the protocol
+   * delivered it. The builder never sums or prices: the caller accounts (the
+   * turn runtime through `TurnSink.reportUsage`, priced at the turn's model;
+   * a sub-agent on its own model is priced at the parent's rate, as the
+   * in-graph cost cap always did — per-sub-agent pricing is an S5 item).
+   */
+  readonly onUsage?: (usage: V3UsagePayload) => void;
+}
 
 export class V3StatusBuilder implements ExecutionStatusWriter {
   readonly executionId: string;
   private readonly state: ExecutionState;
   private _forceNextUpdate = false;
+  private _awaitingApproval = false;
   private approvalProvider: ApprovalPolicyProvider | null = null;
-  private readonly usageAccumulator: UsageAccumulator;
+  private readonly onUsage: ((usage: V3UsagePayload) => void) | undefined;
   private readonly subAgentTracker: SubAgentTracker;
 
   /** Progressive tool call arg accumulation keyed by callId. */
   private readonly toolArgBuffers = new Map<string, string>();
 
-  constructor(executionId: string, initialStatus: AgentExecutionStatus) {
+  /**
+   * Builds INTO `status`, by reference: its `messages` and
+   * `subAgentExecutions` arrays are the ones indexed and pushed into, never
+   * replaced, so a caller that wraps the same status (the write-back
+   * coordinator's writer, the runtime's chokepoint) keeps seeing every row.
+   */
+  constructor(executionId: string, status: AgentExecutionStatus, options: V3StatusBuilderOptions = {}) {
     this.executionId = executionId;
-    this.state = new ExecutionState(initialStatus);
+    this.state = new ExecutionState(status);
+    this.onUsage = options.onUsage;
 
-    // Resume path: when constructed from a persisted transcript (status seeded
-    // in index.ts on a durable-checkpoint resume), rebuild the tool-call index
-    // so resumed tool_started/tool_finished events reconcile to the existing
-    // calls instead of duplicating them. A first run carries no messages, so
-    // this is a no-op.
-    if (initialStatus.messages.length > 0) {
+    // Resume path: when constructed over a persisted transcript (seeded by the
+    // caller on a reinvocation), rebuild the tool-call index so resumed
+    // tool_started/tool_finished events reconcile to the existing calls
+    // instead of duplicating them. A first run carries no messages, so this
+    // is a no-op. The tracker does the same for the seeded sub-agent rows.
+    if (status.messages.length > 0) {
       this.state.rebuildToolCallIndex();
     }
 
-    initialStatus.phase = ExecutionPhase.EXECUTION_IN_PROGRESS;
-    if (!initialStatus.startedAt) {
-      initialStatus.startedAt = utcTimestamp();
-    }
-
-    this.usageAccumulator = new UsageAccumulator();
-    this.subAgentTracker = new SubAgentTracker();
+    this.subAgentTracker = new SubAgentTracker(status.subAgentExecutions);
   }
 
   setApprovalProvider(provider: ApprovalPolicyProvider): void {
@@ -81,6 +113,16 @@ export class V3StatusBuilder implements ExecutionStatusWriter {
 
   get currentStatus(): AgentExecutionStatus {
     return this.state.proto;
+  }
+
+  /**
+   * True once a tool call this turn was gated and left WAITING_APPROVAL: the
+   * engine has interrupted (or will, at this step's end) and the turn should
+   * end awaiting a decision. A fact about the transcript, not a phase — the
+   * caller owns the phase.
+   */
+  get awaitingApproval(): boolean {
+    return this._awaitingApproval;
   }
 
   get forceNextUpdate(): boolean {
@@ -119,6 +161,9 @@ export class V3StatusBuilder implements ExecutionStatusWriter {
       }
 
       if (this.subAgentTracker.isSubAgentNamespace(event.namespace)) {
+        // A sub-agent's spend is the execution's spend (Q-M2b-1): report it
+        // through the one hook before the tracker folds the message.
+        if (event.kind === "message_finish" && event.usage) this.onUsage?.(event.usage);
         this.subAgentTracker.routeEvent(event);
         return;
       }
@@ -219,7 +264,7 @@ export class V3StatusBuilder implements ExecutionStatusWriter {
     }
 
     if (usage) {
-      this.accumulateV3Usage(usage);
+      this.onUsage?.(usage);
     }
   }
 
@@ -257,8 +302,9 @@ export class V3StatusBuilder implements ExecutionStatusWriter {
     namespace: string,
   ): void {
     // Resume reconciliation: the gated tool call already exists, seeded from the
-    // persisted transcript of a prior invocation (seedStatusFromExecution in
-    // index.ts). The durable checkpoint re-emits tool_started now that approval
+    // persisted transcript of a prior invocation (the runtime's
+    // `seedFromPersistedStatus`, `harness/turn-context.ts`). The durable
+    // checkpoint re-emits tool_started now that approval
     // is granted — flip the existing call to RUNNING in place rather than
     // appending a duplicate or re-triggering the approval gate. v3 keys by
     // tool_call_id, so this is an exact match (no name heuristics needed).
@@ -270,7 +316,6 @@ export class V3StatusBuilder implements ExecutionStatusWriter {
       if (Object.keys(input).length > 0 && !existing.args) {
         existing.args = input as JsonObject;
       }
-      this.state.toolStartTimes.set(callId, performance.now());
       this._forceNextUpdate = true;
       return;
     }
@@ -304,7 +349,8 @@ export class V3StatusBuilder implements ExecutionStatusWriter {
 
     // Stamp authorization provenance in the same spot as tool_kind, for every
     // observed tool call (gated or auto-approved). A gated call is re-seeded on
-    // reinvocation (index.ts) with the same source carried through the interrupt.
+    // reinvocation (the runtime's wide seed) with the same source carried
+    // through the interrupt.
     stampApprovalProvenance(tc, this.approvalProvider);
 
     if (approvalReq.requiresApproval) {
@@ -317,12 +363,11 @@ export class V3StatusBuilder implements ExecutionStatusWriter {
         tc.argsPreview = argsPreview;
       }
 
-      this.state.proto.phase = ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL;
+      this._awaitingApproval = true;
     }
 
     parentMsg.toolCalls.push(tc);
     this.state.toolCalls.set(callId, tc);
-    this.state.toolStartTimes.set(callId, performance.now());
 
     this._forceNextUpdate = true;
   }
@@ -339,7 +384,6 @@ export class V3StatusBuilder implements ExecutionStatusWriter {
     tc.result = extractToolResultV3(output);
     tc.completedAt = utcTimestamp();
     tc.isStreaming = false;
-    this.state.toolStartTimes.delete(callId);
     this.toolArgBuffers.delete(callId);
 
     // Project a completed to-do write into status.todos. deepagents' write_todos
@@ -364,7 +408,6 @@ export class V3StatusBuilder implements ExecutionStatusWriter {
     tc.error = message;
     tc.completedAt = utcTimestamp();
     tc.isStreaming = false;
-    this.state.toolStartTimes.delete(callId);
     this.toolArgBuffers.delete(callId);
 
     this._forceNextUpdate = true;
@@ -498,21 +541,6 @@ export class V3StatusBuilder implements ExecutionStatusWriter {
     return msg;
   }
 
-  // ── Usage ──────────────────────────────────────────────────────────
-
-  private accumulateV3Usage(usage: V3UsagePayload): void {
-    const meta: Record<string, unknown> = {
-      input_tokens: usage.input_tokens,
-      output_tokens: usage.output_tokens,
-    };
-    if (usage.input_token_details) {
-      meta.cache_read_input_tokens = usage.input_token_details.cache_read;
-      meta.cache_creation_input_tokens = usage.input_token_details.cache_creation;
-    }
-    this.usageAccumulator.accumulate(meta);
-    this.state.proto.streamingUsage = this.usageAccumulator.toProto();
-  }
-
   // ── Sub-Agent Integration ──────────────────────────────────────────
 
   /**
@@ -525,20 +553,13 @@ export class V3StatusBuilder implements ExecutionStatusWriter {
   }
 
   /**
-   * Sync sub-agent executions into the proto for persistence.
-   * Called by the streaming orchestrator before each persist.
+   * Clear the streaming flag on every sub-agent message still marked as
+   * streaming — what a turn that stopped mid-delegation owes the transcript
+   * beside the CANCELLED status the caller stamps on the row itself
+   * (`shared/subagent-rows.ts` `cancelInProgressSubAgentProtos`, the one
+   * home of that transition for every harness).
    */
-  syncSubAgentExecutions(): void {
-    if (this.subAgentTracker.hasExecutions()) {
-      this.state.proto.subAgentExecutions = this.subAgentTracker.getExecutions();
-    }
-  }
-
-  /**
-   * Cancel all in-progress sub-agents (called on parent cancellation).
-   */
-  cancelSubAgents(): void {
-    this.subAgentTracker.cancelAll();
-    this.syncSubAgentExecutions();
+  finalizeSubAgentStreaming(): void {
+    this.subAgentTracker.finalizeAllStreaming();
   }
 }

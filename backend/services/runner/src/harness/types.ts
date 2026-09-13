@@ -54,8 +54,14 @@
  *  - No persist cadence. The runtime's chokepoint is single-flight and
  *    unconditional at settle; WHEN a streaming turn asks for a write is the
  *    adapter's (`shared/persist-decision.ts` over its own dirty flags, since
- *    what counts as a discrete change is engine knowledge), until S3 lifts
- *    the file-review capture and can revisit with both loops in view.
+ *    what counts as a discrete change is engine knowledge). Revisited with
+ *    both loops in view at S3 M4 and kept (Q-S3-13): the cadence RULE is
+ *    shared, the timing is the engine's.
+ *  - No capture. The file-review capture is the runtime's whole
+ *    (`harness/capture.ts`): the baseline before `runTurn`, the candidate
+ *    after it, the stamp, the review decision. The one capture fact an
+ *    adapter holds — what its engine observed touching CAS-owned paths — it
+ *    binds through `TurnSink.bindCasObservations`.
  *
  * Module shape follows `shared/checkpointer/`: `types.ts`, `capabilities.ts`,
  * `registry.ts`, no barrel.
@@ -82,6 +88,7 @@ import type { EffectiveThinkingMode } from "../shared/thinking-mode.js";
 import type { SenderIdentity } from "../shared/sender-identity.js";
 import type { DeclaredPreferencesContent } from "../shared/declared-preferences.js";
 import type { RecalledMemoriesContent } from "../shared/recalled-memories.js";
+import type { CasTouchedReader } from "../shared/filereview/cas-touched.js";
 import type { HarnessCapabilities } from "./capabilities.js";
 
 /**
@@ -196,6 +203,21 @@ export interface TurnMcp {
   readonly policies: ReadonlyMap<string, MergedToolPolicy>;
 }
 
+/**
+ * The mounted skills (phase 5), each under the session's platform dir and
+ * reachable from the workspace through its `.stigmer` link; the harness
+ * renders them into its prompt shapes. Resolved per OWNER, because a
+ * sub-agent's skills are its own prompt's, not the root's: the root's are
+ * `blueprint.mergedSkillRefs` (agent plus session), a sub-agent's are its
+ * `skillRefs` on the blueprint, keyed by the sub-agent's name (the key its
+ * compiler uses). A sub-agent with no skills has no entry. Empty for a
+ * harness whose `capabilities.subAgents` is false.
+ */
+export interface TurnSkills {
+  readonly root: readonly SkillMetadata[];
+  readonly bySubAgent: ReadonlyMap<string, readonly SkillMetadata[]>;
+}
+
 /** The turn's explicit inputs (phase 5b), resolved into the workspace with the vision facts derived once. */
 export interface TurnAttachments {
   readonly results: readonly ResolvedAttachment[];
@@ -245,9 +267,13 @@ export interface TurnStandingContext {
  * `engine-minted` harness's first turn (nothing minted yet) and the id the
  * adapter bound through {@link TurnSink.bindHarnessState} on every later
  * invocation; the runtime-minted id on every turn of a `deterministic`
- * harness. An adapter derives create-vs-resume from it and its own state
- * through `turn-context.ts`'s `isReinvocation`; the contract carries no flag
- * because the two harnesses would derive it differently.
+ * harness. An adapter derives create-vs-resume for its ENGINE from it and its
+ * own state; the runtime derives its own reinvocation fact (the seed, the
+ * reconcile) in `turn-context.ts`'s `isReinvocation`, one arm per
+ * `stateIdSource`. The contract carries no flag because the two readings
+ * answer different questions ("does the engine hold state for this session"
+ * vs "does this execution have a transcript") and one name over two meanings
+ * would be the divergence a contract exists to prevent.
  *
  * Adapter-only facts (the Cursor mode, the service-tier params, the seeded
  * sub-agent rows) are read by the adapter from these records, never resolved
@@ -278,8 +304,7 @@ export interface TurnInput extends NormalizedActivityInput {
   readonly environment: TurnEnvironment;
   readonly workspace: TurnWorkspace;
   readonly mcp: TurnMcp;
-  /** The mounted skills (phase 5): each under the session's platform dir, reachable from the workspace through its `.stigmer` link; the harness renders them into its prompt. */
-  readonly skills: readonly SkillMetadata[];
+  readonly skills: TurnSkills;
   readonly attachments: TurnAttachments;
   /** Approved whole-file writes the runtime applied itself this turn (exact-apply); the harness issues no grant for them. */
   readonly appliedToolCallIds: ReadonlySet<string>;
@@ -304,11 +329,10 @@ export interface TurnInput extends NormalizedActivityInput {
  * the adapter appends the engine's transcript rows (assistant messages,
  * tool-call rows and their approval status, sub-agent rows, todos); the
  * runtime writes the phase, the terminal system messages, `streamingUsage`,
- * artifacts, write-backs and the file-review projection. An adapter never
- * writes a phase or a terminal copy: those are Temporal semantics the
- * runtime owns once. (The file-review boundary itself is the adapter's until
- * S3 lifts both harnesses' captures together; `execute-cursor/adapter.ts`
- * says so.)
+ * artifacts, write-backs, `fileChangeProgress`, the file-review ledger
+ * events and the change-set stamp on a flowed edit row (S3 M4,
+ * `harness/capture.ts`). An adapter never writes a phase or a terminal copy:
+ * those are Temporal semantics the runtime owns once.
  */
 export interface TurnSink {
   /**
@@ -398,6 +422,26 @@ export interface TurnSink {
    * that error and executes nothing further.
    */
   bindHarnessState(harnessStateId: string): Promise<void>;
+
+  /**
+   * What the engine observed touching CAS-owned paths this turn — gitignored
+   * paths in a git tree, every path in a non-git one: the pre-turn bytes of
+   * each first-touched path and the paths the gate blocked as secrets
+   * (`shared/filereview/cas-touched.ts`). The one fact about a turn's file
+   * changes the runtime cannot read from the tree: the pre-edit bytes exist
+   * only at mutation time, in whatever sits between the engine and the disk
+   * (the deep-agent's filesystem backend and gate, the Cursor hook's
+   * sidecar). The runtime reads the AFTER bytes itself and owns everything
+   * else of the capture (`harness/capture.ts`): the baseline, the progress,
+   * the candidate, the stamp, the review decision.
+   *
+   * Bound once, before the first persist, as `bindHarnessState` is; the
+   * runtime pulls it at each progress refresh and at the turn boundary, so
+   * it must return an atomic snapshot (copy live state before any await). A
+   * harness that observes nothing binds nothing and gets git-only capture.
+   * Never throws.
+   */
+  bindCasObservations(read: CasTouchedReader): void;
 }
 
 /**
@@ -460,6 +504,15 @@ export type FailureSurface = "engine" | "actionable" | "internal";
  *    takes, `cause` is for the log. The runtime persists FAILED and RETURNS
  *    (Temporal does not retry a returned activity; re-running the same
  *    prompt would fail the same way).
+ *  - `tool_call_limit`: the engine exhausted the tool-round budget the
+ *    execution set (`max_tool_rounds`, `shared/tool-rounds.ts`) and stopped
+ *    at a step boundary with its work checkpointed. Not `failed`: the
+ *    platform deliberately stopped the run, and the conversation continues
+ *    on the next message. The runtime writes TERMINATED with the cross-repo
+ *    prefix and the user copy, and RETURNS (a retry would spend the same
+ *    budget again). Every surveyed SDK ends a turn on a budget with a
+ *    distinct outcome (Claude's `maxTurns` subtype, Codex's turn reason), so
+ *    this is a cross-harness fact, not an engine quirk.
  *  - `interrupted`: `sink.stopSignal` aborted and the adapter stopped. WHY it
  *    aborted is the runtime's evidence (its watchdog, its accounting, its
  *    chokepoint, the cancellation it was delivered), so no reason rides here;
@@ -469,5 +522,6 @@ export type TurnOutcome =
   | { readonly kind: "completed" }
   | { readonly kind: "cancelled" }
   | { readonly kind: "awaiting_approval" }
+  | { readonly kind: "tool_call_limit" }
   | { readonly kind: "failed"; readonly message: string; readonly surface: FailureSurface; readonly cause?: unknown }
   | { readonly kind: "interrupted" };

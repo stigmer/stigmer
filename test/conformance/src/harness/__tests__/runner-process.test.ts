@@ -1,13 +1,17 @@
-// Unit arms for the runner harness's SIGKILL-fallback line: when a runner
-// outlives its SIGTERM grace, the line the job log keeps must say on its own
-// whether the Temporal worker had stopped (the stigmer#1008 shape) or never
-// finished draining (a hang of a new shape), and quote the runner's last output
-// so the verdict can be checked without the log file CI discards on a green run
-// (stigmer#1010; entry 20260908.01's wrong-assumption of 2026-09-08).
-// Pure: a string in, a string out. No target, no spawn.
+// Unit arms for the runner harness's two teardown lines. The SIGKILL-fallback
+// line: when a runner outlives its SIGTERM grace, the line the job log keeps
+// must say on its own whether the Temporal worker had stopped (the
+// stigmer#1008 shape) or never finished draining (a hang of a new shape), and
+// quote the runner's last output so the verdict can be checked without the log
+// file CI discards on a green run (stigmer#1010; entry 20260908.01's
+// wrong-assumption of 2026-09-08). The slow-exit line: when a runner leaves
+// inside the grace but seconds late, the job log must still carry the
+// number — the fallback is silent on that case, which is how #1008's 29 s
+// exits hid in green runs.
+// Pure: a string (or a number) in, a string out. No target, no spawn.
 // Domain: conformance harness (execution engine).
 import { describe, expect, it } from "vitest";
-import { describeRunnerForceKill, runnerHomeEnv } from "../runner-process";
+import { describeRunnerForceKill, describeRunnerSlowExit, runnerHomeEnv } from "../runner-process";
 
 // The Temporal SDK prints each worker state change as a five-line object.
 function workerStateChanged(state: string): string[] {
@@ -146,6 +150,20 @@ describe("describeRunnerForceKill", () => {
 // HOME then USERPROFILE for its `~/.stigmer` (shared/workspace/platform-dir.ts),
 // and Node's homedir() — behind its workspace-root and artifact defaults —
 // reads the same pair, so both must point at the harness-owned directory.
+describe("describeRunnerSlowExit", () => {
+  it("carries the measured latency, the expected bound and the #1008 shape, and says it is not a failure", () => {
+    const line = describeRunnerSlowExit(29_412);
+    expect(line).toMatch(/^\[runner\] exited 29412ms after SIGTERM/);
+    expect(line).toContain("expected within 2000ms");
+    expect(line).toContain("stigmer#1008");
+    expect(line).toContain("Not a failure");
+  });
+
+  it("is one line: the job log reader greps for it beside the fallback line", () => {
+    expect(describeRunnerSlowExit(5_000)).not.toContain("\n");
+  });
+});
+
 describe("runnerHomeEnv", () => {
   it("relocates both home variables the runner reads to the harness-owned directory", () => {
     expect(runnerHomeEnv("/tmp/harness-home")).toEqual({ HOME: "/tmp/harness-home", USERPROFILE: "/tmp/harness-home" });

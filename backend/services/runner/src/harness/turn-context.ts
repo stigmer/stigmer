@@ -16,9 +16,9 @@
  * sequences them, and the adapter runs its own harness-specific steps after
  * the whole record exists.
  *
- * Shape, chosen against `execute-deep-agent/setup.ts`: a typed record built
- * from small functions (the `SetupResult` mold), never one 775-line
- * `performSetup`. The record is the adapter contract's `TurnInput`
+ * Shape, chosen against the native orchestrator's `setup.ts` (deleted at S3
+ * M2b): a typed record built from small functions (the `SetupResult` mold),
+ * never one 775-line `performSetup`. The record is the adapter contract's `TurnInput`
  * (`types.ts`): every phase returns a named slice of it, and
  * {@link resolveTurnContext} composes the whole. There is no wider
  * "runtime-private" record beside it — the lock release and the write-back
@@ -66,15 +66,15 @@
 
 import { CancelledFailure } from "@temporalio/activity";
 import { clone } from "@bufbuild/protobuf";
-import type { AgentExecution, AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { AgentExecutionStatusSchema, type AgentExecution, type AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { AgentExecutionSpec } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { ApprovalAction, FileChangeSetStatus, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ApprovalAction, FileChangeSetStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 
 import type { Config } from "../config.js";
 import type { StigmerClient } from "../client/stigmer-client.js";
 import type { NormalizedActivityInput } from "../shared/activity-input.js";
+import { approvalDecisionsOf } from "./approval-decisions.js";
 import type { ArtifactStorage } from "../shared/artifact-storage.js";
 import type { TimingRecorder } from "../shared/cold-start-timing.js";
 import { resolveBlueprint, type ResolvedBlueprint } from "../shared/blueprint-resolver.js";
@@ -104,7 +104,7 @@ import { deriveActiveLeases, mergeApprovalPolicies } from "../shared/approval-po
 import { resolveAttachments } from "../shared/attachment-resolver.js";
 import { resolveSkills, type SkillMetadata } from "../shared/skill-resolver.js";
 import { VisionBudget, type NotViewableEntry, type VisionProfile } from "../shared/attachment-vision.js";
-import { getModelVisionCapability } from "../shared/model-registry.js";
+import { getDefaultModel, getModelVisionCapability } from "../shared/model-registry.js";
 import { applyApprovedWholeFileWrites } from "../shared/exact-apply.js";
 import { resolveEffectiveServiceTier } from "../shared/service-tier.js";
 import { resolveEffectiveThinkingMode } from "../shared/thinking-mode.js";
@@ -115,13 +115,14 @@ import { readDeclaredPreferences } from "../shared/declared-preferences.js";
 import { readConversationCatchup } from "../shared/conversation-catchup.js";
 import { selectRecalledFacts } from "../shared/memory-retrieval.js";
 import type { RecalledMemoriesContent } from "../shared/recalled-memories.js";
-import type { FileReviewIdentity, HarnessCapabilities, StateIdSource } from "./capabilities.js";
+import type { FileReviewIdentity, HarnessCapabilities, PausePrimitive, StateIdSource } from "./capabilities.js";
 import type {
   TurnAttachments,
   TurnEnvironment,
   TurnInput,
   TurnMcp,
   TurnModelPreferences,
+  TurnSkills,
   TurnStandingContext,
   TurnWorkspace,
 } from "./types.js";
@@ -180,9 +181,8 @@ export interface ResolutionDeps {
  * `TurnInput`: `isReinvocation` is the adapter's own derivation from
  * `threadId` (the contract carries no flag by design, `types.ts` header) and
  * the runtime reads it only inside {@link resolveTurnContext}; the decisions
- * ARE on the input. The seeded sub-agent rows are the adapter's to clone from
- * `execution.status` (its accumulator owns `status.subAgentExecutions` and
- * overwrites it on every flush), so they ride nothing here.
+ * ARE on the input. The seeded rows of every kind are on `sink.status`
+ * ({@link seedFromPersistedStatus}); an adapter wraps them by reference.
  */
 export interface TurnReinvocation {
   /** The engine already holds state for this execution (derived per {@link isReinvocation}). */
@@ -204,16 +204,16 @@ export interface TurnReinvocation {
  *  - `workspace-lock-timeout`: another turn held the primary tree past
  *    `Config.workspaceLockTimeoutMs`. FAILED, returned (a Temporal retry
  *    would queue behind the same holder).
- *  - `rejected-by-user`: an adjudicated irreversible action (shell / MCP)
- *    was REJECTed. FAILED, returned.
  *  - `file-review-resolved`: a pure file-review resume; the agent already
  *    finished its turn during capture and the reconcile is the whole act.
  *    COMPLETED, returned, with the write-back finalized first when the
  *    reconcile held.
+ *
+ * A REJECTed tool is not a settlement: the run continues without it
+ * (`approval-decisions.ts`).
  */
 export type TurnSettlement =
   | { readonly kind: "workspace-lock-timeout"; readonly error: WorkspaceLockTimeoutError }
-  | { readonly kind: "rejected-by-user" }
   | {
       readonly kind: "file-review-resolved";
       readonly failed: boolean;
@@ -246,44 +246,37 @@ export type ReinvocationOutcome =
  *    and the legacy positional wire shape yields 0, so `turnSeq` cannot be
  *    the signal (`index.ts` L402-407).
  *  - `deterministic` (native: the runtime-minted thread id): the id exists
- *    on the FIRST turn too, so the evidence is the persisted transcript
- *    (pending approvals, DECIDED sets). That arm lands in S3 with the native
- *    adapter; until then this function refuses rather than guess.
+ *    on the FIRST turn too, so the evidence is the persisted transcript.
+ *    Whether the execution already has committed history is the ONE signal
+ *    that behaves identically across the engine's checkpointer backends:
+ *    a durable saver (sqlite locally, http in cloud) keeps the checkpoint
+ *    and resumes from it, while the test-only memory saver recreates it
+ *    empty and replays from scratch — so the live checkpoint cannot be the
+ *    signal (native's `shouldSeedFromPersistedTranscript`, retired with its
+ *    orchestrator). A first run has no persisted messages and starts from
+ *    empty, as it always did.
+ *
+ * This is the runtime's own reading, for its phases (the seed, the reconcile,
+ * the exact-apply). An adapter that needs create-vs-resume for its ENGINE
+ * reads `input.threadId` itself — for an engine-minted harness that is the
+ * same bit, for a deterministic one the engine's checkpoint is the adapter's
+ * to consult — so the contract carries no flag with two meanings (Q-M1-7).
  */
-export function isReinvocation(stateIdSource: StateIdSource, input: NormalizedActivityInput): boolean {
+export function isReinvocation(
+  stateIdSource: StateIdSource,
+  input: NormalizedActivityInput,
+  execution: AgentExecution,
+): boolean {
   switch (stateIdSource) {
     case "engine-minted":
       return input.threadId !== "";
     case "deterministic":
-      throw new Error(
-        "isReinvocation: the deterministic arm lands with the native adapter (S3); no S2 harness mints its state id deterministically",
-      );
+      return (execution.status?.messages.length ?? 0) > 0;
     default: {
       const exhaustive: never = stateIdSource;
       throw new Error(`isReinvocation: unknown state id source ${String(exhaustive)}`);
     }
   }
-}
-
-/**
- * The runtime's one reader of approval decisions: every top-level tool-call
- * row still WAITING_APPROVAL whose `approvalAction` the server has set,
- * keyed by tool-call id. Derived from the status on every invocation, never
- * stored, so it cannot drift from the rows. The same rows, in the same
- * order, that the Cursor adapter's `reconstructAdjudicatedApprovals` reads
- * for its own facts (the pending-approval protos and content digests); a
- * test pins the two readers' agreement.
- */
-export function approvalDecisionsOf(status: AgentExecutionStatus): ReadonlyMap<string, ApprovalAction> {
-  const decisions = new Map<string, ApprovalAction>();
-  for (const message of status.messages) {
-    for (const row of message.toolCalls) {
-      if (row.status !== ToolCallStatus.TOOL_CALL_WAITING_APPROVAL) continue;
-      if (row.approvalAction === ApprovalAction.UNSPECIFIED) continue;
-      decisions.set(row.id, row.approvalAction);
-    }
-  }
-  return decisions;
 }
 
 /** The facts the reinvocation decision reads; produced by {@link reconcileReinvocation}, exposed for the decision's own tests. */
@@ -298,21 +291,23 @@ export interface ReinvocationFacts {
 }
 
 /**
- * How a reinvocation proceeds, decided once from the facts (`index.ts`
- * L547-618): a REJECT of an irreversible action fails the turn; any other
- * adjudicated decision runs the agent (the approved shell/MCP proceeds and
- * may produce further edits); a resume that reconciled file review and
- * decided nothing else is complete, because keeping or discarding a file
- * never re-prompts the agent (Cursor-like). `undefined` means "run the
- * agent".
+ * How a reinvocation proceeds, decided once from the facts: any adjudicated
+ * decision runs the agent — an approved shell/MCP proceeds and may produce
+ * further edits; a SKIP or REJECT denies its tool and the run continues
+ * without it (the row is settled SKIPPED after the turn,
+ * `approval-decisions.ts`); a resume that reconciled file review and decided
+ * nothing else is complete, because keeping or discarding a file never
+ * re-prompts the agent (Cursor-like). `undefined` means "run the agent".
+ *
+ * Until S3 M1 a REJECT failed the turn here with its own FAILED arm, Cursor's
+ * legacy; the proto (`APPROVAL_ACTION_REJECT`: "does NOT fail the run"), the
+ * conformance suite and the native harness said otherwise since stigmer#197,
+ * and the runtime now agrees (S2 M4 finding F1; Q-S3-2).
  */
 export function decideReinvocation(
   facts: ReinvocationFacts,
 ): Exclude<TurnSettlement, { kind: "workspace-lock-timeout" }> | undefined {
-  if (facts.approvalDecisions.size > 0) {
-    const hasReject = [...facts.approvalDecisions.values()].some((a) => a === ApprovalAction.REJECT);
-    return hasReject ? { kind: "rejected-by-user" } : undefined;
-  }
+  if (facts.approvalDecisions.size > 0) return undefined;
   if (facts.reconciledFileReview) {
     return {
       kind: "file-review-resolved",
@@ -325,41 +320,66 @@ export function decideReinvocation(
 }
 
 /**
- * Seed an in-progress status from the persisted execution on a durable
- * resume (HITL approval, pause/resume, transient recovery) so the upcoming
- * turn APPENDS onto prior history instead of replacing it.
+ * Seed an in-progress status from the persisted execution on a resume (HITL
+ * approval, pause/resume, transient recovery) so the upcoming turn APPENDS
+ * onto prior history instead of replacing it.
  *
- * Why it is required: a resumed engine re-issues the previously gated tool
- * calls with brand-new call ids. Without seeding, the harness's accumulator
- * would rebuild the transcript from empty and emit a status that drops the
- * already-committed tool-call ids. The backend's append-only-at-identity
- * guard rejects any non-terminal update that drops a committed tool-call id,
- * so the resumed progress would never persist: the run stalls in
- * WAITING_FOR_APPROVAL with no pending approvals and the workflow watchdog
- * fails it. Seeding makes the resume status a strict superset; the re-runs
- * are then reconciled in place onto these seeded calls by canonical identity
- * inside the accumulator.
+ * Why the transcript must be seeded: a resumed engine re-issues the
+ * previously gated tool calls with brand-new call ids. Without seeding, the
+ * harness's accumulator would rebuild the transcript from empty and emit a
+ * status that drops the already-committed tool-call ids. The backend's
+ * append-only-at-identity guard rejects any non-terminal update that drops a
+ * committed tool-call id, so the resumed progress would never persist: the
+ * run stalls in WAITING_FOR_APPROVAL with no pending approvals and the
+ * workflow watchdog fails it. Seeding makes the resume status a strict
+ * superset; the re-runs are then reconciled in place onto these seeded calls
+ * by canonical identity inside the accumulator.
  *
- * The persisted protos are cloned so the input execution stays immutable.
- * Messages are pushed into `status.messages` (which the accumulator wraps by
- * reference) BEFORE the accumulator is constructed. Sub-agent executions are
- * NOT seeded here: the Cursor accumulator owns `status.subAgentExecutions`
- * and overwrites it on every flush, so the adapter clones them itself from
- * `input.execution.status` under the same "left a transcript" test.
+ * Why the OTHER collections must be seeded too — the server's merge rule
+ * (`stigmer-server/src/domain/agentexecution/update-status.ts`): every list
+ * and singleton the runner owns is PRESENCE-GUARDED and then REPLACED
+ * wholesale — `subAgentExecutions`, `todos`, `artifacts`,
+ * `workspaceWriteBacks` when non-empty (L327-345); `streamingUsage`,
+ * `recalledMemoriesReport`, `structuredOutput` when defined (L492-526). So
+ * the loss an unseeded resume suffers is not "empty replaces full" (the
+ * guard covers that) but "PARTIAL replaces full": a resumed turn that
+ * publishes one artifact, delegates one sub-agent, or touches one to-do
+ * sends a list holding only that, and the server replaces the prior turn's
+ * whole list with it. Seeding every one makes each write a superset again.
+ *
+ * What is NOT seeded, and why: `fileChangeSets` and `pendingApprovals` are
+ * DERIVED by the server from its own ledgers on every write;
+ * `fileReviewEventStream` and `approvalEventStream` are server-owned ledgers
+ * the runner only APPENDS its own events to; `fileChangeProgress`,
+ * `setupProgress` and `contextInfo` are one turn's own or the server's; and
+ * `phase`, `startedAt`, `completedAt`, `error` are this turn's fresh
+ * terminal, written by the runtime.
+ *
+ * Every collection is mutated IN PLACE (pushed into, assigned into), never
+ * reassigned: the write-back coordinator already wraps this status through
+ * `statusProtoWriter`, and the harness's accumulator wraps `messages` and
+ * `subAgentExecutions` by reference after this runs, so a reassigned array
+ * would leave a wrapper holding the old one. The persisted protos are
+ * cloned so the input execution stays immutable.
  *
  * Moved from `execute-cursor/index.ts` `seedCursorTranscriptFromExecution`
- * (L2468-2478); the native twin is `execute-deep-agent/index.ts`
- * `seedStatusFromExecution` (S3 retires it).
+ * (messages only) and widened at S3 M1 to what native's whole-status clone
+ * (`execute-deep-agent/index.ts` `seedStatusFromExecution`, retired with its
+ * orchestrator) always carried, minus the fields above that it carried by
+ * accident (Q-S3-16).
  */
-export function seedTranscriptFromExecution(
-  status: AgentExecutionStatus,
-  execution: AgentExecution,
-): void {
+export function seedFromPersistedStatus(status: AgentExecutionStatus, execution: AgentExecution): void {
   const persisted = execution.status;
   if (!persisted || persisted.messages.length === 0) return;
-  for (const message of persisted.messages) {
-    status.messages.push(clone(AgentMessageSchema, message));
-  }
+  const seed = clone(AgentExecutionStatusSchema, persisted);
+  status.messages.push(...seed.messages);
+  status.subAgentExecutions.push(...seed.subAgentExecutions);
+  status.artifacts.push(...seed.artifacts);
+  status.workspaceWriteBacks.push(...seed.workspaceWriteBacks);
+  for (const [id, todo] of Object.entries(seed.todos)) status.todos[id] = todo;
+  if (seed.streamingUsage !== undefined) status.streamingUsage = seed.streamingUsage;
+  if (seed.recalledMemoriesReport !== undefined) status.recalledMemoriesReport = seed.recalledMemoriesReport;
+  if (seed.structuredOutput !== undefined) status.structuredOutput = seed.structuredOutput;
 }
 
 // ---------------------------------------------------------------------------
@@ -529,7 +549,7 @@ export async function bindTelemetryBaggage(
  * whether this one runs the agent at all.
  *
  * On a reinvocation, first seed the in-progress status from the persisted
- * execution ({@link seedTranscriptFromExecution}), BEFORE the harness's
+ * execution ({@link seedFromPersistedStatus}), BEFORE the harness's
  * accumulator wraps `status.messages`. Then the file-review reconcile (the
  * dual-source half): every change set the server projected as DECIDED is
  * reconciled from the ledger decisions and the pinned git refs (approved
@@ -555,7 +575,7 @@ export async function reconcileReinvocation(
   },
 ): Promise<ReinvocationOutcome> {
   deps.enterPhase("reconcile_reinvocation");
-  const reinvoked = isReinvocation(args.stateIdSource, deps.input);
+  const reinvoked = isReinvocation(args.stateIdSource, deps.input, args.execution);
   let reconciledFileReview = false;
   let fileReviewFailed = false;
   let fileReviewFailureDetail = "";
@@ -563,7 +583,7 @@ export async function reconcileReinvocation(
 
   if (reinvoked) {
     const existingStatus = args.execution.status;
-    seedTranscriptFromExecution(deps.status, args.execution);
+    seedFromPersistedStatus(deps.status, args.execution);
 
     if (args.workspace.captureMode && args.workspace.primaryDir) {
       const decidedSets = (existingStatus?.fileChangeSets ?? []).filter(
@@ -743,26 +763,52 @@ export async function resolveMcpServersAndPolicies(
 
 /**
  * Phase 5 (`index.ts` L493-501, the orchestrator's position between the
- * tool surface and the attachments): mount the merged skills under the
- * session's platform dir, reachable from the workspace through its
- * `.stigmer` link, and return what a prompt renders (`shared/skill-
- * resolver.ts`). Reads the control plane, which is why it is the runtime's
- * and not a harness's; each harness places the returned metadata in its own
- * prompt shape. The `.stigmer` link this and the attachment phase create is
- * removed in the runtime's finally, after the harness's own teardown.
+ * tool surface and the attachments): mount the skills under the session's
+ * platform dir, reachable from the workspace through its `.stigmer` link,
+ * and return what a prompt renders, per owner (`shared/skill-resolver.ts`).
+ * Reads the control plane, which is why it is the runtime's and not a
+ * harness's; each harness places the returned metadata in its own prompt
+ * shapes — the root's in its system prompt, a sub-agent's in that
+ * sub-agent's, client-free.
+ *
+ * The root's refs are the blueprint's merged set (agent plus session); a
+ * sub-agent's are its own `skillRefs`. Each ref resolves through the same
+ * resolver, so a skill the root and a sub-agent share is fetched per owner
+ * but MOUNTED once (the hash-keyed mount marker turns the second write into
+ * a no-op), and a ref that fails resolves to nothing for that owner alone,
+ * warned and never thrown, as the root's always did. Sub-agent refs are
+ * resolved only for a harness whose `capabilities.subAgents` is true: the
+ * blueprint's sub-agents are that harness's to compile, so their skills are
+ * its to render. One progress label for the whole phase, as before.
+ *
+ * The `.stigmer` link this and the attachment phase create is removed in
+ * the runtime's finally, after the harness's own teardown. Until S3 M1 the
+ * native orchestrator fetched and mounted sub-agent skills itself
+ * (`subagent-transformer.ts` with a client); this phase is where that read
+ * lives now (Q-S3-5).
  */
 export async function mountSkills(
   deps: ResolutionDeps,
-  args: { readonly blueprint: ResolvedBlueprint; readonly sessionId: string; readonly primaryDir: string },
-): Promise<readonly SkillMetadata[]> {
+  args: {
+    readonly blueprint: ResolvedBlueprint;
+    readonly sessionId: string;
+    readonly primaryDir: string;
+    readonly subAgents: boolean;
+  },
+): Promise<TurnSkills> {
   deps.enterPhase("resolve_skills");
   await deps.reportProgress("Resolving skills");
-  const skills = await resolveSkills(deps.client, args.blueprint.mergedSkillRefs, {
-    sessionId: args.sessionId,
-    primaryWorkspaceDir: args.primaryDir,
-  });
+  const options = { sessionId: args.sessionId, primaryWorkspaceDir: args.primaryDir };
+  const root = await resolveSkills(deps.client, args.blueprint.mergedSkillRefs, options);
+  const bySubAgent = new Map<string, readonly SkillMetadata[]>();
+  if (args.subAgents) {
+    for (const subAgent of args.blueprint.subAgents) {
+      if (subAgent.skillRefs.length === 0) continue;
+      bySubAgent.set(subAgent.name, await resolveSkills(deps.client, subAgent.skillRefs, options));
+    }
+  }
   deps.timing.mark("resolve_skills");
-  return skills;
+  return { root, bySubAgent };
 }
 
 /**
@@ -771,12 +817,17 @@ export async function mountSkills(
  * Downloads by storage key through the same artifact storage resolved for
  * status offload. The vision budget rides along so image attachments are
  * selected for inline delivery while their bytes are already in hand
- * (`shared/attachment-vision.ts` owns all policy); it carries the requested
- * model's registry vision capability, looked up from the raw
- * executionConfig name, because full model validation isn't needed for
- * this and ""/"default" (the Auto pool) resolves to unknown, which the
- * policy treats as sighted. The vision profile is the harness's (each
- * engine accepts different image shapes), so it arrives as an argument.
+ * (`shared/attachment-vision.ts` owns all policy); it carries the vision
+ * capability of the model the turn will run on: the one the execution named,
+ * or the registry's default when it named none — the model the native
+ * harness builds in that case, so the budget asks about the model that will
+ * actually see the image. Full model validation is not needed for this. The
+ * Cursor harness with no model named builds its own catalog default instead
+ * (`resolveModelId("default")`), so for it this is an approximation: today
+ * both answers read as sighted, and the exact per-harness default is S4's
+ * to declare (S3 M1 finding F-M1-4). The vision profile is the harness's
+ * (each engine accepts different image shapes), so it arrives as an
+ * argument.
  */
 export async function resolveTurnAttachments(
   deps: ResolutionDeps,
@@ -788,8 +839,9 @@ export async function resolveTurnAttachments(
   },
 ): Promise<TurnAttachments> {
   deps.enterPhase("resolve_attachments");
+  const modelName = args.spec.executionConfig?.modelName || (await getDefaultModel());
   const visionBudget = new VisionBudget(args.visionProfile, {
-    modelVision: await getModelVisionCapability(args.spec.executionConfig?.modelName ?? ""),
+    modelVision: await getModelVisionCapability(modelName),
   });
   const results = await resolveAttachments(args.spec.attachments, {
     sessionId: args.sessionId,
@@ -817,6 +869,35 @@ export async function resolveTurnAttachments(
 }
 
 /**
+ * Whether a harness performs an approved call by RE-RUNNING the model, so
+ * the bytes an approved whole-file write lands can differ from the bytes the
+ * user approved unless the runner pins them itself
+ * ({@link applyApprovedWrites}). Keyed on the pause primitive
+ * (`capabilities.ts`): `deny-and-retry` denies the call and re-prompts the
+ * model with grants; `callback` answers "deny, stop" and the resumed session
+ * re-attempts the call — both regenerate. An `interrupt` engine checkpoints
+ * AT the call and applies its exact args on `approve`, so a runner-side
+ * write would land the same bytes twice and pre-empt a row the engine is
+ * about to execute; `none` gates nothing. Until S3 M2a the phase ran for
+ * every harness — a deny-and-retry mechanism the native harness would have
+ * met on its first deny-gated file approval (F-M2a-2, Q-M2a-3).
+ */
+export function regeneratesApprovedWrites(pausePrimitive: PausePrimitive): boolean {
+  switch (pausePrimitive) {
+    case "deny-and-retry":
+    case "callback":
+      return true;
+    case "interrupt":
+    case "none":
+      return false;
+    default: {
+      const exhaustive: never = pausePrimitive;
+      throw new Error(`regeneratesApprovedWrites: unknown pause primitive ${String(exhaustive)}`);
+    }
+  }
+}
+
+/**
  * Phase 5b3 (`index.ts` L849-867): exact-apply approved whole-file writes
  * (HITL "what you approve is what gets applied"). A deny-only harness
  * reinvokes the model, which regenerates content, so a resource grant alone
@@ -828,8 +909,9 @@ export async function resolveTurnAttachments(
  * uncertain case degrades to that path, so this can never corrupt a file
  * (see `shared/exact-apply.ts`).
  *
- * Scoped OUT of capture mode, which does not reinvoke the model for file
- * edits: it applies the exact captured bytes itself in the reconcile.
+ * Scoped to the harnesses that regenerate ({@link regeneratesApprovedWrites})
+ * and OUT of capture mode, which does not reinvoke the model for file edits:
+ * it applies the exact captured bytes itself in the reconcile.
  *
  * The caller persists when the returned set is non-empty (the applied state
  * must be durable before the continuation runs, and the UI reflects it at
@@ -838,12 +920,18 @@ export async function resolveTurnAttachments(
 export async function applyApprovedWrites(
   deps: ResolutionDeps,
   args: {
+    readonly pausePrimitive: PausePrimitive;
     readonly workspace: TurnWorkspace;
     readonly reinvocation: TurnReinvocation;
   },
 ): Promise<ReadonlySet<string>> {
-  const { workspace, reinvocation } = args;
-  if (workspace.captureMode || !reinvocation.isReinvocation || reinvocation.approvalDecisions.size === 0) {
+  const { pausePrimitive, workspace, reinvocation } = args;
+  if (
+    !regeneratesApprovedWrites(pausePrimitive) ||
+    workspace.captureMode ||
+    !reinvocation.isReinvocation ||
+    reinvocation.approvalDecisions.size === 0
+  ) {
     return new Set();
   }
   deps.enterPhase("apply_approved_writes");
@@ -987,14 +1075,23 @@ export async function resolveTurnContext(
   if (reinvoked.kind === "settled") return { kind: "settled", settlement: reinvoked.settlement };
 
   const mcp = await resolveMcpServersAndPolicies(deps, { execution, session, sessionId, blueprint, environment });
-  const skills = await mountSkills(deps, { blueprint, sessionId, primaryDir: workspace.primaryDir });
+  const skills = await mountSkills(deps, {
+    blueprint,
+    sessionId,
+    primaryDir: workspace.primaryDir,
+    subAgents: capabilities.subAgents,
+  });
   const attachments = await resolveTurnAttachments(deps, {
     spec,
     sessionId,
     primaryDir: workspace.primaryDir,
     visionProfile: capabilities.visionProfile,
   });
-  const appliedToolCallIds = await applyApprovedWrites(deps, { workspace, reinvocation: reinvoked.reinvocation });
+  const appliedToolCallIds = await applyApprovedWrites(deps, {
+    pausePrimitive: capabilities.pausePrimitive,
+    workspace,
+    reinvocation: reinvoked.reinvocation,
+  });
   if (appliedToolCallIds.size > 0) {
     // Persist the applied writes (tool calls now COMPLETED with the approved
     // diff) before reinvocation, so the applied state is durable even if the

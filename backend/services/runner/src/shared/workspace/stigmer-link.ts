@@ -16,9 +16,9 @@
  * - Created per turn, under the workspace turn lock — the link is a
  *   working-tree mutation, and re-pointing it while another session's turn is
  *   running on a shared tree would redirect that turn's reads mid-flight.
- *   Cursor creates it in its skill/attachment resolvers (which run after lock
- *   acquisition); the native harness creates it right after acquiring the
- *   lock (execute-deep-agent/index.ts).
+ *   the turn runtime creates it in its skill and attachment phases (which
+ *   run after lock acquisition), for both harnesses; until S3 M2a the native
+ *   orchestrator created it unconditionally right after the lock.
  * - Removed at turn end ({@link removeStigmerSymlink} in the activity's
  *   cleanup), so a real repo is left untouched once the turn ends; a
  *   multi-turn session recreates the link on the next turn.

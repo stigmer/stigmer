@@ -16,7 +16,8 @@ import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import { FileChangeKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { createCasProgressSubstrate, type CasTouchedSnapshot } from "../cas-progress.js";
+import { createCasProgressSubstrate } from "../cas-progress.js";
+import type { CasTouchedSnapshot } from "../cas-touched.js";
 import { LINE_COUNT_MAX_BYTES } from "../line-counts.js";
 import type { ProgressEntry } from "../progress.js";
 

@@ -3,9 +3,8 @@
  * ResolvedMcpServer format.
  *
  * THE single resolver for both harnesses (oss#387 retired the Cursor
- * harness's near-duplicate): the deep-agent harness
- * (execute-deep-agent/setup.ts), the Cursor harness
- * (execute-cursor/index.ts), the connect backfill
+ * harness's near-duplicate): the turn runtime's MCP phase
+ * (harness/turn-context.ts, serving both adapters), the connect backfill
  * (shared/connect-backfill.ts), and the discovery activity
  * (activities/discover-mcp-server.ts, via mcpServerToResolved) all consume
  * it. Each harness maps the result into its SDK format at the last hop:
@@ -217,8 +216,8 @@ export function mcpServerToResolved(
  * - If both reference the same slug, session-level takes precedence —
  *   the WHOLE usage, including enabled_tools and approval overrides
  *
- * Shared by both harnesses (blueprint-resolver.ts for Cursor,
- * execute-deep-agent/setup.ts for the native harness) so a duplicate slug
+ * Shared by both harnesses (through blueprint-resolver.ts, the turn
+ * runtime's blueprint phase) so a duplicate slug
  * resolves identically everywhere: exactly one usage per server, whose
  * enabled_tools is the one the enforcement filter honors.
  */

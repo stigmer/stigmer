@@ -10,8 +10,26 @@
  *     their first segment (e.g. "tools:<pregelUuid>|model_request:<innerUuid>")
  *   - First segment match (before "|") correlates child events to sub-agent
  *
- * The tracker owns the SubAgentExecution proto instances. V3StatusBuilder
- * delegates sub-agent-scoped events here instead of the parent message list.
+ * The tracker builds INTO the status's own `subAgentExecutions` array, by
+ * reference: it pushes new rows and mutates existing ones, never replaces the
+ * array, so the caller that seeded the array from the persisted transcript
+ * (the turn runtime's `seedFromPersistedStatus`) keeps every prior turn's
+ * row and every wrapper of the status sees the same rows. Seeded rows are
+ * indexed by id on construction; a re-emitted `task` tool start for a known
+ * id binds its routing prefix to the existing row instead of pushing a twin
+ * (the memory-checkpointer replay re-drives the whole graph), exactly as the
+ * parent builder reconciles re-emitted tool calls through its rebuilt index.
+ * Until S3 M2a the tracker owned a private array that `syncSubAgentExecutions`
+ * assigned onto the status wholesale, which a resumed turn's first delegation
+ * would have used to drop turn 1's rows (S3 M1 deferred debt).
+ *
+ * V3StatusBuilder delegates sub-agent-scoped events here instead of the
+ * parent message list. Marking rows CANCELLED when a turn stops is NOT the
+ * tracker's: `shared/subagent-rows.ts` `cancelInProgressSubAgentProtos` is
+ * the one home of that transition for every harness (the runtime's thrown
+ * arms and both adapters' stops call it); the tracker only clears the
+ * streaming flags those rows' messages still carry
+ * ({@link SubAgentTracker.finalizeAllStreaming}).
  */
 
 import { create, type JsonObject } from "@bufbuild/protobuf";
@@ -30,7 +48,7 @@ import {
 import { utcTimestamp } from "../../shared/status.js";
 import { classifyTool } from "../../shared/tool-kind.js";
 import { extractToolResultV3 } from "./status-builder-shared.js";
-import type { StigmerRunEvent, V3UsagePayload } from "./v3-events.js";
+import type { StigmerRunEvent } from "./v3-events.js";
 
 // ── Per-SubAgent State ───────────────────────────────────────────────────────
 
@@ -51,16 +69,50 @@ interface SubAgentState {
   toolArgBuffers: Map<string, string>;
 }
 
+/** Fresh routing state over a row; `namespacePrefix` is `""` for a seeded row until its `task` start re-announces it. */
+function newSubAgentState(proto: SubAgentExecution, callId: string, namespacePrefix: string): SubAgentState {
+  return {
+    proto,
+    callId,
+    namespacePrefix,
+    messagesByRun: new Map(),
+    currentAiMessage: new Map(),
+    lastLlmRunId: new Map(),
+    toolCalls: new Map(),
+    toolArgBuffers: new Map(),
+  };
+}
+
 // ── SubAgentTracker ──────────────────────────────────────────────────────────
 
 export class SubAgentTracker {
-  private readonly executions: SubAgentExecution[] = [];
   private readonly stateByCallId = new Map<string, SubAgentState>();
   private readonly stateByPrefix = new Map<string, SubAgentState>();
 
   /**
+   * @param executions - The status's own `subAgentExecutions` array, built
+   *   into by reference. Rows already on it (the runtime's seed on a
+   *   reinvocation) are indexed by id, with their tool calls, so a re-driven
+   *   event reconciles onto them; their routing prefix is unknown until a
+   *   `task` tool start re-announces it.
+   */
+  constructor(private readonly executions: SubAgentExecution[]) {
+    for (const proto of executions) {
+      const state = newSubAgentState(proto, proto.id, "");
+      for (const message of proto.messages) {
+        for (const tc of message.toolCalls) {
+          if (tc.id) state.toolCalls.set(tc.id, tc);
+        }
+      }
+      this.stateByCallId.set(proto.id, state);
+    }
+  }
+
+  /**
    * Called when a "task" tool_started event is observed at depth 0 or 1.
-   * Creates a new SubAgentExecution and begins tracking.
+   * Creates a new SubAgentExecution and begins tracking — or, for a seeded
+   * row re-announced by a replayed graph, binds the routing prefix to the
+   * row that already exists.
    *
    * @param callId - Provider tool call ID (e.g. "toolu_01HW...")
    * @param args - Tool input arguments (subagent_type, description)
@@ -70,7 +122,15 @@ export class SubAgentTracker {
    *   caller provides a synthetic prefix like "tools:<callId>".
    */
   onTaskToolStarted(callId: string, args: Record<string, unknown>, routingPrefix: string): void {
-    if (this.stateByCallId.has(callId)) return;
+    const existing = this.stateByCallId.get(callId);
+    if (existing) {
+      if (existing.namespacePrefix === "") {
+        const bound = { ...existing, namespacePrefix: routingPrefix };
+        this.stateByCallId.set(callId, bound);
+        this.stateByPrefix.set(routingPrefix, bound);
+      }
+      return;
+    }
 
     const name = safeString(args, "subagent_type") || "task";
     const description = safeString(args, "description") || "";
@@ -84,16 +144,7 @@ export class SubAgentTracker {
       startedAt: utcTimestamp(),
     });
 
-    const state: SubAgentState = {
-      proto,
-      callId,
-      namespacePrefix: routingPrefix,
-      messagesByRun: new Map(),
-      currentAiMessage: new Map(),
-      lastLlmRunId: new Map(),
-      toolCalls: new Map(),
-      toolArgBuffers: new Map(),
-    };
+    const state = newSubAgentState(proto, callId, routingPrefix);
 
     this.executions.push(proto);
     this.stateByCallId.set(callId, state);
@@ -129,16 +180,14 @@ export class SubAgentTracker {
   }
 
   /**
-   * Mark all active sub-agents as cancelled (parent execution cancelled).
+   * Clear the streaming flag on every tracked sub-agent's in-flight
+   * messages. Called when the turn stops before the sub-agents finished;
+   * the rows' own CANCELLED transition is the caller's, through the shared
+   * `cancelInProgressSubAgentProtos` (see the header).
    */
-  cancelAll(): void {
+  finalizeAllStreaming(): void {
     for (const state of this.stateByCallId.values()) {
-      if (state.proto.status === SubAgentStatus.SUB_AGENT_IN_PROGRESS) {
-        state.proto.status = SubAgentStatus.SUB_AGENT_CANCELLED;
-        state.proto.completedAt = utcTimestamp();
-        state.proto.error = "Cancelled: parent execution was cancelled";
-        this.finalizeStreamingMessages(state);
-      }
+      this.finalizeStreamingMessages(state);
     }
   }
 
@@ -186,7 +235,7 @@ export class SubAgentTracker {
         this.handleToolCallArgDelta(state, event.callId, event.argsChunk);
         break;
       case "message_finish":
-        this.handleMessageFinish(state, event.runId, event.usage);
+        this.handleMessageFinish(state, event.runId);
         break;
       case "tool_started":
         this.handleToolStarted(state, event.callId, event.name, event.input, localNs);
@@ -205,20 +254,6 @@ export class SubAgentTracker {
       case "provider":
         break;
     }
-  }
-
-  /**
-   * Returns the current list of SubAgentExecution protos for persist.
-   */
-  getExecutions(): SubAgentExecution[] {
-    return this.executions;
-  }
-
-  /**
-   * Returns true if any sub-agents are being tracked.
-   */
-  hasExecutions(): boolean {
-    return this.executions.length > 0;
   }
 
   // ── Message Handlers ─────────────────────────────────────────────────────
@@ -258,11 +293,11 @@ export class SubAgentTracker {
     state.messagesByRun.set(thinkingKey, msg);
   }
 
-  private handleMessageFinish(state: SubAgentState, runId: string, usage?: V3UsagePayload): void {
+  private handleMessageFinish(state: SubAgentState, runId: string): void {
     const msg = state.messagesByRun.get(runId);
     if (msg) msg.isStreaming = false;
-    // Usage is tracked at parent level via V3StatusBuilder — not duplicated per sub-agent
-    void usage;
+    // The usage on this event was reported by `V3StatusBuilder.processEvent`
+    // before it routed here (Q-M2b-1); the tracker owns the transcript only.
   }
 
   // ── Tool Handlers ──────────────────────────────────────────────────────
