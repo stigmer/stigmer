@@ -22,6 +22,16 @@
  *   - With no lifecycle composed (the OSS default before the built-in
  *     posture, and any unit that implements only the three required
  *     methods), the path writes rows and notifies nothing.
+ *   - The row for a triple is found BY TRIPLE, never by derived id (slice
+ *     2): the cloud's legacy rows carry random `iamp_<ulid>` ids and must
+ *     revoke and deduplicate through this path, so a legacy row makes a
+ *     re-grant the duplicate arm and is what `revokeBySpec` deletes.
+ *   - The path is the one writer, so it is the one gate (slice 2 ruling
+ *     Q-S2-1; T01_3_execution.md S2 slice 1, ruling 2): an unknown
+ *     resource or principal kind, or a triple holding a delimiter, is
+ *     INVALID_ARGUMENT before any read, write or hook — on grant AND on
+ *     revoke, so a composition never receives a garbage spec to delete a
+ *     bare tuple from.
  *
  * The row the path builds is pinned too: the proto's apiVersion const, the
  * derived id, the caller's audit stamp — the cloud's `buildNewPolicy`
@@ -29,13 +39,26 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { create } from "@bufbuild/protobuf";
+import { clone, create } from "@bufbuild/protobuf";
+import { Code, ConnectError } from "@connectrpc/connect";
+import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import type { IamPolicy } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 import { ApiResourceRefSchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+import type { IamPolicySpec } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
 
 import type { CallerIdentity } from "../../../extensions/identity.js";
 import type { ResourceAuthorizationLifecycle } from "../../../extensions/resource-authorization.js";
-import { IAM_POLICY_API_VERSION, policyIdFor } from "../constants.js";
+import {
+  IAM_POLICY_API_VERSION,
+  IAM_POLICY_KIND,
+  malformedTripleMessage,
+  policyIdFor,
+  unknownPrincipalKindMessage,
+  unknownResourceKindMessage,
+} from "../constants.js";
 import { newIamPolicyGrantPath } from "../grant-path.js";
+import { DuplicatePolicyError } from "../store.js";
 import {
   fakeIamPolicyStore,
   orgRole,
@@ -47,6 +70,8 @@ import type { RecordedEvent } from "./support.js";
 const ALICE = "ida_wtr3jcf281yfk9xx61kj59fsme";
 const BOB = "ida_0byc5k14t1e7b7kdxft7hwz1f7";
 const AGENT = "agt_01hzzzzzzzzzzzzzzzzzzzzzzz";
+/** A Java-era id: random, never derivable from the triple it holds. */
+const LEGACY_ID = "iamp_01hzzzzzzzzzzzzzzzzzzzzzzz";
 
 const alice: CallerIdentity = {
   identityId: ALICE,
@@ -55,6 +80,31 @@ const alice: CallerIdentity = {
   rawToken: "",
   email: "alice@example.com",
 };
+
+/** A row as the cloud's Java service wrote it: random id, no audit actor. */
+function legacyRow(spec: IamPolicySpec): IamPolicy {
+  return create(IamPolicySchema, {
+    apiVersion: "iam.stigmer.com/v1",
+    kind: IAM_POLICY_KIND,
+    metadata: create(ApiResourceMetadataSchema, { id: LEGACY_ID }),
+    spec,
+  });
+}
+
+async function invalidArgument(
+  run: () => Promise<unknown>,
+): Promise<ConnectError> {
+  try {
+    await run();
+  } catch (error) {
+    if (error instanceof ConnectError) {
+      expect(error.code).toBe(Code.InvalidArgument);
+      return error;
+    }
+    throw error;
+  }
+  throw new Error("expected the call to be refused");
+}
 
 const silentLogger = { debug() {}, info() {}, warn() {}, error() {} };
 
@@ -144,6 +194,138 @@ describe("grant: row before onPolicyGranted", () => {
       "row-save",
       "row-delete",
     ]);
+  });
+});
+
+describe("the row for a triple is found by triple, so legacy ids converge", () => {
+  it("a legacy row makes a re-grant the duplicate arm: one row, ever, and the legacy id stands", async () => {
+    const recorded: RecordedEvent[] = [];
+    const { policies, path } = pathOver(recorded, recordingLifecycle(recorded));
+    const spec = orgRole(ALICE, "admin", "acme");
+    policies.rows.set(LEGACY_ID, legacyRow(spec));
+
+    const result = await path.grant(spec, alice);
+
+    expect(result.duplicate).toBe(true);
+    expect(result.policy.metadata?.id).toBe(LEGACY_ID);
+    expect([...policies.rows.keys()]).toEqual([LEGACY_ID]);
+    expect(recorded).toEqual([
+      { kind: "granted", id: LEGACY_ID, duplicate: true },
+    ]);
+  });
+
+  it("revokeBySpec finds and deletes the legacy row", async () => {
+    const recorded: RecordedEvent[] = [];
+    const { policies, path } = pathOver(recorded, recordingLifecycle(recorded));
+    const spec = orgRole(ALICE, "admin", "acme");
+    policies.rows.set(LEGACY_ID, legacyRow(spec));
+
+    const revoked = await path.revokeBySpec(spec);
+
+    expect(revoked?.metadata?.id).toBe(LEGACY_ID);
+    expect(policies.rows.size).toBe(0);
+    expect(recorded).toEqual([
+      { kind: "revoked", id: LEGACY_ID, relation: "admin" },
+      { kind: "row-delete", id: LEGACY_ID },
+    ]);
+  });
+
+  it("the loser of a concurrent grant answers the winner's row as a duplicate and still fires the hook", async () => {
+    const recorded: RecordedEvent[] = [];
+    const policies = fakeIamPolicyStore(recorded);
+    const spec = orgRole(ALICE, "admin", "acme");
+    const bob: CallerIdentity = { ...alice, identityId: BOB };
+    // The other writer lands between this path's read and its write: the
+    // store refuses the id and the winner's row is what the re-read finds.
+    const racingSave = policies.save.bind(policies);
+    let interposed = false;
+    policies.save = async (policy) => {
+      if (!interposed) {
+        interposed = true;
+        const winner = clone(IamPolicySchema, policy);
+        winner.status = undefined;
+        policies.rows.set(policyIdFor(spec), winner);
+        throw new DuplicatePolicyError("raced");
+      }
+      await racingSave(policy);
+    };
+    const path = newIamPolicyGrantPath({
+      policies,
+      lifecycle: recordingLifecycle(recorded),
+      logger: silentLogger,
+    });
+
+    const result = await path.grant(spec, bob);
+
+    expect(result.duplicate).toBe(true);
+    expect(result.policy.status).toBeUndefined();
+    expect(policies.rows.size).toBe(1);
+    expect(recorded).toEqual([
+      { kind: "granted", id: policyIdFor(spec), duplicate: true },
+    ]);
+  });
+});
+
+describe("the one writer is the one gate: nothing is read, written or notified for a spec no edition can hold", () => {
+  const unknownResource = triple(
+    { kind: "identity_account", id: ALICE },
+    "admin",
+    { kind: "organisation", id: "acme" },
+  );
+  const unknownPrincipal = triple({ kind: "team", id: "tm_1" }, "viewer", {
+    kind: "agent",
+    id: AGENT,
+  });
+  const malformed = triple({ kind: "identity_account", id: ALICE }, "admin", {
+    kind: "organization",
+    id: "acme#admin",
+  });
+  const bothUnknown = triple({ kind: "team", id: "tm_1" }, "admin", {
+    kind: "organisation",
+    id: "acme",
+  });
+
+  it("grant refuses each with the pinned copy, the resource kind read first", async () => {
+    const recorded: RecordedEvent[] = [];
+    const { policies, path } = pathOver(recorded, recordingLifecycle(recorded));
+    const refusals: ReadonlyArray<[IamPolicySpec, string]> = [
+      [unknownResource, unknownResourceKindMessage("organisation")],
+      [unknownPrincipal, unknownPrincipalKindMessage("team")],
+      [malformed, malformedTripleMessage("resource.id")],
+      [bothUnknown, unknownResourceKindMessage("organisation")],
+    ];
+    for (const [spec, message] of refusals) {
+      const error = await invalidArgument(() => path.grant(spec, alice));
+      expect(error.rawMessage, message).toBe(message);
+    }
+    expect(policies.rows.size).toBe(0);
+    expect(recorded).toEqual([]);
+  });
+
+  it("revokeBySpec refuses the same specs — a composition never deletes a bare tuple from garbage", async () => {
+    const recorded: RecordedEvent[] = [];
+    const { path } = pathOver(recorded, recordingLifecycle(recorded));
+    for (const spec of [unknownResource, unknownPrincipal, malformed]) {
+      await invalidArgument(() => path.revokeBySpec(spec));
+    }
+    expect(recorded).toEqual([]);
+  });
+
+  it("the literal zero-value name is the unknown kind too", async () => {
+    const recorded: RecordedEvent[] = [];
+    const { path } = pathOver(recorded, recordingLifecycle(recorded));
+    const error = await invalidArgument(() =>
+      path.grant(
+        triple({ kind: "identity_account", id: ALICE }, "admin", {
+          kind: "api_resource_kind_unknown",
+          id: "acme",
+        }),
+        alice,
+      ),
+    );
+    expect(error.rawMessage).toBe(
+      unknownResourceKindMessage("api_resource_kind_unknown"),
+    );
   });
 });
 

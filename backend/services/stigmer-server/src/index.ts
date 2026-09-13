@@ -100,6 +100,8 @@ export type { ResolvedExtensionDrivers } from "./extensions/registry.js";
 // tests pin against.
 export type {
   DefaultInstanceLinkedEvent,
+  PolicyGrantedEvent,
+  PolicyRevokedEvent,
   ResourceAuthorizationLifecycle,
   ResourceCreatedEvent,
   ResourceDeletedEvent,
@@ -125,6 +127,18 @@ export type {
   IdentityAccountStoreContractFixture,
 } from "./domain/identityaccount/store-contract.js";
 export { identityAccountStoreContract } from "./domain/identityaccount/store-contract.js";
+// The 20260913.01 IamPolicy seam (Q-OR-1, slice 2): the store PORT a
+// composition drives the domain's grant path through (drivers.iamPolicyStore,
+// registered by slice 3; a driver throws DuplicatePolicyError for a held
+// id) and its vitest-free contract kit. The grant path itself is NOT
+// exported: a composition reaches it as in-process RPCs, the doctrine.
+export type { IamPolicyStore } from "./domain/iampolicy/store.js";
+export { DuplicatePolicyError } from "./domain/iampolicy/store.js";
+export type {
+  IamPolicyStoreContractCase,
+  IamPolicyStoreContractFixture,
+} from "./domain/iampolicy/store-contract.js";
+export { iamPolicyStoreContract } from "./domain/iampolicy/store-contract.js";
 export type { IdentityFederation } from "./extensions/identity-federation.js";
 export type { AccountsBySubject } from "./domain/identityaccount/resolve.js";
 export { identityIdForSubject } from "./domain/identityaccount/resolve.js";

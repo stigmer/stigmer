@@ -14,7 +14,14 @@
  *     rule's whole scan (Q-OR-6b); sessions and executions are personal
  *     and never appear here;
  *   - the byte-pinned copy moved from the cloud's handlers as-is, plus the
- *     new sentences (the two edition refusals, the unknown permission).
+ *     new sentences (the two edition refusals, the unknown permission, the
+ *     unknown principal kind, the malformed triple);
+ *   - the canonical text's one weakness and its closure (slice 2 ruling
+ *     Q-S2-1): `ApiResourceRef` fields carry no character pattern, so an
+ *     id or relation holding `:`, `#` or `@` could spell another triple's
+ *     text. `malformedTripleField` names the offending field and
+ *     `policyIdFor` refuses to hash such a spec; the grant path turns the
+ *     same check into INVALID_ARGUMENT before any read or write.
  */
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
@@ -31,11 +38,17 @@ import {
   IAM_POLICY_KIND,
   PER_RESOURCE_GRANTS_UNIMPLEMENTED_MESSAGE,
   POLICY_ID_PREFIX,
+  TRIPLE_DELIMITERS,
+  canonicalTripleText,
+  malformedTripleField,
+  malformedTripleMessage,
   noGrantableRolesMessage,
   policyIdFor,
   policyNotFoundMessage,
   roleNotGrantableMessage,
   unknownPermissionMessage,
+  unknownPrincipalKindMessage,
+  unknownResourceKindMessage,
 } from "../constants.js";
 
 const CROCKFORD_ID = /^iamp_[0-9abcdefghjkmnpqrstvwxyz]{26}$/;
@@ -151,6 +164,115 @@ describe("policyIdFor — the derived policy id", () => {
       policyIdFor(create(IamPolicySpecSchema, { relation: "admin" })),
     ).toThrow("policy spec must carry principal and resource");
   });
+
+  it("hashes exactly the proto's tuple notation, the principal's `#` present even when its relation is empty", () => {
+    expect(
+      canonicalTripleText(
+        spec({ kind: "identity_account", id: ALICE }, "admin", {
+          kind: "organization",
+          id: "acme",
+        }),
+      ),
+    ).toBe(`identity_account:${ALICE}#@organization:acme#admin`);
+    expect(
+      canonicalTripleText(
+        spec({ kind: "team", id: "tm_1", relation: "member" }, "viewer", {
+          kind: "agent",
+          id: AGENT,
+        }),
+      ),
+    ).toBe(`team:tm_1#member@agent:${AGENT}#viewer`);
+  });
+
+  it("refuses a triple whose text would be ambiguous — a delimiter inside any field (Q-S2-1)", () => {
+    // `a#b` with an empty qualifier and `a` with qualifier `b#` would spell
+    // one text; the refusal is what keeps one text one triple.
+    expect(() =>
+      policyIdFor(
+        spec({ kind: "identity_account", id: "a#b" }, "admin", {
+          kind: "organization",
+          id: "acme",
+        }),
+      ),
+    ).toThrow(malformedTripleMessage("principal.id"));
+  });
+});
+
+describe("malformedTripleField — the delimiter check the id and the writer share", () => {
+  it("names the delimiters the canonical text is built from", () => {
+    expect([...TRIPLE_DELIMITERS]).toEqual([":", "#", "@"]);
+  });
+
+  it("names the first field holding a delimiter, in the text's order", () => {
+    const base = {
+      principal: { kind: "identity_account", id: ALICE, relation: "" },
+      relation: "admin",
+      resource: { kind: "organization", id: "acme" },
+    };
+    const cases: ReadonlyArray<[IamPolicySpec, string]> = [
+      [
+        spec(
+          { ...base.principal, kind: "identity:account" },
+          base.relation,
+          base.resource,
+        ),
+        "principal.kind",
+      ],
+      [
+        spec(
+          { ...base.principal, id: `${ALICE}@x` },
+          base.relation,
+          base.resource,
+        ),
+        "principal.id",
+      ],
+      [
+        spec(
+          { ...base.principal, relation: "mem#ber" },
+          base.relation,
+          base.resource,
+        ),
+        "principal.relation",
+      ],
+      [
+        spec(base.principal, base.relation, {
+          ...base.resource,
+          kind: "org:anization",
+        }),
+        "resource.kind",
+      ],
+      [
+        spec(base.principal, base.relation, {
+          ...base.resource,
+          id: "acme#admin",
+        }),
+        "resource.id",
+      ],
+      [spec(base.principal, "ad@min", base.resource), "relation"],
+    ];
+    for (const [malformed, field] of cases) {
+      expect(malformedTripleField(malformed), field).toBe(field);
+    }
+  });
+
+  it("is undefined for a well-formed triple, the public wildcard principal included", () => {
+    expect(
+      malformedTripleField(
+        spec({ kind: "identity_account", id: ALICE }, "admin", {
+          kind: "organization",
+          id: "acme",
+        }),
+      ),
+    ).toBeUndefined();
+    expect(
+      malformedTripleField(
+        spec({ kind: "identity_account", id: "*" }, "viewer", {
+          kind: "agent",
+          id: AGENT,
+        }),
+      ),
+    ).toBeUndefined();
+  });
 });
 
 describe("the contract's identity strings", () => {
@@ -205,6 +327,18 @@ describe("byte-pinned copy", () => {
     );
     expect(AUTHENTICATION_REQUIRED_MESSAGE).toBe(
       "Authentication required to check permissions",
+    );
+    expect(unknownResourceKindMessage("organisation")).toBe(
+      "Unknown resource kind: 'organisation'",
+    );
+  });
+
+  it("spells the two new writer refusals in the cloud sentence's shape", () => {
+    expect(unknownPrincipalKindMessage("team")).toBe(
+      "Unknown principal kind: 'team'",
+    );
+    expect(malformedTripleMessage("resource.id")).toBe(
+      "policy resource.id must not contain ':', '#' or '@'",
     );
   });
 

@@ -44,6 +44,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { BillingQueryController } from "@stigmer/protos/ai/stigmer/billing/v1/query_pb";
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+import type { IamPolicy } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 
 import {
@@ -53,8 +54,10 @@ import {
   composeServer,
   createLogger,
   DuplicateAccountError,
+  DuplicatePolicyError,
   EncryptionScope,
   EncryptionUnavailableError,
+  iamPolicyStoreContract,
   identityAccountStoreContract,
   identityIdForSubject,
   InvalidTokenError,
@@ -88,6 +91,9 @@ import type {
   ChannelRuntime,
   ComposedServer,
   GateSlotName,
+  IamPolicyStore,
+  IamPolicyStoreContractCase,
+  IamPolicyStoreContractFixture,
   IdentityAccountStore,
   IdentityAccountStoreContractCase,
   IdentityAccountStoreContractFixture,
@@ -209,6 +215,56 @@ export function consumerIdentityAccountStoreContract(): ReadonlyArray<IdentityAc
 
 export async function runConsumerIdentityAccountStoreContract(): Promise<void> {
   for (const contractCase of consumerIdentityAccountStoreContract()) {
+    await contractCase.run();
+  }
+}
+
+/**
+ * A consumer-shaped IamPolicy store driver (the 20260913.01 seam, Q-OR-1):
+ * the PORT the IamPolicy domain's grant path writes and reads through when
+ * a composition registers one — the cloud's `cloud.iam_policy` store takes
+ * this position (registered as `drivers.iamPolicyStore` from slice 3).
+ * `save` is create-only in effect: a held id raises the exported
+ * DuplicatePolicyError so the grant path's race arm (re-read the winner by
+ * triple; answer it as the duplicate) works over a consumer driver exactly
+ * as over the OSS adapter.
+ */
+const consumerIamPolicyStore: IamPolicyStore = {
+  save: (policy: IamPolicy) =>
+    Promise.reject(
+      new DuplicatePolicyError(
+        `IAM policy '${policy.metadata?.id ?? ""}' already exists`,
+      ),
+    ),
+  deleteById: () => Promise.resolve(),
+  findById: () => Promise.resolve(undefined),
+  findByPrincipal: () => Promise.resolve([]),
+  findByResource: () => Promise.resolve([]),
+  findByPrincipalAndResource: () => Promise.resolve([]),
+  findByResourceWithRelations: () => Promise.resolve([]),
+  countDistinctPrincipalsByResource: () => Promise.resolve(0),
+  findScopeTuple: () => Promise.resolve(undefined),
+};
+
+/**
+ * The IamPolicy port-contract kit over the consumer's driver (the 2a A11
+ * shape): a composition's driver test iterates these cases with its own
+ * framework so the same contract the OSS adapter passes is what the driver
+ * is held to. Compile-only here: this package proves the exported shape,
+ * not a fake's behavior.
+ */
+export function consumerIamPolicyStoreContract(): ReadonlyArray<IamPolicyStoreContractCase> {
+  return iamPolicyStoreContract(
+    async (): Promise<IamPolicyStoreContractFixture> => ({
+      store: consumerIamPolicyStore,
+      disconnect: () => Promise.resolve(),
+      cleanup: () => Promise.resolve(),
+    }),
+  );
+}
+
+export async function runConsumerIamPolicyStoreContract(): Promise<void> {
+  for (const contractCase of consumerIamPolicyStoreContract()) {
     await contractCase.run();
   }
 }

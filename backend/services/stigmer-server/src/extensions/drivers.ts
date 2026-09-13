@@ -90,8 +90,13 @@ export interface ExtensionDrivers {
    * The resource-authorization lifecycle seam (C2, ruling Q2;
    * single-instance point). When composed, the three shared tuple steps
    * (CreateAuthorizationTuples / CleanupIamPolicies /
-   * UpdateVisibilityTuples) deliver resolved events to it; when absent,
-   * those steps no-op — OSS behavior byte-identical.
+   * UpdateVisibilityTuples) deliver resolved events to it, and the
+   * IamPolicy grant path delivers the two policy hooks. Corrected
+   * 2026-09-13 (20260913.01 Q-OR-6): when absent, the steps no-op, but
+   * open source is no longer record-less — the composition root installs
+   * the built-in role lifecycle (domain/iampolicy/role-lifecycle.ts, the
+   * entry's slice 4), which writes IamPolicy rows, whenever no extension
+   * registers an Authorizer (resource-authorization.ts header).
    */
   readonly resourceAuthorizationLifecycle?: ResourceAuthorizationLifecycle;
   /**

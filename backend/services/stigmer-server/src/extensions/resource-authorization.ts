@@ -26,9 +26,37 @@
  *   - onVisibilityChanged: SYNCHRONOUS, post-persist; a throw fails the
  *     request (metadata may be persisted with tuples lagging — retrying
  *     the same transition converges, the set-diff is idempotent).
+ *
+ * Corrected 2026-09-13 (20260913.01, T01_1_review.md Q-OR-6, Q-OR-10):
+ * "no driver composed = OSS behavior byte-identical" described the seam
+ * while the only writer of authorization records was the cloud's tuple
+ * driver. The seam now records authorization at lifecycle points in EVERY
+ * edition: open source's built-in role lifecycle
+ * (domain/iampolicy/role-lifecycle.ts, the entry's slice 4) writes
+ * IamPolicy rows (the organization creator's `owner` row; cleanup on
+ * delete), and a composed driver writes tuples too. The two POLICY hooks below are the
+ * other direction of the same seam — the IamPolicy domain's one grant and
+ * revoke path (domain/iampolicy/grant-path.ts) telling the driver that a
+ * row was written or is about to be deleted, so a composition can mirror
+ * the row as a tuple. Their order is the cloud#425 invariant, fixed by the
+ * path and stated on each event:
+ *   - onPolicyGranted: SYNCHRONOUS, AFTER the row is persisted; fires on
+ *     the duplicate arm too (the inline heal for a row whose tuple never
+ *     landed). A throw fails the request with the row in place — the
+ *     caller's retry or a boot backfill heals it.
+ *   - onPolicyRevoked: SYNCHRONOUS, BEFORE the row is deleted. A throw
+ *     leaves row and tuple, so a retry converges; the reverse order was
+ *     the fail-open incident class ("revoke" silently becoming "keep").
+ *     On the absent arm (no row for the spec) it fires with the spec and
+ *     no policy, so a composition can still delete a bare tuple written
+ *     before the row mirror existed.
+ * Absent method = no mirror is written (the OSS posture: rows are the
+ * record).
  */
 import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { OwnerAttributionType } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/authorization_config_pb";
+import type { IamPolicy } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import type { IamPolicySpec } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
 
 import type { CallerIdentity } from "./identity.js";
 
@@ -126,6 +154,31 @@ export interface DefaultInstanceLinkedEvent {
 }
 
 /**
+ * Fired synchronously AFTER an IamPolicy row is persisted by the domain's
+ * grant path — and on the duplicate arm, when the triple was already held
+ * and no row was written, so a composition heals a row whose tuple never
+ * landed (cloud#425's inline heal). `policy` is the row as stored: on the
+ * duplicate arm the FIRST writer's row, whose id may be a legacy random
+ * one on a composition that predates derived ids.
+ */
+export interface PolicyGrantedEvent {
+  readonly policy: IamPolicy;
+  /** True when the triple was already held and this grant wrote nothing. */
+  readonly duplicate: boolean;
+}
+
+/**
+ * Fired synchronously BEFORE an IamPolicy row is deleted by the domain's
+ * grant path. `spec` is always the triple being revoked; `policy` is the
+ * row found for it, or `undefined` on the absent arm — the spec alone is
+ * enough to name the tuple a composition still deletes then.
+ */
+export interface PolicyRevokedEvent {
+  readonly spec: IamPolicySpec;
+  readonly policy: IamPolicy | undefined;
+}
+
+/**
  * The driver interface (single-instance point, registered via
  * ExtensionDrivers.resourceAuthorizationLifecycle). Implementations must
  * be idempotent per event — the surrounding chains retry whole requests,
@@ -142,4 +195,16 @@ export interface ResourceAuthorizationLifecycle {
    * (the OSS posture: local access control needs none).
    */
   onDefaultInstanceLinked?(event: DefaultInstanceLinkedEvent): Promise<void>;
+  /**
+   * OPTIONAL (added 20260913.01 slice 2): synchronous, AFTER the row
+   * persist, on the duplicate arm too; a throw fails the grant with the
+   * row in place. Absent method = rows are the record (the OSS posture).
+   */
+  onPolicyGranted?(event: PolicyGrantedEvent): Promise<void>;
+  /**
+   * OPTIONAL (added 20260913.01 slice 2): synchronous, BEFORE the row
+   * delete; a throw leaves row and tuple for the retry. Absent method =
+   * rows are the record (the OSS posture).
+   */
+  onPolicyRevoked?(event: PolicyRevokedEvent): Promise<void>;
 }
