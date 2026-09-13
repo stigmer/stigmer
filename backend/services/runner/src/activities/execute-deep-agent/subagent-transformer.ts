@@ -31,7 +31,6 @@ import type { BaseChatModel } from "@langchain/core/language_models/chat_models"
 import type { SubAgent, McpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 
 import type { WorkspaceBackend } from "../../shared/workspace/types.js";
-import type { StigmerClient } from "../../client/stigmer-client.js";
 import type { ApprovalGateConfig } from "../../middleware/approval-gate.js";
 import { createCasCaptureBackend } from "./cas-capture-backend.js";
 import type { CasCaptureObserver } from "./cas-capture-observer.js";
@@ -40,11 +39,8 @@ import { createThinkTool, createWebFetchTool, type GuardPosture } from "../../to
 import { buildSubAgentMiddleware } from "./subagent-wiring.js";
 import { SubAgentGate } from "../../shared/subagent-gate.js";
 import { isModelRegistered } from "../../shared/model-registry.js";
-import {
-  fetchSkillsByRefs,
-  mountSkills,
-  generatePromptSection,
-} from "../../shared/skill-writer.js";
+import type { SkillMetadata } from "../../shared/skill-resolver.js";
+import { renderSkillsSection } from "./prompt-builder.js";
 
 // =========================================================================
 // Built-in subagent types and prompts
@@ -141,7 +137,14 @@ export interface SubagentTransformOptions {
   readonly parentMcpTools: readonly StructuredTool[];
   readonly parentMcpServerToolMap: ReadonlyMap<string, readonly StructuredTool[]>;
   readonly parentMcpUsages: readonly McpServerUsage[];
-  readonly skillClient: StigmerClient;
+  /**
+   * Each sub-agent's mounted skills, keyed by the sub-agent's name — the
+   * runtime's `TurnSkills.bySubAgent` (resolved and mounted by its skills
+   * phase, S3 M1 Q-S3-5). A sub-agent with no entry renders no skills
+   * section. Until S3 M2a this module fetched and mounted them itself with
+   * a control-plane client; the compile step is client-free now.
+   */
+  readonly skills: ReadonlyMap<string, readonly SkillMetadata[]>;
   readonly workspaceBackend: WorkspaceBackend;
   /**
    * The parent's approval-gate config, inherited verbatim so a mutating tool
@@ -415,64 +418,38 @@ export function filterMcpToolsForSubagent(
 // =========================================================================
 
 /**
- * Collect all unique skill refs across all subagents for batch fetching.
- *
- * Deduplicates by slug to minimize gRPC calls. Returns an array of refs
- * and the mapping from slug to original refs for distribution.
- */
-export function collectAllSkillRefs(
-  subAgents: readonly SubAgent[],
-): { slug: string; ref: unknown }[] {
-  const seen = new Set<string>();
-  const unique: { slug: string; ref: unknown }[] = [];
-
-  for (const sa of subAgents) {
-    for (const ref of sa.skillRefs) {
-      const slug = (ref as { slug?: string }).slug;
-      if (slug && !seen.has(slug)) {
-        seen.add(slug);
-        unique.push({ slug, ref });
-      }
-    }
-  }
-
-  return unique;
-}
-
-/**
- * Resolve skills for a single subagent and return the prompt section.
- *
- * Looks up each of the subagent's skill_refs in the pre-fetched skills
- * collection and generates a prompt section containing activation
- * instructions and file paths.
- *
- * Returns empty string if no skills match or if the subagent has no skill_refs.
+ * The `## Skills` section of one sub-agent's system prompt, from the skills
+ * the runtime mounted for it. Empty when it has none.
  */
 export function resolveSubagentSkillPrompt(
   subAgent: SubAgent,
-  skillsBySlug: ReadonlyMap<string, { skill: unknown; path: string }>,
+  skills: ReadonlyMap<string, readonly SkillMetadata[]>,
 ): string {
-  if (subAgent.skillRefs.length === 0) return "";
+  return renderSkillsSection(skills.get(subAgent.name) ?? []);
+}
 
-  const matchedSkills: unknown[] = [];
-  const matchedPaths = new Map<string, string>();
+/**
+ * Heuristic check for native extended thinking support. Models with thinking
+ * support don't need the explicit think tool. Read for the parent (does its
+ * graph carry `think`?) and inherited by every sub-agent that names no model
+ * of its own. Moved from `setup.ts` at S3 M2a: the compile step is where it
+ * is consumed, and the adapter's setup reads it from here too.
+ */
+export function modelHasNativeThinking(modelId: string): boolean {
+  const lower = modelId.toLowerCase();
 
-  for (const ref of subAgent.skillRefs) {
-    const slug = (ref as { slug?: string }).slug;
-    if (!slug) continue;
+  if (lower.includes("haiku")) return false;
+  if (lower.includes("gpt-4o-mini")) return false;
 
-    const entry = skillsBySlug.get(slug);
-    if (entry) {
-      matchedSkills.push(entry.skill);
-      const id = (entry.skill as { metadata?: { id?: string } }).metadata?.id;
-      if (id) matchedPaths.set(id, entry.path);
-    }
+  if (lower.includes("claude") && (
+    lower.includes("sonnet") || lower.includes("opus")
+  )) return true;
+
+  if (lower.includes("o1") || lower.includes("o3") || lower.includes("o4")) {
+    return true;
   }
 
-  if (matchedSkills.length === 0) return "";
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return generatePromptSection(matchedSkills as any[], matchedPaths);
+  return false;
 }
 
 // =========================================================================
@@ -640,7 +617,7 @@ export async function transformAndCompileSubagents(
     parentMcpTools,
     parentMcpServerToolMap,
     parentMcpUsages,
-    skillClient,
+    skills,
     workspaceBackend,
     approvalGate,
     casObserver,
@@ -668,42 +645,6 @@ export async function transformAndCompileSubagents(
     parentMcpTools,
     webFetchPosture,
   );
-
-  // Step 1b: Batch fetch all skills referenced by subagents
-  const allSkillRefs = collectAllSkillRefs(subAgents);
-  const skillsBySlug = new Map<string, { skill: unknown; path: string }>();
-
-  if (allSkillRefs.length > 0) {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const refs = allSkillRefs.map((r) => r.ref) as any[];
-      const skills = await fetchSkillsByRefs(skillClient, refs);
-
-      if (skills.length > 0) {
-        // Runs after the parent's setup step 7b mounted its skills, so any
-        // skill shared by parent and sub-agent is a cache hit here — the
-        // hash-keyed marker turns the old double download into a no-op.
-        // platformDir is an invariant: provisionWorkspace threads
-        // ensurePlatformDir into every backend it constructs.
-        const { paths: skillPaths } = await mountSkills(
-          skillClient, skills, workspaceBackend.platformDir!,
-        );
-
-        for (const skill of skills) {
-          const slug = (skill as { metadata?: { slug?: string } }).metadata?.slug;
-          const id = (skill as { metadata?: { id?: string } }).metadata?.id;
-          if (slug && id) {
-            skillsBySlug.set(slug, { skill, path: skillPaths.get(id) ?? "" });
-          }
-        }
-        console.log(
-          `[subagent-transformer] Fetched ${skills.length} skill(s) for subagents`,
-        );
-      }
-    } catch (err) {
-      console.error(`[subagent-transformer] Failed to fetch skills for subagents: ${err}`);
-    }
-  }
 
   // Step 2: Transform proto subagents
   const transformed: TransformedSubagent[] = [];
@@ -735,7 +676,7 @@ export async function transformAndCompileSubagents(
         );
 
         // Resolve skills prompt section for this subagent
-        const skillsSection = resolveSubagentSkillPrompt(subAgent, skillsBySlug);
+        const skillsSection = resolveSubagentSkillPrompt(subAgent, skills);
         const enhancedPrompt = skillsSection
           ? result.systemPrompt.replace(
               RESPONSE_RULES,

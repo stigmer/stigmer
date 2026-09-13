@@ -38,7 +38,9 @@ import {
   buildImplementPlanDirective,
   findApprovedPlanPath,
 } from "../../shared/implement-plan-prompt.js";
-import type { InjectedFile } from "./attachment-injector.js";
+import type { ResolvedAttachment } from "../../shared/attachment-resolver.js";
+import type { SkillMetadata } from "../../shared/skill-resolver.js";
+import { STIGMER_LOCAL_STATE_DIR } from "../../shared/workspace/stigmer-link.js";
 
 const RESPONSE_RULES = `
 
@@ -106,7 +108,11 @@ directly over delegating. Only delegate when context isolation \
 or parallelism genuinely helps the user.
 `;
 
+/** The agent's instructions when the blueprint carries none; the prompt is never empty (S3 M2a, F-M2a-16: was `setup.ts`'s alone). */
+export const DEFAULT_INSTRUCTIONS = "You are a helpful AI assistant.";
+
 export interface PromptBuilderInput {
+  /** The blueprint's instructions, raw; empty falls back to {@link DEFAULT_INSTRUCTIONS}. */
   instructions: string;
   provisionResults: ProvisionResult[];
   containerRoot: string;
@@ -119,7 +125,8 @@ export interface PromptBuilderInput {
   channelTemplatesPromptSection?: string;
   workspaceFileRefs: string[];
   workspaceRoot: string;
-  injectedFiles: InjectedFile[];
+  /** The turn's resolved input files, as the runtime's attachment phase returns them. */
+  inputFiles: readonly ResolvedAttachment[];
   /**
    * Vision facts about this turn's attachments (T04): which images the model
    * sees inline in the user message and which degraded to path-only.
@@ -192,10 +199,11 @@ export interface PromptBuilderInput {
   recalledMemories?: RecalledMemoriesContent;
 }
 
-// The prompt renders the injector's own result type — a local structural twin
-// once lived here and silently dropped the size field (`size` vs `sizeBytes`),
-// so the "(N bytes)" annotation never rendered. One type, one truth.
-export type { InjectedFile } from "./attachment-injector.js";
+// The prompt renders the attachment resolver's own result type — a local
+// structural twin once lived here and silently dropped the size field
+// (`size` vs `sizeBytes`), so the "(N bytes)" annotation never rendered. One
+// type, one truth: the runtime's `ResolvedAttachment` (the legacy injector's
+// `InjectedFile` is mapped onto it by `setup.ts` until M2b deletes both).
 
 /**
  * Which images ride the user message inline (in send order) and which
@@ -213,7 +221,7 @@ export interface VisionPromptInfo {
  * sections. Pure function with no I/O.
  */
 export function buildEnhancedSystemPrompt(input: PromptBuilderInput): string {
-  let prompt = input.instructions;
+  let prompt = input.instructions || DEFAULT_INSTRUCTIONS;
 
   const workspaceSection = buildWorkspacePromptSection(
     input.provisionResults,
@@ -241,9 +249,9 @@ export function buildEnhancedSystemPrompt(input: PromptBuilderInput): string {
     }
   }
 
-  if (input.injectedFiles.length > 0) {
-    prompt += buildInjectedFilesSection(
-      input.injectedFiles, input.vision, input.downloadUrlKind,
+  if (input.inputFiles.length > 0) {
+    prompt += buildInputFilesSection(
+      input.inputFiles, input.vision, input.downloadUrlKind,
     );
   }
 
@@ -310,7 +318,7 @@ export function buildEnhancedSystemPrompt(input: PromptBuilderInput): string {
 
   if (input.buildFromPlan) {
     const planPath = findApprovedPlanPath(
-      input.injectedFiles.map((f) => f.path),
+      input.inputFiles.map((f) => f.relativePath),
     );
     prompt +=
       "\n\n## Implement the approved plan\n\n" +
@@ -337,6 +345,62 @@ export function composeUserMessage(
   return conversationCatchup
     ? `${formatConversationCatchupText(conversationCatchup)}\n\n---\n\n${message}`
     : message;
+}
+
+/**
+ * The `## Skills` section of this harness's system prompt, rendered from the
+ * runtime's mounted-skill metadata (`shared/skill-resolver.ts`
+ * `SkillMetadata`), following the Agent Skills spec's progressive
+ * disclosure model: only name, description and location are injected; the
+ * agent reads SKILL.md on demand through its filesystem tools. Byte for byte
+ * the text `shared/skill-writer.ts` `generatePromptSection` rendered from
+ * the `Skill` proto (the legacy `setup.ts` path, retired at M2b); the one
+ * difference is the input — a mounted file's metadata, not a fetched
+ * resource — so this renderer needs no client and serves the root and every
+ * sub-agent alike. Empty for no skills.
+ */
+export function renderSkillsSection(skills: readonly SkillMetadata[]): string {
+  if (skills.length === 0) return "";
+
+  const lines: string[] = [
+    "",
+    "",
+    "## Skills",
+    "",
+    "You have access to the following skills. Each skill provides specialized " +
+    "knowledge or capabilities.",
+    "",
+    "**Activation protocol**: To use a skill, read its SKILL.md file " +
+    "using the `read` tool. The SKILL.md contains detailed instructions, " +
+    "available tools, and usage examples.",
+    "",
+    "**Usage pattern**:",
+    "",
+    "1. Review the skill description below to determine relevance",
+    "2. Read `{location}/SKILL.md` for full instructions",
+    "3. Follow the skill's documented operations:",
+    "",
+    "`read {location}/references/schema.md`",
+    '`execute("python3 {location}/scripts/run.py")`',
+    "",
+  ];
+
+  for (const skill of skills) {
+    const skillDir = skillDirOf(skill);
+    lines.push(`### ${skill.name}`);
+    lines.push(`**Description**: ${skill.description || "(no description)"}`);
+    lines.push(`**Location**: \`${skillDir}/\``);
+    lines.push(`**Activate**: \`read ${skillDir}/SKILL.md\``);
+    lines.push("");
+  }
+
+  return lines.join("\n");
+}
+
+/** The mount directory a skill's `SKILL.md` path names (`.stigmer/skills/<name>`). */
+function skillDirOf(skill: SkillMetadata): string {
+  const slash = skill.path.lastIndexOf("/");
+  return slash > 0 ? skill.path.slice(0, slash) : `${STIGMER_LOCAL_STATE_DIR}/skills/${skill.name}`;
 }
 
 function buildWorkspacePromptSection(
@@ -452,8 +516,8 @@ function buildReferencedFilesSection(
   return section;
 }
 
-function buildInjectedFilesSection(
-  files: readonly InjectedFile[],
+function buildInputFilesSection(
+  files: readonly ResolvedAttachment[],
   vision?: VisionPromptInfo,
   downloadUrlKind?: DownloadUrlKind,
 ): string {
@@ -480,7 +544,7 @@ function buildInjectedFilesSection(
         : "";
     const urlInfo =
       f.downloadUrl !== undefined ? ` — download URL: ${f.downloadUrl}` : "";
-    section += `- \`${f.path}\`${sizeInfo}${renameInfo}${urlInfo}\n`;
+    section += `- \`${f.relativePath}\`${sizeInfo}${renameInfo}${urlInfo}\n`;
   }
 
   // The URL hand-off line (shared wording, attachment-download-urls.ts)

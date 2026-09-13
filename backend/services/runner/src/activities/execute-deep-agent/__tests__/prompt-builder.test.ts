@@ -25,7 +25,7 @@ describe("buildEnhancedSystemPrompt", () => {
       skillsPromptSection: "",
       workspaceFileRefs: [],
       workspaceRoot: "/workspace",
-      injectedFiles: [],
+      inputFiles: [],
     });
 
     expect(prompt.startsWith("You are a helpful assistant.")).toBe(true);
@@ -39,7 +39,7 @@ describe("buildEnhancedSystemPrompt", () => {
       skillsPromptSection: "",
       workspaceFileRefs: [],
       workspaceRoot: "/workspace",
-      injectedFiles: [],
+      inputFiles: [],
     });
 
     expect(prompt).toContain("## Response rules");
@@ -53,7 +53,7 @@ describe("buildEnhancedSystemPrompt", () => {
       skillsPromptSection: "",
       workspaceFileRefs: [],
       workspaceRoot: "/workspace",
-      injectedFiles: [],
+      inputFiles: [],
     });
 
     expect(prompt).toContain("## Sub-agent delegation rules");
@@ -67,7 +67,7 @@ describe("buildEnhancedSystemPrompt", () => {
       skillsPromptSection: "",
       workspaceFileRefs: [],
       workspaceRoot: "/workspace",
-      injectedFiles: [],
+      inputFiles: [],
     });
 
     expect(prompt).toContain("## Workspace");
@@ -85,7 +85,7 @@ describe("buildEnhancedSystemPrompt", () => {
       skillsPromptSection: "",
       workspaceFileRefs: [],
       workspaceRoot: "/workspace",
-      injectedFiles: [],
+      inputFiles: [],
     });
 
     expect(prompt).toContain("2 workspace entries");
@@ -103,7 +103,7 @@ describe("buildEnhancedSystemPrompt", () => {
       skillsPromptSection: "",
       workspaceFileRefs: [],
       workspaceRoot: "/workspace",
-      injectedFiles: [],
+      inputFiles: [],
     });
 
     expect(prompt).toContain("src/");
@@ -118,7 +118,7 @@ describe("buildEnhancedSystemPrompt", () => {
       skillsPromptSection: "\n\n## Skills\n\n- coding-standards",
       workspaceFileRefs: [],
       workspaceRoot: "/workspace",
-      injectedFiles: [],
+      inputFiles: [],
     });
 
     expect(prompt).toContain("## Skills");
@@ -133,7 +133,7 @@ describe("buildEnhancedSystemPrompt", () => {
       skillsPromptSection: "",
       workspaceFileRefs: ["src/config.yaml", "README.md"],
       workspaceRoot: "/workspace",
-      injectedFiles: [],
+      inputFiles: [],
     });
 
     expect(prompt).toContain("## Referenced Files");
@@ -153,9 +153,9 @@ describe("buildEnhancedSystemPrompt", () => {
       skillsPromptSection: "",
       workspaceFileRefs: [],
       workspaceRoot: "/workspace",
-      injectedFiles: [
-        { filename: "data.csv", path: ".stigmer/inputs/data.csv", sizeBytes: 1024 },
-        { filename: "notes.md", path: ".stigmer/inputs/notes.md", sizeBytes: 12 },
+      inputFiles: [
+        { filename: "data.csv", relativePath: ".stigmer/inputs/data.csv", sizeBytes: 1024 },
+        { filename: "notes.md", relativePath: ".stigmer/inputs/notes.md", sizeBytes: 12 },
       ],
     });
 
@@ -172,11 +172,11 @@ describe("buildEnhancedSystemPrompt", () => {
       skillsPromptSection: "",
       workspaceFileRefs: [],
       workspaceRoot: "/workspace",
-      injectedFiles: [
-        { filename: "report.pdf", path: ".stigmer/inputs/report.pdf", sizeBytes: 10 },
+      inputFiles: [
+        { filename: "report.pdf", relativePath: ".stigmer/inputs/report.pdf", sizeBytes: 10 },
         {
           filename: "report-2.pdf",
-          path: ".stigmer/inputs/report-2.pdf",
+          relativePath: ".stigmer/inputs/report-2.pdf",
           sizeBytes: 20,
           renamedFrom: "report.pdf",
         },
@@ -198,14 +198,14 @@ describe("buildEnhancedSystemPrompt", () => {
       skillsPromptSection: "",
       workspaceFileRefs: [],
       workspaceRoot: "/workspace",
-      injectedFiles: [
+      inputFiles: [
         {
           filename: "lease.pdf",
-          path: ".stigmer/inputs/lease.pdf",
+          relativePath: ".stigmer/inputs/lease.pdf",
           sizeBytes: 2048,
           downloadUrl: "https://r2.example/lease?sig=abc",
         },
-        { filename: "notes.md", path: ".stigmer/inputs/notes.md", sizeBytes: 12 },
+        { filename: "notes.md", relativePath: ".stigmer/inputs/notes.md", sizeBytes: 12 },
       ],
       downloadUrlKind: "presigned",
     });
@@ -226,10 +226,10 @@ describe("buildEnhancedSystemPrompt", () => {
       skillsPromptSection: "",
       workspaceFileRefs: [],
       workspaceRoot: "/workspace",
-      injectedFiles: [
+      inputFiles: [
         {
           filename: "lease.pdf",
-          path: ".stigmer/inputs/lease.pdf",
+          relativePath: ".stigmer/inputs/lease.pdf",
           sizeBytes: 2048,
           downloadUrl: "http://localhost:7235/attachments/01A/lease.pdf",
         },
@@ -250,8 +250,8 @@ describe("buildEnhancedSystemPrompt", () => {
       skillsPromptSection: "",
       workspaceFileRefs: [],
       workspaceRoot: "/workspace",
-      injectedFiles: [
-        { filename: "local.csv", path: ".stigmer/inputs/local.csv", sizeBytes: 5 },
+      inputFiles: [
+        { filename: "local.csv", relativePath: ".stigmer/inputs/local.csv", sizeBytes: 5 },
       ],
       downloadUrlKind: "presigned",
     });
@@ -286,7 +286,7 @@ describe("buildEnhancedSystemPrompt", () => {
       skillsPromptSection: "",
       workspaceFileRefs: [],
       workspaceRoot: "/workspace",
-      injectedFiles: [],
+      inputFiles: [],
     });
 
     expect(prompt).toContain("https://github.com/org/my-repo");
@@ -302,7 +302,7 @@ describe("buildEnhancedSystemPrompt", () => {
       skillsPromptSection: "",
       workspaceFileRefs: [],
       workspaceRoot: "/workspace",
-      injectedFiles: [],
+      inputFiles: [],
     });
 
     expect(prompt).not.toContain("## Workspace");
@@ -316,7 +316,7 @@ describe("buildEnhancedSystemPrompt", () => {
       skillsPromptSection: "",
       workspaceFileRefs: [],
       workspaceRoot: "",
-      injectedFiles: [],
+      inputFiles: [],
     };
 
     it("appends the bridge as standing session context (every-turn injection)", () => {
@@ -345,7 +345,7 @@ describe("buildEnhancedSystemPrompt", () => {
       skillsPromptSection: "",
       workspaceFileRefs: [],
       workspaceRoot: "",
-      injectedFiles: [],
+      inputFiles: [],
     };
 
     it("appends the sender as standing session context (every-turn injection)", () => {
@@ -374,7 +374,7 @@ describe("buildEnhancedSystemPrompt", () => {
       skillsPromptSection: "",
       workspaceFileRefs: [],
       workspaceRoot: "",
-      injectedFiles: [],
+      inputFiles: [],
     };
 
     it("appends the context as standing session context (every-turn injection)", () => {
@@ -419,7 +419,7 @@ describe("buildEnhancedSystemPrompt", () => {
       skillsPromptSection: "",
       workspaceFileRefs: [],
       workspaceRoot: "",
-      injectedFiles: [],
+      inputFiles: [],
     };
 
     it("appends the preferences with per-scope attribution (every-turn injection)", () => {
@@ -471,7 +471,7 @@ describe("buildEnhancedSystemPrompt", () => {
       skillsPromptSection: "",
       workspaceFileRefs: [],
       workspaceRoot: "",
-      injectedFiles: [],
+      inputFiles: [],
     };
 
     it("appends the confirmed facts with the defensive framing (every-turn injection)", () => {
@@ -519,7 +519,7 @@ describe("buildEnhancedSystemPrompt", () => {
       skillsPromptSection: "",
       workspaceFileRefs: [],
       workspaceRoot: "/workspace",
-      injectedFiles: [],
+      inputFiles: [],
     };
 
     it("appends the shared plan-mode directive plus the native-only read-boundary line as the final section", () => {
@@ -561,11 +561,11 @@ describe("buildEnhancedSystemPrompt", () => {
       skillsPromptSection: "",
       workspaceFileRefs: [],
       workspaceRoot: "/workspace",
-      injectedFiles: [],
+      inputFiles: [],
     };
     const planFile = {
       filename: "plan.md",
-      path: ".stigmer/inputs/plan.md",
+      relativePath: ".stigmer/inputs/plan.md",
       sizeBytes: 1024,
     };
 
@@ -573,7 +573,7 @@ describe("buildEnhancedSystemPrompt", () => {
       const prompt = buildEnhancedSystemPrompt({
         ...base,
         buildFromPlan: true,
-        injectedFiles: [planFile],
+        inputFiles: [planFile],
       });
 
       expect(prompt).toContain("## Implement the approved plan");
@@ -595,7 +595,7 @@ describe("buildEnhancedSystemPrompt", () => {
     it("omits the directive for an ordinary execution", () => {
       const prompt = buildEnhancedSystemPrompt({
         ...base,
-        injectedFiles: [planFile],
+        inputFiles: [planFile],
       });
 
       expect(prompt).not.toContain("## Implement the approved plan");
@@ -605,7 +605,7 @@ describe("buildEnhancedSystemPrompt", () => {
       const prompt = buildEnhancedSystemPrompt({
         ...base,
         buildFromPlan: true,
-        injectedFiles: [planFile],
+        inputFiles: [planFile],
       });
 
       expect(prompt).toContain("to-do list");
@@ -644,7 +644,7 @@ describe("composeUserMessage (conversation catchup, cloud DD-006 / A27)", () => 
       skillsPromptSection: "",
       workspaceFileRefs: [],
       workspaceRoot: "/workspace",
-      injectedFiles: [],
+      inputFiles: [],
     });
 
     expect(prompt).not.toContain("Conversation catchup");

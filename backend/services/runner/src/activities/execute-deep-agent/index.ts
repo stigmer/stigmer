@@ -9,14 +9,12 @@
  * incremental git writeback, and post-stream safety net.
  */
 
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
 import { Context, CancelledFailure } from "@temporalio/activity";
 import { create, clone, type JsonObject } from "@bufbuild/protobuf";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { AgentExecution, AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { ExecutionPhase, FileCaptureClass, FileChangeSetStatus, InteractionMode, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ApprovalAction, ExecutionPhase, FileCaptureClass, FileChangeSetStatus, InteractionMode, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { activityStarted, activityFinished } from "../../idle-watchdog.js";
 import { normalizeActivityInput, type ExecuteActivityInput } from "../../shared/activity-input.js";
 import { persistStatus, reportSetupProgress, slimStatus, utcTimestamp } from "../../shared/status.js";
@@ -33,11 +31,8 @@ import {
 import type { ToolOutputOffloadContext } from "../../shared/status-offload.js";
 import { publishPlanArtifact } from "../../shared/plan-artifact.js";
 import { classifyTool } from "../../shared/tool-kind.js";
-import {
-  POLICY_ENGINE_VERSION,
-  toProtoPolicySource,
-  type PolicySource,
-} from "../../shared/approval-policy.js";
+import { POLICY_ENGINE_VERSION, toProtoPolicySource } from "../../shared/approval-policy.js";
+import { approvalDecisionsOf, terminalizeNonExecutingDecisions } from "../../harness/approval-decisions.js";
 import type { Config } from "../../config.js";
 import { StigmerClient } from "../../client/stigmer-client.js";
 import { performSetup, type SetupResult } from "./setup.js";
@@ -47,7 +42,7 @@ import { StatusBuilder } from "./status-builder.js";
 import { InlinePublisher } from "./inline-publisher.js";
 import { WriteBackCoordinator } from "../../shared/workspace/writeback-coordinator.js";
 import { processPostStream } from "./post-stream.js";
-import { resolveResumeInput, reconcileNonExecutingDecisions, reconcileUnattendedSkips, type GraphStateSnapshot } from "./hitl.js";
+import { detectPendingInterrupts, resolveResumeInput, reconcileUnattendedSkips, type GraphStateSnapshot } from "./hitl.js";
 import { captureApprovalArtifacts } from "./approval-file-change.js";
 import {
   applyCaptureDecisions,
@@ -66,9 +61,8 @@ import {
   type CasTouchedSnapshot,
 } from "../../shared/filereview/cas-progress.js";
 import { hasCandidateCaptured } from "../../shared/filereview/events.js";
-import { casBlobReader, type CasPathCapture } from "../../shared/filereview/cas-substrate.js";
-import { partitionIgnoredPathsBySecret } from "../../shared/filereview/secret-paths.js";
-import type { CasCaptureObserver } from "./cas-capture-observer.js";
+import { casBlobReader } from "../../shared/filereview/cas-substrate.js";
+import { buildCasTurnCaptures } from "./cas-capture-observer.js";
 import {
   collectSettledToolCallIds,
   collectSubAgentToolCallIds,
@@ -77,7 +71,7 @@ import {
 import { stampFlowedFileEditRows, stampFlowedSubAgentFileEditRows } from "./stamp-flowed-rows.js";
 import { deriveTurnCommandProvenance } from "./command-provenance.js";
 import { describeExecutionError } from "../../shared/model-error.js";
-import { inferProvider, type LlmProvider } from "../../shared/llm-proxy.js";
+import { tryInferProvider } from "../../shared/llm-proxy.js";
 import { getShutdownSignalForQueue } from "../../shared/worker-shutdown.js";
 
 /** The harness id stamped on the deep-agent's file-review ledger events. */
@@ -103,18 +97,6 @@ function buildWorkerShutdownStatus(): AgentExecutionStatus {
       }),
     ],
   });
-}
-
-/**
- * Best-effort provider inference for error-message wording. inferProvider
- * throws on unrecognized names; an error path must never throw over a label.
- */
-function tryInferProvider(modelName: string): LlmProvider | undefined {
-  try {
-    return inferProvider(modelName);
-  } catch {
-    return undefined;
-  }
 }
 
 export function createDeepAgentActivities(config: Config) {
@@ -200,7 +182,12 @@ export function createDeepAgentActivities(config: Config) {
           unattended: setup.unattended,
         });
 
-        const resume = resolveResumeInput(setup.execution, graphState);
+        // The runtime's reading of the adjudicated rows (one projection for
+        // every harness); a first run has no status and so no decisions.
+        const decisions = setup.execution.status
+          ? approvalDecisionsOf(setup.execution.status)
+          : new Map<string, ApprovalAction>();
+        const resume = resolveResumeInput(decisions, graphState);
 
         // Not an approval resume -> setup.langgraphInput, the single
         // construction site of the turn's user message (string or multimodal
@@ -513,15 +500,16 @@ export function createDeepAgentActivities(config: Config) {
         // These decisions never run the tool, so the resumed stream leaves the
         // seeded WAITING_APPROVAL row untouched (the gate returns a ToolMessage
         // with no on_tool_start on http; the memory replay never re-drives the
-        // gate). Folding the recorded decision into a terminal status here makes
-        // reject/skip resolve identically on both checkpointers — see
-        // reconcileNonExecutingDecisions. Runs before the WAITING-detection and
-        // completion persists below so the terminal status is what is persisted.
-        reconcileNonExecutingDecisions(initialStatus);
+        // gate). The runtime's terminalizer (one copy for every harness since
+        // S3 M1) folds the recorded decision into a terminal status here so
+        // reject/skip resolve identically on both checkpointers. Runs before
+        // the WAITING-detection and completion persists below so the terminal
+        // status is what is persisted.
+        terminalizeNonExecutingDecisions(initialStatus);
 
         // Terminalize every tool call the gate auto-skipped under UNATTENDED
         // approval mode (DD-014): the skip has no human decision behind it, so
-        // reconcileNonExecutingDecisions cannot see it — this sibling folds the
+        // the terminalizer cannot see it — this sibling folds the
         // gate's registry into terminal SKIPPED rows with UNATTENDED_SKIP
         // provenance, whatever transient status the stream left behind. No-op
         // for interactive executions (empty registry).
@@ -835,7 +823,7 @@ export function createDeepAgentActivities(config: Config) {
         const { errorType, errorMessage } = describeExecutionError(err, {
           proxyMode: !!config.proxyEndpoint,
           modelId: setup?.modelName,
-          provider: setup ? tryInferProvider(setup.modelName) : undefined,
+          provider: setup ? (tryInferProvider(setup.modelName) ?? undefined) : undefined,
         });
 
         console.error(
@@ -871,45 +859,6 @@ export function createDeepAgentActivities(config: Config) {
   };
 }
 
-/** A pending LangGraph approval interrupt, normalized from the graph checkpoint. */
-interface PendingInterrupt {
-  readonly toolCallId: string;
-  readonly toolName: string;
-  readonly mcpServerSlug: string;
-  readonly message: string;
-  /** Gate provenance carried through the interrupt; undefined → UNSPECIFIED. */
-  readonly policySource: PolicySource | undefined;
-}
-
-/**
- * Normalize the graph checkpoint's un-resumed interrupts into pending approvals.
- * Used both before streaming (to detect whether a resume is a pure file review)
- * and after (to seed the WAITING_FOR_APPROVAL tool rows).
- */
-function detectPendingInterrupts(graphState: GraphStateSnapshot): PendingInterrupt[] {
-  const tasks = (graphState as {
-    tasks?: readonly {
-      interrupts?: readonly { value: Record<string, unknown>; resumeValue?: unknown }[];
-    }[];
-  }).tasks;
-  return (
-    tasks?.flatMap((task) =>
-      (task.interrupts ?? [])
-        .filter((intr) => intr.resumeValue === undefined)
-        .map((intr) => {
-          const val = intr.value as Record<string, unknown>;
-          return {
-            toolCallId: (val?.tool_call_id as string) ?? "",
-            toolName: (val?.tool_name as string) ?? "",
-            mcpServerSlug: (val?.mcp_server_slug as string) ?? "",
-            message: (val?.message as string) ?? "",
-            policySource: (val?.policy_source as PolicySource) || undefined,
-          };
-        }),
-    ) ?? []
-  );
-}
-
 /**
  * Whether the persisted transcript holds any tool call awaiting approval — the
  * checkpointer-independent signal that a resume must drive a tool gate (resume
@@ -927,56 +876,6 @@ function hasPendingToolApprovals(execution: AgentExecution): boolean {
     );
   if (anyWaiting(status.messages)) return true;
   return status.subAgentExecutions.some((sa) => anyWaiting(sa.messages));
-}
-
-/**
- * Assemble the turn's CAS captures and secret-blocked paths from the shared
- * observer (the pre-turn bytes recorded by the parent AND every sub-agent CAS
- * backend, plus the gate's secret-blocked set).
- *
- * For each observed CAS-owned path the after-bytes are re-read from disk (the
- * authoritative net result of the turn; `null` when the file is gone). A path
- * that is secret-like is diverted to `unreviewablePaths` and its before-bytes are
- * dropped — the fail-closed backstop that holds even under the global bypass,
- * where the gate did not run to block it up front. The result composes into the
- * change set in {@link captureCandidateToLedger}.
- *
- * `captureClass` is the turn's CAS substrate class — GIT_IGNORED_CAPTURED for a
- * git work tree's ignored paths, NON_GIT_CAS for a non-git workspace (where these
- * ARE the whole change set) — so each captured path carries its true provenance.
- */
-async function buildCasTurnCaptures(
-  observer: CasCaptureObserver,
-  workspaceRoot: string,
-  captureClass: FileCaptureClass,
-): Promise<{ casCaptures: CasPathCapture[]; unreviewablePaths: string[] }> {
-  // The secret partition (pure, corpus-lockable) decides what may be captured;
-  // this shell only performs the IO for the capturable set. The backstop that
-  // withholds a secret observed under the global bypass lives in the partition.
-  const { capturablePaths, unreviewablePaths } = partitionIgnoredPathsBySecret(
-    observer.before.keys(),
-    observer.blockedSecretPaths,
-  );
-  const casCaptures: CasPathCapture[] = [];
-  for (const relPath of capturablePaths) {
-    const after = await readFileOrNull(join(workspaceRoot, relPath));
-    casCaptures.push({
-      path: relPath,
-      before: observer.before.get(relPath) ?? null,
-      after,
-      captureClass,
-    });
-  }
-  return { casCaptures, unreviewablePaths: [...unreviewablePaths] };
-}
-
-/** Raw bytes of a file, or `null` when it does not exist (a DELETE). */
-async function readFileOrNull(absolutePath: string): Promise<Uint8Array | null> {
-  try {
-    return await readFile(absolutePath);
-  } catch {
-    return null;
-  }
 }
 
 /**

@@ -38,7 +38,11 @@
  */
 
 import { readFile } from "node:fs/promises";
+import { join } from "node:path";
+import type { FileCaptureClass } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { resolveWorkspacePath } from "../../shared/file-change.js";
+import type { CasPathCapture } from "../../shared/filereview/cas-substrate.js";
+import { partitionIgnoredPathsBySecret } from "../../shared/filereview/secret-paths.js";
 
 /**
  * Pre-turn bytes of each first-touched gitignored path, keyed by workspace-root-
@@ -117,6 +121,59 @@ export class CasCaptureObserver {
 
 /** Raw bytes of a file, or `null` when it does not exist (an ADD). */
 async function readBytesOrNull(absolutePath: string): Promise<Uint8Array | null> {
+  try {
+    return await readFile(absolutePath);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Assemble the turn's CAS captures and secret-blocked paths from the shared
+ * observer (the pre-turn bytes recorded by the parent AND every sub-agent CAS
+ * backend, plus the gate's secret-blocked set) — what the turn boundary reads
+ * to compose the change set.
+ *
+ * For each observed CAS-owned path the after-bytes are re-read from disk (the
+ * authoritative net result of the turn; `null` when the file is gone). A path
+ * that is secret-like is diverted to `unreviewablePaths` and its before-bytes are
+ * dropped — the fail-closed backstop that holds even under the global bypass,
+ * where the gate did not run to block it up front. The result composes into the
+ * change set in `captureCandidateToLedger`.
+ *
+ * `captureClass` is the turn's CAS substrate class — GIT_IGNORED_CAPTURED for a
+ * git work tree's ignored paths, NON_GIT_CAS for a non-git workspace (where these
+ * ARE the whole change set) — so each captured path carries its true provenance.
+ *
+ * Lives beside the observer it reads (moved from the orchestrator at S3 M2a).
+ */
+export async function buildCasTurnCaptures(
+  observer: CasCaptureObserver,
+  workspaceRoot: string,
+  captureClass: FileCaptureClass,
+): Promise<{ casCaptures: CasPathCapture[]; unreviewablePaths: string[] }> {
+  // The secret partition (pure, corpus-lockable) decides what may be captured;
+  // this shell only performs the IO for the capturable set. The backstop that
+  // withholds a secret observed under the global bypass lives in the partition.
+  const { capturablePaths, unreviewablePaths } = partitionIgnoredPathsBySecret(
+    observer.before.keys(),
+    observer.blockedSecretPaths,
+  );
+  const casCaptures: CasPathCapture[] = [];
+  for (const relPath of capturablePaths) {
+    const after = await readFileOrNull(join(workspaceRoot, relPath));
+    casCaptures.push({
+      path: relPath,
+      before: observer.before.get(relPath) ?? null,
+      after,
+      captureClass,
+    });
+  }
+  return { casCaptures, unreviewablePaths: [...unreviewablePaths] };
+}
+
+/** Raw bytes of a file, or `null` when it does not exist (a DELETE). */
+async function readFileOrNull(absolutePath: string): Promise<Uint8Array | null> {
   try {
     return await readFile(absolutePath);
   } catch {

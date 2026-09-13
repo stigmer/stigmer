@@ -81,6 +81,8 @@ export interface ResolvedAttachment {
   filename: string;
   /** Workspace-relative path the agent reads (`.stigmer/inputs/{filename}`). */
   relativePath: string;
+  /** The bytes on disk; a prompt discloses it beside the path so the agent can weigh a read. */
+  sizeBytes: number;
   /**
    * The attachment's original filename, present only when a duplicate name
    * was renamed (shared/attachment-naming.ts) — rendered as disclosure in
@@ -216,6 +218,7 @@ async function resolveAttachment(
     return {
       filename,
       relativePath: join(STIGMER_LOCAL_STATE_DIR, INPUTS_SUBDIR, relative),
+      sizeBytes: (await stat(join(inputsDir, relative))).size,
       ...(renamedFrom !== undefined ? { renamedFrom } : {}),
       ...visionOutcomeFields(vision),
       ...(downloadUrl !== undefined ? { downloadUrl } : {}),
@@ -238,6 +241,7 @@ async function resolveAttachment(
   return {
     filename,
     relativePath: join(STIGMER_LOCAL_STATE_DIR, INPUTS_SUBDIR, relative),
+    sizeBytes: content.byteLength,
     ...(renamedFrom !== undefined ? { renamedFrom } : {}),
     ...visionOutcomeFields(vision),
     ...(downloadUrl !== undefined ? { downloadUrl } : {}),
@@ -270,6 +274,7 @@ async function extractArchive(
     results.push({
       filename: posix.basename(entry.relativePath),
       relativePath: join(STIGMER_LOCAL_STATE_DIR, INPUTS_SUBDIR, relative),
+      sizeBytes: bytes.byteLength,
     });
   }
   return results;

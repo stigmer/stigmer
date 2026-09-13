@@ -89,6 +89,7 @@ describe("resolveAttachments", () => {
       {
         filename: "plan.md",
         relativePath: ".stigmer/inputs/plan.md",
+        sizeBytes: 10,
         downloadUrl: "mem://attachments/01ABC/plan.md",
       },
     ]);
@@ -121,7 +122,7 @@ describe("resolveAttachments", () => {
     );
 
     expect(result).toEqual([
-      { filename: "data.csv", relativePath: ".stigmer/inputs/data.csv" },
+      { filename: "data.csv", relativePath: ".stigmer/inputs/data.csv", sizeBytes: 5 },
     ]);
     expect(readFileSync(join(platformDir, "inputs", "data.csv"), "utf-8")).toBe("a,b,c");
   });
@@ -145,11 +146,13 @@ describe("resolveAttachments", () => {
       {
         filename: "report.pdf",
         relativePath: ".stigmer/inputs/report.pdf",
+        sizeBytes: 11,
         downloadUrl: "mem://attachments/01AAA/report.pdf",
       },
       {
         filename: "report-2.pdf",
         relativePath: ".stigmer/inputs/report-2.pdf",
+        sizeBytes: 12,
         renamedFrom: "report.pdf",
         downloadUrl: "mem://attachments/01BBB/report.pdf",
       },
@@ -175,10 +178,11 @@ describe("resolveAttachments", () => {
     // The key-less local file lists no URL; the storage twin does — the
     // per-file split the prompt renders.
     expect(result).toEqual([
-      { filename: "notes.md", relativePath: ".stigmer/inputs/notes.md" },
+      { filename: "notes.md", relativePath: ".stigmer/inputs/notes.md", sizeBytes: 10 },
       {
         filename: "notes-2.md",
         relativePath: ".stigmer/inputs/notes-2.md",
+        sizeBytes: 13,
         renamedFrom: "notes.md",
         downloadUrl: "mem://attachments/01ABC/notes.md",
       },
@@ -248,6 +252,7 @@ describe("resolveAttachments", () => {
       {
         filename: "evil.md",
         relativePath: ".stigmer/inputs/evil.md",
+        sizeBytes: 9,
         downloadUrl: "mem://attachments/01ABC/x",
       },
     ]);
@@ -266,7 +271,7 @@ describe("resolveAttachments", () => {
     );
 
     expect(result).toEqual([
-      { filename: "evil.txt", relativePath: ".stigmer/inputs/evil.txt" },
+      { filename: "evil.txt", relativePath: ".stigmer/inputs/evil.txt", sizeBytes: 15 },
     ]);
     expect(readFileSync(join(platformDir, "inputs", "evil.txt"), "utf-8")).toBe("local-contained");
   });
@@ -377,8 +382,8 @@ describe("resolveAttachments", () => {
       );
 
       expect(result).toEqual([
-        { filename: "data.csv", relativePath: ".stigmer/inputs/bundle.zip/data.csv" },
-        { filename: "readme.md", relativePath: ".stigmer/inputs/bundle.zip/notes/readme.md" },
+        { filename: "data.csv", relativePath: ".stigmer/inputs/bundle.zip/data.csv", sizeBytes: 7 },
+        { filename: "readme.md", relativePath: ".stigmer/inputs/bundle.zip/notes/readme.md", sizeBytes: 7 },
       ]);
       expect(readFileSync(join(platformDir, "inputs", "bundle.zip", "notes", "readme.md"), "utf-8")).toBe("# notes");
       expect(storage.getDownloadUrl, "no URL for entries: the stored object is the ZIP, not any listed file").not.toHaveBeenCalled();
@@ -422,7 +427,7 @@ describe("resolveAttachments", () => {
       const result = await resolveAttachments([makeAttachment()], options({ storage }));
 
       expect(result).toEqual([
-        { filename: "plan.md", relativePath: ".stigmer/inputs/plan.md" },
+        { filename: "plan.md", relativePath: ".stigmer/inputs/plan.md", sizeBytes: 10 },
       ]);
       expect(readFileSync(join(platformDir, "inputs", "plan.md"), "utf-8")).toBe("# The Plan");
     });
@@ -443,6 +448,7 @@ describe("resolveAttachments", () => {
         {
           filename: "data.csv",
           relativePath: ".stigmer/inputs/data.csv",
+          sizeBytes: 5,
           downloadUrl: "mem://attachments/01ABC/data.csv",
         },
       ]);

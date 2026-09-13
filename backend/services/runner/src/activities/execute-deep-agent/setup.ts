@@ -106,7 +106,10 @@ import {
   toLangChainImageBlocks,
   type NotViewableEntry,
 } from "../../shared/attachment-vision.js";
-import { transformAndCompileSubagents } from "./subagent-transformer.js";
+import { modelHasNativeThinking, transformAndCompileSubagents } from "./subagent-transformer.js";
+import type { SkillMetadata } from "../../shared/skill-resolver.js";
+import { STIGMER_LOCAL_STATE_DIR } from "../../shared/workspace/stigmer-link.js";
+import type { SubAgent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import {
   resolveRecursionLimit,
   UNBOUNDED_ADVISORY_RECURSION_LIMIT,
@@ -632,7 +635,10 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
         : undefined,
       workspaceFileRefs: execution.spec!.workspaceFileRefs || [],
       workspaceRoot: workspaceBackend.rootDir,
-      injectedFiles,
+      // The prompt renders the runtime's `ResolvedAttachment`; the injector's
+      // result differs by one field name. Both this map and the injector go
+      // at M2b (the adapter hands the runtime's attachments straight through).
+      inputFiles: injectedFiles.map(({ path, ...rest }) => ({ ...rest, relativePath: path })),
       vision: visionPromptInfo,
       downloadUrlKind: artifactStorage?.downloadUrlKind,
       interactionMode: execution.spec!.executionConfig?.interactionMode,
@@ -839,7 +845,7 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
         parentMcpTools: mcpConnection?.tools as DynamicStructuredTool[] ?? [],
         parentMcpServerToolMap,
         parentMcpUsages: mcpServerUsages,
-        skillClient: client,
+        skills: await mountSubAgentSkills(client, subAgentProtos, workspaceBackend.platformDir!),
         workspaceBackend,
         approvalGate: approvalGateConfig,
         // Capture is universal (Slice 2b), so every sub-agent gets a CAS-observing
@@ -848,7 +854,7 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
         // non-git one) compose into the parent's change set (Session 26, DD-19).
         casObserver,
         parentModelName: modelName,
-        parentHasNativeThinking: _modelHasNativeThinking(modelName),
+        parentHasNativeThinking: modelHasNativeThinking(modelName),
         webFetchPosture,
         costCap: costCapMiddleware ?? undefined,
         modelFactory: async (m: string) =>
@@ -1060,22 +1066,56 @@ async function provisionWorkspace(
 import { jsonSchemaToZod } from "../../shared/json-schema-to-zod.js";
 
 /**
- * Heuristic check for native extended thinking support.
- * Models with thinking support don't need the explicit think tool.
+ * The sub-agents' skills, fetched and mounted here the way `setup.ts` mounts
+ * the root's (Step 7b) and handed to the compiler as the per-sub-agent
+ * metadata it renders — the shape the turn runtime's skills phase produces
+ * for the adapter (`TurnSkills.bySubAgent`, keyed by the sub-agent's name).
+ * Moved from `subagent-transformer.ts` at S3 M2a so the compiler is
+ * client-free; retired with this file at M2b.
  */
-function _modelHasNativeThinking(modelId: string): boolean {
-  const lower = modelId.toLowerCase();
-
-  if (lower.includes("haiku")) return false;
-  if (lower.includes("gpt-4o-mini")) return false;
-
-  if (lower.includes("claude") && (
-    lower.includes("sonnet") || lower.includes("opus")
-  )) return true;
-
-  if (lower.includes("o1") || lower.includes("o3") || lower.includes("o4")) {
+async function mountSubAgentSkills(
+  client: StigmerClient,
+  subAgents: readonly SubAgent[],
+  platformDir: string,
+): Promise<ReadonlyMap<string, readonly SkillMetadata[]>> {
+  const bySubAgent = new Map<string, readonly SkillMetadata[]>();
+  const seen = new Set<string>();
+  const refs = subAgents.flatMap((sa) => sa.skillRefs).filter((ref) => {
+    if (!ref.slug || seen.has(ref.slug)) return false;
+    seen.add(ref.slug);
     return true;
-  }
+  });
+  if (refs.length === 0) return bySubAgent;
 
-  return false;
+  try {
+    const skills = await fetchSkillsByRefs(client, refs);
+    if (skills.length === 0) return bySubAgent;
+    // Runs after Step 7b mounted the root's skills, so a skill shared by
+    // parent and sub-agent is a cache hit here — the hash-keyed marker turns
+    // the old double download into a no-op.
+    const { paths: skillPaths } = await mountSkills(client, skills, platformDir);
+    const bySlug = new Map<string, SkillMetadata>();
+    for (const skill of skills) {
+      const slug = skill.metadata?.slug;
+      const id = skill.metadata?.id;
+      if (!slug || !id) continue;
+      const name = skill.spec?.name || slug;
+      bySlug.set(slug, {
+        name,
+        description: skill.spec?.description ?? "",
+        path: `${skillPaths.get(id) ?? `${STIGMER_LOCAL_STATE_DIR}/skills/${name}`}/SKILL.md`,
+      });
+    }
+    for (const sa of subAgents) {
+      const own = sa.skillRefs.flatMap((ref) => {
+        const meta = bySlug.get(ref.slug);
+        return meta ? [meta] : [];
+      });
+      if (own.length > 0) bySubAgent.set(sa.name, own);
+    }
+    console.log(`[subagent-transformer] Fetched ${skills.length} skill(s) for subagents`);
+  } catch (err) {
+    console.error(`[subagent-transformer] Failed to fetch skills for subagents: ${err}`);
+  }
+  return bySubAgent;
 }
