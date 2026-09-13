@@ -13,7 +13,7 @@
  * `contentDirty`) is what the platform-stop arm relies on.
  *
  * What the golden shows about TODAY's transcript shape, recorded as found
- * (S3 M0 finding F-M0-1, for the owner before M2b): the row does NOT sit on
+ * (S3 M0 finding F-M0-1; a transcript-shape fact for S4): the row does NOT sit on
  * the AI message that carries the text of the same LLM turn. LangGraph 1.3.2
  * stamps the model's events with namespace `["model_request:<uuid>"]` and the
  * tools node's with `["tools:<uuid>"]`; `V3StatusBuilder.ensureAiMessage`

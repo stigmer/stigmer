@@ -1,12 +1,13 @@
 /**
  * The module-boundary double for `shared/model-client.ts` — how a
- * `ScriptedModel` reaches the REAL `performSetup`.
+ * `ScriptedModel` reaches the REAL native engine build.
  *
  * `buildChatModel` is the runner's single construction point for LangChain
- * chat models, and `performSetup` reaches it three ways: the primary model
- * (`setup.ts` step 9), every sub-agent's `modelFactory` (step 11b), and the
- * structured-output extractor. `performSetup(deps)` takes no model, so the
- * one seam a hermetic run has is this module — the native analog of the Cursor
+ * chat models, and a native turn reaches it three ways: the primary model
+ * (`turn-setup.ts` `buildEngine`), every sub-agent's `modelFactory` (the same
+ * `buildModelFor`), and the runtime's tier-2 structured-output extractor
+ * (`shared/extract-structured-output.ts`). None of them takes a model as an
+ * argument, so the one seam a hermetic run has is this module — the native analog of the Cursor
  * driver's `vi.mock("@cursor/sdk")`: the vendor engine doubled where the
  * runner imports it, and nothing else (S3 M0 ruling Q-M0-1, amending
  * Q-S3-11).

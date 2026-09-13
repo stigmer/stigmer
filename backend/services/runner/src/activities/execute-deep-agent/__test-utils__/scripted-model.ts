@@ -47,7 +47,6 @@ import { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import type { BaseChatModelCallOptions } from "@langchain/core/language_models/chat_models";
 import type { CallbackManagerForLLMRun } from "@langchain/core/callbacks/manager";
 import {
-  AIMessage,
   AIMessageChunk,
   isAIMessage,
   isSystemMessage,
@@ -190,11 +189,19 @@ export class ScriptedModel extends BaseChatModel {
     return resolveTurn(normalizeScript(this.select(this.toolNames, context)), round, this.toolNames);
   }
 
+  /**
+   * The non-streaming path (`invoke` outside a graph — the runtime's tier-2
+   * structured-output extractor is the one caller): the SAME chunks the
+   * streaming path yields, merged, which is the `AIMessageChunk` a streaming
+   * provider's `invoke` returns. `@langchain/core`'s base `withStructuredOutput`
+   * pipeline reads exactly that shape (`AIMessageChunk.isInstance`, then
+   * `tool_calls`); a plain `AIMessage` here would fail it with "Input is not
+   * an AIMessageChunk" where the real provider succeeds.
+   */
   async _generate(messages: BaseMessage[]): Promise<ChatResult> {
     const turn = await this.turnFor(messages);
-    const message = renderTurn(turn);
-    const text = typeof message.content === "string" ? message.content : (turn.text ?? "");
-    return { generations: [{ message, text }] };
+    const message = renderTurnChunks(turn).reduce((merged, chunk) => merged.concat(chunk));
+    return { generations: [{ message, text: turn.text ?? "" }] };
   }
 
   async *_streamResponseChunks(
@@ -259,7 +266,7 @@ function resolveTurn(script: RoleScript, round: number, toolNames: readonly stri
 }
 
 // ---------------------------------------------------------------------------
-// Rendering: one AIMessage (invoke) or the chunk sequence (stream)
+// Rendering: the chunk sequence (stream), merged into one message for invoke
 // ---------------------------------------------------------------------------
 
 function usageMetadataOf(usage: ScriptedUsage | undefined): UsageMetadata | undefined {
@@ -277,27 +284,6 @@ function reasoningBlock(reasoning: string, index?: number): ContentBlock.Reasoni
 
 function textBlock(text: string, index?: number): ContentBlock.Text {
   return { type: "text", text, ...(index !== undefined ? { index } : {}) };
-}
-
-function toolCallsOf(turn: ScriptedTurn): AIMessage["tool_calls"] {
-  return (turn.toolCalls ?? []).map((tc) => ({ ...tc, type: "tool_call" as const }));
-}
-
-/**
- * The aggregated message: string content for a plain-text or tool-only turn
- * (the shape every provider gives), content blocks when a reasoning block
- * precedes the text (the shape Anthropic gives with thinking on).
- */
-function renderTurn(turn: ScriptedTurn): AIMessage {
-  const content: string | ContentBlock[] = turn.reasoning
-    ? [reasoningBlock(turn.reasoning), ...(turn.text ? [textBlock(turn.text)] : [])]
-    : (turn.text ?? "");
-  const usage = usageMetadataOf(turn.usage);
-  return new AIMessage({
-    content,
-    tool_calls: toolCallsOf(turn),
-    ...(usage ? { usage_metadata: usage } : {}),
-  });
 }
 
 /** The chunk sequence `convertChunksToEvents` turns into the production event stream (see the header). */

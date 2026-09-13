@@ -43,13 +43,13 @@
  * The ONE knowledge of production this driver holds is `activityFactory`: how
  * to obtain the `ExecuteDeepAgent` function from a `Config`. Since S3 M2a it
  * is the harness registry's: the native adapter booted and bound to its
- * byte-pinned activity name through `createHarnessActivities`, the way the
- * composition roots will bind it at M2b (and the way the Cursor driver
- * already binds its own, `hermetic-cursor.ts`). The orchestrator
- * (`index.ts`) is not driven by this suite from that flip until M2b deletes
- * it: it is frozen, still imported by the roots, and never reaches
- * production from this branch. The goldens moved with the flip, each hunk
- * quoted with its ruling in its test's header (Q-M2a-1).
+ * byte-pinned activity name through `createHarnessActivities`, exactly the
+ * way the composition roots bind it since S3 M2b through `harness-adapters.ts`
+ * (and the way the Cursor driver binds its own, `hermetic-cursor.ts`). The
+ * orchestrator this adapter replaced (`index.ts`, `setup.ts`) was deleted at
+ * M2b; the goldens moved once, with the M2a flip, each hunk quoted with its
+ * ruling in its test's header (Q-M2a-1), and the switch of the roots moved
+ * none (Q-M2b-4).
  *
  * `boot` registers the deepagents harness profiles as production does
  * (S3 M2a F-M2a-14: the orchestrator-driven runs never did, so deepagents

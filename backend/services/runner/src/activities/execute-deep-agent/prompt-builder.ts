@@ -202,8 +202,7 @@ export interface PromptBuilderInput {
 // The prompt renders the attachment resolver's own result type — a local
 // structural twin once lived here and silently dropped the size field
 // (`size` vs `sizeBytes`), so the "(N bytes)" annotation never rendered. One
-// type, one truth: the runtime's `ResolvedAttachment` (the legacy injector's
-// `InjectedFile` is mapped onto it by `setup.ts` until M2b deletes both).
+// type, one truth: the runtime's `ResolvedAttachment`.
 
 /**
  * Which images ride the user message inline (in send order) and which
@@ -353,11 +352,11 @@ export function composeUserMessage(
  * `SkillMetadata`), following the Agent Skills spec's progressive
  * disclosure model: only name, description and location are injected; the
  * agent reads SKILL.md on demand through its filesystem tools. Byte for byte
- * the text `shared/skill-writer.ts` `generatePromptSection` rendered from
- * the `Skill` proto (the legacy `setup.ts` path, retired at M2b); the one
- * difference is the input — a mounted file's metadata, not a fetched
- * resource — so this renderer needs no client and serves the root and every
- * sub-agent alike. Empty for no skills.
+ * the text the orchestrator-era `generatePromptSection` rendered from the
+ * `Skill` proto (deleted with `setup.ts` at S3 M2b); the one difference is
+ * the input — a mounted file's metadata, not a fetched resource — so this
+ * renderer needs no client and serves the root and every sub-agent alike.
+ * Empty for no skills.
  */
 export function renderSkillsSection(skills: readonly SkillMetadata[]): string {
   if (skills.length === 0) return "";
