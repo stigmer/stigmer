@@ -575,35 +575,32 @@ function newLoadSchedulesByAgentStep(
           continue;
         }
       }
-      // 20260830.01 census lane 13: the scope narrows the decoded scan;
-      // the org/agent filters below are contract parity in both editions.
-      const visible = await restrictListByReadScope(
-        listReadScope,
-        ctx.callerIdentity,
-        ApiResourceKind.schedule,
-        decoded,
-        "",
-      );
-
-      const schedules: Schedule[] = [];
-      for (const schedule of visible) {
+      // 20260830.01 census lane 13: the org/agent filters are contract
+      // parity in both editions and run FIRST; the scope narrows the
+      // agent's schedules last (the scope is the last per-row predicate,
+      // stigmer-cloud 20260913.04 T02).
+      const ofAgent = decoded.filter((schedule) => {
         const ref =
           schedule.spec?.target.case === "agent"
             ? schedule.spec.target.value.agentRef
             : undefined;
         if ((ref?.org ?? "") !== agentOrg || (ref?.slug ?? "") !== agentSlug) {
-          continue;
+          return false;
         }
         // Org scope: a multi-org caller asking for one org's schedules
         // must not see another org's schedules of the same agent.
         // (Schedules are same-org by invariant, so today this only
         // excludes rows when the requested org differs from the agent's —
         // kept anyway for contract parity with the sibling RPCs.)
-        if (req.org !== "" && (schedule.metadata?.org ?? "") !== req.org) {
-          continue;
-        }
-        schedules.push(schedule);
-      }
+        return req.org === "" || (schedule.metadata?.org ?? "") === req.org;
+      });
+      const schedules = await restrictListByReadScope(
+        listReadScope,
+        ctx.callerIdentity,
+        ApiResourceKind.schedule,
+        ofAgent,
+        "",
+      );
 
       ctx.set(
         SCHEDULE_LIST_KEY,
@@ -677,26 +674,21 @@ function newListByOrgAndLabelsStep(
           continue;
         }
       }
-      // 20260830.01 census lane 12: the scope narrows the decoded scan;
-      // the org equality below already serves the Java handler's org arm.
-      const visible = await restrictListByReadScope(
+      // 20260830.01 census lane 12: the org and label filters serve the
+      // Java handler's arms in both editions and run FIRST; the scope
+      // narrows the org's rows last (the scope is the last per-row
+      // predicate, stigmer-cloud 20260913.04 T02).
+      const schedules = await restrictListByReadScope(
         listReadScope,
         ctx.callerIdentity,
         ApiResourceKind.schedule,
-        decoded,
+        decoded.filter(
+          (schedule) =>
+            (schedule.metadata?.org ?? "") === req.org &&
+            matchesAllLabels(schedule.metadata?.labels ?? {}, req.labels),
+        ),
         "",
       );
-
-      const schedules: Schedule[] = [];
-      for (const schedule of visible) {
-        if ((schedule.metadata?.org ?? "") !== req.org) {
-          continue;
-        }
-        if (!matchesAllLabels(schedule.metadata?.labels ?? {}, req.labels)) {
-          continue;
-        }
-        schedules.push(schedule);
-      }
 
       schedules.sort((a, b) =>
         compareCreatedAtDesc(

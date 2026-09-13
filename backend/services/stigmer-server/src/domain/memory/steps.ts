@@ -539,23 +539,17 @@ export function newListMemoriesByOrgStep(
           decoded.push(memory);
         }
       }
-      // 20260830.01 census lane 11: the scope narrows the decoded scan;
-      // the org equality below already serves the Java handler's org arm.
-      const visible = await restrictListByReadScope(
+      // 20260830.01 census lane 11: the org equality serves the Java
+      // handler's org arm in both editions and runs FIRST; the scope
+      // narrows the org's rows last (the scope is the last per-row
+      // predicate, stigmer-cloud 20260913.04 T02).
+      const memories = await restrictListByReadScope(
         listReadScope,
         ctx.callerIdentity,
         ApiResourceKind.memory,
-        decoded,
+        decoded.filter((memory) => (memory.metadata?.org ?? "") === org),
         "",
       );
-
-      const memories: Memory[] = [];
-      for (const memory of visible) {
-        if ((memory.metadata?.org ?? "") !== org) {
-          continue;
-        }
-        memories.push(memory);
-      }
 
       memories.sort((a, b) =>
         compareCreatedAtDesc(

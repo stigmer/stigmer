@@ -748,9 +748,7 @@ async function getByWorkflow(
       ),
     )
     .addStep(newValidateProtoStep())
-    .addStep(
-      newLoadByWorkflowStep(deps.store, deps.logger, deps.listReadScope),
-    )
+    .addStep(newLoadByWorkflowStep(deps.store, deps.logger, deps.listReadScope))
     .build()
     .execute(reqCtx);
 
@@ -794,26 +792,21 @@ function newLoadByWorkflowStep(
           continue;
         }
       }
-      // 20260830.01 census lane 20: the scope narrows the decoded scan;
-      // the org/workflow filters below are contract parity in both editions.
-      const visible = await restrictListByReadScope(
+      // 20260830.01 census lane 20: the org/workflow filters are contract
+      // parity in both editions and run FIRST; the scope narrows the
+      // workflow's instances last (the scope is the last per-row
+      // predicate, stigmer-cloud 20260913.04 T02).
+      const filtered = await restrictListByReadScope(
         listReadScope,
         ctx.callerIdentity,
         ApiResourceKind.workflow_instance,
-        decoded,
+        decoded.filter(
+          (instance) =>
+            instance.spec?.workflowId === workflowId &&
+            (request.org === "" || instance.metadata?.org === request.org),
+        ),
         "",
       );
-
-      const filtered: WorkflowInstance[] = [];
-      for (const instance of visible) {
-        if (instance.spec?.workflowId !== workflowId) {
-          continue;
-        }
-        if (request.org !== "" && instance.metadata?.org !== request.org) {
-          continue;
-        }
-        filtered.push(instance);
-      }
 
       logger.info("found workflow instances for workflow", {
         workflowId,
