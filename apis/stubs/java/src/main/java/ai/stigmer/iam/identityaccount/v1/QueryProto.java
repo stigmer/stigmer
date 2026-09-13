@@ -43,7 +43,7 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "mmons/rpc/method_options.proto\032+ai/stigm" +
       "er/iam/identityaccount/v1/api.proto\032*ai/" +
       "stigmer/iam/identityaccount/v1/io.proto\032" +
-      "\033google/protobuf/empty.proto2\374\007\n\036Identit" +
+      "\033google/protobuf/empty.proto2\203\010\n\036Identit" +
       "yAccountQueryController\022\246\001\n\003get\0224.ai.sti" +
       "gmer.iam.identityaccount.v1.IdentityAcco" +
       "untId\0322.ai.stigmer.iam.identityaccount.v" +
@@ -64,17 +64,17 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "t.v1.ExternalSubLookup\0322.ai.stigmer.iam." +
       "identityaccount.v1.IdentityAccount\"M\302\270\030I" +
       "\010\025\020\036\"\003org*>unauthorized to look up ident" +
-      "ity accounts in this organization\022\251\001\n\014ge" +
+      "ity accounts in this organization\022\260\001\n\014ge" +
       "tActorInfo\0224.ai.stigmer.iam.identityacco" +
       "unt.v1.IdentityAccountId\0325.ai.stigmer.co" +
       "mmons.apiresource.ApiResourceAuditActor\"" +
-      ",\302\270\030(\010\001\020\013*\"unauthorized to look up actor" +
-      " info\032\004\240\377+\013B\265\001B\nQueryProtoP\001\242\002\004ASII\252\002!Ai" +
-      ".Stigmer.Iam.Identityaccount.V1\312\002!Ai\\Sti" +
-      "gmer\\Iam\\Identityaccount\\V1\342\002-Ai\\Stigmer" +
-      "\\Iam\\Identityaccount\\V1\\GPBMetadata\352\002%Ai" +
-      "::Stigmer::Iam::Identityaccount::V1b\006pro" +
-      "to3"
+      "3\302\270\030/\010\001\020\013\"\005value*\"unauthorized to look u" +
+      "p actor info\032\004\240\377+\013B\265\001B\nQueryProtoP\001\242\002\004AS" +
+      "II\252\002!Ai.Stigmer.Iam.Identityaccount.V1\312\002" +
+      "!Ai\\Stigmer\\Iam\\Identityaccount\\V1\342\002-Ai\\" +
+      "Stigmer\\Iam\\Identityaccount\\V1\\GPBMetada" +
+      "ta\352\002%Ai::Stigmer::Iam::Identityaccount::" +
+      "V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
