@@ -41,10 +41,20 @@
  *    network. A scenario picks one; the HITL arms record both.
  *
  * The ONE knowledge of production this driver holds is `activityFactory`: how
- * to obtain the `ExecuteDeepAgent` function from a `Config`. Today that is
- * `createDeepAgentActivities`; when the native adapter joins the harness
- * registry (S3 M2), the default flips to the registry-built activity and every
- * golden re-runs unchanged.
+ * to obtain the `ExecuteDeepAgent` function from a `Config`. Since S3 M2a it
+ * is the harness registry's: the native adapter booted and bound to its
+ * byte-pinned activity name through `createHarnessActivities`, the way the
+ * composition roots will bind it at M2b (and the way the Cursor driver
+ * already binds its own, `hermetic-cursor.ts`). The orchestrator
+ * (`index.ts`) is not driven by this suite from that flip until M2b deletes
+ * it: it is frozen, still imported by the roots, and never reaches
+ * production from this branch. The goldens moved with the flip, each hunk
+ * quoted with its ruling in its test's header (Q-M2a-1).
+ *
+ * `boot` registers the deepagents harness profiles as production does
+ * (S3 M2a F-M2a-14: the orchestrator-driven runs never did, so deepagents
+ * auto-injected its ungated `general-purpose` sub-agent into every M0
+ * scenario; the scripted model never delegated to it).
  *
  * Determinism beyond S0's: the clock ticks once per model turn (the scripted
  * model's `onTurn`), so status timestamps and the persist cadence land on the
@@ -168,14 +178,19 @@ export type ExecuteDeepAgentFn = (arg0: ExecuteActivityInput | string, arg1?: st
 export type ActivityFactory = (config: Config) => Promise<ExecuteDeepAgentFn>;
 
 /**
- * Today's production wiring: `createDeepAgentActivities(config).ExecuteDeepAgent`.
- * Imported lazily so the scenario file's `vi.mock` declarations are in force
- * before `index.ts` loads `setup.ts` (which loads the model client) and the
- * `StigmerClient` module.
+ * The adapter through the registry: `createDeepAgentAdapter()` booted on the
+ * scenario's config, bound to `ExecuteDeepAgent` by `createHarnessActivities`
+ * over the turn runtime. Imported lazily so the scenario file's `vi.mock`
+ * declarations are in force before the engine slice loads the model client
+ * and before the registry loads the `StigmerClient` module.
  */
-export const legacyActivityFactory: ActivityFactory = async (config) => {
-  const { createDeepAgentActivities } = await import("../index.js");
-  return createDeepAgentActivities(config).ExecuteDeepAgent;
+export const runtimeActivityFactory: ActivityFactory = async (config) => {
+  const { createDeepAgentAdapter } = await import("../adapter.js");
+  const { createHarnessActivities } = await import("../../../harness/registry.js");
+  const adapter = createDeepAgentAdapter();
+  await adapter.boot(config);
+  const activities = await createHarnessActivities([{ harness: "deep-agent", adapter }], config);
+  return activities.ExecuteDeepAgent!;
 };
 
 /**
@@ -277,7 +292,7 @@ export async function runDeepAgentTurn(
   scenario: DeepAgentScenario,
   options: DeepAgentTurnOptions = {},
 ): Promise<ActivityInvocation> {
-  const activity = await (options.activityFactory ?? legacyActivityFactory)(scenario.config);
+  const activity = await (options.activityFactory ?? runtimeActivityFactory)(scenario.config);
   const threadId = options.threadId ?? FIXTURE.threadId;
   const turnSeq = options.turnSeq ?? 0;
   const input: ExecuteActivityInput = {

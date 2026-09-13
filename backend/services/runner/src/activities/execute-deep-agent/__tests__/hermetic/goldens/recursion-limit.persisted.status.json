@@ -192,16 +192,27 @@
       "type": "MESSAGE_AI",
       "content": "Reading file 10.",
       "timestamp": "2026-01-01T00:00:11.000Z"
+    },
+    {
+      "type": "MESSAGE_SYSTEM",
+      "content": "The agent reached the tool-call limit for this message. Work completed so far has been saved. Send another message to continue where the agent left off.",
+      "timestamp": "2026-01-01T00:00:11.000Z"
     }
   ],
-  "phase": "EXECUTION_IN_PROGRESS",
+  "phase": "EXECUTION_TERMINATED",
+  "error": "Agent reached the tool-call limit for this message. Send another message to continue.",
   "startedAt": "2026-01-01T00:00:00.000Z",
+  "completedAt": "2026-01-01T00:00:11.000Z",
   "streamingUsage": {
     "inputTokens": "11000",
     "outputTokens": "220",
     "totalTokens": "11220",
     "turnCount": 11,
-    "observedAt": "2026-01-01T00:00:11.000Z"
+    "estimatedCostUsd": 0.012100000000000001,
+    "model": "claude-haiku-4.5",
+    "observedAt": "2026-01-01T00:00:11.000Z",
+    "requestedServiceTier": "SERVICE_TIER_STANDARD",
+    "requestedThinkingMode": "THINKING_MODE_DISABLED"
   },
   "fileReviewEventStream": {
     "executionId": "aex_hermetic_0001",

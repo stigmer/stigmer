@@ -14,19 +14,18 @@
  * `executionId:turnSeq`. The ledger shape is what M4's capture lift must
  * reproduce, beside Cursor's `file-review-capture.status.json`.
  *
- * Why this arm has NO golden file (S3 M0 finding F-M0-9, escalated to the
- * owner): `index.ts` creates the workspace's `.stigmer` symlink
- * unconditionally BEFORE the baseline snapshot, and its own comment says the
- * link "appears identically in every capture and cancels out of the diff —
- * the git slice therefore needs no excludePaths". True for the diff; but the
- * link's TARGET is the platform dir under `HOME`, so the baseline and
- * candidate tree OIDs the ledger carries are per-host — and per-run here,
- * where `HOME` is a temp directory. The runtime creates the link only when a
- * skill or attachment needs it, which is why Cursor's golden is byte-stable.
- * S0's rule is to control a volatile source at its origin or escalate, never
- * redact; the owner's lock-timeout ruling (entry 20260911.03 M0) is the shape
- * for a path-bearing status: every content-derived byte is asserted here in
- * code, the two OIDs are asserted only as well-formed and distinct.
+ * Why this arm has a golden file since S3 M2a (Q-M2a-8; S3 M0 finding F-M0-9
+ * closed): the orchestrator created the workspace's `.stigmer` symlink
+ * unconditionally BEFORE the baseline snapshot, and the link's TARGET is the
+ * platform dir under `HOME`, so the baseline and candidate tree OIDs the
+ * ledger carries were per-host — and per-run here, where `HOME` is a temp
+ * directory. The runtime creates the link only when a skill or attachment
+ * needs it (the same rule that makes Cursor's golden byte-stable); this
+ * scenario mounts neither, so no link enters either tree and both OIDs are
+ * content-derived. Every content-derived byte is still asserted in code
+ * (the owner's lock-timeout ruling, entry 20260911.03 M0, is the shape for
+ * a status the host could reach), and `goldens/file-review-capture.status.json`
+ * pins the whole ledger beside Cursor's.
  *
  * Parent phase rows exercised beyond the plain arms: a `local_path` workspace
  * entry (mounted as-is in local mode, the agent rooted at the entry per
@@ -44,7 +43,8 @@
  * `initGitWorkspace` pins author, committer and both dates; the script's path
  * is virtual-absolute (`/notes.md`) so no temp directory can reach the golden.
  *
- * Regenerate: nothing to regenerate — no snapshot.
+ * Regenerate ONLY after a deliberate behavior change:
+ *   npx vitest run src/activities/execute-deep-agent/__tests__/hermetic -u
  */
 
 import { createHash } from "node:crypto";
@@ -180,7 +180,9 @@ describe("ExecuteDeepAgent hermetic — file-review capture", () => {
     expect(final.fileChangeProgress?.filesChanged).toBe(1);
     expect(final.fileChangeProgress?.linesAdded).toBe(1);
 
-    // F-M0-9: the two tree OIDs embed the `.stigmer` link's host path — well-formed and distinct, no more.
+    // The two tree OIDs are content-derived now that no host path enters the
+    // trees (F-M0-9 closed at M2a, Q-M2a-8): well-formed, distinct, and pinned
+    // byte for byte by the golden below.
     const baselineOid = baseline.value.baselineSnapshot?.git?.treeOid ?? "";
     const candidateOid = candidate.value.candidateSnapshot?.git?.treeOid ?? "";
     expect(baselineOid).toMatch(/^[0-9a-f]{40}$/);
@@ -199,5 +201,10 @@ describe("ExecuteDeepAgent hermetic — file-review capture", () => {
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
     const json = JSON.stringify(toJson(AgentExecutionStatusSchema, final));
     expect(json, "no temp path reaches the status itself").not.toContain(env.workspaceRootDir);
+    expect(json, "no host path reaches the status itself").not.toContain(env.home);
+
+    // ── Assert: the golden ───────────────────────────────────────────────────
+    const pretty = JSON.stringify(toJson(AgentExecutionStatusSchema, final), null, 2) + "\n";
+    await expect(pretty).toMatchFileSnapshot("./goldens/file-review-capture.status.json");
   });
 });

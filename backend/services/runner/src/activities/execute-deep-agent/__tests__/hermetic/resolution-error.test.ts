@@ -2,20 +2,21 @@
  * Hermetic golden: a RESOLUTION ERROR — the control plane rejects a read the
  * setup depends on (`client.getAgent`) before any graph exists.
  *
- * Invariant pinned: `performSetup` throws, the activity's outer catch takes
- * the generic-error arm, persists ONE EXECUTION_FAILED status carrying
- * `status.error = "Execution failed: [Error] <message>"` and one system row
- * `"Error: [Error] <message>"`, and RETURNS the slim status (the workflow
- * reads the phase; a throw would make Temporal retry a deterministic
- * failure). Nothing streamed, no lock taken (the lock follows setup on this
- * harness today), no artifacts.
+ * Invariant pinned: the runtime's blueprint phase throws, the runtime's
+ * catch takes its generic-error arm (`terminal-table.ts` `unexpectedErrorArm`),
+ * persists ONE EXECUTION_FAILED status carrying
+ * `status.error = "Execution failed: [Error] <message>"` and two system rows
+ * — the boilerplate "Internal system error occurred. Please contact support
+ * if this issue persists." and `"Error details: [Error] <message>"` — and
+ * RETURNS the slim status (the workflow reads the phase; a throw would make
+ * Temporal retry a deterministic failure). Nothing streamed, no lock taken
+ * (the fault precedes the lock phase), no artifacts.
  *
- * The row copy is one of Q-S3-7's ruled alignments: the runtime's
- * `unexpectedErrorArm` writes the same `status.error` and the boilerplate row
- * plus `"Error details: [Error] <message>"`. This golden
- * (`goldens/resolution-error.status.json`) is the pre-alignment shape M2b's
- * predicted diff is measured against; `status.error` itself must not move
- * (the conformance suite pins it).
+ * The row shape is one of Q-S3-7's ruled alignments, landed at S3 M2a: the
+ * orchestrator wrote one row `"Error: [Error] <message>"`; the runtime's arm
+ * writes the boilerplate plus the details row. `status.error` itself did
+ * not move (the conformance suite pins it). The setup labels are the
+ * runtime's resolution phases' (a stated default of the M2a plan).
  *
  * Carried from `index.test.ts` ("returns EXECUTION_FAILED status when setup
  * fails", "includes error message in failed status", "always returns a
@@ -102,13 +103,14 @@ describe("ExecuteDeepAgent hermetic — resolution error", () => {
     const final = record.lastFullStatus!;
     expect(final.error).toBe(`Execution failed: [Error] ${CONTROL_PLANE_FAULT}`);
     expect(final.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content)).toEqual([
-      `Error: [Error] ${CONTROL_PLANE_FAULT}`,
+      "Internal system error occurred. Please contact support if this issue persists.",
+      `Error details: [Error] ${CONTROL_PLANE_FAULT}`,
     ]);
-    expect(final.messages, "the system row is the whole transcript").toHaveLength(1);
+    expect(final.messages, "the two system rows are the whole transcript").toHaveLength(2);
 
     // ── Assert: nothing past the fault ───────────────────────────────────────
     expect(recordedModelBuilds(), "no model was built").toHaveLength(0);
-    expect(record.setupProgress).toEqual(["Fetching execution…", "Resolving agent…"]);
+    expect(record.setupProgress).toEqual(["Fetching execution", "Resolving agent blueprint"]);
 
     // ── Assert: hermeticity ──────────────────────────────────────────────────
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);

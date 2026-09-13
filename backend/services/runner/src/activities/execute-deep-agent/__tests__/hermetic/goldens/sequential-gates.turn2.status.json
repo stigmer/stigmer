@@ -60,32 +60,21 @@
     }
   ],
   "phase": "EXECUTION_WAITING_FOR_APPROVAL",
-  "startedAt": "2026-01-01T00:00:00.000Z",
+  "startedAt": "2026-01-01T00:00:01.000Z",
   "streamingUsage": {
     "inputTokens": "1600",
     "outputTokens": "40",
     "totalTokens": "1640",
     "turnCount": 1,
-    "observedAt": "2026-01-01T00:00:02.000Z"
+    "estimatedCostUsd": 0.0018,
+    "model": "claude-haiku-4.5",
+    "observedAt": "2026-01-01T00:00:02.000Z",
+    "requestedServiceTier": "SERVICE_TIER_STANDARD",
+    "requestedThinkingMode": "THINKING_MODE_DISABLED"
   },
   "fileReviewEventStream": {
     "executionId": "aex_hermetic_0001",
     "events": [
-      {
-        "eventId": "aex_hermetic_0001:0:aex_hermetic_0001:0:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
-        "changeSetId": "aex_hermetic_0001:0",
-        "eventType": "FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
-        "timestamp": "2026-01-01T00:00:00.000Z",
-        "actor": "runner",
-        "baselineCaptured": {
-          "changeSetId": "aex_hermetic_0001:0",
-          "turnId": "aex_hermetic_0001:0",
-          "harnessId": "deep-agent",
-          "baselineSnapshot": {
-            "kind": "SNAPSHOT_KIND_CAS_MANIFEST"
-          }
-        }
-      },
       {
         "eventId": "aex_hermetic_0001:1:aex_hermetic_0001:1:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
         "changeSetId": "aex_hermetic_0001:1",

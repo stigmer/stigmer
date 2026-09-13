@@ -7,23 +7,21 @@
  * `recursionLimit = 60` (SUPER_STEPS_PER_ROUND); the script proposes a
  * DISTINCT `read_file` every round (distinct ids and paths, so the
  * loop-detection middleware's "repetitive pattern" warning does not end the
- * run first); the graph throws `GraphRecursionError`; the stream loop's
- * `handleRecursionLimit` marks the status TERMINATED with the cross-repo
- * prefix `TOOL_CALL_LIMIT_ERROR_PREFIX` (matched with `startsWith` by
- * stigmer-cloud's `reply-extractor.ts`) and hands the slim back.
+ * run first); the graph throws `GraphRecursionError`; the adapter's turn
+ * classifies it as the `tool_call_limit` outcome (`shared/tool-rounds.ts`
+ * `isGraphRecursionError`), and the runtime's `toolCallLimitArm` writes
+ * TERMINATED with the cross-repo prefix `TOOL_CALL_LIMIT_ERROR_PREFIX`
+ * (matched with `startsWith` by stigmer-cloud's `reply-extractor.ts`) and
+ * its row, PERSISTS it, and returns the slim.
  *
- * What the golden shows about TODAY's behavior, recorded as found (S3 M0
- * finding F-M0-4, a production defect for the owner): the TERMINATED status
- * is RETURNED but never PERSISTED. `index.ts` treats a recursion limit as an
- * "abnormal terminal" and skips the capture-mode persist, then returns
- * `result.terminalStatus` with no persist of its own; the workflow's
- * `persistFinalStatus` fallback runs only for a returned FAILED. So the last
- * status the control plane holds is the stream's mid-run IN_PROGRESS, with the
- * tool rows, and no error. The activity's return value carries the truth; the
- * database does not. Q-S3-6's `tool_call_limit` outcome makes the runtime's
- * TERMINATED arm the one persisted terminal at M2b; this golden
- * (`goldens/recursion-limit.persisted.status.json`) is what that fix changes
- * on purpose. The slim is pinned in code.
+ * Ruled at Q-S3-6 and landed at S3 M2a. Until then the orchestrator RETURNED
+ * the TERMINATED status but never PERSISTED it (S3 M0 finding F-M0-4, a
+ * production defect): the last status the control plane held was the
+ * stream's mid-run IN_PROGRESS with no error, and only the activity's return
+ * value carried the truth. The golden
+ * (`goldens/recursion-limit.persisted.status.json`) now records the
+ * TERMINATED status the control plane holds, which is what that fix changed
+ * on purpose.
  *
  * Also visible here, F-M0-1 at scale: every tool row of the run sits on ONE
  * empty AI message, because `ensureAiMessageForToolCall("")` creates it once
@@ -104,11 +102,15 @@ describe("ExecuteDeepAgent hermetic — tool-call budget exhausted", () => {
     expect(slim.phase).toBe("EXECUTION_TERMINATED");
     expect(String(slim.error).startsWith(TOOL_CALL_LIMIT_ERROR_PREFIX), "the cross-repo prefix").toBe(true);
 
-    // ── Assert: what the control plane holds (F-M0-4) ────────────────────────
-    expect(record.persistedPhases, "no terminal was ever persisted").toEqual([ExecutionPhase.EXECUTION_IN_PROGRESS]);
+    // ── Assert: what the control plane holds (F-M0-4 closed) ─────────────────
+    expect(record.persistedPhases, "the TERMINATED terminal is persisted").toEqual([
+      ExecutionPhase.EXECUTION_IN_PROGRESS,
+      ExecutionPhase.EXECUTION_TERMINATED,
+    ]);
     const persisted = record.lastFullStatus!;
-    expect(persisted.error).toBe("");
-    expect(persisted.completedAt).toBe("");
+    expect(String(persisted.error).startsWith(TOOL_CALL_LIMIT_ERROR_PREFIX), "the persisted error carries the prefix").toBe(true);
+    expect(persisted.error, "the event count left the copy (Q-S3-6)").not.toMatch(/\d+ events?/);
+    expect(persisted.completedAt).not.toBe("");
     const rows = record.toolCalls();
     expect(rows.length, "fewer rounds ran than were scripted: the budget stopped the graph").toBeLessThan(SCRIPTED_ROUNDS);
     expect(rows.length).toBeGreaterThanOrEqual(MIN_TOOL_ROUNDS);

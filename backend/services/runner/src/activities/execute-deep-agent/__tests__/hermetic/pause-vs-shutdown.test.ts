@@ -1,35 +1,37 @@
 /**
  * Hermetic goldens: the two ways a turn is INTERRUPTED from outside, and how
  * the activity tells them apart — the throw-vs-return table the control
- * plane's workflow keys on, recorded on today's code for Q-S3-7's ruled copy
- * alignments (P-1: the runtime's pause copy is Cursor's).
+ * plane's workflow keys on. Since S3 M2a the activity is the turn runtime
+ * over the native adapter, and the shapes below are the runtime's terminal
+ * table (`harness/terminal-table.ts`), ruled at Q-S3-7 (P-1: the pause copy
+ * is Cursor's) and stigmer#1071 ("persist a thrown terminal once").
  *
  *  1. USER PAUSE: the activity's `cancellationSignal` aborts. Whether the
  *     abort lands inside a model call (staged from the scripted model's
  *     `onTurn`) or while the loop is persisting (staged from the control
- *     plane's persist channel, the record's `controlSignal`), the stream
- *     loop's `isCancelledFn` sees it on the next event and PERSISTS PAUSED
- *     WITH the transcript and the row "Execution paused by user. Use resume
- *     to continue from this checkpoint." (`streaming-terminal.ts`), then
- *     throws `CancelledFailure("Activity paused by orchestrator")` — which
- *     the activity's OWN outer catch catches and answers with a SECOND
- *     persist: a bare PAUSED carrying NO messages. The last status on the
- *     wire erases the transcript the first one carried. Recorded as found
- *     (S3 M0 finding F-M0-6, for the owner): this is stigmer#1054's double
- *     persist, fixed in the runtime by stigmer#1071 ("persist a thrown
- *     terminal once"), still present on native because native does not run
- *     the runtime yet; the runtime's `settleWith` closes it at M2b. Both
- *     writes are goldens. The loop's write differs by where the cancel
- *     landed — after the tool finished (`pause.loop.after-tool`) or while it
- *     was still RUNNING (`pause.loop.mid-tool`, the cancel arriving on the
- *     persist that carried the row); the bare write is the same status from
- *     either staging and both match `pause.bare.status.json`.
+ *     plane's persist channel, the record's `controlSignal`), the runtime's
+ *     stop controller aborts the adapter's signal, the adapter cancels the
+ *     graph run and settles `interrupted`, and the runtime persists PAUSED
+ *     ONCE — WITH the transcript and the row "Execution paused by user. Use
+ *     resume to continue." (P-1: the runtime's pause copy is Cursor's; the
+ *     orchestrator's said "… from this checkpoint.") — then throws
+ *     `CancelledFailure("Activity paused by orchestrator")`. Until M2a the
+ *     orchestrator persisted PAUSED TWICE, the second write bare and erasing
+ *     the transcript (S3 M0 finding F-M0-6, stigmer#1054's double persist);
+ *     `pause.bare.status.json` recorded that write and is gone with it. The
+ *     one write differs by where the cancel landed — after the tool finished
+ *     (`pause.loop.after-tool`) or while it was still RUNNING
+ *     (`pause.loop.mid-tool`, the cancel arriving on the persist that carried
+ *     the row).
  *  2. WORKER SHUTDOWN: the queue's shutdown signal is aborted before the
- *     cancel, so the PAUSED the loop marked is rewritten as EXECUTION_FAILED
- *     with the interrupted copy and one row, and the throw is
+ *     cancel, so the interruption is EXECUTION_FAILED with the interrupted
+ *     copy and one row, thrown as
  *     `CancelledFailure("Activity cancelled (worker shutdown, not user pause)")`
- *     (#776) — the workflow re-invokes instead of waiting for a resume. This
- *     copy is byte-identical to the runtime's (`buildWorkerShutdownStatus`).
+ *     (#776) — the workflow re-invokes instead of waiting for a resume. The
+ *     copy is unchanged; what changed at M2a (Q-S3-7, the runtime's arm
+ *     wins) is that the runtime's arm KEEPS the transcript the turn produced
+ *     and appends the row, where the orchestrator's `buildWorkerShutdownStatus`
+ *     replaced the whole status with the row alone.
  *
  * Every interruption is staged deterministically — from a model turn or from
  * a persist, never from a timer.
@@ -131,7 +133,7 @@ describe("ExecuteDeepAgent hermetic — pause vs worker shutdown", () => {
       loopGolden: "./goldens/pause.loop.mid-tool.status.json",
     },
   ])("user pause $staging", ({ begin, controlSignal, loopGolden }) => {
-    it("persists PAUSED with the row, then bare (F-M0-6), and throws as a pause", async () => {
+    it("persists PAUSED once, with the transcript and the row, and throws as a pause", async () => {
       clock.reset();
       const record = deepAgentExecutionRecord({ message: "Look at my notes.", controlSignal });
       inFlight = begin(record);
@@ -143,23 +145,20 @@ describe("ExecuteDeepAgent hermetic — pause vs worker shutdown", () => {
       expect(record.persistedPhases).toEqual([ExecutionPhase.EXECUTION_IN_PROGRESS, ExecutionPhase.EXECUTION_PAUSED]);
 
       const pausedWrites = record.persisted.filter((s) => s.phase === ExecutionPhase.EXECUTION_PAUSED);
-      expect(pausedWrites, "PAUSED is persisted twice").toHaveLength(2);
-      const [fromLoop, fromCatch] = pausedWrites;
-      expect(fromLoop.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content)).toEqual([
-        "Execution paused by user. Use resume to continue from this checkpoint.",
+      expect(pausedWrites, "PAUSED is persisted exactly once (stigmer#1071; F-M0-6 closed at M2a)").toHaveLength(1);
+      const [paused] = pausedWrites;
+      expect(paused.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content)).toEqual([
+        "Execution paused by user. Use resume to continue.",
       ]);
       expect(
-        fromLoop.messages.flatMap((m) => m.toolCalls).map((tc) => tc.name),
-        "the read that landed before the pause is in the loop's write",
+        paused.messages.flatMap((m) => m.toolCalls).map((tc) => tc.name),
+        "the read that landed before the pause is in the one write",
       ).toEqual(["read_file"]);
-      expect(fromCatch.messages, "the catch's write carries no messages").toHaveLength(0);
-      expect(fromCatch.completedAt).toBe("");
-      expect(record.lastFullStatus, "the wire ends on the bare write").toEqual(fromCatch);
+      expect(paused.completedAt).toBe("");
+      expect(record.lastFullStatus, "the wire ends on the write that carries the transcript").toEqual(paused);
 
-      const loopJson = JSON.stringify(toJson(AgentExecutionStatusSchema, fromLoop), null, 2) + "\n";
-      await expect(loopJson).toMatchFileSnapshot(loopGolden);
-      const bareJson = JSON.stringify(toJson(AgentExecutionStatusSchema, fromCatch), null, 2) + "\n";
-      await expect(bareJson).toMatchFileSnapshot("./goldens/pause.bare.status.json");
+      const json = JSON.stringify(toJson(AgentExecutionStatusSchema, paused), null, 2) + "\n";
+      await expect(json).toMatchFileSnapshot(loopGolden);
     });
   });
 
@@ -188,12 +187,18 @@ describe("ExecuteDeepAgent hermetic — pause vs worker shutdown", () => {
     expect(record.persistedPhases.at(-1)).toBe(ExecutionPhase.EXECUTION_FAILED);
     const final = record.lastFullStatus!;
     expect(final.error).toBe("Execution interrupted: runner worker was shut down. Retry or resume.");
+    // The transcript the turn produced is kept and the row appended (the
+    // runtime's arm, Q-S3-7); the tool row rides its own empty AI message
+    // (F-M0-1, S4's).
     expect(final.messages.map((m) => [m.type, m.content])).toEqual([
+      [MessageType.MESSAGE_AI, "Let me look."],
+      [MessageType.MESSAGE_AI, ""],
       [
         MessageType.MESSAGE_SYSTEM,
         "Execution interrupted: the runner worker was shut down while the agent was still running. You can retry or resume.",
       ],
     ]);
+    expect(final.messages.flatMap((m) => m.toolCalls).map((tc) => tc.name), "the read that landed before the drain is kept").toEqual(["read_file"]);
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
     const json = JSON.stringify(toJson(AgentExecutionStatusSchema, final), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/worker-shutdown.status.json");

@@ -15,34 +15,31 @@
           "args": {
             "file_path": "/notes.md"
           },
-          "result": "[{\"type\":\"text\",\"text\":\"Error: File '/notes.md' not found\"}]",
-          "status": "TOOL_CALL_COMPLETED",
+          "status": "TOOL_CALL_RUNNING",
           "startedAt": "2026-01-01T00:00:01.000Z",
-          "completedAt": "2026-01-01T00:00:01.000Z",
           "toolKind": "TOOL_KIND_FILE_READ"
         }
       ]
     },
     {
-      "type": "MESSAGE_AI",
-      "content": "Stopping here as asked.",
-      "timestamp": "2026-01-01T00:00:02.000Z"
-    },
-    {
-      "type": "MESSAGE_AI",
-      "content": "Platform STOP signal",
-      "timestamp": "2026-01-01T00:00:02.000Z"
+      "type": "MESSAGE_SYSTEM",
+      "content": "Execution stopped by the platform.",
+      "timestamp": "2026-01-01T00:00:01.000Z"
     }
   ],
   "phase": "EXECUTION_COMPLETED",
   "startedAt": "2026-01-01T00:00:00.000Z",
-  "completedAt": "2026-01-01T00:00:02.000Z",
+  "completedAt": "2026-01-01T00:00:01.000Z",
   "streamingUsage": {
-    "inputTokens": "2600",
-    "outputTokens": "40",
-    "totalTokens": "2640",
-    "turnCount": 2,
-    "observedAt": "2026-01-01T00:00:02.000Z"
+    "inputTokens": "1200",
+    "outputTokens": "30",
+    "totalTokens": "1230",
+    "turnCount": 1,
+    "estimatedCostUsd": 0.00135,
+    "model": "claude-haiku-4.5",
+    "observedAt": "2026-01-01T00:00:01.000Z",
+    "requestedServiceTier": "SERVICE_TIER_STANDARD",
+    "requestedThinkingMode": "THINKING_MODE_DISABLED"
   },
   "fileReviewEventStream": {
     "executionId": "aex_hermetic_0001",

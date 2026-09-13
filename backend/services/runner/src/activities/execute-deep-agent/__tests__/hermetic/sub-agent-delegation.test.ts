@@ -20,6 +20,12 @@
  * system prompt (`ScriptRoleContext.systemPrompt`), which carries the
  * sub-agent's own instructions — the one thing that differs.
  *
+ * Since S3 M2a the activity is the turn runtime over the native adapter, and
+ * `streamingUsage` carries the runtime accountant's fields — `model`,
+ * `estimatedCostUsd` priced at the registry's rates, the requested tier and
+ * thinking mode (Q-M2a-2: one writer of the summary, the runtime). Nothing
+ * else in this golden moved with the flip.
+ *
  * Regenerate ONLY after a deliberate behavior change:
  *   npx vitest run src/activities/execute-deep-agent/__tests__/hermetic -u
  */

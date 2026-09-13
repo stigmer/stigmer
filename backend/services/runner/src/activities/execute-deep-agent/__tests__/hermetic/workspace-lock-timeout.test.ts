@@ -11,12 +11,14 @@
  * and one system row, persists ONCE, and returns — a Temporal retry would only
  * queue behind the same holder.
  *
- * What this arm records about TODAY's order, for Q-S3-8's ruled alignment:
- * on this harness the lock is taken AFTER the whole of `performSetup` — the
- * model is built, the sub-agents compiled and the graph created before the
- * wait begins (`index.ts` L249, after L156). The runtime takes the lock before
- * the tool surface. The `setupProgress` sequence asserted below is the
- * pre-alignment shape M2b's predicted diff is measured against.
+ * The order, ruled at Q-S3-8 and landed at S3 M2a: the runtime takes the
+ * lock right after provisioning the workspace, BEFORE the tool surface, the
+ * skills, the attachments and the graph — so a turn that cannot have the
+ * tree builds no model and compiles no sub-agent. Until then the
+ * orchestrator took the lock AFTER the whole of `performSetup`. The setup
+ * labels are the runtime's resolution phases'; the adapter's own labels
+ * ("Connecting tools…", "Configuring sub-agents…", "Creating agent…") never
+ * appear, because the turn ends before the adapter runs.
  *
  * Why this is the one terminal arm WITHOUT a file golden (owner ruling,
  * 2026-09-11, entry 20260911.03 M0; carried for native): the wire copy embeds
@@ -126,25 +128,22 @@ describe("ExecuteDeepAgent hermetic — workspace lock timeout", () => {
       ]);
       expect(final.messages, "the system row is the whole transcript").toHaveLength(1);
 
-      // ── Assert: today's order — the whole setup ran BEFORE the wait ────────
+      // ── Assert: the order — the lock is tried before the tool surface ─────
       expect(record.setupProgress).toEqual([
-        "Fetching execution…",
-        "Resolving agent…",
-        "Resolving environment…",
-        "Initializing workspace…",
-        "Configuring sub-agents…",
-        "Creating agent…",
+        "Fetching execution",
+        "Resolving agent blueprint",
+        "Resolving environment",
+        "Provisioning workspace",
         "Waiting for workspace — in use by another session",
       ]);
-      expect(recordedModelBuilds().length, "the model was built before the lock was even tried").toBeGreaterThan(0);
+      expect(recordedModelBuilds(), "no model is built for a turn that cannot have the tree (Q-S3-8)").toHaveLength(0);
 
       // ── Assert: hermeticity ────────────────────────────────────────────────
       expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
-      // Today's heartbeat posture, recorded for Q-S3-8 (parent Q8): native
-      // pulses only from its stream loop and per lock-wait poll; nothing during
-      // setup, and a wait that fails on its first attempt never polls. The
-      // runtime's whole-activity heartbeat makes this count positive at M2b.
-      expect(invocation.heartbeats, "no heartbeat before the stream on this harness today").toHaveLength(0);
+      // The runtime's heartbeat posture (Q-S3-8, parent Q8): every resolution
+      // phase pulses on entry and the terminal write pulses once, so a turn
+      // that ends at the lock has heartbeated before any stream existed.
+      expect(invocation.heartbeats.length, "the runtime heartbeats through resolution").toBeGreaterThan(0);
     } finally {
       await releaseHeldLock?.();
       releaseHeldLock = undefined;

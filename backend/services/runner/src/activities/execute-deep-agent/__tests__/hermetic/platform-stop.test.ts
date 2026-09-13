@@ -4,25 +4,22 @@
  *
  * What the arm does: the record's `controlSignal` answers STOP on the first
  * full write that carries a tool row (the tool-call boundary forces that
- * persist, `persist-decision.ts` `contentDirty`); the stream loop reads the
- * signal off `persistStatus`'s response.
+ * persist, `persist-decision.ts` `contentDirty`); the runtime's chokepoint
+ * reads the signal off the write and aborts the adapter's `stopSignal`; the
+ * adapter's loop, which AWAITED that persist, sees the abort before it pulls
+ * the next event, cancels the graph run and settles `interrupted`; the
+ * runtime's table maps the stop to COMPLETED with `platformStopArm`'s one
+ * row, "Execution stopped by the platform.", no `status.error`, and RETURNS.
  *
- * What the golden shows about TODAY's behavior, recorded as found for
- * Q-S3-3 (ruled: a platform STOP is the platform saying "stop spending now";
- * the runtime's TERMINATED arm is the one enforcement; `graceful-stop.ts` is
- * deleted): on this harness the STOP does NOT stop the run.
- * `middleware/graceful-stop.ts` is always injected, so the loop calls
- * `gracefulStop.activate("Platform STOP signal")` instead of
- * `handleStop`'s COMPLETED-with-row terminal: the middleware blocks every
- * further tool and hands the model one more tool-free round to wrap up. The
- * transcript then carries the model's wrap-up AND the middleware's own notice
- * ("Platform STOP signal …"), which the v3 messages channel emits and
- * `V3StatusBuilder` renders as an ASSISTANT message (F-M0-7: an injected
- * notice appears as the agent's words); the run ends COMPLETED through the
- * normal epilogue with no system row and no `status.error`. The
- * `handleStop` copy "Execution stopped by the platform." is unreachable in
- * production. This golden (`goldens/platform-stop.status.json`) is the
- * pre-alignment shape M2b's predicted diff is measured against.
+ * Ruled at Q-S3-3 (a platform STOP is the platform saying "stop spending
+ * now"; the runtime's abort is the one stop) and landed at S3 M2a. Until
+ * then the orchestrator answered STOP by activating `graceful-stop.ts`,
+ * which handed the model one more tool-free round: the transcript carried
+ * the model's wrap-up ("Stopping here as asked.") AND the middleware's own
+ * notice rendered as the agent's words (F-M0-7), and the run ended
+ * COMPLETED with no row. The graceful-stop middleware is still in the graph
+ * (Q-M2a-4: its deletion is M2b's, with the legacy loop that activated it)
+ * and never activated, so the second scripted turn is never reached.
  *
  * Regenerate ONLY after a deliberate behavior change:
  *   npx vitest run src/activities/execute-deep-agent/__tests__/hermetic -u
@@ -76,7 +73,7 @@ describe("ExecuteDeepAgent hermetic — platform STOP", () => {
     env.dispose();
   });
 
-  it("activates the graceful stop and completes through the normal epilogue (today's shape)", async () => {
+  it("stops the run at the STOP and completes with the platform-stop row (Q-S3-3)", async () => {
     // ── Arrange ──────────────────────────────────────────────────────────────
     let stopsAnswered = 0;
     const record = deepAgentExecutionRecord({
@@ -104,17 +101,19 @@ describe("ExecuteDeepAgent hermetic — platform STOP", () => {
     // ── Act ──────────────────────────────────────────────────────────────────
     const invocation = await runDeepAgentTurn(scenario);
 
-    // ── Assert: the STOP was delivered, and the run completed anyway ─────────
+    // ── Assert: the STOP was delivered, and the run stopped there ────────────
     expect(stopsAnswered, "the platform said STOP at least once").toBeGreaterThan(0);
-    expect(invocation.outcome.kind).toBe("returned");
+    expect(invocation.outcome.kind, "a platform stop RETURNS").toBe("returned");
     expect((invocation.outcome as { value: Record<string, unknown> }).value.phase).toBe("EXECUTION_COMPLETED");
     expect(record.persistedPhases).toEqual([ExecutionPhase.EXECUTION_IN_PROGRESS, ExecutionPhase.EXECUTION_COMPLETED]);
     const final = record.lastFullStatus!;
     expect(final.error).toBe("");
-    expect(final.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM), "handleStop's row is unreachable").toHaveLength(0);
+    expect(final.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content)).toEqual([
+      "Execution stopped by the platform.",
+    ]);
     const ai = final.messages.filter((m) => m.type === MessageType.MESSAGE_AI).map((m) => m.content);
-    expect(ai.slice(0, 3)).toEqual(["Let me look.", "", WRAP_UP]);
-    expect(ai[3], "F-M0-7: the middleware's notice rendered as the agent's words").toMatch(/^Platform STOP signal/);
+    expect(ai, "no wrap-up round and no injected notice: the run stopped at the STOP").toEqual(["Let me look.", ""]);
+    expect(ai).not.toContain(WRAP_UP);
 
     // ── Assert: hermeticity ──────────────────────────────────────────────────
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);

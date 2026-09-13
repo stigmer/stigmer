@@ -25,7 +25,7 @@
     },
     {
       "type": "MESSAGE_SYSTEM",
-      "content": "Execution paused by user. Use resume to continue from this checkpoint.",
+      "content": "Execution paused by user. Use resume to continue.",
       "timestamp": "2026-01-01T00:00:02.000Z"
     }
   ],
@@ -36,7 +36,11 @@
     "outputTokens": "30",
     "totalTokens": "1230",
     "turnCount": 1,
-    "observedAt": "2026-01-01T00:00:01.000Z"
+    "estimatedCostUsd": 0.00135,
+    "model": "claude-haiku-4.5",
+    "observedAt": "2026-01-01T00:00:01.000Z",
+    "requestedServiceTier": "SERVICE_TIER_STANDARD",
+    "requestedThinkingMode": "THINKING_MODE_DISABLED"
   },
   "fileReviewEventStream": {
     "executionId": "aex_hermetic_0001",

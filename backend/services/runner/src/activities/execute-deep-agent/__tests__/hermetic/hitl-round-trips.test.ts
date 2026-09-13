@@ -39,6 +39,18 @@
  * The REJECT arm is what Q-S3-2 aligns the runtime to (REJECT continues on
  * both harnesses); this golden is the native truth it must reproduce.
  *
+ * What every reinvocation golden here shows since S3 M2a (the runtime over
+ * the native adapter; Q-S3-16 and Q-M2a-2): `startedAt` is THIS turn's own,
+ * not turn 1's carried by the orchestrator's whole-status clone; the
+ * `fileReviewEventStream` carries only the events THIS turn authored (the
+ * runtime seeds messages, sub-agents, artifacts, write-backs, todos, usage,
+ * the memory report and the structured output — never the server-owned
+ * ledgers, which the server appends to by event id in `update-status.ts`
+ * `appendRunnerEvents`; the hermetic record replaces wholesale, so a
+ * golden reads as what the runner SENT); and `streamingUsage` carries the
+ * runtime accountant's fields (`model`, `estimatedCostUsd`, the requested
+ * tier and thinking mode).
+ *
  * Regenerate ONLY after a deliberate behavior change:
  *   npx vitest run src/activities/execute-deep-agent/__tests__/hermetic -u
  */

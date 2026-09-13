@@ -35,7 +35,11 @@
     "outputTokens": "50",
     "totalTokens": "1450",
     "turnCount": 1,
-    "observedAt": "2026-01-01T00:00:01.000Z"
+    "estimatedCostUsd": 0.00165,
+    "model": "claude-haiku-4.5",
+    "observedAt": "2026-01-01T00:00:01.000Z",
+    "requestedServiceTier": "SERVICE_TIER_STANDARD",
+    "requestedThinkingMode": "THINKING_MODE_DISABLED"
   },
   "fileReviewEventStream": {
     "executionId": "aex_hermetic_0001",

@@ -112,7 +112,10 @@ export interface DeepAgentWorkspace {
 
 /** The tool surface once connected: LangChain tools plus the tool → server map the builders attribute by. */
 export interface DeepAgentTools {
-  readonly connection: McpConnectionResult;
+  /** Absent when the turn has no servers to connect: `MultiServerMCPClient` refuses an empty config. */
+  readonly connection: McpConnectionResult | undefined;
+  readonly mcpTools: readonly DynamicStructuredTool[];
+  readonly serverToolMap: ReadonlyMap<string, readonly DynamicStructuredTool[]>;
   readonly toolServerMap: ReadonlyMap<string, string>;
 }
 
@@ -221,20 +224,27 @@ export function buildDeepAgentWorkspace(input: TurnInput): DeepAgentWorkspace {
  * Connect the runtime's resolved servers (synthesized attachments included)
  * into LangChain tools. The connect covers the whole fan-out — stdio servers
  * spawn npx/uvx subprocesses here, so on-demand package installs land in
- * this span. A turn with no servers connects nothing and reports nothing.
+ * this span. A turn with no servers connects nothing: `MultiServerMCPClient`
+ * refuses an empty config, which is what the orchestrator's MCP gate
+ * (`mcp-gate.ts`) guarded against beside its channel-only reason; the
+ * runtime resolves unconditionally, so the one remaining question is
+ * "anything to connect?" (S3 M2a, F-M2a-17).
  */
 export async function connectTools(input: TurnInput, sink: TurnSink): Promise<DeepAgentTools> {
-  if (input.mcp.servers.length > 0) {
-    await sink.reportProgress("Connecting tools…");
+  if (input.mcp.servers.length === 0) {
+    return { connection: undefined, mcpTools: [], serverToolMap: new Map(), toolServerMap: new Map() };
   }
+  await sink.reportProgress("Connecting tools…");
   const connection = await connectMcpServers([...input.mcp.servers]);
+  const serverToolMap = new Map<string, readonly DynamicStructuredTool[]>();
   const toolServerMap = new Map<string, string>();
   for (const [serverName, serverTools] of Object.entries(connection.serverToolMap)) {
+    serverToolMap.set(serverName, serverTools as DynamicStructuredTool[]);
     for (const t of serverTools) toolServerMap.set(t.name, serverName);
   }
   sink.setupTiming.mark("connect_mcp");
   sink.recordActivity();
-  return { connection, toolServerMap };
+  return { connection, mcpTools: connection.tools as DynamicStructuredTool[], serverToolMap, toolServerMap };
 }
 
 /**
@@ -395,19 +405,13 @@ export async function buildEngine(
   // Cursor harness); its URL guard posture — strict on managed cloud runners,
   // relaxed on user-owned machines — is derived from the runner mode.
   const webFetchPosture = resolveGuardPosture(config.mode);
-  const mcpTools = (tools.connection.tools as DynamicStructuredTool[]) ?? [];
-  const graphTools = [...mcpTools, createThinkTool(), createWebFetchTool({ posture: webFetchPosture })];
+  const graphTools = [...tools.mcpTools, createThinkTool(), createWebFetchTool({ posture: webFetchPosture })];
 
-  const subAgentProtos = blueprint.subAgents;
   await sink.reportProgress("Configuring sub-agents…");
-  const parentMcpServerToolMap = new Map<string, DynamicStructuredTool[]>();
-  for (const [serverName, serverTools] of Object.entries(tools.connection.serverToolMap)) {
-    parentMcpServerToolMap.set(serverName, serverTools as DynamicStructuredTool[]);
-  }
   const compiledSubagents = await transformAndCompileSubagents({
-    subAgents: subAgentProtos,
-    parentMcpTools: mcpTools,
-    parentMcpServerToolMap,
+    subAgents: blueprint.subAgents,
+    parentMcpTools: tools.mcpTools,
+    parentMcpServerToolMap: tools.serverToolMap,
     parentMcpUsages: blueprint.mergedMcpServerUsages,
     skills: input.skills.bySubAgent,
     workspaceBackend: workspace.backend,

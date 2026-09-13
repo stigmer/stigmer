@@ -65,7 +65,7 @@
     }
   ],
   "phase": "EXECUTION_COMPLETED",
-  "startedAt": "2026-01-01T00:00:00.000Z",
+  "startedAt": "2026-01-01T00:00:02.000Z",
   "completedAt": "2026-01-01T00:00:03.000Z",
   "artifacts": [
     {
@@ -83,65 +83,15 @@
     "outputTokens": "20",
     "totalTokens": "1620",
     "turnCount": 1,
-    "observedAt": "2026-01-01T00:00:03.000Z"
+    "estimatedCostUsd": 0.0017,
+    "model": "claude-haiku-4.5",
+    "observedAt": "2026-01-01T00:00:03.000Z",
+    "requestedServiceTier": "SERVICE_TIER_STANDARD",
+    "requestedThinkingMode": "THINKING_MODE_DISABLED"
   },
   "fileReviewEventStream": {
     "executionId": "aex_hermetic_0001",
     "events": [
-      {
-        "eventId": "aex_hermetic_0001:0:aex_hermetic_0001:0:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
-        "changeSetId": "aex_hermetic_0001:0",
-        "eventType": "FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
-        "timestamp": "2026-01-01T00:00:00.000Z",
-        "actor": "runner",
-        "baselineCaptured": {
-          "changeSetId": "aex_hermetic_0001:0",
-          "turnId": "aex_hermetic_0001:0",
-          "harnessId": "deep-agent",
-          "baselineSnapshot": {
-            "kind": "SNAPSHOT_KIND_CAS_MANIFEST"
-          }
-        }
-      },
-      {
-        "eventId": "aex_hermetic_0001:0:aex_hermetic_0001:0:FILE_REVIEW_EVENT_TYPE_CANDIDATE_CAPTURED",
-        "changeSetId": "aex_hermetic_0001:0",
-        "eventType": "FILE_REVIEW_EVENT_TYPE_CANDIDATE_CAPTURED",
-        "timestamp": "2026-01-01T00:00:02.000Z",
-        "actor": "runner",
-        "candidateCaptured": {
-          "changeSetId": "aex_hermetic_0001:0",
-          "candidateSnapshot": {
-            "kind": "SNAPSHOT_KIND_CAS_MANIFEST",
-            "cas": {
-              "manifestDigest": "f0f81d5105329f7c5cfacd39f4d96d5648c1a31ef6cfc9e4798eaf542b332256",
-              "artifactUri": "artifacts/aex_hermetic_0001/filereview/cas/aex_hermetic_0001_0.manifest.json"
-            }
-          },
-          "changes": [
-            {
-              "id": "aex_hermetic_0001:0:report.md",
-              "pathAfter": "report.md",
-              "kind": "FILE_CHANGE_KIND_ADD",
-              "captureClass": "FILE_CAPTURE_CLASS_NON_GIT_CAS",
-              "after": {
-                "ref": {
-                  "storageKey": "artifacts/aex_hermetic_0001/filereview/cas/blobs/62eae4d09b2b051cf4ac5aa1fd70847b34c47994a1732ff999f47749e71b0441",
-                  "sizeBytes": "32",
-                  "contentHash": "62eae4d09b2b051cf4ac5aa1fd70847b34c47994a1732ff999f47749e71b0441",
-                  "mimeType": "application/octet-stream"
-                }
-              },
-              "afterSha256": "62eae4d09b2b051cf4ac5aa1fd70847b34c47994a1732ff999f47749e71b0441",
-              "diffComplete": true,
-              "fileDigest": "0a4cb3abb53bd2667729af625cb5aaa824831b99a16ec98149a5a813c214b131",
-              "linesAdded": 3
-            }
-          ],
-          "aggregateDigest": "18fe5eace0df12eae8bb199c7069050994b4bce1f9e63031ecd47b11c06148fc",
-          "diffCompleteness": "DIFF_COMPLETENESS_COMPLETE"
-        }
-      },
       {
         "eventId": "aex_hermetic_0001:1:aex_hermetic_0001:1:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
         "changeSetId": "aex_hermetic_0001:1",

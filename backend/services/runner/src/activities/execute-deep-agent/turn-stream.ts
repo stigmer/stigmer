@@ -14,11 +14,25 @@
  * (`shared/persist-decision.ts` over the builder's one dirty flag), AWAITED,
  * so a platform STOP the runtime reads from that write aborts the signal
  * before the next event is pulled; and `stopSignal`, checked at every event
- * boundary and listened to inside the pull, where an abort cancels the graph
- * run — the one way a wedged stream is unblocked, and the same act for every
- * cause of stopping (the runtime knows why; this loop never does). An error
- * the aborted run throws is the abort itself and settles `interrupted`,
- * never `failed`.
+ * boundary and listened to inside the pull, where a stop cancels the graph
+ * run — the same act for every cause of stopping (the runtime knows why;
+ * this loop never does). An error the aborted run throws is the abort itself
+ * and settles `interrupted`, never `failed`.
+ *
+ * WHEN the run is aborted (S3 M2a, F-M2a-18): on the arrival of the next
+ * event — the graph's own step boundary — or after {@link STOP_GRACE_MS} if
+ * no event arrives. A LangGraph run aborted while a step is in flight leaves
+ * `@langchain/core` with an orphaned rejection (`AsyncGeneratorWithSetup`
+ * races its first pull against the signal eagerly, and an abort mid-step
+ * rejects a promise nothing awaits), which surfaces as a process-level
+ * `unhandledRejection` — logged by `main.ts`, but noise the runner must not
+ * produce on every pause. Aborting as an event arrives is clean, and it is
+ * exactly when the orchestrator's loop aborted; so the loop never aborts
+ * right after a persist, even one that answered STOP — it lets the next
+ * event arrive and stops there. A live engine yields an event well inside
+ * the grace; a wedged engine (the runtime's stall watchdog is the caller
+ * here) is forced, and that one orphan is the price of unblocking it — the
+ * contract's bound on settling `interrupted` is what wins.
  *
  * Until S3 M2a this loop (`streaming-v3.ts`) armed its own 120 s stall
  * check, pulsed the Temporal heartbeat every 2 s, read STOP from its own
@@ -56,6 +70,13 @@ export interface StreamableRun extends AsyncIterable<V3ProtocolEvent> {
  * proceeding without the final state (the structured response rides it).
  */
 const RUN_OUTPUT_TIMEOUT_MS = 30_000;
+
+/**
+ * How long a stop waits for the next event before the run is aborted
+ * mid-step (see the header). Well inside the contract kit's settle bound and
+ * far above any token cadence a live model has.
+ */
+const STOP_GRACE_MS = 1_000;
 
 /**
  * Why the turn's stream ended. `completed` and `awaiting_approval` proceed to
@@ -151,16 +172,28 @@ export async function consumeDeepAgentStream(deps: DeepAgentStreamDeps): Promise
   const recorder = createV3EventRecorder(executionId, process.env.V3_EVENT_RECORD_DIR);
   const sideEffects = new StreamingSideEffects({ inlinePublisher: publisher });
   const abortController = new AbortController();
-  const onStop = (): void => abortController.abort("stopped by the runtime");
+  let forceAbort: ReturnType<typeof setTimeout> | undefined;
+  const abortRun = (): void => {
+    if (forceAbort !== undefined) clearTimeout(forceAbort);
+    forceAbort = undefined;
+    abortController.abort("stopped by the runtime");
+  };
+  const onStop = (): void => {
+    forceAbort = setTimeout(abortRun, STOP_GRACE_MS);
+  };
   sink.stopSignal.addEventListener("abort", onStop, { once: true });
 
   let eventsProcessed = 0;
-  const interrupted = (): DeepAgentStreamResult => ({
-    reason: "interrupted",
-    eventsProcessed,
-    runOutput: undefined,
-    pendingPublishPromises: sideEffects.pendingPublishPromises,
-  });
+  /** The stop, taken at a boundary: abort the run now and settle. */
+  const interrupted = (): DeepAgentStreamResult => {
+    abortRun();
+    return {
+      reason: "interrupted",
+      eventsProcessed,
+      runOutput: undefined,
+      pendingPublishPromises: sideEffects.pendingPublishPromises,
+    };
+  };
 
   try {
     if (sink.stopSignal.aborted) return interrupted();
@@ -170,6 +203,11 @@ export async function consumeDeepAgentStream(deps: DeepAgentStreamDeps): Promise
       { ...engine.langgraphConfig, version: "v3", signal: abortController.signal },
     )) as StreamableRun;
     sink.recordActivity();
+    // An aborted run rejects `run.output` with the abort error; an
+    // interrupted turn never awaits it (there is no final state to read), so
+    // the rejection is claimed here or it surfaces as unhandled. A completed
+    // turn still awaits the same promise below and reads its value.
+    run.output.catch(() => undefined);
 
     try {
       for await (const event of run) {
@@ -202,11 +240,11 @@ export async function consumeDeepAgentStream(deps: DeepAgentStreamDeps): Promise
             state: capture.progressState,
           });
         }
-        // Awaited so a platform STOP the runtime reads from this write
-        // aborts the signal before the next event is pulled.
+        // Awaited so a platform STOP the runtime reads from this write has
+        // aborted the signal by the time the next event arrives — where the
+        // stop is taken (see the header on why not here).
         await sink.requestPersist();
         scheduler.markUpdateSent(eventsProcessed);
-        if (sink.stopSignal.aborted) return interrupted();
       }
     } catch (err) {
       // The aborted run throws its own abort out of the pull; that is the
@@ -238,6 +276,7 @@ export async function consumeDeepAgentStream(deps: DeepAgentStreamDeps): Promise
     return { reason: "completed", eventsProcessed, runOutput, pendingPublishPromises: sideEffects.pendingPublishPromises };
   } finally {
     sink.stopSignal.removeEventListener("abort", onStop);
+    if (forceAbort !== undefined) clearTimeout(forceAbort);
     await recorder?.flush();
   }
 }
