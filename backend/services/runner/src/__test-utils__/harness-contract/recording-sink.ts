@@ -21,6 +21,7 @@
 import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 
 import type { TurnSink, UsageDelta } from "../../harness/types.js";
+import type { CasTouchedReader } from "../../shared/filereview/cas-touched.js";
 import { TimingRecorder } from "../../shared/cold-start-timing.js";
 import { emptyStatus } from "../proto-helpers.js";
 
@@ -30,7 +31,8 @@ export type SinkEvent =
   | { readonly kind: "activity"; readonly detail: string | undefined }
   | { readonly kind: "usage"; readonly delta: UsageDelta }
   | { readonly kind: "progress"; readonly label: string }
-  | { readonly kind: "bind"; readonly harnessStateId: string };
+  | { readonly kind: "bind"; readonly harnessStateId: string }
+  | { readonly kind: "cas-observations" };
 
 export interface RecordingTurnSinkOptions {
   /** The status this turn folds into; a fresh empty one when omitted. */
@@ -79,6 +81,14 @@ export class RecordingTurnSink implements TurnSink {
     if (this.bindRejectsWith) throw this.bindRejectsWith;
     this.log.push({ kind: "bind", harnessStateId });
   }
+
+  bindCasObservations(read: CasTouchedReader): void {
+    this.casObservations = read;
+    this.log.push({ kind: "cas-observations" });
+  }
+
+  /** The reader the adapter bound, for a test that wants to pull what the engine observed. */
+  casObservations: CasTouchedReader | undefined;
 
   /** Every call, in order. */
   get events(): readonly SinkEvent[] {

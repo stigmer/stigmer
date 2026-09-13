@@ -82,6 +82,7 @@ import type { EffectiveThinkingMode } from "../shared/thinking-mode.js";
 import type { SenderIdentity } from "../shared/sender-identity.js";
 import type { DeclaredPreferencesContent } from "../shared/declared-preferences.js";
 import type { RecalledMemoriesContent } from "../shared/recalled-memories.js";
+import type { CasTouchedReader } from "../shared/filereview/cas-touched.js";
 import type { HarnessCapabilities } from "./capabilities.js";
 
 /**
@@ -416,6 +417,26 @@ export interface TurnSink {
    * that error and executes nothing further.
    */
   bindHarnessState(harnessStateId: string): Promise<void>;
+
+  /**
+   * What the engine observed touching CAS-owned paths this turn — gitignored
+   * paths in a git tree, every path in a non-git one: the pre-turn bytes of
+   * each first-touched path and the paths the gate blocked as secrets
+   * (`shared/filereview/cas-touched.ts`). The one fact about a turn's file
+   * changes the runtime cannot read from the tree: the pre-edit bytes exist
+   * only at mutation time, in whatever sits between the engine and the disk
+   * (the deep-agent's filesystem backend and gate, the Cursor hook's
+   * sidecar). The runtime reads the AFTER bytes itself and owns everything
+   * else of the capture (`harness/capture.ts`): the baseline, the progress,
+   * the candidate, the stamp, the review decision.
+   *
+   * Bound once, before the first persist, as `bindHarnessState` is; the
+   * runtime pulls it at each progress refresh and at the turn boundary, so
+   * it must return an atomic snapshot (copy live state before any await). A
+   * harness that observes nothing binds nothing and gets git-only capture.
+   * Never throws.
+   */
+  bindCasObservations(read: CasTouchedReader): void;
 }
 
 /**

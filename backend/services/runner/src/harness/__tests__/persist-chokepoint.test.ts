@@ -10,9 +10,11 @@ import { create } from "@bufbuild/protobuf";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { UpdateStatusResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
 import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { ExecutionControlSignal, MessageType, ServiceTier, ThinkingMode, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ExecutionControlSignal, FileChangeKind, MessageType, ServiceTier, ThinkingMode, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
 import type { StigmerClient } from "../../client/stigmer-client.js";
+import type { TurnProgress } from "../capture.js";
+import { newProgressCaptureState, type ProgressSubstrate } from "../../shared/filereview/progress.js";
 import { PersistChokepoint } from "../persist-chokepoint.js";
 import { UsageAccumulator } from "../usage-accumulator.js";
 
@@ -43,7 +45,10 @@ function heldClient(answers: ExecutionControlSignal[] = []) {
   return { client, gates, writes };
 }
 
-function chokepointOver(client: StigmerClient, options: { usage?: UsageAccumulator; onPlatformStop?: () => void } = {}) {
+function chokepointOver(
+  client: StigmerClient,
+  options: { usage?: UsageAccumulator; progress?: TurnProgress; onPlatformStop?: () => void } = {},
+) {
   const status = create(AgentExecutionStatusSchema, {});
   const heartbeat = vi.fn();
   const onPlatformStop = options.onPlatformStop ?? vi.fn();
@@ -53,6 +58,7 @@ function chokepointOver(client: StigmerClient, options: { usage?: UsageAccumulat
     status,
     offload: undefined,
     usage: () => options.usage,
+    progress: () => options.progress,
     heartbeat,
     onPlatformStop,
   });
@@ -88,6 +94,36 @@ describe("PersistChokepoint: one write", () => {
     expect(status.streamingUsage?.estimatedCostUsd).toBe(0.01);
     expect(heartbeat).toHaveBeenCalledTimes(1);
     expect(onPlatformStop).toHaveBeenCalledTimes(1);
+  });
+
+  it("refreshes file_change_progress from the turn's capture before the write, and re-attaches only when the tree moved", async () => {
+    const { client, gates } = heldClient();
+    const captures: boolean[] = [true, false];
+    const substrate: ProgressSubstrate = {
+      capture: async () => ({
+        delta: { entries: [{ pathBefore: "a.md", pathAfter: "a.md", kind: FileChangeKind.MODIFY, linesAdded: 2, linesRemoved: 0 }] },
+        changed: captures.shift() ?? false,
+      }),
+    };
+    const { chokepoint, status } = chokepointOver(client, {
+      progress: { changeSetId: "aex_test:0", substrate, state: newProgressCaptureState() },
+    });
+
+    const first = chokepoint.write();
+    await vi.waitFor(() => expect(gates).toHaveLength(1));
+    expect(status.fileChangeProgress?.changeSetId, "attached before the bytes leave").toBe("aex_test:0");
+    expect(status.fileChangeProgress?.linesAdded).toBe(2);
+    const attachedAt = status.fileChangeProgress?.capturedAt;
+    gates[0]!.open();
+    await first;
+
+    // The floor (2 s) has not elapsed for the second write: no capture, the
+    // snapshot stands; a capture that reports `changed: false` would stand too.
+    const second = chokepoint.write();
+    await vi.waitFor(() => expect(gates).toHaveLength(2));
+    expect(status.fileChangeProgress?.capturedAt).toBe(attachedAt);
+    gates[1]!.open();
+    await second;
   });
 
   it("writes no streaming_usage when no turn was reported", async () => {

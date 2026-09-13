@@ -60,6 +60,7 @@ import {
   type TurnInterruption,
 } from "../shared/worker-shutdown.js";
 import { terminalizeNonExecutingDecisions } from "./approval-decisions.js";
+import type { TurnCapture } from "./capture.js";
 import { PersistChokepoint } from "./persist-chokepoint.js";
 import { StopController } from "./stop-controller.js";
 import {
@@ -163,6 +164,8 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
   const frame: TurnFrame = { primaryDir: undefined, releaseWorkspaceLock: undefined, writeback: null };
   const stop = new StopController();
   let usage: UsageAccumulator | undefined;
+  /** The turn's capture once the baseline is pinned (capture mode only); the chokepoint reads its progress at every write. */
+  let capture: TurnCapture | undefined;
   let heartbeatPhase = "setup";
   let lastActivityDetail: string | undefined;
   let watchdog: StallWatchdog | undefined;
@@ -177,6 +180,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
     status,
     offload: artifactStorage ? { artifactStorage, executionId } : undefined,
     usage: () => usage,
+    progress: () => capture?.progress,
     heartbeat,
     onPlatformStop: () => stop.stop({ kind: "platform-stop" }),
   });
@@ -310,6 +314,11 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
         if (turn.session.metadata) turn.session.metadata.slug = "";
         await client.updateSession(turn.session);
         console.log(`Stored ${harnessStateId} as harness_state_id on session ${turn.sessionId}`);
+      },
+      bindCasObservations: (read) => {
+        // Outside capture mode there is no capture to feed; the bind is a
+        // no-op, as the contract promises a harness that always binds.
+        if (capture) capture.casObservations = read;
       },
     };
 

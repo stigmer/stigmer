@@ -182,6 +182,32 @@ export function awaitingApprovalArm(): TerminalArm {
   return { phase: ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL, rows: [], completes: false, disposition: RETURN };
 }
 
+/**
+ * The engine's turn left a reviewable change on the tree (the runtime
+ * captured a candidate, `harness/capture.ts`): the same WAITING pause as an
+ * approval, because a file review is the other thing the workflow waits on
+ * and reinvokes for. A review WINS over the terminal the engine reported:
+ * edits on the user's disk must reach review whatever else happened, and a
+ * FAILED or TERMINATED execution never reinvokes, so the terminal is
+ * DEFERRED — its ROWS ride the transcript now (the failure copy, the
+ * tool-call-limit copy; an `engine`-surface failure has none), never its
+ * phase, its `error` or its completion stamp, and the resume's reconcile
+ * settles the execution COMPLETED as every pure file-review resume does
+ * (`fileReviewResolvedArm`). Until S3 M4 only the Cursor harness behaved so,
+ * and only because its boundary ran before it consulted its engine's
+ * result; the deep-agent wrote FAILED with the edits applied and unreviewed.
+ * Stated cost: the cloud's `status.error` prefix match for a tool-call limit
+ * does not fire when that limit left edits (Q-M4-2).
+ */
+export function awaitingReviewArm(deferred?: TerminalArm): TerminalArm {
+  return {
+    phase: ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+    rows: deferred?.rows ?? [],
+    completes: false,
+    disposition: RETURN,
+  };
+}
+
 /** The control plane answered STOP. A clean COMPLETED early exit. */
 export function platformStopArm(): TerminalArm {
   return {
