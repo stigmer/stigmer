@@ -50,17 +50,35 @@ export interface StopChildOptions {
   onForceKill?: () => void;
 }
 
+// What a stop measured. The discipline measures; the caller decides what a
+// number means for ITS child and says so in its own words (the same split
+// as `onForceKill`). Exists because a stop that resolves inside the grace
+// can still be slow: a child that idles 29 s after its worker has drained
+// (a leaked timer, stigmer#1008) leaves no trace at all if the only line the
+// harness ever prints is the SIGKILL fallback — that is how a 30 s cost on
+// every agent suite hid inside green runs for a week.
+export interface StopChildOutcome {
+  // Wall time from the signal to the child's `exit` event. 0 for a child
+  // that had already exited.
+  exitedAfterMs: number;
+  // Whether the grace expired and SIGKILL was sent.
+  forced: boolean;
+}
+
 // Signals the child and resolves once it has exited. Idempotent on a child
 // that has already exited (no signal is sent).
-export async function stopChild(child: ChildHandle, opts: StopChildOptions): Promise<void> {
-  if (hasExited(child)) return;
+export async function stopChild(child: ChildHandle, opts: StopChildOptions): Promise<StopChildOutcome> {
+  if (hasExited(child)) return { exitedAfterMs: 0, forced: false };
 
+  const startedAt = Date.now();
   const exited = once(child, "exit");
   child.kill(opts.signal);
 
+  let forced = false;
   let fallback: NodeJS.Timeout | undefined;
   if (opts.signal !== "SIGKILL") {
     fallback = setTimeout(() => {
+      forced = true;
       opts.onForceKill?.();
       child.kill("SIGKILL");
     }, opts.graceMs);
@@ -71,6 +89,7 @@ export async function stopChild(child: ChildHandle, opts: StopChildOptions): Pro
   } finally {
     if (fallback !== undefined) clearTimeout(fallback);
   }
+  return { exitedAfterMs: Date.now() - startedAt, forced };
 }
 
 export interface TeeChildOutputOptions {

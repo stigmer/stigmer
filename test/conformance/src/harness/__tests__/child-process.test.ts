@@ -110,11 +110,53 @@ describe("stopChild", () => {
     await stopping;
   });
 
-  it("is a no-op on a child that has already exited", async () => {
+  it("is a no-op on a child that has already exited, reporting a zero outcome", async () => {
     const child = new FakeChild();
     child.exitCode = 0;
-    await stopChild(child.asHandle(), { signal: "SIGTERM", graceMs: 1_000 });
+    const outcome = await stopChild(child.asHandle(), { signal: "SIGTERM", graceMs: 1_000 });
     expect(child.signals).toEqual([]);
+    expect(outcome).toEqual({ exitedAfterMs: 0, forced: false });
+  });
+
+  // The outcome is what lets a caller see a SLOW exit that stayed inside the
+  // grace — the stigmer#1008 shape at 29 s, which the fallback alone never
+  // reports. `Date` joins the faked set here so the measured span is exact;
+  // the outer hook's install is released first, because a second
+  // useFakeTimers over a live one keeps the first configuration.
+  describe("outcome", () => {
+    beforeEach(() => {
+      vi.useRealTimers();
+      vi.useFakeTimers({ toFake: [...FAKE_TIMEOUTS_ONLY.toFake!, "Date"] });
+    });
+
+    it("reports how long the child took to exit inside the grace, unforced", async () => {
+      const child = new FakeChild();
+      const stopping = stopChild(child.asHandle(), { signal: "SIGTERM", graceMs: 30_000 });
+      await flush();
+
+      await vi.advanceTimersByTimeAsync(29_000);
+      child.exitBySignal("SIGTERM");
+      const outcome = await stopping;
+
+      expect(outcome.forced).toBe(false);
+      expect(outcome.exitedAfterMs).toBe(29_000);
+      expect(child.signals).toEqual(["SIGTERM"]);
+    });
+
+    it("reports a forced exit with the time to the SIGKILL'd exit", async () => {
+      const child = new FakeChild();
+      const stopping = stopChild(child.asHandle(), { signal: "SIGTERM", graceMs: 1_000 });
+      await flush();
+
+      await vi.advanceTimersByTimeAsync(1_000);
+      expect(child.signals).toEqual(["SIGTERM", "SIGKILL"]);
+      await vi.advanceTimersByTimeAsync(50);
+      child.exitBySignal("SIGKILL");
+      const outcome = await stopping;
+
+      expect(outcome.forced).toBe(true);
+      expect(outcome.exitedAfterMs).toBe(1_050);
+    });
   });
 });
 
