@@ -521,17 +521,42 @@ export async function assertWorkerShutdownPersistsAndThrows(harness: RuntimeCont
   return { driver, invocations: [invocation], final };
 }
 
+/** How often the stall arm's clock advances once the engine is parked; real time between scripted windows. */
+const STALL_CLOCK_INTERVAL_MS = 25;
+
 /**
- * A stall: the watchdog measures idle time on the scripted clock; one tick
- * past the window while the engine hangs fails the turn (RETURNED — a retry
- * would wedge again) with the watchdog's copy naming the idle seconds.
+ * A stall: the watchdog measures idle time on the scripted clock; while the
+ * engine hangs the clock KEEPS RUNNING — a stall window per interval until
+ * the turn settles — and the first window with no activity fails the turn
+ * (RETURNED — a retry would wedge again) with the watchdog's copy naming the
+ * idle seconds.
+ *
+ * Why the clock runs rather than ticks once: on a push-based engine the
+ * park is reported while the chunks the engine produced before parking are
+ * still in its event pipeline ahead of the adapter's loop, so activity marks
+ * land AFTER a single tick and a frozen clock reads idle 0 from then on
+ * (S3 M3 F-M3-5, measured on the native adapter: 35 marks at the park, 37
+ * within 10 ms). A pull-based double's park implies everything before it
+ * was seen; a real stall is wall time passing while the engine is silent,
+ * whichever shape the engine has. The interval advances a SCRIPTED clock —
+ * the kit's rule against timers is about stopping a turn on a guess, which
+ * this never does (Q-M3-7).
  */
 export async function assertStallFailsTheTurn(harness: RuntimeContractHarness, label = "rt-stall"): Promise<RuntimeArmResult> {
   const { subject, clock } = harness;
   const driver = new RuntimeExecutionDriver(harness, label);
-  void subject.whenHanging().then(() => clock.tick(STALL_TIMEOUT_MS));
+  let running: NodeJS.Timeout | undefined;
+  void subject.whenHanging().then(() => {
+    clock.tick(STALL_TIMEOUT_MS);
+    running = setInterval(() => clock.tick(STALL_TIMEOUT_MS), STALL_CLOCK_INTERVAL_MS);
+  });
 
-  const invocation = await driver.turn(hangingTurn("Running the suite."), { config: { cursorStreamStallTimeoutMs: STALL_TIMEOUT_MS } });
+  let invocation: ActivityInvocation;
+  try {
+    invocation = await driver.turn(hangingTurn("Running the suite."), { config: { cursorStreamStallTimeoutMs: STALL_TIMEOUT_MS } });
+  } finally {
+    if (running) clearInterval(running);
+  }
 
   expect(slimOf(subject, invocation).phase, `${subject.name}: a stall RETURNS FAILED`).toBe("EXECUTION_FAILED");
   expect(driver.record.persistedPhases.at(-1)).toBe(ExecutionPhase.EXECUTION_FAILED);
