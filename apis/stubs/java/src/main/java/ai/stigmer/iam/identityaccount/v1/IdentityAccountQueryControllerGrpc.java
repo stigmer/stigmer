@@ -335,17 +335,14 @@ public final class IdentityAccountQueryControllerGrpc {
      * <pre>
      * Get lightweight actor information for an identity account.
      * &#64;internal
-     * This RPC is specifically designed to break circular dependency loops in audit actor resolution.
-     * When converting IdentityAccount entities to proto responses, the audit info (created_by, updated_by)
-     * needs actor details. If we use the standard get() RPC, it triggers a full entity-to-proto conversion
-     * including audit actors, which can create infinite recursion if audit actors reference IdentityAccounts.
-     * This dedicated endpoint:
-     * - Returns ONLY the lightweight ApiResourceAuditActor (id + avatar)
-     * - Does NOT include full audit trail in the response
-     * - Accesses entity data directly without recursive proto conversion
-     * - Is used by ApiResourceAuditActorCacheProxy to safely populate Redis cache
-     * - Prevents StackOverflowError when Redis cache is empty or cleared
-     * Restricted to platform operators only as this is an internal cache-population mechanism.
+     * The contract-shaped actor behind every audit stamp (created_by,
+     * updated_by): id, avatar, display_name, email — what a console renders
+     * as a person instead of an ida_ id. Authorized exactly like `get`
+     * (can_view on the account named by `value`); a caller who may view an
+     * account may render it as an actor. The annotation-driven Authorize step
+     * reads `field_path` for the id: an annotation that names a kind and no
+     * id is a check against an empty id, which an enforcing authorizer
+     * refuses for every caller (stigmer#1073, found on the cloud readout).
      * </pre>
      */
     default void getActorInfo(ai.stigmer.iam.identityaccount.v1.IdentityAccountId request,
@@ -460,17 +457,14 @@ public final class IdentityAccountQueryControllerGrpc {
      * <pre>
      * Get lightweight actor information for an identity account.
      * &#64;internal
-     * This RPC is specifically designed to break circular dependency loops in audit actor resolution.
-     * When converting IdentityAccount entities to proto responses, the audit info (created_by, updated_by)
-     * needs actor details. If we use the standard get() RPC, it triggers a full entity-to-proto conversion
-     * including audit actors, which can create infinite recursion if audit actors reference IdentityAccounts.
-     * This dedicated endpoint:
-     * - Returns ONLY the lightweight ApiResourceAuditActor (id + avatar)
-     * - Does NOT include full audit trail in the response
-     * - Accesses entity data directly without recursive proto conversion
-     * - Is used by ApiResourceAuditActorCacheProxy to safely populate Redis cache
-     * - Prevents StackOverflowError when Redis cache is empty or cleared
-     * Restricted to platform operators only as this is an internal cache-population mechanism.
+     * The contract-shaped actor behind every audit stamp (created_by,
+     * updated_by): id, avatar, display_name, email — what a console renders
+     * as a person instead of an ida_ id. Authorized exactly like `get`
+     * (can_view on the account named by `value`); a caller who may view an
+     * account may render it as an actor. The annotation-driven Authorize step
+     * reads `field_path` for the id: an annotation that names a kind and no
+     * id is a check against an empty id, which an enforcing authorizer
+     * refuses for every caller (stigmer#1073, found on the cloud readout).
      * </pre>
      */
     public void getActorInfo(ai.stigmer.iam.identityaccount.v1.IdentityAccountId request,
@@ -567,17 +561,14 @@ public final class IdentityAccountQueryControllerGrpc {
      * <pre>
      * Get lightweight actor information for an identity account.
      * &#64;internal
-     * This RPC is specifically designed to break circular dependency loops in audit actor resolution.
-     * When converting IdentityAccount entities to proto responses, the audit info (created_by, updated_by)
-     * needs actor details. If we use the standard get() RPC, it triggers a full entity-to-proto conversion
-     * including audit actors, which can create infinite recursion if audit actors reference IdentityAccounts.
-     * This dedicated endpoint:
-     * - Returns ONLY the lightweight ApiResourceAuditActor (id + avatar)
-     * - Does NOT include full audit trail in the response
-     * - Accesses entity data directly without recursive proto conversion
-     * - Is used by ApiResourceAuditActorCacheProxy to safely populate Redis cache
-     * - Prevents StackOverflowError when Redis cache is empty or cleared
-     * Restricted to platform operators only as this is an internal cache-population mechanism.
+     * The contract-shaped actor behind every audit stamp (created_by,
+     * updated_by): id, avatar, display_name, email — what a console renders
+     * as a person instead of an ida_ id. Authorized exactly like `get`
+     * (can_view on the account named by `value`); a caller who may view an
+     * account may render it as an actor. The annotation-driven Authorize step
+     * reads `field_path` for the id: an annotation that names a kind and no
+     * id is a check against an empty id, which an enforcing authorizer
+     * refuses for every caller (stigmer#1073, found on the cloud readout).
      * </pre>
      */
     public ai.stigmer.commons.apiresource.ApiResourceAuditActor getActorInfo(ai.stigmer.iam.identityaccount.v1.IdentityAccountId request) throws io.grpc.StatusException {
@@ -673,17 +664,14 @@ public final class IdentityAccountQueryControllerGrpc {
      * <pre>
      * Get lightweight actor information for an identity account.
      * &#64;internal
-     * This RPC is specifically designed to break circular dependency loops in audit actor resolution.
-     * When converting IdentityAccount entities to proto responses, the audit info (created_by, updated_by)
-     * needs actor details. If we use the standard get() RPC, it triggers a full entity-to-proto conversion
-     * including audit actors, which can create infinite recursion if audit actors reference IdentityAccounts.
-     * This dedicated endpoint:
-     * - Returns ONLY the lightweight ApiResourceAuditActor (id + avatar)
-     * - Does NOT include full audit trail in the response
-     * - Accesses entity data directly without recursive proto conversion
-     * - Is used by ApiResourceAuditActorCacheProxy to safely populate Redis cache
-     * - Prevents StackOverflowError when Redis cache is empty or cleared
-     * Restricted to platform operators only as this is an internal cache-population mechanism.
+     * The contract-shaped actor behind every audit stamp (created_by,
+     * updated_by): id, avatar, display_name, email — what a console renders
+     * as a person instead of an ida_ id. Authorized exactly like `get`
+     * (can_view on the account named by `value`); a caller who may view an
+     * account may render it as an actor. The annotation-driven Authorize step
+     * reads `field_path` for the id: an annotation that names a kind and no
+     * id is a check against an empty id, which an enforcing authorizer
+     * refuses for every caller (stigmer#1073, found on the cloud readout).
      * </pre>
      */
     public ai.stigmer.commons.apiresource.ApiResourceAuditActor getActorInfo(ai.stigmer.iam.identityaccount.v1.IdentityAccountId request) {
@@ -784,17 +772,14 @@ public final class IdentityAccountQueryControllerGrpc {
      * <pre>
      * Get lightweight actor information for an identity account.
      * &#64;internal
-     * This RPC is specifically designed to break circular dependency loops in audit actor resolution.
-     * When converting IdentityAccount entities to proto responses, the audit info (created_by, updated_by)
-     * needs actor details. If we use the standard get() RPC, it triggers a full entity-to-proto conversion
-     * including audit actors, which can create infinite recursion if audit actors reference IdentityAccounts.
-     * This dedicated endpoint:
-     * - Returns ONLY the lightweight ApiResourceAuditActor (id + avatar)
-     * - Does NOT include full audit trail in the response
-     * - Accesses entity data directly without recursive proto conversion
-     * - Is used by ApiResourceAuditActorCacheProxy to safely populate Redis cache
-     * - Prevents StackOverflowError when Redis cache is empty or cleared
-     * Restricted to platform operators only as this is an internal cache-population mechanism.
+     * The contract-shaped actor behind every audit stamp (created_by,
+     * updated_by): id, avatar, display_name, email — what a console renders
+     * as a person instead of an ida_ id. Authorized exactly like `get`
+     * (can_view on the account named by `value`); a caller who may view an
+     * account may render it as an actor. The annotation-driven Authorize step
+     * reads `field_path` for the id: an annotation that names a kind and no
+     * id is a check against an empty id, which an enforcing authorizer
+     * refuses for every caller (stigmer#1073, found on the cloud readout).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.commons.apiresource.ApiResourceAuditActor> getActorInfo(
