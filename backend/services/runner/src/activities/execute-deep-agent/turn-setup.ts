@@ -76,7 +76,8 @@ import {
   type ProgressCaptureState,
   type ProgressSubstrate,
 } from "../../shared/filereview/progress.js";
-import { createCasProgressSubstrate, type CasTouchedSnapshot } from "../../shared/filereview/cas-progress.js";
+import { createCasProgressSubstrate } from "../../shared/filereview/cas-progress.js";
+import type { CasTouchedSnapshot } from "../../shared/filereview/cas-touched.js";
 import { collectSettledToolCallIds, collectSubAgentToolCallIds } from "../../shared/tool-row.js";
 import { CasCaptureObserver } from "./cas-capture-observer.js";
 import { createCasCaptureBackend } from "./cas-capture-backend.js";
@@ -590,10 +591,7 @@ export async function pinCaptureBaseline(input: TurnInput, sink: TurnSink, works
     });
   }
 
-  const readObserverTouched = (): CasTouchedSnapshot => ({
-    before: new Map(workspace.casObserver.before),
-    blockedSecretPaths: new Set(workspace.casObserver.blockedSecretPaths),
-  });
+  const readObserverTouched = (): CasTouchedSnapshot => workspace.casObserver.snapshot();
   const progressSubstrate: ProgressSubstrate | undefined = !captureMode
     ? undefined
     : gitWorkspace

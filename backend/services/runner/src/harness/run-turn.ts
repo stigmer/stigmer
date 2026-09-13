@@ -64,6 +64,7 @@ import { PersistChokepoint } from "./persist-chokepoint.js";
 import { StopController } from "./stop-controller.js";
 import {
   applyTerminalArm,
+  awaitingApprovalArm,
   costCapArm,
   failedArm,
   fileReviewResolvedArm,
@@ -329,15 +330,11 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
         return completeTurn(turn, ExecutionPhase.EXECUTION_COMPLETED);
       case "cancelled":
         return completeTurn(turn, ExecutionPhase.EXECUTION_CANCELLED);
-      case "awaiting_approval": {
-        // Pause for review exactly like the native harness: the adapter put
-        // the WAITING rows on the transcript; flip the phase, persist, and
-        // RETURN to the workflow, which waits for the approval signal and
-        // reinvokes.
-        status.phase = ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL;
-        await chokepoint.write();
-        return { kind: "return", value: slimStatus(status) };
-      }
+      case "awaiting_approval":
+        // The adapter put the WAITING rows on the transcript; the arm flips
+        // the phase, persists once, and RETURNS to the workflow, which waits
+        // for the approval signal and reinvokes.
+        return settleWith(awaitingApprovalArm());
       case "tool_call_limit": {
         const settledLimit = await settleWith(toolCallLimitArm());
         console.log(`${activityName} terminated (tool-call limit): execution=${executionId}`);

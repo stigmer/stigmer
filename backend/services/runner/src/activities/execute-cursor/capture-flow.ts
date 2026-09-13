@@ -22,17 +22,14 @@
  * and the cutover tests are unchanged.
  */
 
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
-import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { FileChangeSet, TurnCommandProvenance } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
 import { FileCaptureClass } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { approvalCategory } from "./approval-policy.js";
 import { toolIdentity, primaryToken } from "./approval-state.js";
 import { readCasObservations } from "./cas-observations.js";
 import { contentDigest } from "../../shared/file-tools.js";
-import { isToolCallRowHidden, stampFileEditRow } from "../../shared/tool-row.js";
+import { stampFlowedFileEditRows } from "../../shared/tool-row.js";
 import {
   captureBaselineToLedger as sharedCaptureBaselineToLedger,
   captureCandidateToLedger as sharedCaptureCandidateToLedger,
@@ -42,14 +39,13 @@ import {
   createHybridProgressSubstrate,
   type ProgressSubstrate,
 } from "../../shared/filereview/progress.js";
+import { createCasProgressSubstrate } from "../../shared/filereview/cas-progress.js";
 import {
-  createCasProgressSubstrate,
+  buildCasTurnCaptures,
   type CasTouchedReader,
   type CasTouchedSnapshot,
-} from "../../shared/filereview/cas-progress.js";
+} from "../../shared/filereview/cas-touched.js";
 import { hasCandidateCaptured } from "../../shared/filereview/events.js";
-import { partitionIgnoredPathsBySecret } from "../../shared/filereview/secret-paths.js";
-import { casBlobReader, type CasPathCapture } from "../../shared/filereview/cas-substrate.js";
 import type { GitSubstrateChange as GitCapturedChange } from "../../shared/filereview/git-substrate.js";
 import type { ArtifactStorage } from "../../shared/artifact-storage.js";
 import type { FileReviewIdentity } from "../../harness/capabilities.js";
@@ -119,7 +115,7 @@ export function captureBaselineToLedger(opts: {
  * `GIT_IGNORED_CAPTURED` (git tree) or `NON_GIT_CAS` (non-git) CAS captures
  * (before-bytes from the sidecar, after-bytes re-read from disk);
  * secret-blocked paths become content-less `DIFF_UNREVIEWABLE` entries. The
- * boundary re-runs {@link partitionIgnoredPathsBySecret} as a fail-closed
+ * boundary re-runs the secret partition (`shared/filereview/cas-touched.ts`) as a fail-closed
  * backstop, so a secret that ever slipped into the captured set still has its
  * bytes withheld from durable storage.
  *
@@ -176,12 +172,12 @@ export async function captureTurnToLedger(opts: {
   const casCaptureClass = gitWorkspace
     ? FileCaptureClass.GIT_IGNORED_CAPTURED
     : FileCaptureClass.NON_GIT_CAS;
-  const { casCaptures, unreviewablePaths } = await buildCasTurnCaptures(
-    gitRoot,
-    hitlDir,
-    storage,
-    casCaptureClass,
-  );
+  // The CAS half needs the sidecar AND storage (captureIgnored on); without
+  // either this is a git-only capture exactly as before.
+  const { casCaptures, unreviewablePaths } =
+    hitlDir && storage
+      ? await buildCasTurnCaptures(await readSidecarSnapshot(hitlDir), gitRoot, casCaptureClass)
+      : { casCaptures: [], unreviewablePaths: [] };
 
   const changes = await sharedCaptureCandidateToLedger({
     status,
@@ -207,13 +203,15 @@ export async function captureTurnToLedger(opts: {
   // a no-op turn (every edit reverted before the boundary) authors no event,
   // and a row must never reference a change set that does not exist.
   if (hasCandidateCaptured(status, changeSetId)) {
-    stampFlowedFileEditRows(messages, deniedTokens, changeSetId);
+    // A denied identity did NOT flow — the deny-gate reconcile owns that row.
+    const flowed = (tc: ToolCall): boolean => !deniedTokens.has(identityTokenOf(tc));
+    stampFlowedFileEditRows(messages, changeSetId, { flowed });
     // Sub-agent edit rows fold their files into the SAME parent turn set, so they
     // carry the same change set id. Walked separately (they live under
     // subAgentExecutions, not the top-level transcript) and scoped to this turn
     // via the pre-turn snapshot of seeded sub-agent tool-call ids.
     for (const sa of status.subAgentExecutions) {
-      stampFlowedFileEditRows(sa.messages, deniedTokens, changeSetId, priorSubAgentToolCallIds);
+      stampFlowedFileEditRows(sa.messages, changeSetId, { skipToolCallIds: priorSubAgentToolCallIds, flowed });
     }
   }
 
@@ -280,62 +278,15 @@ export function buildCursorProgressSubstrate(opts: {
  * reflects sub-agent writes staged since the last one.
  */
 function createSidecarTouchedReader(hitlDir: string): CasTouchedReader {
-  return async (): Promise<CasTouchedSnapshot> => {
-    const { captured, secretPaths } = await readCasObservations(hitlDir);
-    const before = new Map<string, Uint8Array | null>();
-    for (const c of captured) before.set(c.path, c.before);
-    return { before, blockedSecretPaths: new Set(secretPaths) };
-  };
+  return () => readSidecarSnapshot(hitlDir);
 }
 
-/**
- * Compose this turn's CAS captures from the sidecar the hook staged, mirroring
- * deep-agent's `buildCasTurnCaptures`: for each non-secret observed path, the
- * before-bytes come from the sidecar and the after-bytes are re-read from disk now
- * (`null` = the file was removed after the write). Secret-blocked paths are
- * returned as `unreviewablePaths`. The secret partition is re-run as a
- * fail-closed backstop over the observed set. `captureClass` labels each captured
- * path's provenance (GIT_IGNORED_CAPTURED for a git tree's ignored paths,
- * NON_GIT_CAS for a non-git workspace).
- *
- * Returns empty when the harness has no storage (captureIgnored off) or the
- * sidecar is empty — leaving the shared capture unchanged.
- */
-async function buildCasTurnCaptures(
-  gitRoot: string,
-  hitlDir: string | undefined,
-  storage: ArtifactStorage | undefined,
-  captureClass: FileCaptureClass,
-): Promise<{ casCaptures: CasPathCapture[]; unreviewablePaths: string[] }> {
-  if (!hitlDir || !storage) return { casCaptures: [], unreviewablePaths: [] };
-
+/** One atomic read of the sidecar as the shared {@link CasTouchedSnapshot}. */
+async function readSidecarSnapshot(hitlDir: string): Promise<CasTouchedSnapshot> {
   const { captured, secretPaths } = await readCasObservations(hitlDir);
-  const beforeByPath = new Map(captured.map((c) => [c.path, c.before] as const));
-  const { capturablePaths, unreviewablePaths } = partitionIgnoredPathsBySecret(
-    beforeByPath.keys(),
-    new Set(secretPaths),
-  );
-
-  const casCaptures: CasPathCapture[] = [];
-  for (const relPath of capturablePaths) {
-    const after = await readFileOrNull(join(gitRoot, relPath));
-    casCaptures.push({
-      path: relPath,
-      before: beforeByPath.get(relPath) ?? null,
-      after,
-      captureClass,
-    });
-  }
-  return { casCaptures, unreviewablePaths: [...unreviewablePaths] };
-}
-
-/** Raw bytes of a file, or `null` when it does not exist (an ADD-then-removed). */
-async function readFileOrNull(absolutePath: string): Promise<Uint8Array | null> {
-  try {
-    return await readFile(absolutePath);
-  } catch {
-    return null;
-  }
+  const before = new Map<string, Uint8Array | null>();
+  for (const c of captured) before.set(c.path, c.before);
+  return { before, blockedSecretPaths: new Set(secretPaths) };
 }
 
 // ---------------------------------------------------------------------------
@@ -343,37 +294,13 @@ async function readFileOrNull(absolutePath: string): Promise<Uint8Array | null> 
 // ---------------------------------------------------------------------------
 
 /**
- * Stamp every streamed file-edit row (category write/delete) that flowed this
- * turn with the change set id, so the row stays visible as an observational
- * record and clients can badge it / anchor the decision surface. Skips:
- *  - already-stamped rows — the stamp is the idempotency AND cross-turn guard:
- *    a resume seeds prior turns' rows into this transcript, and re-stamping
- *    them with this turn's id would mis-attribute them ({@link stampFileEditRow});
- *  - legacy hidden rows (sessions persisted before stamping existed) — they
- *    belong to an earlier turn's change set, not this one;
- *  - denied identities (the deny-gate reconcile path owns those rows);
- *  - tool-call ids in `skipToolCallIds` — used for sub-agent rows, which lack
- *    the already-stamped/hidden shields the top-level transcript has, to scope
- *    the stamp to rows created this turn (the seeded prior sub-agents' ids).
+ * The deny-gate identity token of a streamed row, the key the denial ledger is
+ * written under: a row whose token the hook denied did not flow, so the shared
+ * stamping pass (`shared/tool-row.ts` `stampFlowedFileEditRows`) leaves it to
+ * the deny-gate reconcile.
  */
-function stampFlowedFileEditRows(
-  messages: readonly AgentMessage[],
-  deniedTokens: ReadonlySet<string>,
-  changeSetId: string,
-  skipToolCallIds?: ReadonlySet<string>,
-): void {
-  for (const msg of messages) {
-    for (const tc of msg.toolCalls) {
-      if (tc.fileChangeSetId) continue;
-      if (skipToolCallIds?.has(tc.id)) continue;
-      if (isToolCallRowHidden(tc)) continue;
-      const category = approvalCategory(tc.name);
-      if (category !== "write" && category !== "delete") continue;
-      const args = (tc.args ?? {}) as Record<string, unknown>;
-      const id = toolIdentity(tc.name, tc.mcpServerSlug, args);
-      const token = primaryToken(id.key, id.salient, contentDigest(args));
-      if (deniedTokens.has(token)) continue; // denied -> reconcile path owns it
-      stampFileEditRow(tc, changeSetId);
-    }
-  }
+function identityTokenOf(tc: ToolCall): string {
+  const args = (tc.args ?? {}) as Record<string, unknown>;
+  const id = toolIdentity(tc.name, tc.mcpServerSlug, args);
+  return primaryToken(id.key, id.salient, contentDigest(args));
 }

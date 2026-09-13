@@ -170,6 +170,18 @@ export function infrastructureCancelArm(): TerminalArm {
   };
 }
 
+/**
+ * The engine proposed at least one gated side effect and stopped: the
+ * WAITING_APPROVAL rows are already on the transcript. Not an error, not
+ * complete, no copy; RETURN to the workflow, which waits for the approval
+ * signal and reinvokes with the decisions. Until S3 M4 this was an inline
+ * phase flip in `run-turn.ts`; it is an arm because every way an activity
+ * ends belongs in this one table.
+ */
+export function awaitingApprovalArm(): TerminalArm {
+  return { phase: ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL, rows: [], completes: false, disposition: RETURN };
+}
+
 /** The control plane answered STOP. A clean COMPLETED early exit. */
 export function platformStopArm(): TerminalArm {
   return {

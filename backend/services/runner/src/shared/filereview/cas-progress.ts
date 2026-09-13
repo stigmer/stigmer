@@ -43,26 +43,12 @@ import {
   type ProgressSubstrate,
 } from "./progress.js";
 import { partitionIgnoredPathsBySecret } from "./secret-paths.js";
+import type { CasTouchedReader } from "./cas-touched.js";
 
-/**
- * A snapshot of the turn's CAS-observed paths, read on each capture:
- *  - `before`: first-touched paths' pre-turn bytes (`null` = the path did not
- *    exist before → an ADD). The KEYS are the touched-path set.
- *  - `blockedSecretPaths`: paths the gate hard-blocked as secret-like — excluded
- *    from capture.
- *
- * Deep-agent supplies a synchronous copy of its live `CasCaptureObserver`; Cursor
- * supplies a reader over the hook's on-disk sidecar. The reader MUST return an
- * atomic snapshot (copy the live map before any await) so a concurrent sub-agent
- * write cannot mutate it mid-capture.
- */
-export interface CasTouchedSnapshot {
-  readonly before: ReadonlyMap<string, Uint8Array | null>;
-  readonly blockedSecretPaths: ReadonlySet<string>;
-}
-
-/** Produces a {@link CasTouchedSnapshot} for one capture. */
-export type CasTouchedReader = () => CasTouchedSnapshot | Promise<CasTouchedSnapshot>;
+// The snapshot this substrate reads (`CasTouchedSnapshot`) and the reader that
+// produces it live in `cas-touched.ts`, the one home of "what the engine
+// observed touching CAS-owned paths": the turn-boundary capture reads the same
+// snapshot, so neither consumer owns the shape.
 
 /**
  * The CAS progress substrate. Reads the touched set on each capture, computes

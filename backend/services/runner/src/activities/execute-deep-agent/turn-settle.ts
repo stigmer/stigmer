@@ -41,17 +41,17 @@ import { FileCaptureClass, MessageType, ToolCallStatus } from "@stigmer/protos/a
 import type { TurnInput, TurnOutcome, TurnSink } from "../../harness/types.js";
 import { POLICY_ENGINE_VERSION, toProtoPolicySource } from "../../shared/approval-policy.js";
 import { captureCandidateToLedger } from "../../shared/filereview/capture.js";
+import { buildCasTurnCaptures } from "../../shared/filereview/cas-touched.js";
 import { hasCandidateCaptured } from "../../shared/filereview/events.js";
 import { utcTimestamp } from "../../shared/status.js";
 import { cancelInProgressSubAgentProtos } from "../../shared/subagent-rows.js";
 import { classifyTool } from "../../shared/tool-kind.js";
+import { stampFlowedFileEditRows, stampFlowedSubAgentFileEditRows } from "../../shared/tool-row.js";
 import { captureApprovalArtifacts } from "./approval-file-change.js";
 import { autoPublishWrittenFiles } from "./auto-publish.js";
-import { buildCasTurnCaptures } from "./cas-capture-observer.js";
 import { deriveTurnCommandProvenance } from "./command-provenance.js";
 import { DEEP_AGENT_HARNESS_ID } from "./deep-agent-capabilities.js";
 import { detectPendingInterrupts, reconcileUnattendedSkips, type GraphStateSnapshot } from "./hitl.js";
-import { stampFlowedFileEditRows, stampFlowedSubAgentFileEditRows } from "./stamp-flowed-rows.js";
 import type { DeepAgentCapture, DeepAgentEngine, DeepAgentWorkspace } from "./turn-setup.js";
 import type { DeepAgentStreamResult, DeepAgentTranscript } from "./turn-stream.js";
 
@@ -162,7 +162,11 @@ async function captureTurnBoundary(deps: DeepAgentSettleDeps): Promise<boolean> 
   if (!captureMode) return false;
 
   const casCaptureClass = gitWorkspace ? FileCaptureClass.GIT_IGNORED_CAPTURED : FileCaptureClass.NON_GIT_CAS;
-  const { casCaptures, unreviewablePaths } = await buildCasTurnCaptures(workspace.casObserver, primaryDir, casCaptureClass);
+  const { casCaptures, unreviewablePaths } = await buildCasTurnCaptures(
+    workspace.casObserver.snapshot(),
+    primaryDir,
+    casCaptureClass,
+  );
   const commandProvenance = deriveTurnCommandProvenance({
     status,
     priorSettledToolCallIds: capture.priorSettledToolCallIds,
@@ -194,6 +198,8 @@ async function captureTurnBoundary(deps: DeepAgentSettleDeps): Promise<boolean> 
 
   const pending = hasCandidateCaptured(status, changeSetId);
   if (pending) {
+    // Every write/delete row flowed on this harness (no deny gate in capture
+    // mode), so no `flowed` predicate narrows the pass.
     stampFlowedFileEditRows(status.messages, changeSetId);
     stampFlowedSubAgentFileEditRows(status.subAgentExecutions, changeSetId, capture.priorSubAgentToolCallIds);
   }

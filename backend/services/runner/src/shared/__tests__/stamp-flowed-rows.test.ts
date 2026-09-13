@@ -1,9 +1,12 @@
 /**
- * Unit tests for the deep-agent turn-boundary flowed-row stamping
- * (`stamp-flowed-rows.ts`), with emphasis on the sub-agent path added by the
- * DD-24 follow-up: sub-agent edit rows fold into the parent turn's change set,
- * so they carry the parent change set id, scoped to this turn by tool-call-id
- * novelty (they lack the already-stamped/hidden shields the top-level pass has).
+ * Unit tests for the shared turn-boundary flowed-row stamping
+ * (`shared/tool-row.ts` `stampFlowedFileEditRows` /
+ * `stampFlowedSubAgentFileEditRows`; the deep-agent's copy until S3 M4), with
+ * emphasis on the sub-agent path added by the DD-24 follow-up: sub-agent edit
+ * rows fold into the parent turn's change set, so they carry the parent change
+ * set id, scoped to this turn by tool-call-id novelty (they lack the
+ * already-stamped/hidden shields the top-level pass has). The `flowed`
+ * predicate is the one seam a deny-gate harness narrows the pass with.
  */
 
 import { describe, it, expect } from "vitest";
@@ -15,11 +18,11 @@ import {
 import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { collectSubAgentToolCallIds } from "../../../shared/tool-row.js";
 import {
+  collectSubAgentToolCallIds,
   stampFlowedFileEditRows,
   stampFlowedSubAgentFileEditRows,
-} from "../stamp-flowed-rows.js";
+} from "../tool-row.js";
 
 const CHANGE_SET_ID = "exec-1:0";
 
@@ -42,7 +45,7 @@ function subAgent(subId: string, ...messages: AgentMessage[]) {
   return create(SubAgentExecutionSchema, { id: subId, name: "code_editor", messages });
 }
 
-describe("stampFlowedFileEditRows (deep-agent)", () => {
+describe("stampFlowedFileEditRows", () => {
   it("stamps a flowed write/delete row and leaves a non-file row untouched", () => {
     const write = editMessage("tc-1", "src/a.ts", "write_file");
     const shell = create(AgentMessageSchema, {
@@ -60,7 +63,7 @@ describe("stampFlowedFileEditRows (deep-agent)", () => {
     const prior = editMessage("tc-prior", "src/old.ts");
     const current = editMessage("tc-current", "src/new.ts");
 
-    stampFlowedFileEditRows([prior, current], CHANGE_SET_ID, new Set(["tc-prior"]));
+    stampFlowedFileEditRows([prior, current], CHANGE_SET_ID, { skipToolCallIds: new Set(["tc-prior"]) });
 
     expect(prior.toolCalls[0].fileChangeSetId).toBe(""); // skipped
     expect(current.toolCalls[0].fileChangeSetId).toBe(CHANGE_SET_ID);
@@ -74,9 +77,19 @@ describe("stampFlowedFileEditRows (deep-agent)", () => {
 
     expect(row.toolCalls[0].fileChangeSetId).toBe("exec-1:prior");
   });
+
+  it("leaves a row the caller's `flowed` predicate refuses (a denied identity, a non-terminal status) unstamped", () => {
+    const flowed = editMessage("tc-flowed", "src/a.ts");
+    const denied = editMessage("tc-denied", "src/b.ts");
+
+    stampFlowedFileEditRows([flowed, denied], CHANGE_SET_ID, { flowed: (tc) => tc.id !== "tc-denied" });
+
+    expect(flowed.toolCalls[0].fileChangeSetId).toBe(CHANGE_SET_ID);
+    expect(denied.toolCalls[0].fileChangeSetId).toBe("");
+  });
 });
 
-describe("stampFlowedSubAgentFileEditRows (deep-agent)", () => {
+describe("stampFlowedSubAgentFileEditRows", () => {
   it("stamps a current-turn sub-agent's edit row with the parent change set id", () => {
     const sub = subAgent("sa-1", editMessage("sa-tc-1", "src/sub.ts"));
 

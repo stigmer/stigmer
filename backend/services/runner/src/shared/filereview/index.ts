@@ -56,11 +56,13 @@ export {
   type ProgressSubstrate,
 } from "./progress.js";
 
+export { createCasProgressSubstrate } from "./cas-progress.js";
+
 export {
-  createCasProgressSubstrate,
+  buildCasTurnCaptures,
   type CasTouchedReader,
   type CasTouchedSnapshot,
-} from "./cas-progress.js";
+} from "./cas-touched.js";
 
 export {
   countLineChanges,
