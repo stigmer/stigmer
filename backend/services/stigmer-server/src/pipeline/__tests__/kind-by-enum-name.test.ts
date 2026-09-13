@@ -24,7 +24,11 @@ import { describe, expect, it } from "vitest";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
-import { getKindEnum, kindByEnumName } from "../apiresource-meta.js";
+import {
+  getKindEnum,
+  kindByEnumName,
+  kindEnumName,
+} from "../apiresource-meta.js";
 
 describe("kindByEnumName — an ApiResourceRef.kind is the enum member name", () => {
   it.each([
@@ -75,6 +79,29 @@ describe("kindByEnumName — an ApiResourceRef.kind is the enum member name", ()
     for (const [name, value] of Object.entries(ApiResourceKind)) {
       if (typeof value !== "number") continue;
       expect(kindByEnumName(name), name).toBe(value);
+    }
+  });
+});
+
+describe("kindEnumName — the inverse: a kind spelled as an ApiResourceRef.kind", () => {
+  it.each([
+    [ApiResourceKind.organization, "organization"],
+    [ApiResourceKind.identity_account, "identity_account"],
+    [ApiResourceKind.mcp_server, "mcp_server"],
+  ])("%s spells as %s", (kind, name) => {
+    expect(kindEnumName(kind)).toBe(name);
+  });
+
+  it("the unknown kind spells itself — never a throw", () => {
+    expect(kindEnumName(ApiResourceKind.api_resource_kind_unknown)).toBe(
+      "api_resource_kind_unknown",
+    );
+  });
+
+  it("round-trips with kindByEnumName over every member — the two are inverses", () => {
+    for (const value of Object.values(ApiResourceKind)) {
+      if (typeof value !== "number") continue;
+      expect(kindByEnumName(kindEnumName(value)), String(value)).toBe(value);
     }
   });
 });

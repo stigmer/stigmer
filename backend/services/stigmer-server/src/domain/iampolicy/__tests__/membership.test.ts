@@ -10,23 +10,34 @@
  *   - `admin` when it created any BLUEPRINT in that organization (and only
  *     a blueprint: a session's creator stays a member — DD-002 rule 2
  *     keeps personal things by created_by with no role);
- *   - `admin` when the organization has ZERO role rows and no user-class
- *     blueprint creator other than this account — the fresh-install and
- *     the trusted-local-turned-OIDC first caller. "Zero rows", never "no
- *     admin now": revoking every admin of a bootstrapped organization must
- *     not hand it to the next stranger;
- *   - `admin` when the account's email is STIGMER_OPERATOR_EMAIL;
+ *   - `admin` when the organization has ZERO role rows and no PERSON other
+ *     than this account created the organization or any blueprint in it
+ *     (slice 4 ruling Q-S4-7: the founder's stamp counts) — the
+ *     fresh-install and the trusted-local-turned-OIDC first caller. "Zero
+ *     rows", never "no admin now": revoking every admin of a bootstrapped
+ *     organization must not hand it to the next stranger;
+ *   - `admin` when the account's email is STIGMER_OPERATOR_EMAIL (and that
+ *     email is configured — an empty one matches nobody);
  *   - `member` otherwise;
  *   - nothing for a non-`user` caller class; nothing on an organization
- *     the account already holds a row on (idempotent by construction).
+ *     the account already holds a row on (idempotent by construction), so
+ *     a run that faulted midway converges on the next.
  *
- *   ensureOperatorOwnership(operatorAccountId): `owner` on every
- *   organization, create-if-absent; a second boot writes nothing.
+ *   ensureOperatorOwnership(operator): `owner` on every organization that
+ *   has NO owner row (Q-S4-3: a boot-time write never overrides a recorded
+ *   human grant); a second boot writes nothing; the row's audit actor is
+ *   the operator's account — id, email and display name — like every
+ *   other trusted-local write.
  *
  * The creator stamps the rules read are `status.audit.spec_audit.created_by
  * .id`, which for a legacy self-host is the raw issuer subject and for a
  * provisioned caller is the account id (P1 gate Q2c; 2a handoff 2), so
- * both spellings are seeded and both must match.
+ * both spellings are seeded and both must match. A stamp is a PERSON when
+ * it is non-empty and not the unconfigured laptop's "system" placeholder;
+ * the rules classify stamps by shape and consult no account store.
+ *
+ * The rules read policy rows through the IamPolicyStore PORT (`policies`,
+ * the same instance the grant path writes through), never around it.
  */
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
@@ -44,10 +55,12 @@ import type { CallerIdentity } from "../../../extensions/identity.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import type { Store } from "../../../store/interface.js";
 import { accountIdFor } from "../../identityaccount/constants.js";
-import { fakeIdentityAccountStore } from "../../identityaccount/__tests__/support.js";
+import { BLUEPRINT_KINDS } from "../constants.js";
 import { newIamPolicyGrantPath } from "../grant-path.js";
-import { newMembershipRules } from "../membership.js";
+import type { IamPolicyGrantPath } from "../grant-path.js";
+import { CREATOR_SCAN_SCHEMAS, newMembershipRules } from "../membership.js";
 import type { MembershipRules } from "../membership.js";
+import type { IamPolicyStore } from "../store.js";
 import { fakeIamPolicyStore } from "./support.js";
 import type { FakeIamPolicyStore } from "./support.js";
 
@@ -81,22 +94,39 @@ describe("membership rules", () => {
   let temp: ReturnType<typeof tempStore>;
   let store: Store;
   let policies: FakeIamPolicyStore;
+  let grantPath: IamPolicyGrantPath;
   let rules: MembershipRules;
-  const accounts = fakeIdentityAccountStore();
+
+  /** Rules over the shared store and a policy port of the test's choosing (the grant path is built over the same port). */
+  function rulesOver(
+    port: IamPolicyStore,
+    operatorEmail: string = OPERATOR_EMAIL,
+  ): MembershipRules {
+    return newMembershipRules({
+      grantPath: newIamPolicyGrantPath({
+        policies: port,
+        lifecycle: undefined,
+        logger: silentLogger,
+      }),
+      policies: port,
+      store,
+      operatorEmail,
+    });
+  }
 
   beforeEach(() => {
     temp = tempStore();
     store = temp.store;
     policies = fakeIamPolicyStore();
-    const grantPath = newIamPolicyGrantPath({
+    grantPath = newIamPolicyGrantPath({
       policies,
       lifecycle: undefined,
       logger: silentLogger,
     });
     rules = newMembershipRules({
       grantPath,
+      policies,
       store,
-      accounts,
       operatorEmail: OPERATOR_EMAIL,
     });
   });
@@ -230,20 +260,77 @@ describe("membership rules", () => {
       const alice = account("auth0|alice", "alice@example.com");
       await rules.onAccountCreated(alice, userCaller(alice.metadata!.id));
       // The organization was bootstrapped; its owner is then revoked.
-      const grantPath = newIamPolicyGrantPath({
-        policies,
-        lifecycle: undefined,
-        logger: silentLogger,
-      });
       await grantPath.revokeOrgAccess(alice.metadata!.id, "acme");
       expect(policies.rows.size).toBe(0);
-      // A second creator stamp keeps the "no other user-class creator" arm from firing on its own.
+      // A second creator stamp keeps the "no other person created anything here" arm from firing on its own.
       await seedAgent("agt_alice", "acme", alice.metadata!.id);
       const mallory = account("auth0|mallory", "mallory@example.com");
 
       await rules.onAccountCreated(mallory, userCaller(mallory.metadata!.id));
 
       expect(rolesOf(mallory.metadata!.id)).toEqual(["member@acme"]);
+    });
+
+    it("the founder's own stamp counts as another person — a revoked founder's empty organization is NOT handed to the next stranger (Q-S4-7)", async () => {
+      await seedOrg("acme", "auth0|alice");
+      const alice = account("auth0|alice", "alice@example.com");
+      await rules.onAccountCreated(alice, userCaller(alice.metadata!.id));
+      await grantPath.revokeOrgAccess(alice.metadata!.id, "acme");
+      expect(policies.rows.size).toBe(0);
+      // No blueprint at all: only the organization's own creator stamp stands between mallory and admin.
+      const mallory = account("auth0|mallory", "mallory@example.com");
+
+      await rules.onAccountCreated(mallory, userCaller(mallory.metadata!.id));
+
+      expect(rolesOf(mallory.metadata!.id)).toEqual(["member@acme"]);
+    });
+
+    it("an unconfigured operator email matches nobody — an account with an empty email is a member, never admin", async () => {
+      await seedOrg("acme", "auth0|alice");
+      const alice = account("auth0|alice", "alice@example.com");
+      await rules.onAccountCreated(alice, userCaller(alice.metadata!.id));
+      const unconfigured = rulesOver(policies, "");
+      const nobody = account("auth0|nobody", "");
+
+      await unconfigured.onAccountCreated(
+        nobody,
+        userCaller(nobody.metadata!.id, ""),
+      );
+
+      expect(rolesOf(nobody.metadata!.id)).toEqual(["member@acme"]);
+    });
+
+    it("a store fault mid-scan propagates, and the next run converges with no duplicate row", async () => {
+      await seedOrg("acme", "auth0|alice");
+      await seedOrg("globex", "auth0|alice");
+      let faultsLeft = 1;
+      const healthy = fakeIamPolicyStore();
+      const flaky: IamPolicyStore = {
+        ...healthy,
+        async save(policy) {
+          // The first organization's row lands; the second save fails once.
+          if (healthy.rows.size === 1 && faultsLeft > 0) {
+            faultsLeft -= 1;
+            throw new Error("disk full");
+          }
+          await healthy.save(policy);
+        },
+      };
+      const flakyRules = rulesOver(flaky);
+      const dave = account("auth0|dave", "dave@example.com");
+
+      await expect(
+        flakyRules.onAccountCreated(dave, userCaller(dave.metadata!.id)),
+      ).rejects.toThrow("disk full");
+      expect(healthy.rows.size).toBe(1);
+
+      await flakyRules.onAccountCreated(dave, userCaller(dave.metadata!.id));
+
+      expect(
+        [...healthy.rows.values()]
+          .map((p) => `${p.spec?.relation}@${p.spec?.resource?.id}`)
+          .sort(),
+      ).toEqual(["member@acme", "member@globex"]);
     });
 
     it("the operator email becomes admin of every organization it does not own", async () => {
@@ -313,11 +400,12 @@ describe("membership rules", () => {
     it("makes the operator owner of every organization, and a second boot writes nothing", async () => {
       await seedOrg("acme", "system");
       await seedOrg("globex", OPERATOR_EMAIL);
-      const operatorId = accountIdFor(`local|${OPERATOR_EMAIL}`);
+      const operator = account(`local|${OPERATOR_EMAIL}`, OPERATOR_EMAIL);
+      const operatorId = operator.metadata!.id;
 
-      await rules.ensureOperatorOwnership(operatorId);
+      await rules.ensureOperatorOwnership(operator);
       const after = [...policies.rows.keys()].sort();
-      await rules.ensureOperatorOwnership(operatorId);
+      await rules.ensureOperatorOwnership(operator);
 
       expect(rolesOf(operatorId)).toEqual(["owner@acme", "owner@globex"]);
       expect([...policies.rows.keys()].sort()).toEqual(after);
@@ -327,11 +415,33 @@ describe("membership rules", () => {
       await seedOrg("acme", "auth0|alice");
       const alice = account("auth0|alice", "alice@example.com");
       await rules.onAccountCreated(alice, userCaller(alice.metadata!.id));
-      const operatorId = accountIdFor("local|system");
+      const operator = account("local|system", "");
 
-      await rules.ensureOperatorOwnership(operatorId);
+      await rules.ensureOperatorOwnership(operator);
 
-      expect(rolesOf(operatorId)).toEqual([]);
+      expect(rolesOf(operator.metadata!.id)).toEqual([]);
+    });
+
+    it("stamps the owner row's audit actor as the operator's account — id, email and display name, like every other trusted-local write", async () => {
+      await seedOrg("acme", "system");
+      const operator = account(`local|${OPERATOR_EMAIL}`, OPERATOR_EMAIL);
+      operator.metadata!.name = "The Operator";
+
+      await rules.ensureOperatorOwnership(operator);
+
+      const [row] = [...policies.rows.values()];
+      const actor = row?.status?.audit?.specAudit?.createdBy;
+      expect(actor?.id).toBe(operator.metadata!.id);
+      expect(actor?.email).toBe(OPERATOR_EMAIL);
+      expect(actor?.displayName).toBe("The Operator");
+    });
+  });
+
+  describe("the creator scan", () => {
+    it("decodes exactly the organization and BLUEPRINT_KINDS — a kind added to the constant without a schema fails here", () => {
+      expect([...CREATOR_SCAN_SCHEMAS.keys()].sort()).toEqual(
+        [ApiResourceKind.organization, ...BLUEPRINT_KINDS].sort(),
+      );
     });
   });
 });

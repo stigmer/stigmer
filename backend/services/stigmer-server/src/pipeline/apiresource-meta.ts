@@ -27,6 +27,10 @@
  *     through this vocabulary follows its doctrine: `grantableRolesFor`
  *     answers the empty list for the unknown kind instead of throwing,
  *     because the kind it is asked about may have come off the wire.
+ *     `kindEnumName` is the inverse — how server code SPELLS a kind when
+ *     it builds an `ApiResourceRef` itself (the built-in role lifecycle's
+ *     cleanup refs; the organization-role specs) — so no caller reaches
+ *     for the enum's reverse index by hand.
  */
 import { getOption, hasOption } from "@bufbuild/protobuf";
 import type { DescEnumValue } from "@bufbuild/protobuf";
@@ -89,6 +93,22 @@ export function kindByEnumName(value: string): ApiResourceKind {
   return (
     kindsByEnumName().get(value) ?? ApiResourceKind.api_resource_kind_unknown
   );
+}
+
+/**
+ * The inverse of `kindByEnumName`: a kind spelled as an `ApiResourceRef.kind`
+ * — the descriptor's exact proto name ("organization", "identity_account").
+ * Total over the enum: the unknown kind spells itself, so a ref built from
+ * it round-trips to the unknown kind and the gate that reads it refuses
+ * the way it refuses a wire caller's garbage; never a throw.
+ */
+export function kindEnumName(kind: ApiResourceKind): string {
+  // A number that is no member (a cast from outside the enum) spells as
+  // the unknown kind, which every descriptor carries as its zero value.
+  const value =
+    kindValueDescriptor(kind) ??
+    kindValueDescriptor(ApiResourceKind.api_resource_kind_unknown);
+  return value?.name ?? "";
 }
 
 /**

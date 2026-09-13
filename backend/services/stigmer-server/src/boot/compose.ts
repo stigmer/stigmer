@@ -72,6 +72,10 @@ import {
 import { ensureOperatorAccount } from "../domain/identityaccount/operator.js";
 import { newDirectAccountProvisioner } from "../domain/identityaccount/provisioning.js";
 import { newResourceIdentityAccountStore } from "../domain/identityaccount/resource-store.js";
+import { newIamPolicyGrantPath } from "../domain/iampolicy/grant-path.js";
+import { newMembershipRules } from "../domain/iampolicy/membership.js";
+import { newResourceIamPolicyStore } from "../domain/iampolicy/resource-store.js";
+import { newBuiltInRoleLifecycle } from "../domain/iampolicy/role-lifecycle.js";
 import { newIssuerDiscovery } from "../identity/oidc-discovery.js";
 import { newOidcUserInfoClient } from "../identity/oidc-userinfo.js";
 import { newApiKeyIdentityVerifier } from "../domain/apikey/verifier.js";
@@ -285,13 +289,13 @@ export async function composeServer(
   // position 1 of every chain calls it (O2).
   const authorizer =
     extensions.authorizer ?? newPermissiveSingleTeamAuthorizer();
-  // The C2 tuple-lifecycle driver (ruling Q2): undefined = the three
-  // shared tuple steps (CreateAuthorizationTuples / CleanupIamPolicies /
-  // UpdateVisibilityTuples) no-op — OSS behavior byte-identical. Handed
-  // to every resource controller as an explicit dependency, the same
-  // threading as the authorizer.
-  const authorizationLifecycle =
-    extensions.drivers.resourceAuthorizationLifecycle;
+  // The built-in authorization POSTURE (20260913.01, Q-OR-6), named once:
+  // no unit registered an Authorizer, so the roles open source records
+  // exist to feed the built-in one. Under it — and only under it — the
+  // identity-accounts stage below installs the built-in role lifecycle
+  // and the membership rules; a composition with its own Authorizer has
+  // its own onboarding and gets neither.
+  const builtInAuthorization = extensions.authorizer === undefined;
 
   // Stage: storage — the driver selection seam (DD-010): DATABASE_URL
   // present → Postgres (async connect + advisory-locked migrations), else
@@ -338,11 +342,67 @@ export async function composeServer(
   const identityAccounts =
     extensions.drivers.identityAccountStore ??
     newResourceIdentityAccountStore(store);
+  // The IamPolicy row half (20260913.01): the store PORT bound the same way
+  // (`drivers.iamPolicyStore`, Q-OR-10; open source's adapter over `store`
+  // when absent) and the domain's ONE grant and revoke path built over it.
+  // The grant path's lifecycle is the composed DRIVER — the cloud's tuple
+  // hooks — never the built-in lifecycle below, which sits ON TOP of the
+  // grant path; that direction keeps the two acyclic (S1 finding B). Both
+  // bindings are what the IamPolicy controller registers over (slice 5).
+  const iamPolicies =
+    extensions.drivers.iamPolicyStore ?? newResourceIamPolicyStore(store);
+  const iamPolicyGrantPath = newIamPolicyGrantPath({
+    policies: iamPolicies,
+    lifecycle: extensions.drivers.resourceAuthorizationLifecycle,
+    logger,
+  });
+  // The C2 tuple-lifecycle driver (ruling Q2): undefined = the three
+  // shared tuple steps (CreateAuthorizationTuples / CleanupIamPolicies /
+  // UpdateVisibilityTuples) no-op before any resolution work — OSS
+  // behavior byte-identical. Handed to every resource controller as an
+  // explicit dependency, the same threading as the authorizer.
+  const authorizationLifecycle =
+    extensions.drivers.resourceAuthorizationLifecycle;
+  // The lifecycle the ORGANIZATION and IDENTITY-ACCOUNT controllers get
+  // (20260913.01 slice 4, Q-S4-8): the composed driver when a unit
+  // registers one; otherwise, under the built-in posture, open source's
+  // role lifecycle — the organization creator's `owner` row, cleanup on
+  // organization and account deletes — the row half of the seam that
+  // records authorization at lifecycle points in every edition
+  // (extensions/resource-authorization.ts, corrected 2026-09-13). Those
+  // two kinds ONLY, because a lifecycle on a controller turns on the
+  // steps' full event RESOLUTION for that kind, and resolution fails a
+  // request whose configured parent id is missing (Java parity the
+  // cloud relies on) — a state open source admits by contract (a memory
+  // captured with no credential has no subject). The built-in object is
+  // a two-kind role recorder, so only two controllers see it; every other
+  // controller keeps the composed driver above and stays byte-identical.
+  const roleLifecycle =
+    authorizationLifecycle ??
+    (builtInAuthorization
+      ? newBuiltInRoleLifecycle({
+          grantPath: iamPolicyGrantPath,
+          accounts: identityAccounts,
+        })
+      : undefined);
+  // The operator seam is read once here for both its consumers below: the
+  // trusted-local account ensure and the membership rules' operator-email
+  // arm (which also applies under an authentication posture — the
+  // operator who signs in through OIDC is admin of what the laptop has).
+  const operatorIdentity = operatorIdentitySnapshot();
+  const membership = builtInAuthorization
+    ? newMembershipRules({
+        grantPath: iamPolicyGrantPath,
+        policies: iamPolicies,
+        store,
+        operatorEmail: operatorIdentity.email,
+      })
+    : undefined;
   const identityAccountPath = {
     accounts: identityAccounts,
     logger,
     authorizer,
-    authorizationLifecycle,
+    authorizationLifecycle: roleLifecycle,
   };
   const createIdentityAccount = newCreateAccountPath(
     identityAccountPath,
@@ -377,11 +437,22 @@ export async function composeServer(
   if (!requireAuthentication) {
     const operator = await ensureOperatorAccount(
       { accounts: identityAccounts, createAccount: createIdentityAccount },
-      operatorIdentitySnapshot(),
+      operatorIdentity,
     );
     logger.info("trusted-local operator account ensured", {
       accountId: operator.metadata?.id ?? "",
     });
+    // The laptop's one principal owns what the laptop has (Q-OR-6c):
+    // `owner` on every organization with no owner row, create-if-absent,
+    // so the Members page tells the truth from the first boot after roles
+    // exist. Under the built-in posture only — a unit with its own
+    // Authorizer and no authentication posture keeps its own rules.
+    if (membership !== undefined) {
+      await membership.ensureOperatorOwnership(operator);
+      logger.info("trusted-local operator ownership ensured", {
+        accountId: operator.metadata?.id ?? "",
+      });
+    }
   }
 
   // Stage: keys — the ratified fail-loud boot ASYMMETRY (D2 cross-domain
@@ -899,7 +970,9 @@ export async function composeServer(
       logger,
       authorizer,
       gateSteps: extensions.gateSteps,
-      authorizationLifecycle,
+      // The role lifecycle (the identity stage): the composed driver, or
+      // open source's owner-row writer under the built-in posture.
+      authorizationLifecycle: roleLifecycle,
       organizationDirectory: extensions.drivers.organizationDirectory,
     });
     // ApiKey is the first domain born AFTER the Go port (O3, 20260827.06 —
@@ -919,11 +992,13 @@ export async function composeServer(
     // composition adds what differs per edition through the registry —
     // the federation capability (the four federated RPC arms) and the
     // provision slot's gate steps (the cloud's personal organization).
+    // The membership rules are core, selected by posture (20260913.01).
     registerIdentityAccountServices(router, {
       ...identityAccountPath,
       provisioner: identityAccountProvisioner,
       federation: extensions.drivers.identityFederation,
       gateSteps: extensions.gateSteps,
+      membership,
     });
     registerEnvironmentServices(router, {
       store,

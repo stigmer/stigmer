@@ -27,13 +27,16 @@
  * ensure runs it as the trusted-local user.
  *
  * Direct handlers (no pipeline): whoAmI (the cloud's two primary-key
- * reads through idpIdOf; NOT_FOUND for the unprovisioned), getByEmail and
- * getByIdpId (lookup FIRST, then authorizeDirect on the FOUND id — the
- * cloud's order; the annotation's `field_path = "value"` would otherwise
- * hand the Authorizer an email as a resource id), getActorInfo, and
- * provisionMyAccount (the provisioner, then the composed post-persist
- * gates; UNAUTHENTICATED with the cloud's copy for a credential naming no
- * subject; UNAVAILABLE with the cloud's copy when userinfo fails).
+ * reads, stated once as resolve.ts accountForCaller; NOT_FOUND for the
+ * unprovisioned), getByEmail and getByIdpId (lookup FIRST, then
+ * authorizeDirect on the FOUND id — the cloud's order; the annotation's
+ * `field_path = "value"` would otherwise hand the Authorizer an email as a
+ * resource id), getActorInfo, and provisionMyAccount (the provisioner,
+ * then — on the call that CREATED the row — the core AccountCreatedHook
+ * (open source's membership rules, 20260913.01 slice 4), then the composed
+ * post-persist gates; UNAUTHENTICATED with the cloud's copy for a
+ * credential naming no subject; UNAVAILABLE with the cloud's copy when
+ * userinfo fails).
  *
  * The four federation RPCs refuse UNIMPLEMENTED with the edition reason
  * when no unit composes the capability (never INTERNAL; the organization
@@ -102,11 +105,13 @@ import {
   idpIdOf,
 } from "./constants.js";
 import type {
+  AccountCreatedHook,
   CreateAccount,
   CreateAccountInput,
   DirectAccountProvisioner,
 } from "./provisioning.js";
 import { UserInfoFetchError } from "./provisioning.js";
+import { accountForCaller } from "./resolve.js";
 import {
   accountNotFoundError,
   newAssignBackendFieldsStep,
@@ -140,6 +145,13 @@ export interface IdentityAccountControllerDeps extends CreateAccountPathDeps {
   readonly federation: IdentityFederation | undefined;
   /** The composed slot registrations — this domain's provision slot (Q-IA-9, A10). */
   readonly gateSteps: ResolvedGateSteps;
+  /**
+   * The core first-provisioning rule — open source's membership rules
+   * under the built-in authorization posture; undefined when a
+   * composition brings its own Authorizer and so its own onboarding
+   * (20260913.01, Q-OR-6).
+   */
+  readonly membership: AccountCreatedHook | undefined;
 }
 
 /** Registers both identityaccount services on the router (routes stage). */
@@ -458,16 +470,12 @@ async function whoAmI(
   ctx: HandlerContext,
 ): Promise<IdentityAccount> {
   const caller = callerIdentityOf(ctx);
-  let account = await read(
-    () => deps.accounts.findById(caller.identityId),
+  // The domain's one statement of "the caller's account" (resolve.ts):
+  // by id, then by subject — shared with the built-in role lifecycle.
+  const account = await read(
+    () => accountForCaller(deps.accounts, caller),
     "failed to load identity account",
   );
-  if (account === undefined) {
-    account = await read(
-      () => deps.accounts.findDirectByIdpId(idpIdOf(caller)),
-      "failed to load identity account",
-    );
-  }
   if (account === undefined) {
     throw new ConnectError(ACCOUNT_NOT_FOUND_FOR_CALLER_MESSAGE, Code.NotFound);
   }
@@ -530,16 +538,28 @@ async function lookupThenAuthorize(
 
 /**
  * provisionMyAccount — the subject from the caller's credential, the
- * provisioner's flow, then the composed post-persist gates (the cloud's
- * personal organization) with the caller RE-STAMPED as the account: the
- * position-1 identity was idp-shaped because no row existed when the
- * verifier ran, and a gate that attributes ownership must name the
- * account, never a principal no later request carries. The gates run on
- * EVERY call, the idempotent early return included — the cloud's step
- * backfills accounts that predate personal organizations there, which is
- * why Q-IA-9 chose a slot over onResourceCreated. Non-transactional in
- * the `org-create:post-persist` sense: a gate failure fails the request,
- * the row survives, the next call heals it.
+ * provisioner's flow, then two post-persist consumers with the caller
+ * RE-STAMPED as the account: the position-1 identity was idp-shaped
+ * because no row existed when the verifier ran, and anything that
+ * attributes ownership must name the account, never a principal no later
+ * request carries.
+ *
+ *   1. The core AccountCreatedHook (open source's membership rules), on
+ *      the call that CREATED the row only (`created`): the slot below
+ *      fires on the idempotent path by design, and a rule keyed on "holds
+ *      no row" there would re-admit a member an administrator had just
+ *      revoked (20260913.01 plan finding 2). A throw fails the request
+ *      INTERNAL with the row in place and the rule does not run again for
+ *      that account — the ratified store-fault mapping, and the one loud
+ *      record of the window slice 4's Q-S4-4 accepted: the rule's writes
+ *      are idempotent, so a partial run is harmless, and the recovery is
+ *      an administrator's grant.
+ *   2. The composed post-persist gates (the cloud's personal
+ *      organization), on EVERY call — the cloud's step backfills accounts
+ *      that predate personal organizations there, which is why Q-IA-9
+ *      chose a slot over onResourceCreated. Non-transactional in the
+ *      `org-create:post-persist` sense: a gate failure fails the request,
+ *      the row survives, the next call heals it.
  */
 async function provisionMyAccount(
   deps: IdentityAccountControllerDeps,
@@ -552,8 +572,12 @@ async function provisionMyAccount(
     throw new ConnectError(NO_IDP_ID_MESSAGE, Code.Unauthenticated);
   }
   let account: IdentityAccount;
+  let created: boolean;
   try {
-    account = await deps.provisioner.provisionDirectAccount(idpId, caller);
+    ({ account, created } = await deps.provisioner.provisionDirectAccount(
+      idpId,
+      caller,
+    ));
   } catch (error) {
     if (error instanceof UserInfoFetchError) {
       throw new ConnectError(
@@ -563,6 +587,17 @@ async function provisionMyAccount(
     }
     throw error;
   }
+  const asAccount: CallerIdentity = {
+    ...caller,
+    identityId: account.metadata?.id ?? "",
+  };
+  if (created && deps.membership !== undefined) {
+    try {
+      await deps.membership.onAccountCreated(account, asAccount);
+    } catch (error) {
+      throw internalError(error, "failed to record organization membership");
+    }
+  }
   // The ratified provision slot (Q-IA-9; the gate-slots.ts header carries
   // its semantics). Empty in OSS — no pipeline is built for zero steps.
   const gates = stepsForSlot<typeof IdentityAccountSchema>(
@@ -570,10 +605,6 @@ async function provisionMyAccount(
     "identity-account-provision:post-persist",
   );
   if (gates.length > 0) {
-    const asAccount: CallerIdentity = {
-      ...caller,
-      identityId: account.metadata?.id ?? "",
-    };
     const reqCtx = new RequestContext(
       IdentityAccountSchema,
       account,

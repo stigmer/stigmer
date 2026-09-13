@@ -34,7 +34,10 @@ import { create } from "@bufbuild/protobuf";
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountSpecSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/spec_pb";
 
-import { trustedLocalIdentityFor } from "../../pipeline/interceptors/auth.js";
+import {
+  SYSTEM_OPERATOR_IDENTITY_ID,
+  trustedLocalIdentityFor,
+} from "../../pipeline/interceptors/auth.js";
 import { accountIdFor, localIdpIdFor } from "./constants.js";
 import type { CreateAccount } from "./provisioning.js";
 import { resolveCreateRace } from "./provisioning.js";
@@ -51,9 +54,6 @@ export interface OperatorAccountDeps {
   readonly accounts: IdentityAccountStore;
   readonly createAccount: CreateAccount;
 }
-
-/** The unconfigured laptop's operator: what the interceptor stamps as identityId. */
-const SYSTEM_OPERATOR = "system";
 
 export async function ensureOperatorAccount(
   deps: OperatorAccountDeps,
@@ -72,7 +72,7 @@ export async function ensureOperatorAccount(
       ? operator.displayName
       : operator.email !== ""
         ? operator.email
-        : SYSTEM_OPERATOR;
+        : SYSTEM_OPERATOR_IDENTITY_ID;
   try {
     return await deps.createAccount(
       {
