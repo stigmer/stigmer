@@ -68,5 +68,5 @@ describe("ExecuteDeepAgent hermetic — the harness contract kit against the rea
   });
 
   describeHarnessContract(subject);
-  describeHarnessRuntimeContract({ subject, env, clock }, { failureSurfaces: ["internal"] });
+  describeHarnessRuntimeContract({ subject, env, clock }, { failureSurfaces: ["internal"], engineCancel: false });
 });

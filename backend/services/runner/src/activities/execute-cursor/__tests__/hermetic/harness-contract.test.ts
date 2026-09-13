@@ -33,8 +33,13 @@
  * a later proposal of an identity the user already approved and the agent
  * already ran gets its OWN gate and inherits nothing — the approval bleed the
  * kit's invariant 3 found in this adapter (S2 M4 finding F9;
- * `same-identity-reproposal.test.ts` pins the translator's rule); and the
- * hook agreed with the subject's model of it at every proposal.
+ * `same-identity-reproposal.test.ts` pins the translator's rule); an
+ * APPROVED action the resumed agent has not yet re-reached when the turn is
+ * stopped never executes (deny-and-retry: the approval is a decision on the
+ * row, and the SDK reaches the call only when its model does — the order an
+ * interrupt engine inverts, so the kit's invariant 4 stopped asserting it at
+ * S3 M3 Q-M3-2 and each harness's file observes its own); and the hook
+ * agreed with the subject's model of it at every proposal.
  *
  * Needs `bash` (the hook) — skipped where it is unavailable, reported as
  * SKIPPED, never a silent pass. The hermetic environment (temp `HOME` for the
@@ -161,6 +166,21 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — the harness contract kit a
       expect(laterRow?.status, "the new act has its own WAITING row").toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
       expect(laterRow?.approvalAction, "undecided").toBe(ApprovalAction.UNSPECIFIED);
       expect(approvalDecisionsOf(again.sink.status).size, "the runtime would read no decision for it").toBe(0);
+    });
+
+    it("leaves an APPROVED action unexecuted when the resumed turn is stopped before the agent re-reaches it (deny-and-retry order)", async () => {
+      const driver = new ExecutionDriver(subject, "obs-approved-after-stop");
+      const id = "obs-approved-after-stop-write";
+
+      const proposed = await driver.turn([scenario.propose(id, WRITE_GAMMA)]);
+      expect(proposed.outcome.kind).toBe("awaiting_approval");
+      driver.decide(id, ApprovalAction.APPROVE);
+
+      const hanging = driver.begin([scenario.say("working"), scenario.hang(), scenario.propose(id, WRITE_GAMMA)], { stopWhenHanging: "kit: user pause" });
+      const outcome = await hanging.settled;
+
+      expect(outcome.kind).toBe("interrupted");
+      expect(subject.executionCount(id), "the SDK reaches an approved call only when its model does; the stop came first").toBe(0);
     });
 
     it("the hook agreed with the subject's model of it at every proposal", () => {

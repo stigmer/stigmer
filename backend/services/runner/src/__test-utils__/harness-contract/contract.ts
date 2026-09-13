@@ -41,8 +41,15 @@
  *     driver stands in for that write between turns, Q-M1-3); reinvoked again
  *     after the approval → still once, never re-gated.
  *  4. Aborting `stopSignal` mid-hang settles `runTurn` as `interrupted` within
- *     {@link INTERRUPT_SETTLE_BOUND_MS} and nothing after the stop executes; a
- *     signal aborted BEFORE `runTurn` yields `interrupted` with nothing done.
+ *     {@link INTERRUPT_SETTLE_BOUND_MS} and nothing after the stop executes or
+ *     is even gated (a proposal after the hang has no row); a signal aborted
+ *     BEFORE `runTurn` yields `interrupted` with nothing done. Stated over a
+ *     FRESH proposal on purpose: WHEN an already-approved pending action
+ *     executes on the resumed turn is the pause primitive's business — an
+ *     interrupt engine completes the pending task before its model speaks,
+ *     a deny-and-retry engine re-reaches it whenever its model does — so it
+ *     is below the contract line (S3 M3 Q-M3-2; each harness's own kit file
+ *     observes its order).
  *  5. Usage reaches the sink as non-negative deltas summing to what the engine
  *     emitted.
  *  6. Capability and behaviour agree on the state id: an `engine-minted`
@@ -367,22 +374,20 @@ export async function assertDecisionsExecuteExactlyOnce(subject: HarnessContract
  * Invariant 4: the stop signal is honoured promptly and completely. A turn
  * stopped WHILE HANGING (the engine has reported it is parked, so the stop
  * lands in the hang and not in the adapter's setup) settles `interrupted`
- * within the bound and executes nothing that came after the hang, even an
- * already-approved action; a turn entered under an aborted signal does
- * nothing at all.
+ * within the bound, and the proposal after the hang neither executes nor
+ * reaches the gate (no row of any status); a turn entered under an aborted
+ * signal does nothing at all. The proposal is FRESH — see the catalog on why
+ * an approved one would assert the pause primitive's order, not the contract.
  */
 export async function assertStopSignalInterrupts(subject: HarnessContractSubject, boundMs = INTERRUPT_SETTLE_BOUND_MS): Promise<void> {
   const driver = new ExecutionDriver(subject, "inv4");
-  const id = "inv4-approved-after-hang";
-
-  const proposed = await driver.turn([scenario.propose(id, WRITE_ALPHA)]);
-  expect(proposed.outcome.kind, `${subject.name}: proposal must end awaiting_approval`).toBe("awaiting_approval");
-  driver.decide(id, ApprovalAction.APPROVE);
+  const id = "inv4-proposed-after-hang";
 
   const hanging = driver.begin([scenario.say("working"), scenario.hang(), scenario.propose(id, WRITE_ALPHA)], { stopWhenHanging: "kit: user pause" });
   const outcome = await settleWithinBound(subject, hanging.settled, "after stopSignal aborted mid-hang", boundMs);
   expect(outcome.kind, `${subject.name}: a turn stopped mid-hang must settle interrupted`).toBe("interrupted");
-  expect(subject.executionCount(id), `${subject.name}: nothing after the stop may execute, even an approved action`).toBe(0);
+  expect(subject.executionCount(id), `${subject.name}: nothing after the stop may execute`).toBe(0);
+  expect(findToolCallRow(hanging.sink.status, id), `${subject.name}: nothing after the stop may even reach the gate — the proposal after the hang has no row`).toBeUndefined();
   driver.recordTurn(hanging.sink);
 
   const preAborted = new RecordingTurnSink({ status: driver.seedStatus() });

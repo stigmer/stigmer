@@ -56,7 +56,10 @@ import type { TurnInputFixtureOverrides } from "../turn-input-fixture.js";
  *    ends `failed` on the given surface (`engine` unless the scenario says
  *    otherwise — the runtime's three failure copies are its own invariant).
  *  - `cancelled`: the engine ends its own run cancelled with nothing to
- *    wait for (an SDK-side cancel); the turn ends `cancelled`.
+ *    wait for (an SDK-side cancel); the turn ends `cancelled`. Not every
+ *    engine can end itself (a LangGraph run is stopped only by the runtime's
+ *    signal and settles `interrupted`), so a subject that cannot produce it
+ *    says so and the runtime arm is reported SKIPPED there.
  *  - `limit`: the engine exhausts the tool-round budget the execution set and
  *    stops at a step boundary with its work checkpointed; the turn ends
  *    `tool_call_limit`. Not every engine has such a budget (Cursor's SDK does

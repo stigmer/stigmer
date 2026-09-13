@@ -61,7 +61,7 @@ import type { Config } from "../../config.js";
 import { HARNESS_ACTIVITY_NAMES, createHarnessActivities } from "../../harness/registry.js";
 import { TERMINAL_COPY } from "../../harness/terminal-table.js";
 import { REJECTED_BY_USER_ERROR, approvalDecisionsOf } from "../../harness/approval-decisions.js";
-import { TOOL_CALL_LIMIT_ERROR_PREFIX, TOOL_CALL_LIMIT_USER_COPY, formatToolCallLimitError } from "../../shared/tool-rounds.js";
+import { MIN_TOOL_ROUNDS, TOOL_CALL_LIMIT_ERROR_PREFIX, TOOL_CALL_LIMIT_USER_COPY, formatToolCallLimitError } from "../../shared/tool-rounds.js";
 import type { FailureSurface } from "../../harness/types.js";
 import type { ExecuteActivityInput } from "../../shared/activity-input.js";
 import { acquireWorkspaceLock } from "../../shared/workspace/workspace-lock.js";
@@ -353,10 +353,17 @@ export async function assertNonExecutingDecisionSettlesSkipped(
  * the step after the limit never processed. Before S3 M1 the native harness
  * RETURNED this terminal without persisting it (M0 finding F-M0-4); the
  * runtime's arm is the one persisted terminal.
+ *
+ * The execution SETS the budget it exhausts: the record carries the smallest
+ * valid `max_tool_rounds` (an unbounded execution has no limit to reach — on
+ * native `resolveRecursionLimit(0)` is unlimited, and the first run of this
+ * arm against it spun until the test timed out; S3 M3 F-M3-3). The fake
+ * exhausts whatever budget it is given; a real engine spins its cheapest
+ * ungated tool until the graph stops it.
  */
 export async function assertToolCallLimitTerminates(harness: RuntimeContractHarness, label = "rt-tool-call-limit"): Promise<RuntimeArmResult> {
   const { subject } = harness;
-  const driver = new RuntimeExecutionDriver(harness, label);
+  const driver = new RuntimeExecutionDriver(harness, label, { maxToolRounds: MIN_TOOL_ROUNDS });
   const invocation = await driver.turn([scenario.say("Working…"), scenario.limit(), scenario.say(NEVER_SEEN)]);
   // `slimOf` is the RETURN assertion (a retry would spend the same budget).
   expect(slimOf(subject, invocation).phase, `${subject.name}: the tool-call limit is TERMINATED, not FAILED`).toBe("EXECUTION_TERMINATED");
@@ -757,6 +764,14 @@ export interface RuntimeContractOptions {
    * SDK has no such budget).
    */
   readonly toolCallLimit?: boolean;
+  /**
+   * Whether this subject's engine can end its OWN run cancelled with nothing
+   * to wait for (`scenario.cancelled()`, an SDK-side cancel); the arm is
+   * registered SKIPPED otherwise. On by default; the native subject turns it
+   * off (no LangGraph path ends a turn `cancelled` — a stop is the runtime's
+   * and settles `interrupted`; S3 M3 F-M3-2).
+   */
+  readonly engineCancel?: boolean;
 }
 
 const ALL_SURFACES: readonly FailureSurface[] = ["engine", "actionable", "internal"];
@@ -820,7 +835,7 @@ export function describeHarnessRuntimeContract(harness: RuntimeContractHarness, 
       clock.reset();
       await assertPlatformStopCompletesEarly(harness);
     });
-    it("an engine-cancelled run ends CANCELLED with no error and no copy", async () => {
+    it.skipIf(options.engineCancel === false)("an engine-cancelled run ends CANCELLED with no error and no copy", async () => {
       clock.reset();
       await assertEngineCancelledEndsCancelled(harness);
     });
