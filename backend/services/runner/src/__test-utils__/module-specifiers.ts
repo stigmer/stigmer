@@ -43,6 +43,30 @@ export function moduleSpecifiers(fileName: string, source: string): string[] {
 }
 
 /**
+ * The module specifiers a file LOADS when it is itself loaded: static
+ * imports and re-exports that are not type-only. A `import type` is erased
+ * by the compiler and a dynamic `import()` runs only when its call runs, so
+ * neither is on the static graph — which is what the SDK-free fences on the
+ * adapters' lifecycle modules ask about (`harness-adapters.ts`'s rule: the
+ * roots import the table before they boot it, so an adapter loads its SDK
+ * inside `boot`, never at the top of its module).
+ */
+export function staticRuntimeSpecifiers(fileName: string, source: string): string[] {
+  const sourceFile = ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, /* setParentNodes */ false);
+  const specifiers: string[] = [];
+  for (const statement of sourceFile.statements) {
+    if (ts.isImportDeclaration(statement) && ts.isStringLiteral(statement.moduleSpecifier)) {
+      if (statement.importClause?.isTypeOnly) continue;
+      specifiers.push(statement.moduleSpecifier.text);
+    } else if (ts.isExportDeclaration(statement) && statement.moduleSpecifier !== undefined && ts.isStringLiteral(statement.moduleSpecifier)) {
+      if (statement.isTypeOnly) continue;
+      specifiers.push(statement.moduleSpecifier.text);
+    }
+  }
+  return specifiers;
+}
+
+/**
  * The relative specifiers in `source` that resolve to a path inside
  * `forbiddenRoot`. Package specifiers are ignored: no alias maps a package
  * name onto a source directory.
