@@ -49,6 +49,7 @@ import type { TurnInput, TurnSink } from "../../harness/types.js";
 import { shouldPersistStreamingStatus } from "../../shared/persist-decision.js";
 import { StreamingUpdateScheduler, loadStreamingConfig } from "../../shared/streaming-scheduler.js";
 import { computeTurnCost } from "../../shared/model-pricing.js";
+import { TimeoutError, withTimeout } from "../../shared/with-timeout.js";
 import { InlinePublisher } from "./inline-publisher.js";
 import { StreamingSideEffects } from "./streaming-side-effects.js";
 import { createV3EventRecorder, type V3ProtocolEvent } from "./v3-event-recorder.js";
@@ -271,25 +272,30 @@ export async function consumeDeepAgentStream(deps: DeepAgentStreamDeps): Promise
 }
 
 /**
- * The graph's final state, raced against a bound: `run.output` normally
- * resolves the moment the stream ends, but a state that never settles must
- * not hold the turn (the structured response is recoverable from the final
- * text; the runtime's epilogue does that).
+ * The graph's final state, bounded: `run.output` normally resolves the
+ * moment the stream ends, but a state that never settles must not hold the
+ * turn (the structured response is recoverable from the final text; the
+ * runtime's epilogue does that).
+ *
+ * Bounded through the shared `withTimeout`, never a hand-rolled
+ * `Promise.race` against a bare `setTimeout`: a race leaves its losing timer
+ * armed, and a referenced timer holds the Node event loop open. The
+ * orchestrator's copy of this wait left a 30 s timer behind every completed
+ * execution, so a runner asked to exit right after one idled for the full
+ * Kubernetes termination grace (stigmer#1008, fixed on the orchestrator in
+ * stigmer#1092 while this adapter was on its branch; this copy had cleared
+ * its timer in a `finally` from the start, and took the shared shape at the
+ * merge so there is one way to bound a wait). `withTimeout` clears the timer
+ * on whichever side settles first; `turn-stream.test.ts` pins that nothing
+ * stays armed on either side.
  */
 async function extractRunOutput(run: StreamableRun, executionId: string): Promise<Record<string, unknown> | undefined> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const timeout = new Promise<typeof TIMEOUT>((resolve) => {
-    timer = setTimeout(() => resolve(TIMEOUT), RUN_OUTPUT_TIMEOUT_MS);
-  });
   try {
-    const finalState = await Promise.race([run.output, timeout]);
-    if (finalState === TIMEOUT) {
-      console.warn(
-        `[turn-stream] execution=${executionId} — run.output did not resolve within ${RUN_OUTPUT_TIMEOUT_MS}ms. ` +
-        `Proceeding without final state.`,
-      );
-      return undefined;
-    }
+    const finalState = await withTimeout(
+      RUN_OUTPUT_TIMEOUT_MS,
+      `run.output did not resolve within ${RUN_OUTPUT_TIMEOUT_MS}ms`,
+      () => run.output,
+    );
     const output = finalState as Record<string, unknown>;
     console.log(
       `[turn-stream] execution=${executionId} — run.output resolved. ` +
@@ -297,11 +303,11 @@ async function extractRunOutput(run: StreamableRun, executionId: string): Promis
     );
     return output;
   } catch (err) {
+    if (err instanceof TimeoutError) {
+      console.warn(`[turn-stream] execution=${executionId} — ${err.message}. Proceeding without final state.`);
+      return undefined;
+    }
     console.warn(`[turn-stream] execution=${executionId} — run.output rejected: ${err}`);
     return undefined;
-  } finally {
-    if (timer) clearTimeout(timer);
   }
 }
-
-const TIMEOUT = Symbol("run-output-timeout");

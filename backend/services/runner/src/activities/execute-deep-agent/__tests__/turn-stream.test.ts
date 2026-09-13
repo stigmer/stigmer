@@ -331,6 +331,43 @@ describe("consumeDeepAgentStream — how the loop ends", () => {
       warn.mockRestore();
     }
   });
+
+  // Regression pins for stigmer#1008 (carried from the orchestrator's
+  // `streaming-v3.test.ts`, retired with its module; the fix on that module
+  // was stigmer#1092). The run.output bound must not leave its timer armed:
+  // a referenced timer holds the runner's event loop open after its worker
+  // has stopped, for the full Kubernetes termination grace. Faked timers
+  // here so `vi.getTimerCount()` can see what the loop left behind.
+  describe("the run.output bound leaves nothing armed", () => {
+    beforeEach(() => vi.useFakeTimers());
+    afterEach(() => vi.useRealTimers());
+
+    it("once run.output has resolved", async () => {
+      const h = harness();
+      const promise = h.run(scriptedRun(textTurn("run-1", "x")));
+      // Well short of the 30 s bound: a leaked timer would still be pending here.
+      await vi.advanceTimersByTimeAsync(1_000);
+      const result = await promise;
+      expect(result.runOutput).toBeDefined();
+      expect(vi.getTimerCount(), "the loop left a timer armed after completion").toBe(0);
+    });
+
+    it("when run.output never settles: the bound ends the wait, no final state, nothing armed", async () => {
+      const h = harness();
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+      try {
+        const promise = h.run(scriptedRun(textTurn("run-1", "x"), { output: () => new Promise(() => undefined) }));
+        await vi.advanceTimersByTimeAsync(30_000);
+        const result = await promise;
+        expect(result.reason).toBe("completed");
+        expect(result.runOutput).toBeUndefined();
+        expect(warn.mock.calls.some((c) => String(c[0]).includes("run.output did not resolve within 30000ms"))).toBe(true);
+        expect(vi.getTimerCount(), "the bound's own timer is cleared on expiry").toBe(0);
+      } finally {
+        warn.mockRestore();
+      }
+    });
+  });
 });
 
 describe("consumeDeepAgentStream — the event recorder", () => {
