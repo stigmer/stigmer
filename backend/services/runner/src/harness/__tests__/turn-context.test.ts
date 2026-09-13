@@ -17,6 +17,10 @@
  *    runs the agent — REJECT included since S3 M1 —, a clean file-review
  *    resume completes, a failed or partially discarded one completes with
  *    its facts carried).
+ *  - `regeneratesApprovedWrites`: which pause primitives make the runner pin
+ *    an approved whole-file write's bytes itself (the engine re-runs the
+ *    model) and which never do (the engine applies the exact args it paused
+ *    on). S3 M2a, Q-M2a-3.
  *
  * The phases that fetch and provision are exercised end to end by the
  * hermetic goldens (`activities/execute-cursor/__tests__/hermetic/`), which
@@ -32,7 +36,7 @@ import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agen
 import { ApprovalAction, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
 import { approvalDecisionsOf } from "../approval-decisions.js";
-import { decideReinvocation, isReinvocation, type ReinvocationFacts } from "../turn-context.js";
+import { decideReinvocation, isReinvocation, regeneratesApprovedWrites, type ReinvocationFacts } from "../turn-context.js";
 
 const INPUT = { executionId: "aex_1", threadId: "", turnSeq: 0 } as const;
 
@@ -199,5 +203,23 @@ describe("decideReinvocation", () => {
       failureDetail: "src/a.ts changed after review",
       discardedPaths: ["src/b.ts"],
     });
+  });
+});
+
+describe("regeneratesApprovedWrites", () => {
+  it("a deny-and-retry engine re-prompts the model with grants, so the runner pins the approved bytes", () => {
+    expect(regeneratesApprovedWrites("deny-and-retry")).toBe(true);
+  });
+
+  it("a callback engine's resumed session re-attempts the call, so the runner pins the approved bytes", () => {
+    expect(regeneratesApprovedWrites("callback")).toBe(true);
+  });
+
+  it("an interrupt engine applies the exact args it paused on — a runner-side write would land twice and pre-empt the row", () => {
+    expect(regeneratesApprovedWrites("interrupt")).toBe(false);
+  });
+
+  it("a gate-less engine has nothing approved to apply", () => {
+    expect(regeneratesApprovedWrites("none")).toBe(false);
   });
 });

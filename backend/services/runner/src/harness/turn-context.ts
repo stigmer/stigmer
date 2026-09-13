@@ -115,7 +115,7 @@ import { readDeclaredPreferences } from "../shared/declared-preferences.js";
 import { readConversationCatchup } from "../shared/conversation-catchup.js";
 import { selectRecalledFacts } from "../shared/memory-retrieval.js";
 import type { RecalledMemoriesContent } from "../shared/recalled-memories.js";
-import type { FileReviewIdentity, HarnessCapabilities, StateIdSource } from "./capabilities.js";
+import type { FileReviewIdentity, HarnessCapabilities, PausePrimitive, StateIdSource } from "./capabilities.js";
 import type {
   TurnAttachments,
   TurnEnvironment,
@@ -869,6 +869,35 @@ export async function resolveTurnAttachments(
 }
 
 /**
+ * Whether a harness performs an approved call by RE-RUNNING the model, so
+ * the bytes an approved whole-file write lands can differ from the bytes the
+ * user approved unless the runner pins them itself
+ * ({@link applyApprovedWrites}). Keyed on the pause primitive
+ * (`capabilities.ts`): `deny-and-retry` denies the call and re-prompts the
+ * model with grants; `callback` answers "deny, stop" and the resumed session
+ * re-attempts the call — both regenerate. An `interrupt` engine checkpoints
+ * AT the call and applies its exact args on `approve`, so a runner-side
+ * write would land the same bytes twice and pre-empt a row the engine is
+ * about to execute; `none` gates nothing. Until S3 M2a the phase ran for
+ * every harness — a deny-and-retry mechanism the native harness would have
+ * met on its first deny-gated file approval (F-M2a-2, Q-M2a-3).
+ */
+export function regeneratesApprovedWrites(pausePrimitive: PausePrimitive): boolean {
+  switch (pausePrimitive) {
+    case "deny-and-retry":
+    case "callback":
+      return true;
+    case "interrupt":
+    case "none":
+      return false;
+    default: {
+      const exhaustive: never = pausePrimitive;
+      throw new Error(`regeneratesApprovedWrites: unknown pause primitive ${String(exhaustive)}`);
+    }
+  }
+}
+
+/**
  * Phase 5b3 (`index.ts` L849-867): exact-apply approved whole-file writes
  * (HITL "what you approve is what gets applied"). A deny-only harness
  * reinvokes the model, which regenerates content, so a resource grant alone
@@ -880,8 +909,9 @@ export async function resolveTurnAttachments(
  * uncertain case degrades to that path, so this can never corrupt a file
  * (see `shared/exact-apply.ts`).
  *
- * Scoped OUT of capture mode, which does not reinvoke the model for file
- * edits: it applies the exact captured bytes itself in the reconcile.
+ * Scoped to the harnesses that regenerate ({@link regeneratesApprovedWrites})
+ * and OUT of capture mode, which does not reinvoke the model for file edits:
+ * it applies the exact captured bytes itself in the reconcile.
  *
  * The caller persists when the returned set is non-empty (the applied state
  * must be durable before the continuation runs, and the UI reflects it at
@@ -890,12 +920,18 @@ export async function resolveTurnAttachments(
 export async function applyApprovedWrites(
   deps: ResolutionDeps,
   args: {
+    readonly pausePrimitive: PausePrimitive;
     readonly workspace: TurnWorkspace;
     readonly reinvocation: TurnReinvocation;
   },
 ): Promise<ReadonlySet<string>> {
-  const { workspace, reinvocation } = args;
-  if (workspace.captureMode || !reinvocation.isReinvocation || reinvocation.approvalDecisions.size === 0) {
+  const { pausePrimitive, workspace, reinvocation } = args;
+  if (
+    !regeneratesApprovedWrites(pausePrimitive) ||
+    workspace.captureMode ||
+    !reinvocation.isReinvocation ||
+    reinvocation.approvalDecisions.size === 0
+  ) {
     return new Set();
   }
   deps.enterPhase("apply_approved_writes");
@@ -1051,7 +1087,11 @@ export async function resolveTurnContext(
     primaryDir: workspace.primaryDir,
     visionProfile: capabilities.visionProfile,
   });
-  const appliedToolCallIds = await applyApprovedWrites(deps, { workspace, reinvocation: reinvoked.reinvocation });
+  const appliedToolCallIds = await applyApprovedWrites(deps, {
+    pausePrimitive: capabilities.pausePrimitive,
+    workspace,
+    reinvocation: reinvoked.reinvocation,
+  });
   if (appliedToolCallIds.size > 0) {
     // Persist the applied writes (tool calls now COMPLETED with the approved
     // diff) before reinvocation, so the applied state is durable even if the
