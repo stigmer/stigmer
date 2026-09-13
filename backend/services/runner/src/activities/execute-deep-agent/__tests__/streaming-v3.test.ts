@@ -152,6 +152,25 @@ describe("streamExecutionV3", () => {
 
       expect(result.runOutput?.structuredResponse).toEqual({ name: "Test", score: 42 });
     });
+
+    // Regression pin for stigmer#1008. The arms above drive the stream with
+    // `runAllTimersAsync`, which fires every armed timer — including one the
+    // stream should never have left behind — so they cannot see a leak. This
+    // one advances only far enough for a prompt run.output to be consumed and
+    // then asks what is still armed. A referenced timer left here holds the
+    // runner's event loop open after its worker has stopped: the 30 s
+    // run.output bound, left armed by every completed execution, kept the
+    // process alive for the full Kubernetes termination grace.
+    it("leaves no timer armed once run.output has resolved", async () => {
+      const promise = streamExecutionV3(baseDeps());
+      // Well short of the 30 s run.output bound: if that timer were still
+      // armed, it would still be pending here.
+      await vi.advanceTimersByTimeAsync(1_000);
+      const result = await promise;
+
+      expect(result.runOutput).toBeDefined();
+      expect(vi.getTimerCount(), "the stream left a timer armed after completion").toBe(0);
+    });
   });
 
   describe("call signature", () => {
@@ -317,6 +336,24 @@ describe("streamExecutionV3", () => {
         streamExecutionV3(baseDeps({ agentGraph: graph })),
       ).rejects.toThrow("Network failure");
       vi.useFakeTimers();
+    });
+
+    it("proceeds without final state when run.output never resolves within its bound", async () => {
+      const graph = mockV3Graph([makeEvent(0, "messages", { event: "message-start" })]);
+      // A run whose output hangs forever: the bound, not the graph, must end the wait.
+      graph._run.output = new Promise(() => {});
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+      const promise = streamExecutionV3(baseDeps({ agentGraph: graph }));
+      await vi.advanceTimersByTimeAsync(30_000);
+      const result = await promise;
+
+      expect(result.runOutput).toBeUndefined();
+      expect(result.eventsProcessed).toBe(1);
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining("run.output did not resolve within 30000ms"));
+      // The bound's own timer is cleared on expiry too; nothing stays armed.
+      expect(vi.getTimerCount()).toBe(0);
+      warn.mockRestore();
     });
 
     it("handles run.output rejection gracefully (logged, not thrown)", async () => {
