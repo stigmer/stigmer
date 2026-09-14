@@ -508,6 +508,41 @@ smoke-compose: build-server build-web ## Build the compose stack from source and
 	@cd $(SERVER_DIR) && node scripts/bundle-slim.mjs --platform=linux-$$(node -e "process.stdout.write(process.arch==='x64'?'x64':'arm64')")
 	node scripts/smoke-compose.mjs --build
 
+# The Helm chart (deploy/helm/stigmer; stigmer-cloud project 20260914.02):
+# docker-compose.yml translated for Kubernetes. Three gates, the compose
+# stack's shape: lint-helm is the static pass (helm lint --strict and
+# kubeconform on every CI values profile), test-helm the render tests
+# (goldens, the compose-parity test, the schema refusals — also in the root
+# test:scripts lane), smoke-helm the kind install with the same probes as
+# smoke-compose plus the adversarial arms, from source-built images (the
+# release lane runs the same script against the pushed tags).
+HELM_CHART_DIR := deploy/helm/stigmer
+HELM_PROFILES := bundled byo ingress-oidc
+# The floor Chart.yaml declares (native gRPC probes are GA in 1.27).
+HELM_KUBE_VERSION := 1.27.0
+
+.PHONY: lint-helm
+lint-helm: ## Lint the Helm chart on every CI values profile and validate its render against the Kubernetes schemas (needs helm, kubeconform)
+	@command -v helm >/dev/null 2>&1 || { echo "error: helm not found"; exit 1; }
+	@command -v kubeconform >/dev/null 2>&1 || { echo "error: kubeconform not found — https://github.com/yannh/kubeconform"; exit 1; }
+	@for profile in $(HELM_PROFILES); do \
+		echo "helm lint --strict ($$profile)"; \
+		helm lint --strict $(HELM_CHART_DIR) -f $(HELM_CHART_DIR)/ci/values-$$profile.yaml --quiet || exit 1; \
+		echo "kubeconform ($$profile)"; \
+		helm template stigmer $(HELM_CHART_DIR) -f $(HELM_CHART_DIR)/ci/values-$$profile.yaml \
+			| kubeconform -strict -kubernetes-version $(HELM_KUBE_VERSION) -summary || exit 1; \
+	done
+
+.PHONY: test-helm
+test-helm: node_modules ## Run the chart's render, compose-parity and schema tests (needs helm)
+	node --test $(HELM_CHART_DIR)/__tests__/*.test.mjs
+
+.PHONY: smoke-helm
+smoke-helm: build-server build-web ## Build both images from source, install the chart on kind and run the gate smoke (needs Docker, kind, helm, kubectl)
+	@for tool in docker kind helm kubectl; do command -v $$tool >/dev/null 2>&1 || { echo "error: $$tool not found — the Helm smoke needs it"; exit 1; }; done
+	@cd $(SERVER_DIR) && node scripts/bundle-slim.mjs --platform=linux-$$(node -e "process.stdout.write(process.arch==='x64'?'x64':'arm64')")
+	node scripts/smoke-helm.mjs --build
+
 # The `cloud` conformance targets have no target this repository can boot:
 # the cloud edition is the TypeScript composition in the private stigmer-cloud
 # repository (the Java stigmer-service the hermetic launcher booted retired on
@@ -1024,21 +1059,24 @@ gen-llms: ## Generate LLM-friendly output (llms.txt, llms-full.txt, per-page .md
 # ─── Release ──────────────────────────────────
 
 .PHONY: release release-pins
-# The three release pins travel in the commit the tag is cut from: the
-# mcp-server bridge pin (release.npm-libs refuses to publish on a mismatch)
-# and the compose stack pin in docker-compose.yml + .env.example (the
-# release lane cannot push the bump to the protected main — GH006 on
-# v3.14.0 and v3.14.1 — so it moved here, next to the pin it already
-# required). `make release` refuses to tag until all three name the new
+# The four release pins travel in the commit the tag is cut from: the
+# mcp-server bridge pin (release.npm-libs refuses to publish on a mismatch),
+# the compose stack pin in docker-compose.yml + .env.example (the release
+# lane cannot push the bump to the protected main — GH006 on v3.14.0 and
+# v3.14.1 — so it moved here, next to the pin it already required), and the
+# Helm chart's Chart.yaml (version == appVersion; the chart's image tags
+# default to v<appVersion>, and release.npm-libs refuses to package on a
+# mismatch). `make release` refuses to tag until all four name the new
 # version. perl, not sed -i: the recipe must run the same on macOS and
 # Linux.
-release-pins: ## Bump the release pins to version=X.Y.Z (mcp-server bridge, compose stack); commit before `make release`
+release-pins: ## Bump the release pins to version=X.Y.Z (mcp-server bridge, compose stack, Helm chart); commit before `make release`
 	@[ -n "$(version)" ] || { echo "usage: make release-pins version=X.Y.Z"; exit 1; }
 	@echo "$(version)" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$$' || { echo "error: version must be X.Y.Z (got '$(version)')"; exit 1; }
 	@perl -pi -e 's/^ARG MCP_SERVER_VERSION=.*/ARG MCP_SERVER_VERSION=$(version)/' mcp-server/Dockerfile
 	@perl -pi -e 's/STIGMER_VERSION:-v[0-9A-Za-z.+-]+/STIGMER_VERSION:-v$(version)/g' docker-compose.yml
 	@perl -pi -e 's/^#STIGMER_VERSION=.*/#STIGMER_VERSION=v$(version)/' .env.example
-	@echo "release pins set to $(version):"; git --no-pager diff --stat -- mcp-server/Dockerfile docker-compose.yml .env.example
+	@perl -pi -e 's/^version: .*/version: $(version)/; s/^appVersion: .*/appVersion: "$(version)"/' deploy/helm/stigmer/Chart.yaml
+	@echo "release pins set to $(version):"; git --no-pager diff --stat -- mcp-server/Dockerfile docker-compose.yml .env.example deploy/helm/stigmer/Chart.yaml
 
 release: ## Tag and push a release (usage: make release [bump=patch|minor|major]); run `make release-pins` and commit first
 	@LATEST_TAG=$$(git tag -l "v*" | sort -V | tail -n1); \
@@ -1061,11 +1099,14 @@ release: ## Tag and push a release (usage: make release [bump=patch|minor|major]
 	PIN=$$(git show HEAD:mcp-server/Dockerfile | sed -n 's/^ARG MCP_SERVER_VERSION=//p'); \
 	COMPOSE_PIN=$$(git show HEAD:docker-compose.yml | sed -n -E 's/.*STIGMER_VERSION:-v([0-9A-Za-z.+-]+).*/\1/p' | sort -u | tr '\n' ' ' | sed 's/ $$//'); \
 	ENV_PIN=$$(git show HEAD:.env.example | sed -n -E 's/^#STIGMER_VERSION=v(.*)$$/\1/p'); \
-	if [ "$$PIN" != "$$NEW_VERSION" ] || [ "$$COMPOSE_PIN" != "$$NEW_VERSION" ] || [ "$$ENV_PIN" != "$$NEW_VERSION" ]; then \
+	CHART_PIN=$$(git show HEAD:deploy/helm/stigmer/Chart.yaml | sed -n -E 's/^version: (.*)$$/\1/p'); \
+	CHART_APP_PIN=$$(git show HEAD:deploy/helm/stigmer/Chart.yaml | sed -n -E 's/^appVersion: "?([^"]*)"?$$/\1/p'); \
+	if [ "$$PIN" != "$$NEW_VERSION" ] || [ "$$COMPOSE_PIN" != "$$NEW_VERSION" ] || [ "$$ENV_PIN" != "$$NEW_VERSION" ] || [ "$$CHART_PIN" != "$$NEW_VERSION" ] || [ "$$CHART_APP_PIN" != "$$NEW_VERSION" ]; then \
 		echo "error: the release pins at HEAD do not all name $$NEW_VERSION:"; \
 		echo "  mcp-server/Dockerfile  MCP_SERVER_VERSION=$$PIN   (release.npm-libs refuses to publish on a mismatch; prod deploys the pin, not the tag)"; \
 		echo "  docker-compose.yml     STIGMER_VERSION:-v$$COMPOSE_PIN   (a fresh clone runs this stack)"; \
 		echo "  .env.example           #STIGMER_VERSION=v$$ENV_PIN"; \
+		echo "  deploy/helm/stigmer/Chart.yaml  version=$$CHART_PIN appVersion=$$CHART_APP_PIN   (the chart's image tags default to v<appVersion>; release.npm-libs refuses to package on a mismatch)"; \
 		echo "Bump them and COMMIT before tagging:"; \
 		echo "  make release-pins version=$$NEW_VERSION"; \
 		echo "  git commit -am 'chore(release): bump the release pins to $$NEW_VERSION'"; \
@@ -1084,6 +1125,8 @@ release: ## Tag and push a release (usage: make release [bump=patch|minor|major]
 	@echo "  - CLI binaries + GitHub release  (release.cli.yaml)"
 	@echo "  - Desktop app installers (draft) (release.desktop.yaml)"
 	@echo "  - @stigmer/* npm packages        (release.npm-libs.yaml)"
+	@echo "    + the server, runner and all-in-one images on GHCR, and the Helm chart"
+	@echo "      at oci://ghcr.io/stigmer/charts/stigmer, each smoked before it is promoted or pushed"
 	@echo "  - Go SDK (go get)                (sdk/go tag auto-cached by proxy.golang.org)"
 	@echo "  - stigmer + stigmer-protos PyPI  (release.python-sdk.yaml)"
 	@echo "  - MCP server Docker image        (release.mcp-server.yaml)"

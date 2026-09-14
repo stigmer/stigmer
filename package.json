@@ -27,7 +27,7 @@
     "build:runner-deps": "node scripts/turbo-set.mjs runner-deps build",
     "build:libs": "node scripts/turbo-set.mjs libs build",
     "clean:libs": "node scripts/turbo-set.mjs libs clean",
-    "test:scripts": "node --test scripts/*.test.mjs scripts/lib/*.test.mjs",
+    "test:scripts": "node --test scripts/*.test.mjs scripts/lib/*.test.mjs deploy/helm/stigmer/__tests__/*.test.mjs",
     "test": "npm run test:scripts && node scripts/turbo-set.mjs libs test"
   },
   "lint-staged": {
@@ -41,7 +41,8 @@
     "lint-staged": "^16.4.0",
     "prettier": "^3.8.1",
     "tsx": "^4.21.0",
-    "turbo": "2.10.12"
+    "turbo": "2.10.12",
+    "yaml": "2.9.0"
   },
   "overrides": {
     "zod": "^3.25.0",

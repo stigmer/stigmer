@@ -1,0 +1,130 @@
+# The "bring your own" stand-ins for the BYO smoke profile: a Postgres and a
+# Temporal the chart did NOT install, in their own namespace, so the
+# externalDatabase and externalTemporal values are proven against
+# addresses the release does not own. Plain manifests mirroring the compose
+# services (postgres:16; temporalio/auto-setup with the namespace-exists
+# readiness, stigmer#904). The smoke creates the `byo-secrets` Secret with
+# the same POSTGRES_PASSWORD it gives the chart's Secret before applying
+# this file. Not for any use beyond the smoke.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: byo-infra
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: byo-postgres
+  namespace: byo-infra
+spec:
+  selector:
+    app: byo-postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: byo-postgres
+  namespace: byo-infra
+spec:
+  serviceName: byo-postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: byo-postgres
+  template:
+    metadata:
+      labels:
+        app: byo-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16
+          env:
+            - name: POSTGRES_DB
+              value: stigmer
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: byo-secrets
+                  key: POSTGRES_PASSWORD
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          ports:
+            - containerPort: 5432
+          readinessProbe:
+            exec:
+              command: [pg_isready, -U, postgres]
+            periodSeconds: 5
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources:
+          requests:
+            storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: byo-temporal
+  namespace: byo-infra
+spec:
+  selector:
+    app: byo-temporal
+  ports:
+    - port: 7233
+      targetPort: 7233
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: byo-temporal
+  namespace: byo-infra
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: byo-temporal
+  template:
+    metadata:
+      labels:
+        app: byo-temporal
+    spec:
+      initContainers:
+        - name: wait-for-postgres
+          image: postgres:16
+          command: [sh, -c, "until pg_isready -h byo-postgres -U postgres; do sleep 2; done"]
+      containers:
+        - name: temporal
+          image: temporalio/auto-setup:1.28.0
+          env:
+            - name: DB
+              value: postgres12
+            - name: DB_PORT
+              value: "5432"
+            - name: POSTGRES_USER
+              value: postgres
+            - name: POSTGRES_PWD
+              valueFrom:
+                secretKeyRef:
+                  name: byo-secrets
+                  key: POSTGRES_PASSWORD
+            - name: POSTGRES_SEEDS
+              value: byo-postgres
+          ports:
+            - containerPort: 7233
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - temporal operator namespace describe -n default --address $(hostname -i):7233
+            periodSeconds: 5
+            failureThreshold: 60

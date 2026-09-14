@@ -1,0 +1,129 @@
+# =============================================================================
+# Helm Chart — the Kubernetes self-host gate (stigmer-cloud 20260914.02)
+# =============================================================================
+# Proves deploy/helm/stigmer, the compose stack translated for Kubernetes:
+#   - chart-checks: helm lint --strict and kubeconform on every CI values
+#     profile, then the render tests (the goldens, the compose-parity test
+#     that holds the rendered env equal to docker-compose.yml's, the schema
+#     refusals). No cluster.
+#   - kind-gate: both images built FROM SOURCE through docker-compose.dev.yml
+#     (the compose gate's own path), loaded into kind, the chart installed on
+#     the bundled and the bring-your-own profiles in one cluster, the same
+#     probes as the compose stack and the all-in-one, plus the adversarial
+#     arms (pod death, an unchanged upgrade, uninstall keeping the claims, a
+#     reinstall adopting them).
+#
+# Built from source, not the published pins, for the same reason the compose
+# gate is: `make release-pins` bumps Chart.yaml to the new version in the
+# commit the tag is cut from, and that commit reaches main before the release
+# lane has pushed any image at that version. The published-tag path is
+# re-proven by the release lane (release.npm-libs.yaml), which runs the SAME
+# scripts/smoke-helm.mjs --published against the pushed tags on native amd64
+# and arm64 runners before the chart is pushed.
+#
+# Path filter: the chart surface only. Server/runner SOURCE changes are gated
+# by ci.stigmer-server / ci.runner and the image seams by ci.compose-stack.
+# =============================================================================
+
+name: ci.helm-chart
+
+on:
+  pull_request:
+    paths:
+      - "deploy/helm/**"
+      - "scripts/smoke-helm.mjs"
+      # The whole lib: the smoke imports stigmer-smoke.mjs (#1087).
+      - "scripts/lib/**"
+      - "Makefile"
+      - ".github/workflows/ci.helm-chart.yaml"
+  push:
+    branches: [main]
+    paths:
+      - "deploy/helm/**"
+      - "scripts/smoke-helm.mjs"
+      - "scripts/lib/**"
+      - "Makefile"
+      - ".github/workflows/ci.helm-chart.yaml"
+  workflow_dispatch:
+
+concurrency:
+  group: helm-chart-${{ github.head_ref || github.ref }}
+  # PR pushes cancel superseded runs; main pushes queue instead, so every
+  # merge gets a completed, attributable run (stigmer/stigmer#725).
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
+env:
+  # Pinned tool versions: a floating tool is a flaky gate.
+  HELM_VERSION: v3.16.2
+  KIND_VERSION: v0.24.0
+  KUBECONFORM_VERSION: v0.7.0
+
+jobs:
+  chart-checks:
+    name: Chart lint, schema and render tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: npm
+
+      - name: Install npm workspace dependencies
+        run: npm ci
+
+      - name: Install helm and kubeconform (pinned)
+        run: |
+          set -euo pipefail
+          curl -fsSL "https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz" | tar -xz -C /tmp
+          sudo install -m 0755 /tmp/linux-amd64/helm /usr/local/bin/helm
+          curl -fsSL "https://github.com/yannh/kubeconform/releases/download/${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz" | tar -xz -C /tmp
+          sudo install -m 0755 /tmp/kubeconform /usr/local/bin/kubeconform
+          helm version --short && kubeconform -v
+
+      - name: helm lint --strict and kubeconform on every profile
+        run: make lint-helm
+
+      - name: Render, parity and schema tests
+        run: make test-helm
+
+  kind-gate:
+    name: Kind Gate (build-from-source)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: npm
+
+      - name: Install npm workspace dependencies
+        run: npm ci
+
+      - name: Install helm and kind (pinned)
+        run: |
+          set -euo pipefail
+          curl -fsSL "https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz" | tar -xz -C /tmp
+          sudo install -m 0755 /tmp/linux-amd64/helm /usr/local/bin/helm
+          curl -fsSL -o /tmp/kind "https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-linux-amd64"
+          sudo install -m 0755 /tmp/kind /usr/local/bin/kind
+          helm version --short && kind version && kubectl version --client
+
+      # make smoke-helm = build-server (stubs + deps + compile) + build-web
+      # (the console export bundle-slim stages, DD-012) + bundle-slim +
+      # scripts/smoke-helm.mjs --build (docker compose build, kind create,
+      # kind load, the two profiles, the arms). One entry point, identical to
+      # what a contributor runs locally.
+      - name: Build both images from source, install the chart on kind and run the gate smoke
+        run: make smoke-helm

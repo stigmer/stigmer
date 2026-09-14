@@ -979,3 +979,168 @@ jobs:
   # above still gate `latest`: a red smoke is a broken release, acted on
   # by a human, and the pin ahead of it by minutes points a fresh clone at
   # images the same run is proving.
+
+  # ---------------------------------------------------------------------------
+  # The Helm chart: oci://ghcr.io/<owner>/charts/stigmer (P3 entry 3,
+  # stigmer-cloud project 20260914.02). docker-compose.yml translated for
+  # Kubernetes, pinning the two images this same run pushed. Chart.yaml is
+  # the fourth release pin (version == appVersion == the release version;
+  # `make release` refuses to tag otherwise), verified here before anything
+  # is packaged. Order: package once → install the PACKAGED chart on kind
+  # against the PUSHED image tags, natively on amd64 and arm64, with the
+  # same scripts/smoke-helm.mjs the PR gate runs from source → push. Smoke
+  # before push: a chart, unlike an image, has no `latest` pointer to
+  # withhold — the moment it is in the registry, `helm install` without a
+  # version resolves to it. Pre-releases are pushed too; Helm's semver
+  # resolution hides them from a version-less install.
+  # ---------------------------------------------------------------------------
+  package-helm-chart:
+    needs: [determine-version, smoke-compose-amd64, smoke-compose-arm64]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install helm (pinned)
+        run: |
+          set -euo pipefail
+          curl -fsSL "https://get.helm.sh/helm-v3.16.2-linux-amd64.tar.gz" | tar -xz -C /tmp
+          sudo install -m 0755 /tmp/linux-amd64/helm /usr/local/bin/helm
+          helm version --short
+
+      - name: Verify Chart.yaml pins this release (pre-publish gate)
+        env:
+          VERSION: ${{ needs.determine-version.outputs.version }}
+        run: |
+          CHART_VERSION="$(sed -n 's/^version: //p' deploy/helm/stigmer/Chart.yaml)"
+          APP_VERSION="$(sed -n 's/^appVersion: //p' deploy/helm/stigmer/Chart.yaml | tr -d '"')"
+          if [ "$CHART_VERSION" != "$VERSION" ] || [ "$APP_VERSION" != "$VERSION" ]; then
+            echo "ERROR: deploy/helm/stigmer/Chart.yaml has version=$CHART_VERSION appVersion=$APP_VERSION but this release publishes $VERSION."
+            echo "The chart's default image tags are v<appVersion>: bump the pin in the same commit you tag (make release-pins)."
+            exit 1
+          fi
+          echo "Chart.yaml pins $VERSION"
+
+      - name: Package the chart
+        run: |
+          set -euo pipefail
+          mkdir -p dist-chart
+          helm lint --strict deploy/helm/stigmer -f deploy/helm/stigmer/ci/values-bundled.yaml --quiet
+          helm package deploy/helm/stigmer --destination dist-chart
+          ls -l dist-chart
+
+      - name: Upload the packaged chart
+        uses: actions/upload-artifact@v4
+        with:
+          name: helm-chart
+          path: dist-chart/stigmer-*.tgz
+          retention-days: 7
+          if-no-files-found: error
+
+  smoke-helm-amd64:
+    needs: [determine-version, package-helm-chart]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Download the packaged chart
+        uses: actions/download-artifact@v4
+        with:
+          name: helm-chart
+          path: dist-chart
+
+      - name: Install helm and kind (pinned)
+        run: |
+          set -euo pipefail
+          curl -fsSL "https://get.helm.sh/helm-v3.16.2-linux-amd64.tar.gz" | tar -xz -C /tmp
+          sudo install -m 0755 /tmp/linux-amd64/helm /usr/local/bin/helm
+          curl -fsSL -o /tmp/kind "https://kind.sigs.k8s.io/dl/v0.24.0/kind-linux-amd64"
+          sudo install -m 0755 /tmp/kind /usr/local/bin/kind
+
+      - name: Install the packaged chart on kind against the pushed tags (native amd64)
+        run: |
+          node scripts/smoke-helm.mjs --published \
+            --version="v${{ needs.determine-version.outputs.version }}" \
+            --chart="$(ls dist-chart/stigmer-*.tgz)"
+
+  smoke-helm-arm64:
+    needs: [determine-version, package-helm-chart]
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Download the packaged chart
+        uses: actions/download-artifact@v4
+        with:
+          name: helm-chart
+          path: dist-chart
+
+      - name: Install helm and kind (pinned)
+        run: |
+          set -euo pipefail
+          curl -fsSL "https://get.helm.sh/helm-v3.16.2-linux-arm64.tar.gz" | tar -xz -C /tmp
+          sudo install -m 0755 /tmp/linux-arm64/helm /usr/local/bin/helm
+          curl -fsSL -o /tmp/kind "https://kind.sigs.k8s.io/dl/v0.24.0/kind-linux-arm64"
+          sudo install -m 0755 /tmp/kind /usr/local/bin/kind
+
+      - name: Install the packaged chart on kind against the pushed tags (native arm64)
+        run: |
+          node scripts/smoke-helm.mjs --published \
+            --version="v${{ needs.determine-version.outputs.version }}" \
+            --chart="$(ls dist-chart/stigmer-*.tgz)"
+
+  publish-helm-chart:
+    needs: [determine-version, smoke-helm-amd64, smoke-helm-arm64]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Download the packaged chart
+        uses: actions/download-artifact@v4
+        with:
+          name: helm-chart
+          path: dist-chart
+
+      - name: Install helm (pinned)
+        run: |
+          set -euo pipefail
+          curl -fsSL "https://get.helm.sh/helm-v3.16.2-linux-amd64.tar.gz" | tar -xz -C /tmp
+          sudo install -m 0755 /tmp/linux-amd64/helm /usr/local/bin/helm
+
+      - name: Log in to GitHub Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      # The chart's `sources` becomes the manifest's org.opencontainers.image.source
+      # annotation, which links the package to this repository so the token
+      # keeps write access (the image packages' load-bearing linkage).
+      - name: Push the smoked chart
+        run: |
+          set -euo pipefail
+          helm push "$(ls dist-chart/stigmer-*.tgz)" "oci://ghcr.io/${{ github.repository_owner }}/charts"
+          helm show chart "oci://ghcr.io/${{ github.repository_owner }}/charts/stigmer" \
+            --version "${{ needs.determine-version.outputs.version }}"

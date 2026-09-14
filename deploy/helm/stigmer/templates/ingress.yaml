@@ -1,0 +1,49 @@
+{{- /*
+Two Ingress objects, one per lane, because they want different annotations:
+the API host carries gRPC (the CLI and SDKs), Connect and the console, and on
+ingress-nginx needs `nginx.ingress.kubernetes.io/backend-protocol: "GRPC"`
+for the CLI's gRPC to pass (proven on kind: without it the browser lanes work
+and gRPC fails with "missing status"; with it every lane works). The
+artifacts host is plain HTTP. Storage keys carry full paths, so the two
+lanes cannot share one host by path prefix.
+*/ -}}
+{{- if .Values.ingress.enabled }}
+{{- $fullname := include "stigmer.fullname" . }}
+{{- range $lane := list
+  (dict "suffix" "api" "cfg" .Values.ingress.api "port" "grpc-api")
+  (dict "suffix" "artifacts" "cfg" .Values.ingress.artifacts "port" "artifacts") }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $fullname }}-{{ $lane.suffix }}
+  labels:
+    {{- include "stigmer.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: stigmer
+  {{- with $lane.cfg.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with $.Values.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  {{- with $lane.cfg.tlsSecretName }}
+  tls:
+    - hosts:
+        - {{ $lane.cfg.host }}
+      secretName: {{ . }}
+  {{- end }}
+  rules:
+    - host: {{ $lane.cfg.host }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $fullname }}
+                port:
+                  name: {{ $lane.port }}
+{{- end }}
+{{- end }}
