@@ -7,16 +7,24 @@
  * born in the native adapter as `StigmerRunEvent`, the normalized form of
  * LangGraph's v3 protocol, and promoted here at S4 M1 (2026-09-14) because
  * its own header already called it the thing that isolates the builder from
- * the engine — the same move S2 and S3 made for the turn runtime. Today's
- * members are still LangGraph's shape; S4 M2 cuts them engine-neutral one
- * ruling at a time (`T01_0_plan.md` §4a, Q-S4-3): `namespace` becomes
- * `subAgentId?`, `seq`/`node`/`usage`/`lifecycle`/`provider` leave,
- * `tool_finished.output: unknown` becomes `result: string`, `tool_started`
- * gains the attribution and gate facts, and `sub_agent_*`, `approval_proposed`
- * and `system_note` arrive. A Cursor translator then emits this union at M4.
+ * the engine — the same move S2 and S3 made for the turn runtime. S4 M2 cuts
+ * it engine-neutral one ruling at a time (`T01_0_plan.md` §4a, Q-S4-3):
+ *
+ *   - C1 (landed): every member the builder never folded left — `usage`,
+ *     `lifecycle`, `provider`, and the `seq`/`node`/`messageId`/`reason`
+ *     fields no handler read. Usage is a LOOP concern: the native loop reads
+ *     it off the wire (`usageOf`, `v3-protocol-normalizer.ts`) and prices it
+ *     into `TurnSink.reportUsage`; the Cursor loop reads its own from the
+ *     SDK's `turn-ended` delta. A transcript fact is what a row or a message
+ *     carries; usage is neither.
+ *   - Still to cut: `namespace` becomes `subAgentId?`, `tool_finished.output`
+ *     becomes `result: string`, `tool_started` gains the attribution and
+ *     gate facts, and `sub_agent_*`, `approval_proposed` and `system_note`
+ *     arrive. A Cursor translator then emits this union at M4.
  *
  * ID conventions:
- *   - `runId`  — LLM invocation ID; shared across message events in one turn
+ *   - `runId`  — the identity of ONE streamed assistant message (LangGraph's
+ *     LLM-call run id on native); shared across that message's events
  *   - `callId` — provider tool call ID (e.g. `toolu_...`); keys ToolCall records
  *   - `namespace` — formatted string from v3 namespace array; empty = parent agent
  */
@@ -25,18 +33,15 @@
 
 interface TranscriptEventBase {
   readonly kind: string;
-  readonly seq: number;
   /** Formatted namespace string: empty = parent agent, joined with "|" for nested. */
   readonly namespace: string;
-  readonly node?: string;
 }
 
-// ── Message Events (from `messages` channel) ──────────────────────
+// ── Message Events ────────────────────────────────────────────────
 
 export interface MessageStartEvent extends TranscriptEventBase {
   readonly kind: "message_start";
   readonly runId: string;
-  readonly messageId?: string;
 }
 
 export interface TextDeltaEvent extends TranscriptEventBase {
@@ -51,26 +56,24 @@ export interface ReasoningDeltaEvent extends TranscriptEventBase {
   readonly text: string;
 }
 
-export interface ToolCallArgDeltaEvent extends TranscriptEventBase {
-  readonly kind: "tool_call_arg_delta";
-  readonly callId: string;
-  readonly argsChunk: string;
-}
-
 export interface MessageFinishEvent extends TranscriptEventBase {
   readonly kind: "message_finish";
   readonly runId: string;
-  readonly usage?: V3UsagePayload;
-  readonly reason?: string;
 }
 
-// ── Tool Events (from `tools` channel — authoritative) ───────────
+// ── Tool Events ───────────────────────────────────────────────────
 
 export interface ToolStartedEvent extends TranscriptEventBase {
   readonly kind: "tool_started";
   readonly callId: string;
   readonly name: string;
   readonly input: Record<string, unknown>;
+}
+
+export interface ToolArgDeltaEvent extends TranscriptEventBase {
+  readonly kind: "tool_arg_delta";
+  readonly callId: string;
+  readonly argsChunk: string;
 }
 
 export interface ToolOutputDeltaEvent extends TranscriptEventBase {
@@ -91,53 +94,18 @@ export interface ToolErrorEvent extends TranscriptEventBase {
   readonly message: string;
 }
 
-// ── Usage / Lifecycle / Provider ──────────────────────────────────
-
-export interface UsageEvent extends TranscriptEventBase {
-  readonly kind: "usage";
-  readonly runId: string;
-  readonly usage: V3UsagePayload;
-}
-
-export interface LifecycleEvent extends TranscriptEventBase {
-  readonly kind: "lifecycle";
-  readonly event: string;
-  readonly graphName?: string;
-}
-
-export interface ProviderEvent extends TranscriptEventBase {
-  readonly kind: "provider";
-  readonly provider: string;
-  readonly model?: string;
-}
-
-// ── Usage Payload ─────────────────────────────────────────────────
-
-export interface V3UsagePayload {
-  readonly input_tokens?: number;
-  readonly output_tokens?: number;
-  readonly total_tokens?: number;
-  readonly input_token_details?: {
-    readonly cache_creation?: number;
-    readonly cache_read?: number;
-  };
-}
-
 // ── Union ─────────────────────────────────────────────────────────
 
 export type TranscriptEvent =
   | MessageStartEvent
   | TextDeltaEvent
   | ReasoningDeltaEvent
-  | ToolCallArgDeltaEvent
   | MessageFinishEvent
   | ToolStartedEvent
+  | ToolArgDeltaEvent
   | ToolOutputDeltaEvent
   | ToolFinishedEvent
-  | ToolErrorEvent
-  | UsageEvent
-  | LifecycleEvent
-  | ProviderEvent;
+  | ToolErrorEvent;
 
 // ── Namespace Depth ───────────────────────────────────────────────
 
@@ -148,7 +116,7 @@ export type TranscriptEvent =
  * The one piece of LangGraph namespace grammar the builder still reads (the
  * `task` tool's depth rule for opening a sub-agent). Its inverse,
  * `formatNamespace`, lives with the normalizer that produces the string. Both
- * leave the builder's side at S4 M2, when scope becomes `subAgentId?` and
+ * leave the builder's side at S4 M2 C4, when scope becomes `subAgentId?` and
  * `sub_agent_started` arrives from the translator (Q-S4-3, Q-S4-4).
  */
 export function namespaceDepth(namespace: string): number {

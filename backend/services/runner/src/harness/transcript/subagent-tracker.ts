@@ -242,8 +242,8 @@ export class SubAgentTracker {
       case "reasoning_delta":
         this.handleReasoningDelta(state, event.runId, localNs, event.text);
         break;
-      case "tool_call_arg_delta":
-        this.handleToolCallArgDelta(state, event.callId, event.argsChunk);
+      case "tool_arg_delta":
+        this.handleToolArgDelta(state, event.callId, event.argsChunk);
         break;
       case "message_finish":
         this.handleMessageFinish(state, event.runId);
@@ -260,10 +260,10 @@ export class SubAgentTracker {
       case "tool_output_delta":
         this.handleToolOutputDelta(state, event.callId, event.delta);
         break;
-      case "usage":
-      case "lifecycle":
-      case "provider":
-        break;
+      default: {
+        const exhaustive: never = event;
+        throw new Error(`unknown transcript event ${String((exhaustive as { kind: string }).kind)}`);
+      }
     }
   }
 
@@ -365,7 +365,7 @@ export class SubAgentTracker {
     state.toolArgBuffers.delete(callId);
   }
 
-  private handleToolCallArgDelta(state: SubAgentState, callId: string, argsChunk: string): void {
+  private handleToolArgDelta(state: SubAgentState, callId: string, argsChunk: string): void {
     const tc = state.toolCalls.get(callId);
     if (!tc) return;
 

@@ -40,7 +40,7 @@ function makeBuilder(): TranscriptBuilder {
 function feedAll(sb: TranscriptBuilder, events: V3ProtocolEvent[]): void {
   for (const raw of events) {
     for (const e of normalize(raw)) {
-      sb.processEvent(e);
+      sb.apply(e);
     }
   }
 }

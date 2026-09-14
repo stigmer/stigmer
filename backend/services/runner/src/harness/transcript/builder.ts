@@ -24,20 +24,14 @@
  * contract's field ownership, `harness/types.ts` `TurnSink`): the phase,
  * `startedAt` and `streamingUsage` are the turn runtime's. A gated tool
  * start is reported as the {@link awaitingApproval} fact and the caller
- * (`turn-stream.ts`) decides what that means for the turn; usage is reported
- * raw through {@link TranscriptBuilderOptions.onUsage} and the caller prices
- * it into the sink (until S3 M2a this builder flipped WAITING_FOR_APPROVAL
+ * (`turn-stream.ts`) decides what that means for the turn. Usage never
+ * passes through here at all (S4 M2 C1): it is not a transcript fact, so the
+ * union does not carry it — the native loop reads it off the wire
+ * (`usageOf`) and prices it into the sink, the Cursor loop reads its own
+ * from the SDK. Until S3 M2a this builder flipped WAITING_FOR_APPROVAL
  * itself and summed usage into `streamingUsage` — a second writer of each
- * field beside the runtime's).
- *
- * Usage is reported on message_finish only (standalone usage events are
- * no-ops) to prevent double-counting — v3 emits both for the same turn.
- * EVERY graph's usage is reported, the sub-agents' included (S3 M2b,
- * Q-M2b-1): a sub-agent's `message_finish` fires the same hook before it is
- * routed to the tracker, so the execution's usage — and the cost cap the
- * runtime enforces over it — is the whole execution's spend. Until M2b the
- * sub-agents' turns were discarded (S3 M2a finding F-M2a-12); the cost cap
- * then lived inside the graph, where a middleware saw every model call.
+ * field beside the runtime's; until S4 M2 it still relayed usage through an
+ * `onUsage` hook, a fact passing through a module that had no use for it.
  */
 
 import { create, type JsonObject } from "@bufbuild/protobuf";
@@ -67,7 +61,7 @@ import { applyTodoUpdate } from "../../shared/todos.js";
 import { utcTimestamp } from "../../shared/status.js";
 import type { ExecutionStatusWriter } from "../../shared/execution-status-writer.js";
 import { TranscriptState } from "./state.js";
-import type { TranscriptEvent, V3UsagePayload } from "./events.js";
+import type { TranscriptEvent } from "./events.js";
 import { namespaceDepth } from "./events.js";
 import { extractToolResultV3 } from "./tool-result.js";
 import { SubAgentTracker } from "./subagent-tracker.js";
@@ -148,25 +142,12 @@ export function stampApprovalProvenance(
 
 // ── Builder ────────────────────────────────────────────────────────
 
-export interface TranscriptBuilderOptions {
-  /**
-   * Fired once per `message_finish` that carries usage — the parent graph's
-   * and every sub-agent's — with the payload exactly as the protocol
-   * delivered it. The builder never sums or prices: the caller accounts (the
-   * turn runtime through `TurnSink.reportUsage`, priced at the turn's model;
-   * a sub-agent on its own model is priced at the parent's rate, as the
-   * in-graph cost cap always did — per-sub-agent pricing is an S5 item).
-   */
-  readonly onUsage?: (usage: V3UsagePayload) => void;
-}
-
 export class TranscriptBuilder implements ExecutionStatusWriter {
   readonly executionId: string;
   private readonly state: TranscriptState;
   private _forceNextUpdate = false;
   private _awaitingApproval = false;
   private approvalProvider: ApprovalPolicyProvider | null = null;
-  private readonly onUsage: ((usage: V3UsagePayload) => void) | undefined;
   private readonly subAgentTracker: SubAgentTracker;
 
   /** Progressive tool call arg accumulation keyed by callId. */
@@ -178,10 +159,9 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
    * replaced, so a caller that wraps the same status (the write-back
    * coordinator's writer, the runtime's chokepoint) keeps seeing every row.
    */
-  constructor(executionId: string, status: AgentExecutionStatus, options: TranscriptBuilderOptions = {}) {
+  constructor(executionId: string, status: AgentExecutionStatus) {
     this.executionId = executionId;
     this.state = new TranscriptState(status);
-    this.onUsage = options.onUsage;
 
     // Resume path: when constructed over a persisted transcript (seeded by the
     // caller on a reinvocation), rebuild the tool-call index so resumed
@@ -221,7 +201,8 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
     this._forceNextUpdate = false;
   }
 
-  processEvent(event: TranscriptEvent): void {
+  /** Fold one canonical event into the transcript. Never throws: a handler's error is logged and the stream goes on. */
+  apply(event: TranscriptEvent): void {
     try {
       // Sub-agent routing: detect "task" tool starts at depth 0 (root) or depth 1
       // (inside LangGraph tools-node). In real runtime, task tool-started arrives
@@ -249,9 +230,6 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
       }
 
       if (this.subAgentTracker.isSubAgentNamespace(event.namespace)) {
-        // A sub-agent's spend is the execution's spend (Q-M2b-1): report it
-        // through the one hook before the tracker folds the message.
-        if (event.kind === "message_finish" && event.usage) this.onUsage?.(event.usage);
         this.subAgentTracker.routeEvent(event);
         return;
       }
@@ -267,11 +245,11 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
         case "reasoning_delta":
           this.appendThinkingContent(event.runId, event.namespace, event.text);
           break;
-        case "tool_call_arg_delta":
-          this.handleToolCallArgDelta(event.callId, event.argsChunk);
+        case "tool_arg_delta":
+          this.handleToolArgDelta(event.callId, event.argsChunk);
           break;
         case "message_finish":
-          this.handleMessageFinish(event.runId, event.namespace, event.usage);
+          this.handleMessageFinish(event.runId);
           break;
         case "tool_started":
           this.handleToolStarted(event.callId, event.name, event.input, event.namespace);
@@ -285,15 +263,14 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
         case "tool_output_delta":
           this.handleToolOutputDelta(event.callId, event.delta);
           break;
-        case "usage":
-        case "lifecycle":
-        case "provider":
-          break;
+        default: {
+          const exhaustive: never = event;
+          throw new Error(`unknown transcript event ${String((exhaustive as { kind: string }).kind)}`);
+        }
       }
     } catch (err) {
       console.error(
-        `[TranscriptBuilder] Event handler error: execution=${this.executionId} ` +
-        `kind=${event.kind} seq=${event.seq}: ${err}`,
+        `[TranscriptBuilder] Event handler error: execution=${this.executionId} kind=${event.kind}: ${err}`,
       );
     }
   }
@@ -345,14 +322,10 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
     this.state.lastLlmRunId.set(namespace, runId);
   }
 
-  private handleMessageFinish(runId: string, _namespace: string, usage?: V3UsagePayload): void {
+  private handleMessageFinish(runId: string): void {
     const msg = this.state.messagesByRun.get(runId);
     if (msg) {
       msg.isStreaming = false;
-    }
-
-    if (usage) {
-      this.onUsage?.(usage);
     }
   }
 
@@ -501,7 +474,7 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
     this._forceNextUpdate = true;
   }
 
-  private handleToolCallArgDelta(callId: string, argsChunk: string): void {
+  private handleToolArgDelta(callId: string, argsChunk: string): void {
     const tc = this.state.toolCalls.get(callId);
     if (!tc) return;
 

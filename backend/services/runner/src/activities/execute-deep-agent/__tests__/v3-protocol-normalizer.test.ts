@@ -1,5 +1,14 @@
+/**
+ * The native translator's own arms: one raw LangGraph v3 protocol event in,
+ * the `TranscriptEvent`s out — and, beside them, what `usageOf` reads off the
+ * same wire for the loop (S4 M2 C1, Q-M2-3). The events the wire carries and
+ * the transcript does not (`lifecycle`, `provider`, the standalone `usage`)
+ * are pinned as producing NOTHING, so a member cannot creep back into the
+ * union unnoticed.
+ */
+
 import { describe, it, expect, beforeEach } from "vitest";
-import { normalize } from "../v3-protocol-normalizer.js";
+import { normalize, usageOf } from "../v3-protocol-normalizer.js";
 import {
   resetSeq,
   makeProtocolEvent,
@@ -31,13 +40,12 @@ describe("V3ProtocolNormalizer", () => {
   // ── Message channel ──────────────────────────────────────────────
 
   describe("messages channel", () => {
-    it("normalizes message-start", () => {
+    it("normalizes message-start to the run id alone (the wire's message id is not a transcript fact)", () => {
       const result = normalize(makeMessageStart("run-1", { messageId: "msg_abc" }));
       expect(result).toHaveLength(1);
-      expect(result[0]).toMatchObject({
+      expect(result[0]).toEqual({
         kind: "message_start",
         runId: "run-1",
-        messageId: "msg_abc",
         namespace: "",
       });
     });
@@ -66,63 +74,27 @@ describe("V3ProtocolNormalizer", () => {
       const result = normalize(makeToolCallArgDelta("run-1", "toolu_123", '{"path":'));
       expect(result).toHaveLength(1);
       expect(result[0]).toMatchObject({
-        kind: "tool_call_arg_delta",
+        kind: "tool_arg_delta",
         callId: "toolu_123",
         argsChunk: '{"path":',
       });
     });
 
-    it("normalizes message-finish with usage", () => {
+    it("normalizes message-finish to the run id alone — its usage and reason are the loop's, not the transcript's", () => {
       const result = normalize(makeMessageFinish("run-1", {
         reason: "end_turn",
         usage: { input_tokens: 100, output_tokens: 20, total_tokens: 120 },
       }));
       expect(result).toHaveLength(1);
-      expect(result[0]).toMatchObject({
-        kind: "message_finish",
-        runId: "run-1",
-        reason: "end_turn",
-        usage: {
-          input_tokens: 100,
-          output_tokens: 20,
-        },
-      });
+      expect(result[0]).toEqual({ kind: "message_finish", runId: "run-1", namespace: "" });
     });
 
-    it("normalizes message-finish without usage", () => {
-      const result = normalize(makeMessageFinish("run-1"));
-      expect(result).toHaveLength(1);
-      expect(result[0]).toMatchObject({
-        kind: "message_finish",
-        runId: "run-1",
-        usage: undefined,
-      });
+    it("emits nothing for the standalone usage event", () => {
+      expect(normalize(makeUsageEvent("run-1", { input_tokens: 50, output_tokens: 10 }))).toHaveLength(0);
     });
 
-    it("normalizes usage event", () => {
-      const result = normalize(makeUsageEvent("run-1", {
-        input_tokens: 50, output_tokens: 10,
-        input_token_details: { cache_creation: 40, cache_read: 5 },
-      }));
-      expect(result).toHaveLength(1);
-      expect(result[0]).toMatchObject({
-        kind: "usage",
-        usage: {
-          input_tokens: 50,
-          output_tokens: 10,
-          input_token_details: { cache_creation: 40, cache_read: 5 },
-        },
-      });
-    });
-
-    it("normalizes provider event with model", () => {
-      const result = normalize(makeProviderEvent("run-1", "anthropic", "claude-sonnet-4-6"));
-      expect(result).toHaveLength(1);
-      expect(result[0]).toMatchObject({
-        kind: "provider",
-        provider: "anthropic",
-        model: "claude-sonnet-4-6",
-      });
+    it("emits nothing for the provider event", () => {
+      expect(normalize(makeProviderEvent("run-1", "anthropic", "claude-sonnet-4-6"))).toHaveLength(0);
     });
 
     it("returns empty for content-block-start", () => {
@@ -222,28 +194,51 @@ describe("V3ProtocolNormalizer", () => {
     });
   });
 
-  // ── Lifecycle channel ────────────────────────────────────────────
+  // ── Usage, read beside the transcript (S4 M2 C1) ─────────────────
 
-  describe("lifecycle channel", () => {
-    it("normalizes running event", () => {
-      const result = normalize(makeLifecycleRunning("root"));
-      expect(result).toHaveLength(1);
-      expect(result[0]).toMatchObject({
-        kind: "lifecycle",
-        event: "running",
-        graphName: "root",
+  describe("usageOf — what the loop reads off the wire", () => {
+    it("reads a message-finish's usage, the cache buckets included", () => {
+      expect(usageOf(makeMessageFinish("run-1", {
+        usage: { input_tokens: 100, output_tokens: 20, total_tokens: 120, input_token_details: { cache_creation: 40, cache_read: 5 } },
+      }))).toEqual({
+        input_tokens: 100,
+        output_tokens: 20,
+        total_tokens: 120,
+        input_token_details: { cache_creation: 40, cache_read: 5 },
       });
     });
 
-    it("normalizes completed event", () => {
-      const result = normalize(makeLifecycleCompleted("model_request", ["model_request:abc"]));
-      expect(result).toHaveLength(1);
-      expect(result[0]).toMatchObject({
-        kind: "lifecycle",
-        event: "completed",
-        graphName: "model_request",
-        namespace: "model_request:abc",
-      });
+    it("is undefined for a message-finish without usage", () => {
+      expect(usageOf(makeMessageFinish("run-1"))).toBeUndefined();
+    });
+
+    it("ignores the standalone usage event — v3 emits both for one turn, and reading both would double-count", () => {
+      expect(usageOf(makeUsageEvent("run-1", { input_tokens: 50, output_tokens: 10 }))).toBeUndefined();
+    });
+
+    it("reads a sub-agent's finish too — its spend is the execution's (S3 M2b, Q-M2b-1)", () => {
+      expect(usageOf(makeMessageFinish("sub-run", {
+        namespace: ["tools:task-1", "model_request:sub-run"],
+        usage: { input_tokens: 600, output_tokens: 12 },
+      }))).toMatchObject({ input_tokens: 600, output_tokens: 12 });
+    });
+
+    it("is undefined for every other channel", () => {
+      expect(usageOf(makeTextDelta("run-1", "hi"))).toBeUndefined();
+      expect(usageOf(makeToolFinished("toolu_abc", "ok"))).toBeUndefined();
+      expect(usageOf(makeLifecycleCompleted("root"))).toBeUndefined();
+    });
+  });
+
+  // ── Lifecycle channel: carried by the wire, not the transcript ───
+
+  describe("lifecycle channel", () => {
+    it("emits nothing for running", () => {
+      expect(normalize(makeLifecycleRunning("root"))).toHaveLength(0);
+    });
+
+    it("emits nothing for completed", () => {
+      expect(normalize(makeLifecycleCompleted("model_request", ["model_request:abc"]))).toHaveLength(0);
     });
   });
 
@@ -295,10 +290,11 @@ describe("V3ProtocolNormalizer", () => {
       expect(result[0]).toMatchObject({ namespace: "a|b" });
     });
 
-    it("preserves seq from original event", () => {
+    it("carries neither seq nor node — the recorder keeps them on the raw event; no handler reads them", () => {
       const event = makeTextDelta("run-1", "hi");
       const result = normalize(event);
-      expect(result[0].seq).toBe(event.seq);
+      expect(result[0]).not.toHaveProperty("seq");
+      expect(result[0]).not.toHaveProperty("node");
     });
 
     it("handles delta with no type gracefully", () => {

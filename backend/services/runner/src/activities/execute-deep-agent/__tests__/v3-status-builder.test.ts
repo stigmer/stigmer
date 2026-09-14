@@ -37,48 +37,24 @@ import {
   makeToolError,
   makeToolCallArgDelta,
   makeToolOutputDelta,
-  makeUsageEvent,
 } from "../__test-utils__/v3-event-fixtures.js";
 import type { V3ProtocolEvent } from "../v3-event-recorder.js";
 
 /**
- * What the builder REPORTED through `onUsage`, summed by the test the way an
- * accountant would (the builder itself sums nothing and writes no
- * `streamingUsage`; the runtime does, priced, through the sink).
+ * A builder over an empty status. Usage never reaches the builder (S4 M2 C1):
+ * the loop reads it off the wire through `usageOf` and prices it into the
+ * sink — `turn-stream.test.ts` pins that; `v3-protocol-normalizer.test.ts`
+ * pins what `usageOf` reads. The `usage:` fields the sequences below still
+ * carry are the wire's real shape and are ignored by everything here.
  */
-interface ReportedUsage {
-  inputTokens: number;
-  outputTokens: number;
-  cacheReadTokens: number;
-  cacheWriteTokens: number;
-  turnCount: number;
-}
-
-const reportedByBuilder = new WeakMap<TranscriptBuilder, ReportedUsage>();
-
 function makeBuilder(): TranscriptBuilder {
-  const reported: ReportedUsage = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, turnCount: 0 };
-  const sb = new TranscriptBuilder("exec-test", create(AgentExecutionStatusSchema, {}), {
-    onUsage: (usage) => {
-      reported.inputTokens += usage.input_tokens ?? 0;
-      reported.outputTokens += usage.output_tokens ?? 0;
-      reported.cacheReadTokens += usage.input_token_details?.cache_read ?? 0;
-      reported.cacheWriteTokens += usage.input_token_details?.cache_creation ?? 0;
-      reported.turnCount += 1;
-    },
-  });
-  reportedByBuilder.set(sb, reported);
-  return sb;
-}
-
-function reportedUsage(sb: TranscriptBuilder): ReportedUsage {
-  return reportedByBuilder.get(sb)!;
+  return new TranscriptBuilder("exec-test", create(AgentExecutionStatusSchema, {}));
 }
 
 function feedAll(sb: TranscriptBuilder, events: V3ProtocolEvent[]): void {
   for (const raw of events) {
     for (const e of normalize(raw)) {
-      sb.processEvent(e);
+      sb.apply(e);
     }
   }
 }
@@ -113,7 +89,7 @@ describe("TranscriptBuilder", () => {
   describe("golden sequences", () => {
 
     describe("plain chat — 2-turn text-only conversation", () => {
-      it("produces 2 AI messages with accumulated usage", () => {
+      it("produces 2 AI messages, one per run, each closed by its finish", () => {
         const sb = makeBuilder();
         feedAll(sb, [
           makeMessageStart("run-1"),
@@ -143,11 +119,7 @@ describe("TranscriptBuilder", () => {
         expect(status.messages[1].content).toBe("Here is more detail.");
         expect(status.messages[1].isStreaming).toBe(false);
 
-        const usage = reportedUsage(sb);
-        expect(usage.inputTokens).toBe(130);
-        expect(usage.outputTokens).toBe(20);
-        expect(usage.turnCount).toBe(2);
-        expect(status.streamingUsage, "the runtime owns streamingUsage; the builder reports").toBeUndefined();
+        expect(status.streamingUsage, "the runtime owns streamingUsage; the builder never touches it").toBeUndefined();
       });
     });
 
@@ -189,12 +161,6 @@ describe("TranscriptBuilder", () => {
         expect(status.messages[2].type).toBe(MessageType.MESSAGE_AI);
         expect(status.messages[2].content).toBe("Let me elaborate.");
         expect(status.messages[2].isStreaming).toBe(false);
-
-        const usage = reportedUsage(sb);
-        expect(usage.inputTokens).toBe(500);
-        expect(usage.outputTokens).toBe(120);
-        expect(usage.cacheReadTokens).toBe(50);
-        expect(usage.turnCount).toBe(2);
       });
     });
 
@@ -241,11 +207,6 @@ describe("TranscriptBuilder", () => {
         expect(secondMsg.type).toBe(MessageType.MESSAGE_AI);
         expect(secondMsg.content).toBe("The file contains a main function that logs 'hello'.");
         expect(secondMsg.toolCalls).toHaveLength(0);
-
-        const usage = reportedUsage(sb);
-        expect(usage.inputTokens).toBe(300);
-        expect(usage.outputTokens).toBe(35);
-        expect(usage.turnCount).toBe(2);
       });
     });
 
@@ -351,48 +312,6 @@ describe("TranscriptBuilder", () => {
       });
     });
 
-    describe("usage accumulation — 3-turn with cache", () => {
-      it("accumulates input/output/cache tokens across turns", () => {
-        const sb = makeBuilder();
-        feedAll(sb, [
-          makeMessageStart("run-1"),
-          makeTextDelta("run-1", "Turn 1"),
-          makeMessageFinish("run-1", {
-            usage: {
-              input_tokens: 100,
-              output_tokens: 20,
-              input_token_details: { cache_creation: 80 },
-            },
-          }),
-          makeMessageStart("run-2"),
-          makeTextDelta("run-2", "Turn 2"),
-          makeMessageFinish("run-2", {
-            usage: {
-              input_tokens: 200,
-              output_tokens: 30,
-              input_token_details: { cache_read: 50 },
-            },
-          }),
-          makeMessageStart("run-3"),
-          makeTextDelta("run-3", "Turn 3"),
-          makeMessageFinish("run-3", {
-            usage: {
-              input_tokens: 300,
-              output_tokens: 10,
-              input_token_details: { cache_read: 100 },
-            },
-          }),
-        ]);
-
-        const usage = reportedUsage(sb);
-        expect(usage.inputTokens).toBe(600);
-        expect(usage.outputTokens).toBe(60);
-        expect(usage.cacheWriteTokens).toBe(80);
-        expect(usage.cacheReadTokens).toBe(150);
-        expect(usage.turnCount).toBe(3);
-      });
-    });
-
     describe("namespace isolation — parent + subagent", () => {
       it("creates separate message trees per namespace", () => {
         const sb = makeBuilder();
@@ -449,11 +368,6 @@ describe("TranscriptBuilder", () => {
 
         expect(status.messages[3].type).toBe(MessageType.MESSAGE_AI);
         expect(status.messages[3].content).toBe("The research is complete.");
-
-        const usage = reportedUsage(sb);
-        expect(usage.inputTokens).toBe(650);
-        expect(usage.outputTokens).toBe(50);
-        expect(usage.turnCount).toBe(3);
       });
     });
   });
@@ -475,24 +389,7 @@ describe("TranscriptBuilder", () => {
       expect(tc.id).toBe("toolu_abc123");
     });
 
-    it("does not double-count usage from standalone usage events", () => {
-      const sb = makeBuilder();
-      feedAll(sb, [
-        makeMessageStart("run-1"),
-        makeTextDelta("run-1", "hi"),
-        makeUsageEvent("run-1", { input_tokens: 50, output_tokens: 10 }),
-        makeMessageFinish("run-1", {
-          usage: { input_tokens: 50, output_tokens: 10 },
-        }),
-      ]);
-
-      const usage = reportedUsage(sb);
-      expect(usage.inputTokens).toBe(50);
-      expect(usage.outputTokens).toBe(10);
-      expect(usage.turnCount).toBe(1);
-    });
-
-    it("accumulates tool_call_arg_delta into ToolCall.args", () => {
+    it("accumulates tool_arg_delta into ToolCall.args", () => {
       const sb = makeBuilder();
       feedAll(sb, [
         makeMessageStart("run-1"),
@@ -630,24 +527,20 @@ describe("TranscriptBuilder", () => {
       expect(todos["todo-0"].status).toBe(TodoStatus.TODO_COMPLETED);
     });
 
-    it("reports a sub-agent's usage through the same hook as the parent's (S3 M2b, Q-M2b-1)", () => {
+    it("routes a sub-agent's message to its own row, never the parent's", () => {
       const sb = makeBuilder();
       const subNs = ["tools:task-1", "model_request:sub-run"];
       feedAll(sb, [
-        ...[makeMessageStart("parent-1"), makeTextDelta("parent-1", "Delegating."), makeMessageFinish("parent-1", { usage: { input_tokens: 1_000, output_tokens: 10 } })],
+        ...[makeMessageStart("parent-1"), makeTextDelta("parent-1", "Delegating."), makeMessageFinish("parent-1")],
         makeToolStarted("task-1", "task", { subagent_type: "worker", description: "delegate" }),
         makeMessageStart("sub-run", { namespace: subNs }),
         makeTextDelta("sub-run", "Working on it.", { namespace: subNs }),
-        makeMessageFinish("sub-run", { namespace: subNs, usage: { input_tokens: 600, output_tokens: 12 } }),
+        makeMessageFinish("sub-run", { namespace: subNs }),
       ]);
 
-      const usage = reportedUsage(sb);
-      expect(usage.inputTokens, "the parent's 1,000 and the sub-agent's 600").toBe(1_600);
-      expect(usage.outputTokens).toBe(22);
-      expect(usage.turnCount).toBe(2);
-      // The transcript still routes the sub-agent's message to its own row, never the parent's.
       expect(sb.currentStatus.messages.map((m) => m.content)).toEqual(["Delegating."]);
       expect(sb.currentStatus.subAgentExecutions).toHaveLength(1);
+      expect(sb.currentStatus.subAgentExecutions[0].messages.map((m) => m.content)).toEqual(["Working on it."]);
     });
 
     it("does not project a sub-agent's write_todos into parent status.todos", () => {
@@ -820,7 +713,7 @@ describe("TranscriptBuilder", () => {
   });
 
   describe("a handler that throws", () => {
-    it("is logged with the execution, the event kind and its seq, and never escapes processEvent", () => {
+    it("is logged with the execution and the event kind, and never escapes apply", () => {
       const sb = makeBuilder();
       const errors: string[] = [];
       const original = console.error;
@@ -829,14 +722,14 @@ describe("TranscriptBuilder", () => {
         const poisoned = normalize(makeToolFinished("toolu_x", "ok"))[0]!;
         // A getter that throws where the handler reads the output.
         const event = { ...poisoned, get output(): unknown { throw new Error("property access failed"); } };
-        expect(() => sb.processEvent(event as typeof poisoned)).not.toThrow();
+        expect(() => sb.apply(event as typeof poisoned)).not.toThrow();
       } finally {
         console.error = original;
       }
       expect(errors).toHaveLength(1);
       expect(errors[0]).toContain("exec-test");
       expect(errors[0]).toContain("kind=tool_finished");
-      expect(errors[0]).toMatch(/seq=\d+/);
+      expect(errors[0]).toContain("property access failed");
     });
   });
 

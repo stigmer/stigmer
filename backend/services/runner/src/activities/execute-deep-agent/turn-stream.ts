@@ -53,7 +53,7 @@ import { TimeoutError, withTimeout } from "../../shared/with-timeout.js";
 import { InlinePublisher } from "./inline-publisher.js";
 import { StreamingSideEffects } from "./streaming-side-effects.js";
 import { createV3EventRecorder, type V3ProtocolEvent } from "./v3-event-recorder.js";
-import { normalize } from "./v3-protocol-normalizer.js";
+import { normalize, usageOf, type V3UsagePayload } from "./v3-protocol-normalizer.js";
 import { TranscriptBuilder } from "../../harness/transcript/builder.js";
 import type { DeepAgentEngine, DeepAgentGraphInput, DeepAgentWorkspace } from "./turn-setup.js";
 
@@ -98,8 +98,7 @@ export interface DeepAgentStreamResult {
  * The transcript writers of one turn: the builder over `sink.status` and the
  * publisher that writes artifacts through it (so a published artifact still
  * forces the next persist). Built by the adapter's turn once and shared by
- * the stream and the settle; the builder reports usage into the sink, priced
- * for the model the turn runs on.
+ * the stream and the settle.
  */
 export interface DeepAgentTranscript {
   readonly builder: TranscriptBuilder;
@@ -112,27 +111,7 @@ export function createDeepAgentTranscript(
   engine: DeepAgentEngine,
   workspace: DeepAgentWorkspace,
 ): DeepAgentTranscript {
-  const builder = new TranscriptBuilder(input.executionId, sink.status, {
-    onUsage: (usage) => {
-      // LangChain's `input_tokens` already INCLUDES the cache buckets (the
-      // Anthropic adapter folds them in; the cost advisory reads them the
-      // same way), so the counts are reported as delivered and the price
-      // is computed over the disjoint buckets.
-      const inputTokens = usage.input_tokens ?? 0;
-      const outputTokens = usage.output_tokens ?? 0;
-      const cacheReadTokens = usage.input_token_details?.cache_read ?? 0;
-      const cacheWriteTokens = usage.input_token_details?.cache_creation ?? 0;
-      const uncachedInput = Math.max(inputTokens - cacheReadTokens - cacheWriteTokens, 0);
-      sink.reportUsage({
-        inputTokens,
-        outputTokens,
-        cacheReadTokens,
-        cacheWriteTokens,
-        estimatedCostUsd: computeTurnCost(engine.pricing, uncachedInput, outputTokens, cacheWriteTokens, cacheReadTokens),
-        model: engine.modelName,
-      });
-    },
-  });
+  const builder = new TranscriptBuilder(input.executionId, sink.status);
   builder.setApprovalProvider({
     policies: engine.gate.policies,
     toolServerMap: engine.gate.toolServerMap,
@@ -147,6 +126,32 @@ export function createDeepAgentTranscript(
     executionId: input.executionId,
   });
   return { builder, publisher };
+}
+
+/**
+ * Price one `message-finish`'s usage at the engine's rates and report it to
+ * the sink, which accounts, enforces the cost cap and writes `streamingUsage`
+ * (Q-M2a-2). LangChain's `input_tokens` already INCLUDES the cache buckets
+ * (the Anthropic adapter folds them in; the cost advisory reads them the same
+ * way), so the counts are reported as delivered and the price is computed
+ * over the disjoint buckets. A sub-agent on its own model is priced at the
+ * parent's rate, as the in-graph cost cap always did (per-sub-agent pricing
+ * is an S5 item).
+ */
+function reportUsage(sink: TurnSink, engine: DeepAgentEngine, usage: V3UsagePayload): void {
+  const inputTokens = usage.input_tokens ?? 0;
+  const outputTokens = usage.output_tokens ?? 0;
+  const cacheReadTokens = usage.input_token_details?.cache_read ?? 0;
+  const cacheWriteTokens = usage.input_token_details?.cache_creation ?? 0;
+  const uncachedInput = Math.max(inputTokens - cacheReadTokens - cacheWriteTokens, 0);
+  sink.reportUsage({
+    inputTokens,
+    outputTokens,
+    cacheReadTokens,
+    cacheWriteTokens,
+    estimatedCostUsd: computeTurnCost(engine.pricing, uncachedInput, outputTokens, cacheWriteTokens, cacheReadTokens),
+    model: engine.modelName,
+  });
 }
 
 export interface DeepAgentStreamDeps {
@@ -215,9 +220,11 @@ export async function consumeDeepAgentStream(deps: DeepAgentStreamDeps): Promise
         recorder?.record(event, eventsProcessed);
         let detail: string | undefined;
         for (const normalized of normalize(event)) {
-          builder.processEvent(normalized);
+          builder.apply(normalized);
           if (normalized.kind === "tool_started") detail = normalized.name;
         }
+        const usage = usageOf(event);
+        if (usage) reportUsage(sink, engine, usage);
         sideEffects.onProtocolEvent(event);
         eventsProcessed++;
         sink.recordActivity(detail);
