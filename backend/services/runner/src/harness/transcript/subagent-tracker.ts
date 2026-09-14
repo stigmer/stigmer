@@ -58,7 +58,6 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { utcTimestamp } from "../../shared/status.js";
 import { classifyTool } from "../../shared/tool-kind.js";
-import { extractToolResultV3 } from "./tool-result.js";
 import type { TranscriptEvent } from "./events.js";
 
 // ── Per-SubAgent State ───────────────────────────────────────────────────────
@@ -165,13 +164,13 @@ export class SubAgentTracker {
   /**
    * Called when the "task" tool finishes successfully.
    */
-  onTaskToolFinished(callId: string, output: unknown): void {
+  onTaskToolFinished(callId: string, result: string): void {
     const state = this.stateByCallId.get(callId);
     if (!state) return;
 
     state.proto.status = SubAgentStatus.SUB_AGENT_COMPLETED;
     state.proto.completedAt = utcTimestamp();
-    state.proto.output = extractToolResultV3(output);
+    state.proto.output = result;
 
     this.finalizeStreamingMessages(state);
   }
@@ -252,7 +251,7 @@ export class SubAgentTracker {
         this.handleToolStarted(state, event.callId, event.name, event.input, localNs);
         break;
       case "tool_finished":
-        this.handleToolFinished(state, event.callId, event.output);
+        this.handleToolFinished(state, event.callId, event.result);
         break;
       case "tool_error":
         this.handleToolError(state, event.callId, event.message);
@@ -341,14 +340,14 @@ export class SubAgentTracker {
     state.toolCalls.set(callId, tc);
   }
 
-  private handleToolFinished(state: SubAgentState, callId: string, output: unknown): void {
+  private handleToolFinished(state: SubAgentState, callId: string, result: string): void {
     const tc = state.toolCalls.get(callId);
     if (!tc) return;
 
     // Faithful result only; payload size is bounded at the persist chokepoint
     // (see v3 builder note). Truncating here would corrupt image base64.
     tc.status = ToolCallStatus.TOOL_CALL_COMPLETED;
-    tc.result = extractToolResultV3(output);
+    tc.result = result;
     tc.completedAt = utcTimestamp();
     tc.isStreaming = false;
     state.toolArgBuffers.delete(callId);

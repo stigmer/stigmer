@@ -10,9 +10,10 @@
  * the names ruled at Q-S4-2 — so the fence that keeps `harness/` out of
  * `activities/` protects it from here on. What it still knows of LangGraph
  * (the `task` tool name and its namespace depth for opening a sub-agent, the
- * `namespace` grammar, the approval decision from a provider, the LangChain
- * envelope `tool-result.ts` unwraps) is cut out at M2, one ruling per commit
- * (Q-S4-3 to Q-S4-7), and the `SubAgentTracker` — a second copy of these
+ * `namespace` grammar, the approval decision from a provider) is cut out at
+ * M2, one ruling per commit (Q-S4-3 to Q-S4-7) — a tool's result already
+ * arrives as the string the row carries (C2a), so the LangChain envelope is
+ * no longer read here — and the `SubAgentTracker` — a second copy of these
  * handlers for a sub-agent's own transcript — is folded into one scoped set
  * (Q-S4-4). The Cursor harness feeds this builder through a translator at
  * M4; the runtime hands it to every adapter as `TurnSink.transcript` at M5.
@@ -63,7 +64,6 @@ import type { ExecutionStatusWriter } from "../../shared/execution-status-writer
 import { TranscriptState } from "./state.js";
 import type { TranscriptEvent } from "./events.js";
 import { namespaceDepth } from "./events.js";
-import { extractToolResultV3 } from "./tool-result.js";
 import { SubAgentTracker } from "./subagent-tracker.js";
 
 // ── Authorization Provenance ───────────────────────────────────────
@@ -216,8 +216,8 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
       }
 
       if (event.kind === "tool_finished" && this.isTrackedTaskTool(event.callId)) {
-        this.subAgentTracker.onTaskToolFinished(event.callId, event.output);
-        this.handleToolFinished(event.callId, event.output);
+        this.subAgentTracker.onTaskToolFinished(event.callId, event.result);
+        this.handleToolFinished(event.callId, event.result);
         this._forceNextUpdate = true;
         return;
       }
@@ -255,7 +255,7 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
           this.handleToolStarted(event.callId, event.name, event.input, event.namespace);
           break;
         case "tool_finished":
-          this.handleToolFinished(event.callId, event.output);
+          this.handleToolFinished(event.callId, event.result);
           break;
         case "tool_error":
           this.handleToolError(event.callId, event.message);
@@ -433,7 +433,7 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
     this._forceNextUpdate = true;
   }
 
-  private handleToolFinished(callId: string, output: unknown): void {
+  private handleToolFinished(callId: string, result: string): void {
     const tc = this.state.toolCalls.get(callId);
     if (!tc) return;
 
@@ -442,7 +442,7 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
     // Truncating here would corrupt binary content (e.g. a screenshot's base64)
     // before offload can lift it into a renderable ToolCallOutputRef.
     tc.status = ToolCallStatus.TOOL_CALL_COMPLETED;
-    tc.result = extractToolResultV3(output);
+    tc.result = result;
     tc.completedAt = utcTimestamp();
     tc.isStreaming = false;
     this.toolArgBuffers.delete(callId);

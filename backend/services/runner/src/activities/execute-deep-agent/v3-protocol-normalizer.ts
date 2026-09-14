@@ -6,11 +6,12 @@
  * wire shape and emits the canonical event the shared builder folds (S4,
  * `T01_0_plan.md` §3). It also answers the loop's one non-transcript
  * question about the wire — {@link usageOf}, the usage a `message-finish`
- * carries (S4 M2 C1) — so the loop never parses a raw event itself. At
- * later M2 commits it takes over what the builder still knows of the
- * engine — `extractToolResultV3` and the Command unwrap (Q-S4-3, Q-S4-21),
- * the sub-agent scope resolution, the gate answer — and emits
- * `sub_agent_started/finished/failed` for a `task` call (Q-S4-4).
+ * carries (S4 M2 C1) — so the loop never parses a raw event itself. It
+ * renders a tool's result to the string the row carries (C2a; the LangChain
+ * envelope is its to unwrap, never the builder's). At later M2 commits it
+ * takes over what the builder still knows of the engine — the Command
+ * unwrap (Q-S4-21), the sub-agent scope resolution, the gate answer — and
+ * emits `sub_agent_started/finished/failed` for a `task` call (Q-S4-4).
  *
  * What the wire carries that the transcript does not (C1): `lifecycle` and
  * `provider` events, the standalone `usage` event, and each event's `seq`
@@ -177,7 +178,7 @@ function normalizeTool(event: V3ProtocolEvent): TranscriptEvent[] {
 
     case "tool-finished": {
       const callId = readToolCallId(data);
-      return [{ kind: "tool_finished" as const, ...base, callId, output: data.output }];
+      return [{ kind: "tool_finished" as const, ...base, callId, result: extractToolResult(data.output) }];
     }
 
     case "tool-error": {
@@ -195,6 +196,57 @@ function normalizeTool(event: V3ProtocolEvent): TranscriptEvent[] {
     default:
       logUnknown("tools", eventType);
       return [];
+  }
+}
+
+// ── Tool Result ───────────────────────────────────────────────────
+
+/**
+ * Serialize a LangChain message `content` field into the canonical tool-result
+ * string.
+ *
+ * Text-only content is a plain string and passes through unchanged. Multimodal
+ * content (image, or mixed text+image — e.g. a computer-use screenshot) is an
+ * array of content blocks; we serialize the blocks array ITSELF, not the
+ * surrounding message envelope, so the result lands in the exact top-level-array
+ * shape the persist-time offload (`detectImagePayload`/`contentBlocks` in
+ * status-offload.ts) consumes to lift the image out into a renderable
+ * `ToolCallOutputRef`. Serializing the envelope instead would bury the base64
+ * one level deeper and defeat that detection.
+ *
+ * Returns undefined when `content` is neither a string nor an array, letting the
+ * caller fall back to serializing whatever else it holds.
+ */
+function serializeToolContent(content: unknown): string | undefined {
+  if (typeof content === "string") return content;
+  if (Array.isArray(content)) return JSON.stringify(content);
+  return undefined;
+}
+
+/**
+ * The `result: string` a `tool_finished` carries, from the v3 `tool-finished`
+ * output — engine knowledge that stays on this side of the union (S4 M2 C2a,
+ * Q-S4-3; it was `extractToolResultV3` in `harness/transcript/tool-result.ts`
+ * between M1 and M2). v3 wraps a LangChain `ToolMessage` in a constructor
+ * envelope, `{ lc, type, id, kwargs: { content, status, ... } }`; the content
+ * is what the row shows. Anything else is serialized as it came.
+ */
+function extractToolResult(output: unknown): string {
+  if (typeof output === "string") return output;
+  if (typeof output === "object" && output !== null) {
+    const obj = output as Record<string, unknown>;
+    const kwargs = obj.kwargs as Record<string, unknown> | undefined;
+    if (kwargs) {
+      const fromKwargs = serializeToolContent(kwargs.content);
+      if (fromKwargs !== undefined) return fromKwargs;
+    }
+    const fromContent = serializeToolContent(obj.content);
+    if (fromContent !== undefined) return fromContent;
+  }
+  try {
+    return JSON.stringify(output);
+  } catch {
+    return "[serialization error]";
   }
 }
 

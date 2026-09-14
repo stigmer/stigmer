@@ -17,10 +17,11 @@
  *     into `TurnSink.reportUsage`; the Cursor loop reads its own from the
  *     SDK's `turn-ended` delta. A transcript fact is what a row or a message
  *     carries; usage is neither.
- *   - Still to cut: `namespace` becomes `subAgentId?`, `tool_finished.output`
- *     becomes `result: string`, `tool_started` gains the attribution and
- *     gate facts, and `sub_agent_*`, `approval_proposed` and `system_note`
- *     arrive. A Cursor translator then emits this union at M4.
+ *   - C2a (landed): `tool_finished` carries `result: string`; the engine's
+ *     output envelope is the translator's to render.
+ *   - Still to cut: `namespace` becomes `subAgentId?`, `tool_started` gains
+ *     the attribution and gate facts, and `sub_agent_*`, `approval_proposed`
+ *     and `system_note` arrive. A Cursor translator then emits this union at M4.
  *
  * ID conventions:
  *   - `runId`  — the identity of ONE streamed assistant message (LangGraph's
@@ -85,7 +86,13 @@ export interface ToolOutputDeltaEvent extends TranscriptEventBase {
 export interface ToolFinishedEvent extends TranscriptEventBase {
   readonly kind: "tool_finished";
   readonly callId: string;
-  readonly output: unknown;
+  /**
+   * The result as the row carries it — already a string. Rendering the
+   * engine's output (LangChain's ToolMessage envelope, Cursor's result
+   * object) is the translator's; the builder stores what it is handed and
+   * the persist chokepoint bounds it (S4 M2 C2a, Q-S4-3).
+   */
+  readonly result: string;
 }
 
 export interface ToolErrorEvent extends TranscriptEventBase {

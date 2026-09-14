@@ -720,8 +720,8 @@ describe("TranscriptBuilder", () => {
       console.error = (msg: unknown) => { errors.push(String(msg)); };
       try {
         const poisoned = normalize(makeToolFinished("toolu_x", "ok"))[0]!;
-        // A getter that throws where the handler reads the output.
-        const event = { ...poisoned, get output(): unknown { throw new Error("property access failed"); } };
+        // A getter that throws where the handler reads the result.
+        const event = { ...poisoned, get result(): string { throw new Error("property access failed"); } };
         expect(() => sb.apply(event as typeof poisoned)).not.toThrow();
       } finally {
         console.error = original;

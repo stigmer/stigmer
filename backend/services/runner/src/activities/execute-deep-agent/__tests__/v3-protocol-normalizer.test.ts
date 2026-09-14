@@ -148,12 +148,13 @@ describe("V3ProtocolNormalizer", () => {
       });
     });
 
-    it("normalizes tool-finished", () => {
+    it("normalizes tool-finished to the row's result string", () => {
       const result = normalize(makeToolFinished("toolu_abc", "file content here"));
       expect(result).toHaveLength(1);
       expect(result[0]).toMatchObject({
         kind: "tool_finished",
         callId: "toolu_abc",
+        result: "file content here",
       });
     });
 
@@ -191,6 +192,50 @@ describe("V3ProtocolNormalizer", () => {
         kind: "tool_started",
         input: {},
       });
+    });
+  });
+
+  // ── The tool result: the engine's envelope, rendered here (S4 M2 C2a) ──
+
+  describe("tool-finished output → result string", () => {
+    // Image/mixed content blocks (e.g. a computer-use screenshot). The result
+    // must be the BLOCKS ARRAY serialized — not the LangChain envelope around
+    // it — so the persist-time offload can detect the image and lift it into
+    // a renderable ToolCallOutputRef.
+    const imageBlock = { type: "image_url", image_url: { url: "data:image/png;base64,AAAA" } };
+    const resultOf = (output: unknown): string => {
+      const [event] = normalize(makeToolFinished("toolu_x", output));
+      if (event?.kind !== "tool_finished") throw new Error("expected one tool_finished");
+      return event.result;
+    };
+    const envelope = (content: unknown) => ({
+      lc: 1,
+      type: "constructor",
+      id: ["langchain_core", "messages", "ToolMessage"],
+      kwargs: { status: "success", content },
+    });
+
+    it("passes a plain string output through unchanged", () => {
+      expect(resultOf("just text")).toBe("just text");
+    });
+
+    it("unwraps a ToolMessage envelope to its text content", () => {
+      expect(resultOf(envelope("hello"))).toBe("hello");
+    });
+
+    it("serializes the blocks array (not the envelope) when the content is an array", () => {
+      const result = resultOf(envelope([{ type: "text", text: "shot" }, imageBlock]));
+      expect(JSON.parse(result)).toEqual([{ type: "text", text: "shot" }, imageBlock]);
+      expect(result).not.toContain("constructor");
+      expect(result).not.toContain("langchain_core");
+    });
+
+    it("serializes the blocks array on a live ToolMessage-shaped object (obj.content)", () => {
+      expect(JSON.parse(resultOf({ content: [imageBlock] }))).toEqual([imageBlock]);
+    });
+
+    it("falls back to JSON.stringify for unrecognized shapes", () => {
+      expect(resultOf({ foo: "bar" })).toBe(JSON.stringify({ foo: "bar" }));
     });
   });
 
