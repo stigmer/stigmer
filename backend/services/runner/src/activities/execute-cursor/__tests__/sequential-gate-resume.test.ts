@@ -42,9 +42,9 @@ import type { SDKMessage } from "@cursor/sdk";
 
 import {
   MessageAccumulator,
-  reconcileDeniedToolCalls,
-  toolCallIdentityToken,
 } from "../message-translator.js";
+import { reconcileDeniedToolCalls } from "../boundary-rows.js";
+import { toolCallIdentityToken } from "../approval-state.js";
 import {
   buildApprovalGrants,
   buildApprovalState,

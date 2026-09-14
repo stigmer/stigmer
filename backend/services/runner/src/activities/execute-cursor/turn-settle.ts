@@ -44,7 +44,8 @@ import {
   synthesizeError,
 } from "./error-classifier.js";
 import { closeProxySessions } from "./http2-interceptor.js";
-import { MessageAccumulator, collapseRedundantToolCallTwins } from "./message-translator.js";
+import { collapseRedundantToolCallTwins } from "./boundary-rows.js";
+import { MessageAccumulator } from "./message-translator.js";
 import { clearCapturedRejection, getCapturedRejection } from "./rejection-capture.js";
 import { TodoTracker } from "./todo-tracker.js";
 import { runTurnBoundary, type TurnBoundaryResult } from "./turn-boundary.js";

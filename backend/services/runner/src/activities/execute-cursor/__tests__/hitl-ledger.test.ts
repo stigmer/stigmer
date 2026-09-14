@@ -61,11 +61,11 @@ import {
   reconcileDeniedToolCalls,
   clearProvisionalPostDenialNarration,
   collapseRedundantToolCallTwins,
-  toolCallIdentityToken,
   detectUnattributedHookBlocks,
   stampUnattendedSkippedToolCalls,
   HOOK_BLOCK_ERROR_MARKERS,
-} from "../message-translator.js";
+} from "../boundary-rows.js";
+import { toolCallIdentityToken } from "../approval-state.js";
 import { mockWorkspaceBackend } from "../../../__test-utils__/mock-workspace.js";
 import type { WorkspaceBackend } from "../../../shared/workspace/types.js";
 import { generateHookScript } from "../hook-script.js";

@@ -53,9 +53,9 @@ import {
   reconcileDeniedToolCalls,
   settleUnresolvedToolCalls,
   stampUnattendedSkippedToolCalls,
-  utcTimestamp,
   type UnattributedHookBlock,
-} from "./message-translator.js";
+} from "./boundary-rows.js";
+import { utcTimestamp } from "../../shared/status.js";
 import { create } from "@bufbuild/protobuf";
 import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";

@@ -17,7 +17,7 @@
  * shape of legacy (pre-stamping) sessions whose flowed edit rows were hidden.
  */
 
-import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ApprovalAction, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import { extractFilePath } from "./file-tools.js";
@@ -293,4 +293,40 @@ export function collectSettledToolCallIds(
     }
   }
   return ids;
+}
+
+/**
+ * Whether the server has already adjudicated this row — the user decided its
+ * gate (`approval_action`, the server's field; the runner never writes it).
+ *
+ * Such a row belongs to a gate that is CLOSED: approved and executed, or
+ * declined, in an earlier invocation of this execution. No reconciliation of
+ * the CURRENT turn may rewrite it — not the denial overlay (a new denial of the
+ * same identity is a NEW act and gets its own row), not the twin collapse (the
+ * executed row is the transcript's record). Before this rule the overlay matched
+ * a denial to the FIRST same-identity row in the whole transcript, flipped a
+ * completed, approved row back to WAITING_APPROVAL with its APPROVE still on
+ * it, and the next invocation read that as the decision for the new, undecided
+ * proposal — an approval bleeding to a later identical act (S2 M4 finding F9,
+ * found by the harness contract kit's invariant 3 against this adapter).
+ */
+export function isAdjudicatedRow(tc: ToolCall): boolean {
+  return tc.approvalAction !== ApprovalAction.UNSPECIFIED;
+}
+
+/** Adjudicated with a decision that does NOT execute: the user declined this gate. */
+export function isDeclinedRow(tc: ToolCall): boolean {
+  switch (tc.approvalAction) {
+    case ApprovalAction.SKIP:
+    case ApprovalAction.REJECT:
+      return true;
+    case ApprovalAction.UNSPECIFIED:
+    case ApprovalAction.APPROVE:
+    case ApprovalAction.APPROVE_ALL:
+      return false;
+    default: {
+      const exhaustive: never = tc.approvalAction;
+      throw new Error(`isDeclinedRow: unknown approval action ${String(exhaustive)}`);
+    }
+  }
 }

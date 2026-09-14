@@ -44,9 +44,9 @@ import type { SDKMessage } from "@cursor/sdk";
 
 import {
   buildToolCallProto,
-  reconcileDeniedToolCalls,
-  toolCallIdentityToken,
 } from "../message-translator.js";
+import { reconcileDeniedToolCalls } from "../boundary-rows.js";
+import { toolCallIdentityToken } from "../approval-state.js";
 import {
   buildApprovalGrants,
   buildApprovalState,

@@ -29,7 +29,7 @@
 import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { ToolCallStatus, ToolCallStreamingSource } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { InteractionUpdate } from "@cursor/sdk";
-import { utcTimestamp } from "./message-translator.js";
+import { utcTimestamp } from "../../shared/status.js";
 
 interface ShellOutputBuffer {
   chunks: string[];

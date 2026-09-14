@@ -36,7 +36,9 @@ import { ApprovalAction, MessageType, ToolCallStatus } from "@stigmer/protos/ai/
 import type { SDKMessage } from "@cursor/sdk";
 
 import { approvalDecisionsOf } from "../../../harness/approval-decisions.js";
-import { MessageAccumulator, reconcileDeniedToolCalls, toolCallIdentityToken } from "../message-translator.js";
+import { MessageAccumulator } from "../message-translator.js";
+import { reconcileDeniedToolCalls } from "../boundary-rows.js";
+import { toolCallIdentityToken } from "../approval-state.js";
 import type { DeniedLedgerEntry } from "../approval-state.js";
 
 const PATH = "/work/a.txt";

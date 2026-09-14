@@ -49,10 +49,9 @@ import {
 import type { SDKMessage } from "@cursor/sdk";
 import {
   MessageAccumulator,
-  reconcileDeniedToolCalls,
-  clearProvisionalPostDenialNarration,
   buildToolCallProto,
 } from "../message-translator.js";
+import { reconcileDeniedToolCalls, clearProvisionalPostDenialNarration } from "../boundary-rows.js";
 import {
   grantToken,
   buildApprovalGrants,
