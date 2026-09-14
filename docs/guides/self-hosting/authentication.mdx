@@ -161,8 +161,11 @@ The first time, the server creates your Identity Account from the profile your
 provider publishes, and the console asks you to create your first Organization.
 The person who creates an organization is recorded as its owner; people who sign
 in afterwards join it as members. Owners and admins change roles under Settings
-→ Members. Sign out from the console's account menu; you land on the console's
-sign-in page.
+→ Members. If you set `STIGMER_OPERATOR_EMAIL`, the person whose provider email
+matches it becomes an administrator of every Organization the first time they
+sign in. The server trusts that email exactly as your provider asserts it, so
+use a provider that verifies email addresses. Sign out from the console's
+account menu; you land on the console's sign-in page.
 
 ### What still needs an API key
 
