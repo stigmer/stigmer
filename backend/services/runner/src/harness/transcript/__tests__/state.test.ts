@@ -3,7 +3,7 @@ import { create } from "@bufbuild/protobuf";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { ExecutionState } from "../execution-state.js";
+import { ExecutionState } from "../state.js";
 
 function makeEmptyStatus() {
   return create(AgentExecutionStatusSchema, {});

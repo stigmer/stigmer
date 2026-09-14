@@ -2,11 +2,14 @@
  * The module specifiers a TypeScript file names, read off its syntax tree —
  * the primitive behind the runner's import fences.
  *
- * Two fences stand on it: `src/harness/` and production `src/shared/` never
+ * Three fences stand on it: `src/harness/` and production `src/shared/` never
  * import `src/activities/` (`harness/__tests__/import-direction.test.ts`,
- * the rule the turn runtime is written under), and the Cursor adapter never
+ * the rule the turn runtime is written under); the Cursor adapter never
  * imports `@temporalio/*` (`execute-cursor/__tests__/adapter-is-temporal-
- * free.test.ts`, what lets the contract kit run it outside an activity).
+ * free.test.ts`, what lets the contract kit run it outside an activity); and
+ * `src/harness/transcript/` names no package outside a short allow-list
+ * (`harness/__tests__/transcript-is-engine-free.test.ts`, what keeps the one
+ * transcript builder engine-neutral).
  *
  * A syntax tree, not a regex, so a path quoted in a header comment cannot
  * trip a fence, and no import form can slip past one: static, type-only,
@@ -82,6 +85,32 @@ export function forbiddenImports(filePath: string, source: string, forbiddenRoot
 /** The package specifiers in `source` whose name is `pkg` or starts with `${pkg}/`. */
 export function packageImports(filePath: string, source: string, pkg: string): string[] {
   return moduleSpecifiers(filePath, source).filter((specifier) => specifier === pkg || specifier.startsWith(`${pkg}/`));
+}
+
+/**
+ * The packages `source` names — every specifier that is neither a relative
+ * path nor a `node:` builtin, reduced to its package (`@scope/name` or
+ * `name`, the subpath dropped), deduplicated, in first-appearance order.
+ *
+ * What an ALLOW-list fence compares against, where `packageImports` serves a
+ * deny: a deny-list must be extended for every SDK that does not exist yet,
+ * an allow-list refuses it on the day it is written.
+ */
+export function packageNames(filePath: string, source: string): string[] {
+  const names = new Set<string>();
+  for (const specifier of moduleSpecifiers(filePath, source)) {
+    if (specifier.startsWith(".") || specifier.startsWith("node:")) continue;
+    names.add(packageName(specifier));
+  }
+  return [...names];
+}
+
+/** `@scope/name/sub/path` → `@scope/name`; `name/sub/path` → `name`. */
+function packageName(specifier: string): string {
+  const parts = specifier.split("/");
+  const [first, second] = parts;
+  if (first === undefined) return specifier;
+  return first.startsWith("@") && second !== undefined ? `${first}/${second}` : first;
 }
 
 /** Every `.ts` file under `dir`, sorted, skipping the named directories at any depth. */

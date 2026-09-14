@@ -4,7 +4,7 @@ import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/a
 import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import { SubAgentStatus, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { cancelInProgressSubAgentProtos } from "../../../shared/subagent-rows.js";
-import { V3StatusBuilder } from "../v3-status-builder.js";
+import { V3StatusBuilder } from "../../../harness/transcript/builder.js";
 import { normalize } from "../v3-protocol-normalizer.js";
 import type { V3ProtocolEvent } from "../v3-event-recorder.js";
 import {

@@ -7,7 +7,7 @@ import { create } from "@bufbuild/protobuf";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ExecutionArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { InlinePublisher } from "../inline-publisher.js";
-import { V3StatusBuilder } from "../v3-status-builder.js";
+import { V3StatusBuilder } from "../../../harness/transcript/builder.js";
 import { LocalWorkspaceBackend } from "../../../shared/workspace/local-backend.js";
 import type { ArtifactStorage } from "../../../shared/artifact-storage.js";
 import { makeInMemoryArtifactStorage } from "../../../__test-utils__/fake-artifact-storage.js";

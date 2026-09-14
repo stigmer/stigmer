@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { extractToolResultV3 } from "../status-builder-shared.js";
+import { extractToolResultV3 } from "../tool-result.js";
 
 // Image/mixed content blocks (e.g. a computer-use screenshot). The extractor
 // must serialize the BLOCKS ARRAY — not the LangChain envelope around it — so

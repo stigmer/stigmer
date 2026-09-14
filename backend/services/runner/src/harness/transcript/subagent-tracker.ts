@@ -47,8 +47,8 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { utcTimestamp } from "../../shared/status.js";
 import { classifyTool } from "../../shared/tool-kind.js";
-import { extractToolResultV3 } from "./status-builder-shared.js";
-import type { StigmerRunEvent } from "./v3-events.js";
+import { extractToolResultV3 } from "./tool-result.js";
+import type { StigmerRunEvent } from "./events.js";
 
 // ── Per-SubAgent State ───────────────────────────────────────────────────────
 

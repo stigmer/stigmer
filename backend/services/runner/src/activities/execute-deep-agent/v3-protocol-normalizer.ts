@@ -12,10 +12,20 @@
  */
 
 import type { V3ProtocolEvent } from "./v3-event-recorder.js";
-import type { StigmerRunEvent, V3UsagePayload } from "./v3-events.js";
-import { formatNamespace } from "./v3-events.js";
+import type { StigmerRunEvent, V3UsagePayload } from "../../harness/transcript/events.js";
 
 const loggedUnknowns = new Set<string>();
+
+/**
+ * The namespace string every emitted event carries: `""` for the root graph,
+ * the LangGraph namespace segments joined with `|` for a nested one. The
+ * grammar is this translator's (S4 M1, Q-M1-4): the builder reads only the
+ * segment count (`namespaceDepth`) and stops reading even that at M2, when
+ * scope becomes `subAgentId?` (Q-S4-3).
+ */
+function formatNamespace(ns: readonly string[]): string {
+  return ns.length === 0 ? "" : ns.join("|");
+}
 
 export function normalize(event: V3ProtocolEvent): StigmerRunEvent[] {
   const method = event.method;

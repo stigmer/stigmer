@@ -54,7 +54,7 @@ import { InlinePublisher } from "./inline-publisher.js";
 import { StreamingSideEffects } from "./streaming-side-effects.js";
 import { createV3EventRecorder, type V3ProtocolEvent } from "./v3-event-recorder.js";
 import { normalize } from "./v3-protocol-normalizer.js";
-import { V3StatusBuilder } from "./v3-status-builder.js";
+import { V3StatusBuilder } from "../../harness/transcript/builder.js";
 import type { DeepAgentEngine, DeepAgentGraphInput, DeepAgentWorkspace } from "./turn-setup.js";
 
 /**

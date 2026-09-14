@@ -14,7 +14,7 @@ import {
   MessageType,
   ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { ExecutionState } from "../execution-state.js";
+import { ExecutionState } from "../state.js";
 
 function makeStateWithMessages(): ExecutionState {
   const status = create(AgentExecutionStatusSchema, {});

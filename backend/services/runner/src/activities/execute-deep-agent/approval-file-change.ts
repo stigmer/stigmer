@@ -29,8 +29,7 @@ export interface ApprovalCaptureResult {
   readonly args?: Record<string, unknown>;
 }
 
-import { sanitizeArgsPreview } from "./status-builder-shared.js";
-import { redactSensitiveArgs } from "../../shared/args-preview.js";
+import { redactSensitiveArgs, sanitizeArgsPreview } from "../../shared/args-preview.js";
 
 /**
  * Correlate a gated `tool_call_id` to its arguments by scanning graph-state

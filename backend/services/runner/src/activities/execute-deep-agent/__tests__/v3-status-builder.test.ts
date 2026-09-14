@@ -5,9 +5,8 @@ import { ApprovalAction, ExecutionPhase, MessageType, ToolCallStatus, ToolKind, 
 import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { ExecutionArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
 import { WorkspaceWriteBackSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/writeback_pb";
-import { V3StatusBuilder } from "../v3-status-builder.js";
+import { V3StatusBuilder, type ApprovalPolicyProvider } from "../../../harness/transcript/builder.js";
 import { normalize } from "../v3-protocol-normalizer.js";
-import type { ApprovalPolicyProvider } from "../status-builder-shared.js";
 import type { MergedToolPolicy } from "../../../shared/approval-policy.js";
 import {
   resetSeq,

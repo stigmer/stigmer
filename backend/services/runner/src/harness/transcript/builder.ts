@@ -44,21 +44,99 @@ import {
   ToolCallStatus,
   ToolKind,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { resolveApprovalMessage as resolveApprovalMsg } from "../../shared/approval-policy.js";
-import { classifyTool } from "../../shared/tool-kind.js";
+import {
+  POLICY_ENGINE_VERSION,
+  resolveApprovalMessage as resolveApprovalMsg,
+  resolveApprovalProvenance,
+  toProtoPolicySource,
+  type MergedToolPolicy,
+} from "../../shared/approval-policy.js";
+import { sanitizeArgsPreview } from "../../shared/args-preview.js";
+import { classifyTool, type ToolApprovalCategory } from "../../shared/tool-kind.js";
 import { applyTodoUpdate } from "../../shared/todos.js";
-import { ExecutionState } from "./execution-state.js";
 import { utcTimestamp } from "../../shared/status.js";
 import type { ExecutionStatusWriter } from "../../shared/execution-status-writer.js";
-import type { StigmerRunEvent, V3UsagePayload } from "./v3-events.js";
-import { namespaceDepth } from "./v3-events.js";
-import {
-  extractToolResultV3,
-  sanitizeArgsPreview,
-  stampApprovalProvenance,
-  type ApprovalPolicyProvider,
-} from "./status-builder-shared.js";
+import { ExecutionState } from "./state.js";
+import type { StigmerRunEvent, V3UsagePayload } from "./events.js";
+import { namespaceDepth } from "./events.js";
+import { extractToolResultV3 } from "./tool-result.js";
 import { SubAgentTracker } from "./subagent-tracker.js";
+
+// ── Authorization Provenance ───────────────────────────────────────
+
+/**
+ * The policy inputs the builder needs to decide whether a tool call waits for
+ * approval and to attribute its authorization provenance.
+ *
+ * M2-transient (S4 Q-S4-3): the decision moves to the translator, which
+ * answers it per call as `tool_started.gate`, and this provider shape goes
+ * with it. Until then the native adapter hands the gate's policy state in
+ * through {@link V3StatusBuilder.setApprovalProvider}.
+ */
+export interface ApprovalProvenanceInputs {
+  readonly policies: ReadonlyMap<string, MergedToolPolicy>;
+  readonly toolServerMap: ReadonlyMap<string, string>;
+  /**
+   * Built-in categories with a run-lifetime lease, so a leased built-in is
+   * attributed to its lease (approval_lease) rather than the plain category gate.
+   * Optional (mirroring {@link ApprovalGateConfig.leasedCategories}); absent =
+   * no lease active.
+   */
+  readonly leasedCategories?: ReadonlySet<ToolApprovalCategory>;
+  /** Pre-armed spec.auto_approve_all — the one whole-run global bypass. */
+  readonly globalBypass: boolean;
+  /**
+   * Unattended approval mode (ExecutionConfig.approval_mode = UNATTENDED):
+   * the gate auto-skips gated calls instead of interrupting, so the builder
+   * must NOT seed WAITING_APPROVAL rows or flip the phase to
+   * WAITING_FOR_APPROVAL — the row streams as RUNNING and the post-stream
+   * `reconcileUnattendedSkips` stamps the terminal SKIPPED + provenance.
+   */
+  readonly unattended?: boolean;
+}
+
+/**
+ * The name the builder's API uses for the same shape (`setApprovalProvider`):
+ * the adapter hands the gate's policy state in under this name. One shape, two
+ * names on purpose — the provider is what a caller SUPPLIES, the inputs are
+ * what the stamper READS; until S3 M2b the v2 builder declared the provider as
+ * an empty `interface extends`, a second type for one shape.
+ */
+export type ApprovalPolicyProvider = ApprovalProvenanceInputs;
+
+/** Shared empty set so a provider without leases allocates nothing per call. */
+const NO_LEASED_CATEGORIES: ReadonlySet<ToolApprovalCategory> = new Set();
+
+/**
+ * Stamp a tool call's authorization provenance — which policy layer governs it —
+ * alongside `tool_kind`, in exactly the spot the builder classifies the tool.
+ *
+ * This is the read-side companion to the gate: it records WHY a tool is gated or
+ * auto-approved for every observed tool call, so the persisted record is
+ * auditable and the UI can explain the gate. Built-ins that no layer governs (a
+ * read-only built-in) and the no-provider path both leave the field at
+ * UNSPECIFIED, like an unclassified tool_kind. Sub-agent rows carry no
+ * provenance on either harness today (S4 review finding 11), which is why the
+ * tracker does not call this.
+ */
+export function stampApprovalProvenance(
+  tc: ToolCall,
+  provider: ApprovalProvenanceInputs | null,
+): void {
+  if (!provider) return;
+  const serverSlug = tc.mcpServerSlug || provider.toolServerMap.get(tc.name) || "";
+  const source = resolveApprovalProvenance(
+    tc.name,
+    serverSlug,
+    provider.policies,
+    provider.leasedCategories ?? NO_LEASED_CATEGORIES,
+    provider.globalBypass,
+  );
+  tc.approvalPolicySource = toProtoPolicySource(source);
+  if (source) tc.policyEngineVersion = POLICY_ENGINE_VERSION;
+}
+
+// ── Builder ────────────────────────────────────────────────────────
 
 export interface V3StatusBuilderOptions {
   /**

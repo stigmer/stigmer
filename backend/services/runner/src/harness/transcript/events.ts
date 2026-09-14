@@ -133,15 +133,17 @@ export type StigmerRunEvent =
   | LifecycleEvent
   | ProviderEvent;
 
-// ── Namespace Formatting ──────────────────────────────────────────
-
-export function formatNamespace(ns: readonly string[]): string {
-  return ns.length === 0 ? "" : ns.join("|");
-}
+// ── Namespace Depth ───────────────────────────────────────────────
 
 /**
  * Returns the depth (number of segments) of a formatted namespace string.
  * Empty string → 0, single segment → 1, "a|b" → 2, etc.
+ *
+ * The one piece of LangGraph namespace grammar the builder still reads (the
+ * `task` tool's depth rule for opening a sub-agent). Its inverse,
+ * `formatNamespace`, lives with the normalizer that produces the string. Both
+ * leave the builder's side at S4 M2, when scope becomes `subAgentId?` and
+ * `sub_agent_started` arrives from the translator (Q-S4-3, Q-S4-4).
  */
 export function namespaceDepth(namespace: string): number {
   if (!namespace) return 0;
