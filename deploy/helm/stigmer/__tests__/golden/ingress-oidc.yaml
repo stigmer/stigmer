@@ -449,7 +449,10 @@ spec:
                 - -c
                 - temporal operator namespace describe -n default --address $(hostname -i):7233
             periodSeconds: 5
-            timeoutSeconds: 5
+            # 10 s, not compose's 5: the exec runs the temporal CLI inside the
+            # pod, and on a loaded node (the CI gate saw it) 5 s times out
+            # while the frontend is actually serving.
+            timeoutSeconds: 10
             failureThreshold: 60
           resources:
             limits:
