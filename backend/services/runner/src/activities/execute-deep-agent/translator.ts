@@ -1,27 +1,71 @@
 /**
- * V3ProtocolNormalizer — converts raw LangGraph v3 ProtocolEvents
- * into the `TranscriptEvent` union (`harness/transcript/events.ts`).
+ * DeepAgentTranslator — the native harness's translator: LangGraph's v3
+ * protocol events in, the canonical `TranscriptEvent` union out
+ * (`harness/transcript/events.ts`).
  *
- * The native harness's translator: the one module that knows LangGraph's
- * wire shape and emits the canonical event the shared builder folds (S4,
- * `T01_0_plan.md` §3). It also answers the loop's one non-transcript
- * question about the wire — {@link usageOf}, the usage a `message-finish`
- * carries (S4 M2 C1) — so the loop never parses a raw event itself. It
- * renders a tool's result to the string the row carries (C2a, C2b; the
- * LangChain envelope and the LangGraph Command are its to unwrap, never the
- * builder's), and answers a tool's attribution and provenance on its
- * `tool_started` from the gate's posture (C3, {@link DeepAgentTranslator}).
- * At M2 C4 it takes over the last engine fact the builder reads — the
- * sub-agent scope — and emits `sub_agent_started/finished/failed` for a
- * `task` call (Q-S4-4).
+ * The one module that knows LangGraph's wire shape (S4, `T01_0_plan.md` §3):
+ * the shared builder folds what comes out of here and nothing of the engine
+ * reaches it otherwise. Every engine fact the builder used to read is
+ * answered on this side now (S4 M2):
  *
- * What the wire carries that the transcript does not (C1): `lifecycle` and
- * `provider` events, the standalone `usage` event, and each event's `seq`
- * and `node`. None of it was ever folded; the recorder keeps the raw event
- * for a replay, so nothing is lost by not translating it.
+ *   - the tool's result, rendered to the string the row carries — the
+ *     LangChain ToolMessage envelope and the LangGraph Command unwrapped
+ *     (C2a, C2b; Q-S4-3, Q-S4-21);
+ *   - the tool's attribution (`mcpServerSlug`) and authorization provenance,
+ *     from the gate's posture (C3; `resolveApprovalProvenance`, the gate's
+ *     read-side twin);
+ *   - the SCOPE of every event — the root's transcript or one sub-agent's —
+ *     from LangGraph's namespace grammar, and the sub-agent's own lifecycle
+ *     (`sub_agent_started/finished/failed`) from deepagents' `task` tool
+ *     (C4; Q-S4-3, Q-S4-4). Until C4 the builder read the namespace and the
+ *     tool's name itself, and kept a second copy of every handler for the
+ *     sub-agents' transcripts.
  *
- * Stateless: each event is self-describing per real recordings.
- * Routes by `event.method`, then by `data.event` within channels.
+ * What this translator deliberately does NOT answer: whether the gate holds
+ * a call. On native it never has to. LangGraph's `interrupt()` runs inside
+ * the gate middleware BEFORE the tool handler, so a held call emits no
+ * `tool-started` at all; the `tool-started` that does arrive is the engine's
+ * own word that the call was authorized — capture mode let the file write
+ * flow, a lease or the policy chain cleared it, or the user approved it on a
+ * resume. The gate's decision has arms this side cannot evaluate (capture
+ * mode asks the workspace's git state, asynchronously;
+ * `middleware/approval-gate.ts`), and duplicating them would be a second copy
+ * of the decision — the drift Q-M2-9 exists to end. So native emits no
+ * `tool_started.gate`; the held call reaches the transcript as
+ * `approval_proposed` from the post-stream seed (C6). Until C3 the builder
+ * carried a copy of the decision that gated MCP tools only, a path
+ * production never took — M2 finding F-M2-27, option A.
+ *
+ * Attribution and provenance are answered for ROOT-scope calls only: a
+ * sub-agent's rows carry none on either harness today (S4 review finding
+ * 11), and one handler set would otherwise stamp them as a side effect
+ * (F-M2-23; S5's question).
+ *
+ * The scope, in LangGraph 1.3.2's grammar (mirrors deepagents'
+ * `createSubagentTransformer`): the root's model events arrive under
+ * `["model_request:<uuid>"]` and its tool events under `["tools:<uuid>"]`
+ * (one segment); a `task` tool start at that depth opens a sub-agent, and
+ * the segment it arrived under is the prefix every event of that sub-agent's
+ * graph carries first (`["tools:<uuid>", "model_request:<inner>"]`, two or
+ * more segments). An event with a REGISTERED first segment and two or more
+ * segments is the sub-agent's; everything else is the root's — including a
+ * nested namespace whose prefix nobody registered, which folds into the
+ * root as it always did (F-M2-17; a sub-agent resumed inside its own gate
+ * with no re-emitted `task` start is the production case). A `task` inside
+ * a sub-agent is an ordinary row of that sub-agent's transcript: one level
+ * of delegation is tracked, as before.
+ *
+ * Beside the transcript, {@link usageOf} answers the loop's one
+ * non-transcript question about the wire (C1) — the usage a
+ * `message-finish` carries — so the loop never parses a raw event itself.
+ * What the wire carries that the transcript does not: `lifecycle` and
+ * `provider` events, the standalone `usage` event, each event's `seq` and
+ * `node`. None of it was ever folded; the recorder keeps the raw event for
+ * a replay.
+ *
+ * The file was `v3-protocol-normalizer.ts` (a stateless `normalize`) until
+ * C4 made it stateful (Q-M2-4) — the same word as `execute-cursor/translator.ts`
+ * (M4), so a third harness's author finds one shape in both.
  *
  * Defensive parsing: handles both snake_case and camelCase field names
  * for tool IDs/names (protocol spec uses camelCase but recordings show
@@ -36,58 +80,86 @@ import type { DeepAgentGateState } from "./turn-setup.js";
 
 const loggedUnknowns = new Set<string>();
 
-/**
- * The namespace string every emitted event carries: `""` for the root graph,
- * the LangGraph namespace segments joined with `|` for a nested one. The
- * grammar is this translator's (S4 M1, Q-M1-4): the builder reads only the
- * segment count (`namespaceDepth`) and stops reading even that at M2 C4, when
- * scope becomes `subAgentId?` (Q-S4-3).
- */
-function formatNamespace(ns: readonly string[]): string {
-  return ns.length === 0 ? "" : ns.join("|");
-}
+/** deepagents' delegation tool: the one tool name this translator knows, because its start opens a sub-agent. */
+const TASK_TOOL = "task";
 
 // ── The translator ────────────────────────────────────────────────
 
-/**
- * The native harness's translator, constructed once per turn over the gate's
- * posture (S4 M2 C3, Q-M2-4): `translate(raw)` is the one signature every
- * harness's translator shares — one engine event in, the canonical events
- * out — and what the builder cannot read elsewhere is answered here: which
- * MCP server a tool belongs to and which policy layer governs the call
- * (`resolveApprovalProvenance`, the gate's read-side twin).
- *
- * What this translator deliberately does NOT answer: whether the gate holds
- * the call. On native it never has to. LangGraph's `interrupt()` runs
- * inside the gate middleware BEFORE the tool handler, so a held call emits
- * no `tool-started` at all; the `tool-started` that does arrive is the
- * engine's own word that the call was authorized — capture mode let the
- * file write flow, a lease or the policy chain cleared it, or the user
- * approved it on a resume. The gate's decision has arms this side cannot
- * evaluate (capture mode asks the workspace's git state, asynchronously;
- * `middleware/approval-gate.ts` L210-287), and duplicating them would be a
- * second copy of the decision — the drift Q-M2-9 exists to end. So native
- * emits no `tool_started.gate`; the held call reaches the transcript as
- * `approval_proposed` from the post-stream seed (M2 C6). Until C3 the
- * builder carried a copy of the decision that gated MCP tools only, a path
- * production never took (the hermetic gate goldens' WAITING rows all come
- * from the seed) — M2 finding F-M2-27, option A.
- *
- * `gate` is `null` where the turn runs with no gate posture at all (the unit
- * arms that drive the builder without one); then every call is unattributed,
- * exactly as the builder answered with no provider.
- *
- * At M2 C4 this class also holds the `task` prefix registry that scopes a
- * sub-agent's events by `subAgentId` and emits `sub_agent_*`.
- */
 export class DeepAgentTranslator {
+  /** First namespace segment → the sub-agent (its `task` call id) whose graph runs under it. */
+  private readonly subAgentByPrefix = new Map<string, string>();
+  /** The `task` call ids whose completion closes a sub-agent. */
+  private readonly taskCalls = new Set<string>();
+
+  /**
+   * @param gate the turn's gate posture, for attribution and provenance;
+   *   `null` where a turn runs with none (the unit arms that drive the
+   *   builder bare), and then every call is unattributed.
+   */
   constructor(private readonly gate: DeepAgentGateState | null) {}
 
-  translate(event: V3ProtocolEvent): TranscriptEvent[] {
-    return normalize(event).map((e) => (e.kind === "tool_started" ? this.attribute(e) : e));
+  /** One raw event to its canonical events — `translate(raw)` is the one signature every harness's translator shares. */
+  translate(raw: V3ProtocolEvent): TranscriptEvent[] {
+    const namespace = raw.params.namespace;
+    const subAgentId = this.scopeOf(namespace);
+    const out: TranscriptEvent[] = [];
+    for (const event of normalize(raw)) {
+      if (subAgentId !== undefined) {
+        out.push({ ...event, subAgentId });
+        continue;
+      }
+      switch (event.kind) {
+        case "tool_started":
+          if (event.name === TASK_TOOL && namespace.length <= 1) {
+            out.push(this.openSubAgent(event, namespace));
+          }
+          out.push(this.attribute(event));
+          break;
+        case "tool_finished":
+          out.push(event);
+          if (this.taskCalls.has(event.callId)) {
+            out.push({ kind: "sub_agent_finished", subAgentId: event.callId, output: event.result });
+          }
+          break;
+        case "tool_error":
+          out.push(event);
+          if (this.taskCalls.has(event.callId)) {
+            out.push({ kind: "sub_agent_failed", subAgentId: event.callId, error: event.message });
+          }
+          break;
+        default:
+          out.push(event);
+      }
+    }
+    return out;
   }
 
-  /** The attribution and provenance for one tool start. */
+  /** The sub-agent an event belongs to, or `undefined` for the root (see the header for the grammar). */
+  private scopeOf(namespace: readonly string[]): string | undefined {
+    if (namespace.length < 2) return undefined;
+    return this.subAgentByPrefix.get(namespace[0]);
+  }
+
+  /**
+   * A `task` start at the root opens a sub-agent keyed by the call id, with
+   * the segment it arrived under as the routing prefix (a depth-0 start —
+   * tests — gets a synthetic one so its children can still name it).
+   */
+  private openSubAgent(event: ToolStartedEvent, namespace: readonly string[]): TranscriptEvent {
+    const prefix = namespace[0] ?? `tools:${event.callId}`;
+    this.subAgentByPrefix.set(prefix, event.callId);
+    this.taskCalls.add(event.callId);
+    const description = stringArg(event.input, "description");
+    return {
+      kind: "sub_agent_started",
+      subAgentId: event.callId,
+      name: stringArg(event.input, "subagent_type") || TASK_TOOL,
+      subject: description,
+      input: description,
+    };
+  }
+
+  /** The attribution and provenance for one root-scope tool start. */
   private attribute(event: ToolStartedEvent): ToolStartedEvent {
     const gate = this.gate;
     if (!gate) return event;
@@ -107,13 +179,18 @@ export class DeepAgentTranslator {
   }
 }
 
+function stringArg(input: Record<string, unknown>, key: string): string {
+  const value = input[key];
+  return typeof value === "string" ? value : "";
+}
+
 // ── The wire, event by event ──────────────────────────────────────
 
 /**
- * The stateless core: one raw event to its canonical events, with no
- * attribution (`mcpServerSlug: ""`, no provenance, no gate). The translator
- * layers the gate's answers on top; the arms that pin the wire's shape read
- * this directly.
+ * The stateless core: one raw event to its canonical events, root-scoped
+ * (no `subAgentId`) and unattributed (`mcpServerSlug: ""`, no provenance, no
+ * gate). The translator layers scope and the gate's answers on top; the arms
+ * that pin the wire's shape read this directly.
  */
 export function normalize(event: V3ProtocolEvent): TranscriptEvent[] {
   const method = event.method;
@@ -169,18 +246,17 @@ function normalizeMessage(event: V3ProtocolEvent): TranscriptEvent[] {
   if (!data) return [];
 
   const eventType = readEventType(data);
-  const base = { namespace: formatNamespace(event.params.namespace) };
   const runId = (data.run_id ?? "") as string;
 
   switch (eventType) {
     case "message-start":
-      return [{ kind: "message_start" as const, ...base, runId }];
+      return [{ kind: "message_start" as const, runId }];
 
     case "content-block-delta":
-      return normalizeContentBlockDelta(data, base, runId);
+      return normalizeContentBlockDelta(data, runId);
 
     case "message-finish":
-      return [{ kind: "message_finish" as const, ...base, runId }];
+      return [{ kind: "message_finish" as const, runId }];
 
     // Carried by the wire, not by the transcript (see the header).
     case "usage":
@@ -197,7 +273,6 @@ function normalizeMessage(event: V3ProtocolEvent): TranscriptEvent[] {
 
 function normalizeContentBlockDelta(
   data: Record<string, unknown>,
-  base: { namespace: string },
   runId: string,
 ): TranscriptEvent[] {
   const delta = data.delta as Record<string, unknown> | undefined;
@@ -208,13 +283,13 @@ function normalizeContentBlockDelta(
   if (deltaType === "text-delta") {
     const text = (delta.text ?? "") as string;
     if (!text) return [];
-    return [{ kind: "text_delta" as const, ...base, runId, text }];
+    return [{ kind: "text_delta" as const, runId, text }];
   }
 
   if (deltaType === "reasoning-delta") {
     const text = (delta.reasoning ?? "") as string;
     if (!text) return [];
-    return [{ kind: "reasoning_delta" as const, ...base, runId, text }];
+    return [{ kind: "reasoning_delta" as const, runId, text }];
   }
 
   if (deltaType === "block-delta") {
@@ -224,7 +299,7 @@ function normalizeContentBlockDelta(
       const callId = (fields.id ?? "") as string;
       const argsChunk = (fields.args ?? "") as string;
       if (!argsChunk && !callId) return [];
-      return [{ kind: "tool_arg_delta" as const, ...base, callId, argsChunk }];
+      return [{ kind: "tool_arg_delta" as const, callId, argsChunk }];
     }
   }
 
@@ -238,31 +313,30 @@ function normalizeTool(event: V3ProtocolEvent): TranscriptEvent[] {
   if (!data) return [];
 
   const eventType = readEventType(data);
-  const base = { namespace: formatNamespace(event.params.namespace) };
 
   switch (eventType) {
     case "tool-started": {
       const callId = readToolCallId(data);
       const name = readToolName(data);
       const input = parseToolInput(data.input);
-      return [{ kind: "tool_started" as const, ...base, callId, name, input, mcpServerSlug: "" }];
+      return [{ kind: "tool_started" as const, callId, name, input, mcpServerSlug: "" }];
     }
 
     case "tool-finished": {
       const callId = readToolCallId(data);
-      return [{ kind: "tool_finished" as const, ...base, callId, result: extractToolResult(data.output) }];
+      return [{ kind: "tool_finished" as const, callId, result: extractToolResult(data.output) }];
     }
 
     case "tool-error": {
       const callId = readToolCallId(data);
       const message = (data.message ?? data.error ?? "") as string;
-      return [{ kind: "tool_error" as const, ...base, callId, message }];
+      return [{ kind: "tool_error" as const, callId, message }];
     }
 
     case "tool-output-delta": {
       const callId = readToolCallId(data);
       const delta = (data.delta ?? "") as string;
-      return [{ kind: "tool_output_delta" as const, ...base, callId, delta: String(delta) }];
+      return [{ kind: "tool_output_delta" as const, callId, delta: String(delta) }];
     }
 
     default:
@@ -387,5 +461,5 @@ function logUnknown(method: string, eventType: string): void {
   const key = `${method}:${eventType}`;
   if (loggedUnknowns.has(key)) return;
   loggedUnknowns.add(key);
-  console.debug(`[V3Normalizer] Unknown event: method=${method} event=${eventType}`);
+  console.debug(`[DeepAgentTranslator] Unknown event: method=${method} event=${eventType}`);
 }

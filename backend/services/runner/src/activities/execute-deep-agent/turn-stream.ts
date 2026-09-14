@@ -53,7 +53,7 @@ import { TimeoutError, withTimeout } from "../../shared/with-timeout.js";
 import { InlinePublisher } from "./inline-publisher.js";
 import { StreamingSideEffects } from "./streaming-side-effects.js";
 import { createV3EventRecorder, type V3ProtocolEvent } from "./v3-event-recorder.js";
-import { DeepAgentTranslator, usageOf, type V3UsagePayload } from "./v3-protocol-normalizer.js";
+import { DeepAgentTranslator, usageOf, type V3UsagePayload } from "./translator.js";
 import { TranscriptBuilder } from "../../harness/transcript/builder.js";
 import type { DeepAgentEngine, DeepAgentGraphInput, DeepAgentWorkspace } from "./turn-setup.js";
 

@@ -47,7 +47,7 @@
  * (`@langchain/langgraph` `pregel/messages-v2.js` `emitFinalMessage`). The
  * fallback spreads a `tool_call` block's `args` OBJECT into the
  * `tool_call_chunk` fields the runner's normalizer reads as a JSON STRING
- * (`v3-protocol-normalizer.ts` `argsChunk`), which no real provider does.
+ * (`translator.ts` `argsChunk`), which no real provider does.
  * Streaming keeps the double on the production event path: `@langchain/core`
  * `language_models/compat.js` `convertChunksToEvents` turns the chunks below
  * into `message-start`, per-block `content-block-start` / `-delta` /

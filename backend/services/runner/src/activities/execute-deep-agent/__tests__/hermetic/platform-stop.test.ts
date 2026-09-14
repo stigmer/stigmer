@@ -113,7 +113,8 @@ describe("ExecuteDeepAgent hermetic — platform STOP", () => {
       "Execution stopped by the platform.",
     ]);
     const ai = final.messages.filter((m) => m.type === MessageType.MESSAGE_AI).map((m) => m.content);
-    expect(ai, "no wrap-up round and no injected notice: the run stopped at the STOP").toEqual(["Let me look.", ""]);
+    expect(ai, "no wrap-up round and no injected notice: the run stopped at the STOP").toEqual(["Let me look."]);
+    expect(final.messages[0].toolCalls.map((tc) => tc.name), "the row sits on the text that proposed it (Q-S4-5)").toEqual(["read_file"]);
     expect(ai).not.toContain(WRAP_UP);
 
     // ── Assert: hermeticity ──────────────────────────────────────────────────

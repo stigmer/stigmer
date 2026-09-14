@@ -1,14 +1,16 @@
 /**
- * The sub-agent tracker's arms (`harness/transcript/subagent-tracker.ts`),
- * driven through the builder and the native normalizer: raw LangGraph v3
- * events with nested namespaces, folded into per-sub-agent transcripts.
+ * Sub-agent transcripts, end to end through the native translator and the
+ * builder: raw LangGraph v3 events with nested namespaces, the translator
+ * scoping them and speaking each sub-agent's lifecycle, the builder folding
+ * them into the row's own transcript (S4 M2 C4, Q-S4-4). These are the
+ * native translator's integration arms for delegation — the sub-agent
+ * tracker they once tested (`subagent-tracker.ts`, the second copy of the
+ * folding handlers) is gone; the builder's own scoped-handler arms live in
+ * `harness/transcript/__tests__/builder.test.ts`, the translator's scope
+ * arms in `translator.test.ts`.
  *
- * In the adapter's folder for the same reason as `v3-status-builder.test.ts`
- * (S4 M1, Q-M1-2): the fixtures and `normalize` are `activities/` modules the
- * direction fence keeps out of `harness/`. At M2 the tracker is folded into
- * the builder's one scoped set of handlers (Q-S4-4); the row-count and cancel
- * arms become builder arms over `subAgentId`, and the namespace-routing arms
- * become the normalizer's scope-resolution arms (`T01_3_execution.md`, M0).
+ * In the adapter's folder because the fixtures and the translator are
+ * `activities/` modules the direction fence keeps out of `harness/` (Q-M1-2).
  */
 
 import { describe, it, expect, beforeEach } from "vitest";
@@ -18,7 +20,7 @@ import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agen
 import { SubAgentStatus, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { cancelInProgressSubAgentProtos } from "../../../shared/subagent-rows.js";
 import { TranscriptBuilder } from "../../../harness/transcript/builder.js";
-import { normalize } from "../v3-protocol-normalizer.js";
+import { DeepAgentTranslator } from "../translator.js";
 import type { V3ProtocolEvent } from "../v3-event-recorder.js";
 import {
   resetSeq,
@@ -37,9 +39,11 @@ function makeBuilder(): TranscriptBuilder {
   return new TranscriptBuilder("exec-test", create(AgentExecutionStatusSchema, {}));
 }
 
+/** The loop's path: one translator for the turn (it holds the task prefixes), every canonical event into the builder. */
 function feedAll(sb: TranscriptBuilder, events: V3ProtocolEvent[]): void {
+  const translator = new DeepAgentTranslator(null);
   for (const raw of events) {
-    for (const e of normalize(raw)) {
+    for (const e of translator.translate(raw)) {
       sb.apply(e);
     }
   }
@@ -92,7 +96,7 @@ function makeSubAgentEvent(taskCallId: string, method: string, data: unknown, ex
 
 beforeEach(() => resetSeq());
 
-describe("SubAgentTracker (via TranscriptBuilder integration)", () => {
+describe("sub-agent transcripts (the translator and the builder together)", () => {
 
   describe("lifecycle — happy path", () => {
     it("creates SubAgentExecution on task tool_started", () => {
@@ -168,7 +172,7 @@ describe("SubAgentTracker (via TranscriptBuilder integration)", () => {
       expect(subs[1].status).toBe(SubAgentStatus.SUB_AGENT_CANCELLED);
     });
 
-    it("finalizeSubAgentStreaming clears the streaming flag on a sub-agent's in-flight message", () => {
+    it("finalize() clears the streaming flag on a sub-agent's in-flight message", () => {
       const sb = makeBuilder();
       feedAll(sb, [
         makeTaskToolStarted("call_sub_1", "researcher", "Task 1"),
@@ -180,7 +184,7 @@ describe("SubAgentTracker (via TranscriptBuilder integration)", () => {
       const msg = sb.currentStatus.subAgentExecutions[0].messages[0];
       expect(msg.isStreaming, "the delta left the message streaming").toBe(true);
 
-      sb.finalizeSubAgentStreaming();
+      sb.finalize();
       expect(msg.isStreaming).toBe(false);
     });
   });

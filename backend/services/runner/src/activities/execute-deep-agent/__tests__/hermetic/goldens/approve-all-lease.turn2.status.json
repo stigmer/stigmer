@@ -34,13 +34,7 @@
           "toolKind": "TOOL_KIND_SHELL",
           "approvalPolicySource": "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
           "policyEngineVersion": "phase-7"
-        }
-      ]
-    },
-    {
-      "type": "MESSAGE_AI",
-      "timestamp": "2026-01-01T00:00:02.000Z",
-      "toolCalls": [
+        },
         {
           "id": "call-hermetic-exec-0002",
           "name": "execute",

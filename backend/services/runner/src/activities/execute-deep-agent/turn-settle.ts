@@ -85,7 +85,7 @@ export async function settleDeepAgentTurn(deps: DeepAgentSettleDeps): Promise<Tu
     // (the runtime marks them itself only on its thrown arms), its messages'
     // streaming flags cleared. There is no review to open.
     cancelInProgressSubAgentProtos(status.subAgentExecutions);
-    transcript.builder.finalizeSubAgentStreaming();
+    transcript.builder.finalize();
     return { kind: "interrupted" };
   }
 

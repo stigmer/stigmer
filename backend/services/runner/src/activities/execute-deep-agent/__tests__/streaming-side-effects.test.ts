@@ -12,7 +12,7 @@
 import { describe, it, expect, vi } from "vitest";
 
 import { StreamingSideEffects } from "../streaming-side-effects.js";
-import { DeepAgentTranslator } from "../v3-protocol-normalizer.js";
+import { DeepAgentTranslator } from "../translator.js";
 import type { InlinePublisher } from "../inline-publisher.js";
 import type { V3ProtocolEvent } from "../v3-event-recorder.js";
 import { makeToolFinished, makeToolStarted, resetSeq } from "../__test-utils__/v3-event-fixtures.js";

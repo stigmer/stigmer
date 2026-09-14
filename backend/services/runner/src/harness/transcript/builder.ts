@@ -3,39 +3,64 @@
  * the AgentExecutionStatus proto it is handed: messages, tool-call rows and
  * their approval status, sub-agent rows, todos, artifacts, write-backs.
  *
- * The one transcript builder, for every harness, in the making (S4,
- * `T01_0_plan.md`). It was the native harness's `V3StatusBuilder` (the one
- * builder there since S3 M2b retired the v2 `StatusBuilder`, Q-S3-1) and was
- * promoted here at M1 (2026-09-14) unchanged in behavior — a `git mv` with
- * the names ruled at Q-S4-2 — so the fence that keeps `harness/` out of
- * `activities/` protects it from here on. What it still knows of LangGraph
- * (the `task` tool name and its namespace depth for opening a sub-agent, the
- * `namespace` grammar) is cut out at M2, one ruling per commit (Q-S4-3 to
- * Q-S4-7) — a tool's result already arrives as the string the row carries
- * (C2a), and a tool's attribution, provenance and gate answer arrive on
- * `tool_started` from the translator (C3), so this builder no longer reads
- * an engine envelope or decides anything about approval — and the
- * `SubAgentTracker` — a second copy of these handlers for a sub-agent's own
- * transcript — is folded into one scoped set (Q-S4-4). The Cursor harness feeds this builder through a translator at
- * M4; the runtime hands it to every adapter as `TurnSink.transcript` at M5.
- * The builder's own tests still live in the native adapter's folder
- * (`execute-deep-agent/__tests__/v3-status-builder.test.ts`) because they
- * drive it through the LangGraph normalizer; they re-home at M2 (Q-M1-2).
+ * The one transcript builder, for every harness (S4, `T01_0_plan.md`). It
+ * was the native harness's `V3StatusBuilder` (the one builder there since S3
+ * M2b retired the v2 `StatusBuilder`, Q-S3-1), promoted here at M1
+ * (2026-09-14) unchanged and cut engine-neutral at M2 one ruling per commit:
+ * it reads no engine envelope (C2a), decides nothing about approval (C3),
+ * and knows no engine's tool names or namespace grammar (C4) — every engine
+ * fact reaches it as a translator's output, on one union. The Cursor
+ * harness feeds it through a translator at M4; the runtime hands it to every
+ * adapter as `TurnSink.transcript` at M5.
+ *
+ * ONE set of handlers over ONE scope shape (C4, Q-S4-4): every handler takes
+ * the scope's {@link Transcript} — the root's over `status.messages`, or a
+ * sub-agent's over its row's — from `TranscriptState`, so a sub-agent's
+ * transcript is folded by exactly the rules the root's is. Until C4 the
+ * sub-agents' half was a second module (`SubAgentTracker`) with its own copy
+ * of every handler, differing only in which array it pushed into — the
+ * memo's third copy of the folding rule, and the one whose namespace filter
+ * differed from the root's by one segment (S3 M0 finding F-M0-1: the root
+ * filed text under `model_request:<uuid>` and looked the tool's parent up
+ * under `""`, so every native tool row sat on an empty message after its
+ * text). With scope a single value per transcript, that class of miss
+ * cannot exist.
+ *
+ * The rules this builder owns, each with an arm in
+ * `harness/transcript/__tests__/builder.test.ts` and the harness whose rule
+ * it generalises in parentheses:
+ *
+ *   - A row per `callId`, indexed at construction over a seeded transcript,
+ *     reconciled in place on a re-emitted start (a WAITING row flips to
+ *     RUNNING; native's durable-checkpoint resume) — never duplicated.
+ *   - The AI-message boundary (Q-S4-5; native's own rule, made correct by
+ *     scoping): a tool row attaches to the scope's current AI message — the
+ *     latest with text, the seed's last AI message over a seeded transcript
+ *     (Q-M2-2) — and to a new empty one only when the scope has none.
+ *   - A THINKING row per `runId` (Q-S4-6, the key; the finalize half lands
+ *     at C5), a text message per `runId`; a new run closes the previous
+ *     message's streaming flag.
+ *   - A sub-agent row per `subAgentId`, opened by `sub_agent_started`,
+ *     closed COMPLETED/FAILED by `sub_agent_finished/failed` with its
+ *     transcript's streaming flags cleared; a known id is never re-opened.
+ *     CANCELLED is not this builder's: `shared/subagent-rows.ts`
+ *     `cancelInProgressSubAgentProtos` is the one home of that transition.
+ *   - A completed `ToolKind.TODO` call in the ROOT scope is projected into
+ *     `status.todos` through the shared `applyTodoUpdate` (Q-S4-7; the row
+ *     stays — the clients filter it); a sub-agent's is not.
+ *   - `finalize()` clears every streaming flag in every scope.
+ *   - Artifacts upsert by `sandboxPath`/`contentHash`, write-backs by
+ *     `workspaceEntryName` (Q-S4-8).
  *
  * What this builder deliberately does NOT write, and who does (the adapter
  * contract's field ownership, `harness/types.ts` `TurnSink`): the phase,
  * `startedAt` and `streamingUsage` are the turn runtime's. A row left
  * WAITING_APPROVAL is reported as the {@link awaitingApproval} fact and the
- * caller (`turn-stream.ts`, the settle) decides what that means for the
- * turn — a fact only `approval_proposed` produces once M2 C6 lands, because
- * a call that has STARTED is never parked at creation (C3, option A). Usage never
- * passes through here at all (S4 M2 C1): it is not a transcript fact, so the
- * union does not carry it — the native loop reads it off the wire
- * (`usageOf`) and prices it into the sink, the Cursor loop reads its own
- * from the SDK. Until S3 M2a this builder flipped WAITING_FOR_APPROVAL
- * itself and summed usage into `streamingUsage` — a second writer of each
- * field beside the runtime's; until S4 M2 it still relayed usage through an
- * `onUsage` hook, a fact passing through a module that had no use for it.
+ * caller decides what that means for the turn — a fact only
+ * `approval_proposed` produces once C6 lands, because a call that has
+ * STARTED is never parked at creation (C3, option A). Usage never passes
+ * through here (C1): the native loop reads it off the wire (`usageOf`) and
+ * prices it into the sink, the Cursor loop reads its own from the SDK.
  */
 
 import { create, type JsonObject } from "@bufbuild/protobuf";
@@ -44,11 +69,13 @@ import {
   AgentMessageSchema,
   ToolCallSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
 import type { WorkspaceWriteBack } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/writeback_pb";
 import {
   MessageType,
+  SubAgentStatus,
   ToolCallStatus,
   ToolKind,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
@@ -57,43 +84,33 @@ import { classifyTool } from "../../shared/tool-kind.js";
 import { applyTodoUpdate } from "../../shared/todos.js";
 import { utcTimestamp } from "../../shared/status.js";
 import type { ExecutionStatusWriter } from "../../shared/execution-status-writer.js";
-import { TranscriptState } from "./state.js";
-import type { ToolStartedEvent, TranscriptEvent } from "./events.js";
-import { namespaceDepth } from "./events.js";
-import { SubAgentTracker } from "./subagent-tracker.js";
-
-// ── Builder ────────────────────────────────────────────────────────
+import { TranscriptState, type Transcript } from "./state.js";
+import type {
+  SubAgentFailedEvent,
+  SubAgentFinishedEvent,
+  SubAgentStartedEvent,
+  ToolStartedEvent,
+  TranscriptEvent,
+} from "./events.js";
 
 export class TranscriptBuilder implements ExecutionStatusWriter {
   readonly executionId: string;
   private readonly state: TranscriptState;
   private _forceNextUpdate = false;
   private _awaitingApproval = false;
-  private readonly subAgentTracker: SubAgentTracker;
-
-  /** Progressive tool call arg accumulation keyed by callId. */
-  private readonly toolArgBuffers = new Map<string, string>();
 
   /**
-   * Builds INTO `status`, by reference: its `messages` and
-   * `subAgentExecutions` arrays are the ones indexed and pushed into, never
-   * replaced, so a caller that wraps the same status (the write-back
-   * coordinator's writer, the runtime's chokepoint) keeps seeing every row.
+   * Builds INTO `status`, by reference: its `messages`, `subAgentExecutions`
+   * and every sub-agent row's `messages` are the arrays indexed and pushed
+   * into, never replaced, so a caller that wraps the same status (the
+   * write-back coordinator's writer, the runtime's chokepoint) keeps seeing
+   * every row. Over a persisted transcript (the runtime's seed on a
+   * reinvocation) every row is indexed here so a re-driven event reconciles
+   * onto it.
    */
   constructor(executionId: string, status: AgentExecutionStatus) {
     this.executionId = executionId;
     this.state = new TranscriptState(status);
-
-    // Resume path: when constructed over a persisted transcript (seeded by the
-    // caller on a reinvocation), rebuild the tool-call index so resumed
-    // tool_started/tool_finished events reconcile to the existing calls
-    // instead of duplicating them. A first run carries no messages, so this
-    // is a no-op. The tracker does the same for the seeded sub-agent rows.
-    if (status.messages.length > 0) {
-      this.state.rebuildToolCallIndex();
-    }
-
-    this.subAgentTracker = new SubAgentTracker(status.subAgentExecutions);
   }
 
   get currentStatus(): AgentExecutionStatus {
@@ -122,64 +139,52 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
   /** Fold one canonical event into the transcript. Never throws: a handler's error is logged and the stream goes on. */
   apply(event: TranscriptEvent): void {
     try {
-      // Sub-agent routing: detect "task" tool starts at depth 0 (root) or depth 1
-      // (inside LangGraph tools-node). In real runtime, task tool-started arrives
-      // at depth 1 with namespace like "tools:<pregelTaskUuid>".
-      if (event.kind === "tool_started" && event.name === "task" && namespaceDepth(event.namespace) <= 1) {
-        const routingPrefix = event.namespace || `tools:${event.callId}`;
-        this.subAgentTracker.onTaskToolStarted(event.callId, event.input, routingPrefix);
-        this.handleToolStarted(event);
-        this._forceNextUpdate = true;
-        return;
+      switch (event.kind) {
+        case "sub_agent_started":
+          this.openSubAgent(event);
+          return;
+        case "sub_agent_finished":
+          this.closeSubAgent(event);
+          return;
+        case "sub_agent_failed":
+          this.failSubAgent(event);
+          return;
+        default:
+          break;
       }
 
-      if (event.kind === "tool_finished" && this.isTrackedTaskTool(event.callId)) {
-        this.subAgentTracker.onTaskToolFinished(event.callId, event.result);
-        this.handleToolFinished(event.callId, event.result);
-        this._forceNextUpdate = true;
-        return;
+      const scope = this.state.scope(event.subAgentId);
+      if (!scope) {
+        throw new Error(`event for unknown sub-agent ${event.subAgentId}`);
       }
 
-      if (event.kind === "tool_error" && this.isTrackedTaskTool(event.callId)) {
-        this.subAgentTracker.onTaskToolError(event.callId, event.message);
-        this.handleToolError(event.callId, event.message);
-        this._forceNextUpdate = true;
-        return;
-      }
-
-      if (this.subAgentTracker.isSubAgentNamespace(event.namespace)) {
-        this.subAgentTracker.routeEvent(event);
-        return;
-      }
-
-      // Parent event routing (unchanged for non-sub-agent events)
       switch (event.kind) {
         case "message_start":
-          this.handleMessageStart(event.runId, event.namespace);
+          this.handleMessageStart(scope, event.runId);
           break;
         case "text_delta":
-          this.appendTextContent(event.runId, event.namespace, event.text);
+          this.appendTextContent(scope, event.runId, event.text);
           break;
         case "reasoning_delta":
-          this.appendThinkingContent(event.runId, event.namespace, event.text);
-          break;
-        case "tool_arg_delta":
-          this.handleToolArgDelta(event.callId, event.argsChunk);
+          this.appendThinkingContent(scope, event.runId, event.text);
           break;
         case "message_finish":
-          this.handleMessageFinish(event.runId);
+          this.handleMessageFinish(scope, event.runId);
           break;
         case "tool_started":
-          this.handleToolStarted(event);
+          this.handleToolStarted(scope, event);
           break;
-        case "tool_finished":
-          this.handleToolFinished(event.callId, event.result);
-          break;
-        case "tool_error":
-          this.handleToolError(event.callId, event.message);
+        case "tool_arg_delta":
+          this.handleToolArgDelta(scope, event.callId, event.argsChunk);
           break;
         case "tool_output_delta":
-          this.handleToolOutputDelta(event.callId, event.delta);
+          this.handleToolOutputDelta(scope, event.callId, event.delta);
+          break;
+        case "tool_finished":
+          this.handleToolFinished(scope, event.callId, event.result);
+          break;
+        case "tool_error":
+          this.handleToolError(scope, event.callId, event.message);
           break;
         default: {
           const exhaustive: never = event;
@@ -190,6 +195,22 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
       console.error(
         `[TranscriptBuilder] Event handler error: execution=${this.executionId} kind=${event.kind}: ${err}`,
       );
+    }
+  }
+
+  /**
+   * Every streaming flag off, in every scope — messages and rows. What a
+   * turn owes the transcript when its stream ends, however it ended: a
+   * stopped turn's in-flight message must not persist as still streaming.
+   * The sub-agent rows' own CANCELLED transition is the caller's, through
+   * the shared `cancelInProgressSubAgentProtos`.
+   */
+  finalize(): void {
+    for (const transcript of this.state.transcripts()) {
+      for (const message of transcript.messages) {
+        message.isStreaming = false;
+        for (const tc of message.toolCalls) tc.isStreaming = false;
+      }
     }
   }
 
@@ -223,39 +244,75 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
     this._forceNextUpdate = true;
   }
 
-  // ── Message Handlers ───────────────────────────────────────────────
+  // ── Sub-Agent Rows ─────────────────────────────────────────────────
 
-  private handleMessageStart(runId: string, namespace: string): void {
-    // Record the runId for turn-boundary detection but do NOT create
-    // the AI message yet. The message is created lazily on the first
-    // text_delta, preserving the v2 ordering (THINKING before AI text
-    // when both appear in the same turn).
-    const lastRunId = this.state.lastLlmRunId.get(namespace);
-    if (lastRunId && lastRunId !== runId) {
-      const existingMsg = this.state.currentAiMessage.get(namespace);
-      if (existingMsg) {
-        existingMsg.isStreaming = false;
-      }
-    }
-    this.state.lastLlmRunId.set(namespace, runId);
+  private openSubAgent(event: SubAgentStartedEvent): void {
+    // A seeded row re-announced by a replayed engine (the memory-checkpointer
+    // re-drives the whole graph): the row and its transcript already exist.
+    if (this.state.subAgent(event.subAgentId)) return;
+
+    const row = create(SubAgentExecutionSchema, {
+      id: event.subAgentId,
+      name: event.name,
+      subject: event.subject,
+      input: event.input,
+      status: SubAgentStatus.SUB_AGENT_IN_PROGRESS,
+      startedAt: utcTimestamp(),
+    });
+    this.state.openSubAgent(row);
+    this._forceNextUpdate = true;
   }
 
-  private handleMessageFinish(runId: string): void {
-    const msg = this.state.messagesByRun.get(runId);
+  private closeSubAgent(event: SubAgentFinishedEvent): void {
+    const scope = this.state.subAgent(event.subAgentId);
+    if (!scope) return;
+    scope.row.status = SubAgentStatus.SUB_AGENT_COMPLETED;
+    scope.row.completedAt = utcTimestamp();
+    if (event.output !== undefined) scope.row.output = event.output;
+    finalizeStreaming(scope.transcript);
+    this._forceNextUpdate = true;
+  }
+
+  private failSubAgent(event: SubAgentFailedEvent): void {
+    const scope = this.state.subAgent(event.subAgentId);
+    if (!scope) return;
+    scope.row.status = SubAgentStatus.SUB_AGENT_FAILED;
+    scope.row.completedAt = utcTimestamp();
+    scope.row.error = event.error;
+    finalizeStreaming(scope.transcript);
+    this._forceNextUpdate = true;
+  }
+
+  // ── Message Handlers ───────────────────────────────────────────────
+
+  private handleMessageStart(scope: Transcript, runId: string): void {
+    // Record the run for the message boundary but do NOT create the AI
+    // message yet: it is created lazily on the first text_delta, so a
+    // THINKING row that streams first sits before the text it precedes.
+    if (scope.lastRunId && scope.lastRunId !== runId && scope.currentAiMessage) {
+      scope.currentAiMessage.isStreaming = false;
+    }
+    scope.lastRunId = runId;
+  }
+
+  private handleMessageFinish(scope: Transcript, runId: string): void {
+    const msg = scope.messagesByRun.get(runId);
     if (msg) {
       msg.isStreaming = false;
     }
   }
 
-  private appendTextContent(runId: string, namespace: string, text: string): void {
-    const msg = this.ensureAiMessage(runId, namespace, MessageType.MESSAGE_AI);
+  private appendTextContent(scope: Transcript, runId: string, text: string): void {
+    const msg = this.ensureAiMessage(scope, runId);
     msg.content += text;
     msg.isStreaming = true;
   }
 
-  private appendThinkingContent(runId: string, namespace: string, text: string): void {
-    const thinkingKey = `thinking:${namespace}`;
-    const existingMsg = this.state.messagesByRun.get(thinkingKey);
+  private appendThinkingContent(scope: Transcript, runId: string, text: string): void {
+    // One THINKING row per run (Q-S4-6), keyed apart from the run's text so
+    // the two never share a message.
+    const thinkingKey = `thinking:${runId}`;
+    const existingMsg = scope.messagesByRun.get(thinkingKey);
     if (existingMsg && existingMsg.type === MessageType.MESSAGE_THINKING) {
       existingMsg.content += text;
       existingMsg.isStreaming = true;
@@ -268,22 +325,22 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
       timestamp: utcTimestamp(),
       isStreaming: true,
     });
-    this.state.proto.messages.push(msg);
-    this.state.messagesByRun.set(thinkingKey, msg);
+    scope.messages.push(msg);
+    scope.messagesByRun.set(thinkingKey, msg);
   }
 
   // ── Tool Handlers ──────────────────────────────────────────────────
 
-  private handleToolStarted(event: ToolStartedEvent): void {
+  private handleToolStarted(scope: Transcript, event: ToolStartedEvent): void {
     const { callId, name, input } = event;
     // Resume reconciliation: the gated tool call already exists, seeded from the
     // persisted transcript of a prior invocation (the runtime's
     // `seedFromPersistedStatus`, `harness/turn-context.ts`). The durable
-    // checkpoint re-emits tool_started now that approval
-    // is granted — flip the existing call to RUNNING in place rather than
-    // appending a duplicate or re-triggering the approval gate. v3 keys by
-    // tool_call_id, so this is an exact match (no name heuristics needed).
-    const existing = this.state.toolCalls.get(callId);
+    // checkpoint re-emits tool_started now that approval is granted — flip the
+    // existing call to RUNNING in place rather than appending a duplicate or
+    // re-triggering the approval gate. Keyed by the provider's tool_call_id,
+    // so this is an exact match (no name heuristics needed).
+    const existing = scope.toolCalls.get(callId);
     if (existing) {
       if (existing.status === ToolCallStatus.TOOL_CALL_WAITING_APPROVAL) {
         existing.status = ToolCallStatus.TOOL_CALL_RUNNING;
@@ -295,10 +352,10 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
       return;
     }
 
-    const agentNs = this.resolveAgentNamespace(event.namespace);
-    const parentMsg = this.state.currentAiMessage.get(agentNs)
-      ?? this.ensureAiMessageForToolCall(agentNs);
-    if (!parentMsg) return;
+    // The message boundary (Q-S4-5): the row joins the message whose text
+    // proposed it — the scope's current AI message — and gets an empty one
+    // only when the scope has no message yet.
+    const parentMsg = scope.currentAiMessage ?? this.ensureAiMessageForToolCall(scope);
 
     // A started call is RUNNING, gated or not: a gated call that has started
     // runs until the harness's boundary parks it through `approval_proposed`
@@ -345,13 +402,13 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
     }
 
     parentMsg.toolCalls.push(tc);
-    this.state.toolCalls.set(callId, tc);
+    scope.toolCalls.set(callId, tc);
 
     this._forceNextUpdate = true;
   }
 
-  private handleToolFinished(callId: string, result: string): void {
-    const tc = this.state.toolCalls.get(callId);
+  private handleToolFinished(scope: Transcript, callId: string, result: string): void {
+    const tc = scope.toolCalls.get(callId);
     if (!tc) return;
 
     // Store the faithful result; bounding the gRPC payload is owned solely by
@@ -362,41 +419,42 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
     tc.result = result;
     tc.completedAt = utcTimestamp();
     tc.isStreaming = false;
-    this.toolArgBuffers.delete(callId);
+    scope.argBuffers.delete(callId);
 
     // Project a completed to-do write into status.todos. deepagents' write_todos
     // runs its state-mutating Command when the tool node COMPLETES, so we mirror
     // it here (not at tool-start) — a call cancelled before finishing correctly
     // projects nothing. Keyed on the harness-agnostic ToolKind.TODO (stamped at
-    // tool-start) and fed by the same shared mapper the Cursor tracker uses;
-    // deepagents always full-replaces (no merge field). The tool call itself
-    // stays in messages (the client filters ToolKind.TODO from the thread).
-    if (tc.toolKind === ToolKind.TODO) {
+    // tool-start) and fed by the same shared mapper every harness uses; a
+    // sub-agent's list is its own, never the execution's (Q-S4-7). The tool
+    // call itself stays in messages (the client filters ToolKind.TODO from the
+    // thread).
+    if (scope === this.state.root && tc.toolKind === ToolKind.TODO) {
       applyTodoUpdate(this.state.proto.todos, tc.args?.todos, { merge: false });
     }
 
     this._forceNextUpdate = true;
   }
 
-  private handleToolError(callId: string, message: string): void {
-    const tc = this.state.toolCalls.get(callId);
+  private handleToolError(scope: Transcript, callId: string, message: string): void {
+    const tc = scope.toolCalls.get(callId);
     if (!tc) return;
 
     tc.status = ToolCallStatus.TOOL_CALL_FAILED;
     tc.error = message;
     tc.completedAt = utcTimestamp();
     tc.isStreaming = false;
-    this.toolArgBuffers.delete(callId);
+    scope.argBuffers.delete(callId);
 
     this._forceNextUpdate = true;
   }
 
-  private handleToolArgDelta(callId: string, argsChunk: string): void {
-    const tc = this.state.toolCalls.get(callId);
+  private handleToolArgDelta(scope: Transcript, callId: string, argsChunk: string): void {
+    const tc = scope.toolCalls.get(callId);
     if (!tc) return;
 
-    const buffer = (this.toolArgBuffers.get(callId) ?? "") + argsChunk;
-    this.toolArgBuffers.set(callId, buffer);
+    const buffer = (scope.argBuffers.get(callId) ?? "") + argsChunk;
+    scope.argBuffers.set(callId, buffer);
 
     try {
       tc.args = JSON.parse(buffer) as JsonObject;
@@ -405,64 +463,44 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
     }
   }
 
-  private handleToolOutputDelta(callId: string, delta: string): void {
-    const tc = this.state.toolCalls.get(callId);
+  private handleToolOutputDelta(scope: Transcript, callId: string, delta: string): void {
+    const tc = scope.toolCalls.get(callId);
     if (!tc) return;
     tc.result = (tc.result ?? "") + delta;
   }
 
-  // ── Namespace Resolution ────────────────────────────────────────
-
-  /**
-   * v3 tool events carry namespace like "tools:toolu_abc" or
-   * "subagent:worker-1|tools:toolu_abc". Strip tools:* segments
-   * to get the agent namespace for AI message lookup.
-   */
-  private resolveAgentNamespace(ns: string): string {
-    if (!ns) return "";
-    const parts = ns.split("|").filter(p => !p.startsWith("tools:"));
-    return parts.join("|");
-  }
-
   // ── Content Helpers ───────────────────────────────────────────────
 
-  private ensureAiMessage(
-    runId: string,
-    namespace: string,
-    type: MessageType,
-  ): AgentMessage {
-    const existingByRun = this.state.messagesByRun.get(runId);
+  /** The AI message a run's text streams into, created on its first token; a new run closes the previous message's flag. */
+  private ensureAiMessage(scope: Transcript, runId: string): AgentMessage {
+    const existingByRun = scope.messagesByRun.get(runId);
     if (existingByRun) return existingByRun;
 
-    const lastRunId = this.state.lastLlmRunId.get(namespace);
-    if (lastRunId && lastRunId !== runId) {
-      const existingMsg = this.state.currentAiMessage.get(namespace);
-      if (existingMsg) {
-        existingMsg.isStreaming = false;
-      }
+    if (scope.lastRunId && scope.lastRunId !== runId && scope.currentAiMessage) {
+      scope.currentAiMessage.isStreaming = false;
     }
 
     const msg = create(AgentMessageSchema, {
-      type,
+      type: MessageType.MESSAGE_AI,
       content: "",
       timestamp: utcTimestamp(),
       isStreaming: true,
     });
 
-    this.state.proto.messages.push(msg);
-    this.state.messagesByRun.set(runId, msg);
-    this.state.currentAiMessage.set(namespace, msg);
-    this.state.lastLlmRunId.set(namespace, runId);
+    scope.messages.push(msg);
+    scope.messagesByRun.set(runId, msg);
+    scope.currentAiMessage = msg;
+    scope.lastRunId = runId;
 
     return msg;
   }
 
-  private ensureAiMessageForToolCall(namespace: string): AgentMessage | null {
-    const lastRunId = this.state.lastLlmRunId.get(namespace);
-    if (lastRunId) {
-      const existing = this.state.messagesByRun.get(lastRunId);
+  /** The message a tool row lands on when the scope has no AI message yet: the latest run's, else a new empty one. */
+  private ensureAiMessageForToolCall(scope: Transcript): AgentMessage {
+    if (scope.lastRunId) {
+      const existing = scope.messagesByRun.get(scope.lastRunId);
       if (existing) {
-        this.state.currentAiMessage.set(namespace, existing);
+        scope.currentAiMessage = existing;
         return existing;
       }
     }
@@ -474,31 +512,17 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
       isStreaming: false,
     });
 
-    this.state.proto.messages.push(msg);
-    this.state.currentAiMessage.set(namespace, msg);
+    scope.messages.push(msg);
+    scope.currentAiMessage = msg;
 
     return msg;
   }
+}
 
-  // ── Sub-Agent Integration ──────────────────────────────────────────
-
-  /**
-   * Check if a tool_call_id belongs to a tracked "task" tool invocation.
-   * Used to route tool_finished/tool_error events to both parent and tracker.
-   */
-  private isTrackedTaskTool(callId: string): boolean {
-    const tc = this.state.toolCalls.get(callId);
-    return tc?.name === "task";
-  }
-
-  /**
-   * Clear the streaming flag on every sub-agent message still marked as
-   * streaming — what a turn that stopped mid-delegation owes the transcript
-   * beside the CANCELLED status the caller stamps on the row itself
-   * (`shared/subagent-rows.ts` `cancelInProgressSubAgentProtos`, the one
-   * home of that transition for every harness).
-   */
-  finalizeSubAgentStreaming(): void {
-    this.subAgentTracker.finalizeAllStreaming();
+/** Every streaming flag off in one transcript — what a closed sub-agent owes its own messages. */
+function finalizeStreaming(transcript: Transcript): void {
+  for (const message of transcript.messages) {
+    message.isStreaming = false;
+    for (const tc of message.toolCalls) tc.isStreaming = false;
   }
 }

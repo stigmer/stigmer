@@ -24,7 +24,7 @@ import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/a
 import { ExecutionArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
 import { WorkspaceWriteBackSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/writeback_pb";
 import { TranscriptBuilder } from "../../../harness/transcript/builder.js";
-import { DeepAgentTranslator } from "../v3-protocol-normalizer.js";
+import { DeepAgentTranslator } from "../translator.js";
 import type { DeepAgentGateState } from "../turn-setup.js";
 import type { MergedToolPolicy } from "../../../shared/approval-policy.js";
 import {

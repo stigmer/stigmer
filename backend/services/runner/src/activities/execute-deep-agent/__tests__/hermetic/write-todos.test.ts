@@ -11,10 +11,10 @@
  * ungated built-in it carries no `argsPreview` today (native stamps a preview
  * on gated rows only).
  *
- * What the golden shows about TODAY's shape, recorded as found:
- *  - The row sits on an EMPTY AI message between the proposing text and the
- *    closing text (F-M0-1, the `model_request:`/`tools:` namespace miss; see
- *    `tool-call.test.ts`'s header).
+ * What the golden shows:
+ *  - The row sits on the AI message whose text proposed it, "Planning the two
+ *    steps." (Q-S4-5, S4 M2 C4; until C4 on an empty message between the two
+ *    texts — F-M0-1, see `tool-call.test.ts`'s header).
  *  - The row's `result` is the tool's confirmation text, "Updated todo list
  *    to [...]" (S4 M2 C2b, Q-S4-21). deepagents' `write_todos` returns a
  *    LangGraph `Command` (`{ lg_name: "Command", update: { todos, messages:
@@ -137,12 +137,11 @@ describe("ExecuteDeepAgent hermetic — write_todos", () => {
     expect(row.result.startsWith("Updated todo list to"), "the tool's own confirmation text is what the row carries").toBe(true);
     expect(row.result).not.toContain("lg_name");
 
-    // ── Assert: the transcript, as it is today (F-M0-1; the M2 hunk, Q-S4-5) ─
+    // ── Assert: the transcript — the row beside the text that proposed it (Q-S4-5, S4 M2 C4) ──
     const final = record.lastFullStatus!;
     const ai = final.messages.filter((m) => m.type === MessageType.MESSAGE_AI);
     expect(ai.map((m) => [m.content, m.toolCalls.map((tc) => tc.id)])).toEqual([
-      [TEXT_PLAN, []],
-      ["", [CALL_ID]],
+      [TEXT_PLAN, [CALL_ID]],
       [TEXT_CLOSING, []],
     ]);
 

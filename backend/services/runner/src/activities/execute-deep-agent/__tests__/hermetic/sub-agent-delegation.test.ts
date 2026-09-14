@@ -144,9 +144,9 @@ describe("ExecuteDeepAgent hermetic — sub-agent delegation", () => {
     expect(rows.map((tc) => [tc.id, tc.name, tc.status])).toEqual([[TASK_CALL_ID, "task", ToolCallStatus.TOOL_CALL_COMPLETED]]);
     expect(final.messages.filter((m) => m.type === MessageType.MESSAGE_AI).map((m) => m.content)).toEqual([
       "Delegating to the helper.",
-      "",
       ROOT_CLOSING,
     ]);
+    expect(final.messages[0].toolCalls.map((tc) => tc.id), "the task row sits on the text that delegated (Q-S4-5, S4 M2 C4)").toEqual([TASK_CALL_ID]);
 
     // ── Assert: the sub-agent execution ──────────────────────────────────────
     expect(final.subAgentExecutions).toHaveLength(1);

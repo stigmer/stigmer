@@ -1,14 +1,17 @@
 /**
- * The native translator's own arms: one raw LangGraph v3 protocol event in,
- * the `TranscriptEvent`s out — and, beside them, what `usageOf` reads off the
- * same wire for the loop (S4 M2 C1, Q-M2-3). The events the wire carries and
- * the transcript does not (`lifecycle`, `provider`, the standalone `usage`)
- * are pinned as producing NOTHING, so a member cannot creep back into the
- * union unnoticed.
+ * The native translator's own arms (`execute-deep-agent/translator.ts`): one
+ * raw LangGraph v3 protocol event in, the `TranscriptEvent`s out. Two layers,
+ * tested apart: `normalize`, the stateless core that reads the wire's shape
+ * (root-scoped, unattributed), and `DeepAgentTranslator`, which lays scope
+ * and the gate's answers on top and speaks a sub-agent's lifecycle (S4 M2
+ * C3, C4). Beside them, what `usageOf` reads off the same wire for the loop
+ * (C1, Q-M2-3). The events the wire carries and the transcript does not
+ * (`lifecycle`, `provider`, the standalone `usage`) are pinned as producing
+ * NOTHING, so a member cannot creep back into the union unnoticed.
  */
 
 import { describe, it, expect, beforeEach } from "vitest";
-import { normalize, usageOf } from "../v3-protocol-normalizer.js";
+import { DeepAgentTranslator, normalize, usageOf } from "../translator.js";
 import {
   resetSeq,
   makeProtocolEvent,
@@ -43,11 +46,7 @@ describe("V3ProtocolNormalizer", () => {
     it("normalizes message-start to the run id alone (the wire's message id is not a transcript fact)", () => {
       const result = normalize(makeMessageStart("run-1", { messageId: "msg_abc" }));
       expect(result).toHaveLength(1);
-      expect(result[0]).toEqual({
-        kind: "message_start",
-        runId: "run-1",
-        namespace: "",
-      });
+      expect(result[0]).toEqual({ kind: "message_start", runId: "run-1" });
     });
 
     it("normalizes text-delta", () => {
@@ -86,7 +85,7 @@ describe("V3ProtocolNormalizer", () => {
         usage: { input_tokens: 100, output_tokens: 20, total_tokens: 120 },
       }));
       expect(result).toHaveLength(1);
-      expect(result[0]).toEqual({ kind: "message_finish", runId: "run-1", namespace: "" });
+      expect(result[0]).toEqual({ kind: "message_finish", runId: "run-1" });
     });
 
     it("emits nothing for the standalone usage event", () => {
@@ -352,14 +351,10 @@ describe("V3ProtocolNormalizer", () => {
       expect(normalize(event)).toHaveLength(0);
     });
 
-    it("preserves namespace from event params", () => {
-      const result = normalize(makeTextDelta("run-1", "hi", { namespace: ["subagent:worker-1"] }));
-      expect(result[0]).toMatchObject({ namespace: "subagent:worker-1" });
-    });
-
-    it("joins multi-segment namespace with pipe", () => {
-      const result = normalize(makeTextDelta("run-1", "hi", { namespace: ["a", "b"] }));
-      expect(result[0]).toMatchObject({ namespace: "a|b" });
+    it("carries no namespace and no scope — the core is root-scoped; scope is the translator's (S4 M2 C4)", () => {
+      const result = normalize(makeTextDelta("run-1", "hi", { namespace: ["tools:x", "model_request:y"] }));
+      expect(result[0]).not.toHaveProperty("namespace");
+      expect(result[0]).not.toHaveProperty("subAgentId");
     });
 
     it("carries neither seq nor node — the recorder keeps them on the raw event; no handler reads them", () => {
@@ -387,6 +382,124 @@ describe("V3ProtocolNormalizer", () => {
       const result = normalize(event);
       expect(result).toHaveLength(1);
       expect(result[0]).toMatchObject({ kind: "tool_started", callId: "" });
+    });
+  });
+
+  // ── Scope and the sub-agent lifecycle: the translator over the core (S4 M2 C4) ──
+
+  describe("DeepAgentTranslator — scope by LangGraph namespace, a sub-agent per task call", () => {
+    const TASK_NS = ["tools:pregel-1"];
+    const CHILD_NS = ["tools:pregel-1", "model_request:inner-1"];
+    const CHILD_TOOL_NS = ["tools:pregel-1", "tools:inner-tool"];
+
+    function translator(): DeepAgentTranslator {
+      return new DeepAgentTranslator(null);
+    }
+
+    it("a root event carries no subAgentId", () => {
+      const [event] = translator().translate(makeTextDelta("run-1", "hi"));
+      expect(event).toEqual({ kind: "text_delta", runId: "run-1", text: "hi" });
+    });
+
+    it("a task start at depth 1 opens a sub-agent BEFORE its own row, keyed by the call id, named from its args", () => {
+      const events = translator().translate(
+        makeToolStarted("task-1", "task", { subagent_type: "helper", description: "Look it up." }, { namespace: TASK_NS }),
+      );
+      expect(events.map((e) => e.kind)).toEqual(["sub_agent_started", "tool_started"]);
+      expect(events[0]).toEqual({
+        kind: "sub_agent_started",
+        subAgentId: "task-1",
+        name: "helper",
+        subject: "Look it up.",
+        input: "Look it up.",
+      });
+      expect(events[1]).toMatchObject({ kind: "tool_started", callId: "task-1", name: "task" });
+      expect(events[1]).not.toHaveProperty("subAgentId");
+    });
+
+    it("a task start with no subagent_type is named after the tool", () => {
+      const [opened] = translator().translate(makeToolStarted("task-2", "task", {}, { namespace: TASK_NS }));
+      expect(opened).toMatchObject({ kind: "sub_agent_started", name: "task", subject: "", input: "" });
+    });
+
+    it("events under a registered prefix, two or more segments deep, are the sub-agent's", () => {
+      const t = translator();
+      t.translate(makeToolStarted("task-1", "task", { subagent_type: "helper" }, { namespace: TASK_NS }));
+      const [text] = t.translate(makeTextDelta("inner-1", "Working.", { namespace: CHILD_NS }));
+      expect(text).toEqual({ kind: "text_delta", runId: "inner-1", text: "Working.", subAgentId: "task-1" });
+      const [tool] = t.translate(makeToolStarted("inner-tool", "grep", { pattern: "x" }, { namespace: CHILD_TOOL_NS }));
+      expect(tool).toMatchObject({ kind: "tool_started", callId: "inner-tool", subAgentId: "task-1", mcpServerSlug: "" });
+    });
+
+    it("a task start INSIDE a sub-agent is an ordinary row of that sub-agent — one level of delegation is tracked", () => {
+      const t = translator();
+      t.translate(makeToolStarted("task-1", "task", { subagent_type: "helper" }, { namespace: TASK_NS }));
+      const events = t.translate(makeToolStarted("nested", "task", { subagent_type: "deeper" }, { namespace: CHILD_TOOL_NS }));
+      expect(events.map((e) => e.kind)).toEqual(["tool_started"]);
+      expect(events[0]).toMatchObject({ subAgentId: "task-1" });
+    });
+
+    it("a nested namespace whose prefix nobody registered folds into the root (F-M2-17)", () => {
+      const [event] = translator().translate(makeTextDelta("r", "hi", { namespace: ["tools:unknown", "model_request:x"] }));
+      expect(event).not.toHaveProperty("subAgentId");
+    });
+
+    it("a one-segment event under a registered prefix is the ROOT's — the task row's own lifecycle", () => {
+      const t = translator();
+      t.translate(makeToolStarted("task-1", "task", { subagent_type: "helper" }, { namespace: TASK_NS }));
+      const [finished] = t.translate(makeToolOutputDelta("task-1", "…", { namespace: TASK_NS }));
+      expect(finished).not.toHaveProperty("subAgentId");
+    });
+
+    it("the task's finish closes the sub-agent AFTER the row's own finish, with the same result as its output", () => {
+      const t = translator();
+      t.translate(makeToolStarted("task-1", "task", { subagent_type: "helper" }, { namespace: TASK_NS }));
+      const events = t.translate(makeToolFinished("task-1", "forty-two", { namespace: TASK_NS }));
+      expect(events).toEqual([
+        { kind: "tool_finished", callId: "task-1", result: "forty-two" },
+        { kind: "sub_agent_finished", subAgentId: "task-1", output: "forty-two" },
+      ]);
+    });
+
+    it("the task's error fails the sub-agent after the row's own error", () => {
+      const t = translator();
+      t.translate(makeToolStarted("task-1", "task", { subagent_type: "helper" }, { namespace: TASK_NS }));
+      const events = t.translate(makeToolError("task-1", "boom", { namespace: TASK_NS }));
+      expect(events).toEqual([
+        { kind: "tool_error", callId: "task-1", message: "boom" },
+        { kind: "sub_agent_failed", subAgentId: "task-1", error: "boom" },
+      ]);
+    });
+
+    it("an ordinary tool's finish closes no sub-agent", () => {
+      const t = translator();
+      const events = t.translate(makeToolFinished("toolu_1", "ok"));
+      expect(events.map((e) => e.kind)).toEqual(["tool_finished"]);
+    });
+
+    it("a depth-0 task start (no namespace) still opens a sub-agent, under a synthetic prefix its children can name", () => {
+      const t = translator();
+      const events = t.translate(makeToolStarted("task-0", "task", { subagent_type: "w" }, { namespace: [] }));
+      expect(events[0]).toMatchObject({ kind: "sub_agent_started", subAgentId: "task-0" });
+      const [child] = t.translate(makeTextDelta("in", "hi", { namespace: ["tools:task-0", "model_request:in"] }));
+      expect(child).toMatchObject({ subAgentId: "task-0" });
+    });
+
+    it("attributes root calls only: a sub-agent's tool start carries no server and no provenance even under a gate", () => {
+      const t = new DeepAgentTranslator({
+        policies: new Map(),
+        toolServerMap: new Map([["grep", "search-server"]]),
+        leasedCategories: new Set(),
+        globalBypass: false,
+        unattended: false,
+        unattendedSkips: new Set(),
+      });
+      t.translate(makeToolStarted("task-1", "task", { subagent_type: "helper" }, { namespace: TASK_NS }));
+      const [root] = t.translate(makeToolStarted("root-grep", "grep", {}));
+      expect(root).toMatchObject({ mcpServerSlug: "search-server", provenance: "classifier_default" });
+      const [sub] = t.translate(makeToolStarted("sub-grep", "grep", {}, { namespace: CHILD_TOOL_NS }));
+      expect(sub).toMatchObject({ subAgentId: "task-1", mcpServerSlug: "" });
+      expect(sub).not.toHaveProperty("provenance");
     });
   });
 });

@@ -7,64 +7,79 @@
  * born in the native adapter as `StigmerRunEvent`, the normalized form of
  * LangGraph's v3 protocol, and promoted here at S4 M1 (2026-09-14) because
  * its own header already called it the thing that isolates the builder from
- * the engine — the same move S2 and S3 made for the turn runtime. S4 M2 cuts
+ * the engine — the same move S2 and S3 made for the turn runtime. S4 M2 cut
  * it engine-neutral one ruling at a time (`T01_0_plan.md` §4a, Q-S4-3):
  *
- *   - C1 (landed): every member the builder never folded left — `usage`,
- *     `lifecycle`, `provider`, and the `seq`/`node`/`messageId`/`reason`
- *     fields no handler read. Usage is a LOOP concern: the native loop reads
- *     it off the wire (`usageOf`, `v3-protocol-normalizer.ts`) and prices it
- *     into `TurnSink.reportUsage`; the Cursor loop reads its own from the
- *     SDK's `turn-ended` delta. A transcript fact is what a row or a message
- *     carries; usage is neither.
- *   - C2a (landed): `tool_finished` carries `result: string`; the engine's
- *     output envelope is the translator's to render.
- *   - C3 (landed): `tool_started` carries the attribution (`mcpServerSlug`),
- *     the provenance and — where the harness runs a gated call before its
+ *   - C1: every member the builder never folded left — `usage`, `lifecycle`,
+ *     `provider`, and the `seq`/`node`/`messageId`/`reason` fields no handler
+ *     read. Usage is a LOOP concern: the native loop reads it off the wire
+ *     (`usageOf`) and prices it into `TurnSink.reportUsage`; the Cursor loop
+ *     reads its own from the SDK's `turn-ended` delta. A transcript fact is
+ *     what a row or a message carries; usage is neither.
+ *   - C2a: `tool_finished` carries `result: string`; the engine's output
+ *     envelope is the translator's to render.
+ *   - C3: `tool_started` carries the attribution (`mcpServerSlug`), the
+ *     provenance and — where the harness runs a gated call before its
  *     boundary parks it — the gate's word. The translator resolves them from
  *     the harness's policy state; the builder writes what it is told and
  *     decides nothing about approval.
- *   - Still to cut: `namespace` becomes `subAgentId?`, and `sub_agent_*`,
- *     `approval_proposed` and `system_note` arrive. A Cursor translator then
- *     emits this union at M4.
+ *   - C4: scope is `subAgentId?` — the only scope either harness has is
+ *     "the root, or one sub-agent by the id its row carries" — and the
+ *     translator says when a sub-agent opens and closes
+ *     (`sub_agent_started/finished/failed`). LangGraph's namespace grammar
+ *     (`tools:<uuid>|model_request:<uuid>`), the `task` tool's name and its
+ *     depth rule are the native translator's alone now.
+ *   - Still to arrive: `approval_proposed` and `system_note` (C6). A Cursor
+ *     translator then emits this union at M4.
+ *
+ * The rule the union keeps (plan §3): a member carries an identity and the
+ * fact the builder cannot read elsewhere, nothing else. Every engine fact
+ * reaches the builder as a translator's output.
  *
  * ID conventions:
  *   - `runId`  — the identity of ONE streamed assistant message (LangGraph's
- *     LLM-call run id on native); shared across that message's events
+ *     LLM-call run id on native; a translator-minted segment id on Cursor,
+ *     Q-S4-3(a)); shared across that message's events
  *   - `callId` — provider tool call ID (e.g. `toolu_...`); keys ToolCall records
- *   - `namespace` — formatted string from v3 namespace array; empty = parent agent
+ *   - `subAgentId` — the sub-agent row's id, which on both harnesses is the
+ *     `task` tool call's id
  */
 
 import type { PolicySource } from "../../shared/approval-policy.js";
 
-// ── Base ──────────────────────────────────────────────────────────
+// ── Scope ─────────────────────────────────────────────────────────
 
-interface TranscriptEventBase {
-  readonly kind: string;
-  /** Formatted namespace string: empty = parent agent, joined with "|" for nested. */
-  readonly namespace: string;
+/**
+ * Which transcript a fact belongs to: the root's, or a sub-agent's by the id
+ * its row carries. Absent = root. The builder keeps one set of handlers and
+ * looks the scope's transcript up by this id; how a harness knows which
+ * sub-agent an event belongs to (LangGraph's namespace prefix, Cursor's
+ * `conversationSteps`) is the translator's knowledge.
+ */
+interface Scoped {
+  readonly subAgentId?: string;
 }
 
 // ── Message Events ────────────────────────────────────────────────
 
-export interface MessageStartEvent extends TranscriptEventBase {
+export interface MessageStartEvent extends Scoped {
   readonly kind: "message_start";
   readonly runId: string;
 }
 
-export interface TextDeltaEvent extends TranscriptEventBase {
+export interface TextDeltaEvent extends Scoped {
   readonly kind: "text_delta";
   readonly runId: string;
   readonly text: string;
 }
 
-export interface ReasoningDeltaEvent extends TranscriptEventBase {
+export interface ReasoningDeltaEvent extends Scoped {
   readonly kind: "reasoning_delta";
   readonly runId: string;
   readonly text: string;
 }
 
-export interface MessageFinishEvent extends TranscriptEventBase {
+export interface MessageFinishEvent extends Scoped {
   readonly kind: "message_finish";
   readonly runId: string;
 }
@@ -91,7 +106,7 @@ export interface GateAnswer {
   readonly message: string;
 }
 
-export interface ToolStartedEvent extends TranscriptEventBase {
+export interface ToolStartedEvent extends Scoped {
   readonly kind: "tool_started";
   readonly callId: string;
   readonly name: string;
@@ -107,19 +122,19 @@ export interface ToolStartedEvent extends TranscriptEventBase {
   readonly gate?: GateAnswer;
 }
 
-export interface ToolArgDeltaEvent extends TranscriptEventBase {
+export interface ToolArgDeltaEvent extends Scoped {
   readonly kind: "tool_arg_delta";
   readonly callId: string;
   readonly argsChunk: string;
 }
 
-export interface ToolOutputDeltaEvent extends TranscriptEventBase {
+export interface ToolOutputDeltaEvent extends Scoped {
   readonly kind: "tool_output_delta";
   readonly callId: string;
   readonly delta: string;
 }
 
-export interface ToolFinishedEvent extends TranscriptEventBase {
+export interface ToolFinishedEvent extends Scoped {
   readonly kind: "tool_finished";
   readonly callId: string;
   /**
@@ -131,10 +146,43 @@ export interface ToolFinishedEvent extends TranscriptEventBase {
   readonly result: string;
 }
 
-export interface ToolErrorEvent extends TranscriptEventBase {
+export interface ToolErrorEvent extends Scoped {
   readonly kind: "tool_error";
   readonly callId: string;
   readonly message: string;
+}
+
+// ── Sub-Agent Events ──────────────────────────────────────────────
+
+/**
+ * A sub-agent opens: the builder creates its row (keyed by `subAgentId`) and
+ * a transcript of its own that later events scoped to it fold into. Emitted
+ * by the translator BEFORE the delegating tool's own `tool_started`, so the
+ * row exists when the parent's `task` row is created. For a sub-agent the
+ * builder already knows (a seeded row re-announced by a replayed engine)
+ * this is a no-op — the row is never duplicated.
+ */
+export interface SubAgentStartedEvent {
+  readonly kind: "sub_agent_started";
+  readonly subAgentId: string;
+  /** The sub-agent's declared name (deepagents' `subagent_type`; Cursor's `task` name). */
+  readonly name: string;
+  /** What it was asked to do, as the card's title and as its input. */
+  readonly subject: string;
+  readonly input: string;
+}
+
+export interface SubAgentFinishedEvent {
+  readonly kind: "sub_agent_finished";
+  readonly subAgentId: string;
+  /** The sub-agent's final output as the row carries it — the same string the delegating tool's `tool_finished` carries. */
+  readonly output?: string;
+}
+
+export interface SubAgentFailedEvent {
+  readonly kind: "sub_agent_failed";
+  readonly subAgentId: string;
+  readonly error: string;
 }
 
 // ── Union ─────────────────────────────────────────────────────────
@@ -148,25 +196,7 @@ export type TranscriptEvent =
   | ToolArgDeltaEvent
   | ToolOutputDeltaEvent
   | ToolFinishedEvent
-  | ToolErrorEvent;
-
-// ── Namespace Depth ───────────────────────────────────────────────
-
-/**
- * Returns the depth (number of segments) of a formatted namespace string.
- * Empty string → 0, single segment → 1, "a|b" → 2, etc.
- *
- * The one piece of LangGraph namespace grammar the builder still reads (the
- * `task` tool's depth rule for opening a sub-agent). Its inverse,
- * `formatNamespace`, lives with the normalizer that produces the string. Both
- * leave the builder's side at S4 M2 C4, when scope becomes `subAgentId?` and
- * `sub_agent_started` arrives from the translator (Q-S4-3, Q-S4-4).
- */
-export function namespaceDepth(namespace: string): number {
-  if (!namespace) return 0;
-  let count = 1;
-  for (let i = 0; i < namespace.length; i++) {
-    if (namespace[i] === "|") count++;
-  }
-  return count;
-}
+  | ToolErrorEvent
+  | SubAgentStartedEvent
+  | SubAgentFinishedEvent
+  | SubAgentFailedEvent;

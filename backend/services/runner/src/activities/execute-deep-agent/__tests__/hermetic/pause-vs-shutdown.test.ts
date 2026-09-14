@@ -188,11 +188,11 @@ describe("ExecuteDeepAgent hermetic — pause vs worker shutdown", () => {
     const final = record.lastFullStatus!;
     expect(final.error).toBe("Execution interrupted: runner worker was shut down. Retry or resume.");
     // The transcript the turn produced is kept and the row appended (the
-    // runtime's arm, Q-S3-7); the tool row rides its own empty AI message
-    // (F-M0-1, S4's).
+    // runtime's arm, Q-S3-7); the tool row sits on the message whose text
+    // proposed it (Q-S4-5, S4 M2 C4 — until then on its own empty message,
+    // F-M0-1).
     expect(final.messages.map((m) => [m.type, m.content])).toEqual([
       [MessageType.MESSAGE_AI, "Let me look."],
-      [MessageType.MESSAGE_AI, ""],
       [
         MessageType.MESSAGE_SYSTEM,
         "Execution interrupted: the runner worker was shut down while the agent was still running. You can retry or resume.",
