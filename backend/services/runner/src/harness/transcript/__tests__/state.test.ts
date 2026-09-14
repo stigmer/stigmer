@@ -3,21 +3,21 @@ import { create } from "@bufbuild/protobuf";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { ExecutionState } from "../state.js";
+import { TranscriptState } from "../state.js";
 
 function makeEmptyStatus() {
   return create(AgentExecutionStatusSchema, {});
 }
 
-describe("ExecutionState", () => {
+describe("TranscriptState", () => {
   it("initializes with the given proto", () => {
     const proto = makeEmptyStatus();
-    const state = new ExecutionState(proto);
+    const state = new TranscriptState(proto);
     expect(state.proto).toBe(proto);
   });
 
   it("starts with empty indexes", () => {
-    const state = new ExecutionState(makeEmptyStatus());
+    const state = new TranscriptState(makeEmptyStatus());
     expect(state.toolCalls.size).toBe(0);
     expect(state.messagesByRun.size).toBe(0);
     expect(state.currentAiMessage.size).toBe(0);
@@ -26,7 +26,7 @@ describe("ExecutionState", () => {
 
   it("indexes share object references with proto repeated fields", () => {
     const proto = makeEmptyStatus();
-    const state = new ExecutionState(proto);
+    const state = new TranscriptState(proto);
 
     const msg = create(AgentMessageSchema, {
       type: MessageType.MESSAGE_AI,
@@ -44,7 +44,7 @@ describe("ExecutionState", () => {
 
   it("tool call index shares references with message toolCalls", () => {
     const proto = makeEmptyStatus();
-    const state = new ExecutionState(proto);
+    const state = new TranscriptState(proto);
 
     const tc = create(ToolCallSchema, {
       id: "tc-1",
@@ -70,7 +70,7 @@ describe("ExecutionState", () => {
   describe("resetEphemeralState", () => {
     it("clears runtime maps but preserves proto", () => {
       const proto = makeEmptyStatus();
-      const state = new ExecutionState(proto);
+      const state = new TranscriptState(proto);
 
       const msg = create(AgentMessageSchema, {
         type: MessageType.MESSAGE_AI,
@@ -92,7 +92,7 @@ describe("ExecutionState", () => {
 
     it("does not clear the toolCalls index", () => {
       const proto = makeEmptyStatus();
-      const state = new ExecutionState(proto);
+      const state = new TranscriptState(proto);
 
       const tc = create(ToolCallSchema, { id: "tc-1", name: "write" });
       state.toolCalls.set("tc-1", tc);
@@ -114,7 +114,7 @@ describe("ExecutionState", () => {
         toolCalls: [tc1, tc2],
       });
       const proto = create(AgentExecutionStatusSchema, { messages: [msg] });
-      const state = new ExecutionState(proto);
+      const state = new TranscriptState(proto);
 
       state.rebuildToolCallIndex();
 
@@ -132,7 +132,7 @@ describe("ExecutionState", () => {
         toolCalls: [tc],
       });
       const proto = create(AgentExecutionStatusSchema, { messages: [msg] });
-      const state = new ExecutionState(proto);
+      const state = new TranscriptState(proto);
 
       state.rebuildToolCallIndex();
 
@@ -141,7 +141,7 @@ describe("ExecutionState", () => {
 
     it("clears previous index before rebuilding", () => {
       const proto = create(AgentExecutionStatusSchema, {});
-      const state = new ExecutionState(proto);
+      const state = new TranscriptState(proto);
 
       state.toolCalls.set("stale-id", create(ToolCallSchema, { id: "stale-id" }));
       expect(state.toolCalls.size).toBe(1);

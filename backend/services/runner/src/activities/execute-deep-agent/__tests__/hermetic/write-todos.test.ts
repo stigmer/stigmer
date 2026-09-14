@@ -3,7 +3,7 @@
  * proposes deepagents' built-in `write_todos`, the tools node runs it for
  * real, and the builder projects the list into `status.todos`.
  *
- * Invariant pinned (S4 M0 net): `V3StatusBuilder.handleToolStarted` classifies
+ * Invariant pinned (S4 M0 net): `TranscriptBuilder.handleToolStarted` classifies
  * the row `ToolKind.TODO` by name; `handleToolFinished` projects `tc.args.todos`
  * into `status.todos` through the shared `applyTodoUpdate` as a FULL REPLACE
  * (deepagents' schema has no `merge`), keyed `todo-<i>`, and KEEPS the row in

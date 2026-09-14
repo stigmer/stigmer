@@ -1,3 +1,21 @@
+/**
+ * The transcript builder's unit arms (`harness/transcript/builder.ts`),
+ * driven through the native normalizer: every sequence here is raw LangGraph
+ * v3 protocol events folded by `normalize` and then by the builder, so these
+ * are in truth the native translator's integration arms as much as the
+ * builder's.
+ *
+ * Why this file is in the adapter's folder while its subject is in
+ * `harness/` (S4 M1, Q-M1-2): the direction fence sweeps `harness/` tests
+ * included, and `normalize`, the v3 fixtures and `V3ProtocolEvent` are all
+ * `activities/` modules. At M2, when the builder takes `TranscriptEvent`s
+ * that no longer carry LangGraph's shape, these arms are re-keyed and
+ * re-homed to `harness/transcript/__tests__/builder.test.ts`; the
+ * normalizer-through-builder arms that remain valuable stay here as the
+ * translator's. The inventory of every arm's destination is
+ * `T01_3_execution.md` (M0).
+ */
+
 import { describe, it, expect, beforeEach } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
@@ -5,7 +23,7 @@ import { ApprovalAction, ExecutionPhase, MessageType, ToolCallStatus, ToolKind, 
 import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { ExecutionArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
 import { WorkspaceWriteBackSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/writeback_pb";
-import { V3StatusBuilder, type ApprovalPolicyProvider } from "../../../harness/transcript/builder.js";
+import { TranscriptBuilder, type ApprovalPolicyProvider } from "../../../harness/transcript/builder.js";
 import { normalize } from "../v3-protocol-normalizer.js";
 import type { MergedToolPolicy } from "../../../shared/approval-policy.js";
 import {
@@ -36,11 +54,11 @@ interface ReportedUsage {
   turnCount: number;
 }
 
-const reportedByBuilder = new WeakMap<V3StatusBuilder, ReportedUsage>();
+const reportedByBuilder = new WeakMap<TranscriptBuilder, ReportedUsage>();
 
-function makeBuilder(): V3StatusBuilder {
+function makeBuilder(): TranscriptBuilder {
   const reported: ReportedUsage = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, turnCount: 0 };
-  const sb = new V3StatusBuilder("exec-test", create(AgentExecutionStatusSchema, {}), {
+  const sb = new TranscriptBuilder("exec-test", create(AgentExecutionStatusSchema, {}), {
     onUsage: (usage) => {
       reported.inputTokens += usage.input_tokens ?? 0;
       reported.outputTokens += usage.output_tokens ?? 0;
@@ -53,11 +71,11 @@ function makeBuilder(): V3StatusBuilder {
   return sb;
 }
 
-function reportedUsage(sb: V3StatusBuilder): ReportedUsage {
+function reportedUsage(sb: TranscriptBuilder): ReportedUsage {
   return reportedByBuilder.get(sb)!;
 }
 
-function feedAll(sb: V3StatusBuilder, events: V3ProtocolEvent[]): void {
+function feedAll(sb: TranscriptBuilder, events: V3ProtocolEvent[]): void {
   for (const raw of events) {
     for (const e of normalize(raw)) {
       sb.processEvent(e);
@@ -67,7 +85,7 @@ function feedAll(sb: V3StatusBuilder, events: V3ProtocolEvent[]): void {
 
 beforeEach(() => resetSeq());
 
-describe("V3StatusBuilder", () => {
+describe("TranscriptBuilder", () => {
 
   // ── Initialization ───────────────────────────────────────────────
 
@@ -845,7 +863,7 @@ describe("V3StatusBuilder", () => {
           }),
         ],
       });
-      const sb = new V3StatusBuilder("exec-resume", status);
+      const sb = new TranscriptBuilder("exec-resume", status);
       const [key, policy] = policyFor("my-server", "dangerous_tool", "Execute dangerous_tool");
       sb.setApprovalProvider(providerWith({ policies: new Map([[key, policy]]), toolServerMap: new Map([["dangerous_tool", "my-server"]]) }));
 

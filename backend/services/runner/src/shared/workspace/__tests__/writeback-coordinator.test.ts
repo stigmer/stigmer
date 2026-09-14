@@ -22,7 +22,7 @@ const SESSION_ID = "ses-01test";
 const SESSION_BRANCH = `stigmer/${SESSION_ID}`;
 
 // The shared proto-backed writer — the same implementation the Cursor harness
-// wires in, and upsert-compatible with the deep-agent V3StatusBuilder.
+// wires in, and upsert-compatible with the deep-agent TranscriptBuilder.
 function makeStatusBuilder(): ExecutionStatusWriter {
   return statusProtoWriter(create(AgentExecutionStatusSchema, {}));
 }

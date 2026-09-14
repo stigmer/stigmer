@@ -1,5 +1,5 @@
 /**
- * Extended ExecutionState tests — ported from Python test_hitl_contracts.py
+ * Extended TranscriptState tests — ported from Python test_hitl_contracts.py
  * and test_checkpoint_validator.py sections covering state rebuild/reset.
  */
 
@@ -14,9 +14,9 @@ import {
   MessageType,
   ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { ExecutionState } from "../state.js";
+import { TranscriptState } from "../state.js";
 
-function makeStateWithMessages(): ExecutionState {
+function makeStateWithMessages(): TranscriptState {
   const status = create(AgentExecutionStatusSchema, {});
   const msg = create(AgentMessageSchema, {
     type: MessageType.MESSAGE_AI,
@@ -49,10 +49,10 @@ function makeStateWithMessages(): ExecutionState {
   });
   status.messages.push(msg2);
 
-  return new ExecutionState(status);
+  return new TranscriptState(status);
 }
 
-describe("ExecutionState", () => {
+describe("TranscriptState", () => {
   describe("rebuildToolCallIndex", () => {
     it("indexes all tool calls from proto messages", () => {
       const state = makeStateWithMessages();
@@ -86,7 +86,7 @@ describe("ExecutionState", () => {
       });
       status.messages.push(msg);
 
-      const state = new ExecutionState(status);
+      const state = new TranscriptState(status);
       state.rebuildToolCallIndex();
 
       expect(state.toolCalls.size).toBe(1);
@@ -94,7 +94,7 @@ describe("ExecutionState", () => {
     });
 
     it("handles empty messages array", () => {
-      const state = new ExecutionState(create(AgentExecutionStatusSchema, {}));
+      const state = new TranscriptState(create(AgentExecutionStatusSchema, {}));
       state.rebuildToolCallIndex();
       expect(state.toolCalls.size).toBe(0);
     });
@@ -141,7 +141,7 @@ describe("ExecutionState", () => {
   describe("proto reference", () => {
     it("exposes the original proto object", () => {
       const status = create(AgentExecutionStatusSchema, {});
-      const state = new ExecutionState(status);
+      const state = new TranscriptState(status);
       expect(state.proto).toBe(status);
     });
   });

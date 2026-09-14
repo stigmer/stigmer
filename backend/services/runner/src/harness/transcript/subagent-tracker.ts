@@ -2,6 +2,17 @@
  * SubAgentTracker — tracks sub-agent lifecycle and routes namespace-scoped
  * events to per-sub-agent message lists.
  *
+ * M2-transient (S4, `T01_4_m1_plan.md` Q-M1-1). This module is the memo's
+ * third copy of the folding rule: its handlers (`handleToolStarted`,
+ * `ensureAiMessage`, ...) are `TranscriptBuilder`'s, differing only in which
+ * `messages[]` they push into. It moved here with the builder at M1 so the
+ * two stay one import apart; at M2 the builder's handlers take the scope's
+ * transcript as a parameter (root or a sub-agent row's), the translators
+ * emit `sub_agent_started/finished/failed` with a `subAgentId` instead of a
+ * namespace prefix, and this file is deleted (Q-S4-3, Q-S4-4). What survives
+ * it is the row bookkeeping below (`subAgentExecutions` indexed by id, seeded
+ * rows reconciled) as a section of the builder.
+ *
  * Correlation strategy (mirrors deepagents createSubagentTransformer):
  *   - Parent calls "task" tool → tool_started at depth 0 or 1
  *     (depth 1 in real runtime: namespace = ["tools:<pregelTaskUuid>"])
@@ -23,7 +34,7 @@
  * assigned onto the status wholesale, which a resumed turn's first delegation
  * would have used to drop turn 1's rows (S3 M1 deferred debt).
  *
- * V3StatusBuilder delegates sub-agent-scoped events here instead of the
+ * TranscriptBuilder delegates sub-agent-scoped events here instead of the
  * parent message list. Marking rows CANCELLED when a turn stops is NOT the
  * tracker's: `shared/subagent-rows.ts` `cancelInProgressSubAgentProtos` is
  * the one home of that transition for every harness (the runtime's thrown
@@ -48,7 +59,7 @@ import {
 import { utcTimestamp } from "../../shared/status.js";
 import { classifyTool } from "../../shared/tool-kind.js";
 import { extractToolResultV3 } from "./tool-result.js";
-import type { StigmerRunEvent } from "./events.js";
+import type { TranscriptEvent } from "./events.js";
 
 // ── Per-SubAgent State ───────────────────────────────────────────────────────
 
@@ -210,7 +221,7 @@ export class SubAgentTracker {
    * Route a sub-agent-scoped event to the correct SubAgentExecution's messages.
    * The event has already been confirmed as sub-agent-scoped via isSubAgentNamespace.
    */
-  routeEvent(event: StigmerRunEvent): void {
+  routeEvent(event: TranscriptEvent): void {
     const firstSegment = extractFirstSegment(event.namespace);
     const state = this.stateByPrefix.get(firstSegment);
     if (!state) return;
@@ -296,7 +307,7 @@ export class SubAgentTracker {
   private handleMessageFinish(state: SubAgentState, runId: string): void {
     const msg = state.messagesByRun.get(runId);
     if (msg) msg.isStreaming = false;
-    // The usage on this event was reported by `V3StatusBuilder.processEvent`
+    // The usage on this event was reported by `TranscriptBuilder.processEvent`
     // before it routed here (Q-M2b-1); the tracker owns the transcript only.
   }
 

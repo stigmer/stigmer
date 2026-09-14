@@ -412,7 +412,7 @@ export function toResultString(result: unknown): string {
  * `ToolCallOutputRef`.
  *
  * This mirrors `serializeToolContent` in the deep-agent path
- * (execute-deep-agent/status-builder-shared.ts): the harness adapter normalizes
+ * (harness/transcript/tool-result.ts): the harness adapter normalizes
  * its own wire shape into the canonical array
  *   `[{ type:"text", text }, { type:"image", data:<base64>, mimeType }]`
  * so the shared offload stays harness-agnostic (its envelope handling is
@@ -757,7 +757,7 @@ export interface MessageAccumulatorOptions {
  * pattern and the UI's MessageThread expectations.
  *
  * Tool call lifecycle is tracked via a `toolCallIndex` map (keyed by
- * call_id), mirroring the native harness's `ExecutionState.toolCalls`.
+ * call_id), mirroring the native harness's `TranscriptState.toolCalls`.
  * This ensures completion events always find the correct ToolCall proto
  * regardless of which AI message it was originally attached to — the
  * index stores the same object reference that lives in the message's
@@ -924,7 +924,7 @@ export class MessageAccumulator {
     // Without this the seeded approved call and the re-run would both appear (a
     // duplicate row) and dropping the seeded id would trip the backend's
     // append-only-at-identity guard, stalling the run. This generalizes what
-    // the native builder does by exact tool_call_id (`V3StatusBuilder`'s resume
+    // the native builder does by exact tool_call_id (`TranscriptBuilder`'s resume
     // reconciliation; its v2 predecessor matched by tool name) to the full
     // Cursor identity, reusing the single existing identity definition rather
     // than introducing a parallel one.

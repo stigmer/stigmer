@@ -1,21 +1,31 @@
 /**
- * V3StatusBuilder — consumes StigmerRunEvents from the V3ProtocolNormalizer
- * and progressively builds the transcript half of the AgentExecutionStatus
- * proto it is handed: messages, tool-call rows and their approval status,
- * sub-agent rows, todos, artifacts, write-backs.
+ * TranscriptBuilder — folds `TranscriptEvent`s into the transcript half of
+ * the AgentExecutionStatus proto it is handed: messages, tool-call rows and
+ * their approval status, sub-agent rows, todos, artifacts, write-backs.
  *
- * The one transcript builder of the native harness since S3 M2b: v3 event
- * semantics (tool_call_id keying, content-block-level deltas, explicit tool
- * lifecycle). Its predecessor, the v2 `StatusBuilder` over LangChain's
- * `streamEvents` v2, was retired with the v2 stream (Q-S3-1); the eight
- * golden sequences both once had to agree on are this builder's test's.
+ * The one transcript builder, for every harness, in the making (S4,
+ * `T01_0_plan.md`). It was the native harness's `V3StatusBuilder` (the one
+ * builder there since S3 M2b retired the v2 `StatusBuilder`, Q-S3-1) and was
+ * promoted here at M1 (2026-09-14) unchanged in behavior — a `git mv` with
+ * the names ruled at Q-S4-2 — so the fence that keeps `harness/` out of
+ * `activities/` protects it from here on. What it still knows of LangGraph
+ * (the `task` tool name and its namespace depth for opening a sub-agent, the
+ * `namespace` grammar, the approval decision from a provider, the LangChain
+ * envelope `tool-result.ts` unwraps) is cut out at M2, one ruling per commit
+ * (Q-S4-3 to Q-S4-7), and the `SubAgentTracker` — a second copy of these
+ * handlers for a sub-agent's own transcript — is folded into one scoped set
+ * (Q-S4-4). The Cursor harness feeds this builder through a translator at
+ * M4; the runtime hands it to every adapter as `TurnSink.transcript` at M5.
+ * The builder's own tests still live in the native adapter's folder
+ * (`execute-deep-agent/__tests__/v3-status-builder.test.ts`) because they
+ * drive it through the LangGraph normalizer; they re-home at M2 (Q-M1-2).
  *
  * What this builder deliberately does NOT write, and who does (the adapter
  * contract's field ownership, `harness/types.ts` `TurnSink`): the phase,
  * `startedAt` and `streamingUsage` are the turn runtime's. A gated tool
  * start is reported as the {@link awaitingApproval} fact and the caller
  * (`turn-stream.ts`) decides what that means for the turn; usage is reported
- * raw through {@link V3StatusBuilderOptions.onUsage} and the caller prices
+ * raw through {@link TranscriptBuilderOptions.onUsage} and the caller prices
  * it into the sink (until S3 M2a this builder flipped WAITING_FOR_APPROVAL
  * itself and summed usage into `streamingUsage` — a second writer of each
  * field beside the runtime's).
@@ -56,8 +66,8 @@ import { classifyTool, type ToolApprovalCategory } from "../../shared/tool-kind.
 import { applyTodoUpdate } from "../../shared/todos.js";
 import { utcTimestamp } from "../../shared/status.js";
 import type { ExecutionStatusWriter } from "../../shared/execution-status-writer.js";
-import { ExecutionState } from "./state.js";
-import type { StigmerRunEvent, V3UsagePayload } from "./events.js";
+import { TranscriptState } from "./state.js";
+import type { TranscriptEvent, V3UsagePayload } from "./events.js";
 import { namespaceDepth } from "./events.js";
 import { extractToolResultV3 } from "./tool-result.js";
 import { SubAgentTracker } from "./subagent-tracker.js";
@@ -71,7 +81,7 @@ import { SubAgentTracker } from "./subagent-tracker.js";
  * M2-transient (S4 Q-S4-3): the decision moves to the translator, which
  * answers it per call as `tool_started.gate`, and this provider shape goes
  * with it. Until then the native adapter hands the gate's policy state in
- * through {@link V3StatusBuilder.setApprovalProvider}.
+ * through {@link TranscriptBuilder.setApprovalProvider}.
  */
 export interface ApprovalProvenanceInputs {
   readonly policies: ReadonlyMap<string, MergedToolPolicy>;
@@ -138,7 +148,7 @@ export function stampApprovalProvenance(
 
 // ── Builder ────────────────────────────────────────────────────────
 
-export interface V3StatusBuilderOptions {
+export interface TranscriptBuilderOptions {
   /**
    * Fired once per `message_finish` that carries usage — the parent graph's
    * and every sub-agent's — with the payload exactly as the protocol
@@ -150,9 +160,9 @@ export interface V3StatusBuilderOptions {
   readonly onUsage?: (usage: V3UsagePayload) => void;
 }
 
-export class V3StatusBuilder implements ExecutionStatusWriter {
+export class TranscriptBuilder implements ExecutionStatusWriter {
   readonly executionId: string;
-  private readonly state: ExecutionState;
+  private readonly state: TranscriptState;
   private _forceNextUpdate = false;
   private _awaitingApproval = false;
   private approvalProvider: ApprovalPolicyProvider | null = null;
@@ -168,9 +178,9 @@ export class V3StatusBuilder implements ExecutionStatusWriter {
    * replaced, so a caller that wraps the same status (the write-back
    * coordinator's writer, the runtime's chokepoint) keeps seeing every row.
    */
-  constructor(executionId: string, status: AgentExecutionStatus, options: V3StatusBuilderOptions = {}) {
+  constructor(executionId: string, status: AgentExecutionStatus, options: TranscriptBuilderOptions = {}) {
     this.executionId = executionId;
-    this.state = new ExecutionState(status);
+    this.state = new TranscriptState(status);
     this.onUsage = options.onUsage;
 
     // Resume path: when constructed over a persisted transcript (seeded by the
@@ -211,7 +221,7 @@ export class V3StatusBuilder implements ExecutionStatusWriter {
     this._forceNextUpdate = false;
   }
 
-  processEvent(event: StigmerRunEvent): void {
+  processEvent(event: TranscriptEvent): void {
     try {
       // Sub-agent routing: detect "task" tool starts at depth 0 (root) or depth 1
       // (inside LangGraph tools-node). In real runtime, task tool-started arrives
@@ -282,7 +292,7 @@ export class V3StatusBuilder implements ExecutionStatusWriter {
       }
     } catch (err) {
       console.error(
-        `[V3StatusBuilder] Event handler error: execution=${this.executionId} ` +
+        `[TranscriptBuilder] Event handler error: execution=${this.executionId} ` +
         `kind=${event.kind} seq=${event.seq}: ${err}`,
       );
     }

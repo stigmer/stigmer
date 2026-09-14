@@ -1,17 +1,23 @@
 /**
- * Mutable execution state for `V3StatusBuilder`.
+ * TranscriptState — the AgentExecutionStatus proto `TranscriptBuilder` is
+ * building into, and the O(1) indexes over its repeated fields the builder
+ * folds through.
  *
- * Holds the AgentExecutionStatus proto being progressively built and
- * O(1) lookup indexes into its repeated fields. Mutations to indexed
- * references (ToolCall, AgentMessage) propagate directly to the proto
- * because they share the same object reference. Sub-agent transcripts are
- * `SubAgentTracker`'s, keyed by namespace beside this state.
+ * Indexes, not copies: every map value is the live proto object (a ToolCall
+ * inside a message's repeated field, an AgentMessage inside `messages`), so
+ * a mutation through the index IS the mutation of the proto, and nothing here
+ * can drift from what is persisted. The name says what it holds — the
+ * transcript's bookkeeping, not the execution's state, which is the turn
+ * runtime's (`harness/turn-context.ts`); it was `ExecutionState` in the
+ * native adapter and was renamed with the move (S4 M1, Q-M1-3). Sub-agent
+ * transcripts are `SubAgentTracker`'s, keyed by namespace beside this state,
+ * until M2 folds them into one scoped set (Q-S4-4).
  */
 
 import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 
-export class ExecutionState {
+export class TranscriptState {
   /** The protobuf projection being built. */
   readonly proto: AgentExecutionStatus;
 
@@ -60,7 +66,7 @@ export class ExecutionState {
   /**
    * Rebuild the toolCalls index from the proto's messages.
    *
-   * Used on the resume path where the V3StatusBuilder is initialized
+   * Used on the resume path where the TranscriptBuilder is initialized
    * with a persisted AgentExecutionStatus that already contains
    * messages and tool calls. Only proto-derivable indexes are rebuilt;
    * ephemeral runtime state starts fresh.

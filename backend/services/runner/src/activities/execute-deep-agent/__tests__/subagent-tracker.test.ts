@@ -1,10 +1,23 @@
+/**
+ * The sub-agent tracker's arms (`harness/transcript/subagent-tracker.ts`),
+ * driven through the builder and the native normalizer: raw LangGraph v3
+ * events with nested namespaces, folded into per-sub-agent transcripts.
+ *
+ * In the adapter's folder for the same reason as `v3-status-builder.test.ts`
+ * (S4 M1, Q-M1-2): the fixtures and `normalize` are `activities/` modules the
+ * direction fence keeps out of `harness/`. At M2 the tracker is folded into
+ * the builder's one scoped set of handlers (Q-S4-4); the row-count and cancel
+ * arms become builder arms over `subAgentId`, and the namespace-routing arms
+ * become the normalizer's scope-resolution arms (`T01_3_execution.md`, M0).
+ */
+
 import { describe, it, expect, beforeEach } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import { SubAgentStatus, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { cancelInProgressSubAgentProtos } from "../../../shared/subagent-rows.js";
-import { V3StatusBuilder } from "../../../harness/transcript/builder.js";
+import { TranscriptBuilder } from "../../../harness/transcript/builder.js";
 import { normalize } from "../v3-protocol-normalizer.js";
 import type { V3ProtocolEvent } from "../v3-event-recorder.js";
 import {
@@ -20,11 +33,11 @@ import {
   makeProtocolEvent,
 } from "../__test-utils__/v3-event-fixtures.js";
 
-function makeBuilder(): V3StatusBuilder {
-  return new V3StatusBuilder("exec-test", create(AgentExecutionStatusSchema, {}));
+function makeBuilder(): TranscriptBuilder {
+  return new TranscriptBuilder("exec-test", create(AgentExecutionStatusSchema, {}));
 }
 
-function feedAll(sb: V3StatusBuilder, events: V3ProtocolEvent[]): void {
+function feedAll(sb: TranscriptBuilder, events: V3ProtocolEvent[]): void {
   for (const raw of events) {
     for (const e of normalize(raw)) {
       sb.processEvent(e);
@@ -79,7 +92,7 @@ function makeSubAgentEvent(taskCallId: string, method: string, data: unknown, ex
 
 beforeEach(() => resetSeq());
 
-describe("SubAgentTracker (via V3StatusBuilder integration)", () => {
+describe("SubAgentTracker (via TranscriptBuilder integration)", () => {
 
   describe("lifecycle — happy path", () => {
     it("creates SubAgentExecution on task tool_started", () => {
@@ -176,7 +189,7 @@ describe("SubAgentTracker (via V3StatusBuilder integration)", () => {
     it("new rows are pushed onto the array the builder was handed, never a replacement", () => {
       const status = create(AgentExecutionStatusSchema, {});
       const rows = status.subAgentExecutions;
-      const sb = new V3StatusBuilder("exec-test", status);
+      const sb = new TranscriptBuilder("exec-test", status);
       feedAll(sb, [makeTaskToolStarted("call_sub_1", "researcher", "Task 1")]);
       expect(status.subAgentExecutions, "the same array object").toBe(rows);
       expect(rows).toHaveLength(1);
@@ -189,7 +202,7 @@ describe("SubAgentTracker (via V3StatusBuilder integration)", () => {
         status: SubAgentStatus.SUB_AGENT_IN_PROGRESS,
       });
       const status = create(AgentExecutionStatusSchema, { subAgentExecutions: [seeded] });
-      const sb = new V3StatusBuilder("exec-test", status);
+      const sb = new TranscriptBuilder("exec-test", status);
       feedAll(sb, [
         makeTaskToolStarted("call_sub_1", "researcher", "Task 1"),
         makeSubAgentEvent("call_sub_1", "messages", { event: "message-start", id: "msg_sub_1", run_id: "sub-run-1" }),

@@ -1,6 +1,13 @@
 /**
  * V3ProtocolNormalizer — converts raw LangGraph v3 ProtocolEvents
- * into the StigmerRunEvent discriminated union.
+ * into the `TranscriptEvent` union (`harness/transcript/events.ts`).
+ *
+ * The native harness's translator: the one module that knows LangGraph's
+ * wire shape and emits the canonical event the shared builder folds (S4,
+ * `T01_0_plan.md` §3). At M2 it also takes over what the builder still
+ * knows of the engine — `extractToolResultV3` and the Command unwrap
+ * (Q-S4-3, Q-S4-21), the sub-agent scope resolution, the gate answer — and
+ * emits `sub_agent_started/finished/failed` for a `task` call (Q-S4-4).
  *
  * Stateless: each event is self-describing per real recordings.
  * Routes by `event.method`, then by `data.event` within channels.
@@ -12,7 +19,7 @@
  */
 
 import type { V3ProtocolEvent } from "./v3-event-recorder.js";
-import type { StigmerRunEvent, V3UsagePayload } from "../../harness/transcript/events.js";
+import type { TranscriptEvent, V3UsagePayload } from "../../harness/transcript/events.js";
 
 const loggedUnknowns = new Set<string>();
 
@@ -27,7 +34,7 @@ function formatNamespace(ns: readonly string[]): string {
   return ns.length === 0 ? "" : ns.join("|");
 }
 
-export function normalize(event: V3ProtocolEvent): StigmerRunEvent[] {
+export function normalize(event: V3ProtocolEvent): TranscriptEvent[] {
   const method = event.method;
 
   switch (method) {
@@ -41,7 +48,7 @@ export function normalize(event: V3ProtocolEvent): StigmerRunEvent[] {
 
 // ── Messages Channel ──────────────────────────────────────────────
 
-function normalizeMessage(event: V3ProtocolEvent): StigmerRunEvent[] {
+function normalizeMessage(event: V3ProtocolEvent): TranscriptEvent[] {
   const data = event.params.data as Record<string, unknown> | undefined;
   if (!data) return [];
 
@@ -105,7 +112,7 @@ function normalizeContentBlockDelta(
   data: Record<string, unknown>,
   base: { seq: number; namespace: string; node?: string },
   runId: string,
-): StigmerRunEvent[] {
+): TranscriptEvent[] {
   const delta = data.delta as Record<string, unknown> | undefined;
   if (!delta) return [];
 
@@ -144,7 +151,7 @@ function normalizeContentBlockDelta(
 
 // ── Tools Channel ─────────────────────────────────────────────────
 
-function normalizeTool(event: V3ProtocolEvent): StigmerRunEvent[] {
+function normalizeTool(event: V3ProtocolEvent): TranscriptEvent[] {
   const data = event.params.data as Record<string, unknown> | undefined;
   if (!data) return [];
 
@@ -209,7 +216,7 @@ function normalizeTool(event: V3ProtocolEvent): StigmerRunEvent[] {
 
 // ── Lifecycle Channel ─────────────────────────────────────────────
 
-function normalizeLifecycle(event: V3ProtocolEvent): StigmerRunEvent[] {
+function normalizeLifecycle(event: V3ProtocolEvent): TranscriptEvent[] {
   const data = event.params.data as Record<string, unknown> | undefined;
   if (!data) return [];
 

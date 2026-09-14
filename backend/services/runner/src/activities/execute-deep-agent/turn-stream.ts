@@ -54,7 +54,7 @@ import { InlinePublisher } from "./inline-publisher.js";
 import { StreamingSideEffects } from "./streaming-side-effects.js";
 import { createV3EventRecorder, type V3ProtocolEvent } from "./v3-event-recorder.js";
 import { normalize } from "./v3-protocol-normalizer.js";
-import { V3StatusBuilder } from "../../harness/transcript/builder.js";
+import { TranscriptBuilder } from "../../harness/transcript/builder.js";
 import type { DeepAgentEngine, DeepAgentGraphInput, DeepAgentWorkspace } from "./turn-setup.js";
 
 /**
@@ -102,7 +102,7 @@ export interface DeepAgentStreamResult {
  * for the model the turn runs on.
  */
 export interface DeepAgentTranscript {
-  readonly builder: V3StatusBuilder;
+  readonly builder: TranscriptBuilder;
   readonly publisher: InlinePublisher;
 }
 
@@ -112,7 +112,7 @@ export function createDeepAgentTranscript(
   engine: DeepAgentEngine,
   workspace: DeepAgentWorkspace,
 ): DeepAgentTranscript {
-  const builder = new V3StatusBuilder(input.executionId, sink.status, {
+  const builder = new TranscriptBuilder(input.executionId, sink.status, {
     onUsage: (usage) => {
       // LangChain's `input_tokens` already INCLUDES the cache buckets (the
       // Anthropic adapter folds them in; the cost advisory reads them the

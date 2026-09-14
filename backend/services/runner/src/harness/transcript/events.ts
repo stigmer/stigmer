@@ -1,13 +1,19 @@
 /**
- * StigmerRunEvent — normalized v3 protocol event types.
+ * TranscriptEvent — the canonical event the transcript builder folds: what
+ * every harness's translator emits and `TranscriptBuilder` consumes to build
+ * the transcript half of the AgentExecutionStatus proto.
  *
- * The V3ProtocolNormalizer converts raw LangGraph ProtocolEvents into
- * these typed variants. V3StatusBuilder consumes them to build the
- * AgentExecutionStatus proto.
- *
- * This is a runner-internal contract (not persisted, not exposed to
- * clients). It isolates the V3StatusBuilder from LangGraph protocol
- * instability (field naming, delta shapes, channel semantics).
+ * A runner-internal contract (not persisted, not exposed to clients). It was
+ * born in the native adapter as `StigmerRunEvent`, the normalized form of
+ * LangGraph's v3 protocol, and promoted here at S4 M1 (2026-09-14) because
+ * its own header already called it the thing that isolates the builder from
+ * the engine — the same move S2 and S3 made for the turn runtime. Today's
+ * members are still LangGraph's shape; S4 M2 cuts them engine-neutral one
+ * ruling at a time (`T01_0_plan.md` §4a, Q-S4-3): `namespace` becomes
+ * `subAgentId?`, `seq`/`node`/`usage`/`lifecycle`/`provider` leave,
+ * `tool_finished.output: unknown` becomes `result: string`, `tool_started`
+ * gains the attribution and gate facts, and `sub_agent_*`, `approval_proposed`
+ * and `system_note` arrive. A Cursor translator then emits this union at M4.
  *
  * ID conventions:
  *   - `runId`  — LLM invocation ID; shared across message events in one turn
@@ -17,7 +23,7 @@
 
 // ── Base ──────────────────────────────────────────────────────────
 
-interface StigmerRunEventBase {
+interface TranscriptEventBase {
   readonly kind: string;
   readonly seq: number;
   /** Formatted namespace string: empty = parent agent, joined with "|" for nested. */
@@ -27,31 +33,31 @@ interface StigmerRunEventBase {
 
 // ── Message Events (from `messages` channel) ──────────────────────
 
-export interface MessageStartEvent extends StigmerRunEventBase {
+export interface MessageStartEvent extends TranscriptEventBase {
   readonly kind: "message_start";
   readonly runId: string;
   readonly messageId?: string;
 }
 
-export interface TextDeltaEvent extends StigmerRunEventBase {
+export interface TextDeltaEvent extends TranscriptEventBase {
   readonly kind: "text_delta";
   readonly runId: string;
   readonly text: string;
 }
 
-export interface ReasoningDeltaEvent extends StigmerRunEventBase {
+export interface ReasoningDeltaEvent extends TranscriptEventBase {
   readonly kind: "reasoning_delta";
   readonly runId: string;
   readonly text: string;
 }
 
-export interface ToolCallArgDeltaEvent extends StigmerRunEventBase {
+export interface ToolCallArgDeltaEvent extends TranscriptEventBase {
   readonly kind: "tool_call_arg_delta";
   readonly callId: string;
   readonly argsChunk: string;
 }
 
-export interface MessageFinishEvent extends StigmerRunEventBase {
+export interface MessageFinishEvent extends TranscriptEventBase {
   readonly kind: "message_finish";
   readonly runId: string;
   readonly usage?: V3UsagePayload;
@@ -60,26 +66,26 @@ export interface MessageFinishEvent extends StigmerRunEventBase {
 
 // ── Tool Events (from `tools` channel — authoritative) ───────────
 
-export interface ToolStartedEvent extends StigmerRunEventBase {
+export interface ToolStartedEvent extends TranscriptEventBase {
   readonly kind: "tool_started";
   readonly callId: string;
   readonly name: string;
   readonly input: Record<string, unknown>;
 }
 
-export interface ToolOutputDeltaEvent extends StigmerRunEventBase {
+export interface ToolOutputDeltaEvent extends TranscriptEventBase {
   readonly kind: "tool_output_delta";
   readonly callId: string;
   readonly delta: string;
 }
 
-export interface ToolFinishedEvent extends StigmerRunEventBase {
+export interface ToolFinishedEvent extends TranscriptEventBase {
   readonly kind: "tool_finished";
   readonly callId: string;
   readonly output: unknown;
 }
 
-export interface ToolErrorEvent extends StigmerRunEventBase {
+export interface ToolErrorEvent extends TranscriptEventBase {
   readonly kind: "tool_error";
   readonly callId: string;
   readonly message: string;
@@ -87,19 +93,19 @@ export interface ToolErrorEvent extends StigmerRunEventBase {
 
 // ── Usage / Lifecycle / Provider ──────────────────────────────────
 
-export interface UsageEvent extends StigmerRunEventBase {
+export interface UsageEvent extends TranscriptEventBase {
   readonly kind: "usage";
   readonly runId: string;
   readonly usage: V3UsagePayload;
 }
 
-export interface LifecycleEvent extends StigmerRunEventBase {
+export interface LifecycleEvent extends TranscriptEventBase {
   readonly kind: "lifecycle";
   readonly event: string;
   readonly graphName?: string;
 }
 
-export interface ProviderEvent extends StigmerRunEventBase {
+export interface ProviderEvent extends TranscriptEventBase {
   readonly kind: "provider";
   readonly provider: string;
   readonly model?: string;
@@ -119,7 +125,7 @@ export interface V3UsagePayload {
 
 // ── Union ─────────────────────────────────────────────────────────
 
-export type StigmerRunEvent =
+export type TranscriptEvent =
   | MessageStartEvent
   | TextDeltaEvent
   | ReasoningDeltaEvent

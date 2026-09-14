@@ -7,7 +7,7 @@ import { create } from "@bufbuild/protobuf";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ExecutionArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { InlinePublisher } from "../inline-publisher.js";
-import { V3StatusBuilder } from "../../../harness/transcript/builder.js";
+import { TranscriptBuilder } from "../../../harness/transcript/builder.js";
 import { LocalWorkspaceBackend } from "../../../shared/workspace/local-backend.js";
 import type { ArtifactStorage } from "../../../shared/artifact-storage.js";
 import { makeInMemoryArtifactStorage } from "../../../__test-utils__/fake-artifact-storage.js";
@@ -15,8 +15,8 @@ import type { WorkspaceBackend } from "../../../shared/workspace/types.js";
 
 // The publisher writes artifacts through the transcript builder's
 // `ExecutionStatusWriter` face (`addArtifact`); the one builder since S3 M2b.
-function makeStatusBuilder(): V3StatusBuilder {
-  return new V3StatusBuilder("exec-test", create(AgentExecutionStatusSchema, {}));
+function makeStatusBuilder(): TranscriptBuilder {
+  return new TranscriptBuilder("exec-test", create(AgentExecutionStatusSchema, {}));
 }
 
 function mockWorkspaceBackend(files: Record<string, string>): WorkspaceBackend {
@@ -55,7 +55,7 @@ function sha256(content: string): string {
 }
 
 describe("InlinePublisher", () => {
-  let sb: V3StatusBuilder;
+  let sb: TranscriptBuilder;
   let storage: ReturnType<typeof mockArtifactStorage>;
   let backend: WorkspaceBackend;
   let publisher: InlinePublisher;
@@ -209,7 +209,7 @@ describe("InlinePublisher with LocalWorkspaceBackend (disk-backed)", () => {
     await mkdir(join(dir, "src"), { recursive: true });
     await writeFile(join(dir, "src/app.ts"), "export const x = 42;", "utf-8");
 
-    const sb = new V3StatusBuilder("exec-disk", create(AgentExecutionStatusSchema, {}));
+    const sb = new TranscriptBuilder("exec-disk", create(AgentExecutionStatusSchema, {}));
     const storage = mockArtifactStorage();
     const backend = new LocalWorkspaceBackend(dir);
 
@@ -237,7 +237,7 @@ describe("InlinePublisher with LocalWorkspaceBackend (disk-backed)", () => {
     const dir = join(tmpdir(), `stigmer-publisher-test-${Date.now()}`);
     await mkdir(dir, { recursive: true });
 
-    const sb = new V3StatusBuilder("exec-miss", create(AgentExecutionStatusSchema, {}));
+    const sb = new TranscriptBuilder("exec-miss", create(AgentExecutionStatusSchema, {}));
     const storage = mockArtifactStorage();
     const backend = new LocalWorkspaceBackend(dir);
 
