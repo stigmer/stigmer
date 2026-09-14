@@ -1,0 +1,288 @@
+# Values for the Stigmer chart. Every key carries its reason; a key without
+# one does not belong here. The chart is docker-compose.yml translated, so
+# where a value has a compose counterpart the comment names it, and a test
+# (deploy/helm/stigmer/__tests__/parity.test.mjs) holds the rendered env of
+# the server and the runner equal to the compose services', name for name.
+#
+# Unknown keys are refused at install (values.schema.json sets
+# additionalProperties: false): a misspelled value fails loudly instead of
+# silently doing nothing. Anything the chart does not model is set through
+# `server.extraEnv` and `runner.extraEnv`.
+
+# The release name is the endpoint: every Service is named from it, so a
+# release named `stigmer` gives `stigmer`, `stigmer-postgres`,
+# `stigmer-temporal`. Set this only to keep a Service name stable across a
+# rename of the release.
+fullnameOverride: ""
+
+image:
+  # One registry for both images; the compose stack pins the same two.
+  registry: ghcr.io/stigmer
+  server:
+    repository: stigmer-server
+    # Empty means v<appVersion> — the release train bumps Chart.yaml and the
+    # images together (the fourth release pin). Set only to run a different
+    # released version, as compose's STIGMER_VERSION does.
+    tag: ""
+  runner:
+    # The compose-runner stage of Dockerfile.sandbox: the runner with the
+    # CLI baked in (it spawns `stigmer mcp-server` for memory and channel
+    # attachments). Not ghcr.io/stigmer/runner, the cloud sandbox image.
+    repository: stigmer-runner
+    tag: ""
+  # IfNotPresent: the tags are immutable release versions, never latest.
+  pullPolicy: IfNotPresent
+  # Names of imagePullSecrets in the release namespace; the public images
+  # need none.
+  pullSecrets: []
+
+secrets:
+  # REQUIRED. The name of a Secret in the release namespace carrying
+  # STIGMER_ENCRYPTION_KEY and STIGMER_RUNNER_TOKEN_KEY (base64-encoded 32
+  # bytes each), plus POSTGRES_PASSWORD when Postgres is bundled. The chart
+  # refuses to render without it, as `docker compose up` refuses without
+  # .env (DD-013: explicit keys, loud fail — the server would otherwise
+  # auto-generate keys into its volume, making the backup and rotation story
+  # invisible exactly where a self-hoster needs it explicit). Never inline:
+  # a values file gets committed; a key in it is .env in git.
+  #
+  #   kubectl create secret generic stigmer-secrets \
+  #     --from-literal=STIGMER_ENCRYPTION_KEY=$(openssl rand -base64 32) \
+  #     --from-literal=STIGMER_RUNNER_TOKEN_KEY=$(openssl rand -base64 32) \
+  #     --from-literal=POSTGRES_PASSWORD=$(openssl rand -hex 24)
+  existingSecret: ""
+
+server:
+  # The address browsers and the CLI reach the API on; feeds
+  # SKILL_TRANSFER_BASE_URL (skill push and download capability URLs are
+  # consumed by the CLI and SDKs, never in-cluster). Empty derives it: the
+  # Ingress API host when ingress.enabled, else http://localhost:7234, the
+  # port-forward posture and compose's own default.
+  publicUrl: ""
+  # The same for artifact download URLs (ARTIFACT_LOCAL_SERVE_URL): the
+  # Ingress artifacts host, else http://localhost:7235.
+  artifactPublicUrl: ""
+  operator:
+    # Optional operator identity for audit attribution
+    # (STIGMER_OPERATOR_EMAIL / STIGMER_OPERATOR_NAME; compose passes the
+    # same two). The server refuses a name without an email at boot.
+    email: ""
+    name: ""
+  oidc:
+    # Authentication is on when the issuer is set (STIGMER_OIDC_ISSUER):
+    # the server then refuses tokenless callers except the health service
+    # and is_public methods. Issuer and audience go together; the chart
+    # refuses one without the other before the server would at boot.
+    issuer: ""
+    audience: ""
+    # The public PKCE client the served console signs in with
+    # (STIGMER_OIDC_CONSOLE_CLIENT_ID). A public identifier, never a
+    # secret. Empty means the console cannot sign in; the server warns.
+    consoleClientId: ""
+  # Requests sized for one team; the cloud runs the composition at 2 CPU /
+  # 3Gi limits. Memory is limited so a leak is a restart, not a node; CPU
+  # is requested, not limited, so a burst (a search-index rebuild at boot
+  # on an adopted database) is not throttled.
+  resources:
+    requests:
+      cpu: 250m
+      memory: 1Gi
+    limits:
+      memory: 2Gi
+  persistence:
+    # The server's /data (HOME): the skill content store, the key files
+    # if any, everything under ~/.stigmer except artifacts. Compose's
+    # server-data volume. Kept on uninstall.
+    size: 5Gi
+    # Empty means the cluster default. ReadWriteOnce.
+    storageClass: ""
+  # The server image runs as `node`; Kubernetes needs the NUMBER to verify
+  # runAsNonRoot (uid 1000, the Dockerfile's). fsGroup 1000 on the pod
+  # makes fresh claims writable by it.
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+    seccompProfile:
+      type: RuntimeDefault
+  # Verbatim EnvVar entries appended to the server container. The chart
+  # models what compose sets; the server's wider surface (LOG_LEVEL, the
+  # OTel endpoint, STIGMER_OAUTH_REDIRECT_URI, …) goes here. The parity
+  # test runs with this empty, so it cannot hide a contract drift.
+  extraEnv: []
+
+runner:
+  llm:
+    # Optional: the name of a Secret carrying ANTHROPIC_API_KEY and/or
+    # CURSOR_API_KEY. Read by explicit references marked optional, never
+    # envFrom (which would inject a Secret's every key). Agents need one
+    # key; workflows without agent tasks run key-free.
+    existingSecret: ""
+  stigmerToken:
+    # REQUIRED when server.oidc.issuer is set: the API key the runner calls
+    # the server with (STIGMER_TOKEN). An API key needs a signed-in
+    # operator, who needs a running server — so an authenticated install
+    # is two steps: install with OIDC off, mint the key
+    # (`stigmer apikey create --name runner`), then upgrade with OIDC on
+    # and this Secret named. The chart refuses the half state.
+    existingSecret: ""
+    key: STIGMER_TOKEN
+  # The runner calls the LLM, runs tools and installs packages at runtime;
+  # its memory is the pod's biggest swing. Requested for one team, limited
+  # so a runaway tool is a restart.
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      memory: 4Gi
+  persistence:
+    # The runner's /data (HOME): paused-session checkpoints, the HITL gate
+    # dir, agent workspaces. Compose's runner-data volume: lifecycle state,
+    # not backup state (the backup is Postgres + artifacts + server-data +
+    # the Secret). Kept on uninstall anyway.
+    size: 10Gi
+    storageClass: ""
+  # The compose-runner image runs as root by its own contract (it installs
+  # packages at runtime), as it does in compose. Every capability is
+  # dropped. A non-root runner image is an OSS follow-up; when it lands,
+  # set runAsNonRoot and runAsUser here.
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+    seccompProfile:
+      type: RuntimeDefault
+  extraEnv: []
+
+artifacts:
+  persistence:
+    # The artifact root the server writes and the runner reads
+    # (stigmer#285: filesystem sharing is the contract). Mounted at
+    # /artifacts in BOTH containers, never nested under /data: a claim
+    # starts empty and a mount nested inside it is created root-owned by
+    # the runtime, which the non-root server cannot write. Compose's
+    # `artifacts` volume. Kept on uninstall.
+    size: 20Gi
+    storageClass: ""
+
+# How long a SIGTERM'd pod may drain. The runner finishes in-flight
+# activities with no deadline of its own, so this is the only cap: 60 s
+# costs at most a redone turn (Temporal retries from the checkpoint) while
+# the cloud's per-session 600 s would stall every upgrade for ten minutes.
+terminationGracePeriodSeconds: 60
+
+waitForDependencies:
+  # compose's `depends_on: condition: service_healthy`, translated. The
+  # server throws at boot when Postgres is unreachable and the runner exits
+  # when Temporal is; without this both crash-loop through Kubernetes'
+  # growing backoff until the dependencies are up. The init container waits
+  # for pg_isready and for a TCP connection to Temporal (whose Service has
+  # no endpoints until the default namespace exists — the stigmer#904 gate).
+  enabled: true
+  # The postgres image the chart already ships, for pg_isready and bash.
+  image: postgres:16
+
+postgres:
+  # Bundled Postgres: one instance, one claim, the compose stack's posture
+  # ("one Postgres instance, one backup story", DD-013). Temporal's
+  # auto-setup creates its two databases on it. Right for one team; for HA
+  # or managed backups set enabled: false and fill externalDatabase.
+  enabled: true
+  image: postgres:16
+  persistence:
+    size: 10Gi
+    storageClass: ""
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 1Gi
+
+externalDatabase:
+  # Used when postgres.enabled is false. The server's DATABASE_URL is
+  # assembled in the container as postgres://<user>:$(PASSWORD)@host:port/db
+  # so the password never lands in rendered YAML. Bundled Temporal creates
+  # its own two databases on this instance and needs CREATE DATABASE.
+  host: ""
+  port: 5432
+  user: postgres
+  database: stigmer
+  # The Secret holding the password; empty means secrets.existingSecret.
+  existingSecret: ""
+  passwordKey: POSTGRES_PASSWORD
+
+temporal:
+  # Bundled Temporal: one temporalio/auto-setup pod, the compose stack's
+  # choice ("a real Temporal server, NOT the CLI's dev-server"). Ready
+  # only when the default namespace exists (stigmer#904). For production
+  # Temporal, Temporal's own chart is the path; set enabled: false and
+  # fill externalTemporal.
+  enabled: true
+  image: temporalio/auto-setup:1.28.0
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      memory: 1Gi
+
+externalTemporal:
+  # Used when temporal.enabled is false. Address and namespace always
+  # travel together: the address without the namespace is half a
+  # coordinate.
+  hostPort: ""
+  namespace: default
+
+service:
+  # ClusterIP; reach it with `kubectl port-forward` or through the Ingress.
+  type: ClusterIP
+
+ingress:
+  # Two Ingress objects, because the two lanes want different annotations:
+  # the API host carries gRPC (the CLI and SDKs), Connect and the console,
+  # and on ingress-nginx needs
+  #   nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
+  # for the CLI's gRPC to pass (without it the browser lanes work and gRPC
+  # fails with "missing status"). The artifacts host is plain HTTP. Setting
+  # a tlsSecretName makes the derived public URL https.
+  enabled: false
+  className: ""
+  api:
+    host: ""
+    annotations: {}
+    tlsSecretName: ""
+  artifacts:
+    host: ""
+    annotations: {}
+    tlsSecretName: ""
+
+# Reserved for Stigmer Enterprise (the editions program's P4, sp.helm-ee):
+# the same chart serves the server-ee image with these filled. Turning any
+# of them on in this version is refused.
+openfga:
+  enabled: false
+redis:
+  enabled: false
+openbao:
+  enabled: false
+licenseKeySecret: ""
+
+# Deliberately absent, and why:
+#   replicas — the server's skill store and key files live on its claim;
+#     one replica is a fact, so a value that could only be 1 would lie.
+#   a sandbox provisioner — the open-source kubernetes and docker drivers
+#     hand a per-session runner no artifact path (stigmer#1099); the values
+#     arrive with the artifact backend that fixes it.
+#   a NetworkPolicy — the pod is one trust domain (stdio MCP servers run
+#     inside the runner container and can reach its filesystem and
+#     network); the README says so in the compose header's words.
+#   an HPA — nothing here scales horizontally yet.
+#   TLS inside the pod — terminate it at the Ingress, as behind Caddy or
+#     nginx with compose.
+#   helm test hooks — the smoke (scripts/smoke-helm.mjs) is the proof and
+#     runs the same probes as the compose stack and the all-in-one.

@@ -1,0 +1,219 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "$comment": "The shape of values.yaml. additionalProperties is false at every level so a misspelled key fails `helm install` instead of silently doing nothing. Cross-field rules (a Secret is required; OIDC needs a runner token; a disabled dependency needs its external address) are template `fail`s in templates/_helpers.tpl, because they need sentences a schema cannot carry. The Enterprise keys are declared here so their refusal names the reason.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "fullnameOverride": { "type": "string", "maxLength": 63 },
+    "image": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "registry": { "type": "string", "minLength": 1 },
+        "server": { "$ref": "#/$defs/imageRef" },
+        "runner": { "$ref": "#/$defs/imageRef" },
+        "pullPolicy": { "type": "string", "enum": ["IfNotPresent", "Always", "Never"] },
+        "pullSecrets": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+      }
+    },
+    "secrets": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "existingSecret": { "type": "string" }
+      }
+    },
+    "server": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "publicUrl": { "$ref": "#/$defs/urlOrEmpty" },
+        "artifactPublicUrl": { "$ref": "#/$defs/urlOrEmpty" },
+        "operator": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "email": { "type": "string" },
+            "name": { "type": "string" }
+          }
+        },
+        "oidc": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "issuer": { "$ref": "#/$defs/urlOrEmpty" },
+            "audience": { "type": "string" },
+            "consoleClientId": { "type": "string" }
+          }
+        },
+        "resources": { "$ref": "#/$defs/resources" },
+        "persistence": { "$ref": "#/$defs/persistence" },
+        "securityContext": { "type": "object" },
+        "extraEnv": { "$ref": "#/$defs/envList" }
+      }
+    },
+    "runner": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "llm": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": { "existingSecret": { "type": "string" } }
+        },
+        "stigmerToken": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "existingSecret": { "type": "string" },
+            "key": { "type": "string", "minLength": 1 }
+          }
+        },
+        "resources": { "$ref": "#/$defs/resources" },
+        "persistence": { "$ref": "#/$defs/persistence" },
+        "securityContext": { "type": "object" },
+        "extraEnv": { "$ref": "#/$defs/envList" }
+      }
+    },
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": { "persistence": { "$ref": "#/$defs/persistence" } }
+    },
+    "terminationGracePeriodSeconds": { "type": "integer", "minimum": 1 },
+    "waitForDependencies": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "image": { "type": "string", "minLength": 1 }
+      }
+    },
+    "postgres": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "image": { "type": "string", "minLength": 1 },
+        "persistence": { "$ref": "#/$defs/persistence" },
+        "resources": { "$ref": "#/$defs/resources" }
+      }
+    },
+    "externalDatabase": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "host": { "type": "string" },
+        "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+        "user": { "type": "string", "minLength": 1 },
+        "database": { "type": "string", "minLength": 1 },
+        "existingSecret": { "type": "string" },
+        "passwordKey": { "type": "string", "minLength": 1 }
+      }
+    },
+    "temporal": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "image": { "type": "string", "minLength": 1 },
+        "resources": { "$ref": "#/$defs/resources" }
+      }
+    },
+    "externalTemporal": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "hostPort": { "type": "string" },
+        "namespace": { "type": "string", "minLength": 1 }
+      }
+    },
+    "service": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": { "type": "string", "enum": ["ClusterIP", "NodePort", "LoadBalancer"] }
+      }
+    },
+    "ingress": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "className": { "type": "string" },
+        "api": { "$ref": "#/$defs/ingressHost" },
+        "artifacts": { "$ref": "#/$defs/ingressHost" }
+      }
+    },
+    "openfga": { "$ref": "#/$defs/reservedEnterpriseUnit" },
+    "redis": { "$ref": "#/$defs/reservedEnterpriseUnit" },
+    "openbao": { "$ref": "#/$defs/reservedEnterpriseUnit" },
+    "licenseKeySecret": {
+      "type": "string",
+      "description": "Reserved for Stigmer Enterprise (sp.helm-ee). This version of the chart serves the open-source image and refuses a license Secret."
+    }
+  },
+  "$defs": {
+    "imageRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "repository": { "type": "string", "minLength": 1 },
+        "tag": { "type": "string" }
+      }
+    },
+    "urlOrEmpty": {
+      "type": "string",
+      "pattern": "^$|^https?://"
+    },
+    "resources": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "requests": { "$ref": "#/$defs/quantities" },
+        "limits": { "$ref": "#/$defs/quantities" }
+      }
+    },
+    "quantities": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cpu": { "type": ["string", "number"] },
+        "memory": { "type": "string" }
+      }
+    },
+    "persistence": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "size": { "type": "string", "pattern": "^[0-9]+(\\.[0-9]+)?(Ei|Pi|Ti|Gi|Mi|Ki|E|P|T|G|M|K)?$" },
+        "storageClass": { "type": "string" }
+      }
+    },
+    "envList": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name"],
+        "properties": { "name": { "type": "string", "minLength": 1 } }
+      }
+    },
+    "ingressHost": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "host": { "type": "string" },
+        "annotations": { "type": "object", "additionalProperties": { "type": "string" } },
+        "tlsSecretName": { "type": "string" }
+      }
+    },
+    "reservedEnterpriseUnit": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Reserved for Stigmer Enterprise (sp.helm-ee); only enabled: false is accepted in this version.",
+      "properties": {
+        "enabled": { "type": "boolean" }
+      }
+    }
+  }
+}

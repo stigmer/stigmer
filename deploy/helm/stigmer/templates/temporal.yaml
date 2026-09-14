@@ -1,0 +1,106 @@
+{{- /*
+Bundled Temporal: compose's `temporal` service, a real Temporal server
+(temporalio/auto-setup), never the CLI's dev-server. Ready means "the default
+namespace is registered", NOT "the frontend answers": auto-setup registers
+the namespace seconds after the frontend starts serving, and a server that
+connects in that window fails its worker creation without a later retry
+(stigmer#904). The readiness exec encodes that, so the Service has no
+endpoint until the namespace exists and the stigmer pod's init container
+(a TCP connect) waits for exactly that moment. Waits for Postgres itself,
+as compose's depends_on does. For production Temporal, Temporal's own chart
+is the path (externalTemporal).
+*/ -}}
+{{- if .Values.temporal.enabled }}
+{{- $fullname := include "stigmer.fullname" . }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullname }}-temporal
+  labels:
+    {{- include "stigmer.labels" . | nindent 4 }}
+    app.kubernetes.io/component: temporal
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "stigmer.selectorLabels" (dict "root" . "component" "temporal") | nindent 4 }}
+  ports:
+    - name: frontend
+      port: 7233
+      targetPort: frontend
+      appProtocol: grpc
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullname }}-temporal
+  labels:
+    {{- include "stigmer.labels" . | nindent 4 }}
+    app.kubernetes.io/component: temporal
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "stigmer.selectorLabels" (dict "root" . "component" "temporal") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "stigmer.selectorLabels" (dict "root" . "component" "temporal") | nindent 8 }}
+    spec:
+      automountServiceAccountToken: false
+      {{- with .Values.image.pullSecrets }}
+      imagePullSecrets:
+        {{- range . }}
+        - name: {{ . }}
+        {{- end }}
+      {{- end }}
+      {{- if .Values.waitForDependencies.enabled }}
+      initContainers:
+        - name: wait-for-postgres
+          image: {{ .Values.waitForDependencies.image }}
+          command:
+            - bash
+            - -c
+            - |
+              until pg_isready -h {{ include "stigmer.postgresHost" . }} -p {{ include "stigmer.postgresPort" . }} -U {{ include "stigmer.postgresUser" . }}; do
+                echo "waiting for postgres at {{ include "stigmer.postgresHost" . }}:{{ include "stigmer.postgresPort" . }}"; sleep 2
+              done
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+      {{- end }}
+      containers:
+        - name: temporal
+          image: {{ .Values.temporal.image }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: DB
+              value: postgres12
+            - name: DB_PORT
+              value: {{ include "stigmer.postgresPort" . | quote }}
+            - name: POSTGRES_USER
+              value: {{ include "stigmer.postgresUser" . | quote }}
+            - name: POSTGRES_PWD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "stigmer.postgresPasswordSecret" . }}
+                  key: {{ include "stigmer.postgresPasswordKey" . }}
+            - name: POSTGRES_SEEDS
+              value: {{ include "stigmer.postgresHost" . | quote }}
+          ports:
+            - name: frontend
+              containerPort: 7233
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - temporal operator namespace describe -n default --address $(hostname -i):7233
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 60
+          resources:
+            {{- toYaml .Values.temporal.resources | nindent 12 }}
+{{- end }}

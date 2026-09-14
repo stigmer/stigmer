@@ -1,0 +1,34 @@
+{{- /*
+The stigmer pod's three claims: compose's server-data, runner-data and
+artifacts volumes. All ReadWriteOnce: the two containers share one pod, so
+node-scoped storage is enough, and every default storage class provides it.
+All kept on uninstall (helm.sh/resource-policy: keep): `helm uninstall`
+removes the workload and leaves the data, as `docker compose down` leaves
+its volumes; a later install of the same release name adopts them.
+*/ -}}
+{{- $fullname := include "stigmer.fullname" . -}}
+{{- range $claim := list
+  (dict "suffix" "server-data" "spec" .Values.server.persistence "why" "the server's /data: the skill content store and everything under ~/.stigmer except artifacts")
+  (dict "suffix" "runner-data" "spec" .Values.runner.persistence "why" "the runner's /data: paused-session checkpoints, the HITL gate dir, agent workspaces")
+  (dict "suffix" "artifacts" "spec" .Values.artifacts.persistence "why" "the artifact root the server writes and the runner reads, mounted at /artifacts in both containers") }}
+---
+# {{ $claim.why }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ $fullname }}-{{ $claim.suffix }}
+  labels:
+    {{- include "stigmer.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: stigmer
+  annotations:
+    helm.sh/resource-policy: keep
+spec:
+  accessModes:
+    - ReadWriteOnce
+  {{- with $claim.spec.storageClass }}
+  storageClassName: {{ . }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ $claim.spec.size }}
+{{- end }}

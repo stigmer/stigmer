@@ -1,0 +1,28 @@
+Stigmer {{ .Chart.AppVersion }} is installed as release {{ .Release.Name }} in namespace {{ .Release.Namespace }}.
+
+The server and the runner share one pod; Postgres is {{ ternary "bundled" (printf "yours at %s" (include "stigmer.postgresHost" .)) .Values.postgres.enabled }} and Temporal is {{ ternary "bundled" (printf "yours at %s" (include "stigmer.temporalHostPort" .)) .Values.temporal.enabled }}.
+
+Wait for the pod, then reach the console:
+{{- if .Values.ingress.enabled }}
+
+  kubectl -n {{ .Release.Namespace }} rollout status deploy/{{ include "stigmer.fullname" . }}
+  open {{ include "stigmer.publicUrl" . }}
+{{- else }}
+
+  kubectl -n {{ .Release.Namespace }} rollout status deploy/{{ include "stigmer.fullname" . }}
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "stigmer.fullname" . }} 7234:7234 7235:7235
+  open http://localhost:7234
+
+Download links and skill transfer URLs are minted for http://localhost:7234 and :7235 (the port-forward above). To serve other machines, add an Ingress (ingress.enabled) or set server.publicUrl and server.artifactPublicUrl.
+{{- end }}
+{{- if not .Values.server.oidc.issuer }}
+
+There is no authentication: every caller that can reach the port has full control. Treat network reachability as the boundary, or turn authentication on with your OIDC provider (server.oidc) after minting the runner's API key — see the chart README, "Authentication".
+{{- else }}
+
+Authentication is on (issuer {{ .Values.server.oidc.issuer }}). Register the console's redirect URI at your provider: {{ include "stigmer.publicUrl" . }}/auth/callback, and the post-logout redirect {{ include "stigmer.publicUrl" . }}/login.
+{{- end }}
+
+One trust domain: stdio MCP servers run inside the runner container and can reach its filesystem and network.
+
+A complete backup is {{ ternary "the bundled Postgres's claim" "your database" .Values.postgres.enabled }}, the {{ include "stigmer.fullname" . }}-artifacts and {{ include "stigmer.fullname" . }}-server-data claims, and the Secret {{ .Values.secrets.existingSecret }}. `helm uninstall` leaves every claim in place.

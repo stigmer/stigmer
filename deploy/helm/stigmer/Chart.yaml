@@ -1,0 +1,35 @@
+# The open-source Stigmer stack as a Helm chart: docker-compose.yml translated
+# (stigmer-cloud project 20260914.02.sp.oss-helm-chart; DD-013 for the
+# posture it carries, DD-003 of the editions program for "one chart, two
+# server images").
+#
+# version == appVersion == the release version. This file is the FOURTH
+# release pin: `make release-pins version=X.Y.Z` bumps both lines and
+# `make release` refuses to tag until they name the new version, so the
+# chart the train publishes always pins the images the same train pushed.
+# Image tags default to v{{ appVersion }} (see values.yaml `image`).
+#
+# `sources` is load-bearing, not decorative: `helm push` writes it as the
+# OCI manifest's org.opencontainers.image.source annotation, which is what
+# links the GHCR package to this repository so the repo's GITHUB_TOKEN keeps
+# write access (the server Dockerfile documents the same linkage for the
+# image packages).
+#
+# kubeVersion >= 1.27: the server's probes are native `grpc:` probes on the
+# unified port (GA in 1.27; the health service is tokenless-exempt for
+# exactly this, stigmer#974).
+apiVersion: v2
+name: stigmer
+description: Stigmer open source on Kubernetes — the server with the console, the runner, and Postgres and Temporal bundled or yours. The compose stack, translated.
+type: application
+version: 3.15.2
+appVersion: "3.15.2"
+kubeVersion: ">=1.27.0-0"
+home: https://stigmer.ai
+sources:
+  - https://github.com/stigmer/stigmer
+keywords:
+  - stigmer
+  - agents
+  - workflows
+  - temporal

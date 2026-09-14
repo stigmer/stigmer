@@ -8,8 +8,10 @@
  *     with key X in the chart;
  *   - a compose value written `${X:-}` (an optional input) may be absent in a
  *     profile that names no Secret for it, or a secretKeyRef;
- *   - a plain compose value equals the chart's after the address table below
- *     (one host became one pod; the artifact path moved out of `/data`, F11);
+ *   - a plain compose value equals the chart's after the address table for
+ *     the profile (one host became one pod; the artifact path moved out of
+ *     `/data`, F11; a bring-your-own profile names its own addresses; the
+ *     public URLs follow the Ingress hosts when there are any);
  *   - the chart may add exactly the names listed in CHART_ONLY (the
  *     `$(POSTGRES_PASSWORD)` expansion source) and, per profile, the names the
  *     profile's own values introduce (OIDC, the runner token).
@@ -19,24 +21,59 @@
  */
 
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { test } from "node:test";
+
+import { parse } from "yaml";
 
 import {
   containerNamed,
   envMap,
   findOne,
+  profileValuesPath,
   readCompose,
   RELEASE,
   renderProfile,
 } from "./helpers.mjs";
 
-/** Compose addresses and paths, and what they become inside one pod. */
-const ADDRESS_TABLE = new Map([
-  ["postgres:5432", `${RELEASE}-postgres:5432`],
-  ["temporal:7233", `${RELEASE}-temporal:7233`],
-  ["http://stigmer-server:7234", "http://localhost:7234"],
-  ["/data/.stigmer/data/artifacts", "/artifacts"],
-]);
+/**
+ * Compose addresses and paths, and what they become for a profile: the
+ * bundled dependencies take the release's Service names; a bring-your-own
+ * profile takes the addresses its values name; the two public URLs follow
+ * the Ingress hosts when there are any, and stay compose's localhost
+ * defaults (the port-forward posture) when there are none.
+ */
+function addressTable(profile) {
+  const values = parse(readFileSync(profileValuesPath(profile), "utf8")) ?? {};
+  const dbHost = values.externalDatabase?.host ?? `${RELEASE}-postgres`;
+  const dbPort = values.externalDatabase?.port ?? 5432;
+  const temporal =
+    values.externalTemporal?.hostPort ?? `${RELEASE}-temporal:7233`;
+  const scheme = (entry) => (entry?.tlsSecretName ? "https" : "http");
+  const publicUrl =
+    values.server?.publicUrl ??
+    (values.ingress?.enabled
+      ? `${scheme(values.ingress.api)}://${values.ingress.api.host}`
+      : "http://localhost:7234");
+  const artifactPublicUrl =
+    values.server?.artifactPublicUrl ??
+    (values.ingress?.enabled
+      ? `${scheme(values.ingress.artifacts)}://${values.ingress.artifacts.host}`
+      : "http://localhost:7235");
+  return {
+    strings: new Map([
+      ["postgres:5432", `${dbHost}:${dbPort}`],
+      ["temporal:7233", temporal],
+      ["http://stigmer-server:7234", "http://localhost:7234"],
+      ["/data/.stigmer/data/artifacts", "/artifacts"],
+    ]),
+    byName: new Map([
+      ["SKILL_TRANSFER_BASE_URL", publicUrl],
+      ["ARTIFACT_LOCAL_SERVE_URL", artifactPublicUrl],
+      ["LOCAL_ARTIFACT_SERVE_URL", artifactPublicUrl],
+    ]),
+  };
+}
 
 /** Names the chart carries that compose does not, and why. */
 const CHART_ONLY = {
@@ -62,9 +99,12 @@ const REQUIRED = /^\$\{([A-Z_]+):\?/;
 const OPTIONAL = /^\$\{([A-Z_]+):-\}$/;
 const EMBEDDED = /\$\{([A-Z_]+):\?[^}]*\}/g;
 
-function translate(composeValue) {
-  let value = String(composeValue).replace(EMBEDDED, (_, name) => `$(${name})`);
-  for (const [from, to] of ADDRESS_TABLE) {
+function translate(table, name, composeValue) {
+  if (table.byName.has(name)) {
+    return table.byName.get(name);
+  }
+  let value = String(composeValue).replace(EMBEDDED, (_, key) => `$(${key})`);
+  for (const [from, to] of table.strings) {
     value = value.split(from).join(to);
   }
   return value;
@@ -72,6 +112,7 @@ function translate(composeValue) {
 
 function assertParity(profile, composeService, chartContainer, role) {
   const compose = readCompose().services[composeService].environment;
+  const table = addressTable(profile);
   const docs = renderProfile(profile);
   const pod = findOne(docs, "Deployment", RELEASE).spec.template.spec;
   const chart = envMap(containerNamed(pod, chartContainer));
@@ -116,7 +157,7 @@ function assertParity(profile, composeService, chartContainer, role) {
     assert.ok(entry, `${role}: compose sets ${name}; the chart does not`);
     assert.equal(
       entry.value,
-      translate(raw),
+      translate(table, name, raw),
       `${role}: ${name} differs from docker-compose.yml after the address table`,
     );
   }

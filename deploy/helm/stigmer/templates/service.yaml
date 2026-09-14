@@ -1,0 +1,26 @@
+{{- /*
+The Service in front of the stigmer pod: 7234 the unified port (gRPC,
+gRPC-Web, Connect, REST and the console) and 7235 the artifact file server,
+compose's two published ports. appProtocol on each so a gateway that reads
+it (Istio, the Gateway API) speaks the right thing to the upstream.
+*/ -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "stigmer.fullname" . }}
+  labels:
+    {{- include "stigmer.labels" . | nindent 4 }}
+    app.kubernetes.io/component: stigmer
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    {{- include "stigmer.selectorLabels" (dict "root" . "component" "stigmer") | nindent 4 }}
+  ports:
+    - name: grpc-api
+      port: 7234
+      targetPort: grpc-api
+      appProtocol: grpc
+    - name: artifacts
+      port: 7235
+      targetPort: artifacts
+      appProtocol: http
