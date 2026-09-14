@@ -11,12 +11,15 @@
  * registry the harness reads at setup, the Cursor `Config` slice, and the
  * per-scenario reset of the harness's module-level caches.
  *
- * What the two `vi.mock` calls a scenario file must carry look like — they are
- * hoisted by vitest and so cannot live here:
+ * What the three `vi.mock` calls a scenario file must carry look like — they
+ * are hoisted by vitest and so cannot live here (the SDK's sqlite entry is a
+ * separate module id, so it is doubled separately; `scripted-sdk.ts`):
  *
  * ```ts
  * vi.mock("@cursor/sdk", async () =>
  *   (await import("../../__test-utils__/scripted-sdk.js")).scriptedCursorSdkModule());
+ * vi.mock("@cursor/sdk/sqlite", async () =>
+ *   (await import("../../__test-utils__/scripted-sdk.js")).scriptedCursorSqliteModule());
  * vi.mock("../../../../client/stigmer-client.js", async () =>
  *   (await import("../../../../__test-utils__/hermetic-activity.js")).hermeticStigmerClientModule());
  * ```

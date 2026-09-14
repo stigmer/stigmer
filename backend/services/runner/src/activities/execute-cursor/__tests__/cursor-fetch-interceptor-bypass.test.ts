@@ -41,16 +41,17 @@ describeWithCursorKey("Fetch Interceptor vs Connect-Node Transport", () => {
 
   it("Agent.create() does NOT go through globalThis.fetch (proving interceptor is useless)", async () => {
     const { Agent } = await import("@cursor/sdk");
+    const { SqliteLocalAgentStore } = await import("@cursor/sdk/sqlite");
 
     const stateRoot = join(tmpdir(), `cursor-intercept-test-${Date.now()}`);
     mkdirSync(stateRoot, { recursive: true });
 
     const agent = await Agent.create({
       apiKey: CURSOR_API_KEY,
-      local: { cwd: stateRoot },
-      platform: {
-        workspaceRef: `intercept-test-${Date.now()}`,
-        stateRoot,
+      local: {
+        cwd: stateRoot,
+        // 1.0.31: the store is caller-owned (`session-store.ts` in production).
+        store: await SqliteLocalAgentStore.open({ workspaceRef: `intercept-test-${Date.now()}`, stateRoot }),
       },
     });
 

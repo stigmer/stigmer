@@ -9,17 +9,20 @@
  *  - `nextRunId` names the run the next send will be given, so a script can be
  *    built with matching event ids before the send happens.
  *  - `agentForWorkspaceRef` hands `Agent.create` the agent declared for the
- *    session the create names (via `platform.workspaceRef`), consulted before
- *    the ordered list and registered for `Agent.resume` by id; a create with no
- *    session, or a session the resolver does not know, falls through to the
- *    list as before.
+ *    session the create names (via the `workspaceRef` of the scripted store it
+ *    passes as `local.store`), consulted before the ordered list and
+ *    registered for `Agent.resume` by id; a create with no store, or a session
+ *    the resolver does not know, falls through to the list as before.
+ *  - `ScriptedLocalAgentStore.open` (the `@cursor/sdk/sqlite` double) records
+ *    every open and dispose on the bound SDK, so a scenario can assert the
+ *    adapter's session-store lifetime.
  */
 
 import { describe, it, expect } from "vitest";
 import type { AgentOptions, SDKMessage } from "@cursor/sdk";
 
 import { ScriptedCursorAgent, defaultRunId, sdkEvents, step } from "../scripted-agent.js";
-import { ScriptedCursorSdk } from "../scripted-sdk.js";
+import { ScriptedCursorSdk, ScriptedLocalAgentStore, bindScriptedSdk } from "../scripted-sdk.js";
 
 /** An agent whose declared turns each play the given events and finish. */
 function agent(id: string, turns: SDKMessage[][] = []): ScriptedCursorAgent {
@@ -76,8 +79,14 @@ describe("ScriptedCursorAgent.nextRunId", () => {
 });
 
 describe("ScriptedCursorSdk.agentForWorkspaceRef", () => {
+  // The scripted store carries only the members the runner touches, not the
+  // SDK's whole `LocalAgentStore`, hence the cast — the same one the mocked
+  // module makes when it stands in for `@cursor/sdk/sqlite`.
   const createFor = (workspaceRef: string | undefined): AgentOptions =>
-    ({ apiKey: "k", ...(workspaceRef !== undefined ? { platform: { workspaceRef, stateRoot: "/tmp/x" } } : {}) }) as unknown as AgentOptions;
+    ({
+      apiKey: "k",
+      local: workspaceRef !== undefined ? { store: new ScriptedLocalAgentStore(workspaceRef, "/tmp/x") } : undefined,
+    }) as unknown as AgentOptions;
 
   it("hands out the session's agent before the ordered list and registers it for resume", () => {
     const forSession = agent("session-agent");
@@ -94,9 +103,24 @@ describe("ScriptedCursorSdk.agentForWorkspaceRef", () => {
     expect(sdk.resolutions.map((r) => `${r.kind}:${r.agentId}`)).toEqual(["create:session-agent", "resume:session-agent", "create:listed-agent"]);
   });
 
-  it("a create without a platform ref falls through to the ordered list", () => {
+  it("a create without a store falls through to the ordered list", () => {
     const listed = agent("listed-only");
     const sdk = new ScriptedCursorSdk({ agents: [listed], catalog: [], agentForWorkspaceRef: () => agent("never") });
     expect(sdk.create(createFor(undefined))).toBe(listed);
+  });
+});
+
+describe("ScriptedLocalAgentStore (the @cursor/sdk/sqlite double)", () => {
+  it("open hands out a store carrying the ref and root asked for, and records opens and disposes on the bound SDK", async () => {
+    const sdk = new ScriptedCursorSdk({ agents: [], catalog: [] });
+    bindScriptedSdk(sdk);
+
+    const store = await ScriptedLocalAgentStore.open({ workspaceRef: "stigmer-session:ses-9", stateRoot: "/tmp/ses-9" });
+    expect(store.workspaceRef).toBe("stigmer-session:ses-9");
+    expect(store.stateRoot).toBe("/tmp/ses-9");
+    expect(sdk.stores).toEqual([store]);
+
+    await store.dispose();
+    expect(store.disposeCalls).toBe(1);
   });
 });

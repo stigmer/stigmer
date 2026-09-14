@@ -79,7 +79,8 @@ const pkgsDir = join(runnerRoot, "dist-slim-pkgs");
  * deepagents, @stigmer/protos, the lot — is compiled into main.js.
  *
  * - @cursor/sdk: resolves its per-platform helper binaries (cursorsandbox,
- *   rg) and native sqlite3 from sibling packages at runtime.
+ *   rg) from sibling packages at runtime. (Its SQLite is `node:sqlite` since
+ *   1.0.31; the native `sqlite3` module it once pulled in is gone.)
  * - jq-wasm: Emscripten loader reads its .wasm relative to its own module.
  *
  * @temporalio/core-bridge (the third native piece) is NOT listed here: it is

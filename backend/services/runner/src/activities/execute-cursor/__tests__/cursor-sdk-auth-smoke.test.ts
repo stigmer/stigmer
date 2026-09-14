@@ -12,6 +12,7 @@
 
 import { describe, it, expect } from "vitest";
 import { Agent } from "@cursor/sdk";
+import { SqliteLocalAgentStore } from "@cursor/sdk/sqlite";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -31,10 +32,10 @@ describeWithCursorKey("Cursor SDK Authentication Smoke Test", () => {
     const agent = await Agent.create({
       apiKey: CURSOR_API_KEY,
       model: { id: "claude-sonnet-4" },
-      local: { cwd: stateRoot },
-      platform: {
-        workspaceRef: `auth-test-${Date.now()}`,
-        stateRoot,
+      local: {
+        cwd: stateRoot,
+        // 1.0.31: the store is caller-owned (`session-store.ts` in production).
+        store: await SqliteLocalAgentStore.open({ workspaceRef: `auth-test-${Date.now()}`, stateRoot }),
       },
     });
 
@@ -50,10 +51,10 @@ describeWithCursorKey("Cursor SDK Authentication Smoke Test", () => {
     const agent = await Agent.create({
       apiKey: CURSOR_API_KEY,
       model: { id: "claude-sonnet-4" },
-      local: { cwd: stateRoot },
-      platform: {
-        workspaceRef: `send-test-${Date.now()}`,
-        stateRoot,
+      local: {
+        cwd: stateRoot,
+        // 1.0.31: the store is caller-owned (`session-store.ts` in production).
+        store: await SqliteLocalAgentStore.open({ workspaceRef: `send-test-${Date.now()}`, stateRoot }),
       },
     });
 
@@ -76,10 +77,10 @@ describeWithCursorKey("Cursor SDK Authentication Smoke Test", () => {
 
     const agent = await Agent.create({
       apiKey: CURSOR_API_KEY,
-      local: { cwd: stateRoot },
-      platform: {
-        workspaceRef: `default-model-test-${Date.now()}`,
-        stateRoot,
+      local: {
+        cwd: stateRoot,
+        // 1.0.31: the store is caller-owned (`session-store.ts` in production).
+        store: await SqliteLocalAgentStore.open({ workspaceRef: `default-model-test-${Date.now()}`, stateRoot }),
       },
     });
 

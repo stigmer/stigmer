@@ -45,6 +45,9 @@ import {
 vi.mock("@cursor/sdk", async () =>
   (await import("../../__test-utils__/scripted-sdk.js")).scriptedCursorSdkModule(),
 );
+vi.mock("@cursor/sdk/sqlite", async () =>
+  (await import("../../__test-utils__/scripted-sdk.js")).scriptedCursorSqliteModule(),
+);
 vi.mock("../../../../client/stigmer-client.js", async () =>
   (await import("../../../../__test-utils__/hermetic-activity.js")).hermeticStigmerClientModule(),
 );
@@ -123,7 +126,7 @@ describe("ExecuteCursor hermetic — unattributed hook block (#205)", () => {
           // failed with its generic hook-block text. Our ledger never saw it.
           step.event(ev.toolCall(CALL_ID, "shell", "error", SHELL_ARGS, HOOK_BLOCK_ERROR)),
           step.event(ev.assistant(FINAL_TEXT)),
-          step.turnEnded({ inputTokens: 1_500, outputTokens: 40 }),
+          step.turnEnded({ inputTokens: 1_500, outputTokens: 40, cacheReadTokens: 0, cacheWriteTokens: 0 }),
           step.finished({ result: FINAL_TEXT }),
         ],
       ],

@@ -42,6 +42,9 @@ import { ExecutionPhase, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agent
 vi.mock("@cursor/sdk", async () =>
   (await import("../../__test-utils__/scripted-sdk.js")).scriptedCursorSdkModule(),
 );
+vi.mock("@cursor/sdk/sqlite", async () =>
+  (await import("../../__test-utils__/scripted-sdk.js")).scriptedCursorSqliteModule(),
+);
 vi.mock("../../../../client/stigmer-client.js", async () =>
   (await import("../../../../__test-utils__/hermetic-activity.js")).hermeticStigmerClientModule(),
 );
@@ -116,7 +119,7 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — file-review capture on a g
           step.event(ev.toolCall(CALL_ID, "edit", "running", { path: FILE, content: AFTER })),
           step.event(ev.toolCall(CALL_ID, "edit", "completed", { path: FILE, content: AFTER }, "ok")),
           step.event(ev.assistant("Done — notes.md now records the review.")),
-          step.turnEnded({ inputTokens: 2_400, outputTokens: 70 }),
+          step.turnEnded({ inputTokens: 2_400, outputTokens: 70, cacheReadTokens: 0, cacheWriteTokens: 0 }),
           step.finished({ result: "Done", model: { id: FIXTURE.model, params: [] } }),
         ],
       ],

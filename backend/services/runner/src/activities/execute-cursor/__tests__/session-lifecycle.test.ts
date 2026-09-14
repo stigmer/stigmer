@@ -1,10 +1,15 @@
 /**
- * Unit tests for resolvePlatformOptions — the Cursor SDK stateRoot derivation.
+ * Unit tests for the local agent's create/resume options and the
+ * transport-recovery wrapper (`session-lifecycle.ts`).
  *
- * stateRoot is keyed by sessionId and rooted at the durable workspace volume so
- * native Agent.resume() survives restart/snapshot-restore and so sessions that
- * share one volume (e.g. a workflow sandbox's child agent executions) never
- * collide. These invariants are correctness-critical, hence the explicit tests.
+ * The SDK module is a `vi.fn` stub so the assertions read the exact options
+ * the adapter hands `Agent.create` / `Agent.resume`. The SDK's sqlite entry is
+ * NOT mocked here on purpose: `createAgent` opens the session's REAL
+ * `SqliteLocalAgentStore` (`node:sqlite`, no network) under a temp workspace
+ * volume, so this file is also where the store the runner ships with is
+ * proven to open, be reused, and dispose — the hermetic goldens double it.
+ * The store's keying and lifetime rules have their own arms in
+ * `session-store.test.ts`.
  */
 
 import { describe, it, expect, afterEach, vi } from "vitest";
@@ -20,13 +25,15 @@ vi.mock("@cursor/sdk", () => ({
 }));
 
 import { Agent } from "@cursor/sdk";
+import type { AgentOptions } from "@cursor/sdk";
+import { SqliteLocalAgentStore } from "@cursor/sdk/sqlite";
 import {
-  resolvePlatformOptions,
   createAgent,
   resumeAgent,
   resolveAgentWithTransportRecovery,
 } from "../session-lifecycle.js";
 import type { CreateAgentOptions } from "../session-lifecycle.js";
+import { releaseAllSessionStores } from "../session-store.js";
 
 const tempRoots: string[] = [];
 
@@ -36,50 +43,25 @@ function freshWorkspaceRoot(): string {
   return dir;
 }
 
-afterEach(() => {
+afterEach(async () => {
+  // Release every store before its directory goes, so the sqlite handles are
+  // closed when the temp roots are removed (and no test inherits a store).
+  await releaseAllSessionStores();
   for (const dir of tempRoots.splice(0)) {
     rmSync(dir, { recursive: true, force: true });
   }
 });
 
-describe("resolvePlatformOptions", () => {
-  it("derives stateRoot under the workspace volume (not $HOME)", () => {
-    const workspaceRootDir = freshWorkspaceRoot();
-    const opts = resolvePlatformOptions("ses-123", workspaceRootDir);
+function lastCreateOptions(): AgentOptions {
+  return vi.mocked(Agent.create).mock.calls.at(-1)![0];
+}
 
-    expect(opts.stateRoot).toBe(
-      join(workspaceRootDir, ".stigmer", "cursor-sdk-state", "ses-123"),
-    );
-    expect(opts.stateRoot.startsWith(workspaceRootDir)).toBe(true);
-    // Created eagerly to prevent ENOENT on first SDK write.
-    expect(existsSync(opts.stateRoot!)).toBe(true);
-    expect(opts.workspaceRef).toBe("stigmer-session:ses-123");
-  });
-
-  it("isolates two sessions sharing one workspace volume into distinct stores", () => {
-    const workspaceRootDir = freshWorkspaceRoot();
-    const a = resolvePlatformOptions("ses-aaa", workspaceRootDir);
-    const b = resolvePlatformOptions("ses-bbb", workspaceRootDir);
-
-    expect(a.stateRoot).not.toBe(b.stateRoot);
-    expect(a.workspaceRef).not.toBe(b.workspaceRef);
-    // Both live under the same shared volume but in session-keyed subdirs.
-    expect(a.stateRoot!.startsWith(join(workspaceRootDir, ".stigmer"))).toBe(true);
-    expect(b.stateRoot!.startsWith(join(workspaceRootDir, ".stigmer"))).toBe(true);
-  });
-
-  it("throws on an empty sessionId (would collide across sessions on a shared volume)", () => {
-    const workspaceRootDir = freshWorkspaceRoot();
-    expect(() => resolvePlatformOptions("", workspaceRootDir)).toThrow(/sessionId is required/);
-  });
-
-  it("throws on an empty workspaceRootDir (state must live on the durable volume)", () => {
-    expect(() => resolvePlatformOptions("ses-123", "")).toThrow(/workspaceRootDir is required/);
-  });
-});
+function lastResumeCall(): [string, Partial<AgentOptions> | undefined] {
+  return vi.mocked(Agent.resume).mock.calls.at(-1)! as [string, Partial<AgentOptions> | undefined];
+}
 
 // ---------------------------------------------------------------------------
-// Workspace binding across create/resume
+// The local options across create/resume
 //
 // Regression: Agent.resume() does not persist local.cwd. When resumeAgent()
 // omitted it, the SDK fell back to process.cwd() — re-rooting the resumed
@@ -87,17 +69,19 @@ describe("resolvePlatformOptions", () => {
 // setting source (the .cursor/hooks.json carrying the HITL approval hook)
 // from that wrong directory. Result: on every resumed turn, file edits and
 // shell commands ran unguarded with no approval card (observed in production
-// execution aex_01ktr5na07f5xtmn0dz3mfjtdp).
+// execution aex_01ktr5na07f5xtmn0dz3mfjtdp). The same rule now covers the
+// store (#1053): a resume without it would look the agent up in a default
+// store derived from cwd, not the one the session's records are in.
 // ---------------------------------------------------------------------------
 
-describe("workspace binding on create/resume", () => {
+describe("local options on create/resume", () => {
   const baseOptions = {
     apiKey: "key",
     sessionId: "ses-cwd-test",
     model: "gpt-test",
   };
 
-  it("createAgent passes the single workspace dir as local.cwd", async () => {
+  it("createAgent passes the single workspace dir as local.cwd, with no dirs", async () => {
     const workspaceRootDir = freshWorkspaceRoot();
     await createAgent({
       ...baseOptions,
@@ -105,13 +89,51 @@ describe("workspace binding on create/resume", () => {
       workspaceRootDir,
     });
 
-    const callOptions = vi.mocked(Agent.create).mock.calls.at(-1)![0] as any;
-    expect(callOptions.local.cwd).toBe("/work/repo-a");
-    expect(callOptions.local.settingSources).toContain("project");
+    const { local } = lastCreateOptions();
+    expect(local?.cwd).toBe("/work/repo-a");
+    expect(local).not.toHaveProperty("dirs");
+    expect(local?.settingSources).toContain("project");
   });
 
-  it("resumeAgent re-supplies local.cwd (not persisted by Agent.resume)", async () => {
+  it("createAgent opens the session's real SQLite store under the workspace volume and passes it as local.store", async () => {
     const workspaceRootDir = freshWorkspaceRoot();
+    await createAgent({
+      ...baseOptions,
+      workspaceDirs: ["/work/repo-a"],
+      workspaceRootDir,
+    });
+
+    const store = lastCreateOptions().local?.store;
+    expect(store).toBeInstanceOf(SqliteLocalAgentStore);
+    const sqlite = store as SqliteLocalAgentStore;
+    expect(sqlite.workspaceRef).toBe("stigmer-session:ses-cwd-test");
+    expect(sqlite.stateRoot).toBe(join(workspaceRootDir, ".stigmer", "cursor-sdk-state", "ses-cwd-test"));
+    // The SDK's layout lands where the runner said, not under $HOME.
+    expect(existsSync(sqlite.stateRoot)).toBe(true);
+  });
+
+  it("createAgent pins the SDK's own retries off (the runner is the retry authority)", async () => {
+    const workspaceRootDir = freshWorkspaceRoot();
+    await createAgent({
+      ...baseOptions,
+      workspaceDirs: ["/work/repo-a"],
+      workspaceRootDir,
+    });
+
+    // 1.0.31 defaults this to true for headless embedders; an absent field
+    // would silently stack the SDK's transport retries under the runner's.
+    expect(lastCreateOptions().local?.enableAgentRetries).toBe(false);
+  });
+
+  it("resumeAgent re-supplies cwd, settingSources, store and the retry pin (nothing under local survives Agent.resume)", async () => {
+    const workspaceRootDir = freshWorkspaceRoot();
+    await createAgent({
+      ...baseOptions,
+      workspaceDirs: ["/work/repo-a"],
+      workspaceRootDir,
+    });
+    const createdWith = lastCreateOptions().local?.store;
+
     await resumeAgent({
       ...baseOptions,
       agentId: "agent-123",
@@ -119,25 +141,31 @@ describe("workspace binding on create/resume", () => {
       workspaceRootDir,
     });
 
-    const [agentId, callOptions] = vi.mocked(Agent.resume).mock.calls.at(-1)! as [string, any];
+    const [agentId, callOptions] = lastResumeCall();
     expect(agentId).toBe("agent-123");
-    // The load-bearing assertion: without cwd the SDK re-roots the agent at
-    // process.cwd() and the project HITL hook never loads on resumed turns.
-    expect(callOptions.local.cwd).toBe("/work/repo-a");
-    expect(callOptions.local.settingSources).toContain("project");
+    // The load-bearing assertions: without cwd the SDK re-roots the agent at
+    // process.cwd() and the project HITL hook never loads on resumed turns;
+    // without the SAME store it looks the agent up somewhere else.
+    expect(callOptions?.local?.cwd).toBe("/work/repo-a");
+    expect(callOptions?.local?.settingSources).toContain("project");
+    expect(callOptions?.local?.store).toBe(createdWith);
+    expect(callOptions?.local?.enableAgentRetries).toBe(false);
   });
 
-  it("resumeAgent passes multiple workspace dirs as an array cwd", async () => {
+  it("passes a multi-root workspace as cwd (the first dir) plus dirs (the rest)", async () => {
     const workspaceRootDir = freshWorkspaceRoot();
     await resumeAgent({
       ...baseOptions,
       agentId: "agent-456",
-      workspaceDirs: ["/work/repo-a", "/work/repo-b"],
+      workspaceDirs: ["/work/repo-a", "/work/repo-b", "/work/repo-c"],
       workspaceRootDir,
     });
 
-    const callOptions = vi.mocked(Agent.resume).mock.calls.at(-1)![1] as any;
-    expect(callOptions.local.cwd).toEqual(["/work/repo-a", "/work/repo-b"]);
+    const [, callOptions] = lastResumeCall();
+    // The SDK merges cwd-first with duplicates dropped, so this is the array
+    // the SDK took whole at 1.0.13, in the same order.
+    expect(callOptions?.local?.cwd).toBe("/work/repo-a");
+    expect(callOptions?.local?.dirs).toEqual(["/work/repo-b", "/work/repo-c"]);
   });
 });
 
