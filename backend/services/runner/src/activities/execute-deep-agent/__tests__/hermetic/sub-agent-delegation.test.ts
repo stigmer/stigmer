@@ -38,6 +38,13 @@
  * runtime, the one enforcement since the cost middleware became advisory
  * (Q-S3-3).
  *
+ * Since S4 M2 C2b (Q-S4-21; M2 finding F-M2-1): deepagents' `task` tool
+ * returns a LangGraph `Command` like `write_todos` does, so the `task` row's
+ * `result` and the sub-agent row's `output` are the nested ToolMessage's
+ * content — `[{"type":"text","text":"The fixture value is forty-two."}]`,
+ * the blocks array the image offload reads — where they were the whole
+ * serialized Command. Those two lines are the whole C2b diff.
+ *
  * Regenerate ONLY after a deliberate behavior change:
  *   npx vitest run src/activities/execute-deep-agent/__tests__/hermetic -u
  */

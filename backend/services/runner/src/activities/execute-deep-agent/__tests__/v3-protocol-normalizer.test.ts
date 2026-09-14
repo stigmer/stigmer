@@ -237,6 +237,33 @@ describe("V3ProtocolNormalizer", () => {
     it("falls back to JSON.stringify for unrecognized shapes", () => {
       expect(resultOf({ foo: "bar" })).toBe(JSON.stringify({ foo: "bar" }));
     });
+
+    // Q-S4-21 (S4 M2 C2b): a state-mutating tool (deepagents' write_todos,
+    // task) returns a LangGraph Command with its ToolMessage nested in the
+    // update; the row shows that message's content, never the whole Command.
+    it("unwraps a LangGraph Command to its ToolMessage's content", () => {
+      const command = {
+        lg_name: "Command",
+        update: {
+          todos: [{ content: "Read the fixture", status: "pending" }],
+          messages: [envelope("Updated todo list to [...]")],
+        },
+        goto: [],
+      };
+      expect(resultOf(command)).toBe("Updated todo list to [...]");
+    });
+
+    it("unwraps a Command whose ToolMessage carries a blocks array to the array (the task tool's shape)", () => {
+      const command = { lg_name: "Command", update: { files: {}, messages: [envelope([{ type: "text", text: "forty-two" }])] }, goto: [] };
+      expect(JSON.parse(resultOf(command))).toEqual([{ type: "text", text: "forty-two" }]);
+    });
+
+    it("reads the LAST message of a Command that carries several, and serializes a Command with none as it came", () => {
+      const several = { lg_name: "Command", update: { messages: [envelope("first"), envelope("the tool's reply")] } };
+      expect(resultOf(several)).toBe("the tool's reply");
+      const none = { lg_name: "Command", update: { todos: [] }, goto: [] };
+      expect(resultOf(none)).toBe(JSON.stringify(none));
+    });
   });
 
   // ── Usage, read beside the transcript (S4 M2 C1) ─────────────────

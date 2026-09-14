@@ -16,7 +16,7 @@
             "description": "Look up the fixture value.",
             "subagent_type": "helper"
           },
-          "result": "{\"lg_name\":\"Command\",\"update\":{\"files\":{},\"messages\":[{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"ToolMessage\"],\"kwargs\":{\"content\":[{\"type\":\"text\",\"text\":\"The fixture value is forty-two.\"}],\"tool_call_id\":\"call-hermetic-task-0001\",\"name\":\"task\",\"additional_kwargs\":{},\"response_metadata\":{}}}]},\"goto\":[]}",
+          "result": "[{\"type\":\"text\",\"text\":\"The fixture value is forty-two.\"}]",
           "status": "TOOL_CALL_COMPLETED",
           "startedAt": "2026-01-01T00:00:01.000Z",
           "completedAt": "2026-01-01T00:00:02.000Z",
@@ -36,7 +36,7 @@
       "id": "call-hermetic-task-0001",
       "name": "helper",
       "input": "Look up the fixture value.",
-      "output": "{\"lg_name\":\"Command\",\"update\":{\"files\":{},\"messages\":[{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"ToolMessage\"],\"kwargs\":{\"content\":[{\"type\":\"text\",\"text\":\"The fixture value is forty-two.\"}],\"tool_call_id\":\"call-hermetic-task-0001\",\"name\":\"task\",\"additional_kwargs\":{},\"response_metadata\":{}}}]},\"goto\":[]}",
+      "output": "[{\"type\":\"text\",\"text\":\"The fixture value is forty-two.\"}]",
       "status": "SUB_AGENT_COMPLETED",
       "startedAt": "2026-01-01T00:00:01.000Z",
       "completedAt": "2026-01-01T00:00:02.000Z",

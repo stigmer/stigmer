@@ -7,10 +7,10 @@
  * `T01_0_plan.md` §3). It also answers the loop's one non-transcript
  * question about the wire — {@link usageOf}, the usage a `message-finish`
  * carries (S4 M2 C1) — so the loop never parses a raw event itself. It
- * renders a tool's result to the string the row carries (C2a; the LangChain
- * envelope is its to unwrap, never the builder's). At later M2 commits it
- * takes over what the builder still knows of the engine — the Command
- * unwrap (Q-S4-21), the sub-agent scope resolution, the gate answer — and
+ * renders a tool's result to the string the row carries (C2a, C2b; the
+ * LangChain envelope and the LangGraph Command are its to unwrap, never the
+ * builder's). At later M2 commits it takes over what the builder still knows
+ * of the engine — the sub-agent scope resolution, the gate answer — and
  * emits `sub_agent_started/finished/failed` for a `task` call (Q-S4-4).
  *
  * What the wire carries that the transcript does not (C1): `lifecycle` and
@@ -230,11 +230,20 @@ function serializeToolContent(content: unknown): string | undefined {
  * between M1 and M2). v3 wraps a LangChain `ToolMessage` in a constructor
  * envelope, `{ lc, type, id, kwargs: { content, status, ... } }`; the content
  * is what the row shows. Anything else is serialized as it came.
+ *
+ * A state-mutating tool returns a LangGraph `Command` instead —
+ * `{ lg_name: "Command", update: { ..., messages: [ToolMessage] }, goto }` —
+ * with its ToolMessage nested in the update (deepagents' `write_todos` and
+ * `task` both do). The row shows that ToolMessage's content, not the whole
+ * Command (S4 M2 C2b, Q-S4-21; until then the row carried the serialized
+ * Command, the todos array twice over — M0 finding F-M0-2).
  */
 function extractToolResult(output: unknown): string {
   if (typeof output === "string") return output;
   if (typeof output === "object" && output !== null) {
     const obj = output as Record<string, unknown>;
+    const commandMessage = toolMessageOfCommand(obj);
+    if (commandMessage !== undefined) return extractToolResult(commandMessage);
     const kwargs = obj.kwargs as Record<string, unknown> | undefined;
     if (kwargs) {
       const fromKwargs = serializeToolContent(kwargs.content);
@@ -248,6 +257,20 @@ function extractToolResult(output: unknown): string {
   } catch {
     return "[serialization error]";
   }
+}
+
+/**
+ * The ToolMessage a LangGraph `Command` carries in `update.messages`, or
+ * `undefined` when the object is not a Command or carries none. The LAST
+ * message is the tool's own reply (a Command may prepend others); a Command
+ * with no message falls through to plain serialization, so nothing is lost.
+ */
+function toolMessageOfCommand(obj: Record<string, unknown>): unknown {
+  if (obj.lg_name !== "Command") return undefined;
+  const update = obj.update as Record<string, unknown> | undefined;
+  const messages = update?.messages;
+  if (!Array.isArray(messages) || messages.length === 0) return undefined;
+  return messages[messages.length - 1];
 }
 
 // ── Defensive Field Parsers ───────────────────────────────────────

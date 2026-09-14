@@ -24,7 +24,7 @@
               }
             ]
           },
-          "result": "{\"lg_name\":\"Command\",\"update\":{\"todos\":[{\"content\":\"Read the fixture\",\"status\":\"pending\"},{\"content\":\"Summarise it\",\"status\":\"in_progress\"}],\"messages\":[{\"lc\":1,\"type\":\"constructor\",\"id\":[\"langchain_core\",\"messages\",\"ToolMessage\"],\"kwargs\":{\"content\":\"Updated todo list to [{\\\"content\\\":\\\"Read the fixture\\\",\\\"status\\\":\\\"pending\\\"},{\\\"content\\\":\\\"Summarise it\\\",\\\"status\\\":\\\"in_progress\\\"}]\",\"tool_call_id\":\"call-hermetic-todos-0001\",\"additional_kwargs\":{},\"response_metadata\":{}}}]},\"goto\":[]}",
+          "result": "Updated todo list to [{\"content\":\"Read the fixture\",\"status\":\"pending\"},{\"content\":\"Summarise it\",\"status\":\"in_progress\"}]",
           "status": "TOOL_CALL_COMPLETED",
           "startedAt": "2026-01-01T00:00:01.000Z",
           "completedAt": "2026-01-01T00:00:01.000Z",
