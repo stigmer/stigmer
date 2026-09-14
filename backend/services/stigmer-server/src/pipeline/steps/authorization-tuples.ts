@@ -78,7 +78,7 @@ import type { PipelineStep } from "../pipeline.js";
 import type { RequestContext } from "../request-context.js";
 import { EXISTING_RESOURCE_KEY } from "./load-existing.js";
 import type { HasMetadataShape } from "./shapes.js";
-import { metadataOf } from "./shapes.js";
+import { metadataOf, parentIdOf } from "./shapes.js";
 
 // ---------------------------------------------------------------------------
 // Visibility shape policy — the reconciler's level→shape mapping, ported
@@ -156,40 +156,19 @@ export function diffVisibilityShapes(
 }
 
 // ---------------------------------------------------------------------------
-// Parent-id resolution — the ParentIdExtractorRegistry port. Zero
-// hardcoded kind knowledge: the proto config names the spec field, this
-// module reads it structurally (protobuf-es spec messages are plain
-// objects whose properties are the camelCase proto field names).
+// Parent-id resolution — the ParentIdExtractorRegistry port. The spec-field
+// read itself is shapes.ts's `parentIdOf`, shared with the list read scope
+// (20260913.04 T04) so the id a tuple is written with and the id the scope
+// asks about are one read. This module adds the create-time rule: a
+// missing parent fails the request.
 // ---------------------------------------------------------------------------
-
-/** proto snake_case field name → the generated property name. */
-function camelCaseFieldName(specField: string): string {
-  return specField.replace(/_([a-z0-9])/g, (_, ch: string) => ch.toUpperCase());
-}
-
-/**
- * Extracts the parent id named by the config from the resource's spec.
- * Returns "" for every miss (no spec, no field, non-string value) — the
- * caller decides whether that is fatal, exactly as Java's registry
- * returns null and the service throws.
- */
-function extractParentId(resource: Message, specField: string): string {
-  // Structural access is the shapes.ts idiom: spec messages are plain
-  // objects; the property name is the camelCase form of the proto field.
-  const spec = (resource as unknown as { spec?: Record<string, unknown> }).spec;
-  if (spec === undefined) {
-    return "";
-  }
-  const value = spec[camelCaseFieldName(specField)];
-  return typeof value === "string" ? value : "";
-}
 
 function resolveParentLink(
   kind: ApiResourceKind,
   resource: Message,
   parentConfig: ParentRelationConfig,
 ): ResolvedParentLink {
-  const parentId = extractParentId(resource, parentConfig.specField);
+  const parentId = parentIdOf(resource, parentConfig.specField);
   if (parentId === "") {
     // Java: "Parent ID required for X but not found" → the request fails.
     throw internalError(

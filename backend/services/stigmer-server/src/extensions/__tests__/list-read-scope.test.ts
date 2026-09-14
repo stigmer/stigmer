@@ -14,6 +14,12 @@
  *     a fraction of the candidates);
  *   - the candidates carry {id, org, labels} — the driver's guest
  *     cookie rule keys on labels;
+ *   - a kind whose authorization is its parent's (kind_meta PARENT scope
+ *     + INHERITED owner; agent_execution → session) carries
+ *     `authorizationParent` on every candidate whose spec names it, the
+ *     same ResolvedParentLink the tuple lifecycle wrote; every other kind
+ *     and every parentless row carries none (stigmer-cloud 20260913.04
+ *     T04);
  *   - a scope failure PROPAGATES — never an empty result (the outage
  *     contract: empty means "authorized to see nothing", outage means
  *     INTERNAL through the caller's sanitized arm).
@@ -153,6 +159,138 @@ describe("restrictListByReadScope", () => {
       { id: "ses_b", org: "acme", labels: {} },
       { id: "ses_c", org: "rival", labels: {} },
     ]);
+  });
+
+  describe("authorizationParent — the parent a kind's authorization is (20260913.04 T04)", () => {
+    function recordingScope(keep: ReadonlyArray<string>) {
+      const seen: ReadonlyArray<ListEntryMeta>[] = [];
+      const scope: ListReadScope = {
+        authorizedResourceIds: () => Promise.resolve(new Set<string>()),
+        restrictListEntries: (_caller, _kind, entries) => {
+          seen.push(entries);
+          return Promise.resolve(new Set(keep));
+        },
+      };
+      return { scope, seen };
+    }
+
+    it("an agent_execution candidate carries its session as the ResolvedParentLink the tuple lifecycle wrote", async () => {
+      const executions = [
+        {
+          metadata: { id: "aex_1", org: "acme", labels: {} },
+          spec: { sessionId: "ses_a" },
+        },
+        {
+          metadata: { id: "aex_2", org: "acme", labels: {} },
+          spec: { sessionId: "ses_a" },
+        },
+        {
+          metadata: { id: "aex_3", org: "acme", labels: {} },
+          spec: { sessionId: "ses_b" },
+        },
+      ];
+      const { scope, seen } = recordingScope(["aex_1", "aex_3"]);
+      const kept = await restrictListByReadScope(
+        scope,
+        caller,
+        ApiResourceKind.agent_execution,
+        executions,
+        "",
+      );
+      expect(kept.map((r) => r.metadata.id)).toEqual(["aex_1", "aex_3"]);
+      expect(seen[0]).toEqual([
+        {
+          id: "aex_1",
+          org: "acme",
+          labels: {},
+          authorizationParent: {
+            relation: "session",
+            parentKind: ApiResourceKind.session,
+            parentId: "ses_a",
+          },
+        },
+        {
+          id: "aex_2",
+          org: "acme",
+          labels: {},
+          authorizationParent: {
+            relation: "session",
+            parentKind: ApiResourceKind.session,
+            parentId: "ses_a",
+          },
+        },
+        {
+          id: "aex_3",
+          org: "acme",
+          labels: {},
+          authorizationParent: {
+            relation: "session",
+            parentKind: ApiResourceKind.session,
+            parentId: "ses_b",
+          },
+        },
+      ]);
+    });
+
+    it("a row whose spec does not name its parent carries no parent — offered as itself, never dropped", async () => {
+      const executions = [
+        { metadata: { id: "aex_orphan", org: "acme", labels: {} }, spec: {} },
+        { metadata: { id: "aex_specless", org: "acme", labels: {} } },
+      ];
+      const { scope, seen } = recordingScope(["aex_orphan", "aex_specless"]);
+      const kept = await restrictListByReadScope(
+        scope,
+        caller,
+        ApiResourceKind.agent_execution,
+        executions,
+        "",
+      );
+      expect(kept.map((r) => r.metadata.id)).toEqual([
+        "aex_orphan",
+        "aex_specless",
+      ]);
+      expect(seen[0]).toEqual([
+        { id: "aex_orphan", org: "acme", labels: {} },
+        { id: "aex_specless", org: "acme", labels: {} },
+      ]);
+    });
+
+    it("a kind whose authorization is its own carries no parent even when its spec names one", async () => {
+      // A workflow_execution links its workflow_instance (an additional
+      // parent, partial opt-in inheritance) and owns itself: not the pair.
+      const runs = [
+        {
+          metadata: { id: "wex_1", org: "acme", labels: {} },
+          spec: { workflowInstanceId: "wfi_1" },
+        },
+      ];
+      const { scope, seen } = recordingScope(["wex_1"]);
+      await restrictListByReadScope(
+        scope,
+        caller,
+        ApiResourceKind.workflow_execution,
+        runs,
+        "",
+      );
+      expect(seen[0]).toEqual([{ id: "wex_1", org: "acme", labels: {} }]);
+    });
+
+    it("no scope composed = the input unchanged, the parent never resolved", async () => {
+      const executions = [
+        {
+          metadata: { id: "aex_1", org: "acme", labels: {} },
+          spec: { sessionId: "ses_a" },
+        },
+      ];
+      const kept = await restrictListByReadScope(
+        undefined,
+        caller,
+        ApiResourceKind.agent_execution,
+        executions,
+        "acme",
+      );
+      expect(kept).toEqual(executions);
+    });
   });
 
   it("a scope failure propagates — never an empty result", async () => {
