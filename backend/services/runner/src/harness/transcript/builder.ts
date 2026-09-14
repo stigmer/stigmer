@@ -69,7 +69,7 @@ import {
   AgentMessageSchema,
   ToolCallSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
 import type { WorkspaceWriteBack } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/writeback_pb";
@@ -77,6 +77,7 @@ import {
   MessageType,
   SubAgentStatus,
   ToolCallStatus,
+  ToolCallStreamingSource,
   ToolKind,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { POLICY_ENGINE_VERSION, toProtoPolicySource } from "../../shared/approval-policy.js";
@@ -206,12 +207,7 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
    * the shared `cancelInProgressSubAgentProtos`.
    */
   finalize(): void {
-    for (const transcript of this.state.transcripts()) {
-      for (const message of transcript.messages) {
-        message.isStreaming = false;
-        for (const tc of message.toolCalls) tc.isStreaming = false;
-      }
-    }
+    for (const transcript of this.state.transcripts()) finalizeStreaming(transcript);
   }
 
   // ── Artifact & WriteBack ───────────────────────────────────────────
@@ -411,14 +407,22 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
     const tc = scope.toolCalls.get(callId);
     if (!tc) return;
 
+    // An UPSERT, not an overwrite (Q-S4-3(c); Cursor's `mergeToolCallEvent`):
+    // the status advances monotonically — a settled row never regresses;
+    // `completedAt` is stamped once; only a non-empty result overwrites, so a
+    // completion that carries none never wipes the output an earlier one
+    // did. Two completions per call is the Cursor shape after stigmer#1053
+    // (the SDK's timing delta precedes the stream's completion); on native
+    // there is one, and the rules read as the plain write they replace.
+    //
     // Store the faithful result; bounding the gRPC payload is owned solely by
     // the persist chokepoint (offload + enforce in status.ts/status-offload.ts).
     // Truncating here would corrupt binary content (e.g. a screenshot's base64)
     // before offload can lift it into a renderable ToolCallOutputRef.
-    tc.status = ToolCallStatus.TOOL_CALL_COMPLETED;
-    tc.result = result;
-    tc.completedAt = utcTimestamp();
-    tc.isStreaming = false;
+    if (!isSettled(tc.status)) tc.status = ToolCallStatus.TOOL_CALL_COMPLETED;
+    if (!tc.completedAt) tc.completedAt = utcTimestamp();
+    if (result) tc.result = result;
+    stopStreaming(tc);
     scope.argBuffers.delete(callId);
 
     // Project a completed to-do write into status.todos. deepagents' write_todos
@@ -440,10 +444,15 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
     const tc = scope.toolCalls.get(callId);
     if (!tc) return;
 
-    tc.status = ToolCallStatus.TOOL_CALL_FAILED;
-    tc.error = message;
-    tc.completedAt = utcTimestamp();
-    tc.isStreaming = false;
+    // The same upsert as a finish (Q-S4-3(c)). A gated row that fails is the
+    // Cursor boundary's shape — the hook denied the call and the stream
+    // reports `error`; the boundary parks it after the stream — so the
+    // moment approval became due is stamped here if nothing stamped it yet.
+    if (!isSettled(tc.status)) tc.status = ToolCallStatus.TOOL_CALL_FAILED;
+    if (!tc.completedAt) tc.completedAt = utcTimestamp();
+    if (message) tc.error = message;
+    if (tc.requiresApproval && !tc.approvalRequestedAt) tc.approvalRequestedAt = utcTimestamp();
+    stopStreaming(tc);
     scope.argBuffers.delete(callId);
 
     this._forceNextUpdate = true;
@@ -466,7 +475,12 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
   private handleToolOutputDelta(scope: Transcript, callId: string, delta: string): void {
     const tc = scope.toolCalls.get(callId);
     if (!tc) return;
+    // Output arriving live: the row streams its OUTPUT (Q-S4-3(d); Cursor's
+    // enricher), so the client can show the partial result as it grows;
+    // the finish, or `finalize()`, closes it.
     tc.result = (tc.result ?? "") + delta;
+    tc.isStreaming = true;
+    tc.streamingSource = ToolCallStreamingSource.OUTPUT;
   }
 
   // ── Content Helpers ───────────────────────────────────────────────
@@ -519,10 +533,33 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
   }
 }
 
-/** Every streaming flag off in one transcript — what a closed sub-agent owes its own messages. */
+/** Every streaming flag off in one transcript — messages and rows. */
 function finalizeStreaming(transcript: Transcript): void {
   for (const message of transcript.messages) {
     message.isStreaming = false;
-    for (const tc of message.toolCalls) tc.isStreaming = false;
+    for (const tc of message.toolCalls) stopStreaming(tc);
   }
+}
+
+/** A row no longer streaming: the flag off and the source cleared, so a stale OUTPUT marker never outlives the stream. */
+function stopStreaming(tc: ToolCall): void {
+  if (!tc.isStreaming) return;
+  tc.isStreaming = false;
+  tc.streamingSource = ToolCallStreamingSource.UNSPECIFIED;
+}
+
+/**
+ * A row that has finished, however it finished — the statuses a later event
+ * must not move backwards (Cursor's `isTerminalToolStatus`). INTERRUPTED is
+ * deliberately NOT here: it is server-authored when an execution
+ * terminalized with the call in flight, and a recovery-replayed event must
+ * be able to advance the row to its true outcome (the enum's recovery
+ * supersede rule; `shared/tool-row.ts` explains the two sets).
+ */
+function isSettled(status: ToolCallStatus): boolean {
+  return (
+    status === ToolCallStatus.TOOL_CALL_COMPLETED ||
+    status === ToolCallStatus.TOOL_CALL_FAILED ||
+    status === ToolCallStatus.TOOL_CALL_SKIPPED
+  );
 }
