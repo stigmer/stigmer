@@ -17,6 +17,7 @@
           "status": "TOOL_CALL_COMPLETED",
           "startedAt": "2026-01-01T00:00:02.000Z",
           "completedAt": "2026-01-01T00:00:02.000Z",
+          "argsPreview": "{\"file_path\":\"/notes.md\",\"old_string\":\"first\\n\",\"new_string\":\"first\\nsecond\\n\"}",
           "toolKind": "TOOL_KIND_FILE_EDIT",
           "approvalPolicySource": "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
           "policyEngineVersion": "phase-7",

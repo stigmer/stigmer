@@ -16,6 +16,7 @@
           "status": "TOOL_CALL_COMPLETED",
           "startedAt": "2026-01-01T00:00:01.000Z",
           "completedAt": "2026-01-01T00:00:01.000Z",
+          "argsPreview": "{\"file_path\":\"/report.md\",\"content\":\"# Report\\n\\nAll fixtures nominal.\\n\"}",
           "toolKind": "TOOL_KIND_FILE_WRITE",
           "approvalPolicySource": "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
           "policyEngineVersion": "phase-7",

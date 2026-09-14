@@ -32,7 +32,9 @@
  *
  *   - A row per `callId`, indexed at construction over a seeded transcript,
  *     reconciled in place on a re-emitted start (a WAITING row flips to
- *     RUNNING; native's durable-checkpoint resume) — never duplicated.
+ *     RUNNING; native's durable-checkpoint resume) — never duplicated. Every
+ *     row with args carries `argsPreview`, elided and redacted, salient
+ *     fields verbatim (Q-S4-16).
  *   - The AI-message boundary (Q-S4-5; native's own rule, made correct by
  *     scoping): a tool row attaches to the scope's current AI message — the
  *     latest with text, the seed's last AI message over a seeded transcript
@@ -89,7 +91,7 @@ import {
   ToolKind,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { POLICY_ENGINE_VERSION, toProtoPolicySource } from "../../shared/approval-policy.js";
-import { sanitizeArgsPreview } from "../../shared/args-preview.js";
+import { SALIENT_ARG_FIELDS, buildElidedArgsPreview } from "../../shared/args-preview.js";
 import { classifyTool } from "../../shared/tool-kind.js";
 import { applyTodoUpdate } from "../../shared/todos.js";
 import { utcTimestamp } from "../../shared/status.js";
@@ -384,6 +386,7 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
 
     if (Object.keys(input).length > 0) {
       tc.args = input as JsonObject;
+      stampArgsPreview(tc, input);
     }
 
     if (event.mcpServerSlug) {
@@ -543,8 +546,7 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
     }
     if (event.args && Object.keys(event.args).length > 0) {
       tc.args = event.args as JsonObject;
-      const argsPreview = sanitizeArgsPreview(event.args);
-      if (argsPreview) tc.argsPreview = argsPreview;
+      stampArgsPreview(tc, event.args);
     }
     if (event.contentDigest) tc.approvalContentDigest = event.contentDigest;
 
@@ -619,6 +621,20 @@ function finalizeStreaming(transcript: Transcript): void {
     message.isStreaming = false;
     for (const tc of message.toolCalls) stopStreaming(tc);
   }
+}
+
+/**
+ * The row's `args_preview`, on EVERY row with args (Q-S4-16; S4 M2 C7):
+ * `message.proto` promises it sanitized, redacted, at creation, for inline
+ * visibility, and the one builder that keeps it small and always valid JSON
+ * is `buildElidedArgsPreview` over the platform's salient fields. Until C7
+ * native stamped a whole-string-truncating preview on gated rows only and
+ * Cursor stamped `JSON.stringify(args)` unredacted. An empty preview (a
+ * cycle in the args) leaves the field unset rather than failing the row.
+ */
+function stampArgsPreview(tc: ToolCall, args: Record<string, unknown>): void {
+  const preview = buildElidedArgsPreview(args, SALIENT_ARG_FIELDS);
+  if (preview) tc.argsPreview = preview;
 }
 
 /** A row no longer streaming: the flag off and the source cleared, so a stale OUTPUT marker never outlives the stream. */

@@ -16,6 +16,7 @@
           "status": "TOOL_CALL_COMPLETED",
           "startedAt": "2026-01-01T00:00:01.000Z",
           "completedAt": "2026-01-01T00:00:02.000Z",
+          "argsPreview": "{\"description\":\"Look up the fixture value.\",\"subagent_type\":\"helper\"}",
           "toolKind": "TOOL_KIND_SUBAGENT"
         }
       ]

@@ -15,6 +15,7 @@
           "status": "TOOL_CALL_COMPLETED",
           "startedAt": "2026-01-01T00:00:01.000Z",
           "completedAt": "2026-01-01T00:00:01.000Z",
+          "argsPreview": "{\"file_path\":\"/f0.md\"}",
           "toolKind": "TOOL_KIND_FILE_READ"
         }
       ]
@@ -34,6 +35,7 @@
           "status": "TOOL_CALL_COMPLETED",
           "startedAt": "2026-01-01T00:00:02.000Z",
           "completedAt": "2026-01-01T00:00:02.000Z",
+          "argsPreview": "{\"file_path\":\"/f1.md\"}",
           "toolKind": "TOOL_KIND_FILE_READ"
         }
       ]
@@ -53,6 +55,7 @@
           "status": "TOOL_CALL_COMPLETED",
           "startedAt": "2026-01-01T00:00:03.000Z",
           "completedAt": "2026-01-01T00:00:03.000Z",
+          "argsPreview": "{\"file_path\":\"/f2.md\"}",
           "toolKind": "TOOL_KIND_FILE_READ"
         }
       ]
@@ -72,6 +75,7 @@
           "status": "TOOL_CALL_COMPLETED",
           "startedAt": "2026-01-01T00:00:04.000Z",
           "completedAt": "2026-01-01T00:00:04.000Z",
+          "argsPreview": "{\"file_path\":\"/f3.md\"}",
           "toolKind": "TOOL_KIND_FILE_READ"
         }
       ]
@@ -91,6 +95,7 @@
           "status": "TOOL_CALL_COMPLETED",
           "startedAt": "2026-01-01T00:00:05.000Z",
           "completedAt": "2026-01-01T00:00:05.000Z",
+          "argsPreview": "{\"file_path\":\"/f4.md\"}",
           "toolKind": "TOOL_KIND_FILE_READ"
         }
       ]
@@ -110,6 +115,7 @@
           "status": "TOOL_CALL_COMPLETED",
           "startedAt": "2026-01-01T00:00:06.000Z",
           "completedAt": "2026-01-01T00:00:06.000Z",
+          "argsPreview": "{\"file_path\":\"/f5.md\"}",
           "toolKind": "TOOL_KIND_FILE_READ"
         }
       ]
@@ -129,6 +135,7 @@
           "status": "TOOL_CALL_COMPLETED",
           "startedAt": "2026-01-01T00:00:07.000Z",
           "completedAt": "2026-01-01T00:00:07.000Z",
+          "argsPreview": "{\"file_path\":\"/f6.md\"}",
           "toolKind": "TOOL_KIND_FILE_READ"
         }
       ]
@@ -148,6 +155,7 @@
           "status": "TOOL_CALL_COMPLETED",
           "startedAt": "2026-01-01T00:00:08.000Z",
           "completedAt": "2026-01-01T00:00:08.000Z",
+          "argsPreview": "{\"file_path\":\"/f7.md\"}",
           "toolKind": "TOOL_KIND_FILE_READ"
         }
       ]
@@ -167,6 +175,7 @@
           "status": "TOOL_CALL_COMPLETED",
           "startedAt": "2026-01-01T00:00:09.000Z",
           "completedAt": "2026-01-01T00:00:09.000Z",
+          "argsPreview": "{\"file_path\":\"/f8.md\"}",
           "toolKind": "TOOL_KIND_FILE_READ"
         }
       ]
@@ -186,6 +195,7 @@
           "status": "TOOL_CALL_COMPLETED",
           "startedAt": "2026-01-01T00:00:10.000Z",
           "completedAt": "2026-01-01T00:00:10.000Z",
+          "argsPreview": "{\"file_path\":\"/f9.md\"}",
           "toolKind": "TOOL_KIND_FILE_READ"
         }
       ]
@@ -205,6 +215,7 @@
           "status": "TOOL_CALL_COMPLETED",
           "startedAt": "2026-01-01T00:00:11.000Z",
           "completedAt": "2026-01-01T00:00:11.000Z",
+          "argsPreview": "{\"file_path\":\"/f10.md\"}",
           "toolKind": "TOOL_KIND_FILE_READ"
         }
       ]
@@ -224,6 +235,7 @@
           "status": "TOOL_CALL_COMPLETED",
           "startedAt": "2026-01-01T00:00:12.000Z",
           "completedAt": "2026-01-01T00:00:12.000Z",
+          "argsPreview": "{\"file_path\":\"/f11.md\"}",
           "toolKind": "TOOL_KIND_FILE_READ"
         }
       ]
@@ -243,6 +255,7 @@
           "status": "TOOL_CALL_COMPLETED",
           "startedAt": "2026-01-01T00:00:13.000Z",
           "completedAt": "2026-01-01T00:00:13.000Z",
+          "argsPreview": "{\"file_path\":\"/f12.md\"}",
           "toolKind": "TOOL_KIND_FILE_READ"
         }
       ]

@@ -86,16 +86,15 @@ const CATEGORY_APPROVAL_MESSAGE: Record<ApprovalCategory, string> = {
 };
 
 /**
- * Top-level tool-argument fields, in priority order, that identify the specific
- * resource a built-in tool acts on. The list deliberately spans BOTH taxonomies'
- * arg shapes: the hook input names a file `file_path` and the stream names it
- * `path`; both name a shell command `command`. Extracting the same resource
- * VALUE on both sides (the absolute path / the command string) is what lets the
- * hook-recorded denial token equal the stream-computed token. Authored here once
- * and injected into the generated preToolUse hook script so the runner and the
- * hook never disagree on which field to match.
+ * The salient argument fields — the resource a built-in acts on — are the
+ * platform's one list, `shared/args-preview.ts` `SALIENT_ARG_FIELDS` (moved
+ * there at S4 M2 C7: the transcript builder previews every row over it for
+ * both harnesses). Re-exported here for this harness's identity code and the
+ * generated hook script, which inject it so the runner and the hook never
+ * disagree on which field to match.
  */
-export const SALIENT_ARG_FIELDS = ["file_path", "path", "target_notebook", "command"] as const;
+export { SALIENT_ARG_FIELDS } from "../../shared/args-preview.js";
+import { SALIENT_ARG_FIELDS } from "../../shared/args-preview.js";
 
 /**
  * Check whether a built-in (non-MCP) Cursor tool requires user approval.

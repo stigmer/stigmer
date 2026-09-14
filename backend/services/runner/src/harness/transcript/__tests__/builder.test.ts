@@ -13,8 +13,8 @@
  *
  * Opened at S4 M2 C5b with the row rules that are byte-identical on native
  * and therefore have no golden (Q-S4-3(c)(d), the gated `tool_error` stamp);
- * `approval_proposed` and `system_note` joined at C6; the rest of the
- * header's rules land at C9.
+ * `approval_proposed` and `system_note` joined at C6, the every-row preview
+ * at C7; the rest of the header's rules land at C9.
  */
 
 import { describe, it, expect } from "vitest";
@@ -129,6 +129,48 @@ describe("TranscriptBuilder — tool_finished and tool_error are upserts (Q-S4-3
       { kind: "tool_error", callId: "ghost", message: "y" },
     ]);
     expect(sb.currentStatus.messages).toHaveLength(0);
+  });
+});
+
+describe("TranscriptBuilder — every row with args carries an elided, redacted argsPreview (Q-S4-16)", () => {
+  it("an ungated row's preview is its args, secret keys redacted", () => {
+    const sb = feed(builder(), [
+      { kind: "tool_started", callId: "c-1", name: "connect", input: { host: "localhost", password: "super-secret" }, mcpServerSlug: "db" },
+    ]);
+    expect(JSON.parse(rowOf(sb, "c-1").argsPreview)).toEqual({ host: "localhost", password: "[REDACTED]" });
+  });
+
+  it("a long non-salient value is elided in place; a salient one (the command) survives verbatim", () => {
+    const command = "echo " + "x".repeat(400);
+    const sb = feed(builder(), [
+      { kind: "tool_started", callId: "sh-1", name: "execute", input: { command, notes: "y".repeat(400) }, mcpServerSlug: "" },
+    ]);
+    const preview = JSON.parse(rowOf(sb, "sh-1").argsPreview);
+    expect(preview.command).toBe(command);
+    expect(preview.notes).toBe("[400 chars]");
+  });
+
+  it("a row with no args carries no preview", () => {
+    const sb = feed(builder(), [{ kind: "tool_started", callId: "n-1", name: "ls", input: {}, mcpServerSlug: "" }]);
+    expect(rowOf(sb, "n-1").argsPreview).toBe("");
+    expect(rowOf(sb, "n-1").args).toBeUndefined();
+  });
+
+  it("unserializable args leave the preview unset instead of failing the row", () => {
+    const cyclic: Record<string, unknown> = {};
+    cyclic.self = cyclic;
+    const sb = feed(builder(), [{ kind: "tool_started", callId: "cy-1", name: "read", input: cyclic, mcpServerSlug: "" }]);
+    expect(rowOf(sb, "cy-1").status).toBe(ToolCallStatus.TOOL_CALL_RUNNING);
+    expect(rowOf(sb, "cy-1").argsPreview).toBe("");
+  });
+
+  it("a sub-agent's row carries a preview too — every row, every scope", () => {
+    const sb = feed(builder(), [
+      { kind: "sub_agent_started", subAgentId: "task-1", name: "helper", subject: "s", input: "s" },
+      { kind: "tool_started", subAgentId: "task-1", callId: "g-1", name: "grep", input: { pattern: "x" }, mcpServerSlug: "" },
+    ]);
+    const row = sb.currentStatus.subAgentExecutions[0].messages[0].toolCalls[0];
+    expect(row.argsPreview).toBe(JSON.stringify({ pattern: "x" }));
   });
 });
 
