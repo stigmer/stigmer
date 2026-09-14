@@ -30,7 +30,9 @@ image:
     # attachments). Not ghcr.io/stigmer/runner, the cloud sandbox image.
     repository: stigmer-runner
     tag: ""
-  # IfNotPresent: the tags are immutable release versions, never latest.
+  # For the two Stigmer images. IfNotPresent: the tags are immutable release
+  # versions, never latest. (The bundled postgres and temporal images are
+  # pinned third-party tags and always IfNotPresent.)
   pullPolicy: IfNotPresent
   # Names of imagePullSecrets in the release namespace; the public images
   # need none.

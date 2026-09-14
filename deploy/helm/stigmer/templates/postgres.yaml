@@ -53,7 +53,9 @@ spec:
       containers:
         - name: postgres
           image: {{ .Values.postgres.image }}
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          # A pinned third-party tag: IfNotPresent by definition. image.pullPolicy
+          # governs the two Stigmer images only.
+          imagePullPolicy: IfNotPresent
           env:
             - name: POSTGRES_PASSWORD
               valueFrom:

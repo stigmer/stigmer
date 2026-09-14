@@ -508,6 +508,41 @@ smoke-compose: build-server build-web ## Build the compose stack from source and
 	@cd $(SERVER_DIR) && node scripts/bundle-slim.mjs --platform=linux-$$(node -e "process.stdout.write(process.arch==='x64'?'x64':'arm64')")
 	node scripts/smoke-compose.mjs --build
 
+# The Helm chart (deploy/helm/stigmer; stigmer-cloud project 20260914.02):
+# docker-compose.yml translated for Kubernetes. Three gates, the compose
+# stack's shape: lint-helm is the static pass (helm lint --strict and
+# kubeconform on every CI values profile), test-helm the render tests
+# (goldens, the compose-parity test, the schema refusals — also in the root
+# test:scripts lane), smoke-helm the kind install with the same probes as
+# smoke-compose plus the adversarial arms, from source-built images (the
+# release lane runs the same script against the pushed tags).
+HELM_CHART_DIR := deploy/helm/stigmer
+HELM_PROFILES := bundled byo ingress-oidc
+# The floor Chart.yaml declares (native gRPC probes are GA in 1.27).
+HELM_KUBE_VERSION := 1.27.0
+
+.PHONY: lint-helm
+lint-helm: ## Lint the Helm chart on every CI values profile and validate its render against the Kubernetes schemas (needs helm, kubeconform)
+	@command -v helm >/dev/null 2>&1 || { echo "error: helm not found"; exit 1; }
+	@command -v kubeconform >/dev/null 2>&1 || { echo "error: kubeconform not found — https://github.com/yannh/kubeconform"; exit 1; }
+	@for profile in $(HELM_PROFILES); do \
+		echo "helm lint --strict ($$profile)"; \
+		helm lint --strict $(HELM_CHART_DIR) -f $(HELM_CHART_DIR)/ci/values-$$profile.yaml --quiet || exit 1; \
+		echo "kubeconform ($$profile)"; \
+		helm template stigmer $(HELM_CHART_DIR) -f $(HELM_CHART_DIR)/ci/values-$$profile.yaml \
+			| kubeconform -strict -kubernetes-version $(HELM_KUBE_VERSION) -summary || exit 1; \
+	done
+
+.PHONY: test-helm
+test-helm: node_modules ## Run the chart's render, compose-parity and schema tests (needs helm)
+	node --test $(HELM_CHART_DIR)/__tests__/*.test.mjs
+
+.PHONY: smoke-helm
+smoke-helm: build-server build-web ## Build both images from source, install the chart on kind and run the gate smoke (needs Docker, kind, helm, kubectl)
+	@for tool in docker kind helm kubectl; do command -v $$tool >/dev/null 2>&1 || { echo "error: $$tool not found — the Helm smoke needs it"; exit 1; }; done
+	@cd $(SERVER_DIR) && node scripts/bundle-slim.mjs --platform=linux-$$(node -e "process.stdout.write(process.arch==='x64'?'x64':'arm64')")
+	node scripts/smoke-helm.mjs --build
+
 # The `cloud` conformance targets have no target this repository can boot:
 # the cloud edition is the TypeScript composition in the private stigmer-cloud
 # repository (the Java stigmer-service the hermetic launcher booted retired on

@@ -422,6 +422,8 @@ spec:
       containers:
         - name: temporal
           image: temporalio/auto-setup:1.28.0
+          # A pinned third-party tag: IfNotPresent by definition. image.pullPolicy
+          # governs the two Stigmer images only.
           imagePullPolicy: IfNotPresent
           env:
             - name: DB
@@ -487,6 +489,8 @@ spec:
       containers:
         - name: postgres
           image: postgres:16
+          # A pinned third-party tag: IfNotPresent by definition. image.pullPolicy
+          # governs the two Stigmer images only.
           imagePullPolicy: IfNotPresent
           env:
             - name: POSTGRES_PASSWORD
