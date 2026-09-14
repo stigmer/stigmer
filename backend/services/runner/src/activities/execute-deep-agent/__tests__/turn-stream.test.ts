@@ -10,10 +10,14 @@
  *    learns of activity per event, with the tool's name as the detail);
  *  - what the sink is told and when (usage priced per `message_finish`;
  *    a persist requested on the shared cadence rule, a tool start forcing it);
- *  - how the loop ends: `completed` with the run's output, `awaiting_approval`
- *    at a gate, `interrupted` when the runtime stops it — taken at the NEXT
- *    event, the engine's own step boundary (S3 M2a F-M2a-18), and before the
- *    first if the stop came earlier;
+ *  - how the loop ends: `completed` with the run's output, `interrupted` when
+ *    the runtime stops it — taken at the NEXT event, the engine's own step
+ *    boundary (S3 M2a F-M2a-18), and before the first if the stop came
+ *    earlier. (`awaiting_approval` from the stream itself has no producer
+ *    on native since S4 M2 C3, option A: a held call never emits a
+ *    `tool_started`, so the builder never leaves a row WAITING during the
+ *    stream; the gate's hold reaches the transcript at the settle. The arm
+ *    that pinned that path went with it — M2 finding F-M2-27.)
  *  - what it refuses and what it tolerates: an empty stream throws; the
  *    engine's own error propagates; a `run.output` that rejects is logged
  *    and the turn completes without a final state;
@@ -39,7 +43,6 @@ import { makeInMemoryArtifactStorage } from "../../../__test-utils__/fake-artifa
 import { turnInputFixture } from "../../../__test-utils__/turn-input-fixture.js";
 import type { WorkspaceBackend } from "../../../shared/workspace/types.js";
 import type { ModelPricing } from "../../../shared/model-pricing.js";
-import type { MergedToolPolicy } from "../../../shared/approval-policy.js";
 import { CasCaptureObserver } from "../cas-capture-observer.js";
 import type { DeepAgentEngine, DeepAgentGateState, DeepAgentGraphInput, DeepAgentWorkspace } from "../turn-setup.js";
 import { consumeDeepAgentStream, createDeepAgentTranscript, type StreamableRun } from "../turn-stream.js";
@@ -258,27 +261,6 @@ describe("consumeDeepAgentStream — what each event becomes", () => {
 });
 
 describe("consumeDeepAgentStream — how the loop ends", () => {
-  it("ends awaiting_approval when the builder leaves a gated tool WAITING, without awaiting the run's output", async () => {
-    const policy: MergedToolPolicy = {
-      toolName: "dangerous_tool",
-      mcpServerSlug: "my-server",
-      requiresApproval: true,
-      approvalMessage: "Approve?",
-      source: "classifier_default",
-    };
-    const h = harness({
-      gate: openGate({ policies: new Map([["my-server/dangerous_tool", policy]]), toolServerMap: new Map([["dangerous_tool", "my-server"]]) }),
-    });
-    const neverResolves = new Promise<unknown>(() => undefined);
-    const result = await h.run(
-      scriptedRun([...textTurn("run-1", "Gated."), makeToolStarted("toolu_g", "dangerous_tool", { target: "prod" })], { output: () => neverResolves }),
-    );
-
-    expect(result.reason).toBe("awaiting_approval");
-    expect(result.runOutput).toBeUndefined();
-    expect(h.sink.status.messages[0].toolCalls[0].status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
-  });
-
   it("a stop before the first event settles interrupted without invoking the graph", async () => {
     const h = harness();
     h.sink.abort("stopped before start");

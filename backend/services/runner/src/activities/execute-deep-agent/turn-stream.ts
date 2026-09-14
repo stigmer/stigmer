@@ -53,7 +53,7 @@ import { TimeoutError, withTimeout } from "../../shared/with-timeout.js";
 import { InlinePublisher } from "./inline-publisher.js";
 import { StreamingSideEffects } from "./streaming-side-effects.js";
 import { createV3EventRecorder, type V3ProtocolEvent } from "./v3-event-recorder.js";
-import { normalize, usageOf, type V3UsagePayload } from "./v3-protocol-normalizer.js";
+import { DeepAgentTranslator, usageOf, type V3UsagePayload } from "./v3-protocol-normalizer.js";
 import { TranscriptBuilder } from "../../harness/transcript/builder.js";
 import type { DeepAgentEngine, DeepAgentGraphInput, DeepAgentWorkspace } from "./turn-setup.js";
 
@@ -95,12 +95,15 @@ export interface DeepAgentStreamResult {
 }
 
 /**
- * The transcript writers of one turn: the builder over `sink.status` and the
- * publisher that writes artifacts through it (so a published artifact still
- * forces the next persist). Built by the adapter's turn once and shared by
- * the stream and the settle.
+ * The transcript writers of one turn: the translator that turns the engine's
+ * events into canonical ones (over the gate's posture, so every tool start
+ * carries its attribution and gate answer), the builder over `sink.status`
+ * that folds them, and the publisher that writes artifacts through the
+ * builder (so a published artifact still forces the next persist). Built by
+ * the adapter's turn once and shared by the stream and the settle.
  */
 export interface DeepAgentTranscript {
+  readonly translator: DeepAgentTranslator;
   readonly builder: TranscriptBuilder;
   readonly publisher: InlinePublisher;
 }
@@ -111,21 +114,15 @@ export function createDeepAgentTranscript(
   engine: DeepAgentEngine,
   workspace: DeepAgentWorkspace,
 ): DeepAgentTranscript {
+  const translator = new DeepAgentTranslator(engine.gate);
   const builder = new TranscriptBuilder(input.executionId, sink.status);
-  builder.setApprovalProvider({
-    policies: engine.gate.policies,
-    toolServerMap: engine.gate.toolServerMap,
-    leasedCategories: engine.gate.leasedCategories,
-    globalBypass: engine.gate.globalBypass,
-    unattended: engine.gate.unattended,
-  });
   const publisher = new InlinePublisher({
     workspaceBackend: workspace.backend,
     artifactStorage: input.artifactStorage,
     statusWriter: builder,
     executionId: input.executionId,
   });
-  return { builder, publisher };
+  return { translator, builder, publisher };
 }
 
 /**
@@ -170,7 +167,7 @@ export interface DeepAgentStreamDeps {
 export async function consumeDeepAgentStream(deps: DeepAgentStreamDeps): Promise<DeepAgentStreamResult> {
   const { input, sink, engine, graphInput, transcript } = deps;
   const { executionId } = input;
-  const { builder, publisher } = transcript;
+  const { translator, builder, publisher } = transcript;
 
   const scheduler = new StreamingUpdateScheduler(loadStreamingConfig());
   const recorder = createV3EventRecorder(executionId, process.env.V3_EVENT_RECORD_DIR);
@@ -219,7 +216,7 @@ export async function consumeDeepAgentStream(deps: DeepAgentStreamDeps): Promise
 
         recorder?.record(event, eventsProcessed);
         let detail: string | undefined;
-        for (const normalized of normalize(event)) {
+        for (const normalized of translator.translate(event)) {
           builder.apply(normalized);
           if (normalized.kind === "tool_started") detail = normalized.name;
         }

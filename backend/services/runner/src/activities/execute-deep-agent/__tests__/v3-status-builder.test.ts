@@ -19,12 +19,13 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ApprovalAction, ExecutionPhase, MessageType, ToolCallStatus, ToolKind, TodoStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ApprovalAction, ApprovalPolicySource, ExecutionPhase, MessageType, ToolCallStatus, ToolKind, TodoStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { ExecutionArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
 import { WorkspaceWriteBackSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/writeback_pb";
-import { TranscriptBuilder, type ApprovalPolicyProvider } from "../../../harness/transcript/builder.js";
-import { normalize } from "../v3-protocol-normalizer.js";
+import { TranscriptBuilder } from "../../../harness/transcript/builder.js";
+import { DeepAgentTranslator } from "../v3-protocol-normalizer.js";
+import type { DeepAgentGateState } from "../turn-setup.js";
 import type { MergedToolPolicy } from "../../../shared/approval-policy.js";
 import {
   resetSeq,
@@ -51,9 +52,14 @@ function makeBuilder(): TranscriptBuilder {
   return new TranscriptBuilder("exec-test", create(AgentExecutionStatusSchema, {}));
 }
 
-function feedAll(sb: TranscriptBuilder, events: V3ProtocolEvent[]): void {
+/**
+ * Feed raw v3 events through the translator (over the given gate posture, or
+ * none) into the builder — the production path, `turn-stream.ts`'s loop.
+ */
+function feedAll(sb: TranscriptBuilder, events: V3ProtocolEvent[], gate: DeepAgentGateState | null = null): void {
+  const translator = new DeepAgentTranslator(gate);
   for (const raw of events) {
-    for (const e of normalize(raw)) {
+    for (const e of translator.translate(raw)) {
       sb.apply(e);
     }
   }
@@ -271,10 +277,16 @@ describe("TranscriptBuilder", () => {
       });
     });
 
-    describe("HITL approval gate", () => {
-      it("sets WAITING_FOR_APPROVAL on tool with approval policy", () => {
+    describe("a gated MCP tool that STARTED (S4 M2 C3, option A)", () => {
+      // On native a held call never starts: LangGraph's interrupt() runs
+      // before the tool handler, so no tool_started arrives and the gate's
+      // hold reaches the transcript as approval_proposed from the post-stream
+      // seed (C6). A tool_started that does arrive is the engine's word that
+      // the call was authorized, so the row is RUNNING and attributed — never
+      // WAITING at creation, whatever the policy says (F-M2-27).
+      it("is RUNNING and attributed to its server; nothing waits", () => {
         const sb = makeBuilder();
-        sb.setApprovalProvider({
+        const gate = gateWith({
           policies: new Map([
             ["my-server/dangerous_tool", {
               toolName: "dangerous_tool",
@@ -285,8 +297,7 @@ describe("TranscriptBuilder", () => {
             }],
           ]),
           toolServerMap: new Map([["dangerous_tool", "my-server"]]),
-          globalBypass: false,
-        } as ApprovalPolicyProvider);
+        });
 
         feedAll(sb, [
           makeMessageStart("run-1"),
@@ -296,19 +307,18 @@ describe("TranscriptBuilder", () => {
             usage: { input_tokens: 100, output_tokens: 10 },
           }),
           makeToolStarted("toolu_1", "dangerous_tool", { path: "/etc/shadow" }),
-        ]);
+        ], gate);
 
         const status = sb.currentStatus;
-        expect(sb.awaitingApproval, "a fact for the caller, never a phase write").toBe(true);
+        expect(sb.awaitingApproval, "no tool_started parks a row").toBe(false);
         expect(status.phase).toBe(ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED);
 
         const tc = status.messages[0].toolCalls[0];
-        expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
-        expect(tc.requiresApproval).toBe(true);
-        expect(tc.approvalMessage).toBe("This tool will modify /etc/shadow");
+        expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_RUNNING);
+        expect(tc.requiresApproval).toBe(false);
         expect(tc.mcpServerSlug).toBe("my-server");
-        expect(tc.approvalRequestedAt).toBeTruthy();
-        expect(tc.argsPreview).toBeTruthy();
+        expect(tc.approvalPolicySource, "the policy's layer still attributes the row").toBe(ApprovalPolicySource.CLASSIFIER_DEFAULT);
+        expect(tc.approvalRequestedAt).toBe("");
       });
     });
 
@@ -574,8 +584,17 @@ describe("TranscriptBuilder", () => {
   // (redaction, truncation) are `shared/__tests__/args-preview.test.ts`'s.
   // ═══════════════════════════════════════════════════════════════════
 
-  function providerWith(overrides: Partial<ApprovalPolicyProvider> = {}): ApprovalPolicyProvider {
-    return { policies: new Map(), toolServerMap: new Map(), globalBypass: false, ...overrides };
+  /** A gate posture for the translator: no policies, no leases, attended, not bypassed — unless overridden. */
+  function gateWith(overrides: Partial<DeepAgentGateState> = {}): DeepAgentGateState {
+    return {
+      policies: new Map(),
+      toolServerMap: new Map(),
+      leasedCategories: new Set(),
+      globalBypass: false,
+      unattended: false,
+      unattendedSkips: new Set(),
+      ...overrides,
+    };
   }
 
   function policyFor(serverSlug: string, toolName: string, message = "Approve?"): [string, MergedToolPolicy] {
@@ -585,106 +604,91 @@ describe("TranscriptBuilder", () => {
     ];
   }
 
-  /** A text turn, then one tool start, on a builder with the given provider. */
-  function firstToolCallUnder(provider: ApprovalPolicyProvider, toolName: string, input: Record<string, unknown> = {}) {
+  /** A text turn, then one tool start, through a translator over the given gate posture. */
+  function firstToolCallUnder(gate: DeepAgentGateState, toolName: string, input: Record<string, unknown> = {}) {
     const sb = makeBuilder();
-    sb.setApprovalProvider(provider);
     feedAll(sb, [
       makeMessageStart("run-1"),
       makeTextDelta("run-1", "Working."),
       makeMessageFinish("run-1", { usage: { input_tokens: 10, output_tokens: 5 } }),
       makeToolStarted("toolu_1", toolName, input),
-    ]);
+    ], gate);
     return { sb, tc: sb.currentStatus.messages[0].toolCalls[0] };
   }
 
-  describe("approval provider: what decides a row's status", () => {
-    it("a policy that requires approval leaves the row WAITING_APPROVAL with its message and server", () => {
+  describe("attribution and provenance on tool_started (S4 M2 C3, option A)", () => {
+    // The translator answers WHICH server a tool belongs to and WHICH policy
+    // layer governs it; it never answers whether the gate holds the call —
+    // on native a held call never starts (the interrupt precedes the
+    // handler), so every started call is RUNNING and nothing here waits.
+    // The decision itself, `resolveToolApproval`, has its own arms in
+    // `shared/__tests__/approval-policy.test.ts`; the gate's use of it in
+    // `middleware/__tests__/approval-gate.test.ts`.
+
+    it("an MCP tool with a gating policy STILL runs when it started, attributed to its server and the policy's layer", () => {
       const [key, policy] = policyFor("github", "create_issue");
       const { sb, tc } = firstToolCallUnder(
-        providerWith({ policies: new Map([[key, policy]]), toolServerMap: new Map([["create_issue", "github"]]) }),
+        gateWith({ policies: new Map([[key, policy]]), toolServerMap: new Map([["create_issue", "github"]]) }),
         "create_issue",
         { title: "Bug fix" },
       );
-      expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
-      expect(tc.requiresApproval).toBe(true);
-      expect(tc.approvalMessage).toBe("Approve?");
-      expect(tc.mcpServerSlug).toBe("github");
-      expect(tc.approvalRequestedAt, "stamped when approval is required").toContain("T");
-      expect(sb.awaitingApproval).toBe(true);
-    });
-
-    it("the global bypass (spec.auto_approve_all) runs a gated tool without approval", () => {
-      const [key, policy] = policyFor("github", "delete_repo");
-      const { sb, tc } = firstToolCallUnder(
-        providerWith({ policies: new Map([[key, policy]]), toolServerMap: new Map([["delete_repo", "github"]]), globalBypass: true }),
-        "delete_repo",
-      );
       expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_RUNNING);
       expect(tc.requiresApproval).toBe(false);
+      expect(tc.mcpServerSlug).toBe("github");
+      expect(tc.approvalPolicySource).toBe(ApprovalPolicySource.CLASSIFIER_DEFAULT);
+      expect(tc.policyEngineVersion).toBe("phase-7");
       expect(sb.awaitingApproval).toBe(false);
     });
 
-    it("the global bypass still attributes the row to its MCP server", () => {
+    it("the global bypass (spec.auto_approve_all) attributes every row to it", () => {
+      const [key, policy] = policyFor("github", "delete_repo");
       const { tc } = firstToolCallUnder(
-        providerWith({ toolServerMap: new Map([["echo", "test-mcp-server"]]), globalBypass: true }),
-        "echo",
-        { input: "hello" },
+        gateWith({ policies: new Map([[key, policy]]), toolServerMap: new Map([["delete_repo", "github"]]), globalBypass: true }),
+        "delete_repo",
       );
       expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_RUNNING);
-      expect(tc.mcpServerSlug).toBe("test-mcp-server");
+      expect(tc.mcpServerSlug, "the bypass still attributes the row to its MCP server").toBe("github");
+      expect(tc.approvalPolicySource).toBe(ApprovalPolicySource.AUTO_APPROVE_ALL);
     });
 
-    it("a tool with no policy runs, attributed to its server", () => {
-      const { tc } = firstToolCallUnder(providerWith({ toolServerMap: new Map([["read", "filesystem"]]) }), "read");
-      expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_RUNNING);
+    it("an MCP tool with no policy is attributed to its server, classifier_default", () => {
+      const { tc } = firstToolCallUnder(gateWith({ toolServerMap: new Map([["read", "filesystem"]]) }), "read");
       expect(tc.mcpServerSlug).toBe("filesystem");
+      expect(tc.approvalPolicySource).toBe(ApprovalPolicySource.CLASSIFIER_DEFAULT);
     });
 
-    it("a policy whose tool is not in the server map does not gate (the policy key needs the server)", () => {
+    it("a tool the server map does not know carries no server (the policy key needs the server)", () => {
       const [key, policy] = policyFor("github", "create_pr");
-      const { tc } = firstToolCallUnder(providerWith({ policies: new Map([[key, policy]]), toolServerMap: new Map() }), "create_pr");
+      const { tc } = firstToolCallUnder(gateWith({ policies: new Map([[key, policy]]), toolServerMap: new Map() }), "create_pr");
+      expect(tc.mcpServerSlug).toBe("");
+      expect(tc.approvalPolicySource, "an unknown built-in is governed by no layer").toBe(ApprovalPolicySource.UNSPECIFIED);
+      expect(tc.policyEngineVersion).toBe("");
+    });
+
+    it("a mutating built-in that started is attributed builtin_category — the gate let it flow (capture mode, or a resume)", () => {
+      const { sb, tc } = firstToolCallUnder(gateWith(), "execute", { command: "rm -rf build" });
       expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_RUNNING);
+      expect(tc.approvalPolicySource).toBe(ApprovalPolicySource.BUILTIN_CATEGORY);
+      expect(sb.awaitingApproval).toBe(false);
     });
 
-    it("resolves {{args.field}} placeholders in the approval message", () => {
-      const [key, policy] = policyFor("github", "create_issue", "Create issue '{{args.title}}' in {{args.repo}}?");
-      const { tc } = firstToolCallUnder(
-        providerWith({ policies: new Map([[key, policy]]), toolServerMap: new Map([["create_issue", "github"]]) }),
-        "create_issue",
-        { title: "Fix crash", repo: "stigmer/stigmer" },
-      );
-      expect(tc.approvalMessage).toBe("Create issue 'Fix crash' in stigmer/stigmer?");
-    });
-  });
-
-  describe("args preview: when the builder writes one", () => {
-    it("a gated row carries a sanitized preview; an ungated row carries none", () => {
-      const [key, policy] = policyFor("db", "connect");
-      const gated = firstToolCallUnder(
-        providerWith({ policies: new Map([[key, policy]]), toolServerMap: new Map([["connect", "db"]]) }),
-        "connect",
-        { host: "localhost", password: "super-secret" },
-      );
-      const preview = JSON.parse(gated.tc.argsPreview) as Record<string, string>;
-      expect(preview.host).toBe("localhost");
-      expect(preview.password, "the shared sanitizer redacts secret keys").toBe("[REDACTED]");
-
-      const ungated = firstToolCallUnder(providerWith(), "read", { path: "/foo" });
-      expect(ungated.tc.argsPreview).toBe("");
+    it("a leased built-in category is attributed to its lease", () => {
+      const { tc } = firstToolCallUnder(gateWith({ leasedCategories: new Set(["shell"]) }), "execute", { command: "ls" });
+      expect(tc.approvalPolicySource).toBe(ApprovalPolicySource.APPROVAL_LEASE);
     });
 
-    it("an unserializable input leaves the preview empty instead of failing the row", () => {
-      const [key, policy] = policyFor("api", "call");
-      const circular: Record<string, unknown> = {};
-      circular.self = circular;
-      const { tc } = firstToolCallUnder(
-        providerWith({ policies: new Map([[key, policy]]), toolServerMap: new Map([["call", "api"]]) }),
-        "call",
-        circular,
-      );
-      expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
-      expect(tc.argsPreview).toBe("");
+    it("a read-only built-in is governed by no layer: UNSPECIFIED, no engine version", () => {
+      const { tc } = firstToolCallUnder(gateWith(), "read_file", { path: "/x" });
+      expect(tc.approvalPolicySource).toBe(ApprovalPolicySource.UNSPECIFIED);
+      expect(tc.policyEngineVersion).toBe("");
+    });
+
+    it("with no gate posture at all (a turn the unit arms drive bare) nothing is attributed", () => {
+      const sb = makeBuilder();
+      feedAll(sb, [makeToolStarted("toolu_1", "execute", { command: "ls" })]);
+      const tc = sb.currentStatus.messages[0].toolCalls[0];
+      expect(tc.mcpServerSlug).toBe("");
+      expect(tc.approvalPolicySource).toBe(ApprovalPolicySource.UNSPECIFIED);
     });
   });
 
@@ -719,7 +723,7 @@ describe("TranscriptBuilder", () => {
       const original = console.error;
       console.error = (msg: unknown) => { errors.push(String(msg)); };
       try {
-        const poisoned = normalize(makeToolFinished("toolu_x", "ok"))[0]!;
+        const poisoned = new DeepAgentTranslator(null).translate(makeToolFinished("toolu_x", "ok"))[0]!;
         // A getter that throws where the handler reads the result.
         const event = { ...poisoned, get result(): string { throw new Error("property access failed"); } };
         expect(() => sb.apply(event as typeof poisoned)).not.toThrow();
@@ -758,7 +762,7 @@ describe("TranscriptBuilder", () => {
       });
       const sb = new TranscriptBuilder("exec-resume", status);
       const [key, policy] = policyFor("my-server", "dangerous_tool", "Execute dangerous_tool");
-      sb.setApprovalProvider(providerWith({ policies: new Map([[key, policy]]), toolServerMap: new Map([["dangerous_tool", "my-server"]]) }));
+      const gate = gateWith({ policies: new Map([[key, policy]]), toolServerMap: new Map([["dangerous_tool", "my-server"]]) });
 
       // The durable checkpoint re-emits the SAME tool_call_id now that approval is granted.
       feedAll(sb, [
@@ -767,7 +771,7 @@ describe("TranscriptBuilder", () => {
         makeMessageStart("llm-after"),
         makeTextDelta("llm-after", "All done."),
         makeMessageFinish("llm-after", { usage: { input_tokens: 1, output_tokens: 1 } }),
-      ]);
+      ], gate);
 
       const gated = sb.currentStatus.messages.flatMap((m) => m.toolCalls).filter((tc) => tc.id === GATED_ID);
       expect(gated).toHaveLength(1);

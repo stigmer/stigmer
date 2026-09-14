@@ -9,9 +9,11 @@
  * carries (S4 M2 C1) — so the loop never parses a raw event itself. It
  * renders a tool's result to the string the row carries (C2a, C2b; the
  * LangChain envelope and the LangGraph Command are its to unwrap, never the
- * builder's). At later M2 commits it takes over what the builder still knows
- * of the engine — the sub-agent scope resolution, the gate answer — and
- * emits `sub_agent_started/finished/failed` for a `task` call (Q-S4-4).
+ * builder's), and answers a tool's attribution and provenance on its
+ * `tool_started` from the gate's posture (C3, {@link DeepAgentTranslator}).
+ * At M2 C4 it takes over the last engine fact the builder reads — the
+ * sub-agent scope — and emits `sub_agent_started/finished/failed` for a
+ * `task` call (Q-S4-4).
  *
  * What the wire carries that the transcript does not (C1): `lifecycle` and
  * `provider` events, the standalone `usage` event, and each event's `seq`
@@ -28,7 +30,9 @@
  */
 
 import type { V3ProtocolEvent } from "./v3-event-recorder.js";
-import type { TranscriptEvent } from "../../harness/transcript/events.js";
+import type { ToolStartedEvent, TranscriptEvent } from "../../harness/transcript/events.js";
+import { resolveApprovalProvenance, type PolicySource } from "../../shared/approval-policy.js";
+import type { DeepAgentGateState } from "./turn-setup.js";
 
 const loggedUnknowns = new Set<string>();
 
@@ -43,6 +47,74 @@ function formatNamespace(ns: readonly string[]): string {
   return ns.length === 0 ? "" : ns.join("|");
 }
 
+// ── The translator ────────────────────────────────────────────────
+
+/**
+ * The native harness's translator, constructed once per turn over the gate's
+ * posture (S4 M2 C3, Q-M2-4): `translate(raw)` is the one signature every
+ * harness's translator shares — one engine event in, the canonical events
+ * out — and what the builder cannot read elsewhere is answered here: which
+ * MCP server a tool belongs to and which policy layer governs the call
+ * (`resolveApprovalProvenance`, the gate's read-side twin).
+ *
+ * What this translator deliberately does NOT answer: whether the gate holds
+ * the call. On native it never has to. LangGraph's `interrupt()` runs
+ * inside the gate middleware BEFORE the tool handler, so a held call emits
+ * no `tool-started` at all; the `tool-started` that does arrive is the
+ * engine's own word that the call was authorized — capture mode let the
+ * file write flow, a lease or the policy chain cleared it, or the user
+ * approved it on a resume. The gate's decision has arms this side cannot
+ * evaluate (capture mode asks the workspace's git state, asynchronously;
+ * `middleware/approval-gate.ts` L210-287), and duplicating them would be a
+ * second copy of the decision — the drift Q-M2-9 exists to end. So native
+ * emits no `tool_started.gate`; the held call reaches the transcript as
+ * `approval_proposed` from the post-stream seed (M2 C6). Until C3 the
+ * builder carried a copy of the decision that gated MCP tools only, a path
+ * production never took (the hermetic gate goldens' WAITING rows all come
+ * from the seed) — M2 finding F-M2-27, option A.
+ *
+ * `gate` is `null` where the turn runs with no gate posture at all (the unit
+ * arms that drive the builder without one); then every call is unattributed,
+ * exactly as the builder answered with no provider.
+ *
+ * At M2 C4 this class also holds the `task` prefix registry that scopes a
+ * sub-agent's events by `subAgentId` and emits `sub_agent_*`.
+ */
+export class DeepAgentTranslator {
+  constructor(private readonly gate: DeepAgentGateState | null) {}
+
+  translate(event: V3ProtocolEvent): TranscriptEvent[] {
+    return normalize(event).map((e) => (e.kind === "tool_started" ? this.attribute(e) : e));
+  }
+
+  /** The attribution and provenance for one tool start. */
+  private attribute(event: ToolStartedEvent): ToolStartedEvent {
+    const gate = this.gate;
+    if (!gate) return event;
+    const mcpServerSlug = gate.toolServerMap.get(event.name) ?? "";
+    const provenance: PolicySource | undefined = resolveApprovalProvenance(
+      event.name,
+      mcpServerSlug,
+      gate.policies,
+      gate.leasedCategories,
+      gate.globalBypass,
+    );
+    return {
+      ...event,
+      mcpServerSlug,
+      ...(provenance !== undefined ? { provenance } : {}),
+    };
+  }
+}
+
+// ── The wire, event by event ──────────────────────────────────────
+
+/**
+ * The stateless core: one raw event to its canonical events, with no
+ * attribution (`mcpServerSlug: ""`, no provenance, no gate). The translator
+ * layers the gate's answers on top; the arms that pin the wire's shape read
+ * this directly.
+ */
 export function normalize(event: V3ProtocolEvent): TranscriptEvent[] {
   const method = event.method;
 
@@ -173,7 +245,7 @@ function normalizeTool(event: V3ProtocolEvent): TranscriptEvent[] {
       const callId = readToolCallId(data);
       const name = readToolName(data);
       const input = parseToolInput(data.input);
-      return [{ kind: "tool_started" as const, ...base, callId, name, input }];
+      return [{ kind: "tool_started" as const, ...base, callId, name, input, mcpServerSlug: "" }];
     }
 
     case "tool-finished": {

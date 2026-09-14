@@ -466,3 +466,93 @@ export function resolveApprovalMessage(
       return JSON.stringify(value);
     });
 }
+
+// ── The gate's decision ─────────────────────────────────────────────
+
+/**
+ * Approval-message template per mutating built-in category, as the NATIVE
+ * gate words it. Keyed by category (not raw tool name) so every alias of a
+ * mutation renders one message; placeholders resolve against the deep-agent
+ * stream arg shape (`path`/`command`).
+ *
+ * The Cursor harness carries its own table (`execute-cursor/approval-policy.ts`
+ * `getBuiltInApprovalMessage`) and the two are NOT identical: `shell` reads
+ * "Run command" there and "Execute command" here (S4 M2 finding F-M2-18).
+ * Whether they unify is M4's question, where the Cursor translator reads the
+ * built-in table — a Cursor golden mover, not this module's to decide.
+ */
+export const CATEGORY_APPROVAL_MESSAGE: Record<ToolApprovalCategory, string> = {
+  write: "Write file: {{args.path}}",
+  delete: "Delete: {{args.path}}",
+  shell: "Execute command: {{args.command}}",
+};
+
+/** What the gate decides for one call: whether it waits, the message the card shows, and which layer said so. */
+export interface ApprovalRequirement {
+  readonly requiresApproval: boolean;
+  readonly message: string;
+  /** Which policy layer determined this verdict — stamped on the shadow receipt. */
+  readonly source: PolicySource;
+}
+
+/**
+ * THE approval decision for one tool call — the same function the native gate
+ * (`middleware/approval-gate.ts`) interrupts on and the native translator
+ * reports as `tool_started.gate`, so the row can never disagree with the gate
+ * about whether a call waits (S4 M2 C3, Q-M2-9; until then the transcript
+ * builder carried its own weaker copy that gated MCP tools only). Its
+ * read-side twin is {@link resolveApprovalProvenance}, which answers "which
+ * layer governs this call" for EVERY call, gated or not.
+ *
+ * MCP tools stay governed by the connect-flow classifier + four-level policy
+ * chain. The policy map carries only the tools that REQUIRE approval, so an
+ * absent entry means the classifier already auto-approved it — fail-OPEN is
+ * correct here (a fail-closed default would re-gate everything the classifier
+ * cleared). A server-scoped lease surfaces as an absent entry too: the leased
+ * server's tools are dropped from `policies` upstream (`mergeApprovalPolicies`),
+ * so a lease-cleared MCP tool takes the same auto-approve path (its receipt
+ * therefore reads classifier_default rather than approval_lease; a faithful
+ * per-server lease provenance would need the lease set threaded here and is
+ * deferred with the rest of the persisted-receipt work).
+ *
+ * Built-in/platform tools: gate exactly the mutating categories through the
+ * shared classifier — fail-CLOSED for the mutating set (write/edit/delete/shell
+ * require approval), fail-open for read-only and unclassified built-ins. A
+ * run-lifetime category lease (the user chose "approve all <category>" earlier
+ * in this run) auto-approves every built-in of that category for the rest of
+ * the run — the scoped successor to auto-approve-all.
+ */
+export function resolveToolApproval(
+  toolName: string,
+  serverSlug: string,
+  args: Record<string, unknown>,
+  policies: ReadonlyMap<string, MergedToolPolicy>,
+  leasedCategories: ReadonlySet<ToolApprovalCategory>,
+): ApprovalRequirement {
+  if (serverSlug) {
+    const key = `${serverSlug}/${toolName}`;
+    const policy = policies.get(key);
+    if (policy) {
+      return {
+        requiresApproval: policy.requiresApproval,
+        message: resolveApprovalMessage(policy.approvalMessage, toolName, args),
+        source: policy.source,
+      };
+    }
+    return { requiresApproval: false, message: "", source: "classifier_default" };
+  }
+
+  const category = toolApprovalCategory(toolName);
+  if (category) {
+    if (leasedCategories.has(category)) {
+      return { requiresApproval: false, message: "", source: "approval_lease" };
+    }
+    return {
+      requiresApproval: true,
+      message: resolveApprovalMessage(CATEGORY_APPROVAL_MESSAGE[category], toolName, args),
+      source: "builtin_category",
+    };
+  }
+
+  return { requiresApproval: false, message: "", source: "builtin_category" };
+}

@@ -19,9 +19,14 @@
  *     carries; usage is neither.
  *   - C2a (landed): `tool_finished` carries `result: string`; the engine's
  *     output envelope is the translator's to render.
- *   - Still to cut: `namespace` becomes `subAgentId?`, `tool_started` gains
- *     the attribution and gate facts, and `sub_agent_*`, `approval_proposed`
- *     and `system_note` arrive. A Cursor translator then emits this union at M4.
+ *   - C3 (landed): `tool_started` carries the attribution (`mcpServerSlug`),
+ *     the provenance and — where the harness runs a gated call before its
+ *     boundary parks it — the gate's word. The translator resolves them from
+ *     the harness's policy state; the builder writes what it is told and
+ *     decides nothing about approval.
+ *   - Still to cut: `namespace` becomes `subAgentId?`, and `sub_agent_*`,
+ *     `approval_proposed` and `system_note` arrive. A Cursor translator then
+ *     emits this union at M4.
  *
  * ID conventions:
  *   - `runId`  — the identity of ONE streamed assistant message (LangGraph's
@@ -29,6 +34,8 @@
  *   - `callId` — provider tool call ID (e.g. `toolu_...`); keys ToolCall records
  *   - `namespace` — formatted string from v3 namespace array; empty = parent agent
  */
+
+import type { PolicySource } from "../../shared/approval-policy.js";
 
 // ── Base ──────────────────────────────────────────────────────────
 
@@ -64,11 +71,40 @@ export interface MessageFinishEvent extends TranscriptEventBase {
 
 // ── Tool Events ───────────────────────────────────────────────────
 
+/**
+ * The translator's word that a call is GATED — the fields the row carries,
+ * never a decision the builder makes (S4 M2 C3, Q-S4-3(b) as amended by
+ * option A, 2026-09-14). A gated call that has STARTED is running until the
+ * harness's boundary parks it through `approval_proposed`: that is Cursor's
+ * shape (the SDK runs the tool; the deny-and-retry boundary parks it after
+ * the stream). Native never emits this member — LangGraph's `interrupt()`
+ * fires before the tool handler runs, so a held call never produces a
+ * `tool_started` at all, and the arrival of one IS the engine's word that
+ * the call was authorized (capture mode let it flow, a lease or policy
+ * cleared it, or the user approved it). Native's gate fact reaches the
+ * transcript through `approval_proposed` from the post-stream seed. So a
+ * row is never WAITING at creation on either harness; the plan's `parked:
+ * true` arm had no producer and was dropped (M2 finding F-M2-27).
+ */
+export interface GateAnswer {
+  /** The approval card's message, placeholders already resolved. */
+  readonly message: string;
+}
+
 export interface ToolStartedEvent extends TranscriptEventBase {
   readonly kind: "tool_started";
   readonly callId: string;
   readonly name: string;
   readonly input: Record<string, unknown>;
+  /** The MCP server this tool belongs to, `""` for a built-in — resolved by the translator (attribution is engine knowledge). */
+  readonly mcpServerSlug: string;
+  /**
+   * Which policy layer governs this call, for the row's authorization
+   * provenance; absent where the harness cannot attribute it (sub-agent rows
+   * on both harnesses today, S4 review finding 11) or no layer governs it.
+   */
+  readonly provenance?: PolicySource;
+  readonly gate?: GateAnswer;
 }
 
 export interface ToolArgDeltaEvent extends TranscriptEventBase {

@@ -13,6 +13,7 @@ import {
   resolveApprovalMessage,
   deriveActiveLeases,
   resolveApprovalProvenance,
+  resolveToolApproval,
   toProtoPolicySource,
   type ActiveLeases,
   type MergedToolPolicy,
@@ -509,6 +510,50 @@ describe("resolveApprovalProvenance", () => {
 // cross-edition corpus (policy-source-corpus.test.ts) pins the numbers; these
 // cases assert the mapping is total and that undefined collapses to UNSPECIFIED.
 // ---------------------------------------------------------------------------
+
+describe("resolveToolApproval — THE gate decision, shared by the gate and the translators (S4 M2 C3, Q-M2-9)", () => {
+  const NO_CATEGORIES: ReadonlySet<ToolApprovalCategory> = new Set();
+  const gated: ReadonlyMap<string, MergedToolPolicy> = new Map([
+    ["github/create_issue", { toolName: "create_issue", mcpServerSlug: "github", requiresApproval: true, approvalMessage: "Create issue '{{args.title}}'?", source: "agent_override" }],
+  ]);
+
+  it("an MCP tool with a gating policy waits, with the policy's message resolved and its layer as source", () => {
+    expect(resolveToolApproval("create_issue", "github", { title: "Fix crash" }, gated, NO_CATEGORIES)).toEqual({
+      requiresApproval: true,
+      message: "Create issue 'Fix crash'?",
+      source: "agent_override",
+    });
+  });
+
+  it("an MCP tool absent from the policy map runs — the classifier cleared it (fail-open), source classifier_default", () => {
+    expect(resolveToolApproval("list_issues", "github", {}, gated, NO_CATEGORIES)).toEqual({
+      requiresApproval: false,
+      message: "",
+      source: "classifier_default",
+    });
+  });
+
+  it("a mutating built-in waits with its category's message (fail-closed), source builtin_category", () => {
+    expect(resolveToolApproval("execute", "", { command: "rm -rf build" }, new Map(), NO_CATEGORIES)).toEqual({
+      requiresApproval: true,
+      message: "Execute command: rm -rf build",
+      source: "builtin_category",
+    });
+  });
+
+  it("a mutating built-in whose category is leased runs, source approval_lease", () => {
+    expect(resolveToolApproval("execute", "", { command: "ls" }, new Map(), new Set<ToolApprovalCategory>(["shell"]))).toEqual({
+      requiresApproval: false,
+      message: "",
+      source: "approval_lease",
+    });
+  });
+
+  it("a read-only or unclassified built-in runs (fail-open)", () => {
+    expect(resolveToolApproval("read_file", "", { path: "/x" }, new Map(), NO_CATEGORIES).requiresApproval).toBe(false);
+    expect(resolveToolApproval("think", "", {}, new Map(), NO_CATEGORIES).requiresApproval).toBe(false);
+  });
+});
 
 describe("toProtoPolicySource", () => {
   it("maps undefined (no governing layer) to UNSPECIFIED", () => {

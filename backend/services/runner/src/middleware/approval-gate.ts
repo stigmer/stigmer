@@ -24,6 +24,12 @@
  * unrecognized mutating built-in (e.g. `bash`, `overwrite_file`) is therefore
  * gated by what it does, not by whether someone remembered to list it.
  *
+ * The decision itself — `resolveToolApproval` — lives in
+ * `shared/approval-policy.ts` beside its provenance twin since S4 M2 C3
+ * (Q-M2-9): the native translator reports the same answer on every
+ * `tool_started`, so the transcript row and this gate can never disagree
+ * about whether a call waits. This module is where the decision is ACTED on.
+ *
  * Gateway invariant (Phase 2): this middleware IS the in-process execution
  * gateway for the deep-agent harness — `handler(request)` is the side effect. A
  * side effect runs only with a backing authorization: either (a) the tool was
@@ -50,7 +56,7 @@ import {
   type MergedToolPolicy,
   type PolicySource,
   POLICY_ENGINE_VERSION,
-  resolveApprovalMessage,
+  resolveToolApproval,
   unattendedSkipMessage,
 } from "../shared/approval-policy.js";
 import { toolApprovalCategory, type ToolApprovalCategory } from "../shared/tool-kind.js";
@@ -163,16 +169,6 @@ interface ApprovalDecision {
   readonly action: string;
   readonly comment?: string;
 }
-
-// Approval-message template per mutating category. Keyed by category (not raw
-// tool name) so every alias of a mutation renders one message; placeholders
-// resolve against the deep-agent stream arg shape (`path`/`command`). Mirrors
-// the Cursor side's CATEGORY_APPROVAL_MESSAGE.
-const CATEGORY_APPROVAL_MESSAGE: Record<ToolApprovalCategory, string> = {
-  write: "Write file: {{args.path}}",
-  delete: "Delete: {{args.path}}",
-  shell: "Execute command: {{args.command}}",
-};
 
 /**
  * The ToolMessage returned when a secret-like write is hard-blocked (DD-E /
@@ -381,69 +377,6 @@ export function createApprovalGateMiddleware(
       });
     },
   };
-}
-
-interface ApprovalRequirement {
-  readonly requiresApproval: boolean;
-  readonly message: string;
-  /** Which policy layer determined this verdict — stamped on the shadow receipt. */
-  readonly source: PolicySource;
-}
-
-function resolveToolApproval(
-  toolName: string,
-  serverSlug: string,
-  args: Record<string, unknown>,
-  policies: ReadonlyMap<string, MergedToolPolicy>,
-  leasedCategories: ReadonlySet<ToolApprovalCategory>,
-): ApprovalRequirement {
-  if (serverSlug) {
-    // MCP tools stay governed by the connect-flow classifier + four-level policy
-    // chain. The policy map carries only the tools that REQUIRE approval, so an
-    // absent entry means the classifier already auto-approved it — fail-OPEN is
-    // correct here (a fail-closed default would re-gate everything the classifier
-    // cleared). This is deliberately NOT changed by the built-in fail-closed flip.
-    //
-    // A server-scoped lease surfaces here as an absent entry too: the leased
-    // server's tools are dropped from `policies` upstream (mergeApprovalPolicies),
-    // so a lease-cleared MCP tool takes this same auto-approve path. (Its shadow
-    // receipt therefore reads classifier_default rather than approval_lease; a
-    // faithful per-server lease provenance would need the lease set threaded here
-    // and is deferred with the rest of the persisted-receipt work.)
-    const key = `${serverSlug}/${toolName}`;
-    const policy = policies.get(key);
-    if (policy) {
-      return {
-        requiresApproval: policy.requiresApproval,
-        message: resolveApprovalMessage(policy.approvalMessage, toolName, args),
-        source: policy.source,
-      };
-    }
-    // Absent = cleared by the MCP four-level chain (classifier base) or by a
-    // server-scoped lease (dropped upstream).
-    return { requiresApproval: false, message: "", source: "classifier_default" };
-  }
-
-  // Built-in/platform tool: gate exactly the mutating categories via the shared
-  // classifier. Fail-CLOSED for the mutating set — any built-in classifyTool
-  // deems write/edit/delete/shell requires approval. Read-only and unclassified
-  // built-ins are not mutating, so they remain fail-open.
-  const category = toolApprovalCategory(toolName);
-  if (category) {
-    // Run-lifetime category lease: the user chose "approve all <category>"
-    // earlier in this run, so every built-in of that category is auto-approved
-    // for the rest of the run (the scoped successor to auto-approve-all).
-    if (leasedCategories.has(category)) {
-      return { requiresApproval: false, message: "", source: "approval_lease" };
-    }
-    return {
-      requiresApproval: true,
-      message: resolveApprovalMessage(CATEGORY_APPROVAL_MESSAGE[category], toolName, args),
-      source: "builtin_category",
-    };
-  }
-
-  return { requiresApproval: false, message: "", source: "builtin_category" };
 }
 
 /** Shared empty set so a config without leases allocates nothing per call. */
