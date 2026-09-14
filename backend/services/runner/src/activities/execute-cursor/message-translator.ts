@@ -199,11 +199,16 @@ export function buildToolCallProto(
   const actualName = mcpDetails?.toolName ?? event.name;
   const mcpServerSlug = mcpDetails?.providerIdentifier ?? "";
 
+  // Every row has `startedAt` — the instant the runner first learned of the
+  // call (S4 M4 A3, Q-S4-17). An event that arrives already terminal, with no
+  // `running` before it, therefore gets `startedAt == completedAt`; until A3
+  // such a row had no `startedAt` at all, the one field the canonical builder
+  // stamps at every row's creation and this path did not.
   const toolCall = create(ToolCallSchema, {
     id: event.call_id,
     name: actualName,
     status,
-    startedAt: status === ToolCallStatus.TOOL_CALL_RUNNING ? utcTimestamp() : "",
+    startedAt: utcTimestamp(),
     completedAt: isTerminalToolStatus(status) ? utcTimestamp() : "",
     result: toResultString(event.result),
     error: status === ToolCallStatus.TOOL_CALL_FAILED
@@ -1018,9 +1023,9 @@ export class MessageAccumulator {
     if (!wasTerminal && isTerminalToolStatus(status)) {
       this._dirty = true;
     }
-    if (!existing.startedAt && status === ToolCallStatus.TOOL_CALL_RUNNING) {
-      existing.startedAt = utcTimestamp();
-    }
+    // No `startedAt` stamp on a re-emit: every row this accumulator creates has
+    // one from its first event (A3), and a seeded row an older runner wrote
+    // without one keeps the honest gap rather than the re-run's instant.
 
     // Only a non-empty incoming result overwrites; a result-less "running"
     // re-emit must not wipe a result captured on completion (or vice versa).

@@ -21,6 +21,14 @@
  * Engine disposition on this arm, today: the handle is `close()`d, not parked
  * (index.ts `enterUnattributedHookBlockFailure`).
  *
+ * Moved 2026-09-14 (S4 M4 A3, Q-S4-17), one line: the FAILED row — built from
+ * a single `status: "error"` event with no `running` before it — carries
+ * `startedAt`, equal to its `completedAt`: the instant the runner first
+ * learned of the call. Until A3 a completed-only event left the field unset,
+ * the one field the canonical builder stamps at every row's creation. This
+ * is the only Cursor golden that scripts a completed-only event (M4 finding
+ * F-M4-1; Q-S4-17's predicted three were this one).
+ *
  * Parent phase rows exercised beyond the earlier scenarios: the gate install's
  * foreign-hook detection (`workspace-setup.ts` `mergeHooks`); the FAILED
  * tool-call row built from a single `status: "error"` event; the boundary's
