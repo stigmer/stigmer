@@ -40,6 +40,9 @@
  * move at B4 (the translator reproduces the fold, instant included); at B5
  * (Q-M4-5) the translator honours `result.status: "error"` and the row ends
  * FAILED, with `approvalRequestedAt` at the instant the failure was observed.
+ * Moved at A4 (Q-M4-3) by one line this header had not named when C1 wrote
+ * it (M4 finding F-M4-32): the stream's `error` merge had duplicated the
+ * failure text into `result`; a failure's text is its `error` alone.
  *
  * Regenerate ONLY after a deliberate behavior change:
  *   npx vitest run src/activities/execute-cursor/__tests__/hermetic -u

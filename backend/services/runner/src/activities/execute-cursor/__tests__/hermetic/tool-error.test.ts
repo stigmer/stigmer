@@ -4,17 +4,20 @@
  * the whole `ExecuteCursor` activity.
  *
  * Invariant pinned (S4 M0 net): the error event folds onto the same row
- * (`MessageAccumulator.mergeToolCallEvent`) as FAILED, with `error` AND
- * `result` both set to the failure text, `completedAt` stamped, no approval
- * fields (a read-only built-in is not gated, and the text is not Cursor's
- * hook-block copy, so the boundary's #205 pass leaves it alone), and the turn
- * still ends COMPLETED: a failed read is the model's problem to route around,
- * not the turn's.
+ * (`MessageAccumulator.mergeToolCallEvent`) as FAILED, with the failure text
+ * in `error` and `result` EMPTY, `completedAt` stamped, no approval fields (a
+ * read-only built-in is not gated, and the text is not Cursor's hook-block
+ * copy, so the boundary's #205 pass leaves it alone), and the turn still ends
+ * COMPLETED: a failed read is the model's problem to route around, not the
+ * turn's.
  *
- * Predicted under the S4 rulings (`T01_1_review.md`, 2026-09-14): NO move.
- * The canonical builder's `tool_error` upsert (Q-S4-3(c)) stamps the same
- * fields; `startedAt` is already present because the `running` event came
- * first (Q-S4-17 touches only completed-without-running rows).
+ * Moved 2026-09-14 (S4 M4 A4, Q-M4-3), one line: until A4 the accumulator
+ * wrote the failure text to BOTH `error` and `result`. Native writes `error`
+ * alone, as do this harness's own sub-agent rows, and every reader shows
+ * `error || result`; the duplicate's one behavioral reader was the twin
+ * collapse's `carriesOwnChange`, which took a hook-denied shell for a row
+ * carrying its own output (M4 finding F-M4-2). `startedAt` was already
+ * present because the `running` event came first.
  *
  * Why this net exists: the one FAILED row among the seventeen Cursor goldens
  * is the gate's own case (`unattributed-hook-block`); the ordinary tool
@@ -119,7 +122,7 @@ describe("ExecuteCursor hermetic — an ungated tool call that fails", () => {
     expect(row.id).toBe(CALL_ID);
     expect(row.status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
     expect(row.error, "the failure text is the error").toBe(READ_ERROR);
-    expect(row.result, "and, as the accumulator folds it today, also the result").toBe(READ_ERROR);
+    expect(row.result, "and only the error (Q-M4-3)").toBe("");
     expect(row.requiresApproval, "an ordinary failure is not an approval gate").toBe(false);
     expect(row.approvalRequestedAt).toBe("");
     expect(row.startedAt < row.completedAt).toBe(true);

@@ -210,7 +210,14 @@ export function buildToolCallProto(
     status,
     startedAt: utcTimestamp(),
     completedAt: isTerminalToolStatus(status) ? utcTimestamp() : "",
-    result: toResultString(event.result),
+    // A FAILED row carries its failure text in `error` ONLY (S4 M4 A4, Q-M4-3):
+    // the SDK reports a failure as the event's `result`, and until A4 this path
+    // wrote it to both fields. Native and this harness's own sub-agent rows
+    // write `error` alone; every reader shows `error || result`; and the
+    // duplicate made a hook-denied shell twin look like a row "carrying its
+    // own change" to the twin collapse (`carriesOwnChange` reads `result`),
+    // so the duplicate card the collapse exists to hide survived (F-M4-2).
+    result: status === ToolCallStatus.TOOL_CALL_FAILED ? "" : toResultString(event.result),
     error: status === ToolCallStatus.TOOL_CALL_FAILED
       ? (typeof event.result === "string" ? event.result : "Tool call failed")
       : "",
@@ -1029,11 +1036,7 @@ export class MessageAccumulator {
 
     // Only a non-empty incoming result overwrites; a result-less "running"
     // re-emit must not wipe a result captured on completion (or vice versa).
-    const incomingResult = toResultString(event.result);
-    if (incomingResult) {
-      existing.result = incomingResult;
-    }
-
+    // A failure's text is its `error`, never its `result` (A4, Q-M4-3).
     if (status === ToolCallStatus.TOOL_CALL_FAILED) {
       if (!existing.error) {
         existing.error = typeof event.result === "string"
@@ -1042,6 +1045,11 @@ export class MessageAccumulator {
       }
       if (existing.requiresApproval && !existing.approvalRequestedAt) {
         existing.approvalRequestedAt = utcTimestamp();
+      }
+    } else {
+      const incomingResult = toResultString(event.result);
+      if (incomingResult) {
+        existing.result = incomingResult;
       }
     }
 

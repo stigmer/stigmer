@@ -29,6 +29,10 @@
  * is the only Cursor golden that scripts a completed-only event (M4 finding
  * F-M4-1; Q-S4-17's predicted three were this one).
  *
+ * Moved again the same day (S4 M4 A4, Q-M4-3), one line: the FAILED row's
+ * `result` no longer duplicates its `error` — the hook-block text lives in
+ * `error` alone, which is the field the #205 detector reads.
+ *
  * Parent phase rows exercised beyond the earlier scenarios: the gate install's
  * foreign-hook detection (`workspace-setup.ts` `mergeHooks`); the FAILED
  * tool-call row built from a single `status: "error"` event; the boundary's
