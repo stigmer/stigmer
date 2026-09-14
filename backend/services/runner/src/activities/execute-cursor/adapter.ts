@@ -5,9 +5,10 @@
  * module boots, releases, and delegates.
  *
  * What this adapter owns: the proxy interceptors and the parked-agent cache
- * (worker lifetime), the parked agent per session (session lifetime), and one
- * engine turn (`runTurn`, through `turn.ts`). Everything else about a turn is
- * the runtime's (`harness/run-turn.ts`).
+ * (worker lifetime), the parked agent and the SDK store per session (session
+ * lifetime; `agent-session-cache.ts`, `session-store.ts`), and one engine turn
+ * (`runTurn`, through `turn.ts`). Everything else about a turn is the
+ * runtime's (`harness/run-turn.ts`).
  *
  * THIS MODULE'S STATIC GRAPH IS SDK-FREE, ON PURPOSE. The composition roots
  * import it (through `src/harness-adapters.ts`) BEFORE they boot it, and
@@ -57,6 +58,7 @@ import { closeAllCachedAgents, evictSessionAgent } from "./agent-session-cache.j
 import { CURSOR_CAPABILITIES } from "./cursor-capabilities.js";
 import { installFetchInterceptor } from "./fetch-interceptor.js";
 import { assertHttp2ConnectPatched, installHttp2Interceptor } from "./http2-interceptor.js";
+import { releaseAllSessionStores, releaseSessionStore } from "./session-store.js";
 import type { CursorAdapterConfig } from "./turn-setup.js";
 
 /** The config slice this adapter reads per turn, taken at `boot`; a whole `Config` satisfies it. */
@@ -120,14 +122,16 @@ export function createCursorAdapter(): HarnessAdapter {
       booted = { config: resolveCursorConfig(bootConfig), runCursorTurn };
     },
 
-    /** Close every parked agent (their executor leases and MCP subprocesses). */
+    /** Close every parked agent (their executor leases and MCP subprocesses), then every session's SDK store. */
     async shutdown(): Promise<void> {
       closeAllCachedAgents();
+      await releaseAllSessionStores();
     },
 
-    /** The session is done on this host: close the agent parked for it, if any (#215). */
+    /** The session is done on this host: close the agent parked for it, if any (#215), then its SDK store (#1053). */
     async releaseSession(sessionId: string): Promise<void> {
       evictSessionAgent(sessionId);
+      await releaseSessionStore(sessionId);
     },
 
     async runTurn(input: TurnInput, sink: TurnSink): Promise<TurnOutcome> {

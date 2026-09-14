@@ -41,14 +41,15 @@ describeWithCursorKey("SDK routing with CURSOR_BACKEND_URL unset", () => {
     mkdirSync(stateRoot, { recursive: true });
 
     const { Agent } = await import("@cursor/sdk");
+    const { SqliteLocalAgentStore } = await import("@cursor/sdk/sqlite");
 
     const agent = await Agent.create({
       apiKey: CURSOR_API_KEY,
       model: { id: "claude-sonnet-4" },
-      local: { cwd: stateRoot },
-      platform: {
-        workspaceRef: `routing-test-${Date.now()}`,
-        stateRoot,
+      local: {
+        cwd: stateRoot,
+        // 1.0.31: the store is caller-owned (`session-store.ts` in production).
+        store: await SqliteLocalAgentStore.open({ workspaceRef: `routing-test-${Date.now()}`, stateRoot }),
       },
     });
 
@@ -62,14 +63,15 @@ describeWithCursorKey("SDK routing with CURSOR_BACKEND_URL unset", () => {
     mkdirSync(stateRoot, { recursive: true });
 
     const { Agent } = await import("@cursor/sdk");
+    const { SqliteLocalAgentStore } = await import("@cursor/sdk/sqlite");
 
     const agent = await Agent.create({
       apiKey: CURSOR_API_KEY,
       model: { id: "claude-sonnet-4" },
-      local: { cwd: stateRoot },
-      platform: {
-        workspaceRef: `routing-send-test-${Date.now()}`,
-        stateRoot,
+      local: {
+        cwd: stateRoot,
+        // 1.0.31: the store is caller-owned (`session-store.ts` in production).
+        store: await SqliteLocalAgentStore.open({ workspaceRef: `routing-send-test-${Date.now()}`, stateRoot }),
       },
     });
 

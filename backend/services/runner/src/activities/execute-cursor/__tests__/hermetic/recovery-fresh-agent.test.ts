@@ -33,6 +33,9 @@ import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecutio
 vi.mock("@cursor/sdk", async () =>
   (await import("../../__test-utils__/scripted-sdk.js")).scriptedCursorSdkModule(),
 );
+vi.mock("@cursor/sdk/sqlite", async () =>
+  (await import("../../__test-utils__/scripted-sdk.js")).scriptedCursorSqliteModule(),
+);
 vi.mock("../../../../client/stigmer-client.js", async () =>
   (await import("../../../../__test-utils__/hermetic-activity.js")).hermeticStigmerClientModule(),
 );
@@ -104,7 +107,7 @@ describe("ExecuteCursor hermetic — poisoned-handle recovery on a fresh agent",
         [
           step.event(evFresh.init()),
           step.event(evFresh.assistant(FINAL_TEXT)),
-          step.turnEnded({ inputTokens: 2_800, outputTokens: 55 }),
+          step.turnEnded({ inputTokens: 2_800, outputTokens: 55, cacheReadTokens: 0, cacheWriteTokens: 0 }),
           step.finished({ result: FINAL_TEXT, model: { id: FIXTURE.model, params: [] } }),
         ],
       ],

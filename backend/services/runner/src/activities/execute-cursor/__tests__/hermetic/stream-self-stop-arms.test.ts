@@ -64,6 +64,9 @@ import {
 vi.mock("@cursor/sdk", async () =>
   (await import("../../__test-utils__/scripted-sdk.js")).scriptedCursorSdkModule(),
 );
+vi.mock("@cursor/sdk/sqlite", async () =>
+  (await import("../../__test-utils__/scripted-sdk.js")).scriptedCursorSqliteModule(),
+);
 vi.mock("../../../../client/stigmer-client.js", async () =>
   (await import("../../../../__test-utils__/hermetic-activity.js")).hermeticStigmerClientModule(),
 );
@@ -213,7 +216,7 @@ describe("ExecuteCursor hermetic — the stream loop's self-stop arms", () => {
           step.event(ev.init()),
           step.event(ev.assistant("Reading the whole repository first.")),
           // 600 000 input tokens at the fixture's $1/M base rate = $0.60 > $0.50.
-          step.turnEnded({ inputTokens: 600_000, outputTokens: 0 }),
+          step.turnEnded({ inputTokens: 600_000, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 }),
           step.event(ev.assistant(NEVER_SEEN)),
           step.finished({ result: NEVER_SEEN }),
         ],
