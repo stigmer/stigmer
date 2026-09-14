@@ -13,16 +13,19 @@
  *
  * Opened at S4 M2 C5b with the row rules that are byte-identical on native
  * and therefore have no golden (Q-S4-3(c)(d), the gated `tool_error` stamp);
- * the rest of the header's rules land at C9.
+ * `approval_proposed` and `system_note` joined at C6; the rest of the
+ * header's rules land at C9.
  */
 
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import {
+  ApprovalPolicySource,
   MessageType,
   ToolCallStatus,
   ToolCallStreamingSource,
+  ToolKind,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { TranscriptBuilder } from "../builder.js";
 import type { TranscriptEvent } from "../events.js";
@@ -126,6 +129,116 @@ describe("TranscriptBuilder — tool_finished and tool_error are upserts (Q-S4-3
       { kind: "tool_error", callId: "ghost", message: "y" },
     ]);
     expect(sb.currentStatus.messages).toHaveLength(0);
+  });
+});
+
+describe("TranscriptBuilder — approval_proposed is the one place a row is ever WAITING (Q-S4-20, Q-S4-3(e))", () => {
+  const proposal = (callId: string, extra: Partial<Extract<TranscriptEvent, { kind: "approval_proposed" }>> = {}) =>
+    ({
+      kind: "approval_proposed",
+      callId,
+      name: "execute",
+      mcpServerSlug: "",
+      message: "Execute command: rm -rf build",
+      ...extra,
+    }) as const satisfies TranscriptEvent;
+
+  it("an unknown call gets a WAITING row on the message whose text proposed it — never a new empty message", () => {
+    const sb = feed(builder(), [
+      { kind: "message_start", runId: "run-1" },
+      { kind: "text_delta", runId: "run-1", text: "I will run the command." },
+      { kind: "message_finish", runId: "run-1" },
+      proposal("exec-1", { args: { command: "rm -rf build" }, provenance: "builtin_category" }),
+    ]);
+    expect(sb.currentStatus.messages.map((m) => m.content)).toEqual(["I will run the command."]);
+    const row = rowOf(sb, "exec-1");
+    expect(row.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
+    expect(row.requiresApproval).toBe(true);
+    expect(row.approvalMessage).toBe("Execute command: rm -rf build");
+    expect(row.approvalRequestedAt).toContain("T");
+    expect(row.startedAt).toContain("T");
+    expect(row.args).toEqual({ command: "rm -rf build" });
+    expect(row.argsPreview).toBe(JSON.stringify({ command: "rm -rf build" }));
+    expect(row.approvalPolicySource).toBe(ApprovalPolicySource.BUILTIN_CATEGORY);
+    expect(row.policyEngineVersion).toBe("phase-7");
+    expect(row.toolKind).toBe(ToolKind.SHELL);
+    expect(sb.awaitingApproval, "the fact the caller reads").toBe(true);
+  });
+
+  it("with no message in the scope yet, the row gets an empty AI message (the boundary's fallback)", () => {
+    const sb = feed(builder(), [proposal("exec-1")]);
+    expect(sb.currentStatus.messages.map((m) => [m.type, m.content])).toEqual([[MessageType.MESSAGE_AI, ""]]);
+    expect(rowOf(sb, "exec-1").status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
+  });
+
+  it("carries the MCP server, and the digest when the harness has one", () => {
+    const sb = feed(builder(), [
+      proposal("mcp-1", { name: "create_issue", mcpServerSlug: "github", provenance: "agent_override", contentDigest: "sha-1" }),
+    ]);
+    const row = rowOf(sb, "mcp-1");
+    expect(row.mcpServerSlug).toBe("github");
+    expect(row.toolKind).toBe(ToolKind.MCP);
+    expect(row.approvalContentDigest).toBe("sha-1");
+    expect(row.approvalPolicySource).toBe(ApprovalPolicySource.AGENT_OVERRIDE);
+  });
+
+  it("a known row REOPENS: WAITING, the outcome fields cleared, approvalRequestedAt stamped once (Cursor's denial overlay)", () => {
+    const sb = feed(builder(), [
+      { kind: "message_start", runId: "run-1" },
+      { kind: "text_delta", runId: "run-1", text: "Running the build." },
+      { kind: "tool_started", callId: "sh-1", name: "Shell", input: { command: "make" }, mcpServerSlug: "", gate: { message: "Run command: make" } },
+      { kind: "tool_error", callId: "sh-1", message: "Blocked by hook" },
+    ]);
+    const stamped = rowOf(sb, "sh-1").approvalRequestedAt;
+    sb.apply(proposal("sh-1", { name: "Shell", message: "Run command: make", contentDigest: "d-1" }));
+    const row = rowOf(sb, "sh-1");
+    expect(row.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
+    expect(row.error).toBe("");
+    expect(row.result).toBe("");
+    expect(row.completedAt).toBe("");
+    expect(row.approvalRequestedAt, "the first stamp stands").toBe(stamped);
+    expect(row.approvalContentDigest).toBe("d-1");
+    expect(sb.currentStatus.messages.flatMap((m) => m.toolCalls), "no second row").toHaveLength(1);
+    expect(sb.awaitingApproval).toBe(true);
+  });
+
+  it("proposing a call the stream already showed never duplicates it (F-M2-13)", () => {
+    const sb = feed(builder(), [...proposedCall("exec-1", "execute"), proposal("exec-1")]);
+    expect(sb.currentStatus.messages.flatMap((m) => m.toolCalls).map((tc) => tc.id)).toEqual(["exec-1"]);
+  });
+
+  it("no tool_started ever sets awaitingApproval; only a proposal does", () => {
+    const sb = feed(builder(), [
+      { kind: "tool_started", callId: "sh-1", name: "Shell", input: {}, mcpServerSlug: "", gate: { message: "Run command" } },
+    ]);
+    expect(sb.awaitingApproval).toBe(false);
+    expect(rowOf(sb, "sh-1").status).toBe(ToolCallStatus.TOOL_CALL_RUNNING);
+  });
+});
+
+describe("TranscriptBuilder — system_note is the harness's line in its own voice (Q-S4-18)", () => {
+  it("appends a SYSTEM message to the scope; it hosts no rows and moves no boundary", () => {
+    const sb = feed(builder(), [
+      { kind: "message_start", runId: "run-1" },
+      { kind: "text_delta", runId: "run-1", text: "Working." },
+      { kind: "system_note", text: "The agent's changes could not be reviewed." },
+      { kind: "tool_started", callId: "t-1", name: "read", input: {}, mcpServerSlug: "" },
+    ]);
+    expect(sb.currentStatus.messages.map((m) => [m.type, m.content])).toEqual([
+      [MessageType.MESSAGE_AI, "Working."],
+      [MessageType.MESSAGE_SYSTEM, "The agent's changes could not be reviewed."],
+    ]);
+    expect(sb.currentStatus.messages[0].toolCalls.map((tc) => tc.id), "the row still joins the AI message").toEqual(["t-1"]);
+    expect(sb.currentStatus.messages[1].toolCalls).toHaveLength(0);
+  });
+
+  it("lands in a sub-agent's transcript when scoped there", () => {
+    const sb = feed(builder(), [
+      { kind: "sub_agent_started", subAgentId: "task-1", name: "helper", subject: "s", input: "s" },
+      { kind: "system_note", subAgentId: "task-1", text: "note" },
+    ]);
+    expect(sb.currentStatus.messages).toHaveLength(0);
+    expect(sb.currentStatus.subAgentExecutions[0].messages.map((m) => m.content)).toEqual(["note"]);
   });
 });
 

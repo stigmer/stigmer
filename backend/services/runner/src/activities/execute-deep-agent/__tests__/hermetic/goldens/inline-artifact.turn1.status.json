@@ -26,10 +26,6 @@
     {
       "type": "MESSAGE_AI",
       "content": "Now the command.",
-      "timestamp": "2026-01-01T00:00:02.000Z"
-    },
-    {
-      "type": "MESSAGE_AI",
       "timestamp": "2026-01-01T00:00:02.000Z",
       "toolCalls": [
         {

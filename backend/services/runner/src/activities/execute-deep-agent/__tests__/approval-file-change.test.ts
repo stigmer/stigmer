@@ -52,20 +52,9 @@ describe("findAiMessageToolCallArgs", () => {
 });
 
 describe("captureApprovalArtifacts", () => {
-  it("returns a sanitized args preview for a correlated tool call", () => {
-    const messages = [
-      aiMessage([
-        { id: "call-1", name: "write_file", args: { file_path: "a.txt", content: "hi", token: "sk-secret" } },
-      ]),
-    ];
-    const { argsPreview } = captureApprovalArtifacts({ toolCallId: "call-1", messages });
-
-    expect(argsPreview).toBeDefined();
-    expect(argsPreview).toContain("a.txt");
-    expect(argsPreview).toContain("[REDACTED]");
-    expect(argsPreview).not.toContain("sk-secret");
-  });
-
+  // The row's `args_preview` is the builder's to render from these args since
+  // S4 M2 C6 (`harness/transcript/__tests__/builder.test.ts`); this module
+  // contributes the redacted args and nothing else.
   it("returns nothing when the interrupt cannot be correlated", () => {
     const result = captureApprovalArtifacts({
       toolCallId: "missing",
@@ -74,12 +63,12 @@ describe("captureApprovalArtifacts", () => {
     expect(result).toEqual({});
   });
 
-  it("returns a preview for a correlated non-file tool", () => {
+  it("returns the args of a correlated non-file tool too", () => {
     const messages = [
       aiMessage([{ id: "call-1", name: "search", args: { query: "needle" } }]),
     ];
-    const { argsPreview } = captureApprovalArtifacts({ toolCallId: "call-1", messages });
-    expect(argsPreview).toContain("needle");
+    const { args } = captureApprovalArtifacts({ toolCallId: "call-1", messages });
+    expect(args).toEqual({ query: "needle" });
   });
 
   it("returns the redacted args object for stamping the placeholder row (issue #754)", () => {

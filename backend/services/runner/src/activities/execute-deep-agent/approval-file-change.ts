@@ -1,35 +1,35 @@
 /**
  * Pre-execution args capture for the HITL approval gate (native harness).
  *
- * When the graph pauses for approval — before the tool runs — this captures a
- * sanitized args preview so the gate can show the proposed change. It owns only
- * the native-specific seam: correlating a gated `tool_call_id` to its arguments
- * from graph state (the authoritative single source of truth at the interrupt,
- * since the streamed input cache is empty and the interrupt value carries only a
- * few fields). The approval card renders the proposed write/edit content from
- * these args; there is no separate captured `file_changes` (removed in Phase 5
- * Slice 4 — the args are the single source, and the Cursor deny-gate's
- * exact-apply reads the same args on resume; see shared/exact-apply.ts).
+ * When the graph pauses for approval — before the tool runs — this recovers
+ * the proposed call's arguments so the gate can show the proposed change. It
+ * owns only the native-specific seam: correlating a gated `tool_call_id` to
+ * its arguments from graph state (the authoritative single source of truth at
+ * the interrupt, since the streamed input cache is empty and the interrupt
+ * value carries only a few fields). The approval card renders the proposed
+ * write/edit content from these args; there is no separate captured
+ * `file_changes` (removed in Phase 5 Slice 4 — the args are the single
+ * source, and the Cursor deny-gate's exact-apply reads the same args on
+ * resume; see shared/exact-apply.ts). The row's `args_preview` is the
+ * builder's to write from these args (S4 M2 C6; until then this module
+ * rendered it too, a second call of the one sanitizer).
  *
  * @since First-Class Diff Review (#186), approval-gate phase
  */
 
 /** What the gate capture contributes to a `WAITING_APPROVAL` `ToolCall`. */
 export interface ApprovalCaptureResult {
-  /** Sanitized JSON args preview, omitted when there are no args to show. */
-  readonly argsPreview?: string;
   /**
    * The secret-redacted args object, for stamping `ToolCall.args` on the
-   * interrupt-placeholder row. Without it the placeholder carried ONLY the
-   * preview string, so every args-driven UI read — the row header's
-   * filename-first path above all — rendered nothing for a pending gate
-   * (issue #754). Redacted (never raw): the placeholder must not widen the
-   * exposure the preview sanitizer bounds.
+   * proposed row. Without it the row carried ONLY the preview string, so
+   * every args-driven UI read — the row header's filename-first path above
+   * all — rendered nothing for a pending gate (issue #754). Redacted (never
+   * raw): the row must not widen the exposure the preview sanitizer bounds.
    */
   readonly args?: Record<string, unknown>;
 }
 
-import { redactSensitiveArgs, sanitizeArgsPreview } from "../../shared/args-preview.js";
+import { redactSensitiveArgs } from "../../shared/args-preview.js";
 
 /**
  * Correlate a gated `tool_call_id` to its arguments by scanning graph-state
@@ -71,11 +71,11 @@ export function findAiMessageToolCallArgs(
 }
 
 /**
- * Capture the gate's args preview from a single correlation lookup, keeping the
- * call site thin.
+ * Capture the gate's redacted args from a single correlation lookup, keeping
+ * the call site thin.
  *
  * Returns an empty result when the tool call cannot be correlated or took no
- * arguments, so the gate falls back to today's behavior for that interrupt.
+ * arguments, so the proposed row carries no args for that interrupt.
  */
 export function captureApprovalArtifacts(opts: {
   readonly toolCallId: string;
@@ -84,6 +84,5 @@ export function captureApprovalArtifacts(opts: {
   const args = findAiMessageToolCallArgs(opts.messages, opts.toolCallId);
   if (!args || Object.keys(args).length === 0) return {};
 
-  const argsPreview = sanitizeArgsPreview(args) || undefined;
-  return { argsPreview, args: redactSensitiveArgs(args) };
+  return { args: redactSensitiveArgs(args) };
 }

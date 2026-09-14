@@ -29,8 +29,10 @@
  *     (`sub_agent_started/finished/failed`). LangGraph's namespace grammar
  *     (`tools:<uuid>|model_request:<uuid>`), the `task` tool's name and its
  *     depth rule are the native translator's alone now.
- *   - Still to arrive: `approval_proposed` and `system_note` (C6). A Cursor
- *     translator then emits this union at M4.
+ *   - C6: `approval_proposed`, the one post-stream fact both harnesses
+ *     produce, and `system_note`, a harness's line in its own voice. The
+ *     union is complete: a Cursor translator emits it at M4 and writes
+ *     nothing else.
  *
  * The rule the union keeps (plan §3): a member carries an identity and the
  * fact the builder cannot read elsewhere, nothing else. Every engine fact
@@ -185,6 +187,45 @@ export interface SubAgentFailedEvent {
   readonly error: string;
 }
 
+// ── Post-Stream Facts ─────────────────────────────────────────────
+
+/**
+ * A call the harness's boundary parked for approval AFTER the stream — the
+ * one post-stream fact both harnesses produce (Q-S4-3(e), Q-S4-20): native's
+ * `seedPendingInterrupts` reads the graph checkpoint's un-resumed interrupts
+ * (a held call never streamed a `tool_started`, so no row exists yet);
+ * Cursor's denial overlay re-proposes a call the hook denied (a row exists,
+ * `error`ed). An UPSERT: a known `callId` REOPENS its row — WAITING, the
+ * outcome fields cleared, `approvalRequestedAt` stamped once; an unknown one
+ * gets a WAITING row on the scope's current AI message, the text that
+ * proposed it (Q-S4-5's rule, Q-S4-20). Either way the builder reports
+ * {@link awaitingApproval}. The one place a row is ever WAITING.
+ */
+export interface ApprovalProposedEvent extends Scoped {
+  readonly kind: "approval_proposed";
+  readonly callId: string;
+  readonly name: string;
+  readonly mcpServerSlug: string;
+  /** The proposed arguments, redacted by the harness — the card renders the change from them; absent when the harness could not correlate them. */
+  readonly args?: Record<string, unknown>;
+  /** The approval card's message, placeholders already resolved. */
+  readonly message: string;
+  readonly provenance?: PolicySource;
+  /** Cursor's content identity for a same-identity re-proposal (`approvalContentDigest`); native has none. */
+  readonly contentDigest?: string;
+}
+
+/**
+ * A line the harness adds to the transcript in its own voice — Cursor's
+ * `task` SDK event (a status line about the run), the boundary's
+ * unresolved-disclosure row (Q-S4-18). A SYSTEM message in the scope, never
+ * an AI one, so it neither hosts tool rows nor moves the message boundary.
+ */
+export interface SystemNoteEvent extends Scoped {
+  readonly kind: "system_note";
+  readonly text: string;
+}
+
 // ── Union ─────────────────────────────────────────────────────────
 
 export type TranscriptEvent =
@@ -199,4 +240,6 @@ export type TranscriptEvent =
   | ToolErrorEvent
   | SubAgentStartedEvent
   | SubAgentFinishedEvent
-  | SubAgentFailedEvent;
+  | SubAgentFailedEvent
+  | ApprovalProposedEvent
+  | SystemNoteEvent;

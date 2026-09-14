@@ -45,6 +45,14 @@
  *     transcript's streaming flags cleared; a known id is never re-opened.
  *     CANCELLED is not this builder's: `shared/subagent-rows.ts`
  *     `cancelInProgressSubAgentProtos` is the one home of that transition.
+ *   - `approval_proposed` is the one place a row is ever WAITING (Q-S4-20,
+ *     Q-S4-3(e)): a known row REOPENS — WAITING, the outcome fields cleared,
+ *     `approvalRequestedAt` stamped once (Cursor's `markWaitingApproval`);
+ *     an unknown call gets a WAITING row on the scope's current AI message,
+ *     the text that proposed it (native's post-stream seed, until C6 a new
+ *     empty message of its own). Either way {@link awaitingApproval} is set.
+ *   - `system_note` is a SYSTEM message in the scope, in the harness's
+ *     voice; it hosts no rows and moves no boundary (Q-S4-18).
  *   - A completed `ToolKind.TODO` call in the ROOT scope is projected into
  *     `status.todos` through the shared `applyTodoUpdate` (Q-S4-7; the row
  *     stays — the clients filter it); a sub-agent's is not.
@@ -81,12 +89,14 @@ import {
   ToolKind,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { POLICY_ENGINE_VERSION, toProtoPolicySource } from "../../shared/approval-policy.js";
+import { sanitizeArgsPreview } from "../../shared/args-preview.js";
 import { classifyTool } from "../../shared/tool-kind.js";
 import { applyTodoUpdate } from "../../shared/todos.js";
 import { utcTimestamp } from "../../shared/status.js";
 import type { ExecutionStatusWriter } from "../../shared/execution-status-writer.js";
 import { TranscriptState, type Transcript } from "./state.js";
 import type {
+  ApprovalProposedEvent,
   SubAgentFailedEvent,
   SubAgentFinishedEvent,
   SubAgentStartedEvent,
@@ -186,6 +196,12 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
           break;
         case "tool_error":
           this.handleToolError(scope, event.callId, event.message);
+          break;
+        case "approval_proposed":
+          this.handleApprovalProposed(scope, event);
+          break;
+        case "system_note":
+          this.appendSystemNote(scope, event.text);
           break;
         default: {
           const exhaustive: never = event;
@@ -481,6 +497,70 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
     tc.result = (tc.result ?? "") + delta;
     tc.isStreaming = true;
     tc.streamingSource = ToolCallStreamingSource.OUTPUT;
+  }
+
+  // ── Post-Stream Facts ──────────────────────────────────────────────
+
+  private handleApprovalProposed(scope: Transcript, event: ApprovalProposedEvent): void {
+    const now = utcTimestamp();
+    const existing = scope.toolCalls.get(event.callId);
+    if (existing) {
+      // Reopen (Cursor's `markWaitingApproval`): the boundary is re-proposing
+      // a call the stream already showed — an errored built-in the hook
+      // denied — so the outcome the stream wrote is not the outcome.
+      existing.status = ToolCallStatus.TOOL_CALL_WAITING_APPROVAL;
+      existing.requiresApproval = true;
+      existing.approvalMessage = event.message;
+      if (!existing.approvalRequestedAt) existing.approvalRequestedAt = now;
+      existing.completedAt = "";
+      existing.error = "";
+      existing.result = "";
+      if (event.contentDigest) existing.approvalContentDigest = event.contentDigest;
+      stopStreaming(existing);
+      this._awaitingApproval = true;
+      this._forceNextUpdate = true;
+      return;
+    }
+
+    // A call the stream never showed (native: the engine interrupted before
+    // the tool started). Its row lands on the text that proposed it, like
+    // any other row (Q-S4-20 — until C6 the seed pushed a new empty message).
+    const parentMsg = scope.currentAiMessage ?? this.ensureAiMessageForToolCall(scope);
+    const tc = create(ToolCallSchema, {
+      id: event.callId,
+      name: event.name,
+      status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
+      requiresApproval: true,
+      approvalMessage: event.message,
+      approvalRequestedAt: now,
+      startedAt: now,
+    });
+    if (event.mcpServerSlug) tc.mcpServerSlug = event.mcpServerSlug;
+    tc.toolKind = classifyTool(tc.name, tc.mcpServerSlug);
+    if (event.provenance !== undefined) {
+      tc.approvalPolicySource = toProtoPolicySource(event.provenance);
+      tc.policyEngineVersion = POLICY_ENGINE_VERSION;
+    }
+    if (event.args && Object.keys(event.args).length > 0) {
+      tc.args = event.args as JsonObject;
+      const argsPreview = sanitizeArgsPreview(event.args);
+      if (argsPreview) tc.argsPreview = argsPreview;
+    }
+    if (event.contentDigest) tc.approvalContentDigest = event.contentDigest;
+
+    parentMsg.toolCalls.push(tc);
+    scope.toolCalls.set(event.callId, tc);
+    this._awaitingApproval = true;
+    this._forceNextUpdate = true;
+  }
+
+  private appendSystemNote(scope: Transcript, text: string): void {
+    scope.messages.push(create(AgentMessageSchema, {
+      type: MessageType.MESSAGE_SYSTEM,
+      content: text,
+      timestamp: utcTimestamp(),
+    }));
+    this._forceNextUpdate = true;
   }
 
   // ── Content Helpers ───────────────────────────────────────────────
