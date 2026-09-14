@@ -156,10 +156,15 @@ picks them up.
 
 ## Every setting
 
-The chart's
-[README](https://github.com/stigmer/stigmer/tree/main/deploy/helm/stigmer)
-documents every value with the reason behind it, and the chart refuses a
-misspelled one instead of ignoring it.
+The chart documents every value, with the reason behind it, in its own
+`values.yaml` and README. Read them from the registry:
+
+```bash
+helm show values oci://ghcr.io/stigmer/charts/stigmer
+helm show readme oci://ghcr.io/stigmer/charts/stigmer
+```
+
+The chart refuses a misspelled value instead of ignoring it.
 
 ## Next step
 
