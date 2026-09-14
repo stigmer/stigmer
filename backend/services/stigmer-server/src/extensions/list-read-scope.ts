@@ -47,6 +47,30 @@
  *     semantics (the Java baseline propagates the original caller
  *     through in-process calls, so a composed driver normally never
  *     sees `internal` on these lanes).
+ *   - THE SCOPE IS THE LAST PER-ROW PREDICATE IN A LANE (stigmer-cloud
+ *     20260913.04 T02, Q-LB-11). Every request predicate a lane applies
+ *     — the request's org, a phase, labels, a parent id, filter criteria
+ *     — is a pure function of one row and the request; the scope is a
+ *     pure function of one row and the caller; an intersection of
+ *     per-row predicates commutes, so the order is free and the cheap
+ *     ones go first: a lane offers the scope ONLY the rows its own
+ *     predicates keep. Sort, page and aggregate are not per-row and stay
+ *     after the scope, where they were. Why it matters: a composed
+ *     driver's cost is proportional to the candidates offered (the cloud
+ *     checks each one against its authorization engine), and the whole
+ *     kind across every tenant is what rolled back on 2026-09-14; the
+ *     request's org is tens of rows. Two idioms carry the rule and both
+ *     keep their reason: a lane whose Go/Java contract org-narrows in
+ *     BOTH editions (environment, memory, schedule, agent-instance,
+ *     agent-share and agent-channel lists; the getBy* parent filters)
+ *     applies its own filter ABOVE the helper call and passes `""`; a lane
+ *     whose contract is cross-org on OSS (`agentExecution.list`,
+ *     `workflowExecution.list`, `listPendingApprovals`) hands the request
+ *     org to the helper, which applies it before the scope ONLY when a
+ *     scope is composed — a scope-less server still returns the input
+ *     untouched with the org unconsulted (the first line above). Two lanes
+ *     have no org on the wire (`session.list`, `apiKey.findAll`) and offer
+ *     the kind until P1 entry 12 pages them.
  */
 import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
@@ -112,10 +136,13 @@ export interface ScopedListResource {
  *     `requestOrg` deliberately not consulted — the OSS single-tenant
  *     posture treats the org field as a no-op, and new filtering on a
  *     scope-less server would be a silent wire change);
- *   - scope composed → entries narrowed to the kept ids, then to
- *     `requestOrg` when non-blank (the Java repos' uniform posture:
- *     blank org = permission-bounded across orgs, verified per lane in
- *     the entry's census — lanes Java does not org-narrow pass "").
+ *   - scope composed → entries narrowed to `requestOrg` when non-blank
+ *     FIRST (the Java repos' uniform posture: blank org =
+ *     permission-bounded across orgs, verified per lane in the entry's
+ *     census — lanes Java does not org-narrow pass ""), then to the kept
+ *     ids. The same set either way (both are per-row predicates); the
+ *     order is the header's last contract line: the scope sees the org's
+ *     rows, not the kind's.
  */
 export async function restrictListByReadScope<T extends ScopedListResource>(
   scope: ListReadScope | undefined,
@@ -127,17 +154,15 @@ export async function restrictListByReadScope<T extends ScopedListResource>(
   if (scope === undefined) {
     return [...resources];
   }
-  const entries: ListEntryMeta[] = resources.map((resource) => ({
+  const offered =
+    requestOrg === ""
+      ? resources
+      : resources.filter((resource) => resource.metadata?.org === requestOrg);
+  const entries: ListEntryMeta[] = offered.map((resource) => ({
     id: resource.metadata?.id ?? "",
     org: resource.metadata?.org ?? "",
     labels: resource.metadata?.labels ?? {},
   }));
   const keptIds = await scope.restrictListEntries(caller, kind, entries);
-  let kept = resources.filter((resource) =>
-    keptIds.has(resource.metadata?.id ?? ""),
-  );
-  if (requestOrg !== "") {
-    kept = kept.filter((resource) => resource.metadata?.org === requestOrg);
-  }
-  return kept;
+  return offered.filter((resource) => keptIds.has(resource.metadata?.id ?? ""));
 }

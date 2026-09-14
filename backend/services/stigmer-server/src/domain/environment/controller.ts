@@ -797,24 +797,24 @@ function newListByOrgAndLabelsStep(
           continue; // skip malformed rows, as Go does
         }
       }
-      const visible = await restrictListByReadScope(
+      // The request's org and labels first (this lane's contract in both
+      // editions), the read scope last (census lane 10; the scope is the
+      // last per-row predicate): a composed driver is asked about the
+      // org's environments, never every tenant's.
+      const requested = decoded.filter(
+        (env) =>
+          (env.metadata?.org ?? "") === org &&
+          matchesAllLabels(env.metadata?.labels ?? {}, filterLabels),
+      );
+      const environments = await restrictListByReadScope(
         listReadScope,
         ctx.callerIdentity,
         ApiResourceKind.environment,
-        decoded,
+        requested,
         "",
       );
-
-      const environments: Environment[] = [];
-      for (const env of visible) {
-        if ((env.metadata?.org ?? "") !== org) {
-          continue;
-        }
-        if (!matchesAllLabels(env.metadata?.labels ?? {}, filterLabels)) {
-          continue;
-        }
+      for (const env of environments) {
         redactEnvironmentSecrets(env);
-        environments.push(env);
       }
 
       environments.sort((a, b) =>

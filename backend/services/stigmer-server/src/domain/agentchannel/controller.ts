@@ -599,27 +599,24 @@ function newLoadChannelsByAgentStep(
           continue;
         }
       }
-      // 20260830.01 census lane 19: the scope narrows the decoded scan;
-      // the org/agent filters below are contract parity in both editions.
-      const visible = await restrictListByReadScope(
+      // 20260830.01 census lane 19: the org/agent filters are contract
+      // parity in both editions and run FIRST; the scope narrows the
+      // agent's channels last (the scope is the last per-row predicate,
+      // stigmer-cloud 20260913.04 T02).
+      const channels = await restrictListByReadScope(
         listReadScope,
         ctx.callerIdentity,
         ApiResourceKind.agent_channel,
-        decoded,
+        decoded.filter((channel) => {
+          const ref = channel.spec?.agentRef;
+          return (
+            (ref?.org ?? "") === agentOrg &&
+            (ref?.slug ?? "") === agentSlug &&
+            (req.org === "" || (channel.metadata?.org ?? "") === req.org)
+          );
+        }),
         "",
       );
-
-      const channels: AgentChannel[] = [];
-      for (const channel of visible) {
-        const ref = channel.spec?.agentRef;
-        if ((ref?.org ?? "") !== agentOrg || (ref?.slug ?? "") !== agentSlug) {
-          continue;
-        }
-        if (req.org !== "" && (channel.metadata?.org ?? "") !== req.org) {
-          continue;
-        }
-        channels.push(channel);
-      }
 
       ctx.set(
         CHANNEL_LIST_KEY,
@@ -702,26 +699,21 @@ function newListByOrgAndLabelsStep(
           continue;
         }
       }
-      // 20260830.01 census lane 18: the scope narrows the decoded scan;
-      // the org equality below already serves the Java handler's org arm.
-      const visible = await restrictListByReadScope(
+      // 20260830.01 census lane 18: the org and label filters serve the
+      // Java handler's arms in both editions and run FIRST; the scope
+      // narrows the org's rows last (the scope is the last per-row
+      // predicate, stigmer-cloud 20260913.04 T02).
+      const channels = await restrictListByReadScope(
         listReadScope,
         ctx.callerIdentity,
         ApiResourceKind.agent_channel,
-        decoded,
+        decoded.filter(
+          (channel) =>
+            (channel.metadata?.org ?? "") === org &&
+            matchesAllLabels(channel.metadata?.labels ?? {}, filterLabels),
+        ),
         "",
       );
-
-      const channels: AgentChannel[] = [];
-      for (const channel of visible) {
-        if ((channel.metadata?.org ?? "") !== org) {
-          continue;
-        }
-        if (!matchesAllLabels(channel.metadata?.labels ?? {}, filterLabels)) {
-          continue;
-        }
-        channels.push(channel);
-      }
 
       channels.sort((a, b) =>
         compareCreatedAtDesc(
