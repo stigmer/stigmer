@@ -91,7 +91,7 @@ describe("ExecuteCursor hermetic — an ungated tool call that fails", () => {
           step.event(ev.toolCall(CALL_ID, "read", "running", READ_ARGS)),
           step.event(ev.toolCall(CALL_ID, "read", "error", READ_ARGS, READ_ERROR)),
           step.event(ev.assistant(TEXT_AFTER)),
-          step.turnEnded({ inputTokens: 1_900, outputTokens: 70 }),
+          step.turnEnded({ inputTokens: 1_900, outputTokens: 70, cacheReadTokens: 0, cacheWriteTokens: 0 }),
           step.finished({ result: TEXT_AFTER, model: { id: FIXTURE.model, params: [] } }),
         ],
       ],

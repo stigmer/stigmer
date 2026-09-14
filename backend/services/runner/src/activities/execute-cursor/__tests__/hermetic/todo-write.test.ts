@@ -110,7 +110,7 @@ describe("ExecuteCursor hermetic — todo writes", () => {
           step.event(ev.toolCall(SECOND_CALL_ID, "updateTodos", "running", SECOND_WRITE)),
           step.event(ev.toolCall(SECOND_CALL_ID, "updateTodos", "completed", SECOND_WRITE, "ok")),
           step.event(ev.assistant(TEXT_CLOSING)),
-          step.turnEnded({ inputTokens: 2_600, outputTokens: 160 }),
+          step.turnEnded({ inputTokens: 2_600, outputTokens: 160, cacheReadTokens: 0, cacheWriteTokens: 0 }),
           step.finished({ result: TEXT_CLOSING, model: { id: FIXTURE.model, params: [] } }),
         ],
       ],

@@ -95,7 +95,7 @@ describe("ExecuteCursor hermetic — thinking on both sides of a tool call", () 
           step.event(ev.toolCall(CALL_ID, "read", "completed", READ_ARGS, READ_RESULT)),
           step.event(ev.thinking(THINKING_AFTER)),
           step.event(ev.assistant(TEXT_AFTER)),
-          step.turnEnded({ inputTokens: 2_400, outputTokens: 140 }),
+          step.turnEnded({ inputTokens: 2_400, outputTokens: 140, cacheReadTokens: 0, cacheWriteTokens: 0 }),
           step.finished({ result: TEXT_AFTER, model: { id: FIXTURE.model, params: [] } }),
         ],
       ],

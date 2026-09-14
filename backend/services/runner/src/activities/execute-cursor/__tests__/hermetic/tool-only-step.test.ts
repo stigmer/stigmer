@@ -86,7 +86,7 @@ describe("ExecuteCursor hermetic — a tool call with no proposing text", () => 
           step.event(ev.toolCall(CALL_ID, "read", "running", READ_ARGS)),
           step.event(ev.toolCall(CALL_ID, "read", "completed", READ_ARGS, READ_RESULT)),
           step.event(ev.assistant(ASSISTANT_TEXT)),
-          step.turnEnded({ inputTokens: 1_800, outputTokens: 60 }),
+          step.turnEnded({ inputTokens: 1_800, outputTokens: 60, cacheReadTokens: 0, cacheWriteTokens: 0 }),
           step.finished({ result: ASSISTANT_TEXT, model: { id: FIXTURE.model, params: [] } }),
         ],
       ],

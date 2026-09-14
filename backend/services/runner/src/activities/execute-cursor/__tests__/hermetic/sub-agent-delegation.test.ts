@@ -130,7 +130,7 @@ describe("ExecuteCursor hermetic — sub-agent delegation", () => {
           step.event(ev.toolCall(TASK_CALL_ID, "task", "running", TASK_ARGS)),
           step.event(ev.toolCall(TASK_CALL_ID, "task", "completed", TASK_ARGS, TASK_RESULT)),
           step.event(ev.assistant(ROOT_CLOSING)),
-          step.turnEnded({ inputTokens: 3_900, outputTokens: 102 }),
+          step.turnEnded({ inputTokens: 3_900, outputTokens: 102, cacheReadTokens: 0, cacheWriteTokens: 0 }),
           step.finished({ result: ROOT_CLOSING, model: { id: FIXTURE.model, params: [] } }),
         ],
       ],

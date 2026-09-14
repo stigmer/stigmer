@@ -97,7 +97,7 @@ describe("ExecuteCursor hermetic — MCP tool call", () => {
           step.event(ev.toolCall(CALL_ID, "mcp", "running", MCP_EVENT_ARGS)),
           step.event(ev.toolCall(CALL_ID, "mcp", "completed", MCP_EVENT_ARGS, MCP_RESULT)),
           step.event(ev.assistant(TEXT_AFTER)),
-          step.turnEnded({ inputTokens: 2_100, outputTokens: 80 }),
+          step.turnEnded({ inputTokens: 2_100, outputTokens: 80, cacheReadTokens: 0, cacheWriteTokens: 0 }),
           step.finished({ result: TEXT_AFTER, model: { id: FIXTURE.model, params: [] } }),
         ],
       ],
