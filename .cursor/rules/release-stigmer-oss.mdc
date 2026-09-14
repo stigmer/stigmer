@@ -60,7 +60,7 @@ If there are uncommitted changes, warn the user and ask whether to commit first 
 
 ### 5. Bump the Release Pins (MANDATORY before tagging)
 
-Three pins travel in the commit the tag is cut from:
+Four pins travel in the commit the tag is cut from:
 
 - `mcp-server/Dockerfile` `ARG MCP_SERVER_VERSION=X.Y.Z` — the npm version the
   production bridge image installs. `release.npm-libs` has a hard pre-publish
@@ -73,6 +73,11 @@ Three pins travel in the commit the tag is cut from:
   passed; every automated route to `main` was refused (a PR needed an org
   setting, the direct push hits branch protection GH006), so the bump moved
   here, next to the pin it already required.
+- `deploy/helm/stigmer/Chart.yaml` `version:` and `appVersion:` — the Helm
+  chart is the compose stack for Kubernetes and its image tags default to
+  `v<appVersion>`; `release.npm-libs` refuses to package a chart whose pin does
+  not match the release, and a stale pin would point `helm install` at the
+  previous images.
 
 ```bash
 make release-pins version=<NEW_VERSION>
@@ -80,12 +85,13 @@ git commit -am "chore(release): bump the release pins to <NEW_VERSION>"
 git push origin main
 ```
 
-Tag THAT commit. `make release` refuses to create any tag until all three pins
+Tag THAT commit. `make release` refuses to create any tag until all four pins
 name the new version, and prints the two commands above when they do not.
 
-> Note: the pin-bump push to main triggers a Planton bridge build that can fail
-> once with an npm 404 (the version isn't published yet). Re-run it after
-> `release.npm-libs` completes.
+> Note: the pin-bump push to main is a plain docs-and-pins commit; the path
+> filters of the PR gates it touches (`ci.compose-stack`, `ci.helm-chart`) build
+> from source, so they stay green before the images exist. The Planton bridge
+> builds on the tag, not the pin push, and retries through the npm lag.
 
 ### 6. Compose Release Notes
 
@@ -165,7 +171,10 @@ Tags pushed. CI will handle:
   - Desktop app installers (draft) (release.desktop.yaml)
   - @stigmer/* npm packages        (release.npm-libs.yaml)
     incl. @stigmer/server (the library the cloud composition pins)
-    and @stigmer/server-slim (the deployable `stigmer up` runs)
+    and @stigmer/server-slim (the deployable `stigmer up` runs);
+    the same lane pushes the server, runner and all-in-one images to GHCR
+    and the Helm chart to oci://ghcr.io/stigmer/charts/stigmer, each
+    smoked on amd64 and arm64 before it is promoted or pushed
   - Go SDK (go get)                (sdk/go tag auto-cached by proxy.golang.org)
   - stigmer + stigmer-protos PyPI  (release.python-sdk.yaml)
   - MCP server binaries + Docker   (release.mcp-server.yaml)
@@ -175,6 +184,6 @@ Tags pushed. CI will handle:
 
 - **Never force-push tags** — if a tag already exists, stop and tell the user
 - **Always confirm** the version bump with the user before creating tags
-- **Never tag without the release pins bumped** (`make release-pins`) — `release.npm-libs` will hard-fail the publish if `mcp-server/Dockerfile` pins a different version than the tag, and a stale compose pin points fresh clones at the previous stack (see step 5)
+- **Never tag without the release pins bumped** (`make release-pins`) — `release.npm-libs` will hard-fail the publish if `mcp-server/Dockerfile` pins a different version than the tag, refuse to package the Helm chart if `Chart.yaml` does, and a stale compose pin points fresh clones at the previous stack (see step 5)
 - **Clean working tree required** — do not tag with uncommitted changes unless the user explicitly approves
 - If the user specifies a bump type (`patch`, `minor`, `major`), use it; otherwise infer from commits
