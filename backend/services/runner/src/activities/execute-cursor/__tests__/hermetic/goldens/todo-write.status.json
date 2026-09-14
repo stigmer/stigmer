@@ -3,12 +3,57 @@
     {
       "type": "MESSAGE_AI",
       "content": "Two steps; writing them down.",
-      "timestamp": "2026-01-01T00:00:02.000Z"
+      "timestamp": "2026-01-01T00:00:02.000Z",
+      "toolCalls": [
+        {
+          "id": "call-hermetic-todo-0001",
+          "name": "updateTodos",
+          "args": {
+            "todos": [
+              {
+                "content": "Read the fixture",
+                "status": "pending"
+              },
+              {
+                "content": "Summarise it",
+                "status": "pending"
+              }
+            ]
+          },
+          "result": "ok",
+          "status": "TOOL_CALL_COMPLETED",
+          "startedAt": "2026-01-01T00:00:03.000Z",
+          "completedAt": "2026-01-01T00:00:04.000Z",
+          "argsPreview": "{\"todos\":[{\"content\":\"Read the fixture\",\"status\":\"pending\"},{\"content\":\"Summarise it\",\"status\":\"pending\"}]}",
+          "toolKind": "TOOL_KIND_TODO"
+        }
+      ]
     },
     {
       "type": "MESSAGE_AI",
       "content": "First step done.",
-      "timestamp": "2026-01-01T00:00:05.000Z"
+      "timestamp": "2026-01-01T00:00:05.000Z",
+      "toolCalls": [
+        {
+          "id": "call-hermetic-todo-0002",
+          "name": "updateTodos",
+          "args": {
+            "todos": [
+              {
+                "content": "Read the fixture",
+                "status": "completed"
+              }
+            ],
+            "merge": true
+          },
+          "result": "ok",
+          "status": "TOOL_CALL_COMPLETED",
+          "startedAt": "2026-01-01T00:00:06.000Z",
+          "completedAt": "2026-01-01T00:00:07.000Z",
+          "argsPreview": "{\"todos\":[{\"content\":\"Read the fixture\",\"status\":\"completed\"}],\"merge\":true}",
+          "toolKind": "TOOL_KIND_TODO"
+        }
+      ]
     },
     {
       "type": "MESSAGE_AI",

@@ -2,28 +2,27 @@
  * Hermetic golden: the agent's TO-DO LIST — two `updateTodos` tool calls, the
  * second a `merge`, through the whole `ExecuteCursor` activity.
  *
- * Invariant pinned (S4 M0 net; TODAY's shape, which M4 changes on purpose):
- * the Cursor harness has two consumers of a todo tool call, and neither puts a
- * row in the transcript. `TodoTracker` acts on the `completed` event only and
- * projects `args.todos` into `status.todos` through the shared
- * `applyTodoUpdate` — a full replace by default, a MERGE when the SDK's args
- * say `merge: true` (the first write's `createdAt` survives, `updatedAt`
- * moves). `MessageAccumulator` closes the run's streaming text on the call
- * like any tool (`finalizeStreaming` runs before the suppression check) and
- * then DROPS the row (`SUPPRESSED_TOOL_NAMES`). So: three AI messages, no tool
- * rows, two todos.
+ * Invariant pinned: a todo tool call is a row like any other AND a projection.
+ * `TodoTracker` acts on the `completed` event and projects `args.todos` into
+ * `status.todos` through the shared `applyTodoUpdate` — a full replace by
+ * default, a MERGE when the SDK's args say `merge: true` (the first write's
+ * `createdAt` survives, `updatedAt` moves). The accumulator closes the run's
+ * streaming text on the call like any tool and keeps the row: an `updateTodos`
+ * row (COMPLETED, `toolKind` TODO, `args`, `argsPreview`, `result`) on
+ * `messages[0]` and another on `messages[1]`. So: three AI messages, two
+ * rows, two todos. The web console hides the row (`isInternalTool`); the CLI
+ * TUI shows it, as it does for native.
  *
- * Predicted under the S4 rulings (`T01_1_review.md`, 2026-09-14): TWO hunks at
- * M4, both under Q-S4-7, and nothing else. An `updateTodos` row (COMPLETED,
- * `toolKind` TODO, `args`, `argsPreview`) appears on `messages[0]` and another
- * on `messages[1]` — the canonical builder keeps the row and projects the
- * todos from it, as native already does; the web console hides the row
- * (`isInternalTool`), the CLI TUI shows it as it does for native. `todos` is
- * byte-identical: the builder reads `merge` from the call's args. A diff in
- * `todos` at M4 is a pause.
+ * Moved 2026-09-14 (S4 M4 A1, Q-S4-7), the TWO hunks this golden was
+ * predicted to take: until A1 `MessageAccumulator` DROPPED the row
+ * (`SUPPRESSED_TOOL_NAMES`) and the transcript showed three AI messages with
+ * no rows — a per-harness branch on a tool name the canonical builder does
+ * not have (native has always kept its `write_todos` row). A1 aligned the
+ * accumulator before the swap so the swap moves nothing; `todos` was and is
+ * byte-identical. `TodoTracker` itself goes at the swap, where the builder
+ * projects the todos from the row.
  *
- * Why this net exists: no Cursor golden before M0 carried a todo, and both
- * `TodoTracker` and the suppression are deleted at M4.
+ * Why this net exists: no Cursor golden before M0 carried a todo.
  *
  * Regenerate ONLY after a deliberate behavior change:
  *   npx vitest run src/activities/execute-cursor/__tests__/hermetic -u
@@ -32,7 +31,7 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { toJson } from "@bufbuild/protobuf";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase, MessageType, TodoStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ExecutionPhase, MessageType, TodoStatus, ToolCallStatus, ToolKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
 vi.mock("@cursor/sdk", async () =>
   (await import("../../__test-utils__/scripted-sdk.js")).scriptedCursorSdkModule(),
@@ -93,7 +92,7 @@ describe("ExecuteCursor hermetic — todo writes", () => {
     env.dispose();
   });
 
-  it("projects a replace then a merge into status.todos and keeps the rows out of the transcript (today)", async () => {
+  it("projects a replace then a merge into status.todos and keeps a row per write in the transcript", async () => {
     // ── Arrange ──────────────────────────────────────────────────────────────
     const ev = sdkEvents(AGENT_ID, RUN_ID);
     const agent = new ScriptedCursorAgent({
@@ -131,17 +130,21 @@ describe("ExecuteCursor hermetic — todo writes", () => {
     expect((invocation.outcome as { value: Record<string, unknown> }).value.phase).toBe("EXECUTION_COMPLETED");
     expect(record.persistedPhases.at(-1)).toBe(ExecutionPhase.EXECUTION_COMPLETED);
 
-    // ── Assert: the transcript, as it is today (the M4 hunks add a row to [0] and [1]) ──
+    // ── Assert: the transcript — a row per write, on the message that proposed it (Q-S4-7) ──
     const final = record.lastFullStatus!;
     expect(
       final.messages.map((m) => [m.type, m.content, m.toolCalls.length]),
-      "the todo call splits the text like any tool, and its row is suppressed",
+      "the todo call splits the text like any tool, and its row stays",
     ).toEqual([
-      [MessageType.MESSAGE_AI, TEXT_PLAN, 0],
-      [MessageType.MESSAGE_AI, TEXT_WORK, 0],
+      [MessageType.MESSAGE_AI, TEXT_PLAN, 1],
+      [MessageType.MESSAGE_AI, TEXT_WORK, 1],
       [MessageType.MESSAGE_AI, TEXT_CLOSING, 0],
     ]);
-    expect(record.toolCalls()).toHaveLength(0);
+    const rows = record.toolCalls();
+    expect(rows.map((tc) => [tc.id, tc.toolKind, tc.status])).toEqual([
+      [FIRST_CALL_ID, ToolKind.TODO, ToolCallStatus.TOOL_CALL_COMPLETED],
+      [SECOND_CALL_ID, ToolKind.TODO, ToolCallStatus.TOOL_CALL_COMPLETED],
+    ]);
 
     // ── Assert: the todos, by key (Q-S4-7 keeps these byte-identical) ────────
     expect(Object.keys(final.todos).sort()).toEqual(["todo-0", "todo-1"]);

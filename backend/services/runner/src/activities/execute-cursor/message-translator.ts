@@ -65,8 +65,6 @@ import type { WorkspaceBackend } from "../../shared/workspace/types.js";
 
 export { utcTimestamp };
 
-const SUPPRESSED_TOOL_NAMES = new Set(["TodoWrite", "updateTodos"]);
-
 /**
  * Details extracted from an MCP tool call event's args.
  *
@@ -920,8 +918,6 @@ export class MessageAccumulator {
   private attachToolCallToLastAi(
     event: Extract<SDKMessage, { type: "tool_call" }>,
   ): void {
-    if (SUPPRESSED_TOOL_NAMES.has(event.name)) return;
-
     const existing = this.toolCallIndex.get(event.call_id);
     if (existing) {
       this.mergeToolCallEvent(existing, event);

@@ -729,49 +729,6 @@ describe("MessageAccumulator tool call status transitions", () => {
     });
   });
 
-  describe("todo tool suppression", () => {
-    it("updateTodos tool calls are excluded from messages", () => {
-      const messages: AgentMessage[] = [];
-      const acc = new MessageAccumulator(messages);
-
-      acc.processEvent(assistantEvent("r1", "Planning..."));
-      acc.processEvent(toolCallEvent("tc-todo", "updateTodos", "running", "r1", {
-        args: { todos: [{ content: "Step 1", status: "pending" }] },
-      }));
-      acc.processEvent(toolCallEvent("tc-todo", "updateTodos", "completed", "r1"));
-
-      const aiMsg = messages.find(m => m.type === MessageType.MESSAGE_AI);
-      expect(aiMsg?.toolCalls).toHaveLength(0);
-    });
-
-    it("TodoWrite tool calls are excluded from messages", () => {
-      const messages: AgentMessage[] = [];
-      const acc = new MessageAccumulator(messages);
-
-      acc.processEvent(assistantEvent("r1", "Planning..."));
-      acc.processEvent(toolCallEvent("tc-tw", "TodoWrite", "running", "r1"));
-      acc.processEvent(toolCallEvent("tc-tw", "TodoWrite", "completed", "r1"));
-
-      const aiMsg = messages.find(m => m.type === MessageType.MESSAGE_AI);
-      expect(aiMsg?.toolCalls).toHaveLength(0);
-    });
-
-    it("non-todo tool calls on the same AI message are preserved", () => {
-      const messages: AgentMessage[] = [];
-      const acc = new MessageAccumulator(messages);
-
-      acc.processEvent(assistantEvent("r1", "Working..."));
-      acc.processEvent(toolCallEvent("tc-shell", "Shell", "running", "r1", { args: { command: "ls" } }));
-      acc.processEvent(toolCallEvent("tc-todo", "updateTodos", "running", "r1"));
-      acc.processEvent(toolCallEvent("tc-shell", "Shell", "completed", "r1", { result: "file.txt" }));
-      acc.processEvent(toolCallEvent("tc-todo", "updateTodos", "completed", "r1"));
-
-      const aiMsg = messages.find(m => m.type === MessageType.MESSAGE_AI);
-      expect(aiMsg?.toolCalls).toHaveLength(1);
-      expect(aiMsg?.toolCalls[0].name).toBe("Shell");
-    });
-  });
-
   // The Cursor SDK can emit the lifecycle for one call_id more than once.
   // Observed in production: two "running" events ~0.5s apart for a task/edit
   // tool produced two ToolCall entries with the SAME id (a "thin" copy with no
@@ -981,15 +938,6 @@ describe("MessageAccumulator tool call status transitions", () => {
       const acc = new MessageAccumulator([]);
       acc.processEvent(assistantEvent("r1", "Here is "));
       acc.processEvent(assistantEvent("r1", "the answer."));
-      expect(acc.isDirty).toBe(false);
-    });
-
-    it("suppressed todo tools do NOT flag dirty (TodoTracker owns that signal)", () => {
-      const acc = new MessageAccumulator([]);
-      acc.processEvent(assistantEvent("r1", "Planning."));
-      acc.processEvent(toolCallEvent("tc-todo", "updateTodos", "running", "r1", {
-        args: { todos: [{ content: "Step 1", status: "pending" }] },
-      }));
       expect(acc.isDirty).toBe(false);
     });
 
