@@ -1,0 +1,512 @@
+---
+# Source: stigmer/templates/pvc.yaml
+# the server's /data: the skill content store and everything under ~/.stigmer except artifacts
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: stigmer-server-data
+  labels:
+    app.kubernetes.io/name: stigmer
+    app.kubernetes.io/instance: stigmer
+    app.kubernetes.io/version: "<CHART_VERSION>"
+    app.kubernetes.io/managed-by: Helm
+    helm.sh/chart: stigmer-<CHART_VERSION>
+    app.kubernetes.io/component: stigmer
+  annotations:
+    helm.sh/resource-policy: keep
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+# Source: stigmer/templates/pvc.yaml
+# the runner's /data: paused-session checkpoints, the HITL gate dir, agent workspaces
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: stigmer-runner-data
+  labels:
+    app.kubernetes.io/name: stigmer
+    app.kubernetes.io/instance: stigmer
+    app.kubernetes.io/version: "<CHART_VERSION>"
+    app.kubernetes.io/managed-by: Helm
+    helm.sh/chart: stigmer-<CHART_VERSION>
+    app.kubernetes.io/component: stigmer
+  annotations:
+    helm.sh/resource-policy: keep
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+---
+# Source: stigmer/templates/pvc.yaml
+# the artifact root the server writes and the runner reads, mounted at /artifacts in both containers
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: stigmer-artifacts
+  labels:
+    app.kubernetes.io/name: stigmer
+    app.kubernetes.io/instance: stigmer
+    app.kubernetes.io/version: "<CHART_VERSION>"
+    app.kubernetes.io/managed-by: Helm
+    helm.sh/chart: stigmer-<CHART_VERSION>
+    app.kubernetes.io/component: stigmer
+  annotations:
+    helm.sh/resource-policy: keep
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+---
+# Source: stigmer/templates/postgres.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: stigmer-postgres
+  labels:
+    app.kubernetes.io/name: stigmer
+    app.kubernetes.io/instance: stigmer
+    app.kubernetes.io/version: "<CHART_VERSION>"
+    app.kubernetes.io/managed-by: Helm
+    helm.sh/chart: stigmer-<CHART_VERSION>
+    app.kubernetes.io/component: postgres
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: stigmer
+    app.kubernetes.io/instance: stigmer
+    app.kubernetes.io/component: postgres
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: postgres
+---
+# Source: stigmer/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: stigmer
+  labels:
+    app.kubernetes.io/name: stigmer
+    app.kubernetes.io/instance: stigmer
+    app.kubernetes.io/version: "<CHART_VERSION>"
+    app.kubernetes.io/managed-by: Helm
+    helm.sh/chart: stigmer-<CHART_VERSION>
+    app.kubernetes.io/component: stigmer
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: stigmer
+    app.kubernetes.io/instance: stigmer
+    app.kubernetes.io/component: stigmer
+  ports:
+    - name: grpc-api
+      port: 7234
+      targetPort: grpc-api
+      appProtocol: grpc
+    - name: artifacts
+      port: 7235
+      targetPort: artifacts
+      appProtocol: http
+---
+# Source: stigmer/templates/temporal.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: stigmer-temporal
+  labels:
+    app.kubernetes.io/name: stigmer
+    app.kubernetes.io/instance: stigmer
+    app.kubernetes.io/version: "<CHART_VERSION>"
+    app.kubernetes.io/managed-by: Helm
+    helm.sh/chart: stigmer-<CHART_VERSION>
+    app.kubernetes.io/component: temporal
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: stigmer
+    app.kubernetes.io/instance: stigmer
+    app.kubernetes.io/component: temporal
+  ports:
+    - name: frontend
+      port: 7233
+      targetPort: frontend
+      appProtocol: grpc
+---
+# Source: stigmer/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stigmer
+  labels:
+    app.kubernetes.io/name: stigmer
+    app.kubernetes.io/instance: stigmer
+    app.kubernetes.io/version: "<CHART_VERSION>"
+    app.kubernetes.io/managed-by: Helm
+    helm.sh/chart: stigmer-<CHART_VERSION>
+    app.kubernetes.io/component: stigmer
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: stigmer
+      app.kubernetes.io/instance: stigmer
+      app.kubernetes.io/component: stigmer
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: stigmer
+        app.kubernetes.io/instance: stigmer
+        app.kubernetes.io/component: stigmer
+    spec:
+      # fsGroup 1000 makes fresh claims writable by the server's node user
+      # (the Dockerfile's uid). Nothing in the pod talks to the API server.
+      securityContext:
+        fsGroup: 1000
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 60
+      # compose's depends_on, translated: the server throws at boot when
+      # Postgres is unreachable and the runner exits when Temporal is. A TCP
+      # connect to Temporal is also the stigmer#904 gate, because the bundled
+      # Service has no endpoints until the default namespace exists.
+      initContainers:
+        - name: wait-for-dependencies
+          image: postgres:16
+          command:
+            - bash
+            - -c
+            - |
+              until pg_isready -h stigmer-postgres -p 5432 -U postgres; do
+                echo "waiting for postgres at stigmer-postgres:5432"; sleep 2
+              done
+              until (exec 3<>/dev/tcp/stigmer-temporal/7233) 2>/dev/null; do
+                echo "waiting for temporal at stigmer-temporal:7233"; sleep 2
+              done
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+      containers:
+        - name: server
+          image: ghcr.io/stigmer/stigmer-server:v<CHART_VERSION>
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: GRPC_PORT
+              value: "7234"
+            # The expansion source for DATABASE_URL: the password stays in
+            # its Secret and never lands in rendered YAML.
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: stigmer-secrets
+                  key: POSTGRES_PASSWORD
+            # Non-empty DATABASE_URL selects the Postgres driver (DD-010).
+            - name: DATABASE_URL
+              value: "postgres://postgres:$(POSTGRES_PASSWORD)@stigmer-postgres:5432/stigmer"
+            - name: TEMPORAL_HOST_PORT
+              value: "stigmer-temporal:7233"
+            - name: TEMPORAL_NAMESPACE
+              value: "default"
+            # The ONE runner task queue, set on both sides (compose's anchor).
+            - name: TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE
+              value: stigmer_runner
+            - name: TEMPORAL_WORKFLOW_EXECUTION_RUNNER_TASK_QUEUE
+              value: stigmer_runner
+            - name: ARTIFACT_STORAGE_TYPE
+              value: local
+            - name: ARTIFACT_LOCAL_BASE_PATH
+              value: /artifacts
+            - name: ARTIFACT_LOCAL_SERVE_URL
+              value: "http://localhost:7235"
+            - name: SKILL_TRANSFER_BASE_URL
+              value: "http://localhost:7234"
+            # Explicit keys, loud fail (DD-013): from the operator's Secret.
+            - name: STIGMER_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: stigmer-secrets
+                  key: STIGMER_ENCRYPTION_KEY
+            - name: STIGMER_RUNNER_TOKEN_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: stigmer-secrets
+                  key: STIGMER_RUNNER_TOKEN_KEY
+            - name: STIGMER_OPERATOR_EMAIL
+              value: ""
+            - name: STIGMER_OPERATOR_NAME
+              value: ""
+          ports:
+            - name: grpc-api
+              containerPort: 7234
+            - name: artifacts
+              containerPort: 7235
+          # Native gRPC probes on the unified port (the health service is
+          # tokenless-exempt for exactly this, stigmer#974); the cloud's
+          # production timings. Startup covers a search-index rebuild on a
+          # large adopted database.
+          startupProbe:
+            grpc:
+              port: 7234
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 30
+          readinessProbe:
+            grpc:
+              port: 7234
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            grpc:
+              port: 7234
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            limits:
+              memory: 2Gi
+            requests:
+              cpu: 250m
+              memory: 1Gi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            runAsGroup: 1000
+            runAsNonRoot: true
+            runAsUser: 1000
+            seccompProfile:
+              type: RuntimeDefault
+          volumeMounts:
+            - name: server-data
+              mountPath: /data
+            - name: artifacts
+              mountPath: /artifacts
+        - name: runner
+          image: ghcr.io/stigmer/stigmer-runner:v<CHART_VERSION>
+          imagePullPolicy: IfNotPresent
+          env:
+            # local mode: stdio MCP servers are allowed (they spawn inside
+            # this container and can reach its filesystem and network) and
+            # the checkpointer is the durable sqlite saver under HOME.
+            - name: MODE
+              value: local
+            - name: STIGMER_BACKEND_ENDPOINT
+              value: http://localhost:7234
+            - name: TEMPORAL_SERVICE_ADDRESS
+              value: "stigmer-temporal:7233"
+            - name: TEMPORAL_NAMESPACE
+              value: "default"
+            - name: STIGMER_TASK_QUEUE
+              value: stigmer_runner
+            - name: WORKSPACE_ROOT_DIR
+              value: /data/.stigmer/data/workspace
+            - name: ARTIFACT_STORAGE_TYPE
+              value: local
+            - name: LOCAL_ARTIFACT_PATH
+              value: /artifacts
+            - name: LOCAL_ARTIFACT_SERVE_URL
+              value: "http://localhost:7235"
+          # No probes: the runner has no health surface (an OSS follow-up,
+          # stigmer#1101); a probe that pretended would be worse than none.
+          resources:
+            limits:
+              memory: 4Gi
+            requests:
+              cpu: 500m
+              memory: 1Gi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            seccompProfile:
+              type: RuntimeDefault
+          volumeMounts:
+            - name: runner-data
+              mountPath: /data
+            - name: artifacts
+              mountPath: /artifacts
+      volumes:
+        - name: server-data
+          persistentVolumeClaim:
+            claimName: stigmer-server-data
+        - name: runner-data
+          persistentVolumeClaim:
+            claimName: stigmer-runner-data
+        - name: artifacts
+          persistentVolumeClaim:
+            claimName: stigmer-artifacts
+---
+# Source: stigmer/templates/temporal.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stigmer-temporal
+  labels:
+    app.kubernetes.io/name: stigmer
+    app.kubernetes.io/instance: stigmer
+    app.kubernetes.io/version: "<CHART_VERSION>"
+    app.kubernetes.io/managed-by: Helm
+    helm.sh/chart: stigmer-<CHART_VERSION>
+    app.kubernetes.io/component: temporal
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: stigmer
+      app.kubernetes.io/instance: stigmer
+      app.kubernetes.io/component: temporal
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: stigmer
+        app.kubernetes.io/instance: stigmer
+        app.kubernetes.io/component: temporal
+    spec:
+      automountServiceAccountToken: false
+      initContainers:
+        - name: wait-for-postgres
+          image: postgres:16
+          command:
+            - bash
+            - -c
+            - |
+              until pg_isready -h stigmer-postgres -p 5432 -U postgres; do
+                echo "waiting for postgres at stigmer-postgres:5432"; sleep 2
+              done
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+      containers:
+        - name: temporal
+          image: temporalio/auto-setup:1.28.0
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: DB
+              value: postgres12
+            - name: DB_PORT
+              value: "5432"
+            - name: POSTGRES_USER
+              value: "postgres"
+            - name: POSTGRES_PWD
+              valueFrom:
+                secretKeyRef:
+                  name: stigmer-secrets
+                  key: POSTGRES_PASSWORD
+            - name: POSTGRES_SEEDS
+              value: "stigmer-postgres"
+          ports:
+            - name: frontend
+              containerPort: 7233
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - temporal operator namespace describe -n default --address $(hostname -i):7233
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 60
+          resources:
+            limits:
+              memory: 1Gi
+            requests:
+              cpu: 250m
+              memory: 512Mi
+---
+# Source: stigmer/templates/postgres.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: stigmer-postgres
+  labels:
+    app.kubernetes.io/name: stigmer
+    app.kubernetes.io/instance: stigmer
+    app.kubernetes.io/version: "<CHART_VERSION>"
+    app.kubernetes.io/managed-by: Helm
+    helm.sh/chart: stigmer-<CHART_VERSION>
+    app.kubernetes.io/component: postgres
+spec:
+  serviceName: stigmer-postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: stigmer
+      app.kubernetes.io/instance: stigmer
+      app.kubernetes.io/component: postgres
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: stigmer
+        app.kubernetes.io/instance: stigmer
+        app.kubernetes.io/component: postgres
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: postgres
+          image: postgres:16
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: stigmer-secrets
+                  key: POSTGRES_PASSWORD
+            # The app database; auto-setup creates `temporal` and
+            # `temporal_visibility` beside it.
+            - name: POSTGRES_DB
+              value: stigmer
+            # Postgres refuses to initialize a data directory that is the
+            # mount point itself when it carries lost+found; a subdirectory
+            # is the documented shape.
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          ports:
+            - name: postgres
+              containerPort: 5432
+          readinessProbe:
+            exec:
+              command: [pg_isready, -U, postgres]
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 10
+          livenessProbe:
+            exec:
+              command: [pg_isready, -U, postgres]
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+          resources:
+            limits:
+              memory: 1Gi
+            requests:
+              cpu: 100m
+              memory: 256Mi
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 10Gi
