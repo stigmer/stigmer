@@ -1,19 +1,22 @@
 /**
- * The transcript builder's unit arms (`harness/transcript/builder.ts`),
- * driven through the native normalizer: every sequence here is raw LangGraph
- * v3 protocol events folded by `normalize` and then by the builder, so these
- * are in truth the native translator's integration arms as much as the
- * builder's.
+ * The native translator's integration arms: raw LangGraph v3 protocol events
+ * through `DeepAgentTranslator` and then `TranscriptBuilder`, end to end —
+ * the exact path `turn-stream.ts`'s loop takes — asserting the transcript
+ * that comes out. Every sequence here is the wire's real shape (the fixtures
+ * default to LangGraph's namespaces, F-M2-16), so these arms prove that the
+ * translator's reading of the engine and the builder's rules compose into
+ * the goldens' shapes.
  *
- * Why this file is in the adapter's folder while its subject is in
- * `harness/` (S4 M1, Q-M1-2): the direction fence sweeps `harness/` tests
- * included, and `normalize`, the v3 fixtures and `V3ProtocolEvent` are all
- * `activities/` modules. At M2, when the builder takes `TranscriptEvent`s
- * that no longer carry LangGraph's shape, these arms are re-keyed and
- * re-homed to `harness/transcript/__tests__/builder.test.ts`; the
- * normalizer-through-builder arms that remain valuable stay here as the
- * translator's. The inventory of every arm's destination is
- * `T01_3_execution.md` (M0).
+ * What is NOT here (Q-M2-6): the builder's own rules, driven with
+ * `TranscriptEvent`s directly, live in
+ * `harness/transcript/__tests__/builder.test.ts`; the translator's own
+ * reading of the wire in `translator.test.ts`. This file began as the
+ * builder's unit suite when the builder was the native adapter's
+ * (`v3-status-builder.test.ts`, S3 M2b) and became what it always was in
+ * truth at S4 M2 C9.
+ *
+ * In the adapter's folder because the fixtures and the translator are
+ * `activities/` modules the direction fence keeps out of `harness/`.
  */
 
 import { describe, it, expect, beforeEach } from "vitest";
@@ -67,7 +70,7 @@ function feedAll(sb: TranscriptBuilder, events: V3ProtocolEvent[], gate: DeepAge
 
 beforeEach(() => resetSeq());
 
-describe("TranscriptBuilder", () => {
+describe("the native translator through the builder", () => {
 
   // ── Initialization ───────────────────────────────────────────────
 
