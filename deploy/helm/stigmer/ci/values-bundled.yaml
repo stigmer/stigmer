@@ -1,0 +1,6 @@
+# The bundled profile: everything the chart can run itself, which is the
+# compose stack's shape (one Postgres, one Temporal, the stigmer pod). CI's
+# kind smoke installs this first; the render tests and the golden pin it.
+# The Secret is created by the smoke (and by an operator) before install.
+secrets:
+  existingSecret: stigmer-secrets

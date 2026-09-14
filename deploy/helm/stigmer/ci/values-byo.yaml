@@ -1,0 +1,14 @@
+# The bring-your-own profile: Postgres and Temporal disabled, the stigmer pod
+# pointed at instances the operator runs. In CI those are the plain manifests
+# in ci/byo-infra.yaml, installed into the byo-infra namespace before the
+# chart; the hostnames below are their Services' cluster DNS names.
+secrets:
+  existingSecret: stigmer-secrets
+postgres:
+  enabled: false
+externalDatabase:
+  host: byo-postgres.byo-infra.svc.cluster.local
+temporal:
+  enabled: false
+externalTemporal:
+  hostPort: byo-temporal.byo-infra.svc.cluster.local:7233

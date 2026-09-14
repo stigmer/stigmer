@@ -1,0 +1,180 @@
+---
+title: Self-host on Kubernetes with Helm
+description:
+  Install the complete Stigmer stack — server, console, runner, Postgres and
+  Temporal — on a Kubernetes cluster with one Helm chart.
+---
+
+The Helm chart is the [Docker Compose stack](./docker-compose) for Kubernetes:
+the same four parts (the server with the console, the runner, Postgres, and a
+real Temporal), the same settings, the same keys you supply, the same things in
+a backup. Postgres and Temporal come bundled for one team, or you point the
+chart at your own.
+
+<Callout type="warn">
+  **No sign-in until you turn it on.** A fresh install trusts every caller that
+  can reach it, like the compose stack. Keep it behind `kubectl port-forward` or
+  a private network until you [turn authentication on](./authentication). stdio
+  MCP Servers spawn **inside the runner container**: they can reach its
+  filesystem and network, not your nodes'.
+</Callout>
+
+## What you need
+
+- A Kubernetes cluster, 1.27 or newer, with a default storage class. Any storage
+  class works: the server and the runner share one pod, so the chart needs no
+  shared-filesystem storage.
+- `helm` 3 and `kubectl`.
+- Two random keys and a database password, which you create as a Secret first.
+  The chart refuses to install without them, the way `docker compose up` refuses
+  without `.env`.
+
+## Install
+
+<Steps>
+
+### Create the Secret
+
+```bash
+kubectl create namespace stigmer
+kubectl -n stigmer create secret generic stigmer-secrets \
+  --from-literal=STIGMER_ENCRYPTION_KEY=$(openssl rand -base64 32) \
+  --from-literal=STIGMER_RUNNER_TOKEN_KEY=$(openssl rand -base64 32) \
+  --from-literal=POSTGRES_PASSWORD=$(openssl rand -hex 24)
+```
+
+`STIGMER_ENCRYPTION_KEY` encrypts secret values at rest.
+`STIGMER_RUNNER_TOKEN_KEY` signs the tokens the runner authenticates with. Keep
+this Secret with your backups: without the encryption key, every encrypted value
+in the database is unreadable.
+
+### Install the chart
+
+```bash
+helm install stigmer oci://ghcr.io/stigmer/charts/stigmer \
+  --namespace stigmer \
+  --set secrets.existingSecret=stigmer-secrets \
+  --wait
+```
+
+The first start pulls two images, starts Postgres, lets Temporal create its
+schema, and waits for the server to answer. The chart's notes print what to do
+next.
+
+### Open the console
+
+```bash
+kubectl -n stigmer port-forward svc/stigmer 7234:7234 7235:7235
+```
+
+Open [http://localhost:7234](http://localhost:7234).
+
+### Give the runner an LLM key
+
+Agents need a provider key; Workflows without Agent tasks run without one.
+
+```bash
+kubectl -n stigmer create secret generic stigmer-llm-keys \
+  --from-literal=ANTHROPIC_API_KEY=sk-ant-...
+helm upgrade stigmer oci://ghcr.io/stigmer/charts/stigmer -n stigmer \
+  --reuse-values --set runner.llm.existingSecret=stigmer-llm-keys
+```
+
+</Steps>
+
+## Reach it from outside the cluster
+
+Turn on the Ingress with two hostnames: one for the API and console, one for
+artifact downloads (they are separate listeners and cannot share a host).
+
+```yaml no-validate="Helm values, not a Stigmer resource"
+ingress:
+  enabled: true
+  className: nginx
+  api:
+    host: stigmer.example.com
+    tlsSecretName: stigmer-api-tls
+    annotations:
+      nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
+  artifacts:
+    host: artifacts.stigmer.example.com
+    tlsSecretName: stigmer-artifacts-tls
+```
+
+The CLI and SDKs speak gRPC, which needs HTTP/2 all the way to the server. On
+ingress-nginx that is the preceding `backend-protocol: "GRPC"` annotation;
+without it the console works and the CLI does not. Point the CLI at the API host
+on port 443:
+
+```bash
+export STIGMER_SERVER_ADDRESS=stigmer.example.com:443
+```
+
+## Turn authentication on
+
+Set `server.oidc.issuer`, `server.oidc.audience` and
+`server.oidc.consoleClientId` as the [authentication guide](./authentication)
+describes. One thing is different from Compose: with authentication on, the
+runner needs an API key, and an API key can only be minted by a signed-in
+operator. So it is two steps. Install with authentication off, mint the key
+(`stigmer apikey create --name runner`), put it in a Secret, then upgrade with
+OIDC on and `runner.stigmerToken.existingSecret` set to that Secret. The chart
+refuses the half state in between and tells you these two steps.
+
+## Bring your own Postgres and Temporal
+
+```yaml no-validate="Helm values, not a Stigmer resource"
+postgres:
+  enabled: false
+externalDatabase:
+  host: db.internal.example.com
+  user: stigmer
+  database: stigmer
+  existingSecret: stigmer-db
+  passwordKey: password
+temporal:
+  enabled: false
+externalTemporal:
+  hostPort: temporal-frontend.temporal.svc.cluster.local:7233
+  namespace: default
+```
+
+The database password never appears in a rendered manifest; the server assembles
+its connection string inside the container. If Temporal stays bundled while
+Postgres is yours, Temporal creates its two databases on your instance at first
+start and needs a user with `CREATE DATABASE`.
+
+## Back up, upgrade, uninstall
+
+A complete backup is the database, the `stigmer-artifacts` and
+`stigmer-server-data` disks, and the Secret you created. `helm upgrade` to a new
+chart version moves the whole stack to that Stigmer version; the pod is
+recreated, so there is a short interruption, and in-flight Agent turns resume
+from their Temporal checkpoints. `helm uninstall` removes the workload and
+**leaves every disk in place**; installing again with the same release name
+picks them up.
+
+## Every setting
+
+The chart documents every value, with the reason behind it, in its own
+`values.yaml` and README. Read them from the registry:
+
+```bash
+helm show values oci://ghcr.io/stigmer/charts/stigmer
+helm show readme oci://ghcr.io/stigmer/charts/stigmer
+```
+
+The chart refuses a misspelled value instead of ignoring it.
+
+## Next step
+
+Your stack is running on the cluster. Before a team uses it, turn authentication
+on with your identity provider.
+
+<Cards>
+  <Card
+    title="Enable authentication"
+    href="/docs/guides/self-hosting/authentication"
+    description="Sign in with your identity provider and give the runner and CI their API keys."
+  />
+</Cards>

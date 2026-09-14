@@ -1,0 +1,27 @@
+# The authenticated, reachable profile: an Ingress for the API and the
+# artifact lane, OIDC on, the runner's API key by reference (the two-step
+# install: mint the key on an open install, then upgrade to this). Render
+# and golden only: kind has no issuer to sign in against.
+secrets:
+  existingSecret: stigmer-secrets
+server:
+  oidc:
+    issuer: https://issuer.example.com
+    audience: https://stigmer.example.com
+    consoleClientId: stigmer-console
+runner:
+  stigmerToken:
+    existingSecret: stigmer-runner-token
+  llm:
+    existingSecret: stigmer-llm-keys
+ingress:
+  enabled: true
+  className: nginx
+  api:
+    host: stigmer.example.com
+    annotations:
+      nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
+    tlsSecretName: stigmer-api-tls
+  artifacts:
+    host: artifacts.stigmer.example.com
+    tlsSecretName: stigmer-artifacts-tls

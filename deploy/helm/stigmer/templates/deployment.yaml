@@ -1,0 +1,246 @@
+{{- /*
+The stigmer pod: the server and the runner, compose's stigmer-server and
+stigmer-runner services in one pod. They share the pod network (the runner
+dials the server on localhost, as `stigmer up` does) and three ReadWriteOnce
+claims: server-data at the server's /data, runner-data at the runner's /data,
+and artifacts at /artifacts in both, never nested under /data (a claim
+starts empty and a mount nested inside it is created root-owned by the
+runtime, which the non-root server cannot write).
+
+Recreate, one replica: two runners polling one queue mid-rollout would race
+the disk, and a ReadWriteOnce claim cannot follow a rolling pod. Every env
+below has a compose counterpart, in compose's order, and the parity test
+holds the two equal name for name.
+*/ -}}
+{{- include "stigmer.validate" . -}}
+{{- $fullname := include "stigmer.fullname" . -}}
+{{- $pgSecret := include "stigmer.postgresPasswordSecret" . -}}
+{{- $pgKey := include "stigmer.postgresPasswordKey" . -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullname }}
+  labels:
+    {{- include "stigmer.labels" . | nindent 4 }}
+    app.kubernetes.io/component: stigmer
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "stigmer.selectorLabels" (dict "root" . "component" "stigmer") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "stigmer.selectorLabels" (dict "root" . "component" "stigmer") | nindent 8 }}
+    spec:
+      # fsGroup 1000 makes fresh claims writable by the server's node user
+      # (the Dockerfile's uid). Nothing in the pod talks to the API server.
+      securityContext:
+        fsGroup: 1000
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
+      {{- with .Values.image.pullSecrets }}
+      imagePullSecrets:
+        {{- range . }}
+        - name: {{ . }}
+        {{- end }}
+      {{- end }}
+      {{- if .Values.waitForDependencies.enabled }}
+      # compose's depends_on, translated: the server throws at boot when
+      # Postgres is unreachable and the runner exits when Temporal is. A TCP
+      # connect to Temporal is also the stigmer#904 gate, because the bundled
+      # Service has no endpoints until the default namespace exists.
+      initContainers:
+        - name: wait-for-dependencies
+          image: {{ .Values.waitForDependencies.image }}
+          command:
+            - bash
+            - -c
+            - |
+              until pg_isready -h {{ include "stigmer.postgresHost" . }} -p {{ include "stigmer.postgresPort" . }} -U {{ include "stigmer.postgresUser" . }}; do
+                echo "waiting for postgres at {{ include "stigmer.postgresHost" . }}:{{ include "stigmer.postgresPort" . }}"; sleep 2
+              done
+              {{- $temporal := include "stigmer.temporalHostPort" . }}
+              {{- $temporalHost := index (splitList ":" $temporal) 0 }}
+              {{- $temporalPort := index (splitList ":" $temporal) 1 }}
+              until (exec 3<>/dev/tcp/{{ $temporalHost }}/{{ $temporalPort }}) 2>/dev/null; do
+                echo "waiting for temporal at {{ $temporal }}"; sleep 2
+              done
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+      {{- end }}
+      containers:
+        - name: server
+          image: {{ include "stigmer.serverImage" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: GRPC_PORT
+              value: "7234"
+            # The expansion source for DATABASE_URL: the password stays in
+            # its Secret and never lands in rendered YAML.
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $pgSecret }}
+                  key: {{ $pgKey }}
+            # Non-empty DATABASE_URL selects the Postgres driver (DD-010).
+            - name: DATABASE_URL
+              value: "postgres://{{ include "stigmer.postgresUser" . }}:$(POSTGRES_PASSWORD)@{{ include "stigmer.postgresHost" . }}:{{ include "stigmer.postgresPort" . }}/{{ include "stigmer.postgresDatabase" . }}"
+            - name: TEMPORAL_HOST_PORT
+              value: {{ include "stigmer.temporalHostPort" . | quote }}
+            - name: TEMPORAL_NAMESPACE
+              value: {{ include "stigmer.temporalNamespace" . | quote }}
+            # The ONE runner task queue, set on both sides (compose's anchor).
+            - name: TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE
+              value: stigmer_runner
+            - name: TEMPORAL_WORKFLOW_EXECUTION_RUNNER_TASK_QUEUE
+              value: stigmer_runner
+            - name: ARTIFACT_STORAGE_TYPE
+              value: local
+            - name: ARTIFACT_LOCAL_BASE_PATH
+              value: /artifacts
+            - name: ARTIFACT_LOCAL_SERVE_URL
+              value: {{ include "stigmer.artifactPublicUrl" . | quote }}
+            - name: SKILL_TRANSFER_BASE_URL
+              value: {{ include "stigmer.publicUrl" . | quote }}
+            # Explicit keys, loud fail (DD-013): from the operator's Secret.
+            - name: STIGMER_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.existingSecret }}
+                  key: STIGMER_ENCRYPTION_KEY
+            - name: STIGMER_RUNNER_TOKEN_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.existingSecret }}
+                  key: STIGMER_RUNNER_TOKEN_KEY
+            - name: STIGMER_OPERATOR_EMAIL
+              value: {{ .Values.server.operator.email | quote }}
+            - name: STIGMER_OPERATOR_NAME
+              value: {{ .Values.server.operator.name | quote }}
+            {{- if .Values.server.oidc.issuer }}
+            - name: STIGMER_OIDC_ISSUER
+              value: {{ .Values.server.oidc.issuer | quote }}
+            - name: STIGMER_OIDC_AUDIENCE
+              value: {{ .Values.server.oidc.audience | quote }}
+            - name: STIGMER_OIDC_CONSOLE_CLIENT_ID
+              value: {{ .Values.server.oidc.consoleClientId | quote }}
+            {{- end }}
+            {{- with .Values.server.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          ports:
+            - name: grpc-api
+              containerPort: 7234
+            - name: artifacts
+              containerPort: 7235
+          # Native gRPC probes on the unified port (the health service is
+          # tokenless-exempt for exactly this, stigmer#974); the cloud's
+          # production timings. Startup covers a search-index rebuild on a
+          # large adopted database.
+          startupProbe:
+            grpc:
+              port: 7234
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 30
+          readinessProbe:
+            grpc:
+              port: 7234
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            grpc:
+              port: 7234
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.server.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.server.securityContext | nindent 12 }}
+          volumeMounts:
+            - name: server-data
+              mountPath: /data
+            - name: artifacts
+              mountPath: /artifacts
+        - name: runner
+          image: {{ include "stigmer.runnerImage" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            # local mode: stdio MCP servers are allowed (they spawn inside
+            # this container and can reach its filesystem and network) and
+            # the checkpointer is the durable sqlite saver under HOME.
+            - name: MODE
+              value: local
+            - name: STIGMER_BACKEND_ENDPOINT
+              value: http://localhost:7234
+            - name: TEMPORAL_SERVICE_ADDRESS
+              value: {{ include "stigmer.temporalHostPort" . | quote }}
+            - name: TEMPORAL_NAMESPACE
+              value: {{ include "stigmer.temporalNamespace" . | quote }}
+            - name: STIGMER_TASK_QUEUE
+              value: stigmer_runner
+            - name: WORKSPACE_ROOT_DIR
+              value: /data/.stigmer/data/workspace
+            - name: ARTIFACT_STORAGE_TYPE
+              value: local
+            - name: LOCAL_ARTIFACT_PATH
+              value: /artifacts
+            - name: LOCAL_ARTIFACT_SERVE_URL
+              value: {{ include "stigmer.artifactPublicUrl" . | quote }}
+            {{- with .Values.runner.llm.existingSecret }}
+            # Optional LLM keys, by explicit reference: agents need one,
+            # workflows without agent tasks run key-free.
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ . }}
+                  key: ANTHROPIC_API_KEY
+                  optional: true
+            - name: CURSOR_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ . }}
+                  key: CURSOR_API_KEY
+                  optional: true
+            {{- end }}
+            {{- with .Values.runner.stigmerToken.existingSecret }}
+            # The runner's API key under authentication (the two-step install).
+            - name: STIGMER_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ . }}
+                  key: {{ $.Values.runner.stigmerToken.key }}
+            {{- end }}
+            {{- with .Values.runner.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          # No probes: the runner has no health surface (an OSS follow-up,
+          # stigmer#1101); a probe that pretended would be worse than none.
+          resources:
+            {{- toYaml .Values.runner.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.runner.securityContext | nindent 12 }}
+          volumeMounts:
+            - name: runner-data
+              mountPath: /data
+            - name: artifacts
+              mountPath: /artifacts
+      volumes:
+        - name: server-data
+          persistentVolumeClaim:
+            claimName: {{ $fullname }}-server-data
+        - name: runner-data
+          persistentVolumeClaim:
+            claimName: {{ $fullname }}-runner-data
+        - name: artifacts
+          persistentVolumeClaim:
+            claimName: {{ $fullname }}-artifacts
