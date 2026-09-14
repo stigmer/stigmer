@@ -6,9 +6,18 @@ import type { PrincipalAccess } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v
 import { cn } from "@stigmer/theme";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { getUserMessage } from "@stigmer/sdk";
+import { useDeploymentMode } from "../deployment-mode.js";
 import { useShareFlow, type ShareFlowResource } from "./useShareFlow.js";
 import { GrantAccessForm } from "./GrantAccessForm.js";
 import { PermissionGate } from "./PermissionGate.js";
+
+/**
+ * The one resource kind every edition grants roles on. On the open-source
+ * edition it is the ONLY one: the composed grant scope there admits
+ * organizations alone, and per-person sharing of any other resource is
+ * what the Enterprise and Cloud editions add.
+ */
+const ORGANIZATION_KIND = "organization";
 
 /** Props for {@link PeopleWithAccess}. */
 export interface PeopleWithAccessProps {
@@ -39,6 +48,15 @@ export interface PeopleWithAccessProps {
  * `can_grant_access`, so a viewer sees *who* has access without being offered
  * controls the server would reject. The backend remains the enforcer.
  *
+ * On the open-source edition (`"local"`) a resource that is not an
+ * organization is never shared with individual people — the server's grant
+ * scope admits organizations only, and `checkMyPermission` answers
+ * `can_grant_access` false for everything else — so the body is one honest
+ * sentence naming the editions that do share per resource, never "0 people
+ * with access" with no controls. This is a facility question answered by
+ * deployment mode, the pattern `useDeploymentMode` documents; the tier
+ * question ("is IAM served?") is yes in every edition.
+ *
  * All visual properties flow through `--stgm-*` design tokens.
  */
 export function PeopleWithAccess({
@@ -58,8 +76,19 @@ export function PeopleWithAccess({
     refetch,
     hasGrantableRoles,
   } = useShareFlow(resource);
+  const deploymentMode = useDeploymentMode();
 
   const [showGrantForm, setShowGrantForm] = useState(false);
+
+  if (deploymentMode === "local" && resource.kind !== ORGANIZATION_KIND) {
+    return (
+      <p className={cn("stg:text-xs stg:text-muted-foreground", className)}>
+        This edition does not share {resourceKindString.replaceAll("_", " ")}s
+        with individual people. Sharing with specific people is available in
+        Stigmer Enterprise and Cloud.
+      </p>
+    );
+  }
 
   const existingPrincipalIds = accessList
     .map((entry) => entry.principal?.id)

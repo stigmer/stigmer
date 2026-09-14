@@ -3,58 +3,62 @@
  *
  * SessionSpec.harness_state_id stores the Cursor agentId. This module handles
  * creating new agents (first execution), resuming existing agents
- * (subsequent executions), graceful fallback on resume failure, and
- * cleaning up agents (session deletion).
+ * (subsequent executions) and graceful fallback on resume failure.
  *
  * Two execution modes:
  *
- * - Local mode: Agent.create({ local: { cwd } }) with explicit
- *   platform.workspaceRef/stateRoot for deterministic store keying.
- *   Produces agent- prefixed IDs.
+ * - Local mode: Agent.create({ local: { cwd, dirs, store, ... } }) over the
+ *   session's own SQLite store (`session-store.ts`). Produces agent- prefixed
+ *   IDs.
  *
  * - Cloud mode (feature-flagged): Agent.create({ cloud: { repos } })
- *   for git-backed workspaces. Produces bc- prefixed IDs. No platform
- *   options — cloud state lives on Cursor's servers, not local SQLite.
+ *   for git-backed workspaces. Produces bc- prefixed IDs. No store — cloud
+ *   state lives on Cursor's servers, not local SQLite.
  *
- * Key SDK limitation: mcpServers are NOT persisted across Agent.resume().
- * They must be passed again on every resume call.
+ * Nothing under `local` survives Agent.resume(): `cwd`, `dirs`,
+ * `settingSources`, `store` and `enableAgentRetries` are re-supplied on every
+ * resume, exactly like `mcpServers`, `agents` and the model params. Omitting
+ * `cwd` re-roots the resumed agent at process.cwd() and loads the "project"
+ * setting source (the .cursor/hooks.json carrying the HITL approval hook) from
+ * the wrong directory, silently disabling the gate on every resumed turn;
+ * omitting `store` would make the SDK look the agent up in a default store
+ * derived from `cwd`, not the one the session's records are in.
  *
- * Platform store keying (local only): The Cursor SDK defaults to
- * process.cwd() for its internal state root lookup. In cloud sandboxes,
- * process.cwd() is the runner's app directory, not the workspace — causing
- * Agent.resume() to fail with "Agent not found". We pass explicit
- * platform.workspaceRef and platform.stateRoot derived from the Stigmer
- * sessionId to ensure deterministic store lookup regardless of process.cwd().
+ * Durability model: the session's SQLite store (agent records, runs,
+ * checkpoints) is the source of truth for conversation continuation. It lives
+ * under the durable workspace volume (`session-store.ts`) so Agent.resume()
+ * survives pod restart, reschedule, and snapshot restore. When resume
+ * nonetheless fails (store lost, corrupted, or agent unknown), this module
+ * creates a fresh agent and the caller starts a new turn from the user message
+ * plus re-injected instructions — there is no separate continuation store.
  *
- * Durability model: the SDK's local SQLite store (agent records, runs,
- * checkpoints) is the source of truth for conversation continuation. It is
- * persisted under the durable workspace volume (see resolvePlatformOptions)
- * so Agent.resume() survives pod restart, reschedule, and snapshot restore.
- * When resume nonetheless fails (store lost, corrupted, or agent unknown),
- * this module creates a fresh agent and the caller starts a new turn from
- * the user message plus re-injected instructions — there is no separate
- * continuation store.
+ * Retries are the runner's, not the SDK's. `@cursor/sdk` 1.0.31 defaults
+ * `enableAgentRetries` to true for headless embedders (1.0.13 defaulted it to
+ * false); the runner already owns recovery from a dead or stalled transport —
+ * `withTimeout` around agent resolution, `resolveAgentWithTransportRecovery`
+ * (reset the transport, retry once), the two recovery spines in
+ * `turn-settle.ts`, and the stall detector — so the SDK's layer is pinned OFF
+ * to keep one retry authority and the 1.0.13 timing of every provider fault.
+ * Whether to adopt the SDK's retries and delete ours is an open design
+ * question for the harness program, recorded there; it is not decided here.
  */
-
-import { mkdirSync } from "node:fs";
-import { join } from "node:path";
 
 import { Agent } from "@cursor/sdk";
 import type {
   SDKAgent,
-  CursorAgentPlatformOptions,
   AgentDefinition,
+  LocalAgentOptions,
   ModelParameterValue,
 } from "@cursor/sdk";
+import type { SqliteLocalAgentStore } from "@cursor/sdk/sqlite";
 import { withTimeout, TimeoutError } from "../../shared/with-timeout.js";
 import type { CloudRepo } from "../../shared/blueprint-resolver.js";
 import type { CursorMcpServerConfig } from "./cursor-mcp-config.js";
+import { sessionStore } from "./session-store.js";
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
-
-const CURSOR_SDK_STATE_DIR = ".stigmer/cursor-sdk-state";
 
 /**
  * Cursor SDK setting sources loaded for LOCAL agents.
@@ -199,64 +203,41 @@ export interface AgentResolution {
 // ---------------------------------------------------------------------------
 
 /**
- * Compute deterministic platform options for a Stigmer session.
+ * The `local` options a session's agent is created AND resumed with — one
+ * builder so the two calls cannot drift (see the module header for why every
+ * field is re-supplied on resume).
  *
- * workspaceRef is a synthetic identifier (not a filesystem path) that
- * ensures the SDK's platform cache key is stable across activity
- * invocations regardless of process.cwd().
- *
- * stateRoot is a session-isolated directory under the durable workspace
- * volume ({workspaceRootDir}/.stigmer/cursor-sdk-state/{sessionId}) where
- * the SDK persists its SQLite stores (agent records, runs, checkpoints).
- * Placing it on the workspace volume (rather than $HOME) makes native
- * Agent.resume() survive pod restart/reschedule and snapshot restore, and
- * keys it by sessionId so sessions sharing one volume (e.g. the child agent
- * executions of a workflow sandbox) never collide. Created eagerly to
- * prevent ENOENT on first SDK write.
- *
- * Both inputs are required and must be non-empty: the stateRoot is keyed by
- * sessionId, so an empty sessionId would collapse every session sharing the
- * volume onto the same store and corrupt their conversation state.
+ * Workspaces: the SDK takes ONE primary `cwd` (the default shell's directory
+ * and the agent's store scoping) plus `dirs` for the other roots of a
+ * multi-root workspace, merged cwd-first with duplicates dropped, so rules,
+ * skills and hooks load from every root. The session's first workspace
+ * directory is the primary, as it was when the SDK took the whole array.
  */
-export function resolvePlatformOptions(
+async function localAgentOptions(
   sessionId: string,
   workspaceRootDir: string,
-): CursorAgentPlatformOptions {
-  if (!sessionId) {
-    throw new Error(
-      "resolvePlatformOptions: sessionId is required but was empty. The Cursor SDK " +
-      "state store is keyed by sessionId; an empty value would collide across sessions " +
-      "sharing a workspace volume (e.g. a workflow sandbox's child agent executions).",
-    );
-  }
-  if (!workspaceRootDir) {
-    throw new Error(
-      "resolvePlatformOptions: workspaceRootDir is required but was empty. The Cursor " +
-      "SDK state store must live on the durable workspace volume to survive restarts.",
-    );
-  }
-  const stateRoot = join(workspaceRootDir, CURSOR_SDK_STATE_DIR, sessionId);
-  mkdirSync(stateRoot, { recursive: true });
+  workspaceDirs: readonly string[],
+): Promise<LocalAgentOptions & { readonly store: SqliteLocalAgentStore }> {
+  const [cwd, ...dirs] = workspaceDirs;
+  const store = await sessionStore(sessionId, workspaceRootDir);
   return {
-    workspaceRef: `stigmer-session:${sessionId}`,
-    stateRoot,
+    cwd,
+    ...(dirs.length > 0 ? { dirs } : {}),
+    settingSources: [...LOCAL_SETTING_SOURCES],
+    store,
+    // The runner is the one retry authority (module header).
+    enableAgentRetries: false,
   };
 }
 
 /**
  * Create a new local Cursor Agent for the first execution in a session.
- *
- * Supports multi-workspace: passes string[] when multiple dirs, string when single.
  */
 export async function createAgent(options: CreateAgentOptions): Promise<SDKAgent> {
-  const cwd = options.workspaceDirs.length === 1
-    ? options.workspaceDirs[0]
-    : options.workspaceDirs;
-
-  const platform = resolvePlatformOptions(options.sessionId, options.workspaceRootDir);
+  const local = await localAgentOptions(options.sessionId, options.workspaceRootDir, options.workspaceDirs);
   console.log(
-    `createAgent: sessionId=${options.sessionId}, workspaceRef=${platform.workspaceRef}, ` +
-    `stateRoot=${platform.stateRoot}, process.cwd=${process.cwd()}`,
+    `createAgent: sessionId=${options.sessionId}, workspaceRef=${local.store.workspaceRef}, ` +
+    `stateRoot=${local.store.stateRoot}, process.cwd=${process.cwd()}`,
   );
 
   return Agent.create({
@@ -264,10 +245,9 @@ export async function createAgent(options: CreateAgentOptions): Promise<SDKAgent
     // Always a full selection — id AND params. A bare { id } would let the
     // catalog's default variant (account-influenced) pick the price (#357).
     model: { id: options.model, params: options.modelParams },
-    local: { cwd, settingSources: [...LOCAL_SETTING_SOURCES] },
+    local,
     mcpServers: options.mcpServers as Record<string, any>,
     agents: options.agents,
-    platform,
   });
 }
 
@@ -278,14 +258,10 @@ export async function createAgent(options: CreateAgentOptions): Promise<SDKAgent
  * propagate or fall back to a fresh agent with continuation context.
  */
 export async function resumeAgent(options: ResumeAgentOptions): Promise<SDKAgent> {
-  const cwd = options.workspaceDirs.length === 1
-    ? options.workspaceDirs[0]
-    : options.workspaceDirs;
-
-  const platform = resolvePlatformOptions(options.sessionId, options.workspaceRootDir);
+  const local = await localAgentOptions(options.sessionId, options.workspaceRootDir, options.workspaceDirs);
   console.log(
     `resumeAgent: agentId=${options.agentId}, sessionId=${options.sessionId}, ` +
-    `workspaceRef=${platform.workspaceRef}, stateRoot=${platform.stateRoot}, ` +
+    `workspaceRef=${local.store.workspaceRef}, stateRoot=${local.store.stateRoot}, ` +
     `process.cwd=${process.cwd()}`,
   );
 
@@ -296,16 +272,9 @@ export async function resumeAgent(options: ResumeAgentOptions): Promise<SDKAgent
     // ledger, #357), but an id-only resume would fall back to the catalog
     // default variant for the new turns.
     model: options.model ? { id: options.model, params: options.modelParams } : undefined,
-    // Neither cwd nor settingSources survive Agent.resume(); both must be
-    // re-supplied every turn. Omitting cwd makes the SDK fall back to
-    // process.cwd(), which re-roots the agent in the runner's own working
-    // directory and loads the "project" setting source — the .cursor/hooks.json
-    // carrying the HITL approval hook — from that wrong directory, silently
-    // disabling the approval gate on every resumed turn.
-    local: { cwd, settingSources: [...LOCAL_SETTING_SOURCES] },
+    local,
     mcpServers: options.mcpServers as Record<string, any>,
     agents: options.agents,
-    platform,
   });
 }
 
@@ -317,7 +286,7 @@ export async function resumeAgent(options: ResumeAgentOptions): Promise<SDKAgent
  * Create a new cloud Cursor Agent for git-backed sessions.
  *
  * Cloud agents (bc- prefix) run on Cursor's servers with cloned repos.
- * No platform options — cloud state lives server-side, not in local SQLite.
+ * No store — cloud state lives server-side, not in local SQLite.
  * Model is optional — Cursor resolves the caller's configured default
  * when omitted.
  */
@@ -341,7 +310,7 @@ export async function createCloudAgent(options: CreateCloudAgentOptions): Promis
  *
  * Throws on failure — the caller (resolveAgent) decides whether to
  * propagate or fall back to a fresh cloud agent with continuation context.
- * No platform options — cloud state lives server-side.
+ * No store — cloud state lives server-side.
  */
 export async function resumeCloudAgent(options: ResumeCloudAgentOptions): Promise<SDKAgent> {
   console.log(
@@ -365,8 +334,8 @@ export async function resumeCloudAgent(options: ResumeCloudAgentOptions): Promis
  * graceful fallback if resume fails.
  *
  * The mode parameter determines which create/resume functions are used:
- * - "local": createAgent / resumeAgent (with platform options)
- * - "cloud": createCloudAgent / resumeCloudAgent (no platform options)
+ * - "local": createAgent / resumeAgent (over the session's store)
+ * - "cloud": createCloudAgent / resumeCloudAgent (no store)
  *
  * When harnessStateId is non-empty (subsequent execution):
  *   1. Attempt Agent.resume with mode-appropriate options.
@@ -534,20 +503,5 @@ export async function resolveAgentWithTransportRecovery(
     opts.resetTransport();
 
     return attempt(true);
-  }
-}
-
-/**
- * Dispose a Cursor Agent when a session is deleted.
- * Best-effort: logs and swallows errors.
- */
-export async function disposeAgent(agentId: string, apiKey: string): Promise<void> {
-  try {
-    await Agent.archive(agentId, { apiKey });
-  } catch (err) {
-    console.warn(
-      `Failed to archive Cursor agent ${agentId}:`,
-      err instanceof Error ? err.message : err,
-    );
   }
 }

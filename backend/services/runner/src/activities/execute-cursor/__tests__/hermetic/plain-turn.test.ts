@@ -37,6 +37,9 @@ import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecutio
 vi.mock("@cursor/sdk", async () =>
   (await import("../../__test-utils__/scripted-sdk.js")).scriptedCursorSdkModule(),
 );
+vi.mock("@cursor/sdk/sqlite", async () =>
+  (await import("../../__test-utils__/scripted-sdk.js")).scriptedCursorSqliteModule(),
+);
 vi.mock("../../../../client/stigmer-client.js", async () =>
   (await import("../../../../__test-utils__/hermetic-activity.js")).hermeticStigmerClientModule(),
 );
@@ -93,7 +96,7 @@ describe("ExecuteCursor hermetic — plain turn", () => {
             run_id: RUN_ID,
             message: { role: "assistant", content: [{ type: "text", text: ASSISTANT_TEXT }] },
           }),
-          step.turnEnded({ inputTokens: 1_200, outputTokens: 40 }),
+          step.turnEnded({ inputTokens: 1_200, outputTokens: 40, cacheReadTokens: 0, cacheWriteTokens: 0 }),
           step.finished({
             result: ASSISTANT_TEXT,
             model: {

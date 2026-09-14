@@ -35,6 +35,7 @@
  */
 
 import { describe, it, expect } from "vitest";
+import { SqliteLocalAgentStore } from "@cursor/sdk/sqlite";
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, chmodSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -87,8 +88,12 @@ describeWithCursorKey("generateImage live ground truth (issue #965)", () => {
     const agent = await Agent.create({
       apiKey: CURSOR_API_KEY,
       model: { id: "composer-2.5" },
-      local: { cwd: workspaceRoot, settingSources: ["project"] },
-      platform: { workspaceRef: `genimage-spike-${Date.now()}`, stateRoot },
+      local: {
+        cwd: workspaceRoot,
+        settingSources: ["project"],
+        // 1.0.31: the store is caller-owned (`session-store.ts` in production).
+        store: await SqliteLocalAgentStore.open({ workspaceRef: `genimage-spike-${Date.now()}`, stateRoot }),
+      },
     });
 
     // The runner's exact consumption shape (index.ts / turn-stream.ts):

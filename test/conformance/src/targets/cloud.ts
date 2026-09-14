@@ -120,6 +120,11 @@ export class CloudTarget implements TargetProfile {
     // gate off here (their positive behavior needs an IdentityProvider
     // fixture — the channelMessaging coverage split, target.ts).
     federatedIdentityAccounts: true,
+    // The cloud-iam unit registers every kind's kind_meta roles as the grant
+    // scope and wraps its OpenFGA client as the query engine, so per-resource
+    // grants are admitted and the tuple-half queries answer (20260913.01).
+    perResourceGrants: true,
+    authorizationQueries: true,
     // The three cloud-capability surfaces (E1, entry 20260906.04): Java
     // serves all three natively; the composition serves the ledger through
     // the C5 facade today and the proxy/public lanes only once C6/P1 land —

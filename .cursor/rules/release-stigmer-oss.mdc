@@ -20,6 +20,16 @@ When triggered, determine the correct semver bump, create annotated tags with de
 
 ## Execution Steps
 
+### 0. Check for a Release Hold
+
+Before anything else, read the identity-and-authorization program's next-task file for a `## Release hold` section:
+
+```bash
+rg -n "^## Release hold" ~/scm/github.com/stigmer/stigmer-cloud/_projects/2026-09/20260911.04.identity-and-authorization/next-task.md
+```
+
+If the section exists, **stop and show it to the user**. It names a change that is merged on `main` but must not ship until a named follow-up has merged too (the first such hold: organization roles, which open source must not release before the authorizer that enforces them). Only the user lifts a hold, by deleting the section in that file; this step is removed when the last hold is lifted and no project needs another.
+
 ### 1. Identify the Previous Release
 
 ```bash
@@ -182,6 +192,7 @@ Tags pushed. CI will handle:
 
 ## Important Notes
 
+- **Never tag under a release hold** (step 0) — a hold names a merged change that must not ship alone; only the user lifts it
 - **Never force-push tags** — if a tag already exists, stop and tell the user
 - **Always confirm** the version bump with the user before creating tags
 - **Never tag without the release pins bumped** (`make release-pins`) — `release.npm-libs` will hard-fail the publish if `mcp-server/Dockerfile` pins a different version than the tag, refuse to package the Helm chart if `Chart.yaml` does, and a stale compose pin points fresh clones at the previous stack (see step 5)

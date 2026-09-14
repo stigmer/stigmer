@@ -44,6 +44,12 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { BillingQueryController } from "@stigmer/protos/ai/stigmer/billing/v1/query_pb";
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+import type { IamPolicy } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import type {
+  ApiResourceRef,
+  IamPolicySpec,
+} from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 
 import {
@@ -53,8 +59,10 @@ import {
   composeServer,
   createLogger,
   DuplicateAccountError,
+  DuplicatePolicyError,
   EncryptionScope,
   EncryptionUnavailableError,
+  iamPolicyStoreContract,
   identityAccountStoreContract,
   identityIdForSubject,
   InvalidTokenError,
@@ -82,12 +90,16 @@ import type {
   AgentExecutionStatusObserver,
   ArtifactStorage,
   ArtifactStorageDriverFactory,
+  AuthorizationQueryEngine,
   Authorizer,
   CallerGuard,
   CallerIdentity,
   ChannelRuntime,
   ComposedServer,
   GateSlotName,
+  IamPolicyStore,
+  IamPolicyStoreContractCase,
+  IamPolicyStoreContractFixture,
   IdentityAccountStore,
   IdentityAccountStoreContractCase,
   IdentityAccountStoreContractFixture,
@@ -97,6 +109,7 @@ import type {
   ModelCatalogProvider,
   OrganizationDirectory,
   PipelineStep,
+  PolicyGrantScope,
   PresignedUpload,
   RawResourceDocument,
   ResourceAuthorizationLifecycle,
@@ -212,6 +225,110 @@ export async function runConsumerIdentityAccountStoreContract(): Promise<void> {
     await contractCase.run();
   }
 }
+
+/**
+ * A consumer-shaped IamPolicy store driver (the 20260913.01 seam, Q-OR-1):
+ * the PORT the IamPolicy domain's grant path writes and reads through when
+ * a composition registers one — the cloud's `cloud.iam_policy` store takes
+ * this position (registered below as `drivers.iamPolicyStore`).
+ * `save` is create-only in effect: a held id raises the exported
+ * DuplicatePolicyError so the grant path's race arm (re-read the winner by
+ * triple; answer it as the duplicate) works over a consumer driver exactly
+ * as over the OSS adapter.
+ */
+const consumerIamPolicyStore: IamPolicyStore = {
+  save: (policy: IamPolicy) =>
+    Promise.reject(
+      new DuplicatePolicyError(
+        `IAM policy '${policy.metadata?.id ?? ""}' already exists`,
+      ),
+    ),
+  deleteById: () => Promise.resolve(),
+  findById: () => Promise.resolve(undefined),
+  findByPrincipal: () => Promise.resolve([]),
+  findByResource: () => Promise.resolve([]),
+  findByPrincipalAndResource: () => Promise.resolve([]),
+  findByResourceWithRelations: () => Promise.resolve([]),
+  countDistinctPrincipalsByResource: () => Promise.resolve(0),
+  findScopeTuple: () => Promise.resolve(undefined),
+};
+
+/**
+ * The IamPolicy port-contract kit over the consumer's driver (the 2a A11
+ * shape): a composition's driver test iterates these cases with its own
+ * framework so the same contract the OSS adapter passes is what the driver
+ * is held to. Compile-only here: this package proves the exported shape,
+ * not a fake's behavior.
+ */
+export function consumerIamPolicyStoreContract(): ReadonlyArray<IamPolicyStoreContractCase> {
+  return iamPolicyStoreContract(
+    async (): Promise<IamPolicyStoreContractFixture> => ({
+      store: consumerIamPolicyStore,
+      disconnect: () => Promise.resolve(),
+      cleanup: () => Promise.resolve(),
+    }),
+  );
+}
+
+export async function runConsumerIamPolicyStoreContract(): Promise<void> {
+  for (const contractCase of consumerIamPolicyStoreContract()) {
+    await contractCase.run();
+  }
+}
+
+/**
+ * A consumer-shaped policy grant scope (the 20260913.01 seam, Q-OR-3): which
+ * kinds a user may grant on in this composition, with which roles. A scope
+ * only NARROWS the proto's grantable roles, is total over the enum (an
+ * unlisted kind answers none, never throws) and is synchronous — a fact
+ * about the edition, not a lookup. This one admits a single per-resource
+ * grant, the narrowing a composition would make.
+ */
+const consumerPolicyGrantScope: PolicyGrantScope = {
+  grantableRoles: (kind: ApiResourceKind) =>
+    kind === ApiResourceKind.agent ? [IamRole.viewer] : [],
+};
+
+/**
+ * A consumer-shaped authorization-query engine (the 20260913.01 seam,
+ * Q-OR-8): the tuple-half questions only an authorization backend answers
+ * over its own graph. It speaks the contract's vocabulary (refs, specs,
+ * the wire's relation and kind strings) and renders to its backend's
+ * grammar itself; `false` and `[]` are real answers, an outage throws.
+ */
+const consumerAuthorizationQueries: AuthorizationQueryEngine = {
+  check: (
+    policy: IamPolicySpec,
+    contextualPolicies: ReadonlyArray<IamPolicySpec>,
+  ) =>
+    Promise.resolve(
+      policy.principal?.kind === "identity_account" &&
+        policy.resource?.kind === "organization" &&
+        contextualPolicies.length === 0,
+    ),
+  listResourceIds: (
+    principal: ApiResourceRef,
+    relation: string,
+    resourceKind: string,
+  ) => {
+    void principal.id;
+    void relation;
+    return Promise.resolve<ReadonlyArray<string>>(
+      resourceKind === "agent" ? ["agt_consumer"] : [],
+    );
+  },
+  listPrincipalIds: (
+    resource: ApiResourceRef,
+    relation: string,
+    principalKind: string,
+  ) => {
+    void resource.id;
+    void relation;
+    return Promise.resolve<ReadonlyArray<string>>(
+      principalKind === "identity_account" ? ["ida_consumer"] : [],
+    );
+  },
+};
 
 /**
  * A claim-or-pass verifier (the O2 chain-entry shape) that resolves its
@@ -748,6 +865,12 @@ export const fakeExtension: ServerExtension = {
     // consumer's own store, and the federated arms only it can serve.
     identityAccountStore: consumerIdentityAccountStore,
     identityFederation: consumerIdentityFederation,
+    // The 20260913.01 seams: the IamPolicy domain served over the
+    // consumer's own store, the kinds it grants on, and the tuple-half
+    // queries only its authorization backend can answer.
+    iamPolicyStore: consumerIamPolicyStore,
+    policyGrantScope: consumerPolicyGrantScope,
+    authorizationQueries: consumerAuthorizationQueries,
   },
   services: [registerBillingService],
   workers: [workerFactory],

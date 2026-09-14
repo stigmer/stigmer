@@ -34,9 +34,10 @@ export interface UseCanCreateAgentShareReturn {
  *   resource id — an Organization's id equals its slug
  *   (ApiResourceMetadata.id).
  *
- * On the OSS edition {@link useCheckPermission} degrades to allowed
- * (no IAM service), matching the backend's documented no-op
- * authorization (decision 011 D4).
+ * On the open-source edition both checks reach the server's permissive
+ * single-team authorizer and answer allowed — the same posture the
+ * backend enforces there (decision 011 D4), so the affordance matches
+ * what a create would do.
  *
  * Pass `null` for `agent` while it loads — `allowed` stays `false` so
  * no affordance flashes before the gate can be evaluated.

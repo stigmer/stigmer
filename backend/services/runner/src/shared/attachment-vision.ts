@@ -118,7 +118,8 @@ export type VisionOutcome =
 /**
  * What a harness can actually display inline. The split exists because the
  * Cursor local transport re-sniffs magic bytes and recognizes ONLY PNG and
- * JPEG (verified against @cursor/sdk 1.0.13 dist — the declared mimeType is
+ * JPEG (verified against the @cursor/sdk dist at 1.0.13 and again at 1.0.31:
+ * the attachment sniff map is exactly JPEG and PNG; the declared mimeType is
  * discarded), while the LangChain providers accept all four types.
  */
 export interface VisionProfile {

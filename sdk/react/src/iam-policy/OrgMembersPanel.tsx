@@ -45,8 +45,10 @@ export interface OrgMembersPanelProps {
  *
  * Displays all principals with access to the organization, their
  * role grants, and provides actions to change roles and remove
- * members. New members are added through the invitation flow.
- * The current user is identified via
+ * members. New members arrive through invitations where the edition
+ * serves them (Enterprise and Cloud); on open source people join the
+ * organization the first time they sign in and the server records their
+ * role. The current user is identified via
  * `identityAccount.whoAmI()` for self-protection (disabling
  * destructive actions on yourself).
  *

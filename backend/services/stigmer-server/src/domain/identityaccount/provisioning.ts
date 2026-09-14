@@ -28,6 +28,16 @@
  * fires on the `identity-account-provision:post-persist` slot in the
  * composition (A10), wired by the controller.
  *
+ * The answer says whether THIS call created the row (`ProvisionedAccount.
+ * created`; 20260913.01 slice 4): the idempotent early return and the
+ * race loser answer false. The slot above fires on every call by design
+ * (the cloud's backfill needs that), so a CORE rule that must run exactly
+ * once per person — the open-source membership rules, which hand out
+ * organization roles at first sign-in — keys on `created` instead, through
+ * the AccountCreatedHook this domain offers and the controller runs. The
+ * hook is declared here, in the domain that fires it, so the domain that
+ * implements it (iampolicy) depends on this one and never the reverse.
+ *
  * This module holds the domain flow over two PORTS — the store and the
  * userinfo client — and no network code; identity/oidc-userinfo.ts is the
  * OIDC implementation the composition root wires in.
@@ -88,22 +98,46 @@ export interface DirectAccountProvisionerDeps {
   readonly userInfo: UserInfoClient;
 }
 
+/** The provisioner's answer: the account, and whether this call created its row. */
+export interface ProvisionedAccount {
+  readonly account: IdentityAccount;
+  /** False on the idempotent early return and for a first-login race's loser. */
+  readonly created: boolean;
+}
+
+/**
+ * What the identity-account domain offers a core rule keyed on a person's
+ * FIRST provisioning (the open-source membership rules,
+ * domain/iampolicy/membership.ts). Runs once per account, on the call
+ * whose `created` is true, with the caller RE-STAMPED as the account, so
+ * whatever the hook writes attributes to the account and never to the
+ * idp-shaped principal the verifier admitted before the row existed. Its
+ * failure semantics are the controller's: a throw fails the request with
+ * the account in place, and the hook does not run again for that account.
+ */
+export interface AccountCreatedHook {
+  onAccountCreated(
+    account: IdentityAccount,
+    caller: CallerIdentity,
+  ): Promise<void>;
+}
+
 export interface DirectAccountProvisioner {
   /** provisionMyAccount's domain flow; `idpId` is the caller's verified subject. */
   provisionDirectAccount(
     idpId: string,
     caller: CallerIdentity,
-  ): Promise<IdentityAccount>;
+  ): Promise<ProvisionedAccount>;
 }
 
 export function newDirectAccountProvisioner(
   deps: DirectAccountProvisionerDeps,
 ): DirectAccountProvisioner {
   return {
-    async provisionDirectAccount(idpId, caller): Promise<IdentityAccount> {
+    async provisionDirectAccount(idpId, caller): Promise<ProvisionedAccount> {
       const existing = await deps.accounts.findDirectByIdpId(idpId);
       if (existing !== undefined) {
-        return existing;
+        return { account: existing, created: false };
       }
 
       const profile = await profileOf(deps.userInfo, caller);
@@ -121,11 +155,15 @@ export function newDirectAccountProvisioner(
       };
 
       try {
-        return await deps.createAccount(input, caller);
+        return {
+          account: await deps.createAccount(input, caller),
+          created: true,
+        };
       } catch (error) {
-        return resolveCreateRace(error, () =>
+        const winner = await resolveCreateRace(error, () =>
           deps.accounts.findDirectByIdpId(idpId),
         );
+        return { account: winner, created: false };
       }
     },
   };

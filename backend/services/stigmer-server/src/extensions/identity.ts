@@ -97,3 +97,24 @@ export interface IdentityVerifier {
    */
   verify(token: string): Promise<CallerIdentity | null>;
 }
+
+/**
+ * Whether `caller` is one of the platform's own pipelines — the admission
+ * rule of the RPCs a person must never reach directly, stated ONCE
+ * (20260911.11 A7 for the identity-account `create` RPC; 20260913.01
+ * Q-OR-7 and Q-S5-10 for the three IamPolicy system RPCs): a `machine`
+ * account (the platform's service accounts), the `internal` class (the
+ * server acting as itself over the in-process transport) or ANY identity
+ * that entered through that transport (a propagated user the server is
+ * composing a request for). A wire `user`, a `runner` and a composition's
+ * own classes are refused by the RPC that reads this — under the
+ * permissive Authorizer the annotation alone would admit anyone, so the
+ * rule is load-bearing in open source.
+ */
+export function isPlatformPipelineCaller(caller: CallerIdentity): boolean {
+  return (
+    caller.callerClass === "machine" ||
+    caller.callerClass === "internal" ||
+    caller.origin === "in-process"
+  );
+}

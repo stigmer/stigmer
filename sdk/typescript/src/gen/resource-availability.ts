@@ -13,7 +13,7 @@ import { ApiResourceKind, ResourceTier } from "@stigmer/protos/ai/stigmer/common
  */
 export const KIND_TIERS: ReadonlyMap<ApiResourceKind, ResourceTier> = new Map([
   [ApiResourceKind.api_resource_version, ResourceTier.cloud_only],
-  [ApiResourceKind.iam_policy, ResourceTier.enterprise],
+  [ApiResourceKind.iam_policy, ResourceTier.open_source],
   [ApiResourceKind.identity_account, ResourceTier.open_source],
   [ApiResourceKind.api_key, ResourceTier.open_source],
   [ApiResourceKind.invitation, ResourceTier.enterprise],

@@ -4,9 +4,11 @@
  * annotation's byte-pinned error_msg; unavailable → INTERNAL, never a
  * softened denial), the skip arms (internal caller class, is_public,
  * is_skip_authorization, no-config methods), check-target resolution
- * (field_path, static resource_id, absent field = empty id — never a
- * throw), and the mid-chain resolved-id pattern the traced ListVersions
- * handlers port onto.
+ * (field_path, static resource_id, absent field = empty id, a string
+ * resource_kind_path resolved by enum name with an unknown name = the
+ * unknown kind — never a throw), the direct-handler override in both its
+ * shapes (a server-side id; a server-side kind AND id), and the mid-chain
+ * resolved-id pattern the traced ListVersions handlers port onto.
  */
 import { describe, expect, it } from "vitest";
 import { create } from "@bufbuild/protobuf";
@@ -17,6 +19,7 @@ import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb"
 import { AgentExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/command_pb";
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
+import { IamPolicyQueryController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/query_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { PlatformQueryController } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -37,9 +40,7 @@ import {
 } from "../authorize.js";
 
 /** Awaits the rejection and returns it as a ConnectError. */
-async function captureError(
-  run: () => Promise<void>,
-): Promise<ConnectError> {
+async function captureError(run: () => Promise<void>): Promise<ConnectError> {
   try {
     await run();
   } catch (error) {
@@ -290,6 +291,75 @@ describe("check-target resolution (never a throw — byte-identity)", () => {
       },
     ]);
   });
+
+  // 20260913.01 (Q-OR-2): the IamPolicy RPCs name their target inside the
+  // request as a STRING kind (`ApiResourceRef.kind`, "organization"), so
+  // `resource_kind_path` resolves a string through the kind enum's names.
+  // The option had no user before this entry; a numeric field still works.
+  it("resource_kind_path over a string field resolves through the kind enum's names (IamPolicy create)", async () => {
+    const { authorizer, checks } = fakeAuthorizer({ kind: "allow" });
+    const method = IamPolicyCommandController.method.create;
+    const step = newAuthorizeStep(method, authorizer);
+    const ctx = new RequestContext(
+      method.input,
+      create(method.input, {
+        principal: { kind: "identity_account", id: "ida_alice" },
+        relation: "member",
+        resource: { kind: "organization", id: "acme" },
+      }),
+      testCallerIdentity(),
+    );
+    await step.execute(ctx);
+    expect(checks).toEqual([
+      {
+        permission: IamPermission.can_grant_access,
+        resourceKind: ApiResourceKind.organization,
+        resourceId: "acme",
+      },
+    ]);
+  });
+
+  it("an unknown kind name resolves to the unknown kind — never a throw; the Authorizer owns the decision", async () => {
+    const { authorizer, checks } = fakeAuthorizer({ kind: "allow" });
+    const method = IamPolicyCommandController.method.create;
+    const step = newAuthorizeStep(method, authorizer);
+    const ctx = new RequestContext(
+      method.input,
+      create(method.input, {
+        principal: { kind: "identity_account", id: "ida_alice" },
+        relation: "member",
+        resource: { kind: "spaceship", id: "acme" },
+      }),
+      testCallerIdentity(),
+    );
+    await expect(step.execute(ctx)).resolves.toBeUndefined();
+    expect(checks[0]?.resourceKind).toBe(
+      ApiResourceKind.api_resource_kind_unknown,
+    );
+    expect(checks[0]?.resourceId).toBe("acme");
+  });
+
+  it("revokeOrgAccess names the organization statically and its id by field_path (organization_id)", async () => {
+    const { authorizer, checks } = fakeAuthorizer({ kind: "allow" });
+    const method = IamPolicyCommandController.method.revokeOrgAccess;
+    const step = newAuthorizeStep(method, authorizer);
+    const ctx = new RequestContext(
+      method.input,
+      create(method.input, {
+        identityAccountId: "ida_alice",
+        organizationId: "acme",
+      }),
+      testCallerIdentity(),
+    );
+    await step.execute(ctx);
+    expect(checks).toEqual([
+      {
+        permission: IamPermission.can_grant_access,
+        resourceKind: ApiResourceKind.organization,
+        resourceId: "acme",
+      },
+    ]);
+  });
 });
 
 describe("authorizeDirect (the direct-handler arm, C2 Stage 4)", () => {
@@ -346,6 +416,49 @@ describe("authorizeDirect (the direct-handler arm, C2 Stage 4)", () => {
         resourceId: "server-side-truth",
       },
     ]);
+  });
+
+  // 20260913.01 (Q-OR-2): the IamPolicy `get(IamPolicyId)` lane. Its
+  // annotation names a permission and NO kind, because the target is the
+  // loaded row's resource — kind AND id are server-side state. The
+  // override carries both; the annotation still owns the permission and
+  // the copy.
+  it("the target override may carry the resource KIND too — the IamPolicy get lane", async () => {
+    const { authorizer, checks } = fakeAuthorizer({ kind: "allow" });
+    const method = IamPolicyQueryController.method.get;
+    await authorizeDirect(
+      method,
+      authorizer,
+      testCallerIdentity(),
+      create(method.input, { value: "iamp_01row" }),
+      { resourceKind: ApiResourceKind.organization, resourceId: "acme" },
+    );
+    expect(checks).toEqual([
+      {
+        permission: IamPermission.can_view_access,
+        resourceKind: ApiResourceKind.organization,
+        resourceId: "acme",
+      },
+    ]);
+  });
+
+  it("an override with the id alone leaves the annotation's kind in place — the completeOAuthConnect lane is unchanged", async () => {
+    const { authorizer, checks } = fakeAuthorizer({ kind: "allow" });
+    const method = IamPolicyQueryController.method.get;
+    // A kind-less annotation plus an id-only override: the kind stays
+    // unknown, exactly what the annotation says. The lane that needs a
+    // kind must say so; nothing is inferred.
+    await authorizeDirect(
+      method,
+      authorizer,
+      testCallerIdentity(),
+      create(method.input, { value: "iamp_01row" }),
+      { resourceId: "acme" },
+    );
+    expect(checks[0]?.resourceKind).toBe(
+      ApiResourceKind.api_resource_kind_unknown,
+    );
+    expect(checks[0]?.resourceId).toBe("acme");
   });
 
   it("the ruling-Q1 not-found arm maps identically from the direct entry", async () => {
@@ -438,18 +551,30 @@ describe("authorizeResolvedResource (the mid-chain resolved-id pattern, 20260830
       ),
     );
     expect(err.code).toBe(Code.PermissionDenied);
-    expect(err.rawMessage).toBe("unauthorized to view workflow version history");
+    expect(err.rawMessage).toBe(
+      "unauthorized to view workflow version history",
+    );
   });
 
   it("deny without lane copy falls back to the reason, then the shared fallback", async () => {
     const reasoned = fakeAuthorizer({ kind: "deny", reason: "because" });
     const err1 = await captureError(() =>
-      authorizeResolvedResource(reasoned.authorizer, testCallerIdentity(), check, ""),
+      authorizeResolvedResource(
+        reasoned.authorizer,
+        testCallerIdentity(),
+        check,
+        "",
+      ),
     );
     expect(err1.rawMessage).toBe("because");
     const bare = fakeAuthorizer({ kind: "deny", reason: "" });
     const err2 = await captureError(() =>
-      authorizeResolvedResource(bare.authorizer, testCallerIdentity(), check, ""),
+      authorizeResolvedResource(
+        bare.authorizer,
+        testCallerIdentity(),
+        check,
+        "",
+      ),
     );
     expect(err2.rawMessage).toBe("permission denied");
   });

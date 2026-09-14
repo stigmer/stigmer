@@ -87,6 +87,9 @@ export class LocalExecutionTarget implements TargetProfile {
     // No unit composes the federation capability in the empty composition,
     // as on `local`.
     federatedIdentityAccounts: false,
+    // Organization-only grants and no query engine, as on `local`.
+    perResourceGrants: false,
+    authorizationQueries: false,
   };
 
   private temporal: RunningTemporal | undefined;

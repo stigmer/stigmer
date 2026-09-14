@@ -50,6 +50,9 @@ import {
 vi.mock("@cursor/sdk", async () =>
   (await import("../../__test-utils__/scripted-sdk.js")).scriptedCursorSdkModule(),
 );
+vi.mock("@cursor/sdk/sqlite", async () =>
+  (await import("../../__test-utils__/scripted-sdk.js")).scriptedCursorSqliteModule(),
+);
 vi.mock("../../../../client/stigmer-client.js", async () =>
   (await import("../../../../__test-utils__/hermetic-activity.js")).hermeticStigmerClientModule(),
 );
@@ -137,7 +140,7 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — deny-and-retry approval ro
           step.event(ev2.toolCall(CALL_TURN_2, "shell", "running", SHELL_ARGS)),
           step.event(ev2.toolCall(CALL_TURN_2, "shell", "completed", SHELL_ARGS, BUILD_OUTPUT)),
           step.event(ev2.assistant(FINAL_TEXT)),
-          step.turnEnded({ inputTokens: 3_100, outputTokens: 60 }),
+          step.turnEnded({ inputTokens: 3_100, outputTokens: 60, cacheReadTokens: 0, cacheWriteTokens: 0 }),
           step.finished({ result: FINAL_TEXT, model: { id: FIXTURE.model, params: [] } }),
         ],
       ],

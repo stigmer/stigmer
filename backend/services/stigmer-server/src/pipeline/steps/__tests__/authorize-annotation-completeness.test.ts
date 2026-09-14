@@ -20,9 +20,32 @@
  * never reach the annotation's resolution (the skip lanes resolve their
  * target in the handler through `authorizeDirect`'s override). A config
  * that names NO kind (static or by path) is outside this invariant: the
- * check is then about the kind, not the id, and today no OSS-served method
- * is shaped that way (the IamPolicy RPCs that are belong to
- * `sp.oss-organization-roles`).
+ * check is then about the kind, not the id.
+ *
+ * The IamPolicy contract is the one place that shape exists, and it is
+ * pinned here by descriptor, not by served route, so the arm turns green
+ * when the ANNOTATIONS land (sp.oss-organization-roles slice 1) and not
+ * when the service is first served (slice 5). Of its nine `rpc.config`
+ * methods: six name their target — `create`, `delete`,
+ * `listResourceAccessByPrincipal`, `getPrincipalResourceRoles` by
+ * `resource_kind_path` (the spec's `resource.kind`, a STRING the resolver
+ * reads by enum name) + `field_path`; `revokeOrgAccess` and
+ * `getPrincipalsCount` statically. `get(IamPolicyId)` names no kind BY
+ * DESIGN: its target is inside the row it loads, so it is the one
+ * load-then-authorize lane (`authorizeDirect` with the override's
+ * resourceKind + resourceId, the getByEmail precedent). The two
+ * `listAuthorized*Ids` were the open question of S1 (finding 7): an
+ * annotation with a permission and no kind resolves to an EMPTY target,
+ * which the open-source permissive Authorizer allows and the cloud's
+ * OpenFGA Authorizer denies for every caller — the #1073 class this
+ * invariant cannot see. Ruled at slice 1 (2026-09-13, T01_1_review.md
+ * Q-OR-2): `listAuthorizedPrincipalIds` HAS a resource and names it (the
+ * same `can_view_access` target `listResourceAccessByPrincipal` enforces
+ * for the same question); `listAuthorizedResourceIds` has a principal and
+ * no resource, so it is an `is_skip_authorization` lane whose handler
+ * enforces `checkAuthorization`'s principal-trust rule (a user only for
+ * themselves; machine and internal for anyone) — a dead `can_view_access`
+ * config would have been exactly the kind-less shape this file guards.
  *
  * The mutation arms prove the check bites over the same function.
  */
@@ -41,6 +64,8 @@ import {
   is_public,
   is_skip_authorization,
 } from "@stigmer/protos/ai/stigmer/commons/rpc/method_options_pb";
+import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
+import { IamPolicyQueryController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/query_pb";
 
 import { loadConfig } from "../../../boot/config.js";
 import { composeServer } from "../../../boot/compose.js";
@@ -148,6 +173,51 @@ describe("authorization annotations name where the resource id comes from", () =
     );
     expect(get?.namesId, "get names its id").toBe(true);
     expect(actor?.namesId, "getActorInfo names its id").toBe(true);
+  });
+});
+
+describe("the IamPolicy contract names its targets (sp.oss-organization-roles slice 1, read by descriptor)", () => {
+  const targets = annotationTargets([
+    IamPolicyCommandController,
+    IamPolicyQueryController,
+  ]);
+  const byName = new Map(
+    targets.map((t) => [t.method.split("/")[1] ?? t.method, t]),
+  );
+
+  it.each([
+    "create",
+    "delete",
+    "revokeOrgAccess",
+    "listResourceAccessByPrincipal",
+    "getPrincipalResourceRoles",
+    "getPrincipalsCount",
+    "listAuthorizedPrincipalIds",
+  ])("%s names a resource kind AND where its id comes from", (method) => {
+    const target = byName.get(method);
+    expect(target, `${method} carries rpc.config`).toBeDefined();
+    expect(target?.namesKind, `${method} names a kind`).toBe(true);
+    expect(target?.namesId, `${method} names its id`).toBe(true);
+  });
+
+  it("get names no kind — the one load-then-authorize lane, its target inside the row", () => {
+    const get = byName.get("get");
+    expect(get, "get carries rpc.config").toBeDefined();
+    expect(get?.namesKind).toBe(false);
+    expect(get?.skipsResolution).toBe(false);
+  });
+
+  it("listAuthorizedResourceIds carries NO rpc.config and skips — its trust rule is the handler's (finding 7)", () => {
+    // Read the descriptor directly: `annotationTargets` lists only
+    // config-carrying methods, and this one must have left that set.
+    const method = IamPolicyQueryController.method.listAuthorizedResourceIds;
+    expect(byName.has("listAuthorizedResourceIds")).toBe(false);
+    expect(hasOption(method, rpcAuthorizationConfig)).toBe(false);
+    expect(getOption(method, is_skip_authorization)).toBe(true);
+  });
+
+  it("the invariant reports none of them once slice 1 lands", () => {
+    expect(unresolvableTargets(targets)).toEqual([]);
   });
 });
 

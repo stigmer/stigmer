@@ -15,12 +15,16 @@ on a resource.
 Wraps `iamPolicy.checkMyPermission()` — the dedicated self-check RPC
 where the server derives the principal from the authenticated token
 (the client never names a principal) — with caching and configurable
-degradation. By default the hook *fails open*: when the server does
-not support authorization checks (OSS edition where the IAM service
-is not registered), it returns `allowed: true` so all UI remains
-visible in single-user local mode. Pass `{ fail: "closed" }` for
-surfaces that must stay hidden until authorization is confirmed
-(see [`CheckPermissionOptions`](#checkpermissionoptions)).
+degradation. The RPC is served in every edition and its answer has one
+definition: a permission on a kind the edition does not serve is
+`false` (so operator-only navigation never appears where the seat
+does not exist), `can_grant_access` on a resource the edition does not
+share per person is `false` (open source grants roles on organizations
+only), and everything else is the edition's authorizer's answer. By
+default the hook *fails open* while the check is in flight or when the
+RPC fails, so a transient error never hides a control the server would
+honor. Pass `{ fail: "closed" }` for surfaces that must stay hidden
+until authorization is confirmed (see [`CheckPermissionOptions`](#checkpermissionoptions)).
 
 Pass `null` as `resource` to skip the check — the result resolves
 through the fail mode (`allowed: true` under the default fail-open).
@@ -486,8 +490,10 @@ Self-contained panel for managing organization members.
 
 Displays all principals with access to the organization, their
 role grants, and provides actions to change roles and remove
-members. New members are added through the invitation flow.
-The current user is identified via
+members. New members arrive through invitations where the edition
+serves them (Enterprise and Cloud); on open source people join the
+organization the first time they sign in and the server records their
+role. The current user is identified via
 `identityAccount.whoAmI()` for self-protection (disabling
 destructive actions on yourself).
 
@@ -520,6 +526,15 @@ a parent trigger). Mutations are gated here, in proportion to the action:
 the grant form and per-row revoke buttons render only behind
 `can_grant_access`, so a viewer sees *who* has access without being offered
 controls the server would reject. The backend remains the enforcer.
+
+On the open-source edition (`"local"`) a resource that is not an
+organization is never shared with individual people — the server's grant
+scope admits organizations only, and `checkMyPermission` answers
+`can_grant_access` false for everything else — so the body is one honest
+sentence naming the editions that do share per resource, never "0 people
+with access" with no controls. This is a facility question answered by
+deployment mode, the pattern `useDeploymentMode` documents; the tier
+question ("is IAM served?") is yes in every edition.
 
 All visual properties flow through `--stgm-*` design tokens.
 
@@ -707,7 +722,7 @@ Options for [`useCheckPermission`](#usecheckpermission).
 
 <TypeTable
   type={{
-    fail: { type: "\"open\" | \"closed\"", description: "Behavior when authorization cannot be confirmed — the check is in flight, the RPC failed, the resource is `null`, or the server does not implement authorization checks (OSS edition).  - `\"open\"` (default): `allowed` is `true`. Right for gating   *capabilities* (buttons, actions) — the server re-checks every   request anyway, and all UI stays visible in single-user local   mode. - `\"closed\"`: `allowed` is `false` until the server explicitly   authorizes. Right for *discoverability* surfaces (navigation to   operator-only areas) that must not appear on deployments where   the feature does not exist." },
+    fail: { type: "\"open\" | \"closed\"", description: "Behavior when authorization cannot be confirmed — the check is in flight, the RPC failed, or the resource is `null`.  - `\"open\"` (default): `allowed` is `true`. Right for gating   *capabilities* (buttons, actions) — the server re-checks every   request anyway, so a transient failure never hides a control the   server would honor. - `\"closed\"`: `allowed` is `false` until the server explicitly   authorizes. Right for *discoverability* surfaces (navigation to   operator-only areas) that must not appear before the server has   said yes." },
   }}
 />
 

@@ -78,6 +78,11 @@ export class LocalTarget implements TargetProfile {
     // No unit composes the federation capability in the empty composition —
     // the suite pins the four UNIMPLEMENTED refusals here (20260911.11).
     federatedIdentityAccounts: false,
+    // The empty composition grants on organizations only and composes no
+    // authorization query engine — the suite pins both edition refusals
+    // here (20260913.01).
+    perResourceGrants: false,
+    authorizationQueries: false,
   };
 
   private server: RunningServer | undefined;

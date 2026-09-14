@@ -26,17 +26,16 @@ var File_ai_stigmer_iam_iampolicy_v1_query_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_iampolicy_v1_query_proto_rawDesc = "" +
 	"\n" +
-	"'ai/stigmer/iam/iampolicy/v1/query.proto\x12\x1bai.stigmer.iam.iampolicy.v1\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a%ai/stigmer/iam/iampolicy/v1/api.proto\x1a$ai/stigmer/iam/iampolicy/v1/io.proto2\xf2\n" +
-	"\n" +
+	"'ai/stigmer/iam/iampolicy/v1/query.proto\x12\x1bai.stigmer.iam.iampolicy.v1\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a%ai/stigmer/iam/iampolicy/v1/api.proto\x1a$ai/stigmer/iam/iampolicy/v1/io.proto2\xa0\v\n" +
 	"\x18IamPolicyQueryController\x12\x85\x01\n" +
 	"\x03get\x12(.ai.stigmer.iam.iampolicy.v1.IamPolicyId\x1a&.ai.stigmer.iam.iampolicy.v1.IamPolicy\",¸\x18(\b\x05*$unauthorized to view access policies\x12\x85\x01\n" +
 	"\x11checkMyPermission\x123.ai.stigmer.iam.iampolicy.v1.CheckMyPermissionInput\x1a5.ai.stigmer.iam.iampolicy.v1.CheckAuthorizationResult\"\x04и\x18\x01\x12\x87\x01\n" +
-	"\x12checkAuthorization\x124.ai.stigmer.iam.iampolicy.v1.CheckAuthorizationInput\x1a5.ai.stigmer.iam.iampolicy.v1.CheckAuthorizationResult\"\x04и\x18\x01\x12\xc6\x01\n" +
-	"\x19listAuthorizedResourceIds\x12;.ai.stigmer.iam.iampolicy.v1.ListAuthorizedResourceIdsInput\x1a6.ai.stigmer.iam.iampolicy.v1.AuthorizedResourceIdsList\"4¸\x180\b\x05*,unauthorized to view authorized resource ids\x12\xca\x01\n" +
-	"\x1alistAuthorizedPrincipalIds\x12<.ai.stigmer.iam.iampolicy.v1.ListAuthorizedPrincipalIdsInput\x1a7.ai.stigmer.iam.iampolicy.v1.AuthorizedPrincipalIdsList\"5¸\x181\b\x05*-unauthorized to view authorized principal ids\x12\xbf\x01\n" +
-	"\x1dlistResourceAccessByPrincipal\x124.ai.stigmer.iam.iampolicy.v1.ListResourceAccessInput\x1a:.ai.stigmer.iam.iampolicy.v1.ResourceAccessByPrincipalList\",¸\x18(\b\x05*$unauthorized to view resource access\x12\xb3\x01\n" +
-	"\x19getPrincipalResourceRoles\x123.ai.stigmer.iam.iampolicy.v1.PrincipalResourceInput\x1a3.ai.stigmer.iam.iampolicy.v1.PrincipalResourceRoles\",¸\x18(\b\x05*$unauthorized to view principal roles\x12\xa7\x01\n" +
-	"\x12getPrincipalsCount\x124.ai.stigmer.iam.iampolicy.v1.GetPrincipalsCountInput\x1a,.ai.stigmer.iam.iampolicy.v1.PrincipalsCount\"-¸\x18)\b\x05*%unauthorized to view principals count\x1a\x04\xa0\xff+\n" +
+	"\x12checkAuthorization\x124.ai.stigmer.iam.iampolicy.v1.CheckAuthorizationInput\x1a5.ai.stigmer.iam.iampolicy.v1.CheckAuthorizationResult\"\x04и\x18\x01\x12\x96\x01\n" +
+	"\x19listAuthorizedResourceIds\x12;.ai.stigmer.iam.iampolicy.v1.ListAuthorizedResourceIdsInput\x1a6.ai.stigmer.iam.iampolicy.v1.AuthorizedResourceIdsList\"\x04и\x18\x01\x12\xe6\x01\n" +
+	"\x1alistAuthorizedPrincipalIds\x12<.ai.stigmer.iam.iampolicy.v1.ListAuthorizedPrincipalIdsInput\x1a7.ai.stigmer.iam.iampolicy.v1.AuthorizedPrincipalIdsList\"Q¸\x18M\b\x05\x1a\rresource.kind\"\vresource.id*-unauthorized to view authorized principal ids\x12\xdb\x01\n" +
+	"\x1dlistResourceAccessByPrincipal\x124.ai.stigmer.iam.iampolicy.v1.ListResourceAccessInput\x1a:.ai.stigmer.iam.iampolicy.v1.ResourceAccessByPrincipalList\"H¸\x18D\b\x05\x1a\rresource.kind\"\vresource.id*$unauthorized to view resource access\x12\xcf\x01\n" +
+	"\x19getPrincipalResourceRoles\x123.ai.stigmer.iam.iampolicy.v1.PrincipalResourceInput\x1a3.ai.stigmer.iam.iampolicy.v1.PrincipalResourceRoles\"H¸\x18D\b\x05\x1a\rresource.kind\"\vresource.id*$unauthorized to view principal roles\x12\xb1\x01\n" +
+	"\x12getPrincipalsCount\x124.ai.stigmer.iam.iampolicy.v1.GetPrincipalsCountInput\x1a,.ai.stigmer.iam.iampolicy.v1.PrincipalsCount\"7¸\x183\b\x05\x10\x1e\"\x06org_id*%unauthorized to view principals count\x1a\x04\xa0\xff+\n" +
 	"B\x90\x02\n" +
 	"\x1fcom.ai.stigmer.iam.iampolicy.v1B\n" +
 	"QueryProtoP\x01ZPgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/iampolicy/v1;iampolicyv1\xa2\x02\x04ASII\xaa\x02\x1bAi.Stigmer.Iam.Iampolicy.V1\xca\x02\x1bAi\\Stigmer\\Iam\\Iampolicy\\V1\xe2\x02'Ai\\Stigmer\\Iam\\Iampolicy\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Iam::Iampolicy::V1b\x06proto3"

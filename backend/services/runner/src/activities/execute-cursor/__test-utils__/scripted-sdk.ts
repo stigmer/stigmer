@@ -1,11 +1,16 @@
 /**
  * The `@cursor/sdk` module a hermetic `ExecuteCursor` run imports — every
- * runtime surface the activity path touches, backed by scripted agents.
+ * runtime surface the activity path touches, backed by scripted agents — and
+ * the `@cursor/sdk/sqlite` module beside it, backed by a store that holds
+ * nothing.
  *
- * The activity reaches the SDK at three runtime sites and nowhere else:
+ * The activity reaches the SDK at four runtime sites and nowhere else:
  *
- *  - `session-lifecycle.ts`: `Agent.create(options)`, `Agent.resume(id, options)`,
- *    `Agent.archive(id, ...)` — the agent handle.
+ *  - `session-lifecycle.ts`: `Agent.create(options)`, `Agent.resume(id, options)`
+ *    — the agent handle.
+ *  - `session-store.ts`: `SqliteLocalAgentStore.open({ workspaceRef, stateRoot })`
+ *    from `@cursor/sdk/sqlite` — the session's store the handle is created and
+ *    resumed over (`local.store`).
  *  - `service-tier.ts`: `Cursor.models.list({ apiKey })` — the catalog the
  *    variant params (`fast`, `thinking`) are pinned from.
  *  - `index.ts` outer catch: `import("@cursor/sdk")` for `CursorSdkError`, the
@@ -13,35 +18,42 @@
  *
  * Neither the SDK nor the client is injectable into the activity (the real
  * seam arrives with the harness contract; parent Q1/Q2), so — exactly as the
- * native activity tests already do for their boundary modules — the module is
- * substituted with `vi.mock`. Three existing tests each mock ONE of these
+ * native activity tests already do for their boundary modules — the modules
+ * are substituted with `vi.mock`. Three existing tests each mock ONE of these
  * surfaces (`session-lifecycle.test.ts`, `service-tier.test.ts`,
- * `sdk-warmup.test.ts`); a whole-activity run needs all three at once, which is
- * what this module is.
+ * `sdk-warmup.test.ts`); a whole-activity run needs all of them at once, which
+ * is what this module is.
  *
- * `vi.mock` is hoisted and must appear in the test file; the factory can
- * `await import()` this module and return {@link scriptedCursorSdkModule}. The
- * module's statics read the {@link ScriptedCursorSdk} bound for the current
+ * `vi.mock` is hoisted and must appear in the test file, once per module id
+ * (a subpath is its own module id, so `@cursor/sdk/sqlite` needs its own
+ * `vi.mock`); the factories `await import()` this module and return
+ * {@link scriptedCursorSdkModule} and {@link scriptedCursorSqliteModule}. The
+ * modules' statics read the {@link ScriptedCursorSdk} bound for the current
  * scenario ({@link bindScriptedSdk}), so one test file can run several
- * scenarios with different agents against the same mocked module.
+ * scenarios with different agents against the same mocked modules.
  *
  * Resolution rules a scenario declares, mirroring what the real SDK does:
  *  - `Agent.create` hands out the agent declared for the session it is asked
- *    for (`agentForSession`, when the scenario resolves agents per session —
- *    the harness contract kit runs several sessions concurrently on one
- *    adapter, and the order their creates arrive in is real I/O timing), else
- *    the NEXT unclaimed agent in `agents` (turn 1 of a fresh session; the fresh
- *    agent of a poisoned-handle recovery) — unless the scenario declared a
- *    `createFailure`, which the FIRST create throws instead (the SDK refusing
+ *    for (`agentForWorkspaceRef`, when the scenario resolves agents per
+ *    session — the harness contract kit runs several sessions concurrently on
+ *    one adapter, and the order their creates arrive in is real I/O timing),
+ *    else the NEXT unclaimed agent in `agents` (turn 1 of a fresh session; the
+ *    fresh agent of a poisoned-handle recovery) — unless the scenario declared
+ *    a `createFailure`, which the FIRST create throws instead (the SDK refusing
  *    to mint an agent: a 401 on the key, a validation error).
  *  - `Agent.resume(id)` hands back the agent with that id if the scenario
  *    declared it (in `agents` or `resumableAgents`, or handed out for a
  *    session), else throws — `resolveAgent` then falls back to `create`, which
  *    is the production shape of a lost handle.
  *  - `Cursor.models.list` answers the scenario's catalog.
+ *  - `SqliteLocalAgentStore.open` hands out a {@link ScriptedLocalAgentStore}
+ *    carrying the ref and root it was asked for, and records the open; its
+ *    `dispose()` is recorded too, so a scenario can assert the adapter's
+ *    session-store lifetime (`releaseSession`, `shutdown`).
  */
 
 import type { AgentOptions, ModelListItem, SDKAgent } from "@cursor/sdk";
+import type { SqliteLocalAgentStore, SqliteLocalAgentStoreOptions } from "@cursor/sdk/sqlite";
 import type { ScriptedCursorAgent } from "./scripted-agent.js";
 
 export interface ScriptedSdkOptions {
@@ -50,12 +62,12 @@ export interface ScriptedSdkOptions {
   /**
    * The agent `Agent.create` hands out for the session the create names,
    * consulted before the ordered list. The SDK's create options carry the
-   * session as `platform.workspaceRef` (`session-lifecycle.ts`
-   * `resolvePlatformOptions`: `stigmer-session:<sessionId>`), so the resolver
-   * is keyed by that ref — a scenario computes the ref the same way the
-   * adapter does. `undefined` falls through to the list. Consulted live on
-   * every create, so a scenario may mint the session's agent only when it
-   * learns of the session.
+   * session as the store's `workspaceRef` (`local.store`, opened by
+   * `session-store.ts`: `stigmer-session:<sessionId>`), so the resolver is
+   * keyed by that ref — a scenario computes the ref the same way the adapter
+   * does (`resolveSessionStoreLocation`). `undefined` falls through to the
+   * list. Consulted live on every create, so a scenario may mint the session's
+   * agent only when it learns of the session.
    */
   readonly agentForWorkspaceRef?: (workspaceRef: string) => ScriptedCursorAgent | undefined;
   /**
@@ -82,21 +94,46 @@ export interface RecordedResolution {
 }
 
 /**
- * The `platform.workspaceRef` a create names, read defensively: the platform
- * option's type re-exports from the unshipped `@anysphere/cursor-sdk-local-runtime`
- * and resolves to `any` under `skipLibCheck` (the same gap `scripted-agent.ts`
- * records for the delta channel), so the shape is checked here, not assumed.
+ * The session a create names: the `workspaceRef` of the store it passes as
+ * `local.store`. In a hermetic run that store is the one this module's sqlite
+ * double opened; anything else (a test that mocks `@cursor/sdk` with its own
+ * stub and passes no store) names no session and falls through to the list.
  */
 function workspaceRefOf(options: AgentOptions): string | undefined {
-  const platform: unknown = (options as { platform?: unknown }).platform;
-  if (typeof platform !== "object" || platform === null) return undefined;
-  const ref = (platform as { workspaceRef?: unknown }).workspaceRef;
-  return typeof ref === "string" ? ref : undefined;
+  const store = options.local?.store;
+  return store instanceof ScriptedLocalAgentStore ? store.workspaceRef : undefined;
+}
+
+/**
+ * The `@cursor/sdk/sqlite` store the adapter opens per session, holding
+ * nothing: the scripted agents carry their own state, so the store only has
+ * to be the thing `Agent.create` / `Agent.resume` are handed and the thing
+ * `releaseSession` / `shutdown` dispose. `open` and `dispose` are recorded on
+ * the bound {@link ScriptedCursorSdk} for lifetime assertions.
+ */
+export class ScriptedLocalAgentStore {
+  disposeCalls = 0;
+
+  constructor(
+    readonly workspaceRef: string,
+    readonly stateRoot: string,
+  ) {}
+
+  static async open(options: SqliteLocalAgentStoreOptions): Promise<ScriptedLocalAgentStore> {
+    const store = new ScriptedLocalAgentStore(options.workspaceRef, options.stateRoot ?? "");
+    current().stores.push(store);
+    return store;
+  }
+
+  async dispose(): Promise<void> {
+    this.disposeCalls++;
+  }
 }
 
 export class ScriptedCursorSdk {
   readonly resolutions: RecordedResolution[] = [];
-  readonly archived: string[] = [];
+  /** Every store `SqliteLocalAgentStore.open` handed out, in order. */
+  readonly stores: ScriptedLocalAgentStore[] = [];
   private nextCreate = 0;
   private createFailurePending: boolean;
   private readonly byId = new Map<string, ScriptedCursorAgent>();
@@ -143,10 +180,6 @@ export class ScriptedCursorSdk {
     }
     if (options?.model) agent.model = options.model;
     return agent;
-  }
-
-  archive(agentId: string): void {
-    this.archived.push(agentId);
   }
 
   listModels(): readonly ModelListItem[] {
@@ -242,7 +275,6 @@ export function scriptedCursorSdkModule(): Record<string, unknown> {
       create: async (options: AgentOptions): Promise<SDKAgent> => current().create(options),
       resume: async (agentId: string, options?: Partial<AgentOptions>): Promise<SDKAgent> =>
         current().resume(agentId, options),
-      archive: async (agentId: string): Promise<void> => current().archive(agentId),
     },
     Cursor: {
       models: {
@@ -250,5 +282,29 @@ export function scriptedCursorSdkModule(): Record<string, unknown> {
       },
     },
     CursorSdkError: ScriptedCursorSdkError,
+  };
+}
+
+/**
+ * The factory a test passes to `vi.mock("@cursor/sdk/sqlite", ...)`, beside
+ * the one above:
+ *
+ * ```ts
+ * vi.mock("@cursor/sdk/sqlite", async () =>
+ *   (await import("../../__test-utils__/scripted-sdk.js")).scriptedCursorSqliteModule(),
+ * );
+ * ```
+ *
+ * The one export the runner reads from that entry (`session-store.ts`). The
+ * class is exported under the SDK's name so `session-store.ts`'s dynamic
+ * import destructures it unchanged; its type is the SDK's, which is why
+ * {@link ScriptedLocalAgentStore} carries `workspaceRef`, `stateRoot` and
+ * `dispose()` — the members the runner touches — and nothing else.
+ */
+export function scriptedCursorSqliteModule(): Record<string, unknown> {
+  return {
+    SqliteLocalAgentStore: ScriptedLocalAgentStore satisfies {
+      open(options: SqliteLocalAgentStoreOptions): Promise<Pick<SqliteLocalAgentStore, "workspaceRef" | "stateRoot" | "dispose">>;
+    },
   };
 }

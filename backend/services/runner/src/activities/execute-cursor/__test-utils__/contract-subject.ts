@@ -95,7 +95,7 @@ import type {
 } from "../../../__test-utils__/harness-contract/types.js";
 import type { HermeticEnvironment } from "../../../__test-utils__/hermetic-activity.js";
 import { createCursorAdapter } from "../adapter.js";
-import { resolvePlatformOptions } from "../session-lifecycle.js";
+import { resolveSessionStoreLocation } from "../session-store.js";
 import { hookInputFor, streamArgsFor, STREAM_NAME, type GatedActionKind } from "./cursor-hook-harness.js";
 import { FIXTURE, SDK_CATALOG, hermeticCursorConfig, runWorkspaceHook } from "./hermetic-cursor.js";
 import { ScriptedCursorAgent, sdkEvents, step, type ScriptStep, type ScriptedRun } from "./scripted-agent.js";
@@ -216,9 +216,9 @@ class CursorSubject implements CursorContractSubject {
   private mintAgent(sessionId: string): ScriptedCursorAgent {
     const agent = new ScriptedCursorAgent({ agentId: `agent-kit-${++this.mintCounter}`, turns: [] });
     this.agents.set(sessionId, agent);
-    // The adapter asks the SDK to create an agent for the session under this
-    // ref; the double answers with this agent.
-    const { workspaceRef } = resolvePlatformOptions(sessionId, this.config.workspaceRootDir);
+    // The adapter asks the SDK to create an agent for the session over a store
+    // opened under this ref; the double answers with this agent.
+    const { workspaceRef } = resolveSessionStoreLocation(sessionId, this.config.workspaceRootDir);
     this.agentsByWorkspaceRef.set(workspaceRef, agent);
     return agent;
   }
@@ -248,11 +248,13 @@ class CursorSubject implements CursorContractSubject {
           break;
         case "usage":
           script.push(
+            // The kit's delta leaves a count optional; the SDK's `turn-ended`
+            // states all four, and an absent count is zero, as the pricer reads it.
             step.turnEnded({
-              inputTokens: s.delta.inputTokens,
-              outputTokens: s.delta.outputTokens,
-              cacheReadTokens: s.delta.cacheReadTokens,
-              cacheWriteTokens: s.delta.cacheWriteTokens,
+              inputTokens: s.delta.inputTokens ?? 0,
+              outputTokens: s.delta.outputTokens ?? 0,
+              cacheReadTokens: s.delta.cacheReadTokens ?? 0,
+              cacheWriteTokens: s.delta.cacheWriteTokens ?? 0,
             }),
           );
           break;

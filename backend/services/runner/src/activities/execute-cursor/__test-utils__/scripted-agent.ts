@@ -24,16 +24,12 @@
  * The same shape as the native harness's `__test-utils__/scripted-model.ts`
  * (`ScriptStep`, driven in order), applied to the SDK's event surface.
  *
- * Typing: `SDKMessage`, `Run`, `RunResult` and `SDKAgent` are the SDK's own
- * types (`@cursor/sdk` 1.0.13, concrete in `messages.d.ts` / `run.d.ts` /
- * `agent.d.ts`), so a script that drifts from the real event shape fails
- * `tsc`. The delta channel is the exception: `InteractionUpdate` re-exports
- * from `@anysphere/cursor-sdk-shared`, a workspace package the published SDK
- * does not ship, so under `skipLibCheck` it resolves to `any` — in production
- * code too (`turn-stream.ts`, `delta-enricher.ts` read it untyped). The one
- * delta this double emits, the `turn-ended` usage, is therefore typed HERE
- * ({@link TurnEndedUsageDelta}) against what `turn-stream.ts` reads from it,
- * and that gap is recorded in the entry's findings rather than papered over.
+ * Typing: `SDKMessage`, `Run`, `RunResult`, `SDKAgent` and the delta channel's
+ * `TurnEndedUpdate` are the SDK's own types (`@cursor/sdk` 1.0.31, concrete in
+ * `messages.d.ts` / `run.d.ts` / `agent.d.ts` / the vendored `delta-types`),
+ * so a script that drifts from the real event shape fails `tsc`. (At 1.0.13
+ * the delta types resolved to `any` and the one delta this double emits was
+ * typed locally; stigmer/stigmer#1053 closed that gap.)
  *
  * Cancellation: `run.cancel()` is how the harness stops a turn (first denial,
  * cost cap, stall). The double honours it the way the SDK does — the stream
@@ -50,6 +46,8 @@
  */
 
 import type {
+  AgentUsage,
+  GetUsageOptions,
   ModelSelection,
   Run,
   RunOperation,
@@ -59,27 +57,13 @@ import type {
   SDKMessage,
   SDKUserMessage,
   SendOptions,
+  TurnEndedUpdate,
 } from "@cursor/sdk";
 import type { ConversationTurn } from "@cursor/sdk";
 
 // ---------------------------------------------------------------------------
 // Script steps
 // ---------------------------------------------------------------------------
-
-/**
- * The `turn-ended` delta as `turn-stream.ts` reads it (`update.type ===
- * "turn-ended" && update.usage` -> `usageAccumulator.addTurn(update.usage)`).
- * See the module header for why this is typed locally.
- */
-export interface TurnEndedUsageDelta {
-  readonly type: "turn-ended";
-  readonly usage: {
-    readonly inputTokens?: number;
-    readonly outputTokens?: number;
-    readonly cacheWriteTokens?: number;
-    readonly cacheReadTokens?: number;
-  };
-}
 
 /** What an `effect` step can reach: the run it is part of. */
 export interface EffectContext {
@@ -89,7 +73,7 @@ export interface EffectContext {
 
 export type ScriptStep =
   | { readonly kind: "event"; readonly event: SDKMessage }
-  | { readonly kind: "delta"; readonly update: TurnEndedUsageDelta }
+  | { readonly kind: "delta"; readonly update: TurnEndedUpdate }
   | { readonly kind: "effect"; readonly label: string; readonly run: (ctx: EffectContext) => void | Promise<void> }
   | { readonly kind: "result"; readonly result: Omit<RunResult, "id"> };
 
@@ -101,7 +85,8 @@ export const step = {
   event(event: SDKMessage): ScriptStep {
     return { kind: "event", event };
   },
-  turnEnded(usage: TurnEndedUsageDelta["usage"]): ScriptStep {
+  /** The `turn-ended` delta `turn-stream.ts` prices; the SDK's shape, all four counts stated. */
+  turnEnded(usage: NonNullable<TurnEndedUpdate["usage"]>): ScriptStep {
     return { kind: "delta", update: { type: "turn-ended", usage } };
   },
   effect(label: string, run: (ctx: EffectContext) => void | Promise<void>): ScriptStep {
@@ -224,7 +209,7 @@ export class ScriptedRun implements Run {
           yield s.event;
           break;
         case "delta":
-          await this.onDelta?.({ update: s.update as never });
+          await this.onDelta?.({ update: s.update });
           break;
         case "effect":
           await s.run({ run: this, agent: this.agent });
@@ -364,5 +349,12 @@ export class ScriptedCursorAgent implements SDKAgent {
 
   async downloadArtifact(_path: string): Promise<Buffer> {
     throw new Error("ScriptedCursorAgent: artifacts are not part of the scripted surface");
+  }
+
+  async getUsage(_options?: GetUsageOptions): Promise<AgentUsage> {
+    // The harness prices the `turn-ended` delta itself (`usage-pricing.ts`) and
+    // never asks the SDK for billed usage; a call here is a test bug, like a
+    // `send()` with no script.
+    throw new Error("ScriptedCursorAgent: getUsage() is not part of the scripted surface");
   }
 }

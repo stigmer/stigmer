@@ -289,6 +289,36 @@ export interface CapabilityFlags {
   // versionTagging / orgOAuthAppConfiguration posture): the boundary is an
   // observable contract, never an absence to skip past.
   federatedIdentityAccounts: boolean;
+  // IamPolicy `create` admits a grant on kinds BEYOND the organization: an
+  // agent, a workflow, a skill, an MCP server — the per-resource sharing the
+  // console's "Manage access" dialog drives. The IamPolicy domain is core
+  // in every edition since 20260913.01 (the row half: one grant path, the
+  // Members page, the organization roles), but WHICH kinds a user may grant
+  // on is the composed grant scope (`drivers.policyGrantScope`, P1 gate
+  // Q7 iii): open source's default is the organization and nothing else.
+  //
+  // True for cloud, whose cloud-iam unit registers every kind's kind_meta
+  // roles. False for the local OSS targets BY DESIGN: the OSS controller
+  // answers UNIMPLEMENTED with the edition sentence for a grant on any
+  // other kind, and checkMyPermission answers `can_grant_access` false
+  // there so the console hides the grant controls (Q-OR-5). Where false,
+  // the suite PINS both refusals; a kind no edition grants on (one whose
+  // kind_meta lists no roles) is INVALID_ARGUMENT everywhere and rides no
+  // flag.
+  perResourceGrants: boolean;
+  // The TUPLE-half queries of IamPolicyQueryController are served here:
+  // checkAuthorization, listAuthorizedResourceIds, listAuthorizedPrincipalIds,
+  // and checkMyPermission carrying contextual policies — the questions only
+  // a relationship graph (OpenFGA) can answer, behind
+  // `drivers.authorizationQueries` (20260913.01 Q-OR-8). checkMyPermission
+  // WITHOUT contextual policies rides no flag: it has one definition in
+  // every edition over the composed Authorizer.
+  //
+  // True for cloud (the cloud-iam unit wraps its FGA client). False for the
+  // local OSS targets BY DESIGN: the controller answers UNIMPLEMENTED with
+  // the edition sentence, never INTERNAL; where false, the suite PINS that
+  // refusal on all four lanes.
+  authorizationQueries: boolean;
   // The billing LEDGER is served here: the 22 RPCs of BillingCommandController
   // and BillingQueryController (accounts, balances, ledger, usage reports,
   // pricing, the engine lanes), the Stripe webhook at POST /webhook/stripe,
