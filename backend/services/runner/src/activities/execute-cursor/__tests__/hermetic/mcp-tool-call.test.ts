@@ -7,17 +7,17 @@
  * `{ providerIdentifier, toolName, args }` from the event's args, and
  * `buildToolCallProto` writes the row as the INNER tool: `name` is `toolName`,
  * `mcpServerSlug` is `providerIdentifier`, `args` is the inner args,
- * `toolKind` is MCP, and (today) `argsPreview` is the OUTER args stringified —
- * the envelope, not the arguments. With no MCP server declared on the record
- * there is no policy for the tool, so it is not gated; the provenance stamp
- * still names the layer that cleared it.
+ * `toolKind` is MCP, and `argsPreview` is the elided preview of the row's OWN
+ * `args` — `{"query":"fixture"}` — through the platform's one sanitizer. With
+ * no MCP server declared on the record there is no policy for the tool, so it
+ * is not gated; the provenance stamp still names the layer that cleared it.
  *
- * Predicted under the S4 rulings (`T01_1_review.md`, 2026-09-14): ONE hunk at
- * M4, under Q-S4-16. `argsPreview` becomes the elided preview of the row's own
- * `args` — `{"query":"fixture"}` — because the canonical builder derives every
- * row's preview from its `args` through the one sanitizer, and never from an
- * engine's envelope. Nothing else in this golden moves; a second hunk is a
- * pause.
+ * Moved 2026-09-14 (S4 M4 A2, Q-S4-16), the ONE hunk this golden was
+ * predicted to take: until A2 the stream path stamped the OUTER
+ * `{ providerIdentifier, toolName, args }` envelope stringified — the
+ * envelope, not the arguments. The canonical builder derives every row's
+ * preview from its `args` and never from an engine's envelope; A2 aligned
+ * the accumulator to that rule before the swap so the swap moves nothing.
  *
  * Why this net exists: no Cursor golden before M0 carried an MCP-attributed
  * row, and the unwrapping moves whole into the Cursor translator at M4.
@@ -127,8 +127,8 @@ describe("ExecuteCursor hermetic — MCP tool call", () => {
     expect(row.mcpServerSlug).toBe(MCP_SERVER);
     expect(row.toolKind).toBe(ToolKind.MCP);
     expect(row.args, "the inner args").toEqual(INNER_ARGS);
-    expect(row.argsPreview, "TODAY: the outer envelope stringified (the M4 hunk, Q-S4-16, makes it the inner args)").toBe(
-      JSON.stringify(MCP_EVENT_ARGS),
+    expect(row.argsPreview, "the row's own args, never the engine's envelope (Q-S4-16)").toBe(
+      JSON.stringify(INNER_ARGS),
     );
     expect(row.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
     expect(row.result).toBe(MCP_RESULT);

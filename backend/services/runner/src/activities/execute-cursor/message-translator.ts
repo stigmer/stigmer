@@ -215,12 +215,6 @@ export function buildToolCallProto(
     toolKind: classifyTool(actualName, mcpServerSlug),
   });
 
-  if (event.args != null) {
-    toolCall.argsPreview = typeof event.args === "string"
-      ? event.args
-      : JSON.stringify(event.args);
-  }
-
   const argsObj = mcpDetails?.innerArgs ?? (
     typeof event.args === "object" && event.args !== null
       ? event.args as Record<string, unknown>
@@ -228,6 +222,9 @@ export function buildToolCallProto(
   );
   if (argsObj && typeof argsObj === "object") {
     toolCall.args = argsObj as import("@bufbuild/protobuf").JsonObject;
+    stampArgsPreview(toolCall, argsObj);
+  } else if (typeof event.args === "string") {
+    toolCall.argsPreview = event.args;
   }
 
   // Populate approval fields from the merged policy chain
@@ -275,6 +272,23 @@ export function buildToolCallProto(
   }
 
   return toolCall;
+}
+
+/**
+ * The row's `args_preview`, on EVERY row with args, from the row's OWN args
+ * through the platform's one sanitizer (S4 M4 A2, Q-S4-16): elided past 200
+ * chars per value, salient fields verbatim, secret keys redacted — the rule
+ * the canonical builder already applies to native rows (`harness/transcript/
+ * builder.ts` `stampArgsPreview`) and the gate path applied to a proposed row
+ * (`applyGateInput`). Until A2 the stream path stamped `JSON.stringify` of the
+ * EVENT's args, unredacted and, for an MCP call, the outer `{ providerIdentifier,
+ * toolName, args }` envelope rather than the arguments. For short, secret-free
+ * args the two render identically. An empty preview (a cycle) leaves the
+ * field unset rather than failing the row.
+ */
+function stampArgsPreview(tc: ToolCall, args: Record<string, unknown>): void {
+  const preview = buildElidedArgsPreview(args, SALIENT_ARG_FIELDS);
+  if (preview) tc.argsPreview = preview;
 }
 
 /**
@@ -662,7 +676,7 @@ function buildSubAgentToolCall(
 
   if (inner.args != null && typeof inner.args === "object") {
     tc.args = inner.args as JsonObject;
-    tc.argsPreview = JSON.stringify(inner.args);
+    stampArgsPreview(tc, inner.args as Record<string, unknown>);
   }
   return tc;
 }
@@ -1031,9 +1045,16 @@ export class MessageAccumulator {
     }
 
     if (event.args != null && !existing.argsPreview) {
-      existing.argsPreview = typeof event.args === "string"
-        ? event.args
-        : JSON.stringify(event.args);
+      const argsObj = extractMcpToolDetails(event)?.innerArgs ?? (
+        typeof event.args === "object" && event.args !== null
+          ? event.args as Record<string, unknown>
+          : undefined
+      );
+      if (argsObj) {
+        stampArgsPreview(existing, argsObj);
+      } else if (typeof event.args === "string") {
+        existing.argsPreview = event.args;
+      }
     }
   }
 

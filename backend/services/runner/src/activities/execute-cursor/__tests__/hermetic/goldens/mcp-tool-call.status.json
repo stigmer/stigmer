@@ -16,7 +16,7 @@
           "startedAt": "2026-01-01T00:00:03.000Z",
           "completedAt": "2026-01-01T00:00:04.000Z",
           "mcpServerSlug": "hermetic-docs",
-          "argsPreview": "{\"providerIdentifier\":\"hermetic-docs\",\"toolName\":\"search_docs\",\"args\":{\"query\":\"fixture\"}}",
+          "argsPreview": "{\"query\":\"fixture\"}",
           "toolKind": "TOOL_KIND_MCP",
           "approvalPolicySource": "APPROVAL_POLICY_SOURCE_CLASSIFIER_DEFAULT",
           "policyEngineVersion": "phase-7"
