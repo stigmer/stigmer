@@ -218,11 +218,11 @@ export async function consumeDeepAgentStream(deps: DeepAgentStreamDeps): Promise
         let detail: string | undefined;
         for (const normalized of translator.translate(event)) {
           builder.apply(normalized);
+          sideEffects.onEvent(normalized);
           if (normalized.kind === "tool_started") detail = normalized.name;
         }
         const usage = usageOf(event);
         if (usage) reportUsage(sink, engine, usage);
-        sideEffects.onProtocolEvent(event);
         eventsProcessed++;
         sink.recordActivity(detail);
 
