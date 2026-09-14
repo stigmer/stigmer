@@ -14,7 +14,8 @@
  * Opened at S4 M2 C5b with the row rules that are byte-identical on native
  * and therefore have no golden (Q-S4-3(c)(d), the gated `tool_error` stamp);
  * `approval_proposed` and `system_note` joined at C6, the every-row preview
- * at C7; the rest of the header's rules land at C9.
+ * at C7, the todo projection at C8; the rest of the header's rules land at
+ * C9.
  */
 
 import { describe, it, expect } from "vitest";
@@ -23,6 +24,7 @@ import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/a
 import {
   ApprovalPolicySource,
   MessageType,
+  TodoStatus,
   ToolCallStatus,
   ToolCallStreamingSource,
   ToolKind,
@@ -255,6 +257,44 @@ describe("TranscriptBuilder — approval_proposed is the one place a row is ever
     ]);
     expect(sb.awaitingApproval).toBe(false);
     expect(rowOf(sb, "sh-1").status).toBe(ToolCallStatus.TOOL_CALL_RUNNING);
+  });
+});
+
+describe("TranscriptBuilder — a completed TODO call is projected into status.todos (Q-S4-7)", () => {
+  const todoCall = (callId: string, name: string, args: Record<string, unknown>): TranscriptEvent[] => [
+    { kind: "tool_started", callId, name, input: args, mcpServerSlug: "" },
+    { kind: "tool_finished", callId, result: "ok" },
+  ];
+
+  it("a full write replaces the list, keyed todo-<i>; the row stays in the transcript", () => {
+    const sb = feed(builder(), todoCall("t-1", "write_todos", { todos: [{ content: "a", status: "pending" }, { content: "b", status: "in_progress" }] }));
+    expect(Object.keys(sb.currentStatus.todos).sort()).toEqual(["todo-0", "todo-1"]);
+    expect(sb.currentStatus.todos["todo-1"].status).toBe(TodoStatus.TODO_IN_PROGRESS);
+    expect(rowOf(sb, "t-1").toolKind).toBe(ToolKind.TODO);
+  });
+
+  it("a second full write replaces; a write with merge: true keeps what it does not name (Cursor's updateTodos)", () => {
+    const sb = feed(builder(), [
+      ...todoCall("t-1", "updateTodos", { todos: [{ id: "x", content: "first", status: "pending" }, { id: "y", content: "second", status: "pending" }] }),
+      ...todoCall("t-2", "updateTodos", { todos: [{ id: "y", content: "second", status: "completed" }], merge: true }),
+    ]);
+    expect(Object.keys(sb.currentStatus.todos).sort()).toEqual(["x", "y"]);
+    expect(sb.currentStatus.todos["y"].status).toBe(TodoStatus.TODO_COMPLETED);
+    sb.apply({ kind: "tool_started", callId: "t-3", name: "updateTodos", input: { todos: [{ id: "z", content: "only", status: "pending" }] }, mcpServerSlug: "" });
+    sb.apply({ kind: "tool_finished", callId: "t-3", result: "ok" });
+    expect(Object.keys(sb.currentStatus.todos), "no merge flag: a full replace").toEqual(["z"]);
+  });
+
+  it("projects nothing before the call completes, and nothing for a sub-agent's write", () => {
+    const sb = feed(builder(), [
+      { kind: "tool_started", callId: "t-1", name: "write_todos", input: { todos: [{ content: "a", status: "pending" }] }, mcpServerSlug: "" },
+    ]);
+    expect(Object.keys(sb.currentStatus.todos)).toEqual([]);
+    feed(sb, [
+      { kind: "sub_agent_started", subAgentId: "task-1", name: "helper", subject: "s", input: "s" },
+      ...todoCall("s-1", "write_todos", { todos: [{ content: "sub", status: "pending" }] }).map((e) => ({ ...e, subAgentId: "task-1" })),
+    ]);
+    expect(Object.keys(sb.currentStatus.todos), "a sub-agent's list is its own").toEqual([]);
   });
 });
 

@@ -56,8 +56,9 @@
  *   - `system_note` is a SYSTEM message in the scope, in the harness's
  *     voice; it hosts no rows and moves no boundary (Q-S4-18).
  *   - A completed `ToolKind.TODO` call in the ROOT scope is projected into
- *     `status.todos` through the shared `applyTodoUpdate` (Q-S4-7; the row
- *     stays — the clients filter it); a sub-agent's is not.
+ *     `status.todos` through the shared `applyTodoUpdate`, a full replace
+ *     unless the call's args say `merge: true` (Q-S4-7; the row stays — the
+ *     clients filter it); a sub-agent's is not.
  *   - `finalize()` clears every streaming flag in every scope.
  *   - Artifacts upsert by `sandboxPath`/`contentHash`, write-backs by
  *     `workspaceEntryName` (Q-S4-8).
@@ -448,12 +449,14 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
     // runs its state-mutating Command when the tool node COMPLETES, so we mirror
     // it here (not at tool-start) — a call cancelled before finishing correctly
     // projects nothing. Keyed on the harness-agnostic ToolKind.TODO (stamped at
-    // tool-start) and fed by the same shared mapper every harness uses; a
-    // sub-agent's list is its own, never the execution's (Q-S4-7). The tool
+    // tool-start) and fed by the same shared mapper every harness uses; the
+    // call's own `merge` flag decides replace-or-merge (Cursor's `updateTodos`
+    // sets it; deepagents never does, so native stays a full replace —
+    // Q-S4-7); a sub-agent's list is its own, never the execution's. The tool
     // call itself stays in messages (the client filters ToolKind.TODO from the
     // thread).
     if (scope === this.state.root && tc.toolKind === ToolKind.TODO) {
-      applyTodoUpdate(this.state.proto.todos, tc.args?.todos, { merge: false });
+      applyTodoUpdate(this.state.proto.todos, tc.args?.todos, { merge: tc.args?.merge === true });
     }
 
     this._forceNextUpdate = true;
