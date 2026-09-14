@@ -31,7 +31,13 @@
  *     triple — strictly safer than the cloud's silent default instance.
  *   - `create` validates the role BEFORE it writes (the cloud's order): a
  *     held row under a role the kind does not grant is refused, never
- *     answered as a duplicate.
+ *     answered as a duplicate. It also grants to PEOPLE only (Q-S9-2,
+ *     2026-09-14): a principal that is not an identity account is
+ *     INVALID_ARGUMENT — a row naming a resource as its principal is the
+ *     structural link the hierarchy walk follows, `bootstrapPolicy`'s to
+ *     write, and through this lane would have let a right on one
+ *     organization list another's members. The cloud's create had the
+ *     gap; the corrected answer lands at the re-point.
  *   - `checkMyPermission`, `checkAuthorization` and
  *     `listAuthorizedResourceIds` skip position 1 by proto option (IAM
  *     authorizing IAM would recurse); trust is authentication plus the

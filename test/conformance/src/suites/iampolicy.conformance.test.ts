@@ -39,6 +39,14 @@
 //   - a grant on a kind whose kind_meta lists no roles is INVALID_ARGUMENT
 //     with the system-managed copy in EVERY edition — the proto is read
 //     before any edition scope (Q-OR-3 as refined 2026-09-13);
+//   - a grant whose PRINCIPAL is not an identity account is
+//     INVALID_ARGUMENT with the principal copy in every edition (Q-S9-2,
+//     the security read's finding 41): a role names a person; a row whose
+//     principal is a resource is the structural link the hierarchy walk
+//     follows, and would let a right on one organization read another's
+//     members. PREDICTED RED on the 3.15.0 oracle, whose create wrote the
+//     row (handlers.ts L111-127 checks the resource kind and the role,
+//     never the principal);
 //   - the three system RPCs are PERMISSION_DENIED for a wire user with the
 //     annotation's copy (Q-OR-7);
 //   - checkMyPermission: can_view_access on the organization is true for
@@ -161,6 +169,7 @@ import {
   organizationRole,
   policyNotFoundMessage,
   policyTriple,
+  principalNotGrantableMessage,
   ref,
   roleNotGrantableMessage,
   syntheticAccountId,
@@ -408,6 +417,42 @@ describe("IamPolicy conformance — grants on the organization, the Members page
       "a grant on an identity account",
     );
     expect(error.rawMessage).toBe(noGrantableRolesMessage("identity_account"));
+  });
+
+  it("a grant whose principal is another organization is INVALID_ARGUMENT with the principal copy, and links nothing (Q-S9-2)", async () => {
+    // The caller owns `org`, so position 1 passes in every edition; what
+    // is refused is the grantee. Were the row written, findScopeTuple
+    // would read `other` as org's structural parent and the Members page's
+    // inherited view would list other's people. The read-back proves the
+    // link was never made: the roster with inheritance is org's alone.
+    const org = await createOwnedOrganization();
+    const other = await createOwnedOrganization();
+    const error = await expectGrpcCode(
+      () =>
+        clients.iamPolicyCommand.create(
+          policyTriple({ kind: "organization", id: other }, "member", {
+            kind: "organization",
+            id: org,
+          }),
+        ),
+      Code.InvalidArgument,
+      "a grant to an organization as the principal",
+    );
+    expect(error.rawMessage).toBe(principalNotGrantableMessage("organization"));
+
+    const inherited =
+      await clients.iamPolicyQuery.listResourceAccessByPrincipal({
+        resource: ref("organization", org),
+        includeInherited: true,
+      });
+    // A grant carries `ownerResource` only when inherited (the Java shape),
+    // so "nothing inherited" is the whole proof that no parent was linked.
+    expect(inherited.entries.length).toBeGreaterThan(0);
+    for (const entry of inherited.entries) {
+      for (const grant of entry.roles) {
+        expect(grant.isInherited).toBe(false);
+      }
+    }
   });
 });
 

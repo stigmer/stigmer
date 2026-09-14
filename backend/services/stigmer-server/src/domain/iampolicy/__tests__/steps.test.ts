@@ -31,6 +31,7 @@ import {
   PER_RESOURCE_GRANTS_UNIMPLEMENTED_MESSAGE,
   noGrantableRolesMessage,
   policyIdFor,
+  principalNotGrantableMessage,
   roleNotGrantableMessage,
   unknownResourceKindMessage,
 } from "../constants.js";
@@ -143,6 +144,42 @@ describe("ValidateGrantableRole", () => {
       organizationOnly.execute(contextOf(orgRole("ida_bob", "editor", "acme"))),
     );
     expect(error.code).toBe(Code.InvalidArgument);
+    expect(error.rawMessage).toBe(
+      roleNotGrantableMessage("editor", "organization", [
+        "owner",
+        "admin",
+        "member",
+        "viewer",
+      ]),
+    );
+  });
+
+  it("arm 4: a principal that is not a person is refused — a role names an account; a structural link is bootstrapPolicy's (Q-S9-2)", async () => {
+    const error = await refusal(() =>
+      organizationOnly.execute(
+        contextOf(
+          triple({ kind: "organization", id: "other" }, "member", {
+            kind: "organization",
+            id: "acme",
+          }),
+        ),
+      ),
+    );
+    expect(error.code).toBe(Code.InvalidArgument);
+    expect(error.rawMessage).toBe(principalNotGrantableMessage("organization"));
+  });
+
+  it("arm 4 runs LAST: a wrong role on a non-person principal hears the role sentence, so every answer the cloud gives today is unchanged", async () => {
+    const error = await refusal(() =>
+      organizationOnly.execute(
+        contextOf(
+          triple({ kind: "organization", id: "other" }, "editor", {
+            kind: "organization",
+            id: "acme",
+          }),
+        ),
+      ),
+    );
     expect(error.rawMessage).toBe(
       roleNotGrantableMessage("editor", "organization", [
         "owner",

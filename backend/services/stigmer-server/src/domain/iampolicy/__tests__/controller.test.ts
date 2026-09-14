@@ -74,6 +74,7 @@ import {
   AUTHORIZATION_QUERIES_UNIMPLEMENTED_MESSAGE,
   policyIdFor,
   policyNotFoundMessage,
+  principalNotGrantableMessage,
   roleNotGrantableMessage,
   unknownPermissionMessage,
   unknownPrincipalKindMessage,
@@ -831,6 +832,36 @@ describe("the write lanes' order", () => {
       },
     ]);
     expect(h.policies.rows.size).toBe(0);
+  });
+
+  it("create grants to people only: an organization as the principal is INVALID_ARGUMENT after position 1, and no row is written (Q-S9-2)", async () => {
+    // The row a person could otherwise write — organization:other holds
+    // `member` on organization:acme — is exactly what findScopeTuple reads
+    // as acme's structural parent, so the hierarchy walk would have listed
+    // the other organization's members on acme's Members page. The
+    // Authorizer IS consulted (the caller's right on acme is real); the
+    // refusal is the step's, after it.
+    const h = await harness({ caller: alice });
+    const link = triple({ kind: "organization", id: "other" }, "member", {
+      kind: "organization",
+      id: "acme",
+    });
+    const error = await refusal(() => h.command.create(link));
+    expect(error.code).toBe(Code.InvalidArgument);
+    expect(error.rawMessage).toBe(principalNotGrantableMessage("organization"));
+    expect(h.authorizer.checks).toHaveLength(1);
+    expect(h.policies.rows.size).toBe(0);
+  });
+
+  it("the same shape through bootstrapPolicy is a structural link and is admitted — the two lanes split on who the principal is", async () => {
+    const h = await harness({ caller: internal });
+    const link = triple({ kind: "organization", id: "other" }, "member", {
+      kind: "organization",
+      id: "acme",
+    });
+    const seeded = await h.command.bootstrapPolicy(link);
+    expect(seeded.metadata?.id).toBe(policyIdFor(link));
+    expect(h.policies.rows.size).toBe(1);
   });
 
   it("a scope that narrows the organization's roles is honoured by create", async () => {

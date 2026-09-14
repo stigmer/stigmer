@@ -44,6 +44,7 @@ import type {
   IamPolicySpec,
 } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
 
+import { kindEnumName } from "../../pipeline/apiresource-meta.js";
 import { derivedId } from "../../pipeline/steps/defaults.js";
 
 /** The kind's id prefix (kind_meta `iam_policy.id_prefix`). */
@@ -141,6 +142,29 @@ export const BLUEPRINT_KINDS: ReadonlyArray<ApiResourceKind> = [
   ApiResourceKind.schedule,
 ];
 
+/**
+ * The principal kinds a PERSON may grant a role to — the user `create`
+ * lane's grantee vocabulary (2026-09-14, session 9 ruling Q-S9-2; the
+ * security read's finding 41). A role names a person, so the one grantee
+ * is the identity account. A row whose principal is a RESOURCE
+ * (`organization:A#organization@platform_client:X`, `#managed_org`) is a
+ * structural link, and structural links are `bootstrapPolicy`'s — the
+ * platform's own lane, which skips role validation by design.
+ *
+ * Why the rule is load-bearing: the read side treats every principal
+ * outside this vocabulary as a structural parent (`findScopeTuple`,
+ * resource-store.ts, which derives its exclusion FROM this constant so the
+ * two cannot drift), and the hierarchy walk follows it. Without the arm, a
+ * person with `can_grant_access` on organization B could write
+ * `organization:A#member@organization:B` and B's Members page, asked for
+ * inherited access, would list A's people. The cloud's `create` had the
+ * same gap; the store's exclusion also keeps the cloud's Java-era `team`,
+ * which is not an ApiResourceKind and so no wire spec can name.
+ */
+export const USER_GRANT_PRINCIPAL_KINDS: ReadonlyArray<ApiResourceKind> = [
+  ApiResourceKind.identity_account,
+];
+
 // ---------------------------------------------------------------------------
 // Byte-pinned copy (the cloud handlers' sentences, moved as-is).
 // ---------------------------------------------------------------------------
@@ -202,6 +226,15 @@ export function unknownPermissionMessage(relation: string): string {
 /** A spec whose principal kind is not an ApiResourceKind member name (INVALID_ARGUMENT). */
 export function unknownPrincipalKindMessage(kind: string): string {
   return `Unknown principal kind: '${kind}'`;
+}
+
+/**
+ * A user grant whose principal is not a person (INVALID_ARGUMENT; Q-S9-2),
+ * in the role sentence's shape: the offending kind, then the vocabulary.
+ */
+export function principalNotGrantableMessage(kind: string): string {
+  const grantable = USER_GRANT_PRINCIPAL_KINDS.map((k) => kindEnumName(k));
+  return `Principal kind '${kind}' cannot be granted a role. Grantable principal kinds: [${grantable.join(", ")}]`;
 }
 
 /** A triple field holding a canonical-text delimiter (INVALID_ARGUMENT; Q-S2-1). */

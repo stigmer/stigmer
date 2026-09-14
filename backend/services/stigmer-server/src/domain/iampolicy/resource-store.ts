@@ -39,17 +39,26 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import type { IamPolicy } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 
+import { kindEnumName } from "../../pipeline/apiresource-meta.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
-import { policyIdFor } from "./constants.js";
+import { USER_GRANT_PRINCIPAL_KINDS, policyIdFor } from "./constants.js";
 import { DuplicatePolicyError } from "./store.js";
 import type { IamPolicyStore } from "./store.js";
 
 const KIND = ApiResourceKind.iam_policy;
 
-/** The cloud SQL's scope-tuple exclusions (store.ts): structural principals and relations only. */
+/**
+ * The cloud SQL's scope-tuple exclusions (store.ts): a scope tuple is a
+ * row whose principal is a RESOURCE and whose relation is structural. The
+ * principal half is derived from the user lane's grantee vocabulary
+ * (constants.ts USER_GRANT_PRINCIPAL_KINDS; Q-S9-2) so the writer's "who a
+ * person may grant to" and the reader's "what is a person, not a parent"
+ * are one definition; `team` stays for the cloud's Java-era rows (not an
+ * ApiResourceKind, so no wire spec names it).
+ */
 const NON_STRUCTURAL_PRINCIPAL_KINDS: ReadonlyArray<string> = [
-  "identity_account",
+  ...USER_GRANT_PRINCIPAL_KINDS.map((kind) => kindEnumName(kind)),
   "team",
 ];
 const NON_STRUCTURAL_RELATIONS: ReadonlyArray<string> = ["owner", "creator"];

@@ -54,6 +54,15 @@ export function roleNotGrantableMessage(
   return `Role '${relation}' cannot be granted on resource kind '${kindName}'. Grantable roles: [${grantable.join(", ")}]`;
 }
 
+// create whose principal is not a person (Q-S9-2, the security read's
+// finding 41): a role is granted to an identity account; a row naming a
+// resource as its principal is a structural link and bootstrapPolicy's.
+// Every edition, after position 1 — the caller's right on the resource is
+// real, the grantee is what is refused.
+export function principalNotGrantableMessage(kindName: string): string {
+  return `Principal kind '${kindName}' cannot be granted a role. Grantable principal kinds: [identity_account]`;
+}
+
 // create on a kind the composed grant scope excludes (open source: anything
 // but the organization) — the edition sentence, never INVALID_ARGUMENT.
 export const PER_RESOURCE_GRANTS_UNIMPLEMENTED_MESSAGE =

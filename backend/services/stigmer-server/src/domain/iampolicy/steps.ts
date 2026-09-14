@@ -28,7 +28,15 @@
  *      editions that do;
  *   4. proto ∩ scope, in proto order: the role must be in the
  *      intersection — the cloud's second copy listing it. Intersecting is
- *      what keeps a scope from WIDENING the contract by accident.
+ *      what keeps a scope from WIDENING the contract by accident;
+ *   5. the PRINCIPAL (Q-S9-2, 2026-09-14; constants.ts
+ *      USER_GRANT_PRINCIPAL_KINDS): a person grants roles to people — the
+ *      identity account — and to nothing else. A row whose principal is a
+ *      resource is a structural link (the hierarchy walk's parent edge),
+ *      which is `bootstrapPolicy`'s to write; through this lane it would
+ *      let a right on one organization read another's members. Last, so
+ *      every answer the cloud's create gives today is unchanged and only
+ *      the row it should never have written is refused.
  */
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
@@ -48,11 +56,16 @@ import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import {
   PER_RESOURCE_GRANTS_UNIMPLEMENTED_MESSAGE,
+  USER_GRANT_PRINCIPAL_KINDS,
   noGrantableRolesMessage,
+  principalNotGrantableMessage,
   roleNotGrantableMessage,
 } from "./constants.js";
 import type { IamPolicyGrantPath } from "./grant-path.js";
-import { requireKnownResourceKind } from "./wire-refusals.js";
+import {
+  requireKnownPrincipalKind,
+  requireKnownResourceKind,
+} from "./wire-refusals.js";
 
 /** The row a write chain answers — the granted row, or the revoked row (the default instance when there was none). */
 export const POLICY_RESULT_KEY = "policyResult";
@@ -89,6 +102,14 @@ export function newValidateGrantableRoleStep(
             kindName,
             grantable.map((role) => IamRole[role]),
           ),
+          Code.InvalidArgument,
+        );
+      }
+      const principalKindName = spec.principal?.kind ?? "";
+      const principalKind = requireKnownPrincipalKind(principalKindName);
+      if (!USER_GRANT_PRINCIPAL_KINDS.includes(principalKind)) {
+        throw new ConnectError(
+          principalNotGrantableMessage(principalKindName),
           Code.InvalidArgument,
         );
       }

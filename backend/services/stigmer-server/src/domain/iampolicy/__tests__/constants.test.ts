@@ -39,12 +39,14 @@ import {
   PER_RESOURCE_GRANTS_UNIMPLEMENTED_MESSAGE,
   POLICY_ID_PREFIX,
   TRIPLE_DELIMITERS,
+  USER_GRANT_PRINCIPAL_KINDS,
   canonicalTripleText,
   malformedTripleField,
   malformedTripleMessage,
   noGrantableRolesMessage,
   policyIdFor,
   policyNotFoundMessage,
+  principalNotGrantableMessage,
   roleNotGrantableMessage,
   unknownPermissionMessage,
   unknownPrincipalKindMessage,
@@ -307,6 +309,30 @@ describe("BLUEPRINT_KINDS — the legacy-creator rule's scan (Q-OR-6b)", () => {
   });
 });
 
+describe("USER_GRANT_PRINCIPAL_KINDS — who a person may grant a role to (Q-S9-2)", () => {
+  it("is exactly the identity account: a role names a person; `team` is not an ApiResourceKind, so no wire spec can name it", () => {
+    expect([...USER_GRANT_PRINCIPAL_KINDS]).toEqual([
+      ApiResourceKind.identity_account,
+    ]);
+    expect(ApiResourceKind).not.toHaveProperty("team");
+  });
+
+  it("names no kind the hierarchy walk would read as a structural parent", () => {
+    // The two sets meet by construction (resource-store.ts derives its
+    // non-structural exclusion from this one), so this pins the
+    // consequence: an organization, an agent or the platform can never
+    // be a person's grantee.
+    for (const structural of [
+      ApiResourceKind.organization,
+      ApiResourceKind.platform,
+      ApiResourceKind.agent,
+      ApiResourceKind.identity_provider,
+    ]) {
+      expect(USER_GRANT_PRINCIPAL_KINDS).not.toContain(structural);
+    }
+  });
+});
+
 describe("byte-pinned copy", () => {
   it("moves the cloud's sentences as-is", () => {
     expect(policyNotFoundMessage("iamp_x")).toBe(
@@ -339,6 +365,12 @@ describe("byte-pinned copy", () => {
     );
     expect(malformedTripleMessage("resource.id")).toBe(
       "policy resource.id must not contain ':', '#' or '@'",
+    );
+  });
+
+  it("spells the principal refusal in the role sentence's shape, listing the grantable principal kinds", () => {
+    expect(principalNotGrantableMessage("organization")).toBe(
+      "Principal kind 'organization' cannot be granted a role. Grantable principal kinds: [identity_account]",
     );
   });
 
