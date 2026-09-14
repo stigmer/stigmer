@@ -31,17 +31,22 @@
  * it generalises in parentheses:
  *
  *   - A row per `callId`, indexed at construction over a seeded transcript,
- *     reconciled in place on a re-emitted start (a WAITING row flips to
- *     RUNNING; native's durable-checkpoint resume) — never duplicated. Every
- *     row with args carries `argsPreview`, elided and redacted, salient
- *     fields verbatim (Q-S4-16).
+ *     reconciled in place on a re-emitted start — an UNSETTLED row becomes
+ *     RUNNING (a WAITING row on native's durable-checkpoint resume; an
+ *     INTERRUPTED row on a recovery replay, the enum's supersede rule) and
+ *     takes the args and preview it lacked — never duplicated. Every row
+ *     with args carries `argsPreview`, elided and redacted, salient fields
+ *     verbatim (Q-S4-16). A finish or an error is an upsert: status
+ *     monotonic, `completedAt` once, a non-empty result or message
+ *     overwrites, an empty one never clears (Q-S4-3(c)); a re-emit that
+ *     changes nothing forces no persist (Q-M4-8).
  *   - The AI-message boundary (Q-S4-5; native's own rule, made correct by
  *     scoping): a tool row attaches to the scope's current AI message — the
  *     latest with text, the seed's last AI message over a seeded transcript
  *     (Q-M2-2) — and to a new empty one only when the scope has none.
- *   - A THINKING row per `runId` (Q-S4-6, the key; the finalize half lands
- *     at C5), a text message per `runId`; a new run closes the previous
- *     message's streaming flag.
+ *   - A THINKING row per `runId` (Q-S4-6), a text message per `runId`; a
+ *     new run closes the previous message's streaming flag, and a run's
+ *     finish closes both its text and its thinking (Q-M4-6).
  *   - A sub-agent row per `subAgentId`, opened by `sub_agent_started`,
  *     closed COMPLETED/FAILED by `sub_agent_finished/failed` with its
  *     transcript's streaming flags cleared; a known id is never re-opened.
@@ -49,8 +54,9 @@
  *     `cancelInProgressSubAgentProtos` is the one home of that transition.
  *   - `approval_proposed` is the one place a row is ever WAITING (Q-S4-20,
  *     Q-S4-3(e)): a known row REOPENS — WAITING, the outcome fields cleared,
- *     `approvalRequestedAt` stamped once (Cursor's `markWaitingApproval`);
- *     an unknown call gets a WAITING row on the scope's current AI message,
+ *     `approvalRequestedAt` stamped once, the proposal's args and preview
+ *     taken when carried (Cursor's `markWaitingApproval` + `applyGateInput`;
+ *     Q-M4-7); an unknown call gets a WAITING row on the scope's current AI message,
  *     the text that proposed it (native's post-stream seed, until C6 a new
  *     empty message of its own). Either way {@link awaitingApproval} is set.
  *   - `system_note` is a SYSTEM message in the scope, in the harness's
@@ -311,9 +317,17 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
   }
 
   private handleMessageFinish(scope: Transcript, runId: string): void {
+    // A finished run's text AND its thinking are finished (S4 M4 B1, Q-M4-6;
+    // Cursor closes both when a tool call ends the segment). Until B1 only the
+    // text closed here and the THINKING row spun until `finalize()` — a live
+    // spinner on a block the model had left, on both harnesses.
     const msg = scope.messagesByRun.get(runId);
     if (msg) {
       msg.isStreaming = false;
+    }
+    const thinking = scope.messagesByRun.get(thinkingKeyOf(runId));
+    if (thinking) {
+      thinking.isStreaming = false;
     }
   }
 
@@ -326,7 +340,7 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
   private appendThinkingContent(scope: Transcript, runId: string, text: string): void {
     // One THINKING row per run (Q-S4-6), keyed apart from the run's text so
     // the two never share a message.
-    const thinkingKey = `thinking:${runId}`;
+    const thinkingKey = thinkingKeyOf(runId);
     const existingMsg = scope.messagesByRun.get(thinkingKey);
     if (existingMsg && existingMsg.type === MessageType.MESSAGE_THINKING) {
       existingMsg.content += text;
@@ -348,20 +362,24 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
 
   private handleToolStarted(scope: Transcript, event: ToolStartedEvent): void {
     const { callId, name, input } = event;
-    // Resume reconciliation: the gated tool call already exists, seeded from the
-    // persisted transcript of a prior invocation (the runtime's
-    // `seedFromPersistedStatus`, `harness/turn-context.ts`). The durable
-    // checkpoint re-emits tool_started now that approval is granted — flip the
-    // existing call to RUNNING in place rather than appending a duplicate or
-    // re-triggering the approval gate. Keyed by the provider's tool_call_id,
-    // so this is an exact match (no name heuristics needed).
+    // A re-emitted start reconciles onto the existing row — never a duplicate,
+    // never a second gate. Keyed by the provider's tool_call_id, so this is an
+    // exact match (no name heuristics). Two shapes reach here: the durable
+    // checkpoint re-emitting a seeded WAITING call now that approval is granted
+    // (native's resume; the runtime's `seedFromPersistedStatus`), and a
+    // recovery replaying a call the server had marked INTERRUPTED when the
+    // execution terminalized with it in flight (the enum's supersede rule; the
+    // Cursor accumulator's merge). Either way an UNSETTLED row becomes RUNNING
+    // (S4 M4 B1, Q-M4-8 — until B1 only WAITING flipped); a settled one keeps
+    // its outcome. Args it lacked are filled and previewed, once.
     const existing = scope.toolCalls.get(callId);
     if (existing) {
-      if (existing.status === ToolCallStatus.TOOL_CALL_WAITING_APPROVAL) {
+      if (!isSettled(existing.status)) {
         existing.status = ToolCallStatus.TOOL_CALL_RUNNING;
       }
-      if (Object.keys(input).length > 0 && !existing.args) {
-        existing.args = input as JsonObject;
+      if (Object.keys(input).length > 0) {
+        if (!existing.args) existing.args = input as JsonObject;
+        if (!existing.argsPreview) stampArgsPreview(existing, input);
       }
       this._forceNextUpdate = true;
       return;
@@ -439,11 +457,20 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
     // the persist chokepoint (offload + enforce in status.ts/status-offload.ts).
     // Truncating here would corrupt binary content (e.g. a screenshot's base64)
     // before offload can lift it into a renderable ToolCallOutputRef.
-    if (!isSettled(tc.status)) tc.status = ToolCallStatus.TOOL_CALL_COMPLETED;
+    //
+    // A completion that changes nothing — a settled row re-completed with no
+    // new result — forces no persist (S4 M4 B1, Q-M4-8; Cursor's "a redundant
+    // terminal re-emit is noise, not a state change"). On Cursor every call
+    // completes twice (the delta, then the stream), and the second carries the
+    // result, so the flush the UI needs still happens exactly once.
+    const wasSettled = isSettled(tc.status);
+    const resultChanged = !!result && result !== tc.result;
+    if (!wasSettled) tc.status = ToolCallStatus.TOOL_CALL_COMPLETED;
     if (!tc.completedAt) tc.completedAt = utcTimestamp();
-    if (result) tc.result = result;
+    if (resultChanged) tc.result = result;
     stopStreaming(tc);
     scope.argBuffers.delete(callId);
+    if (wasSettled && !resultChanged) return;
 
     // Project a completed to-do write into status.todos. deepagents' write_todos
     // runs its state-mutating Command when the tool node COMPLETES, so we mirror
@@ -470,13 +497,17 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
     // Cursor boundary's shape — the hook denied the call and the stream
     // reports `error`; the boundary parks it after the stream — so the
     // moment approval became due is stamped here if nothing stamped it yet.
-    if (!isSettled(tc.status)) tc.status = ToolCallStatus.TOOL_CALL_FAILED;
+    const wasSettled = isSettled(tc.status);
+    const messageChanged = !!message && message !== tc.error;
+    if (!wasSettled) tc.status = ToolCallStatus.TOOL_CALL_FAILED;
     if (!tc.completedAt) tc.completedAt = utcTimestamp();
-    if (message) tc.error = message;
+    if (messageChanged) tc.error = message;
     if (tc.requiresApproval && !tc.approvalRequestedAt) tc.approvalRequestedAt = utcTimestamp();
     stopStreaming(tc);
     scope.argBuffers.delete(callId);
 
+    // The same no-change rule as a finish (Q-M4-8).
+    if (wasSettled && !messageChanged) return;
     this._forceNextUpdate = true;
   }
 
@@ -521,6 +552,15 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
       existing.completedAt = "";
       existing.error = "";
       existing.result = "";
+      // The proposal's args are the authoritative proposed change when the
+      // harness carries them (Cursor's `applyGateInput`: the hook's captured
+      // input outranks what the stream carried before the first-denial cancel),
+      // and they re-derive the preview (S4 M4 B1, Q-M4-7). Absent, the row
+      // keeps what it had.
+      if (event.args && Object.keys(event.args).length > 0) {
+        existing.args = event.args as JsonObject;
+        stampArgsPreview(existing, event.args);
+      }
       if (event.contentDigest) existing.approvalContentDigest = event.contentDigest;
       stopStreaming(existing);
       this._awaitingApproval = true;
@@ -616,6 +656,11 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
 
     return msg;
   }
+}
+
+/** The `messagesByRun` key of a run's THINKING row — apart from the run's text, so the two never share a message. */
+function thinkingKeyOf(runId: string): string {
+  return `thinking:${runId}`;
 }
 
 /** Every streaming flag off in one transcript — messages and rows. */

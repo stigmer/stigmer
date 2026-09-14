@@ -254,6 +254,24 @@ describe("TranscriptBuilder — approval_proposed is the one place a row is ever
     expect(sb.awaitingApproval).toBe(true);
   });
 
+  it("a known row's reopen takes the proposal's args and re-derives the preview when carried; keeps its own when not (Q-M4-7)", () => {
+    const sb = feed(builder(), [
+      { kind: "message_start", runId: "run-1" },
+      { kind: "text_delta", runId: "run-1", text: "Editing notes." },
+      { kind: "tool_started", callId: "ed-1", name: "edit", input: { path: "notes.md", content: "partial" }, mcpServerSlug: "", gate: { message: "Write file: notes.md" } },
+      { kind: "tool_error", callId: "ed-1", message: "Blocked by hook" },
+    ]);
+    // The boundary's overlay carries the hook's captured input — the whole
+    // proposed change, where the stream had only what streamed before the cancel.
+    sb.apply(proposal("ed-1", { name: "edit", message: "Write file: notes.md", args: { path: "notes.md", content: "the whole file" } }));
+    const row = rowOf(sb, "ed-1");
+    expect(row.args).toEqual({ path: "notes.md", content: "the whole file" });
+    expect(row.argsPreview).toBe(JSON.stringify({ path: "notes.md", content: "the whole file" }));
+    // A proposal with no args leaves the row's own in place.
+    sb.apply(proposal("ed-1", { name: "edit", message: "Write file: notes.md" }));
+    expect(rowOf(sb, "ed-1").args).toEqual({ path: "notes.md", content: "the whole file" });
+  });
+
   it("proposing a call the stream already showed never duplicates it (F-M2-13)", () => {
     const sb = feed(builder(), [...proposedCall("exec-1", "execute"), proposal("exec-1")]);
     expect(sb.currentStatus.messages.flatMap((m) => m.toolCalls).map((tc) => tc.id)).toEqual(["exec-1"]);
@@ -416,6 +434,35 @@ describe("TranscriptBuilder — a row per callId, reconciled in place, never dup
     expect(sb.awaitingApproval, "a resumed tool never re-gates").toBe(false);
   });
 
+  it("a re-emitted start advances a seeded INTERRUPTED row to RUNNING — the recovery replay's supersede (Q-M4-8) — and previews the args it fills", () => {
+    const status = create(AgentExecutionStatusSchema, {
+      messages: [
+        create(AgentMessageSchema, {
+          type: MessageType.MESSAGE_AI,
+          content: "Running the build.",
+          toolCalls: [
+            create(ToolCallSchema, { id: "sh-1", name: "shell", status: ToolCallStatus.TOOL_CALL_INTERRUPTED, error: "interrupted by the server" }),
+            create(ToolCallSchema, { id: "done-1", name: "read", status: ToolCallStatus.TOOL_CALL_COMPLETED, result: "kept" }),
+          ],
+        }),
+      ],
+    });
+    const sb = new TranscriptBuilder("exec-recover", status);
+    feed(sb, [
+      { kind: "tool_started", callId: "sh-1", name: "shell", input: { command: "make" }, mcpServerSlug: "" },
+      { kind: "tool_started", callId: "done-1", name: "read", input: { path: "/x" }, mcpServerSlug: "" },
+    ]);
+    const replayed = rowOf(sb, "sh-1");
+    expect(replayed.status, "live execution evidence outranks the interruption marker").toBe(ToolCallStatus.TOOL_CALL_RUNNING);
+    expect(replayed.args).toEqual({ command: "make" });
+    expect(replayed.argsPreview, "the filled args are previewed").toBe(JSON.stringify({ command: "make" }));
+    const settled = rowOf(sb, "done-1");
+    expect(settled.status, "a settled row keeps its outcome").toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+    expect(settled.result).toBe("kept");
+    sb.apply({ kind: "tool_finished", callId: "sh-1", result: "built" });
+    expect(rowOf(sb, "sh-1").status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+  });
+
   it("a duplicate start for a row created this turn adds nothing", () => {
     const sb = feed(builder(), [...proposedCall(), { kind: "tool_started", callId: "call-1", name: "read_file", input: { path: "/x" }, mcpServerSlug: "" }]);
     expect(sb.currentStatus.messages.flatMap((m) => m.toolCalls)).toHaveLength(1);
@@ -535,19 +582,33 @@ describe("TranscriptBuilder — the AI-message boundary (Q-S4-5): a row joins th
 });
 
 describe("TranscriptBuilder — a THINKING row and a text message per runId; a new run closes the previous message", () => {
-  it("thinking streams into its own row before the run's text, and the run's finish closes the text", () => {
+  it("thinking streams into its own row before the run's text, and the run's finish closes both (Q-M4-6)", () => {
     const sb = feed(builder(), [
       { kind: "message_start", runId: "run-1" },
       { kind: "reasoning_delta", runId: "run-1", text: "Let me analyze " },
       { kind: "reasoning_delta", runId: "run-1", text: "this." },
+    ]);
+    expect(sb.currentStatus.messages[0].isStreaming, "thinking streams while the run is open").toBe(true);
+    feed(sb, [
       { kind: "text_delta", runId: "run-1", text: "Based on " },
       { kind: "text_delta", runId: "run-1", text: "that." },
       { kind: "message_finish", runId: "run-1" },
     ]);
+    // A finished run's thinking is finished (until S4 M4 B1 the THINKING row
+    // spun until finalize — a live spinner on a block the model had left).
     expect(sb.currentStatus.messages.map((m) => [m.type, m.content, m.isStreaming])).toEqual([
-      [MessageType.MESSAGE_THINKING, "Let me analyze this.", true],
+      [MessageType.MESSAGE_THINKING, "Let me analyze this.", false],
       [MessageType.MESSAGE_AI, "Based on that.", false],
     ]);
+  });
+
+  it("a run with thinking and no text: its finish closes the THINKING row alone", () => {
+    const sb = feed(builder(), [
+      { kind: "message_start", runId: "run-1" },
+      { kind: "reasoning_delta", runId: "run-1", text: "Hmm." },
+      { kind: "message_finish", runId: "run-1" },
+    ]);
+    expect(sb.currentStatus.messages.map((m) => [m.type, m.isStreaming])).toEqual([[MessageType.MESSAGE_THINKING, false]]);
   });
 
   it("a second run's thinking is a second THINKING row (Q-S4-6), and its start closes the first run's text", () => {
@@ -727,6 +788,23 @@ describe("TranscriptBuilder — the dirty flag and the error guard", () => {
     sb.clearForceFlag();
     sb.apply({ kind: "sub_agent_started", subAgentId: "s", name: "n", subject: "s", input: "s" });
     expect(sb.forceNextUpdate).toBe(true);
+  });
+
+  it("a settled re-emit that changes nothing forces no persist; one that carries a new result or message does (Q-M4-8)", () => {
+    const sb = feed(builder(), [...proposedCall(), { kind: "tool_finished", callId: "call-1", result: "" }]);
+    sb.clearForceFlag();
+    // Cursor's shape: the timing delta completed the row; the stream's own
+    // completion, carrying the result, follows and must flush.
+    sb.apply({ kind: "tool_finished", callId: "call-1", result: "contents" });
+    expect(sb.forceNextUpdate, "the result is new").toBe(true);
+    sb.clearForceFlag();
+    sb.apply({ kind: "tool_finished", callId: "call-1", result: "contents" });
+    expect(sb.forceNextUpdate, "a redundant terminal re-emit is noise").toBe(false);
+    sb.apply({ kind: "tool_finished", callId: "call-1", result: "" });
+    expect(sb.forceNextUpdate).toBe(false);
+    sb.apply({ kind: "tool_error", callId: "call-1", message: "" });
+    expect(sb.forceNextUpdate, "an empty error on a settled row changes nothing").toBe(false);
+    expect(rowOf(sb, "call-1").status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
   });
 
   it("writes neither the phase nor startedAt nor streamingUsage — the turn runtime owns them", () => {

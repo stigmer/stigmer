@@ -161,7 +161,9 @@ describe("the native translator through the builder", () => {
 
         expect(status.messages[0].type).toBe(MessageType.MESSAGE_THINKING);
         expect(status.messages[0].content).toBe("Let me analyze this problem carefully.");
-        expect(status.messages[0].isStreaming).toBe(true);
+        // The run's finish closes its thinking with its text (S4 M4 B1,
+        // Q-M4-6); until then the THINKING row spun until finalize.
+        expect(status.messages[0].isStreaming).toBe(false);
 
         expect(status.messages[1].type).toBe(MessageType.MESSAGE_AI);
         expect(status.messages[1].content).toBe("Based on my analysis, here is the answer.");
