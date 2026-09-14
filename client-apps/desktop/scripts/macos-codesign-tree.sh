@@ -9,8 +9,8 @@
 # but never files under Resources/ (tauri-bundler macos/app.rs signs the
 # NESTED_CODE_FOLDER set only). tauri.conf.json ships the embedded runner as a
 # resource (resources/runner), and that tree carries native code: Temporal's
-# core bridge (index.node), sqlite3's node_sqlite3.node, and @cursor/sdk's
-# cursorsandbox and rg. Unsigned, any one of them fails the whole submission.
+# core bridge (index.node) and @cursor/sdk's cursorsandbox and rg. Unsigned,
+# any one of them fails the whole submission.
 #
 # Two verbs over the same walk:
 #

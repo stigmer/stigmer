@@ -23,8 +23,8 @@
 # On macOS, when APPLE_SIGNING_IDENTITY is set, the staged tree is code-signed
 # here (macos-codesign-tree.sh) before Tauri packs it. Tauri signs the app
 # binary but never files under Resources/, and Apple's notary rejects a bundle
-# with any unsigned Mach-O inside — the runner tree carries four (Temporal's
-# core bridge, sqlite3, @cursor/sdk's cursorsandbox and rg). Signing lives in
+# with any unsigned Mach-O inside — the runner tree carries three (Temporal's
+# core bridge, @cursor/sdk's cursorsandbox and rg). Signing lives in
 # this script rather than in a separate build step so every caller (the
 # Makefile targets, the release lane) inherits the invariant. Without an
 # identity the tree is left as built, the same as Tauri treats the app.

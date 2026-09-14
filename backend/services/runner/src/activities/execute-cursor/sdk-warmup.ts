@@ -3,10 +3,19 @@
  *
  * The first `Agent.create` in a pod pays the SDK's platform construction:
  * four SQLite-backed stores (run/checkpoint/event stores + notifier) whose
- * first use loads the sqlite native binding and compiles the schema
- * migrations. The 2026-07-30 instrumented baseline (issue #209) measured
- * this at ~1.2s of the ~2.4s `resolve_agent` segment, with a 624ms floor —
- * roughly half the cost is per-process warm-up, not per-session work.
+ * first use compiles the schema migrations. The 2026-07-30 instrumented
+ * baseline (issue #209, @cursor/sdk 1.0.13) measured this at ~1.2s of the
+ * ~2.4s `resolve_agent` segment, with a 624ms floor — roughly half the cost
+ * was per-process warm-up, not per-session work. Part of that floor was the
+ * `sqlite3` native binding's load; since 1.0.31 (stigmer/stigmer#1053) the
+ * SDK's stores run on `node:sqlite`, which is inside the Node binary, and the
+ * session's store is opened by the runner itself (`session-store.ts`,
+ * `SqliteLocalAgentStore.open`) rather than through the platform this
+ * warm-up constructs. What this warm-up still saves at 1.0.31 is therefore a
+ * measurement, not a known quantity: its `durationMs` and the cold-start
+ * timeline answer it, and the harness program carries the question of
+ * whether to warm through the store the runner actually opens, or through
+ * the SDK's own `prewarmLocalWorkspace`, or not at all.
  *
  * Pool members idle between boot and claim, so constructing one throwaway
  * platform there moves that per-process cost off the user-visible path.
@@ -32,8 +41,8 @@ export interface SdkWarmupResult {
 
 /**
  * Construct (and abandon) one SDK agent platform on a throwaway temp-dir
- * state root, forcing the sqlite native binding + store schema work to
- * happen now instead of inside the first user-facing `Agent.create`.
+ * state root, forcing the store schema work to happen now instead of inside
+ * the first user-facing `Agent.create`.
  *
  * Total by construction — warm-up is an optimization and must never affect
  * the member's ability to serve. The throwaway state root is a few KB on
