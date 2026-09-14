@@ -1,0 +1,238 @@
+/**
+ * Pins access-lists.ts (20260913.01 slice 5): the row-driven answer to
+ * "who has access, with which roles" — the hierarchy walk over scope
+ * tuples (child → parent through the resource's one structural link, at
+ * most five steps, `platform` terminal) and the grouping of assignable-
+ * role rows by principal in first-seen order, enriched where the display
+ * resolver answers and rendered as kind/id with the id as its name
+ * everywhere else (the Java PrincipalEnricher fallback). Moved from the
+ * cloud's iam/policy/access-lists.ts; the arms below are the Java
+ * contract read from that file.
+ */
+import { create } from "@bufbuild/protobuf";
+import { describe, expect, it } from "vitest";
+
+import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import { ApiResourceRefViewSchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
+import type { IamPolicySpec } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+
+import { buildPrincipalAccessList, resolveHierarchy } from "../access-lists.js";
+import type { PrincipalDisplayResolver } from "../access-lists.js";
+import { policyIdFor } from "../constants.js";
+import { fakeIamPolicyStore, orgRole, triple } from "./support.js";
+
+function row(spec: IamPolicySpec) {
+  return create(IamPolicySchema, {
+    metadata: { id: policyIdFor(spec) },
+    spec,
+  });
+}
+
+/** `child` is scoped under `parent`: the structural link the walk follows. */
+function scopeLink(
+  child: { kind: string; id: string },
+  parent: { kind: string; id: string },
+): IamPolicySpec {
+  return triple(parent, parent.kind, child);
+}
+
+const nobody: PrincipalDisplayResolver = {
+  resolveIdentityAccounts: () => Promise.resolve(new Map()),
+};
+
+describe("resolveHierarchy", () => {
+  it("is the resource alone when inherited grants are not asked for", async () => {
+    const store = fakeIamPolicyStore();
+    await store.save(
+      row(
+        scopeLink(
+          { kind: "agent", id: "a1" },
+          { kind: "organization", id: "acme" },
+        ),
+      ),
+    );
+    expect(await resolveHierarchy(store, "agent", "a1", false)).toEqual([
+      { kind: "agent", id: "a1" },
+    ]);
+  });
+
+  it("climbs the scope links child-first and stops where no link exists", async () => {
+    const store = fakeIamPolicyStore();
+    await store.save(
+      row(
+        scopeLink(
+          { kind: "agent", id: "a1" },
+          { kind: "organization", id: "acme" },
+        ),
+      ),
+    );
+    expect(await resolveHierarchy(store, "agent", "a1", true)).toEqual([
+      { kind: "agent", id: "a1" },
+      { kind: "organization", id: "acme" },
+    ]);
+  });
+
+  it("stops at platform, the terminal kind, even when platform carries a link", async () => {
+    const store = fakeIamPolicyStore();
+    await store.save(
+      row(
+        scopeLink(
+          { kind: "organization", id: "acme" },
+          { kind: "platform", id: "stigmer" },
+        ),
+      ),
+    );
+    await store.save(
+      row(
+        scopeLink(
+          { kind: "platform", id: "stigmer" },
+          { kind: "organization", id: "loop" },
+        ),
+      ),
+    );
+    expect(await resolveHierarchy(store, "organization", "acme", true)).toEqual(
+      [
+        { kind: "organization", id: "acme" },
+        { kind: "platform", id: "stigmer" },
+      ],
+    );
+  });
+
+  it("walks at most five steps — a cycle cannot spin it", async () => {
+    const store = fakeIamPolicyStore();
+    await store.save(
+      row(scopeLink({ kind: "agent", id: "a" }, { kind: "agent", id: "b" })),
+    );
+    await store.save(
+      row(scopeLink({ kind: "agent", id: "b" }, { kind: "agent", id: "a" })),
+    );
+    const levels = await resolveHierarchy(store, "agent", "a", true);
+    expect(levels).toHaveLength(6);
+  });
+
+  it("ignores rows whose principal is a person or whose relation is owner/creator — those are grants, not links", async () => {
+    const store = fakeIamPolicyStore();
+    await store.save(row(orgRole("ida_alice", "owner", "acme")));
+    await store.save(
+      row(
+        triple({ kind: "organization", id: "parent" }, "owner", {
+          kind: "organization",
+          id: "acme",
+        }),
+      ),
+    );
+    expect(await resolveHierarchy(store, "organization", "acme", true)).toEqual(
+      [{ kind: "organization", id: "acme" }],
+    );
+  });
+});
+
+describe("buildPrincipalAccessList", () => {
+  it("answers nothing for a resource with no assignable-role rows — structural rows never show", async () => {
+    const store = fakeIamPolicyStore();
+    await store.save(
+      row(
+        scopeLink(
+          { kind: "agent", id: "a1" },
+          { kind: "organization", id: "acme" },
+        ),
+      ),
+    );
+    expect(
+      await buildPrincipalAccessList(store, nobody, [
+        { kind: "agent", id: "a1" },
+      ]),
+    ).toEqual([]);
+  });
+
+  it("groups by principal in first-seen order, one RoleGrant per row, direct grants without an owner resource", async () => {
+    const store = fakeIamPolicyStore();
+    await store.save(row(orgRole("ida_bob", "member", "acme")));
+    await store.save(row(orgRole("ida_alice", "owner", "acme")));
+    await store.save(row(orgRole("ida_bob", "viewer", "acme")));
+    const entries = await buildPrincipalAccessList(store, nobody, [
+      { kind: "organization", id: "acme" },
+    ]);
+    expect(entries.map((e) => e.principal?.id)).toEqual([
+      "ida_bob",
+      "ida_alice",
+    ]);
+    const bob = entries[0];
+    expect(bob?.roles.map((g) => g.role?.code)).toEqual(["member", "viewer"]);
+    expect(
+      bob?.roles.every((g) => !g.isInherited && g.ownerResource === undefined),
+    ).toBe(true);
+  });
+
+  it("marks grants from a parent level as inherited and names the owning level", async () => {
+    const store = fakeIamPolicyStore();
+    await store.save(row(orgRole("ida_alice", "admin", "acme")));
+    const entries = await buildPrincipalAccessList(store, nobody, [
+      { kind: "agent", id: "a1" },
+      { kind: "organization", id: "acme" },
+    ]);
+    expect(entries).toHaveLength(1);
+    const grant = entries[0]?.roles[0];
+    expect(grant?.isInherited).toBe(true);
+    expect(grant?.ownerResource?.kind).toBe("organization");
+    expect(grant?.ownerResource?.id).toBe("acme");
+    expect(grant?.role?.code).toBe("admin");
+  });
+
+  it("renders an unresolved principal of ANY kind as kind/id with the id as its name", async () => {
+    const store = fakeIamPolicyStore();
+    await store.save(row(orgRole("ida_ghost", "viewer", "acme")));
+    await store.save(
+      row(
+        triple({ kind: "team", id: "tm_1" }, "viewer", {
+          kind: "organization",
+          id: "acme",
+        }),
+      ),
+    );
+    const entries = await buildPrincipalAccessList(store, nobody, [
+      { kind: "organization", id: "acme" },
+    ]);
+    expect(
+      entries.map((e) => [
+        e.principal?.kind,
+        e.principal?.id,
+        e.principal?.name,
+      ]),
+    ).toEqual([
+      ["identity_account", "ida_ghost", "ida_ghost"],
+      ["team", "tm_1", "tm_1"],
+    ]);
+  });
+
+  it("asks the resolver once for the identity-account ids and uses its view where it answers", async () => {
+    const store = fakeIamPolicyStore();
+    await store.save(row(orgRole("ida_alice", "owner", "acme")));
+    await store.save(row(orgRole("ida_bob", "member", "acme")));
+    const asked: string[][] = [];
+    const resolver: PrincipalDisplayResolver = {
+      resolveIdentityAccounts: (ids) => {
+        asked.push([...ids]);
+        return Promise.resolve(
+          new Map([
+            [
+              "ida_alice",
+              create(ApiResourceRefViewSchema, {
+                kind: "identity_account",
+                id: "ida_alice",
+                name: "Alice",
+                email: "alice@example.com",
+              }),
+            ],
+          ]),
+        );
+      },
+    };
+    const entries = await buildPrincipalAccessList(store, resolver, [
+      { kind: "organization", id: "acme" },
+    ]);
+    expect(asked).toEqual([["ida_alice", "ida_bob"]]);
+    expect(entries.map((e) => e.principal?.name)).toEqual(["Alice", "ida_bob"]);
+    expect(entries[0]?.principal?.email).toBe("alice@example.com");
+  });
+});

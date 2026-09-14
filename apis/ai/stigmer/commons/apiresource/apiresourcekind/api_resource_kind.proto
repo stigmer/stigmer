@@ -117,9 +117,17 @@ enum ApiResourceKind {
     id_prefix: "iamp"
     is_versioned: false
     not_search_indexed: true
-    // Per-resource grants are fine-grained control, a security team's ask,
-    // served by the OpenFGA authorizer the Enterprise units compose.
-    tier: enterprise
+    // The ROW half of the IamPolicy contract — the recorded grants, all
+    // fourteen RPCs — is served by every edition since the organization
+    // roles moved into open source (20260913.01): who holds which role on
+    // an organization is a fact every edition records and shows. What
+    // differs per edition is not the kind but the GRANT SCOPE a
+    // composition registers: open source grants roles on organizations
+    // only; per-resource grants (a viewer on one agent) are the fine-grained
+    // control the Enterprise and Cloud editions add, refused UNIMPLEMENTED
+    // where the scope does not admit them — degrade by probe, never by
+    // this tier.
+    tier: open_source
     authorization: {
       scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT

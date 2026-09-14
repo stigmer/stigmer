@@ -66,12 +66,16 @@ public interface ApiResourceMetadataOrBuilder extends
    * <pre>
    * System-generated unique identifier.
    *
-   * For every kind this is a generated, prefixed id (e.g. agt_&lt;ulid&gt;). Two
+   * For every kind this is a generated, prefixed id (e.g. agt_&lt;ulid&gt;). Three
    * kinds derive it from their natural key instead: Organization's id equals
    * its slug (the globally unique tenancy root is addressed by slug, not a
-   * minted id), and a direct IdentityAccount's id is derived from its issuer
+   * minted id); a direct IdentityAccount's id is derived from its issuer
    * subject (`ida_` followed by 26 Crockford-base32 characters of
-   * sha256(spec.idp_id)), so one subject can only ever be one account.
+   * sha256(spec.idp_id)), so one subject can only ever be one account; and
+   * an IamPolicy's id is derived from its triple (`iamp_` followed by 26
+   * Crockford-base32 characters of sha256 over
+   * `principal.kind:principal.id#principal.relation&#64;resource.kind:resource.id#relation`),
+   * so one grant can only ever be one row.
    * </pre>
    *
    * <code>string id = 3 [json_name = "id"];</code>
@@ -82,12 +86,16 @@ public interface ApiResourceMetadataOrBuilder extends
    * <pre>
    * System-generated unique identifier.
    *
-   * For every kind this is a generated, prefixed id (e.g. agt_&lt;ulid&gt;). Two
+   * For every kind this is a generated, prefixed id (e.g. agt_&lt;ulid&gt;). Three
    * kinds derive it from their natural key instead: Organization's id equals
    * its slug (the globally unique tenancy root is addressed by slug, not a
-   * minted id), and a direct IdentityAccount's id is derived from its issuer
+   * minted id); a direct IdentityAccount's id is derived from its issuer
    * subject (`ida_` followed by 26 Crockford-base32 characters of
-   * sha256(spec.idp_id)), so one subject can only ever be one account.
+   * sha256(spec.idp_id)), so one subject can only ever be one account; and
+   * an IamPolicy's id is derived from its triple (`iamp_` followed by 26
+   * Crockford-base32 characters of sha256 over
+   * `principal.kind:principal.id#principal.relation&#64;resource.kind:resource.id#relation`),
+   * so one grant can only ever be one row.
    * </pre>
    *
    * <code>string id = 3 [json_name = "id"];</code>

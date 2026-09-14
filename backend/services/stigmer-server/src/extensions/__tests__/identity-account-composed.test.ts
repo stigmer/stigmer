@@ -37,7 +37,8 @@
  * The registered driver is the REAL OSS adapter over a SECOND SqliteStore
  * behind a call recorder, so the proof of consumption is WHERE the rows
  * land, and the pair under test is one that runs in production. The fake
- * verifier of (B) and (C) vouches for an unsigned JWT-shaped token with no
+ * verifier of (B) and (C) (composed-support.ts, shared with the other
+ * composed proofs) vouches for an unsigned JWT-shaped token with no
  * issuer: idpIdOf reads the `sub` from the raw token and the provisioner
  * takes the identity's own claims when there is no issuer, so a real first
  * provisioning runs with no network. The OSS OIDC verifier over a driver is
@@ -52,8 +53,7 @@ import path from "node:path";
 import { create, fromBinary } from "@bufbuild/protobuf";
 import type { DescMessage } from "@bufbuild/protobuf";
 import { Code, ConnectError, createClient } from "@connectrpc/connect";
-import type { Client, Interceptor, Transport } from "@connectrpc/connect";
-import { createGrpcTransport } from "@connectrpc/connect-node";
+import type { Client } from "@connectrpc/connect";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -68,7 +68,6 @@ import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { loadConfig } from "../../boot/config.js";
 import { composeServer } from "../../boot/compose.js";
 import type { ComposedServer } from "../../boot/compose.js";
-import { createLogger } from "../../boot/logger.js";
 import { accountIdFor } from "../../domain/identityaccount/constants.js";
 import { newResourceIdentityAccountStore } from "../../domain/identityaccount/resource-store.js";
 import type { IdentityAccountStore } from "../../domain/identityaccount/store.js";
@@ -81,18 +80,19 @@ import type { Store } from "../../store/interface.js";
 import { SqliteStore } from "../../store/sqlite/store.js";
 import type { Authorizer } from "../authorizer.js";
 import type { GateSlotName } from "../gate-slots.js";
-import type { CallerIdentity, IdentityVerifier } from "../identity.js";
+import type { CallerIdentity } from "../identity.js";
 import type { IdentityFederation } from "../identity-federation.js";
 import type { ServerExtension } from "../registry.js";
-
-const silentLogger = createLogger({
-  level: "error",
-  pretty: false,
-  write: () => {},
-});
+import {
+  baseConfig,
+  fakeJwt,
+  fakeVerifier,
+  silentLogger,
+  transportFor,
+} from "./composed-support.js";
 
 // ---------------------------------------------------------------------------
-// Shared fakes
+// Shared fakes (the composition-shaped ones live in composed-support.ts)
 // ---------------------------------------------------------------------------
 
 /** The port's eight methods, delegating to the real adapter and recording each call by name. */
@@ -161,62 +161,6 @@ async function accountIdsIn(store: Store): Promise<ReadonlyArray<string>> {
   );
 }
 
-/**
- * An unsigned JWT-shaped token (`header.payload.unsigned`): the fake
- * verifier below vouches for it, and idpIdOf reads its `sub` exactly as it
- * reads a real token's — the signature was the verifier's business.
- */
-function fakeJwt(sub: string, email: string): string {
-  const segment = (value: unknown): string =>
-    Buffer.from(JSON.stringify(value)).toString("base64url");
-  return `${segment({ alg: "none" })}.${segment({ sub, email })}.unsigned`;
-}
-
-/**
- * The composition's own verifier (the cloud's shape): admits the fake
- * token as a `user` whose identityId is the raw subject and whose issuer is
- * empty — it does NOT resolve to an account, exactly like a verifier that
- * runs before any row exists. Passes on everything else, so the OSS API-key
- * lane composed ahead of it keeps its claim.
- */
-const fakeVerifier: IdentityVerifier = {
-  name: "fake-composition-verifier",
-  verify: (token) => {
-    const segments = token.split(".");
-    if (segments.length !== 3 || segments[2] !== "unsigned") {
-      return Promise.resolve(null);
-    }
-    const claims = JSON.parse(
-      Buffer.from(segments[1] ?? "", "base64url").toString("utf8"),
-    ) as { sub?: unknown; email?: unknown };
-    if (typeof claims.sub !== "string") {
-      return Promise.resolve(null);
-    }
-    const identity: CallerIdentity = {
-      identityId: claims.sub,
-      callerClass: "user",
-      issuer: "",
-      rawToken: token,
-      ...(typeof claims.email === "string" ? { email: claims.email } : {}),
-    };
-    return Promise.resolve(identity);
-  },
-};
-
-function bearer(token: string): Interceptor {
-  return (next) => (request) => {
-    request.header.set("authorization", `Bearer ${token}`);
-    return next(request);
-  };
-}
-
-function transportFor(port: number, token?: string): Transport {
-  return createGrpcTransport({
-    baseUrl: `http://127.0.0.1:${port}`,
-    interceptors: token !== undefined ? [bearer(token)] : [],
-  });
-}
-
 async function connectErrorOf(
   promise: Promise<unknown>,
 ): Promise<ConnectError> {
@@ -241,16 +185,6 @@ function accountInput(idpId: string) {
       firstName: "Composed",
       lastName: `Person${seq}`,
     },
-  };
-}
-
-function baseConfig(dir: string): Record<string, string> {
-  return {
-    STIGMER_MODEL_REGISTRY_REFRESH: "off",
-    TEMPORAL_HOST_PORT: "127.0.0.1:1",
-    DB_PATH: path.join(dir, "stigmer.db"),
-    STORAGE_PATH: path.join(dir, "storage"),
-    ARTIFACT_LOCAL_BASE_PATH: path.join(dir, "artifacts"),
   };
 }
 

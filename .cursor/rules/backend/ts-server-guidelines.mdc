@@ -99,7 +99,12 @@ eventually violate creatively.
   after the load). A NEW create/delete/updateVisibility chain MUST
   splice the matching step; the skill push lane has a domain-local
   adapter (`SkillPushAuthorizationTuples` — push is an upsert whose
-  message is the request, not the resource). All resolution (kind
+  message is the request, not the resource). The ONE exception is the
+  IamPolicy domain (20260913.01): its chains splice no tuple step,
+  because a policy IS the authorization record, not a protected
+  resource — the lifecycle's two policy hooks (`onPolicyGranted`,
+  `onPolicyRevoked`) fire from the grant path instead, and seeding scope
+  links for a row would recurse. All resolution (kind
   config from `kind_meta`, parent ids from `spec_field` reflection, the
   visibility shape diff with its org floor) is OSS-owned and
   edition-neutral; drivers receive resolved events and write tuples.

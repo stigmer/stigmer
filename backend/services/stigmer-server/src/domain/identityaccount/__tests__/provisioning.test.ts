@@ -18,6 +18,11 @@
  *      provisioning slot fire for both); a first-login race resolves the
  *      winner by subject whatever the failure's shape.
  *
+ * The answer says whether THIS call created the row (`created`; 20260913.01
+ * slice 4): the early return and the race loser answer false, so a rule
+ * keyed on first provisioning (the membership rules) runs exactly once per
+ * account and never on the idempotent path.
+ *
  * Step 4 of the cloud's flow (the personal organization) is not core: it
  * fires on `identity-account-provision:post-persist` in the composition.
  */
@@ -126,7 +131,9 @@ describe("provisionDirectAccount", () => {
       oidcCaller("auth0|alice"),
     );
 
-    expect(second).toEqual(first);
+    expect(second.account).toEqual(first.account);
+    expect(first.created, "the first call created the row").toBe(true);
+    expect(second.created, "the second call found it").toBe(false);
     expect(path.calls).toHaveLength(1);
     expect(userInfo.tokens).toEqual(["token-for-auth0|alice"]);
   });
@@ -140,7 +147,7 @@ describe("provisionDirectAccount", () => {
       createAccount: path.createAccount,
       userInfo,
     });
-    const account = await provisioner.provisionDirectAccount(
+    const { account } = await provisioner.provisionDirectAccount(
       "auth0|alice",
       oidcCaller("auth0|alice"),
     );
@@ -186,7 +193,7 @@ describe("provisionDirectAccount", () => {
       createAccount: path.createAccount,
       userInfo,
     });
-    const account = await provisioner.provisionDirectAccount(
+    const { account } = await provisioner.provisionDirectAccount(
       "local|operator@example.com",
       operatorCaller,
     );
@@ -205,7 +212,7 @@ describe("provisionDirectAccount", () => {
       createAccount: path.createAccount,
       userInfo: fakeUserInfo({ ...PROFILE, email: "" }),
     });
-    const account = await provisioner.provisionDirectAccount(
+    const { account } = await provisioner.provisionDirectAccount(
       "abc123@clients",
       oidcCaller("abc123@clients"),
     );
@@ -233,7 +240,8 @@ describe("provisionDirectAccount", () => {
       "auth0|carol",
       oidcCaller("auth0|carol"),
     );
-    expect(resolved).toEqual(winner);
+    expect(resolved.account).toEqual(winner);
+    expect(resolved.created, "the loser did not create the row").toBe(false);
     expect(accounts.rows.size).toBe(1);
   });
 
@@ -274,8 +282,12 @@ describe("provisionDirectAccount", () => {
       ),
     ]);
 
-    expect(a.metadata?.id).toBe(accountIdFor("auth0|erin"));
-    expect(b.metadata?.id).toBe(a.metadata?.id);
+    expect(a.account.metadata?.id).toBe(accountIdFor("auth0|erin"));
+    expect(b.account.metadata?.id).toBe(a.account.metadata?.id);
     expect(accounts.rows.size).toBe(1);
+    expect(
+      [a.created, b.created].filter(Boolean),
+      "exactly one of the two created the row",
+    ).toHaveLength(1);
   });
 });

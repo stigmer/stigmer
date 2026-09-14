@@ -84,7 +84,7 @@ public final class ApiResourceKindProto extends com.google.protobuf.GeneratedFil
       "_version\020\001\032A\252\377+=\010\001\020\001\032\022ApiResourceVersion" +
       "\"\024API Resource Version*\003ver8\001@\002J\004\010\005\020\004\022?\n" +
       "\niam_policy\020\n\032/\252\377++\010\002\020\001\032\tIamPolicy\"\nIAM " +
-      "Policy*\004iamp8\001@\003J\004\010\002\020\001\022P\n\020identity_accou" +
+      "Policy*\004iamp8\001@\001J\004\010\002\020\001\022P\n\020identity_accou" +
       "nt\020\013\032:\252\377+6\010\002\020\001\032\017IdentityAccount\"\020Identit" +
       "y Account*\003ida8\001@\001J\004\010\004\020\003\0225\n\007api_key\020\014\032(\252" +
       "\377+$\010\002\020\001\032\006ApiKey\"\007API Key*\003key8\001@\001J\004\010\004\020\001\022" +

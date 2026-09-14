@@ -8,23 +8,16 @@
  * `cloud.iam_identity_account` store), so "the port holds" is one
  * statement proven per driver, never restated per repository.
  *
- * Shape. The package's precedent is store/__tests__/store-contract.ts —
- * `describeStoreContract(makeFixture)`: a fresh fixture per test, named
- * escape hatches for the arms the interface cannot express, driver-physical
- * behavior left to each driver's own tests. This kit follows it in
- * everything but the framework: it is consumed by ANOTHER package's tests,
- * so it ships in dist/ and must not import vitest — a devDependency that
- * would enter the root barrel's runtime import graph. It therefore returns
- * cases instead of calling `describe`, asserts through node:assert/strict,
- * and the consumer's framework does `for (const c of cases) it(c.name,
- * c.run)`. Do not "fix" it back to the precedent's vitest shape.
- *
- * Every case makes a FRESH fixture, runs, and cleans up; a failing
- * assertion wins over a failing cleanup. `disconnect` is the one escape
- * hatch: the port has no lifecycle by design (a composition owns its
- * store's), yet "an outage never reads as no account" is the line that
- * matters most, so the fixture cuts the store from its database and the
- * kit asserts that the fault propagates instead of reading as `undefined`.
+ * Shape. The kit is a list of declarations over the port-contract runner
+ * (store/port-contract.ts, lifted from this file in 20260913.01 slice 2
+ * when the IamPolicy kit became the second): the runner owns the fresh
+ * fixture per case, the cleanup, the rule that a failing assertion wins
+ * over a failing cleanup, and the reason the kit returns cases instead of
+ * calling vitest's `describe`. `disconnect` is the one escape hatch: the
+ * port has no lifecycle by design (a composition owns its store's), yet
+ * "an outage never reads as no account" is the line that matters most, so
+ * the fixture cuts the store from its database and the kit asserts that
+ * the fault propagates instead of reading as `undefined`.
  *
  * What the kit deliberately does not carry: open source's primary-key read
  * (the findByField spy) and its derived-id refusal, the cloud's column
@@ -52,32 +45,21 @@ import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityacc
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
 
+import { portContractCases } from "../../store/port-contract.js";
+import type {
+  PortContractCase,
+  PortContractDeclaration,
+  PortContractFixture,
+} from "../../store/port-contract.js";
 import { accountIdFor } from "./constants.js";
 import { DuplicateAccountError } from "./store.js";
 import type { IdentityAccountStore } from "./store.js";
 
-/** One fresh, isolated store per case, plus the one escape hatch the port cannot express. */
-export interface IdentityAccountStoreContractFixture {
-  readonly store: IdentityAccountStore;
-  /**
-   * Cuts the store from its database so every later call is an
-   * infrastructure fault. `cleanup` still runs afterwards and must tolerate
-   * a disconnected store (both OSS drivers' `close` is idempotent; a pool
-   * fixture ends a per-case pool here and skips it in cleanup).
-   */
-  disconnect(): Promise<void>;
-  cleanup(): Promise<void>;
-}
+/** The runner's fixture over this port — the name a driver's test and the barrel know it by. */
+export type IdentityAccountStoreContractFixture =
+  PortContractFixture<IdentityAccountStore>;
 
-export interface IdentityAccountStoreContractCase {
-  /** The contract line, in the port's words; the framework prints it as the test name. */
-  readonly name: string;
-  /** Makes a FRESH fixture, runs the case, cleans up. A failing assertion wins over a failing cleanup. */
-  run(): Promise<void>;
-}
-
-/** A case body over a live fixture; the kit owns the fixture's lifecycle around it. */
-type CaseBody = (fixture: IdentityAccountStoreContractFixture) => Promise<void>;
+export type IdentityAccountStoreContractCase = PortContractCase;
 
 /** A direct account as the domain writes it: id derived from the subject, mode direct. */
 function directAccount(overrides: {
@@ -151,7 +133,7 @@ function subjectsOf(accounts: ReadonlyArray<IdentityAccount>): string[] {
   return accounts.map((account) => account.spec?.idpId ?? "");
 }
 
-const CASES: ReadonlyArray<readonly [string, CaseBody]> = [
+const CASES: ReadonlyArray<PortContractDeclaration<IdentityAccountStore>> = [
   [
     "save then findById round-trips the account",
     async ({ store }) => {
@@ -433,39 +415,9 @@ const CASES: ReadonlyArray<readonly [string, CaseBody]> = [
   ],
 ];
 
-/**
- * Runs `body` over a fresh fixture. The body's failure is the one reported:
- * a cleanup failure after a failed body would otherwise replace the
- * assertion that matters with a teardown detail.
- */
-async function withFixture(
-  makeFixture: () => Promise<IdentityAccountStoreContractFixture>,
-  body: CaseBody,
-): Promise<void> {
-  const fixture = await makeFixture();
-  let failed = false;
-  try {
-    await body(fixture);
-  } catch (error) {
-    failed = true;
-    throw error;
-  } finally {
-    try {
-      await fixture.cleanup();
-    } catch (cleanupError) {
-      if (!failed) {
-        throw cleanupError;
-      }
-    }
-  }
-}
-
 /** The port's cases over `makeFixture`, one fresh fixture per case. */
 export function identityAccountStoreContract(
   makeFixture: () => Promise<IdentityAccountStoreContractFixture>,
 ): ReadonlyArray<IdentityAccountStoreContractCase> {
-  return CASES.map(([name, body]) => ({
-    name,
-    run: () => withFixture(makeFixture, body),
-  }));
+  return portContractCases(CASES, makeFixture);
 }

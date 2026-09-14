@@ -142,6 +142,7 @@ rpc delete(ResourceId) returns (Resource) {
 
 **Configuration Fields:**
 - `resource_kind`: The API resource kind (e.g., `api_key`, `agent`, `organization`)
+- `resource_kind_path`: Path to the request field that carries the target KIND, for the rare RPC whose target kind varies per request — an `ApiResourceKind` field, or a string carrying a kind's enum member name such as an `ApiResourceRef.kind` (the IamPolicy RPCs use `"resource.kind"` with `field_path = "resource.id"`). Exactly one of `resource_kind` and `resource_kind_path` is set.
 - `permission`: The FGA permission to check (e.g., `can_view`, `can_edit`, `can_delete`)
 - `field_path`: Path to the resource ID in the request message (e.g., `"value"` for ID messages, `"metadata.id"` for full resources)
 - `error_msg`: User-friendly error message when authorization fails
@@ -182,7 +183,8 @@ rpc getByKeyHash(ApiKeyHash) returns (ApiKey) {
 Does input contain resource ID?
 ├─ YES: Which field contains the ID?
 │  ├─ "value" field (XxxId messages): Use field_path = "value"
-│  └─ "metadata.id" field (Full resource): Use field_path = "metadata.id"
+│  ├─ "metadata.id" field (Full resource): Use field_path = "metadata.id"
+│  └─ An ApiResourceRef (kind AND id vary per request): Use resource_kind_path = "<ref>.kind" + field_path = "<ref>.id"
 └─ NO: What type of operation?
    ├─ Find/list operation: Skip authorization + implement IAM Policy listAuthorizedResourceIds
    ├─ Multi-factor authorization (parent + scope): Use FGA contextual tuples in handler

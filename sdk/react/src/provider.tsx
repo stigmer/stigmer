@@ -41,8 +41,8 @@ export interface StigmerProviderProps {
    * Edition of the connected Stigmer backend.
    *
    * - `"local"` — Stigmer, the open-source edition. Open-source-tier
-   *   resources are served; Enterprise- and cloud-only kinds (IAM policies,
-   *   identity providers, invitations) are hidden.
+   *   resources are served; Enterprise- and cloud-only kinds (identity
+   *   providers, invitations) are hidden.
    * - `"enterprise"` — Stigmer Enterprise, self-hosted. Open-source- and
    *   Enterprise-tier resources are served.
    * - `"cloud"` — Stigmer Cloud. Every resource is served.

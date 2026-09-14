@@ -16,6 +16,20 @@
  *   - a hit whose row carries no id is an infrastructure fault naming the
  *     subject, never a `""` principal — the one deliberate divergence
  *     from the cloud's inline `?? ""`.
+ *
+ * And the read in the other direction, `accountForCaller` (20260913.01
+ * slice 4, Q-S4-1): the account a CallerIdentity stands for, the two
+ * primary-key reads whoAmI has always made, stated once so the built-in
+ * role lifecycle and whoAmI cannot disagree:
+ *
+ *   - an identityId that IS an account id resolves by that id (the
+ *     verifier already re-stamped);
+ *   - otherwise the caller's subject (idpIdOf) resolves through the direct
+ *     lookup — the trusted-local operator's `local|<email>` and a
+ *     composition verifier that stamps the raw subject both land here;
+ *   - a caller whose credential names no subject (an opaque token) is
+ *     `undefined` with NO second read — the store is never asked about "";
+ *   - an idp-shaped caller with no account is `undefined`.
  */
 import { create } from "@bufbuild/protobuf";
 import { ConnectError } from "@connectrpc/connect";
@@ -24,8 +38,9 @@ import { describe, expect, it, vi } from "vitest";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
 
-import { accountIdFor } from "../constants.js";
-import { identityIdForSubject } from "../resolve.js";
+import type { CallerIdentity } from "../../../extensions/identity.js";
+import { accountIdFor, localIdpIdFor } from "../constants.js";
+import { accountForCaller, identityIdForSubject } from "../resolve.js";
 import type { AccountsBySubject } from "../resolve.js";
 import { fakeIdentityAccountStore } from "./support.js";
 
@@ -110,5 +125,101 @@ describe("identityIdForSubject", () => {
     expect(error).toBeInstanceOf(Error);
     expect(error).not.toBeInstanceOf(ConnectError);
     expect(String(error)).toContain("auth0|corrupt");
+  });
+});
+
+/** An unsigned JWT-shaped token whose payload carries `sub` — what idpIdOf reads. */
+function tokenFor(sub: string): string {
+  const segment = (value: unknown): string =>
+    Buffer.from(JSON.stringify(value)).toString("base64url");
+  return `${segment({ alg: "none" })}.${segment({ sub })}.unsigned`;
+}
+
+function caller(overrides: Partial<CallerIdentity>): CallerIdentity {
+  return {
+    identityId: "",
+    callerClass: "user",
+    issuer: "",
+    rawToken: "",
+    ...overrides,
+  };
+}
+
+describe("accountForCaller — the account a caller stands for", () => {
+  it("an identityId that is an account id resolves by that id, with no subject read", async () => {
+    const accounts = seeded("auth0|known");
+    const bySubject = vi.spyOn(accounts, "findDirectByIdpId");
+
+    const account = await accountForCaller(
+      accounts,
+      caller({
+        identityId: accountIdFor("auth0|known"),
+        issuer: "https://issuer.test",
+        rawToken: tokenFor("auth0|known"),
+      }),
+    );
+
+    expect(account?.metadata?.id).toBe(accountIdFor("auth0|known"));
+    expect(bySubject).not.toHaveBeenCalled();
+  });
+
+  it("a raw-subject identityId resolves through the token's sub — the composition-verifier shape", async () => {
+    const accounts = seeded("auth0|raw");
+
+    const account = await accountForCaller(
+      accounts,
+      caller({
+        identityId: "auth0|raw",
+        issuer: "",
+        rawToken: tokenFor("auth0|raw"),
+      }),
+    );
+
+    expect(account?.metadata?.id).toBe(accountIdFor("auth0|raw"));
+  });
+
+  it("the trusted-local operator resolves through local|<identityId>", async () => {
+    const accounts = seeded(localIdpIdFor("operator@example.com"));
+
+    const account = await accountForCaller(
+      accounts,
+      caller({ identityId: "operator@example.com" }),
+    );
+
+    expect(account?.metadata?.id).toBe(
+      accountIdFor(localIdpIdFor("operator@example.com")),
+    );
+  });
+
+  it("a credential naming no subject is undefined and the store is never asked about ''", async () => {
+    const accounts = seeded("auth0|someone");
+    const bySubject = vi.spyOn(accounts, "findDirectByIdpId");
+
+    const account = await accountForCaller(
+      accounts,
+      caller({
+        identityId: "opaque",
+        issuer: "https://issuer.test",
+        rawToken: "not-a-jwt",
+      }),
+    );
+
+    expect(account).toBeUndefined();
+    expect(bySubject).not.toHaveBeenCalled();
+  });
+
+  it("an idp-shaped caller with no account is undefined", async () => {
+    const accounts = seeded("auth0|someone-else");
+
+    const account = await accountForCaller(
+      accounts,
+      caller({
+        identityId: "auth0|stranger",
+        issuer: "https://issuer.test",
+        rawToken: tokenFor("auth0|stranger"),
+      }),
+    );
+
+    expect(account).toBeUndefined();
   });
 });

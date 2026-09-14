@@ -40,8 +40,9 @@ const (
 // - Resource: WHAT is being accessed (any API resource)
 // - Relation: HOW they can access it (viewer, admin, user, etc.)
 //
-// Under the hood, each IAM policy creates an OpenFGA tuple that enforces
-// the permission in the authorization system.
+// An IAM policy is the recorded grant; the edition's authorizer enforces
+// it. The Enterprise and Cloud editions also mirror each policy to an
+// OpenFGA tuple for fine-grained checks.
 //
 // Common Use Cases:
 // - Granting users access to organizations
@@ -161,8 +162,9 @@ func (c *iamPolicyCommandControllerClient) BootstrapRevokeOrgAccess(ctx context.
 // - Resource: WHAT is being accessed (any API resource)
 // - Relation: HOW they can access it (viewer, admin, user, etc.)
 //
-// Under the hood, each IAM policy creates an OpenFGA tuple that enforces
-// the permission in the authorization system.
+// An IAM policy is the recorded grant; the edition's authorizer enforces
+// it. The Enterprise and Cloud editions also mirror each policy to an
+// OpenFGA tuple for fine-grained checks.
 //
 // Common Use Cases:
 // - Granting users access to organizations
