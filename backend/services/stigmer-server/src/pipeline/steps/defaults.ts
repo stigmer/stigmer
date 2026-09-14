@@ -14,7 +14,19 @@
  * setAuditFieldsForUpdate call site declares which slot it owns —
  * SpecAudit for definition changes (search recency, version "pushed at"),
  * StatusAudit for operational changes (Recents, lifecycle metadata).
+ *
+ * This module is also the one home of how an id is SPELLED. `generateId`
+ * mints `{prefix}_{ulid}`; `derivedId` is its sibling for the kinds
+ * metadata.proto names as deriving their id from a natural key instead
+ * (a direct IdentityAccount from its issuer subject, an IamPolicy from its
+ * triple): `{prefix}_` + the top 130 bits of sha256 over the key's
+ * canonical text as 26 lowercase Crockford-base32 characters. The two
+ * shapes are indistinguishable on the wire, so nothing downstream learns
+ * a second grammar, and the primary key becomes the one home of "one row
+ * per natural key" without a secondary index or a scan.
  */
+import { createHash } from "node:crypto";
+
 import { create, clone } from "@bufbuild/protobuf";
 import type { DescMessage, Message } from "@bufbuild/protobuf";
 import { reflect } from "@bufbuild/protobuf/reflect";
@@ -352,4 +364,34 @@ function setAuditSlotReflect(
  */
 export function generateId(prefix: string): string {
   return `${prefix}_${ulid().toLowerCase()}`;
+}
+
+/** Crockford base32, lowercased — the alphabet every minted ULID id uses. */
+const CROCKFORD_ALPHABET = "0123456789abcdefghjkmnpqrstvwxyz";
+const DERIVED_ID_CHARS = 26;
+const DERIVED_ID_BITS = BigInt(DERIVED_ID_CHARS * 5);
+const SHA256_BITS = 256n;
+
+/**
+ * The derived id of a kind whose id is a function of its natural key
+ * (metadata.proto `id`): `{prefix}_` + the top 130 bits of
+ * sha256(canonicalText) as 26 lowercase Crockford-base32 characters. Pure
+ * and total; the CALLER owns what `canonicalText` may be (the domains
+ * refuse an empty subject or an ambiguous triple before hashing), and the
+ * domains' golden vectors are the wire-adjacent pin — a change here
+ * re-addresses every derived row open source ever wrote.
+ */
+export function derivedId(prefix: string, canonicalText: string): string {
+  const digest = createHash("sha256").update(canonicalText, "utf8").digest();
+  let bits = 0n;
+  for (const byte of digest) {
+    bits = (bits << 8n) | BigInt(byte);
+  }
+  let top = bits >> (SHA256_BITS - DERIVED_ID_BITS);
+  let encoded = "";
+  for (let i = 0; i < DERIVED_ID_CHARS; i++) {
+    encoded = CROCKFORD_ALPHABET[Number(top & 31n)] + encoded;
+    top >>= 5n;
+  }
+  return `${prefix}_${encoded}`;
 }

@@ -28,6 +28,9 @@ import { ExecutionPhase, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agent
 vi.mock("@cursor/sdk", async () =>
   (await import("../../__test-utils__/scripted-sdk.js")).scriptedCursorSdkModule(),
 );
+vi.mock("@cursor/sdk/sqlite", async () =>
+  (await import("../../__test-utils__/scripted-sdk.js")).scriptedCursorSqliteModule(),
+);
 vi.mock("../../../../client/stigmer-client.js", async () =>
   (await import("../../../../__test-utils__/hermetic-activity.js")).hermeticStigmerClientModule(),
 );
@@ -86,7 +89,7 @@ describe("ExecuteCursor hermetic — ungated tool call", () => {
           step.event(ev.toolCall(CALL_ID, "read", "running", READ_ARGS)),
           step.event(ev.toolCall(CALL_ID, "read", "completed", READ_ARGS, READ_RESULT)),
           step.event(ev.assistant(ASSISTANT_TEXT)),
-          step.turnEnded({ inputTokens: 2_000, outputTokens: 90 }),
+          step.turnEnded({ inputTokens: 2_000, outputTokens: 90, cacheReadTokens: 0, cacheWriteTokens: 0 }),
           step.finished({ result: ASSISTANT_TEXT, model: { id: FIXTURE.model, params: [] } }),
         ],
       ],

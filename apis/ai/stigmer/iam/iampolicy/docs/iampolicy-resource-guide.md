@@ -98,8 +98,8 @@ Status is system-managed and must never be set by users.
 | Operation | RPC | Notes |
 |---|---|---|
 | Check authorization | `IamPolicyQueryController.checkAuthorization` | Boolean check: does principal X have permission Y on resource Z? No FGA check on the caller. |
-| List authorized resources | `IamPolicyQueryController.listAuthorizedResourceIds` | What resource IDs of a given kind can principal X access with relation Y? |
-| List authorized principals | `IamPolicyQueryController.listAuthorizedPrincipalIds` | What principal IDs of a given kind have relation Y on resource Z? |
+| List authorized resources | `IamPolicyQueryController.listAuthorizedResourceIds` | What resource IDs of a given kind can principal X access with relation Y? A user may ask only about their own identity account; machine callers about any principal. |
+| List authorized principals | `IamPolicyQueryController.listAuthorizedPrincipalIds` | What principal IDs of a given kind have relation Y on resource Z? Requires `can_view_access` on resource Z. |
 
 ### Operator-Only Operations
 

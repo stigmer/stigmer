@@ -16,7 +16,10 @@ service IamPolicyQueryController {
   // Returns the full IAM policy including its principal, resource, and relation binding.
   //
   // @internal
-  // Authorization: Requires can_view_access permission.
+  // Authorization: can_view_access on the RESOURCE the loaded policy names.
+  // The annotation carries no target on purpose — the target is inside the
+  // row — so the handler loads the policy (NOT_FOUND when absent) and then
+  // authorizes against its resource.
   rpc get(IamPolicyId) returns (IamPolicy) {
     option (ai.stigmer.commons.rpc.config).permission = can_view_access;
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view access policies";
@@ -87,9 +90,17 @@ service IamPolicyQueryController {
   //
   // Input: ListAuthorizedResourceIdsInput with principal, resource_kind, and relation
   // Output: AuthorizedResourceIdsList containing all accessible resource IDs
+  //
+  // @internal
+  // Skips standard authorization: the request names a PRINCIPAL and no
+  // resource, so there is no target for a permission check. The handler
+  // enforces checkAuthorization's principal-trust rule instead — a user
+  // may ask only about their own identity account; machine and in-process
+  // callers may ask about any principal. (A can_view_access annotation
+  // with no target would resolve to an empty check that an enforcing
+  // authorizer denies for every caller — stigmer#1073.)
   rpc listAuthorizedResourceIds(ListAuthorizedResourceIdsInput) returns (AuthorizedResourceIdsList) {
-    option (ai.stigmer.commons.rpc.config).permission = can_view_access;
-    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view authorized resource ids";
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 
   // List all principal IDs of a specific kind that are authorized to access a resource
@@ -104,8 +115,14 @@ service IamPolicyQueryController {
   //
   // Input: ListAuthorizedPrincipalIdsInput with resource, principal_kind, and relation
   // Output: AuthorizedPrincipalIdsList containing all authorized principal IDs
+  //
+  // @internal
+  // Authorization: can_view_access on the queried resource — the same
+  // target listResourceAccessByPrincipal enforces for the same question.
   rpc listAuthorizedPrincipalIds(ListAuthorizedPrincipalIdsInput) returns (AuthorizedPrincipalIdsList) {
     option (ai.stigmer.commons.rpc.config).permission = can_view_access;
+    option (ai.stigmer.commons.rpc.config).resource_kind_path = "resource.kind";
+    option (ai.stigmer.commons.rpc.config).field_path = "resource.id";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view authorized principal ids";
   }
 
@@ -122,8 +139,13 @@ service IamPolicyQueryController {
   //
   // Input: ListResourceAccessInput with resource ref and include_inherited flag
   // Output: ResourceAccessByPrincipalList with PrincipalAccess entries
+  //
+  // @internal
+  // Authorization: can_view_access on the queried resource.
   rpc listResourceAccessByPrincipal(ListResourceAccessInput) returns (ResourceAccessByPrincipalList) {
     option (ai.stigmer.commons.rpc.config).permission = can_view_access;
+    option (ai.stigmer.commons.rpc.config).resource_kind_path = "resource.kind";
+    option (ai.stigmer.commons.rpc.config).field_path = "resource.id";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view resource access";
   }
 
@@ -139,8 +161,13 @@ service IamPolicyQueryController {
   //
   // Input: PrincipalResourceInput with principal and resource refs
   // Output: PrincipalResourceRoles with list of RoleInfo entries
+  //
+  // @internal
+  // Authorization: can_view_access on the queried resource.
   rpc getPrincipalResourceRoles(PrincipalResourceInput) returns (PrincipalResourceRoles) {
     option (ai.stigmer.commons.rpc.config).permission = can_view_access;
+    option (ai.stigmer.commons.rpc.config).resource_kind_path = "resource.kind";
+    option (ai.stigmer.commons.rpc.config).field_path = "resource.id";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view principal roles";
   }
 
@@ -155,8 +182,13 @@ service IamPolicyQueryController {
   //
   // Input: GetPrincipalsCountInput with org_id and principal_kind
   // Output: PrincipalsCount with integer count
+  //
+  // @internal
+  // Authorization: can_view_access on the organization named by org_id.
   rpc getPrincipalsCount(GetPrincipalsCountInput) returns (PrincipalsCount) {
     option (ai.stigmer.commons.rpc.config).permission = can_view_access;
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).field_path = "org_id";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view principals count";
   }
 }

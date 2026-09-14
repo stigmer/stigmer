@@ -190,7 +190,8 @@ are available:
 | Mode | Backend | Effect |
 |------|---------|--------|
 | `"cloud"` | Stigmer Cloud | All features enabled. Default. |
-| `"local"` | Local Go CLI (OSS) | Cloud-only features (API keys, IAM, identity providers) are hidden. |
+| `"enterprise"` | Stigmer Enterprise, self-hosted | Open-source- and Enterprise-tier resources are served. |
+| `"local"` | Stigmer, the open-source edition | Enterprise- and cloud-only kinds (identity providers, invitations) are hidden. |
 
 Two hooks read the deployment mode from context:
 

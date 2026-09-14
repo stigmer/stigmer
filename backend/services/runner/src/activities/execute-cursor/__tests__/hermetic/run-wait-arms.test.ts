@@ -44,6 +44,9 @@ import { ExecutionPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/
 vi.mock("@cursor/sdk", async () =>
   (await import("../../__test-utils__/scripted-sdk.js")).scriptedCursorSdkModule(),
 );
+vi.mock("@cursor/sdk/sqlite", async () =>
+  (await import("../../__test-utils__/scripted-sdk.js")).scriptedCursorSqliteModule(),
+);
 vi.mock("../../../../client/stigmer-client.js", async () =>
   (await import("../../../../__test-utils__/hermetic-activity.js")).hermeticStigmerClientModule(),
 );
@@ -175,7 +178,7 @@ describe("ExecuteCursor hermetic — the run.wait() arms on a created agent", ()
         [
           step.event(evFresh.init()),
           step.event(evFresh.assistant(FINAL_TEXT)),
-          step.turnEnded({ inputTokens: 2_200, outputTokens: 30 }),
+          step.turnEnded({ inputTokens: 2_200, outputTokens: 30, cacheReadTokens: 0, cacheWriteTokens: 0 }),
           step.finished({ result: FINAL_TEXT, model: { id: FIXTURE.model, params: [] } }),
         ],
       ],

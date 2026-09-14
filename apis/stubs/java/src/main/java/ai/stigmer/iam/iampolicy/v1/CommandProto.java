@@ -43,37 +43,39 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "y/v1/api.proto\032$ai/stigmer/iam/iampolicy" +
       "/v1/io.proto\032&ai/stigmer/iam/iampolicy/v" +
       "1/spec.proto\032\033google/protobuf/empty.prot" +
-      "o2\233\010\n\032IamPolicyCommandController\022\202\001\n\006cre" +
+      "o2\346\010\n\032IamPolicyCommandController\022\236\001\n\006cre" +
       "ate\022*.ai.stigmer.iam.iampolicy.v1.IamPol" +
       "icySpec\032&.ai.stigmer.iam.iampolicy.v1.Ia" +
-      "mPolicy\"$\302\270\030 \010\004*\034unauthorized to grant a" +
-      "ccess\022\203\001\n\006delete\022*.ai.stigmer.iam.iampol" +
-      "icy.v1.IamPolicySpec\032&.ai.stigmer.iam.ia" +
-      "mpolicy.v1.IamPolicy\"%\302\270\030!\010\004*\035unauthoriz" +
-      "ed to revoke access\022\302\001\n\017bootstrapPolicy\022" +
-      "*.ai.stigmer.iam.iampolicy.v1.IamPolicyS" +
-      "pec\032&.ai.stigmer.iam.iampolicy.v1.IamPol" +
-      "icy\"[\302\270\030W\010\021\020\037*Hunauthorized to bootstrap" +
-      " policy - can_bootstrap_iam permission r" +
-      "equired2\007stigmer\022\304\001\n\027cleanupResourcePoli" +
-      "cies\022+.ai.stigmer.iam.iampolicy.v1.ApiRe" +
-      "sourceRef\032\026.google.protobuf.Empty\"d\302\270\030`\010" +
-      "\021\020\037*Qunauthorized to cleanup resource po" +
-      "licies - can_bootstrap_iam permission re" +
-      "quired2\007stigmer\022\220\001\n\017revokeOrgAccess\0221.ai" +
-      ".stigmer.iam.iampolicy.v1.RevokeOrgAcces" +
-      "sInput\032\026.google.protobuf.Empty\"2\302\270\030.\010\004**" +
-      "unauthorized to revoke organization acce" +
-      "ss\022\314\001\n\030bootstrapRevokeOrgAccess\0221.ai.sti" +
-      "gmer.iam.iampolicy.v1.RevokeOrgAccessInp" +
-      "ut\032\026.google.protobuf.Empty\"e\302\270\030a\010\021\020\037*Run" +
-      "authorized to revoke organization access" +
-      " - can_bootstrap_iam permission required" +
-      "2\007stigmer\032\004\240\377+\nB\237\001B\014CommandProtoP\001\242\002\004ASI" +
-      "I\252\002\033Ai.Stigmer.Iam.Iampolicy.V1\312\002\033Ai\\Sti" +
-      "gmer\\Iam\\Iampolicy\\V1\342\002\'Ai\\Stigmer\\Iam\\I" +
-      "ampolicy\\V1\\GPBMetadata\352\002\037Ai::Stigmer::I" +
-      "am::Iampolicy::V1b\006proto3"
+      "mPolicy\"@\302\270\030<\010\004\032\rresource.kind\"\013resource" +
+      ".id*\034unauthorized to grant access\022\237\001\n\006de" +
+      "lete\022*.ai.stigmer.iam.iampolicy.v1.IamPo" +
+      "licySpec\032&.ai.stigmer.iam.iampolicy.v1.I" +
+      "amPolicy\"A\302\270\030=\010\004\032\rresource.kind\"\013resourc" +
+      "e.id*\035unauthorized to revoke access\022\302\001\n\017" +
+      "bootstrapPolicy\022*.ai.stigmer.iam.iampoli" +
+      "cy.v1.IamPolicySpec\032&.ai.stigmer.iam.iam" +
+      "policy.v1.IamPolicy\"[\302\270\030W\010\021\020\037*Hunauthori" +
+      "zed to bootstrap policy - can_bootstrap_" +
+      "iam permission required2\007stigmer\022\304\001\n\027cle" +
+      "anupResourcePolicies\022+.ai.stigmer.iam.ia" +
+      "mpolicy.v1.ApiResourceRef\032\026.google.proto" +
+      "buf.Empty\"d\302\270\030`\010\021\020\037*Qunauthorized to cle" +
+      "anup resource policies - can_bootstrap_i" +
+      "am permission required2\007stigmer\022\243\001\n\017revo" +
+      "keOrgAccess\0221.ai.stigmer.iam.iampolicy.v" +
+      "1.RevokeOrgAccessInput\032\026.google.protobuf" +
+      ".Empty\"E\302\270\030A\010\004\020\036\"\017organization_id**unaut" +
+      "horized to revoke organization access\022\314\001" +
+      "\n\030bootstrapRevokeOrgAccess\0221.ai.stigmer." +
+      "iam.iampolicy.v1.RevokeOrgAccessInput\032\026." +
+      "google.protobuf.Empty\"e\302\270\030a\010\021\020\037*Runautho" +
+      "rized to revoke organization access - ca" +
+      "n_bootstrap_iam permission required2\007sti" +
+      "gmer\032\004\240\377+\nB\237\001B\014CommandProtoP\001\242\002\004ASII\252\002\033A" +
+      "i.Stigmer.Iam.Iampolicy.V1\312\002\033Ai\\Stigmer\\" +
+      "Iam\\Iampolicy\\V1\342\002\'Ai\\Stigmer\\Iam\\Iampol" +
+      "icy\\V1\\GPBMetadata\352\002\037Ai::Stigmer::Iam::I" +
+      "ampolicy::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

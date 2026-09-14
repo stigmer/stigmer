@@ -28,11 +28,34 @@
  * no id is the one deliberate divergence from the cloud's inline
  * `metadata?.id ?? ""`: a `""` principal is the silent-junk failure the
  * oss#405 doctrine forbids, so it is a loud fault naming the subject.
+ *
+ * The same knowledge read in the caller's direction is `accountForCaller`
+ * (20260913.01 slice 4, Q-S4-1): the account a stamped CallerIdentity
+ * stands for. Two primary-key reads, the cloud's whoAmI order — the
+ * identityId AS an account id (a verifier that resolved), then the
+ * caller's subject through the direct lookup (a verifier that did not:
+ * the trusted-local interceptor, which stamps the operator's email and
+ * never consults the store; a composition verifier that runs before any
+ * row exists). It lives here so whoAmI and the built-in role lifecycle,
+ * which asks "whose organization is this" from the creating caller,
+ * cannot answer the same question two ways. A credential naming no
+ * subject is `undefined` with no second read: the store is never asked
+ * about "".
  */
+import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+
+import type { CallerIdentity } from "../../extensions/identity.js";
+import { idpIdOf } from "./constants.js";
 import type { IdentityAccountStore } from "./store.js";
 
 /** The one read a verifier needs from the domain: the direct account for a subject. */
 export type AccountsBySubject = Pick<IdentityAccountStore, "findDirectByIdpId">;
+
+/** The two reads the caller-direction resolution needs: by id, then by subject. */
+export type AccountsByCaller = Pick<
+  IdentityAccountStore,
+  "findById" | "findDirectByIdpId"
+>;
 
 export async function identityIdForSubject(
   accounts: AccountsBySubject,
@@ -49,4 +72,24 @@ export async function identityIdForSubject(
     );
   }
   return id;
+}
+
+/**
+ * The account `caller` stands for, or `undefined` when there is none (an
+ * idp-shaped caller before provisioning; a credential naming no subject).
+ * Faults propagate as they are — the caller decides the wire shape.
+ */
+export async function accountForCaller(
+  accounts: AccountsByCaller,
+  caller: CallerIdentity,
+): Promise<IdentityAccount | undefined> {
+  const byId = await accounts.findById(caller.identityId);
+  if (byId !== undefined) {
+    return byId;
+  }
+  const subject = idpIdOf(caller);
+  if (subject === "") {
+    return undefined;
+  }
+  return accounts.findDirectByIdpId(subject);
 }

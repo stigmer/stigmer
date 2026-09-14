@@ -176,6 +176,19 @@ export function trustedLocalIdentity(): CallerIdentity {
 }
 
 /**
+ * The identityId of the UNCONFIGURED laptop's operator — no
+ * STIGMER_OPERATOR_EMAIL, so the trust domain's one principal has no
+ * email to be named by. It is what the interceptor stamps and therefore
+ * what every audit actor on such a laptop carries as `created_by.id`; the
+ * operator account derives its subject from it (`local|system`) and the
+ * membership rules read it as "not a person" when they classify creator
+ * stamps (domain/iampolicy/membership.ts). One home (20260913.01 slice 4,
+ * Q-S4-6): a second spelling anywhere would make a stamp and its reader
+ * disagree silently.
+ */
+export const SYSTEM_OPERATOR_IDENTITY_ID = "system";
+
+/**
  * The trusted-local identity for a given operator — the one construction
  * of that principal, shared by the per-request stamp above and by the
  * boot-time operator account (domain/identityaccount/operator.ts), so the
@@ -187,7 +200,7 @@ export function trustedLocalIdentityFor(operator: {
 }): CallerIdentity {
   if (operator.email === "") {
     return {
-      identityId: "system",
+      identityId: SYSTEM_OPERATOR_IDENTITY_ID,
       callerClass: "user",
       issuer: "",
       rawToken: "",

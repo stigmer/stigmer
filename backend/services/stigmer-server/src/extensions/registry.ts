@@ -34,7 +34,10 @@
  * points (20260911.11) at the identity-accounts stage (the store driver,
  * ahead of the boot-time operator ensure) and the routes stage (the
  * federation capability and the provision slot's steps, into the
- * identity-account controller).
+ * identity-account controller); the IamPolicy points (20260913.01) at
+ * the same two stages — the store driver where the grant path is built,
+ * beside the identity-account store, and the grant scope and the query
+ * engine into the IamPolicy controller at the routes stage.
  */
 import type { DescMessage } from "@bufbuild/protobuf";
 import type { ConnectRouter } from "@connectrpc/connect";
@@ -45,10 +48,13 @@ import type { ArtifactStorageDriverFactory } from "../artifactstorage/artifact-s
 import { BUILT_IN_STORAGE_TYPES } from "../artifactstorage/artifact-storage.js";
 import type { ChannelRuntime } from "../domain/agentchannel/channel-runtime.js";
 import type { IdentityAccountStore } from "../domain/identityaccount/store.js";
+import type { IamPolicyStore } from "../domain/iampolicy/store.js";
 import type { SecretCodec } from "../encryption/codec.js";
 import { V1_VERSION } from "../encryption/v1-codec.js";
+import type { AuthorizationQueryEngine } from "./authorization-queries.js";
 import type { IdentityFederation } from "./identity-federation.js";
 import type { ListReadScope } from "./list-read-scope.js";
+import type { PolicyGrantScope } from "./policy-grant-scope.js";
 import type { ModelCatalogProvider } from "../domain/workflow/registry/model-catalog-provider.js";
 import type { VisitorErrorPolicy } from "../pipeline/interceptors/error-boundary.js";
 import type { PipelineStep } from "../pipeline/pipeline.js";
@@ -250,6 +256,22 @@ export interface ResolvedExtensionDrivers {
    * four federated RPCs refuse UNIMPLEMENTED with the edition reason.
    */
   readonly identityFederation: IdentityFederation | undefined;
+  /**
+   * The 20260913.01 IamPolicy store driver — undefined = the compose.ts
+   * stage that builds the grant path installs the OSS adapter over the
+   * generic Store, OSS behavior byte-identical.
+   */
+  readonly iamPolicyStore: IamPolicyStore | undefined;
+  /**
+   * The 20260913.01 policy grant scope — undefined = compose.ts installs
+   * open source's organization-only default.
+   */
+  readonly policyGrantScope: PolicyGrantScope | undefined;
+  /**
+   * The 20260913.01 authorization-query engine — undefined = the
+   * tuple-half RPC arms refuse UNIMPLEMENTED with the edition reason.
+   */
+  readonly authorizationQueries: AuthorizationQueryEngine | undefined;
 }
 
 /**
@@ -297,6 +319,12 @@ export function resolveExtensions(
   let identityAccountStoreDeclaredBy: string | undefined;
   let identityFederation: IdentityFederation | undefined;
   let identityFederationDeclaredBy: string | undefined;
+  let iamPolicyStore: IamPolicyStore | undefined;
+  let iamPolicyStoreDeclaredBy: string | undefined;
+  let policyGrantScope: PolicyGrantScope | undefined;
+  let policyGrantScopeDeclaredBy: string | undefined;
+  let authorizationQueries: AuthorizationQueryEngine | undefined;
+  let authorizationQueriesDeclaredBy: string | undefined;
   const artifactStorageDrivers = new Map<
     string,
     ArtifactStorageDriverFactory
@@ -458,6 +486,36 @@ export function resolveExtensions(
       identityFederationDeclaredBy = unit.name;
     }
 
+    if (unit.drivers?.iamPolicyStore !== undefined) {
+      if (iamPolicyStoreDeclaredBy !== undefined) {
+        throw new Error(
+          `extension '${unit.name}' registers an IamPolicyStore, but '${iamPolicyStoreDeclaredBy}' already did — exactly one may be composed`,
+        );
+      }
+      iamPolicyStore = unit.drivers.iamPolicyStore;
+      iamPolicyStoreDeclaredBy = unit.name;
+    }
+
+    if (unit.drivers?.policyGrantScope !== undefined) {
+      if (policyGrantScopeDeclaredBy !== undefined) {
+        throw new Error(
+          `extension '${unit.name}' registers a PolicyGrantScope, but '${policyGrantScopeDeclaredBy}' already did — exactly one may be composed`,
+        );
+      }
+      policyGrantScope = unit.drivers.policyGrantScope;
+      policyGrantScopeDeclaredBy = unit.name;
+    }
+
+    if (unit.drivers?.authorizationQueries !== undefined) {
+      if (authorizationQueriesDeclaredBy !== undefined) {
+        throw new Error(
+          `extension '${unit.name}' registers an AuthorizationQueryEngine, but '${authorizationQueriesDeclaredBy}' already did — exactly one may be composed`,
+        );
+      }
+      authorizationQueries = unit.drivers.authorizationQueries;
+      authorizationQueriesDeclaredBy = unit.name;
+    }
+
     if (unit.drivers?.artifactStorageDrivers !== undefined) {
       for (const [name, factory] of unit.drivers.artifactStorageDrivers) {
         if ((BUILT_IN_STORAGE_TYPES as ReadonlyArray<string>).includes(name)) {
@@ -580,6 +638,9 @@ export function resolveExtensions(
       scheduleFireCaller,
       identityAccountStore,
       identityFederation,
+      iamPolicyStore,
+      policyGrantScope,
+      authorizationQueries,
     },
     services,
     workers,
