@@ -15,7 +15,12 @@
  * So a turn is a SCRIPT of ordered steps, one of four kinds:
  *
  *  - `event(SDKMessage)`     — yielded from `stream()`
- *  - `delta(update)`         — fired through `onDelta` (usage, `turn-ended`)
+ *  - `delta(update)`         — fired through `onDelta`: any `InteractionUpdate`
+ *                              (the `turn-ended` usage the loop prices; the
+ *                              tool-call timings, shell output and completion
+ *                              status the transcript folds — S4 M4 C1 widened
+ *                              the step from `turn-ended` alone so the delta
+ *                              channel has an end-to-end net)
  *  - `effect(fn)`            — the side effect the SDK would have performed
  *                              (run the real hook, write a workspace file,
  *                              cancel the activity from the outside)
@@ -25,10 +30,10 @@
  * (`ScriptStep`, driven in order), applied to the SDK's event surface.
  *
  * Typing: `SDKMessage`, `Run`, `RunResult`, `SDKAgent` and the delta channel's
- * `TurnEndedUpdate` are the SDK's own types (`@cursor/sdk` 1.0.31, concrete in
- * `messages.d.ts` / `run.d.ts` / `agent.d.ts` / the vendored `delta-types`),
+ * `InteractionUpdate` are the SDK's own types (`@cursor/sdk` 1.0.31, concrete
+ * in `messages.d.ts` / `run.d.ts` / `agent.d.ts` / the vendored `delta-types`),
  * so a script that drifts from the real event shape fails `tsc`. (At 1.0.13
- * the delta types resolved to `any` and the one delta this double emits was
+ * the delta types resolved to `any` and the one delta this double emitted was
  * typed locally; stigmer/stigmer#1053 closed that gap.)
  *
  * Cancellation: `run.cancel()` is how the harness stops a turn (first denial,
@@ -48,6 +53,7 @@
 import type {
   AgentUsage,
   GetUsageOptions,
+  InteractionUpdate,
   ModelSelection,
   Run,
   RunOperation,
@@ -73,7 +79,7 @@ export interface EffectContext {
 
 export type ScriptStep =
   | { readonly kind: "event"; readonly event: SDKMessage }
-  | { readonly kind: "delta"; readonly update: TurnEndedUpdate }
+  | { readonly kind: "delta"; readonly update: InteractionUpdate }
   | { readonly kind: "effect"; readonly label: string; readonly run: (ctx: EffectContext) => void | Promise<void> }
   | { readonly kind: "result"; readonly result: Omit<RunResult, "id"> };
 
@@ -84,6 +90,10 @@ export type TurnScript = readonly ScriptStep[];
 export const step = {
   event(event: SDKMessage): ScriptStep {
     return { kind: "event", event };
+  },
+  /** Any delta the SDK fires through `onDelta` between stream events: tool-call timings, shell output, a completion's status. */
+  delta(update: InteractionUpdate): ScriptStep {
+    return { kind: "delta", update };
   },
   /** The `turn-ended` delta `turn-stream.ts` prices; the SDK's shape, all four counts stated. */
   turnEnded(usage: NonNullable<TurnEndedUpdate["usage"]>): ScriptStep {
@@ -129,6 +139,10 @@ export function sdkEvents(agentId: string, runId: string) {
     },
     status(status: "CREATING" | "RUNNING" | "FINISHED" | "ERROR" | "CANCELLED" | "EXPIRED", message?: string): SDKMessage {
       return { type: "status", ...base, status, message };
+    },
+    /** The SDK's `task` event: a status line about the run in the agent's own voice, which the transcript shows as a SYSTEM message. */
+    task(text: string, status?: string): SDKMessage {
+      return { type: "task", ...base, text, status };
     },
   };
 }
