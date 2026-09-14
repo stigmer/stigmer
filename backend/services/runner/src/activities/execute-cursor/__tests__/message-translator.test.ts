@@ -516,31 +516,32 @@ describe("MessageAccumulator tool call status transitions", () => {
     acc.trackSubAgentExecution(completedEvent);
 
     const sub = acc.subAgentExecutions[0];
-    // thinking + glob tool call + read tool call + assistant text
-    expect(sub.messages).toHaveLength(4);
+    // thinking + glob tool call + read tool call + assistant text. The two tool
+    // steps share ONE empty AI message: no assistant step preceded them, so the
+    // first opens the message and the second joins it (the AI-message boundary,
+    // Q-S4-5; S4 M4 A5 — until then every tool step was its own message).
+    expect(sub.messages).toHaveLength(3);
 
     expect(sub.messages[0].type).toBe(MessageType.MESSAGE_THINKING);
     expect(sub.messages[0].content).toBe("Let me look for the README.");
 
-    const globMsg = sub.messages[1];
-    expect(globMsg.type).toBe(MessageType.MESSAGE_AI);
-    expect(globMsg.toolCalls).toHaveLength(1);
-    expect(globMsg.toolCalls[0].id).toBe("glob-1");
-    expect(globMsg.toolCalls[0].name).toBe("glob");
-    expect(globMsg.toolCalls[0].toolKind).toBe(ToolKind.SEARCH);
-    expect(globMsg.toolCalls[0].status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+    const toolsMsg = sub.messages[1];
+    expect(toolsMsg.type).toBe(MessageType.MESSAGE_AI);
+    expect(toolsMsg.content).toBe("");
+    expect(toolsMsg.toolCalls).toHaveLength(2);
+    const [glob, read] = toolsMsg.toolCalls;
+    expect(glob.id).toBe("glob-1");
+    expect(glob.name).toBe("glob");
+    expect(glob.toolKind).toBe(ToolKind.SEARCH);
+    expect(glob.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+    expect(read.id).toBe("read-1");
+    expect(read.name).toBe("read");
+    expect(read.toolKind).toBe(ToolKind.FILE_READ);
+    expect(read.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+    expect(read.result).toContain("# Hello");
 
-    const readMsg = sub.messages[2];
-    expect(readMsg.type).toBe(MessageType.MESSAGE_AI);
-    expect(readMsg.toolCalls).toHaveLength(1);
-    expect(readMsg.toolCalls[0].id).toBe("read-1");
-    expect(readMsg.toolCalls[0].name).toBe("read");
-    expect(readMsg.toolCalls[0].toolKind).toBe(ToolKind.FILE_READ);
-    expect(readMsg.toolCalls[0].status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
-    expect(readMsg.toolCalls[0].result).toContain("# Hello");
-
-    expect(sub.messages[3].type).toBe(MessageType.MESSAGE_AI);
-    expect(sub.messages[3].content).toBe("I found and read the README.");
+    expect(sub.messages[2].type).toBe(MessageType.MESSAGE_AI);
+    expect(sub.messages[2].content).toBe("I found and read the README.");
   });
 
   it("sub-agent gracefully handles missing conversationSteps", () => {
@@ -703,13 +704,15 @@ describe("MessageAccumulator tool call status transitions", () => {
         },
       }, out);
 
-      expect(out).toHaveLength(2);
-      expect(out[0].toolCalls[0].name).toBe("shell");
-      expect(out[0].toolCalls[0].toolKind).toBe(ToolKind.SHELL);
-      expect(out[0].toolCalls[0].status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
-      expect(out[0].toolCalls[0].error).toContain("blocked by approval gate");
-      expect(out[1].toolCalls[0].status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
-      expect(out[1].toolCalls[0].error).toContain("user rejected");
+      // Two tool steps with no assistant step before them share one message (A5).
+      expect(out).toHaveLength(1);
+      const [denied, rejected] = out[0].toolCalls;
+      expect(denied.name).toBe("shell");
+      expect(denied.toolKind).toBe(ToolKind.SHELL);
+      expect(denied.status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
+      expect(denied.error).toContain("blocked by approval gate");
+      expect(rejected.status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
+      expect(rejected.error).toContain("user rejected");
     });
 
     it("skips a malformed toolCall step with no <kind>ToolCall key", () => {

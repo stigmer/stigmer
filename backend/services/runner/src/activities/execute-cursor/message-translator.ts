@@ -569,7 +569,7 @@ export function extractConversationSteps(
   const steps = v.conversationSteps;
   if (!Array.isArray(steps)) return;
 
-  for (const step of steps) {
+  for (const [index, step] of steps.entries()) {
     if (step == null || typeof step !== "object") continue;
     const s = step as Record<string, unknown>;
     const type = s.type as string | undefined;
@@ -595,17 +595,36 @@ export function extractConversationSteps(
         }));
       }
     } else if (s.toolCall != null) {
-      const tc = buildSubAgentToolCall(s.toolCall, out.length);
+      const tc = buildSubAgentToolCall(s.toolCall, index);
       if (tc) {
-        out.push(create(AgentMessageSchema, {
-          type: MessageType.MESSAGE_AI,
-          content: "",
-          timestamp: utcTimestamp(),
-          toolCalls: [tc],
-        }));
+        // The AI-message boundary, the same rule as the root transcript's
+        // (S4 M4 A5, Q-S4-5): a tool row joins the message whose text
+        // proposed it — the transcript's last AI message — and gets an empty
+        // one only when the transcript has none yet. Until A5 every tool
+        // step was its own `content: ""` message, the shape native's
+        // sub-agent tracker had before M2 fixed F-M0-1.
+        const host = lastAiMessage(out);
+        if (host) {
+          host.toolCalls.push(tc);
+        } else {
+          out.push(create(AgentMessageSchema, {
+            type: MessageType.MESSAGE_AI,
+            content: "",
+            timestamp: utcTimestamp(),
+            toolCalls: [tc],
+          }));
+        }
       }
     }
   }
+}
+
+/** The last MESSAGE_AI in a transcript, or undefined — the host a tool row joins. */
+function lastAiMessage(messages: readonly AgentMessage[]): AgentMessage | undefined {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].type === MessageType.MESSAGE_AI) return messages[i];
+  }
+  return undefined;
 }
 
 /**
@@ -648,7 +667,7 @@ const SUBAGENT_TOOL_RESULT_FAILURE_KEYS = new Set([
  */
 function buildSubAgentToolCall(
   toolCall: unknown,
-  seq: number,
+  stepIndex: number,
 ): ToolCall | undefined {
   if (toolCall == null || typeof toolCall !== "object") return undefined;
   const obj = toolCall as Record<string, unknown>;
@@ -664,12 +683,13 @@ function buildSubAgentToolCall(
       ? (obj[kindKey] as Record<string, unknown>)
       : {};
   // Prefer the SDK's real call id so the row is stable across resumes and never
-  // collides with a sibling; fall back to a per-step synthetic id only when the
-  // SDK omits one.
+  // collides with a sibling; fall back to a synthetic id from the step's INDEX
+  // in `conversationSteps` only when the SDK omits one (the index, not the
+  // message count: two tool steps can share a message since A5).
   const id =
     typeof obj.toolCallId === "string" && obj.toolCallId
       ? obj.toolCallId
-      : `sub-${name}-${seq}`;
+      : `sub-${name}-${stepIndex}`;
 
   const { status, result, error } = interpretSubAgentToolResult(inner.result);
 

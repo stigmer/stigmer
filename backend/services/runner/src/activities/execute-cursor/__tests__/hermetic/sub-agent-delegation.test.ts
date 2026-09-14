@@ -10,22 +10,25 @@
  * `input` from `prompt`, IN_PROGRESS); the `completed` event closes it
  * COMPLETED with `output` (the stringified result) and rebuilds its transcript
  * from the result's `conversationSteps` (`extractConversationSteps`): an
- * `assistantMessage` step is an AI row, and a `toolCall` step is an AI row with
- * `content: ""` carrying ONE tool row named from its `<kind>ToolCall` key
- * (`buildSubAgentToolCall`), with the SDK's `toolCallId` as its id, its status
- * from the `result` oneof, both timestamps, `args` and `argsPreview`. The root
+ * `assistantMessage` step is an AI row, and a `toolCall` step is a tool row on
+ * the transcript's LAST AI message — the assistant step that proposed it — named
+ * from its `<kind>ToolCall` key (`buildSubAgentToolCall`), with the SDK's
+ * `toolCallId` as its id, its status from the `result` oneof, both timestamps,
+ * `args` and `argsPreview`; a tool step with no assistant step before it gets
+ * an empty AI message of its own, the root transcript's rule. The root
  * transcript carries the `task` row itself (COMPLETED, `result` = the same
  * stringified object) on the message that proposed it. This is Cursor's
  * timing — the sub-agent's rows exist only at completion — and stays Cursor's
  * (Q-S4-4).
  *
- * Predicted under the S4 rulings (`T01_1_review.md`, 2026-09-14): ONE hunk at
- * M4, under Q-S4-5. The sub-agent's `read` row will sit on the AI message of
- * the assistant step that precedes it (`messages[0]`, "Looking at README.md."),
- * and the `content: ""` message that carries it today (`messages[1]`) will be
+ * Moved 2026-09-14 (S4 M4 A5, Q-S4-5), the ONE hunk this golden was
+ * predicted to take: the sub-agent's `read` row sits on the AI message of the
+ * assistant step that precedes it (`messages[0]`, "Looking at README.md."),
+ * and the `content: ""` message that carried it until A5 (`messages[1]`) is
  * gone — the canonical builder attaches a tool row to its scope's current AI
- * message, and the translator emits the steps as events in order. Nothing else
- * in this golden moves. A second hunk is a pause.
+ * message, the shape native's sub-agent transcripts took at M2 (F-M0-1), and
+ * A5 aligned `extractConversationSteps` before the swap so the swap moves
+ * nothing.
  *
  * On the record as found (S5's, not S4's): the `task` row's `result` and the
  * sub-agent's `output` are two copies of one stringified object.
@@ -172,14 +175,13 @@ describe("ExecuteCursor hermetic — sub-agent delegation", () => {
     expect(sub.startedAt < sub.completedAt).toBe(true);
     expect(sub.output, "the stringified task result").toBe(JSON.stringify(TASK_RESULT));
 
-    // The rebuilt transcript, as it is today: a tool step is its OWN empty AI
-    // message (the M4 hunk, Q-S4-5, joins it to the assistant step before it).
+    // The rebuilt transcript: the tool step joins the assistant step that
+    // proposed it (Q-S4-5), the root transcript's own boundary rule.
     expect(sub.messages.map((m) => [m.type, m.content, m.toolCalls.map((tc) => tc.id)])).toEqual([
-      [MessageType.MESSAGE_AI, HELPER_OPENING, []],
-      [MessageType.MESSAGE_AI, "", [SUB_READ_CALL_ID]],
+      [MessageType.MESSAGE_AI, HELPER_OPENING, [SUB_READ_CALL_ID]],
       [MessageType.MESSAGE_AI, HELPER_ANSWER, []],
     ]);
-    const subRead = sub.messages[1].toolCalls[0];
+    const subRead = sub.messages[0].toolCalls[0];
     expect(subRead.name, "the bare tool name from the readToolCall key").toBe("read");
     expect(subRead.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
     expect(subRead.args).toEqual(HELPER_READ_ARGS);
