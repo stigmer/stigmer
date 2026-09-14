@@ -3,8 +3,7 @@
     {
       "type": "MESSAGE_THINKING",
       "content": "Two commands are needed; I will run them in order.",
-      "timestamp": "2026-01-01T00:00:01.000Z",
-      "isStreaming": true
+      "timestamp": "2026-01-01T00:00:01.000Z"
     },
     {
       "type": "MESSAGE_AI",

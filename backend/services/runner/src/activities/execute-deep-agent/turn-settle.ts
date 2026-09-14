@@ -79,13 +79,19 @@ export async function settleDeepAgentTurn(deps: DeepAgentSettleDeps): Promise<Tu
   // harness's evidence.
   reconcileUnattendedSkips(status, engine.gate.unattendedSkips);
 
+  // The stream is over, however it ended: nothing on the transcript is still
+  // streaming (Q-S4-6, Q-M2-7; S4 M2 C5). Until C5 only a stopped turn's
+  // sub-agent messages were closed here, and a THINKING row the model never
+  // finished persisted `isStreaming: true` in a COMPLETED execution (S4
+  // review finding 6, `approve-all-lease`).
+  transcript.builder.finalize();
+
   if (stream.reason === "interrupted") {
     // A stopped turn aborted the graph run, so any sub-agent the parent had
     // delegated is no longer executing: CANCELLED through the one shared act
-    // (the runtime marks them itself only on its thrown arms), its messages'
-    // streaming flags cleared. There is no review to open.
+    // (the runtime marks them itself only on its thrown arms). There is no
+    // review to open.
     cancelInProgressSubAgentProtos(status.subAgentExecutions);
-    transcript.builder.finalize();
     return { kind: "interrupted" };
   }
 

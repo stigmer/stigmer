@@ -4,7 +4,11 @@
  *
  * Turn 1: the model thinks (a leading reasoning block, persisted as a
  * THINKING message), says it will run two commands, and proposes the first
- * gated `execute`; the gate pauses; WAITING_FOR_APPROVAL.
+ * gated `execute`; the gate pauses; WAITING_FOR_APPROVAL. The THINKING row
+ * is closed — since S4 M2 C5 the settle finalizes every streaming flag
+ * however the stream ended (Q-S4-6); until then this row persisted
+ * `isStreaming: true` in both goldens, the one rendered defect the S4
+ * review found on native (finding 6).
  *
  * Between turns: APPROVE_ALL on the WAITING row. `deriveActiveLeases`
  * reduces it to the scope of the tool it was made on — for a built-in, its
