@@ -130,6 +130,7 @@ import {
   newApplyPhaseFilterStep,
   newBuildExecutionListResponseStep,
   newQueryAllExecutionsStep,
+  newRestrictByReadScopeStep,
   newQueryExecutionsBySessionStep,
   newValidateListBySessionRequestStep,
   newValidateListRequestStep,
@@ -320,7 +321,9 @@ async function createExecution(
     .addStep(newValidateThinkingModeStep(deps.modelRegistry))
     .addStep(newResolveDefaultAgentStep(deps.store, deps.logger))
     .addStep(newEnsureSessionOrAgentResolvedStep(deps.logger))
-    .addStep(newAuthorizeRunTargetStep(deps.authorizer, agentExecutionRunTarget))
+    .addStep(
+      newAuthorizeRunTargetStep(deps.authorizer, agentExecutionRunTarget),
+    )
     .addStep(newResolveSlugStep())
     .addStep(newBuildNewStateStep())
     // Vouches the runner-stamped workflow lineage labels (or refuses a
@@ -549,10 +552,9 @@ async function list(
       ),
     )
     .addStep(newValidateListRequestStep())
-    .addStep(
-      newQueryAllExecutionsStep(deps.store, deps.logger, deps.listReadScope),
-    )
+    .addStep(newQueryAllExecutionsStep(deps.store, deps.logger))
     .addStep(newApplyPhaseFilterStep(deps.logger))
+    .addStep(newRestrictByReadScopeStep(deps.listReadScope))
     .addStep(newBuildExecutionListResponseStep())
     .build()
     .execute(reqCtx);
@@ -582,7 +584,11 @@ async function listBySession(
     )
     .addStep(newValidateListBySessionRequestStep())
     .addStep(
-      newQueryExecutionsBySessionStep(deps.store, deps.logger, deps.listReadScope),
+      newQueryExecutionsBySessionStep(
+        deps.store,
+        deps.logger,
+        deps.listReadScope,
+      ),
     )
     .addStep(newBuildExecutionListResponseStep())
     .build()

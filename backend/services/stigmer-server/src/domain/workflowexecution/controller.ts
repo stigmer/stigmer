@@ -230,7 +230,8 @@ export function registerWorkflowExecutionServices(
   router.service(WorkflowExecutionQueryController, {
     get: (id, ctx) => get(deps, id, ctx),
     list: (req, ctx) => list(deps, req, callerIdentityOf(ctx)),
-    listByWorkflow: (req, ctx) => listByWorkflow(deps, req, callerIdentityOf(ctx)),
+    listByWorkflow: (req, ctx) =>
+      listByWorkflow(deps, req, callerIdentityOf(ctx)),
     subscribe: (req, ctx) => subscribeExecution(deps, req, ctx),
     getEventLog: (req, ctx) => getEventLog(deps, req, callerIdentityOf(ctx)),
     subscribeEvents: (req, ctx) => subscribeEvents(deps, req, ctx),
@@ -482,33 +483,37 @@ async function get(
  * filter.phases is absent), structured filter criteria (T13), and the
  * sort default started_at descending. No pagination (total_pages
  * placeholder 1). With a composed ListReadScope (20260830.01, census
- * lane 6) the scan narrows to the caller's authorized executions and the
+ * lane 6) the list narrows to the caller's authorized executions and the
  * request `org` narrows when non-blank (the Java
  * WorkflowExecutionListHandler baseline: blank = permission-bounded
  * across orgs); no scope = the full scan with `org` a deliberate no-op
- * on this single-tenant edition — byte-identical.
+ * on this single-tenant edition — byte-identical. The scope runs AFTER
+ * the phase and criteria filters (stigmer-cloud 20260913.04 T02: the
+ * scope is the last per-row predicate), so a composed driver is asked
+ * about the rows the request keeps, not the kind.
  */
 async function list(
   deps: WorkflowExecutionControllerDeps,
   req: ListWorkflowExecutionsRequest,
   identity: CallerIdentity,
 ): Promise<WorkflowExecutionList> {
-  let executions = await restrictListByReadScope(
-    deps.listReadScope,
-    identity,
-    ApiResourceKind.workflow_execution,
-    await loadAllWorkflowExecutions(
-      deps.store,
-      deps.logger,
-      "failed to list workflow executions",
-    ),
-    req.org,
+  let executions = await loadAllWorkflowExecutions(
+    deps.store,
+    deps.logger,
+    "failed to list workflow executions",
   );
 
   if (req.filter === undefined || req.filter.phases.length === 0) {
     executions = applyLegacyPhaseFilter(executions, req.phase);
   }
   executions = applyFilterCriteria(executions, req.filter);
+  executions = await restrictListByReadScope(
+    deps.listReadScope,
+    identity,
+    ApiResourceKind.workflow_execution,
+    executions,
+    req.org,
+  );
 
   let sortField = req.sortField;
   let ascending = req.sortAscending;
@@ -538,26 +543,27 @@ async function listByWorkflow(
     throw invalidArgumentError("workflow_id is required");
   }
 
-  // Census lane 7: authorized ids ∩ workflow filter; the Java handler
-  // never consults org on this lane (bounded by the workflow id).
-  const all = await restrictListByReadScope(
-    deps.listReadScope,
-    identity,
-    ApiResourceKind.workflow_execution,
-    await loadAllWorkflowExecutions(
-      deps.store,
-      deps.logger,
-      "failed to list workflow executions",
-    ),
-    "",
+  // Census lane 7: workflow filter ∩ criteria ∩ authorized ids, the scope
+  // last (bounded by the workflow id; the Java handler never consults org
+  // on this lane).
+  const all = await loadAllWorkflowExecutions(
+    deps.store,
+    deps.logger,
+    "failed to list workflow executions",
   );
   let executions = all.filter(
     (execution) =>
       execution.spec?.workflowInstanceId === req.workflowId ||
       execution.spec?.workflowId === req.workflowId,
   );
-
   executions = applyFilterCriteria(executions, req.filter);
+  executions = await restrictListByReadScope(
+    deps.listReadScope,
+    identity,
+    ApiResourceKind.workflow_execution,
+    executions,
+    "",
+  );
 
   let sortField = req.sortField;
   let ascending = req.sortAscending;
