@@ -141,20 +141,15 @@ export class TranscriptBuilder {
    * every row. Rows already on the status are indexed here; rows a
    * reinvocation carries over arrive later through {@link seed}, indexed by
    * the same routine, so a re-driven event reconciles onto them either way.
+   *
+   * The builder hands nothing back. A reader holds the status it built the
+   * builder over — `TurnSink.status` in production, the test's own in a
+   * test — so the transcript has one read handle and one write handle, and
+   * no second spelling of either (Q-M5-4).
    */
   constructor(executionId: string, status: AgentExecutionStatus) {
     this.executionId = executionId;
     this.state = new TranscriptState(status);
-  }
-
-  /**
-   * The status this builder builds into — the same object as
-   * `TurnSink.status` when the runtime constructs the builder; a harness
-   * reads rows there. Here for the builder's standalone uses (its tests,
-   * the hermetic fold helpers), which hold no sink.
-   */
-  get status(): AgentExecutionStatus {
-    return this.state.proto;
   }
 
   /**

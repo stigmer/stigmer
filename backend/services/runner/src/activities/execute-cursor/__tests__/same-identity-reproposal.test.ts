@@ -87,7 +87,7 @@ function allToolCalls(messages: AgentMessage[]): ToolCall[] {
 async function laterTurnProposesSameEdit(seeded: AgentMessage[]): Promise<ToolCall[]> {
   new CursorFold({ messages: seeded }).events(toolCallEvent(LATER_ID, "running"), toolCallEvent(LATER_ID, "error", "Blocked by hook")).finalize();
   const ledger: DeniedLedgerEntry[] = [{ toolName: "Write", token: toolCallIdentityToken(allToolCalls(seeded).find((tc) => tc.id === LATER_ID)!) }];
-  return reconcileDeniedToolCalls(builderOver(seeded), ledger);
+  return reconcileDeniedToolCalls(seeded, builderOver(seeded), ledger);
 }
 
 function decisionsTheRuntimeWouldRead(messages: AgentMessage[]): ReadonlyMap<string, ApprovalAction> {

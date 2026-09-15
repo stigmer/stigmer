@@ -241,7 +241,7 @@ describe("reconcileDeniedToolCalls", () => {
     });
     const messages = [aiMessageWith([tc])];
 
-    const reconciled = await reconcileDeniedToolCalls(builderOver(messages), [
+    const reconciled = await reconcileDeniedToolCalls(messages, builderOver(messages), [
       { toolName: "Write", token: grantToken("write", "gated.txt") },
     ]);
 
@@ -280,7 +280,7 @@ describe("reconcileDeniedToolCalls", () => {
     ]);
 
     // MCP tools are keyed name-only (their name is consistent across layers).
-    await reconcileDeniedToolCalls(builderOver(messages), [
+    await reconcileDeniedToolCalls(messages, builderOver(messages), [
       { toolName: "apply_x", token: grantToken("apply_x", "") },
     ], policies);
 
@@ -303,7 +303,7 @@ describe("reconcileDeniedToolCalls", () => {
     });
     const messages = [aiMessageWith([denied, allowed])];
 
-    const reconciled = await reconcileDeniedToolCalls(builderOver(messages), [
+    const reconciled = await reconcileDeniedToolCalls(messages, builderOver(messages), [
       { toolName: "Write", token: grantToken("write", "gated.txt") },
     ]);
 
@@ -324,7 +324,7 @@ describe("reconcileDeniedToolCalls", () => {
     const second = toolCall({ id: "c2", name: "edit", args: { path: "gated.txt" } });
     const messages = [aiMessageWith([first, second])];
 
-    const reconciled = await reconcileDeniedToolCalls(builderOver(messages), [
+    const reconciled = await reconcileDeniedToolCalls(messages, builderOver(messages), [
       { toolName: "Write", token: grantToken("write", "gated.txt") },
     ]);
 
@@ -345,7 +345,7 @@ describe("reconcileDeniedToolCalls", () => {
   it("synthesizes a WAITING_APPROVAL tool call when a denial produced no stream event", async () => {
     const messages = [aiMessageWith([])];
 
-    const reconciled = await reconcileDeniedToolCalls(builderOver(messages), [
+    const reconciled = await reconcileDeniedToolCalls(messages, builderOver(messages), [
       { toolName: "Shell", token: grantToken("shell", "rm -rf build") },
     ]);
 
@@ -364,7 +364,7 @@ describe("reconcileDeniedToolCalls", () => {
   it("is a no-op when the ledger is empty", async () => {
     const tc = toolCall({ id: "c1", status: ToolCallStatus.TOOL_CALL_COMPLETED });
     const messages = [aiMessageWith([tc])];
-    expect(await reconcileDeniedToolCalls(builderOver(messages), [])).toEqual([]);
+    expect(await reconcileDeniedToolCalls(messages, builderOver(messages), [])).toEqual([]);
     expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
   });
 });
@@ -392,7 +392,7 @@ describe("reconcileDeniedToolCalls — duplicate denial-twin collapse", () => {
     });
     const messages = [aiMessageWith([gate, twin])];
 
-    const reconciled = await reconcileDeniedToolCalls(builderOver(messages),
+    const reconciled = await reconcileDeniedToolCalls(messages, builderOver(messages),
       [{ toolName: "Write", token: grantToken("write", "notes.md") }],
       undefined,
       rootBackend(),
@@ -432,7 +432,7 @@ describe("reconcileDeniedToolCalls — duplicate denial-twin collapse", () => {
     });
     const messages = [aiMessageWith([gate, twin])];
 
-    const reconciled = await reconcileDeniedToolCalls(builderOver(messages),
+    const reconciled = await reconcileDeniedToolCalls(messages, builderOver(messages),
       [{ toolName: "Shell", token: grantToken("shell", "rm -rf build") }],
       undefined,
       rootBackend(),
@@ -469,7 +469,7 @@ describe("reconcileDeniedToolCalls — duplicate denial-twin collapse", () => {
     });
     const messages = [aiMessageWith([gateA, gateB])];
 
-    const reconciled = await reconcileDeniedToolCalls(builderOver(messages),
+    const reconciled = await reconcileDeniedToolCalls(messages, builderOver(messages),
       [
         // The hook records the content-exact token for an edit (its primary token).
         { toolName: "Write", token: toolCallIdentityToken(gateA) },
@@ -506,7 +506,7 @@ describe("reconcileDeniedToolCalls — duplicate denial-twin collapse", () => {
     });
     const messages = [aiMessageWith([gate, twin])];
 
-    await reconcileDeniedToolCalls(builderOver(messages),
+    await reconcileDeniedToolCalls(messages, builderOver(messages),
       [{ toolName: "Write", token: grantToken("write", "notes.md") }],
       undefined,
       rootBackend(),
@@ -549,7 +549,7 @@ describe("reconcileDeniedToolCalls — one gate per turn (deny-only workaround)"
     });
     const messages = [aiMessageWith([edit, shell])];
 
-    const reconciled = await reconcileDeniedToolCalls(builderOver(messages),
+    const reconciled = await reconcileDeniedToolCalls(messages, builderOver(messages),
       [
         { toolName: "Write", token: grantToken("write", "notes.md") },
         { toolName: "Shell", token: grantToken("shell", "cat > notes.md") },
@@ -591,7 +591,7 @@ describe("reconcileDeniedToolCalls — one gate per turn (deny-only workaround)"
     });
     const messages = [aiMessageWith([edit]), aiMessageWith([shell])];
 
-    const reconciled = await reconcileDeniedToolCalls(builderOver(messages),
+    const reconciled = await reconcileDeniedToolCalls(messages, builderOver(messages),
       [
         { toolName: "Write", token: grantToken("write", "notes.md") },
         { toolName: "Shell", token: grantToken("shell", "cat > notes.md") },
@@ -626,7 +626,7 @@ describe("reconcileDeniedToolCalls — one gate per turn (deny-only workaround)"
     });
     const messages = [aiMessageWith([shell, edit])];
 
-    const reconciled = await reconcileDeniedToolCalls(builderOver(messages),
+    const reconciled = await reconcileDeniedToolCalls(messages, builderOver(messages),
       [
         { toolName: "Shell", token: toolCallIdentityToken(shell) },
         { toolName: "Write", token: toolCallIdentityToken(edit) },
@@ -660,7 +660,7 @@ describe("reconcileDeniedToolCalls — one gate per turn (deny-only workaround)"
     });
     const messages = [aiMessageWith([mcp, edit])];
 
-    const reconciled = await reconcileDeniedToolCalls(builderOver(messages),
+    const reconciled = await reconcileDeniedToolCalls(messages, builderOver(messages),
       [
         { toolName: "fetch", token: toolCallIdentityToken(mcp) },
         { toolName: "Write", token: toolCallIdentityToken(edit) },
@@ -685,7 +685,7 @@ describe("reconcileDeniedToolCalls — one gate per turn (deny-only workaround)"
     });
     const messages = [aiMessageWith([edit])];
 
-    const reconciled = await reconcileDeniedToolCalls(builderOver(messages),
+    const reconciled = await reconcileDeniedToolCalls(messages, builderOver(messages),
       [{ toolName: "Write", token: grantToken("write", "notes.md") }],
       undefined,
       rootBackend(),
@@ -717,7 +717,7 @@ describe("reconcileDeniedToolCalls — one gate per turn (deny-only workaround)"
     });
     const messages = [aiMessageWith([edit, shell])];
 
-    const reconciled = await reconcileDeniedToolCalls(builderOver(messages),
+    const reconciled = await reconcileDeniedToolCalls(messages, builderOver(messages),
       [
         { toolName: "Write", token: grantToken("write", "notes.md") },
         { toolName: "Shell", token: grantToken("shell", "cat > notes.md") },
@@ -792,7 +792,7 @@ describe("reconcileDeniedToolCalls — interrupted non-terminal rows (raced work
     ];
 
     // Only the anchor's denial is in the ledger — the workaround's raced it.
-    const reconciled = await reconcileDeniedToolCalls(builderOver(messages),
+    const reconciled = await reconcileDeniedToolCalls(messages, builderOver(messages),
       [{ toolName: "Shell", token: toolCallIdentityToken(anchor) }],
       undefined,
       rootBackend(),
@@ -838,7 +838,7 @@ describe("reconcileDeniedToolCalls — interrupted non-terminal rows (raced work
       create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, content: "trailing reaction" }),
     ];
 
-    const reconciled = await reconcileDeniedToolCalls(builderOver(messages),
+    const reconciled = await reconcileDeniedToolCalls(messages, builderOver(messages),
       [{ toolName: "Shell", token: toolCallIdentityToken(anchor) }],
       undefined,
       rootBackend(),
@@ -1055,7 +1055,7 @@ describe("reconcileDeniedToolCalls — authoritative hook input overlay", () => 
     });
     const messages = [aiMessageWith([tc])];
 
-    await reconcileDeniedToolCalls(builderOver(messages),
+    await reconcileDeniedToolCalls(messages, builderOver(messages),
       [{
         toolName: "Write",
         token: grantToken("write", "src/new.ts"),
@@ -1085,7 +1085,7 @@ describe("reconcileDeniedToolCalls — authoritative hook input overlay", () => 
     });
     const messages = [aiMessageWith([tc])];
 
-    await reconcileDeniedToolCalls(builderOver(messages),
+    await reconcileDeniedToolCalls(messages, builderOver(messages),
       [{
         toolName: "Write",
         token: grantToken("write", ".env"),
@@ -1109,7 +1109,7 @@ describe("reconcileDeniedToolCalls — authoritative hook input overlay", () => 
     });
     const messages = [aiMessageWith([tc])];
 
-    await reconcileDeniedToolCalls(builderOver(messages),
+    await reconcileDeniedToolCalls(messages, builderOver(messages),
       [{
         toolName: "StrReplace",
         token: grantToken("write", "src/app.ts"),
@@ -1133,7 +1133,7 @@ describe("reconcileDeniedToolCalls — authoritative hook input overlay", () => 
     });
     const messages = [aiMessageWith([tc])];
 
-    await reconcileDeniedToolCalls(builderOver(messages),
+    await reconcileDeniedToolCalls(messages, builderOver(messages),
       [{
         toolName: "EditNotebook",
         token: grantToken("write", "nb.ipynb"),
@@ -1155,7 +1155,7 @@ describe("reconcileDeniedToolCalls — authoritative hook input overlay", () => 
     });
     const messages = [aiMessageWith([tc])];
 
-    await reconcileDeniedToolCalls(builderOver(messages),
+    await reconcileDeniedToolCalls(messages, builderOver(messages),
       [{
         toolName: "Shell",
         token: grantToken("shell", "rm -rf build"),
@@ -1174,7 +1174,7 @@ describe("reconcileDeniedToolCalls — authoritative hook input overlay", () => 
     // proposed content from the captured input, not a bare {path}.
     const messages = [aiMessageWith([])];
 
-    const reconciled = await reconcileDeniedToolCalls(builderOver(messages),
+    const reconciled = await reconcileDeniedToolCalls(messages, builderOver(messages),
       [{
         toolName: "Write",
         token: grantToken("write", "ghost.md"),
@@ -1200,7 +1200,7 @@ describe("reconcileDeniedToolCalls — authoritative hook input overlay", () => 
     });
     const messages = [aiMessageWith([tc])];
 
-    await reconcileDeniedToolCalls(builderOver(messages),
+    await reconcileDeniedToolCalls(messages, builderOver(messages),
       [{
         toolName: "Write",
         token: grantToken("write", "big.ts"),
@@ -1241,7 +1241,7 @@ describe("reconcileDeniedToolCalls — normalized-path fallback (abs/rel drift)"
     });
     const messages = [aiMessageWith([streamed])];
 
-    const reconciled = await reconcileDeniedToolCalls(builderOver(messages),
+    const reconciled = await reconcileDeniedToolCalls(messages, builderOver(messages),
       [{ toolName: "Write", token: grantToken("write", "/root/notes.md") }],
       undefined,
       rootBackend(),
@@ -1269,7 +1269,7 @@ describe("reconcileDeniedToolCalls — normalized-path fallback (abs/rel drift)"
     });
     const messages = [aiMessageWith([streamed])];
 
-    await reconcileDeniedToolCalls(builderOver(messages),
+    await reconcileDeniedToolCalls(messages, builderOver(messages),
       [{ toolName: "Write", token: grantToken("write", "/root/src/app.ts") }],
       undefined,
       rootBackend(),
@@ -1284,7 +1284,7 @@ describe("reconcileDeniedToolCalls — normalized-path fallback (abs/rel drift)"
     // The genuine no-stream-event denial (rare) must still surface a gate.
     const messages = [aiMessageWith([])];
 
-    const reconciled = await reconcileDeniedToolCalls(builderOver(messages),
+    const reconciled = await reconcileDeniedToolCalls(messages, builderOver(messages),
       [{ toolName: "Write", token: grantToken("write", "/root/ghost.md") }],
       undefined,
       rootBackend(),
@@ -1306,7 +1306,7 @@ describe("reconcileDeniedToolCalls — normalized-path fallback (abs/rel drift)"
     });
     const messages = [aiMessageWith([streamed])];
 
-    const reconciled = await reconcileDeniedToolCalls(builderOver(messages),
+    const reconciled = await reconcileDeniedToolCalls(messages, builderOver(messages),
       [{ toolName: "Write", token: grantToken("write", "/root/notes.md") }],
       undefined,
       rootBackend(),
@@ -1544,7 +1544,7 @@ describe("first-denial stop contract", () => {
     expect(messages.some((m) => m.content.includes("try the shell"))).toBe(false);
 
     // Phase 12 reconcile + redact on the stopped transcript yields the clean shape.
-    const denied = await reconcileDeniedToolCalls(builderOver(messages), await readDenialLedger(ws));
+    const denied = await reconcileDeniedToolCalls(messages, builderOver(messages), await readDenialLedger(ws));
     expect(denied).toHaveLength(1);
     expect(edit.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
     const redacted = clearProvisionalPostDenialNarration(messages, denied);
@@ -1588,7 +1588,8 @@ describe("first-denial stop contract", () => {
     expect(cancelled).toBe(false);
     expect(consumed).toBe(3); // the whole turn is consumed
     // And the boundary reconcile manufactures no gate from it either.
-    const denied = await reconcileDeniedToolCalls(builderOver([]), await readDenialLedger(ws));
+    const messages: AgentMessage[] = [];
+    const denied = await reconcileDeniedToolCalls(messages, builderOver(messages), await readDenialLedger(ws));
     expect(denied).toEqual([]);
   });
 
@@ -1619,7 +1620,7 @@ describe("first-denial stop contract", () => {
 
     // Phase 12 on the stopped transcript: the anchor gates, and the one raced
     // reaction message is blanked by the trim backstop.
-    const denied = await reconcileDeniedToolCalls(builderOver(messages), await readDenialLedger(ws), undefined, rootBackend());
+    const denied = await reconcileDeniedToolCalls(messages, builderOver(messages), await readDenialLedger(ws), undefined, rootBackend());
     expect(denied).toHaveLength(1);
     expect(shell.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
     const redacted = clearProvisionalPostDenialNarration(messages, denied);
@@ -1790,7 +1791,7 @@ describe("reconcileDeniedToolCalls — non-approval kinds never gate", () => {
       error: "blocked by a hook", args: { path: ".env" },
     });
     const messages = [aiMessageWith([secretRow])];
-    const denied = await reconcileDeniedToolCalls(builderOver(messages), [
+    const denied = await reconcileDeniedToolCalls(messages, builderOver(messages), [
       { toolName: "Write", token: toolCallIdentityToken(secretRow), kind: "secret" },
       { toolName: "Write", token: grantToken("write", "app.log"), kind: "capture-error" },
       { toolName: "Shell", token: grantToken("shell", "make"), kind: "fail-closed" },
@@ -1812,7 +1813,7 @@ describe("reconcileDeniedToolCalls — non-approval kinds never gate", () => {
       error: "blocked by a hook", args: { path: ".env" },
     });
     const messages = [aiMessageWith([gated, secretRow])];
-    const denied = await reconcileDeniedToolCalls(builderOver(messages), [
+    const denied = await reconcileDeniedToolCalls(messages, builderOver(messages), [
       // Ledger order puts the secret FIRST: the anchor must still be the first
       // APPROVAL entry, never a non-approval kind.
       { toolName: "Write", token: toolCallIdentityToken(secretRow), kind: "secret" },

@@ -4,7 +4,7 @@ import { writeFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { create } from "@bufbuild/protobuf";
-import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { type AgentExecutionStatus, AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ExecutionArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { InlinePublisher } from "../inline-publisher.js";
 import { TranscriptBuilder } from "../../../harness/transcript/builder.js";
@@ -15,8 +15,10 @@ import type { WorkspaceBackend } from "../../../shared/workspace/types.js";
 
 // The publisher registers artifacts on the transcript builder (`addArtifact`);
 // the one builder since S3 M2b.
-function makeStatusBuilder(): TranscriptBuilder {
-  return new TranscriptBuilder("exec-test", create(AgentExecutionStatusSchema, {}));
+/** A builder and the status it builds into: the test writes through `sb` and reads `status`, as production reads `TurnSink.status`. */
+function makeStatusBuilder(): { sb: TranscriptBuilder; status: AgentExecutionStatus } {
+  const status = create(AgentExecutionStatusSchema, {});
+  return { sb: new TranscriptBuilder("exec-test", status), status };
 }
 
 function mockWorkspaceBackend(files: Record<string, string>): WorkspaceBackend {
@@ -56,12 +58,13 @@ function sha256(content: string): string {
 
 describe("InlinePublisher", () => {
   let sb: TranscriptBuilder;
+  let status: AgentExecutionStatus;
   let storage: ReturnType<typeof mockArtifactStorage>;
   let backend: WorkspaceBackend;
   let publisher: InlinePublisher;
 
   beforeEach(() => {
-    sb = makeStatusBuilder();
+    ({ sb, status } = makeStatusBuilder());
     storage = mockArtifactStorage();
     backend = mockWorkspaceBackend({ "src/main.ts": "console.log('hello');" });
     publisher = new InlinePublisher({
@@ -76,9 +79,9 @@ describe("InlinePublisher", () => {
     await publisher.publish("src/main.ts");
 
     expect(storage.uploadedKeys).toEqual(["artifacts/exec-123/main.ts"]);
-    expect(sb.status.artifacts).toHaveLength(1);
+    expect(status.artifacts).toHaveLength(1);
 
-    const artifact = sb.status.artifacts[0];
+    const artifact = status.artifacts[0];
     expect(artifact.name).toBe("main.ts");
     expect(artifact.sandboxPath).toBe("src/main.ts");
     expect(artifact.kind).toBe(ExecutionArtifactKind.FILE);
@@ -90,8 +93,8 @@ describe("InlinePublisher", () => {
   it("strips leading slashes from paths", async () => {
     await publisher.publish("/src/main.ts");
 
-    expect(sb.status.artifacts).toHaveLength(1);
-    expect(sb.status.artifacts[0].sandboxPath).toBe("src/main.ts");
+    expect(status.artifacts).toHaveLength(1);
+    expect(status.artifacts[0].sandboxPath).toBe("src/main.ts");
   });
 
   it("deduplicates by path + content hash", async () => {
@@ -99,7 +102,7 @@ describe("InlinePublisher", () => {
     await publisher.publish("src/main.ts");
 
     expect(storage.uploadedKeys).toHaveLength(1);
-    expect(sb.status.artifacts).toHaveLength(1);
+    expect(status.artifacts).toHaveLength(1);
   });
 
   it("re-publishes when content changes", async () => {
@@ -109,8 +112,8 @@ describe("InlinePublisher", () => {
     await publisher.publish("src/main.ts");
 
     expect(storage.uploadedKeys).toHaveLength(2);
-    expect(sb.status.artifacts).toHaveLength(1);
-    expect(sb.status.artifacts[0].contentHash).toBe(sha256("updated content"));
+    expect(status.artifacts).toHaveLength(1);
+    expect(status.artifacts[0].contentHash).toBe(sha256("updated content"));
   });
 
   it("exposes published paths for dedup by auto-publish", async () => {
@@ -134,7 +137,7 @@ describe("InlinePublisher", () => {
 
     await pub.publish("nonexistent.txt");
 
-    expect(sb.status.artifacts).toHaveLength(0);
+    expect(status.artifacts).toHaveLength(0);
     expect(warnSpy).toHaveBeenCalledWith(
       expect.stringContaining("[InlinePublisher]"),
     );
@@ -149,7 +152,7 @@ describe("InlinePublisher", () => {
 
     await publisher.publish("src/main.ts");
 
-    expect(sb.status.artifacts).toHaveLength(0);
+    expect(status.artifacts).toHaveLength(0);
     expect(warnSpy).toHaveBeenCalled();
     warnSpy.mockRestore();
   });
@@ -160,7 +163,7 @@ describe("InlinePublisher", () => {
     const expected = createHash("sha256")
       .update(Buffer.from("console.log('hello');", "utf-8"))
       .digest("hex");
-    expect(sb.status.artifacts[0].contentHash).toBe(expected);
+    expect(status.artifacts[0].contentHash).toBe(expected);
   });
 
   it("never publishes a secret-like file to artifact storage (design doc 12, D4)", async () => {
@@ -179,7 +182,7 @@ describe("InlinePublisher", () => {
     await pub.publish(".env");
 
     expect(storage.uploadedKeys).toHaveLength(0);
-    expect(sb.status.artifacts).toHaveLength(0);
+    expect(status.artifacts).toHaveLength(0);
     expect(readSpy).not.toHaveBeenCalled(); // withheld before the file is even read
     expect(pub.publishedPaths.size).toBe(0);
   });
@@ -209,7 +212,8 @@ describe("InlinePublisher with LocalWorkspaceBackend (disk-backed)", () => {
     await mkdir(join(dir, "src"), { recursive: true });
     await writeFile(join(dir, "src/app.ts"), "export const x = 42;", "utf-8");
 
-    const sb = new TranscriptBuilder("exec-disk", create(AgentExecutionStatusSchema, {}));
+    const status = create(AgentExecutionStatusSchema, {});
+    const sb = new TranscriptBuilder("exec-disk", status);
     const storage = mockArtifactStorage();
     const backend = new LocalWorkspaceBackend(dir);
 
@@ -222,8 +226,8 @@ describe("InlinePublisher with LocalWorkspaceBackend (disk-backed)", () => {
 
     await publisher.publish("src/app.ts");
 
-    expect(sb.status.artifacts).toHaveLength(1);
-    const artifact = sb.status.artifacts[0];
+    expect(status.artifacts).toHaveLength(1);
+    const artifact = status.artifacts[0];
     expect(artifact.name).toBe("app.ts");
     expect(artifact.sandboxPath).toBe("src/app.ts");
     expect(artifact.kind).toBe(ExecutionArtifactKind.FILE);
@@ -237,7 +241,8 @@ describe("InlinePublisher with LocalWorkspaceBackend (disk-backed)", () => {
     const dir = join(tmpdir(), `stigmer-publisher-test-${Date.now()}`);
     await mkdir(dir, { recursive: true });
 
-    const sb = new TranscriptBuilder("exec-miss", create(AgentExecutionStatusSchema, {}));
+    const status = create(AgentExecutionStatusSchema, {});
+    const sb = new TranscriptBuilder("exec-miss", status);
     const storage = mockArtifactStorage();
     const backend = new LocalWorkspaceBackend(dir);
 
@@ -250,7 +255,7 @@ describe("InlinePublisher with LocalWorkspaceBackend (disk-backed)", () => {
 
     await publisher.publish("nonexistent.ts");
 
-    expect(sb.status.artifacts).toHaveLength(0);
+    expect(status.artifacts).toHaveLength(0);
     expect(storage.uploadedKeys).toHaveLength(0);
     expect(warnSpy).toHaveBeenCalledWith(
       expect.stringContaining("[InlinePublisher]"),

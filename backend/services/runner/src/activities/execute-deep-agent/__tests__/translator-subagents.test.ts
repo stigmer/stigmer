@@ -15,7 +15,7 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { type AgentExecutionStatus, AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import { SubAgentStatus, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { cancelInProgressSubAgentProtos } from "../../../shared/subagent-rows.js";
@@ -35,8 +35,10 @@ import {
   makeProtocolEvent,
 } from "../__test-utils__/v3-event-fixtures.js";
 
-function makeBuilder(): TranscriptBuilder {
-  return new TranscriptBuilder("exec-test", create(AgentExecutionStatusSchema, {}));
+/** A builder and the status it builds into: the test writes through `sb` and reads `status`, as production reads `TurnSink.status`. */
+function makeBuilder(): { sb: TranscriptBuilder; status: AgentExecutionStatus } {
+  const status = create(AgentExecutionStatusSchema, {});
+  return { sb: new TranscriptBuilder("exec-test", status), status };
 }
 
 /** The loop's path: one translator for the turn (it holds the task prefixes), every canonical event into the builder. */
@@ -100,14 +102,14 @@ describe("sub-agent transcripts (the translator and the builder together)", () =
 
   describe("lifecycle — happy path", () => {
     it("creates SubAgentExecution on task tool_started", () => {
-      const sb = makeBuilder();
+      const { sb, status } = makeBuilder();
       feedAll(sb, [
         makeMessageStart("parent-1"),
         makeTextDelta("parent-1", "Delegating to researcher."),
         makeMessageFinish("parent-1"),
         makeTaskToolStarted("call_sub_1", "researcher", "Research renewable energy"),
       ]);
-      const subs = sb.status.subAgentExecutions;
+      const subs = status.subAgentExecutions;
       expect(subs).toHaveLength(1);
       expect(subs[0].id).toBe("call_sub_1");
       expect(subs[0].name).toBe("researcher");
@@ -118,24 +120,24 @@ describe("sub-agent transcripts (the translator and the builder together)", () =
     });
 
     it("marks SubAgentExecution COMPLETED on task tool_finished", () => {
-      const sb = makeBuilder();
+      const { sb, status } = makeBuilder();
       feedAll(sb, [
         makeTaskToolStarted("call_sub_1", "researcher", "Research topic"),
         makeTaskToolFinished("call_sub_1", "Renewable energy summary here."),
       ]);
-      const sub = sb.status.subAgentExecutions[0];
+      const sub = status.subAgentExecutions[0];
       expect(sub.status).toBe(SubAgentStatus.SUB_AGENT_COMPLETED);
       expect(sub.output).toBe("Renewable energy summary here.");
       expect(sub.completedAt).toBeTruthy();
     });
 
     it("marks SubAgentExecution FAILED on task tool_error", () => {
-      const sb = makeBuilder();
+      const { sb, status } = makeBuilder();
       feedAll(sb, [
         makeTaskToolStarted("call_sub_1", "researcher", "Research topic"),
         makeTaskToolError("call_sub_1", "Context overflow in sub-agent"),
       ]);
-      const sub = sb.status.subAgentExecutions[0];
+      const sub = status.subAgentExecutions[0];
       expect(sub.status).toBe(SubAgentStatus.SUB_AGENT_FAILED);
       expect(sub.error).toBe("Context overflow in sub-agent");
       expect(sub.completedAt).toBeTruthy();
@@ -144,14 +146,14 @@ describe("sub-agent transcripts (the translator and the builder together)", () =
 
   describe("lifecycle — a stopped turn (the shared cancel act + the tracker's streaming finalize)", () => {
     it("the shared cancelInProgressSubAgentProtos marks the tracked rows CANCELLED in place", () => {
-      const sb = makeBuilder();
+      const { sb, status } = makeBuilder();
       feedAll(sb, [
         makeTaskToolStarted("call_sub_1", "researcher", "Task 1"),
         makeTaskToolStarted("call_sub_2", "shell", "Task 2"),
       ]);
 
-      cancelInProgressSubAgentProtos(sb.status.subAgentExecutions);
-      const subs = sb.status.subAgentExecutions;
+      cancelInProgressSubAgentProtos(status.subAgentExecutions);
+      const subs = status.subAgentExecutions;
       expect(subs).toHaveLength(2);
       expect(subs[0].status).toBe(SubAgentStatus.SUB_AGENT_CANCELLED);
       expect(subs[0].completedAt).toBeTruthy();
@@ -159,21 +161,21 @@ describe("sub-agent transcripts (the translator and the builder together)", () =
     });
 
     it("does not cancel already-completed sub-agents", () => {
-      const sb = makeBuilder();
+      const { sb, status } = makeBuilder();
       feedAll(sb, [
         makeTaskToolStarted("call_sub_1", "researcher", "Task 1"),
         makeTaskToolFinished("call_sub_1", "done"),
         makeTaskToolStarted("call_sub_2", "shell", "Task 2"),
       ]);
 
-      cancelInProgressSubAgentProtos(sb.status.subAgentExecutions);
-      const subs = sb.status.subAgentExecutions;
+      cancelInProgressSubAgentProtos(status.subAgentExecutions);
+      const subs = status.subAgentExecutions;
       expect(subs[0].status).toBe(SubAgentStatus.SUB_AGENT_COMPLETED);
       expect(subs[1].status).toBe(SubAgentStatus.SUB_AGENT_CANCELLED);
     });
 
     it("finalize() clears the streaming flag on a sub-agent's in-flight message", () => {
-      const sb = makeBuilder();
+      const { sb, status } = makeBuilder();
       feedAll(sb, [
         makeTaskToolStarted("call_sub_1", "researcher", "Task 1"),
         makeSubAgentEvent("call_sub_1", "messages", { event: "message-start", id: "msg_sub_1", run_id: "sub-run-1" }),
@@ -181,7 +183,7 @@ describe("sub-agent transcripts (the translator and the builder together)", () =
           event: "content-block-delta", index: 0, delta: { type: "text-delta", text: "Half a sente" }, run_id: "sub-run-1",
         }),
       ]);
-      const msg = sb.status.subAgentExecutions[0].messages[0];
+      const msg = status.subAgentExecutions[0].messages[0];
       expect(msg.isStreaming, "the delta left the message streaming").toBe(true);
 
       sb.finalize();
@@ -225,7 +227,7 @@ describe("sub-agent transcripts (the translator and the builder together)", () =
 
   describe("namespace routing — sub-agent messages isolated from parent", () => {
     it("routes sub-agent text events to SubAgentExecution.messages", () => {
-      const sb = makeBuilder();
+      const { sb, status } = makeBuilder();
       feedAll(sb, [
         makeMessageStart("parent-1"),
         makeTextDelta("parent-1", "Delegating."),
@@ -246,21 +248,21 @@ describe("sub-agent transcripts (the translator and the builder together)", () =
       ]);
 
       // Parent messages should NOT contain sub-agent text
-      const parentMessages = sb.status.messages;
+      const parentMessages = status.messages;
       expect(parentMessages).toHaveLength(1);
       expect(parentMessages[0].content).toBe("Delegating.");
       expect(parentMessages[0].toolCalls).toHaveLength(1);
       expect(parentMessages[0].toolCalls[0].name).toBe("task");
 
       // Sub-agent should have its own messages
-      const sub = sb.status.subAgentExecutions[0];
+      const sub = status.subAgentExecutions[0];
       expect(sub.messages).toHaveLength(1);
       expect(sub.messages[0].content).toBe("I found results.");
       expect(sub.messages[0].type).toBe(MessageType.MESSAGE_AI);
     });
 
     it("routes sub-agent thinking events to SubAgentExecution.messages", () => {
-      const sb = makeBuilder();
+      const { sb, status } = makeBuilder();
       feedAll(sb, [
         makeTaskToolStarted("call_sub_1", "researcher", "Research"),
         makeSubAgentEvent("call_sub_1", "messages", {
@@ -280,7 +282,7 @@ describe("sub-agent transcripts (the translator and the builder together)", () =
           event: "message-finish", reason: "end_turn", run_id: "sub-run-1",
         }),
       ]);
-      const sub = sb.status.subAgentExecutions[0];
+      const sub = status.subAgentExecutions[0];
       expect(sub.messages).toHaveLength(2);
       expect(sub.messages[0].type).toBe(MessageType.MESSAGE_THINKING);
       expect(sub.messages[0].content).toBe("Let me think...");
@@ -288,14 +290,14 @@ describe("sub-agent transcripts (the translator and the builder together)", () =
       expect(sub.messages[1].content).toBe("Here are the results.");
 
       // Parent has one message: the AI message hosting the task tool_call
-      expect(sb.status.messages).toHaveLength(1);
-      expect(sb.status.messages[0].toolCalls[0].name).toBe("task");
+      expect(status.messages).toHaveLength(1);
+      expect(status.messages[0].toolCalls[0].name).toBe("task");
     });
   });
 
   describe("sub-agent tool calls", () => {
     it("tracks tool calls within sub-agent context", () => {
-      const sb = makeBuilder();
+      const { sb, status } = makeBuilder();
       const taskCallId = "call_task_1";
       const subToolCallId = "call_grep_1";
 
@@ -321,7 +323,7 @@ describe("sub-agent transcripts (the translator and the builder together)", () =
           output: { lc: 1, type: "constructor", id: ["langchain_core", "messages", "ToolMessage"], kwargs: { content: "Found 3 matches", status: "success", tool_call_id: subToolCallId, name: "grep" } },
         }, { namespace: [toolsNodeSegment(taskCallId), `tools:${subToolCallId}`] }),
       ]);
-      const sub = sb.status.subAgentExecutions[0];
+      const sub = status.subAgentExecutions[0];
       expect(sub.messages).toHaveLength(1);
       expect(sub.messages[0].toolCalls).toHaveLength(1);
       expect(sub.messages[0].toolCalls[0].name).toBe("grep");
@@ -332,7 +334,7 @@ describe("sub-agent transcripts (the translator and the builder together)", () =
 
   describe("multiple concurrent sub-agents", () => {
     it("tracks multiple sub-agents independently", () => {
-      const sb = makeBuilder();
+      const { sb, status } = makeBuilder();
 
       feedAll(sb, [
         makeTaskToolStarted("call_sub_1", "researcher", "Research topic A"),
@@ -364,7 +366,7 @@ describe("sub-agent transcripts (the translator and the builder together)", () =
         makeTaskToolFinished("call_sub_1", "A done"),
         makeTaskToolFinished("call_sub_2", "B done"),
       ]);
-      const subs = sb.status.subAgentExecutions;
+      const subs = status.subAgentExecutions;
       expect(subs).toHaveLength(2);
 
       expect(subs[0].name).toBe("researcher");
@@ -379,7 +381,7 @@ describe("sub-agent transcripts (the translator and the builder together)", () =
     });
 
     it("same sub-agent type invoked twice uses unique callIds", () => {
-      const sb = makeBuilder();
+      const { sb, status } = makeBuilder();
 
       feedAll(sb, [
         makeTaskToolStarted("call_1", "researcher", "Research A"),
@@ -387,7 +389,7 @@ describe("sub-agent transcripts (the translator and the builder together)", () =
         makeTaskToolStarted("call_2", "researcher", "Research B"),
         makeTaskToolFinished("call_2", "Result B"),
       ]);
-      const subs = sb.status.subAgentExecutions;
+      const subs = status.subAgentExecutions;
       expect(subs).toHaveLength(2);
       expect(subs[0].id).toBe("call_1");
       expect(subs[0].output).toBe("Result A");
@@ -398,7 +400,7 @@ describe("sub-agent transcripts (the translator and the builder together)", () =
 
   describe("parent timeline integrity", () => {
     it("task tool_call appears in parent AI message", () => {
-      const sb = makeBuilder();
+      const { sb, status } = makeBuilder();
       feedAll(sb, [
         makeMessageStart("parent-1"),
         makeTextDelta("parent-1", "Let me delegate."),
@@ -409,7 +411,7 @@ describe("sub-agent transcripts (the translator and the builder together)", () =
         makeTextDelta("parent-2", "The research is complete."),
         makeMessageFinish("parent-2"),
       ]);
-      const msgs = sb.status.messages;
+      const msgs = status.messages;
 
       // First AI message has the task tool call
       expect(msgs[0].content).toBe("Let me delegate.");
@@ -426,36 +428,36 @@ describe("sub-agent transcripts (the translator and the builder together)", () =
 
   describe("edge cases", () => {
     it("idempotent on duplicate task tool_started", () => {
-      const sb = makeBuilder();
+      const { sb, status } = makeBuilder();
       feedAll(sb, [
         makeTaskToolStarted("call_sub_1", "researcher", "Research"),
         makeTaskToolStarted("call_sub_1", "researcher", "Research"),
       ]);
-      expect(sb.status.subAgentExecutions).toHaveLength(1);
+      expect(status.subAgentExecutions).toHaveLength(1);
     });
 
     it("handles tool_finished for unknown callId gracefully", () => {
-      const sb = makeBuilder();
+      const { sb, status } = makeBuilder();
       feedAll(sb, [
         makeTaskToolFinished("unknown_call_id", "output"),
       ]);
-      expect(sb.status.subAgentExecutions).toHaveLength(0);
+      expect(status.subAgentExecutions).toHaveLength(0);
     });
 
     it("events for non-tracked namespace pass to parent", () => {
-      const sb = makeBuilder();
+      const { sb, status } = makeBuilder();
       feedAll(sb, [
         makeMessageStart("parent-1"),
         makeTextDelta("parent-1", "Normal text."),
         makeMessageFinish("parent-1"),
       ]);
 
-      expect(sb.status.messages).toHaveLength(1);
-      expect(sb.status.messages[0].content).toBe("Normal text.");
+      expect(status.messages).toHaveLength(1);
+      expect(status.messages[0].content).toBe("Normal text.");
     });
 
     it("depth-0 task tool_started (empty namespace) uses callId-based prefix", () => {
-      const sb = makeBuilder();
+      const { sb, status } = makeBuilder();
       const callId = "call_depth0";
 
       feedAll(sb, [
@@ -478,7 +480,7 @@ describe("sub-agent transcripts (the translator and the builder together)", () =
           event: "message-finish", reason: "end_turn", run_id: "sub-run",
         }, { namespace: [`tools:${callId}`, "model_request"], node: "model_request" }),
       ]);
-      const subs = sb.status.subAgentExecutions;
+      const subs = status.subAgentExecutions;
       expect(subs).toHaveLength(1);
       expect(subs[0].name).toBe("researcher");
       expect(subs[0].messages).toHaveLength(1);
@@ -486,7 +488,7 @@ describe("sub-agent transcripts (the translator and the builder together)", () =
     });
 
     it("depth-1 events with registered prefix but no pipe stay in parent pipeline", () => {
-      const sb = makeBuilder();
+      const { sb, status } = makeBuilder();
       const callId = "call_depth1_test";
 
       feedAll(sb, [
@@ -506,11 +508,11 @@ describe("sub-agent transcripts (the translator and the builder together)", () =
       ]);
       // First message: AI message with task tool call (created by handleToolStarted)
       // Second message: parent text that follows
-      expect(sb.status.messages).toHaveLength(2);
-      expect(sb.status.messages[0].toolCalls[0].name).toBe("task");
-      expect(sb.status.messages[1].content).toBe("Parent continues.");
+      expect(status.messages).toHaveLength(2);
+      expect(status.messages[0].toolCalls[0].name).toBe("task");
+      expect(status.messages[1].content).toBe("Parent continues.");
       // Sub-agent has no messages (only registered, no child events routed)
-      const sub = sb.status.subAgentExecutions[0];
+      const sub = status.subAgentExecutions[0];
       expect(sub.messages).toHaveLength(0);
     });
   });

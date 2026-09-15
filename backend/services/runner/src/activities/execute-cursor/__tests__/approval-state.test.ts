@@ -118,7 +118,8 @@ async function roundTrip(event: Extract<SDKMessage, { type: "tool_call" }>): Pro
     toolCalls: [tc],
   });
   const ledger: DeniedLedgerEntry[] = [{ toolName: tc.name, token: denialToken }];
-  const denied = await reconcileDeniedToolCalls(builderOver([msg]), ledger);
+  const messages: AgentMessage[] = [msg];
+  const denied = await reconcileDeniedToolCalls(messages, builderOver(messages), ledger);
   expect(denied, "the overlay must match the denial token and surface the gate").toHaveLength(1);
 
   // The user approves; the backend persists the decision on the tool call.
@@ -128,7 +129,6 @@ async function roundTrip(event: Extract<SDKMessage, { type: "tool_call" }>): Pro
   // transcript (pending_approvals is already cleared by this point) and mint the
   // grants the next turn's hook reads. The content digest threads through so the
   // grant reproduces the content-exact denial identity.
-  const messages: AgentMessage[] = [msg];
   const { pendingApprovals, decisions, contentDigests } = reconstructAdjudicatedApprovals(messages);
   const grants = buildApprovalGrants(pendingApprovals, decisions, contentDigests);
   expect(grants, "an approved tool must yield exactly one grant").toHaveLength(1);

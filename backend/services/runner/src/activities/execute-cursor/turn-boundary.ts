@@ -189,6 +189,7 @@ export async function runTurnBoundary(opts: TurnBoundaryOptions): Promise<TurnBo
   // paths, so no platformDir routing is needed here.
   const gateWorkspaceBackend = new LocalWorkspaceBackend(primaryWorkspaceDir);
   const deniedToolCalls = await reconcileDeniedToolCalls(
+    status.messages,
     transcript,
     approvalLedger,
     mergedPolicies,

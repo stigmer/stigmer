@@ -153,16 +153,23 @@ function isTerminalToolStatus(status: ToolCallStatus): boolean {
  * whose text proposed it. The builder is the one writer of a WAITING row on
  * both harnesses; this module supplies the fact and reads the row back.
  *
+ * Two handles, one object: `messages` is the root transcript's own array
+ * (`status.messages`, the rows this function reads and matches against) and
+ * `transcript` is the builder that creates rows INTO that same array — it
+ * pushes and never replaces, so a row proposed through the builder is found
+ * in `messages` on the next line. Rows to read, a builder to create through:
+ * the sink's ownership rule, stated in the signature.
+ *
  * Returns the tool calls now marked WAITING_APPROVAL — the single anchor gate
  * for the turn (overlaid or, rarely, synthesized).
  */
 export async function reconcileDeniedToolCalls(
+  messages: AgentMessage[],
   transcript: TranscriptBuilder,
   ledger: DeniedLedgerEntry[],
   mergedPolicies?: ReadonlyMap<string, MergedToolPolicy>,
   workspaceBackend?: WorkspaceBackend,
 ): Promise<ToolCall[]> {
-  const messages = transcript.status.messages;
   // Defense-in-depth: only APPROVAL-kind denials may become approval gates.
   // The turn boundary already passes the filtered subset; re-filtering here
   // makes it structurally impossible for a secret/capture-error/fail-closed
@@ -310,7 +317,7 @@ export async function reconcileDeniedToolCalls(
     // rebuilt from this tool call on reinvocation keys on the same resource.
     const displayName = anchorEntry.toolName || decoded?.key || "tool";
     const salient = decoded?.salient ?? "";
-    const tc = proposeSynthesizedGate(transcript, {
+    const tc = proposeSynthesizedGate(messages, transcript, {
       displayName,
       salient,
       digest: decoded?.digest ?? "",
@@ -365,8 +372,10 @@ function proposeOnStreamedRow(
  * a global bypass or a matching lease, so empty leases + no bypass attribute
  * it faithfully (a built-in resolves to builtin_category; an MCP placeholder
  * lacks a reconstructed slug and stays UNSPECIFIED rather than be mislabeled).
+ * The row is read back from `messages`, the array the builder appended into.
  */
 function proposeSynthesizedGate(
+  messages: readonly AgentMessage[],
   transcript: TranscriptBuilder,
   gate: {
     displayName: string;
@@ -396,7 +405,7 @@ function proposeSynthesizedGate(
     ...(provenance !== undefined ? { provenance } : {}),
     contentDigest: captured ? contentDigest(captured) : digest,
   });
-  const row = findToolCallById(transcript.status.messages, callId);
+  const row = findToolCallById(messages, callId);
   if (!row) throw new Error(`reconcileDeniedToolCalls: the builder did not create the proposed row ${callId}`);
   return row;
 }

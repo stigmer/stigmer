@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { type AgentExecutionStatus, AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { WorkspaceWriteBackPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/writeback_pb";
 import { GitWriteBackMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { TranscriptBuilder } from "../../../harness/transcript/builder.js";
@@ -21,8 +21,10 @@ const SESSION_BRANCH = `stigmer/${SESSION_ID}`;
 // The writer production wires in: the turn's transcript builder, whose
 // `addWriteBack` owns the upsert-by-entry rule these arms read the result of
 // (the coordinator itself only registers records through `WriteBackSink`).
-function makeStatusBuilder(): TranscriptBuilder {
-  return new TranscriptBuilder("exec-test", create(AgentExecutionStatusSchema, {}));
+/** A builder and the status it builds into: the test writes through `sb` and reads `status`, as production reads `TurnSink.status`. */
+function makeStatusBuilder(): { sb: TranscriptBuilder; status: AgentExecutionStatus } {
+  const status = create(AgentExecutionStatusSchema, {});
+  return { sb: new TranscriptBuilder("exec-test", status), status };
 }
 
 function makeProvisionResult(overrides: Partial<ProvisionResult> = {}): ProvisionResult {
@@ -138,9 +140,10 @@ const originalFetch = globalThis.fetch;
 
 describe("WriteBackCoordinator", () => {
   let sb: TranscriptBuilder;
+  let status: AgentExecutionStatus;
 
   beforeEach(() => {
-    sb = makeStatusBuilder();
+    ({ sb, status } = makeStatusBuilder());
     mockGithubApi();
   });
 
@@ -192,7 +195,7 @@ describe("WriteBackCoordinator", () => {
 
     await coord.finalize();
 
-    const wbs = sb.status.workspaceWriteBacks;
+    const wbs = status.workspaceWriteBacks;
     expect(wbs).toHaveLength(1);
     expect(wbs[0].branchName).toBe(SESSION_BRANCH);
     expect(wbs[0].baseBranch).toBe("main");
@@ -236,7 +239,7 @@ describe("WriteBackCoordinator", () => {
 
     await coord.finalize();
 
-    expect(sb.status.workspaceWriteBacks).toHaveLength(0);
+    expect(status.workspaceWriteBacks).toHaveLength(0);
   });
 
   // ── Session-branch idempotency ──────────────────────────────────────
@@ -315,7 +318,7 @@ describe("WriteBackCoordinator", () => {
 
     await coord.finalize();
 
-    const wbs = sb.status.workspaceWriteBacks;
+    const wbs = status.workspaceWriteBacks;
     expect(wbs[0].pullRequestNumber).toBe(7);
     expect(wbs[0].pullRequestUrl).toBe("https://github.com/acme/my-app/pull/7");
     expect(wbs[0].phase).toBe(WorkspaceWriteBackPhase.WORKSPACE_WRITE_BACK_PR_CREATED);
@@ -353,7 +356,7 @@ describe("WriteBackCoordinator", () => {
 
     await coord.finalize();
 
-    const wbs = sb.status.workspaceWriteBacks;
+    const wbs = status.workspaceWriteBacks;
     expect(wbs).toHaveLength(1);
     expect(wbs[0].phase).toBe(WorkspaceWriteBackPhase.WORKSPACE_WRITE_BACK_FAILED);
     expect(wbs[0].error).toContain("commit failed");
@@ -367,7 +370,7 @@ describe("WriteBackCoordinator", () => {
 
     await coord.finalize();
 
-    const wbs = sb.status.workspaceWriteBacks;
+    const wbs = status.workspaceWriteBacks;
     expect(wbs).toHaveLength(1);
     expect(wbs[0].phase,
       "a pushed branch must never be reported FAILED for a PR-step error",
@@ -384,7 +387,7 @@ describe("WriteBackCoordinator", () => {
 
     await coord.finalize();
 
-    const wbs = sb.status.workspaceWriteBacks;
+    const wbs = status.workspaceWriteBacks;
     expect(wbs).toHaveLength(1);
     expect(wbs[0].phase).toBe(WorkspaceWriteBackPhase.WORKSPACE_WRITE_BACK_PUSHED);
     expect(wbs[0].error).toContain("No GitHub token");
@@ -399,8 +402,8 @@ describe("WriteBackCoordinator", () => {
 
     await coord.finalize();
 
-    expect(sb.status.workspaceWriteBacks).toHaveLength(1);
-    expect(sb.status.workspaceWriteBacks[0].phase).toBe(
+    expect(status.workspaceWriteBacks).toHaveLength(1);
+    expect(status.workspaceWriteBacks[0].phase).toBe(
       WorkspaceWriteBackPhase.WORKSPACE_WRITE_BACK_PR_CREATED,
     );
   });

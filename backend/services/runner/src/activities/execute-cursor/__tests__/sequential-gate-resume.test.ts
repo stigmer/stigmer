@@ -144,7 +144,7 @@ describe("Cursor sequential gates A->B across resume", () => {
     const ledger: DeniedLedgerEntry[] = [
       { toolName: "shell", token: toolCallIdentityToken(bCall) },
     ];
-    await reconcileDeniedToolCalls(builderOver(seeded), ledger);
+    await reconcileDeniedToolCalls(seeded, builderOver(seeded), ledger);
 
     const tools = allToolCalls(seeded);
     const byId = new Map(tools.map((tc) => [tc.id, tc]));

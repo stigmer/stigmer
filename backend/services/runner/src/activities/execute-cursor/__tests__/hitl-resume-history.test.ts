@@ -235,7 +235,7 @@ describe("Cursor HITL resume — append-only transcript", () => {
 
     // Post-stream denial overlay (the activity's Phase 12): only `click` is in
     // the ledger, so only it flips to WAITING_APPROVAL.
-    const denied = await reconcileDeniedToolCalls(builderOver(seeded), clickDenialLedger());
+    const denied = await reconcileDeniedToolCalls(seeded, builderOver(seeded), clickDenialLedger());
     const redacted = clearProvisionalPostDenialNarration(seeded, denied);
 
     const tools = allToolCalls(seeded);
@@ -404,7 +404,7 @@ describe("Cursor HITL resume — two approvals then clean completion (no loop)",
     new CursorFold({ messages: seeded }).events(...builtInResumeEvents()).finalize();
 
     // The hook allowed both (no denials this turn), so the overlay adds nothing.
-    const denied = await reconcileDeniedToolCalls(builderOver(seeded), []);
+    const denied = await reconcileDeniedToolCalls(seeded, builderOver(seeded), []);
     expect(denied).toHaveLength(0);
 
     const tools = allToolCalls(seeded);
