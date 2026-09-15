@@ -13,10 +13,22 @@
  * on every other token, so the OSS lanes composed ahead of it keep their
  * claims. Lifted from identity-account-composed.test.ts (20260911.11 slice
  * 3) when a second composed proof needed the same shape (20260913.01 S1).
+ *
+ * `servedServices` reads what a composed server ROUTES without binding a
+ * port: compose.ts hands one `routes` closure to both transports, and
+ * replaying it into a recording router yields the served service
+ * descriptors — the enumeration the tier-truthfulness, annotation and
+ * wire-permission invariants all stand on, kept here so each does not
+ * carry its own recorder.
  */
 import path from "node:path";
 
-import type { Interceptor, Transport } from "@connectrpc/connect";
+import type { DescService } from "@bufbuild/protobuf";
+import type {
+  ConnectRouter,
+  Interceptor,
+  Transport,
+} from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
 
 import { createLogger } from "../../boot/logger.js";
@@ -76,6 +88,25 @@ export function bearer(token: string): Interceptor {
     request.header.set("authorization", `Bearer ${token}`);
     return next(request);
   };
+}
+
+/** Replays a composed server's `routes` closure into a recorder and returns the services it serves. */
+export function servedServices(
+  routes: (router: ConnectRouter) => void,
+): DescService[] {
+  const served: DescService[] = [];
+  const recorder = {
+    handlers: [],
+    service(desc: DescService) {
+      served.push(desc);
+      return recorder;
+    },
+    rpc() {
+      return recorder;
+    },
+  };
+  routes(recorder as unknown as ConnectRouter);
+  return served;
 }
 
 /** A gRPC transport to the composed server on `port`, presenting `token` when given. */

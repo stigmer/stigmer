@@ -18,12 +18,28 @@
  * asserts every `check` in the test whose object's kind the model
  * declares, relation by relation, and FAILS on the first disagreement
  * (the message names the check in the document's own words). Assertions
- * the kit does not run are returned as `skipped`, each with its reason —
- * a kind the model does not declare (the remaining kinds land in slice
- * yet), or a `list_objects` assertion (the list scope's proof) —
+ * the kit does not run are returned as `skipped`, each with its reason,
  * so a consumer pins the list and a document that gains a scenario, or a
  * declaration that lands, is a visible diff and never a quietly smaller
- * proof.
+ * proof. Three reasons: a check whose TARGET kind the model does not
+ * declare (`undeclared-kind`) and every `list_objects` assertion
+ * (`list-objects`, the list scope's proof) are known when the kit is
+ * built; the third is known only from the walk. A document may grant
+ * through a type the model does not declare — the cloud's platform
+ * tenancy reaches people through `identity_provider:<idp>#platform_user`,
+ * a kind this edition does not serve — and OpenFGA answers `true` where
+ * a model without that type resolves the userset to nobody. The kit runs
+ * every assertion over a recording view of the document's tuples, and an
+ * assertion whose walk READ a tuple naming an undeclared type is
+ * reported as `undeclared-subject-type` (the types named) instead of
+ * being asserted, whatever it would have answered: decided from the
+ * model and the data, per assertion, so the sibling arms of the same
+ * check block still run and a union that is settled before it reaches
+ * such a tuple runs too. Over a model that declares every type in the
+ * file (the cloud's drift test, built from the live model) nothing is
+ * recorded and everything runs — the same kit, no edition branch.
+ * `skipped` is therefore complete once every case has run; a consumer
+ * pins it after the cases, which is the order a test file declares them.
  *
  * Context. A check's `context.allow` is the `allow_public` parameter
  * (tuples.ts). A check without a context runs with `allow: false`, the
@@ -38,7 +54,13 @@ import assert from "node:assert/strict";
 
 import { checkRelation } from "./evaluator.js";
 import type { Model } from "./model/index.js";
-import type { CheckContext, Person, Tuple } from "./tuples.js";
+import type {
+  CheckContext,
+  Person,
+  Subject,
+  Tuple,
+  TupleSource,
+} from "./tuples.js";
 import {
   ACCOUNT_TYPE,
   newInMemoryTupleSource,
@@ -250,20 +272,28 @@ export interface StoreTestCase {
   run(): Promise<void>;
 }
 
-export type StoreTestSkipReason = "undeclared-kind" | "list-objects";
+export type StoreTestSkipReason =
+  | "undeclared-kind"
+  | "list-objects"
+  | "undeclared-subject-type";
 
-/** One assertion group the kit did not run, in the document's words. */
+/** One assertion (or assertion group) the kit did not run, in the document's words. */
 export interface StoreTestSkip {
   readonly document: string;
   readonly test: string;
   readonly subject: string;
   /** The check's object, or `<type>` for a list_objects assertion. */
   readonly object: string;
+  /** The one relation, for a skip decided per assertion; absent for a group. */
+  readonly relation?: string;
   readonly reason: StoreTestSkipReason;
+  /** For `undeclared-subject-type`: the types the walk read that the model does not declare, sorted. */
+  readonly types?: ReadonlyArray<string>;
 }
 
 export interface StoreTestKit {
   readonly cases: ReadonlyArray<StoreTestCase>;
+  /** Complete once every case has run (the module header). */
   readonly skipped: ReadonlyArray<StoreTestSkip>;
 }
 
@@ -318,13 +348,26 @@ export function storeTestCases(
           const person = personOf(item.user);
           const context = item.context ?? CONTEXT_WHEN_ABSENT;
           for (const [relation, expected] of Object.entries(item.assertions)) {
+            const recording = recordUndeclaredTypes(source, model);
             const actual = await checkRelation(
-              { model, source },
+              { model, source: recording },
               object,
               relation,
               person,
               context,
             );
+            if (recording.reached.size > 0) {
+              skipped.push({
+                document: document.name,
+                test: test.name,
+                subject: item.user,
+                object: item.object,
+                relation,
+                reason: "undeclared-subject-type",
+                types: [...recording.reached].sort(),
+              });
+              continue;
+            }
             assert.equal(
               actual,
               expected,
@@ -336,6 +379,57 @@ export function storeTestCases(
     });
   }
   return { cases, skipped };
+}
+
+interface RecordingTupleSource extends TupleSource {
+  /** The undeclared types named by the subjects of the tuples the walk read. */
+  readonly reached: ReadonlySet<string>;
+}
+
+/**
+ * A view of `inner` that records, for one walk, every subject type the
+ * evaluator read that `model` does not declare. A person
+ * (`identity_account:<id>`, the wildcard) is a subject the evaluator
+ * compares, never a type it resolves, so it is not a "reach" whatever
+ * the model declares; a userset or a parent object of an undeclared
+ * type is.
+ */
+function recordUndeclaredTypes(
+  inner: TupleSource,
+  model: Model,
+): RecordingTupleSource {
+  const reached = new Set<string>();
+  return {
+    reached,
+    async tuplesOf(object, relation) {
+      const tuples = await inner.tuplesOf(object, relation);
+      for (const tuple of tuples) {
+        const type = resolvedTypeOf(tuple.subject);
+        if (type !== undefined && model.byType(type) === undefined) {
+          reached.add(type);
+        }
+      }
+      return tuples;
+    },
+  };
+}
+
+/** The type the evaluator would resolve a subject on, or undefined for a person. */
+function resolvedTypeOf(subject: Subject): string | undefined {
+  switch (subject.form) {
+    case "object":
+      return subject.object.type === ACCOUNT_TYPE
+        ? undefined
+        : subject.object.type;
+    case "userset":
+      return subject.object.type;
+    case "wildcard":
+      return undefined;
+    default: {
+      const exhaustive: never = subject;
+      throw new Error(`unknown subject form: ${JSON.stringify(exhaustive)}`);
+    }
+  }
 }
 
 function tupleOf(entry: StoreTestTuple): Tuple {

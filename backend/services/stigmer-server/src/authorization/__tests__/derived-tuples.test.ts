@@ -19,6 +19,7 @@
 import { create } from "@bufbuild/protobuf";
 import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
@@ -40,6 +41,7 @@ import {
 } from "../../store/postgres/__tests__/support.js";
 import { tempStore } from "../../store/sqlite/__tests__/support.js";
 import { deriveTuples, newDerivedTupleSource } from "../derived-tuples.js";
+import { checkRelation } from "../evaluator.js";
 import { rowFactsOf } from "../facts.js";
 import { builtInModel } from "../model/index.js";
 import type { KindDeclaration } from "../model/rewrite.js";
@@ -61,6 +63,7 @@ function derivedFor(
     org?: string;
     visibility?: ApiResourceVisibility;
     createdBy?: string;
+    spec?: Readonly<Record<string, unknown>>;
   },
 ): string[] {
   const declaration = declared(type);
@@ -69,6 +72,7 @@ function derivedFor(
     org: facts.org ?? "acme",
     visibility: facts.visibility ?? ApiResourceVisibility.visibility_private,
     createdBy: facts.createdBy ?? "ida_carol",
+    ...(facts.spec === undefined ? {} : { spec: facts.spec }),
   });
   return deriveTuples(rowFactsOf(declaration, row)).map(formatTuple);
 }
@@ -138,6 +142,97 @@ describe("deriveTuples — the cloud driver's shapes, from the row", () => {
       }),
     ).toEqual(["agent:agent-1#owner@identity_account:ida_carol"]);
   });
+
+  it("a run is its session's: the session link (PARENT scope) and NO owner of its own (INHERITED attribution)", () => {
+    expect(derivedFor("agent_execution", {})).toEqual([
+      "agent_execution:agent_execution-1#session@session:session-1",
+    ]);
+  });
+
+  it("an account owns itself (SELF attribution) and has no scope link", () => {
+    expect(derivedFor("identity_account", { org: "" })).toEqual([
+      "identity_account:identity_account-1#owner@identity_account:identity_account-1",
+    ]);
+  });
+
+  it("a memory's one principal is its subject, from the spec field; an EMPTY subject derives no principal at all", () => {
+    expect(derivedFor("memory", {})).toEqual([
+      "memory:memory-1#organization@organization:acme",
+      "memory:memory-1#subject@identity_account:identity_account-1",
+    ]);
+    // Open source stores "" today (no capture credential fills the field):
+    // such a row is nobody's under an enforcing evaluator — stated, not hidden.
+    expect(
+      derivedFor("memory", { spec: { subjectIdentityAccountId: "" } }),
+    ).toEqual(["memory:memory-1#organization@organization:acme"]);
+  });
+
+  it("an environment carries its creator tuple, an org-viewer at org level, and NO public wildcard (the kind's ceiling)", () => {
+    expect(
+      derivedFor("environment", {
+        visibility: ApiResourceVisibility.visibility_org,
+      }),
+    ).toEqual([
+      "environment:environment-1#organization@organization:acme",
+      "environment:environment-1#owner@identity_account:ida_carol",
+      "environment:environment-1#creator@identity_account:ida_carol",
+      "environment:environment-1#viewer@organization:acme#viewer",
+    ]);
+    expect(
+      derivedFor("environment", {
+        visibility: ApiResourceVisibility.visibility_public,
+      }),
+    ).toEqual([
+      "environment:environment-1#organization@organization:acme",
+      "environment:environment-1#owner@identity_account:ida_carol",
+      "environment:environment-1#creator@identity_account:ida_carol",
+    ]);
+  });
+
+  it("kinds with no visibility axis derive no viewer tuple at any level — their audience is the model's own line", () => {
+    for (const type of ["artifact", "schedule", "project", "session"]) {
+      expect(
+        derivedFor(type, {
+          visibility: ApiResourceVisibility.visibility_org,
+        }),
+        type,
+      ).toEqual([
+        `${type}:${type}-1#organization@organization:acme`,
+        `${type}:${type}-1#owner@identity_account:ida_carol`,
+      ]);
+    }
+  });
+
+  it("owner-only kinds carry no scope link whatever metadata.org says", () => {
+    expect(derivedFor("api_key", {})).toEqual([
+      "api_key:api_key-1#owner@identity_account:ida_carol",
+    ]);
+    expect(derivedFor("execution_context", {})).toEqual([
+      "execution_context:execution_context-1#owner@identity_account:ida_carol",
+    ]);
+  });
+
+  it("an instance carries its blueprint link and a run its instance link (additional parents); a user-created instance at org level adds the #viewer userset", () => {
+    expect(
+      derivedFor("agent_instance", {
+        visibility: ApiResourceVisibility.visibility_org,
+      }),
+    ).toEqual([
+      "agent_instance:agent_instance-1#organization@organization:acme",
+      "agent_instance:agent_instance-1#agent@agent:agent-1",
+      "agent_instance:agent_instance-1#owner@identity_account:ida_carol",
+      "agent_instance:agent_instance-1#viewer@organization:acme#viewer",
+    ]);
+    expect(
+      derivedFor("workflow_execution", {
+        visibility: ApiResourceVisibility.api_resource_visibility_unspecified,
+      }),
+    ).toEqual([
+      "workflow_execution:workflow_execution-1#organization@organization:acme",
+      "workflow_execution:workflow_execution-1#workflow_instance@workflow_instance:workflow_instance-1",
+      "workflow_execution:workflow_execution-1#owner@identity_account:ida_carol",
+    ]);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -164,6 +259,16 @@ const sqliteFixture: DriverFixture = {
   },
 };
 
+/** Every kind a driver arm below seeds — cleared before each test on the shared Postgres database. */
+const SEEDED_KINDS: ReadonlyArray<ApiResourceKind> = [
+  ApiResourceKind.iam_policy,
+  ApiResourceKind.organization,
+  ApiResourceKind.agent,
+  ApiResourceKind.agent_instance,
+  ApiResourceKind.workflow_instance,
+  ApiResourceKind.workflow_execution,
+];
+
 let postgresDatabase: TestDatabase | undefined;
 
 const postgresFixture: DriverFixture = {
@@ -174,11 +279,7 @@ const postgresFixture: DriverFixture = {
       postgresDatabase = await createTestDatabase();
     }
     const store = await PostgresStore.open(postgresDatabase.databaseUrl);
-    for (const kind of [
-      ApiResourceKind.iam_policy,
-      ApiResourceKind.organization,
-      ApiResourceKind.agent,
-    ]) {
+    for (const kind of SEEDED_KINDS) {
       await store.deleteResourcesByKind(kind);
     }
     return { store, close: () => store.close() };
@@ -373,6 +474,231 @@ describe.each([sqliteFixture, postgresFixture])(
         await expect(
           source.tuplesOf(parseObjectRef("organization:acme"), "owner"),
         ).rejects.toThrow();
+      });
+    });
+
+    /**
+     * The two derived rules through the real source and the evaluator:
+     * `default_of` from the blueprint's pointer, `execution_viewer` from
+     * the instance's run-observability level. Seeded: `agt_team` (org-
+     * visible, its pointer at `ai_default`), `ai_default` (no level of its
+     * own) and `ai_personal` (private) both naming it; `agt_other` whose
+     * pointer names a row that is not `ai_stale`; `ai_orphan` naming a
+     * blueprint that does not exist; `wi_shared` (organization level) and
+     * `wi_private`, each with one run of Carol's.
+     */
+    describe.skipIf(fixture.skip)("the derived rules", () => {
+      let opened: OpenedStore;
+      const CAROL: Person = {
+        accountId: "ida_carol",
+        aliases: new Set(["ida_carol"]),
+      };
+
+      async function seed(
+        type: string,
+        id: string,
+        facts: Omit<Parameters<typeof fixtureRow>[1], "id">,
+      ): Promise<void> {
+        const declaration = declared(type);
+        await opened.store.saveResource(
+          declaration.kind,
+          id,
+          declaration.schema,
+          fixtureRow(declaration, { id, ...facts }),
+        );
+      }
+
+      beforeEach(async () => {
+        opened = await fixture.open();
+        const policies = newResourceIamPolicyStore(opened.store);
+        await grant(policies, orgRole(ROOT.accountId, "owner", "acme"));
+        await grant(policies, orgRole(DAVE.accountId, "member", "acme"));
+        await seed("organization", "acme", {
+          org: "",
+          visibility: ApiResourceVisibility.visibility_private,
+          createdBy: ROOT.accountId,
+        });
+        await seed("agent", "agt_team", {
+          org: "acme",
+          visibility: ApiResourceVisibility.visibility_org,
+          createdBy: CAROL.accountId,
+          status: { defaultInstanceId: "ai_default" },
+        });
+        await seed("agent", "agt_other", {
+          org: "acme",
+          visibility: ApiResourceVisibility.visibility_org,
+          createdBy: CAROL.accountId,
+          status: { defaultInstanceId: "ai_elsewhere" },
+        });
+        for (const [id, agentId, visibility] of [
+          [
+            "ai_default",
+            "agt_team",
+            ApiResourceVisibility.api_resource_visibility_unspecified,
+          ],
+          ["ai_personal", "agt_team", ApiResourceVisibility.visibility_private],
+          ["ai_stale", "agt_other", ApiResourceVisibility.visibility_private],
+          [
+            "ai_orphan",
+            "agt_missing",
+            ApiResourceVisibility.visibility_private,
+          ],
+        ] as const) {
+          await seed("agent_instance", id, {
+            org: "acme",
+            visibility,
+            createdBy: CAROL.accountId,
+            spec: { agentId },
+          });
+        }
+        for (const [id, executionVisibility] of [
+          ["wi_shared", WorkflowExecutionVisibility.organization],
+          ["wi_private", WorkflowExecutionVisibility.private],
+        ] as const) {
+          await seed("workflow_instance", id, {
+            org: "acme",
+            visibility: ApiResourceVisibility.visibility_private,
+            createdBy: CAROL.accountId,
+            spec: { executionVisibility },
+          });
+        }
+        for (const [id, workflowInstanceId] of [
+          ["we_shared", "wi_shared"],
+          ["we_private", "wi_private"],
+        ] as const) {
+          await seed("workflow_execution", id, {
+            org: "acme",
+            visibility:
+              ApiResourceVisibility.api_resource_visibility_unspecified,
+            createdBy: CAROL.accountId,
+            spec: { workflowInstanceId },
+          });
+        }
+      });
+
+      afterEach(async () => {
+        await opened.close();
+      });
+
+      function sourceFor(person: Person) {
+        return newDerivedTupleSource(
+          {
+            store: opened.store,
+            policies: newResourceIamPolicyStore(opened.store),
+          },
+          person,
+        );
+      }
+
+      async function tuplesOf(
+        person: Person,
+        object: string,
+        relation: string,
+      ): Promise<string[]> {
+        return (
+          await sourceFor(person).tuplesOf(parseObjectRef(object), relation)
+        ).map(formatTuple);
+      }
+
+      async function allowed(
+        person: Person,
+        object: string,
+        relation: string,
+      ): Promise<boolean> {
+        return checkRelation(
+          { model: builtInModel, source: sourceFor(person) },
+          parseObjectRef(object),
+          relation,
+          person,
+          { allow: true },
+        );
+      }
+
+      it("default_of derives iff the blueprint's pointer names the instance: the default has it, a personal, a stale and an orphaned instance do not", async () => {
+        expect(
+          await tuplesOf(DAVE, "agent_instance:ai_default", "default_of"),
+        ).toEqual(["agent_instance:ai_default#default_of@agent:agt_team"]);
+        for (const instance of ["ai_personal", "ai_stale", "ai_orphan"]) {
+          expect(
+            await tuplesOf(DAVE, `agent_instance:${instance}`, "default_of"),
+            instance,
+          ).toEqual([]);
+        }
+      });
+
+      it("the rule's blueprint read is the loader's: `viewer from default_of` then resolves the blueprint on the same decoded row", async () => {
+        const source = sourceFor(DAVE);
+        await source.tuplesOf(
+          parseObjectRef("agent_instance:ai_default"),
+          "default_of",
+        );
+        const viaRule = await source.loader.load(
+          parseObjectRef("agent:agt_team"),
+        );
+        await source.tuplesOf(parseObjectRef("agent:agt_team"), "viewer");
+        const viaWalk = await source.loader.load(
+          parseObjectRef("agent:agt_team"),
+        );
+        expect(viaRule).toBeDefined();
+        expect(viaWalk).toBe(viaRule);
+      });
+
+      it("an organization member reads the default instance of an org-visible agent through the blueprint, and NOT a personal instance of the same agent — nor does the organization's owner", async () => {
+        expect(
+          await allowed(DAVE, "agent_instance:ai_default", "can_view"),
+        ).toBe(true);
+        expect(
+          await allowed(DAVE, "agent_instance:ai_default", "can_execute"),
+        ).toBe(true);
+        expect(
+          await allowed(DAVE, "agent_instance:ai_personal", "can_view"),
+        ).toBe(false);
+        expect(
+          await allowed(ROOT, "agent_instance:ai_personal", "can_view"),
+        ).toBe(false);
+        expect(
+          await allowed(CAROL, "agent_instance:ai_personal", "can_view"),
+        ).toBe(true);
+        expect(
+          await allowed(DAVE, "agent_instance:ai_default", "can_edit"),
+        ).toBe(false);
+      });
+
+      it("execution_viewer derives the organization's #viewer userset at the organization level and nothing at private", async () => {
+        expect(
+          await tuplesOf(
+            DAVE,
+            "workflow_instance:wi_shared",
+            "execution_viewer",
+          ),
+        ).toEqual([
+          "workflow_instance:wi_shared#execution_viewer@organization:acme#viewer",
+        ]);
+        expect(
+          await tuplesOf(
+            DAVE,
+            "workflow_instance:wi_private",
+            "execution_viewer",
+          ),
+        ).toEqual([]);
+      });
+
+      it("an organization member reads a run whose instance is org-observable and not one whose instance is private; the triggerer reads both", async () => {
+        expect(
+          await allowed(DAVE, "workflow_execution:we_shared", "can_view"),
+        ).toBe(true);
+        expect(
+          await allowed(DAVE, "workflow_execution:we_private", "can_view"),
+        ).toBe(false);
+        expect(
+          await allowed(CAROL, "workflow_execution:we_shared", "can_view"),
+        ).toBe(true);
+        expect(
+          await allowed(CAROL, "workflow_execution:we_private", "can_view"),
+        ).toBe(true);
+        expect(
+          await allowed(DAVE, "workflow_execution:we_shared", "can_edit"),
+        ).toBe(false);
       });
     });
   },

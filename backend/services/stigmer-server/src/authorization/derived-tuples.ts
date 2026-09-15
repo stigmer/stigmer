@@ -264,7 +264,7 @@ export function newDerivedTupleSource(
         return [...fromRows, ...fromRow];
       }
       const row = await loader.load(object);
-      const fromRule = row === undefined ? [] : await rule(row, loader);
+      const fromRule = row === undefined ? [] : await rule(object, row, loader);
       return [...fromRows, ...fromRow, ...fromRule];
     },
   };

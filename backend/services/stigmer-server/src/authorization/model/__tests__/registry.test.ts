@@ -1,42 +1,99 @@
 /**
- * Pins the built-in model's registry: which kinds are declared, that each
- * declaration names its `.fga` source by its own type, that a kind is
- * reached by enum and by FGA type name alike, and that every permission
- * the wire can ask about (the IamPermission vocabulary) is either a
- * declared relation of the kind or absent from its `.fga` file — never a
- * relation the transcript forgot.
+ * Pins the built-in model's registry: which kinds are declared — every
+ * kind of the open-source tier, in `fga.mod` order, and nothing else —
+ * that each declaration names its `.fga` source by its own type, that a
+ * kind is reached by enum and by FGA type name alike, and that every
+ * permission the wire can ask about (the IamPermission vocabulary) is
+ * either a declared relation of the kind or absent from its `.fga` file —
+ * never a relation the transcript forgot.
  *
- * The kind list is what is declared so far: five (the organization and the
- * four blueprint kinds sharing the visibility axis). The remaining kinds
- * replace the pinned list with "every kind of the open-source tier", which is the
- * registry's finished shape; until then a kind added without a line here
- * is a visible diff.
+ * The kind list is pinned twice on purpose: as the literal in registry
+ * order (a reordering or a dropped file is a visible diff) and as
+ * set-equal to the `kind_meta.tier` open-source members (a kind the
+ * contract moves into or out of the tier is a visible diff here before
+ * it is a silent gap in enforcement).
  */
 import { describe, expect, it } from "vitest";
 
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import {
+  ApiResourceKind,
+  ApiResourceKindSchema,
+  ResourceTier,
+} from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IamPermissionSchema } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
-import { kindEnumName } from "../../../pipeline/apiresource-meta.js";
+import {
+  getKindMeta,
+  kindEnumName,
+} from "../../../pipeline/apiresource-meta.js";
 import { builtInModel, declarationFor } from "../index.js";
 
-/** The slice-1 set, in registry order (the `fga.mod` order of their modules). */
+/** The open-source tier, in registry order (the `fga.mod` order of their files). */
 const DECLARED_KINDS = [
+  ApiResourceKind.identity_account,
+  ApiResourceKind.iam_policy,
+  ApiResourceKind.api_key,
+  ApiResourceKind.oauth_app,
   ApiResourceKind.organization,
+  ApiResourceKind.project,
   ApiResourceKind.agent,
+  ApiResourceKind.agent_channel,
+  ApiResourceKind.agent_share,
+  ApiResourceKind.channel_app,
+  ApiResourceKind.agent_instance,
+  ApiResourceKind.agent_execution,
+  ApiResourceKind.artifact,
+  ApiResourceKind.environment,
+  ApiResourceKind.execution_context,
   ApiResourceKind.mcp_server,
+  ApiResourceKind.memory,
+  ApiResourceKind.schedule,
+  ApiResourceKind.session,
   ApiResourceKind.skill,
   ApiResourceKind.workflow,
+  ApiResourceKind.workflow_instance,
+  ApiResourceKind.workflow_execution,
 ] as const;
 
 /**
  * The permissions each `.fga` file defines that the wire vocabulary also
- * names — derived by hand from the files at the pinned commit. A relation
- * in the file and not here, or here and not in the transcript, fails.
+ * names, in the file's order — derived by hand from the files at the
+ * pinned commit. A relation in the file and not here, or here and not in
+ * the transcript, fails. Verbs the files define outside the vocabulary
+ * (`can_use`, `can_clone`, `can_rotate`, `can_revoke`) are the model's
+ * own and are not listed.
  */
 const WIRE_PERMISSIONS_BY_TYPE: Readonly<
   Record<string, ReadonlyArray<string>>
 > = {
+  identity_account: [
+    "can_view",
+    "can_edit",
+    "can_delete",
+    "can_grant_access",
+    "can_view_access",
+  ],
+  iam_policy: [
+    "can_view",
+    "can_edit",
+    "can_delete",
+    "can_grant_access",
+    "can_view_access",
+  ],
+  api_key: [
+    "can_view",
+    "can_edit",
+    "can_delete",
+    "can_grant_access",
+    "can_view_access",
+  ],
+  oauth_app: [
+    "can_view",
+    "can_edit",
+    "can_delete",
+    "can_grant_access",
+    "can_view_access",
+  ],
   organization: [
     "can_view",
     "can_edit",
@@ -59,6 +116,13 @@ const WIRE_PERMISSIONS_BY_TYPE: Readonly<
     "can_view_billing",
     "can_manage_billing",
   ],
+  project: [
+    "can_view",
+    "can_edit",
+    "can_delete",
+    "can_grant_access",
+    "can_view_access",
+  ],
   agent: [
     "can_view",
     "can_edit",
@@ -68,11 +132,68 @@ const WIRE_PERMISSIONS_BY_TYPE: Readonly<
     "can_grant_access",
     "can_view_access",
   ],
+  agent_channel: [
+    "can_view",
+    "can_edit",
+    "can_delete",
+    "can_participate",
+    "can_grant_access",
+    "can_view_access",
+  ],
+  agent_share: [
+    "can_view",
+    "can_edit",
+    "can_delete",
+    "can_grant_access",
+    "can_view_access",
+  ],
+  channel_app: [
+    "can_view",
+    "can_edit",
+    "can_delete",
+    "can_grant_access",
+    "can_view_access",
+  ],
+  agent_instance: [
+    "can_view",
+    "can_execute",
+    "can_edit",
+    "can_delete",
+    "can_grant_access",
+    "can_view_access",
+  ],
+  agent_execution: ["can_view", "can_edit"],
+  artifact: ["can_view", "can_edit"],
+  environment: [
+    "can_view",
+    "can_edit",
+    "can_delete",
+    "can_read_secrets",
+    "can_grant_access",
+    "can_view_access",
+  ],
+  execution_context: ["can_view", "can_edit"],
   mcp_server: [
     "can_view",
     "can_edit",
     "can_delete",
     "can_connect",
+    "can_grant_access",
+    "can_view_access",
+  ],
+  memory: ["can_view", "can_edit", "can_delete"],
+  schedule: [
+    "can_view",
+    "can_edit",
+    "can_delete",
+    "can_grant_access",
+    "can_view_access",
+  ],
+  session: [
+    "can_view",
+    "can_edit",
+    "can_delete",
+    "can_create_execution_in",
     "can_grant_access",
     "can_view_access",
   ],
@@ -91,23 +212,59 @@ const WIRE_PERMISSIONS_BY_TYPE: Readonly<
     "can_grant_access",
     "can_view_access",
   ],
+  workflow_instance: [
+    "can_view",
+    "can_execute",
+    "can_edit",
+    "can_delete",
+    "can_grant_access",
+    "can_view_access",
+  ],
+  workflow_execution: [
+    "can_view",
+    "can_edit",
+    "can_grant_access",
+    "can_view_access",
+  ],
 };
 
+/** Every kind whose `kind_meta.tier` is the open-source tier, by enum number. */
+function openSourceTierKinds(): ReadonlySet<ApiResourceKind> {
+  const kinds = new Set<ApiResourceKind>();
+  for (const value of ApiResourceKindSchema.values) {
+    const kind = value.number as ApiResourceKind;
+    if (
+      kind !== ApiResourceKind.api_resource_kind_unknown &&
+      getKindMeta(kind).tier === ResourceTier.open_source
+    ) {
+      kinds.add(kind);
+    }
+  }
+  return kinds;
+}
+
 describe("the built-in model's registry", () => {
-  it("declares exactly the slice's kinds, in order", () => {
+  it("declares exactly the open-source tier's kinds, in fga.mod order", () => {
     expect(builtInModel.declarations.map((d) => d.kind)).toEqual([
       ...DECLARED_KINDS,
     ]);
+    expect(new Set(DECLARED_KINDS)).toEqual(openSourceTierKinds());
   });
 
-  it("reaches a declaration by kind and by FGA type name, and answers undefined for the rest", () => {
+  it("reaches a declaration by kind and by FGA type name, and answers undefined for the kinds this edition does not serve", () => {
     for (const kind of DECLARED_KINDS) {
       const byKind = declarationFor(kind);
       expect(byKind?.kind).toBe(kind);
       expect(builtInModel.byType(kindEnumName(kind))).toBe(byKind);
     }
-    expect(declarationFor(ApiResourceKind.session)).toBeUndefined();
-    expect(builtInModel.byType("identity_provider")).toBeUndefined();
+    for (const unserved of [
+      ApiResourceKind.platform,
+      ApiResourceKind.identity_provider,
+      ApiResourceKind.platform_client,
+      ApiResourceKind.invitation,
+    ]) {
+      expect(declarationFor(unserved), kindEnumName(unserved)).toBeUndefined();
+    }
     expect(builtInModel.byType("")).toBeUndefined();
   });
 
@@ -125,6 +282,9 @@ describe("the built-in model's registry", () => {
     const wireVocabulary = new Set(
       IamPermissionSchema.values.map((value) => value.name),
     );
+    expect(Object.keys(WIRE_PERMISSIONS_BY_TYPE).sort()).toEqual(
+      builtInModel.declarations.map((d) => d.type).sort(),
+    );
     for (const declaration of builtInModel.declarations) {
       const declaredWirePermissions = [...declaration.relations.keys()].filter(
         (relation) => wireVocabulary.has(relation),
@@ -133,5 +293,16 @@ describe("the built-in model's registry", () => {
         WIRE_PERMISSIONS_BY_TYPE[declaration.type],
       );
     }
+  });
+
+  it("carries a derived rule only where kind_meta cannot derive the relation: default_of on the two instance kinds, execution_viewer on the workflow instance", () => {
+    const derived = builtInModel.declarations
+      .flatMap((d) => [...d.derived.keys()].map((r) => `${d.type}#${r}`))
+      .sort();
+    expect(derived).toEqual([
+      "agent_instance#default_of",
+      "workflow_instance#default_of",
+      "workflow_instance#execution_viewer",
+    ]);
   });
 });

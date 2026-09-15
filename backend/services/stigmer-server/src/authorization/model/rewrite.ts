@@ -31,17 +31,18 @@
  * `derived` names the relations `kind_meta.authorization` cannot derive
  * from the row alone: `default_of` on an instance (the
  * blueprint's `status.default_instance_id` must name this row — one
- * blueprint read through the loader) and `execution_viewer` on a
- * workflow instance (`spec.execution_visibility`). A declaration that has
- * such a relation states the rule beside the transcript; the tuple
- * source dispatches to it by relation. The two rules land with their kinds.
+ * blueprint read through the loader; default-of.ts, shared by the two
+ * instance kinds) and `execution_viewer` on a workflow instance
+ * (`spec.execution_visibility`; workflow_instance.ts). A declaration that
+ * has such a relation states the rule beside the transcript; the tuple
+ * source dispatches to it by relation.
  */
 import type { DescMessage, Message } from "@bufbuild/protobuf";
 
 import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { kindEnumName } from "../../pipeline/apiresource-meta.js";
-import type { RowLoader, Tuple } from "../tuples.js";
+import type { ObjectRef, RowLoader, Tuple } from "../tuples.js";
 
 /** One entry of a direct line's type restriction list. */
 export type SubjectType =
@@ -112,10 +113,13 @@ export function union(...members: ReadonlyArray<Rewrite>): Rewrite {
 
 /**
  * A relation the row does not carry as a `kind_meta` fact: the rule that
- * derives its tuples from the decoded row, reading related rows through
- * the loader. Pure over its inputs; faults propagate.
+ * derives its tuples for `object` from its decoded row, reading related
+ * rows through the loader. The source hands the object it already
+ * resolved so a rule never re-derives its own reference from the row.
+ * Pure over its inputs; faults propagate.
  */
 export type DerivedRelation = (
+  object: ObjectRef,
   row: Message,
   loader: RowLoader,
 ) => Promise<ReadonlyArray<Tuple>>;

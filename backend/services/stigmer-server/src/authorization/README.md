@@ -20,9 +20,14 @@ editions; the cloud stores what open source computes.
   (`this` with its type restrictions, `computed`, `from`, `union`), the
   builders, and `declareKind`, which refuses a transcript that cannot be right
   at module load.
-- `model/<kind>.ts` — one transcript per open-source kind, the `.fga` file's
-  relations in the file's order, its path in the header. `model/index.ts`
-  registers them in `fga.mod` order and answers by kind or by FGA type name.
+- `model/<kind>.ts` — one transcript per open-source kind (twenty-three), the
+  `.fga` file's relations in the file's order, its path in the header.
+  `model/index.ts` registers them in `fga.mod` order and answers by kind or by
+  FGA type name. Two relations no row carries as a `kind_meta` fact have a
+  `derived` rule beside their transcript: `default_of` on the two instance kinds
+  (`model/default-of.ts`, from the blueprint's `status.default_instance_id`) and
+  `execution_viewer` on the workflow instance (from
+  `spec.execution_visibility`).
 - `tuples.ts` — the tuple vocabulary (object, relation, subject; the string
   notation), `Person` (the caller as the model sees them: account id plus the
   aliases a creator stamp may carry), `CheckContext` (the `allow_public`
@@ -41,19 +46,26 @@ editions; the cloud stores what open source computes.
   owner is a row, and a stamp that names no person is no tuple.
 - `store-test-kit.ts` — runs an OpenFGA store test (`.fga.yaml`) against the
   evaluator, vitest-free, exported from the barrel. Open source runs it over
-  pinned copies of the cloud's own model tests (`__tests__/fixtures/fga/`); the
-  cloud runs it over the live files at the re-pin.
+  pinned copies of the cloud's own model tests (`__tests__/fixtures/fga/`, a
+  byte-exact mirror of the cloud's `fga/tests/`); the cloud runs it over the
+  live files at the re-pin. What it does not run it reports in three reasons: a
+  target kind the model does not declare, a `list_objects` assertion, and an
+  assertion whose walk read a grant through a type the model does not declare
+  (the cloud's platform tenancy, `identity_provider#platform_user`).
 
 Still to land: the `Authorizer` driver and the built-in organization directory
-with the composition root's posture, the `ListReadScope` on both verbs, the
-remaining kind transcripts.
+with the composition root's posture, the `ListReadScope` on both verbs.
 
 ## Proof
 
 `__tests__/store-tests.test.ts` is the proof that this evaluator answers the
-cloud's model the cloud's way: every `checkRelation` assertion of the pinned
+cloud's model the cloud's way: every `checkRelation` assertion of all twenty
 documents on a declared kind, in the documents' own words, with what is not run
 pinned as a named list. `__tests__/facts.test.ts` pins that the derivation reads
-a row to the same links and shapes the tuple lifecycle writes from. The rest pin
-the machinery: alias matching, the wildcard's condition, the memo, the bounds,
-the source on both store drivers.
+a row to the same links and shapes the tuple lifecycle writes from, for every
+kind. `model/__tests__/registry.test.ts` pins the declared set to the
+open-source tier and each kind's wire permissions to its file;
+`__tests__/wire-permissions.test.ts` pins that every static `(kind, permission)`
+a served RPC asks about is a declared relation. The rest pin the machinery:
+alias matching, the wildcard's condition, the memo, the bounds, the source and
+the two derived rules on both store drivers.
