@@ -39,7 +39,9 @@
  *     verbatim (Q-S4-16). A finish or an error is an upsert: status
  *     monotonic, `completedAt` once, a non-empty result or message
  *     overwrites, an empty one never clears (Q-S4-3(c)); a re-emit that
- *     changes nothing forces no persist (Q-M4-8).
+ *     changes nothing forces no persist (Q-M4-8); a fact the harness
+ *     observed earlier and delivers later stamps its own instant
+ *     (`observedAt`, Q-M4-14).
  *   - The AI-message boundary (Q-S4-5; native's own rule, made correct by
  *     scoping): a tool row attaches to the scope's current AI message — the
  *     latest with text, the seed's last AI message over a seeded transcript
@@ -201,10 +203,10 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
           this.handleToolOutputDelta(scope, event.callId, event.delta);
           break;
         case "tool_finished":
-          this.handleToolFinished(scope, event.callId, event.result);
+          this.handleToolFinished(scope, event.callId, event.result, event.observedAt);
           break;
         case "tool_error":
-          this.handleToolError(scope, event.callId, event.message);
+          this.handleToolError(scope, event.callId, event.message, event.observedAt);
           break;
         case "approval_proposed":
           this.handleApprovalProposed(scope, event);
@@ -441,7 +443,7 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
     this._forceNextUpdate = true;
   }
 
-  private handleToolFinished(scope: Transcript, callId: string, result: string): void {
+  private handleToolFinished(scope: Transcript, callId: string, result: string, observedAt?: string): void {
     const tc = scope.toolCalls.get(callId);
     if (!tc) return;
 
@@ -466,7 +468,9 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
     const wasSettled = isSettled(tc.status);
     const resultChanged = !!result && result !== tc.result;
     if (!wasSettled) tc.status = ToolCallStatus.TOOL_CALL_COMPLETED;
-    if (!tc.completedAt) tc.completedAt = utcTimestamp();
+    // The instant the harness OBSERVED the completion when it delivers it
+    // later (Cursor's queued delta, Q-M4-14); otherwise now.
+    if (!tc.completedAt) tc.completedAt = observedAt ?? utcTimestamp();
     if (resultChanged) tc.result = result;
     stopStreaming(tc);
     scope.argBuffers.delete(callId);
@@ -489,7 +493,7 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
     this._forceNextUpdate = true;
   }
 
-  private handleToolError(scope: Transcript, callId: string, message: string): void {
+  private handleToolError(scope: Transcript, callId: string, message: string, observedAt?: string): void {
     const tc = scope.toolCalls.get(callId);
     if (!tc) return;
 
@@ -499,10 +503,11 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
     // moment approval became due is stamped here if nothing stamped it yet.
     const wasSettled = isSettled(tc.status);
     const messageChanged = !!message && message !== tc.error;
+    const at = observedAt ?? utcTimestamp();
     if (!wasSettled) tc.status = ToolCallStatus.TOOL_CALL_FAILED;
-    if (!tc.completedAt) tc.completedAt = utcTimestamp();
+    if (!tc.completedAt) tc.completedAt = at;
     if (messageChanged) tc.error = message;
-    if (tc.requiresApproval && !tc.approvalRequestedAt) tc.approvalRequestedAt = utcTimestamp();
+    if (tc.requiresApproval && !tc.approvalRequestedAt) tc.approvalRequestedAt = at;
     stopStreaming(tc);
     scope.argBuffers.delete(callId);
 

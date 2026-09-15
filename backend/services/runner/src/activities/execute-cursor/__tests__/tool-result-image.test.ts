@@ -33,9 +33,8 @@ import {
   offloadOversizedToolOutputs,
   detectImagePayload,
 } from "../../../shared/status-offload.js";
+import { toResultString, canonicalizeImageResult } from "../tool-result.js";
 import {
-  toResultString,
-  canonicalizeImageResult,
   buildToolCallProto,
   MessageAccumulator,
 } from "../message-translator.js";

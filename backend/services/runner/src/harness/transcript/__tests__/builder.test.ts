@@ -133,6 +133,25 @@ describe("TranscriptBuilder — tool_finished and tool_error are upserts (Q-S4-3
     expect(rowOf(sb, "call-1").approvalRequestedAt).toBe("");
   });
 
+  it("a finish or an error the harness observed earlier stamps the observed instant, not the fold's (Q-M4-14)", () => {
+    const sb = feed(builder(), [
+      ...proposedCall("obs-1"),
+      { kind: "tool_finished", callId: "obs-1", result: "", observedAt: "2026-01-01T00:00:07.000Z" },
+    ]);
+    expect(rowOf(sb, "obs-1").completedAt, "the delta's own instant").toBe("2026-01-01T00:00:07.000Z");
+    sb.apply({ kind: "tool_started", callId: "obs-2", name: "Shell", input: { command: "make" }, mcpServerSlug: "", gate: { message: "Run command: make" } });
+    sb.apply({ kind: "tool_error", callId: "obs-2", message: "", observedAt: "2026-01-01T00:00:09.000Z" });
+    const gated = rowOf(sb, "obs-2");
+    expect(gated.status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
+    expect(gated.completedAt).toBe("2026-01-01T00:00:09.000Z");
+    expect(gated.approvalRequestedAt, "the gate's stamp shares the observed instant").toBe("2026-01-01T00:00:09.000Z");
+    // The stream's own error, arriving later with the text, fills the message
+    // and moves no stamp.
+    sb.apply({ kind: "tool_error", callId: "obs-2", message: "blocked" });
+    expect(rowOf(sb, "obs-2").error).toBe("blocked");
+    expect(rowOf(sb, "obs-2").completedAt).toBe("2026-01-01T00:00:09.000Z");
+  });
+
   it("a finish or an error for an unknown call is ignored", () => {
     const sb = feed(builder(), [
       { kind: "tool_finished", callId: "ghost", result: "x" },

@@ -136,7 +136,24 @@ export interface ToolOutputDeltaEvent extends Scoped {
   readonly delta: string;
 }
 
-export interface ToolFinishedEvent extends Scoped {
+/**
+ * A fact the harness observed at one instant and delivers at another. The
+ * builder is the transcript's one clock — every row stamp is `utcTimestamp()`
+ * at apply — except here: a Cursor completion arrives first on the SDK's
+ * delta channel, and the translator must QUEUE it for the loop to apply after
+ * the current stream event (a delta applied mid-persist would land on a row
+ * the offload is replacing — S4 M4 finding F-M4-23). Without the observed
+ * instant the row's `completedAt` would be the fold's moment, one stream
+ * event late — seconds late while the model narrates — and the tool's
+ * duration in the console would lie (Q-M4-14, ruled 2026-09-15). Absent
+ * means "now": native, and every fact a translator emits as it sees it,
+ * never set it.
+ */
+interface Observed {
+  readonly observedAt?: string;
+}
+
+export interface ToolFinishedEvent extends Scoped, Observed {
   readonly kind: "tool_finished";
   readonly callId: string;
   /**
@@ -148,7 +165,7 @@ export interface ToolFinishedEvent extends Scoped {
   readonly result: string;
 }
 
-export interface ToolErrorEvent extends Scoped {
+export interface ToolErrorEvent extends Scoped, Observed {
   readonly kind: "tool_error";
   readonly callId: string;
   readonly message: string;
