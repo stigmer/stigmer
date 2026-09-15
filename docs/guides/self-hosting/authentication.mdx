@@ -79,11 +79,16 @@ From the next boot, every request needs a credential:
   when it did.
 - **Machines** send an API key (`stk_...`) the same way — as a bearer token.
   `stigmer apikey create` mints them; deleting a key revokes it immediately.
-- **Authorization does not change yet.** Authentication says who is calling; it
-  does not limit what a signed-in person may do. Every authenticated caller has
-  the same access to everything on the server, other people's Identity Accounts
-  and their preferences included. Per-person authorization for self-hosted
-  servers is planned.
+- **Roles decide what a signed-in person may do.** Every Organization has four
+  roles: owner, admin, member and viewer. Owners and admins manage the
+  organization's Agents, Workflows, Skills and MCP servers and its members.
+  Members use what is shared with the organization and create their own
+  Sessions, Environments and API keys. Viewers only read what is shared. An
+  Agent, Workflow or Skill marked Private shows up in the library and opens on
+  its page only for the person who created it and the organization's admins.
+  Nobody reads another person's conversations, API keys or Environments — admins
+  included. These are the same rules Stigmer Cloud enforces, so an Agent behaves
+  the same way wherever it runs.
 - Requests without a credential are rejected with
   `authentication token missing`. Requests with a bad credential get a specific
   reason (`token has expired`, `token signature verification failed`, and so
@@ -166,6 +171,22 @@ matches it becomes an administrator of every Organization the first time they
 sign in. The server trusts that email exactly as your provider asserts it, so
 use a provider that verifies email addresses. Sign out from the console's
 account menu; you land on the console's sign-in page.
+
+What the roles mean day to day:
+
+- A member cannot create an Agent, Workflow or Skill until an owner or admin
+  promotes them under Settings → Members. New arrivals are members.
+- The server does not stop a signed-in person from creating another
+  Organization; whoever creates one owns it.
+- A script that presents an access token but has never signed in through the
+  console or run `stigmer auth whoami` has no Identity Account yet, and cannot
+  create anything until it does.
+- Schedules you created before turning authentication on belong to no signed-in
+  person. Each pauses at its next run and says why; recreate it while signed in.
+- Memories recorded before you turned authentication on belong to no signed-in
+  person either, and stay hidden.
+- An admin's lists show the organization's Agents, Workflows and Skills, not
+  other members' Sessions, Environments or API keys.
 
 ### What still needs an API key
 

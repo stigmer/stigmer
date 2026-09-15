@@ -25,6 +25,27 @@ export interface CapabilityFlags {
   // Multi-tenant isolation / IAM-scoped list filtering. False for local OSS,
   // where list RPCs return everything.
   multiTenant: boolean;
+  // The PRIMARY server's composed Authorizer ENFORCES the authorization
+  // model: a caller with no role on an organization is refused on its rows,
+  // a private blueprint is a member's PERMISSION_DENIED, an unknown id on
+  // an authorize-first lane is NOT_FOUND through the authorizer's existence
+  // probe. Arms that read those answers on the PRIMARY (the unknown-id and
+  // fabricated-id arms of the execution suites) gate on this flag.
+  //
+  // True for cloud (OpenFGA behind the cloud-iam unit). False for the local
+  // OSS targets BY DESIGN: their primary runs the trusted-local posture,
+  // whose permissive Authorizer admits the one operator to everything.
+  // Open source DOES enforce under an authentication posture (the built-in
+  // Authorizer of `@stigmer/server`, composed when STIGMER_OIDC_ISSUER is
+  // set and no unit registers its own) — which is a SECOND server, not
+  // this flag: the arms that need an enforcing server with several people
+  // ask the target for one through `enforcingLane()` below, and run
+  // against the primary where this flag is true and against an OIDC
+  // sibling where the target can spawn one. Deliberately NOT folded into
+  // multiTenant: tenancy (many organizations, external org ids, no
+  // enumeration) and enforcement are different facts — an enforcing
+  // self-host is single-tenant.
+  enforcingAuthorizer: boolean;
   // OrganizationQuery.getByExternalOrgId is implemented. False for local OSS.
   externalOrgLookup: boolean;
   // OrganizationQuery.find enumerates every organization. True for local OSS,
@@ -396,6 +417,60 @@ export interface DirectLoginTenant {
   mint(input: { subject: string; audience?: string; ttlSeconds?: number }): string;
 }
 
+// The four kind_meta roles of the organization, in the proto's order — the
+// words an IamPolicy grant carries as `relation`, and the rungs the model
+// reads (each implies the ones after it). The one role set open source
+// grants on (20260913.01 Q-OR-4); support/iampolicies re-exports it.
+export const ORGANIZATION_ROLES = ["owner", "admin", "member", "viewer"] as const;
+export type OrganizationRole = (typeof ORGANIZATION_ROLES)[number];
+
+// A server whose composed Authorizer ENFORCES the authorization model, with
+// the people an authorization arm needs — see TargetProfile.enforcingLane.
+// The same arm runs against every lane: the cloud's primary (its
+// PlatformClient-minted people), and an open-source sibling in the OIDC
+// posture against the harness's local issuer (its issuer-minted people).
+// Whatever differs between those two — how a person is minted, how an
+// organization comes to exist, what a newcomer holds on arrival — is the
+// lane's business, so the arms assert one contract in one voice.
+//
+// The lane's lifetime is the target's: the target creates it on the first
+// call and tears it down with the primary. A suite never manages the
+// lane's process.
+export interface EnforcingLane {
+  // The founder: a provisioned person who owns every organization the lane
+  // provisions, and whose clients create the rows the arms then read as
+  // someone else.
+  readonly clients: ConformanceClients;
+  // An organization the founder owns — the lane's own row, never a bare
+  // slug (an enforcing Authorizer asks `can_create_* on organization` of a
+  // row that must exist).
+  provisionTenancy(): Promise<TenancyContext>;
+  cleanupTenancy(context: TenancyContext): Promise<void>;
+  // A fresh person holding NO grant on any organization the founder holds
+  // — the outsider. Where the edition makes every newcomer a member of
+  // every organization (open source's membership rules), the lane revokes
+  // them everywhere the founder can see, so the words stay literally true.
+  provisionIdentity(): Promise<ConformanceClients>;
+  // A fresh person holding exactly `member` on the given tenancy and
+  // nothing anywhere else — the colleague.
+  provisionMember(tenancy: TenancyContext): Promise<ConformanceClients>;
+  // A fresh person holding exactly the given role on the given tenancy and
+  // nothing anywhere else. Roles are additive in the model (an admin who is
+  // also a member is an admin), so "exactly" means the role is granted and
+  // `member` is removed when the two differ.
+  provisionWithRole(tenancy: TenancyContext, role: OrganizationRole): Promise<ConformanceClients>;
+  // The account id the server derived for the caller behind these clients
+  // (their own whoAmI — the id is the server's business, never derived
+  // here). Arms need it to name a person in a grant.
+  accountIdOf(clients: ConformanceClients): Promise<string>;
+  // An admitted subject with NO account — idp-shaped: the caller the
+  // verifier lets through so whoAmI can answer NOT_FOUND and
+  // provisionMyAccount can create the account. The sibling's issuer mints
+  // one; the cloud's platform tenant does through directLoginTenant.
+  // Absent where the lane has neither; the arm skips VISIBLY.
+  unprovisionedCaller?(): Promise<ConformanceClients>;
+}
+
 // A SECOND server of the same edition, booted beside the target's primary
 // in a posture the suite chooses — see TargetProfile.spawnSibling. Its
 // lifetime is the suite file's: the block that spawned it tears it down.
@@ -516,6 +591,17 @@ export interface TargetProfile {
   // target's reason (spawnSiblingUnavailable). Valid only after setup().
   spawnSibling?(options: SpawnSiblingOptions): Promise<SiblingServer>;
   spawnSiblingUnavailable?(): string;
+
+  // A server of this edition whose Authorizer ENFORCES the model, with the
+  // people the authorization arms need (EnforcingLane above): the primary
+  // where `capabilities.enforcingAuthorizer` is true, else an OIDC sibling
+  // where the target can spawn one. One lane per target instance, created
+  // on the first call and torn down by teardown(). A target that declares
+  // enforcingAuthorizer and offers no lane is a harness gap and throws;
+  // where the target has neither, the arms skip VISIBLY with the reason
+  // (enforcingLaneUnavailable). Valid only after setup().
+  enforcingLane?(): Promise<EnforcingLane>;
+  enforcingLaneUnavailable?(): string;
 
   // Provision an isolated tenancy scope for a test. cleanupTenancy releases it.
   provisionTenancy(): Promise<TenancyContext>;

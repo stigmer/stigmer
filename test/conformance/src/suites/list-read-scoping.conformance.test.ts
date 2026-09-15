@@ -17,16 +17,25 @@
 // check-shaped lanes (the listByChannel channel gate, workflow
 // listVersions) refusing an outsider with their byte-pinned Java copy.
 //
-// Single-user targets skip: one implicit caller, isolation untestable by
-// construction (the organization suite's outsider precedent). Guest
-// sibling-visitor isolation cannot ride this suite (guest lanes are
-// unreachable from conformance — the C2 R6 ruling); it is pinned by the
-// cloud driver's unit matrix and the committed live proof.
+// The arms run on the target's ENFORCING LANE (targets/target.ts): the
+// cloud's primary, and on the managed local targets an open-source sibling
+// in the OIDC posture, whose built-in ListReadScope answers every lane
+// below — so the same seven arms are the cross-edition contract on the
+// cloud and on both open-source store drivers. Where a target lends no
+// lane the arms skip VISIBLY with its reason. Guest sibling-visitor
+// isolation cannot ride this suite (guest lanes are unreachable from
+// conformance — the C2 R6 ruling); it is pinned by the cloud driver's unit
+// matrix and the committed live proof.
 import { Code } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import type { ConformanceClients } from "../harness/clients";
-import { createTarget, type TargetProfile } from "../targets";
+import {
+  createTarget,
+  enforcingLaneOf,
+  type EnforcingLane,
+  type TargetProfile,
+} from "../targets";
 import { FixtureTracker } from "../harness/fixtures";
 import { expectGrpcCode } from "../contract/errors";
 import { makeAgent } from "../support/agents";
@@ -37,13 +46,16 @@ import { makeWorkflow } from "../support/workflows";
 import { uniqueName } from "../support/naming";
 
 let target: TargetProfile;
+let enforcing: Awaited<ReturnType<typeof enforcingLaneOf>>;
+// The lane's founder — the OWNER whose rows the outsider must not see.
 let clients: ConformanceClients;
 const fixtures = new FixtureTracker();
 
 beforeAll(async () => {
   target = createTarget();
   await target.setup();
-  clients = target.clients();
+  enforcing = await enforcingLaneOf(target);
+  clients = enforcing.lane?.clients ?? target.clients();
 });
 
 afterEach(async () => {
@@ -54,17 +66,9 @@ afterAll(async () => {
   await target?.teardown();
 });
 
-function multiTenantOnly(): boolean {
-  return target.capabilities.multiTenant;
-}
-
-async function outsiderClients(): Promise<ConformanceClients> {
-  if (target.provisionIdentity === undefined) {
-    throw new Error(
-      `target "${target.name}" declares multiTenant but provides no provisionIdentity()`,
-    );
-  }
-  return target.provisionIdentity();
+function laneOrSkip(ctx: { skip: (note?: string) => never }): EnforcingLane {
+  if (enforcing.lane === undefined) ctx.skip(enforcing.reason);
+  return enforcing.lane;
 }
 
 async function ownerAgent(org: string) {
@@ -77,11 +81,11 @@ async function ownerAgent(org: string) {
   return agent;
 }
 
-describe("list-read scoping — outsider isolation (multi-tenant only)", () => {
+describe("list-read scoping — outsider isolation (on the enforcing lane)", () => {
   it("session.list: the owner's session is ABSENT from the outsider's list", async (ctx) => {
-    if (!multiTenantOnly()) return ctx.skip();
-    const { org } = await target.provisionTenancy();
-    const outsider = await outsiderClients();
+    const lane = laneOrSkip(ctx);
+    const { org } = await lane.provisionTenancy();
+    const outsider = await lane.provisionIdentity();
 
     const agent = await ownerAgent(org);
     const session = await clients.sessionCommand.create(
@@ -111,9 +115,9 @@ describe("list-read scoping — outsider isolation (multi-tenant only)", () => {
   });
 
   it("apikey.findAll: the owner's key is ABSENT from the outsider's list", async (ctx) => {
-    if (!multiTenantOnly()) return ctx.skip();
-    const { org } = await target.provisionTenancy();
-    const outsider = await outsiderClients();
+    const lane = laneOrSkip(ctx);
+    const { org } = await lane.provisionTenancy();
+    const outsider = await lane.provisionIdentity();
 
     const key = await clients.apiKeyCommand.create({
       apiVersion: "iam.stigmer.ai/v1",
@@ -139,9 +143,9 @@ describe("list-read scoping — outsider isolation (multi-tenant only)", () => {
   });
 
   it("environment.list: the owner's environment is ABSENT from the outsider's org-scoped list", async (ctx) => {
-    if (!multiTenantOnly()) return ctx.skip();
-    const { org } = await target.provisionTenancy();
-    const outsider = await outsiderClients();
+    const lane = laneOrSkip(ctx);
+    const { org } = await lane.provisionTenancy();
+    const outsider = await lane.provisionIdentity();
 
     const environment = await clients.environmentCommand.create(
       makeEnvironment({ org, name: uniqueName("iso-env") }),
@@ -168,9 +172,9 @@ describe("list-read scoping — outsider isolation (multi-tenant only)", () => {
   });
 
   it("search: the owner's resource never surfaces for the outsider, even naming the owner's org", async (ctx) => {
-    if (!multiTenantOnly()) return ctx.skip();
-    const { org } = await target.provisionTenancy();
-    const outsider = await outsiderClients();
+    const lane = laneOrSkip(ctx);
+    const { org } = await lane.provisionTenancy();
+    const outsider = await lane.provisionIdentity();
 
     const probe = uniqueName("isoprobe");
     const agent = await clients.agentCommand.create(
@@ -194,9 +198,9 @@ describe("list-read scoping — outsider isolation (multi-tenant only)", () => {
   });
 
   it("recent activity: the owner's session is ABSENT from the outsider's recents", async (ctx) => {
-    if (!multiTenantOnly()) return ctx.skip();
-    const { org } = await target.provisionTenancy();
-    const outsider = await outsiderClients();
+    const lane = laneOrSkip(ctx);
+    const { org } = await lane.provisionTenancy();
+    const outsider = await lane.provisionIdentity();
 
     const agent = await ownerAgent(org);
     const session = await clients.sessionCommand.create(
@@ -231,9 +235,9 @@ describe("list-read scoping — outsider isolation (multi-tenant only)", () => {
   });
 
   it("session.listByChannel: the channel gate refuses an outsider with the Java copy (Q8)", async (ctx) => {
-    if (!multiTenantOnly()) return ctx.skip();
-    const { org } = await target.provisionTenancy();
-    const outsider = await outsiderClients();
+    const lane = laneOrSkip(ctx);
+    const { org } = await lane.provisionTenancy();
+    const outsider = await lane.provisionIdentity();
 
     const agent = await ownerAgent(org);
     const channel = await clients.agentChannelCommand.create(
@@ -259,9 +263,9 @@ describe("list-read scoping — outsider isolation (multi-tenant only)", () => {
   });
 
   it("workflow.listVersions refuses an outsider with the Java copy (Q8)", async (ctx) => {
-    if (!multiTenantOnly()) return ctx.skip();
-    const { org } = await target.provisionTenancy();
-    const outsider = await outsiderClients();
+    const lane = laneOrSkip(ctx);
+    const { org } = await lane.provisionTenancy();
+    const outsider = await lane.provisionIdentity();
 
     const workflow = await clients.workflowCommand.create(
       makeWorkflow({ org, name: uniqueName("iso-wf") }),

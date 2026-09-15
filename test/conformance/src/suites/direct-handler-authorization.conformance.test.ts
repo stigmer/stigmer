@@ -33,13 +33,22 @@
 // the target (an env knob, stigmer#972, then TargetProfile.implementation,
 // stigmer#1014); with one implementation left there is nothing to select.
 //
-// Single-user targets skip: one implicit caller, isolation untestable by
-// construction (the organization suite's outsider precedent).
+// The arms run on the target's ENFORCING LANE (targets/target.ts): the
+// cloud's primary, and on the managed local targets an open-source sibling
+// in the OIDC posture, whose built-in Authorizer answers `authorizeDirect`
+// the same way — so the outsider contract is one contract on the cloud and
+// on both open-source store drivers. Where a target lends no lane the arms
+// skip VISIBLY with its reason.
 import { Code } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import type { ConformanceClients } from "../harness/clients";
-import { createTarget, type TargetProfile } from "../targets";
+import {
+  createTarget,
+  enforcingLaneOf,
+  type EnforcingLane,
+  type TargetProfile,
+} from "../targets";
 import { FixtureTracker } from "../harness/fixtures";
 import { expectGrpcCode, grpcCodeOf } from "../contract/errors";
 import { collectStream } from "../support/collect-stream";
@@ -51,13 +60,16 @@ import { makeWorkflow } from "../support/workflows";
 import { uniqueName } from "../support/naming";
 
 let target: TargetProfile;
+let enforcing: Awaited<ReturnType<typeof enforcingLaneOf>>;
+// The lane's founder — the OWNER of every resource the outsider is refused.
 let clients: ConformanceClients;
 const fixtures = new FixtureTracker();
 
 beforeAll(async () => {
   target = createTarget();
   await target.setup();
-  clients = target.clients();
+  enforcing = await enforcingLaneOf(target);
+  clients = enforcing.lane?.clients ?? target.clients();
 });
 
 afterEach(async () => {
@@ -68,24 +80,16 @@ afterAll(async () => {
   await target?.teardown();
 });
 
-function multiTenantOnly(): boolean {
-  return target.capabilities.multiTenant;
+function laneOrSkip(ctx: { skip: (note?: string) => never }): EnforcingLane {
+  if (enforcing.lane === undefined) ctx.skip(enforcing.reason);
+  return enforcing.lane;
 }
 
-async function outsiderClients(): Promise<ConformanceClients> {
-  if (target.provisionIdentity === undefined) {
-    throw new Error(
-      `target "${target.name}" declares multiTenant but provides no provisionIdentity()`,
-    );
-  }
-  return target.provisionIdentity();
-}
-
-describe("direct-handler authorization — outsider denials (multi-tenant only)", () => {
+describe("direct-handler authorization — outsider denials (on the enforcing lane)", () => {
   it("session updateSubject refuses an outsider with the annotation copy; the subject survives", async (ctx) => {
-    if (!multiTenantOnly()) return ctx.skip();
-    const { org } = await target.provisionTenancy();
-    const outsider = await outsiderClients();
+    const lane = laneOrSkip(ctx);
+    const { org } = await lane.provisionTenancy();
+    const outsider = await lane.provisionIdentity();
 
     const agent = await clients.agentCommand.create(
       makeAgent({ org, name: uniqueName("authz-agent") }),
@@ -123,9 +127,9 @@ describe("direct-handler authorization — outsider denials (multi-tenant only)"
   });
 
   it("workflow getVersion refuses an outsider with the annotation copy", async (ctx) => {
-    if (!multiTenantOnly()) return ctx.skip();
-    const { org } = await target.provisionTenancy();
-    const outsider = await outsiderClients();
+    const lane = laneOrSkip(ctx);
+    const { org } = await lane.provisionTenancy();
+    const outsider = await lane.provisionIdentity();
 
     const workflow = await clients.workflowCommand.create(
       makeWorkflow({ org, name: uniqueName("authz-wf") }),
@@ -147,9 +151,9 @@ describe("direct-handler authorization — outsider denials (multi-tenant only)"
   });
 
   it("the MCP connect lanes refuse an outsider with their annotation copies", async (ctx) => {
-    if (!multiTenantOnly()) return ctx.skip();
-    const { org } = await target.provisionTenancy();
-    const outsider = await outsiderClients();
+    const lane = laneOrSkip(ctx);
+    const { org } = await lane.provisionTenancy();
+    const outsider = await lane.provisionIdentity();
 
     const server = await clients.mcpServerCommand.create(
       makeMcpServer({ org, name: uniqueName("authz-mcp") }),
@@ -159,17 +163,39 @@ describe("direct-handler authorization — outsider denials (multi-tenant only)"
     );
     const id = server.metadata!.id;
 
-    const lanes: ReadonlyArray<[string, () => Promise<unknown>, string]> = [
-      [
-        "connect",
-        () => outsider.mcpServerCommand.connect({ mcpServerId: id, org }),
-        "unauthorized to connect to mcp server",
-      ],
-      [
-        "startConnect",
-        () => outsider.mcpServerCommand.startConnect({ mcpServerId: id, org }),
-        "unauthorized to connect to mcp server",
-      ],
+    // TWO-ARMED ordering pin on the two engine-backed lanes: connect and
+    // startConnect check the engine BEFORE they load and authorize
+    // (connect.ts, start-connect.ts: "connect is not available: Temporal not
+    // configured" is their first arm), so on an enforcing server with no
+    // Temporal an outsider hears FAILED_PRECONDITION where every other
+    // target answers the denial. Disclosed, not the contract: the
+    // authorize-before-precondition order the run gate and
+    // initiateOAuthConnect keep is the one these two should keep as well.
+    // Pinned per shape (scheduleFiring doubles as "a Temporal engine backs
+    // this target", the execution suites' reading) so the fix collapses
+    // both arms to PERMISSION_DENIED visibly.
+    const engineBacked = target.capabilities.scheduleFiring;
+    const engineBackedDenial = (name: string, op: () => Promise<unknown>) =>
+      engineBacked
+        ? expectGrpcCode(op, Code.PermissionDenied, `outsider ${name} on a foreign server`)
+        : expectGrpcCode(
+            op,
+            Code.FailedPrecondition,
+            `outsider ${name} on a Temporal-less server (the engine arm precedes the check)`,
+          );
+    for (const [name, op] of [
+      ["connect", () => outsider.mcpServerCommand.connect({ mcpServerId: id, org })],
+      ["startConnect", () => outsider.mcpServerCommand.startConnect({ mcpServerId: id, org })],
+    ] as const) {
+      const refused = await engineBackedDenial(name, op);
+      if (engineBacked) {
+        expect(refused.rawMessage, `${name} annotation copy`).toBe(
+          "unauthorized to connect to mcp server",
+        );
+      }
+    }
+
+    const rpcs: ReadonlyArray<[string, () => Promise<unknown>, string]> = [
       [
         "getOAuthGrantStatus",
         () =>
@@ -183,13 +209,13 @@ describe("direct-handler authorization — outsider denials (multi-tenant only)"
         "unauthorized to disconnect oauth for mcp server",
       ],
     ];
-    for (const [lane, op, copy] of lanes) {
+    for (const [rpc, op, copy] of rpcs) {
       const denied = await expectGrpcCode(
         op,
         Code.PermissionDenied,
-        `outsider ${lane} on a foreign server`,
+        `outsider ${rpc} on a foreign server`,
       );
-      expect(denied.rawMessage, `${lane} annotation copy`).toBe(copy);
+      expect(denied.rawMessage, `${rpc} annotation copy`).toBe(copy);
     }
 
     // initiateOAuthConnect authorizes BEFORE the lane's auth-block
@@ -208,9 +234,9 @@ describe("direct-handler authorization — outsider denials (multi-tenant only)"
   });
 
   it("the channel install pair refuses an outsider with its annotation copy (C2 close-out — the arm both editions declare)", async (ctx) => {
-    if (!multiTenantOnly()) return ctx.skip();
-    const { org } = await target.provisionTenancy();
-    const outsider = await outsiderClients();
+    const lane = laneOrSkip(ctx);
+    const { org } = await lane.provisionTenancy();
+    const outsider = await lane.provisionIdentity();
 
     const agent = await clients.agentCommand.create(
       makeAgent({ org, name: uniqueName("authz-channel-agent") }),
@@ -252,8 +278,8 @@ describe("direct-handler authorization — outsider denials (multi-tenant only)"
   });
 
   it("the authorize-first read lanes answer an outsider's unknown id with the ruled uniform Q1 NOT_FOUND", async (ctx) => {
-    if (!multiTenantOnly()) return ctx.skip();
-    const outsider = await outsiderClients();
+    const lane = laneOrSkip(ctx);
+    const outsider = await lane.provisionIdentity();
     const missingWorkflowExecution = "wfe_01conformancemissing";
     const missingAgentExecution = "aexec_01conformancemissing";
     const missingArtifactKey = `artifacts/${missingAgentExecution}/f.txt`;

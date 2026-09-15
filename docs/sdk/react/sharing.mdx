@@ -77,10 +77,11 @@ appear to a user whose create would be refused:
   resource id — an Organization's id equals its slug
   (ApiResourceMetadata.id).
 
-On the open-source edition both checks reach the server's permissive
-single-team authorizer and answer allowed — the same posture the
-backend enforces there (decision 011 D4), so the affordance matches
-what a create would do.
+On the open-source edition the answer follows the server's posture. A
+server without sign-in has the permissive single-team authorizer and
+answers allowed (decision 011 D4). A server with sign-in enforces the
+same organization roles as the cloud, so `can_create_agent_share` is
+the admin's and a member sees no share affordance.
 
 Pass `null` for `agent` while it loads — `allowed` stays `false` so
 no affordance flashes before the gate can be evaluated.

@@ -231,7 +231,7 @@ describe("AgentExecution conformance — zero-record read surfaces (CW-7)", () =
     );
     // Single-user arm: the multi-tenant edition's authorization fails
     // closed on an unresolvable id (PermissionDenied, no existence leak).
-    if (target.capabilities.multiTenant) return;
+    if (target.capabilities.enforcingAuthorizer) return;
     await expectGrpcCode(
       () =>
         clients.agentExecutionQuery.getExecutionUsageReport({
@@ -246,7 +246,7 @@ describe("AgentExecution conformance — zero-record read surfaces (CW-7)", () =
     // Single-user posture only: where orgs are real, an unauthorized scope
     // answers PermissionDenied instead of a zero report — the aggregation
     // reads are authorization-gated per scope on the multi-tenant edition.
-    if (target.capabilities.multiTenant) return ctx.skip();
+    if (target.capabilities.enforcingAuthorizer) return ctx.skip();
     // The zero-shapes contract: these aggregation reads never error for
     // "nothing to aggregate" — they answer structurally complete,
     // zero-valued reports (OSS deliberately records no usage data at all,
@@ -312,7 +312,7 @@ describe("AgentExecution conformance — zero-record read surfaces (CW-7)", () =
     // answers the SAME NotFound through the authorizer's deny-path
     // existence probe (the ruled uniform Q1 posture, C2 Stage 4) — pinned
     // with an outsider caller in the direct-handler-authorization suite.
-    if (target.capabilities.multiTenant) return;
+    if (target.capabilities.enforcingAuthorizer) return;
     await expectGrpcCode(
       () =>
         collectStream((signal) =>
@@ -330,7 +330,7 @@ describe("AgentExecution conformance — submitFileDecision negatives (CW-7)", (
   // or unknown ids surface as NotFound/PermissionDenied there instead — the
   // ordering divergence disclosed in the wave-2 PR.
   it("rejects structurally invalid inputs before any load (InvalidArgument)", async (ctx) => {
-    if (target.capabilities.multiTenant) return ctx.skip();
+    if (target.capabilities.enforcingAuthorizer) return ctx.skip();
     await expectGrpcCode(
       () =>
         clients.agentExecutionCommand.submitFileDecision({
@@ -358,7 +358,7 @@ describe("AgentExecution conformance — submitFileDecision negatives (CW-7)", (
   });
 
   it("an unknown execution answers NotFound", async (ctx) => {
-    if (target.capabilities.multiTenant) return ctx.skip();
+    if (target.capabilities.enforcingAuthorizer) return ctx.skip();
     await expectGrpcCode(
       () =>
         clients.agentExecutionCommand.submitFileDecision({

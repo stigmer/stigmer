@@ -17,6 +17,7 @@ Verification notes: every registration map in `src/boot/compose.ts`'s routes clo
 - Registered RPC methods: 233.
 - Handler classes: 179 `chain-with-Authorize`, 54 `direct` (17 of which evaluate their annotation via `authorizeDirect` — C2 Stage 4).
 - Annotation classes: 139 `config`, 74 `is_skip_authorization`, 2 `is_public`, 18 `none` (15 apply RPCs + 3 health methods).
+- What the classes mean under each open-source posture: on a trusted-local server (no authentication) the composed Authorizer is the permissive single-team default and no list scope is composed, so every class admits every caller. Under an authentication posture with no unit Authorizer (`STIGMER_OIDC_ISSUER` set; `src/authorization/posture.ts`) the server composes its BUILT-IN Authorizer and ListReadScope — the cloud's OpenFGA model evaluated over tuples derived from the row — so every `config` lane enforces the model and every list lane marked "a composed ListReadScope narrows" below narrows to the caller's rows. `is_skip_authorization` lanes reach neither Authorizer in either posture: what guards each is the mid-chain step or driver its Handler column names, and a skip lane whose column names nothing is open to every authenticated caller in every edition.
 - Config-annotated methods served by direct handlers: 30, dispositioned at the C2 Stage-4 gate (17 `authorizeDirect`, 9 on the composed channel runtime, 1 deliberate skip, 3 recorded-gap stubs) — the full table before the notes section.
 
 ## 1. Health (`grpc.health.v1.Health`, `src/transport/health.ts`)
@@ -38,8 +39,8 @@ The standard gRPC health protocol — an external proto with no Stigmer annotati
 | OrganizationCommandController.update | config: can_edit on organization (field metadata.id), error_msg yes | chain-with-Authorize |
 | OrganizationCommandController.delete | config: can_delete on organization (field value), error_msg yes | chain-with-Authorize |
 | OrganizationQueryController.get | config: can_view on organization (field value), error_msg yes | chain-with-Authorize |
-| OrganizationQueryController.find | is_skip_authorization | chain-with-Authorize |
-| OrganizationQueryController.findMyOrganizations | is_skip_authorization | direct: full store list — single-team OSS posture, ALL organizations are "mine" (cloud filters by IAM policy instead) |
+| OrganizationQueryController.find | is_skip_authorization | chain-with-Authorize (the composed OrganizationDirectory's `refusesEnumeration` answers UNIMPLEMENTED before any work — the cloud's posture, and open source's under the built-in posture; trusted-local enumerates) |
+| OrganizationQueryController.findMyOrganizations | is_skip_authorization | direct: the composed OrganizationDirectory — trusted-local answers ALL organizations (single-team); the built-in directory answers the organizations the caller holds a role on (the cloud filters by IAM policy the same way) |
 
 Proto method NOT registered by this server: `OrganizationQueryController.getByExternalOrgId` (is_skip_authorization) — see the unregistered-methods list.
 
@@ -91,7 +92,7 @@ All six RPCs are chains, and the proto deliberately marks every one `is_skip_aut
 | Method | Annotation | Handler |
 |---|---|---|
 | ExecutionContextCommandController.apply | none | chain-with-Authorize |
-| ExecutionContextCommandController.create | is_skip_authorization | chain-with-Authorize |
+| ExecutionContextCommandController.create | is_skip_authorization | chain-with-Authorize (the AuthorizeExecutionContextCreate mid-chain check: can_create_execution_in on the organization, before the duplicate check — the Java AuthorizeCreate order, stigmer-cloud#297) |
 | ExecutionContextCommandController.delete | is_skip_authorization | chain-with-Authorize |
 | ExecutionContextQueryController.get | is_skip_authorization | chain-with-Authorize (response redacted) |
 | ExecutionContextQueryController.getByReference | is_skip_authorization | chain-with-Authorize (response redacted) |

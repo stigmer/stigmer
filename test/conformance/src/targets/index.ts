@@ -14,7 +14,7 @@ import {
   LocalPostgresExecutionTarget,
   LocalPostgresTarget,
 } from "./local-postgres";
-import type { TargetProfile } from "./target";
+import type { EnforcingLane, TargetProfile } from "./target";
 
 const TARGET_FACTORIES: Record<string, () => TargetProfile> = {
   local: () => new LocalTarget(),
@@ -35,11 +35,38 @@ export function createTarget(): TargetProfile {
   return factory();
 }
 
+// The enforcing lane a suite's authorization arms run against, or `undefined`
+// with the target's reason where it has none (the arms then skip VISIBLY).
+// A target that declares an enforcing primary and lends no lane is a harness
+// gap, not a skip — the "declares X but provides no Y" rule every flagged
+// arm applies.
+export async function enforcingLaneOf(
+  target: TargetProfile,
+): Promise<{ lane: EnforcingLane } | { lane: undefined; reason: string }> {
+  if (target.enforcingLane === undefined) {
+    if (target.capabilities.enforcingAuthorizer) {
+      throw new Error(
+        `target "${target.name}" declares enforcingAuthorizer but provides no enforcingLane()`,
+      );
+    }
+    return {
+      lane: undefined,
+      reason:
+        target.enforcingLaneUnavailable?.() ??
+        `target "${target.name}" offers no enforcing lane`,
+    };
+  }
+  return { lane: await target.enforcingLane() };
+}
+
 export type { TargetProfile } from "./target";
 export type {
   CapabilityFlags,
   DirectLoginTenant,
+  EnforcingLane,
+  OrganizationRole,
   SiblingServer,
   SpawnSiblingOptions,
   TenancyContext,
 } from "./target";
+export { ORGANIZATION_ROLES } from "./target";
