@@ -31,18 +31,17 @@
  * `tool_started` that announces it — M4 finding F-M4-7).
  *
  * Arm 3 — the completion delta reports an ERROR, and a model event sits
- * between it and the stream's own `error`. Pinned AS FOUND (M4 finding
- * F-M4-5): the enricher promotes the row RUNNING → COMPLETED at the next
- * stream event because a completion delta arrived, and the monotonic merge
- * then refuses the stream's FAILED — the row ends COMPLETED carrying an
- * `error`, a row that lies. `completedAt` is the delta's own instant (the
- * enricher captured it at delta time and applied it later). Predicted: NO
- * move at B4 (the translator reproduces the fold, instant included); at B5
- * (Q-M4-5) the translator honours `result.status: "error"` and the row ends
- * FAILED, with `approvalRequestedAt` at the instant the failure was observed.
- * Moved at A4 (Q-M4-3) by one line this header had not named when C1 wrote
- * it (M4 finding F-M4-32): the stream's `error` merge had duplicated the
- * failure text into `result`; a failure's text is its `error` alone.
+ * between it and the stream's own `error`. Pinned: the translator honours the
+ * delta's `result.status: "error"` (Q-M4-5) — the row is FAILED from the
+ * instant the failure was observed (`completedAt` and, for a gated shell,
+ * `approvalRequestedAt` at the delta's own tick), and the stream's `error`
+ * event that follows supplies the text. Until B5 (as C1 first pinned it,
+ * M4 finding F-M4-5) the enricher promoted every completion delta to
+ * COMPLETED, the monotonic merge then refused the stream's FAILED, and the
+ * row ended COMPLETED carrying an `error` — a row that lied. Moved at A4
+ * (Q-M4-3) by one line this header had not named when C1 wrote it
+ * (F-M4-32): the failure text is `error` alone; moved at B5 (Q-M4-5) in the
+ * status and in `approvalRequestedAt`, both predicted.
  *
  * Regenerate ONLY after a deliberate behavior change:
  *   npx vitest run src/activities/execute-cursor/__tests__/hermetic -u
@@ -228,7 +227,7 @@ describe("ExecuteCursor hermetic — the delta channel on a shell row", () => {
     await expect(json).toMatchFileSnapshot("./goldens/shell-output-delta.output-first.status.json");
   });
 
-  it("arm 3: an error-status completion delta, with a model event before the stream's error, is folded as the enricher folds it today", async () => {
+  it("arm 3: an error-status completion delta, with a model event before the stream's error, fails the row from the instant it was observed", async () => {
     const AGENT_ID = "agent-hermetic-shelldelta-0003";
     const RUN_ID = "run-hermetic-shelldelta-0003";
     const CALL_ID = "call-hermetic-shelldelta-0003";
@@ -265,10 +264,11 @@ describe("ExecuteCursor hermetic — the delta channel on a shell row", () => {
     const rows = record.toolCalls();
     expect(rows).toHaveLength(1);
     const row = rows[0];
-    // As found (F-M4-5): the enricher's promotion won the race and the monotonic
-    // merge kept it, so the row says COMPLETED while carrying the failure.
-    expect(row.status, "pinned as found; Q-M4-5 moves this to FAILED at B5").toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
-    expect(row.error).toBe(SHELL_ERROR);
+    // The delta said the tool failed; the row says so from that instant (Q-M4-5).
+    expect(row.status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
+    expect(row.error, "the stream's error event supplied the text").toBe(SHELL_ERROR);
+    expect(row.result).toBe("");
+    expect(row.approvalRequestedAt, "a gated shell's gate stamp shares the observed instant").toBe(row.completedAt);
 
     const json = JSON.stringify(toJson(AgentExecutionStatusSchema, record.lastFullStatus!), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/shell-output-delta.error-delta.status.json");

@@ -530,6 +530,34 @@ describe("CursorTranslator — the delta channel is queued, held for unannounced
     expect(fold.row("c2").completedAt).toBe("2026-01-01T00:00:07.000Z");
   });
 
+  it("a completion delta whose result status is error is a tool_error at the observed instant; the stream's text follows (Q-M4-5)", () => {
+    const failedDelta: InteractionUpdate = {
+      type: "tool-call-completed", callId: "c1", modelCallId: MODEL_CALL,
+      toolCall: { type: "shell", args: { command: "make" }, result: { status: "error", error: "command not found" } },
+    };
+    const t = translator();
+    t.translate(ev.toolCall("c1", "shell", "running", { command: "make" }));
+    vi.setSystemTime(new Date("2026-01-01T00:00:07.000Z"));
+    t.observeDelta(failedDelta);
+    expect(t.drainDeltas()).toEqual([{ kind: "tool_error", callId: "c1", message: "", observedAt: "2026-01-01T00:00:07.000Z" }]);
+    // Through the builder: FAILED from the delta's instant; a completion delta
+    // whose result is absent is a success.
+    const fold = new CursorFold().event(ev.toolCall("c2", "shell", "running", { command: "make" }));
+    vi.setSystemTime(new Date("2026-01-01T00:00:07.000Z"));
+    fold.delta({ ...failedDelta, callId: "c2" });
+    vi.setSystemTime(new Date("2026-01-01T00:00:20.000Z"));
+    fold.event(ev.thinking("It failed."));
+    expect(fold.row("c2").status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
+    expect(fold.row("c2").completedAt).toBe("2026-01-01T00:00:07.000Z");
+    expect(fold.row("c2").approvalRequestedAt, "a gated shell").toBe("2026-01-01T00:00:07.000Z");
+    fold.event(ev.toolCall("c2", "shell", "error", { command: "make" }, "sh: make: command not found"));
+    expect(fold.row("c2").error).toBe("sh: make: command not found");
+    expect(fold.row("c2").status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
+    const noResult = new CursorFold().event(ev.toolCall("c3", "read", "running", { path: "x" }));
+    noResult.delta({ type: "tool-call-completed", callId: "c3", modelCallId: MODEL_CALL, toolCall: { type: "read", args: { path: "x" } } }).drain();
+    expect(noResult.row("c3").status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+  });
+
   it("a held completion for a resumed agent's re-run is re-targeted at the seeded row it aliases to", () => {
     const status = create(AgentExecutionStatusSchema, {
       messages: [create(AgentMessageSchema, {

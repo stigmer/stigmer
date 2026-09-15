@@ -206,11 +206,21 @@ export class CursorTranslator {
         return;
       }
       case "tool-call-completed": {
-        // The completion, at the instant it was observed (Q-M4-14); the stream's
-        // own completion follows with the result, and the builder's upsert
-        // merges the two (Q-S4-3(c)). An empty result never clears anything.
+        // The completion, at the instant it was observed (Q-M4-14), with the
+        // OUTCOME the typed delta carries (Q-M4-5; S4 M4 B5): a `result.status`
+        // of `error` is a failure, not a completion — until B5 the enricher
+        // promoted every completion delta to COMPLETED, and a tool that failed
+        // ended COMPLETED carrying an `error` when the delta beat the stream's
+        // own `error` event. The stream's event follows with the text or the
+        // result, and the builder's upsert merges the two (Q-S4-3(c)); an
+        // empty message or result never clears anything.
         const observedAt = utcTimestamp();
-        this.enqueue(update.callId, (rowId) => ({ kind: "tool_finished", callId: rowId, result: "", observedAt }));
+        const failed = completionFailed(update.toolCall);
+        this.enqueue(update.callId, (rowId) =>
+          failed
+            ? { kind: "tool_error", callId: rowId, message: "", observedAt }
+            : { kind: "tool_finished", callId: rowId, result: "", observedAt },
+        );
         return;
       }
       default:
@@ -400,6 +410,17 @@ export class CursorTranslator {
 
 function segmentId(runId: string, n: number): string {
   return `${runId}:${n}`;
+}
+
+/**
+ * Whether a `tool-call-completed` delta reports a FAILURE. Every tool family in
+ * the SDK's discriminated union carries `result?: { status: "success" | "error", … }`
+ * for the outcome; read structurally so a family the SDK adds is judged the
+ * same way, and an absent result (a tool that reports nothing) is a success.
+ */
+function completionFailed(toolCall: Extract<InteractionUpdate, { type: "tool-call-completed" }>["toolCall"]): boolean {
+  const result: unknown = (toolCall as { result?: unknown }).result;
+  return typeof result === "object" && result !== null && (result as { status?: unknown }).status === "error";
 }
 
 // ── The MCP envelope ──────────────────────────────────────────────

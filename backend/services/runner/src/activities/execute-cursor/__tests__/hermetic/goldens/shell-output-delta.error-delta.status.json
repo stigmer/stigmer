@@ -11,13 +11,13 @@
           "args": {
             "command": "npm test"
           },
-          "status": "TOOL_CALL_COMPLETED",
+          "status": "TOOL_CALL_FAILED",
           "startedAt": "2026-01-01T00:00:25.000Z",
           "completedAt": "2026-01-01T00:00:27.000Z",
           "error": "sh: npm: command not found",
           "requiresApproval": true,
           "approvalMessage": "Run command: npm test",
-          "approvalRequestedAt": "2026-01-01T00:00:29.000Z",
+          "approvalRequestedAt": "2026-01-01T00:00:27.000Z",
           "argsPreview": "{\"command\":\"npm test\"}",
           "toolKind": "TOOL_KIND_SHELL",
           "approvalPolicySource": "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
