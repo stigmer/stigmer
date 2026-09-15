@@ -13,26 +13,66 @@
  *     offered the org's rows and never the kind's — the same result set,
  *     a fraction of the candidates);
  *   - the candidates carry {id, org, labels} — the driver's guest
- *     cookie rule keys on labels;
+ *     cookie rule keys on labels — and the row's AUTHORIZATION FACTS
+ *     (creator stamp, visibility level, every parent link), read by the
+ *     one structural resolver the built-in authorizer reads a loaded row
+ *     through, so a driver that evaluates the model over a candidate
+ *     needs no second read of the row;
  *   - a kind whose authorization is its parent's (kind_meta PARENT scope
  *     + INHERITED owner; agent_execution → session) carries
  *     `authorizationParent` on every candidate whose spec names it, the
- *     same ResolvedParentLink the tuple lifecycle wrote; every other kind
- *     and every parentless row carries none (stigmer-cloud 20260913.04
- *     T04);
+ *     same ResolvedParentLink the tuple lifecycle wrote and one of the
+ *     candidate's own parent links; every other kind and every parentless
+ *     row carries none (stigmer-cloud 20260913.04 T04);
  *   - a scope failure PROPAGATES — never an empty result (the outage
  *     contract: empty means "authorized to see nothing", outage means
  *     INTERNAL through the caller's sanitized arm).
  */
+import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import { ApiResourceAuditSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
 
 import { testCallerIdentity } from "../../pipeline/__tests__/support.js";
 import type { ListEntryMeta, ListReadScope } from "../list-read-scope.js";
 import { restrictListByReadScope } from "../list-read-scope.js";
+import type { ResolvedParentLink } from "../resource-authorization.js";
 
 const caller = testCallerIdentity();
+
+function organizationLink(org: string): ResolvedParentLink {
+  return {
+    relation: "organization",
+    parentKind: ApiResourceKind.organization,
+    parentId: org,
+  };
+}
+
+function sessionLink(session: string): ResolvedParentLink {
+  return {
+    relation: "session",
+    parentKind: ApiResourceKind.session,
+    parentId: session,
+  };
+}
+
+/** The candidate a row with no audit and no visibility set becomes. */
+function bareFacts(
+  id: string,
+  org: string,
+  parentLinks: ReadonlyArray<ResolvedParentLink>,
+): ListEntryMeta {
+  return {
+    id,
+    org,
+    labels: {},
+    createdBy: "",
+    visibility: ApiResourceVisibility.api_resource_visibility_unspecified,
+    parentLinks,
+  };
+}
 
 function row(id: string, org: string, labels: Record<string, string> = {}) {
   return { metadata: { id, org, labels } };
@@ -155,9 +195,76 @@ describe("restrictListByReadScope", () => {
         id: "ses_a",
         org: "acme",
         labels: { "stigmer.ai/guest-cookie-id": "ck_1" },
+        createdBy: "",
+        visibility: ApiResourceVisibility.api_resource_visibility_unspecified,
+        parentLinks: [organizationLink("acme")],
       },
-      { id: "ses_b", org: "acme", labels: {} },
-      { id: "ses_c", org: "rival", labels: {} },
+      {
+        id: "ses_b",
+        org: "acme",
+        labels: {},
+        createdBy: "",
+        visibility: ApiResourceVisibility.api_resource_visibility_unspecified,
+        parentLinks: [organizationLink("acme")],
+      },
+      {
+        id: "ses_c",
+        org: "rival",
+        labels: {},
+        createdBy: "",
+        visibility: ApiResourceVisibility.api_resource_visibility_unspecified,
+        parentLinks: [organizationLink("rival")],
+      },
+    ]);
+  });
+
+  it("a candidate carries the row's authorization facts — the creator stamp, the visibility level and every parent link — read by the one resolver the point-check driver reads through", async () => {
+    let seen: ReadonlyArray<ListEntryMeta> = [];
+    const recording: ListReadScope = {
+      authorizedResourceIds: () => Promise.resolve(new Set<string>()),
+      restrictListEntries: (_caller, _kind, entries) => {
+        seen = entries;
+        return Promise.resolve(new Set<string>());
+      },
+    };
+    await restrictListByReadScope(
+      recording,
+      caller,
+      ApiResourceKind.agent_instance,
+      [
+        {
+          metadata: {
+            id: "ai_1",
+            org: "acme",
+            labels: {},
+            visibility: ApiResourceVisibility.visibility_org,
+          },
+          spec: { agentId: "agt_1" },
+          status: {
+            audit: create(ApiResourceAuditSchema, {
+              specAudit: { createdBy: { id: "ida_carol" } },
+            }),
+          },
+        },
+      ],
+      "",
+    );
+    expect(seen).toEqual([
+      {
+        id: "ai_1",
+        org: "acme",
+        labels: {},
+        createdBy: "ida_carol",
+        visibility: ApiResourceVisibility.visibility_org,
+        parentLinks: [
+          organizationLink("acme"),
+          {
+            relation: "agent",
+            parentKind: ApiResourceKind.agent,
+            parentId: "agt_1",
+          },
+        ],
+      },
     ]);
   });
 
@@ -198,36 +305,21 @@ describe("restrictListByReadScope", () => {
         "",
       );
       expect(kept.map((r) => r.metadata.id)).toEqual(["aex_1", "aex_3"]);
+      // The parent is one of the row's parent links — resolved once, named
+      // twice: as the link the derivation reads and as the designation a
+      // driver may answer in place of the child.
       expect(seen[0]).toEqual([
         {
-          id: "aex_1",
-          org: "acme",
-          labels: {},
-          authorizationParent: {
-            relation: "session",
-            parentKind: ApiResourceKind.session,
-            parentId: "ses_a",
-          },
+          ...bareFacts("aex_1", "acme", [sessionLink("ses_a")]),
+          authorizationParent: sessionLink("ses_a"),
         },
         {
-          id: "aex_2",
-          org: "acme",
-          labels: {},
-          authorizationParent: {
-            relation: "session",
-            parentKind: ApiResourceKind.session,
-            parentId: "ses_a",
-          },
+          ...bareFacts("aex_2", "acme", [sessionLink("ses_a")]),
+          authorizationParent: sessionLink("ses_a"),
         },
         {
-          id: "aex_3",
-          org: "acme",
-          labels: {},
-          authorizationParent: {
-            relation: "session",
-            parentKind: ApiResourceKind.session,
-            parentId: "ses_b",
-          },
+          ...bareFacts("aex_3", "acme", [sessionLink("ses_b")]),
+          authorizationParent: sessionLink("ses_b"),
         },
       ]);
     });
@@ -250,8 +342,8 @@ describe("restrictListByReadScope", () => {
         "aex_specless",
       ]);
       expect(seen[0]).toEqual([
-        { id: "aex_orphan", org: "acme", labels: {} },
-        { id: "aex_specless", org: "acme", labels: {} },
+        bareFacts("aex_orphan", "acme", []),
+        bareFacts("aex_specless", "acme", []),
       ]);
     });
 
@@ -272,7 +364,19 @@ describe("restrictListByReadScope", () => {
         runs,
         "",
       );
-      expect(seen[0]).toEqual([{ id: "wex_1", org: "acme", labels: {} }]);
+      // The instance IS a parent link (the derivation walks
+      // `execution_viewer from workflow_instance` through it); it is not
+      // the parent the kind's authorization is.
+      expect(seen[0]).toEqual([
+        bareFacts("wex_1", "acme", [
+          organizationLink("acme"),
+          {
+            relation: "workflow_instance",
+            parentKind: ApiResourceKind.workflow_instance,
+            parentId: "wfi_1",
+          },
+        ]),
+      ]);
     });
 
     it("no scope composed = the input unchanged, the parent never resolved", async () => {

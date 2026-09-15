@@ -26,6 +26,7 @@ import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { createLogger } from "../../../boot/logger.js";
+import { ScheduleFireCallerRefusedError } from "../../../extensions/schedule-fire-caller.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
 import { ScheduleTemporalConfig } from "../config.js";
 import {
@@ -37,7 +38,11 @@ import {
   scheduledExecutionName,
 } from "../run-starter.js";
 
-const silentLogger = createLogger({ level: "error", pretty: false, write: () => {} });
+const silentLogger = createLogger({
+  level: "error",
+  pretty: false,
+  write: () => {},
+});
 
 const NOMINAL = new Date("2026-08-25T09:30:00Z");
 
@@ -49,13 +54,15 @@ describe("scheduledExecutionName — THE idempotency key (byte-pinned)", () => {
   });
 
   it("truncates the nominal time to whole seconds", () => {
-    expect(scheduledExecutionName("sch_x", new Date("2026-08-25T09:30:00.999Z"))).toBe(
-      "sch-x-20260825t093000z",
-    );
+    expect(
+      scheduledExecutionName("sch_x", new Date("2026-08-25T09:30:00.999Z")),
+    ).toBe("sch-x-20260825t093000z");
   });
 
   it("every character is slug-shaped (the name IS the execution's slug)", () => {
-    expect(scheduledExecutionName("sch_01ABC", NOMINAL)).toMatch(/^[a-z0-9-]+$/);
+    expect(scheduledExecutionName("sch_01ABC", NOMINAL)).toMatch(
+      /^[a-z0-9-]+$/,
+    );
   });
 });
 
@@ -71,7 +78,11 @@ function scheduleWith(overrides?: {
   slug?: string;
 }): Schedule {
   return create(ScheduleSchema, {
-    metadata: { id: "sch_01test", org: "acme", slug: overrides?.slug ?? "daily" },
+    metadata: {
+      id: "sch_01test",
+      org: "acme",
+      slug: overrides?.slug ?? "daily",
+    },
     spec: {
       cron: "0 9 * * *",
       timeZone: overrides?.timeZone ?? "Asia/Kolkata",
@@ -109,16 +120,18 @@ describe("composeMessage — the fire-context line (byte contract)", () => {
   });
 
   it("an unloadable zone degrades to UTC (a slightly wrong-timezone reminder beats a dead fire)", () => {
-    expect(composeMessage(scheduleWith({ timeZone: "Mars/Olympus" }), NOMINAL)).toBe(
+    expect(
+      composeMessage(scheduleWith({ timeZone: "Mars/Olympus" }), NOMINAL),
+    ).toBe(
       "Do the morning rounds\n\n(Scheduled fire time: Tuesday, 2026-08-25 09:30 (UTC))",
     );
   });
 
   it("uses h23 hours (Go's 15 layout: 00-23, never 24)", () => {
     const midnight = new Date("2026-08-25T00:05:00Z");
-    expect(composeMessage(scheduleWith({ timeZone: "UTC" }), midnight)).toContain(
-      "Tuesday, 2026-08-25 00:05 (UTC)",
-    );
+    expect(
+      composeMessage(scheduleWith({ timeZone: "UTC" }), midnight),
+    ).toContain("Tuesday, 2026-08-25 00:05 (UTC)");
   });
 });
 
@@ -176,7 +189,9 @@ describe("RunStarter.startRun — against a real store", () => {
     rmSync(dir, { recursive: true, force: true });
   });
 
-  function starter(create_: (execution: AgentExecution) => Promise<AgentExecution>) {
+  function starter(
+    create_: (execution: AgentExecution) => Promise<AgentExecution>,
+  ) {
     return new RunStarter({
       store,
       config,
@@ -208,14 +223,20 @@ describe("RunStarter.startRun — against a real store", () => {
     expect(seen?.metadata?.labels[SCHEDULE_ID_LABEL_KEY]).toBe("sch_01test");
     expect(seen?.spec?.agentId).toBe("agt_01helper");
     expect(seen?.spec?.message).toContain("(Scheduled fire time: ");
-    expect(seen?.spec?.sessionSpec?.subject).toBe(`${SESSION_SUBJECT_PREFIX}daily`);
-    expect(seen?.spec?.executionConfig?.approvalMode).toBe(ApprovalMode.UNATTENDED);
+    expect(seen?.spec?.sessionSpec?.subject).toBe(
+      `${SESSION_SUBJECT_PREFIX}daily`,
+    );
+    expect(seen?.spec?.executionConfig?.approvalMode).toBe(
+      ApprovalMode.UNATTENDED,
+    );
     // Platform profile applies when the owner set nothing.
     expect(seen?.spec?.executionConfig?.maxToolRounds).toBe(20);
     expect(seen?.spec?.executionConfig?.maxCostUsd).toBe(1.0);
     // Unset tier/model stay unset (never stamped).
     expect(seen?.spec?.executionConfig?.modelName).toBe("");
-    expect(seen?.spec?.executionConfig?.serviceTier).toBe(ServiceTier.UNSPECIFIED);
+    expect(seen?.spec?.executionConfig?.serviceTier).toBe(
+      ServiceTier.UNSPECIFIED,
+    );
 
     // Success stamped last_execution_id on the row.
     const row = await store.getResource(
@@ -333,9 +354,39 @@ describe("RunStarter.startRun — against a real store", () => {
         },
         logger: silentLogger,
       });
-      await expect(runStarter.startRun(scheduleWith(), NOMINAL)).rejects.toThrow(
+      await expect(
+        runStarter.startRun(scheduleWith(), NOMINAL),
+      ).rejects.toThrow(
         /mint schedule fire caller for sch_01test: account provisioning unavailable/,
       );
+    });
+
+    it("answers `refused` when the mint's failure is the seam's deterministic refusal — the streak counts it, no retry", async () => {
+      let created = 0;
+      const runStarter = new RunStarter({
+        store,
+        config,
+        executions: {
+          create: async () => {
+            created += 1;
+            throw new Error("create must not run when the mint refused");
+          },
+        },
+        fireCallerMint: {
+          mintFireCaller: async () => {
+            throw new ScheduleFireCallerRefusedError(
+              "schedule sch_01test was created by nobody this server recognizes as a person",
+            );
+          },
+        },
+        logger: silentLogger,
+      });
+      expect(await runStarter.startRun(scheduleWith(), NOMINAL)).toEqual({
+        kind: "refused",
+        reason:
+          "schedule sch_01test was created by nobody this server recognizes as a person",
+      });
+      expect(created).toBe(0);
     });
 
     it("never mints on the idempotent path (the winner needs no credential)", async () => {
@@ -372,7 +423,10 @@ describe("RunStarter.startRun — against a real store", () => {
         executionId: "aex_01winner",
         alreadyExisted: true,
       });
-      await store.deleteResource(ApiResourceKind.agent_execution, "aex_01winner");
+      await store.deleteResource(
+        ApiResourceKind.agent_execution,
+        "aex_01winner",
+      );
     });
   });
 
@@ -410,13 +464,19 @@ describe("RunStarter.startRun — against a real store", () => {
     Code.NotFound,
     Code.InvalidArgument,
     Code.ResourceExhausted,
-  ])("maps the launch-gate code %s to a refused outcome (the streak counts it)", async (code) => {
-    const runStarter = starter(async () => {
-      throw new ConnectError("gate refused this run", code);
-    });
-    const outcome = await runStarter.startRun(scheduleWith(), NOMINAL);
-    expect(outcome).toEqual({ kind: "refused", reason: "gate refused this run" });
-  });
+  ])(
+    "maps the launch-gate code %s to a refused outcome (the streak counts it)",
+    async (code) => {
+      const runStarter = starter(async () => {
+        throw new ConnectError("gate refused this run", code);
+      });
+      const outcome = await runStarter.startRun(scheduleWith(), NOMINAL);
+      expect(outcome).toEqual({
+        kind: "refused",
+        reason: "gate refused this run",
+      });
+    },
+  );
 
   it("rethrows infrastructure codes so the activity retries", async () => {
     const runStarter = starter(async () => {
@@ -463,7 +523,9 @@ describe("RunStarter.startRun — against a real store", () => {
     let seen: AgentExecution | undefined;
     const runStarter = starter(async (execution) => {
       seen = execution;
-      return create(AgentExecutionSchema, { metadata: { id: "aex_01x", org: "acme" } });
+      return create(AgentExecutionSchema, {
+        metadata: { id: "aex_01x", org: "acme" },
+      });
     });
     await runStarter.startRun(
       scheduleWith({

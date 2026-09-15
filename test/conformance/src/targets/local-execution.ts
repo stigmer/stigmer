@@ -43,6 +43,9 @@ export class LocalExecutionTarget implements TargetProfile {
   // ratified parity-plus delta, #23) where the Go server never sent it.
   readonly capabilities: CapabilityFlags = {
     multiTenant: false,
+    // Trusted-local primary, as `local` (whose enforcingLane this class
+    // inherits).
+    enforcingAuthorizer: false,
     externalOrgLookup: false,
     organizationEnumeration: true,
     versionTagging: false,

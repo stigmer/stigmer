@@ -10,6 +10,7 @@
 import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 import { ensureTsServerEntry } from "../harness/ts-build";
 import { createTransport, makeClients, type ConformanceClients } from "../harness/clients";
+import { newSiblingEnforcingLane, type SiblingEnforcingLane } from "../harness/enforcing-lane";
 import { awaitGrpcReady } from "../harness/grpc-ready";
 import {
   ephemeralSqliteStorage,
@@ -20,6 +21,7 @@ import {
 import { uniqueOrg } from "../support/naming";
 import type {
   CapabilityFlags,
+  EnforcingLane,
   PrivilegedScope,
   SiblingServer,
   SpawnSiblingOptions,
@@ -37,6 +39,10 @@ export class LocalTarget implements TargetProfile {
   // ApprovalForwarding, lives on local-execution (#23).
   readonly capabilities: CapabilityFlags = {
     multiTenant: false,
+    // The primary runs trusted-local: its permissive Authorizer admits the
+    // one operator to everything. Enforcement on open source is proven on
+    // the OIDC sibling this target lends through enforcingLane().
+    enforcingAuthorizer: false,
     externalOrgLookup: false,
     organizationEnumeration: true,
     versionTagging: true,
@@ -88,6 +94,11 @@ export class LocalTarget implements TargetProfile {
   private server: RunningServer | undefined;
   private storage: ProvisionedStorage | undefined;
   private conformanceClients: ConformanceClients | undefined;
+  // The one enforcing lane of this target instance (a sibling in the OIDC
+  // posture), created on the first enforcingLane() call and torn down with
+  // the primary. Held as the pending promise so two concurrent first calls
+  // spawn one sibling, not two.
+  private siblingLane: Promise<SiblingEnforcingLane> | undefined;
 
   async setup(): Promise<void> {
     const entry = await ensureTsServerEntry();
@@ -144,6 +155,21 @@ export class LocalTarget implements TargetProfile {
     return { clientsPresenting, teardown };
   }
 
+  // Open source enforces the model in the OIDC posture, so this target's
+  // enforcing lane is a sibling booted there against the harness's local
+  // issuer (harness/enforcing-lane.ts owns the shape; the storage seam
+  // gives it its own store, so local-postgres proves the same arms on the
+  // Postgres driver by inheritance).
+  async enforcingLane(): Promise<EnforcingLane> {
+    if (this.server === undefined) {
+      throw new Error("LocalTarget.setup() must be called before enforcingLane()");
+    }
+    this.siblingLane ??= newSiblingEnforcingLane({
+      spawnSibling: (options) => this.spawnSibling(options),
+    });
+    return (await this.siblingLane).lane;
+  }
+
   clients(): ConformanceClients {
     if (this.conformanceClients === undefined) {
       throw new Error("LocalTarget.setup() must be called before clients()");
@@ -198,6 +224,13 @@ export class LocalTarget implements TargetProfile {
   }
 
   async teardown(): Promise<void> {
+    // The sibling first: a lane whose spawn failed rejected the promise the
+    // arms already saw, and has nothing left to close.
+    if (this.siblingLane !== undefined) {
+      const pending = this.siblingLane;
+      this.siblingLane = undefined;
+      await pending.then((sibling) => sibling.close()).catch(() => undefined);
+    }
     await this.server?.stop();
     this.server = undefined;
     await this.storage?.release();

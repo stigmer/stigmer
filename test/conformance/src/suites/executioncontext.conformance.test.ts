@@ -43,7 +43,7 @@ import {
   makeExecutionContextSpec,
   type ExecutionContextSpecOptions,
 } from "../support/executioncontexts";
-import { createTarget, type TargetProfile } from "../targets";
+import { createTarget, enforcingLaneOf, type TargetProfile } from "../targets";
 
 let target: TargetProfile;
 let clients: ConformanceClients;
@@ -357,20 +357,18 @@ describe("ExecutionContext conformance — cross-org authorization", () => {
   // still create ECs on the caller's behalf over the in-process transport,
   // which this external-client suite never exercises.
   //
-  // multiTenant-gated: single-tenant OSS has one implicit caller (no outsider
-  // to exclude) and no server-side authorization layer, so the isolation is
-  // untestable there by construction — exactly like the organization suite's
-  // outsider test.
-  it("an outsider cannot create an execution context in a foreign org (PermissionDenied)", async () => {
-    if (!target.capabilities.multiTenant) {
-      return;
-    }
-    if (target.provisionIdentity === undefined) {
-      throw new Error(`target "${target.name}" declares multiTenant but provides no provisionIdentity()`);
-    }
+  // On the target's ENFORCING LANE (targets/target.ts): the cloud's primary,
+  // and on the managed local targets an open-source sibling in the OIDC
+  // posture, where the chain's AuthorizeExecutionContextCreate asks the
+  // built-in Authorizer — one contract on the cloud and on both open-source
+  // store drivers. Where a target lends no lane the arm skips VISIBLY.
+  it("an outsider cannot create an execution context in a foreign org (PermissionDenied)", async (ctx) => {
+    const enforcing = await enforcingLaneOf(target);
+    if (enforcing.lane === undefined) return ctx.skip(enforcing.reason);
+    const lane = enforcing.lane;
 
-    const { org } = await target.provisionTenancy();
-    const outsider = await target.provisionIdentity();
+    const { org } = await lane.provisionTenancy();
+    const outsider = await lane.provisionIdentity();
 
     await expectGrpcCode(
       () => outsider.executionContextCommand.create(makeExecutionContext({ org, name: uniqueName("ectx-outsider") })),

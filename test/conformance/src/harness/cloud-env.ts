@@ -13,10 +13,12 @@
 // (bootstrapPrimaryIdentity), and the user-token mint the targets use.
 import { createClient } from "@connectrpc/connect";
 import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
+import type { IamPolicySpec } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
 import { PlatformClientCommandController } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/command_pb";
 import { PlatformClientTokenController } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/token_pb";
 import { createTransport, makeClients } from "./clients";
 import { newDirectLoginTenant } from "./direct-login-tenant";
+import { organizationRoleGrant } from "./enforcing-lane";
 import { awaitGrpcReady } from "./grpc-ready";
 import { uniqueName } from "../support/naming";
 
@@ -223,21 +225,10 @@ export function jwtSubject(token: string): string {
 // The ordinary IamPolicy grant that makes an identity a `member` of an
 // organization — the Members-page grant, through IamPolicyCommandController.
 // create as the org's owner (never bootstrapPolicy, which is the operator
-// lane for grants the ordinary create cannot express). `member` is in the
-// organization kind's grantable_roles; the resource id is the organization's
-// ID (the FGA object `organization:<id>`), not its slug.
-export function organizationMemberGrant(
-  organizationId: string,
-  identityAccountId: string,
-): { principal: { kind: string; id: string }; resource: { kind: string; id: string }; relation: string } {
-  if (organizationId === "" || identityAccountId === "") {
-    throw new Error("organizationMemberGrant needs a non-empty organization id and identity-account id");
-  }
-  return {
-    principal: { kind: "identity_account", id: identityAccountId },
-    resource: { kind: "organization", id: organizationId },
-    relation: "member",
-  };
+// lane for grants the ordinary create cannot express). The general form,
+// any role, is the enforcing lane's `organizationRoleGrant`.
+export function organizationMemberGrant(organizationId: string, identityAccountId: string): IamPolicySpec {
+  return organizationRoleGrant(organizationId, identityAccountId, "member");
 }
 
 // Mints a Stigmer JWT for the given user id. mintUserToken authenticates via

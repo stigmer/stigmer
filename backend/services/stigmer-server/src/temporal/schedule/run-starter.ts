@@ -48,6 +48,7 @@ import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/ap
 import type { Logger } from "../../boot/logger.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import type { ScheduleFireCallerMint } from "../../extensions/schedule-fire-caller.js";
+import { ScheduleFireCallerRefusedError } from "../../extensions/schedule-fire-caller.js";
 import { findResourceBySlug } from "../../pipeline/steps/helpers.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
@@ -152,7 +153,9 @@ function fireContextLine(
   let zone = requestedZone;
   let parts: Intl.DateTimeFormatPart[];
   try {
-    parts = fireContextFormatter(zone === "" ? "UTC" : zone).formatToParts(nominal);
+    parts = fireContextFormatter(zone === "" ? "UTC" : zone).formatToParts(
+      nominal,
+    );
     if (zone === "") {
       zone = "UTC";
     }
@@ -209,7 +212,7 @@ export interface RunStarterDeps {
   readonly store: Store;
   readonly config: ScheduleTemporalConfig;
   readonly executions: ScheduleExecutionCreator;
-  /** The composed fire-caller mint, or undefined (the OSS internal lane). */
+  /** The composed fire-caller mint, or undefined (the trusted-local internal lane). */
   readonly fireCallerMint?: ScheduleFireCallerMint;
   readonly logger: Logger;
 }
@@ -280,10 +283,13 @@ export class RunStarter {
     }
     if (existing !== undefined) {
       const executionId = existing.metadata?.id ?? "";
-      logger.info("Schedule fire already has its execution (idempotent retry)", {
-        schedule_id: scheduleId,
-        execution_id: executionId,
-      });
+      logger.info(
+        "Schedule fire already has its execution (idempotent retry)",
+        {
+          schedule_id: scheduleId,
+          execution_id: executionId,
+        },
+      );
       await this.stampLastExecutionId(scheduleId, executionId);
       return { kind: "started", executionId, alreadyExisted: true };
     }
@@ -292,7 +298,11 @@ export class RunStarter {
     // after the idempotency lookup (a found winner needs no credential)
     // and before the create it authenticates. Failure is an
     // infrastructure fault — thrown, so the tick activity retries under
-    // the deterministic name and a manual trigger surfaces it.
+    // the deterministic name and a manual trigger surfaces it — unless
+    // the driver says the refusal is deterministic (the seam's own typed
+    // error: this fire can act as nobody, and no retry changes that), in
+    // which case it is a `refused` outcome like a launch gate's: the
+    // streak counts it and pauses the schedule with the reason.
     let fireCaller: CallerIdentity | undefined;
     if (this.deps.fireCallerMint !== undefined) {
       try {
@@ -301,6 +311,14 @@ export class RunStarter {
           scheduleId,
         );
       } catch (error) {
+        if (error instanceof ScheduleFireCallerRefusedError) {
+          logger.error("Schedule fire refused by the fire-caller mint", {
+            schedule_id: scheduleId,
+            org,
+            reason: error.message,
+          });
+          return { kind: "refused", reason: error.message };
+        }
         throw new Error(
           `mint schedule fire caller for ${scheduleId}: ${error instanceof Error ? error.message : String(error)}`,
           { cause: error },
@@ -311,7 +329,12 @@ export class RunStarter {
     let created: AgentExecution;
     try {
       created = await this.deps.executions.create(
-        this.buildExecutionRequest(schedule, resolved.agent, executionName, nominalFireTime),
+        this.buildExecutionRequest(
+          schedule,
+          resolved.agent,
+          executionName,
+          nominalFireTime,
+        ),
         fireCaller,
       );
     } catch (error) {

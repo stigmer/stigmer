@@ -55,7 +55,6 @@ import path from "node:path";
 
 import { getOption, hasOption } from "@bufbuild/protobuf";
 import type { DescService } from "@bufbuild/protobuf";
-import type { ConnectRouter } from "@connectrpc/connect";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -71,6 +70,7 @@ import { loadConfig } from "../../../boot/config.js";
 import { composeServer } from "../../../boot/compose.js";
 import type { ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
+import { servedServices } from "../../../extensions/__tests__/composed-support.js";
 
 /** One annotated method as the invariant reads it. */
 interface AnnotationTarget {
@@ -78,25 +78,6 @@ interface AnnotationTarget {
   readonly namesKind: boolean;
   readonly namesId: boolean;
   readonly skipsResolution: boolean;
-}
-
-/** Replays the composed routes into a recorder and returns the served services. */
-function servedServices(
-  routes: (router: ConnectRouter) => void,
-): DescService[] {
-  const served: DescService[] = [];
-  const recorder = {
-    handlers: [],
-    service(desc: DescService) {
-      served.push(desc);
-      return recorder;
-    },
-    rpc() {
-      return recorder;
-    },
-  };
-  routes(recorder as unknown as ConnectRouter);
-  return served;
 }
 
 /** Every `rpc.config`-annotated method of the given services, read once. */

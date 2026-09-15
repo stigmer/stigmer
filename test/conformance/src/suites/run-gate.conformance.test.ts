@@ -25,11 +25,16 @@
 //
 // Deliberately out of scope: the runtime lanes (guest, channel, schedule,
 // workflow sandbox), whose admission is decided by their own gate steps and
-// pinned by their own suites; and the OSS edition's denial, which waits for
-// P1's owner-or-admin authorizer (sp.oss-owner-or-admin-authorizer) — the
-// permissive single-team posture admits every caller today, so on the
-// single-user targets these arms SKIP visibly rather than assert an allow
-// that the next entry is meant to flip.
+// pinned by their own suites.
+//
+// The arms run on the target's ENFORCING LANE (targets/target.ts): the
+// cloud's primary, and on the managed local targets an open-source sibling
+// in the OIDC posture, where the built-in Authorizer answers the run target's
+// question — so the gate is one contract on the cloud and on both
+// open-source store drivers. (Until that Authorizer existed the arms skipped
+// on the local targets rather than assert an allow the permissive
+// single-team posture would have given.) Where a target lends no lane the
+// arms skip VISIBLY with its reason.
 import { Code } from "@connectrpc/connect";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
@@ -37,6 +42,8 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import {
   createTarget,
+  enforcingLaneOf,
+  type EnforcingLane,
   type TargetProfile,
   type TenancyContext,
 } from "../targets";
@@ -50,13 +57,17 @@ import { makeWorkflowExecution } from "../support/workflowexecutions";
 import { uniqueName } from "../support/naming";
 
 let target: TargetProfile;
+let enforcing: Awaited<ReturnType<typeof enforcingLaneOf>>;
+// The lane's founder — the OWNER of the agents and workflows the member
+// may or may not run.
 let clients: ConformanceClients;
 const fixtures = new FixtureTracker();
 
 beforeAll(async () => {
   target = createTarget();
   await target.setup();
-  clients = target.clients();
+  enforcing = await enforcingLaneOf(target);
+  clients = enforcing.lane?.clients ?? target.clients();
 });
 
 afterEach(async () => {
@@ -67,21 +78,14 @@ afterAll(async () => {
   await target?.teardown();
 });
 
-// The colleague exists only where roles do. A multi-tenant target that
-// cannot provision one is a harness gap, not a skip.
-function canProvisionMember(): boolean {
-  if (!target.capabilities.multiTenant) return false;
-  if (target.provisionMember === undefined) {
-    throw new Error(
-      `target "${target.name}" declares multiTenant but provides no provisionMember()`,
-    );
-  }
-  return true;
+function laneOrSkip(ctx: { skip: (note?: string) => never }): EnforcingLane {
+  if (enforcing.lane === undefined) ctx.skip(enforcing.reason);
+  return enforcing.lane;
 }
 
-async function tenancy(): Promise<TenancyContext> {
-  const context = await target.provisionTenancy();
-  fixtures.defer(() => target.cleanupTenancy(context));
+async function tenancy(lane: EnforcingLane): Promise<TenancyContext> {
+  const context = await lane.provisionTenancy();
+  fixtures.defer(() => lane.cleanupTenancy(context));
   return context;
 }
 
@@ -116,11 +120,11 @@ async function createPrivateWorkflow(org: string) {
   return workflow;
 }
 
-describe("run gate — a member may run only what they can see (multi-tenant only)", () => {
+describe("run gate — a member may run only what they can see (on the enforcing lane)", () => {
   it("session create on a PRIVATE agent's instance is denied with the instance copy and leaves no row", async (ctx) => {
-    if (!canProvisionMember()) return ctx.skip();
-    const context = await tenancy();
-    const member = await target.provisionMember!(context);
+    const lane = laneOrSkip(ctx);
+    const context = await tenancy(lane);
+    const member = await lane.provisionMember(context);
     const agent = await createAgent(
       context.org,
       ApiResourceVisibility.visibility_private,
@@ -154,9 +158,9 @@ describe("run gate — a member may run only what they can see (multi-tenant onl
   });
 
   it("execution create by agent_id on a PRIVATE agent is denied with the agent copy", async (ctx) => {
-    if (!canProvisionMember()) return ctx.skip();
-    const context = await tenancy();
-    const member = await target.provisionMember!(context);
+    const lane = laneOrSkip(ctx);
+    const context = await tenancy(lane);
+    const member = await lane.provisionMember(context);
     const agent = await createAgent(
       context.org,
       ApiResourceVisibility.visibility_private,
@@ -180,9 +184,9 @@ describe("run gate — a member may run only what they can see (multi-tenant onl
   });
 
   it("execution create by session_id on a session the member cannot see is denied with the session copy", async (ctx) => {
-    if (!canProvisionMember()) return ctx.skip();
-    const context = await tenancy();
-    const member = await target.provisionMember!(context);
+    const lane = laneOrSkip(ctx);
+    const context = await tenancy(lane);
+    const member = await lane.provisionMember(context);
     const agent = await createAgent(
       context.org,
       ApiResourceVisibility.visibility_org,
@@ -218,9 +222,9 @@ describe("run gate — a member may run only what they can see (multi-tenant onl
   });
 
   it("workflow execution create on a PRIVATE workflow is denied with the workflow copy", async (ctx) => {
-    if (!canProvisionMember()) return ctx.skip();
-    const context = await tenancy();
-    const member = await target.provisionMember!(context);
+    const lane = laneOrSkip(ctx);
+    const context = await tenancy(lane);
+    const member = await lane.provisionMember(context);
     const workflow = await createPrivateWorkflow(context.org);
     const workflowId = workflow.metadata!.id;
 
@@ -242,9 +246,9 @@ describe("run gate — a member may run only what they can see (multi-tenant onl
   });
 
   it("session create on an ORG-visible agent's instance is allowed (the positive arm)", async (ctx) => {
-    if (!canProvisionMember()) return ctx.skip();
-    const context = await tenancy();
-    const member = await target.provisionMember!(context);
+    const lane = laneOrSkip(ctx);
+    const context = await tenancy(lane);
+    const member = await lane.provisionMember(context);
     const agent = await createAgent(
       context.org,
       ApiResourceVisibility.visibility_org,
@@ -267,9 +271,9 @@ describe("run gate — a member may run only what they can see (multi-tenant onl
   });
 
   it("an unknown instance id answers NOT_FOUND, never a denial (stigmer#224)", async (ctx) => {
-    if (!canProvisionMember()) return ctx.skip();
-    const context = await tenancy();
-    const member = await target.provisionMember!(context);
+    const lane = laneOrSkip(ctx);
+    const context = await tenancy(lane);
+    const member = await lane.provisionMember(context);
     const missing = `agi_${uniqueName("missing").replaceAll("-", "")}`;
 
     const notFound = await expectGrpcCode(

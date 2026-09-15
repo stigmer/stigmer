@@ -11,7 +11,7 @@ import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { uniqueName } from "../support/naming";
-import { createTarget, type TargetProfile } from "../targets";
+import { createTarget, enforcingLaneOf, type TargetProfile } from "../targets";
 
 const API_VERSION = "tenancy.stigmer.ai/v1";
 const KIND = "Organization";
@@ -41,13 +41,16 @@ afterAll(async () => {
 
 // Organizations are the top-level tenant, so they carry no parent org; the slug
 // (derived from name) is their unique key.
-async function createOrg(name: string) {
-  const org = await clients.organizationCommand.create({
+// An organization the caller creates and therefore owns; deleted at the end
+// of the arm. `using` defaults to the primary caller; the enforcing-lane arm
+// hands the lane's founder, whose server the rows must live on.
+async function createOrg(name: string, using: ConformanceClients = clients) {
+  const org = await using.organizationCommand.create({
     apiVersion: API_VERSION,
     kind: KIND,
     metadata: { name },
   });
-  fixtures.defer(() => clients.organizationCommand.delete({ value: org.metadata!.id }));
+  fixtures.defer(() => using.organizationCommand.delete({ value: org.metadata!.id }));
   return org;
 }
 
@@ -149,9 +152,9 @@ describe("Organization conformance", () => {
     );
   });
 
-  it("findMyOrganizations returns all organizations when multi-tenancy is off", async () => {
-    if (target.capabilities.multiTenant) {
-      // Membership filtering is asserted by the multi-tenant test below.
+  it("findMyOrganizations returns all organizations on a trusted-local primary", async () => {
+    if (target.capabilities.enforcingAuthorizer) {
+      // Membership filtering is asserted on the enforcing lane below.
       return;
     }
     await createOrg(uniqueName("myorg"));
@@ -162,25 +165,26 @@ describe("Organization conformance", () => {
     expect(mine.entries.length, "local mode applies no IAM filtering").toBe(all.entries.length);
   });
 
-  it("findMyOrganizations filters by membership and outsiders cannot view the org", async () => {
-    if (!target.capabilities.multiTenant) {
-      // Single-tenant targets have one implicit caller; there is no second
-      // identity to be excluded, so isolation is untestable by construction.
-      return;
-    }
-    if (target.provisionIdentity === undefined) {
-      throw new Error(`target "${target.name}" declares multiTenant but provides no provisionIdentity()`);
-    }
-    const created = await createOrg(uniqueName("myorg"));
+  // On the target's ENFORCING LANE (targets/target.ts): the cloud's primary,
+  // and on the managed local targets an open-source sibling in the OIDC
+  // posture, whose built-in organization directory answers
+  // findMyOrganizations and whose built-in Authorizer refuses the outsider's
+  // `get` — one contract on the cloud and on both open-source store drivers.
+  // Where a target lends no lane the arm skips VISIBLY.
+  it("findMyOrganizations filters by membership and outsiders cannot view the org", async (ctx) => {
+    const enforcing = await enforcingLaneOf(target);
+    if (enforcing.lane === undefined) return ctx.skip(enforcing.reason);
+    const lane = enforcing.lane;
+    const created = await createOrg(uniqueName("myorg"), lane.clients);
     const id = created.metadata!.id;
 
-    const mine = await clients.organizationQuery.findMyOrganizations({});
+    const mine = await lane.clients.organizationQuery.findMyOrganizations({});
     expect(
       mine.entries.some((entry) => entry.metadata?.id === id),
       "the creator (owner) must see the org in findMyOrganizations",
     ).toBe(true);
 
-    const outsider = await target.provisionIdentity();
+    const outsider = await lane.provisionIdentity();
     const theirs = await outsider.organizationQuery.findMyOrganizations({});
     expect(
       theirs.entries.some((entry) => entry.metadata?.id === id),

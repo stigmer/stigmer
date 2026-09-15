@@ -26,11 +26,13 @@ import {
   newDirectLoginTenant,
   readDirectLoginTenantMaterial,
 } from "../harness/direct-login-tenant";
+import { newPrimaryEnforcingLane } from "../harness/enforcing-lane";
 import { awaitGrpcReady } from "../harness/grpc-ready";
 import { uniqueName, uniqueOrg } from "../support/naming";
 import type {
   CapabilityFlags,
   DirectLoginTenant,
+  EnforcingLane,
   PrivilegedScope,
   StripeWebhookLane,
   TargetProfile,
@@ -68,6 +70,9 @@ export class CloudTarget implements TargetProfile {
 
   readonly capabilities: CapabilityFlags = {
     multiTenant: true,
+    // OpenFGA behind the cloud-iam unit: the primary enforces the model, so
+    // it IS this target's enforcing lane (enforcingLane below).
+    enforcingAuthorizer: true,
     externalOrgLookup: true,
     organizationEnumeration: false,
     versionTagging: true,
@@ -189,6 +194,33 @@ export class CloudTarget implements TargetProfile {
       "tenant's signing key (a deployed endpoint's real tenant key is never conformance's to hold), " +
       "so the direct-login lane cannot be driven here"
     );
+  }
+
+  // The primary enforces, so the lane is a view over this target's own
+  // provisioning: the primary caller founds and owns every tenancy, its
+  // PlatformClient mints the people, and a person's exact role is set by
+  // the founder's ordinary grants (harness/enforcing-lane.ts).
+  async enforcingLane(): Promise<EnforcingLane> {
+    const grpcBaseUrl = this.requireBaseUrl("enforcingLane");
+    return newPrimaryEnforcingLane({
+      clients: this.clients(),
+      provisionTenancy: () => this.provisionTenancy(),
+      cleanupTenancy: (context) => this.cleanupTenancy(context),
+      provisionIdentity: () => this.provisionIdentity(),
+      provisionMember: (tenancy) => this.provisionMember(tenancy),
+      organizationIdOf: (tenancy) => {
+        const organizationId = this.provisionedOrgIds.get(tenancy.org);
+        if (organizationId === undefined) {
+          throw new Error(
+            `enforcingLane: tenancy "${tenancy.org}" was not provisioned by this target (provisionTenancy() first)`,
+          );
+        }
+        return organizationId;
+      },
+      directLoginTenant: this.directLoginTenant?.(),
+      clientsPresenting: (bearerToken) =>
+        makeClients(createTransport(grpcBaseUrl, { bearerToken })),
+    });
   }
 
   // Connect-only: the target spawns nothing, so it cannot boot a sibling in

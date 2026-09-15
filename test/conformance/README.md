@@ -313,7 +313,11 @@ which optional behaviors exist. `CapabilityFlags` gate behaviors that
 legitimately differ across editions rather than forking the tests — e.g.
 `externalOrgLookup` is `false` locally (so `getByExternalOrgId` is expected to
 be `Unimplemented`), `multiTenant` is `false` (so list RPCs return everything,
-with no IAM filtering), `versionTagging` is `true` (the dedicated `tagVersion`
+with no IAM filtering), `enforcingAuthorizer` is `false` (the local PRIMARY runs
+the trusted-local posture, whose Authorizer admits the one operator to
+everything — so the arms that read an enforcing answer on the primary, such as
+an unknown id refused through the authorizer's existence probe, gate on it),
+`versionTagging` is `true` (the dedicated `tagVersion`
 RPC is implemented in both editions; assigning a tag moves it to name exactly
 one version, and apply-time `metadata.version.tag` flows through the same
 single-holder primitive), and
@@ -328,6 +332,27 @@ per edition until the Environment (stigmer#405) and ExecutionContext
 unconditionally. See the project's
 `design-decisions/005-secret-redaction-capability-flag.md` for the original
 flag's rationale.
+
+**The enforcing lane** (`TargetProfile.enforcingLane()`, built by
+`harness/enforcing-lane.ts`): an authorization arm needs a server whose
+Authorizer enforces the model, with several real people on it — an owner, an
+admin, a member, a viewer, an outsider. The cloud's primary is that server; open
+source becomes one in the OIDC posture (the built-in Authorizer, directory and
+list scope of `@stigmer/server`, composed when `STIGMER_OIDC_ISSUER` is set).
+Rather than a target flag that could never be true of a sibling, the target
+lends the arm an `EnforcingLane` — the primary where `enforcingAuthorizer` is
+true, an OIDC sibling against the harness's local issuer on the managed local
+targets — with one contract for people (`provisionIdentity`, `provisionMember`,
+`provisionWithRole`) and tenancies. The same arm therefore runs on the cloud
+and on both open-source store drivers, which is what makes the authorization
+suites (`run-gate`, `list-read-scoping`, `direct-handler-authorization`,
+`role-enforcement`, the enforcing blocks of `iampolicy`, `organization` and
+`executioncontext`) a cross-edition contract rather than a cloud-only one.
+Where a newcomer arrives holding roles (open source's membership rules make
+every later arrival a member of every organization), the lane revokes them
+everywhere the founder can see, so "no grant" and "exactly member" are
+literally true on every lane. The lane's lifetime is the target's; a suite never
+manages its process.
 
 ### Harness (`src/harness/`)
 

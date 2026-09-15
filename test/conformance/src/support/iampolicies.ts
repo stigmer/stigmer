@@ -25,14 +25,10 @@ export const IAM_POLICY_API_VERSION = "iam.stigmer.ai/v1";
 export const IAM_POLICY_KIND = "IamPolicy";
 
 // The four kind_meta roles of the organization, in the proto's order — the
-// one role set open source grants on (T01_1_review.md Q-OR-4).
-export const ORGANIZATION_ROLES = [
-  "owner",
-  "admin",
-  "member",
-  "viewer",
-] as const;
-export type OrganizationRole = (typeof ORGANIZATION_ROLES)[number];
+// one role set open source grants on (T01_1_review.md Q-OR-4). Declared on
+// the target contract because the enforcing lane provisions people BY role
+// (targets/target.ts); re-exported here so the suites keep one import.
+export { ORGANIZATION_ROLES, type OrganizationRole } from "../targets/target";
 
 // get for an unknown id (the Java copy, kept by the cloud's handler).
 export function policyNotFoundMessage(id: string): string {

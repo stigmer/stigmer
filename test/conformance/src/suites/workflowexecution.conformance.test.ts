@@ -146,7 +146,7 @@ describe("WorkflowExecution conformance — zero-record read surfaces (Class A)"
     // (the ruled uniform Q1 posture, C2 Stage 4 — pinned in the
     // direct-handler-authorization suite), never reaching the handler's
     // no-existence-check behavior.
-    if (!target.capabilities.multiTenant) {
+    if (!target.capabilities.enforcingAuthorizer) {
       const page = await clients.workflowExecutionQuery.getEventLog({
         executionId: "wfe_01conformancemissing",
       });
@@ -182,7 +182,7 @@ describe("WorkflowExecution conformance — zero-record read surfaces (Class A)"
     // NOT_FOUND — the ruled uniform Q1 posture), but the multi-tenant arm
     // is pinned with an OUTSIDER caller in the direct-handler-authorization
     // suite; here the single-user arm keeps its original pin.
-    if (target.capabilities.multiTenant) return;
+    if (target.capabilities.enforcingAuthorizer) return;
     await expectGrpcCode(
       () =>
         collectStream((signal) =>
@@ -215,7 +215,7 @@ describe("WorkflowExecution conformance — submitFileDecision negatives (Class 
   // there instead — a verified ordering divergence, disclosed in the wave-2
   // PR for the parity register.
   it("rejects structurally invalid inputs before any load (InvalidArgument)", async (ctx) => {
-    if (target.capabilities.multiTenant) return ctx.skip();
+    if (target.capabilities.enforcingAuthorizer) return ctx.skip();
     // Proto-validation arms: min_len on the ids/digest, defined-and-nonzero
     // on the enums — all fire before the execution load, so a fake id is
     // never touched.
@@ -261,7 +261,7 @@ describe("WorkflowExecution conformance — submitFileDecision negatives (Class 
   });
 
   it("an unknown execution answers NotFound", async (ctx) => {
-    if (target.capabilities.multiTenant) return ctx.skip();
+    if (target.capabilities.enforcingAuthorizer) return ctx.skip();
     await expectGrpcCode(
       () =>
         clients.workflowExecutionCommand.submitFileDecision({

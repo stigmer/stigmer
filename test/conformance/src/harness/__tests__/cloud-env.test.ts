@@ -30,7 +30,9 @@ describe("jwtSubject", () => {
 
 describe("organizationMemberGrant", () => {
   it("names the identity account as principal, the organization by id, and the member role", () => {
-    expect(organizationMemberGrant("org_01acme", "ida_01member")).toEqual({
+    // An IamPolicySpec message (the create RPC's input), so the shape is
+    // matched field by field rather than as a bare object.
+    expect(organizationMemberGrant("org_01acme", "ida_01member")).toMatchObject({
       principal: { kind: "identity_account", id: "ida_01member" },
       resource: { kind: "organization", id: "org_01acme" },
       relation: "member",

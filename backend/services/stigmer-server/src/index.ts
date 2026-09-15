@@ -148,14 +148,64 @@ export type { AuthorizationQueryEngine } from "./extensions/authorization-querie
 export type { IdentityFederation } from "./extensions/identity-federation.js";
 export type { AccountsBySubject } from "./domain/identityaccount/resolve.js";
 export { identityIdForSubject } from "./domain/identityaccount/resolve.js";
+// The built-in authorizer's model seams: the kind
+// declarations (transcripts of the cloud's `.fga` files), the evaluator,
+// and the OpenFGA store-test kit — exported so the cloud's drift test
+// compares the live model against the transcripts and runs its live
+// store tests through the evaluator, both from the published package.
+// The drivers themselves are composed by the root and are not exported.
+export type {
+  DerivedRelation,
+  KindDeclaration,
+  Rewrite,
+  SubjectType,
+} from "./authorization/model/rewrite.js";
+export type { Model } from "./authorization/model/index.js";
+export {
+  builtInModel,
+  declarationFor,
+  newModel,
+} from "./authorization/model/index.js";
+export type {
+  CheckContext,
+  ObjectRef,
+  Person,
+  Subject,
+  Tuple,
+  TupleSource,
+} from "./authorization/tuples.js";
+export type { EvaluationFault } from "./authorization/evaluator.js";
+export {
+  AuthorizationEvaluationError,
+  MAX_RESOLUTION_DEPTH,
+  checkRelation,
+} from "./authorization/evaluator.js";
+export type {
+  StoreTestCase,
+  StoreTestDocument,
+  StoreTestKit,
+  StoreTestSkip,
+  StoreTestSkipReason,
+} from "./authorization/store-test-kit.js";
+export {
+  parseStoreTestDocument,
+  storeTestCases,
+} from "./authorization/store-test-kit.js";
+// The kinds whose missing row the built-in authorizer denies instead of
+// answering not-found — the cloud's probe exemption over the open-source
+// tier; exported so the cloud's drift test pins the two sets equal.
+export { NOT_FOUND_EXEMPT_KINDS } from "./authorization/authorizer.js";
 export type {
   ListReadScope,
   ListEntryMeta,
 } from "./extensions/list-read-scope.js";
 // The stigmer-cloud#572 seam: the identity a schedule fire acts as
 // (drivers.scheduleFireCaller) — the composition mints it per fire; the
-// RunStarter propagates it through the R5 in-process header.
+// RunStarter propagates it through the R5 in-process header. A mint that
+// can act as nobody throws the seam's typed refusal, which the RunStarter
+// counts against the schedule instead of retrying.
 export type { ScheduleFireCallerMint } from "./extensions/schedule-fire-caller.js";
+export { ScheduleFireCallerRefusedError } from "./extensions/schedule-fire-caller.js";
 // The 20260830.03 seam: the visitor-sanitization policy the serving
 // chain's error boundary consumes (drivers.visitorErrorPolicy) — the
 // composition supplies WHO is on the anonymous surface and WHAT copy

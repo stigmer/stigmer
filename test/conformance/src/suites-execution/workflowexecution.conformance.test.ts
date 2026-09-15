@@ -214,7 +214,7 @@ describe("WorkflowExecution conformance — queries", () => {
     // before the handler runs — the wave-2 fabricated-id class, disclosed in
     // the parity register. Only the single-user editions reach the
     // empty-page contract.
-    if (target.capabilities.multiTenant) return ctx.skip();
+    if (target.capabilities.enforcingAuthorizer) return ctx.skip();
     // Unlike get/subscribe, getEventLog does not 404 — it returns no events.
     const log = await clients.workflowExecutionQuery.getEventLog({ executionId: "wex_doesnotexist" });
     expect(log.events).toHaveLength(0);

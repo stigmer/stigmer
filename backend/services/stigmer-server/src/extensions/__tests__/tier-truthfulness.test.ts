@@ -35,7 +35,6 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import type { DescService } from "@bufbuild/protobuf";
 import type { ConnectRouter } from "@connectrpc/connect";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -49,6 +48,7 @@ import { composeServer } from "../../boot/compose.js";
 import type { ComposedServer } from "../../boot/compose.js";
 import { createLogger } from "../../boot/logger.js";
 import { getKindMeta } from "../../pipeline/apiresource-meta.js";
+import { servedServices } from "./composed-support.js";
 
 /** The registry as the check reads it: every kind with kind_meta, by tier. */
 interface KindEntry {
@@ -134,23 +134,15 @@ function tierViolations(
   return violations;
 }
 
-/** Replays the composed routes into a recorder and returns the served kind segments. */
+/** The kind segments of the services a composed server routes. */
 function servedKindSegments(
   routes: (router: ConnectRouter) => void,
 ): Set<string> {
   const served = new Set<string>();
-  const recorder = {
-    handlers: [],
-    service(desc: DescService) {
-      const segment = kindSegmentOf(desc.typeName);
-      if (segment !== undefined) served.add(segment);
-      return recorder;
-    },
-    rpc() {
-      return recorder;
-    },
-  };
-  routes(recorder as unknown as ConnectRouter);
+  for (const desc of servedServices(routes)) {
+    const segment = kindSegmentOf(desc.typeName);
+    if (segment !== undefined) served.add(segment);
+  }
   return served;
 }
 

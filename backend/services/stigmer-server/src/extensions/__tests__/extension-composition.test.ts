@@ -573,6 +573,41 @@ describe("extension composition (require-authentication posture)", () => {
       rmSync(orphanDir, { recursive: true, force: true });
     }
   });
+
+  it("a wider edition under the posture with no Authorizer is a boot throw — the built-in authorizer enforces the open-source kinds only", async () => {
+    const enterpriseDir = mkdtempSync(
+      path.join(tmpdir(), "require-auth-edition-"),
+    );
+    try {
+      await expect(
+        composeServer({
+          config: loadConfig({
+            STIGMER_MODEL_REGISTRY_REFRESH: "off",
+            DB_PATH: path.join(enterpriseDir, "stigmer.db"),
+            ARTIFACT_LOCAL_BASE_PATH: path.join(enterpriseDir, "artifacts"),
+          }),
+          logger: createLogger({
+            level: "error",
+            pretty: false,
+            write: () => {},
+          }),
+          extensions: [
+            {
+              ...requiringExtension,
+              name: "enterprise-without-authorizer",
+              edition: ServerEdition.enterprise,
+            },
+          ],
+          portOverride: 0,
+          host: "127.0.0.1",
+        }),
+      ).rejects.toThrowError(
+        /serves edition 'enterprise' under the require-authentication posture but registers no Authorizer/,
+      );
+    } finally {
+      rmSync(enterpriseDir, { recursive: true, force: true });
+    }
+  });
 });
 
 /**
