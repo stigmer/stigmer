@@ -95,18 +95,21 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
     leases: { global: mcp.leases.global, categories: mcp.leases.categories },
     seeded: status.messages,
   });
-  const eventRecorder = createCursorEventRecorder(executionId);
+  // The raw recording of both SDK channels, on only when the env names a dir
+  // (the recorder reads no process state itself, so its tests need no env).
+  const eventRecorder = createCursorEventRecorder(executionId, process.env.CURSOR_EVENT_RECORD_DIR);
 
   // The two recovery retries (poisoned-handle / transport-timeout) below run at
   // most once per turn; this guard is the latch.
   let alreadyRetriedWithFreshAgent = false;
 
-  // The shared onDelta needs the sink/pricer/translator/state subset and is
-  // wired at SEND time. The primary send and both retry sends reuse this object.
+  // The shared onDelta needs the sink/pricer/translator/recorder/state subset
+  // and is wired at SEND time. The primary send and both retry sends reuse this object.
   const onDeltaDeps: TurnOnDeltaDeps = {
     sink,
     usagePricer: engine.usagePricer,
     translator,
+    eventRecorder,
     promptEstimatedTokens: prompt.promptEstimatedTokens,
     executionId,
     state: streamState,
@@ -162,7 +165,6 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
   // state. Consumed by the primary stream here and by both recovery retries.
   const streamDeps: CursorTurnStreamDeps = {
     ...onDeltaDeps,
-    eventRecorder,
     scheduler,
     hitlDir: gate.hitlDir,
   };

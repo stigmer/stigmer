@@ -88,11 +88,11 @@ function buildDeps(overrides: Partial<CursorTurnStreamDeps> = {}): BuiltDeps {
     sink,
     usagePricer: stubUsagePricer(),
     translator: translatorFor(sink),
+    eventRecorder: undefined,
     promptEstimatedTokens: 100,
     executionId: "exec-test",
     state,
     // CursorTurnStreamDeps
-    eventRecorder: undefined,
     // A tool row's start forces the persist (the builder's flag), so a text-only
     // stream rides this scheduler, which never says yes; markUpdateSent must exist.
     scheduler: { shouldSendUpdate: () => false, markUpdateSent: vi.fn() },
@@ -335,6 +335,7 @@ describe("makeCursorTurnOnDelta", () => {
       sink,
       usagePricer: usagePricer as never,
       translator: translatorFor(sink),
+      eventRecorder: undefined,
       promptEstimatedTokens: 10,
       executionId: "e",
       state,

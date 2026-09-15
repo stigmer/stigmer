@@ -81,7 +81,7 @@ export interface TurnStreamState {
   denialCancelSettled: Promise<void> | undefined;
   /** Written by: the loop (a stream ERROR status event) + the retry setup (reset). Read by: error classification. */
   streamErrorMessage: string | undefined;
-  /** Written by: the loop. Read by: the event recorder, the persist cadence, and logs. */
+  /** Written by: the loop. Read by: the persist cadence and logs. */
   eventCount: number;
   /** Written + read by: onDelta (log the first turn's context attribution exactly once). */
   firstTurnAttributionLogged: boolean;
@@ -100,22 +100,24 @@ export function newTurnStreamState(): TurnStreamState {
 
 /**
  * The subset of collaborators the shared onDelta needs — the sink, the
- * pricer, the translator (which queues the delta's transcript facts) and the
- * state. Broken out from CursorTurnStreamDeps so the send that wires onDelta
- * needs nothing of the stream loop.
+ * pricer, the translator (which queues the delta's transcript facts), the
+ * recorder (which sequences the delta with the stream events around it) and
+ * the state. Broken out from CursorTurnStreamDeps so the send that wires
+ * onDelta needs nothing of the stream loop.
  */
 export interface TurnOnDeltaDeps {
   readonly sink: TurnSink;
   /** This harness's pricing of a `turn-ended` delta at the requested variant's rates. */
   readonly usagePricer: CursorUsagePricer;
   readonly translator: CursorTranslator;
+  /** The raw recording of both channels (`cursor-event-recorder.ts`); undefined when recording is off. */
+  readonly eventRecorder: CursorTurnEventRecorder | undefined;
   readonly promptEstimatedTokens: number;
   readonly executionId: string;
   readonly state: TurnStreamState;
 }
 
 export interface CursorTurnStreamDeps extends TurnOnDeltaDeps {
-  readonly eventRecorder: CursorTurnEventRecorder | undefined;
   readonly scheduler: StreamingUpdateScheduler;
   /** Session HITL dir holding the denial ledger; undefined → no gate installed → no first-denial stop. */
   readonly hitlDir: string | undefined;
@@ -131,12 +133,15 @@ export interface CursorTurnStreamDeps extends TurnOnDeltaDeps {
 export function makeCursorTurnOnDelta(
   deps: TurnOnDeltaDeps,
 ): (event: { update: InteractionUpdate }) => void {
-  const { sink, usagePricer, translator, promptEstimatedTokens, executionId, state } = deps;
+  const { sink, usagePricer, translator, eventRecorder, promptEstimatedTokens, executionId, state } = deps;
   return ({ update }) => {
     // Progress on the delta channel too: a long model generation emits token
     // deltas but few discrete stream events, and resetting only in the stream
     // loop would false-positive a stall.
     sink.recordActivity();
+    // Recorded on arrival, before anything reads it, so the file's order is
+    // the SDK's order across both channels.
+    eventRecorder?.recordDelta(update);
     if (update.type === "turn-ended" && update.usage) {
       // The running estimate advances only here; the runtime enforces the cap
       // and aborts the signal, which the loop reads at the next boundary.
@@ -210,7 +215,7 @@ export async function consumeCursorTurnStream(
       // naming the tool so a stall's copy can say `last tool: shell`.
       sink.recordActivity(event.type === "tool_call" && typeof event.name === "string" ? event.name : undefined);
 
-      eventRecorder?.record(event, state.eventCount);
+      eventRecorder?.record(event);
 
       // The stream event, then the deltas that arrived since the last one —
       // the enricher's order, kept so a completion the delta channel reported
