@@ -40,7 +40,7 @@ describe("buildElidedArgsPreview", () => {
     expect(buildElidedArgsPreview(cyclic, SALIENT)).toBe("");
   });
 
-  it("stays valid JSON and small for a large write, eliding the content value", () => {
+  it("stays valid JSON and small for a large write, leaving the content value out", () => {
     const content = "line\n".repeat(100_000); // ~500 KB
     const preview = buildElidedArgsPreview(
       { path: "src/big.ts", contents: content },
@@ -51,9 +51,21 @@ describe("buildElidedArgsPreview", () => {
     const parsed = JSON.parse(preview) as Record<string, unknown>;
     // Bounded — nowhere near the raw content size.
     expect(preview.length).toBeLessThan(1_000);
-    // The salient path survives verbatim (grant identity), content is elided.
+    // The salient path survives verbatim (grant identity); the content is not
+    // in the preview at all — never an in-band marker a reader could mistake
+    // for the file (stigmer#1107): a surface that needs it reads the row's args.
     expect(parsed.path).toBe("src/big.ts");
-    expect(parsed.contents).toBe(`[${content.length} chars]`);
+    expect("contents" in parsed).toBe(false);
+  });
+
+  it("a value at the cap is carried whole; one character over is left out", () => {
+    const atCap = "a".repeat(200);
+    const overCap = "a".repeat(201);
+    const parsed = JSON.parse(
+      buildElidedArgsPreview({ path: "x", note: atCap, essay: overCap }, SALIENT),
+    ) as Record<string, unknown>;
+    expect(parsed.note).toBe(atCap);
+    expect("essay" in parsed).toBe(false);
   });
 
   it("never elides a salient field, even a very long shell command", () => {

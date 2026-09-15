@@ -17,6 +17,20 @@
  * only because native's resume never re-parsed it), and Cursor's stream path
  * stamped `JSON.stringify(args)` unredacted (S4 review finding 5). Both are
  * gone; this module holds the one builder and the one salient list.
+ *
+ * THE PREVIEW NEVER CARRIES A VALUE IT CANNOT CARRY WHOLE. A non-salient
+ * string over the per-value cap is left out of the preview — not replaced by
+ * an in-band marker. The marker this module wrote until S4 M4R (`"[381
+ * chars]"`) was a string no reader could tell from content: the approval gate
+ * rendered it as the file the user was asked to approve (stigmer#1107). An
+ * absent key is the out-of-band signal every reader already handles — a
+ * surface that needs the whole value reads the row's `args`, the way the
+ * gate does now; the codebase's precedent for "content not included" is a
+ * typed fact on the wire (file review's `FileReviewBlockReason`), never a
+ * display string, and the approval projection gaining such a fact is a
+ * follow-up of its own. The cost, named: the CLI's and ink's one-line preview
+ * loses the value's size, and Cursor's recovery digest reads `tool({})` for
+ * an MCP tool whose only argument is oversized.
  */
 
 /**
@@ -67,8 +81,8 @@ const MAX_PREVIEW_VALUE_LENGTH = 200;
  * Build a compact, ALWAYS-VALID `args_preview` from a tool call's full,
  * authoritative arguments.
  *
- * Elides oversized string *values* in place — preserving every key and the
- * JSON structure — rather than truncating the whole string. Two invariants
+ * Leaves oversized string *values* out — every other key and the JSON
+ * structure kept — rather than truncating the whole string. Two invariants
  * make it safe for the Cursor gate path:
  *  - It NEVER elides a salient field (the resume grant's identity — the file
  *    path or shell command — is parsed back out of this preview, so it must
@@ -92,15 +106,12 @@ export function buildElidedArgsPreview(
   for (const [key, value] of Object.entries(args)) {
     if (SENSITIVE_ARG_KEYS.has(key.toLowerCase())) {
       out[key] = "[REDACTED]";
-    } else if (
-      !salientFields.includes(key) &&
-      typeof value === "string" &&
-      value.length > MAX_PREVIEW_VALUE_LENGTH
-    ) {
-      out[key] = `[${value.length} chars]`;
-    } else {
-      out[key] = value;
+      continue;
     }
+    const oversized = typeof value === "string" && value.length > MAX_PREVIEW_VALUE_LENGTH;
+    // An oversized non-salient value is left out, never marked (see the header).
+    if (oversized && !salientFields.includes(key)) continue;
+    out[key] = value;
   }
   try {
     return JSON.stringify(out);

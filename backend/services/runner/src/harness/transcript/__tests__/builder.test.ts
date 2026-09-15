@@ -169,14 +169,16 @@ describe("TranscriptBuilder — every row with args carries an elided, redacted 
     expect(JSON.parse(rowOf(sb, "c-1").argsPreview)).toEqual({ host: "localhost", password: "[REDACTED]" });
   });
 
-  it("a long non-salient value is elided in place; a salient one (the command) survives verbatim", () => {
+  it("a long non-salient value is left out of the preview; a salient one (the command) survives verbatim", () => {
     const command = "echo " + "x".repeat(400);
     const sb = feed(builder(), [
       { kind: "tool_started", callId: "sh-1", name: "execute", input: { command, notes: "y".repeat(400) }, mcpServerSlug: "" },
     ]);
     const preview = JSON.parse(rowOf(sb, "sh-1").argsPreview);
     expect(preview.command).toBe(command);
-    expect(preview.notes).toBe("[400 chars]");
+    // Absent, never an in-band marker (stigmer#1107); the row's args carry it.
+    expect("notes" in preview).toBe(false);
+    expect(rowOf(sb, "sh-1").args?.notes).toBe("y".repeat(400));
   });
 
   it("a row with no args carries no preview", () => {
