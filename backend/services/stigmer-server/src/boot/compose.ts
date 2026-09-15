@@ -553,6 +553,22 @@ export async function composeServer(
       });
     }
   }
+  // The built-in posture's own boot ensure, the sibling of the block
+  // above: the membership rules run at a person's FIRST provisioning, so a
+  // database whose people were provisioned before the rules existed (a
+  // 3.15.x self-host with OIDC on) holds accounts with no role rows — and
+  // the built-in authorizer below would make every one of them an
+  // outsider on every organization, with nobody left who could grant a
+  // way back. Once per database (a bootstrap-state marker; the rules'
+  // header), the same arms run for every person account in creation
+  // order; a fault is a loud boot throw like the storage stage's, and the
+  // next boot converges. Under the built-in posture only: a unit with its
+  // own Authorizer has its own onboarding, and trusted-local has the
+  // operator ensure above and one principal.
+  if (authorizationPosture === "built-in" && membership !== undefined) {
+    await membership.ensureRolesForExistingAccounts();
+    logger.info("built-in posture role reconciliation ensured");
+  }
 
   // Stage: keys — the ratified fail-loud boot ASYMMETRY (D2 cross-domain
   // invariants; Go server.go:277-293):

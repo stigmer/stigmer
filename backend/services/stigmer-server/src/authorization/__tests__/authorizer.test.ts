@@ -119,6 +119,7 @@ const SEEDED_KINDS: ReadonlyArray<ApiResourceKind> = [
   ApiResourceKind.organization,
   ApiResourceKind.agent,
   ApiResourceKind.session,
+  ApiResourceKind.oauth_app,
 ];
 
 afterAll(dropPostgresFixture);
@@ -365,6 +366,62 @@ describe.each(driverFixtures(SEEDED_KINDS))(
           // The account's subject is the alias that matches.
           expect(await auth.authorize(resolved(FOUNDER), edit)).toEqual({
             kind: "allow",
+          });
+        });
+
+        it("an OAuth app is read by its creator and the organization's admins, and changed by its creator alone — the one org-scoped kind whose owner has no admin arm", async () => {
+          // No pinned store document covers oauth_app (the security read's
+          // fact 11), so its distinctive line is pinned here: `viewer` has
+          // `admin from organization`, `can_edit` and `can_delete` do not.
+          await seed("oauth_app", "oap_vendor", {
+            org: "acme",
+            visibility:
+              ApiResourceVisibility.api_resource_visibility_unspecified,
+            createdBy: MEMBER.accountId,
+          });
+          const view = check(
+            IamPermission.can_view,
+            ApiResourceKind.oauth_app,
+            "oap_vendor",
+          );
+          const edit = check(
+            IamPermission.can_edit,
+            ApiResourceKind.oauth_app,
+            "oap_vendor",
+          );
+          const remove = check(
+            IamPermission.can_delete,
+            ApiResourceKind.oauth_app,
+            "oap_vendor",
+          );
+          const auth = authorizer();
+          for (const c of [view, edit, remove]) {
+            expect(await auth.authorize(resolved(MEMBER), c)).toEqual({
+              kind: "allow",
+            });
+          }
+          expect(await auth.authorize(resolved(ADMIN), view)).toEqual({
+            kind: "allow",
+          });
+          expect(await auth.authorize(resolved(ADMIN), edit)).toEqual({
+            kind: "deny",
+            reason: "",
+          });
+          expect(await auth.authorize(resolved(ADMIN), remove)).toEqual({
+            kind: "deny",
+            reason: "",
+          });
+          // The organization's OWNER is an admin by the ladder: reads, does not change.
+          expect(await auth.authorize(resolved(FOUNDER), view)).toEqual({
+            kind: "allow",
+          });
+          expect(await auth.authorize(resolved(FOUNDER), edit)).toEqual({
+            kind: "deny",
+            reason: "",
+          });
+          expect(await auth.authorize(resolved(OUTSIDER), view)).toEqual({
+            kind: "deny",
+            reason: "",
           });
         });
 

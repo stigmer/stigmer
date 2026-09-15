@@ -29,6 +29,20 @@
  *   the operator's account — id, email and display name — like every
  *   other trusted-local write.
  *
+ *   ensureRolesForExistingAccounts(): the one-shot reconciliation for a
+ *   database whose accounts were provisioned before the rules existed (a
+ *   3.15.x OIDC self-host upgrading). The SAME arms, run once per person
+ *   account in creation order — the order their sign-ins would have run
+ *   the hook in — then a marker in the store's bootstrap state so it never
+ *   runs again; a second call reads nothing and writes nothing; a machine
+ *   account gets nothing; a person already holding a row on an
+ *   organization is left alone there and reconciled elsewhere; a fault
+ *   propagates with the marker unset so the next boot converges; a
+ *   database whose rows were all revoked AFTER the marker is untouched (a
+ *   revoked founder is not re-admitted by a reboot); zero accounts still
+ *   set the marker. `roleFor` is the arms as one pure function, pinned as
+ *   a table.
+ *
  * The creator stamps the rules read are `status.audit.spec_audit.created_by
  * .id`, which for a legacy self-host is the raw issuer subject and for a
  * provisioned caller is the account id (P1 gate Q2c; 2a handoff 2), so
@@ -49,17 +63,23 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
+import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 
 import type { CallerIdentity } from "../../../extensions/identity.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import type { Store } from "../../../store/interface.js";
 import { accountIdFor } from "../../identityaccount/constants.js";
-import { BLUEPRINT_KINDS } from "../constants.js";
+import { BLUEPRINT_KINDS, ROLES_RECONCILED_KEY } from "../constants.js";
 import { newIamPolicyGrantPath } from "../grant-path.js";
 import type { IamPolicyGrantPath } from "../grant-path.js";
-import { CREATOR_SCAN_SCHEMAS, newMembershipRules } from "../membership.js";
-import type { MembershipRules } from "../membership.js";
+import {
+  CREATOR_SCAN_SCHEMAS,
+  isPersonAccount,
+  newMembershipRules,
+  roleFor,
+} from "../membership.js";
+import type { MembershipRules, ScannedResource } from "../membership.js";
 import type { IamPolicyStore } from "../store.js";
 import { fakeIamPolicyStore } from "./support.js";
 import type { FakeIamPolicyStore } from "./support.js";
@@ -211,6 +231,47 @@ describe("membership rules", () => {
       .filter((p) => p.spec?.principal?.id === accountId)
       .map((p) => `${p.spec?.relation}@${p.spec?.resource?.id}`)
       .sort();
+  }
+
+  /**
+   * Seeds an account row as 3.15.x provisioning left it: the derived id,
+   * the subject, the email, a creation stamp (the reconciliation's order)
+   * and no role row anywhere.
+   */
+  async function seedAccount(
+    sub: string,
+    email: string,
+    createdAtSeconds: number,
+    overrides: { isMachineAccount?: boolean } = {},
+  ): Promise<IdentityAccount> {
+    const row = account(sub, email);
+    row.spec!.isMachineAccount = overrides.isMachineAccount ?? false;
+    row.status = create(IdentityAccountSchema, {
+      status: {
+        audit: {
+          specAudit: {
+            createdBy: { id: row.metadata!.id },
+            createdAt: create(TimestampSchema, {
+              seconds: BigInt(createdAtSeconds),
+            }),
+          },
+        },
+      },
+    }).status;
+    await store.saveResource(
+      ApiResourceKind.identity_account,
+      row.metadata!.id,
+      IdentityAccountSchema,
+      row,
+    );
+    return row;
+  }
+
+  /** The audit actor ids of every row, in insertion order — who each grant was written AS. */
+  function actorsOf(): ReadonlyArray<string> {
+    return [...policies.rows.values()].map(
+      (p) => p.status?.audit?.specAudit?.createdBy?.id ?? "",
+    );
   }
 
   describe("onAccountCreated", () => {
@@ -434,6 +495,299 @@ describe("membership rules", () => {
       expect(actor?.id).toBe(operator.metadata!.id);
       expect(actor?.email).toBe(OPERATOR_EMAIL);
       expect(actor?.displayName).toBe("The Operator");
+    });
+  });
+
+  describe("roleFor — the five arms as one pure function", () => {
+    const acme: ScannedResource = {
+      id: "acme",
+      org: "",
+      createdBy: "auth0|alice",
+    };
+    const alice = {
+      accountId: accountIdFor("auth0|alice"),
+      subject: "auth0|alice",
+      email: "alice@example.com",
+    };
+    const bob = {
+      accountId: accountIdFor("auth0|bob"),
+      subject: "auth0|bob",
+      email: "bob@example.com",
+    };
+    const agentBy = (createdBy: string): ScannedResource => ({
+      id: `agt_${createdBy}`,
+      org: "acme",
+      createdBy,
+    });
+
+    it.each([
+      [
+        "arm 1: the organization's creator (by subject) is owner",
+        {
+          ...alice,
+          organization: acme,
+          blueprintsInOrganization: [],
+          organizationHasRows: false,
+          operatorEmail: "",
+        },
+        IamRole.owner,
+      ],
+      [
+        "arm 1: the organization's creator (by account id) is owner",
+        {
+          ...alice,
+          organization: { ...acme, createdBy: alice.accountId },
+          blueprintsInOrganization: [],
+          organizationHasRows: true,
+          operatorEmail: "",
+        },
+        IamRole.owner,
+      ],
+      [
+        "arm 2: a blueprint author in someone else's organization is admin",
+        {
+          ...bob,
+          organization: acme,
+          blueprintsInOrganization: [agentBy("auth0|bob")],
+          organizationHasRows: true,
+          operatorEmail: "",
+        },
+        IamRole.admin,
+      ],
+      [
+        "arm 3: the operator email is admin",
+        {
+          ...bob,
+          organization: acme,
+          blueprintsInOrganization: [],
+          organizationHasRows: true,
+          operatorEmail: bob.email,
+        },
+        IamRole.admin,
+      ],
+      [
+        "arm 3: an unconfigured operator email matches nobody, an empty account email included",
+        {
+          ...bob,
+          email: "",
+          organization: acme,
+          blueprintsInOrganization: [],
+          organizationHasRows: true,
+          operatorEmail: "",
+        },
+        IamRole.member,
+      ],
+      [
+        "arm 4: zero rows and only system stamps hands the organization to the first caller",
+        {
+          ...bob,
+          organization: { ...acme, createdBy: "system" },
+          blueprintsInOrganization: [agentBy("system")],
+          organizationHasRows: false,
+          operatorEmail: "",
+        },
+        IamRole.admin,
+      ],
+      [
+        "arm 4: zero rows but another person's stamp — member, never admin",
+        {
+          ...bob,
+          organization: acme,
+          blueprintsInOrganization: [],
+          organizationHasRows: false,
+          operatorEmail: "",
+        },
+        IamRole.member,
+      ],
+      [
+        "arm 4: rows exist (revoked-to-zero is not this case; 'has rows' is the caller's read) — member",
+        {
+          ...bob,
+          organization: { ...acme, createdBy: "system" },
+          blueprintsInOrganization: [],
+          organizationHasRows: true,
+          operatorEmail: "",
+        },
+        IamRole.member,
+      ],
+      [
+        "arm 5: everyone else is a member",
+        {
+          ...bob,
+          organization: acme,
+          blueprintsInOrganization: [agentBy("auth0|alice")],
+          organizationHasRows: true,
+          operatorEmail: "",
+        },
+        IamRole.member,
+      ],
+    ])("%s", (_name, input, expected) => {
+      expect(roleFor(input)).toBe(expected);
+    });
+  });
+
+  describe("isPersonAccount — the row-level twin of the user-class gate", () => {
+    it("a provisioned person is; a machine account or a machine-mode account is not", () => {
+      expect(isPersonAccount(account("auth0|alice", "alice@example.com"))).toBe(
+        true,
+      );
+      const flagged = account("bot@clients", "");
+      flagged.spec!.isMachineAccount = true;
+      expect(isPersonAccount(flagged)).toBe(false);
+      const machineMode = account("bot2@clients", "");
+      machineMode.spec!.provisioningMode =
+        IdentityAccountProvisioningMode.machine;
+      expect(isPersonAccount(machineMode)).toBe(false);
+    });
+  });
+
+  describe("ensureRolesForExistingAccounts", () => {
+    it("a 3.15.x database — accounts and no rows — gets the rows the sign-ins would have written, as each account, and the marker", async () => {
+      await seedOrg("acme", "auth0|alice");
+      await seedAgent("agt_bob", "acme", "auth0|bob");
+      const alice = await seedAccount("auth0|alice", "alice@example.com", 100);
+      const bob = await seedAccount("auth0|bob", "bob@example.com", 200);
+      const carol = await seedAccount("auth0|carol", "carol@example.com", 300);
+
+      await rules.ensureRolesForExistingAccounts();
+
+      expect(rolesOf(alice.metadata!.id)).toEqual(["owner@acme"]);
+      expect(rolesOf(bob.metadata!.id)).toEqual(["admin@acme"]);
+      expect(rolesOf(carol.metadata!.id)).toEqual(["member@acme"]);
+      expect(actorsOf()).toEqual([
+        alice.metadata!.id,
+        bob.metadata!.id,
+        carol.metadata!.id,
+      ]);
+      expect(await store.bootstrapState.get(ROLES_RECONCILED_KEY)).toMatch(
+        /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/,
+      );
+    });
+
+    it("a second call is a no-op — the marker short-circuits before any read", async () => {
+      await seedOrg("acme", "auth0|alice");
+      await seedAccount("auth0|alice", "alice@example.com", 100);
+      await rules.ensureRolesForExistingAccounts();
+      const marker = await store.bootstrapState.get(ROLES_RECONCILED_KEY);
+      const before = [...policies.rows.keys()];
+      await seedAccount("auth0|late", "late@example.com", 400);
+
+      await rules.ensureRolesForExistingAccounts();
+
+      expect([...policies.rows.keys()]).toEqual(before);
+      expect(await store.bootstrapState.get(ROLES_RECONCILED_KEY)).toBe(marker);
+    });
+
+    it("a half-run database — some people already hold rows — is reconciled only where they do not", async () => {
+      await seedOrg("acme", "auth0|alice");
+      const alice = await seedAccount("auth0|alice", "alice@example.com", 100);
+      // Alice's sign-in already ran the hook when only acme existed.
+      await rules.onAccountCreated(alice, userCaller(alice.metadata!.id));
+      expect(rolesOf(alice.metadata!.id)).toEqual(["owner@acme"]);
+      await seedOrg("globex", "auth0|carol");
+      const bob = await seedAccount("auth0|bob", "bob@example.com", 200);
+
+      await rules.ensureRolesForExistingAccounts();
+
+      expect(rolesOf(alice.metadata!.id)).toEqual([
+        "member@globex",
+        "owner@acme",
+      ]);
+      expect(rolesOf(bob.metadata!.id)).toEqual([
+        "member@acme",
+        "member@globex",
+      ]);
+    });
+
+    it("a machine account gets nothing", async () => {
+      await seedOrg("acme", "system");
+      const bot = await seedAccount("bot@clients", "", 100, {
+        isMachineAccount: true,
+      });
+
+      await rules.ensureRolesForExistingAccounts();
+
+      expect(rolesOf(bot.metadata!.id)).toEqual([]);
+      expect(policies.rows.size).toBe(0);
+    });
+
+    it("accounts are reconciled in creation order — arm 4 hands an unclaimed organization to the first sign-in, not to whoever sorts first by id", async () => {
+      await seedOrg("acme", "system");
+      await seedAgent("agt_1", "acme", "system");
+      const [firstById, secondById] = [
+        accountIdFor("auth0|p"),
+        accountIdFor("auth0|q"),
+      ].sort();
+      const subOf = (id: string): string =>
+        id === accountIdFor("auth0|p") ? "auth0|p" : "auth0|q";
+      // The account that sorts FIRST by id signed in LATER.
+      const later = await seedAccount(
+        subOf(firstById!),
+        "later@example.com",
+        900,
+      );
+      const earlier = await seedAccount(
+        subOf(secondById!),
+        "earlier@example.com",
+        100,
+      );
+
+      await rules.ensureRolesForExistingAccounts();
+
+      expect(rolesOf(earlier.metadata!.id)).toEqual(["admin@acme"]);
+      expect(rolesOf(later.metadata!.id)).toEqual(["member@acme"]);
+    });
+
+    it("a store fault mid-pass propagates with the marker unset; the next call converges with no duplicate row", async () => {
+      await seedOrg("acme", "auth0|alice");
+      await seedAccount("auth0|alice", "alice@example.com", 100);
+      await seedAccount("auth0|bob", "bob@example.com", 200);
+      let faultsLeft = 1;
+      const healthy = fakeIamPolicyStore();
+      const flaky: IamPolicyStore = {
+        ...healthy,
+        async save(policy) {
+          if (healthy.rows.size === 1 && faultsLeft > 0) {
+            faultsLeft -= 1;
+            throw new Error("disk full");
+          }
+          await healthy.save(policy);
+        },
+      };
+      const flakyRules = rulesOver(flaky);
+
+      await expect(flakyRules.ensureRolesForExistingAccounts()).rejects.toThrow(
+        "disk full",
+      );
+      expect(healthy.rows.size).toBe(1);
+      expect(await store.bootstrapState.get(ROLES_RECONCILED_KEY)).toBe("");
+
+      await flakyRules.ensureRolesForExistingAccounts();
+
+      expect(
+        [...healthy.rows.values()]
+          .map((p) => `${p.spec?.relation}@${p.spec?.resource?.id}`)
+          .sort(),
+      ).toEqual(["member@acme", "owner@acme"]);
+      expect(await store.bootstrapState.get(ROLES_RECONCILED_KEY)).not.toBe("");
+    });
+
+    it("a database whose rows were all revoked AFTER the marker is untouched — a revoked founder is not re-admitted by a reboot", async () => {
+      await seedOrg("acme", "auth0|alice");
+      await seedAccount("auth0|alice", "alice@example.com", 100);
+      await rules.ensureRolesForExistingAccounts();
+      expect(policies.rows.size).toBe(1);
+      policies.rows.clear();
+
+      await rules.ensureRolesForExistingAccounts();
+
+      expect(policies.rows.size).toBe(0);
+    });
+
+    it("zero accounts still sets the marker — a fresh install is reconciled from its first boot", async () => {
+      await rules.ensureRolesForExistingAccounts();
+      expect(policies.rows.size).toBe(0);
+      expect(await store.bootstrapState.get(ROLES_RECONCILED_KEY)).not.toBe("");
     });
   });
 

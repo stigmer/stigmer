@@ -143,6 +143,18 @@ export const BLUEPRINT_KINDS: ReadonlyArray<ApiResourceKind> = [
 ];
 
 /**
+ * The bootstrap-state key the membership rules' one-shot reconciliation
+ * writes when it has run (membership.ts `ensureRolesForExistingAccounts`):
+ * a database whose accounts were provisioned before the rules existed is
+ * reconciled once, at the first boot under the built-in authorization
+ * posture, and never again — the value is the RFC 3339 time it finished.
+ * Lives in `store.bootstrapState` beside the seedpack's own idempotency
+ * keys; deleting it makes the next boot reconcile again, which is the
+ * operator's deliberate act and nobody else's.
+ */
+export const ROLES_RECONCILED_KEY = "membership_rules_reconciled";
+
+/**
  * The principal kinds a PERSON may grant a role to — the user `create`
  * lane's grantee vocabulary (2026-09-14, session 9 ruling Q-S9-2; the
  * security read's finding 41). A role names a person, so the one grantee

@@ -89,6 +89,17 @@ From the next boot, every request needs a credential:
   Nobody reads another person's conversations, API keys or Environments — admins
   included. These are the same rules Stigmer Cloud enforces, so an Agent behaves
   the same way wherever it runs.
+- **If authentication was already on before this release, roles are assigned at
+  the first start.** People who signed in under an earlier release keep what
+  they had: whoever created an Organization owns it, whoever created an Agent,
+  Workflow, Skill, MCP server, Environment or Schedule in it is an admin there,
+  the `STIGMER_OPERATOR_EMAIL` holder is an admin everywhere, and everyone else
+  is a member. This happens once; from then on roles change only when an owner
+  or admin changes them.
+- **Anything marked Public before this release stays readable by every signed-in
+  person**, including people outside its Organization. New Public marks are
+  refused on a self-hosted server; an admin can set an existing one back to
+  Organization from its page.
 - Requests without a credential are rejected with
   `authentication token missing`. Requests with a bad credential get a specific
   reason (`token has expired`, `token signature verification failed`, and so
