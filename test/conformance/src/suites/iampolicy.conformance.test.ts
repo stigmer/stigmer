@@ -1264,27 +1264,14 @@ describe("IamPolicy conformance — the membership rules on an OIDC sibling (Q-O
     ]);
   });
 
-  it("a caller who created a blueprint before provisioning is an admin after — nobody loses access on upgrade", async (ctx) => {
-    const lane = siblingOrSkip(ctx);
-    const founder = await newPerson(lane, "founder-3@example.com");
-    await founder.provision();
-    const org = await createOwnedOrganization(
-      founder.asPerson,
-      siblingFixtures,
-    );
-
-    const author = await newPerson(lane, "author@example.com");
-    const agent = await author.asPerson.agentCommand.create(
-      makeAgent({ org, name: uniqueName("legacy-agent") }),
-    );
-    const agentId = agent.metadata?.id ?? "";
-    siblingFixtures.defer(() =>
-      author.asPerson.agentCommand.delete({ value: agentId }),
-    );
-    const authorId = await author.provision();
-
-    expect(await rolesOf(authorId, org, author.asPerson)).toEqual(["admin"]);
-  });
+  // The membership rules' blueprint-author arm ("a caller who created a
+  // blueprint before provisioning is an admin after — nobody loses access
+  // on upgrade") is not stageable here: under the enforcing sibling an
+  // unprovisioned caller cannot create a blueprint (`can_create_agent` is
+  // `admin`), and the rows the arm heals were written before enforcement
+  // existed. The rule is pinned over a seeded store in the server's own
+  // `domain/iampolicy/__tests__/membership.test.ts` ("a blueprint's creator
+  // in someone else's organization becomes admin there").
 
   it("the operator's email is an admin on arrival", async (ctx) => {
     const lane = siblingOrSkip(ctx);
@@ -1322,7 +1309,10 @@ describe("IamPolicy conformance — the membership rules on an OIDC sibling (Q-O
     const again = await member.provision();
 
     expect(again).toBe(memberId);
-    expect(await rolesOf(memberId, org, member.asPerson)).toEqual([]);
+    // The founder asks about the revoked member: on an enforcing sibling
+    // the member themselves holds no `can_view_access` on the organization
+    // any more, and is refused — which is the revoke working.
+    expect(await rolesOf(memberId, org, founder.asPerson)).toEqual([]);
     expect(await rolesOf(founderId, org, founder.asPerson)).toEqual(["owner"]);
   });
 

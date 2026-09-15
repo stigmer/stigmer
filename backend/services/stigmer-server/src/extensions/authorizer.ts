@@ -41,7 +41,9 @@ export interface AuthzCheck {
  * (stigmer#224: a nonexistent id answers NOT_FOUND, never
  * PERMISSION_DENIED). Only meaningful with a known kind and a non-empty
  * resource id — anything else is an authorizer contract bug and surfaces
- * as INTERNAL. The OSS permissive default never emits it.
+ * as INTERNAL. The OSS permissive default never emits it; the built-in
+ * authorizer (authorization/authorizer.ts) emits it for a missing target
+ * of every kind but the ones the cloud never probes.
  */
 export type AuthzDecision =
   | { readonly kind: "allow" }
@@ -54,10 +56,13 @@ export type AuthzDecision =
 
 /**
  * The pure decision interface. Exactly ONE implementation is composed per
- * server (the resolver enforces it): OSS's permissive single-team default
- * (O2) or an extension's (the cloud registers OpenFGA). Write concerns —
- * tuple seeding on create — are NOT authorization checks; they ride the
- * post-persist gate slots (blueprint §5b item 4).
+ * server (the resolver enforces it), selected by the authorization posture
+ * (authorization/posture.ts): an extension's (the cloud registers OpenFGA);
+ * open source's built-in authorizer under an authentication posture (the
+ * cloud's model evaluated over tuples derived from the row); or the
+ * permissive single-team default on the trusted-local laptop (O2). Write
+ * concerns — tuple seeding on create — are NOT authorization checks; they
+ * ride the post-persist gate slots (blueprint §5b item 4).
  */
 export interface Authorizer {
   authorize(caller: CallerIdentity, check: AuthzCheck): Promise<AuthzDecision>;

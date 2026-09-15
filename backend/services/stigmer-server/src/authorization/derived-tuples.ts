@@ -39,6 +39,16 @@
  * nothing, as in the cloud; any other store fault propagates so the
  * driver folds it to `unavailable`. One source per check (or per list
  * call for the list scope): its memo is the check's.
+ *
+ * Rows are read through the generic Store, with one exception: an
+ * `identity_account` object is read through the account PORT
+ * (`accounts.findById`), the binding every other reader of accounts —
+ * the verifiers, whoAmI, the create path — follows. A composition that
+ * registers its own account store and keeps the built-in authorizer
+ * therefore still lets a person read their own account (the derivation
+ * is `owner@self`); a generic read would miss and deny them their own
+ * row. IamPolicy rows are already the port's (`findByPrincipal`), so no
+ * second exception is needed for them.
  */
 import type { Message } from "@bufbuild/protobuf";
 
@@ -48,6 +58,7 @@ import type { IamPolicy } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_
 
 import { isPersonStamp } from "../domain/iampolicy/membership.js";
 import type { IamPolicyStore } from "../domain/iampolicy/store.js";
+import type { IdentityAccountStore } from "../domain/identityaccount/store.js";
 import type { VisibilityTupleShape } from "../extensions/resource-authorization.js";
 import {
   getKindMeta,
@@ -185,6 +196,8 @@ export interface DerivedTupleSourceDeps {
   readonly store: Store;
   /** The port the grant path writes through — the rows are read from the same instance. */
   readonly policies: IamPolicyStore;
+  /** The account port — an `identity_account` object is read through it, never the generic Store (the module header). */
+  readonly accounts: Pick<IdentityAccountStore, "findById">;
   /** The declarations to derive with; the built-in model unless a test says otherwise. */
   readonly model?: Model;
 }
@@ -192,6 +205,13 @@ export interface DerivedTupleSourceDeps {
 export interface DerivedTupleSource extends TupleSource {
   /** The memoised row reads, exposed for a declaration's `derived` rules and for tests. */
   readonly loader: RowLoader;
+  /**
+   * The person's own IamPolicy rows as tuples — the ONE read of them this
+   * source makes, shared with `tuplesOf`. A list-shaped consumer (the
+   * organization directory; the list scope) reads its candidate objects
+   * from here instead of scanning the port a second time.
+   */
+  personTuples(): Promise<ReadonlyArray<Tuple>>;
 }
 
 export function newDerivedTupleSource(
@@ -210,7 +230,7 @@ export function newDerivedTupleSource(
       if (held !== undefined) {
         return held;
       }
-      const loading = loadRow(deps.store, model, object);
+      const loading = loadRow(deps, model, object);
       rows.set(key, loading);
       return loading;
     },
@@ -248,6 +268,7 @@ export function newDerivedTupleSource(
 
   return {
     loader,
+    personTuples: rowTuples,
     async tuplesOf(object, relation) {
       const onPair = (tuple: Tuple): boolean =>
         tuple.relation === relation &&
@@ -272,7 +293,7 @@ export function newDerivedTupleSource(
 
 /** The decoded row for an object, or undefined when the kind is not declared or the row does not exist. */
 async function loadRow(
-  store: Store,
+  deps: Pick<DerivedTupleSourceDeps, "store" | "accounts">,
   model: Model,
   object: ObjectRef,
 ): Promise<Message | undefined> {
@@ -285,8 +306,11 @@ async function loadRow(
   ) {
     return undefined;
   }
+  if (kind === ApiResourceKind.identity_account) {
+    return deps.accounts.findById(object.id);
+  }
   try {
-    return await store.getResource(kind, object.id, declaration.schema);
+    return await deps.store.getResource(kind, object.id, declaration.schema);
   } catch (error) {
     if (error instanceof ResourceNotFoundError) {
       return undefined;

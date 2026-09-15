@@ -29,8 +29,16 @@ import path from "node:path";
 import type { ConnectRouter, Transport } from "@connectrpc/connect";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 import { HealthCheckResponse_ServingStatus as ServingStatus } from "@stigmer/protos/grpc/health/v1/health_pb";
 
+import { newBuiltInAuthorizer } from "../authorization/authorizer.js";
+import { newBuiltInOrganizationDirectory } from "../authorization/organization-directory.js";
+import { authorizationPostureOf } from "../authorization/posture.js";
+import { newBuiltInScheduleFireCaller } from "../authorization/schedule-fire-caller.js";
+import type { Authorizer } from "../extensions/authorizer.js";
+import type { OrganizationDirectory } from "../extensions/organization-directory.js";
+import type { ScheduleFireCallerMint } from "../extensions/schedule-fire-caller.js";
 import { registerAgentServices } from "../domain/agent/controller.js";
 import {
   newConfigFromEnv,
@@ -285,20 +293,6 @@ export async function composeServer(
       units: extensions.unitNames.join(", "),
     });
   }
-  // The ONE composed Authorizer (DD-007 §3): an extension's registration
-  // or the OSS permissive single-team default. Resolved here, handed to
-  // every controller as an explicit dependency — the Authorize step at
-  // position 1 of every chain calls it (O2).
-  const authorizer =
-    extensions.authorizer ?? newPermissiveSingleTeamAuthorizer();
-  // The built-in authorization POSTURE (20260913.01, Q-OR-6), named once:
-  // no unit registered an Authorizer, so the roles open source records
-  // exist to feed the built-in one. Under it — and only under it — the
-  // identity-accounts stage below installs the built-in role lifecycle
-  // and the membership rules; a composition with its own Authorizer has
-  // its own onboarding and gets neither.
-  const builtInAuthorization = extensions.authorizer === undefined;
-
   // Stage: storage — the driver selection seam (DD-010): DATABASE_URL
   // present → Postgres (async connect + advisory-locked migrations), else
   // sqlite on DB_PATH (migrations v1–v7, incl. adopting a Go-created
@@ -330,6 +324,38 @@ export async function composeServer(
   const authEnabled = config.oidcIssuer !== "";
   const requireAuthentication =
     authEnabled || extensions.requireAuthentication !== undefined;
+
+  // The AUTHORIZATION posture (authorization/posture.ts), named once and
+  // handed down: a unit's own Authorizer (nothing built in installs);
+  // the built-in posture (no unit Authorizer under an authentication
+  // posture — open source composes its Authorizer, organization directory
+  // and schedule fire caller below, and the roles 2b records are
+  // enforced); or trusted-local (the permissive default: one caller,
+  // nothing to separate). `builtInAuthorization` (20260913.01, Q-OR-6) is
+  // the first two together — the roles exist to feed the built-in
+  // authorizer, so the identity stage installs the built-in role
+  // lifecycle and the membership rules under both; a composition with its
+  // own Authorizer has its own onboarding and gets neither.
+  const authorizationPosture = authorizationPostureOf({
+    unitAuthorizer: extensions.authorizer !== undefined,
+    requireAuthentication,
+  });
+  const builtInAuthorization = authorizationPosture !== "unit-authorizer";
+  // The built-in authorizer declares the open-source kinds and no other
+  // (its registry is pinned set-equal to that tier), so a composition
+  // that serves a wider edition must bring its own Authorizer: every
+  // check on a kind the model does not declare would otherwise fault
+  // INTERNAL per request. Refused at boot, the same class as a
+  // misconfigured registry (DD-006 §2b) and the verifierless posture
+  // below — caught before any side effect.
+  if (
+    authorizationPosture === "built-in" &&
+    extensions.edition !== ServerEdition.oss
+  ) {
+    throw new Error(
+      `the composition serves edition '${ServerEdition[extensions.edition]}' under the require-authentication posture but registers no Authorizer — the built-in authorizer enforces the open-source kinds only; register an Authorizer or serve the open-source edition`,
+    );
+  }
 
   // Stage: identity accounts (20260911.11) — the first domain whose
   // persistence is a PORT rather than the generic Store. The composed
@@ -400,6 +426,51 @@ export async function composeServer(
         operatorEmail: operatorIdentity.email,
       })
     : undefined;
+  // The ONE composed Authorizer (DD-007 §3), bound here — after the store,
+  // the account port and the IamPolicy port it reads — and handed to every
+  // controller as an explicit dependency; the Authorize step at position 1
+  // of every chain calls it (O2). By posture: an extension's registration;
+  // open source's built-in Authorizer (authorization/authorizer.ts — the
+  // cloud's model evaluated over the tuples the row would have had); or
+  // the permissive single-team default. The organization directory and the
+  // schedule fire caller are bound beside it under the same posture, so
+  // `findMyOrganizations` lists what a person may view and a scheduled run
+  // belongs to the person who scheduled it — a fire the internal lane
+  // would otherwise hand to nobody an enforcing evaluator recognizes.
+  const authorizer: Authorizer =
+    extensions.authorizer ??
+    (authorizationPosture === "built-in"
+      ? newBuiltInAuthorizer({
+          store,
+          policies: iamPolicies,
+          accounts: identityAccounts,
+          edition: extensions.edition,
+          logger,
+        })
+      : newPermissiveSingleTeamAuthorizer());
+  const organizationDirectory: OrganizationDirectory | undefined =
+    extensions.drivers.organizationDirectory ??
+    (authorizationPosture === "built-in"
+      ? newBuiltInOrganizationDirectory({
+          store,
+          policies: iamPolicies,
+          accounts: identityAccounts,
+        })
+      : undefined);
+  const scheduleFireCaller: ScheduleFireCallerMint | undefined =
+    extensions.drivers.scheduleFireCaller ??
+    (authorizationPosture === "built-in"
+      ? newBuiltInScheduleFireCaller({ store, accounts: identityAccounts })
+      : undefined);
+  logger.info("authorization posture resolved", {
+    posture: authorizationPosture,
+    authorizer:
+      extensions.authorizer !== undefined
+        ? "extension"
+        : authorizationPosture === "built-in"
+          ? "built-in"
+          : "permissive",
+  });
   const identityAccountPath = {
     accounts: identityAccounts,
     logger,
@@ -643,9 +714,10 @@ export async function composeServer(
   );
   // Every fire enters the FULL execution create pipeline through the
   // in-process agentexecution client (Go server.go 581: the RunStarter's
-  // ExecutionCreator edge). The composed scheduleFireCaller driver
-  // (stigmer-cloud#572), when present, gives each fire its edition
-  // identity — propagated by the creator's asCaller lane.
+  // ExecutionCreator edge). The scheduleFireCaller driver bound in the
+  // identity stage (stigmer-cloud#572; a unit's, or open source's under
+  // the built-in posture), when present, gives each fire its identity —
+  // propagated by the creator's asCaller lane.
   const scheduleRunStarter = new RunStarter({
     store,
     config: scheduleTemporalConfig,
@@ -656,7 +728,7 @@ export async function composeServer(
           fireCaller,
         ),
     },
-    fireCallerMint: extensions.drivers.scheduleFireCaller,
+    fireCallerMint: scheduleFireCaller,
     logger,
   });
   const scheduleReconciler = new ScheduleReconciler(
@@ -972,10 +1044,10 @@ export async function composeServer(
       logger,
       authorizer,
       gateSteps: extensions.gateSteps,
-      // The role lifecycle (the identity stage): the composed driver, or
-      // open source's owner-row writer under the built-in posture.
+      // The role lifecycle and the directory (the identity stage): the
+      // composed drivers, or open source's under the built-in posture.
       authorizationLifecycle: roleLifecycle,
-      organizationDirectory: extensions.drivers.organizationDirectory,
+      organizationDirectory,
     });
     // ApiKey is the first domain born AFTER the Go port (O3, 20260827.06 —
     // DD-003: the apikey contract is wholly OSS), so it has no Go

@@ -95,12 +95,12 @@ import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityacc
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 
-import type { CallerIdentity } from "../../extensions/identity.js";
 import { kindEnumName } from "../../pipeline/apiresource-meta.js";
 import { SYSTEM_OPERATOR_IDENTITY_ID } from "../../pipeline/interceptors/auth.js";
 import { auditOf } from "../../pipeline/steps/defaults.js";
 import { metadataOf } from "../../pipeline/steps/shapes.js";
 import type { Store } from "../../store/interface.js";
+import { accountAsCaller } from "../identityaccount/actor.js";
 import type { AccountCreatedHook } from "../identityaccount/provisioning.js";
 import { BLUEPRINT_KINDS } from "./constants.js";
 import type { IamPolicyGrantPath } from "./grant-path.js";
@@ -261,7 +261,10 @@ export function newMembershipRules(deps: MembershipRulesDeps): MembershipRules {
       if (accountId === "") {
         throw new Error("membership rules: the operator account carries no id");
       }
-      const actor = operatorActor(operator, accountId);
+      // The operator acting as its account (domain/identityaccount/actor.ts,
+      // the one construction): the row's audit actor is the account,
+      // named the way every other trusted-local write names it.
+      const actor = accountAsCaller(operator);
       for (const organization of await scan(ApiResourceKind.organization)) {
         const owners = await policies.findByResourceWithRelations(
           ORGANIZATION,
@@ -277,28 +280,5 @@ export function newMembershipRules(deps: MembershipRulesDeps): MembershipRules {
         );
       }
     },
-  };
-}
-
-/**
- * The operator acting as its account: the trusted-local identity shape
- * (pipeline/interceptors/auth.ts trustedLocalIdentityFor — no issuer, no
- * token; email and display name only when known) with the account id as
- * the principal, so the row's audit actor is the account, named the way
- * every other trusted-local write names it.
- */
-function operatorActor(
-  operator: IdentityAccount,
-  accountId: string,
-): CallerIdentity {
-  const email = operator.spec?.email ?? "";
-  const displayName = operator.metadata?.name ?? "";
-  return {
-    identityId: accountId,
-    callerClass: "user",
-    issuer: "",
-    rawToken: "",
-    ...(email !== "" ? { email } : {}),
-    ...(displayName !== "" ? { displayName } : {}),
   };
 }

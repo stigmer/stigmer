@@ -5,19 +5,23 @@
  * conformance capability flags, and this port is their ONE seam:
  *
  *   - `find` (org enumeration; capability `organizationEnumeration`):
- *     single-tenant OSS enumerates freely; the cloud refuses with
- *     UNIMPLEMENTED (tenant isolation — no caller may list orgs it does
- *     not belong to).
- *   - `findMyOrganizations` (capability `multiTenant`): OSS answers ALL
- *     organizations (single-user semantics); the cloud filters to the
- *     caller's authorized set.
+ *     the trusted-local laptop enumerates freely; the cloud — and open
+ *     source under the built-in authorization posture — refuses with
+ *     UNIMPLEMENTED (no caller may list organizations they hold no role
+ *     in; `find` is skip-authorization by annotation, so the refusal is
+ *     the only thing standing between a member and every row).
+ *   - `findMyOrganizations` (capability `multiTenant`): the trusted-local
+ *     laptop answers ALL organizations (single-user semantics); the cloud
+ *     and the built-in directory filter to what the caller may view.
  *   - `getByExternalOrgId` (capability `externalOrgLookup`): deliberately
  *     absent from the OSS partial registration (UNIMPLEMENTED by
  *     construction); the cloud resolves external IdP org ids.
  *
- * No directory composed = the controller's OSS behavior, byte-identical.
- * The controller stays the ONE owner of its chains — the directory
- * answers policy questions and id lookups; it never handles RPCs.
+ * No directory composed = the trusted-local behavior, byte-identical; the
+ * built-in directory (authorization/organization-directory.ts) composes
+ * under the built-in posture, a unit's under its own. The controller stays
+ * the ONE owner of its chains — the directory answers policy questions
+ * and id lookups; it never handles RPCs.
  */
 import type { CallerIdentity } from "./identity.js";
 

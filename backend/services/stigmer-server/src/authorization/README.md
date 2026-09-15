@@ -1,11 +1,15 @@
 # authorization/ — the built-in authorizer
 
-Open source's own `Authorizer` and `ListReadScope`, composed when a server runs
-under an authentication posture and no unit registers its own. It is not a
-domain: it drives two ports the registry declares (`extensions/authorizer.ts`,
-`extensions/list-read-scope.ts`) by reading two aggregates it does not own —
-resources through the generic `Store`, roles through the `IamPolicyStore` port —
-and writes nothing.
+Open source's own `Authorizer`, organization directory, schedule fire caller and
+(still to land) `ListReadScope`, composed when a server runs under an
+authentication posture and no unit registers its own — the **built-in posture**
+(`posture.ts`; the other two are the trusted-local laptop's permissive default
+and a unit's own Authorizer). It is not a domain: it drives ports the registry
+declares (`extensions/authorizer.ts`, `extensions/organization-directory.ts`,
+`extensions/schedule-fire-caller.ts`, `extensions/list-read-scope.ts`) by
+reading aggregates it does not own — resources through the generic `Store`,
+accounts through the `IdentityAccountStore` port, roles through the
+`IamPolicyStore` port — and writes nothing.
 
 The idea, once: in the cloud, authorization is the OpenFGA model evaluated over
 stored tuples, and every tuple is derived from a row by
@@ -29,10 +33,15 @@ editions; the cloud stores what open source computes.
   `execution_viewer` on the workflow instance (from
   `spec.execution_visibility`).
 - `tuples.ts` — the tuple vocabulary (object, relation, subject; the string
-  notation), `Person` (the caller as the model sees them: account id plus the
-  aliases a creator stamp may carry), `CheckContext` (the `allow_public`
-  parameter: `allow: true` on a point check, `false` in a listing — the cloud's
-  own posture).
+  notation), the `Person` type (the caller as the model sees them: account id
+  plus the aliases a creator stamp may carry), `CheckContext` (the
+  `allow_public` parameter: `allow: true` on a point check, `false` in a listing
+  — the cloud's own posture).
+- `person.ts` — the one construction of a `Person`: `resolvePerson` reads the
+  caller's account through the port the way whoAmI does, `personFor` builds the
+  aliases (the account id and the issuer subject; an email is nobody's) and
+  refuses an identity that names no person. Every driver resolves the caller
+  here.
 - `evaluator.ts` — OpenFGA's check over a model and a tuple source: type
   restrictions enforced on direct tuples (model drift fails closed), a memo per
   (object, relation), OpenFGA's depth bound, cycles and undeclared targets as
@@ -53,8 +62,27 @@ editions; the cloud stores what open source computes.
   assertion whose walk read a grant through a type the model does not declare
   (the cloud's platform tenancy, `identity_provider#platform_user`).
 
-Still to land: the `Authorizer` driver and the built-in organization directory
-with the composition root's posture, the `ListReadScope` on both verbs.
+- `authorizer.ts` — the `Authorizer` driver, arm for arm the cloud's
+  (`stigmer-cloud src/authorizer/fga-authorizer.ts`): the four pre-check denials
+  with the Java copy; a kind this edition does not serve denied (so nobody sets
+  public visibility on a self-host); the target loaded once through the source;
+  `not-found` for a missing row except on the kinds the cloud never probes
+  (`NOT_FOUND_EXEMPT_KINDS`: `identity_account`, `iam_policy` — account ids
+  cannot be enumerated); the model's answer with an empty reason on a denial so
+  the annotation's copy wins; every fault `unavailable`, never a denial and
+  never a throw.
+- `organization-directory.ts` — `findMyOrganizations` as the cloud answers it
+  (`listObjectIds(can_view, organization)`): the organizations the person's rows
+  name, kept when `can_view` holds; the `internal` class sees all (the
+  in-process authorization skip); enumeration refused.
+- `schedule-fire-caller.ts` — a fire acts as the schedule's creator, resolved
+  from the row's stamp as an account id or as the 3.14.x raw subject; a stamp
+  that names no person is the seam's deterministic refusal, which the RunStarter
+  counts against the schedule instead of retrying forever.
+- `posture.ts` — the three postures, named once for the composition root and the
+  boot log.
+
+Still to land: the `ListReadScope` on both verbs.
 
 ## Proof
 
@@ -68,4 +96,8 @@ open-source tier and each kind's wire permissions to its file;
 `__tests__/wire-permissions.test.ts` pins that every static `(kind, permission)`
 a served RPC asks about is a declared relation. The rest pin the machinery:
 alias matching, the wildcard's condition, the memo, the bounds, the source and
-the two derived rules on both store drivers.
+the two derived rules on both store drivers. The three drivers are pinned arm by
+arm on both store drivers (`__tests__/authorizer.test.ts`,
+`organization-directory.test.ts`, `schedule-fire-caller.test.ts`), and the
+posture at the wire over three real boots
+(`extensions/__tests__/built-in-authorization-composed.test.ts`).

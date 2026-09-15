@@ -23,6 +23,8 @@ import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
 
 import {
   IAM_POLICY_API_VERSION,
@@ -32,14 +34,9 @@ import {
 import { newResourceIamPolicyStore } from "../../domain/iampolicy/resource-store.js";
 import type { IamPolicyStore } from "../../domain/iampolicy/store.js";
 import { orgRole, triple } from "../../domain/iampolicy/__tests__/support.js";
-import type { Store } from "../../store/interface.js";
-import { PostgresStore } from "../../store/postgres/store.js";
-import {
-  createTestDatabase,
-  testDatabaseAdminUrl,
-  type TestDatabase,
-} from "../../store/postgres/__tests__/support.js";
-import { tempStore } from "../../store/sqlite/__tests__/support.js";
+import { fakeIdentityAccountStore } from "../../domain/identityaccount/__tests__/support.js";
+import { newResourceIdentityAccountStore } from "../../domain/identityaccount/resource-store.js";
+import type { IdentityAccountStore } from "../../domain/identityaccount/store.js";
 import { deriveTuples, newDerivedTupleSource } from "../derived-tuples.js";
 import { checkRelation } from "../evaluator.js";
 import { rowFactsOf } from "../facts.js";
@@ -47,6 +44,8 @@ import { builtInModel } from "../model/index.js";
 import type { KindDeclaration } from "../model/rewrite.js";
 import type { Person } from "../tuples.js";
 import { formatTuple, parseObjectRef } from "../tuples.js";
+import { driverFixtures, dropPostgresFixture } from "./drivers.js";
+import type { OpenedStore } from "./drivers.js";
 import { fixtureRow } from "./support.js";
 
 function declared(type: string): KindDeclaration {
@@ -239,26 +238,6 @@ describe("deriveTuples — the cloud driver's shapes, from the row", () => {
 // The source over both drivers.
 // ---------------------------------------------------------------------------
 
-interface OpenedStore {
-  readonly store: Store;
-  close(): Promise<void>;
-}
-
-interface DriverFixture {
-  readonly name: string;
-  readonly skip: boolean;
-  open(): Promise<OpenedStore>;
-}
-
-const sqliteFixture: DriverFixture = {
-  name: "sqlite",
-  skip: false,
-  async open() {
-    const temp = tempStore();
-    return { store: temp.store, close: () => temp.cleanup() };
-  },
-};
-
 /** Every kind a driver arm below seeds — cleared before each test on the shared Postgres database. */
 const SEEDED_KINDS: ReadonlyArray<ApiResourceKind> = [
   ApiResourceKind.iam_policy,
@@ -267,28 +246,10 @@ const SEEDED_KINDS: ReadonlyArray<ApiResourceKind> = [
   ApiResourceKind.agent_instance,
   ApiResourceKind.workflow_instance,
   ApiResourceKind.workflow_execution,
+  ApiResourceKind.identity_account,
 ];
 
-let postgresDatabase: TestDatabase | undefined;
-
-const postgresFixture: DriverFixture = {
-  name: "postgres",
-  skip: testDatabaseAdminUrl() === undefined,
-  async open() {
-    if (postgresDatabase === undefined) {
-      postgresDatabase = await createTestDatabase();
-    }
-    const store = await PostgresStore.open(postgresDatabase.databaseUrl);
-    for (const kind of SEEDED_KINDS) {
-      await store.deleteResourcesByKind(kind);
-    }
-    return { store, close: () => store.close() };
-  },
-};
-
-afterAll(async () => {
-  await postgresDatabase?.drop();
-});
+afterAll(dropPostgresFixture);
 
 const ROOT: Person = { accountId: "ida_root", aliases: new Set(["ida_root"]) };
 const DAVE: Person = { accountId: "ida_dave", aliases: new Set(["ida_dave"]) };
@@ -325,16 +286,18 @@ function countingPolicies(inner: IamPolicyStore): {
   };
 }
 
-describe.each([sqliteFixture, postgresFixture])(
+describe.each(driverFixtures(SEEDED_KINDS))(
   "the derived tuple source on $name",
   (fixture) => {
     describe.skipIf(fixture.skip)("rows and derived tuples", () => {
       let opened: OpenedStore;
       let counted: ReturnType<typeof countingPolicies>;
+      let accounts: IdentityAccountStore;
 
       beforeEach(async () => {
         opened = await fixture.open();
         counted = countingPolicies(newResourceIamPolicyStore(opened.store));
+        accounts = newResourceIdentityAccountStore(opened.store);
         const organization = declared("organization");
         await opened.store.saveResource(
           ApiResourceKind.organization,
@@ -382,10 +345,45 @@ describe.each([sqliteFixture, postgresFixture])(
 
       function sourceFor(person: Person) {
         return newDerivedTupleSource(
-          { store: opened.store, policies: counted.policies },
+          { store: opened.store, policies: counted.policies, accounts },
           person,
         );
       }
+
+      it("an identity_account object is read through the account PORT, so a person owns their own row wherever accounts live", async () => {
+        // A port that is NOT the generic store: the row lives in memory
+        // only, so a read around the port would miss it. The source must
+        // read it through the port.
+        const detached = fakeIdentityAccountStore();
+        detached.rows.set(
+          ROOT.accountId,
+          create(IdentityAccountSchema, {
+            metadata: { id: ROOT.accountId, name: "auth0|root" },
+            spec: {
+              idpId: "auth0|root",
+              provisioningMode: IdentityAccountProvisioningMode.direct,
+            },
+          }),
+        );
+        const source = newDerivedTupleSource(
+          {
+            store: opened.store,
+            policies: counted.policies,
+            accounts: detached,
+          },
+          ROOT,
+        );
+        const self = parseObjectRef(`identity_account:${ROOT.accountId}`);
+        expect((await source.tuplesOf(self, "owner")).map(formatTuple)).toEqual(
+          [`identity_account:ida_root#owner@identity_account:ida_root`],
+        );
+        expect(
+          await source.tuplesOf(
+            parseObjectRef("identity_account:ida_ghost"),
+            "owner",
+          ),
+        ).toEqual([]);
+      });
 
       it("answers the person's own rows on the organization, and nobody else's", async () => {
         const source = sourceFor(ROOT);
@@ -585,6 +583,7 @@ describe.each([sqliteFixture, postgresFixture])(
           {
             store: opened.store,
             policies: newResourceIamPolicyStore(opened.store),
+            accounts: newResourceIdentityAccountStore(opened.store),
           },
           person,
         );

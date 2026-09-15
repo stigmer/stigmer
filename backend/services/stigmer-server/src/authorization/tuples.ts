@@ -15,6 +15,8 @@
  * `identity_account:<x>` matches the person when `x` is one of the
  * aliases; rows are read by the account id alone, because every row open
  * source writes names an account (domain/iampolicy/role-lifecycle.ts).
+ * The type is named here; the construction (`personFor`, `resolvePerson`)
+ * is person.ts's, so this module stays vocabulary with no I/O.
  *
  * `CheckContext` is the FGA condition context. The one condition the
  * model declares is `allow_public(allow: bool)` on the public wildcard,
@@ -31,11 +33,6 @@
  * tests never spell them a second way.
  */
 import type { Message } from "@bufbuild/protobuf";
-
-import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
-
-import { isPersonStamp } from "../domain/iampolicy/membership.js";
-import type { CallerIdentity } from "../extensions/identity.js";
 
 /** The FGA type name of the kind every person is: `identity_account:<id>`. */
 export const ACCOUNT_TYPE = "identity_account";
@@ -98,41 +95,6 @@ export interface Person {
   readonly accountId: string;
   /** Every string a creator stamp may carry for this person; always contains `accountId`. */
   readonly aliases: ReadonlySet<string>;
-}
-
-/**
- * The person a stamped caller is, given the account the caller stands for
- * (`accountForCaller`, or undefined before provisioning). A provisioned
- * caller carries the account id and the account's issuer subject; an
- * unprovisioned one is their identity id alone and holds no rows.
- *
- * Refuses an identity that names no person — the empty id and the
- * unconfigured laptop's `"system"` placeholder — with the same predicate
- * the derivation uses to keep such stamps out of tuples (`isPersonStamp`,
- * the membership rules'). The two guards together are what make the
- * evaluator's alias comparison a plain set membership: no tuple side and
- * no person side ever carries a non-person string. Under the
- * require-authentication posture neither id reaches a check (the
- * verifiers stamp accounts or subjects; the in-process class skips
- * authorization), so the throw is the backstop for a caller built
- * outside those lanes, and the driver folds it to `unavailable`.
- */
-export function personFor(
-  caller: CallerIdentity,
-  account: IdentityAccount | undefined,
-): Person {
-  const accountId = account?.metadata?.id ?? caller.identityId;
-  if (!isPersonStamp(accountId)) {
-    throw new Error(
-      `caller '${accountId}' names no person — the built-in authorizer evaluates people only`,
-    );
-  }
-  const aliases = new Set<string>([accountId]);
-  const subject = account?.spec?.idpId ?? "";
-  if (subject !== "") {
-    aliases.add(subject);
-  }
-  return { accountId, aliases };
 }
 
 /** The condition parameters of a check (the module header). */

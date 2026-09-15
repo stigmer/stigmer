@@ -191,14 +191,21 @@ export {
   parseStoreTestDocument,
   storeTestCases,
 } from "./authorization/store-test-kit.js";
+// The kinds whose missing row the built-in authorizer denies instead of
+// answering not-found — the cloud's probe exemption over the open-source
+// tier; exported so the cloud's drift test pins the two sets equal.
+export { NOT_FOUND_EXEMPT_KINDS } from "./authorization/authorizer.js";
 export type {
   ListReadScope,
   ListEntryMeta,
 } from "./extensions/list-read-scope.js";
 // The stigmer-cloud#572 seam: the identity a schedule fire acts as
 // (drivers.scheduleFireCaller) — the composition mints it per fire; the
-// RunStarter propagates it through the R5 in-process header.
+// RunStarter propagates it through the R5 in-process header. A mint that
+// can act as nobody throws the seam's typed refusal, which the RunStarter
+// counts against the schedule instead of retrying.
 export type { ScheduleFireCallerMint } from "./extensions/schedule-fire-caller.js";
+export { ScheduleFireCallerRefusedError } from "./extensions/schedule-fire-caller.js";
 // The 20260830.03 seam: the visitor-sanitization policy the serving
 // chain's error boundary consumes (drivers.visitorErrorPolicy) — the
 // composition supplies WHO is on the anonymous surface and WHAT copy

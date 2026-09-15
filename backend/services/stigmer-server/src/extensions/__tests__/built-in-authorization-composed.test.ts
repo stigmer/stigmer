@@ -1,6 +1,6 @@
 /**
- * Pins the built-in AUTHORIZER end to end (20260914.03, T01_1_review.md
- * Q-OA-2, Q-OA-7): under the require-authentication posture, when no unit
+ * Pins the built-in AUTHORIZER end to end: under the require-authentication
+ * posture, when no unit
  * registers an Authorizer, open source composes one that evaluates the
  * cloud's authorization model over the tuples it would have written,
  * derived from the row. The roles 2b records stop being decorative.
@@ -10,32 +10,39 @@
  *   - OIDC with no unit Authorizer (the self-host's shape): the built-in
  *     drivers install. A private agent is visible to its owner and the
  *     organization's admins and to nobody else; a member reads an
- *     org-visible agent and may not edit it; a target that does not exist
- *     answers NOT_FOUND before any permission question (stigmer#224).
- *   - trusted-local: the permissive default stays (Q-OA-7 — one caller,
- *     nothing to separate; the laptop's rows are stamped `"system"`).
+ *     org-visible agent and may not edit it, and may not create one
+ *     (`can_create_agent` is `admin`); a target that does not exist
+ *     answers NOT_FOUND before any permission question (stigmer#224); an
+ *     outsider on an EXISTING resource hears PERMISSION_DENIED, the
+ *     cloud's answer; `findMyOrganizations` lists what a person may view
+ *     and `find` refuses enumeration; `checkMyPermission` tells the truth;
+ *     nobody sets public visibility; an unprovisioned subject
+ *     writes nothing until provisioned.
+ *   - trusted-local: the permissive default stays (one caller,
+ *     nothing to separate; the laptop's rows are stamped `"system"`):
+ *     tokenless reads, public visibility and organization enumeration all
+ *     keep working.
  *   - a unit's own Authorizer: nothing built in is installed; the unit's
  *     answer stands even against the founder.
  *
- * Written RED at S1 (2026-09-15), before src/authorization/ exists: the
- * two arms marked RED pass today only because the composed Authorizer is
- * `newPermissiveSingleTeamAuthorizer()` — they are the window the P1
- * release hold names. Every negative assertion sits beside a positive one
- * (the owner's own read and edit succeed) so the file cannot pass
- * vacuously once the drivers land. The per-module proofs (the evaluator,
- * the model tables, the two drivers) are written at slice 1's design pass;
- * this file is the entry's definition of done at the wire.
+ * Written RED at S1 (2026-09-15), before src/authorization/ existed, and
+ * turned green by slice 3 (the drivers and the composition root). Every
+ * negative assertion sits beside a positive one (the owner's own read and
+ * edit succeed) so the file cannot pass vacuously. The per-module proofs
+ * (the evaluator, the model tables, the drivers) live in
+ * src/authorization/__tests__; this file is the entry's definition of
+ * done at the wire.
  *
  * Why agents and not sessions: a session create needs an engine and an
  * instance; the blueprint kinds exercise the visibility axis (the
  * `organization#viewer` userset tuple — cloud#257's shape — is written for
  * `visibility_org` only) and the admin-edits / member-reads split with no
- * engine. The agent kind
- * defaults unspecified visibility to org (`defaults_to_org_visibility`),
- * so the private arm sets `visibility_private` explicitly. On a
- * one-organization server 2b's membership rules make every later arrival
- * a member, so "an outsider" exists only after a revoke — the outsider
- * arm is the OIDC sibling's, where two organizations exist.
+ * engine. The agent kind defaults unspecified visibility to org
+ * (`defaults_to_org_visibility`), so the private arm sets
+ * `visibility_private` explicitly. The outsider: 2b's membership rules
+ * run at a person's FIRST provisioning only, so an organization the
+ * founder creates AFTER the member provisioned has no row for the member
+ * — a two-organization server with an outsider, no revoke needed.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -48,6 +55,7 @@ import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import { IamPolicyQueryController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/query_pb";
 import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/command_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
 import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
@@ -55,6 +63,7 @@ import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/
 import { loadConfig } from "../../boot/config.js";
 import { composeServer } from "../../boot/compose.js";
 import type { ComposedServer } from "../../boot/compose.js";
+import { PUBLIC_VISIBILITY_DENY_MESSAGE } from "../../pipeline/steps/visibility-gates.js";
 import type { Authorizer } from "../authorizer.js";
 import type { ServerExtension } from "../registry.js";
 import {
@@ -67,7 +76,10 @@ import {
 
 const FOUNDER = "fake|founder";
 const MEMBER = "fake|member";
+const STRANGER = "fake|stranger";
 const ORG = "built-in-org";
+/** Founded AFTER the member provisioned: the member holds no row on it. */
+const OTHER_ORG = "built-in-other-org";
 
 function organizationInput(slug: string) {
   return {
@@ -78,11 +90,15 @@ function organizationInput(slug: string) {
   };
 }
 
-function agentInput(name: string, visibility: ApiResourceVisibility) {
+function agentInput(
+  name: string,
+  visibility: ApiResourceVisibility,
+  org: string = ORG,
+) {
   return {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "Agent",
-    metadata: { name, org: ORG, visibility },
+    metadata: { name, org, visibility },
     spec: { instructions: "a conformant instruction body" },
   };
 }
@@ -97,17 +113,30 @@ async function codeOf(promise: Promise<unknown>): Promise<Code | undefined> {
   }
 }
 
+async function failureOf(promise: Promise<unknown>): Promise<ConnectError> {
+  try {
+    await promise;
+  } catch (error) {
+    expect(error).toBeInstanceOf(ConnectError);
+    return error as ConnectError;
+  }
+  throw new Error("expected the call to fail");
+}
+
 describe("built-in authorizer (composed server, OIDC with no unit Authorizer: the model is enforced)", () => {
   let dir: string;
   let server: ComposedServer;
   let port: number;
   let privateAgent: Agent;
   let orgAgent: Agent;
+  let otherOrgAgent: Agent;
 
   const asFounder = () =>
     transportFor(port, fakeJwt(FOUNDER, "founder@example.com"));
   const asMember = () =>
     transportFor(port, fakeJwt(MEMBER, "member@example.com"));
+  const asStranger = () =>
+    transportFor(port, fakeJwt(STRANGER, "stranger@example.com"));
 
   beforeAll(async () => {
     dir = mkdtempSync(path.join(tmpdir(), "built-in-authorizer-oidc-"));
@@ -150,6 +179,20 @@ describe("built-in authorizer (composed server, OIDC with no unit Authorizer: th
     orgAgent = await founderAgents.create(
       agentInput("Org Agent", ApiResourceVisibility.visibility_org),
     );
+
+    // The second organization, founded AFTER the member provisioned: the
+    // founder is its owner (2b's lifecycle); the member holds no row on
+    // it — an outsider, on a real two-organization server.
+    await createClient(OrganizationCommandController, asFounder()).create(
+      organizationInput(OTHER_ORG),
+    );
+    otherOrgAgent = await founderAgents.create(
+      agentInput(
+        "Other Org Agent",
+        ApiResourceVisibility.visibility_org,
+        OTHER_ORG,
+      ),
+    );
   });
 
   afterAll(async () => {
@@ -183,7 +226,7 @@ describe("built-in authorizer (composed server, OIDC with no unit Authorizer: th
     expect(read.metadata?.id).toBe(orgAgent.metadata!.id);
   });
 
-  it("RED: a member may not read another member's PRIVATE agent — `agent.viewer` has the organization only through the `visibility_org` tuple", async () => {
+  it("a member may not read another member's PRIVATE agent — `agent.viewer` has the organization only through the `visibility_org` tuple", async () => {
     expect(
       await codeOf(
         createClient(AgentQueryController, asMember()).get({
@@ -193,7 +236,7 @@ describe("built-in authorizer (composed server, OIDC with no unit Authorizer: th
     ).toBe(Code.PermissionDenied);
   });
 
-  it("RED: a member may not edit an org-visible agent — `can_edit` is `owner`, which is the creator or an admin of the organization", async () => {
+  it("a member may not edit an org-visible agent — `can_edit` is `owner`, which is the creator or an admin of the organization", async () => {
     const memberEdit = createClient(AgentCommandController, asMember()).update({
       ...orgAgent,
       spec: { ...orgAgent.spec!, instructions: "edited by a member" },
@@ -220,6 +263,116 @@ describe("built-in authorizer (composed server, OIDC with no unit Authorizer: th
       ),
     ).toBe(Code.NotFound);
   });
+
+  it("an outsider on an EXISTING organization and its agent hears PERMISSION_DENIED — the cloud's answer; NOT_FOUND is for what does not exist", async () => {
+    expect(
+      await codeOf(
+        createClient(OrganizationQueryController, asMember()).get({
+          value: OTHER_ORG,
+        }),
+      ),
+    ).toBe(Code.PermissionDenied);
+    expect(
+      await codeOf(
+        createClient(AgentQueryController, asMember()).get({
+          value: otherOrgAgent.metadata!.id,
+        }),
+      ),
+    ).toBe(Code.PermissionDenied);
+    // The positive beside the negative: the founder, its owner, reads it.
+    expect(
+      (
+        await createClient(AgentQueryController, asFounder()).get({
+          value: otherOrgAgent.metadata!.id,
+        })
+      ).metadata?.id,
+    ).toBe(otherOrgAgent.metadata!.id);
+  });
+
+  it("findMyOrganizations lists what a person may view — the member one, the founder both — and `find` refuses enumeration", async () => {
+    const mine = await createClient(
+      OrganizationQueryController,
+      asMember(),
+    ).findMyOrganizations({});
+    expect(mine.entries.map((o) => o.metadata?.id)).toEqual([ORG]);
+    const founders = await createClient(
+      OrganizationQueryController,
+      asFounder(),
+    ).findMyOrganizations({});
+    expect(founders.entries.map((o) => o.metadata?.id).sort()).toEqual(
+      [ORG, OTHER_ORG].sort(),
+    );
+    expect(
+      await codeOf(
+        createClient(OrganizationQueryController, asMember()).find({
+          org: ORG,
+        }),
+      ),
+    ).toBe(Code.Unimplemented);
+  });
+
+  it("checkMyPermission tells the truth through the built-in authorizer (2b's arm 3)", async () => {
+    const ask = (transport: ReturnType<typeof asMember>) =>
+      createClient(IamPolicyQueryController, transport).checkMyPermission({
+        relation: "can_edit",
+        resource: { kind: "agent", id: orgAgent.metadata!.id },
+      });
+    expect((await ask(asMember())).isAuthorized).toBe(false);
+    expect((await ask(asFounder())).isAuthorized).toBe(true);
+  });
+
+  it("a member may not create an agent (`can_create_agent` is `admin`) — the annotation's copy is the wire", async () => {
+    const failure = await failureOf(
+      createClient(AgentCommandController, asMember()).create(
+        agentInput("Member Agent", ApiResourceVisibility.visibility_org),
+      ),
+    );
+    expect(failure.code).toBe(Code.PermissionDenied);
+    expect(failure.rawMessage).toBe(
+      "unauthorized to create agent in this organization",
+    );
+  });
+
+  it("nobody sets PUBLIC visibility on an enforcing self-host — the platform gate denies the founder with the policy copy", async () => {
+    const failure = await failureOf(
+      createClient(AgentCommandController, asFounder()).create(
+        agentInput("Public Agent", ApiResourceVisibility.visibility_public),
+      ),
+    );
+    expect(failure.code).toBe(Code.PermissionDenied);
+    expect(failure.rawMessage).toBe(PUBLIC_VISIBILITY_DENY_MESSAGE);
+  });
+
+  it("an unprovisioned subject writes nothing until provisioned — then they are a member and still may not author a blueprint", async () => {
+    const strangerAgents = createClient(AgentCommandController, asStranger());
+    const before = await failureOf(
+      strangerAgents.create(
+        agentInput("Stranger Agent", ApiResourceVisibility.visibility_org),
+      ),
+    );
+    expect(before.code).toBe(Code.PermissionDenied);
+
+    await createClient(
+      IdentityAccountCommandController,
+      asStranger(),
+    ).provisionMyAccount({});
+    // A member now (2b's arm 5): reads the org-visible agent, and
+    // `can_create_agent` still says `admin`.
+    expect(
+      (
+        await createClient(AgentQueryController, asStranger()).get({
+          value: orgAgent.metadata!.id,
+        })
+      ).metadata?.id,
+    ).toBe(orgAgent.metadata!.id);
+    expect(
+      await codeOf(
+        strangerAgents.create(
+          agentInput("Stranger Agent", ApiResourceVisibility.visibility_org),
+        ),
+      ),
+    ).toBe(Code.PermissionDenied);
+  });
 });
 
 describe("built-in authorizer (composed server, trusted-local: the permissive default stays)", () => {
@@ -244,7 +397,7 @@ describe("built-in authorizer (composed server, trusted-local: the permissive de
     rmSync(dir, { recursive: true, force: true });
   });
 
-  it("a private agent created tokenless is read tokenless — one caller, nothing to separate (Q-OA-7)", async () => {
+  it("a private agent created tokenless is read tokenless — one caller, nothing to separate", async () => {
     const anonymous = transportFor(port);
     await createClient(OrganizationCommandController, anonymous).create(
       organizationInput(ORG),
@@ -259,6 +412,26 @@ describe("built-in authorizer (composed server, trusted-local: the permissive de
       value: created.metadata!.id,
     });
     expect(read.metadata?.id).toBe(created.metadata!.id);
+  });
+
+  it("the laptop keeps public visibility and organization enumeration — no directory, no platform gate that bites", async () => {
+    const anonymous = transportFor(port);
+    const publicAgent = await createClient(
+      AgentCommandController,
+      anonymous,
+    ).create(
+      agentInput(
+        "Public Laptop Agent",
+        ApiResourceVisibility.visibility_public,
+      ),
+    );
+    expect(publicAgent.metadata?.visibility).toBe(
+      ApiResourceVisibility.visibility_public,
+    );
+    const all = await createClient(OrganizationQueryController, anonymous).find(
+      { org: ORG },
+    );
+    expect(all.entries.map((o) => o.metadata?.id)).toContain(ORG);
   });
 });
 
