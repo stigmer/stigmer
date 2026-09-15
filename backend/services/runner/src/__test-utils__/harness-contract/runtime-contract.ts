@@ -223,6 +223,34 @@ function finalStatusOf(harness: RuntimeContractHarness, driver: RuntimeExecution
   return final;
 }
 
+/**
+ * No streaming flag survives a settled turn — on any message, any tool-call
+ * row, in the root transcript or a sub-agent's — however the turn ended. A
+ * flag left on is a spinner the console never stops. Not yet wired into
+ * {@link finalStatusOf}: run against both real adapters today it fires on
+ * the internal-failure arm (a turn that fails before its settle never
+ * closes its last message), which is the gap the runtime closes when it
+ * finalizes the transcript itself after `runTurn`, on every path; the
+ * wiring lands with that change. Exported so the kit's self-check can hand
+ * it a status that still streams and prove it fires.
+ */
+export function assertTranscriptStreamsNothing(subjectName: string, status: AgentExecutionStatus): void {
+  const streaming: string[] = [];
+  const sweep = (scope: string, messages: AgentExecutionStatus["messages"]): void => {
+    messages.forEach((m, i) => {
+      if (m.isStreaming) streaming.push(`${scope}messages[${i}]`);
+      for (const tc of m.toolCalls) {
+        if (tc.isStreaming) streaming.push(`${scope}messages[${i}].toolCalls[${tc.id}]`);
+      }
+    });
+  };
+  sweep("", status.messages);
+  for (const sub of status.subAgentExecutions) sweep(`subAgentExecutions[${sub.id}].`, sub.messages);
+  if (streaming.length > 0) {
+    throw new Error(`${subjectName}: a settled turn's transcript is still streaming at ${streaming.join(", ")}`);
+  }
+}
+
 /** What every arm hands back so a subject's file can add its own facts. */
 export interface RuntimeArmResult {
   readonly driver: RuntimeExecutionDriver;

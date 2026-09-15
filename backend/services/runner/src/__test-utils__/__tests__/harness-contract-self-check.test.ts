@@ -27,7 +27,9 @@
 
 import { describe, it, expect } from "vitest";
 import { CancelledFailure } from "@temporalio/activity";
+import { create } from "@bufbuild/protobuf";
 import { ApprovalAction, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 
 import type { HarnessAdapter, TurnInput, TurnOutcome, TurnSink } from "../../harness/types.js";
 import {
@@ -41,11 +43,12 @@ import {
   assertStopSignalInterrupts,
   assertUsageReachesSinkAsDeltas,
 } from "../harness-contract/contract.js";
+import { assertTranscriptStreamsNothing } from "../harness-contract/runtime-contract.js";
 import { scriptedSubject } from "../harness-contract/scripted-adapter.js";
 import type { ScriptedSubject } from "../harness-contract/scripted-adapter.js";
 import { scenario } from "../harness-contract/types.js";
 import type { EngineView, HarnessContractSubject, TurnScenario } from "../harness-contract/types.js";
-import { findToolCallRow } from "../proto-helpers.js";
+import { aiMessage, emptyStatus, findToolCallRow, toolCall } from "../proto-helpers.js";
 
 /** Short enough to keep this file fast; long enough that an honest microtask settle never trips it. */
 const SHORT_BOUND_MS = 100;
@@ -322,5 +325,35 @@ describe("harness contract kit self-check — the driver stands in for the runti
     expect(abortedWhenParked, "at the moment the engine reported the hang the signal was still live").toBe(false);
     expect(turn.sink.stopSignal.aborted, "and it was aborted after").toBe(true);
     expect(turn.sink.status.messages.map((m) => m.content), "the stop landed in the hang, after the setup step and before the step after it").toEqual(["setting up"]);
+  });
+});
+
+// ── The runtime half's transcript fact ──────────────────────────────────────
+
+describe("harness contract kit self-check — the settled-transcript assertion can fail", () => {
+  it("passes a transcript with every flag off", () => {
+    const status = emptyStatus();
+    const message = aiMessage("done");
+    message.toolCalls.push(toolCall("t-1", "read", ToolCallStatus.TOOL_CALL_COMPLETED));
+    status.messages.push(message);
+    expect(() => assertTranscriptStreamsNothing("honest", status)).not.toThrow();
+  });
+
+  it("names a message left streaming", () => {
+    const status = emptyStatus();
+    const message = aiMessage("still typing");
+    message.isStreaming = true;
+    status.messages.push(message);
+    expect(() => assertTranscriptStreamsNothing("broken:streams", status)).toThrow(/broken:streams: a settled turn's transcript is still streaming at messages\[0\]/);
+  });
+
+  it("names a tool-call row left streaming, inside a sub-agent's transcript", () => {
+    const status = emptyStatus();
+    const row = toolCall("t-2", "shell");
+    row.isStreaming = true;
+    const message = aiMessage("");
+    message.toolCalls.push(row);
+    status.subAgentExecutions.push(create(SubAgentExecutionSchema, { id: "sub-1", messages: [message] }));
+    expect(() => assertTranscriptStreamsNothing("broken:streams", status)).toThrow(/subAgentExecutions\[sub-1\]\.messages\[0\]\.toolCalls\[t-2\]/);
   });
 });
