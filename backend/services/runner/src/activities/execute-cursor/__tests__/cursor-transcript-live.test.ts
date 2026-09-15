@@ -17,14 +17,21 @@
  *
  *  1. Every row SETTLES. A tool call that ends RUNNING, or an AI message that
  *     ends `isStreaming`, is a spinner that never stops.
- *  2. Live shell output lands ONCE. `shell-output-delta` chunks stream into
- *     the row while the command runs; the stream's own completed `tool_call`
- *     carries the final output. Lost output or doubled output (a chunk applied
- *     to a row the completion already settled) is the S4 M4 hunk Q-M4-15 ruled.
+ *  2. Shell output lands EXACTLY as the command printed it. The stream's own
+ *     completed `tool_call` carries the final output; `shell-output-delta`
+ *     chunks, when the SDK sends them, stream into the row while the command
+ *     runs. Lost output or doubled output (a chunk applied to a row the
+ *     completion already settled) is the S4 M4 hunk Q-M4-15 ruled. The prompt
+ *     prints one line a known number of times over several seconds, so any
+ *     duplicated or dropped chunk breaks the count.
  *  3. `tool-call-completed` on the delta channel may arrive before or after
  *     the stream's own completion; the translator defers to the stream's
  *     instant either way. Only a recording of both channels under one
- *     sequence shows which order the SDK actually uses.
+ *     sequence shows which order the SDK actually uses. (Observed at 1.0.31,
+ *     first live run: the delta's completion PRECEDES the stream's completed
+ *     `tool_call`, three of three; and a 1.2 s `cat` produced no
+ *     `shell-output-delta` at all — whether a longer command does is printed
+ *     below, not asserted, because it is the SDK's choice.)
  *
  * HOW. The hermetic driver's LIVE posture (`hermetic-cursor.ts`,
  * `beginLiveCursorScenario`): this file mocks ONLY the control-plane client, so
@@ -36,14 +43,28 @@
  * lands in. The registry fixture keeps pricing and tier pinned and lets every
  * other URL reach the network (`stubRegistryFetch({ live: true })`).
  *
+ * The turn's ending is the file review's. The environment pins local artifact
+ * storage, so the runtime's capture mode is ON as in production, and a turn
+ * that wrote a file ends `EXECUTION_WAITING_FOR_APPROVAL` with the write
+ * captured as a change set for review (`hermetic/file-review-capture.test.ts`
+ * pins the same ending) — `auto_approve_all` bypasses the tool gate, not the
+ * review. So the terminal phase asserted here is COMPLETED, or WAITING with a
+ * `candidateCaptured` event on the file-review ledger the runner writes
+ * (`file_review_event_stream`; `file_change_sets` is the server's projection
+ * of it) and no tool row waiting; a WAITING phase with a tool row at
+ * WAITING_APPROVAL would be the gate, and wrong under the bypass.
+ *
  * WHAT IT ASSERTS, AND WHAT A FAILURE MEANS. Structural facts of the persisted
- * transcript, never prose (a live model's words are not ours). Every failure
- * text says which of two readings it supports — the MODEL deviated from the
- * prompt (re-run; not a defect), or the TRANSCRIPT is wrong (a STOP for a
- * bump) — and names the recording as the arbiter: with
- * `CURSOR_EVENT_RECORD_DIR` set, the raw events of both channels are written
- * to `<dir>/<executionId>.cursor-events.jsonl` in arrival order, and this
- * file prints their sequence.
+ * transcript, never prose (a live model's words are not ours). A live model may
+ * also retry — the first run issued the write and the `cat` in one step, the
+ * `cat` raced the write and failed, and the model ran a second shell — so the
+ * shell facts are read from the LAST shell row, the one that carries the
+ * command's final output. Every failure text says which of two readings it
+ * supports — the MODEL deviated from the prompt (re-run; not a defect), or the
+ * TRANSCRIPT is wrong (a STOP for a bump) — and names the recording as the
+ * arbiter: with `CURSOR_EVENT_RECORD_DIR` set, the raw events of both channels
+ * are written to `<dir>/<executionId>.cursor-events.jsonl` in arrival order,
+ * and this file prints their sequence.
  *
  * Skipped without CURSOR_API_KEY (the sibling arms' convention) — it spends
  * real credits for one two-tool turn. Findings are PRINTED as well as
@@ -77,14 +98,31 @@ const describeWithCursorKey = CURSOR_API_KEY ? describe : describe.skip;
  */
 const EVENT_RECORDING_DIR = process.env.CURSOR_EVENT_RECORD_DIR || undefined;
 
-/** The one line the shell must print; asserted to appear exactly once in the shell row's result. */
+/** The one line the shell prints; asserted to appear exactly {@link PROBE_REPEATS} times in the last shell row's stdout. */
 const PROBE_LINE = "transcript probe";
+/** How many times the command prints it, one second apart — output over time, so the SDK has a reason to stream it. */
+const PROBE_REPEATS = 3;
+const SHELL_COMMAND = `for i in 1 2 3; do cat probe.txt; sleep 1; done`;
 
 /** The hook-protocol arm's prompt shape: one write, one shell, no questions. */
 const PROMPT =
   "Do exactly two things, in order, without asking questions: " +
   `(1) create a file named probe.txt in the workspace containing the single line '${PROBE_LINE}'; ` +
-  "(2) run the shell command `cat probe.txt`. Then reply with the word done.";
+  `(2) after the file exists, run the shell command \`${SHELL_COMMAND}\`. Then reply with the word done.`;
+
+/** The shell tool's result as the SDK renders it into the row (`{"status":"success","value":{...}}`). */
+interface ShellResult {
+  readonly status?: unknown;
+  readonly value?: { readonly exitCode?: unknown; readonly stdout?: unknown; readonly stderr?: unknown };
+}
+
+function parseShellResult(result: string): ShellResult | undefined {
+  try {
+    return JSON.parse(result) as ShellResult;
+  } catch {
+    return undefined;
+  }
+}
 
 /** One line of the recording, as the recorder writes it (`cursor-event-recorder.ts`). */
 interface RecordedLine {
@@ -134,7 +172,7 @@ describeWithCursorKey("ExecuteCursor live — the transcript against the real SD
     env.dispose();
   });
 
-  it("settles every row, lands the shell output once, and records both channels in arrival order", async () => {
+  it("settles every row, lands the shell output exactly as printed, and records both channels in arrival order", async () => {
     // ── Arrange ──────────────────────────────────────────────────────────────
     const record = cursorExecutionRecord({ message: PROMPT, autoApproveAll: true });
     const scenario = beginLiveCursorScenario({ env, record, apiKey: CURSOR_API_KEY });
@@ -162,9 +200,15 @@ describeWithCursorKey("ExecuteCursor live — the transcript against the real SD
     if (EVENT_RECORDING_DIR) {
       console.log(`[transcript-live] recording: ${recording.length} lines at ${join(EVENT_RECORDING_DIR, `${record.executionId}.cursor-events.jsonl`)}`);
       console.log(`[transcript-live] sequence: ${recording.map((l) => `${l.seq}=${describeLine(l)}`).join(" ")}`);
+      const deltaTypes = new Map<string, number>();
+      for (const l of recording) if (l.channel === "delta") deltaTypes.set(l.type, (deltaTypes.get(l.type) ?? 0) + 1);
+      console.log(`[transcript-live] delta types: ${[...deltaTypes].map(([t, n]) => `${t}×${n}`).join(", ")}`);
+      console.log(
+        `[transcript-live] shell-output-delta observed: ${deltaTypes.has("shell-output-delta") ? "YES" : "NO"} (the SDK's choice; printed, not asserted)`,
+      );
     }
 
-    // ── Assert: the turn completed ───────────────────────────────────────────
+    // ── Assert: the turn ended where a captured write turn ends ─────────────
     if (invocation.outcome.kind === "threw") {
       const error = invocation.outcome.error;
       throw new Error(
@@ -172,10 +216,28 @@ describeWithCursorKey("ExecuteCursor live — the transcript against the real SD
           "a credential or quota refusal from Cursor reads as such in this message and is not a transcript defect; anything else is",
       );
     }
-    expect(record.persistedPhases.at(-1), "the last persisted phase is not COMPLETED — read the phases above").toBe(
-      ExecutionPhase.EXECUTION_COMPLETED,
-    );
     expect(final, "no full status was persisted").toBeDefined();
+    const lastPhase = record.persistedPhases.at(-1);
+    const waitingRows = rows.filter((r) => r.status === ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
+    // The runner writes the file-review EVENT STREAM (the ledger); `file_change_sets`
+    // is the server's projection of it and is never written from here.
+    const reviewEvents = (final!.fileReviewEventStream?.events ?? []).map((e) => e.payload.case);
+    console.log(`[transcript-live] ending: phase=${lastPhase === undefined ? "-" : ExecutionPhase[lastPhase]} reviewEvents=[${reviewEvents.join(", ")}] waitingRows=${waitingRows.length}`);
+    if (lastPhase === ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL) {
+      expect(
+        waitingRows.map((r) => r.name),
+        "the turn waits on a TOOL row under auto_approve_all — the gate did not bypass; the transcript (or the gate) is wrong",
+      ).toEqual([]);
+      expect(
+        reviewEvents,
+        "the turn waits but no captured change set is on the file-review ledger — a WAITING phase with nothing to review; the transcript is wrong",
+      ).toContain("candidateCaptured");
+    } else {
+      expect(
+        lastPhase,
+        "the last persisted phase is neither COMPLETED nor the file review's WAITING — read the phases above",
+      ).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    }
 
     // ── Assert: fact 1 — every row settled ───────────────────────────────────
     const streaming = final!.messages.filter((m) => m.isStreaming);
@@ -200,16 +262,26 @@ describeWithCursorKey("ExecuteCursor live — the transcript against the real SD
     expect(
       shells.length,
       "no shell-category tool call in the transcript — either the model ran no shell command (re-run; the recording shows no shell tool_call from the SDK) or the translator dropped one (the recording shows it; a STOP)",
-    ).toBe(1);
+    ).toBeGreaterThan(0);
 
-    // ── Assert: fact 2 — the shell output landed once ────────────────────────
-    const shell = shells[0]!;
-    expect(shell.status, "the shell row did not COMPLETE — the transcript is wrong").toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+    // ── Assert: fact 2 — the LAST shell row carries the command's output exactly
+    const shell = shells.at(-1)!;
+    expect(shell.status, "the last shell row did not COMPLETE — the transcript is wrong").toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+    const shellResult = parseShellResult(shell.result);
     expect(
-      countOccurrences(shell.result, PROBE_LINE),
-      `the shell row's result carries the probe line ${countOccurrences(shell.result, PROBE_LINE)} times, not once — ` +
-        "0 is lost output (or the model wrote a different line: compare the write row's argsPreview), 2+ is doubled output (a shell-output-delta applied after the completion; the recording shows the order) — either is the transcript being wrong",
-    ).toBe(1);
+      shellResult?.value,
+      `the last shell row's result is not the SDK's {status, value} shape: ${shell.result.slice(0, 160)} — the translator rendered the result differently; a STOP`,
+    ).toBeDefined();
+    expect(
+      shellResult!.value!.exitCode,
+      `the last shell command exited ${String(shellResult!.value!.exitCode)} (stderr: ${String(shellResult!.value!.stderr ?? "")}) — the model's command failed (re-run); not a transcript fact`,
+    ).toBe(0);
+    const stdout = String(shellResult!.value!.stdout ?? "");
+    expect(
+      countOccurrences(stdout, PROBE_LINE),
+      `the last shell row's stdout carries the probe line ${countOccurrences(stdout, PROBE_LINE)} times, not ${PROBE_REPEATS} — ` +
+        "fewer is lost output (or the model ran a different command: compare its argsPreview), more is doubled output (a shell-output-delta applied after the completion; the recording shows the order) — either is the transcript being wrong",
+    ).toBe(PROBE_REPEATS);
     for (const write of writes) {
       expect(write.status, `the write row ${write.name} did not settle COMPLETED — the transcript is wrong`).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
     }
