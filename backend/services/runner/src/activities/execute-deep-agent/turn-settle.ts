@@ -13,7 +13,10 @@
  *
  * What this module never does: write a phase, a terminal copy or
  * `completedAt` — those are the runtime's (`harness/run-turn.ts`,
- * `terminal-table.ts`); settle SKIP and REJECT rows — the runtime's
+ * `terminal-table.ts`); close the transcript's streaming flags — the
+ * runtime's, once `runTurn` returns, on every path (S4 M5; until then this
+ * settle finalized the builder itself, and a turn that threw before
+ * reaching it left its last message streaming); settle SKIP and REJECT rows — the runtime's
  * (`harness/approval-decisions.ts`, after every outcome); withhold secret
  * content — the runtime's chokepoint does it on every write; finalize the
  * write-back — the runtime's epilogue; capture the turn's file changes or
@@ -77,13 +80,6 @@ export async function settleDeepAgentTurn(deps: DeepAgentSettleDeps): Promise<Tu
   // harness's evidence.
   reconcileUnattendedSkips(status, engine.gate.unattendedSkips);
 
-  // The stream is over, however it ended: nothing on the transcript is still
-  // streaming (Q-S4-6, Q-M2-7; S4 M2 C5). Until C5 only a stopped turn's
-  // sub-agent messages were closed here, and a THINKING row the model never
-  // finished persisted `isStreaming: true` in a COMPLETED execution (S4
-  // review finding 6, `approve-all-lease`).
-  transcript.builder.finalize();
-
   if (stream.reason === "interrupted") {
     // A stopped turn aborted the graph run, so any sub-agent the parent had
     // delegated is no longer executing: CANCELLED through the one shared act
@@ -135,7 +131,7 @@ export async function settleDeepAgentTurn(deps: DeepAgentSettleDeps): Promise<Tu
  * Returns whether any was proposed.
  */
 async function seedPendingInterrupts(deps: DeepAgentSettleDeps): Promise<boolean> {
-  const { input, engine, transcript } = deps;
+  const { input, sink, engine } = deps;
   const graphState: GraphStateSnapshot = await engine.graph.getState(engine.langgraphConfig);
   const pending = detectPendingInterrupts(graphState);
   if (pending.length === 0) return false;
@@ -146,7 +142,7 @@ async function seedPendingInterrupts(deps: DeepAgentSettleDeps): Promise<boolean
 
   for (const intr of pending) {
     const { args } = captureApprovalArtifacts({ toolCallId: intr.toolCallId, messages: aiMessages });
-    transcript.builder.apply({
+    sink.transcript.apply({
       kind: "approval_proposed",
       callId: intr.toolCallId,
       name: intr.toolName,
@@ -156,5 +152,5 @@ async function seedPendingInterrupts(deps: DeepAgentSettleDeps): Promise<boolean
       ...(intr.policySource ? { provenance: intr.policySource } : {}),
     });
   }
-  return transcript.builder.awaitingApproval;
+  return sink.transcript.awaitingApproval;
 }

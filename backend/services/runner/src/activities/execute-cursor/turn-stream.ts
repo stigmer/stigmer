@@ -40,7 +40,6 @@
 
 import type { SDKMessage, InteractionUpdate } from "@cursor/sdk";
 import type { TurnSink } from "../../harness/types.js";
-import type { TranscriptBuilder } from "../../harness/transcript/builder.js";
 import { shouldPersistStreamingStatus } from "../../shared/persist-decision.js";
 import { approvalDenials, readDenialLedger } from "./approval-state.js";
 import type { CursorTranslator } from "./translator.js";
@@ -116,8 +115,6 @@ export interface TurnOnDeltaDeps {
 }
 
 export interface CursorTurnStreamDeps extends TurnOnDeltaDeps {
-  /** The one transcript builder, over `sink.status`; the translator's events fold into it. */
-  readonly transcript: TranscriptBuilder;
   readonly eventRecorder: CursorTurnEventRecorder | undefined;
   readonly scheduler: StreamingUpdateScheduler;
   /** Session HITL dir holding the denial ledger; undefined → no gate installed → no first-denial stop. */
@@ -175,14 +172,13 @@ export async function consumeCursorTurnStream(
   const {
     sink,
     translator,
-    transcript,
     eventRecorder,
     scheduler,
     hitlDir,
     executionId,
     state,
   } = deps;
-  const { stopSignal } = sink;
+  const { stopSignal, transcript } = sink;
 
   // The runtime's stop, whatever its cause, ends the run through the SDK's
   // own cancel: that is what unblocks a wedged `for await` (a stall), and it

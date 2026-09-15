@@ -90,6 +90,7 @@ import type { DeclaredPreferencesContent } from "../shared/declared-preferences.
 import type { RecalledMemoriesContent } from "../shared/recalled-memories.js";
 import type { CasTouchedReader } from "../shared/filereview/cas-touched.js";
 import type { HarnessCapabilities } from "./capabilities.js";
+import type { TranscriptBuilder } from "./transcript/builder.js";
 
 /**
  * One harness, as the runtime sees it. ONE adapter object exists per worker
@@ -341,6 +342,24 @@ export interface TurnSink {
    * the adapter wrote last time, and their decisions, are already on it.
    */
   readonly status: AgentExecutionStatus;
+
+  /**
+   * The one transcript builder over `status`, constructed by the runtime
+   * per turn and already holding a reinvocation's seeded rows. The ONE way
+   * a transcript row is created: a harness translates its engine's events
+   * into `TranscriptEvent`s and `apply`s them; its post-stream facts (a
+   * gate parked by a boundary, a disclosure) go in as events too. Artifacts
+   * and write-backs a turn produces register here as well (`addArtifact`,
+   * `addWriteBack`, one dedupe rule each). Read `dirty` to decide a
+   * streaming persist and call `markPersisted()` as you request it; read
+   * `awaitingApproval` to learn a proposal was parked. The runtime calls
+   * `finalize()` once `runTurn` returns, on every path, so no streaming flag
+   * outlives a turn; a harness may call it earlier when it persists on the
+   * settled rows itself. A source-walking fence
+   * (`harness/__tests__/transcript-writers.test.ts`) refuses any other
+   * creator of a row.
+   */
+  readonly transcript: TranscriptBuilder;
 
   /**
    * The ONE way a turn is told to stop, whatever the cause: user pause,

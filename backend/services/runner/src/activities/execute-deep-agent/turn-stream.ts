@@ -54,7 +54,6 @@ import { InlinePublisher } from "./inline-publisher.js";
 import { StreamingSideEffects } from "./streaming-side-effects.js";
 import { createV3EventRecorder, type V3ProtocolEvent } from "./v3-event-recorder.js";
 import { DeepAgentTranslator, usageOf, type V3UsagePayload } from "./translator.js";
-import { TranscriptBuilder } from "../../harness/transcript/builder.js";
 import type { DeepAgentEngine, DeepAgentGraphInput, DeepAgentWorkspace } from "./turn-setup.js";
 
 /**
@@ -95,16 +94,17 @@ export interface DeepAgentStreamResult {
 }
 
 /**
- * The transcript writers of one turn: the translator that turns the engine's
- * events into canonical ones (over the gate's posture, so every tool start
- * carries its attribution and gate answer), the builder over `sink.status`
- * that folds them, and the publisher that writes artifacts through the
- * builder (so a published artifact still forces the next persist). Built by
- * the adapter's turn once and shared by the stream and the settle.
+ * This harness's transcript writers for one turn: the translator that turns
+ * the engine's events into canonical ones (over the gate's posture, so every
+ * tool start carries its attribution and gate answer), and the publisher
+ * that registers artifacts on the runtime's builder (`sink.transcript`, so
+ * a published artifact still dirties the next persist). The builder itself
+ * is the runtime's, one per turn, and is read from the sink where it is
+ * needed. Built by the adapter's turn once and shared by the stream and the
+ * settle.
  */
 export interface DeepAgentTranscript {
   readonly translator: DeepAgentTranslator;
-  readonly builder: TranscriptBuilder;
   readonly publisher: InlinePublisher;
 }
 
@@ -115,14 +115,13 @@ export function createDeepAgentTranscript(
   workspace: DeepAgentWorkspace,
 ): DeepAgentTranscript {
   const translator = new DeepAgentTranslator(engine.gate);
-  const builder = new TranscriptBuilder(input.executionId, sink.status);
   const publisher = new InlinePublisher({
     workspaceBackend: workspace.backend,
     artifactStorage: input.artifactStorage,
-    artifacts: builder,
+    artifacts: sink.transcript,
     executionId: input.executionId,
   });
-  return { translator, builder, publisher };
+  return { translator, publisher };
 }
 
 /**
@@ -167,7 +166,8 @@ export interface DeepAgentStreamDeps {
 export async function consumeDeepAgentStream(deps: DeepAgentStreamDeps): Promise<DeepAgentStreamResult> {
   const { input, sink, engine, graphInput, transcript } = deps;
   const { executionId } = input;
-  const { translator, builder, publisher } = transcript;
+  const { translator, publisher } = transcript;
+  const builder = sink.transcript;
 
   const scheduler = new StreamingUpdateScheduler(loadStreamingConfig());
   const recorder = createV3EventRecorder(executionId, process.env.V3_EVENT_RECORD_DIR);

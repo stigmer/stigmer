@@ -19,7 +19,9 @@
  * the facts the runtime owes on it: the terminal phase, the copy
  * (`terminal-table.ts` `TERMINAL_COPY`, byte-pinned), `status.error`,
  * `completedAt`, "the step after never runs", the whole-activity heartbeat,
- * one bind for an engine-minted harness, the slim return. What is NOT
+ * one bind for an engine-minted harness, the slim return, and — on every
+ * arm, whatever the outcome — a transcript that streams nothing once the
+ * turn has settled ({@link assertTranscriptStreamsNothing}). What is NOT
  * asserted here is engine cadence — how many IN_PROGRESS persists precede
  * the WAITING write, the exact setup labels beyond the runtime's own, the
  * exact price a vendor's table yields — because those are a subject's facts;
@@ -216,23 +218,29 @@ export class RuntimeExecutionDriver {
   }
 }
 
-/** The final full status the record holds; an arm that persisted nothing is a failure, named. */
+/**
+ * The final full status the record holds, checked for the one fact every
+ * settled turn owes its transcript before the arm reads anything else. An
+ * arm that persisted nothing is a failure, named.
+ */
 function finalStatusOf(harness: RuntimeContractHarness, driver: RuntimeExecutionDriver): AgentExecutionStatus {
   const final = driver.record.lastFullStatus;
   if (!final) throw new Error(`${harness.subject.name}: the runtime persisted no full status`);
+  assertTranscriptStreamsNothing(harness.subject.name, final);
   return final;
 }
 
 /**
  * No streaming flag survives a settled turn — on any message, any tool-call
  * row, in the root transcript or a sub-agent's — however the turn ended. A
- * flag left on is a spinner the console never stops. Not yet wired into
- * {@link finalStatusOf}: run against both real adapters today it fires on
- * the internal-failure arm (a turn that fails before its settle never
- * closes its last message), which is the gap the runtime closes when it
- * finalizes the transcript itself after `runTurn`, on every path; the
- * wiring lands with that change. Exported so the kit's self-check can hand
- * it a status that still streams and prove it fires.
+ * flag left on is a spinner the console never stops. The runtime closes
+ * them once, after `runTurn` returns, on every path (`harness/run-turn.ts`),
+ * so the fact holds for every subject and every outcome, and every arm
+ * checks it through {@link finalStatusOf}. Before the runtime owned that
+ * close, this fired on both real adapters' internal-failure arm: a turn that
+ * failed before its settle left its last message streaming. Exported so the
+ * kit's self-check can hand it a status that still streams and prove it
+ * fires.
  */
 export function assertTranscriptStreamsNothing(subjectName: string, status: AgentExecutionStatus): void {
   const streaming: string[] = [];

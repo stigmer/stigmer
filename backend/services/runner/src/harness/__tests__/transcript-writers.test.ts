@@ -20,10 +20,11 @@
  * legitimate, and the modules that do it are named in `TurnSink`'s header;
  * a fence over them would be a list, not a rule.
  *
- * Until the runtime seeds a reinvocation's prior rows through the builder,
- * `src/harness/turn-context.ts` is a third creator (its `seedFromPersistedStatus`
- * pushes the persisted transcript straight onto the status); the allow-list
- * names it so the shrink to two is a predicted move, not a surprise.
+ * A reinvocation's prior rows are not an exception: the runtime seeds them
+ * THROUGH the builder (`TranscriptBuilder.seed`, from `turn-context.ts`
+ * `seedFromPersistedStatus`), so the seed indexes what it appends and this
+ * list stays at two. (For one commit the seed pushed rows itself and was
+ * the third name here.)
  *
  * The rule is read off the TypeScript syntax tree, as the import fences are
  * (`import-direction.test.ts`): a schema named in a header comment, or a
@@ -47,15 +48,10 @@ const ROW_SCHEMAS: ReadonlySet<string> = new Set(["AgentMessageSchema", "ToolCal
 /** The status arrays a created row is pushed onto. */
 const ROW_ARRAYS: ReadonlySet<string> = new Set(["messages", "subAgentExecutions"]);
 
-/**
- * The modules allowed to create rows, relative to `src/`: a directory (every
- * file under it) or a file. `turn-context.ts` leaves this list when the seed
- * goes through the builder (see the header).
- */
+/** The modules allowed to create rows, relative to `src/`: a directory (every file under it) or a file. */
 const ALLOWED_CREATORS: readonly string[] = [
   join("harness", "transcript") + sep,
   join("harness", "terminal-table.ts"),
-  join("harness", "turn-context.ts"),
 ];
 
 /** Every row-creating construct in `source`, in source order: `names <Schema>` or `pushes onto .<array>`. */

@@ -58,6 +58,7 @@ import {
   type RuntimeContractHarness,
 } from "../../__test-utils__/harness-contract/runtime-contract.js";
 import { TERMINAL_COPY } from "../terminal-table.js";
+import type { HarnessAdapter } from "../types.js";
 
 const TASK_QUEUE = "runtime-test-queue";
 
@@ -176,6 +177,43 @@ describe("run-turn: the fake adapter through the real runtime", () => {
       expect(slim.phase).toBe("EXECUTION_COMPLETED");
       expect(slim.structured, "the pure-reconcile completion carries the answer as a value").toEqual({ answer: 42 });
       expect(slim.final_text).toBe('{"answer": 42}');
+    });
+  });
+
+  describe("the runtime's own transcript rules", () => {
+    it("finalizes the transcript once runTurn returns: an adapter that leaves its last message streaming still persists a settled one (Q-M5-6)", async () => {
+      // A harness that streams text and returns without closing the run —
+      // the shape of a turn that fails or is cut off before its own settle
+      // (native's thrown recursion limit; either harness's internal failure
+      // before its settle ran). Before the runtime owned the close, that
+      // message persisted `isStreaming: true` in a terminal execution: a
+      // spinner the console never stopped, seen by the kit on both real
+      // adapters. The rule lives in `run-turn.ts`, so its proof lives here.
+      const streamsAndLeaves: HarnessAdapter = {
+        ...subject.adapter,
+        name: "streams-and-leaves",
+        boot: (config) => subject.adapter.boot(config),
+        shutdown: () => subject.adapter.shutdown(),
+        releaseSession: (sessionId) => subject.adapter.releaseSession(sessionId),
+        async runTurn(_input, sink) {
+          sink.transcript.apply({ kind: "message_start", runId: "r1" });
+          sink.transcript.apply({ kind: "text_delta", runId: "r1", text: "half a thou" });
+          sink.transcript.apply({ kind: "tool_started", callId: "t1", name: "shell", input: { command: "make" }, mcpServerSlug: "" });
+          sink.transcript.apply({ kind: "tool_output_delta", callId: "t1", delta: "building" });
+          return { kind: "completed" };
+        },
+      };
+      const leaving: RuntimeContractHarness = { ...harness, subject: { ...subject, name: streamsAndLeaves.name, adapter: streamsAndLeaves } };
+      await streamsAndLeaves.boot(subject.config);
+      clock.reset();
+      const driver = new RuntimeExecutionDriver(leaving, "fake-streams-and-leaves");
+      const invocation = await driver.turn([]);
+
+      expect(slimOf(leaving.subject, invocation).phase).toBe("EXECUTION_COMPLETED");
+      const final = driver.record.lastFullStatus!;
+      expect(final.messages.map((m) => [m.content, m.isStreaming]), "the message the adapter left open is closed").toEqual([["half a thou", false]]);
+      const row = final.messages[0]!.toolCalls[0]!;
+      expect([row.id, row.isStreaming, row.result], "the row the adapter left streaming output is closed, its output kept").toEqual(["t1", false, "building"]);
     });
   });
 });

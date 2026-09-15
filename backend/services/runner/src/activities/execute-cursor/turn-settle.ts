@@ -37,7 +37,6 @@ import type { ConversationTurn } from "@cursor/sdk";
 import { StreamingUsageSummarySchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
 
 import type { TurnInput, TurnOutcome, TurnSink } from "../../harness/types.js";
-import { TranscriptBuilder } from "../../harness/transcript/builder.js";
 import { TimingRecorder, emitTimingLog } from "../../shared/cold-start-timing.js";
 import { StreamingUpdateScheduler, loadStreamingConfig } from "../../shared/streaming-scheduler.js";
 import { cancelInProgressSubAgentProtos } from "../../shared/subagent-rows.js";
@@ -85,12 +84,12 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
   const { executionId, sessionId, blueprint, workspace, mcp } = input;
   const { status } = sink;
 
-  // The one transcript builder over the turn's status, and this harness's
-  // translator over the run's approval posture and the seeded transcript
-  // (a resumed agent's re-issued call is matched onto its seeded WAITING
-  // row by identity, Q-S4-9). Both live for the whole turn — the primary
-  // stream and both recovery retries fold into them.
-  const transcript = new TranscriptBuilder(executionId, status);
+  // The runtime's one transcript builder over the turn's status, and this
+  // harness's translator over the run's approval posture and the seeded
+  // transcript (a resumed agent's re-issued call is matched onto its seeded
+  // WAITING row by identity, Q-S4-9). Both live for the whole turn — the
+  // primary stream and both recovery retries fold into them.
+  const transcript = sink.transcript;
   const translator = new CursorTranslator({
     policies: mcp.policies,
     leases: { global: mcp.leases.global, categories: mcp.leases.categories },
@@ -163,7 +162,6 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
   // state. Consumed by the primary stream here and by both recovery retries.
   const streamDeps: CursorTurnStreamDeps = {
     ...onDeltaDeps,
-    transcript,
     eventRecorder,
     scheduler,
     hitlDir: gate.hitlDir,
@@ -176,6 +174,10 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
   // flush the recorder, and persist so the UI sees the settled rows.
   const finalizeStreamPhase = async (): Promise<void> => {
     for (const fact of translator.drainDeltas()) transcript.apply(fact);
+    // The runtime finalizes once `runTurn` returns, on every path; this
+    // harness finalizes EARLIER too because it persists on the settled rows
+    // right below, before `run.wait()` and the boundary, and the console's
+    // spinner must stop before that wait. Idempotent.
     transcript.finalize();
     // A stopped turn (pause, shutdown, stall, cost cap, platform stop) aborts
     // the Cursor SDK run, so any sub-agent the parent had delegated is no

@@ -154,7 +154,7 @@ export class ExecutionDriver {
 
   /** Start a turn without awaiting it, for invariants about turns in flight. */
   begin(turn: TurnScenario, options: TurnOptions = {}): TurnInFlight {
-    const sink = options.sink ?? new RecordingTurnSink({ status: this.seedStatus() });
+    const sink = options.sink ?? new RecordingTurnSink({ status: this.seedStatus(), executionId: this.executionId });
     // The engine's view and the record's copy both derive from the status
     // this turn folds into, so a prepared sink's status is honoured too.
     const view: EngineView = {
@@ -297,7 +297,7 @@ export async function assertEveryExitIsAnOutcome(subject: HarnessContractSubject
     driver.recordTurn(sink);
   }
 
-  const preAborted = new RecordingTurnSink({ status: driver.seedStatus() });
+  const preAborted = new RecordingTurnSink({ status: driver.seedStatus(), executionId: driver.executionId });
   preAborted.abort("kit: aborted before the turn");
   const { settled } = driver.begin([scenario.say("never")], { sink: preAborted });
   await settleAsOutcome(subject, settleWithinBound(subject, settled, "under a pre-aborted signal", boundMs), "under a pre-aborted signal");
@@ -391,7 +391,7 @@ export async function assertStopSignalInterrupts(subject: HarnessContractSubject
   expect(findToolCallRow(hanging.sink.status, id), `${subject.name}: nothing after the stop may even reach the gate — the proposal after the hang has no row`).toBeUndefined();
   driver.recordTurn(hanging.sink);
 
-  const preAborted = new RecordingTurnSink({ status: driver.seedStatus() });
+  const preAborted = new RecordingTurnSink({ status: driver.seedStatus(), executionId: driver.executionId });
   preAborted.abort("kit: aborted before the turn");
   const early = driver.begin([scenario.propose(id, WRITE_ALPHA)], { sink: preAborted });
   const earlyOutcome = await settleWithinBound(subject, early.settled, "under a pre-aborted signal", boundMs);

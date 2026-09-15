@@ -3,10 +3,7 @@ import { create } from "@bufbuild/protobuf";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { WorkspaceWriteBackPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/writeback_pb";
 import { GitWriteBackMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import {
-  statusProtoWriter,
-  type ExecutionStatusWriter,
-} from "../../execution-status-writer.js";
+import { TranscriptBuilder } from "../../../harness/transcript/builder.js";
 import {
   WriteBackCoordinator,
   parseGithubRepo,
@@ -21,10 +18,11 @@ import {
 const SESSION_ID = "ses-01test";
 const SESSION_BRANCH = `stigmer/${SESSION_ID}`;
 
-// The shared proto-backed writer — the same implementation the Cursor harness
-// wires in, and upsert-compatible with the deep-agent TranscriptBuilder.
-function makeStatusBuilder(): ExecutionStatusWriter {
-  return statusProtoWriter(create(AgentExecutionStatusSchema, {}));
+// The writer production wires in: the turn's transcript builder, whose
+// `addWriteBack` owns the upsert-by-entry rule these arms read the result of
+// (the coordinator itself only registers records through `WriteBackSink`).
+function makeStatusBuilder(): TranscriptBuilder {
+  return new TranscriptBuilder("exec-test", create(AgentExecutionStatusSchema, {}));
 }
 
 function makeProvisionResult(overrides: Partial<ProvisionResult> = {}): ProvisionResult {
@@ -92,7 +90,7 @@ function mockWorkspaceBackend(responses: Record<string, string> = {}): Workspace
 }
 
 function makeCoordinator(opts: {
-  sb: ExecutionStatusWriter;
+  sb: TranscriptBuilder;
   backend?: WorkspaceBackend;
   executionId?: string;
   sessionId?: string;
@@ -101,7 +99,7 @@ function makeCoordinator(opts: {
   workspaceEntries?: any[];
 }): WriteBackCoordinator {
   return new WriteBackCoordinator({
-    statusWriter: opts.sb,
+    writeBacks: opts.sb,
     executionId: opts.executionId ?? "exec-12345678rest",
     sessionId: opts.sessionId ?? SESSION_ID,
     githubToken: opts.githubToken ?? "ghp_plumbed_token",
@@ -139,7 +137,7 @@ function mockGithubApi(opts: {
 const originalFetch = globalThis.fetch;
 
 describe("WriteBackCoordinator", () => {
-  let sb: ExecutionStatusWriter;
+  let sb: TranscriptBuilder;
 
   beforeEach(() => {
     sb = makeStatusBuilder();
@@ -194,7 +192,7 @@ describe("WriteBackCoordinator", () => {
 
     await coord.finalize();
 
-    const wbs = sb.currentStatus.workspaceWriteBacks;
+    const wbs = sb.status.workspaceWriteBacks;
     expect(wbs).toHaveLength(1);
     expect(wbs[0].branchName).toBe(SESSION_BRANCH);
     expect(wbs[0].baseBranch).toBe("main");
@@ -238,7 +236,7 @@ describe("WriteBackCoordinator", () => {
 
     await coord.finalize();
 
-    expect(sb.currentStatus.workspaceWriteBacks).toHaveLength(0);
+    expect(sb.status.workspaceWriteBacks).toHaveLength(0);
   });
 
   // ── Session-branch idempotency ──────────────────────────────────────
@@ -317,7 +315,7 @@ describe("WriteBackCoordinator", () => {
 
     await coord.finalize();
 
-    const wbs = sb.currentStatus.workspaceWriteBacks;
+    const wbs = sb.status.workspaceWriteBacks;
     expect(wbs[0].pullRequestNumber).toBe(7);
     expect(wbs[0].pullRequestUrl).toBe("https://github.com/acme/my-app/pull/7");
     expect(wbs[0].phase).toBe(WorkspaceWriteBackPhase.WORKSPACE_WRITE_BACK_PR_CREATED);
@@ -355,7 +353,7 @@ describe("WriteBackCoordinator", () => {
 
     await coord.finalize();
 
-    const wbs = sb.currentStatus.workspaceWriteBacks;
+    const wbs = sb.status.workspaceWriteBacks;
     expect(wbs).toHaveLength(1);
     expect(wbs[0].phase).toBe(WorkspaceWriteBackPhase.WORKSPACE_WRITE_BACK_FAILED);
     expect(wbs[0].error).toContain("commit failed");
@@ -369,7 +367,7 @@ describe("WriteBackCoordinator", () => {
 
     await coord.finalize();
 
-    const wbs = sb.currentStatus.workspaceWriteBacks;
+    const wbs = sb.status.workspaceWriteBacks;
     expect(wbs).toHaveLength(1);
     expect(wbs[0].phase,
       "a pushed branch must never be reported FAILED for a PR-step error",
@@ -386,7 +384,7 @@ describe("WriteBackCoordinator", () => {
 
     await coord.finalize();
 
-    const wbs = sb.currentStatus.workspaceWriteBacks;
+    const wbs = sb.status.workspaceWriteBacks;
     expect(wbs).toHaveLength(1);
     expect(wbs[0].phase).toBe(WorkspaceWriteBackPhase.WORKSPACE_WRITE_BACK_PUSHED);
     expect(wbs[0].error).toContain("No GitHub token");
@@ -401,8 +399,8 @@ describe("WriteBackCoordinator", () => {
 
     await coord.finalize();
 
-    expect(sb.currentStatus.workspaceWriteBacks).toHaveLength(1);
-    expect(sb.currentStatus.workspaceWriteBacks[0].phase).toBe(
+    expect(sb.status.workspaceWriteBacks).toHaveLength(1);
+    expect(sb.status.workspaceWriteBacks[0].phase).toBe(
       WorkspaceWriteBackPhase.WORKSPACE_WRITE_BACK_PR_CREATED,
     );
   });

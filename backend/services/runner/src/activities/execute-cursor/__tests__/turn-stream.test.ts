@@ -26,7 +26,7 @@ import { join } from "node:path";
 import type { SDKMessage } from "@cursor/sdk";
 import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { RecordingTurnSink } from "../../../__test-utils__/harness-contract/recording-sink.js";
-import { TranscriptBuilder } from "../../../harness/transcript/builder.js";
+import type { TranscriptBuilder } from "../../../harness/transcript/builder.js";
 import { sdkEvents } from "../__test-utils__/scripted-agent.js";
 import { CursorTranslator } from "../translator.js";
 import {
@@ -80,7 +80,8 @@ interface BuiltDeps {
 function buildDeps(overrides: Partial<CursorTurnStreamDeps> = {}): BuiltDeps {
   const state = overrides.state ?? newTurnStreamState();
   const sink = (overrides.sink as RecordingTurnSink | undefined) ?? new RecordingTurnSink();
-  const transcript = overrides.transcript ?? new TranscriptBuilder("exec-test", sink.status);
+  // The builder is the sink's, as the runtime hands it (S4 M5).
+  const transcript = sink.transcript;
 
   const deps = {
     // TurnOnDeltaDeps
@@ -91,7 +92,6 @@ function buildDeps(overrides: Partial<CursorTurnStreamDeps> = {}): BuiltDeps {
     executionId: "exec-test",
     state,
     // CursorTurnStreamDeps
-    transcript,
     eventRecorder: undefined,
     // A tool row's start forces the persist (the builder's flag), so a text-only
     // stream rides this scheduler, which never says yes; markUpdateSent must exist.
@@ -124,7 +124,7 @@ describe("consumeCursorTurnStream", () => {
     // shared loop persists live — through the runtime's chokepoint — on the
     // builder's discrete-change flag (a row's start and its finish).
     expect(sink.persistRequests).toBe(2);
-    expect(deps.transcript.dirty, "the flag is cleared after each persist").toBe(false);
+    expect(sink.transcript.dirty, "the flag is cleared after each persist").toBe(false);
     expect(state.eventCount).toBe(3);
   });
 

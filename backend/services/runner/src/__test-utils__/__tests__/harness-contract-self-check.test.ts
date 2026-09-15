@@ -78,6 +78,7 @@ function adapterOver(inner: HarnessAdapter, name: string, patch: Partial<Harness
 function sinkOver(inner: TurnSink, patch: Partial<TurnSink>): TurnSink {
   return {
     status: inner.status,
+    transcript: inner.transcript,
     stopSignal: inner.stopSignal,
     setupTiming: inner.setupTiming,
     requestPersist: () => inner.requestPersist(),

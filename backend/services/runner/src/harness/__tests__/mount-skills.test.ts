@@ -31,6 +31,7 @@ import { mockStigmerClient } from "../../__test-utils__/mock-client.js";
 import { testConfig } from "../../__test-utils__/config-fixture.js";
 import { turnInputFixture } from "../../__test-utils__/turn-input-fixture.js";
 import { TimingRecorder } from "../../shared/cold-start-timing.js";
+import { TranscriptBuilder } from "../transcript/builder.js";
 import { mountSkills, type ResolutionDeps } from "../turn-context.js";
 
 const env = createHermeticEnvironment();
@@ -62,13 +63,15 @@ function skillClient(available: readonly string[]) {
 
 function depsWith(client: ResolutionDeps["client"], sessionId: string): { deps: ResolutionDeps; labels: string[] } {
   const labels: string[] = [];
+  const status = create(AgentExecutionStatusSchema, {});
   return {
     labels,
     deps: {
       input: { executionId: `aex-${sessionId}`, threadId: "", turnSeq: 0 },
       client,
       config: testConfig({ workspaceRootDir: env.workspaceRootDir }),
-      status: create(AgentExecutionStatusSchema, {}),
+      status,
+      transcript: new TranscriptBuilder(`aex-${sessionId}`, status),
       artifactStorage: undefined,
       timing: new TimingRecorder(),
       signal: new AbortController().signal,
