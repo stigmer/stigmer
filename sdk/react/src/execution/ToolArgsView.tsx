@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { cn } from "@stigmer/theme";
 import {
   resolveToolCategory,
-  extractWriteContentFromPreview,
+  extractWriteContentFromArgs,
 } from "./tool-categories.js";
 import type { ToolCategory, ToolCategoryInfo } from "./tool-categories.js";
 import { FilePathLink } from "./FilePathLink.js";
@@ -238,25 +238,6 @@ function GenericArgsView({ args }: { args: Record<string, unknown> }) {
 // ---------------------------------------------------------------------------
 // Utilities
 // ---------------------------------------------------------------------------
-
-const WRITE_CONTENT_FIELDS = [
-  "contents",
-  "content",
-  "file_content",
-  "new_text",
-  "new_string",
-  "replacement",
-] as const;
-
-function extractWriteContentFromArgs(
-  args: Record<string, unknown>,
-): string | null {
-  for (const field of WRITE_CONTENT_FIELDS) {
-    const val = args[field];
-    if (typeof val === "string" && val.length > 0) return val;
-  }
-  return null;
-}
 
 function extractPrimaryArgValue(
   args: Record<string, unknown> | null,

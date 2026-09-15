@@ -494,6 +494,44 @@ describe("ToolCallItem disclosure", () => {
     expect(row.className).not.toContain("stg:bg-warning");
   });
 
+  it("shows a gated write's whole proposed content from the row's args, never the preview's elision marker (stigmer#1107)", () => {
+    // The row holds the authoritative `args`; the approval's `argsPreview` is
+    // the runner's sanitized summary and cannot carry a file of any real size
+    // (an older runner wrote `[N chars]`; the current one leaves the field
+    // out). The inline gate must read the content from the row.
+    const big = Array.from({ length: 30 }, (_, i) => `gate line ${i + 1}`).join("\n") + "\n";
+    const tc = makeToolCall({
+      id: "tc-big-write",
+      name: "write_file",
+      args: { file_path: "/tmp/e2e-big-gate.txt", content: big },
+      status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
+    });
+    const approval: PendingApproval = create(PendingApprovalSchema, {
+      toolCallId: "tc-big-write",
+      toolName: "write_file",
+      argsPreview: '{"file_path":"/tmp/e2e-big-gate.txt","content":"[381 chars]"}',
+    });
+    const ctx: ApprovalContextValue = {
+      approvalsByToolCallId: new Map([["tc-big-write", approval]]),
+      onSubmit: () => {},
+      submittingIds: new Set(),
+      errorsByToolCallId: new Map(),
+    };
+
+    const { container } = render(
+      <ApprovalContext.Provider value={ctx}>
+        <ToolCallItem toolCall={tc} />
+      </ApprovalContext.Provider>,
+    );
+
+    const row = container.querySelector('[data-cursor-target="tool-call-row"]')!;
+    expect(row.textContent).toContain("gate line 1");
+    expect(row.textContent).not.toContain("gate line 30"); // bounded by lines
+    expect(row.textContent).not.toContain("[381 chars]");
+    expect(screen.getByRole("button", { name: /Show all \d+ lines/ })).toBeTruthy();
+    expect(screen.getByLabelText("Approve")).toBeTruthy();
+  });
+
   it("routes an inline APPROVE_ALL decision with the gated tool's id", () => {
     const tc = makeToolCall({
       id: "tc-gated",

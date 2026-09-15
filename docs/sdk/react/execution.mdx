@@ -1073,15 +1073,18 @@ if (hasWriteBacks) {
 ### ApprovalCardBody
 
 The decision panel of an approval: the optional message and gate reason, the
-file-changes / args preview, and the action buttons. Reused in two places —
-the standalone [`ApprovalCard`](#approvalcard) (with [`ApprovalCardHeader`](#approvalcardheader) above
-it) and inline inside a gated [`ToolCallItem`](#toolcallitem)'s expanded panel, where
-the item's own row is the header. One body, identical preview in both.
+proposed change (the write/edit content from the row's `args` when the caller
+holds the row, the sanitized args preview otherwise), and the action buttons.
+Reused in two places — the standalone [`ApprovalCard`](#approvalcard) (with
+[`ApprovalCardHeader`](#approvalcardheader) above it) and inline inside a gated
+[`ToolCallItem`](#toolcallitem)'s expanded panel, where the item's own row is the header.
+One body, one preview rule in both.
 
 **Props** — `ApprovalCardBodyProps`
 
 <TypeTable
   type={{
+    args: { type: "Record<string, unknown>", description: "The gated tool row's authoritative arguments (`ToolCall.args`), when the caller holds the row — the inline gate on a ToolCallItem does. They supply the proposed write/edit content, which the pending approval's `argsPreview` (the runner's sanitized summary) cannot carry for a file of any real size; every other field the card shows still comes from the preview, so nothing the runner redacted becomes visible. Absent, the card renders from the preview alone and a large write shows the \"no preview\" notice rather than its content." },
     className: { type: "string", description: "Additional CSS class names for the body container." },
     error: { type: "Error | null", description: "This gate's last failed decision, or `null` — surfaced in-card below the actions." },
     isSubmitting: { type: "boolean", description: "True while the RPC for this tool call is in flight." },
