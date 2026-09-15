@@ -75,7 +75,9 @@
  *   - `finalize()` clears every streaming flag in every scope.
  *   - Artifacts upsert by `sandboxPath`/`contentHash`, write-backs by
  *     `workspaceEntryName` (Q-S4-8): the inline publisher and the write-back
- *     coordinator register theirs here.
+ *     coordinator register theirs here, each through the one-method view it
+ *     declares for itself (`ArtifactSink`, `WriteBackSink`), which this class
+ *     satisfies by shape.
  *   - {@link dirty} is set by every discrete change above and by nothing a
  *     token delta does; the adapter's loop reads it and clears it with
  *     {@link markPersisted} as it requests the persist (Q-S4-12).

@@ -4,7 +4,7 @@
  *
  * What the arm does: the record's `controlSignal` answers STOP on the first
  * full write that carries a tool row (the tool-call boundary forces that
- * persist, `persist-decision.ts` `contentDirty`); the runtime's chokepoint
+ * persist, `persist-decision.ts` over the builder's `dirty` flag); the runtime's chokepoint
  * reads the signal off the write and aborts the adapter's `stopSignal`; the
  * adapter's loop, which AWAITED that persist, sees the abort before it pulls
  * the next event, cancels the graph run and settles `interrupted`; the

@@ -32,7 +32,7 @@
  *    is the one point a scenario can rely on: the STOP is keyed on the
  *    persisted status's CONTENT (the COMPLETED row), not on which persist
  *    happens to carry it, because a tool-call transition force-flushes
- *    (`contentDirty`) whatever the cadence says. (Until S3 M5 the scheduler
+ *    (the builder's `dirty` flag) whatever the cadence says. (Until S3 M5 the scheduler
  *    paced text-only persists on REAL `performance.now()` time; the scripted
  *    clock fakes it since Q-M5-7, so every persist is deterministic now.)
  *

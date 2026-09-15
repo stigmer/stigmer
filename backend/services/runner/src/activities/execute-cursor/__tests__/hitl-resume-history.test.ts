@@ -276,9 +276,11 @@ describe("Cursor HITL resume — append-only transcript", () => {
 
   it("FIX: a sub-agent's gated tool also survives resume (the seeded sub-agent rows are wrapped by reference and indexed)", () => {
     // Sub-agent parity: the runtime seeds `status.subAgentExecutions` on a
-    // resume (`seedFromPersistedStatus`) and the builder wraps that very
-    // array, exactly as it wraps `status.messages`, so the seeded row is
-    // retained, indexed by id, and a resumed update lands on it in place.
+    // resume (`seedFromPersistedStatus`, through the builder's `seed()`) and
+    // the builder holds that very array, exactly as it holds
+    // `status.messages`, so the seeded row is retained, indexed by id, and a
+    // resumed update lands on it in place. This arm hands the seeded status
+    // to the constructor, which indexes by the same routine `seed()` does.
     const seededSub = create(SubAgentExecutionSchema, {
       id: "sub_1",
       name: "researcher",

@@ -31,11 +31,13 @@
  *    (`maxConcurrentActivities`), so a per-turn teardown method on the
  *    adapter is a race. The adapter owns its per-turn teardown in its own
  *    `finally` inside `runTurn` (the Cursor harness parks its agent there).
- *  - No `isCancelled()`, no `heartbeat(details)`, no `ExecutionStatusWriter`
- *    base. Each would be a second way of saying something `stopSignal`,
- *    `recordActivity()` or `requestPersist()` already says, and two writers of
- *    one fact drift (the native builders' `forceNextUpdate` flag is the same
- *    fact as a `requestPersist()` call).
+ *  - No `isCancelled()`, no `heartbeat(details)`, and the sink does not
+ *    EXTEND a status-writer interface. Each would be a second way of saying
+ *    something `stopSignal`, `recordActivity()` or `requestPersist()` already
+ *    says, and two writers of one fact drift. The transcript builder rides
+ *    the sink as a MEMBER (`transcript`), and the distinction holds: its
+ *    `dirty` is a fact the adapter's persist decision reads, `requestPersist()`
+ *    is the act; one fact, one act, no second writer.
  *  - No `reason` on `interrupted`, no payload on `completed`, no `retryable`
  *    on `failed`. Every cause of stopping is the runtime's own evidence; the
  *    final text and structured output are already folded onto the status;
@@ -53,8 +55,8 @@
  *    propagates it.
  *  - No persist cadence. The runtime's chokepoint is single-flight and
  *    unconditional at settle; WHEN a streaming turn asks for a write is the
- *    adapter's (`shared/persist-decision.ts` over its own dirty flags, since
- *    what counts as a discrete change is engine knowledge). Revisited with
+ *    adapter's (`shared/persist-decision.ts` over the builder's `dirty`
+ *    flag, since WHEN to ask is engine cadence). Revisited with
  *    both loops in view at S3 M4 and kept (Q-S3-13): the cadence RULE is
  *    shared, the timing is the engine's.
  *  - No capture. The file-review capture is the runtime's whole
@@ -326,14 +328,36 @@ export interface TurnInput extends NormalizedActivityInput {
  * one status it folds into. One sink per turn, owned by the runtime; the
  * adapter never constructs one.
  *
- * Field ownership on `status` before the canonical transcript lands (S4):
- * the adapter appends the engine's transcript rows (assistant messages,
- * tool-call rows and their approval status, sub-agent rows, todos); the
- * runtime writes the phase, the terminal system messages, `streamingUsage`,
- * artifacts, write-backs, `fileChangeProgress`, the file-review ledger
- * events and the change-set stamp on a flowed edit row (S3 M4,
- * `harness/capture.ts`). An adapter never writes a phase or a terminal copy:
- * those are Temporal semantics the runtime owns once.
+ * Field ownership on `status` (S4 M5, the canonical transcript landed):
+ *
+ *  - Transcript rows — messages, tool-call rows, sub-agent rows, todos — are
+ *    CREATED through `transcript` and nowhere else: the adapter translates
+ *    its engine's events and applies them; a reinvocation's prior rows are
+ *    seeded through it by the runtime. The one exception, the runtime's own
+ *    terminal system rows (`harness/terminal-table.ts`), is the second name
+ *    on the writer fence's allow-list (`__tests__/transcript-writers.test.ts`).
+ *  - Artifacts and write-backs a turn produces register through `transcript`
+ *    too (the native inline publisher; the runtime's write-back coordinator),
+ *    each dedupe rule owned once. The one artifact written beside it is the
+ *    epilogue's plan artifact (`shared/plan-artifact.ts`), the runtime's,
+ *    which supersedes by the plan's own name rule.
+ *  - Rows may be AMENDED by identity, never created, by the modules that own
+ *    a fact the builder cannot know, and this is the whole list: the runtime's
+ *    `harness/approval-decisions.ts` (a SKIP or REJECT settles its row),
+ *    `harness/capture.ts` (the change-set stamp on a flowed edit row),
+ *    `shared/exact-apply.ts` (an approved whole-file write applied by the
+ *    runtime completes its row), `shared/subagent-rows.ts` (a stopped turn's
+ *    sub-agents CANCELLED); the Cursor boundary (`execute-cursor/
+ *    boundary-rows.ts`: the identity-token collapses, #205, #965, the
+ *    unattended stamp); the native settle (`execute-deep-agent/hitl.ts`: the
+ *    gate's unattended skips). A harness that amends says so in its settle's
+ *    header.
+ *  - The runtime alone writes the phase, `startedAt`, `completedAt`,
+ *    `error`, the terminal system rows, `streamingUsage`,
+ *    `fileChangeProgress`, the file-review ledger events and the change-set
+ *    stamp (S3 M4, `harness/capture.ts`), and closes every streaming flag
+ *    once `runTurn` returns. An adapter never writes a phase or a terminal
+ *    copy: those are Temporal semantics the runtime owns once.
  */
 export interface TurnSink {
   /**

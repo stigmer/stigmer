@@ -10,7 +10,7 @@
  * into ONE tool row, and the turn ends COMPLETED. A read-only built-in is never
  * gated (`shared/tool-kind.ts` FILE_READ), so no approval fields are set. The
  * mid-stream persist the tool-call boundary forces (`persist-decision.ts`
- * `contentDirty`) is what the platform-stop arm relies on.
+ * over the builder's `dirty` flag) is what the platform-stop arm relies on.
  *
  * The transcript shape (Q-S4-5, landed at S4 M2 C4): the row sits on the AI
  * message whose text proposed it — TWO AI messages, the text carrying the
