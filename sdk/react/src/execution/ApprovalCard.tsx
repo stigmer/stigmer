@@ -13,8 +13,10 @@ import {
   resolveToolCategoryFromKind,
   extractPrimaryArgFromPreview,
   extractShellIntentFromPreview,
-  extractWriteContentFromPreview,
+  extractWriteContentFromArgs,
   isFileCategory,
+  parseArgsPreview,
+  withAuthoritativeWriteContent,
   type ToolCategory,
 } from "./tool-categories.js";
 import { CATEGORY_ICON } from "./ToolCallItem.js";
@@ -233,6 +235,17 @@ export function ApprovalCardHeader({
 export interface ApprovalCardBodyProps {
   /** The pending approval to render a decision panel for. */
   readonly pendingApproval: PendingApproval;
+  /**
+   * The gated tool row's authoritative arguments (`ToolCall.args`), when the
+   * caller holds the row — the inline gate on a {@link ToolCallItem} does.
+   * They supply the proposed write/edit content, which the pending approval's
+   * `argsPreview` (the runner's sanitized summary) cannot carry for a file of
+   * any real size; every other field the card shows still comes from the
+   * preview, so nothing the runner redacted becomes visible. Absent, the card
+   * renders from the preview alone and a large write shows the "no preview"
+   * notice rather than its content.
+   */
+  readonly args?: Record<string, unknown>;
   /** Called when the user picks Approve / Approve-all / Skip / Reject. */
   readonly onSubmit: (action: ApprovalAction, comment?: string) => void;
   /** True while the RPC for this tool call is in flight. */
@@ -245,13 +258,16 @@ export interface ApprovalCardBodyProps {
 
 /**
  * The decision panel of an approval: the optional message and gate reason, the
- * file-changes / args preview, and the action buttons. Reused in two places —
- * the standalone {@link ApprovalCard} (with {@link ApprovalCardHeader} above
- * it) and inline inside a gated {@link ToolCallItem}'s expanded panel, where
- * the item's own row is the header. One body, identical preview in both.
+ * proposed change (the write/edit content from the row's `args` when the caller
+ * holds the row, the sanitized args preview otherwise), and the action buttons.
+ * Reused in two places — the standalone {@link ApprovalCard} (with
+ * {@link ApprovalCardHeader} above it) and inline inside a gated
+ * {@link ToolCallItem}'s expanded panel, where the item's own row is the header.
+ * One body, one preview rule in both.
  */
 export function ApprovalCardBody({
   pendingApproval,
+  args,
   onSubmit,
   isSubmitting = false,
   error = null,
@@ -279,18 +295,17 @@ export function ApprovalCardBody({
     pendingApproval.mcpServerSlug,
   );
 
-  const parsedArgs = useMemo<Record<string, unknown> | null>(() => {
-    if (!pendingApproval.argsPreview) return null;
-    try {
-      const parsed = JSON.parse(pendingApproval.argsPreview);
-      if (typeof parsed === "object" && parsed !== null) {
-        return parsed as Record<string, unknown>;
-      }
-      return null;
-    } catch {
-      return null;
-    }
-  }, [pendingApproval.argsPreview]);
+  // What the card shows: the preview's fields (the runner's sanitized summary),
+  // with the proposed write/edit content overlaid from the row's authoritative
+  // `args` when the caller holds the row — the one value the summary cannot
+  // carry for a file of any real size, and the one the user is asked to approve.
+  // A preview that does not parse (a record persisted under an older runner's
+  // whole-string truncation) stays `null`: nothing is overlaid onto a summary
+  // the card cannot read, and the notice below says so honestly.
+  const displayArgs = useMemo<Record<string, unknown> | null>(() => {
+    const previewArgs = parseArgsPreview(pendingApproval.argsPreview);
+    return previewArgs ? withAuthoritativeWriteContent(previewArgs, args) : null;
+  }, [pendingApproval.argsPreview, args]);
 
   // APPROVE_ALL now grants a run-lifetime lease scoped to the clicked tool's
   // CLASS — its MCP server for an MCP tool, else its approval category (where
@@ -327,11 +342,11 @@ export function ApprovalCardBody({
   const isWriteEdit =
     categoryInfo.category === "write" || categoryInfo.category === "edit";
 
-  // The proposed write/edit content from the args preview, when the gate carries
-  // no authoritative file_changes capture. Drives the three-way fallback below.
+  // The proposed write/edit content, when the gate carries no authoritative
+  // file_changes capture. Drives the three-way fallback below.
   const writeContent = useMemo(
-    () => extractWriteContentFromPreview(pendingApproval.argsPreview),
-    [pendingApproval.argsPreview],
+    () => (displayArgs ? extractWriteContentFromArgs(displayArgs) : null),
+    [displayArgs],
   );
 
   // The decision-relevant preview. The pre-execution deny-gate is an
@@ -353,11 +368,11 @@ export function ApprovalCardBody({
     const kind =
       pendingApproval.toolKind === ToolKind.FILE_WRITE ? "create" : "no-preview";
     preview = <EmptyChangeNotice kind={kind} />;
-  } else if (parsedArgs) {
+  } else if (displayArgs) {
     preview = (
       <ToolArgsView
         toolName={pendingApproval.toolName}
-        args={parsedArgs}
+        args={displayArgs}
         mcpServerSlug={pendingApproval.mcpServerSlug}
         showFileName={!isWriteEdit}
       />

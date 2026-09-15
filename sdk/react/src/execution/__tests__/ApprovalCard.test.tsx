@@ -7,7 +7,7 @@ import {
   ApprovalPolicySource,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { ToolKind } from "@stigmer/sdk";
-import { ApprovalCard } from "../ApprovalCard";
+import { ApprovalCard, ApprovalCardBody } from "../ApprovalCard";
 
 // Under apply-then-review the deny-gate carries no captured `file_changes`
 // (message.proto field 14 was removed in Phase 5 Slice 4); the gate renders the
@@ -448,6 +448,115 @@ describe("ApprovalCard file-change preview", () => {
     expect(screen.queryByText("No preview available for this change")).toBeNull();
     // Filename once — header only.
     expect(screen.getAllByText("notes.md")).toHaveLength(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The proposed content comes from the row's authoritative args (stigmer#1107)
+//
+// `argsPreview` is the runner's sanitized summary: a value over its per-field
+// cap is not carried whole (older runners wrote an in-band `[N chars]` marker;
+// current ones leave the field out). The body therefore reads the proposed
+// write/edit content from the row's `args` when the caller holds the row, and
+// only that — every other field still renders from the redacted preview.
+// ---------------------------------------------------------------------------
+
+describe("ApprovalCardBody proposed content from args", () => {
+  const BIG = Array.from({ length: 30 }, (_, i) => `gate line ${i + 1}`).join("\n") + "\n";
+
+  function bigWriteApproval(argsPreview: string) {
+    return create(PendingApprovalSchema, {
+      toolCallId: "tc-big",
+      toolName: "write_file",
+      toolKind: ToolKind.FILE_WRITE,
+      argsPreview,
+    });
+  }
+
+  it("renders the whole content from args when the preview carried an elision marker (older runner)", () => {
+    render(
+      <ApprovalCardBody
+        pendingApproval={bigWriteApproval('{"file_path":"/tmp/big.txt","content":"[381 chars]"}')}
+        args={{ file_path: "/tmp/big.txt", content: BIG }}
+        onSubmit={noop}
+      />,
+    );
+
+    expect(screen.getByText("Content")).toBeTruthy();
+    // The head renders, bounded by lines, with the in-place reveal; the marker
+    // is never shown as if it were the file.
+    expect(screen.getByText(/gate line 1\b/)).toBeTruthy();
+    expect(screen.queryByText(/gate line 30/)).toBeNull();
+    expect(screen.getByRole("button", { name: /Show all \d+ lines/ })).toBeTruthy();
+    expect(screen.queryByText(/\[381 chars\]/)).toBeNull();
+    expect(screen.queryByText("New file — preview unavailable")).toBeNull();
+  });
+
+  it("renders the whole content from args when the preview left the field out (current runner)", () => {
+    render(
+      <ApprovalCardBody
+        pendingApproval={bigWriteApproval('{"file_path":"/tmp/big.txt"}')}
+        args={{ file_path: "/tmp/big.txt", content: BIG }}
+        onSubmit={noop}
+      />,
+    );
+
+    expect(screen.getByText("Content")).toBeTruthy();
+    expect(screen.getByText(/gate line 1\b/)).toBeTruthy();
+    expect(screen.queryByText("New file — preview unavailable")).toBeNull();
+  });
+
+  it("without the row, a write whose content the preview left out shows the honest notice", () => {
+    // The row-less surfaces (the workflow approval list, an embedded card):
+    // nothing is invented from a preview that carries no content.
+    render(
+      <ApprovalCardBody
+        pendingApproval={bigWriteApproval('{"file_path":"/tmp/big.txt"}')}
+        onSubmit={noop}
+      />,
+    );
+
+    expect(screen.getByText("New file — preview unavailable")).toBeTruthy();
+    expect(screen.queryByText("Content")).toBeNull();
+  });
+
+  it("overlays the content only — a field the preview redacted stays redacted when args carry it raw", () => {
+    // An MCP gate renders every scalar argument, so this is where a raw value
+    // crossing over from `args` would show. It must not.
+    const approval = create(PendingApprovalSchema, {
+      toolCallId: "tc-mcp-secret",
+      toolName: "publish",
+      toolKind: ToolKind.MCP,
+      mcpServerSlug: "notes",
+      argsPreview: '{"title":"hello","token":"[REDACTED]"}',
+    });
+
+    render(
+      <ApprovalCardBody
+        pendingApproval={approval}
+        args={{ title: "hello", token: "s3cr3t-raw" }}
+        onSubmit={noop}
+      />,
+    );
+
+    expect(screen.getByText("[REDACTED]")).toBeTruthy();
+    expect(screen.queryByText(/s3cr3t-raw/)).toBeNull();
+  });
+
+  it("does not overlay onto a preview the card cannot parse (a record from an older runner's truncation)", () => {
+    // Pre-unification native previews truncated the whole JSON string at 500
+    // chars; such a record's preview does not parse. The body keeps today's
+    // honest notice rather than rendering a content block with no path row.
+    render(
+      <ApprovalCardBody
+        pendingApproval={bigWriteApproval('{"file_path":"/tmp/big.txt","content":"gate li…')}
+        args={{ file_path: "/tmp/big.txt", content: BIG }}
+        onSubmit={noop}
+      />,
+    );
+
+    expect(screen.getByText("New file — preview unavailable")).toBeTruthy();
+    expect(screen.queryByText("Content")).toBeNull();
   });
 });
 
