@@ -545,6 +545,14 @@ export function extractShellIntentFromPreview(
   }
 }
 
+/**
+ * The argument fields under which a write or edit tool carries the content it
+ * proposes, in the order they are tried. One list for every reader — the
+ * pre-execution gate ({@link ApprovalCardBody}) and the post-execution row
+ * ({@link ToolArgsView}) — so the two never disagree on what "the content" is.
+ * Spans both harnesses' file-tool shapes (deepagents' `content`/`new_string`,
+ * Cursor's `contents`/`new_text`).
+ */
 const WRITE_CONTENT_FIELDS = [
   "contents",
   "content",
@@ -554,29 +562,81 @@ const WRITE_CONTENT_FIELDS = [
   "replacement",
 ] as const;
 
+/** A proposed write's content and the argument field it was found under. */
+interface WriteContent {
+  readonly field: (typeof WRITE_CONTENT_FIELDS)[number];
+  readonly value: string;
+}
+
 /**
- * Extracts the file content body from a JSON `argsPreview` string
- * for write/edit tool categories. Scans the same field names used
- * by the post-execution {@link ToolCallDetail} renderer so that
- * the approval preview matches the completed tool call display.
- *
- * Returns `null` if parsing fails or no content field is found.
+ * Finds the content a write/edit tool proposes in its parsed arguments: the
+ * first {@link WRITE_CONTENT_FIELDS} entry holding a non-empty string, with the
+ * field it sat under. `null` when the args carry no content.
  */
-export function extractWriteContentFromPreview(
-  argsPreview: string,
+function findWriteContent(
+  args: Record<string, unknown>,
+): WriteContent | null {
+  for (const field of WRITE_CONTENT_FIELDS) {
+    const value = args[field];
+    if (typeof value === "string" && value.length > 0) return { field, value };
+  }
+  return null;
+}
+
+/**
+ * The content a write/edit tool proposes, from its parsed arguments, or `null`.
+ * The value half of {@link findWriteContent}.
+ */
+export function extractWriteContentFromArgs(
+  args: Record<string, unknown>,
 ): string | null {
+  return findWriteContent(args)?.value ?? null;
+}
+
+/**
+ * Parses a JSON `argsPreview` string into an args object, or `null` when the
+ * string is empty, unparseable, or not an object. The preview is the runner's
+ * sanitized summary of a tool call's arguments — secrets redacted, a value too
+ * large to carry whole left out, paths and commands kept verbatim — so what
+ * this returns is what a surface may SHOW; the proposed content of a write is
+ * read from the row's `args` (see {@link withAuthoritativeWriteContent}).
+ */
+export function parseArgsPreview(
+  argsPreview: string,
+): Record<string, unknown> | null {
   if (!argsPreview) return null;
-
   try {
-    const parsed = JSON.parse(argsPreview);
-    if (typeof parsed !== "object" || parsed === null) return null;
-
-    for (const field of WRITE_CONTENT_FIELDS) {
-      const val = (parsed as Record<string, unknown>)[field];
-      if (typeof val === "string" && val.length > 0) return val;
-    }
-    return null;
+    const parsed: unknown = JSON.parse(argsPreview);
+    return typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : null;
   } catch {
     return null;
   }
+}
+
+/**
+ * The preview-parsed args of a gated tool call with the proposed write content
+ * taken from the row's authoritative `args` — and only that.
+ *
+ * A tool row carries two projections of its arguments: `args`, the full
+ * arguments, and `args_preview`, the runner's sanitized summary (secrets
+ * redacted, oversized values left out, paths and commands kept whole). The
+ * summary is the right thing to *show* for every field but one: the content a
+ * write or edit proposes, which is exactly the value the summary cannot carry
+ * and exactly what the user is asked to approve. So the gate renders the
+ * preview's fields and overlays the content from `args`, under the field
+ * `args` carries it in. Nothing else crosses over — a field the runner
+ * redacted in the preview stays redacted here.
+ *
+ * Returns `previewArgs` itself when `args` carries no content (nothing to
+ * overlay) so memoized consumers keep their reference.
+ */
+export function withAuthoritativeWriteContent(
+  previewArgs: Record<string, unknown>,
+  args: Record<string, unknown> | undefined,
+): Record<string, unknown> {
+  const content = args ? findWriteContent(args) : null;
+  if (!content) return previewArgs;
+  return { ...previewArgs, [content.field]: content.value };
 }
