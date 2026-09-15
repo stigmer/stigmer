@@ -5,7 +5,7 @@
  *
  * Invariant pinned: the activity resolves the four-resource chain, builds the
  * REAL deepagents graph, streams it through the v3 protocol into
- * `V3StatusBuilder`, persists IN_PROGRESS then COMPLETED, and returns the slim
+ * `TranscriptBuilder`, persists IN_PROGRESS then COMPLETED, and returns the slim
  * status. The golden (`goldens/plain-turn.status.json`) is the smallest
  * status the native harness produces: one AI message with the scripted text
  * and the scripted usage, `startedAt` / `completedAt` on the scripted clock.

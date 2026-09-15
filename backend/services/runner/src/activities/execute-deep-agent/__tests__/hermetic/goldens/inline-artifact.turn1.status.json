@@ -3,10 +3,6 @@
     {
       "type": "MESSAGE_AI",
       "content": "Writing the report.",
-      "timestamp": "2026-01-01T00:00:01.000Z"
-    },
-    {
-      "type": "MESSAGE_AI",
       "timestamp": "2026-01-01T00:00:01.000Z",
       "toolCalls": [
         {
@@ -20,6 +16,7 @@
           "status": "TOOL_CALL_COMPLETED",
           "startedAt": "2026-01-01T00:00:01.000Z",
           "completedAt": "2026-01-01T00:00:01.000Z",
+          "argsPreview": "{\"file_path\":\"/report.md\",\"content\":\"# Report\\n\\nAll fixtures nominal.\\n\"}",
           "toolKind": "TOOL_KIND_FILE_WRITE",
           "approvalPolicySource": "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
           "policyEngineVersion": "phase-7",
@@ -30,10 +27,6 @@
     {
       "type": "MESSAGE_AI",
       "content": "Now the command.",
-      "timestamp": "2026-01-01T00:00:02.000Z"
-    },
-    {
-      "type": "MESSAGE_AI",
       "timestamp": "2026-01-01T00:00:02.000Z",
       "toolCalls": [
         {
@@ -45,7 +38,7 @@
           "status": "TOOL_CALL_WAITING_APPROVAL",
           "startedAt": "2026-01-01T00:00:02.000Z",
           "requiresApproval": true,
-          "approvalMessage": "Execute command: echo hermetic-a",
+          "approvalMessage": "Run command: echo hermetic-a",
           "approvalRequestedAt": "2026-01-01T00:00:02.000Z",
           "argsPreview": "{\"command\":\"echo hermetic-a\"}",
           "toolKind": "TOOL_KIND_SHELL",

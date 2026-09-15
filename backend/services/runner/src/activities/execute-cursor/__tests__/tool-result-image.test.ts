@@ -23,7 +23,7 @@
  * shape) is guarded in shared/__tests__/status-offload.
  */
 
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
@@ -33,13 +33,8 @@ import {
   offloadOversizedToolOutputs,
   detectImagePayload,
 } from "../../../shared/status-offload.js";
-import {
-  toResultString,
-  canonicalizeImageResult,
-  buildToolCallProto,
-  MessageAccumulator,
-} from "../message-translator.js";
-import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import { toResultString, canonicalizeImageResult } from "../tool-result.js";
+import { foldCursorEvents } from "../__test-utils__/fold.js";
 
 // PNG signature + a little payload. PNG_BYTES is how the Cursor SDK delivers
 // image data at runtime (Node Buffer-JSON); PNG_BASE64 is its base64 form, used
@@ -143,7 +138,7 @@ describe("toResultString", () => {
   });
 });
 
-describe("buildToolCallProto image normalization", () => {
+describe("stream row image normalization (through the translator and the builder)", () => {
   it("produces a result the shared offload detector recognizes as an image", () => {
     const event = {
       type: "tool_call",
@@ -156,7 +151,7 @@ describe("buildToolCallProto image normalization", () => {
       result: cursorImageEnvelope(),
     } as unknown as Extract<SDKMessage, { type: "tool_call" }>;
 
-    const tc = buildToolCallProto(event);
+    const tc = foldCursorEvents([event]).rows()[0];
     expect(tc.name).toBe("get_app_state");
     const img = detectImagePayload(tc.result);
     expect(img).not.toBeNull();
@@ -188,7 +183,7 @@ describe("cursor image flows through the persist-time offload", () => {
       result: cursorImageEnvelope(),
     } as unknown as Extract<SDKMessage, { type: "tool_call" }>;
 
-    const tc = buildToolCallProto(event);
+    const tc = foldCursorEvents([event]).rows()[0];
     const status = create(AgentExecutionStatusSchema, {
       messages: [create(AgentMessageSchema, { toolCalls: [tc] })],
     });
@@ -207,11 +202,8 @@ describe("cursor image flows through the persist-time offload", () => {
   });
 });
 
-describe("sub-agent image normalization (extractConversationSteps)", () => {
+describe("sub-agent image normalization (sub-agent-steps)", () => {
   it("normalizes a screenshot returned inside a sub-agent toolCall step", () => {
-    const messages: AgentMessage[] = [];
-    const acc = new MessageAccumulator(messages);
-
     const running = {
       type: "tool_call",
       agent_id: "a1",
@@ -221,9 +213,6 @@ describe("sub-agent image normalization (extractConversationSteps)", () => {
       status: "running",
       args: { description: "screenshot", prompt: "capture" },
     } as unknown as Extract<SDKMessage, { type: "tool_call" }>;
-    acc.processEvent(running);
-    acc.trackSubAgentExecution(running);
-
     const completed = {
       type: "tool_call",
       agent_id: "a1",
@@ -254,10 +243,7 @@ describe("sub-agent image normalization (extractConversationSteps)", () => {
       },
     } as unknown as Extract<SDKMessage, { type: "tool_call" }>;
 
-    acc.processEvent(completed);
-    acc.trackSubAgentExecution(completed);
-
-    const sub = acc.subAgentExecutions[0];
+    const sub = foldCursorEvents([running, completed]).status.subAgentExecutions[0];
     const subToolResult = sub.messages[0].toolCalls[0].result;
     const img = detectImagePayload(subToolResult);
     expect(img?.base64).toBe(PNG_BASE64);

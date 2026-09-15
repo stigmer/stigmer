@@ -3,10 +3,6 @@
     {
       "type": "MESSAGE_AI",
       "content": "Reading file 0.",
-      "timestamp": "2026-01-01T00:00:01.000Z"
-    },
-    {
-      "type": "MESSAGE_AI",
       "timestamp": "2026-01-01T00:00:01.000Z",
       "toolCalls": [
         {
@@ -19,8 +15,16 @@
           "status": "TOOL_CALL_COMPLETED",
           "startedAt": "2026-01-01T00:00:01.000Z",
           "completedAt": "2026-01-01T00:00:01.000Z",
+          "argsPreview": "{\"file_path\":\"/f0.md\"}",
           "toolKind": "TOOL_KIND_FILE_READ"
-        },
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "Reading file 1.",
+      "timestamp": "2026-01-01T00:00:02.000Z",
+      "toolCalls": [
         {
           "id": "call-hermetic-loop-0001",
           "name": "read_file",
@@ -31,8 +35,16 @@
           "status": "TOOL_CALL_COMPLETED",
           "startedAt": "2026-01-01T00:00:02.000Z",
           "completedAt": "2026-01-01T00:00:02.000Z",
+          "argsPreview": "{\"file_path\":\"/f1.md\"}",
           "toolKind": "TOOL_KIND_FILE_READ"
-        },
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "Reading file 2.",
+      "timestamp": "2026-01-01T00:00:03.000Z",
+      "toolCalls": [
         {
           "id": "call-hermetic-loop-0002",
           "name": "read_file",
@@ -43,8 +55,16 @@
           "status": "TOOL_CALL_COMPLETED",
           "startedAt": "2026-01-01T00:00:03.000Z",
           "completedAt": "2026-01-01T00:00:03.000Z",
+          "argsPreview": "{\"file_path\":\"/f2.md\"}",
           "toolKind": "TOOL_KIND_FILE_READ"
-        },
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "Reading file 3.",
+      "timestamp": "2026-01-01T00:00:04.000Z",
+      "toolCalls": [
         {
           "id": "call-hermetic-loop-0003",
           "name": "read_file",
@@ -55,8 +75,16 @@
           "status": "TOOL_CALL_COMPLETED",
           "startedAt": "2026-01-01T00:00:04.000Z",
           "completedAt": "2026-01-01T00:00:04.000Z",
+          "argsPreview": "{\"file_path\":\"/f3.md\"}",
           "toolKind": "TOOL_KIND_FILE_READ"
-        },
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "Reading file 4.",
+      "timestamp": "2026-01-01T00:00:05.000Z",
+      "toolCalls": [
         {
           "id": "call-hermetic-loop-0004",
           "name": "read_file",
@@ -67,8 +95,16 @@
           "status": "TOOL_CALL_COMPLETED",
           "startedAt": "2026-01-01T00:00:05.000Z",
           "completedAt": "2026-01-01T00:00:05.000Z",
+          "argsPreview": "{\"file_path\":\"/f4.md\"}",
           "toolKind": "TOOL_KIND_FILE_READ"
-        },
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "Reading file 5.",
+      "timestamp": "2026-01-01T00:00:06.000Z",
+      "toolCalls": [
         {
           "id": "call-hermetic-loop-0005",
           "name": "read_file",
@@ -79,8 +115,16 @@
           "status": "TOOL_CALL_COMPLETED",
           "startedAt": "2026-01-01T00:00:06.000Z",
           "completedAt": "2026-01-01T00:00:06.000Z",
+          "argsPreview": "{\"file_path\":\"/f5.md\"}",
           "toolKind": "TOOL_KIND_FILE_READ"
-        },
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "Reading file 6.",
+      "timestamp": "2026-01-01T00:00:07.000Z",
+      "toolCalls": [
         {
           "id": "call-hermetic-loop-0006",
           "name": "read_file",
@@ -91,8 +135,16 @@
           "status": "TOOL_CALL_COMPLETED",
           "startedAt": "2026-01-01T00:00:07.000Z",
           "completedAt": "2026-01-01T00:00:07.000Z",
+          "argsPreview": "{\"file_path\":\"/f6.md\"}",
           "toolKind": "TOOL_KIND_FILE_READ"
-        },
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "Reading file 7.",
+      "timestamp": "2026-01-01T00:00:08.000Z",
+      "toolCalls": [
         {
           "id": "call-hermetic-loop-0007",
           "name": "read_file",
@@ -103,8 +155,16 @@
           "status": "TOOL_CALL_COMPLETED",
           "startedAt": "2026-01-01T00:00:08.000Z",
           "completedAt": "2026-01-01T00:00:08.000Z",
+          "argsPreview": "{\"file_path\":\"/f7.md\"}",
           "toolKind": "TOOL_KIND_FILE_READ"
-        },
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "Reading file 8.",
+      "timestamp": "2026-01-01T00:00:09.000Z",
+      "toolCalls": [
         {
           "id": "call-hermetic-loop-0008",
           "name": "read_file",
@@ -115,8 +175,16 @@
           "status": "TOOL_CALL_COMPLETED",
           "startedAt": "2026-01-01T00:00:09.000Z",
           "completedAt": "2026-01-01T00:00:09.000Z",
+          "argsPreview": "{\"file_path\":\"/f8.md\"}",
           "toolKind": "TOOL_KIND_FILE_READ"
-        },
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "Reading file 9.",
+      "timestamp": "2026-01-01T00:00:10.000Z",
+      "toolCalls": [
         {
           "id": "call-hermetic-loop-0009",
           "name": "read_file",
@@ -127,8 +195,16 @@
           "status": "TOOL_CALL_COMPLETED",
           "startedAt": "2026-01-01T00:00:10.000Z",
           "completedAt": "2026-01-01T00:00:10.000Z",
+          "argsPreview": "{\"file_path\":\"/f9.md\"}",
           "toolKind": "TOOL_KIND_FILE_READ"
-        },
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "Reading file 10.",
+      "timestamp": "2026-01-01T00:00:11.000Z",
+      "toolCalls": [
         {
           "id": "call-hermetic-loop-0010",
           "name": "read_file",
@@ -139,8 +215,16 @@
           "status": "TOOL_CALL_COMPLETED",
           "startedAt": "2026-01-01T00:00:11.000Z",
           "completedAt": "2026-01-01T00:00:11.000Z",
+          "argsPreview": "{\"file_path\":\"/f10.md\"}",
           "toolKind": "TOOL_KIND_FILE_READ"
-        },
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "Reading file 11.",
+      "timestamp": "2026-01-01T00:00:12.000Z",
+      "toolCalls": [
         {
           "id": "call-hermetic-loop-0011",
           "name": "read_file",
@@ -151,8 +235,16 @@
           "status": "TOOL_CALL_COMPLETED",
           "startedAt": "2026-01-01T00:00:12.000Z",
           "completedAt": "2026-01-01T00:00:12.000Z",
+          "argsPreview": "{\"file_path\":\"/f11.md\"}",
           "toolKind": "TOOL_KIND_FILE_READ"
-        },
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "Reading file 12.",
+      "timestamp": "2026-01-01T00:00:13.000Z",
+      "toolCalls": [
         {
           "id": "call-hermetic-loop-0012",
           "name": "read_file",
@@ -163,69 +255,10 @@
           "status": "TOOL_CALL_COMPLETED",
           "startedAt": "2026-01-01T00:00:13.000Z",
           "completedAt": "2026-01-01T00:00:13.000Z",
+          "argsPreview": "{\"file_path\":\"/f12.md\"}",
           "toolKind": "TOOL_KIND_FILE_READ"
         }
       ]
-    },
-    {
-      "type": "MESSAGE_AI",
-      "content": "Reading file 1.",
-      "timestamp": "2026-01-01T00:00:02.000Z"
-    },
-    {
-      "type": "MESSAGE_AI",
-      "content": "Reading file 2.",
-      "timestamp": "2026-01-01T00:00:03.000Z"
-    },
-    {
-      "type": "MESSAGE_AI",
-      "content": "Reading file 3.",
-      "timestamp": "2026-01-01T00:00:04.000Z"
-    },
-    {
-      "type": "MESSAGE_AI",
-      "content": "Reading file 4.",
-      "timestamp": "2026-01-01T00:00:05.000Z"
-    },
-    {
-      "type": "MESSAGE_AI",
-      "content": "Reading file 5.",
-      "timestamp": "2026-01-01T00:00:06.000Z"
-    },
-    {
-      "type": "MESSAGE_AI",
-      "content": "Reading file 6.",
-      "timestamp": "2026-01-01T00:00:07.000Z"
-    },
-    {
-      "type": "MESSAGE_AI",
-      "content": "Reading file 7.",
-      "timestamp": "2026-01-01T00:00:08.000Z"
-    },
-    {
-      "type": "MESSAGE_AI",
-      "content": "Reading file 8.",
-      "timestamp": "2026-01-01T00:00:09.000Z"
-    },
-    {
-      "type": "MESSAGE_AI",
-      "content": "Reading file 9.",
-      "timestamp": "2026-01-01T00:00:10.000Z"
-    },
-    {
-      "type": "MESSAGE_AI",
-      "content": "Reading file 10.",
-      "timestamp": "2026-01-01T00:00:11.000Z"
-    },
-    {
-      "type": "MESSAGE_AI",
-      "content": "Reading file 11.",
-      "timestamp": "2026-01-01T00:00:12.000Z"
-    },
-    {
-      "type": "MESSAGE_AI",
-      "content": "Reading file 12.",
-      "timestamp": "2026-01-01T00:00:13.000Z"
     },
     {
       "type": "MESSAGE_AI",

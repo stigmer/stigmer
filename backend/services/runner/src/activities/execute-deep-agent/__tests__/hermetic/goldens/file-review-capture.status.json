@@ -3,11 +3,7 @@
     {
       "type": "MESSAGE_AI",
       "content": "Appending the line.",
-      "timestamp": "2026-01-01T00:00:02.000Z"
-    },
-    {
-      "type": "MESSAGE_AI",
-      "timestamp": "2026-01-01T00:00:02.000Z",
+      "timestamp": "2026-01-01T00:00:01.000Z",
       "toolCalls": [
         {
           "id": "call-hermetic-edit-0001",
@@ -19,8 +15,9 @@
           },
           "result": "Successfully replaced 1 occurrence(s) in '/notes.md'",
           "status": "TOOL_CALL_COMPLETED",
-          "startedAt": "2026-01-01T00:00:02.000Z",
-          "completedAt": "2026-01-01T00:00:02.000Z",
+          "startedAt": "2026-01-01T00:00:01.000Z",
+          "completedAt": "2026-01-01T00:00:01.000Z",
+          "argsPreview": "{\"file_path\":\"/notes.md\",\"old_string\":\"first\\n\",\"new_string\":\"first\\nsecond\\n\"}",
           "toolKind": "TOOL_KIND_FILE_EDIT",
           "approvalPolicySource": "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
           "policyEngineVersion": "phase-7",

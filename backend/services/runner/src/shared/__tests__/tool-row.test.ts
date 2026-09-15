@@ -382,7 +382,7 @@ describe("collectSettledToolCallIds", () => {
     // scoping them as this-turn would mis-attribute a dead call to the
     // resuming turn's change set. (The Cursor monotonic guard makes the
     // opposite call for the same status so a replayed event can still advance
-    // the row; see isTerminalToolStatus in message-translator.ts.)
+    // the row; see isSettled in harness/transcript/builder.ts.)
     const ids = collectSettledToolCallIds([
       msgWith("tc-interrupted", ToolCallStatus.TOOL_CALL_INTERRUPTED),
     ]);

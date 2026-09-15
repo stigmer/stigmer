@@ -21,6 +21,18 @@
  * Engine disposition on this arm, today: the handle is `close()`d, not parked
  * (index.ts `enterUnattributedHookBlockFailure`).
  *
+ * Moved 2026-09-14 (S4 M4 A3, Q-S4-17), one line: the FAILED row — built from
+ * a single `status: "error"` event with no `running` before it — carries
+ * `startedAt`, equal to its `completedAt`: the instant the runner first
+ * learned of the call. Until A3 a completed-only event left the field unset,
+ * the one field the canonical builder stamps at every row's creation. This
+ * is the only Cursor golden that scripts a completed-only event (M4 finding
+ * F-M4-1; Q-S4-17's predicted three were this one).
+ *
+ * Moved again the same day (S4 M4 A4, Q-M4-3), one line: the FAILED row's
+ * `result` no longer duplicates its `error` — the hook-block text lives in
+ * `error` alone, which is the field the #205 detector reads.
+ *
  * Parent phase rows exercised beyond the earlier scenarios: the gate install's
  * foreign-hook detection (`workspace-setup.ts` `mergeHooks`); the FAILED
  * tool-call row built from a single `status: "error"` event; the boundary's
@@ -83,7 +95,7 @@ const USER_HOOKS_JSON =
   JSON.stringify({ version: 1, hooks: { preToolUse: [{ command: FOREIGN_HOOK_COMMAND }] } }, null, 2) + "\n";
 /**
  * The error text Cursor stamps on a hook-blocked tool call
- * (`message-translator.ts` HOOK_BLOCK_ERROR_MARKERS). The SDK has no structured
+ * (`boundary-rows.ts` HOOK_BLOCK_ERROR_MARKERS). The SDK has no structured
  * "denied by hook" signal; this text is the only stream-side trace.
  */
 const HOOK_BLOCK_ERROR = "blocked by a hook";

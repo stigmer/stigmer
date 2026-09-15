@@ -1,12 +1,12 @@
 /**
- * Todo-list projection shared by every harness's status writer.
+ * Todo-list projection the one transcript builder applies for every harness.
  *
  * All harnesses expose an agent to-do tool — the Cursor SDK emits `TodoWrite`
  * (legacy) / `updateTodos` (current), the native deepagents harness emits
  * `write_todos` — and each writes the SAME `AgentExecutionStatus.todos` proto
  * map that the clients (React `TodoCard`, CLI) render. This module is the single
- * place that maps a raw tool payload into that map, so the Cursor `TodoTracker`
- * and the native v2/v3 status builders cannot drift in how they build todos.
+ * place that maps a raw tool payload into that map, so the one transcript builder
+ * (`harness/transcript/builder.ts`, both harnesses since S4 M4) has one mapping.
  *
  * The mapping is a superset of what any one harness emits: the Cursor SDK sends
  * per-item `id`/`created_at` and can send a `merge` flag and camelCase statuses;

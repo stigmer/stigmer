@@ -21,7 +21,7 @@
  *    for the first time — and the REAL bash hook must ALLOW A's re-issue while
  *    DENYING B, the out-of-process half the native gate has no equivalent for.
  *
- * Exercises the MessageAccumulator + denial reconciliation (the unit that owns
+ * Exercises the translator + builder + denial reconciliation (the units that own
  * the Cursor resume emitter) plus the generated hook, keeping the reproduction
  * hermetic and pinned to the exact code under change.
  */
@@ -40,11 +40,9 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { SDKMessage } from "@cursor/sdk";
 
-import {
-  MessageAccumulator,
-  reconcileDeniedToolCalls,
-  toolCallIdentityToken,
-} from "../message-translator.js";
+import { reconcileDeniedToolCalls } from "../boundary-rows.js";
+import { CursorFold, builderOver } from "../__test-utils__/fold.js";
+import { toolCallIdentityToken } from "../approval-state.js";
 import {
   buildApprovalGrants,
   buildApprovalState,
@@ -139,16 +137,14 @@ describe("Cursor sequential gates A->B across resume", () => {
     const committed = approvedGateA();
     const seeded = committed.map((m) => clone(AgentMessageSchema, m));
 
-    const acc = new MessageAccumulator(seeded, {});
-    for (const event of resumeIntoGateB()) acc.processEvent(event);
-    acc.finalize();
+    new CursorFold({ messages: seeded }).events(...resumeIntoGateB()).finalize();
 
     // Gate B was denied this turn; its identity comes off the reconciled call.
     const bCall = allToolCalls(seeded).find((tc) => tc.name === "shell")!;
     const ledger: DeniedLedgerEntry[] = [
       { toolName: "shell", token: toolCallIdentityToken(bCall) },
     ];
-    await reconcileDeniedToolCalls(seeded, ledger);
+    await reconcileDeniedToolCalls(seeded, builderOver(seeded), ledger);
 
     const tools = allToolCalls(seeded);
     const byId = new Map(tools.map((tc) => [tc.id, tc]));

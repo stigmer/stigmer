@@ -30,17 +30,29 @@
 
 import { create } from "@bufbuild/protobuf";
 import {
-  WorkspaceWriteBackSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/writeback_pb";
-import {
   WorkspaceWriteBackPhase,
+  WorkspaceWriteBackSchema,
+  type WorkspaceWriteBack,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/writeback_pb";
 import { GitWriteBackMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import type { WorkspaceBackend, ProvisionResult } from "./types.js";
 import { SourceType } from "./types.js";
 import { gitCommitAsAgent } from "./git-identity.js";
-import type { ExecutionStatusWriter } from "../execution-status-writer.js";
+
+/**
+ * Where a write-back record is registered: the one member of the turn's
+ * transcript builder this coordinator needs (`harness/transcript/builder.ts`
+ * `addWriteBack`, which owns the upsert-by-entry rule — each git-backed
+ * workspace entry carries at most one record, progressing through phases).
+ * Declared here as the narrow view this consumer needs, never the whole
+ * builder, so `shared/` keeps importing nothing from `harness/` (the
+ * `SessionProvisionConfig` rule: a shared helper is handed a narrowed view,
+ * never the other way round).
+ */
+export interface WriteBackSink {
+  addWriteBack(wb: WorkspaceWriteBack): void;
+}
 
 const WRITE_BACK_ENABLED_MODES = new Set([
   GitWriteBackMode.GIT_WRITE_BACK_MODE_UNSPECIFIED,
@@ -68,7 +80,7 @@ interface EligibleEntry {
 }
 
 export class WriteBackCoordinator {
-  private readonly statusWriter: ExecutionStatusWriter;
+  private readonly writeBacks: WriteBackSink;
   private readonly executionId: string;
   private readonly workspaceBackend: WorkspaceBackend;
   private readonly branchName: string;
@@ -85,7 +97,7 @@ export class WriteBackCoordinator {
   private readonly state = new Map<string, EntryState>();
 
   constructor(opts: {
-    statusWriter: ExecutionStatusWriter;
+    writeBacks: WriteBackSink;
     executionId: string;
     /** The owning session's id — the branch/PR are session-scoped. */
     sessionId: string;
@@ -94,7 +106,7 @@ export class WriteBackCoordinator {
     workspaceEntries: readonly WorkspaceEntry[];
     workspaceBackend: WorkspaceBackend;
   }) {
-    this.statusWriter = opts.statusWriter;
+    this.writeBacks = opts.writeBacks;
     this.executionId = opts.executionId;
     this.workspaceBackend = opts.workspaceBackend;
     this.githubToken = opts.githubToken;
@@ -222,7 +234,7 @@ export class WriteBackCoordinator {
         wb.pullRequestUrl = entryState.prUrl;
         wb.pullRequestNumber = entryState.prNumber;
       }
-      this.statusWriter.addWriteBack(wb);
+      this.writeBacks.addWriteBack(wb);
       return;
     }
 
@@ -466,7 +478,7 @@ export class WriteBackCoordinator {
       error: prError,
     });
 
-    this.statusWriter.addWriteBack(wb);
+    this.writeBacks.addWriteBack(wb);
   }
 
 }

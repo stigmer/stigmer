@@ -19,7 +19,7 @@
  *      watchdog failed the run ("approval propagation is broken").
  *
  * The fix (seed the transcript on resume + reconcile re-runs by canonical
- * identity in MessageAccumulator) makes the resume status a strict superset:
+ * identity in the Cursor translator, Q-S4-9) makes the resume status a strict superset:
  * the committed ids survive, the re-runs reconcile in place, and the genuinely
  * new gated tool is appended. The guard then accepts it.
  *
@@ -27,13 +27,14 @@
  * (nonTerminalTranscriptRegression): a from-empty rebuild is REJECTED (the bug),
  * a seeded rebuild is ACCEPTED (the fix).
  *
- * This exercises the MessageAccumulator + denial-reconciliation directly — the
+ * This exercises the translator + builder + denial-reconciliation directly — the
  * unit that owns the resume emitter — rather than the full Temporal activity,
  * keeping the reproduction hermetic and pinned to the exact code under change.
  */
 
 import { describe, it, expect } from "vitest";
 import { create, clone } from "@bufbuild/protobuf";
+import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import {
   AgentMessageSchema,
   ToolCallSchema,
@@ -47,12 +48,9 @@ import {
   ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { SDKMessage } from "@cursor/sdk";
-import {
-  MessageAccumulator,
-  reconcileDeniedToolCalls,
-  clearProvisionalPostDenialNarration,
-  buildToolCallProto,
-} from "../message-translator.js";
+import { reconcileDeniedToolCalls, clearProvisionalPostDenialNarration } from "../boundary-rows.js";
+import { CursorFold, builderOver } from "../__test-utils__/fold.js";
+import { TranscriptBuilder } from "../../../harness/transcript/builder.js";
 import {
   grantToken,
   buildApprovalGrants,
@@ -213,11 +211,9 @@ describe("Cursor HITL resume — append-only transcript", () => {
     const committed = persistedRunOneMessages();
 
     // Pre-fix behavior: status.messages starts empty on resume, so the
-    // accumulator can never reconcile onto the committed calls.
+    // translator can never reconcile onto the committed calls.
     const fromEmpty: AgentMessage[] = [];
-    const acc = new MessageAccumulator(fromEmpty, {});
-    for (const event of resumeEvents()) acc.processEvent(event);
-    acc.finalize();
+    new CursorFold({ messages: fromEmpty }).events(...resumeEvents()).finalize();
 
     // The committed ids are absent — exactly what trips the backend guard.
     const ids = new Set(allToolCalls(fromEmpty).map((tc) => tc.id));
@@ -233,15 +229,13 @@ describe("Cursor HITL resume — append-only transcript", () => {
     const committed = persistedRunOneMessages();
 
     // Post-fix behavior: index.ts seeds status.messages from the persisted
-    // execution (cloned) before constructing the accumulator.
+    // execution (cloned) before constructing the translator and the builder.
     const seeded = committed.map((m) => clone(AgentMessageSchema, m));
-    const acc = new MessageAccumulator(seeded, {});
-    for (const event of resumeEvents()) acc.processEvent(event);
-    acc.finalize();
+    new CursorFold({ messages: seeded }).events(...resumeEvents()).finalize();
 
     // Post-stream denial overlay (the activity's Phase 12): only `click` is in
     // the ledger, so only it flips to WAITING_APPROVAL.
-    const denied = await reconcileDeniedToolCalls(seeded, clickDenialLedger());
+    const denied = await reconcileDeniedToolCalls(seeded, builderOver(seeded), clickDenialLedger());
     const redacted = clearProvisionalPostDenialNarration(seeded, denied);
 
     const tools = allToolCalls(seeded);
@@ -282,9 +276,11 @@ describe("Cursor HITL resume — append-only transcript", () => {
 
   it("FIX: a sub-agent's gated tool also survives resume (the seeded sub-agent rows are wrapped by reference and indexed)", () => {
     // Sub-agent parity: the runtime seeds `status.subAgentExecutions` on a
-    // resume (`seedFromPersistedStatus`) and the accumulator wraps that very
-    // array, exactly as it wraps `status.messages`, so the seeded row is
-    // retained, indexed by id, and a resumed update lands on it in place.
+    // resume (`seedFromPersistedStatus`, through the builder's `seed()`) and
+    // the builder holds that very array, exactly as it holds
+    // `status.messages`, so the seeded row is retained, indexed by id, and a
+    // resumed update lands on it in place. This arm hands the seeded status
+    // to the constructor, which indexes by the same routine `seed()` does.
     const seededSub = create(SubAgentExecutionSchema, {
       id: "sub_1",
       name: "researcher",
@@ -292,11 +288,12 @@ describe("Cursor HITL resume — append-only transcript", () => {
     });
     const statusRows = [seededSub];
 
-    const acc = new MessageAccumulator([], { subAgentExecutions: statusRows });
-    acc.finalize();
+    const status = create(AgentExecutionStatusSchema, {});
+    status.subAgentExecutions = statusRows;
+    new TranscriptBuilder("exec-resume", status).finalize();
 
-    expect(acc.subAgentExecutions, "the status's own array, not a copy").toBe(statusRows);
-    expect(acc.subAgentExecutions.some((s) => s.id === "sub_1")).toBe(true);
+    expect(status.subAgentExecutions, "the status's own array, not a copy").toBe(statusRows);
+    expect(status.subAgentExecutions.some((s) => s.id === "sub_1")).toBe(true);
   });
 
   it("FIX: the approved tools are ALLOWED by the hook on resume — not re-denied (the loop's source)", () => {
@@ -404,12 +401,10 @@ describe("Cursor HITL resume — two approvals then clean completion (no loop)",
     const committed = committedBuiltInApprovals();
     const seeded = committed.map((m) => clone(AgentMessageSchema, m));
 
-    const acc = new MessageAccumulator(seeded, {});
-    for (const event of builtInResumeEvents()) acc.processEvent(event);
-    acc.finalize();
+    new CursorFold({ messages: seeded }).events(...builtInResumeEvents()).finalize();
 
     // The hook allowed both (no denials this turn), so the overlay adds nothing.
-    const denied = await reconcileDeniedToolCalls(seeded, []);
+    const denied = await reconcileDeniedToolCalls(seeded, builderOver(seeded), []);
     expect(denied).toHaveLength(0);
 
     const tools = allToolCalls(seeded);

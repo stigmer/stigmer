@@ -1,11 +1,25 @@
 /**
- * V3 protocol event factories for normalizer and status builder tests.
+ * V3 protocol event factories for the translator's and the builder's arms.
  *
  * Shapes are derived from real recordings in /tmp/stigmer-v3-provider/
  * captured during Phase 1 validation with Claude claude-sonnet-4-6.
+ *
+ * Namespaces default to LangGraph 1.3.2's REAL shape (S4 M2 C4, plan finding
+ * F-M2-16): a model event arrives under `["model_request:<uuid>"]` and a tool
+ * event under `["tools:<uuid>"]` — one segment each, a fresh uuid per LLM
+ * call / tool run. Until C4 the model factories defaulted to `[]`, so the
+ * arms never saw the namespace miss the hermetic goldens showed (S3 M0
+ * finding F-M0-1: the root builder filed text under the raw namespace and
+ * looked a tool's parent up under `""`). A sub-agent's events pass their own
+ * `namespace` (`["tools:<taskUuid>", "model_request:<inner>"]`).
  */
 
 import type { V3ProtocolEvent } from "../v3-event-recorder.js";
+
+/** The namespace a root model event carries: the model node's segment, per LLM call. */
+function modelNamespace(runId: string): string[] {
+  return [`model_request:${runId}`];
+}
 
 let seqCounter = 0;
 export function resetSeq(): void { seqCounter = 0; }
@@ -61,7 +75,7 @@ export function makeMessageStart(
     id: opts?.messageId ?? `msg_${runId}`,
     usage: opts?.usage,
     run_id: runId,
-  }, { namespace: opts?.namespace, node: opts?.node ?? "model_request" });
+  }, { namespace: opts?.namespace ?? modelNamespace(runId), node: opts?.node ?? "model_request" });
 }
 
 export function makeMessageFinish(
@@ -81,7 +95,7 @@ export function makeMessageFinish(
     metadata: opts?.metadata,
     responseMetadata: opts?.metadata,
     run_id: runId,
-  }, { namespace: opts?.namespace, node: opts?.node ?? "model_request" });
+  }, { namespace: opts?.namespace ?? modelNamespace(runId), node: opts?.node ?? "model_request" });
 }
 
 // ── Messages: content-block-start/delta/finish ────────────────────
@@ -96,7 +110,7 @@ export function makeContentBlockStartText(
     index,
     content: { type: "text", text: "" },
     run_id: runId,
-  }, { namespace: opts?.namespace, node: "model_request" });
+  }, { namespace: opts?.namespace ?? modelNamespace(runId), node: "model_request" });
 }
 
 export function makeTextDelta(
@@ -109,7 +123,7 @@ export function makeTextDelta(
     index: opts?.index ?? 0,
     delta: { type: "text-delta", text },
     run_id: runId,
-  }, { namespace: opts?.namespace, node: "model_request" });
+  }, { namespace: opts?.namespace ?? modelNamespace(runId), node: "model_request" });
 }
 
 export function makeReasoningDelta(
@@ -122,7 +136,7 @@ export function makeReasoningDelta(
     index: opts?.index ?? 0,
     delta: { type: "reasoning-delta", reasoning: text },
     run_id: runId,
-  }, { namespace: opts?.namespace, node: "model_request" });
+  }, { namespace: opts?.namespace ?? modelNamespace(runId), node: "model_request" });
 }
 
 export function makeToolCallArgDelta(
@@ -139,7 +153,7 @@ export function makeToolCallArgDelta(
       fields: { type: "tool_call_chunk", id: callId, args },
     },
     run_id: runId,
-  }, { namespace: opts?.namespace, node: "model_request" });
+  }, { namespace: opts?.namespace ?? modelNamespace(runId), node: "model_request" });
 }
 
 export function makeContentBlockFinish(
@@ -152,7 +166,7 @@ export function makeContentBlockFinish(
     index,
     content: opts?.content ?? { type: "text", text: "" },
     run_id: runId,
-  }, { namespace: opts?.namespace, node: "model_request" });
+  }, { namespace: opts?.namespace ?? modelNamespace(runId), node: "model_request" });
 }
 
 // ── Messages: usage / provider ────────────────────────────────────
@@ -166,7 +180,7 @@ export function makeUsageEvent(
     event: "usage",
     usage,
     run_id: runId,
-  }, { namespace: opts?.namespace, node: "model_request" });
+  }, { namespace: opts?.namespace ?? modelNamespace(runId), node: "model_request" });
 }
 
 export function makeProviderEvent(
@@ -181,7 +195,7 @@ export function makeProviderEvent(
     name: "message_start",
     payload: { model, id: `msg_${runId}` },
     run_id: runId,
-  }, { namespace: opts?.namespace, node: "model_request" });
+  }, { namespace: opts?.namespace ?? modelNamespace(runId), node: "model_request" });
 }
 
 // ── Tools ─────────────────────────────────────────────────────────
@@ -244,7 +258,7 @@ export function makeToolOutputDelta(
   }, { namespace: opts?.namespace ?? [`tools:${callId}`] });
 }
 
-// ── Ignored channels (for normalizer completeness tests) ──────────
+// ── Ignored channels (for translator completeness tests) ──────────
 
 export function makeCheckpointEvent(): V3ProtocolEvent {
   return makeProtocolEvent("checkpoints", {

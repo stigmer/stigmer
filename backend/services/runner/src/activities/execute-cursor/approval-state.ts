@@ -87,7 +87,7 @@ import { create } from "@bufbuild/protobuf";
 import { ApprovalAction, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
-import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { MergedToolPolicy, ApprovalCategory } from "./approval-policy.js";
 import { extractArgKey, approvalCategory, POLICY_ENGINE_VERSION } from "./approval-policy.js";
 import { contentDigest } from "../../shared/file-tools.js";
@@ -284,6 +284,71 @@ export function contentToken(key: string, salient: string, contentDigest: string
  */
 export function primaryToken(key: string, salient: string, contentDigest: string): string {
   return contentDigest ? contentToken(key, salient, contentDigest) : grantToken(key, salient);
+}
+
+/**
+ * Compute a streamed tool call's identity token in the same canonical space the
+ * preToolUse hook records denials in (see {@link toolIdentity} / primaryToken).
+ * The token keys on the cross-taxonomy category + salient resource PLUS, for a
+ * file edit/write, the {@link contentDigest} of the edit content — so a stream
+ * `edit` correlates to the hook's `Write` deny for the same path AND content,
+ * and an approval of one edit does not match a DIFFERENT edit to the same file.
+ *
+ * The digest is read from the persisted `approval_content_digest` field when
+ * present (a seeded gate carries it, stable even if `args` was elided), and is
+ * recomputed from the call's args otherwise (a freshly-streamed call). For a
+ * shell/delete/MCP call (no content) it falls back to the coarse token, exactly
+ * as before — so those identities are unchanged.
+ *
+ * Exported so the resume-grant round-trip can be locked against it: the grant a
+ * resume mints for an approved tool (buildApprovalGrants -> primaryToken) must
+ * equal THIS denial/overlay identity, or the re-issued call is re-gated forever
+ * (the dual-path drift the approval-state round-trip suite guards against).
+ */
+export function toolCallIdentityToken(tc: ToolCall): string {
+  const id = toolIdentity(tc.name, tc.mcpServerSlug, toolCallArgs(tc));
+  const digest = tc.approvalContentDigest || contentDigest(toolCallArgs(tc));
+  return primaryToken(id.key, id.salient, digest);
+}
+
+/**
+ * Decode a primary token back into its (key, salient, digest) for the synthesis
+ * fallback. The token is `base64(key \n salient)` (coarse) or
+ * `base64(key \n salient \n digest)` (content-exact); the digest is the optional
+ * third segment. salient never contains a newline (a path or shell command), so
+ * splitting on the first two newlines is unambiguous.
+ */
+export function decodeIdentityToken(
+  token: string,
+): { key: string; salient: string; digest: string } | undefined {
+  try {
+    const decoded = Buffer.from(token, "base64").toString("utf-8");
+    const first = decoded.indexOf("\n");
+    if (first < 0) return undefined;
+    const key = decoded.slice(0, first);
+    const rest = decoded.slice(first + 1);
+    const second = rest.indexOf("\n");
+    if (second < 0) return { key, salient: rest, digest: "" };
+    return { key, salient: rest.slice(0, second), digest: rest.slice(second + 1) };
+  } catch {
+    return undefined;
+  }
+}
+
+/** Best-effort args record for a tool call (proto struct, else parsed preview). */
+export function toolCallArgs(tc: ToolCall): Record<string, unknown> {
+  if (tc.args && typeof tc.args === "object") {
+    return tc.args as Record<string, unknown>;
+  }
+  if (tc.argsPreview) {
+    try {
+      const parsed = JSON.parse(tc.argsPreview);
+      if (parsed && typeof parsed === "object") return parsed as Record<string, unknown>;
+    } catch {
+      // fall through
+    }
+  }
+  return {};
 }
 
 /**

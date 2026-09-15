@@ -53,8 +53,7 @@ import { TimeoutError, withTimeout } from "../../shared/with-timeout.js";
 import { InlinePublisher } from "./inline-publisher.js";
 import { StreamingSideEffects } from "./streaming-side-effects.js";
 import { createV3EventRecorder, type V3ProtocolEvent } from "./v3-event-recorder.js";
-import { normalize } from "./v3-protocol-normalizer.js";
-import { V3StatusBuilder } from "./v3-status-builder.js";
+import { DeepAgentTranslator, usageOf, type V3UsagePayload } from "./translator.js";
 import type { DeepAgentEngine, DeepAgentGraphInput, DeepAgentWorkspace } from "./turn-setup.js";
 
 /**
@@ -95,14 +94,17 @@ export interface DeepAgentStreamResult {
 }
 
 /**
- * The transcript writers of one turn: the builder over `sink.status` and the
- * publisher that writes artifacts through it (so a published artifact still
- * forces the next persist). Built by the adapter's turn once and shared by
- * the stream and the settle; the builder reports usage into the sink, priced
- * for the model the turn runs on.
+ * This harness's transcript writers for one turn: the translator that turns
+ * the engine's events into canonical ones (over the gate's posture, so every
+ * tool start carries its attribution and gate answer), and the publisher
+ * that registers artifacts on the runtime's builder (`sink.transcript`, so
+ * a published artifact still dirties the next persist). The builder itself
+ * is the runtime's, one per turn, and is read from the sink where it is
+ * needed. Built by the adapter's turn once and shared by the stream and the
+ * settle.
  */
 export interface DeepAgentTranscript {
-  readonly builder: V3StatusBuilder;
+  readonly translator: DeepAgentTranslator;
   readonly publisher: InlinePublisher;
 }
 
@@ -112,41 +114,40 @@ export function createDeepAgentTranscript(
   engine: DeepAgentEngine,
   workspace: DeepAgentWorkspace,
 ): DeepAgentTranscript {
-  const builder = new V3StatusBuilder(input.executionId, sink.status, {
-    onUsage: (usage) => {
-      // LangChain's `input_tokens` already INCLUDES the cache buckets (the
-      // Anthropic adapter folds them in; the cost advisory reads them the
-      // same way), so the counts are reported as delivered and the price
-      // is computed over the disjoint buckets.
-      const inputTokens = usage.input_tokens ?? 0;
-      const outputTokens = usage.output_tokens ?? 0;
-      const cacheReadTokens = usage.input_token_details?.cache_read ?? 0;
-      const cacheWriteTokens = usage.input_token_details?.cache_creation ?? 0;
-      const uncachedInput = Math.max(inputTokens - cacheReadTokens - cacheWriteTokens, 0);
-      sink.reportUsage({
-        inputTokens,
-        outputTokens,
-        cacheReadTokens,
-        cacheWriteTokens,
-        estimatedCostUsd: computeTurnCost(engine.pricing, uncachedInput, outputTokens, cacheWriteTokens, cacheReadTokens),
-        model: engine.modelName,
-      });
-    },
-  });
-  builder.setApprovalProvider({
-    policies: engine.gate.policies,
-    toolServerMap: engine.gate.toolServerMap,
-    leasedCategories: engine.gate.leasedCategories,
-    globalBypass: engine.gate.globalBypass,
-    unattended: engine.gate.unattended,
-  });
+  const translator = new DeepAgentTranslator(engine.gate);
   const publisher = new InlinePublisher({
     workspaceBackend: workspace.backend,
     artifactStorage: input.artifactStorage,
-    statusWriter: builder,
+    artifacts: sink.transcript,
     executionId: input.executionId,
   });
-  return { builder, publisher };
+  return { translator, publisher };
+}
+
+/**
+ * Price one `message-finish`'s usage at the engine's rates and report it to
+ * the sink, which accounts, enforces the cost cap and writes `streamingUsage`
+ * (Q-M2a-2). LangChain's `input_tokens` already INCLUDES the cache buckets
+ * (the Anthropic adapter folds them in; the cost advisory reads them the same
+ * way), so the counts are reported as delivered and the price is computed
+ * over the disjoint buckets. A sub-agent on its own model is priced at the
+ * parent's rate, as the in-graph cost cap always did (per-sub-agent pricing
+ * is an S5 item).
+ */
+function reportUsage(sink: TurnSink, engine: DeepAgentEngine, usage: V3UsagePayload): void {
+  const inputTokens = usage.input_tokens ?? 0;
+  const outputTokens = usage.output_tokens ?? 0;
+  const cacheReadTokens = usage.input_token_details?.cache_read ?? 0;
+  const cacheWriteTokens = usage.input_token_details?.cache_creation ?? 0;
+  const uncachedInput = Math.max(inputTokens - cacheReadTokens - cacheWriteTokens, 0);
+  sink.reportUsage({
+    inputTokens,
+    outputTokens,
+    cacheReadTokens,
+    cacheWriteTokens,
+    estimatedCostUsd: computeTurnCost(engine.pricing, uncachedInput, outputTokens, cacheWriteTokens, cacheReadTokens),
+    model: engine.modelName,
+  });
 }
 
 export interface DeepAgentStreamDeps {
@@ -165,7 +166,8 @@ export interface DeepAgentStreamDeps {
 export async function consumeDeepAgentStream(deps: DeepAgentStreamDeps): Promise<DeepAgentStreamResult> {
   const { input, sink, engine, graphInput, transcript } = deps;
   const { executionId } = input;
-  const { builder, publisher } = transcript;
+  const { translator, publisher } = transcript;
+  const builder = sink.transcript;
 
   const scheduler = new StreamingUpdateScheduler(loadStreamingConfig());
   const recorder = createV3EventRecorder(executionId, process.env.V3_EVENT_RECORD_DIR);
@@ -214,21 +216,21 @@ export async function consumeDeepAgentStream(deps: DeepAgentStreamDeps): Promise
 
         recorder?.record(event, eventsProcessed);
         let detail: string | undefined;
-        for (const normalized of normalize(event)) {
-          builder.processEvent(normalized);
+        for (const normalized of translator.translate(event)) {
+          builder.apply(normalized);
+          sideEffects.onEvent(normalized);
           if (normalized.kind === "tool_started") detail = normalized.name;
         }
-        sideEffects.onProtocolEvent(event);
+        const usage = usageOf(event);
+        if (usage) reportUsage(sink, engine, usage);
         eventsProcessed++;
         sink.recordActivity(detail);
 
-        const persist = shouldPersistStreamingStatus(
-          { deltaEnricherDirty: false, todosDirty: false, contentDirty: builder.forceNextUpdate },
-          scheduler,
-          eventsProcessed,
-        );
+        const persist = shouldPersistStreamingStatus(builder.dirty, scheduler, eventsProcessed);
         if (!persist) continue;
-        builder.clearForceFlag();
+        // Cleared as the write is requested, not after it lands: a change
+        // that folds while the write is in flight must dirty the next one.
+        builder.markPersisted();
         // The runtime attaches the mid-run file-change progress on this write
         // (the chokepoint's step 2), as it does on every write. Awaited so a platform STOP the runtime reads from this write has
         // aborted the signal by the time the next event arrives — where the

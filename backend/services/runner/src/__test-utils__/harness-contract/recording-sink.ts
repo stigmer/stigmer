@@ -20,6 +20,7 @@
 
 import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 
+import { TranscriptBuilder } from "../../harness/transcript/builder.js";
 import type { TurnSink, UsageDelta } from "../../harness/types.js";
 import type { CasTouchedReader } from "../../shared/filereview/cas-touched.js";
 import { TimingRecorder } from "../../shared/cold-start-timing.js";
@@ -35,14 +36,22 @@ export type SinkEvent =
   | { readonly kind: "cas-observations" };
 
 export interface RecordingTurnSinkOptions {
-  /** The status this turn folds into; a fresh empty one when omitted. */
+  /**
+   * The status this turn folds into; a fresh empty one when omitted. A
+   * reinvocation's clone arrives already carrying last turn's rows, and the
+   * builder indexes them as the runtime's would after its seed.
+   */
   readonly status?: AgentExecutionStatus;
+  /** The execution the builder names in its log lines; the kit's driver passes its own. */
+  readonly executionId?: string;
   /** When set, `bindHarnessState` rejects with this error (a failed session write). */
   readonly bindRejectsWith?: Error;
 }
 
 export class RecordingTurnSink implements TurnSink {
   readonly status: AgentExecutionStatus;
+  /** The one builder over `status`, as the runtime hands every adapter; the fake creates its rows through it. */
+  readonly transcript: TranscriptBuilder;
   readonly stopSignal: AbortSignal;
   readonly setupTiming = new TimingRecorder();
 
@@ -52,6 +61,7 @@ export class RecordingTurnSink implements TurnSink {
 
   constructor(options: RecordingTurnSinkOptions = {}) {
     this.status = options.status ?? emptyStatus();
+    this.transcript = new TranscriptBuilder(options.executionId ?? "kit-exec", this.status);
     this.stopSignal = this.controller.signal;
     this.bindRejectsWith = options.bindRejectsWith;
   }

@@ -10,22 +10,22 @@
  * into ONE tool row, and the turn ends COMPLETED. A read-only built-in is never
  * gated (`shared/tool-kind.ts` FILE_READ), so no approval fields are set. The
  * mid-stream persist the tool-call boundary forces (`persist-decision.ts`
- * `contentDirty`) is what the platform-stop arm relies on.
+ * over the builder's `dirty` flag) is what the platform-stop arm relies on.
  *
- * What the golden shows about TODAY's transcript shape, recorded as found
- * (S3 M0 finding F-M0-1; a transcript-shape fact for S4): the row does NOT sit on
- * the AI message that carries the text of the same LLM turn. LangGraph 1.3.2
- * stamps the model's events with namespace `["model_request:<uuid>"]` and the
- * tools node's with `["tools:<uuid>"]`; `V3StatusBuilder.ensureAiMessage`
- * files the text under the raw namespace while `handleToolStarted` looks the
- * parent up under `resolveAgentNamespace(...)`, which strips only `tools:`
- * segments and so resolves to `""` — a miss, and `ensureAiMessageForToolCall`
- * appends an EMPTY AI message for the row. So the transcript is THREE AI
- * messages: the text, an empty one carrying the row, the closing text. The
- * hand-authored fixtures in `v3-event-fixtures.ts` use `namespace: []` and
- * never reached this arm; this golden, on the real graph, does. The golden
- * (`goldens/tool-call.status.json`) is the shape S4's canonical transcript
- * builder is measured against, and the shape any fix must change on purpose.
+ * The transcript shape (Q-S4-5, landed at S4 M2 C4): the row sits on the AI
+ * message whose text proposed it — TWO AI messages, the text carrying the
+ * row and the closing text. Until C4 it did not (S3 M0 finding F-M0-1):
+ * LangGraph 1.3.2 stamps the model's events with namespace
+ * `["model_request:<uuid>"]` and the tools node's with `["tools:<uuid>"]`, the
+ * builder filed the text under the raw namespace and looked the tool's
+ * parent up under a namespace stripped of `tools:` only — a miss, so the row
+ * rode an EMPTY AI message between the two texts. The fix is not a patch on
+ * the lookup: scope became `subAgentId?` (the root, or one sub-agent) and the
+ * translator resolves it from the namespace, so the builder has one
+ * "current AI message" per scope and that class of miss cannot exist. The
+ * hand-authored fixtures now default to the real namespaces too (F-M2-16).
+ * The golden (`goldens/tool-call.status.json`) is the shape any later change
+ * must move on purpose.
  *
  * Since S3 M2a the activity is the turn runtime over the native adapter, and
  * `streamingUsage` carries the runtime accountant's fields — `model`,
@@ -134,17 +134,17 @@ describe("ExecuteDeepAgent hermetic — ungated tool call", () => {
     expect(row.result, "the built-in's numbered listing of the seeded file").toContain("A fixture readme.");
     expect(row.requiresApproval, "a read-only built-in is not gated").toBe(false);
 
-    // ── Assert: the transcript, as it is today (F-M0-1 in the header) ────────
+    // ── Assert: the transcript — the row beside the text that proposed it (Q-S4-5) ──
     const final = record.lastFullStatus!;
     const ai = final.messages.filter((m) => m.type === MessageType.MESSAGE_AI);
-    expect(ai.map((m) => m.content), "text, an EMPTY message carrying the row, closing text").toEqual([
+    expect(ai.map((m) => m.content), "the proposing text, then the closing text").toEqual([
       "Let me read it.",
-      "",
       ASSISTANT_TEXT,
     ]);
-    expect(ai[1].toolCalls.map((tc) => tc.id), "the row sits on the empty message, not beside its text").toEqual([
+    expect(ai[0].toolCalls.map((tc) => tc.id), "the row sits on the message whose text proposed it").toEqual([
       CALL_ID,
     ]);
+    expect(ai[1].toolCalls).toHaveLength(0);
     expect(final.streamingUsage?.turnCount).toBe(2);
 
     // ── Assert: hermeticity ──────────────────────────────────────────────────

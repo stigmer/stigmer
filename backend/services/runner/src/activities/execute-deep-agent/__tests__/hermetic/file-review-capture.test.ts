@@ -43,6 +43,23 @@
  * `initGitWorkspace` pins author, committer and both dates; the script's path
  * is virtual-absolute (`/notes.md`) so no temp directory can reach the golden.
  *
+ * The first turn's stamps are `:01` (S4 M4R, 2026-09-15): until then the
+ * golden held `:02` for message 1, its row's `startedAt`/`completedAt`, and
+ * the flip to `:01` in CI was a producer/consumer race, not a change of rule.
+ * This is the one native scenario whose first mid-stream persist shells out
+ * (the capture substrate's `file_change_progress`), and while the loop awaited
+ * it LangGraph's producer ran the tool and called the scripted model's second
+ * turn, whose tick landed before message 1 was stamped — on a fast machine;
+ * on a slow one the consumer won. The scripted model now waits for the
+ * previous turn's tool results to be persisted settled before it ticks
+ * (`ExecutionRecord.whenToolCallsSettled`, the ground a real model's latency
+ * gives for free), so turn 1's stamps precede turn 2's instant every run, as
+ * they do in `tool-call.status.json`. The artifact's `createdAt` stays `:02`:
+ * the inline publisher stamps it when its upload lands, after the tick, and
+ * the persist that releases the barrier is the fast one (progress capture is
+ * throttled by its floor within the same second). Message 2, `capturedAt`,
+ * the ledger events and `fileChangeProgress` are the boundary's, after turn 2.
+ *
  * Regenerate ONLY after a deliberate behavior change:
  *   npx vitest run src/activities/execute-deep-agent/__tests__/hermetic -u
  */

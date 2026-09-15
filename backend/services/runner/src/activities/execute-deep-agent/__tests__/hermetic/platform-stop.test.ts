@@ -4,7 +4,7 @@
  *
  * What the arm does: the record's `controlSignal` answers STOP on the first
  * full write that carries a tool row (the tool-call boundary forces that
- * persist, `persist-decision.ts` `contentDirty`); the runtime's chokepoint
+ * persist, `persist-decision.ts` over the builder's `dirty` flag); the runtime's chokepoint
  * reads the signal off the write and aborts the adapter's `stopSignal`; the
  * adapter's loop, which AWAITED that persist, sees the abort before it pulls
  * the next event, cancels the graph run and settles `interrupted`; the
@@ -113,7 +113,8 @@ describe("ExecuteDeepAgent hermetic — platform STOP", () => {
       "Execution stopped by the platform.",
     ]);
     const ai = final.messages.filter((m) => m.type === MessageType.MESSAGE_AI).map((m) => m.content);
-    expect(ai, "no wrap-up round and no injected notice: the run stopped at the STOP").toEqual(["Let me look.", ""]);
+    expect(ai, "no wrap-up round and no injected notice: the run stopped at the STOP").toEqual(["Let me look."]);
+    expect(final.messages[0].toolCalls.map((tc) => tc.name), "the row sits on the text that proposed it (Q-S4-5)").toEqual(["read_file"]);
     expect(ai).not.toContain(WRAP_UP);
 
     // ── Assert: hermeticity ──────────────────────────────────────────────────

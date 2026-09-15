@@ -81,7 +81,6 @@ import { resolveBlueprint, type ResolvedBlueprint } from "../shared/blueprint-re
 import { resolveExecutionEnv } from "../shared/env-resolver.js";
 import { provisionSessionWorkspace } from "../shared/workspace/session-provision.js";
 import { WriteBackCoordinator } from "../shared/workspace/writeback-coordinator.js";
-import { statusProtoWriter } from "../shared/execution-status-writer.js";
 import { isGitWorkTree } from "../shared/filereview/git-substrate.js";
 import { applyCaptureDecisions, deriveCaptureMode } from "../shared/filereview/capture.js";
 import { casBlobReader } from "../shared/filereview/cas-substrate.js";
@@ -116,6 +115,7 @@ import { readConversationCatchup } from "../shared/conversation-catchup.js";
 import { selectRecalledFacts } from "../shared/memory-retrieval.js";
 import type { RecalledMemoriesContent } from "../shared/recalled-memories.js";
 import type { FileReviewIdentity, HarnessCapabilities, PausePrimitive, StateIdSource } from "./capabilities.js";
+import type { TranscriptBuilder } from "./transcript/builder.js";
 import type {
   TurnAttachments,
   TurnEnvironment,
@@ -151,10 +151,20 @@ export interface ResolutionDeps {
   readonly config: Config;
   /**
    * The one execution status this turn folds into. Phases that carry state
-   * across invocations write here (the seeded transcript, the file-review
-   * reconcile's events, the memory-selection report); nothing else does.
+   * across invocations write the runtime's OWN fields here (the file-review
+   * reconcile's events, the memory-selection report, the seeded singletons);
+   * nothing else does.
    */
   readonly status: AgentExecutionStatus;
+  /**
+   * The one transcript builder over `status`, the caller's, born with the
+   * status. Two phases hand it on: the seed appends a reinvocation's prior
+   * rows through it (so they are indexed as they land), and the workspace
+   * phase gives it to the write-back coordinator as the place a write-back
+   * record is registered. No phase folds an event into it — no engine has
+   * run yet.
+   */
+  readonly transcript: TranscriptBuilder;
   /** Resolved once by the caller before any phase; absent when no substrate works. */
   readonly artifactStorage: ArtifactStorage | undefined;
   /** The cold-start timeline; each phase marks its own segment(s) exactly as before. */
@@ -326,14 +336,15 @@ export function decideReinvocation(
  *
  * Why the transcript must be seeded: a resumed engine re-issues the
  * previously gated tool calls with brand-new call ids. Without seeding, the
- * harness's accumulator would rebuild the transcript from empty and emit a
+ * harness's transcript builder would rebuild the transcript from empty and emit a
  * status that drops the already-committed tool-call ids. The backend's
  * append-only-at-identity guard rejects any non-terminal update that drops a
  * committed tool-call id, so the resumed progress would never persist: the
  * run stalls in WAITING_FOR_APPROVAL with no pending approvals and the
  * workflow watchdog fails it. Seeding makes the resume status a strict
  * superset; the re-runs are then reconciled in place onto these seeded calls
- * by canonical identity inside the accumulator.
+ * by canonical identity inside the harness's translator (the Cursor translator's
+ * seeded-row match, Q-S4-9; the native builder's by-id flip).
  *
  * Why the OTHER collections must be seeded too — the server's merge rule
  * (`stigmer-server/src/domain/agentexecution/update-status.ts`): every list
@@ -355,28 +366,32 @@ export function decideReinvocation(
  * `phase`, `startedAt`, `completedAt`, `error` are this turn's fresh
  * terminal, written by the runtime.
  *
- * Every collection is mutated IN PLACE (pushed into, assigned into), never
- * reassigned: the write-back coordinator already wraps this status through
- * `statusProtoWriter`, and the harness's accumulator wraps `messages` and
- * `subAgentExecutions` by reference after this runs, so a reassigned array
- * would leave a wrapper holding the old one. The persisted protos are
- * cloned so the input execution stays immutable.
+ * The transcript half — messages, sub-agent rows, artifacts, write-backs,
+ * todos — goes through the builder's `seed()`, which appends every
+ * collection IN PLACE (the status's own arrays, so every wrapper of the
+ * status keeps seeing every row) and indexes the rows as it appends, so the
+ * upcoming turn's re-issued call reconciles onto its seeded row. The three
+ * singletons are the runtime's own and are set here. The persisted protos
+ * are cloned so the input execution stays immutable.
  *
  * Moved from `execute-cursor/index.ts` `seedCursorTranscriptFromExecution`
  * (messages only) and widened at S3 M1 to what native's whole-status clone
  * (`execute-deep-agent/index.ts` `seedStatusFromExecution`, retired with its
  * orchestrator) always carried, minus the fields above that it carried by
- * accident (Q-S3-16).
+ * accident (Q-S3-16). Until S4 M5 the transcript half was pushed straight
+ * onto the status here and the adapters constructed their builders after
+ * this ran — an ordering the builder's index depended on and nothing
+ * enforced; the seed through the builder makes it a non-question.
  */
-export function seedFromPersistedStatus(status: AgentExecutionStatus, execution: AgentExecution): void {
+export function seedFromPersistedStatus(
+  status: AgentExecutionStatus,
+  transcript: TranscriptBuilder,
+  execution: AgentExecution,
+): void {
   const persisted = execution.status;
   if (!persisted || persisted.messages.length === 0) return;
   const seed = clone(AgentExecutionStatusSchema, persisted);
-  status.messages.push(...seed.messages);
-  status.subAgentExecutions.push(...seed.subAgentExecutions);
-  status.artifacts.push(...seed.artifacts);
-  status.workspaceWriteBacks.push(...seed.workspaceWriteBacks);
-  for (const [id, todo] of Object.entries(seed.todos)) status.todos[id] = todo;
+  transcript.seed(seed);
   if (seed.streamingUsage !== undefined) status.streamingUsage = seed.streamingUsage;
   if (seed.recalledMemoriesReport !== undefined) status.recalledMemoriesReport = seed.recalledMemoriesReport;
   if (seed.structuredOutput !== undefined) status.structuredOutput = seed.structuredOutput;
@@ -459,7 +474,7 @@ export async function provisionWorkspace(
 
   const writeback = provision.provisionResults.length > 0
     ? new WriteBackCoordinator({
-        statusWriter: statusProtoWriter(deps.status),
+        writeBacks: deps.transcript,
         executionId: deps.input.executionId,
         sessionId: args.sessionId,
         githubToken: args.envVars.GITHUB_TOKEN ?? "",
@@ -550,7 +565,7 @@ export async function bindTelemetryBaggage(
  *
  * On a reinvocation, first seed the in-progress status from the persisted
  * execution ({@link seedFromPersistedStatus}), BEFORE the harness's
- * accumulator wraps `status.messages`. Then the file-review reconcile (the
+ * transcript builder wraps `status.messages`. Then the file-review reconcile (the
  * dual-source half): every change set the server projected as DECIDED is
  * reconciled from the ledger decisions and the pinned git refs (approved
  * kept at their "after" bytes, rejected snapped back to baseline, all
@@ -583,7 +598,7 @@ export async function reconcileReinvocation(
 
   if (reinvoked) {
     const existingStatus = args.execution.status;
-    seedFromPersistedStatus(deps.status, args.execution);
+    seedFromPersistedStatus(deps.status, deps.transcript, args.execution);
 
     if (args.workspace.captureMode && args.workspace.primaryDir) {
       const decidedSets = (existingStatus?.fileChangeSets ?? []).filter(
