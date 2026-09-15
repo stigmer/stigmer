@@ -181,6 +181,13 @@ export type ScriptSelector = (boundToolNames: string[], context: ScriptRoleConte
 export interface ScriptedTurnInfo {
   readonly boundToolNames: readonly string[];
   readonly round: number;
+  /**
+   * The ids of the tool calls the transcript's last AI message made — the
+   * calls whose results this turn answers. Empty on a role's first turn and
+   * after a text-only turn. Read from the transcript the engine hands the
+   * model, never from the script, so it is what the engine actually ran.
+   */
+  readonly priorToolCallIds: readonly string[];
 }
 
 export interface ScriptedModelOptions {
@@ -240,7 +247,11 @@ export class ScriptedModel extends BaseChatModel {
   /** The turn for this transcript, after the driver hook has run. */
   private async turnFor(messages: BaseMessage[]): Promise<ScriptedTurn> {
     const round = completedToolRounds(messages);
-    await this.options.onTurn?.({ boundToolNames: this.toolNames, round });
+    await this.options.onTurn?.({
+      boundToolNames: this.toolNames,
+      round,
+      priorToolCallIds: priorToolCallIds(messages),
+    });
     const context: ScriptRoleContext = { systemPrompt: systemPromptOf(messages) };
     return resolveTurn(this.select(this.toolNames, context), { round, transcript: messages, toolNames: this.toolNames });
   }
@@ -345,6 +356,16 @@ export function completedToolRounds(messages: readonly BaseMessage[]): number {
     if (isAIMessage(m) && (m.tool_calls?.length ?? 0) > 0) rounds += 1;
   }
   return rounds;
+}
+
+/** The tool-call ids on the transcript's last AI message; `[]` when there is none or it made no calls. */
+export function priorToolCallIds(messages: readonly BaseMessage[]): string[] {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const m = messages[i];
+    if (!isAIMessage(m)) continue;
+    return (m.tool_calls ?? []).flatMap((call) => (call.id ? [call.id] : []));
+  }
+  return [];
 }
 
 /** What one model call knows when it picks its turn. */

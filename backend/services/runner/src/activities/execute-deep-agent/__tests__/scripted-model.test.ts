@@ -102,12 +102,22 @@ describe("ScriptedModel — turns are indexed by the transcript, not by a counte
     expect(replayed.tool_calls?.[0]?.id).toBe("call_b");
   });
 
-  it("reports the role and round to onTurn before rendering", async () => {
+  it("reports the role, the round and the calls it answers to onTurn before rendering", async () => {
     const seen: ScriptedTurnInfo[] = [];
     const model = new ScriptedModel(() => script, [], { onTurn: (info) => void seen.push(info) });
     const bound = model.bindTools([{ name: "probe" }]);
     await bound.invoke(transcriptWithRounds(2));
-    expect(seen).toEqual([{ boundToolNames: ["probe"], round: 2 }]);
+    // The prior calls are the LAST AI message's — the results this turn
+    // answers — read from the transcript, not the script.
+    expect(seen).toEqual([{ boundToolNames: ["probe"], round: 2, priorToolCallIds: ["call_1"] }]);
+  });
+
+  it("reports no prior calls on a first turn or after a text-only turn", async () => {
+    const seen: ScriptedTurnInfo[] = [];
+    const model = new ScriptedModel(() => script, [], { onTurn: (info) => void seen.push(info) });
+    await model.invoke(transcriptWithRounds(0));
+    await model.invoke([...transcriptWithRounds(1), new AIMessage("a text-only turn"), new HumanMessage("more")]);
+    expect(seen.map((s) => s.priorToolCallIds)).toEqual([[], []]);
   });
 
   it("throws a diagnosing error when the script runs out", async () => {

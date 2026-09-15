@@ -151,6 +151,8 @@ export class ExecutionRecord {
   private readonly controlSignal: (status: AgentExecutionStatus) => ExecutionControlSignal;
   /** Every `updateStatus` payload, in order, snapshotted at write time. */
   readonly persisted: AgentExecutionStatus[] = [];
+  /** Fired after every full-status `applyStatusUpdate`; {@link whenToolCallsSettled} subscribes here. */
+  private readonly persistListeners = new Set<() => void>();
   /** Setup-progress labels reported before the stream started, in order. */
   readonly setupProgress: string[] = [];
   /**
@@ -205,6 +207,78 @@ export class ExecutionRecord {
     return this.execution.status?.messages.flatMap((m) => m.toolCalls) ?? [];
   }
 
+  /**
+   * Resolves once every one of `ids` is a SETTLED row (not RUNNING) in a status
+   * the activity has persisted — root messages and every sub-agent's alike.
+   * Resolves at once for an empty list or when they already are.
+   *
+   * This is the barrier a real model gives the runtime for free and a
+   * scripted one does not: a model that takes 300 ms to answer never starts
+   * its next turn before the loop has folded and persisted the tool results
+   * it is answering, while `ScriptedModel` answers instantly and LangGraph's
+   * producer can run a whole turn ahead of the consumer while the consumer
+   * awaits one mid-stream persist (on a git workspace that persist shells out
+   * for `file_change_progress`). The stamps the consumer writes at apply time
+   * then land on either side of the scripted clock's next tick depending on
+   * I/O timing — a golden that flips between `:01` and `:02` on the day. The
+   * driver awaits this before it ticks (`hermetic-deep-agent.ts`), so every
+   * stamp of turn N precedes turn N+1's instant, run after run.
+   *
+   * Why "settled" and not "seen": the row's `completedAt` is stamped when the
+   * tool's end event is applied, and the producer calls the next model turn
+   * right after emitting that event, so a barrier on the row merely existing
+   * would still race the completion stamp. The persist that carries the
+   * settled row always exists: a tool's finish forces one (the builder's
+   * force flag), and a turn followed by another turn always has a tool call.
+   *
+   * Bounded by real time (timers are real under the scripted clock): a
+   * scenario that breaks the fact above — a persist that never carries the
+   * row — fails naming the ids still open, never hangs.
+   */
+  whenToolCallsSettled(ids: readonly string[], timeoutMs = 10_000): Promise<void> {
+    const unsettled = (): string[] => {
+      const settled = this.settledToolCallIds();
+      return ids.filter((id) => !settled.has(id));
+    };
+    if (unsettled().length === 0) return Promise.resolve();
+
+    return new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.persistListeners.delete(check);
+        reject(
+          new Error(
+            `ExecutionRecord: tool call(s) ${unsettled().join(", ")} never settled in a persisted status ` +
+              `within ${timeoutMs} ms (${this.persisted.length} persists seen). A model turn was asked to ` +
+              `wait for the results it answers; the loop never persisted them — a scenario or runtime bug.`,
+          ),
+        );
+      }, timeoutMs);
+      const check = (): void => {
+        if (unsettled().length > 0) return;
+        clearTimeout(timer);
+        this.persistListeners.delete(check);
+        resolve();
+      };
+      this.persistListeners.add(check);
+    });
+  }
+
+  /** The ids of every row not RUNNING in the held status, across the root and every sub-agent transcript. */
+  private settledToolCallIds(): Set<string> {
+    const out = new Set<string>();
+    const status = this.execution.status;
+    if (!status) return out;
+    const transcripts = [status.messages, ...status.subAgentExecutions.map((s) => s.messages)];
+    for (const messages of transcripts) {
+      for (const message of messages) {
+        for (const tc of message.toolCalls) {
+          if (tc.status !== ToolCallStatus.TOOL_CALL_RUNNING) out.add(tc.id);
+        }
+      }
+    }
+    return out;
+  }
+
   /** The tool calls currently paused for a decision. */
   waitingToolCalls(): ToolCall[] {
     return this.toolCalls().filter((tc) => tc.status === ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
@@ -254,6 +328,7 @@ export class ExecutionRecord {
       return ExecutionControlSignal.UNSPECIFIED;
     }
     this.execution.status = clone(AgentExecutionStatusSchema, snapshot);
+    for (const listener of [...this.persistListeners]) listener();
     return this.controlSignal(snapshot);
   }
 
