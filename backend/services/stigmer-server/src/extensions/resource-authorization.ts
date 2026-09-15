@@ -55,6 +55,7 @@
  */
 import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { OwnerAttributionType } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/authorization_config_pb";
+import type { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import type { IamPolicy } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 import type { IamPolicySpec } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
 
@@ -88,6 +89,39 @@ export interface ResolvedParentLink {
   readonly parentKind: ApiResourceKind;
   /** The parent object's resource id. */
   readonly parentId: string;
+}
+
+/**
+ * The facts a stored row carries that its authorization tuples derive
+ * from — the row-side vocabulary of `kind_meta.authorization`, read back
+ * from a row rather than resolved at its create. The lifecycle derives a
+ * `ResourceCreatedEvent` from the same facts on the way in; a list lane
+ * offers them on every candidate (`ListEntryMeta`, list-read-scope.ts);
+ * the built-in authorizer derives a loaded row's tuples from them. One
+ * shape, read by one structural resolver
+ * (pipeline/steps/authorization-facts.ts), so a driver that evaluates the
+ * model over a candidate needs no second read of the row.
+ *
+ * Read-side facts are lenient where the create-time resolution is strict:
+ * a legacy row that names no organization or no parent carries none (an
+ * empty `org`, a link absent from `parentLinks`) and a stamp that names
+ * nobody is the empty string — a fact about the row, never a fault of the
+ * read.
+ */
+export interface RowAuthorizationFacts {
+  readonly id: string;
+  /** `metadata.org`; "" for kinds outside organization scope and for legacy rows that never named one. */
+  readonly org: string;
+  /** `metadata.visibility` as stored; unspecified when the row never set one. */
+  readonly visibility: ApiResourceVisibility;
+  /** `status.audit.spec_audit.created_by.id` as stamped; "" when absent. Classified by the reader, not here. */
+  readonly createdBy: string;
+  /**
+   * The scope link and every configured additional parent, in the tuple
+   * lifecycle's order, from the row's own fields; a parent the row does
+   * not name is absent, never a fault.
+   */
+  readonly parentLinks: ReadonlyArray<ResolvedParentLink>;
 }
 
 /** Fired synchronously after a resource row is first persisted. */

@@ -17,7 +17,13 @@
  *     cloud's answer; `findMyOrganizations` lists what a person may view
  *     and `find` refuses enumeration; `checkMyPermission` tells the truth;
  *     nobody sets public visibility; an unprovisioned subject
- *     writes nothing until provisioned.
+ *     writes nothing until provisioned. The LIST lanes are a member's
+ *     lists: an outsider lists nothing of an organization they hold no
+ *     row in; environments and API keys are their owner's even to the
+ *     organization's owner; the library (a search) omits a private agent
+ *     for a member; the enumeration lanes answer through the scope; an
+ *     unprovisioned subject's lists are empty and become theirs once
+ *     provisioned.
  *   - trusted-local: the permissive default stays (one caller,
  *     nothing to separate; the laptop's rows are stamped `"system"`):
  *     tokenless reads, public visibility and organization enumeration all
@@ -48,23 +54,36 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
+import { fromBinary } from "@bufbuild/protobuf";
 import { Code, ConnectError, createClient } from "@connectrpc/connect";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import { ActivityQueryController } from "@stigmer/protos/ai/stigmer/activity/v1/query_pb";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { AgentExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/query_pb";
+import { EnvironmentCommandController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/command_pb";
+import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import { ApiKeyCommandController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/command_pb";
+import { ApiKeyQueryController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/query_pb";
 import { IamPolicyQueryController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/query_pb";
 import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/command_pb";
+import { SearchService } from "@stigmer/protos/ai/stigmer/search/v1/query_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
 import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
 
+import { builtInModel } from "../../authorization/model/index.js";
 import { loadConfig } from "../../boot/config.js";
 import { composeServer } from "../../boot/compose.js";
 import type { ComposedServer } from "../../boot/compose.js";
+import { metadataOf } from "../../pipeline/steps/shapes.js";
 import { PUBLIC_VISIBILITY_DENY_MESSAGE } from "../../pipeline/steps/visibility-gates.js";
+import type { Store } from "../../store/interface.js";
 import type { Authorizer } from "../authorizer.js";
+import type { ListReadScope } from "../list-read-scope.js";
 import type { ServerExtension } from "../registry.js";
 import {
   baseConfig,
@@ -77,9 +96,32 @@ import {
 const FOUNDER = "fake|founder";
 const MEMBER = "fake|member";
 const STRANGER = "fake|stranger";
+/** Provisioned inside the list-lane arms only, so its before/after is one arm's. */
+const VISITOR = "fake|visitor";
 const ORG = "built-in-org";
 /** Founded AFTER the member provisioned: the member holds no row on it. */
 const OTHER_ORG = "built-in-other-org";
+
+function apiKeyInput(name: string) {
+  return {
+    apiVersion: "iam.stigmer.ai/v1",
+    kind: "ApiKey",
+    metadata: { name, org: ORG },
+    spec: {},
+  };
+}
+
+function environmentInput(name: string, org: string = ORG) {
+  return {
+    apiVersion: "agentic.stigmer.ai/v1",
+    kind: "Environment",
+    metadata: { name, org },
+    spec: {
+      description: name,
+      data: { PLAIN_KEY: { value: "plain", isSecret: false, description: "" } },
+    },
+  };
+}
 
 function organizationInput(slug: string) {
   return {
@@ -137,6 +179,8 @@ describe("built-in authorizer (composed server, OIDC with no unit Authorizer: th
     transportFor(port, fakeJwt(MEMBER, "member@example.com"));
   const asStranger = () =>
     transportFor(port, fakeJwt(STRANGER, "stranger@example.com"));
+  const asVisitor = () =>
+    transportFor(port, fakeJwt(VISITOR, "visitor@example.com"));
 
   beforeAll(async () => {
     dir = mkdtempSync(path.join(tmpdir(), "built-in-authorizer-oidc-"));
@@ -343,6 +387,143 @@ describe("built-in authorizer (composed server, OIDC with no unit Authorizer: th
     expect(failure.rawMessage).toBe(PUBLIC_VISIBILITY_DENY_MESSAGE);
   });
 
+  describe("the list lanes (the built-in ListReadScope)", () => {
+    let founderKey: string;
+    let memberKey: string;
+    let founderEnvironment: string;
+    let memberEnvironment: string;
+    let otherOrgEnvironment: string;
+
+    beforeAll(async () => {
+      founderKey = (
+        await createClient(ApiKeyCommandController, asFounder()).create(
+          apiKeyInput("founder key"),
+        )
+      ).metadata!.id;
+      memberKey = (
+        await createClient(ApiKeyCommandController, asMember()).create(
+          apiKeyInput("member key"),
+        )
+      ).metadata!.id;
+      const founderEnvironments = createClient(
+        EnvironmentCommandController,
+        asFounder(),
+      );
+      founderEnvironment = (
+        await founderEnvironments.create(environmentInput("founder env"))
+      ).metadata!.id;
+      otherOrgEnvironment = (
+        await founderEnvironments.create(
+          environmentInput("other org env", OTHER_ORG),
+        )
+      ).metadata!.id;
+      // `can_create_environment` is `member`: a member's own credential
+      // store, the organization's admins never read it.
+      memberEnvironment = (
+        await createClient(EnvironmentCommandController, asMember()).create(
+          environmentInput("member env"),
+        )
+      ).metadata!.id;
+    });
+
+    it("an OUTSIDER lists nothing of an organization they hold no row in — the empty list, never an error", async () => {
+      const list = await createClient(
+        EnvironmentQueryController,
+        asMember(),
+      ).list({ org: OTHER_ORG });
+      expect(list.items).toEqual([]);
+      // The positive beside the negative: the founder, its owner, lists it.
+      const founders = await createClient(
+        EnvironmentQueryController,
+        asFounder(),
+      ).list({ org: OTHER_ORG });
+      expect(founders.items.map((e) => e.metadata?.id)).toEqual([
+        otherOrgEnvironment,
+      ]);
+    });
+
+    it("environments are their owner's: the founder — the organization's owner — does NOT list a member's, and the member does not list the founder's", async () => {
+      const founders = await createClient(
+        EnvironmentQueryController,
+        asFounder(),
+      ).list({ org: ORG });
+      expect(founders.items.map((e) => e.metadata?.id)).toEqual([
+        founderEnvironment,
+      ]);
+      const members = await createClient(
+        EnvironmentQueryController,
+        asMember(),
+      ).list({ org: ORG });
+      expect(members.items.map((e) => e.metadata?.id)).toEqual([
+        memberEnvironment,
+      ]);
+    });
+
+    it("ApiKey.findAll — skip-authorization, list-scoped — hands each person their own keys and nobody else's", async () => {
+      expect(
+        (
+          await createClient(ApiKeyQueryController, asFounder()).findAll({})
+        ).entries.map((k) => k.metadata?.id),
+      ).toEqual([founderKey]);
+      expect(
+        (
+          await createClient(ApiKeyQueryController, asMember()).findAll({})
+        ).entries.map((k) => k.metadata?.id),
+      ).toEqual([memberKey]);
+    });
+
+    it("the library is a search: a member's search omits the private agent and keeps the org-visible one; the founder's has both", async () => {
+      const memberSearch = await createClient(SearchService, asMember()).search(
+        { kinds: [ApiResourceKind.agent], org: ORG },
+      );
+      expect(memberSearch.entries.map((e) => e.id).sort()).toEqual([
+        orgAgent.metadata!.id,
+      ]);
+      const founderSearch = await createClient(
+        SearchService,
+        asFounder(),
+      ).search({ kinds: [ApiResourceKind.agent], org: ORG });
+      expect(founderSearch.entries.map((e) => e.id).sort()).toEqual(
+        [privateAgent.metadata!.id, orgAgent.metadata!.id].sort(),
+      );
+    });
+
+    it("the enumeration lanes answer through the scope without fault: recent activity and the execution summary for a member with no runs", async () => {
+      const recents = await createClient(
+        ActivityQueryController,
+        asMember(),
+      ).listRecentActivity({ pageSize: 10 });
+      expect(recents.entries).toEqual([]);
+      const summary = await createClient(
+        AgentExecutionQueryController,
+        asMember(),
+      ).getExecutionSummary({ org: ORG });
+      expect(summary.activeCount).toBe(0);
+      expect(summary.phaseCounts).toEqual({});
+    });
+
+    it("an unprovisioned subject's lists are empty, and become theirs after `provisionMyAccount`", async () => {
+      const visitorEnvironments = createClient(
+        EnvironmentQueryController,
+        asVisitor(),
+      );
+      expect((await visitorEnvironments.list({ org: ORG })).items).toEqual([]);
+      await createClient(
+        IdentityAccountCommandController,
+        asVisitor(),
+      ).provisionMyAccount({});
+      const own = await createClient(
+        EnvironmentCommandController,
+        asVisitor(),
+      ).create(environmentInput("visitor env"));
+      expect(
+        (await visitorEnvironments.list({ org: ORG })).items.map(
+          (e) => e.metadata?.id,
+        ),
+      ).toEqual([own.metadata!.id]);
+    });
+  });
+
   it("an unprovisioned subject writes nothing until provisioned — then they are a member and still may not author a blueprint", async () => {
     const strangerAgents = createClient(AgentCommandController, asStranger());
     const before = await failureOf(
@@ -432,6 +613,171 @@ describe("built-in authorizer (composed server, trusted-local: the permissive de
       { org: ORG },
     );
     expect(all.entries.map((o) => o.metadata?.id)).toContain(ORG);
+  });
+
+  it("the laptop's lists are the full scan — no scope composed, the rows stamped `system` included", async () => {
+    const anonymous = transportFor(port);
+    const environments = createClient(EnvironmentCommandController, anonymous);
+    await environments.create(environmentInput("laptop env one"));
+    await environments.create(environmentInput("laptop env two"));
+    const list = await createClient(EnvironmentQueryController, anonymous).list(
+      { org: ORG },
+    );
+    expect(list.items.map((e) => e.metadata?.name).sort()).toEqual([
+      "laptop env one",
+      "laptop env two",
+    ]);
+    const search = await createClient(SearchService, anonymous).search({
+      kinds: [ApiResourceKind.agent],
+      org: ORG,
+    });
+    expect(search.entries.length).toBeGreaterThanOrEqual(2);
+  });
+});
+
+/**
+ * C4 (the plan's claim check): for the sole person on a server, the four
+ * enumeration consumers and the restrict lanes answer byte-for-byte what
+ * they answered before any scope was composed. Two boots of the OIDC
+ * posture on one seed; the only variable is the scope — the built-in one,
+ * or a unit's pass-through (every offered id kept, every id enumerated:
+ * the branch's own state between slices 3 and 4, and the `??` proving
+ * that a unit's driver still wins over the built-in one).
+ */
+describe("built-in list scope (C4: two boots, one seed — the scope is the only variable)", () => {
+  interface Boot {
+    readonly dir: string;
+    readonly server: ComposedServer;
+    readonly port: number;
+  }
+
+  /** What the founder sees through every list-shaped lane, by NAME (ids differ per boot). */
+  interface Readout {
+    readonly search: string[];
+    readonly keys: string[];
+    readonly environments: string[];
+    readonly recents: string[];
+    readonly summaryActive: number;
+  }
+
+  const boots: Boot[] = [];
+
+  async function boot(scope: ListReadScope | undefined): Promise<Boot> {
+    const dir = mkdtempSync(path.join(tmpdir(), "built-in-list-scope-c4-"));
+    const unit: ServerExtension = {
+      name: "fake-oidc-only",
+      requireAuthentication: true,
+      identityVerifiers: [fakeVerifier],
+      ...(scope === undefined ? {} : { drivers: { listReadScope: scope } }),
+    };
+    const server = await composeServer({
+      config: loadConfig(baseConfig(dir)),
+      logger: silentLogger,
+      extensions: [unit],
+      portOverride: 0,
+      host: "127.0.0.1",
+    });
+    const port = await server.start();
+    const opened = { dir, server, port };
+    boots.push(opened);
+    return opened;
+  }
+
+  async function seedFounder(port: number): Promise<void> {
+    const founder = transportFor(port, fakeJwt(FOUNDER, "founder@example.com"));
+    await createClient(
+      IdentityAccountCommandController,
+      founder,
+    ).provisionMyAccount({});
+    await createClient(OrganizationCommandController, founder).create(
+      organizationInput(ORG),
+    );
+    const agents = createClient(AgentCommandController, founder);
+    await agents.create(
+      agentInput("C4 Private Agent", ApiResourceVisibility.visibility_private),
+    );
+    await agents.create(
+      agentInput("C4 Org Agent", ApiResourceVisibility.visibility_org),
+    );
+    await createClient(ApiKeyCommandController, founder).create(
+      apiKeyInput("c4 key"),
+    );
+    await createClient(EnvironmentCommandController, founder).create(
+      environmentInput("c4 env"),
+    );
+  }
+
+  async function readout(port: number): Promise<Readout> {
+    const founder = transportFor(port, fakeJwt(FOUNDER, "founder@example.com"));
+    const search = await createClient(SearchService, founder).search({
+      kinds: [ApiResourceKind.agent],
+      org: ORG,
+    });
+    const keys = await createClient(ApiKeyQueryController, founder).findAll({});
+    const environments = await createClient(
+      EnvironmentQueryController,
+      founder,
+    ).list({ org: ORG });
+    const recents = await createClient(
+      ActivityQueryController,
+      founder,
+    ).listRecentActivity({ pageSize: 10 });
+    const summary = await createClient(
+      AgentExecutionQueryController,
+      founder,
+    ).getExecutionSummary({ org: ORG });
+    return {
+      search: search.entries.map((e) => e.name).sort(),
+      keys: keys.entries.map((k) => k.metadata?.name ?? "").sort(),
+      environments: environments.items
+        .map((e) => e.metadata?.name ?? "")
+        .sort(),
+      recents: recents.entries.map((e) => e.id).sort(),
+      summaryActive: summary.activeCount,
+    };
+  }
+
+  afterAll(async () => {
+    for (const opened of boots) {
+      await opened.server.shutdown();
+      rmSync(opened.dir, { recursive: true, force: true });
+    }
+  });
+
+  it("the founder's readout is identical with the built-in scope and with a pass-through unit scope", async () => {
+    // The pass-through enumerates every id of the kind from the server's
+    // own store (bound after boot: the unit is composed before the store
+    // exists), so the enumeration consumers see the unscoped answer.
+    let unscopedStore: Store | undefined;
+    const passThrough: ListReadScope = {
+      async authorizedResourceIds(_caller, kind) {
+        const declaration = builtInModel.byKind(kind);
+        if (unscopedStore === undefined || declaration === undefined) {
+          throw new Error("the pass-through is bound to a booted server");
+        }
+        const rows = await unscopedStore.listResources(kind);
+        return new Set(
+          rows.map(
+            (bytes) =>
+              metadataOf(fromBinary(declaration.schema, bytes))?.id ?? "",
+          ),
+        );
+      },
+      restrictListEntries: (_caller, _kind, entries) =>
+        Promise.resolve(new Set(entries.map((entry) => entry.id))),
+    };
+    const before = await boot(passThrough);
+    unscopedStore = before.server.store;
+    const after = await boot(undefined);
+    await seedFounder(before.port);
+    await seedFounder(after.port);
+    const beforeReadout = await readout(before.port);
+    const afterReadout = await readout(after.port);
+    expect(afterReadout).toEqual(beforeReadout);
+    // Not vacuous: the seed is visible through every lane read.
+    expect(afterReadout.search).toEqual(["C4 Org Agent", "C4 Private Agent"]);
+    expect(afterReadout.keys).toEqual(["c4 key"]);
+    expect(afterReadout.environments).toEqual(["c4 env"]);
   });
 });
 

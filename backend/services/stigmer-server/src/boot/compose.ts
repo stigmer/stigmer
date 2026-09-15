@@ -33,10 +33,12 @@ import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_inf
 import { HealthCheckResponse_ServingStatus as ServingStatus } from "@stigmer/protos/grpc/health/v1/health_pb";
 
 import { newBuiltInAuthorizer } from "../authorization/authorizer.js";
+import { newBuiltInListReadScope } from "../authorization/list-read-scope.js";
 import { newBuiltInOrganizationDirectory } from "../authorization/organization-directory.js";
 import { authorizationPostureOf } from "../authorization/posture.js";
 import { newBuiltInScheduleFireCaller } from "../authorization/schedule-fire-caller.js";
 import type { Authorizer } from "../extensions/authorizer.js";
+import type { ListReadScope } from "../extensions/list-read-scope.js";
 import type { OrganizationDirectory } from "../extensions/organization-directory.js";
 import type { ScheduleFireCallerMint } from "../extensions/schedule-fire-caller.js";
 import { registerAgentServices } from "../domain/agent/controller.js";
@@ -462,6 +464,24 @@ export async function composeServer(
     (authorizationPosture === "built-in"
       ? newBuiltInScheduleFireCaller({ store, accounts: identityAccounts })
       : undefined);
+  // The ONE list read scope (the seam's single-instance point), bound
+  // here under the same posture and handed to every list-shaped consumer
+  // below — the post-scan lanes through restrictListByReadScope, the
+  // search, activity and summary lanes through the enumeration verb. A
+  // unit's driver wins in every posture; the built-in one evaluates the
+  // model per candidate over the facts the candidate carries
+  // (authorization/list-read-scope.ts); trusted-local composes none and
+  // keeps the full scan.
+  const listReadScope: ListReadScope | undefined =
+    extensions.drivers.listReadScope ??
+    (authorizationPosture === "built-in"
+      ? newBuiltInListReadScope({
+          store,
+          policies: iamPolicies,
+          accounts: identityAccounts,
+          logger,
+        })
+      : undefined);
   logger.info("authorization posture resolved", {
     posture: authorizationPosture,
     authorizer:
@@ -470,6 +490,12 @@ export async function composeServer(
         : authorizationPosture === "built-in"
           ? "built-in"
           : "permissive",
+    listReadScope:
+      extensions.drivers.listReadScope !== undefined
+        ? "extension"
+        : authorizationPosture === "built-in"
+          ? "built-in"
+          : "none",
   });
   const identityAccountPath = {
     accounts: identityAccounts,
@@ -958,14 +984,10 @@ export async function composeServer(
   const searchHandler = new SearchHandler(
     searchQueryStore,
     logger,
-    extensions.drivers.listReadScope,
+    listReadScope,
   );
   // The activity recents feed (#14) — pure reads over listResources.
-  const activityHandler = new ActivityHandler(
-    store,
-    logger,
-    extensions.drivers.listReadScope,
-  );
+  const activityHandler = new ActivityHandler(store, logger, listReadScope);
   // The environment runtime-resolution service (#5) — the decrypt-for-
   // execution path the EC builder uses to resolve environment_refs (the
   // RPC surface redacts secret values, oss#405).
@@ -1059,7 +1081,7 @@ export async function composeServer(
       logger,
       authorizer,
       authorizationLifecycle,
-      listReadScope: extensions.drivers.listReadScope,
+      listReadScope,
     });
     // IdentityAccount (20260911.11): served once by open source in every
     // edition over the store PORT bound in the identity-accounts stage; a
@@ -1100,7 +1122,7 @@ export async function composeServer(
       authorizer,
       secretService,
       authorizationLifecycle,
-      listReadScope: extensions.drivers.listReadScope,
+      listReadScope,
     });
     // OAuthApp reuses the environment's SecretService instance — Go wires
     // ONE encryption service for both (server.go 302–307).
@@ -1132,7 +1154,7 @@ export async function composeServer(
       authorizer,
       authorizationLifecycle,
       parentAgentLoader: () => requireInProcess().parentAgentLoader,
-      listReadScope: extensions.drivers.listReadScope,
+      listReadScope,
     });
     registerSessionServices(router, {
       store,
@@ -1143,7 +1165,7 @@ export async function composeServer(
       gateSteps: extensions.gateSteps,
       sandboxLane,
       authorizationLifecycle,
-      listReadScope: extensions.drivers.listReadScope,
+      listReadScope,
     });
     // The sharing/channel family registers after the agent family, as in
     // Go server.go (agent 378 → agentshare 384 → agentchannel 391 →
@@ -1155,14 +1177,14 @@ export async function composeServer(
       logger,
       authorizer,
       authorizationLifecycle,
-      listReadScope: extensions.drivers.listReadScope,
+      listReadScope,
     });
     registerAgentChannelServices(router, {
       store,
       logger,
       authorizer,
       authorizationLifecycle,
-      listReadScope: extensions.drivers.listReadScope,
+      listReadScope,
       // The SAME domain-owned registry instance the workflow validator
       // and the registry lanes read — the channel model-pin rule
       // (stigmer/stigmer#774) can never drift from the served pickers.
@@ -1196,14 +1218,14 @@ export async function composeServer(
       clock: () => scheduleSyncer,
       runner: () => scheduleRunStarter,
       authorizationLifecycle,
-      listReadScope: extensions.drivers.listReadScope,
+      listReadScope,
     });
     registerMemoryServices(router, {
       store,
       logger,
       authorizer,
       authorizationLifecycle,
-      listReadScope: extensions.drivers.listReadScope,
+      listReadScope,
       runnerCredentialProvider: runnerCredentials,
     });
     registerAgentExecutionServices(router, {
@@ -1211,7 +1233,7 @@ export async function composeServer(
       logger,
       authorizer,
       authorizationLifecycle,
-      listReadScope: extensions.drivers.listReadScope,
+      listReadScope,
       runnerCredentialProvider: runnerCredentials,
       broker: agentExecutionStreamBroker,
       engineState: executionEngineState,
@@ -1254,14 +1276,14 @@ export async function composeServer(
       authorizer,
       authorizationLifecycle,
       parentWorkflowLoader: () => requireInProcess().parentWorkflowLoader,
-      listReadScope: extensions.drivers.listReadScope,
+      listReadScope,
     });
     registerWorkflowExecutionServices(router, {
       store,
       logger,
       authorizer,
       authorizationLifecycle,
-      listReadScope: extensions.drivers.listReadScope,
+      listReadScope,
       gateSteps: extensions.gateSteps,
       engineState: workflowExecutionEngineState,
       broker: workflowExecutionStreamBroker,

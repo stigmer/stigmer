@@ -128,7 +128,10 @@ export interface ExtensionDrivers {
    * read — the census of docs/authorization-coverage.md — narrows to the
    * caller's authorized rows: post-scan lanes through
    * restrictListByReadScope, the search/activity/summary lanes through
-   * the enumeration verb. When absent, the OSS full scan — byte-identical.
+   * the enumeration verb. When absent under the built-in authorization
+   * posture, open source composes its own (src/authorization/
+   * list-read-scope.ts — the model evaluated per candidate); when absent
+   * under trusted-local, the OSS full scan — byte-identical.
    */
   readonly listReadScope?: ListReadScope;
   /**

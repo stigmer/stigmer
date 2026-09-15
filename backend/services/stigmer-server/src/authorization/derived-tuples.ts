@@ -40,6 +40,17 @@
  * driver folds it to `unavailable`. One source per check (or per list
  * call for the list scope): its memo is the check's.
  *
+ * A source may be SEEDED with the facts of objects the caller already
+ * holds (the list scope's candidates, decoded by the lane and carried on
+ * every `ListEntryMeta`): a seeded object's tuples derive from those facts
+ * and its row is never read — the facts are exactly what the derivation
+ * reads (facts.ts). The seed stands in for the row only where the row
+ * would have been read for FACTS; a declaration's `derived` rule reads
+ * the row it needs through the loader as before (`default_of` reads the
+ * instance's blueprint pointer, `execution_viewer` the instance's level —
+ * spec fields the facts do not carry), so listing the two instance kinds
+ * costs one row read per candidate, stated in the scope's cost pins.
+ *
  * Rows are read through the generic Store, with one exception: an
  * `identity_account` object is read through the account PORT
  * (`accounts.findById`), the binding every other reader of accounts —
@@ -214,13 +225,26 @@ export interface DerivedTupleSource extends TupleSource {
   personTuples(): Promise<ReadonlyArray<Tuple>>;
 }
 
+export interface DerivedTupleSourceSeed {
+  /** Objects whose facts the caller already holds; their rows are not read for derivation. */
+  readonly facts: ReadonlyArray<RowFacts>;
+}
+
 export function newDerivedTupleSource(
   deps: DerivedTupleSourceDeps,
   person: Person,
+  seed?: DerivedTupleSourceSeed,
 ): DerivedTupleSource {
   const model = deps.model ?? builtInModel;
   const rows = new Map<string, Promise<Message | undefined>>();
   const derived = new Map<string, Promise<ReadonlyArray<Tuple>>>();
+  const seeded = new Map<string, RowFacts>();
+  for (const facts of seed?.facts ?? []) {
+    seeded.set(
+      formatObjectRef({ type: kindEnumName(facts.kind), id: facts.id }),
+      facts,
+    );
+  }
   let personRows: Promise<ReadonlyArray<Tuple>> | undefined;
 
   const loader: RowLoader = {
@@ -243,16 +267,21 @@ export function newDerivedTupleSource(
       return held;
     }
     const declaration = model.byType(object.type);
-    const deriving =
-      declaration === undefined
-        ? Promise.resolve([])
-        : loader
-            .load(object)
-            .then((row) =>
-              row === undefined
-                ? []
-                : deriveTuples(rowFactsOf(declaration, row)),
-            );
+    const known = seeded.get(key);
+    let deriving: Promise<ReadonlyArray<Tuple>>;
+    if (declaration === undefined) {
+      deriving = Promise.resolve([]);
+    } else if (known !== undefined) {
+      deriving = Promise.resolve(deriveTuples(known));
+    } else {
+      deriving = loader
+        .load(object)
+        .then((row) =>
+          row === undefined
+            ? []
+            : deriveTuples(rowFactsOf(declaration.kind, row)),
+        );
+    }
     derived.set(key, deriving);
     return deriving;
   }

@@ -73,7 +73,7 @@ function derivedFor(
     createdBy: facts.createdBy ?? "ida_carol",
     ...(facts.spec === undefined ? {} : { spec: facts.spec }),
   });
-  return deriveTuples(rowFactsOf(declaration, row)).map(formatTuple);
+  return deriveTuples(rowFactsOf(declaration.kind, row)).map(formatTuple);
 }
 
 describe("deriveTuples — the cloud driver's shapes, from the row", () => {
@@ -461,6 +461,104 @@ describe.each(driverFixtures(SEEDED_KINDS))(
         const second = await source.loader.load(agent);
         expect(first).toBeDefined();
         expect(second).toBe(first);
+      });
+
+      it("a source seeded with a candidate's facts derives that object's tuples WITHOUT loading its row; the parent hop still loads", async () => {
+        let rowReads = 0;
+        const agent = declared("agent");
+        const seeded = newDerivedTupleSource(
+          {
+            store: {
+              ...opened.store,
+              getResource(kind, id, schema) {
+                rowReads += 1;
+                return opened.store.getResource(kind, id, schema);
+              },
+            },
+            policies: counted.policies,
+            accounts,
+          },
+          DAVE,
+          {
+            facts: [
+              rowFactsOf(
+                agent.kind,
+                fixtureRow(agent, {
+                  id: "agt_team",
+                  org: "acme",
+                  visibility: ApiResourceVisibility.visibility_org,
+                  createdBy: "ida_carol",
+                }),
+              ),
+            ],
+          },
+        );
+        const object = parseObjectRef("agent:agt_team");
+        expect(
+          (await seeded.tuplesOf(object, "viewer")).map(formatTuple),
+        ).toEqual(["agent:agt_team#viewer@organization:acme#viewer"]);
+        expect(
+          (await seeded.tuplesOf(object, "owner")).map(formatTuple),
+        ).toEqual(["agent:agt_team#owner@identity_account:ida_carol"]);
+        expect(rowReads, "the seeded object's row is never read").toBe(0);
+        // The member reads the org-visible agent through the organization,
+        // whose row the walk loads — the one read a seeded check makes.
+        expect(
+          await checkRelation(
+            { model: builtInModel, source: seeded },
+            object,
+            "can_view",
+            DAVE,
+            {
+              allow: false,
+            },
+          ),
+        ).toBe(true);
+        expect(rowReads).toBe(1);
+      });
+
+      it("a seeded fact stands in for the row only where the row would have been read for FACTS: a `derived` rule still reads the row it needs", async () => {
+        // A seeded instance: `default_of` reads the instance's blueprint
+        // pointer from the row's spec, which a candidate's facts do not
+        // carry, so the rule loads the row — one read, stated in the list
+        // scope's cost pin as well.
+        let rowReads = 0;
+        const instance = declared("agent_instance");
+        const row = fixtureRow(instance, {
+          id: "ai_seeded",
+          org: "acme",
+          visibility: ApiResourceVisibility.visibility_private,
+          createdBy: "ida_carol",
+          spec: { agentId: "agt_team" },
+        });
+        await opened.store.saveResource(
+          instance.kind,
+          "ai_seeded",
+          instance.schema,
+          row,
+        );
+        const seeded = newDerivedTupleSource(
+          {
+            store: {
+              ...opened.store,
+              getResource(kind, id, schema) {
+                rowReads += 1;
+                return opened.store.getResource(kind, id, schema);
+              },
+            },
+            policies: counted.policies,
+            accounts,
+          },
+          DAVE,
+          { facts: [rowFactsOf(instance.kind, row)] },
+        );
+        const object = parseObjectRef("agent_instance:ai_seeded");
+        await seeded.tuplesOf(object, "owner");
+        expect(rowReads, "facts alone serve the derived tuples").toBe(0);
+        await seeded.tuplesOf(object, "default_of");
+        expect(rowReads, "the rule reads the instance and the blueprint").toBe(
+          2,
+        );
       });
 
       it("a store fault propagates as the fault it is — never as 'no tuples'", async () => {
