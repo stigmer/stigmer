@@ -42,6 +42,18 @@
  * the SDK double (`ScriptedSdkOptions`); an SDK-side cancel or a mid-stream
  * wedge as an `effect` step on the run. Nothing here is a switch in production
  * code — every knob is a value the production path already reads.
+ *
+ * Two postures, two entries, one turn runner. `beginCursorScenario` is the
+ * hermetic posture: the SDK doubled by the scenario file's `vi.mock`, the
+ * clock scripted, goldens byte-stable. `beginLiveCursorScenario` is the live
+ * posture (S4's live-run gate, Q-L-3): the scenario file mocks ONLY the
+ * client, the real `@cursor/sdk` runs under the real activity on the real
+ * clock with a real member key, and what the activity persists is read back
+ * from the same record. A live scenario therefore has no `sdk` and no `clock`
+ * — the type says which posture a file is in — and `runCursorTurn` reads only
+ * what both have. The registry fixture's `live` pass-through and the
+ * environment's `eventRecordingDir` are the live posture's two other
+ * seams, each on the module that owns the concern.
  */
 
 import { execFileSync } from "node:child_process";
@@ -216,20 +228,27 @@ export function resetCursorModuleState(): void {
   _resetRegistryCache();
 }
 
-export interface CursorScenario {
+/** What both postures share: the environment, the record the activity persists into, the runner's `Config`. */
+export interface CursorScenarioBase {
   readonly env: HermeticEnvironment;
-  readonly clock: ScriptedClock;
   readonly record: ExecutionRecord;
-  readonly sdk: ScriptedCursorSdk;
   /** The runner this scenario runs on: the OSS posture plus the scenario's knobs. */
   readonly config: Config;
 }
 
-export interface CursorScenarioOptions {
-  readonly env: HermeticEnvironment;
+/** The hermetic posture: the SDK double and the scripted clock beside the shared three. */
+export interface CursorScenario extends CursorScenarioBase {
   readonly clock: ScriptedClock;
+  readonly sdk: ScriptedCursorSdk;
+}
+
+/** The live posture (header): the shared three and nothing doubled but the client. */
+export type LiveCursorScenario = CursorScenarioBase;
+
+/** The options both postures take. */
+interface CursorScenarioBaseOptions {
+  readonly env: HermeticEnvironment;
   readonly record: ExecutionRecord;
-  readonly sdk: ScriptedSdkOptions;
   /**
    * Control-plane facets the scenario opts INTO, or faults it injects, over
    * the record's everyday answers (`ExecutionRecord.client`): a rejecting
@@ -245,19 +264,48 @@ export interface CursorScenarioOptions {
   readonly config?: Partial<Config>;
 }
 
-/** Bind the record and the SDK for a scenario; resets the harness caches first. */
-export function beginCursorScenario(options: CursorScenarioOptions): CursorScenario {
+export interface CursorScenarioOptions extends CursorScenarioBaseOptions {
+  readonly clock: ScriptedClock;
+  readonly sdk: ScriptedSdkOptions;
+}
+
+export interface LiveCursorScenarioOptions extends CursorScenarioBaseOptions {
+  /** The real member key the real SDK authenticates with; becomes `config.cursorApiKey`. */
+  readonly apiKey: string;
+}
+
+/**
+ * What every scenario begins with: the harness caches dropped, the record
+ * bound as the control plane the activity will talk to, the OSS `Config`
+ * over the environment with the scenario's knobs laid on top.
+ */
+function beginScenarioBase(options: CursorScenarioBaseOptions): CursorScenarioBase {
   resetCursorModuleState();
-  const sdk = new ScriptedCursorSdk(options.sdk);
-  bindScriptedSdk(sdk);
   bindHermeticClient(options.record.client(options.clientOverrides));
   return {
     env: options.env,
-    clock: options.clock,
     record: options.record,
-    sdk,
     config: { ...hermeticCursorConfig(options.env), ...options.config },
   };
+}
+
+/** Bind the record and the SDK double for a hermetic scenario; resets the harness caches first. */
+export function beginCursorScenario(options: CursorScenarioOptions): CursorScenario {
+  const base = beginScenarioBase(options);
+  const sdk = new ScriptedCursorSdk(options.sdk);
+  bindScriptedSdk(sdk);
+  return { ...base, clock: options.clock, sdk };
+}
+
+/**
+ * Bind the record for a live scenario; resets the harness caches first. No
+ * SDK double is built or bound — the scenario file must NOT mock `@cursor/sdk`
+ * — and no clock is installed. The key lands on the `Config` exactly where
+ * the OSS runner's direct mode reads it (`turn-setup.ts`, `config.cursorApiKey`).
+ */
+export function beginLiveCursorScenario(options: LiveCursorScenarioOptions): LiveCursorScenario {
+  const base = beginScenarioBase(options);
+  return { ...base, config: { ...base.config, cursorApiKey: options.apiKey } };
 }
 
 export interface CursorTurnOptions {
@@ -269,13 +317,15 @@ export interface CursorTurnOptions {
 }
 
 /**
- * Run ONE `ExecuteCursor` invocation for the scenario: the real Cursor
- * adapter under the real turn runtime, as the composition roots wire them.
- * Built per invocation (the registry constructs its client, which is the one
- * bound at `beginCursorScenario`; the adapter boots on the scenario's config).
+ * Run ONE `ExecuteCursor` invocation for the scenario — either posture: the
+ * real Cursor adapter under the real turn runtime, as the composition roots
+ * wire them. Built per invocation (the registry constructs its client, which
+ * is the one bound at `begin*CursorScenario`; the adapter boots on the
+ * scenario's config). Reads only the record and the config, which both
+ * postures have.
  */
 export async function runCursorTurn(
-  scenario: CursorScenario,
+  scenario: CursorScenarioBase,
   options: CursorTurnOptions = {},
 ): Promise<ActivityInvocation> {
   // Imported lazily so the scenario file's `vi.mock` declarations are in

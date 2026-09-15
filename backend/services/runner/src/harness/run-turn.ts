@@ -3,7 +3,10 @@
  * every harness, with the engine behind the adapter contract (`types.ts`).
  *
  * What runs here and nowhere else: the activity's identity and its
- * execution-scoped context; the status and the single persist chokepoint;
+ * execution-scoped context; the status, the one transcript builder over it
+ * (born with the status, seeded by the reinvocation phase, handed to the
+ * adapter as `sink.transcript`, finalized once the adapter returns) and the
+ * single persist chokepoint;
  * the periodic heartbeat; the stop controller and its four producers (the
  * stall watchdog, the cost cap, the platform STOP, Temporal's cancellation);
  * the resolution phases (`turn-context.ts`) composed into the `TurnInput`;
@@ -81,6 +84,7 @@ import {
   workspaceLockTimeoutArm,
   type TerminalArm,
 } from "./terminal-table.js";
+import { TranscriptBuilder } from "./transcript/builder.js";
 import { resolveTurnContext, type ResolutionDeps, type TurnFrame, type TurnSettlement } from "./turn-context.js";
 import type { HarnessAdapter, TurnInput, TurnSink } from "./types.js";
 import { UsageAccumulator } from "./usage-accumulator.js";
@@ -147,6 +151,15 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
     phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
     startedAt: utcTimestamp(),
   });
+
+  // The one transcript builder of this turn, born with the status and before
+  // any phase, so it exists for everything that writes a row or an output
+  // onto the status: the write-back coordinator (phase 2c), the seed of a
+  // reinvocation's prior rows (phase 3, through `seed()`, which indexes them
+  // as it appends), the adapter (`sink.transcript`), and the epilogue. One
+  // constructor call per turn; a second builder over the same status would
+  // index the same rows twice.
+  const transcript = new TranscriptBuilder(executionId, status);
 
   // Cold-start timeline of this turn's setup: one mark after each phase, the
   // adapter's own segments marked through the sink, emitted by the adapter
@@ -288,6 +301,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
 
     const sink: TurnSink = {
       status,
+      transcript,
       stopSignal: stop.signal,
       setupTiming,
       requestPersist: () => chokepoint.request(),
@@ -342,6 +356,16 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
     const outcome = await adapter.runTurn(turn, sink);
     armedWatchdog.stop();
     heartbeatPhase = "epilogue";
+
+    // The stream is over, however it ended: nothing on the transcript is
+    // still streaming. Here and not only in the adapters' settles, because
+    // this is the one place that sees every path — a turn that failed before
+    // its settle, or ended on a thrown budget, used to persist its last
+    // message with the flag on, a spinner the console never stopped (the
+    // kit's settled-transcript fact caught it on both real adapters).
+    // Idempotent: an adapter that persists on the settled rows mid-settle
+    // finalizes first, as the Cursor harness does before `run.wait()`.
+    transcript.finalize();
 
     // The capture boundary, ONCE, over whatever the whole turn left on the
     // tree — unless a stop fired mid-turn (`interrupted`: the tree may be
@@ -663,6 +687,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
       client,
       config,
       status,
+      transcript,
       artifactStorage,
       timing: setupTiming,
       signal: cancellationSignal,

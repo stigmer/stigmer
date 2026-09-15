@@ -3,10 +3,6 @@
     {
       "type": "MESSAGE_AI",
       "content": "I will run the command.",
-      "timestamp": "2026-01-01T00:00:01.000Z"
-    },
-    {
-      "type": "MESSAGE_AI",
       "timestamp": "2026-01-01T00:00:01.000Z",
       "toolCalls": [
         {
@@ -20,7 +16,7 @@
           "startedAt": "2026-01-01T00:00:01.000Z",
           "completedAt": "2026-01-01T00:00:01.000Z",
           "requiresApproval": true,
-          "approvalMessage": "Execute command: echo hermetic-a",
+          "approvalMessage": "Run command: echo hermetic-a",
           "approvalRequestedAt": "2026-01-01T00:00:01.000Z",
           "approvalDecidedAt": "2026-01-01T00:00:30.000Z",
           "approvalAction": "APPROVAL_ACTION_APPROVE",
@@ -34,10 +30,6 @@
     {
       "type": "MESSAGE_AI",
       "content": "Now the second command.",
-      "timestamp": "2026-01-01T00:00:02.000Z"
-    },
-    {
-      "type": "MESSAGE_AI",
       "timestamp": "2026-01-01T00:00:02.000Z",
       "toolCalls": [
         {
@@ -51,7 +43,7 @@
           "startedAt": "2026-01-01T00:00:02.000Z",
           "completedAt": "2026-01-01T00:00:02.000Z",
           "requiresApproval": true,
-          "approvalMessage": "Execute command: echo hermetic-b",
+          "approvalMessage": "Run command: echo hermetic-b",
           "approvalRequestedAt": "2026-01-01T00:00:02.000Z",
           "approvalDecidedAt": "2026-01-01T00:01:00.000Z",
           "approvalAction": "APPROVAL_ACTION_APPROVE",

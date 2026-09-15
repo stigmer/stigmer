@@ -29,6 +29,7 @@ export {
   resolveApprovalMessage,
   POLICY_ENGINE_VERSION,
 } from "../../shared/approval-policy.js";
+import { CATEGORY_APPROVAL_MESSAGE } from "../../shared/approval-policy.js";
 export type { MergedToolPolicy, PolicySource } from "../../shared/approval-policy.js";
 
 /**
@@ -72,30 +73,15 @@ export type ApprovalCategory = ToolApprovalCategory;
 export const approvalCategory = toolApprovalCategory;
 
 /**
- * Human-readable approval-message template per canonical category. Keyed by
- * category (not raw tool name) so a denial surfaced from either taxonomy renders
- * the same message. Placeholders resolve against the tool args via
- * {@link resolveApprovalMessage}; `{{args.path}}` and `{{args.command}}` are the
- * stream-side field names (the runner builds the approval surface from the
- * streamed tool call, whose args use `path`/`command`).
+ * The salient argument fields — the resource a built-in acts on — are the
+ * platform's one list, `shared/args-preview.ts` `SALIENT_ARG_FIELDS` (moved
+ * there at S4 M2 C7: the transcript builder previews every row over it for
+ * both harnesses). Re-exported here for this harness's identity code and the
+ * generated hook script, which inject it so the runner and the hook never
+ * disagree on which field to match.
  */
-const CATEGORY_APPROVAL_MESSAGE: Record<ApprovalCategory, string> = {
-  write: "Write file: {{args.path}}",
-  delete: "Delete: {{args.path}}",
-  shell: "Run command: {{args.command}}",
-};
-
-/**
- * Top-level tool-argument fields, in priority order, that identify the specific
- * resource a built-in tool acts on. The list deliberately spans BOTH taxonomies'
- * arg shapes: the hook input names a file `file_path` and the stream names it
- * `path`; both name a shell command `command`. Extracting the same resource
- * VALUE on both sides (the absolute path / the command string) is what lets the
- * hook-recorded denial token equal the stream-computed token. Authored here once
- * and injected into the generated preToolUse hook script so the runner and the
- * hook never disagree on which field to match.
- */
-export const SALIENT_ARG_FIELDS = ["file_path", "path", "target_notebook", "command"] as const;
+export { SALIENT_ARG_FIELDS } from "../../shared/args-preview.js";
+import { SALIENT_ARG_FIELDS } from "../../shared/args-preview.js";
 
 /**
  * Check whether a built-in (non-MCP) Cursor tool requires user approval.
@@ -152,7 +138,9 @@ export function getBuiltInGatedCategories(): Array<[string, ApprovalCategory]> {
  * Approval-message template for a gated built-in tool (either taxonomy), or
  * undefined when the tool is not gated. Resolved via {@link approvalCategory}
  * so stream-side names (`edit`/`shell`/`delete`) and hook-side names
- * (`Write`/`Shell`/`Delete`) both map to the same template. Callers resolve the
+ * (`Write`/`Shell`/`Delete`) both map to the same template — the platform's
+ * ONE table, `shared/approval-policy.ts` `CATEGORY_APPROVAL_MESSAGE`, shared
+ * with the native gate since S4 M4 B6 (Q-M4-11). Callers resolve the
  * placeholders against the tool args via resolveApprovalMessage.
  */
 export function getBuiltInApprovalMessage(toolName: string): string | undefined {

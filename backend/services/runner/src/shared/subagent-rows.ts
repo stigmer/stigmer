@@ -7,7 +7,7 @@
  * infrastructure cancel), so the final snapshot has no permanent IN_PROGRESS
  * "zombie" delegation. Harness-agnostic (a `SubAgentExecution` is the
  * platform's row, not an engine's), read by the turn runtime's terminal
- * table and the Cursor accumulator's own finalize alike.
+ * table and the Cursor settle alike.
  *
  * Moved from `activities/execute-cursor/message-translator.ts` at S2 M3 so
  * the runtime's catch can reach it; the body is unchanged.

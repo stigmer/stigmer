@@ -36,8 +36,10 @@ import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/ag
 import { MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { isToolCallRowHidden } from "../../../shared/tool-row.js";
 import { denialLedgerPath } from "../approval-state.js";
-import { toolCallIdentityToken, UNRESOLVED_TOOL_CALL_ERROR } from "../message-translator.js";
+import { toolCallIdentityToken } from "../approval-state.js";
+import { UNRESOLVED_TOOL_CALL_ERROR } from "../boundary-rows.js";
 import { runTurnBoundary, type TurnBoundaryOptions } from "../turn-boundary.js";
+import { TranscriptBuilder } from "../../../harness/transcript/builder.js";
 
 const EXEC_ID = "exec-boundary-1";
 
@@ -71,6 +73,7 @@ function streamedEdit(id: string, path: string, content: string): AgentMessage {
 function boundaryOpts(status: AgentExecutionStatus, overrides?: Partial<TurnBoundaryOptions>): TurnBoundaryOptions {
   return {
     status,
+    transcript: new TranscriptBuilder(EXEC_ID, status),
     executionId: EXEC_ID,
     hitlDir,
     primaryWorkspaceDir: repo,

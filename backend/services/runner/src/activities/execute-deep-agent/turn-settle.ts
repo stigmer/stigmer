@@ -8,18 +8,24 @@
  * the runtime's stop, mark in-flight sub-agent rows through the shared act
  * and settle `interrupted` with nothing further; the graph's
  * `structuredResponse` folded onto the status; the interrupts a completed
- * stream left pending seeded as WAITING rows; and the outcome.
+ * stream left pending proposed through the builder as WAITING rows; and the
+ * outcome.
  *
  * What this module never does: write a phase, a terminal copy or
  * `completedAt` — those are the runtime's (`harness/run-turn.ts`,
- * `terminal-table.ts`); settle SKIP and REJECT rows — the runtime's
+ * `terminal-table.ts`); close the transcript's streaming flags — the
+ * runtime's, once `runTurn` returns, on every path (S4 M5; until then this
+ * settle finalized the builder itself, and a turn that threw before
+ * reaching it left its last message streaming); settle SKIP and REJECT rows — the runtime's
  * (`harness/approval-decisions.ts`, after every outcome); withhold secret
  * content — the runtime's chokepoint does it on every write; finalize the
  * write-back — the runtime's epilogue; capture the turn's file changes or
  * decide whether a review is pending — the runtime's (`harness/capture.ts`,
  * once, over whatever the whole turn left on the tree, after this settle
- * returns; S3 M4). It does mutate `sink.status`'s transcript rows, which
- * are this harness's to write.
+ * returns; S3 M4). Transcript rows it CREATES go through the builder
+ * (`approval_proposed`, S4 M2 C6); the one row it AMENDS by identity is the
+ * gate's unattended skip (`reconcileUnattendedSkips`), whose evidence exists
+ * only inside this harness.
  *
  * The structured response is folded BEFORE the outcome is decided, so a turn
  * the runtime then pauses for file review persists it and the pure
@@ -30,15 +36,10 @@
  * the capture boundary left for the runtime at M4.
  */
 
-import { create, type JsonObject } from "@bufbuild/protobuf";
-import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { JsonObject } from "@bufbuild/protobuf";
 
 import type { TurnInput, TurnOutcome, TurnSink } from "../../harness/types.js";
-import { POLICY_ENGINE_VERSION, toProtoPolicySource } from "../../shared/approval-policy.js";
-import { utcTimestamp } from "../../shared/status.js";
 import { cancelInProgressSubAgentProtos } from "../../shared/subagent-rows.js";
-import { classifyTool } from "../../shared/tool-kind.js";
 import { captureApprovalArtifacts } from "./approval-file-change.js";
 import { autoPublishWrittenFiles } from "./auto-publish.js";
 import { detectPendingInterrupts, reconcileUnattendedSkips, type GraphStateSnapshot } from "./hitl.js";
@@ -82,10 +83,9 @@ export async function settleDeepAgentTurn(deps: DeepAgentSettleDeps): Promise<Tu
   if (stream.reason === "interrupted") {
     // A stopped turn aborted the graph run, so any sub-agent the parent had
     // delegated is no longer executing: CANCELLED through the one shared act
-    // (the runtime marks them itself only on its thrown arms), its messages'
-    // streaming flags cleared. There is no review to open.
+    // (the runtime marks them itself only on its thrown arms). There is no
+    // review to open.
     cancelInProgressSubAgentProtos(status.subAgentExecutions);
-    transcript.builder.finalizeSubAgentStreaming();
     return { kind: "interrupted" };
   }
 
@@ -118,11 +118,17 @@ export async function settleDeepAgentTurn(deps: DeepAgentSettleDeps): Promise<Tu
 }
 
 /**
- * Seed one WAITING_APPROVAL row per interrupt the graph left pending, on one
- * AI message, with the sanitized args preview AND the redacted args read
- * from the AI message in graph state (the single source of truth for the
- * proposed call; issue #754: a placeholder without args rendered a pathless
- * header). Returns whether any was seeded.
+ * Propose, through the builder, one approval per interrupt the graph left
+ * pending — the gate's hold reaching the transcript as `approval_proposed`
+ * (S4 M2 C6; Q-S4-20). LangGraph's `interrupt()` ran before the tool
+ * handler, so the stream showed no row for the call; the builder creates
+ * the WAITING row on the message whose text proposed it, with the redacted
+ * args read from the AI message in graph state (the single source of truth
+ * for the proposed call; issue #754: a placeholder without args rendered a
+ * pathless header). Until C6 this settle built the message and the rows
+ * itself, on a new empty AI message of its own, with no by-id check against
+ * rows the stream had created (M2 finding F-M2-13; the upsert closes it).
+ * Returns whether any was proposed.
  */
 async function seedPendingInterrupts(deps: DeepAgentSettleDeps): Promise<boolean> {
   const { input, sink, engine } = deps;
@@ -134,31 +140,17 @@ async function seedPendingInterrupts(deps: DeepAgentSettleDeps): Promise<boolean
   const aiMessages = Array.isArray(graphMessages) ? graphMessages : [];
   console.log(`[turn-settle] Detected ${pending.length} pending interrupt(s) for execution ${input.executionId} — awaiting approval`);
 
-  const aiMsg = create(AgentMessageSchema, {
-    type: MessageType.MESSAGE_AI,
-    content: "",
-    timestamp: utcTimestamp(),
-    isStreaming: false,
-  });
   for (const intr of pending) {
-    const toolCall = create(ToolCallSchema, {
-      id: intr.toolCallId,
+    const { args } = captureApprovalArtifacts({ toolCallId: intr.toolCallId, messages: aiMessages });
+    sink.transcript.apply({
+      kind: "approval_proposed",
+      callId: intr.toolCallId,
       name: intr.toolName,
-      status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
-      requiresApproval: true,
-      approvalMessage: intr.message,
-      approvalRequestedAt: utcTimestamp(),
       mcpServerSlug: intr.mcpServerSlug,
-      startedAt: utcTimestamp(),
-      toolKind: classifyTool(intr.toolName, intr.mcpServerSlug),
-      approvalPolicySource: toProtoPolicySource(intr.policySource),
-      policyEngineVersion: intr.policySource ? POLICY_ENGINE_VERSION : "",
+      message: intr.message,
+      ...(args ? { args } : {}),
+      ...(intr.policySource ? { provenance: intr.policySource } : {}),
     });
-    const { argsPreview, args } = captureApprovalArtifacts({ toolCallId: intr.toolCallId, messages: aiMessages });
-    if (argsPreview) toolCall.argsPreview = argsPreview;
-    if (args) toolCall.args = args as typeof toolCall.args;
-    aiMsg.toolCalls.push(toolCall);
   }
-  sink.status.messages.push(aiMsg);
-  return true;
+  return sink.transcript.awaitingApproval;
 }

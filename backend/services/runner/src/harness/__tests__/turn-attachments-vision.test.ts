@@ -29,14 +29,17 @@ import { DEEP_AGENT_VISION_PROFILE } from "../../shared/attachment-vision.js";
 import { TimingRecorder } from "../../shared/cold-start-timing.js";
 import { mockStigmerClient } from "../../__test-utils__/mock-client.js";
 import { testConfig } from "../../__test-utils__/config-fixture.js";
+import { TranscriptBuilder } from "../transcript/builder.js";
 import { resolveTurnAttachments, type ResolutionDeps } from "../turn-context.js";
 
 function deps(): ResolutionDeps {
+  const status = create(AgentExecutionStatusSchema, {});
   return {
     input: { executionId: "aex_1", threadId: "", turnSeq: 0 },
     client: mockStigmerClient(),
     config: testConfig(),
-    status: create(AgentExecutionStatusSchema, {}),
+    status,
+    transcript: new TranscriptBuilder("aex_1", status),
     artifactStorage: undefined,
     timing: new TimingRecorder(),
     signal: new AbortController().signal,

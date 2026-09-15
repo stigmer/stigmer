@@ -28,7 +28,7 @@
  *
  * SOURCE OF TRUTH — the approved whole-file bytes and target path are read from
  * the gated tool call's `args` (the authoritative proposed content the deny-gate
- * stamped from the hook input; see execute-cursor/message-translator.ts
+ * stamped from the hook input; see execute-cursor/boundary-rows.ts
  * `applyGateInput`). This is the single copy — there is no separate captured
  * `file_changes` mirror — so "what was shown == what is applied" holds by
  * construction. (Phase 5 Slice 4 removed the redundant `ToolCall.file_changes`

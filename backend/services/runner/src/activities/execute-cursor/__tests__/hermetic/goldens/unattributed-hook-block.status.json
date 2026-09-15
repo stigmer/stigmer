@@ -11,8 +11,8 @@
           "args": {
             "command": "rm -rf build"
           },
-          "result": "blocked by a hook",
           "status": "TOOL_CALL_FAILED",
+          "startedAt": "2026-01-01T00:00:03.000Z",
           "completedAt": "2026-01-01T00:00:03.000Z",
           "error": "blocked by a hook",
           "requiresApproval": true,

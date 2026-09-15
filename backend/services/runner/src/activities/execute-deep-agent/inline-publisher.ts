@@ -19,10 +19,21 @@ import {
   ExecutionArtifactKind,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { ArtifactStorage } from "../../shared/artifact-storage.js";
+import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
 import type { WorkspaceBackend } from "../../shared/workspace/types.js";
-import type { ExecutionStatusWriter } from "../../shared/execution-status-writer.js";
 import { utcTimestamp } from "../../shared/status.js";
 import { isSecretLikePath } from "../../shared/filereview/secret-paths.js";
+
+/**
+ * Where a published artifact is registered: the one member of the transcript
+ * builder this publisher needs (`harness/transcript/builder.ts` `addArtifact`,
+ * which owns the upsert rule and marks the transcript dirty so the row
+ * reaches the next persist). Declared here as the narrow view this consumer
+ * needs, never the whole builder — the `SessionProvisionConfig` rule.
+ */
+export interface ArtifactSink {
+  addArtifact(artifact: ExecutionArtifact): void;
+}
 
 export class InlinePublisher {
   private readonly workspaceBackend: WorkspaceBackend;
@@ -33,7 +44,7 @@ export class InlinePublisher {
    * persists without the offloaded artifact.
    */
   private readonly artifactStorage: ArtifactStorage | undefined;
-  private readonly statusWriter: ExecutionStatusWriter;
+  private readonly artifacts: ArtifactSink;
   private readonly executionId: string;
 
   /** Tracks (sandboxPath -> contentHash) for deduplication. */
@@ -42,12 +53,12 @@ export class InlinePublisher {
   constructor(opts: {
     workspaceBackend: WorkspaceBackend;
     artifactStorage: ArtifactStorage | undefined;
-    statusWriter: ExecutionStatusWriter;
+    artifacts: ArtifactSink;
     executionId: string;
   }) {
     this.workspaceBackend = opts.workspaceBackend;
     this.artifactStorage = opts.artifactStorage;
-    this.statusWriter = opts.statusWriter;
+    this.artifacts = opts.artifacts;
     this.executionId = opts.executionId;
   }
 
@@ -105,7 +116,7 @@ export class InlinePublisher {
         contentHash,
       });
 
-      this.statusWriter.addArtifact(artifact);
+      this.artifacts.addArtifact(artifact);
       this.published.set(sandboxPath, contentHash);
 
       console.log(

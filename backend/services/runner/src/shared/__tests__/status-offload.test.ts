@@ -342,7 +342,7 @@ describe("offloadOversizedToolOutputs", () => {
     await offloadOversizedToolOutputs(status, ctx);
     expect(uploads).toHaveLength(1);
 
-    // Simulate mergeToolCallEvent re-inflating the inline result with the SAME
+    // Simulate the builder's finish upsert re-inflating the inline result with the SAME
     // bytes on a subsequent persist; the ref's content hash still matches.
     status.messages[0].toolCalls[0].result = result;
     await offloadOversizedToolOutputs(status, ctx);

@@ -23,6 +23,15 @@
  * never consulted and adding an entry is byte-invisible to the other
  * harness's goldens (verified when the native entry landed: Cursor's
  * seventeen unchanged).
+ *
+ * The live posture (`stubRegistryFetch({ live: true })`): a live instrument
+ * runs the real activity against the REAL `@cursor/sdk`, whose cloud-api
+ * client (`Cursor.models.list`, the user-key token exchange) goes through
+ * global `fetch` — only its Connect RPC stream rides connect-node. Such a run
+ * keeps this document for the registry (pricing and tier stay pinned; nothing
+ * a live turn proves lives there) and lets every other URL reach the network
+ * through the `fetch` that was global before the stub. The refusal stays the
+ * default: a hermetic run that grows a network dependency must still fail.
  */
 
 import { vi } from "vitest";
@@ -76,21 +85,36 @@ export const REGISTRY_DOCUMENT = {
   ],
 } as const;
 
+export interface StubRegistryFetchOptions {
+  /**
+   * The live posture (header): every URL that is not the registry reaches the
+   * network through the pre-stub `fetch`. Default false — refuse, and fail the
+   * run.
+   */
+  readonly live?: boolean;
+}
+
 /**
- * Stub `fetch` to answer the registry document and refuse everything else.
- * Returns the URLs fetched, for the "no other network" assertion.
+ * Stub `fetch` to answer the registry document and — by default — refuse
+ * everything else. Returns the URLs fetched, for the "no other network"
+ * assertion (and, in the live posture, for the record of what a real turn
+ * dialled).
  */
-export function stubRegistryFetch(): { readonly urls: string[]; restore(): void } {
+export function stubRegistryFetch(options: StubRegistryFetchOptions = {}): { readonly urls: string[]; restore(): void } {
   const urls: string[] = [];
+  const networkFetch = globalThis.fetch;
   vi.stubGlobal(
     "fetch",
-    vi.fn(async (input: string | URL | Request) => {
+    vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
       const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
       urls.push(url);
-      if (!url.includes("/model-registry")) {
-        throw new Error(`hermetic run attempted a non-registry network call: ${url}`);
+      if (url.includes("/model-registry")) {
+        return { ok: true, status: 200, json: async () => REGISTRY_DOCUMENT } as unknown as Response;
       }
-      return { ok: true, status: 200, json: async () => REGISTRY_DOCUMENT } as unknown as Response;
+      if (options.live) {
+        return networkFetch(input, init);
+      }
+      throw new Error(`hermetic run attempted a non-registry network call: ${url}`);
     }),
   );
   return { urls, restore: () => vi.unstubAllGlobals() };

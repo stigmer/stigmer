@@ -20,7 +20,7 @@
  *      Images are uploaded as their decoded bytes (so the UI can render an
  *      <img>); other large output is uploaded as text with a preview head.
  *      Idempotent and content-hash-deduped so the throttled, repeated persists
- *      (and result re-inflation by mergeToolCallEvent) upload each blob once.
+ *      (and result re-inflation by the builder's `tool_finished` upsert) upload each blob once.
  *
  *   2. offloadCandidateChangesToFit — an aggregate, storage-backed step for the
  *      file-review ledger: if the status still exceeds the soft cap after (1),
@@ -344,7 +344,7 @@ async function maybeOffloadToolCall(
   const hash = sha256(result);
 
   // Idempotent: the same content was already offloaded on a prior persist (or
-  // mergeToolCallEvent re-inflated `result` with identical bytes). Re-collapse
+  // the builder's finish upsert re-inflated `result` with identical bytes). Re-collapse
   // the inline copy without re-uploading.
   if (tc.outputRef && tc.outputRef.contentHash === hash) {
     tc.result = collapsedResultFor(tc.outputRef);

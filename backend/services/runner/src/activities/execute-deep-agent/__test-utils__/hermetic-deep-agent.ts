@@ -59,7 +59,12 @@
  * Determinism beyond S0's: the clock ticks once per model turn (the scripted
  * model's `onTurn`), so status timestamps and the persist cadence land on the
  * same instants every run; a scenario's interruption (pause, worker shutdown)
- * is scheduled on a model turn through the same hook, never on a timer.
+ * is scheduled on a model turn through the same hook, never on a timer. And
+ * a turn does not begin — the clock does not tick — until the loop has
+ * persisted the previous turn's tool results settled
+ * (`ExecutionRecord.whenToolCallsSettled`): the ground a real model's latency
+ * gives for free, without which the producer runs ahead of a consumer that is
+ * awaiting a slow persist and the stamps of one turn straddle the next tick.
  */
 
 import { rmSync } from "node:fs";
@@ -225,6 +230,13 @@ export class DeepAgentScenario {
   ) {
     this.model = new ScriptedModel(script, [], {
       onTurn: async (info) => {
+        // A real model answers long after the loop has folded and persisted
+        // the tool results it is answering; a scripted one answers at once and
+        // lets the producer run a turn ahead of the consumer. Wait for that
+        // ground before ticking, so every stamp of the previous turn precedes
+        // this turn's instant, whatever the persist's I/O took (the barrier's
+        // own header on `ExecutionRecord` carries the whole reason).
+        await this.record.whenToolCallsSettled(info.priorToolCallIds);
         this.clock.tick();
         if (onTurn && this.controls) await onTurn(info, this.controls);
       },

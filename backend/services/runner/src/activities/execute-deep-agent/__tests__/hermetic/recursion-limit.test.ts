@@ -23,9 +23,11 @@
  * TERMINATED status the control plane holds, which is what that fix changed
  * on purpose.
  *
- * Also visible here, F-M0-1 at scale: every tool row of the run sits on ONE
- * empty AI message, because `ensureAiMessageForToolCall("")` creates it once
- * and `currentAiMessage[""]` then catches every later row.
+ * Also visible here, Q-S4-5 at scale (S4 M2 C4): every tool row sits on the
+ * "Reading file N." message whose text proposed it. Until C4 all of them sat
+ * on ONE empty AI message (F-M0-1 at scale): the namespace miss created the
+ * empty message once and its `currentAiMessage[""]` then caught every later
+ * row.
  *
  * How many rounds fit is the middleware stack's shape, not the knob's
  * (S3 M2b, owner ruling 2026-09-13 on F-M2b-26): LangChain makes every
@@ -125,9 +127,15 @@ describe("ExecuteDeepAgent hermetic — tool-call budget exhausted", () => {
     const rows = record.toolCalls();
     expect(rows.length, "fewer rounds ran than were scripted: the budget stopped the graph").toBeLessThan(SCRIPTED_ROUNDS);
     expect(rows.length).toBeGreaterThanOrEqual(MIN_TOOL_ROUNDS);
+    // Q-S4-5 (S4 M2 C4): every row sits on the message whose text proposed it
+    // — one "Reading file N." message per row, no empty host (until C4 all
+    // thirteen rows sat on ONE empty message, F-M0-1 at scale).
     const rowHosts = persisted.messages.filter((m) => m.type === MessageType.MESSAGE_AI && m.toolCalls.length > 0);
-    expect(rowHosts, "F-M0-1: every row on one empty AI message").toHaveLength(1);
-    expect(rowHosts[0].content).toBe("");
+    expect(rowHosts).toHaveLength(rows.length);
+    for (const host of rowHosts) {
+      expect(host.content).toMatch(/^Reading file \d+\.$/);
+      expect(host.toolCalls).toHaveLength(1);
+    }
 
     // ── Assert: hermeticity ──────────────────────────────────────────────────
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);

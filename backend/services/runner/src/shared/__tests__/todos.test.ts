@@ -1,6 +1,6 @@
 /**
  * Unit tests for applyTodoUpdate — the harness-agnostic to-do map projection
- * shared by the Cursor TodoTracker and the native v2/v3 status builders.
+ * the one transcript builder projects a todo write through, for both harnesses.
  *
  * These pin the exact mapping contract (status coercion, id synthesis,
  * created_at preservation, merge vs. full-replace, clear-on-empty, defensive

@@ -22,8 +22,12 @@
  *
  * What is deliberately simple here and would be real work in an adapter:
  * "executing" a side effect is incrementing a counter; the engine state id is
- * a counter too; the transcript rows are built with the shared proto
- * factories. What is NOT simplified is the contract behaviour itself —
+ * a counter too; there is no engine event to translate, so each step emits
+ * the canonical `TranscriptEvent`s a translator would (a run for a `say`, a
+ * start and a finish for a tool, a proposal for a gate) straight into
+ * `sink.transcript` — the one way any harness creates a transcript row, and
+ * the whole of what a real adapter's translator adds on top of this file.
+ * What is NOT simplified is the contract behaviour itself —
  * settling with an outcome and never rejecting, stopping at every step
  * boundary and inside a hang, binding before the first persist, executing an
  * approval exactly once, refusing to resume a state it never minted — because
@@ -57,7 +61,7 @@ import type { HarnessAdapter, TurnInput, TurnOutcome, TurnSink } from "../../har
 import { DEEP_AGENT_VISION_PROFILE } from "../../shared/attachment-vision.js";
 import type { ProposedAction } from "../approval-contract/types.js";
 import { testConfig } from "../config-fixture.js";
-import { aiMessage, findToolCallRow, toolCall, waitingToolCall } from "../proto-helpers.js";
+import { findToolCallRow } from "../proto-helpers.js";
 import type { EngineView, HarnessContractSubject, ScenarioStep, TurnScenario } from "./types.js";
 
 export interface ScriptedHarnessOptions {
@@ -101,6 +105,8 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
   private readonly executions = new Map<string, number>();
   private readonly hangWaiters: Array<() => void> = [];
   private mintCounter = 0;
+  /** One `runId` per `say`, as an engine mints one per model run; the builder keys a message on it. */
+  private runCounter = 0;
 
   constructor(options: ScriptedHarnessOptions) {
     this.name = options.name ?? `scripted(${options.pausePrimitive}, ${options.stateIdSource})`;
@@ -211,7 +217,12 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
   private async play(step: ScenarioStep, input: TurnInput, sink: TurnSink): Promise<TurnOutcome | undefined> {
     switch (step.kind) {
       case "say": {
-        sink.status.messages.push(aiMessage(step.text));
+        // One model run: start, its text, finish — the shape every
+        // translator emits for an assistant message.
+        const runId = `run-${++this.runCounter}`;
+        sink.transcript.apply({ kind: "message_start", runId });
+        sink.transcript.apply({ kind: "text_delta", runId, text: step.text });
+        sink.transcript.apply({ kind: "message_finish", runId });
         sink.recordActivity();
         // Awaited, as the Cursor loop awaits its own: a platform STOP the
         // runtime reads from this write aborts the signal before the next
@@ -223,14 +234,12 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
         if (step.flows) return this.flowingWrite(step.toolCallId, step.action, input, sink);
         return this.propose(step.toolCallId, step.action, input, sink);
       case "read": {
-        // Ungated: the row lands COMPLETED at once, the effect counts as run,
-        // and the persist is awaited like `say`'s — a real engine's tool call
-        // is the discrete event its loop flushes on.
-        const message = aiMessage("");
-        const row = toolCall(step.toolCallId, "read", ToolCallStatus.TOOL_CALL_COMPLETED);
-        row.result = `contents of ${step.path}`;
-        message.toolCalls.push(row);
-        sink.status.messages.push(message);
+        // Ungated: the row starts and finishes at once, the effect counts as
+        // run, and the persist is awaited like `say`'s — a real engine's tool
+        // call is the discrete event its loop flushes on. The builder puts
+        // the row on the message whose text preceded it.
+        sink.transcript.apply({ kind: "tool_started", callId: step.toolCallId, name: "read", input: { path: step.path }, mcpServerSlug: "" });
+        sink.transcript.apply({ kind: "tool_finished", callId: step.toolCallId, result: `contents of ${step.path}` });
         this.executions.set(step.toolCallId, this.executionCount(step.toolCallId) + 1);
         sink.recordActivity("read");
         await sink.requestPersist();
@@ -279,12 +288,18 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
     switch (decision) {
       case ApprovalAction.UNSPECIFIED: {
         // Propose: surface the gated call as a WAITING row and stop the turn.
-        // Never write a second row for the same id on a resumed turn.
-        if (!existing) {
-          const message = aiMessage("");
-          message.toolCalls.push(waitingToolCall(toolCallId, action.kind, `Approve ${action.kind} ${action.resource}?`));
-          sink.status.messages.push(message);
-        }
+        // `approval_proposed` is an upsert by id — a resumed turn that
+        // re-proposes reopens the seeded row, never writes a second one. No
+        // `args` on purpose: a `write` carrying whole-file content would make
+        // the runtime's exact-apply eligible on APPROVE, and this fake's
+        // execution count would then measure a path the engine never ran.
+        sink.transcript.apply({
+          kind: "approval_proposed",
+          callId: toolCallId,
+          name: action.kind,
+          mcpServerSlug: "",
+          message: `Approve ${action.kind} ${action.resource}?`,
+        });
         sink.recordActivity();
         sink.requestPersist();
         return { kind: "awaiting_approval" };
@@ -292,7 +307,7 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
       case ApprovalAction.APPROVE:
       case ApprovalAction.APPROVE_ALL: {
         this.executions.set(toolCallId, this.executionCount(toolCallId) + 1);
-        this.completeRow(existing, toolCallId, action, sink);
+        this.completeRow(toolCallId, action, sink);
         return undefined;
       }
       case ApprovalAction.SKIP:
@@ -321,11 +336,8 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
     const file = join(input.workspace.primaryDir, action.resource);
     await mkdir(dirname(file), { recursive: true });
     await writeFile(file, `${toolCallId}\n`);
-    const message = aiMessage("");
-    const row = toolCall(toolCallId, "write", ToolCallStatus.TOOL_CALL_COMPLETED);
-    row.args = { path: action.resource };
-    message.toolCalls.push(row);
-    sink.status.messages.push(message);
+    sink.transcript.apply({ kind: "tool_started", callId: toolCallId, name: "write", input: { path: action.resource }, mcpServerSlug: "" });
+    sink.transcript.apply({ kind: "tool_finished", callId: toolCallId, result: "" });
     this.executions.set(toolCallId, this.executionCount(toolCallId) + 1);
     sink.recordActivity("write");
     await sink.requestPersist();
@@ -333,22 +345,14 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
   }
 
   /**
-   * Report the executed action on its row, as a real engine's completion
-   * event does. The row normally exists (the runtime seeded the status with
-   * last turn's WAITING row); a decision with no row is a runtime that decided
-   * out of band, and the adapter still records what happened rather than
-   * losing the fact.
+   * Report the executed action on its row, as a real engine's re-issue does:
+   * a start (which flips the seeded WAITING row to RUNNING — or creates the
+   * row when a runtime decided out of band and no row exists, so the fact is
+   * recorded rather than lost) and a finish.
    */
-  private completeRow(existing: ToolCall | undefined, toolCallId: string, action: ProposedAction, sink: TurnSink): void {
-    if (existing) {
-      existing.status = ToolCallStatus.TOOL_CALL_COMPLETED;
-    } else {
-      const message = aiMessage("");
-      const row = waitingToolCall(toolCallId, action.kind, "");
-      row.status = ToolCallStatus.TOOL_CALL_COMPLETED;
-      message.toolCalls.push(row);
-      sink.status.messages.push(message);
-    }
+  private completeRow(toolCallId: string, action: ProposedAction, sink: TurnSink): void {
+    sink.transcript.apply({ kind: "tool_started", callId: toolCallId, name: action.kind, input: {}, mcpServerSlug: "" });
+    sink.transcript.apply({ kind: "tool_finished", callId: toolCallId, result: "" });
     sink.recordActivity();
     sink.requestPersist();
   }

@@ -29,7 +29,7 @@ export const EXECUTE_CALL_B: ScriptedToolCall = {
 
 /** The gate's copy for a SHELL built-in (`CATEGORY_APPROVAL_MESSAGE.shell` over the args). */
 export function executeApprovalMessage(call: ScriptedToolCall): string {
-  return `Execute command: ${String(call.args.command)}`;
+  return `Run command: ${String(call.args.command)}`;
 }
 
 /** Round 0 of every gated arm: one text block and the gated `execute` A. */

@@ -55,10 +55,21 @@
  * Determinism: the clock is faked for `Date` ONLY (`vi.useFakeTimers({ toFake:
  * ["Date"] })`) and TICKS — the harness double advances it a fixed quantum per
  * script step through {@link ScriptedClock}. Frozen time would make
- * `delta-enricher.ts`'s persist debounce (`Date.now() - lastPersistTime`) never
+ * the streaming scheduler's cadence (`Date.now()` against its last send) never
  * elapse and silently skip the mid-stream persist path production always runs;
  * a ticking clock runs the same path and lands on the same instants every run.
  * Timers stay real so the periodic heartbeat and the stall watchdog behave.
+ *
+ * The live posture (S4's live-run gate, Q-L-3): a `CURSOR_API_KEY`-gated live
+ * instrument keeps all three substitutions above — the real `Context`, the
+ * record behind the client, the temp environment — and drops only the
+ * harness's SDK double, so the REAL activity runs against the REAL vendor SDK
+ * with everything the activity persists still readable from the record.
+ * Two things differ from a hermetic run and both are the caller's explicit
+ * choice: no `ScriptedClock` is installed (the real SDK is not ticked, and a
+ * frozen clock would skip the persist cadence production runs), and the
+ * environment may name an `eventRecordingDir` so the run leaves a recording.
+ * The harness's driver names the entry (`beginLiveCursorScenario`).
  *
  * Not in scope: this module never edits a production module and never
  * normalizes output. If a golden is not byte-stable, the volatile source is
@@ -151,6 +162,8 @@ export class ExecutionRecord {
   private readonly controlSignal: (status: AgentExecutionStatus) => ExecutionControlSignal;
   /** Every `updateStatus` payload, in order, snapshotted at write time. */
   readonly persisted: AgentExecutionStatus[] = [];
+  /** Fired after every full-status `applyStatusUpdate`; {@link whenToolCallsSettled} subscribes here. */
+  private readonly persistListeners = new Set<() => void>();
   /** Setup-progress labels reported before the stream started, in order. */
   readonly setupProgress: string[] = [];
   /**
@@ -205,6 +218,78 @@ export class ExecutionRecord {
     return this.execution.status?.messages.flatMap((m) => m.toolCalls) ?? [];
   }
 
+  /**
+   * Resolves once every one of `ids` is a SETTLED row (not RUNNING) in a status
+   * the activity has persisted — root messages and every sub-agent's alike.
+   * Resolves at once for an empty list or when they already are.
+   *
+   * This is the barrier a real model gives the runtime for free and a
+   * scripted one does not: a model that takes 300 ms to answer never starts
+   * its next turn before the loop has folded and persisted the tool results
+   * it is answering, while `ScriptedModel` answers instantly and LangGraph's
+   * producer can run a whole turn ahead of the consumer while the consumer
+   * awaits one mid-stream persist (on a git workspace that persist shells out
+   * for `file_change_progress`). The stamps the consumer writes at apply time
+   * then land on either side of the scripted clock's next tick depending on
+   * I/O timing — a golden that flips between `:01` and `:02` on the day. The
+   * driver awaits this before it ticks (`hermetic-deep-agent.ts`), so every
+   * stamp of turn N precedes turn N+1's instant, run after run.
+   *
+   * Why "settled" and not "seen": the row's `completedAt` is stamped when the
+   * tool's end event is applied, and the producer calls the next model turn
+   * right after emitting that event, so a barrier on the row merely existing
+   * would still race the completion stamp. The persist that carries the
+   * settled row always exists: a tool's finish forces one (the builder's
+   * force flag), and a turn followed by another turn always has a tool call.
+   *
+   * Bounded by real time (timers are real under the scripted clock): a
+   * scenario that breaks the fact above — a persist that never carries the
+   * row — fails naming the ids still open, never hangs.
+   */
+  whenToolCallsSettled(ids: readonly string[], timeoutMs = 10_000): Promise<void> {
+    const unsettled = (): string[] => {
+      const settled = this.settledToolCallIds();
+      return ids.filter((id) => !settled.has(id));
+    };
+    if (unsettled().length === 0) return Promise.resolve();
+
+    return new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.persistListeners.delete(check);
+        reject(
+          new Error(
+            `ExecutionRecord: tool call(s) ${unsettled().join(", ")} never settled in a persisted status ` +
+              `within ${timeoutMs} ms (${this.persisted.length} persists seen). A model turn was asked to ` +
+              `wait for the results it answers; the loop never persisted them — a scenario or runtime bug.`,
+          ),
+        );
+      }, timeoutMs);
+      const check = (): void => {
+        if (unsettled().length > 0) return;
+        clearTimeout(timer);
+        this.persistListeners.delete(check);
+        resolve();
+      };
+      this.persistListeners.add(check);
+    });
+  }
+
+  /** The ids of every row not RUNNING in the held status, across the root and every sub-agent transcript. */
+  private settledToolCallIds(): Set<string> {
+    const out = new Set<string>();
+    const status = this.execution.status;
+    if (!status) return out;
+    const transcripts = [status.messages, ...status.subAgentExecutions.map((s) => s.messages)];
+    for (const messages of transcripts) {
+      for (const message of messages) {
+        for (const tc of message.toolCalls) {
+          if (tc.status !== ToolCallStatus.TOOL_CALL_RUNNING) out.add(tc.id);
+        }
+      }
+    }
+    return out;
+  }
+
   /** The tool calls currently paused for a decision. */
   waitingToolCalls(): ToolCall[] {
     return this.toolCalls().filter((tc) => tc.status === ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
@@ -254,6 +339,7 @@ export class ExecutionRecord {
       return ExecutionControlSignal.UNSPECIFIED;
     }
     this.execution.status = clone(AgentExecutionStatusSchema, snapshot);
+    for (const listener of [...this.persistListeners]) listener();
     return this.controlSignal(snapshot);
   }
 
@@ -343,14 +429,30 @@ export function hermeticStigmerClientModule(): { StigmerClient: new () => Stigme
  *    (an absent store flips capture off — a different code path).
  *  - `STIGMER_RUNNER_HITL_SECRET`: the one randomness source on the activity
  *    path, pinned so grant tokens and fingerprints are byte-stable.
- *  - `CURSOR_EVENT_RECORD_DIR` cleared: never write recordings from a test.
+ *  - `CURSOR_EVENT_RECORD_DIR` cleared: never write recordings from a test —
+ *    unless the caller names an `eventRecordingDir`, the live instruments'
+ *    opt-in (below), in which case this environment SETS it. Either way the
+ *    variable has one owner here, and dispose restores it.
  */
 const PINNED_ENV = {
   ARTIFACT_STORAGE_TYPE: "local",
   STIGMER_RUNNER_HITL_SECRET: "hermetic-fixture-secret-do-not-use-in-production",
 } as const;
 
-const CLEARED_ENV = ["CURSOR_EVENT_RECORD_DIR", "STIGMER_PROXY_ENDPOINT", "STIGMER_CLOUD_API_URL"] as const;
+const CLEARED_ENV = ["STIGMER_PROXY_ENDPOINT", "STIGMER_CLOUD_API_URL"] as const;
+
+/** The one name the Cursor recorder is switched on by (`turn-settle.ts` reads it). */
+const CURSOR_EVENT_RECORD_DIR = "CURSOR_EVENT_RECORD_DIR";
+
+export interface HermeticEnvironmentOptions {
+  /**
+   * Where the Cursor event recorder writes this run's raw SDK recording
+   * (`<dir>/<executionId>.cursor-events.jsonl`). Named ONLY by a live
+   * instrument, whose point is a recording of the real SDK; a hermetic
+   * scenario leaves it unset and the variable is cleared for the run.
+   */
+  readonly eventRecordingDir?: string;
+}
 
 export interface HermeticEnvironment {
   /** The temp `HOME` (the runner's `~/.stigmer` lands under it). */
@@ -368,7 +470,7 @@ export interface HermeticEnvironment {
  * `beforeAll`) — the fingerprint secret is memoized per process on first use,
  * and vitest isolates files in forks, so per-file is the natural unit.
  */
-export function createHermeticEnvironment(): HermeticEnvironment {
+export function createHermeticEnvironment(options: HermeticEnvironmentOptions = {}): HermeticEnvironment {
   const root = mkdtempSync(join(tmpdir(), "stigmer-hermetic-"));
   const home = join(root, "home");
   const workspaceRootDir = join(root, "workspaces");
@@ -384,6 +486,7 @@ export function createHermeticEnvironment(): HermeticEnvironment {
   set("LOCAL_ARTIFACT_PATH", artifactPath);
   for (const [k, v] of Object.entries(PINNED_ENV)) set(k, v);
   for (const k of CLEARED_ENV) set(k, undefined);
+  set(CURSOR_EVENT_RECORD_DIR, options.eventRecordingDir);
 
   let disposed = false;
   return {
@@ -411,8 +514,8 @@ export function createHermeticEnvironment(): HermeticEnvironment {
  * advance together; timers stay real (the periodic heartbeat, the stall
  * watchdog, `withTimeout` all need them). The harness double calls
  * {@link ScriptedClock.tick} once per script step, so every clock-based
- * decision on the activity path — status timestamps, the enricher's persist
- * debounce, cache TTLs (`Date`); the streaming scheduler's persist cadence
+ * decision on the activity path — status timestamps, the builder's row
+ * instants, cache TTLs (`Date`); the streaming scheduler's persist cadence
  * (`performance.now()`) — sees the same instants run after run and runs the
  * same branches production runs.
  *

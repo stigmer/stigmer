@@ -128,6 +128,7 @@ describe("src/harness never imports src/activities", () => {
         join("harness", "registry.ts"),
         join("harness", "types.ts"),
         join("harness", "capabilities.ts"),
+        join("harness", "transcript", "builder.ts"),
       ]),
     );
   });

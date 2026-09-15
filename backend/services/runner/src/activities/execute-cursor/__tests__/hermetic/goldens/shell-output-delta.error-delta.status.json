@@ -1,0 +1,78 @@
+{
+  "messages": [
+    {
+      "type": "MESSAGE_AI",
+      "content": "Running the tests.",
+      "timestamp": "2026-01-01T00:00:24.000Z",
+      "toolCalls": [
+        {
+          "id": "call-hermetic-shelldelta-0003",
+          "name": "shell",
+          "args": {
+            "command": "npm test"
+          },
+          "status": "TOOL_CALL_FAILED",
+          "startedAt": "2026-01-01T00:00:25.000Z",
+          "completedAt": "2026-01-01T00:00:27.000Z",
+          "error": "sh: npm: command not found",
+          "requiresApproval": true,
+          "approvalMessage": "Run command: npm test",
+          "approvalRequestedAt": "2026-01-01T00:00:27.000Z",
+          "argsPreview": "{\"command\":\"npm test\"}",
+          "toolKind": "TOOL_KIND_SHELL",
+          "approvalPolicySource": "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
+          "policyEngineVersion": "phase-7"
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_THINKING",
+      "content": "The command failed; npm may be missing.",
+      "timestamp": "2026-01-01T00:00:28.000Z"
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "npm is not installed here.",
+      "timestamp": "2026-01-01T00:00:30.000Z"
+    }
+  ],
+  "phase": "EXECUTION_COMPLETED",
+  "startedAt": "2026-01-01T00:00:22.000Z",
+  "completedAt": "2026-01-01T00:00:32.000Z",
+  "streamingUsage": {
+    "inputTokens": "2000",
+    "outputTokens": "80",
+    "totalTokens": "2080",
+    "turnCount": 1,
+    "estimatedCostUsd": 0.00232,
+    "model": "composer-2.5",
+    "observedAt": "2026-01-01T00:00:31.000Z",
+    "requestedServiceTier": "SERVICE_TIER_STANDARD",
+    "requestedModelParams": "[{\"id\":\"fast\",\"value\":\"false\"},{\"id\":\"thinking\",\"value\":\"false\"}]",
+    "requestedThinkingMode": "THINKING_MODE_DISABLED"
+  },
+  "fileReviewEventStream": {
+    "executionId": "aex_hermetic_0001",
+    "events": [
+      {
+        "eventId": "aex_hermetic_0001:0:aex_hermetic_0001:0:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+        "changeSetId": "aex_hermetic_0001:0",
+        "eventType": "FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+        "timestamp": "2026-01-01T00:00:22.000Z",
+        "actor": "runner",
+        "baselineCaptured": {
+          "changeSetId": "aex_hermetic_0001:0",
+          "turnId": "aex_hermetic_0001:0",
+          "harnessId": "cursor",
+          "baselineSnapshot": {
+            "kind": "SNAPSHOT_KIND_CAS_MANIFEST"
+          }
+        }
+      }
+    ]
+  },
+  "fileChangeProgress": {
+    "changeSetId": "aex_hermetic_0001:0",
+    "capturedAt": "2026-01-01T00:00:23.000Z"
+  }
+}
