@@ -105,6 +105,8 @@ import type {
   IdentityAccountStoreContractFixture,
   IdentityFederation,
   IdentityVerifier,
+  ListEntryMeta,
+  ListReadScope,
   MintedToken,
   ModelCatalogProvider,
   OrganizationDirectory,
@@ -791,6 +793,38 @@ const authorizationLifecycle: ResourceAuthorizationLifecycle = {
   },
 };
 
+/**
+ * A consumer list read scope (the 20260830.01 seam; its candidates carry
+ * `authorizationParent` since stigmer-cloud 20260913.04 T04): the
+ * restrict verb asks the consumer's authorization backend about the
+ * parent when a candidate carries one and about the row itself otherwise
+ * — the cloud driver's shape, typed against the barrel alone.
+ */
+const listReadScope: ListReadScope = {
+  authorizedResourceIds: (caller: CallerIdentity, kind: ApiResourceKind) => {
+    void caller.identityId;
+    void kind;
+    return Promise.resolve<ReadonlySet<string>>(new Set());
+  },
+  restrictListEntries: (
+    caller: CallerIdentity,
+    kind: ApiResourceKind,
+    entries: ReadonlyArray<ListEntryMeta>,
+  ) => {
+    void caller.identityId;
+    const objects = entries.map((entry) => {
+      const parent = entry.authorizationParent;
+      return parent === undefined
+        ? `${ApiResourceKind[kind]}:${entry.id}`
+        : `${ApiResourceKind[parent.parentKind]}:${parent.parentId}`;
+    });
+    void objects;
+    return Promise.resolve<ReadonlySet<string>>(
+      new Set(entries.map((entry) => entry.id)),
+    );
+  },
+};
+
 /** A consumer organization directory (the C2 seam, ruling Q7). */
 const organizationDirectory: OrganizationDirectory = {
   refusesEnumeration: true,
@@ -853,6 +887,9 @@ export const fakeExtension: ServerExtension = {
     ]),
     resourceAuthorizationLifecycle: authorizationLifecycle,
     organizationDirectory,
+    // The 20260830.01 list read scope, carrying the T04 parent on its
+    // candidates.
+    listReadScope,
     // The C3 serving seam: a composed runtime flips the agentchannel
     // install/messaging/conversation arms from refusal to serving.
     channelRuntime,

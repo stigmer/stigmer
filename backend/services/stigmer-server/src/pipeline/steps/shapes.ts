@@ -39,6 +39,37 @@ export function idValueOf(msg: Message): string {
   return typeof value === "string" ? value : "";
 }
 
+/** proto snake_case field name → the generated property name. */
+function camelCaseFieldName(specField: string): string {
+  return specField.replace(/_([a-z0-9])/g, (_, ch: string) => ch.toUpperCase());
+}
+
+/**
+ * The parent id a `kind_meta` ParentRelationConfig names by `spec_field`,
+ * read from the resource's spec — the ParentIdExtractorRegistry port, with
+ * zero hardcoded kind knowledge: the proto config names the field, this
+ * reads it structurally (spec messages are plain objects whose properties
+ * are the camelCase proto field names). Returns "" for every miss (no
+ * spec, no field, non-string value); the caller decides whether that is
+ * fatal — the tuple lifecycle throws at create (Java's registry returned
+ * null and the service threw), the list scope carries no parent.
+ *
+ * ONE reader for both: the id the authorization tuple was written with is
+ * the id the list scope later asks the authorization backend about, so
+ * the two cannot drift (20260913.04 T04). Takes `object` rather than
+ * `Message` because the list lanes hand the scope structurally-typed rows
+ * and their unit suite hands it plain objects — the same posture
+ * `metadataOf` takes behind its cast.
+ */
+export function parentIdOf(resource: object, specField: string): string {
+  const spec = (resource as { spec?: Record<string, unknown> }).spec;
+  if (spec === undefined) {
+    return "";
+  }
+  const value = spec[camelCaseFieldName(specField)];
+  return typeof value === "string" ? value : "";
+}
+
 /** A message-typed field, statically narrowed so get()/set() type-check. */
 export type MessageDescField = Extract<DescField, { fieldKind: "message" }>;
 
