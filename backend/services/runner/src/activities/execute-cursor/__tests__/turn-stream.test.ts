@@ -124,7 +124,7 @@ describe("consumeCursorTurnStream", () => {
     // shared loop persists live — through the runtime's chokepoint — on the
     // builder's discrete-change flag (a row's start and its finish).
     expect(sink.persistRequests).toBe(2);
-    expect(deps.transcript.forceNextUpdate, "the flag is cleared after each persist").toBe(false);
+    expect(deps.transcript.dirty, "the flag is cleared after each persist").toBe(false);
     expect(state.eventCount).toBe(3);
   });
 

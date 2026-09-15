@@ -285,15 +285,14 @@ export async function consumeCursorTurnStream(
         }
       }
 
-      // The three-flag shape is the persist decision's until M5 collapses it to
-      // one (Q-S4-12); the builder's flag is the one discrete signal now, as on
-      // native.
-      const shouldPersist = shouldPersistStreamingStatus(
-        { deltaEnricherDirty: false, todosDirty: false, contentDirty: transcript.forceNextUpdate },
-        scheduler,
-        state.eventCount,
-      );
+      // The builder's one flag is the discrete signal, as on native
+      // (`shared/persist-decision.ts`, Q-S4-12).
+      const shouldPersist = shouldPersistStreamingStatus(transcript.dirty, scheduler, state.eventCount);
       if (shouldPersist) {
+        // Cleared as the write is requested, not after it lands (the same
+        // order as the native loop): a change that folds while the write is
+        // in flight must dirty the next one.
+        transcript.markPersisted();
         // The builder upserts sub-agent rows into `status.subAgentExecutions`
         // in place (the status's own array), so every persist already carries
         // delegation, IN_PROGRESS included. The runtime attaches the mid-run
@@ -302,7 +301,6 @@ export async function consumeCursorTurnStream(
         // Awaited: the runtime reads the control plane's answer to this write,
         // and a STOP must be seen at the next event boundary, not one event late.
         await sink.requestPersist();
-        transcript.clearForceFlag();
         scheduler.markUpdateSent(state.eventCount);
       }
     }

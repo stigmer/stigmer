@@ -4,9 +4,16 @@
  * Harness-agnostic, and both adapters' stream loops read it
  * (`execute-cursor/turn-stream.ts`, `execute-deep-agent/turn-stream.ts`; the
  * native orchestrator's own copy of the rule retired with it at S3 M2b):
- * `shouldPersist = forceFlush || scheduler.shouldSendUpdate(eventCount)`.
- * Both harnesses thus share one cadence model — discrete state changes flush
- * immediately, high-frequency token deltas ride a bounded time cadence.
+ * `shouldPersist = transcriptDirty || scheduler.shouldSendUpdate(eventCount)`.
+ * Both harnesses thus share one cadence model — a discrete state change
+ * flushes immediately, high-frequency token deltas ride a bounded time
+ * cadence.
+ *
+ * One flag, the transcript builder's `dirty` (S4 M5, Q-S4-12). Until then the
+ * decision took three Cursor-named flags — the delta enricher's, the todo
+ * tracker's and the accumulator's — of which two were constant `false` on
+ * both loops once the one builder folded every discrete change; a shape
+ * that named writers which no longer existed.
  *
  * Extracted as a single pure function so the stream loop and its unit tests
  * exercise the same implementation and cannot drift.
@@ -15,42 +22,26 @@
 import type { StreamingUpdateScheduler } from "./streaming-scheduler.js";
 
 /**
- * Force-flush signals — discrete, user-visible state changes that must reach the
- * live stream immediately, independent of the scheduler's time cadence.
- */
-export interface ForceFlushSignals {
-  /** Unused since S4 M4 (the Cursor loop passes `false`); M5 collapses the shape to one flag (Q-S4-12). */
-  readonly deltaEnricherDirty: boolean;
-  /** The agent's todo list changed. */
-  readonly todosDirty: boolean;
-  /**
-   * A tool call started or reached a terminal status, or a sub-agent was
-   * delegated/updated (the transcript builder's `forceNextUpdate`).
-   */
-  readonly contentDirty: boolean;
-}
-
-/**
  * Decide whether to persist the streaming status after a stream event.
  *
- * - forceFlush: any discrete signal flushes now so the live trace (tool calls,
- *   sub-agents, todos, shell output) is never starved on short turns.
+ * - `transcriptDirty`: a discrete, user-visible change landed on the
+ *   transcript since the last persist (a row started or settled, a sub-agent
+ *   delegated, a todo written, an artifact registered) and must reach the
+ *   live stream now, so short turns are never starved.
  * - scheduler: the shared StreamingUpdateScheduler carries assistant text and
  *   model thinking on a bounded time cadence (500ms floor / 5s keepalive),
  *   avoiding a per-token persist storm.
  *
- * After a persist, the caller must call scheduler.markUpdateSent(eventCount) so
- * the cadence resets — matching the native harness.
+ * After a persist, the caller calls `scheduler.markUpdateSent(eventCount)` so
+ * the cadence resets, and clears the builder's flag as it requests the write.
  *
  * @param nowMs Injectable clock forwarded to the scheduler, for tests.
  */
 export function shouldPersistStreamingStatus(
-  signals: ForceFlushSignals,
+  transcriptDirty: boolean,
   scheduler: StreamingUpdateScheduler,
   eventCount: number,
   nowMs?: number,
 ): boolean {
-  const forceFlush =
-    signals.deltaEnricherDirty || signals.todosDirty || signals.contentDirty;
-  return forceFlush || scheduler.shouldSendUpdate(eventCount, nowMs);
+  return transcriptDirty || scheduler.shouldSendUpdate(eventCount, nowMs);
 }

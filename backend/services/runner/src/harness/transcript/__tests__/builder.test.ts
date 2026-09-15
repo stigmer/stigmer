@@ -60,7 +60,7 @@ function proposedCall(callId = "call-1", name = "read_file"): TranscriptEvent[] 
 }
 
 function rowOf(sb: TranscriptBuilder, callId: string) {
-  const row = sb.currentStatus.messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === callId);
+  const row = sb.status.messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === callId);
   if (!row) throw new Error(`no row ${callId}`);
   return row;
 }
@@ -157,7 +157,7 @@ describe("TranscriptBuilder — tool_finished and tool_error are upserts (Q-S4-3
       { kind: "tool_finished", callId: "ghost", result: "x" },
       { kind: "tool_error", callId: "ghost", message: "y" },
     ]);
-    expect(sb.currentStatus.messages).toHaveLength(0);
+    expect(sb.status.messages).toHaveLength(0);
   });
 });
 
@@ -200,7 +200,7 @@ describe("TranscriptBuilder — every row with args carries an elided, redacted 
       { kind: "sub_agent_started", subAgentId: "task-1", name: "helper", subject: "s", input: "s" },
       { kind: "tool_started", subAgentId: "task-1", callId: "g-1", name: "grep", input: { pattern: "x" }, mcpServerSlug: "" },
     ]);
-    const row = sb.currentStatus.subAgentExecutions[0].messages[0].toolCalls[0];
+    const row = sb.status.subAgentExecutions[0].messages[0].toolCalls[0];
     expect(row.argsPreview).toBe(JSON.stringify({ pattern: "x" }));
   });
 });
@@ -223,7 +223,7 @@ describe("TranscriptBuilder — approval_proposed is the one place a row is ever
       { kind: "message_finish", runId: "run-1" },
       proposal("exec-1", { args: { command: "rm -rf build" }, provenance: "builtin_category" }),
     ]);
-    expect(sb.currentStatus.messages.map((m) => m.content)).toEqual(["I will run the command."]);
+    expect(sb.status.messages.map((m) => m.content)).toEqual(["I will run the command."]);
     const row = rowOf(sb, "exec-1");
     expect(row.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
     expect(row.requiresApproval).toBe(true);
@@ -240,7 +240,7 @@ describe("TranscriptBuilder — approval_proposed is the one place a row is ever
 
   it("with no message in the scope yet, the row gets an empty AI message (the boundary's fallback)", () => {
     const sb = feed(builder(), [proposal("exec-1")]);
-    expect(sb.currentStatus.messages.map((m) => [m.type, m.content])).toEqual([[MessageType.MESSAGE_AI, ""]]);
+    expect(sb.status.messages.map((m) => [m.type, m.content])).toEqual([[MessageType.MESSAGE_AI, ""]]);
     expect(rowOf(sb, "exec-1").status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
   });
 
@@ -271,7 +271,7 @@ describe("TranscriptBuilder — approval_proposed is the one place a row is ever
     expect(row.completedAt).toBe("");
     expect(row.approvalRequestedAt, "the first stamp stands").toBe(stamped);
     expect(row.approvalContentDigest).toBe("d-1");
-    expect(sb.currentStatus.messages.flatMap((m) => m.toolCalls), "no second row").toHaveLength(1);
+    expect(sb.status.messages.flatMap((m) => m.toolCalls), "no second row").toHaveLength(1);
     expect(sb.awaitingApproval).toBe(true);
   });
 
@@ -295,7 +295,7 @@ describe("TranscriptBuilder — approval_proposed is the one place a row is ever
 
   it("proposing a call the stream already showed never duplicates it (F-M2-13)", () => {
     const sb = feed(builder(), [...proposedCall("exec-1", "execute"), proposal("exec-1")]);
-    expect(sb.currentStatus.messages.flatMap((m) => m.toolCalls).map((tc) => tc.id)).toEqual(["exec-1"]);
+    expect(sb.status.messages.flatMap((m) => m.toolCalls).map((tc) => tc.id)).toEqual(["exec-1"]);
   });
 
   it("no tool_started ever sets awaitingApproval; only a proposal does", () => {
@@ -315,8 +315,8 @@ describe("TranscriptBuilder — a completed TODO call is projected into status.t
 
   it("a full write replaces the list, keyed todo-<i>; the row stays in the transcript", () => {
     const sb = feed(builder(), todoCall("t-1", "write_todos", { todos: [{ content: "a", status: "pending" }, { content: "b", status: "in_progress" }] }));
-    expect(Object.keys(sb.currentStatus.todos).sort()).toEqual(["todo-0", "todo-1"]);
-    expect(sb.currentStatus.todos["todo-1"].status).toBe(TodoStatus.TODO_IN_PROGRESS);
+    expect(Object.keys(sb.status.todos).sort()).toEqual(["todo-0", "todo-1"]);
+    expect(sb.status.todos["todo-1"].status).toBe(TodoStatus.TODO_IN_PROGRESS);
     expect(rowOf(sb, "t-1").toolKind).toBe(ToolKind.TODO);
   });
 
@@ -325,23 +325,23 @@ describe("TranscriptBuilder — a completed TODO call is projected into status.t
       ...todoCall("t-1", "updateTodos", { todos: [{ id: "x", content: "first", status: "pending" }, { id: "y", content: "second", status: "pending" }] }),
       ...todoCall("t-2", "updateTodos", { todos: [{ id: "y", content: "second", status: "completed" }], merge: true }),
     ]);
-    expect(Object.keys(sb.currentStatus.todos).sort()).toEqual(["x", "y"]);
-    expect(sb.currentStatus.todos["y"].status).toBe(TodoStatus.TODO_COMPLETED);
+    expect(Object.keys(sb.status.todos).sort()).toEqual(["x", "y"]);
+    expect(sb.status.todos["y"].status).toBe(TodoStatus.TODO_COMPLETED);
     sb.apply({ kind: "tool_started", callId: "t-3", name: "updateTodos", input: { todos: [{ id: "z", content: "only", status: "pending" }] }, mcpServerSlug: "" });
     sb.apply({ kind: "tool_finished", callId: "t-3", result: "ok" });
-    expect(Object.keys(sb.currentStatus.todos), "no merge flag: a full replace").toEqual(["z"]);
+    expect(Object.keys(sb.status.todos), "no merge flag: a full replace").toEqual(["z"]);
   });
 
   it("projects nothing before the call completes, and nothing for a sub-agent's write", () => {
     const sb = feed(builder(), [
       { kind: "tool_started", callId: "t-1", name: "write_todos", input: { todos: [{ content: "a", status: "pending" }] }, mcpServerSlug: "" },
     ]);
-    expect(Object.keys(sb.currentStatus.todos)).toEqual([]);
+    expect(Object.keys(sb.status.todos)).toEqual([]);
     feed(sb, [
       { kind: "sub_agent_started", subAgentId: "task-1", name: "helper", subject: "s", input: "s" },
       ...todoCall("s-1", "write_todos", { todos: [{ content: "sub", status: "pending" }] }).map((e) => ({ ...e, subAgentId: "task-1" })),
     ]);
-    expect(Object.keys(sb.currentStatus.todos), "a sub-agent's list is its own").toEqual([]);
+    expect(Object.keys(sb.status.todos), "a sub-agent's list is its own").toEqual([]);
   });
 });
 
@@ -353,12 +353,12 @@ describe("TranscriptBuilder — system_note is the harness's line in its own voi
       { kind: "system_note", text: "The agent's changes could not be reviewed." },
       { kind: "tool_started", callId: "t-1", name: "read", input: {}, mcpServerSlug: "" },
     ]);
-    expect(sb.currentStatus.messages.map((m) => [m.type, m.content])).toEqual([
+    expect(sb.status.messages.map((m) => [m.type, m.content])).toEqual([
       [MessageType.MESSAGE_AI, "Working."],
       [MessageType.MESSAGE_SYSTEM, "The agent's changes could not be reviewed."],
     ]);
-    expect(sb.currentStatus.messages[0].toolCalls.map((tc) => tc.id), "the row still joins the AI message").toEqual(["t-1"]);
-    expect(sb.currentStatus.messages[1].toolCalls).toHaveLength(0);
+    expect(sb.status.messages[0].toolCalls.map((tc) => tc.id), "the row still joins the AI message").toEqual(["t-1"]);
+    expect(sb.status.messages[1].toolCalls).toHaveLength(0);
   });
 
   it("lands in a sub-agent's transcript when scoped there", () => {
@@ -366,8 +366,8 @@ describe("TranscriptBuilder — system_note is the harness's line in its own voi
       { kind: "sub_agent_started", subAgentId: "task-1", name: "helper", subject: "s", input: "s" },
       { kind: "system_note", subAgentId: "task-1", text: "note" },
     ]);
-    expect(sb.currentStatus.messages).toHaveLength(0);
-    expect(sb.currentStatus.subAgentExecutions[0].messages.map((m) => m.content)).toEqual(["note"]);
+    expect(sb.status.messages).toHaveLength(0);
+    expect(sb.status.subAgentExecutions[0].messages.map((m) => m.content)).toEqual(["note"]);
   });
 });
 
@@ -421,8 +421,8 @@ describe("TranscriptBuilder — tool_output_delta streams the row's output (Q-S4
     expect(row.isStreaming).toBe(false);
     expect(row.streamingSource).toBe(ToolCallStreamingSource.UNSPECIFIED);
     expect(row.result, "the streamed output is kept").toBe("never finished");
-    expect(sb.currentStatus.messages.every((m) => !m.isStreaming)).toBe(true);
-    expect(sb.currentStatus.messages.at(-1)?.type).toBe(MessageType.MESSAGE_AI);
+    expect(sb.status.messages.every((m) => !m.isStreaming)).toBe(true);
+    expect(sb.status.messages.at(-1)?.type).toBe(MessageType.MESSAGE_AI);
   });
 });
 
@@ -458,12 +458,12 @@ describe("TranscriptBuilder — a row per callId, reconciled in place, never dup
       { kind: "message_start", runId: "after" },
       { kind: "text_delta", runId: "after", text: "All done." },
     ]);
-    const rows = sb.currentStatus.messages.flatMap((m) => m.toolCalls).filter((tc) => tc.id === "gated-1");
+    const rows = sb.status.messages.flatMap((m) => m.toolCalls).filter((tc) => tc.id === "gated-1");
     expect(rows, "exactly one copy").toHaveLength(1);
     expect(rows[0].status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
     expect(rows[0].args, "the resumed start fills the args the seed lacked").toEqual({ target: "prod" });
     expect(rows[0].approvalAction, "the decision is kept for audit").toBe(ApprovalAction.APPROVE);
-    expect(sb.currentStatus.messages.map((m) => m.content)).toEqual(["I'll call the gated tool.", "All done."]);
+    expect(sb.status.messages.map((m) => m.content)).toEqual(["I'll call the gated tool.", "All done."]);
     expect(sb.awaitingApproval, "a resumed tool never re-gates").toBe(false);
   });
 
@@ -498,7 +498,92 @@ describe("TranscriptBuilder — a row per callId, reconciled in place, never dup
 
   it("a duplicate start for a row created this turn adds nothing", () => {
     const sb = feed(builder(), [...proposedCall(), { kind: "tool_started", callId: "call-1", name: "read_file", input: { path: "/x" }, mcpServerSlug: "" }]);
-    expect(sb.currentStatus.messages.flatMap((m) => m.toolCalls)).toHaveLength(1);
+    expect(sb.status.messages.flatMap((m) => m.toolCalls)).toHaveLength(1);
+  });
+
+  describe("seed(): a reinvocation's prior rows, appended and indexed after the builder is born (Q-M5-1)", () => {
+    /** Last turn's transcript as the server holds it: a text, a WAITING row, a sub-agent with its own row, an artifact, a write-back, a todo. */
+    function persisted() {
+      return create(AgentExecutionStatusSchema, {
+        messages: [
+          create(AgentMessageSchema, {
+            type: MessageType.MESSAGE_AI,
+            content: "I'll call the gated tool.",
+            toolCalls: [
+              create(ToolCallSchema, {
+                id: "gated-1",
+                name: "dangerous_tool",
+                status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
+                requiresApproval: true,
+                approvalAction: ApprovalAction.APPROVE,
+              }),
+            ],
+          }),
+        ],
+        subAgentExecutions: [
+          create(SubAgentExecutionSchema, {
+            id: "sub-1",
+            name: "researcher",
+            status: SubAgentStatus.SUB_AGENT_IN_PROGRESS,
+            messages: [
+              create(AgentMessageSchema, {
+                type: MessageType.MESSAGE_AI,
+                content: "Reading.",
+                toolCalls: [create(ToolCallSchema, { id: "sub-read", name: "read_file", status: ToolCallStatus.TOOL_CALL_RUNNING })],
+              }),
+            ],
+          }),
+        ],
+        artifacts: [create(ExecutionArtifactSchema, { sandboxPath: "out/a.md", contentHash: "h1" })],
+        workspaceWriteBacks: [create(WorkspaceWriteBackSchema, { workspaceEntryName: "repo" })],
+        todos: { "todo-1": { id: "todo-1", content: "first", status: TodoStatus.TODO_PENDING } },
+      });
+    }
+
+    it("appends every collection into the status's own arrays and sets no flag", () => {
+      const status = create(AgentExecutionStatusSchema, {});
+      const messages = status.messages;
+      const sb = new TranscriptBuilder("exec-seed", status);
+      sb.seed(persisted());
+      expect(status.messages, "pushed into, never reassigned").toBe(messages);
+      expect(status.messages.map((m) => m.content)).toEqual(["I'll call the gated tool."]);
+      expect(status.subAgentExecutions.map((s) => s.id)).toEqual(["sub-1"]);
+      expect(status.artifacts.map((a) => a.sandboxPath)).toEqual(["out/a.md"]);
+      expect(status.workspaceWriteBacks.map((w) => w.workspaceEntryName)).toEqual(["repo"]);
+      expect(Object.keys(status.todos)).toEqual(["todo-1"]);
+      expect(sb.dirty, "seeded rows are last turn's facts, already persisted").toBe(false);
+      expect(sb.awaitingApproval, "a seeded WAITING row is last turn's proposal, not this turn's").toBe(false);
+    });
+
+    it("indexes the seeded rows exactly as a builder born over the seeded status does: a re-issued call reconciles onto the seed, in the root and in a sub-agent", () => {
+      const seededLate = new TranscriptBuilder("exec-late", create(AgentExecutionStatusSchema, {}));
+      seededLate.seed(persisted());
+      const seededEarly = new TranscriptBuilder("exec-early", persisted());
+      const replay: TranscriptEvent[] = [
+        { kind: "tool_started", callId: "gated-1", name: "dangerous_tool", input: { target: "prod" }, mcpServerSlug: "" },
+        { kind: "tool_finished", callId: "gated-1", result: "ok" },
+        { kind: "tool_finished", callId: "sub-read", result: "contents", subAgentId: "sub-1" },
+        { kind: "message_start", runId: "after" },
+        { kind: "text_delta", runId: "after", text: "All done." },
+      ];
+      for (const sb of [seededLate, seededEarly]) {
+        feed(sb, replay);
+        const rows = sb.status.messages.flatMap((m) => m.toolCalls).filter((tc) => tc.id === "gated-1");
+        expect(rows, `${sb.executionId}: exactly one copy of the re-issued call`).toHaveLength(1);
+        expect(rows[0].status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+        expect(rows[0].args, "the resumed start fills the args the seed lacked").toEqual({ target: "prod" });
+        expect(sb.status.subAgentExecutions[0].messages[0].toolCalls[0].status, `${sb.executionId}: the sub-agent's seeded row settles`).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+        expect(sb.status.messages.map((m) => m.content), `${sb.executionId}: the new text follows the seed`).toEqual(["I'll call the gated tool.", "All done."]);
+      }
+    });
+
+    it("a seeded sub-agent row re-announced by a replayed engine is not re-opened", () => {
+      const sb = new TranscriptBuilder("exec-seed", create(AgentExecutionStatusSchema, {}));
+      sb.seed(persisted());
+      sb.apply({ kind: "sub_agent_started", subAgentId: "sub-1", name: "researcher", subject: "again", input: "x" });
+      expect(sb.status.subAgentExecutions, "one row").toHaveLength(1);
+      expect(sb.status.subAgentExecutions[0].messages.map((m) => m.content), "its transcript is the seeded one").toEqual(["Reading."]);
+    });
   });
 
   it("two parallel rows on one message settle independently, out of order", () => {
@@ -510,7 +595,7 @@ describe("TranscriptBuilder — a row per callId, reconciled in place, never dup
       { kind: "tool_finished", callId: "b", result: "B" },
       { kind: "tool_finished", callId: "a", result: "A" },
     ]);
-    const [msg] = sb.currentStatus.messages;
+    const [msg] = sb.status.messages;
     expect(msg.toolCalls.map((tc) => [tc.id, tc.result])).toEqual([["a", "A"], ["b", "B"]]);
   });
 
@@ -558,7 +643,7 @@ describe("TranscriptBuilder — the AI-message boundary (Q-S4-5): a row joins th
       { kind: "text_delta", runId: "run-2", text: "Here is what I found." },
       { kind: "message_finish", runId: "run-2" },
     ]);
-    expect(sb.currentStatus.messages.map((m) => [m.content, m.toolCalls.map((tc) => tc.id)])).toEqual([
+    expect(sb.status.messages.map((m) => [m.content, m.toolCalls.map((tc) => tc.id)])).toEqual([
       ["Let me look.", ["c-1"]],
       ["Here is what I found.", []],
     ]);
@@ -575,8 +660,8 @@ describe("TranscriptBuilder — the AI-message boundary (Q-S4-5): a row joins th
       { kind: "message_finish", runId: "run-2" },
       { kind: "tool_started", callId: "b", name: "read_file", input: { path: "/b" }, mcpServerSlug: "" },
     ]);
-    expect(sb.currentStatus.messages).toHaveLength(1);
-    expect(sb.currentStatus.messages[0].toolCalls.map((tc) => tc.id)).toEqual(["a", "b"]);
+    expect(sb.status.messages).toHaveLength(1);
+    expect(sb.status.messages[0].toolCalls.map((tc) => tc.id)).toEqual(["a", "b"]);
   });
 
   it("a tool start with no AI message in the scope gets an empty one that later rows share", () => {
@@ -584,8 +669,8 @@ describe("TranscriptBuilder — the AI-message boundary (Q-S4-5): a row joins th
       { kind: "tool_started", callId: "orphan", name: "read", input: {}, mcpServerSlug: "" },
       { kind: "tool_started", callId: "orphan-2", name: "read", input: {}, mcpServerSlug: "" },
     ]);
-    expect(sb.currentStatus.messages.map((m) => [m.type, m.content, m.toolCalls.length])).toEqual([[MessageType.MESSAGE_AI, "", 2]]);
-    expect(sb.currentStatus.messages[0].isStreaming).toBe(false);
+    expect(sb.status.messages.map((m) => [m.type, m.content, m.toolCalls.length])).toEqual([[MessageType.MESSAGE_AI, "", 2]]);
+    expect(sb.status.messages[0].isStreaming).toBe(false);
   });
 
   it("over a seeded transcript the first fresh row joins the seed's last AI message (Q-M2-2)", () => {
@@ -607,7 +692,7 @@ describe("TranscriptBuilder — the AI-message boundary (Q-S4-5): a row joins th
       { kind: "reasoning_delta", runId: "run-1", text: "Let me think." },
       { kind: "tool_started", callId: "t", name: "read", input: {}, mcpServerSlug: "" },
     ]);
-    expect(sb.currentStatus.messages.map((m) => [m.type, m.toolCalls.length])).toEqual([
+    expect(sb.status.messages.map((m) => [m.type, m.toolCalls.length])).toEqual([
       [MessageType.MESSAGE_THINKING, 0],
       [MessageType.MESSAGE_AI, 1],
     ]);
@@ -621,7 +706,7 @@ describe("TranscriptBuilder — a THINKING row and a text message per runId; a n
       { kind: "reasoning_delta", runId: "run-1", text: "Let me analyze " },
       { kind: "reasoning_delta", runId: "run-1", text: "this." },
     ]);
-    expect(sb.currentStatus.messages[0].isStreaming, "thinking streams while the run is open").toBe(true);
+    expect(sb.status.messages[0].isStreaming, "thinking streams while the run is open").toBe(true);
     feed(sb, [
       { kind: "text_delta", runId: "run-1", text: "Based on " },
       { kind: "text_delta", runId: "run-1", text: "that." },
@@ -629,7 +714,7 @@ describe("TranscriptBuilder — a THINKING row and a text message per runId; a n
     ]);
     // A finished run's thinking is finished (until S4 M4 B1 the THINKING row
     // spun until finalize — a live spinner on a block the model had left).
-    expect(sb.currentStatus.messages.map((m) => [m.type, m.content, m.isStreaming])).toEqual([
+    expect(sb.status.messages.map((m) => [m.type, m.content, m.isStreaming])).toEqual([
       [MessageType.MESSAGE_THINKING, "Let me analyze this.", false],
       [MessageType.MESSAGE_AI, "Based on that.", false],
     ]);
@@ -641,7 +726,7 @@ describe("TranscriptBuilder — a THINKING row and a text message per runId; a n
       { kind: "reasoning_delta", runId: "run-1", text: "Hmm." },
       { kind: "message_finish", runId: "run-1" },
     ]);
-    expect(sb.currentStatus.messages.map((m) => [m.type, m.isStreaming])).toEqual([[MessageType.MESSAGE_THINKING, false]]);
+    expect(sb.status.messages.map((m) => [m.type, m.isStreaming])).toEqual([[MessageType.MESSAGE_THINKING, false]]);
   });
 
   it("a second run's thinking is a second THINKING row (Q-S4-6), and its start closes the first run's text", () => {
@@ -653,7 +738,7 @@ describe("TranscriptBuilder — a THINKING row and a text message per runId; a n
       { kind: "reasoning_delta", runId: "run-2", text: "two" },
       { kind: "text_delta", runId: "run-2", text: "Second." },
     ]);
-    const m = sb.currentStatus.messages;
+    const m = sb.status.messages;
     expect(m.map((x) => [x.type, x.content])).toEqual([
       [MessageType.MESSAGE_THINKING, "one"],
       [MessageType.MESSAGE_AI, "First."],
@@ -673,7 +758,7 @@ describe("TranscriptBuilder — a THINKING row and a text message per runId; a n
       { kind: "text_delta", runId: "a", text: "A2" },
       { kind: "text_delta", runId: "b", text: "B2" },
     ]);
-    expect(sb.currentStatus.messages.map((m) => m.content)).toEqual(["A1 A2", "B1 B2"]);
+    expect(sb.status.messages.map((m) => m.content)).toEqual(["A1 A2", "B1 B2"]);
   });
 });
 
@@ -691,11 +776,11 @@ describe("TranscriptBuilder — a sub-agent row per subAgentId with a transcript
       { kind: "tool_started", callId: "g", name: "grep", input: { pattern: "x" }, mcpServerSlug: "", subAgentId: "task-1" },
       { kind: "tool_finished", callId: "g", result: "found", subAgentId: "task-1" },
     ]);
-    const [row] = sb.currentStatus.subAgentExecutions;
+    const [row] = sb.status.subAgentExecutions;
     expect([row.id, row.name, row.subject, row.input, row.status]).toEqual(["task-1", "helper", "Look it up.", "Look it up.", SubAgentStatus.SUB_AGENT_IN_PROGRESS]);
     expect(row.startedAt).toContain("T");
     expect(row.messages.map((m) => [m.content, m.toolCalls.map((tc) => [tc.id, tc.result])])).toEqual([["Working.", [["g", "found"]]]]);
-    expect(sb.currentStatus.messages.map((m) => [m.content, m.toolCalls.map((tc) => tc.id)]), "the root keeps only the task row").toEqual([["Delegating.", ["task-1"]]]);
+    expect(sb.status.messages.map((m) => [m.content, m.toolCalls.map((tc) => tc.id)]), "the root keeps only the task row").toEqual([["Delegating.", ["task-1"]]]);
   });
 
   it("closes COMPLETED with the output, its streaming flags cleared; FAILED with the error", () => {
@@ -706,7 +791,7 @@ describe("TranscriptBuilder — a sub-agent row per subAgentId with a transcript
       { kind: "sub_agent_started", subAgentId: "task-2", name: "w", subject: "s", input: "s" },
       { kind: "sub_agent_failed", subAgentId: "task-2", error: "boom" },
     ]);
-    const [a, b] = sb.currentStatus.subAgentExecutions;
+    const [a, b] = sb.status.subAgentExecutions;
     expect([a.status, a.output, a.completedAt !== "", a.messages[0].isStreaming]).toEqual([SubAgentStatus.SUB_AGENT_COMPLETED, "forty-two", true, false]);
     expect([b.status, b.error, b.completedAt !== ""]).toEqual([SubAgentStatus.SUB_AGENT_FAILED, "boom", true]);
   });
@@ -740,7 +825,7 @@ describe("TranscriptBuilder — a sub-agent row per subAgentId with a transcript
     console.error = (msg: unknown) => { errors.push(String(msg)); };
     try {
       const sb = feed(builder(), [{ kind: "text_delta", runId: "r", text: "lost", subAgentId: "nobody" }]);
-      expect(sb.currentStatus.messages).toHaveLength(0);
+      expect(sb.status.messages).toHaveLength(0);
     } finally {
       console.error = original;
     }
@@ -751,8 +836,8 @@ describe("TranscriptBuilder — a sub-agent row per subAgentId with a transcript
   it("CANCELLED is not the builder's: a stopped turn's rows are left IN_PROGRESS for the shared cancel act", () => {
     const sb = feed(builder(), [open, { kind: "text_delta", runId: "s", text: "mid", subAgentId: "task-1" }]);
     sb.finalize();
-    expect(sb.currentStatus.subAgentExecutions[0].status).toBe(SubAgentStatus.SUB_AGENT_IN_PROGRESS);
-    expect(sb.currentStatus.subAgentExecutions[0].messages[0].isStreaming, "but its streaming flags are cleared").toBe(false);
+    expect(sb.status.subAgentExecutions[0].status).toBe(SubAgentStatus.SUB_AGENT_IN_PROGRESS);
+    expect(sb.status.subAgentExecutions[0].messages[0].isStreaming, "but its streaming flags are cleared").toBe(false);
   });
 });
 
@@ -778,8 +863,8 @@ describe("TranscriptBuilder — finalize() clears every streaming flag in every 
       { kind: "tool_output_delta", callId: "o", delta: "…", subAgentId: "task-1" },
     ]);
     const streaming = () => [
-      ...sb.currentStatus.messages.map((m) => m.isStreaming),
-      ...sb.currentStatus.subAgentExecutions[0].messages.flatMap((m) => [m.isStreaming, ...m.toolCalls.map((tc) => tc.isStreaming)]),
+      ...sb.status.messages.map((m) => m.isStreaming),
+      ...sb.status.subAgentExecutions[0].messages.flatMap((m) => [m.isStreaming, ...m.toolCalls.map((tc) => tc.isStreaming)]),
     ];
     expect(streaming().some(Boolean)).toBe(true);
     sb.finalize();
@@ -787,26 +872,26 @@ describe("TranscriptBuilder — finalize() clears every streaming flag in every 
   });
 });
 
-describe("TranscriptBuilder — artifacts and write-backs (the ExecutionStatusWriter face, Q-S4-8)", () => {
+describe("TranscriptBuilder — artifacts and write-backs (Q-S4-8)", () => {
   const artifact = (sandboxPath: string, contentHash: string) =>
     create(ExecutionArtifactSchema, { sandboxPath, contentHash, storageKey: `k/${contentHash}` });
 
   it("appends a new artifact and forces the next persist; the same path with the same hash is a no-op", () => {
     const sb = builder();
     sb.addArtifact(artifact("out/a.txt", "h1"));
-    expect(sb.currentStatus.artifacts.map((a) => a.contentHash)).toEqual(["h1"]);
-    expect(sb.forceNextUpdate).toBe(true);
-    sb.clearForceFlag();
+    expect(sb.status.artifacts.map((a) => a.contentHash)).toEqual(["h1"]);
+    expect(sb.dirty).toBe(true);
+    sb.markPersisted();
     sb.addArtifact(artifact("out/a.txt", "h1"));
-    expect(sb.currentStatus.artifacts).toHaveLength(1);
-    expect(sb.forceNextUpdate, "nothing changed, nothing to flush").toBe(false);
+    expect(sb.status.artifacts).toHaveLength(1);
+    expect(sb.dirty, "nothing changed, nothing to flush").toBe(false);
   });
 
   it("the same path with a new hash replaces in place", () => {
     const sb = builder();
     sb.addArtifact(artifact("out/a.txt", "h1"));
     sb.addArtifact(artifact("out/a.txt", "h2"));
-    expect(sb.currentStatus.artifacts.map((a) => [a.sandboxPath, a.contentHash])).toEqual([["out/a.txt", "h2"]]);
+    expect(sb.status.artifacts.map((a) => [a.sandboxPath, a.contentHash])).toEqual([["out/a.txt", "h2"]]);
   });
 
   it("write-backs upsert by workspace entry name", () => {
@@ -814,47 +899,47 @@ describe("TranscriptBuilder — artifacts and write-backs (the ExecutionStatusWr
     sb.addWriteBack(create(WorkspaceWriteBackSchema, { workspaceEntryName: "repo", branchName: "b1" }));
     sb.addWriteBack(create(WorkspaceWriteBackSchema, { workspaceEntryName: "repo", branchName: "b2" }));
     sb.addWriteBack(create(WorkspaceWriteBackSchema, { workspaceEntryName: "docs", branchName: "d" }));
-    expect(sb.currentStatus.workspaceWriteBacks.map((w) => [w.workspaceEntryName, w.branchName])).toEqual([["repo", "b2"], ["docs", "d"]]);
-    expect(sb.forceNextUpdate).toBe(true);
+    expect(sb.status.workspaceWriteBacks.map((w) => [w.workspaceEntryName, w.branchName])).toEqual([["repo", "b2"], ["docs", "d"]]);
+    expect(sb.dirty).toBe(true);
   });
 });
 
 describe("TranscriptBuilder — the dirty flag and the error guard", () => {
   it("a discrete change (a row's start or finish, a sub-agent opening) forces the next persist; tokens do not", () => {
     const sb = feed(builder(), [{ kind: "message_start", runId: "r" }, { kind: "text_delta", runId: "r", text: "tok" }]);
-    expect(sb.forceNextUpdate, "text rides the cadence").toBe(false);
+    expect(sb.dirty, "text rides the cadence").toBe(false);
     sb.apply({ kind: "tool_started", callId: "t", name: "read", input: {}, mcpServerSlug: "" });
-    expect(sb.forceNextUpdate).toBe(true);
-    sb.clearForceFlag();
+    expect(sb.dirty).toBe(true);
+    sb.markPersisted();
     sb.apply({ kind: "tool_finished", callId: "t", result: "ok" });
-    expect(sb.forceNextUpdate).toBe(true);
-    sb.clearForceFlag();
+    expect(sb.dirty).toBe(true);
+    sb.markPersisted();
     sb.apply({ kind: "sub_agent_started", subAgentId: "s", name: "n", subject: "s", input: "s" });
-    expect(sb.forceNextUpdate).toBe(true);
+    expect(sb.dirty).toBe(true);
   });
 
   it("a settled re-emit that changes nothing forces no persist; one that carries a new result or message does (Q-M4-8)", () => {
     const sb = feed(builder(), [...proposedCall(), { kind: "tool_finished", callId: "call-1", result: "" }]);
-    sb.clearForceFlag();
+    sb.markPersisted();
     // Cursor's shape: the timing delta completed the row; the stream's own
     // completion, carrying the result, follows and must flush.
     sb.apply({ kind: "tool_finished", callId: "call-1", result: "contents" });
-    expect(sb.forceNextUpdate, "the result is new").toBe(true);
-    sb.clearForceFlag();
+    expect(sb.dirty, "the result is new").toBe(true);
+    sb.markPersisted();
     sb.apply({ kind: "tool_finished", callId: "call-1", result: "contents" });
-    expect(sb.forceNextUpdate, "a redundant terminal re-emit is noise").toBe(false);
+    expect(sb.dirty, "a redundant terminal re-emit is noise").toBe(false);
     sb.apply({ kind: "tool_finished", callId: "call-1", result: "" });
-    expect(sb.forceNextUpdate).toBe(false);
+    expect(sb.dirty).toBe(false);
     sb.apply({ kind: "tool_error", callId: "call-1", message: "" });
-    expect(sb.forceNextUpdate, "an empty error on a settled row changes nothing").toBe(false);
+    expect(sb.dirty, "an empty error on a settled row changes nothing").toBe(false);
     expect(rowOf(sb, "call-1").status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
   });
 
   it("writes neither the phase nor startedAt nor streamingUsage — the turn runtime owns them", () => {
     const sb = feed(builder(), proposedCall());
-    expect(sb.currentStatus.phase).toBe(0);
-    expect(sb.currentStatus.startedAt).toBe("");
-    expect(sb.currentStatus.streamingUsage).toBeUndefined();
+    expect(sb.status.phase).toBe(0);
+    expect(sb.status.startedAt).toBe("");
+    expect(sb.status.streamingUsage).toBeUndefined();
   });
 
   it("a handler that throws is logged with the execution and the event kind, and never escapes apply", () => {

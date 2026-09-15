@@ -13,8 +13,8 @@ import type { ArtifactStorage } from "../../../shared/artifact-storage.js";
 import { makeInMemoryArtifactStorage } from "../../../__test-utils__/fake-artifact-storage.js";
 import type { WorkspaceBackend } from "../../../shared/workspace/types.js";
 
-// The publisher writes artifacts through the transcript builder's
-// `ExecutionStatusWriter` face (`addArtifact`); the one builder since S3 M2b.
+// The publisher registers artifacts on the transcript builder (`addArtifact`);
+// the one builder since S3 M2b.
 function makeStatusBuilder(): TranscriptBuilder {
   return new TranscriptBuilder("exec-test", create(AgentExecutionStatusSchema, {}));
 }
@@ -67,7 +67,7 @@ describe("InlinePublisher", () => {
     publisher = new InlinePublisher({
       workspaceBackend: backend,
       artifactStorage: storage,
-      statusWriter: sb,
+      artifacts: sb,
       executionId: "exec-123",
     });
   });
@@ -76,9 +76,9 @@ describe("InlinePublisher", () => {
     await publisher.publish("src/main.ts");
 
     expect(storage.uploadedKeys).toEqual(["artifacts/exec-123/main.ts"]);
-    expect(sb.currentStatus.artifacts).toHaveLength(1);
+    expect(sb.status.artifacts).toHaveLength(1);
 
-    const artifact = sb.currentStatus.artifacts[0];
+    const artifact = sb.status.artifacts[0];
     expect(artifact.name).toBe("main.ts");
     expect(artifact.sandboxPath).toBe("src/main.ts");
     expect(artifact.kind).toBe(ExecutionArtifactKind.FILE);
@@ -90,8 +90,8 @@ describe("InlinePublisher", () => {
   it("strips leading slashes from paths", async () => {
     await publisher.publish("/src/main.ts");
 
-    expect(sb.currentStatus.artifacts).toHaveLength(1);
-    expect(sb.currentStatus.artifacts[0].sandboxPath).toBe("src/main.ts");
+    expect(sb.status.artifacts).toHaveLength(1);
+    expect(sb.status.artifacts[0].sandboxPath).toBe("src/main.ts");
   });
 
   it("deduplicates by path + content hash", async () => {
@@ -99,7 +99,7 @@ describe("InlinePublisher", () => {
     await publisher.publish("src/main.ts");
 
     expect(storage.uploadedKeys).toHaveLength(1);
-    expect(sb.currentStatus.artifacts).toHaveLength(1);
+    expect(sb.status.artifacts).toHaveLength(1);
   });
 
   it("re-publishes when content changes", async () => {
@@ -109,8 +109,8 @@ describe("InlinePublisher", () => {
     await publisher.publish("src/main.ts");
 
     expect(storage.uploadedKeys).toHaveLength(2);
-    expect(sb.currentStatus.artifacts).toHaveLength(1);
-    expect(sb.currentStatus.artifacts[0].contentHash).toBe(sha256("updated content"));
+    expect(sb.status.artifacts).toHaveLength(1);
+    expect(sb.status.artifacts[0].contentHash).toBe(sha256("updated content"));
   });
 
   it("exposes published paths for dedup by auto-publish", async () => {
@@ -128,13 +128,13 @@ describe("InlinePublisher", () => {
     const pub = new InlinePublisher({
       workspaceBackend: failBackend,
       artifactStorage: storage,
-      statusWriter: sb,
+      artifacts: sb,
       executionId: "exec-err",
     });
 
     await pub.publish("nonexistent.txt");
 
-    expect(sb.currentStatus.artifacts).toHaveLength(0);
+    expect(sb.status.artifacts).toHaveLength(0);
     expect(warnSpy).toHaveBeenCalledWith(
       expect.stringContaining("[InlinePublisher]"),
     );
@@ -149,7 +149,7 @@ describe("InlinePublisher", () => {
 
     await publisher.publish("src/main.ts");
 
-    expect(sb.currentStatus.artifacts).toHaveLength(0);
+    expect(sb.status.artifacts).toHaveLength(0);
     expect(warnSpy).toHaveBeenCalled();
     warnSpy.mockRestore();
   });
@@ -160,7 +160,7 @@ describe("InlinePublisher", () => {
     const expected = createHash("sha256")
       .update(Buffer.from("console.log('hello');", "utf-8"))
       .digest("hex");
-    expect(sb.currentStatus.artifacts[0].contentHash).toBe(expected);
+    expect(sb.status.artifacts[0].contentHash).toBe(expected);
   });
 
   it("never publishes a secret-like file to artifact storage (design doc 12, D4)", async () => {
@@ -172,14 +172,14 @@ describe("InlinePublisher", () => {
     const pub = new InlinePublisher({
       workspaceBackend: secretBackend,
       artifactStorage: storage,
-      statusWriter: sb,
+      artifacts: sb,
       executionId: "exec-secret",
     });
 
     await pub.publish(".env");
 
     expect(storage.uploadedKeys).toHaveLength(0);
-    expect(sb.currentStatus.artifacts).toHaveLength(0);
+    expect(sb.status.artifacts).toHaveLength(0);
     expect(readSpy).not.toHaveBeenCalled(); // withheld before the file is even read
     expect(pub.publishedPaths.size).toBe(0);
   });
@@ -189,7 +189,7 @@ describe("InlinePublisher", () => {
     const pub = new InlinePublisher({
       workspaceBackend: jsonBackend,
       artifactStorage: storage,
-      statusWriter: sb,
+      artifacts: sb,
       executionId: "exec-ct",
     });
 
@@ -216,14 +216,14 @@ describe("InlinePublisher with LocalWorkspaceBackend (disk-backed)", () => {
     const publisher = new InlinePublisher({
       workspaceBackend: backend,
       artifactStorage: storage,
-      statusWriter: sb,
+      artifacts: sb,
       executionId: "exec-disk",
     });
 
     await publisher.publish("src/app.ts");
 
-    expect(sb.currentStatus.artifacts).toHaveLength(1);
-    const artifact = sb.currentStatus.artifacts[0];
+    expect(sb.status.artifacts).toHaveLength(1);
+    const artifact = sb.status.artifacts[0];
     expect(artifact.name).toBe("app.ts");
     expect(artifact.sandboxPath).toBe("src/app.ts");
     expect(artifact.kind).toBe(ExecutionArtifactKind.FILE);
@@ -244,13 +244,13 @@ describe("InlinePublisher with LocalWorkspaceBackend (disk-backed)", () => {
     const publisher = new InlinePublisher({
       workspaceBackend: backend,
       artifactStorage: storage,
-      statusWriter: sb,
+      artifacts: sb,
       executionId: "exec-miss",
     });
 
     await publisher.publish("nonexistent.ts");
 
-    expect(sb.currentStatus.artifacts).toHaveLength(0);
+    expect(sb.status.artifacts).toHaveLength(0);
     expect(storage.uploadedKeys).toHaveLength(0);
     expect(warnSpy).toHaveBeenCalledWith(
       expect.stringContaining("[InlinePublisher]"),

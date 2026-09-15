@@ -119,7 +119,7 @@ export function createDeepAgentTranscript(
   const publisher = new InlinePublisher({
     workspaceBackend: workspace.backend,
     artifactStorage: input.artifactStorage,
-    statusWriter: builder,
+    artifacts: builder,
     executionId: input.executionId,
   });
   return { translator, builder, publisher };
@@ -226,13 +226,11 @@ export async function consumeDeepAgentStream(deps: DeepAgentStreamDeps): Promise
         eventsProcessed++;
         sink.recordActivity(detail);
 
-        const persist = shouldPersistStreamingStatus(
-          { deltaEnricherDirty: false, todosDirty: false, contentDirty: builder.forceNextUpdate },
-          scheduler,
-          eventsProcessed,
-        );
+        const persist = shouldPersistStreamingStatus(builder.dirty, scheduler, eventsProcessed);
         if (!persist) continue;
-        builder.clearForceFlag();
+        // Cleared as the write is requested, not after it lands: a change
+        // that folds while the write is in flight must dirty the next one.
+        builder.markPersisted();
         // The runtime attaches the mid-run file-change progress on this write
         // (the chokepoint's step 2), as it does on every write. Awaited so a platform STOP the runtime reads from this write has
         // aborted the signal by the time the next event arrives — where the

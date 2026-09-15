@@ -162,7 +162,7 @@ export async function reconcileDeniedToolCalls(
   mergedPolicies?: ReadonlyMap<string, MergedToolPolicy>,
   workspaceBackend?: WorkspaceBackend,
 ): Promise<ToolCall[]> {
-  const messages = transcript.currentStatus.messages;
+  const messages = transcript.status.messages;
   // Defense-in-depth: only APPROVAL-kind denials may become approval gates.
   // The turn boundary already passes the filtered subset; re-filtering here
   // makes it structurally impossible for a secret/capture-error/fail-closed
@@ -396,7 +396,7 @@ function proposeSynthesizedGate(
     ...(provenance !== undefined ? { provenance } : {}),
     contentDigest: captured ? contentDigest(captured) : digest,
   });
-  const row = findToolCallById(transcript.currentStatus.messages, callId);
+  const row = findToolCallById(transcript.status.messages, callId);
   if (!row) throw new Error(`reconcileDeniedToolCalls: the builder did not create the proposed row ${callId}`);
   return row;
 }

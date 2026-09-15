@@ -7,10 +7,12 @@
  * inside a message's repeated field, an AgentMessage inside a `messages`
  * array), so a mutation through the index IS the mutation of the proto, and
  * nothing here can drift from what is persisted. The arrays themselves are
- * the status's own, pushed into and never replaced, so a caller that seeded
- * them from the persisted transcript (the turn runtime's
- * `seedFromPersistedStatus`) and every wrapper of the status keep seeing
- * every row.
+ * the status's own, pushed into and never replaced, so every wrapper of the
+ * status (the runtime's persist chokepoint, the settle modules that amend
+ * rows by identity) keeps seeing every row. A reinvocation's prior rows
+ * arrive through {@link TranscriptState.seed} — the turn runtime's
+ * `seedFromPersistedStatus` hands them here — so they are indexed by the
+ * same routine that indexes a status handed to the constructor.
  *
  * One shape for every scope (S4 M2 C4, Q-S4-4; plan finding F-M2-15): until
  * C4 the root's indexes lived here keyed by LangGraph namespace and the
@@ -62,19 +64,28 @@ export class Transcript {
   readonly argBuffers = new Map<string, string>();
 
   constructor(readonly messages: AgentMessage[]) {
-    for (const message of messages) {
-      for (const tc of message.toolCalls) {
-        if (tc.id) this.toolCalls.set(tc.id, tc);
-      }
+    for (const message of messages) this.index(message);
+  }
+
+  /**
+   * Take a message that is already on (or is being appended to) this
+   * transcript into the indexes: every row by id, and the message as the
+   * current AI message when it is one — the seed's last AI message is the
+   * one a resumed turn's first row joins (Q-M2-2). The one routine behind
+   * both ways rows arrive before the stream — the status as handed to the
+   * constructor, and the runtime's seed of a reinvocation's prior rows
+   * ({@link TranscriptState.seed}) — so neither can index differently.
+   */
+  index(message: AgentMessage): void {
+    for (const tc of message.toolCalls) {
+      if (tc.id) this.toolCalls.set(tc.id, tc);
     }
-    for (let i = messages.length - 1; i >= 0; i--) {
-      if (messages[i].type === MessageType.MESSAGE_AI) {
-        this.currentAiMessage = messages[i];
-        break;
-      }
-    }
+    if (message.type === MessageType.MESSAGE_AI) this.currentAiMessage = message;
   }
 }
+
+/** The transcript half of a persisted status: what a reinvocation seeds through the builder. */
+export type TranscriptSeed = Pick<AgentExecutionStatus, "messages" | "subAgentExecutions" | "artifacts" | "workspaceWriteBacks" | "todos">;
 
 /** A sub-agent's row and the transcript folded into it. */
 export interface SubAgentScope {
@@ -120,6 +131,32 @@ export class TranscriptState {
     const scope = { row, transcript: new Transcript(row.messages) };
     this.subAgentsById.set(row.id, scope);
     return scope;
+  }
+
+  /**
+   * Append a persisted transcript's rows to the status AND index them — the
+   * runtime's seed of a reinvocation (`harness/turn-context.ts`
+   * `seedFromPersistedStatus` says why every collection is seeded: the
+   * server replaces each list wholesale, so a resumed turn's write must be a
+   * superset). Every collection is pushed into, never reassigned, so the
+   * status's arrays stay the ones every wrapper of the status holds. A
+   * sub-agent row already known by id is skipped (a seed is applied once).
+   * The rows arrive through the same {@link Transcript.index} the
+   * constructor uses, so a builder that seeds after it is born indexes
+   * exactly as one born over the seeded status would.
+   */
+  seed(persisted: TranscriptSeed): void {
+    for (const message of persisted.messages) {
+      this.proto.messages.push(message);
+      this.root.index(message);
+    }
+    for (const row of persisted.subAgentExecutions) {
+      if (this.subAgentsById.has(row.id)) continue;
+      this.openSubAgent(row);
+    }
+    this.proto.artifacts.push(...persisted.artifacts);
+    this.proto.workspaceWriteBacks.push(...persisted.workspaceWriteBacks);
+    for (const [id, todo] of Object.entries(persisted.todos)) this.proto.todos[id] = todo;
   }
 
   /** Every transcript, the root's first — for the rules that sweep them all (`finalize`). */

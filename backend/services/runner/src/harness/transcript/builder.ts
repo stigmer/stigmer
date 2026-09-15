@@ -10,8 +10,10 @@
  * it reads no engine envelope (C2a), decides nothing about approval (C3),
  * and knows no engine's tool names or namespace grammar (C4) — every engine
  * fact reaches it as a translator's output, on one union. The Cursor
- * harness feeds it through a translator at M4; the runtime hands it to every
- * adapter as `TurnSink.transcript` at M5.
+ * harness feeds it through a translator (M4); the runtime constructs it once
+ * per turn and hands it to every adapter as `TurnSink.transcript` (M5), so
+ * a transcript row has exactly one way into the status — a source-walking
+ * fence, `harness/__tests__/transcript-writers.test.ts`, refuses a second.
  *
  * ONE set of handlers over ONE scope shape (C4, Q-S4-4): every handler takes
  * the scope's {@link Transcript} — the root's over `status.messages`, or a
@@ -30,8 +32,10 @@
  * `harness/transcript/__tests__/builder.test.ts` and the harness whose rule
  * it generalises in parentheses:
  *
- *   - A row per `callId`, indexed at construction over a seeded transcript,
- *     reconciled in place on a re-emitted start — an UNSETTLED row becomes
+ *   - A row per `callId`, indexed over the status as handed and over what
+ *     {@link seed} appends (a reinvocation's prior rows, indexed by the same
+ *     routine, so a builder born before the seed is no different from one
+ *     born after it), reconciled in place on a re-emitted start — an UNSETTLED row becomes
  *     RUNNING (a WAITING row on native's durable-checkpoint resume; an
  *     INTERRUPTED row on a recovery replay, the enum's supersede rule) and
  *     takes the args and preview it lacked — never duplicated. Every row
@@ -70,11 +74,17 @@
  *     clients filter it); a sub-agent's is not.
  *   - `finalize()` clears every streaming flag in every scope.
  *   - Artifacts upsert by `sandboxPath`/`contentHash`, write-backs by
- *     `workspaceEntryName` (Q-S4-8).
+ *     `workspaceEntryName` (Q-S4-8): the inline publisher and the write-back
+ *     coordinator register theirs here.
+ *   - {@link dirty} is set by every discrete change above and by nothing a
+ *     token delta does; the adapter's loop reads it and clears it with
+ *     {@link markPersisted} as it requests the persist (Q-S4-12).
  *
  * What this builder deliberately does NOT write, and who does (the adapter
  * contract's field ownership, `harness/types.ts` `TurnSink`): the phase,
- * `startedAt` and `streamingUsage` are the turn runtime's. A row left
+ * `startedAt`, `streamingUsage` and the epilogue's plan artifact are the
+ * turn runtime's (the plan artifact supersedes by its own name rule, which
+ * is the plan's knowledge, not the transcript's). A row left
  * WAITING_APPROVAL is reported as the {@link awaitingApproval} fact and the
  * caller decides what that means for the turn — a fact only
  * `approval_proposed` produces once C6 lands, because a call that has
@@ -105,8 +115,7 @@ import { SALIENT_ARG_FIELDS, buildElidedArgsPreview } from "../../shared/args-pr
 import { classifyTool } from "../../shared/tool-kind.js";
 import { applyTodoUpdate } from "../../shared/todos.js";
 import { utcTimestamp } from "../../shared/status.js";
-import type { ExecutionStatusWriter } from "../../shared/execution-status-writer.js";
-import { TranscriptState, type Transcript } from "./state.js";
+import { TranscriptState, type Transcript, type TranscriptSeed } from "./state.js";
 import type {
   ApprovalProposedEvent,
   SubAgentFailedEvent,
@@ -116,28 +125,48 @@ import type {
   TranscriptEvent,
 } from "./events.js";
 
-export class TranscriptBuilder implements ExecutionStatusWriter {
+export class TranscriptBuilder {
   readonly executionId: string;
   private readonly state: TranscriptState;
-  private _forceNextUpdate = false;
+  private _dirty = false;
   private _awaitingApproval = false;
 
   /**
    * Builds INTO `status`, by reference: its `messages`, `subAgentExecutions`
    * and every sub-agent row's `messages` are the arrays indexed and pushed
    * into, never replaced, so a caller that wraps the same status (the
-   * write-back coordinator's writer, the runtime's chokepoint) keeps seeing
-   * every row. Over a persisted transcript (the runtime's seed on a
-   * reinvocation) every row is indexed here so a re-driven event reconciles
-   * onto it.
+   * runtime's chokepoint, a settle amending rows by identity) keeps seeing
+   * every row. Rows already on the status are indexed here; rows a
+   * reinvocation carries over arrive later through {@link seed}, indexed by
+   * the same routine, so a re-driven event reconciles onto them either way.
    */
   constructor(executionId: string, status: AgentExecutionStatus) {
     this.executionId = executionId;
     this.state = new TranscriptState(status);
   }
 
-  get currentStatus(): AgentExecutionStatus {
+  /**
+   * The status this builder builds into — the same object as
+   * `TurnSink.status` when the runtime constructs the builder; a harness
+   * reads rows there. Here for the builder's standalone uses (its tests,
+   * the hermetic fold helpers), which hold no sink.
+   */
+  get status(): AgentExecutionStatus {
     return this.state.proto;
+  }
+
+  /**
+   * Append a reinvocation's persisted transcript — messages, sub-agent
+   * rows, artifacts, write-backs, todos — and index it, so the turn that
+   * follows APPENDS onto prior history and a re-issued call reconciles onto
+   * its seeded row instead of duplicating it. The runtime calls this once,
+   * in its reinvocation phase, before any harness runs; the reasons every
+   * collection is seeded are that phase's (`harness/turn-context.ts`
+   * `seedFromPersistedStatus`). Seeded rows are last turn's facts: this sets
+   * neither {@link dirty} nor {@link awaitingApproval}.
+   */
+  seed(persisted: TranscriptSeed): void {
+    this.state.seed(persisted);
   }
 
   /**
@@ -151,12 +180,21 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
     return this._awaitingApproval;
   }
 
-  get forceNextUpdate(): boolean {
-    return this._forceNextUpdate;
+  /**
+   * True once a discrete, user-visible change has landed since the last
+   * persist — a row started or settled, a sub-agent opened or closed, an
+   * artifact or write-back registered, a note appended; never a token
+   * delta, which rides the streaming cadence. The one fact the adapter's
+   * persist decision reads (`shared/persist-decision.ts`); the adapter
+   * clears it with {@link markPersisted} as it requests the write, so a
+   * change that lands after the write started dirties the next one.
+   */
+  get dirty(): boolean {
+    return this._dirty;
   }
 
-  clearForceFlag(): void {
-    this._forceNextUpdate = false;
+  markPersisted(): void {
+    this._dirty = false;
   }
 
   /** Fold one canonical event into the transcript. Never throws: a handler's error is logged and the stream goes on. */
@@ -247,13 +285,13 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
     if (idx >= 0) {
       if (artifacts[idx].contentHash !== artifact.contentHash) {
         artifacts[idx] = artifact;
-        this._forceNextUpdate = true;
+        this._dirty = true;
       }
       return;
     }
 
     artifacts.push(artifact);
-    this._forceNextUpdate = true;
+    this._dirty = true;
   }
 
   addWriteBack(wb: WorkspaceWriteBack): void {
@@ -265,7 +303,7 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
     } else {
       backs.push(wb);
     }
-    this._forceNextUpdate = true;
+    this._dirty = true;
   }
 
   // ── Sub-Agent Rows ─────────────────────────────────────────────────
@@ -284,7 +322,7 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
       startedAt: utcTimestamp(),
     });
     this.state.openSubAgent(row);
-    this._forceNextUpdate = true;
+    this._dirty = true;
   }
 
   private closeSubAgent(event: SubAgentFinishedEvent): void {
@@ -294,7 +332,7 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
     scope.row.completedAt = utcTimestamp();
     if (event.output !== undefined) scope.row.output = event.output;
     finalizeStreaming(scope.transcript);
-    this._forceNextUpdate = true;
+    this._dirty = true;
   }
 
   private failSubAgent(event: SubAgentFailedEvent): void {
@@ -304,7 +342,7 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
     scope.row.completedAt = utcTimestamp();
     scope.row.error = event.error;
     finalizeStreaming(scope.transcript);
-    this._forceNextUpdate = true;
+    this._dirty = true;
   }
 
   // ── Message Handlers ───────────────────────────────────────────────
@@ -384,7 +422,7 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
         if (!existing.args) existing.args = input as JsonObject;
         if (!existing.argsPreview) stampArgsPreview(existing, input);
       }
-      this._forceNextUpdate = true;
+      this._dirty = true;
       return;
     }
 
@@ -441,7 +479,7 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
     parentMsg.toolCalls.push(tc);
     scope.toolCalls.set(callId, tc);
 
-    this._forceNextUpdate = true;
+    this._dirty = true;
   }
 
   private handleToolFinished(scope: Transcript, callId: string, result: string, observedAt?: string): void {
@@ -491,7 +529,7 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
       applyTodoUpdate(this.state.proto.todos, tc.args?.todos, { merge: tc.args?.merge === true });
     }
 
-    this._forceNextUpdate = true;
+    this._dirty = true;
   }
 
   private handleToolError(scope: Transcript, callId: string, message: string, observedAt?: string): void {
@@ -514,7 +552,7 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
 
     // The same no-change rule as a finish (Q-M4-8).
     if (wasSettled && !messageChanged) return;
-    this._forceNextUpdate = true;
+    this._dirty = true;
   }
 
   private handleToolArgDelta(scope: Transcript, callId: string, argsChunk: string): void {
@@ -575,7 +613,7 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
       if (event.contentDigest) existing.approvalContentDigest = event.contentDigest;
       stopStreaming(existing);
       this._awaitingApproval = true;
-      this._forceNextUpdate = true;
+      this._dirty = true;
       return;
     }
 
@@ -607,7 +645,7 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
     parentMsg.toolCalls.push(tc);
     scope.toolCalls.set(event.callId, tc);
     this._awaitingApproval = true;
-    this._forceNextUpdate = true;
+    this._dirty = true;
   }
 
   private appendSystemNote(scope: Transcript, text: string): void {
@@ -616,7 +654,7 @@ export class TranscriptBuilder implements ExecutionStatusWriter {
       content: text,
       timestamp: utcTimestamp(),
     }));
-    this._forceNextUpdate = true;
+    this._dirty = true;
   }
 
   // ── Content Helpers ───────────────────────────────────────────────

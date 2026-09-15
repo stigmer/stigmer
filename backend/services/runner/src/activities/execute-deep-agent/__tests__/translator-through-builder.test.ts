@@ -77,14 +77,14 @@ describe("the native translator through the builder", () => {
   describe("initialization", () => {
     it("writes neither phase nor startedAt (the turn runtime owns both; S3 M2a, Q-M2a-7)", () => {
       const sb = makeBuilder();
-      expect(sb.currentStatus.phase).toBe(ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED);
-      expect(sb.currentStatus.startedAt).toBe("");
+      expect(sb.status.phase).toBe(ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED);
+      expect(sb.status.startedAt).toBe("");
       expect(sb.awaitingApproval).toBe(false);
     });
 
-    it("starts with forceNextUpdate = false", () => {
+    it("starts with dirty = false", () => {
       const sb = makeBuilder();
-      expect(sb.forceNextUpdate).toBe(false);
+      expect(sb.dirty).toBe(false);
     });
   });
 
@@ -116,7 +116,7 @@ describe("the native translator through the builder", () => {
           }),
         ]);
 
-        const status = sb.currentStatus;
+        const status = sb.status;
 
         expect(status.messages).toHaveLength(2);
         expect(status.messages[0].type).toBe(MessageType.MESSAGE_AI);
@@ -155,7 +155,7 @@ describe("the native translator through the builder", () => {
           }),
         ]);
 
-        const status = sb.currentStatus;
+        const status = sb.status;
 
         expect(status.messages).toHaveLength(3);
 
@@ -193,7 +193,7 @@ describe("the native translator through the builder", () => {
           }),
         ]);
 
-        const status = sb.currentStatus;
+        const status = sb.status;
 
         expect(status.messages).toHaveLength(2);
 
@@ -239,7 +239,7 @@ describe("the native translator through the builder", () => {
           }),
         ]);
 
-        const status = sb.currentStatus;
+        const status = sb.status;
 
         expect(status.messages).toHaveLength(2);
 
@@ -268,7 +268,7 @@ describe("the native translator through the builder", () => {
           makeToolFinished("toolu_1", "content of a"),
         ]);
 
-        const status = sb.currentStatus;
+        const status = sb.status;
 
         const msg = status.messages[0];
         expect(msg.toolCalls).toHaveLength(2);
@@ -314,7 +314,7 @@ describe("the native translator through the builder", () => {
           makeToolStarted("toolu_1", "dangerous_tool", { path: "/etc/shadow" }),
         ], gate);
 
-        const status = sb.currentStatus;
+        const status = sb.status;
         expect(sb.awaitingApproval, "no tool_started parks a row").toBe(false);
         expect(status.phase).toBe(ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED);
 
@@ -363,7 +363,7 @@ describe("the native translator through the builder", () => {
           }),
         ]);
 
-        const status = sb.currentStatus;
+        const status = sb.status;
 
         expect(status.messages).toHaveLength(4);
 
@@ -400,7 +400,7 @@ describe("the native translator through the builder", () => {
         makeToolFinished("toolu_abc123", "contents"),
       ]);
 
-      const tc = sb.currentStatus.messages[0].toolCalls[0];
+      const tc = sb.status.messages[0].toolCalls[0];
       expect(tc.id).toBe("toolu_abc123");
     });
 
@@ -416,7 +416,7 @@ describe("the native translator through the builder", () => {
         makeToolFinished("toolu_1", "ok"),
       ]);
 
-      const tc = sb.currentStatus.messages[0].toolCalls[0];
+      const tc = sb.status.messages[0].toolCalls[0];
       expect(tc.args).toEqual({ thought: "test" });
     });
 
@@ -432,11 +432,11 @@ describe("the native translator through the builder", () => {
         makeToolFinished("toolu_1", " final"),
       ]);
 
-      const tc = sb.currentStatus.messages[0].toolCalls[0];
+      const tc = sb.status.messages[0].toolCalls[0];
       expect(tc.result).toBe(" final");
     });
 
-    it("sets forceNextUpdate on tool start and tool finish", () => {
+    it("sets dirty on tool start and tool finish", () => {
       const sb = makeBuilder();
 
       feedAll(sb, [
@@ -444,20 +444,20 @@ describe("the native translator through the builder", () => {
         makeTextDelta("run-1", "x"),
         makeMessageFinish("run-1", { usage: { input_tokens: 1, output_tokens: 1 } }),
       ]);
-      expect(sb.forceNextUpdate).toBe(false);
+      expect(sb.dirty).toBe(false);
 
       feedAll(sb, [makeToolStarted("toolu_1", "read", {})]);
-      expect(sb.forceNextUpdate).toBe(true);
-      sb.clearForceFlag();
+      expect(sb.dirty).toBe(true);
+      sb.markPersisted();
 
       feedAll(sb, [makeToolFinished("toolu_1", "done")]);
-      expect(sb.forceNextUpdate).toBe(true);
+      expect(sb.dirty).toBe(true);
     });
 
     it("ignores tool-finished for unknown callId", () => {
       const sb = makeBuilder();
       feedAll(sb, [makeToolFinished("unknown_toolu", "some result")]);
-      expect(sb.currentStatus.messages).toHaveLength(0);
+      expect(sb.status.messages).toHaveLength(0);
     });
   });
 
@@ -482,13 +482,13 @@ describe("the native translator through the builder", () => {
         makeToolFinished("todo-1", "Todos updated"),
       ]);
 
-      const todos = sb.currentStatus.todos;
+      const todos = sb.status.todos;
       expect(Object.keys(todos)).toEqual(["todo-0", "todo-1"]);
       expect(todos["todo-0"].content).toBe("Step one");
       expect(todos["todo-0"].status).toBe(TodoStatus.TODO_IN_PROGRESS);
       expect(todos["todo-1"].content).toBe("Step two");
       expect(todos["todo-1"].status).toBe(TodoStatus.TODO_PENDING);
-      expect(sb.forceNextUpdate).toBe(true);
+      expect(sb.dirty).toBe(true);
     });
 
     it("keeps the write_todos ToolCall in messages stamped ToolKind.TODO", () => {
@@ -500,7 +500,7 @@ describe("the native translator through the builder", () => {
         makeToolFinished("todo-1", "Todos updated"),
       ]);
 
-      const toolCalls = sb.currentStatus.messages.flatMap((m) => m.toolCalls);
+      const toolCalls = sb.status.messages.flatMap((m) => m.toolCalls);
       const tc = toolCalls.find((t) => t.name === "write_todos");
       expect(tc).toBeDefined();
       expect(tc!.toolKind).toBe(ToolKind.TODO);
@@ -514,10 +514,10 @@ describe("the native translator through the builder", () => {
         }),
       ]);
       // Tool started but not finished — the state Command has not run yet.
-      expect(Object.keys(sb.currentStatus.todos)).toHaveLength(0);
+      expect(Object.keys(sb.status.todos)).toHaveLength(0);
 
       feedAll(sb, [makeToolFinished("todo-1", "Todos updated")]);
-      expect(Object.keys(sb.currentStatus.todos)).toHaveLength(1);
+      expect(Object.keys(sb.status.todos)).toHaveLength(1);
     });
 
     it("full-replaces the map on a subsequent write_todos", () => {
@@ -536,7 +536,7 @@ describe("the native translator through the builder", () => {
         makeToolFinished("todo-2", "ok"),
       ]);
 
-      const todos = sb.currentStatus.todos;
+      const todos = sb.status.todos;
       expect(Object.keys(todos)).toEqual(["todo-0"]);
       expect(todos["todo-0"].content).toBe("Step two");
       expect(todos["todo-0"].status).toBe(TodoStatus.TODO_COMPLETED);
@@ -553,9 +553,9 @@ describe("the native translator through the builder", () => {
         makeMessageFinish("sub-run", { namespace: subNs }),
       ]);
 
-      expect(sb.currentStatus.messages.map((m) => m.content)).toEqual(["Delegating."]);
-      expect(sb.currentStatus.subAgentExecutions).toHaveLength(1);
-      expect(sb.currentStatus.subAgentExecutions[0].messages.map((m) => m.content)).toEqual(["Working on it."]);
+      expect(sb.status.messages.map((m) => m.content)).toEqual(["Delegating."]);
+      expect(sb.status.subAgentExecutions).toHaveLength(1);
+      expect(sb.status.subAgentExecutions[0].messages.map((m) => m.content)).toEqual(["Working on it."]);
     });
 
     it("does not project a sub-agent's write_todos into parent status.todos", () => {
@@ -577,7 +577,7 @@ describe("the native translator through the builder", () => {
         makeToolFinished("sub-todo", "ok", { namespace: subNs }),
       ]);
 
-      expect(Object.keys(sb.currentStatus.todos)).toHaveLength(0);
+      expect(Object.keys(sb.status.todos)).toHaveLength(0);
     });
   });
   // ═══════════════════════════════════════════════════════════════════
@@ -618,7 +618,7 @@ describe("the native translator through the builder", () => {
       makeMessageFinish("run-1", { usage: { input_tokens: 10, output_tokens: 5 } }),
       makeToolStarted("toolu_1", toolName, input),
     ], gate);
-    return { sb, tc: sb.currentStatus.messages[0].toolCalls[0] };
+    return { sb, tc: sb.status.messages[0].toolCalls[0] };
   }
 
   describe("attribution and provenance on tool_started (S4 M2 C3, option A)", () => {
@@ -691,7 +691,7 @@ describe("the native translator through the builder", () => {
     it("with no gate posture at all (a turn the unit arms drive bare) nothing is attributed", () => {
       const sb = makeBuilder();
       feedAll(sb, [makeToolStarted("toolu_1", "execute", { command: "ls" })]);
-      const tc = sb.currentStatus.messages[0].toolCalls[0];
+      const tc = sb.status.messages[0].toolCalls[0];
       expect(tc.mcpServerSlug).toBe("");
       expect(tc.approvalPolicySource).toBe(ApprovalPolicySource.UNSPECIFIED);
     });
@@ -701,8 +701,8 @@ describe("the native translator through the builder", () => {
     it("a tool start with no prior text creates the AI message that carries it", () => {
       const sb = makeBuilder();
       feedAll(sb, [makeToolStarted("orphan", "read", {})]);
-      expect(sb.currentStatus.messages).toHaveLength(1);
-      expect(sb.currentStatus.messages[0].toolCalls[0].name).toBe("read");
+      expect(sb.status.messages).toHaveLength(1);
+      expect(sb.status.messages[0].toolCalls[0].name).toBe("read");
     });
 
     it("interleaved start/finish pairs settle each row independently", () => {
@@ -716,7 +716,7 @@ describe("the native translator through the builder", () => {
         makeToolStarted("toolu_b", "write", {}),
         makeToolFinished("toolu_b", "done"),
       ]);
-      const rows = sb.currentStatus.messages.flatMap((m) => m.toolCalls);
+      const rows = sb.status.messages.flatMap((m) => m.toolCalls);
       expect(rows.map((r) => r.status)).toEqual([ToolCallStatus.TOOL_CALL_COMPLETED, ToolCallStatus.TOOL_CALL_COMPLETED]);
     });
   });
@@ -778,58 +778,58 @@ describe("the native translator through the builder", () => {
         makeMessageFinish("llm-after", { usage: { input_tokens: 1, output_tokens: 1 } }),
       ], gate);
 
-      const gated = sb.currentStatus.messages.flatMap((m) => m.toolCalls).filter((tc) => tc.id === GATED_ID);
+      const gated = sb.status.messages.flatMap((m) => m.toolCalls).filter((tc) => tc.id === GATED_ID);
       expect(gated).toHaveLength(1);
       expect(gated[0].status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
       expect(gated[0].result).toContain("tool executed ok");
       expect(gated[0].args, "the resumed start fills the args the seed lacked").toEqual({ target: "prod" });
-      const allText = sb.currentStatus.messages.map((m) => m.content).join("\n");
+      const allText = sb.status.messages.map((m) => m.content).join("\n");
       expect(allText).toContain("I'll call the gated tool.");
       expect(allText).toContain("All done.");
       expect(sb.awaitingApproval, "a resumed tool never re-gates").toBe(false);
     });
   });
 
-  describe("artifacts and write-backs (the ExecutionStatusWriter face)", () => {
+  describe("artifacts and write-backs (Q-S4-8)", () => {
     const artifact = (sandboxPath: string, contentHash: string) =>
       create(ExecutionArtifactSchema, { sandboxPath, contentHash, storageKey: `k/${contentHash}` });
 
     it("appends a new artifact and forces the next persist", () => {
       const sb = makeBuilder();
       sb.addArtifact(artifact("out/a.txt", "h1"));
-      expect(sb.currentStatus.artifacts).toHaveLength(1);
-      expect(sb.forceNextUpdate).toBe(true);
+      expect(sb.status.artifacts).toHaveLength(1);
+      expect(sb.dirty).toBe(true);
     });
 
     it("deduplicates by sandboxPath: the same contentHash is a no-op that does not force a persist", () => {
       const sb = makeBuilder();
       sb.addArtifact(artifact("out/a.txt", "h1"));
-      sb.clearForceFlag();
+      sb.markPersisted();
       sb.addArtifact(artifact("out/a.txt", "h1"));
-      expect(sb.currentStatus.artifacts).toHaveLength(1);
-      expect(sb.forceNextUpdate).toBe(false);
+      expect(sb.status.artifacts).toHaveLength(1);
+      expect(sb.dirty).toBe(false);
     });
 
     it("replaces the artifact in place when its contentHash changes", () => {
       const sb = makeBuilder();
       sb.addArtifact(artifact("out/a.txt", "h1"));
-      sb.clearForceFlag();
+      sb.markPersisted();
       sb.addArtifact(artifact("out/a.txt", "h2"));
-      expect(sb.currentStatus.artifacts).toHaveLength(1);
-      expect(sb.currentStatus.artifacts[0].contentHash).toBe("h2");
-      expect(sb.forceNextUpdate).toBe(true);
+      expect(sb.status.artifacts).toHaveLength(1);
+      expect(sb.status.artifacts[0].contentHash).toBe("h2");
+      expect(sb.dirty).toBe(true);
     });
 
     it("upserts write-backs by workspaceEntryName, tracking entries independently", () => {
       const sb = makeBuilder();
       sb.addWriteBack(create(WorkspaceWriteBackSchema, { workspaceEntryName: "repo-a", branchName: "stigmer/s1" }));
       sb.addWriteBack(create(WorkspaceWriteBackSchema, { workspaceEntryName: "repo-b", branchName: "stigmer/s1" }));
-      sb.clearForceFlag();
+      sb.markPersisted();
       sb.addWriteBack(create(WorkspaceWriteBackSchema, { workspaceEntryName: "repo-a", branchName: "stigmer/s1", pullRequestUrl: "https://example/pr/1" }));
-      const backs = sb.currentStatus.workspaceWriteBacks;
+      const backs = sb.status.workspaceWriteBacks;
       expect(backs.map((b) => b.workspaceEntryName)).toEqual(["repo-a", "repo-b"]);
       expect(backs[0].pullRequestUrl).toBe("https://example/pr/1");
-      expect(sb.forceNextUpdate).toBe(true);
+      expect(sb.dirty).toBe(true);
     });
   });
 });
